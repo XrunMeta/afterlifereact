@@ -35,16 +35,16 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     >
       <View style={styles.row}>
         {}
-        <View style={styles.left}>
-          {showBackButton && (
+        {showBackButton && (
+          <View style={styles.left}>
             <TouchableOpacity
               onPress={onBackPress}
               style={styles.backButton}
             >
               <Feather name="arrow-left" size={24} color={transparent ? COLORS.white : COLORS.zinc900} />
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
 
         {}
         <View style={styles.center}>

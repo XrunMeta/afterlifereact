@@ -130,7 +130,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       {}
       <FlatList
         ref={flatListRef}
