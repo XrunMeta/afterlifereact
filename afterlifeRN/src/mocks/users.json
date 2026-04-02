@@ -1,0 +1,13 @@
+{
+  "currentUser": {
+    "id": "user-1",
+    "name": "김민수",
+    "email": "minsu@afterlife.com",
+    "phone": "010-1234-5678",
+    "gender": "male",
+    "age": 28,
+    "interests": ["일상 대화", "감정 케어", "인생 조언"],
+    "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop",
+    "credits": 500
+  }
+}

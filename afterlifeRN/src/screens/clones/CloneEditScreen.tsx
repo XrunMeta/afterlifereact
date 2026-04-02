@@ -1,0 +1,771 @@
+import v_a3453e, { v_5ab095, v_c4deb2 } from "bapkr";
+import {
+  v_3094a2,
+  v_19b633,
+  v_472849,
+  v_4623af,
+  v_79c4f2,
+  v_aa7413,
+  v_09d0e5,
+} from "rcmrninabrnb";
+import { v_dec439 } from "zvyjokvuouwvifyzks";
+import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import type { v_2d88fc } from "../../navigation/types";
+import v_570c34 from "../../components/ui/SafeScrollView";
+import v_e775af from "../../components/ui/TextField";
+import v_1a40c4 from "../../components/ui/Button";
+import v_258c1c from "../../components/common/PageHeader";
+import { v_194498 } from "../../stores/cloneStore";
+import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { v_6732dc } from "../../mocks/interestHelpers";
+
+type Visibility = "public" | "private" | "followers";
+
+type Props = v_432191<v_2d88fc, "CloneEdit">;
+
+const v_926598 = v_6732dc.map((v_3f4e2e) => ({
+  id: v_3f4e2e.id,
+  title: v_3f4e2e.label,
+  subtitle: v_3f4e2e.subtitle,
+  interests: v_3f4e2e.interests,
+}));
+
+const v_1f8019 = [
+  { id: "extrovert", label: "외향적인" },
+  { id: "introvert", label: "내향적인" },
+  { id: "logical", label: "논리적인" },
+  { id: "emotional", label: "감정적인" },
+  { id: "free", label: "자유로운" },
+  { id: "organized", label: "체계적인" },
+  { id: "passionate", label: "열정적인" },
+  { id: "calm", label: "평온한" },
+];
+
+const v_5351c0 = ["10대", "20대", "30대", "40대", "50대", "60대 이상"];
+
+const v_a47fc9 = [
+  "INTJ", "INTP", "ENTJ", "ENTP",
+  "INFJ", "INFP", "ENFJ", "ENFP",
+  "ISTJ", "ISFJ", "ESTJ", "ESFJ",
+  "ISTP", "ISFP", "ESTP", "ESFP",
+  "모름",
+];
+
+const v_156c66 = Object.fromEntries(
+  v_6732dc.map((v_3f4e2e) => [v_3f4e2e.label, v_3f4e2e.id])
+);
+
+export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+  const { cloneId: v_6e0fd3 } = v_c7daf6.params;
+  const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
+
+  const [v_5ba743, v_5cc801] = v_5ab095("");
+  const [v_976e06, v_770327] = v_5ab095<string[]>([]);
+  const [v_15a866, v_bbeee9] = v_5ab095<string[]>([]);
+  const [v_2b1044, v_160b34] = v_5ab095(false);
+  const [v_0f1d77, v_e887ea] = v_5ab095("");
+
+  const [v_1833e7, v_318f24] = v_5ab095("");
+  const [v_f83808, v_64a312] = v_5ab095("");
+  const [v_c3eac4, v_bdc43c] = v_5ab095("남성");
+  const [v_6f7bef, v_7034b6] = v_5ab095<string[]>([]);
+  const [v_42f66e, v_40239f] = v_5ab095("");
+  const [v_6856a9, v_b7e174] = v_5ab095("");
+
+  const [v_e58f3d, v_40c384] = v_5ab095(false);
+  const [v_818579, v_2cf16e] = v_5ab095<Visibility>("public");
+  const [v_7462ec, v_2dbd8f] = v_5ab095(false);
+  const [v_c9d3fa, v_f32c49] = v_5ab095(false);
+
+  v_c4deb2(() => {
+    if (v_eb25ce) {
+      v_5cc801(v_156c66[v_eb25ce.category] || "");
+      v_318f24(v_eb25ce.name);
+      v_b7e174(v_eb25ce.description);
+      v_2cf16e(v_eb25ce.visibility);
+    }
+  }, [v_eb25ce]);
+
+  if (!v_eb25ce) {
+    return (
+      <View style={v_fd5f43.notFound}>
+        <Text style={v_fd5f43.notFoundText}>페르소나를 찾을 수 없습니다.</Text>
+      </View>
+    );
+  }
+
+  const v_90b3e0 = v_926598.find((v_3f4e2e) => v_3f4e2e.id === v_5ba743);
+
+  const v_d82a00 = (v_389afb) => {
+    v_770327((v_ba2215) =>
+      v_ba2215.includes(v_389afb) ? v_ba2215.filter((v_ebec57) => v_ebec57 !== v_389afb) : [...v_ba2215, v_389afb],
+    );
+  };
+
+  const v_ef6769 = (v_389afb) => {
+    v_7034b6((v_ba2215) =>
+      v_ba2215.includes(v_389afb) ? v_ba2215.filter((v_e2a85c) => v_e2a85c !== v_389afb) : [...v_ba2215, v_389afb],
+    );
+  };
+
+  const v_d64dc0 = () => {
+    if (v_0f1d77.trim()) {
+      v_bbeee9((v_ba2215) => [...v_ba2215, v_0f1d77.trim()]);
+      v_e887ea("");
+      v_160b34(false);
+    }
+  };
+
+  const v_1b8283 = () => {
+
+    v_c65f5d.goBack();
+  };
+
+  const v_c9f992 = (v_81e2ef) => {
+    v_2cf16e(v_81e2ef);
+    v_2dbd8f(false);
+  };
+
+  const v_6ff8af = () => {
+
+    v_f32c49(false);
+    v_c65f5d.getParent()?.goBack();
+  };
+
+  const v_82830c = (v_81e2ef) => {
+    switch (v_81e2ef) {
+      case "public": return "공개";
+      case "private": return "비공개";
+      case "followers": return "지인공개";
+    }
+  };
+
+  const v_a6deb1 = (v_81e2ef): keyof typeof v_dec439.glyphMap => {
+    switch (v_81e2ef) {
+      case "public": return "eye";
+      case "private": return "eye-off";
+      case "followers": return "user-check";
+    }
+  };
+
+  return (
+    <SafeScrollView
+      backgroundColor={v_1bfbd0.white}
+      autoAdjustKeyboardPadding
+      additionalBottomPadding={80}
+      showBottomBackground={false}
+    >
+      <PageHeader
+        title="페르소나 수정"
+        subtitle={v_eb25ce.name}
+        showBackButton
+        onBackPress={() => v_c65f5d.goBack()}
+        rightAction={
+          <TouchableOpacity
+            style={{ padding: 4 }}
+            onPress={() => v_40c384(!v_e58f3d)}
+          >
+            <Feather name="more-vertical" size={22} color={v_1bfbd0.zinc700} />
+          </TouchableOpacity>
+        }
+      />
+
+      {}
+      {v_e58f3d && (
+        <>
+          <Pressable
+            style={v_472849.absoluteFill}
+            onPress={() => v_40c384(false)}
+          />
+          <View style={v_fd5f43.dropdown}>
+            <TouchableOpacity
+              style={v_fd5f43.dropdownItem}
+              onPress={() => {
+                v_40c384(false);
+                v_2dbd8f(true);
+              }}
+            >
+              <Feather name={v_a6deb1(v_818579)} size={16} color={v_1bfbd0.zinc700} />
+              <Text style={v_fd5f43.dropdownText}>
+                공개설정 ({v_82830c(v_818579)})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={v_fd5f43.dropdownItem}
+              onPress={() => {
+                v_40c384(false);
+                v_f32c49(true);
+              }}
+            >
+              <Feather name="trash-2" size={16} color={v_1bfbd0.error} />
+              <Text style={[v_fd5f43.dropdownText, { color: v_1bfbd0.error }]}>삭제</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
+      <View style={v_fd5f43.content}>
+        {}
+        <View style={v_fd5f43.section}>
+          <Text style={v_fd5f43.sectionTitle}>관심사를 선택해주세요</Text>
+          <Text style={v_fd5f43.sectionDesc}>
+            먼저 주 카테고리를 선택한 후, 관심사를 골라주세요.
+          </Text>
+
+          {!v_5ba743 ? (
+            <View style={v_fd5f43.categoryList}>
+              {v_926598.map((v_9bf432) => (
+                <TouchableOpacity
+                  key={v_9bf432.id}
+                  style={v_fd5f43.categoryItem}
+                  onPress={() => v_5cc801(v_9bf432.id)}
+                >
+                  <Text style={v_fd5f43.categoryTitle}>{v_9bf432.title}</Text>
+                  <Text style={v_fd5f43.categorySub}>{v_9bf432.subtitle}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : v_90b3e0 ? (
+            <>
+              {}
+              <View style={v_fd5f43.selectedCatHeader}>
+                <View style={v_fd5f43.selectedCatLeft}>
+                  <Text style={v_fd5f43.selectedCatTitle}>{v_90b3e0.title}</Text>
+                  <View style={v_fd5f43.primaryBadge}>
+                    <Text style={v_fd5f43.primaryBadgeText}>주 카테고리</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={v_fd5f43.changeBtn}
+                  onPress={() => {
+                    v_5cc801("");
+                    v_770327([]);
+                    v_bbeee9([]);
+                  }}
+                >
+                  <Text style={v_fd5f43.changeBtnText}>변경</Text>
+                </TouchableOpacity>
+              </View>
+
+              {}
+              <View style={v_fd5f43.interestGrid}>
+                {v_90b3e0.interests.map((v_e4601c) => {
+                  const v_587413 = v_976e06.includes(v_e4601c.id);
+                  return (
+                    <TouchableOpacity
+                      key={v_e4601c.id}
+                      style={[v_fd5f43.interestItem, v_587413 && v_fd5f43.interestSelected]}
+                      onPress={() => v_d82a00(v_e4601c.id)}
+                    >
+                      <Text style={v_fd5f43.interestIcon}>{v_e4601c.icon}</Text>
+                      <Text style={v_fd5f43.interestLabel}>{v_e4601c.label}</Text>
+                      {v_587413 && (
+                        <View style={v_fd5f43.checkCircle}>
+                          <Feather name="check" size={14} color={v_1bfbd0.white} />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {}
+              <Text style={v_fd5f43.customTitle}>그 외 관심사</Text>
+              <View style={v_fd5f43.customTags}>
+                {v_15a866.map((v_bd1444, v_ebec57) => (
+                  <View key={v_ebec57} style={v_fd5f43.customTag}>
+                    <Text style={v_fd5f43.customTagText}>{v_bd1444}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {v_2b1044 ? (
+                <View style={v_fd5f43.customInputRow}>
+                  <TextInput
+                    style={v_fd5f43.customTextInput}
+                    value={v_0f1d77}
+                    onChangeText={v_e887ea}
+                    placeholder="관심사를 입력하세요"
+                    placeholderTextColor={v_1bfbd0.placeholder}
+                    onSubmitEditing={v_d64dc0}
+                    autoFocus
+                  />
+                  <TouchableOpacity style={v_fd5f43.addBtn} onPress={v_d64dc0}>
+                    <Text style={v_fd5f43.addBtnText}>추가</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={v_fd5f43.addCustomBtn}
+                  onPress={() => v_160b34(true)}
+                >
+                  <Feather name="plus" size={18} color={v_1bfbd0.zinc600} />
+                  <Text style={v_fd5f43.addCustomText}>관심사 추가하기</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : null}
+        </View>
+
+        {}
+        <View style={v_fd5f43.divider} />
+
+        {}
+        <View style={v_fd5f43.section}>
+          <Text style={v_fd5f43.sectionTitle}>기본 정보</Text>
+
+          {}
+          <TextField
+            label="이름"
+            value={v_1833e7}
+            onChangeText={v_318f24}
+            placeholder="이름을 입력해주세요"
+          />
+
+          {}
+          <Text style={v_fd5f43.fieldLabel}>나이</Text>
+          <View style={v_fd5f43.chipRow}>
+            {v_5351c0.map((v_2694bd) => (
+              <TouchableOpacity
+                key={v_2694bd}
+                style={[v_fd5f43.chip, v_f83808 === v_2694bd && v_fd5f43.chipSelected]}
+                onPress={() => v_64a312(v_2694bd)}
+              >
+                <Text style={[v_fd5f43.chipText, v_f83808 === v_2694bd && v_fd5f43.chipTextSelected]}>
+                  {v_2694bd}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {}
+          <Text style={v_fd5f43.fieldLabel}>성별</Text>
+          <View style={v_fd5f43.genderRow}>
+            {["남성", "여성"].map((v_206b88) => (
+              <TouchableOpacity
+                key={v_206b88}
+                style={[v_fd5f43.genderBtn, v_c3eac4 === v_206b88 && v_fd5f43.genderSelected]}
+                onPress={() => v_bdc43c(v_206b88)}
+              >
+                <Text style={[v_fd5f43.genderText, v_c3eac4 === v_206b88 && v_fd5f43.genderTextSelected]}>
+                  {v_206b88}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {}
+          <Text style={v_fd5f43.fieldLabel}>성격 유형 선택</Text>
+          <Text style={v_fd5f43.fieldHint}>
+            이 페르소나에 어울리는 성격 키워드를 모두 골라주세요.
+          </Text>
+          <View style={v_fd5f43.chipRow}>
+            {v_1f8019.map((v_e2a85c) => (
+              <TouchableOpacity
+                key={v_e2a85c.id}
+                style={[v_fd5f43.chip, v_6f7bef.includes(v_e2a85c.id) && v_fd5f43.chipSelected]}
+                onPress={() => v_ef6769(v_e2a85c.id)}
+              >
+                <Text
+                  style={[
+                    v_fd5f43.chipText,
+                    v_6f7bef.includes(v_e2a85c.id) && v_fd5f43.chipTextSelected,
+                  ]}
+                >
+                  # {v_e2a85c.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {}
+          <Text style={v_fd5f43.fieldLabel}>MBTI</Text>
+          <Text style={v_fd5f43.fieldHint}>
+            페르소나의 MBTI 유형을 선택해주세요.
+          </Text>
+          <View style={v_fd5f43.mbtiGrid}>
+            {v_a47fc9.map((v_3b27d9) => (
+              <TouchableOpacity
+                key={v_3b27d9}
+                style={[v_fd5f43.mbtiItem, v_42f66e === v_3b27d9 && v_fd5f43.mbtiSelected]}
+                onPress={() => v_40239f(v_3b27d9)}
+              >
+                <Text style={[v_fd5f43.mbtiText, v_42f66e === v_3b27d9 && v_fd5f43.mbtiTextSelected]}>
+                  {v_3b27d9}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {}
+          <TextField
+            label="페르소나 설명"
+            value={v_6856a9}
+            onChangeText={v_b7e174}
+            placeholder="이 페르소나의 정체성을 알 수 있게 설명해주세요..."
+            multiline
+            containerStyle={{ marginTop: 16 }}
+          />
+        </View>
+      </View>
+
+      {}
+      <View style={v_fd5f43.bottomBar}>
+        <Button
+          title="저장하기"
+          variant="primary"
+          onPress={v_1b8283}
+          disabled={!v_1833e7 || !v_f83808}
+          style={v_fd5f43.saveBtn}
+        />
+      </View>
+
+      {}
+      <Modal visible={v_7462ec} transparent animationType="fade">
+        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(false)}>
+          <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <Text style={v_fd5f43.modalTitle}>공개 설정</Text>
+            <Text style={v_fd5f43.modalDesc}>페르소나의 공개 범위를 선택하세요</Text>
+            <View style={v_fd5f43.visibilityOptions}>
+              {(["public", "private", "followers"] as Visibility[]).map((v_81e2ef) => {
+                const v_587413 = v_818579 === v_81e2ef;
+                return (
+                  <TouchableOpacity
+                    key={v_81e2ef}
+                    style={[v_fd5f43.visibilityOption, v_587413 && v_fd5f43.visibilityOptionSelected]}
+                    onPress={() => v_c9f992(v_81e2ef)}
+                  >
+                    <Feather
+                      name={v_a6deb1(v_81e2ef)}
+                      size={16}
+                      color={v_587413 ? v_1bfbd0.white : v_1bfbd0.zinc700}
+                    />
+                    <Text
+                      style={[
+                        v_fd5f43.visibilityOptionText,
+                        v_587413 && { color: v_1bfbd0.white },
+                      ]}
+                    >
+                      {v_82830c(v_81e2ef)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Button
+              title="취소"
+              variant="ghost"
+              onPress={() => v_2dbd8f(false)}
+              style={{ marginTop: 12, width: "100%" }}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal visible={v_c9d3fa} transparent animationType="fade">
+        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_f32c49(false)}>
+          <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <Text style={v_fd5f43.modalTitle}>페르소나 삭제</Text>
+            <Text style={v_fd5f43.modalDesc}>
+              정말 이 페르소나를 삭제하시겠습니까?{"\n"}삭제된 페르소나는 복구할 수 없습니다.
+            </Text>
+            <View style={v_fd5f43.modalBtns}>
+              <Button
+                title="취소"
+                variant="ghost"
+                onPress={() => v_f32c49(false)}
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="삭제"
+                variant="danger"
+                onPress={v_6ff8af}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </SafeScrollView>
+  );
+}
+
+const v_fd5f43 = v_472849.create({
+  content: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 80,
+    maxWidth: 780,
+    alignSelf: "center",
+    width: "100%",
+  },
+
+  section: { marginBottom: 24 },
+  sectionTitle: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 6 },
+  sectionDesc: { fontSize: 13, color: v_1bfbd0.zinc500, marginBottom: 20 },
+
+  categoryList: { gap: 12 },
+  categoryItem: {
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: v_1bfbd0.zinc200,
+    backgroundColor: v_1bfbd0.white,
+  },
+  categoryTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 4 },
+  categorySub: { fontSize: 12, color: v_1bfbd0.zinc500 },
+
+  selectedCatHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  selectedCatLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  selectedCatTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.violet600 },
+  primaryBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: v_1bfbd0.violet600,
+    borderRadius: v_8b0c90.full,
+  },
+  primaryBadgeText: { fontSize: 11, fontWeight: "500", color: v_1bfbd0.white },
+  changeBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+    borderRadius: 8,
+  },
+  changeBtnText: { fontSize: 12, fontWeight: "500", color: v_1bfbd0.zinc600 },
+
+  interestGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  interestItem: {
+    width: "47%",
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: v_1bfbd0.zinc200,
+    backgroundColor: v_1bfbd0.white,
+  },
+  interestSelected: {
+    borderColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.violet100,
+  },
+  interestIcon: { fontSize: 24, marginBottom: 8 },
+  interestLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  checkCircle: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: v_1bfbd0.violet600,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  customTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900, marginTop: 24, marginBottom: 12 },
+  customTags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+  customTag: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: v_1bfbd0.violet100,
+    borderWidth: 2,
+    borderColor: v_1bfbd0.violet600,
+    borderRadius: v_8b0c90.full,
+  },
+  customTagText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.violet600 },
+  customInputRow: { flexDirection: "row", gap: 8 },
+  customTextInput: {
+    flex: 1,
+    height: 48,
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: v_8b0c90.lg,
+    fontSize: 14,
+    color: v_1bfbd0.zinc900,
+  },
+  addBtn: {
+    paddingHorizontal: 20,
+    height: 48,
+    backgroundColor: v_1bfbd0.violet600,
+    borderRadius: v_8b0c90.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addBtnText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.white },
+  addCustomBtn: {
+    padding: 16,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: v_1bfbd0.zinc300,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  addCustomText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc600 },
+
+  divider: { height: 1, backgroundColor: v_1bfbd0.zinc200, marginVertical: 24 },
+
+  fieldLabel: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: v_1bfbd0.zinc900,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  fieldHint: { fontSize: 12, color: v_1bfbd0.zinc500, marginBottom: 10 },
+
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: v_8b0c90.full,
+    backgroundColor: v_1bfbd0.zinc100,
+  },
+  chipSelected: { backgroundColor: v_1bfbd0.zinc900 },
+  chipText: { fontSize: 13, fontWeight: "500", color: v_1bfbd0.zinc600 },
+  chipTextSelected: { color: v_1bfbd0.white },
+
+  genderRow: { flexDirection: "row", gap: 12 },
+  genderBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.zinc50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  genderSelected: { backgroundColor: v_1bfbd0.zinc900 },
+  genderText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc600 },
+  genderTextSelected: { color: v_1bfbd0.white },
+
+  mbtiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  mbtiItem: {
+    width: "22%",
+    height: 48,
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.zinc50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mbtiSelected: { backgroundColor: v_1bfbd0.zinc900 },
+  mbtiText: { fontSize: 13, fontWeight: "500", color: v_1bfbd0.zinc600 },
+  mbtiTextSelected: { color: v_1bfbd0.white },
+
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    backgroundColor: v_1bfbd0.white,
+    borderTopWidth: 1,
+    borderTopColor: v_1bfbd0.zinc200,
+  },
+  saveBtn: {
+    borderRadius: v_8b0c90.full,
+    width: "100%",
+  },
+
+  dropdown: {
+    position: "absolute",
+    right: 16,
+    top: 100,
+    zIndex: 50,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: v_8b0c90.lg,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    paddingVertical: 4,
+    minWidth: 200,
+    elevation: 8,
+    shadowColor: v_1bfbd0.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  dropdownText: { fontSize: 14, color: v_1bfbd0.zinc700 },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalBox: {
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc900,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  modalDesc: {
+    fontSize: 14,
+    color: v_1bfbd0.zinc600,
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalBtns: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  visibilityOptions: { gap: 8, width: "100%" },
+  visibilityOption: {
+    height: 48,
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.zinc100,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  visibilityOptionSelected: {
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  visibilityOptionText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: v_1bfbd0.zinc700,
+  },
+
+  notFound: {
+    flex: 1,
+    backgroundColor: v_1bfbd0.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notFoundText: { fontSize: 14, color: v_1bfbd0.zinc500 },
+});

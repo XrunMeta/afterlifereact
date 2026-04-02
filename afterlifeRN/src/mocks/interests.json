@@ -1,0 +1,50 @@
+[
+  {
+    "id": "daily",
+    "label": "일상 및 감정 케어",
+    "emoji": "💛",
+    "subtitle": "Emotional & Daily",
+    "interests": [
+      { "id": "daily-talk", "label": "일상 대화", "icon": "💬" },
+      { "id": "emotion", "label": "감정 케어", "icon": "😢" },
+      { "id": "memory", "label": "추억 공유", "icon": "📸" },
+      { "id": "advice", "label": "인생 조언", "icon": "💪" }
+    ]
+  },
+  {
+    "id": "hobby",
+    "label": "엔터테인먼트 및 취미",
+    "emoji": "🎮",
+    "subtitle": "Hobby & Fun",
+    "interests": [
+      { "id": "entertainment", "label": "엔터테인먼트", "icon": "⭐" },
+      { "id": "hobby-leisure", "label": "취미/여가", "icon": "🎮" },
+      { "id": "humor", "label": "유머/재미", "icon": "😄" },
+      { "id": "music-movie", "label": "음악/영화", "icon": "🎵" }
+    ]
+  },
+  {
+    "id": "expert",
+    "label": "전문 지식 및 자기계발",
+    "emoji": "📚",
+    "subtitle": "Expert & Growth",
+    "interests": [
+      { "id": "learning", "label": "학습 도우미", "icon": "🗣️" },
+      { "id": "career", "label": "커리어 조언", "icon": "💼" },
+      { "id": "health", "label": "건강 관리", "icon": "🏃" },
+      { "id": "finance", "label": "재테크", "icon": "💰" }
+    ]
+  },
+  {
+    "id": "special",
+    "label": "특수 페르소나",
+    "emoji": "✨",
+    "subtitle": "Special Persona",
+    "interests": [
+      { "id": "pet", "label": "반려동물", "icon": "🐾" },
+      { "id": "memorial", "label": "추모/기념", "icon": "🕯️" },
+      { "id": "healing", "label": "힐링", "icon": "🌿" },
+      { "id": "meditation", "label": "명상", "icon": "🧘" }
+    ]
+  }
+]
