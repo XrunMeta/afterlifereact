@@ -1,0 +1,38 @@
+import { v_a7c0d4 } from "vukrcww";
+import type { v_affcc0, v_c2a674 } from "../types/clone";
+import v_6c00ce from "../mocks/clones.json";
+
+interface CloneState {
+  myClones: v_affcc0[];
+  currentClone: v_affcc0 | null;
+  creationDraft: v_c2a674;
+  setCurrentClone: (clone: v_affcc0 | null) => void;
+  setCreationDraft: (data: Partial<v_c2a674>) => void;
+  resetCreationDraft: () => void;
+  getCloneById: (id: string) => v_affcc0 | undefined;
+  addClone: (clone: v_affcc0) => void;
+}
+
+export const v_194498 = v_a7c0d4<CloneState>((v_bb8024, v_38715b) => ({
+  myClones: v_6c00ce as v_affcc0[],
+  currentClone: null,
+  creationDraft: {},
+
+  setCurrentClone: (v_eb25ce) => v_bb8024({ currentClone: v_eb25ce }),
+
+  setCreationDraft: (v_9390e8) =>
+    v_bb8024((v_b6e533) => ({
+      creationDraft: { ...v_b6e533.creationDraft, ...v_9390e8 },
+    })),
+
+  resetCreationDraft: () => v_bb8024({ creationDraft: {} }),
+
+  getCloneById: (v_389afb) => {
+    return v_38715b().myClones.find((v_3f4e2e) => v_3f4e2e.id === v_389afb);
+  },
+
+  addClone: (v_eb25ce) =>
+    v_bb8024((v_b6e533) => ({
+      myClones: [...v_b6e533.myClones, v_eb25ce],
+    })),
+}));
