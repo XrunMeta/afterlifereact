@@ -1,0 +1,24 @@
+{
+  "name": "afterlifeapi",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply afterlife-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply afterlife-db --remote"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@hono/node-server": "^1.19.12",
+    "hono": "^4.12.10"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260402.1",
+    "typescript": "^6.0.2",
+    "wrangler": "^4.80.0"
+  }
+}
