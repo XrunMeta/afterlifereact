@@ -1,0 +1,12 @@
+[
+  { "id": "msg-1", "senderId": "clone-1", "senderType": "clone", "text": "안녕하세요, 오늘 하루는 어떠셨나요?", "timestamp": "2026-03-28T10:00:00Z" },
+  { "id": "msg-2", "senderId": "user-1", "senderType": "user", "text": "할아버지, 오늘 좀 힘든 하루였어요.", "timestamp": "2026-03-28T10:01:00Z" },
+  { "id": "msg-3", "senderId": "clone-1", "senderType": "clone", "text": "그랬구나. 무슨 일이 있었는지 말해줄 수 있겠니?", "timestamp": "2026-03-28T10:01:30Z" },
+  { "id": "msg-4", "senderId": "user-1", "senderType": "user", "text": "회사에서 프로젝트가 잘 안 풀렸어요...", "timestamp": "2026-03-28T10:02:00Z" },
+  { "id": "msg-5", "senderId": "clone-1", "senderType": "clone", "text": "일이 뜻대로 안 될 때가 있지. 하지만 네가 최선을 다했다면 그것으로 충분하단다.", "timestamp": "2026-03-28T10:02:30Z" },
+  { "id": "msg-6", "senderId": "user-1", "senderType": "user", "text": "감사해요, 할아버지.", "timestamp": "2026-03-28T10:03:00Z" },
+  { "id": "msg-7", "senderId": "clone-1", "senderType": "clone", "text": "언제든 이야기하고 싶을 때 찾아오렴. 할아버지가 항상 여기 있단다.", "timestamp": "2026-03-28T10:03:30Z" },
+  { "id": "msg-8", "senderId": "user-1", "senderType": "user", "text": "네, 할아버지 덕분에 마음이 편해졌어요.", "timestamp": "2026-03-28T10:04:00Z" },
+  { "id": "msg-9", "senderId": "clone-1", "senderType": "clone", "text": "그래, 오늘 푹 쉬고 내일은 더 좋은 하루가 될 거야.", "timestamp": "2026-03-28T10:04:30Z" },
+  { "id": "msg-10", "senderId": "user-1", "senderType": "user", "text": "잘 자요, 할아버지! 😊", "timestamp": "2026-03-28T10:05:00Z" }
+]
