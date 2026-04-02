@@ -11,7 +11,7 @@ export default function v_6540c3() {
       <SafeAreaProvider>
         <NavigationContainer>
           <RootNavigator />
-          <StatusBar style="dark" />
+          <StatusBar style="light" />
         </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>
