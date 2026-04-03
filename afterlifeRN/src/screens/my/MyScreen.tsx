@@ -21,8 +21,7 @@ const settingsItems: Array<{
   label: string;
   description: string;
 }> = [
-  { icon: "bookmark", label: "저장됨", description: "저장된 페르소나 확인" },
-  { icon: "users", label: "지인관리", description: "지인 페르소나 관리" },
+
   { icon: "user", label: "개인 정보 관리", description: "이메일 및 연동된 SNS 계정 관리" },
   { icon: "bell", label: "알림 설정", description: "업데이트 및 페르소나 메시지 알림" },
   { icon: "shield", label: "개인정보 및 공개 범위", description: "내 콘텐츠 공개 범위 설정" },
