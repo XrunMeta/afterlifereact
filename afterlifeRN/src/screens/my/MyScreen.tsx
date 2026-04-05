@@ -22,10 +22,10 @@ const settingsItems: Array<{
   description: string;
 }> = [
 
-  { icon: "user", label: "개인 정보 관리", description: "이메일 및 연동된 SNS 계정 관리" },
-  { icon: "bell", label: "알림 설정", description: "업데이트 및 페르소나 메시지 알림" },
-  { icon: "shield", label: "개인정보 및 공개 범위", description: "내 콘텐츠 공개 범위 설정" },
-];
+    { icon: "user", label: "개인 정보 관리", description: "이메일 및 연동된 SNS 계정 관리" },
+    { icon: "bell", label: "알림 설정", description: "업데이트 및 페르소나 메시지 알림" },
+    { icon: "shield", label: "개인정보 및 공개 범위", description: "내 콘텐츠 공개 범위 설정" },
+  ];
 
 const recentTransactions = [
   { label: "페르소나 생성", date: "2024.03.25 14:32", amount: -500 },
