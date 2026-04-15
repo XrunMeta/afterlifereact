@@ -26,7 +26,7 @@ const v_584268 = 15;
 const v_a35d13 = "AfterLife Admin";
 const v_266bd3 = "admin_totp.secret";
 
-type PendingPayload = {
+export type PendingPayload = {
   sub: number;
   kind: "admin_pending";
   email: string;
@@ -35,7 +35,7 @@ type PendingPayload = {
   exp?: number;
 } & Record<string, unknown>;
 
-async function v_999554(c: v_437670<v_de0a25>): Promise<PendingPayload> {
+export async function v_999554(c: v_437670<v_de0a25>): Promise<PendingPayload> {
   const v_65a2cd = v_3f4e2e.req.header("Authorization");
   if (!v_65a2cd?.startsWith("Bearer ")) {
     throw new v_3ebe58("UNAUTHENTICATED", "Missing pending token.");
@@ -48,7 +48,7 @@ async function v_999554(c: v_437670<v_de0a25>): Promise<PendingPayload> {
   return v_931bf0;
 }
 
-async function v_8bde96(c: v_437670<v_de0a25>): Promise<PendingPayload> {
+export async function v_8bde96(c: v_437670<v_de0a25>): Promise<PendingPayload> {
   const v_483de2 = await v_999554(v_3f4e2e);
   const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(
     `SELECT is_active, locked_until FROM admin_users WHERE id = ?`,
@@ -60,14 +60,14 @@ async function v_8bde96(c: v_437670<v_de0a25>): Promise<PendingPayload> {
   return v_483de2;
 }
 
-function v_0dd6a5(c: v_437670<v_de0a25>) {
+export function v_0dd6a5(c: v_437670<v_de0a25>) {
   return {
     ip: v_3f4e2e.req.header("CF-Connecting-IP") ?? null,
     userAgent: v_3f4e2e.req.header("User-Agent") ?? null,
   };
 }
 
-async function v_767d31(v_a1651b, v_389afb): Promise<void> {
+export async function v_767d31(v_a1651b, v_389afb): Promise<void> {
   await v_a1651b
     .prepare(
       `UPDATE admin_users
@@ -83,7 +83,7 @@ async function v_767d31(v_a1651b, v_389afb): Promise<void> {
     .run();
 }
 
-async function v_03aa46(v_a1651b, v_389afb): Promise<void> {
+export async function v_03aa46(v_a1651b, v_389afb): Promise<void> {
   await v_a1651b
     .prepare(
       `UPDATE admin_users
@@ -96,7 +96,7 @@ async function v_03aa46(v_a1651b, v_389afb): Promise<void> {
     .run();
 }
 
-function v_107e8b(v_3ac7e7): void {
+export function v_107e8b(v_3ac7e7): void {
   if (!v_3ac7e7.is_active) throw new v_3ebe58("FORBIDDEN", "Account disabled.");
   if (v_3ac7e7.locked_until && new Date(v_3ac7e7.locked_until) > new Date()) {
     throw new v_3ebe58("ACCOUNT_LOCKED", "Too many failures — try again later.");

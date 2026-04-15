@@ -22,6 +22,9 @@ export interface Bindings {
 
   ADMIN_BOOTSTRAP_TOKEN?: string;
 
+  WEBAUTHN_RP_ID: string;        
+  WEBAUTHN_RP_ORIGIN: string;    
+
   ENVIRONMENT: "development" | "staging" | "production";
 }
 
