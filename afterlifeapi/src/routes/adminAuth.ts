@@ -26,7 +26,7 @@ const LOCK_MINUTES = 15;
 const ADMIN_ISSUER = "AfterLife Admin";
 const TOTP_CTX = "admin_totp.secret";
 
-type PendingPayload = {
+export type PendingPayload = {
   sub: number;
   kind: "admin_pending";
   email: string;
@@ -35,7 +35,7 @@ type PendingPayload = {
   exp?: number;
 } & Record<string, unknown>;
 
-async function readPending(c: Context<AppEnv>): Promise<PendingPayload> {
+export async function readPending(c: Context<AppEnv>): Promise<PendingPayload> {
   const h = c.req.header("Authorization");
   if (!h?.startsWith("Bearer ")) {
     throw new APIError("UNAUTHENTICATED", "Missing pending token.");
@@ -48,7 +48,7 @@ async function readPending(c: Context<AppEnv>): Promise<PendingPayload> {
   return payload;
 }
 
-async function readPendingLive(c: Context<AppEnv>): Promise<PendingPayload> {
+export async function readPendingLive(c: Context<AppEnv>): Promise<PendingPayload> {
   const pending = await readPending(c);
   const row = await c.env.DB.prepare(
     `SELECT is_active, locked_until FROM admin_users WHERE id = ?`,
@@ -60,14 +60,14 @@ async function readPendingLive(c: Context<AppEnv>): Promise<PendingPayload> {
   return pending;
 }
 
-function clientMeta(c: Context<AppEnv>) {
+export function clientMeta(c: Context<AppEnv>) {
   return {
     ip: c.req.header("CF-Connecting-IP") ?? null,
     userAgent: c.req.header("User-Agent") ?? null,
   };
 }
 
-async function bumpFailure(db: D1Database, id: number): Promise<void> {
+export async function bumpFailure(db: D1Database, id: number): Promise<void> {
   await db
     .prepare(
       `UPDATE admin_users
@@ -83,7 +83,7 @@ async function bumpFailure(db: D1Database, id: number): Promise<void> {
     .run();
 }
 
-async function resetFailure(db: D1Database, id: number): Promise<void> {
+export async function resetFailure(db: D1Database, id: number): Promise<void> {
   await db
     .prepare(
       `UPDATE admin_users
@@ -96,7 +96,7 @@ async function resetFailure(db: D1Database, id: number): Promise<void> {
     .run();
 }
 
-function assertActive(row: { is_active: number; locked_until: string | null }): void {
+export function assertActive(row: { is_active: number; locked_until: string | null }): void {
   if (!row.is_active) throw new APIError("FORBIDDEN", "Account disabled.");
   if (row.locked_until && new Date(row.locked_until) > new Date()) {
     throw new APIError("ACCOUNT_LOCKED", "Too many failures — try again later.");
