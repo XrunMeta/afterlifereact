@@ -16,6 +16,7 @@ ENVIRONMENT = "development"
 WEBAUTHN_RP_ID = "localhost"
 WEBAUTHN_RP_ORIGIN = "http://localhost:8787"
 LAZY_ROTATION_ENABLED = "0"
+LAZY_V2_MIGRATE_ENABLED = "0"
 
 # Dev secrets (override via `wrangler secret put` or .dev.vars in real env)
 [[d1_databases]]
