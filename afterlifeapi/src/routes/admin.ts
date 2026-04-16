@@ -4,7 +4,7 @@ import { APIError } from "../lib/errors";
 import { runCleanup } from "../scheduled/cleanup";
 import { requireAdmin } from "../middleware/auth";
 import { parseJson, z } from "../lib/validate";
-import { open, openV3 } from "../lib/ale";
+import { getKekProvider, open, openV3 } from "../lib/ale";
 import { requestKekProvider } from "../lib/kekProvider";
 import { writeDecryptionAudit } from "../lib/auditChain";
 
@@ -71,15 +71,17 @@ admin.post("/decryption/open", requireAdmin, async (c) => {
     return c.json({ ok: false, reason: "EMPTY_OR_PURGED" }, 410);
   }
 
-  const provider = await requestKekProvider(c);
   const lazyRotationEnabled = c.env.LAZY_ROTATION_ENABLED === "1";
   const version = fetched.blob.split(".")[0];
   let plaintext: string;
   try {
     if (version === "v3") {
+      const provider = await requestKekProvider(c);
       plaintext = await openV3(c.env.DB, fetched.blob, provider, { lazyRotationEnabled });
     } else {
-      plaintext = open(fetched.blob, provider, fetched.aleContext);
+
+      const legacyProvider = getKekProvider(c.env.ALE_KEK);
+      plaintext = open(fetched.blob, legacyProvider, fetched.aleContext);
     }
   } catch (err) {
     if ((err as { code?: string }).code === "SHREDDED") {
