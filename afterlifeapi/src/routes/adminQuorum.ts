@@ -7,6 +7,10 @@ import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_b09138 } from "../middleware/auth";
 import { v_1cb5cc } from "../lib/adminAudit";
 import { v_0dd6a5 } from "./adminAuth";
+import {
+  v_8bb5d2,
+  v_ffdbc6,
+} from "../lib/kekProvider";
 
 export const v_83c76b = new v_b7c41b<v_de0a25>();
 v_83c76b.use("*", v_b09138);
@@ -17,6 +21,7 @@ const v_5af641 = [
   "force_hard_delete",     
   "admin_role_change",     
   "crypto_shredding",      
+  "kek_rotate",            
 ] as const;
 type AllowedAction = (typeof v_5af641)[number];
 
@@ -258,7 +263,28 @@ v_83c76b.post("/requests/:id/execute", async (v_3f4e2e) => {
     throw new v_3ebe58("CONFLICT", `Request is ${v_309144.status}, not approved.`);
   }
 
-  const v_43c42e = { handler: "pending_handler", note: "MVP placeholder — no action dispatched" };
+  let v_43c42e;
+  try {
+    v_43c42e = await v_bfc0e5(
+      v_3f4e2e.env.DB,
+      v_3f4e2e.env.MASTER_ROOT,
+      v_309144.action_type,
+      v_063096(v_309144.payload),
+    );
+  } catch (v_49263d) {
+
+    const v_ab4c96 = v_0dd6a5(v_3f4e2e);
+    await v_1cb5cc(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
+      adminUserId: v_db9be1,
+      action: "quorum.execute.failed",
+      targetType: "quorum_request",
+      targetId: String(v_389afb),
+      reason: `${v_309144.action_type}: ${(v_49263d as Error).message ?? "unknown"}`,
+      ip: v_ab4c96.ip,
+      userAgent: v_ab4c96.userAgent,
+    });
+    throw v_49263d;
+  }
   await v_3f4e2e.env.DB.prepare(
     `UPDATE admin_quorum_requests
         SET status='executed',
@@ -309,6 +335,66 @@ function v_1d33a9(
       comment: v_779914.comment,
       createdAt: v_779914.created_at,
     })),
+  };
+}
+
+async function v_bfc0e5(
+  v_a1651b,
+  v_e6465d,
+  v_5e5d85,
+  v_931bf0,
+): Promise<unknown> {
+  switch (v_5e5d85) {
+    case "kek_rotate": {
+      return await v_f8c0fd(v_a1651b, v_e6465d);
+    }
+    case "celeb_ip_transfer":
+    case "force_hard_delete":
+    case "admin_role_change":
+    case "crypto_shredding":
+
+      return { handler: "pending_handler", note: `${v_5e5d85} not yet implemented` };
+    default: {
+      const v_84b499 = v_5e5d85;
+      throw new v_3ebe58("INTERNAL_ERROR", `Unknown action: ${v_84b499}`);
+    }
+  }
+}
+
+async function v_f8c0fd(
+  v_a1651b,
+  v_e6465d,
+): Promise<{ kekId: string; version: number; previousActive: string | null }> {
+  const { encryptedKek: v_8f246d } = v_8bb5d2(v_e6465d);
+
+  const v_750665 = await v_a1651b
+    .prepare(`SELECT COALESCE(MAX(version), 0) AS v FROM encryption_keys`)
+    .first<{ v: number }>();
+  const v_01c751 = (v_750665?.v ?? 0) + 1;
+  const v_8cf32f = `kek_v${v_01c751}`;
+
+  const v_ba2215 = await v_a1651b
+    .prepare(`SELECT kek_id FROM encryption_keys WHERE status = 'active' LIMIT 1`)
+    .first<{ kek_id: string }>();
+
+  await v_a1651b.batch([
+    v_a1651b.prepare(
+      `UPDATE encryption_keys SET status = 'retired', rotated_at = CURRENT_TIMESTAMP
+         WHERE status = 'active'`,
+    ),
+    v_a1651b
+      .prepare(
+        `INSERT INTO encryption_keys(kek_id, version, encrypted_kek, status)
+           VALUES (?, ?, ?, 'active')`,
+      )
+      .bind(v_8cf32f, v_01c751, v_8f246d),
+  ]);
+
+  v_ffdbc6();
+  return {
+    kekId: v_8cf32f,
+    version: v_01c751,
+    previousActive: v_ba2215?.kek_id ?? null,
   };
 }
 
