@@ -402,11 +402,15 @@ async function v_bfc0e5(
         .bind(`${v_e2a85c.type}.%`, String(v_e2a85c.id))
         .run();
 
-      if (v_3ac7e7.deletion_state === "archived_cold" && v_fdeb9b) {
-        try {
-          await v_fdeb9b.delete(v_8afb61(v_e2a85c.type, v_e2a85c.id));
-        } catch (v_80c36f) {
-          console.error(`[quorum] R2 cold snapshot delete failed for ${v_e2a85c.type}/${v_e2a85c.id}:`, v_80c36f);
+      if (v_3ac7e7.deletion_state === "archived_cold") {
+        if (v_fdeb9b) {
+          try {
+            await v_fdeb9b.delete(v_8afb61(v_e2a85c.type, v_e2a85c.id));
+          } catch (v_80c36f) {
+            console.error("r2 cold cleanup failed", { type: v_e2a85c.type, id: v_e2a85c.id, err: v_80c36f });
+          }
+        } else {
+          console.error("r2Archive binding missing — orphan cold object possible", { type: v_e2a85c.type, id: v_e2a85c.id });
         }
       }
 
@@ -419,16 +423,22 @@ async function v_bfc0e5(
         throw new v_3ebe58("CONFLICT", `${v_e2a85c.type} #${v_e2a85c.id} was deleted concurrently.`);
       }
 
-      await v_e56fb3(v_a1651b, v_9ef13a, {
-        actor: { type: "admin", id: String(v_ae4f47) },
-        op: "hard_delete",
-        resourceType: v_e2a85c.type,
-        resourceId: v_e2a85c.id,
-        reason: v_e2a85c.reason,
-        ticketId: null, 
-      });
+      let v_53a9ea = false;
+      try {
+        await v_e56fb3(v_a1651b, v_9ef13a, {
+          actor: { type: "admin", id: String(v_ae4f47) },
+          op: "hard_delete",
+          resourceType: v_e2a85c.type,
+          resourceId: v_e2a85c.id,
+          reason: v_e2a85c.reason,
+          ticketId: null, 
+        });
+      } catch (v_49263d) {
+        console.error("force_hard_delete audit write failed", { type: v_e2a85c.type, id: v_e2a85c.id, err: v_49263d });
+        v_53a9ea = true;
+      }
 
-      return { hardDeleted: true, type: v_e2a85c.type, id: v_e2a85c.id, previousState: v_3ac7e7.deletion_state };
+      return { handler: "force_hard_delete", type: v_e2a85c.type, id: v_e2a85c.id, previousState: v_3ac7e7.deletion_state, ...(v_53a9ea && { auditWarning: true }) };
     }
     case "crypto_shredding": {
 
