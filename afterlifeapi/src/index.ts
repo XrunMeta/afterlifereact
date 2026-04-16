@@ -22,6 +22,7 @@ import { v_83c76b } from "./routes/adminQuorum";
 import { v_ad9418, v_7fd263 } from "./routes/emergency";
 import { v_a58945 } from "./routes/gdpr";
 import { v_87e8b2 } from "./routes/adminGdpr";
+import { v_dda4b9 } from "./routes/deletion";
 
 const v_466992 = new v_b7c41b<v_de0a25>();
 
@@ -42,6 +43,8 @@ v_466992.get("/health", async (v_3f4e2e) => {
 });
 
 v_466992.route("/oth-path", v_68f0aa);
+
+v_466992.route("/oth-path", v_dda4b9);
 v_466992.route("/oth-path", v_de7ba7);
 v_466992.route("/oth-path", v_f891e6);
 
