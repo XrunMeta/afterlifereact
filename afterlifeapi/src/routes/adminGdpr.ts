@@ -96,8 +96,8 @@ adminGdpr.post("/requests/:id/quorum", requireSuperAdmin, async (c) => {
     )
     .bind(
       JSON.stringify(payload),
-      `GDPR shred req #${gdprRow.id}: ${gdprRow.reason}`,
       adminId,
+      `GDPR shred req #${gdprRow.id}: ${gdprRow.reason}`,
     )
     .first<{ id: number }>();
 
