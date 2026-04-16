@@ -4,7 +4,7 @@ import { APIError } from "../lib/errors";
 import { runCleanup } from "../scheduled/cleanup";
 import { requireAdmin } from "../middleware/auth";
 import { parseJson, z } from "../lib/validate";
-import { getKekProvider, open, openV3 } from "../lib/ale";
+import { getKekProvider, open, openV3, sealV3, extractDekId } from "../lib/ale";
 import { requestKekProvider } from "../lib/kekProvider";
 import { writeDecryptionAudit } from "../lib/auditChain";
 
@@ -156,5 +156,47 @@ admin.post("/cleanup/run", async (c) => {
   }
   const result = await runCleanup(c.env);
   return c.json(result);
+});
+
+admin.post("/_dev/seal-v3", async (c) => {
+  if (!c.env.ADMIN_BOOTSTRAP_TOKEN || c.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
+    throw new APIError("FORBIDDEN", "Dev-only endpoint disabled.");
+  }
+  const body = await c.req.json<{
+    token: string;
+    resourceType: string;
+    resourceId: string;
+    plaintext: string;
+  }>();
+  if (body.token !== c.env.ADMIN_BOOTSTRAP_TOKEN) {
+    throw new APIError("NOT_FOUND", "Not found.");
+  }
+  const provider = await requestKekProvider(c);
+  const blob = await sealV3(
+    c.env.DB,
+    body.plaintext,
+    provider,
+    { type: body.resourceType, id: body.resourceId },
+  );
+  return c.json({ blob, dekId: extractDekId(blob) }, 201);
+});
+
+admin.post("/_dev/open-v3", async (c) => {
+  if (!c.env.ADMIN_BOOTSTRAP_TOKEN || c.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
+    throw new APIError("FORBIDDEN", "Dev-only endpoint disabled.");
+  }
+  const body = await c.req.json<{
+    token: string;
+    blob: string;
+    lazyRotationOverride?: boolean;
+  }>();
+  if (body.token !== c.env.ADMIN_BOOTSTRAP_TOKEN) {
+    throw new APIError("NOT_FOUND", "Not found.");
+  }
+  const provider = await requestKekProvider(c);
+  const lazyRotationEnabled =
+    body.lazyRotationOverride ?? c.env.LAZY_ROTATION_ENABLED === "1";
+  const plain = await openV3(c.env.DB, body.blob, provider, { lazyRotationEnabled });
+  return c.json({ plain });
 });
 
