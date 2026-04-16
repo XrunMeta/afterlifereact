@@ -13,6 +13,7 @@ import {
 } from "../lib/kekProvider";
 import { v_b31343 } from "../lib/ale";
 import { v_e56fb3 } from "../lib/auditChain";
+import { v_8afb61, v_11bf9b } from "../lib/coldStorage";
 
 export const v_83c76b = new v_b7c41b<v_de0a25>();
 v_83c76b.use("*", v_b09138);
@@ -274,6 +275,7 @@ v_83c76b.post("/requests/:id/execute", async (v_3f4e2e) => {
       v_063096(v_309144.payload),
       v_3f4e2e.env.AUDIT_SECRET,
       v_db9be1,
+      v_3f4e2e.env.R2_ARCHIVE,
     );
   } catch (v_49263d) {
 
@@ -353,16 +355,81 @@ async function v_bfc0e5(
   v_931bf0,
   v_9ef13a,
   v_ae4f47,
+  v_fdeb9b,
 ): Promise<unknown> {
   switch (v_5e5d85) {
     case "kek_rotate": {
       return await v_f8c0fd(v_a1651b, v_e6465d);
     }
     case "celeb_ip_transfer":
-    case "force_hard_delete":
     case "admin_role_change":
 
       return { handler: "pending_handler", note: `${v_5e5d85} not yet implemented` };
+    case "force_hard_delete": {
+
+      const v_e2a85c = (v_931bf0 ?? {}) as {
+        type?: string;
+        id?: number;
+        reason?: string;
+      };
+      if (v_e2a85c.type !== "user" && v_e2a85c.type !== "clone") {
+        throw new v_3ebe58(
+          "VALIDATION_FAILED",
+          "force_hard_delete: type must be 'user' or 'clone'. 'message' is rejected — use cron path.",
+        );
+      }
+      if (!v_e2a85c.id || !Number.isInteger(v_e2a85c.id) || v_e2a85c.id <= 0) {
+        throw new v_3ebe58("VALIDATION_FAILED", "force_hard_delete: id must be a positive integer.");
+      }
+      if (!v_e2a85c.reason || v_e2a85c.reason.length < 10) {
+        throw new v_3ebe58("VALIDATION_FAILED", "force_hard_delete: reason must be at least 10 characters.");
+      }
+
+      const v_cb9428 = v_11bf9b[v_e2a85c.type as "user" | "clone"];
+
+      const v_3ac7e7 = await v_a1651b
+        .prepare(`SELECT id, deletion_state FROM ${v_cb9428} WHERE id=?`)
+        .bind(v_e2a85c.id)
+        .first<{ id: number; deletion_state: string | null }>();
+      if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", `${v_e2a85c.type} #${v_e2a85c.id} not found.`);
+
+      await v_a1651b
+        .prepare(
+          `UPDATE dek_registry
+              SET shredded_at = CURRENT_TIMESTAMP
+            WHERE resource_type LIKE ? AND resource_id = ? AND shredded_at IS NULL`,
+        )
+        .bind(`${v_e2a85c.type}.%`, String(v_e2a85c.id))
+        .run();
+
+      if (v_3ac7e7.deletion_state === "archived_cold" && v_fdeb9b) {
+        try {
+          await v_fdeb9b.delete(v_8afb61(v_e2a85c.type, v_e2a85c.id));
+        } catch (v_80c36f) {
+          console.error(`[quorum] R2 cold snapshot delete failed for ${v_e2a85c.type}/${v_e2a85c.id}:`, v_80c36f);
+        }
+      }
+
+      const v_d0ca5b = await v_a1651b
+        .prepare(`DELETE FROM ${v_cb9428} WHERE id=?`)
+        .bind(v_e2a85c.id)
+        .run();
+      const v_4e2f8b = (v_d0ca5b as unknown as { meta?: { changes?: number } }).meta?.changes ?? 0;
+      if (v_4e2f8b === 0) {
+        throw new v_3ebe58("CONFLICT", `${v_e2a85c.type} #${v_e2a85c.id} was deleted concurrently.`);
+      }
+
+      await v_e56fb3(v_a1651b, v_9ef13a, {
+        actor: { type: "admin", id: String(v_ae4f47) },
+        op: "hard_delete",
+        resourceType: v_e2a85c.type,
+        resourceId: v_e2a85c.id,
+        reason: v_e2a85c.reason,
+        ticketId: null, 
+      });
+
+      return { hardDeleted: true, type: v_e2a85c.type, id: v_e2a85c.id, previousState: v_3ac7e7.deletion_state };
+    }
     case "crypto_shredding": {
 
       const v_e2a85c = (v_931bf0 ?? {}) as {

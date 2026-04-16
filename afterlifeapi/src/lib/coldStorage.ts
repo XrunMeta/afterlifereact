@@ -8,7 +8,7 @@ export const v_823cb7 = "2026-04-16";
 
 export type ColdType = "user" | "clone" | "message";
 
-const v_11bf9b = { user: "users", clone: "clones", message: "messages" };
+export const v_11bf9b = { user: "users", clone: "clones", message: "messages" };
 
 export const v_a02f1c = {
   user: ["phone", "age_enc"],
