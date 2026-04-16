@@ -4,7 +4,7 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-API=http:
+API=http://127.0.0.1:8787/api
 BT=${ADMIN_BOOTSTRAP_TOKEN:-dev-bootstrap-token-change-me}
 PASS=0
 FAIL=0
@@ -23,13 +23,15 @@ d1_query() {
   (cd "$REPO_ROOT/afterlifeapi" && npx wrangler d1 execute DB --local --command "$1" --json 2>/dev/null)
 }
 
-ts=$(date +%s%N)
+# seconds + RANDOM → 14~15자리 정수. JS Number.MAX_SAFE_INTEGER(2^53-1 ≈ 9e15) 안쪽.
+# nanosecond ts는 JSON 정수 정밀도 손실 → openAny UPDATE WHERE id=? 불일치 버그.
+ts="$(date +%s)$RANDOM"
 UID_TEST=$ts
 UID_TEST_2=$((ts + 1))
 
 echo "=== 0) 사전 정리: test user row 생성 ==="
 d1_query "DELETE FROM users WHERE id IN ($UID_TEST, $UID_TEST_2)" > /dev/null
-d1_query "INSERT INTO users (id, email, name, credits, funnel_stage, created_at) VALUES ($UID_TEST, 'migrate_${ts}@test.io', 'Migrate Test', 0, 'new', datetime('now'))" > /dev/null
+d1_query "INSERT INTO users (id, email, password_hash, name, credits, funnel_stage, created_at) VALUES ($UID_TEST, 'migrate_${ts}@test.io', 'dummy-hash', 'Migrate Test', 0, 'explorer', datetime('now'))" > /dev/null
 
 echo "=== 1) /_dev/seal-v2로 v2 블롭 생성 ==="
 V2_RESP=$(curl -s -X POST $API/admin/_dev/seal-v2 -H 'Content-Type: application/json' \
@@ -66,7 +68,7 @@ DEK_COUNT_AFTER=$(d1_query "SELECT COUNT(*) AS c FROM dek_registry WHERE resourc
 check "S3.dek_registry.delta=1" "1" "$((DEK_COUNT_AFTER - DEK_COUNT_BEFORE))"
 
 echo "=== S4) 플래그 ON + hint 없음 → plain 반환, DB 변동 없음 ==="
-d1_query "INSERT INTO users (id, email, name, credits, funnel_stage, created_at) VALUES ($UID_TEST_2, 'migrate2_${ts}@test.io', 'Migrate2', 0, 'new', datetime('now'))" > /dev/null
+d1_query "INSERT INTO users (id, email, password_hash, name, credits, funnel_stage, created_at) VALUES ($UID_TEST_2, 'migrate2_${ts}@test.io', 'dummy-hash', 'Migrate2', 0, 'explorer', datetime('now'))" > /dev/null
 V2_RESP2=$(curl -s -X POST $API/admin/_dev/seal-v2 -H 'Content-Type: application/json' \
   -d "{\"token\":\"$BT\",\"hkdfContext\":\"user.phone\",\"plaintext\":\"+82-10-9999-8888\"}")
 V2_BLOB2=$(echo "$V2_RESP2" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>console.log(JSON.parse(d).blob||""))')
