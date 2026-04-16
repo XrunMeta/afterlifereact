@@ -408,11 +408,15 @@ async function executeAction(
         .bind(`${p.type}.%`, String(p.id))
         .run();
 
-      if (row.deletion_state === "archived_cold" && r2Archive) {
-        try {
-          await r2Archive.delete(coldKey(p.type, p.id));
-        } catch (r2Err) {
-          console.error(`[quorum] R2 cold snapshot delete failed for ${p.type}/${p.id}:`, r2Err);
+      if (row.deletion_state === "archived_cold") {
+        if (r2Archive) {
+          try {
+            await r2Archive.delete(coldKey(p.type, p.id));
+          } catch (r2Err) {
+            console.error("r2 cold cleanup failed", { type: p.type, id: p.id, err: r2Err });
+          }
+        } else {
+          console.error("r2Archive binding missing — orphan cold object possible", { type: p.type, id: p.id });
         }
       }
 
@@ -425,16 +429,22 @@ async function executeAction(
         throw new APIError("CONFLICT", `${p.type} #${p.id} was deleted concurrently.`);
       }
 
-      await writeDecryptionAudit(db, auditSecret, {
-        actor: { type: "admin", id: String(requesterId) },
-        op: "hard_delete",
-        resourceType: p.type,
-        resourceId: p.id,
-        reason: p.reason,
-        ticketId: null, 
-      });
+      let auditWarning = false;
+      try {
+        await writeDecryptionAudit(db, auditSecret, {
+          actor: { type: "admin", id: String(requesterId) },
+          op: "hard_delete",
+          resourceType: p.type,
+          resourceId: p.id,
+          reason: p.reason,
+          ticketId: null, 
+        });
+      } catch (err) {
+        console.error("force_hard_delete audit write failed", { type: p.type, id: p.id, err });
+        auditWarning = true;
+      }
 
-      return { hardDeleted: true, type: p.type, id: p.id, previousState: row.deletion_state };
+      return { handler: "force_hard_delete", type: p.type, id: p.id, previousState: row.deletion_state, ...(auditWarning && { auditWarning: true }) };
     }
     case "crypto_shredding": {
 
