@@ -1,11 +1,14 @@
 
 
 import type { v_0c7978 } from "audevgreebvpcootosqqkonhs";
+import { v_8a9589, v_394453 } from "./ale";
 
 export const v_5fd134 = "cold";
 export const v_823cb7 = "2026-04-16";
 
 export type ColdType = "user" | "clone" | "message";
+
+const v_11bf9b = { user: "users", clone: "clones", message: "messages" };
 
 export const v_a02f1c = {
   user: ["phone", "age_enc"],
@@ -45,9 +48,7 @@ function v_f85cdf(v_3ac7e7): Record<string, unknown> {
   const v_8d4337 = {};
   for (const [v_0eb677, v_81e2ef] of Object.entries(v_3ac7e7)) {
     if (v_81e2ef instanceof Uint8Array) {
-      let v_fd5f43 = "";
-      for (const v_148ff6 of v_81e2ef) v_fd5f43 += String.fromCharCode(v_148ff6);
-      v_8d4337[v_0eb677] = { __b64: btoa(v_fd5f43) };
+      v_8d4337[v_0eb677] = { __b64: v_8a9589(v_81e2ef) };
     } else {
       v_8d4337[v_0eb677] = v_81e2ef;
     }
@@ -57,20 +58,16 @@ function v_f85cdf(v_3ac7e7): Record<string, unknown> {
 
 function v_e5e25c(v_81e2ef): unknown {
   if (v_81e2ef !== null && typeof v_81e2ef === "object" && "__b64" in (v_81e2ef as object)) {
-    const v_158091 = (v_81e2ef as { __b64: string }).__b64;
-    const v_d8cac9 = atob(v_158091);
-    const v_8d4337 = new Uint8Array(v_d8cac9.length);
-    for (let v_ebec57 = 0; v_ebec57 < v_d8cac9.length; v_ebec57++) v_8d4337[v_ebec57] = v_d8cac9.charCodeAt(v_ebec57);
-    return v_8d4337;
+    return v_394453((v_81e2ef as { __b64: string }).__b64);
   }
   return v_81e2ef;
 }
 
-export function v_8f5cb6(
+export async function v_8f5cb6(
   v_3b27d9,
   v_389afb,
   v_3ac7e7,
-): { key: string; body: Promise<Uint8Array> } {
+): Promise<{ key: string; body: Uint8Array }> {
   const v_5392c4 = {
     schema_version: v_823cb7,
     type: v_3b27d9,
@@ -80,7 +77,7 @@ export function v_8f5cb6(
     dekRegistry: [],
   };
   const v_b24339 = v_8afb61(v_3b27d9, v_389afb);
-  const v_4d33b2 = v_cfe090(new TextEncoder().encode(JSON.stringify(v_5392c4)));
+  const v_4d33b2 = await v_cfe090(new TextEncoder().encode(JSON.stringify(v_5392c4)));
   return { key: v_b24339, body: v_4d33b2 };
 }
 
@@ -110,12 +107,12 @@ export async function v_c7071c(
   v_a1651b,
   v_3b27d9,
   v_389afb,
-): Promise<{ key: string; body: Promise<Uint8Array> }> {
+): Promise<{ key: string; body: Uint8Array }> {
   const v_6c1676 = v_a02f1c[v_3b27d9];
   const v_9390e8 = {};
 
   if (v_6c1676.length > 0) {
-    const v_cb9428 = v_3b27d9 === "user" ? "users" : v_3b27d9 === "clone" ? "clones" : "messages";
+    const v_cb9428 = v_11bf9b[v_3b27d9];
     const v_3ac7e7 = await v_a1651b
       .prepare(`SELECT ${v_6c1676.join(",")} FROM ${v_cb9428} WHERE id=?`)
       .bind(v_389afb)
@@ -146,7 +143,7 @@ export async function v_c7071c(
   };
 
   const v_b24339 = v_8afb61(v_3b27d9, v_389afb);
-  const v_4d33b2 = v_cfe090(new TextEncoder().encode(JSON.stringify(v_5392c4)));
+  const v_4d33b2 = await v_cfe090(new TextEncoder().encode(JSON.stringify(v_5392c4)));
   return { key: v_b24339, body: v_4d33b2 };
 }
 
@@ -158,9 +155,7 @@ export async function v_ff8d3b(
   let v_d09d00 = 0;
 
   if (v_6c1676.length > 0) {
-    const v_cb9428 = v_5392c4.type === "user" ? "users"
-                : v_5392c4.type === "clone" ? "clones"
-                : "messages";
+    const v_cb9428 = v_11bf9b[v_5392c4.type];
     const v_fc255a = v_6c1676.map((v_3f4e2e) => `${v_3f4e2e}=?`).join(",");
     const v_6fea0b = v_6c1676.map((v_3f4e2e) => v_e5e25c(v_5392c4.data[v_3f4e2e] ?? null));
     const v_b1eff4 = await v_a1651b

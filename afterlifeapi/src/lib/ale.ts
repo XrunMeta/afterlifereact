@@ -10,13 +10,13 @@ const v_38813b = "v1";
 const v_57ddbe = "v2";
 const v_e1906a = "v3";
 
-function v_8a9589(v_fbb6da): string {
+export function v_8a9589(v_fbb6da): string {
   let v_fd5f43 = "";
   for (const v_148ff6 of v_fbb6da) v_fd5f43 += String.fromCharCode(v_148ff6);
   return btoa(v_fd5f43);
 }
 
-function v_394453(v_fba864): Uint8Array {
+export function v_394453(v_fba864): Uint8Array {
   const v_d8cac9 = atob(v_fba864);
   const v_8d4337 = new Uint8Array(v_d8cac9.length);
   for (let v_ebec57 = 0; v_ebec57 < v_d8cac9.length; v_ebec57++) v_8d4337[v_ebec57] = v_d8cac9.charCodeAt(v_ebec57);
