@@ -47,11 +47,12 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
     .bind(v_43e90c)
     .all<{ interest: string }>();
 
+  const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
+  const v_67b8fb = await v_e44d97(v_3f4e2e);
+
   let v_d74a81 = null;
   if (v_3ac7e7.phone) {
     try {
-      const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
-      const v_67b8fb = await v_e44d97(v_3f4e2e);
       v_d74a81 = await v_137694(v_3ac7e7.phone, {
         db: v_3f4e2e.env.DB,
         hkdfContext: "user.phone",
@@ -73,8 +74,6 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
   let v_2694bd = v_3ac7e7.age;
   if (v_3ac7e7.age_enc) {
     try {
-      const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
-      const v_67b8fb = await v_e44d97(v_3f4e2e);
       const v_eef514 = await v_137694(v_3ac7e7.age_enc, {
         db: v_3f4e2e.env.DB,
         hkdfContext: "user.age",
