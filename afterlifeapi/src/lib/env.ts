@@ -33,6 +33,7 @@ export type AppEnv = {
   Variables: {
     userId?: number;
     adminUserId?: number;
+    adminRole?: string;
     requestId: string;
   };
 };
