@@ -17,6 +17,7 @@ import { credits } from "./routes/credits";
 import { admin } from "./routes/admin";
 import { adminAuth } from "./routes/adminAuth";
 import { adminWebauthn } from "./routes/adminWebauthn";
+import { coldRecovery } from "./routes/coldRecovery";
 import { emergency, inheritance } from "./routes/emergency";
 
 const app = new Hono<AppEnv>();
@@ -51,6 +52,7 @@ app.route("/oth-path", inviteTokens);
 app.route("/oth-path", credits);
 app.route("/oth-path", adminAuth);
 app.route("/oth-path", adminWebauthn);
+app.route("/oth-path", coldRecovery);
 app.route("/oth-path", admin);
 app.route("/oth-path", emergency);
 app.route("/oth-path", inheritance);
