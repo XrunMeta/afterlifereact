@@ -4,7 +4,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_09b071 } from "../scheduled/cleanup";
 import { v_c0a297 } from "../middleware/auth";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
-import { v_a8614b, v_207c31, v_dfbdd9 } from "../lib/ale";
+import { v_a8614b, v_207c31, v_dfbdd9, v_9eaae0, v_8ea38c } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_e56fb3 } from "../lib/auditChain";
 
@@ -156,5 +156,47 @@ v_b7f2b4.post("/cleanup/run", async (v_3f4e2e) => {
   }
   const v_43c42e = await v_09b071(v_3f4e2e.env);
   return v_3f4e2e.json(v_43c42e);
+});
+
+v_b7f2b4.post("/_dev/seal-v3", async (v_3f4e2e) => {
+  if (!v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN || v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
+    throw new v_3ebe58("FORBIDDEN", "Dev-only endpoint disabled.");
+  }
+  const v_4d33b2 = await v_3f4e2e.req.json<{
+    token: string;
+    resourceType: string;
+    resourceId: string;
+    plaintext: string;
+  }>();
+  if (v_4d33b2.token !== v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN) {
+    throw new v_3ebe58("NOT_FOUND", "Not found.");
+  }
+  const v_e38ca2 = await v_e44d97(v_3f4e2e);
+  const v_3263c7 = await v_9eaae0(
+    v_3f4e2e.env.DB,
+    v_4d33b2.plaintext,
+    v_e38ca2,
+    { type: v_4d33b2.resourceType, id: v_4d33b2.resourceId },
+  );
+  return v_3f4e2e.json({ blob: v_3263c7, dekId: v_8ea38c(v_3263c7) }, 201);
+});
+
+v_b7f2b4.post("/_dev/open-v3", async (v_3f4e2e) => {
+  if (!v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN || v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
+    throw new v_3ebe58("FORBIDDEN", "Dev-only endpoint disabled.");
+  }
+  const v_4d33b2 = await v_3f4e2e.req.json<{
+    token: string;
+    blob: string;
+    lazyRotationOverride?: boolean;
+  }>();
+  if (v_4d33b2.token !== v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN) {
+    throw new v_3ebe58("NOT_FOUND", "Not found.");
+  }
+  const v_e38ca2 = await v_e44d97(v_3f4e2e);
+  const v_c42fdd =
+    v_4d33b2.lazyRotationOverride ?? v_3f4e2e.env.LAZY_ROTATION_ENABLED === "1";
+  const v_946ca6 = await v_dfbdd9(v_3f4e2e.env.DB, v_4d33b2.blob, v_e38ca2, { lazyRotationEnabled: v_c42fdd });
+  return v_3f4e2e.json({ plain: v_946ca6 });
 });
 
