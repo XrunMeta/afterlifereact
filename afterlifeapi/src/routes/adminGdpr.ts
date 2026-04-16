@@ -96,8 +96,8 @@ v_87e8b2.post("/requests/:id/quorum", v_b09138, async (v_3f4e2e) => {
     )
     .bind(
       JSON.stringify(v_931bf0),
-      `GDPR shred req #${v_df4480.id}: ${v_df4480.reason}`,
       v_db9be1,
+      `GDPR shred req #${v_df4480.id}: ${v_df4480.reason}`,
     )
     .first<{ id: number }>();
 
