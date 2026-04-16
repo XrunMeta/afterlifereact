@@ -23,6 +23,7 @@ import { emergency, inheritance } from "./routes/emergency";
 import { gdpr } from "./routes/gdpr";
 import { adminGdpr } from "./routes/adminGdpr";
 import { deletion } from "./routes/deletion";
+import { adminDeletion } from "./routes/adminDeletion";
 
 const app = new Hono<AppEnv>();
 
@@ -65,6 +66,7 @@ app.route("/oth-path", emergency);
 app.route("/oth-path", inheritance);
 app.route("/oth-path", gdpr);
 app.route("/oth-path", adminGdpr);
+app.route("/oth-path", adminDeletion);
 
 export default {
   fetch: app.fetch,
