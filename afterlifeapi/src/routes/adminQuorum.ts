@@ -7,6 +7,10 @@ import { parseJson, z } from "../lib/validate";
 import { requireSuperAdmin } from "../middleware/auth";
 import { writeAdminAudit } from "../lib/adminAudit";
 import { clientMeta } from "./adminAuth";
+import {
+  generateKekAndWrap,
+  invalidateKekCache,
+} from "../lib/kekProvider";
 
 export const adminQuorum = new Hono<AppEnv>();
 adminQuorum.use("*", requireSuperAdmin);
@@ -17,6 +21,7 @@ const ALLOWED_ACTIONS = [
   "force_hard_delete",     
   "admin_role_change",     
   "crypto_shredding",      
+  "kek_rotate",            
 ] as const;
 type AllowedAction = (typeof ALLOWED_ACTIONS)[number];
 
@@ -258,7 +263,28 @@ adminQuorum.post("/requests/:id/execute", async (c) => {
     throw new APIError("CONFLICT", `Request is ${req.status}, not approved.`);
   }
 
-  const result = { handler: "pending_handler", note: "MVP placeholder — no action dispatched" };
+  let result: unknown;
+  try {
+    result = await executeAction(
+      c.env.DB,
+      c.env.MASTER_ROOT,
+      req.action_type,
+      safeParse(req.payload),
+    );
+  } catch (err) {
+
+    const meta = clientMeta(c);
+    await writeAdminAudit(c.env.DB, c.env.AUDIT_SECRET, {
+      adminUserId: adminId,
+      action: "quorum.execute.failed",
+      targetType: "quorum_request",
+      targetId: String(id),
+      reason: `${req.action_type}: ${(err as Error).message ?? "unknown"}`,
+      ip: meta.ip,
+      userAgent: meta.userAgent,
+    });
+    throw err;
+  }
   await c.env.DB.prepare(
     `UPDATE admin_quorum_requests
         SET status='executed',
@@ -315,6 +341,66 @@ function serializeRequest(
       comment: a.comment,
       createdAt: a.created_at,
     })),
+  };
+}
+
+async function executeAction(
+  db: D1Database,
+  masterRoot: string,
+  actionType: AllowedAction,
+  payload: unknown,
+): Promise<unknown> {
+  switch (actionType) {
+    case "kek_rotate": {
+      return await executeKekRotate(db, masterRoot);
+    }
+    case "celeb_ip_transfer":
+    case "force_hard_delete":
+    case "admin_role_change":
+    case "crypto_shredding":
+
+      return { handler: "pending_handler", note: `${actionType} not yet implemented` };
+    default: {
+      const _exhaustive: never = actionType;
+      throw new APIError("INTERNAL_ERROR", `Unknown action: ${_exhaustive}`);
+    }
+  }
+}
+
+async function executeKekRotate(
+  db: D1Database,
+  masterRoot: string,
+): Promise<{ kekId: string; version: number; previousActive: string | null }> {
+  const { encryptedKek } = generateKekAndWrap(masterRoot);
+
+  const maxRow = await db
+    .prepare(`SELECT COALESCE(MAX(version), 0) AS v FROM encryption_keys`)
+    .first<{ v: number }>();
+  const nextVersion = (maxRow?.v ?? 0) + 1;
+  const newKid = `kek_v${nextVersion}`;
+
+  const prev = await db
+    .prepare(`SELECT kek_id FROM encryption_keys WHERE status = 'active' LIMIT 1`)
+    .first<{ kek_id: string }>();
+
+  await db.batch([
+    db.prepare(
+      `UPDATE encryption_keys SET status = 'retired', rotated_at = CURRENT_TIMESTAMP
+         WHERE status = 'active'`,
+    ),
+    db
+      .prepare(
+        `INSERT INTO encryption_keys(kek_id, version, encrypted_kek, status)
+           VALUES (?, ?, ?, 'active')`,
+      )
+      .bind(newKid, nextVersion, encryptedKek),
+  ]);
+
+  invalidateKekCache();
+  return {
+    kekId: newKid,
+    version: nextVersion,
+    previousActive: prev?.kek_id ?? null,
   };
 }
 
