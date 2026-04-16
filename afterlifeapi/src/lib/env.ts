@@ -22,6 +22,7 @@ export interface Bindings {
   MASTER_ROOT: string;          
 
   LAZY_ROTATION_ENABLED?: string;  
+  LAZY_V2_MIGRATE_ENABLED?: string;  
 
   ADMIN_BOOTSTRAP_TOKEN?: string;
 
