@@ -62,10 +62,12 @@ async function v_c8311e(
   v_1badb6,
 ): Promise<SoftRestoreResult> {
   const v_cb9428 = v_edff4c[v_3b27d9];
+
+  const v_1494c2 = v_66e19e[v_3b27d9]
+    ? `SELECT id, deletion_state, ${v_9cd637}, soft_deleted_at FROM ${v_cb9428} WHERE id = ?`
+    : `SELECT id, deletion_state, ${v_9cd637} FROM ${v_cb9428} WHERE id = ?`;
   const v_3ac7e7 = await v_a1651b
-    .prepare(
-      `SELECT id, deletion_state, ${v_9cd637}, soft_deleted_at FROM ${v_cb9428} WHERE id = ?`,
-    )
+    .prepare(v_1494c2)
     .bind(v_389afb)
     .first<{
       id: number;
