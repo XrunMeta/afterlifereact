@@ -183,7 +183,7 @@ export async function openV3(
   if (parts[0] !== V3 || parts.length !== 5) {
     throw new APIError("INTERNAL_ERROR", "Malformed ALE v3 blob.");
   }
-  const [, blobKekId, dekId, ivB64, ctB64] = parts as [string, string, string, string, string];
+  const [, _blobKekId, dekId, ivB64, ctB64] = parts as [string, string, string, string, string];
 
   const row = await db
     .prepare(
@@ -212,17 +212,22 @@ export async function openV3(
     if (row.kek_id !== currentKid) {
       const newKek = provider.resolve(currentKid);
       const rewrapped = wrapDek(newKek, dek);
-      await db
+      const result = await db
         .prepare(
           `UPDATE dek_registry
               SET encrypted_dek = ?, kek_id = ?, rotated_at = CURRENT_TIMESTAMP
-            WHERE dek_id = ?`,
+            WHERE dek_id = ? AND kek_id = ?`,
         )
-        .bind(rewrapped, currentKid, dekId)
+        .bind(rewrapped, currentKid, dekId, row.kek_id)
         .run();
-      if (opts.onRotated) {
-        await opts.onRotated({ dekId, fromKekId: row.kek_id, toKekId: currentKid });
+      if (result.success && result.meta && result.meta.changes && result.meta.changes > 0) {
+        if (opts.onRotated) {
+          await opts.onRotated({ dekId, fromKekId: row.kek_id, toKekId: currentKid });
+        }
+      } else if (!result.success) {
+        console.error(`[ALE] lazy rotation UPDATE failed for dekId=${dekId}`);
       }
+
     }
   }
 
