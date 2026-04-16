@@ -47,11 +47,12 @@ users.get("/me", requireAuth, async (c) => {
     .bind(userId)
     .all<{ interest: string }>();
 
+  const legacyProvider = getKekProvider(c.env.ALE_KEK);
+  const v3Provider = await requestKekProvider(c);
+
   let phone: string | null = null;
   if (row.phone) {
     try {
-      const legacyProvider = getKekProvider(c.env.ALE_KEK);
-      const v3Provider = await requestKekProvider(c);
       phone = await openAny(row.phone, {
         db: c.env.DB,
         hkdfContext: "user.phone",
@@ -73,8 +74,6 @@ users.get("/me", requireAuth, async (c) => {
   let age: number | null = row.age;
   if (row.age_enc) {
     try {
-      const legacyProvider = getKekProvider(c.env.ALE_KEK);
-      const v3Provider = await requestKekProvider(c);
       const dec = await openAny(row.age_enc, {
         db: c.env.DB,
         hkdfContext: "user.age",
