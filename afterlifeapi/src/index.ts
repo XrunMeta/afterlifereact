@@ -21,6 +21,7 @@ import { coldRecovery } from "./routes/coldRecovery";
 import { adminQuorum } from "./routes/adminQuorum";
 import { emergency, inheritance } from "./routes/emergency";
 import { gdpr } from "./routes/gdpr";
+import { adminGdpr } from "./routes/adminGdpr";
 
 const app = new Hono<AppEnv>();
 
@@ -60,6 +61,7 @@ app.route("/oth-path", admin);
 app.route("/oth-path", emergency);
 app.route("/oth-path", inheritance);
 app.route("/oth-path", gdpr);
+app.route("/oth-path", adminGdpr);
 
 export default {
   fetch: app.fetch,
