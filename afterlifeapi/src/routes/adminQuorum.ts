@@ -273,16 +273,20 @@ adminQuorum.post("/requests/:id/execute", async (c) => {
     );
   } catch (err) {
 
-    const meta = clientMeta(c);
-    await writeAdminAudit(c.env.DB, c.env.AUDIT_SECRET, {
-      adminUserId: adminId,
-      action: "quorum.execute.failed",
-      targetType: "quorum_request",
-      targetId: String(id),
-      reason: `${req.action_type}: ${(err as Error).message ?? "unknown"}`,
-      ip: meta.ip,
-      userAgent: meta.userAgent,
-    });
+    try {
+      const meta = clientMeta(c);
+      await writeAdminAudit(c.env.DB, c.env.AUDIT_SECRET, {
+        adminUserId: adminId,
+        action: "quorum.execute.failed",
+        targetType: "quorum_request",
+        targetId: String(id),
+        reason: `${req.action_type}: ${(err as Error).message ?? "unknown"}`,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+      });
+    } catch (auditErr) {
+      console.error("[quorum] audit write failed while handling execute error:", auditErr);
+    }
     throw err;
   }
   await c.env.DB.prepare(
