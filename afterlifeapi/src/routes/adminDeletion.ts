@@ -5,13 +5,14 @@ import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { requireAdmin } from "../middleware/auth";
 import {
+  coldKey,
   getSnapshot,
   restoreFromSnapshot,
-  COLD_PREFIX,
   type ColdType,
   type Snapshot,
 } from "../lib/coldStorage";
 import { writeDecryptionAudit } from "../lib/auditChain";
+import { parseJson, z } from "../lib/validate";
 
 export const adminDeletion = new Hono<AppEnv>();
 
@@ -23,13 +24,13 @@ const TABLE: Record<ColdType, string> = {
   message: "messages",
 };
 
-function coldKey(type: string, id: string | number): string {
-  return `${COLD_PREFIX}/${type}/${id}/snapshot.json.gz`;
-}
+const restoreBodySchema = z.object({
+  reason: z.string().min(10).max(500), 
+});
 
 adminDeletion.post("/:type/:id/restore-from-cold", requireAdmin, async (c) => {
 
-  const adminUserId = c.get("adminUserId") as number;
+  const adminUserId = c.get("adminUserId")!;
   const { type, id: idRaw } = c.req.param();
 
   if (!COLD_TYPES.has(type)) {
@@ -40,11 +41,7 @@ adminDeletion.post("/:type/:id/restore-from-cold", requireAdmin, async (c) => {
     throw new APIError("VALIDATION_FAILED", "id must be a positive integer");
   }
 
-  const body = await c.req.json<{ reason?: string }>();
-  if (!body.reason || body.reason.length < 5) {
-    throw new APIError("VALIDATION_FAILED", "reason required (min 5 chars)");
-  }
-  const { reason } = body;
+  const { reason } = await parseJson(c, restoreBodySchema);
 
   const coldType = type as ColdType;
   const table = TABLE[coldType];
@@ -81,13 +78,19 @@ adminDeletion.post("/:type/:id/restore-from-cold", requireAdmin, async (c) => {
 
   await c.env.R2_ARCHIVE.delete(key);
 
-  await writeDecryptionAudit(c.env.DB, c.env.AUDIT_SECRET, {
-    actor: { type: "admin", id: adminUserId },
-    op: "cold_restore",
-    resourceType: type,
-    resourceId: id,
-    reason,
-  });
+  let auditWarning = false;
+  try {
+    await writeDecryptionAudit(c.env.DB, c.env.AUDIT_SECRET, {
+      actor: { type: "admin", id: adminUserId },
+      op: "cold_restore",
+      resourceType: type,
+      resourceId: id,
+      reason,
+    });
+  } catch (err) {
+    console.error("cold_restore audit write failed", { type, id, err });
+    auditWarning = true;
+  }
 
-  return c.json({ ok: true, type, id, state: "active" });
+  return c.json({ ok: true, type, id, state: "active", ...(auditWarning && { auditWarning: true }) });
 });

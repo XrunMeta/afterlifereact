@@ -30,7 +30,7 @@ export interface Snapshot {
   }>;
 }
 
-function coldKey(type: string, id: string | number): string {
+export function coldKey(type: string, id: string | number): string {
   return `${COLD_PREFIX}/${type}/${id}/snapshot.json.gz`;
 }
 
