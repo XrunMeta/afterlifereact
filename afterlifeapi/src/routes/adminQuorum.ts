@@ -379,13 +379,13 @@ async function v_bfc0e5(
       if (v_e2a85c.scope === "user_all") {
         v_f425f6.push({ resourceType: "user", resourceId: String(v_e2a85c.userId) });
         const v_f891e6 = await v_a1651b
-          .prepare(`SELECT id FROM clones WHERE created_by=?`)
+          .prepare(`SELECT id FROM clones WHERE created_by=? LIMIT 500`)
           .bind(v_e2a85c.userId).all();
         for (const v_966588 of v_f891e6.results as Array<{ id: number }>) {
           v_f425f6.push({ resourceType: "clone", resourceId: String(v_966588.id) });
         }
         const v_fa56e0 = await v_a1651b
-          .prepare(`SELECT id FROM messages WHERE sender_id=?`)
+          .prepare(`SELECT id FROM messages WHERE sender_id=? LIMIT 500`)
           .bind(v_e2a85c.userId).all();
         for (const v_35f85c of v_fa56e0.results as Array<{ id: number }>) {
           v_f425f6.push({ resourceType: "message", resourceId: String(v_35f85c.id) });
@@ -417,27 +417,31 @@ async function v_bfc0e5(
         for (const v_cb35cb of v_2c1bee) {
           try {
             await v_b31343(v_a1651b, v_cb35cb.dek_id);
-            await v_e56fb3(v_a1651b, v_9ef13a, {
-              actor: { type: "admin", id: String(v_ae4f47) },
-              op: "shred",
-              resourceType: v_8d41d7.resourceType,
-              resourceId: v_8d41d7.resourceId,
-              reason: `gdpr_req=${v_e2a85c.gdprRequestId}`,
-            });
+            try {
+              await v_e56fb3(v_a1651b, v_9ef13a, {
+                actor: { type: "admin", id: String(v_ae4f47) },
+                op: "shred",
+                resourceType: v_8d41d7.resourceType,
+                resourceId: v_8d41d7.resourceId,
+                reason: `gdpr_req=${v_e2a85c.gdprRequestId}`,
+              });
+            } catch {  }
             v_9e8c70++;
           } catch (v_49263d) {
-            await v_e56fb3(v_a1651b, v_9ef13a, {
-              actor: { type: "admin", id: String(v_ae4f47) },
-              op: "shred_failed",
-              resourceType: v_8d41d7.resourceType,
-              resourceId: v_8d41d7.resourceId,
-              reason: `gdpr_req=${v_e2a85c.gdprRequestId}: ${(v_49263d as Error).message}`,
-            });
+            try {
+              await v_e56fb3(v_a1651b, v_9ef13a, {
+                actor: { type: "admin", id: String(v_ae4f47) },
+                op: "shred_failed",
+                resourceType: v_8d41d7.resourceType,
+                resourceId: v_8d41d7.resourceId,
+                reason: `gdpr_req=${v_e2a85c.gdprRequestId}: ${(v_49263d as Error).message}`,
+              });
+            } catch {  }
           }
         }
       }
 
-      await v_a1651b
+      const v_b1eff4 = await v_a1651b
         .prepare(
           `UPDATE gdpr_shred_requests
               SET status='executed', executed_at=CURRENT_TIMESTAMP, shredded_count=?
@@ -445,6 +449,10 @@ async function v_bfc0e5(
         )
         .bind(v_9e8c70, v_e2a85c.gdprRequestId)
         .run();
+      const v_4e2f8b = (v_b1eff4 as unknown as { meta?: { changes?: number } }).meta?.changes ?? 0;
+      if (v_4e2f8b === 0) {
+        throw new v_3ebe58("CONFLICT", `gdpr_shred_requests #${v_e2a85c.gdprRequestId} not in_review — status changed concurrently`);
+      }
 
       return { shreddedCount: v_9e8c70, totalTargets: v_f425f6.length, gdprRequestId: v_e2a85c.gdprRequestId };
     }
