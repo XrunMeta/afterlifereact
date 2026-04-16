@@ -183,7 +183,7 @@ export async function v_dfbdd9(
   if (v_468545[0] !== v_e1906a || v_468545.length !== 5) {
     throw new v_3ebe58("INTERNAL_ERROR", "Malformed ALE v3 blob.");
   }
-  const [, v_4e8c0a, v_9419a6, v_598bb5, v_b3e551] = v_468545 as [string, string, string, string, string];
+  const [, v_1d637f, v_9419a6, v_598bb5, v_b3e551] = v_468545 as [string, string, string, string, string];
 
   const v_3ac7e7 = await v_a1651b
     .prepare(
@@ -212,17 +212,22 @@ export async function v_dfbdd9(
     if (v_3ac7e7.kek_id !== v_cce5ac) {
       const v_fd6ab4 = v_e38ca2.resolve(v_cce5ac);
       const v_645db9 = v_535aac(v_fd6ab4, v_426a9a);
-      await v_a1651b
+      const v_43c42e = await v_a1651b
         .prepare(
           `UPDATE dek_registry
               SET encrypted_dek = ?, kek_id = ?, rotated_at = CURRENT_TIMESTAMP
-            WHERE dek_id = ?`,
+            WHERE dek_id = ? AND kek_id = ?`,
         )
-        .bind(v_645db9, v_cce5ac, v_9419a6)
+        .bind(v_645db9, v_cce5ac, v_9419a6, v_3ac7e7.kek_id)
         .run();
-      if (v_328259.onRotated) {
-        await v_328259.onRotated({ dekId: v_9419a6, fromKekId: v_3ac7e7.kek_id, toKekId: v_cce5ac });
+      if (v_43c42e.success && v_43c42e.meta && v_43c42e.meta.changes && v_43c42e.meta.changes > 0) {
+        if (v_328259.onRotated) {
+          await v_328259.onRotated({ dekId: v_9419a6, fromKekId: v_3ac7e7.kek_id, toKekId: v_cce5ac });
+        }
+      } else if (!v_43c42e.success) {
+        console.error(`[ALE] lazy rotation UPDATE failed for dekId=${v_9419a6}`);
       }
+
     }
   }
 
