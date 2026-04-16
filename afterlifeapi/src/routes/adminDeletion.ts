@@ -5,13 +5,14 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_c0a297 } from "../middleware/auth";
 import {
+  v_8afb61,
   v_172c9f,
   v_ff8d3b,
-  v_5fd134,
   type v_d33606,
   type v_da5f26,
 } from "../lib/coldStorage";
 import { v_e56fb3 } from "../lib/auditChain";
+import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 
 export const v_19f1fa = new v_b7c41b<v_de0a25>();
 
@@ -23,13 +24,13 @@ const TABLE: Record<v_d33606, string> = {
   message: "messages",
 };
 
-function v_8afb61(v_3b27d9, v_389afb): string {
-  return `${v_5fd134}/${v_3b27d9}/${v_389afb}/snapshot.json.gz`;
-}
+const v_df8e62 = v_1f4ea7.object({
+  reason: v_1f4ea7.string().min(10).max(500), 
+});
 
 v_19f1fa.post("/:type/:id/restore-from-cold", v_c0a297, async (v_3f4e2e) => {
 
-  const v_105fc4 = v_3f4e2e.get("adminUserId") as number;
+  const v_105fc4 = v_3f4e2e.get("adminUserId")!;
   const { type: v_3b27d9, id: v_2c44c0 } = v_3f4e2e.req.param();
 
   if (!v_bddcd9.has(v_3b27d9)) {
@@ -40,11 +41,7 @@ v_19f1fa.post("/:type/:id/restore-from-cold", v_c0a297, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "id must be a positive integer");
   }
 
-  const v_4d33b2 = await v_3f4e2e.req.json<{ reason?: string }>();
-  if (!v_4d33b2.reason || v_4d33b2.reason.length < 5) {
-    throw new v_3ebe58("VALIDATION_FAILED", "reason required (min 5 chars)");
-  }
-  const { reason: v_58ca36 } = v_4d33b2;
+  const { reason: v_58ca36 } = await v_4c95c2(v_3f4e2e, v_df8e62);
 
   const v_194c75 = v_3b27d9 as v_d33606;
   const v_cb9428 = v_edff4c[v_194c75];
@@ -81,13 +78,19 @@ v_19f1fa.post("/:type/:id/restore-from-cold", v_c0a297, async (v_3f4e2e) => {
 
   await v_3f4e2e.env.R2_ARCHIVE.delete(v_b24339);
 
-  await v_e56fb3(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
-    actor: { type: "admin", id: v_105fc4 },
-    op: "cold_restore",
-    resourceType: v_3b27d9,
-    resourceId: v_389afb,
-    reason: v_58ca36,
-  });
+  let v_53a9ea = false;
+  try {
+    await v_e56fb3(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
+      actor: { type: "admin", id: v_105fc4 },
+      op: "cold_restore",
+      resourceType: v_3b27d9,
+      resourceId: v_389afb,
+      reason: v_58ca36,
+    });
+  } catch (v_49263d) {
+    console.error("cold_restore audit write failed", { type: v_3b27d9, id: v_389afb, err: v_49263d });
+    v_53a9ea = true;
+  }
 
-  return v_3f4e2e.json({ ok: true, type: v_3b27d9, id: v_389afb, state: "active" });
+  return v_3f4e2e.json({ ok: true, type: v_3b27d9, id: v_389afb, state: "active", ...(v_53a9ea && { auditWarning: true }) });
 });

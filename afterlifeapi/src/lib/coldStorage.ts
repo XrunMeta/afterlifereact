@@ -30,7 +30,7 @@ export interface Snapshot {
   }>;
 }
 
-function v_8afb61(v_3b27d9, v_389afb): string {
+export function v_8afb61(v_3b27d9, v_389afb): string {
   return `${v_5fd134}/${v_3b27d9}/${v_389afb}/snapshot.json.gz`;
 }
 
