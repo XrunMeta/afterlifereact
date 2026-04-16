@@ -273,16 +273,20 @@ v_83c76b.post("/requests/:id/execute", async (v_3f4e2e) => {
     );
   } catch (v_49263d) {
 
-    const v_ab4c96 = v_0dd6a5(v_3f4e2e);
-    await v_1cb5cc(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
-      adminUserId: v_db9be1,
-      action: "quorum.execute.failed",
-      targetType: "quorum_request",
-      targetId: String(v_389afb),
-      reason: `${v_309144.action_type}: ${(v_49263d as Error).message ?? "unknown"}`,
-      ip: v_ab4c96.ip,
-      userAgent: v_ab4c96.userAgent,
-    });
+    try {
+      const v_ab4c96 = v_0dd6a5(v_3f4e2e);
+      await v_1cb5cc(v_3f4e2e.env.DB, v_3f4e2e.env.AUDIT_SECRET, {
+        adminUserId: v_db9be1,
+        action: "quorum.execute.failed",
+        targetType: "quorum_request",
+        targetId: String(v_389afb),
+        reason: `${v_309144.action_type}: ${(v_49263d as Error).message ?? "unknown"}`,
+        ip: v_ab4c96.ip,
+        userAgent: v_ab4c96.userAgent,
+      });
+    } catch (v_6488bf) {
+      console.error("[quorum] audit write failed while handling execute error:", v_6488bf);
+    }
     throw v_49263d;
   }
   await v_3f4e2e.env.DB.prepare(
