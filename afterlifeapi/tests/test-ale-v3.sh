@@ -2,6 +2,8 @@
 # Critical 테마 (바) Slice 1 회귀: ALE v3 + KEK 멀티버전 + Lazy Rotation.
 # 전제: wrangler dev 127.0.0.1:8787, ADMIN_BOOTSTRAP_TOKEN, MASTER_ROOT 세팅됨.
 set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 API=http:
 BT=${ADMIN_BOOTSTRAP_TOKEN:-dev-bootstrap-token-change-me}
 PASS=0
@@ -60,7 +62,7 @@ bootstrap_login() {
 }
 
 d1_query() {
-  (cd afterlifeapi && npx wrangler d1 execute DB --local --command "$1" --json 2>/dev/null)
+  (cd "$REPO_ROOT/afterlifeapi" && npx wrangler d1 execute DB --local --command "$1" --json 2>/dev/null)
 }
 
 ts=$(date +%s%N)
@@ -128,12 +130,16 @@ check "encryption_keys.retired_count=1" "1" "$COUNT_RETIRED"
 echo "=== 8) Lazy Rotation OFF: openV3 → dek_registry.kek_id 변경 없음 ==="
 curl -s -X POST $API/admin/_dev/open-v3 -H 'Content-Type: application/json' \
   -d "{\"token\":\"$BT\",\"blob\":\"$FIXTURE_BLOB\",\"lazyRotationOverride\":false}" > /tmp/alev3_open_off.json
+PLAIN_OFF=$(node -e 'console.log(require("/tmp/alev3_open_off.json").plain||"")')
+check "lazy_off.plain" "slice1 lazy rotation test" "$PLAIN_OFF"
 KEK_AFTER_OFF=$(d1_query "SELECT kek_id FROM dek_registry WHERE dek_id='$FIXTURE_DEK_ID'" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{console.log(JSON.parse(d)[0].results[0]?.kek_id||"")})')
 check "lazy_off.kek_id=kek_v1" "kek_v1" "$KEK_AFTER_OFF"
 
 echo "=== 9) Lazy Rotation ON: openV3 → kek_v2 재래핑 + rotated_at=SET ==="
 curl -s -X POST $API/admin/_dev/open-v3 -H 'Content-Type: application/json' \
   -d "{\"token\":\"$BT\",\"blob\":\"$FIXTURE_BLOB\",\"lazyRotationOverride\":true}" > /tmp/alev3_open_on.json
+PLAIN_ON=$(node -e 'console.log(require("/tmp/alev3_open_on.json").plain||"")')
+check "lazy_on.plain" "slice1 lazy rotation test" "$PLAIN_ON"
 KEK_AFTER_ON=$(d1_query "SELECT kek_id FROM dek_registry WHERE dek_id='$FIXTURE_DEK_ID'" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{console.log(JSON.parse(d)[0].results[0]?.kek_id||"")})')
 ROTATED_AT=$(d1_query "SELECT rotated_at FROM dek_registry WHERE dek_id='$FIXTURE_DEK_ID'" | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{console.log(JSON.parse(d)[0].results[0]?.rotated_at?"SET":"NULL")})')
 check "lazy_on.kek_id=kek_v2" "kek_v2" "$KEK_AFTER_ON"
