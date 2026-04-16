@@ -385,13 +385,13 @@ async function executeAction(
       if (p.scope === "user_all") {
         targets.push({ resourceType: "user", resourceId: String(p.userId) });
         const clones = await db
-          .prepare(`SELECT id FROM clones WHERE created_by=?`)
+          .prepare(`SELECT id FROM clones WHERE created_by=? LIMIT 500`)
           .bind(p.userId).all();
         for (const cl of clones.results as Array<{ id: number }>) {
           targets.push({ resourceType: "clone", resourceId: String(cl.id) });
         }
         const messages = await db
-          .prepare(`SELECT id FROM messages WHERE sender_id=?`)
+          .prepare(`SELECT id FROM messages WHERE sender_id=? LIMIT 500`)
           .bind(p.userId).all();
         for (const m of messages.results as Array<{ id: number }>) {
           targets.push({ resourceType: "message", resourceId: String(m.id) });
@@ -423,27 +423,31 @@ async function executeAction(
         for (const r of regs) {
           try {
             await shredV3(db, r.dek_id);
-            await writeDecryptionAudit(db, auditSecret, {
-              actor: { type: "admin", id: String(requesterId) },
-              op: "shred",
-              resourceType: t.resourceType,
-              resourceId: t.resourceId,
-              reason: `gdpr_req=${p.gdprRequestId}`,
-            });
+            try {
+              await writeDecryptionAudit(db, auditSecret, {
+                actor: { type: "admin", id: String(requesterId) },
+                op: "shred",
+                resourceType: t.resourceType,
+                resourceId: t.resourceId,
+                reason: `gdpr_req=${p.gdprRequestId}`,
+              });
+            } catch {  }
             count++;
           } catch (err) {
-            await writeDecryptionAudit(db, auditSecret, {
-              actor: { type: "admin", id: String(requesterId) },
-              op: "shred_failed",
-              resourceType: t.resourceType,
-              resourceId: t.resourceId,
-              reason: `gdpr_req=${p.gdprRequestId}: ${(err as Error).message}`,
-            });
+            try {
+              await writeDecryptionAudit(db, auditSecret, {
+                actor: { type: "admin", id: String(requesterId) },
+                op: "shred_failed",
+                resourceType: t.resourceType,
+                resourceId: t.resourceId,
+                reason: `gdpr_req=${p.gdprRequestId}: ${(err as Error).message}`,
+              });
+            } catch {  }
           }
         }
       }
 
-      await db
+      const upd = await db
         .prepare(
           `UPDATE gdpr_shred_requests
               SET status='executed', executed_at=CURRENT_TIMESTAMP, shredded_count=?
@@ -451,6 +455,10 @@ async function executeAction(
         )
         .bind(count, p.gdprRequestId)
         .run();
+      const changes = (upd as unknown as { meta?: { changes?: number } }).meta?.changes ?? 0;
+      if (changes === 0) {
+        throw new APIError("CONFLICT", `gdpr_shred_requests #${p.gdprRequestId} not in_review — status changed concurrently`);
+      }
 
       return { shreddedCount: count, totalTargets: targets.length, gdprRequestId: p.gdprRequestId };
     }
