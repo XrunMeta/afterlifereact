@@ -4,7 +4,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_09b071 } from "../scheduled/cleanup";
 import { v_c0a297 } from "../middleware/auth";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
-import { v_a8614b, v_207c31, v_dfbdd9, v_9eaae0, v_8ea38c } from "../lib/ale";
+import { v_a8614b, v_137694, v_dfbdd9, v_9eaae0, v_85de88, v_8ea38c } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_e56fb3 } from "../lib/auditChain";
 
@@ -59,6 +59,16 @@ async function v_93d251(
   return null;
 }
 
+function v_658bbe(
+  v_623f9b,
+  v_ca7092,
+): { key: "users.phone" | "users.age_enc" | "messages.content"; resourceId: number } | undefined {
+  if (v_623f9b === "user.phone") return { key: "users.phone", resourceId: v_ca7092 };
+  if (v_623f9b === "user.age") return { key: "users.age_enc", resourceId: v_ca7092 };
+  if (v_623f9b === "message.content") return { key: "messages.content", resourceId: v_ca7092 };
+  return undefined;
+}
+
 v_b7f2b4.post("/decryption/open", v_c0a297, async (v_3f4e2e) => {
   const v_db9be1 = v_3f4e2e.get("adminUserId");
   if (!v_db9be1) throw new v_3ebe58("UNAUTHENTICATED", "Admin identity missing.");
@@ -81,7 +91,18 @@ v_b7f2b4.post("/decryption/open", v_c0a297, async (v_3f4e2e) => {
     } else {
 
       const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
-      v_9db068 = v_207c31(v_cee2c7.blob, v_d205b7, v_cee2c7.aleContext);
+      const v_67b8fb = await v_e44d97(v_3f4e2e);
+      const v_9ecdb9 = v_658bbe(v_4d33b2.resourceType, v_4d33b2.resourceId);
+      v_9db068 = await v_137694(v_cee2c7.blob, {
+        db: v_3f4e2e.env.DB,
+        hkdfContext: v_cee2c7.aleContext,
+        legacyProvider: v_d205b7,
+        v3Provider: v_67b8fb,
+        actor: { type: "admin", id: v_db9be1 },
+        auditSecret: v_3f4e2e.env.AUDIT_SECRET,
+        lazyMigrateEnabled: v_3f4e2e.env.LAZY_V2_MIGRATE_ENABLED === "1",
+        hint: v_9ecdb9,
+      });
     }
   } catch (v_49263d) {
     if ((v_49263d as { code?: string }).code === "SHREDDED") {
@@ -181,6 +202,23 @@ v_b7f2b4.post("/_dev/seal-v3", async (v_3f4e2e) => {
   return v_3f4e2e.json({ blob: v_3263c7, dekId: v_8ea38c(v_3263c7) }, 201);
 });
 
+v_b7f2b4.post("/_dev/seal-v2", async (v_3f4e2e) => {
+  if (!v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN || v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
+    throw new v_3ebe58("FORBIDDEN", "Dev-only endpoint disabled.");
+  }
+  const v_4d33b2 = await v_3f4e2e.req.json<{
+    token: string;
+    hkdfContext: string;
+    plaintext: string;
+  }>();
+  if (v_4d33b2.token !== v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN) {
+    throw new v_3ebe58("NOT_FOUND", "Not found.");
+  }
+  const v_e38ca2 = v_a8614b(v_3f4e2e.env.ALE_KEK);
+  const v_3263c7 = v_85de88(v_4d33b2.plaintext, v_e38ca2, v_4d33b2.hkdfContext);
+  return v_3f4e2e.json({ blob: v_3263c7 }, 201);
+});
+
 v_b7f2b4.post("/_dev/open-v3", async (v_3f4e2e) => {
   if (!v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN || v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
     throw new v_3ebe58("FORBIDDEN", "Dev-only endpoint disabled.");
@@ -197,6 +235,37 @@ v_b7f2b4.post("/_dev/open-v3", async (v_3f4e2e) => {
   const v_c42fdd =
     v_4d33b2.lazyRotationOverride ?? v_3f4e2e.env.LAZY_ROTATION_ENABLED === "1";
   const v_946ca6 = await v_dfbdd9(v_3f4e2e.env.DB, v_4d33b2.blob, v_e38ca2, { lazyRotationEnabled: v_c42fdd });
+  return v_3f4e2e.json({ plain: v_946ca6 });
+});
+
+v_b7f2b4.post("/_dev/open-any", async (v_3f4e2e) => {
+  if (!v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN || v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
+    throw new v_3ebe58("FORBIDDEN", "Dev-only endpoint disabled.");
+  }
+  const v_4d33b2 = await v_3f4e2e.req.json<{
+    token: string;
+    blob: string;
+    hkdfContext: string;
+    hint?: { key: "users.phone" | "users.age_enc" | "messages.content"; resourceId: string | number };
+    lazyMigrateOverride?: boolean;
+  }>();
+  if (v_4d33b2.token !== v_3f4e2e.env.ADMIN_BOOTSTRAP_TOKEN) {
+    throw new v_3ebe58("NOT_FOUND", "Not found.");
+  }
+  const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
+  const v_67b8fb = await v_e44d97(v_3f4e2e);
+  const v_4291aa =
+    v_4d33b2.lazyMigrateOverride ?? v_3f4e2e.env.LAZY_V2_MIGRATE_ENABLED === "1";
+  const v_946ca6 = await v_137694(v_4d33b2.blob, {
+    db: v_3f4e2e.env.DB,
+    hkdfContext: v_4d33b2.hkdfContext,
+    legacyProvider: v_d205b7,
+    v3Provider: v_67b8fb,
+    actor: { type: "system", id: "dev-smoke" },
+    auditSecret: v_3f4e2e.env.AUDIT_SECRET,
+    lazyMigrateEnabled: v_4291aa,
+    hint: v_4d33b2.hint,
+  });
   return v_3f4e2e.json({ plain: v_946ca6 });
 });
 
