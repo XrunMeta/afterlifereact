@@ -18,6 +18,7 @@ import { v_b7f2b4 } from "./routes/admin";
 import { v_d26494 } from "./routes/adminAuth";
 import { v_fcbd5b } from "./routes/adminWebauthn";
 import { v_3182b3 } from "./routes/coldRecovery";
+import { v_83c76b } from "./routes/adminQuorum";
 import { v_ad9418, v_7fd263 } from "./routes/emergency";
 
 const v_466992 = new v_b7c41b<v_de0a25>();
@@ -53,6 +54,7 @@ v_466992.route("/oth-path", v_e2c945);
 v_466992.route("/oth-path", v_d26494);
 v_466992.route("/oth-path", v_fcbd5b);
 v_466992.route("/oth-path", v_3182b3);
+v_466992.route("/oth-path", v_83c76b);
 v_466992.route("/oth-path", v_b7f2b4);
 v_466992.route("/oth-path", v_ad9418);
 v_466992.route("/oth-path", v_7fd263);
