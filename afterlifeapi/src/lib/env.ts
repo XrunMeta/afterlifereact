@@ -19,6 +19,9 @@ export interface Bindings {
   JWT_REFRESH_SECRET: string;
   AUDIT_SECRET: string;         
   ALE_KEK: string;              
+  MASTER_ROOT: string;          
+
+  LAZY_ROTATION_ENABLED?: string;  
 
   ADMIN_BOOTSTRAP_TOKEN?: string;
 

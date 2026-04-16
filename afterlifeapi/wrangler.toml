@@ -3,10 +3,19 @@ main = "src/index.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Secrets (wrangler secret put <NAME>):
+#   JWT_ACCESS_SECRET
+#   JWT_REFRESH_SECRET
+#   AUDIT_SECRET
+#   ALE_KEK                    # base64 32B — v1/v2 하위호환
+#   MASTER_ROOT                # base64 32B — ALE v3 KEK wrap/unwrap 루트
+#   ADMIN_BOOTSTRAP_TOKEN      # dev/staging only
+
 [vars]
 ENVIRONMENT = "development"
 WEBAUTHN_RP_ID = "localhost"
 WEBAUTHN_RP_ORIGIN = "http://localhost:8787"
+LAZY_ROTATION_ENABLED = "0"
 
 # Dev secrets (override via `wrangler secret put` or .dev.vars in real env)
 [[d1_databases]]
