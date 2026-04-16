@@ -111,6 +111,89 @@ export function open(blob: string, provider: KekProvider, context: string): stri
   }
 }
 
+export type MigrateHintKey = "users.phone" | "users.age_enc" | "messages.content";
+
+export interface MigrateHint {
+  key: MigrateHintKey;
+  resourceId: string | number;
+}
+
+interface MigrateSpec {
+  table: "users" | "messages";
+  column: "phone" | "age_enc" | "content";
+  where: "id";
+  resourceType: "user.phone" | "user.age" | "message.content";
+}
+
+const MIGRATE_MAP: Record<MigrateHintKey, MigrateSpec> = {
+  "users.phone":      { table: "users",    column: "phone",   where: "id", resourceType: "user.phone" },
+  "users.age_enc":    { table: "users",    column: "age_enc", where: "id", resourceType: "user.age" },
+  "messages.content": { table: "messages", column: "content", where: "id", resourceType: "message.content" },
+};
+
+export interface OpenAnyOptions {
+  db: D1Database;
+  hkdfContext: string;              
+  legacyProvider: KekProvider;      
+  v3Provider: KekProvider;          
+  actor: { type: "user" | "admin" | "heir" | "system"; id: string | number };
+  auditSecret: string;
+  lazyMigrateEnabled: boolean;
+  hint?: MigrateHint;
+}
+
+export async function openAny(blob: string, opts: OpenAnyOptions): Promise<string> {
+  if (blob.startsWith(`${V3}.`)) {
+    return openV3(opts.db, blob, opts.v3Provider, { lazyRotationEnabled: false });
+  }
+
+  const plain = open(blob, opts.legacyProvider, opts.hkdfContext);
+
+  if (!opts.lazyMigrateEnabled || !opts.hint) return plain;
+  const spec = MIGRATE_MAP[opts.hint.key];
+  if (!spec) return plain;
+
+  let newBlob: string;
+  try {
+    newBlob = await sealV3(
+      opts.db,
+      plain,
+      opts.v3Provider,
+      { type: spec.resourceType, id: String(opts.hint.resourceId) },
+    );
+  } catch (err) {
+
+    console.error(`[V2_MIGRATE_SEAL_FAIL] key=${opts.hint.key} id=${opts.hint.resourceId} err=${(err as Error).message}`);
+    return plain;
+  }
+
+  try {
+
+    await opts.db
+      .prepare(`UPDATE ${spec.table} SET ${spec.column}=? WHERE ${spec.where}=? AND ${spec.column}=?`)
+      .bind(newBlob, opts.hint.resourceId, blob)
+      .run();
+  } catch (err) {
+    console.error(`[V2_MIGRATE_UPDATE_FAIL] key=${opts.hint.key} id=${opts.hint.resourceId} err=${(err as Error).message}`);
+    return plain;
+  }
+
+  try {
+    const { writeDecryptionAudit } = await import("./auditChain");
+    await writeDecryptionAudit(opts.db, opts.auditSecret, {
+      actor: { type: opts.actor.type, id: opts.actor.id },
+      op: "v2_migrate",
+      resourceType: spec.resourceType,
+      resourceId: String(opts.hint.resourceId),
+      reason: null,
+    });
+  } catch (err) {
+    console.error(`[V2_MIGRATE_AUDIT_FAIL] key=${opts.hint.key} id=${opts.hint.resourceId} err=${(err as Error).message}`);
+  }
+
+  return plain;
+}
+
 export interface V3Resource {
   type: string;   
   id: string;     
