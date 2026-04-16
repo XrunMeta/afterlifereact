@@ -4,7 +4,7 @@ import { APIError } from "../lib/errors";
 import { runCleanup } from "../scheduled/cleanup";
 import { requireAdmin } from "../middleware/auth";
 import { parseJson, z } from "../lib/validate";
-import { getKekProvider, open, openV3, sealV3, extractDekId } from "../lib/ale";
+import { getKekProvider, openAny, openV3, sealV3, seal, extractDekId } from "../lib/ale";
 import { requestKekProvider } from "../lib/kekProvider";
 import { writeDecryptionAudit } from "../lib/auditChain";
 
@@ -59,6 +59,16 @@ async function fetchEncryptedField(
   return null;
 }
 
+function resourceTypeToHint(
+  resourceType: "message.content" | "user.phone" | "user.age",
+  resourceId: number,
+): { key: "users.phone" | "users.age_enc" | "messages.content"; resourceId: number } | undefined {
+  if (resourceType === "user.phone") return { key: "users.phone", resourceId };
+  if (resourceType === "user.age") return { key: "users.age_enc", resourceId };
+  if (resourceType === "message.content") return { key: "messages.content", resourceId };
+  return undefined;
+}
+
 admin.post("/decryption/open", requireAdmin, async (c) => {
   const adminId = c.get("adminUserId");
   if (!adminId) throw new APIError("UNAUTHENTICATED", "Admin identity missing.");
@@ -81,7 +91,18 @@ admin.post("/decryption/open", requireAdmin, async (c) => {
     } else {
 
       const legacyProvider = getKekProvider(c.env.ALE_KEK);
-      plaintext = open(fetched.blob, legacyProvider, fetched.aleContext);
+      const v3Provider = await requestKekProvider(c);
+      const hint = resourceTypeToHint(body.resourceType, body.resourceId);
+      plaintext = await openAny(fetched.blob, {
+        db: c.env.DB,
+        hkdfContext: fetched.aleContext,
+        legacyProvider,
+        v3Provider,
+        actor: { type: "admin", id: adminId },
+        auditSecret: c.env.AUDIT_SECRET,
+        lazyMigrateEnabled: c.env.LAZY_V2_MIGRATE_ENABLED === "1",
+        hint,
+      });
     }
   } catch (err) {
     if ((err as { code?: string }).code === "SHREDDED") {
@@ -181,6 +202,23 @@ admin.post("/_dev/seal-v3", async (c) => {
   return c.json({ blob, dekId: extractDekId(blob) }, 201);
 });
 
+admin.post("/_dev/seal-v2", async (c) => {
+  if (!c.env.ADMIN_BOOTSTRAP_TOKEN || c.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
+    throw new APIError("FORBIDDEN", "Dev-only endpoint disabled.");
+  }
+  const body = await c.req.json<{
+    token: string;
+    hkdfContext: string;
+    plaintext: string;
+  }>();
+  if (body.token !== c.env.ADMIN_BOOTSTRAP_TOKEN) {
+    throw new APIError("NOT_FOUND", "Not found.");
+  }
+  const provider = getKekProvider(c.env.ALE_KEK);
+  const blob = seal(body.plaintext, provider, body.hkdfContext);
+  return c.json({ blob }, 201);
+});
+
 admin.post("/_dev/open-v3", async (c) => {
   if (!c.env.ADMIN_BOOTSTRAP_TOKEN || c.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
     throw new APIError("FORBIDDEN", "Dev-only endpoint disabled.");
@@ -197,6 +235,37 @@ admin.post("/_dev/open-v3", async (c) => {
   const lazyRotationEnabled =
     body.lazyRotationOverride ?? c.env.LAZY_ROTATION_ENABLED === "1";
   const plain = await openV3(c.env.DB, body.blob, provider, { lazyRotationEnabled });
+  return c.json({ plain });
+});
+
+admin.post("/_dev/open-any", async (c) => {
+  if (!c.env.ADMIN_BOOTSTRAP_TOKEN || c.env.ADMIN_BOOTSTRAP_TOKEN.length === 0) {
+    throw new APIError("FORBIDDEN", "Dev-only endpoint disabled.");
+  }
+  const body = await c.req.json<{
+    token: string;
+    blob: string;
+    hkdfContext: string;
+    hint?: { key: "users.phone" | "users.age_enc" | "messages.content"; resourceId: string | number };
+    lazyMigrateOverride?: boolean;
+  }>();
+  if (body.token !== c.env.ADMIN_BOOTSTRAP_TOKEN) {
+    throw new APIError("NOT_FOUND", "Not found.");
+  }
+  const legacyProvider = getKekProvider(c.env.ALE_KEK);
+  const v3Provider = await requestKekProvider(c);
+  const lazyMigrateEnabled =
+    body.lazyMigrateOverride ?? c.env.LAZY_V2_MIGRATE_ENABLED === "1";
+  const plain = await openAny(body.blob, {
+    db: c.env.DB,
+    hkdfContext: body.hkdfContext,
+    legacyProvider,
+    v3Provider,
+    actor: { type: "system", id: "dev-smoke" },
+    auditSecret: c.env.AUDIT_SECRET,
+    lazyMigrateEnabled,
+    hint: body.hint,
+  });
   return c.json({ plain });
 });
 
