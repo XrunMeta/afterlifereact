@@ -62,10 +62,12 @@ async function softRestore(
   ownerId: number,
 ): Promise<SoftRestoreResult> {
   const table = TABLE[type];
+
+  const selectSql = HAS_SOFT_DELETED_AT[type]
+    ? `SELECT id, deletion_state, ${ownerCol}, soft_deleted_at FROM ${table} WHERE id = ?`
+    : `SELECT id, deletion_state, ${ownerCol} FROM ${table} WHERE id = ?`;
   const row = await db
-    .prepare(
-      `SELECT id, deletion_state, ${ownerCol}, soft_deleted_at FROM ${table} WHERE id = ?`,
-    )
+    .prepare(selectSql)
     .bind(id)
     .first<{
       id: number;
