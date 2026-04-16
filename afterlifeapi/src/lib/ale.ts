@@ -111,6 +111,89 @@ export function v_207c31(v_3263c7, v_e38ca2, v_e3aeb3): string {
   }
 }
 
+export type MigrateHintKey = "users.phone" | "users.age_enc" | "messages.content";
+
+export interface MigrateHint {
+  key: MigrateHintKey;
+  resourceId: string | number;
+}
+
+interface MigrateSpec {
+  table: "users" | "messages";
+  column: "phone" | "age_enc" | "content";
+  where: "id";
+  resourceType: "user.phone" | "user.age" | "message.content";
+}
+
+const v_92c4dd = {
+  "users.phone":      { table: "users",    column: "phone",   where: "id", resourceType: "user.phone" },
+  "users.age_enc":    { table: "users",    column: "age_enc", where: "id", resourceType: "user.age" },
+  "messages.content": { table: "messages", column: "content", where: "id", resourceType: "message.content" },
+};
+
+export interface OpenAnyOptions {
+  db: D1Database;
+  hkdfContext: string;              
+  legacyProvider: KekProvider;      
+  v3Provider: KekProvider;          
+  actor: { type: "user" | "admin" | "heir" | "system"; id: string | number };
+  auditSecret: string;
+  lazyMigrateEnabled: boolean;
+  hint?: MigrateHint;
+}
+
+export async function v_137694(v_3263c7, v_328259): Promise<string> {
+  if (v_3263c7.startsWith(`${v_e1906a}.`)) {
+    return v_dfbdd9(v_328259.db, v_3263c7, v_328259.v3Provider, { lazyRotationEnabled: false });
+  }
+
+  const v_946ca6 = v_207c31(v_3263c7, v_328259.legacyProvider, v_328259.hkdfContext);
+
+  if (!v_328259.lazyMigrateEnabled || !v_328259.hint) return v_946ca6;
+  const v_2750f3 = v_92c4dd[v_328259.hint.key];
+  if (!v_2750f3) return v_946ca6;
+
+  let v_ba5d92;
+  try {
+    v_ba5d92 = await v_9eaae0(
+      v_328259.db,
+      v_946ca6,
+      v_328259.v3Provider,
+      { type: v_2750f3.resourceType, id: String(v_328259.hint.resourceId) },
+    );
+  } catch (v_49263d) {
+
+    console.error(`[V2_MIGRATE_SEAL_FAIL] key=${v_328259.hint.key} id=${v_328259.hint.resourceId} err=${(v_49263d as Error).message}`);
+    return v_946ca6;
+  }
+
+  try {
+
+    await v_328259.db
+      .prepare(`UPDATE ${v_2750f3.table} SET ${v_2750f3.column}=? WHERE ${v_2750f3.where}=? AND ${v_2750f3.column}=?`)
+      .bind(v_ba5d92, v_328259.hint.resourceId, v_3263c7)
+      .run();
+  } catch (v_49263d) {
+    console.error(`[V2_MIGRATE_UPDATE_FAIL] key=${v_328259.hint.key} id=${v_328259.hint.resourceId} err=${(v_49263d as Error).message}`);
+    return v_946ca6;
+  }
+
+  try {
+    const { writeDecryptionAudit: v_e56fb3 } = await import("./auditChain");
+    await v_e56fb3(v_328259.db, v_328259.auditSecret, {
+      actor: { type: v_328259.actor.type, id: v_328259.actor.id },
+      op: "v2_migrate",
+      resourceType: v_2750f3.resourceType,
+      resourceId: String(v_328259.hint.resourceId),
+      reason: null,
+    });
+  } catch (v_49263d) {
+    console.error(`[V2_MIGRATE_AUDIT_FAIL] key=${v_328259.hint.key} id=${v_328259.hint.resourceId} err=${(v_49263d as Error).message}`);
+  }
+
+  return v_946ca6;
+}
+
 export interface V3Resource {
   type: string;   
   id: string;     
