@@ -11,6 +11,8 @@ import {
   generateKekAndWrap,
   invalidateKekCache,
 } from "../lib/kekProvider";
+import { shredV3 } from "../lib/ale";
+import { writeDecryptionAudit } from "../lib/auditChain";
 
 export const adminQuorum = new Hono<AppEnv>();
 adminQuorum.use("*", requireSuperAdmin);
@@ -270,6 +272,8 @@ adminQuorum.post("/requests/:id/execute", async (c) => {
       c.env.MASTER_ROOT,
       req.action_type,
       safeParse(req.payload),
+      c.env.AUDIT_SECRET,
+      adminId,
     );
   } catch (err) {
 
@@ -353,6 +357,8 @@ async function executeAction(
   masterRoot: string,
   actionType: AllowedAction,
   payload: unknown,
+  auditSecret: string,
+  requesterId: string | number,
 ): Promise<unknown> {
   switch (actionType) {
     case "kek_rotate": {
@@ -361,9 +367,93 @@ async function executeAction(
     case "celeb_ip_transfer":
     case "force_hard_delete":
     case "admin_role_change":
-    case "crypto_shredding":
 
       return { handler: "pending_handler", note: `${actionType} not yet implemented` };
+    case "crypto_shredding": {
+
+      const p = (payload ?? {}) as {
+        gdprRequestId?: number;
+        userId?: number;
+        scope?: "user_all" | "resources";
+        resources?: Array<{ resourceType: string; resourceId: string | number }>;
+      };
+      if (!p.gdprRequestId || !p.userId || !p.scope) {
+        throw new APIError("VALIDATION_FAILED", "crypto_shredding payload missing required fields.");
+      }
+
+      const targets: { resourceType: string; resourceId: string }[] = [];
+      if (p.scope === "user_all") {
+        targets.push({ resourceType: "user", resourceId: String(p.userId) });
+        const clones = await db
+          .prepare(`SELECT id FROM clones WHERE created_by=?`)
+          .bind(p.userId).all();
+        for (const cl of clones.results as Array<{ id: number }>) {
+          targets.push({ resourceType: "clone", resourceId: String(cl.id) });
+        }
+        const messages = await db
+          .prepare(`SELECT id FROM messages WHERE sender_id=?`)
+          .bind(p.userId).all();
+        for (const m of messages.results as Array<{ id: number }>) {
+          targets.push({ resourceType: "message", resourceId: String(m.id) });
+        }
+      } else {
+        if (!p.resources || p.resources.length === 0) {
+          throw new APIError("VALIDATION_FAILED", "resources required when scope=resources.");
+        }
+        for (const r of p.resources) {
+          targets.push({ resourceType: r.resourceType, resourceId: String(r.resourceId) });
+        }
+      }
+
+      if (targets.length > 500) {
+        throw new APIError("QUOTA_EXCEEDED", "target count exceeds 500 — async queue required");
+      }
+
+      let count = 0;
+      for (const t of targets) {
+        const regs = (
+          await db
+            .prepare(
+              `SELECT dek_id FROM dek_registry
+                WHERE resource_type=? AND resource_id=? AND shredded_at IS NULL`,
+            )
+            .bind(t.resourceType, t.resourceId)
+            .all()
+        ).results as Array<{ dek_id: string }>;
+        for (const r of regs) {
+          try {
+            await shredV3(db, r.dek_id);
+            await writeDecryptionAudit(db, auditSecret, {
+              actor: { type: "admin", id: String(requesterId) },
+              op: "shred",
+              resourceType: t.resourceType,
+              resourceId: t.resourceId,
+              reason: `gdpr_req=${p.gdprRequestId}`,
+            });
+            count++;
+          } catch (err) {
+            await writeDecryptionAudit(db, auditSecret, {
+              actor: { type: "admin", id: String(requesterId) },
+              op: "shred_failed",
+              resourceType: t.resourceType,
+              resourceId: t.resourceId,
+              reason: `gdpr_req=${p.gdprRequestId}: ${(err as Error).message}`,
+            });
+          }
+        }
+      }
+
+      await db
+        .prepare(
+          `UPDATE gdpr_shred_requests
+              SET status='executed', executed_at=CURRENT_TIMESTAMP, shredded_count=?
+            WHERE id=? AND status='in_review'`,
+        )
+        .bind(count, p.gdprRequestId)
+        .run();
+
+      return { shreddedCount: count, totalTargets: targets.length, gdprRequestId: p.gdprRequestId };
+    }
     default: {
       const _exhaustive: never = actionType;
       throw new APIError("INTERNAL_ERROR", `Unknown action: ${_exhaustive}`);
