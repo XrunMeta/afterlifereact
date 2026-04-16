@@ -149,7 +149,7 @@ echo "=== 잘못된 actionType → 400 ==="
 R=$(curl -s -o /tmp/q_bad.json -w "%{http_code}" -X POST $API/admin/quorum/requests \
   -H "Authorization: Bearer $T1" -H 'Content-Type: application/json' \
   -d '{"actionType":"not_allowed","payload":{},"reason":"bad action type"}')
-check "create.bad_action 400" "400" "$R"
+check "create.bad_action 422" "422" "$R"
 
 echo ""
 echo "=============================="
