@@ -22,6 +22,7 @@ import { adminQuorum } from "./routes/adminQuorum";
 import { emergency, inheritance } from "./routes/emergency";
 import { gdpr } from "./routes/gdpr";
 import { adminGdpr } from "./routes/adminGdpr";
+import { deletion } from "./routes/deletion";
 
 const app = new Hono<AppEnv>();
 
@@ -42,6 +43,8 @@ app.get("/health", async (c) => {
 });
 
 app.route("/oth-path", auth);
+
+app.route("/oth-path", deletion);
 app.route("/oth-path", users);
 app.route("/oth-path", clones);
 
