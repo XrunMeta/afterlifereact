@@ -4,7 +4,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_09b071 } from "../scheduled/cleanup";
 import { v_c0a297 } from "../middleware/auth";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
-import { v_207c31, v_dfbdd9 } from "../lib/ale";
+import { v_a8614b, v_207c31, v_dfbdd9 } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_e56fb3 } from "../lib/auditChain";
 
@@ -71,15 +71,17 @@ v_b7f2b4.post("/decryption/open", v_c0a297, async (v_3f4e2e) => {
     return v_3f4e2e.json({ ok: false, reason: "EMPTY_OR_PURGED" }, 410);
   }
 
-  const v_e38ca2 = await v_e44d97(v_3f4e2e);
   const v_c42fdd = v_3f4e2e.env.LAZY_ROTATION_ENABLED === "1";
   const v_0e1851 = v_cee2c7.blob.split(".")[0];
   let v_9db068;
   try {
     if (v_0e1851 === "v3") {
+      const v_e38ca2 = await v_e44d97(v_3f4e2e);
       v_9db068 = await v_dfbdd9(v_3f4e2e.env.DB, v_cee2c7.blob, v_e38ca2, { lazyRotationEnabled: v_c42fdd });
     } else {
-      v_9db068 = v_207c31(v_cee2c7.blob, v_e38ca2, v_cee2c7.aleContext);
+
+      const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
+      v_9db068 = v_207c31(v_cee2c7.blob, v_d205b7, v_cee2c7.aleContext);
     }
   } catch (v_49263d) {
     if ((v_49263d as { code?: string }).code === "SHREDDED") {
