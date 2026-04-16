@@ -1,11 +1,14 @@
 
 
 import type { R2Bucket } from "@cloudflare/workers-types";
+import { b64, unb64 } from "./ale";
 
 export const COLD_PREFIX = "cold";
 export const SCHEMA_VERSION = "2026-04-16";
 
 export type ColdType = "user" | "clone" | "message";
+
+const COLD_TABLE: Record<ColdType, string> = { user: "users", clone: "clones", message: "messages" };
 
 export const COLD_TARGET_COLUMNS: Record<ColdType, string[]> = {
   user: ["phone", "age_enc"],
@@ -45,9 +48,7 @@ function serializeRow(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(row)) {
     if (v instanceof Uint8Array) {
-      let s = "";
-      for (const b of v) s += String.fromCharCode(b);
-      out[k] = { __b64: btoa(s) };
+      out[k] = { __b64: b64(v) };
     } else {
       out[k] = v;
     }
@@ -57,20 +58,16 @@ function serializeRow(row: Record<string, unknown>): Record<string, unknown> {
 
 function deserializeValue(v: unknown): unknown {
   if (v !== null && typeof v === "object" && "__b64" in (v as object)) {
-    const b64str = (v as { __b64: string }).__b64;
-    const bin = atob(b64str);
-    const out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out;
+    return unb64((v as { __b64: string }).__b64);
   }
   return v;
 }
 
-export function buildSnapshot(
+export async function buildSnapshot(
   type: ColdType,
   id: string | number,
   row: Record<string, unknown>,
-): { key: string; body: Promise<Uint8Array> } {
+): Promise<{ key: string; body: Uint8Array }> {
   const snapshot: Snapshot = {
     schema_version: SCHEMA_VERSION,
     type,
@@ -80,7 +77,7 @@ export function buildSnapshot(
     dekRegistry: [],
   };
   const key = coldKey(type, id);
-  const body = gzipEncode(new TextEncoder().encode(JSON.stringify(snapshot)));
+  const body = await gzipEncode(new TextEncoder().encode(JSON.stringify(snapshot)));
   return { key, body };
 }
 
@@ -110,12 +107,12 @@ export async function buildSnapshotFromDb(
   db: D1Database,
   type: ColdType,
   id: string | number,
-): Promise<{ key: string; body: Promise<Uint8Array> }> {
+): Promise<{ key: string; body: Uint8Array }> {
   const cols = COLD_TARGET_COLUMNS[type];
   const data: Record<string, unknown> = {};
 
   if (cols.length > 0) {
-    const table = type === "user" ? "users" : type === "clone" ? "clones" : "messages";
+    const table = COLD_TABLE[type];
     const row = await db
       .prepare(`SELECT ${cols.join(",")} FROM ${table} WHERE id=?`)
       .bind(id)
@@ -146,7 +143,7 @@ export async function buildSnapshotFromDb(
   };
 
   const key = coldKey(type, id);
-  const body = gzipEncode(new TextEncoder().encode(JSON.stringify(snapshot)));
+  const body = await gzipEncode(new TextEncoder().encode(JSON.stringify(snapshot)));
   return { key, body };
 }
 
@@ -158,9 +155,7 @@ export async function restoreFromSnapshot(
   let columnsRestored = 0;
 
   if (cols.length > 0) {
-    const table = snapshot.type === "user" ? "users"
-                : snapshot.type === "clone" ? "clones"
-                : "messages";
+    const table = COLD_TABLE[snapshot.type];
     const setFrag = cols.map((c) => `${c}=?`).join(",");
     const values = cols.map((c) => deserializeValue(snapshot.data[c] ?? null));
     const upd = await db
