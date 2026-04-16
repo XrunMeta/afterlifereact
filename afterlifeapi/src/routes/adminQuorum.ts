@@ -13,6 +13,7 @@ import {
 } from "../lib/kekProvider";
 import { shredV3 } from "../lib/ale";
 import { writeDecryptionAudit } from "../lib/auditChain";
+import { coldKey, COLD_TABLE } from "../lib/coldStorage";
 
 export const adminQuorum = new Hono<AppEnv>();
 adminQuorum.use("*", requireSuperAdmin);
@@ -274,6 +275,7 @@ adminQuorum.post("/requests/:id/execute", async (c) => {
       safeParse(req.payload),
       c.env.AUDIT_SECRET,
       adminId,
+      c.env.R2_ARCHIVE,
     );
   } catch (err) {
 
@@ -359,16 +361,81 @@ async function executeAction(
   payload: unknown,
   auditSecret: string,
   requesterId: string | number,
+  r2Archive?: R2Bucket,
 ): Promise<unknown> {
   switch (actionType) {
     case "kek_rotate": {
       return await executeKekRotate(db, masterRoot);
     }
     case "celeb_ip_transfer":
-    case "force_hard_delete":
     case "admin_role_change":
 
       return { handler: "pending_handler", note: `${actionType} not yet implemented` };
+    case "force_hard_delete": {
+
+      const p = (payload ?? {}) as {
+        type?: string;
+        id?: number;
+        reason?: string;
+      };
+      if (p.type !== "user" && p.type !== "clone") {
+        throw new APIError(
+          "VALIDATION_FAILED",
+          "force_hard_delete: type must be 'user' or 'clone'. 'message' is rejected — use cron path.",
+        );
+      }
+      if (!p.id || !Number.isInteger(p.id) || p.id <= 0) {
+        throw new APIError("VALIDATION_FAILED", "force_hard_delete: id must be a positive integer.");
+      }
+      if (!p.reason || p.reason.length < 10) {
+        throw new APIError("VALIDATION_FAILED", "force_hard_delete: reason must be at least 10 characters.");
+      }
+
+      const table = COLD_TABLE[p.type as "user" | "clone"];
+
+      const row = await db
+        .prepare(`SELECT id, deletion_state FROM ${table} WHERE id=?`)
+        .bind(p.id)
+        .first<{ id: number; deletion_state: string | null }>();
+      if (!row) throw new APIError("NOT_FOUND", `${p.type} #${p.id} not found.`);
+
+      await db
+        .prepare(
+          `UPDATE dek_registry
+              SET shredded_at = CURRENT_TIMESTAMP
+            WHERE resource_type LIKE ? AND resource_id = ? AND shredded_at IS NULL`,
+        )
+        .bind(`${p.type}.%`, String(p.id))
+        .run();
+
+      if (row.deletion_state === "archived_cold" && r2Archive) {
+        try {
+          await r2Archive.delete(coldKey(p.type, p.id));
+        } catch (r2Err) {
+          console.error(`[quorum] R2 cold snapshot delete failed for ${p.type}/${p.id}:`, r2Err);
+        }
+      }
+
+      const del = await db
+        .prepare(`DELETE FROM ${table} WHERE id=?`)
+        .bind(p.id)
+        .run();
+      const changes = (del as unknown as { meta?: { changes?: number } }).meta?.changes ?? 0;
+      if (changes === 0) {
+        throw new APIError("CONFLICT", `${p.type} #${p.id} was deleted concurrently.`);
+      }
+
+      await writeDecryptionAudit(db, auditSecret, {
+        actor: { type: "admin", id: String(requesterId) },
+        op: "hard_delete",
+        resourceType: p.type,
+        resourceId: p.id,
+        reason: p.reason,
+        ticketId: null, 
+      });
+
+      return { hardDeleted: true, type: p.type, id: p.id, previousState: row.deletion_state };
+    }
     case "crypto_shredding": {
 
       const p = (payload ?? {}) as {

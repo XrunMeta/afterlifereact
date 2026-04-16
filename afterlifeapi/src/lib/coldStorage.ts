@@ -8,7 +8,7 @@ export const SCHEMA_VERSION = "2026-04-16";
 
 export type ColdType = "user" | "clone" | "message";
 
-const COLD_TABLE: Record<ColdType, string> = { user: "users", clone: "clones", message: "messages" };
+export const COLD_TABLE: Record<ColdType, string> = { user: "users", clone: "clones", message: "messages" };
 
 export const COLD_TARGET_COLUMNS: Record<ColdType, string[]> = {
   user: ["phone", "age_enc"],
