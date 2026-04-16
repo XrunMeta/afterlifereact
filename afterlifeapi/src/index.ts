@@ -23,6 +23,7 @@ import { v_ad9418, v_7fd263 } from "./routes/emergency";
 import { v_a58945 } from "./routes/gdpr";
 import { v_87e8b2 } from "./routes/adminGdpr";
 import { v_dda4b9 } from "./routes/deletion";
+import { v_19f1fa } from "./routes/adminDeletion";
 
 const v_466992 = new v_b7c41b<v_de0a25>();
 
@@ -65,6 +66,7 @@ v_466992.route("/oth-path", v_ad9418);
 v_466992.route("/oth-path", v_7fd263);
 v_466992.route("/oth-path", v_a58945);
 v_466992.route("/oth-path", v_87e8b2);
+v_466992.route("/oth-path", v_19f1fa);
 
 export default {
   fetch: v_466992.fetch,
