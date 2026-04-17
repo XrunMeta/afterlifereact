@@ -1,0 +1,8 @@
+# Copy to .dev.vars (gitignored) and fill before `npm run dev`.
+JWT_ACCESS_SECRET=dev-access-secret-change-me
+JWT_REFRESH_SECRET=dev-refresh-secret-change-me
+AUDIT_SECRET=dev-audit-secret-change-me
+# 32-byte base64 key. Generate with: openssl rand -base64 32
+ALE_KEK=REPLACE_WITH_BASE64_32B
+# Dev/staging 전용 — /oth-path 허용 토큰. 프로덕션은 비워둘 것.
+ADMIN_BOOTSTRAP_TOKEN=dev-bootstrap-token-change-me
