@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply afterlife-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply afterlife-db --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply afterlife-db --remote",
+    "db:reset:local": "wrangler d1 execute afterlife-db --local --command=\"SELECT 1\" && rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local"
   },
   "keywords": [],
   "author": "",
@@ -14,7 +16,11 @@
   "description": "",
   "dependencies": {
     "@hono/node-server": "^1.19.12",
-    "hono": "^4.12.10"
+    "@noble/ciphers": "^2.2.0",
+    "@noble/hashes": "^2.2.0",
+    "@simplewebauthn/server": "^13.3.0",
+    "hono": "^4.12.10",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260402.1",

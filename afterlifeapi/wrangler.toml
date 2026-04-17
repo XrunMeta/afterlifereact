@@ -1,9 +1,66 @@
 name = "afterlife-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
 
+# Secrets (wrangler secret put <NAME>):
+#   JWT_ACCESS_SECRET
+#   JWT_REFRESH_SECRET
+#   AUDIT_SECRET
+#   ALE_KEK                    # base64 32B — v1/v2 하위호환
+#   MASTER_ROOT                # base64 32B — ALE v3 KEK wrap/unwrap 루트
+#   ADMIN_BOOTSTRAP_TOKEN      # dev/staging only
+
+[vars]
+ENVIRONMENT = "development"
+WEBAUTHN_RP_ID = "localhost"
+WEBAUTHN_RP_ORIGIN = "http://localhost:8787"
+LAZY_ROTATION_ENABLED = "0"
+LAZY_V2_MIGRATE_ENABLED = "0"
+
+# Dev secrets (override via `wrangler secret put` or .dev.vars in real env)
 [[d1_databases]]
 binding = "DB"
 database_name = "afterlife-db"
-database_id = "local"
+database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
+
+[[kv_namespaces]]
+binding = "KV_CTX"
+id = "kv_ctx_dev"
+
+[[kv_namespaces]]
+binding = "KV_SHARED"
+id = "kv_shared_dev"
+
+[[kv_namespaces]]
+binding = "KV_SHARED_VER"
+id = "kv_shared_ver_dev"
+
+[[kv_namespaces]]
+binding = "KV_ONT"
+id = "kv_ont_dev"
+
+[[kv_namespaces]]
+binding = "KV_RATE"
+id = "kv_rate_dev"
+
+[[kv_namespaces]]
+binding = "KV_IDEMPOTENCY"
+id = "kv_idem_dev"
+
+[[kv_namespaces]]
+binding = "KV_AUTH"
+id = "kv_auth_dev"
+
+[[r2_buckets]]
+binding = "R2_MEDIA"
+bucket_name = "afterlife-media-dev"
+
+[[r2_buckets]]
+binding = "R2_ARCHIVE"
+bucket_name = "afterlife-archive-dev"
+
+# M-6: cron — orphan clones 정기 스윕 (매일 03:00 UTC)
+[triggers]
+crons = ["0 3 * * *"]
