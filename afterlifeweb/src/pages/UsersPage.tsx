@@ -3,13 +3,14 @@ import { api } from "../api/client";
 import { DataTable } from "../components/DataTable";
 
 const columns = [
-  { key: "id", label: "ID", render: (v: string) => v?.slice(0, 8) + "..." },
+  { key: "id", label: "ID" },
   { key: "name", label: "Name" },
   { key: "email", label: "Email" },
   { key: "gender", label: "Gender" },
   { key: "age", label: "Age" },
   { key: "credits", label: "Credits" },
-  { key: "created_at", label: "Created", render: (v: string) => v?.slice(0, 10) },
+  { key: "funnelStage", label: "Funnel" },
+  { key: "createdAt", label: "Created", render: (v?: string) => v?.slice(0, 10) ?? "" },
 ];
 
 export function UsersPage() {

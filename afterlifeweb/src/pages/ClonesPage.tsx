@@ -3,18 +3,14 @@ import { api } from "../api/client";
 import { DataTable } from "../components/DataTable";
 
 const columns = [
-  { key: "id", label: "ID", render: (v: string) => v?.slice(0, 8) + "..." },
+  { key: "id", label: "ID" },
   { key: "name", label: "Name" },
   { key: "username", label: "Username" },
-  { key: "type", label: "Type" },
-  { key: "category", label: "Category" },
+  { key: "cloneType", label: "Type" },
   { key: "visibility", label: "Visibility" },
-  {
-    key: "learning_progress",
-    label: "Progress",
-    render: (v: number) => `${v}%`,
-  },
-  { key: "created_at", label: "Created", render: (v: string) => v?.slice(0, 10) },
+  { key: "trainingStatus", label: "Status" },
+  { key: "ownerName", label: "Owner" },
+  { key: "createdAt", label: "Created", render: (v?: string) => v?.slice(0, 10) ?? "" },
 ];
 
 export function ClonesPage() {

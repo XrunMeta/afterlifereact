@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 
 interface Stats {
-  totalUsers: number;
-  totalClones: number;
-  totalFeeds: number;
-  totalMessages: number;
+  users: number;
+  clones: number;
+  messages: number;
+  totalCredits: number;
 }
 
 export function Dashboard() {
@@ -17,10 +17,10 @@ export function Dashboard() {
 
   const cards = stats
     ? [
-        { label: "Users", value: stats.totalUsers, color: "#3b82f6" },
-        { label: "Clones", value: stats.totalClones, color: "#8b5cf6" },
-        { label: "Feeds", value: stats.totalFeeds, color: "#10b981" },
-        { label: "Messages", value: stats.totalMessages, color: "#f59e0b" },
+        { label: "Users", value: stats.users, color: "#3b82f6" },
+        { label: "Clones", value: stats.clones, color: "#8b5cf6" },
+        { label: "Messages", value: stats.messages, color: "#f59e0b" },
+        { label: "Total Credits", value: stats.totalCredits, color: "#10b981" },
       ]
     : [];
 
