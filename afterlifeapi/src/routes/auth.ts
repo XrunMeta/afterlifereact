@@ -1,95 +1,259 @@
 import { v_b7c41b } from "zmui";
-import type { v_4bcb54 } from "../index";
+import type { v_de0a25 } from "../lib/env";
+import { v_3ebe58 } from "../lib/errors";
+import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
+import { v_54846c, v_96aa7f } from "../lib/password";
+import { v_85de88, v_a8614b } from "../lib/ale";
+import { v_2ffe8e } from "../lib/hibp";
+import {
+  v_8ab5ff,
+  v_27b603,
+  v_e1c29b,
+  v_56035d,
+  v_91a253,
+  v_bde6da,
+} from "../lib/session";
+import { v_6690d9 } from "../middleware/auth";
 import { v_74defc } from "../lib/logger";
 
-export const v_68f0aa = new v_b7c41b<v_4bcb54>();
+export const v_68f0aa = new v_b7c41b<v_de0a25>();
+
+function v_e8cd3d(v_3a5fef): number {
+  if (v_3a5fef.includes("T")) return new Date(v_3a5fef).getTime();
+  return new Date(v_3a5fef.replace(" ", "T") + "Z").getTime();
+}
+
+v_68f0aa.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "auth" }));
+
+const v_7b8b17 = v_1f4ea7.object({
+  email: v_1f4ea7.email().max(200),
+  password: v_1f4ea7.string().min(8).max(200),
+  name: v_1f4ea7.string().min(1).max(80),
+  phone: v_1f4ea7.string().min(4).max(40).optional(),
+  gender: v_1f4ea7.enum(["male", "female", "other"]).optional(),
+  age: v_1f4ea7.number().int().min(13).max(120).optional(),
+  interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
+  deviceId: v_1f4ea7.string().min(1).max(200).optional(),
+  pushToken: v_1f4ea7.string().min(1).max(500).optional(),
+  platform: v_1f4ea7.enum(["ios", "android", "web"]).optional(),
+});
 
 v_68f0aa.post("/signup", async (v_3f4e2e) => {
-  const v_4d33b2 = await v_3f4e2e.req.json();
-  const { name: v_1833e7, email: v_e0c7e8, password: v_adc076, phone: v_d74a81, gender: v_c3eac4, age: v_2694bd, interests: v_774c91 } = v_4d33b2;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7b8b17);
+  const v_a1651b = v_3f4e2e.env.DB;
 
-  const v_389afb = crypto.randomUUID();
-  const v_df7439 = await v_54846c(v_adc076);
-
-  await v_3f4e2e.env.DB.prepare(
-    "INSERT INTO users (id, name, email, password_hash, phone, gender, age) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  )
-    .bind(v_389afb, v_1833e7, v_e0c7e8, v_df7439, v_d74a81, v_c3eac4, v_2694bd)
-    .run();
-
-  if (v_774c91?.length) {
-    const v_df04a4 = v_3f4e2e.env.DB.prepare(
-      "INSERT INTO user_interests (user_id, interest) VALUES (?, ?)"
+  const v_222361 = await v_2ffe8e(v_4d33b2.password, v_3f4e2e.env);
+  if (v_222361.breached) {
+    throw new v_3ebe58(
+      "VALIDATION_FAILED",
+      `Password has appeared in public breaches (${v_222361.hits} hits). Choose another.`,
     );
-    await v_3f4e2e.env.DB.batch(v_774c91.map((v_ebec57) => v_df04a4.bind(v_389afb, v_ebec57)));
   }
 
-  await v_74defc(v_3f4e2e, { userId: v_389afb, action: "signup" });
+  const v_df7439 = await v_54846c(v_4d33b2.password);
+  const v_849998 = v_4d33b2.phone
+    ? v_85de88(v_4d33b2.phone, v_a8614b(v_3f4e2e.env.ALE_KEK), "user.phone")
+    : null;
+  const v_1f5d19 = v_4d33b2.age
+    ? v_85de88(String(v_4d33b2.age), v_a8614b(v_3f4e2e.env.ALE_KEK), "user.age")
+    : null;
 
-  return v_3f4e2e.json({ id: v_389afb, name: v_1833e7, email: v_e0c7e8 });
+  let v_81161e;
+  try {
+    v_81161e = await v_a1651b
+      .prepare(
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         RETURNING id, name, email, funnel_stage, created_at`,
+      )
+      .bind(
+        v_4d33b2.name,
+        v_4d33b2.email,
+        v_df7439,
+        v_849998,
+        v_4d33b2.gender ?? null,
+        null, 
+        v_1f5d19,
+      )
+      .first();
+  } catch (v_49263d) {
+    const v_badeaf = (v_49263d as Error).message ?? "";
+    if (/UNIQUE constraint failed: users\.email/i.test(v_badeaf)) {
+      throw new v_3ebe58("CONFLICT", "Email already registered.");
+    }
+    throw v_49263d;
+  }
+  if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
+
+  try {
+    const v_3e6264 = [];
+    for (const v_23805a of v_4d33b2.interests ?? []) {
+      v_3e6264.push(
+        v_a1651b
+          .prepare(`INSERT OR IGNORE INTO user_interests (user_id, interest) VALUES (?, ?)`)
+          .bind(v_81161e.id, v_23805a),
+      );
+    }
+    if (v_4d33b2.deviceId) {
+      v_3e6264.push(
+        v_a1651b
+          .prepare(
+            `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+             ON CONFLICT(user_id, device_id) DO UPDATE SET
+               push_token = excluded.push_token,
+               platform   = excluded.platform,
+               is_active  = 1,
+               last_active_at = CURRENT_TIMESTAMP,
+               updated_at = CURRENT_TIMESTAMP`,
+          )
+          .bind(v_81161e.id, v_4d33b2.deviceId, v_4d33b2.pushToken ?? "", v_4d33b2.platform ?? "web"),
+      );
+    }
+    if (v_3e6264.length) await v_a1651b.batch(v_3e6264);
+  } catch (v_49263d) {
+    await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
+    throw v_49263d;
+  }
+
+  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(
+    v_3f4e2e,
+    v_81161e.id,
+    v_4d33b2.deviceId,
+  );
+  v_56035d(v_3f4e2e, v_dfaee3);
+
+  await v_74defc(v_3f4e2e, { userId: v_81161e.id, action: "auth.signup" });
+
+  return v_3f4e2e.json(
+    {
+      accessToken: v_2ca7e0,
+      accessExpiresIn: v_ff8c95,
+      user: {
+        id: v_81161e.id,
+        name: v_81161e.name,
+        email: v_81161e.email,
+        funnelStage: v_81161e.funnel_stage,
+      },
+    },
+    201,
+  );
 });
+
+const v_5460cc = v_1f4ea7.object({
+  email: v_1f4ea7.email(),
+  password: v_1f4ea7.string().min(1),
+  deviceId: v_1f4ea7.string().min(1).max(200).optional(),
+  pushToken: v_1f4ea7.string().min(1).max(500).optional(),
+  platform: v_1f4ea7.enum(["ios", "android", "web"]).optional(),
+});
+
+const v_91027d = 5;
+const v_584268 = 10;
 
 v_68f0aa.post("/login", async (v_3f4e2e) => {
-  const { email: v_e0c7e8, password: v_adc076 } = await v_3f4e2e.req.json();
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_5460cc);
+  const v_a1651b = v_3f4e2e.env.DB;
 
-  const v_625c74 = await v_3f4e2e.env.DB.prepare("SELECT * FROM users WHERE email = ?")
-    .bind(v_e0c7e8)
-    .first();
+  const v_625c74 = await v_a1651b
+    .prepare(
+      `SELECT id, password_hash, failed_login_count, locked_until
+         FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+    )
+    .bind(v_4d33b2.email)
+    .first<{
+      id: number;
+      password_hash: string;
+      failed_login_count: number;
+      locked_until: string | null;
+    }>();
 
-  if (!v_625c74 || !(await v_96aa7f(v_adc076, v_625c74.password_hash as string))) {
-    return v_3f4e2e.json({ error: "Invalid credentials" }, 401);
+  const v_2d56e5 = v_625c74?.password_hash ?? (await v_54846c("dummy-nonmatch-0000"));
+
+  let v_9ef4e1 = false;
+  if (v_625c74?.locked_until) {
+    const v_604a0d = v_e8cd3d(v_625c74.locked_until);
+    if (v_604a0d > Date.now()) {
+      throw new v_3ebe58("ACCOUNT_LOCKED", "Account temporarily locked.");
+    }
+    v_9ef4e1 = true;
   }
 
-  await v_74defc(v_3f4e2e, { userId: v_625c74.id as string, action: "login" });
+  const v_3ed4c3 = await v_96aa7f(v_4d33b2.password, v_2d56e5);
+  if (!v_625c74 || !v_3ed4c3) {
+    if (v_625c74) {
 
-  return v_3f4e2e.json({ id: v_625c74.id, name: v_625c74.name, email: v_625c74.email });
+      const v_d0940a = v_9ef4e1 ? 0 : v_625c74.failed_login_count ?? 0;
+      const v_27ed25 = v_d0940a + 1;
+      const v_0a64d3 =
+        v_27ed25 >= v_91027d
+          ? new Date(Date.now() + v_584268 * 60_000).toISOString()
+          : null;
+      await v_a1651b
+        .prepare(
+          `UPDATE users SET failed_login_count = ?, locked_until = ? WHERE id = ?`,
+        )
+        .bind(v_27ed25, v_0a64d3, v_625c74.id)
+        .run();
+    }
+    throw new v_3ebe58("UNAUTHENTICATED", "Invalid credentials.");
+  }
+
+  await v_a1651b
+    .prepare(
+      `UPDATE users SET failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
+    .bind(v_625c74.id)
+    .run();
+
+  if (v_4d33b2.deviceId) {
+    await v_a1651b
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(v_625c74.id, v_4d33b2.deviceId, v_4d33b2.pushToken ?? "", v_4d33b2.platform ?? "web")
+      .run();
+  }
+
+  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_625c74.id, v_4d33b2.deviceId);
+  v_56035d(v_3f4e2e, v_dfaee3);
+
+  await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login" });
+
+  return v_3f4e2e.json({ accessToken: v_2ca7e0, accessExpiresIn: v_ff8c95 });
 });
 
-async function v_54846c(v_adc076): Promise<string> {
-  const v_1c4373 = new TextEncoder();
-  const v_83f336 = crypto.getRandomValues(new Uint8Array(16));
-  const v_b24339 = await crypto.subtle.importKey(
-    "raw",
-    v_1c4373.encode(v_adc076),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const v_598405 = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: v_83f336, iterations: 100000, hash: "SHA-256" },
-    v_b24339,
-    256
-  );
-  const v_2d85bd = [...v_83f336].map((v_148ff6) => v_148ff6.toString(16).padStart(2, "0")).join("");
-  const v_a89256 = [...new Uint8Array(v_598405)]
-    .map((v_148ff6) => v_148ff6.toString(16).padStart(2, "0"))
-    .join("");
-  return `${v_2d85bd}:${v_a89256}`;
-}
+v_68f0aa.post("/refresh", async (v_3f4e2e) => {
+  const v_1a1b9b = v_bde6da(v_3f4e2e);
+  if (!v_1a1b9b) throw new v_3ebe58("UNAUTHENTICATED", "No refresh cookie.");
+  const v_7c0f0d = await v_27b603(v_3f4e2e, v_1a1b9b);
+  v_56035d(v_3f4e2e, v_7c0f0d.refreshToken);
+  return v_3f4e2e.json({ accessToken: v_7c0f0d.accessToken, accessExpiresIn: v_7c0f0d.accessExpiresIn });
+});
 
-async function v_96aa7f(
-  v_adc076,
-  v_5885b8
-): Promise<boolean> {
-  const [v_2d85bd, v_73cba4] = v_5885b8.split(":");
-  const v_83f336 = new Uint8Array(
-    v_2d85bd.match(/.{2}/g)!.map((v_148ff6) => parseInt(v_148ff6, 16))
-  );
-  const v_1c4373 = new TextEncoder();
-  const v_b24339 = await crypto.subtle.importKey(
-    "raw",
-    v_1c4373.encode(v_adc076),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const v_598405 = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: v_83f336, iterations: 100000, hash: "SHA-256" },
-    v_b24339,
-    256
-  );
-  const v_a89256 = [...new Uint8Array(v_598405)]
-    .map((v_148ff6) => v_148ff6.toString(16).padStart(2, "0"))
-    .join("");
-  return v_a89256 === v_73cba4;
-}
+v_68f0aa.post("/logout", v_6690d9, async (v_3f4e2e) => {
+  const v_1a1b9b = v_bde6da(v_3f4e2e);
+  if (v_1a1b9b) await v_e1c29b(v_3f4e2e, v_1a1b9b);
+  v_91a253(v_3f4e2e);
+
+  const v_43e90c = v_3f4e2e.get("userId");
+  const v_929b58 = v_3f4e2e.req.header("X-Device-Id");
+  if (v_43e90c && v_929b58) {
+    await v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = ? AND device_id = ?`,
+      )
+      .bind(v_43e90c, v_929b58)
+      .run();
+  }
+  if (v_43e90c) await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "auth.logout" });
+  return v_3f4e2e.json({ ok: true });
+});
