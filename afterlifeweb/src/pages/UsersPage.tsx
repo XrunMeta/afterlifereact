@@ -3,13 +3,14 @@ import { v_05a921 } from "../api/client";
 import { v_c1eeb6 } from "../components/DataTable";
 
 const v_b9fa58 = [
-  { key: "id", label: "ID", render: (v_81e2ef) => v_81e2ef?.slice(0, 8) + "..." },
+  { key: "id", label: "ID" },
   { key: "name", label: "Name" },
   { key: "email", label: "Email" },
   { key: "gender", label: "Gender" },
   { key: "age", label: "Age" },
   { key: "credits", label: "Credits" },
-  { key: "created_at", label: "Created", render: (v_81e2ef) => v_81e2ef?.slice(0, 10) },
+  { key: "funnelStage", label: "Funnel" },
+  { key: "createdAt", label: "Created", render: (v_81e2ef) => v_81e2ef?.slice(0, 10) ?? "" },
 ];
 
 export function v_1d1159() {

@@ -3,18 +3,14 @@ import { v_05a921 } from "../api/client";
 import { v_c1eeb6 } from "../components/DataTable";
 
 const v_b9fa58 = [
-  { key: "id", label: "ID", render: (v_81e2ef) => v_81e2ef?.slice(0, 8) + "..." },
+  { key: "id", label: "ID" },
   { key: "name", label: "Name" },
   { key: "username", label: "Username" },
-  { key: "type", label: "Type" },
-  { key: "category", label: "Category" },
+  { key: "cloneType", label: "Type" },
   { key: "visibility", label: "Visibility" },
-  {
-    key: "learning_progress",
-    label: "Progress",
-    render: (v_81e2ef) => `${v_81e2ef}%`,
-  },
-  { key: "created_at", label: "Created", render: (v_81e2ef) => v_81e2ef?.slice(0, 10) },
+  { key: "trainingStatus", label: "Status" },
+  { key: "ownerName", label: "Owner" },
+  { key: "createdAt", label: "Created", render: (v_81e2ef) => v_81e2ef?.slice(0, 10) ?? "" },
 ];
 
 export function v_c7f476() {

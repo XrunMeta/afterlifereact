@@ -2,10 +2,10 @@ import { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_05a921 } from "../api/client";
 
 interface Stats {
-  totalUsers: number;
-  totalClones: number;
-  totalFeeds: number;
-  totalMessages: number;
+  users: number;
+  clones: number;
+  messages: number;
+  totalCredits: number;
 }
 
 export function v_72f575() {
@@ -17,10 +17,10 @@ export function v_72f575() {
 
   const v_4552ca = v_62676b
     ? [
-        { label: "Users", value: v_62676b.totalUsers, color: "#3b82f6" },
-        { label: "Clones", value: v_62676b.totalClones, color: "#8b5cf6" },
-        { label: "Feeds", value: v_62676b.totalFeeds, color: "#10b981" },
-        { label: "Messages", value: v_62676b.totalMessages, color: "#f59e0b" },
+        { label: "Users", value: v_62676b.users, color: "#3b82f6" },
+        { label: "Clones", value: v_62676b.clones, color: "#8b5cf6" },
+        { label: "Messages", value: v_62676b.messages, color: "#f59e0b" },
+        { label: "Total Credits", value: v_62676b.totalCredits, color: "#10b981" },
       ]
     : [];
 
