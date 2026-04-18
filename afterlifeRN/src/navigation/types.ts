@@ -3,6 +3,10 @@ export type RootStackParamList = {
   Main: undefined;
   Chat: { cloneId: string };
   Call: { cloneId: string; name?: string; image?: string | number };
+  EmergencyContacts: undefined;
+  InheritanceAccept: { token?: string };
+  RestoreDeleted: undefined;
+  GDPRDelete: undefined;
 };
 
 export type AuthStackParamList = {
@@ -22,6 +26,12 @@ export type ClonesStackParamList = {
   Dashboard: undefined;
   CloneDetail: { cloneId: string };
   CloneEdit: { cloneId: string };
+  CloneVisibility: { cloneId: string };
+  CloneInvite: { cloneId: string };
+};
+
+export type ShareStackParamList = {
+  ShareRequests: undefined;
 };
 
 export type CreateStackParamList = {
