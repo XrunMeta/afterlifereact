@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AfterLife — ERD</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#f8f9fb;color:#1a1a2e;font-family:'Menlo','Consolas','Monaco',monospace;overflow:hidden;user-select:none}
+  .topbar{position:fixed;top:0;left:0;right:0;height:44px;background:#1e293b;border-bottom:2px solid #334155;display:flex;align-items:center;padding:0 16px;gap:12px;z-index:200}
+  .topbar h1{font-size:14px;font-weight:700;color:#f8fafc}
+  .topbar .badge{font-size:9px;background:#6366f1;color:#fff;padding:2px 6px;border-radius:3px}
+  .legend{display:flex;gap:8px;margin-left:auto;font-size:10px;color:#94a3b8;flex-wrap:wrap;align-items:center}
+  .legend-item{display:flex;align-items:center;gap:4px}
+  .legend-dot{width:8px;height:8px;border-radius:2px}
+  .controls{position:fixed;bottom:12px;right:12px;display:flex;flex-direction:column;gap:2px;z-index:200}
+  .controls button{width:30px;height:30px;border:1px solid #cbd5e1;background:#fff;color:#475569;border-radius:5px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+  .controls button:hover{background:#f1f5f9}
+  .controls button.active{background:#6366f1;color:#fff;border-color:#6366f1}
+  svg#canvas{position:fixed;top:44px;left:0;width:100vw;height:calc(100vh - 44px)}
+  .toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#1e293b;color:#e2e8f0;padding:8px 16px;border-radius:6px;font-size:11px;font-family:inherit;z-index:400;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- 상단 툴바 -->
+<div class="topbar">
+  <h1>AfterLife — ERD</h1><span class="badge">Database Schema (Critical 17 반영, 2026-04-15)</span>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#6366f1"></div>USERS</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>CLONES</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>SOCIAL</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>CONTENT</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>COMMERCE</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#64748b"></div>SYSTEM</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div>KV STORE</div>
+    <div class="legend-item" style="color:#64748b">|</div>
+    <div class="legend-item" style="color:#64748b;font-weight:600">🔑 PK</div>
+    <div class="legend-item" style="color:#64748b;font-weight:600">→ FK</div>
+    <div class="legend-item" style="color:#64748b;font-weight:600">click = copy name</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="controls">
+  <button onclick="zoomIn()">+</button>
+  <button onclick="zoomOut()">-</button>
+  <button onclick="resetView()">R</button>
+  <button onclick="saveState()" id="btnSave" title="Save layout">S</button>
+  <button onclick="clearState()" title="Clear saved">C</button>
+  <button onclick="exportHTML()" title="Export shareable HTML">E</button>
+</div>
+
+<svg id="canvas"><g id="viewport"></g></svg>
+
+<script>
+
+const SKEY = 'afterlife-erd-v1';
+
+const GM = {
+  users:    {label:'USERS',    color:'#6366f1', nice:'유저'},
+  clones:   {label:'CLONES',   color:'#8b5cf6', nice:'클론'},
+  social:   {label:'SOCIAL',   color:'#3b82f6', nice:'소셜'},
+  content:  {label:'CONTENT',  color:'#10b981', nice:'콘텐츠'},
+  commerce: {label:'COMMERCE', color:'#f59e0b', nice:'커머스'},
+  system:   {label:'SYSTEM',   color:'#64748b', nice:'시스템'},
+  kv:       {label:'KV STORE', color:'#ec4899', nice:'KV'},
+};
+
+const TABLES = [
+
+  {id:'users', g:'users', label:'users', c:'#6366f1', columns:[
+    {name:'id', pk:true},
+    {name:'name'}, {name:'email_encrypted'}, {name:'password_hash'},
+    {name:'phone'}, {name:'gender'}, {name:'age'}, {name:'age_enc (ALE)'},
+    {name:'avatar_url'}, {name:'credits'},
+    {name:'balance_checkpoint'}, {name:'last_ledger_id'}, {name:'checkpoint_at'},
+    {name:'funnel_stage'},
+    {name:'deletion_state (active/soft/cold/hard)'},
+    {name:'soft_deleted_at'}, {name:'archived_cold_at'},
+    {name:'last_activity_at'},
+    {name:'deleted_at'}, {name:'created_at'}, {name:'updated_at'},
+  ]},
+  {id:'user_interests', g:'users', label:'user_interests', c:'#6366f1', columns:[
+    {name:'id', pk:true},
+    {name:'user_id', fk:'users'},
+    {name:'interest'},
+  ]},
+  {id:'user_devices', g:'users', label:'user_devices', c:'#6366f1', columns:[
+    {name:'id', pk:true},
+    {name:'user_id', fk:'users'},
+    {name:'device_id'}, {name:'push_token (UQ)'}, {name:'platform'},
+    {name:'is_active'}, {name:'last_active_at'},
+    {name:'created_at'}, {name:'updated_at'},
+  ]},
+
+  {id:'clones', g:'clones', label:'clones', c:'#8b5cf6', columns:[
+    {name:'id', pk:true},
+    {name:'owner_id', fk:'users'},
+    {name:'name'}, {name:'username'}, {name:'description'},
+    {name:'clone_type'}, {name:'category'}, {name:'visibility'},
+    {name:'avatar_url'}, {name:'cover_image_url'},
+    {name:'voice_type'},
+    {name:'voice_preset_id', fk:'voice_presets'},
+    {name:'training_status'},
+    {name:'L1_profile (JSON)'}, {name:'L2_profile (JSON)'},
+    {name:'ownership_state (active/archived_merged/pending_reclaim)'},
+    {name:'parent_clone_ids (JSON)'}, {name:'merge_source_archived_at'},
+    {name:'last_coowner_reminder_at'}, {name:'coowner_reminder_opt_out'},
+    {name:'deletion_state'}, {name:'soft_deleted_at'}, {name:'archived_cold_at'},
+    {name:'created_at'}, {name:'updated_at'},
+  ]},
+  {id:'clone_interests', g:'clones', label:'clone_interests', c:'#8b5cf6', columns:[
+    {name:'id', pk:true},
+    {name:'clone_id', fk:'clones'},
+    {name:'interest'},
+  ]},
+  {id:'clone_photos', g:'clones', label:'clone_photos', c:'#8b5cf6', columns:[
+    {name:'id', pk:true},
+    {name:'clone_id', fk:'clones'},
+    {name:'photo_url'}, {name:'photo_type'}, {name:'tags_json'}, {name:'created_at'},
+  ]},
+  {id:'clone_stats', g:'clones', label:'clone_stats', c:'#8b5cf6', columns:[
+    {name:'id', pk:true},
+    {name:'clone_id', fk:'clones'},
+    {name:'followers_count'}, {name:'messages_count'}, {name:'gifts_count'}, {name:'updated_at'},
+  ]},
+
+  {id:'follows', g:'social', label:'follows', c:'#3b82f6', columns:[
+    {name:'id', pk:true},
+    {name:'user_id', fk:'users'},
+    {name:'clone_id', fk:'clones'},
+    {name:'created_at'},
+  ]},
+  {id:'clone_shares', g:'social', label:'clone_shares', c:'#3b82f6', columns:[
+    {name:'id', pk:true},
+    {name:'clone_id', fk:'clones'},
+    {name:'owner_id', fk:'users'},
+    {name:'target_user_id', fk:'users'},
+    {name:'invite_email'}, {name:'relation'},
+    {name:'role (owner/collab/viewer/follower)'}, {name:'status'},
+    {name:'created_at'}, {name:'updated_at'},
+  ]},
+  {id:'invite_tokens', g:'social', label:'invite_tokens', c:'#3b82f6', columns:[
+    {name:'id', pk:true},
+    {name:'token_hash (SHA-256)'},
+    {name:'clone_id', fk:'clones'},
+    {name:'owner_id', fk:'users'},
+    {name:'invite_email'}, {name:'relation'}, {name:'grant_owner'},
+    {name:'expires_at (24h)'}, {name:'used_at'}, {name:'created_at'},
+  ]},
+  {id:'invite_tokens_archive', g:'social', label:'invite_tokens_archive', c:'#3b82f6', columns:[
+    {name:'id', pk:true},
+    {name:'original_token_hash'},
+    {name:'clone_id', fk:'clones'},
+    {name:'inviter_id', fk:'users'},
+    {name:'used_at'}, {name:'expired_at'}, {name:'archived_at'},
+  ]},
+  {id:'merge_conflicts_pending', g:'social', label:'merge_conflicts_pending', c:'#3b82f6', columns:[
+    {name:'id', pk:true},
+    {name:'new_clone_id', fk:'clones'},
+    {name:'user_id', fk:'users'},
+    {name:'field'}, {name:'value_a'}, {name:'value_b'},
+    {name:'resolved_value'}, {name:'resolved_at'}, {name:'created_at'},
+  ]},
+
+  {id:'feeds', g:'content', label:'feeds', c:'#10b981', columns:[
+    {name:'id', pk:true},
+    {name:'clone_id', fk:'clones'},
+    {name:'content'}, {name:'media_url'}, {name:'media_type'},
+    {name:'likes_count'}, {name:'created_at'},
+  ]},
+  {id:'messages', g:'content', label:'messages', c:'#10b981', columns:[
+    {name:'id', pk:true},
+    {name:'clone_id', fk:'clones'},
+    {name:'user_id', fk:'users'},
+    {name:'session_id'}, {name:'role'}, {name:'content (ALE v3, null=purged)'},
+    {name:'status (active/purged)'},
+    {name:'reconciliation_status (pending/processing/completed/failed)'},
+    {name:'summary_verified_at'},
+    {name:'reconcile_retry_count'}, {name:'purged_at'},
+    {name:'deletion_state'},
+    {name:'created_at'},
+  ]},
+  {id:'message_starred', g:'content', label:'message_starred', c:'#10b981', columns:[
+    {name:'id', pk:true},
+    {name:'user_id', fk:'users'},
+    {name:'message_id', fk:'messages'},
+    {name:'created_at'},
+    {name:'UQ(user_id, message_id)'},
+  ]},
+
+  {id:'gifts', g:'commerce', label:'gifts', c:'#f59e0b', columns:[
+    {name:'id', pk:true},
+    {name:'name'}, {name:'emoji'}, {name:'price_credits'},
+  ]},
+  {id:'gift_transactions', g:'commerce', label:'gift_transactions', c:'#f59e0b', columns:[
+    {name:'id', pk:true},
+    {name:'user_id', fk:'users'},
+    {name:'clone_id', fk:'clones'},
+    {name:'gift_id', fk:'gifts'},
+    {name:'created_at'},
+  ]},
+  {id:'credit_ledgers', g:'commerce', label:'credit_ledgers (append-only)', c:'#f59e0b', columns:[
+    {name:'id', pk:true},
+    {name:'user_id', fk:'users'},
+    {name:'amount'}, {name:'type'}, {name:'ref_id'},
+    {name:'idempotency_key (UQ)'}, {name:'created_at'},
+  ]},
+
+  {id:'voice_presets', g:'system', label:'voice_presets', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'name'}, {name:'gender'}, {name:'age_range'},
+    {name:'sample_url'}, {name:'description'},
+  ]},
+  {id:'notifications', g:'system', label:'notifications', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'user_id', fk:'users'},
+    {name:'type'}, {name:'title'}, {name:'body'},
+    {name:'data_json'}, {name:'is_read'}, {name:'created_at'},
+  ]},
+  {id:'activity_logs', g:'system', label:'activity_logs', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'user_id', fk:'users'},
+    {name:'action'}, {name:'details'}, {name:'ip'}, {name:'device'}, {name:'created_at'},
+  ]},
+  {id:'ad_keywords', g:'system', label:'ad_keywords', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'keyword'}, {name:'track'}, {name:'ad_title'},
+    {name:'ad_url'}, {name:'ad_description'}, {name:'is_active'},
+  ]},
+  {id:'ad_impressions', g:'system', label:'ad_impressions', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'ad_keyword_id', fk:'ad_keywords'},
+    {name:'user_id', fk:'users'},
+    {name:'clone_id', fk:'clones'},
+    {name:'event_type'}, {name:'created_at'},
+  ]},
+  {id:'admin_users', g:'system', label:'admin_users', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'email'}, {name:'password_hash (Argon2id)'},
+    {name:'telegram_user_id (DEPRECATED)'},
+    {name:'role (super_admin/moderator)'},
+    {name:'webauthn_credential_id'}, {name:'webauthn_public_key'}, {name:'webauthn_sign_count'},
+    {name:'failed_login_count'}, {name:'locked_until'},
+    {name:'is_active'}, {name:'last_login_at'}, {name:'created_at'},
+  ]},
+  {id:'admin_totp', g:'system', label:'admin_totp', c:'#64748b', columns:[
+    {name:'admin_id', pk:true, fk:'admin_users'},
+    {name:'secret_encrypted (ALE)'},
+    {name:'backup_codes_hash (JSON SHA-256)'},
+    {name:'last_used_counter'},
+    {name:'created_at'}, {name:'updated_at'},
+  ]},
+  {id:'admin_audit_logs', g:'system', label:'admin_audit_logs (hash-chain)', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'admin_id', fk:'admin_users'},
+    {name:'action'}, {name:'target_type'}, {name:'target_id'},
+    {name:'reason'}, {name:'ip'}, {name:'user_agent'},
+    {name:'prev_hash'}, {name:'chain_hash (HMAC)'},
+    {name:'created_at'},
+  ]},
+  {id:'clone_publicity_consents', g:'system', label:'clone_publicity_consents', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'clone_id', fk:'clones'},
+    {name:'user_id', fk:'users'},
+    {name:'consent_text_version'},
+    {name:'ip'}, {name:'device'},
+    {name:'consented_at'}, {name:'revoked_at'},
+  ]},
+
+  {id:'encryption_keys', g:'system', label:'encryption_keys (KEK)', c:'#64748b', columns:[
+    {name:'kek_id', pk:true},
+    {name:'version'}, {name:'algorithm (AES-256-GCM)'},
+    {name:'encrypted_kek (by MASTER)'},
+    {name:'status (active/retiring/retired)'},
+    {name:'rotated_at'}, {name:'created_at'},
+  ]},
+  {id:'dek_registry', g:'system', label:'dek_registry', c:'#64748b', columns:[
+    {name:'dek_id', pk:true},
+    {name:'resource_type'}, {name:'resource_id'},
+    {name:'kek_id', fk:'encryption_keys'},
+    {name:'encrypted_dek (AES-256-GCM)'},
+    {name:'created_at'}, {name:'shredded_at'},
+  ]},
+  {id:'decryption_audit_log', g:'system', label:'decryption_audit_log (INSERT-only)', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'actor_type (user/admin/heir/system)'},
+    {name:'actor_id'}, {name:'ticket_id'},
+    {name:'op (decrypt/shred/emergency)'},
+    {name:'resource_type'}, {name:'resource_id'},
+    {name:'reason'},
+    {name:'prev_hash'}, {name:'row_hash (HMAC)'},
+    {name:'ts'},
+  ]},
+
+  {id:'emergency_contacts', g:'system', label:'emergency_contacts', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'principal_user_id', fk:'users'},
+    {name:'contact_email'}, {name:'contact_user_id', fk:'users'},
+    {name:'role (notify_only/primary_heir/secondary_heir)'},
+    {name:'trigger_condition (inactivity_N_days/death_certificate/manual_admin)'},
+    {name:'trigger_param (N일 등)'},
+    {name:'target_scope (account/clone:{id})'},
+    {name:'status (pending/accepted/declined/revoked)'},
+    {name:'invited_at'}, {name:'accepted_at'}, {name:'revoked_at'},
+    {name:'created_at'}, {name:'updated_at'},
+  ]},
+  {id:'inheritance_release_logs', g:'system', label:'inheritance_release_logs', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'emergency_contact_id', fk:'emergency_contacts'},
+    {name:'event (triggered/evidence_uploaded/approved/executed/revoked)'},
+    {name:'admin_id', fk:'admin_users'},
+    {name:'evidence_url'}, {name:'quorum_signatures (JSON)'},
+    {name:'decision'}, {name:'reason'},
+    {name:'ts'},
+  ]},
+
+  {id:'clone_merge_optout_responses', g:'system', label:'clone_merge_optout_responses', c:'#64748b', columns:[
+    {name:'id', pk:true},
+    {name:'merge_request_id'},
+    {name:'user_id', fk:'users'},
+    {name:'source_clone_id', fk:'clones'},
+    {name:'decision (agree/decline/timeout)'},
+    {name:'responded_at'}, {name:'deadline_at'},
+    {name:'created_at'},
+  ]},
+
+  {id:'kv_ctx',   g:'kv', label:'ctx:{clone_id}',          c:'#ec4899', kv:true, columns:[
+    {name:'→ L1 페르소나 (불변)'},
+  ]},
+  {id:'kv_shared',   g:'kv', label:'shared:{clone_id}',    c:'#ec4899', kv:true, columns:[
+    {name:'→ L1-1 공유 기억 풀'},
+    {name:'(이벤트 소싱 append-only)'},
+  ]},
+  {id:'kv_shared_ver', g:'kv', label:'shared_versions:{clone_id}', c:'#ec4899', kv:true, columns:[
+    {name:'→ L1-1 정정 이벤트 이력'},
+  ]},
+  {id:'kv_ont',   g:'kv', label:'ont:{clone_id}:{user_id}',c:'#ec4899', kv:true, columns:[
+    {name:'→ L2 유저별 호칭·개인기억'},
+  ]},
+];
+
+const EDGES = [
+  {from:'user_interests', to:'users',        label:'N:1', c:'#6366f1'},
+  {from:'clones',         to:'users',        label:'N:1', c:'#8b5cf6'},
+  {from:'clones',         to:'voice_presets',label:'N:1', c:'#64748b'},
+  {from:'clone_interests',to:'clones',       label:'N:1', c:'#8b5cf6'},
+  {from:'clone_photos',   to:'clones',       label:'N:1', c:'#8b5cf6'},
+  {from:'clone_stats',    to:'clones',       label:'1:1', c:'#8b5cf6'},
+  {from:'follows',        to:'users',        label:'N:1', c:'#3b82f6'},
+  {from:'follows',        to:'clones',       label:'N:1', c:'#3b82f6'},
+  {from:'clone_shares',   to:'clones',       label:'N:1', c:'#3b82f6'},
+  {from:'clone_shares',   to:'users',        label:'N:1', c:'#3b82f6'},
+  {from:'feeds',          to:'clones',       label:'N:1', c:'#10b981'},
+  {from:'messages',       to:'clones',       label:'N:1', c:'#10b981'},
+  {from:'messages',       to:'users',        label:'N:1', c:'#10b981'},
+  {from:'message_starred',to:'users',        label:'N:1', c:'#10b981'},
+  {from:'message_starred',to:'messages',     label:'N:1', c:'#10b981'},
+  {from:'gift_transactions', to:'users',     label:'N:1', c:'#f59e0b'},
+  {from:'gift_transactions', to:'clones',    label:'N:1', c:'#f59e0b'},
+  {from:'gift_transactions', to:'gifts',     label:'N:1', c:'#f59e0b'},
+  {from:'notifications',  to:'users',        label:'N:1', c:'#64748b'},
+  {from:'activity_logs',  to:'users',        label:'N:1', c:'#64748b'},
+  {from:'ad_impressions', to:'ad_keywords',  label:'N:1', c:'#64748b'},
+  {from:'ad_impressions', to:'users',        label:'N:1', c:'#64748b'},
+  {from:'ad_impressions', to:'clones',       label:'N:1', c:'#64748b'},
+  {from:'user_devices',   to:'users',        label:'N:1', c:'#6366f1'},
+  {from:'invite_tokens',  to:'clones',       label:'N:1', c:'#3b82f6'},
+  {from:'invite_tokens',  to:'users',        label:'N:1', c:'#3b82f6'},
+  {from:'invite_tokens_archive', to:'clones', label:'N:1', c:'#3b82f6'},
+  {from:'invite_tokens_archive', to:'users',  label:'N:1', c:'#3b82f6'},
+  {from:'merge_conflicts_pending', to:'clones', label:'N:1', c:'#3b82f6'},
+  {from:'merge_conflicts_pending', to:'users',  label:'N:1', c:'#3b82f6'},
+  {from:'credit_ledgers', to:'users',        label:'N:1', c:'#f59e0b'},
+  {from:'admin_totp',       to:'admin_users', label:'1:1', c:'#64748b'},
+  {from:'admin_audit_logs', to:'admin_users', label:'N:1', c:'#64748b'},
+  {from:'clone_publicity_consents', to:'clones', label:'N:1', c:'#64748b'},
+  {from:'clone_publicity_consents', to:'users',  label:'N:1', c:'#64748b'},
+];
+
+const DPOS = {
+  users:    {x:30,   y:20},
+  clones:   {x:320,  y:20},
+  social:   {x:700,  y:20},
+  content:  {x:700,  y:280},
+  commerce: {x:30,   y:580},
+  system:   {x:320,  y:580},
+  kv:       {x:700,  y:580},
+};
+
+const TW = 200;    
+const ROW_H = 16;  
+const HDR_H = 28;  
+const PAD = 6;     
+const GP = 12;     
+const GTH = 26;    
+
+function tableH(t) {
+  return HDR_H + PAD + t.columns.length * ROW_H + PAD;
+}
+
+function layGroup(gid) {
+  const tables = TABLES.filter(t => t.g === gid);
+  const cols = gid === 'kv' ? 2 : gid === 'system' ? 2 : gid === 'clones' ? 2 : 2;
+  const gapX = 12, gapY = 12;
+  const maxH = tables.length ? Math.max(...tables.map(tableH)) : 80;
+  tables.forEach((t, i) => {
+    t._lx = GP + (i % cols) * (TW + gapX);
+    t._ly = GTH + GP + Math.floor(i / cols) * (maxH + gapY);
+    t._h = tableH(t);
+  });
+  const nc = Math.min(tables.length, cols);
+  const nr = Math.ceil(tables.length / cols);
+  return {
+    w: GP * 2 + nc * TW + Math.max(0, nc - 1) * gapX,
+    h: GTH + GP * 2 + nr * (maxH + gapY) - gapY + 8,
+  };
+}
+
+const GS = {};
+Object.keys(GM).forEach(gid => {
+  const sz = layGroup(gid);
+  const dp = DPOS[gid] || {x: 0, y: 0};
+  GS[gid] = {x: dp.x, y: dp.y, w: sz.w, h: sz.h};
+});
+
+function saveState() {
+  const s = {g: {}, n: {}};
+  Object.keys(GS).forEach(gid => { s.g[gid] = {x: GS[gid].x, y: GS[gid].y}; });
+  TABLES.forEach(t => { s.n[t.id] = {x: t._lx, y: t._ly}; });
+  localStorage.setItem(SKEY, JSON.stringify(s));
+  showToast('Layout saved!');
+  const btn = document.getElementById('btnSave');
+  btn.classList.add('active');
+  setTimeout(() => btn.classList.remove('active'), 600);
+}
+
+function loadState() {
+  const r = localStorage.getItem(SKEY); if (!r) return;
+  try {
+    const s = JSON.parse(r);
+    if (s.g) Object.entries(s.g).forEach(([k, v]) => { if (GS[k]) { GS[k].x = v.x; GS[k].y = v.y; }});
+    if (s.n) Object.entries(s.n).forEach(([k, v]) => { const t = TABLES.find(tt => tt.id === k); if (t) { t._lx = v.x; t._ly = v.y; }});
+  } catch(e) {}
+}
+
+function clearState() { localStorage.removeItem(SKEY); showToast('Cleared. Reload to reset.'); }
+
+function exportHTML() {
+  const state = {g: {}, n: {}};
+  Object.keys(GS).forEach(gid => { state.g[gid] = {x: GS[gid].x, y: GS[gid].y}; });
+  TABLES.forEach(t => { state.n[t.id] = {x: t._lx, y: t._ly}; });
+  const stateJSON = JSON.stringify(state);
+  const html = document.documentElement.outerHTML;
+  const marker = 'loadState();';
+  const injection = `\n// BAKED STATE (exported)\n(function(){try{const s=${stateJSON};if(s.g)Object.entries(s.g).forEach(([k,v])=>{if(GS[k]){GS[k].x=v.x;GS[k].y=v.y}});if(s.n)Object.entries(s.n).forEach(([k,v])=>{const t=TABLES.find(tt=>tt.id===k);if(t){t._lx=v.x;t._ly=v.y}});} catch(e){}})();\n`;
+  const exported = '<!DOCTYPE html><html lang="ko">' + html.replace(marker, marker + injection);
+  const blob = new Blob([exported], {type: 'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'afterlife-erd-export.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('Exported with current layout!');
+}
+
+loadState();
+
+function cp(text) { navigator.clipboard.writeText(text).then(() => showToast('✅ ' + text)); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+const vp = document.getElementById('viewport');
+const svg = document.getElementById('canvas');
+const S = (tag, a) => {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(a || {})) e.setAttribute(k, v);
+  return e;
+};
+const T = (x, y, txt, a) => { const e = S('text', {x, y, ...a}); e.textContent = txt; return e; };
+
+const defs = S('defs'); svg.insertBefore(defs, svg.firstChild);
+['#6366f1','#8b5cf6','#3b82f6','#10b981','#f59e0b','#64748b','#ec4899','#cbd5e1'].forEach(c => {
+  const m = S('marker', {id: 'm'+c.slice(1), markerWidth:8, markerHeight:6, refX:8, refY:3, orient:'auto', markerUnits:'strokeWidth'});
+  m.appendChild(S('polygon', {points:'0 0,8 3,0 6', fill:c}));
+  defs.appendChild(m);
+});
+
+let scale = 0.72, tx = 20, ty = 10;
+function upT() { vp.setAttribute('transform', `translate(${tx},${ty}) scale(${scale})`); }
+function zoomIn()  { scale = Math.min(scale * 1.15, 3); upT(); }
+function zoomOut() { scale = Math.max(scale / 1.15, 0.1); upT(); }
+function resetView() { scale = 0.72; tx = 20; ty = 10; upT(); }
+
+const edgeLayer = S('g', {id: 'edges'});
+vp.appendChild(edgeLayer);
+
+let highlightedNode = null;
+
+const gEls = {};
+Object.entries(GM).forEach(([gid, meta]) => {
+  const gs = GS[gid];
+  const gEl = S('g', {'data-group': gid});
+  gEl.setAttribute('transform', `translate(${gs.x},${gs.y})`);
+  gEls[gid] = gEl;
+
+  const isKV = gid === 'kv';
+
+  gEl.appendChild(S('rect', {
+    x:0, y:0, width:gs.w, height:gs.h, rx:6,
+    fill: isKV ? '#fdf4ff' : '#fff',
+    stroke: meta.color + (isKV ? '99' : '40'),
+    'stroke-width': isKV ? 1.5 : 1.5,
+    'stroke-dasharray': isKV ? '6 3' : '5 3',
+  }));
+
+  gEl.appendChild(S('rect', {x:0, y:0, width:gs.w, height:GTH, rx:6, fill: meta.color + '18'}));
+  gEl.appendChild(S('rect', {x:0, y:13, width:gs.w, height:13, fill: meta.color + '18'}));
+
+  gEl.appendChild(T(10, 17, meta.label, {'font-size':'10px','font-weight':'700', fill:meta.color,'font-family':'inherit'}));
+  if (isKV) {
+    gEl.appendChild(T(gs.w - 10, 17, 'KV Pattern', {'font-size':'8px', fill:meta.color+'99','text-anchor':'end','font-family':'inherit'}));
+  }
+
+  let dr = 0, sx, sy, ox, oy;
+  gEl.addEventListener('mousedown', e => {
+    if (e.target.closest('.erd-table')) return;
+    dr = 1; sx = e.clientX; sy = e.clientY; ox = gs.x; oy = gs.y; e.stopPropagation();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dr) return;
+    gs.x = ox + (e.clientX - sx) / scale;
+    gs.y = oy + (e.clientY - sy) / scale;
+    gEl.setAttribute('transform', `translate(${gs.x},${gs.y})`);
+    drawEdges();
+  });
+  window.addEventListener('mouseup', () => { dr = 0; });
+
+  vp.appendChild(gEl);
+});
+
+const nodeEls = {};
+
+TABLES.forEach(t => {
+  const gEl = gEls[t.g]; if (!gEl) return;
+  const g = S('g', {class: 'erd-table', cursor: 'default'});
+  g.setAttribute('transform', `translate(${t._lx},${t._ly})`);
+  t._el = g; nodeEls[t.id] = g;
+  const h = t._h;
+
+  g.appendChild(S('rect', {
+    x:0, y:0, width:TW, height:h, rx:4,
+    fill:'#fff', stroke:t.c, 'stroke-width': t.kv ? 1.2 : 1.8,
+    'stroke-dasharray': t.kv ? '5 3' : 'none',
+  }));
+
+  g.appendChild(S('rect', {x:0, y:0, width:TW, height:HDR_H, rx:4, fill: t.c + '20'}));
+  g.appendChild(S('rect', {x:0, y:14, width:TW, height:14, fill: t.c + '20'}));
+
+  if (t.kv) {
+    const badge = T(TW - PAD, 10, 'KV', {'font-size':'7px','font-weight':'700', fill:t.c+'cc','text-anchor':'end','font-family':'inherit'});
+    g.appendChild(badge);
+  }
+
+  const nm = T(PAD, 18, t.label, {'font-size':'11px','font-weight':'700', fill:t.c,'font-family':'inherit', cursor:'pointer'});
+  nm.addEventListener('click', e => { e.stopPropagation(); cp(t.label); });
+  g.appendChild(nm);
+
+  g.appendChild(S('line', {x1:0, y1:HDR_H, x2:TW, y2:HDR_H, stroke:t.c+'40','stroke-width':1}));
+
+  let yO = HDR_H + PAD;
+  t.columns.forEach(col => {
+
+    if (col.fk) {
+      g.appendChild(S('rect', {x:0, y:yO-1, width:TW, height:ROW_H, fill: t.c + '08'}));
+    }
+
+    let icon = '';
+    if (col.pk) icon = '🔑 ';
+    else if (col.fk) icon = '→ ';
+
+    const colText = T(PAD + 2, yO + 11, icon + col.name, {
+      'font-size': '9.5px',
+      fill: col.pk ? t.c : col.fk ? '#475569' : '#64748b',
+      'font-weight': col.pk ? '700' : col.fk ? '600' : '400',
+      'font-family': 'inherit',
+      cursor: 'pointer',
+    });
+    colText.addEventListener('click', e => {
+      e.stopPropagation();
+      cp(col.fk ? `${t.label}.${col.name} → ${col.fk}.id` : `${t.label}.${col.name}`);
+    });
+    g.appendChild(colText);
+
+    if (col.fk) {
+      const ref = T(TW - PAD, yO + 11, col.fk, {
+        'font-size':'8px', fill: t.c + 'aa', 'text-anchor':'end', 'font-family':'inherit',
+      });
+      g.appendChild(ref);
+    }
+
+    yO += ROW_H;
+  });
+
+  g.addEventListener('mouseenter', () => { highlightedNode = t.id; drawEdges(); });
+  g.addEventListener('mouseleave', () => { highlightedNode = null; drawEdges(); });
+
+  let nd = 0, nsx, nsy, nlx, nly;
+  g.addEventListener('mousedown', e => {
+    nd = 1; nsx = e.clientX; nsy = e.clientY; nlx = t._lx; nly = t._ly; e.stopPropagation();
+  });
+  window.addEventListener('mousemove', e => {
+    if (!nd) return;
+    t._lx = nlx + (e.clientX - nsx) / scale;
+    t._ly = nly + (e.clientY - nsy) / scale;
+    g.setAttribute('transform', `translate(${t._lx},${t._ly})`);
+    drawEdges();
+  });
+  window.addEventListener('mouseup', () => { nd = 0; });
+
+  gEl.appendChild(g);
+});
+
+function tableAbsPos(tid) {
+  const t = TABLES.find(tt => tt.id === tid); if (!t) return null;
+  const gs = GS[t.g];
+  return {x: gs.x + t._lx, y: gs.y + t._ly, w: TW, h: t._h};
+}
+
+function getBestPorts(from, to) {
+  const fp = tableAbsPos(from), tp = tableAbsPos(to); if (!fp || !tp) return null;
+  const fcx = fp.x + fp.w / 2, fcy = fp.y + fp.h / 2;
+  const tcx = tp.x + tp.w / 2, tcy = tp.y + tp.h / 2;
+  const dx = tcx - fcx, dy = tcy - fcy;
+
+  let fSide, fx, fy;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    fSide = dx > 0 ? 'r' : 'l';
+    fx = dx > 0 ? fp.x + fp.w : fp.x;
+    fy = fcy;
+  } else {
+    fSide = dy > 0 ? 'b' : 't';
+    fx = fcx;
+    fy = dy > 0 ? fp.y + fp.h : fp.y;
+  }
+
+  let tSide, ttx, tty;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    tSide = dx > 0 ? 'l' : 'r';
+    ttx = dx > 0 ? tp.x : tp.x + tp.w;
+    tty = tcy;
+  } else {
+    tSide = dy > 0 ? 't' : 'b';
+    ttx = tcx;
+    tty = dy > 0 ? tp.y : tp.y + tp.h;
+  }
+
+  return {fx, fy, fSide, ttx, tty, tSide};
+}
+
+function orthoPathRounded(x1, y1, s1, x2, y2, s2, channelOffset) {
+  const gap = 22 + (channelOffset || 0) * 7;
+  let pts = [{x:x1, y:y1}];
+
+  let ex = x1, ey = y1;
+  if (s1==='r') ex += gap; else if (s1==='l') ex -= gap;
+  else if (s1==='b') ey += gap; else ey -= gap;
+  pts.push({x:ex, y:ey});
+
+  let nx = x2, ny = y2;
+  if (s2==='r') nx += gap; else if (s2==='l') nx -= gap;
+  else if (s2==='b') ny += gap; else ny -= gap;
+
+  const horiz1 = s1==='r' || s1==='l';
+  const horiz2 = s2==='r' || s2==='l';
+  if (horiz1 && horiz2) {
+    const mx = (ex + nx) / 2 + (channelOffset || 0) * 5;
+    pts.push({x:mx, y:ey}); pts.push({x:mx, y:ny});
+  } else if (horiz1 && !horiz2) {
+    pts.push({x:nx, y:ey});
+  } else if (!horiz1 && horiz2) {
+    pts.push({x:ex, y:ny});
+  } else {
+    const my = (ey + ny) / 2 + (channelOffset || 0) * 5;
+    pts.push({x:ex, y:my}); pts.push({x:nx, y:my});
+  }
+  pts.push({x:nx, y:ny}); pts.push({x:x2, y:y2});
+
+  const clean = [];
+  pts.forEach(p => {
+    if (clean.length === 0 ||
+        Math.abs(p.x - clean[clean.length-1].x) > 0.5 ||
+        Math.abs(p.y - clean[clean.length-1].y) > 0.5)
+      clean.push(p);
+  });
+
+  const R = 7;
+  let d = `M${clean[0].x.toFixed(1)},${clean[0].y.toFixed(1)}`;
+  for (let i = 1; i < clean.length; i++) {
+    if (i < clean.length - 1) {
+      const prev = clean[i-1], cur = clean[i], next = clean[i+1];
+      const dx1 = cur.x - prev.x, dy1 = cur.y - prev.y;
+      const dx2 = next.x - cur.x, dy2 = next.y - cur.y;
+      const len1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+      const len2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+      if (len1 < 1 || len2 < 1) { d += ` L${cur.x.toFixed(1)},${cur.y.toFixed(1)}`; continue; }
+      const r = Math.min(R, len1/2, len2/2);
+      const bx = cur.x - (dx1/len1)*r, by = cur.y - (dy1/len1)*r;
+      const ax = cur.x + (dx2/len2)*r, ay = cur.y + (dy2/len2)*r;
+      const cross = dx1*dy2 - dy1*dx2;
+      const sweep = cross > 0 ? 1 : 0;
+      d += ` L${bx.toFixed(1)},${by.toFixed(1)}`;
+      d += ` A${r},${r} 0 0 ${sweep} ${ax.toFixed(1)},${ay.toFixed(1)}`;
+    } else {
+      d += ` L${clean[i].x.toFixed(1)},${clean[i].y.toFixed(1)}`;
+    }
+  }
+  return {d, pts: clean};
+}
+
+function labelPos(pts) {
+  let bestLen = 0, bestMid = null, bestAngle = 'h';
+  for (let i = 0; i < pts.length - 1; i++) {
+    const dx = pts[i+1].x - pts[i].x, dy = pts[i+1].y - pts[i].y;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    if (len > bestLen) {
+      bestLen = len;
+      bestMid = {x:(pts[i].x+pts[i+1].x)/2, y:(pts[i].y+pts[i+1].y)/2};
+      bestAngle = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+    }
+  }
+  return {pos: bestMid || {x:0, y:0}, orient: bestAngle};
+}
+
+function assignChannels() {
+  const groups = {};
+  EDGES.forEach((e, i) => {
+    const key = e.from;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(i);
+  });
+  const channels = new Array(EDGES.length).fill(0);
+  Object.values(groups).forEach(indices => {
+    if (indices.length <= 1) return;
+    indices.forEach((ei, j) => { channels[ei] = j - (indices.length - 1) / 2; });
+  });
+  return channels;
+}
+
+function drawEdges() {
+  while (edgeLayer.firstChild) edgeLayer.removeChild(edgeLayer.firstChild);
+
+  const isHL = highlightedNode !== null;
+  const connEI = new Set(), connNI = new Set();
+  if (isHL) {
+    EDGES.forEach((e, i) => {
+      if (e.from === highlightedNode || e.to === highlightedNode) {
+        connEI.add(i); connNI.add(e.from); connNI.add(e.to);
+      }
+    });
+  }
+
+  TABLES.forEach(t => {
+    if (!t._el) return;
+    t._el.setAttribute('opacity', isHL && !connNI.has(t.id) ? '0.12' : '1');
+  });
+
+  const channels = assignChannels();
+
+  EDGES.forEach((e, ei) => {
+    const ports = getBestPorts(e.from, e.to); if (!ports) return;
+    const {fx, fy, fSide, ttx, tty, tSide} = ports;
+
+    const isConn = !isHL || connEI.has(ei);
+    const opacity = isConn ? 0.85 : 0.05;
+
+    const {d, pts} = orthoPathRounded(fx, fy, fSide, ttx, tty, tSide, channels[ei]);
+
+    const path = S('path', {
+      d, fill:'none', stroke:e.c, 'stroke-width': isConn ? 1.8 : 1,
+      'marker-end': `url(#m${e.c.slice(1)})`, opacity,
+    });
+    edgeLayer.appendChild(path);
+
+    if (isConn) {
+      edgeLayer.appendChild(S('circle', {cx:fx, cy:fy, r:3, fill:e.c, opacity:0.9}));
+      edgeLayer.appendChild(S('circle', {cx:ttx, cy:tty, r:3, fill:e.c, opacity:0.9}));
+    }
+
+    if (e.label && isConn) {
+      const {pos, orient} = labelPos(pts);
+      const tw = e.label.length * 7 + 14;
+      const th = 16;
+      let lx = pos.x, ly = pos.y;
+      if (orient === 'h') ly -= 10; else lx += 10;
+
+      edgeLayer.appendChild(S('rect', {
+        x: lx - tw/2, y: ly - th/2 + 1, width:tw, height:th, rx:8,
+        fill:'#fff', stroke:e.c, 'stroke-width':1, opacity:0.95,
+      }));
+      const lt = T(lx, ly + 4, e.label, {
+        'font-size':'8px','font-weight':'700', fill:e.c,
+        'text-anchor':'middle','font-family':'inherit', cursor:'pointer',
+      });
+      lt.addEventListener('click', ev => {
+        ev.stopPropagation();
+        const fT = TABLES.find(tt => tt.id === e.from);
+        const tT = TABLES.find(tt => tt.id === e.to);
+        cp(`${fT?.label||e.from} → ${tT?.label||e.to} [${e.label}]`);
+      });
+      edgeLayer.appendChild(lt);
+    }
+  });
+}
+
+drawEdges();
+
+let isPan = 0, psx, psy;
+svg.addEventListener('mousedown', e => {
+  if (e.target.closest('[data-group]') || e.target.closest('.erd-table')) return;
+  isPan = 1; psx = e.clientX - tx; psy = e.clientY - ty;
+  svg.style.cursor = 'grabbing';
+});
+svg.addEventListener('mousemove', e => {
+  if (!isPan) return;
+  tx = e.clientX - psx; ty = e.clientY - psy; upT();
+});
+svg.addEventListener('mouseup', () => { isPan = 0; svg.style.cursor = 'default'; });
+svg.addEventListener('mouseleave', () => { isPan = 0; svg.style.cursor = 'default'; });
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const d = e.deltaY > 0 ? 0.92 : 1.08;
+  const ns = Math.min(Math.max(scale * d, 0.1), 3);
+  const r = svg.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns; upT();
+}, {passive: false});
+
+upT();
+</script>
+</body>
+</html>
