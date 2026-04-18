@@ -1,50 +1,47 @@
 import type { v_437670 } from "zmui";
-import type { v_4bcb54 } from "../index";
+import type { v_de0a25 } from "./env";
 
-interface LogParams {
-  userId: string;
-  cloneId?: string;
+export interface ActivityLog {
+  userId: number | null;
   action: string;
-  metadata?: Record<string, any>;
+  details?: unknown;
 }
 
-export async function v_74defc(c: v_437670<v_4bcb54>, v_24baff) {
-  const v_389afb = crypto.randomUUID();
-  const v_70cac0 = v_3f4e2e.req.header("CF-Connecting-IP") || v_3f4e2e.req.header("X-Forwarded-For") || "";
-  const v_ac8c13 = v_3f4e2e.req.header("User-Agent") || "";
-
+export async function v_74defc(c: v_437670<v_de0a25>, v_3e58a1): Promise<void> {
+  const v_70cac0 =
+    v_3f4e2e.req.header("CF-Connecting-IP") ?? v_3f4e2e.req.header("X-Forwarded-For") ?? null;
+  const v_ac8c13 = v_3f4e2e.req.header("User-Agent") ?? null;
   await v_3f4e2e.env.DB.prepare(
-    "INSERT INTO activity_logs (id, user_id, clone_id, action, metadata, ip, device) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    `INSERT INTO activity_logs (user_id, action, details, ip, device)
+     VALUES (?, ?, ?, ?, ?)`,
   )
     .bind(
-      v_389afb,
-      v_24baff.userId,
-      v_24baff.cloneId || null,
-      v_24baff.action,
-      v_24baff.metadata ? JSON.stringify(v_24baff.metadata) : null,
+      v_3e58a1.userId,
+      v_3e58a1.action,
+      v_3e58a1.details !== undefined ? JSON.stringify(v_3e58a1.details) : null,
       v_70cac0,
-      v_ac8c13
+      v_ac8c13,
     )
     .run();
 }
 
-export async function v_0f7c57(
+export async function v_d36b8d(v_a1651b, v_6e0fd3): Promise<void> {
+  await v_a1651b
+    .prepare(`INSERT OR IGNORE INTO clone_stats (clone_id) VALUES (?)`)
+    .bind(v_6e0fd3)
+    .run();
+}
+
+export async function v_d8e7b5(
   v_a1651b,
   v_6e0fd3,
   v_70c705,
-  v_f95211 = 1
-) {
+  v_e9396c = 1,
+): Promise<void> {
   await v_a1651b
     .prepare(
-      `UPDATE clone_stats SET ${v_70c705} = ${v_70c705} + ?, updated_at = datetime('now') WHERE clone_id = ?`
+      `UPDATE clone_stats SET ${v_70c705} = ${v_70c705} + ?, updated_at = CURRENT_TIMESTAMP WHERE clone_id = ?`,
     )
-    .bind(v_f95211, v_6e0fd3)
-    .run();
-}
-
-export async function v_d36b8d(v_a1651b, v_6e0fd3) {
-  await v_a1651b
-    .prepare("INSERT OR IGNORE INTO clone_stats (clone_id) VALUES (?)")
-    .bind(v_6e0fd3)
+    .bind(v_e9396c, v_6e0fd3)
     .run();
 }
