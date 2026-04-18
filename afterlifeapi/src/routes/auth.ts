@@ -1,95 +1,261 @@
 import { Hono } from "hono";
-import type { Env } from "../index";
+import type { AppEnv } from "../lib/env";
+import { APIError } from "../lib/errors";
+import { parseJson, z } from "../lib/validate";
+import { hashPassword, verifyPassword } from "../lib/password";
+import { seal, getKekProvider } from "../lib/ale";
+import { checkPwnedPassword } from "../lib/hibp";
+import {
+  issueSession,
+  rotateSession,
+  revokeRefresh,
+  setRefreshCookie,
+  clearRefreshCookie,
+  readRefreshCookie,
+} from "../lib/session";
+import { requireAuth } from "../middleware/auth";
 import { logActivity } from "../lib/logger";
 
-export const auth = new Hono<Env>();
+export const auth = new Hono<AppEnv>();
+
+function parseSqliteTimestamp(ts: string): number {
+  if (ts.includes("T")) return new Date(ts).getTime();
+  return new Date(ts.replace(" ", "T") + "Z").getTime();
+}
+
+auth.get("/health", (c) => c.json({ ok: true, module: "auth" }));
+
+const signupSchema = z.object({
+  email: z.email().max(200),
+  password: z.string().min(8).max(200),
+  name: z.string().min(1).max(80),
+  phone: z.string().min(4).max(40).optional(),
+  gender: z.enum(["male", "female", "other"]).optional(),
+  age: z.number().int().min(13).max(120).optional(),
+  interests: z.array(z.string().min(1).max(40)).max(20).optional(),
+  deviceId: z.string().min(1).max(200).optional(),
+  pushToken: z.string().min(1).max(500).optional(),
+  platform: z.enum(["ios", "android", "web"]).optional(),
+});
 
 auth.post("/signup", async (c) => {
-  const body = await c.req.json();
-  const { name, email, password, phone, gender, age, interests } = body;
+  const body = await parseJson(c, signupSchema);
+  const db = c.env.DB;
 
-  const id = crypto.randomUUID();
-  const passwordHash = await hashPassword(password);
-
-  await c.env.DB.prepare(
-    "INSERT INTO users (id, name, email, password_hash, phone, gender, age) VALUES (?, ?, ?, ?, ?, ?, ?)"
-  )
-    .bind(id, name, email, passwordHash, phone, gender, age)
-    .run();
-
-  if (interests?.length) {
-    const stmt = c.env.DB.prepare(
-      "INSERT INTO user_interests (user_id, interest) VALUES (?, ?)"
+  const hibp = await checkPwnedPassword(body.password, c.env);
+  if (hibp.breached) {
+    throw new APIError(
+      "VALIDATION_FAILED",
+      `Password has appeared in public breaches (${hibp.hits} hits). Choose another.`,
     );
-    await c.env.DB.batch(interests.map((i: string) => stmt.bind(id, i)));
   }
 
-  await logActivity(c, { userId: id, action: "signup" });
+  const passwordHash = await hashPassword(body.password);
+  const phoneEnc = body.phone
+    ? seal(body.phone, getKekProvider(c.env.ALE_KEK), "user.phone")
+    : null;
+  const ageEnc = body.age
+    ? seal(String(body.age), getKekProvider(c.env.ALE_KEK), "user.age")
+    : null;
 
-  return c.json({ id, name, email });
+  let inserted:
+    | { id: number; name: string; email: string; funnel_stage: string; created_at: string }
+    | null;
+  try {
+    inserted = await db
+      .prepare(
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         RETURNING id, name, email, funnel_stage, created_at`,
+      )
+      .bind(
+        body.name,
+        body.email,
+        passwordHash,
+        phoneEnc,
+        body.gender ?? null,
+        null, 
+        ageEnc,
+      )
+      .first();
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+    if (/UNIQUE constraint failed: users\.email/i.test(msg)) {
+      throw new APIError("CONFLICT", "Email already registered.");
+    }
+    throw err;
+  }
+  if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
+
+  try {
+    const stmts: D1PreparedStatement[] = [];
+    for (const it of body.interests ?? []) {
+      stmts.push(
+        db
+          .prepare(`INSERT OR IGNORE INTO user_interests (user_id, interest) VALUES (?, ?)`)
+          .bind(inserted.id, it),
+      );
+    }
+    if (body.deviceId) {
+      stmts.push(
+        db
+          .prepare(
+            `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+             ON CONFLICT(user_id, device_id) DO UPDATE SET
+               push_token = excluded.push_token,
+               platform   = excluded.platform,
+               is_active  = 1,
+               last_active_at = CURRENT_TIMESTAMP,
+               updated_at = CURRENT_TIMESTAMP`,
+          )
+          .bind(inserted.id, body.deviceId, body.pushToken ?? "", body.platform ?? "web"),
+      );
+    }
+    if (stmts.length) await db.batch(stmts);
+  } catch (err) {
+    await db.prepare(`DELETE FROM users WHERE id = ?`).bind(inserted.id).run();
+    throw err;
+  }
+
+  const { accessToken, refreshToken, accessExpiresIn } = await issueSession(
+    c,
+    inserted.id,
+    body.deviceId,
+  );
+  setRefreshCookie(c, refreshToken);
+
+  await logActivity(c, { userId: inserted.id, action: "auth.signup" });
+
+  return c.json(
+    {
+      accessToken,
+      accessExpiresIn,
+      user: {
+        id: inserted.id,
+        name: inserted.name,
+        email: inserted.email,
+        funnelStage: inserted.funnel_stage,
+      },
+    },
+    201,
+  );
 });
+
+const loginSchema = z.object({
+  email: z.email(),
+  password: z.string().min(1),
+  deviceId: z.string().min(1).max(200).optional(),
+  pushToken: z.string().min(1).max(500).optional(),
+  platform: z.enum(["ios", "android", "web"]).optional(),
+});
+
+const MAX_FAILED = 5;
+const LOCK_MINUTES = 10;
 
 auth.post("/login", async (c) => {
-  const { email, password } = await c.req.json();
+  const body = await parseJson(c, loginSchema);
+  const db = c.env.DB;
 
-  const user = await c.env.DB.prepare("SELECT * FROM users WHERE email = ?")
-    .bind(email)
-    .first();
+  const user = await db
+    .prepare(
+      `SELECT id, password_hash, failed_login_count, locked_until
+         FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+    )
+    .bind(body.email)
+    .first<{
+      id: number;
+      password_hash: string;
+      failed_login_count: number;
+      locked_until: string | null;
+    }>();
 
-  if (!user || !(await verifyPassword(password, user.password_hash as string))) {
-    return c.json({ error: "Invalid credentials" }, 401);
+  const hashForCheck = user?.password_hash ?? (await hashPassword("dummy-nonmatch-0000"));
+
+  let lockExpired = false;
+  if (user?.locked_until) {
+    const until = parseSqliteTimestamp(user.locked_until);
+    if (until > Date.now()) {
+      throw new APIError("ACCOUNT_LOCKED", "Account temporarily locked.");
+    }
+    lockExpired = true;
   }
 
-  await logActivity(c, { userId: user.id as string, action: "login" });
+  const ok = await verifyPassword(body.password, hashForCheck);
+  if (!user || !ok) {
+    if (user) {
 
-  return c.json({ id: user.id, name: user.name, email: user.email });
+      const prevFails = lockExpired ? 0 : user.failed_login_count ?? 0;
+      const fails = prevFails + 1;
+      const lockUntil =
+        fails >= MAX_FAILED
+          ? new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString()
+          : null;
+      await db
+        .prepare(
+          `UPDATE users SET failed_login_count = ?, locked_until = ? WHERE id = ?`,
+        )
+        .bind(fails, lockUntil, user.id)
+        .run();
+    }
+    throw new APIError("UNAUTHENTICATED", "Invalid credentials.");
+  }
+
+  await db
+    .prepare(
+      `UPDATE users SET failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
+    .bind(user.id)
+    .run();
+
+  if (body.deviceId) {
+    await db
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(user.id, body.deviceId, body.pushToken ?? "", body.platform ?? "web")
+      .run();
+  }
+
+  const { accessToken, refreshToken, accessExpiresIn } = await issueSession(c, user.id, body.deviceId);
+  setRefreshCookie(c, refreshToken);
+
+  await logActivity(c, { userId: user.id, action: "auth.login" });
+
+  return c.json({ accessToken, accessExpiresIn });
 });
 
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const hash = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-    key,
-    256
-  );
-  const saltHex = [...salt].map((b) => b.toString(16).padStart(2, "0")).join("");
-  const hashHex = [...new Uint8Array(hash)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return `${saltHex}:${hashHex}`;
-}
+auth.post("/refresh", async (c) => {
+  const refresh = readRefreshCookie(c);
+  if (!refresh) throw new APIError("UNAUTHENTICATED", "No refresh cookie.");
+  const rotated = await rotateSession(c, refresh);
+  setRefreshCookie(c, rotated.refreshToken);
+  return c.json({ accessToken: rotated.accessToken, accessExpiresIn: rotated.accessExpiresIn });
+});
 
-async function verifyPassword(
-  password: string,
-  stored: string
-): Promise<boolean> {
-  const [saltHex, storedHash] = stored.split(":");
-  const salt = new Uint8Array(
-    saltHex.match(/.{2}/g)!.map((b) => parseInt(b, 16))
-  );
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(password),
-    "PBKDF2",
-    false,
-    ["deriveBits"]
-  );
-  const hash = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-    key,
-    256
-  );
-  const hashHex = [...new Uint8Array(hash)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return hashHex === storedHash;
-}
+auth.post("/logout", requireAuth, async (c) => {
+  const refresh = readRefreshCookie(c);
+  if (refresh) await revokeRefresh(c, refresh);
+  clearRefreshCookie(c);
+
+  const userId = c.get("userId");
+  const deviceId = c.req.header("X-Device-Id");
+  if (userId && deviceId) {
+    await c.env.DB
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE user_id = ? AND device_id = ?`,
+      )
+      .bind(userId, deviceId)
+      .run();
+  }
+  if (userId) await logActivity(c, { userId, action: "auth.logout" });
+  return c.json({ ok: true });
+});
