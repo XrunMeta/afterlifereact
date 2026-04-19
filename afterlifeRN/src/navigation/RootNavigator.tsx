@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { ActivityIndicator, View, StyleSheet } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import type { RootStackParamList, AuthStackParamList } from "./types";
 import { useAuthStore } from "../stores/authStore";
+import { COLORS } from "../components/constants";
 
 import LoginScreen from "../screens/auth/LoginScreen";
 import SignupScreen from "../screens/auth/SignupScreen";
@@ -23,8 +25,26 @@ function AuthNavigator() {
   );
 }
 
+function BootstrapSplash() {
+  return (
+    <View style={styles.splash}>
+      <ActivityIndicator size="large" color={COLORS.violet500} />
+    </View>
+  );
+}
+
 export default function RootNavigator() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
+  const bootstrapping = useAuthStore((s) => s.bootstrapping);
+  const bootstrap = useAuthStore((s) => s.bootstrap);
+
+  useEffect(() => {
+    bootstrap();
+  }, [bootstrap]);
+
+  if (bootstrapping) {
+    return <BootstrapSplash />;
+  }
 
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
@@ -51,3 +71,12 @@ export default function RootNavigator() {
     </RootStack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.zinc50,
+  },
+});

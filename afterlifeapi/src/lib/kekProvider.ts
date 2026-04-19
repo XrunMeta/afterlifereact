@@ -77,10 +77,21 @@ export async function createDbKekProvider(
   ).results;
 
   if (rows.length === 0) {
-    throw new APIError(
-      "INTERNAL_ERROR",
-      "No KEKs in encryption_keys. Run `kek_rotate` quorum first.",
-    );
+
+    return {
+      resolve(): Uint8Array {
+        throw new APIError(
+          "INTERNAL_ERROR",
+          "No KEKs in encryption_keys. Run `kek_rotate` quorum first.",
+        );
+      },
+      current(): string {
+        throw new APIError(
+          "INTERNAL_ERROR",
+          "No KEKs in encryption_keys. Run `kek_rotate` quorum first.",
+        );
+      },
+    };
   }
 
   const keyMap = new Map<string, Uint8Array>();

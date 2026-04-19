@@ -49,6 +49,7 @@ export default function SignupScreen({ navigation }: Props) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeRequired, setAgreeRequired] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) =>
@@ -58,9 +59,13 @@ export default function SignupScreen({ navigation }: Props) {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name || !email || !password || !phone || !gender || !age) {
       Alert.alert("알림", "필수 항목을 모두 입력해주세요.");
+      return;
+    }
+    if (password.length < 8) {
+      Alert.alert("알림", "비밀번호는 8자 이상이어야 합니다.");
       return;
     }
     if (password !== confirmPassword) {
@@ -71,8 +76,24 @@ export default function SignupScreen({ navigation }: Props) {
       Alert.alert("알림", "이용약관에 동의해주세요.");
       return;
     }
+    setSubmitting(true);
+    try {
+      await signup({
+        name,
+        email: email.trim(),
+        password,
+        phone,
+        gender: gender as "male" | "female" | "other",
+        age: Number(age),
+        interests: selectedInterests,
+      });
 
-    navigation.navigate("Login");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "가입에 실패했어요.";
+      Alert.alert("가입 실패", msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -213,7 +234,11 @@ export default function SignupScreen({ navigation }: Props) {
           </View>
 
           {}
-          <Button title="가입하기" onPress={handleSubmit} />
+          <Button
+            title={submitting ? "가입 중..." : "가입하기"}
+            onPress={handleSubmit}
+            disabled={submitting}
+          />
 
           {}
           <View style={styles.loginRow}>

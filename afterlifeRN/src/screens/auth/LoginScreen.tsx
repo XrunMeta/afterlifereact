@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -26,11 +28,24 @@ export default function LoginScreen({ navigation }: Props) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [autoLogin, setAutoLogin] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const login = useAuthStore((s) => s.login);
 
-  const handleLogin = () => {
-    login(email, password);
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
+      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await login(email.trim(), password);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "로그인에 실패했어요.";
+      Alert.alert("로그인 실패", msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSocialLogin = (provider: string) => {
@@ -106,10 +121,12 @@ export default function LoginScreen({ navigation }: Props) {
 
           {}
           <Button
-            title="로그인"
+            title={submitting ? "로그인 중..." : "로그인"}
             onPress={handleLogin}
             variant="primary"
+            disabled={submitting}
             style={{ marginTop: SIZES.medium }}
+            leftIcon={submitting ? <ActivityIndicator size="small" color={COLORS.white} /> : undefined}
           />
 
           {}

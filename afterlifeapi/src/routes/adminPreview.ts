@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
+import { getKekProvider, open } from "../lib/ale";
 
 export const adminPreview = new Hono<AppEnv>();
 
@@ -10,30 +11,61 @@ adminPreview.use("*", async (c, next) => {
   await next();
 });
 
+type RawUserRow = {
+  id: number;
+  name: string | null;
+  email: string;
+  gender: string | null;
+  age: number | null;
+  age_enc: string | null;
+  credits: number;
+  funnelStage: string;
+  createdAt: string;
+};
+
+function decryptAge(env: { ALE_KEK: string }, ageEnc: string | null): number | null {
+  if (!ageEnc) return null;
+  try {
+    const plain = open(ageEnc, getKekProvider(env.ALE_KEK), "user.age");
+    const n = Number(plain);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+function projectUser(env: { ALE_KEK: string }, row: RawUserRow) {
+  const { age_enc, ...rest } = row;
+  return {
+    ...rest,
+    age: row.age ?? decryptAge(env, age_enc),
+  };
+}
+
 adminPreview.get("/oth-path", async (c) => {
   const rows = (
     await c.env.DB.prepare(
-      `SELECT id, name, email, gender, age, credits,
+      `SELECT id, name, email, gender, age, age_enc, credits,
               funnel_stage AS funnelStage, created_at AS createdAt
          FROM users
         ORDER BY id DESC
         LIMIT 200`,
-    ).all()
+    ).all<RawUserRow>()
   ).results;
-  return c.json(rows);
+  return c.json(rows.map((r) => projectUser(c.env, r)));
 });
 
 adminPreview.get("/oth-path", async (c) => {
   const id = Number(c.req.param("id"));
   const row = await c.env.DB.prepare(
-    `SELECT id, name, email, gender, age, credits,
+    `SELECT id, name, email, gender, age, age_enc, credits,
             funnel_stage AS funnelStage, created_at AS createdAt
        FROM users WHERE id = ?`,
   )
     .bind(id)
-    .first();
+    .first<RawUserRow>();
   if (!row) return c.json({ error: "not_found" }, 404);
-  return c.json(row);
+  return c.json(projectUser(c.env, row));
 });
 
 adminPreview.get("/oth-path", async (c) => {
