@@ -5,6 +5,8 @@ import {
   v_4623af,
   v_472849,
   v_cf9c33,
+  v_03e392,
+  v_39a996,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -26,11 +28,24 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
   const [v_f53eaa, v_36bbbe] = v_5ab095(false);
+  const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const v_182fdb = v_1ed7d9((v_fd5f43) => v_fd5f43.login);
 
-  const v_ec4736 = () => {
-    v_182fdb(v_e0c7e8, v_adc076);
+  const v_ec4736 = async () => {
+    if (!v_e0c7e8.trim() || !v_adc076) {
+      v_03e392.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      return;
+    }
+    v_ee9ec1(true);
+    try {
+      await v_182fdb(v_e0c7e8.trim(), v_adc076);
+    } catch (v_9e86fd) {
+      const v_badeaf = v_9e86fd instanceof Error ? v_9e86fd.message : "로그인에 실패했어요.";
+      v_03e392.alert("로그인 실패", v_badeaf);
+    } finally {
+      v_ee9ec1(false);
+    }
   };
 
   const v_78c15c = (v_e38ca2) => {
@@ -106,10 +121,12 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
           {}
           <Button
-            title="로그인"
+            title={v_cb66b4 ? "로그인 중..." : "로그인"}
             onPress={v_ec4736}
             variant="primary"
+            disabled={v_cb66b4}
             style={{ marginTop: v_9b1a04.medium }}
+            leftIcon={v_cb66b4 ? <ActivityIndicator size="small" color={v_1bfbd0.white} /> : undefined}
           />
 
           {}

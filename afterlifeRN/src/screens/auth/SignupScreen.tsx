@@ -49,6 +49,7 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
   const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
+  const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const v_d82a00 = (v_e4601c) => {
     v_770327((v_ba2215) =>
@@ -58,9 +59,13 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
     );
   };
 
-  const v_585b02 = () => {
+  const v_585b02 = async () => {
     if (!v_1833e7 || !v_e0c7e8 || !v_adc076 || !v_d74a81 || !v_c3eac4 || !v_2694bd) {
       v_03e392.alert("알림", "필수 항목을 모두 입력해주세요.");
+      return;
+    }
+    if (v_adc076.length < 8) {
+      v_03e392.alert("알림", "비밀번호는 8자 이상이어야 합니다.");
       return;
     }
     if (v_adc076 !== v_0b3ebe) {
@@ -71,8 +76,24 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
       v_03e392.alert("알림", "이용약관에 동의해주세요.");
       return;
     }
+    v_ee9ec1(true);
+    try {
+      await v_35200c({
+        name: v_1833e7,
+        email: v_e0c7e8.trim(),
+        password: v_adc076,
+        phone: v_d74a81,
+        gender: v_c3eac4 as "male" | "female" | "other",
+        age: Number(v_2694bd),
+        interests: v_976e06,
+      });
 
-    v_c65f5d.navigate("Login");
+    } catch (v_9e86fd) {
+      const v_badeaf = v_9e86fd instanceof Error ? v_9e86fd.message : "가입에 실패했어요.";
+      v_03e392.alert("가입 실패", v_badeaf);
+    } finally {
+      v_ee9ec1(false);
+    }
   };
 
   return (
@@ -213,7 +234,11 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
           </View>
 
           {}
-          <Button title="가입하기" onPress={v_585b02} />
+          <Button
+            title={v_cb66b4 ? "가입 중..." : "가입하기"}
+            onPress={v_585b02}
+            disabled={v_cb66b4}
+          />
 
           {}
           <View style={v_d81136.loginRow}>

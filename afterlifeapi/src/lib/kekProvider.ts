@@ -77,10 +77,21 @@ export async function v_190a24(
   ).results;
 
   if (v_18b8bf.length === 0) {
-    throw new v_3ebe58(
-      "INTERNAL_ERROR",
-      "No KEKs in encryption_keys. Run `kek_rotate` quorum first.",
-    );
+
+    return {
+      resolve(): Uint8Array {
+        throw new v_3ebe58(
+          "INTERNAL_ERROR",
+          "No KEKs in encryption_keys. Run `kek_rotate` quorum first.",
+        );
+      },
+      current(): string {
+        throw new v_3ebe58(
+          "INTERNAL_ERROR",
+          "No KEKs in encryption_keys. Run `kek_rotate` quorum first.",
+        );
+      },
+    };
   }
 
   const v_e601cd = new Map<string, Uint8Array>();
