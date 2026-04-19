@@ -2,9 +2,10 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
-import { CommonActions } from "@react-navigation/native";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { CreateStackParamList } from "../../navigation/types";
+import type { CreateStackParamList, RootStackParamList } from "../../navigation/types";
+import type { Clone, CloneCreationDraft } from "../../types/clone";
 
 import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
@@ -12,6 +13,32 @@ import PageHeader from "../../components/common/PageHeader";
 import StepIndicator from "../../components/common/StepIndicator";
 import { useCloneStore } from "../../stores/cloneStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
+import { CATEGORIES } from "../../mocks/interestHelpers";
+
+const DEFAULT_AVATAR =
+  "https://images.unsplash.com/photo-1701463387028-3947648f1337?w=400&h=400&fit=crop";
+
+function buildCloneFromDraft(draft: CloneCreationDraft, id: string): Clone {
+  const name = draft.name?.trim() || "새 페르소나";
+  const categoryLabel =
+    CATEGORIES.find((c) => c.id === draft.category)?.label ?? "일상 및 감정 케어";
+  const img = draft.imageUri?.trim() || DEFAULT_AVATAR;
+  return {
+    id,
+    name,
+    username: `@${name.replace(/\s+/g, "_").slice(0, 16)}_${id.slice(-4)}`,
+    avatarUrl: img,
+    coverImageUrl: img,
+    type: "멤로우",
+    category: categoryLabel,
+    interests: draft.interests?.length ? draft.interests : ["일상 대화"],
+    description: draft.description?.trim() ?? "",
+    visibility: draft.visibility ?? "private",
+    learningProgress: 0,
+    createdBy: "user-1",
+    createdAt: new Date().toISOString(),
+  };
+}
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step7">;
@@ -31,18 +58,23 @@ const FEATURES = [
 ];
 
 export default function Step7CompleteScreen({ navigation }: Props) {
-  const resetCreationDraft = useCloneStore((s) => s.resetCreationDraft);
+  const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const finalizeAndGetNewCloneId = (): string => {
+    const id = `clone-${Date.now()}`;
+    const { creationDraft, addClone, resetCreationDraft } = useCloneStore.getState();
+    addClone(buildCloneFromDraft(creationDraft, id));
+    resetCreationDraft();
+    return id;
+  };
 
   const handleStartChat = () => {
-    resetCreationDraft();
-
-    navigation.getParent()?.dispatch(
-      CommonActions.navigate({ name: "ClonesTab" })
-    );
+    const id = finalizeAndGetNewCloneId();
+    rootNav.navigate("Chat", { cloneId: id });
   };
 
   const handleGoToDashboard = () => {
-    resetCreationDraft();
+    finalizeAndGetNewCloneId();
     navigation.getParent()?.dispatch(
       CommonActions.navigate({ name: "ClonesTab" })
     );
