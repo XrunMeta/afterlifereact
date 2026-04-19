@@ -130,7 +130,7 @@ export default function v_c316d8() {
 
   return (
     <View style={v_d81136.root}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       {}
       <FlatList
         ref={v_ebdf9a}

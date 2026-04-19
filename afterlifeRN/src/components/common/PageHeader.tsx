@@ -35,16 +35,16 @@ const PageHeader: v_a3453e.FC<PageHeaderProps> = ({
     >
       <View style={v_d81136.row}>
         {}
-        <View style={v_d81136.left}>
-          {v_9c4d53 && (
+        {v_9c4d53 && (
+          <View style={v_d81136.left}>
             <TouchableOpacity
               onPress={v_f442f6}
               style={v_d81136.backButton}
             >
               <Feather name="arrow-left" size={24} color={v_8d6034 ? v_1bfbd0.white : v_1bfbd0.zinc900} />
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
 
         {}
         <View style={v_d81136.center}>
