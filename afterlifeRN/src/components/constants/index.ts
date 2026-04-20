@@ -30,6 +30,10 @@ export const COLORS = {
   violet600: "#7c3aed",
   violet100: "#ede9fe",
 
+  amber50: "#fffbeb",
+  amber700: "#b45309",
+  amber800: "#92400e",
+
   primary: "#030213",
   telegram: "#0088cc",
 
