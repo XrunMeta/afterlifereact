@@ -16,7 +16,7 @@ v_d8985c.get("/oth-path", async (v_3f4e2e) => {
       `SELECT id, name, email, gender, age, credits,
               funnel_stage AS funnelStage, created_at AS createdAt
          FROM users
-        ORDER BY id DESC
+        ORDER BY (id < 100000) DESC, id DESC
         LIMIT 200`,
     ).all()
   ).results;
