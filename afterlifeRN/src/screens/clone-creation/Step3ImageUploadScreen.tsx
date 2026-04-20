@@ -48,7 +48,7 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
   };
 
   const v_420661 = () => {
-    v_5795de({ imageUri: v_ee89db ?? undefined });
+    v_5795de({ imageFile: v_ee89db ?? undefined });
     v_c65f5d.navigate("Step4");
   };
 
