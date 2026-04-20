@@ -48,7 +48,7 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
   };
 
   const handleNext = () => {
-    setCreationDraft({ imageUri: imageUri ?? undefined });
+    setCreationDraft({ imageFile: imageUri ?? undefined });
     navigation.navigate("Step4");
   };
 
