@@ -16,7 +16,7 @@ adminPreview.get("/oth-path", async (c) => {
       `SELECT id, name, email, gender, age, credits,
               funnel_stage AS funnelStage, created_at AS createdAt
          FROM users
-        ORDER BY id DESC
+        ORDER BY (id < 100000) DESC, id DESC
         LIMIT 200`,
     ).all()
   ).results;
