@@ -2,6 +2,11 @@ import { create } from "zustand";
 import type { Clone, CloneCreationDraft } from "../types/clone";
 import mockClones from "../mocks/clones.json";
 
+const INITIAL_DRAFT: CloneCreationDraft = {
+  interests: [],
+  coownerInvites: [],
+};
+
 interface CloneState {
   myClones: Clone[];
   currentClone: Clone | null;
@@ -16,7 +21,7 @@ interface CloneState {
 export const useCloneStore = create<CloneState>((set, get) => ({
   myClones: mockClones as Clone[],
   currentClone: null,
-  creationDraft: {},
+  creationDraft: { ...INITIAL_DRAFT },
 
   setCurrentClone: (clone) => set({ currentClone: clone }),
 
@@ -25,7 +30,7 @@ export const useCloneStore = create<CloneState>((set, get) => ({
       creationDraft: { ...state.creationDraft, ...data },
     })),
 
-  resetCreationDraft: () => set({ creationDraft: {} }),
+  resetCreationDraft: () => set({ creationDraft: { ...INITIAL_DRAFT } }),
 
   getCloneById: (id) => {
     return get().myClones.find((c) => c.id === id);
