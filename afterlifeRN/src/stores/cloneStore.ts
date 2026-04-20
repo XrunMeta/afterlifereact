@@ -2,6 +2,11 @@ import { v_a7c0d4 } from "vukrcww";
 import type { v_affcc0, v_c2a674 } from "../types/clone";
 import v_6c00ce from "../mocks/clones.json";
 
+const INITIAL_DRAFT: v_c2a674 = {
+  interests: [],
+  coownerInvites: [],
+};
+
 interface CloneState {
   myClones: v_affcc0[];
   currentClone: v_affcc0 | null;
@@ -16,7 +21,7 @@ interface CloneState {
 export const v_194498 = v_a7c0d4<CloneState>((v_bb8024, v_38715b) => ({
   myClones: v_6c00ce as v_affcc0[],
   currentClone: null,
-  creationDraft: {},
+  creationDraft: { ...v_6f599b },
 
   setCurrentClone: (v_eb25ce) => v_bb8024({ currentClone: v_eb25ce }),
 
@@ -25,7 +30,7 @@ export const v_194498 = v_a7c0d4<CloneState>((v_bb8024, v_38715b) => ({
       creationDraft: { ...v_b6e533.creationDraft, ...v_9390e8 },
     })),
 
-  resetCreationDraft: () => v_bb8024({ creationDraft: {} }),
+  resetCreationDraft: () => v_bb8024({ creationDraft: { ...v_6f599b } }),
 
   getCloneById: (v_389afb) => {
     return v_38715b().myClones.find((v_3f4e2e) => v_3f4e2e.id === v_389afb);
