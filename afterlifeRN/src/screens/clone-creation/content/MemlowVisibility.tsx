@@ -31,7 +31,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   return (
     <View style={v_d81136.wrap}>
       <View style={v_d81136.lockedRow}>
-        <Feather name="lock" size={16} color={v_1bfbd0.violet1000} />
+        <Feather name="lock" size={16} color={v_1bfbd0.violet600} />
         <Text style={v_d81136.lockedText}>
           멤로우 클론은 비공개로 고정돼요. 공동관리자만 볼 수 있어요.
         </Text>
@@ -79,12 +79,12 @@ const v_d81136 = v_472849.create({
   wrap: { gap: 12 },
   lockedRow: { flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: v_1bfbd0.violet100, padding: 12, borderRadius: v_8b0c90.sm },
-  lockedText: { flex: 1, fontSize: 13, color: v_1bfbd0.violet800 },
+  lockedText: { flex: 1, fontSize: 13, color: v_1bfbd0.violet700 },
   label: { fontSize: 13, fontWeight: '600', color: v_1bfbd0.zinc700, marginTop: 12 },
   inputRow: { flexDirection: 'row', gap: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: v_1bfbd0.zinc200,
     borderRadius: v_8b0c90.sm, paddingHorizontal: 12, paddingVertical: 10 },
-  addBtn: { backgroundColor: v_1bfbd0.violet1000, width: 44,
+  addBtn: { backgroundColor: v_1bfbd0.violet600, width: 44,
     alignItems: 'center', justifyContent: 'center', borderRadius: v_8b0c90.sm },
   inviteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 10, borderRadius: v_8b0c90.sm, borderWidth: 1, borderColor: v_1bfbd0.zinc200 },

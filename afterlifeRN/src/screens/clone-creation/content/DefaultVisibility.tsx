@@ -27,7 +27,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             style={[v_d81136.row, v_f8b770 && v_d81136.rowActive]}
             onPress={() => v_b187d9({ visibility: v_68b2be.value })}>
             <Feather name={v_68b2be.icon as any} size={18}
-              color={v_f8b770 ? v_1bfbd0.violet1000 : v_1bfbd0.zinc500} />
+              color={v_f8b770 ? v_1bfbd0.violet600 : v_1bfbd0.zinc500} />
             <View style={{ flex: 1 }}>
               <Text style={v_d81136.title}>{v_68b2be.title}</Text>
               <Text style={v_d81136.desc}>{v_68b2be.desc}</Text>
@@ -53,11 +53,11 @@ const v_d81136 = v_472849.create({
   wrap: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14,
     borderRadius: v_8b0c90.md, borderWidth: 1, borderColor: v_1bfbd0.zinc200 },
-  rowActive: { borderColor: v_1bfbd0.violet1000, backgroundColor: v_1bfbd0.violet100 },
+  rowActive: { borderColor: v_1bfbd0.violet600, backgroundColor: v_1bfbd0.violet100 },
   title: { fontSize: 14, fontWeight: '600', color: v_1bfbd0.zinc800 },
   desc: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   radio: { width: 18, height: 18, borderRadius: 9,
     borderWidth: 2, borderColor: v_1bfbd0.zinc300 },
-  radioActive: { borderColor: v_1bfbd0.violet1000 },
-  radioDot: { flex: 1, margin: 3, borderRadius: 4, backgroundColor: v_1bfbd0.violet1000 },
+  radioActive: { borderColor: v_1bfbd0.violet600 },
+  radioDot: { flex: 1, margin: 3, borderRadius: 4, backgroundColor: v_1bfbd0.violet600 },
 });
