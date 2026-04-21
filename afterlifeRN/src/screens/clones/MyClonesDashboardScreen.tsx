@@ -222,6 +222,17 @@ export default function MyClonesDashboardScreen() {
         </View>
 
         {}
+        {clone.status === 'pending_assets' && (
+          <View style={s.pendingBadge}>
+            <Feather name="clock" size={12} color={COLORS.zinc600} />
+            <Text style={s.pendingText}>생성대기중</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('CloneEdit', { cloneId: clone.id })}>
+              <Text style={s.pendingCta}>사진/음성 추가하기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {}
         <View style={s.tagsRow}>
           {clone.interests.map((tag, i) => (
             <View key={i} style={s.tag}>
@@ -765,6 +776,20 @@ const s = StyleSheet.create({
   },
   stat: { flexDirection: "row", alignItems: "center", gap: 4 },
   statText: { fontSize: 13, color: COLORS.zinc500 },
+
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.zinc100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  pendingText: { fontSize: 11, color: COLORS.zinc600 },
+  pendingCta: { fontSize: 11, color: COLORS.violet600, marginLeft: 4, textDecorationLine: 'underline' },
 
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 },
   tag: {
