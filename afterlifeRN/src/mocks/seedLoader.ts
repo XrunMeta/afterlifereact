@@ -47,6 +47,8 @@ export function v_2aa078(v_18b8bf): asserts v_18b8bf is v_b89f99[] {
     v_71daa1(`user[${v_ebec57}].id`, v_cb35cb.id);
     v_71daa1(`user[${v_ebec57}].displayName`, v_cb35cb.displayName);
     v_71daa1(`user[${v_ebec57}].handle`, v_cb35cb.handle);
+    if (v_cb35cb.avatarUrl !== undefined) v_71daa1(`user[${v_ebec57}].avatarUrl`, v_cb35cb.avatarUrl);
+    if (v_cb35cb.bio !== undefined) v_71daa1(`user[${v_ebec57}].bio`, v_cb35cb.bio);
     v_6d0907(`user[${v_ebec57}].createdAt`, v_cb35cb.createdAt);
   });
 }
@@ -60,6 +62,9 @@ export function v_8e78d0(v_18b8bf): asserts v_18b8bf is v_4b85a1[] {
     v_71daa1(`clone[${v_ebec57}].displayName`, v_cb35cb.displayName);
     v_71daa1(`clone[${v_ebec57}].description`, v_cb35cb.description);
     if (!Array.isArray(v_cb35cb.interests)) throw new Error(`clone[${v_ebec57}].interests must be array`);
+    (v_cb35cb.interests as unknown[]).forEach((v_81e2ef, v_b75e36) => v_71daa1(`clone[${v_ebec57}].interests[${v_b75e36}]`, v_81e2ef));
+    if (v_cb35cb.imageUrl !== undefined) v_71daa1(`clone[${v_ebec57}].imageUrl`, v_cb35cb.imageUrl);
+    if (v_cb35cb.voiceSampleUrl !== undefined) v_71daa1(`clone[${v_ebec57}].voiceSampleUrl`, v_cb35cb.voiceSampleUrl);
     v_a0e5b2(`clone[${v_ebec57}].visibility`, v_cb35cb.visibility, v_f46940);
     v_a0e5b2(`clone[${v_ebec57}].status`, v_cb35cb.status, v_58bf8d);
     v_6d0907(`clone[${v_ebec57}].createdAt`, v_cb35cb.createdAt);
@@ -110,6 +115,7 @@ export function v_a07f65(v_18b8bf): asserts v_18b8bf is v_bc3df4[] {
     v_71daa1(`feed[${v_ebec57}].id`, v_cb35cb.id);
     v_71daa1(`feed[${v_ebec57}].cloneId`, v_cb35cb.cloneId);
     v_71daa1(`feed[${v_ebec57}].text`, v_cb35cb.text);
+    if (v_cb35cb.imageUrl !== undefined) v_71daa1(`feed[${v_ebec57}].imageUrl`, v_cb35cb.imageUrl);
     v_6d0907(`feed[${v_ebec57}].createdAt`, v_cb35cb.createdAt);
   });
 }

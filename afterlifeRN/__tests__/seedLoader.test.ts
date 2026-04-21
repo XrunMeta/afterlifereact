@@ -51,4 +51,47 @@ describe('seedLoader assertions', () => {
       v_a07f65([{ id: 'fd1', cloneId: 'c1', text: 'hello', createdAt: '2026-01-01T00:00:00Z' }]),
     ).not.toThrow();
   });
+
+  it('assertClones throws when interests contains non-string element', () => {
+    expect(() =>
+      v_8e78d0([
+        {
+          id: 'c1',
+          cloneType: 'memlow',
+          ownerUserId: 'u1',
+          displayName: 'x',
+          description: 'x',
+          interests: ['ok', 123 as any],
+          visibility: 'private',
+          status: 'active',
+          createdAt: '2026-01-01T00:00:00Z',
+        } as any,
+      ]),
+    ).toThrow(/interests\[1\]/);
+  });
+
+  it('assertClones throws when imageUrl is present but not string', () => {
+    expect(() =>
+      v_8e78d0([
+        {
+          id: 'c1',
+          cloneType: 'memlow',
+          ownerUserId: 'u1',
+          displayName: 'x',
+          description: 'x',
+          interests: [],
+          visibility: 'private',
+          status: 'active',
+          createdAt: '2026-01-01T00:00:00Z',
+          imageUrl: 42 as any,
+        } as any,
+      ]),
+    ).toThrow(/imageUrl/);
+  });
+
+  it('assertUsers passes when optional bio is undefined (not required)', () => {
+    expect(() =>
+      v_2aa078([{ id: 'u1', displayName: 'x', handle: '@x', createdAt: '2026-01-01T00:00:00Z' }]),
+    ).not.toThrow();
+  });
 });
