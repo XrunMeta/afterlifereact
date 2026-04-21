@@ -1,0 +1,146 @@
+[
+  {
+    "id": "coowner-0001",
+    "cloneId": "clone-memlow-01",
+    "userId": "user-004",
+    "status": "approved",
+    "invitedAt": "2026-03-05T10:00:00Z",
+    "approvedAt": "2026-03-05T12:00:00Z"
+  },
+  {
+    "id": "coowner-0002",
+    "cloneId": "clone-memlow-01",
+    "userId": "user-008",
+    "status": "approved",
+    "invitedAt": "2026-03-13T10:00:00Z",
+    "approvedAt": "2026-03-13T12:00:00Z"
+  },
+  {
+    "id": "coowner-0003",
+    "cloneId": "clone-memlow-02",
+    "userId": "user-018",
+    "status": "approved",
+    "invitedAt": "2026-03-05T10:00:00Z",
+    "approvedAt": "2026-03-05T12:00:00Z"
+  },
+  {
+    "id": "coowner-0004",
+    "cloneId": "clone-memlow-02",
+    "userId": "user-008",
+    "status": "approved",
+    "invitedAt": "2026-03-14T10:00:00Z",
+    "approvedAt": "2026-03-14T12:00:00Z"
+  },
+  {
+    "id": "coowner-0005",
+    "cloneId": "clone-memlow-02",
+    "userId": "user-005",
+    "status": "approved",
+    "invitedAt": "2026-03-15T10:00:00Z",
+    "approvedAt": "2026-03-15T12:00:00Z"
+  },
+  {
+    "id": "coowner-0006",
+    "cloneId": "clone-memlow-02",
+    "userId": "user-017",
+    "status": "approved",
+    "invitedAt": "2026-03-13T10:00:00Z",
+    "approvedAt": "2026-03-13T12:00:00Z"
+  },
+  {
+    "id": "coowner-0007",
+    "cloneId": "clone-memlow-03",
+    "userId": "user-009",
+    "status": "approved",
+    "invitedAt": "2026-03-19T10:00:00Z",
+    "approvedAt": "2026-03-19T12:00:00Z"
+  },
+  {
+    "id": "coowner-0008",
+    "cloneId": "clone-memlow-03",
+    "userId": "user-002",
+    "status": "approved",
+    "invitedAt": "2026-03-15T10:00:00Z",
+    "approvedAt": "2026-03-15T12:00:00Z"
+  },
+  {
+    "id": "coowner-0009",
+    "cloneId": "clone-memlow-03",
+    "userId": "user-008",
+    "status": "approved",
+    "invitedAt": "2026-03-06T10:00:00Z",
+    "approvedAt": "2026-03-06T12:00:00Z"
+  },
+  {
+    "id": "coowner-0010",
+    "cloneId": "clone-memlow-04",
+    "userId": "user-017",
+    "status": "approved",
+    "invitedAt": "2026-03-12T10:00:00Z",
+    "approvedAt": "2026-03-12T12:00:00Z"
+  },
+  {
+    "id": "coowner-0011",
+    "cloneId": "clone-memlow-04",
+    "userId": "user-010",
+    "status": "approved",
+    "invitedAt": "2026-03-14T10:00:00Z",
+    "approvedAt": "2026-03-14T12:00:00Z"
+  },
+  {
+    "id": "coowner-0012",
+    "cloneId": "clone-memlow-04",
+    "userId": "user-013",
+    "status": "approved",
+    "invitedAt": "2026-03-10T10:00:00Z",
+    "approvedAt": "2026-03-10T12:00:00Z"
+  },
+  {
+    "id": "coowner-0013",
+    "cloneId": "clone-memlow-04",
+    "userId": "user-018",
+    "status": "approved",
+    "invitedAt": "2026-03-03T10:00:00Z",
+    "approvedAt": "2026-03-03T12:00:00Z"
+  },
+  {
+    "id": "coowner-0014",
+    "cloneId": "clone-memlow-05",
+    "userId": "user-005",
+    "status": "approved",
+    "invitedAt": "2026-03-14T10:00:00Z",
+    "approvedAt": "2026-03-14T12:00:00Z"
+  },
+  {
+    "id": "coowner-0015",
+    "cloneId": "clone-memlow-05",
+    "userId": "user-004",
+    "status": "approved",
+    "invitedAt": "2026-03-12T10:00:00Z",
+    "approvedAt": "2026-03-12T12:00:00Z"
+  },
+  {
+    "id": "coowner-0016",
+    "cloneId": "clone-memlow-06",
+    "userId": "user-007",
+    "status": "approved",
+    "invitedAt": "2026-03-02T10:00:00Z",
+    "approvedAt": "2026-03-02T12:00:00Z"
+  },
+  {
+    "id": "coowner-0017",
+    "cloneId": "clone-memlow-06",
+    "userId": "user-011",
+    "status": "approved",
+    "invitedAt": "2026-03-05T10:00:00Z",
+    "approvedAt": "2026-03-05T12:00:00Z"
+  },
+  {
+    "id": "coowner-0018",
+    "cloneId": "clone-memlow-06",
+    "userId": "user-019",
+    "status": "approved",
+    "invitedAt": "2026-03-06T10:00:00Z",
+    "approvedAt": "2026-03-06T12:00:00Z"
+  }
+]
