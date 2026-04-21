@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import type { CloneCreationDraft } from '../../../types/clone';
-import { COLORS, SIZES, RADIUS } from '../../../components/constants';
+import { COLORS, RADIUS } from '../../../components/constants';
 
 type V = 'public' | 'followers' | 'private';
 const OPTIONS: { value: V; icon: string; title: string; desc: string }[] = [
