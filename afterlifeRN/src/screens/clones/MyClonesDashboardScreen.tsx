@@ -222,6 +222,17 @@ export default function v_def15b() {
         </View>
 
         {}
+        {v_eb25ce.status === 'pending_assets' && (
+          <View style={v_fd5f43.pendingBadge}>
+            <Feather name="clock" size={12} color={v_1bfbd0.zinc600} />
+            <Text style={v_fd5f43.pendingText}>생성대기중</Text>
+            <TouchableOpacity onPress={() => v_c65f5d.navigate('CloneEdit', { cloneId: v_eb25ce.id })}>
+              <Text style={v_fd5f43.pendingCta}>사진/음성 추가하기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {}
         <View style={v_fd5f43.tagsRow}>
           {v_eb25ce.interests.map((v_bd1444, v_ebec57) => (
             <View key={v_ebec57} style={v_fd5f43.tag}>
@@ -765,6 +776,20 @@ const v_fd5f43 = v_472849.create({
   },
   stat: { flexDirection: "row", alignItems: "center", gap: 4 },
   statText: { fontSize: 13, color: v_1bfbd0.zinc500 },
+
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: v_1bfbd0.zinc100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  pendingText: { fontSize: 11, color: v_1bfbd0.zinc600 },
+  pendingCta: { fontSize: 11, color: v_1bfbd0.violet600, marginLeft: 4, textDecorationLine: 'underline' },
 
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 },
   tag: {
