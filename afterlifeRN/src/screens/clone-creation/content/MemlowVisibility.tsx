@@ -31,7 +31,7 @@ function Component({ draft, onChange }: Props) {
   return (
     <View style={styles.wrap}>
       <View style={styles.lockedRow}>
-        <Feather name="lock" size={16} color={COLORS.violet1000} />
+        <Feather name="lock" size={16} color={COLORS.violet600} />
         <Text style={styles.lockedText}>
           멤로우 클론은 비공개로 고정돼요. 공동관리자만 볼 수 있어요.
         </Text>
@@ -79,12 +79,12 @@ const styles = StyleSheet.create({
   wrap: { gap: 12 },
   lockedRow: { flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: COLORS.violet100, padding: 12, borderRadius: RADIUS.sm },
-  lockedText: { flex: 1, fontSize: 13, color: COLORS.violet800 },
+  lockedText: { flex: 1, fontSize: 13, color: COLORS.violet700 },
   label: { fontSize: 13, fontWeight: '600', color: COLORS.zinc700, marginTop: 12 },
   inputRow: { flexDirection: 'row', gap: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: COLORS.zinc200,
     borderRadius: RADIUS.sm, paddingHorizontal: 12, paddingVertical: 10 },
-  addBtn: { backgroundColor: COLORS.violet1000, width: 44,
+  addBtn: { backgroundColor: COLORS.violet600, width: 44,
     alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.sm },
   inviteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     padding: 10, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.zinc200 },
