@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
@@ -12,6 +12,8 @@ import PageHeader from "../../components/common/PageHeader";
 import StepIndicator from "../../components/common/StepIndicator";
 import { useCloneStore } from "../../stores/cloneStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
+import type { Clone } from "../../types/clone";
+import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step7">;
@@ -30,8 +32,46 @@ const FEATURES = [
   },
 ];
 
+const COPY: Record<'memlow' | 'friend' | 'mentor' | 'celeb', { title: string; sub: string }> = {
+  memlow: { title: '추억을 이어가요',     sub: '편지가 도착했을 때 함께 읽어봐요.' },
+  friend: { title: '친구가 준비됐어요',   sub: '첫 대화를 시작해 볼까요?' },
+  mentor: { title: '멘토가 준비됐어요',   sub: '분야별 질문을 남겨 보세요.' },
+  celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
+};
+
 export default function Step7CompleteScreen({ navigation }: Props) {
   const resetCreationDraft = useCloneStore((s) => s.resetCreationDraft);
+  const draft = useCloneStore((s) => s.creationDraft);
+  const addClone = useCloneStore((s) => s.addClone);
+
+  useEffect(() => {
+    if (!draft.cloneType) return;
+    const hasImage = Boolean(draft.imageFile);
+    const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
+      || (draft.recordDuration ?? 0) >= 30);
+    const typeLabelMap = {
+      memlow: '멤로우', friend: '친구', mentor: '멘토', celeb: '셀럽',
+    } as const;
+    const clone: Clone = {
+      id: `clone-${Date.now()}`,
+      name: draft.name ?? '',
+      username: draft.username ?? '',
+      avatarUrl: draft.imageFile ?? '',
+      coverImageUrl: draft.imageFile ?? '',
+      type: typeLabelMap[draft.cloneType],
+      category: draft.category ?? '',
+      interests: draft.interests ?? [],
+      description: draft.description ?? '',
+      visibility: draft.visibility ?? getCloneTypeMeta(draft.cloneType).defaultVisibility,
+      learningProgress: 0,
+      createdBy: 'user-1',
+      createdAt: new Date().toISOString(),
+      status: hasImage && hasVoice ? 'active' : 'pending_assets',
+    };
+    addClone(clone);
+  }, []); 
+
+  const copy = COPY[draft.cloneType ?? 'friend'];
 
   const handleStartChat = () => {
     resetCreationDraft();
@@ -60,10 +100,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             <Feather name="check" size={48} color={COLORS.white} />
           </View>
 
-          <Text style={styles.title}>페르소나가 생성되었어요!</Text>
-          <Text style={styles.subtitle}>
-            이제 대화를 시작하여 페르소나를 더 성장시켜보세요
-          </Text>
+          <Text style={styles.title}>{copy.title}</Text>
+          <Text style={styles.subtitle}>{copy.sub}</Text>
 
           {}
           {FEATURES.map((feat, i) => (
