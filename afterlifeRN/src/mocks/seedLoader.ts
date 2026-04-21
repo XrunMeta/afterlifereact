@@ -47,6 +47,8 @@ export function assertUsers(rows: unknown[]): asserts rows is DomainUser[] {
     requireString(`user[${i}].id`, r.id);
     requireString(`user[${i}].displayName`, r.displayName);
     requireString(`user[${i}].handle`, r.handle);
+    if (r.avatarUrl !== undefined) requireString(`user[${i}].avatarUrl`, r.avatarUrl);
+    if (r.bio !== undefined) requireString(`user[${i}].bio`, r.bio);
     requireIso(`user[${i}].createdAt`, r.createdAt);
   });
 }
@@ -60,6 +62,9 @@ export function assertClones(rows: unknown[]): asserts rows is DomainClone[] {
     requireString(`clone[${i}].displayName`, r.displayName);
     requireString(`clone[${i}].description`, r.description);
     if (!Array.isArray(r.interests)) throw new Error(`clone[${i}].interests must be array`);
+    (r.interests as unknown[]).forEach((v, j) => requireString(`clone[${i}].interests[${j}]`, v));
+    if (r.imageUrl !== undefined) requireString(`clone[${i}].imageUrl`, r.imageUrl);
+    if (r.voiceSampleUrl !== undefined) requireString(`clone[${i}].voiceSampleUrl`, r.voiceSampleUrl);
     requireEnum(`clone[${i}].visibility`, r.visibility, VISIBILITIES);
     requireEnum(`clone[${i}].status`, r.status, STATUSES);
     requireIso(`clone[${i}].createdAt`, r.createdAt);
@@ -110,6 +115,7 @@ export function assertFeeds(rows: unknown[]): asserts rows is DomainFeed[] {
     requireString(`feed[${i}].id`, r.id);
     requireString(`feed[${i}].cloneId`, r.cloneId);
     requireString(`feed[${i}].text`, r.text);
+    if (r.imageUrl !== undefined) requireString(`feed[${i}].imageUrl`, r.imageUrl);
     requireIso(`feed[${i}].createdAt`, r.createdAt);
   });
 }
