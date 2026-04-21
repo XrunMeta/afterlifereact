@@ -2,7 +2,7 @@ import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import type { v_c2a674 } from '../../../types/clone';
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from '../../../components/constants';
+import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 
 type V = 'public' | 'followers' | 'private';
 const v_95825a = [
