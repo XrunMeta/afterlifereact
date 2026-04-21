@@ -1,0 +1,362 @@
+[
+  {
+    "id": "msg-clone-friend-02-001",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "야 히즈키 요즘 어떻게 지내? 오랜만이다.",
+    "timestamp": "2026-04-07T15:00:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-002",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "잘 지내죠. 선배는요?",
+    "timestamp": "2026-04-07T15:05:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-003",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "야 나한테 존댓말은 왜 ㅋㅋ 그냥 편하게 해.",
+    "timestamp": "2026-04-07T15:06:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-004",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "알겠어 선배 ㅋㅋ 그냥 그러지 뭐.",
+    "timestamp": "2026-04-07T15:07:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-005",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "나 요즘도 동방 가끔 들르거든. 후배들 보면서 우리 때 생각 많이 난다.",
+    "timestamp": "2026-04-07T15:09:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-006",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "동방 아직도 있어? 폐쇄된 줄 알았는데.",
+    "timestamp": "2026-04-07T15:10:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-007",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "아직 있어. 리모델링은 좀 됐는데. 소파는 그대로야 ㅋㅋ 그 낡아빠진 거.",
+    "timestamp": "2026-04-07T15:12:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-008",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "ㅋㅋㅋ 그 소파에서 우리 진짜 많이 놀았지. MT 사진 봤냐 나 정리하다가 나왔어.",
+    "timestamp": "2026-04-07T15:14:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-009",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "어 봤어! 야 인석아 그때 너 진짜 웃겼잖아. 장기자랑 때 뭐 했는지 기억나?",
+    "timestamp": "2026-04-07T15:15:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-010",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "기억하고 싶지 않은데 ㅋㅋ 혼자 춤 추다가 넘어진 거잖아.",
+    "timestamp": "2026-04-07T15:17:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-011",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "ㅋㅋㅋ 맞아 그게 역대급이었어. 그래도 분위기는 살렸잖아.",
+    "timestamp": "2026-04-07T15:18:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-012",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "억지로 위안 삼기 없기 ㅋㅋ",
+    "timestamp": "2026-04-07T15:19:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-013",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "ㅋㅋ 아 밥은 챙겨 먹고 다니냐? 요즘 바쁜 것 같던데.",
+    "timestamp": "2026-04-08T09:00:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-014",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "뭐 그럭저럭. 사실 요즘 좀 피곤하긴 해.",
+    "timestamp": "2026-04-08T09:03:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-015",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "야 그래도 밥은 먹어야 해. 굶으면 진짜 힘들어. 선배가 그거 하나는 확실히 알아.",
+    "timestamp": "2026-04-08T09:05:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-016",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "알겠어 ㅋㅋ 챙겨 먹을게.",
+    "timestamp": "2026-04-08T09:06:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-017",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "근데 동아리 후배들이 우리 기수를 레전드라고 부른다더라 ㅋㅋ 웃기지 않냐.",
+    "timestamp": "2026-04-09T20:00:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-018",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "레전드? 왜? 우리가 뭘 레전드야 ㅋㅋ",
+    "timestamp": "2026-04-09T20:02:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-019",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "2학기 발표회 때 우리 팀 프로젝트 아직도 기록이래. 그거 진짜 고생했던 거 생각나지? 발표 3일 전에 다 엎었잖아.",
+    "timestamp": "2026-04-09T20:04:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-020",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "ㅋㅋㅋ 기억하지. 그때 선배가 밤새 자료 다 정리해줬잖아. 진짜 고마웠어.",
+    "timestamp": "2026-04-09T20:06:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-021",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "야 뭘. 같이 한 거지. 사실 나도 재밌었어. 그때가 제일 불태운 것 같기도 하고.",
+    "timestamp": "2026-04-09T20:07:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-022",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "맞아. 그때가 오히려 스트레스도 없었던 것 같기도 해.",
+    "timestamp": "2026-04-09T20:09:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-023",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "지금은 스트레스가 많아?",
+    "timestamp": "2026-04-09T20:10:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-024",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "뭐 그냥 다들 그렇게 사는 거 아닌가 싶어.",
+    "timestamp": "2026-04-09T20:12:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-025",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "그렇지 뭐. 근데 너무 혼자 꽁꽁 싸매고 있지는 마. 힘들면 연락해.",
+    "timestamp": "2026-04-09T20:13:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-026",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "선배 의외로 다정하네 ㅋㅋ",
+    "timestamp": "2026-04-09T20:14:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-027",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "야 나 원래 다정해 ㅋㅋ 그거 몰랐어?",
+    "timestamp": "2026-04-09T20:15:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-028",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "몰랐지. 동방에서 맨날 무서운 척하더만.",
+    "timestamp": "2026-04-09T20:16:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-029",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "그거 포스 잡은 거야 ㅋㅋ 선배 노릇 해야 하잖아.",
+    "timestamp": "2026-04-09T20:17:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-030",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "ㅋㅋㅋ 이제서야 고백하는 거야?",
+    "timestamp": "2026-04-09T20:18:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-031",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "야 인석아 좀 내버려 둬 ㅋㅋ",
+    "timestamp": "2026-04-09T20:19:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-032",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "ㅋㅋ 선배 이번 주말 뭐 해?",
+    "timestamp": "2026-04-12T11:00:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-033",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "딱히 없어. 왜? 만날래?",
+    "timestamp": "2026-04-12T11:02:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-034",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "학교 근처 가볼까 하고. 오랜만에.",
+    "timestamp": "2026-04-12T11:04:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-035",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "좋지. 점심 같이 먹자. 동방 들러서 후배들한테 인사도 하고.",
+    "timestamp": "2026-04-12T11:05:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-036",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "그러자. 오랜만이라 어색하겠지만 ㅋㅋ",
+    "timestamp": "2026-04-12T11:06:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-037",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "뭔 소리야. 걔네가 레전드 왔다고 반겨줄 거야 ㅋㅋ 기대해.",
+    "timestamp": "2026-04-12T11:07:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-038",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "ㅋㅋㅋ 기대하겠다. 연락할게.",
+    "timestamp": "2026-04-12T11:08:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-039",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "응. 그리고 진짜 밥 잘 챙겨 먹어. 그게 전부야 일단.",
+    "timestamp": "2026-04-12T11:09:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-040",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "알겠다 선배 ㅋㅋ 고마워.",
+    "timestamp": "2026-04-12T11:10:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-041",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "야 나 말고 후배한테도 그렇게 따뜻하게 해줘. 너 이따금씩 혼자 다 짊어지는 스타일이잖아.",
+    "timestamp": "2026-04-15T18:00:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-042",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "그게 다 보였어?",
+    "timestamp": "2026-04-15T18:03:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-043",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "나 선배잖아 ㅋㅋ 그 정도는 눈치채지. 괜찮아?",
+    "timestamp": "2026-04-15T18:04:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-044",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "응. 괜찮아. 덕분에.",
+    "timestamp": "2026-04-15T18:05:00Z"
+  },
+  {
+    "id": "msg-clone-friend-02-045",
+    "cloneId": "clone-friend-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "됐어. 그럼 됐다. 주말에 봐.",
+    "timestamp": "2026-04-15T18:06:00Z"
+  }
+]
