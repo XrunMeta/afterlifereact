@@ -8,12 +8,21 @@ import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_3183b2 from "../../components/common/StepIndicator";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import { v_194498 } from "../../stores/cloneStore";
+import v_f81454 from "../../components/common/MissingAssetsModal";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step6">;
 };
 
 export default function v_baac2f({ navigation: v_c65f5d }: Props) {
+  const v_f04727 = v_194498(v_fd5f43 => v_fd5f43.creationDraft);
+  const v_03a9b2 =
+    v_f04727.cloneType === 'memlow' &&
+    (!v_f04727.imageFile || (!v_f04727.voiceFile && (v_f04727.recordDuration ?? 0) < 30));
+  const [v_4cd8b2, v_294326] = v_5ab095(v_03a9b2);
+  const [v_1d049f, v_558bed] = v_5ab095(!v_03a9b2);
+
   const [v_a63fde, v_6306c3] = v_5ab095(0);
   const v_e05861 = v_e662ae(new v_a2349e.Value(0)).current;
 
@@ -26,19 +35,15 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
         useNativeDriver: true,
       })
     ).start();
-
-    const v_ad1d65 = setInterval(() => {
-      v_6306c3((v_e2a85c) => {
-        if (v_e2a85c >= 100) {
-          clearInterval(v_ad1d65);
-          return 100;
-        }
-        return v_e2a85c + 2;
-      });
-    }, 100);
-
-    return () => clearInterval(v_ad1d65);
   }, []);
+
+  v_c4deb2(() => {
+    if (!v_1d049f) return;
+    const v_ad1d65 = setInterval(() => {
+      v_6306c3(v_e2a85c => (v_e2a85c >= 100 ? 100 : v_e2a85c + 2));
+    }, 100);
+    return () => clearInterval(v_ad1d65);
+  }, [v_1d049f]);
 
   v_c4deb2(() => {
     if (v_a63fde >= 100) {
@@ -84,6 +89,18 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
           <Text style={v_d81136.labelText}>MUSETALK SYNC</Text>
         </View>
       </View>
+      <MissingAssetsModal
+        visible={v_4cd8b2}
+        onAddNow={() => {
+          v_294326(false);
+          v_558bed(false);
+          v_c65f5d.navigate('Step3');
+        }}
+        onLater={() => {
+          v_294326(false);
+          v_558bed(true);
+        }}
+      />
     </SafeView>
   );
 }
