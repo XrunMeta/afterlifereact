@@ -8,13 +8,13 @@ const v_94c904 = v_9fe22d.join(__dirname, '..', 'src', 'mocks', 'seed', 'message
 describe('per-clone message seed files', () => {
   const v_8b86f5 = (v_1d129e as any[]).map(v_3f4e2e => v_3f4e2e.id);
 
-  it.skip('has a JSON file for every clone', () => {
+  it('has a JSON file for every clone', () => {
     v_8b86f5.forEach(v_389afb => {
       expect(v_9d3c52.existsSync(v_9fe22d.join(v_94c904, `${v_389afb}.json`))).toBe(true);
     });
   });
 
-  it.skip('each file has 30~50 messages, schema passes, cloneId matches', () => {
+  it('each file has 30~50 messages, schema passes, cloneId matches', () => {
     v_8b86f5.forEach(v_389afb => {
       const v_479f05 = JSON.parse(v_9d3c52.readFileSync(v_9fe22d.join(v_94c904, `${v_389afb}.json`), 'utf8'));
       expect(Array.isArray(v_479f05)).toBe(true);
