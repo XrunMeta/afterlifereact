@@ -1,30 +1,24 @@
-export type CloneType = 'memlow' | 'friend' | 'mentor' | 'celeb';
+import type { v_d79d7f, v_b0b271 } from "./domain";
+
+export type {
+  DomainClone as v_affcc0,
+  v_d79d7f,
+  CloneStatus,
+  v_b0b271,
+} from "./domain";
 
 export type MemlowRelation =
-  | 'mother' | 'father' | 'spouse' | 'child'
-  | 'sibling' | 'friend' | 'pet' | 'other';
-
-export type CloneStatus = 'active' | 'pending_assets';
-
-export interface Clone {
-  id: string;
-  name: string;
-  username: string;
-  avatarUrl: string;
-  coverImageUrl: string;
-  type: '멤로우' | '친구' | '멘토' | '셀럽';
-  category: string;
-  interests: string[];
-  description: string;
-  visibility: 'public' | 'private' | 'followers';
-  learningProgress: number;
-  createdBy: string;
-  createdAt: string;
-  status: CloneStatus;
-}
+  | "mother"
+  | "father"
+  | "spouse"
+  | "child"
+  | "sibling"
+  | "friend"
+  | "pet"
+  | "other";
 
 export interface CloneCreationDraft {
-  cloneType?: CloneType;
+  cloneType?: v_d79d7f;
   name?: string;
   username?: string;
   description?: string;
@@ -37,6 +31,6 @@ export interface CloneCreationDraft {
   voiceFile?: string;
   voiceScriptId?: string;
   recordDuration?: number;
-  visibility?: 'public' | 'private' | 'followers';
+  visibility?: v_b0b271;
   coownerInvites?: string[];
 }

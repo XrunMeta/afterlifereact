@@ -11,6 +11,7 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_3183b2 from "../../components/common/StepIndicator";
 import { v_194498 } from "../../stores/cloneStore";
+import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
 import { v_c4c43f } from "../../mocks/cloneTypeCatalog";
@@ -43,30 +44,24 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_7a77e1 = v_194498((v_fd5f43) => v_fd5f43.resetCreationDraft);
   const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
   const v_956393 = v_194498((v_fd5f43) => v_fd5f43.addClone);
+  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? "user-001";
 
   v_c4deb2(() => {
     if (!v_f04727.cloneType) return;
     const v_01a739 = Boolean(v_f04727.imageFile);
     const v_f9c770 = Boolean(v_f04727.voiceFile || v_f04727.voiceSampleId
       || (v_f04727.recordDuration ?? 0) >= 30);
-    const v_38efda = {
-      memlow: '멤로우', friend: '친구', mentor: '멘토', celeb: '셀럽',
-    } as const;
     const clone: v_affcc0 = {
       id: `clone-${Date.now()}`,
-      name: v_f04727.name ?? '',
-      username: v_f04727.username ?? '',
-      avatarUrl: v_f04727.imageFile ?? '',
-      coverImageUrl: v_f04727.imageFile ?? '',
-      type: v_38efda[v_f04727.cloneType],
-      category: v_f04727.category ?? '',
-      interests: v_f04727.interests ?? [],
+      cloneType: v_f04727.cloneType,
+      ownerUserId: v_493eec,
+      displayName: v_f04727.name ?? '',
       description: v_f04727.description ?? '',
+      interests: v_f04727.interests ?? [],
+      imageUrl: v_f04727.imageFile ?? undefined,
       visibility: v_f04727.visibility ?? v_c4c43f(v_f04727.cloneType).defaultVisibility,
-      learningProgress: 0,
-      createdBy: 'user-1',
-      createdAt: new Date().toISOString(),
       status: v_01a739 && v_f9c770 ? 'active' : 'pending_assets',
+      createdAt: new Date().toISOString(),
     };
     v_956393(v_eb25ce);
   }, []); 

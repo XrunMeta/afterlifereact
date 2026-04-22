@@ -56,7 +56,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     <View style={v_fd5f43.container}>
       {}
       <Image
-        source={{ uri: v_eb25ce.coverImageUrl || v_eb25ce.avatarUrl }}
+        source={{ uri: v_eb25ce.imageUrl ?? "" }}
         style={v_fd5f43.bgImage}
         resizeMode="cover"
       />

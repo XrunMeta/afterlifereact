@@ -51,9 +51,12 @@ const v_a47fc9 = [
   "모름",
 ];
 
-const v_156c66 = Object.fromEntries(
-  v_6732dc.map((v_3f4e2e) => [v_3f4e2e.label, v_3f4e2e.id])
-);
+const v_ea6488 = new Map<string, string>();
+for (const v_9bf432 of v_6732dc) {
+  for (const v_ebec57 of v_9bf432.interests) {
+    v_ea6488.set(v_ebec57.label, v_9bf432.id);
+  }
+}
 
 export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
@@ -79,8 +82,10 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   v_c4deb2(() => {
     if (v_eb25ce) {
-      v_5cc801(v_156c66[v_eb25ce.category] || "");
-      v_318f24(v_eb25ce.name);
+      const v_6560b3 = v_eb25ce.interests[0];
+      const v_757575 = v_6560b3 ? v_ea6488.get(v_6560b3) ?? "" : "";
+      v_5cc801(v_757575);
+      v_318f24(v_eb25ce.displayName);
       v_b7e174(v_eb25ce.description);
       v_2cf16e(v_eb25ce.visibility);
     }
@@ -157,7 +162,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     >
       <PageHeader
         title="페르소나 수정"
-        subtitle={v_eb25ce.name}
+        subtitle={v_eb25ce.displayName}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
         rightAction={
