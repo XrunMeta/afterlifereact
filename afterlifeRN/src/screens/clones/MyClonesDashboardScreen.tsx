@@ -19,6 +19,7 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_b4902e } from "../../stores/followStore";
 import { v_35d5ed } from "../../mocks/seedIndex";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
@@ -34,6 +35,7 @@ export default function v_def15b() {
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
+  const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_4cd149 = v_df9f57<v_affcc0[]>(() => {
     const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
     return [
@@ -149,6 +151,15 @@ export default function v_def15b() {
     const v_b6e533 = v_699459[v_eb25ce.id];
     const v_26dce6 = v_b6e533?.isActive ?? true;
     const v_818579 = v_b6e533?.visibility ?? v_eb25ce.visibility;
+    const v_e17daa = v_1e752a.filter(
+      (v_8b5cd8) => v_8b5cd8.followingCloneId === v_eb25ce.id,
+    ).length;
+    const v_77df30 =
+      v_eb25ce.cloneType === "memlow"
+        ? v_35d5ed.coowners.filter(
+            (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === "approved",
+          ).length
+        : 0;
 
     return (
       <View style={v_fd5f43.card}>
@@ -227,9 +238,18 @@ export default function v_def15b() {
             onPress={() => v_d5cd7b({ type: "followers", cloneName: v_eb25ce.displayName })}
           >
             <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
-            <Text style={v_fd5f43.statText}>15.2k</Text>
+            <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
+              {v_e17daa} 팔로워
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {v_77df30 > 0 && (
+          <View style={v_fd5f43.coownerBadge}>
+            <Feather name="users" size={12} color={v_1bfbd0.zinc600} />
+            <Text style={v_fd5f43.coownerText}>공동관리자 {v_77df30}명</Text>
+          </View>
+        )}
 
         {}
         {v_eb25ce.status === 'pending_assets' && (
@@ -800,6 +820,20 @@ const v_fd5f43 = v_472849.create({
   },
   pendingText: { fontSize: 11, color: v_1bfbd0.zinc600 },
   pendingCta: { fontSize: 11, color: v_1bfbd0.violet600, marginLeft: 4, textDecorationLine: 'underline' },
+
+  coownerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: v_1bfbd0.violet100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  coownerText: { fontSize: 11, color: v_1bfbd0.violet600, fontWeight: '500' },
 
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 },
   tag: {
