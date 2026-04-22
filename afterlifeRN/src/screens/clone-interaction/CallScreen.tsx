@@ -59,8 +59,8 @@ export default function CallScreen({ route, navigation }: Props) {
   const [floatingGifts, setFloatingGifts] = useState<FloatingGift[]>([]);
   const giftCounterRef = useRef(0);
 
-  const personaName = paramName || clone?.name || "페르소나";
-  const personaImage = paramImage || clone?.avatarUrl || clone?.coverImageUrl || "";
+  const personaName = paramName || clone?.displayName || "페르소나";
+  const personaImage = paramImage || clone?.imageUrl || "";
 
   useEffect(() => {
     if (toastMessage) {

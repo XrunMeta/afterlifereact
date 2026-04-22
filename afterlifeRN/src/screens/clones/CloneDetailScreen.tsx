@@ -56,7 +56,7 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
     <View style={s.container}>
       {}
       <Image
-        source={{ uri: clone.coverImageUrl || clone.avatarUrl }}
+        source={{ uri: clone.imageUrl ?? "" }}
         style={s.bgImage}
         resizeMode="cover"
       />

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,9 +15,10 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import TextField from "../../components/ui/TextField";
 import { useCloneStore } from "../../stores/cloneStore";
+import { useAuthStore } from "../../stores/authStore";
+import { SEED } from "../../mocks/seedIndex";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import type { Message } from "../../types/message";
-import messagesData from "../../mocks/messages.json";
+import type { DomainMessage } from "../../types/domain";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Chat">;
 
@@ -26,15 +27,24 @@ const quickActions = ["더 구체적으로", "다른 주제로", "공감 세부 
 export default function ChatScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const currentUserId = useAuthStore((s) => s.user?.id) ?? "user-001";
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
 
-  const [messages, setMessages] = useState<Message[]>(messagesData as Message[]);
+  const initialMessages = useMemo<DomainMessage[]>(
+    () =>
+      SEED.messages
+        .filter((m) => m.cloneId === cloneId && m.userId === currentUserId)
+        .slice()
+        .sort((a, b) => a.timestamp.localeCompare(b.timestamp)),
+    [cloneId, currentUserId],
+  );
+  const [messages, setMessages] = useState<DomainMessage[]>(initialMessages);
   const [input, setInput] = useState("");
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const personaName = clone?.name ?? "페르소나";
+  const personaName = clone?.displayName ?? "페르소나";
 
   useEffect(() => {
     const showEvent =
@@ -68,9 +78,10 @@ export default function ChatScreen({ route, navigation }: Props) {
   const handleSend = () => {
     if (!input.trim()) return;
 
-    const userMsg: Message = {
+    const userMsg: DomainMessage = {
       id: `msg-${Date.now()}`,
-      senderId: "user-1",
+      cloneId,
+      userId: currentUserId,
       senderType: "user",
       text: input,
       timestamp: new Date().toISOString(),
@@ -79,9 +90,10 @@ export default function ChatScreen({ route, navigation }: Props) {
     setInput("");
 
     setTimeout(() => {
-      const aiMsg: Message = {
+      const aiMsg: DomainMessage = {
         id: `msg-${Date.now() + 1}`,
-        senderId: cloneId,
+        cloneId,
+        userId: currentUserId,
         senderType: "clone",
         text: "네, 이해했습니다. 제가 도와드릴 수 있는 다른 것이 있나요?",
         timestamp: new Date().toISOString(),
@@ -95,7 +107,7 @@ export default function ChatScreen({ route, navigation }: Props) {
     return d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
   };
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderMessage = ({ item }: { item: DomainMessage }) => {
     const isUser = item.senderType === "user";
 
     return (

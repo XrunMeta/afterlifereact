@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -18,19 +18,29 @@ import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
+import { useAuthStore } from "../../stores/authStore";
+import { SEED } from "../../mocks/seedIndex";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import type { Clone } from "../../types/clone";
+import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
 import type { RootStackParamList } from "../../navigation/types";
 
 type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
-type Visibility = "public" | "private" | "followers";
+const DEFAULT_USER_ID = "user-001";
 
 export default function MyClonesDashboardScreen() {
   const navigation = useNavigation<ClonesNav>();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const myClones = useCloneStore((s) => s.myClones);
+  const authUser = useAuthStore((s) => s.user);
+  const localClones = useCloneStore((s) => s.localClones);
+  const myClones = useMemo<Clone[]>(() => {
+    const uid = authUser?.id ?? DEFAULT_USER_ID;
+    return [
+      ...SEED.clones.filter((c) => c.ownerUserId === uid),
+      ...localClones.filter((c) => c.ownerUserId === uid),
+    ];
+  }, [authUser, localClones]);
 
   const [cloneStates, setCloneStates] = useState<
     Record<string, { isActive: boolean; visibility: Visibility }>
@@ -175,12 +185,12 @@ export default function MyClonesDashboardScreen() {
         {}
         <View style={s.cloneHeader}>
           <View style={s.avatarWrap}>
-            <Image source={{ uri: clone.avatarUrl }} style={s.avatar} />
+            <Image source={{ uri: clone.imageUrl ?? "" }} style={s.avatar} />
             {isActive && <View style={s.activeDot} />}
           </View>
           <View style={s.cloneInfo}>
-            <Text style={s.cloneName}>{clone.name}</Text>
-            <Text style={s.cloneCategory}>{clone.category}</Text>
+            <Text style={s.cloneName}>{clone.displayName}</Text>
+            <Text style={s.cloneCategory}>{clone.interests[0] ?? ""}</Text>
           </View>
         </View>
 
@@ -193,28 +203,28 @@ export default function MyClonesDashboardScreen() {
         <View style={s.statsRow}>
           <TouchableOpacity
             style={s.stat}
-            onPress={() => setStatsModal({ type: "likes", cloneName: clone.name })}
+            onPress={() => setStatsModal({ type: "likes", cloneName: clone.displayName })}
           >
             <Feather name="heart" size={14} color={COLORS.zinc500} />
             <Text style={s.statText}>2.4k</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.stat}
-            onPress={() => setStatsModal({ type: "interactions", cloneName: clone.name })}
+            onPress={() => setStatsModal({ type: "interactions", cloneName: clone.displayName })}
           >
             <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
             <Text style={s.statText}>4.5k</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.stat}
-            onPress={() => setStatsModal({ type: "comments", cloneName: clone.name })}
+            onPress={() => setStatsModal({ type: "comments", cloneName: clone.displayName })}
           >
             <Feather name="message-circle" size={14} color={COLORS.zinc500} />
             <Text style={s.statText}>328</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.stat}
-            onPress={() => setStatsModal({ type: "followers", cloneName: clone.name })}
+            onPress={() => setStatsModal({ type: "followers", cloneName: clone.displayName })}
           >
             <Feather name="user" size={14} color={COLORS.zinc500} />
             <Text style={s.statText}>15.2k</Text>

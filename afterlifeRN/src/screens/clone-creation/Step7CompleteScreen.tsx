@@ -11,6 +11,7 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import StepIndicator from "../../components/common/StepIndicator";
 import { useCloneStore } from "../../stores/cloneStore";
+import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
 import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
@@ -43,30 +44,24 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const resetCreationDraft = useCloneStore((s) => s.resetCreationDraft);
   const draft = useCloneStore((s) => s.creationDraft);
   const addClone = useCloneStore((s) => s.addClone);
+  const currentUserId = useAuthStore((s) => s.user?.id) ?? "user-001";
 
   useEffect(() => {
     if (!draft.cloneType) return;
     const hasImage = Boolean(draft.imageFile);
     const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
       || (draft.recordDuration ?? 0) >= 30);
-    const typeLabelMap = {
-      memlow: '멤로우', friend: '친구', mentor: '멘토', celeb: '셀럽',
-    } as const;
     const clone: Clone = {
       id: `clone-${Date.now()}`,
-      name: draft.name ?? '',
-      username: draft.username ?? '',
-      avatarUrl: draft.imageFile ?? '',
-      coverImageUrl: draft.imageFile ?? '',
-      type: typeLabelMap[draft.cloneType],
-      category: draft.category ?? '',
-      interests: draft.interests ?? [],
+      cloneType: draft.cloneType,
+      ownerUserId: currentUserId,
+      displayName: draft.name ?? '',
       description: draft.description ?? '',
+      interests: draft.interests ?? [],
+      imageUrl: draft.imageFile ?? undefined,
       visibility: draft.visibility ?? getCloneTypeMeta(draft.cloneType).defaultVisibility,
-      learningProgress: 0,
-      createdBy: 'user-1',
-      createdAt: new Date().toISOString(),
       status: hasImage && hasVoice ? 'active' : 'pending_assets',
+      createdAt: new Date().toISOString(),
     };
     addClone(clone);
   }, []); 
