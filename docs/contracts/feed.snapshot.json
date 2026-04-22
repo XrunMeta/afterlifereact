@@ -1,0 +1,30 @@
+{
+  "_route_create": "POST /oth-path",
+  "_auth_create": "required (owner / clone_shares role='owner' status='accepted')",
+  "_body_create": {
+    "content": "string? (max 5000)",
+    "mediaUrl": "url? (max 500)",
+    "mediaType": "'image' | 'video' | 'short' (optional)",
+    "_constraint": "content 또는 mediaUrl 중 하나는 필수"
+  },
+  "_response_create_201": {
+    "feed": {
+      "id": 103,
+      "cloneId": 1,
+      "content": "새로운 피드 글",
+      "mediaUrl": null,
+      "mediaType": null,
+      "likesCount": 0,
+      "visibility": "public",
+      "createdAt": "2026-04-22T12:00:00Z"
+    }
+  },
+  "_route_delete": "DELETE /oth-path",
+  "_auth_delete": "required (owner / clone_shares role='owner' status='accepted')",
+  "_response_delete_200": { "ok": true },
+  "_errors": {
+    "404": "Clone not found / Feed not found",
+    "403": "Owner/coowner only. (쓰기) / Private clone. / Followers-only clone. (읽기)",
+    "422": "VALIDATION_FAILED"
+  }
+}
