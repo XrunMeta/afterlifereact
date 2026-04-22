@@ -8,13 +8,13 @@ const MSG_DIR = path.join(__dirname, '..', 'src', 'mocks', 'seed', 'messages');
 describe('per-clone message seed files', () => {
   const cloneIds = (clonesJson as any[]).map(c => c.id);
 
-  it.skip('has a JSON file for every clone', () => {
+  it('has a JSON file for every clone', () => {
     cloneIds.forEach(id => {
       expect(fs.existsSync(path.join(MSG_DIR, `${id}.json`))).toBe(true);
     });
   });
 
-  it.skip('each file has 30~50 messages, schema passes, cloneId matches', () => {
+  it('each file has 30~50 messages, schema passes, cloneId matches', () => {
     cloneIds.forEach(id => {
       const raw = JSON.parse(fs.readFileSync(path.join(MSG_DIR, `${id}.json`), 'utf8'));
       expect(Array.isArray(raw)).toBe(true);
