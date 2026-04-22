@@ -5,7 +5,11 @@
     "ownerUserId": "user-001",
     "displayName": "할아버지",
     "description": "1930년대에 태어나 전쟁을 겪으신 과묵한 분. 히즈키에게는 짧은 말 한마디에 깊은 울림을 남기셨던 인생의 길잡이셨다.",
-    "interests": ["인생 조언", "역사 이야기", "손자 이야기"],
+    "interests": [
+      "인생 조언",
+      "역사 이야기",
+      "손자 이야기"
+    ],
     "imageUrl": "https://i.pravatar.cc/400?img=21",
     "visibility": "private",
     "status": "active",
@@ -14,10 +18,14 @@
   {
     "id": "clone-memlow-02",
     "cloneType": "memlow",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-003",
     "displayName": "할머니",
     "description": "평생 가정을 지키며 따뜻한 음식으로 가족을 돌보셨던 분. 히즈키가 힘들 때마다 조용히 곁에 앉아 감정을 보듬어주셨다.",
-    "interests": ["전통 음식", "가정 이야기", "감정 돌봄"],
+    "interests": [
+      "전통 음식",
+      "가정 이야기",
+      "감정 돌봄"
+    ],
     "visibility": "private",
     "status": "active",
     "createdAt": "2026-02-02T10:00:00Z"
@@ -25,10 +33,14 @@
   {
     "id": "clone-memlow-03",
     "cloneType": "memlow",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-006",
     "displayName": "아버지",
     "description": "평생 성실하게 직장을 다니며 가족을 부양하셨던 샐러리맨. 히즈키에게 묵묵히 최선을 다하는 삶의 자세를 보여주셨다.",
-    "interests": ["직장 회고", "가족 부양", "성실한 삶"],
+    "interests": [
+      "직장 회고",
+      "가족 부양",
+      "성실한 삶"
+    ],
     "imageUrl": "https://i.pravatar.cc/400?img=22",
     "visibility": "private",
     "status": "active",
@@ -37,10 +49,14 @@
   {
     "id": "clone-memlow-04",
     "cloneType": "memlow",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-011",
     "displayName": "어머니",
     "description": "학생들을 사랑했던 선생님이자 따뜻한 집안의 중심. 히즈키에게는 책과 배움의 소중함을 가르쳐주신 분이다.",
-    "interests": ["독서", "교육", "집안 온기"],
+    "interests": [
+      "독서",
+      "교육",
+      "집안 온기"
+    ],
     "visibility": "private",
     "status": "active",
     "createdAt": "2026-02-04T12:00:00Z"
@@ -48,10 +64,14 @@
   {
     "id": "clone-memlow-05",
     "cloneType": "memlow",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-012",
     "displayName": "뭉치 (반려견)",
     "description": "히즈키의 곁에서 10년을 함께한 가족의 일원. 산책과 놀이를 좋아했고 무조건적인 사랑으로 늘 반겨주었다.",
-    "interests": ["산책", "놀이", "무조건적인 사랑"],
+    "interests": [
+      "산책",
+      "놀이",
+      "무조건적인 사랑"
+    ],
     "visibility": "private",
     "status": "active",
     "createdAt": "2026-02-05T13:00:00Z"
@@ -59,10 +79,14 @@
   {
     "id": "clone-memlow-06",
     "cloneType": "memlow",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-013",
     "displayName": "어린 시절 절친 (김민재)",
     "description": "초등학교 때 매일 같이 뛰어놀던 히즈키의 가장 친한 친구. 교통사고로 갑작스럽게 떠났지만 그 웃음과 동심은 기억 속에 생생하다.",
-    "interests": ["어린 시절 추억", "골목 놀이", "동심"],
+    "interests": [
+      "어린 시절 추억",
+      "골목 놀이",
+      "동심"
+    ],
     "visibility": "private",
     "status": "active",
     "createdAt": "2026-02-06T14:00:00Z"
@@ -73,7 +97,11 @@
     "ownerUserId": "user-001",
     "displayName": "중학교 절친 (이태호)",
     "description": "중학교 3년을 함께 보낸 히즈키의 단짝. 서로 비밀을 털어놓고 고민을 나누던 편안한 친구다.",
-    "interests": ["학창 시절 추억", "솔직한 대화", "게임"],
+    "interests": [
+      "학창 시절 추억",
+      "솔직한 대화",
+      "게임"
+    ],
     "imageUrl": "https://i.pravatar.cc/400?img=23",
     "visibility": "public",
     "status": "active",
@@ -82,10 +110,14 @@
   {
     "id": "clone-friend-02",
     "cloneType": "friend",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-002",
     "displayName": "대학 동아리 선배 (박준서)",
     "description": "히즈키가 대학 밴드 동아리에서 만난 선배. 음악 이야기라면 밤새 열정적으로 이야기할 수 있는 사람이다.",
-    "interests": ["음악", "동아리 생활", "대학 시절"],
+    "interests": [
+      "음악",
+      "동아리 생활",
+      "대학 시절"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-02-08T10:00:00Z"
@@ -93,10 +125,14 @@
   {
     "id": "clone-friend-03",
     "cloneType": "friend",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-003",
     "displayName": "전 직장 동기 (최유나)",
     "description": "히즈키와 같은 팀에서 야근을 나누던 전 직장 동기. 힘든 프로젝트를 함께 버텨낸 전우 같은 존재다.",
-    "interests": ["직장 생활", "커피 수다", "퇴사 후 각자의 삶"],
+    "interests": [
+      "직장 생활",
+      "커피 수다",
+      "퇴사 후 각자의 삶"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-02-09T11:00:00Z"
@@ -104,10 +140,14 @@
   {
     "id": "clone-friend-04",
     "cloneType": "friend",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-004",
     "displayName": "온라인 게임 친구 (불꽃전사)",
     "description": "온라인 게임에서 몇 년째 파티를 함께 해온 친구. 실제로 만난 적은 없지만 게임 속에서 가장 믿을 수 있는 동료다.",
-    "interests": ["온라인 게임", "전략 토론", "게임 커뮤니티"],
+    "interests": [
+      "온라인 게임",
+      "전략 토론",
+      "게임 커뮤니티"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-02-10T12:00:00Z"
@@ -115,10 +155,14 @@
   {
     "id": "clone-friend-05",
     "cloneType": "friend",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-005",
     "displayName": "해외 펜팔 친구 (Sofia)",
     "description": "스페인에 사는 펜팔 친구로 히즈키와 수년째 편지와 이메일을 주고받고 있다. 서로의 문화를 나누며 세계를 넓혀주는 존재다.",
-    "interests": ["문화 교류", "언어 공부", "여행 이야기"],
+    "interests": [
+      "문화 교류",
+      "언어 공부",
+      "여행 이야기"
+    ],
     "imageUrl": "https://i.pravatar.cc/400?img=24",
     "visibility": "public",
     "status": "active",
@@ -127,10 +171,14 @@
   {
     "id": "clone-friend-06",
     "cloneType": "friend",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-006",
     "displayName": "이웃집 누나 (한소희)",
     "description": "어릴 때부터 같은 동네에 살아온 히즈키의 이웃집 누나. 언제나 현실적인 조언과 따뜻한 격려를 해주는 편안한 존재다.",
-    "interests": ["동네 이야기", "일상 조언", "요리"],
+    "interests": [
+      "동네 이야기",
+      "일상 조언",
+      "요리"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-02-12T14:00:00Z"
@@ -141,7 +189,11 @@
     "ownerUserId": "user-001",
     "displayName": "전 직장 사수 (김형준)",
     "description": "히즈키가 신입 시절 개발을 가르쳐준 팀 사수. 코드 리뷰부터 커리어 설계까지 실질적인 도움을 아끼지 않았다.",
-    "interests": ["소프트웨어 개발", "커리어 성장", "코드 품질"],
+    "interests": [
+      "소프트웨어 개발",
+      "커리어 성장",
+      "코드 품질"
+    ],
     "imageUrl": "https://i.pravatar.cc/400?img=25",
     "visibility": "public",
     "status": "active",
@@ -150,10 +202,14 @@
   {
     "id": "clone-mentor-02",
     "cloneType": "mentor",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-007",
     "displayName": "은퇴한 국어 선생님 (오선생님)",
     "description": "히즈키의 고등학교 국어 선생님으로 현재는 은퇴하셨다. 글쓰기와 언어의 힘을 일깨워주신 분이다.",
-    "interests": ["글쓰기", "한국 문학", "언어의 힘"],
+    "interests": [
+      "글쓰기",
+      "한국 문학",
+      "언어의 힘"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-02-14T10:00:00Z"
@@ -161,10 +217,14 @@
   {
     "id": "clone-mentor-03",
     "cloneType": "mentor",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-008",
     "displayName": "심리 상담가 (정선생)",
     "description": "히즈키가 힘든 시기에 만난 심리 상담가. 감정을 정리하고 자기 자신을 이해하는 방법을 알려주는 전문가다.",
-    "interests": ["심리 치유", "자기 이해", "감정 관리"],
+    "interests": [
+      "심리 치유",
+      "자기 이해",
+      "감정 관리"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-02-15T11:00:00Z"
@@ -172,10 +232,14 @@
   {
     "id": "clone-mentor-04",
     "cloneType": "mentor",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-009",
     "displayName": "라이프 코치 (이코치)",
     "description": "자기계발 전문 라이프 코치로 히즈키의 목표 설정과 습관 형성을 함께 해온 멘토. 실행력과 동기 부여에 강점이 있다.",
-    "interests": ["자기계발", "목표 설정", "생산성"],
+    "interests": [
+      "자기계발",
+      "목표 설정",
+      "생산성"
+    ],
     "imageUrl": "https://i.pravatar.cc/400?img=26",
     "visibility": "public",
     "status": "active",
@@ -184,10 +248,14 @@
   {
     "id": "clone-mentor-05",
     "cloneType": "mentor",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-010",
     "displayName": "창업가 사촌형 (류준)",
     "description": "IT 스타트업을 두 번이나 창업한 히즈키의 사촌형. 실패와 성공을 모두 겪은 경험을 솔직하게 나눠주는 현실 조언자다.",
-    "interests": ["창업", "스타트업 생존기", "비즈니스 전략"],
+    "interests": [
+      "창업",
+      "스타트업 생존기",
+      "비즈니스 전략"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-02-25T13:00:00Z"
@@ -195,10 +263,14 @@
   {
     "id": "clone-mentor-06",
     "cloneType": "mentor",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-012",
     "displayName": "대학원 지도교수 (장교수님)",
     "description": "히즈키의 대학원 시절 지도교수. 엄격하지만 학문적 성장을 진심으로 바라며 논문 너머의 인생까지 조언해주셨다.",
-    "interests": ["연구 방법론", "학문적 성장", "논문 작성"],
+    "interests": [
+      "연구 방법론",
+      "학문적 성장",
+      "논문 작성"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-03-01T09:00:00Z"
@@ -209,7 +281,11 @@
     "ownerUserId": "user-001",
     "displayName": "K-POP 아이돌 하루나",
     "description": "히즈키가 좋아하는 여성 솔로 K-POP 아이돌. 무대 위의 카리스마와 팬들에게 보내는 진심 어린 메시지로 사랑받는 아티스트다.",
-    "interests": ["음악 활동", "팬 소통", "무대 퍼포먼스"],
+    "interests": [
+      "음악 활동",
+      "팬 소통",
+      "무대 퍼포먼스"
+    ],
     "imageUrl": "https://i.pravatar.cc/400?img=27",
     "visibility": "public",
     "status": "active",
@@ -218,10 +294,14 @@
   {
     "id": "clone-celeb-02",
     "cloneType": "celeb",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-014",
     "displayName": "영화감독 박천수",
     "description": "히즈키가 존경하는 국내 영화감독. 인간의 내면과 사회를 날카롭게 담아내는 작품으로 국제적 명성을 얻었다.",
-    "interests": ["영화 철학", "시나리오 작업", "사회적 메시지"],
+    "interests": [
+      "영화 철학",
+      "시나리오 작업",
+      "사회적 메시지"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-03-07T10:00:00Z"
@@ -229,10 +309,14 @@
   {
     "id": "clone-celeb-03",
     "cloneType": "celeb",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-015",
     "displayName": "테크 스타트업 CEO 김지수",
     "description": "국내 AI 스타트업을 이끌며 주목받는 젊은 CEO. 히즈키에게는 기술과 사업을 연결하는 인사이트를 주는 롤모델이다.",
-    "interests": ["AI 기술", "창업 철학", "미래 산업"],
+    "interests": [
+      "AI 기술",
+      "창업 철학",
+      "미래 산업"
+    ],
     "imageUrl": "https://i.pravatar.cc/400?img=28",
     "visibility": "public",
     "status": "active",
@@ -241,10 +325,14 @@
   {
     "id": "clone-celeb-04",
     "cloneType": "celeb",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-016",
     "displayName": "은퇴 축구 스타 최강민",
     "description": "히즈키가 어릴 때부터 응원하던 축구 선수로 현재는 은퇴했다. 그라운드에서 보여준 열정과 팀정신은 지금도 귀감이 된다.",
-    "interests": ["축구", "스포츠 정신", "팀워크"],
+    "interests": [
+      "축구",
+      "스포츠 정신",
+      "팀워크"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-03-12T12:00:00Z"
@@ -252,10 +340,14 @@
   {
     "id": "clone-celeb-05",
     "cloneType": "celeb",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-017",
     "displayName": "해외 작가 Elena Marsh",
     "description": "히즈키가 좋아하는 미국 소설가. 인간 관계의 복잡함을 섬세하게 묘사하는 문체로 세계 독자들의 사랑을 받고 있다.",
-    "interests": ["소설 집필", "인간 관계", "문학 토론"],
+    "interests": [
+      "소설 집필",
+      "인간 관계",
+      "문학 토론"
+    ],
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-03-15T13:00:00Z"
@@ -263,10 +355,14 @@
   {
     "id": "clone-celeb-06",
     "cloneType": "celeb",
-    "ownerUserId": "user-001",
+    "ownerUserId": "user-020",
     "displayName": "과학 유튜버 신기한과학",
     "description": "어려운 과학 개념을 쉽고 재미있게 설명하는 국내 인기 유튜버. 히즈키는 그의 콘텐츠로 과학에 대한 흥미를 되찾았다.",
-    "interests": ["과학 교육", "콘텐츠 제작", "지식 공유"],
+    "interests": [
+      "과학 교육",
+      "콘텐츠 제작",
+      "지식 공유"
+    ],
     "imageUrl": "https://i.pravatar.cc/400?img=29",
     "visibility": "public",
     "status": "active",

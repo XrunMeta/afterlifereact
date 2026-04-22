@@ -137,6 +137,7 @@ export default function MainTabNavigator() {
             );
             navigation.dispatch(
               CommonActions.reset({
+                ...state,
                 index: createIndex,
                 routes,
               })
