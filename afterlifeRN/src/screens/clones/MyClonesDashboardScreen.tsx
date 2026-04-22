@@ -20,7 +20,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
-import { v_35d5ed } from "../../mocks/seedIndex";
+import { v_694b7f } from "../../api/source";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
@@ -39,7 +39,7 @@ export default function v_def15b() {
   const v_4cd149 = v_df9f57<v_affcc0[]>(() => {
     const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
     return [
-      ...v_35d5ed.clones.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987),
+      ...v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987),
       ...v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987),
     ];
   }, [v_f38ee5, v_06f32b]);
@@ -156,7 +156,7 @@ export default function v_def15b() {
     ).length;
     const v_77df30 =
       v_eb25ce.cloneType === "memlow"
-        ? v_35d5ed.coowners.filter(
+        ? v_694b7f.coowners().filter(
             (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === "approved",
           ).length
         : 0;

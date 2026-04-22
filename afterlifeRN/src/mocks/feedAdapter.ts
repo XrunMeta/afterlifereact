@@ -1,6 +1,6 @@
 import type { v_bc3df4, v_d79d7f } from "../types/domain";
 import type { v_19b433 } from "../types/feed";
-import { v_35d5ed } from "./seedIndex";
+import { v_694b7f } from "../api/source";
 
 const CLONE_TYPE_LABEL: Record<v_d79d7f, string> = {
   memlow: "멤로우",
@@ -15,7 +15,7 @@ function v_4fea0a(v_f4e98d): string {
 }
 
 export function v_f386b1(f: v_bc3df4): v_19b433 {
-  const v_3f4e2e = v_35d5ed.clones.find((v_62c214) => v_62c214.id === v_8b5cd8.cloneId);
+  const v_3f4e2e = v_694b7f.clones().find((v_62c214) => v_62c214.id === v_8b5cd8.cloneId);
   const v_65a2cd = Math.abs(v_8b5cd8.id);
   const v_30007d = 500 + (v_65a2cd % 9500);
   const v_ecfc0f = 20 + (v_65a2cd % 480);

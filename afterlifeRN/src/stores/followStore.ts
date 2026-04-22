@@ -1,6 +1,6 @@
 import { v_a7c0d4 } from "vukrcww";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
-import { v_35d5ed } from "../mocks/seedIndex";
+import { v_694b7f } from "../api/source";
 import type { v_7a4d15 } from "../types/domain";
 import { v_1ed7d9 } from "./authStore";
 
@@ -34,7 +34,7 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
   hydrate: async () => {
     const v_479f05 = await v_e84827.getItem(v_b6c376);
     const v_11ea7b = v_479f05 ? JSON.parse(v_479f05) : [];
-    let v_1e752a = [...v_35d5ed.follows];
+    let v_1e752a = [...v_694b7f.follows()];
     const v_493eec =
       v_1ed7d9.getState().user?.id ?? v_b9d568;
     v_11ea7b.forEach((v_b6c474) => {

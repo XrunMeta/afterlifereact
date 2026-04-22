@@ -16,7 +16,7 @@ import type { v_8ad91b } from "../../navigation/types";
 import v_e775af from "../../components/ui/TextField";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_35d5ed } from "../../mocks/seedIndex";
+import { v_694b7f } from "../../api/source";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_35413f } from "../../types/domain";
 
@@ -33,7 +33,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_8387df = v_df9f57<v_35413f[]>(
     () =>
-      v_35d5ed.messages
+      v_694b7f.messages()
         .filter((v_35f85c) => v_35f85c.cloneId === v_6e0fd3 && v_35f85c.userId === v_493eec)
         .slice()
         .sort((v_779914, v_148ff6) => v_779914.timestamp.localeCompare(v_148ff6.timestamp)),

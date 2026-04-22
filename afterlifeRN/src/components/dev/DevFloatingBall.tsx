@@ -14,7 +14,7 @@ import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import { v_7ed42d } from './useFloatingBallPosition';
 import { v_407cbf } from './DevFloatingBall.actions';
 import { v_1ed7d9 } from '../../stores/authStore';
-import { v_35d5ed } from '../../mocks/seedIndex';
+import { v_694b7f } from '../../api/source';
 
 const v_88dc4d = 52;
 const { width: v_437248, height: v_5a448f } = v_700696.get('window');
@@ -112,7 +112,7 @@ export function v_0f28c1() {
           <View style={v_d81136.modalCard}>
             <Text style={v_d81136.modalTitle}>유저 스위치</Text>
             <FlatList
-              data={v_35d5ed.users}
+              data={v_694b7f.users()}
               keyExtractor={(v_ceb55a) => String(v_ceb55a.id)}
               renderItem={({ item: v_8c0b26 }) => (
                 <TouchableOpacity

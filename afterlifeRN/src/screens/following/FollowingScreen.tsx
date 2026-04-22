@@ -25,7 +25,7 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
-import { v_35d5ed } from "../../mocks/seedIndex";
+import { v_694b7f } from "../../api/source";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 
 type RootNav = v_390fcc<v_8ad91b>;
@@ -61,17 +61,17 @@ export default function v_14b43e() {
       .filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987)
       .map((v_8b5cd8) => v_8b5cd8.followingCloneId);
     return v_52c0ef
-      .map((v_062ae9) => v_35d5ed.clones.find((v_3f4e2e) => v_3f4e2e.id === v_062ae9))
+      .map((v_062ae9) => v_694b7f.clones().find((v_3f4e2e) => v_3f4e2e.id === v_062ae9))
       .filter((v_3f4e2e): v_3f4e2e is v_4b85a1 => Boolean(v_3f4e2e))
       .map((v_eb25ce) => {
-        const v_257b90 = v_35d5ed.users.find((v_ceb55a) => v_ceb55a.id === v_eb25ce.ownerId);
+        const v_257b90 = v_694b7f.users().find((v_ceb55a) => v_ceb55a.id === v_eb25ce.ownerId);
         return v_986943(v_eb25ce, v_257b90?.handle);
       });
   }, [v_1e752a, v_0c8987]);
 
   const v_632473 = v_df9f57<v_bc3df4[]>(() => {
     const v_da0fb9 = new Set(v_a48e44.map((v_e2a85c) => v_e2a85c.id));
-    return v_35d5ed.feeds
+    return v_694b7f.feeds()
       .filter((v_8b5cd8) => v_da0fb9.has(v_8b5cd8.cloneId))
       .slice()
       .sort((v_779914, v_148ff6) => v_148ff6.createdAt.localeCompare(v_779914.createdAt));

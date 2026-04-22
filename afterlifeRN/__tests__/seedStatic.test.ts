@@ -16,9 +16,9 @@ describe('static seed', () => {
     expect(v_773eb2).toEqual({ memlow: 6, friend: 6, mentor: 6, celeb: 6 });
   });
 
-  it('user-001 is 히즈키 (default logged in)', () => {
+  it('user id 1 is 히즈키 (default logged in)', () => {
     const v_ceb55a = (v_5d0917 as any[])[0];
-    expect(v_ceb55a.id).toBe('user-001');
+    expect(v_ceb55a.id).toBe(1);
     expect(v_ceb55a.displayName).toBe('히즈키');
   });
 
