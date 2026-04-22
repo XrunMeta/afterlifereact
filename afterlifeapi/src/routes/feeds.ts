@@ -1,0 +1,188 @@
+
+
+import { v_b7c41b } from "zmui";
+import type { v_de0a25 } from "../lib/env";
+import { v_3ebe58 } from "../lib/errors";
+import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
+import { v_6690d9 } from "../middleware/auth";
+import {
+  v_7adf64,
+  v_ab84f6,
+  v_5d4a51,
+  v_efcb2d,
+} from "../lib/cloneAccess";
+
+export const v_96e8d7 = new v_b7c41b<v_de0a25>();
+
+function v_31113b(v_3f4e2e): number {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  return v_389afb;
+}
+function v_102fa8(v_3f4e2e): number {
+  const v_8e2335 = Number(v_3f4e2e.req.param("feedId"));
+  if (!Number.isInteger(v_8e2335) || v_8e2335 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid feed id.");
+  }
+  return v_8e2335;
+}
+
+async function v_f1298d(
+  v_a1651b,
+  v_6e0fd3,
+  v_43e90c,
+  v_eb25ce,
+): Promise<void> {
+  if (v_eb25ce.owner_id === v_43e90c) return;
+  const v_22da99 = await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c);
+  if (v_22da99 !== "owner") {
+    throw new v_3ebe58("FORBIDDEN", "Owner/coowner only.");
+  }
+}
+
+const v_722b6d = v_1f4ea7
+  .object({
+    content: v_1f4ea7.string().max(5000).optional(),
+    mediaUrl: v_1f4ea7.url().max(500).optional(),
+    mediaType: v_1f4ea7.enum(["image", "video", "short"]).optional(),
+  })
+  .refine((v_b6c474) => Boolean(v_b6c474.content || v_b6c474.mediaUrl), {
+    message: "content 또는 mediaUrl 중 하나는 필수.",
+  });
+
+v_96e8d7.get("/:id/feeds", async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+
+  const v_43e90c = await v_efcb2d(v_3f4e2e);
+  let v_22da99 = null;
+  if (v_43e90c) {
+    if (v_43e90c === v_eb25ce.owner_id) v_22da99 = "owner";
+    else if ((await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c)) !== null) {
+      v_22da99 = "coowner";
+    } else if (await v_ab84f6(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c)) {
+      v_22da99 = "follower";
+    }
+  }
+
+  if (v_eb25ce.visibility === "private" && v_22da99 !== "owner" && v_22da99 !== "coowner") {
+    throw new v_3ebe58("FORBIDDEN", "Private clone.");
+  }
+  if (v_eb25ce.visibility === "followers" && !v_22da99) {
+    throw new v_3ebe58("FORBIDDEN", "Followers-only clone.");
+  }
+
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_15c8c5 = v_f71b56.searchParams.get("cursor");
+  const v_75cbf4 = v_15c8c5 ? Number(v_15c8c5) : null;
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 20);
+  const v_02be30 = Math.max(1, Math.min(50, Number.isFinite(v_cf2260) ? v_cf2260 : 20));
+
+  const v_abcc8d = ["clone_id = ?"];
+  const v_925171 = [v_6e0fd3];
+  if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
+    v_abcc8d.push("id < ?");
+    v_925171.push(v_75cbf4);
+  }
+
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, clone_id, content, media_url, media_type, likes_count, created_at
+           FROM feeds
+          WHERE ${v_abcc8d.join(" AND ")}
+          ORDER BY id DESC
+          LIMIT ?`,
+      )
+      .bind(...v_925171, v_02be30 + 1)
+      .all<{
+        id: number;
+        clone_id: number;
+        content: string | null;
+        media_url: string | null;
+        media_type: string | null;
+        likes_count: number;
+        created_at: string;
+      }>()
+  ).results;
+
+  const v_6bbe19 = v_18b8bf.length > v_02be30;
+  const v_2365e9 = v_6bbe19 ? v_18b8bf.slice(0, v_02be30) : v_18b8bf;
+  const v_64f859 =
+    v_6bbe19 && v_2365e9.length > 0 ? v_2365e9[v_2365e9.length - 1]!.id : null;
+
+  return v_3f4e2e.json({
+    items: v_2365e9.map((v_cb35cb) => ({
+      id: v_cb35cb.id,
+      cloneId: v_cb35cb.clone_id,
+      content: v_cb35cb.content,
+      mediaUrl: v_cb35cb.media_url,
+      mediaType: v_cb35cb.media_type,
+      likesCount: v_cb35cb.likes_count,
+      visibility: v_eb25ce.visibility,
+      createdAt: v_cb35cb.created_at,
+    })),
+    nextCursor: v_64f859,
+  });
+});
+
+v_96e8d7.post("/:id/feeds", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  await v_f1298d(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c, v_eb25ce);
+
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_722b6d);
+  const v_cb35cb = await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO feeds (clone_id, content, media_url, media_type, created_at)
+       VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+    )
+    .bind(
+      v_6e0fd3,
+      v_4d33b2.content ?? null,
+      v_4d33b2.mediaUrl ?? null,
+      v_4d33b2.mediaType ?? null,
+    )
+    .run();
+  const v_c09aa8 = Number(v_cb35cb.meta.last_row_id);
+
+  return v_3f4e2e.json(
+    {
+      feed: {
+        id: v_c09aa8,
+        cloneId: v_6e0fd3,
+        content: v_4d33b2.content ?? null,
+        mediaUrl: v_4d33b2.mediaUrl ?? null,
+        mediaType: v_4d33b2.mediaType ?? null,
+        likesCount: 0,
+        visibility: v_eb25ce.visibility,
+        createdAt: new Date().toISOString(),
+      },
+    },
+    201,
+  );
+});
+
+v_96e8d7.delete("/:id/feeds/:feedId", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_c09aa8 = v_102fa8(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  await v_f1298d(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c, v_eb25ce);
+
+  const v_8f00b9 = await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM feeds WHERE id = ? AND clone_id = ?`)
+    .bind(v_c09aa8, v_6e0fd3)
+    .run();
+
+  if (!v_8f00b9.success || (v_8f00b9.meta.changes ?? 0) === 0) {
+    throw new v_3ebe58("NOT_FOUND", "Feed not found.");
+  }
+  return v_3f4e2e.json({ ok: true });
+});
