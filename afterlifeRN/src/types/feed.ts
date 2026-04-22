@@ -1,6 +1,6 @@
 export interface FeedItem {
-  id: string;
-  cloneId: string;
+  id: number;
+  cloneId: number;
   author: string;
   username: string;
   authorAvatar: string | number;
