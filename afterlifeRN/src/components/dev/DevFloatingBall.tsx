@@ -113,7 +113,7 @@ export function DevFloatingBall() {
             <Text style={styles.modalTitle}>유저 스위치</Text>
             <FlatList
               data={SEED.users}
-              keyExtractor={(u) => u.id}
+              keyExtractor={(u) => String(u.id)}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.userRow}

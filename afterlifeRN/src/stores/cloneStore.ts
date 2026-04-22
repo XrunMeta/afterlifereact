@@ -14,7 +14,7 @@ interface CloneState {
   setCurrentClone: (clone: Clone | null) => void;
   setCreationDraft: (data: Partial<CloneCreationDraft>) => void;
   resetCreationDraft: () => void;
-  getCloneById: (id: string) => Clone | undefined;
+  getCloneById: (id: number) => Clone | undefined;
   addClone: (clone: Clone) => void;
 }
 

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFeedStore } from '../../src/stores/feedStore';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useFollowStore } from '../../src/stores/followStore';
+import { SEED } from '../../src/mocks/seedIndex';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -11,7 +12,7 @@ describe('feedStore.getVisibleFeeds', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
     useAuthStore.setState({
-      user: { id: 'user-001' } as any,
+      user: { id: 1 } as any,
       isLoggedIn: true,
       hydrated: true,
     });
@@ -25,19 +26,22 @@ describe('feedStore.getVisibleFeeds', () => {
     expect(Array.isArray(useFeedStore.getState().selectedInterests)).toBe(true);
   });
 
-  it('getVisibleFeeds returns some feeds for user-001 (owner of most clones)', () => {
+  it('getVisibleFeeds returns some feeds for user id 1 (owner of most clones)', () => {
     const feeds = useFeedStore.getState().getVisibleFeeds();
     expect(feeds.length).toBeGreaterThan(0);
   });
 
   it('private (memlow) clones do not leak to a non-owner non-coowner user', async () => {
     useAuthStore.setState({
-      user: { id: 'user-020' } as any,
+      user: { id: 20 } as any,
       isLoggedIn: true,
       hydrated: true,
     });
+    const memlowCloneIds = new Set(
+      SEED.clones.filter((c) => c.cloneType === 'memlow').map((c) => c.id),
+    );
     const feeds = useFeedStore.getState().getVisibleFeeds();
-    const memlowLeaked = feeds.some((f) => f.cloneId.startsWith('clone-memlow-'));
+    const memlowLeaked = feeds.some((f) => memlowCloneIds.has(f.cloneId));
     expect(memlowLeaked).toBe(false);
   });
 
@@ -49,12 +53,12 @@ describe('feedStore.getVisibleFeeds', () => {
   });
 
   it('toggleLike/toggleBookmark toggle id sets', () => {
-    useFeedStore.getState().toggleLike('feed-xyz');
-    expect(useFeedStore.getState().likedIds).toContain('feed-xyz');
-    useFeedStore.getState().toggleLike('feed-xyz');
-    expect(useFeedStore.getState().likedIds).not.toContain('feed-xyz');
+    useFeedStore.getState().toggleLike(999);
+    expect(useFeedStore.getState().likedIds).toContain(999);
+    useFeedStore.getState().toggleLike(999);
+    expect(useFeedStore.getState().likedIds).not.toContain(999);
 
-    useFeedStore.getState().toggleBookmark('feed-xyz');
-    expect(useFeedStore.getState().bookmarkedIds).toContain('feed-xyz');
+    useFeedStore.getState().toggleBookmark(999);
+    expect(useFeedStore.getState().bookmarkedIds).toContain(999);
   });
 });

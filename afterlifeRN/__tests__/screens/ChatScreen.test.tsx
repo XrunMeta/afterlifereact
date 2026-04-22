@@ -12,7 +12,7 @@ beforeEach(async () => {
   await useAuthStore.getState().hydrate();
 });
 
-function makeProps(cloneId: string): any {
+function makeProps(cloneId: number): any {
   return {
     route: { params: { cloneId } },
     navigation: { goBack: jest.fn() },
@@ -21,7 +21,7 @@ function makeProps(cloneId: string): any {
 
 test('Chat renders only messages belonging to this clone + current user', () => {
   const cloneWithMessages = SEED.clones.find((c) =>
-    SEED.messages.some((m) => m.cloneId === c.id && m.userId === 'user-001'),
+    SEED.messages.some((m) => m.cloneId === c.id && m.userId === 1),
   );
   expect(cloneWithMessages).toBeTruthy();
 
@@ -30,15 +30,15 @@ test('Chat renders only messages belonging to this clone + current user', () => 
   );
 
   const expected = SEED.messages.filter(
-    (m) => m.cloneId === cloneWithMessages!.id && m.userId === 'user-001',
+    (m) => m.cloneId === cloneWithMessages!.id && m.userId === 1,
   );
 
-  expect(queryByText(expected[0].text)).toBeTruthy();
+  expect(queryByText(expected[0].content)).toBeTruthy();
 
   const otherCloneMsg = SEED.messages.find(
-    (m) => m.cloneId !== cloneWithMessages!.id && m.userId === 'user-001',
+    (m) => m.cloneId !== cloneWithMessages!.id && m.userId === 1,
   );
   if (otherCloneMsg) {
-    expect(queryByText(otherCloneMsg.text)).toBeNull();
+    expect(queryByText(otherCloneMsg.content)).toBeNull();
   }
 });

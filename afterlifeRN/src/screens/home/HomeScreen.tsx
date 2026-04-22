@@ -57,7 +57,7 @@ export default function HomeScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
   const [localInterests, setLocalInterests] = useState<string[]>(selectedInterests);
-  const [commentFeedId, setCommentFeedId] = useState<string | null>(null);
+  const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
 
   const filteredFeeds: FeedItem[] = getFilteredFeeds().map(toFeedItem);
@@ -95,23 +95,23 @@ export default function HomeScreen() {
     setShowFilter(true);
   };
 
-  const mockComments: Record<string, Array<{ id: string; author: string; avatar: string; content: string; time: string }>> = {
-    "feed-1": [
+  const mockComments: Record<number, Array<{ id: string; author: string; avatar: string; content: string; time: string }>> = {
+    1: [
       { id: "c1", author: "마음이", avatar: "https://i.pravatar.cc/100?img=1", content: "할아버지 목소리가 그리웠어요", time: "5분 전" },
       { id: "c2", author: "별빛", avatar: "https://i.pravatar.cc/100?img=2", content: "오늘도 힘이 되는 말씀 감사합니다", time: "12분 전" },
       { id: "c3", author: "하늘", avatar: "https://i.pravatar.cc/100?img=3", content: "따뜻한 조언 감사해요", time: "30분 전" },
     ],
-    "feed-2": [
+    2: [
       { id: "c4", author: "소망", avatar: "https://i.pravatar.cc/100?img=9", content: "할머니 덕분에 오늘도 웃었어요", time: "3분 전" },
       { id: "c5", author: "봄날", avatar: "https://i.pravatar.cc/100?img=10", content: "정말 위로가 됩니다", time: "20분 전" },
     ],
-    "feed-3": [
+    3: [
       { id: "c6", author: "선재팬", avatar: "https://i.pravatar.cc/100?img=5", content: "오늘도 좋은 하루!", time: "1분 전" },
       { id: "c7", author: "해피", avatar: "https://i.pravatar.cc/100?img=7", content: "같이 놀아요~", time: "8분 전" },
       { id: "c8", author: "루나", avatar: "https://i.pravatar.cc/100?img=8", content: "재밌어요 ㅋㅋ", time: "15분 전" },
     ],
   };
-  const currentComments = commentFeedId ? mockComments[commentFeedId] || [] : [];
+  const currentComments = commentFeedId != null ? mockComments[commentFeedId] || [] : [];
 
   const renderItem = useCallback(
     ({ item, index }: { item: FeedItem; index: number }) => (
@@ -138,7 +138,7 @@ export default function HomeScreen() {
         ref={flatListRef}
         data={filteredFeeds}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         pagingEnabled
         showsVerticalScrollIndicator={false}
         snapToInterval={feedHeight}

@@ -11,26 +11,26 @@ describe('authStore', () => {
     useAuthStore.setState({ isLoggedIn: false, user: null, hydrated: false });
   });
 
-  it('hydrate loads user-001 when no stored id', async () => {
+  it('hydrate loads user id 1 when no stored id', async () => {
     await useAuthStore.getState().hydrate();
     const u = useAuthStore.getState().user;
-    expect(u?.id).toBe('user-001');
+    expect(u?.id).toBe(1);
     expect(useAuthStore.getState().isLoggedIn).toBe(true);
     expect(useAuthStore.getState().hydrated).toBe(true);
   });
 
   it('switchUser updates state and persists', async () => {
     await useAuthStore.getState().hydrate();
-    await useAuthStore.getState().switchUser('user-003');
-    expect(useAuthStore.getState().user?.id).toBe('user-003');
+    await useAuthStore.getState().switchUser(3);
+    expect(useAuthStore.getState().user?.id).toBe(3);
     const saved = await AsyncStorage.getItem('@afterlifeRN/auth/currentUserId');
-    expect(saved).toBe('user-003');
+    expect(saved).toBe('3');
   });
 
   it('hydrate restores previously stored userId', async () => {
-    await AsyncStorage.setItem('@afterlifeRN/auth/currentUserId', 'user-005');
+    await AsyncStorage.setItem('@afterlifeRN/auth/currentUserId', '5');
     await useAuthStore.getState().hydrate();
-    expect(useAuthStore.getState().user?.id).toBe('user-005');
+    expect(useAuthStore.getState().user?.id).toBe(5);
   });
 
   it('logout clears state and removes stored id', async () => {

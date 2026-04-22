@@ -3,23 +3,23 @@ import { SEED } from "../mocks/seedIndex";
 import type { DomainClone, DomainFeed } from "../types/domain";
 import { useAuthStore } from "./authStore";
 
-const DEFAULT_USER_ID = "user-001";
+const DEFAULT_USER_ID = 1;
 
 interface FeedState {
   feeds: DomainFeed[];
-  likedIds: string[];
-  bookmarkedIds: string[];
+  likedIds: number[];
+  bookmarkedIds: number[];
   selectedInterests: string[];
-  toggleLike: (id: string) => void;
-  toggleBookmark: (id: string) => void;
+  toggleLike: (id: number) => void;
+  toggleBookmark: (id: number) => void;
   setSelectedInterests: (interests: string[]) => void;
   getVisibleFeeds: () => DomainFeed[];
   getFilteredFeeds: () => DomainFeed[];
 }
 
-function canSeeClone(c: DomainClone, currentUserId: string): boolean {
+function canSeeClone(c: DomainClone, currentUserId: number): boolean {
   if (c.visibility === "public") return true;
-  if (c.ownerUserId === currentUserId) return true;
+  if (c.ownerId === currentUserId) return true;
   const coowned = SEED.coowners.some(
     (co) =>
       co.cloneId === c.id &&
