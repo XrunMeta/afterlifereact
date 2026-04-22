@@ -1,0 +1,27 @@
+{
+  "_route": "GET /oth-path",
+  "_query": "q, type, category, sort=recent|popular, cursor, limit",
+  "items": [
+    {
+      "id": 1,
+      "name": "나츠 (Natsu)",
+      "username": "natsu",
+      "cloneType": "memlow",
+      "category": "family",
+      "avatarUrl": "https://cdn.afterlife.example/avatar/natsu.png",
+      "followersCount": 42,
+      "createdAt": "2026-03-10T02:15:00Z"
+    },
+    {
+      "id": 2,
+      "name": "레이 (Ray)",
+      "username": "ray",
+      "cloneType": "friend",
+      "category": "friend",
+      "avatarUrl": "https://cdn.afterlife.example/avatar/ray.png",
+      "followersCount": 118,
+      "createdAt": "2026-03-12T09:02:00Z"
+    }
+  ],
+  "nextCursor": "eyJzIjoiMjAyNi0wMy0xMlQwOTowMjowMFoiLCJpIjoyfQ=="
+}
