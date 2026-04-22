@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { SEED } from "../mocks/seedIndex";
+import { seedSource } from "../api/source";
 import type { DomainFollow } from "../types/domain";
 import { useAuthStore } from "./authStore";
 
@@ -34,7 +34,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
   hydrate: async () => {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     const overrides: Override[] = raw ? JSON.parse(raw) : [];
-    let follows = [...SEED.follows];
+    let follows = [...seedSource.follows()];
     const currentUserId =
       useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
     overrides.forEach((o) => {

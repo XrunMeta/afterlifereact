@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { Clone, CloneCreationDraft } from "../types/clone";
-import { SEED } from "../mocks/seedIndex";
+import { seedSource } from "../api/source";
 
 const INITIAL_DRAFT: CloneCreationDraft = {
   interests: [],
@@ -35,7 +35,7 @@ export const useCloneStore = create<CloneState>((set, get) => ({
   getCloneById: (id) => {
     const local = get().localClones.find((c) => c.id === id);
     if (local) return local;
-    return SEED.clones.find((c) => c.id === id);
+    return seedSource.clones().find((c) => c.id === id);
   },
 
   addClone: (clone) =>

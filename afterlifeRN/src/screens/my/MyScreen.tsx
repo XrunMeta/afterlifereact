@@ -16,7 +16,7 @@ import PageHeader from "../../components/common/PageHeader";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useCloneStore } from "../../stores/cloneStore";
-import { SEED } from "../../mocks/seedIndex";
+import { seedSource } from "../../api/source";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 
 const DEFAULT_USER_ID = 1;
@@ -53,7 +53,7 @@ export default function MyScreen() {
   );
   const myClonesCount = useMemo(
     () =>
-      SEED.clones.filter((c) => c.ownerId === uid).length +
+      seedSource.clones().filter((c) => c.ownerId === uid).length +
       localClones.filter((c) => c.ownerId === uid).length,
     [uid, localClones],
   );

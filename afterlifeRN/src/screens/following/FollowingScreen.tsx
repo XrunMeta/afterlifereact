@@ -25,7 +25,7 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
-import { SEED } from "../../mocks/seedIndex";
+import { seedSource } from "../../api/source";
 import type { DomainClone, DomainFeed } from "../../types/domain";
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -61,17 +61,17 @@ export default function FollowingScreen() {
       .filter((f) => f.followerUserId === uid)
       .map((f) => f.followingCloneId);
     return followingCloneIds
-      .map((cid) => SEED.clones.find((c) => c.id === cid))
+      .map((cid) => seedSource.clones().find((c) => c.id === cid))
       .filter((c): c is DomainClone => Boolean(c))
       .map((clone) => {
-        const owner = SEED.users.find((u) => u.id === clone.ownerId);
+        const owner = seedSource.users().find((u) => u.id === clone.ownerId);
         return toPersona(clone, owner?.handle);
       });
   }, [follows, uid]);
 
   const feeds = useMemo<DomainFeed[]>(() => {
     const followingIds = new Set(followedPersonas.map((p) => p.id));
-    return SEED.feeds
+    return seedSource.feeds()
       .filter((f) => followingIds.has(f.cloneId))
       .slice()
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));

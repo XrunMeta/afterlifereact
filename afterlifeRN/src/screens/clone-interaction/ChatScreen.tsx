@@ -16,7 +16,7 @@ import type { RootStackParamList } from "../../navigation/types";
 import TextField from "../../components/ui/TextField";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
-import { SEED } from "../../mocks/seedIndex";
+import { seedSource } from "../../api/source";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { DomainMessage } from "../../types/domain";
 
@@ -33,7 +33,7 @@ export default function ChatScreen({ route, navigation }: Props) {
 
   const initialMessages = useMemo<DomainMessage[]>(
     () =>
-      SEED.messages
+      seedSource.messages()
         .filter((m) => m.cloneId === cloneId && m.userId === currentUserId)
         .slice()
         .sort((a, b) => a.timestamp.localeCompare(b.timestamp)),

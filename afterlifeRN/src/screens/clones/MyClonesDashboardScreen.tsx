@@ -20,7 +20,7 @@ import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
-import { SEED } from "../../mocks/seedIndex";
+import { seedSource } from "../../api/source";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
@@ -39,7 +39,7 @@ export default function MyClonesDashboardScreen() {
   const myClones = useMemo<Clone[]>(() => {
     const uid = authUser?.id ?? DEFAULT_USER_ID;
     return [
-      ...SEED.clones.filter((c) => c.ownerId === uid),
+      ...seedSource.clones().filter((c) => c.ownerId === uid),
       ...localClones.filter((c) => c.ownerId === uid),
     ];
   }, [authUser, localClones]);
@@ -156,7 +156,7 @@ export default function MyClonesDashboardScreen() {
     ).length;
     const coownerCount =
       clone.cloneType === "memlow"
-        ? SEED.coowners.filter(
+        ? seedSource.coowners().filter(
             (co) => co.cloneId === clone.id && co.status === "approved",
           ).length
         : 0;

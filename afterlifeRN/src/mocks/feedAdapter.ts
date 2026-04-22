@@ -1,6 +1,6 @@
 import type { DomainFeed, CloneType } from "../types/domain";
 import type { FeedItem } from "../types/feed";
-import { SEED } from "./seedIndex";
+import { seedSource } from "../api/source";
 
 const CLONE_TYPE_LABEL: Record<CloneType, string> = {
   memlow: "멤로우",
@@ -15,7 +15,7 @@ function formatLikes(n: number): string {
 }
 
 export function toFeedItem(f: DomainFeed): FeedItem {
-  const c = SEED.clones.find((x) => x.id === f.cloneId);
+  const c = seedSource.clones().find((x) => x.id === f.cloneId);
   const h = Math.abs(f.id);
   const likes = 500 + (h % 9500);
   const comments = 20 + (h % 480);

@@ -16,9 +16,9 @@ describe('static seed', () => {
     expect(byType).toEqual({ memlow: 6, friend: 6, mentor: 6, celeb: 6 });
   });
 
-  it('user-001 is 히즈키 (default logged in)', () => {
+  it('user id 1 is 히즈키 (default logged in)', () => {
     const u = (usersJson as any[])[0];
-    expect(u.id).toBe('user-001');
+    expect(u.id).toBe(1);
     expect(u.displayName).toBe('히즈키');
   });
 

@@ -14,7 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { useFloatingBallPosition } from './useFloatingBallPosition';
 import { defaultDevActions } from './DevFloatingBall.actions';
 import { useAuthStore } from '../../stores/authStore';
-import { SEED } from '../../mocks/seedIndex';
+import { seedSource } from '../../api/source';
 
 const BALL = 52;
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -112,7 +112,7 @@ export function DevFloatingBall() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>유저 스위치</Text>
             <FlatList
-              data={SEED.users}
+              data={seedSource.users()}
               keyExtractor={(u) => String(u.id)}
               renderItem={({ item }) => (
                 <TouchableOpacity
