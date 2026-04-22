@@ -1,0 +1,27 @@
+{
+  "_route": "GET /oth-path",
+  "_auth": "optional (private/followers visibility 시 필수)",
+  "clone": {
+    "id": 1,
+    "ownerId": 1,
+    "name": "나츠 (Natsu)",
+    "username": "natsu",
+    "description": "엄마의 따뜻한 목소리를 기억하는 메모리 클론",
+    "cloneType": "memlow",
+    "category": "family",
+    "visibility": "public",
+    "avatarUrl": "https://cdn.afterlife.example/avatar/natsu.png",
+    "coverImageUrl": "https://cdn.afterlife.example/cover/natsu.png",
+    "voiceType": "preset",
+    "voicePresetId": 12,
+    "trainingStatus": "ready",
+    "interests": ["요리", "가족", "고향"],
+    "stats": {
+      "followers": 42,
+      "messages": 318,
+      "gifts": 5
+    },
+    "createdAt": "2026-03-10T02:15:00Z",
+    "viewerRole": "owner"
+  }
+}

@@ -6,6 +6,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:migrate:local": "wrangler d1 migrations apply afterlife-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply afterlife-db --remote",
     "db:reset:local": "wrangler d1 execute afterlife-db --local --command=\"SELECT 1\" && rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local"
@@ -23,8 +25,10 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.9.14",
     "@cloudflare/workers-types": "^4.20260402.1",
     "typescript": "^6.0.2",
+    "vitest": "^3.2.4",
     "wrangler": "^4.80.0"
   }
 }
