@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -18,19 +18,31 @@ import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
+import { useAuthStore } from "../../stores/authStore";
+import { useFollowStore } from "../../stores/followStore";
+import { SEED } from "../../mocks/seedIndex";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import type { Clone } from "../../types/clone";
+import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
 import type { RootStackParamList } from "../../navigation/types";
 
 type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
-type Visibility = "public" | "private" | "followers";
+const DEFAULT_USER_ID = "user-001";
 
 export default function MyClonesDashboardScreen() {
   const navigation = useNavigation<ClonesNav>();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const myClones = useCloneStore((s) => s.myClones);
+  const authUser = useAuthStore((s) => s.user);
+  const localClones = useCloneStore((s) => s.localClones);
+  const follows = useFollowStore((s) => s.follows);
+  const myClones = useMemo<Clone[]>(() => {
+    const uid = authUser?.id ?? DEFAULT_USER_ID;
+    return [
+      ...SEED.clones.filter((c) => c.ownerUserId === uid),
+      ...localClones.filter((c) => c.ownerUserId === uid),
+    ];
+  }, [authUser, localClones]);
 
   const [cloneStates, setCloneStates] = useState<
     Record<string, { isActive: boolean; visibility: Visibility }>
@@ -139,6 +151,15 @@ export default function MyClonesDashboardScreen() {
     const state = cloneStates[clone.id];
     const isActive = state?.isActive ?? true;
     const visibility = state?.visibility ?? clone.visibility;
+    const followerCount = follows.filter(
+      (f) => f.followingCloneId === clone.id,
+    ).length;
+    const coownerCount =
+      clone.cloneType === "memlow"
+        ? SEED.coowners.filter(
+            (co) => co.cloneId === clone.id && co.status === "approved",
+          ).length
+        : 0;
 
     return (
       <View style={s.card}>
@@ -175,12 +196,12 @@ export default function MyClonesDashboardScreen() {
         {}
         <View style={s.cloneHeader}>
           <View style={s.avatarWrap}>
-            <Image source={{ uri: clone.avatarUrl }} style={s.avatar} />
+            <Image source={{ uri: clone.imageUrl ?? "" }} style={s.avatar} />
             {isActive && <View style={s.activeDot} />}
           </View>
           <View style={s.cloneInfo}>
-            <Text style={s.cloneName}>{clone.name}</Text>
-            <Text style={s.cloneCategory}>{clone.category}</Text>
+            <Text style={s.cloneName}>{clone.displayName}</Text>
+            <Text style={s.cloneCategory}>{clone.interests[0] ?? ""}</Text>
           </View>
         </View>
 
@@ -193,33 +214,53 @@ export default function MyClonesDashboardScreen() {
         <View style={s.statsRow}>
           <TouchableOpacity
             style={s.stat}
-            onPress={() => setStatsModal({ type: "likes", cloneName: clone.name })}
+            onPress={() => setStatsModal({ type: "likes", cloneName: clone.displayName })}
           >
             <Feather name="heart" size={14} color={COLORS.zinc500} />
             <Text style={s.statText}>2.4k</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.stat}
-            onPress={() => setStatsModal({ type: "interactions", cloneName: clone.name })}
+            onPress={() => setStatsModal({ type: "interactions", cloneName: clone.displayName })}
           >
             <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
             <Text style={s.statText}>4.5k</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.stat}
-            onPress={() => setStatsModal({ type: "comments", cloneName: clone.name })}
+            onPress={() => setStatsModal({ type: "comments", cloneName: clone.displayName })}
           >
             <Feather name="message-circle" size={14} color={COLORS.zinc500} />
             <Text style={s.statText}>328</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.stat}
-            onPress={() => setStatsModal({ type: "followers", cloneName: clone.name })}
+            onPress={() => setStatsModal({ type: "followers", cloneName: clone.displayName })}
           >
             <Feather name="user" size={14} color={COLORS.zinc500} />
-            <Text style={s.statText}>15.2k</Text>
+            <Text style={s.statText} testID={`follower-count-${clone.id}`}>
+              {followerCount} 팔로워
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {coownerCount > 0 && (
+          <View style={s.coownerBadge}>
+            <Feather name="users" size={12} color={COLORS.zinc600} />
+            <Text style={s.coownerText}>공동관리자 {coownerCount}명</Text>
+          </View>
+        )}
+
+        {}
+        {clone.status === 'pending_assets' && (
+          <View style={s.pendingBadge}>
+            <Feather name="clock" size={12} color={COLORS.zinc600} />
+            <Text style={s.pendingText}>생성대기중</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('CloneEdit', { cloneId: clone.id })}>
+              <Text style={s.pendingCta}>사진/음성 추가하기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {}
         <View style={s.tagsRow}>
@@ -765,6 +806,34 @@ const s = StyleSheet.create({
   },
   stat: { flexDirection: "row", alignItems: "center", gap: 4 },
   statText: { fontSize: 13, color: COLORS.zinc500 },
+
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.zinc100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  pendingText: { fontSize: 11, color: COLORS.zinc600 },
+  pendingCta: { fontSize: 11, color: COLORS.violet600, marginLeft: 4, textDecorationLine: 'underline' },
+
+  coownerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.violet100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  coownerText: { fontSize: 11, color: COLORS.violet600, fontWeight: '500' },
 
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 },
   tag: {

@@ -8,12 +8,21 @@ import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import StepIndicator from "../../components/common/StepIndicator";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
+import { useCloneStore } from "../../stores/cloneStore";
+import MissingAssetsModal from "../../components/common/MissingAssetsModal";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step6">;
 };
 
 export default function Step6CreatingScreen({ navigation }: Props) {
+  const draft = useCloneStore(s => s.creationDraft);
+  const missingAssets =
+    draft.cloneType === 'memlow' &&
+    (!draft.imageFile || (!draft.voiceFile && (draft.recordDuration ?? 0) < 30));
+  const [guardOpen, setGuardOpen] = useState(missingAssets);
+  const [proceeding, setProceeding] = useState(!missingAssets);
+
   const [progress, setProgress] = useState(0);
   const spinAnim = useRef(new Animated.Value(0)).current;
 
@@ -26,19 +35,15 @@ export default function Step6CreatingScreen({ navigation }: Props) {
         useNativeDriver: true,
       })
     ).start();
-
-    const interval = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return p + 2;
-      });
-    }, 100);
-
-    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!proceeding) return;
+    const interval = setInterval(() => {
+      setProgress(p => (p >= 100 ? 100 : p + 2));
+    }, 100);
+    return () => clearInterval(interval);
+  }, [proceeding]);
 
   useEffect(() => {
     if (progress >= 100) {
@@ -84,6 +89,18 @@ export default function Step6CreatingScreen({ navigation }: Props) {
           <Text style={styles.labelText}>MUSETALK SYNC</Text>
         </View>
       </View>
+      <MissingAssetsModal
+        visible={guardOpen}
+        onAddNow={() => {
+          setGuardOpen(false);
+          setProceeding(false);
+          navigation.navigate('Step3');
+        }}
+        onLater={() => {
+          setGuardOpen(false);
+          setProceeding(true);
+        }}
+      />
     </SafeView>
   );
 }

@@ -1,0 +1,258 @@
+[
+  {
+    "id": "msg-clone-friend-06-001",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "히즈키 요즘 밥은 잘 먹고 다니냐?",
+    "timestamp": "2026-04-07T12:00:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-002",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "그냥저냥 먹고 있어요. 소희 누나는요?",
+    "timestamp": "2026-04-07T12:05:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-003",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "나는 어제 된장찌개 끓였는데 간이 딱 맞아서 뿌듯했어ㅋㅋ 히즈키 좋아하잖아 된장찌개",
+    "timestamp": "2026-04-07T12:07:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-004",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "맞아요 진짜 좋아해요. 누나 된장찌개는 어릴 때부터 맛있었잖아요",
+    "timestamp": "2026-04-07T12:10:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-005",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "ㅋㅋ 그때 우리 엄마한테 레시피 물어봐서 익힌 거야. 된장은 재료 질이 반이거든",
+    "timestamp": "2026-04-07T12:12:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-006",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "저도 요리 배워보고 싶은데 어디서 시작해야 할지 모르겠어요",
+    "timestamp": "2026-04-07T12:15:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-007",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "달걀 프라이부터 시작해. 진짜야. 불 조절이랑 타이밍 감 잡는 게 요리의 기초거든",
+    "timestamp": "2026-04-07T12:17:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-008",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "달걀 프라이요? 그것도 요리가 되나요ㅋㅋ",
+    "timestamp": "2026-04-07T12:19:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-009",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "당연하지. 노른자 살리면서 흰자만 익히려면 진짜 집중해야 해. 그게 되면 볶음밥, 된장찌개 순으로 가면 돼",
+    "timestamp": "2026-04-07T12:21:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-010",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "오 그런 순서가 있군요. 한번 해볼게요",
+    "timestamp": "2026-04-07T12:23:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-011",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "요즘 뭐가 힘들어? 얼굴이 안 보이는데도 뭔가 지쳐 보이는 느낌이야",
+    "timestamp": "2026-04-08T15:00:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-012",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "어떻게 알았어요ㅋㅋ 딱히 큰 일은 없는데 그냥 루틴이 없어지니까 무기력한 것 같아요",
+    "timestamp": "2026-04-08T15:05:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-013",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "무기력증은 아무것도 안 해서 오는 경우가 더 많아. 작은 거라도 매일 뭔가 하나 끝내봐",
+    "timestamp": "2026-04-08T15:08:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-014",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "어떤 게 좋을까요?",
+    "timestamp": "2026-04-08T15:10:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-015",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "아침에 일어나서 창문 열고 바람 한 번 맞는 것부터 시작해봐. 거창한 거 아니어도 돼",
+    "timestamp": "2026-04-08T15:12:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-016",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "그 정도는 할 수 있을 것 같아요. 해볼게요",
+    "timestamp": "2026-04-08T15:14:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-017",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "히즈키 원래 뭔가 시작하면 꾸준히 하잖아. 그 성격 믿어",
+    "timestamp": "2026-04-08T15:16:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-018",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "누나가 그렇게 말해주니까 조금 힘이 나요",
+    "timestamp": "2026-04-08T15:18:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-019",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "ㅋㅋ 그래서 내가 있는 거잖아. 동네 누나 역할 충실히 해야지",
+    "timestamp": "2026-04-08T15:20:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-020",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "ㅋㅋ 누나 어릴 때부터 이런 얘기 잘했잖아요. 그때도 위로 받은 기억 많아요",
+    "timestamp": "2026-04-08T15:23:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-021",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "나는 히즈키가 조용한 애인 줄 알았는데 할 말은 다 하더라구. 그게 나는 좋았어",
+    "timestamp": "2026-04-10T18:00:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-022",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "누나 앞에서는 편했어요. 집 앞에서 이야기하면 시간 금방 갔잖아요",
+    "timestamp": "2026-04-10T18:05:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-023",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "맞아. 골목에서 해 떨어지는 거 모르고 이야기하다가 엄마한테 혼난 적도 있었지ㅋㅋ",
+    "timestamp": "2026-04-10T18:08:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-024",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "ㅋㅋㅋ 진짜 그랬죠. 저도 그때 집에서 야단 맞았어요",
+    "timestamp": "2026-04-10T18:10:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-025",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "그래도 그 골목 기억은 따뜻해. 지금 그 동네 가면 아직 그 분위기가 있을까",
+    "timestamp": "2026-04-10T18:12:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-026",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "많이 바뀌었어요. 편의점도 생기고 새 건물도 들어서고. 그래도 골목은 남아 있어요",
+    "timestamp": "2026-04-10T18:14:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-027",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "다행이다. 언제 한 번 같이 가볼까. 거기서 뭔가 사먹으면서",
+    "timestamp": "2026-04-10T18:16:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-028",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "좋아요. 오랜만에 거기서 아이스크림이라도 먹으면 재밌을 것 같아요",
+    "timestamp": "2026-04-10T18:18:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-029",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "ㅋㅋ 그거 좋네. 일정 잡아봐. 나 요즘 주말 여유 있거든",
+    "timestamp": "2026-04-14T16:00:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-030",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "이번 주말 어때요? 날씨도 따뜻하다던데",
+    "timestamp": "2026-04-14T16:05:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-031",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "좋아. 토요일 오후에 만나자. 그리고 밥은 내가 살게. 히즈키 요즘 힘들었잖아",
+    "timestamp": "2026-04-14T16:08:00Z"
+  },
+  {
+    "id": "msg-clone-friend-06-032",
+    "cloneId": "clone-friend-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "아 누나가 왜 사요. 제가 낼게요",
+    "timestamp": "2026-04-14T16:10:00Z"
+  }
+]

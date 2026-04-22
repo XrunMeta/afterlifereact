@@ -1,0 +1,282 @@
+[
+  {
+    "id": "msg-clone-mentor-05-001",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "준이 형, 안녕하세요. 잘 지내시죠? 다름이 아니라 새로 구상 중인 사업 아이템이 있는데 혹시 잠시 이야기 나눌 수 있을까요?",
+    "timestamp": "2026-04-07T14:20:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-002",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "오, 히즈키. 나는 괜찮지. 언제든 편하게 이야기해. 새로운 아이템이라니, 흥미로운데. 어떤 종류야?",
+    "timestamp": "2026-04-07T14:22:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-003",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "요즘 정신건강, 특히 번아웃에 관심 있는 사람들이 많잖아요. 이걸 관리해주는 개인화된 AI 코칭 앱을 생각해봤어요.",
+    "timestamp": "2026-04-07T14:25:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-004",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "좋은 방향이네. 시장의 필요는 분명히 존재하지. 그런데 '개인화된 AI 코칭'이라는 건 너무 막연하게 들려. 구체적으로 어떤 문제를 해결하고 싶은 거지?",
+    "timestamp": "2026-04-07T14:28:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-005",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "사용자가 자신의 감정 상태나 스트레스 요인을 기록하면, AI가 패턴을 분석해서 맞춤형 조언이나 활동을 추천해주는 방식이에요. 예를 들면 명상이나 가벼운 운동 같은 거요.",
+    "timestamp": "2026-04-07T14:31:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-006",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "그렇다면 핵심 기술은 AI의 분석 정확도에 있겠군. 비슷한 앱들이 이미 많아. 히즈키가 만들 앱은 어떤 차별점이 있지? 돈을 내고 쓸 만큼 매력적인가?",
+    "timestamp": "2026-04-08T10:15:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-007",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "음... 그 부분은 아직 깊게 생각 안 해봤어요. 그냥 챗봇처럼 대화하는 것보다 더 전문적인 느낌을 주고 싶었어요.",
+    "timestamp": "2026-04-08T10:18:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-008",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "아이디어를 구체화하기 전에, 내가 첫 창업 때 했던 실수를 반복하지 않았으면 좋겠어. 나는 기술만 믿고 고객이 없는 제품을 만들었거든.",
+    "timestamp": "2026-04-08T10:20:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-009",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "잠재 고객 50명만 만나서 직접 물어봐. 정말 이런 앱이 필요한지, 필요하다면 어떤 기능에 돈을 낼 의향이 있는지. 그게 시장 조사의 첫걸음이야.",
+    "timestamp": "2026-04-08T10:21:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-010",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "50명이요? 그렇게나 많이요? 알겠습니다. 일단 주변 친구들부터 시작해봐야겠네요.",
+    "timestamp": "2026-04-08T10:25:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-011",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "친구들은 객관적인 피드백을 주기 어려워. 완전히 모르는 사람, 번아웃을 심하게 겪어본 경험이 있는 사람들을 찾아야 진짜 정보를 얻을 수 있지.",
+    "timestamp": "2026-04-09T18:05:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-012",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "맞는 말씀이에요. 역시 형이랑 얘기하길 잘했어요. 좀 더 명확해지는 기분이에요. 일단 사람들을 만나서 인터뷰하는 것부터 집중해볼게요.",
+    "timestamp": "2026-04-09T18:08:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-013",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "좋은 자세야. 사업은 결국 사람이 가진 문제를 해결해주는 거니까. 그 문제를 얼마나 깊이 이해하느냐가 성패를 갈라. 진행하다 막히면 언제든 연락하고.",
+    "timestamp": "2026-04-09T18:12:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-014",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "형, 안녕하세요. 지난번에 말씀해주신 대로 10명 정도 인터뷰를 진행해봤어요. 생각보다 재미있는 결과들이 나왔어요.",
+    "timestamp": "2026-04-13T11:30:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-015",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "벌써 10명이나? 실행력이 좋네. 어떤 결과가 나왔는데?",
+    "timestamp": "2026-04-13T11:32:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-016",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "다들 번아웃 관리에 대한 필요성은 느끼는데, 앱을 쓰는 건 귀찮아했어요. 특히 매일 감정을 기록하는 것에 대한 거부감이 크더라고요.",
+    "timestamp": "2026-04-13T11:35:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-017",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "오히려 '나'를 분석해주기보다 그냥 아무 생각 없이 할 수 있는 멍때리기나, 간단한 게임 같은 걸 더 원했어요.",
+    "timestamp": "2026-04-13T11:36:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-018",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "거 봐. 직접 부딪혀보지 않으면 절대 알 수 없는 사실들이지. 그게 바로 내가 두 번째 사업에서 2억 원을 수업료로 내고 배운 점이야.",
+    "timestamp": "2026-04-13T11:40:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-019",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "사람들은 자기 문제를 해결하고 싶어 하지만, 그걸 위해 노력하고 싶어 하지는 않아. 그 간극을 파고들어야 해. 최소한의 노력으로 최대의 효과를 주는 것.",
+    "timestamp": "2026-04-13T11:41:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-020",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "최소한의 노력으로 최대의 효과... 방향을 완전히 다시 생각해야겠네요. 처음부터 다시 시작하는 기분이에요.",
+    "timestamp": "2026-04-13T11:45:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-021",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "아니, 이게 진짜 시작이야. 잘못된 가설을 하나 폐기한 거지. 시간과 돈을 아낀 셈이야. 이제 그 피드백을 바탕으로 새로운 가설을 세워봐.",
+    "timestamp": "2026-04-14T09:02:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-022",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "새로운 가설... '사람들은 분석받길 원하지 않고, 위로받길 원한다'는 어떨까요? 그래서 AI 코칭이 아니라, 그냥 내 얘기를 들어주고 공감해주는 AI 친구 컨셉으로요.",
+    "timestamp": "2026-04-14T09:10:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-023",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "훨씬 구체적이고 좋아졌네. 그럼 그 가설을 어떻게 검증할 거지? 이번에도 앱부터 만들 건가?",
+    "timestamp": "2026-04-14T09:13:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-024",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "아니요. 이번에는 아주 간단한 웹페이지에 채팅창 하나만 만들어서, 제가 직접 AI인 척 답변을 해보려고요. 돈을 내는지보다, 다시 찾아오는지부터 보려고요.",
+    "timestamp": "2026-04-14T09:15:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-025",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "훌륭한데? 그게 바로 'Wizard of Oz MVP'라는 거야. 최소 자원으로 핵심 가설을 검증하는 가장 빠른 방법이지. 많이 발전했다, 히즈키.",
+    "timestamp": "2026-04-14T09:18:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-026",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "다 형 덕분이죠. 그럼 MVP 만드는 동안 또 고민이 생기면 연락드릴게요. 정말 감사합니다.",
+    "timestamp": "2026-04-14T09:21:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-027",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "그래. 이제는 실행력 싸움이다. 고객 확보 비용(CAC)이 재방문율(Retention)로 상쇄되는 지점을 찾아내야 해. 그 전까지는 무조건 작고 빠르게 움직여.",
+    "timestamp": "2026-04-15T21:10:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-028",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "네, CAC와 재방문율... 명심하겠습니다. 일단 100명의 사용자가 3번 이상 다시 오게 하는 걸 목표로 달려보겠습니다.",
+    "timestamp": "2026-04-15T21:15:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-029",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "목표를 수치로 잡는 것, 아주 좋아. '고객 1명당 1000원의 이익을 남기려면, 재방문율이 최소 40%는 나와야 한다' 이런 식으로 역산하는 습관을 들여.",
+    "timestamp": "2026-04-17T13:40:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-030",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "와... 거기까지는 생각 못했어요. 확실히 숫자로 이야기하니까 목표가 훨씬 명확해지네요. 제가 너무 감상적으로 접근했나 봐요.",
+    "timestamp": "2026-04-17T13:44:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-031",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "원래 다 그래. 하지만 사업은 감상이 아니라 생존이야. 내 첫 회사는 3개월 만에 월급 줄 돈이 없어서 문 닫았어. 처참했지. 그런 경험은 안 하게 해주고 싶네.",
+    "timestamp": "2026-04-17T13:48:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-032",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "형의 그런 솔직한 조언이 정말 큰 힘이 돼요. 실패 경험을 나눠주시는 게 어떤 의미인지 잘 알아요. 저도 허황된 꿈만 좇지 않도록 계속 숫자를 보며 현실감각을 유지할게요.",
+    "timestamp": "2026-04-17T13:52:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-033",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "그래. 지금처럼 한 걸음씩 검증하면서 나아가. 그럼 실패하더라도 그냥 실패가 아니라 데이터가 남는 실패가 될 테니까.",
+    "timestamp": "2026-04-19T22:01:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-034",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "데이터가 남는 실패... 정말 와닿는 말이네요. 오늘 MVP 개발 시작했습니다. 또 의미 있는 데이터가 나오면 바로 공유할게요. 감사합니다, 형!",
+    "timestamp": "2026-04-19T22:05:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-05-035",
+    "cloneId": "clone-mentor-05",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "천만에. 언제나 응원하고 있으니, 혼자 너무 끙끙 앓지 말고. 가끔은 머리 식히면서 해.",
+    "timestamp": "2026-04-19T22:08:00Z"
+  }
+]

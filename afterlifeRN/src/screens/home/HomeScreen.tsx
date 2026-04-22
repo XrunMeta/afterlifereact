@@ -24,6 +24,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import FeedCard from "../../components/ui/FeedCard";
 import FilterModal from "../../components/ui/FilterModal";
 import { useFeedStore } from "../../stores/feedStore";
+import { useFollowStore } from "../../stores/followStore";
+import { toFeedItem } from "../../mocks/feedAdapter";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { FeedItem } from "../../types/feed";
 import type { RootStackParamList } from "../../navigation/types";
@@ -43,14 +45,14 @@ export default function HomeScreen() {
     : Math.max(navBarHeight, insets.bottom);
   const feedHeight = SCREEN_HEIGHT - TAB_BAR_HEIGHT - bottomInset;
 
-  const feeds = useFeedStore((s) => s.feeds);
   const likedIds = useFeedStore((s) => s.likedIds);
-  const followedIds = useFeedStore((s) => s.followedIds);
   const selectedInterests = useFeedStore((s) => s.selectedInterests);
   const toggleLike = useFeedStore((s) => s.toggleLike);
-  const toggleFollow = useFeedStore((s) => s.toggleFollow);
   const setSelectedInterests = useFeedStore((s) => s.setSelectedInterests);
   const getFilteredFeeds = useFeedStore((s) => s.getFilteredFeeds);
+  const follows = useFollowStore((s) => s.follows);
+  const isFollowing = useFollowStore((s) => s.isFollowing);
+  const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
@@ -58,7 +60,7 @@ export default function HomeScreen() {
   const [commentFeedId, setCommentFeedId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
 
-  const filteredFeeds = getFilteredFeeds();
+  const filteredFeeds: FeedItem[] = getFilteredFeeds().map(toFeedItem);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -117,15 +119,15 @@ export default function HomeScreen() {
         item={item}
         isActive={index === currentIndex}
         isLiked={likedIds.includes(item.id)}
-        isFollowed={followedIds.includes(item.id)}
+        isFollowed={isFollowing(item.cloneId)}
         cardHeight={feedHeight}
         onToggleLike={() => toggleLike(item.id)}
-        onToggleFollow={() => toggleFollow(item.id)}
+        onToggleFollow={() => void toggleFollow(item.cloneId)}
         onCallPress={() => rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image })}
         onCommentPress={() => setCommentFeedId(item.id)}
       />
     ),
-    [currentIndex, likedIds, followedIds, feedHeight, toggleLike, toggleFollow]
+    [currentIndex, likedIds, follows, feedHeight, toggleLike, toggleFollow, isFollowing]
   );
 
   return (

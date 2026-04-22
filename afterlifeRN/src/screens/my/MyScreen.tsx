@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,12 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useAuthStore } from "../../stores/authStore";
+import { useFollowStore } from "../../stores/followStore";
+import { useCloneStore } from "../../stores/cloneStore";
+import { SEED } from "../../mocks/seedIndex";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
+
+const DEFAULT_USER_ID = "user-001";
 
 const settingsItems: Array<{
   icon: keyof typeof Feather.glyphMap;
@@ -37,7 +42,21 @@ const recentTransactions = [
 export default function MyScreen() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const follows = useFollowStore((s) => s.follows);
+  const localClones = useCloneStore((s) => s.localClones);
   const [showComingSoon, setShowComingSoon] = useState(false);
+
+  const uid = user?.id ?? DEFAULT_USER_ID;
+  const followingCount = useMemo(
+    () => follows.filter((f) => f.followerUserId === uid).length,
+    [follows, uid],
+  );
+  const myClonesCount = useMemo(
+    () =>
+      SEED.clones.filter((c) => c.ownerUserId === uid).length +
+      localClones.filter((c) => c.ownerUserId === uid).length,
+    [uid, localClones],
+  );
 
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
@@ -71,8 +90,20 @@ export default function MyScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={s.userName}>{user?.name ?? "사용자"}</Text>
-          <Text style={s.userHandle}>@SeniorConsultant_01</Text>
+          <Text style={s.userName}>{user?.displayName ?? "사용자"}</Text>
+          <Text style={s.userHandle}>{user?.handle ?? "@afterlife"}</Text>
+
+          <View style={s.statsRow}>
+            <View style={s.statItem}>
+              <Text style={s.statValue}>{followingCount}</Text>
+              <Text style={s.statLabel}>팔로우 중</Text>
+            </View>
+            <View style={s.statDivider} />
+            <View style={s.statItem}>
+              <Text style={s.statValue}>{myClonesCount}</Text>
+              <Text style={s.statLabel}>내 페르소나</Text>
+            </View>
+          </View>
         </View>
 
         {}
@@ -95,12 +126,8 @@ export default function MyScreen() {
               <Text style={s.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={s.coinAmount}>
-            {(user?.credits ?? 12540).toLocaleString()}
-          </Text>
-          <Text style={s.coinWon}>
-            약 ₩{(user?.credits ?? 12540).toLocaleString()} 상당
-          </Text>
+          <Text style={s.coinAmount}>{(12540).toLocaleString()}</Text>
+          <Text style={s.coinWon}>약 ₩{(12540).toLocaleString()} 상당</Text>
         </View>
 
         {}
@@ -162,7 +189,7 @@ export default function MyScreen() {
         </View>
 
         {}
-        <TouchableOpacity style={s.logoutBtn} onPress={logout}>
+        <TouchableOpacity style={s.logoutBtn} onPress={() => void logout()}>
           <Feather name="log-out" size={16} color={COLORS.zinc600} />
           <Text style={s.logoutText}>로그아웃</Text>
         </TouchableOpacity>
@@ -234,6 +261,21 @@ const s = StyleSheet.create({
   },
   userName: { fontSize: 24, fontWeight: "700", color: COLORS.zinc900, marginBottom: 4 },
   userHandle: { fontSize: 15, color: COLORS.zinc500 },
+
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 24,
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: COLORS.zinc50,
+    borderRadius: 16,
+  },
+  statItem: { alignItems: "center", minWidth: 64 },
+  statValue: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
+  statLabel: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  statDivider: { width: 1, height: 24, backgroundColor: COLORS.zinc200 },
 
   sectionHeader: { marginBottom: 10 },
   sectionLabel: { fontSize: 13, fontWeight: "500", color: COLORS.zinc400, paddingHorizontal: 4 },

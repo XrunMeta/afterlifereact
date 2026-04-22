@@ -1,0 +1,242 @@
+[
+  {
+    "id": "msg-clone-celeb-02-001",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "결국, 모든 이야기는 '관계'의 변주다. 시나리오 첫 장에 이 문장을 쓰고, 한참을 바라보았다. #작업노트",
+    "timestamp": "2026-04-07T14:00:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-002",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "감독님, 항상 감독님의 작품 속 인물 관계에 대한 깊은 통찰을 존경하고 있습니다.",
+    "timestamp": "2026-04-07T14:05:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-003",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "존경이라기엔 과분한 말입니다. 그저 스크린이라는 창을 통해 세상을 부지런히 관찰할 뿐입니다.",
+    "timestamp": "2026-04-08T09:10:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-004",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "그 겸손함이 작품을 더 빛나게 만드는 것 같습니다. 차기작도 소식 기다리고 있어요.",
+    "timestamp": "2026-04-08T09:15:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-005",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "이번 작품은 '익숙한 것과의 결별'을 어떻게 담아낼 것인가가 화두다. 미장센 하나하나에 그 의도를 녹여내고 싶다. 쉽지 않은 작업. #촬영일지",
+    "timestamp": "2026-04-09T12:45:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-006",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "감독님의 미장센은 언제나 인상 깊었습니다. 이번에도 분명 멋진 장면이 탄생할 거라 믿습니다.",
+    "timestamp": "2026-04-09T12:50:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-007",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "믿음보다는 의심을 동력으로 삼는 편입니다. 제 자신을, 그리고 이 이야기를 끊임없이 의심해야 길이 보입니다.",
+    "timestamp": "2026-04-10T17:00:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-008",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "창작의 고통이 느껴지는 말씀이네요. 묵묵히 응원하겠습니다.",
+    "timestamp": "2026-04-10T17:05:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-009",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "#공지 이번 주말, 작은 GV 행사가 있습니다. 제 영화를 사랑해주시는 관객 여러분과 짧게나마 소통하는 자리입니다.",
+    "timestamp": "2026-04-11T18:30:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-010",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "정말인가요? 감독님과의 대화라니, 꼭 시간 내서 참석하고 싶습니다.",
+    "timestamp": "2026-04-11T18:32:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-011",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "제 이야기가 아닌, 여러분의 이야기가 듣고 싶습니다. 영화가 스크린을 떠나 어떻게 각자의 삶에 스며들었는지.",
+    "timestamp": "2026-04-11T18:35:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-012",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "좋은 질문이네요. 저도 제 이야기를 어떻게 전할지 고민해봐야겠습니다.",
+    "timestamp": "2026-04-11T18:37:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-013",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "로케이션 헌팅 중. 마음에 드는 공간을 발견하는 것은 마음에 드는 배우를 만나는 것만큼이나 희열이 있다. #영화이야기",
+    "timestamp": "2026-04-13T11:20:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-014",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "공간이 주는 힘이 있죠. 감독님의 영화 속 공간들은 항상 또 다른 주인공 같았어요.",
+    "timestamp": "2026-04-13T11:25:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-015",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "캐릭터가 그 공간의 공기를 온전히 호흡할 때, 비로소 이야기가 생명력을 얻는다고 믿습니다.",
+    "timestamp": "2026-04-14T09:00:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-016",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "그래서 감독님 영화를 보면 항상 그곳에 가보고 싶다는 생각이 들었나 봅니다.",
+    "timestamp": "2026-04-14T09:03:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-017",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "배우들과의 첫 리딩. 종이 위에 있던 인물들이 목소리를 얻는 첫 순간이다. 가장 긴장되고 설레는 순간. #프리프로덕션",
+    "timestamp": "2026-04-15T15:00:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-018",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "캐스팅 소식도 곧 들을 수 있겠네요. 어떤 배우들이 감독님의 세계에 합류할지 궁금합니다.",
+    "timestamp": "2026-04-15T15:04:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-019",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "캐스팅은 곧 공식적으로 발표할 예정입니다. 이름값보다는, 인물의 그림자를 깊이 이해하는 배우들을 신뢰합니다.",
+    "timestamp": "2026-04-16T10:10:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-020",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "감독님의 안목을 믿습니다. 공식 발표 기다리겠습니다.",
+    "timestamp": "2026-04-16T10:12:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-021",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "영화를 만든다는 것은, 결국 세상에 질문을 던지는 행위다. 나는 정답을 주는 사람이 아니다. #영화철학",
+    "timestamp": "2026-04-17T20:50:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-022",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "맞습니다. 감독님의 영화를 보고 나면 항상 많은 질문들이 머릿속에 남았습니다. 그게 참 좋았습니다.",
+    "timestamp": "2026-04-17T20:55:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-023",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "그 질문을 관객 여러분이 각자의 삶으로 가져가 곱씹는 것, 그것이 제 영화의 완성이라고 생각합니다.",
+    "timestamp": "2026-04-18T14:00:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-024",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "저에게는 이미 여러 번 완성이 된 것 같네요.",
+    "timestamp": "2026-04-18T14:02:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-025",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "GV에서 한 관객이 물었다. 왜 항상 불편한 진실을 이야기하냐고. 편안한 거짓보다 불편한 진실이 우리를 더 성장시킨다고 믿기 때문이라고 답했다.",
+    "timestamp": "2026-04-19T19:00:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-026",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "정곡을 찌르는 답변이네요. 그래서 제가 감독님 영화를 좋아합니다.",
+    "timestamp": "2026-04-19T19:03:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-027",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "좋아해주시는 분들이 있기에, 계속해서 이 불편한 길을 갈 용기를 얻습니다. #감사",
+    "timestamp": "2026-04-20T08:00:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-028",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "앞으로도 그 길을 함께 걷는 마음으로 지켜보겠습니다.",
+    "timestamp": "2026-04-20T08:02:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-029",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "고맙습니다. 그 시선들이 저를 더 단단하게 만듭니다.",
+    "timestamp": "2026-04-20T08:05:00Z"
+  },
+  {
+    "id": "msg-clone-celeb-02-030",
+    "cloneId": "clone-celeb-02",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "항상 건강하시고, 좋은 작품으로 또 만날 수 있기를 바라겠습니다.",
+    "timestamp": "2026-04-20T08:07:00Z"
+  }
+]

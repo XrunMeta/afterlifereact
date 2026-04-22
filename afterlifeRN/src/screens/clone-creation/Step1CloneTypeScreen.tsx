@@ -1,238 +1,82 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
-import Button from "../../components/ui/Button";
-import { Feather } from "@expo/vector-icons";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { CreateStackParamList } from "../../navigation/types";
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { CreateStackParamList } from '../../navigation/types';
 
-import SafeView from "../../components/ui/SafeView";
-import SafeScrollView from "../../components/ui/SafeScrollView";
-import PageHeader from "../../components/common/PageHeader";
-import StepIndicator from "../../components/common/StepIndicator";
-import InterestChip from "../../components/ui/InterestChip";
-import { useCloneStore } from "../../stores/cloneStore";
-import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import TextField from "../../components/ui/TextField";
+import SafeView from '../../components/ui/SafeView';
+import SafeScrollView from '../../components/ui/SafeScrollView';
+import PageHeader from '../../components/common/PageHeader';
+import StepIndicator from '../../components/common/StepIndicator';
+import Button from '../../components/ui/Button';
+import { useCloneStore } from '../../stores/cloneStore';
+import { CLONE_TYPES } from '../../mocks/cloneTypeCatalog';
+import type { CloneType } from '../../types/clone';
+import { COLORS, SIZES, RADIUS } from '../../components/constants';
 
-type Props = {
-  navigation: NativeStackNavigationProp<CreateStackParamList, "Step1">;
-};
-
-import { CATEGORIES, INTEREST_MAP } from "../../mocks/interestHelpers";
+type Props = { navigation: NativeStackNavigationProp<CreateStackParamList, 'Step1'> };
 
 export default function Step1CloneTypeScreen({ navigation }: Props) {
-  const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
-
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [customInterest, setCustomInterest] = useState("");
-
-  const interests = selectedCategory ? INTEREST_MAP[selectedCategory] ?? [] : [];
-
-  const toggleInterest = (interest: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(interest)
-        ? prev.filter((i) => i !== interest)
-        : [...prev, interest]
-    );
-  };
-
-  const addCustomInterest = () => {
-    const trimmed = customInterest.trim();
-    if (trimmed && !selectedInterests.includes(trimmed)) {
-      setSelectedInterests((prev) => [...prev, trimmed]);
-      setCustomInterest("");
-    }
-  };
+  const setCreationDraft = useCloneStore(s => s.setCreationDraft);
+  const current = useCloneStore(s => s.creationDraft.cloneType);
+  const [selected, setSelected] = useState<CloneType | undefined>(current);
 
   const handleNext = () => {
-    setCreationDraft({
-      category: selectedCategory,
-      interests: selectedInterests,
-    });
-    navigation.navigate("Step2");
+    if (!selected) return;
+    setCreationDraft({ cloneType: selected });
+    navigation.navigate('Step2');
   };
 
   return (
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader
-        title="클론 생성"
+        title="클론 타입"
         showBackButton
-        onBackPress={() => {
-          const parent = navigation.getParent();
-
-          parent?.navigate("HomeTab" as never);
-        }}
+        onBackPress={() => navigation.getParent()?.navigate('HomeTab' as never)}
         stepInfo={{ current: 1, total: 7 }}
       />
       <StepIndicator currentStep={1} totalSteps={7} />
-
-      <SafeScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        autoAdjustKeyboardPadding={true}
-        showBottomBackground={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.container}>
-          {}
-          <Text style={styles.sectionTitle}>카테고리 선택</Text>
-          <View style={styles.categoryGrid}>
-            {CATEGORIES.map((cat) => (
+      <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
+        <Text style={styles.title}>어떤 클론을 만들까요?</Text>
+        <Text style={styles.subtitle}>나중에 변경할 수 없으니 신중히 선택해 주세요.</Text>
+        <View style={styles.grid}>
+          {CLONE_TYPES.map(t => {
+            const active = selected === t.id;
+            return (
               <TouchableOpacity
-                key={cat.id}
-                style={[
-                  styles.categoryCard,
-                  selectedCategory === cat.id && styles.categoryCardActive,
-                ]}
-                onPress={() => {
-                  setSelectedCategory(cat.id);
-                  setSelectedInterests([]);
-                }}
-                activeOpacity={0.7}
+                key={t.id}
+                accessibilityRole="button"
+                style={[styles.card, active && styles.cardActive]}
+                onPress={() => setSelected(t.id)}
               >
-
-                <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
-                <Text
-                  style={[
-                    styles.categoryLabel,
-                    selectedCategory === cat.id && styles.categoryLabelActive,
-                  ]}
-                >
-                  {cat.label}
-                </Text>
+                <Feather name={t.iconName as any} size={24}
+                  color={active ? COLORS.violet500 : COLORS.zinc600} />
+                <Text style={[styles.label, active && styles.labelActive]}>{t.label}</Text>
+                <Text style={styles.desc}>{t.desc}</Text>
               </TouchableOpacity>
-            ))}
-          </View>
-
-          {}
-          {interests.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>관심사 선택</Text>
-              <View style={styles.chipGrid}>
-                {interests.map((interest) => (
-                  <InterestChip
-                    key={interest}
-                    label={interest}
-                    selected={selectedInterests.includes(interest)}
-                    onPress={() => toggleInterest(interest)}
-                  />
-                ))}
-                {}
-                {selectedInterests
-                  .filter((i) => !interests.includes(i))
-                  .map((interest) => (
-                    <InterestChip
-                      key={interest}
-                      label={interest}
-                      selected
-                      onPress={() => toggleInterest(interest)}
-                    />
-                  ))}
-              </View>
-
-              {}
-              <View style={styles.customRow}>
-                <TextField
-                  value={customInterest}
-                  onChangeText={setCustomInterest}
-                  placeholderTextColor={COLORS.zinc400}
-                  onSubmitEditing={addCustomInterest}
-                  placeholder="커스텀 관심사 추가"
-                  containerStyle={styles.customInput}
-                />
-                <TouchableOpacity
-                  onPress={addCustomInterest}
-                  style={styles.addButton}
-                >
-                  <Feather name="plus" size={20} color={COLORS.white} />
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+            );
+          })}
         </View>
       </SafeScrollView>
-
-      {}
       <View style={styles.bottomBar}>
-        <Button title="다음 단계로 이동" onPress={handleNext} disabled={selectedInterests.length === 0} />
+        <Button title="다음" onPress={handleNext} disabled={!selected} />
       </View>
     </SafeView>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: SIZES.xlarge,
-    paddingVertical: SIZES.xlarge,
+  content: { padding: SIZES.large },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 4, color: COLORS.zinc900 },
+  subtitle: { fontSize: 13, color: COLORS.zinc500, marginBottom: 20 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  card: {
+    width: '48%', padding: 16, borderRadius: RADIUS.md,
+    borderWidth: 1, borderColor: COLORS.zinc200, backgroundColor: COLORS.white,
   },
-  container: { width: "100%", maxWidth: 780, gap: SIZES.xlarge },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: COLORS.zinc900,
-  },
-  categoryGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  categoryCard: {
-    width: "47%",
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    backgroundColor: COLORS.white,
-    alignItems: "center",
-    gap: 8,
-  },
-  categoryCardActive: {
-    borderColor: COLORS.violet500,
-    backgroundColor: COLORS.violet100,
-  },
-  categoryEmoji: { fontSize: 28 },
-  categoryLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: COLORS.zinc700,
-    textAlign: "center",
-  },
-  categoryLabelActive: { color: COLORS.violet600 },
-  chipGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  customRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    width: "100%",
-  },
-  customInput: {
-    flex: 1,
-    minWidth: 0,
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.zinc900,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  bottomBar: {
-    paddingHorizontal: SIZES.xlarge,
-    paddingVertical: SIZES.medium,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.zinc200,
-  },
+  cardActive: { borderColor: COLORS.violet500, backgroundColor: COLORS.violet100 },
+  label: { fontSize: 15, fontWeight: '600', marginTop: 8, color: COLORS.zinc800 },
+  labelActive: { color: COLORS.violet600 },
+  desc: { fontSize: 12, color: COLORS.zinc500, marginTop: 4 },
+  bottomBar: { padding: SIZES.large, borderTopWidth: 1, borderTopColor: COLORS.zinc100 },
 });

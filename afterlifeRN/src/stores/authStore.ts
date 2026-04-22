@@ -1,42 +1,44 @@
 import { create } from "zustand";
-import type { User, SignupData } from "../types/user";
-import mockUsers from "../mocks/users.json";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SEED } from "../mocks/seedIndex";
+import type { DomainUser } from "../types/domain";
+
+const STORAGE_KEY = "@afterlifeRN/auth/currentUserId";
+const DEFAULT_USER_ID = "user-001";
 
 interface AuthState {
   isLoggedIn: boolean;
-  user: User | null;
-  login: (email: string, password: string) => void;
-  signup: (data: SignupData) => void;
-  logout: () => void;
+  user: DomainUser | null;
+  hydrated: boolean;
+  hydrate: () => Promise<void>;
+  switchUser: (userId: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   isLoggedIn: false,
   user: null,
+  hydrated: false,
 
-  login: (_email, _password) => {
-    set({
-      isLoggedIn: true,
-      user: mockUsers.currentUser as User,
-    });
+  hydrate: async () => {
+    const stored = await AsyncStorage.getItem(STORAGE_KEY);
+    const id = stored ?? DEFAULT_USER_ID;
+    const u =
+      SEED.users.find((x) => x.id === id) ??
+      SEED.users.find((x) => x.id === DEFAULT_USER_ID) ??
+      null;
+    set({ isLoggedIn: !!u, user: u, hydrated: true });
   },
 
-  signup: (data) => {
-    const newUser: User = {
-      id: "user-new",
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      gender: data.gender,
-      age: data.age,
-      interests: data.interests,
-      avatarUrl: "",
-      credits: 100,
-    };
-    set({ isLoggedIn: true, user: newUser });
+  switchUser: async (userId) => {
+    const u = SEED.users.find((x) => x.id === userId);
+    if (!u) throw new Error(`switchUser: unknown userId ${userId}`);
+    await AsyncStorage.setItem(STORAGE_KEY, userId);
+    set({ user: u, isLoggedIn: true });
   },
 
-  logout: () => {
+  logout: async () => {
+    await AsyncStorage.removeItem(STORAGE_KEY);
     set({ isLoggedIn: false, user: null });
   },
 }));

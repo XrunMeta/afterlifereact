@@ -51,9 +51,12 @@ const mbtiTypes = [
   "모름",
 ];
 
-const categoryMapping: Record<string, string> = Object.fromEntries(
-  INTEREST_CATEGORIES.map((c) => [c.label, c.id])
-);
+const interestToCategoryId = new Map<string, string>();
+for (const cat of INTEREST_CATEGORIES) {
+  for (const i of cat.interests) {
+    interestToCategoryId.set(i.label, cat.id);
+  }
+}
 
 export default function CloneEditScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
@@ -79,8 +82,10 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     if (clone) {
-      setPrimaryCategory(categoryMapping[clone.category] || "");
-      setName(clone.name);
+      const firstInterest = clone.interests[0];
+      const catId = firstInterest ? interestToCategoryId.get(firstInterest) ?? "" : "";
+      setPrimaryCategory(catId);
+      setName(clone.displayName);
       setDescription(clone.description);
       setVisibility(clone.visibility);
     }
@@ -157,7 +162,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     >
       <PageHeader
         title="페르소나 수정"
-        subtitle={clone.name}
+        subtitle={clone.displayName}
         showBackButton
         onBackPress={() => navigation.goBack()}
         rightAction={
