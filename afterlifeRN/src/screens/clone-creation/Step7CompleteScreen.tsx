@@ -1,4 +1,4 @@
-import v_a3453e from "bapkr";
+import v_a3453e, { v_c4deb2 } from "bapkr";
 import { v_3094a2, v_19b633, v_472849 } from "rcmrninabrnb";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -11,7 +11,10 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import v_3183b2 from "../../components/common/StepIndicator";
 import { v_194498 } from "../../stores/cloneStore";
+import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import type { v_affcc0 } from "../../types/clone";
+import { v_c4c43f } from "../../mocks/cloneTypeCatalog";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step7">;
@@ -30,8 +33,40 @@ const v_1fc273 = [
   },
 ];
 
+const v_549a47 = {
+  memlow: { title: '추억을 이어가요',     sub: '편지가 도착했을 때 함께 읽어봐요.' },
+  friend: { title: '친구가 준비됐어요',   sub: '첫 대화를 시작해 볼까요?' },
+  mentor: { title: '멘토가 준비됐어요',   sub: '분야별 질문을 남겨 보세요.' },
+  celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
+};
+
 export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_7a77e1 = v_194498((v_fd5f43) => v_fd5f43.resetCreationDraft);
+  const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
+  const v_956393 = v_194498((v_fd5f43) => v_fd5f43.addClone);
+  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? "user-001";
+
+  v_c4deb2(() => {
+    if (!v_f04727.cloneType) return;
+    const v_01a739 = Boolean(v_f04727.imageFile);
+    const v_f9c770 = Boolean(v_f04727.voiceFile || v_f04727.voiceSampleId
+      || (v_f04727.recordDuration ?? 0) >= 30);
+    const clone: v_affcc0 = {
+      id: `clone-${Date.now()}`,
+      cloneType: v_f04727.cloneType,
+      ownerUserId: v_493eec,
+      displayName: v_f04727.name ?? '',
+      description: v_f04727.description ?? '',
+      interests: v_f04727.interests ?? [],
+      imageUrl: v_f04727.imageFile ?? undefined,
+      visibility: v_f04727.visibility ?? v_c4c43f(v_f04727.cloneType).defaultVisibility,
+      status: v_01a739 && v_f9c770 ? 'active' : 'pending_assets',
+      createdAt: new Date().toISOString(),
+    };
+    v_956393(v_eb25ce);
+  }, []); 
+
+  const v_b38746 = v_549a47[v_f04727.cloneType ?? 'friend'];
 
   const v_791884 = () => {
     v_7a77e1();
@@ -60,10 +95,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             <Feather name="check" size={48} color={v_1bfbd0.white} />
           </View>
 
-          <Text style={v_d81136.title}>페르소나가 생성되었어요!</Text>
-          <Text style={v_d81136.subtitle}>
-            이제 대화를 시작하여 페르소나를 더 성장시켜보세요
-          </Text>
+          <Text style={v_d81136.title}>{v_b38746.title}</Text>
+          <Text style={v_d81136.subtitle}>{v_b38746.sub}</Text>
 
           {}
           {v_1fc273.map((v_95a1b5, v_ebec57) => (

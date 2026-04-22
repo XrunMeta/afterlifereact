@@ -24,6 +24,8 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_ca88c9 from "../../components/ui/FilterModal";
 import { v_37977a } from "../../stores/feedStore";
+import { v_b4902e } from "../../stores/followStore";
+import { v_f386b1 } from "../../mocks/feedAdapter";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_19b433 } from "../../types/feed";
 import type { v_8ad91b } from "../../navigation/types";
@@ -43,14 +45,14 @@ export default function v_c316d8() {
     : Math.max(v_f9771e, v_033e14.bottom);
   const v_1be4da = v_28d8d8 - v_e4d4c8 - v_53dd92;
 
-  const v_632473 = v_37977a((v_fd5f43) => v_fd5f43.feeds);
   const v_632420 = v_37977a((v_fd5f43) => v_fd5f43.likedIds);
-  const v_559298 = v_37977a((v_fd5f43) => v_fd5f43.followedIds);
   const v_976e06 = v_37977a((v_fd5f43) => v_fd5f43.selectedInterests);
   const v_a96ced = v_37977a((v_fd5f43) => v_fd5f43.toggleLike);
-  const v_3094d4 = v_37977a((v_fd5f43) => v_fd5f43.toggleFollow);
   const v_770327 = v_37977a((v_fd5f43) => v_fd5f43.setSelectedInterests);
   const v_1c7dea = v_37977a((v_fd5f43) => v_fd5f43.getFilteredFeeds);
+  const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
+  const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
+  const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
 
   const [v_2bcb8f, v_ddecc4] = v_5ab095(0);
   const [v_a4bef1, v_ea2b4b] = v_5ab095(false);
@@ -58,7 +60,7 @@ export default function v_c316d8() {
   const [v_ed660d, v_b07dd3] = v_5ab095<string | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
-  const v_ff422a = v_1c7dea();
+  const filteredFeeds: v_19b433[] = v_1c7dea().map(v_f386b1);
 
   const v_43bc1b = v_de06a3(
     ({ viewableItems: v_e5cc27 }: { viewableItems: v_bd73dc[] }) => {
@@ -117,15 +119,15 @@ export default function v_c316d8() {
         item={v_8c0b26}
         isActive={v_a56041 === v_2bcb8f}
         isLiked={v_632420.includes(v_8c0b26.id)}
-        isFollowed={v_559298.includes(v_8c0b26.id)}
+        isFollowed={v_b30b81(v_8c0b26.cloneId)}
         cardHeight={v_1be4da}
         onToggleLike={() => v_a96ced(v_8c0b26.id)}
-        onToggleFollow={() => v_3094d4(v_8c0b26.id)}
+        onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
         onCallPress={() => v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image })}
         onCommentPress={() => v_b07dd3(v_8c0b26.id)}
       />
     ),
-    [v_2bcb8f, v_632420, v_559298, v_1be4da, v_a96ced, v_3094d4]
+    [v_2bcb8f, v_632420, v_1e752a, v_1be4da, v_a96ced, v_3094d4, v_b30b81]
   );
 
   return (

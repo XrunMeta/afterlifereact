@@ -17,6 +17,7 @@ import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2d88fc } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_35d5ed } from "../../mocks/seedIndex";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_84fd28 } from "../../types/gift";
 import v_feb82c from "../../mocks/gifts.json";
@@ -33,6 +34,16 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_033e14 = v_e0068c();
   const [v_a7e879, v_88d896] = v_5ab095(false);
+
+  const v_c279e3 =
+    v_eb25ce && v_eb25ce.cloneType === "memlow"
+      ? v_35d5ed.coowners
+          .filter(
+            (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === "approved",
+          )
+          .map((v_c4a45b) => v_35d5ed.users.find((v_ceb55a) => v_ceb55a.id === v_c4a45b.userId))
+          .filter((v_ceb55a): v_ceb55a is NonNullable<typeof v_ceb55a> => Boolean(v_ceb55a))
+      : [];
 
   if (!v_eb25ce) {
     return (
@@ -56,7 +67,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     <View style={v_fd5f43.container}>
       {}
       <Image
-        source={{ uri: v_eb25ce.coverImageUrl || v_eb25ce.avatarUrl }}
+        source={{ uri: v_eb25ce.imageUrl ?? "" }}
         style={v_fd5f43.bgImage}
         resizeMode="cover"
       />
@@ -88,6 +99,21 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         colors={["transparent", "rgba(9,9,11,0.7)"]}
         style={v_fd5f43.bottomGradient}
       >
+        {v_c279e3.length > 0 && (
+          <View style={v_fd5f43.coownerBlock} testID="coowner-section">
+            <Text style={v_fd5f43.coownerTitle}>
+              공동관리자 {v_c279e3.length}명
+            </Text>
+            <View style={v_fd5f43.coownerList}>
+              {v_c279e3.slice(0, 5).map((v_ceb55a) => (
+                <View key={v_ceb55a.id} style={v_fd5f43.coownerChip}>
+                  <Text style={v_fd5f43.coownerName}>{v_ceb55a.displayName}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {}
         <TouchableOpacity
           style={v_fd5f43.giftBtn}
@@ -185,8 +211,36 @@ const v_fd5f43 = v_472849.create({
     right: 0,
     paddingHorizontal: 24,
     paddingBottom: 40,
+    paddingTop: 16,
     alignItems: "flex-end",
     zIndex: 10,
+  },
+  coownerBlock: {
+    alignSelf: "stretch",
+    marginBottom: 16,
+  },
+  coownerTitle: {
+    fontSize: 12,
+    color: v_1bfbd0.white,
+    fontWeight: "600",
+    marginBottom: 8,
+    opacity: 0.85,
+  },
+  coownerList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  coownerChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: v_8b0c90.full,
+  },
+  coownerName: {
+    fontSize: 12,
+    color: v_1bfbd0.white,
+    fontWeight: "500",
   },
   giftBtn: {
     width: 56,

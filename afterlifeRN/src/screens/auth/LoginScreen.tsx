@@ -27,10 +27,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
   const [v_f53eaa, v_36bbbe] = v_5ab095(false);
 
-  const v_182fdb = v_1ed7d9((v_fd5f43) => v_fd5f43.login);
+  const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
 
   const v_ec4736 = () => {
-    v_182fdb(v_e0c7e8, v_adc076);
+    void v_232d52();
   };
 
   const v_78c15c = (v_e38ca2) => {

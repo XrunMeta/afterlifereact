@@ -1,0 +1,49 @@
+import {
+  v_aad223,
+  v_0a40d6,
+  v_37549e,
+  v_c4c43f,
+} from '../../src/mocks/cloneTypeCatalog';
+
+test('CLONE_TYPES has exactly memlow/friend/mentor/celeb', () => {
+  expect(v_aad223.map(v_8d41d7 => v_8d41d7.id)).toEqual(['memlow', 'friend', 'mentor', 'celeb']);
+});
+
+test('every type has iconName + label + desc (no emoji field)', () => {
+  for (const v_8d41d7 of v_aad223) {
+    expect(v_8d41d7.iconName).toBeTruthy();
+    expect(v_8d41d7.label).toBeTruthy();
+    expect(v_8d41d7.desc).toBeTruthy();
+    expect((v_8d41d7 as any).emoji).toBeUndefined();
+  }
+});
+
+test('memlow has visibilityLocked=true and defaultVisibility=private', () => {
+  const v_1b27f8 = v_c4c43f('memlow');
+  expect(v_1b27f8.visibilityLocked).toBe(true);
+  expect(v_1b27f8.defaultVisibility).toBe('private');
+});
+
+test('non-memlow types are visibilityLocked=false and default public', () => {
+  for (const v_389afb of ['friend', 'mentor', 'celeb'] as const) {
+    const v_35f85c = v_c4c43f(v_389afb);
+    expect(v_35f85c.visibilityLocked).toBe(false);
+    expect(v_35f85c.defaultVisibility).toBe('public');
+  }
+});
+
+test('MEMLOW_RELATIONS includes at least mother/father/spouse/child/pet/other', () => {
+  const v_52e08b = v_0a40d6.map(v_cb35cb => v_cb35cb.id);
+  for (const v_389afb of ['mother', 'father', 'spouse', 'child', 'pet', 'other']) {
+    expect(v_52e08b).toContain(v_389afb);
+  }
+});
+
+test('MEMLOW_VOICE_SCRIPTS has at least 3 scripts with non-empty text', () => {
+  expect(v_37549e.length).toBeGreaterThanOrEqual(3);
+  for (const v_fd5f43 of v_37549e) {
+    expect(v_fd5f43.id).toBeTruthy();
+    expect(v_fd5f43.title).toBeTruthy();
+    expect(v_fd5f43.text.length).toBeGreaterThan(0);
+  }
+});

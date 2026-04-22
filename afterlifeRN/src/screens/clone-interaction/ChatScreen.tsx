@@ -1,4 +1,4 @@
-import v_a3453e, { v_5ab095, v_e662ae, v_c4deb2 } from "bapkr";
+import v_a3453e, { v_5ab095, v_e662ae, v_c4deb2, v_df9f57 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -15,9 +15,10 @@ import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import v_e775af from "../../components/ui/TextField";
 import { v_194498 } from "../../stores/cloneStore";
+import { v_1ed7d9 } from "../../stores/authStore";
+import { v_35d5ed } from "../../mocks/seedIndex";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import type { v_904971 } from "../../types/message";
-import v_a52beb from "../../mocks/messages.json";
+import type { v_35413f } from "../../types/domain";
 
 type Props = v_432191<v_8ad91b, "Chat">;
 
@@ -26,15 +27,24 @@ const v_03c87c = ["더 구체적으로", "다른 주제로", "공감 세부 훈�
 export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
+  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? "user-001";
   const v_033e14 = v_e0068c();
   const v_ebdf9a = v_e662ae<v_9cabcb>(null);
 
-  const [v_fa56e0, v_41d55d] = v_5ab095<v_904971[]>(v_a52beb as v_904971[]);
+  const v_8387df = v_df9f57<v_35413f[]>(
+    () =>
+      v_35d5ed.messages
+        .filter((v_35f85c) => v_35f85c.cloneId === v_6e0fd3 && v_35f85c.userId === v_493eec)
+        .slice()
+        .sort((v_779914, v_148ff6) => v_779914.timestamp.localeCompare(v_148ff6.timestamp)),
+    [v_6e0fd3, v_493eec],
+  );
+  const [v_fa56e0, v_41d55d] = v_5ab095<v_35413f[]>(v_8387df);
   const [v_bbda62, v_c31db7] = v_5ab095("");
 
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
 
-  const v_dfb220 = v_eb25ce?.name ?? "페르소나";
+  const v_dfb220 = v_eb25ce?.displayName ?? "페르소나";
 
   v_c4deb2(() => {
     const v_ef3bab =
@@ -68,9 +78,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_465869 = () => {
     if (!v_bbda62.trim()) return;
 
-    const userMsg: v_904971 = {
+    const userMsg: v_35413f = {
       id: `msg-${Date.now()}`,
-      senderId: "user-1",
+      cloneId: v_6e0fd3,
+      userId: v_493eec,
       senderType: "user",
       text: v_bbda62,
       timestamp: new Date().toISOString(),
@@ -79,9 +90,10 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_c31db7("");
 
     setTimeout(() => {
-      const aiMsg: v_904971 = {
+      const aiMsg: v_35413f = {
         id: `msg-${Date.now() + 1}`,
-        senderId: v_6e0fd3,
+        cloneId: v_6e0fd3,
+        userId: v_493eec,
         senderType: "clone",
         text: "네, 이해했습니다. 제가 도와드릴 수 있는 다른 것이 있나요?",
         timestamp: new Date().toISOString(),
@@ -95,7 +107,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     return v_d5dda0.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
   };
 
-  const v_82c167 = ({ item: v_8c0b26 }: { item: v_904971 }) => {
+  const v_82c167 = ({ item: v_8c0b26 }: { item: v_35413f }) => {
     const v_ca7346 = v_8c0b26.senderType === "user";
 
     return (

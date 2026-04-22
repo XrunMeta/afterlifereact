@@ -1,104 +1,79 @@
 import { v_a7c0d4 } from "vukrcww";
-import type { v_19b433 } from "../types/feed";
-import { v_a554a7 } from "../mocks/images";
+import { v_35d5ed } from "../mocks/seedIndex";
+import type { v_4b85a1, v_bc3df4 } from "../types/domain";
+import { v_1ed7d9 } from "./authStore";
 
-const mockFeeds: v_19b433[] = [
-  {
-    id: "feed-1",
-    cloneId: "clone-1",
-    author: "할아버지",
-    username: "@member_01",
-    authorAvatar: v_a554a7.grandfatherAvatar,
-    image: v_a554a7.grandfatherPost,
-    title: "할아버지",
-    description: "오늘 하루는 어떠셨나요? 마음에 담아둔 이야기가 있다면 저에게 편하게 말씀주세요. 당신의 길을 함께 고민해 드릴께요.",
-    type: "멤로우",
-    mainCategory: "일상 및 감정 케어",
-    interests: ["일상 대화", "감정 케어", "인생 조언"],
-    likes: "12.4K",
-    comments: 842,
-  },
-  {
-    id: "feed-2",
-    cloneId: "clone-2",
-    author: "할머니",
-    username: "@afterLife",
-    authorAvatar: v_a554a7.grandmotherAvatar,
-    image: v_a554a7.grandmotherPost,
-    title: "할머니",
-    description: "얘야, 힘든 일이 있어도 웃음을 잃지 말거라. 할머니가 항상 네 곁에서 응원하고 있단다.",
-    type: "멤로우",
-    mainCategory: "일상 및 감정 케어",
-    interests: ["감정 케어", "인생 조언", "추억 공유"],
-    likes: "8.7K",
-    comments: 523,
-  },
-  {
-    id: "feed-3",
-    cloneId: "clone-3",
-    author: "이선재",
-    username: "@user_ex",
-    authorAvatar: v_a554a7.friendMale,
-    image: v_a554a7.friendMale,
-    title: "이선재",
-    description: "안녕하세요! 오늘도 함께 좋은 하루 만들어가요. 여러분의 이야기가 궁금해요.",
-    type: "친구",
-    mainCategory: "엔터테인먼트 및 취미",
-    interests: ["엔터테인먼트", "일상 대화", "유머/재미"],
-    likes: "15.2K",
-    comments: 1204,
-  },
-];
+const v_b9d568 = "user-001";
 
 interface FeedState {
-  feeds: v_19b433[];
+  feeds: v_bc3df4[];
   likedIds: string[];
   bookmarkedIds: string[];
-  followedIds: string[];
   selectedInterests: string[];
   toggleLike: (id: string) => void;
   toggleBookmark: (id: string) => void;
-  toggleFollow: (id: string) => void;
   setSelectedInterests: (interests: string[]) => void;
-  getFilteredFeeds: () => v_19b433[];
+  getVisibleFeeds: () => v_bc3df4[];
+  getFilteredFeeds: () => v_bc3df4[];
+}
+
+function v_5b0abe(c: v_4b85a1, v_493eec): boolean {
+  if (v_3f4e2e.visibility === "public") return true;
+  if (v_3f4e2e.ownerUserId === v_493eec) return true;
+  const v_306056 = v_35d5ed.coowners.some(
+    (v_c4a45b) =>
+      v_c4a45b.cloneId === v_3f4e2e.id &&
+      v_c4a45b.userId === v_493eec &&
+      v_c4a45b.status === "approved",
+  );
+  if (v_306056) return true;
+  if (v_3f4e2e.visibility === "followers") {
+    return v_35d5ed.follows.some(
+      (v_8b5cd8) =>
+        v_8b5cd8.followerUserId === v_493eec && v_8b5cd8.followingCloneId === v_3f4e2e.id,
+    );
+  }
+  return false;
 }
 
 export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
-  feeds: v_a47fe1 as v_19b433[],
+  feeds: v_35d5ed.feeds,
   likedIds: [],
   bookmarkedIds: [],
-  followedIds: [],
-  selectedInterests: ["일상 대화", "감정 케어", "추억 공유"],
+  selectedInterests: [],
 
   toggleLike: (v_389afb) =>
-    v_bb8024((v_b6e533) => ({
-      likedIds: v_b6e533.likedIds.includes(v_389afb)
-        ? v_b6e533.likedIds.filter((v_ebec57) => v_ebec57 !== v_389afb)
-        : [...v_b6e533.likedIds, v_389afb],
+    v_bb8024((v_fd5f43) => ({
+      likedIds: v_fd5f43.likedIds.includes(v_389afb)
+        ? v_fd5f43.likedIds.filter((v_ebec57) => v_ebec57 !== v_389afb)
+        : [...v_fd5f43.likedIds, v_389afb],
     })),
 
   toggleBookmark: (v_389afb) =>
-    v_bb8024((v_b6e533) => ({
-      bookmarkedIds: v_b6e533.bookmarkedIds.includes(v_389afb)
-        ? v_b6e533.bookmarkedIds.filter((v_ebec57) => v_ebec57 !== v_389afb)
-        : [...v_b6e533.bookmarkedIds, v_389afb],
+    v_bb8024((v_fd5f43) => ({
+      bookmarkedIds: v_fd5f43.bookmarkedIds.includes(v_389afb)
+        ? v_fd5f43.bookmarkedIds.filter((v_ebec57) => v_ebec57 !== v_389afb)
+        : [...v_fd5f43.bookmarkedIds, v_389afb],
     })),
 
-  toggleFollow: (v_389afb) =>
-    v_bb8024((v_b6e533) => ({
-      followedIds: v_b6e533.followedIds.includes(v_389afb)
-        ? v_b6e533.followedIds.filter((v_ebec57) => v_ebec57 !== v_389afb)
-        : [...v_b6e533.followedIds, v_389afb],
-    })),
+  setSelectedInterests: (v_774c91) => v_bb8024({ selectedInterests: v_774c91 }),
 
-  setSelectedInterests: (v_774c91) =>
-    v_bb8024({ selectedInterests: v_774c91 }),
+  getVisibleFeeds: () => {
+    const v_ceb55a = v_1ed7d9.getState().user?.id ?? v_b9d568;
+    const v_44e401 = new Set(
+      v_35d5ed.clones.filter((v_3f4e2e) => v_5b0abe(v_3f4e2e, v_ceb55a)).map((v_3f4e2e) => v_3f4e2e.id),
+    );
+    return v_38715b().feeds.filter((v_8b5cd8) => v_44e401.has(v_8b5cd8.cloneId));
+  },
 
   getFilteredFeeds: () => {
-    const { feeds: v_632473, selectedInterests: v_976e06 } = v_38715b();
-    if (v_976e06.length === 0) return v_632473;
-    return v_632473.filter((v_2db2a5) =>
-      v_2db2a5.interests.some((v_ebec57) => v_976e06.includes(v_ebec57))
-    );
+    const { selectedInterests: v_976e06 } = v_38715b();
+    const v_cf55be = v_38715b().getVisibleFeeds();
+    if (v_976e06.length === 0) return v_cf55be;
+    const v_bafba0 = new Map(v_35d5ed.clones.map((v_3f4e2e) => [v_3f4e2e.id, v_3f4e2e]));
+    return v_cf55be.filter((v_8b5cd8) => {
+      const v_3f4e2e = v_bafba0.get(v_8b5cd8.cloneId);
+      return v_3f4e2e ? v_3f4e2e.interests.some((v_ebec57) => v_976e06.includes(v_ebec57)) : false;
+    });
   },
 }));

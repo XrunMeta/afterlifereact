@@ -1,4 +1,4 @@
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -18,22 +18,34 @@ import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_194498 } from "../../stores/cloneStore";
+import { v_1ed7d9 } from "../../stores/authStore";
+import { v_b4902e } from "../../stores/followStore";
+import { v_35d5ed } from "../../mocks/seedIndex";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import type { v_affcc0 } from "../../types/clone";
+import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
 import type { v_8ad91b } from "../../navigation/types";
 
 type ClonesNav = v_390fcc<v_2d88fc>;
 
-type Visibility = "public" | "private" | "followers";
+const v_b9d568 = "user-001";
 
 export default function v_def15b() {
   const v_c65f5d = v_ada615<ClonesNav>();
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
-  const v_4cd149 = v_194498((v_fd5f43) => v_fd5f43.myClones);
+  const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
+  const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
+  const v_4cd149 = v_df9f57<v_affcc0[]>(() => {
+    const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
+    return [
+      ...v_35d5ed.clones.filter((v_3f4e2e) => v_3f4e2e.ownerUserId === v_0c8987),
+      ...v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerUserId === v_0c8987),
+    ];
+  }, [v_f38ee5, v_06f32b]);
 
   const [v_699459, v_2bf327] = v_5ab095<
-    Record<string, { isActive: boolean; visibility: Visibility }>
+    Record<string, { isActive: boolean; visibility: v_b0b271 }>
   >(
     v_4cd149.reduce(
       (v_9f1d92, v_eb25ce, v_ebec57) => ({
@@ -62,7 +74,7 @@ export default function v_def15b() {
   } | null>(null);
   const [v_7462ec, v_2dbd8f] = v_5ab095<{
     cloneId: string;
-    currentVisibility: Visibility;
+    currentVisibility: v_b0b271;
   } | null>(null);
   const [v_c9d3fa, v_f32c49] = v_5ab095<string | null>(null);
 
@@ -95,7 +107,7 @@ export default function v_def15b() {
     v_8d2d61(null);
   };
 
-  const v_c9f992 = (v_81e2ef) => {
+  const v_c9f992 = (v: v_b0b271) => {
     if (!v_7462ec) return;
     v_2bf327((v_ba2215) => ({
       ...v_ba2215,
@@ -119,7 +131,7 @@ export default function v_def15b() {
     }
   };
 
-  const v_82830c = (v_81e2ef) => {
+  const v_82830c = (v: v_b0b271) => {
     switch (v_81e2ef) {
       case "public": return "공개";
       case "private": return "비공개";
@@ -127,7 +139,7 @@ export default function v_def15b() {
     }
   };
 
-  const v_a6deb1 = (v_81e2ef): keyof typeof v_dec439.glyphMap => {
+  const v_a6deb1 = (v: v_b0b271): keyof typeof v_dec439.glyphMap => {
     switch (v_81e2ef) {
       case "public": return "eye";
       case "private": return "eye-off";
@@ -139,6 +151,15 @@ export default function v_def15b() {
     const v_b6e533 = v_699459[v_eb25ce.id];
     const v_26dce6 = v_b6e533?.isActive ?? true;
     const v_818579 = v_b6e533?.visibility ?? v_eb25ce.visibility;
+    const v_e17daa = v_1e752a.filter(
+      (v_8b5cd8) => v_8b5cd8.followingCloneId === v_eb25ce.id,
+    ).length;
+    const v_77df30 =
+      v_eb25ce.cloneType === "memlow"
+        ? v_35d5ed.coowners.filter(
+            (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === "approved",
+          ).length
+        : 0;
 
     return (
       <View style={v_fd5f43.card}>
@@ -175,12 +196,12 @@ export default function v_def15b() {
         {}
         <View style={v_fd5f43.cloneHeader}>
           <View style={v_fd5f43.avatarWrap}>
-            <Image source={{ uri: v_eb25ce.avatarUrl }} style={v_fd5f43.avatar} />
+            <Image source={{ uri: v_eb25ce.imageUrl ?? "" }} style={v_fd5f43.avatar} />
             {v_26dce6 && <View style={v_fd5f43.activeDot} />}
           </View>
           <View style={v_fd5f43.cloneInfo}>
-            <Text style={v_fd5f43.cloneName}>{v_eb25ce.name}</Text>
-            <Text style={v_fd5f43.cloneCategory}>{v_eb25ce.category}</Text>
+            <Text style={v_fd5f43.cloneName}>{v_eb25ce.displayName}</Text>
+            <Text style={v_fd5f43.cloneCategory}>{v_eb25ce.interests[0] ?? ""}</Text>
           </View>
         </View>
 
@@ -193,33 +214,53 @@ export default function v_def15b() {
         <View style={v_fd5f43.statsRow}>
           <TouchableOpacity
             style={v_fd5f43.stat}
-            onPress={() => v_d5cd7b({ type: "likes", cloneName: v_eb25ce.name })}
+            onPress={() => v_d5cd7b({ type: "likes", cloneName: v_eb25ce.displayName })}
           >
             <Feather name="heart" size={14} color={v_1bfbd0.zinc500} />
             <Text style={v_fd5f43.statText}>2.4k</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={v_fd5f43.stat}
-            onPress={() => v_d5cd7b({ type: "interactions", cloneName: v_eb25ce.name })}
+            onPress={() => v_d5cd7b({ type: "interactions", cloneName: v_eb25ce.displayName })}
           >
             <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
             <Text style={v_fd5f43.statText}>4.5k</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={v_fd5f43.stat}
-            onPress={() => v_d5cd7b({ type: "comments", cloneName: v_eb25ce.name })}
+            onPress={() => v_d5cd7b({ type: "comments", cloneName: v_eb25ce.displayName })}
           >
             <Feather name="message-circle" size={14} color={v_1bfbd0.zinc500} />
             <Text style={v_fd5f43.statText}>328</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={v_fd5f43.stat}
-            onPress={() => v_d5cd7b({ type: "followers", cloneName: v_eb25ce.name })}
+            onPress={() => v_d5cd7b({ type: "followers", cloneName: v_eb25ce.displayName })}
           >
             <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
-            <Text style={v_fd5f43.statText}>15.2k</Text>
+            <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
+              {v_e17daa} 팔로워
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {v_77df30 > 0 && (
+          <View style={v_fd5f43.coownerBadge}>
+            <Feather name="users" size={12} color={v_1bfbd0.zinc600} />
+            <Text style={v_fd5f43.coownerText}>공동관리자 {v_77df30}명</Text>
+          </View>
+        )}
+
+        {}
+        {v_eb25ce.status === 'pending_assets' && (
+          <View style={v_fd5f43.pendingBadge}>
+            <Feather name="clock" size={12} color={v_1bfbd0.zinc600} />
+            <Text style={v_fd5f43.pendingText}>생성대기중</Text>
+            <TouchableOpacity onPress={() => v_c65f5d.navigate('CloneEdit', { cloneId: v_eb25ce.id })}>
+              <Text style={v_fd5f43.pendingCta}>사진/음성 추가하기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {}
         <View style={v_fd5f43.tagsRow}>
@@ -404,7 +445,7 @@ export default function v_def15b() {
             <Text style={v_fd5f43.modalTitle}>공개 설정</Text>
             <Text style={v_fd5f43.modalDesc}>페르소나의 공개 범위를 선택하세요</Text>
             <View style={v_fd5f43.visibilityOptions}>
-              {(["public", "private", "followers"] as Visibility[]).map((v_81e2ef) => {
+              {(["public", "private", "followers"] as v_b0b271[]).map((v_81e2ef) => {
                 const v_587413 = v_7462ec?.currentVisibility === v_81e2ef;
                 return (
                   <TouchableOpacity
@@ -765,6 +806,34 @@ const v_fd5f43 = v_472849.create({
   },
   stat: { flexDirection: "row", alignItems: "center", gap: 4 },
   statText: { fontSize: 13, color: v_1bfbd0.zinc500 },
+
+  pendingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: v_1bfbd0.zinc100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  pendingText: { fontSize: 11, color: v_1bfbd0.zinc600 },
+  pendingCta: { fontSize: 11, color: v_1bfbd0.violet600, marginLeft: 4, textDecorationLine: 'underline' },
+
+  coownerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: v_1bfbd0.violet100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  coownerText: { fontSize: 11, color: v_1bfbd0.violet600, fontWeight: '500' },
 
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 },
   tag: {

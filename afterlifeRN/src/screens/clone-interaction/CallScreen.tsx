@@ -59,8 +59,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_605664, v_0f07a9] = v_5ab095<FloatingGift[]>([]);
   const v_63eb29 = v_e662ae(0);
 
-  const v_dfb220 = v_a4744c || v_eb25ce?.name || "페르소나";
-  const v_0e38ad = v_c1e151 || v_eb25ce?.avatarUrl || v_eb25ce?.coverImageUrl || "";
+  const v_dfb220 = v_a4744c || v_eb25ce?.displayName || "페르소나";
+  const v_0e38ad = v_c1e151 || v_eb25ce?.imageUrl || "";
 
   v_c4deb2(() => {
     if (v_8282fa) {

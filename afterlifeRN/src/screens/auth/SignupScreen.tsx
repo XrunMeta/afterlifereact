@@ -18,7 +18,6 @@ import v_e775af from "../../components/ui/TextField";
 import v_d56c0a from "../../components/ui/SelectField";
 import v_84e2fc from "../../components/ui/InterestChip";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
 
@@ -35,8 +34,6 @@ const v_798085 = [
 const v_bbe45f = v_bf4124;
 
 export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
-  const v_35200c = v_1ed7d9((v_fd5f43) => v_fd5f43.signup);
-
   const [v_1833e7, v_318f24] = v_5ab095("");
   const [v_e0c7e8, v_fedf34] = v_5ab095("");
   const [v_adc076, v_52b279] = v_5ab095("");
