@@ -1,0 +1,44 @@
+{
+  "_route": "POST /oth-path",
+  "_auth": "required (owner/coowner/follower — resolveViewerRole 으로 접근 판정)",
+  "_headers": { "X-Idempotency-Key": "required" },
+  "_body": {
+    "session_id": "string? (없으면 서버가 crypto.randomUUID 생성)",
+    "content": "string (1~4000)"
+  },
+  "_response_200": {
+    "sessionId": "sess-01HXYZ",
+    "userMessage": {
+      "id": 2001,
+      "content": "엄마 보고싶어",
+      "createdAt": "2026-04-22T12:00:00Z"
+    },
+    "cloneReply": {
+      "id": 2002,
+      "content": "나도 보고싶다 우리 아가",
+      "tokens": 18,
+      "createdAt": "2026-04-22T12:00:01Z"
+    },
+    "billing": {
+      "credits": 1,
+      "tokens": 42
+    }
+  },
+  "_errors": {
+    "401": "missing/invalid bearer",
+    "403": "No access to this clone. (private/followers 접근 불가)",
+    "404": "Clone not found.",
+    "402-like": "INSUFFICIENT_CREDITS (code: Not enough credits to chat.)",
+    "409": "Idempotency-Key 재사용 시 (중복 요청 캐시 응답)"
+  },
+  "_sse_variant": {
+    "_route": "POST /oth-path",
+    "_content_type": "text/event-stream",
+    "frames": [
+      { "event": "start", "data": { "sessionId": "…", "userMessageId": 2001 } },
+      { "event": "token", "data": { "chunk": "나도" } },
+      { "event": "done", "data": { "cloneMessageId": 2002, "tokens": 18, "credits": 1, "createdAt": "…" } },
+      { "event": "error", "data": { "code": "STREAM_FAILED", "message": "…" } }
+    ]
+  }
+}
