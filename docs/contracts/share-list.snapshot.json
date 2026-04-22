@@ -1,0 +1,28 @@
+{
+  "_route": "GET /oth-path",
+  "_auth": "required (owner only)",
+  "shares": [
+    {
+      "id": 55,
+      "targetUserId": 3,
+      "targetName": "미나",
+      "targetEmail": "mina@afterlife.example",
+      "inviteEmail": null,
+      "relation": "family",
+      "role": "coowner",
+      "status": "accepted",
+      "createdAt": "2026-03-14T07:20:00Z"
+    },
+    {
+      "id": 56,
+      "targetUserId": null,
+      "targetName": null,
+      "targetEmail": null,
+      "inviteEmail": "aunt@afterlife.example",
+      "relation": "family",
+      "role": "viewer",
+      "status": "pending",
+      "createdAt": "2026-04-01T11:02:00Z"
+    }
+  ]
+}
