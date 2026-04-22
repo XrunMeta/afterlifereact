@@ -2,10 +2,10 @@ export type CloneType = 'memlow' | 'friend' | 'mentor' | 'celeb';
 export type CloneStatus = 'active' | 'pending_assets';
 export type Visibility = 'public' | 'followers' | 'private';
 export type CoownerStatus = 'invited' | 'approved' | 'rejected';
-export type SenderType = 'user' | 'clone';
+export type MessageRole = 'user' | 'clone';
 
 export interface DomainUser {
-  id: string;
+  id: number;
   displayName: string;
   handle: string;
   avatarUrl?: string;
@@ -14,9 +14,9 @@ export interface DomainUser {
 }
 
 export interface DomainClone {
-  id: string;
+  id: number;
   cloneType: CloneType;
-  ownerUserId: string;
+  ownerId: number;
   displayName: string;
   description: string;
   interests: string[];
@@ -28,34 +28,34 @@ export interface DomainClone {
 }
 
 export interface DomainFollow {
-  id: string;
-  followerUserId: string;
-  followingCloneId: string;
+  id: number;
+  followerUserId: number;
+  followingCloneId: number;
   followedAt: string;
 }
 
 export interface DomainCoowner {
-  id: string;
-  cloneId: string;
-  userId: string;
+  id: number;
+  cloneId: number;
+  userId: number;
   status: CoownerStatus;
   invitedAt: string;
   approvedAt?: string;
 }
 
 export interface DomainMessage {
-  id: string;
-  cloneId: string;
-  userId: string;
-  senderType: SenderType;
-  text: string;
+  id: number;
+  cloneId: number;
+  userId: number;
+  role: MessageRole;
+  content: string;
   timestamp: string;
 }
 
 export interface DomainFeed {
-  id: string;
-  cloneId: string;
-  text: string;
-  imageUrl?: string;
+  id: number;
+  cloneId: number;
+  content: string;
+  mediaUrl?: string;
   createdAt: string;
 }
