@@ -1,6 +1,6 @@
 {
   "_route": "GET /oth-path",
-  "_query": "q, type, category, sort=recent|popular, cursor, limit",
+  "_query": "q, type, category, sort=new|popular (default: new), cursor, limit (1~50, default: 20)",
   "items": [
     {
       "id": 1,
@@ -9,7 +9,11 @@
       "cloneType": "memlow",
       "category": "family",
       "avatarUrl": "https://cdn.afterlife.example/avatar/natsu.png",
-      "followersCount": 42,
+      "stats": {
+        "followers": 42,
+        "messages": 318,
+        "gifts": 5
+      },
       "createdAt": "2026-03-10T02:15:00Z"
     },
     {
@@ -19,9 +23,13 @@
       "cloneType": "friend",
       "category": "friend",
       "avatarUrl": "https://cdn.afterlife.example/avatar/ray.png",
-      "followersCount": 118,
+      "stats": {
+        "followers": 118,
+        "messages": 742,
+        "gifts": 12
+      },
       "createdAt": "2026-03-12T09:02:00Z"
     }
   ],
-  "nextCursor": "eyJzIjoiMjAyNi0wMy0xMlQwOTowMjowMFoiLCJpIjoyfQ=="
+  "nextCursor": "MjAyNi0wMy0xMlQwOTowMjowMFoyfDI="
 }
