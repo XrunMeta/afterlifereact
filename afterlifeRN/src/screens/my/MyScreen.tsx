@@ -71,8 +71,8 @@ export default function v_ed02a5() {
             </TouchableOpacity>
           </View>
 
-          <Text style={v_fd5f43.userName}>{v_625c74?.name ?? "사용자"}</Text>
-          <Text style={v_fd5f43.userHandle}>@SeniorConsultant_01</Text>
+          <Text style={v_fd5f43.userName}>{v_625c74?.displayName ?? "사용자"}</Text>
+          <Text style={v_fd5f43.userHandle}>{v_625c74?.handle ?? "@afterlife"}</Text>
         </View>
 
         {}
@@ -95,12 +95,8 @@ export default function v_ed02a5() {
               <Text style={v_fd5f43.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={v_fd5f43.coinAmount}>
-            {(v_625c74?.credits ?? 12540).toLocaleString()}
-          </Text>
-          <Text style={v_fd5f43.coinWon}>
-            약 ₩{(v_625c74?.credits ?? 12540).toLocaleString()} 상당
-          </Text>
+          <Text style={v_fd5f43.coinAmount}>{(12540).toLocaleString()}</Text>
+          <Text style={v_fd5f43.coinWon}>약 ₩{(12540).toLocaleString()} 상당</Text>
         </View>
 
         {}
@@ -162,7 +158,7 @@ export default function v_ed02a5() {
         </View>
 
         {}
-        <TouchableOpacity style={v_fd5f43.logoutBtn} onPress={v_d7d5a2}>
+        <TouchableOpacity style={v_fd5f43.logoutBtn} onPress={() => void v_d7d5a2()}>
           <Feather name="log-out" size={16} color={v_1bfbd0.zinc600} />
           <Text style={v_fd5f43.logoutText}>로그아웃</Text>
         </TouchableOpacity>
