@@ -137,6 +137,7 @@ export default function v_19ba0e() {
             );
             v_c65f5d.dispatch(
               v_650cfa.reset({
+                ...v_b6e533,
                 index: v_3f8a47,
                 routes: v_81e34b,
               })
