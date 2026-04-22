@@ -113,7 +113,7 @@ export function v_0f28c1() {
             <Text style={v_d81136.modalTitle}>유저 스위치</Text>
             <FlatList
               data={v_35d5ed.users}
-              keyExtractor={(v_ceb55a) => v_ceb55a.id}
+              keyExtractor={(v_ceb55a) => String(v_ceb55a.id)}
               renderItem={({ item: v_8c0b26 }) => (
                 <TouchableOpacity
                   style={v_d81136.userRow}

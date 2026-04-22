@@ -1,8 +1,8 @@
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
-  Chat: { cloneId: string };
-  Call: { cloneId: string; name?: string; image?: string | number };
+  Chat: { cloneId: number };
+  Call: { cloneId: number; name?: string; image?: string | number };
   EmergencyContacts: undefined;
   InheritanceAccept: { token?: string };
   RestoreDeleted: undefined;
@@ -24,10 +24,10 @@ export type MainTabParamList = {
 
 export type ClonesStackParamList = {
   Dashboard: undefined;
-  CloneDetail: { cloneId: string };
-  CloneEdit: { cloneId: string };
-  CloneVisibility: { cloneId: string };
-  CloneInvite: { cloneId: string };
+  CloneDetail: { cloneId: number };
+  CloneEdit: { cloneId: number };
+  CloneVisibility: { cloneId: number };
+  CloneInvite: { cloneId: number };
 };
 
 export type ShareStackParamList = {

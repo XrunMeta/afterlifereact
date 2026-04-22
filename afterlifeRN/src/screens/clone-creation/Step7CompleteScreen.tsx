@@ -44,7 +44,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_7a77e1 = v_194498((v_fd5f43) => v_fd5f43.resetCreationDraft);
   const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
   const v_956393 = v_194498((v_fd5f43) => v_fd5f43.addClone);
-  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? "user-001";
+  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
 
   v_c4deb2(() => {
     if (!v_f04727.cloneType) return;
@@ -52,9 +52,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     const v_f9c770 = Boolean(v_f04727.voiceFile || v_f04727.voiceSampleId
       || (v_f04727.recordDuration ?? 0) >= 30);
     const clone: v_affcc0 = {
-      id: `clone-${Date.now()}`,
+      id: Date.now(),
       cloneType: v_f04727.cloneType,
-      ownerUserId: v_493eec,
+      ownerId: v_493eec,
       displayName: v_f04727.name ?? '',
       description: v_f04727.description ?? '',
       interests: v_f04727.interests ?? [],

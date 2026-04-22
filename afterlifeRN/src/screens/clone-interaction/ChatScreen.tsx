@@ -27,7 +27,7 @@ const v_03c87c = ["더 구체적으로", "다른 주제로", "공감 세부 훈�
 export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
-  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? "user-001";
+  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
   const v_033e14 = v_e0068c();
   const v_ebdf9a = v_e662ae<v_9cabcb>(null);
 
@@ -79,11 +79,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     if (!v_bbda62.trim()) return;
 
     const userMsg: v_35413f = {
-      id: `msg-${Date.now()}`,
+      id: Date.now(),
       cloneId: v_6e0fd3,
       userId: v_493eec,
-      senderType: "user",
-      text: v_bbda62,
+      role: "user",
+      content: v_bbda62,
       timestamp: new Date().toISOString(),
     };
     v_41d55d((v_ba2215) => [...v_ba2215, v_43f890]);
@@ -91,11 +91,11 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
     setTimeout(() => {
       const aiMsg: v_35413f = {
-        id: `msg-${Date.now() + 1}`,
+        id: Date.now() + 1,
         cloneId: v_6e0fd3,
         userId: v_493eec,
-        senderType: "clone",
-        text: "네, 이해했습니다. 제가 도와드릴 수 있는 다른 것이 있나요?",
+        role: "clone",
+        content: "네, 이해했습니다. 제가 도와드릴 수 있는 다른 것이 있나요?",
         timestamp: new Date().toISOString(),
       };
       v_41d55d((v_ba2215) => [...v_ba2215, v_4d04a7]);
@@ -108,7 +108,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   };
 
   const v_82c167 = ({ item: v_8c0b26 }: { item: v_35413f }) => {
-    const v_ca7346 = v_8c0b26.senderType === "user";
+    const v_ca7346 = v_8c0b26.role === "user";
 
     return (
       <View style={v_fd5f43.msgContainer}>
@@ -121,7 +121,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         <View style={[v_fd5f43.bubbleRow, v_ca7346 && v_fd5f43.bubbleRowUser]}>
           <View style={[v_fd5f43.bubble, v_ca7346 ? v_fd5f43.bubbleUser : v_fd5f43.bubbleClone]}>
             <Text style={[v_fd5f43.bubbleText, v_ca7346 && v_fd5f43.bubbleTextUser]}>
-              {v_8c0b26.text}
+              {v_8c0b26.content}
             </Text>
           </View>
         </View>
@@ -172,7 +172,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         ref={v_ebdf9a}
         style={v_fd5f43.messageListFlex}
         data={v_fa56e0}
-        keyExtractor={(v_8c0b26) => v_8c0b26.id}
+        keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
         renderItem={v_82c167}
         contentContainerStyle={v_fd5f43.messageList}
         showsVerticalScrollIndicator={false}

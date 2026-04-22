@@ -5,10 +5,11 @@ import type { v_7a4d15 } from "../types/domain";
 import { v_1ed7d9 } from "./authStore";
 
 const v_b6c376 = "@afterlifeRN/follow/overrides";
-const v_b9d568 = "user-001";
+const v_b9d568 = 1;
+const v_980853 = 1_000_000_000;
 
 interface Override {
-  cloneId: string;
+  cloneId: number;
   action: "follow" | "unfollow";
   at: string;
 }
@@ -17,14 +18,14 @@ interface FollowState {
   follows: v_7a4d15[];
   hydrated: boolean;
   hydrate: () => Promise<void>;
-  isFollowing: (cloneId: string) => boolean;
-  toggleFollow: (cloneId: string) => Promise<void>;
-  followersCount: (cloneId: string) => number;
-  followingIdsFor: (userId: string) => string[];
+  isFollowing: (cloneId: number) => boolean;
+  toggleFollow: (cloneId: number) => Promise<void>;
+  followersCount: (cloneId: number) => number;
+  followingIdsFor: (userId: number) => number[];
 }
 
 let v_054741 = 0;
-const v_ac1f9e = () => `follow-local-${++v_054741}-${Date.now()}`;
+const v_ac1f9e = () => v_980853 + ++v_054741;
 
 export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
   follows: [],

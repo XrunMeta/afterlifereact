@@ -28,7 +28,7 @@ import type { v_8ad91b } from "../../navigation/types";
 
 type ClonesNav = v_390fcc<v_2d88fc>;
 
-const v_b9d568 = "user-001";
+const v_b9d568 = 1;
 
 export default function v_def15b() {
   const v_c65f5d = v_ada615<ClonesNav>();
@@ -39,13 +39,13 @@ export default function v_def15b() {
   const v_4cd149 = v_df9f57<v_affcc0[]>(() => {
     const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
     return [
-      ...v_35d5ed.clones.filter((v_3f4e2e) => v_3f4e2e.ownerUserId === v_0c8987),
-      ...v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerUserId === v_0c8987),
+      ...v_35d5ed.clones.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987),
+      ...v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987),
     ];
   }, [v_f38ee5, v_06f32b]);
 
   const [v_699459, v_2bf327] = v_5ab095<
-    Record<string, { isActive: boolean; visibility: v_b0b271 }>
+    Record<number, { isActive: boolean; visibility: v_b0b271 }>
   >(
     v_4cd149.reduce(
       (v_9f1d92, v_eb25ce, v_ebec57) => ({
@@ -59,24 +59,24 @@ export default function v_def15b() {
     ),
   );
 
-  const [v_8769c2, v_fb07c9] = v_5ab095<Set<string>>(new Set());
-  const [v_ce3af0, v_8d2d61] = v_5ab095<string | null>(null);
+  const [v_8769c2, v_fb07c9] = v_5ab095<Set<number>>(new Set());
+  const [v_ce3af0, v_8d2d61] = v_5ab095<number | null>(null);
   const [v_36d186, v_2dac5f] = v_5ab095(false);
   const [v_b93ea5, v_35dce3] = v_5ab095("");
-  const [v_aa2223, v_b21d0d] = v_5ab095<Set<string>>(new Set());
+  const [v_aa2223, v_b21d0d] = v_5ab095<Set<number>>(new Set());
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
     type: "likes" | "interactions" | "comments" | "followers";
     cloneName: string;
   } | null>(null);
   const [v_16ef58, v_3e0da5] = v_5ab095<{
-    cloneId: string;
+    cloneId: number;
     currentState: boolean;
   } | null>(null);
   const [v_7462ec, v_2dbd8f] = v_5ab095<{
-    cloneId: string;
+    cloneId: number;
     currentVisibility: v_b0b271;
   } | null>(null);
-  const [v_c9d3fa, v_f32c49] = v_5ab095<string | null>(null);
+  const [v_c9d3fa, v_f32c49] = v_5ab095<number | null>(null);
 
   const v_fc7f92 = v_4cd149.filter((v_3f4e2e) => !v_8769c2.has(v_3f4e2e.id));
 
@@ -316,7 +316,7 @@ export default function v_def15b() {
 
       <FlatList
         data={v_fc7f92}
-        keyExtractor={(v_8c0b26) => v_8c0b26.id}
+        keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
         renderItem={v_b80d74}
         contentContainerStyle={v_fd5f43.listContent}
         showsVerticalScrollIndicator={false}
@@ -660,14 +660,14 @@ const v_2fb1c1 = [
 ];
 
 const v_56fdc3 = [
-  { id: "inv1", name: "김태희", username: "@taehee_kim", avatar: "https://i.pravatar.cc/100?img=11" },
-  { id: "inv2", name: "이준혁", username: "@junhyuk_lee", avatar: "https://i.pravatar.cc/100?img=12" },
-  { id: "inv3", name: "박소연", username: "@soyeon_park", avatar: "https://i.pravatar.cc/100?img=13" },
-  { id: "inv4", name: "최민재", username: "@minjae_choi", avatar: "https://i.pravatar.cc/100?img=14" },
-  { id: "inv5", name: "정유나", username: "@yuna_jung", avatar: "https://i.pravatar.cc/100?img=15" },
-  { id: "inv6", name: "한서준", username: "@seojun_han", avatar: "https://i.pravatar.cc/100?img=16" },
-  { id: "inv7", name: "윤채원", username: "@chaewon_yoon", avatar: "https://i.pravatar.cc/100?img=17" },
-  { id: "inv8", name: "김하늘", username: "@haneul_k", avatar: "https://i.pravatar.cc/100?img=18" },
+  { id: 9001, name: "김태희", username: "@taehee_kim", avatar: "https://i.pravatar.cc/100?img=11" },
+  { id: 9002, name: "이준혁", username: "@junhyuk_lee", avatar: "https://i.pravatar.cc/100?img=12" },
+  { id: 9003, name: "박소연", username: "@soyeon_park", avatar: "https://i.pravatar.cc/100?img=13" },
+  { id: 9004, name: "최민재", username: "@minjae_choi", avatar: "https://i.pravatar.cc/100?img=14" },
+  { id: 9005, name: "정유나", username: "@yuna_jung", avatar: "https://i.pravatar.cc/100?img=15" },
+  { id: 9006, name: "한서준", username: "@seojun_han", avatar: "https://i.pravatar.cc/100?img=16" },
+  { id: 9007, name: "윤채원", username: "@chaewon_yoon", avatar: "https://i.pravatar.cc/100?img=17" },
+  { id: 9008, name: "김하늘", username: "@haneul_k", avatar: "https://i.pravatar.cc/100?img=18" },
 ];
 
 const v_fd5f43 = v_472849.create({

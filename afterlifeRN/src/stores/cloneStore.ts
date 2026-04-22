@@ -14,7 +14,7 @@ interface CloneState {
   setCurrentClone: (clone: v_affcc0 | null) => void;
   setCreationDraft: (data: Partial<v_c2a674>) => void;
   resetCreationDraft: () => void;
-  getCloneById: (id: string) => v_affcc0 | undefined;
+  getCloneById: (id: number) => v_affcc0 | undefined;
   addClone: (clone: v_affcc0) => void;
 }
 

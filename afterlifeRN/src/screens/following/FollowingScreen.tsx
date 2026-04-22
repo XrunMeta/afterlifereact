@@ -30,10 +30,10 @@ import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 
 type RootNav = v_390fcc<v_8ad91b>;
 const { width: v_437248 } = v_700696.get("window");
-const v_b9d568 = "user-001";
+const v_b9d568 = 1;
 
 type FollowedPersona = {
-  id: string;
+  id: number;
   name: string;
   avatar: string;
   interests: string[];
@@ -64,7 +64,7 @@ export default function v_14b43e() {
       .map((v_062ae9) => v_35d5ed.clones.find((v_3f4e2e) => v_3f4e2e.id === v_062ae9))
       .filter((v_3f4e2e): v_3f4e2e is v_4b85a1 => Boolean(v_3f4e2e))
       .map((v_eb25ce) => {
-        const v_257b90 = v_35d5ed.users.find((v_ceb55a) => v_ceb55a.id === v_eb25ce.ownerUserId);
+        const v_257b90 = v_35d5ed.users.find((v_ceb55a) => v_ceb55a.id === v_eb25ce.ownerId);
         return v_986943(v_eb25ce, v_257b90?.handle);
       });
   }, [v_1e752a, v_0c8987]);
@@ -78,11 +78,11 @@ export default function v_14b43e() {
   }, [v_a48e44]);
 
   const [v_69ddfb, v_09b78b] = v_5ab095("전체");
-  const [v_c591dc, v_6f4b5a] = v_5ab095<Set<string>>(new Set());
+  const [v_c591dc, v_6f4b5a] = v_5ab095<Set<number>>(new Set());
 
-  const [v_5c83d5, v_880166] = v_5ab095<string | null>(null);
+  const [v_5c83d5, v_880166] = v_5ab095<number | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
-  const [v_7babe8, v_cdeef7] = v_5ab095<string | null>(null);
+  const [v_7babe8, v_cdeef7] = v_5ab095<number | null>(null);
   const [v_15a54d, v_649cb3] = v_5ab095(false);
   const [v_a24949, v_0af5ed] = v_5ab095(false);
   const [v_af84de, v_22a5cb] = v_5ab095(false);
@@ -166,7 +166,7 @@ export default function v_14b43e() {
   const v_3a63e7 = [];
 
   const v_bdaeb6 = ({ item: v_8c0b26 }: { item: (typeof v_b94d82)[0] }) => {
-    const v_afeceb = v_8c0b26.feed.imageUrl ?? v_8c0b26.persona.avatar;
+    const v_afeceb = v_8c0b26.feed.mediaUrl ?? v_8c0b26.persona.avatar;
     return (
       <View style={v_fd5f43.postWrap}>
         {}
@@ -186,7 +186,7 @@ export default function v_14b43e() {
                 </View>
               ))}
             </View>
-            <Text style={v_fd5f43.postContent} numberOfLines={3}>{v_8c0b26.feed.text}</Text>
+            <Text style={v_fd5f43.postContent} numberOfLines={3}>{v_8c0b26.feed.content}</Text>
             <View style={v_fd5f43.overlayBtns}>
               <Button
                 title="통화하기"
@@ -271,7 +271,7 @@ export default function v_14b43e() {
       {}
       <FlatList
         data={v_b94d82}
-        keyExtractor={(v_8c0b26) => v_8c0b26.feed.id}
+        keyExtractor={(v_8c0b26) => String(v_8c0b26.feed.id)}
         renderItem={v_bdaeb6}
         contentContainerStyle={v_fd5f43.feed}
         showsVerticalScrollIndicator={false}

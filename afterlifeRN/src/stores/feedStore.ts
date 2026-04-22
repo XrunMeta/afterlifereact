@@ -3,15 +3,15 @@ import { v_35d5ed } from "../mocks/seedIndex";
 import type { v_4b85a1, v_bc3df4 } from "../types/domain";
 import { v_1ed7d9 } from "./authStore";
 
-const v_b9d568 = "user-001";
+const v_b9d568 = 1;
 
 interface FeedState {
   feeds: v_bc3df4[];
-  likedIds: string[];
-  bookmarkedIds: string[];
+  likedIds: number[];
+  bookmarkedIds: number[];
   selectedInterests: string[];
-  toggleLike: (id: string) => void;
-  toggleBookmark: (id: string) => void;
+  toggleLike: (id: number) => void;
+  toggleBookmark: (id: number) => void;
   setSelectedInterests: (interests: string[]) => void;
   getVisibleFeeds: () => v_bc3df4[];
   getFilteredFeeds: () => v_bc3df4[];
@@ -19,7 +19,7 @@ interface FeedState {
 
 function v_5b0abe(c: v_4b85a1, v_493eec): boolean {
   if (v_3f4e2e.visibility === "public") return true;
-  if (v_3f4e2e.ownerUserId === v_493eec) return true;
+  if (v_3f4e2e.ownerId === v_493eec) return true;
   const v_306056 = v_35d5ed.coowners.some(
     (v_c4a45b) =>
       v_c4a45b.cloneId === v_3f4e2e.id &&
