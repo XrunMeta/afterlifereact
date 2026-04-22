@@ -18,7 +18,6 @@ import TextField from "../../components/ui/TextField";
 import SelectField from "../../components/ui/SelectField";
 import InterestChip from "../../components/ui/InterestChip";
 import PageHeader from "../../components/common/PageHeader";
-import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
 
@@ -35,8 +34,6 @@ const GENDER_OPTIONS = [
 const INTEREST_OPTIONS = ALL_INTERESTS;
 
 export default function SignupScreen({ navigation }: Props) {
-  const signup = useAuthStore((s) => s.signup);
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

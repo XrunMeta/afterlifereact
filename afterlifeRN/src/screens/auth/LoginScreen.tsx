@@ -27,10 +27,10 @@ export default function LoginScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [autoLogin, setAutoLogin] = useState(false);
 
-  const login = useAuthStore((s) => s.login);
+  const hydrate = useAuthStore((s) => s.hydrate);
 
   const handleLogin = () => {
-    login(email, password);
+    void hydrate();
   };
 
   const handleSocialLogin = (provider: string) => {

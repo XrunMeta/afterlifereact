@@ -71,8 +71,8 @@ export default function MyScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={s.userName}>{user?.name ?? "사용자"}</Text>
-          <Text style={s.userHandle}>@SeniorConsultant_01</Text>
+          <Text style={s.userName}>{user?.displayName ?? "사용자"}</Text>
+          <Text style={s.userHandle}>{user?.handle ?? "@afterlife"}</Text>
         </View>
 
         {}
@@ -95,12 +95,8 @@ export default function MyScreen() {
               <Text style={s.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={s.coinAmount}>
-            {(user?.credits ?? 12540).toLocaleString()}
-          </Text>
-          <Text style={s.coinWon}>
-            약 ₩{(user?.credits ?? 12540).toLocaleString()} 상당
-          </Text>
+          <Text style={s.coinAmount}>{(12540).toLocaleString()}</Text>
+          <Text style={s.coinWon}>약 ₩{(12540).toLocaleString()} 상당</Text>
         </View>
 
         {}
@@ -162,7 +158,7 @@ export default function MyScreen() {
         </View>
 
         {}
-        <TouchableOpacity style={s.logoutBtn} onPress={logout}>
+        <TouchableOpacity style={s.logoutBtn} onPress={() => void logout()}>
           <Feather name="log-out" size={16} color={COLORS.zinc600} />
           <Text style={s.logoutText}>로그아웃</Text>
         </TouchableOpacity>
