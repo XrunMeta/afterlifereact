@@ -1,4 +1,4 @@
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -14,7 +14,12 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_b4902e } from "../../stores/followStore";
+import { v_194498 } from "../../stores/cloneStore";
+import { v_35d5ed } from "../../mocks/seedIndex";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+
+const v_b9d568 = "user-001";
 
 const settingsItems: Array<{
   icon: keyof typeof v_dec439.glyphMap;
@@ -37,7 +42,21 @@ const v_cca523 = [
 export default function v_ed02a5() {
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
+  const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
+  const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const [v_47abd6, v_e12360] = v_5ab095(false);
+
+  const v_0c8987 = v_625c74?.id ?? v_b9d568;
+  const v_48d264 = v_df9f57(
+    () => v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987).length,
+    [v_1e752a, v_0c8987],
+  );
+  const v_8b222b = v_df9f57(
+    () =>
+      v_35d5ed.clones.filter((v_3f4e2e) => v_3f4e2e.ownerUserId === v_0c8987).length +
+      v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerUserId === v_0c8987).length,
+    [v_0c8987, v_06f32b],
+  );
 
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
@@ -73,6 +92,18 @@ export default function v_ed02a5() {
 
           <Text style={v_fd5f43.userName}>{v_625c74?.displayName ?? "사용자"}</Text>
           <Text style={v_fd5f43.userHandle}>{v_625c74?.handle ?? "@afterlife"}</Text>
+
+          <View style={v_fd5f43.statsRow}>
+            <View style={v_fd5f43.statItem}>
+              <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
+              <Text style={v_fd5f43.statLabel}>팔로우 중</Text>
+            </View>
+            <View style={v_fd5f43.statDivider} />
+            <View style={v_fd5f43.statItem}>
+              <Text style={v_fd5f43.statValue}>{v_8b222b}</Text>
+              <Text style={v_fd5f43.statLabel}>내 페르소나</Text>
+            </View>
+          </View>
         </View>
 
         {}
@@ -230,6 +261,21 @@ const v_fd5f43 = v_472849.create({
   },
   userName: { fontSize: 24, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 4 },
   userHandle: { fontSize: 15, color: v_1bfbd0.zinc500 },
+
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 24,
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: v_1bfbd0.zinc50,
+    borderRadius: 16,
+  },
+  statItem: { alignItems: "center", minWidth: 64 },
+  statValue: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  statLabel: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  statDivider: { width: 1, height: 24, backgroundColor: v_1bfbd0.zinc200 },
 
   sectionHeader: { marginBottom: 10 },
   sectionLabel: { fontSize: 13, fontWeight: "500", color: v_1bfbd0.zinc400, paddingHorizontal: 4 },
