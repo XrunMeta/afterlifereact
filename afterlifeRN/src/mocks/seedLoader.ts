@@ -9,20 +9,27 @@ import type {
   Visibility,
   CloneStatus,
   CoownerStatus,
-  SenderType,
+  MessageRole,
 } from '../types/domain';
 
 const CLONE_TYPES: readonly CloneType[] = ['memlow', 'friend', 'mentor', 'celeb'];
 const VISIBILITIES: readonly Visibility[] = ['public', 'followers', 'private'];
 const STATUSES: readonly CloneStatus[] = ['active', 'pending_assets'];
 const COOWNER_STATUSES: readonly CoownerStatus[] = ['invited', 'approved', 'rejected'];
-const SENDER_TYPES: readonly SenderType[] = ['user', 'clone'];
+const MESSAGE_ROLES: readonly MessageRole[] = ['user', 'clone'];
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
 
 const requireString = (path: string, value: unknown): string => {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`${path} must be non-empty string`);
+  }
+  return value;
+};
+
+const requireNumber = (path: string, value: unknown): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${path} must be non-negative number`);
   }
   return value;
 };
@@ -44,7 +51,7 @@ const requireEnum = <T extends string>(path: string, value: unknown, allowed: re
 export function assertUsers(rows: unknown[]): asserts rows is DomainUser[] {
   rows.forEach((raw, i) => {
     const r = raw as Record<string, unknown>;
-    requireString(`user[${i}].id`, r.id);
+    requireNumber(`user[${i}].id`, r.id);
     requireString(`user[${i}].displayName`, r.displayName);
     requireString(`user[${i}].handle`, r.handle);
     if (r.avatarUrl !== undefined) requireString(`user[${i}].avatarUrl`, r.avatarUrl);
@@ -56,9 +63,9 @@ export function assertUsers(rows: unknown[]): asserts rows is DomainUser[] {
 export function assertClones(rows: unknown[]): asserts rows is DomainClone[] {
   rows.forEach((raw, i) => {
     const r = raw as Record<string, unknown>;
-    requireString(`clone[${i}].id`, r.id);
+    requireNumber(`clone[${i}].id`, r.id);
     requireEnum(`clone[${i}].cloneType`, r.cloneType, CLONE_TYPES);
-    requireString(`clone[${i}].ownerUserId`, r.ownerUserId);
+    requireNumber(`clone[${i}].ownerId`, r.ownerId);
     requireString(`clone[${i}].displayName`, r.displayName);
     requireString(`clone[${i}].description`, r.description);
     if (!Array.isArray(r.interests)) throw new Error(`clone[${i}].interests must be array`);
@@ -75,9 +82,9 @@ export function assertFollows(rows: unknown[]): asserts rows is DomainFollow[] {
   const seen = new Set<string>();
   rows.forEach((raw, i) => {
     const r = raw as Record<string, unknown>;
-    requireString(`follow[${i}].id`, r.id);
-    const fu = requireString(`follow[${i}].followerUserId`, r.followerUserId);
-    const fc = requireString(`follow[${i}].followingCloneId`, r.followingCloneId);
+    requireNumber(`follow[${i}].id`, r.id);
+    const fu = requireNumber(`follow[${i}].followerUserId`, r.followerUserId);
+    const fc = requireNumber(`follow[${i}].followingCloneId`, r.followingCloneId);
     requireIso(`follow[${i}].followedAt`, r.followedAt);
     const key = `${fu}::${fc}`;
     if (seen.has(key)) throw new Error(`follow[${i}] duplicate (${key})`);
@@ -88,9 +95,9 @@ export function assertFollows(rows: unknown[]): asserts rows is DomainFollow[] {
 export function assertCoowners(rows: unknown[]): asserts rows is DomainCoowner[] {
   rows.forEach((raw, i) => {
     const r = raw as Record<string, unknown>;
-    requireString(`coowner[${i}].id`, r.id);
-    requireString(`coowner[${i}].cloneId`, r.cloneId);
-    requireString(`coowner[${i}].userId`, r.userId);
+    requireNumber(`coowner[${i}].id`, r.id);
+    requireNumber(`coowner[${i}].cloneId`, r.cloneId);
+    requireNumber(`coowner[${i}].userId`, r.userId);
     requireEnum(`coowner[${i}].status`, r.status, COOWNER_STATUSES);
     requireIso(`coowner[${i}].invitedAt`, r.invitedAt);
     if (r.approvedAt !== undefined) requireIso(`coowner[${i}].approvedAt`, r.approvedAt);
@@ -100,11 +107,11 @@ export function assertCoowners(rows: unknown[]): asserts rows is DomainCoowner[]
 export function assertMessages(rows: unknown[]): asserts rows is DomainMessage[] {
   rows.forEach((raw, i) => {
     const r = raw as Record<string, unknown>;
-    requireString(`message[${i}].id`, r.id);
-    requireString(`message[${i}].cloneId`, r.cloneId);
-    requireString(`message[${i}].userId`, r.userId);
-    requireEnum(`message[${i}].senderType`, r.senderType, SENDER_TYPES);
-    requireString(`message[${i}].text`, r.text);
+    requireNumber(`message[${i}].id`, r.id);
+    requireNumber(`message[${i}].cloneId`, r.cloneId);
+    requireNumber(`message[${i}].userId`, r.userId);
+    requireEnum(`message[${i}].role`, r.role, MESSAGE_ROLES);
+    requireString(`message[${i}].content`, r.content);
     requireIso(`message[${i}].timestamp`, r.timestamp);
   });
 }
@@ -112,10 +119,10 @@ export function assertMessages(rows: unknown[]): asserts rows is DomainMessage[]
 export function assertFeeds(rows: unknown[]): asserts rows is DomainFeed[] {
   rows.forEach((raw, i) => {
     const r = raw as Record<string, unknown>;
-    requireString(`feed[${i}].id`, r.id);
-    requireString(`feed[${i}].cloneId`, r.cloneId);
-    requireString(`feed[${i}].text`, r.text);
-    if (r.imageUrl !== undefined) requireString(`feed[${i}].imageUrl`, r.imageUrl);
+    requireNumber(`feed[${i}].id`, r.id);
+    requireNumber(`feed[${i}].cloneId`, r.cloneId);
+    requireString(`feed[${i}].content`, r.content);
+    if (r.mediaUrl !== undefined) requireString(`feed[${i}].mediaUrl`, r.mediaUrl);
     requireIso(`feed[${i}].createdAt`, r.createdAt);
   });
 }
