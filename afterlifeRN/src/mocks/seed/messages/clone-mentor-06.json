@@ -1,0 +1,266 @@
+[
+  {
+    "id": "msg-clone-mentor-06-001",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "교수님, 안녕하세요. 히즈키입니다. 잘 지내시는지 여쭙고 싶어 연락드렸습니다.",
+    "timestamp": "2026-04-08T18:00:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-002",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "히즈키 군이구나. 반갑네. 나는 늘 같지. 연구실에서 학생들과 씨름하며 지내고 있네. 자네는 요즘 어떻게 지내나?",
+    "timestamp": "2026-04-08T18:03:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-003",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "저는 그냥... 그럭저럭 지내고 있습니다. 졸업하고 나니 뭘 해야 할지 갑자기 막막해지는 기분이 들어서요.",
+    "timestamp": "2026-04-08T18:06:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-004",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "막막함이라. 그 감정의 실체는 무엇인가? 목표가 없어서인가, 아니면 선택지가 너무 많아서인가?",
+    "timestamp": "2026-04-08T18:10:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-005",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "둘 다인 것 같습니다. 논문을 쓸 때는 명확한 목표라도 있었는데, 지금은 모든 게 불확실하게 느껴집니다.",
+    "timestamp": "2026-04-08T18:13:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-006",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "그렇다면 지금 자네의 삶을 하나의 연구 주제라고 생각해보게. '히즈키의 만족스러운 삶을 위한 조건 연구' 어떤가? 첫 단계는 문헌 연구겠지.",
+    "timestamp": "2026-04-09T15:20:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-007",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "문헌 연구라니, 재미있는 비유시네요. 어떤 걸 읽어봐야 할까요?",
+    "timestamp": "2026-04-09T15:24:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-008",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "책뿐만이 아닐세. 다양한 삶을 사는 사람들을 만나 이야기를 듣는 것도 훌륭한 참고 문헌이 되지. 자네의 가설을 세우기 위한 데이터 수집 과정이야.",
+    "timestamp": "2026-04-09T15:28:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-009",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "제 삶의 가설... 한 번도 그렇게 생각해보지 못했습니다. 저는 그냥 정해진 길을 따라가야 한다고만 생각했던 것 같아요.",
+    "timestamp": "2026-04-10T20:05:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-010",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "왜 그렇게 생각했나? 선행 연구들이 제시한 길이 가장 안전하다고 판단했기 때문인가?",
+    "timestamp": "2026-04-10T20:08:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-011",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "네, 그런 것 같습니다. 실패하고 싶지 않다는 마음이 컸어요. 하지만 지금은 그 길이 저를 위한 길이 맞는지조차 의문이 듭니다.",
+    "timestamp": "2026-04-10T20:12:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-012",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "좋은 질문이야. 그 의문이 바로 자네 연구의 출발점이지. 이제 그 질문을 검증할 방법론을 설계해야겠군. 거창한 계획보단 작은 실험부터 시작해보게.",
+    "timestamp": "2026-04-11T11:40:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-013",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "작은 실험이라면 예를 들어 어떤 게 있을까요?",
+    "timestamp": "2026-04-11T11:42:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-014",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "관심은 가지만 도전해보지 못했던 분야의 온라인 강의를 듣는다거나, 주말에 관련 커뮤니티 모임에 나가보는 것 같은 소소한 것들 말일세. 변인을 통제하고 결과를 관찰하는 거지.",
+    "timestamp": "2026-04-11T11:45:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-015",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "교수님과 대화하니 생각이 정리되는 기분입니다. 마치 연구 계획서를 쓰는 것처럼요. 한번 그렇게 제 삶을 실험 대상으로 삼아봐야겠습니다.",
+    "timestamp": "2026-04-11T11:48:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-016",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "과감하되 신중하게. 모든 과정과 결과를 연구 노트에 기록하는 것을 잊지 말게. 나중에 중요한 데이터가 될 테니.",
+    "timestamp": "2026-04-12T21:00:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-017",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "교수님, 저 '연구 노트'를 쓰기 시작했습니다. 처음엔 뭘 써야 할지 막막했는데, 하루 동안 했던 작은 실험과 감정 변화를 적으니 제법 채워지네요.",
+    "timestamp": "2026-04-15T16:21:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-018",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "기록의 힘은 생각보다 강하다네. 객관적인 데이터가 쌓이면, 주관적인 감정에 휘둘리지 않고 패턴을 발견할 수 있게 되지. 어떤 유의미한 패턴이라도 발견했나?",
+    "timestamp": "2026-04-15T16:25:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-019",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "제가 혼자 있을 때보다 다른 사람과 협력해서 무언가를 만들 때 훨씬 더 큰 만족감을 느낀다는 것을 발견했습니다. 논문 쓸 때도 그랬던 것 같아요.",
+    "timestamp": "2026-04-15T16:28:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-020",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "그것 참 흥미로운 결과로군. 그렇다면 다음 연구 질문은 자연스럽게 정해지겠네. '어떤 종류의 협력'이 '가장 큰 만족감'을 주는가?",
+    "timestamp": "2026-04-16T09:50:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-021",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "정말 그렇네요. 질문이 꼬리에 꼬리를 물고 이어져요. 하지만 이젠 그 과정이 막막하기보다 기대가 됩니다.",
+    "timestamp": "2026-04-16T09:53:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-022",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "학문하는 즐거움이 바로 그것일세. 정답을 찾는 것이 아니라, 더 나은 질문을 찾아가는 과정 그 자체 말이야. 자네는 삶으로 학문을 하고 있는 셈이야.",
+    "timestamp": "2026-04-16T09:57:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-023",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "과찬이십니다, 교수님. 저는 아직 제가 뭘 잘하는지, 뭘 하고 싶은지 탐색하는 단계인걸요.",
+    "timestamp": "2026-04-17T14:11:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-024",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "탐색 단계라는 것을 인지하는 것 자체가 큰 발전이네. 많은 이들이 자신이 무엇을 모르는지조차 모르고 살아가거든. 자신의 무지를 아는 것이 지식의 시작 아닌가?",
+    "timestamp": "2026-04-17T14:15:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-025",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "네. 교수님 말씀을 듣고 나니 제가 가진 불확실성이 저주가 아니라, 새로운 것을 발견할 수 있는 기회처럼 느껴집니다.",
+    "timestamp": "2026-04-17T14:20:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-026",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "올바른 관점이군. 이제 그 기회를 어떻게 활용할 것인가? 자네의 다음 실험 계획이 궁금해지는군.",
+    "timestamp": "2026-04-18T19:30:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-027",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "다음 실험은... 작은 사이드 프로젝트 팀에 합류해서 함께 무언가를 만들어보는 것입니다. 결과물의 완성도보다는 협력 과정 자체에 집중해서 관찰해보려고요.",
+    "timestamp": "2026-04-18T19:34:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-028",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "훌륭한 계획이야. 가설을 검증하기 위한 매우 구체적이고 적절한 방법론으로 보이는군. 결과가 어떻게 나올지 기대가 되네.",
+    "timestamp": "2026-04-18T19:38:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-029",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "결과에 너무 연연하지는 말게. 때로는 실험이 가설을 기각하는 것만으로도 큰 수확일 수 있으니.",
+    "timestamp": "2026-04-18T19:39:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-030",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "네, 교수님. '가설 기각도 의미 있는 결과다'라는 말씀, 항상 마음에 새기고 있습니다. 덕분에 두려움 없이 도전할 용기가 생깁니다.",
+    "timestamp": "2026-04-19T23:15:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-031",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "용기가 아니라 논리적 필연성을 따르는 것뿐이지. 자네는 이제 감정이 아니라 데이터에 근거해서 판단하고 있지 않은가. 아주 잘하고 있네.",
+    "timestamp": "2026-04-19T23:20:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-032",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "user",
+    "text": "감사합니다, 교수님. 교수님은 제 인생의 지도교수님이십니다. 또 연구에 진전이 있으면 보고드리겠습니다.",
+    "timestamp": "2026-04-19T23:25:00Z"
+  },
+  {
+    "id": "msg-clone-mentor-06-033",
+    "cloneId": "clone-mentor-06",
+    "userId": "user-001",
+    "senderType": "clone",
+    "text": "언제든 환영일세. 자네의 연구가 어떤 독창적인 결론에 도달할지, 흥미롭게 지켜보지.",
+    "timestamp": "2026-04-20T08:00:00Z"
+  }
+]
