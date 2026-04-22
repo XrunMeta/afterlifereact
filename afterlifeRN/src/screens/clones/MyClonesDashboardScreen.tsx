@@ -19,6 +19,7 @@ import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
+import { useFollowStore } from "../../stores/followStore";
 import { SEED } from "../../mocks/seedIndex";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
@@ -34,6 +35,7 @@ export default function MyClonesDashboardScreen() {
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const authUser = useAuthStore((s) => s.user);
   const localClones = useCloneStore((s) => s.localClones);
+  const follows = useFollowStore((s) => s.follows);
   const myClones = useMemo<Clone[]>(() => {
     const uid = authUser?.id ?? DEFAULT_USER_ID;
     return [
@@ -149,6 +151,15 @@ export default function MyClonesDashboardScreen() {
     const state = cloneStates[clone.id];
     const isActive = state?.isActive ?? true;
     const visibility = state?.visibility ?? clone.visibility;
+    const followerCount = follows.filter(
+      (f) => f.followingCloneId === clone.id,
+    ).length;
+    const coownerCount =
+      clone.cloneType === "memlow"
+        ? SEED.coowners.filter(
+            (co) => co.cloneId === clone.id && co.status === "approved",
+          ).length
+        : 0;
 
     return (
       <View style={s.card}>
@@ -227,9 +238,18 @@ export default function MyClonesDashboardScreen() {
             onPress={() => setStatsModal({ type: "followers", cloneName: clone.displayName })}
           >
             <Feather name="user" size={14} color={COLORS.zinc500} />
-            <Text style={s.statText}>15.2k</Text>
+            <Text style={s.statText} testID={`follower-count-${clone.id}`}>
+              {followerCount} 팔로워
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {coownerCount > 0 && (
+          <View style={s.coownerBadge}>
+            <Feather name="users" size={12} color={COLORS.zinc600} />
+            <Text style={s.coownerText}>공동관리자 {coownerCount}명</Text>
+          </View>
+        )}
 
         {}
         {clone.status === 'pending_assets' && (
@@ -800,6 +820,20 @@ const s = StyleSheet.create({
   },
   pendingText: { fontSize: 11, color: COLORS.zinc600 },
   pendingCta: { fontSize: 11, color: COLORS.violet600, marginLeft: 4, textDecorationLine: 'underline' },
+
+  coownerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.violet100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  coownerText: { fontSize: 11, color: COLORS.violet600, fontWeight: '500' },
 
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 },
   tag: {
