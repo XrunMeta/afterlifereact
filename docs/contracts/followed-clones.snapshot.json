@@ -1,6 +1,7 @@
 {
   "_route": "GET /oth-path",
-  "_query": "q, type, category, sort=new|popular (default: new), cursor, limit (1~50, default: 20)",
+  "_auth": "required — 본인만 (pathId === userId). 타인 조회 시 403, 비로그인 시 401.",
+  "_order": "clone_follows.created_at DESC, id DESC (최근 팔로우 순)",
   "items": [
     {
       "id": 1,
@@ -30,6 +31,5 @@
       },
       "createdAt": "2026-03-12T09:02:00Z"
     }
-  ],
-  "nextCursor": "MjAyNi0wMy0xMlQwOTowMjowMFoyfDI="
+  ]
 }

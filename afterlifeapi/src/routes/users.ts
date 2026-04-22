@@ -334,6 +334,62 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
   });
 });
 
+users.get("/:id/followed-clones", requireAuth, async (c) => {
+  const pathId = Number(c.req.param("id"));
+  if (!Number.isInteger(pathId) || pathId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const userId = c.get("userId")!;
+  if (pathId !== userId) {
+    throw new APIError("FORBIDDEN", "Can only view your own follow list.");
+  }
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url, c.created_at,
+                COALESCE(s.followers_count, 0) AS followers_count,
+                COALESCE(s.messages_count, 0)  AS messages_count,
+                COALESCE(s.gifts_count, 0)     AS gifts_count
+           FROM clone_follows f
+           JOIN clones c ON c.id = f.clone_id
+           LEFT JOIN clone_stats s ON s.clone_id = c.id
+          WHERE f.user_id = ? AND c.deleted_at IS NULL
+          ORDER BY f.created_at DESC, f.id DESC`,
+      )
+      .bind(userId)
+      .all<{
+        id: number;
+        name: string;
+        username: string;
+        clone_type: string;
+        category: string | null;
+        avatar_url: string | null;
+        created_at: string;
+        followers_count: number;
+        messages_count: number;
+        gifts_count: number;
+      }>()
+  ).results;
+
+  return c.json({
+    items: rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      username: r.username,
+      cloneType: r.clone_type,
+      category: r.category,
+      avatarUrl: r.avatar_url,
+      stats: {
+        followers: r.followers_count,
+        messages: r.messages_count,
+        gifts: r.gifts_count,
+      },
+      createdAt: r.created_at,
+    })),
+  });
+});
+
 users.delete("/me/devices/:id", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const deviceRowId = Number(c.req.param("id"));

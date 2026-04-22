@@ -92,6 +92,21 @@ export async function resolveOptionalUser(
 
 export type ViewerRole = "owner" | "viewer" | "follower" | "guest";
 
+export type ResponseViewerRole = "owner" | "coowner" | "follower";
+
+export async function resolveResponseViewerRole(
+  db: D1Database,
+  clone: Pick<CloneRow, "id" | "owner_id">,
+  userId: number | null,
+): Promise<ResponseViewerRole | null> {
+  if (userId === null) return null;
+  if (userId === clone.owner_id) return "owner";
+  const share = await hasAcceptedShare(db, clone.id, userId);
+  if (share !== null) return "coowner";
+  if (await isFollower(db, clone.id, userId)) return "follower";
+  return null;
+}
+
 export async function resolveViewerRole(
   c: Context<AppEnv>,
   clone: Pick<CloneRow, "id" | "owner_id" | "visibility">,
