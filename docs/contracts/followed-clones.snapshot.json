@@ -1,0 +1,35 @@
+{
+  "_route": "GET /oth-path",
+  "_auth": "required — 본인만 (pathId === userId). 타인 조회 시 403, 비로그인 시 401.",
+  "_order": "clone_follows.created_at DESC, id DESC (최근 팔로우 순)",
+  "items": [
+    {
+      "id": 1,
+      "name": "나츠 (Natsu)",
+      "username": "natsu",
+      "cloneType": "memlow",
+      "category": "family",
+      "avatarUrl": "https://cdn.afterlife.example/avatar/natsu.png",
+      "stats": {
+        "followers": 42,
+        "messages": 318,
+        "gifts": 5
+      },
+      "createdAt": "2026-03-10T02:15:00Z"
+    },
+    {
+      "id": 2,
+      "name": "레이 (Ray)",
+      "username": "ray",
+      "cloneType": "friend",
+      "category": "friend",
+      "avatarUrl": "https://cdn.afterlife.example/avatar/ray.png",
+      "stats": {
+        "followers": 118,
+        "messages": 742,
+        "gifts": 12
+      },
+      "createdAt": "2026-03-12T09:02:00Z"
+    }
+  ]
+}
