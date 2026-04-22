@@ -17,6 +17,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ClonesStackParamList } from "../../navigation/types";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
+import { SEED } from "../../mocks/seedIndex";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { Gift } from "../../types/gift";
 import giftsData from "../../mocks/gifts.json";
@@ -33,6 +34,16 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
   const user = useAuthStore((s) => s.user);
   const insets = useSafeAreaInsets();
   const [showGiftModal, setShowGiftModal] = useState(false);
+
+  const approvedCoowners =
+    clone && clone.cloneType === "memlow"
+      ? SEED.coowners
+          .filter(
+            (co) => co.cloneId === clone.id && co.status === "approved",
+          )
+          .map((co) => SEED.users.find((u) => u.id === co.userId))
+          .filter((u): u is NonNullable<typeof u> => Boolean(u))
+      : [];
 
   if (!clone) {
     return (
@@ -88,6 +99,21 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
         colors={["transparent", "rgba(9,9,11,0.7)"]}
         style={s.bottomGradient}
       >
+        {approvedCoowners.length > 0 && (
+          <View style={s.coownerBlock} testID="coowner-section">
+            <Text style={s.coownerTitle}>
+              공동관리자 {approvedCoowners.length}명
+            </Text>
+            <View style={s.coownerList}>
+              {approvedCoowners.slice(0, 5).map((u) => (
+                <View key={u.id} style={s.coownerChip}>
+                  <Text style={s.coownerName}>{u.displayName}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {}
         <TouchableOpacity
           style={s.giftBtn}
@@ -185,8 +211,36 @@ const s = StyleSheet.create({
     right: 0,
     paddingHorizontal: 24,
     paddingBottom: 40,
+    paddingTop: 16,
     alignItems: "flex-end",
     zIndex: 10,
+  },
+  coownerBlock: {
+    alignSelf: "stretch",
+    marginBottom: 16,
+  },
+  coownerTitle: {
+    fontSize: 12,
+    color: COLORS.white,
+    fontWeight: "600",
+    marginBottom: 8,
+    opacity: 0.85,
+  },
+  coownerList: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  coownerChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: RADIUS.full,
+  },
+  coownerName: {
+    fontSize: 12,
+    color: COLORS.white,
+    fontWeight: "500",
   },
   giftBtn: {
     width: 56,
