@@ -23,63 +23,64 @@ import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { RootStackParamList } from "../../navigation/types";
+import { useAuthStore } from "../../stores/authStore";
+import { useFollowStore } from "../../stores/followStore";
+import { SEED } from "../../mocks/seedIndex";
+import type { DomainClone, DomainFeed } from "../../types/domain";
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_W } = Dimensions.get("window");
+const DEFAULT_USER_ID = "user-001";
 
-const followedPersonas = [
-  {
-    id: "f1",
-    name: "경제전문가",
-    avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=1200&fit=crop",
-    interests: ["경제", "주식", "부동산"],
-    creatorAccount: "@economy_lover_99",
-    intimacy: 68,
-    interactions: 2340,
-  },
-  {
-    id: "f2",
-    name: "요가선생님",
-    avatar: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=1200&fit=crop",
-    interests: ["건강", "명상", "요가"],
-    creatorAccount: "@wellness_kim",
-    intimacy: 82,
-    interactions: 1567,
-  },
-];
-
-const mockPosts = [
-  { id: 1, personaId: "f1", content: "부동산 시장의 새로운 트렌드를 분석했습니다. 지금이 기회일 수 있습니다.", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=1200&fit=crop", likes: 2100 },
-  { id: 2, personaId: "f2", content: "아침 명상으로 하루를 시작하세요. 5분의 고요함이 당신의 하루를 바꿉니다.", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=1200&fit=crop", likes: 1800 },
-];
-
-const mockComments: Record<number, Array<{ id: string; author: string; avatar: string; content: string; time: string }>> = {
-  1: [
-    { id: "c1", author: "@investor_kim", avatar: "https://i.pravatar.cc/100?img=1", content: "정말 유익한 분석입니다! 감사합니다.", time: "5분 전" },
-    { id: "c2", author: "@market_lover", avatar: "https://i.pravatar.cc/100?img=5", content: "장기 투자 관점으로 접근하겠습니다.", time: "12분 전" },
-    { id: "c3", author: "@finance_pro", avatar: "https://i.pravatar.cc/100?img=3", content: "좋은 인사이트네요", time: "20분 전" },
-  ],
-  2: [
-    { id: "c4", author: "@healing_soul", avatar: "https://i.pravatar.cc/100?img=9", content: "위로가 됩니다. 감사해요", time: "3분 전" },
-    { id: "c5", author: "@mindful_life", avatar: "https://i.pravatar.cc/100?img=10", content: "오늘도 힘내세요!", time: "15분 전" },
-  ],
+type FollowedPersona = {
+  id: string;
+  name: string;
+  avatar: string;
+  interests: string[];
+  creatorAccount: string;
 };
 
-const recentCalls = [
-  { personaId: "f2", lastCallTime: "어제", duration: "8분 21초" },
-  { personaId: "f1", lastCallTime: "3일 전", duration: "15분 32초" },
-];
-
-const formatCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
+const toPersona = (clone: DomainClone, ownerHandle?: string): FollowedPersona => ({
+  id: clone.id,
+  name: clone.displayName,
+  avatar: clone.imageUrl ?? "",
+  interests: clone.interests,
+  creatorAccount: ownerHandle ? `@${ownerHandle}` : "",
+});
 
 export default function FollowingScreen() {
   const rootNav = useNavigation<RootNav>();
+  const authUser = useAuthStore((s) => s.user);
+  const follows = useFollowStore((s) => s.follows);
+  const toggleFollow = useFollowStore((s) => s.toggleFollow);
+
+  const uid = authUser?.id ?? DEFAULT_USER_ID;
+
+  const followedPersonas = useMemo<FollowedPersona[]>(() => {
+    const followingCloneIds = follows
+      .filter((f) => f.followerUserId === uid)
+      .map((f) => f.followingCloneId);
+    return followingCloneIds
+      .map((cid) => SEED.clones.find((c) => c.id === cid))
+      .filter((c): c is DomainClone => Boolean(c))
+      .map((clone) => {
+        const owner = SEED.users.find((u) => u.id === clone.ownerUserId);
+        return toPersona(clone, owner?.handle);
+      });
+  }, [follows, uid]);
+
+  const feeds = useMemo<DomainFeed[]>(() => {
+    const followingIds = new Set(followedPersonas.map((p) => p.id));
+    return SEED.feeds
+      .filter((f) => followingIds.has(f.cloneId))
+      .slice()
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [followedPersonas]);
 
   const [selectedCategory, setSelectedCategory] = useState("전체");
-  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
-  const [unfollowedIds, setUnfollowedIds] = useState<Set<string>>(new Set());
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
-  const [commentPostId, setCommentPostId] = useState<number | null>(null);
+  const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [unfollowConfirmId, setUnfollowConfirmId] = useState<string | null>(null);
   const [showIntimacyInfo, setShowIntimacyInfo] = useState(false);
@@ -117,115 +118,139 @@ export default function FollowingScreen() {
     const tags = new Set<string>();
     followedPersonas.forEach((p) => p.interests.forEach((i) => tags.add(i)));
     return ["전체", ...Array.from(tags)];
-  }, []);
+  }, [followedPersonas]);
 
   const posts = useMemo(() => {
-    let filtered = mockPosts.filter((p) => !unfollowedIds.has(p.personaId));
+    let filtered = feeds;
     if (selectedCategory !== "전체") {
-      const ids = followedPersonas.filter((p) => p.interests.includes(selectedCategory)).map((p) => p.id);
-      filtered = filtered.filter((p) => ids.includes(p.personaId));
+      const ids = followedPersonas
+        .filter((p) => p.interests.includes(selectedCategory))
+        .map((p) => p.id);
+      filtered = filtered.filter((f) => ids.includes(f.cloneId));
     }
-    return filtered.map((post) => {
-      const persona = followedPersonas.find((p) => p.id === post.personaId)!;
-      return { ...post, persona };
-    });
-  }, [selectedCategory, unfollowedIds]);
+    return filtered
+      .map((feed) => {
+        const persona = followedPersonas.find((p) => p.id === feed.cloneId);
+        return persona ? { feed, persona } : null;
+      })
+      .filter((x): x is { feed: DomainFeed; persona: FollowedPersona } =>
+        Boolean(x),
+      );
+  }, [feeds, selectedCategory, followedPersonas]);
 
   const filteredCallList = useMemo(() => {
     if (!callSearchQuery.trim()) return followedPersonas;
     const q = callSearchQuery.toLowerCase();
-    return followedPersonas.filter((p) => p.name.toLowerCase().includes(q) || p.creatorAccount.toLowerCase().includes(q));
-  }, [callSearchQuery]);
+    return followedPersonas.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.creatorAccount.toLowerCase().includes(q),
+    );
+  }, [callSearchQuery, followedPersonas]);
 
-  const toggleLike = (id: number) => {
-    setLikedPosts((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  const toggleLike = (id: string) => {
+    setLikedPosts((prev) => {
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
+    });
   };
 
-  const confirmUnfollow = () => {
+  const confirmUnfollow = async () => {
     if (unfollowConfirmId) {
-      setUnfollowedIds((prev) => new Set(prev).add(unfollowConfirmId));
+      await toggleFollow(unfollowConfirmId);
       setUnfollowConfirmId(null);
     }
   };
 
-  const currentComments = commentPostId ? mockComments[commentPostId] || [] : [];
+  const currentComments: Array<{
+    id: string;
+    author: string;
+    avatar: string;
+    content: string;
+    time: string;
+  }> = [];
 
-  const renderPost = ({ item }: { item: (typeof posts)[0] }) => (
-    <View style={s.postWrap}>
-      {}
-      <View style={s.imageWrap}>
-        <Image source={{ uri: item.image }} style={s.postImage} resizeMode="cover" />
-
+  const renderPost = ({ item }: { item: (typeof posts)[0] }) => {
+    const feedImage = item.feed.imageUrl ?? item.persona.avatar;
+    return (
+      <View style={s.postWrap}>
         {}
-        <View style={s.statsBadge}>
-          <TouchableOpacity style={s.badgeBtn} onPress={() => setShowIntimacyInfo(true)}>
-            <Feather name="thermometer" size={12} color="#fb923c" />
-            <Text style={s.badgeText}>{item.persona.intimacy}°C</Text>
-          </TouchableOpacity>
-          <View style={s.badgeDivider} />
-          <TouchableOpacity style={s.badgeBtn} onPress={() => setShowInteractionInfo(true)}>
-            <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
-            <Text style={s.badgeText}>{formatCount(item.persona.interactions)}</Text>
-          </TouchableOpacity>
+        <View style={s.imageWrap}>
+          <Image source={{ uri: feedImage }} style={s.postImage} resizeMode="cover" />
+
+          {}
+          <View style={s.overlayContent}>
+            <Text style={s.personaName}>{item.persona.name}</Text>
+            {item.persona.creatorAccount ? (
+              <Text style={s.creatorAccount}>{item.persona.creatorAccount}</Text>
+            ) : null}
+            <View style={s.tagRow}>
+              {item.persona.interests.slice(0, 3).map((tag, i) => (
+                <View key={i} style={s.overlayTag}>
+                  <Text style={s.overlayTagText}>#{tag}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={s.postContent} numberOfLines={3}>{item.feed.text}</Text>
+            <View style={s.overlayBtns}>
+              <Button
+                title="통화하기"
+                variant="secondary"
+                size="md"
+                leftIcon={<Feather name="video" size={14} color={COLORS.zinc900} />}
+                onPress={() =>
+                  rootNav.navigate("Call", {
+                    cloneId: item.persona.id,
+                    name: item.persona.name,
+                    image: item.persona.avatar,
+                  })
+                }
+                style={s.overlayBtn}
+                textColor={COLORS.zinc900}
+                backgroundColor={COLORS.white}
+              />
+              <Button
+                title="팔로우 취소"
+                variant="ghost"
+                size="md"
+                leftIcon={<Feather name="user-minus" size={14} color={COLORS.white} />}
+                onPress={() => setUnfollowConfirmId(item.persona.id)}
+                style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
+                textColor={COLORS.white}
+                backgroundColor="rgba(255,255,255,0.2)"
+              />
+            </View>
+          </View>
         </View>
 
         {}
-        <View style={s.overlayContent}>
-          <Text style={s.personaName}>{item.persona.name}</Text>
-          <Text style={s.creatorAccount}>{item.persona.creatorAccount}</Text>
-          <View style={s.tagRow}>
-            {item.persona.interests.map((tag, i) => (
-              <View key={i} style={s.overlayTag}>
-                <Text style={s.overlayTagText}>#{tag}</Text>
-              </View>
-            ))}
+        <View style={s.actionsRow}>
+          <View style={s.actionsLeft}>
+            <TouchableOpacity onPress={() => toggleLike(item.feed.id)}>
+              <Ionicons
+                name={likedPosts.has(item.feed.id) ? "heart" : "heart-outline"}
+                size={24}
+                color={likedPosts.has(item.feed.id) ? "#ef4444" : COLORS.zinc700}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setCommentPostId(item.feed.id)}>
+              <Feather name="message-circle" size={24} color={COLORS.zinc700} />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Feather name="share-2" size={22} color={COLORS.zinc700} />
+            </TouchableOpacity>
           </View>
-          <Text style={s.postContent} numberOfLines={3}>{item.content}</Text>
-          <View style={s.overlayBtns}>
-            <Button
-              title="통화하기"
-              variant="secondary"
-              size="md"
-              leftIcon={<Feather name="video" size={14} color={COLORS.zinc900} />}
-              onPress={() => rootNav.navigate("Call", { cloneId: item.personaId, name: item.persona.name, image: item.persona.avatar })}
-              style={s.overlayBtn}
-              textColor={COLORS.zinc900}
-              backgroundColor={COLORS.white}
-            />
-            <Button
-              title="팔로우 취소"
-              variant="ghost"
-              size="md"
-              leftIcon={<Feather name="user-minus" size={14} color={COLORS.white} />}
-              onPress={() => setUnfollowConfirmId(item.personaId)}
-              style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
-              textColor={COLORS.white}
-              backgroundColor="rgba(255,255,255,0.2)"
-            />
+          <View style={s.actionsRight}>
+            <Text style={s.countText}>
+              좋아요 {likedPosts.has(item.feed.id) ? 1 : 0}개
+            </Text>
+            <Text style={s.countTextSub}>댓글 0개</Text>
           </View>
         </View>
       </View>
-
-      {}
-      <View style={s.actionsRow}>
-        <View style={s.actionsLeft}>
-          <TouchableOpacity onPress={() => toggleLike(item.id)}>
-            <Ionicons name={likedPosts.has(item.id) ? "heart" : "heart-outline"} size={24} color={likedPosts.has(item.id) ? "#ef4444" : COLORS.zinc700} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setCommentPostId(item.id)}>
-            <Feather name="message-circle" size={24} color={COLORS.zinc700} />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Feather name="share-2" size={22} color={COLORS.zinc700} />
-          </TouchableOpacity>
-        </View>
-        <View style={s.actionsRight}>
-          <Text style={s.countText}>좋아요 {item.likes + (likedPosts.has(item.id) ? 1 : 0)}개</Text>
-          <Text style={s.countTextSub}>댓글 {(mockComments[item.id] || []).length}개</Text>
-        </View>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
@@ -252,7 +277,7 @@ export default function FollowingScreen() {
       {}
       <FlatList
         data={posts}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item) => item.feed.id}
         renderItem={renderPost}
         contentContainerStyle={s.feed}
         showsVerticalScrollIndicator={false}
@@ -418,34 +443,6 @@ export default function FollowingScreen() {
             </View>
 
             <ScrollView style={s.callScroll} showsVerticalScrollIndicator={false}>
-              {}
-              {!callSearchQuery && recentCalls.length > 0 && (
-                <View style={s.callSectionBordered}>
-                  <Text style={s.callSectionTitle}>최근 통화</Text>
-                  {recentCalls.map((call) => {
-                    const p = followedPersonas.find((fp) => fp.id === call.personaId);
-                    if (!p) return null;
-                    return (
-                      <View key={call.personaId} style={s.callRow}>
-                        <Image source={{ uri: p.avatar }} style={s.callAvatar} />
-                        <View style={s.callInfo}>
-                          <Text style={s.callName}>{p.name}</Text>
-                          <Text style={s.callSub}>{p.creatorAccount}</Text>
-                          <Text style={s.callMeta}>{call.lastCallTime} • {call.duration}</Text>
-                        </View>
-                        <TouchableOpacity
-                          style={s.callBtn}
-                          onPress={() => { setShowCallModal(false); rootNav.navigate("Call", { cloneId: call.personaId, name: p.name, image: p.avatar }); }}
-                        >
-                          <Feather name="video" size={14} color={COLORS.white} />
-                          <Text style={s.callBtnText}>통화</Text>
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-
               {}
               <View style={s.callSection}>
                 <Text style={s.callSectionTitle}>{callSearchQuery ? "검색 결과" : "팔로잉 목록"}</Text>
