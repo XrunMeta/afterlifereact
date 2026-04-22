@@ -23,63 +23,64 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_8ad91b } from "../../navigation/types";
+import { v_1ed7d9 } from "../../stores/authStore";
+import { v_b4902e } from "../../stores/followStore";
+import { v_35d5ed } from "../../mocks/seedIndex";
+import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 
 type RootNav = v_390fcc<v_8ad91b>;
 const { width: v_437248 } = v_700696.get("window");
+const v_b9d568 = "user-001";
 
-const v_a48e44 = [
-  {
-    id: "f1",
-    name: "경제전문가",
-    avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=1200&fit=crop",
-    interests: ["경제", "주식", "부동산"],
-    creatorAccount: "@economy_lover_99",
-    intimacy: 68,
-    interactions: 2340,
-  },
-  {
-    id: "f2",
-    name: "요가선생님",
-    avatar: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=1200&fit=crop",
-    interests: ["건강", "명상", "요가"],
-    creatorAccount: "@wellness_kim",
-    intimacy: 82,
-    interactions: 1567,
-  },
-];
-
-const v_09f9d7 = [
-  { id: 1, personaId: "f1", content: "부동산 시장의 새로운 트렌드를 분석했습니다. 지금이 기회일 수 있습니다.", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=1200&fit=crop", likes: 2100 },
-  { id: 2, personaId: "f2", content: "아침 명상으로 하루를 시작하세요. 5분의 고요함이 당신의 하루를 바꿉니다.", image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=1200&fit=crop", likes: 1800 },
-];
-
-const v_5b3987 = {
-  1: [
-    { id: "c1", author: "@investor_kim", avatar: "https://i.pravatar.cc/100?img=1", content: "정말 유익한 분석입니다! 감사합니다.", time: "5분 전" },
-    { id: "c2", author: "@market_lover", avatar: "https://i.pravatar.cc/100?img=5", content: "장기 투자 관점으로 접근하겠습니다.", time: "12분 전" },
-    { id: "c3", author: "@finance_pro", avatar: "https://i.pravatar.cc/100?img=3", content: "좋은 인사이트네요", time: "20분 전" },
-  ],
-  2: [
-    { id: "c4", author: "@healing_soul", avatar: "https://i.pravatar.cc/100?img=9", content: "위로가 됩니다. 감사해요", time: "3분 전" },
-    { id: "c5", author: "@mindful_life", avatar: "https://i.pravatar.cc/100?img=10", content: "오늘도 힘내세요!", time: "15분 전" },
-  ],
+type FollowedPersona = {
+  id: string;
+  name: string;
+  avatar: string;
+  interests: string[];
+  creatorAccount: string;
 };
 
-const v_0e7586 = [
-  { personaId: "f2", lastCallTime: "어제", duration: "8분 21초" },
-  { personaId: "f1", lastCallTime: "3일 전", duration: "15분 32초" },
-];
-
-const v_cae9dc = (v_f4e98d) => (v_f4e98d >= 1000 ? `${(v_f4e98d / 1000).toFixed(1)}k` : String(v_f4e98d));
+const v_986943 = (clone: v_4b85a1, v_edb3e7): FollowedPersona => ({
+  id: v_eb25ce.id,
+  name: v_eb25ce.displayName,
+  avatar: v_eb25ce.imageUrl ?? "",
+  interests: v_eb25ce.interests,
+  creatorAccount: v_edb3e7 ? `@${v_edb3e7}` : "",
+});
 
 export default function v_14b43e() {
   const v_f4c991 = v_ada615<RootNav>();
+  const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
+  const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
+
+  const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
+
+  const v_a48e44 = v_df9f57<FollowedPersona[]>(() => {
+    const v_52c0ef = v_1e752a
+      .filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987)
+      .map((v_8b5cd8) => v_8b5cd8.followingCloneId);
+    return v_52c0ef
+      .map((v_062ae9) => v_35d5ed.clones.find((v_3f4e2e) => v_3f4e2e.id === v_062ae9))
+      .filter((v_3f4e2e): v_3f4e2e is v_4b85a1 => Boolean(v_3f4e2e))
+      .map((v_eb25ce) => {
+        const v_257b90 = v_35d5ed.users.find((v_ceb55a) => v_ceb55a.id === v_eb25ce.ownerUserId);
+        return v_986943(v_eb25ce, v_257b90?.handle);
+      });
+  }, [v_1e752a, v_0c8987]);
+
+  const v_632473 = v_df9f57<v_bc3df4[]>(() => {
+    const v_da0fb9 = new Set(v_a48e44.map((v_e2a85c) => v_e2a85c.id));
+    return v_35d5ed.feeds
+      .filter((v_8b5cd8) => v_da0fb9.has(v_8b5cd8.cloneId))
+      .slice()
+      .sort((v_779914, v_148ff6) => v_148ff6.createdAt.localeCompare(v_779914.createdAt));
+  }, [v_a48e44]);
 
   const [v_69ddfb, v_09b78b] = v_5ab095("전체");
-  const [v_c591dc, v_6f4b5a] = v_5ab095<Set<number>>(new Set());
-  const [v_868955, v_12374c] = v_5ab095<Set<string>>(new Set());
+  const [v_c591dc, v_6f4b5a] = v_5ab095<Set<string>>(new Set());
 
-  const [v_5c83d5, v_880166] = v_5ab095<number | null>(null);
+  const [v_5c83d5, v_880166] = v_5ab095<string | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
   const [v_7babe8, v_cdeef7] = v_5ab095<string | null>(null);
   const [v_15a54d, v_649cb3] = v_5ab095(false);
@@ -117,115 +118,133 @@ export default function v_14b43e() {
     const v_cf5673 = new Set<string>();
     v_a48e44.forEach((v_e2a85c) => v_e2a85c.interests.forEach((v_ebec57) => v_cf5673.add(v_ebec57)));
     return ["전체", ...Array.from(v_cf5673)];
-  }, []);
+  }, [v_a48e44]);
 
   const v_b94d82 = v_df9f57(() => {
-    let v_e4cf17 = v_09f9d7.filter((v_e2a85c) => !v_868955.has(v_e2a85c.personaId));
+    let v_e4cf17 = v_632473;
     if (v_69ddfb !== "전체") {
-      const v_52e08b = v_a48e44.filter((v_e2a85c) => v_e2a85c.interests.includes(v_69ddfb)).map((v_e2a85c) => v_e2a85c.id);
-      v_e4cf17 = v_e4cf17.filter((v_e2a85c) => v_52e08b.includes(v_e2a85c.personaId));
+      const v_52e08b = v_a48e44
+        .filter((v_e2a85c) => v_e2a85c.interests.includes(v_69ddfb))
+        .map((v_e2a85c) => v_e2a85c.id);
+      v_e4cf17 = v_e4cf17.filter((v_8b5cd8) => v_52e08b.includes(v_8b5cd8.cloneId));
     }
-    return v_e4cf17.map((v_4f438a) => {
-      const v_5ed063 = v_a48e44.find((v_e2a85c) => v_e2a85c.id === v_4f438a.personaId)!;
-      return { ...v_4f438a, persona: v_5ed063 };
-    });
-  }, [v_69ddfb, v_868955]);
+    return v_e4cf17
+      .map((v_2db2a5) => {
+        const v_5ed063 = v_a48e44.find((v_e2a85c) => v_e2a85c.id === v_2db2a5.cloneId);
+        return v_5ed063 ? { feed: v_2db2a5, persona: v_5ed063 } : null;
+      })
+      .filter((v_62c214): v_62c214 is { feed: v_bc3df4; persona: FollowedPersona } =>
+        Boolean(v_62c214),
+      );
+  }, [v_632473, v_69ddfb, v_a48e44]);
 
   const v_94f30e = v_df9f57(() => {
     if (!v_2116d2.trim()) return v_a48e44;
     const v_ab6401 = v_2116d2.toLowerCase();
-    return v_a48e44.filter((v_e2a85c) => v_e2a85c.name.toLowerCase().includes(v_ab6401) || v_e2a85c.creatorAccount.toLowerCase().includes(v_ab6401));
-  }, [v_2116d2]);
+    return v_a48e44.filter(
+      (v_e2a85c) =>
+        v_e2a85c.name.toLowerCase().includes(v_ab6401) ||
+        v_e2a85c.creatorAccount.toLowerCase().includes(v_ab6401),
+    );
+  }, [v_2116d2, v_a48e44]);
 
   const v_a96ced = (v_389afb) => {
-    v_6f4b5a((v_ba2215) => { const v_fd5f43 = new Set(v_ba2215); v_fd5f43.has(v_389afb) ? v_fd5f43.delete(v_389afb) : v_fd5f43.add(v_389afb); return v_fd5f43; });
+    v_6f4b5a((v_ba2215) => {
+      const v_fd5f43 = new Set(v_ba2215);
+      v_fd5f43.has(v_389afb) ? v_fd5f43.delete(v_389afb) : v_fd5f43.add(v_389afb);
+      return v_fd5f43;
+    });
   };
 
-  const v_2d8ccb = () => {
+  const v_2d8ccb = async () => {
     if (v_7babe8) {
-      v_12374c((v_ba2215) => new Set(v_ba2215).add(v_7babe8));
+      await v_3094d4(v_7babe8);
       v_cdeef7(null);
     }
   };
 
-  const v_3a63e7 = v_5c83d5 ? v_5b3987[v_5c83d5] || [] : [];
+  const v_3a63e7 = [];
 
-  const v_bdaeb6 = ({ item: v_8c0b26 }: { item: (typeof v_b94d82)[0] }) => (
-    <View style={v_fd5f43.postWrap}>
-      {}
-      <View style={v_fd5f43.imageWrap}>
-        <Image source={{ uri: v_8c0b26.image }} style={v_fd5f43.postImage} resizeMode="cover" />
-
+  const v_bdaeb6 = ({ item: v_8c0b26 }: { item: (typeof v_b94d82)[0] }) => {
+    const v_afeceb = v_8c0b26.feed.imageUrl ?? v_8c0b26.persona.avatar;
+    return (
+      <View style={v_fd5f43.postWrap}>
         {}
-        <View style={v_fd5f43.statsBadge}>
-          <TouchableOpacity style={v_fd5f43.badgeBtn} onPress={() => v_649cb3(true)}>
-            <Feather name="thermometer" size={12} color="#fb923c" />
-            <Text style={v_fd5f43.badgeText}>{v_8c0b26.persona.intimacy}°C</Text>
-          </TouchableOpacity>
-          <View style={v_fd5f43.badgeDivider} />
-          <TouchableOpacity style={v_fd5f43.badgeBtn} onPress={() => v_0af5ed(true)}>
-            <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
-            <Text style={v_fd5f43.badgeText}>{v_cae9dc(v_8c0b26.persona.interactions)}</Text>
-          </TouchableOpacity>
+        <View style={v_fd5f43.imageWrap}>
+          <Image source={{ uri: v_afeceb }} style={v_fd5f43.postImage} resizeMode="cover" />
+
+          {}
+          <View style={v_fd5f43.overlayContent}>
+            <Text style={v_fd5f43.personaName}>{v_8c0b26.persona.name}</Text>
+            {v_8c0b26.persona.creatorAccount ? (
+              <Text style={v_fd5f43.creatorAccount}>{v_8c0b26.persona.creatorAccount}</Text>
+            ) : null}
+            <View style={v_fd5f43.tagRow}>
+              {v_8c0b26.persona.interests.slice(0, 3).map((v_bd1444, v_ebec57) => (
+                <View key={v_ebec57} style={v_fd5f43.overlayTag}>
+                  <Text style={v_fd5f43.overlayTagText}>#{v_bd1444}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={v_fd5f43.postContent} numberOfLines={3}>{v_8c0b26.feed.text}</Text>
+            <View style={v_fd5f43.overlayBtns}>
+              <Button
+                title="통화하기"
+                variant="secondary"
+                size="md"
+                leftIcon={<Feather name="video" size={14} color={v_1bfbd0.zinc900} />}
+                onPress={() =>
+                  v_f4c991.navigate("Call", {
+                    cloneId: v_8c0b26.persona.id,
+                    name: v_8c0b26.persona.name,
+                    image: v_8c0b26.persona.avatar,
+                  })
+                }
+                style={v_fd5f43.overlayBtn}
+                textColor={v_1bfbd0.zinc900}
+                backgroundColor={v_1bfbd0.white}
+              />
+              <Button
+                title="팔로우 취소"
+                variant="ghost"
+                size="md"
+                leftIcon={<Feather name="user-minus" size={14} color={v_1bfbd0.white} />}
+                onPress={() => v_cdeef7(v_8c0b26.persona.id)}
+                style={{ ...v_fd5f43.overlayBtn, ...v_fd5f43.overlayBtnGhost }}
+                textColor={v_1bfbd0.white}
+                backgroundColor="rgba(255,255,255,0.2)"
+              />
+            </View>
+          </View>
         </View>
 
         {}
-        <View style={v_fd5f43.overlayContent}>
-          <Text style={v_fd5f43.personaName}>{v_8c0b26.persona.name}</Text>
-          <Text style={v_fd5f43.creatorAccount}>{v_8c0b26.persona.creatorAccount}</Text>
-          <View style={v_fd5f43.tagRow}>
-            {v_8c0b26.persona.interests.map((v_bd1444, v_ebec57) => (
-              <View key={v_ebec57} style={v_fd5f43.overlayTag}>
-                <Text style={v_fd5f43.overlayTagText}>#{v_bd1444}</Text>
-              </View>
-            ))}
+        <View style={v_fd5f43.actionsRow}>
+          <View style={v_fd5f43.actionsLeft}>
+            <TouchableOpacity onPress={() => v_a96ced(v_8c0b26.feed.id)}>
+              <Ionicons
+                name={v_c591dc.has(v_8c0b26.feed.id) ? "heart" : "heart-outline"}
+                size={24}
+                color={v_c591dc.has(v_8c0b26.feed.id) ? "#ef4444" : v_1bfbd0.zinc700}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => v_880166(v_8c0b26.feed.id)}>
+              <Feather name="message-circle" size={24} color={v_1bfbd0.zinc700} />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <Feather name="share-2" size={22} color={v_1bfbd0.zinc700} />
+            </TouchableOpacity>
           </View>
-          <Text style={v_fd5f43.postContent} numberOfLines={3}>{v_8c0b26.content}</Text>
-          <View style={v_fd5f43.overlayBtns}>
-            <Button
-              title="통화하기"
-              variant="secondary"
-              size="md"
-              leftIcon={<Feather name="video" size={14} color={v_1bfbd0.zinc900} />}
-              onPress={() => v_f4c991.navigate("Call", { cloneId: v_8c0b26.personaId, name: v_8c0b26.persona.name, image: v_8c0b26.persona.avatar })}
-              style={v_fd5f43.overlayBtn}
-              textColor={v_1bfbd0.zinc900}
-              backgroundColor={v_1bfbd0.white}
-            />
-            <Button
-              title="팔로우 취소"
-              variant="ghost"
-              size="md"
-              leftIcon={<Feather name="user-minus" size={14} color={v_1bfbd0.white} />}
-              onPress={() => v_cdeef7(v_8c0b26.personaId)}
-              style={{ ...v_fd5f43.overlayBtn, ...v_fd5f43.overlayBtnGhost }}
-              textColor={v_1bfbd0.white}
-              backgroundColor="rgba(255,255,255,0.2)"
-            />
+          <View style={v_fd5f43.actionsRight}>
+            <Text style={v_fd5f43.countText}>
+              좋아요 {v_c591dc.has(v_8c0b26.feed.id) ? 1 : 0}개
+            </Text>
+            <Text style={v_fd5f43.countTextSub}>댓글 0개</Text>
           </View>
         </View>
       </View>
-
-      {}
-      <View style={v_fd5f43.actionsRow}>
-        <View style={v_fd5f43.actionsLeft}>
-          <TouchableOpacity onPress={() => v_a96ced(v_8c0b26.id)}>
-            <Ionicons name={v_c591dc.has(v_8c0b26.id) ? "heart" : "heart-outline"} size={24} color={v_c591dc.has(v_8c0b26.id) ? "#ef4444" : v_1bfbd0.zinc700} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => v_880166(v_8c0b26.id)}>
-            <Feather name="message-circle" size={24} color={v_1bfbd0.zinc700} />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Feather name="share-2" size={22} color={v_1bfbd0.zinc700} />
-          </TouchableOpacity>
-        </View>
-        <View style={v_fd5f43.actionsRight}>
-          <Text style={v_fd5f43.countText}>좋아요 {v_8c0b26.likes + (v_c591dc.has(v_8c0b26.id) ? 1 : 0)}개</Text>
-          <Text style={v_fd5f43.countTextSub}>댓글 {(v_5b3987[v_8c0b26.id] || []).length}개</Text>
-        </View>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
@@ -252,7 +271,7 @@ export default function v_14b43e() {
       {}
       <FlatList
         data={v_b94d82}
-        keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
+        keyExtractor={(v_8c0b26) => v_8c0b26.feed.id}
         renderItem={v_bdaeb6}
         contentContainerStyle={v_fd5f43.feed}
         showsVerticalScrollIndicator={false}
@@ -418,34 +437,6 @@ export default function v_14b43e() {
             </View>
 
             <ScrollView style={v_fd5f43.callScroll} showsVerticalScrollIndicator={false}>
-              {}
-              {!v_2116d2 && v_0e7586.length > 0 && (
-                <View style={v_fd5f43.callSectionBordered}>
-                  <Text style={v_fd5f43.callSectionTitle}>최근 통화</Text>
-                  {v_0e7586.map((v_51c3d2) => {
-                    const v_e2a85c = v_a48e44.find((v_474039) => v_474039.id === v_51c3d2.personaId);
-                    if (!v_e2a85c) return null;
-                    return (
-                      <View key={v_51c3d2.personaId} style={v_fd5f43.callRow}>
-                        <Image source={{ uri: v_e2a85c.avatar }} style={v_fd5f43.callAvatar} />
-                        <View style={v_fd5f43.callInfo}>
-                          <Text style={v_fd5f43.callName}>{v_e2a85c.name}</Text>
-                          <Text style={v_fd5f43.callSub}>{v_e2a85c.creatorAccount}</Text>
-                          <Text style={v_fd5f43.callMeta}>{v_51c3d2.lastCallTime} • {v_51c3d2.duration}</Text>
-                        </View>
-                        <TouchableOpacity
-                          style={v_fd5f43.callBtn}
-                          onPress={() => { v_22a5cb(false); v_f4c991.navigate("Call", { cloneId: v_51c3d2.personaId, name: v_e2a85c.name, image: v_e2a85c.avatar }); }}
-                        >
-                          <Feather name="video" size={14} color={v_1bfbd0.white} />
-                          <Text style={v_fd5f43.callBtnText}>통화</Text>
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-
               {}
               <View style={v_fd5f43.callSection}>
                 <Text style={v_fd5f43.callSectionTitle}>{v_2116d2 ? "검색 결과" : "팔로잉 목록"}</Text>
