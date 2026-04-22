@@ -148,13 +148,13 @@ v_19e2a3.post(
     });
 
     return v_3f4e2e.json({
-      session_id: v_c5607b,
-      user_message: {
+      sessionId: v_c5607b,
+      userMessage: {
         id: v_43f890.id,
         content: v_4d33b2.content,
         createdAt: v_43f890.created_at,
       },
-      clone_reply: {
+      cloneReply: {
         id: v_56871e.id,
         content: v_677216.content,
         tokens: v_677216.tokens,

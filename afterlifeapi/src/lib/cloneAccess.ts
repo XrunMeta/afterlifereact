@@ -92,6 +92,21 @@ export async function v_efcb2d(
 
 export type ViewerRole = "owner" | "viewer" | "follower" | "guest";
 
+export type ResponseViewerRole = "owner" | "coowner" | "follower";
+
+export async function v_d875d1(
+  v_a1651b,
+  v_eb25ce,
+  v_43e90c,
+): Promise<ResponseViewerRole | null> {
+  if (v_43e90c === null) return null;
+  if (v_43e90c === v_eb25ce.owner_id) return "owner";
+  const v_c2bdf9 = await v_7adf64(v_a1651b, v_eb25ce.id, v_43e90c);
+  if (v_c2bdf9 !== null) return "coowner";
+  if (await v_ab84f6(v_a1651b, v_eb25ce.id, v_43e90c)) return "follower";
+  return null;
+}
+
 export async function v_09d461(
   c: v_437670<v_de0a25>,
   v_eb25ce,

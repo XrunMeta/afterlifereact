@@ -23,5 +23,14 @@
     },
     "createdAt": "2026-03-10T02:15:00Z",
     "viewerRole": "owner"
-  }
+  },
+  "_viewerRole_enum": ["owner", "coowner", "follower", null],
+  "_viewerRole_rules": {
+    "owner": "clone.owner_id === userId (self-owner)",
+    "coowner": "accepted clone_shares 보유 (role='owner' | 'viewer')",
+    "follower": "clone_follows 에 레코드 존재",
+    "null": "비로그인 혹은 어떤 관계도 없음 (public 클론만 허용)"
+  },
+  "_trainingStatus_enum": ["pending", "processing", "ready"],
+  "_trainingStatus_default": "pending"
 }

@@ -10,6 +10,7 @@ import {
   v_ab84f6,
   v_5d4a51,
   v_efcb2d,
+  v_d875d1,
 } from "../lib/cloneAccess";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
@@ -287,7 +288,10 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 
   const v_f8df46 = `
     SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url,
-           c.created_at, COALESCE(s.followers_count, 0) AS followers_count
+           c.created_at,
+           COALESCE(s.followers_count, 0) AS followers_count,
+           COALESCE(s.messages_count, 0)  AS messages_count,
+           COALESCE(s.gifts_count, 0)     AS gifts_count
       FROM clones c
       LEFT JOIN clone_stats s ON s.clone_id = c.id
      WHERE ${v_abcc8d.join(" AND ")}
@@ -305,6 +309,8 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
       avatar_url: string | null;
       created_at: string;
       followers_count: number;
+      messages_count: number;
+      gifts_count: number;
     }>()
   ).results;
 
@@ -327,7 +333,11 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
       cloneType: v_cb35cb.clone_type,
       category: v_cb35cb.category,
       avatarUrl: v_cb35cb.avatar_url,
-      followersCount: v_cb35cb.followers_count,
+      stats: {
+        followers: v_cb35cb.followers_count,
+        messages: v_cb35cb.messages_count,
+        gifts: v_cb35cb.gifts_count,
+      },
       createdAt: v_cb35cb.created_at,
     })),
     nextCursor: v_64f859,
@@ -343,18 +353,13 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
 
   const v_43e90c = await v_efcb2d(v_3f4e2e);
+  const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
 
-  let v_00efe2 = null;
-  if (v_43e90c === v_eb25ce.owner_id) v_00efe2 = "owner";
-  else if (v_43e90c) v_00efe2 = await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
-
-  if (v_eb25ce.visibility === "private" && !v_00efe2) {
+  if (v_eb25ce.visibility === "private" && v_00efe2 !== "owner" && v_00efe2 !== "coowner") {
     throw new v_3ebe58("FORBIDDEN", "Private clone.");
   }
-  if (v_eb25ce.visibility === "followers" && !v_00efe2) {
-    if (!v_43e90c || !(await v_ab84f6(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c))) {
-      throw new v_3ebe58("FORBIDDEN", "Followers-only clone.");
-    }
+  if (v_eb25ce.visibility === "followers" && v_00efe2 === null) {
+    throw new v_3ebe58("FORBIDDEN", "Followers-only clone.");
   }
 
   const v_774c91 = (
