@@ -15,7 +15,7 @@ import { cloneMessages, messages } from "./routes/messages";
 import { cloneFeeds } from "./routes/feeds";
 import { sessions } from "./routes/sessions";
 import { cloneShares, inviteTokens } from "./routes/sharing";
-import { cloneShorts } from "./routes/shorts";
+import { cloneShorts, shortsFeed } from "./routes/shorts";
 import { cloneEditorTransfer } from "./routes/editorTransfer";
 import { credits } from "./routes/credits";
 import { admin } from "./routes/admin";
@@ -63,6 +63,8 @@ app.route("/oth-path", cloneFeeds);
 app.route("/oth-path", cloneShares);
 
 app.route("/oth-path", cloneShorts);
+
+app.route("/oth-path", shortsFeed);
 
 app.route("/oth-path", cloneEditorTransfer);
 app.route("/oth-path", messages);
