@@ -23,6 +23,7 @@ import v_baac2f from "../screens/clone-creation/Step6CreatingScreen";
 import v_448ad1 from "../screens/clone-creation/Step7CompleteScreen";
 import v_d19b01 from "../screens/clone-creation/Step8CreateShortsScreen";
 import v_14b43e from "../screens/following/FollowingScreen";
+import v_87eb38 from "../screens/shorts/ShortsTabScreen";
 import v_ed02a5 from "../screens/my/MyScreen";
 
 const v_3ea452 = v_709be7<v_2d88fc>();
@@ -59,7 +60,7 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; label: 
   HomeTab: { icon: "home", label: "홈" },
   ClonesTab: { icon: "users", label: "페르소나" },
   CreateTab: { icon: "plus-circle", label: "생성" },
-  ShortsTab: { icon: "user", label: "팔로잉" },
+  ShortsTab: { icon: "film", label: "숏폼" },
   MyTab: { icon: "user", label: "마이" },
 };
 
@@ -147,7 +148,7 @@ export default function v_19ba0e() {
           },
         })}
       />
-      <Tab.Screen name="ShortsTab" component={v_14b43e} />
+      <Tab.Screen name="ShortsTab" component={v_87eb38} />
       <Tab.Screen name="MyTab" component={v_ed02a5} />
     </Tab.Navigator>
   );
