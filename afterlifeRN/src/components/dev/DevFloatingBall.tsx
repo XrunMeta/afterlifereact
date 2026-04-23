@@ -15,6 +15,8 @@ import { useFloatingBallPosition } from './useFloatingBallPosition';
 import { defaultDevActions } from './DevFloatingBall.actions';
 import { useAuthStore } from '../../stores/authStore';
 import { seedSource } from '../../api/source';
+import { getCurrentRouteName } from '../../navigation/navigationRef';
+import { getApisForRoute, type ScreenApiRef } from '../../api/screenApiMap';
 
 const BALL = 52;
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -26,6 +28,8 @@ export function DevFloatingBall() {
   const pan = useRef(new Animated.ValueXY(pos)).current;
   const [menuOpen, setMenuOpen] = useState(false);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [apiProbeOpen, setApiProbeOpen] = useState(false);
+  const [probeData, setProbeData] = useState<{ route: string; apis: ScreenApiRef[] } | null>(null);
   const actions = defaultDevActions();
   const currentUser = useAuthStore((s) => s.user);
 
@@ -99,6 +103,19 @@ export function DevFloatingBall() {
               <Text style={styles.rowText}>{a.label}</Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={styles.row}
+            accessibilityLabel="dev-api-probe"
+            onPress={() => {
+              const route = getCurrentRouteName() ?? '(unknown)';
+              setProbeData({ route, apis: getApisForRoute(route) });
+              setMenuOpen(false);
+              setApiProbeOpen(true);
+            }}
+          >
+            <Feather name="activity" size={16} color="#fff" />
+            <Text style={styles.rowText}>API Probe</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -137,8 +154,66 @@ export function DevFloatingBall() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={apiProbeOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setApiProbeOpen(false)}
+      >
+        <View style={styles.modalWrap}>
+          <View style={styles.modalCard} accessibilityLabel="dev-api-probe-card">
+            <Text style={styles.modalTitle}>
+              API Probe · {probeData?.route ?? '-'}
+            </Text>
+            {probeData && probeData.apis.length === 0 ? (
+              <Text style={styles.apiEmpty}>이 화면에 매핑된 API 없음</Text>
+            ) : (
+              <FlatList
+                data={probeData?.apis ?? []}
+                keyExtractor={(_, i) => String(i)}
+                renderItem={({ item }) => (
+                  <View style={styles.apiRow}>
+                    <Text style={[styles.apiMethod, methodStyle(item.method)]}>
+                      {item.method}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.apiPath}>{item.path}</Text>
+                      {item.note ? (
+                        <Text style={styles.apiNote}>{item.note}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                )}
+              />
+            )}
+            <TouchableOpacity
+              onPress={() => setApiProbeOpen(false)}
+              style={styles.closeBtn}
+            >
+              <Text>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </Animated.View>
   );
+}
+
+function methodStyle(m: string) {
+  switch (m) {
+    case 'GET':
+      return { backgroundColor: '#d1fae5', color: '#065f46' };
+    case 'POST':
+      return { backgroundColor: '#dbeafe', color: '#1e40af' };
+    case 'PUT':
+    case 'PATCH':
+      return { backgroundColor: '#fef3c7', color: '#92400e' };
+    case 'DELETE':
+      return { backgroundColor: '#fee2e2', color: '#991b1b' };
+    default:
+      return { backgroundColor: '#e5e7eb', color: '#111827' };
+  }
 }
 
 const styles = StyleSheet.create({
@@ -189,4 +264,25 @@ const styles = StyleSheet.create({
   },
   userRowText: { fontSize: 14, color: '#111' },
   closeBtn: { marginTop: 8, alignSelf: 'flex-end', padding: 8 },
+  apiEmpty: { color: '#6b7280', paddingVertical: 12, textAlign: 'center' },
+  apiRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  apiMethod: {
+    fontSize: 11,
+    fontWeight: '700',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    overflow: 'hidden',
+    minWidth: 48,
+    textAlign: 'center',
+  },
+  apiPath: { fontSize: 13, color: '#111827', fontFamily: 'Courier' },
+  apiNote: { fontSize: 11, color: '#6b7280', marginTop: 2 },
 });

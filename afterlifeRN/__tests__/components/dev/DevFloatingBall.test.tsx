@@ -25,3 +25,12 @@ test('renders nothing when __DEV__ is false', () => {
   expect(toJSON()).toBeNull();
   (global as any).__DEV__ = original;
 });
+
+test('API Probe action opens the probe modal', () => {
+  render(<DevFloatingBall />);
+  fireEvent.press(screen.getByLabelText('dev-ball-button'));
+  fireEvent.press(screen.getByLabelText('dev-api-probe'));
+
+  expect(screen.getByText(/API Probe · \(unknown\)/)).toBeTruthy();
+  expect(screen.getByText('이 화면에 매핑된 API 없음')).toBeTruthy();
+});
