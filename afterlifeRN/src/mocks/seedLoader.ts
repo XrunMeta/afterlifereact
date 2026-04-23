@@ -5,6 +5,7 @@ import type {
   DomainCoowner,
   DomainMessage,
   DomainFeed,
+  DomainShort,
   CloneType,
   Visibility,
   CloneStatus,
@@ -13,6 +14,7 @@ import type {
 } from '../types/domain';
 
 const CLONE_TYPES: readonly CloneType[] = ['memlow', 'friend', 'mentor', 'celeb'];
+const SHORT_STATUSES = ['queued', 'processing', 'ready', 'failed'] as const;
 const VISIBILITIES: readonly Visibility[] = ['public', 'followers', 'private'];
 const STATUSES: readonly CloneStatus[] = ['active', 'pending_assets'];
 const COOWNER_STATUSES: readonly CoownerStatus[] = ['invited', 'approved', 'rejected'];
@@ -75,6 +77,21 @@ export function assertClones(rows: unknown[]): asserts rows is DomainClone[] {
     requireEnum(`clone[${i}].visibility`, r.visibility, VISIBILITIES);
     requireEnum(`clone[${i}].status`, r.status, STATUSES);
     requireIso(`clone[${i}].createdAt`, r.createdAt);
+    if (r.primaryEditorUserId !== undefined) {
+      requireNumber(`clone[${i}].primaryEditorUserId`, r.primaryEditorUserId);
+    }
+    if (r.l1Profile !== undefined) {
+      const l1 = r.l1Profile as Record<string, unknown>;
+      if (typeof l1?.attrs !== 'object' || l1.attrs === null || Array.isArray(l1.attrs)) {
+        throw new Error(`clone[${i}].l1Profile.attrs must be object`);
+      }
+      Object.entries(l1.attrs as Record<string, unknown>).forEach(([k, v]) => {
+        requireString(`clone[${i}].l1Profile.attrs.${k}`, v);
+      });
+      if (typeof l1.notes !== 'string') {
+        throw new Error(`clone[${i}].l1Profile.notes must be string`);
+      }
+    }
   });
 }
 
@@ -127,6 +144,19 @@ export function assertFeeds(rows: unknown[]): asserts rows is DomainFeed[] {
   });
 }
 
+export function assertShorts(rows: unknown[]): asserts rows is DomainShort[] {
+  rows.forEach((raw, i) => {
+    const r = raw as Record<string, unknown>;
+    requireNumber(`short[${i}].id`, r.id);
+    requireNumber(`short[${i}].cloneId`, r.cloneId);
+    requireEnum(`short[${i}].status`, r.status, SHORT_STATUSES);
+    if (r.mediaUrl !== null && r.mediaUrl !== undefined) {
+      requireString(`short[${i}].mediaUrl`, r.mediaUrl);
+    }
+    requireIso(`short[${i}].createdAt`, r.createdAt);
+  });
+}
+
 export interface Seed {
   users: DomainUser[];
   clones: DomainClone[];
@@ -134,6 +164,7 @@ export interface Seed {
   coowners: DomainCoowner[];
   messages: DomainMessage[];
   feeds: DomainFeed[];
+  shorts: DomainShort[];
 }
 
 export function loadSeed(raw: {
@@ -143,6 +174,7 @@ export function loadSeed(raw: {
   coowners: unknown[];
   messages: unknown[];
   feeds: unknown[];
+  shorts: unknown[];
 }): Seed {
   assertUsers(raw.users);
   assertClones(raw.clones);
@@ -150,5 +182,6 @@ export function loadSeed(raw: {
   assertCoowners(raw.coowners);
   assertMessages(raw.messages);
   assertFeeds(raw.feeds);
+  assertShorts(raw.shorts);
   return raw as Seed;
 }
