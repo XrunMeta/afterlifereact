@@ -1,4 +1,5 @@
 import { assertUsers, assertClones, assertFollows, assertCoowners, assertMessages, assertFeeds } from '../src/mocks/seedLoader';
+import type { DomainClone, DomainShort, L1Profile, ShortStatus } from '../src/types/domain';
 
 describe('seedLoader assertions', () => {
   it('assertUsers passes on minimal valid user', () => {
@@ -93,5 +94,38 @@ describe('seedLoader assertions', () => {
     expect(() =>
       assertUsers([{ id: 1, displayName: 'x', handle: '@x', createdAt: '2026-01-01T00:00:00Z' }]),
     ).not.toThrow();
+  });
+});
+
+describe('domain type shape (compile-time)', () => {
+  it('DomainClone exposes optional l1Profile + primaryEditorUserId', () => {
+    const c: DomainClone = {
+      id: 1,
+      cloneType: 'memlow',
+      ownerId: 1,
+      displayName: 'x',
+      description: 'x',
+      interests: [],
+      visibility: 'private',
+      status: 'active',
+      createdAt: '2026-01-01T00:00:00Z',
+      primaryEditorUserId: 1,
+      l1Profile: { attrs: { tone: 'warm' }, notes: '' } satisfies L1Profile,
+    };
+    expect(c.primaryEditorUserId).toBe(1);
+    expect(c.l1Profile?.attrs.tone).toBe('warm');
+  });
+
+  it('DomainShort has required shape + ShortStatus', () => {
+    const statuses: ShortStatus[] = ['queued', 'processing', 'ready', 'failed'];
+    const s: DomainShort = {
+      id: 1,
+      cloneId: 10,
+      status: 'ready',
+      mediaUrl: 'https://cdn/x.mp4',
+      createdAt: '2026-04-23T00:00:00Z',
+    };
+    expect(statuses).toContain(s.status);
+    expect(s.cloneId).toBe(10);
   });
 });
