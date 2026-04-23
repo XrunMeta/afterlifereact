@@ -34,21 +34,22 @@ export default function ShortsTabScreen() {
       data={items}
       keyExtractor={(s) => String(s.shortId)}
       renderItem={({ item, index }) => (
-        <TouchableOpacity
-          accessibilityLabel={`short-item-${index}`}
-          style={styles.card}
-          onPress={() => nav.navigate('Chat', { cloneId: item.cloneId })}
-        >
-          <Text style={styles.title}>{item.name}</Text>
-          <Text style={styles.meta}>{item.cloneType}</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            accessibilityLabel={`short-item-${index}`}
+            onPress={() => nav.navigate('Chat', { cloneId: item.cloneId })}
+          >
+            <Text style={styles.title}>{item.name}</Text>
+            <Text style={styles.meta}>{item.cloneType}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             accessibilityLabel={`short-detail-${index}`}
-            onPress={() => nav.navigate('CloneDetail', { cloneId: item.cloneId })}
+            onPress={() => nav.navigate('ClonesTab', { screen: 'CloneDetail', params: { cloneId: item.cloneId } })}
             style={styles.detailBtn}
           >
             <Text style={styles.detailText}>자세히 보기</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
       )}
     />
   );

@@ -67,8 +67,11 @@ test('short-detail tap → nav.navigate CloneDetail', async () => {
   });
   fireEvent.press(await findByLabelText('short-detail-0'));
   expect(mockNavigate).toHaveBeenCalledWith(
-    'CloneDetail',
-    expect.objectContaining({ cloneId: expect.any(Number) }),
+    'ClonesTab',
+    expect.objectContaining({
+      screen: 'CloneDetail',
+      params: expect.objectContaining({ cloneId: expect.any(Number) }),
+    }),
   );
 });
 
