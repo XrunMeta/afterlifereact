@@ -6,6 +6,7 @@ import {
   toApiFeed,
   toApiMessage,
   computeViewerRole,
+  toApiShort,
 } from './seedAdapter';
 import type {
   ApiClone,
@@ -14,7 +15,11 @@ import type {
   ApiFollowedCloneList,
   ApiMessageList,
   ApiSession,
+  ApiShort,
+  ApiShortsList,
 } from './types';
+import type { DomainShort } from '../types/domain';
+import { allShorts, appendGeneratedShort, findShort } from './shortsStore';
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_SESSION_ID = 'sess-stub-local';
@@ -118,6 +123,45 @@ export const apiClient = {
       expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
       viewerRole,
     };
+  },
+
+  async listShorts(viewerId: number): Promise<ApiShortsList> {
+    const seed = getSeed();
+    const items = allShorts()
+      .filter((s) => s.status === 'ready')
+      .map((s) => {
+        const clone = seed.clones.find((c) => c.id === s.cloneId);
+        if (!clone) return null;
+        const isOwner = clone.ownerId === viewerId;
+        const isCoowner = seed.coowners.some(
+          (co) => co.cloneId === clone.id && co.userId === viewerId && co.status === 'approved',
+        );
+        const visible = clone.visibility === 'public' || isOwner || isCoowner;
+        return visible ? toApiShort(s, clone) : null;
+      })
+      .filter((x): x is ApiShort => x != null)
+      .sort((a, b) => b.shortId - a.shortId);
+    return { items, nextCursor: null };
+  },
+
+  async generateShort(
+    cloneId: number,
+    viewerId: number,
+  ): Promise<{ shortId: number; status: 'queued' }> {
+    const seed = getSeed();
+    const clone = seed.clones.find((c) => c.id === cloneId);
+    if (!clone) throw new Error(`Clone not found: ${cloneId}`);
+    if (clone.ownerId !== viewerId) throw new Error('Forbidden: owner only');
+    const row = appendGeneratedShort(cloneId);
+    return { shortId: row.id, status: 'queued' };
+  },
+
+  async getShort(
+    shortId: number,
+  ): Promise<{ shortId: number; status: DomainShort['status']; mediaUrl: string | null }> {
+    const s = findShort(shortId);
+    if (!s) throw new Error(`Short not found: ${shortId}`);
+    return { shortId: s.id, status: s.status, mediaUrl: s.mediaUrl };
   },
 };
 

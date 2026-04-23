@@ -2,6 +2,7 @@ import type {
   DomainClone,
   DomainFeed,
   DomainMessage,
+  DomainShort,
   CloneType,
 } from '../types/domain';
 import type { Seed } from '../mocks/seedLoader';
@@ -10,6 +11,7 @@ import type {
   ApiCloneListItem,
   ApiFeed,
   ApiMessage,
+  ApiShort,
   ViewerRole,
 } from './types';
 
@@ -111,5 +113,16 @@ export function toApiMessage(msg: DomainMessage, sessionId: string): ApiMessage 
     role: msg.role,
     content: msg.content,
     createdAt: msg.timestamp,
+  };
+}
+
+export function toApiShort(short: DomainShort, clone: DomainClone): ApiShort {
+  return {
+    shortId: short.id,
+    cloneId: short.cloneId,
+    status: short.status,
+    mediaUrl: short.mediaUrl,
+    name: clone.displayName,
+    cloneType: clone.cloneType,
   };
 }
