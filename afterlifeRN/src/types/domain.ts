@@ -1,4 +1,18 @@
 export type CloneType = 'memlow' | 'friend' | 'mentor' | 'celeb';
+export type ShortStatus = 'queued' | 'processing' | 'ready' | 'failed';
+
+export interface L1Profile {
+  attrs: Record<string, string>;
+  notes: string;
+}
+
+export interface DomainShort {
+  id: number;
+  cloneId: number;
+  status: ShortStatus;
+  mediaUrl: string | null;
+  createdAt: string;
+}
 export type CloneStatus = 'active' | 'pending_assets';
 export type Visibility = 'public' | 'followers' | 'private';
 export type CoownerStatus = 'invited' | 'approved' | 'rejected';
@@ -25,6 +39,8 @@ export interface DomainClone {
   visibility: Visibility;
   status: CloneStatus;
   createdAt: string;
+  primaryEditorUserId?: number;
+  l1Profile?: L1Profile;
 }
 
 export interface DomainFollow {
