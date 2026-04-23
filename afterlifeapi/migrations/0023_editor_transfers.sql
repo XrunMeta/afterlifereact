@@ -8,8 +8,8 @@ CREATE TABLE clone_editor_transfers (
   from_user_id INTEGER NOT NULL REFERENCES users(id),
   to_user_id INTEGER NOT NULL REFERENCES users(id),
   status TEXT NOT NULL CHECK (status IN ('pending','accepted','declined','revoked')),
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-  resolved_at TEXT
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  resolved_at TIMESTAMP
 );
 CREATE INDEX idx_cet_clone_status ON clone_editor_transfers(clone_id, status);
 CREATE UNIQUE INDEX idx_cet_single_pending
