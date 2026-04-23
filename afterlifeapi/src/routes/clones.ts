@@ -396,6 +396,11 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
   });
 });
 
+const v_3ea364 = v_1f4ea7.object({
+  attrs: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.string()),
+  notes: v_1f4ea7.string().max(4000).default(''),
+});
+
 const v_90be18 = v_1f4ea7
   .object({
     name: v_1f4ea7.string().min(1).max(80).optional(),
@@ -404,7 +409,9 @@ const v_90be18 = v_1f4ea7
     cover_image_url: v_1f4ea7.url().max(500).optional(),
     visibility: v_818579.optional(),
     voice_preset_id: v_1f4ea7.number().int().positive().nullable().optional(),
+    l1_profile: v_3ea364.optional(),
   })
+  .strict()
   .refine((v_b6c474) => Object.keys(v_b6c474).length > 0, {
     message: "At least one field required.",
   });
@@ -424,6 +431,16 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
     v_eb25ce.owner_id === v_43e90c ||
     (await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c)) === "owner";
   if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "Owner role required.");
+
+  if (v_4d33b2.l1_profile !== undefined) {
+    const v_3ac7e7 = await v_a1651b
+      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ?")
+      .bind(v_6e0fd3)
+      .first<{ primary_editor_user_id: number | null }>();
+    if (v_3ac7e7?.primary_editor_user_id !== v_43e90c) {
+      throw new v_3ebe58("FORBIDDEN", "Only the primary editor may edit L1.");
+    }
+  }
 
   const v_75ae3e = [];
   const v_925171 = [];
@@ -459,13 +476,40 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
     v_925171.push(v_4d33b2.voice_preset_id === null ? "text_only" : "preset");
     v_f73a2d.push("voice_preset_id");
   }
+  if (v_4d33b2.l1_profile !== undefined) {
+    v_75ae3e.push(`l1_profile = ?`);
+    v_925171.push(JSON.stringify(v_4d33b2.l1_profile));
+    v_f73a2d.push("l1_profile");
+  }
   v_75ae3e.push(`updated_at = CURRENT_TIMESTAMP`);
   v_925171.push(v_6e0fd3);
 
-  await v_a1651b
-    .prepare(`UPDATE clones SET ${v_75ae3e.join(", ")} WHERE id = ? AND deleted_at IS NULL`)
-    .bind(...v_925171)
-    .run();
+  const v_be9ad5 = [
+    v_a1651b
+      .prepare(
+        `UPDATE clones SET ${v_75ae3e.join(", ")} WHERE id = ? AND deleted_at IS NULL`,
+      )
+      .bind(...v_925171),
+  ];
+
+  if (v_4d33b2.l1_profile !== undefined) {
+    v_be9ad5.push(
+      v_a1651b
+        .prepare("DELETE FROM persona_attributes WHERE clone_id = ? AND level = 'l1'")
+        .bind(v_6e0fd3),
+    );
+    for (const [v_0eb677, v_81e2ef] of Object.entries(v_4d33b2.l1_profile.attrs)) {
+      v_be9ad5.push(
+        v_a1651b
+          .prepare(
+            "INSERT INTO persona_attributes (clone_id, level, key, value) VALUES (?, 'l1', ?, ?)",
+          )
+          .bind(v_6e0fd3, v_0eb677, v_81e2ef),
+      );
+    }
+  }
+
+  await v_a1651b.batch(v_be9ad5);
 
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
