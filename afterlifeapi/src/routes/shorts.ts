@@ -48,3 +48,37 @@ v_f07b70.get('/:id/shorts/:shortId', v_6690d9, async (v_3f4e2e) => {
   if (!v_3ac7e7) throw new v_3ebe58('NOT_FOUND', 'Short not found.');
   return v_3f4e2e.json({ shortId: v_3ac7e7.id, status: v_3ac7e7.status, mediaUrl: v_3ac7e7.media_url ?? null });
 });
+
+export const v_521eb8 = new v_b7c41b<v_de0a25>();
+
+v_521eb8.get('/', v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get('userId')!;
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT s.id AS shortId,
+              s.clone_id AS cloneId,
+              s.media_url AS mediaUrl,
+              c.name AS name,
+              c.clone_type AS cloneType
+         FROM clone_shorts s
+         JOIN clones c ON c.id = s.clone_id
+        WHERE s.status = 'ready'
+          AND c.deleted_at IS NULL
+          AND (
+            c.visibility = 'public'
+            OR c.owner_id = ?
+            OR EXISTS (
+              SELECT 1 FROM clone_shares cs
+               WHERE cs.clone_id = c.id
+                 AND cs.target_user_id = ?
+                 AND cs.role = 'owner'
+                 AND cs.status = 'accepted'
+            )
+          )
+        ORDER BY s.id DESC
+        LIMIT 30`,
+    )
+    .bind(v_43e90c, v_43e90c)
+    .all<{ shortId: number; cloneId: number; mediaUrl: string | null; name: string; cloneType: string }>();
+  return v_3f4e2e.json({ items: v_18b8bf.results, nextCursor: null });
+});
