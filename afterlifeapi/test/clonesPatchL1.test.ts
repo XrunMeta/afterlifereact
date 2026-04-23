@@ -119,6 +119,7 @@ v_469bf2('PATCH /oth-path — L1 편집', () => {
     const v_6e0fd3 = await v_4a0208(v_257b90, 'a6e_c');
 
     const v_8f00b9 = await v_bb226e(v_6e0fd3, v_257b90, {
+      name: 'ok',
       l2_profile: { anything: 'nope' },
     });
     v_4d37e3(v_8f00b9.status).toBe(422);

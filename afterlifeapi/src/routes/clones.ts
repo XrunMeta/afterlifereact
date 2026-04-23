@@ -434,7 +434,7 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
 
   if (v_4d33b2.l1_profile !== undefined) {
     const v_3ac7e7 = await v_a1651b
-      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ?")
+      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ? AND deleted_at IS NULL")
       .bind(v_6e0fd3)
       .first<{ primary_editor_user_id: number | null }>();
     if (v_3ac7e7?.primary_editor_user_id !== v_43e90c) {
