@@ -1,4 +1,5 @@
 import { v_c4deb2, v_5ab095 } from "bapkr";
+import { v_80cb8d } from "pgmzxjkoagjpdcvd";
 import { v_05a921 } from "../api/client";
 import { v_c1eeb6 } from "../components/DataTable";
 
@@ -11,6 +12,25 @@ const v_b9fa58 = [
   { key: "trainingStatus", label: "Status" },
   { key: "ownerName", label: "Owner" },
   { key: "createdAt", label: "Created", render: (v_81e2ef) => v_81e2ef?.slice(0, 10) ?? "" },
+  {
+    key: "detail",
+    label: "Detail",
+    render: (v_e79916, v_3ac7e7) => (
+      <Link
+        to={`/oth-path${v_3ac7e7.id}`}
+        style={{
+          fontSize: 12,
+          padding: "4px 10px",
+          backgroundColor: "#3b82f6",
+          color: "#fff",
+          borderRadius: 4,
+          textDecoration: "none",
+        }}
+      >
+        보기
+      </Link>
+    ),
+  },
 ];
 
 export function v_c7f476() {
