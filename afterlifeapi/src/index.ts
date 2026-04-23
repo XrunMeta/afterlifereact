@@ -15,6 +15,7 @@ import { v_19e2a3, v_fa56e0 } from "./routes/messages";
 import { v_96e8d7 } from "./routes/feeds";
 import { v_b211dd } from "./routes/sessions";
 import { v_403c0a, v_98b245 } from "./routes/sharing";
+import { v_f07b70 } from "./routes/shorts";
 import { v_e2c945 } from "./routes/credits";
 import { v_b7f2b4 } from "./routes/admin";
 import { v_d8985c } from "./routes/adminPreview";
@@ -59,6 +60,8 @@ v_466992.route("/oth-path", v_19e2a3);
 v_466992.route("/oth-path", v_96e8d7);
 
 v_466992.route("/oth-path", v_403c0a);
+
+v_466992.route("/oth-path", v_f07b70);
 v_466992.route("/oth-path", v_fa56e0);
 
 v_466992.route("/oth-path", v_b211dd);
