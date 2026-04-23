@@ -43,3 +43,15 @@ test('does not render coowner section for non-memlow clones', () => {
   v_624657(<CloneDetailScreen {...v_222dba(v_61ce26!.id)} />);
   expect(v_53746a.queryByTestId('coowner-section')).toBeNull();
 });
+
+test('owner/primary editor (viewer=1, clone=1) sees edit entry', () => {
+  v_1ed7d9.setState({ user: { id: 1 } as any, isLoggedIn: true, hydrated: true });
+  const { getByLabelText: v_690a9b } = v_624657(<CloneDetailScreen {...v_222dba(1)} />);
+  expect(v_690a9b('clone-edit-entry')).toBeTruthy();
+});
+
+test('non-owner (viewer=999) does not see edit entry', () => {
+  v_1ed7d9.setState({ user: { id: 999 } as any, isLoggedIn: true, hydrated: true });
+  const { queryByLabelText: v_32bb43 } = v_624657(<CloneDetailScreen {...v_222dba(1)} />);
+  expect(v_32bb43('clone-edit-entry')).toBeNull();
+});
