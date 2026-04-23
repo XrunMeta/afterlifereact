@@ -10,6 +10,7 @@ import {
   isFollower,
   loadCloneById,
   resolveOptionalUser,
+  resolveResponseViewerRole,
 } from "../lib/cloneAccess";
 
 export const clones = new Hono<AppEnv>();
@@ -296,7 +297,10 @@ clones.get("/search", async (c) => {
 
   const sql = `
     SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url,
-           c.created_at, COALESCE(s.followers_count, 0) AS followers_count
+           c.created_at,
+           COALESCE(s.followers_count, 0) AS followers_count,
+           COALESCE(s.messages_count, 0)  AS messages_count,
+           COALESCE(s.gifts_count, 0)     AS gifts_count
       FROM clones c
       LEFT JOIN clone_stats s ON s.clone_id = c.id
      WHERE ${where.join(" AND ")}
@@ -314,6 +318,8 @@ clones.get("/search", async (c) => {
       avatar_url: string | null;
       created_at: string;
       followers_count: number;
+      messages_count: number;
+      gifts_count: number;
     }>()
   ).results;
 
@@ -336,7 +342,11 @@ clones.get("/search", async (c) => {
       cloneType: r.clone_type,
       category: r.category,
       avatarUrl: r.avatar_url,
-      followersCount: r.followers_count,
+      stats: {
+        followers: r.followers_count,
+        messages: r.messages_count,
+        gifts: r.gifts_count,
+      },
       createdAt: r.created_at,
     })),
     nextCursor,
@@ -352,18 +362,13 @@ clones.get("/:id", async (c) => {
   if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
 
   const userId = await resolveOptionalUser(c);
+  const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
 
-  let viewerRole: "owner" | "viewer" | null = null;
-  if (userId === clone.owner_id) viewerRole = "owner";
-  else if (userId) viewerRole = await hasAcceptedShare(c.env.DB, cloneId, userId);
-
-  if (clone.visibility === "private" && !viewerRole) {
+  if (clone.visibility === "private" && viewerRole !== "owner" && viewerRole !== "coowner") {
     throw new APIError("FORBIDDEN", "Private clone.");
   }
-  if (clone.visibility === "followers" && !viewerRole) {
-    if (!userId || !(await isFollower(c.env.DB, cloneId, userId))) {
-      throw new APIError("FORBIDDEN", "Followers-only clone.");
-    }
+  if (clone.visibility === "followers" && viewerRole === null) {
+    throw new APIError("FORBIDDEN", "Followers-only clone.");
   }
 
   const interests = (

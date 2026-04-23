@@ -148,13 +148,13 @@ cloneMessages.post(
     });
 
     return c.json({
-      session_id: sessionId,
-      user_message: {
+      sessionId,
+      userMessage: {
         id: userMsg.id,
         content: body.content,
         createdAt: userMsg.created_at,
       },
-      clone_reply: {
+      cloneReply: {
         id: cloneMsg.id,
         content: reply.content,
         tokens: reply.tokens,
