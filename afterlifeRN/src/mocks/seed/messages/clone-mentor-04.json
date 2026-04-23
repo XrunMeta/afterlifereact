@@ -1,33 +1,250 @@
 [
-  { "id": "msg-clone-mentor-04-001", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "코치님, 저 지난주에 세웠던 계획들 다 실패했어요. 그냥 의지박약인가 봐요.", "timestamp": "2026-04-07T09:30:00Z" },
-  { "id": "msg-clone-mentor-04-002", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "히즈키님, 실패라고 단정하기 전에 같이 점검해보죠. '다 실패했다'는 건 너무 큰 덩어리예요. 가장 먼저 무너졌던 계획이 뭐였나요?", "timestamp": "2026-04-07T09:31:00Z" },
-  { "id": "msg-clone-mentor-04-003", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "'매일 아침 1시간 책 읽기'요. 첫날부터 늦잠 자는 바람에 못했어요.", "timestamp": "2026-04-07T09:32:00Z" },
-  { "id": "msg-clone-mentor-04-004", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "좋아요, 원인이 나왔네요. '아침 1시간'이 현재 히즈키님에겐 너무 높은 허들이었던 거예요. 의지의 문제가 아니라 전략의 문제입니다. 허들을 낮춰보죠.", "timestamp": "2026-04-07T09:33:00Z" },
-  { "id": "msg-clone-mentor-04-005", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "어떻게요? 5분만 읽기? 그런 건 의미 없지 않나요?", "timestamp": "2026-04-08T10:15:00Z" },
-  { "id": "msg-clone-mentor-04-006", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "의미는 우리가 부여하는 겁니다. 5분이든 1분이든, 중요한 건 '했다'는 사실을 만드는 거예요. 이번 주는 '잠자리에 들기 전에 책상 위에 책을 펼쳐놓기'. 딱 이것만 해볼까요?", "timestamp": "2026-04-08T10:16:00Z" },
-  { "id": "msg-clone-mentor-04-007", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "펼쳐놓기만요? 읽지 않고요?", "timestamp": "2026-04-08T10:17:00Z" },
-  { "id": "msg-clone-mentor-04-008", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "네, 읽는 건 다음 단계입니다. 행동을 시작하게 만드는 아주 작은 계기를 만드는 거죠. 이것도 못 지킬까 봐 걱정되시나요?", "timestamp": "2026-04-08T10:18:00Z" },
-  { "id": "msg-clone-mentor-04-009", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "아니요, 그건 할 수 있을 것 같아요. 근데 정말 효과가 있을까요?", "timestamp": "2026-04-09T22:05:00Z" },
-  { "id": "msg-clone-mentor-04-010", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "일단 일주일만 속는 셈 치고 해보세요. 그리고 매일 성공했는지 저한테 보고해주시는 겁니다. 체크리스트를 만들어서 '했다'에 표시하는 쾌감을 느껴보세요.", "timestamp": "2026-04-09T22:06:00Z" },
-  { "id": "msg-clone-mentor-04-011", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "알겠습니다. 그럼 오늘 밤부터 책 펼쳐놓고 보고 드릴게요!", "timestamp": "2026-04-09T22:07:00Z" },
-  { "id": "msg-clone-mentor-04-012", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "코치님! 어제 책 펼쳐놓기 성공했습니다!", "timestamp": "2026-04-10T23:50:00Z" },
-  { "id": "msg-clone-mentor-04-013", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "좋습니다, 히즈키님! 성공의 첫 단추를 꿰셨군요. 그 기분, 잘 기억해두세요. 오늘도 잊지 마시고요.", "timestamp": "2026-04-11T08:10:00Z" },
-  { "id": "msg-clone-mentor-04-014", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "오늘도 성공입니다. 근데 펼쳐놓으니까 딱 한 문단이라도 읽고 싶어져요.", "timestamp": "2026-04-11T23:30:00Z" },
-  { "id": "msg-clone-mentor-04-015", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "거봐요, 몸이 먼저 반응하죠? 그게 바로 행동 설계의 힘입니다. 하지만 아직 참으세요. 이번 주 목표는 '펼쳐놓기'를 완벽하게 내 것으로 만드는 겁니다.", "timestamp": "2026-04-12T09:00:00Z" },
-  { "id": "msg-clone-mentor-04-016", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "네, 알겠습니다! 일주일 꾹 참고 펼치기만 해볼게요.", "timestamp": "2026-04-12T09:01:00Z" },
-  { "id": "msg-clone-mentor-04-017", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "훌륭한 태도입니다. 작은 성공을 쌓아올리는 단단함을 배우고 계신 거예요. 그 인내심이 다음 단계의 추진력이 될 겁니다.", "timestamp": "2026-04-12T09:02:00Z" },
-  { "id": "msg-clone-mentor-04-018", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "코치님, 저 일주일 동안 한번도 안 빼놓고 책 펼쳐놓기 성공했어요!", "timestamp": "2026-04-16T10:00:00Z" },
-  { "id": "msg-clone-mentor-04-019", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "제가 그럴 줄 알았습니다, 히즈키님. 스스로에게 박수 한번 쳐주세요. 이제 다음 단계로 넘어갈 준비가 되셨습니다.", "timestamp": "2026-04-16T10:01:00Z" },
-  { "id": "msg-clone-mentor-04-020", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "네! 다음은 뭔가요? 이제 읽어도 되죠?", "timestamp": "2026-04-16T10:02:00Z" },
-  { "id": "msg-clone-mentor-04-021", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "물론이죠. 이번 주 목표는 '펼쳐진 책의 딱 한 페이지만 읽기'입니다. 더 읽고 싶어도 무조건 덮으세요. '감질나게 하기' 전략입니다.", "timestamp": "2026-04-16T10:03:00Z" },
-  { "id": "msg-clone-mentor-04-022", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "한 페이지만요? 알겠습니다. 그것도 할 수 있을 것 같아요.", "timestamp": "2026-04-16T10:04:00Z" },
-  { "id": "msg-clone-mentor-04-023", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "행동에 대한 저항을 없애는 게 핵심입니다. 1시간 독서는 부담스럽지만, 1페이지는 언제든 할 수 있죠. 그렇게 매일 '성공'의 경험을 쌓는 겁니다.", "timestamp": "2026-04-16T10:05:00Z" },
-  { "id": "msg-clone-mentor-04-024", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "코치님 덕분에 뭔가 할 수 있겠다는 자신감이 조금씩 생겨요.", "timestamp": "2026-04-17T18:40:00Z" },
-  { "id": "msg-clone-mentor-04-025", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "자신감은 결과가 아니라 과정에서 나옵니다. '나는 매일 약속을 지키는 사람이다'라는 믿음을 히즈키님 스스로에게 증명하고 계신 거예요.", "timestamp": "2026-04-17T18:41:00Z" },
-  { "id": "msg-clone-mentor-04-026", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "오늘도 한 페이지 읽기 성공! 코치님, 근데 읽다 보니 너무 재밌어서 덮기가 힘들어요.", "timestamp": "2026-04-18T23:15:00Z" },
-  { "id": "msg-clone-mentor-04-027", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "그게 바로 우리가 노렸던 겁니다. 뇌가 독서를 '즐거운 일'로 인식하기 시작한 거죠. 다음 주에는 시간제한으로 바꿔볼 겁니다. 기대되시죠?", "timestamp": "2026-04-19T09:20:00Z" },
-  { "id": "msg-clone-mentor-04-028", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "네! 완전 기대돼요. 코칭받는 게 이렇게 재밌는 일인 줄 몰랐어요.", "timestamp": "2026-04-19T09:21:00Z" },
-  { "id": "msg-clone-mentor-04-029", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "작은 승리를 축하하고, 데이터를 기반으로 다음 스텝을 설계하는 게임이라고 생각하세요. 히즈키님은 이 게임의 주인공이고, 저는 옆에서 규칙을 알려드리는 가이드일 뿐입니다.", "timestamp": "2026-04-19T09:22:00Z" },
-  { "id": "msg-clone-mentor-04-030", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "user", "text": "저 이번 주도 성공적으로 마칠 수 있을 것 같아요. 고맙습니다, 코치님!", "timestamp": "2026-04-20T13:00:00Z" },
-  { "id": "msg-clone-mentor-04-031", "cloneId": "clone-mentor-04", "userId": "user-001", "senderType": "clone", "text": "결과는 이미 정해져 있습니다. 히즈키님은 해낼 거니까요. 주말 잘 보내시고, 다음 주 월요일에 새로운 챌린지로 뵙겠습니다.", "timestamp": "2026-04-20T13:01:00Z" }
+  {
+    "id": 810,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "코치님, 저 지난주에 세웠던 계획들 다 실패했어요. 그냥 의지박약인가 봐요.",
+    "timestamp": "2026-04-07T09:30:00Z"
+  },
+  {
+    "id": 811,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "히즈키님, 실패라고 단정하기 전에 같이 점검해보죠. '다 실패했다'는 건 너무 큰 덩어리예요. 가장 먼저 무너졌던 계획이 뭐였나요?",
+    "timestamp": "2026-04-07T09:31:00Z"
+  },
+  {
+    "id": 812,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "'매일 아침 1시간 책 읽기'요. 첫날부터 늦잠 자는 바람에 못했어요.",
+    "timestamp": "2026-04-07T09:32:00Z"
+  },
+  {
+    "id": 813,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "좋아요, 원인이 나왔네요. '아침 1시간'이 현재 히즈키님에겐 너무 높은 허들이었던 거예요. 의지의 문제가 아니라 전략의 문제입니다. 허들을 낮춰보죠.",
+    "timestamp": "2026-04-07T09:33:00Z"
+  },
+  {
+    "id": 814,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "어떻게요? 5분만 읽기? 그런 건 의미 없지 않나요?",
+    "timestamp": "2026-04-08T10:15:00Z"
+  },
+  {
+    "id": 815,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "의미는 우리가 부여하는 겁니다. 5분이든 1분이든, 중요한 건 '했다'는 사실을 만드는 거예요. 이번 주는 '잠자리에 들기 전에 책상 위에 책을 펼쳐놓기'. 딱 이것만 해볼까요?",
+    "timestamp": "2026-04-08T10:16:00Z"
+  },
+  {
+    "id": 816,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "펼쳐놓기만요? 읽지 않고요?",
+    "timestamp": "2026-04-08T10:17:00Z"
+  },
+  {
+    "id": 817,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "네, 읽는 건 다음 단계입니다. 행동을 시작하게 만드는 아주 작은 계기를 만드는 거죠. 이것도 못 지킬까 봐 걱정되시나요?",
+    "timestamp": "2026-04-08T10:18:00Z"
+  },
+  {
+    "id": 818,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "아니요, 그건 할 수 있을 것 같아요. 근데 정말 효과가 있을까요?",
+    "timestamp": "2026-04-09T22:05:00Z"
+  },
+  {
+    "id": 819,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "일단 일주일만 속는 셈 치고 해보세요. 그리고 매일 성공했는지 저한테 보고해주시는 겁니다. 체크리스트를 만들어서 '했다'에 표시하는 쾌감을 느껴보세요.",
+    "timestamp": "2026-04-09T22:06:00Z"
+  },
+  {
+    "id": 820,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "알겠습니다. 그럼 오늘 밤부터 책 펼쳐놓고 보고 드릴게요!",
+    "timestamp": "2026-04-09T22:07:00Z"
+  },
+  {
+    "id": 821,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "코치님! 어제 책 펼쳐놓기 성공했습니다!",
+    "timestamp": "2026-04-10T23:50:00Z"
+  },
+  {
+    "id": 822,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "좋습니다, 히즈키님! 성공의 첫 단추를 꿰셨군요. 그 기분, 잘 기억해두세요. 오늘도 잊지 마시고요.",
+    "timestamp": "2026-04-11T08:10:00Z"
+  },
+  {
+    "id": 823,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "오늘도 성공입니다. 근데 펼쳐놓으니까 딱 한 문단이라도 읽고 싶어져요.",
+    "timestamp": "2026-04-11T23:30:00Z"
+  },
+  {
+    "id": 824,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "거봐요, 몸이 먼저 반응하죠? 그게 바로 행동 설계의 힘입니다. 하지만 아직 참으세요. 이번 주 목표는 '펼쳐놓기'를 완벽하게 내 것으로 만드는 겁니다.",
+    "timestamp": "2026-04-12T09:00:00Z"
+  },
+  {
+    "id": 825,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "네, 알겠습니다! 일주일 꾹 참고 펼치기만 해볼게요.",
+    "timestamp": "2026-04-12T09:01:00Z"
+  },
+  {
+    "id": 826,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "훌륭한 태도입니다. 작은 성공을 쌓아올리는 단단함을 배우고 계신 거예요. 그 인내심이 다음 단계의 추진력이 될 겁니다.",
+    "timestamp": "2026-04-12T09:02:00Z"
+  },
+  {
+    "id": 827,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "코치님, 저 일주일 동안 한번도 안 빼놓고 책 펼쳐놓기 성공했어요!",
+    "timestamp": "2026-04-16T10:00:00Z"
+  },
+  {
+    "id": 828,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "제가 그럴 줄 알았습니다, 히즈키님. 스스로에게 박수 한번 쳐주세요. 이제 다음 단계로 넘어갈 준비가 되셨습니다.",
+    "timestamp": "2026-04-16T10:01:00Z"
+  },
+  {
+    "id": 829,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "네! 다음은 뭔가요? 이제 읽어도 되죠?",
+    "timestamp": "2026-04-16T10:02:00Z"
+  },
+  {
+    "id": 830,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "물론이죠. 이번 주 목표는 '펼쳐진 책의 딱 한 페이지만 읽기'입니다. 더 읽고 싶어도 무조건 덮으세요. '감질나게 하기' 전략입니다.",
+    "timestamp": "2026-04-16T10:03:00Z"
+  },
+  {
+    "id": 831,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "한 페이지만요? 알겠습니다. 그것도 할 수 있을 것 같아요.",
+    "timestamp": "2026-04-16T10:04:00Z"
+  },
+  {
+    "id": 832,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "행동에 대한 저항을 없애는 게 핵심입니다. 1시간 독서는 부담스럽지만, 1페이지는 언제든 할 수 있죠. 그렇게 매일 '성공'의 경험을 쌓는 겁니다.",
+    "timestamp": "2026-04-16T10:05:00Z"
+  },
+  {
+    "id": 833,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "코치님 덕분에 뭔가 할 수 있겠다는 자신감이 조금씩 생겨요.",
+    "timestamp": "2026-04-17T18:40:00Z"
+  },
+  {
+    "id": 834,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "자신감은 결과가 아니라 과정에서 나옵니다. '나는 매일 약속을 지키는 사람이다'라는 믿음을 히즈키님 스스로에게 증명하고 계신 거예요.",
+    "timestamp": "2026-04-17T18:41:00Z"
+  },
+  {
+    "id": 835,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "오늘도 한 페이지 읽기 성공! 코치님, 근데 읽다 보니 너무 재밌어서 덮기가 힘들어요.",
+    "timestamp": "2026-04-18T23:15:00Z"
+  },
+  {
+    "id": 836,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "그게 바로 우리가 노렸던 겁니다. 뇌가 독서를 '즐거운 일'로 인식하기 시작한 거죠. 다음 주에는 시간제한으로 바꿔볼 겁니다. 기대되시죠?",
+    "timestamp": "2026-04-19T09:20:00Z"
+  },
+  {
+    "id": 837,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "네! 완전 기대돼요. 코칭받는 게 이렇게 재밌는 일인 줄 몰랐어요.",
+    "timestamp": "2026-04-19T09:21:00Z"
+  },
+  {
+    "id": 838,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "작은 승리를 축하하고, 데이터를 기반으로 다음 스텝을 설계하는 게임이라고 생각하세요. 히즈키님은 이 게임의 주인공이고, 저는 옆에서 규칙을 알려드리는 가이드일 뿐입니다.",
+    "timestamp": "2026-04-19T09:22:00Z"
+  },
+  {
+    "id": 839,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "user",
+    "content": "저 이번 주도 성공적으로 마칠 수 있을 것 같아요. 고맙습니다, 코치님!",
+    "timestamp": "2026-04-20T13:00:00Z"
+  },
+  {
+    "id": 840,
+    "cloneId": 16,
+    "userId": 1,
+    "role": "clone",
+    "content": "결과는 이미 정해져 있습니다. 히즈키님은 해낼 거니까요. 주말 잘 보내시고, 다음 주 월요일에 새로운 챌린지로 뵙겠습니다.",
+    "timestamp": "2026-04-20T13:01:00Z"
+  }
 ]

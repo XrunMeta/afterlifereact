@@ -16,10 +16,10 @@ import v_258c1c from "../../components/common/PageHeader";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_194498 } from "../../stores/cloneStore";
-import { v_35d5ed } from "../../mocks/seedIndex";
+import { v_694b7f } from "../../api/source";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 
-const v_b9d568 = "user-001";
+const v_b9d568 = 1;
 
 const settingsItems: Array<{
   icon: keyof typeof v_dec439.glyphMap;
@@ -53,8 +53,8 @@ export default function v_ed02a5() {
   );
   const v_8b222b = v_df9f57(
     () =>
-      v_35d5ed.clones.filter((v_3f4e2e) => v_3f4e2e.ownerUserId === v_0c8987).length +
-      v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerUserId === v_0c8987).length,
+      v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length +
+      v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length,
     [v_0c8987, v_06f32b],
   );
 

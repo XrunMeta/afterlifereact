@@ -1,11 +1,38 @@
 import { v_151aef } from "pgmzxjkoagjpdcvd";
 
-const v_0dea6d = [
-  { path: "/", label: "Dashboard" },
-  { path: "/oth-path", label: "Users" },
-  { path: "/oth-path", label: "Clones" },
-  { path: "/oth-path", label: "Feeds" },
-  { path: "/messages", label: "Messages" },
+interface MenuGroup {
+  label: string;
+  items: { path: string; label: string; end?: boolean }[];
+}
+
+const v_714568 = [
+  {
+    label: "Overview",
+    items: [
+      { path: "/", label: "Dashboard", end: true },
+      { path: "/testbed", label: "API Testbed" },
+    ],
+  },
+  {
+    label: "Data",
+    items: [
+      { path: "/oth-path", label: "Users" },
+      { path: "/oth-path", label: "Clones" },
+      { path: "/oth-path", label: "Feeds" },
+      { path: "/messages", label: "Messages" },
+    ],
+  },
+  {
+    label: "Admin Ops",
+    items: [
+      { path: "/oth-path", label: "Auth (TOTP/WebAuthn)" },
+      { path: "/oth-path", label: "Quorum" },
+      { path: "/oth-path", label: "GDPR" },
+      { path: "/oth-path", label: "Deletion" },
+      { path: "/oth-path", label: "Cold Recovery" },
+      { path: "/oth-path", label: "System" },
+    ],
+  },
 ];
 
 export function v_0b553a() {
@@ -16,19 +43,24 @@ export function v_0b553a() {
         <span style={v_d81136.badge}>Admin</span>
       </div>
       <nav style={v_d81136.nav}>
-        {v_0dea6d.map((v_8c0b26) => (
-          <NavLink
-            key={v_8c0b26.path}
-            to={v_8c0b26.path}
-            end={v_8c0b26.path === "/"}
-            style={({ isActive: v_26dce6 }) => ({
-              ...v_d81136.link,
-              backgroundColor: v_26dce6 ? "#3b82f6" : "transparent",
-              color: v_26dce6 ? "#fff" : "#cbd5e1",
-            })}
-          >
-            {v_8c0b26.label}
-          </NavLink>
+        {v_714568.map((v_d7f648) => (
+          <div key={v_d7f648.label} style={v_d81136.group}>
+            <div style={v_d81136.groupLabel}>{v_d7f648.label}</div>
+            {v_d7f648.items.map((v_8c0b26) => (
+              <NavLink
+                key={v_8c0b26.path}
+                to={v_8c0b26.path}
+                end={v_8c0b26.end}
+                style={({ isActive: v_26dce6 }) => ({
+                  ...v_d81136.link,
+                  backgroundColor: v_26dce6 ? "#3b82f6" : "transparent",
+                  color: v_26dce6 ? "#fff" : "#cbd5e1",
+                })}
+              >
+                {v_8c0b26.label}
+              </NavLink>
+            ))}
+          </div>
         ))}
       </nav>
     </aside>
@@ -46,6 +78,7 @@ const v_d81136 = {
     display: "flex",
     flexDirection: "column",
     padding: "20px 0",
+    overflowY: "auto",
   },
   logo: {
     padding: "0 20px 20px",
@@ -68,14 +101,23 @@ const v_d81136 = {
     gap: 4,
     padding: "16px 12px",
   },
+  group: { display: "flex", flexDirection: "column", gap: 2, marginBottom: 12 },
+  groupLabel: {
+    fontSize: 10,
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    padding: "4px 12px",
+    fontWeight: 700,
+  },
   link: {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    padding: "10px 12px",
-    borderRadius: 8,
+    padding: "8px 12px",
+    borderRadius: 6,
     textDecoration: "none",
-    fontSize: 14,
+    fontSize: 13,
     transition: "background-color 0.2s",
   },
 };

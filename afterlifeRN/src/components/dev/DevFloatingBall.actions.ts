@@ -3,7 +3,7 @@ import { v_03e392 } from 'rcmrninabrnb';
 import { v_1ed7d9 } from '../../stores/authStore';
 import { v_b4902e } from '../../stores/followStore';
 import { v_194498 } from '../../stores/cloneStore';
-import { v_35d5ed } from '../../mocks/seedIndex';
+import { v_694b7f } from '../../api/source';
 
 export interface DevAction {
   icon: string;
@@ -36,12 +36,12 @@ export function v_407cbf(): DevAction[] {
       label: 'Seed 카운트',
       onPress: () => {
         const v_6ddb32 = {
-          users: v_35d5ed.users.length,
-          clones: v_35d5ed.clones.length,
-          follows: v_35d5ed.follows.length,
-          coowners: v_35d5ed.coowners.length,
-          messages: v_35d5ed.messages.length,
-          feeds: v_35d5ed.feeds.length,
+          users: v_694b7f.users().length,
+          clones: v_694b7f.clones().length,
+          follows: v_694b7f.follows().length,
+          coowners: v_694b7f.coowners().length,
+          messages: v_694b7f.messages().length,
+          feeds: v_694b7f.feeds().length,
         };
         v_03e392.alert('SEED counts', JSON.stringify(v_6ddb32, null, 2));
       },

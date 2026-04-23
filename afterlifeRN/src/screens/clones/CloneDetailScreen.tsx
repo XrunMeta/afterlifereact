@@ -17,7 +17,7 @@ import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2d88fc } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_35d5ed } from "../../mocks/seedIndex";
+import { v_694b7f } from "../../api/source";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_84fd28 } from "../../types/gift";
 import v_feb82c from "../../mocks/gifts.json";
@@ -37,11 +37,11 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_c279e3 =
     v_eb25ce && v_eb25ce.cloneType === "memlow"
-      ? v_35d5ed.coowners
+      ? v_694b7f.coowners()
           .filter(
             (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === "approved",
           )
-          .map((v_c4a45b) => v_35d5ed.users.find((v_ceb55a) => v_ceb55a.id === v_c4a45b.userId))
+          .map((v_c4a45b) => v_694b7f.users().find((v_ceb55a) => v_ceb55a.id === v_c4a45b.userId))
           .filter((v_ceb55a): v_ceb55a is NonNullable<typeof v_ceb55a> => Boolean(v_ceb55a))
       : [];
 

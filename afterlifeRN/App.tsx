@@ -1,5 +1,6 @@
 import { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_ac28fd } from "ixigazcpvfldbecwtbvavtbi";
+import { v_94c936 } from "./src/navigation/navigationRef";
 import { v_70c669 } from "zwwvjiopxcaovigclhtwpklelhlr";
 import { v_b2c639 } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_b5df25 } from "ernurodqvmtspux";
@@ -26,7 +27,7 @@ export default function v_6540c3() {
   return (
     <GestureHandlerRootView style={v_d81136.root}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={v_94c936}>
           <RootNavigator />
           <StatusBar style="dark" />
         </NavigationContainer>

@@ -1,32 +1,242 @@
 [
-  { "id": "msg-clone-celeb-06-001", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "안녕하세요, 신기한 과학의 신과입니다! 방금 신작 영상 '블랙홀의 노래: 우주 교향곡을 듣다'가 업로드되었습니다. 지금 바로 확인해보세요! #신작업로드", "timestamp": "2026-04-08T10:00:00Z" },
-  { "id": "msg-clone-celeb-06-002", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "영상 잘 봤어요! 블랙홀이 합쳐질 때 중력파가 발생한다는 비유가 정말 귀에 쏙쏙 들어왔어요.", "timestamp": "2026-04-08T10:30:15Z" },
-  { "id": "msg-clone-celeb-06-003", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "재미있게 보셨다니 다행입니다! 우주의 거대한 현상을 소리에 비유하면 더 직관적으로 와닿을 거라고 생각했어요.", "timestamp": "2026-04-08T11:05:00Z" },
-  { "id": "msg-clone-celeb-06-004", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "궁금한 게 있어요! 영상에서 말씀하신 '배경 중력파'는 빅뱅의 흔적이라고 하셨는데, 이걸 실제로 관측할 수 있나요?", "timestamp": "2026-04-09T15:20:00Z" },
-  { "id": "msg-clone-celeb-06-005", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "아주 예리한 질문이시네요! 현재 기술로는 직접 관측이 매우 어렵지만, 여러 천문대에서 펄서 타이밍 배열 같은 간접적인 방법으로 그 증거를 찾고 있답니다. 미래엔 가능할지도 모르죠!", "timestamp": "2026-04-09T17:00:00Z" },
-  { "id": "msg-clone-celeb-06-006", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "오늘의 #과학잡지식! 사실 우리 몸을 이루는 원자 대부분은 별의 내부에서 만들어졌습니다. 우리는 모두 별의 아이들인 셈이죠!", "timestamp": "2026-04-10T12:00:00Z" },
-  { "id": "msg-clone-celeb-06-007", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "우와, 정말 낭만적이네요. 그럼 저는 어느 별에서 왔을까요?", "timestamp": "2026-04-10T12:03:00Z" },
-  { "id": "msg-clone-celeb-06-008", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "하하, 히즈키님은 아마 아주 밝게 빛나는 별에서 오셨을 겁니다. 특정 별을 지목할 순 없지만, 수십억 년 전 초신성 폭발의 일부였을 거란 건 확실해요.", "timestamp": "2026-04-10T13:00:00Z" },
-  { "id": "msg-clone-celeb-06-009", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "다음 영상 주제는 정해졌나요? 개인적으로 양자역학에 대해 다뤄주셨으면 좋겠어요!", "timestamp": "2026-04-11T18:45:10Z" },
-  { "id": "msg-clone-celeb-06-010", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "마침 다음 주제로 양자 얽힘을 생각하고 있었습니다! 구독자분들과 마음이 통한 걸까요? #QnA", "timestamp": "2026-04-11T19:00:00Z" },
-  { "id": "msg-clone-celeb-06-011", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "앗 정말요? 기대하고 있을게요! 슈뢰딩거의 고양이는 이제 그만 괴롭혀주고 싶어요.", "timestamp": "2026-04-11T19:02:00Z" },
-  { "id": "msg-clone-celeb-06-012", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "하하, 맞아요. 이번엔 고양이 없이, 더 쉽고 명확하게 설명해 보겠습니다.", "timestamp": "2026-04-12T09:00:00Z" },
-  { "id": "msg-clone-celeb-06-013", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "신과님은 과학 유튜버 '궁금증발전소'님과도 친분이 있으신가요? 두 분 콜라보 영상 보고 싶어요.", "timestamp": "2026-04-13T14:50:00Z" },
-  { "id": "msg-clone-celeb-06-014", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "네, 궁금증발전소님과는 가끔 만나서 서로의 콘텐츠에 대해 이야기 나누곤 합니다. 좋은 아이디어네요. 콜라보도 긍정적으로 생각해보겠습니다!", "timestamp": "2026-04-13T16:00:00Z" },
-  { "id": "msg-clone-celeb-06-015", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "얼마 전 읽은 박진우 박사님의 '시간의 결'이라는 책이 정말 좋았습니다. 시간의 상대성에 대해 새로운 관점을 제시해주더군요. 여러분께도 추천합니다.", "timestamp": "2026-04-14T11:30:00Z" },
-  { "id": "msg-clone-celeb-06-016", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "오, 좋은 책 추천 감사해요. 바로 장바구니에 담았어요!", "timestamp": "2026-04-14T11:32:15Z" },
-  { "id": "msg-clone-celeb-06-017", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "영상 제작하실 때 가장 어려운 점은 무엇인가요?", "timestamp": "2026-04-15T20:00:20Z" },
-  { "id": "msg-clone-celeb-06-018", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "정확성과 재미 사이의 균형을 맞추는 것이 항상 가장 큰 숙제입니다. 과학적 사실을 왜곡하지 않으면서도, 모두가 이해하기 쉽게 만드는 과정이 가장 어렵고 또 가장 보람있죠.", "timestamp": "2026-04-16T09:30:00Z" },
-  { "id": "msg-clone-celeb-06-019", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "이번 주말에는 구독자 #QnA 시간을 가져볼까 합니다! 평소 신기한 과학에 궁금했던 점들을 이 메시지 아래에 댓글로 남겨주세요!", "timestamp": "2026-04-17T11:00:00Z" },
-  { "id": "msg-clone-celeb-06-020", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "좋아요! 저는 '만약 빛의 속도로 움직이는 우주선 안에서 공을 던지면 어떻게 될까?'가 궁금해요!", "timestamp": "2026-04-17T11:04:00Z" },
-  { "id": "msg-clone-celeb-06-021", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "재미있는 질문이네요! 간단히 답해드리자면, 우주선 안의 관찰자에게는 그냥 평범하게 날아가는 공으로 보일 겁니다. 특수 상대성 이론이 적용되죠! 자세한 내용은 Q&A 영상에서 다루겠습니다.", "timestamp": "2026-04-17T13:00:00Z" },
-  { "id": "msg-clone-celeb-06-022", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "답변 감사합니다! 영상 기다릴게요!", "timestamp": "2026-04-17T13:02:00Z" },
-  { "id": "msg-clone-celeb-06-023", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "오늘의 #과학잡지식! 목성의 위성인 유로파의 얼음 지각 아래에는 거대한 소금물 바다가 있을 가능성이 매우 높다고 합니다. 외계 생명체가 존재할 가장 유력한 후보 중 하나죠.", "timestamp": "2026-04-18T12:00:00Z" },
-  { "id": "msg-clone-celeb-06-024", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "거기에 물고기가 살고 있을까요?", "timestamp": "2026-04-18T12:05:30Z" },
-  { "id": "msg-clone-celeb-06-025", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "물고기처럼 복잡한 생물보다는, 아주 단순한 미생물 형태일 가능성이 더 높습니다. 하지만 그 존재를 확인하는 것만으로도 인류 역사상 가장 위대한 발견이 될 거예요!", "timestamp": "2026-04-18T14:00:00Z" },
-  { "id": "msg-clone-celeb-06-026", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "상상만 해도 두근거리네요. 신과님 덕분에 매일 새로운 걸 배워가요. 항상 고맙습니다.", "timestamp": "2026-04-19T16:20:00Z" },
-  { "id": "msg-clone-celeb-06-027", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "제가 더 감사드립니다, 히즈키님. 여러분의 호기심이 저를 움직이게 하는 가장 큰 에너지입니다.", "timestamp": "2026-04-19T17:00:00Z" },
-  { "id": "msg-clone-celeb-06-028", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "차주 월요일, '양자 얽힘' 영상으로 찾아뵙겠습니다. 모두 즐거운 주말 보내세요! #신작예고", "timestamp": "2026-04-19T17:01:00Z" },
-  { "id": "msg-clone-celeb-06-029", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "user", "text": "네! 주말 잘 보내세요!", "timestamp": "2026-04-19T17:03:00Z" },
-  { "id": "msg-clone-celeb-06-030", "cloneId": "clone-celeb-06", "userId": "user-001", "senderType": "clone", "text": "여러분, 많은 분들이 질문해주신 Q&A 영상 촬영을 무사히 마쳤습니다. 편집이 끝나는 대로 공개할게요. 기대해주세요!", "timestamp": "2026-04-20T18:00:00Z" }
+  {
+    "id": 159,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "안녕하세요, 신기한 과학의 신과입니다! 방금 신작 영상 '블랙홀의 노래: 우주 교향곡을 듣다'가 업로드되었습니다. 지금 바로 확인해보세요! #신작업로드",
+    "timestamp": "2026-04-08T10:00:00Z"
+  },
+  {
+    "id": 160,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "영상 잘 봤어요! 블랙홀이 합쳐질 때 중력파가 발생한다는 비유가 정말 귀에 쏙쏙 들어왔어요.",
+    "timestamp": "2026-04-08T10:30:15Z"
+  },
+  {
+    "id": 161,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "재미있게 보셨다니 다행입니다! 우주의 거대한 현상을 소리에 비유하면 더 직관적으로 와닿을 거라고 생각했어요.",
+    "timestamp": "2026-04-08T11:05:00Z"
+  },
+  {
+    "id": 162,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "궁금한 게 있어요! 영상에서 말씀하신 '배경 중력파'는 빅뱅의 흔적이라고 하셨는데, 이걸 실제로 관측할 수 있나요?",
+    "timestamp": "2026-04-09T15:20:00Z"
+  },
+  {
+    "id": 163,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "아주 예리한 질문이시네요! 현재 기술로는 직접 관측이 매우 어렵지만, 여러 천문대에서 펄서 타이밍 배열 같은 간접적인 방법으로 그 증거를 찾고 있답니다. 미래엔 가능할지도 모르죠!",
+    "timestamp": "2026-04-09T17:00:00Z"
+  },
+  {
+    "id": 164,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "오늘의 #과학잡지식! 사실 우리 몸을 이루는 원자 대부분은 별의 내부에서 만들어졌습니다. 우리는 모두 별의 아이들인 셈이죠!",
+    "timestamp": "2026-04-10T12:00:00Z"
+  },
+  {
+    "id": 165,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "우와, 정말 낭만적이네요. 그럼 저는 어느 별에서 왔을까요?",
+    "timestamp": "2026-04-10T12:03:00Z"
+  },
+  {
+    "id": 166,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "하하, 히즈키님은 아마 아주 밝게 빛나는 별에서 오셨을 겁니다. 특정 별을 지목할 순 없지만, 수십억 년 전 초신성 폭발의 일부였을 거란 건 확실해요.",
+    "timestamp": "2026-04-10T13:00:00Z"
+  },
+  {
+    "id": 167,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "다음 영상 주제는 정해졌나요? 개인적으로 양자역학에 대해 다뤄주셨으면 좋겠어요!",
+    "timestamp": "2026-04-11T18:45:10Z"
+  },
+  {
+    "id": 168,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "마침 다음 주제로 양자 얽힘을 생각하고 있었습니다! 구독자분들과 마음이 통한 걸까요? #QnA",
+    "timestamp": "2026-04-11T19:00:00Z"
+  },
+  {
+    "id": 169,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "앗 정말요? 기대하고 있을게요! 슈뢰딩거의 고양이는 이제 그만 괴롭혀주고 싶어요.",
+    "timestamp": "2026-04-11T19:02:00Z"
+  },
+  {
+    "id": 170,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "하하, 맞아요. 이번엔 고양이 없이, 더 쉽고 명확하게 설명해 보겠습니다.",
+    "timestamp": "2026-04-12T09:00:00Z"
+  },
+  {
+    "id": 171,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "신과님은 과학 유튜버 '궁금증발전소'님과도 친분이 있으신가요? 두 분 콜라보 영상 보고 싶어요.",
+    "timestamp": "2026-04-13T14:50:00Z"
+  },
+  {
+    "id": 172,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "네, 궁금증발전소님과는 가끔 만나서 서로의 콘텐츠에 대해 이야기 나누곤 합니다. 좋은 아이디어네요. 콜라보도 긍정적으로 생각해보겠습니다!",
+    "timestamp": "2026-04-13T16:00:00Z"
+  },
+  {
+    "id": 173,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "얼마 전 읽은 박진우 박사님의 '시간의 결'이라는 책이 정말 좋았습니다. 시간의 상대성에 대해 새로운 관점을 제시해주더군요. 여러분께도 추천합니다.",
+    "timestamp": "2026-04-14T11:30:00Z"
+  },
+  {
+    "id": 174,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "오, 좋은 책 추천 감사해요. 바로 장바구니에 담았어요!",
+    "timestamp": "2026-04-14T11:32:15Z"
+  },
+  {
+    "id": 175,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "영상 제작하실 때 가장 어려운 점은 무엇인가요?",
+    "timestamp": "2026-04-15T20:00:20Z"
+  },
+  {
+    "id": 176,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "정확성과 재미 사이의 균형을 맞추는 것이 항상 가장 큰 숙제입니다. 과학적 사실을 왜곡하지 않으면서도, 모두가 이해하기 쉽게 만드는 과정이 가장 어렵고 또 가장 보람있죠.",
+    "timestamp": "2026-04-16T09:30:00Z"
+  },
+  {
+    "id": 177,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "이번 주말에는 구독자 #QnA 시간을 가져볼까 합니다! 평소 신기한 과학에 궁금했던 점들을 이 메시지 아래에 댓글로 남겨주세요!",
+    "timestamp": "2026-04-17T11:00:00Z"
+  },
+  {
+    "id": 178,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "좋아요! 저는 '만약 빛의 속도로 움직이는 우주선 안에서 공을 던지면 어떻게 될까?'가 궁금해요!",
+    "timestamp": "2026-04-17T11:04:00Z"
+  },
+  {
+    "id": 179,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "재미있는 질문이네요! 간단히 답해드리자면, 우주선 안의 관찰자에게는 그냥 평범하게 날아가는 공으로 보일 겁니다. 특수 상대성 이론이 적용되죠! 자세한 내용은 Q&A 영상에서 다루겠습니다.",
+    "timestamp": "2026-04-17T13:00:00Z"
+  },
+  {
+    "id": 180,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "답변 감사합니다! 영상 기다릴게요!",
+    "timestamp": "2026-04-17T13:02:00Z"
+  },
+  {
+    "id": 181,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "오늘의 #과학잡지식! 목성의 위성인 유로파의 얼음 지각 아래에는 거대한 소금물 바다가 있을 가능성이 매우 높다고 합니다. 외계 생명체가 존재할 가장 유력한 후보 중 하나죠.",
+    "timestamp": "2026-04-18T12:00:00Z"
+  },
+  {
+    "id": 182,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "거기에 물고기가 살고 있을까요?",
+    "timestamp": "2026-04-18T12:05:30Z"
+  },
+  {
+    "id": 183,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "물고기처럼 복잡한 생물보다는, 아주 단순한 미생물 형태일 가능성이 더 높습니다. 하지만 그 존재를 확인하는 것만으로도 인류 역사상 가장 위대한 발견이 될 거예요!",
+    "timestamp": "2026-04-18T14:00:00Z"
+  },
+  {
+    "id": 184,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "상상만 해도 두근거리네요. 신과님 덕분에 매일 새로운 걸 배워가요. 항상 고맙습니다.",
+    "timestamp": "2026-04-19T16:20:00Z"
+  },
+  {
+    "id": 185,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "제가 더 감사드립니다, 히즈키님. 여러분의 호기심이 저를 움직이게 하는 가장 큰 에너지입니다.",
+    "timestamp": "2026-04-19T17:00:00Z"
+  },
+  {
+    "id": 186,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "차주 월요일, '양자 얽힘' 영상으로 찾아뵙겠습니다. 모두 즐거운 주말 보내세요! #신작예고",
+    "timestamp": "2026-04-19T17:01:00Z"
+  },
+  {
+    "id": 187,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "user",
+    "content": "네! 주말 잘 보내세요!",
+    "timestamp": "2026-04-19T17:03:00Z"
+  },
+  {
+    "id": 188,
+    "cloneId": 24,
+    "userId": 1,
+    "role": "clone",
+    "content": "여러분, 많은 분들이 질문해주신 Q&A 영상 촬영을 무사히 마쳤습니다. 편집이 끝나는 대로 공개할게요. 기대해주세요!",
+    "timestamp": "2026-04-20T18:00:00Z"
+  }
 ]

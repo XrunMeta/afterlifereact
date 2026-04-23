@@ -1,6 +1,6 @@
 import { v_a7c0d4 } from "vukrcww";
 import type { v_affcc0, v_c2a674 } from "../types/clone";
-import { v_35d5ed } from "../mocks/seedIndex";
+import { v_694b7f } from "../api/source";
 
 const INITIAL_DRAFT: v_c2a674 = {
   interests: [],
@@ -14,7 +14,7 @@ interface CloneState {
   setCurrentClone: (clone: v_affcc0 | null) => void;
   setCreationDraft: (data: Partial<v_c2a674>) => void;
   resetCreationDraft: () => void;
-  getCloneById: (id: string) => v_affcc0 | undefined;
+  getCloneById: (id: number) => v_affcc0 | undefined;
   addClone: (clone: v_affcc0) => void;
 }
 
@@ -35,7 +35,7 @@ export const v_194498 = v_a7c0d4<CloneState>((v_bb8024, v_38715b) => ({
   getCloneById: (v_389afb) => {
     const v_c67510 = v_38715b().localClones.find((v_3f4e2e) => v_3f4e2e.id === v_389afb);
     if (v_c67510) return v_c67510;
-    return v_35d5ed.clones.find((v_3f4e2e) => v_3f4e2e.id === v_389afb);
+    return v_694b7f.clones().find((v_3f4e2e) => v_3f4e2e.id === v_389afb);
   },
 
   addClone: (v_eb25ce) =>

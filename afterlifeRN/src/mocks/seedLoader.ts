@@ -9,20 +9,27 @@ import type {
   v_b0b271,
   v_7b4861,
   v_42b73c,
-  v_e4762c,
+  v_00cac1,
 } from '../types/domain';
 
 const CLONE_TYPES: readonly v_d79d7f[] = ['memlow', 'friend', 'mentor', 'celeb'];
 const VISIBILITIES: readonly v_b0b271[] = ['public', 'followers', 'private'];
 const STATUSES: readonly v_7b4861[] = ['active', 'pending_assets'];
 const COOWNER_STATUSES: readonly v_42b73c[] = ['invited', 'approved', 'rejected'];
-const SENDER_TYPES: readonly v_e4762c[] = ['user', 'clone'];
+const MESSAGE_ROLES: readonly v_00cac1[] = ['user', 'clone'];
 
 const v_98f249 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
 
 const v_71daa1 = (v_9fe22d, v_3b402b): string => {
   if (typeof v_3b402b !== 'string' || v_3b402b.length === 0) {
     throw new Error(`${v_9fe22d} must be non-empty string`);
+  }
+  return v_3b402b;
+};
+
+const v_0462b5 = (v_9fe22d, v_3b402b): number => {
+  if (typeof v_3b402b !== 'number' || !Number.isFinite(v_3b402b) || v_3b402b < 0) {
+    throw new Error(`${v_9fe22d} must be non-negative number`);
   }
   return v_3b402b;
 };
@@ -44,7 +51,7 @@ const v_a0e5b2 = <T extends string>(v_9fe22d, v_3b402b, v_999957): T => {
 export function v_2aa078(v_18b8bf): asserts v_18b8bf is v_b89f99[] {
   v_18b8bf.forEach((v_479f05, v_ebec57) => {
     const v_cb35cb = v_479f05 as Record<string, unknown>;
-    v_71daa1(`user[${v_ebec57}].id`, v_cb35cb.id);
+    v_0462b5(`user[${v_ebec57}].id`, v_cb35cb.id);
     v_71daa1(`user[${v_ebec57}].displayName`, v_cb35cb.displayName);
     v_71daa1(`user[${v_ebec57}].handle`, v_cb35cb.handle);
     if (v_cb35cb.avatarUrl !== undefined) v_71daa1(`user[${v_ebec57}].avatarUrl`, v_cb35cb.avatarUrl);
@@ -56,9 +63,9 @@ export function v_2aa078(v_18b8bf): asserts v_18b8bf is v_b89f99[] {
 export function v_8e78d0(v_18b8bf): asserts v_18b8bf is v_4b85a1[] {
   v_18b8bf.forEach((v_479f05, v_ebec57) => {
     const v_cb35cb = v_479f05 as Record<string, unknown>;
-    v_71daa1(`clone[${v_ebec57}].id`, v_cb35cb.id);
+    v_0462b5(`clone[${v_ebec57}].id`, v_cb35cb.id);
     v_a0e5b2(`clone[${v_ebec57}].cloneType`, v_cb35cb.cloneType, v_aad223);
-    v_71daa1(`clone[${v_ebec57}].ownerUserId`, v_cb35cb.ownerUserId);
+    v_0462b5(`clone[${v_ebec57}].ownerId`, v_cb35cb.ownerId);
     v_71daa1(`clone[${v_ebec57}].displayName`, v_cb35cb.displayName);
     v_71daa1(`clone[${v_ebec57}].description`, v_cb35cb.description);
     if (!Array.isArray(v_cb35cb.interests)) throw new Error(`clone[${v_ebec57}].interests must be array`);
@@ -75,9 +82,9 @@ export function v_5f4862(v_18b8bf): asserts v_18b8bf is v_7a4d15[] {
   const v_110a8b = new Set<string>();
   v_18b8bf.forEach((v_479f05, v_ebec57) => {
     const v_cb35cb = v_479f05 as Record<string, unknown>;
-    v_71daa1(`follow[${v_ebec57}].id`, v_cb35cb.id);
-    const v_7f1284 = v_71daa1(`follow[${v_ebec57}].followerUserId`, v_cb35cb.followerUserId);
-    const v_3b170c = v_71daa1(`follow[${v_ebec57}].followingCloneId`, v_cb35cb.followingCloneId);
+    v_0462b5(`follow[${v_ebec57}].id`, v_cb35cb.id);
+    const v_7f1284 = v_0462b5(`follow[${v_ebec57}].followerUserId`, v_cb35cb.followerUserId);
+    const v_3b170c = v_0462b5(`follow[${v_ebec57}].followingCloneId`, v_cb35cb.followingCloneId);
     v_6d0907(`follow[${v_ebec57}].followedAt`, v_cb35cb.followedAt);
     const v_b24339 = `${v_7f1284}::${v_3b170c}`;
     if (v_110a8b.has(v_b24339)) throw new Error(`follow[${v_ebec57}] duplicate (${v_b24339})`);
@@ -88,9 +95,9 @@ export function v_5f4862(v_18b8bf): asserts v_18b8bf is v_7a4d15[] {
 export function v_240f60(v_18b8bf): asserts v_18b8bf is v_49c051[] {
   v_18b8bf.forEach((v_479f05, v_ebec57) => {
     const v_cb35cb = v_479f05 as Record<string, unknown>;
-    v_71daa1(`coowner[${v_ebec57}].id`, v_cb35cb.id);
-    v_71daa1(`coowner[${v_ebec57}].cloneId`, v_cb35cb.cloneId);
-    v_71daa1(`coowner[${v_ebec57}].userId`, v_cb35cb.userId);
+    v_0462b5(`coowner[${v_ebec57}].id`, v_cb35cb.id);
+    v_0462b5(`coowner[${v_ebec57}].cloneId`, v_cb35cb.cloneId);
+    v_0462b5(`coowner[${v_ebec57}].userId`, v_cb35cb.userId);
     v_a0e5b2(`coowner[${v_ebec57}].status`, v_cb35cb.status, v_69489f);
     v_6d0907(`coowner[${v_ebec57}].invitedAt`, v_cb35cb.invitedAt);
     if (v_cb35cb.approvedAt !== undefined) v_6d0907(`coowner[${v_ebec57}].approvedAt`, v_cb35cb.approvedAt);
@@ -100,11 +107,11 @@ export function v_240f60(v_18b8bf): asserts v_18b8bf is v_49c051[] {
 export function v_50b973(v_18b8bf): asserts v_18b8bf is v_35413f[] {
   v_18b8bf.forEach((v_479f05, v_ebec57) => {
     const v_cb35cb = v_479f05 as Record<string, unknown>;
-    v_71daa1(`message[${v_ebec57}].id`, v_cb35cb.id);
-    v_71daa1(`message[${v_ebec57}].cloneId`, v_cb35cb.cloneId);
-    v_71daa1(`message[${v_ebec57}].userId`, v_cb35cb.userId);
-    v_a0e5b2(`message[${v_ebec57}].senderType`, v_cb35cb.senderType, v_658793);
-    v_71daa1(`message[${v_ebec57}].text`, v_cb35cb.text);
+    v_0462b5(`message[${v_ebec57}].id`, v_cb35cb.id);
+    v_0462b5(`message[${v_ebec57}].cloneId`, v_cb35cb.cloneId);
+    v_0462b5(`message[${v_ebec57}].userId`, v_cb35cb.userId);
+    v_a0e5b2(`message[${v_ebec57}].role`, v_cb35cb.role, v_9aea78);
+    v_71daa1(`message[${v_ebec57}].content`, v_cb35cb.content);
     v_6d0907(`message[${v_ebec57}].timestamp`, v_cb35cb.timestamp);
   });
 }
@@ -112,10 +119,10 @@ export function v_50b973(v_18b8bf): asserts v_18b8bf is v_35413f[] {
 export function v_a07f65(v_18b8bf): asserts v_18b8bf is v_bc3df4[] {
   v_18b8bf.forEach((v_479f05, v_ebec57) => {
     const v_cb35cb = v_479f05 as Record<string, unknown>;
-    v_71daa1(`feed[${v_ebec57}].id`, v_cb35cb.id);
-    v_71daa1(`feed[${v_ebec57}].cloneId`, v_cb35cb.cloneId);
-    v_71daa1(`feed[${v_ebec57}].text`, v_cb35cb.text);
-    if (v_cb35cb.imageUrl !== undefined) v_71daa1(`feed[${v_ebec57}].imageUrl`, v_cb35cb.imageUrl);
+    v_0462b5(`feed[${v_ebec57}].id`, v_cb35cb.id);
+    v_0462b5(`feed[${v_ebec57}].cloneId`, v_cb35cb.cloneId);
+    v_71daa1(`feed[${v_ebec57}].content`, v_cb35cb.content);
+    if (v_cb35cb.mediaUrl !== undefined) v_71daa1(`feed[${v_ebec57}].mediaUrl`, v_cb35cb.mediaUrl);
     v_6d0907(`feed[${v_ebec57}].createdAt`, v_cb35cb.createdAt);
   });
 }

@@ -21,7 +21,7 @@ function v_222dba(v_6e0fd3): any {
 
 test('Chat renders only messages belonging to this clone + current user', () => {
   const v_518617 = v_35d5ed.clones.find((v_3f4e2e) =>
-    v_35d5ed.messages.some((v_35f85c) => v_35f85c.cloneId === v_3f4e2e.id && v_35f85c.userId === 'user-001'),
+    v_35d5ed.messages.some((v_35f85c) => v_35f85c.cloneId === v_3f4e2e.id && v_35f85c.userId === 1),
   );
   expect(v_518617).toBeTruthy();
 
@@ -30,15 +30,15 @@ test('Chat renders only messages belonging to this clone + current user', () => 
   );
 
   const v_505a6d = v_35d5ed.messages.filter(
-    (v_35f85c) => v_35f85c.cloneId === v_518617!.id && v_35f85c.userId === 'user-001',
+    (v_35f85c) => v_35f85c.cloneId === v_518617!.id && v_35f85c.userId === 1,
   );
 
-  expect(v_480380(v_505a6d[0].text)).toBeTruthy();
+  expect(v_480380(v_505a6d[0].content)).toBeTruthy();
 
   const v_e116ee = v_35d5ed.messages.find(
-    (v_35f85c) => v_35f85c.cloneId !== v_518617!.id && v_35f85c.userId === 'user-001',
+    (v_35f85c) => v_35f85c.cloneId !== v_518617!.id && v_35f85c.userId === 1,
   );
   if (v_e116ee) {
-    expect(v_480380(v_e116ee.text)).toBeNull();
+    expect(v_480380(v_e116ee.content)).toBeNull();
   }
 });
