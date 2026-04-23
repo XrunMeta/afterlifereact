@@ -16,6 +16,12 @@ import v_e775af from "../../components/ui/TextField";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_194498 } from "../../stores/cloneStore";
+import { v_1ed7d9 } from "../../stores/authStore";
+import { v_694b7f } from "../../api/source";
+import { v_f48a74 } from "./components/L1Section";
+import { v_193b22 } from "./components/L2Section";
+import { v_9b783f } from "./components/EditorTransferModal";
+import type { v_eceede } from "../../types/domain";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_6732dc } from "../../mocks/interestHelpers";
 
@@ -61,6 +67,7 @@ for (const v_9bf432 of v_6732dc) {
 export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
+  const v_013af2 = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? null;
 
   const [v_5ba743, v_5cc801] = v_5ab095("");
   const [v_976e06, v_770327] = v_5ab095<string[]>([]);
@@ -75,6 +82,9 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_42f66e, v_40239f] = v_5ab095("");
   const [v_6856a9, v_b7e174] = v_5ab095("");
 
+  const [v_020b4b, v_15918a] = v_5ab095<v_eceede>({ attrs: {}, notes: '' });
+  const [v_0b1d04, v_dcba89] = v_5ab095(false);
+
   const [v_e58f3d, v_40c384] = v_5ab095(false);
   const [v_818579, v_2cf16e] = v_5ab095<Visibility>("public");
   const [v_7462ec, v_2dbd8f] = v_5ab095(false);
@@ -88,6 +98,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_318f24(v_eb25ce.displayName);
       v_b7e174(v_eb25ce.description);
       v_2cf16e(v_eb25ce.visibility);
+      if (v_eb25ce.l1Profile) v_15918a(v_eb25ce.l1Profile);
     }
   }, [v_eb25ce]);
 
@@ -98,6 +109,25 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </View>
     );
   }
+
+  const v_2aec08 = v_013af2 != null && v_eb25ce.ownerId === v_013af2;
+  const v_9c4eec =
+    v_013af2 != null && v_eb25ce.primaryEditorUserId === v_013af2;
+  const v_552f41 =
+    v_013af2 != null &&
+    v_694b7f
+      .coowners()
+      .some((v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.userId === v_013af2 && v_c4a45b.status === 'approved');
+  const v_8e93b4 = v_2aec08 || v_9c4eec;
+
+  const v_a7d523 = v_694b7f
+    .coowners()
+    .filter((v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === 'approved')
+    .map((v_c4a45b) => {
+      const v_ceb55a = v_694b7f.users().find((v_105fd4) => v_105fd4.id === v_c4a45b.userId);
+      return v_ceb55a ? { userId: v_ceb55a.id, displayName: v_ceb55a.displayName } : null;
+    })
+    .filter((v_62c214): v_62c214 is { userId: number; displayName: string } => v_62c214 != null);
 
   const v_90b3e0 = v_926598.find((v_3f4e2e) => v_3f4e2e.id === v_5ba743);
 
@@ -412,6 +442,29 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             containerStyle={{ marginTop: 16 }}
           />
         </View>
+
+        <View style={v_fd5f43.section}>
+          <L1Section value={v_020b4b} editable={v_8e93b4} onChange={v_15918a} />
+          <L2Section memoryCount={0} lastUpdatedAt={null} />
+          {v_9c4eec && (
+            <TouchableOpacity
+              accessibilityLabel="transfer-open"
+              onPress={() => v_dcba89(true)}
+              style={{ padding: 12, borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 8, marginTop: 12 }}
+            >
+              <Text>편집 권한 이전</Text>
+            </TouchableOpacity>
+          )}
+          {v_552f41 && !v_9c4eec && (
+            <TouchableOpacity
+              accessibilityLabel="request-editor"
+              onPress={() => {}}
+              style={{ padding: 12, borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 8, marginTop: 12 }}
+            >
+              <Text>편집 권한 요청</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {}
@@ -492,6 +545,13 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </Pressable>
         </Pressable>
       </Modal>
+
+      <EditorTransferModal
+        visible={v_0b1d04}
+        coowners={v_a7d523}
+        onClose={() => v_dcba89(false)}
+        onSubmit={() => v_dcba89(false)}
+      />
     </SafeScrollView>
   );
 }
