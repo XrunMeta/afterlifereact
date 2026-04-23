@@ -6,6 +6,7 @@ import {
   v_32b73e,
   v_61516d,
   v_6a944d,
+  v_846893,
 } from './seedAdapter';
 import type {
   v_fe00c4,
@@ -14,7 +15,11 @@ import type {
   v_f6b1e7,
   v_6ac723,
   v_6dbe7c,
+  v_ec2546,
+  v_7d4414,
 } from './types';
+import type { v_924690 } from '../types/domain';
+import { v_2d9aa2, v_bdea6c, v_d745f1 } from './shortsStore';
 
 const v_b8fec2 = 20;
 const v_c13be2 = 'sess-stub-local';
@@ -118,6 +123,45 @@ export const v_9a8286 = {
       expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
       viewerRole: v_00efe2,
     };
+  },
+
+  async listShorts(v_013af2): Promise<v_7d4414> {
+    const v_bdb39e = v_119a79();
+    const v_4622b9 = v_2d9aa2()
+      .filter((v_fd5f43) => v_fd5f43.status === 'ready')
+      .map((v_fd5f43) => {
+        const v_eb25ce = v_bdb39e.clones.find((v_3f4e2e) => v_3f4e2e.id === v_fd5f43.cloneId);
+        if (!v_eb25ce) return null;
+        const v_2aec08 = v_eb25ce.ownerId === v_013af2;
+        const v_552f41 = v_bdb39e.coowners.some(
+          (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.userId === v_013af2 && v_c4a45b.status === 'approved',
+        );
+        const v_cf55be = v_eb25ce.visibility === 'public' || v_2aec08 || v_552f41;
+        return v_cf55be ? v_846893(v_fd5f43, v_eb25ce) : null;
+      })
+      .filter((v_62c214): v_62c214 is v_ec2546 => v_62c214 != null)
+      .sort((v_779914, v_148ff6) => v_148ff6.shortId - v_779914.shortId);
+    return { items: v_4622b9, nextCursor: null };
+  },
+
+  async generateShort(
+    v_6e0fd3,
+    v_013af2,
+  ): Promise<{ shortId: number; status: 'queued' }> {
+    const v_bdb39e = v_119a79();
+    const v_eb25ce = v_bdb39e.clones.find((v_3f4e2e) => v_3f4e2e.id === v_6e0fd3);
+    if (!v_eb25ce) throw new Error(`Clone not found: ${v_6e0fd3}`);
+    if (v_eb25ce.ownerId !== v_013af2) throw new Error('Forbidden: owner only');
+    const v_3ac7e7 = v_bdea6c(v_6e0fd3);
+    return { shortId: v_3ac7e7.id, status: 'queued' };
+  },
+
+  async getShort(
+    v_53aa09,
+  ): Promise<{ shortId: number; status: v_924690['status']; mediaUrl: string | null }> {
+    const v_fd5f43 = v_d745f1(v_53aa09);
+    if (!v_fd5f43) throw new Error(`Short not found: ${v_53aa09}`);
+    return { shortId: v_fd5f43.id, status: v_fd5f43.status, mediaUrl: v_fd5f43.mediaUrl };
   },
 };
 

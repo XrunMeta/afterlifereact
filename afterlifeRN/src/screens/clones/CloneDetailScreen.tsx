@@ -53,6 +53,10 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     );
   }
 
+  const v_87bb7d =
+    v_625c74?.id != null &&
+    (v_625c74.id === v_eb25ce.ownerId || v_625c74.id === v_eb25ce.primaryEditorUserId);
+
   const v_992a8f = ({ item: v_8c0b26 }: { item: v_84fd28 }) => (
     <TouchableOpacity style={v_fd5f43.giftItem}>
       <View style={v_fd5f43.giftEmojiWrap}>
@@ -84,6 +88,16 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           >
             <Feather name="arrow-left" size={22} color={v_1bfbd0.white} />
           </TouchableOpacity>
+
+          {v_87bb7d && (
+            <TouchableOpacity
+              accessibilityLabel="clone-edit-entry"
+              style={v_fd5f43.backBtn}
+              onPress={() => v_c65f5d.navigate('CloneEdit', { cloneId: v_eb25ce.id })}
+            >
+              <Feather name="edit-2" size={20} color={v_1bfbd0.white} />
+            </TouchableOpacity>
+          )}
 
           {v_625c74?.avatarUrl && (
             <Image

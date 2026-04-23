@@ -90,7 +90,7 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
           <View style={v_d81136.logoRow}>
             <Image source={require("../../../assets/images/symbol.png")} style={v_d81136.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={v_d81136.logoImage} resizeMode="contain" />
-            <Text style={v_d81136.subtitle}>새로운 계정을 만들어보세요</Text>
+            <Text style={v_d81136.subtitle}>베타 기간, 타입별 클론 1개씩 무료</Text>
           </View>
 
           {}

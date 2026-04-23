@@ -5,6 +5,7 @@ import type {
   v_49c051,
   v_35413f,
   v_bc3df4,
+  v_924690,
   v_d79d7f,
   v_b0b271,
   v_7b4861,
@@ -13,6 +14,7 @@ import type {
 } from '../types/domain';
 
 const CLONE_TYPES: readonly v_d79d7f[] = ['memlow', 'friend', 'mentor', 'celeb'];
+const v_6f5c13 = ['queued', 'processing', 'ready', 'failed'] as const;
 const VISIBILITIES: readonly v_b0b271[] = ['public', 'followers', 'private'];
 const STATUSES: readonly v_7b4861[] = ['active', 'pending_assets'];
 const COOWNER_STATUSES: readonly v_42b73c[] = ['invited', 'approved', 'rejected'];
@@ -75,6 +77,21 @@ export function v_8e78d0(v_18b8bf): asserts v_18b8bf is v_4b85a1[] {
     v_a0e5b2(`clone[${v_ebec57}].visibility`, v_cb35cb.visibility, v_f46940);
     v_a0e5b2(`clone[${v_ebec57}].status`, v_cb35cb.status, v_58bf8d);
     v_6d0907(`clone[${v_ebec57}].createdAt`, v_cb35cb.createdAt);
+    if (v_cb35cb.primaryEditorUserId !== undefined) {
+      v_0462b5(`clone[${v_ebec57}].primaryEditorUserId`, v_cb35cb.primaryEditorUserId);
+    }
+    if (v_cb35cb.l1Profile !== undefined) {
+      const v_020b4b = v_cb35cb.l1Profile as Record<string, unknown>;
+      if (typeof v_020b4b?.attrs !== 'object' || v_020b4b.attrs === null || Array.isArray(v_020b4b.attrs)) {
+        throw new Error(`clone[${v_ebec57}].l1Profile.attrs must be object`);
+      }
+      Object.entries(v_020b4b.attrs as Record<string, unknown>).forEach(([v_0eb677, v_81e2ef]) => {
+        v_71daa1(`clone[${v_ebec57}].l1Profile.attrs.${v_0eb677}`, v_81e2ef);
+      });
+      if (typeof v_020b4b.notes !== 'string') {
+        throw new Error(`clone[${v_ebec57}].l1Profile.notes must be string`);
+      }
+    }
   });
 }
 
@@ -127,6 +144,19 @@ export function v_a07f65(v_18b8bf): asserts v_18b8bf is v_bc3df4[] {
   });
 }
 
+export function v_9912b1(v_18b8bf): asserts v_18b8bf is v_924690[] {
+  v_18b8bf.forEach((v_479f05, v_ebec57) => {
+    const v_cb35cb = v_479f05 as Record<string, unknown>;
+    v_0462b5(`short[${v_ebec57}].id`, v_cb35cb.id);
+    v_0462b5(`short[${v_ebec57}].cloneId`, v_cb35cb.cloneId);
+    v_a0e5b2(`short[${v_ebec57}].status`, v_cb35cb.status, v_6f5c13);
+    if (v_cb35cb.mediaUrl !== null && v_cb35cb.mediaUrl !== undefined) {
+      v_71daa1(`short[${v_ebec57}].mediaUrl`, v_cb35cb.mediaUrl);
+    }
+    v_6d0907(`short[${v_ebec57}].createdAt`, v_cb35cb.createdAt);
+  });
+}
+
 export interface Seed {
   users: v_b89f99[];
   clones: v_4b85a1[];
@@ -134,6 +164,7 @@ export interface Seed {
   coowners: v_49c051[];
   messages: v_35413f[];
   feeds: v_bc3df4[];
+  shorts: v_924690[];
 }
 
 export function v_a151c0(v_479f05): Seed {
@@ -143,5 +174,6 @@ export function v_a151c0(v_479f05): Seed {
   v_240f60(v_479f05.coowners);
   v_50b973(v_479f05.messages);
   v_a07f65(v_479f05.feeds);
+  v_9912b1(v_479f05.shorts);
   return v_479f05 as Seed;
 }

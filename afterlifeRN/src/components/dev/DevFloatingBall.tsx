@@ -14,6 +14,8 @@ import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import { v_7ed42d } from './useFloatingBallPosition';
 import { v_407cbf } from './DevFloatingBall.actions';
 import { v_1ed7d9 } from '../../stores/authStore';
+import { v_0b10a6 } from '../../stores/configStore';
+import { v_aaabb4 } from '../../config/testModeWhitelist';
 import { v_694b7f } from '../../api/source';
 import { v_f387db } from '../../navigation/navigationRef';
 import { v_0e82e9, type v_86d4b9 } from '../../api/screenApiMap';
@@ -32,6 +34,10 @@ export function v_0f28c1() {
   const [v_9ba518, v_11ece2] = v_5ab095<{ route: string; apis: v_86d4b9[] } | null>(null);
   const v_dd943a = v_407cbf();
   const v_f73be6 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_53fadb = v_0b10a6((v_fd5f43) => v_fd5f43.testMode);
+  const v_44015f = v_0b10a6((v_fd5f43) => v_fd5f43.setTestMode);
+  const v_42f82e =
+    !!v_f73be6?.handle && v_aaabb4.has(v_f73be6.handle);
 
   const v_ae4231 = v_e662ae(
     v_f6c856.create({
@@ -116,6 +122,19 @@ export function v_0f28c1() {
             <Feather name="activity" size={16} color="#fff" />
             <Text style={v_d81136.rowText}>API Probe</Text>
           </TouchableOpacity>
+          {v_42f82e && (
+            <TouchableOpacity
+              accessibilityLabel="dev-test-mode-toggle"
+              style={v_d81136.row}
+              onPress={() => {
+                v_44015f(!v_53fadb);
+                v_b4a964(false);
+              }}
+            >
+              <Feather name="zap" size={16} color="#fff" />
+              <Text style={v_d81136.rowText}>테스트 모드 {v_53fadb ? 'ON' : 'OFF'}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 

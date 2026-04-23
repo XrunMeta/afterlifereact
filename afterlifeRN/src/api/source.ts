@@ -12,4 +12,5 @@ export const v_694b7f = {
   coowners: () => v_35d5ed.coowners,
   feeds: () => v_35d5ed.feeds,
   messages: () => v_35d5ed.messages,
+  shorts: () => v_35d5ed.shorts,
 };

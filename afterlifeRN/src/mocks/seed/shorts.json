@@ -1,0 +1,5 @@
+[
+  { "id": 1, "cloneId": 1, "status": "ready", "mediaUrl": "https://cdn.afterlife.example/shorts/clone-1.mp4", "createdAt": "2026-04-22T00:00:00Z" },
+  { "id": 2, "cloneId": 2, "status": "ready", "mediaUrl": "https://cdn.afterlife.example/shorts/clone-2.mp4", "createdAt": "2026-04-22T00:10:00Z" },
+  { "id": 3, "cloneId": 7, "status": "ready", "mediaUrl": "https://cdn.afterlife.example/shorts/clone-7.mp4", "createdAt": "2026-04-22T00:20:00Z" }
+]

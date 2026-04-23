@@ -42,4 +42,5 @@ export type CreateStackParamList = {
   Step5: undefined;
   Step6: undefined;
   Step7: undefined;
+  Step8: { cloneId: number };
 };

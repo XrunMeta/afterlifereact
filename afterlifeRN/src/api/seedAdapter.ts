@@ -2,6 +2,7 @@ import type {
   v_4b85a1,
   v_bc3df4,
   v_35413f,
+  v_924690,
   v_d79d7f,
 } from '../types/domain';
 import type { v_f4506d } from '../mocks/seedLoader';
@@ -10,6 +11,7 @@ import type {
   v_549f6a,
   v_37b202,
   v_6498b7,
+  v_ec2546,
   v_562204,
 } from './types';
 
@@ -111,5 +113,16 @@ export function v_61516d(msg: v_35413f, v_c5607b): v_6498b7 {
     role: v_badeaf.role,
     content: v_badeaf.content,
     createdAt: v_badeaf.timestamp,
+  };
+}
+
+export function v_846893(short: v_924690, clone: v_4b85a1): v_ec2546 {
+  return {
+    shortId: v_c0d7a5.id,
+    cloneId: v_c0d7a5.cloneId,
+    status: v_c0d7a5.status,
+    mediaUrl: v_c0d7a5.mediaUrl,
+    name: v_eb25ce.displayName,
+    cloneType: v_eb25ce.cloneType,
   };
 }

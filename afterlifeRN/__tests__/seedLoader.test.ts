@@ -1,4 +1,5 @@
-import { v_2aa078, v_8e78d0, v_5f4862, v_240f60, v_50b973, v_a07f65 } from '../src/mocks/seedLoader';
+import { v_2aa078, v_8e78d0, v_5f4862, v_240f60, v_50b973, v_a07f65, v_9912b1 } from '../src/mocks/seedLoader';
+import type { v_4b85a1, v_924690, v_eceede, v_813230 } from '../src/types/domain';
 
 describe('seedLoader assertions', () => {
   it('assertUsers passes on minimal valid user', () => {
@@ -93,5 +94,106 @@ describe('seedLoader assertions', () => {
     expect(() =>
       v_2aa078([{ id: 1, displayName: 'x', handle: '@x', createdAt: '2026-01-01T00:00:00Z' }]),
     ).not.toThrow();
+  });
+});
+
+describe('assertShorts', () => {
+  it('passes on minimal valid row', () => {
+    expect(() =>
+      v_9912b1([
+        { id: 1, cloneId: 1, status: 'ready', mediaUrl: 'https://x', createdAt: '2026-01-01T00:00:00Z' },
+      ]),
+    ).not.toThrow();
+  });
+
+  it('allows mediaUrl = null (queued/processing)', () => {
+    expect(() =>
+      v_9912b1([
+        { id: 1, cloneId: 1, status: 'queued', mediaUrl: null, createdAt: '2026-01-01T00:00:00Z' },
+      ]),
+    ).not.toThrow();
+  });
+
+  it('throws on invalid status', () => {
+    expect(() =>
+      v_9912b1([
+        { id: 1, cloneId: 1, status: 'BAD', mediaUrl: null, createdAt: '2026-01-01T00:00:00Z' } as any,
+      ]),
+    ).toThrow(/status/);
+  });
+
+  it('throws when mediaUrl present but not string', () => {
+    expect(() =>
+      v_9912b1([
+        { id: 1, cloneId: 1, status: 'ready', mediaUrl: 42 as any, createdAt: '2026-01-01T00:00:00Z' } as any,
+      ]),
+    ).toThrow(/mediaUrl/);
+  });
+});
+
+describe('assertClones optional primaryEditorUserId + l1Profile', () => {
+  const v_694b25 = {
+    id: 1,
+    cloneType: 'memlow' as const,
+    ownerId: 1,
+    displayName: 'x',
+    description: 'x',
+    interests: [],
+    visibility: 'private' as const,
+    status: 'active' as const,
+    createdAt: '2026-01-01T00:00:00Z',
+  };
+
+  it('passes when primaryEditorUserId provided as number', () => {
+    expect(() => v_8e78d0([{ ...v_694b25, primaryEditorUserId: 1 }])).not.toThrow();
+  });
+
+  it('throws when primaryEditorUserId is not a number', () => {
+    expect(() => v_8e78d0([{ ...v_694b25, primaryEditorUserId: 'nope' as any }])).toThrow(/primaryEditorUserId/);
+  });
+
+  it('passes when l1Profile provided with attrs object + notes string', () => {
+    expect(() =>
+      v_8e78d0([{ ...v_694b25, l1Profile: { attrs: { tone: 'warm' }, notes: '' } }]),
+    ).not.toThrow();
+  });
+
+  it('throws when l1Profile.notes is not a string', () => {
+    expect(() =>
+      v_8e78d0([{ ...v_694b25, l1Profile: { attrs: {}, notes: 42 as any } } as any]),
+    ).toThrow(/l1Profile\.notes/);
+  });
+});
+
+describe('domain type shape (compile-time)', () => {
+  it('DomainClone exposes optional l1Profile + primaryEditorUserId', () => {
+    const c: v_4b85a1 = {
+      id: 1,
+      cloneType: 'memlow',
+      ownerId: 1,
+      displayName: 'x',
+      description: 'x',
+      interests: [],
+      visibility: 'private',
+      status: 'active',
+      createdAt: '2026-01-01T00:00:00Z',
+      primaryEditorUserId: 1,
+      l1Profile: { attrs: { tone: 'warm' }, notes: '' } satisfies v_eceede,
+    };
+    expect(v_3f4e2e.primaryEditorUserId).toBe(1);
+    expect(v_3f4e2e.l1Profile?.attrs.tone).toBe('warm');
+  });
+
+  it('DomainShort has required shape + ShortStatus', () => {
+    const statuses: v_813230[] = ['queued', 'processing', 'ready', 'failed'];
+    const s: v_924690 = {
+      id: 1,
+      cloneId: 10,
+      status: 'ready',
+      mediaUrl: 'https://cdn/x.mp4',
+      createdAt: '2026-04-23T00:00:00Z',
+    };
+    expect(v_6460d1).toContain(v_fd5f43.status);
+    expect(v_fd5f43.cloneId).toBe(10);
   });
 });

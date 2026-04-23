@@ -1,4 +1,4 @@
-import type { v_d79d7f, v_b0b271, v_00cac1 } from '../types/domain';
+import type { v_d79d7f, v_b0b271, v_00cac1, v_813230 } from '../types/domain';
 
 export type ViewerRole = 'owner' | 'coowner' | 'follower' | null;
 
@@ -81,4 +81,18 @@ export interface ApiSession {
   ttsVoiceUri: string;
   expiresAt: string;
   viewerRole: ViewerRole;
+}
+
+export interface ApiShort {
+  shortId: number;
+  cloneId: number;
+  status: v_813230;
+  mediaUrl: string | null;
+  name: string;
+  cloneType: v_d79d7f;
+}
+
+export interface ApiShortsList {
+  items: ApiShort[];
+  nextCursor: number | null;
 }

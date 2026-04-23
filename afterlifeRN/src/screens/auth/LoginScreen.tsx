@@ -51,6 +51,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           <View style={v_d81136.logoContainer}>
             <Image source={require("../../../assets/images/symbol.png")} style={v_d81136.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={v_d81136.logoImage} resizeMode="contain" />
+            <Text style={v_d81136.subtitle}>돌아오신 걸 환영해요</Text>
           </View>
 
           {}
@@ -185,6 +186,11 @@ const v_d81136 = v_472849.create({
   logoImage: {
     width: 160,
     height: 32,
+  },
+  subtitle: {
+    marginTop: 12,
+    fontSize: 14,
+    color: v_1bfbd0.zinc500,
   },
   optionsRow: {
     flexDirection: "row",
