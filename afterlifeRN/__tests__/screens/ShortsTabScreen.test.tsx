@@ -67,8 +67,11 @@ test('short-detail tap → nav.navigate CloneDetail', async () => {
   });
   v_77aa68.press(await v_ef8e36('short-detail-0'));
   expect(v_7b8db1).toHaveBeenCalledWith(
-    'CloneDetail',
-    expect.objectContaining({ cloneId: expect.any(Number) }),
+    'ClonesTab',
+    expect.objectContaining({
+      screen: 'CloneDetail',
+      params: expect.objectContaining({ cloneId: expect.any(Number) }),
+    }),
   );
 });
 

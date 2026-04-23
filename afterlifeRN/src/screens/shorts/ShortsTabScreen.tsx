@@ -34,21 +34,22 @@ export default function v_87eb38() {
       data={v_4622b9}
       keyExtractor={(v_fd5f43) => String(v_fd5f43.shortId)}
       renderItem={({ item: v_8c0b26, index: v_a56041 }) => (
-        <TouchableOpacity
-          accessibilityLabel={`short-item-${v_a56041}`}
-          style={v_d81136.card}
-          onPress={() => v_3c9f12.navigate('Chat', { cloneId: v_8c0b26.cloneId })}
-        >
-          <Text style={v_d81136.title}>{v_8c0b26.name}</Text>
-          <Text style={v_d81136.meta}>{v_8c0b26.cloneType}</Text>
+        <View style={v_d81136.card}>
+          <TouchableOpacity
+            accessibilityLabel={`short-item-${v_a56041}`}
+            onPress={() => v_3c9f12.navigate('Chat', { cloneId: v_8c0b26.cloneId })}
+          >
+            <Text style={v_d81136.title}>{v_8c0b26.name}</Text>
+            <Text style={v_d81136.meta}>{v_8c0b26.cloneType}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             accessibilityLabel={`short-detail-${v_a56041}`}
-            onPress={() => v_3c9f12.navigate('CloneDetail', { cloneId: v_8c0b26.cloneId })}
+            onPress={() => v_3c9f12.navigate('ClonesTab', { screen: 'CloneDetail', params: { cloneId: v_8c0b26.cloneId } })}
             style={v_d81136.detailBtn}
           >
             <Text style={v_d81136.detailText}>자세히 보기</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
       )}
     />
   );
