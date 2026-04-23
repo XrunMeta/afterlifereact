@@ -14,6 +14,8 @@ import { Feather } from '@expo/vector-icons';
 import { useFloatingBallPosition } from './useFloatingBallPosition';
 import { defaultDevActions } from './DevFloatingBall.actions';
 import { useAuthStore } from '../../stores/authStore';
+import { useConfigStore } from '../../stores/configStore';
+import { TEST_MODE_HANDLES } from '../../config/testModeWhitelist';
 import { seedSource } from '../../api/source';
 import { getCurrentRouteName } from '../../navigation/navigationRef';
 import { getApisForRoute, type ScreenApiRef } from '../../api/screenApiMap';
@@ -32,6 +34,10 @@ export function DevFloatingBall() {
   const [probeData, setProbeData] = useState<{ route: string; apis: ScreenApiRef[] } | null>(null);
   const actions = defaultDevActions();
   const currentUser = useAuthStore((s) => s.user);
+  const testMode = useConfigStore((s) => s.testMode);
+  const setTestMode = useConfigStore((s) => s.setTestMode);
+  const canToggleTestMode =
+    !!currentUser?.handle && TEST_MODE_HANDLES.has(currentUser.handle);
 
   const responder = useRef(
     PanResponder.create({
@@ -116,6 +122,19 @@ export function DevFloatingBall() {
             <Feather name="activity" size={16} color="#fff" />
             <Text style={styles.rowText}>API Probe</Text>
           </TouchableOpacity>
+          {canToggleTestMode && (
+            <TouchableOpacity
+              accessibilityLabel="dev-test-mode-toggle"
+              style={styles.row}
+              onPress={() => {
+                setTestMode(!testMode);
+                setMenuOpen(false);
+              }}
+            >
+              <Feather name="zap" size={16} color="#fff" />
+              <Text style={styles.rowText}>테스트 모드 {testMode ? 'ON' : 'OFF'}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 

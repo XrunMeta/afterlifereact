@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
@@ -45,14 +45,16 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const draft = useCloneStore((s) => s.creationDraft);
   const addClone = useCloneStore((s) => s.addClone);
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
+  const [createdCloneId, setCreatedCloneId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!draft.cloneType) return;
+    const id = Date.now();
     const hasImage = Boolean(draft.imageFile);
     const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
       || (draft.recordDuration ?? 0) >= 30);
     const clone: Clone = {
-      id: Date.now(),
+      id,
       cloneType: draft.cloneType,
       ownerId: currentUserId,
       displayName: draft.name ?? '',
@@ -64,16 +66,15 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       createdAt: new Date().toISOString(),
     };
     addClone(clone);
+    setCreatedCloneId(id);
   }, []); 
 
   const copy = COPY[draft.cloneType ?? 'friend'];
 
   const handleStartChat = () => {
+    if (createdCloneId == null) return;
     resetCreationDraft();
-
-    navigation.getParent()?.dispatch(
-      CommonActions.navigate({ name: "ClonesTab" })
-    );
+    navigation.replace('Step8', { cloneId: createdCloneId });
   };
 
   const handleGoToDashboard = () => {
@@ -115,7 +116,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
       {}
       <View style={styles.bottomBar}>
-        <Button title="첫 대화 시작하기" onPress={handleStartChat} variant="accent" leftIcon={<Feather name="message-circle" size={20} color={COLORS.white} />} />
+        <Button title="소개 영상 만들기" onPress={handleStartChat} variant="accent" leftIcon={<Feather name="message-circle" size={20} color={COLORS.white} />} />
         <Button title="나의 페르소나로 돌아가기" onPress={handleGoToDashboard} variant="ghost" />
       </View>
     </SafeView>

@@ -1,4 +1,4 @@
-import type { CloneType, Visibility, MessageRole } from '../types/domain';
+import type { CloneType, Visibility, MessageRole, ShortStatus } from '../types/domain';
 
 export type ViewerRole = 'owner' | 'coowner' | 'follower' | null;
 
@@ -81,4 +81,18 @@ export interface ApiSession {
   ttsVoiceUri: string;
   expiresAt: string;
   viewerRole: ViewerRole;
+}
+
+export interface ApiShort {
+  shortId: number;
+  cloneId: number;
+  status: ShortStatus;
+  mediaUrl: string | null;
+  name: string;
+  cloneType: CloneType;
+}
+
+export interface ApiShortsList {
+  items: ApiShort[];
+  nextCursor: number | null;
 }

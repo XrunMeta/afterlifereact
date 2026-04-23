@@ -53,6 +53,10 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
     );
   }
 
+  const canEdit =
+    user?.id != null &&
+    (user.id === clone.ownerId || user.id === clone.primaryEditorUserId);
+
   const renderGift = ({ item }: { item: Gift }) => (
     <TouchableOpacity style={s.giftItem}>
       <View style={s.giftEmojiWrap}>
@@ -84,6 +88,16 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
           >
             <Feather name="arrow-left" size={22} color={COLORS.white} />
           </TouchableOpacity>
+
+          {canEdit && (
+            <TouchableOpacity
+              accessibilityLabel="clone-edit-entry"
+              style={s.backBtn}
+              onPress={() => navigation.navigate('CloneEdit', { cloneId: clone.id })}
+            >
+              <Feather name="edit-2" size={20} color={COLORS.white} />
+            </TouchableOpacity>
+          )}
 
           {user?.avatarUrl && (
             <Image

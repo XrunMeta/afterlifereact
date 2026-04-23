@@ -405,6 +405,11 @@ clones.get("/:id", async (c) => {
   });
 });
 
+const l1ProfileSchema = z.object({
+  attrs: z.record(z.string(), z.string()),
+  notes: z.string().max(4000).default(''),
+});
+
 const patchSchema = z
   .object({
     name: z.string().min(1).max(80).optional(),
@@ -413,7 +418,9 @@ const patchSchema = z
     cover_image_url: z.url().max(500).optional(),
     visibility: visibility.optional(),
     voice_preset_id: z.number().int().positive().nullable().optional(),
+    l1_profile: l1ProfileSchema.optional(),
   })
+  .strict()
   .refine((o) => Object.keys(o).length > 0, {
     message: "At least one field required.",
   });
@@ -433,6 +440,16 @@ clones.patch("/:id", requireAuth, async (c) => {
     clone.owner_id === userId ||
     (await hasAcceptedShare(db, cloneId, userId)) === "owner";
   if (!isOwner) throw new APIError("FORBIDDEN", "Owner role required.");
+
+  if (body.l1_profile !== undefined) {
+    const row = await db
+      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ? AND deleted_at IS NULL")
+      .bind(cloneId)
+      .first<{ primary_editor_user_id: number | null }>();
+    if (row?.primary_editor_user_id !== userId) {
+      throw new APIError("FORBIDDEN", "Only the primary editor may edit L1.");
+    }
+  }
 
   const sets: string[] = [];
   const binds: unknown[] = [];
@@ -468,13 +485,40 @@ clones.patch("/:id", requireAuth, async (c) => {
     binds.push(body.voice_preset_id === null ? "text_only" : "preset");
     updatedFields.push("voice_preset_id");
   }
+  if (body.l1_profile !== undefined) {
+    sets.push(`l1_profile = ?`);
+    binds.push(JSON.stringify(body.l1_profile));
+    updatedFields.push("l1_profile");
+  }
   sets.push(`updated_at = CURRENT_TIMESTAMP`);
   binds.push(cloneId);
 
-  await db
-    .prepare(`UPDATE clones SET ${sets.join(", ")} WHERE id = ? AND deleted_at IS NULL`)
-    .bind(...binds)
-    .run();
+  const statements = [
+    db
+      .prepare(
+        `UPDATE clones SET ${sets.join(", ")} WHERE id = ? AND deleted_at IS NULL`,
+      )
+      .bind(...binds),
+  ];
+
+  if (body.l1_profile !== undefined) {
+    statements.push(
+      db
+        .prepare("DELETE FROM persona_attributes WHERE clone_id = ? AND level = 'l1'")
+        .bind(cloneId),
+    );
+    for (const [k, v] of Object.entries(body.l1_profile.attrs)) {
+      statements.push(
+        db
+          .prepare(
+            "INSERT INTO persona_attributes (clone_id, level, key, value) VALUES (?, 'l1', ?, ?)",
+          )
+          .bind(cloneId, k, v),
+      );
+    }
+  }
+
+  await db.batch(statements);
 
   await logActivity(c, {
     userId,

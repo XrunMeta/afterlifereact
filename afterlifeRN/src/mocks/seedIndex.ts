@@ -4,6 +4,7 @@ import followsRaw from './seed/follows.json';
 import coownersRaw from './seed/coowners.json';
 import feedsRaw from './seed/feeds.json';
 import messagesRaw from './seed/messages.json';
+import shortsRaw from './seed/shorts.json';
 import { loadSeed, type Seed } from './seedLoader';
 
 export const SEED: Seed = loadSeed({
@@ -13,4 +14,5 @@ export const SEED: Seed = loadSeed({
   coowners: coownersRaw as unknown[],
   messages: messagesRaw as unknown[],
   feeds: feedsRaw as unknown[],
+  shorts: shortsRaw as unknown[],
 });

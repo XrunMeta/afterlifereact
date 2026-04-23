@@ -12,4 +12,5 @@ export const seedSource = {
   coowners: () => SEED.coowners,
   feeds: () => SEED.feeds,
   messages: () => SEED.messages,
+  shorts: () => SEED.shorts,
 };

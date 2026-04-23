@@ -43,3 +43,15 @@ test('does not render coowner section for non-memlow clones', () => {
   render(<CloneDetailScreen {...makeProps(friendClone!.id)} />);
   expect(screen.queryByTestId('coowner-section')).toBeNull();
 });
+
+test('owner/primary editor (viewer=1, clone=1) sees edit entry', () => {
+  useAuthStore.setState({ user: { id: 1 } as any, isLoggedIn: true, hydrated: true });
+  const { getByLabelText } = render(<CloneDetailScreen {...makeProps(1)} />);
+  expect(getByLabelText('clone-edit-entry')).toBeTruthy();
+});
+
+test('non-owner (viewer=999) does not see edit entry', () => {
+  useAuthStore.setState({ user: { id: 999 } as any, isLoggedIn: true, hydrated: true });
+  const { queryByLabelText } = render(<CloneDetailScreen {...makeProps(1)} />);
+  expect(queryByLabelText('clone-edit-entry')).toBeNull();
+});

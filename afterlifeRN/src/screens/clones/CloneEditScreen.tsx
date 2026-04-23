@@ -16,6 +16,12 @@ import TextField from "../../components/ui/TextField";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
+import { useAuthStore } from "../../stores/authStore";
+import { seedSource } from "../../api/source";
+import { L1Section } from "./components/L1Section";
+import { L2Section } from "./components/L2Section";
+import { EditorTransferModal } from "./components/EditorTransferModal";
+import type { L1Profile } from "../../types/domain";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { INTEREST_CATEGORIES } from "../../mocks/interestHelpers";
 
@@ -61,6 +67,7 @@ for (const cat of INTEREST_CATEGORIES) {
 export default function CloneEditScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const viewerId = useAuthStore((s) => s.user?.id) ?? null;
 
   const [primaryCategory, setPrimaryCategory] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -75,6 +82,9 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const [mbti, setMbti] = useState("");
   const [description, setDescription] = useState("");
 
+  const [l1, setL1] = useState<L1Profile>({ attrs: {}, notes: '' });
+  const [transferOpen, setTransferOpen] = useState(false);
+
   const [showMenu, setShowMenu] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>("public");
   const [visibilityModal, setVisibilityModal] = useState(false);
@@ -88,6 +98,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       setName(clone.displayName);
       setDescription(clone.description);
       setVisibility(clone.visibility);
+      if (clone.l1Profile) setL1(clone.l1Profile);
     }
   }, [clone]);
 
@@ -98,6 +109,25 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       </View>
     );
   }
+
+  const isOwner = viewerId != null && clone.ownerId === viewerId;
+  const isPrimaryEditor =
+    viewerId != null && clone.primaryEditorUserId === viewerId;
+  const isCoowner =
+    viewerId != null &&
+    seedSource
+      .coowners()
+      .some((co) => co.cloneId === clone.id && co.userId === viewerId && co.status === 'approved');
+  const canEditL1 = isOwner || isPrimaryEditor;
+
+  const coownerOptions = seedSource
+    .coowners()
+    .filter((co) => co.cloneId === clone.id && co.status === 'approved')
+    .map((co) => {
+      const u = seedSource.users().find((uu) => uu.id === co.userId);
+      return u ? { userId: u.id, displayName: u.displayName } : null;
+    })
+    .filter((x): x is { userId: number; displayName: string } => x != null);
 
   const currentCategory = interestCategories.find((c) => c.id === primaryCategory);
 
@@ -412,6 +442,29 @@ export default function CloneEditScreen({ route, navigation }: Props) {
             containerStyle={{ marginTop: 16 }}
           />
         </View>
+
+        <View style={s.section}>
+          <L1Section value={l1} editable={canEditL1} onChange={setL1} />
+          <L2Section memoryCount={0} lastUpdatedAt={null} />
+          {isPrimaryEditor && (
+            <TouchableOpacity
+              accessibilityLabel="transfer-open"
+              onPress={() => setTransferOpen(true)}
+              style={{ padding: 12, borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 8, marginTop: 12 }}
+            >
+              <Text>편집 권한 이전</Text>
+            </TouchableOpacity>
+          )}
+          {isCoowner && !isPrimaryEditor && (
+            <TouchableOpacity
+              accessibilityLabel="request-editor"
+              onPress={() => {}}
+              style={{ padding: 12, borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 8, marginTop: 12 }}
+            >
+              <Text>편집 권한 요청</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {}
@@ -492,6 +545,13 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <EditorTransferModal
+        visible={transferOpen}
+        coowners={coownerOptions}
+        onClose={() => setTransferOpen(false)}
+        onSubmit={() => setTransferOpen(false)}
+      />
     </SafeScrollView>
   );
 }
