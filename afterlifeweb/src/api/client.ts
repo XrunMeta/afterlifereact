@@ -15,23 +15,95 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export interface RawResponse {
+  status: number;
+  ok: boolean;
+  headers: Record<string, string>;
+  body: unknown;
+  timeMs: number;
+}
+
+function readToken(): string | null {
+  try {
+    return localStorage.getItem("afterlife.admin.token");
+  } catch {
+    return null;
+  }
+}
+
+export function setAdminToken(token: string | null) {
+  try {
+    if (token) localStorage.setItem("afterlife.admin.token", token);
+    else localStorage.removeItem("afterlife.admin.token");
+  } catch {}
+}
+
+export function getAdminToken(): string | null {
+  return readToken();
+}
+
+export async function rawRequest(
+  method: string,
+  fullPath: string,
+  body?: unknown,
+  extraHeaders?: Record<string, string>,
+): Promise<RawResponse> {
+  const started = Date.now();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...extraHeaders,
+  };
+  const token = readToken();
+  if (token && !headers["Authorization"]) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const init: RequestInit = {
+    method,
+    headers,
+    credentials: "include",
+  };
+  if (body !== undefined && method !== "GET" && method !== "HEAD") {
+    init.body = typeof body === "string" ? body : JSON.stringify(body);
+  }
+  const res = await fetch(fullPath, init);
+  const text = await res.text();
+  let parsed: unknown = text;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+
+  }
+  const hdr: Record<string, string> = {};
+  res.headers.forEach((v, k) => {
+    hdr[k] = v;
+  });
+  return {
+    status: res.status,
+    ok: res.ok,
+    headers: hdr,
+    body: parsed,
+    timeMs: Date.now() - started,
+  };
+}
+
 export const api = {
 
   getUsers: () => request<any[]>("/oth-path"),
-  getUser: (id: string) => request<any>(`/oth-path${id}`),
-  deleteUser: (id: string) =>
+  getUser: (id: string | number) => request<any>(`/oth-path${id}`),
+  deleteUser: (id: string | number) =>
     request(`/oth-path${id}`, { method: "DELETE" }),
 
   getClones: () => request<any[]>("/oth-path"),
-  getClone: (id: string) => request<any>(`/oth-path${id}`),
-  deleteClone: (id: string) =>
+  getClone: (id: string | number) => request<any>(`/oth-path${id}`),
+  deleteClone: (id: string | number) =>
     request(`/oth-path${id}`, { method: "DELETE" }),
 
   getFeeds: () => request<any[]>("/oth-path"),
-  deleteFeed: (id: string) =>
+  deleteFeed: (id: string | number) =>
     request(`/oth-path${id}`, { method: "DELETE" }),
 
-  getMessages: (cloneId: string) => request<any[]>(`/oth-path${cloneId}`),
+  getMessages: (cloneId: string | number) =>
+    request<any[]>(`/oth-path${cloneId}`),
 
   getStats: () => request<any>("/oth-path"),
 };

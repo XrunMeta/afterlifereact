@@ -1,0 +1,1979 @@
+[
+  {
+    "id": "e1",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "admin.ts",
+    "line": 13,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": []
+  },
+  {
+    "id": "e2",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "admin.ts",
+    "line": 83,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin System",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin System"
+      }
+    ]
+  },
+  {
+    "id": "e3",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "admin.ts",
+    "line": 145,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [
+      "resourceType",
+      "resourceId",
+      "actorId",
+      "limit"
+    ],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin System",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin System"
+      }
+    ]
+  },
+  {
+    "id": "e4",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "admin.ts",
+    "line": 187,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin System",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin System"
+      }
+    ]
+  },
+  {
+    "id": "e5",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "admin.ts",
+    "line": 199,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin DevTools",
+    "uiLinks": []
+  },
+  {
+    "id": "e6",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "admin.ts",
+    "line": 223,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin DevTools",
+    "uiLinks": []
+  },
+  {
+    "id": "e7",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "admin.ts",
+    "line": 242,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin DevTools",
+    "uiLinks": []
+  },
+  {
+    "id": "e8",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "admin.ts",
+    "line": 262,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin DevTools",
+    "uiLinks": []
+  },
+  {
+    "id": "e9",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminAuth.ts",
+    "line": 122,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Auth (TOTP/Bootstrap)",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Auth"
+      }
+    ]
+  },
+  {
+    "id": "e10",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminAuth.ts",
+    "line": 168,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Auth (TOTP/Bootstrap)",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Auth"
+      }
+    ]
+  },
+  {
+    "id": "e11",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminAuth.ts",
+    "line": 244,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Auth (TOTP/Bootstrap)",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Auth"
+      }
+    ]
+  },
+  {
+    "id": "e12",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminAuth.ts",
+    "line": 293,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Auth (TOTP/Bootstrap)",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Auth"
+      }
+    ]
+  },
+  {
+    "id": "e13",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminAuth.ts",
+    "line": 350,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Auth (TOTP/Bootstrap)",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Auth"
+      }
+    ]
+  },
+  {
+    "id": "e14",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminDeletion.ts",
+    "line": 34,
+    "auth": "admin",
+    "pathParams": [
+      "type",
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Deletion",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Deletion"
+      }
+    ]
+  },
+  {
+    "id": "e15",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminGdpr.ts",
+    "line": 15,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [
+      "status",
+      "limit"
+    ],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin GDPR",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin GDPR"
+      }
+    ]
+  },
+  {
+    "id": "e16",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminGdpr.ts",
+    "line": 62,
+    "auth": "admin",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin GDPR",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin GDPR"
+      }
+    ]
+  },
+  {
+    "id": "e17",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminPreview.ts",
+    "line": 13,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Users Page"
+      }
+    ]
+  },
+  {
+    "id": "e18",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminPreview.ts",
+    "line": 26,
+    "auth": "admin",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Users Page"
+      }
+    ]
+  },
+  {
+    "id": "e19",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminPreview.ts",
+    "line": 39,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Clones Page"
+      }
+    ]
+  },
+  {
+    "id": "e20",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminPreview.ts",
+    "line": 56,
+    "auth": "admin",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Clones Page"
+      }
+    ]
+  },
+  {
+    "id": "e21",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminPreview.ts",
+    "line": 74,
+    "auth": "admin",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Clone Detail"
+      }
+    ]
+  },
+  {
+    "id": "e22",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminPreview.ts",
+    "line": 140,
+    "auth": "admin",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Clone Detail (가계도)"
+      }
+    ]
+  },
+  {
+    "id": "e23",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminPreview.ts",
+    "line": 189,
+    "auth": "admin",
+    "pathParams": [
+      "cloneId"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/messages",
+        "label": "Messages Page"
+      }
+    ]
+  },
+  {
+    "id": "e24",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminPreview.ts",
+    "line": 207,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Feeds Page"
+      }
+    ]
+  },
+  {
+    "id": "e25",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminPreview.ts",
+    "line": 209,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Preview",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/",
+        "label": "Dashboard"
+      }
+    ]
+  },
+  {
+    "id": "e26",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminQuorum.ts",
+    "line": 87,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Quorum",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Quorum"
+      }
+    ]
+  },
+  {
+    "id": "e27",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminQuorum.ts",
+    "line": 120,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [
+      "status",
+      "limit"
+    ],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Quorum",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Quorum"
+      }
+    ]
+  },
+  {
+    "id": "e28",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "adminQuorum.ts",
+    "line": 155,
+    "auth": "admin",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Quorum",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Quorum"
+      }
+    ]
+  },
+  {
+    "id": "e29",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminQuorum.ts",
+    "line": 190,
+    "auth": "admin",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Quorum",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Quorum"
+      }
+    ]
+  },
+  {
+    "id": "e30",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminQuorum.ts",
+    "line": 279,
+    "auth": "admin",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Quorum",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Quorum"
+      }
+    ]
+  },
+  {
+    "id": "e31",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminWebauthn.ts",
+    "line": 45,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin WebAuthn",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Auth"
+      }
+    ]
+  },
+  {
+    "id": "e32",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminWebauthn.ts",
+    "line": 98,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin WebAuthn",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Auth"
+      }
+    ]
+  },
+  {
+    "id": "e33",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminWebauthn.ts",
+    "line": 151,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin WebAuthn",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Auth"
+      }
+    ]
+  },
+  {
+    "id": "e34",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "adminWebauthn.ts",
+    "line": 197,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin WebAuthn",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Auth"
+      }
+    ]
+  },
+  {
+    "id": "e35",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "auth.ts",
+    "line": 28,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Auth",
+    "uiLinks": []
+  },
+  {
+    "id": "e36",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "auth.ts",
+    "line": 47,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Auth",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "SignupScreen",
+        "label": "RN 가입"
+      }
+    ]
+  },
+  {
+    "id": "e37",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "auth.ts",
+    "line": 171,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Auth",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "LoginScreen",
+        "label": "RN 로그인"
+      }
+    ]
+  },
+  {
+    "id": "e38",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "auth.ts",
+    "line": 255,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Auth",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "authStore",
+        "label": "RN authStore"
+      }
+    ]
+  },
+  {
+    "id": "e39",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "auth.ts",
+    "line": 267,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Auth",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MyScreen",
+        "label": "RN 내 정보"
+      }
+    ]
+  },
+  {
+    "id": "e40",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "clones.ts",
+    "line": 18,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clones",
+    "uiLinks": []
+  },
+  {
+    "id": "e41",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "clones.ts",
+    "line": 60,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clones",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "CloneEditScreen",
+        "label": "RN 클론 생성"
+      }
+    ]
+  },
+  {
+    "id": "e42",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "clones.ts",
+    "line": 273,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clones",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "SearchScreen",
+        "label": "RN 검색"
+      }
+    ]
+  },
+  {
+    "id": "e43",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "clones.ts",
+    "line": 380,
+    "auth": "public",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clones",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "CloneDetailScreen",
+        "label": "RN 클론 상세"
+      },
+      {
+        "app": "rn",
+        "route": "ChatScreen",
+        "label": "RN 대화"
+      },
+      {
+        "app": "rn",
+        "route": "CallScreen",
+        "label": "RN 통화"
+      }
+    ]
+  },
+  {
+    "id": "e44",
+    "method": "PATCH",
+    "path": "/oth-path",
+    "file": "clones.ts",
+    "line": 450,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clones",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "CloneEditScreen",
+        "label": "RN 클론 수정"
+      }
+    ]
+  },
+  {
+    "id": "e45",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "clones.ts",
+    "line": 520,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clones",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "FollowingScreen",
+        "label": "RN 팔로잉"
+      }
+    ]
+  },
+  {
+    "id": "e46",
+    "method": "DELETE",
+    "path": "/oth-path",
+    "file": "clones.ts",
+    "line": 550,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clones",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "FollowingScreen",
+        "label": "RN 팔로잉"
+      }
+    ]
+  },
+  {
+    "id": "e47",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "coldRecovery.ts",
+    "line": 68,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Cold Recovery",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Cold Recovery"
+      }
+    ]
+  },
+  {
+    "id": "e48",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "coldRecovery.ts",
+    "line": 123,
+    "auth": "admin",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Admin Cold Recovery",
+    "uiLinks": [
+      {
+        "app": "web",
+        "route": "/oth-path",
+        "label": "Admin Cold Recovery"
+      }
+    ]
+  },
+  {
+    "id": "e49",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "credits.ts",
+    "line": 11,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Credits",
+    "uiLinks": []
+  },
+  {
+    "id": "e50",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "credits.ts",
+    "line": 18,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Credits",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MyScreen",
+        "label": "RN 크레딧 잔액"
+      }
+    ]
+  },
+  {
+    "id": "e51",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "credits.ts",
+    "line": 82,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Credits",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "CreditLedgerScreen",
+        "label": "RN 크레딧 내역"
+      }
+    ]
+  },
+  {
+    "id": "e52",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "credits.ts",
+    "line": 156,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Credits",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "ChargeScreen",
+        "label": "RN 충전(XRUN)"
+      }
+    ]
+  },
+  {
+    "id": "e53",
+    "method": "DELETE",
+    "path": "/oth-path",
+    "file": "deletion.ts",
+    "line": 133,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Deletion (Soft)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MyScreen",
+        "label": "RN 소프트 삭제"
+      }
+    ]
+  },
+  {
+    "id": "e54",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "deletion.ts",
+    "line": 141,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Deletion (Soft)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "RestoreDeletedScreen",
+        "label": "RN 복원"
+      }
+    ]
+  },
+  {
+    "id": "e55",
+    "method": "DELETE",
+    "path": "/oth-path",
+    "file": "deletion.ts",
+    "line": 149,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Deletion (Soft)",
+    "uiLinks": []
+  },
+  {
+    "id": "e56",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "deletion.ts",
+    "line": 161,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Deletion (Soft)",
+    "uiLinks": []
+  },
+  {
+    "id": "e57",
+    "method": "DELETE",
+    "path": "/oth-path",
+    "file": "deletion.ts",
+    "line": 175,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Deletion (Soft)",
+    "uiLinks": []
+  },
+  {
+    "id": "e58",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "deletion.ts",
+    "line": 187,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Deletion (Soft)",
+    "uiLinks": []
+  },
+  {
+    "id": "e59",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "emergency.ts",
+    "line": 43,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Emergency/Inheritance",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "EmergencyContactsScreen",
+        "label": "RN 비상연락"
+      }
+    ]
+  },
+  {
+    "id": "e60",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "emergency.ts",
+    "line": 83,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Emergency/Inheritance",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "EmergencyContactsScreen",
+        "label": "RN 비상연락"
+      }
+    ]
+  },
+  {
+    "id": "e61",
+    "method": "DELETE",
+    "path": "/oth-path",
+    "file": "emergency.ts",
+    "line": 101,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Emergency/Inheritance",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "EmergencyContactsScreen",
+        "label": "RN 비상연락"
+      }
+    ]
+  },
+  {
+    "id": "e62",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "emergency.ts",
+    "line": 121,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": "token: z.string().min(32).max(128), | decision: z.enum([\"accept\", \"decline\"]),",
+    "category": "Emergency/Inheritance",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "InheritanceAcceptScreen",
+        "label": "RN 상속 수락"
+      }
+    ]
+  },
+  {
+    "id": "e63",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "feeds.ts",
+    "line": 63,
+    "auth": "public",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [
+      "cursor",
+      "limit"
+    ],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clone Feeds",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "HomeScreen",
+        "label": "RN 홈 피드"
+      }
+    ]
+  },
+  {
+    "id": "e64",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "feeds.ts",
+    "line": 143,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clone Feeds",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "FeedPostScreen",
+        "label": "RN 피드 작성"
+      }
+    ]
+  },
+  {
+    "id": "e65",
+    "method": "DELETE",
+    "path": "/oth-path",
+    "file": "feeds.ts",
+    "line": 185,
+    "auth": "required",
+    "pathParams": [
+      "id",
+      "feedId"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Clone Feeds",
+    "uiLinks": []
+  },
+  {
+    "id": "e66",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "gdpr.ts",
+    "line": 24,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "User GDPR",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "GDPRDeleteScreen",
+        "label": "RN GDPR 청구"
+      }
+    ]
+  },
+  {
+    "id": "e67",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "gdpr.ts",
+    "line": 57,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "User GDPR",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "GDPRDeleteScreen",
+        "label": "RN GDPR 청구"
+      }
+    ]
+  },
+  {
+    "id": "e68",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "gdpr.ts",
+    "line": 78,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "User GDPR",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "GDPRDeleteScreen",
+        "label": "RN GDPR 청구"
+      }
+    ]
+  },
+  {
+    "id": "e69",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "memory.ts",
+    "line": 31,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Memory (L1/L2)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MemoryEditorScreen",
+        "label": "RN 기억(L1/L2) 편집"
+      }
+    ]
+  },
+  {
+    "id": "e70",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "memory.ts",
+    "line": 46,
+    "auth": "public",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Memory (L1/L2)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MemoryEditorScreen",
+        "label": "RN 기억(L1/L2) 편집"
+      }
+    ]
+  },
+  {
+    "id": "e71",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "memory.ts",
+    "line": 102,
+    "auth": "public",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Memory (L1/L2)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MemoryEditorScreen",
+        "label": "RN 기억(L1/L2) 편집"
+      }
+    ]
+  },
+  {
+    "id": "e72",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "memory.ts",
+    "line": 160,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Memory (L1/L2)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MemoryEditorScreen",
+        "label": "RN 기억(L1/L2) 편집"
+      }
+    ]
+  },
+  {
+    "id": "e73",
+    "method": "PUT",
+    "path": "/oth-path",
+    "file": "memory.ts",
+    "line": 242,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Memory (L1/L2)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MemoryEditorScreen",
+        "label": "RN 기억(L1/L2) 편집"
+      }
+    ]
+  },
+  {
+    "id": "e74",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "memory.ts",
+    "line": 310,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Memory (L1/L2)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MemoryEditorScreen",
+        "label": "RN 기억(L1/L2) 편집"
+      }
+    ]
+  },
+  {
+    "id": "e75",
+    "method": "PUT",
+    "path": "/oth-path",
+    "file": "memory.ts",
+    "line": 400,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Memory (L1/L2)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MemoryEditorScreen",
+        "label": "RN 기억(L1/L2) 편집"
+      }
+    ]
+  },
+  {
+    "id": "e76",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "messages.ts",
+    "line": 38,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Messages",
+    "uiLinks": []
+  },
+  {
+    "id": "e77",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "messages.ts",
+    "line": 66,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Messages",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "ChatScreen",
+        "label": "RN 대화"
+      }
+    ]
+  },
+  {
+    "id": "e78",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "messages.ts",
+    "line": 210,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Messages",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "ChatScreen",
+        "label": "RN 스트림 대화"
+      }
+    ]
+  },
+  {
+    "id": "e79",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "messages.ts",
+    "line": 352,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Messages",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "ChatScreen",
+        "label": "RN 대화"
+      }
+    ]
+  },
+  {
+    "id": "e80",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "messages.ts",
+    "line": 450,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Messages",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "ChatScreen",
+        "label": "RN 세션 히스토리"
+      }
+    ]
+  },
+  {
+    "id": "e81",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "messages.ts",
+    "line": 530,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": true,
+    "bodyHint": null,
+    "category": "Messages",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "ChatScreen",
+        "label": "RN 즐겨찾기"
+      }
+    ]
+  },
+  {
+    "id": "e82",
+    "method": "DELETE",
+    "path": "/oth-path",
+    "file": "messages.ts",
+    "line": 551,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Messages",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "ChatScreen",
+        "label": "RN 즐겨찾기"
+      }
+    ]
+  },
+  {
+    "id": "e83",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "sessions.ts",
+    "line": 29,
+    "auth": "required",
+    "pathParams": [
+      "cloneId"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Sessions (RTC)",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "CallScreen",
+        "label": "RN 통화 시작"
+      }
+    ]
+  },
+  {
+    "id": "e84",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "sharing.ts",
+    "line": 89,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Sharing/Invites",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "InviteScreen",
+        "label": "RN 초대"
+      }
+    ]
+  },
+  {
+    "id": "e85",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "sharing.ts",
+    "line": 170,
+    "auth": "public",
+    "pathParams": [
+      "token"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Sharing/Invites",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "InviteScreen",
+        "label": "RN 초대"
+      }
+    ]
+  },
+  {
+    "id": "e86",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "sharing.ts",
+    "line": 220,
+    "auth": "required",
+    "pathParams": [
+      "token"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Sharing/Invites",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "InviteScreen",
+        "label": "RN 초대"
+      }
+    ]
+  },
+  {
+    "id": "e87",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "sharing.ts",
+    "line": 319,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Sharing/Invites",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "CoownerManageScreen",
+        "label": "RN 공동 소유 관리"
+      }
+    ]
+  },
+  {
+    "id": "e88",
+    "method": "DELETE",
+    "path": "/oth-path",
+    "file": "sharing.ts",
+    "line": 367,
+    "auth": "required",
+    "pathParams": [
+      "id",
+      "shareId"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Sharing/Invites",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "CoownerManageScreen",
+        "label": "RN 공동 소유 관리"
+      }
+    ]
+  },
+  {
+    "id": "e89",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 12,
+    "auth": "public",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Users",
+    "uiLinks": []
+  },
+  {
+    "id": "e90",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 33,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Users",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MyScreen",
+        "label": "RN 내 정보"
+      }
+    ]
+  },
+  {
+    "id": "e91",
+    "method": "PATCH",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 122,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Users",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MyScreen",
+        "label": "RN 프로필 수정"
+      }
+    ]
+  },
+  {
+    "id": "e92",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 177,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": "add: z.array(z.string().min(1).max(40)).max(20).optional(), | remove: z.array(z.string().min(1).max(40)).max(20).optional(),",
+    "category": "Users",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "InterestsScreen",
+        "label": "RN 관심사"
+      }
+    ]
+  },
+  {
+    "id": "e93",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 201,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Users",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MyScreen",
+        "label": "RN 디바이스 관리"
+      }
+    ]
+  },
+  {
+    "id": "e94",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 214,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Users",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "MyScreen",
+        "label": "RN 탈퇴"
+      }
+    ]
+  },
+  {
+    "id": "e95",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 234,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Users",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "RestoreDeletedScreen",
+        "label": "RN 복원"
+      }
+    ]
+  },
+  {
+    "id": "e96",
+    "method": "POST",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 261,
+    "auth": "required",
+    "pathParams": [],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Users",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "GDPRDeleteScreen",
+        "label": "RN GDPR 삭제"
+      }
+    ]
+  },
+  {
+    "id": "e97",
+    "method": "GET",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 352,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Users",
+    "uiLinks": [
+      {
+        "app": "rn",
+        "route": "FollowingScreen",
+        "label": "RN 팔로잉"
+      }
+    ]
+  },
+  {
+    "id": "e98",
+    "method": "DELETE",
+    "path": "/oth-path",
+    "file": "users.ts",
+    "line": 408,
+    "auth": "required",
+    "pathParams": [
+      "id"
+    ],
+    "queryKeys": [],
+    "hasBody": false,
+    "bodyHint": null,
+    "category": "Users",
+    "uiLinks": []
+  }
+]
