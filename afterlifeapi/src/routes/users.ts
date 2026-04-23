@@ -334,6 +334,62 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
   });
 });
 
+v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
+  const v_66c633 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_66c633) || v_66c633 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  if (v_66c633 !== v_43e90c) {
+    throw new v_3ebe58("FORBIDDEN", "Can only view your own follow list.");
+  }
+
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url, c.created_at,
+                COALESCE(s.followers_count, 0) AS followers_count,
+                COALESCE(s.messages_count, 0)  AS messages_count,
+                COALESCE(s.gifts_count, 0)     AS gifts_count
+           FROM clone_follows f
+           JOIN clones c ON c.id = f.clone_id
+           LEFT JOIN clone_stats s ON s.clone_id = c.id
+          WHERE f.user_id = ? AND c.deleted_at IS NULL
+          ORDER BY f.created_at DESC, f.id DESC`,
+      )
+      .bind(v_43e90c)
+      .all<{
+        id: number;
+        name: string;
+        username: string;
+        clone_type: string;
+        category: string | null;
+        avatar_url: string | null;
+        created_at: string;
+        followers_count: number;
+        messages_count: number;
+        gifts_count: number;
+      }>()
+  ).results;
+
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => ({
+      id: v_cb35cb.id,
+      name: v_cb35cb.name,
+      username: v_cb35cb.username,
+      cloneType: v_cb35cb.clone_type,
+      category: v_cb35cb.category,
+      avatarUrl: v_cb35cb.avatar_url,
+      stats: {
+        followers: v_cb35cb.followers_count,
+        messages: v_cb35cb.messages_count,
+        gifts: v_cb35cb.gifts_count,
+      },
+      createdAt: v_cb35cb.created_at,
+    })),
+  });
+});
+
 v_de7ba7.delete("/me/devices/:id", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_eb3eac = Number(v_3f4e2e.req.param("id"));

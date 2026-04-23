@@ -1,0 +1,30 @@
+{
+  "_route": "POST /oth-path",
+  "_auth": "required — owner | coowner | follower 만. 관계 없는 유저 403, 비로그인 401.",
+  "_status": "stub — 서버 GPU 슬라이스(server-realtime-plan.md Task 10)에서 실 LoRA/LiveKit 발급",
+  "_cross_link": {
+    "server_gpu_plan": "docs/superpowers/plans/2026-04-22-server-realtime-plan.md",
+    "server_realtime_architecture": "docs/superpowers/specs/2026-04-22-server-realtime-architecture.md"
+  },
+  "_rate_limit": {
+    "follower": "TBD — admin 정책 결정 후 적용. 현재 stub 은 무제한.",
+    "owner_coowner": "제한 없음"
+  },
+  "_response_200": {
+    "sessionId": "sess-018f8c6e-7fa2-4a1b-9d8f-3e5b0c9d2a11",
+    "livekitRoom": "room-1-018f8c6e",
+    "livekitToken": "stub.sess-....<userId>",
+    "cloudflareCallsAppId": "stub-calls-app",
+    "loraUri": "r2://afterlife-models/memlow/natsu.lora",
+    "ttsVoiceUri": "r2://afterlife-voices/memlow/natsu.pt",
+    "expiresAt": "2026-04-22T12:10:00.000Z",
+    "viewerRole": "owner"
+  },
+  "_r2_uri_format": "r2://<bucket>/<clone_type>/<clone_username>.<ext>",
+  "_errors": {
+    "401": "missing/invalid bearer",
+    "403": "No access to this clone for session. (관계 없는 유저)",
+    "404": "Clone not found.",
+    "422": "VALIDATION_FAILED (invalid :cloneId)"
+  }
+}
