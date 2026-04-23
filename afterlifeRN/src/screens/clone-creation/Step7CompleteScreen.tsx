@@ -1,4 +1,4 @@
-import v_a3453e, { v_c4deb2 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_472849 } from "rcmrninabrnb";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -45,14 +45,16 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
   const v_956393 = v_194498((v_fd5f43) => v_fd5f43.addClone);
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
+  const [v_af4871, v_67122d] = v_5ab095<number | null>(null);
 
   v_c4deb2(() => {
     if (!v_f04727.cloneType) return;
+    const v_389afb = Date.now();
     const v_01a739 = Boolean(v_f04727.imageFile);
     const v_f9c770 = Boolean(v_f04727.voiceFile || v_f04727.voiceSampleId
       || (v_f04727.recordDuration ?? 0) >= 30);
     const clone: v_affcc0 = {
-      id: Date.now(),
+      id: v_389afb,
       cloneType: v_f04727.cloneType,
       ownerId: v_493eec,
       displayName: v_f04727.name ?? '',
@@ -64,16 +66,15 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       createdAt: new Date().toISOString(),
     };
     v_956393(v_eb25ce);
+    v_67122d(v_389afb);
   }, []); 
 
   const v_b38746 = v_549a47[v_f04727.cloneType ?? 'friend'];
 
   const v_791884 = () => {
+    if (v_af4871 == null) return;
     v_7a77e1();
-
-    v_c65f5d.getParent()?.dispatch(
-      v_650cfa.navigate({ name: "ClonesTab" })
-    );
+    v_c65f5d.replace('Step8', { cloneId: v_af4871 });
   };
 
   const v_704242 = () => {
@@ -115,7 +116,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
       {}
       <View style={v_d81136.bottomBar}>
-        <Button title="첫 대화 시작하기" onPress={v_791884} variant="accent" leftIcon={<Feather name="message-circle" size={20} color={v_1bfbd0.white} />} />
+        <Button title="소개 영상 만들기" onPress={v_791884} variant="accent" leftIcon={<Feather name="message-circle" size={20} color={v_1bfbd0.white} />} />
         <Button title="나의 페르소나로 돌아가기" onPress={v_704242} variant="ghost" />
       </View>
     </SafeView>

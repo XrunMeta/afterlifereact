@@ -21,6 +21,7 @@ import v_710783 from "../screens/clone-creation/Step4VoiceUploadScreen";
 import v_f275b6 from "../screens/clone-creation/Step5VisibilityScreen";
 import v_baac2f from "../screens/clone-creation/Step6CreatingScreen";
 import v_448ad1 from "../screens/clone-creation/Step7CompleteScreen";
+import v_d19b01 from "../screens/clone-creation/Step8CreateShortsScreen";
 import v_14b43e from "../screens/following/FollowingScreen";
 import v_ed02a5 from "../screens/my/MyScreen";
 
@@ -47,6 +48,7 @@ function v_31fee5() {
       <CreateStack.Screen name="Step5" component={v_f275b6} />
       <CreateStack.Screen name="Step6" component={v_baac2f} />
       <CreateStack.Screen name="Step7" component={v_448ad1} />
+      <CreateStack.Screen name="Step8" component={v_d19b01} />
     </CreateStack.Navigator>
   );
 }
