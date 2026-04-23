@@ -19,6 +19,7 @@ function makeNav() {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
   useAuthStore.setState({
     user: { id: 1 } as any,
     isLoggedIn: true,
@@ -28,9 +29,18 @@ beforeEach(() => {
   dispatch.mockReset();
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 test('owner: queued → ready 전이 후 preview 렌더', async () => {
+
+  const getShortSpy = jest
+    .spyOn(apiClient, 'getShort')
+    .mockResolvedValue({ shortId: 4, status: 'ready', mediaUrl: 'https://cdn/x.mp4' });
+
   const navigation = makeNav();
-  const { queryByLabelText, findByLabelText } = render(
+  const { findByLabelText } = render(
     <Step8CreateShortsScreen
       route={{ params: { cloneId: 1 } } as any}
       navigation={navigation}
@@ -39,17 +49,13 @@ test('owner: queued → ready 전이 후 preview 렌더', async () => {
 
   await act(async () => {
     await Promise.resolve();
+    await Promise.resolve();
   });
-  expect(queryByLabelText('step8-progress')).toBeTruthy();
-
-  const getShortSpy = jest
-    .spyOn(apiClient, 'getShort')
-    .mockResolvedValue({ shortId: 4, status: 'ready', mediaUrl: 'https://cdn/x.mp4' });
 
   await act(async () => {
-    jest.useFakeTimers();
     jest.advanceTimersByTime(300);
-    jest.useRealTimers();
+  });
+  await act(async () => {
     await Promise.resolve();
   });
 

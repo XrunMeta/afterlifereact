@@ -84,7 +84,7 @@ export default function Step8CreateShortsScreen({ route, navigation }: Props) {
           <Text style={styles.muted}>이 클론의 소유자만 영상을 만들 수 있어요.</Text>
         </View>
         <TouchableOpacity
-          accessibilityLabel="step8-skip"
+          accessibilityLabel="step8-forbidden-skip"
           onPress={goHome}
           style={styles.btn}
         >
