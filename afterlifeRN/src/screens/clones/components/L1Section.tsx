@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import type { L1Profile } from '../../../types/domain';
 
@@ -10,14 +10,7 @@ interface Props {
   onChange: (next: L1Profile) => void;
 }
 
-export function L1Section({ value: initialValue, editable, onChange }: Props) {
-  const [value, setValue] = useState<L1Profile>(initialValue);
-
-  function emit(next: L1Profile) {
-    setValue(next);
-    onChange(next);
-  }
-
+export function L1Section({ value, editable, onChange }: Props) {
   return (
     <View style={styles.root}>
       <Text style={styles.title}>기본 성격 (L1)</Text>
@@ -28,7 +21,7 @@ export function L1Section({ value: initialValue, editable, onChange }: Props) {
             accessibilityLabel={`l1-attr-${k}`}
             value={value.attrs[k] ?? ''}
             editable={editable}
-            onChangeText={(t) => emit({ ...value, attrs: { ...value.attrs, [k]: t } })}
+            onChangeText={(t) => onChange({ ...value, attrs: { ...value.attrs, [k]: t } })}
             style={[styles.input, !editable && styles.readonly]}
           />
         </View>
@@ -39,7 +32,7 @@ export function L1Section({ value: initialValue, editable, onChange }: Props) {
         value={value.notes}
         editable={editable}
         multiline
-        onChangeText={(t) => emit({ ...value, notes: t })}
+        onChangeText={(t) => onChange({ ...value, notes: t })}
         style={[styles.input, styles.notes, !editable && styles.readonly]}
       />
     </View>
