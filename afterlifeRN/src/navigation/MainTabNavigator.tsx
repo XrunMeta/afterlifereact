@@ -21,6 +21,7 @@ import Step4VoiceUploadScreen from "../screens/clone-creation/Step4VoiceUploadSc
 import Step5VisibilityScreen from "../screens/clone-creation/Step5VisibilityScreen";
 import Step6CreatingScreen from "../screens/clone-creation/Step6CreatingScreen";
 import Step7CompleteScreen from "../screens/clone-creation/Step7CompleteScreen";
+import Step8CreateShortsScreen from "../screens/clone-creation/Step8CreateShortsScreen";
 import FollowingScreen from "../screens/following/FollowingScreen";
 import MyScreen from "../screens/my/MyScreen";
 
@@ -47,6 +48,7 @@ function CreateStackNavigator() {
       <CreateStack.Screen name="Step5" component={Step5VisibilityScreen} />
       <CreateStack.Screen name="Step6" component={Step6CreatingScreen} />
       <CreateStack.Screen name="Step7" component={Step7CompleteScreen} />
+      <CreateStack.Screen name="Step8" component={Step8CreateShortsScreen} />
     </CreateStack.Navigator>
   );
 }
