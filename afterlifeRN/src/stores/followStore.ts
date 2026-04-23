@@ -1,14 +1,15 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { SEED } from "../mocks/seedIndex";
+import { seedSource } from "../api/source";
 import type { DomainFollow } from "../types/domain";
 import { useAuthStore } from "./authStore";
 
 const STORAGE_KEY = "@afterlifeRN/follow/overrides";
-const DEFAULT_USER_ID = "user-001";
+const DEFAULT_USER_ID = 1;
+const LOCAL_FOLLOW_ID_BASE = 1_000_000_000;
 
 interface Override {
-  cloneId: string;
+  cloneId: number;
   action: "follow" | "unfollow";
   at: string;
 }
@@ -17,14 +18,14 @@ interface FollowState {
   follows: DomainFollow[];
   hydrated: boolean;
   hydrate: () => Promise<void>;
-  isFollowing: (cloneId: string) => boolean;
-  toggleFollow: (cloneId: string) => Promise<void>;
-  followersCount: (cloneId: string) => number;
-  followingIdsFor: (userId: string) => string[];
+  isFollowing: (cloneId: number) => boolean;
+  toggleFollow: (cloneId: number) => Promise<void>;
+  followersCount: (cloneId: number) => number;
+  followingIdsFor: (userId: number) => number[];
 }
 
 let counter = 0;
-const newFollowId = () => `follow-local-${++counter}-${Date.now()}`;
+const newFollowId = () => LOCAL_FOLLOW_ID_BASE + ++counter;
 
 export const useFollowStore = create<FollowState>((set, get) => ({
   follows: [],
@@ -33,7 +34,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
   hydrate: async () => {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     const overrides: Override[] = raw ? JSON.parse(raw) : [];
-    let follows = [...SEED.follows];
+    let follows = [...seedSource.follows()];
     const currentUserId =
       useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
     overrides.forEach((o) => {

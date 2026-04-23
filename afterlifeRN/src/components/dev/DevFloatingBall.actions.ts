@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { useAuthStore } from '../../stores/authStore';
 import { useFollowStore } from '../../stores/followStore';
 import { useCloneStore } from '../../stores/cloneStore';
-import { SEED } from '../../mocks/seedIndex';
+import { seedSource } from '../../api/source';
 
 export interface DevAction {
   icon: string;
@@ -36,12 +36,12 @@ export function defaultDevActions(): DevAction[] {
       label: 'Seed 카운트',
       onPress: () => {
         const counts = {
-          users: SEED.users.length,
-          clones: SEED.clones.length,
-          follows: SEED.follows.length,
-          coowners: SEED.coowners.length,
-          messages: SEED.messages.length,
-          feeds: SEED.feeds.length,
+          users: seedSource.users().length,
+          clones: seedSource.clones().length,
+          follows: seedSource.follows().length,
+          coowners: seedSource.coowners().length,
+          messages: seedSource.messages().length,
+          feeds: seedSource.feeds().length,
         };
         Alert.alert('SEED counts', JSON.stringify(counts, null, 2));
       },

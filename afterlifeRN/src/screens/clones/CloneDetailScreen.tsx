@@ -17,7 +17,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ClonesStackParamList } from "../../navigation/types";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
-import { SEED } from "../../mocks/seedIndex";
+import { seedSource } from "../../api/source";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { Gift } from "../../types/gift";
 import giftsData from "../../mocks/gifts.json";
@@ -37,11 +37,11 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
 
   const approvedCoowners =
     clone && clone.cloneType === "memlow"
-      ? SEED.coowners
+      ? seedSource.coowners()
           .filter(
             (co) => co.cloneId === clone.id && co.status === "approved",
           )
-          .map((co) => SEED.users.find((u) => u.id === co.userId))
+          .map((co) => seedSource.users().find((u) => u.id === co.userId))
           .filter((u): u is NonNullable<typeof u> => Boolean(u))
       : [];
 

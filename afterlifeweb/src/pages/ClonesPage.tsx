@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { DataTable } from "../components/DataTable";
 
@@ -11,6 +12,25 @@ const columns = [
   { key: "trainingStatus", label: "Status" },
   { key: "ownerName", label: "Owner" },
   { key: "createdAt", label: "Created", render: (v?: string) => v?.slice(0, 10) ?? "" },
+  {
+    key: "detail",
+    label: "Detail",
+    render: (_v: unknown, row: { id: number }) => (
+      <Link
+        to={`/oth-path${row.id}`}
+        style={{
+          fontSize: 12,
+          padding: "4px 10px",
+          backgroundColor: "#3b82f6",
+          color: "#fff",
+          borderRadius: 4,
+          textDecoration: "none",
+        }}
+      >
+        보기
+      </Link>
+    ),
+  },
 ];
 
 export function ClonesPage() {

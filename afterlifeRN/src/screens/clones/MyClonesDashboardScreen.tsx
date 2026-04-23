@@ -20,7 +20,7 @@ import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
-import { SEED } from "../../mocks/seedIndex";
+import { seedSource } from "../../api/source";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
@@ -28,7 +28,7 @@ import type { RootStackParamList } from "../../navigation/types";
 
 type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
-const DEFAULT_USER_ID = "user-001";
+const DEFAULT_USER_ID = 1;
 
 export default function MyClonesDashboardScreen() {
   const navigation = useNavigation<ClonesNav>();
@@ -39,13 +39,13 @@ export default function MyClonesDashboardScreen() {
   const myClones = useMemo<Clone[]>(() => {
     const uid = authUser?.id ?? DEFAULT_USER_ID;
     return [
-      ...SEED.clones.filter((c) => c.ownerUserId === uid),
-      ...localClones.filter((c) => c.ownerUserId === uid),
+      ...seedSource.clones().filter((c) => c.ownerId === uid),
+      ...localClones.filter((c) => c.ownerId === uid),
     ];
   }, [authUser, localClones]);
 
   const [cloneStates, setCloneStates] = useState<
-    Record<string, { isActive: boolean; visibility: Visibility }>
+    Record<number, { isActive: boolean; visibility: Visibility }>
   >(
     myClones.reduce(
       (acc, clone, i) => ({
@@ -59,24 +59,24 @@ export default function MyClonesDashboardScreen() {
     ),
   );
 
-  const [hiddenCloneIds, setHiddenCloneIds] = useState<Set<string>>(new Set());
-  const [menuCloneId, setMenuCloneId] = useState<string | null>(null);
+  const [hiddenCloneIds, setHiddenCloneIds] = useState<Set<number>>(new Set());
+  const [menuCloneId, setMenuCloneId] = useState<number | null>(null);
   const [inviteModal, setInviteModal] = useState(false);
   const [inviteSearch, setInviteSearch] = useState("");
-  const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
+  const [invitedIds, setInvitedIds] = useState<Set<number>>(new Set());
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
     cloneName: string;
   } | null>(null);
   const [toggleModal, setToggleModal] = useState<{
-    cloneId: string;
+    cloneId: number;
     currentState: boolean;
   } | null>(null);
   const [visibilityModal, setVisibilityModal] = useState<{
-    cloneId: string;
+    cloneId: number;
     currentVisibility: Visibility;
   } | null>(null);
-  const [deleteModal, setDeleteModal] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<number | null>(null);
 
   const visibleClones = myClones.filter((c) => !hiddenCloneIds.has(c.id));
 
@@ -84,7 +84,7 @@ export default function MyClonesDashboardScreen() {
     (c) => cloneStates[c.id]?.isActive ?? true,
   ).length;
 
-  const handleToggle = (cloneId: string) => {
+  const handleToggle = (cloneId: number) => {
     const currentState = cloneStates[cloneId]?.isActive ?? true;
     setToggleModal({ cloneId, currentState });
   };
@@ -101,7 +101,7 @@ export default function MyClonesDashboardScreen() {
     setToggleModal(null);
   };
 
-  const handleVisibility = (cloneId: string) => {
+  const handleVisibility = (cloneId: number) => {
     const current = cloneStates[cloneId]?.visibility ?? "public";
     setVisibilityModal({ cloneId, currentVisibility: current });
     setMenuCloneId(null);
@@ -119,7 +119,7 @@ export default function MyClonesDashboardScreen() {
     setVisibilityModal(null);
   };
 
-  const handleDelete = (cloneId: string) => {
+  const handleDelete = (cloneId: number) => {
     setDeleteModal(cloneId);
     setMenuCloneId(null);
   };
@@ -156,7 +156,7 @@ export default function MyClonesDashboardScreen() {
     ).length;
     const coownerCount =
       clone.cloneType === "memlow"
-        ? SEED.coowners.filter(
+        ? seedSource.coowners().filter(
             (co) => co.cloneId === clone.id && co.status === "approved",
           ).length
         : 0;
@@ -316,7 +316,7 @@ export default function MyClonesDashboardScreen() {
 
       <FlatList
         data={visibleClones}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderItem={renderCloneCard}
         contentContainerStyle={s.listContent}
         showsVerticalScrollIndicator={false}
@@ -660,14 +660,14 @@ const MOCK_COMMENTS = [
 ];
 
 const MOCK_INVITE_USERS = [
-  { id: "inv1", name: "김태희", username: "@taehee_kim", avatar: "https://i.pravatar.cc/100?img=11" },
-  { id: "inv2", name: "이준혁", username: "@junhyuk_lee", avatar: "https://i.pravatar.cc/100?img=12" },
-  { id: "inv3", name: "박소연", username: "@soyeon_park", avatar: "https://i.pravatar.cc/100?img=13" },
-  { id: "inv4", name: "최민재", username: "@minjae_choi", avatar: "https://i.pravatar.cc/100?img=14" },
-  { id: "inv5", name: "정유나", username: "@yuna_jung", avatar: "https://i.pravatar.cc/100?img=15" },
-  { id: "inv6", name: "한서준", username: "@seojun_han", avatar: "https://i.pravatar.cc/100?img=16" },
-  { id: "inv7", name: "윤채원", username: "@chaewon_yoon", avatar: "https://i.pravatar.cc/100?img=17" },
-  { id: "inv8", name: "김하늘", username: "@haneul_k", avatar: "https://i.pravatar.cc/100?img=18" },
+  { id: 9001, name: "김태희", username: "@taehee_kim", avatar: "https://i.pravatar.cc/100?img=11" },
+  { id: 9002, name: "이준혁", username: "@junhyuk_lee", avatar: "https://i.pravatar.cc/100?img=12" },
+  { id: 9003, name: "박소연", username: "@soyeon_park", avatar: "https://i.pravatar.cc/100?img=13" },
+  { id: 9004, name: "최민재", username: "@minjae_choi", avatar: "https://i.pravatar.cc/100?img=14" },
+  { id: 9005, name: "정유나", username: "@yuna_jung", avatar: "https://i.pravatar.cc/100?img=15" },
+  { id: 9006, name: "한서준", username: "@seojun_han", avatar: "https://i.pravatar.cc/100?img=16" },
+  { id: 9007, name: "윤채원", username: "@chaewon_yoon", avatar: "https://i.pravatar.cc/100?img=17" },
+  { id: 9008, name: "김하늘", username: "@haneul_k", avatar: "https://i.pravatar.cc/100?img=18" },
 ];
 
 const s = StyleSheet.create({

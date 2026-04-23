@@ -21,7 +21,7 @@ beforeEach(async () => {
 
 test('MyScreen renders current user displayName + handle', () => {
   render(<MyScreen />);
-  const user001 = SEED.users.find((u) => u.id === 'user-001');
+  const user001 = SEED.users.find((u) => u.id === 1);
   expect(user001).toBeTruthy();
   expect(screen.getByText(user001!.displayName)).toBeTruthy();
   expect(screen.getByText(user001!.handle)).toBeTruthy();
@@ -33,8 +33,8 @@ test('MyScreen shows 팔로우 중 and 내 페르소나 counts', () => {
   expect(screen.getByText('내 페르소나')).toBeTruthy();
 });
 
-test('myClones count equals SEED.clones owned by user-001', () => {
+test('myClones count equals SEED.clones owned by user id 1', () => {
   render(<MyScreen />);
-  const owned = SEED.clones.filter((c) => c.ownerUserId === 'user-001').length;
+  const owned = SEED.clones.filter((c) => c.ownerId === 1).length;
   expect(screen.getByText(String(owned))).toBeTruthy();
 });

@@ -25,15 +25,15 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
-import { SEED } from "../../mocks/seedIndex";
+import { seedSource } from "../../api/source";
 import type { DomainClone, DomainFeed } from "../../types/domain";
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_W } = Dimensions.get("window");
-const DEFAULT_USER_ID = "user-001";
+const DEFAULT_USER_ID = 1;
 
 type FollowedPersona = {
-  id: string;
+  id: number;
   name: string;
   avatar: string;
   interests: string[];
@@ -61,28 +61,28 @@ export default function FollowingScreen() {
       .filter((f) => f.followerUserId === uid)
       .map((f) => f.followingCloneId);
     return followingCloneIds
-      .map((cid) => SEED.clones.find((c) => c.id === cid))
+      .map((cid) => seedSource.clones().find((c) => c.id === cid))
       .filter((c): c is DomainClone => Boolean(c))
       .map((clone) => {
-        const owner = SEED.users.find((u) => u.id === clone.ownerUserId);
+        const owner = seedSource.users().find((u) => u.id === clone.ownerId);
         return toPersona(clone, owner?.handle);
       });
   }, [follows, uid]);
 
   const feeds = useMemo<DomainFeed[]>(() => {
     const followingIds = new Set(followedPersonas.map((p) => p.id));
-    return SEED.feeds
+    return seedSource.feeds()
       .filter((f) => followingIds.has(f.cloneId))
       .slice()
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [followedPersonas]);
 
   const [selectedCategory, setSelectedCategory] = useState("전체");
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
 
-  const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const [commentPostId, setCommentPostId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
-  const [unfollowConfirmId, setUnfollowConfirmId] = useState<string | null>(null);
+  const [unfollowConfirmId, setUnfollowConfirmId] = useState<number | null>(null);
   const [showIntimacyInfo, setShowIntimacyInfo] = useState(false);
   const [showInteractionInfo, setShowInteractionInfo] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
@@ -148,7 +148,7 @@ export default function FollowingScreen() {
     );
   }, [callSearchQuery, followedPersonas]);
 
-  const toggleLike = (id: string) => {
+  const toggleLike = (id: number) => {
     setLikedPosts((prev) => {
       const s = new Set(prev);
       s.has(id) ? s.delete(id) : s.add(id);
@@ -172,7 +172,7 @@ export default function FollowingScreen() {
   }> = [];
 
   const renderPost = ({ item }: { item: (typeof posts)[0] }) => {
-    const feedImage = item.feed.imageUrl ?? item.persona.avatar;
+    const feedImage = item.feed.mediaUrl ?? item.persona.avatar;
     return (
       <View style={s.postWrap}>
         {}
@@ -192,7 +192,7 @@ export default function FollowingScreen() {
                 </View>
               ))}
             </View>
-            <Text style={s.postContent} numberOfLines={3}>{item.feed.text}</Text>
+            <Text style={s.postContent} numberOfLines={3}>{item.feed.content}</Text>
             <View style={s.overlayBtns}>
               <Button
                 title="통화하기"
@@ -277,7 +277,7 @@ export default function FollowingScreen() {
       {}
       <FlatList
         data={posts}
-        keyExtractor={(item) => item.feed.id}
+        keyExtractor={(item) => String(item.feed.id)}
         renderItem={renderPost}
         contentContainerStyle={s.feed}
         showsVerticalScrollIndicator={false}

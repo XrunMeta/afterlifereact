@@ -25,22 +25,26 @@ const FOLLOW_RANGE: Record<string, [number, number]> = {
   celeb: [200, 500],
 };
 
+const VIRTUAL_USER_OFFSET = 1000;
+
 const follows: any[] = [];
-const userIds = (users as any[]).map(u => u.id);
+const userIds: number[] = (users as any[]).map((u) => u.id);
 let followCounter = 0;
-(clones as any[]).forEach(c => {
+(clones as any[]).forEach((c) => {
   const [lo, hi] = FOLLOW_RANGE[c.cloneType];
   const target = randInt(lo, hi);
-  const virtualPool = [...userIds];
-  while (virtualPool.length < target) virtualPool.push(`user-v${virtualPool.length + 1}`);
+  const virtualPool: number[] = [...userIds];
+  while (virtualPool.length < target) {
+    virtualPool.push(VIRTUAL_USER_OFFSET + (virtualPool.length - userIds.length) + 1);
+  }
   for (let i = virtualPool.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [virtualPool[i], virtualPool[j]] = [virtualPool[j], virtualPool[i]];
   }
   const selected = virtualPool.slice(0, target);
-  selected.forEach(u => {
+  selected.forEach((u) => {
     follows.push({
-      id: `follow-${String(++followCounter).padStart(5, '0')}`,
+      id: ++followCounter,
       followerUserId: u,
       followingCloneId: c.id,
       followedAt: `2026-${String(randInt(3, 4)).padStart(2, '0')}-${String(randInt(1, 28)).padStart(2, '0')}T${String(randInt(0, 23)).padStart(2, '0')}:00:00Z`,
@@ -50,17 +54,17 @@ let followCounter = 0;
 
 const coowners: any[] = [];
 let coCounter = 0;
-(clones as any[]).filter(c => c.cloneType === 'memlow').forEach(c => {
+(clones as any[]).filter((c) => c.cloneType === 'memlow').forEach((c) => {
   const count = randInt(2, 4);
-  const pool = userIds.filter(u => u !== 'user-001');
+  const pool = userIds.filter((u) => u !== 1);
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  pool.slice(0, count).forEach(u => {
+  pool.slice(0, count).forEach((u) => {
     const invitedAt = `2026-03-${String(randInt(1, 20)).padStart(2, '0')}T10:00:00Z`;
     coowners.push({
-      id: `coowner-${String(++coCounter).padStart(4, '0')}`,
+      id: ++coCounter,
       cloneId: c.id,
       userId: u,
       status: 'approved',
@@ -95,14 +99,14 @@ const feedTemplates: Record<string, string[]> = {
 
 const feeds: any[] = [];
 let feedCounter = 0;
-(clones as any[]).forEach(c => {
+(clones as any[]).forEach((c) => {
   const count = randInt(2, 8);
   const pool = feedTemplates[c.cloneType];
   for (let i = 0; i < count; i++) {
     feeds.push({
-      id: `feed-${String(++feedCounter).padStart(4, '0')}`,
+      id: ++feedCounter,
       cloneId: c.id,
-      text: pool[i % pool.length],
+      content: pool[i % pool.length],
       createdAt: `2026-04-${String(randInt(1, 20)).padStart(2, '0')}T${String(randInt(0, 23)).padStart(2, '0')}:00:00Z`,
     });
   }

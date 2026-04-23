@@ -16,7 +16,7 @@ beforeEach(async () => {
   await useAuthStore.getState().hydrate();
 });
 
-function makeProps(cloneId: string): any {
+function makeProps(cloneId: number): any {
   return {
     route: { params: { cloneId } },
     navigation: { goBack: jest.fn(), navigate: jest.fn() },

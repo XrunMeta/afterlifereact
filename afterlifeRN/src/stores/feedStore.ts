@@ -1,26 +1,26 @@
 import { create } from "zustand";
-import { SEED } from "../mocks/seedIndex";
+import { seedSource } from "../api/source";
 import type { DomainClone, DomainFeed } from "../types/domain";
 import { useAuthStore } from "./authStore";
 
-const DEFAULT_USER_ID = "user-001";
+const DEFAULT_USER_ID = 1;
 
 interface FeedState {
   feeds: DomainFeed[];
-  likedIds: string[];
-  bookmarkedIds: string[];
+  likedIds: number[];
+  bookmarkedIds: number[];
   selectedInterests: string[];
-  toggleLike: (id: string) => void;
-  toggleBookmark: (id: string) => void;
+  toggleLike: (id: number) => void;
+  toggleBookmark: (id: number) => void;
   setSelectedInterests: (interests: string[]) => void;
   getVisibleFeeds: () => DomainFeed[];
   getFilteredFeeds: () => DomainFeed[];
 }
 
-function canSeeClone(c: DomainClone, currentUserId: string): boolean {
+function canSeeClone(c: DomainClone, currentUserId: number): boolean {
   if (c.visibility === "public") return true;
-  if (c.ownerUserId === currentUserId) return true;
-  const coowned = SEED.coowners.some(
+  if (c.ownerId === currentUserId) return true;
+  const coowned = seedSource.coowners().some(
     (co) =>
       co.cloneId === c.id &&
       co.userId === currentUserId &&
@@ -28,7 +28,7 @@ function canSeeClone(c: DomainClone, currentUserId: string): boolean {
   );
   if (coowned) return true;
   if (c.visibility === "followers") {
-    return SEED.follows.some(
+    return seedSource.follows().some(
       (f) =>
         f.followerUserId === currentUserId && f.followingCloneId === c.id,
     );
@@ -37,7 +37,7 @@ function canSeeClone(c: DomainClone, currentUserId: string): boolean {
 }
 
 export const useFeedStore = create<FeedState>((set, get) => ({
-  feeds: SEED.feeds,
+  feeds: seedSource.feeds(),
   likedIds: [],
   bookmarkedIds: [],
   selectedInterests: [],
@@ -61,7 +61,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   getVisibleFeeds: () => {
     const u = useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
     const visibleCloneIds = new Set(
-      SEED.clones.filter((c) => canSeeClone(c, u)).map((c) => c.id),
+      seedSource.clones().filter((c) => canSeeClone(c, u)).map((c) => c.id),
     );
     return get().feeds.filter((f) => visibleCloneIds.has(f.cloneId));
   },
@@ -70,7 +70,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     const { selectedInterests } = get();
     const visible = get().getVisibleFeeds();
     if (selectedInterests.length === 0) return visible;
-    const cloneById = new Map(SEED.clones.map((c) => [c.id, c]));
+    const cloneById = new Map(seedSource.clones().map((c) => [c.id, c]));
     return visible.filter((f) => {
       const c = cloneById.get(f.cloneId);
       return c ? c.interests.some((i) => selectedInterests.includes(i)) : false;

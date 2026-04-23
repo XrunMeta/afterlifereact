@@ -2,7 +2,7 @@ import { assertUsers, assertClones, assertFollows, assertCoowners, assertMessage
 
 describe('seedLoader assertions', () => {
   it('assertUsers passes on minimal valid user', () => {
-    expect(() => assertUsers([{ id: 'u1', displayName: 'x', handle: '@x', createdAt: '2026-01-01T00:00:00Z' }])).not.toThrow();
+    expect(() => assertUsers([{ id: 1, displayName: 'x', handle: '@x', createdAt: '2026-01-01T00:00:00Z' }])).not.toThrow();
   });
 
   it('assertUsers throws when id missing', () => {
@@ -13,9 +13,9 @@ describe('seedLoader assertions', () => {
     expect(() =>
       assertClones([
         {
-          id: 'c1',
+          id: 1,
           cloneType: 'BAD',
-          ownerUserId: 'u1',
+          ownerId: 1,
           displayName: 'x',
           description: 'x',
           interests: [],
@@ -28,27 +28,27 @@ describe('seedLoader assertions', () => {
   });
 
   it('assertFollows throws on duplicate (followerUserId, followingCloneId)', () => {
-    const base = { id: 'f', followerUserId: 'u1', followingCloneId: 'c1', followedAt: '2026-01-01T00:00:00Z' };
-    expect(() => assertFollows([base, { ...base, id: 'f2' }])).toThrow(/duplicate/);
+    const base = { id: 1, followerUserId: 1, followingCloneId: 1, followedAt: '2026-01-01T00:00:00Z' };
+    expect(() => assertFollows([base, { ...base, id: 2 }])).toThrow(/duplicate/);
   });
 
   it('assertCoowners passes on approved row', () => {
     expect(() =>
       assertCoowners([
-        { id: 'co1', cloneId: 'c1', userId: 'u1', status: 'approved', invitedAt: '2026-01-01T00:00:00Z', approvedAt: '2026-01-02T00:00:00Z' },
+        { id: 1, cloneId: 1, userId: 1, status: 'approved', invitedAt: '2026-01-01T00:00:00Z', approvedAt: '2026-01-02T00:00:00Z' },
       ]),
     ).not.toThrow();
   });
 
   it('assertMessages throws on missing cloneId', () => {
     expect(() =>
-      assertMessages([{ id: 'm1', userId: 'u1', senderType: 'user', text: 'hi', timestamp: '2026-01-01T00:00:00Z' } as any]),
+      assertMessages([{ id: 1, userId: 1, role: 'user', content: 'hi', timestamp: '2026-01-01T00:00:00Z' } as any]),
     ).toThrow(/cloneId/);
   });
 
   it('assertFeeds passes on minimal feed', () => {
     expect(() =>
-      assertFeeds([{ id: 'fd1', cloneId: 'c1', text: 'hello', createdAt: '2026-01-01T00:00:00Z' }]),
+      assertFeeds([{ id: 1, cloneId: 1, content: 'hello', createdAt: '2026-01-01T00:00:00Z' }]),
     ).not.toThrow();
   });
 
@@ -56,9 +56,9 @@ describe('seedLoader assertions', () => {
     expect(() =>
       assertClones([
         {
-          id: 'c1',
+          id: 1,
           cloneType: 'memlow',
-          ownerUserId: 'u1',
+          ownerId: 1,
           displayName: 'x',
           description: 'x',
           interests: ['ok', 123 as any],
@@ -74,9 +74,9 @@ describe('seedLoader assertions', () => {
     expect(() =>
       assertClones([
         {
-          id: 'c1',
+          id: 1,
           cloneType: 'memlow',
-          ownerUserId: 'u1',
+          ownerId: 1,
           displayName: 'x',
           description: 'x',
           interests: [],
@@ -91,7 +91,7 @@ describe('seedLoader assertions', () => {
 
   it('assertUsers passes when optional bio is undefined (not required)', () => {
     expect(() =>
-      assertUsers([{ id: 'u1', displayName: 'x', handle: '@x', createdAt: '2026-01-01T00:00:00Z' }]),
+      assertUsers([{ id: 1, displayName: 'x', handle: '@x', createdAt: '2026-01-01T00:00:00Z' }]),
     ).not.toThrow();
   });
 });

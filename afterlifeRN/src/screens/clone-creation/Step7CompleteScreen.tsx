@@ -44,7 +44,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const resetCreationDraft = useCloneStore((s) => s.resetCreationDraft);
   const draft = useCloneStore((s) => s.creationDraft);
   const addClone = useCloneStore((s) => s.addClone);
-  const currentUserId = useAuthStore((s) => s.user?.id) ?? "user-001";
+  const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
 
   useEffect(() => {
     if (!draft.cloneType) return;
@@ -52,9 +52,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
       || (draft.recordDuration ?? 0) >= 30);
     const clone: Clone = {
-      id: `clone-${Date.now()}`,
+      id: Date.now(),
       cloneType: draft.cloneType,
-      ownerUserId: currentUserId,
+      ownerId: currentUserId,
       displayName: draft.name ?? '',
       description: draft.description ?? '',
       interests: draft.interests ?? [],

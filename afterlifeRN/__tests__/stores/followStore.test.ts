@@ -6,11 +6,14 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
+const MEMLOW_CLONE_ID_A = 1;
+const MEMLOW_CLONE_ID_B = 3;
+
 describe('followStore', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
     useAuthStore.setState({
-      user: { id: 'user-001' } as any,
+      user: { id: 1 } as any,
       isLoggedIn: true,
       hydrated: true,
     });
@@ -27,7 +30,7 @@ describe('followStore', () => {
     await useFollowStore.getState().hydrate();
     const sample = useFollowStore
       .getState()
-      .follows.find((f) => f.followerUserId === 'user-001');
+      .follows.find((f) => f.followerUserId === 1);
     if (sample) {
       expect(useFollowStore.getState().isFollowing(sample.followingCloneId)).toBe(true);
     }
@@ -35,34 +38,50 @@ describe('followStore', () => {
 
   it('toggleFollow adds and removes', async () => {
     await useFollowStore.getState().hydrate();
-    await useFollowStore.getState().toggleFollow('clone-memlow-01');
+
+    const initiallyFollowing = useFollowStore
+      .getState()
+      .follows.some(
+        (f) => f.followerUserId === 1 && f.followingCloneId === MEMLOW_CLONE_ID_A,
+      );
+    if (initiallyFollowing) {
+      await useFollowStore.getState().toggleFollow(MEMLOW_CLONE_ID_A);
+    }
+    await useFollowStore.getState().toggleFollow(MEMLOW_CLONE_ID_A);
     const existed = useFollowStore
       .getState()
       .follows.find(
-        (f) => f.followerUserId === 'user-001' && f.followingCloneId === 'clone-memlow-01',
+        (f) => f.followerUserId === 1 && f.followingCloneId === MEMLOW_CLONE_ID_A,
       );
     expect(!!existed).toBe(true);
-    await useFollowStore.getState().toggleFollow('clone-memlow-01');
+    await useFollowStore.getState().toggleFollow(MEMLOW_CLONE_ID_A);
     const gone = useFollowStore
       .getState()
       .follows.find(
-        (f) => f.followerUserId === 'user-001' && f.followingCloneId === 'clone-memlow-01',
+        (f) => f.followerUserId === 1 && f.followingCloneId === MEMLOW_CLONE_ID_A,
       );
     expect(gone).toBeUndefined();
   });
 
   it('toggleFollow persists overrides across hydrate', async () => {
     await useFollowStore.getState().hydrate();
-
-    await useFollowStore.getState().toggleFollow('clone-memlow-03');
+    const alreadyFollowing = useFollowStore
+      .getState()
+      .follows.some(
+        (f) => f.followerUserId === 1 && f.followingCloneId === MEMLOW_CLONE_ID_B,
+      );
+    if (alreadyFollowing) {
+      await useFollowStore.getState().toggleFollow(MEMLOW_CLONE_ID_B);
+    }
+    await useFollowStore.getState().toggleFollow(MEMLOW_CLONE_ID_B);
     useFollowStore.setState({ follows: [], hydrated: false });
     await useFollowStore.getState().hydrate();
     const rehydrated = useFollowStore
       .getState()
       .follows.find(
         (f) =>
-          f.followerUserId === 'user-001' &&
-          f.followingCloneId === 'clone-memlow-03',
+          f.followerUserId === 1 &&
+          f.followingCloneId === MEMLOW_CLONE_ID_B,
       );
     expect(!!rehydrated).toBe(true);
   });

@@ -16,7 +16,7 @@ import type { RootStackParamList } from "../../navigation/types";
 import TextField from "../../components/ui/TextField";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
-import { SEED } from "../../mocks/seedIndex";
+import { seedSource } from "../../api/source";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { DomainMessage } from "../../types/domain";
 
@@ -27,13 +27,13 @@ const quickActions = ["더 구체적으로", "다른 주제로", "공감 세부 
 export default function ChatScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
-  const currentUserId = useAuthStore((s) => s.user?.id) ?? "user-001";
+  const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
 
   const initialMessages = useMemo<DomainMessage[]>(
     () =>
-      SEED.messages
+      seedSource.messages()
         .filter((m) => m.cloneId === cloneId && m.userId === currentUserId)
         .slice()
         .sort((a, b) => a.timestamp.localeCompare(b.timestamp)),
@@ -79,11 +79,11 @@ export default function ChatScreen({ route, navigation }: Props) {
     if (!input.trim()) return;
 
     const userMsg: DomainMessage = {
-      id: `msg-${Date.now()}`,
+      id: Date.now(),
       cloneId,
       userId: currentUserId,
-      senderType: "user",
-      text: input,
+      role: "user",
+      content: input,
       timestamp: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMsg]);
@@ -91,11 +91,11 @@ export default function ChatScreen({ route, navigation }: Props) {
 
     setTimeout(() => {
       const aiMsg: DomainMessage = {
-        id: `msg-${Date.now() + 1}`,
+        id: Date.now() + 1,
         cloneId,
         userId: currentUserId,
-        senderType: "clone",
-        text: "네, 이해했습니다. 제가 도와드릴 수 있는 다른 것이 있나요?",
+        role: "clone",
+        content: "네, 이해했습니다. 제가 도와드릴 수 있는 다른 것이 있나요?",
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, aiMsg]);
@@ -108,7 +108,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   };
 
   const renderMessage = ({ item }: { item: DomainMessage }) => {
-    const isUser = item.senderType === "user";
+    const isUser = item.role === "user";
 
     return (
       <View style={s.msgContainer}>
@@ -121,7 +121,7 @@ export default function ChatScreen({ route, navigation }: Props) {
         <View style={[s.bubbleRow, isUser && s.bubbleRowUser]}>
           <View style={[s.bubble, isUser ? s.bubbleUser : s.bubbleClone]}>
             <Text style={[s.bubbleText, isUser && s.bubbleTextUser]}>
-              {item.text}
+              {item.content}
             </Text>
           </View>
         </View>
@@ -172,7 +172,7 @@ export default function ChatScreen({ route, navigation }: Props) {
         ref={flatListRef}
         style={s.messageListFlex}
         data={messages}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderItem={renderMessage}
         contentContainerStyle={s.messageList}
         showsVerticalScrollIndicator={false}
