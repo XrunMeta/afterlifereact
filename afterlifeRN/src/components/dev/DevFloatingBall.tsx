@@ -15,6 +15,8 @@ import { v_7ed42d } from './useFloatingBallPosition';
 import { v_407cbf } from './DevFloatingBall.actions';
 import { v_1ed7d9 } from '../../stores/authStore';
 import { v_694b7f } from '../../api/source';
+import { v_f387db } from '../../navigation/navigationRef';
+import { v_0e82e9, type v_86d4b9 } from '../../api/screenApiMap';
 
 const v_88dc4d = 52;
 const { width: v_437248, height: v_5a448f } = v_700696.get('window');
@@ -26,6 +28,8 @@ export function v_0f28c1() {
   const v_1dd864 = v_e662ae(new v_a2349e.ValueXY(v_9e7a9d)).current;
   const [v_83c574, v_b4a964] = v_5ab095(false);
   const [v_104667, v_e4706a] = v_5ab095(false);
+  const [v_36904f, v_8729ef] = v_5ab095(false);
+  const [v_9ba518, v_11ece2] = v_5ab095<{ route: string; apis: v_86d4b9[] } | null>(null);
   const v_dd943a = v_407cbf();
   const v_f73be6 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
 
@@ -99,6 +103,19 @@ export function v_0f28c1() {
               <Text style={v_d81136.rowText}>{v_779914.label}</Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={v_d81136.row}
+            accessibilityLabel="dev-api-probe"
+            onPress={() => {
+              const v_c7daf6 = v_f387db() ?? '(unknown)';
+              v_11ece2({ route: v_c7daf6, apis: v_0e82e9(v_c7daf6) });
+              v_b4a964(false);
+              v_8729ef(true);
+            }}
+          >
+            <Feather name="activity" size={16} color="#fff" />
+            <Text style={v_d81136.rowText}>API Probe</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -137,8 +154,66 @@ export function v_0f28c1() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={v_36904f}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_8729ef(false)}
+      >
+        <View style={v_d81136.modalWrap}>
+          <View style={v_d81136.modalCard} accessibilityLabel="dev-api-probe-card">
+            <Text style={v_d81136.modalTitle}>
+              API Probe · {v_9ba518?.route ?? '-'}
+            </Text>
+            {v_9ba518 && v_9ba518.apis.length === 0 ? (
+              <Text style={v_d81136.apiEmpty}>이 화면에 매핑된 API 없음</Text>
+            ) : (
+              <FlatList
+                data={v_9ba518?.apis ?? []}
+                keyExtractor={(v_37eab7, v_ebec57) => String(v_ebec57)}
+                renderItem={({ item: v_8c0b26 }) => (
+                  <View style={v_d81136.apiRow}>
+                    <Text style={[v_d81136.apiMethod, v_80dd7f(v_8c0b26.method)]}>
+                      {v_8c0b26.method}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={v_d81136.apiPath}>{v_8c0b26.path}</Text>
+                      {v_8c0b26.note ? (
+                        <Text style={v_d81136.apiNote}>{v_8c0b26.note}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                )}
+              />
+            )}
+            <TouchableOpacity
+              onPress={() => v_8729ef(false)}
+              style={v_d81136.closeBtn}
+            >
+              <Text>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </Animated.View>
   );
+}
+
+function v_80dd7f(v_35f85c) {
+  switch (v_35f85c) {
+    case 'GET':
+      return { backgroundColor: '#d1fae5', color: '#065f46' };
+    case 'POST':
+      return { backgroundColor: '#dbeafe', color: '#1e40af' };
+    case 'PUT':
+    case 'PATCH':
+      return { backgroundColor: '#fef3c7', color: '#92400e' };
+    case 'DELETE':
+      return { backgroundColor: '#fee2e2', color: '#991b1b' };
+    default:
+      return { backgroundColor: '#e5e7eb', color: '#111827' };
+  }
 }
 
 const v_d81136 = v_472849.create({
@@ -189,4 +264,25 @@ const v_d81136 = v_472849.create({
   },
   userRowText: { fontSize: 14, color: '#111' },
   closeBtn: { marginTop: 8, alignSelf: 'flex-end', padding: 8 },
+  apiEmpty: { color: '#6b7280', paddingVertical: 12, textAlign: 'center' },
+  apiRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  apiMethod: {
+    fontSize: 11,
+    fontWeight: '700',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    overflow: 'hidden',
+    minWidth: 48,
+    textAlign: 'center',
+  },
+  apiPath: { fontSize: 13, color: '#111827', fontFamily: 'Courier' },
+  apiNote: { fontSize: 11, color: '#6b7280', marginTop: 2 },
 });
