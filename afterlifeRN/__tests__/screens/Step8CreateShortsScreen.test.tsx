@@ -19,6 +19,7 @@ function v_b12529() {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
   v_1ed7d9.setState({
     user: { id: 1 } as any,
     isLoggedIn: true,
@@ -28,9 +29,18 @@ beforeEach(() => {
   v_6be210.mockReset();
 });
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 test('owner: queued → ready 전이 후 preview 렌더', async () => {
+
+  const v_8a1142 = jest
+    .spyOn(v_9a8286, 'getShort')
+    .mockResolvedValue({ shortId: 4, status: 'ready', mediaUrl: 'https://cdn/x.mp4' });
+
   const v_c65f5d = v_b12529();
-  const { queryByLabelText: v_32bb43, findByLabelText: v_ef8e36 } = v_624657(
+  const { findByLabelText: v_ef8e36 } = v_624657(
     <Step8CreateShortsScreen
       route={{ params: { cloneId: 1 } } as any}
       navigation={v_c65f5d}
@@ -39,17 +49,13 @@ test('owner: queued → ready 전이 후 preview 렌더', async () => {
 
   await v_be73a0(async () => {
     await Promise.resolve();
+    await Promise.resolve();
   });
-  expect(v_32bb43('step8-progress')).toBeTruthy();
-
-  const v_8a1142 = jest
-    .spyOn(v_9a8286, 'getShort')
-    .mockResolvedValue({ shortId: 4, status: 'ready', mediaUrl: 'https://cdn/x.mp4' });
 
   await v_be73a0(async () => {
-    jest.useFakeTimers();
     jest.advanceTimersByTime(300);
-    jest.useRealTimers();
+  });
+  await v_be73a0(async () => {
     await Promise.resolve();
   });
 

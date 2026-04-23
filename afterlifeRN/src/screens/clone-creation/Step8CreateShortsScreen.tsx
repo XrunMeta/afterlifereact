@@ -84,7 +84,7 @@ export default function v_d19b01({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <Text style={v_d81136.muted}>이 클론의 소유자만 영상을 만들 수 있어요.</Text>
         </View>
         <TouchableOpacity
-          accessibilityLabel="step8-skip"
+          accessibilityLabel="step8-forbidden-skip"
           onPress={v_91ec30}
           style={v_d81136.btn}
         >
