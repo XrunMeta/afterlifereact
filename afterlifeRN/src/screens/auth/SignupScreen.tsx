@@ -90,7 +90,7 @@ export default function SignupScreen({ navigation }: Props) {
           <View style={styles.logoRow}>
             <Image source={require("../../../assets/images/symbol.png")} style={styles.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.subtitle}>새로운 계정을 만들어보세요</Text>
+            <Text style={styles.subtitle}>베타 기간, 타입별 클론 1개씩 무료</Text>
           </View>
 
           {}

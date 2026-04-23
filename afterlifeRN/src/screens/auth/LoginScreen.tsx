@@ -51,6 +51,7 @@ export default function LoginScreen({ navigation }: Props) {
           <View style={styles.logoContainer}>
             <Image source={require("../../../assets/images/symbol.png")} style={styles.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
+            <Text style={styles.subtitle}>돌아오신 걸 환영해요</Text>
           </View>
 
           {}
@@ -185,6 +186,11 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 160,
     height: 32,
+  },
+  subtitle: {
+    marginTop: 12,
+    fontSize: 14,
+    color: COLORS.zinc500,
   },
   optionsRow: {
     flexDirection: "row",
