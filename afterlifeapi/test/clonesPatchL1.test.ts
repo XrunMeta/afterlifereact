@@ -119,6 +119,7 @@ describe('PATCH /oth-path — L1 편집', () => {
     const cloneId = await seedCloneWithEditor(owner, 'a6e_c');
 
     const res = await patchClone(cloneId, owner, {
+      name: 'ok',
       l2_profile: { anything: 'nope' },
     });
     expect(res.status).toBe(422);

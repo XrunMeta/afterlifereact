@@ -443,7 +443,7 @@ clones.patch("/:id", requireAuth, async (c) => {
 
   if (body.l1_profile !== undefined) {
     const row = await db
-      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ?")
+      .prepare("SELECT primary_editor_user_id FROM clones WHERE id = ? AND deleted_at IS NULL")
       .bind(cloneId)
       .first<{ primary_editor_user_id: number | null }>();
     if (row?.primary_editor_user_id !== userId) {
