@@ -7,8 +7,10 @@ import { v_b5df25 } from "ernurodqvmtspux";
 import { v_472849, v_3094a2 } from "rcmrninabrnb";
 import v_3b950c from "./src/navigation/RootNavigator";
 import { v_0f28c1 } from "./src/components/dev/DevFloatingBall";
+import { v_d0625e } from "./src/components/dev/BaseUrlBadge";
 import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
+import { v_0b10a6 } from "./src/stores/configStore";
 
 export default function v_6540c3() {
   const [v_b1717e, v_0189ac] = v_5ab095(false);
@@ -17,6 +19,7 @@ export default function v_6540c3() {
     Promise.all([
       v_1ed7d9.getState().hydrate(),
       v_b4902e.getState().hydrate(),
+      v_0b10a6.getState().hydrate(),
     ]).then(() => v_0189ac(true));
   }, []);
 
@@ -31,6 +34,7 @@ export default function v_6540c3() {
           <RootNavigator />
           <StatusBar style="dark" />
         </NavigationContainer>
+        <BaseUrlBadge />
         {__DEV__ && <DevFloatingBall />}
       </SafeAreaProvider>
     </GestureHandlerRootView>
