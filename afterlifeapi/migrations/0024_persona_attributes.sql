@@ -7,4 +7,3 @@ CREATE TABLE persona_attributes (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE UNIQUE INDEX idx_persona_attributes_unique ON persona_attributes(clone_id, level, key);
-CREATE INDEX idx_persona_attributes_clone_level ON persona_attributes(clone_id, level);
