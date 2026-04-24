@@ -28,25 +28,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: afterlifeadmin/package-lock.json
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Type check
-        run: pnpm tsc --noEmit
+        run: npm ci
 
       - name: Lint
-        run: pnpm lint
+        run: npm run lint
 
-      - name: Build
-        run: pnpm build
+      - name: Build (tsc + vite)
+        run: npm run build
 
       - name: Deploy to Cloudflare Pages (preview env)
         if: github.ref == 'refs/heads/preview' || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'preview')
