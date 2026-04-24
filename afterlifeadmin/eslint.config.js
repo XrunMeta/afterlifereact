@@ -19,5 +19,9 @@ export default v_bd7aa7([
       ecmaVersion: 2020,
       globals: v_a9c695.browser,
     },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-empty': ['error', { allowEmptyCatch: true }],
+    },
   },
 ])
