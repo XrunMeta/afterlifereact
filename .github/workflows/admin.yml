@@ -1,0 +1,73 @@
+name: afterlifeadmin CI/CD
+
+on:
+  push:
+    branches: [main, preview]
+    paths:
+      - 'afterlifeadmin/**'
+  pull_request:
+    branches: [preview]
+    paths:
+      - 'afterlifeadmin/**'
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: '배포 환경 (preview / prod)'
+        required: true
+        default: preview
+        type: choice
+        options: [preview, prod]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: afterlifeadmin
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: afterlifeadmin/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm tsc --noEmit
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Deploy to Cloudflare Pages (preview env)
+        if: github.ref == 'refs/heads/preview' || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'preview')
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 87441deffba9e9c5c28114636686a4c7
+          projectName: afterlife-admin
+          directory: afterlifeadmin/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: preview
+
+      - name: Deploy to Cloudflare Pages (prod)
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'prod')
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 87441deffba9e9c5c28114636686a4c7
+          projectName: afterlife-admin
+          directory: afterlifeadmin/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
