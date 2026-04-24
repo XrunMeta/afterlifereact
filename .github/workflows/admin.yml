@@ -9,6 +9,14 @@ on:
     branches: [preview]
     paths:
       - 'afterlifeadmin/**'
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: '배포 환경 (preview / prod)'
+        required: true
+        default: preview
+        type: choice
+        options: [preview, prod]
 
 jobs:
   build-and-deploy:
@@ -43,7 +51,7 @@ jobs:
         run: pnpm build
 
       - name: Deploy to Cloudflare Pages (preview env)
-        if: github.ref == 'refs/heads/preview'
+        if: github.ref == 'refs/heads/preview' || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'preview')
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -54,7 +62,7 @@ jobs:
           branch: preview
 
       - name: Deploy to Cloudflare Pages (prod)
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'prod')
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
