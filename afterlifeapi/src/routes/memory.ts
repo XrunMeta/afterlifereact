@@ -12,6 +12,7 @@ import {
   resolveOptionalUser,
   resolveViewerRole,
 } from "../lib/cloneAccess";
+import { readCtx, writeCtx, readShared, writeShared, readOnt, writeOnt } from "../lib/memoryStore";
 
 export const memory = new Hono<AppEnv>();
 
@@ -35,7 +36,7 @@ memory.get("/:id/memory/l1", async (c) => {
   const role = await resolveViewerRole(c, clone, userId);
   if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
 
-  const raw = await c.env.KV_CTX.get(`ctx:${cloneId}`);
+  const raw = await readCtx(c.env, cloneId);
   if (!raw) {
 
     return c.json({
@@ -49,7 +50,7 @@ memory.get("/:id/memory/l1", async (c) => {
   try {
     parsed = JSON.parse(raw) as Record<string, unknown>;
   } catch {
-    console.error(`[KV_CORRUPT] ctx:${cloneId} not JSON`);
+    console.error(`[D1_CORRUPT] ctx:${cloneId} not JSON`);
     throw new APIError("INTERNAL_ERROR", "L1 payload corrupted.");
   }
   return c.json({
@@ -93,17 +94,16 @@ memory.get("/:id/memory/shared", async (c) => {
   }
   const { category, after, limit } = parsed.data;
 
-  const [raw, rev] = await Promise.all([
-    c.env.KV_SHARED.get(`shared:${cloneId}`),
-    c.env.KV_SHARED_VER.get(`shared_versions:${cloneId}`),
-  ]);
+  const sharedData = await readShared(c.env, cloneId);
+  const raw = sharedData?.events ?? null;
+  const rev = sharedData?.version ?? 0;
   let events: SharedEvent[] = [];
   if (raw) {
     try {
       const parsedJson = JSON.parse(raw);
       if (Array.isArray(parsedJson)) events = parsedJson as SharedEvent[];
     } catch {
-      console.error(`[KV_CORRUPT] shared:${cloneId} not JSON array`);
+      console.error(`[D1_CORRUPT] shared:${cloneId} not JSON array`);
       throw new APIError("INTERNAL_ERROR", "Shared payload corrupted.");
     }
   }
@@ -123,7 +123,7 @@ memory.get("/:id/memory/shared", async (c) => {
 
   return c.json({
     events: page,
-    rev: rev ? Number(rev) : 0,
+    rev,
     hasMore: filtered.length > page.length,
     viewerRole: role,
   });
@@ -137,8 +137,7 @@ memory.get("/:id/memory/l2", requireAuth, async (c) => {
   const role = await resolveViewerRole(c, clone, userId);
   if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
 
-  const key = `l2:${cloneId}:${userId}`;
-  const raw = await c.env.KV_ONT.get(key);
+  const raw = await readOnt(c.env, cloneId, userId);
   if (!raw) {
 
     return c.json({
@@ -154,7 +153,7 @@ memory.get("/:id/memory/l2", requireAuth, async (c) => {
   try {
     parsedJson = JSON.parse(raw) as Record<string, unknown>;
   } catch {
-    console.error(`[KV_CORRUPT] ${key} not JSON`);
+    console.error(`[D1_CORRUPT] l2:${cloneId}:${userId} not JSON`);
     throw new APIError("INTERNAL_ERROR", "L2 payload corrupted.");
   }
   return c.json({
@@ -207,8 +206,7 @@ memory.put(
     const body = await parseJson(c, l1PutSchema);
     await assertEditor(c, cloneId, userId);
 
-    const key = `ctx:${cloneId}`;
-    const raw = await c.env.KV_CTX.get(key);
+    const raw = await readCtx(c.env, cloneId);
     let current: Record<string, unknown> = {
       persona: {},
       family: [],
@@ -221,7 +219,7 @@ memory.put(
           current = parsed as Record<string, unknown>;
         }
       } catch {
-        console.error(`[KV_CORRUPT] ${key} not JSON — overwriting on PUT`);
+        console.error(`[D1_CORRUPT] ctx:${cloneId} not JSON — overwriting on PUT`);
       }
     }
 
@@ -241,7 +239,7 @@ memory.put(
         `L1 payload too large (${serialized.length}B > ${MAX_L1_BYTES}B).`,
       );
     }
-    await c.env.KV_CTX.put(key, serialized);
+    await writeCtx(c.env, cloneId, serialized);
     await logActivity(c, {
       userId,
       action: "memory.l1.put",
@@ -276,19 +274,14 @@ memory.post(
       );
     }
 
-    const key = `shared:${cloneId}`;
-    const verKey = `shared_versions:${cloneId}`;
-    const [rawArr, rawVer] = await Promise.all([
-      c.env.KV_SHARED.get(key),
-      c.env.KV_SHARED_VER.get(verKey),
-    ]);
+    const sharedData = await readShared(c.env, cloneId);
     let events: unknown[] = [];
-    if (rawArr) {
+    if (sharedData?.events) {
       try {
-        const parsed = JSON.parse(rawArr);
+        const parsed = JSON.parse(sharedData.events);
         if (Array.isArray(parsed)) events = parsed;
       } catch {
-        console.error(`[KV_CORRUPT] ${key} — reinitializing on append`);
+        console.error(`[D1_CORRUPT] shared:${cloneId} — reinitializing on append`);
       }
     }
     if (events.length >= MAX_SHARED_EVENTS) {
@@ -307,7 +300,7 @@ memory.post(
       }
     }
 
-    const currentVer = rawVer ? Number(rawVer) : 0;
+    const currentVer = sharedData?.version ?? 0;
     const nextVer = currentVer + 1;
     const eventId = `ev-${cloneId}-${nextVer}`;
     const newEvent = {
@@ -321,10 +314,7 @@ memory.post(
     };
     events.push(newEvent);
 
-    await Promise.all([
-      c.env.KV_SHARED.put(key, JSON.stringify(events)),
-      c.env.KV_SHARED_VER.put(verKey, String(nextVer)),
-    ]);
+    await writeShared(c.env, cloneId, JSON.stringify(events), nextVer);
     await logActivity(c, {
       userId,
       action: "memory.shared.append",
@@ -359,8 +349,7 @@ memory.put(
     const role = await resolveViewerRole(c, clone, userId);
     if (!role) throw new APIError("FORBIDDEN", "No access to this clone.");
 
-    const key = `l2:${cloneId}:${userId}`;
-    const raw = await c.env.KV_ONT.get(key);
+    const raw = await readOnt(c.env, cloneId, userId);
     let current: Record<string, unknown> = {
       address: null,
       memories_personal: [],
@@ -375,7 +364,7 @@ memory.put(
           current = parsed as Record<string, unknown>;
         }
       } catch {
-        console.error(`[KV_CORRUPT] ${key} — overwriting on PUT`);
+        console.error(`[D1_CORRUPT] l2:${cloneId}:${userId} — overwriting on PUT`);
       }
     }
     const meta = (current._meta ?? {}) as Record<string, unknown>;
@@ -402,7 +391,7 @@ memory.put(
         `L2 payload too large (${serialized.length}B > ${MAX_L2_BYTES}B).`,
       );
     }
-    await c.env.KV_ONT.put(key, serialized);
+    await writeOnt(c.env, cloneId, userId, serialized);
     await logActivity(c, {
       userId,
       action: "memory.l2.put",

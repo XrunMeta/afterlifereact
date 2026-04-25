@@ -22,36 +22,36 @@ LAZY_V2_MIGRATE_ENABLED = "0"
 [[d1_databases]]
 binding = "DB"
 database_name = "afterlife-db"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "09507858-14f8-4f3a-89e5-784244d592a4"
 migrations_dir = "migrations"
 
 [[kv_namespaces]]
+binding = "KV_AUTH"
+id = "1307484997f540849155979a695baabf"
+
+[[kv_namespaces]]
 binding = "KV_CTX"
-id = "kv_ctx_dev"
-
-[[kv_namespaces]]
-binding = "KV_SHARED"
-id = "kv_shared_dev"
-
-[[kv_namespaces]]
-binding = "KV_SHARED_VER"
-id = "kv_shared_ver_dev"
-
-[[kv_namespaces]]
-binding = "KV_ONT"
-id = "kv_ont_dev"
-
-[[kv_namespaces]]
-binding = "KV_RATE"
-id = "kv_rate_dev"
+id = "d76e3b7bc9df400d88b7601009246ae2"
 
 [[kv_namespaces]]
 binding = "KV_IDEMPOTENCY"
-id = "kv_idem_dev"
+id = "edf4f5a4f3f14426804cbba6dd6e0500"
 
 [[kv_namespaces]]
-binding = "KV_AUTH"
-id = "kv_auth_dev"
+binding = "KV_ONT"
+id = "9151c3e0b1d640e0a66560b43b561c25"
+
+[[kv_namespaces]]
+binding = "KV_RATE"
+id = "d64fe7f5a9ba4f87b0b626316b43fba1"
+
+[[kv_namespaces]]
+binding = "KV_SHARED"
+id = "f77182b493dd4e36a1db4677afddaa0d"
+
+[[kv_namespaces]]
+binding = "KV_SHARED_VER"
+id = "bdf9722018f541c59f50e6014696cddf"
 
 [[r2_buckets]]
 binding = "R2_MEDIA"
