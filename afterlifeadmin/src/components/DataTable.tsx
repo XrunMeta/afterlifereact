@@ -1,7 +1,9 @@
+import type { ReactNode, CSSProperties } from 'react'
+
 interface Column {
   key: string;
   label: string;
-  render?: (value: any, row: any) => React.ReactNode;
+  render?: (value: any, row: any) => ReactNode;
 }
 
 interface DataTableProps {
@@ -66,7 +68,7 @@ export function DataTable({ columns, data, onDelete, loading }: DataTableProps) 
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   wrapper: { overflowX: "auto" },
   table: {
     width: "100%",
