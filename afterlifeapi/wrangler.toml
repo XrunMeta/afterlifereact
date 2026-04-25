@@ -2,6 +2,7 @@ name = "afterlife-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "87441deffba9e9c5c28114636686a4c7"
 
 # Secrets (wrangler secret put <NAME>):
 #   JWT_ACCESS_SECRET
@@ -64,3 +65,23 @@ bucket_name = "afterlife-archive-dev"
 # M-6: cron — orphan clones 정기 스윕 (매일 03:00 UTC)
 [triggers]
 crons = ["0 3 * * *"]
+
+# ─── preview 환경 ─────────────────────────────────────────
+[env.preview]
+name = "afterlife-api-preview"
+[env.preview.vars]
+ENVIRONMENT = "staging"
+WEBAUTHN_RP_ID = "afterlife-api-preview.workers.dev"
+WEBAUTHN_RP_ORIGIN = "https://afterlife-api-preview.workers.dev"
+LAZY_ROTATION_ENABLED = "0"
+LAZY_V2_MIGRATE_ENABLED = "0"
+
+# ─── production 환경 ──────────────────────────────────────
+[env.production]
+name = "afterlife-api"
+[env.production.vars]
+ENVIRONMENT = "production"
+WEBAUTHN_RP_ID = "api.afterlife.app"
+WEBAUTHN_RP_ORIGIN = "https://oth-path.afterlife.app"
+LAZY_ROTATION_ENABLED = "0"
+LAZY_V2_MIGRATE_ENABLED = "0"
