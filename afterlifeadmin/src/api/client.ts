@@ -1,4 +1,7 @@
-const v_cc9198 = "/oth-path";
+
+
+const v_8aa4be = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+const v_cc9198 = `${v_8aa4be}/oth-path`;
 
 async function v_576f5a<T>(v_9fe22d, v_b36f96): Promise<T> {
   const v_8f00b9 = await fetch(`${v_cc9198}${v_9fe22d}`, {
@@ -65,7 +68,8 @@ export async function v_8e836f(
   if (v_4d33b2 !== undefined && v_bfe9b9 !== "GET" && v_bfe9b9 !== "HEAD") {
     v_00cfc6.body = typeof v_4d33b2 === "string" ? v_4d33b2 : JSON.stringify(v_4d33b2);
   }
-  const v_8f00b9 = await fetch(v_e6050d, v_00cfc6);
+  const v_f71b56 = /^https?:\/\//.test(v_e6050d) ? v_e6050d : `${v_8aa4be}${v_e6050d}`;
+  const v_8f00b9 = await fetch(v_f71b56, v_00cfc6);
   const v_9b6134 = await v_8f00b9.text();
   let v_8decf8 = v_9b6134;
   try {
