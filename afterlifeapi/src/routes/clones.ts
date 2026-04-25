@@ -12,6 +12,7 @@ import {
   v_efcb2d,
   v_d875d1,
 } from "../lib/cloneAccess";
+import { v_9c8187, v_55eb2a } from "../lib/memoryStore";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -165,12 +166,7 @@ v_f891e6.post(
       throw v_49263d;
     }
 
-    let v_f5acdb = null;
-    let v_26ed1a = null;
     if (v_4d33b2.clone_type === "memlow") {
-      v_f5acdb = `ctx:${v_6e0fd3}`;
-      v_26ed1a = `shared:${v_6e0fd3}`;
-      const v_f393d3 = `shared_versions:${v_6e0fd3}`;
       const v_911033 = JSON.stringify({
         persona: v_4d33b2.memlow_profile ?? {},
         family: [],
@@ -178,12 +174,11 @@ v_f891e6.post(
       });
       try {
         await Promise.all([
-          v_3f4e2e.env.KV_CTX.put(v_f5acdb, v_911033),
-          v_3f4e2e.env.KV_SHARED.put(v_26ed1a, "[]"),
-          v_3f4e2e.env.KV_SHARED_VER.put(v_f393d3, "0"),
+          v_9c8187(v_3f4e2e.env, v_6e0fd3, v_911033),
+          v_55eb2a(v_3f4e2e.env, v_6e0fd3, "[]", 0),
         ]);
       } catch (v_49263d) {
-        console.error(`[KV_INIT_FAIL] clone_id=${v_6e0fd3} err=${(v_49263d as Error).message}`);
+        console.error(`[MEMORY_INIT_FAIL] clone_id=${v_6e0fd3} err=${(v_49263d as Error).message}`);
       }
     }
 
@@ -203,8 +198,8 @@ v_f891e6.post(
           visibility: v_81161e.visibility,
           createdAt: v_81161e.created_at,
         },
-        initial_kv: v_f5acdb
-          ? { ctx_key: v_f5acdb, shared_key: v_26ed1a }
+        initial_memory: v_4d33b2.clone_type === "memlow"
+          ? { ctx_key: `ctx:${v_6e0fd3}`, shared_key: `shared:${v_6e0fd3}` }
           : null,
       },
       201,

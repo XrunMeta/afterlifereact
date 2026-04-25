@@ -14,6 +14,7 @@ import { v_295cc5, v_841e05 } from "../lib/ai";
 import { v_20a4f4 } from "../lib/credits";
 import { v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import { v_fbb58c } from "../lib/pricing";
+import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
 
 export const v_19e2a3 = new v_b7c41b<v_de0a25>();
 export const v_fa56e0 = new v_b7c41b<v_de0a25>();
@@ -78,11 +79,12 @@ v_19e2a3.post(
       .first<{ id: number; created_at: string }>();
     if (!v_43f890) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist user message.");
 
-    const [v_19fdaa, v_dbdd5d, v_ee6431] = await Promise.all([
-      v_3f4e2e.env.KV_CTX.get(`ctx:${v_6e0fd3}`),
-      v_3f4e2e.env.KV_SHARED.get(`shared:${v_6e0fd3}`),
-      v_3f4e2e.env.KV_ONT.get(`l2:${v_6e0fd3}:${v_43e90c}`),
+    const [v_19fdaa, v_1405be, v_ee6431] = await Promise.all([
+      v_e86502(v_3f4e2e.env, v_6e0fd3),
+      v_fda4d7(v_3f4e2e.env, v_6e0fd3),
+      v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c),
     ]);
+    const v_dbdd5d = v_1405be?.events ?? null;
     const v_5ed063 = v_991acb(v_19fdaa)?.persona as Record<string, unknown> ?? {};
     const v_2fd848 = v_79a0db(v_dbdd5d) ?? [];
     const v_1af19b = v_991acb(v_ee6431);
@@ -206,11 +208,12 @@ v_19e2a3.post(
       .first<{ id: number; created_at: string }>();
     if (!v_43f890) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist user message.");
 
-    const [v_19fdaa, v_dbdd5d, v_ee6431] = await Promise.all([
-      v_3f4e2e.env.KV_CTX.get(`ctx:${v_6e0fd3}`),
-      v_3f4e2e.env.KV_SHARED.get(`shared:${v_6e0fd3}`),
-      v_3f4e2e.env.KV_ONT.get(`l2:${v_6e0fd3}:${v_43e90c}`),
+    const [v_19fdaa, v_1405be, v_ee6431] = await Promise.all([
+      v_e86502(v_3f4e2e.env, v_6e0fd3),
+      v_fda4d7(v_3f4e2e.env, v_6e0fd3),
+      v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c),
     ]);
+    const v_dbdd5d = v_1405be?.events ?? null;
     const v_5ed063 = (v_991acb(v_19fdaa)?.persona as Record<string, unknown>) ?? {};
     const v_2fd848 = v_79a0db(v_dbdd5d) ?? [];
     const v_1af19b = v_991acb(v_ee6431);

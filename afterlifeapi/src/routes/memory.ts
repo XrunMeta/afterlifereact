@@ -12,6 +12,7 @@ import {
   v_efcb2d,
   v_09d461,
 } from "../lib/cloneAccess";
+import { v_e86502, v_9c8187, v_fda4d7, v_55eb2a, v_3821c0, v_5729a9 } from "../lib/memoryStore";
 
 export const v_773b4c = new v_b7c41b<v_de0a25>();
 
@@ -35,7 +36,7 @@ v_773b4c.get("/:id/memory/l1", async (v_3f4e2e) => {
   const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
   if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
 
-  const v_479f05 = await v_3f4e2e.env.KV_CTX.get(`ctx:${v_6e0fd3}`);
+  const v_479f05 = await v_e86502(v_3f4e2e.env, v_6e0fd3);
   if (!v_479f05) {
 
     return v_3f4e2e.json({
@@ -49,7 +50,7 @@ v_773b4c.get("/:id/memory/l1", async (v_3f4e2e) => {
   try {
     v_8decf8 = JSON.parse(v_479f05) as Record<string, unknown>;
   } catch {
-    console.error(`[KV_CORRUPT] ctx:${v_6e0fd3} not JSON`);
+    console.error(`[D1_CORRUPT] ctx:${v_6e0fd3} not JSON`);
     throw new v_3ebe58("INTERNAL_ERROR", "L1 payload corrupted.");
   }
   return v_3f4e2e.json({
@@ -93,17 +94,16 @@ v_773b4c.get("/:id/memory/shared", async (v_3f4e2e) => {
   }
   const { category: v_8b9cd4, after: v_33efc5, limit: v_02be30 } = v_8decf8.data;
 
-  const [v_479f05, v_334c8a] = await Promise.all([
-    v_3f4e2e.env.KV_SHARED.get(`shared:${v_6e0fd3}`),
-    v_3f4e2e.env.KV_SHARED_VER.get(`shared_versions:${v_6e0fd3}`),
-  ]);
+  const v_1405be = await v_fda4d7(v_3f4e2e.env, v_6e0fd3);
+  const v_479f05 = v_1405be?.events ?? null;
+  const v_334c8a = v_1405be?.version ?? 0;
   let v_bf9904 = [];
   if (v_479f05) {
     try {
       const v_143f2b = JSON.parse(v_479f05);
       if (Array.isArray(v_143f2b)) v_bf9904 = v_143f2b as SharedEvent[];
     } catch {
-      console.error(`[KV_CORRUPT] shared:${v_6e0fd3} not JSON array`);
+      console.error(`[D1_CORRUPT] shared:${v_6e0fd3} not JSON array`);
       throw new v_3ebe58("INTERNAL_ERROR", "Shared payload corrupted.");
     }
   }
@@ -123,7 +123,7 @@ v_773b4c.get("/:id/memory/shared", async (v_3f4e2e) => {
 
   return v_3f4e2e.json({
     events: v_2365e9,
-    rev: v_334c8a ? Number(v_334c8a) : 0,
+    rev: v_334c8a,
     hasMore: v_e4cf17.length > v_2365e9.length,
     viewerRole: v_22da99,
   });
@@ -137,8 +137,7 @@ v_773b4c.get("/:id/memory/l2", v_6690d9, async (v_3f4e2e) => {
   const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
   if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
 
-  const v_b24339 = `l2:${v_6e0fd3}:${v_43e90c}`;
-  const v_479f05 = await v_3f4e2e.env.KV_ONT.get(v_b24339);
+  const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
   if (!v_479f05) {
 
     return v_3f4e2e.json({
@@ -154,7 +153,7 @@ v_773b4c.get("/:id/memory/l2", v_6690d9, async (v_3f4e2e) => {
   try {
     v_143f2b = JSON.parse(v_479f05) as Record<string, unknown>;
   } catch {
-    console.error(`[KV_CORRUPT] ${v_b24339} not JSON`);
+    console.error(`[D1_CORRUPT] l2:${v_6e0fd3}:${v_43e90c} not JSON`);
     throw new v_3ebe58("INTERNAL_ERROR", "L2 payload corrupted.");
   }
   return v_3f4e2e.json({
@@ -207,8 +206,7 @@ v_773b4c.put(
     const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_5b5191);
     await v_4c3b19(v_3f4e2e, v_6e0fd3, v_43e90c);
 
-    const v_b24339 = `ctx:${v_6e0fd3}`;
-    const v_479f05 = await v_3f4e2e.env.KV_CTX.get(v_b24339);
+    const v_479f05 = await v_e86502(v_3f4e2e.env, v_6e0fd3);
     let v_275ccd = {
       persona: {},
       family: [],
@@ -221,7 +219,7 @@ v_773b4c.put(
           v_275ccd = v_8decf8 as Record<string, unknown>;
         }
       } catch {
-        console.error(`[KV_CORRUPT] ${v_b24339} not JSON — overwriting on PUT`);
+        console.error(`[D1_CORRUPT] ctx:${v_6e0fd3} not JSON — overwriting on PUT`);
       }
     }
 
@@ -241,7 +239,7 @@ v_773b4c.put(
         `L1 payload too large (${v_4f3411.length}B > ${v_348e7e}B).`,
       );
     }
-    await v_3f4e2e.env.KV_CTX.put(v_b24339, v_4f3411);
+    await v_9c8187(v_3f4e2e.env, v_6e0fd3, v_4f3411);
     await v_74defc(v_3f4e2e, {
       userId: v_43e90c,
       action: "memory.l1.put",
@@ -276,19 +274,14 @@ v_773b4c.post(
       );
     }
 
-    const v_b24339 = `shared:${v_6e0fd3}`;
-    const v_58c11e = `shared_versions:${v_6e0fd3}`;
-    const [v_61ced0, v_9bca58] = await Promise.all([
-      v_3f4e2e.env.KV_SHARED.get(v_b24339),
-      v_3f4e2e.env.KV_SHARED_VER.get(v_58c11e),
-    ]);
+    const v_1405be = await v_fda4d7(v_3f4e2e.env, v_6e0fd3);
     let v_bf9904 = [];
-    if (v_61ced0) {
+    if (v_1405be?.events) {
       try {
-        const v_8decf8 = JSON.parse(v_61ced0);
+        const v_8decf8 = JSON.parse(v_1405be.events);
         if (Array.isArray(v_8decf8)) v_bf9904 = v_8decf8;
       } catch {
-        console.error(`[KV_CORRUPT] ${v_b24339} — reinitializing on append`);
+        console.error(`[D1_CORRUPT] shared:${v_6e0fd3} — reinitializing on append`);
       }
     }
     if (v_bf9904.length >= v_ae6143) {
@@ -307,7 +300,7 @@ v_773b4c.post(
       }
     }
 
-    const v_d910e6 = v_9bca58 ? Number(v_9bca58) : 0;
+    const v_d910e6 = v_1405be?.version ?? 0;
     const v_b571c2 = v_d910e6 + 1;
     const v_0a1a70 = `ev-${v_6e0fd3}-${v_b571c2}`;
     const v_930299 = {
@@ -321,10 +314,7 @@ v_773b4c.post(
     };
     v_bf9904.push(v_930299);
 
-    await Promise.all([
-      v_3f4e2e.env.KV_SHARED.put(v_b24339, JSON.stringify(v_bf9904)),
-      v_3f4e2e.env.KV_SHARED_VER.put(v_58c11e, String(v_b571c2)),
-    ]);
+    await v_55eb2a(v_3f4e2e.env, v_6e0fd3, JSON.stringify(v_bf9904), v_b571c2);
     await v_74defc(v_3f4e2e, {
       userId: v_43e90c,
       action: "memory.shared.append",
@@ -359,8 +349,7 @@ v_773b4c.put(
     const v_22da99 = await v_09d461(v_3f4e2e, v_eb25ce, v_43e90c);
     if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
 
-    const v_b24339 = `l2:${v_6e0fd3}:${v_43e90c}`;
-    const v_479f05 = await v_3f4e2e.env.KV_ONT.get(v_b24339);
+    const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
     let v_275ccd = {
       address: null,
       memories_personal: [],
@@ -375,7 +364,7 @@ v_773b4c.put(
           v_275ccd = v_8decf8 as Record<string, unknown>;
         }
       } catch {
-        console.error(`[KV_CORRUPT] ${v_b24339} — overwriting on PUT`);
+        console.error(`[D1_CORRUPT] l2:${v_6e0fd3}:${v_43e90c} — overwriting on PUT`);
       }
     }
     const v_ab4c96 = (v_275ccd._meta ?? {}) as Record<string, unknown>;
@@ -402,7 +391,7 @@ v_773b4c.put(
         `L2 payload too large (${v_4f3411.length}B > ${v_a680d4}B).`,
       );
     }
-    await v_3f4e2e.env.KV_ONT.put(v_b24339, v_4f3411);
+    await v_5729a9(v_3f4e2e.env, v_6e0fd3, v_43e90c, v_4f3411);
     await v_74defc(v_3f4e2e, {
       userId: v_43e90c,
       action: "memory.l2.put",
