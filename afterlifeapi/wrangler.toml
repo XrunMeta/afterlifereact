@@ -2,6 +2,7 @@ name = "afterlife-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "87441deffba9e9c5c28114636686a4c7"
 
 # Secrets (wrangler secret put <NAME>):
 #   JWT_ACCESS_SECRET
@@ -11,6 +12,23 @@ compatibility_flags = ["nodejs_compat"]
 #   MASTER_ROOT                # base64 32B — ALE v3 KEK wrap/unwrap 루트
 #   ADMIN_BOOTSTRAP_TOKEN      # dev/staging only
 
+# 바인딩 노트 (KV/R2는 토큰 권한 이슈로 CF 대시보드에서 직접 추가):
+# KV:  KV_AUTH         → 1307484997f540849155979a695baabf
+#      KV_CTX          → d76e3b7bc9df400d88b7601009246ae2
+#      KV_IDEMPOTENCY  → edf4f5a4f3f14426804cbba6dd6e0500
+#      KV_ONT          → 9151c3e0b1d640e0a66560b43b561c25
+#      KV_RATE         → d64fe7f5a9ba4f87b0b626316b43fba1
+#      KV_SHARED       → f77182b493dd4e36a1db4677afddaa0d
+#      KV_SHARED_VER   → bdf9722018f541c59f50e6014696cddf
+# R2:  R2_MEDIA        → afterlife-media-dev
+#      R2_ARCHIVE      → afterlife-archive-dev
+
+# ─── local dev 바인딩 ───────────────────────────────────
+[[d1_databases]]
+binding = "DB"
+database_name = "afterlife-db-preview"
+database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
+
 [vars]
 ENVIRONMENT = "development"
 WEBAUTHN_RP_ID = "localhost"
@@ -18,49 +36,44 @@ WEBAUTHN_RP_ORIGIN = "http://localhost:8787"
 LAZY_ROTATION_ENABLED = "0"
 LAZY_V2_MIGRATE_ENABLED = "0"
 
-# Dev secrets (override via `wrangler secret put` or .dev.vars in real env)
-[[d1_databases]]
-binding = "DB"
-database_name = "afterlife-db"
-database_id = "00000000-0000-0000-0000-000000000000"
-migrations_dir = "migrations"
-
-[[kv_namespaces]]
-binding = "KV_CTX"
-id = "kv_ctx_dev"
-
-[[kv_namespaces]]
-binding = "KV_SHARED"
-id = "kv_shared_dev"
-
-[[kv_namespaces]]
-binding = "KV_SHARED_VER"
-id = "kv_shared_ver_dev"
-
-[[kv_namespaces]]
-binding = "KV_ONT"
-id = "kv_ont_dev"
-
-[[kv_namespaces]]
-binding = "KV_RATE"
-id = "kv_rate_dev"
-
-[[kv_namespaces]]
-binding = "KV_IDEMPOTENCY"
-id = "kv_idem_dev"
-
-[[kv_namespaces]]
-binding = "KV_AUTH"
-id = "kv_auth_dev"
-
-[[r2_buckets]]
-binding = "R2_MEDIA"
-bucket_name = "afterlife-media-dev"
-
-[[r2_buckets]]
-binding = "R2_ARCHIVE"
-bucket_name = "afterlife-archive-dev"
-
 # M-6: cron — orphan clones 정기 스윕 (매일 03:00 UTC)
 [triggers]
+crons = ["0 3 * * *"]
+
+# ─── preview 환경 ─────────────────────────────────────────
+[env.preview]
+# name 미지정 → wrangler가 자동으로 "afterlife-api-preview" 사용
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "afterlife-db-preview"
+database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
+
+[env.preview.vars]
+ENVIRONMENT = "staging"
+WEBAUTHN_RP_ID = "edge-alt-preview.example.invalid"
+WEBAUTHN_RP_ORIGIN = "https://edge-alt-preview.example.invalid"
+LAZY_ROTATION_ENABLED = "0"
+LAZY_V2_MIGRATE_ENABLED = "0"
+
+[env.preview.triggers]
+crons = ["0 3 * * *"]
+
+# ─── production 환경 ──────────────────────────────────────
+[env.production]
+name = "afterlife-api"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "afterlife-db"
+database_id = "09507858-14f8-4f3a-89e5-784244d592a4"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+WEBAUTHN_RP_ID = "api.afterlife.app"
+WEBAUTHN_RP_ORIGIN = "https://oth-path.afterlife.app"
+LAZY_ROTATION_ENABLED = "0"
+LAZY_V2_MIGRATE_ENABLED = "0"
+
+[env.production.triggers]
 crons = ["0 3 * * *"]

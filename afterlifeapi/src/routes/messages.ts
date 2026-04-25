@@ -14,6 +14,7 @@ import { callMockAI, buildSystemPrompt } from "../lib/ai";
 import { spend } from "../lib/credits";
 import { loadCloneById, resolveViewerRole } from "../lib/cloneAccess";
 import { estimateMessageCost } from "../lib/pricing";
+import { readCtx, readShared, readOnt } from "../lib/memoryStore";
 
 export const cloneMessages = new Hono<AppEnv>();
 export const messages = new Hono<AppEnv>();
@@ -78,11 +79,12 @@ cloneMessages.post(
       .first<{ id: number; created_at: string }>();
     if (!userMsg) throw new APIError("INTERNAL_ERROR", "Failed to persist user message.");
 
-    const [l1Raw, sharedRaw, l2Raw] = await Promise.all([
-      c.env.KV_CTX.get(`ctx:${cloneId}`),
-      c.env.KV_SHARED.get(`shared:${cloneId}`),
-      c.env.KV_ONT.get(`l2:${cloneId}:${userId}`),
+    const [l1Raw, sharedData, l2Raw] = await Promise.all([
+      readCtx(c.env, cloneId),
+      readShared(c.env, cloneId),
+      readOnt(c.env, cloneId, userId),
     ]);
+    const sharedRaw = sharedData?.events ?? null;
     const persona = safeParseObj(l1Raw)?.persona as Record<string, unknown> ?? {};
     const sharedEvents = safeParseArr(sharedRaw) ?? [];
     const l2 = safeParseObj(l2Raw);
@@ -206,11 +208,12 @@ cloneMessages.post(
       .first<{ id: number; created_at: string }>();
     if (!userMsg) throw new APIError("INTERNAL_ERROR", "Failed to persist user message.");
 
-    const [l1Raw, sharedRaw, l2Raw] = await Promise.all([
-      c.env.KV_CTX.get(`ctx:${cloneId}`),
-      c.env.KV_SHARED.get(`shared:${cloneId}`),
-      c.env.KV_ONT.get(`l2:${cloneId}:${userId}`),
+    const [l1Raw, sharedData, l2Raw] = await Promise.all([
+      readCtx(c.env, cloneId),
+      readShared(c.env, cloneId),
+      readOnt(c.env, cloneId, userId),
     ]);
+    const sharedRaw = sharedData?.events ?? null;
     const persona = (safeParseObj(l1Raw)?.persona as Record<string, unknown>) ?? {};
     const sharedEvents = safeParseArr(sharedRaw) ?? [];
     const l2 = safeParseObj(l2Raw);
