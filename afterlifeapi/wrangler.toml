@@ -54,13 +54,9 @@ id = "f77182b493dd4e36a1db4677afddaa0d"
 binding = "KV_SHARED_VER"
 id = "bdf9722018f541c59f50e6014696cddf"
 
-[[r2_buckets]]
-binding = "R2_MEDIA"
-bucket_name = "afterlife-media-dev"
-
-[[r2_buckets]]
-binding = "R2_ARCHIVE"
-bucket_name = "afterlife-archive-dev"
+# R2 바인딩은 CF 대시보드에서 직접 추가 (wrangler R2 권한 문제 우회)
+# R2_MEDIA  → afterlife-media-dev
+# R2_ARCHIVE → afterlife-archive-dev
 
 # M-6: cron — orphan clones 정기 스윕 (매일 03:00 UTC)
 [triggers]
@@ -111,13 +107,6 @@ id = "f77182b493dd4e36a1db4677afddaa0d"
 binding = "KV_SHARED_VER"
 id = "bdf9722018f541c59f50e6014696cddf"
 
-[[env.preview.r2_buckets]]
-binding = "R2_MEDIA"
-bucket_name = "afterlife-media-dev"
-
-[[env.preview.r2_buckets]]
-binding = "R2_ARCHIVE"
-bucket_name = "afterlife-archive-dev"
 
 [env.preview.triggers]
 crons = ["0 3 * * *"]
@@ -167,13 +156,6 @@ id = "f77182b493dd4e36a1db4677afddaa0d"
 binding = "KV_SHARED_VER"
 id = "bdf9722018f541c59f50e6014696cddf"
 
-[[env.production.r2_buckets]]
-binding = "R2_MEDIA"
-bucket_name = "afterlife-media-dev"
-
-[[env.production.r2_buckets]]
-binding = "R2_ARCHIVE"
-bucket_name = "afterlife-archive-dev"
 
 [env.production.triggers]
 crons = ["0 3 * * *"]
