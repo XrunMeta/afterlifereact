@@ -36,7 +36,27 @@ app.onError(onError);
 
 app.use("*", requestId);
 app.use("*", secureHeaders());
-app.use("*", cors({ origin: (o) => o ?? "*", credentials: true }));
+
+const ALLOWED_ORIGINS = new Set<string>([
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:8787",
+  "https://afterlifeadmin.pages.dev",
+]);
+const PAGES_HOST_RE = /^https:\/\/[a-z0-9-]+\.afterlifeadmin\.pages\.dev$/;
+
+app.use(
+  "*",
+  cors({
+    origin: (origin) => {
+      if (!origin) return "*";
+      if (ALLOWED_ORIGINS.has(origin)) return origin;
+      if (PAGES_HOST_RE.test(origin)) return origin;
+      return null;
+    },
+    credentials: true,
+  }),
+);
 app.use("*", rateLimit());
 
 app.get("/", (c) =>
