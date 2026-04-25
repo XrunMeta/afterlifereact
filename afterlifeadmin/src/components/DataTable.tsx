@@ -1,7 +1,9 @@
+import type { v_4a8ba2, v_bb76a8 } from 'bapkr'
+
 interface Column {
   key: string;
   label: string;
-  render?: (value: any, row: any) => React.ReactNode;
+  render?: (value: any, row: any) => v_4a8ba2;
 }
 
 interface DataTableProps {
@@ -66,7 +68,7 @@ export function v_c1eeb6({ columns: v_b9fa58, data: v_9390e8, onDelete: v_9bb421
   );
 }
 
-const v_d81136 = {
+const styles: Record<string, v_bb76a8> = {
   wrapper: { overflowX: "auto" },
   table: {
     width: "100%",
