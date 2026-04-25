@@ -1,21 +1,41 @@
-import { v_c4deb2, v_5ab095 } from "bapkr";
+import { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_a04f9c } from "pgmzxjkoagjpdcvd";
 import { v_104d8e, v_ac75b4, type v_c1d018 } from "../api/adminAuth";
 
+const v_af07d9 = "afterlife.admin.totpEnroll";
+
 export function v_6cc6aa() {
   const v_9b57fc = v_a04f9c();
-  const [v_9390e8, v_d57c80] = v_5ab095<v_c1d018 | null>(null);
+  const [v_9390e8, v_d57c80] = v_5ab095<v_c1d018 | null>(() => {
+
+    try {
+      const v_479f05 = sessionStorage.getItem(v_af07d9);
+      return v_479f05 ? (JSON.parse(v_479f05) as v_c1d018) : null;
+    } catch {
+      return null;
+    }
+  });
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_3f8465, v_b4f1d2] = v_5ab095(false);
   const [v_49263d, v_8a5996] = v_5ab095<string | null>(null);
   const [v_09a4a0, v_6d4d23] = v_5ab095<string | null>(null);
+  const v_b36cc7 = v_e662ae(false);
 
   v_c4deb2(() => {
+    if (v_9390e8) return;            
+    if (v_b36cc7.current) return; 
+    v_b36cc7.current = true;
     let v_2008a4 = false;
     void (async () => {
       try {
         const v_cb35cb = await v_104d8e();
-        if (!v_2008a4) v_d57c80(v_cb35cb);
+        if (v_2008a4) return;
+        v_d57c80(v_cb35cb);
+        try {
+          sessionStorage.setItem(v_af07d9, JSON.stringify(v_cb35cb));
+        } catch {
+
+        }
       } catch (v_9e86fd) {
         if (!v_2008a4) v_6d4d23((v_9e86fd as Error).message);
       }
@@ -23,13 +43,18 @@ export function v_6cc6aa() {
     return () => {
       v_2008a4 = true;
     };
-  }, []);
+  }, [v_9390e8]);
 
   async function v_72a8c5() {
     v_b4f1d2(true);
     v_8a5996(null);
     try {
       await v_ac75b4(v_c99bd2);
+      try {
+        sessionStorage.removeItem(v_af07d9);
+      } catch {
+
+      }
       v_9b57fc("/", { replace: true });
     } catch (v_9e86fd) {
       v_8a5996((v_9e86fd as Error).message);
