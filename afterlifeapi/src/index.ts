@@ -36,7 +36,27 @@ v_466992.onError(v_c6eab8);
 
 v_466992.use("*", v_ca800d);
 v_466992.use("*", v_f1bdb6());
-v_466992.use("*", v_531fc8({ origin: (v_b6c474) => v_b6c474 ?? "*", credentials: true }));
+
+const v_9ebb7a = new Set<string>([
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:8787",
+  "https://site-x.example.invalid",
+]);
+const v_b5d625 = /^https:\/\/[a-z0-9-]+\.afterlifeadmin\.pages\.dev$/;
+
+v_466992.use(
+  "*",
+  v_531fc8({
+    origin: (v_f17108) => {
+      if (!v_f17108) return "*";
+      if (v_9ebb7a.has(v_f17108)) return v_f17108;
+      if (v_b5d625.test(v_f17108)) return v_f17108;
+      return null;
+    },
+    credentials: true,
+  }),
+);
 v_466992.use("*", v_353f26());
 
 v_466992.get("/", (v_3f4e2e) =>
