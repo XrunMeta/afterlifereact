@@ -43,7 +43,7 @@ const v_9ebb7a = new Set<string>([
   "http://localhost:8787",
   "https://site-x.example.invalid",
 ]);
-const v_b5d625 = /^https:\/\/[a-z0-9-]+\.afterlifeadmin\.pages\.dev$/;
+const v_b5d625 = /^https:\/\/[a-z0-9-]+\.afterlife-admin\.pages\.dev$/;
 
 v_466992.use(
   "*",
