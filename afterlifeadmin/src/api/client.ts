@@ -4,13 +4,29 @@ const API_ORIGIN = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 const API_BASE = `${API_ORIGIN}/oth-path`;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((options?.headers as Record<string, string>) ?? {}),
+  };
+  const token = readToken();
+  if (token && !headers["Authorization"]) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if (res.status === 401) {
+
+    try {
+      localStorage.removeItem("afterlife.admin.token");
+      localStorage.removeItem("afterlife.admin.refresh");
+      localStorage.removeItem("afterlife.admin.profile");
+    } catch {
+
+    }
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+    throw new Error("unauthorized");
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error((err as { error: string }).error || res.statusText);
