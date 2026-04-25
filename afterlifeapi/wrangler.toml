@@ -69,19 +69,111 @@ crons = ["0 3 * * *"]
 # ─── preview 환경 ─────────────────────────────────────────
 [env.preview]
 name = "afterlife-api-preview"
+
 [env.preview.vars]
 ENVIRONMENT = "staging"
-WEBAUTHN_RP_ID = "afterlife-api-preview.workers.dev"
-WEBAUTHN_RP_ORIGIN = "https://afterlife-api-preview.workers.dev"
+WEBAUTHN_RP_ID = "edge-alt-preview.example.invalid"
+WEBAUTHN_RP_ORIGIN = "https://edge-alt-preview.example.invalid"
 LAZY_ROTATION_ENABLED = "0"
 LAZY_V2_MIGRATE_ENABLED = "0"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "afterlife-db"
+database_id = "09507858-14f8-4f3a-89e5-784244d592a4"
+migrations_dir = "migrations"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_AUTH"
+id = "1307484997f540849155979a695baabf"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_CTX"
+id = "d76e3b7bc9df400d88b7601009246ae2"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_IDEMPOTENCY"
+id = "edf4f5a4f3f14426804cbba6dd6e0500"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_ONT"
+id = "9151c3e0b1d640e0a66560b43b561c25"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_RATE"
+id = "d64fe7f5a9ba4f87b0b626316b43fba1"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_SHARED"
+id = "f77182b493dd4e36a1db4677afddaa0d"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_SHARED_VER"
+id = "bdf9722018f541c59f50e6014696cddf"
+
+[[env.preview.r2_buckets]]
+binding = "R2_MEDIA"
+bucket_name = "afterlife-media-dev"
+
+[[env.preview.r2_buckets]]
+binding = "R2_ARCHIVE"
+bucket_name = "afterlife-archive-dev"
+
+[env.preview.triggers]
+crons = ["0 3 * * *"]
 
 # ─── production 환경 ──────────────────────────────────────
 [env.production]
 name = "afterlife-api"
+
 [env.production.vars]
 ENVIRONMENT = "production"
 WEBAUTHN_RP_ID = "api.afterlife.app"
 WEBAUTHN_RP_ORIGIN = "https://oth-path.afterlife.app"
 LAZY_ROTATION_ENABLED = "0"
 LAZY_V2_MIGRATE_ENABLED = "0"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "afterlife-db"
+database_id = "09507858-14f8-4f3a-89e5-784244d592a4"
+migrations_dir = "migrations"
+
+[[env.production.kv_namespaces]]
+binding = "KV_AUTH"
+id = "1307484997f540849155979a695baabf"
+
+[[env.production.kv_namespaces]]
+binding = "KV_CTX"
+id = "d76e3b7bc9df400d88b7601009246ae2"
+
+[[env.production.kv_namespaces]]
+binding = "KV_IDEMPOTENCY"
+id = "edf4f5a4f3f14426804cbba6dd6e0500"
+
+[[env.production.kv_namespaces]]
+binding = "KV_ONT"
+id = "9151c3e0b1d640e0a66560b43b561c25"
+
+[[env.production.kv_namespaces]]
+binding = "KV_RATE"
+id = "d64fe7f5a9ba4f87b0b626316b43fba1"
+
+[[env.production.kv_namespaces]]
+binding = "KV_SHARED"
+id = "f77182b493dd4e36a1db4677afddaa0d"
+
+[[env.production.kv_namespaces]]
+binding = "KV_SHARED_VER"
+id = "bdf9722018f541c59f50e6014696cddf"
+
+[[env.production.r2_buckets]]
+binding = "R2_MEDIA"
+bucket_name = "afterlife-media-dev"
+
+[[env.production.r2_buckets]]
+binding = "R2_ARCHIVE"
+bucket_name = "afterlife-archive-dev"
+
+[env.production.triggers]
+crons = ["0 3 * * *"]
