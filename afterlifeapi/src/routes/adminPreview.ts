@@ -4,7 +4,8 @@ import type { AppEnv } from "../lib/env";
 export const adminPreview = new Hono<AppEnv>();
 
 adminPreview.use("*", async (c, next) => {
-  if (c.env.ENVIRONMENT !== "development") {
+  const env = c.env.ENVIRONMENT;
+  if (env !== "development" && env !== "staging") {
     return c.json({ error: "not_found" }, 404);
   }
   await next();
