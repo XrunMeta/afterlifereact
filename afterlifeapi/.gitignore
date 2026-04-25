@@ -3,3 +3,7 @@ dist/
 .wrangler/
 .dev.vars
 *.log
+
+# 시크릿/인프라 백업 (절대 커밋 금지)
+.secrets.*.json
+infra-backup.local.md
