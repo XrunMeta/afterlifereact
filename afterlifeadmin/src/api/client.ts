@@ -4,13 +4,29 @@ const v_8aa4be = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 const v_cc9198 = `${v_8aa4be}/oth-path`;
 
 async function v_576f5a<T>(v_9fe22d, v_b36f96): Promise<T> {
-  const v_8f00b9 = await fetch(`${v_cc9198}${v_9fe22d}`, {
-    ...v_b36f96,
-    headers: {
-      "Content-Type": "application/json",
-      ...v_b36f96?.headers,
-    },
-  });
+  const v_3f4675 = {
+    "Content-Type": "application/json",
+    ...((v_b36f96?.headers as Record<string, string>) ?? {}),
+  };
+  const v_21cc31 = v_8da5ba();
+  if (v_21cc31 && !v_3f4675["Authorization"]) {
+    v_3f4675["Authorization"] = `Bearer ${v_21cc31}`;
+  }
+  const v_8f00b9 = await fetch(`${v_cc9198}${v_9fe22d}`, { ...v_b36f96, headers: v_3f4675 });
+  if (v_8f00b9.status === 401) {
+
+    try {
+      localStorage.removeItem("afterlife.admin.token");
+      localStorage.removeItem("afterlife.admin.refresh");
+      localStorage.removeItem("afterlife.admin.profile");
+    } catch {
+
+    }
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.href = "/login";
+    }
+    throw new Error("unauthorized");
+  }
   if (!v_8f00b9.ok) {
     const v_49263d = await v_8f00b9.json().catch(() => ({ error: v_8f00b9.statusText }));
     throw new Error((v_49263d as { error: string }).error || v_8f00b9.statusText);
