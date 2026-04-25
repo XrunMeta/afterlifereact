@@ -12,14 +12,7 @@ account_id = "87441deffba9e9c5c28114636686a4c7"
 #   MASTER_ROOT                # base64 32B — ALE v3 KEK wrap/unwrap 루트
 #   ADMIN_BOOTSTRAP_TOKEN      # dev/staging only
 
-# 바인딩 노트 (KV/R2는 토큰 권한 이슈로 CF 대시보드에서 직접 추가):
-# KV:  KV_AUTH         → 1307484997f540849155979a695baabf
-#      KV_CTX          → d76e3b7bc9df400d88b7601009246ae2
-#      KV_IDEMPOTENCY  → edf4f5a4f3f14426804cbba6dd6e0500
-#      KV_ONT          → 9151c3e0b1d640e0a66560b43b561c25
-#      KV_RATE         → d64fe7f5a9ba4f87b0b626316b43fba1
-#      KV_SHARED       → f77182b493dd4e36a1db4677afddaa0d
-#      KV_SHARED_VER   → bdf9722018f541c59f50e6014696cddf
+# R2 바인딩은 R2 Storage Edit 권한 토큰 검증 후 추가 예정:
 # R2:  R2_MEDIA        → afterlife-media-dev
 #      R2_ARCHIVE      → afterlife-archive-dev
 
@@ -28,6 +21,34 @@ account_id = "87441deffba9e9c5c28114636686a4c7"
 binding = "DB"
 database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
+
+[[kv_namespaces]]
+binding = "KV_AUTH"
+id = "1307484997f540849155979a695baabf"
+
+[[kv_namespaces]]
+binding = "KV_CTX"
+id = "d76e3b7bc9df400d88b7601009246ae2"
+
+[[kv_namespaces]]
+binding = "KV_IDEMPOTENCY"
+id = "edf4f5a4f3f14426804cbba6dd6e0500"
+
+[[kv_namespaces]]
+binding = "KV_ONT"
+id = "9151c3e0b1d640e0a66560b43b561c25"
+
+[[kv_namespaces]]
+binding = "KV_RATE"
+id = "d64fe7f5a9ba4f87b0b626316b43fba1"
+
+[[kv_namespaces]]
+binding = "KV_SHARED"
+id = "f77182b493dd4e36a1db4677afddaa0d"
+
+[[kv_namespaces]]
+binding = "KV_SHARED_VER"
+id = "bdf9722018f541c59f50e6014696cddf"
 
 [vars]
 ENVIRONMENT = "development"
@@ -49,6 +70,34 @@ binding = "DB"
 database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
 
+[[env.preview.kv_namespaces]]
+binding = "KV_AUTH"
+id = "1307484997f540849155979a695baabf"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_CTX"
+id = "d76e3b7bc9df400d88b7601009246ae2"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_IDEMPOTENCY"
+id = "edf4f5a4f3f14426804cbba6dd6e0500"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_ONT"
+id = "9151c3e0b1d640e0a66560b43b561c25"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_RATE"
+id = "d64fe7f5a9ba4f87b0b626316b43fba1"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_SHARED"
+id = "f77182b493dd4e36a1db4677afddaa0d"
+
+[[env.preview.kv_namespaces]]
+binding = "KV_SHARED_VER"
+id = "bdf9722018f541c59f50e6014696cddf"
+
 [env.preview.vars]
 ENVIRONMENT = "staging"
 WEBAUTHN_RP_ID = "edge-alt-preview.example.invalid"
@@ -67,6 +116,34 @@ name = "afterlife-api"
 binding = "DB"
 database_name = "afterlife-db"
 database_id = "09507858-14f8-4f3a-89e5-784244d592a4"
+
+[[env.production.kv_namespaces]]
+binding = "KV_AUTH"
+id = "1307484997f540849155979a695baabf"
+
+[[env.production.kv_namespaces]]
+binding = "KV_CTX"
+id = "d76e3b7bc9df400d88b7601009246ae2"
+
+[[env.production.kv_namespaces]]
+binding = "KV_IDEMPOTENCY"
+id = "edf4f5a4f3f14426804cbba6dd6e0500"
+
+[[env.production.kv_namespaces]]
+binding = "KV_ONT"
+id = "9151c3e0b1d640e0a66560b43b561c25"
+
+[[env.production.kv_namespaces]]
+binding = "KV_RATE"
+id = "d64fe7f5a9ba4f87b0b626316b43fba1"
+
+[[env.production.kv_namespaces]]
+binding = "KV_SHARED"
+id = "f77182b493dd4e36a1db4677afddaa0d"
+
+[[env.production.kv_namespaces]]
+binding = "KV_SHARED_VER"
+id = "bdf9722018f541c59f50e6014696cddf"
 
 [env.production.vars]
 ENVIRONMENT = "production"

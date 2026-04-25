@@ -1,4 +1,7 @@
-const API_BASE = "/oth-path";
+
+
+const API_ORIGIN = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+const API_BASE = `${API_ORIGIN}/oth-path`;
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -65,7 +68,8 @@ export async function rawRequest(
   if (body !== undefined && method !== "GET" && method !== "HEAD") {
     init.body = typeof body === "string" ? body : JSON.stringify(body);
   }
-  const res = await fetch(fullPath, init);
+  const url = /^https?:\/\//.test(fullPath) ? fullPath : `${API_ORIGIN}${fullPath}`;
+  const res = await fetch(url, init);
   const text = await res.text();
   let parsed: unknown = text;
   try {
