@@ -1,21 +1,41 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { enrollTotp, verifyTotp, type TotpEnrollResult } from "../api/adminAuth";
 
+const ENROLL_CACHE_KEY = "afterlife.admin.totpEnroll";
+
 export function TotpEnrollPage() {
   const navigate = useNavigate();
-  const [data, setData] = useState<TotpEnrollResult | null>(null);
+  const [data, setData] = useState<TotpEnrollResult | null>(() => {
+
+    try {
+      const raw = sessionStorage.getItem(ENROLL_CACHE_KEY);
+      return raw ? (JSON.parse(raw) as TotpEnrollResult) : null;
+    } catch {
+      return null;
+    }
+  });
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [enrollErr, setEnrollErr] = useState<string | null>(null);
+  const startedRef = useRef(false);
 
   useEffect(() => {
+    if (data) return;            
+    if (startedRef.current) return; 
+    startedRef.current = true;
     let cancelled = false;
     void (async () => {
       try {
         const r = await enrollTotp();
-        if (!cancelled) setData(r);
+        if (cancelled) return;
+        setData(r);
+        try {
+          sessionStorage.setItem(ENROLL_CACHE_KEY, JSON.stringify(r));
+        } catch {
+
+        }
       } catch (e) {
         if (!cancelled) setEnrollErr((e as Error).message);
       }
@@ -23,13 +43,18 @@ export function TotpEnrollPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [data]);
 
   async function onVerify() {
     setBusy(true);
     setErr(null);
     try {
       await verifyTotp(code);
+      try {
+        sessionStorage.removeItem(ENROLL_CACHE_KEY);
+      } catch {
+
+      }
       navigate("/", { replace: true });
     } catch (e) {
       setErr((e as Error).message);
