@@ -10,13 +10,6 @@ on:
     paths:
       - 'afterlifeadmin/**'
   workflow_dispatch:
-    inputs:
-      deploy_env:
-        description: '배포 환경 (preview / prod)'
-        required: true
-        default: preview
-        type: choice
-        options: [preview, prod]
 
 jobs:
   build-and-deploy:
@@ -43,24 +36,3 @@ jobs:
       - name: Build (tsc + vite)
         run: npm run build
 
-      - name: Deploy to Cloudflare Pages (preview env)
-        if: github.ref == 'refs/heads/preview' || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'preview')
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: 87441deffba9e9c5c28114636686a4c7
-          projectName: afterlife-admin
-          directory: afterlifeadmin/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          branch: preview
-
-      - name: Deploy to Cloudflare Pages (prod)
-        if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.deploy_env == 'prod')
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: 87441deffba9e9c5c28114636686a4c7
-          projectName: afterlife-admin
-          directory: afterlifeadmin/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
