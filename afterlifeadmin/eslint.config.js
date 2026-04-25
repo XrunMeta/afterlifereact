@@ -22,6 +22,7 @@ export default v_bd7aa7([
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-empty': ['error', { allowEmptyCatch: true }],
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
 ])
