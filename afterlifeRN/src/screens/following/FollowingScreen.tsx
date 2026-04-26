@@ -38,7 +38,12 @@ type FollowedPersona = {
   avatar: string;
   interests: string[];
   creatorAccount: string;
+  intimacy: number; 
+  interactions: number; 
 };
+
+const v_3ddce5 = (v_6e0fd3) => ((v_6e0fd3 * 17) % 100);
+const v_42378f = (v_6e0fd3) => 100 + ((v_6e0fd3 * 137) % 5000);
 
 const v_986943 = (clone: v_4b85a1, v_edb3e7): FollowedPersona => ({
   id: v_eb25ce.id,
@@ -46,7 +51,11 @@ const v_986943 = (clone: v_4b85a1, v_edb3e7): FollowedPersona => ({
   avatar: v_eb25ce.imageUrl ?? "",
   interests: v_eb25ce.interests,
   creatorAccount: v_edb3e7 ? `@${v_edb3e7}` : "",
+  intimacy: v_3ddce5(v_eb25ce.id),
+  interactions: v_42378f(v_eb25ce.id),
 });
+
+const v_cae9dc = (v_f4e98d) => (v_f4e98d >= 1000 ? `${(v_f4e98d / 1000).toFixed(1)}k` : String(v_f4e98d));
 
 export default function v_14b43e() {
   const v_f4c991 = v_ada615<RootNav>();
@@ -172,6 +181,19 @@ export default function v_14b43e() {
         {}
         <View style={v_fd5f43.imageWrap}>
           <Image source={{ uri: v_afeceb }} style={v_fd5f43.postImage} resizeMode="cover" />
+
+          {}
+          <View style={v_fd5f43.statsBadge}>
+            <TouchableOpacity style={v_fd5f43.badgeBtn} onPress={() => v_649cb3(true)}>
+              <Feather name="thermometer" size={12} color="#fb923c" />
+              <Text style={v_fd5f43.badgeText}>{v_8c0b26.persona.intimacy}°C</Text>
+            </TouchableOpacity>
+            <View style={v_fd5f43.badgeDivider} />
+            <TouchableOpacity style={v_fd5f43.badgeBtn} onPress={() => v_0af5ed(true)}>
+              <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
+              <Text style={v_fd5f43.badgeText}>{v_cae9dc(v_8c0b26.persona.interactions)}</Text>
+            </TouchableOpacity>
+          </View>
 
           {}
           <View style={v_fd5f43.overlayContent}>
