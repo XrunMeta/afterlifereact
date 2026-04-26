@@ -38,7 +38,12 @@ type FollowedPersona = {
   avatar: string;
   interests: string[];
   creatorAccount: string;
+  intimacy: number; 
+  interactions: number; 
 };
+
+const mockIntimacy = (cloneId: number) => ((cloneId * 17) % 100);
+const mockInteractions = (cloneId: number) => 100 + ((cloneId * 137) % 5000);
 
 const toPersona = (clone: DomainClone, ownerHandle?: string): FollowedPersona => ({
   id: clone.id,
@@ -46,7 +51,11 @@ const toPersona = (clone: DomainClone, ownerHandle?: string): FollowedPersona =>
   avatar: clone.imageUrl ?? "",
   interests: clone.interests,
   creatorAccount: ownerHandle ? `@${ownerHandle}` : "",
+  intimacy: mockIntimacy(clone.id),
+  interactions: mockInteractions(clone.id),
 });
+
+const formatCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
 export default function FollowingScreen() {
   const rootNav = useNavigation<RootNav>();
@@ -178,6 +187,19 @@ export default function FollowingScreen() {
         {}
         <View style={s.imageWrap}>
           <Image source={{ uri: feedImage }} style={s.postImage} resizeMode="cover" />
+
+          {}
+          <View style={s.statsBadge}>
+            <TouchableOpacity style={s.badgeBtn} onPress={() => setShowIntimacyInfo(true)}>
+              <Feather name="thermometer" size={12} color="#fb923c" />
+              <Text style={s.badgeText}>{item.persona.intimacy}°C</Text>
+            </TouchableOpacity>
+            <View style={s.badgeDivider} />
+            <TouchableOpacity style={s.badgeBtn} onPress={() => setShowInteractionInfo(true)}>
+              <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
+              <Text style={s.badgeText}>{formatCount(item.persona.interactions)}</Text>
+            </TouchableOpacity>
+          </View>
 
           {}
           <View style={s.overlayContent}>
