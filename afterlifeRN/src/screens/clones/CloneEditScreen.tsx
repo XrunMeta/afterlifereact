@@ -25,6 +25,7 @@ import type { L1Profile } from "../../types/domain";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { INTEREST_CATEGORIES } from "../../mocks/interestHelpers";
 import { formatPersonaPrompt } from "../../lib/personaPrompt";
+import PersonaEditModal from "./components/PersonaEditModal";
 
 type Visibility = "public" | "private" | "followers";
 
@@ -68,6 +69,7 @@ for (const cat of INTEREST_CATEGORIES) {
 export default function CloneEditScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const updateLocalClone = useCloneStore((s) => s.updateLocalClone);
   const viewerId = useAuthStore((s) => s.user?.id) ?? null;
 
   const [primaryCategory, setPrimaryCategory] = useState("");
@@ -77,13 +79,10 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const [customInput, setCustomInput] = useState("");
 
   const [name, setName] = useState("");
-  const [ageRange, setAgeRange] = useState("");
-  const [gender, setGender] = useState("남성");
-  const [personalities, setPersonalities] = useState<string[]>([]);
-  const [mbti, setMbti] = useState("");
   const [description, setDescription] = useState("");
 
   const [l1, setL1] = useState<L1Profile>({ attrs: {}, notes: '' });
+  const [personaModalOpen, setPersonaModalOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
 
   const [showMenu, setShowMenu] = useState(false);
@@ -99,15 +98,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       setName(clone.displayName);
       setDescription(clone.description);
       setVisibility(clone.visibility);
-      if (clone.l1Profile) {
-        setL1(clone.l1Profile);
-
-        const a = clone.l1Profile.attrs ?? {};
-        if (a.age) setAgeRange(a.age);
-        if (a.gender) setGender(a.gender);
-        if (a.personalities) setPersonalities(a.personalities.split(',').map((s) => s.trim()).filter(Boolean));
-        if (a.mbti) setMbti(a.mbti);
-      }
+      if (clone.l1Profile) setL1(clone.l1Profile);
     }
   }, [clone]);
 
@@ -146,12 +137,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     );
   };
 
-  const togglePersonality = (id: string) => {
-    setPersonalities((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
-    );
-  };
-
   const addCustomInterest = () => {
     if (customInput.trim()) {
       setCustomInterests((prev) => [...prev, customInput.trim()]);
@@ -163,6 +148,13 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const handleSave = () => {
 
     navigation.goBack();
+  };
+
+  const handlePersonaSave = (l1Payload: { attrs: Record<string, string>; notes: string }) => {
+    if (!clone) return;
+    updateLocalClone(clone.id, { l1Profile: l1Payload });
+    setL1(l1Payload);
+    setPersonaModalOpen(false);
   };
 
   const confirmVisibility = (v: Visibility) => {
@@ -250,10 +242,19 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
       <View style={s.content}>
         {
-
 }
         <View style={s.promptCard}>
-          <Text style={s.promptTitle}>페르소나</Text>
+          <View style={s.promptHeader}>
+            <Text style={s.promptTitle}>페르소나</Text>
+            <TouchableOpacity
+              accessibilityLabel="persona-edit-open"
+              style={s.editBtn}
+              onPress={() => setPersonaModalOpen(true)}
+            >
+              <Feather name="edit-2" size={13} color={COLORS.violet600} />
+              <Text style={s.editBtnText}>편집</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={s.promptBody}>
             {formatPersonaPrompt({
               name: clone.displayName,
@@ -261,15 +262,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
               interests: clone.interests,
               l1: clone.l1Profile,
             })}
-          </Text>
-        </View>
-
-        {
-}
-        <View style={s.devBanner}>
-          <Text style={s.devBannerText}>🛠 개발용 — 프로덕션 미사용</Text>
-          <Text style={s.devBannerSub}>
-            아래 chip/필드는 데이터 매핑 검사용. 위 페르소나 텍스트가 실제 표시되는 결과입니다.
           </Text>
         </View>
 
@@ -390,87 +382,15 @@ export default function CloneEditScreen({ route, navigation }: Props) {
             placeholder="이름을 입력해주세요"
           />
 
-          {}
-          <Text style={s.fieldLabel}>나이</Text>
-          <View style={s.chipRow}>
-            {ageRanges.map((age) => (
-              <TouchableOpacity
-                key={age}
-                style={[s.chip, ageRange === age && s.chipSelected]}
-                onPress={() => setAgeRange(age)}
-              >
-                <Text style={[s.chipText, ageRange === age && s.chipTextSelected]}>
-                  {age}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {}
-          <Text style={s.fieldLabel}>성별</Text>
-          <View style={s.genderRow}>
-            {["남성", "여성"].map((g) => (
-              <TouchableOpacity
-                key={g}
-                style={[s.genderBtn, gender === g && s.genderSelected]}
-                onPress={() => setGender(g)}
-              >
-                <Text style={[s.genderText, gender === g && s.genderTextSelected]}>
-                  {g}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {}
-          <Text style={s.fieldLabel}>성격 유형 선택</Text>
-          <Text style={s.fieldHint}>
-            이 페르소나에 어울리는 성격 키워드를 모두 골라주세요.
-          </Text>
-          <View style={s.chipRow}>
-            {personalityTypes.map((p) => (
-              <TouchableOpacity
-                key={p.id}
-                style={[s.chip, personalities.includes(p.id) && s.chipSelected]}
-                onPress={() => togglePersonality(p.id)}
-              >
-                <Text
-                  style={[
-                    s.chipText,
-                    personalities.includes(p.id) && s.chipTextSelected,
-                  ]}
-                >
-                  # {p.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {}
-          <Text style={s.fieldLabel}>MBTI</Text>
-          <Text style={s.fieldHint}>
-            페르소나의 MBTI 유형을 선택해주세요.
-          </Text>
-          <View style={s.mbtiGrid}>
-            {mbtiTypes.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[s.mbtiItem, mbti === type && s.mbtiSelected]}
-                onPress={() => setMbti(type)}
-              >
-                <Text style={[s.mbtiText, mbti === type && s.mbtiTextSelected]}>
-                  {type}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {
+}
 
           {}
           <TextField
-            label="페르소나 설명"
+            label="한 줄 소개"
             value={description}
             onChangeText={setDescription}
-            placeholder="이 페르소나의 정체성을 알 수 있게 설명해주세요..."
+            placeholder="이 페르소나의 한 줄 소개를 입력해주세요..."
             multiline
             containerStyle={{ marginTop: 16 }}
           />
@@ -506,7 +426,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           title="저장하기"
           variant="primary"
           onPress={handleSave}
-          disabled={!name || !ageRange}
+          disabled={!name}
           style={s.saveBtn}
         />
       </View>
@@ -584,6 +504,13 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         coowners={coownerOptions}
         onClose={() => setTransferOpen(false)}
         onSubmit={() => setTransferOpen(false)}
+      />
+
+      <PersonaEditModal
+        visible={personaModalOpen}
+        initial={clone.l1Profile}
+        onCancel={() => setPersonaModalOpen(false)}
+        onSave={handlePersonaSave}
       />
     </SafeScrollView>
   );
@@ -872,16 +799,23 @@ const s = StyleSheet.create({
     borderRadius: RADIUS.md,
     marginBottom: 16,
   },
-  promptTitle: { fontSize: 13, fontWeight: '700', color: COLORS.zinc600, marginBottom: 8 },
-  promptBody: { fontSize: 15, lineHeight: 22, color: COLORS.zinc900 },
-  devBanner: {
-    padding: 12,
-    backgroundColor: '#fef3c7',
-    borderRadius: RADIUS.sm,
-    borderLeftWidth: 4,
-    borderLeftColor: '#f59e0b',
-    marginBottom: 16,
+  promptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  devBannerText: { fontSize: 13, fontWeight: '700', color: '#92400e' },
-  devBannerSub: { fontSize: 12, color: '#92400e', marginTop: 2 },
+  promptTitle: { fontSize: 13, fontWeight: '700', color: COLORS.zinc600 },
+  promptBody: { fontSize: 15, lineHeight: 22, color: COLORS.zinc900 },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.violet600,
+  },
+  editBtnText: { fontSize: 12, fontWeight: '600', color: COLORS.violet600 },
 });

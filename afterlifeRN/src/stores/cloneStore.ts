@@ -16,6 +16,8 @@ interface CloneState {
   resetCreationDraft: () => void;
   getCloneById: (id: number) => Clone | undefined;
   addClone: (clone: Clone) => void;
+
+  updateLocalClone: (id: number, patch: Partial<Clone>) => void;
 }
 
 export const useCloneStore = create<CloneState>((set, get) => ({
@@ -42,4 +44,20 @@ export const useCloneStore = create<CloneState>((set, get) => ({
     set((state) => ({
       localClones: [...state.localClones, clone],
     })),
+
+  updateLocalClone: (id, patch) => {
+    const existing = get().localClones.find((c) => c.id === id);
+    if (existing) {
+      set((state) => ({
+        localClones: state.localClones.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+      }));
+      return;
+    }
+    const seed = seedSource.clones().find((c) => c.id === id);
+    if (seed) {
+      set((state) => ({
+        localClones: [...state.localClones, { ...seed, ...patch }],
+      }));
+    }
+  },
 }));

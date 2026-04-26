@@ -13,6 +13,21 @@ export interface L1ProfilePayload {
   notes: string;
 }
 
+export function l1ProfileToDraft(
+  l1: { attrs?: Record<string, string>; notes?: string } | null | undefined,
+): Partial<CloneCreationDraft> {
+  const a = l1?.attrs ?? {};
+  return {
+    personaAge: a.age as CloneCreationDraft['personaAge'],
+    personaGender: a.gender as CloneCreationDraft['personaGender'],
+    personaTypes: a.personalities
+      ? (a.personalities.split(',').map((s) => s.trim()).filter(Boolean) as CloneCreationDraft['personaTypes'])
+      : undefined,
+    personaMbti: a.mbti as CloneCreationDraft['personaMbti'],
+    personaNotes: l1?.notes ?? '',
+  };
+}
+
 export function draftToL1Profile(d: CloneCreationDraft): L1ProfilePayload | undefined {
   const attrs: Record<string, string> = {};
   if (d.personaAge) attrs.age = d.personaAge;
