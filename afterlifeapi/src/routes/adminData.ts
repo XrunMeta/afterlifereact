@@ -1,0 +1,220 @@
+
+
+import { v_b7c41b } from "zmui";
+import type { v_de0a25 } from "../lib/env";
+import { v_c0a297 } from "../middleware/auth";
+
+export const v_133c2c = new v_b7c41b<v_de0a25>();
+
+v_133c2c.use("*", v_c0a297);
+
+v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB.prepare(
+      `SELECT id, name, email, gender, age, credits,
+              funnel_stage AS funnelStage, created_at AS createdAt
+         FROM users
+        ORDER BY (id < 100000) DESC, id DESC
+        LIMIT 200`,
+    ).all()
+  ).results;
+  return v_3f4e2e.json(v_18b8bf);
+});
+
+v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(
+    `SELECT id, name, email, gender, age, credits,
+            funnel_stage AS funnelStage, created_at AS createdAt
+       FROM users WHERE id = ?`,
+  )
+    .bind(v_389afb)
+    .first();
+  if (!v_3ac7e7) return v_3f4e2e.json({ error: "not_found" }, 404);
+  return v_3f4e2e.json(v_3ac7e7);
+});
+
+v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB.prepare(
+      `SELECT c.id, c.name, c.username,
+              c.clone_type AS cloneType, c.visibility,
+              c.training_status AS trainingStatus,
+              c.owner_id AS ownerId, u.name AS ownerName,
+              c.created_at AS createdAt
+         FROM clones c
+         LEFT JOIN users u ON u.id = c.owner_id
+        ORDER BY c.id DESC
+        LIMIT 200`,
+    ).all()
+  ).results;
+  return v_3f4e2e.json(v_18b8bf);
+});
+
+v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(
+    `SELECT c.id, c.name, c.username, c.description,
+            c.clone_type AS cloneType, c.visibility,
+            c.training_status AS trainingStatus,
+            c.owner_id AS ownerId, u.name AS ownerName,
+            c.created_at AS createdAt
+       FROM clones c
+       LEFT JOIN users u ON u.id = c.owner_id
+      WHERE c.id = ?`,
+  )
+    .bind(v_389afb)
+    .first();
+  if (!v_3ac7e7) return v_3f4e2e.json({ error: "not_found" }, 404);
+  return v_3f4e2e.json(v_3ac7e7);
+});
+
+v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  const v_eb25ce = await v_3f4e2e.env.DB.prepare(
+    `SELECT c.id, c.name, c.username, c.description,
+            c.clone_type AS cloneType, c.visibility,
+            c.training_status AS trainingStatus,
+            c.owner_id AS ownerId, u.name AS ownerName,
+            c.l1_profile AS l1Profile, c.l2_profile AS l2Profile,
+            c.created_at AS createdAt
+       FROM clones c
+       LEFT JOIN users u ON u.id = c.owner_id
+      WHERE c.id = ?`,
+  )
+    .bind(v_389afb)
+    .first<Record<string, unknown>>();
+  if (!v_eb25ce) return v_3f4e2e.json({ error: "not_found" }, 404);
+
+  const v_b99095 = (
+    await v_3f4e2e.env.DB.prepare(
+      `SELECT s.id, s.clone_id AS cloneId, s.owner_id AS ownerId,
+              s.target_user_id AS targetUserId, s.invite_email AS inviteEmail,
+              s.relation, s.role, s.status,
+              u.name AS targetUserName,
+              s.created_at AS createdAt
+         FROM clone_shares s
+         LEFT JOIN users u ON u.id = s.target_user_id
+        WHERE s.clone_id = ?
+        ORDER BY s.id ASC`,
+    )
+      .bind(v_389afb)
+      .all()
+  ).results;
+
+  const v_823f08 = await v_3f4e2e.env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM follows WHERE clone_id = ?`,
+  )
+    .bind(v_389afb)
+    .first<{ n: number }>();
+
+  const v_fa56e0 = await v_3f4e2e.env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM messages WHERE clone_id = ?`,
+  )
+    .bind(v_389afb)
+    .first<{ n: number }>();
+
+  function v_051fd1(v_81e2ef) {
+    if (typeof v_81e2ef !== "string") return v_81e2ef ?? null;
+    try {
+      return JSON.parse(v_81e2ef);
+    } catch {
+      return v_81e2ef;
+    }
+  }
+  const v_020b4b = v_051fd1(v_eb25ce.l1Profile);
+  const v_1af19b = v_051fd1(v_eb25ce.l2Profile);
+
+  return v_3f4e2e.json({
+    clone: { ...v_eb25ce, l1Profile: v_020b4b, l2Profile: v_1af19b },
+    shares: v_b99095,
+    stats: {
+      followers: v_823f08?.n ?? 0,
+      messages: v_fa56e0?.n ?? 0,
+    },
+  });
+});
+
+v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  const v_eb25ce = await v_3f4e2e.env.DB.prepare(
+    `SELECT c.id, c.name, c.clone_type AS cloneType,
+            c.owner_id AS ownerId, u.name AS ownerName
+       FROM clones c
+       LEFT JOIN users u ON u.id = c.owner_id
+      WHERE c.id = ?`,
+  )
+    .bind(v_389afb)
+    .first<Record<string, unknown>>();
+  if (!v_eb25ce) return v_3f4e2e.json({ error: "not_found" }, 404);
+
+  const v_8673d6 = (
+    await v_3f4e2e.env.DB.prepare(
+      `SELECT s.id, s.relation, s.role, s.status,
+              s.target_user_id AS targetUserId,
+              s.invite_email AS inviteEmail,
+              u.name AS targetUserName
+         FROM clone_shares s
+         LEFT JOIN users u ON u.id = s.target_user_id
+        WHERE s.clone_id = ?
+        ORDER BY
+          CASE s.relation
+            WHEN 'mother' THEN 1
+            WHEN 'father' THEN 2
+            WHEN 'spouse' THEN 3
+            WHEN 'sibling' THEN 4
+            WHEN 'child'   THEN 5
+            ELSE 9
+          END, s.id ASC`,
+    )
+      .bind(v_389afb)
+      .all()
+  ).results;
+
+  return v_3f4e2e.json({
+    clone: v_eb25ce,
+    root: {
+      userId: v_eb25ce.ownerId,
+      name: v_eb25ce.ownerName,
+      relation: "self",
+      role: "owner",
+      status: "accepted",
+    },
+    members: v_8673d6,
+  });
+});
+
+v_133c2c.get("/messages/:cloneId", async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("cloneId"));
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB.prepare(
+      `SELECT id, clone_id AS cloneId, user_id AS userId,
+              session_id AS sessionId, role, content, status,
+              created_at AS createdAt
+         FROM messages
+        WHERE clone_id = ?
+        ORDER BY id DESC
+        LIMIT 100`,
+    )
+      .bind(v_6e0fd3)
+      .all()
+  ).results;
+  return v_3f4e2e.json(v_18b8bf);
+});
+
+v_133c2c.get("/oth-path", (v_3f4e2e) => v_3f4e2e.json([]));
+
+v_133c2c.get("/stats", async (v_3f4e2e) => {
+  const v_ceb55a = await v_3f4e2e.env.DB.prepare(`SELECT COUNT(*) AS n FROM users`).first<{ n: number }>();
+  const v_966588 = await v_3f4e2e.env.DB.prepare(`SELECT COUNT(*) AS n FROM clones`).first<{ n: number }>();
+  const v_35f85c = await v_3f4e2e.env.DB.prepare(`SELECT COUNT(*) AS n FROM messages`).first<{ n: number }>();
+  const v_e6f3e7 = await v_3f4e2e.env.DB.prepare(`SELECT COALESCE(SUM(credits),0) AS sum FROM users`).first<{
+    sum: number;
+  }>();
+  return v_3f4e2e.json({
+    users: v_ceb55a?.n ?? 0,
+    clones: v_966588?.n ?? 0,
+    messages: v_35f85c?.n ?? 0,
+    totalCredits: v_e6f3e7?.sum ?? 0,
+  });
+});
