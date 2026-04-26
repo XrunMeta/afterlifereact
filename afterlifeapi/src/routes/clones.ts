@@ -12,6 +12,7 @@ import {
   resolveOptionalUser,
   resolveResponseViewerRole,
 } from "../lib/cloneAccess";
+import { writeCtx, writeShared } from "../lib/memoryStore";
 
 export const clones = new Hono<AppEnv>();
 
@@ -174,12 +175,7 @@ clones.post(
       throw err;
     }
 
-    let ctxKey: string | null = null;
-    let sharedKey: string | null = null;
     if (body.clone_type === "memlow") {
-      ctxKey = `ctx:${cloneId}`;
-      sharedKey = `shared:${cloneId}`;
-      const versionsKey = `shared_versions:${cloneId}`;
       const ctxSeed = JSON.stringify({
         persona: body.memlow_profile ?? {},
         family: [],
@@ -187,12 +183,11 @@ clones.post(
       });
       try {
         await Promise.all([
-          c.env.KV_CTX.put(ctxKey, ctxSeed),
-          c.env.KV_SHARED.put(sharedKey, "[]"),
-          c.env.KV_SHARED_VER.put(versionsKey, "0"),
+          writeCtx(c.env, cloneId, ctxSeed),
+          writeShared(c.env, cloneId, "[]", 0),
         ]);
       } catch (err) {
-        console.error(`[KV_INIT_FAIL] clone_id=${cloneId} err=${(err as Error).message}`);
+        console.error(`[MEMORY_INIT_FAIL] clone_id=${cloneId} err=${(err as Error).message}`);
       }
     }
 
@@ -212,8 +207,8 @@ clones.post(
           visibility: inserted.visibility,
           createdAt: inserted.created_at,
         },
-        initial_kv: ctxKey
-          ? { ctx_key: ctxKey, shared_key: sharedKey }
+        initial_memory: body.clone_type === "memlow"
+          ? { ctx_key: `ctx:${cloneId}`, shared_key: `shared:${cloneId}` }
           : null,
       },
       201,

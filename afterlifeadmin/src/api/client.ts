@@ -1,13 +1,62 @@
-const API_BASE = "/oth-path";
+
+
+const API_ORIGIN = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+const API_BASE = `${API_ORIGIN}/oth-path`;
+
+let refreshInflight: Promise<string> | null = null;
+async function tryRefresh(): Promise<string | null> {
+  if (refreshInflight) {
+    return await refreshInflight.catch(() => null);
+  }
+
+  const mod = await import("./adminAuth");
+  refreshInflight = mod.refreshSession();
+  try {
+    return await refreshInflight;
+  } catch {
+    return null;
+  } finally {
+    refreshInflight = null;
+  }
+}
+
+function clearAndRedirect() {
+  try {
+    localStorage.removeItem("afterlife.admin.token");
+    localStorage.removeItem("afterlife.admin.refresh");
+    localStorage.removeItem("afterlife.admin.profile");
+  } catch {
+
+  }
+  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
+  const exec = async (): Promise<Response> => {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  });
+      ...((options?.headers as Record<string, string>) ?? {}),
+    };
+    const token = readToken();
+    if (token && !headers["Authorization"]) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    return await fetch(`${API_BASE}${path}`, { ...options, headers });
+  };
+
+  let res = await exec();
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (refreshed) {
+      res = await exec(); 
+    }
+    if (res.status === 401) {
+      clearAndRedirect();
+      throw new Error("unauthorized");
+    }
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error((err as { error: string }).error || res.statusText);
@@ -65,7 +114,8 @@ export async function rawRequest(
   if (body !== undefined && method !== "GET" && method !== "HEAD") {
     init.body = typeof body === "string" ? body : JSON.stringify(body);
   }
-  const res = await fetch(fullPath, init);
+  const url = /^https?:\/\//.test(fullPath) ? fullPath : `${API_ORIGIN}${fullPath}`;
+  const res = await fetch(url, init);
   const text = await res.text();
   let parsed: unknown = text;
   try {

@@ -7,7 +7,7 @@ import { APIError } from "../lib/errors";
 import { parseJson, z } from "../lib/validate";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { issueToken, verifyToken } from "../lib/jwt";
-import { issueSession } from "../lib/session";
+import { issueSession, rotateSession } from "../lib/session";
 import { getKekProvider, seal, open } from "../lib/ale";
 import {
   randomTotpSecret,
@@ -373,5 +373,24 @@ adminAuth.post("/recovery", async (c) => {
     accessExpiresIn: tokens.accessExpiresIn,
     admin: { id: pending.sub, email: pending.email, role: pending.role },
     codesRemaining: next.length,
+  });
+});
+
+const refreshSchema = z.object({ refreshToken: z.string().min(1) });
+
+adminAuth.post("/refresh", async (c) => {
+  const body = await parseJson(c, refreshSchema);
+  let rotated;
+  try {
+    rotated = await rotateSession(c, body.refreshToken);
+  } catch (err) {
+    if (err instanceof APIError) throw err;
+
+    throw new APIError("UNAUTHENTICATED", "Invalid refresh token.");
+  }
+  return c.json({
+    accessToken: rotated.accessToken,
+    refreshToken: rotated.refreshToken,
+    accessExpiresIn: rotated.accessExpiresIn,
   });
 });

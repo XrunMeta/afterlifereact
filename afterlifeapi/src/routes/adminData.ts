@@ -1,17 +1,14 @@
+
+
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
+import { requireAdmin } from "../middleware/auth";
 
-export const adminPreview = new Hono<AppEnv>();
+export const adminData = new Hono<AppEnv>();
 
-adminPreview.use("*", async (c, next) => {
-  const env = c.env.ENVIRONMENT;
-  if (env !== "development" && env !== "staging") {
-    return c.json({ error: "not_found" }, 404);
-  }
-  await next();
-});
+adminData.use("*", requireAdmin);
 
-adminPreview.get("/oth-path", async (c) => {
+adminData.get("/oth-path", async (c) => {
   const rows = (
     await c.env.DB.prepare(
       `SELECT id, name, email, gender, age, credits,
@@ -24,7 +21,7 @@ adminPreview.get("/oth-path", async (c) => {
   return c.json(rows);
 });
 
-adminPreview.get("/oth-path", async (c) => {
+adminData.get("/oth-path", async (c) => {
   const id = Number(c.req.param("id"));
   const row = await c.env.DB.prepare(
     `SELECT id, name, email, gender, age, credits,
@@ -37,7 +34,7 @@ adminPreview.get("/oth-path", async (c) => {
   return c.json(row);
 });
 
-adminPreview.get("/oth-path", async (c) => {
+adminData.get("/oth-path", async (c) => {
   const rows = (
     await c.env.DB.prepare(
       `SELECT c.id, c.name, c.username,
@@ -54,7 +51,7 @@ adminPreview.get("/oth-path", async (c) => {
   return c.json(rows);
 });
 
-adminPreview.get("/oth-path", async (c) => {
+adminData.get("/oth-path", async (c) => {
   const id = Number(c.req.param("id"));
   const row = await c.env.DB.prepare(
     `SELECT c.id, c.name, c.username, c.description,
@@ -72,7 +69,7 @@ adminPreview.get("/oth-path", async (c) => {
   return c.json(row);
 });
 
-adminPreview.get("/oth-path", async (c) => {
+adminData.get("/oth-path", async (c) => {
   const id = Number(c.req.param("id"));
   const clone = await c.env.DB.prepare(
     `SELECT c.id, c.name, c.username, c.description,
@@ -138,7 +135,7 @@ adminPreview.get("/oth-path", async (c) => {
   });
 });
 
-adminPreview.get("/oth-path", async (c) => {
+adminData.get("/oth-path", async (c) => {
   const id = Number(c.req.param("id"));
   const clone = await c.env.DB.prepare(
     `SELECT c.id, c.name, c.clone_type AS cloneType,
@@ -187,7 +184,7 @@ adminPreview.get("/oth-path", async (c) => {
   });
 });
 
-adminPreview.get("/messages/:cloneId", async (c) => {
+adminData.get("/messages/:cloneId", async (c) => {
   const cloneId = Number(c.req.param("cloneId"));
   const rows = (
     await c.env.DB.prepare(
@@ -205,9 +202,9 @@ adminPreview.get("/messages/:cloneId", async (c) => {
   return c.json(rows);
 });
 
-adminPreview.get("/oth-path", (c) => c.json([]));
+adminData.get("/oth-path", (c) => c.json([]));
 
-adminPreview.get("/stats", async (c) => {
+adminData.get("/stats", async (c) => {
   const u = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM users`).first<{ n: number }>();
   const cl = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM clones`).first<{ n: number }>();
   const m = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM messages`).first<{ n: number }>();

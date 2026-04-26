@@ -19,7 +19,7 @@ import { cloneShorts, shortsFeed } from "./routes/shorts";
 import { cloneEditorTransfer } from "./routes/editorTransfer";
 import { credits } from "./routes/credits";
 import { admin } from "./routes/admin";
-import { adminPreview } from "./routes/adminPreview";
+import { adminData } from "./routes/adminData";
 import { adminAuth } from "./routes/adminAuth";
 import { adminWebauthn } from "./routes/adminWebauthn";
 import { coldRecovery } from "./routes/coldRecovery";
@@ -36,7 +36,27 @@ app.onError(onError);
 
 app.use("*", requestId);
 app.use("*", secureHeaders());
-app.use("*", cors({ origin: (o) => o ?? "*", credentials: true }));
+
+const ALLOWED_ORIGINS = new Set<string>([
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:8787",
+  "https://afterlife-admin.pages.dev",
+]);
+const PAGES_HOST_RE = /^https:\/\/[a-z0-9-]+\.afterlife-admin\.pages\.dev$/;
+
+app.use(
+  "*",
+  cors({
+    origin: (origin) => {
+      if (!origin) return "*";
+      if (ALLOWED_ORIGINS.has(origin)) return origin;
+      if (PAGES_HOST_RE.test(origin)) return origin;
+      return null;
+    },
+    credentials: true,
+  }),
+);
 app.use("*", rateLimit());
 
 app.get("/", (c) =>
@@ -77,7 +97,7 @@ app.route("/oth-path", adminWebauthn);
 app.route("/oth-path", coldRecovery);
 app.route("/oth-path", adminQuorum);
 app.route("/oth-path", admin);
-app.route("/oth-path", adminPreview);
+app.route("/oth-path", adminData);
 app.route("/oth-path", emergency);
 app.route("/oth-path", inheritance);
 app.route("/oth-path", gdpr);
