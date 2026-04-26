@@ -13,6 +13,21 @@ export interface L1ProfilePayload {
   notes: string;
 }
 
+export function v_f689cd(
+  v_020b4b,
+): Partial<v_c2a674> {
+  const v_779914 = v_020b4b?.attrs ?? {};
+  return {
+    personaAge: v_779914.age as v_c2a674['personaAge'],
+    personaGender: v_779914.gender as v_c2a674['personaGender'],
+    personaTypes: v_779914.personalities
+      ? (v_779914.personalities.split(',').map((v_fd5f43) => v_fd5f43.trim()).filter(Boolean) as v_c2a674['personaTypes'])
+      : undefined,
+    personaMbti: v_779914.mbti as v_c2a674['personaMbti'],
+    personaNotes: v_020b4b?.notes ?? '',
+  };
+}
+
 export function v_556c5b(d: v_c2a674): L1ProfilePayload | undefined {
   const v_3555ae = {};
   if (v_d5dda0.personaAge) v_3555ae.age = v_d5dda0.personaAge;

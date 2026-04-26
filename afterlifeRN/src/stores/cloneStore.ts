@@ -16,6 +16,8 @@ interface CloneState {
   resetCreationDraft: () => void;
   getCloneById: (id: number) => v_affcc0 | undefined;
   addClone: (clone: v_affcc0) => void;
+
+  updateLocalClone: (id: number, patch: Partial<v_affcc0>) => void;
 }
 
 export const v_194498 = v_a7c0d4<CloneState>((v_bb8024, v_38715b) => ({
@@ -42,4 +44,20 @@ export const v_194498 = v_a7c0d4<CloneState>((v_bb8024, v_38715b) => ({
     v_bb8024((v_b6e533) => ({
       localClones: [...v_b6e533.localClones, v_eb25ce],
     })),
+
+  updateLocalClone: (v_389afb, v_17dc8a) => {
+    const v_3c8572 = v_38715b().localClones.find((v_3f4e2e) => v_3f4e2e.id === v_389afb);
+    if (v_3c8572) {
+      v_bb8024((v_b6e533) => ({
+        localClones: v_b6e533.localClones.map((v_3f4e2e) => (v_3f4e2e.id === v_389afb ? { ...v_3f4e2e, ...v_17dc8a } : v_3f4e2e)),
+      }));
+      return;
+    }
+    const v_bdb39e = v_694b7f.clones().find((v_3f4e2e) => v_3f4e2e.id === v_389afb);
+    if (v_bdb39e) {
+      v_bb8024((v_b6e533) => ({
+        localClones: [...v_b6e533.localClones, { ...v_bdb39e, ...v_17dc8a }],
+      }));
+    }
+  },
 }));

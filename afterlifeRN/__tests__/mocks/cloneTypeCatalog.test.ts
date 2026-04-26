@@ -5,8 +5,8 @@ import {
   v_c4c43f,
 } from '../../src/mocks/cloneTypeCatalog';
 
-test('CLONE_TYPES has exactly memlow/friend/mentor/celeb', () => {
-  expect(v_aad223.map(v_8d41d7 => v_8d41d7.id)).toEqual(['memlow', 'friend', 'mentor', 'celeb']);
+test('CLONE_TYPES has exactly memlow/friend (사용자 정정: Step1 2개로 축소)', () => {
+  expect(v_aad223.map(v_8d41d7 => v_8d41d7.id)).toEqual(['memlow', 'friend']);
 });
 
 test('every type has iconName + label + desc (no emoji field)', () => {
@@ -24,12 +24,10 @@ test('memlow has visibilityLocked=true and defaultVisibility=private', () => {
   expect(v_1b27f8.defaultVisibility).toBe('private');
 });
 
-test('non-memlow types are visibilityLocked=false and default public', () => {
-  for (const v_389afb of ['friend', 'mentor', 'celeb'] as const) {
-    const v_35f85c = v_c4c43f(v_389afb);
-    expect(v_35f85c.visibilityLocked).toBe(false);
-    expect(v_35f85c.defaultVisibility).toBe('public');
-  }
+test('일반(friend) 은 visibilityLocked=false 이고 default public', () => {
+  const v_35f85c = v_c4c43f('friend');
+  expect(v_35f85c.visibilityLocked).toBe(false);
+  expect(v_35f85c.defaultVisibility).toBe('public');
 });
 
 test('MEMLOW_RELATIONS includes at least mother/father/spouse/child/pet/other', () => {
