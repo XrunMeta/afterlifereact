@@ -11,12 +11,14 @@ beforeEach(() => {
   mockNavigate.mockClear();
 });
 
-test('renders 4 cloneType cards with labels', () => {
-  const { getByText } = render(<Step1CloneTypeScreen {...navProps} />);
+test('renders 2 cloneType cards (memlow / 일반) with labels', () => {
+
+  const { getByText, queryByText } = render(<Step1CloneTypeScreen {...navProps} />);
   expect(getByText('떠난 소중한 이')).toBeTruthy();
-  expect(getByText('창작 AI 친구')).toBeTruthy();
-  expect(getByText('전문 멘토')).toBeTruthy();
-  expect(getByText('유명인')).toBeTruthy();
+  expect(getByText('일반')).toBeTruthy();
+
+  expect(queryByText('전문 멘토')).toBeNull();
+  expect(queryByText('유명인')).toBeNull();
 });
 
 test('next button disabled until a type is selected', () => {

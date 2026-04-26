@@ -27,10 +27,24 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { formatPersonaPrompt, l1ProfileToDraft, draftToL1Profile } from "../../lib/personaPrompt";
 import PersonaSection from "../clone-creation/content/PersonaSection";
 import { MEMLOW_RELATIONS } from "../../mocks/cloneTypeCatalog";
+import { INTEREST_CATEGORIES } from "../../mocks/interestHelpers";
 
 type Visibility = "public" | "private" | "followers";
 
 type Props = NativeStackScreenProps<ClonesStackParamList, "CloneEdit">;
+
+const interestCategories = INTEREST_CATEGORIES.map((c) => ({
+  id: c.id,
+  title: c.label,
+  subtitle: c.subtitle,
+  interests: c.interests,
+}));
+const interestToCategoryId = new Map<string, string>();
+for (const cat of INTEREST_CATEGORIES) {
+  for (const i of cat.interests) {
+    interestToCategoryId.set(i.label, cat.id);
+  }
+}
 
 export default function CloneEditScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
@@ -38,6 +52,8 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const updateLocalClone = useCloneStore((s) => s.updateLocalClone);
   const viewerId = useAuthStore((s) => s.user?.id) ?? null;
 
+  const [primaryCategory, setPrimaryCategory] = useState("");
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [customInterests, setCustomInterests] = useState<string[]>([]);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customInput, setCustomInput] = useState("");
@@ -66,6 +82,20 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         relation: (clone as Clone & { relation?: MemlowRelation }).relation,
         cloneType: clone.cloneType,
       });
+
+      if (clone.cloneType !== 'memlow') {
+        const firstInterest = clone.interests[0];
+        const catId = firstInterest ? interestToCategoryId.get(firstInterest) ?? "" : "";
+        setPrimaryCategory(catId);
+
+        if (catId) {
+          const cat = interestCategories.find((c) => c.id === catId);
+          const ids = (cat?.interests ?? [])
+            .filter((i) => clone.interests.includes(i.label))
+            .map((i) => i.id);
+          setSelectedInterests(ids);
+        }
+      }
     }
   }, [clone]);
 
@@ -103,6 +133,14 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       setShowCustomInput(false);
     }
   };
+
+  const toggleInterest = (id: string) => {
+    setSelectedInterests((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  };
+
+  const currentCategory = interestCategories.find((c) => c.id === primaryCategory);
 
   const handleSave = () => {
     if (!clone) return;
@@ -267,38 +305,105 @@ export default function CloneEditScreen({ route, navigation }: Props) {
             containerStyle={{ marginTop: 16 }}
           />
 
-          {}
-          <Text style={s.customTitle}>그 외 관심사</Text>
-          <View style={s.customTags}>
-            {customInterests.map((tag, i) => (
-              <View key={i} style={s.customTag}>
-                <Text style={s.customTagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-          {showCustomInput ? (
-            <View style={s.customInputRow}>
-              <TextInput
-                style={s.customTextInput}
-                value={customInput}
-                onChangeText={setCustomInput}
-                placeholder="관심사를 입력하세요"
-                placeholderTextColor={COLORS.placeholder}
-                onSubmitEditing={addCustomInterest}
-                autoFocus
-              />
-              <TouchableOpacity style={s.addBtn} onPress={addCustomInterest}>
-                <Text style={s.addBtnText}>추가</Text>
-              </TouchableOpacity>
+          {
+}
+          {clone.cloneType !== 'memlow' && (
+            <View style={{ marginTop: 16 }}>
+              <Text style={s.sectionTitle}>관심사</Text>
+              <Text style={s.sectionDesc}>
+                먼저 주 카테고리를 선택한 후, 관심사를 골라주세요.
+              </Text>
+
+              {!primaryCategory ? (
+                <View style={s.categoryList}>
+                  {interestCategories.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={s.categoryItem}
+                      onPress={() => setPrimaryCategory(cat.id)}
+                    >
+                      <Text style={s.categoryTitle}>{cat.title}</Text>
+                      <Text style={s.categorySub}>{cat.subtitle}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : currentCategory ? (
+                <>
+                  <View style={s.selectedCatHeader}>
+                    <View style={s.selectedCatLeft}>
+                      <Text style={s.selectedCatTitle}>{currentCategory.title}</Text>
+                      <View style={s.primaryBadge}>
+                        <Text style={s.primaryBadgeText}>주 카테고리</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={s.changeBtn}
+                      onPress={() => {
+                        setPrimaryCategory("");
+                        setSelectedInterests([]);
+                        setCustomInterests([]);
+                      }}
+                    >
+                      <Text style={s.changeBtnText}>변경</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={s.interestGrid}>
+                    {currentCategory.interests.map((interest) => {
+                      const selected = selectedInterests.includes(interest.id);
+                      return (
+                        <TouchableOpacity
+                          key={interest.id}
+                          style={[s.interestItem, selected && s.interestSelected]}
+                          onPress={() => toggleInterest(interest.id)}
+                        >
+                          <Text style={s.interestIcon}>{interest.icon}</Text>
+                          <Text style={s.interestLabel}>{interest.label}</Text>
+                          {selected && (
+                            <View style={s.checkCircle}>
+                              <Feather name="check" size={14} color={COLORS.white} />
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={s.customTitle}>그 외 관심사</Text>
+                  <View style={s.customTags}>
+                    {customInterests.map((tag, i) => (
+                      <View key={i} style={s.customTag}>
+                        <Text style={s.customTagText}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  {showCustomInput ? (
+                    <View style={s.customInputRow}>
+                      <TextInput
+                        style={s.customTextInput}
+                        value={customInput}
+                        onChangeText={setCustomInput}
+                        placeholder="관심사를 입력하세요"
+                        placeholderTextColor={COLORS.placeholder}
+                        onSubmitEditing={addCustomInterest}
+                        autoFocus
+                      />
+                      <TouchableOpacity style={s.addBtn} onPress={addCustomInterest}>
+                        <Text style={s.addBtnText}>추가</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={s.addCustomBtn}
+                      onPress={() => setShowCustomInput(true)}
+                    >
+                      <Feather name="plus" size={18} color={COLORS.zinc600} />
+                      <Text style={s.addCustomText}>관심사 추가하기</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : null}
             </View>
-          ) : (
-            <TouchableOpacity
-              style={s.addCustomBtn}
-              onPress={() => setShowCustomInput(true)}
-            >
-              <Feather name="plus" size={18} color={COLORS.zinc600} />
-              <Text style={s.addCustomText}>관심사 추가하기</Text>
-            </TouchableOpacity>
           )}
         </View>
 

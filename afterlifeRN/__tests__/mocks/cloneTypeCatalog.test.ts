@@ -5,8 +5,8 @@ import {
   getCloneTypeMeta,
 } from '../../src/mocks/cloneTypeCatalog';
 
-test('CLONE_TYPES has exactly memlow/friend/mentor/celeb', () => {
-  expect(CLONE_TYPES.map(t => t.id)).toEqual(['memlow', 'friend', 'mentor', 'celeb']);
+test('CLONE_TYPES has exactly memlow/friend (사용자 정정: Step1 2개로 축소)', () => {
+  expect(CLONE_TYPES.map(t => t.id)).toEqual(['memlow', 'friend']);
 });
 
 test('every type has iconName + label + desc (no emoji field)', () => {
@@ -24,12 +24,10 @@ test('memlow has visibilityLocked=true and defaultVisibility=private', () => {
   expect(memlow.defaultVisibility).toBe('private');
 });
 
-test('non-memlow types are visibilityLocked=false and default public', () => {
-  for (const id of ['friend', 'mentor', 'celeb'] as const) {
-    const m = getCloneTypeMeta(id);
-    expect(m.visibilityLocked).toBe(false);
-    expect(m.defaultVisibility).toBe('public');
-  }
+test('일반(friend) 은 visibilityLocked=false 이고 default public', () => {
+  const m = getCloneTypeMeta('friend');
+  expect(m.visibilityLocked).toBe(false);
+  expect(m.defaultVisibility).toBe('public');
 });
 
 test('MEMLOW_RELATIONS includes at least mother/father/spouse/child/pet/other', () => {
