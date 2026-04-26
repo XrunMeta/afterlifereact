@@ -39,8 +39,9 @@ test('stranger (viewer=999, clone=1) sees read-only L1 without editor actions', 
   expect(v_32bb43('request-editor')).toBeNull();
 });
 
-test('shows L1 persona prompt card and DEV-only banner (PRD §기본 페르소나 입력 정책)', () => {
-  const { getByText: v_2b0f8a } = v_624657(<CloneEditScreen {...v_222dba(1)} />);
+test('shows L1 persona prompt card with edit button (PRD §기본 페르소나 입력 정책)', () => {
+  const { getByText: v_2b0f8a, getByLabelText: v_690a9b } = v_624657(<CloneEditScreen {...v_222dba(1)} />);
   expect(v_2b0f8a('페르소나')).toBeTruthy();
-  expect(v_2b0f8a('🛠 개발용 — 프로덕션 미사용')).toBeTruthy();
+
+  expect(v_690a9b('persona-edit-open')).toBeTruthy();
 });
