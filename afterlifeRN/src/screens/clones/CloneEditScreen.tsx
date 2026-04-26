@@ -127,11 +127,25 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     .filter((x): x is { userId: number; displayName: string } => x != null);
 
   const addCustomInterest = () => {
-    if (customInput.trim()) {
-      setCustomInterests((prev) => [...prev, customInput.trim()]);
-      setCustomInput("");
-      setShowCustomInput(false);
-    }
+
+    const parts = customInput
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return;
+    setCustomInterests((prev) => {
+      const seen = new Set(prev);
+      const next = [...prev];
+      for (const p of parts) {
+        if (!seen.has(p)) {
+          next.push(p);
+          seen.add(p);
+        }
+      }
+      return next;
+    });
+    setCustomInput("");
+    setShowCustomInput(false);
   };
 
   const toggleInterest = (id: string) => {
@@ -383,7 +397,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                         style={s.customTextInput}
                         value={customInput}
                         onChangeText={setCustomInput}
-                        placeholder="관심사를 입력하세요"
+                        placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
                         placeholderTextColor={COLORS.placeholder}
                         onSubmitEditing={addCustomInterest}
                         autoFocus
