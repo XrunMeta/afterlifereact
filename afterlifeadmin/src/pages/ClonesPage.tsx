@@ -6,7 +6,7 @@ import { v_c1eeb6 } from "../components/DataTable";
 const v_b9fa58 = [
   { key: "id", label: "ID" },
   { key: "name", label: "Name" },
-  { key: "username", label: "Username" },
+  { key: "username", label: "클론 ID" },
   { key: "cloneType", label: "Type" },
   { key: "visibility", label: "Visibility" },
   { key: "trainingStatus", label: "Status" },
