@@ -99,7 +99,15 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       setName(clone.displayName);
       setDescription(clone.description);
       setVisibility(clone.visibility);
-      if (clone.l1Profile) setL1(clone.l1Profile);
+      if (clone.l1Profile) {
+        setL1(clone.l1Profile);
+
+        const a = clone.l1Profile.attrs ?? {};
+        if (a.age) setAgeRange(a.age);
+        if (a.gender) setGender(a.gender);
+        if (a.personalities) setPersonalities(a.personalities.split(',').map((s) => s.trim()).filter(Boolean));
+        if (a.mbti) setMbti(a.mbti);
+      }
     }
   }, [clone]);
 
@@ -242,23 +250,16 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
       <View style={s.content}>
         {
+
 }
         <View style={s.promptCard}>
           <Text style={s.promptTitle}>페르소나</Text>
           <Text style={s.promptBody}>
             {formatPersonaPrompt({
-              name: name || clone.displayName,
-              description,
+              name: clone.displayName,
+              description: clone.description,
               interests: clone.interests,
-              l1: {
-                attrs: {
-                  ...(ageRange ? { age: ageRange } : {}),
-                  ...(gender ? { gender } : {}),
-                  ...(personalities.length ? { personalities: personalities.join(',') } : {}),
-                  ...(mbti ? { mbti } : {}),
-                },
-                notes: l1.notes,
-              },
+              l1: clone.l1Profile,
             })}
           </Text>
         </View>

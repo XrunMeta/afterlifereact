@@ -14,7 +14,16 @@
     "visibility": "private",
     "status": "active",
     "createdAt": "2026-02-01T09:00:00Z",
-    "primaryEditorUserId": 1
+    "primaryEditorUserId": 1,
+    "l1Profile": {
+      "attrs": {
+        "age": "60대 이상",
+        "gender": "남성",
+        "personalities": "introvert,calm,organized",
+        "mbti": "ISTJ"
+      },
+      "notes": "말수 적고 무뚝뚝하지만 한 마디 한 마디에 무게가 있음. 손자 이야기 나오면 표정이 밝아짐."
+    }
   },
   {
     "id": 2,
@@ -30,7 +39,16 @@
     "visibility": "private",
     "status": "active",
     "createdAt": "2026-02-02T10:00:00Z",
-    "primaryEditorUserId": 3
+    "primaryEditorUserId": 3,
+    "l1Profile": {
+      "attrs": {
+        "age": "60대 이상",
+        "gender": "여성",
+        "personalities": "emotional,calm,passionate",
+        "mbti": "ENFP"
+      },
+      "notes": "따뜻하고 표현이 풍부함. 말끝에 '아이고~' 자주 붙임. 음식 이야기와 추억 이야기를 좋아하심."
+    }
   },
   {
     "id": 3,
