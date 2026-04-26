@@ -268,23 +268,14 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           />
 
           {}
-          <PersonaSection
-            draft={v_f04727}
-            onChange={(v_17dc8a) => v_a07441((v_d5dda0) => ({ ...v_d5dda0, ...v_17dc8a }))}
+          <TextField
+            label="한 줄 소개"
+            value={v_6856a9}
+            onChangeText={v_b7e174}
+            placeholder="이 페르소나의 한 줄 소개를 입력해주세요..."
+            multiline
+            containerStyle={{ marginTop: 16 }}
           />
-
-          {}
-          <View style={v_fd5f43.beforeBox}>
-            <Text style={v_fd5f43.beforeLabel}>변경 전 (영구 데이터)</Text>
-            <Text style={v_fd5f43.beforeBody}>
-              {v_d6d0ff({
-                name: v_eb25ce.displayName,
-                description: v_eb25ce.description,
-                interests: v_eb25ce.interests,
-                l1: v_eb25ce.l1Profile,
-              })}
-            </Text>
-          </View>
 
           {}
           {v_eb25ce.cloneType === 'memlow' && (
@@ -310,17 +301,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           )}
 
           {}
-          <TextField
-            label="한 줄 소개"
-            value={v_6856a9}
-            onChangeText={v_b7e174}
-            placeholder="이 페르소나의 한 줄 소개를 입력해주세요..."
-            multiline
-            containerStyle={{ marginTop: 16 }}
-          />
-
-          {
-}
           {v_eb25ce.cloneType !== 'memlow' && (
             <View style={{ marginTop: 16 }}>
               <Text style={v_fd5f43.sectionTitle}>관심사</Text>
@@ -363,7 +343,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   </View>
 
                   <View style={v_fd5f43.interestGrid}>
-                    {}
                     {v_90b3e0.interests.map((v_e4601c) => {
                       const v_587413 = v_976e06.includes(v_e4601c.id);
                       return (
@@ -382,7 +361,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         </TouchableOpacity>
                       );
                     })}
-                    {}
                     {v_15a866.map((v_2869c1) => (
                       <TouchableOpacity
                         key={v_2869c1}
@@ -394,7 +372,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         <Text style={v_fd5f43.customTagText}>{v_2869c1} ✕</Text>
                       </TouchableOpacity>
                     ))}
-                    {}
                     <TouchableOpacity
                       style={v_fd5f43.etcChip}
                       onPress={() => v_160b34((v_81e2ef) => !v_81e2ef)}
@@ -423,6 +400,25 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               ) : null}
             </View>
           )}
+
+          {}
+          <View style={v_fd5f43.beforeBox}>
+            <Text style={v_fd5f43.beforeLabel}>변경 전 (영구 데이터)</Text>
+            <Text style={v_fd5f43.beforeBody}>
+              {v_d6d0ff({
+                name: v_eb25ce.displayName,
+                description: v_eb25ce.description,
+                interests: v_eb25ce.interests,
+                l1: v_eb25ce.l1Profile,
+              })}
+            </Text>
+          </View>
+
+          {}
+          <PersonaSection
+            draft={v_f04727}
+            onChange={(v_17dc8a) => v_a07441((v_d5dda0) => ({ ...v_d5dda0, ...v_17dc8a }))}
+          />
         </View>
 
         {
