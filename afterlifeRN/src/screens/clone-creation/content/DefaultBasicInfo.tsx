@@ -1,8 +1,8 @@
-import v_a3453e from 'bapkr';
-import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
+import v_a3453e, { v_5ab095 } from 'bapkr';
+import { v_3094a2, v_19b633, v_4623af, v_472849, v_79c4f2 } from 'rcmrninabrnb';
 import v_e775af from '../../../components/ui/TextField';
 import v_84e2fc from '../../../components/ui/InterestChip';
-import { v_6e79a1, v_a3360a } from '../../../mocks/interestHelpers';
+import { v_6e79a1, v_a3360a, v_d3a8b6 } from '../../../mocks/interestHelpers';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 import v_78abf7 from './PersonaSection';
@@ -15,10 +15,32 @@ interface Props {
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const v_774c91 = v_f04727.interests ?? [];
   const v_02812c = v_f04727.category ? (v_a3360a[v_f04727.category] ?? []) : [];
+  const v_a6d973 = v_f04727.category === v_d3a8b6;
+  const [v_0f1d77, v_e887ea] = v_5ab095('');
 
   const v_09f2bd = (v_389afb) => {
     const v_a448ad = v_774c91.includes(v_389afb) ? v_774c91.filter(v_ebec57 => v_ebec57 !== v_389afb) : [...v_774c91, v_389afb];
     v_b187d9({ interests: v_a448ad });
+  };
+
+  const v_8fa105 = () => {
+
+    const v_468545 = v_0f1d77.split(',').map((v_fd5f43) => v_fd5f43.trim()).filter(Boolean);
+    if (v_468545.length === 0) return;
+    const v_110a8b = new Set(v_774c91);
+    const v_a448ad = [...v_774c91];
+    for (const v_e2a85c of v_468545) {
+      if (!v_110a8b.has(v_e2a85c)) {
+        v_a448ad.push(v_e2a85c);
+        v_110a8b.add(v_e2a85c);
+      }
+    }
+    v_b187d9({ interests: v_a448ad });
+    v_e887ea('');
+  };
+
+  const v_78c56b = (v_2869c1) => {
+    v_b187d9({ interests: v_774c91.filter((v_ebec57) => v_ebec57 !== v_2869c1) });
   };
 
   return (
@@ -68,6 +90,40 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         </>
       )}
 
+      {}
+      {v_a6d973 && (
+        <>
+          <Text style={v_d81136.label}>관심사 직접 입력</Text>
+          <View style={v_d81136.customInputRow}>
+            <TextInput
+              style={v_d81136.customTextInput}
+              value={v_0f1d77}
+              onChangeText={v_e887ea}
+              placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
+              placeholderTextColor={v_1bfbd0.placeholder}
+              onSubmitEditing={v_8fa105}
+              returnKeyType="done"
+            />
+            <TouchableOpacity style={v_d81136.addBtn} onPress={v_8fa105}>
+              <Text style={v_d81136.addBtnText}>추가</Text>
+            </TouchableOpacity>
+          </View>
+          {v_774c91.length > 0 && (
+            <View style={v_d81136.chips}>
+              {v_774c91.map((v_2869c1) => (
+                <TouchableOpacity
+                  key={v_2869c1}
+                  style={v_d81136.customTag}
+                  onPress={() => v_78c56b(v_2869c1)}
+                >
+                  <Text style={v_d81136.customTagText}>{v_2869c1} ✕</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </>
+      )}
+
       <PersonaSection draft={v_f04727} onChange={v_b187d9} />
     </View>
   );
@@ -89,4 +145,18 @@ const v_d81136 = v_472849.create({
   cat: { padding: 10, borderRadius: v_8b0c90.sm, borderWidth: 1, borderColor: v_1bfbd0.zinc200 },
   catActive: { backgroundColor: v_1bfbd0.violet100, borderColor: v_1bfbd0.violet600 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  customInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  customTextInput: {
+    flex: 1, borderWidth: 1, borderColor: v_1bfbd0.zinc200, borderRadius: v_8b0c90.sm,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: v_1bfbd0.zinc900,
+  },
+  addBtn: {
+    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: v_1bfbd0.violet600, borderRadius: v_8b0c90.sm,
+  },
+  addBtnText: { color: v_1bfbd0.white, fontSize: 14, fontWeight: '600' },
+  customTag: {
+    paddingHorizontal: 12, paddingVertical: 6, backgroundColor: v_1bfbd0.violet100,
+    borderRadius: v_8b0c90.full, borderWidth: 1, borderColor: v_1bfbd0.violet600,
+  },
+  customTagText: { fontSize: 13, color: v_1bfbd0.violet600 },
 });
