@@ -4,7 +4,8 @@ import type { v_de0a25 } from "../lib/env";
 export const v_d8985c = new v_b7c41b<v_de0a25>();
 
 v_d8985c.use("*", async (v_3f4e2e, v_a448ad) => {
-  if (v_3f4e2e.env.ENVIRONMENT !== "development") {
+  const v_c9c489 = v_3f4e2e.env.ENVIRONMENT;
+  if (v_c9c489 !== "development" && v_c9c489 !== "staging") {
     return v_3f4e2e.json({ error: "not_found" }, 404);
   }
   await v_a448ad();
