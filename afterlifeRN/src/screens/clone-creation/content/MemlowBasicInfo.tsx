@@ -4,6 +4,7 @@ import v_e775af from '../../../components/ui/TextField';
 import { v_0a40d6 } from '../../../mocks/cloneTypeCatalog';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
+import v_78abf7 from './PersonaSection';
 
 interface Props {
   draft: v_c2a674;
@@ -44,6 +45,8 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           );
         })}
       </View>
+
+      <PersonaSection draft={v_f04727} onChange={v_b187d9} />
     </View>
   );
 }
