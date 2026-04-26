@@ -148,7 +148,9 @@ export default function v_19ba0e() {
           },
         })}
       />
-      <Tab.Screen name="ShortsTab" component={v_87eb38} />
+      {
+}
+      <Tab.Screen name="ShortsTab" component={v_14b43e} />
       <Tab.Screen name="MyTab" component={v_ed02a5} />
     </Tab.Navigator>
   );
