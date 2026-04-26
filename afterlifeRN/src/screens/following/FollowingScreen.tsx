@@ -44,6 +44,20 @@ type FollowedPersona = {
 
 const mockIntimacy = (cloneId: number) => ((cloneId * 17) % 100);
 const mockInteractions = (cloneId: number) => 100 + ((cloneId * 137) % 5000);
+const mockLikes = (feedId: number) => 500 + ((feedId * 213) % 3000);
+
+type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
+const MOCK_COMMENT_AUTHORS: ReadonlyArray<{ author: string; avatar: string; content: string; time: string }> = [
+  { author: "@investor_kim", avatar: "https://i.pravatar.cc/100?img=1", content: "정말 유익한 분석입니다! 감사합니다.", time: "5분 전" },
+  { author: "@market_lover", avatar: "https://i.pravatar.cc/100?img=5", content: "장기 투자 관점으로 접근하겠습니다.", time: "12분 전" },
+  { author: "@finance_pro", avatar: "https://i.pravatar.cc/100?img=3", content: "좋은 인사이트네요", time: "20분 전" },
+  { author: "@healing_soul", avatar: "https://i.pravatar.cc/100?img=9", content: "위로가 됩니다. 감사해요", time: "3분 전" },
+  { author: "@mindful_life", avatar: "https://i.pravatar.cc/100?img=10", content: "오늘도 힘내세요!", time: "15분 전" },
+];
+const mockCommentList = (feedId: number): MockComment[] => {
+  const count = (feedId * 7) % 4; 
+  return MOCK_COMMENT_AUTHORS.slice(0, count).map((c, i) => ({ id: `c-${feedId}-${i}`, ...c }));
+};
 
 const toPersona = (clone: DomainClone, ownerHandle?: string): FollowedPersona => ({
   id: clone.id,
@@ -172,13 +186,7 @@ export default function FollowingScreen() {
     }
   };
 
-  const currentComments: Array<{
-    id: string;
-    author: string;
-    avatar: string;
-    content: string;
-    time: string;
-  }> = [];
+  const currentComments: MockComment[] = commentPostId ? mockCommentList(commentPostId) : [];
 
   const renderPost = ({ item }: { item: (typeof posts)[0] }) => {
     const feedImage = item.feed.mediaUrl ?? item.persona.avatar;
@@ -208,7 +216,7 @@ export default function FollowingScreen() {
               <Text style={s.creatorAccount}>{item.persona.creatorAccount}</Text>
             ) : null}
             <View style={s.tagRow}>
-              {item.persona.interests.slice(0, 3).map((tag, i) => (
+              {item.persona.interests.map((tag, i) => (
                 <View key={i} style={s.overlayTag}>
                   <Text style={s.overlayTagText}>#{tag}</Text>
                 </View>
@@ -265,9 +273,9 @@ export default function FollowingScreen() {
           </View>
           <View style={s.actionsRight}>
             <Text style={s.countText}>
-              좋아요 {likedPosts.has(item.feed.id) ? 1 : 0}개
+              좋아요 {formatCount(mockLikes(item.feed.id) + (likedPosts.has(item.feed.id) ? 1 : 0))}개
             </Text>
-            <Text style={s.countTextSub}>댓글 0개</Text>
+            <Text style={s.countTextSub}>댓글 {mockCommentList(item.feed.id).length}개</Text>
           </View>
         </View>
       </View>
@@ -465,6 +473,35 @@ export default function FollowingScreen() {
             </View>
 
             <ScrollView style={s.callScroll} showsVerticalScrollIndicator={false}>
+              {}
+              {!callSearchQuery && followedPersonas.length > 0 && (
+                <View style={s.callSectionBordered}>
+                  <Text style={s.callSectionTitle}>최근 통화</Text>
+                  {followedPersonas.slice(0, 2).map((p, i) => (
+                    <View key={p.id} style={s.callRow}>
+                      <Image source={{ uri: p.avatar }} style={s.callAvatar} />
+                      <View style={s.callInfo}>
+                        <Text style={s.callName}>{p.name}</Text>
+                        <Text style={s.callSub}>{p.creatorAccount}</Text>
+                        <Text style={s.callMeta}>
+                          {i === 0 ? "어제 • 8분 21초" : "3일 전 • 15분 32초"}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={s.callBtn}
+                        onPress={() => {
+                          setShowCallModal(false);
+                          rootNav.navigate("Call", { cloneId: p.id, name: p.name, image: p.avatar });
+                        }}
+                      >
+                        <Feather name="video" size={14} color={COLORS.white} />
+                        <Text style={s.callBtnText}>통화</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               {}
               <View style={s.callSection}>
                 <Text style={s.callSectionTitle}>{callSearchQuery ? "검색 결과" : "팔로잉 목록"}</Text>
