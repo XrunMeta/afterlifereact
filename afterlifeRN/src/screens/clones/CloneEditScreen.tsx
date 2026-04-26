@@ -363,6 +363,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   </View>
 
                   <View style={v_fd5f43.interestGrid}>
+                    {}
                     {v_90b3e0.interests.map((v_e4601c) => {
                       const v_587413 = v_976e06.includes(v_e4601c.id);
                       return (
@@ -381,17 +382,28 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         </TouchableOpacity>
                       );
                     })}
+                    {}
+                    {v_15a866.map((v_2869c1) => (
+                      <TouchableOpacity
+                        key={v_2869c1}
+                        style={v_fd5f43.customTag}
+                        onPress={() =>
+                          v_bbeee9((v_ba2215) => v_ba2215.filter((v_ebec57) => v_ebec57 !== v_2869c1))
+                        }
+                      >
+                        <Text style={v_fd5f43.customTagText}>{v_2869c1} ✕</Text>
+                      </TouchableOpacity>
+                    ))}
+                    {}
+                    <TouchableOpacity
+                      style={v_fd5f43.etcChip}
+                      onPress={() => v_160b34((v_81e2ef) => !v_81e2ef)}
+                    >
+                      <Text style={v_fd5f43.etcChipText}>+ 기타</Text>
+                    </TouchableOpacity>
                   </View>
 
-                  <Text style={v_fd5f43.customTitle}>그 외 관심사</Text>
-                  <View style={v_fd5f43.customTags}>
-                    {v_15a866.map((v_bd1444, v_ebec57) => (
-                      <View key={v_ebec57} style={v_fd5f43.customTag}>
-                        <Text style={v_fd5f43.customTagText}>{v_bd1444}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  {v_2b1044 ? (
+                  {v_2b1044 && (
                     <View style={v_fd5f43.customInputRow}>
                       <TextInput
                         style={v_fd5f43.customTextInput}
@@ -406,14 +418,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         <Text style={v_fd5f43.addBtnText}>추가</Text>
                       </TouchableOpacity>
                     </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={v_fd5f43.addCustomBtn}
-                      onPress={() => v_160b34(true)}
-                    >
-                      <Feather name="plus" size={18} color={v_1bfbd0.zinc600} />
-                      <Text style={v_fd5f43.addCustomText}>관심사 추가하기</Text>
-                    </TouchableOpacity>
                   )}
                 </>
               ) : null}
@@ -634,6 +638,16 @@ const v_fd5f43 = v_472849.create({
     borderColor: v_1bfbd0.violet600,
     borderRadius: v_8b0c90.full,
   },
+  etcChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: v_8b0c90.full,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+    borderStyle: 'dashed',
+    backgroundColor: v_1bfbd0.white,
+  },
+  etcChipText: { fontSize: 13, color: v_1bfbd0.zinc600 },
   customTagText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.violet600 },
   customInputRow: { flexDirection: "row", gap: 8 },
   customTextInput: {
