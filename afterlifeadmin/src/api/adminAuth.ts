@@ -1,4 +1,11 @@
-import { v_266e0d, v_dd1173, v_f6c414, v_da110b } from "../lib/auth";
+import {
+  v_266e0d,
+  v_dd1173,
+  v_8ce112,
+  v_f6c414,
+  v_c08eda,
+  v_da110b,
+} from "../lib/auth";
 
 const v_8aa4be = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 const v_b71808 = `${v_8aa4be}/oth-path`;
@@ -82,4 +89,16 @@ export async function v_ac75b4(v_c99bd2): Promise<VerifyResult> {
 
 export function v_d7d5a2() {
   v_da110b();
+}
+
+export async function v_0c4ee1(): Promise<string> {
+  const v_dfaee3 = v_c08eda();
+  if (!v_dfaee3) throw new Error("no refresh token");
+  const v_cb35cb = await v_c34e2f<{
+    accessToken: string;
+    refreshToken: string;
+    accessExpiresIn: number;
+  }>("/refresh", { refreshToken: v_dfaee3 });
+  v_8ce112({ accessToken: v_cb35cb.accessToken, refreshToken: v_cb35cb.refreshToken });
+  return v_cb35cb.accessToken;
 }

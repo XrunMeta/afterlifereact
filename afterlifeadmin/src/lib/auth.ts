@@ -55,6 +55,15 @@ export function v_dd1173(v_328259) {
   }
 }
 
+export function v_8ce112(v_328259) {
+  try {
+    localStorage.setItem(v_7ac62c, v_328259.accessToken);
+    localStorage.setItem(v_45457e, v_328259.refreshToken);
+  } catch {
+
+  }
+}
+
 export function v_266e0d(v_21cc31) {
   try {
     sessionStorage.setItem(v_bd631f, v_21cc31);
