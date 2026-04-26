@@ -44,6 +44,20 @@ type FollowedPersona = {
 
 const v_3ddce5 = (v_6e0fd3) => ((v_6e0fd3 * 17) % 100);
 const v_42378f = (v_6e0fd3) => 100 + ((v_6e0fd3 * 137) % 5000);
+const v_c0a5d3 = (v_c09aa8) => 500 + ((v_c09aa8 * 213) % 3000);
+
+type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
+const v_888327 = [
+  { author: "@investor_kim", avatar: "https://i.pravatar.cc/100?img=1", content: "정말 유익한 분석입니다! 감사합니다.", time: "5분 전" },
+  { author: "@market_lover", avatar: "https://i.pravatar.cc/100?img=5", content: "장기 투자 관점으로 접근하겠습니다.", time: "12분 전" },
+  { author: "@finance_pro", avatar: "https://i.pravatar.cc/100?img=3", content: "좋은 인사이트네요", time: "20분 전" },
+  { author: "@healing_soul", avatar: "https://i.pravatar.cc/100?img=9", content: "위로가 됩니다. 감사해요", time: "3분 전" },
+  { author: "@mindful_life", avatar: "https://i.pravatar.cc/100?img=10", content: "오늘도 힘내세요!", time: "15분 전" },
+];
+const v_937a56 = (v_c09aa8): MockComment[] => {
+  const v_9e8c70 = (v_c09aa8 * 7) % 4; 
+  return v_888327.slice(0, v_9e8c70).map((v_3f4e2e, v_ebec57) => ({ id: `c-${v_c09aa8}-${v_ebec57}`, ...v_3f4e2e }));
+};
 
 const v_986943 = (clone: v_4b85a1, v_edb3e7): FollowedPersona => ({
   id: v_eb25ce.id,
@@ -172,7 +186,7 @@ export default function v_14b43e() {
     }
   };
 
-  const v_3a63e7 = [];
+  const v_3a63e7 = v_5c83d5 ? v_937a56(v_5c83d5) : [];
 
   const v_bdaeb6 = ({ item: v_8c0b26 }: { item: (typeof v_b94d82)[0] }) => {
     const v_afeceb = v_8c0b26.feed.mediaUrl ?? v_8c0b26.persona.avatar;
@@ -202,7 +216,7 @@ export default function v_14b43e() {
               <Text style={v_fd5f43.creatorAccount}>{v_8c0b26.persona.creatorAccount}</Text>
             ) : null}
             <View style={v_fd5f43.tagRow}>
-              {v_8c0b26.persona.interests.slice(0, 3).map((v_bd1444, v_ebec57) => (
+              {v_8c0b26.persona.interests.map((v_bd1444, v_ebec57) => (
                 <View key={v_ebec57} style={v_fd5f43.overlayTag}>
                   <Text style={v_fd5f43.overlayTagText}>#{v_bd1444}</Text>
                 </View>
@@ -259,9 +273,9 @@ export default function v_14b43e() {
           </View>
           <View style={v_fd5f43.actionsRight}>
             <Text style={v_fd5f43.countText}>
-              좋아요 {v_c591dc.has(v_8c0b26.feed.id) ? 1 : 0}개
+              좋아요 {v_cae9dc(v_c0a5d3(v_8c0b26.feed.id) + (v_c591dc.has(v_8c0b26.feed.id) ? 1 : 0))}개
             </Text>
-            <Text style={v_fd5f43.countTextSub}>댓글 0개</Text>
+            <Text style={v_fd5f43.countTextSub}>댓글 {v_937a56(v_8c0b26.feed.id).length}개</Text>
           </View>
         </View>
       </View>
@@ -459,6 +473,35 @@ export default function v_14b43e() {
             </View>
 
             <ScrollView style={v_fd5f43.callScroll} showsVerticalScrollIndicator={false}>
+              {}
+              {!v_2116d2 && v_a48e44.length > 0 && (
+                <View style={v_fd5f43.callSectionBordered}>
+                  <Text style={v_fd5f43.callSectionTitle}>최근 통화</Text>
+                  {v_a48e44.slice(0, 2).map((v_e2a85c, v_ebec57) => (
+                    <View key={v_e2a85c.id} style={v_fd5f43.callRow}>
+                      <Image source={{ uri: v_e2a85c.avatar }} style={v_fd5f43.callAvatar} />
+                      <View style={v_fd5f43.callInfo}>
+                        <Text style={v_fd5f43.callName}>{v_e2a85c.name}</Text>
+                        <Text style={v_fd5f43.callSub}>{v_e2a85c.creatorAccount}</Text>
+                        <Text style={v_fd5f43.callMeta}>
+                          {v_ebec57 === 0 ? "어제 • 8분 21초" : "3일 전 • 15분 32초"}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        style={v_fd5f43.callBtn}
+                        onPress={() => {
+                          v_22a5cb(false);
+                          v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar });
+                        }}
+                      >
+                        <Feather name="video" size={14} color={v_1bfbd0.white} />
+                        <Text style={v_fd5f43.callBtnText}>통화</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               {}
               <View style={v_fd5f43.callSection}>
                 <Text style={v_fd5f43.callSectionTitle}>{v_2116d2 ? "검색 결과" : "팔로잉 목록"}</Text>
