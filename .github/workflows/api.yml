@@ -48,6 +48,18 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Create test .dev.vars (CI 더미 시크릿)
+        run: |
+          cat > .dev.vars <<'EOF'
+          JWT_ACCESS_SECRET=ci-access-secret-local-only-32bytes-min
+          JWT_REFRESH_SECRET=ci-refresh-secret-local-only-32bytes-min
+          AUDIT_SECRET=ci-audit-secret-local-only-32bytes-min
+          ALE_KEK=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          MASTER_ROOT=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          ADMIN_BOOTSTRAP_TOKEN=ci-bootstrap-token
+          LAZY_V2_MIGRATE_ENABLED=0
+          EOF
+
       - name: Test
         run: npm test
         # vitest miniflare 환경 — 외부 네트워크 불요
