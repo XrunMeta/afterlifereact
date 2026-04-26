@@ -1,4 +1,11 @@
-import { setPending, setSession, getPendingToken, clearSession } from "../lib/auth";
+import {
+  setPending,
+  setSession,
+  setTokens,
+  getPendingToken,
+  getRefreshToken,
+  clearSession,
+} from "../lib/auth";
 
 const API_ORIGIN = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 const AUTH_BASE = `${API_ORIGIN}/oth-path`;
@@ -82,4 +89,16 @@ export async function verifyTotp(code: string): Promise<VerifyResult> {
 
 export function logout() {
   clearSession();
+}
+
+export async function refreshSession(): Promise<string> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) throw new Error("no refresh token");
+  const r = await postJson<{
+    accessToken: string;
+    refreshToken: string;
+    accessExpiresIn: number;
+  }>("/refresh", { refreshToken });
+  setTokens({ accessToken: r.accessToken, refreshToken: r.refreshToken });
+  return r.accessToken;
 }

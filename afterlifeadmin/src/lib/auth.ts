@@ -59,6 +59,15 @@ export function setSession(opts: {
   }
 }
 
+export function setTokens(opts: { accessToken: string; refreshToken: string }) {
+  try {
+    localStorage.setItem(ACCESS_KEY, opts.accessToken);
+    localStorage.setItem(REFRESH_KEY, opts.refreshToken);
+  } catch {
+
+  }
+}
+
 export function setPending(token: string) {
   try {
     sessionStorage.setItem(PENDING_KEY, token);
