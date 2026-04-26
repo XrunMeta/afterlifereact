@@ -127,11 +127,25 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     .filter((v_62c214): v_62c214 is { userId: number; displayName: string } => v_62c214 != null);
 
   const v_d64dc0 = () => {
-    if (v_0f1d77.trim()) {
-      v_bbeee9((v_ba2215) => [...v_ba2215, v_0f1d77.trim()]);
-      v_e887ea("");
-      v_160b34(false);
-    }
+
+    const v_468545 = v_0f1d77
+      .split(',')
+      .map((v_fd5f43) => v_fd5f43.trim())
+      .filter(Boolean);
+    if (v_468545.length === 0) return;
+    v_bbeee9((v_ba2215) => {
+      const v_110a8b = new Set(v_ba2215);
+      const v_a448ad = [...v_ba2215];
+      for (const v_e2a85c of v_468545) {
+        if (!v_110a8b.has(v_e2a85c)) {
+          v_a448ad.push(v_e2a85c);
+          v_110a8b.add(v_e2a85c);
+        }
+      }
+      return v_a448ad;
+    });
+    v_e887ea("");
+    v_160b34(false);
   };
 
   const v_d82a00 = (v_389afb) => {
@@ -383,7 +397,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         style={v_fd5f43.customTextInput}
                         value={v_0f1d77}
                         onChangeText={v_e887ea}
-                        placeholder="관심사를 입력하세요"
+                        placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
                         placeholderTextColor={v_1bfbd0.placeholder}
                         onSubmitEditing={v_d64dc0}
                         autoFocus
