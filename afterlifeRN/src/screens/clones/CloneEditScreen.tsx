@@ -301,8 +301,10 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                     key={c.id}
                     style={[s.simpleCat, primaryCategory === c.id && s.simpleCatActive]}
                     onPress={() => {
+
+                      const prevActiveList = primaryCategory ? (INTEREST_MAP[primaryCategory] ?? []) : [];
                       setPrimaryCategory(c.id);
-                      setInterests([]);
+                      setInterests((prev) => prev.filter((label) => !prevActiveList.includes(label)));
                     }}
                   >
                     <Text>{c.label}</Text>
