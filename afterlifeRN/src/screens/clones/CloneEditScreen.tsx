@@ -301,8 +301,10 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     key={v_3f4e2e.id}
                     style={[v_fd5f43.simpleCat, v_5ba743 === v_3f4e2e.id && v_fd5f43.simpleCatActive]}
                     onPress={() => {
+
+                      const v_49d684 = v_5ba743 ? (v_a3360a[v_5ba743] ?? []) : [];
                       v_5cc801(v_3f4e2e.id);
-                      v_8cb9cf([]);
+                      v_8cb9cf((v_ba2215) => v_ba2215.filter((v_2869c1) => !v_49d684.includes(v_2869c1)));
                     }}
                   >
                     <Text>{v_3f4e2e.label}</Text>
