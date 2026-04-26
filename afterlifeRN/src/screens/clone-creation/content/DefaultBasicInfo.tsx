@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import TextField from '../../../components/ui/TextField';
 import InterestChip from '../../../components/ui/InterestChip';
-import { CATEGORIES, INTEREST_MAP, ETC_CATEGORY_ID } from '../../../mocks/interestHelpers';
+import { CATEGORIES, INTEREST_MAP } from '../../../mocks/interestHelpers';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 import PersonaSection from './PersonaSection';
@@ -15,8 +15,10 @@ interface Props {
 function Component({ draft, onChange }: Props) {
   const interests = draft.interests ?? [];
   const activeList = draft.category ? (INTEREST_MAP[draft.category] ?? []) : [];
-  const isEtc = draft.category === ETC_CATEGORY_ID;
+
+  const customSelected = interests.filter((i) => !activeList.includes(i));
   const [customInput, setCustomInput] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const toggle = (id: string) => {
     const next = interests.includes(id) ? interests.filter(i => i !== id) : [...interests, id];
@@ -37,6 +39,7 @@ function Component({ draft, onChange }: Props) {
     }
     onChange({ interests: next });
     setCustomInput('');
+    setShowCustomInput(false);
   };
 
   const removeInterest = (label: string) => {
@@ -78,7 +81,8 @@ function Component({ draft, onChange }: Props) {
         <>
           <Text style={styles.label}>관심사</Text>
           <View style={styles.chips}>
-            {activeList.map(i => (
+            {}
+            {activeList.map((i) => (
               <InterestChip
                 key={i}
                 label={i}
@@ -86,39 +90,40 @@ function Component({ draft, onChange }: Props) {
                 onPress={() => toggle(i)}
               />
             ))}
-          </View>
-        </>
-      )}
-
-      {}
-      {isEtc && (
-        <>
-          <Text style={styles.label}>관심사 직접 입력</Text>
-          <View style={styles.customInputRow}>
-            <TextInput
-              style={styles.customTextInput}
-              value={customInput}
-              onChangeText={setCustomInput}
-              placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
-              placeholderTextColor={COLORS.placeholder}
-              onSubmitEditing={addCustomInterests}
-              returnKeyType="done"
-            />
-            <TouchableOpacity style={styles.addBtn} onPress={addCustomInterests}>
-              <Text style={styles.addBtnText}>추가</Text>
+            {}
+            {customSelected.map((label) => (
+              <TouchableOpacity
+                key={label}
+                style={styles.customTag}
+                onPress={() => removeInterest(label)}
+              >
+                <Text style={styles.customTagText}>{label} ✕</Text>
+              </TouchableOpacity>
+            ))}
+            {}
+            <TouchableOpacity
+              style={styles.etcChip}
+              onPress={() => setShowCustomInput((v) => !v)}
+            >
+              <Text style={styles.etcChipText}>+ 기타</Text>
             </TouchableOpacity>
           </View>
-          {interests.length > 0 && (
-            <View style={styles.chips}>
-              {interests.map((label) => (
-                <TouchableOpacity
-                  key={label}
-                  style={styles.customTag}
-                  onPress={() => removeInterest(label)}
-                >
-                  <Text style={styles.customTagText}>{label} ✕</Text>
-                </TouchableOpacity>
-              ))}
+
+          {showCustomInput && (
+            <View style={styles.customInputRow}>
+              <TextInput
+                style={styles.customTextInput}
+                value={customInput}
+                onChangeText={setCustomInput}
+                placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
+                placeholderTextColor={COLORS.placeholder}
+                onSubmitEditing={addCustomInterests}
+                returnKeyType="done"
+                autoFocus
+              />
+              <TouchableOpacity style={styles.addBtn} onPress={addCustomInterests}>
+                <Text style={styles.addBtnText}>추가</Text>
+              </TouchableOpacity>
             </View>
           )}
         </>
@@ -159,4 +164,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.violet600,
   },
   customTagText: { fontSize: 13, color: COLORS.violet600 },
+  etcChip: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full,
+    borderWidth: 1, borderColor: COLORS.zinc300, borderStyle: 'dashed',
+    backgroundColor: COLORS.white,
+  },
+  etcChipText: { fontSize: 13, color: COLORS.zinc600 },
 });
