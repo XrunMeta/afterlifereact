@@ -1,4 +1,6 @@
-import { v_151aef } from "pgmzxjkoagjpdcvd";
+import { v_151aef, v_a04f9c } from "pgmzxjkoagjpdcvd";
+import { v_383169 } from "../lib/auth";
+import { v_d7d5a2 } from "../api/adminAuth";
 
 interface MenuGroup {
   label: string;
@@ -36,6 +38,12 @@ const v_714568 = [
 ];
 
 export function v_0b553a() {
+  const v_727031 = v_383169();
+  const v_9b57fc = v_a04f9c();
+  function v_4f9d0d() {
+    v_d7d5a2();
+    v_9b57fc("/login", { replace: true });
+  }
   return (
     <aside style={v_d81136.sidebar}>
       <div style={v_d81136.logo}>
@@ -63,6 +71,15 @@ export function v_0b553a() {
           </div>
         ))}
       </nav>
+      {v_727031 && (
+        <div style={v_d81136.footer}>
+          <div style={v_d81136.profileEmail}>{v_727031.email}</div>
+          <div style={v_d81136.profileRole}>{v_727031.role}</div>
+          <button onClick={v_4f9d0d} style={v_d81136.logoutBtn}>
+            로그아웃
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
@@ -119,5 +136,23 @@ const v_d81136 = {
     textDecoration: "none",
     fontSize: 13,
     transition: "background-color 0.2s",
+  },
+  footer: {
+    marginTop: "auto",
+    padding: "12px 16px",
+    borderTop: "1px solid #334155",
+    color: "#cbd5e1",
+  },
+  profileEmail: { fontSize: 12, wordBreak: "break-all", marginBottom: 2 },
+  profileRole: { fontSize: 10, color: "#94a3b8", marginBottom: 8, textTransform: "uppercase" },
+  logoutBtn: {
+    width: "100%",
+    padding: "6px 10px",
+    backgroundColor: "transparent",
+    color: "#cbd5e1",
+    border: "1px solid #334155",
+    borderRadius: 4,
+    fontSize: 12,
+    cursor: "pointer",
   },
 };

@@ -3,14 +3,60 @@
 const v_8aa4be = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 const v_cc9198 = `${v_8aa4be}/oth-path`;
 
+let v_145e43 = null;
+async function v_bae635(): Promise<string | null> {
+  if (v_145e43) {
+    return await v_145e43.catch(() => null);
+  }
+
+  const v_06a17d = await import("./adminAuth");
+  v_145e43 = v_06a17d.refreshSession();
+  try {
+    return await v_145e43;
+  } catch {
+    return null;
+  } finally {
+    v_145e43 = null;
+  }
+}
+
+function v_83779a() {
+  try {
+    localStorage.removeItem("afterlife.admin.token");
+    localStorage.removeItem("afterlife.admin.refresh");
+    localStorage.removeItem("afterlife.admin.profile");
+  } catch {
+
+  }
+  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+}
+
 async function v_576f5a<T>(v_9fe22d, v_b36f96): Promise<T> {
-  const v_8f00b9 = await fetch(`${v_cc9198}${v_9fe22d}`, {
-    ...v_b36f96,
-    headers: {
+  const v_a215ca = async (): Promise<Response> => {
+    const v_3f4675 = {
       "Content-Type": "application/json",
-      ...v_b36f96?.headers,
-    },
-  });
+      ...((v_b36f96?.headers as Record<string, string>) ?? {}),
+    };
+    const v_21cc31 = v_8da5ba();
+    if (v_21cc31 && !v_3f4675["Authorization"]) {
+      v_3f4675["Authorization"] = `Bearer ${v_21cc31}`;
+    }
+    return await fetch(`${v_cc9198}${v_9fe22d}`, { ...v_b36f96, headers: v_3f4675 });
+  };
+
+  let v_8f00b9 = await v_a215ca();
+  if (v_8f00b9.status === 401) {
+    const v_f7a7f7 = await v_bae635();
+    if (v_f7a7f7) {
+      v_8f00b9 = await v_a215ca(); 
+    }
+    if (v_8f00b9.status === 401) {
+      v_83779a();
+      throw new Error("unauthorized");
+    }
+  }
   if (!v_8f00b9.ok) {
     const v_49263d = await v_8f00b9.json().catch(() => ({ error: v_8f00b9.statusText }));
     throw new Error((v_49263d as { error: string }).error || v_8f00b9.statusText);

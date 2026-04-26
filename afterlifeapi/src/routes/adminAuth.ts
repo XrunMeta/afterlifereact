@@ -7,7 +7,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_54846c, v_96aa7f } from "../lib/password";
 import { v_b2eae5, v_2703c5 } from "../lib/jwt";
-import { v_8ab5ff } from "../lib/session";
+import { v_8ab5ff, v_27b603 } from "../lib/session";
 import { v_a8614b, v_85de88, v_207c31 } from "../lib/ale";
 import {
   v_041b21,
@@ -373,5 +373,24 @@ v_d26494.post("/recovery", async (v_3f4e2e) => {
     accessExpiresIn: v_ef86b6.accessExpiresIn,
     admin: { id: v_483de2.sub, email: v_483de2.email, role: v_483de2.role },
     codesRemaining: v_a448ad.length,
+  });
+});
+
+const v_3e3163 = v_1f4ea7.object({ refreshToken: v_1f4ea7.string().min(1) });
+
+v_d26494.post("/refresh", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_3e3163);
+  let v_7c0f0d;
+  try {
+    v_7c0f0d = await v_27b603(v_3f4e2e, v_4d33b2.refreshToken);
+  } catch (v_49263d) {
+    if (v_49263d instanceof v_3ebe58) throw v_49263d;
+
+    throw new v_3ebe58("UNAUTHENTICATED", "Invalid refresh token.");
+  }
+  return v_3f4e2e.json({
+    accessToken: v_7c0f0d.accessToken,
+    refreshToken: v_7c0f0d.refreshToken,
+    accessExpiresIn: v_7c0f0d.accessExpiresIn,
   });
 });
