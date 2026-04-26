@@ -21,50 +21,16 @@ import { seedSource } from "../../api/source";
 import { L1Section } from "./components/L1Section";
 import { L2Section } from "./components/L2Section";
 import { EditorTransferModal } from "./components/EditorTransferModal";
-import type { L1Profile } from "../../types/domain";
+import type { L1Profile, DomainClone as Clone } from "../../types/domain";
+import type { CloneCreationDraft, MemlowRelation } from "../../types/clone";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import { INTEREST_CATEGORIES } from "../../mocks/interestHelpers";
-import { formatPersonaPrompt } from "../../lib/personaPrompt";
-import PersonaEditModal from "./components/PersonaEditModal";
+import { formatPersonaPrompt, l1ProfileToDraft, draftToL1Profile } from "../../lib/personaPrompt";
+import PersonaSection from "../clone-creation/content/PersonaSection";
+import { MEMLOW_RELATIONS } from "../../mocks/cloneTypeCatalog";
 
 type Visibility = "public" | "private" | "followers";
 
 type Props = NativeStackScreenProps<ClonesStackParamList, "CloneEdit">;
-
-const interestCategories = INTEREST_CATEGORIES.map((c) => ({
-  id: c.id,
-  title: c.label,
-  subtitle: c.subtitle,
-  interests: c.interests,
-}));
-
-const personalityTypes = [
-  { id: "extrovert", label: "외향적인" },
-  { id: "introvert", label: "내향적인" },
-  { id: "logical", label: "논리적인" },
-  { id: "emotional", label: "감정적인" },
-  { id: "free", label: "자유로운" },
-  { id: "organized", label: "체계적인" },
-  { id: "passionate", label: "열정적인" },
-  { id: "calm", label: "평온한" },
-];
-
-const ageRanges = ["10대", "20대", "30대", "40대", "50대", "60대 이상"];
-
-const mbtiTypes = [
-  "INTJ", "INTP", "ENTJ", "ENTP",
-  "INFJ", "INFP", "ENFJ", "ENFP",
-  "ISTJ", "ISFJ", "ESTJ", "ESFJ",
-  "ISTP", "ISFP", "ESTP", "ESFP",
-  "모름",
-];
-
-const interestToCategoryId = new Map<string, string>();
-for (const cat of INTEREST_CATEGORIES) {
-  for (const i of cat.interests) {
-    interestToCategoryId.set(i.label, cat.id);
-  }
-}
 
 export default function CloneEditScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
@@ -72,8 +38,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const updateLocalClone = useCloneStore((s) => s.updateLocalClone);
   const viewerId = useAuthStore((s) => s.user?.id) ?? null;
 
-  const [primaryCategory, setPrimaryCategory] = useState("");
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [customInterests, setCustomInterests] = useState<string[]>([]);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customInput, setCustomInput] = useState("");
@@ -81,8 +45,8 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
+  const [draft, setDraft] = useState<CloneCreationDraft>({});
   const [l1, setL1] = useState<L1Profile>({ attrs: {}, notes: '' });
-  const [personaModalOpen, setPersonaModalOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
 
   const [showMenu, setShowMenu] = useState(false);
@@ -92,13 +56,16 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     if (clone) {
-      const firstInterest = clone.interests[0];
-      const catId = firstInterest ? interestToCategoryId.get(firstInterest) ?? "" : "";
-      setPrimaryCategory(catId);
       setName(clone.displayName);
       setDescription(clone.description);
       setVisibility(clone.visibility);
       if (clone.l1Profile) setL1(clone.l1Profile);
+
+      setDraft({
+        ...l1ProfileToDraft(clone.l1Profile),
+        relation: (clone as Clone & { relation?: MemlowRelation }).relation,
+        cloneType: clone.cloneType,
+      });
     }
   }, [clone]);
 
@@ -129,14 +96,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     })
     .filter((x): x is { userId: number; displayName: string } => x != null);
 
-  const currentCategory = interestCategories.find((c) => c.id === primaryCategory);
-
-  const toggleInterest = (id: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
-    );
-  };
-
   const addCustomInterest = () => {
     if (customInput.trim()) {
       setCustomInterests((prev) => [...prev, customInput.trim()]);
@@ -146,15 +105,17 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   };
 
   const handleSave = () => {
-
-    navigation.goBack();
-  };
-
-  const handlePersonaSave = (l1Payload: { attrs: Record<string, string>; notes: string }) => {
     if (!clone) return;
-    updateLocalClone(clone.id, { l1Profile: l1Payload });
+    const l1Payload = draftToL1Profile(draft) ?? { attrs: {}, notes: '' };
+    updateLocalClone(clone.id, {
+      displayName: name,
+      description,
+      visibility,
+      l1Profile: l1Payload,
+      ...(draft.relation ? ({ relation: draft.relation } as Partial<Clone>) : {}),
+    } as Partial<Clone>);
     setL1(l1Payload);
-    setPersonaModalOpen(false);
+    navigation.goBack();
   };
 
   const confirmVisibility = (v: Visibility) => {
@@ -243,134 +204,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       <View style={s.content}>
         {
 }
-        <View style={s.promptCard}>
-          <View style={s.promptHeader}>
-            <Text style={s.promptTitle}>페르소나</Text>
-            <TouchableOpacity
-              accessibilityLabel="persona-edit-open"
-              style={s.editBtn}
-              onPress={() => setPersonaModalOpen(true)}
-            >
-              <Feather name="edit-2" size={13} color={COLORS.violet600} />
-              <Text style={s.editBtnText}>편집</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={s.promptBody}>
-            {formatPersonaPrompt({
-              name: clone.displayName,
-              description: clone.description,
-              interests: clone.interests,
-              l1: clone.l1Profile,
-            })}
-          </Text>
-        </View>
-
-        {}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>관심사를 선택해주세요</Text>
-          <Text style={s.sectionDesc}>
-            먼저 주 카테고리를 선택한 후, 관심사를 골라주세요.
-          </Text>
-
-          {!primaryCategory ? (
-            <View style={s.categoryList}>
-              {interestCategories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={s.categoryItem}
-                  onPress={() => setPrimaryCategory(cat.id)}
-                >
-                  <Text style={s.categoryTitle}>{cat.title}</Text>
-                  <Text style={s.categorySub}>{cat.subtitle}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : currentCategory ? (
-            <>
-              {}
-              <View style={s.selectedCatHeader}>
-                <View style={s.selectedCatLeft}>
-                  <Text style={s.selectedCatTitle}>{currentCategory.title}</Text>
-                  <View style={s.primaryBadge}>
-                    <Text style={s.primaryBadgeText}>주 카테고리</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={s.changeBtn}
-                  onPress={() => {
-                    setPrimaryCategory("");
-                    setSelectedInterests([]);
-                    setCustomInterests([]);
-                  }}
-                >
-                  <Text style={s.changeBtnText}>변경</Text>
-                </TouchableOpacity>
-              </View>
-
-              {}
-              <View style={s.interestGrid}>
-                {currentCategory.interests.map((interest) => {
-                  const selected = selectedInterests.includes(interest.id);
-                  return (
-                    <TouchableOpacity
-                      key={interest.id}
-                      style={[s.interestItem, selected && s.interestSelected]}
-                      onPress={() => toggleInterest(interest.id)}
-                    >
-                      <Text style={s.interestIcon}>{interest.icon}</Text>
-                      <Text style={s.interestLabel}>{interest.label}</Text>
-                      {selected && (
-                        <View style={s.checkCircle}>
-                          <Feather name="check" size={14} color={COLORS.white} />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {}
-              <Text style={s.customTitle}>그 외 관심사</Text>
-              <View style={s.customTags}>
-                {customInterests.map((tag, i) => (
-                  <View key={i} style={s.customTag}>
-                    <Text style={s.customTagText}>{tag}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {showCustomInput ? (
-                <View style={s.customInputRow}>
-                  <TextInput
-                    style={s.customTextInput}
-                    value={customInput}
-                    onChangeText={setCustomInput}
-                    placeholder="관심사를 입력하세요"
-                    placeholderTextColor={COLORS.placeholder}
-                    onSubmitEditing={addCustomInterest}
-                    autoFocus
-                  />
-                  <TouchableOpacity style={s.addBtn} onPress={addCustomInterest}>
-                    <Text style={s.addBtnText}>추가</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={s.addCustomBtn}
-                  onPress={() => setShowCustomInput(true)}
-                >
-                  <Feather name="plus" size={18} color={COLORS.zinc600} />
-                  <Text style={s.addCustomText}>관심사 추가하기</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          ) : null}
-        </View>
-
-        {}
-        <View style={s.divider} />
-
-        {}
         <View style={s.section}>
           <Text style={s.sectionTitle}>기본 정보</Text>
 
@@ -382,8 +215,47 @@ export default function CloneEditScreen({ route, navigation }: Props) {
             placeholder="이름을 입력해주세요"
           />
 
-          {
-}
+          {}
+          <View style={s.beforeBox}>
+            <Text style={s.beforeLabel}>변경 전 (영구 데이터)</Text>
+            <Text style={s.beforeBody}>
+              {formatPersonaPrompt({
+                name: clone.displayName,
+                description: clone.description,
+                interests: clone.interests,
+                l1: clone.l1Profile,
+              })}
+            </Text>
+          </View>
+
+          {}
+          {clone.cloneType === 'memlow' && (
+            <>
+              <Text style={s.fieldLabel}>고인과의 관계</Text>
+              <View style={s.chipRow}>
+                {MEMLOW_RELATIONS.map((r) => {
+                  const active = draft.relation === r.id;
+                  return (
+                    <TouchableOpacity
+                      key={r.id}
+                      style={[s.chip, active && s.chipSelected]}
+                      onPress={() => setDraft((d) => ({ ...d, relation: r.id }))}
+                    >
+                      <Text style={[s.chipText, active && s.chipTextSelected]}>
+                        {r.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {}
+          <PersonaSection
+            draft={draft}
+            onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+          />
 
           {}
           <TextField
@@ -394,6 +266,49 @@ export default function CloneEditScreen({ route, navigation }: Props) {
             multiline
             containerStyle={{ marginTop: 16 }}
           />
+
+          {}
+          <Text style={s.customTitle}>그 외 관심사</Text>
+          <View style={s.customTags}>
+            {customInterests.map((tag, i) => (
+              <View key={i} style={s.customTag}>
+                <Text style={s.customTagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+          {showCustomInput ? (
+            <View style={s.customInputRow}>
+              <TextInput
+                style={s.customTextInput}
+                value={customInput}
+                onChangeText={setCustomInput}
+                placeholder="관심사를 입력하세요"
+                placeholderTextColor={COLORS.placeholder}
+                onSubmitEditing={addCustomInterest}
+                autoFocus
+              />
+              <TouchableOpacity style={s.addBtn} onPress={addCustomInterest}>
+                <Text style={s.addBtnText}>추가</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={s.addCustomBtn}
+              onPress={() => setShowCustomInput(true)}
+            >
+              <Feather name="plus" size={18} color={COLORS.zinc600} />
+              <Text style={s.addCustomText}>관심사 추가하기</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {
+}
+        <View style={s.devBanner}>
+          <Text style={s.devBannerText}>🛠 개발용 — 프로덕션 미사용</Text>
+          <Text style={s.devBannerSub}>
+            아래 L1/L2 섹션은 메모리 시스템 직접 편집용. 위 chip 이 실제 사용자 입력 채널입니다.
+          </Text>
         </View>
 
         <View style={s.section}>
@@ -506,12 +421,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         onSubmit={() => setTransferOpen(false)}
       />
 
-      <PersonaEditModal
-        visible={personaModalOpen}
-        initial={clone.l1Profile}
-        onCancel={() => setPersonaModalOpen(false)}
-        onSave={handlePersonaSave}
-      />
     </SafeScrollView>
   );
 }
@@ -793,29 +702,23 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   notFoundText: { fontSize: 14, color: COLORS.zinc500 },
-  promptCard: {
-    padding: 16,
-    backgroundColor: COLORS.zinc100,
-    borderRadius: RADIUS.md,
-    marginBottom: 16,
-  },
-  promptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  beforeBox: {
+    marginTop: 12,
     marginBottom: 8,
+    padding: 12,
+    backgroundColor: COLORS.zinc100,
+    borderRadius: RADIUS.sm,
   },
-  promptTitle: { fontSize: 13, fontWeight: '700', color: COLORS.zinc600 },
-  promptBody: { fontSize: 15, lineHeight: 22, color: COLORS.zinc900 },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: COLORS.violet600,
+  beforeLabel: { fontSize: 11, fontWeight: '700', color: COLORS.zinc500, marginBottom: 4 },
+  beforeBody: { fontSize: 13, lineHeight: 18, color: COLORS.zinc700 },
+  devBanner: {
+    padding: 12,
+    backgroundColor: '#fef3c7',
+    borderRadius: RADIUS.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+    marginVertical: 16,
   },
-  editBtnText: { fontSize: 12, fontWeight: '600', color: COLORS.violet600 },
+  devBannerText: { fontSize: 13, fontWeight: '700', color: '#92400e' },
+  devBannerSub: { fontSize: 12, color: '#92400e', marginTop: 2 },
 });
