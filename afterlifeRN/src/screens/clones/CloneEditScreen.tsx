@@ -268,6 +268,12 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           />
 
           {}
+          <PersonaSection
+            draft={v_f04727}
+            onChange={(v_17dc8a) => v_a07441((v_d5dda0) => ({ ...v_d5dda0, ...v_17dc8a }))}
+          />
+
+          {}
           <View style={v_fd5f43.beforeBox}>
             <Text style={v_fd5f43.beforeLabel}>변경 전 (영구 데이터)</Text>
             <Text style={v_fd5f43.beforeBody}>
@@ -302,12 +308,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               </View>
             </>
           )}
-
-          {}
-          <PersonaSection
-            draft={v_f04727}
-            onChange={(v_17dc8a) => v_a07441((v_d5dda0) => ({ ...v_d5dda0, ...v_17dc8a }))}
-          />
 
           {}
           <TextField
