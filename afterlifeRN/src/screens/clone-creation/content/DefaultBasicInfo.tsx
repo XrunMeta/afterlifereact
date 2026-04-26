@@ -58,6 +58,10 @@ function Component({ draft, onChange }: Props) {
         value={draft.username ?? ''}
         onChangeText={v => onChange({ username: v })}
       />
+
+      {}
+      <PersonaSection draft={draft} onChange={onChange} />
+
       <TextField
         placeholder="한 줄 소개"
         value={draft.description ?? ''}
@@ -128,8 +132,6 @@ function Component({ draft, onChange }: Props) {
           )}
         </>
       )}
-
-      <PersonaSection draft={draft} onChange={onChange} />
     </View>
   );
 }

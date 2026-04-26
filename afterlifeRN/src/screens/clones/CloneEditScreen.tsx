@@ -268,6 +268,12 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           />
 
           {}
+          <PersonaSection
+            draft={draft}
+            onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+          />
+
+          {}
           <View style={s.beforeBox}>
             <Text style={s.beforeLabel}>변경 전 (영구 데이터)</Text>
             <Text style={s.beforeBody}>
@@ -302,12 +308,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
               </View>
             </>
           )}
-
-          {}
-          <PersonaSection
-            draft={draft}
-            onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
-          />
 
           {}
           <TextField
