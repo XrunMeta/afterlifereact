@@ -24,6 +24,7 @@ import { v_9b783f } from "./components/EditorTransferModal";
 import type { v_eceede } from "../../types/domain";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_6732dc } from "../../mocks/interestHelpers";
+import { v_d6d0ff } from "../../lib/personaPrompt";
 
 type Visibility = "public" | "private" | "followers";
 
@@ -240,6 +241,37 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       )}
 
       <View style={v_fd5f43.content}>
+        {
+}
+        <View style={v_fd5f43.promptCard}>
+          <Text style={v_fd5f43.promptTitle}>페르소나</Text>
+          <Text style={v_fd5f43.promptBody}>
+            {v_d6d0ff({
+              name: v_1833e7 || v_eb25ce.displayName,
+              description: v_6856a9,
+              interests: v_eb25ce.interests,
+              l1: {
+                attrs: {
+                  ...(v_f83808 ? { age: v_f83808 } : {}),
+                  ...(v_c3eac4 ? { gender: v_c3eac4 } : {}),
+                  ...(v_6f7bef.length ? { personalities: v_6f7bef.join(',') } : {}),
+                  ...(v_42f66e ? { mbti: v_42f66e } : {}),
+                },
+                notes: v_020b4b.notes,
+              },
+            })}
+          </Text>
+        </View>
+
+        {
+}
+        <View style={v_fd5f43.devBanner}>
+          <Text style={v_fd5f43.devBannerText}>🛠 개발용 — 프로덕션 미사용</Text>
+          <Text style={v_fd5f43.devBannerSub}>
+            아래 chip/필드는 데이터 매핑 검사용. 위 페르소나 텍스트가 실제 표시되는 결과입니다.
+          </Text>
+        </View>
+
         {}
         <View style={v_fd5f43.section}>
           <Text style={v_fd5f43.sectionTitle}>관심사를 선택해주세요</Text>
@@ -833,4 +865,22 @@ const v_fd5f43 = v_472849.create({
     justifyContent: "center",
   },
   notFoundText: { fontSize: 14, color: v_1bfbd0.zinc500 },
+  promptCard: {
+    padding: 16,
+    backgroundColor: v_1bfbd0.zinc100,
+    borderRadius: v_8b0c90.md,
+    marginBottom: 16,
+  },
+  promptTitle: { fontSize: 13, fontWeight: '700', color: v_1bfbd0.zinc600, marginBottom: 8 },
+  promptBody: { fontSize: 15, lineHeight: 22, color: v_1bfbd0.zinc900 },
+  devBanner: {
+    padding: 12,
+    backgroundColor: '#fef3c7',
+    borderRadius: v_8b0c90.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+    marginBottom: 16,
+  },
+  devBannerText: { fontSize: 13, fontWeight: '700', color: '#92400e' },
+  devBannerSub: { fontSize: 12, color: '#92400e', marginTop: 2 },
 });

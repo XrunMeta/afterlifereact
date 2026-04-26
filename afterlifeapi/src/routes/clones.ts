@@ -28,6 +28,11 @@ const v_d2663f = new Set([
 ]);
 const v_496c2d = 32 * 1024; 
 
+const v_3ea364 = v_1f4ea7.object({
+  attrs: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.string()),
+  notes: v_1f4ea7.string().max(4000).default(''),
+});
+
 const v_722b6d = v_1f4ea7.object({
   clone_type: v_3a8949,
   name: v_1f4ea7.string().min(1).max(80),
@@ -45,6 +50,8 @@ const v_722b6d = v_1f4ea7.object({
   interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
 
   memlow_profile: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.unknown()).optional(),
+
+  l1_profile: v_3ea364.optional(),
 });
 
 v_f891e6.post(
@@ -88,12 +95,14 @@ v_f891e6.post(
 
     let v_81161e;
     try {
+
       v_81161e = await v_a1651b
         .prepare(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
-              avatar_url, cover_image_url, voice_type, voice_preset_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              avatar_url, cover_image_url, voice_type, voice_preset_id,
+              l1_profile, primary_editor_user_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -108,6 +117,8 @@ v_f891e6.post(
           v_4d33b2.cover_image_url ?? null,
           v_8e49c9,
           v_4d33b2.voice_preset_id ?? null,
+          v_4d33b2.l1_profile ? JSON.stringify(v_4d33b2.l1_profile) : null,
+          v_43e90c,
         )
         .first();
     } catch (v_49263d) {
@@ -159,6 +170,20 @@ v_f891e6.post(
           )
           .bind(v_6e0fd3),
       );
+
+      if (v_4d33b2.l1_profile?.attrs) {
+        for (const [v_b24339, v_3b402b] of Object.entries(v_4d33b2.l1_profile.attrs)) {
+          if (!v_3b402b) continue;
+          v_3e6264.push(
+            v_a1651b
+              .prepare(
+                `INSERT INTO persona_attributes (clone_id, level, key, value)
+                 VALUES (?, 'l1', ?, ?)`,
+              )
+              .bind(v_6e0fd3, v_b24339, v_3b402b),
+          );
+        }
+      }
       await v_a1651b.batch(v_3e6264);
     } catch (v_49263d) {
 
@@ -389,11 +414,6 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       viewerRole: v_00efe2,
     },
   });
-});
-
-const v_3ea364 = v_1f4ea7.object({
-  attrs: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.string()),
-  notes: v_1f4ea7.string().max(4000).default(''),
 });
 
 const v_90be18 = v_1f4ea7
