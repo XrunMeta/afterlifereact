@@ -21,50 +21,16 @@ import { v_694b7f } from "../../api/source";
 import { v_f48a74 } from "./components/L1Section";
 import { v_193b22 } from "./components/L2Section";
 import { v_9b783f } from "./components/EditorTransferModal";
-import type { v_eceede } from "../../types/domain";
+import type { v_eceede, v_4b85a1 as v_affcc0 } from "../../types/domain";
+import type { v_c2a674, v_a097b2 } from "../../types/clone";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import { v_6732dc } from "../../mocks/interestHelpers";
-import { v_d6d0ff } from "../../lib/personaPrompt";
-import v_61a695 from "./components/PersonaEditModal";
+import { v_d6d0ff, v_f689cd, v_556c5b } from "../../lib/personaPrompt";
+import v_78abf7 from "../clone-creation/content/PersonaSection";
+import { v_0a40d6 } from "../../mocks/cloneTypeCatalog";
 
 type Visibility = "public" | "private" | "followers";
 
 type Props = v_432191<v_2d88fc, "CloneEdit">;
-
-const v_926598 = v_6732dc.map((v_3f4e2e) => ({
-  id: v_3f4e2e.id,
-  title: v_3f4e2e.label,
-  subtitle: v_3f4e2e.subtitle,
-  interests: v_3f4e2e.interests,
-}));
-
-const v_1f8019 = [
-  { id: "extrovert", label: "외향적인" },
-  { id: "introvert", label: "내향적인" },
-  { id: "logical", label: "논리적인" },
-  { id: "emotional", label: "감정적인" },
-  { id: "free", label: "자유로운" },
-  { id: "organized", label: "체계적인" },
-  { id: "passionate", label: "열정적인" },
-  { id: "calm", label: "평온한" },
-];
-
-const v_5351c0 = ["10대", "20대", "30대", "40대", "50대", "60대 이상"];
-
-const v_a47fc9 = [
-  "INTJ", "INTP", "ENTJ", "ENTP",
-  "INFJ", "INFP", "ENFJ", "ENFP",
-  "ISTJ", "ISFJ", "ESTJ", "ESFJ",
-  "ISTP", "ISFP", "ESTP", "ESFP",
-  "모름",
-];
-
-const v_ea6488 = new Map<string, string>();
-for (const v_9bf432 of v_6732dc) {
-  for (const v_ebec57 of v_9bf432.interests) {
-    v_ea6488.set(v_ebec57.label, v_9bf432.id);
-  }
-}
 
 export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
@@ -72,8 +38,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_941cd7 = v_194498((v_fd5f43) => v_fd5f43.updateLocalClone);
   const v_013af2 = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? null;
 
-  const [v_5ba743, v_5cc801] = v_5ab095("");
-  const [v_976e06, v_770327] = v_5ab095<string[]>([]);
   const [v_15a866, v_bbeee9] = v_5ab095<string[]>([]);
   const [v_2b1044, v_160b34] = v_5ab095(false);
   const [v_0f1d77, v_e887ea] = v_5ab095("");
@@ -81,8 +45,8 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_1833e7, v_318f24] = v_5ab095("");
   const [v_6856a9, v_b7e174] = v_5ab095("");
 
+  const [v_f04727, v_a07441] = v_5ab095<v_c2a674>({});
   const [v_020b4b, v_15918a] = v_5ab095<v_eceede>({ attrs: {}, notes: '' });
-  const [v_f584a3, v_88015f] = v_5ab095(false);
   const [v_0b1d04, v_dcba89] = v_5ab095(false);
 
   const [v_e58f3d, v_40c384] = v_5ab095(false);
@@ -92,13 +56,16 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   v_c4deb2(() => {
     if (v_eb25ce) {
-      const v_6560b3 = v_eb25ce.interests[0];
-      const v_757575 = v_6560b3 ? v_ea6488.get(v_6560b3) ?? "" : "";
-      v_5cc801(v_757575);
       v_318f24(v_eb25ce.displayName);
       v_b7e174(v_eb25ce.description);
       v_2cf16e(v_eb25ce.visibility);
       if (v_eb25ce.l1Profile) v_15918a(v_eb25ce.l1Profile);
+
+      v_a07441({
+        ...v_f689cd(v_eb25ce.l1Profile),
+        relation: (v_eb25ce as v_affcc0 & { relation?: v_a097b2 }).relation,
+        cloneType: v_eb25ce.cloneType,
+      });
     }
   }, [v_eb25ce]);
 
@@ -129,14 +96,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     })
     .filter((v_62c214): v_62c214 is { userId: number; displayName: string } => v_62c214 != null);
 
-  const v_90b3e0 = v_926598.find((v_3f4e2e) => v_3f4e2e.id === v_5ba743);
-
-  const v_d82a00 = (v_389afb) => {
-    v_770327((v_ba2215) =>
-      v_ba2215.includes(v_389afb) ? v_ba2215.filter((v_ebec57) => v_ebec57 !== v_389afb) : [...v_ba2215, v_389afb],
-    );
-  };
-
   const v_d64dc0 = () => {
     if (v_0f1d77.trim()) {
       v_bbeee9((v_ba2215) => [...v_ba2215, v_0f1d77.trim()]);
@@ -146,15 +105,17 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   };
 
   const v_1b8283 = () => {
-
-    v_c65f5d.goBack();
-  };
-
-  const v_a5bf56 = (v_67628a) => {
     if (!v_eb25ce) return;
-    v_941cd7(v_eb25ce.id, { l1Profile: v_67628a });
+    const v_67628a = v_556c5b(v_f04727) ?? { attrs: {}, notes: '' };
+    v_941cd7(v_eb25ce.id, {
+      displayName: v_1833e7,
+      description: v_6856a9,
+      visibility: v_818579,
+      l1Profile: v_67628a,
+      ...(v_f04727.relation ? ({ relation: v_f04727.relation } as Partial<v_affcc0>) : {}),
+    } as Partial<v_affcc0>);
     v_15918a(v_67628a);
-    v_88015f(false);
+    v_c65f5d.goBack();
   };
 
   const v_c9f992 = (v_81e2ef) => {
@@ -243,134 +204,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       <View style={v_fd5f43.content}>
         {
 }
-        <View style={v_fd5f43.promptCard}>
-          <View style={v_fd5f43.promptHeader}>
-            <Text style={v_fd5f43.promptTitle}>페르소나</Text>
-            <TouchableOpacity
-              accessibilityLabel="persona-edit-open"
-              style={v_fd5f43.editBtn}
-              onPress={() => v_88015f(true)}
-            >
-              <Feather name="edit-2" size={13} color={v_1bfbd0.violet600} />
-              <Text style={v_fd5f43.editBtnText}>편집</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={v_fd5f43.promptBody}>
-            {v_d6d0ff({
-              name: v_eb25ce.displayName,
-              description: v_eb25ce.description,
-              interests: v_eb25ce.interests,
-              l1: v_eb25ce.l1Profile,
-            })}
-          </Text>
-        </View>
-
-        {}
-        <View style={v_fd5f43.section}>
-          <Text style={v_fd5f43.sectionTitle}>관심사를 선택해주세요</Text>
-          <Text style={v_fd5f43.sectionDesc}>
-            먼저 주 카테고리를 선택한 후, 관심사를 골라주세요.
-          </Text>
-
-          {!v_5ba743 ? (
-            <View style={v_fd5f43.categoryList}>
-              {v_926598.map((v_9bf432) => (
-                <TouchableOpacity
-                  key={v_9bf432.id}
-                  style={v_fd5f43.categoryItem}
-                  onPress={() => v_5cc801(v_9bf432.id)}
-                >
-                  <Text style={v_fd5f43.categoryTitle}>{v_9bf432.title}</Text>
-                  <Text style={v_fd5f43.categorySub}>{v_9bf432.subtitle}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : v_90b3e0 ? (
-            <>
-              {}
-              <View style={v_fd5f43.selectedCatHeader}>
-                <View style={v_fd5f43.selectedCatLeft}>
-                  <Text style={v_fd5f43.selectedCatTitle}>{v_90b3e0.title}</Text>
-                  <View style={v_fd5f43.primaryBadge}>
-                    <Text style={v_fd5f43.primaryBadgeText}>주 카테고리</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={v_fd5f43.changeBtn}
-                  onPress={() => {
-                    v_5cc801("");
-                    v_770327([]);
-                    v_bbeee9([]);
-                  }}
-                >
-                  <Text style={v_fd5f43.changeBtnText}>변경</Text>
-                </TouchableOpacity>
-              </View>
-
-              {}
-              <View style={v_fd5f43.interestGrid}>
-                {v_90b3e0.interests.map((v_e4601c) => {
-                  const v_587413 = v_976e06.includes(v_e4601c.id);
-                  return (
-                    <TouchableOpacity
-                      key={v_e4601c.id}
-                      style={[v_fd5f43.interestItem, v_587413 && v_fd5f43.interestSelected]}
-                      onPress={() => v_d82a00(v_e4601c.id)}
-                    >
-                      <Text style={v_fd5f43.interestIcon}>{v_e4601c.icon}</Text>
-                      <Text style={v_fd5f43.interestLabel}>{v_e4601c.label}</Text>
-                      {v_587413 && (
-                        <View style={v_fd5f43.checkCircle}>
-                          <Feather name="check" size={14} color={v_1bfbd0.white} />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {}
-              <Text style={v_fd5f43.customTitle}>그 외 관심사</Text>
-              <View style={v_fd5f43.customTags}>
-                {v_15a866.map((v_bd1444, v_ebec57) => (
-                  <View key={v_ebec57} style={v_fd5f43.customTag}>
-                    <Text style={v_fd5f43.customTagText}>{v_bd1444}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {v_2b1044 ? (
-                <View style={v_fd5f43.customInputRow}>
-                  <TextInput
-                    style={v_fd5f43.customTextInput}
-                    value={v_0f1d77}
-                    onChangeText={v_e887ea}
-                    placeholder="관심사를 입력하세요"
-                    placeholderTextColor={v_1bfbd0.placeholder}
-                    onSubmitEditing={v_d64dc0}
-                    autoFocus
-                  />
-                  <TouchableOpacity style={v_fd5f43.addBtn} onPress={v_d64dc0}>
-                    <Text style={v_fd5f43.addBtnText}>추가</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={v_fd5f43.addCustomBtn}
-                  onPress={() => v_160b34(true)}
-                >
-                  <Feather name="plus" size={18} color={v_1bfbd0.zinc600} />
-                  <Text style={v_fd5f43.addCustomText}>관심사 추가하기</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          ) : null}
-        </View>
-
-        {}
-        <View style={v_fd5f43.divider} />
-
-        {}
         <View style={v_fd5f43.section}>
           <Text style={v_fd5f43.sectionTitle}>기본 정보</Text>
 
@@ -382,8 +215,47 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             placeholder="이름을 입력해주세요"
           />
 
-          {
-}
+          {}
+          <View style={v_fd5f43.beforeBox}>
+            <Text style={v_fd5f43.beforeLabel}>변경 전 (영구 데이터)</Text>
+            <Text style={v_fd5f43.beforeBody}>
+              {v_d6d0ff({
+                name: v_eb25ce.displayName,
+                description: v_eb25ce.description,
+                interests: v_eb25ce.interests,
+                l1: v_eb25ce.l1Profile,
+              })}
+            </Text>
+          </View>
+
+          {}
+          {v_eb25ce.cloneType === 'memlow' && (
+            <>
+              <Text style={v_fd5f43.fieldLabel}>고인과의 관계</Text>
+              <View style={v_fd5f43.chipRow}>
+                {v_0a40d6.map((v_cb35cb) => {
+                  const v_f8b770 = v_f04727.relation === v_cb35cb.id;
+                  return (
+                    <TouchableOpacity
+                      key={v_cb35cb.id}
+                      style={[v_fd5f43.chip, v_f8b770 && v_fd5f43.chipSelected]}
+                      onPress={() => v_a07441((v_d5dda0) => ({ ...v_d5dda0, relation: v_cb35cb.id }))}
+                    >
+                      <Text style={[v_fd5f43.chipText, v_f8b770 && v_fd5f43.chipTextSelected]}>
+                        {v_cb35cb.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {}
+          <PersonaSection
+            draft={v_f04727}
+            onChange={(v_17dc8a) => v_a07441((v_d5dda0) => ({ ...v_d5dda0, ...v_17dc8a }))}
+          />
 
           {}
           <TextField
@@ -394,6 +266,49 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             multiline
             containerStyle={{ marginTop: 16 }}
           />
+
+          {}
+          <Text style={v_fd5f43.customTitle}>그 외 관심사</Text>
+          <View style={v_fd5f43.customTags}>
+            {v_15a866.map((v_bd1444, v_ebec57) => (
+              <View key={v_ebec57} style={v_fd5f43.customTag}>
+                <Text style={v_fd5f43.customTagText}>{v_bd1444}</Text>
+              </View>
+            ))}
+          </View>
+          {v_2b1044 ? (
+            <View style={v_fd5f43.customInputRow}>
+              <TextInput
+                style={v_fd5f43.customTextInput}
+                value={v_0f1d77}
+                onChangeText={v_e887ea}
+                placeholder="관심사를 입력하세요"
+                placeholderTextColor={v_1bfbd0.placeholder}
+                onSubmitEditing={v_d64dc0}
+                autoFocus
+              />
+              <TouchableOpacity style={v_fd5f43.addBtn} onPress={v_d64dc0}>
+                <Text style={v_fd5f43.addBtnText}>추가</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={v_fd5f43.addCustomBtn}
+              onPress={() => v_160b34(true)}
+            >
+              <Feather name="plus" size={18} color={v_1bfbd0.zinc600} />
+              <Text style={v_fd5f43.addCustomText}>관심사 추가하기</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {
+}
+        <View style={v_fd5f43.devBanner}>
+          <Text style={v_fd5f43.devBannerText}>🛠 개발용 — 프로덕션 미사용</Text>
+          <Text style={v_fd5f43.devBannerSub}>
+            아래 L1/L2 섹션은 메모리 시스템 직접 편집용. 위 chip 이 실제 사용자 입력 채널입니다.
+          </Text>
         </View>
 
         <View style={v_fd5f43.section}>
@@ -506,12 +421,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         onSubmit={() => v_dcba89(false)}
       />
 
-      <PersonaEditModal
-        visible={v_f584a3}
-        initial={v_eb25ce.l1Profile}
-        onCancel={() => v_88015f(false)}
-        onSave={v_a5bf56}
-      />
     </SafeScrollView>
   );
 }
@@ -793,29 +702,23 @@ const v_fd5f43 = v_472849.create({
     justifyContent: "center",
   },
   notFoundText: { fontSize: 14, color: v_1bfbd0.zinc500 },
-  promptCard: {
-    padding: 16,
-    backgroundColor: v_1bfbd0.zinc100,
-    borderRadius: v_8b0c90.md,
-    marginBottom: 16,
-  },
-  promptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  beforeBox: {
+    marginTop: 12,
     marginBottom: 8,
+    padding: 12,
+    backgroundColor: v_1bfbd0.zinc100,
+    borderRadius: v_8b0c90.sm,
   },
-  promptTitle: { fontSize: 13, fontWeight: '700', color: v_1bfbd0.zinc600 },
-  promptBody: { fontSize: 15, lineHeight: 22, color: v_1bfbd0.zinc900 },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: v_8b0c90.full,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.violet600,
+  beforeLabel: { fontSize: 11, fontWeight: '700', color: v_1bfbd0.zinc500, marginBottom: 4 },
+  beforeBody: { fontSize: 13, lineHeight: 18, color: v_1bfbd0.zinc700 },
+  devBanner: {
+    padding: 12,
+    backgroundColor: '#fef3c7',
+    borderRadius: v_8b0c90.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+    marginVertical: 16,
   },
-  editBtnText: { fontSize: 12, fontWeight: '600', color: v_1bfbd0.violet600 },
+  devBannerText: { fontSize: 13, fontWeight: '700', color: '#92400e' },
+  devBannerSub: { fontSize: 12, color: '#92400e', marginTop: 2 },
 });
