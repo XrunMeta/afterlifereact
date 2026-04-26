@@ -99,7 +99,15 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_318f24(v_eb25ce.displayName);
       v_b7e174(v_eb25ce.description);
       v_2cf16e(v_eb25ce.visibility);
-      if (v_eb25ce.l1Profile) v_15918a(v_eb25ce.l1Profile);
+      if (v_eb25ce.l1Profile) {
+        v_15918a(v_eb25ce.l1Profile);
+
+        const v_779914 = v_eb25ce.l1Profile.attrs ?? {};
+        if (v_779914.age) v_64a312(v_779914.age);
+        if (v_779914.gender) v_bdc43c(v_779914.gender);
+        if (v_779914.personalities) v_7034b6(v_779914.personalities.split(',').map((v_fd5f43) => v_fd5f43.trim()).filter(Boolean));
+        if (v_779914.mbti) v_40239f(v_779914.mbti);
+      }
     }
   }, [v_eb25ce]);
 
@@ -242,23 +250,16 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       <View style={v_fd5f43.content}>
         {
+
 }
         <View style={v_fd5f43.promptCard}>
           <Text style={v_fd5f43.promptTitle}>페르소나</Text>
           <Text style={v_fd5f43.promptBody}>
             {v_d6d0ff({
-              name: v_1833e7 || v_eb25ce.displayName,
-              description: v_6856a9,
+              name: v_eb25ce.displayName,
+              description: v_eb25ce.description,
               interests: v_eb25ce.interests,
-              l1: {
-                attrs: {
-                  ...(v_f83808 ? { age: v_f83808 } : {}),
-                  ...(v_c3eac4 ? { gender: v_c3eac4 } : {}),
-                  ...(v_6f7bef.length ? { personalities: v_6f7bef.join(',') } : {}),
-                  ...(v_42f66e ? { mbti: v_42f66e } : {}),
-                },
-                notes: v_020b4b.notes,
-              },
+              l1: v_eb25ce.l1Profile,
             })}
           </Text>
         </View>
