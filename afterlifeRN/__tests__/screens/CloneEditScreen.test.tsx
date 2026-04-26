@@ -38,3 +38,9 @@ test('stranger (viewer=999, clone=1) sees read-only L1 without editor actions', 
   expect(queryByLabelText('transfer-open')).toBeNull();
   expect(queryByLabelText('request-editor')).toBeNull();
 });
+
+test('shows L1 persona prompt card and DEV-only banner (PRD §기본 페르소나 입력 정책)', () => {
+  const { getByText } = render(<CloneEditScreen {...makeProps(1)} />);
+  expect(getByText('페르소나')).toBeTruthy();
+  expect(getByText('🛠 개발용 — 프로덕션 미사용')).toBeTruthy();
+});

@@ -24,6 +24,7 @@ import { EditorTransferModal } from "./components/EditorTransferModal";
 import type { L1Profile } from "../../types/domain";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { INTEREST_CATEGORIES } from "../../mocks/interestHelpers";
+import { formatPersonaPrompt } from "../../lib/personaPrompt";
 
 type Visibility = "public" | "private" | "followers";
 
@@ -240,6 +241,37 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       )}
 
       <View style={s.content}>
+        {
+}
+        <View style={s.promptCard}>
+          <Text style={s.promptTitle}>페르소나</Text>
+          <Text style={s.promptBody}>
+            {formatPersonaPrompt({
+              name: name || clone.displayName,
+              description,
+              interests: clone.interests,
+              l1: {
+                attrs: {
+                  ...(ageRange ? { age: ageRange } : {}),
+                  ...(gender ? { gender } : {}),
+                  ...(personalities.length ? { personalities: personalities.join(',') } : {}),
+                  ...(mbti ? { mbti } : {}),
+                },
+                notes: l1.notes,
+              },
+            })}
+          </Text>
+        </View>
+
+        {
+}
+        <View style={s.devBanner}>
+          <Text style={s.devBannerText}>🛠 개발용 — 프로덕션 미사용</Text>
+          <Text style={s.devBannerSub}>
+            아래 chip/필드는 데이터 매핑 검사용. 위 페르소나 텍스트가 실제 표시되는 결과입니다.
+          </Text>
+        </View>
+
         {}
         <View style={s.section}>
           <Text style={s.sectionTitle}>관심사를 선택해주세요</Text>
@@ -833,4 +865,22 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   notFoundText: { fontSize: 14, color: COLORS.zinc500 },
+  promptCard: {
+    padding: 16,
+    backgroundColor: COLORS.zinc100,
+    borderRadius: RADIUS.md,
+    marginBottom: 16,
+  },
+  promptTitle: { fontSize: 13, fontWeight: '700', color: COLORS.zinc600, marginBottom: 8 },
+  promptBody: { fontSize: 15, lineHeight: 22, color: COLORS.zinc900 },
+  devBanner: {
+    padding: 12,
+    backgroundColor: '#fef3c7',
+    borderRadius: RADIUS.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+    marginBottom: 16,
+  },
+  devBannerText: { fontSize: 13, fontWeight: '700', color: '#92400e' },
+  devBannerSub: { fontSize: 12, color: '#92400e', marginTop: 2 },
 });
