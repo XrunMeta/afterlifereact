@@ -5,6 +5,7 @@ import InterestChip from '../../../components/ui/InterestChip';
 import { CATEGORIES, INTEREST_MAP } from '../../../mocks/interestHelpers';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
+import PersonaSection from './PersonaSection';
 
 interface Props {
   draft: CloneCreationDraft;
@@ -66,6 +67,8 @@ function Component({ draft, onChange }: Props) {
           </View>
         </>
       )}
+
+      <PersonaSection draft={draft} onChange={onChange} />
     </View>
   );
 }
