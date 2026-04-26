@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import TextField from '../../../components/ui/TextField';
 import InterestChip from '../../../components/ui/InterestChip';
-import { CATEGORIES, INTEREST_MAP } from '../../../mocks/interestHelpers';
+import { CATEGORIES, INTEREST_MAP, ETC_CATEGORY_ID } from '../../../mocks/interestHelpers';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 import PersonaSection from './PersonaSection';
@@ -15,10 +15,32 @@ interface Props {
 function Component({ draft, onChange }: Props) {
   const interests = draft.interests ?? [];
   const activeList = draft.category ? (INTEREST_MAP[draft.category] ?? []) : [];
+  const isEtc = draft.category === ETC_CATEGORY_ID;
+  const [customInput, setCustomInput] = useState('');
 
   const toggle = (id: string) => {
     const next = interests.includes(id) ? interests.filter(i => i !== id) : [...interests, id];
     onChange({ interests: next });
+  };
+
+  const addCustomInterests = () => {
+
+    const parts = customInput.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    const seen = new Set(interests);
+    const next = [...interests];
+    for (const p of parts) {
+      if (!seen.has(p)) {
+        next.push(p);
+        seen.add(p);
+      }
+    }
+    onChange({ interests: next });
+    setCustomInput('');
+  };
+
+  const removeInterest = (label: string) => {
+    onChange({ interests: interests.filter((i) => i !== label) });
   };
 
   return (
@@ -68,6 +90,40 @@ function Component({ draft, onChange }: Props) {
         </>
       )}
 
+      {}
+      {isEtc && (
+        <>
+          <Text style={styles.label}>관심사 직접 입력</Text>
+          <View style={styles.customInputRow}>
+            <TextInput
+              style={styles.customTextInput}
+              value={customInput}
+              onChangeText={setCustomInput}
+              placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
+              placeholderTextColor={COLORS.placeholder}
+              onSubmitEditing={addCustomInterests}
+              returnKeyType="done"
+            />
+            <TouchableOpacity style={styles.addBtn} onPress={addCustomInterests}>
+              <Text style={styles.addBtnText}>추가</Text>
+            </TouchableOpacity>
+          </View>
+          {interests.length > 0 && (
+            <View style={styles.chips}>
+              {interests.map((label) => (
+                <TouchableOpacity
+                  key={label}
+                  style={styles.customTag}
+                  onPress={() => removeInterest(label)}
+                >
+                  <Text style={styles.customTagText}>{label} ✕</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </>
+      )}
+
       <PersonaSection draft={draft} onChange={onChange} />
     </View>
   );
@@ -89,4 +145,18 @@ const styles = StyleSheet.create({
   cat: { padding: 10, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.zinc200 },
   catActive: { backgroundColor: COLORS.violet100, borderColor: COLORS.violet600 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  customInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  customTextInput: {
+    flex: 1, borderWidth: 1, borderColor: COLORS.zinc200, borderRadius: RADIUS.sm,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: COLORS.zinc900,
+  },
+  addBtn: {
+    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: COLORS.violet600, borderRadius: RADIUS.sm,
+  },
+  addBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+  customTag: {
+    paddingHorizontal: 12, paddingVertical: 6, backgroundColor: COLORS.violet100,
+    borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.violet600,
+  },
+  customTagText: { fontSize: 13, color: COLORS.violet600 },
 });
