@@ -148,7 +148,9 @@ export default function MainTabNavigator() {
           },
         })}
       />
-      <Tab.Screen name="ShortsTab" component={ShortsTabScreen} />
+      {
+}
+      <Tab.Screen name="ShortsTab" component={FollowingScreen} />
       <Tab.Screen name="MyTab" component={MyScreen} />
     </Tab.Navigator>
   );
