@@ -1,4 +1,6 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { getProfile } from "../lib/auth";
+import { logout } from "../api/adminAuth";
 
 interface MenuGroup {
   label: string;
@@ -36,6 +38,12 @@ const menu: MenuGroup[] = [
 ];
 
 export function Sidebar() {
+  const profile = getProfile();
+  const navigate = useNavigate();
+  function onLogout() {
+    logout();
+    navigate("/login", { replace: true });
+  }
   return (
     <aside style={styles.sidebar}>
       <div style={styles.logo}>
@@ -63,6 +71,15 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
+      {profile && (
+        <div style={styles.footer}>
+          <div style={styles.profileEmail}>{profile.email}</div>
+          <div style={styles.profileRole}>{profile.role}</div>
+          <button onClick={onLogout} style={styles.logoutBtn}>
+            로그아웃
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
@@ -119,5 +136,23 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
     fontSize: 13,
     transition: "background-color 0.2s",
+  },
+  footer: {
+    marginTop: "auto",
+    padding: "12px 16px",
+    borderTop: "1px solid #334155",
+    color: "#cbd5e1",
+  },
+  profileEmail: { fontSize: 12, wordBreak: "break-all", marginBottom: 2 },
+  profileRole: { fontSize: 10, color: "#94a3b8", marginBottom: 8, textTransform: "uppercase" },
+  logoutBtn: {
+    width: "100%",
+    padding: "6px 10px",
+    backgroundColor: "transparent",
+    color: "#cbd5e1",
+    border: "1px solid #334155",
+    borderRadius: 4,
+    fontSize: 12,
+    cursor: "pointer",
   },
 };

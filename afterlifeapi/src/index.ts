@@ -19,7 +19,7 @@ import { cloneShorts, shortsFeed } from "./routes/shorts";
 import { cloneEditorTransfer } from "./routes/editorTransfer";
 import { credits } from "./routes/credits";
 import { admin } from "./routes/admin";
-import { adminPreview } from "./routes/adminPreview";
+import { adminData } from "./routes/adminData";
 import { adminAuth } from "./routes/adminAuth";
 import { adminWebauthn } from "./routes/adminWebauthn";
 import { coldRecovery } from "./routes/coldRecovery";
@@ -41,9 +41,9 @@ const ALLOWED_ORIGINS = new Set<string>([
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:8787",
-  "https://afterlifeadmin.pages.dev",
+  "https://afterlife-admin.pages.dev",
 ]);
-const PAGES_HOST_RE = /^https:\/\/[a-z0-9-]+\.afterlifeadmin\.pages\.dev$/;
+const PAGES_HOST_RE = /^https:\/\/[a-z0-9-]+\.afterlife-admin\.pages\.dev$/;
 
 app.use(
   "*",
@@ -97,7 +97,7 @@ app.route("/oth-path", adminWebauthn);
 app.route("/oth-path", coldRecovery);
 app.route("/oth-path", adminQuorum);
 app.route("/oth-path", admin);
-app.route("/oth-path", adminPreview);
+app.route("/oth-path", adminData);
 app.route("/oth-path", emergency);
 app.route("/oth-path", inheritance);
 app.route("/oth-path", gdpr);
