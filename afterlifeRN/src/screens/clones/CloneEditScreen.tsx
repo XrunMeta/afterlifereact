@@ -27,22 +27,17 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { formatPersonaPrompt, l1ProfileToDraft, draftToL1Profile } from "../../lib/personaPrompt";
 import PersonaSection from "../clone-creation/content/PersonaSection";
 import { MEMLOW_RELATIONS } from "../../mocks/cloneTypeCatalog";
-import { INTEREST_CATEGORIES } from "../../mocks/interestHelpers";
+import { CATEGORIES, INTEREST_MAP, INTEREST_CATEGORIES } from "../../mocks/interestHelpers";
+import InterestChip from "../../components/ui/InterestChip";
 
 type Visibility = "public" | "private" | "followers";
 
 type Props = NativeStackScreenProps<ClonesStackParamList, "CloneEdit">;
 
-const interestCategories = INTEREST_CATEGORIES.map((c) => ({
-  id: c.id,
-  title: c.label,
-  subtitle: c.subtitle,
-  interests: c.interests,
-}));
-const interestToCategoryId = new Map<string, string>();
+const interestLabelToCategoryId = new Map<string, string>();
 for (const cat of INTEREST_CATEGORIES) {
   for (const i of cat.interests) {
-    interestToCategoryId.set(i.label, cat.id);
+    interestLabelToCategoryId.set(i.label, cat.id);
   }
 }
 
@@ -53,8 +48,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const viewerId = useAuthStore((s) => s.user?.id) ?? null;
 
   const [primaryCategory, setPrimaryCategory] = useState("");
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [customInterests, setCustomInterests] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customInput, setCustomInput] = useState("");
 
@@ -85,16 +79,9 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
       if (clone.cloneType !== 'memlow') {
         const firstInterest = clone.interests[0];
-        const catId = firstInterest ? interestToCategoryId.get(firstInterest) ?? "" : "";
+        const catId = firstInterest ? interestLabelToCategoryId.get(firstInterest) ?? "" : "";
         setPrimaryCategory(catId);
-
-        if (catId) {
-          const cat = interestCategories.find((c) => c.id === catId);
-          const ids = (cat?.interests ?? [])
-            .filter((i) => clone.interests.includes(i.label))
-            .map((i) => i.id);
-          setSelectedInterests(ids);
-        }
+        setInterests(clone.interests);
       }
     }
   }, [clone]);
@@ -126,14 +113,11 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     })
     .filter((x): x is { userId: number; displayName: string } => x != null);
 
-  const addCustomInterest = () => {
+  const addCustomInterests = () => {
 
-    const parts = customInput
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean);
+    const parts = customInput.split(',').map((s) => s.trim()).filter(Boolean);
     if (parts.length === 0) return;
-    setCustomInterests((prev) => {
+    setInterests((prev) => {
       const seen = new Set(prev);
       const next = [...prev];
       for (const p of parts) {
@@ -148,13 +132,18 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     setShowCustomInput(false);
   };
 
-  const toggleInterest = (id: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+  const toggleInterest = (label: string) => {
+    setInterests((prev) =>
+      prev.includes(label) ? prev.filter((i) => i !== label) : [...prev, label],
     );
   };
 
-  const currentCategory = interestCategories.find((c) => c.id === primaryCategory);
+  const removeInterest = (label: string) => {
+    setInterests((prev) => prev.filter((i) => i !== label));
+  };
+
+  const activeList = primaryCategory ? (INTEREST_MAP[primaryCategory] ?? []) : [];
+  const customSelected = interests.filter((i) => !activeList.includes(i));
 
   const handleSave = () => {
     if (!clone) return;
@@ -164,6 +153,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       description,
       visibility,
       l1Profile: l1Payload,
+      ...(clone.cloneType !== 'memlow' ? { interests } : {}),
       ...(draft.relation ? ({ relation: draft.relation } as Partial<Clone>) : {}),
     } as Partial<Clone>);
     setL1(l1Payload);
@@ -300,105 +290,75 @@ export default function CloneEditScreen({ route, navigation }: Props) {
             </>
           )}
 
-          {}
+          {
+}
           {clone.cloneType !== 'memlow' && (
-            <View style={{ marginTop: 16 }}>
-              <Text style={s.sectionTitle}>관심사</Text>
-              <Text style={s.sectionDesc}>
-                먼저 주 카테고리를 선택한 후, 관심사를 골라주세요.
-              </Text>
+            <>
+              <Text style={s.simpleLabel}>카테고리</Text>
+              <View style={s.simpleCatRow}>
+                {CATEGORIES.map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[s.simpleCat, primaryCategory === c.id && s.simpleCatActive]}
+                    onPress={() => {
+                      setPrimaryCategory(c.id);
+                      setInterests([]);
+                    }}
+                  >
+                    <Text>{c.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-              {!primaryCategory ? (
-                <View style={s.categoryList}>
-                  {interestCategories.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={s.categoryItem}
-                      onPress={() => setPrimaryCategory(cat.id)}
-                    >
-                      <Text style={s.categoryTitle}>{cat.title}</Text>
-                      <Text style={s.categorySub}>{cat.subtitle}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : currentCategory ? (
+              {activeList.length > 0 && (
                 <>
-                  <View style={s.selectedCatHeader}>
-                    <View style={s.selectedCatLeft}>
-                      <Text style={s.selectedCatTitle}>{currentCategory.title}</Text>
-                      <View style={s.primaryBadge}>
-                        <Text style={s.primaryBadgeText}>주 카테고리</Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      style={s.changeBtn}
-                      onPress={() => {
-                        setPrimaryCategory("");
-                        setSelectedInterests([]);
-                        setCustomInterests([]);
-                      }}
-                    >
-                      <Text style={s.changeBtnText}>변경</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={s.interestGrid}>
-                    {currentCategory.interests.map((interest) => {
-                      const selected = selectedInterests.includes(interest.id);
-                      return (
-                        <TouchableOpacity
-                          key={interest.id}
-                          style={[s.interestItem, selected && s.interestSelected]}
-                          onPress={() => toggleInterest(interest.id)}
-                        >
-                          <Text style={s.interestIcon}>{interest.icon}</Text>
-                          <Text style={s.interestLabel}>{interest.label}</Text>
-                          {selected && (
-                            <View style={s.checkCircle}>
-                              <Feather name="check" size={14} color={COLORS.white} />
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      );
-                    })}
-                    {customInterests.map((label) => (
+                  <Text style={s.simpleLabel}>관심사</Text>
+                  <View style={s.simpleChips}>
+                    {activeList.map((i) => (
+                      <InterestChip
+                        key={i}
+                        label={i}
+                        selected={interests.includes(i)}
+                        onPress={() => toggleInterest(i)}
+                      />
+                    ))}
+                    {customSelected.map((label) => (
                       <TouchableOpacity
                         key={label}
-                        style={s.customTag}
-                        onPress={() =>
-                          setCustomInterests((prev) => prev.filter((i) => i !== label))
-                        }
+                        style={s.simpleCustomTag}
+                        onPress={() => removeInterest(label)}
                       >
-                        <Text style={s.customTagText}>{label} ✕</Text>
+                        <Text style={s.simpleCustomTagText}>{label} ✕</Text>
                       </TouchableOpacity>
                     ))}
                     <TouchableOpacity
-                      style={s.etcChip}
+                      style={s.simpleEtcChip}
                       onPress={() => setShowCustomInput((v) => !v)}
                     >
-                      <Text style={s.etcChipText}>+ 기타</Text>
+                      <Text style={s.simpleEtcChipText}>+ 기타</Text>
                     </TouchableOpacity>
                   </View>
 
                   {showCustomInput && (
-                    <View style={s.customInputRow}>
+                    <View style={s.simpleCustomInputRow}>
                       <TextInput
-                        style={s.customTextInput}
+                        style={s.simpleCustomTextInput}
                         value={customInput}
                         onChangeText={setCustomInput}
                         placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
                         placeholderTextColor={COLORS.placeholder}
-                        onSubmitEditing={addCustomInterest}
+                        onSubmitEditing={addCustomInterests}
+                        returnKeyType="done"
                         autoFocus
                       />
-                      <TouchableOpacity style={s.addBtn} onPress={addCustomInterest}>
-                        <Text style={s.addBtnText}>추가</Text>
+                      <TouchableOpacity style={s.simpleAddBtn} onPress={addCustomInterests}>
+                        <Text style={s.simpleAddBtnText}>추가</Text>
                       </TouchableOpacity>
                     </View>
                   )}
                 </>
-              ) : null}
-            </View>
+              )}
+            </>
           )}
 
           {}
@@ -644,6 +604,32 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.white,
   },
   etcChipText: { fontSize: 13, color: COLORS.zinc600 },
+
+  simpleLabel: { fontSize: 13, fontWeight: '600', color: COLORS.zinc700, marginTop: 12 },
+  simpleCatRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  simpleCat: { padding: 10, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.zinc200 },
+  simpleCatActive: { backgroundColor: COLORS.violet100, borderColor: COLORS.violet600 },
+  simpleChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  simpleCustomInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 8 },
+  simpleCustomTextInput: {
+    flex: 1, borderWidth: 1, borderColor: COLORS.zinc200, borderRadius: RADIUS.sm,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: COLORS.zinc900,
+  },
+  simpleAddBtn: {
+    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: COLORS.violet600, borderRadius: RADIUS.sm,
+  },
+  simpleAddBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+  simpleCustomTag: {
+    paddingHorizontal: 12, paddingVertical: 6, backgroundColor: COLORS.violet100,
+    borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.violet600,
+  },
+  simpleCustomTagText: { fontSize: 13, color: COLORS.violet600 },
+  simpleEtcChip: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full,
+    borderWidth: 1, borderColor: COLORS.zinc300, borderStyle: 'dashed',
+    backgroundColor: COLORS.white,
+  },
+  simpleEtcChipText: { fontSize: 13, color: COLORS.zinc600 },
   customTagText: { fontSize: 14, fontWeight: "500", color: COLORS.violet600 },
   customInputRow: { flexDirection: "row", gap: 8 },
   customTextInput: {
