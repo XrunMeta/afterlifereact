@@ -14,7 +14,7 @@ beforeEach(() => {
 test('renders 2 cloneType cards (memlow / 일반) with labels', () => {
 
   const { getByText, queryByText } = render(<Step1CloneTypeScreen {...navProps} />);
-  expect(getByText('떠난 소중한 이')).toBeTruthy();
+  expect(getByText('고인')).toBeTruthy();
   expect(getByText('일반')).toBeTruthy();
 
   expect(queryByText('전문 멘토')).toBeNull();
@@ -29,7 +29,7 @@ test('next button disabled until a type is selected', () => {
 
 test('selecting memlow and pressing next saves cloneType and navigates to Step2', () => {
   const { getByText } = render(<Step1CloneTypeScreen {...navProps} />);
-  fireEvent.press(getByText('떠난 소중한 이'));
+  fireEvent.press(getByText('고인'));
   fireEvent.press(getByText('다음'));
   expect(useCloneStore.getState().creationDraft.cloneType).toBe('memlow');
   expect(mockNavigate).toHaveBeenCalledWith('Step2');

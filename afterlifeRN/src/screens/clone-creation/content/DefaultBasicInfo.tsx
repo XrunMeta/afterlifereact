@@ -29,7 +29,7 @@ function Component({ draft, onChange }: Props) {
         onChangeText={v => onChange({ name: v })}
       />
       <TextField
-        placeholder="사용자명 (@예: @luna)"
+        placeholder="클론 아이디 (@예: @luna)"
         value={draft.username ?? ''}
         onChangeText={v => onChange({ username: v })}
       />

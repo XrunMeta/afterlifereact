@@ -10,7 +10,7 @@ export interface CloneTypeMeta {
 }
 
 export const CLONE_TYPES: readonly CloneTypeMeta[] = [
-  { id: 'memlow', iconName: 'heart', label: '떠난 소중한 이',
+  { id: 'memlow', iconName: 'heart', label: '고인',
     desc: '함께한 시간을 대화로 이어갑니다', defaultVisibility: 'private', visibilityLocked: true },
   { id: 'friend', iconName: 'users', label: '일반',
     desc: '친구·멘토·유명인 등 자유 페르소나', defaultVisibility: 'public', visibilityLocked: false },
