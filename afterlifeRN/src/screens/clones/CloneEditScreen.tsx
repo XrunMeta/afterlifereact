@@ -363,6 +363,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                   </View>
 
                   <View style={s.interestGrid}>
+                    {}
                     {currentCategory.interests.map((interest) => {
                       const selected = selectedInterests.includes(interest.id);
                       return (
@@ -381,17 +382,28 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                         </TouchableOpacity>
                       );
                     })}
+                    {}
+                    {customInterests.map((label) => (
+                      <TouchableOpacity
+                        key={label}
+                        style={s.customTag}
+                        onPress={() =>
+                          setCustomInterests((prev) => prev.filter((i) => i !== label))
+                        }
+                      >
+                        <Text style={s.customTagText}>{label} ✕</Text>
+                      </TouchableOpacity>
+                    ))}
+                    {}
+                    <TouchableOpacity
+                      style={s.etcChip}
+                      onPress={() => setShowCustomInput((v) => !v)}
+                    >
+                      <Text style={s.etcChipText}>+ 기타</Text>
+                    </TouchableOpacity>
                   </View>
 
-                  <Text style={s.customTitle}>그 외 관심사</Text>
-                  <View style={s.customTags}>
-                    {customInterests.map((tag, i) => (
-                      <View key={i} style={s.customTag}>
-                        <Text style={s.customTagText}>{tag}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  {showCustomInput ? (
+                  {showCustomInput && (
                     <View style={s.customInputRow}>
                       <TextInput
                         style={s.customTextInput}
@@ -406,14 +418,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                         <Text style={s.addBtnText}>추가</Text>
                       </TouchableOpacity>
                     </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={s.addCustomBtn}
-                      onPress={() => setShowCustomInput(true)}
-                    >
-                      <Feather name="plus" size={18} color={COLORS.zinc600} />
-                      <Text style={s.addCustomText}>관심사 추가하기</Text>
-                    </TouchableOpacity>
                   )}
                 </>
               ) : null}
@@ -634,6 +638,16 @@ const s = StyleSheet.create({
     borderColor: COLORS.violet600,
     borderRadius: RADIUS.full,
   },
+  etcChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+    borderStyle: 'dashed',
+    backgroundColor: COLORS.white,
+  },
+  etcChipText: { fontSize: 13, color: COLORS.zinc600 },
   customTagText: { fontSize: 14, fontWeight: "500", color: COLORS.violet600 },
   customInputRow: { flexDirection: "row", gap: 8 },
   customTextInput: {
