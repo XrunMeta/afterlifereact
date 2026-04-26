@@ -9,3 +9,9 @@ build/
 .wrangler/
 .bkit/
 .superpowers/
+
+# 민감정보 (수동 메모) — 평문 시크릿/토큰/복구코드 포함
+docs/TOTP 등록.txt
+docs/관리.txt
+docs/*.local.md
+docs/*.local.txt
