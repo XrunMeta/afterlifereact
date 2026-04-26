@@ -268,23 +268,14 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           />
 
           {}
-          <PersonaSection
-            draft={draft}
-            onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+          <TextField
+            label="한 줄 소개"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="이 페르소나의 한 줄 소개를 입력해주세요..."
+            multiline
+            containerStyle={{ marginTop: 16 }}
           />
-
-          {}
-          <View style={s.beforeBox}>
-            <Text style={s.beforeLabel}>변경 전 (영구 데이터)</Text>
-            <Text style={s.beforeBody}>
-              {formatPersonaPrompt({
-                name: clone.displayName,
-                description: clone.description,
-                interests: clone.interests,
-                l1: clone.l1Profile,
-              })}
-            </Text>
-          </View>
 
           {}
           {clone.cloneType === 'memlow' && (
@@ -310,17 +301,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           )}
 
           {}
-          <TextField
-            label="한 줄 소개"
-            value={description}
-            onChangeText={setDescription}
-            placeholder="이 페르소나의 한 줄 소개를 입력해주세요..."
-            multiline
-            containerStyle={{ marginTop: 16 }}
-          />
-
-          {
-}
           {clone.cloneType !== 'memlow' && (
             <View style={{ marginTop: 16 }}>
               <Text style={s.sectionTitle}>관심사</Text>
@@ -363,7 +343,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                   </View>
 
                   <View style={s.interestGrid}>
-                    {}
                     {currentCategory.interests.map((interest) => {
                       const selected = selectedInterests.includes(interest.id);
                       return (
@@ -382,7 +361,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                         </TouchableOpacity>
                       );
                     })}
-                    {}
                     {customInterests.map((label) => (
                       <TouchableOpacity
                         key={label}
@@ -394,7 +372,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                         <Text style={s.customTagText}>{label} ✕</Text>
                       </TouchableOpacity>
                     ))}
-                    {}
                     <TouchableOpacity
                       style={s.etcChip}
                       onPress={() => setShowCustomInput((v) => !v)}
@@ -423,6 +400,25 @@ export default function CloneEditScreen({ route, navigation }: Props) {
               ) : null}
             </View>
           )}
+
+          {}
+          <View style={s.beforeBox}>
+            <Text style={s.beforeLabel}>변경 전 (영구 데이터)</Text>
+            <Text style={s.beforeBody}>
+              {formatPersonaPrompt({
+                name: clone.displayName,
+                description: clone.description,
+                interests: clone.interests,
+                l1: clone.l1Profile,
+              })}
+            </Text>
+          </View>
+
+          {}
+          <PersonaSection
+            draft={draft}
+            onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+          />
         </View>
 
         {
