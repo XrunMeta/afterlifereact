@@ -18,6 +18,7 @@ import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
 import { requestPushPermission } from "../../lib/pushNotifications";
+import { getOrCreateDeviceId } from "../../lib/deviceId";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "EmailVerify">;
 
@@ -63,10 +64,12 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
 
       let pushToken: string | undefined;
       let platform: "ios" | "android" | "web" | undefined;
+      let deviceId: string | undefined;
       if (params.marketingConsent) {
         const reg = await requestPushPermission();
         if (reg.token) pushToken = reg.token;
         platform = reg.platform;
+        deviceId = await getOrCreateDeviceId();
       }
 
       await signup({
@@ -79,6 +82,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         age: params.age,
         interests: params.interests,
         marketingConsent: params.marketingConsent,
+        deviceId,
         pushToken,
         platform,
       });
