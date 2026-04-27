@@ -20,6 +20,9 @@ import v_84e2fc from "../../components/ui/InterestChip";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
+import { v_97ea8d, v_84a859 } from "../../api/auth";
+import { v_704bef } from "../../lib/pushNotifications";
+import { v_ea1c99 } from "../../lib/deviceId";
 
 type Props = {
   navigation: v_390fcc<v_384e19, "Signup">;
@@ -46,6 +49,44 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
   const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
+  const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
+
+  const [v_1a29d0, v_704175] = v_5ab095<string | null>(null);
+  const [v_ea920b, v_73f064] = v_5ab095<"ios" | "android" | "web" | null>(null);
+  const [v_929b58, v_94f796] = v_5ab095<string | null>(null);
+  const [v_8d0e18, v_3bb4d3] = v_5ab095(false);
+
+  const v_349606 = async () => {
+
+    if (v_8c98c4) {
+      v_e378a4(false);
+      v_704175(null);
+      v_73f064(null);
+      v_94f796(null);
+      return;
+    }
+
+    v_3bb4d3(true);
+    try {
+      const v_e43fa5 = await v_704bef();
+      if (!v_e43fa5.granted) {
+        v_03e392.alert(
+          "푸시 알림 권한 필요",
+          "마케팅 정보 알림을 받으려면 푸시 알림 권한이 필요합니다.\n기기 설정 → 알림 → AfterLife 에서 허용해주세요.",
+        );
+        return;
+      }
+      const v_de2b1c = await v_ea1c99();
+      v_e378a4(true);
+      v_704175(v_e43fa5.token ?? null);
+      v_73f064(v_e43fa5.platform);
+      v_94f796(v_de2b1c);
+    } catch {
+      v_03e392.alert("오류", "권한 요청 중 문제가 발생했습니다.");
+    } finally {
+      v_3bb4d3(false);
+    }
+  };
 
   const v_d82a00 = (v_e4601c) => {
     v_770327((v_ba2215) =>
@@ -55,13 +96,31 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
     );
   };
 
-  const v_585b02 = () => {
+  const v_585b02 = async () => {
     if (!v_1833e7 || !v_e0c7e8 || !v_adc076 || !v_d74a81 || !v_c3eac4 || !v_2694bd) {
       v_03e392.alert("알림", "필수 항목을 모두 입력해주세요.");
       return;
     }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8)) {
+      v_03e392.alert("알림", "이메일 형식이 올바르지 않습니다. (예: hello@example.com)");
+      return;
+    }
+
+    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(v_adc076)) {
+      v_03e392.alert(
+        "알림",
+        "비밀번호는 영문 대문자, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.",
+      );
+      return;
+    }
     if (v_adc076 !== v_0b3ebe) {
       v_03e392.alert("알림", "비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    if (v_d74a81.length < 4) {
+      v_03e392.alert("알림", "전화번호를 4자 이상으로 입력해주세요.");
       return;
     }
     if (!v_5c764d) {
@@ -69,7 +128,39 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
       return;
     }
 
-    v_c65f5d.navigate("Login");
+    const v_f4fe8e = parseInt(v_2694bd, 10);
+    if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
+      v_03e392.alert("알림", "나이를 13~120 사이 숫자로 입력해주세요.");
+      return;
+    }
+
+    v_ee9ec1(true);
+    try {
+      await v_97ea8d(v_e0c7e8);
+      v_c65f5d.navigate("EmailVerify", {
+        email: v_e0c7e8,
+        password: v_adc076,
+        name: v_1833e7,
+        phone: v_d74a81,
+        gender: v_c3eac4 || undefined,
+        age: v_f4fe8e,
+        interests: v_976e06.length > 0 ? v_976e06 : undefined,
+        marketingConsent: v_8c98c4,
+        pushToken: v_1a29d0 ?? undefined,
+        platform: v_ea920b ?? undefined,
+        deviceId: v_929b58 ?? undefined,
+      });
+    } catch (v_49263d) {
+      const v_badeaf =
+        v_49263d instanceof v_84a859
+          ? v_49263d.code === "OTP_COOLDOWN"
+            ? "잠시 후 다시 시도해주세요. (1분 쿨다운)"
+            : v_49263d.message
+          : "코드 발송에 실패했습니다. 네트워크를 확인해주세요.";
+      v_03e392.alert("오류", v_badeaf);
+    } finally {
+      v_ee9ec1(false);
+    }
   };
 
   return (
@@ -112,18 +203,23 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
           />
 
           {}
-          <TextField
-            placeholder="비밀번호"
-            value={v_adc076}
-            onChangeText={v_52b279}
-            secureTextEntry={!v_b5ab16}
-            leftIcon={<Feather name="lock" size={20} color={v_1bfbd0.zinc500} />}
-            rightIcon={
-              <TouchableOpacity onPress={() => v_b7733b(!v_b5ab16)}>
-                <Feather name={v_b5ab16 ? "eye-off" : "eye"} size={20} color={v_1bfbd0.zinc500} />
-              </TouchableOpacity>
-            }
-          />
+          <View>
+            <TextField
+              placeholder="비밀번호"
+              value={v_adc076}
+              onChangeText={v_52b279}
+              secureTextEntry={!v_b5ab16}
+              leftIcon={<Feather name="lock" size={20} color={v_1bfbd0.zinc500} />}
+              rightIcon={
+                <TouchableOpacity onPress={() => v_b7733b(!v_b5ab16)}>
+                  <Feather name={v_b5ab16 ? "eye-off" : "eye"} size={20} color={v_1bfbd0.zinc500} />
+                </TouchableOpacity>
+              }
+            />
+            <Text style={v_d81136.passwordHint}>
+              영문 대문자, 숫자, 특수문자를 포함한 8자 이상
+            </Text>
+          </View>
 
           {}
           <TextField
@@ -136,6 +232,11 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
               <TouchableOpacity onPress={() => v_3c4c2d(!v_0b85b1)}>
                 <Feather name={v_0b85b1 ? "eye-off" : "eye"} size={20} color={v_1bfbd0.zinc500} />
               </TouchableOpacity>
+            }
+            errorText={
+              v_0b3ebe.length > 0 && v_0b3ebe !== v_adc076
+                ? "비밀번호가 일치하지 않습니다."
+                : undefined
             }
           />
 
@@ -197,7 +298,8 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => v_e378a4(!v_8c98c4)}
+              onPress={v_349606}
+              disabled={v_8d0e18}
               style={v_d81136.checkRow}
             >
               <View style={[v_d81136.checkbox, v_8c98c4 && v_d81136.checkboxChecked]}>
@@ -205,12 +307,17 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
               </View>
               <Text style={v_d81136.termText}>
                 <Text style={v_d81136.termOptional}>(선택)</Text> 마케팅 정보 수신에 동의합니다
+                {v_8d0e18 ? " (권한 요청 중...)" : ""}
               </Text>
             </TouchableOpacity>
           </View>
 
           {}
-          <Button title="가입하기" onPress={v_585b02} />
+          <Button
+            title={v_cb66b4 ? "코드 전송 중..." : "가입하기"}
+            onPress={v_585b02}
+            disabled={v_cb66b4}
+          />
 
           {}
           <View style={v_d81136.loginRow}>
@@ -261,6 +368,12 @@ const v_d81136 = v_472849.create({
   },
   ageField: {
     width: 100,
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: v_1bfbd0.zinc500,
+    marginTop: 6,
+    marginLeft: 4,
   },
   section: {
     gap: 12,

@@ -5,6 +5,7 @@ import { v_1ed7d9 } from "../stores/authStore";
 
 import v_f4f851 from "../screens/auth/LoginScreen";
 import v_f40fc5 from "../screens/auth/SignupScreen";
+import v_e1aa8b from "../screens/auth/EmailVerifyScreen";
 
 import v_19ba0e from "./MainTabNavigator";
 
@@ -19,6 +20,7 @@ function v_aebbaf() {
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={v_f4f851} />
       <AuthStack.Screen name="Signup" component={v_f40fc5} />
+      <AuthStack.Screen name="EmailVerify" component={v_e1aa8b} />
     </AuthStack.Navigator>
   );
 }
