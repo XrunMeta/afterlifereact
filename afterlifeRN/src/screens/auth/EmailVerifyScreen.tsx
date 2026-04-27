@@ -18,6 +18,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
 import { v_704bef } from "../../lib/pushNotifications";
+import { v_ea1c99 } from "../../lib/deviceId";
 
 type Props = v_432191<v_384e19, "EmailVerify">;
 
@@ -63,10 +64,12 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
       let v_1a29d0;
       let v_81a27a;
+      let v_929b58;
       if (v_24baff.marketingConsent) {
         const v_e43fa5 = await v_704bef();
         if (v_e43fa5.token) v_1a29d0 = v_e43fa5.token;
         v_81a27a = v_e43fa5.platform;
+        v_929b58 = await v_ea1c99();
       }
 
       await v_35200c({
@@ -79,6 +82,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         age: v_24baff.age,
         interests: v_24baff.interests,
         marketingConsent: v_24baff.marketingConsent,
+        deviceId: v_929b58,
         pushToken: v_1a29d0,
         platform: v_81a27a,
       });
