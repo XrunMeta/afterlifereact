@@ -91,8 +91,17 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         { text: "확인", onPress: () => v_c65f5d.navigate("Login") },
       ]);
     } catch (v_49263d) {
-      const v_badeaf =
-        v_49263d instanceof v_84a859 ? v_49263d.message : "가입 처리 중 오류가 발생했습니다.";
+      let v_badeaf = "가입 처리 중 오류가 발생했습니다.";
+      if (v_49263d instanceof v_84a859) {
+        v_badeaf = v_49263d.message;
+
+        if (v_49263d.code === "VALIDATION_FAILED" && Array.isArray(v_49263d.details)) {
+          const v_712957 = v_49263d.details
+            .map((v_d5dda0) => `• ${(v_d5dda0.path ?? []).join(".")}: ${v_d5dda0.message}`)
+            .join("\n");
+          v_badeaf = `${v_badeaf}\n\n${v_712957}`;
+        }
+      }
       v_03e392.alert("오류", v_badeaf);
     } finally {
       v_ee9ec1(false);

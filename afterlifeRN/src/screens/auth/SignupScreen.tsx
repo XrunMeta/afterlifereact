@@ -62,8 +62,23 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
       v_03e392.alert("알림", "필수 항목을 모두 입력해주세요.");
       return;
     }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8)) {
+      v_03e392.alert("알림", "이메일 형식이 올바르지 않습니다. (예: hello@example.com)");
+      return;
+    }
+
+    if (v_adc076.length < 8) {
+      v_03e392.alert("알림", "비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
     if (v_adc076 !== v_0b3ebe) {
       v_03e392.alert("알림", "비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    if (v_d74a81.length < 4) {
+      v_03e392.alert("알림", "전화번호를 4자 이상으로 입력해주세요.");
       return;
     }
     if (!v_5c764d) {
@@ -73,7 +88,7 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
 
     const v_f4fe8e = parseInt(v_2694bd, 10);
     if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
-      v_03e392.alert("알림", "나이를 올바르게 입력해주세요. (13~120)");
+      v_03e392.alert("알림", "나이를 13~120 사이 숫자로 입력해주세요.");
       return;
     }
 

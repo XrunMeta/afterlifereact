@@ -35,10 +35,12 @@ export interface ApiErrorBody {
 export class v_84a859 extends Error {
   readonly code: string;
   readonly status: number;
-  constructor(v_d308b5, v_c99bd2, v_a8cd21) {
+  readonly details?: unknown;
+  constructor(v_d308b5, v_c99bd2, v_a8cd21, v_5ab5bd) {
     super(v_a8cd21);
     this.code = v_c99bd2;
     this.status = v_d308b5;
+    this.details = v_5ab5bd;
   }
 }
 
@@ -61,7 +63,7 @@ async function v_c34e2f<T>(v_9fe22d, v_4d33b2): Promise<T> {
     const v_9be017 = v_8decf8 as ApiErrorBody | null;
     const v_c99bd2 = v_9be017?.error?.code ?? "HTTP_ERROR";
     const v_a8cd21 = v_9be017?.error?.message ?? `HTTP ${v_8f00b9.status}`;
-    throw new v_84a859(v_8f00b9.status, v_c99bd2, v_a8cd21);
+    throw new v_84a859(v_8f00b9.status, v_c99bd2, v_a8cd21, v_9be017?.error?.details);
   }
   return v_8decf8 as T;
 }
