@@ -83,7 +83,19 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       if (v_49263d instanceof v_84a859) {
         v_badeaf = v_49263d.message;
 
-        if (v_49263d.code === "VALIDATION_FAILED" && Array.isArray(v_49263d.details)) {
+        if (/public breaches/i.test(v_49263d.message)) {
+          const v_688abd = v_49263d.message.match(/\((\d+) hits\)/)?.[1] ?? "";
+          v_badeaf = `이 비밀번호는 공개 유출 DB에 ${v_688abd ? v_688abd + "번 " : ""}등장한 흔한 비밀번호입니다.\n다른 비밀번호를 사용해주세요.`;
+        } else if (v_49263d.code === "CONFLICT") {
+          v_badeaf = "이미 가입된 이메일입니다. 로그인을 진행해주세요.";
+        } else if (v_49263d.code === "OTP_EXPIRED") {
+          v_badeaf = "인증 코드가 만료됐습니다. 재발송을 눌러 새 코드를 받아주세요.";
+        } else if (v_49263d.code === "OTP_INVALID") {
+          v_badeaf = `잘못된 인증 코드입니다.${v_49263d.message.includes("attempts left") ? " " + v_49263d.message : ""}`;
+        } else if (v_49263d.code === "OTP_REQUIRED") {
+          v_badeaf = "인증 코드가 만료됐거나 폐기됐습니다. 재발송을 눌러주세요.";
+        } else if (v_49263d.code === "VALIDATION_FAILED" && Array.isArray(v_49263d.details)) {
+
           const v_712957 = v_49263d.details
             .map((v_d5dda0) => `• ${(v_d5dda0.path ?? []).join(".")}: ${v_d5dda0.message}`)
             .join("\n");
