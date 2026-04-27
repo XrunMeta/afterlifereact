@@ -21,6 +21,8 @@ import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
 import { v_97ea8d, v_84a859 } from "../../api/auth";
+import { v_704bef } from "../../lib/pushNotifications";
+import { v_ea1c99 } from "../../lib/deviceId";
 
 type Props = {
   navigation: v_390fcc<v_384e19, "Signup">;
@@ -48,6 +50,43 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
+
+  const [v_1a29d0, v_704175] = v_5ab095<string | null>(null);
+  const [v_ea920b, v_73f064] = v_5ab095<"ios" | "android" | "web" | null>(null);
+  const [v_929b58, v_94f796] = v_5ab095<string | null>(null);
+  const [v_8d0e18, v_3bb4d3] = v_5ab095(false);
+
+  const v_349606 = async () => {
+
+    if (v_8c98c4) {
+      v_e378a4(false);
+      v_704175(null);
+      v_73f064(null);
+      v_94f796(null);
+      return;
+    }
+
+    v_3bb4d3(true);
+    try {
+      const v_e43fa5 = await v_704bef();
+      if (!v_e43fa5.granted) {
+        v_03e392.alert(
+          "푸시 알림 권한 필요",
+          "마케팅 정보 알림을 받으려면 푸시 알림 권한이 필요합니다.\n기기 설정 → 알림 → AfterLife 에서 허용해주세요.",
+        );
+        return;
+      }
+      const v_de2b1c = await v_ea1c99();
+      v_e378a4(true);
+      v_704175(v_e43fa5.token ?? null);
+      v_73f064(v_e43fa5.platform);
+      v_94f796(v_de2b1c);
+    } catch {
+      v_03e392.alert("오류", "권한 요청 중 문제가 발생했습니다.");
+    } finally {
+      v_3bb4d3(false);
+    }
+  };
 
   const v_d82a00 = (v_e4601c) => {
     v_770327((v_ba2215) =>
@@ -104,6 +143,9 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
         age: v_f4fe8e,
         interests: v_976e06.length > 0 ? v_976e06 : undefined,
         marketingConsent: v_8c98c4,
+        pushToken: v_1a29d0 ?? undefined,
+        platform: v_ea920b ?? undefined,
+        deviceId: v_929b58 ?? undefined,
       });
     } catch (v_49263d) {
       const v_badeaf =
@@ -243,7 +285,8 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => v_e378a4(!v_8c98c4)}
+              onPress={v_349606}
+              disabled={v_8d0e18}
               style={v_d81136.checkRow}
             >
               <View style={[v_d81136.checkbox, v_8c98c4 && v_d81136.checkboxChecked]}>
@@ -251,6 +294,7 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
               </View>
               <Text style={v_d81136.termText}>
                 <Text style={v_d81136.termOptional}>(선택)</Text> 마케팅 정보 수신에 동의합니다
+                {v_8d0e18 ? " (권한 요청 중...)" : ""}
               </Text>
             </TouchableOpacity>
           </View>
