@@ -132,3 +132,42 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
 export async function getMe(accessToken: string): Promise<{ user: AuthUser; interests: string[] }> {
   return getJson("/oth-path", accessToken);
 }
+
+export interface PatchMePayload {
+  name?: string;
+  avatarUrl?: string | null;
+  phone?: string | null;
+  gender?: "male" | "female" | "other" | null;
+  age?: number | null;
+}
+
+export async function patchMe(
+  accessToken: string,
+  payload: PatchMePayload,
+): Promise<{ ok: true; updatedFields: string[] }> {
+  const res = await fetch(`${API_BASE}/oth-path`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+
+  }
+  if (!res.ok) {
+    const errBody = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      errBody?.error?.code ?? "HTTP_ERROR",
+      errBody?.error?.message ?? `HTTP ${res.status}`,
+      errBody?.error?.details,
+    );
+  }
+  return parsed as { ok: true; updatedFields: string[] };
+}

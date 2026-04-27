@@ -29,6 +29,7 @@ import { gdpr } from "./routes/gdpr";
 import { adminGdpr } from "./routes/adminGdpr";
 import { deletion } from "./routes/deletion";
 import { adminDeletion } from "./routes/adminDeletion";
+import { files } from "./routes/files";
 
 const app = new Hono<AppEnv>();
 
@@ -69,6 +70,7 @@ app.get("/health", async (c) => {
 });
 
 app.route("/oth-path", auth);
+app.route("/oth-path", files);
 
 app.route("/oth-path", deletion);
 app.route("/oth-path", users);

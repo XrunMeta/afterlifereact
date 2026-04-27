@@ -22,6 +22,8 @@ interface AuthState {
   loginWithApi: (payload: LoginPayload) => Promise<AuthUser>;
   setApiAuth: (token: string, user: AuthUser) => Promise<void>;
   apiLogout: () => Promise<void>;
+  refreshApiUser: () => Promise<AuthUser | null>;
+  patchApiUser: (patch: Partial<AuthUser>) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -90,5 +92,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   apiLogout: async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
     set({ accessToken: null, apiUser: null });
+  },
+
+  refreshApiUser: async () => {
+    const token = get().accessToken;
+    if (!token) return null;
+    try {
+      const { user } = await getMe(token);
+      set({ apiUser: user });
+      return user;
+    } catch {
+      return null;
+    }
+  },
+
+  patchApiUser: (patch) => {
+    const cur = get().apiUser;
+    if (!cur) return;
+    set({ apiUser: { ...cur, ...patch } });
   },
 }));
