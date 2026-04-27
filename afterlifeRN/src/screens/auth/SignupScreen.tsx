@@ -21,6 +21,8 @@ import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
 import { requestEmailCode, AuthApiError } from "../../api/auth";
+import { requestPushPermission } from "../../lib/pushNotifications";
+import { getOrCreateDeviceId } from "../../lib/deviceId";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
@@ -48,6 +50,43 @@ export default function SignupScreen({ navigation }: Props) {
   const [agreeRequired, setAgreeRequired] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const [pushPlatform, setPushPlatform] = useState<"ios" | "android" | "web" | null>(null);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [requestingPush, setRequestingPush] = useState(false);
+
+  const toggleMarketing = async () => {
+
+    if (agreeMarketing) {
+      setAgreeMarketing(false);
+      setPushToken(null);
+      setPushPlatform(null);
+      setDeviceId(null);
+      return;
+    }
+
+    setRequestingPush(true);
+    try {
+      const reg = await requestPushPermission();
+      if (!reg.granted) {
+        Alert.alert(
+          "푸시 알림 권한 필요",
+          "마케팅 정보 알림을 받으려면 푸시 알림 권한이 필요합니다.\n기기 설정 → 알림 → AfterLife 에서 허용해주세요.",
+        );
+        return;
+      }
+      const did = await getOrCreateDeviceId();
+      setAgreeMarketing(true);
+      setPushToken(reg.token ?? null);
+      setPushPlatform(reg.platform);
+      setDeviceId(did);
+    } catch {
+      Alert.alert("오류", "권한 요청 중 문제가 발생했습니다.");
+    } finally {
+      setRequestingPush(false);
+    }
+  };
 
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) =>
@@ -104,6 +143,9 @@ export default function SignupScreen({ navigation }: Props) {
         age: ageNum,
         interests: selectedInterests.length > 0 ? selectedInterests : undefined,
         marketingConsent: agreeMarketing,
+        pushToken: pushToken ?? undefined,
+        platform: pushPlatform ?? undefined,
+        deviceId: deviceId ?? undefined,
       });
     } catch (err) {
       const msg =
@@ -243,7 +285,8 @@ export default function SignupScreen({ navigation }: Props) {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setAgreeMarketing(!agreeMarketing)}
+              onPress={toggleMarketing}
+              disabled={requestingPush}
               style={styles.checkRow}
             >
               <View style={[styles.checkbox, agreeMarketing && styles.checkboxChecked]}>
@@ -251,6 +294,7 @@ export default function SignupScreen({ navigation }: Props) {
               </View>
               <Text style={styles.termText}>
                 <Text style={styles.termOptional}>(선택)</Text> 마케팅 정보 수신에 동의합니다
+                {requestingPush ? " (권한 요청 중...)" : ""}
               </Text>
             </TouchableOpacity>
           </View>

@@ -21,6 +21,10 @@ export type AuthStackParamList = {
     age?: number;
     interests?: string[];
     marketingConsent: boolean;
+
+    pushToken?: string;
+    platform?: "ios" | "android" | "web";
+    deviceId?: string;
   };
 };
 
