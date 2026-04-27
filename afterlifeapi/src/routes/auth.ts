@@ -55,7 +55,7 @@ auth.post("/signup", async (c) => {
   const body = await parseJson(c, signupSchema);
   const db = c.env.DB;
 
-  const hibp = await checkPwnedPassword(body.password, c.env);
+  const hibp = await checkPwnedPassword(body.password, c.env, { minHitsToReject: 100_000 });
   if (hibp.breached) {
     throw new APIError(
       "VALIDATION_FAILED",
