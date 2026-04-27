@@ -20,6 +20,7 @@ import InterestChip from "../../components/ui/InterestChip";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
+import { requestEmailCode, AuthApiError } from "../../api/auth";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
@@ -46,6 +47,7 @@ export default function SignupScreen({ navigation }: Props) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeRequired, setAgreeRequired] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) =>
@@ -55,7 +57,7 @@ export default function SignupScreen({ navigation }: Props) {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name || !email || !password || !phone || !gender || !age) {
       Alert.alert("알림", "필수 항목을 모두 입력해주세요.");
       return;
@@ -69,7 +71,36 @@ export default function SignupScreen({ navigation }: Props) {
       return;
     }
 
-    navigation.navigate("Login");
+    const ageNum = parseInt(age, 10);
+    if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+      Alert.alert("알림", "나이를 올바르게 입력해주세요. (13~120)");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await requestEmailCode(email);
+      navigation.navigate("EmailVerify", {
+        email,
+        password,
+        name,
+        phone,
+        gender: gender || undefined,
+        age: ageNum,
+        interests: selectedInterests.length > 0 ? selectedInterests : undefined,
+        marketingConsent: agreeMarketing,
+      });
+    } catch (err) {
+      const msg =
+        err instanceof AuthApiError
+          ? err.code === "OTP_COOLDOWN"
+            ? "잠시 후 다시 시도해주세요. (1분 쿨다운)"
+            : err.message
+          : "코드 발송에 실패했습니다. 네트워크를 확인해주세요.";
+      Alert.alert("오류", msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -210,7 +241,11 @@ export default function SignupScreen({ navigation }: Props) {
           </View>
 
           {}
-          <Button title="가입하기" onPress={handleSubmit} />
+          <Button
+            title={submitting ? "코드 전송 중..." : "가입하기"}
+            onPress={handleSubmit}
+            disabled={submitting}
+          />
 
           {}
           <View style={styles.loginRow}>
