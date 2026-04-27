@@ -41,12 +41,18 @@ const recentTransactions = [
 
 export default function MyScreen() {
   const user = useAuthStore((s) => s.user);
+  const apiUser = useAuthStore((s) => s.apiUser);
   const logout = useAuthStore((s) => s.logout);
   const follows = useFollowStore((s) => s.follows);
   const localClones = useCloneStore((s) => s.localClones);
   const [showComingSoon, setShowComingSoon] = useState(false);
 
-  const uid = user?.id ?? DEFAULT_USER_ID;
+  const displayName = apiUser?.name ?? user?.displayName ?? "사용자";
+  const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
+  const avatarUrl = apiUser?.avatarUrl ?? user?.avatarUrl ?? null;
+  const credits = apiUser?.credits ?? 12540;
+
+  const uid = apiUser?.id ?? user?.id ?? DEFAULT_USER_ID;
   const followingCount = useMemo(
     () => follows.filter((f) => f.followerUserId === uid).length,
     [follows, uid],
@@ -78,8 +84,8 @@ export default function MyScreen() {
         {}
         <View style={s.profileSection}>
           <View style={s.avatarWrap}>
-            {user?.avatarUrl ? (
-              <Image source={{ uri: user.avatarUrl }} style={s.avatar} />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={s.avatar} />
             ) : (
               <View style={[s.avatar, s.avatarPlaceholder]}>
                 <Feather name="user" size={40} color={COLORS.zinc400} />
@@ -90,8 +96,8 @@ export default function MyScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={s.userName}>{user?.displayName ?? "사용자"}</Text>
-          <Text style={s.userHandle}>{user?.handle ?? "@afterlife"}</Text>
+          <Text style={s.userName}>{displayName}</Text>
+          <Text style={s.userHandle}>{subLabel}</Text>
 
           <View style={s.statsRow}>
             <View style={s.statItem}>
@@ -126,8 +132,8 @@ export default function MyScreen() {
               <Text style={s.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={s.coinAmount}>{(12540).toLocaleString()}</Text>
-          <Text style={s.coinWon}>약 ₩{(12540).toLocaleString()} 상당</Text>
+          <Text style={s.coinAmount}>{credits.toLocaleString()}</Text>
+          <Text style={s.coinWon}>약 ₩{credits.toLocaleString()} 상당</Text>
         </View>
 
         {}
