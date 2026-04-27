@@ -135,7 +135,7 @@ export interface OpenAnyOptions {
   db: D1Database;
   hkdfContext: string;              
   legacyProvider: KekProvider;      
-  v3Provider: KekProvider;          
+  v3Provider?: KekProvider;         
   actor: { type: "user" | "admin" | "heir" | "system"; id: string | number };
   auditSecret: string;
   lazyMigrateEnabled: boolean;
@@ -144,21 +144,25 @@ export interface OpenAnyOptions {
 
 export async function v_137694(v_3263c7, v_328259): Promise<string> {
   if (v_3263c7.startsWith(`${v_e1906a}.`)) {
+    if (!v_328259.v3Provider) {
+      throw new Error("v3 blob detected but v3Provider not available (encryption_keys empty?)");
+    }
     return v_dfbdd9(v_328259.db, v_3263c7, v_328259.v3Provider, { lazyRotationEnabled: false });
   }
 
   const v_946ca6 = v_207c31(v_3263c7, v_328259.legacyProvider, v_328259.hkdfContext);
 
-  if (!v_328259.lazyMigrateEnabled || !v_328259.hint) return v_946ca6;
+  if (!v_328259.lazyMigrateEnabled || !v_328259.hint || !v_328259.v3Provider) return v_946ca6;
   const v_2750f3 = v_92c4dd[v_328259.hint.key];
   if (!v_2750f3) return v_946ca6;
+  const v_cc7ea7 = v_328259.v3Provider;
 
   let v_ba5d92;
   try {
     v_ba5d92 = await v_9eaae0(
       v_328259.db,
       v_946ca6,
-      v_328259.v3Provider,
+      v_cc7ea7,
       { type: v_2750f3.resourceType, id: String(v_328259.hint.resourceId) },
     );
   } catch (v_49263d) {
