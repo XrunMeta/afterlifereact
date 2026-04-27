@@ -233,6 +233,11 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
                 <Feather name={v_0b85b1 ? "eye-off" : "eye"} size={20} color={v_1bfbd0.zinc500} />
               </TouchableOpacity>
             }
+            errorText={
+              v_0b3ebe.length > 0 && v_0b3ebe !== v_adc076
+                ? "비밀번호가 일치하지 않습니다."
+                : undefined
+            }
           />
 
           {}
