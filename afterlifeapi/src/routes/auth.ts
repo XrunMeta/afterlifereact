@@ -15,6 +15,7 @@ import {
 } from "../lib/session";
 import { v_6690d9 } from "../middleware/auth";
 import { v_74defc } from "../lib/logger";
+import { v_b78f7e, v_656e8b } from "../lib/otp";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
 
@@ -29,13 +30,25 @@ const v_7b8b17 = v_1f4ea7.object({
   email: v_1f4ea7.email().max(200),
   password: v_1f4ea7.string().min(8).max(200),
   name: v_1f4ea7.string().min(1).max(80),
+  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit code required"),
   phone: v_1f4ea7.string().min(4).max(40).optional(),
   gender: v_1f4ea7.enum(["male", "female", "other"]).optional(),
   age: v_1f4ea7.number().int().min(13).max(120).optional(),
   interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
+  marketingConsent: v_1f4ea7.boolean().optional().default(false),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
   pushToken: v_1f4ea7.string().min(1).max(500).optional(),
   platform: v_1f4ea7.enum(["ios", "android", "web"]).optional(),
+});
+
+const v_192e7b = v_1f4ea7.object({
+  email: v_1f4ea7.email().max(200),
+});
+
+v_68f0aa.post("/email/request-code", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
+  await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+  return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
 });
 
 v_68f0aa.post("/signup", async (v_3f4e2e) => {
@@ -50,6 +63,8 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     );
   }
 
+  await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+
   const v_df7439 = await v_54846c(v_4d33b2.password);
   const v_849998 = v_4d33b2.phone
     ? v_85de88(v_4d33b2.phone, v_a8614b(v_3f4e2e.env.ALE_KEK), "user.phone")
@@ -62,8 +77,8 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   try {
     v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
@@ -74,6 +89,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
         v_4d33b2.gender ?? null,
         null, 
         v_1f5d19,
+        v_4d33b2.marketingConsent ? 1 : 0,
       )
       .first();
   } catch (v_49263d) {
