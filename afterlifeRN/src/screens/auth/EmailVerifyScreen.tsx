@@ -84,8 +84,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         msg = err.message;
 
         if (/public breaches/i.test(err.message)) {
-          const hits = err.message.match(/\((\d+) hits\)/)?.[1] ?? "";
-          msg = `이 비밀번호는 공개 유출 DB에 ${hits ? hits + "번 " : ""}등장한 흔한 비밀번호입니다.\n다른 비밀번호를 사용해주세요.`;
+          msg = "보안상 사용할 수 없는 비밀번호입니다. 다른 비밀번호를 사용해주세요.";
         } else if (err.code === "CONFLICT") {
           msg = "이미 가입된 이메일입니다. 로그인을 진행해주세요.";
         } else if (err.code === "OTP_EXPIRED") {
