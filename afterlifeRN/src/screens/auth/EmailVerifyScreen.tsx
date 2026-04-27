@@ -83,7 +83,19 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
       if (err instanceof AuthApiError) {
         msg = err.message;
 
-        if (err.code === "VALIDATION_FAILED" && Array.isArray(err.details)) {
+        if (/public breaches/i.test(err.message)) {
+          const hits = err.message.match(/\((\d+) hits\)/)?.[1] ?? "";
+          msg = `이 비밀번호는 공개 유출 DB에 ${hits ? hits + "번 " : ""}등장한 흔한 비밀번호입니다.\n다른 비밀번호를 사용해주세요.`;
+        } else if (err.code === "CONFLICT") {
+          msg = "이미 가입된 이메일입니다. 로그인을 진행해주세요.";
+        } else if (err.code === "OTP_EXPIRED") {
+          msg = "인증 코드가 만료됐습니다. 재발송을 눌러 새 코드를 받아주세요.";
+        } else if (err.code === "OTP_INVALID") {
+          msg = `잘못된 인증 코드입니다.${err.message.includes("attempts left") ? " " + err.message : ""}`;
+        } else if (err.code === "OTP_REQUIRED") {
+          msg = "인증 코드가 만료됐거나 폐기됐습니다. 재발송을 눌러주세요.";
+        } else if (err.code === "VALIDATION_FAILED" && Array.isArray(err.details)) {
+
           const fields = err.details
             .map((d: any) => `• ${(d.path ?? []).join(".")}: ${d.message}`)
             .join("\n");
