@@ -107,8 +107,11 @@ export default function SignupScreen({ navigation }: Props) {
       return;
     }
 
-    if (password.length < 8) {
-      Alert.alert("알림", "비밀번호는 8자 이상이어야 합니다.");
+    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password)) {
+      Alert.alert(
+        "알림",
+        "비밀번호는 영문 대문자, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.",
+      );
       return;
     }
     if (password !== confirmPassword) {
@@ -200,18 +203,23 @@ export default function SignupScreen({ navigation }: Props) {
           />
 
           {}
-          <TextField
-            placeholder="비밀번호"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            leftIcon={<Feather name="lock" size={20} color={COLORS.zinc500} />}
-            rightIcon={
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Feather name={showPassword ? "eye-off" : "eye"} size={20} color={COLORS.zinc500} />
-              </TouchableOpacity>
-            }
-          />
+          <View>
+            <TextField
+              placeholder="비밀번호"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              leftIcon={<Feather name="lock" size={20} color={COLORS.zinc500} />}
+              rightIcon={
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Feather name={showPassword ? "eye-off" : "eye"} size={20} color={COLORS.zinc500} />
+                </TouchableOpacity>
+              }
+            />
+            <Text style={styles.passwordHint}>
+              영문 대문자, 숫자, 특수문자를 포함한 8자 이상
+            </Text>
+          </View>
 
           {}
           <TextField
@@ -355,6 +363,12 @@ const styles = StyleSheet.create({
   },
   ageField: {
     width: 100,
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    marginTop: 6,
+    marginLeft: 4,
   },
   section: {
     gap: 12,
