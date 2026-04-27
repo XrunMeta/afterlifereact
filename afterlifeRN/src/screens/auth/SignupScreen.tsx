@@ -107,8 +107,11 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
       return;
     }
 
-    if (v_adc076.length < 8) {
-      v_03e392.alert("알림", "비밀번호는 8자 이상이어야 합니다.");
+    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(v_adc076)) {
+      v_03e392.alert(
+        "알림",
+        "비밀번호는 영문 대문자, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.",
+      );
       return;
     }
     if (v_adc076 !== v_0b3ebe) {
@@ -200,18 +203,23 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
           />
 
           {}
-          <TextField
-            placeholder="비밀번호"
-            value={v_adc076}
-            onChangeText={v_52b279}
-            secureTextEntry={!v_b5ab16}
-            leftIcon={<Feather name="lock" size={20} color={v_1bfbd0.zinc500} />}
-            rightIcon={
-              <TouchableOpacity onPress={() => v_b7733b(!v_b5ab16)}>
-                <Feather name={v_b5ab16 ? "eye-off" : "eye"} size={20} color={v_1bfbd0.zinc500} />
-              </TouchableOpacity>
-            }
-          />
+          <View>
+            <TextField
+              placeholder="비밀번호"
+              value={v_adc076}
+              onChangeText={v_52b279}
+              secureTextEntry={!v_b5ab16}
+              leftIcon={<Feather name="lock" size={20} color={v_1bfbd0.zinc500} />}
+              rightIcon={
+                <TouchableOpacity onPress={() => v_b7733b(!v_b5ab16)}>
+                  <Feather name={v_b5ab16 ? "eye-off" : "eye"} size={20} color={v_1bfbd0.zinc500} />
+                </TouchableOpacity>
+              }
+            />
+            <Text style={v_d81136.passwordHint}>
+              영문 대문자, 숫자, 특수문자를 포함한 8자 이상
+            </Text>
+          </View>
 
           {}
           <TextField
@@ -355,6 +363,12 @@ const v_d81136 = v_472849.create({
   },
   ageField: {
     width: 100,
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: v_1bfbd0.zinc500,
+    marginTop: 6,
+    marginLeft: 4,
   },
   section: {
     gap: 12,
