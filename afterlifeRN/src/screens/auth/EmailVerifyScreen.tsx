@@ -90,7 +90,10 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         } else if (v_49263d.code === "OTP_EXPIRED") {
           v_badeaf = "인증 코드가 만료됐습니다. 재발송을 눌러 새 코드를 받아주세요.";
         } else if (v_49263d.code === "OTP_INVALID") {
-          v_badeaf = `잘못된 인증 코드입니다.${v_49263d.message.includes("attempts left") ? " " + v_49263d.message : ""}`;
+          const v_dbaa7f = v_49263d.message.match(/(\d+)\s*attempts? left/)?.[1];
+          v_badeaf = v_dbaa7f
+            ? `잘못된 인증 코드입니다. (${v_dbaa7f}회 시도 가능)`
+            : "인증 코드를 너무 많이 틀렸습니다. 재발송 받아 다시 시도해주세요.";
         } else if (v_49263d.code === "OTP_REQUIRED") {
           v_badeaf = "인증 코드가 만료됐거나 폐기됐습니다. 재발송을 눌러주세요.";
         } else if (v_49263d.code === "VALIDATION_FAILED" && Array.isArray(v_49263d.details)) {
