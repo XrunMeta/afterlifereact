@@ -41,12 +41,18 @@ const v_cca523 = [
 
 export default function v_ed02a5() {
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const [v_47abd6, v_e12360] = v_5ab095(false);
 
-  const v_0c8987 = v_625c74?.id ?? v_b9d568;
+  const v_8a1355 = v_b113dd?.name ?? v_625c74?.displayName ?? "사용자";
+  const v_04c129 = v_b113dd?.email ?? v_625c74?.handle ?? "@afterlife";
+  const v_bf6b43 = v_b113dd?.avatarUrl ?? v_625c74?.avatarUrl ?? null;
+  const v_e2c945 = v_b113dd?.credits ?? 12540;
+
+  const v_0c8987 = v_b113dd?.id ?? v_625c74?.id ?? v_b9d568;
   const v_48d264 = v_df9f57(
     () => v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987).length,
     [v_1e752a, v_0c8987],
@@ -78,8 +84,8 @@ export default function v_ed02a5() {
         {}
         <View style={v_fd5f43.profileSection}>
           <View style={v_fd5f43.avatarWrap}>
-            {v_625c74?.avatarUrl ? (
-              <Image source={{ uri: v_625c74.avatarUrl }} style={v_fd5f43.avatar} />
+            {v_bf6b43 ? (
+              <Image source={{ uri: v_bf6b43 }} style={v_fd5f43.avatar} />
             ) : (
               <View style={[v_fd5f43.avatar, v_fd5f43.avatarPlaceholder]}>
                 <Feather name="user" size={40} color={v_1bfbd0.zinc400} />
@@ -90,8 +96,8 @@ export default function v_ed02a5() {
             </TouchableOpacity>
           </View>
 
-          <Text style={v_fd5f43.userName}>{v_625c74?.displayName ?? "사용자"}</Text>
-          <Text style={v_fd5f43.userHandle}>{v_625c74?.handle ?? "@afterlife"}</Text>
+          <Text style={v_fd5f43.userName}>{v_8a1355}</Text>
+          <Text style={v_fd5f43.userHandle}>{v_04c129}</Text>
 
           <View style={v_fd5f43.statsRow}>
             <View style={v_fd5f43.statItem}>
@@ -126,8 +132,8 @@ export default function v_ed02a5() {
               <Text style={v_fd5f43.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={v_fd5f43.coinAmount}>{(12540).toLocaleString()}</Text>
-          <Text style={v_fd5f43.coinWon}>약 ₩{(12540).toLocaleString()} 상당</Text>
+          <Text style={v_fd5f43.coinAmount}>{v_e2c945.toLocaleString()}</Text>
+          <Text style={v_fd5f43.coinWon}>약 ₩{v_e2c945.toLocaleString()} 상당</Text>
         </View>
 
         {}
