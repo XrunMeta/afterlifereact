@@ -48,7 +48,16 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
     .all<{ interest: string }>();
 
   const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
-  const v_67b8fb = await v_e44d97(v_3f4e2e);
+
+  let v3Provider: Awaited<ReturnType<typeof v_e44d97>> | undefined;
+  try {
+    v_67b8fb = await v_e44d97(v_3f4e2e);
+  } catch (v_49263d) {
+    console.error(
+      `[KEK_V3_UNAVAILABLE] reqId=${v_3f4e2e.get("requestId")} err=${(v_49263d as Error).message}`,
+    );
+    v_67b8fb = undefined;
+  }
 
   let v_d74a81 = null;
   if (v_3ac7e7.phone) {
