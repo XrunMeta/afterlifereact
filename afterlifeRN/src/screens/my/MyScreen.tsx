@@ -66,7 +66,7 @@ export default function v_ed02a5() {
       return;
     }
     const v_07fb2e = await v_d05ab5.launchImageLibraryAsync({
-      mediaTypes: v_d05ab5.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
