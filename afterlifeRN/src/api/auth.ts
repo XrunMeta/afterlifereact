@@ -17,15 +17,43 @@ export interface SignupPayload {
   platform?: "ios" | "android" | "web";
 }
 
+export interface AuthUserBrief {
+  id: number;
+  name: string;
+  email: string;
+  funnelStage: string;
+}
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+  credits: number;
+  funnelStage: string;
+  phone: string | null;
+  gender: "male" | "female" | "other" | null;
+  age: number | null;
+  createdAt: string;
+}
+
 export interface SignupResponse {
   accessToken: string;
   accessExpiresIn: number;
-  user: {
-    id: number;
-    name: string;
-    email: string;
-    funnelStage: string;
-  };
+  user: AuthUserBrief;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  accessExpiresIn: number;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
 }
 
 export interface ApiErrorBody {
@@ -68,10 +96,39 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return parsed as T;
 }
 
+async function getJson<T>(path: string, accessToken?: string): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+
+  const res = await fetch(`${API_BASE}${path}`, { method: "GET", headers });
+  const text = await res.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+
+  }
+  if (!res.ok) {
+    const errBody = parsed as ApiErrorBody | null;
+    const code = errBody?.error?.code ?? "HTTP_ERROR";
+    const message = errBody?.error?.message ?? `HTTP ${res.status}`;
+    throw new AuthApiError(res.status, code, message, errBody?.error?.details);
+  }
+  return parsed as T;
+}
+
 export async function requestEmailCode(email: string): Promise<{ ok: true; expiresInSec: number }> {
   return postJson("/oth-path", { email });
 }
 
 export async function signup(payload: SignupPayload): Promise<SignupResponse> {
   return postJson("/oth-path", payload);
+}
+
+export async function login(payload: LoginPayload): Promise<LoginResponse> {
+  return postJson("/oth-path", payload);
+}
+
+export async function getMe(accessToken: string): Promise<{ user: AuthUser; interests: string[] }> {
+  return getJson("/oth-path", accessToken);
 }
