@@ -20,6 +20,7 @@ import v_84e2fc from "../../components/ui/InterestChip";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
+import { v_97ea8d, v_84a859 } from "../../api/auth";
 
 type Props = {
   navigation: v_390fcc<v_384e19, "Signup">;
@@ -46,6 +47,7 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
   const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
+  const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const v_d82a00 = (v_e4601c) => {
     v_770327((v_ba2215) =>
@@ -55,7 +57,7 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
     );
   };
 
-  const v_585b02 = () => {
+  const v_585b02 = async () => {
     if (!v_1833e7 || !v_e0c7e8 || !v_adc076 || !v_d74a81 || !v_c3eac4 || !v_2694bd) {
       v_03e392.alert("알림", "필수 항목을 모두 입력해주세요.");
       return;
@@ -69,7 +71,36 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
       return;
     }
 
-    v_c65f5d.navigate("Login");
+    const v_f4fe8e = parseInt(v_2694bd, 10);
+    if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
+      v_03e392.alert("알림", "나이를 올바르게 입력해주세요. (13~120)");
+      return;
+    }
+
+    v_ee9ec1(true);
+    try {
+      await v_97ea8d(v_e0c7e8);
+      v_c65f5d.navigate("EmailVerify", {
+        email: v_e0c7e8,
+        password: v_adc076,
+        name: v_1833e7,
+        phone: v_d74a81,
+        gender: v_c3eac4 || undefined,
+        age: v_f4fe8e,
+        interests: v_976e06.length > 0 ? v_976e06 : undefined,
+        marketingConsent: v_8c98c4,
+      });
+    } catch (v_49263d) {
+      const v_badeaf =
+        v_49263d instanceof v_84a859
+          ? v_49263d.code === "OTP_COOLDOWN"
+            ? "잠시 후 다시 시도해주세요. (1분 쿨다운)"
+            : v_49263d.message
+          : "코드 발송에 실패했습니다. 네트워크를 확인해주세요.";
+      v_03e392.alert("오류", v_badeaf);
+    } finally {
+      v_ee9ec1(false);
+    }
   };
 
   return (
@@ -210,7 +241,11 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
           </View>
 
           {}
-          <Button title="가입하기" onPress={v_585b02} />
+          <Button
+            title={v_cb66b4 ? "코드 전송 중..." : "가입하기"}
+            onPress={v_585b02}
+            disabled={v_cb66b4}
+          />
 
           {}
           <View style={v_d81136.loginRow}>

@@ -12,6 +12,16 @@ export type RootStackParamList = {
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
+  EmailVerify: {
+    email: string;
+    password: string;
+    name: string;
+    phone?: string;
+    gender?: "male" | "female" | "other";
+    age?: number;
+    interests?: string[];
+    marketingConsent: boolean;
+  };
 };
 
 export type MainTabParamList = {
