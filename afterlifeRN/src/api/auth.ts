@@ -35,10 +35,12 @@ export interface ApiErrorBody {
 export class AuthApiError extends Error {
   readonly code: string;
   readonly status: number;
-  constructor(status: number, code: string, message: string) {
+  readonly details?: unknown;
+  constructor(status: number, code: string, message: string, details?: unknown) {
     super(message);
     this.code = code;
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -61,7 +63,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     const errBody = parsed as ApiErrorBody | null;
     const code = errBody?.error?.code ?? "HTTP_ERROR";
     const message = errBody?.error?.message ?? `HTTP ${res.status}`;
-    throw new AuthApiError(res.status, code, message);
+    throw new AuthApiError(res.status, code, message, errBody?.error?.details);
   }
   return parsed as T;
 }

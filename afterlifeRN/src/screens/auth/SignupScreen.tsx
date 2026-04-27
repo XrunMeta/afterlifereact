@@ -62,8 +62,23 @@ export default function SignupScreen({ navigation }: Props) {
       Alert.alert("알림", "필수 항목을 모두 입력해주세요.");
       return;
     }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      Alert.alert("알림", "이메일 형식이 올바르지 않습니다. (예: hello@example.com)");
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert("알림", "비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
     if (password !== confirmPassword) {
       Alert.alert("알림", "비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    if (phone.length < 4) {
+      Alert.alert("알림", "전화번호를 4자 이상으로 입력해주세요.");
       return;
     }
     if (!agreeRequired) {
@@ -73,7 +88,7 @@ export default function SignupScreen({ navigation }: Props) {
 
     const ageNum = parseInt(age, 10);
     if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
-      Alert.alert("알림", "나이를 올바르게 입력해주세요. (13~120)");
+      Alert.alert("알림", "나이를 13~120 사이 숫자로 입력해주세요.");
       return;
     }
 

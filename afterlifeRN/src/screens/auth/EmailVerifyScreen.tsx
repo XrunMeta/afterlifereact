@@ -91,8 +91,17 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         { text: "확인", onPress: () => navigation.navigate("Login") },
       ]);
     } catch (err) {
-      const msg =
-        err instanceof AuthApiError ? err.message : "가입 처리 중 오류가 발생했습니다.";
+      let msg = "가입 처리 중 오류가 발생했습니다.";
+      if (err instanceof AuthApiError) {
+        msg = err.message;
+
+        if (err.code === "VALIDATION_FAILED" && Array.isArray(err.details)) {
+          const fields = err.details
+            .map((d: any) => `• ${(d.path ?? []).join(".")}: ${d.message}`)
+            .join("\n");
+          msg = `${msg}\n\n${fields}`;
+        }
+      }
       Alert.alert("오류", msg);
     } finally {
       setSubmitting(false);
