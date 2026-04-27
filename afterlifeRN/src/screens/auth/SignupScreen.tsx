@@ -233,6 +233,11 @@ export default function SignupScreen({ navigation }: Props) {
                 <Feather name={showConfirmPassword ? "eye-off" : "eye"} size={20} color={COLORS.zinc500} />
               </TouchableOpacity>
             }
+            errorText={
+              confirmPassword.length > 0 && confirmPassword !== password
+                ? "비밀번호가 일치하지 않습니다."
+                : undefined
+            }
           />
 
           {}
