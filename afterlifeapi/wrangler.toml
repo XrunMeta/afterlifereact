@@ -16,15 +16,17 @@ account_id = "87441deffba9e9c5c28114636686a4c7"
 #   GOOGLE_REFRESH_TOKEN       # scripts/get-google-refresh-token.mjs 로 1회 발급
 #   GMAIL_SENDER               # 발송 From 주소 (예: oth-staff@example.invalid)
 
-# R2 바인딩은 R2 Storage Edit 권한 토큰 검증 후 추가 예정:
-# R2:  R2_MEDIA        → afterlife-media-dev
-#      R2_ARCHIVE      → afterlife-archive-dev
+# R2 바인딩 — uploadedfiles/ 경로에 사용자 업로드 이미지 저장.
 
 # ─── local dev 바인딩 ───────────────────────────────────
 [[d1_databases]]
 binding = "DB"
 database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
+
+[[r2_buckets]]
+binding = "R2_ARCHIVE"
+bucket_name = "afterlife-archive-dev"
 
 [[kv_namespaces]]
 binding = "KV_AUTH"
@@ -101,6 +103,10 @@ id = "f77182b493dd4e36a1db4677afddaa0d"
 [[env.preview.kv_namespaces]]
 binding = "KV_SHARED_VER"
 id = "bdf9722018f541c59f50e6014696cddf"
+
+[[env.preview.r2_buckets]]
+binding = "R2_ARCHIVE"
+bucket_name = "afterlife-archive-dev"
 
 [env.preview.vars]
 ENVIRONMENT = "staging"

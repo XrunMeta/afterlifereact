@@ -48,7 +48,16 @@ users.get("/me", requireAuth, async (c) => {
     .all<{ interest: string }>();
 
   const legacyProvider = getKekProvider(c.env.ALE_KEK);
-  const v3Provider = await requestKekProvider(c);
+
+  let v3Provider: Awaited<ReturnType<typeof requestKekProvider>> | undefined;
+  try {
+    v3Provider = await requestKekProvider(c);
+  } catch (err) {
+    console.error(
+      `[KEK_V3_UNAVAILABLE] reqId=${c.get("requestId")} err=${(err as Error).message}`,
+    );
+    v3Provider = undefined;
+  }
 
   let phone: string | null = null;
   if (row.phone) {

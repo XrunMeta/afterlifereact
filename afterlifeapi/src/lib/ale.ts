@@ -135,7 +135,7 @@ export interface OpenAnyOptions {
   db: D1Database;
   hkdfContext: string;              
   legacyProvider: KekProvider;      
-  v3Provider: KekProvider;          
+  v3Provider?: KekProvider;         
   actor: { type: "user" | "admin" | "heir" | "system"; id: string | number };
   auditSecret: string;
   lazyMigrateEnabled: boolean;
@@ -144,21 +144,25 @@ export interface OpenAnyOptions {
 
 export async function openAny(blob: string, opts: OpenAnyOptions): Promise<string> {
   if (blob.startsWith(`${V3}.`)) {
+    if (!opts.v3Provider) {
+      throw new Error("v3 blob detected but v3Provider not available (encryption_keys empty?)");
+    }
     return openV3(opts.db, blob, opts.v3Provider, { lazyRotationEnabled: false });
   }
 
   const plain = open(blob, opts.legacyProvider, opts.hkdfContext);
 
-  if (!opts.lazyMigrateEnabled || !opts.hint) return plain;
+  if (!opts.lazyMigrateEnabled || !opts.hint || !opts.v3Provider) return plain;
   const spec = MIGRATE_MAP[opts.hint.key];
   if (!spec) return plain;
+  const v3 = opts.v3Provider;
 
   let newBlob: string;
   try {
     newBlob = await sealV3(
       opts.db,
       plain,
-      opts.v3Provider,
+      v3,
       { type: spec.resourceType, id: String(opts.hint.resourceId) },
     );
   } catch (err) {

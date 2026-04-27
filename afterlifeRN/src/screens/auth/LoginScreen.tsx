@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -15,6 +16,8 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import Button from "../../components/ui/Button";
 import { useAuthStore } from "../../stores/authStore";
+import { AuthApiError } from "../../api/auth";
+import { getOrCreateDeviceId } from "../../lib/deviceId";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 
 type Props = {
@@ -28,9 +31,36 @@ export default function LoginScreen({ navigation }: Props) {
   const [autoLogin, setAutoLogin] = useState(false);
 
   const hydrate = useAuthStore((s) => s.hydrate);
+  const loginWithApi = useAuthStore((s) => s.loginWithApi);
+  const [loggingIn, setLoggingIn] = useState(false);
 
-  const handleLogin = () => {
-    void hydrate();
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      return;
+    }
+    setLoggingIn(true);
+    try {
+      const deviceId = await getOrCreateDeviceId();
+      const user = await loginWithApi({ email, password, deviceId });
+      console.log("[AUTH/login] user:", user);
+
+      await hydrate();
+    } catch (err) {
+      let msg = "로그인에 실패했습니다.";
+      if (err instanceof AuthApiError) {
+        if (err.code === "UNAUTHENTICATED") {
+          msg = "이메일 또는 비밀번호가 올바르지 않습니다.";
+        } else if (err.code === "ACCOUNT_LOCKED") {
+          msg = "비밀번호를 너무 많이 틀려 일시적으로 잠겼습니다. 잠시 후 다시 시도해주세요.";
+        } else {
+          msg = err.message;
+        }
+      }
+      Alert.alert("로그인 실패", msg);
+    } finally {
+      setLoggingIn(false);
+    }
   };
 
   const handleSocialLogin = (provider: string) => {
@@ -107,9 +137,10 @@ export default function LoginScreen({ navigation }: Props) {
 
           {}
           <Button
-            title="로그인"
+            title={loggingIn ? "로그인 중..." : "로그인"}
             onPress={handleLogin}
             variant="primary"
+            disabled={loggingIn}
             style={{ marginTop: SIZES.medium }}
           />
 

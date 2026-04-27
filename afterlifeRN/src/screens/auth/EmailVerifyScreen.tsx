@@ -16,7 +16,8 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
+import { requestEmailCode, signup, getMe, AuthApiError } from "../../api/auth";
+import { useAuthStore } from "../../stores/authStore";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "EmailVerify">;
 
@@ -28,6 +29,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [resendIn, setResendIn] = useState(RESEND_COOLDOWN_SEC);
   const inputRef = useRef<TextInput>(null);
+  const setApiAuth = useAuthStore((s) => s.setApiAuth);
 
   useEffect(() => {
     const t = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000);
@@ -60,7 +62,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
     setSubmitting(true);
     try {
 
-      await signup({
+      const res = await signup({
         email: params.email,
         password: params.password,
         name: params.name,
@@ -74,6 +76,10 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         pushToken: params.pushToken,
         platform: params.platform,
       });
+
+      const meRes = await getMe(res.accessToken);
+      await setApiAuth(res.accessToken, meRes.user);
+      console.log("[AUTH/signup] user:", meRes.user, "accessExpiresIn:", res.accessExpiresIn);
 
       Alert.alert("가입 완료", "회원가입이 완료되었습니다.", [
         { text: "확인", onPress: () => navigation.navigate("Login") },

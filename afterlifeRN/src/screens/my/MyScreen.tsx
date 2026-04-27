@@ -7,9 +7,12 @@ import {
   Image,
   Modal,
   Pressable,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
@@ -17,6 +20,8 @@ import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
+import { uploadFile } from "../../api/files";
+import { patchMe } from "../../api/auth";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 
 const DEFAULT_USER_ID = 1;
@@ -41,12 +46,57 @@ const recentTransactions = [
 
 export default function MyScreen() {
   const user = useAuthStore((s) => s.user);
+  const apiUser = useAuthStore((s) => s.apiUser);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const patchApiUser = useAuthStore((s) => s.patchApiUser);
   const logout = useAuthStore((s) => s.logout);
   const follows = useFollowStore((s) => s.follows);
   const localClones = useCloneStore((s) => s.localClones);
   const [showComingSoon, setShowComingSoon] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  const uid = user?.id ?? DEFAULT_USER_ID;
+  const handleEditAvatar = async () => {
+    if (!accessToken) {
+      Alert.alert("알림", "로그인이 필요합니다.");
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("권한 필요", "사진 라이브러리 접근 권한을 허용해주세요.");
+      return;
+    }
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (picked.canceled || !picked.assets?.[0]) return;
+    const asset = picked.assets[0];
+
+    setUploadingAvatar(true);
+    try {
+      const uploaded = await uploadFile(accessToken, asset.uri, {
+        purpose: "avatar",
+        fileName: asset.fileName ?? "avatar.jpg",
+        mimeType: asset.mimeType ?? "image/jpeg",
+      });
+      await patchMe(accessToken, { avatarUrl: uploaded.url });
+      patchApiUser({ avatarUrl: uploaded.url });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "이미지 업로드에 실패했습니다.";
+      Alert.alert("오류", msg);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const displayName = apiUser?.name ?? user?.displayName ?? "사용자";
+  const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
+  const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
+  const credits = apiUser?.credits ?? 12540;
+
+  const uid = apiUser?.id ?? user?.id ?? DEFAULT_USER_ID;
   const followingCount = useMemo(
     () => follows.filter((f) => f.followerUserId === uid).length,
     [follows, uid],
@@ -78,20 +128,28 @@ export default function MyScreen() {
         {}
         <View style={s.profileSection}>
           <View style={s.avatarWrap}>
-            {user?.avatarUrl ? (
-              <Image source={{ uri: user.avatarUrl }} style={s.avatar} />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={s.avatar} />
             ) : (
               <View style={[s.avatar, s.avatarPlaceholder]}>
                 <Feather name="user" size={40} color={COLORS.zinc400} />
               </View>
             )}
-            <TouchableOpacity style={s.editAvatarBtn}>
-              <Feather name="edit-2" size={14} color={COLORS.white} />
+            <TouchableOpacity
+              style={s.editAvatarBtn}
+              onPress={handleEditAvatar}
+              disabled={uploadingAvatar}
+            >
+              {uploadingAvatar ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Feather name="edit-2" size={14} color={COLORS.white} />
+              )}
             </TouchableOpacity>
           </View>
 
-          <Text style={s.userName}>{user?.displayName ?? "사용자"}</Text>
-          <Text style={s.userHandle}>{user?.handle ?? "@afterlife"}</Text>
+          <Text style={s.userName}>{displayName}</Text>
+          <Text style={s.userHandle}>{subLabel}</Text>
 
           <View style={s.statsRow}>
             <View style={s.statItem}>
@@ -126,8 +184,8 @@ export default function MyScreen() {
               <Text style={s.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={s.coinAmount}>{(12540).toLocaleString()}</Text>
-          <Text style={s.coinWon}>약 ₩{(12540).toLocaleString()} 상당</Text>
+          <Text style={s.coinAmount}>{credits.toLocaleString()}</Text>
+          <Text style={s.coinWon}>약 ₩{credits.toLocaleString()} 상당</Text>
         </View>
 
         {}
