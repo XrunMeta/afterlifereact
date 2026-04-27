@@ -28,8 +28,8 @@ export async function checkPwnedPassword(
 ): Promise<HibpResult> {
   const minHits = opts.minHitsToReject ?? 100;
   const timeoutMs = opts.timeoutMs ?? 3000;
-  if (opts.skipInDev !== false && env.ENVIRONMENT === "development") {
-    return { breached: false, hits: 0, skipped: true, reason: "dev" };
+  if (opts.skipInDev !== false && env.ENVIRONMENT !== "production") {
+    return { breached: false, hits: 0, skipped: true, reason: "non-prod" };
   }
 
   const hashHex = toHexUpper(sha1(new TextEncoder().encode(password)));

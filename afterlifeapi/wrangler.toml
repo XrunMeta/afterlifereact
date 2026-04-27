@@ -11,6 +11,10 @@ account_id = "87441deffba9e9c5c28114636686a4c7"
 #   ALE_KEK                    # base64 32B — v1/v2 하위호환
 #   MASTER_ROOT                # base64 32B — ALE v3 KEK wrap/unwrap 루트
 #   ADMIN_BOOTSTRAP_TOKEN      # dev/staging only
+#   GOOGLE_CLIENT_ID           # 회원가입 OTP 발송용 Gmail API OAuth 클라이언트
+#   GOOGLE_CLIENT_SECRET
+#   GOOGLE_REFRESH_TOKEN       # scripts/get-google-refresh-token.mjs 로 1회 발급
+#   GMAIL_SENDER               # 발송 From 주소 (예: oth-staff@example.invalid)
 
 # R2 바인딩은 R2 Storage Edit 권한 토큰 검증 후 추가 예정:
 # R2:  R2_MEDIA        → afterlife-media-dev

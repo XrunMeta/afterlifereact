@@ -5,6 +5,7 @@ import { useAuthStore } from "../stores/authStore";
 
 import LoginScreen from "../screens/auth/LoginScreen";
 import SignupScreen from "../screens/auth/SignupScreen";
+import EmailVerifyScreen from "../screens/auth/EmailVerifyScreen";
 
 import MainTabNavigator from "./MainTabNavigator";
 
@@ -19,6 +20,7 @@ function AuthNavigator() {
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Signup" component={SignupScreen} />
+      <AuthStack.Screen name="EmailVerify" component={EmailVerifyScreen} />
     </AuthStack.Navigator>
   );
 }
