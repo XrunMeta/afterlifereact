@@ -55,7 +55,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7b8b17);
   const v_a1651b = v_3f4e2e.env.DB;
 
-  const v_222361 = await v_2ffe8e(v_4d33b2.password, v_3f4e2e.env);
+  const v_222361 = await v_2ffe8e(v_4d33b2.password, v_3f4e2e.env, { minHitsToReject: 100_000 });
   if (v_222361.breached) {
     throw new v_3ebe58(
       "VALIDATION_FAILED",
