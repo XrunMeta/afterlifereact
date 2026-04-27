@@ -15,6 +15,7 @@ import {
 } from "../lib/session";
 import { requireAuth } from "../middleware/auth";
 import { logActivity } from "../lib/logger";
+import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
 
 export const auth = new Hono<AppEnv>();
 
@@ -29,13 +30,25 @@ const signupSchema = z.object({
   email: z.email().max(200),
   password: z.string().min(8).max(200),
   name: z.string().min(1).max(80),
+  verificationCode: z.string().regex(/^\d{6}$/, "6-digit code required"),
   phone: z.string().min(4).max(40).optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
   age: z.number().int().min(13).max(120).optional(),
   interests: z.array(z.string().min(1).max(40)).max(20).optional(),
+  marketingConsent: z.boolean().optional().default(false),
   deviceId: z.string().min(1).max(200).optional(),
   pushToken: z.string().min(1).max(500).optional(),
   platform: z.enum(["ios", "android", "web"]).optional(),
+});
+
+const requestEmailCodeSchema = z.object({
+  email: z.email().max(200),
+});
+
+auth.post("/email/request-code", async (c) => {
+  const body = await parseJson(c, requestEmailCodeSchema);
+  await requestSignupOtp(c.env, body.email);
+  return c.json({ ok: true, expiresInSec: 300 });
 });
 
 auth.post("/signup", async (c) => {
@@ -49,6 +62,8 @@ auth.post("/signup", async (c) => {
       `Password has appeared in public breaches (${hibp.hits} hits). Choose another.`,
     );
   }
+
+  await verifySignupOtp(c.env, body.email, body.verificationCode);
 
   const passwordHash = await hashPassword(body.password);
   const phoneEnc = body.phone
@@ -64,8 +79,8 @@ auth.post("/signup", async (c) => {
   try {
     inserted = await db
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
@@ -76,6 +91,7 @@ auth.post("/signup", async (c) => {
         body.gender ?? null,
         null, 
         ageEnc,
+        body.marketingConsent ? 1 : 0,
       )
       .first();
   } catch (err) {
