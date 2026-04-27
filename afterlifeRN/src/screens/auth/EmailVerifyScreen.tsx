@@ -90,7 +90,10 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         } else if (err.code === "OTP_EXPIRED") {
           msg = "인증 코드가 만료됐습니다. 재발송을 눌러 새 코드를 받아주세요.";
         } else if (err.code === "OTP_INVALID") {
-          msg = `잘못된 인증 코드입니다.${err.message.includes("attempts left") ? " " + err.message : ""}`;
+          const left = err.message.match(/(\d+)\s*attempts? left/)?.[1];
+          msg = left
+            ? `잘못된 인증 코드입니다. (${left}회 시도 가능)`
+            : "인증 코드를 너무 많이 틀렸습니다. 재발송 받아 다시 시도해주세요.";
         } else if (err.code === "OTP_REQUIRED") {
           msg = "인증 코드가 만료됐거나 폐기됐습니다. 재발송을 눌러주세요.";
         } else if (err.code === "VALIDATION_FAILED" && Array.isArray(err.details)) {
