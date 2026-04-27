@@ -5,6 +5,7 @@ import {
   v_4623af,
   v_472849,
   v_cf9c33,
+  v_03e392,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -15,6 +16,8 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_e775af from "../../components/ui/TextField";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_84a859 } from "../../api/auth";
+import { v_ea1c99 } from "../../lib/deviceId";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 
 type Props = {
@@ -28,9 +31,36 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const [v_f53eaa, v_36bbbe] = v_5ab095(false);
 
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
+  const v_957ace = v_1ed7d9((v_fd5f43) => v_fd5f43.loginWithApi);
+  const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
 
-  const v_ec4736 = () => {
-    void v_232d52();
+  const v_ec4736 = async () => {
+    if (!v_e0c7e8 || !v_adc076) {
+      v_03e392.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      return;
+    }
+    v_7ba4a6(true);
+    try {
+      const v_929b58 = await v_ea1c99();
+      const v_625c74 = await v_957ace({ email: v_e0c7e8, password: v_adc076, deviceId: v_929b58 });
+      console.log("[AUTH/login] user:", v_625c74);
+
+      await v_232d52();
+    } catch (v_49263d) {
+      let v_badeaf = "로그인에 실패했습니다.";
+      if (v_49263d instanceof v_84a859) {
+        if (v_49263d.code === "UNAUTHENTICATED") {
+          v_badeaf = "이메일 또는 비밀번호가 올바르지 않습니다.";
+        } else if (v_49263d.code === "ACCOUNT_LOCKED") {
+          v_badeaf = "비밀번호를 너무 많이 틀려 일시적으로 잠겼습니다. 잠시 후 다시 시도해주세요.";
+        } else {
+          v_badeaf = v_49263d.message;
+        }
+      }
+      v_03e392.alert("로그인 실패", v_badeaf);
+    } finally {
+      v_7ba4a6(false);
+    }
   };
 
   const v_78c15c = (v_e38ca2) => {
@@ -107,9 +137,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
           {}
           <Button
-            title="로그인"
+            title={v_a5d73f ? "로그인 중..." : "로그인"}
             onPress={v_ec4736}
             variant="primary"
+            disabled={v_a5d73f}
             style={{ marginTop: v_9b1a04.medium }}
           />
 
