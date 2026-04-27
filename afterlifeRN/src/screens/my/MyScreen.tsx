@@ -93,7 +93,7 @@ export default function v_ed02a5() {
 
   const v_8a1355 = v_b113dd?.name ?? v_625c74?.displayName ?? "사용자";
   const v_04c129 = v_b113dd?.email ?? v_625c74?.handle ?? "@afterlife";
-  const v_bf6b43 = v_b113dd?.avatarUrl ?? v_625c74?.avatarUrl ?? null;
+  const v_bf6b43 = v_b113dd ? v_b113dd.avatarUrl : v_625c74?.avatarUrl ?? null;
   const v_e2c945 = v_b113dd?.credits ?? 12540;
 
   const v_0c8987 = v_b113dd?.id ?? v_625c74?.id ?? v_b9d568;
