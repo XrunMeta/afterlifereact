@@ -22,6 +22,8 @@ interface AuthState {
   loginWithApi: (payload: v_a93c97) => Promise<v_7289ef>;
   setApiAuth: (token: string, user: v_7289ef) => Promise<void>;
   apiLogout: () => Promise<void>;
+  refreshApiUser: () => Promise<v_7289ef | null>;
+  patchApiUser: (patch: Partial<v_7289ef>) => void;
 }
 
 export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
@@ -90,5 +92,23 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
   apiLogout: async () => {
     await v_e84827.removeItem(v_1278db);
     v_bb8024({ accessToken: null, apiUser: null });
+  },
+
+  refreshApiUser: async () => {
+    const v_21cc31 = v_38715b().accessToken;
+    if (!v_21cc31) return null;
+    try {
+      const { user: v_625c74 } = await v_7ef860(v_21cc31);
+      v_bb8024({ apiUser: v_625c74 });
+      return v_625c74;
+    } catch {
+      return null;
+    }
+  },
+
+  patchApiUser: (v_17dc8a) => {
+    const v_c3bc75 = v_38715b().apiUser;
+    if (!v_c3bc75) return;
+    v_bb8024({ apiUser: { ...v_c3bc75, ...v_17dc8a } });
   },
 }));

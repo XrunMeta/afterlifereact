@@ -132,3 +132,42 @@ export async function v_182fdb(v_931bf0): Promise<LoginResponse> {
 export async function v_7ef860(v_2ca7e0): Promise<{ user: AuthUser; interests: string[] }> {
   return v_fb3621("/oth-path", v_2ca7e0);
 }
+
+export interface PatchMePayload {
+  name?: string;
+  avatarUrl?: string | null;
+  phone?: string | null;
+  gender?: "male" | "female" | "other" | null;
+  age?: number | null;
+}
+
+export async function v_976b89(
+  v_2ca7e0,
+  v_931bf0,
+): Promise<{ ok: true; updatedFields: string[] }> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${v_2ca7e0}`,
+    },
+    body: JSON.stringify(v_931bf0),
+  });
+  const v_9b6134 = await v_8f00b9.text();
+  let v_8decf8 = null;
+  try {
+    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
+  } catch {
+
+  }
+  if (!v_8f00b9.ok) {
+    const v_9be017 = v_8decf8 as ApiErrorBody | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_9be017?.error?.code ?? "HTTP_ERROR",
+      v_9be017?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_9be017?.error?.details,
+    );
+  }
+  return v_8decf8 as { ok: true; updatedFields: string[] };
+}

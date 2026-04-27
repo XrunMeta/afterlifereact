@@ -29,6 +29,7 @@ import { v_a58945 } from "./routes/gdpr";
 import { v_87e8b2 } from "./routes/adminGdpr";
 import { v_dda4b9 } from "./routes/deletion";
 import { v_19f1fa } from "./routes/adminDeletion";
+import { v_ff9685 } from "./routes/files";
 
 const v_466992 = new v_b7c41b<v_de0a25>();
 
@@ -69,6 +70,7 @@ v_466992.get("/health", async (v_3f4e2e) => {
 });
 
 v_466992.route("/oth-path", v_68f0aa);
+v_466992.route("/oth-path", v_ff9685);
 
 v_466992.route("/oth-path", v_dda4b9);
 v_466992.route("/oth-path", v_de7ba7);
