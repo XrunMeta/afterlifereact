@@ -93,7 +93,7 @@ export default function MyScreen() {
 
   const displayName = apiUser?.name ?? user?.displayName ?? "사용자";
   const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
-  const avatarUrl = apiUser?.avatarUrl ?? user?.avatarUrl ?? null;
+  const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
   const credits = apiUser?.credits ?? 12540;
 
   const uid = apiUser?.id ?? user?.id ?? DEFAULT_USER_ID;
