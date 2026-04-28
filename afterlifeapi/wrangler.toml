@@ -11,16 +11,22 @@ account_id = "87441deffba9e9c5c28114636686a4c7"
 #   ALE_KEK                    # base64 32B — v1/v2 하위호환
 #   MASTER_ROOT                # base64 32B — ALE v3 KEK wrap/unwrap 루트
 #   ADMIN_BOOTSTRAP_TOKEN      # dev/staging only
+#   GOOGLE_CLIENT_ID           # 회원가입 OTP 발송용 Gmail API OAuth 클라이언트
+#   GOOGLE_CLIENT_SECRET
+#   GOOGLE_REFRESH_TOKEN       # scripts/get-google-refresh-token.mjs 로 1회 발급
+#   GMAIL_SENDER               # 발송 From 주소 (예: oth-staff@example.invalid)
 
-# R2 바인딩은 R2 Storage Edit 권한 토큰 검증 후 추가 예정:
-# R2:  R2_MEDIA        → afterlife-media-dev
-#      R2_ARCHIVE      → afterlife-archive-dev
+# R2 바인딩 — uploadedfiles/ 경로에 사용자 업로드 이미지 저장.
 
 # ─── local dev 바인딩 ───────────────────────────────────
 [[d1_databases]]
 binding = "DB"
 database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
+
+[[r2_buckets]]
+binding = "R2_ARCHIVE"
+bucket_name = "afterlife-archive-dev"
 
 [[kv_namespaces]]
 binding = "KV_AUTH"
@@ -56,6 +62,7 @@ WEBAUTHN_RP_ID = "localhost"
 WEBAUTHN_RP_ORIGIN = "http://localhost:8787"
 LAZY_ROTATION_ENABLED = "0"
 LAZY_V2_MIGRATE_ENABLED = "0"
+XRUN_API_URL = "https://oth-path-gw.example.invalid"
 
 # M-6: cron — orphan clones 정기 스윕 (매일 03:00 UTC)
 [triggers]
@@ -98,12 +105,17 @@ id = "f77182b493dd4e36a1db4677afddaa0d"
 binding = "KV_SHARED_VER"
 id = "bdf9722018f541c59f50e6014696cddf"
 
+[[env.preview.r2_buckets]]
+binding = "R2_ARCHIVE"
+bucket_name = "afterlife-archive-dev"
+
 [env.preview.vars]
 ENVIRONMENT = "staging"
 WEBAUTHN_RP_ID = "edge-alt-preview.example.invalid"
 WEBAUTHN_RP_ORIGIN = "https://edge-alt-preview.example.invalid"
 LAZY_ROTATION_ENABLED = "0"
 LAZY_V2_MIGRATE_ENABLED = "0"
+XRUN_API_URL = "https://oth-path-gw.example.invalid"
 
 [env.preview.triggers]
 crons = ["0 3 * * *"]
@@ -145,12 +157,17 @@ id = "f77182b493dd4e36a1db4677afddaa0d"
 binding = "KV_SHARED_VER"
 id = "bdf9722018f541c59f50e6014696cddf"
 
+[[env.production.r2_buckets]]
+binding = "R2_ARCHIVE"
+bucket_name = "afterlife-archive-dev"
+
 [env.production.vars]
 ENVIRONMENT = "production"
 WEBAUTHN_RP_ID = "api.afterlife.app"
 WEBAUTHN_RP_ORIGIN = "https://oth-path.afterlife.app"
 LAZY_ROTATION_ENABLED = "0"
 LAZY_V2_MIGRATE_ENABLED = "0"
+XRUN_API_URL = "https://oth-path-gw.example.invalid"
 
 [env.production.triggers]
 crons = ["0 3 * * *"]

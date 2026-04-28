@@ -20,6 +20,9 @@ import InterestChip from "../../components/ui/InterestChip";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
+import { requestEmailCode, AuthApiError } from "../../api/auth";
+import { requestPushPermission } from "../../lib/pushNotifications";
+import { getOrCreateDeviceId } from "../../lib/deviceId";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
@@ -46,6 +49,44 @@ export default function SignupScreen({ navigation }: Props) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeRequired, setAgreeRequired] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const [pushPlatform, setPushPlatform] = useState<"ios" | "android" | "web" | null>(null);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [requestingPush, setRequestingPush] = useState(false);
+
+  const toggleMarketing = async () => {
+
+    if (agreeMarketing) {
+      setAgreeMarketing(false);
+      setPushToken(null);
+      setPushPlatform(null);
+      setDeviceId(null);
+      return;
+    }
+
+    setRequestingPush(true);
+    try {
+      const reg = await requestPushPermission();
+      if (!reg.granted) {
+        Alert.alert(
+          "푸시 알림 권한 필요",
+          "마케팅 정보 알림을 받으려면 푸시 알림 권한이 필요합니다.\n기기 설정 → 알림 → AfterLife 에서 허용해주세요.",
+        );
+        return;
+      }
+      const did = await getOrCreateDeviceId();
+      setAgreeMarketing(true);
+      setPushToken(reg.token ?? null);
+      setPushPlatform(reg.platform);
+      setDeviceId(did);
+    } catch {
+      Alert.alert("오류", "권한 요청 중 문제가 발생했습니다.");
+    } finally {
+      setRequestingPush(false);
+    }
+  };
 
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) =>
@@ -55,13 +96,31 @@ export default function SignupScreen({ navigation }: Props) {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name || !email || !password || !phone || !gender || !age) {
       Alert.alert("알림", "필수 항목을 모두 입력해주세요.");
       return;
     }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      Alert.alert("알림", "이메일 형식이 올바르지 않습니다. (예: hello@example.com)");
+      return;
+    }
+
+    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password)) {
+      Alert.alert(
+        "알림",
+        "비밀번호는 영문 대문자, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.",
+      );
+      return;
+    }
     if (password !== confirmPassword) {
       Alert.alert("알림", "비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    if (phone.length < 4) {
+      Alert.alert("알림", "전화번호를 4자 이상으로 입력해주세요.");
       return;
     }
     if (!agreeRequired) {
@@ -69,7 +128,39 @@ export default function SignupScreen({ navigation }: Props) {
       return;
     }
 
-    navigation.navigate("Login");
+    const ageNum = parseInt(age, 10);
+    if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+      Alert.alert("알림", "나이를 13~120 사이 숫자로 입력해주세요.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await requestEmailCode(email);
+      navigation.navigate("EmailVerify", {
+        email,
+        password,
+        name,
+        phone,
+        gender: gender || undefined,
+        age: ageNum,
+        interests: selectedInterests.length > 0 ? selectedInterests : undefined,
+        marketingConsent: agreeMarketing,
+        pushToken: pushToken ?? undefined,
+        platform: pushPlatform ?? undefined,
+        deviceId: deviceId ?? undefined,
+      });
+    } catch (err) {
+      const msg =
+        err instanceof AuthApiError
+          ? err.code === "OTP_COOLDOWN"
+            ? "잠시 후 다시 시도해주세요. (1분 쿨다운)"
+            : err.message
+          : "코드 발송에 실패했습니다. 네트워크를 확인해주세요.";
+      Alert.alert("오류", msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -112,18 +203,23 @@ export default function SignupScreen({ navigation }: Props) {
           />
 
           {}
-          <TextField
-            placeholder="비밀번호"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
-            leftIcon={<Feather name="lock" size={20} color={COLORS.zinc500} />}
-            rightIcon={
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Feather name={showPassword ? "eye-off" : "eye"} size={20} color={COLORS.zinc500} />
-              </TouchableOpacity>
-            }
-          />
+          <View>
+            <TextField
+              placeholder="비밀번호"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              leftIcon={<Feather name="lock" size={20} color={COLORS.zinc500} />}
+              rightIcon={
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <Feather name={showPassword ? "eye-off" : "eye"} size={20} color={COLORS.zinc500} />
+                </TouchableOpacity>
+              }
+            />
+            <Text style={styles.passwordHint}>
+              영문 대문자, 숫자, 특수문자를 포함한 8자 이상
+            </Text>
+          </View>
 
           {}
           <TextField
@@ -136,6 +232,11 @@ export default function SignupScreen({ navigation }: Props) {
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                 <Feather name={showConfirmPassword ? "eye-off" : "eye"} size={20} color={COLORS.zinc500} />
               </TouchableOpacity>
+            }
+            errorText={
+              confirmPassword.length > 0 && confirmPassword !== password
+                ? "비밀번호가 일치하지 않습니다."
+                : undefined
             }
           />
 
@@ -197,7 +298,8 @@ export default function SignupScreen({ navigation }: Props) {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => setAgreeMarketing(!agreeMarketing)}
+              onPress={toggleMarketing}
+              disabled={requestingPush}
               style={styles.checkRow}
             >
               <View style={[styles.checkbox, agreeMarketing && styles.checkboxChecked]}>
@@ -205,12 +307,17 @@ export default function SignupScreen({ navigation }: Props) {
               </View>
               <Text style={styles.termText}>
                 <Text style={styles.termOptional}>(선택)</Text> 마케팅 정보 수신에 동의합니다
+                {requestingPush ? " (권한 요청 중...)" : ""}
               </Text>
             </TouchableOpacity>
           </View>
 
           {}
-          <Button title="가입하기" onPress={handleSubmit} />
+          <Button
+            title={submitting ? "코드 전송 중..." : "가입하기"}
+            onPress={handleSubmit}
+            disabled={submitting}
+          />
 
           {}
           <View style={styles.loginRow}>
@@ -261,6 +368,12 @@ const styles = StyleSheet.create({
   },
   ageField: {
     width: 100,
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    marginTop: 6,
+    marginLeft: 4,
   },
   section: {
     gap: 12,

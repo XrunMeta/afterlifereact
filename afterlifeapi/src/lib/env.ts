@@ -26,6 +26,13 @@ export interface Bindings {
 
   ADMIN_BOOTSTRAP_TOKEN?: string;
 
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_REFRESH_TOKEN: string;
+  GMAIL_SENDER: string;            
+
+  XRUN_API_URL: string;            
+
   WEBAUTHN_RP_ID: string;        
   WEBAUTHN_RP_ORIGIN: string;    
 

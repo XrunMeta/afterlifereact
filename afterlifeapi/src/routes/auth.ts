@@ -15,6 +15,8 @@ import {
 } from "../lib/session";
 import { requireAuth } from "../middleware/auth";
 import { logActivity } from "../lib/logger";
+import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
+import { registerXrunForAfterlifeUser, lookupXrunWalletByEmail } from "../lib/xrun";
 
 export const auth = new Hono<AppEnv>();
 
@@ -29,26 +31,40 @@ const signupSchema = z.object({
   email: z.email().max(200),
   password: z.string().min(8).max(200),
   name: z.string().min(1).max(80),
+  verificationCode: z.string().regex(/^\d{6}$/, "6-digit code required"),
   phone: z.string().min(4).max(40).optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
   age: z.number().int().min(13).max(120).optional(),
   interests: z.array(z.string().min(1).max(40)).max(20).optional(),
+  marketingConsent: z.boolean().optional().default(false),
   deviceId: z.string().min(1).max(200).optional(),
   pushToken: z.string().min(1).max(500).optional(),
   platform: z.enum(["ios", "android", "web"]).optional(),
+});
+
+const requestEmailCodeSchema = z.object({
+  email: z.email().max(200),
+});
+
+auth.post("/email/request-code", async (c) => {
+  const body = await parseJson(c, requestEmailCodeSchema);
+  await requestSignupOtp(c.env, body.email);
+  return c.json({ ok: true, expiresInSec: 300 });
 });
 
 auth.post("/signup", async (c) => {
   const body = await parseJson(c, signupSchema);
   const db = c.env.DB;
 
-  const hibp = await checkPwnedPassword(body.password, c.env);
+  const hibp = await checkPwnedPassword(body.password, c.env, { minHitsToReject: 100_000 });
   if (hibp.breached) {
     throw new APIError(
       "VALIDATION_FAILED",
       `Password has appeared in public breaches (${hibp.hits} hits). Choose another.`,
     );
   }
+
+  await verifySignupOtp(c.env, body.email, body.verificationCode);
 
   const passwordHash = await hashPassword(body.password);
   const phoneEnc = body.phone
@@ -64,8 +80,8 @@ auth.post("/signup", async (c) => {
   try {
     inserted = await db
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
@@ -76,6 +92,7 @@ auth.post("/signup", async (c) => {
         body.gender ?? null,
         null, 
         ageEnc,
+        body.marketingConsent ? 1 : 0,
       )
       .first();
   } catch (err) {
@@ -116,6 +133,65 @@ auth.post("/signup", async (c) => {
   } catch (err) {
     await db.prepare(`DELETE FROM users WHERE id = ?`).bind(inserted.id).run();
     throw err;
+  }
+
+  try {
+    const xrun = await registerXrunForAfterlifeUser(c.env, {
+      email: body.email,
+      name: body.name,
+      phone: body.phone,
+      gender: body.gender,
+      age: body.age,
+    });
+
+    let memberToSave: number | null = null;
+    let guidToSave: string | null = null;
+    let walletToSave: string | null = null;
+    let resultLabel: string = xrun.status;
+
+    if (xrun.status === "created" && xrun.member && xrun.guid) {
+      memberToSave = xrun.member;
+      guidToSave = xrun.guid;
+
+      const lookup = await lookupXrunWalletByEmail(c.env, body.email);
+      if (lookup.found) {
+        walletToSave = lookup.wallet ?? null;
+        if (!guidToSave && lookup.guid) guidToSave = lookup.guid;
+      }
+    } else if (xrun.status === "duplicate") {
+      const lookup = await lookupXrunWalletByEmail(c.env, body.email);
+      if (lookup.found && lookup.member) {
+        memberToSave = lookup.member;
+        guidToSave = lookup.guid ?? null;
+        walletToSave = lookup.wallet ?? null;
+        resultLabel = "duplicate-linked";
+      } else {
+        resultLabel = "duplicate-lookup-miss";
+      }
+    }
+
+    if (memberToSave) {
+      await db
+        .prepare(
+          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        )
+        .bind(memberToSave, guidToSave, walletToSave, inserted.id)
+        .run();
+    }
+
+    await logActivity(c, {
+      userId: inserted.id,
+      action: "xrun.link",
+      details: {
+        result: resultLabel,
+        member: memberToSave,
+        guid: guidToSave,
+        wallet: walletToSave,
+        reason: xrun.reason ?? null,
+      },
+    });
+  } catch (err) {
+    console.error(`[XRUN_LINK_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
   }
 
   const { accessToken, refreshToken, accessExpiresIn } = await issueSession(
