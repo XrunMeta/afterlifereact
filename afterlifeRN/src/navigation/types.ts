@@ -26,6 +26,9 @@ export type AuthStackParamList = {
     platform?: "ios" | "android" | "web";
     deviceId?: string;
   };
+  XrunLogin: undefined;
+  XrunOtp: { email: string; pin: string };
+  XrunOnboarding: { email: string; pin: string; verificationCode: string };
 };
 
 export type MainTabParamList = {

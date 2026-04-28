@@ -38,3 +38,14 @@ test('stranger (viewer=999, clone=1) sees read-only L1 without editor actions', 
   expect(v_32bb43('transfer-open')).toBeNull();
   expect(v_32bb43('request-editor')).toBeNull();
 });
+
+test('shows inline PersonaSection chip + before(영구) + DEV banner (PRD §기본 페르소나 입력 정책)', () => {
+  const { getByText: v_2b0f8a, getAllByText: v_221148 } = v_624657(<CloneEditScreen {...v_222dba(1)} />);
+
+  expect(v_2b0f8a('변경 전 (영구 데이터)')).toBeTruthy();
+
+  expect(v_2b0f8a('나이')).toBeTruthy();
+  expect(v_221148('성별').length).toBeGreaterThanOrEqual(1);
+
+  expect(v_2b0f8a('🛠 개발용 — 프로덕션 미사용')).toBeTruthy();
+});

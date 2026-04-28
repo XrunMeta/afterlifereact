@@ -26,8 +26,10 @@ test('selecting a relation fires onChange with relation id', () => {
 });
 
 test('renders all 8 relations', () => {
-  const { getByText: v_2b0f8a } = v_624657(<MemlowBasicInfo draft={v_694b25} onChange={jest.fn()} />);
-  for (const v_2869c1 of ['어머니', '아버지', '배우자', '자녀', '형제자매', '친구', '반려동물', '기타']) {
+  const { getByText: v_2b0f8a, getAllByText: v_221148 } = v_624657(<MemlowBasicInfo draft={v_694b25} onChange={jest.fn()} />);
+
+  for (const v_2869c1 of ['어머니', '아버지', '배우자', '자녀', '형제자매', '친구', '반려동물']) {
     expect(v_2b0f8a(v_2869c1)).toBeTruthy();
   }
+  expect(v_221148('기타').length).toBeGreaterThanOrEqual(1);
 });

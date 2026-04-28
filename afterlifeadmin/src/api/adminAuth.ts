@@ -7,13 +7,25 @@ import {
   v_da110b,
 } from "../lib/auth";
 
-const v_8aa4be = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
-const v_b71808 = `${v_8aa4be}/oth-path`;
+function v_462b2f(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v_81e2ef = window.localStorage.getItem("afterlife.admin.apiOverride");
+    return v_81e2ef && v_81e2ef.length > 0 ? v_81e2ef : null;
+  } catch {
+    return null;
+  }
+}
+function v_35cc3a(): string {
+  const v_d2d765 = v_462b2f();
+  const v_f17108 = (v_d2d765 ?? import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+  return `${v_f17108}/oth-path`;
+}
 
 async function v_c34e2f<T>(v_9fe22d, v_4d33b2, v_183879): Promise<T> {
   const v_3f4675 = { "Content-Type": "application/json" };
   if (v_183879) v_3f4675["Authorization"] = `Bearer ${v_183879}`;
-  const v_8f00b9 = await fetch(`${v_b71808}${v_9fe22d}`, {
+  const v_8f00b9 = await fetch(`${v_35cc3a()}${v_9fe22d}`, {
     method: "POST",
     headers: v_3f4675,
     body: JSON.stringify(v_4d33b2),

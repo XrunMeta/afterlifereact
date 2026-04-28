@@ -16,9 +16,18 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_e775af from "../../components/ui/TextField";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_84a859 } from "../../api/auth";
+import { v_84a859, v_dd2158, v_7ef860 } from "../../api/auth";
 import { v_ea1c99 } from "../../lib/deviceId";
+import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+
+const v_93942f =
+  "oth-client.googleusercontent.invalid";
+
+v_4eac84.configure({
+  webClientId: v_93942f,
+  offlineAccess: false,
+});
 
 type Props = {
   navigation: v_390fcc<v_384e19, "Login">;
@@ -63,7 +72,48 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     }
   };
 
-  const v_78c15c = (v_e38ca2) => {
+  const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
+
+  const v_78c15c = async (v_e38ca2) => {
+    if (v_e38ca2 === "xrun") {
+      v_c65f5d.navigate("XrunLogin");
+      return;
+    }
+    if (v_e38ca2 === "google") {
+      try {
+        await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+        try {
+          await v_4eac84.signOut();
+        } catch {
+
+        }
+        const v_bb789b = (await v_4eac84.signIn()) as unknown as {
+          idToken?: string | null;
+          data?: { idToken?: string | null };
+        };
+        const v_b50834 = v_bb789b?.idToken ?? v_bb789b?.data?.idToken;
+        if (!v_b50834) {
+          v_03e392.alert("오류", "Google 로그인 토큰을 받지 못했습니다.");
+          return;
+        }
+        const v_929b58 = await v_ea1c99();
+        const v_8f00b9 = await v_dd2158({ idToken: v_b50834, deviceId: v_929b58, platform: "android" });
+        const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
+        await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user);
+        console.log("[AUTH/google] user:", v_9ec4c0.user);
+        await v_232d52();
+      } catch (v_49263d) {
+        if (v_49263d?.code === v_8d3720.SIGN_IN_CANCELLED) return;
+        let v_badeaf = "Google 로그인 중 오류가 발생했습니다.";
+        if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
+        else if (v_49263d?.code === v_8d3720.PLAY_SERVICES_NOT_AVAILABLE)
+          v_badeaf = "Google Play 서비스가 필요합니다.";
+        else if (v_49263d?.message) v_badeaf = v_49263d.message;
+        v_03e392.alert("Google 로그인 실패", v_badeaf);
+      }
+      return;
+    }
     console.log("Social login:", v_e38ca2);
   };
 
@@ -162,8 +212,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
           {}
           <Button
-            title="Apple로 계속하기"
-            onPress={() => v_78c15c("apple")}
+            title="Xrun으로 계속하기"
+            onPress={() => v_78c15c("xrun")}
             variant="secondary"
             size="md"
             leftIcon={<Feather name="smartphone" size={18} color={v_1bfbd0.zinc900} />}
