@@ -2,23 +2,13 @@
 
 import type { Bindings } from "./env";
 
-export interface XrunUserPayload {
-  email: string;
-  pin: string;          
-  firstname: string;
-  lastname: string;
-  mobile: string;
-  gender: "male" | "female" | "other";
-  age?: number;
-}
-
 export interface XrunRegisterResult {
   status: "created" | "duplicate" | "failed";
   member?: number;
   guid?: string;
   email?: string;
   wallet?: string | null;
-  reason?: string;     
+  reason?: string;
 }
 
 export interface XrunWalletLookupResult {
@@ -30,7 +20,6 @@ export interface XrunWalletLookupResult {
 }
 
 function generatePin(): string {
-
   const buf = new Uint8Array(16);
   crypto.getRandomValues(buf);
   return Array.from(buf)
@@ -38,16 +27,9 @@ function generatePin(): string {
     .join("");
 }
 
-function base64Encode(s: string): string {
-  const bytes = new TextEncoder().encode(s);
-  let bin = "";
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin);
-}
-
 function splitName(full: string): { firstname: string; lastname: string } {
   const trimmed = full.trim();
-  if (trimmed.length === 0) return { firstname: "user", lastname: "-" };
+  if (trimmed.length === 0) return { firstname: "user", lastname: "" };
   const parts = trimmed.split(/\s+/);
   if (parts.length >= 2) {
     return { firstname: parts[0]!, lastname: parts.slice(1).join(" ") };
@@ -56,7 +38,13 @@ function splitName(full: string): { firstname: string; lastname: string } {
   if (/^[가-힯]{2,}$/.test(trimmed)) {
     return { firstname: trimmed.slice(1), lastname: trimmed.slice(0, 1) };
   }
-  return { firstname: trimmed, lastname: "-" };
+  return { firstname: trimmed, lastname: "" };
+}
+
+function mapGender(g?: "male" | "female" | "other"): number {
+  if (g === "male") return 2101;
+  if (g === "female") return 2102;
+  return 2100;
 }
 
 export interface AfterlifeRegisterContext {
@@ -72,52 +60,63 @@ export async function registerXrunForAfterlifeUser(
   ctx: AfterlifeRegisterContext,
 ): Promise<XrunRegisterResult> {
   const { firstname, lastname } = splitName(ctx.name);
-  const payload: XrunUserPayload = {
+  const body = {
     email: ctx.email,
     pin: generatePin(),
     firstname,
     lastname,
-    mobile: ctx.phone ?? "0000000000",
-    gender: ctx.gender ?? "other",
-    age: ctx.age,
+    mobile: ctx.phone ?? "",
+    mobilecode: "82",
+    gender: mapGender(ctx.gender),
+    countrycode: "KR",
+    country: 0,
+    region: 0,
+    age: ctx.age ?? 0,
+    recommand: 0,
+    social_code: 0,
   };
-
-  const data = base64Encode(JSON.stringify(payload));
 
   let res: Response;
   try {
-    res = await fetch(`${env.XRUN_API_URL}/external/register`, {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data }),
+      body: JSON.stringify(body),
     });
   } catch (err) {
     return { status: "failed", reason: `network: ${(err as Error).message}` };
   }
 
-  let json: { status?: string; data?: { member?: number; guid?: string; email?: string }; errorType?: string; message?: string };
+  let json: {
+    status?: string;
+    code?: number;
+    message?: string;
+    data?: Array<{ member?: number; guid?: string; address?: string; email?: string }> | null;
+  };
   try {
     json = (await res.json()) as typeof json;
   } catch {
-    return { status: "failed", reason: `non-json response (${res.status})` };
+    return { status: "failed", reason: `non-json (${res.status})` };
   }
 
-  if (res.status === 200 && json?.data?.member && json?.data?.guid) {
+  if (json?.code === 409 || /already exists/i.test(json?.message ?? "")) {
+    return { status: "duplicate", email: ctx.email };
+  }
+
+  const first = Array.isArray(json?.data) ? json.data[0] : null;
+  if (json?.status === "success" && first?.member) {
     return {
       status: "created",
-      member: json.data.member,
-      guid: json.data.guid,
-      email: json.data.email ?? ctx.email,
+      member: first.member,
+      guid: first.guid ?? undefined,
+      wallet: first.address ?? null,
+      email: first.email ?? ctx.email,
     };
-  }
-
-  if (res.status === 409 || json?.errorType === "EMAIL_DUPLICATE") {
-    return { status: "duplicate", email: ctx.email };
   }
 
   return {
     status: "failed",
-    reason: `xrun ${res.status}: ${json?.message ?? json?.errorType ?? "unknown"}`,
+    reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
   };
 }
 
@@ -125,7 +124,7 @@ export async function lookupXrunWalletByEmail(
   env: Bindings,
   email: string,
 ): Promise<XrunWalletLookupResult> {
-  const url = `${env.XRUN_API_URL}/external/wallet-by-email?email=${encodeURIComponent(email)}`;
+  const url = `${env.XRUN_API_URL}/oth-path?email=${encodeURIComponent(email)}`;
   let res: Response;
   try {
     res = await fetch(url, { method: "GET" });
@@ -133,14 +132,19 @@ export async function lookupXrunWalletByEmail(
     return { found: false, reason: `network: ${(err as Error).message}` };
   }
 
-  let json: { status?: string; data?: { member?: number; guid?: string | null; wallet?: string | null }; message?: string };
+  let json: {
+    status?: string;
+    code?: number;
+    message?: string;
+    data?: { member?: number; guid?: string | null; wallet?: string | null } | null;
+  };
   try {
     json = (await res.json()) as typeof json;
   } catch {
     return { found: false, reason: `non-json (${res.status})` };
   }
 
-  if (res.status === 200 && json?.data?.member) {
+  if (json?.status === "success" && json?.data?.member) {
     return {
       found: true,
       member: json.data.member,
@@ -149,7 +153,7 @@ export async function lookupXrunWalletByEmail(
     };
   }
 
-  if (res.status === 404) return { found: false };
+  if (res.status === 404 || json?.code === 404) return { found: false };
 
-  return { found: false, reason: `xrun lookup ${res.status}: ${json?.message ?? "unknown"}` };
+  return { found: false, reason: `xrun lookup ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
 }
