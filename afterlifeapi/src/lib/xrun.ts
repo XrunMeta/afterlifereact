@@ -115,6 +115,35 @@ export async function v_6e4cc8(
   };
 }
 
+export async function v_937e23(
+  env: v_273a0c,
+  v_e0c7e8,
+  v_6bee94,
+): Promise<XrunWalletLookupResult> {
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: v_e0c7e8, pin: v_6bee94 }),
+    });
+  } catch (v_49263d) {
+    return { found: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { found: false, reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_7ecfd1?.status === "success" && v_7ecfd1?.data?.member) {
+    return { found: true, member: v_7ecfd1.data.member, guid: v_7ecfd1.data.guid ?? null, wallet: v_7ecfd1.data.wallet ?? null };
+  }
+  if (v_8f00b9.status === 401 || v_7ecfd1?.code === 401) return { found: false, reason: "invalid credentials" };
+  if (v_8f00b9.status === 404 || v_7ecfd1?.code === 404) return { found: false };
+  return { found: false, reason: `xrun verify ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}` };
+}
+
 export async function v_a0ec33(
   env: v_273a0c,
   v_e0c7e8,

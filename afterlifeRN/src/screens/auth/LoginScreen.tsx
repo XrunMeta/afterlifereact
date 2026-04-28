@@ -64,6 +64,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   };
 
   const v_78c15c = (v_e38ca2) => {
+    if (v_e38ca2 === "xrun") {
+      v_c65f5d.navigate("XrunLogin");
+      return;
+    }
     console.log("Social login:", v_e38ca2);
   };
 

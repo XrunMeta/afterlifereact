@@ -133,6 +133,24 @@ export async function v_182fdb(v_931bf0): Promise<LoginResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
 }
 
+export async function v_dd506d(v_e0c7e8, v_6bee94): Promise<{ ok: true; expiresInSec: number }> {
+  return v_c34e2f("/oth-path", { email: v_e0c7e8, pin: v_6bee94 });
+}
+
+export interface XrunCompletePayload {
+  email: string;
+  pin: string;
+  verificationCode: string;
+  interests?: string[];
+  marketingConsent?: boolean;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
+}
+export async function v_f3a3a5(v_931bf0): Promise<SignupResponse> {
+  return v_c34e2f("/oth-path", v_931bf0);
+}
+
 export async function v_7ef860(v_2ca7e0): Promise<{ user: AuthUser; interests: string[] }> {
   return v_fb3621("/oth-path", v_2ca7e0);
 }
