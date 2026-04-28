@@ -95,15 +95,38 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
     v_d1b635 = v_81161e;
 
     try {
-      const v_534695 = await v_a0ec33(v_3f4e2e.env, v_931bf0.email);
-      if (v_534695.found && v_534695.member) {
+      const v_76be17 = await v_6e4cc8(v_3f4e2e.env, {
+        email: v_931bf0.email,
+        name: v_ef7664,
+      });
+      let v_e2be75 = null;
+      let v_3f61e9 = null;
+      let v_8c2a4f = null;
+      if (v_76be17.status === "created" && v_76be17.member) {
+        v_e2be75 = v_76be17.member;
+        v_3f61e9 = v_76be17.guid ?? null;
+        v_8c2a4f = v_76be17.wallet ?? null;
+      } else if (v_76be17.status === "duplicate") {
+        const v_534695 = await v_a0ec33(v_3f4e2e.env, v_931bf0.email);
+        if (v_534695.found && v_534695.member) {
+          v_e2be75 = v_534695.member;
+          v_3f61e9 = v_534695.guid ?? null;
+          v_8c2a4f = v_534695.wallet ?? null;
+        }
+      }
+      if (v_e2be75) {
         await v_a1651b
           .prepare(
             `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
           )
-          .bind(v_534695.member, v_534695.guid ?? null, v_534695.wallet ?? null, v_81161e.id)
+          .bind(v_e2be75, v_3f61e9, v_8c2a4f, v_81161e.id)
           .run();
       }
+      await v_74defc(v_3f4e2e, {
+        userId: v_81161e.id,
+        action: "xrun.link",
+        details: { result: v_76be17.status, member: v_e2be75, guid: v_3f61e9, wallet: v_8c2a4f, reason: v_76be17.reason ?? null },
+      });
     } catch (v_49263d) {
       console.error(`[GOOGLE_SIGNIN_XRUN_LINK_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
     }
