@@ -162,8 +162,8 @@ export default function LoginScreen({ navigation }: Props) {
 
           {}
           <Button
-            title="Apple로 계속하기"
-            onPress={() => handleSocialLogin("apple")}
+            title="Xrun으로 계속하기"
+            onPress={() => handleSocialLogin("xrun")}
             variant="secondary"
             size="md"
             leftIcon={<Feather name="smartphone" size={18} color={COLORS.zinc900} />}
