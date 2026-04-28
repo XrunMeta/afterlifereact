@@ -112,6 +112,17 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       );
     }
     if (v_4d33b2.deviceId) {
+
+      if (v_4d33b2.pushToken) {
+        v_3e6264.push(
+          v_a1651b
+            .prepare(
+              `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+                 WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+            )
+            .bind(v_4d33b2.pushToken, v_81161e.id),
+        );
+      }
       v_3e6264.push(
         v_a1651b
           .prepare(
