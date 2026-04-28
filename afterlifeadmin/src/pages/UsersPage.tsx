@@ -10,6 +10,22 @@ const v_b9fa58 = [
   { key: "age", label: "Age" },
   { key: "credits", label: "Credits" },
   { key: "funnelStage", label: "Funnel" },
+  {
+    key: "marketingConsent",
+    label: "Marketing",
+    render: (v_81e2ef) => (v_81e2ef ? "✓" : "—"),
+  },
+  {
+    key: "xrunWallet",
+    label: "xrun Wallet",
+    render: (v_81e2ef) =>
+      v_81e2ef ? `${v_81e2ef.slice(0, 6)}…${v_81e2ef.slice(-4)}` : "—",
+  },
+  {
+    key: "xrunMemberId",
+    label: "xrun ID",
+    render: (v_81e2ef) => (v_81e2ef ? String(v_81e2ef) : "—"),
+  },
   { key: "createdAt", label: "Created", render: (v_81e2ef) => v_81e2ef?.slice(0, 10) ?? "" },
 ];
 

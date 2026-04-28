@@ -12,7 +12,13 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   const v_18b8bf = (
     await v_3f4e2e.env.DB.prepare(
       `SELECT id, name, email, gender, age, credits,
-              funnel_stage AS funnelStage, created_at AS createdAt
+              funnel_stage     AS funnelStage,
+              marketing_consent AS marketingConsent,
+              xrun_member_id   AS xrunMemberId,
+              xrun_guid        AS xrunGuid,
+              xrun_wallet      AS xrunWallet,
+              xrun_linked_at   AS xrunLinkedAt,
+              created_at       AS createdAt
          FROM users
         ORDER BY (id < 100000) DESC, id DESC
         LIMIT 200`,
