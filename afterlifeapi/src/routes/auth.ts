@@ -113,18 +113,17 @@ auth.post("/signup", async (c) => {
           .bind(inserted.id, it),
       );
     }
-    if (body.deviceId) {
 
-      if (body.pushToken) {
-        stmts.push(
-          db
-            .prepare(
-              `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
-                 WHERE push_token = ? AND user_id != ? AND is_active = 1`,
-            )
-            .bind(body.pushToken, inserted.id),
-        );
-      }
+    if (body.deviceId && body.pushToken) {
+
+      stmts.push(
+        db
+          .prepare(
+            `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+               WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+          )
+          .bind(body.pushToken, inserted.id),
+      );
       stmts.push(
         db
           .prepare(
@@ -137,7 +136,7 @@ auth.post("/signup", async (c) => {
                last_active_at = CURRENT_TIMESTAMP,
                updated_at = CURRENT_TIMESTAMP`,
           )
-          .bind(inserted.id, body.deviceId, body.pushToken ?? "", body.platform ?? "web"),
+          .bind(inserted.id, body.deviceId, body.pushToken, body.platform ?? "web"),
       );
     }
     if (stmts.length) await db.batch(stmts);
@@ -295,7 +294,14 @@ auth.post("/login", async (c) => {
     .bind(user.id)
     .run();
 
-  if (body.deviceId) {
+  if (body.deviceId && body.pushToken) {
+    await db
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(body.pushToken, user.id)
+      .run();
     await db
       .prepare(
         `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
@@ -307,7 +313,7 @@ auth.post("/login", async (c) => {
            last_active_at = CURRENT_TIMESTAMP,
            updated_at = CURRENT_TIMESTAMP`,
       )
-      .bind(user.id, body.deviceId, body.pushToken ?? "", body.platform ?? "web")
+      .bind(user.id, body.deviceId, body.pushToken, body.platform ?? "web")
       .run();
   }
 
