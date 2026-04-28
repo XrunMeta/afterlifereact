@@ -264,6 +264,11 @@ v_68f0aa.post("/xrun/complete", async (v_3f4e2e) => {
       throw new v_3ebe58("VALIDATION_FAILED", "Email does not match Google ID token.");
     }
 
+    if (!v_4d33b2.verificationCode) {
+      throw new v_3ebe58("OTP_REQUIRED", "verificationCode required");
+    }
+    await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+
     const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
     if (!v_534695.found || !v_534695.member) {
       throw new v_3ebe58("NOT_FOUND", "xrun 회원이 없습니다.");
