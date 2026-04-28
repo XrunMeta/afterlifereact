@@ -10,6 +10,22 @@ const columns = [
   { key: "age", label: "Age" },
   { key: "credits", label: "Credits" },
   { key: "funnelStage", label: "Funnel" },
+  {
+    key: "marketingConsent",
+    label: "Marketing",
+    render: (v?: number) => (v ? "✓" : "—"),
+  },
+  {
+    key: "xrunWallet",
+    label: "xrun Wallet",
+    render: (v?: string | null) =>
+      v ? `${v.slice(0, 6)}…${v.slice(-4)}` : "—",
+  },
+  {
+    key: "xrunMemberId",
+    label: "xrun ID",
+    render: (v?: number | null) => (v ? String(v) : "—"),
+  },
   { key: "createdAt", label: "Created", render: (v?: string) => v?.slice(0, 10) ?? "" },
 ];
 
