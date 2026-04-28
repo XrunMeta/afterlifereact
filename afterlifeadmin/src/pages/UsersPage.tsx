@@ -16,6 +16,12 @@ const columns = [
     render: (v?: number) => (v ? "✓" : "—"),
   },
   {
+    key: "interests",
+    label: "Interests",
+    render: (v?: string | null) =>
+      v ? <span style={{ fontSize: 12, color: "#475569" }}>{v}</span> : "—",
+  },
+  {
     key: "xrunWallet",
     label: "xrun Wallet",
     render: (v?: string | null) =>
