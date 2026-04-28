@@ -15,6 +15,8 @@ import {
 } from "../lib/session";
 import { v_6690d9 } from "../middleware/auth";
 import { v_74defc } from "../lib/logger";
+import { v_b78f7e, v_656e8b } from "../lib/otp";
+import { v_6e4cc8, v_a0ec33 } from "../lib/xrun";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
 
@@ -29,26 +31,40 @@ const v_7b8b17 = v_1f4ea7.object({
   email: v_1f4ea7.email().max(200),
   password: v_1f4ea7.string().min(8).max(200),
   name: v_1f4ea7.string().min(1).max(80),
+  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit code required"),
   phone: v_1f4ea7.string().min(4).max(40).optional(),
   gender: v_1f4ea7.enum(["male", "female", "other"]).optional(),
   age: v_1f4ea7.number().int().min(13).max(120).optional(),
   interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
+  marketingConsent: v_1f4ea7.boolean().optional().default(false),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
   pushToken: v_1f4ea7.string().min(1).max(500).optional(),
   platform: v_1f4ea7.enum(["ios", "android", "web"]).optional(),
+});
+
+const v_192e7b = v_1f4ea7.object({
+  email: v_1f4ea7.email().max(200),
+});
+
+v_68f0aa.post("/email/request-code", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
+  await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+  return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
 });
 
 v_68f0aa.post("/signup", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_7b8b17);
   const v_a1651b = v_3f4e2e.env.DB;
 
-  const v_222361 = await v_2ffe8e(v_4d33b2.password, v_3f4e2e.env);
+  const v_222361 = await v_2ffe8e(v_4d33b2.password, v_3f4e2e.env, { minHitsToReject: 100_000 });
   if (v_222361.breached) {
     throw new v_3ebe58(
       "VALIDATION_FAILED",
       `Password has appeared in public breaches (${v_222361.hits} hits). Choose another.`,
     );
   }
+
+  await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
 
   const v_df7439 = await v_54846c(v_4d33b2.password);
   const v_849998 = v_4d33b2.phone
@@ -62,8 +78,8 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   try {
     v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
@@ -74,6 +90,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
         v_4d33b2.gender ?? null,
         null, 
         v_1f5d19,
+        v_4d33b2.marketingConsent ? 1 : 0,
       )
       .first();
   } catch (v_49263d) {
@@ -114,6 +131,65 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   } catch (v_49263d) {
     await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
     throw v_49263d;
+  }
+
+  try {
+    const v_76be17 = await v_6e4cc8(v_3f4e2e.env, {
+      email: v_4d33b2.email,
+      name: v_4d33b2.name,
+      phone: v_4d33b2.phone,
+      gender: v_4d33b2.gender,
+      age: v_4d33b2.age,
+    });
+
+    let v_d03cc0 = null;
+    let v_4aee34 = null;
+    let v_a5f7d2 = null;
+    let v_f55a40 = v_76be17.status;
+
+    if (v_76be17.status === "created" && v_76be17.member && v_76be17.guid) {
+      v_d03cc0 = v_76be17.member;
+      v_4aee34 = v_76be17.guid;
+
+      const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
+      if (v_534695.found) {
+        v_a5f7d2 = v_534695.wallet ?? null;
+        if (!v_4aee34 && v_534695.guid) v_4aee34 = v_534695.guid;
+      }
+    } else if (v_76be17.status === "duplicate") {
+      const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
+      if (v_534695.found && v_534695.member) {
+        v_d03cc0 = v_534695.member;
+        v_4aee34 = v_534695.guid ?? null;
+        v_a5f7d2 = v_534695.wallet ?? null;
+        v_f55a40 = "duplicate-linked";
+      } else {
+        v_f55a40 = "duplicate-lookup-miss";
+      }
+    }
+
+    if (v_d03cc0) {
+      await v_a1651b
+        .prepare(
+          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        )
+        .bind(v_d03cc0, v_4aee34, v_a5f7d2, v_81161e.id)
+        .run();
+    }
+
+    await v_74defc(v_3f4e2e, {
+      userId: v_81161e.id,
+      action: "xrun.link",
+      details: {
+        result: v_f55a40,
+        member: v_d03cc0,
+        guid: v_4aee34,
+        wallet: v_a5f7d2,
+        reason: v_76be17.reason ?? null,
+      },
+    });
+  } catch (v_49263d) {
+    console.error(`[XRUN_LINK_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
   }
 
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(

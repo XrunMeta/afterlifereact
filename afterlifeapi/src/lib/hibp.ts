@@ -28,8 +28,8 @@ export async function v_2ffe8e(
 ): Promise<HibpResult> {
   const v_7c71d7 = v_328259.minHitsToReject ?? 100;
   const v_11bcf9 = v_328259.timeoutMs ?? 3000;
-  if (v_328259.skipInDev !== false && v_c9c489.ENVIRONMENT === "development") {
-    return { breached: false, hits: 0, skipped: true, reason: "dev" };
+  if (v_328259.skipInDev !== false && v_c9c489.ENVIRONMENT !== "production") {
+    return { breached: false, hits: 0, skipped: true, reason: "non-prod" };
   }
 
   const v_a89256 = v_f0bbde(v_d30de3(new TextEncoder().encode(v_adc076)));

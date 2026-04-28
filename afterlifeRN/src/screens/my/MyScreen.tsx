@@ -7,9 +7,12 @@ import {
   v_cf9c33,
   v_aa7413,
   v_09d0e5,
+  v_03e392,
+  v_39a996,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
@@ -17,6 +20,8 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
+import { v_7d2692 } from "../../api/files";
+import { v_976b89 } from "../../api/auth";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 
 const v_b9d568 = 1;
@@ -41,12 +46,57 @@ const v_cca523 = [
 
 export default function v_ed02a5() {
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_21f395 = v_1ed7d9((v_fd5f43) => v_fd5f43.patchApiUser);
   const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const [v_47abd6, v_e12360] = v_5ab095(false);
+  const [v_026c2d, v_5eda29] = v_5ab095(false);
 
-  const v_0c8987 = v_625c74?.id ?? v_b9d568;
+  const v_d28ade = async () => {
+    if (!v_2ca7e0) {
+      v_03e392.alert("알림", "로그인이 필요합니다.");
+      return;
+    }
+    const v_d60769 = await v_d05ab5.requestMediaLibraryPermissionsAsync();
+    if (!v_d60769.granted) {
+      v_03e392.alert("권한 필요", "사진 라이브러리 접근 권한을 허용해주세요.");
+      return;
+    }
+    const v_07fb2e = await v_d05ab5.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (v_07fb2e.canceled || !v_07fb2e.assets?.[0]) return;
+    const v_b76cd8 = v_07fb2e.assets[0];
+
+    v_5eda29(true);
+    try {
+      const v_57ac81 = await v_7d2692(v_2ca7e0, v_b76cd8.uri, {
+        purpose: "avatar",
+        fileName: v_b76cd8.fileName ?? "avatar.jpg",
+        mimeType: v_b76cd8.mimeType ?? "image/jpeg",
+      });
+      await v_976b89(v_2ca7e0, { avatarUrl: v_57ac81.url });
+      v_21f395({ avatarUrl: v_57ac81.url });
+    } catch (v_49263d) {
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "이미지 업로드에 실패했습니다.";
+      v_03e392.alert("오류", v_badeaf);
+    } finally {
+      v_5eda29(false);
+    }
+  };
+
+  const v_8a1355 = v_b113dd?.name ?? v_625c74?.displayName ?? "사용자";
+  const v_04c129 = v_b113dd?.email ?? v_625c74?.handle ?? "@afterlife";
+  const v_bf6b43 = v_b113dd ? v_b113dd.avatarUrl : v_625c74?.avatarUrl ?? null;
+  const v_e2c945 = v_b113dd?.credits ?? 12540;
+
+  const v_0c8987 = v_b113dd?.id ?? v_625c74?.id ?? v_b9d568;
   const v_48d264 = v_df9f57(
     () => v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987).length,
     [v_1e752a, v_0c8987],
@@ -78,20 +128,28 @@ export default function v_ed02a5() {
         {}
         <View style={v_fd5f43.profileSection}>
           <View style={v_fd5f43.avatarWrap}>
-            {v_625c74?.avatarUrl ? (
-              <Image source={{ uri: v_625c74.avatarUrl }} style={v_fd5f43.avatar} />
+            {v_bf6b43 ? (
+              <Image source={{ uri: v_bf6b43 }} style={v_fd5f43.avatar} />
             ) : (
               <View style={[v_fd5f43.avatar, v_fd5f43.avatarPlaceholder]}>
                 <Feather name="user" size={40} color={v_1bfbd0.zinc400} />
               </View>
             )}
-            <TouchableOpacity style={v_fd5f43.editAvatarBtn}>
-              <Feather name="edit-2" size={14} color={v_1bfbd0.white} />
+            <TouchableOpacity
+              style={v_fd5f43.editAvatarBtn}
+              onPress={v_d28ade}
+              disabled={v_026c2d}
+            >
+              {v_026c2d ? (
+                <ActivityIndicator size="small" color={v_1bfbd0.white} />
+              ) : (
+                <Feather name="edit-2" size={14} color={v_1bfbd0.white} />
+              )}
             </TouchableOpacity>
           </View>
 
-          <Text style={v_fd5f43.userName}>{v_625c74?.displayName ?? "사용자"}</Text>
-          <Text style={v_fd5f43.userHandle}>{v_625c74?.handle ?? "@afterlife"}</Text>
+          <Text style={v_fd5f43.userName}>{v_8a1355}</Text>
+          <Text style={v_fd5f43.userHandle}>{v_04c129}</Text>
 
           <View style={v_fd5f43.statsRow}>
             <View style={v_fd5f43.statItem}>
@@ -126,8 +184,8 @@ export default function v_ed02a5() {
               <Text style={v_fd5f43.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={v_fd5f43.coinAmount}>{(12540).toLocaleString()}</Text>
-          <Text style={v_fd5f43.coinWon}>약 ₩{(12540).toLocaleString()} 상당</Text>
+          <Text style={v_fd5f43.coinAmount}>{v_e2c945.toLocaleString()}</Text>
+          <Text style={v_fd5f43.coinWon}>약 ₩{v_e2c945.toLocaleString()} 상당</Text>
         </View>
 
         {}

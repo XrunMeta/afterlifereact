@@ -66,6 +66,9 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; label: 
 
 export default function v_19ba0e() {
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
+
+  const v_bf6b43 = v_b113dd ? v_b113dd.avatarUrl : v_625c74?.avatarUrl ?? null;
   const v_033e14 = v_e0068c();
   const v_f9771e = v_c18c22(0);
 
@@ -87,13 +90,10 @@ export default function v_19ba0e() {
         tabBarIcon: ({ focused: v_50c827 }) => {
           const v_74a79c = v_5efb19[v_c7daf6.name];
 
-          if (v_c7daf6.name === "MyTab" && v_625c74?.avatarUrl) {
+          if (v_c7daf6.name === "MyTab" && v_bf6b43) {
             return (
               <View style={[v_d81136.avatarWrap, v_50c827 && v_d81136.avatarFocused]}>
-                <Image
-                  source={{ uri: v_625c74.avatarUrl }}
-                  style={v_d81136.avatar}
-                />
+                <Image source={{ uri: v_bf6b43 }} style={v_d81136.avatar} />
               </View>
             );
           }

@@ -1,7 +1,19 @@
 
 
-const v_8aa4be = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
-const v_cc9198 = `${v_8aa4be}/oth-path`;
+function v_462b2f(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v_81e2ef = window.localStorage.getItem("afterlife.admin.apiOverride");
+    return v_81e2ef && v_81e2ef.length > 0 ? v_81e2ef : null;
+  } catch {
+    return null;
+  }
+}
+function v_b6d386(): string {
+  const v_d2d765 = v_462b2f();
+  const v_f17108 = (v_d2d765 ?? import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+  return `${v_f17108}/oth-path`;
+}
 
 let v_145e43 = null;
 async function v_bae635(): Promise<string | null> {
@@ -43,7 +55,7 @@ async function v_576f5a<T>(v_9fe22d, v_b36f96): Promise<T> {
     if (v_21cc31 && !v_3f4675["Authorization"]) {
       v_3f4675["Authorization"] = `Bearer ${v_21cc31}`;
     }
-    return await fetch(`${v_cc9198}${v_9fe22d}`, { ...v_b36f96, headers: v_3f4675 });
+    return await fetch(`${v_b6d386()}${v_9fe22d}`, { ...v_b36f96, headers: v_3f4675 });
   };
 
   let v_8f00b9 = await v_a215ca();
@@ -114,7 +126,8 @@ export async function v_8e836f(
   if (v_4d33b2 !== undefined && v_bfe9b9 !== "GET" && v_bfe9b9 !== "HEAD") {
     v_00cfc6.body = typeof v_4d33b2 === "string" ? v_4d33b2 : JSON.stringify(v_4d33b2);
   }
-  const v_f71b56 = /^https?:\/\//.test(v_e6050d) ? v_e6050d : `${v_8aa4be}${v_e6050d}`;
+  const v_a1be2d = (v_462b2f() ?? import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+  const v_f71b56 = /^https?:\/\//.test(v_e6050d) ? v_e6050d : `${v_a1be2d}${v_e6050d}`;
   const v_8f00b9 = await fetch(v_f71b56, v_00cfc6);
   const v_9b6134 = await v_8f00b9.text();
   let v_8decf8 = v_9b6134;
