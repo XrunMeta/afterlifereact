@@ -16,6 +16,12 @@ const v_b9fa58 = [
     render: (v_81e2ef) => (v_81e2ef ? "✓" : "—"),
   },
   {
+    key: "interests",
+    label: "Interests",
+    render: (v_81e2ef) =>
+      v_81e2ef ? <span style={{ fontSize: 12, color: "#475569" }}>{v_81e2ef}</span> : "—",
+  },
+  {
     key: "xrunWallet",
     label: "xrun Wallet",
     render: (v_81e2ef) =>
