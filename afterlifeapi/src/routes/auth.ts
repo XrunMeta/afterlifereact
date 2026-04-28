@@ -264,6 +264,11 @@ auth.post("/xrun/complete", async (c) => {
       throw new APIError("VALIDATION_FAILED", "Email does not match Google ID token.");
     }
 
+    if (!body.verificationCode) {
+      throw new APIError("OTP_REQUIRED", "verificationCode required");
+    }
+    await verifySignupOtp(c.env, body.email, body.verificationCode);
+
     const lookup = await lookupXrunWalletByEmail(c.env, body.email);
     if (!lookup.found || !lookup.member) {
       throw new APIError("NOT_FOUND", "xrun 회원이 없습니다.");
