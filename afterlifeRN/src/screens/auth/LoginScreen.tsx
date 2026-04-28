@@ -82,6 +82,12 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     if (v_e38ca2 === "google") {
       try {
         await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+        try {
+          await v_4eac84.signOut();
+        } catch {
+
+        }
         const v_bb789b = (await v_4eac84.signIn()) as unknown as {
           idToken?: string | null;
           data?: { idToken?: string | null };
