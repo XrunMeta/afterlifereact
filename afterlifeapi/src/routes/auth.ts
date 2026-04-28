@@ -114,6 +114,17 @@ auth.post("/signup", async (c) => {
       );
     }
     if (body.deviceId) {
+
+      if (body.pushToken) {
+        stmts.push(
+          db
+            .prepare(
+              `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+                 WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+            )
+            .bind(body.pushToken, inserted.id),
+        );
+      }
       stmts.push(
         db
           .prepare(
