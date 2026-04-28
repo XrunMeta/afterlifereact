@@ -82,6 +82,12 @@ export default function LoginScreen({ navigation }: Props) {
     if (provider === "google") {
       try {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+        try {
+          await GoogleSignin.signOut();
+        } catch {
+
+        }
         const userInfo = (await GoogleSignin.signIn()) as unknown as {
           idToken?: string | null;
           data?: { idToken?: string | null };
