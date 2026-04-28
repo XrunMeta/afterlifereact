@@ -17,6 +17,7 @@ import { requireAuth } from "../middleware/auth";
 import { logActivity } from "../lib/logger";
 import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
 import { registerXrunForAfterlifeUser, lookupXrunWalletByEmail, verifyXrunCredentials } from "../lib/xrun";
+import { verifyGoogleIdToken } from "../lib/googleAuth";
 
 export const auth = new Hono<AppEnv>();
 
@@ -50,6 +51,112 @@ auth.post("/email/request-code", async (c) => {
   const body = await parseJson(c, requestEmailCodeSchema);
   await requestSignupOtp(c.env, body.email);
   return c.json({ ok: true, expiresInSec: 300 });
+});
+
+const googleSignInSchema = z.object({
+  idToken: z.string().min(20),
+  deviceId: z.string().min(1).max(200).optional(),
+  pushToken: z.string().min(1).max(500).optional(),
+  platform: z.enum(["ios", "android", "web"]).optional(),
+});
+auth.post("/google", async (c) => {
+  const body = await parseJson(c, googleSignInSchema);
+  const db = c.env.DB;
+
+  const payload = await verifyGoogleIdToken(c.env, body.idToken);
+
+  let userRow = await db
+    .prepare(
+      `SELECT id, name, email, funnel_stage AS funnelStage FROM users
+        WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+    )
+    .bind(payload.email)
+    .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
+
+  if (!userRow) {
+
+    const randomSecret = crypto.randomUUID() + crypto.randomUUID();
+    const passwordHash = await hashPassword(randomSecret);
+    const fallbackName =
+      payload.name ||
+      [payload.given_name, payload.family_name].filter(Boolean).join(" ") ||
+      payload.email.split("@")[0] ||
+      "user";
+
+    const inserted = await db
+      .prepare(
+        `INSERT INTO users (name, email, password_hash, avatar_url)
+         VALUES (?, ?, ?, ?)
+         RETURNING id, name, email, funnel_stage AS funnelStage`,
+      )
+      .bind(fallbackName, payload.email, passwordHash, payload.picture ?? null)
+      .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
+    if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
+    userRow = inserted;
+
+    try {
+      const lookup = await lookupXrunWalletByEmail(c.env, payload.email);
+      if (lookup.found && lookup.member) {
+        await db
+          .prepare(
+            `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          )
+          .bind(lookup.member, lookup.guid ?? null, lookup.wallet ?? null, inserted.id)
+          .run();
+      }
+    } catch (err) {
+      console.error(`[GOOGLE_SIGNIN_XRUN_LINK_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
+    }
+
+    await logActivity(c, {
+      userId: inserted.id,
+      action: "auth.google.signup",
+      details: { sub: payload.sub, email: payload.email },
+    });
+  } else {
+    await logActivity(c, {
+      userId: userRow.id,
+      action: "auth.google.login",
+      details: { sub: payload.sub },
+    });
+  }
+
+  if (body.deviceId && body.pushToken) {
+    await db
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(body.pushToken, userRow.id)
+      .run();
+    await db
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(userRow.id, body.deviceId, body.pushToken, body.platform ?? "web")
+      .run();
+  }
+
+  const { accessToken, refreshToken, accessExpiresIn } = await issueSession(c, userRow.id, body.deviceId);
+  setRefreshCookie(c, refreshToken);
+
+  return c.json({
+    accessToken,
+    accessExpiresIn,
+    user: {
+      id: userRow.id,
+      name: userRow.name,
+      email: userRow.email,
+      funnelStage: userRow.funnelStage,
+    },
+  });
 });
 
 const xrunVerifySchema = z.object({

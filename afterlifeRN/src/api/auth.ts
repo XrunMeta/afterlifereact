@@ -151,6 +151,16 @@ export async function xrunComplete(payload: XrunCompletePayload): Promise<Signup
   return postJson("/oth-path", payload);
 }
 
+export interface GoogleSignInPayload {
+  idToken: string;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
+}
+export async function googleSignIn(payload: GoogleSignInPayload): Promise<LoginResponse> {
+  return postJson("/oth-path", payload);
+}
+
 export async function getMe(accessToken: string): Promise<{ user: AuthUser; interests: string[] }> {
   return getJson("/oth-path", accessToken);
 }

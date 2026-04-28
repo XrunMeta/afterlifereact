@@ -16,9 +16,18 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import Button from "../../components/ui/Button";
 import { useAuthStore } from "../../stores/authStore";
-import { AuthApiError } from "../../api/auth";
+import { AuthApiError, googleSignIn, getMe } from "../../api/auth";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
+
+const GOOGLE_WEB_CLIENT_ID =
+  "oth-client.googleusercontent.invalid";
+
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  offlineAccess: false,
+});
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Login">;
@@ -63,9 +72,40 @@ export default function LoginScreen({ navigation }: Props) {
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
+  const setApiAuth = useAuthStore((s) => s.setApiAuth);
+
+  const handleSocialLogin = async (provider: string) => {
     if (provider === "xrun") {
       navigation.navigate("XrunLogin");
+      return;
+    }
+    if (provider === "google") {
+      try {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        const userInfo = (await GoogleSignin.signIn()) as unknown as {
+          idToken?: string | null;
+          data?: { idToken?: string | null };
+        };
+        const idToken = userInfo?.idToken ?? userInfo?.data?.idToken;
+        if (!idToken) {
+          Alert.alert("오류", "Google 로그인 토큰을 받지 못했습니다.");
+          return;
+        }
+        const deviceId = await getOrCreateDeviceId();
+        const res = await googleSignIn({ idToken, deviceId, platform: "android" });
+        const meRes = await getMe(res.accessToken);
+        await setApiAuth(res.accessToken, meRes.user);
+        console.log("[AUTH/google] user:", meRes.user);
+        await hydrate();
+      } catch (err: any) {
+        if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
+        let msg = "Google 로그인 중 오류가 발생했습니다.";
+        if (err instanceof AuthApiError) msg = err.message;
+        else if (err?.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE)
+          msg = "Google Play 서비스가 필요합니다.";
+        else if (err?.message) msg = err.message;
+        Alert.alert("Google 로그인 실패", msg);
+      }
       return;
     }
     console.log("Social login:", provider);
