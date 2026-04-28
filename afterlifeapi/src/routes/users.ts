@@ -23,6 +23,9 @@ interface UserRow {
   age: number | null;
   age_enc: string | null;
   created_at: string;
+  xrun_member_id: number | null;
+  xrun_guid: string | null;
+  xrun_linked_at: string | null;
 }
 
 async function v_3fb498(c: Parameters<typeof v_6690d9>[0]): Promise<never> {
@@ -35,7 +38,8 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
   const v_a1651b = v_3f4e2e.env.DB;
   const v_3ac7e7 = await v_a1651b
     .prepare(
-      `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at
+      `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at,
+              xrun_member_id, xrun_guid, xrun_linked_at
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
     .bind(v_43e90c)
@@ -114,6 +118,9 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
       gender: v_3ac7e7.gender,
       age: v_2694bd,
       createdAt: v_3ac7e7.created_at,
+      xrunMemberId: v_3ac7e7.xrun_member_id,
+      xrunGuid: v_3ac7e7.xrun_guid,
+      xrunLinkedAt: v_3ac7e7.xrun_linked_at,
     },
     interests: (v_774c91.results ?? []).map((v_cb35cb) => v_cb35cb.interest),
   });

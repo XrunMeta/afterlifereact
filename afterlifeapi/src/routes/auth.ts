@@ -16,6 +16,7 @@ import {
 import { v_6690d9 } from "../middleware/auth";
 import { v_74defc } from "../lib/logger";
 import { v_b78f7e, v_656e8b } from "../lib/otp";
+import { v_6e4cc8 } from "../lib/xrun";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
 
@@ -130,6 +131,37 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   } catch (v_49263d) {
     await v_a1651b.prepare(`DELETE FROM users WHERE id = ?`).bind(v_81161e.id).run();
     throw v_49263d;
+  }
+
+  try {
+    const v_76be17 = await v_6e4cc8(v_3f4e2e.env, {
+      email: v_4d33b2.email,
+      name: v_4d33b2.name,
+      phone: v_4d33b2.phone,
+      gender: v_4d33b2.gender,
+      age: v_4d33b2.age,
+    });
+    if (v_76be17.status === "created" && v_76be17.member && v_76be17.guid) {
+      await v_a1651b
+        .prepare(
+          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        )
+        .bind(v_76be17.member, v_76be17.guid, v_81161e.id)
+        .run();
+      await v_74defc(v_3f4e2e, {
+        userId: v_81161e.id,
+        action: "xrun.link",
+        details: { result: "created", member: v_76be17.member, guid: v_76be17.guid },
+      });
+    } else {
+      await v_74defc(v_3f4e2e, {
+        userId: v_81161e.id,
+        action: "xrun.link",
+        details: { result: v_76be17.status, reason: v_76be17.reason ?? null },
+      });
+    }
+  } catch (v_49263d) {
+    console.error(`[XRUN_LINK_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
   }
 
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(
