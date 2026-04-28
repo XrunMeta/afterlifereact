@@ -17,7 +17,16 @@ export interface XrunRegisterResult {
   member?: number;
   guid?: string;
   email?: string;
+  wallet?: string | null;
   reason?: string;     
+}
+
+export interface XrunWalletLookupResult {
+  found: boolean;
+  member?: number;
+  guid?: string | null;
+  wallet?: string | null;
+  reason?: string;
 }
 
 function v_b35290(): string {
@@ -110,4 +119,37 @@ export async function v_6e4cc8(
     status: "failed",
     reason: `xrun ${v_8f00b9.status}: ${v_7ecfd1?.message ?? v_7ecfd1?.errorType ?? "unknown"}`,
   };
+}
+
+export async function v_a0ec33(
+  env: v_273a0c,
+  v_e0c7e8,
+): Promise<XrunWalletLookupResult> {
+  const v_f71b56 = `${v_c9c489.XRUN_API_URL}/external/wallet-by-email?email=${encodeURIComponent(v_e0c7e8)}`;
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(v_f71b56, { method: "GET" });
+  } catch (v_49263d) {
+    return { found: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
+
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { found: false, reason: `non-json (${v_8f00b9.status})` };
+  }
+
+  if (v_8f00b9.status === 200 && v_7ecfd1?.data?.member) {
+    return {
+      found: true,
+      member: v_7ecfd1.data.member,
+      guid: v_7ecfd1.data.guid ?? null,
+      wallet: v_7ecfd1.data.wallet ?? null,
+    };
+  }
+
+  if (v_8f00b9.status === 404) return { found: false };
+
+  return { found: false, reason: `xrun lookup ${v_8f00b9.status}: ${v_7ecfd1?.message ?? "unknown"}` };
 }

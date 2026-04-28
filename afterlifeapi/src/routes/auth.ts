@@ -16,7 +16,7 @@ import {
 import { v_6690d9 } from "../middleware/auth";
 import { v_74defc } from "../lib/logger";
 import { v_b78f7e, v_656e8b } from "../lib/otp";
-import { v_6e4cc8 } from "../lib/xrun";
+import { v_6e4cc8, v_a0ec33 } from "../lib/xrun";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
 
@@ -141,25 +141,53 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       gender: v_4d33b2.gender,
       age: v_4d33b2.age,
     });
+
+    let v_d03cc0 = null;
+    let v_4aee34 = null;
+    let v_a5f7d2 = null;
+    let v_f55a40 = v_76be17.status;
+
     if (v_76be17.status === "created" && v_76be17.member && v_76be17.guid) {
+      v_d03cc0 = v_76be17.member;
+      v_4aee34 = v_76be17.guid;
+
+      const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
+      if (v_534695.found) {
+        v_a5f7d2 = v_534695.wallet ?? null;
+        if (!v_4aee34 && v_534695.guid) v_4aee34 = v_534695.guid;
+      }
+    } else if (v_76be17.status === "duplicate") {
+      const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
+      if (v_534695.found && v_534695.member) {
+        v_d03cc0 = v_534695.member;
+        v_4aee34 = v_534695.guid ?? null;
+        v_a5f7d2 = v_534695.wallet ?? null;
+        v_f55a40 = "duplicate-linked";
+      } else {
+        v_f55a40 = "duplicate-lookup-miss";
+      }
+    }
+
+    if (v_d03cc0) {
       await v_a1651b
         .prepare(
-          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
         )
-        .bind(v_76be17.member, v_76be17.guid, v_81161e.id)
+        .bind(v_d03cc0, v_4aee34, v_a5f7d2, v_81161e.id)
         .run();
-      await v_74defc(v_3f4e2e, {
-        userId: v_81161e.id,
-        action: "xrun.link",
-        details: { result: "created", member: v_76be17.member, guid: v_76be17.guid },
-      });
-    } else {
-      await v_74defc(v_3f4e2e, {
-        userId: v_81161e.id,
-        action: "xrun.link",
-        details: { result: v_76be17.status, reason: v_76be17.reason ?? null },
-      });
     }
+
+    await v_74defc(v_3f4e2e, {
+      userId: v_81161e.id,
+      action: "xrun.link",
+      details: {
+        result: v_f55a40,
+        member: v_d03cc0,
+        guid: v_4aee34,
+        wallet: v_a5f7d2,
+        reason: v_76be17.reason ?? null,
+      },
+    });
   } catch (v_49263d) {
     console.error(`[XRUN_LINK_FAIL] user_id=${v_81161e.id} err=${(v_49263d as Error).message}`);
   }

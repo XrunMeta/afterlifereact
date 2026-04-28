@@ -25,6 +25,7 @@ interface UserRow {
   created_at: string;
   xrun_member_id: number | null;
   xrun_guid: string | null;
+  xrun_wallet: string | null;
   xrun_linked_at: string | null;
 }
 
@@ -39,7 +40,7 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
   const v_3ac7e7 = await v_a1651b
     .prepare(
       `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at,
-              xrun_member_id, xrun_guid, xrun_linked_at
+              xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
     .bind(v_43e90c)
@@ -120,6 +121,7 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
       createdAt: v_3ac7e7.created_at,
       xrunMemberId: v_3ac7e7.xrun_member_id,
       xrunGuid: v_3ac7e7.xrun_guid,
+      xrunWallet: v_3ac7e7.xrun_wallet,
       xrunLinkedAt: v_3ac7e7.xrun_linked_at,
     },
     interests: (v_774c91.results ?? []).map((v_cb35cb) => v_cb35cb.interest),
