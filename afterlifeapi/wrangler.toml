@@ -157,6 +157,10 @@ id = "f77182b493dd4e36a1db4677afddaa0d"
 binding = "KV_SHARED_VER"
 id = "bdf9722018f541c59f50e6014696cddf"
 
+[[env.production.r2_buckets]]
+binding = "R2_ARCHIVE"
+bucket_name = "afterlife-archive-dev"
+
 [env.production.vars]
 ENVIRONMENT = "production"
 WEBAUTHN_RP_ID = "api.afterlife.app"
