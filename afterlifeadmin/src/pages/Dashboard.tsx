@@ -27,14 +27,6 @@ function applyApi(url: string) {
 
   }
 
-  try {
-    window.localStorage.removeItem("afterlife.admin.token");
-    window.localStorage.removeItem("afterlife.admin.refresh");
-    window.localStorage.removeItem("afterlife.admin.profile");
-  } catch {
-
-  }
-  window.location.reload();
 }
 
 export function Dashboard() {
@@ -45,6 +37,13 @@ export function Dashboard() {
     setActiveApi(readActiveApi());
     api.getStats().then(setStats).catch(console.error);
   }, []);
+
+  const handleSwitch = (url: string) => {
+    applyApi(url);
+    setActiveApi(url);
+    setStats(null);
+    api.getStats().then(setStats).catch(console.error);
+  };
 
   const cards = stats
     ? [
@@ -68,14 +67,14 @@ export function Dashboard() {
         <div style={styles.btnRow}>
           <button
             type="button"
-            onClick={() => applyApi(PREVIEW_API)}
+            onClick={() => handleSwitch(PREVIEW_API)}
             style={{ ...styles.btn, ...(isPreview ? styles.btnActive : {}) }}
           >
             Preview
           </button>
           <button
             type="button"
-            onClick={() => applyApi(PROD_API)}
+            onClick={() => handleSwitch(PROD_API)}
             style={{ ...styles.btn, ...(isProd ? styles.btnActive : {}) }}
           >
             Production
