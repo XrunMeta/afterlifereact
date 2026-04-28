@@ -6,6 +6,9 @@ import { useAuthStore } from "../stores/authStore";
 import LoginScreen from "../screens/auth/LoginScreen";
 import SignupScreen from "../screens/auth/SignupScreen";
 import EmailVerifyScreen from "../screens/auth/EmailVerifyScreen";
+import XrunLoginScreen from "../screens/auth/XrunLoginScreen";
+import XrunOtpScreen from "../screens/auth/XrunOtpScreen";
+import XrunOnboardingScreen from "../screens/auth/XrunOnboardingScreen";
 
 import MainTabNavigator from "./MainTabNavigator";
 
@@ -21,6 +24,9 @@ function AuthNavigator() {
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Signup" component={SignupScreen} />
       <AuthStack.Screen name="EmailVerify" component={EmailVerifyScreen} />
+      <AuthStack.Screen name="XrunLogin" component={XrunLoginScreen} />
+      <AuthStack.Screen name="XrunOtp" component={XrunOtpScreen} />
+      <AuthStack.Screen name="XrunOnboarding" component={XrunOnboardingScreen} />
     </AuthStack.Navigator>
   );
 }

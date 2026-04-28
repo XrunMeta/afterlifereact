@@ -133,6 +133,24 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   return postJson("/oth-path", payload);
 }
 
+export async function xrunVerify(email: string, pin: string): Promise<{ ok: true; expiresInSec: number }> {
+  return postJson("/oth-path", { email, pin });
+}
+
+export interface XrunCompletePayload {
+  email: string;
+  pin: string;
+  verificationCode: string;
+  interests?: string[];
+  marketingConsent?: boolean;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
+}
+export async function xrunComplete(payload: XrunCompletePayload): Promise<SignupResponse> {
+  return postJson("/oth-path", payload);
+}
+
 export async function getMe(accessToken: string): Promise<{ user: AuthUser; interests: string[] }> {
   return getJson("/oth-path", accessToken);
 }

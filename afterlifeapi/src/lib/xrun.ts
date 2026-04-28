@@ -120,6 +120,35 @@ export async function registerXrunForAfterlifeUser(
   };
 }
 
+export async function verifyXrunCredentials(
+  env: Bindings,
+  email: string,
+  pin: string,
+): Promise<XrunWalletLookupResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, pin }),
+    });
+  } catch (err) {
+    return { found: false, reason: `network: ${(err as Error).message}` };
+  }
+  let json: { status?: string; code?: number; message?: string; data?: { member?: number; guid?: string | null; wallet?: string | null } | null };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { found: false, reason: `non-json (${res.status})` };
+  }
+  if (json?.status === "success" && json?.data?.member) {
+    return { found: true, member: json.data.member, guid: json.data.guid ?? null, wallet: json.data.wallet ?? null };
+  }
+  if (res.status === 401 || json?.code === 401) return { found: false, reason: "invalid credentials" };
+  if (res.status === 404 || json?.code === 404) return { found: false };
+  return { found: false, reason: `xrun verify ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
+}
+
 export async function lookupXrunWalletByEmail(
   env: Bindings,
   email: string,

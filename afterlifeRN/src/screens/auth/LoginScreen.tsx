@@ -64,6 +64,10 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   const handleSocialLogin = (provider: string) => {
+    if (provider === "xrun") {
+      navigation.navigate("XrunLogin");
+      return;
+    }
     console.log("Social login:", provider);
   };
 
