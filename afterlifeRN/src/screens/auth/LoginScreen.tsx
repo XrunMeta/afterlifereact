@@ -162,8 +162,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
           {}
           <Button
-            title="Apple로 계속하기"
-            onPress={() => v_78c15c("apple")}
+            title="Xrun으로 계속하기"
+            onPress={() => v_78c15c("xrun")}
             variant="secondary"
             size="md"
             leftIcon={<Feather name="smartphone" size={18} color={v_1bfbd0.zinc900} />}
