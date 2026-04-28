@@ -32,7 +32,9 @@ const signupSchema = z.object({
   email: z.email().max(200),
   password: z.string().min(8).max(200),
   name: z.string().min(1).max(80),
-  verificationCode: z.string().regex(/^\d{6}$/, "6-digit code required"),
+
+  verificationCode: z.string().regex(/^\d{6}$/, "6-digit code required").optional(),
+  googleIdToken: z.string().min(20).optional(),
   phone: z.string().min(4).max(40).optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
   age: z.number().int().min(13).max(120).optional(),
@@ -51,6 +53,31 @@ auth.post("/email/request-code", async (c) => {
   const body = await parseJson(c, requestEmailCodeSchema);
   await requestSignupOtp(c.env, body.email);
   return c.json({ ok: true, expiresInSec: 300 });
+});
+
+const googleCheckSchema = z.object({ idToken: z.string().min(20) });
+auth.post("/google/check", async (c) => {
+  const body = await parseJson(c, googleCheckSchema);
+  const payload = await verifyGoogleIdToken(c.env, body.idToken);
+
+  const afterlife = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .bind(payload.email)
+    .first<{ id: number }>();
+
+  let xrunExists = false;
+  if (!afterlife) {
+    const lookup = await lookupXrunWalletByEmail(c.env, payload.email);
+    xrunExists = lookup.found;
+  }
+
+  return c.json({
+    afterlifeExists: !!afterlife,
+    xrunExists,
+    email: payload.email,
+    name: payload.name ?? null,
+    picture: payload.picture ?? null,
+  });
 });
 
 const googleSignInSchema = z.object({
@@ -213,8 +240,10 @@ auth.post("/xrun/verify", async (c) => {
 
 const xrunCompleteSchema = z.object({
   email: z.email().max(200),
-  pin: z.string().min(1).max(200),
-  verificationCode: z.string().regex(/^\d{6}$/, "6-digit code required"),
+  pin: z.string().min(1).max(200).optional(),
+  verificationCode: z.string().regex(/^\d{6}$/, "6-digit code required").optional(),
+
+  googleIdToken: z.string().min(20).optional(),
   interests: z.array(z.string().min(1).max(40)).max(20).optional(),
   marketingConsent: z.boolean().optional().default(false),
   deviceId: z.string().min(1).max(200).optional(),
@@ -225,12 +254,35 @@ auth.post("/xrun/complete", async (c) => {
   const body = await parseJson(c, xrunCompleteSchema);
   const db = c.env.DB;
 
-  const xrun = await verifyXrunCredentials(c.env, body.email, body.pin);
-  if (!xrun.found || !xrun.member) {
-    throw new APIError("UNAUTHENTICATED", "xrun 이메일 또는 비밀번호가 올바르지 않습니다.");
-  }
+  let xrunMember: number | null = null;
+  let xrunGuid: string | null = null;
+  let xrunWallet: string | null = null;
 
-  await verifySignupOtp(c.env, body.email, body.verificationCode);
+  if (body.googleIdToken) {
+    const payload = await verifyGoogleIdToken(c.env, body.googleIdToken);
+    if (payload.email !== body.email) {
+      throw new APIError("VALIDATION_FAILED", "Email does not match Google ID token.");
+    }
+
+    const lookup = await lookupXrunWalletByEmail(c.env, body.email);
+    if (!lookup.found || !lookup.member) {
+      throw new APIError("NOT_FOUND", "xrun 회원이 없습니다.");
+    }
+    xrunMember = lookup.member;
+    xrunGuid = lookup.guid ?? null;
+    xrunWallet = lookup.wallet ?? null;
+  } else {
+    if (!body.pin) throw new APIError("VALIDATION_FAILED", "pin or googleIdToken required");
+    if (!body.verificationCode) throw new APIError("OTP_REQUIRED", "verificationCode required");
+    const xrun = await verifyXrunCredentials(c.env, body.email, body.pin);
+    if (!xrun.found || !xrun.member) {
+      throw new APIError("UNAUTHENTICATED", "xrun 이메일 또는 비밀번호가 올바르지 않습니다.");
+    }
+    await verifySignupOtp(c.env, body.email, body.verificationCode);
+    xrunMember = xrun.member;
+    xrunGuid = xrun.guid ?? null;
+    xrunWallet = xrun.wallet ?? null;
+  }
 
   const existing = await db
     .prepare(
@@ -259,9 +311,9 @@ auth.post("/xrun/complete", async (c) => {
       body.email,
       passwordHash,
       body.marketingConsent ? 1 : 0,
-      xrun.member,
-      xrun.guid ?? null,
-      xrun.wallet ?? null,
+      xrunMember,
+      xrunGuid,
+      xrunWallet,
     )
     .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
   if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
@@ -300,8 +352,8 @@ auth.post("/xrun/complete", async (c) => {
 
   await logActivity(c, {
     userId: inserted.id,
-    action: "auth.xrun.signup",
-    details: { xrunMember: xrun.member, xrunGuid: xrun.guid, xrunWallet: xrun.wallet },
+    action: body.googleIdToken ? "auth.xrun.google.signup" : "auth.xrun.signup",
+    details: { xrunMember, xrunGuid, xrunWallet },
   });
 
   const { accessToken, refreshToken, accessExpiresIn } = await issueSession(c, inserted.id, body.deviceId);
@@ -334,7 +386,17 @@ auth.post("/signup", async (c) => {
     );
   }
 
-  await verifySignupOtp(c.env, body.email, body.verificationCode);
+  if (body.googleIdToken) {
+    const payload = await verifyGoogleIdToken(c.env, body.googleIdToken);
+    if (payload.email !== body.email) {
+      throw new APIError("VALIDATION_FAILED", "Email does not match Google ID token.");
+    }
+  } else {
+    if (!body.verificationCode) {
+      throw new APIError("OTP_REQUIRED", "Either verificationCode or googleIdToken is required.");
+    }
+    await verifySignupOtp(c.env, body.email, body.verificationCode);
+  }
 
   const passwordHash = await hashPassword(body.password);
   const phoneEnc = body.phone

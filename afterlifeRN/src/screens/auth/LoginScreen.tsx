@@ -16,7 +16,7 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import Button from "../../components/ui/Button";
 import { useAuthStore } from "../../stores/authStore";
-import { AuthApiError, googleSignIn, getMe } from "../../api/auth";
+import { AuthApiError, googleSignIn, googleCheck, getMe } from "../../api/auth";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -82,7 +82,6 @@ export default function LoginScreen({ navigation }: Props) {
     if (provider === "google") {
       try {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-
         try {
           await GoogleSignin.signOut();
         } catch {
@@ -97,12 +96,24 @@ export default function LoginScreen({ navigation }: Props) {
           Alert.alert("오류", "Google 로그인 토큰을 받지 못했습니다.");
           return;
         }
-        const deviceId = await getOrCreateDeviceId();
-        const res = await googleSignIn({ idToken, deviceId, platform: "android" });
-        const meRes = await getMe(res.accessToken);
-        await setApiAuth(res.accessToken, meRes.user);
-        console.log("[AUTH/google] user:", meRes.user);
-        await hydrate();
+
+        const check = await googleCheck(idToken);
+
+        if (check.afterlifeExists) {
+
+          const deviceId = await getOrCreateDeviceId();
+          const res = await googleSignIn({ idToken, deviceId, platform: "android" });
+          const meRes = await getMe(res.accessToken);
+          await setApiAuth(res.accessToken, meRes.user);
+          console.log("[AUTH/google] user:", meRes.user);
+          await hydrate();
+        } else if (check.xrunExists) {
+
+          navigation.navigate("XrunOnboarding", { email: check.email, google: { idToken } });
+        } else {
+
+          navigation.navigate("Signup", { google: { idToken, email: check.email, name: check.name } });
+        }
       } catch (err: any) {
         if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
         let msg = "Google 로그인 중 오류가 발생했습니다.";

@@ -19,7 +19,11 @@ import { getOrCreateDeviceId } from "../../lib/deviceId";
 type Props = NativeStackScreenProps<AuthStackParamList, "XrunOnboarding">;
 
 export default function XrunOnboardingScreen({ navigation, route }: Props) {
-  const { email, pin, verificationCode } = route.params;
+  const { email } = route.params;
+  const pin = "pin" in route.params ? route.params.pin : undefined;
+  const verificationCode =
+    "verificationCode" in route.params ? route.params.verificationCode : undefined;
+  const google = "google" in route.params ? route.params.google : undefined;
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [agreeRequired, setAgreeRequired] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
@@ -79,6 +83,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
         email,
         pin,
         verificationCode,
+        googleIdToken: google?.idToken,
         interests: selectedInterests.length > 0 ? selectedInterests : undefined,
         marketingConsent: agreeMarketing,
         deviceId: deviceId ?? undefined,
