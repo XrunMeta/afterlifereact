@@ -60,7 +60,7 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof Feather.glyphMap; label: s
   HomeTab: { icon: "home", label: "홈" },
   ClonesTab: { icon: "users", label: "페르소나" },
   CreateTab: { icon: "plus-circle", label: "생성" },
-  ShortsTab: { icon: "film", label: "숏폼" },
+  ShortsTab: { icon: "user-check", label: "팔로잉" },
   MyTab: { icon: "user", label: "마이" },
 };
 
@@ -148,7 +148,9 @@ export default function MainTabNavigator() {
           },
         })}
       />
-      <Tab.Screen name="ShortsTab" component={ShortsTabScreen} />
+      {
+}
+      <Tab.Screen name="ShortsTab" component={FollowingScreen} />
       <Tab.Screen name="MyTab" component={MyScreen} />
     </Tab.Navigator>
   );

@@ -21,67 +21,41 @@ import { seedSource } from "../../api/source";
 import { L1Section } from "./components/L1Section";
 import { L2Section } from "./components/L2Section";
 import { EditorTransferModal } from "./components/EditorTransferModal";
-import type { L1Profile } from "../../types/domain";
+import type { L1Profile, DomainClone as Clone } from "../../types/domain";
+import type { CloneCreationDraft, MemlowRelation } from "../../types/clone";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import { INTEREST_CATEGORIES } from "../../mocks/interestHelpers";
+import { formatPersonaPrompt, l1ProfileToDraft, draftToL1Profile } from "../../lib/personaPrompt";
+import PersonaSection from "../clone-creation/content/PersonaSection";
+import { MEMLOW_RELATIONS } from "../../mocks/cloneTypeCatalog";
+import { CATEGORIES, INTEREST_MAP, INTEREST_CATEGORIES } from "../../mocks/interestHelpers";
+import InterestChip from "../../components/ui/InterestChip";
 
 type Visibility = "public" | "private" | "followers";
 
 type Props = NativeStackScreenProps<ClonesStackParamList, "CloneEdit">;
 
-const interestCategories = INTEREST_CATEGORIES.map((c) => ({
-  id: c.id,
-  title: c.label,
-  subtitle: c.subtitle,
-  interests: c.interests,
-}));
-
-const personalityTypes = [
-  { id: "extrovert", label: "외향적인" },
-  { id: "introvert", label: "내향적인" },
-  { id: "logical", label: "논리적인" },
-  { id: "emotional", label: "감정적인" },
-  { id: "free", label: "자유로운" },
-  { id: "organized", label: "체계적인" },
-  { id: "passionate", label: "열정적인" },
-  { id: "calm", label: "평온한" },
-];
-
-const ageRanges = ["10대", "20대", "30대", "40대", "50대", "60대 이상"];
-
-const mbtiTypes = [
-  "INTJ", "INTP", "ENTJ", "ENTP",
-  "INFJ", "INFP", "ENFJ", "ENFP",
-  "ISTJ", "ISFJ", "ESTJ", "ESFJ",
-  "ISTP", "ISFP", "ESTP", "ESFP",
-  "모름",
-];
-
-const interestToCategoryId = new Map<string, string>();
+const interestLabelToCategoryId = new Map<string, string>();
 for (const cat of INTEREST_CATEGORIES) {
   for (const i of cat.interests) {
-    interestToCategoryId.set(i.label, cat.id);
+    interestLabelToCategoryId.set(i.label, cat.id);
   }
 }
 
 export default function CloneEditScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
+  const updateLocalClone = useCloneStore((s) => s.updateLocalClone);
   const viewerId = useAuthStore((s) => s.user?.id) ?? null;
 
   const [primaryCategory, setPrimaryCategory] = useState("");
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [customInterests, setCustomInterests] = useState<string[]>([]);
+  const [interests, setInterests] = useState<string[]>([]);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customInput, setCustomInput] = useState("");
 
   const [name, setName] = useState("");
-  const [ageRange, setAgeRange] = useState("");
-  const [gender, setGender] = useState("남성");
-  const [personalities, setPersonalities] = useState<string[]>([]);
-  const [mbti, setMbti] = useState("");
   const [description, setDescription] = useState("");
 
+  const [draft, setDraft] = useState<CloneCreationDraft>({});
   const [l1, setL1] = useState<L1Profile>({ attrs: {}, notes: '' });
   const [transferOpen, setTransferOpen] = useState(false);
 
@@ -92,13 +66,23 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     if (clone) {
-      const firstInterest = clone.interests[0];
-      const catId = firstInterest ? interestToCategoryId.get(firstInterest) ?? "" : "";
-      setPrimaryCategory(catId);
       setName(clone.displayName);
       setDescription(clone.description);
       setVisibility(clone.visibility);
       if (clone.l1Profile) setL1(clone.l1Profile);
+
+      setDraft({
+        ...l1ProfileToDraft(clone.l1Profile),
+        relation: (clone as Clone & { relation?: MemlowRelation }).relation,
+        cloneType: clone.cloneType,
+      });
+
+      if (clone.cloneType !== 'memlow') {
+        const firstInterest = clone.interests[0];
+        const catId = firstInterest ? interestLabelToCategoryId.get(firstInterest) ?? "" : "";
+        setPrimaryCategory(catId);
+        setInterests(clone.interests);
+      }
     }
   }, [clone]);
 
@@ -129,30 +113,50 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     })
     .filter((x): x is { userId: number; displayName: string } => x != null);
 
-  const currentCategory = interestCategories.find((c) => c.id === primaryCategory);
+  const addCustomInterests = () => {
 
-  const toggleInterest = (id: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    const parts = customInput.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    setInterests((prev) => {
+      const seen = new Set(prev);
+      const next = [...prev];
+      for (const p of parts) {
+        if (!seen.has(p)) {
+          next.push(p);
+          seen.add(p);
+        }
+      }
+      return next;
+    });
+    setCustomInput("");
+    setShowCustomInput(false);
+  };
+
+  const toggleInterest = (label: string) => {
+    setInterests((prev) =>
+      prev.includes(label) ? prev.filter((i) => i !== label) : [...prev, label],
     );
   };
 
-  const togglePersonality = (id: string) => {
-    setPersonalities((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
-    );
+  const removeInterest = (label: string) => {
+    setInterests((prev) => prev.filter((i) => i !== label));
   };
 
-  const addCustomInterest = () => {
-    if (customInput.trim()) {
-      setCustomInterests((prev) => [...prev, customInput.trim()]);
-      setCustomInput("");
-      setShowCustomInput(false);
-    }
-  };
+  const activeList = primaryCategory ? (INTEREST_MAP[primaryCategory] ?? []) : [];
+  const customSelected = interests.filter((i) => !activeList.includes(i));
 
   const handleSave = () => {
-
+    if (!clone) return;
+    const l1Payload = draftToL1Profile(draft) ?? { attrs: {}, notes: '' };
+    updateLocalClone(clone.id, {
+      displayName: name,
+      description,
+      visibility,
+      l1Profile: l1Payload,
+      ...(clone.cloneType !== 'memlow' ? { interests } : {}),
+      ...(draft.relation ? ({ relation: draft.relation } as Partial<Clone>) : {}),
+    } as Partial<Clone>);
+    setL1(l1Payload);
     navigation.goBack();
   };
 
@@ -240,112 +244,8 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       )}
 
       <View style={s.content}>
-        {}
-        <View style={s.section}>
-          <Text style={s.sectionTitle}>관심사를 선택해주세요</Text>
-          <Text style={s.sectionDesc}>
-            먼저 주 카테고리를 선택한 후, 관심사를 골라주세요.
-          </Text>
-
-          {!primaryCategory ? (
-            <View style={s.categoryList}>
-              {interestCategories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={s.categoryItem}
-                  onPress={() => setPrimaryCategory(cat.id)}
-                >
-                  <Text style={s.categoryTitle}>{cat.title}</Text>
-                  <Text style={s.categorySub}>{cat.subtitle}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : currentCategory ? (
-            <>
-              {}
-              <View style={s.selectedCatHeader}>
-                <View style={s.selectedCatLeft}>
-                  <Text style={s.selectedCatTitle}>{currentCategory.title}</Text>
-                  <View style={s.primaryBadge}>
-                    <Text style={s.primaryBadgeText}>주 카테고리</Text>
-                  </View>
-                </View>
-                <TouchableOpacity
-                  style={s.changeBtn}
-                  onPress={() => {
-                    setPrimaryCategory("");
-                    setSelectedInterests([]);
-                    setCustomInterests([]);
-                  }}
-                >
-                  <Text style={s.changeBtnText}>변경</Text>
-                </TouchableOpacity>
-              </View>
-
-              {}
-              <View style={s.interestGrid}>
-                {currentCategory.interests.map((interest) => {
-                  const selected = selectedInterests.includes(interest.id);
-                  return (
-                    <TouchableOpacity
-                      key={interest.id}
-                      style={[s.interestItem, selected && s.interestSelected]}
-                      onPress={() => toggleInterest(interest.id)}
-                    >
-                      <Text style={s.interestIcon}>{interest.icon}</Text>
-                      <Text style={s.interestLabel}>{interest.label}</Text>
-                      {selected && (
-                        <View style={s.checkCircle}>
-                          <Feather name="check" size={14} color={COLORS.white} />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {}
-              <Text style={s.customTitle}>그 외 관심사</Text>
-              <View style={s.customTags}>
-                {customInterests.map((tag, i) => (
-                  <View key={i} style={s.customTag}>
-                    <Text style={s.customTagText}>{tag}</Text>
-                  </View>
-                ))}
-              </View>
-
-              {showCustomInput ? (
-                <View style={s.customInputRow}>
-                  <TextInput
-                    style={s.customTextInput}
-                    value={customInput}
-                    onChangeText={setCustomInput}
-                    placeholder="관심사를 입력하세요"
-                    placeholderTextColor={COLORS.placeholder}
-                    onSubmitEditing={addCustomInterest}
-                    autoFocus
-                  />
-                  <TouchableOpacity style={s.addBtn} onPress={addCustomInterest}>
-                    <Text style={s.addBtnText}>추가</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={s.addCustomBtn}
-                  onPress={() => setShowCustomInput(true)}
-                >
-                  <Feather name="plus" size={18} color={COLORS.zinc600} />
-                  <Text style={s.addCustomText}>관심사 추가하기</Text>
-                </TouchableOpacity>
-              )}
-            </>
-          ) : null}
-        </View>
-
-        {}
-        <View style={s.divider} />
-
-        {}
+        {
+}
         <View style={s.section}>
           <Text style={s.sectionTitle}>기본 정보</Text>
 
@@ -358,89 +258,138 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           />
 
           {}
-          <Text style={s.fieldLabel}>나이</Text>
-          <View style={s.chipRow}>
-            {ageRanges.map((age) => (
-              <TouchableOpacity
-                key={age}
-                style={[s.chip, ageRange === age && s.chipSelected]}
-                onPress={() => setAgeRange(age)}
-              >
-                <Text style={[s.chipText, ageRange === age && s.chipTextSelected]}>
-                  {age}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {}
-          <Text style={s.fieldLabel}>성별</Text>
-          <View style={s.genderRow}>
-            {["남성", "여성"].map((g) => (
-              <TouchableOpacity
-                key={g}
-                style={[s.genderBtn, gender === g && s.genderSelected]}
-                onPress={() => setGender(g)}
-              >
-                <Text style={[s.genderText, gender === g && s.genderTextSelected]}>
-                  {g}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {}
-          <Text style={s.fieldLabel}>성격 유형 선택</Text>
-          <Text style={s.fieldHint}>
-            이 페르소나에 어울리는 성격 키워드를 모두 골라주세요.
-          </Text>
-          <View style={s.chipRow}>
-            {personalityTypes.map((p) => (
-              <TouchableOpacity
-                key={p.id}
-                style={[s.chip, personalities.includes(p.id) && s.chipSelected]}
-                onPress={() => togglePersonality(p.id)}
-              >
-                <Text
-                  style={[
-                    s.chipText,
-                    personalities.includes(p.id) && s.chipTextSelected,
-                  ]}
-                >
-                  # {p.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {}
-          <Text style={s.fieldLabel}>MBTI</Text>
-          <Text style={s.fieldHint}>
-            페르소나의 MBTI 유형을 선택해주세요.
-          </Text>
-          <View style={s.mbtiGrid}>
-            {mbtiTypes.map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[s.mbtiItem, mbti === type && s.mbtiSelected]}
-                onPress={() => setMbti(type)}
-              >
-                <Text style={[s.mbtiText, mbti === type && s.mbtiTextSelected]}>
-                  {type}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {}
           <TextField
-            label="페르소나 설명"
+            label="한 줄 소개"
             value={description}
             onChangeText={setDescription}
-            placeholder="이 페르소나의 정체성을 알 수 있게 설명해주세요..."
+            placeholder="이 페르소나의 한 줄 소개를 입력해주세요..."
             multiline
             containerStyle={{ marginTop: 16 }}
           />
+
+          {}
+          {clone.cloneType === 'memlow' && (
+            <>
+              <Text style={s.fieldLabel}>고인과의 관계</Text>
+              <View style={s.chipRow}>
+                {MEMLOW_RELATIONS.map((r) => {
+                  const active = draft.relation === r.id;
+                  return (
+                    <TouchableOpacity
+                      key={r.id}
+                      style={[s.chip, active && s.chipSelected]}
+                      onPress={() => setDraft((d) => ({ ...d, relation: r.id }))}
+                    >
+                      <Text style={[s.chipText, active && s.chipTextSelected]}>
+                        {r.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          )}
+
+          {
+}
+          {clone.cloneType !== 'memlow' && (
+            <>
+              <Text style={s.simpleLabel}>카테고리</Text>
+              <View style={s.simpleCatRow}>
+                {CATEGORIES.map((c) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    style={[s.simpleCat, primaryCategory === c.id && s.simpleCatActive]}
+                    onPress={() => {
+
+                      const prevActiveList = primaryCategory ? (INTEREST_MAP[primaryCategory] ?? []) : [];
+                      setPrimaryCategory(c.id);
+                      setInterests((prev) => prev.filter((label) => !prevActiveList.includes(label)));
+                    }}
+                  >
+                    <Text>{c.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {activeList.length > 0 && (
+                <>
+                  <Text style={s.simpleLabel}>관심사</Text>
+                  <View style={s.simpleChips}>
+                    {activeList.map((i) => (
+                      <InterestChip
+                        key={i}
+                        label={i}
+                        selected={interests.includes(i)}
+                        onPress={() => toggleInterest(i)}
+                      />
+                    ))}
+                    {customSelected.map((label) => (
+                      <TouchableOpacity
+                        key={label}
+                        style={s.simpleCustomTag}
+                        onPress={() => removeInterest(label)}
+                      >
+                        <Text style={s.simpleCustomTagText}>{label} ✕</Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={s.simpleEtcChip}
+                      onPress={() => setShowCustomInput((v) => !v)}
+                    >
+                      <Text style={s.simpleEtcChipText}>+ 기타</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {showCustomInput && (
+                    <View style={s.simpleCustomInputRow}>
+                      <TextInput
+                        style={s.simpleCustomTextInput}
+                        value={customInput}
+                        onChangeText={setCustomInput}
+                        placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
+                        placeholderTextColor={COLORS.placeholder}
+                        onSubmitEditing={addCustomInterests}
+                        returnKeyType="done"
+                        autoFocus
+                      />
+                      <TouchableOpacity style={s.simpleAddBtn} onPress={addCustomInterests}>
+                        <Text style={s.simpleAddBtnText}>추가</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {}
+          <View style={s.beforeBox}>
+            <Text style={s.beforeLabel}>변경 전 (영구 데이터)</Text>
+            <Text style={s.beforeBody}>
+              {formatPersonaPrompt({
+                name: clone.displayName,
+                description: clone.description,
+                interests: clone.interests,
+                l1: clone.l1Profile,
+              })}
+            </Text>
+          </View>
+
+          {}
+          <PersonaSection
+            draft={draft}
+            onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+          />
+        </View>
+
+        {
+}
+        <View style={s.devBanner}>
+          <Text style={s.devBannerText}>🛠 개발용 — 프로덕션 미사용</Text>
+          <Text style={s.devBannerSub}>
+            아래 L1/L2 섹션은 메모리 시스템 직접 편집용. 위 chip 이 실제 사용자 입력 채널입니다.
+          </Text>
         </View>
 
         <View style={s.section}>
@@ -473,7 +422,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           title="저장하기"
           variant="primary"
           onPress={handleSave}
-          disabled={!name || !ageRange}
+          disabled={!name}
           style={s.saveBtn}
         />
       </View>
@@ -552,6 +501,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         onClose={() => setTransferOpen(false)}
         onSubmit={() => setTransferOpen(false)}
       />
+
     </SafeScrollView>
   );
 }
@@ -646,6 +596,42 @@ const s = StyleSheet.create({
     borderColor: COLORS.violet600,
     borderRadius: RADIUS.full,
   },
+  etcChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+    borderStyle: 'dashed',
+    backgroundColor: COLORS.white,
+  },
+  etcChipText: { fontSize: 13, color: COLORS.zinc600 },
+
+  simpleLabel: { fontSize: 13, fontWeight: '600', color: COLORS.zinc700, marginTop: 12 },
+  simpleCatRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  simpleCat: { padding: 10, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.zinc200 },
+  simpleCatActive: { backgroundColor: COLORS.violet100, borderColor: COLORS.violet600 },
+  simpleChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  simpleCustomInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 8 },
+  simpleCustomTextInput: {
+    flex: 1, borderWidth: 1, borderColor: COLORS.zinc200, borderRadius: RADIUS.sm,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: COLORS.zinc900,
+  },
+  simpleAddBtn: {
+    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: COLORS.violet600, borderRadius: RADIUS.sm,
+  },
+  simpleAddBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+  simpleCustomTag: {
+    paddingHorizontal: 12, paddingVertical: 6, backgroundColor: COLORS.violet100,
+    borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.violet600,
+  },
+  simpleCustomTagText: { fontSize: 13, color: COLORS.violet600 },
+  simpleEtcChip: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full,
+    borderWidth: 1, borderColor: COLORS.zinc300, borderStyle: 'dashed',
+    backgroundColor: COLORS.white,
+  },
+  simpleEtcChipText: { fontSize: 13, color: COLORS.zinc600 },
   customTagText: { fontSize: 14, fontWeight: "500", color: COLORS.violet600 },
   customInputRow: { flexDirection: "row", gap: 8 },
   customTextInput: {
@@ -833,4 +819,23 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   notFoundText: { fontSize: 14, color: COLORS.zinc500 },
+  beforeBox: {
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: COLORS.zinc100,
+    borderRadius: RADIUS.sm,
+  },
+  beforeLabel: { fontSize: 11, fontWeight: '700', color: COLORS.zinc500, marginBottom: 4 },
+  beforeBody: { fontSize: 13, lineHeight: 18, color: COLORS.zinc700 },
+  devBanner: {
+    padding: 12,
+    backgroundColor: '#fef3c7',
+    borderRadius: RADIUS.sm,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+    marginVertical: 16,
+  },
+  devBannerText: { fontSize: 13, fontWeight: '700', color: '#92400e' },
+  devBannerSub: { fontSize: 12, color: '#92400e', marginTop: 2 },
 });

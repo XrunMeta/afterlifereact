@@ -4,6 +4,7 @@ import TextField from '../../../components/ui/TextField';
 import { MEMLOW_RELATIONS } from '../../../mocks/cloneTypeCatalog';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
+import PersonaSection from './PersonaSection';
 
 interface Props {
   draft: CloneCreationDraft;
@@ -19,7 +20,7 @@ function Component({ draft, onChange }: Props) {
         onChangeText={v => onChange({ name: v })}
       />
       <TextField
-        placeholder="사용자명 (@예: @mom)"
+        placeholder="클론 아이디 (@예: @mom)"
         value={draft.username ?? ''}
         onChangeText={v => onChange({ username: v })}
       />
@@ -44,6 +45,8 @@ function Component({ draft, onChange }: Props) {
           );
         })}
       </View>
+
+      <PersonaSection draft={draft} onChange={onChange} />
     </View>
   );
 }

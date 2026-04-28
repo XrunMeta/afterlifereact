@@ -35,6 +35,10 @@ export interface AuthUser {
   gender: "male" | "female" | "other" | null;
   age: number | null;
   createdAt: string;
+  xrunMemberId: number | null;
+  xrunGuid: string | null;
+  xrunWallet: string | null;
+  xrunLinkedAt: string | null;
 }
 
 export interface SignupResponse {
@@ -126,6 +130,34 @@ export async function signup(payload: SignupPayload): Promise<SignupResponse> {
 }
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
+  return postJson("/oth-path", payload);
+}
+
+export async function xrunVerify(email: string, pin: string): Promise<{ ok: true; expiresInSec: number }> {
+  return postJson("/oth-path", { email, pin });
+}
+
+export interface XrunCompletePayload {
+  email: string;
+  pin: string;
+  verificationCode: string;
+  interests?: string[];
+  marketingConsent?: boolean;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
+}
+export async function xrunComplete(payload: XrunCompletePayload): Promise<SignupResponse> {
+  return postJson("/oth-path", payload);
+}
+
+export interface GoogleSignInPayload {
+  idToken: string;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
+}
+export async function googleSignIn(payload: GoogleSignInPayload): Promise<LoginResponse> {
   return postJson("/oth-path", payload);
 }
 

@@ -26,8 +26,10 @@ test('selecting a relation fires onChange with relation id', () => {
 });
 
 test('renders all 8 relations', () => {
-  const { getByText } = render(<MemlowBasicInfo draft={base} onChange={jest.fn()} />);
-  for (const label of ['어머니', '아버지', '배우자', '자녀', '형제자매', '친구', '반려동물', '기타']) {
+  const { getByText, getAllByText } = render(<MemlowBasicInfo draft={base} onChange={jest.fn()} />);
+
+  for (const label of ['어머니', '아버지', '배우자', '자녀', '형제자매', '친구', '반려동물']) {
     expect(getByText(label)).toBeTruthy();
   }
+  expect(getAllByText('기타').length).toBeGreaterThanOrEqual(1);
 });

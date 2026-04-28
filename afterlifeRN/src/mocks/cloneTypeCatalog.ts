@@ -10,14 +10,10 @@ export interface CloneTypeMeta {
 }
 
 export const CLONE_TYPES: readonly CloneTypeMeta[] = [
-  { id: 'memlow', iconName: 'heart', label: '떠난 소중한 이',
+  { id: 'memlow', iconName: 'heart', label: '고인',
     desc: '함께한 시간을 대화로 이어갑니다', defaultVisibility: 'private', visibilityLocked: true },
-  { id: 'friend', iconName: 'smile', label: '창작 AI 친구',
-    desc: '나만의 캐릭터와 이야기합니다', defaultVisibility: 'public', visibilityLocked: false },
-  { id: 'mentor', iconName: 'book', label: '전문 멘토',
-    desc: '분야별 조언을 구합니다', defaultVisibility: 'public', visibilityLocked: false },
-  { id: 'celeb', iconName: 'star', label: '유명인',
-    desc: '팬심을 표현합니다', defaultVisibility: 'public', visibilityLocked: false },
+  { id: 'friend', iconName: 'users', label: '일반',
+    desc: '친구·멘토·유명인 등 자유 페르소나', defaultVisibility: 'public', visibilityLocked: false },
 ] as const;
 
 export function getCloneTypeMeta(id: CloneType): CloneTypeMeta {

@@ -6,7 +6,7 @@ import { DataTable } from "../components/DataTable";
 const columns = [
   { key: "id", label: "ID" },
   { key: "name", label: "Name" },
-  { key: "username", label: "Username" },
+  { key: "username", label: "클론 ID" },
   { key: "cloneType", label: "Type" },
   { key: "visibility", label: "Visibility" },
   { key: "trainingStatus", label: "Status" },

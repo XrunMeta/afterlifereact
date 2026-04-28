@@ -28,6 +28,11 @@ const USERNAME_BLACKLIST = new Set([
 ]);
 const MAX_MEMLOW_PROFILE_BYTES = 32 * 1024; 
 
+const l1ProfileSchema = z.object({
+  attrs: z.record(z.string(), z.string()),
+  notes: z.string().max(4000).default(''),
+});
+
 const createSchema = z.object({
   clone_type: cloneType,
   name: z.string().min(1).max(80),
@@ -45,6 +50,8 @@ const createSchema = z.object({
   interests: z.array(z.string().min(1).max(40)).max(20).optional(),
 
   memlow_profile: z.record(z.string(), z.unknown()).optional(),
+
+  l1_profile: l1ProfileSchema.optional(),
 });
 
 clones.post(
@@ -97,12 +104,14 @@ clones.post(
         }
       | null;
     try {
+
       inserted = await db
         .prepare(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
-              avatar_url, cover_image_url, voice_type, voice_preset_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              avatar_url, cover_image_url, voice_type, voice_preset_id,
+              l1_profile, primary_editor_user_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -117,6 +126,8 @@ clones.post(
           body.cover_image_url ?? null,
           voiceType,
           body.voice_preset_id ?? null,
+          body.l1_profile ? JSON.stringify(body.l1_profile) : null,
+          userId,
         )
         .first();
     } catch (err) {
@@ -168,6 +179,20 @@ clones.post(
           )
           .bind(cloneId),
       );
+
+      if (body.l1_profile?.attrs) {
+        for (const [key, value] of Object.entries(body.l1_profile.attrs)) {
+          if (!value) continue;
+          stmts.push(
+            db
+              .prepare(
+                `INSERT INTO persona_attributes (clone_id, level, key, value)
+                 VALUES (?, 'l1', ?, ?)`,
+              )
+              .bind(cloneId, key, value),
+          );
+        }
+      }
       await db.batch(stmts);
     } catch (err) {
 
@@ -398,11 +423,6 @@ clones.get("/:id", async (c) => {
       viewerRole,
     },
   });
-});
-
-const l1ProfileSchema = z.object({
-  attrs: z.record(z.string(), z.string()),
-  notes: z.string().max(4000).default(''),
 });
 
 const patchSchema = z

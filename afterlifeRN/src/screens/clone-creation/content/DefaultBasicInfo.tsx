@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import TextField from '../../../components/ui/TextField';
 import InterestChip from '../../../components/ui/InterestChip';
 import { CATEGORIES, INTEREST_MAP } from '../../../mocks/interestHelpers';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
+import PersonaSection from './PersonaSection';
 
 interface Props {
   draft: CloneCreationDraft;
@@ -15,9 +16,34 @@ function Component({ draft, onChange }: Props) {
   const interests = draft.interests ?? [];
   const activeList = draft.category ? (INTEREST_MAP[draft.category] ?? []) : [];
 
+  const customSelected = interests.filter((i) => !activeList.includes(i));
+  const [customInput, setCustomInput] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
   const toggle = (id: string) => {
     const next = interests.includes(id) ? interests.filter(i => i !== id) : [...interests, id];
     onChange({ interests: next });
+  };
+
+  const addCustomInterests = () => {
+
+    const parts = customInput.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    const seen = new Set(interests);
+    const next = [...interests];
+    for (const p of parts) {
+      if (!seen.has(p)) {
+        next.push(p);
+        seen.add(p);
+      }
+    }
+    onChange({ interests: next });
+    setCustomInput('');
+    setShowCustomInput(false);
+  };
+
+  const removeInterest = (label: string) => {
+    onChange({ interests: interests.filter((i) => i !== label) });
   };
 
   return (
@@ -28,7 +54,7 @@ function Component({ draft, onChange }: Props) {
         onChangeText={v => onChange({ name: v })}
       />
       <TextField
-        placeholder="사용자명 (@예: @luna)"
+        placeholder="클론 아이디 (@예: @luna)"
         value={draft.username ?? ''}
         onChangeText={v => onChange({ username: v })}
       />
@@ -55,7 +81,8 @@ function Component({ draft, onChange }: Props) {
         <>
           <Text style={styles.label}>관심사</Text>
           <View style={styles.chips}>
-            {activeList.map(i => (
+            {}
+            {activeList.map((i) => (
               <InterestChip
                 key={i}
                 label={i}
@@ -63,9 +90,46 @@ function Component({ draft, onChange }: Props) {
                 onPress={() => toggle(i)}
               />
             ))}
+            {}
+            {customSelected.map((label) => (
+              <TouchableOpacity
+                key={label}
+                style={styles.customTag}
+                onPress={() => removeInterest(label)}
+              >
+                <Text style={styles.customTagText}>{label} ✕</Text>
+              </TouchableOpacity>
+            ))}
+            {}
+            <TouchableOpacity
+              style={styles.etcChip}
+              onPress={() => setShowCustomInput((v) => !v)}
+            >
+              <Text style={styles.etcChipText}>+ 기타</Text>
+            </TouchableOpacity>
           </View>
+
+          {showCustomInput && (
+            <View style={styles.customInputRow}>
+              <TextInput
+                style={styles.customTextInput}
+                value={customInput}
+                onChangeText={setCustomInput}
+                placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
+                placeholderTextColor={COLORS.placeholder}
+                onSubmitEditing={addCustomInterests}
+                returnKeyType="done"
+                autoFocus
+              />
+              <TouchableOpacity style={styles.addBtn} onPress={addCustomInterests}>
+                <Text style={styles.addBtnText}>추가</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </>
       )}
+
+      <PersonaSection draft={draft} onChange={onChange} />
     </View>
   );
 }
@@ -86,4 +150,24 @@ const styles = StyleSheet.create({
   cat: { padding: 10, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.zinc200 },
   catActive: { backgroundColor: COLORS.violet100, borderColor: COLORS.violet600 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  customInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  customTextInput: {
+    flex: 1, borderWidth: 1, borderColor: COLORS.zinc200, borderRadius: RADIUS.sm,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: COLORS.zinc900,
+  },
+  addBtn: {
+    paddingHorizontal: 16, paddingVertical: 10, backgroundColor: COLORS.violet600, borderRadius: RADIUS.sm,
+  },
+  addBtnText: { color: COLORS.white, fontSize: 14, fontWeight: '600' },
+  customTag: {
+    paddingHorizontal: 12, paddingVertical: 6, backgroundColor: COLORS.violet100,
+    borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.violet600,
+  },
+  customTagText: { fontSize: 13, color: COLORS.violet600 },
+  etcChip: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full,
+    borderWidth: 1, borderColor: COLORS.zinc300, borderStyle: 'dashed',
+    backgroundColor: COLORS.white,
+  },
+  etcChipText: { fontSize: 13, color: COLORS.zinc600 },
 });

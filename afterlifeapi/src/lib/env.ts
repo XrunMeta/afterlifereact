@@ -31,6 +31,10 @@ export interface Bindings {
   GOOGLE_REFRESH_TOKEN: string;
   GMAIL_SENDER: string;            
 
+  XRUN_API_URL: string;            
+
+  GOOGLE_WEB_CLIENT_ID: string;
+
   WEBAUTHN_RP_ID: string;        
   WEBAUTHN_RP_ORIGIN: string;    
 
