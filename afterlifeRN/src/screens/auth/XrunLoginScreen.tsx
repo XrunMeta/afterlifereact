@@ -35,12 +35,22 @@ export default function v_61d670({ navigation: v_c65f5d }: Props) {
       v_c65f5d.navigate("XrunOtp", { email: v_e0c7e8, pin: v_6bee94 });
     } catch (v_49263d) {
       let v_badeaf = "xrun 검증에 실패했습니다.";
+      let v_252435 = false;
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "xrun 이메일 또는 비밀번호가 올바르지 않습니다.";
         else if (v_49263d.code === "NOT_FOUND") v_badeaf = "xrun 계정을 찾을 수 없습니다.";
-        else v_badeaf = v_49263d.message;
+        else if (v_49263d.code === "CONFLICT") {
+          v_badeaf = "이미 afterlife에 가입된 이메일입니다.\n로그인 화면에서 일반 로그인을 사용해주세요.";
+          v_252435 = true;
+        } else v_badeaf = v_49263d.message;
       }
-      v_03e392.alert("오류", v_badeaf);
+      if (v_252435) {
+        v_03e392.alert("이미 가입된 이메일", v_badeaf, [
+          { text: "확인", onPress: () => v_c65f5d.goBack() },
+        ]);
+      } else {
+        v_03e392.alert("오류", v_badeaf);
+      }
     } finally {
       v_ee9ec1(false);
     }

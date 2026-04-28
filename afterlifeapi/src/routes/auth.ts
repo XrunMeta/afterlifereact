@@ -58,6 +58,18 @@ const v_447278 = v_1f4ea7.object({
 });
 v_68f0aa.post("/xrun/verify", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_447278);
+
+  const v_3c8572 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .bind(v_4d33b2.email)
+    .first<{ id: number }>();
+  if (v_3c8572) {
+    throw new v_3ebe58(
+      "CONFLICT",
+      "이미 afterlife에 가입된 이메일입니다. 로그인 화면에서 일반 로그인을 사용해주세요.",
+    );
+  }
+
   const v_43c42e = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.pin);
   if (!v_43c42e.found) {
     if (v_43c42e.reason === "invalid credentials") {
@@ -90,95 +102,79 @@ v_68f0aa.post("/xrun/complete", async (v_3f4e2e) => {
 
   await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
 
-  let v_d1b635 = await v_a1651b
+  const v_3c8572 = await v_a1651b
     .prepare(
-      `SELECT id, name, email, funnel_stage AS funnelStage FROM users
-        WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+      `SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(v_4d33b2.email)
-    .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
-
-  if (!v_d1b635) {
-
-    const v_c4820c = crypto.randomUUID() + crypto.randomUUID();
-    const v_df7439 = await v_54846c(v_c4820c);
-    const v_ef7664 = v_4d33b2.email.split("@")[0] ?? "user";
-    const v_81161e = await v_a1651b
-      .prepare(
-        `INSERT INTO users (name, email, password_hash, marketing_consent, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-         RETURNING id, name, email, funnel_stage AS funnelStage`,
-      )
-      .bind(
-        v_ef7664,
-        v_4d33b2.email,
-        v_df7439,
-        v_4d33b2.marketingConsent ? 1 : 0,
-        v_76be17.member,
-        v_76be17.guid ?? null,
-        v_76be17.wallet ?? null,
-      )
-      .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
-    if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
-    v_d1b635 = v_81161e;
-
-    if (v_4d33b2.interests && v_4d33b2.interests.length > 0) {
-      const v_3e6264 = v_4d33b2.interests.map((v_23805a) =>
-        v_a1651b
-          .prepare(`INSERT OR IGNORE INTO user_interests (user_id, interest) VALUES (?, ?)`)
-          .bind(v_81161e.id, v_23805a),
-      );
-      await v_a1651b.batch(v_3e6264);
-    }
-
-    if (v_4d33b2.deviceId && v_4d33b2.pushToken) {
-      await v_a1651b
-        .prepare(
-          `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
-             WHERE push_token = ? AND user_id != ? AND is_active = 1`,
-        )
-        .bind(v_4d33b2.pushToken, v_81161e.id)
-        .run();
-      await v_a1651b
-        .prepare(
-          `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
-           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-           ON CONFLICT(user_id, device_id) DO UPDATE SET
-             push_token = excluded.push_token,
-             platform   = excluded.platform,
-             is_active  = 1,
-             last_active_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP`,
-        )
-        .bind(v_81161e.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "web")
-        .run();
-    }
-
-    await v_74defc(v_3f4e2e, {
-      userId: v_81161e.id,
-      action: "auth.xrun.signup",
-      details: { xrunMember: v_76be17.member, xrunGuid: v_76be17.guid, xrunWallet: v_76be17.wallet },
-    });
-  } else {
-
-    await v_a1651b
-      .prepare(
-        `UPDATE users SET xrun_member_id = COALESCE(xrun_member_id, ?),
-                          xrun_guid      = COALESCE(xrun_guid, ?),
-                          xrun_wallet    = COALESCE(xrun_wallet, ?),
-                          xrun_linked_at = COALESCE(xrun_linked_at, CURRENT_TIMESTAMP)
-           WHERE id = ?`,
-      )
-      .bind(v_76be17.member, v_76be17.guid ?? null, v_76be17.wallet ?? null, v_d1b635.id)
-      .run();
-    await v_74defc(v_3f4e2e, {
-      userId: v_d1b635.id,
-      action: "auth.xrun.login",
-      details: { xrunMember: v_76be17.member },
-    });
+    .first<{ id: number }>();
+  if (v_3c8572) {
+    throw new v_3ebe58(
+      "CONFLICT",
+      "이미 afterlife에 가입된 이메일입니다. 일반 로그인을 사용해주세요.",
+    );
   }
 
-  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_d1b635.id, v_4d33b2.deviceId);
+  const v_c4820c = crypto.randomUUID() + crypto.randomUUID();
+  const v_df7439 = await v_54846c(v_c4820c);
+  const v_ef7664 = v_4d33b2.email.split("@")[0] ?? "user";
+  const v_81161e = await v_a1651b
+    .prepare(
+      `INSERT INTO users (name, email, password_hash, marketing_consent, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+       RETURNING id, name, email, funnel_stage AS funnelStage`,
+    )
+    .bind(
+      v_ef7664,
+      v_4d33b2.email,
+      v_df7439,
+      v_4d33b2.marketingConsent ? 1 : 0,
+      v_76be17.member,
+      v_76be17.guid ?? null,
+      v_76be17.wallet ?? null,
+    )
+    .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
+  if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
+
+  if (v_4d33b2.interests && v_4d33b2.interests.length > 0) {
+    const v_3e6264 = v_4d33b2.interests.map((v_23805a) =>
+      v_a1651b
+        .prepare(`INSERT OR IGNORE INTO user_interests (user_id, interest) VALUES (?, ?)`)
+        .bind(v_81161e.id, v_23805a),
+    );
+    await v_a1651b.batch(v_3e6264);
+  }
+
+  if (v_4d33b2.deviceId && v_4d33b2.pushToken) {
+    await v_a1651b
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(v_4d33b2.pushToken, v_81161e.id)
+      .run();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(v_81161e.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "web")
+      .run();
+  }
+
+  await v_74defc(v_3f4e2e, {
+    userId: v_81161e.id,
+    action: "auth.xrun.signup",
+    details: { xrunMember: v_76be17.member, xrunGuid: v_76be17.guid, xrunWallet: v_76be17.wallet },
+  });
+
+  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_81161e.id, v_4d33b2.deviceId);
   v_56035d(v_3f4e2e, v_dfaee3);
 
   return v_3f4e2e.json(
@@ -186,10 +182,10 @@ v_68f0aa.post("/xrun/complete", async (v_3f4e2e) => {
       accessToken: v_2ca7e0,
       accessExpiresIn: v_ff8c95,
       user: {
-        id: v_d1b635.id,
-        name: v_d1b635.name,
-        email: v_d1b635.email,
-        funnelStage: v_d1b635.funnelStage,
+        id: v_81161e.id,
+        name: v_81161e.name,
+        email: v_81161e.email,
+        funnelStage: v_81161e.funnelStage,
       },
     },
     201,
