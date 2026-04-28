@@ -111,18 +111,17 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
           .bind(v_81161e.id, v_23805a),
       );
     }
-    if (v_4d33b2.deviceId) {
 
-      if (v_4d33b2.pushToken) {
-        v_3e6264.push(
-          v_a1651b
-            .prepare(
-              `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
-                 WHERE push_token = ? AND user_id != ? AND is_active = 1`,
-            )
-            .bind(v_4d33b2.pushToken, v_81161e.id),
-        );
-      }
+    if (v_4d33b2.deviceId && v_4d33b2.pushToken) {
+
+      v_3e6264.push(
+        v_a1651b
+          .prepare(
+            `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+               WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+          )
+          .bind(v_4d33b2.pushToken, v_81161e.id),
+      );
       v_3e6264.push(
         v_a1651b
           .prepare(
@@ -135,7 +134,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
                last_active_at = CURRENT_TIMESTAMP,
                updated_at = CURRENT_TIMESTAMP`,
           )
-          .bind(v_81161e.id, v_4d33b2.deviceId, v_4d33b2.pushToken ?? "", v_4d33b2.platform ?? "web"),
+          .bind(v_81161e.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "web"),
       );
     }
     if (v_3e6264.length) await v_a1651b.batch(v_3e6264);
@@ -293,7 +292,14 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
     .bind(v_625c74.id)
     .run();
 
-  if (v_4d33b2.deviceId) {
+  if (v_4d33b2.deviceId && v_4d33b2.pushToken) {
+    await v_a1651b
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(v_4d33b2.pushToken, v_625c74.id)
+      .run();
     await v_a1651b
       .prepare(
         `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
@@ -305,7 +311,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
            last_active_at = CURRENT_TIMESTAMP,
            updated_at = CURRENT_TIMESTAMP`,
       )
-      .bind(v_625c74.id, v_4d33b2.deviceId, v_4d33b2.pushToken ?? "", v_4d33b2.platform ?? "web")
+      .bind(v_625c74.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "web")
       .run();
   }
 
