@@ -35,6 +35,9 @@ export interface AuthUser {
   gender: "male" | "female" | "other" | null;
   age: number | null;
   createdAt: string;
+  xrunMemberId: number | null;
+  xrunGuid: string | null;
+  xrunLinkedAt: string | null;
 }
 
 export interface SignupResponse {

@@ -16,6 +16,7 @@ import {
 import { requireAuth } from "../middleware/auth";
 import { logActivity } from "../lib/logger";
 import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
+import { registerXrunForAfterlifeUser } from "../lib/xrun";
 
 export const auth = new Hono<AppEnv>();
 
@@ -132,6 +133,37 @@ auth.post("/signup", async (c) => {
   } catch (err) {
     await db.prepare(`DELETE FROM users WHERE id = ?`).bind(inserted.id).run();
     throw err;
+  }
+
+  try {
+    const xrun = await registerXrunForAfterlifeUser(c.env, {
+      email: body.email,
+      name: body.name,
+      phone: body.phone,
+      gender: body.gender,
+      age: body.age,
+    });
+    if (xrun.status === "created" && xrun.member && xrun.guid) {
+      await db
+        .prepare(
+          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        )
+        .bind(xrun.member, xrun.guid, inserted.id)
+        .run();
+      await logActivity(c, {
+        userId: inserted.id,
+        action: "xrun.link",
+        details: { result: "created", member: xrun.member, guid: xrun.guid },
+      });
+    } else {
+      await logActivity(c, {
+        userId: inserted.id,
+        action: "xrun.link",
+        details: { result: xrun.status, reason: xrun.reason ?? null },
+      });
+    }
+  } catch (err) {
+    console.error(`[XRUN_LINK_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
   }
 
   const { accessToken, refreshToken, accessExpiresIn } = await issueSession(
