@@ -27,14 +27,6 @@ function v_5a7e16(v_f71b56) {
 
   }
 
-  try {
-    window.localStorage.removeItem("afterlife.admin.token");
-    window.localStorage.removeItem("afterlife.admin.refresh");
-    window.localStorage.removeItem("afterlife.admin.profile");
-  } catch {
-
-  }
-  window.location.reload();
 }
 
 export function v_72f575() {
@@ -45,6 +37,13 @@ export function v_72f575() {
     v_f1c9aa(v_b5b25a());
     v_05a921.getStats().then(v_17be17).catch(console.error);
   }, []);
+
+  const v_adac31 = (v_f71b56) => {
+    v_5a7e16(v_f71b56);
+    v_f1c9aa(v_f71b56);
+    v_17be17(null);
+    v_05a921.getStats().then(v_17be17).catch(console.error);
+  };
 
   const v_4552ca = v_62676b
     ? [
@@ -68,14 +67,14 @@ export function v_72f575() {
         <div style={v_d81136.btnRow}>
           <button
             type="button"
-            onClick={() => v_5a7e16(v_099696)}
+            onClick={() => v_adac31(v_099696)}
             style={{ ...v_d81136.btn, ...(v_f2a5e3 ? v_d81136.btnActive : {}) }}
           >
             Preview
           </button>
           <button
             type="button"
-            onClick={() => v_5a7e16(v_cf2122)}
+            onClick={() => v_adac31(v_cf2122)}
             style={{ ...v_d81136.btn, ...(v_a2fff3 ? v_d81136.btnActive : {}) }}
           >
             Production
