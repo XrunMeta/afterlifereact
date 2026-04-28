@@ -95,15 +95,38 @@ auth.post("/google", async (c) => {
     userRow = inserted;
 
     try {
-      const lookup = await lookupXrunWalletByEmail(c.env, payload.email);
-      if (lookup.found && lookup.member) {
+      const xrun = await registerXrunForAfterlifeUser(c.env, {
+        email: payload.email,
+        name: fallbackName,
+      });
+      let xMember: number | null = null;
+      let xGuid: string | null = null;
+      let xWallet: string | null = null;
+      if (xrun.status === "created" && xrun.member) {
+        xMember = xrun.member;
+        xGuid = xrun.guid ?? null;
+        xWallet = xrun.wallet ?? null;
+      } else if (xrun.status === "duplicate") {
+        const lookup = await lookupXrunWalletByEmail(c.env, payload.email);
+        if (lookup.found && lookup.member) {
+          xMember = lookup.member;
+          xGuid = lookup.guid ?? null;
+          xWallet = lookup.wallet ?? null;
+        }
+      }
+      if (xMember) {
         await db
           .prepare(
             `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
           )
-          .bind(lookup.member, lookup.guid ?? null, lookup.wallet ?? null, inserted.id)
+          .bind(xMember, xGuid, xWallet, inserted.id)
           .run();
       }
+      await logActivity(c, {
+        userId: inserted.id,
+        action: "xrun.link",
+        details: { result: xrun.status, member: xMember, guid: xGuid, wallet: xWallet, reason: xrun.reason ?? null },
+      });
     } catch (err) {
       console.error(`[GOOGLE_SIGNIN_XRUN_LINK_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
     }
