@@ -163,11 +163,7 @@ auth.post("/signup", async (c) => {
       memberToSave = xrun.member;
       guidToSave = xrun.guid;
 
-      const lookup = await lookupXrunWalletByEmail(c.env, body.email);
-      if (lookup.found) {
-        walletToSave = lookup.wallet ?? null;
-        if (!guidToSave && lookup.guid) guidToSave = lookup.guid;
-      }
+      walletToSave = xrun.wallet ?? null;
     } else if (xrun.status === "duplicate") {
       const lookup = await lookupXrunWalletByEmail(c.env, body.email);
       if (lookup.found && lookup.member) {
