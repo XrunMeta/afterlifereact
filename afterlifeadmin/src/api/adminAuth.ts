@@ -7,13 +7,25 @@ import {
   clearSession,
 } from "../lib/auth";
 
-const API_ORIGIN = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
-const AUTH_BASE = `${API_ORIGIN}/oth-path`;
+function readApiOverride(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = window.localStorage.getItem("afterlife.admin.apiOverride");
+    return v && v.length > 0 ? v : null;
+  } catch {
+    return null;
+  }
+}
+function getAuthBase(): string {
+  const override = readApiOverride();
+  const origin = (override ?? import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+  return `${origin}/oth-path`;
+}
 
 async function postJson<T>(path: string, body: unknown, bearer?: string): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (bearer) headers["Authorization"] = `Bearer ${bearer}`;
-  const res = await fetch(`${AUTH_BASE}${path}`, {
+  const res = await fetch(`${getAuthBase()}${path}`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
