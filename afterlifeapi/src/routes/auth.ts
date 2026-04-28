@@ -32,7 +32,9 @@ const v_7b8b17 = v_1f4ea7.object({
   email: v_1f4ea7.email().max(200),
   password: v_1f4ea7.string().min(8).max(200),
   name: v_1f4ea7.string().min(1).max(80),
-  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit code required"),
+
+  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit code required").optional(),
+  googleIdToken: v_1f4ea7.string().min(20).optional(),
   phone: v_1f4ea7.string().min(4).max(40).optional(),
   gender: v_1f4ea7.enum(["male", "female", "other"]).optional(),
   age: v_1f4ea7.number().int().min(13).max(120).optional(),
@@ -51,6 +53,31 @@ v_68f0aa.post("/email/request-code", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
   await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
   return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
+});
+
+const v_a55a85 = v_1f4ea7.object({ idToken: v_1f4ea7.string().min(20) });
+v_68f0aa.post("/google/check", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_a55a85);
+  const v_931bf0 = await v_a32f1d(v_3f4e2e.env, v_4d33b2.idToken);
+
+  const v_ed2073 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .bind(v_931bf0.email)
+    .first<{ id: number }>();
+
+  let v_5c805d = false;
+  if (!v_ed2073) {
+    const v_534695 = await v_a0ec33(v_3f4e2e.env, v_931bf0.email);
+    v_5c805d = v_534695.found;
+  }
+
+  return v_3f4e2e.json({
+    afterlifeExists: !!v_ed2073,
+    xrunExists: v_5c805d,
+    email: v_931bf0.email,
+    name: v_931bf0.name ?? null,
+    picture: v_931bf0.picture ?? null,
+  });
 });
 
 const v_79d3b6 = v_1f4ea7.object({
@@ -213,8 +240,10 @@ v_68f0aa.post("/xrun/verify", async (v_3f4e2e) => {
 
 const v_f9a376 = v_1f4ea7.object({
   email: v_1f4ea7.email().max(200),
-  pin: v_1f4ea7.string().min(1).max(200),
-  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit code required"),
+  pin: v_1f4ea7.string().min(1).max(200).optional(),
+  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit code required").optional(),
+
+  googleIdToken: v_1f4ea7.string().min(20).optional(),
   interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
   marketingConsent: v_1f4ea7.boolean().optional().default(false),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
@@ -225,12 +254,35 @@ v_68f0aa.post("/xrun/complete", async (v_3f4e2e) => {
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_f9a376);
   const v_a1651b = v_3f4e2e.env.DB;
 
-  const v_76be17 = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.pin);
-  if (!v_76be17.found || !v_76be17.member) {
-    throw new v_3ebe58("UNAUTHENTICATED", "xrun 이메일 또는 비밀번호가 올바르지 않습니다.");
-  }
+  let v_88fe80 = null;
+  let v_3ac92c = null;
+  let v_0cd34d = null;
 
-  await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+  if (v_4d33b2.googleIdToken) {
+    const v_931bf0 = await v_a32f1d(v_3f4e2e.env, v_4d33b2.googleIdToken);
+    if (v_931bf0.email !== v_4d33b2.email) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Email does not match Google ID token.");
+    }
+
+    const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
+    if (!v_534695.found || !v_534695.member) {
+      throw new v_3ebe58("NOT_FOUND", "xrun 회원이 없습니다.");
+    }
+    v_88fe80 = v_534695.member;
+    v_3ac92c = v_534695.guid ?? null;
+    v_0cd34d = v_534695.wallet ?? null;
+  } else {
+    if (!v_4d33b2.pin) throw new v_3ebe58("VALIDATION_FAILED", "pin or googleIdToken required");
+    if (!v_4d33b2.verificationCode) throw new v_3ebe58("OTP_REQUIRED", "verificationCode required");
+    const v_76be17 = await v_937e23(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.pin);
+    if (!v_76be17.found || !v_76be17.member) {
+      throw new v_3ebe58("UNAUTHENTICATED", "xrun 이메일 또는 비밀번호가 올바르지 않습니다.");
+    }
+    await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+    v_88fe80 = v_76be17.member;
+    v_3ac92c = v_76be17.guid ?? null;
+    v_0cd34d = v_76be17.wallet ?? null;
+  }
 
   const v_3c8572 = await v_a1651b
     .prepare(
@@ -259,9 +311,9 @@ v_68f0aa.post("/xrun/complete", async (v_3f4e2e) => {
       v_4d33b2.email,
       v_df7439,
       v_4d33b2.marketingConsent ? 1 : 0,
-      v_76be17.member,
-      v_76be17.guid ?? null,
-      v_76be17.wallet ?? null,
+      v_88fe80,
+      v_3ac92c,
+      v_0cd34d,
     )
     .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
   if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
@@ -300,8 +352,8 @@ v_68f0aa.post("/xrun/complete", async (v_3f4e2e) => {
 
   await v_74defc(v_3f4e2e, {
     userId: v_81161e.id,
-    action: "auth.xrun.signup",
-    details: { xrunMember: v_76be17.member, xrunGuid: v_76be17.guid, xrunWallet: v_76be17.wallet },
+    action: v_4d33b2.googleIdToken ? "auth.xrun.google.signup" : "auth.xrun.signup",
+    details: { xrunMember: v_88fe80, xrunGuid: v_3ac92c, xrunWallet: v_0cd34d },
   });
 
   const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_81161e.id, v_4d33b2.deviceId);
@@ -334,7 +386,17 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     );
   }
 
-  await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+  if (v_4d33b2.googleIdToken) {
+    const v_931bf0 = await v_a32f1d(v_3f4e2e.env, v_4d33b2.googleIdToken);
+    if (v_931bf0.email !== v_4d33b2.email) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Email does not match Google ID token.");
+    }
+  } else {
+    if (!v_4d33b2.verificationCode) {
+      throw new v_3ebe58("OTP_REQUIRED", "Either verificationCode or googleIdToken is required.");
+    }
+    await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+  }
 
   const v_df7439 = await v_54846c(v_4d33b2.password);
   const v_849998 = v_4d33b2.phone

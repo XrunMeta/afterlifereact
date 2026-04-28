@@ -20,12 +20,15 @@ import v_84e2fc from "../../components/ui/InterestChip";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
-import { v_97ea8d, v_84a859 } from "../../api/auth";
+import { v_97ea8d, v_35200c, v_7ef860, v_84a859 } from "../../api/auth";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
+import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_1ed7d9 } from "../../stores/authStore";
 
 type Props = {
   navigation: v_390fcc<v_384e19, "Signup">;
+  route: v_ee3714<v_384e19, "Signup">;
 };
 
 const v_798085 = [
@@ -36,9 +39,13 @@ const v_798085 = [
 
 const v_bbe45f = v_bf4124;
 
-export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
-  const [v_1833e7, v_318f24] = v_5ab095("");
-  const [v_e0c7e8, v_fedf34] = v_5ab095("");
+export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
+  const v_a8d185 = v_c7daf6.params?.google;
+  const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
+  const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
+
+  const [v_1833e7, v_318f24] = v_5ab095(v_a8d185?.name ?? "");
+  const [v_e0c7e8, v_fedf34] = v_5ab095(v_a8d185?.email ?? "");
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_0b3ebe, v_241a35] = v_5ab095("");
   const [v_d74a81, v_fcce73] = v_5ab095("");
@@ -136,6 +143,28 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
 
     v_ee9ec1(true);
     try {
+      if (v_a8d185) {
+
+        const v_8f00b9 = await v_35200c({
+          email: v_e0c7e8,
+          password: v_adc076,
+          name: v_1833e7,
+          phone: v_d74a81,
+          gender: v_c3eac4 || undefined,
+          age: v_f4fe8e,
+          interests: v_976e06.length > 0 ? v_976e06 : undefined,
+          marketingConsent: v_8c98c4,
+          deviceId: v_929b58 ?? undefined,
+          pushToken: v_1a29d0 ?? undefined,
+          platform: v_ea920b ?? undefined,
+          googleIdToken: v_a8d185.idToken,
+        });
+        const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
+        await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user);
+        console.log("[AUTH/google.signup] user:", v_9ec4c0.user);
+        await v_232d52();
+        return;
+      }
       await v_97ea8d(v_e0c7e8);
       v_c65f5d.navigate("EmailVerify", {
         email: v_e0c7e8,
@@ -196,9 +225,10 @@ export default function v_f40fc5({ navigation: v_c65f5d }: Props) {
           <TextField
             placeholder="이메일"
             value={v_e0c7e8}
-            onChangeText={v_fedf34}
+            onChangeText={v_a8d185 ? undefined : v_fedf34}
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!v_a8d185}
             leftIcon={<Feather name="mail" size={20} color={v_1bfbd0.zinc500} />}
           />
 

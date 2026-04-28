@@ -6,7 +6,8 @@ export interface SignupPayload {
   email: string;
   password: string;
   name: string;
-  verificationCode: string;
+  verificationCode?: string;
+  googleIdToken?: string;
   phone?: string;
   gender?: "male" | "female" | "other";
   age?: number;
@@ -139,8 +140,9 @@ export async function v_dd506d(v_e0c7e8, v_6bee94): Promise<{ ok: true; expiresI
 
 export interface XrunCompletePayload {
   email: string;
-  pin: string;
-  verificationCode: string;
+  pin?: string;
+  verificationCode?: string;
+  googleIdToken?: string;
   interests?: string[];
   marketingConsent?: boolean;
   deviceId?: string;
@@ -159,6 +161,17 @@ export interface GoogleSignInPayload {
 }
 export async function v_dd2158(v_931bf0): Promise<LoginResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
+}
+
+export interface GoogleCheckResponse {
+  afterlifeExists: boolean;
+  xrunExists: boolean;
+  email: string;
+  name: string | null;
+  picture: string | null;
+}
+export async function v_5c746e(v_b50834): Promise<GoogleCheckResponse> {
+  return v_c34e2f("/oth-path", { idToken: v_b50834 });
 }
 
 export async function v_7ef860(v_2ca7e0): Promise<{ user: AuthUser; interests: string[] }> {

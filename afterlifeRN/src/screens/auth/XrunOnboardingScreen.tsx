@@ -19,7 +19,11 @@ import { v_ea1c99 } from "../../lib/deviceId";
 type Props = v_432191<v_384e19, "XrunOnboarding">;
 
 export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
-  const { email: v_e0c7e8, pin: v_6bee94, verificationCode: v_8e7cda } = v_c7daf6.params;
+  const { email: v_e0c7e8 } = v_c7daf6.params;
+  const v_6bee94 = "pin" in v_c7daf6.params ? v_c7daf6.params.pin : undefined;
+  const v_8e7cda =
+    "verificationCode" in v_c7daf6.params ? v_c7daf6.params.verificationCode : undefined;
+  const v_a8d185 = "google" in v_c7daf6.params ? v_c7daf6.params.google : undefined;
   const [v_976e06, v_770327] = v_5ab095<string[]>([]);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
@@ -79,6 +83,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         email: v_e0c7e8,
         pin: v_6bee94,
         verificationCode: v_8e7cda,
+        googleIdToken: v_a8d185?.idToken,
         interests: v_976e06.length > 0 ? v_976e06 : undefined,
         marketingConsent: v_8c98c4,
         deviceId: v_929b58 ?? undefined,
