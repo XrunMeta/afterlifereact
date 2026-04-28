@@ -19,7 +19,11 @@ const v_b9fa58 = [
     key: "xrunWallet",
     label: "xrun Wallet",
     render: (v_81e2ef) =>
-      v_81e2ef ? `${v_81e2ef.slice(0, 6)}…${v_81e2ef.slice(-4)}` : "—",
+      v_81e2ef ? (
+        <span style={{ fontFamily: "monospace", fontSize: 12 }}>{v_81e2ef}</span>
+      ) : (
+        "—"
+      ),
   },
   {
     key: "xrunMemberId",
