@@ -161,11 +161,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       v_d03cc0 = v_76be17.member;
       v_4aee34 = v_76be17.guid;
 
-      const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
-      if (v_534695.found) {
-        v_a5f7d2 = v_534695.wallet ?? null;
-        if (!v_4aee34 && v_534695.guid) v_4aee34 = v_534695.guid;
-      }
+      v_a5f7d2 = v_76be17.wallet ?? null;
     } else if (v_76be17.status === "duplicate") {
       const v_534695 = await v_a0ec33(v_3f4e2e.env, v_4d33b2.email);
       if (v_534695.found && v_534695.member) {
