@@ -19,7 +19,11 @@ const columns = [
     key: "xrunWallet",
     label: "xrun Wallet",
     render: (v?: string | null) =>
-      v ? `${v.slice(0, 6)}…${v.slice(-4)}` : "—",
+      v ? (
+        <span style={{ fontFamily: "monospace", fontSize: 12 }}>{v}</span>
+      ) : (
+        "—"
+      ),
   },
   {
     key: "xrunMemberId",
