@@ -35,12 +35,22 @@ export default function XrunLoginScreen({ navigation }: Props) {
       navigation.navigate("XrunOtp", { email, pin });
     } catch (err) {
       let msg = "xrun 검증에 실패했습니다.";
+      let isConflict = false;
       if (err instanceof AuthApiError) {
         if (err.code === "UNAUTHENTICATED") msg = "xrun 이메일 또는 비밀번호가 올바르지 않습니다.";
         else if (err.code === "NOT_FOUND") msg = "xrun 계정을 찾을 수 없습니다.";
-        else msg = err.message;
+        else if (err.code === "CONFLICT") {
+          msg = "이미 afterlife에 가입된 이메일입니다.\n로그인 화면에서 일반 로그인을 사용해주세요.";
+          isConflict = true;
+        } else msg = err.message;
       }
-      Alert.alert("오류", msg);
+      if (isConflict) {
+        Alert.alert("이미 가입된 이메일", msg, [
+          { text: "확인", onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        Alert.alert("오류", msg);
+      }
     } finally {
       setSubmitting(false);
     }

@@ -58,6 +58,18 @@ const xrunVerifySchema = z.object({
 });
 auth.post("/xrun/verify", async (c) => {
   const body = await parseJson(c, xrunVerifySchema);
+
+  const existing = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .bind(body.email)
+    .first<{ id: number }>();
+  if (existing) {
+    throw new APIError(
+      "CONFLICT",
+      "이미 afterlife에 가입된 이메일입니다. 로그인 화면에서 일반 로그인을 사용해주세요.",
+    );
+  }
+
   const result = await verifyXrunCredentials(c.env, body.email, body.pin);
   if (!result.found) {
     if (result.reason === "invalid credentials") {
@@ -90,95 +102,79 @@ auth.post("/xrun/complete", async (c) => {
 
   await verifySignupOtp(c.env, body.email, body.verificationCode);
 
-  let userRow = await db
+  const existing = await db
     .prepare(
-      `SELECT id, name, email, funnel_stage AS funnelStage FROM users
-        WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
+      `SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(body.email)
-    .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
-
-  if (!userRow) {
-
-    const randomSecret = crypto.randomUUID() + crypto.randomUUID();
-    const passwordHash = await hashPassword(randomSecret);
-    const fallbackName = body.email.split("@")[0] ?? "user";
-    const inserted = await db
-      .prepare(
-        `INSERT INTO users (name, email, password_hash, marketing_consent, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-         RETURNING id, name, email, funnel_stage AS funnelStage`,
-      )
-      .bind(
-        fallbackName,
-        body.email,
-        passwordHash,
-        body.marketingConsent ? 1 : 0,
-        xrun.member,
-        xrun.guid ?? null,
-        xrun.wallet ?? null,
-      )
-      .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
-    if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
-    userRow = inserted;
-
-    if (body.interests && body.interests.length > 0) {
-      const stmts = body.interests.map((it) =>
-        db
-          .prepare(`INSERT OR IGNORE INTO user_interests (user_id, interest) VALUES (?, ?)`)
-          .bind(inserted.id, it),
-      );
-      await db.batch(stmts);
-    }
-
-    if (body.deviceId && body.pushToken) {
-      await db
-        .prepare(
-          `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
-             WHERE push_token = ? AND user_id != ? AND is_active = 1`,
-        )
-        .bind(body.pushToken, inserted.id)
-        .run();
-      await db
-        .prepare(
-          `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
-           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-           ON CONFLICT(user_id, device_id) DO UPDATE SET
-             push_token = excluded.push_token,
-             platform   = excluded.platform,
-             is_active  = 1,
-             last_active_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP`,
-        )
-        .bind(inserted.id, body.deviceId, body.pushToken, body.platform ?? "web")
-        .run();
-    }
-
-    await logActivity(c, {
-      userId: inserted.id,
-      action: "auth.xrun.signup",
-      details: { xrunMember: xrun.member, xrunGuid: xrun.guid, xrunWallet: xrun.wallet },
-    });
-  } else {
-
-    await db
-      .prepare(
-        `UPDATE users SET xrun_member_id = COALESCE(xrun_member_id, ?),
-                          xrun_guid      = COALESCE(xrun_guid, ?),
-                          xrun_wallet    = COALESCE(xrun_wallet, ?),
-                          xrun_linked_at = COALESCE(xrun_linked_at, CURRENT_TIMESTAMP)
-           WHERE id = ?`,
-      )
-      .bind(xrun.member, xrun.guid ?? null, xrun.wallet ?? null, userRow.id)
-      .run();
-    await logActivity(c, {
-      userId: userRow.id,
-      action: "auth.xrun.login",
-      details: { xrunMember: xrun.member },
-    });
+    .first<{ id: number }>();
+  if (existing) {
+    throw new APIError(
+      "CONFLICT",
+      "이미 afterlife에 가입된 이메일입니다. 일반 로그인을 사용해주세요.",
+    );
   }
 
-  const { accessToken, refreshToken, accessExpiresIn } = await issueSession(c, userRow.id, body.deviceId);
+  const randomSecret = crypto.randomUUID() + crypto.randomUUID();
+  const passwordHash = await hashPassword(randomSecret);
+  const fallbackName = body.email.split("@")[0] ?? "user";
+  const inserted = await db
+    .prepare(
+      `INSERT INTO users (name, email, password_hash, marketing_consent, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+       RETURNING id, name, email, funnel_stage AS funnelStage`,
+    )
+    .bind(
+      fallbackName,
+      body.email,
+      passwordHash,
+      body.marketingConsent ? 1 : 0,
+      xrun.member,
+      xrun.guid ?? null,
+      xrun.wallet ?? null,
+    )
+    .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
+  if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
+
+  if (body.interests && body.interests.length > 0) {
+    const stmts = body.interests.map((it) =>
+      db
+        .prepare(`INSERT OR IGNORE INTO user_interests (user_id, interest) VALUES (?, ?)`)
+        .bind(inserted.id, it),
+    );
+    await db.batch(stmts);
+  }
+
+  if (body.deviceId && body.pushToken) {
+    await db
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(body.pushToken, inserted.id)
+      .run();
+    await db
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(inserted.id, body.deviceId, body.pushToken, body.platform ?? "web")
+      .run();
+  }
+
+  await logActivity(c, {
+    userId: inserted.id,
+    action: "auth.xrun.signup",
+    details: { xrunMember: xrun.member, xrunGuid: xrun.guid, xrunWallet: xrun.wallet },
+  });
+
+  const { accessToken, refreshToken, accessExpiresIn } = await issueSession(c, inserted.id, body.deviceId);
   setRefreshCookie(c, refreshToken);
 
   return c.json(
@@ -186,10 +182,10 @@ auth.post("/xrun/complete", async (c) => {
       accessToken,
       accessExpiresIn,
       user: {
-        id: userRow.id,
-        name: userRow.name,
-        email: userRow.email,
-        funnelStage: userRow.funnelStage,
+        id: inserted.id,
+        name: inserted.name,
+        email: inserted.email,
+        funnelStage: inserted.funnelStage,
       },
     },
     201,
