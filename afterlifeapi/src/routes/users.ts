@@ -25,6 +25,7 @@ interface UserRow {
   created_at: string;
   xrun_member_id: number | null;
   xrun_guid: string | null;
+  xrun_wallet: string | null;
   xrun_linked_at: string | null;
 }
 
@@ -39,7 +40,7 @@ users.get("/me", requireAuth, async (c) => {
   const row = await db
     .prepare(
       `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at,
-              xrun_member_id, xrun_guid, xrun_linked_at
+              xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
     .bind(userId)
@@ -120,6 +121,7 @@ users.get("/me", requireAuth, async (c) => {
       createdAt: row.created_at,
       xrunMemberId: row.xrun_member_id,
       xrunGuid: row.xrun_guid,
+      xrunWallet: row.xrun_wallet,
       xrunLinkedAt: row.xrun_linked_at,
     },
     interests: (interests.results ?? []).map((r) => r.interest),

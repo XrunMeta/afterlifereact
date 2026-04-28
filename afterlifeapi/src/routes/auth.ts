@@ -16,7 +16,7 @@ import {
 import { requireAuth } from "../middleware/auth";
 import { logActivity } from "../lib/logger";
 import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
-import { registerXrunForAfterlifeUser } from "../lib/xrun";
+import { registerXrunForAfterlifeUser, lookupXrunWalletByEmail } from "../lib/xrun";
 
 export const auth = new Hono<AppEnv>();
 
@@ -143,25 +143,53 @@ auth.post("/signup", async (c) => {
       gender: body.gender,
       age: body.age,
     });
+
+    let memberToSave: number | null = null;
+    let guidToSave: string | null = null;
+    let walletToSave: string | null = null;
+    let resultLabel: string = xrun.status;
+
     if (xrun.status === "created" && xrun.member && xrun.guid) {
+      memberToSave = xrun.member;
+      guidToSave = xrun.guid;
+
+      const lookup = await lookupXrunWalletByEmail(c.env, body.email);
+      if (lookup.found) {
+        walletToSave = lookup.wallet ?? null;
+        if (!guidToSave && lookup.guid) guidToSave = lookup.guid;
+      }
+    } else if (xrun.status === "duplicate") {
+      const lookup = await lookupXrunWalletByEmail(c.env, body.email);
+      if (lookup.found && lookup.member) {
+        memberToSave = lookup.member;
+        guidToSave = lookup.guid ?? null;
+        walletToSave = lookup.wallet ?? null;
+        resultLabel = "duplicate-linked";
+      } else {
+        resultLabel = "duplicate-lookup-miss";
+      }
+    }
+
+    if (memberToSave) {
       await db
         .prepare(
-          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          `UPDATE users SET xrun_member_id = ?, xrun_guid = ?, xrun_wallet = ?, xrun_linked_at = CURRENT_TIMESTAMP WHERE id = ?`,
         )
-        .bind(xrun.member, xrun.guid, inserted.id)
+        .bind(memberToSave, guidToSave, walletToSave, inserted.id)
         .run();
-      await logActivity(c, {
-        userId: inserted.id,
-        action: "xrun.link",
-        details: { result: "created", member: xrun.member, guid: xrun.guid },
-      });
-    } else {
-      await logActivity(c, {
-        userId: inserted.id,
-        action: "xrun.link",
-        details: { result: xrun.status, reason: xrun.reason ?? null },
-      });
     }
+
+    await logActivity(c, {
+      userId: inserted.id,
+      action: "xrun.link",
+      details: {
+        result: resultLabel,
+        member: memberToSave,
+        guid: guidToSave,
+        wallet: walletToSave,
+        reason: xrun.reason ?? null,
+      },
+    });
   } catch (err) {
     console.error(`[XRUN_LINK_FAIL] user_id=${inserted.id} err=${(err as Error).message}`);
   }

@@ -37,6 +37,7 @@ export interface AuthUser {
   createdAt: string;
   xrunMemberId: number | null;
   xrunGuid: string | null;
+  xrunWallet: string | null;
   xrunLinkedAt: string | null;
 }
 

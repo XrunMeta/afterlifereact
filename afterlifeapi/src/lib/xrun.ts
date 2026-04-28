@@ -17,7 +17,16 @@ export interface XrunRegisterResult {
   member?: number;
   guid?: string;
   email?: string;
+  wallet?: string | null;
   reason?: string;     
+}
+
+export interface XrunWalletLookupResult {
+  found: boolean;
+  member?: number;
+  guid?: string | null;
+  wallet?: string | null;
+  reason?: string;
 }
 
 function generatePin(): string {
@@ -110,4 +119,37 @@ export async function registerXrunForAfterlifeUser(
     status: "failed",
     reason: `xrun ${res.status}: ${json?.message ?? json?.errorType ?? "unknown"}`,
   };
+}
+
+export async function lookupXrunWalletByEmail(
+  env: Bindings,
+  email: string,
+): Promise<XrunWalletLookupResult> {
+  const url = `${env.XRUN_API_URL}/external/wallet-by-email?email=${encodeURIComponent(email)}`;
+  let res: Response;
+  try {
+    res = await fetch(url, { method: "GET" });
+  } catch (err) {
+    return { found: false, reason: `network: ${(err as Error).message}` };
+  }
+
+  let json: { status?: string; data?: { member?: number; guid?: string | null; wallet?: string | null }; message?: string };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { found: false, reason: `non-json (${res.status})` };
+  }
+
+  if (res.status === 200 && json?.data?.member) {
+    return {
+      found: true,
+      member: json.data.member,
+      guid: json.data.guid ?? null,
+      wallet: json.data.wallet ?? null,
+    };
+  }
+
+  if (res.status === 404) return { found: false };
+
+  return { found: false, reason: `xrun lookup ${res.status}: ${json?.message ?? "unknown"}` };
 }
