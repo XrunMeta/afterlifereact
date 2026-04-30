@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Image,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -51,7 +50,6 @@ export default function EditProfileScreen() {
   const phone = apiUser?.phone ?? "";
   const gender = apiUser?.gender ?? null;
   const age = apiUser?.age ?? null;
-  const avatarUrl = apiUser?.avatarUrl ?? null;
 
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
@@ -62,19 +60,6 @@ export default function EditProfileScreen() {
       />
 
       <View style={s.content}>
-        {}
-        <TouchableOpacity style={s.avatarRow}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={s.avatarImage} />
-          ) : (
-            <View style={s.avatarPlaceholder}>
-              <Feather name="camera" size={28} color={COLORS.zinc400} />
-            </View>
-          )}
-          <Text style={s.avatarLabel}>{t("settings.editProfile.fields.avatar")}</Text>
-          <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
-        </TouchableOpacity>
-
         <View style={s.card}>
           {}
           <View style={s.fieldRow}>
@@ -156,27 +141,6 @@ const s = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
   },
-  avatarRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    paddingVertical: 16,
-    marginBottom: 24,
-  },
-  avatarPlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: COLORS.zinc100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarImage: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-  },
-  avatarLabel: { flex: 1, fontSize: 15, fontWeight: "500", color: COLORS.zinc700 },
   card: {
     backgroundColor: COLORS.white,
     borderWidth: 1,
