@@ -44,3 +44,13 @@ export type CreateStackParamList = {
   Step7: undefined;
   Step8: { cloneId: number };
 };
+
+export type MyStackParamList = {
+  MyHome: undefined;
+  EditProfile: undefined;
+  NotificationSettings: undefined;
+  PrivacySettings: undefined;
+  SavedItems: undefined;
+  AcquaintanceManagement: undefined;
+  LanguageSettings: undefined;
+};

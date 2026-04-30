@@ -1,0 +1,62 @@
+{
+  "common": {
+    "back": "戻る",
+    "save": "保存",
+    "cancel": "キャンセル"
+  },
+  "my": {
+    "title": "マイページ",
+    "menu": {
+      "editProfile": "プロフィール管理",
+      "notifications": "通知設定",
+      "privacy": "プライバシーと公開範囲",
+      "saved": "保存済み",
+      "acquaintance": "知り合い管理",
+      "language": "言語設定",
+      "logout": "ログアウト"
+    }
+  },
+  "settings": {
+    "editProfile": {
+      "title": "プロフィール管理",
+      "fields": {
+        "avatar": "プロフィール画像",
+        "name": "名前",
+        "phone": "電話番号",
+        "gender": "性別",
+        "age": "年齢",
+        "interests": "関心事"
+      }
+    },
+    "notifications": {
+      "title": "通知設定",
+      "push": "プッシュ通知",
+      "comment": "コメント通知",
+      "like": "いいね通知",
+      "marketing": "マーケティング通知"
+    },
+    "privacy": {
+      "title": "プライバシーと公開範囲",
+      "profileVisibility": "プロフィール公開範囲",
+      "blockList": "ブロックリスト",
+      "dataDownload": "データをダウンロード",
+      "deleteAccount": "アカウント削除"
+    },
+    "saved": {
+      "title": "保存済み",
+      "empty": "保存済みのアイテムはありません"
+    },
+    "acquaintance": {
+      "title": "知り合い管理",
+      "empty": "知り合いがいません"
+    },
+    "language": {
+      "title": "言語設定",
+      "ko": "한국어",
+      "ja": "日本語",
+      "en": "English",
+      "zh-CN": "简体中文",
+      "id": "Bahasa Indonesia"
+    }
+  }
+}

@@ -1,37 +1,25 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
-  Modal,
-  Pressable,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
-import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
+import type { MyStackParamList } from "../../navigation/types";
 
 const DEFAULT_USER_ID = 1;
-
-const settingsItems: Array<{
-  icon: keyof typeof Feather.glyphMap;
-  label: string;
-  description: string;
-}> = [
-  { icon: "bookmark", label: "저장됨", description: "저장된 페르소나 확인" },
-  { icon: "users", label: "지인관리", description: "지인 페르소나 관리" },
-  { icon: "user", label: "개인 정보 관리", description: "이메일 및 연동된 SNS 계정 관리" },
-  { icon: "bell", label: "알림 설정", description: "업데이트 및 페르소나 메시지 알림" },
-  { icon: "shield", label: "개인정보 및 공개 범위", description: "내 콘텐츠 공개 범위 설정" },
-];
 
 const recentTransactions = [
   { label: "페르소나 생성", date: "2024.03.25 14:32", amount: -500 },
@@ -39,12 +27,15 @@ const recentTransactions = [
   { label: "코인 충전", date: "2024.03.23 10:20", amount: 10000 },
 ];
 
+type MyNav = NativeStackNavigationProp<MyStackParamList>;
+
 export default function MyScreen() {
+  const navigation = useNavigation<MyNav>();
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const follows = useFollowStore((s) => s.follows);
   const localClones = useCloneStore((s) => s.localClones);
-  const [showComingSoon, setShowComingSoon] = useState(false);
 
   const uid = user?.id ?? DEFAULT_USER_ID;
   const followingCount = useMemo(
@@ -57,6 +48,50 @@ export default function MyScreen() {
       localClones.filter((c) => c.ownerId === uid).length,
     [uid, localClones],
   );
+
+  const settingsItems: Array<{
+    icon: keyof typeof Feather.glyphMap;
+    labelKey: string;
+    descKey: string;
+    route: keyof MyStackParamList;
+  }> = [
+    {
+      icon: "bookmark",
+      labelKey: "my.menu.saved",
+      descKey: "settings.saved.title",
+      route: "SavedItems",
+    },
+    {
+      icon: "users",
+      labelKey: "my.menu.acquaintance",
+      descKey: "settings.acquaintance.title",
+      route: "AcquaintanceManagement",
+    },
+    {
+      icon: "user",
+      labelKey: "my.menu.editProfile",
+      descKey: "settings.editProfile.title",
+      route: "EditProfile",
+    },
+    {
+      icon: "bell",
+      labelKey: "my.menu.notifications",
+      descKey: "settings.notifications.title",
+      route: "NotificationSettings",
+    },
+    {
+      icon: "globe",
+      labelKey: "my.menu.language",
+      descKey: "settings.language.title",
+      route: "LanguageSettings",
+    },
+    {
+      icon: "shield",
+      labelKey: "my.menu.privacy",
+      descKey: "settings.privacy.title",
+      route: "PrivacySettings",
+    },
+  ];
 
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
@@ -85,7 +120,10 @@ export default function MyScreen() {
                 <Feather name="user" size={40} color={COLORS.zinc400} />
               </View>
             )}
-            <TouchableOpacity style={s.editAvatarBtn}>
+            <TouchableOpacity
+              style={s.editAvatarBtn}
+              onPress={() => navigation.navigate("EditProfile")}
+            >
               <Feather name="edit-2" size={14} color={COLORS.white} />
             </TouchableOpacity>
           </View>
@@ -118,10 +156,7 @@ export default function MyScreen() {
               <Feather name="dollar-sign" size={18} color={COLORS.zinc700} />
               <Text style={s.coinLabel}>보유 코인</Text>
             </View>
-            <TouchableOpacity
-              style={s.chargeBtn}
-              onPress={() => setShowComingSoon(true)}
-            >
+            <TouchableOpacity style={s.chargeBtn}>
               <Feather name="plus" size={14} color={COLORS.white} />
               <Text style={s.chargeBtnText}>충전</Text>
             </TouchableOpacity>
@@ -153,35 +188,32 @@ export default function MyScreen() {
               </Text>
             </View>
           ))}
-          <TouchableOpacity
-            style={s.viewAllBtn}
-            onPress={() => setShowComingSoon(true)}
-          >
+          <TouchableOpacity style={s.viewAllBtn}>
             <Text style={s.viewAllText}>전체 내역 보기</Text>
           </TouchableOpacity>
         </View>
 
         {}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>설정</Text>
+          <Text style={s.sectionLabel}>{t("my.menu.editProfile") ? "설정" : "설정"}</Text>
         </View>
 
         <View style={s.settingsCard}>
           {settingsItems.map((item, i) => (
             <TouchableOpacity
-              key={i}
+              key={item.route}
               style={[
                 s.settingsRow,
                 i < settingsItems.length - 1 && s.settingsRowBorder,
               ]}
-              onPress={() => setShowComingSoon(true)}
+              onPress={() => navigation.navigate(item.route)}
             >
               <View style={s.settingsIcon}>
                 <Feather name={item.icon} size={22} color={COLORS.zinc900} />
               </View>
               <View style={s.settingsInfo}>
-                <Text style={s.settingsLabel}>{item.label}</Text>
-                <Text style={s.settingsDesc}>{item.description}</Text>
+                <Text style={s.settingsLabel}>{t(item.labelKey)}</Text>
+                <Text style={s.settingsDesc}>{t(item.descKey)}</Text>
               </View>
               <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
             </TouchableOpacity>
@@ -191,37 +223,9 @@ export default function MyScreen() {
         {}
         <TouchableOpacity style={s.logoutBtn} onPress={() => void logout()}>
           <Feather name="log-out" size={16} color={COLORS.zinc600} />
-          <Text style={s.logoutText}>로그아웃</Text>
+          <Text style={s.logoutText}>{t("my.menu.logout")}</Text>
         </TouchableOpacity>
       </View>
-
-      {}
-      <Modal visible={showComingSoon} transparent animationType="fade">
-        <Pressable style={s.modalOverlay} onPress={() => setShowComingSoon(false)}>
-          <Pressable style={s.comingSoonBox} onPress={(e) => e.stopPropagation()}>
-            <TouchableOpacity
-              style={s.closeBtn}
-              onPress={() => setShowComingSoon(false)}
-            >
-              <Feather name="x" size={18} color={COLORS.zinc400} />
-            </TouchableOpacity>
-
-            <View style={s.comingSoonIcon}>
-              <Text style={{ fontSize: 32 }}>🚀</Text>
-            </View>
-            <Text style={s.comingSoonTitle}>준비 중이에요</Text>
-            <Text style={s.comingSoonDesc}>
-              이 기능은 현재 개발 중입니다.{"\n"}곧 만나볼 수 있어요!
-            </Text>
-            <Button
-              title="확인"
-              variant="primary"
-              onPress={() => setShowComingSoon(false)}
-              style={s.comingSoonBtn}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
     </SafeScrollView>
   );
 }
@@ -381,38 +385,4 @@ const s = StyleSheet.create({
     paddingVertical: 8,
   },
   logoutText: { fontSize: 14, color: COLORS.zinc600 },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  comingSoonBox: {
-    backgroundColor: COLORS.white,
-    borderRadius: 24,
-    padding: 32,
-    maxWidth: 340,
-    width: "100%",
-    alignItems: "center",
-  },
-  closeBtn: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    padding: 8,
-  },
-  comingSoonIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.zinc100,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  comingSoonTitle: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900, marginBottom: 10 },
-  comingSoonDesc: { fontSize: 14, color: COLORS.zinc600, textAlign: "center", lineHeight: 20, marginBottom: 24 },
-  comingSoonBtn: { width: "100%", borderRadius: RADIUS.full },
 });

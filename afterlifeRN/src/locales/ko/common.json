@@ -1,0 +1,62 @@
+{
+  "common": {
+    "back": "뒤로",
+    "save": "저장",
+    "cancel": "취소"
+  },
+  "my": {
+    "title": "마이 페이지",
+    "menu": {
+      "editProfile": "개인정보 관리",
+      "notifications": "알림 설정",
+      "privacy": "개인정보 및 공개 범위",
+      "saved": "저장됨",
+      "acquaintance": "지인 관리",
+      "language": "언어 설정",
+      "logout": "로그아웃"
+    }
+  },
+  "settings": {
+    "editProfile": {
+      "title": "개인정보 관리",
+      "fields": {
+        "avatar": "프로필 이미지",
+        "name": "이름",
+        "phone": "전화번호",
+        "gender": "성별",
+        "age": "나이",
+        "interests": "관심사"
+      }
+    },
+    "notifications": {
+      "title": "알림 설정",
+      "push": "푸시 알림",
+      "comment": "댓글 알림",
+      "like": "좋아요 알림",
+      "marketing": "마케팅 알림"
+    },
+    "privacy": {
+      "title": "개인정보 및 공개 범위",
+      "profileVisibility": "프로필 공개 범위",
+      "blockList": "차단 목록",
+      "dataDownload": "내 데이터 다운로드",
+      "deleteAccount": "회원 탈퇴"
+    },
+    "saved": {
+      "title": "저장됨",
+      "empty": "저장된 항목이 없어요"
+    },
+    "acquaintance": {
+      "title": "지인 관리",
+      "empty": "지인이 없어요"
+    },
+    "language": {
+      "title": "언어 설정",
+      "ko": "한국어",
+      "ja": "日本語",
+      "en": "English",
+      "zh-CN": "简体中文",
+      "id": "Bahasa Indonesia"
+    }
+  }
+}

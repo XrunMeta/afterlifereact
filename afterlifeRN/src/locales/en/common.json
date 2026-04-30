@@ -1,0 +1,62 @@
+{
+  "common": {
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "my": {
+    "title": "My Page",
+    "menu": {
+      "editProfile": "Edit Profile",
+      "notifications": "Notification Settings",
+      "privacy": "Privacy and Visibility",
+      "saved": "Saved",
+      "acquaintance": "Acquaintance Management",
+      "language": "Language Settings",
+      "logout": "Logout"
+    }
+  },
+  "settings": {
+    "editProfile": {
+      "title": "Edit Profile",
+      "fields": {
+        "avatar": "Profile Image",
+        "name": "Name",
+        "phone": "Phone Number",
+        "gender": "Gender",
+        "age": "Age",
+        "interests": "Interests"
+      }
+    },
+    "notifications": {
+      "title": "Notification Settings",
+      "push": "Push Notifications",
+      "comment": "Comment Notifications",
+      "like": "Like Notifications",
+      "marketing": "Marketing Notifications"
+    },
+    "privacy": {
+      "title": "Privacy and Visibility",
+      "profileVisibility": "Profile Visibility",
+      "blockList": "Block List",
+      "dataDownload": "Download My Data",
+      "deleteAccount": "Delete Account"
+    },
+    "saved": {
+      "title": "Saved",
+      "empty": "No saved items"
+    },
+    "acquaintance": {
+      "title": "Acquaintance Management",
+      "empty": "No acquaintances"
+    },
+    "language": {
+      "title": "Language Settings",
+      "ko": "한국어",
+      "ja": "日本語",
+      "en": "English",
+      "zh-CN": "简体中文",
+      "id": "Bahasa Indonesia"
+    }
+  }
+}

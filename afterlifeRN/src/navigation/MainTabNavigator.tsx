@@ -6,7 +6,7 @@ import { Feather } from "@expo/vector-icons";
 import { View, StyleSheet, Image, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
-import type { MainTabParamList, ClonesStackParamList, CreateStackParamList } from "./types";
+import type { MainTabParamList, ClonesStackParamList, CreateStackParamList, MyStackParamList } from "./types";
 import { COLORS } from "../components/constants";
 import { useAuthStore } from "../stores/authStore";
 
@@ -25,9 +25,16 @@ import Step8CreateShortsScreen from "../screens/clone-creation/Step8CreateShorts
 import FollowingScreen from "../screens/following/FollowingScreen";
 import ShortsTabScreen from "../screens/shorts/ShortsTabScreen";
 import MyScreen from "../screens/my/MyScreen";
+import EditProfileScreen from "../screens/my/EditProfileScreen";
+import NotificationSettingsScreen from "../screens/my/NotificationSettingsScreen";
+import PrivacySettingsScreen from "../screens/my/PrivacySettingsScreen";
+import SavedItemsScreen from "../screens/my/SavedItemsScreen";
+import AcquaintanceManagementScreen from "../screens/my/AcquaintanceManagementScreen";
+import LanguageSettingsScreen from "../screens/my/LanguageSettingsScreen";
 
 const ClonesStack = createNativeStackNavigator<ClonesStackParamList>();
 const CreateStack = createNativeStackNavigator<CreateStackParamList>();
+const MyStack = createNativeStackNavigator<MyStackParamList>();
 
 function ClonesStackNavigator() {
   return (
@@ -51,6 +58,20 @@ function CreateStackNavigator() {
       <CreateStack.Screen name="Step7" component={Step7CompleteScreen} />
       <CreateStack.Screen name="Step8" component={Step8CreateShortsScreen} />
     </CreateStack.Navigator>
+  );
+}
+
+function MyStackNavigator() {
+  return (
+    <MyStack.Navigator screenOptions={{ headerShown: false }}>
+      <MyStack.Screen name="MyHome" component={MyScreen} />
+      <MyStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <MyStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+      <MyStack.Screen name="PrivacySettings" component={PrivacySettingsScreen} />
+      <MyStack.Screen name="SavedItems" component={SavedItemsScreen} />
+      <MyStack.Screen name="AcquaintanceManagement" component={AcquaintanceManagementScreen} />
+      <MyStack.Screen name="LanguageSettings" component={LanguageSettingsScreen} />
+    </MyStack.Navigator>
   );
 }
 
@@ -151,7 +172,7 @@ export default function MainTabNavigator() {
       {
 }
       <Tab.Screen name="ShortsTab" component={FollowingScreen} />
-      <Tab.Screen name="MyTab" component={MyScreen} />
+      <Tab.Screen name="MyTab" component={MyStackNavigator} />
     </Tab.Navigator>
   );
 }
