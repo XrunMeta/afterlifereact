@@ -7,14 +7,26 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
+import InterestChip from "../../components/ui/InterestChip";
 import { COLORS, RADIUS } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
-import { getMe, patchMe, AuthApiError, type PatchMePayload } from "../../api/auth";
+import {
+  getMe,
+  patchMe,
+  patchInterests,
+  AuthApiError,
+  type PatchMePayload,
+} from "../../api/auth";
+import { ALL_INTERESTS } from "../../mocks/interestHelpers";
 
 type Gender = "male" | "female" | "other";
 
@@ -35,7 +47,10 @@ export default function EditProfileScreen() {
   const [phone, setPhone] = useState(apiUser?.phone ?? "");
   const [gender, setGender] = useState<Gender | null>((apiUser?.gender as Gender) ?? null);
   const [ageStr, setAgeStr] = useState(apiUser?.age != null ? String(apiUser.age) : "");
-  const [interests, setInterests] = useState<string[]>([]);
+
+  const [originalInterests, setOriginalInterests] = useState<string[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [interestsModalVisible, setInterestsModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -45,7 +60,9 @@ export default function EditProfileScreen() {
       try {
         const me = await getMe(accessToken);
         if (cancelled) return;
-        setInterests(me.interests ?? []);
+        const initial = me.interests ?? [];
+        setOriginalInterests(initial);
+        setSelectedInterests(initial);
       } catch (err) {
         console.warn("[EditProfile] getMe failed:", err);
       }
@@ -55,15 +72,28 @@ export default function EditProfileScreen() {
     };
   }, [accessToken]);
 
+  const interestsDirty = useMemo(() => {
+    if (selectedInterests.length !== originalInterests.length) return true;
+    const orig = new Set(originalInterests);
+    return selectedInterests.some((it) => !orig.has(it));
+  }, [selectedInterests, originalInterests]);
+
   const dirty = useMemo(() => {
     const ageNum = ageStr.trim() === "" ? null : Number(ageStr.trim());
     return (
       name.trim() !== (apiUser?.name ?? "") ||
       phone.trim() !== (apiUser?.phone ?? "") ||
       gender !== (apiUser?.gender ?? null) ||
-      ageNum !== (apiUser?.age ?? null)
+      ageNum !== (apiUser?.age ?? null) ||
+      interestsDirty
     );
-  }, [name, phone, gender, ageStr, apiUser]);
+  }, [name, phone, gender, ageStr, apiUser, interestsDirty]);
+
+  const toggleInterest = (interest: string) => {
+    setSelectedInterests((prev) =>
+      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest],
+    );
+  };
 
   const handleSave = async () => {
     if (!accessToken || !apiUser || saving || !dirty) return;
@@ -90,14 +120,28 @@ export default function EditProfileScreen() {
 
     setSaving(true);
     try {
-      const res = await patchMe(accessToken, patch);
-      console.log("[EditProfile] patchMe ok:", res.updatedFields);
-      patchApiUser(patch);
+      const calls: Array<Promise<unknown>> = [];
+      if (Object.keys(patch).length > 0) {
+        calls.push(patchMe(accessToken, patch));
+      }
+      if (interestsDirty) {
+        const origSet = new Set(originalInterests);
+        const newSet = new Set(selectedInterests);
+        const add = selectedInterests.filter((it) => !origSet.has(it));
+        const remove = originalInterests.filter((it) => !newSet.has(it));
+        calls.push(patchInterests(accessToken, { add, remove }));
+      }
+      await Promise.all(calls);
+      console.log("[EditProfile] saved", { patch, interestsDirty });
+
+      if (Object.keys(patch).length > 0) patchApiUser(patch);
+      if (interestsDirty) setOriginalInterests(selectedInterests);
+
       Alert.alert("저장됨", "프로필이 저장되었습니다.", [
         { text: "확인", onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
-      console.warn("[EditProfile] patchMe failed:", err);
+      console.warn("[EditProfile] save failed:", err);
       let msg = "저장 중 오류가 발생했습니다.";
       if (err instanceof AuthApiError) msg = err.message;
       Alert.alert("저장 실패", msg);
@@ -187,15 +231,19 @@ export default function EditProfileScreen() {
           <View style={s.divider} />
 
           {}
-          <View style={s.fieldRow}>
+          <TouchableOpacity
+            style={s.fieldRow}
+            onPress={() => setInterestsModalVisible(true)}
+          >
             <Text style={s.fieldLabel}>{t("settings.editProfile.fields.interests")}</Text>
             <Text
-              style={[s.fieldValue, interests.length > 0 && s.fieldValueFilled]}
+              style={[s.fieldValue, selectedInterests.length > 0 && s.fieldValueFilled]}
               numberOfLines={1}
             >
-              {interests.length > 0 ? interests.join(", ") : "—"}
+              {selectedInterests.length > 0 ? selectedInterests.join(", ") : "—"}
             </Text>
-          </View>
+            <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -210,6 +258,45 @@ export default function EditProfileScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {}
+      <Modal
+        visible={interestsModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setInterestsModalVisible(false)}
+      >
+        <Pressable style={s.modalOverlay} onPress={() => setInterestsModalVisible(false)}>
+          <Pressable style={s.modalSheet} onPress={(e) => e.stopPropagation()}>
+            <View style={s.modalHandle} />
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>관심사 선택</Text>
+              <TouchableOpacity onPress={() => setInterestsModalVisible(false)}>
+                <Feather name="x" size={24} color={COLORS.zinc700} />
+              </TouchableOpacity>
+            </View>
+            <Text style={s.modalSubtitle}>
+              관심 있는 항목을 자유롭게 선택하세요 ({selectedInterests.length}개 선택됨)
+            </Text>
+            <ScrollView contentContainerStyle={s.chipGrid}>
+              {ALL_INTERESTS.map((interest) => (
+                <InterestChip
+                  key={interest}
+                  label={interest}
+                  selected={selectedInterests.includes(interest)}
+                  onPress={() => toggleInterest(interest)}
+                />
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={s.modalDoneBtn}
+              onPress={() => setInterestsModalVisible(false)}
+            >
+              <Text style={s.modalDoneBtnText}>완료</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeScrollView>
   );
 }
@@ -292,4 +379,53 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.zinc300,
   },
   saveBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 32,
+    maxHeight: "85%",
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.zinc300,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900 },
+  modalSubtitle: {
+    fontSize: 13,
+    color: COLORS.zinc500,
+    marginBottom: 16,
+  },
+  chipGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingBottom: 16,
+  },
+  modalDoneBtn: {
+    marginTop: 8,
+    paddingVertical: 14,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.zinc900,
+    alignItems: "center",
+  },
+  modalDoneBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
 });
