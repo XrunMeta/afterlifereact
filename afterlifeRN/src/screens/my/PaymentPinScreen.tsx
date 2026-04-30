@@ -1,4 +1,4 @@
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -7,6 +7,7 @@ import {
   v_f2c756,
   v_03e392,
   v_39a996,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
@@ -15,23 +16,53 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_5b2249 } from "../../api/payments";
+import { v_5b2249, v_9b8cb3 } from "../../api/payments";
 import { v_84a859 } from "../../api/auth";
+import v_3cb56d from "../../components/my/PaymentPinPromptModal";
+import * as v_fba5a0 from "hfxxehldoiokdq";
 
 const v_50256d = 6;
 const v_138a00 = 5;
-const v_23211e = "xrun://";
+const v_6847f9 = "xrun://";
 
 export default function v_da4f91() {
   const v_c65f5d = v_ada615();
   const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
 
   const [v_6bee94, v_240fbf] = v_5ab095("");
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
   const [v_0be067, v_75488d] = v_5ab095(v_138a00);
   const [v_076be5, v_b3c1a7] = v_5ab095(false);
   const [v_177bdd, v_ae32d6] = v_5ab095(false);
+  const [v_8146c2, v_9724c8] = v_5ab095(false);
+
+  v_c4deb2(() => {
+    let v_2008a4 = false;
+    (async () => {
+      if (!v_2ca7e0) return;
+      try {
+        const v_d308b5 = await v_9b8cb3(v_2ca7e0);
+        console.log("[PIN] mount status:", v_d308b5);
+        if (v_2008a4) return;
+        if (!v_d308b5.linked) {
+          v_03e392.alert("알림", "xrun 회원 매핑이 안 되어 있습니다.");
+          v_c65f5d.goBack();
+          return;
+        }
+        if (!v_d308b5.hasPin) {
+          v_9724c8(true);
+        }
+      } catch (v_49263d) {
+        console.warn("[PIN] mount status error:", v_49263d);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+
+  }, [v_2ca7e0]);
 
   const v_5ba0f2 = (v_5f701e) => {
     if (v_076be5) return;
@@ -102,13 +133,32 @@ export default function v_da4f91() {
   };
 
   const v_44c6f8 = async () => {
-    console.log("[PIN] open xrun:", v_23211e);
-    const v_29eaf2 = await v_f2c756.canOpenURL(v_23211e);
-    console.log("[PIN] canOpenURL:", v_29eaf2);
-    if (v_29eaf2) {
-      await v_f2c756.openURL(v_23211e);
-    } else {
-      v_03e392.alert("알림", "xrun 앱이 설치되어 있지 않습니다.");
+
+    if (v_f4fb5e) {
+      try {
+        await v_fba5a0.setStringAsync(v_f4fb5e);
+        console.log("[PIN] email copied to clipboard");
+      } catch (v_49263d) {
+        console.warn("[PIN] clipboard set failed:", v_49263d);
+      }
+    }
+    const v_2208dc = v_f4fb5e
+      ? `${v_6847f9}?email=${encodeURIComponent(v_f4fb5e)}&from=afterlife`
+      : v_6847f9;
+    console.log("[PIN] open xrun:", v_2208dc);
+    try {
+      await v_f2c756.openURL(v_2208dc);
+    } catch (v_49263d) {
+      console.warn("[PIN] openURL failed:", v_49263d);
+      const v_b71a74 =
+        v_326be8.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try {
+        await v_f2c756.openURL(v_b71a74);
+      } catch {
+        v_03e392.alert("알림", "xrun 앱이 설치되어 있지 않습니다.");
+      }
     }
   };
 
@@ -194,6 +244,14 @@ export default function v_da4f91() {
           </>
         )}
       </View>
+
+      <PaymentPinPromptModal
+        visible={v_8146c2}
+        onClose={() => {
+          v_9724c8(false);
+          v_c65f5d.goBack();
+        }}
+      />
     </SafeScrollView>
   );
 }
