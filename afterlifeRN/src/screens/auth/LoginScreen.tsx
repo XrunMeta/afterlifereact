@@ -231,16 +231,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           />
 
           {}
-          <Button
-            title="Telegram으로 계속하기"
-            onPress={() => v_78c15c("telegram")}
-            size="md"
-            backgroundColor={v_1bfbd0.telegram}
-            textColor={v_1bfbd0.white}
-            leftIcon={<Feather name="send" size={18} color={v_1bfbd0.white} />}
-          />
-
-          {}
           <View style={v_d81136.signupRow}>
             <Text style={v_d81136.signupText}>계정이 없으신가요? </Text>
             <TouchableOpacity onPress={() => v_c65f5d.navigate("Signup")}>
