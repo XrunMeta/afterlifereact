@@ -107,8 +107,12 @@ export default function v_e2b396() {
       v_03e392.alert("알림", "이름은 비워둘 수 없습니다.");
       return;
     }
-    if (v_435fbe !== "" && (!Number.isInteger(v_f4fe8e) || v_f4fe8e! < 0 || v_f4fe8e! > 150)) {
-      v_03e392.alert("알림", "나이는 0~150 사이의 숫자여야 합니다.");
+    if (v_435fbe !== "" && (!Number.isInteger(v_f4fe8e) || v_f4fe8e! < 13 || v_f4fe8e! > 120)) {
+      v_03e392.alert("알림", "나이는 13~120 사이의 숫자여야 합니다.");
+      return;
+    }
+    if (v_d1d8b2 !== "" && v_d1d8b2.length < 4) {
+      v_03e392.alert("알림", "전화번호는 4자 이상 입력하거나 비워두세요.");
       return;
     }
 
@@ -143,7 +147,16 @@ export default function v_e2b396() {
     } catch (v_49263d) {
       console.warn("[EditProfile] save failed:", v_49263d);
       let v_badeaf = "저장 중 오류가 발생했습니다.";
-      if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
+      if (v_49263d instanceof v_84a859) {
+        v_badeaf = v_49263d.message;
+
+        if (v_49263d.code === "VALIDATION_FAILED" && Array.isArray(v_49263d.details)) {
+          const v_f8a42c = v_49263d.details as Array<{ path?: unknown[]; message?: string }>;
+          const v_ea719c = v_f8a42c[0];
+          const v_d4610c = Array.isArray(v_ea719c?.path) ? v_ea719c.path.join(".") : "";
+          if (v_d4610c) v_badeaf = `${v_badeaf}\n(필드: ${v_d4610c} — ${v_ea719c?.message ?? ""})`;
+        }
+      }
       v_03e392.alert("저장 실패", v_badeaf);
     } finally {
       v_04e389(false);
