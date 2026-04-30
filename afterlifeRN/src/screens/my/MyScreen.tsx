@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,10 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
 import { uploadFile } from "../../api/files";
 import { patchMe } from "../../api/auth";
+import { getPaymentPinStatus } from "../../api/payments";
+import PaymentPinPromptModal, {
+  shouldShowPaymentPinPrompt,
+} from "../../components/my/PaymentPinPromptModal";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
 
@@ -48,6 +52,30 @@ export default function MyScreen() {
   const localClones = useCloneStore((s) => s.localClones);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showPinPrompt, setShowPinPrompt] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!accessToken) return;
+      const allowed = await shouldShowPaymentPinPrompt();
+      if (!allowed || cancelled) return;
+      try {
+        const status = await getPaymentPinStatus(accessToken);
+        console.log("[PIN-STATUS]", status);
+        if (cancelled) return;
+
+        if (status.linked && !status.hasPin) {
+          setShowPinPrompt(true);
+        }
+      } catch (err) {
+        console.warn("[PIN-STATUS] fetch failed:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   const handleEditAvatar = async () => {
     if (!accessToken) {
@@ -143,6 +171,12 @@ export default function MyScreen() {
       labelKey: "my.menu.privacy",
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
+    },
+    {
+      icon: "lock",
+      labelKey: "my.menu.paymentPin",
+      descKey: "settings.paymentPin.subtitle",
+      route: "PaymentPin",
     },
   ];
 
@@ -279,6 +313,11 @@ export default function MyScreen() {
           <Text style={s.logoutText}>{t("my.menu.logout")}</Text>
         </TouchableOpacity>
       </View>
+
+      <PaymentPinPromptModal
+        visible={showPinPrompt}
+        onClose={() => setShowPinPrompt(false)}
+      />
     </SafeScrollView>
   );
 }

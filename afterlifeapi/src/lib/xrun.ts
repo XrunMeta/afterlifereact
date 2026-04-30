@@ -186,3 +186,75 @@ export async function lookupXrunWalletByEmail(
 
   return { found: false, reason: `xrun lookup ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
 }
+
+export interface PaymentPinStatus {
+  ok: boolean;
+  hasPin: boolean;
+  reason?: string;
+}
+
+export interface PaymentPinVerifyResult {
+  ok: boolean;
+  match: boolean;
+  hasPin: boolean;
+  reason?: string;
+}
+
+function gatewayHeaders(env: Bindings): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${env.XRUN_GATEWAY_TOKEN ?? ""}`,
+  };
+}
+
+export async function hasXrunPaymentPin(env: Bindings, member: number): Promise<PaymentPinStatus> {
+  if (!env.XRUN_GATEWAY_TOKEN) return { ok: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  let res: Response;
+  try {
+    res = await fetch(
+      `${env.XRUN_API_URL}/oth-path?member=${encodeURIComponent(String(member))}`,
+      { method: "GET", headers: gatewayHeaders(env) },
+    );
+  } catch (err) {
+    return { ok: false, hasPin: false, reason: `network: ${(err as Error).message}` };
+  }
+  let json: { status?: string; code?: number; message?: string; data?: Array<{ hasPin?: boolean }> | null };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { ok: false, hasPin: false, reason: `non-json (${res.status})` };
+  }
+  if (res.ok && json?.status === "success") {
+    return { ok: true, hasPin: !!json.data?.[0]?.hasPin };
+  }
+  return { ok: false, hasPin: false, reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
+}
+
+export async function verifyXrunPaymentPin(
+  env: Bindings,
+  member: number,
+  pin: string,
+): Promise<PaymentPinVerifyResult> {
+  if (!env.XRUN_GATEWAY_TOKEN) return { ok: false, match: false, hasPin: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  let res: Response;
+  try {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: gatewayHeaders(env),
+      body: JSON.stringify({ member, pin }),
+    });
+  } catch (err) {
+    return { ok: false, match: false, hasPin: false, reason: `network: ${(err as Error).message}` };
+  }
+  let json: { status?: string; code?: number; message?: string; data?: Array<{ match?: boolean; hasPin?: boolean }> | null };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { ok: false, match: false, hasPin: false, reason: `non-json (${res.status})` };
+  }
+  if (res.ok && json?.status === "success") {
+    const first = json.data?.[0] ?? {};
+    return { ok: true, match: !!first.match, hasPin: !!first.hasPin };
+  }
+  return { ok: false, match: false, hasPin: false, reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
+}
