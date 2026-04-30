@@ -107,8 +107,12 @@ export default function EditProfileScreen() {
       Alert.alert("알림", "이름은 비워둘 수 없습니다.");
       return;
     }
-    if (ageRaw !== "" && (!Number.isInteger(ageNum) || ageNum! < 0 || ageNum! > 150)) {
-      Alert.alert("알림", "나이는 0~150 사이의 숫자여야 합니다.");
+    if (ageRaw !== "" && (!Number.isInteger(ageNum) || ageNum! < 13 || ageNum! > 120)) {
+      Alert.alert("알림", "나이는 13~120 사이의 숫자여야 합니다.");
+      return;
+    }
+    if (trimmedPhone !== "" && trimmedPhone.length < 4) {
+      Alert.alert("알림", "전화번호는 4자 이상 입력하거나 비워두세요.");
       return;
     }
 
@@ -143,7 +147,16 @@ export default function EditProfileScreen() {
     } catch (err) {
       console.warn("[EditProfile] save failed:", err);
       let msg = "저장 중 오류가 발생했습니다.";
-      if (err instanceof AuthApiError) msg = err.message;
+      if (err instanceof AuthApiError) {
+        msg = err.message;
+
+        if (err.code === "VALIDATION_FAILED" && Array.isArray(err.details)) {
+          const issues = err.details as Array<{ path?: unknown[]; message?: string }>;
+          const first = issues[0];
+          const fieldPath = Array.isArray(first?.path) ? first.path.join(".") : "";
+          if (fieldPath) msg = `${msg}\n(필드: ${fieldPath} — ${first?.message ?? ""})`;
+        }
+      }
       Alert.alert("저장 실패", msg);
     } finally {
       setSaving(false);
