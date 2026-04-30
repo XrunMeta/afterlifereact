@@ -5,7 +5,6 @@ import {
   v_472849,
   v_4623af,
   v_79c4f2,
-  v_cf9c33,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
@@ -51,7 +50,6 @@ export default function v_e2b396() {
   const v_d74a81 = v_b113dd?.phone ?? "";
   const v_c3eac4 = v_b113dd?.gender ?? null;
   const v_2694bd = v_b113dd?.age ?? null;
-  const v_bf6b43 = v_b113dd?.avatarUrl ?? null;
 
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
@@ -62,19 +60,6 @@ export default function v_e2b396() {
       />
 
       <View style={v_fd5f43.content}>
-        {}
-        <TouchableOpacity style={v_fd5f43.avatarRow}>
-          {v_bf6b43 ? (
-            <Image source={{ uri: v_bf6b43 }} style={v_fd5f43.avatarImage} />
-          ) : (
-            <View style={v_fd5f43.avatarPlaceholder}>
-              <Feather name="camera" size={28} color={v_1bfbd0.zinc400} />
-            </View>
-          )}
-          <Text style={v_fd5f43.avatarLabel}>{v_8d41d7("settings.editProfile.fields.avatar")}</Text>
-          <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
-        </TouchableOpacity>
-
         <View style={v_fd5f43.card}>
           {}
           <View style={v_fd5f43.fieldRow}>
@@ -156,27 +141,6 @@ const v_fd5f43 = v_472849.create({
     alignSelf: "center",
     width: "100%",
   },
-  avatarRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    paddingVertical: 16,
-    marginBottom: 24,
-  },
-  avatarPlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: v_1bfbd0.zinc100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarImage: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-  },
-  avatarLabel: { flex: 1, fontSize: 15, fontWeight: "500", color: v_1bfbd0.zinc700 },
   card: {
     backgroundColor: v_1bfbd0.white,
     borderWidth: 1,
