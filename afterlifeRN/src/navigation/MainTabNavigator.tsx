@@ -87,6 +87,9 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof Feather.glyphMap; label: s
 
 export default function MainTabNavigator() {
   const user = useAuthStore((s) => s.user);
+  const apiUser = useAuthStore((s) => s.apiUser);
+
+  const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
   const insets = useSafeAreaInsets();
   const navBarHeight = useAndroidNavigationBarHeight(0);
 
@@ -108,13 +111,10 @@ export default function MainTabNavigator() {
         tabBarIcon: ({ focused }) => {
           const config = TAB_CONFIG[route.name];
 
-          if (route.name === "MyTab" && user?.avatarUrl) {
+          if (route.name === "MyTab" && avatarUrl) {
             return (
               <View style={[styles.avatarWrap, focused && styles.avatarFocused]}>
-                <Image
-                  source={{ uri: user.avatarUrl }}
-                  style={styles.avatar}
-                />
+                <Image source={{ uri: avatarUrl }} style={styles.avatar} />
               </View>
             );
           }

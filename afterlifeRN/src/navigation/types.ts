@@ -11,7 +11,26 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Login: undefined;
-  Signup: undefined;
+  Signup: { google?: { idToken: string; email: string; name?: string | null } } | undefined;
+  EmailVerify: {
+    email: string;
+    password: string;
+    name: string;
+    phone?: string;
+    gender?: "male" | "female" | "other";
+    age?: number;
+    interests?: string[];
+    marketingConsent: boolean;
+
+    pushToken?: string;
+    platform?: "ios" | "android" | "web";
+    deviceId?: string;
+  };
+  XrunLogin: undefined;
+  XrunOtp: { email: string; pin: string };
+  XrunOnboarding:
+    | { email: string; pin: string; verificationCode: string; google?: undefined }
+    | { email: string; pin?: undefined; verificationCode?: undefined; google: { idToken: string } };
 };
 
 export type MainTabParamList = {

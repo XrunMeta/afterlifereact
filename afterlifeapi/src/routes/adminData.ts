@@ -3,21 +3,67 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
 import { requireAdmin } from "../middleware/auth";
+import { openAny, getKekProvider } from "../lib/ale";
+import { requestKekProvider } from "../lib/kekProvider";
 
 export const adminData = new Hono<AppEnv>();
 
 adminData.use("*", requireAdmin);
 
 adminData.get("/oth-path", async (c) => {
-  const rows = (
+  const rawRows = (
     await c.env.DB.prepare(
-      `SELECT id, name, email, gender, age, credits,
-              funnel_stage AS funnelStage, created_at AS createdAt
-         FROM users
-        ORDER BY (id < 100000) DESC, id DESC
+      `SELECT u.id, u.name, u.email, u.gender, u.age, u.age_enc, u.credits,
+              u.funnel_stage      AS funnelStage,
+              u.marketing_consent AS marketingConsent,
+              u.xrun_member_id    AS xrunMemberId,
+              u.xrun_guid         AS xrunGuid,
+              u.xrun_wallet       AS xrunWallet,
+              u.xrun_linked_at    AS xrunLinkedAt,
+              u.created_at        AS createdAt,
+              (SELECT GROUP_CONCAT(interest, ', ')
+                 FROM user_interests WHERE user_id = u.id) AS interests
+         FROM users u
+        ORDER BY (u.id < 100000) DESC, u.id DESC
         LIMIT 200`,
-    ).all()
+    ).all<{ id: number; age: number | null; age_enc: string | null; [k: string]: unknown }>()
   ).results;
+
+  const legacyProvider = getKekProvider(c.env.ALE_KEK);
+  let v3Provider: Awaited<ReturnType<typeof requestKekProvider>> | undefined;
+  try {
+    v3Provider = await requestKekProvider(c);
+  } catch {
+    v3Provider = undefined;
+  }
+
+  const adminId = c.get("adminUserId");
+  const rows = await Promise.all(
+    rawRows.map(async (row) => {
+      let age: number | null = row.age;
+      if (row.age_enc) {
+        try {
+          const dec = await openAny(row.age_enc, {
+            db: c.env.DB,
+            hkdfContext: "user.age",
+            legacyProvider,
+            v3Provider,
+            actor: { type: "admin", id: adminId ?? "unknown" },
+            auditSecret: c.env.AUDIT_SECRET,
+            lazyMigrateEnabled: false,
+            hint: { key: "users.age_enc", resourceId: row.id },
+          });
+          const n = Number(dec);
+          age = Number.isFinite(n) ? n : null;
+        } catch {
+
+        }
+      }
+      const { age_enc: _ignored, ...rest } = row;
+      void _ignored;
+      return { ...rest, age };
+    }),
+  );
   return c.json(rows);
 });
 

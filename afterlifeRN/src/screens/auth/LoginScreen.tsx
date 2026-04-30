@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -15,7 +16,18 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import Button from "../../components/ui/Button";
 import { useAuthStore } from "../../stores/authStore";
+import { AuthApiError, googleSignIn, googleCheck, getMe } from "../../api/auth";
+import { getOrCreateDeviceId } from "../../lib/deviceId";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
+
+const GOOGLE_WEB_CLIENT_ID =
+  "oth-client.googleusercontent.invalid";
+
+GoogleSignin.configure({
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  offlineAccess: false,
+});
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Login">;
@@ -28,12 +40,91 @@ export default function LoginScreen({ navigation }: Props) {
   const [autoLogin, setAutoLogin] = useState(false);
 
   const hydrate = useAuthStore((s) => s.hydrate);
+  const loginWithApi = useAuthStore((s) => s.loginWithApi);
+  const [loggingIn, setLoggingIn] = useState(false);
 
-  const handleLogin = () => {
-    void hydrate();
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      return;
+    }
+    setLoggingIn(true);
+    try {
+      const deviceId = await getOrCreateDeviceId();
+      const user = await loginWithApi({ email, password, deviceId });
+      console.log("[AUTH/login] user:", user);
+
+      await hydrate();
+    } catch (err) {
+      let msg = "로그인에 실패했습니다.";
+      if (err instanceof AuthApiError) {
+        if (err.code === "UNAUTHENTICATED") {
+          msg = "이메일 또는 비밀번호가 올바르지 않습니다.";
+        } else if (err.code === "ACCOUNT_LOCKED") {
+          msg = "비밀번호를 너무 많이 틀려 일시적으로 잠겼습니다. 잠시 후 다시 시도해주세요.";
+        } else {
+          msg = err.message;
+        }
+      }
+      Alert.alert("로그인 실패", msg);
+    } finally {
+      setLoggingIn(false);
+    }
   };
 
-  const handleSocialLogin = (provider: string) => {
+  const setApiAuth = useAuthStore((s) => s.setApiAuth);
+
+  const handleSocialLogin = async (provider: string) => {
+    if (provider === "xrun") {
+      navigation.navigate("XrunLogin");
+      return;
+    }
+    if (provider === "google") {
+      try {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        try {
+          await GoogleSignin.signOut();
+        } catch {
+
+        }
+        const userInfo = (await GoogleSignin.signIn()) as unknown as {
+          idToken?: string | null;
+          data?: { idToken?: string | null };
+        };
+        const idToken = userInfo?.idToken ?? userInfo?.data?.idToken;
+        if (!idToken) {
+          Alert.alert("오류", "Google 로그인 토큰을 받지 못했습니다.");
+          return;
+        }
+
+        const check = await googleCheck(idToken);
+
+        if (check.afterlifeExists) {
+
+          const deviceId = await getOrCreateDeviceId();
+          const res = await googleSignIn({ idToken, deviceId, platform: "android" });
+          const meRes = await getMe(res.accessToken);
+          await setApiAuth(res.accessToken, meRes.user);
+          console.log("[AUTH/google] user:", meRes.user);
+          await hydrate();
+        } else if (check.xrunExists) {
+
+          navigation.navigate("XrunOnboarding", { email: check.email, google: { idToken } });
+        } else {
+
+          navigation.navigate("Signup", { google: { idToken, email: check.email, name: check.name } });
+        }
+      } catch (err: any) {
+        if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
+        let msg = "Google 로그인 중 오류가 발생했습니다.";
+        if (err instanceof AuthApiError) msg = err.message;
+        else if (err?.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE)
+          msg = "Google Play 서비스가 필요합니다.";
+        else if (err?.message) msg = err.message;
+        Alert.alert("Google 로그인 실패", msg);
+      }
+      return;
+    }
     console.log("Social login:", provider);
   };
 
@@ -107,9 +198,10 @@ export default function LoginScreen({ navigation }: Props) {
 
           {}
           <Button
-            title="로그인"
+            title={loggingIn ? "로그인 중..." : "로그인"}
             onPress={handleLogin}
             variant="primary"
+            disabled={loggingIn}
             style={{ marginTop: SIZES.medium }}
           />
 
@@ -131,8 +223,8 @@ export default function LoginScreen({ navigation }: Props) {
 
           {}
           <Button
-            title="Apple로 계속하기"
-            onPress={() => handleSocialLogin("apple")}
+            title="Xrun으로 계속하기"
+            onPress={() => handleSocialLogin("xrun")}
             variant="secondary"
             size="md"
             leftIcon={<Feather name="smartphone" size={18} color={COLORS.zinc900} />}
