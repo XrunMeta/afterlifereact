@@ -1,37 +1,25 @@
-import v_a3453e, { v_df9f57, v_5ab095 } from "bapkr";
+import v_a3453e, { v_df9f57 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
   v_472849,
   v_4623af,
   v_cf9c33,
-  v_aa7413,
-  v_09d0e5,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
-import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
+import type { v_e57140 } from "../../navigation/types";
 
 const v_b9d568 = 1;
-
-const settingsItems: Array<{
-  icon: keyof typeof v_dec439.glyphMap;
-  label: string;
-  description: string;
-}> = [
-  { icon: "bookmark", label: "저장됨", description: "저장된 페르소나 확인" },
-  { icon: "users", label: "지인관리", description: "지인 페르소나 관리" },
-  { icon: "user", label: "개인 정보 관리", description: "이메일 및 연동된 SNS 계정 관리" },
-  { icon: "bell", label: "알림 설정", description: "업데이트 및 페르소나 메시지 알림" },
-  { icon: "shield", label: "개인정보 및 공개 범위", description: "내 콘텐츠 공개 범위 설정" },
-];
 
 const v_cca523 = [
   { label: "페르소나 생성", date: "2024.03.25 14:32", amount: -500 },
@@ -39,12 +27,15 @@ const v_cca523 = [
   { label: "코인 충전", date: "2024.03.23 10:20", amount: 10000 },
 ];
 
+type MyNav = v_390fcc<v_e57140>;
+
 export default function v_ed02a5() {
+  const v_c65f5d = v_ada615<MyNav>();
+  const { t: v_8d41d7 } = v_772971();
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
-  const [v_47abd6, v_e12360] = v_5ab095(false);
 
   const v_0c8987 = v_625c74?.id ?? v_b9d568;
   const v_48d264 = v_df9f57(
@@ -57,6 +48,50 @@ export default function v_ed02a5() {
       v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length,
     [v_0c8987, v_06f32b],
   );
+
+  const settingsItems: Array<{
+    icon: keyof typeof v_dec439.glyphMap;
+    labelKey: string;
+    descKey: string;
+    route: keyof v_e57140;
+  }> = [
+    {
+      icon: "bookmark",
+      labelKey: "my.menu.saved",
+      descKey: "settings.saved.title",
+      route: "SavedItems",
+    },
+    {
+      icon: "users",
+      labelKey: "my.menu.acquaintance",
+      descKey: "settings.acquaintance.title",
+      route: "AcquaintanceManagement",
+    },
+    {
+      icon: "user",
+      labelKey: "my.menu.editProfile",
+      descKey: "settings.editProfile.title",
+      route: "EditProfile",
+    },
+    {
+      icon: "bell",
+      labelKey: "my.menu.notifications",
+      descKey: "settings.notifications.title",
+      route: "NotificationSettings",
+    },
+    {
+      icon: "globe",
+      labelKey: "my.menu.language",
+      descKey: "settings.language.title",
+      route: "LanguageSettings",
+    },
+    {
+      icon: "shield",
+      labelKey: "my.menu.privacy",
+      descKey: "settings.privacy.title",
+      route: "PrivacySettings",
+    },
+  ];
 
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
@@ -85,7 +120,10 @@ export default function v_ed02a5() {
                 <Feather name="user" size={40} color={v_1bfbd0.zinc400} />
               </View>
             )}
-            <TouchableOpacity style={v_fd5f43.editAvatarBtn}>
+            <TouchableOpacity
+              style={v_fd5f43.editAvatarBtn}
+              onPress={() => v_c65f5d.navigate("EditProfile")}
+            >
               <Feather name="edit-2" size={14} color={v_1bfbd0.white} />
             </TouchableOpacity>
           </View>
@@ -118,10 +156,7 @@ export default function v_ed02a5() {
               <Feather name="dollar-sign" size={18} color={v_1bfbd0.zinc700} />
               <Text style={v_fd5f43.coinLabel}>보유 코인</Text>
             </View>
-            <TouchableOpacity
-              style={v_fd5f43.chargeBtn}
-              onPress={() => v_e12360(true)}
-            >
+            <TouchableOpacity style={v_fd5f43.chargeBtn}>
               <Feather name="plus" size={14} color={v_1bfbd0.white} />
               <Text style={v_fd5f43.chargeBtnText}>충전</Text>
             </TouchableOpacity>
@@ -153,35 +188,32 @@ export default function v_ed02a5() {
               </Text>
             </View>
           ))}
-          <TouchableOpacity
-            style={v_fd5f43.viewAllBtn}
-            onPress={() => v_e12360(true)}
-          >
+          <TouchableOpacity style={v_fd5f43.viewAllBtn}>
             <Text style={v_fd5f43.viewAllText}>전체 내역 보기</Text>
           </TouchableOpacity>
         </View>
 
         {}
         <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>설정</Text>
+          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.menu.editProfile") ? "설정" : "설정"}</Text>
         </View>
 
         <View style={v_fd5f43.settingsCard}>
           {v_7f0fd3.map((v_8c0b26, v_ebec57) => (
             <TouchableOpacity
-              key={v_ebec57}
+              key={v_8c0b26.route}
               style={[
                 v_fd5f43.settingsRow,
                 v_ebec57 < v_7f0fd3.length - 1 && v_fd5f43.settingsRowBorder,
               ]}
-              onPress={() => v_e12360(true)}
+              onPress={() => v_c65f5d.navigate(v_8c0b26.route)}
             >
               <View style={v_fd5f43.settingsIcon}>
                 <Feather name={v_8c0b26.icon} size={22} color={v_1bfbd0.zinc900} />
               </View>
               <View style={v_fd5f43.settingsInfo}>
-                <Text style={v_fd5f43.settingsLabel}>{v_8c0b26.label}</Text>
-                <Text style={v_fd5f43.settingsDesc}>{v_8c0b26.description}</Text>
+                <Text style={v_fd5f43.settingsLabel}>{v_8d41d7(v_8c0b26.labelKey)}</Text>
+                <Text style={v_fd5f43.settingsDesc}>{v_8d41d7(v_8c0b26.descKey)}</Text>
               </View>
               <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
             </TouchableOpacity>
@@ -191,37 +223,9 @@ export default function v_ed02a5() {
         {}
         <TouchableOpacity style={v_fd5f43.logoutBtn} onPress={() => void v_d7d5a2()}>
           <Feather name="log-out" size={16} color={v_1bfbd0.zinc600} />
-          <Text style={v_fd5f43.logoutText}>로그아웃</Text>
+          <Text style={v_fd5f43.logoutText}>{v_8d41d7("my.menu.logout")}</Text>
         </TouchableOpacity>
       </View>
-
-      {}
-      <Modal visible={v_47abd6} transparent animationType="fade">
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_e12360(false)}>
-          <Pressable style={v_fd5f43.comingSoonBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <TouchableOpacity
-              style={v_fd5f43.closeBtn}
-              onPress={() => v_e12360(false)}
-            >
-              <Feather name="x" size={18} color={v_1bfbd0.zinc400} />
-            </TouchableOpacity>
-
-            <View style={v_fd5f43.comingSoonIcon}>
-              <Text style={{ fontSize: 32 }}>🚀</Text>
-            </View>
-            <Text style={v_fd5f43.comingSoonTitle}>준비 중이에요</Text>
-            <Text style={v_fd5f43.comingSoonDesc}>
-              이 기능은 현재 개발 중입니다.{"\n"}곧 만나볼 수 있어요!
-            </Text>
-            <Button
-              title="확인"
-              variant="primary"
-              onPress={() => v_e12360(false)}
-              style={v_fd5f43.comingSoonBtn}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
     </SafeScrollView>
   );
 }
@@ -381,38 +385,4 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 8,
   },
   logoutText: { fontSize: 14, color: v_1bfbd0.zinc600 },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  comingSoonBox: {
-    backgroundColor: v_1bfbd0.white,
-    borderRadius: 24,
-    padding: 32,
-    maxWidth: 340,
-    width: "100%",
-    alignItems: "center",
-  },
-  closeBtn: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    padding: 8,
-  },
-  comingSoonIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: v_1bfbd0.zinc100,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  comingSoonTitle: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 10 },
-  comingSoonDesc: { fontSize: 14, color: v_1bfbd0.zinc600, textAlign: "center", lineHeight: 20, marginBottom: 24 },
-  comingSoonBtn: { width: "100%", borderRadius: v_8b0c90.full },
 });

@@ -1,0 +1,62 @@
+{
+  "common": {
+    "back": "Kembali",
+    "save": "Simpan",
+    "cancel": "Batal"
+  },
+  "my": {
+    "title": "Halaman Saya",
+    "menu": {
+      "editProfile": "Kelola Profil",
+      "notifications": "Pengaturan Notifikasi",
+      "privacy": "Privasi dan Visibilitas",
+      "saved": "Tersimpan",
+      "acquaintance": "Kelola Kenalan",
+      "language": "Pengaturan Bahasa",
+      "logout": "Keluar"
+    }
+  },
+  "settings": {
+    "editProfile": {
+      "title": "Kelola Profil",
+      "fields": {
+        "avatar": "Gambar Profil",
+        "name": "Nama",
+        "phone": "Nomor Telepon",
+        "gender": "Jenis Kelamin",
+        "age": "Usia",
+        "interests": "Minat"
+      }
+    },
+    "notifications": {
+      "title": "Pengaturan Notifikasi",
+      "push": "Notifikasi Push",
+      "comment": "Notifikasi Komentar",
+      "like": "Notifikasi Suka",
+      "marketing": "Notifikasi Pemasaran"
+    },
+    "privacy": {
+      "title": "Privasi dan Visibilitas",
+      "profileVisibility": "Visibilitas Profil",
+      "blockList": "Daftar Blokir",
+      "dataDownload": "Unduh Data Saya",
+      "deleteAccount": "Hapus Akun"
+    },
+    "saved": {
+      "title": "Tersimpan",
+      "empty": "Tidak ada item tersimpan"
+    },
+    "acquaintance": {
+      "title": "Kelola Kenalan",
+      "empty": "Tidak ada kenalan"
+    },
+    "language": {
+      "title": "Pengaturan Bahasa",
+      "ko": "한국어",
+      "ja": "日本語",
+      "en": "English",
+      "zh-CN": "简体中文",
+      "id": "Bahasa Indonesia"
+    }
+  }
+}
