@@ -6,7 +6,7 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_3094a2, v_472849, v_cf9c33, v_326be8 } from "rcmrninabrnb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
-import type { v_97a9a8, v_2d88fc, v_2b51a5 } from "./types";
+import type { v_97a9a8, v_2d88fc, v_2b51a5, v_e57140 } from "./types";
 import { v_1bfbd0 } from "../components/constants";
 import { v_1ed7d9 } from "../stores/authStore";
 
@@ -25,9 +25,16 @@ import v_d19b01 from "../screens/clone-creation/Step8CreateShortsScreen";
 import v_14b43e from "../screens/following/FollowingScreen";
 import v_87eb38 from "../screens/shorts/ShortsTabScreen";
 import v_ed02a5 from "../screens/my/MyScreen";
+import v_e2b396 from "../screens/my/EditProfileScreen";
+import v_4036d1 from "../screens/my/NotificationSettingsScreen";
+import v_9232cf from "../screens/my/PrivacySettingsScreen";
+import v_e797c6 from "../screens/my/SavedItemsScreen";
+import v_99450d from "../screens/my/AcquaintanceManagementScreen";
+import v_d3b6fb from "../screens/my/LanguageSettingsScreen";
 
 const v_3ea452 = v_709be7<v_2d88fc>();
 const v_be1c7b = v_709be7<v_2b51a5>();
+const v_3ce8b8 = v_709be7<v_e57140>();
 
 function v_aedede() {
   return (
@@ -51,6 +58,20 @@ function v_31fee5() {
       <CreateStack.Screen name="Step7" component={v_448ad1} />
       <CreateStack.Screen name="Step8" component={v_d19b01} />
     </CreateStack.Navigator>
+  );
+}
+
+function v_d9c5dd() {
+  return (
+    <MyStack.Navigator screenOptions={{ headerShown: false }}>
+      <MyStack.Screen name="MyHome" component={v_ed02a5} />
+      <MyStack.Screen name="EditProfile" component={v_e2b396} />
+      <MyStack.Screen name="NotificationSettings" component={v_4036d1} />
+      <MyStack.Screen name="PrivacySettings" component={v_9232cf} />
+      <MyStack.Screen name="SavedItems" component={v_e797c6} />
+      <MyStack.Screen name="AcquaintanceManagement" component={v_99450d} />
+      <MyStack.Screen name="LanguageSettings" component={v_d3b6fb} />
+    </MyStack.Navigator>
   );
 }
 
@@ -151,7 +172,7 @@ export default function v_19ba0e() {
       {
 }
       <Tab.Screen name="ShortsTab" component={v_14b43e} />
-      <Tab.Screen name="MyTab" component={v_ed02a5} />
+      <Tab.Screen name="MyTab" component={v_d9c5dd} />
     </Tab.Navigator>
   );
 }

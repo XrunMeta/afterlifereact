@@ -1,3 +1,4 @@
+import './src/i18n';
 import { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_ac28fd } from "ixigazcpvfldbecwtbvavtbi";
 import { v_94c936 } from "./src/navigation/navigationRef";

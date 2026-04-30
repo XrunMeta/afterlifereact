@@ -1,5 +1,5 @@
-import v_a3453e, { v_5ab095 } from "bapkr";
-import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392 } from "rcmrninabrnb";
+import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
+import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392, v_79c4f2 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
@@ -9,9 +9,9 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_84e2fc from "../../components/ui/InterestChip";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1bfbd0, v_9b1a04 } from "../../components/constants";
+import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
-import { v_f3a3a5, v_84a859, v_7ef860 } from "../../api/auth";
+import { v_f3a3a5, v_97ea8d, v_84a859, v_7ef860 } from "../../api/auth";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
@@ -19,7 +19,11 @@ import { v_ea1c99 } from "../../lib/deviceId";
 type Props = v_432191<v_384e19, "XrunOnboarding">;
 
 export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
-  const { email: v_e0c7e8, pin: v_6bee94, verificationCode: v_8e7cda } = v_c7daf6.params;
+  const { email: v_e0c7e8 } = v_c7daf6.params;
+  const v_6bee94 = "pin" in v_c7daf6.params ? v_c7daf6.params.pin : undefined;
+  const v_8e7cda =
+    "verificationCode" in v_c7daf6.params ? v_c7daf6.params.verificationCode : undefined;
+  const v_a8d185 = "google" in v_c7daf6.params ? v_c7daf6.params.google : undefined;
   const [v_976e06, v_770327] = v_5ab095<string[]>([]);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
@@ -29,8 +33,19 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_929b58, v_94f796] = v_5ab095<string | null>(null);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
+  const [v_729796, v_fd7d1f] = v_5ab095<1 | 2>(1);
+  const [v_aa596d, v_f07cc4] = v_5ab095("");
+  const [v_600d5b, v_ec979d] = v_5ab095(0);
+  const v_756f7e = v_e662ae<v_79c4f2>(null);
+
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
+
+  v_c4deb2(() => {
+    if (v_729796 !== 2 || v_600d5b <= 0) return;
+    const v_8d41d7 = setInterval(() => v_ec979d((v_fd5f43) => (v_fd5f43 > 0 ? v_fd5f43 - 1 : 0)), 1000);
+    return () => clearInterval(v_8d41d7);
+  }, [v_729796, v_600d5b]);
 
   const v_d82a00 = (v_e4601c) => {
     v_770327((v_ba2215) =>
@@ -68,9 +83,51 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
   };
 
-  const v_44851c = async () => {
+  const v_b54880 = async () => {
     if (!v_5c764d) {
       v_03e392.alert("알림", "이용약관에 동의해주세요.");
+      return;
+    }
+    v_ee9ec1(true);
+    try {
+      await v_97ea8d(v_e0c7e8);
+      v_fd7d1f(2);
+      v_ec979d(60);
+      setTimeout(() => v_756f7e.current?.focus(), 200);
+    } catch (v_49263d) {
+      const v_badeaf = v_49263d instanceof v_84a859
+        ? v_49263d.code === "OTP_COOLDOWN" ? "잠시 후 다시 시도해주세요. (1분 쿨다운)" : v_49263d.message
+        : "코드 발송에 실패했습니다.";
+      v_03e392.alert("오류", v_badeaf);
+    } finally {
+      v_ee9ec1(false);
+    }
+  };
+
+  const v_cf9840 = async () => {
+    if (v_600d5b > 0) return;
+    try {
+      await v_97ea8d(v_e0c7e8);
+      v_ec979d(60);
+      v_03e392.alert("재발송", "인증 코드를 다시 보냈습니다.");
+    } catch (v_49263d) {
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "재발송 실패";
+      v_03e392.alert("오류", v_badeaf);
+    }
+  };
+
+  const v_44851c = async () => {
+    if (v_a8d185 && v_729796 === 1) {
+
+      await v_b54880();
+      return;
+    }
+    if (!v_5c764d) {
+      v_03e392.alert("알림", "이용약관에 동의해주세요.");
+      return;
+    }
+    if (v_a8d185 && v_aa596d.length !== 6) {
+      v_03e392.alert("알림", "6자리 인증 코드를 입력해주세요.");
       return;
     }
     v_ee9ec1(true);
@@ -78,7 +135,8 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       const v_8f00b9 = await v_f3a3a5({
         email: v_e0c7e8,
         pin: v_6bee94,
-        verificationCode: v_8e7cda,
+        verificationCode: v_a8d185 ? v_aa596d : v_8e7cda,
+        googleIdToken: v_a8d185?.idToken,
         interests: v_976e06.length > 0 ? v_976e06 : undefined,
         marketingConsent: v_8c98c4,
         deviceId: v_929b58 ?? undefined,
@@ -104,6 +162,47 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
   };
 
+  if (v_a8d185 && v_729796 === 2) {
+    return (
+      <SafeView backgroundColor={v_1bfbd0.zinc50}>
+        <PageHeader title="이메일 인증" showBackButton onBackPress={() => v_fd7d1f(1)} />
+        <SafeScrollView contentContainerStyle={v_d81136.content} autoAdjustKeyboardPadding showBottomBackground={false}>
+          <View style={v_d81136.container}>
+            <Text style={v_d81136.title}>이메일로 코드를 보냈어요</Text>
+            <Text style={v_d81136.subtitle}>
+              <Text style={v_d81136.email}>{v_e0c7e8}</Text>
+              {"\n"}메일함의 6자리 인증 코드를 입력해주세요. (5분간 유효)
+            </Text>
+            <TextInput
+              ref={v_756f7e}
+              value={v_aa596d}
+              onChangeText={(v_8d41d7) => v_f07cc4(v_8d41d7.replace(/\D/g, "").slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder="000000"
+              placeholderTextColor={v_1bfbd0.zinc300}
+              style={v_d81136.codeInput}
+              autoFocus
+            />
+            <Button
+              title={v_cb66b4 ? "가입 처리 중..." : "가입 완료"}
+              onPress={v_44851c}
+              disabled={v_cb66b4 || v_aa596d.length !== 6}
+            />
+            <View style={v_d81136.resendRow}>
+              <Text style={v_d81136.resendText}>코드를 못 받으셨나요?</Text>
+              <TouchableOpacity onPress={v_cf9840} disabled={v_600d5b > 0}>
+                <Text style={[v_d81136.resendLink, v_600d5b > 0 && v_d81136.resendLinkDisabled]}>
+                  {v_600d5b > 0 ? `재발송 (${v_600d5b}s)` : "재발송"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeScrollView>
+      </SafeView>
+    );
+  }
+
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
       <PageHeader title="가입 마지막 단계" showBackButton onBackPress={() => v_c65f5d.goBack()} />
@@ -111,7 +210,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         <View style={v_d81136.container}>
           <Text style={v_d81136.title}>관심사와 약관 확인</Text>
           <Text style={v_d81136.subtitle}>
-            xrun 인증이 완료됐어요. 마지막으로 관심사와 약관을 확인해주세요.
+            {v_a8d185 ? "Google 인증이 완료됐어요." : "xrun 인증이 완료됐어요."} 마지막으로 관심사와 약관을 확인해주세요.
           </Text>
 
           {}
@@ -151,7 +250,13 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           </View>
 
           <Button
-            title={v_cb66b4 ? "가입 처리 중..." : "가입 완료"}
+            title={
+              v_cb66b4
+                ? "처리 중..."
+                : v_a8d185
+                  ? "다음 (이메일 인증)"
+                  : "가입 완료"
+            }
             onPress={v_44851c}
             disabled={v_cb66b4 || !v_5c764d}
           />
@@ -186,4 +291,22 @@ const v_d81136 = v_472849.create({
   termText: { flex: 1, fontSize: 13, color: v_1bfbd0.zinc600, lineHeight: 20 },
   termBold: { fontWeight: "600", color: v_1bfbd0.zinc900 },
   termOptional: { color: v_1bfbd0.zinc400 },
+  email: { fontWeight: "600", color: v_1bfbd0.zinc900 },
+  codeInput: {
+    height: 64,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+    borderRadius: v_8b0c90.md,
+    backgroundColor: v_1bfbd0.white,
+    textAlign: "center",
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: 12,
+    color: v_1bfbd0.zinc900,
+    paddingHorizontal: v_9b1a04.large,
+  },
+  resendRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6, marginTop: v_9b1a04.medium },
+  resendText: { fontSize: 14, color: v_1bfbd0.zinc500 },
+  resendLink: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  resendLinkDisabled: { color: v_1bfbd0.zinc400 },
 });

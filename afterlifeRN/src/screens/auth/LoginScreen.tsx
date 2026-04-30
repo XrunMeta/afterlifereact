@@ -16,7 +16,7 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_e775af from "../../components/ui/TextField";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_84a859, v_dd2158, v_7ef860 } from "../../api/auth";
+import { v_84a859, v_dd2158, v_5c746e, v_7ef860 } from "../../api/auth";
 import { v_ea1c99 } from "../../lib/deviceId";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -82,7 +82,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     if (v_e38ca2 === "google") {
       try {
         await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
-
         try {
           await v_4eac84.signOut();
         } catch {
@@ -97,12 +96,24 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           v_03e392.alert("오류", "Google 로그인 토큰을 받지 못했습니다.");
           return;
         }
-        const v_929b58 = await v_ea1c99();
-        const v_8f00b9 = await v_dd2158({ idToken: v_b50834, deviceId: v_929b58, platform: "android" });
-        const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
-        await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user);
-        console.log("[AUTH/google] user:", v_9ec4c0.user);
-        await v_232d52();
+
+        const v_de130a = await v_5c746e(v_b50834);
+
+        if (v_de130a.afterlifeExists) {
+
+          const v_929b58 = await v_ea1c99();
+          const v_8f00b9 = await v_dd2158({ idToken: v_b50834, deviceId: v_929b58, platform: "android" });
+          const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
+          await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user);
+          console.log("[AUTH/google] user:", v_9ec4c0.user);
+          await v_232d52();
+        } else if (v_de130a.xrunExists) {
+
+          v_c65f5d.navigate("XrunOnboarding", { email: v_de130a.email, google: { idToken: v_b50834 } });
+        } else {
+
+          v_c65f5d.navigate("Signup", { google: { idToken: v_b50834, email: v_de130a.email, name: v_de130a.name } });
+        }
       } catch (v_49263d) {
         if (v_49263d?.code === v_8d3720.SIGN_IN_CANCELLED) return;
         let v_badeaf = "Google 로그인 중 오류가 발생했습니다.";
@@ -217,16 +228,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             variant="secondary"
             size="md"
             leftIcon={<Feather name="smartphone" size={18} color={v_1bfbd0.zinc900} />}
-          />
-
-          {}
-          <Button
-            title="Telegram으로 계속하기"
-            onPress={() => v_78c15c("telegram")}
-            size="md"
-            backgroundColor={v_1bfbd0.telegram}
-            textColor={v_1bfbd0.white}
-            leftIcon={<Feather name="send" size={18} color={v_1bfbd0.white} />}
           />
 
           {}

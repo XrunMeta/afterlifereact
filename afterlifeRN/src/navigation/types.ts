@@ -11,7 +11,7 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Login: undefined;
-  Signup: undefined;
+  Signup: { google?: { idToken: string; email: string; name?: string | null } } | undefined;
   EmailVerify: {
     email: string;
     password: string;
@@ -28,7 +28,9 @@ export type AuthStackParamList = {
   };
   XrunLogin: undefined;
   XrunOtp: { email: string; pin: string };
-  XrunOnboarding: { email: string; pin: string; verificationCode: string };
+  XrunOnboarding:
+    | { email: string; pin: string; verificationCode: string; google?: undefined }
+    | { email: string; pin?: undefined; verificationCode?: undefined; google: { idToken: string } };
 };
 
 export type MainTabParamList = {
@@ -60,4 +62,14 @@ export type CreateStackParamList = {
   Step6: undefined;
   Step7: undefined;
   Step8: { cloneId: number };
+};
+
+export type MyStackParamList = {
+  MyHome: undefined;
+  EditProfile: undefined;
+  NotificationSettings: undefined;
+  PrivacySettings: undefined;
+  SavedItems: undefined;
+  AcquaintanceManagement: undefined;
+  LanguageSettings: undefined;
 };
