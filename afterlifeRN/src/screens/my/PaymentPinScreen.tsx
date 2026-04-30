@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Linking,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -15,8 +16,9 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
-import { verifyPaymentPin } from "../../api/payments";
+import { verifyPaymentPin, getPaymentPinStatus } from "../../api/payments";
 import { AuthApiError } from "../../api/auth";
+import PaymentPinPromptModal from "../../components/my/PaymentPinPromptModal";
 
 const PIN_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
@@ -32,6 +34,33 @@ export default function PaymentPinScreen() {
   const [attemptsLeft, setAttemptsLeft] = useState(MAX_ATTEMPTS);
   const [locked, setLocked] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [showSetupPrompt, setShowSetupPrompt] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!accessToken) return;
+      try {
+        const status = await getPaymentPinStatus(accessToken);
+        console.log("[PIN] mount status:", status);
+        if (cancelled) return;
+        if (!status.linked) {
+          Alert.alert("알림", "xrun 회원 매핑이 안 되어 있습니다.");
+          navigation.goBack();
+          return;
+        }
+        if (!status.hasPin) {
+          setShowSetupPrompt(true);
+        }
+      } catch (err) {
+        console.warn("[PIN] mount status error:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+
+  }, [accessToken]);
 
   const handlePress = (digit: string) => {
     if (locked) return;
@@ -103,12 +132,20 @@ export default function PaymentPinScreen() {
 
   const handleOpenXrun = async () => {
     console.log("[PIN] open xrun:", XRUN_DEEPLINK);
-    const can = await Linking.canOpenURL(XRUN_DEEPLINK);
-    console.log("[PIN] canOpenURL:", can);
-    if (can) {
+
+    try {
       await Linking.openURL(XRUN_DEEPLINK);
-    } else {
-      Alert.alert("알림", "xrun 앱이 설치되어 있지 않습니다.");
+    } catch (err) {
+      console.warn("[PIN] openURL failed:", err);
+      const storeUrl =
+        Platform.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try {
+        await Linking.openURL(storeUrl);
+      } catch {
+        Alert.alert("알림", "xrun 앱이 설치되어 있지 않습니다.");
+      }
     }
   };
 
@@ -194,6 +231,14 @@ export default function PaymentPinScreen() {
           </>
         )}
       </View>
+
+      <PaymentPinPromptModal
+        visible={showSetupPrompt}
+        onClose={() => {
+          setShowSetupPrompt(false);
+          navigation.goBack();
+        }}
+      />
     </SafeScrollView>
   );
 }

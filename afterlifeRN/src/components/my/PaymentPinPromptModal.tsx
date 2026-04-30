@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Linking,
   Pressable,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -45,15 +46,24 @@ interface Props {
 
 export default function PaymentPinPromptModal({ visible, onClose }: Props) {
   const handleOpenXrun = async () => {
+
     try {
-      const can = await Linking.canOpenURL(XRUN_DEEPLINK);
-      if (can) {
-        await Linking.openURL(XRUN_DEEPLINK);
-      }
+      await Linking.openURL(XRUN_DEEPLINK);
+      onClose();
     } catch (err) {
       console.warn("[PIN-PROMPT] open xrun failed:", err);
+
+      const storeUrl =
+        Platform.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try {
+        await Linking.openURL(storeUrl);
+      } catch {
+
+      }
+      onClose();
     }
-    onClose();
   };
 
   const handleDismiss = async () => {
