@@ -13,11 +13,18 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
+import * as v_fba5a0 from "hfxxehldoiokdq";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
+import { v_1ed7d9 } from "../../stores/authStore";
 
 const v_b6c376 = "afterlife_payment_pin_dismissed_until";
 const v_1a5fdc = 24 * 60 * 60 * 1000;
-const v_23211e = "xrun://";
+const v_6847f9 = "xrun://";
+
+function v_6fa927(v_e0c7e8): string {
+  if (!v_e0c7e8) return v_6847f9;
+  return `${v_6847f9}?email=${encodeURIComponent(v_e0c7e8)}&from=afterlife`;
+}
 
 export async function v_b1f897(): Promise<boolean> {
   try {
@@ -45,10 +52,22 @@ interface Props {
 }
 
 export default function v_3cb56d({ visible: v_cf55be, onClose: v_0890f8 }: Props) {
+  const v_e0c7e8 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
+
   const v_44c6f8 = async () => {
 
+    if (v_e0c7e8) {
+      try {
+        await v_fba5a0.setStringAsync(v_e0c7e8);
+        console.log("[PIN-PROMPT] email copied to clipboard");
+      } catch (v_49263d) {
+        console.warn("[PIN-PROMPT] clipboard set failed:", v_49263d);
+      }
+    }
+
+    const v_2208dc = v_6fa927(v_e0c7e8);
     try {
-      await v_f2c756.openURL(v_23211e);
+      await v_f2c756.openURL(v_2208dc);
       v_0890f8();
     } catch (v_49263d) {
       console.warn("[PIN-PROMPT] open xrun failed:", v_49263d);

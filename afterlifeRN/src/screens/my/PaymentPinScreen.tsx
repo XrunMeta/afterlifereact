@@ -19,15 +19,17 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_5b2249, v_9b8cb3 } from "../../api/payments";
 import { v_84a859 } from "../../api/auth";
 import v_3cb56d from "../../components/my/PaymentPinPromptModal";
+import * as v_fba5a0 from "hfxxehldoiokdq";
 
 const v_50256d = 6;
 const v_138a00 = 5;
-const v_23211e = "xrun://";
+const v_6847f9 = "xrun://";
 
 export default function v_da4f91() {
   const v_c65f5d = v_ada615();
   const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
 
   const [v_6bee94, v_240fbf] = v_5ab095("");
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
@@ -131,10 +133,21 @@ export default function v_da4f91() {
   };
 
   const v_44c6f8 = async () => {
-    console.log("[PIN] open xrun:", v_23211e);
 
+    if (v_f4fb5e) {
+      try {
+        await v_fba5a0.setStringAsync(v_f4fb5e);
+        console.log("[PIN] email copied to clipboard");
+      } catch (v_49263d) {
+        console.warn("[PIN] clipboard set failed:", v_49263d);
+      }
+    }
+    const v_2208dc = v_f4fb5e
+      ? `${v_6847f9}?email=${encodeURIComponent(v_f4fb5e)}&from=afterlife`
+      : v_6847f9;
+    console.log("[PIN] open xrun:", v_2208dc);
     try {
-      await v_f2c756.openURL(v_23211e);
+      await v_f2c756.openURL(v_2208dc);
     } catch (v_49263d) {
       console.warn("[PIN] openURL failed:", v_49263d);
       const v_b71a74 =
