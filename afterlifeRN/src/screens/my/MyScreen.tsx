@@ -1,15 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
-} from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useTranslation } from "react-i18next";
   Modal,
   Pressable,
   Alert,
@@ -17,6 +12,8 @@ import { useTranslation } from "react-i18next";
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
@@ -181,14 +178,6 @@ export default function MyScreen() {
               onPress={() => navigation.navigate("EditProfile")}
             >
               <Feather name="edit-2" size={14} color={COLORS.white} />
-              onPress={handleEditAvatar}
-              disabled={uploadingAvatar}
-            >
-              {uploadingAvatar ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <Feather name="edit-2" size={14} color={COLORS.white} />
-              )}
             </TouchableOpacity>
           </View>
 

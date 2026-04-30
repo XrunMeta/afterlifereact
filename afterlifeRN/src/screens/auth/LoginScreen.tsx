@@ -231,16 +231,6 @@ export default function LoginScreen({ navigation }: Props) {
           />
 
           {}
-          <Button
-            title="Telegram으로 계속하기"
-            onPress={() => handleSocialLogin("telegram")}
-            size="md"
-            backgroundColor={COLORS.telegram}
-            textColor={COLORS.white}
-            leftIcon={<Feather name="send" size={18} color={COLORS.white} />}
-          />
-
-          {}
           <View style={styles.signupRow}>
             <Text style={styles.signupText}>계정이 없으신가요? </Text>
             <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
