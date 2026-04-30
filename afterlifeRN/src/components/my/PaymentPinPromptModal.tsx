@@ -9,6 +9,7 @@ import {
   v_472849,
   v_f2c756,
   v_09d0e5,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
@@ -45,15 +46,24 @@ interface Props {
 
 export default function v_3cb56d({ visible: v_cf55be, onClose: v_0890f8 }: Props) {
   const v_44c6f8 = async () => {
+
     try {
-      const v_29eaf2 = await v_f2c756.canOpenURL(v_23211e);
-      if (v_29eaf2) {
-        await v_f2c756.openURL(v_23211e);
-      }
+      await v_f2c756.openURL(v_23211e);
+      v_0890f8();
     } catch (v_49263d) {
       console.warn("[PIN-PROMPT] open xrun failed:", v_49263d);
+
+      const v_b71a74 =
+        v_326be8.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try {
+        await v_f2c756.openURL(v_b71a74);
+      } catch {
+
+      }
+      v_0890f8();
     }
-    v_0890f8();
   };
 
   const v_e1f1e1 = async () => {
