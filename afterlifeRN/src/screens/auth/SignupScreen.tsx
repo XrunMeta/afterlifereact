@@ -20,12 +20,15 @@ import InterestChip from "../../components/ui/InterestChip";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
-import { requestEmailCode, AuthApiError } from "../../api/auth";
+import { requestEmailCode, signup, getMe, AuthApiError } from "../../api/auth";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
+import type { RouteProp } from "@react-navigation/native";
+import { useAuthStore } from "../../stores/authStore";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
+  route: RouteProp<AuthStackParamList, "Signup">;
 };
 
 const GENDER_OPTIONS = [
@@ -36,9 +39,13 @@ const GENDER_OPTIONS = [
 
 const INTEREST_OPTIONS = ALL_INTERESTS;
 
-export default function SignupScreen({ navigation }: Props) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+export default function SignupScreen({ navigation, route }: Props) {
+  const google = route.params?.google;
+  const setApiAuth = useAuthStore((s) => s.setApiAuth);
+  const hydrate = useAuthStore((s) => s.hydrate);
+
+  const [name, setName] = useState(google?.name ?? "");
+  const [email, setEmail] = useState(google?.email ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
@@ -136,6 +143,28 @@ export default function SignupScreen({ navigation }: Props) {
 
     setSubmitting(true);
     try {
+      if (google) {
+
+        const res = await signup({
+          email,
+          password,
+          name,
+          phone,
+          gender: gender || undefined,
+          age: ageNum,
+          interests: selectedInterests.length > 0 ? selectedInterests : undefined,
+          marketingConsent: agreeMarketing,
+          deviceId: deviceId ?? undefined,
+          pushToken: pushToken ?? undefined,
+          platform: pushPlatform ?? undefined,
+          googleIdToken: google.idToken,
+        });
+        const meRes = await getMe(res.accessToken);
+        await setApiAuth(res.accessToken, meRes.user);
+        console.log("[AUTH/google.signup] user:", meRes.user);
+        await hydrate();
+        return;
+      }
       await requestEmailCode(email);
       navigation.navigate("EmailVerify", {
         email,
@@ -196,9 +225,10 @@ export default function SignupScreen({ navigation }: Props) {
           <TextField
             placeholder="이메일"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={google ? undefined : setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!google}
             leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
           />
 

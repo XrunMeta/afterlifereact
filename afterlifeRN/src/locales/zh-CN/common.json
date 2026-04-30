@@ -1,0 +1,62 @@
+{
+  "common": {
+    "back": "返回",
+    "save": "保存",
+    "cancel": "取消"
+  },
+  "my": {
+    "title": "我的页面",
+    "menu": {
+      "editProfile": "编辑个人信息",
+      "notifications": "通知设置",
+      "privacy": "隐私和可见性",
+      "saved": "已保存",
+      "acquaintance": "熟人管理",
+      "language": "语言设置",
+      "logout": "退出登录"
+    }
+  },
+  "settings": {
+    "editProfile": {
+      "title": "编辑个人信息",
+      "fields": {
+        "avatar": "头像",
+        "name": "姓名",
+        "phone": "电话号码",
+        "gender": "性别",
+        "age": "年龄",
+        "interests": "兴趣爱好"
+      }
+    },
+    "notifications": {
+      "title": "通知设置",
+      "push": "推送通知",
+      "comment": "评论通知",
+      "like": "点赞通知",
+      "marketing": "营销通知"
+    },
+    "privacy": {
+      "title": "隐私和可见性",
+      "profileVisibility": "个人资料可见性",
+      "blockList": "黑名单",
+      "dataDownload": "下载我的数据",
+      "deleteAccount": "删除账户"
+    },
+    "saved": {
+      "title": "已保存",
+      "empty": "没有已保存的项目"
+    },
+    "acquaintance": {
+      "title": "熟人管理",
+      "empty": "没有熟人"
+    },
+    "language": {
+      "title": "语言设置",
+      "ko": "한국어",
+      "ja": "日本語",
+      "en": "English",
+      "zh-CN": "简体中文",
+      "id": "Bahasa Indonesia"
+    }
+  }
+}

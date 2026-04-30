@@ -1,3 +1,4 @@
+import './src/i18n';
 import { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { navigationRef } from "./src/navigation/navigationRef";

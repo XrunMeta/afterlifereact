@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
@@ -9,9 +9,9 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import Button from "../../components/ui/Button";
 import InterestChip from "../../components/ui/InterestChip";
 import PageHeader from "../../components/common/PageHeader";
-import { COLORS, SIZES } from "../../components/constants";
+import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
-import { xrunComplete, AuthApiError, getMe } from "../../api/auth";
+import { xrunComplete, requestEmailCode, AuthApiError, getMe } from "../../api/auth";
 import { useAuthStore } from "../../stores/authStore";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
@@ -19,7 +19,11 @@ import { getOrCreateDeviceId } from "../../lib/deviceId";
 type Props = NativeStackScreenProps<AuthStackParamList, "XrunOnboarding">;
 
 export default function XrunOnboardingScreen({ navigation, route }: Props) {
-  const { email, pin, verificationCode } = route.params;
+  const { email } = route.params;
+  const pin = "pin" in route.params ? route.params.pin : undefined;
+  const verificationCode =
+    "verificationCode" in route.params ? route.params.verificationCode : undefined;
+  const google = "google" in route.params ? route.params.google : undefined;
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [agreeRequired, setAgreeRequired] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
@@ -29,8 +33,19 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [step, setStep] = useState<1 | 2>(1);
+  const [otpCode, setOtpCode] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+  const otpInputRef = useRef<TextInput>(null);
+
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
   const hydrate = useAuthStore((s) => s.hydrate);
+
+  useEffect(() => {
+    if (step !== 2 || resendIn <= 0) return;
+    const t = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [step, resendIn]);
 
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) =>
@@ -68,9 +83,51 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     }
   };
 
-  const handleComplete = async () => {
+  const handleNextToOtp = async () => {
     if (!agreeRequired) {
       Alert.alert("알림", "이용약관에 동의해주세요.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await requestEmailCode(email);
+      setStep(2);
+      setResendIn(60);
+      setTimeout(() => otpInputRef.current?.focus(), 200);
+    } catch (err) {
+      const msg = err instanceof AuthApiError
+        ? err.code === "OTP_COOLDOWN" ? "잠시 후 다시 시도해주세요. (1분 쿨다운)" : err.message
+        : "코드 발송에 실패했습니다.";
+      Alert.alert("오류", msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendIn > 0) return;
+    try {
+      await requestEmailCode(email);
+      setResendIn(60);
+      Alert.alert("재발송", "인증 코드를 다시 보냈습니다.");
+    } catch (err) {
+      const msg = err instanceof AuthApiError ? err.message : "재발송 실패";
+      Alert.alert("오류", msg);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (google && step === 1) {
+
+      await handleNextToOtp();
+      return;
+    }
+    if (!agreeRequired) {
+      Alert.alert("알림", "이용약관에 동의해주세요.");
+      return;
+    }
+    if (google && otpCode.length !== 6) {
+      Alert.alert("알림", "6자리 인증 코드를 입력해주세요.");
       return;
     }
     setSubmitting(true);
@@ -78,7 +135,8 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       const res = await xrunComplete({
         email,
         pin,
-        verificationCode,
+        verificationCode: google ? otpCode : verificationCode,
+        googleIdToken: google?.idToken,
         interests: selectedInterests.length > 0 ? selectedInterests : undefined,
         marketingConsent: agreeMarketing,
         deviceId: deviceId ?? undefined,
@@ -104,6 +162,47 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     }
   };
 
+  if (google && step === 2) {
+    return (
+      <SafeView backgroundColor={COLORS.zinc50}>
+        <PageHeader title="이메일 인증" showBackButton onBackPress={() => setStep(1)} />
+        <SafeScrollView contentContainerStyle={styles.content} autoAdjustKeyboardPadding showBottomBackground={false}>
+          <View style={styles.container}>
+            <Text style={styles.title}>이메일로 코드를 보냈어요</Text>
+            <Text style={styles.subtitle}>
+              <Text style={styles.email}>{email}</Text>
+              {"\n"}메일함의 6자리 인증 코드를 입력해주세요. (5분간 유효)
+            </Text>
+            <TextInput
+              ref={otpInputRef}
+              value={otpCode}
+              onChangeText={(t) => setOtpCode(t.replace(/\D/g, "").slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+              placeholder="000000"
+              placeholderTextColor={COLORS.zinc300}
+              style={styles.codeInput}
+              autoFocus
+            />
+            <Button
+              title={submitting ? "가입 처리 중..." : "가입 완료"}
+              onPress={handleComplete}
+              disabled={submitting || otpCode.length !== 6}
+            />
+            <View style={styles.resendRow}>
+              <Text style={styles.resendText}>코드를 못 받으셨나요?</Text>
+              <TouchableOpacity onPress={handleResend} disabled={resendIn > 0}>
+                <Text style={[styles.resendLink, resendIn > 0 && styles.resendLinkDisabled]}>
+                  {resendIn > 0 ? `재발송 (${resendIn}s)` : "재발송"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeScrollView>
+      </SafeView>
+    );
+  }
+
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
       <PageHeader title="가입 마지막 단계" showBackButton onBackPress={() => navigation.goBack()} />
@@ -111,7 +210,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
         <View style={styles.container}>
           <Text style={styles.title}>관심사와 약관 확인</Text>
           <Text style={styles.subtitle}>
-            xrun 인증이 완료됐어요. 마지막으로 관심사와 약관을 확인해주세요.
+            {google ? "Google 인증이 완료됐어요." : "xrun 인증이 완료됐어요."} 마지막으로 관심사와 약관을 확인해주세요.
           </Text>
 
           {}
@@ -151,7 +250,13 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
           </View>
 
           <Button
-            title={submitting ? "가입 처리 중..." : "가입 완료"}
+            title={
+              submitting
+                ? "처리 중..."
+                : google
+                  ? "다음 (이메일 인증)"
+                  : "가입 완료"
+            }
             onPress={handleComplete}
             disabled={submitting || !agreeRequired}
           />
@@ -186,4 +291,22 @@ const styles = StyleSheet.create({
   termText: { flex: 1, fontSize: 13, color: COLORS.zinc600, lineHeight: 20 },
   termBold: { fontWeight: "600", color: COLORS.zinc900 },
   termOptional: { color: COLORS.zinc400 },
+  email: { fontWeight: "600", color: COLORS.zinc900 },
+  codeInput: {
+    height: 64,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.white,
+    textAlign: "center",
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: 12,
+    color: COLORS.zinc900,
+    paddingHorizontal: SIZES.large,
+  },
+  resendRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6, marginTop: SIZES.medium },
+  resendText: { fontSize: 14, color: COLORS.zinc500 },
+  resendLink: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
+  resendLinkDisabled: { color: COLORS.zinc400 },
 });
