@@ -17,7 +17,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "영상 통화를 위해 카메라 접근 권한이 필요합니다.",
         "NSMicrophoneUsageDescription": "음성 통화 및 녹음을 위해 마이크 접근 권한이 필요합니다.",
-        "NSPhotoLibraryUsageDescription": "프로필 사진 및 이미지 업로드를 위해 사진 라이브러리 접근 권한이 필요합니다."
+        "NSPhotoLibraryUsageDescription": "프로필 사진 및 이미지 업로드를 위해 사진 라이브러리 접근 권한이 필요합니다.",
+        "LSApplicationQueriesSchemes": ["xrun"]
       }
     },
     "android": {

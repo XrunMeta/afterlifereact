@@ -9,14 +9,22 @@ import {
   StyleSheet,
   Linking,
   Pressable,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Clipboard from "expo-clipboard";
 import { COLORS, RADIUS } from "../constants";
+import { useAuthStore } from "../../stores/authStore";
 
 const STORAGE_KEY = "afterlife_payment_pin_dismissed_until";
 const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000;
-const XRUN_DEEPLINK = "xrun://";
+const XRUN_SCHEME = "xrun://";
+
+function buildXrunDeeplink(email: string | null | undefined): string {
+  if (!email) return XRUN_SCHEME;
+  return `${XRUN_SCHEME}?email=${encodeURIComponent(email)}&from=afterlife`;
+}
 
 export async function shouldShowPaymentPinPrompt(): Promise<boolean> {
   try {
@@ -44,16 +52,37 @@ interface Props {
 }
 
 export default function PaymentPinPromptModal({ visible, onClose }: Props) {
+  const email = useAuthStore((s) => s.apiUser?.email ?? null);
+
   const handleOpenXrun = async () => {
-    try {
-      const can = await Linking.canOpenURL(XRUN_DEEPLINK);
-      if (can) {
-        await Linking.openURL(XRUN_DEEPLINK);
+
+    if (email) {
+      try {
+        await Clipboard.setStringAsync(email);
+        console.log("[PIN-PROMPT] email copied to clipboard");
+      } catch (err) {
+        console.warn("[PIN-PROMPT] clipboard set failed:", err);
       }
+    }
+
+    const deeplink = buildXrunDeeplink(email);
+    try {
+      await Linking.openURL(deeplink);
+      onClose();
     } catch (err) {
       console.warn("[PIN-PROMPT] open xrun failed:", err);
+
+      const storeUrl =
+        Platform.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try {
+        await Linking.openURL(storeUrl);
+      } catch {
+
+      }
+      onClose();
     }
-    onClose();
   };
 
   const handleDismiss = async () => {
