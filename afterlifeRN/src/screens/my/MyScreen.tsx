@@ -172,12 +172,6 @@ export default function MyScreen() {
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
     },
-    {
-      icon: "lock",
-      labelKey: "my.menu.paymentPin",
-      descKey: "settings.paymentPin.subtitle",
-      route: "PaymentPin",
-    },
   ];
 
   return (
