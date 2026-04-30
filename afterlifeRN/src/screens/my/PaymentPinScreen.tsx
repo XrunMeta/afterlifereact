@@ -19,15 +19,17 @@ import { useAuthStore } from "../../stores/authStore";
 import { verifyPaymentPin, getPaymentPinStatus } from "../../api/payments";
 import { AuthApiError } from "../../api/auth";
 import PaymentPinPromptModal from "../../components/my/PaymentPinPromptModal";
+import * as Clipboard from "expo-clipboard";
 
 const PIN_LENGTH = 6;
 const MAX_ATTEMPTS = 5;
-const XRUN_DEEPLINK = "xrun://";
+const XRUN_SCHEME = "xrun://";
 
 export default function PaymentPinScreen() {
   const navigation = useNavigation();
   const { t } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
+  const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
 
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -131,10 +133,21 @@ export default function PaymentPinScreen() {
   };
 
   const handleOpenXrun = async () => {
-    console.log("[PIN] open xrun:", XRUN_DEEPLINK);
 
+    if (userEmail) {
+      try {
+        await Clipboard.setStringAsync(userEmail);
+        console.log("[PIN] email copied to clipboard");
+      } catch (err) {
+        console.warn("[PIN] clipboard set failed:", err);
+      }
+    }
+    const deeplink = userEmail
+      ? `${XRUN_SCHEME}?email=${encodeURIComponent(userEmail)}&from=afterlife`
+      : XRUN_SCHEME;
+    console.log("[PIN] open xrun:", deeplink);
     try {
-      await Linking.openURL(XRUN_DEEPLINK);
+      await Linking.openURL(deeplink);
     } catch (err) {
       console.warn("[PIN] openURL failed:", err);
       const storeUrl =
