@@ -1,4 +1,4 @@
-import v_a3453e, { v_df9f57, v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -23,6 +23,10 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
 import { v_7d2692 } from "../../api/files";
 import { v_976b89 } from "../../api/auth";
+import { v_9b8cb3 } from "../../api/payments";
+import v_3cb56d, {
+  v_b1f897,
+} from "../../components/my/PaymentPinPromptModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 
@@ -48,6 +52,30 @@ export default function v_ed02a5() {
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const [v_47abd6, v_e12360] = v_5ab095(false);
   const [v_026c2d, v_5eda29] = v_5ab095(false);
+  const [v_fda1fd, v_7ece2f] = v_5ab095(false);
+
+  v_c4deb2(() => {
+    let v_2008a4 = false;
+    (async () => {
+      if (!v_2ca7e0) return;
+      const v_999957 = await v_b1f897();
+      if (!v_999957 || v_2008a4) return;
+      try {
+        const v_d308b5 = await v_9b8cb3(v_2ca7e0);
+        console.log("[PIN-STATUS]", v_d308b5);
+        if (v_2008a4) return;
+
+        if (v_d308b5.linked && !v_d308b5.hasPin) {
+          v_7ece2f(true);
+        }
+      } catch (v_49263d) {
+        console.warn("[PIN-STATUS] fetch failed:", v_49263d);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2ca7e0]);
 
   const v_d28ade = async () => {
     if (!v_2ca7e0) {
@@ -143,6 +171,12 @@ export default function v_ed02a5() {
       labelKey: "my.menu.privacy",
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
+    },
+    {
+      icon: "lock",
+      labelKey: "my.menu.paymentPin",
+      descKey: "settings.paymentPin.subtitle",
+      route: "PaymentPin",
     },
   ];
 
@@ -279,6 +313,11 @@ export default function v_ed02a5() {
           <Text style={v_fd5f43.logoutText}>{v_8d41d7("my.menu.logout")}</Text>
         </TouchableOpacity>
       </View>
+
+      <PaymentPinPromptModal
+        visible={v_fda1fd}
+        onClose={() => v_7ece2f(false)}
+      />
     </SafeScrollView>
   );
 }
