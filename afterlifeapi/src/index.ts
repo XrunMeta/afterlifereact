@@ -30,6 +30,7 @@ import { v_87e8b2 } from "./routes/adminGdpr";
 import { v_dda4b9 } from "./routes/deletion";
 import { v_19f1fa } from "./routes/adminDeletion";
 import { v_ff9685 } from "./routes/files";
+import { v_a35f69 } from "./routes/payments";
 
 const v_466992 = new v_b7c41b<v_de0a25>();
 
@@ -94,6 +95,7 @@ v_466992.route("/oth-path", v_fa56e0);
 v_466992.route("/oth-path", v_b211dd);
 v_466992.route("/oth-path", v_98b245);
 v_466992.route("/oth-path", v_e2c945);
+v_466992.route("/oth-path", v_a35f69);
 v_466992.route("/oth-path", v_d26494);
 v_466992.route("/oth-path", v_fcbd5b);
 v_466992.route("/oth-path", v_3182b3);

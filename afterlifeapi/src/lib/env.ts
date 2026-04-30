@@ -33,6 +33,8 @@ export interface Bindings {
 
   XRUN_API_URL: string;            
 
+  XRUN_GATEWAY_TOKEN?: string;
+
   GOOGLE_WEB_CLIENT_ID: string;
 
   WEBAUTHN_RP_ID: string;        

@@ -13,6 +13,7 @@
       "saved": "저장됨",
       "acquaintance": "지인 관리",
       "language": "언어 설정",
+      "paymentPin": "결제 비밀번호 입력",
       "logout": "로그아웃"
     }
   },
@@ -57,6 +58,16 @@
       "en": "English",
       "zh-CN": "简体中文",
       "id": "Bahasa Indonesia"
+    },
+    "paymentPin": {
+      "title": "결제 비밀번호 입력",
+      "subtitle": "xrun에서 설정한 6자리 결제 비밀번호를 입력해주세요",
+      "wrong": "비밀번호가 일치하지 않습니다",
+      "attemptsLeft": "남은 시도 횟수: {{count}}회",
+      "lockedTitle": "5회 모두 틀렸어요",
+      "lockedDesc": "결제 비밀번호는 xrun 앱에서 변경할 수 있어요",
+      "openXrun": "xrun 앱 열기",
+      "verify": "확인"
     }
   }
 }
