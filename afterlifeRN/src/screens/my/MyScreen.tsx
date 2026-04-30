@@ -1,59 +1,115 @@
-import v_a3453e, { v_df9f57 } from "bapkr";
+import React, { useMemo } from "react";
 import {
-  v_3094a2,
-  v_19b633,
-  v_472849,
-  v_4623af,
-  v_cf9c33,
-} from "rcmrninabrnb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
-import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
-import { v_772971 } from "jmpfvteuuztnp";
-import v_570c34 from "../../components/ui/SafeScrollView";
-import v_258c1c from "../../components/common/PageHeader";
-import { v_1ed7d9 } from "../../stores/authStore";
-import { v_b4902e } from "../../stores/followStore";
-import { v_194498 } from "../../stores/cloneStore";
-import { v_694b7f } from "../../api/source";
-import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import type { v_e57140 } from "../../navigation/types";
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useTranslation } from "react-i18next";
+  Modal,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import SafeScrollView from "../../components/ui/SafeScrollView";
+import PageHeader from "../../components/common/PageHeader";
+import { useAuthStore } from "../../stores/authStore";
+import { useFollowStore } from "../../stores/followStore";
+import { useCloneStore } from "../../stores/cloneStore";
+import { seedSource } from "../../api/source";
+import { uploadFile } from "../../api/files";
+import { patchMe } from "../../api/auth";
+import { COLORS, SIZES, RADIUS } from "../../components/constants";
+import type { MyStackParamList } from "../../navigation/types";
 
-const v_b9d568 = 1;
+const DEFAULT_USER_ID = 1;
 
-const v_cca523 = [
+const recentTransactions = [
   { label: "페르소나 생성", date: "2024.03.25 14:32", amount: -500 },
   { label: "영상 통화 (15분)", date: "2024.03.24 19:15", amount: -300 },
   { label: "코인 충전", date: "2024.03.23 10:20", amount: 10000 },
 ];
 
-type MyNav = v_390fcc<v_e57140>;
+type MyNav = NativeStackNavigationProp<MyStackParamList>;
 
-export default function v_ed02a5() {
-  const v_c65f5d = v_ada615<MyNav>();
-  const { t: v_8d41d7 } = v_772971();
-  const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
-  const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
-  const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
-  const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
+export default function MyScreen() {
+  const navigation = useNavigation<MyNav>();
+  const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const apiUser = useAuthStore((s) => s.apiUser);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const patchApiUser = useAuthStore((s) => s.patchApiUser);
+  const logout = useAuthStore((s) => s.logout);
+  const follows = useFollowStore((s) => s.follows);
+  const localClones = useCloneStore((s) => s.localClones);
+  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  const v_0c8987 = v_625c74?.id ?? v_b9d568;
-  const v_48d264 = v_df9f57(
-    () => v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987).length,
-    [v_1e752a, v_0c8987],
+  const handleEditAvatar = async () => {
+    if (!accessToken) {
+      Alert.alert("알림", "로그인이 필요합니다.");
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("권한 필요", "사진 라이브러리 접근 권한을 허용해주세요.");
+      return;
+    }
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (picked.canceled || !picked.assets?.[0]) return;
+    const asset = picked.assets[0];
+
+    setUploadingAvatar(true);
+    try {
+      const uploaded = await uploadFile(accessToken, asset.uri, {
+        purpose: "avatar",
+        fileName: asset.fileName ?? "avatar.jpg",
+        mimeType: asset.mimeType ?? "image/jpeg",
+      });
+      await patchMe(accessToken, { avatarUrl: uploaded.url });
+      patchApiUser({ avatarUrl: uploaded.url });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "이미지 업로드에 실패했습니다.";
+      Alert.alert("오류", msg);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const displayName = apiUser?.name ?? user?.displayName ?? "사용자";
+  const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
+  const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
+  const credits = apiUser?.credits ?? 12540;
+
+  const uid = apiUser?.id ?? user?.id ?? DEFAULT_USER_ID;
+  const followingCount = useMemo(
+    () => follows.filter((f) => f.followerUserId === uid).length,
+    [follows, uid],
   );
-  const v_8b222b = v_df9f57(
+  const myClonesCount = useMemo(
     () =>
-      v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length +
-      v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length,
-    [v_0c8987, v_06f32b],
+      seedSource.clones().filter((c) => c.ownerId === uid).length +
+      localClones.filter((c) => c.ownerId === uid).length,
+    [uid, localClones],
   );
 
   const settingsItems: Array<{
-    icon: keyof typeof v_dec439.glyphMap;
+    icon: keyof typeof Feather.glyphMap;
     labelKey: string;
     descKey: string;
-    route: keyof v_e57140;
+    route: keyof MyStackParamList;
   }> = [
     {
       icon: "bookmark",
@@ -94,143 +150,151 @@ export default function v_ed02a5() {
   ];
 
   return (
-    <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
+    <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
         title="My Page"
         rightAction={
-          <View style={v_fd5f43.headerRight}>
-            <TouchableOpacity style={v_fd5f43.headerBtn}>
-              <Feather name="bell" size={22} color={v_1bfbd0.zinc700} />
+          <View style={s.headerRight}>
+            <TouchableOpacity style={s.headerBtn}>
+              <Feather name="bell" size={22} color={COLORS.zinc700} />
             </TouchableOpacity>
-            <TouchableOpacity style={v_fd5f43.headerBtn}>
-              <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
+            <TouchableOpacity style={s.headerBtn}>
+              <Feather name="settings" size={22} color={COLORS.zinc700} />
             </TouchableOpacity>
           </View>
         }
       />
 
-      <View style={v_fd5f43.content}>
+      <View style={s.content}>
         {}
-        <View style={v_fd5f43.profileSection}>
-          <View style={v_fd5f43.avatarWrap}>
-            {v_625c74?.avatarUrl ? (
-              <Image source={{ uri: v_625c74.avatarUrl }} style={v_fd5f43.avatar} />
+        <View style={s.profileSection}>
+          <View style={s.avatarWrap}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={s.avatar} />
             ) : (
-              <View style={[v_fd5f43.avatar, v_fd5f43.avatarPlaceholder]}>
-                <Feather name="user" size={40} color={v_1bfbd0.zinc400} />
+              <View style={[s.avatar, s.avatarPlaceholder]}>
+                <Feather name="user" size={40} color={COLORS.zinc400} />
               </View>
             )}
             <TouchableOpacity
-              style={v_fd5f43.editAvatarBtn}
-              onPress={() => v_c65f5d.navigate("EditProfile")}
+              style={s.editAvatarBtn}
+              onPress={() => navigation.navigate("EditProfile")}
             >
-              <Feather name="edit-2" size={14} color={v_1bfbd0.white} />
+              <Feather name="edit-2" size={14} color={COLORS.white} />
+              onPress={handleEditAvatar}
+              disabled={uploadingAvatar}
+            >
+              {uploadingAvatar ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <Feather name="edit-2" size={14} color={COLORS.white} />
+              )}
             </TouchableOpacity>
           </View>
 
-          <Text style={v_fd5f43.userName}>{v_625c74?.displayName ?? "사용자"}</Text>
-          <Text style={v_fd5f43.userHandle}>{v_625c74?.handle ?? "@afterlife"}</Text>
+          <Text style={s.userName}>{displayName}</Text>
+          <Text style={s.userHandle}>{subLabel}</Text>
 
-          <View style={v_fd5f43.statsRow}>
-            <View style={v_fd5f43.statItem}>
-              <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
-              <Text style={v_fd5f43.statLabel}>팔로우 중</Text>
+          <View style={s.statsRow}>
+            <View style={s.statItem}>
+              <Text style={s.statValue}>{followingCount}</Text>
+              <Text style={s.statLabel}>팔로우 중</Text>
             </View>
-            <View style={v_fd5f43.statDivider} />
-            <View style={v_fd5f43.statItem}>
-              <Text style={v_fd5f43.statValue}>{v_8b222b}</Text>
-              <Text style={v_fd5f43.statLabel}>내 페르소나</Text>
+            <View style={s.statDivider} />
+            <View style={s.statItem}>
+              <Text style={s.statValue}>{myClonesCount}</Text>
+              <Text style={s.statLabel}>내 페르소나</Text>
             </View>
           </View>
         </View>
 
         {}
-        <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>xrun 코인</Text>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionLabel}>xrun 코인</Text>
         </View>
 
         {}
-        <View style={v_fd5f43.coinCard}>
-          <View style={v_fd5f43.coinCardTop}>
-            <View style={v_fd5f43.coinLabelRow}>
-              <Feather name="dollar-sign" size={18} color={v_1bfbd0.zinc700} />
-              <Text style={v_fd5f43.coinLabel}>보유 코인</Text>
+        <View style={s.coinCard}>
+          <View style={s.coinCardTop}>
+            <View style={s.coinLabelRow}>
+              <Feather name="dollar-sign" size={18} color={COLORS.zinc700} />
+              <Text style={s.coinLabel}>보유 코인</Text>
             </View>
-            <TouchableOpacity style={v_fd5f43.chargeBtn}>
-              <Feather name="plus" size={14} color={v_1bfbd0.white} />
-              <Text style={v_fd5f43.chargeBtnText}>충전</Text>
+            <TouchableOpacity style={s.chargeBtn}>
+              <Feather name="plus" size={14} color={COLORS.white} />
+              <Text style={s.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={v_fd5f43.coinAmount}>{(12540).toLocaleString()}</Text>
-          <Text style={v_fd5f43.coinWon}>약 ₩{(12540).toLocaleString()} 상당</Text>
+          <Text style={s.coinAmount}>{credits.toLocaleString()}</Text>
+          <Text style={s.coinWon}>약 ₩{credits.toLocaleString()} 상당</Text>
         </View>
 
         {}
-        <View style={v_fd5f43.transactionsCard}>
-          <View style={v_fd5f43.transactionsHeader}>
-            <Text style={v_fd5f43.transactionsTitle}>최근 거래</Text>
+        <View style={s.transactionsCard}>
+          <View style={s.transactionsHeader}>
+            <Text style={s.transactionsTitle}>최근 거래</Text>
           </View>
-          {v_cca523.map((v_2f6fcc, v_ebec57) => (
+          {recentTransactions.map((tx, i) => (
             <View
-              key={v_ebec57}
+              key={i}
               style={[
-                v_fd5f43.txRow,
-                v_ebec57 < v_cca523.length - 1 && v_fd5f43.txRowBorder,
+                s.txRow,
+                i < recentTransactions.length - 1 && s.txRowBorder,
               ]}
             >
-              <View style={v_fd5f43.txInfo}>
-                <Text style={v_fd5f43.txLabel}>{v_2f6fcc.label}</Text>
-                <Text style={v_fd5f43.txDate}>{v_2f6fcc.date}</Text>
+              <View style={s.txInfo}>
+                <Text style={s.txLabel}>{tx.label}</Text>
+                <Text style={s.txDate}>{tx.date}</Text>
               </View>
-              <Text style={[v_fd5f43.txAmount, v_2f6fcc.amount > 0 ? v_fd5f43.txGreen : v_fd5f43.txRed]}>
-                {v_2f6fcc.amount > 0 ? "+" : ""}
-                {v_2f6fcc.amount.toLocaleString()} xrun
+              <Text style={[s.txAmount, tx.amount > 0 ? s.txGreen : s.txRed]}>
+                {tx.amount > 0 ? "+" : ""}
+                {tx.amount.toLocaleString()} xrun
               </Text>
             </View>
           ))}
-          <TouchableOpacity style={v_fd5f43.viewAllBtn}>
-            <Text style={v_fd5f43.viewAllText}>전체 내역 보기</Text>
+          <TouchableOpacity style={s.viewAllBtn}>
+            <Text style={s.viewAllText}>전체 내역 보기</Text>
           </TouchableOpacity>
         </View>
 
         {}
-        <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.menu.editProfile") ? "설정" : "설정"}</Text>
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionLabel}>{t("my.menu.editProfile") ? "설정" : "설정"}</Text>
         </View>
 
-        <View style={v_fd5f43.settingsCard}>
-          {v_7f0fd3.map((v_8c0b26, v_ebec57) => (
+        <View style={s.settingsCard}>
+          {settingsItems.map((item, i) => (
             <TouchableOpacity
-              key={v_8c0b26.route}
+              key={item.route}
               style={[
-                v_fd5f43.settingsRow,
-                v_ebec57 < v_7f0fd3.length - 1 && v_fd5f43.settingsRowBorder,
+                s.settingsRow,
+                i < settingsItems.length - 1 && s.settingsRowBorder,
               ]}
-              onPress={() => v_c65f5d.navigate(v_8c0b26.route)}
+              onPress={() => navigation.navigate(item.route)}
             >
-              <View style={v_fd5f43.settingsIcon}>
-                <Feather name={v_8c0b26.icon} size={22} color={v_1bfbd0.zinc900} />
+              <View style={s.settingsIcon}>
+                <Feather name={item.icon} size={22} color={COLORS.zinc900} />
               </View>
-              <View style={v_fd5f43.settingsInfo}>
-                <Text style={v_fd5f43.settingsLabel}>{v_8d41d7(v_8c0b26.labelKey)}</Text>
-                <Text style={v_fd5f43.settingsDesc}>{v_8d41d7(v_8c0b26.descKey)}</Text>
+              <View style={s.settingsInfo}>
+                <Text style={s.settingsLabel}>{t(item.labelKey)}</Text>
+                <Text style={s.settingsDesc}>{t(item.descKey)}</Text>
               </View>
-              <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
+              <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
             </TouchableOpacity>
           ))}
         </View>
 
         {}
-        <TouchableOpacity style={v_fd5f43.logoutBtn} onPress={() => void v_d7d5a2()}>
-          <Feather name="log-out" size={16} color={v_1bfbd0.zinc600} />
-          <Text style={v_fd5f43.logoutText}>{v_8d41d7("my.menu.logout")}</Text>
+        <TouchableOpacity style={s.logoutBtn} onPress={() => void logout()}>
+          <Feather name="log-out" size={16} color={COLORS.zinc600} />
+          <Text style={s.logoutText}>{t("my.menu.logout")}</Text>
         </TouchableOpacity>
       </View>
     </SafeScrollView>
   );
 }
 
-const v_fd5f43 = v_472849.create({
+const s = StyleSheet.create({
   content: {
     paddingHorizontal: 24,
     paddingTop: 16,
@@ -246,7 +310,7 @@ const v_fd5f43 = v_472849.create({
   avatarWrap: { position: "relative", marginBottom: 16 },
   avatar: { width: 120, height: 120, borderRadius: 60 },
   avatarPlaceholder: {
-    backgroundColor: v_1bfbd0.zinc100,
+    backgroundColor: COLORS.zinc100,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -257,14 +321,14 @@ const v_fd5f43 = v_472849.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: v_1bfbd0.zinc900,
+    backgroundColor: COLORS.zinc900,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 3,
-    borderColor: v_1bfbd0.white,
+    borderColor: COLORS.white,
   },
-  userName: { fontSize: 24, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 4 },
-  userHandle: { fontSize: 15, color: v_1bfbd0.zinc500 },
+  userName: { fontSize: 24, fontWeight: "700", color: COLORS.zinc900, marginBottom: 4 },
+  userHandle: { fontSize: 15, color: COLORS.zinc500 },
 
   statsRow: {
     flexDirection: "row",
@@ -273,21 +337,21 @@ const v_fd5f43 = v_472849.create({
     marginTop: 16,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: v_1bfbd0.zinc50,
+    backgroundColor: COLORS.zinc50,
     borderRadius: 16,
   },
   statItem: { alignItems: "center", minWidth: 64 },
-  statValue: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  statLabel: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
-  statDivider: { width: 1, height: 24, backgroundColor: v_1bfbd0.zinc200 },
+  statValue: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
+  statLabel: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  statDivider: { width: 1, height: 24, backgroundColor: COLORS.zinc200 },
 
   sectionHeader: { marginBottom: 10 },
-  sectionLabel: { fontSize: 13, fontWeight: "500", color: v_1bfbd0.zinc400, paddingHorizontal: 4 },
+  sectionLabel: { fontSize: 13, fontWeight: "500", color: COLORS.zinc400, paddingHorizontal: 4 },
 
   coinCard: {
-    backgroundColor: v_1bfbd0.white,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
+    borderColor: COLORS.zinc200,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -299,24 +363,24 @@ const v_fd5f43 = v_472849.create({
     marginBottom: 12,
   },
   coinLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  coinLabel: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc600 },
+  coinLabel: { fontSize: 14, fontWeight: "500", color: COLORS.zinc600 },
   chargeBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    backgroundColor: v_1bfbd0.zinc900,
-    borderRadius: v_8b0c90.full,
+    backgroundColor: COLORS.zinc900,
+    borderRadius: RADIUS.full,
   },
-  chargeBtnText: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.white },
-  coinAmount: { fontSize: 32, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  coinWon: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 4 },
+  chargeBtnText: { fontSize: 13, fontWeight: "700", color: COLORS.white },
+  coinAmount: { fontSize: 32, fontWeight: "700", color: COLORS.zinc900 },
+  coinWon: { fontSize: 12, color: COLORS.zinc500, marginTop: 4 },
 
   transactionsCard: {
-    backgroundColor: v_1bfbd0.white,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
+    borderColor: COLORS.zinc200,
     borderRadius: 16,
     overflow: "hidden",
     marginBottom: 32,
@@ -325,9 +389,9 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: v_1bfbd0.zinc100,
+    borderBottomColor: COLORS.zinc100,
   },
-  transactionsTitle: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  transactionsTitle: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
   txRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -335,25 +399,25 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  txRowBorder: { borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
+  txRowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
   txInfo: { flex: 1 },
-  txLabel: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc900, marginBottom: 4 },
-  txDate: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  txLabel: { fontSize: 14, fontWeight: "500", color: COLORS.zinc900, marginBottom: 4 },
+  txDate: { fontSize: 12, color: COLORS.zinc500 },
   txAmount: { fontSize: 14, fontWeight: "700" },
-  txGreen: { color: v_1bfbd0.success },
-  txRed: { color: v_1bfbd0.error },
+  txGreen: { color: COLORS.success },
+  txRed: { color: COLORS.error },
   viewAllBtn: {
     paddingVertical: 16,
     alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: v_1bfbd0.zinc100,
+    borderTopColor: COLORS.zinc100,
   },
-  viewAllText: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.violet500 },
+  viewAllText: { fontSize: 14, fontWeight: "500", color: COLORS.violet500 },
 
   settingsCard: {
-    backgroundColor: v_1bfbd0.white,
+    backgroundColor: COLORS.white,
     borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
+    borderColor: COLORS.zinc200,
     borderRadius: 16,
     overflow: "hidden",
     marginBottom: 24,
@@ -365,18 +429,18 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: 20,
     paddingVertical: 18,
   },
-  settingsRowBorder: { borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
+  settingsRowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
   settingsIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: v_1bfbd0.zinc50,
+    backgroundColor: COLORS.zinc50,
     alignItems: "center",
     justifyContent: "center",
   },
   settingsInfo: { flex: 1 },
-  settingsLabel: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900, marginBottom: 2 },
-  settingsDesc: { fontSize: 13, color: v_1bfbd0.zinc500 },
+  settingsLabel: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900, marginBottom: 2 },
+  settingsDesc: { fontSize: 13, color: COLORS.zinc500 },
 
   logoutBtn: {
     flexDirection: "row",
@@ -384,5 +448,5 @@ const v_fd5f43 = v_472849.create({
     gap: 6,
     paddingVertical: 8,
   },
-  logoutText: { fontSize: 14, color: v_1bfbd0.zinc600 },
+  logoutText: { fontSize: 14, color: COLORS.zinc600 },
 });

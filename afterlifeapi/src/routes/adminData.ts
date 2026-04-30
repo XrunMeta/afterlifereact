@@ -3,21 +3,67 @@
 import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_c0a297 } from "../middleware/auth";
+import { v_137694, v_a8614b } from "../lib/ale";
+import { v_e44d97 } from "../lib/kekProvider";
 
 export const v_133c2c = new v_b7c41b<v_de0a25>();
 
 v_133c2c.use("*", v_c0a297);
 
 v_133c2c.get("/oth-path", async (v_3f4e2e) => {
-  const v_18b8bf = (
+  const v_2b6257 = (
     await v_3f4e2e.env.DB.prepare(
-      `SELECT id, name, email, gender, age, credits,
-              funnel_stage AS funnelStage, created_at AS createdAt
-         FROM users
-        ORDER BY (id < 100000) DESC, id DESC
+      `SELECT u.id, u.name, u.email, u.gender, u.age, u.age_enc, u.credits,
+              u.funnel_stage      AS funnelStage,
+              u.marketing_consent AS marketingConsent,
+              u.xrun_member_id    AS xrunMemberId,
+              u.xrun_guid         AS xrunGuid,
+              u.xrun_wallet       AS xrunWallet,
+              u.xrun_linked_at    AS xrunLinkedAt,
+              u.created_at        AS createdAt,
+              (SELECT GROUP_CONCAT(interest, ', ')
+                 FROM user_interests WHERE user_id = u.id) AS interests
+         FROM users u
+        ORDER BY (u.id < 100000) DESC, u.id DESC
         LIMIT 200`,
-    ).all()
+    ).all<{ id: number; age: number | null; age_enc: string | null; [k: string]: unknown }>()
   ).results;
+
+  const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
+  let v3Provider: Awaited<ReturnType<typeof v_e44d97>> | undefined;
+  try {
+    v_67b8fb = await v_e44d97(v_3f4e2e);
+  } catch {
+    v_67b8fb = undefined;
+  }
+
+  const v_db9be1 = v_3f4e2e.get("adminUserId");
+  const v_18b8bf = await Promise.all(
+    v_2b6257.map(async (v_3ac7e7) => {
+      let v_2694bd = v_3ac7e7.age;
+      if (v_3ac7e7.age_enc) {
+        try {
+          const v_eef514 = await v_137694(v_3ac7e7.age_enc, {
+            db: v_3f4e2e.env.DB,
+            hkdfContext: "user.age",
+            legacyProvider: v_d205b7,
+            v3Provider: v_67b8fb,
+            actor: { type: "admin", id: v_db9be1 ?? "unknown" },
+            auditSecret: v_3f4e2e.env.AUDIT_SECRET,
+            lazyMigrateEnabled: false,
+            hint: { key: "users.age_enc", resourceId: v_3ac7e7.id },
+          });
+          const v_f4e98d = Number(v_eef514);
+          v_2694bd = Number.isFinite(v_f4e98d) ? v_f4e98d : null;
+        } catch {
+
+        }
+      }
+      const { age_enc: v_b36aa2, ...v_83bbcd } = v_3ac7e7;
+      void v_b36aa2;
+      return { ...v_83bbcd, age: v_2694bd };
+    }),
+  );
   return v_3f4e2e.json(v_18b8bf);
 });
 

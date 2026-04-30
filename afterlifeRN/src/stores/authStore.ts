@@ -2,32 +2,65 @@ import { v_a7c0d4 } from "vukrcww";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_694b7f } from "../api/source";
 import type { v_b89f99 } from "../types/domain";
+import { v_182fdb as v_ac9e58, v_7ef860, type v_7289ef, type v_a93c97 } from "../api/auth";
 
 const v_b6c376 = "@afterlifeRN/auth/currentUserId";
+const v_1278db = "@afterlifeRN/auth/accessToken";
 const v_b9d568 = 1;
 
 interface AuthState {
+
   isLoggedIn: boolean;
   user: v_b89f99 | null;
   hydrated: boolean;
   hydrate: () => Promise<void>;
   switchUser: (userId: number) => Promise<void>;
   logout: () => Promise<void>;
+
+  accessToken: string | null;
+  apiUser: v_7289ef | null;
+  loginWithApi: (payload: v_a93c97) => Promise<v_7289ef>;
+  setApiAuth: (token: string, user: v_7289ef) => Promise<void>;
+  apiLogout: () => Promise<void>;
+  refreshApiUser: () => Promise<v_7289ef | null>;
+  patchApiUser: (patch: Partial<v_7289ef>) => void;
 }
 
-export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024) => ({
+export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
   isLoggedIn: false,
   user: null,
   hydrated: false,
+  accessToken: null,
+  apiUser: null,
 
   hydrate: async () => {
+
+    const v_21cc31 = await v_e84827.getItem(v_1278db);
+    let apiUser: v_7289ef | null = null;
+    if (v_21cc31) {
+      try {
+        const v_8f00b9 = await v_7ef860(v_21cc31);
+        v_b113dd = v_8f00b9.user;
+      } catch {
+
+        await v_e84827.removeItem(v_1278db);
+      }
+    }
+
     const v_5885b8 = await v_e84827.getItem(v_b6c376);
     const v_389afb = v_5885b8 !== null ? Number(v_5885b8) : v_b9d568;
     const v_ceb55a =
       v_694b7f.users().find((v_62c214) => v_62c214.id === v_389afb) ??
       v_694b7f.users().find((v_62c214) => v_62c214.id === v_b9d568) ??
       null;
-    v_bb8024({ isLoggedIn: !!v_ceb55a, user: v_ceb55a, hydrated: true });
+
+    v_bb8024({
+      accessToken: v_b113dd ? v_21cc31 : null,
+      apiUser: v_b113dd,
+      isLoggedIn: !!v_ceb55a,
+      user: v_ceb55a,
+      hydrated: true,
+    });
   },
 
   switchUser: async (v_43e90c) => {
@@ -39,6 +72,43 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024) => ({
 
   logout: async () => {
     await v_e84827.removeItem(v_b6c376);
-    v_bb8024({ isLoggedIn: false, user: null });
+    await v_e84827.removeItem(v_1278db);
+    v_bb8024({ isLoggedIn: false, user: null, accessToken: null, apiUser: null });
+  },
+
+  loginWithApi: async (v_931bf0) => {
+    const { accessToken: v_2ca7e0 } = await v_ac9e58(v_931bf0);
+    const { user: v_625c74 } = await v_7ef860(v_2ca7e0);
+    await v_e84827.setItem(v_1278db, v_2ca7e0);
+    v_bb8024({ accessToken: v_2ca7e0, apiUser: v_625c74 });
+    return v_625c74;
+  },
+
+  setApiAuth: async (v_21cc31, v_625c74) => {
+    await v_e84827.setItem(v_1278db, v_21cc31);
+    v_bb8024({ accessToken: v_21cc31, apiUser: v_625c74 });
+  },
+
+  apiLogout: async () => {
+    await v_e84827.removeItem(v_1278db);
+    v_bb8024({ accessToken: null, apiUser: null });
+  },
+
+  refreshApiUser: async () => {
+    const v_21cc31 = v_38715b().accessToken;
+    if (!v_21cc31) return null;
+    try {
+      const { user: v_625c74 } = await v_7ef860(v_21cc31);
+      v_bb8024({ apiUser: v_625c74 });
+      return v_625c74;
+    } catch {
+      return null;
+    }
+  },
+
+  patchApiUser: (v_17dc8a) => {
+    const v_c3bc75 = v_38715b().apiUser;
+    if (!v_c3bc75) return;
+    v_bb8024({ apiUser: { ...v_c3bc75, ...v_17dc8a } });
   },
 }));
