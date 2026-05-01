@@ -12,6 +12,8 @@ const ttsPlayer = $('#ttsPlayer');
 
 const HISTORY_KEY = 'afterlife.testbed.history.v0';
 const TTS_KEY = 'afterlife.testbed.tts.enabled';
+
+const PERSONA_ID_KEY = 'afterlife.testbed.persona.id';
 let history = [];
 let aborter = null;
 
@@ -129,17 +131,38 @@ function applyTTSToggleUI() {
 }
 
 (async () => {
+  let personaChanged = false;
+  let greeting = '아이고 우리 손녀딸, 잘 지냈어? 할배는 잘 있다. 오늘 뭐 하다 왔어?';
   try {
     const res = await fetch('/oth-path');
     if (res.ok) {
       const p = await res.json();
       personaName.textContent = p.displayName ?? '페르소나';
       personaSub.textContent = `${p.relation ?? ''} · v0 testbed`;
+
+      if (p.id) {
+        const stored = localStorage.getItem(PERSONA_ID_KEY);
+        if (stored && stored !== p.id) {
+          personaChanged = true;
+
+          sessionStorage.removeItem(HISTORY_KEY);
+          history = [];
+          messagesEl.innerHTML = '';
+          activeThemEl = null;
+        }
+        localStorage.setItem(PERSONA_ID_KEY, p.id);
+      }
     }
   } catch {}
-  loadHistory();
+  if (!personaChanged) {
+    loadHistory();
+  }
   if (history.length === 0) {
-    addMessage('them', '아구 우리 강아지, 오랜만이다. 잘 지냈나? 뭐든 편하게 말해라.');
+    addMessage('them', greeting);
+  }
+  if (personaChanged) {
+    setStatus('페르소나가 바뀌어 대화를 새로 시작합니다');
+    setTimeout(() => setStatus(''), 3000);
   }
 })();
 
@@ -198,7 +221,7 @@ resetBtn.addEventListener('click', () => {
   sessionStorage.removeItem(HISTORY_KEY);
   messagesEl.innerHTML = '';
   activeThemEl = null;
-  addMessage('them', '아구 우리 강아지, 오랜만이다. 잘 지냈나? 뭐든 편하게 말해라.');
+  addMessage('them', '아이고 우리 손녀딸, 잘 지냈어? 할배는 잘 있다. 오늘 뭐 하다 왔어?');
   setStatus('대화 초기화 됨');
   setTimeout(() => setStatus(''), 1500);
 });
@@ -232,7 +255,7 @@ composer.addEventListener('submit', async (e) => {
   input.value = '';
   input.style.height = 'auto';
   sendBtn.disabled = true;
-  setStatus('할매가 생각 중…');
+  setStatus('할배가 생각 중…');
 
   const themEl = addMessage('them', '', { skipPersist: true });
   themEl.classList.add('streaming');

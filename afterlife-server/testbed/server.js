@@ -9,6 +9,7 @@ import { buildSystemPrompt, loadPersona } from './lib/prompt.js';
 import { chatStream } from './lib/ollama.js';
 import { createSentenceBuffer } from './lib/sentence_buffer.js';
 import { ttsSynthesize } from './lib/tts.js';
+import { stripEmoji, sanitizeChunk } from './lib/sanitize.js';
 import {
   concatWavs,
   cleanupTempDir,
@@ -100,16 +101,17 @@ app.post('/oth-path', (req, res) => {
 
   const synthAndSend = (text) => {
     if (!TTS_ENABLED) return Promise.resolve();
-    const trimmed = text.trim();
-    if (!trimmed) return Promise.resolve();
+
+    const cleaned = stripEmoji(text);
+    if (!cleaned) return Promise.resolve();
     const seq = ++ttsSeq;
     const t0 = Date.now();
-    const p = ttsSynthesize(trimmed)
+    const p = ttsSynthesize(cleaned)
       .then(({ wav, synthMs }) => {
         if (aborted) return;
         send('tts', {
           seq,
-          text: trimmed,
+          text: cleaned,
           audio_b64: wav.toString('base64'),
           synth_ms: synthMs,
           wallclock_ms: Date.now() - t0,
@@ -120,7 +122,7 @@ app.post('/oth-path', (req, res) => {
       })
       .catch((err) => {
         if (aborted) return;
-        send('tts_error', { seq, text: trimmed, error: err?.message ?? 'tts failed' });
+        send('tts_error', { seq, text: cleaned, error: err?.message ?? 'tts failed' });
       })
       .finally(() => {
         inflightTts.delete(p);
@@ -133,9 +135,12 @@ app.post('/oth-path', (req, res) => {
     messages,
     onChunk: (text) => {
       if (aborted) return;
-      send('chunk', { text });
 
-      const sentences = sb.feed(text);
+      const clean = sanitizeChunk(text);
+      if (!clean) return;
+      send('chunk', { text: clean });
+
+      const sentences = sb.feed(clean);
       for (const s of sentences) synthAndSend(s);
     },
     onDone: (info) => {
