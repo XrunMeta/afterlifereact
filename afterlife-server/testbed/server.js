@@ -9,8 +9,19 @@ import { v_841e05, v_464116 } from './lib/prompt.js';
 import { v_a26277 } from './lib/ollama.js';
 import { v_cdb49a } from './lib/sentence_buffer.js';
 import { v_27fa47 } from './lib/tts.js';
+import {
+  v_034be8,
+  v_ba8718,
+  v_a16f6e,
+  v_6edf8f,
+} from './lib/musetalk.js';
+import v_b070ed from 'hikhkjexnsh';
 
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
+const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
+const v_e3f065 =
+  process.env.MUSETALK_OUTPUTS_DIR ??
+  '/home/afterlife/afterlife-server/musetalk-afterlife/outputs/v15';
 
 const v_a65c2e = v_9fe22d.dirname(v_6b8a99(import.meta.url));
 
@@ -22,6 +33,8 @@ v_466992.use(v_3ba024(process.env.LOG_LEVEL ?? 'combined'));
 v_466992.use(v_531fc8());
 v_466992.use(v_96bb47.json({ limit: '256kb' }));
 v_466992.use(v_96bb47.static(v_9fe22d.join(v_a65c2e, 'public'), { extensions: ['html'] }));
+
+v_466992.use('/outputs', v_96bb47.static(v_e3f065, { fallthrough: true }));
 
 v_466992.get('/healthz', (v_5ebc52, v_8f00b9) => {
   v_8f00b9.type('text/plain').send('ok\n');
@@ -82,6 +95,9 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   let v_213fa0 = 0;
   const v_e8b841 = new Set();
 
+  const v_af1e0d = []; 
+  const v_c5607b = v_b070ed.randomBytes(6).toString('hex');
+
   const v_80a694 = (v_9b6134) => {
     if (!v_455f07) return Promise.resolve();
     const v_2f361a = v_9b6134.trim();
@@ -99,6 +115,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           wallclock_ms: Date.now() - v_b66f2c,
           bytes: v_7ab8bd.length,
         });
+
+        if (v_77b004) v_af1e0d.push({ seq: v_1923e2, wav: v_7ab8bd });
       })
       .catch((v_49263d) => {
         if (v_6c558f) return;
@@ -126,10 +144,49 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
       const v_916658 = v_138fc0.flush();
       for (const v_fd5f43 of v_916658) v_80a694(v_fd5f43);
 
-      Promise.allSettled([...v_e8b841]).then(() => {
+      Promise.allSettled([...v_e8b841]).then(async () => {
         if (v_6c558f) return;
         v_9c423d('done', v_34d5e3);
-        v_8f00b9.end();
+
+        if (
+          v_77b004 &&
+          !v_6c558f &&
+          v_af1e0d.length > 0
+        ) {
+          let v_6944b4 = null;
+          try {
+
+            v_af1e0d.sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq);
+            const v_d33958 = v_af1e0d.map((v_62c214) => v_62c214.wav);
+            v_6944b4 = await v_034be8(v_d33958);
+            if (!v_6944b4) {
+              v_8f00b9.end();
+              return;
+            }
+            const v_43c42e = await v_a16f6e({
+              audio_path: v_6944b4.path,
+              output_id: `sess-${v_c5607b}`,
+            });
+            if (v_6c558f) return;
+            v_9c423d('video', {
+              url: v_6edf8f(v_43c42e.mp4_path),
+              mp4_path: v_43c42e.mp4_path,
+              mp4_basename: v_43c42e.mp4_basename,
+              infer_ms: v_43c42e.infer_ms,
+              sentence_count: v_af1e0d.length,
+              audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+            });
+          } catch (v_49263d) {
+            if (!v_6c558f) {
+              v_9c423d('video_error', { error: v_49263d?.message ?? 'musetalk failed' });
+            }
+          } finally {
+            if (v_6944b4) await v_ba8718(v_6944b4.dir);
+            v_8f00b9.end();
+          }
+        } else {
+          v_8f00b9.end();
+        }
       });
     },
     onError: (v_49263d) => {
