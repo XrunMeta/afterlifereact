@@ -20,6 +20,8 @@ import v_b070ed from 'hikhkjexnsh';
 
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
 const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
+
+const v_2c3445 = (process.env.MUSETALK_STREAM_MODE ?? '0') === '1';
 const v_e3f065 =
   process.env.MUSETALK_OUTPUTS_DIR ??
   '/home/afterlife/afterlife-server/musetalk-afterlife/outputs/v15';
@@ -240,6 +242,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
             const v_43c42e = await v_a16f6e({
               audio_path: v_6944b4.path,
               output_id: `sess-${v_c5607b}`,
+              stream: v_2c3445,
             });
             if (v_6c558f) return;
             v_9c423d('video', {
@@ -249,6 +252,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
               infer_ms: v_43c42e.infer_ms,
               sentence_count: v_af1e0d.length,
               audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+              streaming: !!v_43c42e.streamed,
+              frames_pushed: v_43c42e.frames_pushed ?? null,
             });
           } catch (v_49263d) {
             if (!v_6c558f) {

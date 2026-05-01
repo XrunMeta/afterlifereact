@@ -8,11 +8,18 @@ afterlife-musetalk — FastAPI wrapper around MuseTalk inference (port 8300).
   - 단일 inference lock (직렬화 — VRAM 안전, 동시 호출 차단)
   - 롤백: musetalk_server.subprocess.bak.py 보존
 
+회차 029-D-2c — frame stream 모드:
+  /infer body 에 stream=true 추가 시, inference 가 frame 만들 때마다
+  publisher (port 8400) 로 POST /oth-path (JPEG 80% quality).
+  inference 끝나면 POST /oth-path
+  mp4 파일 출력은 그대로 유지 (병행).
+
 CWD: source/ 강제 (inference_lib 도 상대경로 ./models/, ./ffmpeg-4.4-amd64-static/, configs/inference/ 가정).
 
 출력 명명: result_dir/v15/<video_basename>_<audio_basename>.mp4
 """
 
+import io
 import os
 import sys
 import time
@@ -40,6 +47,56 @@ os.environ.setdefault("CUDA_VISIBLE_DEVICES", "0")
 
 # 지연 import (sys.path 설정 후) — load_all_model 등 musetalk 패키지 의존
 import inference_lib  # noqa: E402
+
+# Stream 모드 의존성 (PIL, requests, cv2)
+import requests  # noqa: E402
+from PIL import Image  # noqa: E402
+import cv2  # noqa: E402
+
+PUBLISHER_URL = os.environ.get("MUSETALK_PUBLISHER_URL", "http://127.0.0.1:8400")
+STREAM_JPEG_QUALITY = int(os.environ.get("MUSETALK_STREAM_JPEG_Q", "80"))
+
+
+def _make_frame_callback(session_id: str):
+    """combine_frame (BGR) → JPEG bytes → POST /oth-path
+
+    inference_lib 의 frame loop 에서 호출. 실패해도 예외 삼키고 진행.
+    """
+    sess = requests.Session()
+    sess.headers["Content-Type"] = "image/jpeg"
+    sess.headers["X-Frame-Format"] = "jpeg"
+    if session_id:
+        sess.headers["X-Stream-Session"] = session_id
+    push_count = {"n": 0, "fail": 0}
+
+    def cb(idx: int, combine_frame_bgr) -> None:
+        try:
+            # cv2 BGR → RGB
+            rgb = cv2.cvtColor(combine_frame_bgr, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(rgb)
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=STREAM_JPEG_QUALITY)
+            data = buf.getvalue()
+            r = sess.post(f"{PUBLISHER_URL}/push_frame", data=data, timeout=2.0)
+            push_count["n"] += 1
+            if r.status_code >= 400:
+                push_count["fail"] += 1
+                if push_count["fail"] <= 3:
+                    print(f"[push_frame] {r.status_code}: {r.text[:200]}", flush=True)
+        except Exception as e:
+            push_count["fail"] += 1
+            if push_count["fail"] <= 3:
+                print(f"[push_frame] err idx={idx}: {e}", flush=True)
+
+    cb.stats = push_count  # type: ignore[attr-defined]
+    return cb
+
+
+def _signal_stream_end() -> None:
+    try:
+        requests.post(f"{PUBLISHER_URL}/push_frame_end", timeout=2.0)
+    except Exception as e:
+        print(f"[push_frame_end] err: {e}", flush=True)
 
 # ===== Default args (inference.py 의 argparse defaults 와 동일) =====
 def _default_args():
@@ -116,6 +173,7 @@ class InferReq(BaseModel):
     video_path: str | None = None
     output_id: str
     bbox_shift: int = 0
+    stream: bool = False
 
 
 @app.post("/infer")
@@ -156,13 +214,25 @@ def infer(req: InferReq):
     args.result_dir = str(OUTPUTS_DIR)
     args.bbox_shift = int(req.bbox_shift)
 
+    # Stream 모드 — frame_callback 으로 publisher 푸시
+    cb = _make_frame_callback(safe_id) if req.stream else None
+
     t0 = time.time()
     with infer_lock:
         try:
-            inference_lib.run_inference(args, MODELS)
+            if cb is not None:
+                inference_lib.run_inference(args, MODELS, frame_callback=cb)
+            else:
+                inference_lib.run_inference(args, MODELS)
         except Exception as e:
+            if cb is not None:
+                _signal_stream_end()
             raise HTTPException(500, f"inference failed: {type(e).__name__}: {e}")
     elapsed_ms = int((time.time() - t0) * 1000)
+
+    # stream 종료 신호
+    if cb is not None:
+        _signal_stream_end()
 
     # cfg 정리
     try:
@@ -178,8 +248,13 @@ def infer(req: InferReq):
         else:
             raise HTTPException(500, "output mp4 not found")
 
-    return {
+    resp = {
         "mp4_path": str(expected),
         "infer_ms": elapsed_ms,
         "output_id": safe_id,
     }
+    if cb is not None:
+        resp["streamed"] = True
+        resp["frames_pushed"] = cb.stats["n"]
+        resp["frames_failed"] = cb.stats["fail"]
+    return resp
