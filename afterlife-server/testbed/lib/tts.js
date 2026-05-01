@@ -19,7 +19,7 @@ export function v_27fa47(v_9b6134, v_b36f96 = {}) {
 
     const v_4d33b2 = JSON.stringify({
       text: v_9b6134,
-      speed: v_b36f96.speed ?? 0.85,
+      speed: v_b36f96.speed ?? Number.parseFloat(process.env.TTS_SPEED ?? '1.0'),
       sdp_ratio: v_b36f96.sdp_ratio ?? 0.5,
       noise_scale: v_b36f96.noise_scale ?? 0.6,
       noise_scale_w: v_b36f96.noise_scale_w ?? 1.0,
