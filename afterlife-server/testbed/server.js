@@ -9,8 +9,19 @@ import { buildSystemPrompt, loadPersona } from './lib/prompt.js';
 import { chatStream } from './lib/ollama.js';
 import { createSentenceBuffer } from './lib/sentence_buffer.js';
 import { ttsSynthesize } from './lib/tts.js';
+import {
+  concatWavs,
+  cleanupTempDir,
+  museTalkInfer,
+  mp4PathToUrl,
+} from './lib/musetalk.js';
+import crypto from 'node:crypto';
 
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
+const MUSETALK_ENABLED = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
+const MUSETALK_OUTPUTS_DIR =
+  process.env.MUSETALK_OUTPUTS_DIR ??
+  '/home/afterlife/afterlife-server/musetalk-afterlife/outputs/v15';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -22,6 +33,8 @@ app.use(morgan(process.env.LOG_LEVEL ?? 'combined'));
 app.use(cors());
 app.use(express.json({ limit: '256kb' }));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
+
+app.use('/outputs', express.static(MUSETALK_OUTPUTS_DIR, { fallthrough: true }));
 
 app.get('/healthz', (_req, res) => {
   res.type('text/plain').send('ok\n');
@@ -82,6 +95,9 @@ app.post('/oth-path', (req, res) => {
   let ttsSeq = 0;
   const inflightTts = new Set();
 
+  const collectedWavs = []; 
+  const sessionId = crypto.randomBytes(6).toString('hex');
+
   const synthAndSend = (text) => {
     if (!TTS_ENABLED) return Promise.resolve();
     const trimmed = text.trim();
@@ -99,6 +115,8 @@ app.post('/oth-path', (req, res) => {
           wallclock_ms: Date.now() - t0,
           bytes: wav.length,
         });
+
+        if (MUSETALK_ENABLED) collectedWavs.push({ seq, wav });
       })
       .catch((err) => {
         if (aborted) return;
@@ -126,10 +144,49 @@ app.post('/oth-path', (req, res) => {
       const remaining = sb.flush();
       for (const s of remaining) synthAndSend(s);
 
-      Promise.allSettled([...inflightTts]).then(() => {
+      Promise.allSettled([...inflightTts]).then(async () => {
         if (aborted) return;
         send('done', info);
-        res.end();
+
+        if (
+          MUSETALK_ENABLED &&
+          !aborted &&
+          collectedWavs.length > 0
+        ) {
+          let tmp = null;
+          try {
+
+            collectedWavs.sort((a, b) => a.seq - b.seq);
+            const wavOnly = collectedWavs.map((x) => x.wav);
+            tmp = await concatWavs(wavOnly);
+            if (!tmp) {
+              res.end();
+              return;
+            }
+            const result = await museTalkInfer({
+              audio_path: tmp.path,
+              output_id: `sess-${sessionId}`,
+            });
+            if (aborted) return;
+            send('video', {
+              url: mp4PathToUrl(result.mp4_path),
+              mp4_path: result.mp4_path,
+              mp4_basename: result.mp4_basename,
+              infer_ms: result.infer_ms,
+              sentence_count: collectedWavs.length,
+              audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
+            });
+          } catch (err) {
+            if (!aborted) {
+              send('video_error', { error: err?.message ?? 'musetalk failed' });
+            }
+          } finally {
+            if (tmp) await cleanupTempDir(tmp.dir);
+            res.end();
+          }
+        } else {
+          res.end();
+        }
       });
     },
     onError: (err) => {
