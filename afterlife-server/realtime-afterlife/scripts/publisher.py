@@ -5,17 +5,21 @@
 
 회차 029-D-2b — /subscribe 추가 (브라우저 클라이언트가 publisher 트랙 구독).
 
+회차 029-D-2c — frame queue 모드 (MuseTalk → publisher push):
+  StreamableVideoTrack 가 dummy 또는 queue 모드로 동작.
+  POST /oth-path bytes → 큐에 적재 (JPEG 80% quality 권장)
+  POST /oth-path stream 종료 (큐 flush)
+  /publish/start body: {mode: "dummy"|"queue"} (default "dummy")
+
 Endpoints:
-  POST /oth-path         → {sessionId, trackName, state: "publishing"}
+  POST /oth-path         → {sessionId, trackName, state: "publishing", mode}
   POST /oth-path          → {state: "stopped"}
   POST /oth-path             → {subscriber_session_id, offer_sdp, tracks,
                                 requires_renegotiation}
-                                body 없음. CF Realtime pull 1단계 — CF 가
-                                offer SDP 를 줌. publishing 아니면 409.
   POST /oth-path → {ok: true}
-                                body: {subscriber_session_id, answer_sdp}
-                                CF Realtime pull 2단계 — 클라이언트 answer 전달.
-  GET /oth-path               → {state, sessionId, trackName, uptime_s}
+  POST /oth-path            → {queued: N, dropped: bool}  (raw JPEG/RGB body)
+  POST /oth-path        → {flushed: N}
+  GET /oth-path               → {state, sessionId, trackName, uptime_s, mode, queue_depth}
 
 Env:
   CF_REALTIME_APP_ID       (required)
@@ -24,6 +28,7 @@ Env:
   PUBLISHER_BIND           (default: 127.0.0.1)
   PUBLISHER_PORT           (default: 8400)
   PUBLISHER_TRACK_NAME     (default: video1)
+  PUBLISHER_QUEUE_MAX      (default: 60)
 
 Run:
     set -a && . /home/afterlife/.env.vars && set +a
@@ -40,12 +45,15 @@ import time
 from pathlib import Path
 from typing import Optional
 
+import io
+
 import numpy as np
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaStreamError
 from aiortc.mediastreams import VideoStreamTrack
 from av import VideoFrame
+from PIL import Image
 
 # scripts/utils import 경로 보정
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -60,35 +68,91 @@ log = logging.getLogger("publisher")
 WIDTH = 640
 HEIGHT = 480
 FPS = 30
+QUEUE_MAX_DEFAULT = 60
 
-class DummyVideoTrack(VideoStreamTrack):
-    """단색 dummy frame, 1초마다 색상(H) 회전."""
+def _dummy_rgb_frame(elapsed: float) -> np.ndarray:
+    """단색 frame, 12초 주기 색 회전."""
+    h = (elapsed / 12.0) % 1.0
+    r, g, b = colorsys.hsv_to_rgb(h, 0.7, 0.9)
+    arr = np.zeros((HEIGHT, WIDTH, 3), dtype=np.uint8)
+    arr[:, :, 0] = int(r * 255)
+    arr[:, :, 1] = int(g * 255)
+    arr[:, :, 2] = int(b * 255)
+    return arr
+
+class StreamableVideoTrack(VideoStreamTrack):
+    """모드 토글 가능한 video track.
+
+    mode="dummy": HSV 회전 단색 frame (회차 D-2a/2b 호환)
+    mode="queue": 외부 큐(asyncio.Queue) 에서 ndarray 꺼내 yield.
+                 큐 비어있으면 last_frame hold (없으면 dummy fallback).
+    """
 
     kind = "video"
 
-    def __init__(self):
+    def __init__(self, queue_max: int = QUEUE_MAX_DEFAULT):
         super().__init__()
         self._start = time.time()
+        self.mode = "dummy"
+        self.queue: asyncio.Queue = asyncio.Queue(maxsize=queue_max)
+        self._last_frame: Optional[np.ndarray] = None
+        self._stream_ended = False
+
+    def set_mode(self, mode: str) -> None:
+        if mode not in ("dummy", "queue"):
+            raise ValueError(f"invalid mode: {mode}")
+        self.mode = mode
+        self._stream_ended = False
+
+    def push_ndarray(self, arr: np.ndarray) -> dict:
+        """외부에서 frame 적재. 큐 가득 차면 oldest drop."""
+        dropped = False
+        if self.queue.full():
+            try:
+                self.queue.get_nowait()
+                dropped = True
+            except asyncio.QueueEmpty:
+                pass
+        try:
+            self.queue.put_nowait(arr)
+        except asyncio.QueueFull:
+            dropped = True
+        return {"queued": self.queue.qsize(), "dropped": dropped}
+
+    def signal_end(self) -> int:
+        """stream 끝 신호 — 남은 큐 size 반환. 큐 비면 last_frame hold."""
+        self._stream_ended = True
+        return self.queue.qsize()
+
+    def queue_depth(self) -> int:
+        return self.queue.qsize()
 
     async def recv(self) -> VideoFrame:
         pts, time_base = await self.next_timestamp()
-        elapsed = time.time() - self._start
-        # 1초당 1/12 회전 → 12초 주기로 색이 한 바퀴
-        h = (elapsed / 12.0) % 1.0
-        r, g, b = colorsys.hsv_to_rgb(h, 0.7, 0.9)
-        rgb = (
-            int(r * 255),
-            int(g * 255),
-            int(b * 255),
-        )
-        arr = np.zeros((HEIGHT, WIDTH, 3), dtype=np.uint8)
-        arr[:, :, 0] = rgb[0]
-        arr[:, :, 1] = rgb[1]
-        arr[:, :, 2] = rgb[2]
+        arr: Optional[np.ndarray] = None
+
+        if self.mode == "queue":
+            try:
+                # 짧은 timeout 으로 폴링 — 비면 last/dummy fallback
+                arr = await asyncio.wait_for(self.queue.get(), timeout=0.02)
+                self._last_frame = arr
+            except asyncio.TimeoutError:
+                arr = self._last_frame  # hold
+        # dummy 모드 또는 queue 모드에서 last 도 없을 때
+        if arr is None:
+            arr = _dummy_rgb_frame(time.time() - self._start)
+
+        # 안전 — 차원 검증
+        if arr.ndim != 3 or arr.shape[2] != 3:
+            arr = _dummy_rgb_frame(time.time() - self._start)
+
         frame = VideoFrame.from_ndarray(arr, format="rgb24")
         frame.pts = pts
         frame.time_base = time_base
         return frame
+
+# 후방 호환 alias (기존 코드/테스트가 import 하는 경우)
+DummyVideoTrack = StreamableVideoTrack
 
 class PublisherState:
     def __init__(self):
@@ -96,16 +160,20 @@ class PublisherState:
         self.session_id: Optional[str] = None
         self.track_name: Optional[str] = None
         self.pc: Optional[RTCPeerConnection] = None
-        self.track: Optional[DummyVideoTrack] = None
+        self.track: Optional[StreamableVideoTrack] = None
+        self.mode: str = "dummy"
         self.started_at: float = time.time()
         self.lock = asyncio.Lock()
 
     def snapshot(self) -> dict:
+        depth = self.track.queue_depth() if self.track is not None else 0
         return {
             "state": self.state,
             "sessionId": self.session_id,
             "trackName": self.track_name,
             "uptime_s": round(time.time() - self.started_at, 2),
+            "mode": self.mode,
+            "queue_depth": depth,
         }
 
 def _env(name: str, default: Optional[str] = None, required: bool = False) -> str:
@@ -114,17 +182,27 @@ def _env(name: str, default: Optional[str] = None, required: bool = False) -> st
         raise SystemExit(f"missing env {name}")
     return v or ""
 
-async def _start_publish(state: PublisherState, client: CFRealtimeClient, track_name: str) -> dict:
+async def _start_publish(
+    state: PublisherState,
+    client: CFRealtimeClient,
+    track_name: str,
+    mode: str = "dummy",
+    queue_max: int = QUEUE_MAX_DEFAULT,
+) -> dict:
     if state.state != "idle":
         return {"error": f"state={state.state}; stop first", "state": state.state}
+
+    if mode not in ("dummy", "queue"):
+        return {"error": f"invalid mode: {mode}", "state": state.state}
 
     # 1) CF 세션 생성
     sid = await client.create_session()
     log.info("cf sessions/new ok sid_prefix=%s len=%d", sid[:8], len(sid))
 
-    # 2) PeerConnection + dummy track + offer
+    # 2) PeerConnection + streamable track + offer
     pc = RTCPeerConnection()
-    track = DummyVideoTrack()
+    track = StreamableVideoTrack(queue_max=queue_max)
+    track.set_mode(mode)
     pc.addTrack(track)
     offer = await pc.createOffer()
     await pc.setLocalDescription(offer)
@@ -156,8 +234,14 @@ async def _start_publish(state: PublisherState, client: CFRealtimeClient, track_
     state.track = track
     state.session_id = sid
     state.track_name = track_name
+    state.mode = mode
     state.state = "publishing"
-    return {"sessionId": sid, "trackName": track_name, "state": "publishing"}
+    return {
+        "sessionId": sid,
+        "trackName": track_name,
+        "state": "publishing",
+        "mode": mode,
+    }
 
 async def _stop_publish(state: PublisherState) -> dict:
     if state.pc is not None:
@@ -169,6 +253,7 @@ async def _stop_publish(state: PublisherState) -> dict:
     state.track = None
     state.session_id = None
     state.track_name = None
+    state.mode = "dummy"
     state.state = "stopped"
     return {"state": "stopped"}
 
@@ -184,15 +269,31 @@ def make_app() -> web.Application:
     if not token:
         raise SystemExit("missing env CF_REALTIME_APP_TOKEN (or CF_REALTIME_APP_SECRET)")
     default_track_name = _env("PUBLISHER_TRACK_NAME", "video1")
+    queue_max = int(_env("PUBLISHER_QUEUE_MAX", str(QUEUE_MAX_DEFAULT)))
     client = CFRealtimeClient(base=base, app_id=app_id, token=token)
 
     async def healthz(_request: web.Request) -> web.Response:
         return web.json_response(state.snapshot())
 
-    async def publish_start(_request: web.Request) -> web.Response:
+    async def publish_start(request: web.Request) -> web.Response:
+        # body optional. {mode: "dummy"|"queue"} default "dummy"
+        mode = "dummy"
+        if request.can_read_body:
+            try:
+                raw = await request.read()
+                if raw:
+                    import json as _json
+                    body = _json.loads(raw)
+                    m = (body or {}).get("mode")
+                    if isinstance(m, str):
+                        mode = m
+            except Exception as e:  # noqa: BLE001
+                log.warning("publish/start body parse skipped: %s", e)
         async with state.lock:
             try:
-                result = await _start_publish(state, client, default_track_name)
+                result = await _start_publish(
+                    state, client, default_track_name, mode=mode, queue_max=queue_max,
+                )
             except CFRealtimeError as e:
                 log.error("publish/start cf err: %s", e)
                 return web.json_response(
@@ -208,6 +309,67 @@ def make_app() -> web.Application:
         if "error" in result:
             return web.json_response(result, status=409)
         return web.json_response(result)
+
+    async def push_frame(request: web.Request) -> web.Response:
+        """raw bytes body → ndarray → 큐 적재.
+
+        headers:
+          Content-Type: image/jpeg | image/raw
+          X-Width, X-Height (raw only, default 640x480)
+          X-Frame-Format: jpeg | rgb24 | bgr24 (default jpeg)
+        """
+        if state.state != "publishing" or state.track is None:
+            return web.json_response(
+                {"error": "publisher_not_publishing", "state": state.state},
+                status=409,
+            )
+        if state.mode != "queue":
+            return web.json_response(
+                {"error": "publisher_not_in_queue_mode", "mode": state.mode},
+                status=409,
+            )
+        body = await request.read()
+        if not body:
+            return web.json_response({"error": "empty_body"}, status=400)
+        fmt = request.headers.get("X-Frame-Format", "").lower()
+        ctype = (request.headers.get("Content-Type") or "").lower()
+        if not fmt:
+            fmt = "jpeg" if "jpeg" in ctype or "jpg" in ctype else (
+                "rgb24" if "raw" in ctype else "jpeg"
+            )
+        def _decode() -> np.ndarray:
+            if fmt == "jpeg":
+                img = Image.open(io.BytesIO(body)).convert("RGB")
+                return np.asarray(img, dtype=np.uint8)
+            if fmt == "rgb24":
+                w = int(request.headers.get("X-Width", str(WIDTH)))
+                h = int(request.headers.get("X-Height", str(HEIGHT)))
+                return np.frombuffer(body, dtype=np.uint8).reshape((h, w, 3))
+            if fmt == "bgr24":
+                w = int(request.headers.get("X-Width", str(WIDTH)))
+                h = int(request.headers.get("X-Height", str(HEIGHT)))
+                bgr = np.frombuffer(body, dtype=np.uint8).reshape((h, w, 3))
+                return bgr[:, :, ::-1].copy()
+            raise ValueError(f"unsupported_format: {fmt}")
+
+        try:
+            arr = await asyncio.to_thread(_decode)
+        except ValueError as e:
+            return web.json_response({"error": str(e)}, status=400)
+        except Exception as e:  # noqa: BLE001
+            log.warning("push_frame decode err: %s", e)
+            return web.json_response(
+                {"error": "decode_failed", "detail": repr(e)[:200]}, status=400
+            )
+
+        info = state.track.push_ndarray(arr)
+        return web.json_response(info)
+
+    async def push_frame_end(_request: web.Request) -> web.Response:
+        if state.track is None:
+            return web.json_response({"flushed": 0, "note": "no_track"})
+        depth = state.track.signal_end()
+        return web.json_response({"flushed": depth})
 
     async def publish_stop(_request: web.Request) -> web.Response:
         async with state.lock:
@@ -320,17 +482,21 @@ def make_app() -> web.Application:
         resp.headers["Access-Control-Max-Age"] = "600"
         return resp
 
-    app = web.Application(middlewares=[cors_middleware])
+    app = web.Application(middlewares=[cors_middleware], client_max_size=8 * 1024 * 1024)
     app.router.add_get("/healthz", healthz)
     app.router.add_post("/publish/start", publish_start)
     app.router.add_post("/publish/stop", publish_stop)
     app.router.add_post("/subscribe", subscribe)
     app.router.add_post("/subscribe/renegotiate", subscribe_renegotiate)
+    app.router.add_post("/push_frame", push_frame)
+    app.router.add_post("/push_frame_end", push_frame_end)
     # OPTIONS preflight 라우트 — middleware 가 응답 헤더 채움
     app.router.add_route("OPTIONS", "/subscribe", lambda r: web.Response(status=204))
     app.router.add_route("OPTIONS", "/subscribe/renegotiate", lambda r: web.Response(status=204))
     app.router.add_route("OPTIONS", "/publish/start", lambda r: web.Response(status=204))
     app.router.add_route("OPTIONS", "/publish/stop", lambda r: web.Response(status=204))
+    app.router.add_route("OPTIONS", "/push_frame", lambda r: web.Response(status=204))
+    app.router.add_route("OPTIONS", "/push_frame_end", lambda r: web.Response(status=204))
 
     async def _on_cleanup(_app: web.Application) -> None:
         if state.pc is not None:

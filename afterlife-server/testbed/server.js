@@ -20,6 +20,8 @@ import crypto from 'node:crypto';
 
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
 const MUSETALK_ENABLED = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
+
+const MUSETALK_STREAM_MODE = (process.env.MUSETALK_STREAM_MODE ?? '0') === '1';
 const MUSETALK_OUTPUTS_DIR =
   process.env.MUSETALK_OUTPUTS_DIR ??
   '/home/afterlife/afterlife-server/musetalk-afterlife/outputs/v15';
@@ -240,6 +242,7 @@ app.post('/oth-path', (req, res) => {
             const result = await museTalkInfer({
               audio_path: tmp.path,
               output_id: `sess-${sessionId}`,
+              stream: MUSETALK_STREAM_MODE,
             });
             if (aborted) return;
             send('video', {
@@ -249,6 +252,8 @@ app.post('/oth-path', (req, res) => {
               infer_ms: result.infer_ms,
               sentence_count: collectedWavs.length,
               audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
+              streaming: !!result.streamed,
+              frames_pushed: result.frames_pushed ?? null,
             });
           } catch (err) {
             if (!aborted) {
