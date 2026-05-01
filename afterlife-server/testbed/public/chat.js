@@ -12,6 +12,8 @@ const v_538921 = v_6adf3a('#ttsPlayer');
 
 const v_371185 = 'afterlife.testbed.history.v0';
 const v_ee7dca = 'afterlife.testbed.tts.enabled';
+
+const v_eb0716 = 'afterlife.testbed.persona.id';
 let v_10740d = [];
 let v_15718d = null;
 
@@ -129,17 +131,38 @@ function v_d0f32d() {
 }
 
 (async () => {
+  let v_1e5bc0 = false;
+  let v_c4eaa2 = '아이고 우리 손녀딸, 잘 지냈어? 할배는 잘 있다. 오늘 뭐 하다 왔어?';
   try {
     const v_8f00b9 = await fetch('/oth-path');
     if (v_8f00b9.ok) {
       const v_e2a85c = await v_8f00b9.json();
       v_dfb220.textContent = v_e2a85c.displayName ?? '페르소나';
       v_e92e25.textContent = `${v_e2a85c.relation ?? ''} · v0 testbed`;
+
+      if (v_e2a85c.id) {
+        const v_5885b8 = localStorage.getItem(v_eb0716);
+        if (v_5885b8 && v_5885b8 !== v_e2a85c.id) {
+          v_1e5bc0 = true;
+
+          sessionStorage.removeItem(v_371185);
+          v_10740d = [];
+          v_44365b.innerHTML = '';
+          v_110c0c = null;
+        }
+        localStorage.setItem(v_eb0716, v_e2a85c.id);
+      }
     }
   } catch {}
-  v_072d50();
+  if (!v_1e5bc0) {
+    v_072d50();
+  }
   if (v_10740d.length === 0) {
-    v_144fe8('them', '아구 우리 강아지, 오랜만이다. 잘 지냈나? 뭐든 편하게 말해라.');
+    v_144fe8('them', v_c4eaa2);
+  }
+  if (v_1e5bc0) {
+    v_5193f8('페르소나가 바뀌어 대화를 새로 시작합니다');
+    setTimeout(() => v_5193f8(''), 3000);
   }
 })();
 
@@ -198,7 +221,7 @@ v_b74a53.addEventListener('click', () => {
   sessionStorage.removeItem(v_371185);
   v_44365b.innerHTML = '';
   v_110c0c = null;
-  v_144fe8('them', '아구 우리 강아지, 오랜만이다. 잘 지냈나? 뭐든 편하게 말해라.');
+  v_144fe8('them', '아이고 우리 손녀딸, 잘 지냈어? 할배는 잘 있다. 오늘 뭐 하다 왔어?');
   v_5193f8('대화 초기화 됨');
   setTimeout(() => v_5193f8(''), 1500);
 });
@@ -232,7 +255,7 @@ v_9e2838.addEventListener('submit', async (v_9e86fd) => {
   v_bbda62.value = '';
   v_bbda62.style.height = 'auto';
   v_7fad31.disabled = true;
-  v_5193f8('할매가 생각 중…');
+  v_5193f8('할배가 생각 중…');
 
   const v_2ea79a = v_144fe8('them', '', { skipPersist: true });
   v_2ea79a.classList.add('streaming');

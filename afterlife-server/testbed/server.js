@@ -9,6 +9,7 @@ import { v_841e05, v_464116 } from './lib/prompt.js';
 import { v_a26277 } from './lib/ollama.js';
 import { v_cdb49a } from './lib/sentence_buffer.js';
 import { v_27fa47 } from './lib/tts.js';
+import { v_0f0580, v_c80dec } from './lib/sanitize.js';
 import {
   v_034be8,
   v_ba8718,
@@ -100,16 +101,17 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
   const v_80a694 = (v_9b6134) => {
     if (!v_455f07) return Promise.resolve();
-    const v_2f361a = v_9b6134.trim();
-    if (!v_2f361a) return Promise.resolve();
+
+    const v_738e47 = v_0f0580(v_9b6134);
+    if (!v_738e47) return Promise.resolve();
     const v_1923e2 = ++v_213fa0;
     const v_b66f2c = Date.now();
-    const v_e2a85c = v_27fa47(v_2f361a)
+    const v_e2a85c = v_27fa47(v_738e47)
       .then(({ wav: v_7ab8bd, synthMs: v_3691b5 }) => {
         if (v_6c558f) return;
         v_9c423d('tts', {
           seq: v_1923e2,
-          text: v_2f361a,
+          text: v_738e47,
           audio_b64: v_7ab8bd.toString('base64'),
           synth_ms: v_3691b5,
           wallclock_ms: Date.now() - v_b66f2c,
@@ -120,7 +122,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
       })
       .catch((v_49263d) => {
         if (v_6c558f) return;
-        v_9c423d('tts_error', { seq: v_1923e2, text: v_2f361a, error: v_49263d?.message ?? 'tts failed' });
+        v_9c423d('tts_error', { seq: v_1923e2, text: v_738e47, error: v_49263d?.message ?? 'tts failed' });
       })
       .finally(() => {
         v_e8b841.delete(v_e2a85c);
@@ -133,9 +135,12 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     messages: v_fa56e0,
     onChunk: (v_9b6134) => {
       if (v_6c558f) return;
-      v_9c423d('chunk', { text: v_9b6134 });
 
-      const v_fe6160 = v_138fc0.feed(v_9b6134);
+      const v_76a373 = v_c80dec(v_9b6134);
+      if (!v_76a373) return;
+      v_9c423d('chunk', { text: v_76a373 });
+
+      const v_fe6160 = v_138fc0.feed(v_76a373);
       for (const v_fd5f43 of v_fe6160) v_80a694(v_fd5f43);
     },
     onDone: (v_34d5e3) => {
