@@ -7,10 +7,126 @@ const v_87b7ea = v_6adf3a('#status');
 const v_dfb220 = v_6adf3a('#personaName');
 const v_e92e25 = v_6adf3a('#personaSub');
 const v_b74a53 = v_6adf3a('#resetBtn');
+const v_fcca65 = v_6adf3a('#ttsToggleBtn');
+const v_538921 = v_6adf3a('#ttsPlayer');
 
 const v_371185 = 'afterlife.testbed.history.v0';
+const v_ee7dca = 'afterlife.testbed.tts.enabled';
 let v_10740d = [];
 let v_15718d = null;
+
+let v_3f0d23 = localStorage.getItem(v_ee7dca) !== 'false';
+
+let v_110c0c = null;
+
+let v_76e948 = '';
+
+const v_9725b8 = [];
+const v_72f3e5 = new Map();
+let v_61c108 = 1;
+let v_087c92 = false;
+let v_0ce149 = null;
+
+function v_fac85e() {
+  v_9725b8.length = 0;
+  v_72f3e5.clear();
+  v_61c108 = 1;
+  v_087c92 = false;
+  v_76e948 = '';
+  if (v_538921) {
+    try { v_538921.pause(); } catch {}
+    v_538921.removeAttribute('src');
+    try { v_538921.load(); } catch {}
+  }
+  if (v_0ce149) {
+    URL.revokeObjectURL(v_0ce149);
+    v_0ce149 = null;
+  }
+  if (v_110c0c) {
+    v_110c0c.dataset.tts = 'done';
+  }
+}
+
+function v_9cc8d1(v_931bf0) {
+  if (!v_3f0d23) return;
+  if (!v_931bf0 || typeof v_931bf0.seq !== 'number' || !v_931bf0.audio_b64) return;
+  v_72f3e5.set(v_931bf0.seq, v_931bf0);
+  while (v_72f3e5.has(v_61c108)) {
+    v_9725b8.push(v_72f3e5.get(v_61c108));
+    v_72f3e5.delete(v_61c108);
+    v_61c108++;
+  }
+
+  v_e2caee();
+  v_8e7e15();
+}
+
+function v_e2caee() {
+
+  if (!v_087c92 && v_9725b8.length > 0) {
+    v_5193f8(`(♪ 대기 ${v_9725b8.length}개)`);
+  }
+}
+
+function v_8e7e15() {
+  if (!v_538921 || v_087c92) return;
+  if (v_9725b8.length === 0) {
+    if (v_110c0c && v_110c0c.dataset.tts === 'playing') {
+      v_110c0c.dataset.tts = 'done';
+    }
+    return;
+  }
+  const v_8c0b26 = v_9725b8.shift();
+  v_087c92 = true;
+
+  if (v_110c0c) v_110c0c.dataset.tts = 'playing';
+  try {
+    const v_d8cac9 = atob(v_8c0b26.audio_b64);
+    const v_d0c056 = new Uint8Array(v_d8cac9.length);
+    for (let v_ebec57 = 0; v_ebec57 < v_d8cac9.length; v_ebec57++) v_d0c056[v_ebec57] = v_d8cac9.charCodeAt(v_ebec57);
+    const v_3263c7 = new Blob([v_d0c056], { type: 'audio/wav' });
+    const v_f71b56 = URL.createObjectURL(v_3263c7);
+    if (v_0ce149) URL.revokeObjectURL(v_0ce149);
+    v_0ce149 = v_f71b56;
+    v_538921.src = v_f71b56;
+    v_538921.onended = () => {
+      v_087c92 = false;
+      if (v_0ce149) {
+        URL.revokeObjectURL(v_0ce149);
+        v_0ce149 = null;
+      }
+      v_8e7e15();
+    };
+    v_538921.onerror = () => {
+      console.warn('audio error', v_538921.error);
+      v_087c92 = false;
+      v_8e7e15();
+    };
+
+    const v_c83285 = v_8c0b26.seq + v_9725b8.length;
+    v_76e948 = `synth ${v_8c0b26.synth_ms}ms / ${(v_8c0b26.bytes >> 10)}KB`;
+    v_5193f8(`(♪ ${v_8c0b26.seq}/${v_c83285} · ${v_76e948})`);
+    const v_623d74 = v_538921.play();
+    if (v_623d74 && typeof v_623d74.catch === 'function') {
+      v_623d74.catch((v_49263d) => {
+        console.warn('audio play failed:', v_49263d);
+        v_087c92 = false;
+        v_8e7e15();
+      });
+    }
+  } catch (v_49263d) {
+    console.warn('audio decode failed:', v_49263d);
+    v_087c92 = false;
+    v_8e7e15();
+  }
+}
+
+function v_d0f32d() {
+  if (!v_fcca65) return;
+  v_fcca65.textContent = v_3f0d23 ? '🔊' : '🔇';
+  v_fcca65.setAttribute('aria-pressed', v_3f0d23 ? 'true' : 'false');
+  v_fcca65.title = v_3f0d23 ? '음성 on (눌러서 끄기)' : '음성 off (눌러서 켜기)';
+}
 
 (async () => {
   try {
@@ -77,19 +193,40 @@ v_bbda62.addEventListener('keydown', (v_9e86fd) => {
 
 v_b74a53.addEventListener('click', () => {
   if (v_15718d) v_15718d.abort();
+  v_fac85e();
   v_10740d = [];
   sessionStorage.removeItem(v_371185);
   v_44365b.innerHTML = '';
+  v_110c0c = null;
   v_144fe8('them', '아구 우리 강아지, 오랜만이다. 잘 지냈나? 뭐든 편하게 말해라.');
   v_5193f8('대화 초기화 됨');
   setTimeout(() => v_5193f8(''), 1500);
 });
+
+if (v_fcca65) {
+  v_d0f32d();
+  v_fcca65.addEventListener('click', () => {
+    v_3f0d23 = !v_3f0d23;
+    localStorage.setItem(v_ee7dca, v_3f0d23 ? 'true' : 'false');
+    v_d0f32d();
+    if (!v_3f0d23) {
+
+      v_fac85e();
+      v_5193f8('음성 off');
+    } else {
+      v_5193f8('음성 on');
+    }
+    setTimeout(() => v_5193f8(''), 1500);
+  });
+}
 
 v_9e2838.addEventListener('submit', async (v_9e86fd) => {
   v_9e86fd.preventDefault();
   if (v_7fad31.disabled) return;
   const v_9b6134 = v_bbda62.value.trim();
   if (!v_9b6134) return;
+
+  v_fac85e();
 
   v_144fe8('self', v_9b6134);
   v_bbda62.value = '';
@@ -99,6 +236,8 @@ v_9e2838.addEventListener('submit', async (v_9e86fd) => {
 
   const v_2ea79a = v_144fe8('them', '', { skipPersist: true });
   v_2ea79a.classList.add('streaming');
+  v_2ea79a.dataset.tts = v_3f0d23 ? 'pending' : 'off';
+  v_110c0c = v_2ea79a;
   let v_9f1d92 = '';
 
   v_15718d = new AbortController();
@@ -135,6 +274,10 @@ v_9e2838.addEventListener('submit', async (v_9e86fd) => {
           v_9f1d92 += v_931bf0.text;
           v_2ea79a.textContent = v_9f1d92;
           v_44365b.scrollTop = v_44365b.scrollHeight;
+        } else if (v_d48baf === 'tts') {
+          v_9cc8d1(v_931bf0);
+        } else if (v_d48baf === 'tts_error') {
+          console.warn('tts error:', v_931bf0);
         } else if (v_d48baf === 'done') {
           v_5193f8(`(${v_931bf0.eval_count ?? 0} tok / ${(v_931bf0.total_duration_ms ?? 0) / 1000 | 0}s)`);
         } else if (v_d48baf === 'error') {
@@ -154,6 +297,10 @@ v_9e2838.addEventListener('submit', async (v_9e86fd) => {
     }
   } finally {
     v_2ea79a.classList.remove('streaming');
+
+    if (!v_087c92 && v_9725b8.length === 0) {
+      v_2ea79a.dataset.tts = v_3f0d23 ? 'done' : 'off';
+    }
     v_7fad31.disabled = false;
     v_15718d = null;
     setTimeout(() => v_5193f8(''), 4000);
