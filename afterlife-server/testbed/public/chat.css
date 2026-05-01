@@ -193,6 +193,17 @@ body {
   font-size: 14px;
 }
 
+/* 회차 029-C: MuseTalk 합성 영상 — bubble 안 또는 우측 첨부 */
+.bubble.them .reply-video {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  margin-top: 8px;
+  border-radius: var(--radius-sm);
+  background: #000;
+  outline: 1px solid var(--border);
+}
+
 .composer {
   display: flex;
   gap: 8px;

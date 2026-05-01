@@ -279,7 +279,26 @@ v_9e2838.addEventListener('submit', async (v_9e86fd) => {
         } else if (v_d48baf === 'tts_error') {
           console.warn('tts error:', v_931bf0);
         } else if (v_d48baf === 'done') {
-          v_5193f8(`(${v_931bf0.eval_count ?? 0} tok / ${(v_931bf0.total_duration_ms ?? 0) / 1000 | 0}s)`);
+
+          v_5193f8(`(${v_931bf0.eval_count ?? 0} tok / ${(v_931bf0.total_duration_ms ?? 0) / 1000 | 0}s · 영상 합성 중…)`);
+        } else if (v_d48baf === 'video' && v_931bf0.url) {
+
+          const v_81e2ef = document.createElement('video');
+          v_81e2ef.src = v_931bf0.url;
+          v_81e2ef.controls = true;
+          v_81e2ef.autoplay = true;
+          v_81e2ef.playsInline = true;
+          v_81e2ef.preload = 'auto';
+          v_81e2ef.className = 'reply-video';
+          v_2ea79a.appendChild(v_81e2ef);
+          v_44365b.scrollTop = v_44365b.scrollHeight;
+          const v_b6a7e0 = Math.max(0, (v_931bf0.infer_ms ?? 0) / 1000) | 0;
+          v_5193f8(`(영상 도착 · ${v_b6a7e0}s)`);
+          setTimeout(() => v_5193f8(''), 4000);
+        } else if (v_d48baf === 'video_error') {
+          console.warn('video error:', v_931bf0);
+          v_5193f8(`(영상 합성 실패: ${v_931bf0.error ?? '?'})`);
+          setTimeout(() => v_5193f8(''), 4000);
         } else if (v_d48baf === 'error') {
           throw new Error(v_931bf0.error ?? 'stream error');
         }
