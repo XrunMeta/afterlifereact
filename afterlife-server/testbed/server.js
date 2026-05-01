@@ -24,6 +24,9 @@ const v_e3f065 =
   process.env.MUSETALK_OUTPUTS_DIR ??
   '/home/afterlife/afterlife-server/musetalk-afterlife/outputs/v15';
 
+const v_de4278 =
+  process.env.REALTIME_PUBLISHER_URL ?? 'http://127.0.0.1:8400';
+
 const v_a65c2e = v_9fe22d.dirname(v_6b8a99(import.meta.url));
 
 const v_466992 = v_96bb47();
@@ -61,6 +64,72 @@ v_466992.get('/oth-path', (v_5ebc52, v_8f00b9) => {
   const { profile: v_727031 } = v_464116();
 
   v_8f00b9.json(v_727031);
+});
+
+v_466992.get('/oth-path', async (v_5ebc52, v_8f00b9) => {
+  try {
+    const v_cb35cb = await fetch(`${v_de4278}/healthz`, {
+      method: 'GET',
+    });
+    const v_9b6134 = await v_cb35cb.text();
+    let v_9390e8;
+    try { v_9390e8 = JSON.parse(v_9b6134); } catch { v_9390e8 = { raw: v_9b6134 }; }
+    v_8f00b9.status(v_cb35cb.status).json(v_9390e8);
+  } catch (v_49263d) {
+    v_8f00b9.status(502).json({
+      error: 'publisher_unreachable',
+      detail: v_49263d?.message ?? String(v_49263d),
+    });
+  }
+});
+
+v_466992.post('/oth-path', async (v_5ebc52, v_8f00b9) => {
+  try {
+    const v_cb35cb = await fetch(`${v_de4278}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const v_9b6134 = await v_cb35cb.text();
+    let v_9390e8;
+    try { v_9390e8 = JSON.parse(v_9b6134); } catch { v_9390e8 = { raw: v_9b6134 }; }
+    v_8f00b9.status(v_cb35cb.status).json(v_9390e8);
+  } catch (v_49263d) {
+    v_8f00b9.status(502).json({
+      error: 'publisher_unreachable',
+      detail: v_49263d?.message ?? String(v_49263d),
+    });
+  }
+});
+
+v_466992.post('/oth-path', async (v_309144, v_8f00b9) => {
+  const v_5bd2a8 = (v_309144.body && typeof v_309144.body.subscriber_session_id === 'string')
+    ? v_309144.body.subscriber_session_id
+    : null;
+  const v_3f08aa = (v_309144.body && typeof v_309144.body.answer_sdp === 'string')
+    ? v_309144.body.answer_sdp
+    : null;
+  if (!v_5bd2a8 || !v_3f08aa) {
+    return v_8f00b9.status(400).json({ error: 'missing_fields' });
+  }
+  try {
+    const v_cb35cb = await fetch(`${v_de4278}/subscribe/renegotiate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscriber_session_id: v_5bd2a8,
+        answer_sdp: v_3f08aa,
+      }),
+    });
+    const v_9b6134 = await v_cb35cb.text();
+    let v_9390e8;
+    try { v_9390e8 = JSON.parse(v_9b6134); } catch { v_9390e8 = { raw: v_9b6134 }; }
+    v_8f00b9.status(v_cb35cb.status).json(v_9390e8);
+  } catch (v_49263d) {
+    v_8f00b9.status(502).json({
+      error: 'publisher_unreachable',
+      detail: v_49263d?.message ?? String(v_49263d),
+    });
+  }
 });
 
 v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
