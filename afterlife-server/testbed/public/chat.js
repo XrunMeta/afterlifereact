@@ -279,7 +279,26 @@ composer.addEventListener('submit', async (e) => {
         } else if (event === 'tts_error') {
           console.warn('tts error:', payload);
         } else if (event === 'done') {
-          setStatus(`(${payload.eval_count ?? 0} tok / ${(payload.total_duration_ms ?? 0) / 1000 | 0}s)`);
+
+          setStatus(`(${payload.eval_count ?? 0} tok / ${(payload.total_duration_ms ?? 0) / 1000 | 0}s · 영상 합성 중…)`);
+        } else if (event === 'video' && payload.url) {
+
+          const v = document.createElement('video');
+          v.src = payload.url;
+          v.controls = true;
+          v.autoplay = true;
+          v.playsInline = true;
+          v.preload = 'auto';
+          v.className = 'reply-video';
+          themEl.appendChild(v);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+          const sec = Math.max(0, (payload.infer_ms ?? 0) / 1000) | 0;
+          setStatus(`(영상 도착 · ${sec}s)`);
+          setTimeout(() => setStatus(''), 4000);
+        } else if (event === 'video_error') {
+          console.warn('video error:', payload);
+          setStatus(`(영상 합성 실패: ${payload.error ?? '?'})`);
+          setTimeout(() => setStatus(''), 4000);
         } else if (event === 'error') {
           throw new Error(payload.error ?? 'stream error');
         }
