@@ -19,7 +19,7 @@ export function ttsSynthesize(text, options = {}) {
 
     const body = JSON.stringify({
       text,
-      speed: options.speed ?? 0.85,
+      speed: options.speed ?? Number.parseFloat(process.env.TTS_SPEED ?? '1.0'),
       sdp_ratio: options.sdp_ratio ?? 0.5,
       noise_scale: options.noise_scale ?? 0.6,
       noise_scale_w: options.noise_scale_w ?? 1.0,
