@@ -1,0 +1,30 @@
+[Unit]
+Description=afterlife TTS (OpenVoice/MeloTTS, :8200)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=afterlife
+Group=afterlife
+WorkingDirectory=/home/afterlife/afterlife-server/openvoice-afterlife
+Environment=PATH=/home/afterlife/miniconda3/envs/openvoice/bin:/usr/local/bin:/usr/bin:/bin
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=HOME=/home/afterlife
+ExecStart=/home/afterlife/miniconda3/envs/openvoice/bin/uvicorn scripts.tts_server:app --host 127.0.0.1 --port 8200
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/afterlife/afterlife-server/openvoice-afterlife /home/afterlife/.cache
+PrivateTmp=true
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=afterlife-tts
+
+[Install]
+WantedBy=multi-user.target
