@@ -1,0 +1,32 @@
+[Unit]
+Description=afterlife testbed (Express, port 8100)
+Documentation=https://memorial.example.invalid/
+After=network-online.target ollama-afterlife.service
+Wants=network-online.target
+Requires=ollama-afterlife.service
+
+[Service]
+Type=simple
+User=afterlife
+Group=afterlife
+WorkingDirectory=/home/afterlife/afterlife-server/testbed
+EnvironmentFile=/home/afterlife/afterlife-server/testbed/.env
+ExecStart=/usr/bin/node /home/afterlife/afterlife-server/testbed/server.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+
+# 격리 / 권한 최소화
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/home/afterlife/afterlife-server/testbed
+PrivateTmp=true
+
+# 로그
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=afterlife-testbed
+
+[Install]
+WantedBy=multi-user.target

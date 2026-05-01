@@ -16,3 +16,15 @@ docs/관리.txt
 docs/*.local.md
 docs/*.local.txt
 afterlifeadmin/package-lock.json
+
+# afterlife server — SSL keys/certs (NEVER commit)
+afterlife-server/configs/*.key
+afterlife-server/configs/*.pem
+afterlife-server/configs/*.crt
+afterlife-server/configs/*ssl*
+afterlife-server/configs/afterlifesslkey.txt
+afterlife-server/configs/secret*
+
+# afterlife server — sync mirror (모델/대용량) + 회차 로그
+afterlife-server/sync-mirror/
+afterlife-server-log/
