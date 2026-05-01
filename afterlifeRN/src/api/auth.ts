@@ -186,6 +186,37 @@ export interface PatchMePayload {
   age?: number | null;
 }
 
+export async function patchInterests(
+  accessToken: string,
+  payload: { add?: string[]; remove?: string[] },
+): Promise<{ ok: true }> {
+  const res = await fetch(`${API_BASE}/oth-path`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+
+  }
+  if (!res.ok) {
+    const errBody = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      errBody?.error?.code ?? "HTTP_ERROR",
+      errBody?.error?.message ?? `HTTP ${res.status}`,
+      errBody?.error?.details,
+    );
+  }
+  return parsed as { ok: true };
+}
+
 export async function patchMe(
   accessToken: string,
   payload: PatchMePayload,
