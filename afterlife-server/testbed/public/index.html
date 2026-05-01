@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1b1410">
+  <title>afterlife · 부산 할매</title>
+  <link rel="stylesheet" href="/chat.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="persona">
+      <div class="avatar" aria-hidden="true">할</div>
+      <div class="meta">
+        <div class="name" id="personaName">부산 할매</div>
+        <div class="sub" id="personaSub">외할머니 · v0 testbed</div>
+      </div>
+    </div>
+    <button class="ghost" id="resetBtn" type="button" title="대화 초기화">⟲</button>
+  </header>
+
+  <main id="messages" class="messages" role="log" aria-live="polite"></main>
+
+  <form id="composer" class="composer" autocomplete="off">
+    <textarea id="input"
+      placeholder="할매한테 말 걸어봐… (Enter 전송, Shift+Enter 줄바꿈)"
+      rows="1"
+      maxlength="2000"
+      aria-label="메시지 입력"></textarea>
+    <button id="sendBtn" type="submit" aria-label="보내기">↑</button>
+  </form>
+
+  <div id="status" class="status" aria-live="polite"></div>
+
+  <script src="/chat.js" defer></script>
+</body>
+</html>
