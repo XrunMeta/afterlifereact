@@ -24,6 +24,9 @@ const MUSETALK_OUTPUTS_DIR =
   process.env.MUSETALK_OUTPUTS_DIR ??
   '/home/afterlife/afterlife-server/musetalk-afterlife/outputs/v15';
 
+const REALTIME_PUBLISHER_URL =
+  process.env.REALTIME_PUBLISHER_URL ?? 'http://127.0.0.1:8400';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
@@ -61,6 +64,72 @@ app.get('/oth-path', (_req, res) => {
   const { profile } = loadPersona();
 
   res.json(profile);
+});
+
+app.get('/oth-path', async (_req, res) => {
+  try {
+    const r = await fetch(`${REALTIME_PUBLISHER_URL}/healthz`, {
+      method: 'GET',
+    });
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    res.status(r.status).json(data);
+  } catch (err) {
+    res.status(502).json({
+      error: 'publisher_unreachable',
+      detail: err?.message ?? String(err),
+    });
+  }
+});
+
+app.post('/oth-path', async (_req, res) => {
+  try {
+    const r = await fetch(`${REALTIME_PUBLISHER_URL}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    res.status(r.status).json(data);
+  } catch (err) {
+    res.status(502).json({
+      error: 'publisher_unreachable',
+      detail: err?.message ?? String(err),
+    });
+  }
+});
+
+app.post('/oth-path', async (req, res) => {
+  const subSid = (req.body && typeof req.body.subscriber_session_id === 'string')
+    ? req.body.subscriber_session_id
+    : null;
+  const answerSdp = (req.body && typeof req.body.answer_sdp === 'string')
+    ? req.body.answer_sdp
+    : null;
+  if (!subSid || !answerSdp) {
+    return res.status(400).json({ error: 'missing_fields' });
+  }
+  try {
+    const r = await fetch(`${REALTIME_PUBLISHER_URL}/subscribe/renegotiate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscriber_session_id: subSid,
+        answer_sdp: answerSdp,
+      }),
+    });
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    res.status(r.status).json(data);
+  } catch (err) {
+    res.status(502).json({
+      error: 'publisher_unreachable',
+      detail: err?.message ?? String(err),
+    });
+  }
 });
 
 app.post('/oth-path', (req, res) => {

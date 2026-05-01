@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1b1410">
+  <title>afterlife · live (CF Realtime PoC)</title>
+  <link rel="stylesheet" href="/chat.css">
+  <style>
+    /* live 전용 추가 스타일 — chat.css 톤 따라감 */
+    .live-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 16px;
+      gap: 16px;
+      max-width: var(--max-width);
+      width: 100%;
+      margin: 0 auto;
+      overflow-y: auto;
+    }
+    .live-video {
+      width: 100%;
+      max-width: 640px;
+      aspect-ratio: 4 / 3;
+      background: #000;
+      border-radius: var(--radius-sm);
+      outline: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .live-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .live-btn {
+      background: var(--accent);
+      color: #fff;
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+    .live-btn[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .live-btn.secondary {
+      background: transparent;
+      color: var(--fg-muted);
+      border: 1px solid var(--border);
+    }
+    .live-info {
+      font-size: 13px;
+      color: var(--fg-muted);
+      text-align: center;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-width: 640px;
+    }
+    .live-state {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+    .live-state[data-s="idle"]       { color: var(--fg-muted); }
+    .live-state[data-s="connecting"] { color: #d8a25b; }
+    .live-state[data-s="playing"]    { color: #6fbf73; }
+    .live-state[data-s="error"]      { color: #e08585; }
+    .live-state[data-s="stopped"]    { color: var(--fg-muted); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="persona">
+      <div class="avatar" aria-hidden="true">L</div>
+      <div class="meta">
+        <div class="name">Live (CF Realtime PoC)</div>
+        <div class="sub">회차 029-D-2b · subscriber</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="refreshBtn" type="button" title="publisher 상태 갱신">⟲</button>
+    </div>
+  </header>
+
+  <main class="live-wrap">
+    <video id="liveVideo" class="live-video" playsinline autoplay muted></video>
+
+    <div class="live-controls">
+      <button class="live-btn" id="startBtn" type="button" disabled>구독 시작</button>
+      <button class="live-btn secondary" id="stopBtn" type="button" disabled>종료</button>
+    </div>
+
+    <div>
+      <span class="live-state" id="state" data-s="idle">idle</span>
+    </div>
+
+    <div class="live-info" id="info">publisher 상태 확인 중…</div>
+  </main>
+
+  <script src="/live.js" defer></script>
+</body>
+</html>
