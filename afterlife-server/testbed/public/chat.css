@@ -95,6 +95,21 @@ body {
 }
 .ghost:hover { color: var(--fg); }
 
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+#ttsToggleBtn[aria-pressed="false"] {
+  color: var(--fg-muted);
+  opacity: 0.55;
+}
+#ttsToggleBtn[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .messages {
   flex: 1;
   overflow-y: auto;
@@ -147,6 +162,29 @@ body {
 
 @keyframes blink {
   to { visibility: hidden; }
+}
+
+/* 회차 027.7: TTS 재생 중인 할매 bubble 에 ♪ 아이콘 + 좌측 보더 highlight */
+.bubble.them[data-tts="playing"] {
+  border-left: 2px solid var(--accent);
+  padding-left: 12px;
+}
+.bubble.them[data-tts="playing"]::before {
+  content: '♪ ';
+  color: var(--accent);
+  font-weight: 700;
+  margin-right: 2px;
+  animation: tts-pulse 1s ease-in-out infinite;
+}
+@keyframes tts-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.bubble.them[data-tts="pending"]::before {
+  content: '♪ ';
+  color: var(--fg-muted);
+  opacity: 0.5;
+  margin-right: 2px;
 }
 
 .bubble.error {
