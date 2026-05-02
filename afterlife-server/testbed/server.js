@@ -17,11 +17,15 @@ import {
   mp4PathToUrl,
 } from './lib/musetalk.js';
 import crypto from 'node:crypto';
+import fsp from 'node:fs/promises';
 
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
 const MUSETALK_ENABLED = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
 const MUSETALK_STREAM_MODE = (process.env.MUSETALK_STREAM_MODE ?? '0') === '1';
+
+const REALTIME_AUDIO_STREAM =
+  (process.env.REALTIME_AUDIO_STREAM ?? '1') === '1';
 const MUSETALK_OUTPUTS_DIR =
   process.env.MUSETALK_OUTPUTS_DIR ??
   '/home/afterlife/afterlife-server/musetalk-afterlife/outputs/v15';
@@ -67,6 +71,23 @@ app.get('/oth-path', (_req, res) => {
 
   res.json(profile);
 });
+
+async function pushWavToPublisher(wavPath) {
+  const buf = await fsp.readFile(wavPath);
+  const r = await fetch(`${REALTIME_PUBLISHER_URL}/push_audio`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'audio/wav',
+      'X-Audio-Format': 'wav',
+    },
+    body: buf,
+  });
+  if (!r.ok) {
+    const text = await r.text().catch(() => '');
+    throw new Error(`push_audio HTTP ${r.status}: ${text.slice(0, 200)}`);
+  }
+  return r.json().catch(() => ({}));
+}
 
 app.get('/oth-path', async (_req, res) => {
   try {
@@ -240,11 +261,26 @@ app.post('/oth-path', (req, res) => {
               try {
                 tmp = await concatWavs(wavOnly);
                 if (!tmp) return;
+
+                if (REALTIME_AUDIO_STREAM) {
+                  pushWavToPublisher(tmp.path).catch((err) => {
+                    console.warn(
+                      '[realtime-audio] push_audio failed:',
+                      err?.message ?? err,
+                    );
+                  });
+                }
                 await museTalkInfer({
                   audio_path: tmp.path,
                   output_id: `sess-${sessionId}`,
                   stream: true,
                 });
+
+                if (REALTIME_AUDIO_STREAM) {
+                  fetch(`${REALTIME_PUBLISHER_URL}/push_audio_end`, {
+                    method: 'POST',
+                  }).catch(() => {});
+                }
               } catch (err) {
                 console.warn('musetalk stream bg failed:', err?.message ?? err);
               } finally {

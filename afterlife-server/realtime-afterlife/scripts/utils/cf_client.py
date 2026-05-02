@@ -59,13 +59,34 @@ class CFRealtimeClient:
         track_name: str = "video1",
         mid: str = "0",
     ) -> dict:
-        """tracks/new — CF 는 트랙별 `mid`(SDP transceiver mid) 를 요구."""
+        """tracks/new — CF 는 트랙별 `mid`(SDP transceiver mid) 를 요구.
+
+        single-track 호출은 tracks_new_multi 에 위임.
+        """
+        return await self.tracks_new_multi(
+            session_id,
+            offer_sdp,
+            tracks=[{"location": "local", "trackName": track_name, "mid": mid}],
+        )
+
+    async def tracks_new_multi(
+        self,
+        session_id: str,
+        offer_sdp: str,
+        tracks: list[dict],
+    ) -> dict:
+        """tracks/new (multi-track) — video + audio 같은 PeerConnection 의
+        여러 m-section 을 한 번의 호출로 등록.
+
+        tracks: [{"location": "local", "trackName": ..., "mid": ...}, ...]
+        반환: {"answer_sdp": "...", "tracks": [...], "raw": data}
+        """
+        if not tracks:
+            raise ValueError("tracks_new_multi: tracks must be non-empty")
         url = f"{self._app_base}/sessions/{session_id}/tracks/new"
         payload = {
             "sessionDescription": {"type": "offer", "sdp": offer_sdp},
-            "tracks": [
-                {"location": "local", "trackName": track_name, "mid": mid}
-            ],
+            "tracks": tracks,
         }
         async with aiohttp.ClientSession(timeout=self._timeout) as s:
             async with s.post(url, headers=self._headers, json=payload) as r:
@@ -96,7 +117,22 @@ class CFRealtimeClient:
         publisher_session_id: str,
         track_name: str = "video1",
     ) -> dict:
-        """tracks/new (remote, pull) — body 에 SDP 없이 호출하여
+        """tracks/new (remote, pull, single-track) — 후방 호환.
+        multi-track 은 tracks_new_remote_pull_multi 사용.
+        """
+        return await self.tracks_new_remote_pull_multi(
+            subscriber_session_id,
+            publisher_session_id,
+            track_names=[track_name],
+        )
+
+    async def tracks_new_remote_pull_multi(
+        self,
+        subscriber_session_id: str,
+        publisher_session_id: str,
+        track_names: list[str],
+    ) -> dict:
+        """tracks/new (remote, pull, multi-track) — body 에 SDP 없이 호출하여
         CF 로부터 offer SDP 를 받음. CF Realtime subscriber 표준 흐름.
 
         반환: {"offer_sdp": "...", "tracks": [...], "requires_renegotiation": bool}
@@ -107,7 +143,10 @@ class CFRealtimeClient:
         - body 에 SDP 없이 호출하면 CF 가 offer SDP 를 보내주고
           requiresImmediateRenegotiation:true 와 tracks 정보 동봉.
         - 클라이언트는 그 offer 로 createAnswer 하고 /renegotiate 로 answer 송신.
+        - multi-track 일 때 m-section 이 video + audio 두 개로 나옴.
         """
+        if not track_names:
+            raise ValueError("track_names must be non-empty")
         url = (
             f"{self._app_base}/sessions/{subscriber_session_id}/tracks/new"
         )
@@ -116,8 +155,9 @@ class CFRealtimeClient:
                 {
                     "location": "remote",
                     "sessionId": publisher_session_id,
-                    "trackName": track_name,
+                    "trackName": tn,
                 }
+                for tn in track_names
             ],
         }
         async with aiohttp.ClientSession(timeout=self._timeout) as s:

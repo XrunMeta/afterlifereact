@@ -243,10 +243,62 @@ if (ttsToggleBtn) {
   });
 }
 
+const LIVE_UNMUTE_KEY = 'afterlife.testbed.live.unmuted';
+
 (function initLiveSubscribe() {
   const liveVideo = document.getElementById('liveVideo');
+
+  const liveAudio = document.getElementById('liveAudio');
   const liveStatusEl = document.getElementById('liveStatus');
+  const unmuteBtn = document.getElementById('liveUnmuteBtn');
   if (!liveVideo || !liveStatusEl) return;
+
+  const wantUnmuted = localStorage.getItem(LIVE_UNMUTE_KEY) === 'true';
+  let userInteracted = false;
+
+  if (liveAudio) {
+    liveAudio.muted = true; 
+    liveAudio.volume = 1.0;
+  }
+
+  function applyLiveUnmuteUI() {
+    if (!unmuteBtn) return;
+
+    const on = liveAudio ? !liveAudio.muted : !liveVideo.muted;
+    unmuteBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    unmuteBtn.textContent = on ? '🔊 음성 켬' : '🔇 음성 켜기';
+    unmuteBtn.title = on ? '할배 음성 끄기' : '할배 음성 켜기';
+  }
+
+  if (unmuteBtn) {
+    applyLiveUnmuteUI();
+    unmuteBtn.addEventListener('click', async () => {
+      userInteracted = true;
+
+      const target = liveAudio || liveVideo;
+      const willUnmute = target.muted; 
+      target.muted = !willUnmute;
+      localStorage.setItem(LIVE_UNMUTE_KEY, target.muted ? 'false' : 'true');
+      if (!target.muted) {
+        try { await target.play(); } catch (e) { console.warn('live unmute play err', e); }
+
+        if (ttsEnabled) {
+          ttsEnabled = false;
+          localStorage.setItem(TTS_KEY, 'false');
+          applyTTSToggleUI();
+          resetAudio();
+        }
+      } else {
+
+        if (!ttsEnabled) {
+          ttsEnabled = true;
+          localStorage.setItem(TTS_KEY, 'true');
+          applyTTSToggleUI();
+        }
+      }
+      applyLiveUnmuteUI();
+    });
+  }
 
   const ICE_SERVERS = [
     { urls: 'stun:stun.cloudflare.com:3478' },
@@ -286,15 +338,30 @@ if (ttsToggleBtn) {
     setLiveState('connecting', 'Live 연결 중…');
     pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
+    try { window.__livePc = pc; } catch (_) {}
+
     pc.ontrack = (ev) => {
-      if (ev.streams && ev.streams[0]) {
-        liveVideo.srcObject = ev.streams[0];
-      } else {
-        const ms = new MediaStream();
-        ms.addTrack(ev.track);
-        liveVideo.srcObject = ms;
+
+      const kind = ev.track && ev.track.kind;
+      let target = liveVideo;
+      if (kind === 'audio' && liveAudio) target = liveAudio;
+      let ms = target.srcObject;
+      if (!ms || !(ms instanceof MediaStream)) {
+        ms = new MediaStream();
+        target.srcObject = ms;
       }
-      liveVideo.play().catch(() => {});
+      const existing = ms.getTracks().some((t) => t.id === ev.track.id);
+      if (!existing) ms.addTrack(ev.track);
+      target.play().catch(() => {});
+
+      if (kind === 'audio' && liveAudio && wantUnmuted && userInteracted && liveAudio.muted) {
+        liveAudio.muted = false;
+        liveAudio.play().catch(() => {
+          liveAudio.muted = true;
+          applyLiveUnmuteUI();
+        });
+        applyLiveUnmuteUI();
+      }
     };
 
     pc.oniceconnectionstatechange = () => {
@@ -383,6 +450,10 @@ if (ttsToggleBtn) {
     if (liveVideo.srcObject) {
       try { liveVideo.srcObject.getTracks().forEach((t) => t.stop()); } catch (_) {}
       liveVideo.srcObject = null;
+    }
+    if (liveAudio && liveAudio.srcObject) {
+      try { liveAudio.srcObject.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      liveAudio.srcObject = null;
     }
     started = false;
   }

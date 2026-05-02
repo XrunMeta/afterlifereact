@@ -23,9 +23,17 @@
   </header>
 
   <!-- 회차 029-D-2c-after-1: chat 화면에 publisher subscribe 영상 inline -->
+  <!-- 회차 029-D-2c-after-2: 음성 켜기 버튼 (autoplay 정책 우회) -->
   <section class="livefeed" aria-label="할배 입싱크 라이브">
     <video id="liveVideo" muted autoplay playsinline></video>
-    <div id="liveStatus" class="livestatus" aria-live="polite">Live 대기…</div>
+    <!-- 회차 029-D-2c-after-2-fix1: audio 는 별도 <audio> element 로 분리.
+         video element 에 audio track 같이 붙이면 일부 브라우저에서 silent decode.
+         hidden 이지만 autoplay 로 user gesture 시 play() 호출하면 들림. -->
+    <audio id="liveAudio" autoplay playsinline hidden></audio>
+    <div class="liveactions">
+      <button id="liveUnmuteBtn" class="ghost livebtn" type="button" aria-pressed="false" title="할배 음성 켜기">🔇 음성 켜기</button>
+      <div id="liveStatus" class="livestatus" aria-live="polite">Live 대기…</div>
+    </div>
   </section>
 
   <main id="messages" class="messages" role="log" aria-live="polite"></main>
