@@ -282,19 +282,6 @@ const v_70a432 = 'afterlife.testbed.live.unmuted';
       if (!v_5f5d6d.muted) {
         try { await v_5f5d6d.play(); } catch (v_9e86fd) { console.warn('live unmute play err', v_9e86fd); }
 
-        if (v_3f0d23) {
-          v_3f0d23 = false;
-          localStorage.setItem(v_ee7dca, 'false');
-          v_d0f32d();
-          v_fac85e();
-        }
-      } else {
-
-        if (!v_3f0d23) {
-          v_3f0d23 = true;
-          localStorage.setItem(v_ee7dca, 'true');
-          v_d0f32d();
-        }
       }
       v_964a78();
     });

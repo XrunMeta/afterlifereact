@@ -33,6 +33,12 @@ const v_e3f065 =
 const v_de4278 =
   process.env.REALTIME_PUBLISHER_URL ?? 'http://127.0.0.1:8400';
 
+const v_32426d =
+  (process.env.DEBUG_DUMP_GROUND_TRUTH ?? '0') === '1';
+const v_f522ac =
+  process.env.DEBUG_DUMP_DIR ??
+  '/home/afterlife/afterlife-server/testbed/debug-dump';
+
 const v_a65c2e = v_9fe22d.dirname(v_6b8a99(import.meta.url));
 
 const v_466992 = v_96bb47();
@@ -87,6 +93,50 @@ async function v_e705d0(v_f2bb81) {
     throw new Error(`push_audio HTTP ${v_cb35cb.status}: ${v_9b6134.slice(0, 200)}`);
   }
   return v_cb35cb.json().catch(() => ({}));
+}
+
+async function v_db6543(v_c5607b, v_f2bb81, v_ab4c96) {
+  if (!v_32426d) return;
+  try {
+    await v_d4f750.mkdir(v_f522ac, { recursive: true });
+    const v_59d180 = v_9fe22d.join(v_f522ac, `sess-${v_c5607b}.wav`);
+    await v_d4f750.copyFile(v_f2bb81, v_59d180);
+    const v_f48c72 = v_9fe22d.join(v_f522ac, `sess-${v_c5607b}.json`);
+    const v_931bf0 = {
+      session_id: v_c5607b,
+      wav_path: v_59d180,
+      created_at: new Date().toISOString(),
+      ...v_ab4c96,
+    };
+    await v_d4f750.writeFile(v_f48c72, JSON.stringify(v_931bf0, null, 2));
+    console.log(
+      `[debug-dump] sess-${v_c5607b} wav=${v_59d180} mp4=${v_ab4c96?.mp4_path ?? '(pending)'}`,
+    );
+  } catch (v_49263d) {
+    console.warn(
+      `[debug-dump] sess-${v_c5607b} failed: ${v_49263d?.message ?? v_49263d}`,
+    );
+  }
+}
+
+async function v_00b49d(v_c5607b, v_17dc8a) {
+  if (!v_32426d) return;
+  try {
+    const v_f48c72 = v_9fe22d.join(v_f522ac, `sess-${v_c5607b}.json`);
+    let v_c3bc75 = {};
+    try {
+      v_c3bc75 = JSON.parse(await v_d4f750.readFile(v_f48c72, 'utf8'));
+    } catch {}
+    const v_2b7a6d = { ...v_c3bc75, ...v_17dc8a, updated_at: new Date().toISOString() };
+    await v_d4f750.writeFile(v_f48c72, JSON.stringify(v_2b7a6d, null, 2));
+    console.log(
+      `[debug-dump] sess-${v_c5607b} mp4=${v_17dc8a?.mp4_path ?? '?'} ready`,
+    );
+  } catch (v_49263d) {
+    console.warn(
+      `[debug-dump] sess-${v_c5607b} sidecar update failed: ${v_49263d?.message ?? v_49263d}`,
+    );
+  }
 }
 
 v_466992.get('/oth-path', async (v_5ebc52, v_8f00b9) => {
@@ -262,6 +312,12 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
                 v_6944b4 = await v_034be8(v_d33958);
                 if (!v_6944b4) return;
 
+                await v_db6543(v_c5607b, v_6944b4.path, {
+                  mode: 'stream',
+                  sentence_count: v_af1e0d.length,
+                  audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+                });
+
                 if (v_e01c9c) {
                   v_e705d0(v_6944b4.path).catch((v_49263d) => {
                     console.warn(
@@ -270,10 +326,17 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
                     );
                   });
                 }
-                await v_a16f6e({
+                const v_43c42e = await v_a16f6e({
                   audio_path: v_6944b4.path,
                   output_id: `sess-${v_c5607b}`,
                   stream: true,
+                });
+
+                await v_00b49d(v_c5607b, {
+                  mp4_path: v_43c42e?.mp4_path ?? null,
+                  mp4_basename: v_43c42e?.mp4_basename ?? null,
+                  infer_ms: v_43c42e?.infer_ms ?? null,
+                  frames_pushed: v_43c42e?.frames_pushed ?? null,
                 });
 
                 if (v_e01c9c) {
@@ -297,12 +360,22 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
               v_8f00b9.end();
               return;
             }
+            await v_db6543(v_c5607b, v_6944b4.path, {
+              mode: 'batch',
+              sentence_count: v_af1e0d.length,
+              audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+            });
             const v_43c42e = await v_a16f6e({
               audio_path: v_6944b4.path,
               output_id: `sess-${v_c5607b}`,
               stream: false,
             });
             if (v_6c558f) return;
+            await v_00b49d(v_c5607b, {
+              mp4_path: v_43c42e?.mp4_path ?? null,
+              mp4_basename: v_43c42e?.mp4_basename ?? null,
+              infer_ms: v_43c42e?.infer_ms ?? null,
+            });
             v_9c423d('video', {
               url: v_6edf8f(v_43c42e.mp4_path),
               mp4_path: v_43c42e.mp4_path,
