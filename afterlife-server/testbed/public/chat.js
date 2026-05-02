@@ -243,10 +243,62 @@ if (v_fcca65) {
   });
 }
 
+const v_70a432 = 'afterlife.testbed.live.unmuted';
+
 (function v_db32ce() {
   const v_d0868b = document.getElementById('liveVideo');
+
+  const v_efd76b = document.getElementById('liveAudio');
   const v_fe6a8a = document.getElementById('liveStatus');
+  const v_a3702d = document.getElementById('liveUnmuteBtn');
   if (!v_d0868b || !v_fe6a8a) return;
+
+  const v_dd5d8d = localStorage.getItem(v_70a432) === 'true';
+  let v_c35133 = false;
+
+  if (v_efd76b) {
+    v_efd76b.muted = true; 
+    v_efd76b.volume = 1.0;
+  }
+
+  function v_964a78() {
+    if (!v_a3702d) return;
+
+    const v_abacaa = v_efd76b ? !v_efd76b.muted : !v_d0868b.muted;
+    v_a3702d.setAttribute('aria-pressed', v_abacaa ? 'true' : 'false');
+    v_a3702d.textContent = v_abacaa ? '🔊 음성 켬' : '🔇 음성 켜기';
+    v_a3702d.title = v_abacaa ? '할배 음성 끄기' : '할배 음성 켜기';
+  }
+
+  if (v_a3702d) {
+    v_964a78();
+    v_a3702d.addEventListener('click', async () => {
+      v_c35133 = true;
+
+      const v_5f5d6d = v_efd76b || v_d0868b;
+      const v_f0afbf = v_5f5d6d.muted; 
+      v_5f5d6d.muted = !v_f0afbf;
+      localStorage.setItem(v_70a432, v_5f5d6d.muted ? 'false' : 'true');
+      if (!v_5f5d6d.muted) {
+        try { await v_5f5d6d.play(); } catch (v_9e86fd) { console.warn('live unmute play err', v_9e86fd); }
+
+        if (v_3f0d23) {
+          v_3f0d23 = false;
+          localStorage.setItem(v_ee7dca, 'false');
+          v_d0f32d();
+          v_fac85e();
+        }
+      } else {
+
+        if (!v_3f0d23) {
+          v_3f0d23 = true;
+          localStorage.setItem(v_ee7dca, 'true');
+          v_d0f32d();
+        }
+      }
+      v_964a78();
+    });
+  }
 
   const v_506dd1 = [
     { urls: 'stun:stun.cloudflare.com:3478' },
@@ -286,15 +338,30 @@ if (v_fcca65) {
     v_d4754e('connecting', 'Live 연결 중…');
     v_12cd99 = new RTCPeerConnection({ iceServers: v_506dd1 });
 
+    try { window.__livePc = v_12cd99; } catch (v_37eab7) {}
+
     v_12cd99.ontrack = (v_1d299c) => {
-      if (v_1d299c.streams && v_1d299c.streams[0]) {
-        v_d0868b.srcObject = v_1d299c.streams[0];
-      } else {
-        const v_d799e2 = new MediaStream();
-        v_d799e2.addTrack(v_1d299c.track);
-        v_d0868b.srcObject = v_d799e2;
+
+      const v_94302c = v_1d299c.track && v_1d299c.track.kind;
+      let v_5f5d6d = v_d0868b;
+      if (v_94302c === 'audio' && v_efd76b) v_5f5d6d = v_efd76b;
+      let v_d799e2 = v_5f5d6d.srcObject;
+      if (!v_d799e2 || !(v_d799e2 instanceof MediaStream)) {
+        v_d799e2 = new MediaStream();
+        v_5f5d6d.srcObject = v_d799e2;
       }
-      v_d0868b.play().catch(() => {});
+      const v_3c8572 = v_d799e2.getTracks().some((v_8d41d7) => v_8d41d7.id === v_1d299c.track.id);
+      if (!v_3c8572) v_d799e2.addTrack(v_1d299c.track);
+      v_5f5d6d.play().catch(() => {});
+
+      if (v_94302c === 'audio' && v_efd76b && v_dd5d8d && v_c35133 && v_efd76b.muted) {
+        v_efd76b.muted = false;
+        v_efd76b.play().catch(() => {
+          v_efd76b.muted = true;
+          v_964a78();
+        });
+        v_964a78();
+      }
     };
 
     v_12cd99.oniceconnectionstatechange = () => {
@@ -383,6 +450,10 @@ if (v_fcca65) {
     if (v_d0868b.srcObject) {
       try { v_d0868b.srcObject.getTracks().forEach((v_8d41d7) => v_8d41d7.stop()); } catch (v_37eab7) {}
       v_d0868b.srcObject = null;
+    }
+    if (v_efd76b && v_efd76b.srcObject) {
+      try { v_efd76b.srcObject.getTracks().forEach((v_8d41d7) => v_8d41d7.stop()); } catch (v_37eab7) {}
+      v_efd76b.srcObject = null;
     }
     v_4c6dd7 = false;
   }

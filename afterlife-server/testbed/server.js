@@ -17,11 +17,15 @@ import {
   v_6edf8f,
 } from './lib/musetalk.js';
 import v_b070ed from 'hikhkjexnsh';
+import v_d4f750 from 'fnffflguqbrqugbi';
 
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
 const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
 const v_2c3445 = (process.env.MUSETALK_STREAM_MODE ?? '0') === '1';
+
+const v_e01c9c =
+  (process.env.REALTIME_AUDIO_STREAM ?? '1') === '1';
 const v_e3f065 =
   process.env.MUSETALK_OUTPUTS_DIR ??
   '/home/afterlife/afterlife-server/musetalk-afterlife/outputs/v15';
@@ -67,6 +71,23 @@ v_466992.get('/oth-path', (v_5ebc52, v_8f00b9) => {
 
   v_8f00b9.json(v_727031);
 });
+
+async function v_e705d0(v_f2bb81) {
+  const v_83ee53 = await v_d4f750.readFile(v_f2bb81);
+  const v_cb35cb = await fetch(`${v_de4278}/push_audio`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'audio/wav',
+      'X-Audio-Format': 'wav',
+    },
+    body: v_83ee53,
+  });
+  if (!v_cb35cb.ok) {
+    const v_9b6134 = await v_cb35cb.text().catch(() => '');
+    throw new Error(`push_audio HTTP ${v_cb35cb.status}: ${v_9b6134.slice(0, 200)}`);
+  }
+  return v_cb35cb.json().catch(() => ({}));
+}
 
 v_466992.get('/oth-path', async (v_5ebc52, v_8f00b9) => {
   try {
@@ -240,11 +261,26 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
               try {
                 v_6944b4 = await v_034be8(v_d33958);
                 if (!v_6944b4) return;
+
+                if (v_e01c9c) {
+                  v_e705d0(v_6944b4.path).catch((v_49263d) => {
+                    console.warn(
+                      '[realtime-audio] push_audio failed:',
+                      v_49263d?.message ?? v_49263d,
+                    );
+                  });
+                }
                 await v_a16f6e({
                   audio_path: v_6944b4.path,
                   output_id: `sess-${v_c5607b}`,
                   stream: true,
                 });
+
+                if (v_e01c9c) {
+                  fetch(`${v_de4278}/push_audio_end`, {
+                    method: 'POST',
+                  }).catch(() => {});
+                }
               } catch (v_49263d) {
                 console.warn('musetalk stream bg failed:', v_49263d?.message ?? v_49263d);
               } finally {
