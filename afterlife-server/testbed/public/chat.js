@@ -282,19 +282,6 @@ const LIVE_UNMUTE_KEY = 'afterlife.testbed.live.unmuted';
       if (!target.muted) {
         try { await target.play(); } catch (e) { console.warn('live unmute play err', e); }
 
-        if (ttsEnabled) {
-          ttsEnabled = false;
-          localStorage.setItem(TTS_KEY, 'false');
-          applyTTSToggleUI();
-          resetAudio();
-        }
-      } else {
-
-        if (!ttsEnabled) {
-          ttsEnabled = true;
-          localStorage.setItem(TTS_KEY, 'true');
-          applyTTSToggleUI();
-        }
       }
       applyLiveUnmuteUI();
     });

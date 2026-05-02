@@ -33,6 +33,12 @@ const MUSETALK_OUTPUTS_DIR =
 const REALTIME_PUBLISHER_URL =
   process.env.REALTIME_PUBLISHER_URL ?? 'http://127.0.0.1:8400';
 
+const DEBUG_DUMP_GROUND_TRUTH =
+  (process.env.DEBUG_DUMP_GROUND_TRUTH ?? '0') === '1';
+const DEBUG_DUMP_DIR =
+  process.env.DEBUG_DUMP_DIR ??
+  '/home/afterlife/afterlife-server/testbed/debug-dump';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
@@ -87,6 +93,50 @@ async function pushWavToPublisher(wavPath) {
     throw new Error(`push_audio HTTP ${r.status}: ${text.slice(0, 200)}`);
   }
   return r.json().catch(() => ({}));
+}
+
+async function dumpGroundTruthWav(sessionId, wavPath, meta) {
+  if (!DEBUG_DUMP_GROUND_TRUTH) return;
+  try {
+    await fsp.mkdir(DEBUG_DUMP_DIR, { recursive: true });
+    const wavOut = path.join(DEBUG_DUMP_DIR, `sess-${sessionId}.wav`);
+    await fsp.copyFile(wavPath, wavOut);
+    const sidecarOut = path.join(DEBUG_DUMP_DIR, `sess-${sessionId}.json`);
+    const payload = {
+      session_id: sessionId,
+      wav_path: wavOut,
+      created_at: new Date().toISOString(),
+      ...meta,
+    };
+    await fsp.writeFile(sidecarOut, JSON.stringify(payload, null, 2));
+    console.log(
+      `[debug-dump] sess-${sessionId} wav=${wavOut} mp4=${meta?.mp4_path ?? '(pending)'}`,
+    );
+  } catch (err) {
+    console.warn(
+      `[debug-dump] sess-${sessionId} failed: ${err?.message ?? err}`,
+    );
+  }
+}
+
+async function updateGroundTruthSidecar(sessionId, patch) {
+  if (!DEBUG_DUMP_GROUND_TRUTH) return;
+  try {
+    const sidecarOut = path.join(DEBUG_DUMP_DIR, `sess-${sessionId}.json`);
+    let cur = {};
+    try {
+      cur = JSON.parse(await fsp.readFile(sidecarOut, 'utf8'));
+    } catch {}
+    const merged = { ...cur, ...patch, updated_at: new Date().toISOString() };
+    await fsp.writeFile(sidecarOut, JSON.stringify(merged, null, 2));
+    console.log(
+      `[debug-dump] sess-${sessionId} mp4=${patch?.mp4_path ?? '?'} ready`,
+    );
+  } catch (err) {
+    console.warn(
+      `[debug-dump] sess-${sessionId} sidecar update failed: ${err?.message ?? err}`,
+    );
+  }
 }
 
 app.get('/oth-path', async (_req, res) => {
@@ -262,6 +312,12 @@ app.post('/oth-path', (req, res) => {
                 tmp = await concatWavs(wavOnly);
                 if (!tmp) return;
 
+                await dumpGroundTruthWav(sessionId, tmp.path, {
+                  mode: 'stream',
+                  sentence_count: collectedWavs.length,
+                  audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
+                });
+
                 if (REALTIME_AUDIO_STREAM) {
                   pushWavToPublisher(tmp.path).catch((err) => {
                     console.warn(
@@ -270,10 +326,17 @@ app.post('/oth-path', (req, res) => {
                     );
                   });
                 }
-                await museTalkInfer({
+                const result = await museTalkInfer({
                   audio_path: tmp.path,
                   output_id: `sess-${sessionId}`,
                   stream: true,
+                });
+
+                await updateGroundTruthSidecar(sessionId, {
+                  mp4_path: result?.mp4_path ?? null,
+                  mp4_basename: result?.mp4_basename ?? null,
+                  infer_ms: result?.infer_ms ?? null,
+                  frames_pushed: result?.frames_pushed ?? null,
                 });
 
                 if (REALTIME_AUDIO_STREAM) {
@@ -297,12 +360,22 @@ app.post('/oth-path', (req, res) => {
               res.end();
               return;
             }
+            await dumpGroundTruthWav(sessionId, tmp.path, {
+              mode: 'batch',
+              sentence_count: collectedWavs.length,
+              audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
+            });
             const result = await museTalkInfer({
               audio_path: tmp.path,
               output_id: `sess-${sessionId}`,
               stream: false,
             });
             if (aborted) return;
+            await updateGroundTruthSidecar(sessionId, {
+              mp4_path: result?.mp4_path ?? null,
+              mp4_basename: result?.mp4_basename ?? null,
+              infer_ms: result?.infer_ms ?? null,
+            });
             send('video', {
               url: mp4PathToUrl(result.mp4_path),
               mp4_path: result.mp4_path,
