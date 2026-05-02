@@ -229,11 +229,33 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           !v_6c558f &&
           v_af1e0d.length > 0
         ) {
+          v_af1e0d.sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq);
+          const v_d33958 = v_af1e0d.map((v_62c214) => v_62c214.wav);
+
+          if (v_2c3445) {
+
+            v_8f00b9.end();
+            (async () => {
+              let v_6944b4 = null;
+              try {
+                v_6944b4 = await v_034be8(v_d33958);
+                if (!v_6944b4) return;
+                await v_a16f6e({
+                  audio_path: v_6944b4.path,
+                  output_id: `sess-${v_c5607b}`,
+                  stream: true,
+                });
+              } catch (v_49263d) {
+                console.warn('musetalk stream bg failed:', v_49263d?.message ?? v_49263d);
+              } finally {
+                if (v_6944b4) await v_ba8718(v_6944b4.dir).catch(() => {});
+              }
+            })();
+            return;
+          }
+
           let v_6944b4 = null;
           try {
-
-            v_af1e0d.sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq);
-            const v_d33958 = v_af1e0d.map((v_62c214) => v_62c214.wav);
             v_6944b4 = await v_034be8(v_d33958);
             if (!v_6944b4) {
               v_8f00b9.end();
@@ -242,7 +264,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
             const v_43c42e = await v_a16f6e({
               audio_path: v_6944b4.path,
               output_id: `sess-${v_c5607b}`,
-              stream: v_2c3445,
+              stream: false,
             });
             if (v_6c558f) return;
             v_9c423d('video', {

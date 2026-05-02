@@ -243,6 +243,153 @@ if (v_fcca65) {
   });
 }
 
+(function v_db32ce() {
+  const v_d0868b = document.getElementById('liveVideo');
+  const v_fe6a8a = document.getElementById('liveStatus');
+  if (!v_d0868b || !v_fe6a8a) return;
+
+  const v_506dd1 = [
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:stun.l.google.com:19302' },
+  ];
+
+  let v_12cd99 = null;
+  let v_4c6dd7 = false;
+
+  function v_d4754e(v_fd5f43, v_9b6134) {
+    v_fe6a8a.dataset.s = v_fd5f43;
+    v_fe6a8a.textContent = v_9b6134;
+  }
+
+  async function v_85e77a() {
+    if (v_4c6dd7) return;
+    v_4c6dd7 = true;
+    v_d4754e('connecting', 'Live 연결 중…');
+
+    try {
+      const v_cb35cb = await fetch('/oth-path', { cache: 'no-store' });
+      const v_9390e8 = await v_cb35cb.json().catch(() => ({}));
+      if (!v_cb35cb.ok || v_9390e8.state !== 'publishing') {
+        v_d4754e('idle', `Live 대기 (publisher ${v_9390e8.state ?? '?'})`);
+        v_4c6dd7 = false;
+
+        setTimeout(v_85e77a, 5000);
+        return;
+      }
+    } catch (v_49263d) {
+      v_d4754e('error', 'Live publisher 확인 실패');
+      v_4c6dd7 = false;
+      setTimeout(v_85e77a, 5000);
+      return;
+    }
+
+    v_d4754e('connecting', 'Live 연결 중…');
+    v_12cd99 = new RTCPeerConnection({ iceServers: v_506dd1 });
+
+    v_12cd99.ontrack = (v_1d299c) => {
+      if (v_1d299c.streams && v_1d299c.streams[0]) {
+        v_d0868b.srcObject = v_1d299c.streams[0];
+      } else {
+        const v_d799e2 = new MediaStream();
+        v_d799e2.addTrack(v_1d299c.track);
+        v_d0868b.srcObject = v_d799e2;
+      }
+      v_d0868b.play().catch(() => {});
+    };
+
+    v_12cd99.oniceconnectionstatechange = () => {
+      if (!v_12cd99) return;
+      const v_fd5f43 = v_12cd99.iceConnectionState;
+      if (v_fd5f43 === 'connected' || v_fd5f43 === 'completed') v_d4754e('playing', 'Live 재생 중');
+      else if (v_fd5f43 === 'failed') v_d4754e('error', 'Live 연결 실패');
+      else if (v_fd5f43 === 'disconnected') v_d4754e('error', 'Live 연결 끊김');
+      else if (v_fd5f43 === 'closed') v_d4754e('idle', 'Live 종료');
+    };
+
+    v_12cd99.onconnectionstatechange = () => {
+      if (!v_12cd99) return;
+      const v_fd5f43 = v_12cd99.connectionState;
+      if (v_fd5f43 === 'connected') v_d4754e('playing', 'Live 재생 중');
+      if (v_fd5f43 === 'failed') v_d4754e('error', 'Live 연결 실패');
+    };
+
+    let v_4cb70c;
+    try {
+      const v_cb35cb = await fetch('/oth-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      v_4cb70c = await v_cb35cb.json().catch(() => ({}));
+      if (!v_cb35cb.ok) {
+        v_d4754e('error', `Live subscribe 실패 (${v_cb35cb.status})`);
+        v_ae13b6();
+        return;
+      }
+    } catch (v_49263d) {
+      v_d4754e('error', 'Live subscribe 요청 실패');
+      v_ae13b6();
+      return;
+    }
+
+    const v_5bd2a8 = v_4cb70c.subscriber_session_id;
+    const v_582c5e = v_4cb70c.offer_sdp;
+    if (!v_5bd2a8 || !v_582c5e) {
+      v_d4754e('error', 'Live subscribe 응답 누락');
+      v_ae13b6();
+      return;
+    }
+
+    try {
+      await v_12cd99.setRemoteDescription({ type: 'offer', sdp: v_582c5e });
+      const v_343c90 = await v_12cd99.createAnswer();
+      await v_12cd99.setLocalDescription(v_343c90);
+
+      const v_cb35cb = await fetch('/oth-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscriber_session_id: v_5bd2a8,
+          answer_sdp: v_343c90.sdp,
+        }),
+      });
+      if (!v_cb35cb.ok) {
+        const v_3dff88 = await v_cb35cb.json().catch(() => ({}));
+        v_d4754e('error', `Live renegotiate 실패 (${v_cb35cb.status})`);
+        console.warn('renegotiate error', v_3dff88);
+        v_ae13b6();
+        return;
+      }
+    } catch (v_49263d) {
+      v_d4754e('error', 'Live SDP 교환 실패');
+      console.warn(v_49263d);
+      v_ae13b6();
+      return;
+    }
+
+    if (
+      v_12cd99 &&
+      v_12cd99.iceConnectionState !== 'connected' &&
+      v_12cd99.iceConnectionState !== 'completed'
+    ) {
+      v_d4754e('connecting', 'Live ICE 협상 중…');
+    }
+  }
+
+  function v_ae13b6() {
+    if (v_12cd99) {
+      try { v_12cd99.close(); } catch (v_37eab7) {}
+      v_12cd99 = null;
+    }
+    if (v_d0868b.srcObject) {
+      try { v_d0868b.srcObject.getTracks().forEach((v_8d41d7) => v_8d41d7.stop()); } catch (v_37eab7) {}
+      v_d0868b.srcObject = null;
+    }
+    v_4c6dd7 = false;
+  }
+
+  v_85e77a();
+})();
+
 v_9e2838.addEventListener('submit', async (v_9e86fd) => {
   v_9e86fd.preventDefault();
   if (v_7fad31.disabled) return;

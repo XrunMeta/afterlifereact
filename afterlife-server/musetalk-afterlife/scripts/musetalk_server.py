@@ -14,6 +14,12 @@ afterlife-musetalk — FastAPI wrapper around MuseTalk inference (port 8300).
   inference 끝나면 POST /oth-path
   mp4 파일 출력은 그대로 유지 (병행).
 
+회차 029-D-3 — fps 향상:
+  - MUSETALK_BATCH_SIZE 환경변수 (default 16) — unet+vae batch 크기
+    (RTX A6000 49GB, fp16, peak 사용 ~5GB → 32 도 안전)
+  - frame_callback 비동기화 (ThreadPoolExecutor) — publisher push 가 inference 차단 안 함
+  - phase timing 로그 (preprocess / batch_loop / padding)
+
 CWD: source/ 강제 (inference_lib 도 상대경로 ./models/, ./ffmpeg-4.4-amd64-static/, configs/inference/ 가정).
 
 출력 명명: result_dir/v15/<video_basename>_<audio_basename>.mp4
@@ -25,6 +31,7 @@ import sys
 import time
 import threading
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import yaml
@@ -37,7 +44,12 @@ SOURCE_DIR = ROOT_DIR / "source"
 MODELS_DIR = ROOT_DIR / "models"
 OUTPUTS_DIR = ROOT_DIR / "outputs"
 CONFIG_DIR = SOURCE_DIR / "configs/inference"
-DEFAULT_VIDEO = SOURCE_DIR / "data/video/yongen.mp4"
+DEFAULT_VIDEO = Path(
+    os.environ.get(
+        "MUSETALK_DEFAULT_VIDEO",
+        str(SOURCE_DIR / "data/video/yongen.mp4"),
+    )
+)
 
 # inference_lib 가 source/ cwd + 상대 import 가정 — 강제 변경
 os.chdir(SOURCE_DIR)
@@ -55,29 +67,29 @@ import cv2  # noqa: E402
 
 PUBLISHER_URL = os.environ.get("MUSETALK_PUBLISHER_URL", "http://127.0.0.1:8400")
 STREAM_JPEG_QUALITY = int(os.environ.get("MUSETALK_STREAM_JPEG_Q", "80"))
+STREAM_PUSH_WORKERS = int(os.environ.get("MUSETALK_STREAM_PUSH_WORKERS", "4"))
 
 
 def _make_frame_callback(session_id: str):
     """combine_frame (BGR) → JPEG bytes → POST /oth-path
 
-    inference_lib 의 frame loop 에서 호출. 실패해도 예외 삼키고 진행.
+    회차 029-D-3 — ThreadPoolExecutor 로 비동기 push.
+      - inference loop 는 cv2 BGR2RGB + PIL JPEG encode 만 sync 로 (수 ms)
+      - HTTP POST 는 worker thread 에 던짐 → inference 차단 X
+      - cb.flush() 호출 시 모든 push 완료 대기 (run_inference 끝나고 호출).
     """
     sess = requests.Session()
     sess.headers["Content-Type"] = "image/jpeg"
     sess.headers["X-Frame-Format"] = "jpeg"
     if session_id:
         sess.headers["X-Stream-Session"] = session_id
-    push_count = {"n": 0, "fail": 0}
+    push_count = {"n": 0, "fail": 0, "submitted": 0}
+    pool = ThreadPoolExecutor(max_workers=STREAM_PUSH_WORKERS)
+    futures: list = []
 
-    def cb(idx: int, combine_frame_bgr) -> None:
+    def _do_post(idx: int, data: bytes) -> None:
         try:
-            # cv2 BGR → RGB
-            rgb = cv2.cvtColor(combine_frame_bgr, cv2.COLOR_BGR2RGB)
-            img = Image.fromarray(rgb)
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=STREAM_JPEG_QUALITY)
-            data = buf.getvalue()
-            r = sess.post(f"{PUBLISHER_URL}/push_frame", data=data, timeout=2.0)
+            r = sess.post(f"{PUBLISHER_URL}/push_frame", data=data, timeout=4.0)
             push_count["n"] += 1
             if r.status_code >= 400:
                 push_count["fail"] += 1
@@ -88,7 +100,41 @@ def _make_frame_callback(session_id: str):
             if push_count["fail"] <= 3:
                 print(f"[push_frame] err idx={idx}: {e}", flush=True)
 
+    def cb(idx: int, combine_frame_bgr) -> None:
+        try:
+            # encode in inference thread (cheap)
+            rgb = cv2.cvtColor(combine_frame_bgr, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(rgb)
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=STREAM_JPEG_QUALITY)
+            data = buf.getvalue()
+            # backpressure: 너무 많이 쌓이면 drop / wait
+            if len(futures) > 64:
+                # 가장 오래된 future 들 정리 (완료된 것만)
+                futures[:] = [f for f in futures if not f.done()]
+            fut = pool.submit(_do_post, idx, data)
+            futures.append(fut)
+            push_count["submitted"] += 1
+        except Exception as e:
+            push_count["fail"] += 1
+            if push_count["fail"] <= 3:
+                print(f"[push_frame] enc err idx={idx}: {e}", flush=True)
+
+    def flush(timeout: float = 30.0) -> None:
+        """run_inference 완료 후 호출 — 남은 push 모두 대기."""
+        deadline = time.time() + timeout
+        for f in futures:
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                break
+            try:
+                f.result(timeout=remaining)
+            except Exception:
+                pass
+        pool.shutdown(wait=False)
+
     cb.stats = push_count  # type: ignore[attr-defined]
+    cb.flush = flush  # type: ignore[attr-defined]
     return cb
 
 
@@ -115,10 +161,11 @@ def _default_args():
     a.fps = 25
     a.audio_padding_length_left = 2
     a.audio_padding_length_right = 2
-    a.batch_size = 8
+    a.batch_size = int(os.environ.get("MUSETALK_BATCH_SIZE", "16"))
     a.output_vid_name = None
-    a.use_saved_coord = False
-    a.saved_coord = False
+    # 회차 029-D-3: 같은 video 반복 시 landmark 추출 (~13s) 캐시 재사용
+    a.use_saved_coord = os.environ.get("MUSETALK_USE_SAVED_COORD", "1") == "1"
+    a.saved_coord = a.use_saved_coord
     a.use_float16 = True
     a.parsing_mode = "jaw"
     a.left_cheek_width = 90
@@ -230,8 +277,12 @@ def infer(req: InferReq):
             raise HTTPException(500, f"inference failed: {type(e).__name__}: {e}")
     elapsed_ms = int((time.time() - t0) * 1000)
 
-    # stream 종료 신호
+    # stream 종료 신호 (남은 push 다 보낸 뒤)
     if cb is not None:
+        try:
+            cb.flush(timeout=20.0)
+        except Exception as _fe:
+            print(f"[cb.flush] err: {_fe}", flush=True)
         _signal_stream_end()
 
     # cfg 정리
@@ -257,4 +308,6 @@ def infer(req: InferReq):
         resp["streamed"] = True
         resp["frames_pushed"] = cb.stats["n"]
         resp["frames_failed"] = cb.stats["fail"]
+        resp["frames_submitted"] = cb.stats.get("submitted", cb.stats["n"])
+    resp["batch_size"] = int(os.environ.get("MUSETALK_BATCH_SIZE", "16"))
     return resp
