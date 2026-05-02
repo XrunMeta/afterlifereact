@@ -243,6 +243,153 @@ if (ttsToggleBtn) {
   });
 }
 
+(function initLiveSubscribe() {
+  const liveVideo = document.getElementById('liveVideo');
+  const liveStatusEl = document.getElementById('liveStatus');
+  if (!liveVideo || !liveStatusEl) return;
+
+  const ICE_SERVERS = [
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:stun.l.google.com:19302' },
+  ];
+
+  let pc = null;
+  let started = false;
+
+  function setLiveState(s, text) {
+    liveStatusEl.dataset.s = s;
+    liveStatusEl.textContent = text;
+  }
+
+  async function startLiveSubscribe() {
+    if (started) return;
+    started = true;
+    setLiveState('connecting', 'Live 연결 중…');
+
+    try {
+      const r = await fetch('/oth-path', { cache: 'no-store' });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data.state !== 'publishing') {
+        setLiveState('idle', `Live 대기 (publisher ${data.state ?? '?'})`);
+        started = false;
+
+        setTimeout(startLiveSubscribe, 5000);
+        return;
+      }
+    } catch (err) {
+      setLiveState('error', 'Live publisher 확인 실패');
+      started = false;
+      setTimeout(startLiveSubscribe, 5000);
+      return;
+    }
+
+    setLiveState('connecting', 'Live 연결 중…');
+    pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+    pc.ontrack = (ev) => {
+      if (ev.streams && ev.streams[0]) {
+        liveVideo.srcObject = ev.streams[0];
+      } else {
+        const ms = new MediaStream();
+        ms.addTrack(ev.track);
+        liveVideo.srcObject = ms;
+      }
+      liveVideo.play().catch(() => {});
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (!pc) return;
+      const s = pc.iceConnectionState;
+      if (s === 'connected' || s === 'completed') setLiveState('playing', 'Live 재생 중');
+      else if (s === 'failed') setLiveState('error', 'Live 연결 실패');
+      else if (s === 'disconnected') setLiveState('error', 'Live 연결 끊김');
+      else if (s === 'closed') setLiveState('idle', 'Live 종료');
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (!pc) return;
+      const s = pc.connectionState;
+      if (s === 'connected') setLiveState('playing', 'Live 재생 중');
+      if (s === 'failed') setLiveState('error', 'Live 연결 실패');
+    };
+
+    let pull;
+    try {
+      const r = await fetch('/oth-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      pull = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setLiveState('error', `Live subscribe 실패 (${r.status})`);
+        cleanupLive();
+        return;
+      }
+    } catch (err) {
+      setLiveState('error', 'Live subscribe 요청 실패');
+      cleanupLive();
+      return;
+    }
+
+    const subSid = pull.subscriber_session_id;
+    const offerSdp = pull.offer_sdp;
+    if (!subSid || !offerSdp) {
+      setLiveState('error', 'Live subscribe 응답 누락');
+      cleanupLive();
+      return;
+    }
+
+    try {
+      await pc.setRemoteDescription({ type: 'offer', sdp: offerSdp });
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      const r = await fetch('/oth-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscriber_session_id: subSid,
+          answer_sdp: answer.sdp,
+        }),
+      });
+      if (!r.ok) {
+        const renego = await r.json().catch(() => ({}));
+        setLiveState('error', `Live renegotiate 실패 (${r.status})`);
+        console.warn('renegotiate error', renego);
+        cleanupLive();
+        return;
+      }
+    } catch (err) {
+      setLiveState('error', 'Live SDP 교환 실패');
+      console.warn(err);
+      cleanupLive();
+      return;
+    }
+
+    if (
+      pc &&
+      pc.iceConnectionState !== 'connected' &&
+      pc.iceConnectionState !== 'completed'
+    ) {
+      setLiveState('connecting', 'Live ICE 협상 중…');
+    }
+  }
+
+  function cleanupLive() {
+    if (pc) {
+      try { pc.close(); } catch (_) {}
+      pc = null;
+    }
+    if (liveVideo.srcObject) {
+      try { liveVideo.srcObject.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      liveVideo.srcObject = null;
+    }
+    started = false;
+  }
+
+  startLiveSubscribe();
+})();
+
 composer.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (sendBtn.disabled) return;

@@ -229,11 +229,33 @@ app.post('/oth-path', (req, res) => {
           !aborted &&
           collectedWavs.length > 0
         ) {
+          collectedWavs.sort((a, b) => a.seq - b.seq);
+          const wavOnly = collectedWavs.map((x) => x.wav);
+
+          if (MUSETALK_STREAM_MODE) {
+
+            res.end();
+            (async () => {
+              let tmp = null;
+              try {
+                tmp = await concatWavs(wavOnly);
+                if (!tmp) return;
+                await museTalkInfer({
+                  audio_path: tmp.path,
+                  output_id: `sess-${sessionId}`,
+                  stream: true,
+                });
+              } catch (err) {
+                console.warn('musetalk stream bg failed:', err?.message ?? err);
+              } finally {
+                if (tmp) await cleanupTempDir(tmp.dir).catch(() => {});
+              }
+            })();
+            return;
+          }
+
           let tmp = null;
           try {
-
-            collectedWavs.sort((a, b) => a.seq - b.seq);
-            const wavOnly = collectedWavs.map((x) => x.wav);
             tmp = await concatWavs(wavOnly);
             if (!tmp) {
               res.end();
@@ -242,7 +264,7 @@ app.post('/oth-path', (req, res) => {
             const result = await museTalkInfer({
               audio_path: tmp.path,
               output_id: `sess-${sessionId}`,
-              stream: MUSETALK_STREAM_MODE,
+              stream: false,
             });
             if (aborted) return;
             send('video', {

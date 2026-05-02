@@ -110,6 +110,36 @@ body {
   border-color: var(--accent);
 }
 
+/* 회차 029-D-2c-after-1: 상단 라이브 영상 (chat 안에서 publisher subscribe) */
+.livefeed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px 0;
+  max-width: var(--max-width);
+  width: 100%;
+  margin: 0 auto;
+}
+.livefeed video {
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: var(--radius-sm);
+  outline: 1px solid var(--border);
+  object-fit: contain;
+}
+.livestatus {
+  font-size: 11px;
+  color: var(--fg-muted);
+  letter-spacing: 0.2px;
+  min-height: 14px;
+  opacity: 0.65;
+}
+.livestatus[data-s="playing"] { color: var(--accent); opacity: 0.9; }
+.livestatus[data-s="error"] { color: #d88; opacity: 0.9; }
+
 .messages {
   flex: 1;
   overflow-y: auto;

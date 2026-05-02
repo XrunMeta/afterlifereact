@@ -22,6 +22,12 @@
     </div>
   </header>
 
+  <!-- 회차 029-D-2c-after-1: chat 화면에 publisher subscribe 영상 inline -->
+  <section class="livefeed" aria-label="할배 입싱크 라이브">
+    <video id="liveVideo" muted autoplay playsinline></video>
+    <div id="liveStatus" class="livestatus" aria-live="polite">Live 대기…</div>
+  </section>
+
   <main id="messages" class="messages" role="log" aria-live="polite"></main>
 
   <form id="composer" class="composer" autocomplete="off">
