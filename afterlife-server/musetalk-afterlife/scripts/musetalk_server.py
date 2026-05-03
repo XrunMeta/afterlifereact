@@ -171,6 +171,8 @@ def _default_args():
     a.left_cheek_width = 90
     a.right_cheek_width = 90
     a.version = "v15"
+    # 029-D-3a: stream 모드일 때 mp4 출력 skip (publisher 가 frame_callback 으로 받음)
+    a.skip_mp4_output = False
     return a
 
 
@@ -264,6 +266,10 @@ def infer(req: InferReq):
     # Stream 모드 — frame_callback 으로 publisher 푸시
     cb = _make_frame_callback(safe_id) if req.stream else None
 
+    # 029-D-3a: stream 모드에서 mp4 저장 skip (default 1, env 로 끌 수 있음).
+    skip_mp4 = bool(req.stream) and (os.environ.get("MUSETALK_SKIP_MP4_IN_STREAM", "1") == "1")
+    args.skip_mp4_output = skip_mp4
+
     t0 = time.time()
     with infer_lock:
         try:
@@ -291,16 +297,21 @@ def infer(req: InferReq):
     except Exception:
         pass
 
-    # output mp4 찾기
-    if not expected.is_file():
-        mp4s = sorted(out_subdir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
-        if mp4s:
-            expected = mp4s[0]
-        else:
-            raise HTTPException(500, "output mp4 not found")
+    # output mp4 찾기 (skip_mp4=True 면 mp4 가 없을 수 있음 — None 응답)
+    mp4_path_str: str | None = None
+    if skip_mp4:
+        mp4_path_str = None
+    else:
+        if not expected.is_file():
+            mp4s = sorted(out_subdir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
+            if mp4s:
+                expected = mp4s[0]
+            else:
+                raise HTTPException(500, "output mp4 not found")
+        mp4_path_str = str(expected)
 
     resp = {
-        "mp4_path": str(expected),
+        "mp4_path": mp4_path_str,
         "infer_ms": elapsed_ms,
         "output_id": safe_id,
     }
@@ -309,5 +320,6 @@ def infer(req: InferReq):
         resp["frames_pushed"] = cb.stats["n"]
         resp["frames_failed"] = cb.stats["fail"]
         resp["frames_submitted"] = cb.stats.get("submitted", cb.stats["n"])
+        resp["mp4_skipped"] = bool(skip_mp4)
     resp["batch_size"] = int(os.environ.get("MUSETALK_BATCH_SIZE", "16"))
     return resp
