@@ -28,3 +28,6 @@ afterlife-server/configs/secret*
 # afterlife server — sync mirror (모델/대용량) + 회차 로그
 afterlife-server/sync-mirror/
 afterlife-server-log/
+
+# sync mirror — 어디 있든 (루트, Reffer/ 하위 등 가비아 동기화 미러 전체)
+sync-mirror/
