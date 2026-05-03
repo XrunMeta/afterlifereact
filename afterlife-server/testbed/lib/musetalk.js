@@ -84,12 +84,13 @@ export async function cleanupTempDir(dir) {
   }
 }
 
-export function museTalkInfer({ audio_path, video_path, output_id }) {
+export function museTalkInfer({ audio_path, video_path, output_id, stream }) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       audio_path,
       ...(video_path ? { video_path } : {}),
       output_id,
+      ...(stream ? { stream: true } : {}),
     });
 
     const req = http.request(

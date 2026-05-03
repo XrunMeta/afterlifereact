@@ -243,6 +243,211 @@ if (ttsToggleBtn) {
   });
 }
 
+const LIVE_UNMUTE_KEY = 'afterlife.testbed.live.unmuted';
+
+(function initLiveSubscribe() {
+  const liveVideo = document.getElementById('liveVideo');
+
+  const liveAudio = document.getElementById('liveAudio');
+  const liveStatusEl = document.getElementById('liveStatus');
+  const unmuteBtn = document.getElementById('liveUnmuteBtn');
+  if (!liveVideo || !liveStatusEl) return;
+
+  const wantUnmuted = localStorage.getItem(LIVE_UNMUTE_KEY) === 'true';
+  let userInteracted = false;
+
+  if (liveAudio) {
+    liveAudio.muted = true; 
+    liveAudio.volume = 1.0;
+  }
+
+  function applyLiveUnmuteUI() {
+    if (!unmuteBtn) return;
+
+    const on = liveAudio ? !liveAudio.muted : !liveVideo.muted;
+    unmuteBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    unmuteBtn.textContent = on ? '🔊 음성 켬' : '🔇 음성 켜기';
+    unmuteBtn.title = on ? '할배 음성 끄기' : '할배 음성 켜기';
+  }
+
+  if (unmuteBtn) {
+    applyLiveUnmuteUI();
+    unmuteBtn.addEventListener('click', async () => {
+      userInteracted = true;
+
+      const target = liveAudio || liveVideo;
+      const willUnmute = target.muted; 
+      target.muted = !willUnmute;
+      localStorage.setItem(LIVE_UNMUTE_KEY, target.muted ? 'false' : 'true');
+      if (!target.muted) {
+        try { await target.play(); } catch (e) { console.warn('live unmute play err', e); }
+
+      }
+      applyLiveUnmuteUI();
+    });
+  }
+
+  const ICE_SERVERS = [
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:stun.l.google.com:19302' },
+  ];
+
+  let pc = null;
+  let started = false;
+
+  function setLiveState(s, text) {
+    liveStatusEl.dataset.s = s;
+    liveStatusEl.textContent = text;
+  }
+
+  async function startLiveSubscribe() {
+    if (started) return;
+    started = true;
+    setLiveState('connecting', 'Live 연결 중…');
+
+    try {
+      const r = await fetch('/oth-path', { cache: 'no-store' });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data.state !== 'publishing') {
+        setLiveState('idle', `Live 대기 (publisher ${data.state ?? '?'})`);
+        started = false;
+
+        setTimeout(startLiveSubscribe, 5000);
+        return;
+      }
+    } catch (err) {
+      setLiveState('error', 'Live publisher 확인 실패');
+      started = false;
+      setTimeout(startLiveSubscribe, 5000);
+      return;
+    }
+
+    setLiveState('connecting', 'Live 연결 중…');
+    pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+    try { window.__livePc = pc; } catch (_) {}
+
+    pc.ontrack = (ev) => {
+
+      const kind = ev.track && ev.track.kind;
+      let target = liveVideo;
+      if (kind === 'audio' && liveAudio) target = liveAudio;
+      let ms = target.srcObject;
+      if (!ms || !(ms instanceof MediaStream)) {
+        ms = new MediaStream();
+        target.srcObject = ms;
+      }
+      const existing = ms.getTracks().some((t) => t.id === ev.track.id);
+      if (!existing) ms.addTrack(ev.track);
+      target.play().catch(() => {});
+
+      if (kind === 'audio' && liveAudio && wantUnmuted && userInteracted && liveAudio.muted) {
+        liveAudio.muted = false;
+        liveAudio.play().catch(() => {
+          liveAudio.muted = true;
+          applyLiveUnmuteUI();
+        });
+        applyLiveUnmuteUI();
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (!pc) return;
+      const s = pc.iceConnectionState;
+      if (s === 'connected' || s === 'completed') setLiveState('playing', 'Live 재생 중');
+      else if (s === 'failed') setLiveState('error', 'Live 연결 실패');
+      else if (s === 'disconnected') setLiveState('error', 'Live 연결 끊김');
+      else if (s === 'closed') setLiveState('idle', 'Live 종료');
+    };
+
+    pc.onconnectionstatechange = () => {
+      if (!pc) return;
+      const s = pc.connectionState;
+      if (s === 'connected') setLiveState('playing', 'Live 재생 중');
+      if (s === 'failed') setLiveState('error', 'Live 연결 실패');
+    };
+
+    let pull;
+    try {
+      const r = await fetch('/oth-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      pull = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setLiveState('error', `Live subscribe 실패 (${r.status})`);
+        cleanupLive();
+        return;
+      }
+    } catch (err) {
+      setLiveState('error', 'Live subscribe 요청 실패');
+      cleanupLive();
+      return;
+    }
+
+    const subSid = pull.subscriber_session_id;
+    const offerSdp = pull.offer_sdp;
+    if (!subSid || !offerSdp) {
+      setLiveState('error', 'Live subscribe 응답 누락');
+      cleanupLive();
+      return;
+    }
+
+    try {
+      await pc.setRemoteDescription({ type: 'offer', sdp: offerSdp });
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      const r = await fetch('/oth-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscriber_session_id: subSid,
+          answer_sdp: answer.sdp,
+        }),
+      });
+      if (!r.ok) {
+        const renego = await r.json().catch(() => ({}));
+        setLiveState('error', `Live renegotiate 실패 (${r.status})`);
+        console.warn('renegotiate error', renego);
+        cleanupLive();
+        return;
+      }
+    } catch (err) {
+      setLiveState('error', 'Live SDP 교환 실패');
+      console.warn(err);
+      cleanupLive();
+      return;
+    }
+
+    if (
+      pc &&
+      pc.iceConnectionState !== 'connected' &&
+      pc.iceConnectionState !== 'completed'
+    ) {
+      setLiveState('connecting', 'Live ICE 협상 중…');
+    }
+  }
+
+  function cleanupLive() {
+    if (pc) {
+      try { pc.close(); } catch (_) {}
+      pc = null;
+    }
+    if (liveVideo.srcObject) {
+      try { liveVideo.srcObject.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      liveVideo.srcObject = null;
+    }
+    if (liveAudio && liveAudio.srcObject) {
+      try { liveAudio.srcObject.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      liveAudio.srcObject = null;
+    }
+    started = false;
+  }
+
+  startLiveSubscribe();
+})();
+
 composer.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (sendBtn.disabled) return;
