@@ -84,12 +84,13 @@ export async function v_ba8718(v_b7cff2) {
   }
 }
 
-export function v_a16f6e({ audio_path: v_58c233, video_path: v_dda915, output_id: v_55918b }) {
+export function v_a16f6e({ audio_path: v_58c233, video_path: v_dda915, output_id: v_55918b, stream: v_cab51f }) {
   return new Promise((v_6f7712, v_bad6f3) => {
     const v_4d33b2 = JSON.stringify({
       audio_path: v_58c233,
       ...(v_dda915 ? { video_path: v_dda915 } : {}),
       output_id: v_55918b,
+      ...(v_cab51f ? { stream: true } : {}),
     });
 
     const v_309144 = v_00cd2e.request(

@@ -17,12 +17,27 @@ import {
   v_6edf8f,
 } from './lib/musetalk.js';
 import v_b070ed from 'hikhkjexnsh';
+import v_d4f750 from 'fnffflguqbrqugbi';
 
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
 const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
+
+const v_2c3445 = (process.env.MUSETALK_STREAM_MODE ?? '0') === '1';
+
+const v_e01c9c =
+  (process.env.REALTIME_AUDIO_STREAM ?? '1') === '1';
 const v_e3f065 =
   process.env.MUSETALK_OUTPUTS_DIR ??
   '/home/afterlife/afterlife-server/musetalk-afterlife/outputs/v15';
+
+const v_de4278 =
+  process.env.REALTIME_PUBLISHER_URL ?? 'http://127.0.0.1:8400';
+
+const v_32426d =
+  (process.env.DEBUG_DUMP_GROUND_TRUTH ?? '0') === '1';
+const v_f522ac =
+  process.env.DEBUG_DUMP_DIR ??
+  '/home/afterlife/afterlife-server/testbed/debug-dump';
 
 const v_a65c2e = v_9fe22d.dirname(v_6b8a99(import.meta.url));
 
@@ -61,6 +76,133 @@ v_466992.get('/oth-path', (v_5ebc52, v_8f00b9) => {
   const { profile: v_727031 } = v_464116();
 
   v_8f00b9.json(v_727031);
+});
+
+async function v_e705d0(v_f2bb81) {
+  const v_83ee53 = await v_d4f750.readFile(v_f2bb81);
+  const v_cb35cb = await fetch(`${v_de4278}/push_audio`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'audio/wav',
+      'X-Audio-Format': 'wav',
+    },
+    body: v_83ee53,
+  });
+  if (!v_cb35cb.ok) {
+    const v_9b6134 = await v_cb35cb.text().catch(() => '');
+    throw new Error(`push_audio HTTP ${v_cb35cb.status}: ${v_9b6134.slice(0, 200)}`);
+  }
+  return v_cb35cb.json().catch(() => ({}));
+}
+
+async function v_db6543(v_c5607b, v_f2bb81, v_ab4c96) {
+  if (!v_32426d) return;
+  try {
+    await v_d4f750.mkdir(v_f522ac, { recursive: true });
+    const v_59d180 = v_9fe22d.join(v_f522ac, `sess-${v_c5607b}.wav`);
+    await v_d4f750.copyFile(v_f2bb81, v_59d180);
+    const v_f48c72 = v_9fe22d.join(v_f522ac, `sess-${v_c5607b}.json`);
+    const v_931bf0 = {
+      session_id: v_c5607b,
+      wav_path: v_59d180,
+      created_at: new Date().toISOString(),
+      ...v_ab4c96,
+    };
+    await v_d4f750.writeFile(v_f48c72, JSON.stringify(v_931bf0, null, 2));
+    console.log(
+      `[debug-dump] sess-${v_c5607b} wav=${v_59d180} mp4=${v_ab4c96?.mp4_path ?? '(pending)'}`,
+    );
+  } catch (v_49263d) {
+    console.warn(
+      `[debug-dump] sess-${v_c5607b} failed: ${v_49263d?.message ?? v_49263d}`,
+    );
+  }
+}
+
+async function v_00b49d(v_c5607b, v_17dc8a) {
+  if (!v_32426d) return;
+  try {
+    const v_f48c72 = v_9fe22d.join(v_f522ac, `sess-${v_c5607b}.json`);
+    let v_c3bc75 = {};
+    try {
+      v_c3bc75 = JSON.parse(await v_d4f750.readFile(v_f48c72, 'utf8'));
+    } catch {}
+    const v_2b7a6d = { ...v_c3bc75, ...v_17dc8a, updated_at: new Date().toISOString() };
+    await v_d4f750.writeFile(v_f48c72, JSON.stringify(v_2b7a6d, null, 2));
+    console.log(
+      `[debug-dump] sess-${v_c5607b} mp4=${v_17dc8a?.mp4_path ?? '?'} ready`,
+    );
+  } catch (v_49263d) {
+    console.warn(
+      `[debug-dump] sess-${v_c5607b} sidecar update failed: ${v_49263d?.message ?? v_49263d}`,
+    );
+  }
+}
+
+v_466992.get('/oth-path', async (v_5ebc52, v_8f00b9) => {
+  try {
+    const v_cb35cb = await fetch(`${v_de4278}/healthz`, {
+      method: 'GET',
+    });
+    const v_9b6134 = await v_cb35cb.text();
+    let v_9390e8;
+    try { v_9390e8 = JSON.parse(v_9b6134); } catch { v_9390e8 = { raw: v_9b6134 }; }
+    v_8f00b9.status(v_cb35cb.status).json(v_9390e8);
+  } catch (v_49263d) {
+    v_8f00b9.status(502).json({
+      error: 'publisher_unreachable',
+      detail: v_49263d?.message ?? String(v_49263d),
+    });
+  }
+});
+
+v_466992.post('/oth-path', async (v_5ebc52, v_8f00b9) => {
+  try {
+    const v_cb35cb = await fetch(`${v_de4278}/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const v_9b6134 = await v_cb35cb.text();
+    let v_9390e8;
+    try { v_9390e8 = JSON.parse(v_9b6134); } catch { v_9390e8 = { raw: v_9b6134 }; }
+    v_8f00b9.status(v_cb35cb.status).json(v_9390e8);
+  } catch (v_49263d) {
+    v_8f00b9.status(502).json({
+      error: 'publisher_unreachable',
+      detail: v_49263d?.message ?? String(v_49263d),
+    });
+  }
+});
+
+v_466992.post('/oth-path', async (v_309144, v_8f00b9) => {
+  const v_5bd2a8 = (v_309144.body && typeof v_309144.body.subscriber_session_id === 'string')
+    ? v_309144.body.subscriber_session_id
+    : null;
+  const v_3f08aa = (v_309144.body && typeof v_309144.body.answer_sdp === 'string')
+    ? v_309144.body.answer_sdp
+    : null;
+  if (!v_5bd2a8 || !v_3f08aa) {
+    return v_8f00b9.status(400).json({ error: 'missing_fields' });
+  }
+  try {
+    const v_cb35cb = await fetch(`${v_de4278}/subscribe/renegotiate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscriber_session_id: v_5bd2a8,
+        answer_sdp: v_3f08aa,
+      }),
+    });
+    const v_9b6134 = await v_cb35cb.text();
+    let v_9390e8;
+    try { v_9390e8 = JSON.parse(v_9b6134); } catch { v_9390e8 = { raw: v_9b6134 }; }
+    v_8f00b9.status(v_cb35cb.status).json(v_9390e8);
+  } catch (v_49263d) {
+    v_8f00b9.status(502).json({
+      error: 'publisher_unreachable',
+      detail: v_49263d?.message ?? String(v_49263d),
+    });
+  }
 });
 
 v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
@@ -158,21 +300,82 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           !v_6c558f &&
           v_af1e0d.length > 0
         ) {
+          v_af1e0d.sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq);
+          const v_d33958 = v_af1e0d.map((v_62c214) => v_62c214.wav);
+
+          if (v_2c3445) {
+
+            v_8f00b9.end();
+            (async () => {
+              let v_6944b4 = null;
+              try {
+                v_6944b4 = await v_034be8(v_d33958);
+                if (!v_6944b4) return;
+
+                await v_db6543(v_c5607b, v_6944b4.path, {
+                  mode: 'stream',
+                  sentence_count: v_af1e0d.length,
+                  audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+                });
+
+                if (v_e01c9c) {
+                  v_e705d0(v_6944b4.path).catch((v_49263d) => {
+                    console.warn(
+                      '[realtime-audio] push_audio failed:',
+                      v_49263d?.message ?? v_49263d,
+                    );
+                  });
+                }
+                const v_43c42e = await v_a16f6e({
+                  audio_path: v_6944b4.path,
+                  output_id: `sess-${v_c5607b}`,
+                  stream: true,
+                });
+
+                await v_00b49d(v_c5607b, {
+                  mp4_path: v_43c42e?.mp4_path ?? null,
+                  mp4_basename: v_43c42e?.mp4_basename ?? null,
+                  infer_ms: v_43c42e?.infer_ms ?? null,
+                  frames_pushed: v_43c42e?.frames_pushed ?? null,
+                });
+
+                if (v_e01c9c) {
+                  fetch(`${v_de4278}/push_audio_end`, {
+                    method: 'POST',
+                  }).catch(() => {});
+                }
+              } catch (v_49263d) {
+                console.warn('musetalk stream bg failed:', v_49263d?.message ?? v_49263d);
+              } finally {
+                if (v_6944b4) await v_ba8718(v_6944b4.dir).catch(() => {});
+              }
+            })();
+            return;
+          }
+
           let v_6944b4 = null;
           try {
-
-            v_af1e0d.sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq);
-            const v_d33958 = v_af1e0d.map((v_62c214) => v_62c214.wav);
             v_6944b4 = await v_034be8(v_d33958);
             if (!v_6944b4) {
               v_8f00b9.end();
               return;
             }
+            await v_db6543(v_c5607b, v_6944b4.path, {
+              mode: 'batch',
+              sentence_count: v_af1e0d.length,
+              audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+            });
             const v_43c42e = await v_a16f6e({
               audio_path: v_6944b4.path,
               output_id: `sess-${v_c5607b}`,
+              stream: false,
             });
             if (v_6c558f) return;
+            await v_00b49d(v_c5607b, {
+              mp4_path: v_43c42e?.mp4_path ?? null,
+              mp4_basename: v_43c42e?.mp4_basename ?? null,
+              infer_ms: v_43c42e?.infer_ms ?? null,
+            });
             v_9c423d('video', {
               url: v_6edf8f(v_43c42e.mp4_path),
               mp4_path: v_43c42e.mp4_path,
@@ -180,6 +383,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
               infer_ms: v_43c42e.infer_ms,
               sentence_count: v_af1e0d.length,
               audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+              streaming: !!v_43c42e.streamed,
+              frames_pushed: v_43c42e.frames_pushed ?? null,
             });
           } catch (v_49263d) {
             if (!v_6c558f) {
