@@ -32,9 +32,16 @@
     "notifications": {
       "title": "알림 설정",
       "push": "푸시 알림",
-      "comment": "댓글 알림",
-      "like": "좋아요 알림",
-      "marketing": "마케팅 알림"
+      "statusGranted": "허용됨",
+      "statusDenied": "거부됨",
+      "statusUnsupported": "디바이스 미지원",
+      "deniedHint": "알림을 받으려면 시스템 설정에서 허용해주세요.",
+      "openSettings": "시스템 설정 열기",
+      "tokenLabel": "푸시 토큰",
+      "tokenLoading": "토큰 발급 중...",
+      "tokenNone": "발급된 토큰 없음",
+      "copyToken": "복사",
+      "copied": "토큰이 복사되었습니다."
     },
     "privacy": {
       "title": "개인정보 및 공개 범위",

@@ -43,3 +43,24 @@ export async function requestPushPermission(): Promise<PushRegistration> {
     return { token: null, platform, granted: true };
   }
 }
+
+export async function getCurrentPushStatus(): Promise<PushRegistration> {
+  const platform: PushRegistration["platform"] =
+    Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web";
+
+  if (!Device.isDevice) {
+    return { token: null, platform, granted: false };
+  }
+
+  const existing = await Notifications.getPermissionsAsync();
+  if (existing.status !== "granted") {
+    return { token: null, platform, granted: false };
+  }
+
+  try {
+    const tokenRes = await Notifications.getExpoPushTokenAsync();
+    return { token: tokenRes.data, platform, granted: true };
+  } catch {
+    return { token: null, platform, granted: true };
+  }
+}
