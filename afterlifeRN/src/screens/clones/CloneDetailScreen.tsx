@@ -114,9 +114,14 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         style={v_fd5f43.bottomGradient}
       >
         {v_c279e3.length > 0 && (
-          <View style={v_fd5f43.coownerBlock} testID="coowner-section">
+          <TouchableOpacity
+            style={v_fd5f43.coownerBlock}
+            testID="coowner-section"
+            onPress={() => v_c65f5d.navigate("CloneInvite", { cloneId: v_eb25ce.id })}
+            activeOpacity={0.85}
+          >
             <Text style={v_fd5f43.coownerTitle}>
-              공동관리자 {v_c279e3.length}명
+              공동관리자 {v_c279e3.length}명 ›
             </Text>
             <View style={v_fd5f43.coownerList}>
               {v_c279e3.slice(0, 5).map((v_ceb55a) => (
@@ -125,7 +130,18 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 </View>
               ))}
             </View>
-          </View>
+          </TouchableOpacity>
+        )}
+        {}
+        {v_c279e3.length === 0 && v_87bb7d && (
+          <TouchableOpacity
+            style={v_fd5f43.coownerInviteBtn}
+            onPress={() => v_c65f5d.navigate("CloneInvite", { cloneId: v_eb25ce.id })}
+            activeOpacity={0.85}
+          >
+            <Feather name="user-plus" size={14} color={v_1bfbd0.white} />
+            <Text style={v_fd5f43.coownerInviteText}>공동관리자 초대</Text>
+          </TouchableOpacity>
         )}
 
         {}
@@ -256,6 +272,18 @@ const v_fd5f43 = v_472849.create({
     color: v_1bfbd0.white,
     fontWeight: "500",
   },
+  coownerInviteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    marginBottom: 12,
+  },
+  coownerInviteText: { fontSize: 12, color: v_1bfbd0.white, fontWeight: "600" },
   giftBtn: {
     width: 56,
     height: 56,

@@ -83,3 +83,178 @@ export async function v_39eaf5(
   }
   return v_8decf8 as CreateCloneResponse;
 }
+
+export interface PendingInvite {
+  id: number;
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+  createdAt: string;
+  status: "pending";
+}
+
+export interface ShareMember {
+  id: number;
+  cloneId: number;
+  ownerId: number;
+  targetUserId: number | null;
+  inviteEmail: string | null;
+  relation: string | null;
+  role: "owner" | "editor" | "viewer";
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
+
+  targetUser?: {
+    id: number;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+
+async function v_04b58a<T>(
+  v_9fe22d,
+  v_2ca7e0,
+  v_00cfc6 = {},
+  v_6f448e,
+): Promise<T> {
+  const v_3f4675 = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${v_2ca7e0}`,
+    ...((v_00cfc6.headers as Record<string, string>) ?? {}),
+  };
+  if (v_6f448e) v_3f4675["Idempotency-Key"] = v_6f448e;
+
+  const v_8f00b9 = await fetch(`${v_cc9198}${v_9fe22d}`, { ...v_00cfc6, headers: v_3f4675 });
+  const v_9b6134 = await v_8f00b9.text();
+  let v_8decf8 = null;
+  try {
+    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
+  } catch {
+
+  }
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as T;
+}
+
+function v_7f4dc3(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export async function v_7f4050(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ items: PendingInvite[] }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
+export async function v_735203(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_2e18e1,
+): Promise<{ ok: true }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/oth-path${v_2e18e1}`,
+    v_2ca7e0,
+    { method: "DELETE" },
+    v_7f4dc3(),
+  );
+}
+
+export async function v_7e484f(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ items: ShareMember[] }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/shares`, v_2ca7e0, { method: "GET" });
+}
+
+export async function v_81dd51(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_b7bfe9,
+): Promise<{ ok: true; action: "kick" | "leave" }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/shares/${v_b7bfe9}`,
+    v_2ca7e0,
+    { method: "DELETE" },
+    v_7f4dc3(),
+  );
+}
+
+export interface MyClone {
+  id: number;
+  name: string;
+  username: string;
+  description: string | null;
+  cloneType: CloneType;
+  category: string | null;
+  visibility: Visibility;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  trainingStatus: string | null;
+  ownerId: number;
+  createdAt: string;
+  myRole: "owner" | "coowner";
+}
+
+export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
+  return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
+export interface InvitePreview {
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+}
+
+export async function v_a56a6a(v_21cc31): Promise<InvitePreview> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${encodeURIComponent(v_21cc31)}`);
+  const v_9b6134 = await v_8f00b9.text();
+  let v_8decf8 = null;
+  try {
+    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
+  } catch {
+
+  }
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as InvitePreview;
+}
+
+export async function v_a51300(
+  v_2ca7e0,
+  v_21cc31,
+): Promise<{ ok: true; cloneId: number }> {
+  return v_04b58a(
+    `/oth-path${encodeURIComponent(v_21cc31)}/accept`,
+    v_2ca7e0,
+    { method: "POST" },
+    v_7f4dc3(),
+  );
+}

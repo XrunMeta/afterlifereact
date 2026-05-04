@@ -1,4 +1,4 @@
-import v_a3453e, { v_df9f57, v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -10,9 +10,10 @@ import {
   v_09d0e5,
   v_122070,
   v_79c4f2,
+  v_39a996,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
@@ -21,6 +22,8 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
+import { v_d60cdf, v_e4a407, type v_fa0201 } from "../../api/clones";
+import { v_a41961, v_84a859, type v_3a673b } from "../../api/auth";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
@@ -30,19 +33,72 @@ type ClonesNav = v_390fcc<v_2d88fc>;
 
 const v_b9d568 = 1;
 
+function v_a8d790(c: v_fa0201): v_affcc0 {
+  return {
+    id: v_3f4e2e.id,
+    cloneType: v_3f4e2e.cloneType,
+    ownerId: v_3f4e2e.ownerId,
+    displayName: v_3f4e2e.name,
+    description: v_3f4e2e.description ?? "",
+    interests: [],
+    imageUrl: v_3f4e2e.avatarUrl ?? undefined,
+    visibility: v_3f4e2e.visibility,
+    status: (v_3f4e2e.trainingStatus as v_affcc0["status"]) ?? "active",
+    createdAt: v_3f4e2e.createdAt,
+  };
+}
+
 export default function v_def15b() {
   const v_c65f5d = v_ada615<ClonesNav>();
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
+
+  const [v_8a7926, v_d42991] = v_5ab095<v_affcc0[] | null>(null);
+
+  const v_8e46f5 = v_a3453e.useCallback(async () => {
+    if (!v_2ca7e0) {
+      v_d42991(null);
+      return;
+    }
+    try {
+      const v_8f00b9 = await v_d60cdf(v_2ca7e0);
+      v_d42991(v_8f00b9.items.map(v_a8d790));
+    } catch (v_49263d) {
+      console.warn("[Dashboard] listMyClones failed:", v_49263d);
+
+    }
+  }, [v_2ca7e0]);
+
+  v_c4deb2(() => {
+    v_8e46f5();
+  }, [v_8e46f5]);
+
+  v_cf763b(
+    v_a3453e.useCallback(() => {
+      v_8e46f5();
+    }, [v_8e46f5]),
+  );
+
   const v_4cd149 = v_df9f57<v_affcc0[]>(() => {
-    const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
+    const v_0c8987 = v_b113dd?.id ?? v_f38ee5?.id ?? v_b9d568;
+    if (v_8a7926 != null) {
+
+      const v_15e521 = new Set(v_8a7926.map((v_3f4e2e) => v_3f4e2e.id));
+      const v_88106c = v_06f32b.filter(
+        (v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987 && !v_15e521.has(v_3f4e2e.id),
+      );
+      return [...v_8a7926, ...v_88106c];
+    }
+
     return [
       ...v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987),
       ...v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987),
     ];
-  }, [v_f38ee5, v_06f32b]);
+  }, [v_8a7926, v_b113dd, v_f38ee5, v_06f32b]);
 
   const [v_699459, v_2bf327] = v_5ab095<
     Record<number, { isActive: boolean; visibility: v_b0b271 }>
@@ -61,8 +117,10 @@ export default function v_def15b() {
 
   const [v_8769c2, v_fb07c9] = v_5ab095<Set<number>>(new Set());
   const [v_ce3af0, v_8d2d61] = v_5ab095<number | null>(null);
-  const [v_36d186, v_2dac5f] = v_5ab095(false);
+  const [v_36d186, v_2dac5f] = v_5ab095<{ cloneId: number } | null>(null);
   const [v_b93ea5, v_35dce3] = v_5ab095("");
+  const [v_76148b, v_ff2199] = v_5ab095<v_3a673b[]>([]);
+  const [v_4568f9, v_58158a] = v_5ab095(false);
   const [v_aa2223, v_b21d0d] = v_5ab095<Set<number>>(new Set());
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
     type: "likes" | "interactions" | "comments" | "followers";
@@ -105,6 +163,42 @@ export default function v_def15b() {
     const v_275ccd = v_699459[v_6e0fd3]?.visibility ?? "public";
     v_2dbd8f({ cloneId: v_6e0fd3, currentVisibility: v_275ccd });
     v_8d2d61(null);
+  };
+
+  v_c4deb2(() => {
+    if (!v_36d186 || !v_2ca7e0) return;
+    const v_ab6401 = v_b93ea5.trim();
+    if (v_ab6401.length < 2) {
+      v_ff2199([]);
+      v_58158a(false);
+      return;
+    }
+    v_58158a(true);
+    const v_8d41d7 = setTimeout(async () => {
+      try {
+        const v_8f00b9 = await v_a41961(v_2ca7e0, v_ab6401);
+        v_ff2199(v_8f00b9.items);
+      } catch (v_49263d) {
+        console.warn("[Dashboard] searchUsers failed:", v_49263d);
+        v_ff2199([]);
+      } finally {
+        v_58158a(false);
+      }
+    }, 300);
+    return () => clearTimeout(v_8d41d7);
+  }, [v_b93ea5, v_2ca7e0, v_36d186]);
+
+  const v_69254d = async (user: v_3a673b) => {
+    if (!v_2ca7e0 || !v_36d186) return;
+    try {
+      await v_e4a407(v_2ca7e0, v_36d186.cloneId, {
+        invite_email: v_625c74.email,
+      });
+      v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
+    } catch (v_49263d) {
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "초대 발송 실패";
+      console.warn("[Dashboard] createInvite failed:", v_badeaf);
+    }
   };
 
   const v_c9f992 = (v: v_b0b271) => {
@@ -151,6 +245,7 @@ export default function v_def15b() {
     const v_b6e533 = v_699459[v_eb25ce.id];
     const v_26dce6 = v_b6e533?.isActive ?? true;
     const v_818579 = v_b6e533?.visibility ?? v_eb25ce.visibility;
+    const v_e93e18 = v_eb25ce.cloneType === "memlow";
     const v_e17daa = v_1e752a.filter(
       (v_8b5cd8) => v_8b5cd8.followingCloneId === v_eb25ce.id,
     ).length;
@@ -180,10 +275,13 @@ export default function v_def15b() {
           </TouchableOpacity>
 
           <View style={v_fd5f43.cardTopRight}>
-            <View style={v_fd5f43.visibilityBadge}>
-              <Feather name={v_a6deb1(v_818579)} size={14} color={v_1bfbd0.zinc500} />
-              <Text style={v_fd5f43.visibilityText}>{v_82830c(v_818579)}</Text>
-            </View>
+            {}
+            {!v_e93e18 && (
+              <View style={v_fd5f43.visibilityBadge}>
+                <Feather name={v_a6deb1(v_818579)} size={14} color={v_1bfbd0.zinc500} />
+                <Text style={v_fd5f43.visibilityText}>{v_82830c(v_818579)}</Text>
+              </View>
+            )}
             <TouchableOpacity
               style={v_fd5f43.moreBtn}
               onPress={() => v_8d2d61(v_eb25ce.id)}
@@ -211,43 +309,51 @@ export default function v_def15b() {
         </Text>
 
         {}
-        <View style={v_fd5f43.statsRow}>
+        {v_e93e18 ? (
           <TouchableOpacity
-            style={v_fd5f43.stat}
-            onPress={() => v_d5cd7b({ type: "likes", cloneName: v_eb25ce.displayName })}
+            style={v_fd5f43.coownerBadge}
+            onPress={() =>
+              v_c65f5d.navigate("CloneInvite", { cloneId: v_eb25ce.id })
+            }
+            activeOpacity={0.7}
           >
-            <Feather name="heart" size={14} color={v_1bfbd0.zinc500} />
-            <Text style={v_fd5f43.statText}>2.4k</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={v_fd5f43.stat}
-            onPress={() => v_d5cd7b({ type: "interactions", cloneName: v_eb25ce.displayName })}
-          >
-            <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-            <Text style={v_fd5f43.statText}>4.5k</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={v_fd5f43.stat}
-            onPress={() => v_d5cd7b({ type: "comments", cloneName: v_eb25ce.displayName })}
-          >
-            <Feather name="message-circle" size={14} color={v_1bfbd0.zinc500} />
-            <Text style={v_fd5f43.statText}>328</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={v_fd5f43.stat}
-            onPress={() => v_d5cd7b({ type: "followers", cloneName: v_eb25ce.displayName })}
-          >
-            <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
-            <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
-              {v_e17daa} 팔로워
+            <Feather name="users" size={14} color={v_1bfbd0.zinc600} />
+            <Text style={v_fd5f43.coownerText}>
+              공동관리자 {v_77df30}명 ›
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {v_77df30 > 0 && (
-          <View style={v_fd5f43.coownerBadge}>
-            <Feather name="users" size={12} color={v_1bfbd0.zinc600} />
-            <Text style={v_fd5f43.coownerText}>공동관리자 {v_77df30}명</Text>
+        ) : (
+          <View style={v_fd5f43.statsRow}>
+            <TouchableOpacity
+              style={v_fd5f43.stat}
+              onPress={() => v_d5cd7b({ type: "likes", cloneName: v_eb25ce.displayName })}
+            >
+              <Feather name="heart" size={14} color={v_1bfbd0.zinc500} />
+              <Text style={v_fd5f43.statText}>2.4k</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={v_fd5f43.stat}
+              onPress={() => v_d5cd7b({ type: "interactions", cloneName: v_eb25ce.displayName })}
+            >
+              <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
+              <Text style={v_fd5f43.statText}>4.5k</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={v_fd5f43.stat}
+              onPress={() => v_d5cd7b({ type: "comments", cloneName: v_eb25ce.displayName })}
+            >
+              <Feather name="message-circle" size={14} color={v_1bfbd0.zinc500} />
+              <Text style={v_fd5f43.statText}>328</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={v_fd5f43.stat}
+              onPress={() => v_d5cd7b({ type: "followers", cloneName: v_eb25ce.displayName })}
+            >
+              <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
+              <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
+                {v_e17daa} 팔로워
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -291,8 +397,9 @@ export default function v_def15b() {
             style={v_fd5f43.actionBtn}
             onPress={() => {
               v_35dce3("");
+              v_ff2199([]);
               v_b21d0d(new Set());
-              v_2dac5f(true);
+              v_2dac5f({ cloneId: v_eb25ce.id });
             }}
           >
             <Feather name="user-plus" size={16} color={v_1bfbd0.zinc700} />
@@ -507,13 +614,13 @@ export default function v_def15b() {
       </Modal>
 
       {}
-      <Modal visible={v_36d186} transparent animationType="slide">
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dac5f(false)}>
+      <Modal visible={!!v_36d186} transparent animationType="slide">
+        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dac5f(null)}>
           <View style={v_fd5f43.inviteSheet} onStartShouldSetResponder={() => true}>
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.inviteHeader}>
-              <Text style={v_fd5f43.inviteTitle}>페르소나 초대</Text>
-              <TouchableOpacity onPress={() => v_2dac5f(false)}>
+              <Text style={v_fd5f43.inviteTitle}>공동관리자 초대</Text>
+              <TouchableOpacity onPress={() => v_2dac5f(null)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc500} />
               </TouchableOpacity>
             </View>
@@ -525,9 +632,11 @@ export default function v_def15b() {
                 style={v_fd5f43.inviteSearchInput}
                 value={v_b93ea5}
                 onChangeText={v_35dce3}
-                placeholder="이름 또는 계정으로 검색"
+                placeholder="이메일 또는 이름으로 검색 (afterlife 회원만)"
                 placeholderTextColor={v_1bfbd0.placeholder}
                 autoFocus
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
               {v_b93ea5.length > 0 && (
                 <TouchableOpacity onPress={() => v_35dce3("")}>
@@ -538,27 +647,49 @@ export default function v_def15b() {
 
             {}
             <ScrollView style={v_fd5f43.inviteList} showsVerticalScrollIndicator={false}>
-              {v_56fdc3
-                .filter((v_ceb55a) =>
-                  v_b93ea5.length === 0 ||
-                  v_ceb55a.name.includes(v_b93ea5) ||
-                  v_ceb55a.username.toLowerCase().includes(v_b93ea5.toLowerCase()),
-                )
-                .map((v_625c74) => {
+              {v_b93ea5.trim().length < 2 ? (
+                <View style={{ padding: 32, alignItems: "center" }}>
+                  <Feather name="search" size={32} color={v_1bfbd0.zinc300} />
+                  <Text style={{ color: v_1bfbd0.zinc500, marginTop: 8, fontSize: 13 }}>
+                    이메일 또는 이름을 입력해주세요 (2자 이상)
+                  </Text>
+                  <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
+                    afterlife 가입 회원만 초대할 수 있어요
+                  </Text>
+                </View>
+              ) : v_4568f9 ? (
+                <View style={{ padding: 32, alignItems: "center" }}>
+                  <ActivityIndicator color={v_1bfbd0.zinc500} />
+                </View>
+              ) : v_76148b.length === 0 ? (
+                <View style={{ padding: 32, alignItems: "center" }}>
+                  <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
+                    검색 결과가 없어요
+                  </Text>
+                  <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
+                    afterlife에 가입된 회원만 초대할 수 있어요
+                  </Text>
+                </View>
+              ) : (
+                v_76148b.map((v_625c74) => {
                   const v_f966e3 = v_aa2223.has(v_625c74.id);
                   return (
                     <View key={v_625c74.id} style={v_fd5f43.inviteRow}>
-                      <Image source={{ uri: v_625c74.avatar }} style={v_fd5f43.inviteAvatar} />
+                      {v_625c74.avatarUrl ? (
+                        <Image source={{ uri: v_625c74.avatarUrl }} style={v_fd5f43.inviteAvatar} />
+                      ) : (
+                        <View style={[v_fd5f43.inviteAvatar, { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" }]}>
+                          <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+                        </View>
+                      )}
                       <View style={v_fd5f43.inviteInfo}>
-                        <Text style={v_fd5f43.inviteName}>{v_625c74.name}</Text>
-                        <Text style={v_fd5f43.inviteUsername}>{v_625c74.username}</Text>
+                        <Text style={v_fd5f43.inviteName}>{v_625c74.name ?? v_625c74.email}</Text>
+                        <Text style={v_fd5f43.inviteUsername}>{v_625c74.email}</Text>
                       </View>
                       <TouchableOpacity
                         style={[v_fd5f43.inviteBtn, v_f966e3 && v_fd5f43.inviteBtnSent]}
                         disabled={v_f966e3}
-                        onPress={() =>
-                          v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id))
-                        }
+                        onPress={() => v_69254d(v_625c74)}
                       >
                         <Feather
                           name={v_f966e3 ? "check" : "send"}
@@ -571,7 +702,8 @@ export default function v_def15b() {
                       </TouchableOpacity>
                     </View>
                   );
-                })}
+                })
+              )}
             </ScrollView>
           </View>
         </Pressable>
@@ -657,17 +789,6 @@ const v_2fb1c1 = [
   { id: "c3", name: "박지훈", avatar: "https://i.pravatar.cc/100?img=3", text: "위로가 되는 말씀 감사해요 ㅠㅠ", time: "어제" },
   { id: "c4", name: "최유진", avatar: "https://i.pravatar.cc/100?img=9", text: "매일 대화하고 있어요 추천합니다!", time: "2일 전" },
   { id: "c5", name: "정하은", avatar: "https://i.pravatar.cc/100?img=10", text: "목소리도 자연스럽고 너무 좋아요", time: "3일 전" },
-];
-
-const v_56fdc3 = [
-  { id: 9001, name: "김태희", username: "@taehee_kim", avatar: "https://i.pravatar.cc/100?img=11" },
-  { id: 9002, name: "이준혁", username: "@junhyuk_lee", avatar: "https://i.pravatar.cc/100?img=12" },
-  { id: 9003, name: "박소연", username: "@soyeon_park", avatar: "https://i.pravatar.cc/100?img=13" },
-  { id: 9004, name: "최민재", username: "@minjae_choi", avatar: "https://i.pravatar.cc/100?img=14" },
-  { id: 9005, name: "정유나", username: "@yuna_jung", avatar: "https://i.pravatar.cc/100?img=15" },
-  { id: 9006, name: "한서준", username: "@seojun_han", avatar: "https://i.pravatar.cc/100?img=16" },
-  { id: 9007, name: "윤채원", username: "@chaewon_yoon", avatar: "https://i.pravatar.cc/100?img=17" },
-  { id: 9008, name: "김하늘", username: "@haneul_k", avatar: "https://i.pravatar.cc/100?img=18" },
 ];
 
 const v_fd5f43 = v_472849.create({
