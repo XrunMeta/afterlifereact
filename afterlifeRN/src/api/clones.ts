@@ -191,3 +191,70 @@ export async function deleteShare(
     makeIdempotencyKey(),
   );
 }
+
+export interface MyClone {
+  id: number;
+  name: string;
+  username: string;
+  description: string | null;
+  cloneType: CloneType;
+  category: string | null;
+  visibility: Visibility;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  trainingStatus: string | null;
+  ownerId: number;
+  createdAt: string;
+  myRole: "owner" | "coowner";
+}
+
+export async function listMyClones(accessToken: string): Promise<{ items: MyClone[] }> {
+  return authFetch(`/oth-path`, accessToken, { method: "GET" });
+}
+
+export interface InvitePreview {
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+}
+
+export async function getInvitePreview(token: string): Promise<InvitePreview> {
+  const res = await fetch(`${API_BASE}/oth-path${encodeURIComponent(token)}`);
+  const text = await res.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+
+  }
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as InvitePreview;
+}
+
+export async function acceptInvite(
+  accessToken: string,
+  token: string,
+): Promise<{ ok: true; cloneId: number }> {
+  return authFetch(
+    `/oth-path${encodeURIComponent(token)}/accept`,
+    accessToken,
+    { method: "POST" },
+    makeIdempotencyKey(),
+  );
+}
