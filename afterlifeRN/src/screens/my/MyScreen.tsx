@@ -217,9 +217,6 @@ export default function MyScreen() {
             <TouchableOpacity style={s.headerBtn}>
               <Feather name="bell" size={22} color={COLORS.zinc700} />
             </TouchableOpacity>
-            <TouchableOpacity style={s.headerBtn}>
-              <Feather name="settings" size={22} color={COLORS.zinc700} />
-            </TouchableOpacity>
           </View>
         }
       />
