@@ -194,11 +194,11 @@ export default function EditProfileScreen() {
     if (deleting) return;
     setDeleteOptionsVisible(false);
     Alert.alert(
-      "에프터라이프 계정 삭제",
+      "에프터라이프 계정 탈퇴",
       "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.\n복구할 수 없습니다.",
       [
         { text: "취소", style: "cancel" },
-        { text: "삭제", style: "destructive", onPress: () => performDelete(false) },
+        { text: "탈퇴", style: "destructive", onPress: () => performDelete(false) },
       ],
     );
   };
@@ -397,7 +397,7 @@ export default function EditProfileScreen() {
               onPress={handleDeleteAfterlifeOnly}
               disabled={deleting}
             >
-              <Text style={s.deleteOnlyBtnText}>에프터라이프 계정만 삭제</Text>
+              <Text style={s.deleteOnlyBtnText}>에프터라이프 계정 탈퇴</Text>
               <Text style={s.deleteOptionHint}>xrun 회원·지갑은 유지</Text>
             </TouchableOpacity>
 
