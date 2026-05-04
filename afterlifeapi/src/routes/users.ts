@@ -227,6 +227,41 @@ users.get("/me/devices", requireAuth, async (c) => {
   return c.json({ devices: rows.results ?? [] });
 });
 
+users.get("/me/clones", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT
+          c.id,
+          c.name,
+          c.username,
+          c.description,
+          c.clone_type     AS cloneType,
+          c.category,
+          c.visibility,
+          c.avatar_url     AS avatarUrl,
+          c.cover_image_url AS coverImageUrl,
+          c.training_status AS trainingStatus,
+          c.owner_id       AS ownerId,
+          c.created_at     AS createdAt,
+          (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole
+         FROM clones c
+        WHERE c.deleted_at IS NULL
+          AND (
+            c.owner_id = ?
+            OR c.id IN (
+              SELECT s.clone_id FROM clone_shares s
+              WHERE s.target_user_id = ? AND s.status = 'accepted'
+            )
+          )
+        ORDER BY c.id DESC
+        LIMIT 200`,
+    )
+    .bind(userId, userId, userId)
+    .all();
+  return c.json({ items: rows.results ?? [] });
+});
+
 users.post("/me/delete", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;

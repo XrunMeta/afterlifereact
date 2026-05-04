@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   TextInput,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
@@ -21,6 +21,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
+import { listMyClones, type MyClone } from "../../api/clones";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
@@ -30,19 +31,72 @@ type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
 const DEFAULT_USER_ID = 1;
 
+function adaptMyClone(c: MyClone): Clone {
+  return {
+    id: c.id,
+    cloneType: c.cloneType,
+    ownerId: c.ownerId,
+    displayName: c.name,
+    description: c.description ?? "",
+    interests: [],
+    imageUrl: c.avatarUrl ?? undefined,
+    visibility: c.visibility,
+    status: (c.trainingStatus as Clone["status"]) ?? "active",
+    createdAt: c.createdAt,
+  };
+}
+
 export default function MyClonesDashboardScreen() {
   const navigation = useNavigation<ClonesNav>();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const authUser = useAuthStore((s) => s.user);
+  const apiUser = useAuthStore((s) => s.apiUser);
+  const accessToken = useAuthStore((s) => s.accessToken);
   const localClones = useCloneStore((s) => s.localClones);
   const follows = useFollowStore((s) => s.follows);
+
+  const [apiClones, setApiClones] = useState<Clone[] | null>(null);
+
+  const fetchMyClones = React.useCallback(async () => {
+    if (!accessToken) {
+      setApiClones(null);
+      return;
+    }
+    try {
+      const res = await listMyClones(accessToken);
+      setApiClones(res.items.map(adaptMyClone));
+    } catch (err) {
+      console.warn("[Dashboard] listMyClones failed:", err);
+
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    fetchMyClones();
+  }, [fetchMyClones]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchMyClones();
+    }, [fetchMyClones]),
+  );
+
   const myClones = useMemo<Clone[]>(() => {
-    const uid = authUser?.id ?? DEFAULT_USER_ID;
+    const uid = apiUser?.id ?? authUser?.id ?? DEFAULT_USER_ID;
+    if (apiClones != null) {
+
+      const apiIds = new Set(apiClones.map((c) => c.id));
+      const localOnly = localClones.filter(
+        (c) => c.ownerId === uid && !apiIds.has(c.id),
+      );
+      return [...apiClones, ...localOnly];
+    }
+
     return [
       ...seedSource.clones().filter((c) => c.ownerId === uid),
       ...localClones.filter((c) => c.ownerId === uid),
     ];
-  }, [authUser, localClones]);
+  }, [apiClones, apiUser, authUser, localClones]);
 
   const [cloneStates, setCloneStates] = useState<
     Record<number, { isActive: boolean; visibility: Visibility }>
