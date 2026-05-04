@@ -191,3 +191,50 @@ export async function deleteShare(
     makeIdempotencyKey(),
   );
 }
+
+export interface InvitePreview {
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+}
+
+export async function getInvitePreview(token: string): Promise<InvitePreview> {
+  const res = await fetch(`${API_BASE}/oth-path${encodeURIComponent(token)}`);
+  const text = await res.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+
+  }
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as InvitePreview;
+}
+
+export async function acceptInvite(
+  accessToken: string,
+  token: string,
+): Promise<{ ok: true; cloneId: number }> {
+  return authFetch(
+    `/oth-path${encodeURIComponent(token)}/accept`,
+    accessToken,
+    { method: "POST" },
+    makeIdempotencyKey(),
+  );
+}
