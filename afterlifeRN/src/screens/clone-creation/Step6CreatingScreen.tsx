@@ -59,10 +59,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <PageHeader
-        title="클론 생성"
-        stepInfo={{ current: 6, total: 7 }}
-      />
+      <PageHeader title="클론 생성" />
       <StepIndicator currentStep={6} totalSteps={7} />
 
       <View style={v_d81136.center}>

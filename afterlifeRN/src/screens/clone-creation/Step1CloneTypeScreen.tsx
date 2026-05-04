@@ -33,7 +33,6 @@ export default function v_84d7a5({ navigation: v_c65f5d }: Props) {
         title="클론 타입"
         showBackButton
         onBackPress={() => v_c65f5d.getParent()?.navigate('HomeTab' as never)}
-        stepInfo={{ current: 1, total: 7 }}
       />
       <StepIndicator currentStep={1} totalSteps={7} />
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>

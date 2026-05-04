@@ -27,7 +27,6 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
         title="음성 설정"
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
-        stepInfo={{ current: 4, total: 7 }}
       />
       <StepIndicator currentStep={4} totalSteps={7} />
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>

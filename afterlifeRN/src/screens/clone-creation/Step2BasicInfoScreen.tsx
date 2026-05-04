@@ -27,7 +27,6 @@ export default function v_afe4c8({ navigation: v_c65f5d }: Props) {
         title="기본 정보"
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
-        stepInfo={{ current: 2, total: 7 }}
       />
       <StepIndicator currentStep={2} totalSteps={7} />
       <SafeScrollView

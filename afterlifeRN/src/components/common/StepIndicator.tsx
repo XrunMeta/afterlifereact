@@ -15,7 +15,7 @@ const StepIndicator: v_a3453e.FC<StepIndicatorProps> = ({
 
   return (
     <View style={v_d81136.container}>
-      <Text style={v_d81136.label}>STEP {v_91943c}</Text>
+      <Text style={v_d81136.label}>STEP {v_91943c}/{v_be48b1}</Text>
       <View style={v_d81136.track}>
         <View style={[v_d81136.fill, { width: `${v_a63fde * 100}%` }]}>
           <View style={v_d81136.gradient} />
