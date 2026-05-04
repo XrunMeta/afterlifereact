@@ -33,6 +33,7 @@ export default function Step2BasicInfoScreen({ navigation }: Props) {
       <SafeScrollView
         contentContainerStyle={styles.content}
         showBottomBackground={false}
+        autoAdjustKeyboardPadding
         keyboardShouldPersistTaps="handled"
       >
         <Content draft={draft} onChange={setCreationDraft} />
