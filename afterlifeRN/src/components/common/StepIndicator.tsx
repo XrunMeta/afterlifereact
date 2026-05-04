@@ -15,7 +15,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>STEP {currentStep}</Text>
+      <Text style={styles.label}>STEP {currentStep}/{totalSteps}</Text>
       <View style={styles.track}>
         <View style={[styles.fill, { width: `${progress * 100}%` }]}>
           <View style={styles.gradient} />
