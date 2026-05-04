@@ -28,7 +28,8 @@ const StepIndicator: v_a3453e.FC<StepIndicatorProps> = ({
 const v_d81136 = v_472849.create({
   container: {
     paddingHorizontal: v_9b1a04.medium,
-    paddingVertical: v_9b1a04.small,
+    paddingTop: v_9b1a04.large,
+    paddingBottom: v_9b1a04.small,
   },
   label: {
     fontSize: 12,
