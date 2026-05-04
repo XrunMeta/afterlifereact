@@ -15,7 +15,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
 import { v_c4c43f } from "../../mocks/cloneTypeCatalog";
-import { v_39eaf5, v_b55477 } from "../../api/clones";
+import { v_39eaf5, v_e4a407, v_b55477 } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 
 type Props = {
@@ -123,6 +123,22 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           createdAt: v_28eeb6.created_at,
         };
         v_956393(v_eb25ce);
+
+        const v_c40f3e = (v_f04727.coownerInvites ?? [])
+          .map((v_9e86fd) => v_9e86fd.trim())
+          .filter((v_9e86fd) => v_9e86fd.length > 0);
+        if (v_c40f3e.length > 0) {
+          const v_a7f568 = await Promise.allSettled(
+            v_c40f3e.map((v_e0c7e8) =>
+              v_e4a407(v_2ca7e0, v_28eeb6.id, { invite_email: v_e0c7e8 }),
+            ),
+          );
+          const v_3ed4c3 = v_a7f568.filter((v_cb35cb) => v_cb35cb.status === 'fulfilled').length;
+          const v_d5bb0f = v_a7f568.length - v_3ed4c3;
+          console.log(`[CLONE-INVITE] sent ${v_3ed4c3}/${v_a7f568.length} (fail ${v_d5bb0f})`);
+
+        }
+
         if (!v_2008a4) {
           v_67122d(v_28eeb6.id);
           v_c7169b(false);
