@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
+import NotificationBell from "../../components/common/NotificationBell";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useCloneStore } from "../../stores/cloneStore";
@@ -212,13 +213,7 @@ export default function MyScreen() {
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
         title="My Page"
-        rightAction={
-          <View style={s.headerRight}>
-            <TouchableOpacity style={s.headerBtn}>
-              <Feather name="bell" size={22} color={COLORS.zinc700} />
-            </TouchableOpacity>
-          </View>
-        }
+        rightAction={<NotificationBell />}
       />
 
       <View style={s.content}>

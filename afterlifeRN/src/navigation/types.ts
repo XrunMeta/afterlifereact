@@ -9,6 +9,8 @@ export type RootStackParamList = {
   GDPRDelete: undefined;
 
   InviteAccept: { token: string };
+
+  Notifications: undefined;
 };
 
 export type AuthStackParamList = {

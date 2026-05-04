@@ -30,7 +30,7 @@ import {
   type PendingInvite,
   type ShareMember,
 } from "../../api/clones";
-import { AuthApiError } from "../../api/auth";
+import { AuthApiError, searchUsers } from "../../api/auth";
 
 type Route = RouteProp<ClonesStackParamList, "CloneInvite">;
 
@@ -42,6 +42,7 @@ export default function CloneInviteScreen() {
   const cloneId = params.cloneId;
   const accessToken = useAuthStore((s) => s.accessToken);
   const currentUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
+  const myEmail = useAuthStore((s) => s.apiUser?.email ?? s.user?.email ?? null);
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
 
   const isOwner =
@@ -90,9 +91,23 @@ export default function CloneInviteScreen() {
       Alert.alert("알림", "올바른 이메일을 입력해주세요.");
       return;
     }
+    if (myEmail && email.toLowerCase() === myEmail.toLowerCase()) {
+      Alert.alert("알림", "본인은 초대할 수 없어요.");
+      return;
+    }
     if (!accessToken) return;
     setSubmitting(true);
     try {
+
+      const search = await searchUsers(accessToken, email);
+      const target = email.toLowerCase();
+      const exact = search.items.find((u) => u.email.toLowerCase() === target);
+      if (!exact) {
+        Alert.alert("알림", "해당 이메일을 가진 회원이 없습니다 다시 입력해주세요");
+        setSubmitting(false);
+        return;
+      }
+
       const res = await createInvite(accessToken, cloneId, { invite_email: email });
       console.log("[CloneInvite] sent:", res);
       setNewEmail("");
@@ -194,7 +209,7 @@ export default function CloneInviteScreen() {
               <View style={s.card}>
                 <Text style={s.sectionTitle}>공동관리자 초대</Text>
                 <Text style={s.sectionDesc}>
-                  이메일로 초대할게요. 3일 내 미수락 시 자동 만료돼요.
+                  afterlife 가입 회원만 초대 가능해요. 3일 내 미수락 시 자동 만료돼요.
                 </Text>
                 <View style={s.inviteRow}>
                   <TextInput

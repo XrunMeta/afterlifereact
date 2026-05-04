@@ -41,6 +41,7 @@ const TextField = React.forwardRef<TextInput, TextFieldProps>(
   ) => {
 
     const handleFocus = (event: any) => {
+
       if (onFocus) {
         onFocus(event);
       }

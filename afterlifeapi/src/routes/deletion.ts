@@ -142,9 +142,56 @@ deletion.delete("/oth-path", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   }
   const userId = c.get("userId")!;
-  const result = await softDelete(c.env.DB, "clone", cloneId, "owner_id", userId);
-  handleDeleteResult(result);
-  return c.json({ ok: true, state: "soft_deleted" });
+  const db = c.env.DB;
+
+  const clone = await db
+    .prepare("SELECT id, owner_id, deletion_state FROM clones WHERE id = ?")
+    .bind(cloneId)
+    .first<{ id: number; owner_id: number; deletion_state: string }>();
+  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (clone.owner_id !== userId) throw new APIError("FORBIDDEN", "You do not own this clone.");
+  if (clone.deletion_state !== "active") throw new APIError("CONFLICT", "Clone is already deleted.");
+
+  const successor = await db
+    .prepare(
+      `SELECT id, target_user_id
+         FROM clone_shares
+        WHERE clone_id = ? AND status = 'accepted' AND target_user_id IS NOT NULL
+        ORDER BY created_at ASC, id ASC
+        LIMIT 1`,
+    )
+    .bind(cloneId)
+    .first<{ id: number; target_user_id: number }>();
+
+  if (!successor) {
+
+    await db
+      .prepare(
+        `UPDATE clones
+            SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+      )
+      .bind(cloneId)
+      .run();
+    return c.json({ ok: true, state: "soft_deleted", transferred: null });
+  }
+
+  await db.batch([
+    db.prepare("UPDATE clones SET owner_id = ? WHERE id = ?").bind(successor.target_user_id, cloneId),
+    db
+      .prepare(
+        `UPDATE clones SET primary_editor_user_id = ?
+          WHERE id = ? AND primary_editor_user_id = ?`,
+      )
+      .bind(successor.target_user_id, cloneId, userId),
+    db.prepare("DELETE FROM clone_shares WHERE id = ?").bind(successor.id),
+  ]);
+
+  return c.json({
+    ok: true,
+    state: "transferred",
+    transferred: { newOwnerId: successor.target_user_id },
+  });
 });
 
 deletion.post("/oth-path", requireAuth, async (c) => {

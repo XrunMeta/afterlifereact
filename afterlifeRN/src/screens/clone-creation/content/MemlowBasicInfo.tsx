@@ -20,9 +20,10 @@ function Component({ draft, onChange }: Props) {
         onChangeText={v => onChange({ name: v })}
       />
       <TextField
-        placeholder="클론 아이디 (@예: @mom)"
+        placeholder="클론 아이디 (@clon)"
         value={draft.username ?? ''}
         onChangeText={v => onChange({ username: v })}
+        autoCapitalize="none"
       />
       <TextField
         placeholder="한 줄 소개 (추억 한 줄)"

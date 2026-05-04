@@ -13,6 +13,7 @@ import {
 } from "../lib/cloneAccess";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { randomBytes } from "@noble/ciphers/utils.js";
+import { notify } from "../lib/notify";
 
 export const cloneShares = new Hono<AppEnv>();
 export const inviteTokens = new Hono<AppEnv>();
@@ -137,17 +138,72 @@ cloneShares.post(
       action: "sharing.invite.create",
       details: { cloneId, grantOwner: body.grant_owner, inviteEmail: body.invite_email },
     });
+
+    let notifyResult: Awaited<ReturnType<typeof notify>> | null = null;
+    if (body.invite_email) {
+      try {
+        const cloneRow = await db
+          .prepare(`SELECT name, username FROM clones WHERE id = ?`)
+          .bind(cloneId)
+          .first<{ name: string; username: string }>();
+        const targetUser = await db
+          .prepare(`SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL`)
+          .bind(body.invite_email)
+          .first<{ id: number }>();
+
+        const cloneName = cloneRow?.name ?? "페르소나";
+        const inviteUrl = `afterlife://invite/${token}`;
+        notifyResult = await notify(c.env, {
+          userId: targetUser?.id,
+          email: targetUser ? undefined : body.invite_email, 
+          type: "invite_received",
+          title: `${cloneName} 공동관리자 초대`,
+          body: `${cloneName} 페르소나의 공동관리자로 초대됐어요. 수락하면 함께 관리할 수 있어요.`,
+          url: inviteUrl,
+          data: { cloneId, token },
+          emailSubject: `[afterlife] ${cloneName} 공동관리자 초대`,
+          emailHtml: `
+            <div style="font-family:system-ui,-apple-system,sans-serif;line-height:1.6;max-width:480px;margin:0 auto;padding:24px">
+              <h2 style="margin:0 0 12px;color:#18181b">${escapeHtml(cloneName)} 공동관리자 초대</h2>
+              <p style="color:#52525b;margin:0 0 20px">
+                <strong>${escapeHtml(cloneName)}</strong> 페르소나의 공동관리자로 초대됐어요.
+                수락하면 함께 관리하고 채팅에 참여할 수 있어요.
+              </p>
+              <p style="margin:0 0 24px">
+                <a href="${inviteUrl}" style="display:inline-block;padding:12px 20px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">초대 수락하기</a>
+              </p>
+              <p style="color:#a1a1aa;font-size:12px;margin:24px 0 0">
+                이 초대는 ${new Date(expiresAt + "Z").toLocaleString("ko-KR")} 까지 유효해요.
+              </p>
+            </div>
+          `,
+        });
+      } catch (err) {
+        console.warn("[sharing.invite] notify failed:", (err as Error).message);
+      }
+    }
+
     return c.json(
       {
         token, 
         expiresAt,
         inviteEmail: body.invite_email ?? null,
         grantOwner: body.grant_owner,
+        notify: notifyResult,
       },
       201,
     );
   },
 );
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 inviteTokens.get("/:token", async (c) => {
   const token = c.req.param("token");

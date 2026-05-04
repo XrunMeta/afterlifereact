@@ -70,11 +70,13 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
   return (
     <View style={s.container}>
       {}
-      <Image
-        source={{ uri: clone.imageUrl ?? "" }}
-        style={s.bgImage}
-        resizeMode="cover"
-      />
+      {clone.imageUrl ? (
+        <Image
+          source={{ uri: clone.imageUrl }}
+          style={s.bgImage}
+          resizeMode="cover"
+        />
+      ) : null}
 
       {}
       <LinearGradient

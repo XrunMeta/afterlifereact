@@ -23,13 +23,17 @@ export interface CreateClonePayload {
   };
 }
 
-export interface CreateCloneResponse {
+export interface CreatedClone {
   id: number;
   name: string;
   username: string;
-  clone_type: CloneType;
+  cloneType: CloneType;
   visibility: Visibility;
-  created_at: string;
+  createdAt: string;
+}
+export interface CreateCloneResponse {
+  clone: CreatedClone;
+  initial_memory: { ctx_key: string; shared_key: string } | null;
 }
 
 export function deriveUsernameFromName(name: string): string {
@@ -61,7 +65,7 @@ export async function createClone(
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
-      "Idempotency-Key": key,
+      "X-Idempotency-Key": key,
     },
     body: JSON.stringify(payload),
   });
@@ -124,7 +128,7 @@ async function authFetch<T>(
     Authorization: `Bearer ${accessToken}`,
     ...((init.headers as Record<string, string>) ?? {}),
   };
-  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+  if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   const text = await res.text();
@@ -192,6 +196,23 @@ export async function deleteShare(
   );
 }
 
+export interface DeleteCloneResult {
+  ok: true;
+  state: "soft_deleted" | "transferred";
+  transferred: { newOwnerId: number } | null;
+}
+export async function deleteClone(
+  accessToken: string,
+  cloneId: number,
+): Promise<DeleteCloneResult> {
+  return authFetch<DeleteCloneResult>(
+    `/oth-path${cloneId}`,
+    accessToken,
+    { method: "DELETE" },
+    makeIdempotencyKey(),
+  );
+}
+
 export interface MyClone {
   id: number;
   name: string;
@@ -206,6 +227,8 @@ export interface MyClone {
   ownerId: number;
   createdAt: string;
   myRole: "owner" | "coowner";
+
+  l1Profile?: { attrs: Record<string, string>; notes: string } | null;
 }
 
 export async function listMyClones(accessToken: string): Promise<{ items: MyClone[] }> {

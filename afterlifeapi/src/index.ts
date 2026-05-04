@@ -31,6 +31,7 @@ import { deletion } from "./routes/deletion";
 import { adminDeletion } from "./routes/adminDeletion";
 import { files } from "./routes/files";
 import { payments } from "./routes/payments";
+import { notifications } from "./routes/notifications";
 
 const app = new Hono<AppEnv>();
 
@@ -96,6 +97,7 @@ app.route("/oth-path", sessions);
 app.route("/oth-path", inviteTokens);
 app.route("/oth-path", credits);
 app.route("/oth-path", payments);
+app.route("/oth-path", notifications);
 app.route("/oth-path", adminAuth);
 app.route("/oth-path", adminWebauthn);
 app.route("/oth-path", coldRecovery);

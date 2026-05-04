@@ -78,7 +78,11 @@ clones.post(
 
     const existing = await db
       .prepare(
-        `SELECT COUNT(*) AS n FROM clones WHERE owner_id = ? AND clone_type = ?`,
+        `SELECT COUNT(*) AS n FROM clones
+          WHERE owner_id = ?
+            AND clone_type = ?
+            AND deletion_state = 'active'
+            AND deleted_at IS NULL`,
       )
       .bind(userId, body.clone_type)
       .first<{ n: number }>();

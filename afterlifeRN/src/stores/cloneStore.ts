@@ -17,6 +17,8 @@ interface CloneState {
   getCloneById: (id: number) => Clone | undefined;
   addClone: (clone: Clone) => void;
 
+  upsertClones: (clones: Clone[]) => void;
+
   updateLocalClone: (id: number, patch: Partial<Clone>) => void;
 }
 
@@ -44,6 +46,17 @@ export const useCloneStore = create<CloneState>((set, get) => ({
     set((state) => ({
       localClones: [...state.localClones, clone],
     })),
+
+  upsertClones: (clones) =>
+    set((state) => {
+      const byId = new Map<number, Clone>(state.localClones.map((c) => [c.id, c]));
+      for (const c of clones) {
+        const prev = byId.get(c.id);
+
+        byId.set(c.id, prev ? { ...prev, ...c, l1Profile: c.l1Profile ?? prev.l1Profile } : c);
+      }
+      return { localClones: Array.from(byId.values()) };
+    }),
 
   updateLocalClone: (id, patch) => {
     const existing = get().localClones.find((c) => c.id === id);

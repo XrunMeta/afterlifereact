@@ -29,7 +29,8 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     <View
       style={[
         styles.container,
-        { paddingTop: insets.top + 8 },
+
+        { paddingTop: insets.top },
         transparent && styles.transparent,
       ]}
     >

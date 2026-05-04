@@ -266,9 +266,11 @@ users.get("/me/clones", requireAuth, async (c) => {
           c.training_status AS trainingStatus,
           c.owner_id       AS ownerId,
           c.created_at     AS createdAt,
+          c.l1_profile     AS l1ProfileJson,
           (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole
          FROM clones c
-        WHERE c.deleted_at IS NULL
+        WHERE c.deletion_state = 'active'
+          AND c.deleted_at IS NULL
           AND (
             c.owner_id = ?
             OR c.id IN (
@@ -281,7 +283,23 @@ users.get("/me/clones", requireAuth, async (c) => {
     )
     .bind(userId, userId, userId)
     .all();
-  return c.json({ items: rows.results ?? [] });
+
+  const items = (rows.results ?? []).map((r) => {
+    const row = r as Record<string, unknown> & { l1ProfileJson?: string | null };
+    let l1Profile: { attrs: Record<string, string>; notes: string } | null = null;
+    if (row.l1ProfileJson) {
+      try {
+        const parsed = JSON.parse(row.l1ProfileJson) as { attrs?: Record<string, string>; notes?: string };
+        l1Profile = { attrs: parsed.attrs ?? {}, notes: parsed.notes ?? "" };
+      } catch {
+
+      }
+    }
+    const { l1ProfileJson: _drop, ...rest } = row;
+    void _drop;
+    return { ...rest, l1Profile };
+  });
+  return c.json({ items });
 });
 
 users.post("/me/delete", requireAuth, async (c) => {

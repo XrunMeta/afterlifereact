@@ -17,6 +17,7 @@ import type { Clone } from "../../types/clone";
 import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
 import { createClone, deriveUsernameFromName } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
+import { uploadFile } from "../../api/files";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step7">;
@@ -66,6 +67,14 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
       if (!accessToken) {
         const localId = Date.now();
+        const localAttrs: Record<string, string> = {
+          ...(draft.personaAge ? { age: draft.personaAge } : {}),
+          ...(draft.personaGender ? { gender: draft.personaGender } : {}),
+          ...(draft.personaTypes && draft.personaTypes.length > 0
+            ? { personalities: draft.personaTypes.join(',') }
+            : {}),
+          ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
+        };
         const clone: Clone = {
           id: localId,
           cloneType: draft.cloneType!,
@@ -77,6 +86,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           visibility,
           status: hasImage && hasVoice ? 'active' : 'pending_assets',
           createdAt: new Date().toISOString(),
+          l1Profile: { attrs: localAttrs, notes: draft.personaNotes ?? '' },
         };
         addClone(clone);
         if (!cancelled) {
@@ -87,48 +97,89 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       }
 
       try {
-        const username = draft.username?.trim() || deriveUsernameFromName(draft.name ?? '');
-        const created = await createClone(accessToken, {
+
+        const USERNAME_RE = /^[a-z0-9_]+$/;
+        const typed = draft.username?.trim() ?? '';
+        const isValid = typed.length >= 3 && typed.length <= 30 && USERNAME_RE.test(typed);
+        const username = isValid ? typed : deriveUsernameFromName(typed || draft.name || 'user');
+
+        const l1Attrs: Record<string, string> = {
+          ...(draft.personaAge ? { age: draft.personaAge } : {}),
+          ...(draft.personaGender ? { gender: draft.personaGender } : {}),
+          ...(draft.personaTypes && draft.personaTypes.length > 0
+            ? { personalities: draft.personaTypes.join(',') }
+            : {}),
+          ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
+        };
+        const l1Profile = { attrs: l1Attrs, notes: draft.personaNotes ?? '' };
+
+        let avatarUrl: string | undefined;
+        if (draft.imageFile) {
+          try {
+
+            const ext = draft.imageFile.split('.').pop()?.toLowerCase() ?? '';
+            const mime =
+              ext === 'png' ? 'image/png'
+              : ext === 'webp' ? 'image/webp'
+              : ext === 'gif' ? 'image/gif'
+              : 'image/jpeg';
+            const uploaded = await uploadFile(accessToken, draft.imageFile, {
+              purpose: 'clone_avatar',
+              mimeType: mime,
+              fileName: `avatar.${ext || 'jpg'}`,
+            });
+            avatarUrl = uploaded.url;
+            console.log('[CLONE-CREATE] avatar uploaded:', avatarUrl);
+          } catch (uploadErr) {
+            console.warn('[CLONE-CREATE] avatar upload failed:', uploadErr);
+
+          }
+        }
+
+        const res = await createClone(accessToken, {
           clone_type: draft.cloneType!,
           name: draft.name ?? 'Untitled',
           username,
           description: draft.description || undefined,
           visibility,
           interests: draft.interests && draft.interests.length > 0 ? draft.interests : undefined,
-
-          l1_profile: {
-            attrs: {
-              ...(draft.personaAge ? { age: draft.personaAge } : {}),
-              ...(draft.personaGender ? { gender: draft.personaGender } : {}),
-              ...(draft.personaTypes && draft.personaTypes.length > 0
-                ? { types: draft.personaTypes.join(',') }
-                : {}),
-              ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
-            },
-            notes: draft.personaNotes ?? '',
-          },
+          l1_profile: l1Profile,
+          ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
         });
-        console.log('[CLONE-CREATE] success:', created);
+        console.log('[CLONE-CREATE] success:', res);
+        const createdClone = res.clone;
 
         const clone: Clone = {
-          id: created.id,
-          cloneType: draft.cloneType!,
+          id: createdClone.id,
+          cloneType: createdClone.cloneType,
           ownerId: currentUserId,
-          displayName: created.name,
+          displayName: createdClone.name,
           description: draft.description ?? '',
           interests: draft.interests ?? [],
-          imageUrl: draft.imageFile ?? undefined,
-          visibility: created.visibility,
+          imageUrl: avatarUrl ?? draft.imageFile ?? undefined,
+          visibility: createdClone.visibility,
           status: hasImage && hasVoice ? 'active' : 'pending_assets',
-          createdAt: created.created_at,
+          createdAt: createdClone.createdAt,
+          l1Profile,
         };
         addClone(clone);
         if (!cancelled) {
-          setCreatedCloneId(created.id);
+          setCreatedCloneId(createdClone.id);
           setCreating(false);
         }
       } catch (err) {
-        console.warn('[CLONE-CREATE] failed:', err);
+
+        if (err instanceof AuthApiError) {
+          console.warn(
+            '[CLONE-CREATE] failed:',
+            err.code,
+            err.message,
+            'details=',
+            JSON.stringify(err.details),
+          );
+        } else {
+          console.warn('[CLONE-CREATE] failed:', err);
+        }
         if (cancelled) return;
         let msg = '페르소나 생성 중 오류가 발생했습니다.';
         if (err instanceof AuthApiError) {

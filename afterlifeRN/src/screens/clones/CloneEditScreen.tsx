@@ -217,18 +217,21 @@ export default function CloneEditScreen({ route, navigation }: Props) {
             onPress={() => setShowMenu(false)}
           />
           <View style={s.dropdown}>
-            <TouchableOpacity
-              style={s.dropdownItem}
-              onPress={() => {
-                setShowMenu(false);
-                setVisibilityModal(true);
-              }}
-            >
-              <Feather name={getVisibilityIcon(visibility)} size={16} color={COLORS.zinc700} />
-              <Text style={s.dropdownText}>
-                공개설정 ({getVisibilityLabel(visibility)})
-              </Text>
-            </TouchableOpacity>
+            {}
+            {clone.cloneType !== 'memlow' && (
+              <TouchableOpacity
+                style={s.dropdownItem}
+                onPress={() => {
+                  setShowMenu(false);
+                  setVisibilityModal(true);
+                }}
+              >
+                <Feather name={getVisibilityIcon(visibility)} size={16} color={COLORS.zinc700} />
+                <Text style={s.dropdownText}>
+                  공개설정 ({getVisibilityLabel(visibility)})
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={s.dropdownItem}
               onPress={() => {

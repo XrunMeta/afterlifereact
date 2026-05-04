@@ -17,11 +17,12 @@ export function l1ProfileToDraft(
   l1: { attrs?: Record<string, string>; notes?: string } | null | undefined,
 ): Partial<CloneCreationDraft> {
   const a = l1?.attrs ?? {};
+  const typesCsv = a.personalities ?? a.types;
   return {
     personaAge: a.age as CloneCreationDraft['personaAge'],
     personaGender: a.gender as CloneCreationDraft['personaGender'],
-    personaTypes: a.personalities
-      ? (a.personalities.split(',').map((s) => s.trim()).filter(Boolean) as CloneCreationDraft['personaTypes'])
+    personaTypes: typesCsv
+      ? (typesCsv.split(',').map((s) => s.trim()).filter(Boolean) as CloneCreationDraft['personaTypes'])
       : undefined,
     personaMbti: a.mbti as CloneCreationDraft['personaMbti'],
     personaNotes: l1?.notes ?? '',
@@ -70,8 +71,9 @@ export function formatPersonaPrompt(p: PersonaSnapshot): string {
     lines.push(`고인과의 관계: ${RELATION_LABEL[p.relation]}`);
   }
 
-  if (a.personalities) {
-    const labels = a.personalities
+  const typesCsv = a.personalities ?? a.types;
+  if (typesCsv) {
+    const labels = typesCsv
       .split(',')
       .map((id) => TYPE_LABEL.get(id.trim() as PersonaTypeId))
       .filter(Boolean);

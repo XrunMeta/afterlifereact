@@ -21,6 +21,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
+import NotificationBell from "../../components/common/NotificationBell";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
@@ -286,11 +287,7 @@ export default function FollowingScreen() {
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
         title="Following"
-        rightAction={
-          <TouchableOpacity style={{ padding: 4 }}>
-            <Feather name="bell" size={22} color={COLORS.zinc700} />
-          </TouchableOpacity>
-        }
+        rightAction={<NotificationBell />}
       />
 
       {}

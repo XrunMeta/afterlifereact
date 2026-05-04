@@ -11,6 +11,8 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -22,7 +24,8 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, createInvite, type MyClone } from "../../api/clones";
+import { listMyClones, createInvite, deleteClone, type MyClone } from "../../api/clones";
+import NotificationBell from "../../components/common/NotificationBell";
 import { searchUsers, AuthApiError, type UserSearchItem } from "../../api/auth";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
@@ -45,6 +48,7 @@ function adaptMyClone(c: MyClone): Clone {
     visibility: c.visibility,
     status: (c.trainingStatus as Clone["status"]) ?? "active",
     createdAt: c.createdAt,
+    ...(c.l1Profile ? { l1Profile: c.l1Profile } : {}),
   };
 }
 
@@ -55,6 +59,7 @@ export default function MyClonesDashboardScreen() {
   const apiUser = useAuthStore((s) => s.apiUser);
   const accessToken = useAuthStore((s) => s.accessToken);
   const localClones = useCloneStore((s) => s.localClones);
+  const upsertClones = useCloneStore((s) => s.upsertClones);
   const follows = useFollowStore((s) => s.follows);
 
   const [apiClones, setApiClones] = useState<Clone[] | null>(null);
@@ -66,12 +71,15 @@ export default function MyClonesDashboardScreen() {
     }
     try {
       const res = await listMyClones(accessToken);
-      setApiClones(res.items.map(adaptMyClone));
+      const adapted = res.items.map(adaptMyClone);
+      setApiClones(adapted);
+
+      upsertClones(adapted);
     } catch (err) {
       console.warn("[Dashboard] listMyClones failed:", err);
 
     }
-  }, [accessToken]);
+  }, [accessToken, upsertClones]);
 
   useEffect(() => {
     fetchMyClones();
@@ -218,10 +226,58 @@ export default function MyClonesDashboardScreen() {
     setMenuCloneId(null);
   };
 
-  const confirmDelete = () => {
-    if (deleteModal) {
-      setHiddenCloneIds((prev) => new Set(prev).add(deleteModal));
-      setDeleteModal(null);
+  const [deleteResultMessage, setDeleteResultMessage] = useState<string | null>(null);
+
+  const confirmDelete = async () => {
+    if (!deleteModal) return;
+    const targetId = deleteModal;
+    setDeleteModal(null);
+
+    if (!accessToken) {
+
+      setHiddenCloneIds((prev) => new Set(prev).add(targetId));
+      return;
+    }
+    console.log("[Dashboard] deleteClone start:", targetId);
+    try {
+      const res = await deleteClone(accessToken, targetId);
+      console.log("[Dashboard] deleteClone success:", res);
+      if (res.state === "transferred" && res.transferred) {
+        setDeleteResultMessage("공동관리자에게 권한이 이전되었어요.");
+      } else {
+        setDeleteResultMessage("페르소나가 삭제되었어요.");
+      }
+
+      setHiddenCloneIds((prev) => new Set(prev).add(targetId));
+      await fetchMyClones();
+    } catch (err) {
+      if (err instanceof AuthApiError) {
+        console.warn(
+          "[Dashboard] deleteClone failed:",
+          err.code,
+          err.status,
+          err.message,
+          "details=",
+          JSON.stringify(err.details),
+        );
+
+        if (err.code === "CONFLICT" && /already deleted/i.test(err.message)) {
+          setHiddenCloneIds((prev) => new Set(prev).add(targetId));
+          setDeleteResultMessage("이미 삭제된 페르소나입니다. 목록을 갱신했어요.");
+          await fetchMyClones();
+          return;
+        }
+
+        if (err.code === "UNAUTHENTICATED" || err.status === 401) {
+          await useAuthStore.getState().apiLogout();
+          setDeleteResultMessage("로그인 세션이 만료됐어요. 다시 로그인해주세요.");
+          return;
+        }
+      } else {
+        console.warn("[Dashboard] deleteClone failed:", err);
+      }
+      const msg = err instanceof AuthApiError ? err.message : "삭제에 실패했어요.";
+      setDeleteResultMessage(msg);
     }
   };
 
@@ -294,12 +350,18 @@ export default function MyClonesDashboardScreen() {
         {}
         <View style={s.cloneHeader}>
           <View style={s.avatarWrap}>
-            <Image source={{ uri: clone.imageUrl ?? "" }} style={s.avatar} />
+            {clone.imageUrl ? (
+              <Image source={{ uri: clone.imageUrl }} style={s.avatar} />
+            ) : (
+              <View style={[s.avatar, { backgroundColor: COLORS.zinc100, alignItems: 'center', justifyContent: 'center' }]}>
+                <Feather name="user" size={20} color={COLORS.zinc400} />
+              </View>
+            )}
             {isActive && <View style={s.activeDot} />}
           </View>
           <View style={s.cloneInfo}>
             <Text style={s.cloneName}>{clone.displayName}</Text>
-            <Text style={s.cloneCategory}>{clone.interests[0] ?? ""}</Text>
+            <Text style={s.cloneCategory}>{clone.interests?.[0] ?? ""}</Text>
           </View>
         </View>
 
@@ -370,7 +432,7 @@ export default function MyClonesDashboardScreen() {
 
         {}
         <View style={s.tagsRow}>
-          {clone.interests.map((tag, i) => (
+          {(clone.interests ?? []).map((tag, i) => (
             <View key={i} style={s.tag}>
               <Text style={s.tagText}>#{tag}</Text>
             </View>
@@ -414,11 +476,7 @@ export default function MyClonesDashboardScreen() {
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
         title="My Persona"
-        rightAction={
-          <TouchableOpacity style={{ padding: 4 }}>
-            <Feather name="bell" size={22} color={COLORS.zinc700} />
-          </TouchableOpacity>
-        }
+        rightAction={<NotificationBell />}
       />
 
       <FlatList
@@ -486,20 +544,49 @@ export default function MyClonesDashboardScreen() {
               <Feather name="edit-2" size={18} color={COLORS.zinc700} />
               <Text style={s.menuItemText}>수정</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={s.menuItem}
-              onPress={() => {
-                const id = menuCloneId!;
-                handleVisibility(id);
-              }}
-            >
-              <Feather
-                name={getVisibilityIcon(cloneStates[menuCloneId!]?.visibility ?? "public")}
-                size={18}
-                color={COLORS.zinc700}
-              />
-              <Text style={s.menuItemText}>공개설정</Text>
-            </TouchableOpacity>
+
+            {}
+            {menuCloneId != null && (() => {
+              const isActive = cloneStates[menuCloneId]?.isActive ?? true;
+              return (
+                <TouchableOpacity
+                  style={s.menuItem}
+                  onPress={() => {
+                    const id = menuCloneId!;
+                    setMenuCloneId(null);
+                    handleToggle(id);
+                  }}
+                >
+                  <Feather
+                    name={isActive ? "pause-circle" : "play-circle"}
+                    size={18}
+                    color={isActive ? COLORS.zinc700 : COLORS.success}
+                  />
+                  <Text style={s.menuItemText}>
+                    {isActive ? "비활성화" : "활성화"}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })()}
+
+            {}
+            {menuCloneId != null &&
+              myClones.find((c) => c.id === menuCloneId)?.cloneType !== "memlow" && (
+                <TouchableOpacity
+                  style={s.menuItem}
+                  onPress={() => {
+                    const id = menuCloneId!;
+                    handleVisibility(id);
+                  }}
+                >
+                  <Feather
+                    name={getVisibilityIcon(cloneStates[menuCloneId!]?.visibility ?? "public")}
+                    size={18}
+                    color={COLORS.zinc700}
+                  />
+                  <Text style={s.menuItemText}>공개설정</Text>
+                </TouchableOpacity>
+              )}
             <View style={s.menuDivider} />
             <TouchableOpacity
               style={s.menuItem}
@@ -593,7 +680,10 @@ export default function MyClonesDashboardScreen() {
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
             <Text style={s.modalTitle}>페르소나 삭제</Text>
             <Text style={s.modalDesc}>
-              정말 이 페르소나를 삭제하시겠습니까?{"\n"}삭제된 페르소나는 복구할 수 없습니다.
+              {deleteModal &&
+              myClones.find((c) => c.id === deleteModal)?.cloneType === "memlow"
+                ? "공동관리자가 있다면 가장 먼저 수락한 분이 새 반장이 됩니다.\n없다면 페르소나가 완전히 삭제됩니다."
+                : "정말 이 페르소나를 삭제하시겠습니까?\n삭제된 페르소나는 복구할 수 없습니다."}
             </Text>
             <View style={s.modalBtns}>
               <Button
@@ -614,8 +704,28 @@ export default function MyClonesDashboardScreen() {
       </Modal>
 
       {}
+      <Modal visible={!!deleteResultMessage} transparent animationType="fade">
+        <Pressable style={s.modalOverlay} onPress={() => setDeleteResultMessage(null)}>
+          <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
+            <Text style={s.modalTitle}>알림</Text>
+            <Text style={s.modalDesc}>{deleteResultMessage}</Text>
+            <Button
+              title="확인"
+              variant="primary"
+              onPress={() => setDeleteResultMessage(null)}
+              style={{ width: "100%" }}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
       <Modal visible={!!inviteModal} transparent animationType="slide">
-        <Pressable style={s.modalOverlay} onPress={() => setInviteModal(null)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+        <Pressable style={s.bottomSheetOverlay} onPress={() => setInviteModal(null)}>
           <View style={s.inviteSheet} onStartShouldSetResponder={() => true}>
             <View style={s.sheetHandle} />
             <View style={s.inviteHeader}>
@@ -707,6 +817,7 @@ export default function MyClonesDashboardScreen() {
             </ScrollView>
           </View>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -996,6 +1107,13 @@ const s = StyleSheet.create({
     alignItems: "center",
     padding: 24,
   },
+
+  bottomSheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
   modalBox: {
     backgroundColor: COLORS.white,
     borderRadius: 20,
@@ -1129,11 +1247,8 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
     paddingBottom: 32,
+    width: "100%",
     maxHeight: "70%",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
   inviteHeader: {
     flexDirection: "row",
