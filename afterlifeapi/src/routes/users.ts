@@ -333,9 +333,22 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
   await v_a1651b
     .prepare(
       `UPDATE users
-          SET phone = NULL, age_enc = NULL, age = NULL
+          SET phone = NULL,
+              age_enc = NULL,
+              age = NULL,
+              name = '',
+              email = 'deletedmember' || CAST(id AS TEXT),
+              gender = NULL,
+              avatar_url = NULL,
+              funnel_stage = 'deleted',
+              marketing_consent = 0
         WHERE id = ?`,
     )
+    .bind(v_43e90c)
+    .run();
+
+  await v_a1651b
+    .prepare(`DELETE FROM user_interests WHERE user_id = ?`)
     .bind(v_43e90c)
     .run();
 
