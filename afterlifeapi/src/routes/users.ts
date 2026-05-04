@@ -34,6 +34,28 @@ async function loadMe(c: Parameters<typeof requireAuth>[0]): Promise<never> {
 }
 void loadMe;
 
+users.get("/search", requireAuth, async (c) => {
+  const me = c.get("userId")!;
+  const q = (c.req.query("q") ?? "").trim();
+  if (q.length < 2) {
+    return c.json({ items: [] });
+  }
+  const like = `%${q}%`;
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT id, name, email, avatar_url AS avatarUrl
+         FROM users
+        WHERE deleted_at IS NULL
+          AND id != ?
+          AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
+        ORDER BY id DESC
+        LIMIT 20`,
+    )
+    .bind(me, like, like)
+    .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
+  return c.json({ items: rows.results ?? [] });
+});
+
 users.get("/me", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;
@@ -225,6 +247,41 @@ users.get("/me/devices", requireAuth, async (c) => {
     .bind(userId)
     .all();
   return c.json({ devices: rows.results ?? [] });
+});
+
+users.get("/me/clones", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT
+          c.id,
+          c.name,
+          c.username,
+          c.description,
+          c.clone_type     AS cloneType,
+          c.category,
+          c.visibility,
+          c.avatar_url     AS avatarUrl,
+          c.cover_image_url AS coverImageUrl,
+          c.training_status AS trainingStatus,
+          c.owner_id       AS ownerId,
+          c.created_at     AS createdAt,
+          (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole
+         FROM clones c
+        WHERE c.deleted_at IS NULL
+          AND (
+            c.owner_id = ?
+            OR c.id IN (
+              SELECT s.clone_id FROM clone_shares s
+              WHERE s.target_user_id = ? AND s.status = 'accepted'
+            )
+          )
+        ORDER BY c.id DESC
+        LIMIT 200`,
+    )
+    .bind(userId, userId, userId)
+    .all();
+  return c.json({ items: rows.results ?? [] });
 });
 
 users.post("/me/delete", requireAuth, async (c) => {

@@ -14,6 +14,7 @@ import MainTabNavigator from "./MainTabNavigator";
 
 import ChatScreen from "../screens/clone-interaction/ChatScreen";
 import CallScreen from "../screens/clone-interaction/CallScreen";
+import InviteAcceptScreen from "../screens/clones/InviteAcceptScreen";
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -37,7 +38,11 @@ export default function RootNavigator() {
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       {!isLoggedIn ? (
-        <RootStack.Screen name="Auth" component={AuthNavigator} />
+        <>
+          <RootStack.Screen name="Auth" component={AuthNavigator} />
+          {}
+          <RootStack.Screen name="InviteAccept" component={InviteAcceptScreen} />
+        </>
       ) : (
         <>
           <RootStack.Screen name="Main" component={MainTabNavigator} />
@@ -54,6 +59,7 @@ export default function RootNavigator() {
               animation: "slide_from_bottom",
             }}
           />
+          <RootStack.Screen name="InviteAccept" component={InviteAcceptScreen} />
         </>
       )}
     </RootStack.Navigator>

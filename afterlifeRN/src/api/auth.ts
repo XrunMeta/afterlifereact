@@ -182,6 +182,20 @@ export async function getMe(accessToken: string): Promise<{ user: AuthUser; inte
   return getJson("/oth-path", accessToken);
 }
 
+export interface UserSearchItem {
+  id: number;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+}
+
+export async function searchUsers(
+  accessToken: string,
+  q: string,
+): Promise<{ items: UserSearchItem[] }> {
+  return getJson(`/oth-path?q=${encodeURIComponent(q)}`, accessToken);
+}
+
 export interface PatchMePayload {
   name?: string;
   avatarUrl?: string | null;

@@ -114,9 +114,14 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
         style={s.bottomGradient}
       >
         {approvedCoowners.length > 0 && (
-          <View style={s.coownerBlock} testID="coowner-section">
+          <TouchableOpacity
+            style={s.coownerBlock}
+            testID="coowner-section"
+            onPress={() => navigation.navigate("CloneInvite", { cloneId: clone.id })}
+            activeOpacity={0.85}
+          >
             <Text style={s.coownerTitle}>
-              공동관리자 {approvedCoowners.length}명
+              공동관리자 {approvedCoowners.length}명 ›
             </Text>
             <View style={s.coownerList}>
               {approvedCoowners.slice(0, 5).map((u) => (
@@ -125,7 +130,18 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
                 </View>
               ))}
             </View>
-          </View>
+          </TouchableOpacity>
+        )}
+        {}
+        {approvedCoowners.length === 0 && canEdit && (
+          <TouchableOpacity
+            style={s.coownerInviteBtn}
+            onPress={() => navigation.navigate("CloneInvite", { cloneId: clone.id })}
+            activeOpacity={0.85}
+          >
+            <Feather name="user-plus" size={14} color={COLORS.white} />
+            <Text style={s.coownerInviteText}>공동관리자 초대</Text>
+          </TouchableOpacity>
         )}
 
         {}
@@ -256,6 +272,18 @@ const s = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "500",
   },
+  coownerInviteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    marginBottom: 12,
+  },
+  coownerInviteText: { fontSize: 12, color: COLORS.white, fontWeight: "600" },
   giftBtn: {
     width: 56,
     height: 56,
