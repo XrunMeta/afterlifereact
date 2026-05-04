@@ -34,6 +34,28 @@ async function v_3fb498(c: Parameters<typeof v_6690d9>[0]): Promise<never> {
 }
 void v_3fb498;
 
+v_de7ba7.get("/search", v_6690d9, async (v_3f4e2e) => {
+  const v_b32680 = v_3f4e2e.get("userId")!;
+  const v_ab6401 = (v_3f4e2e.req.query("q") ?? "").trim();
+  if (v_ab6401.length < 2) {
+    return v_3f4e2e.json({ items: [] });
+  }
+  const v_2a1d60 = `%${v_ab6401}%`;
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, email, avatar_url AS avatarUrl
+         FROM users
+        WHERE deleted_at IS NULL
+          AND id != ?
+          AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
+        ORDER BY id DESC
+        LIMIT 20`,
+    )
+    .bind(v_b32680, v_2a1d60, v_2a1d60)
+    .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
+  return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+});
+
 v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
