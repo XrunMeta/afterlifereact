@@ -258,3 +258,47 @@ export async function verifyXrunPaymentPin(
   }
   return { ok: false, match: false, hasPin: false, reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
 }
+
+export interface XrunWalletBalance {
+  wallet: number;
+  address: string | null;
+  currency: number;
+  amount: string; 
+  symbol: string | null;
+}
+
+export interface XrunBalancesResult {
+  ok: boolean;
+  balances: XrunWalletBalance[];
+  reason?: string;
+}
+
+export async function getXrunBalances(env: Bindings, member: number): Promise<XrunBalancesResult> {
+  if (!env.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, balances: [], reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: gatewayHeaders(env),
+      body: JSON.stringify({ member }),
+    });
+  } catch (err) {
+    return { ok: false, balances: [], reason: `network: ${(err as Error).message}` };
+  }
+  let json: { status?: string; code?: number; message?: string; data?: XrunWalletBalance[] | null };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { ok: false, balances: [], reason: `non-json (${res.status})` };
+  }
+  if (res.ok && json?.status === "success") {
+    return { ok: true, balances: json.data ?? [] };
+  }
+  return {
+    ok: false,
+    balances: [],
+    reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
+  };
+}

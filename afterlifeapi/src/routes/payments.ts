@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
 import { requireAuth } from "../middleware/auth";
 import { APIError } from "../lib/errors";
-import { hasXrunPaymentPin, verifyXrunPaymentPin } from "../lib/xrun";
+import { hasXrunPaymentPin, verifyXrunPaymentPin, getXrunBalances } from "../lib/xrun";
 
 export const payments = new Hono<AppEnv>();
 
@@ -41,4 +41,34 @@ payments.post("/pin/verify", async (c) => {
   const res = await verifyXrunPaymentPin(c.env, member, pin);
   if (!res.ok) throw new APIError("UPSTREAM_FAILURE", res.reason ?? "xrun gateway error");
   return c.json({ match: res.match, hasPin: res.hasPin });
+});
+
+payments.get("/balance", async (c) => {
+  const userId = c.get("userId")!;
+  const member = await loadXrunMember(c.env, userId);
+  if (!member) {
+    return c.json({ linked: false, balances: [], xrun: null, ad: null });
+  }
+  const res = await getXrunBalances(c.env, member);
+  if (!res.ok) {
+    throw new APIError("UPSTREAM_FAILURE", res.reason ?? "xrun gateway error");
+  }
+
+  const find = (currency: number): number | null => {
+    const row = res.balances.find((b) => Number(b.currency) === currency);
+    if (!row) return null;
+    const n = Number(row.amount);
+    return Number.isFinite(n) ? n : null;
+  };
+  return c.json({
+    linked: true,
+    balances: res.balances.map((b) => ({
+      currency: Number(b.currency),
+      symbol: b.symbol,
+      amount: b.amount,
+      address: b.address,
+    })),
+    xrun: find(18),
+    ad: find(19),
+  });
 });

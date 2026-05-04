@@ -13,6 +13,20 @@ export interface PaymentPinVerifyResult {
   hasPin: boolean;
 }
 
+export interface XrunBalanceItem {
+  currency: number;
+  symbol: string | null;
+  amount: string;
+  address: string | null;
+}
+
+export interface XrunBalance {
+  linked: boolean;
+  balances: XrunBalanceItem[];
+  xrun: number | null;
+  ad: number | null;
+}
+
 async function authFetch<T>(
   path: string,
   accessToken: string,
@@ -57,4 +71,8 @@ export async function verifyPaymentPin(
     method: "POST",
     body: JSON.stringify({ pin }),
   });
+}
+
+export async function getXrunBalance(accessToken: string): Promise<XrunBalance> {
+  return authFetch("/oth-path", accessToken, { method: "GET" });
 }
