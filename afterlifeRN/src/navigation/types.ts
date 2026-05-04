@@ -72,4 +72,5 @@ export type MyStackParamList = {
   SavedItems: undefined;
   AcquaintanceManagement: undefined;
   LanguageSettings: undefined;
+  PaymentPin: undefined;
 };

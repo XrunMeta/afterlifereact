@@ -1,0 +1,33 @@
+[Unit]
+Description=Ollama (afterlife isolated instance, port 11435, GPU 0)
+Documentation=https://github.com/ollama/ollama
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=afterlife
+Group=afterlife
+ExecStart=/usr/local/bin/ollama serve
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+
+# 격리 핵심: 기존 metahint(:11434) 와 절대 분리
+Environment=OLLAMA_HOST=127.0.0.1:11435
+Environment=OLLAMA_MODELS=/data/afterlife/ollama-models
+Environment=OLLAMA_KEEP_ALIVE=24h
+
+# GPU 0 만 사용 (GPU 1 은 GSP boot 실패 상태 — 다음주 복구 예정)
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=NVIDIA_VISIBLE_DEVICES=0
+
+# 권한 최소화
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/data/afterlife/ollama-models /home/afterlife
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

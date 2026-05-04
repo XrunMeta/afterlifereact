@@ -15,6 +15,7 @@ account_id = "87441deffba9e9c5c28114636686a4c7"
 #   GOOGLE_CLIENT_SECRET
 #   GOOGLE_REFRESH_TOKEN       # scripts/get-google-refresh-token.mjs 로 1회 발급
 #   GMAIL_SENDER               # 발송 From 주소 (예: oth-staff@example.invalid)
+#   XRUN_GATEWAY_TOKEN         # xrun gateway TOKEN_VALIDATOR — paymentPin 등 보호 endpoint 호출
 
 # R2 바인딩 — uploadedfiles/ 경로에 사용자 업로드 이미지 저장.
 
