@@ -23,6 +23,7 @@ import {
   v_7ef860,
   v_976b89,
   v_b21d35,
+  v_55fc7c,
   v_84a859,
   type v_fd8a01,
 } from "../../api/auth";
@@ -42,6 +43,7 @@ export default function v_e2b396() {
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_21f395 = v_1ed7d9((v_fd5f43) => v_fd5f43.patchApiUser);
+  const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
 
   const [v_1833e7, v_318f24] = v_5ab095(v_b113dd?.name ?? "");
   const [v_d74a81, v_fcce73] = v_5ab095(v_b113dd?.phone ?? "");
@@ -52,6 +54,7 @@ export default function v_e2b396() {
   const [v_976e06, v_770327] = v_5ab095<string[]>([]);
   const [v_03ee33, v_64803f] = v_5ab095(false);
   const [v_35bf26, v_04e389] = v_5ab095(false);
+  const [v_a1f68f, v_bdf535] = v_5ab095(false);
 
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
@@ -163,6 +166,40 @@ export default function v_e2b396() {
     }
   };
 
+  const v_5bc46a = () => {
+    if (v_a1f68f) return;
+    v_03e392.alert(
+      "회원 탈퇴",
+      "정말 탈퇴하시겠습니까?\n탈퇴 후 90일 내에 동일 계정으로 로그인하면 복구할 수 있습니다. 90일이 지나면 데이터가 영구 삭제됩니다.",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "탈퇴",
+          style: "destructive",
+          onPress: async () => {
+            if (!v_2ca7e0) {
+              v_03e392.alert("알림", "로그인이 필요합니다.");
+              return;
+            }
+            v_bdf535(true);
+            try {
+              const v_8f00b9 = await v_55fc7c(v_2ca7e0);
+              console.log("[EditProfile] deleteMe ok:", v_8f00b9);
+              await v_d7d5a2();
+
+            } catch (v_49263d) {
+              console.warn("[EditProfile] deleteMe failed:", v_49263d);
+              let v_badeaf = "탈퇴 처리 중 오류가 발생했습니다.";
+              if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
+              v_03e392.alert("탈퇴 실패", v_badeaf);
+              v_bdf535(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
@@ -270,6 +307,22 @@ export default function v_e2b396() {
             <Text style={v_fd5f43.saveBtnText}>저장</Text>
           )}
         </TouchableOpacity>
+
+        {}
+        <TouchableOpacity
+          style={v_fd5f43.deleteBtn}
+          onPress={v_5bc46a}
+          disabled={v_a1f68f}
+        >
+          {v_a1f68f ? (
+            <ActivityIndicator color={v_1bfbd0.error} />
+          ) : (
+            <Text style={v_fd5f43.deleteBtnText}>회원 탈퇴</Text>
+          )}
+        </TouchableOpacity>
+        <Text style={v_fd5f43.deleteHint}>
+          탈퇴 후 90일 내에 같은 계정으로 로그인하면 복구할 수 있어요.
+        </Text>
       </View>
 
       {}
@@ -392,6 +445,24 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc300,
   },
   saveBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
+  deleteBtn: {
+    marginTop: 32,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  deleteBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.error,
+    textDecorationLine: "underline",
+  },
+  deleteHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: v_1bfbd0.zinc500,
+    textAlign: "center",
+    lineHeight: 16,
+  },
 
   modalOverlay: {
     flex: 1,
