@@ -186,15 +186,24 @@ export interface PatchMePayload {
   age?: number | null;
 }
 
+export interface DeleteMeResult {
+  ok: true;
+  state: "hard_deleted";
+  shreddedDekCount: number;
+  purgedMessages: number;
+  xrunClose?: { attempted: boolean; closed: boolean; reason?: string };
+}
 export async function v_55fc7c(
   v_2ca7e0,
-): Promise<{ ok: true }> {
+  v_b36f96 = {},
+): Promise<DeleteMeResult> {
   const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${v_2ca7e0}`,
     },
+    body: JSON.stringify({ withXrun: !!v_b36f96.withXrun }),
   });
   const v_9b6134 = await v_8f00b9.text();
   let v_8decf8 = null;
@@ -212,7 +221,7 @@ export async function v_55fc7c(
       v_9be017?.error?.details,
     );
   }
-  return v_8decf8 as { ok: true };
+  return v_8decf8 as DeleteMeResult;
 }
 
 export async function v_b21d35(
