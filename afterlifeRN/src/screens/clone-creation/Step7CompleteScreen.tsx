@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
@@ -15,6 +15,8 @@ import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
 import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
+import { createClone, deriveUsernameFromName } from "../../api/clones";
+import { AuthApiError } from "../../api/auth";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step7">;
@@ -45,28 +47,107 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const draft = useCloneStore((s) => s.creationDraft);
   const addClone = useCloneStore((s) => s.addClone);
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
+  const accessToken = useAuthStore((s) => s.accessToken);
   const [createdCloneId, setCreatedCloneId] = useState<number | null>(null);
+  const [creating, setCreating] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!draft.cloneType) return;
-    const id = Date.now();
-    const hasImage = Boolean(draft.imageFile);
-    const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
-      || (draft.recordDuration ?? 0) >= 30);
-    const clone: Clone = {
-      id,
-      cloneType: draft.cloneType,
-      ownerId: currentUserId,
-      displayName: draft.name ?? '',
-      description: draft.description ?? '',
-      interests: draft.interests ?? [],
-      imageUrl: draft.imageFile ?? undefined,
-      visibility: draft.visibility ?? getCloneTypeMeta(draft.cloneType).defaultVisibility,
-      status: hasImage && hasVoice ? 'active' : 'pending_assets',
-      createdAt: new Date().toISOString(),
+    let cancelled = false;
+    (async () => {
+      setCreating(true);
+      setError(null);
+
+      const hasImage = Boolean(draft.imageFile);
+      const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
+        || (draft.recordDuration ?? 0) >= 30);
+      const visibility = draft.visibility ?? getCloneTypeMeta(draft.cloneType!).defaultVisibility;
+
+      if (!accessToken) {
+        const localId = Date.now();
+        const clone: Clone = {
+          id: localId,
+          cloneType: draft.cloneType!,
+          ownerId: currentUserId,
+          displayName: draft.name ?? '',
+          description: draft.description ?? '',
+          interests: draft.interests ?? [],
+          imageUrl: draft.imageFile ?? undefined,
+          visibility,
+          status: hasImage && hasVoice ? 'active' : 'pending_assets',
+          createdAt: new Date().toISOString(),
+        };
+        addClone(clone);
+        if (!cancelled) {
+          setCreatedCloneId(localId);
+          setCreating(false);
+        }
+        return;
+      }
+
+      try {
+        const username = draft.username?.trim() || deriveUsernameFromName(draft.name ?? '');
+        const created = await createClone(accessToken, {
+          clone_type: draft.cloneType!,
+          name: draft.name ?? 'Untitled',
+          username,
+          description: draft.description || undefined,
+          visibility,
+          interests: draft.interests && draft.interests.length > 0 ? draft.interests : undefined,
+
+          l1_profile: {
+            attrs: {
+              ...(draft.personaAge ? { age: draft.personaAge } : {}),
+              ...(draft.personaGender ? { gender: draft.personaGender } : {}),
+              ...(draft.personaTypes && draft.personaTypes.length > 0
+                ? { types: draft.personaTypes.join(',') }
+                : {}),
+              ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
+            },
+            notes: draft.personaNotes ?? '',
+          },
+        });
+        console.log('[CLONE-CREATE] success:', created);
+
+        const clone: Clone = {
+          id: created.id,
+          cloneType: draft.cloneType!,
+          ownerId: currentUserId,
+          displayName: created.name,
+          description: draft.description ?? '',
+          interests: draft.interests ?? [],
+          imageUrl: draft.imageFile ?? undefined,
+          visibility: created.visibility,
+          status: hasImage && hasVoice ? 'active' : 'pending_assets',
+          createdAt: created.created_at,
+        };
+        addClone(clone);
+        if (!cancelled) {
+          setCreatedCloneId(created.id);
+          setCreating(false);
+        }
+      } catch (err) {
+        console.warn('[CLONE-CREATE] failed:', err);
+        if (cancelled) return;
+        let msg = '페르소나 생성 중 오류가 발생했습니다.';
+        if (err instanceof AuthApiError) {
+          if (err.code === 'QUOTA_EXCEEDED') {
+            msg = '같은 타입의 페르소나는 1개까지만 생성할 수 있어요.';
+          } else if (err.code === 'CONFLICT') {
+            msg = '이미 사용 중인 username 이에요. 다시 시도해주세요.';
+          } else {
+            msg = err.message;
+          }
+        }
+        setError(msg);
+        setCreating(false);
+        Alert.alert('생성 실패', msg);
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
-    addClone(clone);
-    setCreatedCloneId(id);
   }, []); 
 
   const copy = COPY[draft.cloneType ?? 'friend'];
@@ -92,15 +173,23 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       <SafeScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
         <View style={styles.container}>
           {}
-          <View style={styles.successCircle}>
-            <Feather name="check" size={48} color={COLORS.white} />
+          <View style={[styles.successCircle, error && { backgroundColor: COLORS.error }]}>
+            {creating ? (
+              <ActivityIndicator size="large" color={COLORS.white} />
+            ) : error ? (
+              <Feather name="alert-triangle" size={48} color={COLORS.white} />
+            ) : (
+              <Feather name="check" size={48} color={COLORS.white} />
+            )}
           </View>
 
-          <Text style={styles.title}>{copy.title}</Text>
-          <Text style={styles.subtitle}>{copy.sub}</Text>
+          <Text style={styles.title}>
+            {creating ? '페르소나를 만들고 있어요...' : error ? '생성 실패' : copy.title}
+          </Text>
+          <Text style={styles.subtitle}>{error ?? copy.sub}</Text>
 
           {}
-          {FEATURES.map((feat, i) => (
+          {!creating && !error && FEATURES.map((feat, i) => (
             <View key={i} style={styles.featureCard}>
               <View style={styles.featureIconBox}>
                 <Feather name={feat.icon as any} size={22} color={COLORS.violet500} />
@@ -116,8 +205,18 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
       {}
       <View style={styles.bottomBar}>
-        <Button title="소개 영상 만들기" onPress={handleStartChat} variant="accent" leftIcon={<Feather name="message-circle" size={20} color={COLORS.white} />} />
-        <Button title="나의 페르소나로 돌아가기" onPress={handleGoToDashboard} variant="ghost" />
+        <Button
+          title="소개 영상 만들기"
+          onPress={handleStartChat}
+          variant="accent"
+          disabled={creating || !!error || createdCloneId == null}
+          leftIcon={<Feather name="message-circle" size={20} color={COLORS.white} />}
+        />
+        <Button
+          title="나의 페르소나로 돌아가기"
+          onPress={handleGoToDashboard}
+          variant="ghost"
+        />
       </View>
     </SafeView>
   );
