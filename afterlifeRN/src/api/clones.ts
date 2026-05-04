@@ -45,6 +45,60 @@ export function deriveUsernameFromName(name: string): string {
   return `${trimmed}_${suffix}`;
 }
 
+export interface CreateInvitePayload {
+  invite_email?: string;
+  relation?: string;
+  grant_owner?: boolean;
+  ttl_hours?: number;
+}
+
+export interface CreateInviteResponse {
+  token: string;
+  expiresAt: string;
+  inviteEmail: string | null;
+  grantOwner: boolean;
+  notify?: { emailSent: boolean; pushSent: number };
+}
+
+export async function createInvite(
+  accessToken: string,
+  cloneId: number,
+  payload: CreateInvitePayload,
+  idempotencyKey?: string,
+): Promise<CreateInviteResponse> {
+  const key =
+    idempotencyKey ??
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const res = await fetch(`${API_BASE}/oth-path${cloneId}/oth-path`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      "Idempotency-Key": key,
+    },
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+
+  }
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as CreateInviteResponse;
+}
+
 export async function createClone(
   accessToken: string,
   payload: CreateClonePayload,
