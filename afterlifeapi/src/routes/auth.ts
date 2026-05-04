@@ -244,6 +244,11 @@ const v_f9a376 = v_1f4ea7.object({
   verificationCode: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit code required").optional(),
 
   googleIdToken: v_1f4ea7.string().min(20).optional(),
+
+  name: v_1f4ea7.string().min(1).max(80).optional(),
+  phone: v_1f4ea7.string().min(4).max(40).optional(),
+  gender: v_1f4ea7.enum(["male", "female", "other"]).optional(),
+  age: v_1f4ea7.number().int().min(13).max(120).optional(),
   interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
   marketingConsent: v_1f4ea7.boolean().optional().default(false),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
@@ -305,16 +310,27 @@ v_68f0aa.post("/xrun/complete", async (v_3f4e2e) => {
   const v_c4820c = crypto.randomUUID() + crypto.randomUUID();
   const v_df7439 = await v_54846c(v_c4820c);
   const v_ef7664 = v_4d33b2.email.split("@")[0] ?? "user";
+  const v_8ca301 = v_4d33b2.name?.trim() || v_ef7664;
+  const v_849998 = v_4d33b2.phone
+    ? v_85de88(v_4d33b2.phone, v_a8614b(v_3f4e2e.env.ALE_KEK), "user.phone")
+    : null;
+  const v_1f5d19 = v_4d33b2.age
+    ? v_85de88(String(v_4d33b2.age), v_a8614b(v_3f4e2e.env.ALE_KEK), "user.age")
+    : null;
   const v_81161e = await v_a1651b
     .prepare(
-      `INSERT INTO users (name, email, password_hash, marketing_consent, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
        RETURNING id, name, email, funnel_stage AS funnelStage`,
     )
     .bind(
-      v_ef7664,
+      v_8ca301,
       v_4d33b2.email,
       v_df7439,
+      v_849998,
+      v_4d33b2.gender ?? null,
+      null, 
+      v_1f5d19,
       v_4d33b2.marketingConsent ? 1 : 0,
       v_88fe80,
       v_3ac92c,
