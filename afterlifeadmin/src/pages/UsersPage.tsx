@@ -2,8 +2,38 @@ import { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_05a921 } from "../api/client";
 import { v_c1eeb6 } from "../components/DataTable";
 
+const v_bf3a72 = {
+  active: { label: "활성", color: "#15803d", bg: "#dcfce7" },
+  soft_deleted: { label: "탈퇴(복구가능)", color: "#b45309", bg: "#fef3c7" },
+  hard_deleted: { label: "영구 삭제", color: "#b91c1c", bg: "#fee2e2" },
+};
+
+const v_9f536f = (v_81e2ef) => {
+  const v_fd5f43 = v_bf3a72[v_81e2ef ?? "active"] ?? v_bf3a72.active;
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 600,
+        color: v_fd5f43.color,
+        background: v_fd5f43.bg,
+      }}
+    >
+      {v_fd5f43.label}
+    </span>
+  );
+};
+
 const v_b9fa58 = [
   { key: "id", label: "ID" },
+  {
+    key: "deletionState",
+    label: "상태",
+    render: v_9f536f,
+  },
   { key: "name", label: "Name" },
   { key: "email", label: "Email" },
   { key: "gender", label: "Gender" },

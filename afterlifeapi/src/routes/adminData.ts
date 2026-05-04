@@ -20,6 +20,9 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
               u.xrun_guid         AS xrunGuid,
               u.xrun_wallet       AS xrunWallet,
               u.xrun_linked_at    AS xrunLinkedAt,
+              u.deletion_state    AS deletionState,
+              u.soft_deleted_at   AS softDeletedAt,
+              u.deleted_at        AS deletedAt,
               u.created_at        AS createdAt,
               (SELECT GROUP_CONCAT(interest, ', ')
                  FROM user_interests WHERE user_id = u.id) AS interests
