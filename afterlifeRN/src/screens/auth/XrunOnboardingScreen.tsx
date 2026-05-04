@@ -8,6 +8,8 @@ import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_84e2fc from "../../components/ui/InterestChip";
+import v_e775af from "../../components/ui/TextField";
+import v_d56c0a from "../../components/ui/SelectField";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
@@ -18,12 +20,22 @@ import { v_ea1c99 } from "../../lib/deviceId";
 
 type Props = v_432191<v_384e19, "XrunOnboarding">;
 
+const v_798085 = [
+  { value: "male" as const, label: "남성" },
+  { value: "female" as const, label: "여성" },
+  { value: "other" as const, label: "기타" },
+];
+
 export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
   const { email: v_e0c7e8 } = v_c7daf6.params;
   const v_6bee94 = "pin" in v_c7daf6.params ? v_c7daf6.params.pin : undefined;
   const v_8e7cda =
     "verificationCode" in v_c7daf6.params ? v_c7daf6.params.verificationCode : undefined;
   const v_a8d185 = "google" in v_c7daf6.params ? v_c7daf6.params.google : undefined;
+  const [v_1833e7, v_318f24] = v_5ab095("");
+  const [v_d74a81, v_fcce73] = v_5ab095("");
+  const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "other" | "">("");
+  const [v_2694bd, v_6e5c76] = v_5ab095("");
   const [v_976e06, v_770327] = v_5ab095<string[]>([]);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
@@ -51,6 +63,37 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     v_770327((v_ba2215) =>
       v_ba2215.includes(v_e4601c) ? v_ba2215.filter((v_ebec57) => v_ebec57 !== v_e4601c) : [...v_ba2215, v_e4601c],
     );
+  };
+
+  const v_e1874e = (): boolean => {
+    const v_affc3e = v_1833e7.trim();
+    const v_d1d8b2 = v_d74a81.trim();
+    if (!v_affc3e) {
+      v_03e392.alert("알림", "이름을 입력해주세요.");
+      return false;
+    }
+    if (!v_d1d8b2) {
+      v_03e392.alert("알림", "전화번호를 입력해주세요.");
+      return false;
+    }
+    if (v_d1d8b2.length < 4) {
+      v_03e392.alert("알림", "전화번호는 4자 이상이어야 합니다.");
+      return false;
+    }
+    if (!v_c3eac4) {
+      v_03e392.alert("알림", "성별을 선택해주세요.");
+      return false;
+    }
+    if (!v_2694bd) {
+      v_03e392.alert("알림", "나이를 입력해주세요.");
+      return false;
+    }
+    const v_f4fe8e = parseInt(v_2694bd, 10);
+    if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
+      v_03e392.alert("알림", "나이는 13~120 사이여야 합니다.");
+      return false;
+    }
+    return true;
   };
 
   const v_349606 = async () => {
@@ -119,6 +162,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const v_44851c = async () => {
     if (v_a8d185 && v_729796 === 1) {
 
+      if (!v_e1874e()) return;
       await v_b54880();
       return;
     }
@@ -126,6 +170,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_03e392.alert("알림", "이용약관에 동의해주세요.");
       return;
     }
+    if (!v_a8d185 && !v_e1874e()) return;
     if (v_a8d185 && v_aa596d.length !== 6) {
       v_03e392.alert("알림", "6자리 인증 코드를 입력해주세요.");
       return;
@@ -137,6 +182,10 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         pin: v_6bee94,
         verificationCode: v_a8d185 ? v_aa596d : v_8e7cda,
         googleIdToken: v_a8d185?.idToken,
+        name: v_1833e7.trim(),
+        phone: v_d74a81.trim(),
+        gender: v_c3eac4 || undefined,
+        age: parseInt(v_2694bd, 10),
         interests: v_976e06.length > 0 ? v_976e06 : undefined,
         marketingConsent: v_8c98c4,
         deviceId: v_929b58 ?? undefined,
@@ -208,10 +257,47 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       <PageHeader title="가입 마지막 단계" showBackButton onBackPress={() => v_c65f5d.goBack()} />
       <SafeScrollView contentContainerStyle={v_d81136.content} autoAdjustKeyboardPadding showBottomBackground={false}>
         <View style={v_d81136.container}>
-          <Text style={v_d81136.title}>관심사와 약관 확인</Text>
+          <Text style={v_d81136.title}>가입 정보 입력</Text>
           <Text style={v_d81136.subtitle}>
-            {v_a8d185 ? "Google 인증이 완료됐어요." : "xrun 인증이 완료됐어요."} 마지막으로 관심사와 약관을 확인해주세요.
+            {v_a8d185 ? "Google 인증이 완료됐어요." : "xrun 인증이 완료됐어요."} afterlife 가입에 필요한 정보를 입력해주세요.
           </Text>
+
+          {}
+          <View style={v_d81136.section}>
+            <Text style={v_d81136.sectionLabel}>기본 정보</Text>
+            <TextField
+              placeholder="이름"
+              value={v_1833e7}
+              onChangeText={v_318f24}
+              autoCapitalize="none"
+            />
+            <TextField
+              placeholder="전화번호"
+              value={v_d74a81}
+              onChangeText={v_fcce73}
+              keyboardType="phone-pad"
+              maxLength={20}
+            />
+            <View style={v_d81136.row}>
+              <View style={{ flex: 1 }}>
+                <SelectField<"male" | "female" | "other">
+                  options={v_798085}
+                  value={v_c3eac4 || null}
+                  onChange={(v_81e2ef) => v_bdc43c(v_81e2ef ?? "")}
+                  placeholder="성별"
+                />
+              </View>
+              <View style={v_d81136.ageField}>
+                <TextField
+                  placeholder="나이"
+                  value={v_2694bd}
+                  onChangeText={(v_81e2ef) => v_6e5c76(v_81e2ef.replace(/\D/g, "").slice(0, 3))}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+              </View>
+            </View>
+          </View>
 
           {}
           <View style={v_d81136.section}>
@@ -273,6 +359,8 @@ const v_d81136 = v_472849.create({
   subtitle: { fontSize: 14, color: v_1bfbd0.zinc600, textAlign: "center", lineHeight: 22, marginBottom: v_9b1a04.medium },
   section: { gap: 12 },
   sectionLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  row: { flexDirection: "row", gap: 12 },
+  ageField: { width: 100 },
   chipGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   terms: { gap: 12, paddingTop: v_9b1a04.medium },
   checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
