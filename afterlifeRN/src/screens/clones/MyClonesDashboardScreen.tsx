@@ -1,4 +1,4 @@
-import v_a3453e, { v_df9f57, v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -12,7 +12,7 @@ import {
   v_79c4f2,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
@@ -21,6 +21,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
+import { v_d60cdf, type v_fa0201 } from "../../api/clones";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
@@ -30,19 +31,72 @@ type ClonesNav = v_390fcc<v_2d88fc>;
 
 const v_b9d568 = 1;
 
+function v_a8d790(c: v_fa0201): v_affcc0 {
+  return {
+    id: v_3f4e2e.id,
+    cloneType: v_3f4e2e.cloneType,
+    ownerId: v_3f4e2e.ownerId,
+    displayName: v_3f4e2e.name,
+    description: v_3f4e2e.description ?? "",
+    interests: [],
+    imageUrl: v_3f4e2e.avatarUrl ?? undefined,
+    visibility: v_3f4e2e.visibility,
+    status: (v_3f4e2e.trainingStatus as v_affcc0["status"]) ?? "active",
+    createdAt: v_3f4e2e.createdAt,
+  };
+}
+
 export default function v_def15b() {
   const v_c65f5d = v_ada615<ClonesNav>();
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
+
+  const [v_8a7926, v_d42991] = v_5ab095<v_affcc0[] | null>(null);
+
+  const v_8e46f5 = v_a3453e.useCallback(async () => {
+    if (!v_2ca7e0) {
+      v_d42991(null);
+      return;
+    }
+    try {
+      const v_8f00b9 = await v_d60cdf(v_2ca7e0);
+      v_d42991(v_8f00b9.items.map(v_a8d790));
+    } catch (v_49263d) {
+      console.warn("[Dashboard] listMyClones failed:", v_49263d);
+
+    }
+  }, [v_2ca7e0]);
+
+  v_c4deb2(() => {
+    v_8e46f5();
+  }, [v_8e46f5]);
+
+  v_cf763b(
+    v_a3453e.useCallback(() => {
+      v_8e46f5();
+    }, [v_8e46f5]),
+  );
+
   const v_4cd149 = v_df9f57<v_affcc0[]>(() => {
-    const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
+    const v_0c8987 = v_b113dd?.id ?? v_f38ee5?.id ?? v_b9d568;
+    if (v_8a7926 != null) {
+
+      const v_15e521 = new Set(v_8a7926.map((v_3f4e2e) => v_3f4e2e.id));
+      const v_88106c = v_06f32b.filter(
+        (v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987 && !v_15e521.has(v_3f4e2e.id),
+      );
+      return [...v_8a7926, ...v_88106c];
+    }
+
     return [
       ...v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987),
       ...v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987),
     ];
-  }, [v_f38ee5, v_06f32b]);
+  }, [v_8a7926, v_b113dd, v_f38ee5, v_06f32b]);
 
   const [v_699459, v_2bf327] = v_5ab095<
     Record<number, { isActive: boolean; visibility: v_b0b271 }>

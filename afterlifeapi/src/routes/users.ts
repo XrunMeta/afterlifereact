@@ -227,6 +227,41 @@ v_de7ba7.get("/me/devices", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ devices: v_18b8bf.results ?? [] });
 });
 
+v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT
+          c.id,
+          c.name,
+          c.username,
+          c.description,
+          c.clone_type     AS cloneType,
+          c.category,
+          c.visibility,
+          c.avatar_url     AS avatarUrl,
+          c.cover_image_url AS coverImageUrl,
+          c.training_status AS trainingStatus,
+          c.owner_id       AS ownerId,
+          c.created_at     AS createdAt,
+          (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole
+         FROM clones c
+        WHERE c.deleted_at IS NULL
+          AND (
+            c.owner_id = ?
+            OR c.id IN (
+              SELECT s.clone_id FROM clone_shares s
+              WHERE s.target_user_id = ? AND s.status = 'accepted'
+            )
+          )
+        ORDER BY c.id DESC
+        LIMIT 200`,
+    )
+    .bind(v_43e90c, v_43e90c, v_43e90c)
+    .all();
+  return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+});
+
 v_de7ba7.post("/me/delete", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
