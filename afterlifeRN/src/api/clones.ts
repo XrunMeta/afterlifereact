@@ -192,6 +192,26 @@ export async function deleteShare(
   );
 }
 
+export interface MyClone {
+  id: number;
+  name: string;
+  username: string;
+  description: string | null;
+  cloneType: CloneType;
+  category: string | null;
+  visibility: Visibility;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  trainingStatus: string | null;
+  ownerId: number;
+  createdAt: string;
+  myRole: "owner" | "coowner";
+}
+
+export async function listMyClones(accessToken: string): Promise<{ items: MyClone[] }> {
+  return authFetch(`/oth-path`, accessToken, { method: "GET" });
+}
+
 export interface InvitePreview {
   clone: {
     id: number;
