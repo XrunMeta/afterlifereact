@@ -192,6 +192,26 @@ export async function v_81dd51(
   );
 }
 
+export interface MyClone {
+  id: number;
+  name: string;
+  username: string;
+  description: string | null;
+  cloneType: CloneType;
+  category: string | null;
+  visibility: Visibility;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  trainingStatus: string | null;
+  ownerId: number;
+  createdAt: string;
+  myRole: "owner" | "coowner";
+}
+
+export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
+  return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
 export interface InvitePreview {
   clone: {
     id: number;
