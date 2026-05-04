@@ -188,7 +188,7 @@ export interface PatchMePayload {
 
 export async function v_55fc7c(
   v_2ca7e0,
-): Promise<{ ok: true; state: "soft_deleted"; restorableUntil: string }> {
+): Promise<{ ok: true }> {
   const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
     method: "POST",
     headers: {
@@ -212,7 +212,7 @@ export async function v_55fc7c(
       v_9be017?.error?.details,
     );
   }
-  return v_8decf8 as { ok: true; state: "soft_deleted"; restorableUntil: string };
+  return v_8decf8 as { ok: true };
 }
 
 export async function v_b21d35(
