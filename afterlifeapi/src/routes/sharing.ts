@@ -17,7 +17,7 @@ import { randomBytes } from "@noble/ciphers/utils.js";
 export const cloneShares = new Hono<AppEnv>();
 export const inviteTokens = new Hono<AppEnv>();
 
-const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; 
+const INVITE_TTL_MS = 3 * 24 * 60 * 60 * 1000; 
 const MAX_ACTIVE_INVITES_PER_CLONE = 50;
 
 function parseCloneId(c: { req: { param: (k: string) => string } }): number {
@@ -85,7 +85,8 @@ cloneShares.post(
     const active = await db
       .prepare(
         `SELECT COUNT(*) AS n FROM invite_tokens
-          WHERE clone_id = ? AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP`,
+          WHERE clone_id = ? AND used_at IS NULL AND cancelled_at IS NULL
+            AND expires_at > CURRENT_TIMESTAMP`,
       )
       .bind(cloneId)
       .first<{ n: number }>();
@@ -98,8 +99,10 @@ cloneShares.post(
 
     const token = generateInviteToken();
     const tokenHash = hashToken(token);
-    const ttlMs = (body.ttl_hours ?? 168) * 60 * 60 * 1000;
-    const expiresAt = new Date(Date.now() + Math.min(ttlMs, INVITE_TTL_MS * 30 / 7))
+
+    const ttlMs = (body.ttl_hours ?? 72) * 60 * 60 * 1000;
+    const MAX_TTL_MS = 30 * 24 * 60 * 60 * 1000; 
+    const expiresAt = new Date(Date.now() + Math.min(ttlMs, MAX_TTL_MS))
       .toISOString()
       .replace("T", " ")
       .replace(/\..*$/, "");
@@ -154,7 +157,7 @@ inviteTokens.get("/:token", async (c) => {
   const tokenHash = hashToken(token);
   const row = await c.env.DB
     .prepare(
-      `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at,
+      `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at, i.cancelled_at,
               c.name, c.username, c.avatar_url, c.clone_type
          FROM invite_tokens i JOIN clones c ON c.id = i.clone_id
         WHERE i.token_hash = ? AND c.deleted_at IS NULL`,
@@ -167,6 +170,7 @@ inviteTokens.get("/:token", async (c) => {
       grant_owner: number;
       expires_at: string;
       used_at: string | null;
+      cancelled_at: string | null;
       name: string;
       username: string;
       avatar_url: string | null;
@@ -174,6 +178,7 @@ inviteTokens.get("/:token", async (c) => {
     }>();
   if (!row) throw new APIError("NOT_FOUND", "Invite not found.");
   if (row.used_at) throw new APIError("CONFLICT", "Invite already used.");
+  if (row.cancelled_at) throw new APIError("CONFLICT", "Invite cancelled by owner.");
 
   const expired = new Date(row.expires_at.replace(" ", "T") + "Z") < new Date();
   if (expired) throw new APIError("CONFLICT", "Invite expired.");
@@ -208,7 +213,7 @@ inviteTokens.post(
 
     const inv = await db
       .prepare(
-        `SELECT id, clone_id, invite_email, relation, grant_owner, expires_at, used_at
+        `SELECT id, clone_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
            FROM invite_tokens WHERE token_hash = ?`,
       )
       .bind(tokenHash)
@@ -220,9 +225,11 @@ inviteTokens.post(
         grant_owner: number;
         expires_at: string;
         used_at: string | null;
+        cancelled_at: string | null;
       }>();
     if (!inv) throw new APIError("NOT_FOUND", "Invite not found.");
     if (inv.used_at) throw new APIError("CONFLICT", "Invite already used.");
+    if (inv.cancelled_at) throw new APIError("CONFLICT", "Invite cancelled by owner.");
     const expired = new Date(inv.expires_at.replace(" ", "T") + "Z") < new Date();
     if (expired) throw new APIError("CONFLICT", "Invite expired.");
 
@@ -339,7 +346,6 @@ cloneShares.delete(
     const shareId = parseShareId(c);
     const userId = c.get("userId")!;
     const db = c.env.DB;
-    await assertOwner(db, cloneId, userId);
 
     const target = await db
       .prepare(
@@ -355,11 +361,17 @@ cloneShares.delete(
         status: string;
       }>();
     if (!target) throw new APIError("NOT_FOUND", "Share not found.");
-    if (target.target_user_id === userId && target.role === "owner") {
+
+    const isSelf = target.target_user_id === userId;
+    if (isSelf && target.role === "owner") {
       throw new APIError(
         "OWNER_CONSTRAINT",
         "Cannot remove your own owner record — delete the clone instead.",
       );
+    }
+    if (!isSelf) {
+
+      await assertOwner(db, cloneId, userId);
     }
 
     try {
@@ -376,8 +388,82 @@ cloneShares.delete(
     }
     await logActivity(c, {
       userId,
-      action: "sharing.share.delete",
-      details: { cloneId, shareId, removedRole: target.role },
+      action: isSelf ? "sharing.share.leave" : "sharing.share.kick",
+      details: { cloneId, shareId, removedRole: target.role, removedTargetUserId: target.target_user_id },
+    });
+    return c.json({ ok: true, action: isSelf ? "leave" : "kick" });
+  },
+);
+
+cloneShares.get("/:id/invites", requireAuth, async (c) => {
+  const cloneId = parseCloneId(c);
+  const userId = c.get("userId")!;
+  const db = c.env.DB;
+  await assertOwner(db, cloneId, userId);
+
+  const rows = await db
+    .prepare(
+      `SELECT id, invite_email, relation, grant_owner, expires_at, created_at
+         FROM invite_tokens
+        WHERE clone_id = ? AND used_at IS NULL AND cancelled_at IS NULL
+          AND expires_at > CURRENT_TIMESTAMP
+        ORDER BY id DESC`,
+    )
+    .bind(cloneId)
+    .all<{
+      id: number;
+      invite_email: string | null;
+      relation: string | null;
+      grant_owner: number;
+      expires_at: string;
+      created_at: string;
+    }>();
+  return c.json({
+    items: (rows.results ?? []).map((r) => ({
+      id: r.id,
+      inviteEmail: r.invite_email,
+      relation: r.relation,
+      grantOwner: !!r.grant_owner,
+      expiresAt: r.expires_at,
+      createdAt: r.created_at,
+      status: "pending" as const,
+    })),
+  });
+});
+
+cloneShares.delete(
+  "/:id/invites/:inviteId",
+  requireAuth,
+  requireIdempotencyKey("sharing.invite.cancel"),
+  async (c) => {
+    const cloneId = parseCloneId(c);
+    const userId = c.get("userId")!;
+    const inviteId = Number(c.req.param("inviteId"));
+    if (!Number.isInteger(inviteId) || inviteId <= 0) {
+      throw new APIError("VALIDATION_FAILED", "Invalid invite id.");
+    }
+    const db = c.env.DB;
+    await assertOwner(db, cloneId, userId);
+
+    const row = await db
+      .prepare(
+        `SELECT id, used_at, cancelled_at FROM invite_tokens
+          WHERE id = ? AND clone_id = ?`,
+      )
+      .bind(inviteId, cloneId)
+      .first<{ id: number; used_at: string | null; cancelled_at: string | null }>();
+    if (!row) throw new APIError("NOT_FOUND", "Invite not found.");
+    if (row.used_at) throw new APIError("CONFLICT", "Invite already accepted — remove via shares delete instead.");
+    if (row.cancelled_at) throw new APIError("CONFLICT", "Invite already cancelled.");
+
+    await db
+      .prepare(`UPDATE invite_tokens SET cancelled_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(inviteId)
+      .run();
+    await logActivity(c, {
+      userId,
+      action: "sharing.invite.cancel",
+      details: { cloneId, inviteId },
     });
     return c.json({ ok: true });
   },
