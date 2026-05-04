@@ -143,6 +143,10 @@ export interface XrunCompletePayload {
   pin?: string;
   verificationCode?: string;
   googleIdToken?: string;
+  name?: string;
+  phone?: string;
+  gender?: "male" | "female" | "other";
+  age?: number;
   interests?: string[];
   marketingConsent?: boolean;
   deviceId?: string;

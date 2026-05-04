@@ -8,6 +8,8 @@ import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import Button from "../../components/ui/Button";
 import InterestChip from "../../components/ui/InterestChip";
+import TextField from "../../components/ui/TextField";
+import SelectField from "../../components/ui/SelectField";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
@@ -18,12 +20,22 @@ import { getOrCreateDeviceId } from "../../lib/deviceId";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "XrunOnboarding">;
 
+const GENDER_OPTIONS = [
+  { value: "male" as const, label: "남성" },
+  { value: "female" as const, label: "여성" },
+  { value: "other" as const, label: "기타" },
+];
+
 export default function XrunOnboardingScreen({ navigation, route }: Props) {
   const { email } = route.params;
   const pin = "pin" in route.params ? route.params.pin : undefined;
   const verificationCode =
     "verificationCode" in route.params ? route.params.verificationCode : undefined;
   const google = "google" in route.params ? route.params.google : undefined;
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
+  const [age, setAge] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [agreeRequired, setAgreeRequired] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
@@ -51,6 +63,37 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     setSelectedInterests((prev) =>
       prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest],
     );
+  };
+
+  const validateProfileInputs = (): boolean => {
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
+    if (!trimmedName) {
+      Alert.alert("알림", "이름을 입력해주세요.");
+      return false;
+    }
+    if (!trimmedPhone) {
+      Alert.alert("알림", "전화번호를 입력해주세요.");
+      return false;
+    }
+    if (trimmedPhone.length < 4) {
+      Alert.alert("알림", "전화번호는 4자 이상이어야 합니다.");
+      return false;
+    }
+    if (!gender) {
+      Alert.alert("알림", "성별을 선택해주세요.");
+      return false;
+    }
+    if (!age) {
+      Alert.alert("알림", "나이를 입력해주세요.");
+      return false;
+    }
+    const ageNum = parseInt(age, 10);
+    if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+      Alert.alert("알림", "나이는 13~120 사이여야 합니다.");
+      return false;
+    }
+    return true;
   };
 
   const toggleMarketing = async () => {
@@ -119,6 +162,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
   const handleComplete = async () => {
     if (google && step === 1) {
 
+      if (!validateProfileInputs()) return;
       await handleNextToOtp();
       return;
     }
@@ -126,6 +170,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       Alert.alert("알림", "이용약관에 동의해주세요.");
       return;
     }
+    if (!google && !validateProfileInputs()) return;
     if (google && otpCode.length !== 6) {
       Alert.alert("알림", "6자리 인증 코드를 입력해주세요.");
       return;
@@ -137,6 +182,10 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
         pin,
         verificationCode: google ? otpCode : verificationCode,
         googleIdToken: google?.idToken,
+        name: name.trim(),
+        phone: phone.trim(),
+        gender: gender || undefined,
+        age: parseInt(age, 10),
         interests: selectedInterests.length > 0 ? selectedInterests : undefined,
         marketingConsent: agreeMarketing,
         deviceId: deviceId ?? undefined,
@@ -208,10 +257,47 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       <PageHeader title="가입 마지막 단계" showBackButton onBackPress={() => navigation.goBack()} />
       <SafeScrollView contentContainerStyle={styles.content} autoAdjustKeyboardPadding showBottomBackground={false}>
         <View style={styles.container}>
-          <Text style={styles.title}>관심사와 약관 확인</Text>
+          <Text style={styles.title}>가입 정보 입력</Text>
           <Text style={styles.subtitle}>
-            {google ? "Google 인증이 완료됐어요." : "xrun 인증이 완료됐어요."} 마지막으로 관심사와 약관을 확인해주세요.
+            {google ? "Google 인증이 완료됐어요." : "xrun 인증이 완료됐어요."} afterlife 가입에 필요한 정보를 입력해주세요.
           </Text>
+
+          {}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>기본 정보</Text>
+            <TextField
+              placeholder="이름"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="none"
+            />
+            <TextField
+              placeholder="전화번호"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              maxLength={20}
+            />
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <SelectField<"male" | "female" | "other">
+                  options={GENDER_OPTIONS}
+                  value={gender || null}
+                  onChange={(v) => setGender(v ?? "")}
+                  placeholder="성별"
+                />
+              </View>
+              <View style={styles.ageField}>
+                <TextField
+                  placeholder="나이"
+                  value={age}
+                  onChangeText={(v) => setAge(v.replace(/\D/g, "").slice(0, 3))}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+              </View>
+            </View>
+          </View>
 
           {}
           <View style={styles.section}>
@@ -273,6 +359,8 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: COLORS.zinc600, textAlign: "center", lineHeight: 22, marginBottom: SIZES.medium },
   section: { gap: 12 },
   sectionLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
+  row: { flexDirection: "row", gap: 12 },
+  ageField: { width: 100 },
   chipGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   terms: { gap: 12, paddingTop: SIZES.medium },
   checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
