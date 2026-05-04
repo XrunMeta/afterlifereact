@@ -166,36 +166,49 @@ export default function v_e2b396() {
     }
   };
 
-  const v_5bc46a = () => {
+  const v_a24698 = async (v_837dd2) => {
+    if (!v_2ca7e0) {
+      v_03e392.alert("알림", "로그인이 필요합니다.");
+      return;
+    }
+    v_bdf535(true);
+    try {
+      const v_8f00b9 = await v_55fc7c(v_2ca7e0, { withXrun: v_837dd2 });
+      console.log("[EditProfile] deleteMe ok:", v_8f00b9);
+      if (v_837dd2 && v_8f00b9.xrunClose && !v_8f00b9.xrunClose.closed) {
+
+        console.warn("[EditProfile] xrun close failed:", v_8f00b9.xrunClose.reason);
+      }
+      await v_d7d5a2();
+    } catch (v_49263d) {
+      console.warn("[EditProfile] deleteMe failed:", v_49263d);
+      let v_badeaf = "탈퇴 처리 중 오류가 발생했습니다.";
+      if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
+      v_03e392.alert("탈퇴 실패", v_badeaf);
+      v_bdf535(false);
+    }
+  };
+
+  const v_ffa2a1 = () => {
     if (v_a1f68f) return;
     v_03e392.alert(
-      "회원 탈퇴",
-      "정말 탈퇴하시겠습니까?\n탈퇴 시 계정과 데이터가 영구 삭제되며, 복구할 수 없습니다.",
+      "에프터라이프 계정 삭제",
+      "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.\n복구할 수 없습니다.",
       [
         { text: "취소", style: "cancel" },
-        {
-          text: "영구 삭제",
-          style: "destructive",
-          onPress: async () => {
-            if (!v_2ca7e0) {
-              v_03e392.alert("알림", "로그인이 필요합니다.");
-              return;
-            }
-            v_bdf535(true);
-            try {
-              const v_8f00b9 = await v_55fc7c(v_2ca7e0);
-              console.log("[EditProfile] deleteMe ok:", v_8f00b9);
-              await v_d7d5a2();
+        { text: "삭제", style: "destructive", onPress: () => v_a24698(false) },
+      ],
+    );
+  };
 
-            } catch (v_49263d) {
-              console.warn("[EditProfile] deleteMe failed:", v_49263d);
-              let v_badeaf = "탈퇴 처리 중 오류가 발생했습니다.";
-              if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
-              v_03e392.alert("탈퇴 실패", v_badeaf);
-              v_bdf535(false);
-            }
-          },
-        },
+  const v_916cd9 = () => {
+    if (v_a1f68f) return;
+    v_03e392.alert(
+      "에프터라이프 + xrun 함께 탈퇴",
+      "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라지며 복구할 수 없습니다.",
+      [
+        { text: "취소", style: "cancel" },
+        { text: "모두 탈퇴", style: "destructive", onPress: () => v_a24698(true) },
       ],
     );
   };
@@ -309,20 +322,36 @@ export default function v_e2b396() {
         </TouchableOpacity>
 
         {}
-        <TouchableOpacity
-          style={v_fd5f43.deleteBtn}
-          onPress={v_5bc46a}
-          disabled={v_a1f68f}
-        >
-          {v_a1f68f ? (
-            <ActivityIndicator color={v_1bfbd0.error} />
-          ) : (
-            <Text style={v_fd5f43.deleteBtnText}>회원 탈퇴</Text>
-          )}
-        </TouchableOpacity>
-        <Text style={v_fd5f43.deleteHint}>
-          탈퇴 시 계정과 모든 데이터가 영구 삭제되며, 복구할 수 없습니다.
-        </Text>
+        <View style={v_fd5f43.deleteSection}>
+          <TouchableOpacity
+            style={v_fd5f43.deleteOnlyBtn}
+            onPress={v_ffa2a1}
+            disabled={v_a1f68f}
+          >
+            {v_a1f68f ? (
+              <ActivityIndicator color={v_1bfbd0.zinc700} />
+            ) : (
+              <Text style={v_fd5f43.deleteOnlyBtnText}>에프터라이프 계정만 삭제</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={v_fd5f43.deleteAllBtn}
+            onPress={v_916cd9}
+            disabled={v_a1f68f}
+          >
+            {v_a1f68f ? (
+              <ActivityIndicator color={v_1bfbd0.white} />
+            ) : (
+              <Text style={v_fd5f43.deleteAllBtnText}>xrun도 함께 탈퇴</Text>
+            )}
+          </TouchableOpacity>
+
+          <Text style={v_fd5f43.deleteHint}>
+            모두 영구 삭제이며 복구할 수 없습니다.{"\n"}
+            "에프터라이프만 삭제"는 xrun 회원과 지갑을 유지합니다.
+          </Text>
+        </View>
       </View>
 
       {}
@@ -445,23 +474,40 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc300,
   },
   saveBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
-  deleteBtn: {
+  deleteSection: {
     marginTop: 32,
-    paddingVertical: 12,
+    gap: 10,
+  },
+  deleteOnlyBtn: {
+    paddingVertical: 14,
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
     alignItems: "center",
   },
-  deleteBtnText: {
+  deleteOnlyBtnText: {
     fontSize: 14,
     fontWeight: "600",
-    color: v_1bfbd0.error,
-    textDecorationLine: "underline",
+    color: v_1bfbd0.zinc700,
+  },
+  deleteAllBtn: {
+    paddingVertical: 14,
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.error,
+    alignItems: "center",
+  },
+  deleteAllBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: v_1bfbd0.white,
   },
   deleteHint: {
-    marginTop: 6,
+    marginTop: 4,
     fontSize: 12,
     color: v_1bfbd0.zinc500,
     textAlign: "center",
-    lineHeight: 16,
+    lineHeight: 18,
   },
 
   modalOverlay: {
