@@ -13,6 +13,20 @@ export interface PaymentPinVerifyResult {
   hasPin: boolean;
 }
 
+export interface XrunBalanceItem {
+  currency: number;
+  symbol: string | null;
+  amount: string;
+  address: string | null;
+}
+
+export interface XrunBalance {
+  linked: boolean;
+  balances: XrunBalanceItem[];
+  xrun: number | null;
+  ad: number | null;
+}
+
 async function v_04b58a<T>(
   v_9fe22d,
   v_2ca7e0,
@@ -57,4 +71,8 @@ export async function v_5b2249(
     method: "POST",
     body: JSON.stringify({ pin: v_6bee94 }),
   });
+}
+
+export async function v_5c99c1(v_2ca7e0): Promise<XrunBalance> {
+  return v_04b58a("/oth-path", v_2ca7e0, { method: "GET" });
 }

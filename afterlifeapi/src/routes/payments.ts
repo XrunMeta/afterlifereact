@@ -4,7 +4,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_6690d9 } from "../middleware/auth";
 import { v_3ebe58 } from "../lib/errors";
-import { v_807b74, v_de391e } from "../lib/xrun";
+import { v_807b74, v_de391e, v_5f6369 } from "../lib/xrun";
 
 export const v_a35f69 = new v_b7c41b<v_de0a25>();
 
@@ -41,4 +41,34 @@ v_a35f69.post("/pin/verify", async (v_3f4e2e) => {
   const v_8f00b9 = await v_de391e(v_3f4e2e.env, v_660822, v_6bee94);
   if (!v_8f00b9.ok) throw new v_3ebe58("UPSTREAM_FAILURE", v_8f00b9.reason ?? "xrun gateway error");
   return v_3f4e2e.json({ match: v_8f00b9.match, hasPin: v_8f00b9.hasPin });
+});
+
+v_a35f69.get("/balance", async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_660822 = await v_903cff(v_3f4e2e.env, v_43e90c);
+  if (!v_660822) {
+    return v_3f4e2e.json({ linked: false, balances: [], xrun: null, ad: null });
+  }
+  const v_8f00b9 = await v_5f6369(v_3f4e2e.env, v_660822);
+  if (!v_8f00b9.ok) {
+    throw new v_3ebe58("UPSTREAM_FAILURE", v_8f00b9.reason ?? "xrun gateway error");
+  }
+
+  const v_14e183 = (v_a832b3): number | null => {
+    const v_3ac7e7 = v_8f00b9.balances.find((v_148ff6) => Number(v_148ff6.currency) === v_a832b3);
+    if (!v_3ac7e7) return null;
+    const v_f4e98d = Number(v_3ac7e7.amount);
+    return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
+  };
+  return v_3f4e2e.json({
+    linked: true,
+    balances: v_8f00b9.balances.map((v_148ff6) => ({
+      currency: Number(v_148ff6.currency),
+      symbol: v_148ff6.symbol,
+      amount: v_148ff6.amount,
+      address: v_148ff6.address,
+    })),
+    xrun: v_14e183(18),
+    ad: v_14e183(19),
+  });
 });

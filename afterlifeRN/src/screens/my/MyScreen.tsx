@@ -23,7 +23,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
 import { v_7d2692 } from "../../api/files";
 import { v_976b89 } from "../../api/auth";
-import { v_9b8cb3 } from "../../api/payments";
+import { v_9b8cb3, v_5c99c1 } from "../../api/payments";
 import v_3cb56d, {
   v_b1f897,
 } from "../../components/my/PaymentPinPromptModal";
@@ -54,6 +54,9 @@ export default function v_ed02a5() {
   const [v_026c2d, v_5eda29] = v_5ab095(false);
   const [v_fda1fd, v_7ece2f] = v_5ab095(false);
 
+  const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(null);
+  const [v_969a3a, v_562b4b] = v_5ab095<number | null | undefined>(null);
+
   v_c4deb2(() => {
     let v_2008a4 = false;
     (async () => {
@@ -70,6 +73,34 @@ export default function v_ed02a5() {
         }
       } catch (v_49263d) {
         console.warn("[PIN-STATUS] fetch failed:", v_49263d);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2ca7e0]);
+
+  v_c4deb2(() => {
+    let v_2008a4 = false;
+    (async () => {
+      if (!v_2ca7e0) return;
+      try {
+        const v_8f00b9 = await v_5c99c1(v_2ca7e0);
+        console.log("[XRUN-BALANCE]", v_8f00b9);
+        if (v_2008a4) return;
+        if (v_8f00b9.linked) {
+          v_67ba02(v_8f00b9.xrun);
+          v_562b4b(v_8f00b9.ad);
+        } else {
+          v_67ba02(undefined);
+          v_562b4b(undefined);
+        }
+      } catch (v_49263d) {
+        console.warn("[XRUN-BALANCE] fetch failed:", v_49263d);
+        if (!v_2008a4) {
+          v_67ba02(undefined);
+          v_562b4b(undefined);
+        }
       }
     })();
     return () => {
@@ -116,7 +147,10 @@ export default function v_ed02a5() {
   const v_8a1355 = v_b113dd?.name ?? v_625c74?.displayName ?? "사용자";
   const v_04c129 = v_b113dd?.email ?? v_625c74?.handle ?? "@afterlife";
   const v_bf6b43 = v_b113dd ? v_b113dd.avatarUrl : v_625c74?.avatarUrl ?? null;
-  const v_e2c945 = v_b113dd?.credits ?? 12540;
+
+  const v_747a87 = v_1d54f1 === null;
+  const v_519444 = v_1d54f1 ?? null;
+  const v_30af0f = v_969a3a ?? null;
 
   const v_0c8987 = v_b113dd?.id ?? v_625c74?.id ?? v_b9d568;
   const v_48d264 = v_df9f57(
@@ -242,8 +276,22 @@ export default function v_ed02a5() {
               <Text style={v_fd5f43.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={v_fd5f43.coinAmount}>{v_e2c945.toLocaleString()}</Text>
-          <Text style={v_fd5f43.coinWon}>약 ₩{v_e2c945.toLocaleString()} 상당</Text>
+          {v_747a87 ? (
+            <ActivityIndicator color={v_1bfbd0.zinc900} style={{ alignSelf: "flex-start", marginTop: 4 }} />
+          ) : v_519444 != null ? (
+            <>
+              <Text style={v_fd5f43.coinAmount}>{v_519444.toLocaleString(undefined, { maximumFractionDigits: 4 })}</Text>
+              <Text style={v_fd5f43.coinWon}>
+                XRUN
+                {v_30af0f != null && v_30af0f > 0 ? `  ·  AD ${v_30af0f.toLocaleString()}` : ""}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={v_fd5f43.coinAmount}>—</Text>
+              <Text style={v_fd5f43.coinWon}>xrun 회원 매핑이 안 되어 있습니다</Text>
+            </>
+          )}
         </View>
 
         {}
