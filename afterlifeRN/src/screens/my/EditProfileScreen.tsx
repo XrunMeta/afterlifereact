@@ -170,11 +170,11 @@ export default function EditProfileScreen() {
     if (deleting) return;
     Alert.alert(
       "회원 탈퇴",
-      "정말 탈퇴하시겠습니까?\n탈퇴 후 90일 내에 동일 계정으로 로그인하면 복구할 수 있습니다. 90일이 지나면 데이터가 영구 삭제됩니다.",
+      "정말 탈퇴하시겠습니까?\n탈퇴 시 계정과 데이터가 영구 삭제되며, 복구할 수 없습니다.",
       [
         { text: "취소", style: "cancel" },
         {
-          text: "탈퇴",
+          text: "영구 삭제",
           style: "destructive",
           onPress: async () => {
             if (!accessToken) {
@@ -321,7 +321,7 @@ export default function EditProfileScreen() {
           )}
         </TouchableOpacity>
         <Text style={s.deleteHint}>
-          탈퇴 후 90일 내에 같은 계정으로 로그인하면 복구할 수 있어요.
+          탈퇴 시 계정과 모든 데이터가 영구 삭제되며, 복구할 수 없습니다.
         </Text>
       </View>
 

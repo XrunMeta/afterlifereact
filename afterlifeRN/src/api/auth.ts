@@ -188,7 +188,7 @@ export interface PatchMePayload {
 
 export async function deleteMe(
   accessToken: string,
-): Promise<{ ok: true; state: "soft_deleted"; restorableUntil: string }> {
+): Promise<{ ok: true }> {
   const res = await fetch(`${API_BASE}/oth-path`, {
     method: "POST",
     headers: {
@@ -212,7 +212,7 @@ export async function deleteMe(
       errBody?.error?.details,
     );
   }
-  return parsed as { ok: true; state: "soft_deleted"; restorableUntil: string };
+  return parsed as { ok: true };
 }
 
 export async function patchInterests(
