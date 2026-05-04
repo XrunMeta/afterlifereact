@@ -194,11 +194,11 @@ export default function v_e2b396() {
     if (v_a1f68f) return;
     v_9665cb(false);
     v_03e392.alert(
-      "에프터라이프 계정 삭제",
+      "에프터라이프 계정 탈퇴",
       "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.\n복구할 수 없습니다.",
       [
         { text: "취소", style: "cancel" },
-        { text: "삭제", style: "destructive", onPress: () => v_a24698(false) },
+        { text: "탈퇴", style: "destructive", onPress: () => v_a24698(false) },
       ],
     );
   };
@@ -397,7 +397,7 @@ export default function v_e2b396() {
               onPress={v_ffa2a1}
               disabled={v_a1f68f}
             >
-              <Text style={v_fd5f43.deleteOnlyBtnText}>에프터라이프 계정만 삭제</Text>
+              <Text style={v_fd5f43.deleteOnlyBtnText}>에프터라이프 계정 탈퇴</Text>
               <Text style={v_fd5f43.deleteOptionHint}>xrun 회원·지갑은 유지</Text>
             </TouchableOpacity>
 
