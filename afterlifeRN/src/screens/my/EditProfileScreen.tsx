@@ -23,6 +23,7 @@ import {
   getMe,
   patchMe,
   patchInterests,
+  deleteMe,
   AuthApiError,
   type PatchMePayload,
 } from "../../api/auth";
@@ -42,6 +43,7 @@ export default function EditProfileScreen() {
   const apiUser = useAuthStore((s) => s.apiUser);
   const accessToken = useAuthStore((s) => s.accessToken);
   const patchApiUser = useAuthStore((s) => s.patchApiUser);
+  const logout = useAuthStore((s) => s.logout);
 
   const [name, setName] = useState(apiUser?.name ?? "");
   const [phone, setPhone] = useState(apiUser?.phone ?? "");
@@ -52,6 +54,7 @@ export default function EditProfileScreen() {
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [interestsModalVisible, setInterestsModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -163,6 +166,40 @@ export default function EditProfileScreen() {
     }
   };
 
+  const handleDeleteAccount = () => {
+    if (deleting) return;
+    Alert.alert(
+      "회원 탈퇴",
+      "정말 탈퇴하시겠습니까?\n탈퇴 후 90일 내에 동일 계정으로 로그인하면 복구할 수 있습니다. 90일이 지나면 데이터가 영구 삭제됩니다.",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "탈퇴",
+          style: "destructive",
+          onPress: async () => {
+            if (!accessToken) {
+              Alert.alert("알림", "로그인이 필요합니다.");
+              return;
+            }
+            setDeleting(true);
+            try {
+              const res = await deleteMe(accessToken);
+              console.log("[EditProfile] deleteMe ok:", res);
+              await logout();
+
+            } catch (err) {
+              console.warn("[EditProfile] deleteMe failed:", err);
+              let msg = "탈퇴 처리 중 오류가 발생했습니다.";
+              if (err instanceof AuthApiError) msg = err.message;
+              Alert.alert("탈퇴 실패", msg);
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
@@ -270,6 +307,22 @@ export default function EditProfileScreen() {
             <Text style={s.saveBtnText}>저장</Text>
           )}
         </TouchableOpacity>
+
+        {}
+        <TouchableOpacity
+          style={s.deleteBtn}
+          onPress={handleDeleteAccount}
+          disabled={deleting}
+        >
+          {deleting ? (
+            <ActivityIndicator color={COLORS.error} />
+          ) : (
+            <Text style={s.deleteBtnText}>회원 탈퇴</Text>
+          )}
+        </TouchableOpacity>
+        <Text style={s.deleteHint}>
+          탈퇴 후 90일 내에 같은 계정으로 로그인하면 복구할 수 있어요.
+        </Text>
       </View>
 
       {}
@@ -392,6 +445,24 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.zinc300,
   },
   saveBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
+  deleteBtn: {
+    marginTop: 32,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  deleteBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.error,
+    textDecorationLine: "underline",
+  },
+  deleteHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: COLORS.zinc500,
+    textAlign: "center",
+    lineHeight: 16,
+  },
 
   modalOverlay: {
     flex: 1,
