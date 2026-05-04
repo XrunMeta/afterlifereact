@@ -7,6 +7,8 @@ export type RootStackParamList = {
   InheritanceAccept: { token?: string };
   RestoreDeleted: undefined;
   GDPRDelete: undefined;
+
+  InviteAccept: { token: string };
 };
 
 export type AuthStackParamList = {

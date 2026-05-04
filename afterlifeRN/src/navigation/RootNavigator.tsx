@@ -14,6 +14,7 @@ import v_19ba0e from "./MainTabNavigator";
 
 import v_02d653 from "../screens/clone-interaction/ChatScreen";
 import v_bfc6c1 from "../screens/clone-interaction/CallScreen";
+import v_000f0a from "../screens/clones/InviteAcceptScreen";
 
 const v_36a793 = v_709be7<v_8ad91b>();
 const v_e8bc89 = v_709be7<v_384e19>();
@@ -37,7 +38,11 @@ export default function v_3b950c() {
   return (
     <RootStack.Navigator screenOptions={{ headerShown: false }}>
       {!v_042a8b ? (
-        <RootStack.Screen name="Auth" component={v_aebbaf} />
+        <>
+          <RootStack.Screen name="Auth" component={v_aebbaf} />
+          {}
+          <RootStack.Screen name="InviteAccept" component={v_000f0a} />
+        </>
       ) : (
         <>
           <RootStack.Screen name="Main" component={v_19ba0e} />
@@ -54,6 +59,7 @@ export default function v_3b950c() {
               animation: "slide_from_bottom",
             }}
           />
+          <RootStack.Screen name="InviteAccept" component={v_000f0a} />
         </>
       )}
     </RootStack.Navigator>
