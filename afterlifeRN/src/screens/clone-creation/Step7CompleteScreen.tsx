@@ -15,7 +15,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
 import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
-import { createClone, deriveUsernameFromName } from "../../api/clones";
+import { createClone, createInvite, deriveUsernameFromName } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 
 type Props = {
@@ -123,6 +123,22 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           createdAt: created.created_at,
         };
         addClone(clone);
+
+        const invitees = (draft.coownerInvites ?? [])
+          .map((e) => e.trim())
+          .filter((e) => e.length > 0);
+        if (invitees.length > 0) {
+          const results = await Promise.allSettled(
+            invitees.map((email) =>
+              createInvite(accessToken, created.id, { invite_email: email }),
+            ),
+          );
+          const ok = results.filter((r) => r.status === 'fulfilled').length;
+          const fail = results.length - ok;
+          console.log(`[CLONE-INVITE] sent ${ok}/${results.length} (fail ${fail})`);
+
+        }
+
         if (!cancelled) {
           setCreatedCloneId(created.id);
           setCreating(false);
