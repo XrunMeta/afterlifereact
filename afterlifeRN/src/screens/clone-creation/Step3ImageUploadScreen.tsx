@@ -29,7 +29,6 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
         title="이미지 업로드"
         showBackButton
         onBackPress={() => navigation.goBack()}
-        stepInfo={{ current: 3, total: 7 }}
       />
       <StepIndicator currentStep={3} totalSteps={7} />
       {bannerOpen && <Step3EntryBanner onDismiss={() => setBannerOpen(false)} />}

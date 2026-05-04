@@ -33,7 +33,6 @@ export default function Step1CloneTypeScreen({ navigation }: Props) {
         title="클론 타입"
         showBackButton
         onBackPress={() => navigation.getParent()?.navigate('HomeTab' as never)}
-        stepInfo={{ current: 1, total: 7 }}
       />
       <StepIndicator currentStep={1} totalSteps={7} />
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>

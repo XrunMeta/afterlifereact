@@ -167,7 +167,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <PageHeader title="생성 완료" stepInfo={{ current: 7, total: 7 }} />
+      <PageHeader title="생성 완료" />
       <StepIndicator currentStep={7} totalSteps={7} />
 
       <SafeScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>

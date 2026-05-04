@@ -27,7 +27,6 @@ export default function Step4VoiceUploadScreen({ navigation }: Props) {
         title="음성 설정"
         showBackButton
         onBackPress={() => navigation.goBack()}
-        stepInfo={{ current: 4, total: 7 }}
       />
       <StepIndicator currentStep={4} totalSteps={7} />
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>

@@ -27,7 +27,6 @@ export default function Step2BasicInfoScreen({ navigation }: Props) {
         title="기본 정보"
         showBackButton
         onBackPress={() => navigation.goBack()}
-        stepInfo={{ current: 2, total: 7 }}
       />
       <StepIndicator currentStep={2} totalSteps={7} />
       <SafeScrollView

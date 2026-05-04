@@ -24,7 +24,7 @@ export default function Step5VisibilityScreen({ navigation }: Props) {
   return (
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader title="공개 범위" showBackButton
-        onBackPress={() => navigation.goBack()} stepInfo={{ current: 5, total: 7 }} />
+        onBackPress={() => navigation.goBack()} />
       <StepIndicator currentStep={5} totalSteps={7} />
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />
