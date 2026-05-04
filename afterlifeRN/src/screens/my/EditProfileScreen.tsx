@@ -347,10 +347,6 @@ export default function EditProfileScreen() {
             )}
           </TouchableOpacity>
 
-          <Text style={s.deleteHint}>
-            모두 영구 삭제이며 복구할 수 없습니다.{"\n"}
-            "에프터라이프만 삭제"는 xrun 회원과 지갑을 유지합니다.
-          </Text>
         </View>
       </View>
 
@@ -501,13 +497,6 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: COLORS.white,
-  },
-  deleteHint: {
-    marginTop: 4,
-    fontSize: 12,
-    color: COLORS.zinc500,
-    textAlign: "center",
-    lineHeight: 18,
   },
 
   modalOverlay: {
