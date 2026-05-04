@@ -217,9 +217,6 @@ export default function v_ed02a5() {
             <TouchableOpacity style={v_fd5f43.headerBtn}>
               <Feather name="bell" size={22} color={v_1bfbd0.zinc700} />
             </TouchableOpacity>
-            <TouchableOpacity style={v_fd5f43.headerBtn}>
-              <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
-            </TouchableOpacity>
           </View>
         }
       />
