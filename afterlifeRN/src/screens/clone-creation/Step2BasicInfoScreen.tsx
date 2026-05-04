@@ -33,7 +33,6 @@ export default function v_afe4c8({ navigation: v_c65f5d }: Props) {
       <SafeScrollView
         contentContainerStyle={v_d81136.content}
         showBottomBackground={false}
-        autoAdjustKeyboardPadding
         keyboardShouldPersistTaps="handled"
       >
         <Content draft={v_f04727} onChange={v_5795de} />
