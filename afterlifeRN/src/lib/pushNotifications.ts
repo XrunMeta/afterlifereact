@@ -43,3 +43,24 @@ export async function v_704bef(): Promise<PushRegistration> {
     return { token: null, platform: v_81a27a, granted: true };
   }
 }
+
+export async function v_11921f(): Promise<PushRegistration> {
+  const v_81a27a =
+    v_326be8.OS === "ios" ? "ios" : v_326be8.OS === "android" ? "android" : "web";
+
+  if (!v_a06ea0.isDevice) {
+    return { token: null, platform: v_81a27a, granted: false };
+  }
+
+  const v_3c8572 = await v_2b7a17.getPermissionsAsync();
+  if (v_3c8572.status !== "granted") {
+    return { token: null, platform: v_81a27a, granted: false };
+  }
+
+  try {
+    const v_5c81fd = await v_2b7a17.getExpoPushTokenAsync();
+    return { token: v_5c81fd.data, platform: v_81a27a, granted: true };
+  } catch {
+    return { token: null, platform: v_81a27a, granted: true };
+  }
+}
