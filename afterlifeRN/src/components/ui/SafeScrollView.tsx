@@ -90,7 +90,8 @@ const SafeScrollViewInner = forwardRef<ScrollView, SafeScrollViewProps>(({
       ? insets.bottom
       : Math.max(navBarHeight, insets.bottom);
 
-  const keyboardPadding = autoAdjustKeyboardPadding ? keyboardHeight : 0;
+  const keyboardPadding =
+    autoAdjustKeyboardPadding && Platform.OS === 'android' ? keyboardHeight : 0;
 
   const finalBottomPadding = disableBottomPadding
     ? additionalBottomPadding + keyboardPadding
