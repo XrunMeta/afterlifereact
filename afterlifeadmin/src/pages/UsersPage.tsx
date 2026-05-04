@@ -2,8 +2,38 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import { DataTable } from "../components/DataTable";
 
+const DELETION_STATE_LABEL: Record<string, { label: string; color: string; bg: string }> = {
+  active: { label: "활성", color: "#15803d", bg: "#dcfce7" },
+  soft_deleted: { label: "탈퇴(복구가능)", color: "#b45309", bg: "#fef3c7" },
+  hard_deleted: { label: "영구 삭제", color: "#b91c1c", bg: "#fee2e2" },
+};
+
+const renderDeletionState = (v?: string) => {
+  const s = DELETION_STATE_LABEL[v ?? "active"] ?? DELETION_STATE_LABEL.active;
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 600,
+        color: s.color,
+        background: s.bg,
+      }}
+    >
+      {s.label}
+    </span>
+  );
+};
+
 const columns = [
   { key: "id", label: "ID" },
+  {
+    key: "deletionState",
+    label: "상태",
+    render: renderDeletionState,
+  },
   { key: "name", label: "Name" },
   { key: "email", label: "Email" },
   { key: "gender", label: "Gender" },
