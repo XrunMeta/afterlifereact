@@ -45,6 +45,60 @@ export function v_b55477(v_1833e7): string {
   return `${v_2f361a}_${v_ae8e76}`;
 }
 
+export interface CreateInvitePayload {
+  invite_email?: string;
+  relation?: string;
+  grant_owner?: boolean;
+  ttl_hours?: number;
+}
+
+export interface CreateInviteResponse {
+  token: string;
+  expiresAt: string;
+  inviteEmail: string | null;
+  grantOwner: boolean;
+  notify?: { emailSent: boolean; pushSent: number };
+}
+
+export async function v_e4a407(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_931bf0,
+  v_6f448e,
+): Promise<CreateInviteResponse> {
+  const v_b24339 =
+    v_6f448e ??
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_6e0fd3}/oth-path`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${v_2ca7e0}`,
+      "Idempotency-Key": v_b24339,
+    },
+    body: JSON.stringify(v_931bf0),
+  });
+  const v_9b6134 = await v_8f00b9.text();
+  let v_8decf8 = null;
+  try {
+    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
+  } catch {
+
+  }
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as CreateInviteResponse;
+}
+
 export async function v_39eaf5(
   v_2ca7e0,
   v_931bf0,
