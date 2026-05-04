@@ -11,6 +11,7 @@ import {
   hasAcceptedShare,
   loadCloneById,
 } from "../lib/cloneAccess";
+import { notifyInvite } from "../lib/inviteNotifier";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { randomBytes } from "@noble/ciphers/utils.js";
 
@@ -137,12 +138,38 @@ cloneShares.post(
       action: "sharing.invite.create",
       details: { cloneId, grantOwner: body.grant_owner, inviteEmail: body.invite_email },
     });
+
+    let notifyResult: { emailSent: boolean; pushSent: number } = { emailSent: false, pushSent: 0 };
+    if (body.invite_email) {
+      const meta = await c.env.DB.prepare(
+        `SELECT c.name AS cloneName, u.name AS inviterName
+           FROM clones c LEFT JOIN users u ON u.id = ?
+          WHERE c.id = ?`,
+      )
+        .bind(userId, cloneId)
+        .first<{ cloneName: string | null; inviterName: string | null }>();
+      try {
+        notifyResult = await notifyInvite(c.env, {
+          cloneId,
+          cloneName: meta?.cloneName ?? "페르소나",
+          inviterName: meta?.inviterName ?? "친구",
+          inviteeEmail: body.invite_email,
+          token,
+          expiresAt,
+        });
+      } catch (err) {
+
+        console.warn(`[sharing.invite] notify failed: ${(err as Error).message}`);
+      }
+    }
+
     return c.json(
       {
         token, 
         expiresAt,
         inviteEmail: body.invite_email ?? null,
         grantOwner: body.grant_owner,
+        notify: notifyResult,
       },
       201,
     );
