@@ -28,7 +28,8 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: SIZES.medium,
-    paddingVertical: SIZES.small,
+    paddingTop: SIZES.large,
+    paddingBottom: SIZES.small,
   },
   label: {
     fontSize: 12,
