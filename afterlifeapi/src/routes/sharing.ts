@@ -11,6 +11,7 @@ import {
   v_7adf64,
   v_5d4a51,
 } from "../lib/cloneAccess";
+import { v_55b118 } from "../lib/inviteNotifier";
 import { v_084137 } from "jyrbilrsgaufsmqlwpinn";
 import { v_5f30e2 } from "qcyoxusdylhcdivjkjnuowj";
 
@@ -137,12 +138,38 @@ v_403c0a.post(
       action: "sharing.invite.create",
       details: { cloneId: v_6e0fd3, grantOwner: v_4d33b2.grant_owner, inviteEmail: v_4d33b2.invite_email },
     });
+
+    let v_666ddb = { emailSent: false, pushSent: 0 };
+    if (v_4d33b2.invite_email) {
+      const v_ab4c96 = await v_3f4e2e.env.DB.prepare(
+        `SELECT c.name AS cloneName, u.name AS inviterName
+           FROM clones c LEFT JOIN users u ON u.id = ?
+          WHERE c.id = ?`,
+      )
+        .bind(v_43e90c, v_6e0fd3)
+        .first<{ cloneName: string | null; inviterName: string | null }>();
+      try {
+        v_666ddb = await v_55b118(v_3f4e2e.env, {
+          cloneId: v_6e0fd3,
+          cloneName: v_ab4c96?.cloneName ?? "페르소나",
+          inviterName: v_ab4c96?.inviterName ?? "친구",
+          inviteeEmail: v_4d33b2.invite_email,
+          token: v_21cc31,
+          expiresAt: v_0b8131,
+        });
+      } catch (v_49263d) {
+
+        console.warn(`[sharing.invite] notify failed: ${(v_49263d as Error).message}`);
+      }
+    }
+
     return v_3f4e2e.json(
       {
         token: v_21cc31, 
         expiresAt: v_0b8131,
         inviteEmail: v_4d33b2.invite_email ?? null,
         grantOwner: v_4d33b2.grant_owner,
+        notify: v_666ddb,
       },
       201,
     );
