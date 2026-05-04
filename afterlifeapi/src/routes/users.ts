@@ -272,6 +272,30 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;
 
+  const body = (await c.req.json().catch(() => ({}))) as { withXrun?: boolean };
+  const withXrun = body?.withXrun === true;
+
+  let xrunClose: { attempted: boolean; closed: boolean; reason?: string } = {
+    attempted: false,
+    closed: false,
+  };
+
+  if (withXrun) {
+    const linkRow = await db
+      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+      .bind(userId)
+      .first<{ xrun_member_id: number | null }>();
+    const xrunMember = linkRow?.xrun_member_id ?? null;
+    if (xrunMember) {
+      const { closeXrunMember } = await import("../lib/xrun");
+      const res = await closeXrunMember(c.env, xrunMember);
+      xrunClose = { attempted: true, closed: res.closed, reason: res.reason };
+
+    } else {
+      xrunClose = { attempted: true, closed: false, reason: "no xrun member linked" };
+    }
+  }
+
   const dekIds: string[] = [];
   const userRow = await db
     .prepare(`SELECT phone, age_enc FROM users WHERE id = ?`)
@@ -349,6 +373,7 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
     state: "hard_deleted",
     shreddedDekCount: dekIds.length,
     purgedMessages: msgPurge.meta.changes ?? 0,
+    xrunClose,
   });
 });
 

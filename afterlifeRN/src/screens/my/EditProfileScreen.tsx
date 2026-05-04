@@ -166,36 +166,49 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handleDeleteAccount = () => {
+  const performDelete = async (withXrun: boolean) => {
+    if (!accessToken) {
+      Alert.alert("알림", "로그인이 필요합니다.");
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await deleteMe(accessToken, { withXrun });
+      console.log("[EditProfile] deleteMe ok:", res);
+      if (withXrun && res.xrunClose && !res.xrunClose.closed) {
+
+        console.warn("[EditProfile] xrun close failed:", res.xrunClose.reason);
+      }
+      await logout();
+    } catch (err) {
+      console.warn("[EditProfile] deleteMe failed:", err);
+      let msg = "탈퇴 처리 중 오류가 발생했습니다.";
+      if (err instanceof AuthApiError) msg = err.message;
+      Alert.alert("탈퇴 실패", msg);
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteAfterlifeOnly = () => {
     if (deleting) return;
     Alert.alert(
-      "회원 탈퇴",
-      "정말 탈퇴하시겠습니까?\n탈퇴 시 계정과 데이터가 영구 삭제되며, 복구할 수 없습니다.",
+      "에프터라이프 계정 삭제",
+      "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.\n복구할 수 없습니다.",
       [
         { text: "취소", style: "cancel" },
-        {
-          text: "영구 삭제",
-          style: "destructive",
-          onPress: async () => {
-            if (!accessToken) {
-              Alert.alert("알림", "로그인이 필요합니다.");
-              return;
-            }
-            setDeleting(true);
-            try {
-              const res = await deleteMe(accessToken);
-              console.log("[EditProfile] deleteMe ok:", res);
-              await logout();
+        { text: "삭제", style: "destructive", onPress: () => performDelete(false) },
+      ],
+    );
+  };
 
-            } catch (err) {
-              console.warn("[EditProfile] deleteMe failed:", err);
-              let msg = "탈퇴 처리 중 오류가 발생했습니다.";
-              if (err instanceof AuthApiError) msg = err.message;
-              Alert.alert("탈퇴 실패", msg);
-              setDeleting(false);
-            }
-          },
-        },
+  const handleDeleteWithXrun = () => {
+    if (deleting) return;
+    Alert.alert(
+      "에프터라이프 + xrun 함께 탈퇴",
+      "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라지며 복구할 수 없습니다.",
+      [
+        { text: "취소", style: "cancel" },
+        { text: "모두 탈퇴", style: "destructive", onPress: () => performDelete(true) },
       ],
     );
   };
@@ -309,20 +322,36 @@ export default function EditProfileScreen() {
         </TouchableOpacity>
 
         {}
-        <TouchableOpacity
-          style={s.deleteBtn}
-          onPress={handleDeleteAccount}
-          disabled={deleting}
-        >
-          {deleting ? (
-            <ActivityIndicator color={COLORS.error} />
-          ) : (
-            <Text style={s.deleteBtnText}>회원 탈퇴</Text>
-          )}
-        </TouchableOpacity>
-        <Text style={s.deleteHint}>
-          탈퇴 시 계정과 모든 데이터가 영구 삭제되며, 복구할 수 없습니다.
-        </Text>
+        <View style={s.deleteSection}>
+          <TouchableOpacity
+            style={s.deleteOnlyBtn}
+            onPress={handleDeleteAfterlifeOnly}
+            disabled={deleting}
+          >
+            {deleting ? (
+              <ActivityIndicator color={COLORS.zinc700} />
+            ) : (
+              <Text style={s.deleteOnlyBtnText}>에프터라이프 계정만 삭제</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.deleteAllBtn}
+            onPress={handleDeleteWithXrun}
+            disabled={deleting}
+          >
+            {deleting ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <Text style={s.deleteAllBtnText}>xrun도 함께 탈퇴</Text>
+            )}
+          </TouchableOpacity>
+
+          <Text style={s.deleteHint}>
+            모두 영구 삭제이며 복구할 수 없습니다.{"\n"}
+            "에프터라이프만 삭제"는 xrun 회원과 지갑을 유지합니다.
+          </Text>
+        </View>
       </View>
 
       {}
@@ -445,23 +474,40 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.zinc300,
   },
   saveBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
-  deleteBtn: {
+  deleteSection: {
     marginTop: 32,
-    paddingVertical: 12,
+    gap: 10,
+  },
+  deleteOnlyBtn: {
+    paddingVertical: 14,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
     alignItems: "center",
   },
-  deleteBtnText: {
+  deleteOnlyBtnText: {
     fontSize: 14,
     fontWeight: "600",
-    color: COLORS.error,
-    textDecorationLine: "underline",
+    color: COLORS.zinc700,
+  },
+  deleteAllBtn: {
+    paddingVertical: 14,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.error,
+    alignItems: "center",
+  },
+  deleteAllBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.white,
   },
   deleteHint: {
-    marginTop: 6,
+    marginTop: 4,
     fontSize: 12,
     color: COLORS.zinc500,
     textAlign: "center",
-    lineHeight: 16,
+    lineHeight: 18,
   },
 
   modalOverlay: {

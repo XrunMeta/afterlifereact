@@ -186,15 +186,24 @@ export interface PatchMePayload {
   age?: number | null;
 }
 
+export interface DeleteMeResult {
+  ok: true;
+  state: "hard_deleted";
+  shreddedDekCount: number;
+  purgedMessages: number;
+  xrunClose?: { attempted: boolean; closed: boolean; reason?: string };
+}
 export async function deleteMe(
   accessToken: string,
-): Promise<{ ok: true }> {
+  options: { withXrun?: boolean } = {},
+): Promise<DeleteMeResult> {
   const res = await fetch(`${API_BASE}/oth-path`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
+    body: JSON.stringify({ withXrun: !!options.withXrun }),
   });
   const text = await res.text();
   let parsed: unknown = null;
@@ -212,7 +221,7 @@ export async function deleteMe(
       errBody?.error?.details,
     );
   }
-  return parsed as { ok: true };
+  return parsed as DeleteMeResult;
 }
 
 export async function patchInterests(

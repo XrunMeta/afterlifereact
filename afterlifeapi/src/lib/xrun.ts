@@ -273,6 +273,46 @@ export interface XrunBalancesResult {
   reason?: string;
 }
 
+export interface XrunCloseResult {
+  ok: boolean;
+  closed: boolean;
+  reason?: string;
+}
+
+export async function closeXrunMember(env: Bindings, member: number): Promise<XrunCloseResult> {
+  if (!env.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, closed: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: gatewayHeaders(env),
+      body: JSON.stringify({ member, source: "afterlife" }),
+    });
+  } catch (err) {
+    return { ok: false, closed: false, reason: `network: ${(err as Error).message}` };
+  }
+  let json: { status?: string; code?: number; message?: string; data?: unknown };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { ok: false, closed: false, reason: `non-json (${res.status})` };
+  }
+  if (res.ok && json?.status === "success") {
+    return { ok: true, closed: true };
+  }
+
+  if (res.status === 404 || json?.code === 404) {
+    return { ok: true, closed: false, reason: "member not found (already closed?)" };
+  }
+  return {
+    ok: false,
+    closed: false,
+    reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
+  };
+}
+
 export async function getXrunBalances(env: Bindings, member: number): Promise<XrunBalancesResult> {
   if (!env.XRUN_GATEWAY_TOKEN) {
     return { ok: false, balances: [], reason: "missing XRUN_GATEWAY_TOKEN" };
