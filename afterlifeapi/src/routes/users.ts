@@ -333,9 +333,22 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
   await db
     .prepare(
       `UPDATE users
-          SET phone = NULL, age_enc = NULL, age = NULL
+          SET phone = NULL,
+              age_enc = NULL,
+              age = NULL,
+              name = '',
+              email = 'deletedmember' || CAST(id AS TEXT),
+              gender = NULL,
+              avatar_url = NULL,
+              funnel_stage = 'deleted',
+              marketing_consent = 0
         WHERE id = ?`,
     )
+    .bind(userId)
+    .run();
+
+  await db
+    .prepare(`DELETE FROM user_interests WHERE user_id = ?`)
     .bind(userId)
     .run();
 
