@@ -248,3 +248,47 @@ export async function v_de391e(
   }
   return { ok: false, match: false, hasPin: false, reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}` };
 }
+
+export interface XrunWalletBalance {
+  wallet: number;
+  address: string | null;
+  currency: number;
+  amount: string; 
+  symbol: string | null;
+}
+
+export interface XrunBalancesResult {
+  ok: boolean;
+  balances: XrunWalletBalance[];
+  reason?: string;
+}
+
+export async function v_5f6369(env: v_273a0c, v_660822): Promise<XrunBalancesResult> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, balances: [], reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({ member: v_660822 }),
+    });
+  } catch (v_49263d) {
+    return { ok: false, balances: [], reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { ok: false, balances: [], reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success") {
+    return { ok: true, balances: v_7ecfd1.data ?? [] };
+  }
+  return {
+    ok: false,
+    balances: [],
+    reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
+  };
+}
