@@ -347,10 +347,6 @@ export default function v_e2b396() {
             )}
           </TouchableOpacity>
 
-          <Text style={v_fd5f43.deleteHint}>
-            모두 영구 삭제이며 복구할 수 없습니다.{"\n"}
-            "에프터라이프만 삭제"는 xrun 회원과 지갑을 유지합니다.
-          </Text>
         </View>
       </View>
 
@@ -501,13 +497,6 @@ const v_fd5f43 = v_472849.create({
     fontSize: 14,
     fontWeight: "700",
     color: v_1bfbd0.white,
-  },
-  deleteHint: {
-    marginTop: 4,
-    fontSize: 12,
-    color: v_1bfbd0.zinc500,
-    textAlign: "center",
-    lineHeight: 18,
   },
 
   modalOverlay: {
