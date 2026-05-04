@@ -195,7 +195,7 @@ export default function EditProfileScreen() {
     setDeleteOptionsVisible(false);
     Alert.alert(
       "에프터라이프 계정 탈퇴",
-      "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.\n복구할 수 없습니다.",
+      "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.",
       [
         { text: "취소", style: "cancel" },
         { text: "탈퇴", style: "destructive", onPress: () => performDelete(false) },
@@ -208,7 +208,7 @@ export default function EditProfileScreen() {
     setDeleteOptionsVisible(false);
     Alert.alert(
       "에프터라이프 + xrun 함께 탈퇴",
-      "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라지며 복구할 수 없습니다.",
+      "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라집니다.",
       [
         { text: "취소", style: "cancel" },
         { text: "모두 탈퇴", style: "destructive", onPress: () => performDelete(true) },
