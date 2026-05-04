@@ -78,7 +78,11 @@ v_f891e6.post(
 
     const v_3c8572 = await v_a1651b
       .prepare(
-        `SELECT COUNT(*) AS n FROM clones WHERE owner_id = ? AND clone_type = ?`,
+        `SELECT COUNT(*) AS n FROM clones
+          WHERE owner_id = ?
+            AND clone_type = ?
+            AND deletion_state = 'active'
+            AND deleted_at IS NULL`,
       )
       .bind(v_43e90c, v_4d33b2.clone_type)
       .first<{ n: number }>();

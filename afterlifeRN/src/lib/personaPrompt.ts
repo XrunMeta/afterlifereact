@@ -17,11 +17,12 @@ export function v_f689cd(
   v_020b4b,
 ): Partial<v_c2a674> {
   const v_779914 = v_020b4b?.attrs ?? {};
+  const v_8b5c49 = v_779914.personalities ?? v_779914.types;
   return {
     personaAge: v_779914.age as v_c2a674['personaAge'],
     personaGender: v_779914.gender as v_c2a674['personaGender'],
-    personaTypes: v_779914.personalities
-      ? (v_779914.personalities.split(',').map((v_fd5f43) => v_fd5f43.trim()).filter(Boolean) as v_c2a674['personaTypes'])
+    personaTypes: v_8b5c49
+      ? (v_8b5c49.split(',').map((v_fd5f43) => v_fd5f43.trim()).filter(Boolean) as v_c2a674['personaTypes'])
       : undefined,
     personaMbti: v_779914.mbti as v_c2a674['personaMbti'],
     personaNotes: v_020b4b?.notes ?? '',
@@ -70,8 +71,9 @@ export function v_d6d0ff(v_e2a85c): string {
     v_a52412.push(`고인과의 관계: ${v_f75ae8[v_e2a85c.relation]}`);
   }
 
-  if (v_779914.personalities) {
-    const v_e0187d = v_779914.personalities
+  const v_8b5c49 = v_779914.personalities ?? v_779914.types;
+  if (v_8b5c49) {
+    const v_e0187d = v_8b5c49
       .split(',')
       .map((v_389afb) => v_a28029.get(v_389afb.trim() as v_344f4b))
       .filter(Boolean);

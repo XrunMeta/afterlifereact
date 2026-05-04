@@ -17,6 +17,7 @@ import type { v_affcc0 } from "../../types/clone";
 import { v_c4c43f } from "../../mocks/cloneTypeCatalog";
 import { v_39eaf5, v_b55477 } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
+import { v_7d2692 } from "../../api/files";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step7">;
@@ -66,6 +67,14 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
       if (!v_2ca7e0) {
         const v_17d8be = Date.now();
+        const v_5ccd43 = {
+          ...(v_f04727.personaAge ? { age: v_f04727.personaAge } : {}),
+          ...(v_f04727.personaGender ? { gender: v_f04727.personaGender } : {}),
+          ...(v_f04727.personaTypes && v_f04727.personaTypes.length > 0
+            ? { personalities: v_f04727.personaTypes.join(',') }
+            : {}),
+          ...(v_f04727.personaMbti ? { mbti: v_f04727.personaMbti } : {}),
+        };
         const clone: v_affcc0 = {
           id: v_17d8be,
           cloneType: v_f04727.cloneType!,
@@ -77,6 +86,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           visibility: v_818579,
           status: v_01a739 && v_f9c770 ? 'active' : 'pending_assets',
           createdAt: new Date().toISOString(),
+          l1Profile: { attrs: v_5ccd43, notes: v_f04727.personaNotes ?? '' },
         };
         v_956393(v_eb25ce);
         if (!v_2008a4) {
@@ -87,48 +97,89 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       }
 
       try {
-        const v_556427 = v_f04727.username?.trim() || v_b55477(v_f04727.name ?? '');
-        const v_28eeb6 = await v_39eaf5(v_2ca7e0, {
+
+        const v_6be727 = /^[a-z0-9_]+$/;
+        const v_ae88f2 = v_f04727.username?.trim() ?? '';
+        const v_a71df8 = v_ae88f2.length >= 3 && v_ae88f2.length <= 30 && v_6be727.test(v_ae88f2);
+        const v_556427 = v_a71df8 ? v_ae88f2 : v_b55477(v_ae88f2 || v_f04727.name || 'user');
+
+        const v_55a58f = {
+          ...(v_f04727.personaAge ? { age: v_f04727.personaAge } : {}),
+          ...(v_f04727.personaGender ? { gender: v_f04727.personaGender } : {}),
+          ...(v_f04727.personaTypes && v_f04727.personaTypes.length > 0
+            ? { personalities: v_f04727.personaTypes.join(',') }
+            : {}),
+          ...(v_f04727.personaMbti ? { mbti: v_f04727.personaMbti } : {}),
+        };
+        const v_564b6a = { attrs: v_55a58f, notes: v_f04727.personaNotes ?? '' };
+
+        let v_bf6b43;
+        if (v_f04727.imageFile) {
+          try {
+
+            const v_40a923 = v_f04727.imageFile.split('.').pop()?.toLowerCase() ?? '';
+            const v_b66751 =
+              v_40a923 === 'png' ? 'image/png'
+              : v_40a923 === 'webp' ? 'image/webp'
+              : v_40a923 === 'gif' ? 'image/gif'
+              : 'image/jpeg';
+            const v_57ac81 = await v_7d2692(v_2ca7e0, v_f04727.imageFile, {
+              purpose: 'clone_avatar',
+              mimeType: v_b66751,
+              fileName: `avatar.${v_40a923 || 'jpg'}`,
+            });
+            v_bf6b43 = v_57ac81.url;
+            console.log('[CLONE-CREATE] avatar uploaded:', v_bf6b43);
+          } catch (v_9b4b36) {
+            console.warn('[CLONE-CREATE] avatar upload failed:', v_9b4b36);
+
+          }
+        }
+
+        const v_8f00b9 = await v_39eaf5(v_2ca7e0, {
           clone_type: v_f04727.cloneType!,
           name: v_f04727.name ?? 'Untitled',
           username: v_556427,
           description: v_f04727.description || undefined,
           visibility: v_818579,
           interests: v_f04727.interests && v_f04727.interests.length > 0 ? v_f04727.interests : undefined,
-
-          l1_profile: {
-            attrs: {
-              ...(v_f04727.personaAge ? { age: v_f04727.personaAge } : {}),
-              ...(v_f04727.personaGender ? { gender: v_f04727.personaGender } : {}),
-              ...(v_f04727.personaTypes && v_f04727.personaTypes.length > 0
-                ? { types: v_f04727.personaTypes.join(',') }
-                : {}),
-              ...(v_f04727.personaMbti ? { mbti: v_f04727.personaMbti } : {}),
-            },
-            notes: v_f04727.personaNotes ?? '',
-          },
+          l1_profile: v_564b6a,
+          ...(v_bf6b43 ? { avatar_url: v_bf6b43 } : {}),
         });
-        console.log('[CLONE-CREATE] success:', v_28eeb6);
+        console.log('[CLONE-CREATE] success:', v_8f00b9);
+        const v_94519a = v_8f00b9.clone;
 
         const clone: v_affcc0 = {
-          id: v_28eeb6.id,
-          cloneType: v_f04727.cloneType!,
+          id: v_94519a.id,
+          cloneType: v_94519a.cloneType,
           ownerId: v_493eec,
-          displayName: v_28eeb6.name,
+          displayName: v_94519a.name,
           description: v_f04727.description ?? '',
           interests: v_f04727.interests ?? [],
-          imageUrl: v_f04727.imageFile ?? undefined,
-          visibility: v_28eeb6.visibility,
+          imageUrl: v_bf6b43 ?? v_f04727.imageFile ?? undefined,
+          visibility: v_94519a.visibility,
           status: v_01a739 && v_f9c770 ? 'active' : 'pending_assets',
-          createdAt: v_28eeb6.created_at,
+          createdAt: v_94519a.createdAt,
+          l1Profile: v_564b6a,
         };
         v_956393(v_eb25ce);
         if (!v_2008a4) {
-          v_67122d(v_28eeb6.id);
+          v_67122d(v_94519a.id);
           v_c7169b(false);
         }
       } catch (v_49263d) {
-        console.warn('[CLONE-CREATE] failed:', v_49263d);
+
+        if (v_49263d instanceof v_84a859) {
+          console.warn(
+            '[CLONE-CREATE] failed:',
+            v_49263d.code,
+            v_49263d.message,
+            'details=',
+            JSON.stringify(v_49263d.details),
+          );
+        } else {
+          console.warn('[CLONE-CREATE] failed:', v_49263d);
+        }
         if (v_2008a4) return;
         let v_badeaf = '페르소나 생성 중 오류가 발생했습니다.';
         if (v_49263d instanceof v_84a859) {

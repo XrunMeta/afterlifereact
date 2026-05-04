@@ -17,6 +17,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
+import v_0e981f from "../../components/common/NotificationBell";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_194498 } from "../../stores/cloneStore";
@@ -212,13 +213,7 @@ export default function v_ed02a5() {
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title="My Page"
-        rightAction={
-          <View style={v_fd5f43.headerRight}>
-            <TouchableOpacity style={v_fd5f43.headerBtn}>
-              <Feather name="bell" size={22} color={v_1bfbd0.zinc700} />
-            </TouchableOpacity>
-          </View>
-        }
+        rightAction={<NotificationBell />}
       />
 
       <View style={v_fd5f43.content}>

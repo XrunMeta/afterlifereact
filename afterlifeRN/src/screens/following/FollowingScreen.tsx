@@ -21,6 +21,7 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
+import v_0e981f from "../../components/common/NotificationBell";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -286,11 +287,7 @@ export default function v_14b43e() {
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title="Following"
-        rightAction={
-          <TouchableOpacity style={{ padding: 4 }}>
-            <Feather name="bell" size={22} color={v_1bfbd0.zinc700} />
-          </TouchableOpacity>
-        }
+        rightAction={<NotificationBell />}
       />
 
       {}

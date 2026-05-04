@@ -266,9 +266,11 @@ v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
           c.training_status AS trainingStatus,
           c.owner_id       AS ownerId,
           c.created_at     AS createdAt,
+          c.l1_profile     AS l1ProfileJson,
           (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole
          FROM clones c
-        WHERE c.deleted_at IS NULL
+        WHERE c.deletion_state = 'active'
+          AND c.deleted_at IS NULL
           AND (
             c.owner_id = ?
             OR c.id IN (
@@ -281,7 +283,23 @@ v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
     )
     .bind(v_43e90c, v_43e90c, v_43e90c)
     .all();
-  return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+
+  const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
+    const v_3ac7e7 = v_cb35cb as Record<string, unknown> & { l1ProfileJson?: string | null };
+    let v_564b6a = null;
+    if (v_3ac7e7.l1ProfileJson) {
+      try {
+        const v_8decf8 = JSON.parse(v_3ac7e7.l1ProfileJson) as { attrs?: Record<string, string>; notes?: string };
+        v_564b6a = { attrs: v_8decf8.attrs ?? {}, notes: v_8decf8.notes ?? "" };
+      } catch {
+
+      }
+    }
+    const { l1ProfileJson: v_9bd854, ...v_83bbcd } = v_3ac7e7;
+    void v_9bd854;
+    return { ...v_83bbcd, l1Profile: v_564b6a };
+  });
+  return v_3f4e2e.json({ items: v_4622b9 });
 });
 
 v_de7ba7.post("/me/delete", v_6690d9, async (v_3f4e2e) => {

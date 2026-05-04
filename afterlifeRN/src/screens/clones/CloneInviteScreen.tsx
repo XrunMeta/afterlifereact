@@ -30,7 +30,7 @@ import {
   type v_fb1763,
   type v_f9a81e,
 } from "../../api/clones";
-import { v_84a859 } from "../../api/auth";
+import { v_84a859, v_a41961 } from "../../api/auth";
 
 type Route = v_ee3714<v_2d88fc, "CloneInvite">;
 
@@ -42,6 +42,7 @@ export default function v_07335f() {
   const v_6e0fd3 = v_24baff.cloneId;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
+  const v_78547c = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? v_fd5f43.user?.email ?? null);
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
 
   const v_2aec08 =
@@ -90,9 +91,23 @@ export default function v_07335f() {
       v_03e392.alert("알림", "올바른 이메일을 입력해주세요.");
       return;
     }
+    if (v_78547c && v_e0c7e8.toLowerCase() === v_78547c.toLowerCase()) {
+      v_03e392.alert("알림", "본인은 초대할 수 없어요.");
+      return;
+    }
     if (!v_2ca7e0) return;
     v_ee9ec1(true);
     try {
+
+      const v_9875a1 = await v_a41961(v_2ca7e0, v_e0c7e8);
+      const v_5f5d6d = v_e0c7e8.toLowerCase();
+      const v_17ec8d = v_9875a1.items.find((v_ceb55a) => v_ceb55a.email.toLowerCase() === v_5f5d6d);
+      if (!v_17ec8d) {
+        v_03e392.alert("알림", "해당 이메일을 가진 회원이 없습니다 다시 입력해주세요");
+        v_ee9ec1(false);
+        return;
+      }
+
       const v_8f00b9 = await v_e4a407(v_2ca7e0, v_6e0fd3, { invite_email: v_e0c7e8 });
       console.log("[CloneInvite] sent:", v_8f00b9);
       v_3b75f3("");
@@ -194,7 +209,7 @@ export default function v_07335f() {
               <View style={v_fd5f43.card}>
                 <Text style={v_fd5f43.sectionTitle}>공동관리자 초대</Text>
                 <Text style={v_fd5f43.sectionDesc}>
-                  이메일로 초대할게요. 3일 내 미수락 시 자동 만료돼요.
+                  afterlife 가입 회원만 초대 가능해요. 3일 내 미수락 시 자동 만료돼요.
                 </Text>
                 <View style={v_fd5f43.inviteRow}>
                   <TextInput

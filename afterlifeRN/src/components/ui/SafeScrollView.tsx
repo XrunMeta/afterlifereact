@@ -90,8 +90,7 @@ const v_91ca58 = v_680bcc<v_122070, SafeScrollViewProps>(({
       ? v_033e14.bottom
       : Math.max(v_f9771e, v_033e14.bottom);
 
-  const v_f41ebf =
-    v_4d1023 && v_326be8.OS === 'android' ? v_7e4acc : 0;
+  const v_f41ebf = v_4d1023 ? v_7e4acc : 0;
 
   const v_cebf7c = v_9f47ad
     ? v_86fc47 + v_f41ebf
@@ -114,7 +113,8 @@ const v_91ca58 = v_680bcc<v_122070, SafeScrollViewProps>(({
       <ScrollView
         ref={v_90527e}
         style={[v_d81136.container, v_7fa4e4]}
-        automaticallyAdjustKeyboardInsets={v_4d1023}
+
+        automaticallyAdjustKeyboardInsets={false}
         keyboardShouldPersistTaps={v_b1927c.keyboardShouldPersistTaps ?? "handled"}
         contentContainerStyle={(() => {
 

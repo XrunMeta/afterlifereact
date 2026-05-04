@@ -217,18 +217,21 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             onPress={() => v_40c384(false)}
           />
           <View style={v_fd5f43.dropdown}>
-            <TouchableOpacity
-              style={v_fd5f43.dropdownItem}
-              onPress={() => {
-                v_40c384(false);
-                v_2dbd8f(true);
-              }}
-            >
-              <Feather name={v_a6deb1(v_818579)} size={16} color={v_1bfbd0.zinc700} />
-              <Text style={v_fd5f43.dropdownText}>
-                공개설정 ({v_82830c(v_818579)})
-              </Text>
-            </TouchableOpacity>
+            {}
+            {v_eb25ce.cloneType !== 'memlow' && (
+              <TouchableOpacity
+                style={v_fd5f43.dropdownItem}
+                onPress={() => {
+                  v_40c384(false);
+                  v_2dbd8f(true);
+                }}
+              >
+                <Feather name={v_a6deb1(v_818579)} size={16} color={v_1bfbd0.zinc700} />
+                <Text style={v_fd5f43.dropdownText}>
+                  공개설정 ({v_82830c(v_818579)})
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={v_fd5f43.dropdownItem}
               onPress={() => {

@@ -13,6 +13,7 @@ import {
 } from "../lib/cloneAccess";
 import { v_084137 } from "jyrbilrsgaufsmqlwpinn";
 import { v_5f30e2 } from "qcyoxusdylhcdivjkjnuowj";
+import { v_c226a5 } from "../lib/notify";
 
 export const v_403c0a = new v_b7c41b<v_de0a25>();
 export const v_98b245 = new v_b7c41b<v_de0a25>();
@@ -137,17 +138,72 @@ v_403c0a.post(
       action: "sharing.invite.create",
       details: { cloneId: v_6e0fd3, grantOwner: v_4d33b2.grant_owner, inviteEmail: v_4d33b2.invite_email },
     });
+
+    let notifyResult: Awaited<ReturnType<typeof v_c226a5>> | null = null;
+    if (v_4d33b2.invite_email) {
+      try {
+        const v_1de203 = await v_a1651b
+          .prepare(`SELECT name, username FROM clones WHERE id = ?`)
+          .bind(v_6e0fd3)
+          .first<{ name: string; username: string }>();
+        const v_1fd611 = await v_a1651b
+          .prepare(`SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL`)
+          .bind(v_4d33b2.invite_email)
+          .first<{ id: number }>();
+
+        const v_f2ff36 = v_1de203?.name ?? "페르소나";
+        const v_9466ca = `afterlife://invite/${v_21cc31}`;
+        v_666ddb = await v_c226a5(v_3f4e2e.env, {
+          userId: v_1fd611?.id,
+          email: v_1fd611 ? undefined : v_4d33b2.invite_email, 
+          type: "invite_received",
+          title: `${v_f2ff36} 공동관리자 초대`,
+          body: `${v_f2ff36} 페르소나의 공동관리자로 초대됐어요. 수락하면 함께 관리할 수 있어요.`,
+          url: v_9466ca,
+          data: { cloneId: v_6e0fd3, token: v_21cc31 },
+          emailSubject: `[afterlife] ${v_f2ff36} 공동관리자 초대`,
+          emailHtml: `
+            <div style="font-family:system-ui,-apple-system,sans-serif;line-height:1.6;max-width:480px;margin:0 auto;padding:24px">
+              <h2 style="margin:0 0 12px;color:#18181b">${v_8fd199(v_f2ff36)} 공동관리자 초대</h2>
+              <p style="color:#52525b;margin:0 0 20px">
+                <strong>${v_8fd199(v_f2ff36)}</strong> 페르소나의 공동관리자로 초대됐어요.
+                수락하면 함께 관리하고 채팅에 참여할 수 있어요.
+              </p>
+              <p style="margin:0 0 24px">
+                <a href="${v_9466ca}" style="display:inline-block;padding:12px 20px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">초대 수락하기</a>
+              </p>
+              <p style="color:#a1a1aa;font-size:12px;margin:24px 0 0">
+                이 초대는 ${new Date(v_0b8131 + "Z").toLocaleString("ko-KR")} 까지 유효해요.
+              </p>
+            </div>
+          `,
+        });
+      } catch (v_49263d) {
+        console.warn("[sharing.invite] notify failed:", (v_49263d as Error).message);
+      }
+    }
+
     return v_3f4e2e.json(
       {
         token: v_21cc31, 
         expiresAt: v_0b8131,
         inviteEmail: v_4d33b2.invite_email ?? null,
         grantOwner: v_4d33b2.grant_owner,
+        notify: v_666ddb,
       },
       201,
     );
   },
 );
+
+function v_8fd199(v_fd5f43): string {
+  return v_fd5f43
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 v_98b245.get("/:token", async (v_3f4e2e) => {
   const v_21cc31 = v_3f4e2e.req.param("token");

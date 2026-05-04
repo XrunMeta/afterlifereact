@@ -11,6 +11,8 @@ import {
   v_122070,
   v_79c4f2,
   v_39a996,
+  v_e767d1,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
@@ -22,7 +24,8 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_e4a407, type v_fa0201 } from "../../api/clones";
+import { v_d60cdf, v_e4a407, v_f373d8, type v_fa0201 } from "../../api/clones";
+import v_0e981f from "../../components/common/NotificationBell";
 import { v_a41961, v_84a859, type v_3a673b } from "../../api/auth";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
@@ -45,6 +48,7 @@ function v_a8d790(c: v_fa0201): v_affcc0 {
     visibility: v_3f4e2e.visibility,
     status: (v_3f4e2e.trainingStatus as v_affcc0["status"]) ?? "active",
     createdAt: v_3f4e2e.createdAt,
+    ...(v_3f4e2e.l1Profile ? { l1Profile: v_3f4e2e.l1Profile } : {}),
   };
 }
 
@@ -55,6 +59,7 @@ export default function v_def15b() {
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
+  const v_7a98d1 = v_194498((v_fd5f43) => v_fd5f43.upsertClones);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
 
   const [v_8a7926, v_d42991] = v_5ab095<v_affcc0[] | null>(null);
@@ -66,12 +71,15 @@ export default function v_def15b() {
     }
     try {
       const v_8f00b9 = await v_d60cdf(v_2ca7e0);
-      v_d42991(v_8f00b9.items.map(v_a8d790));
+      const v_a15a8b = v_8f00b9.items.map(v_a8d790);
+      v_d42991(v_a15a8b);
+
+      v_7a98d1(v_a15a8b);
     } catch (v_49263d) {
       console.warn("[Dashboard] listMyClones failed:", v_49263d);
 
     }
-  }, [v_2ca7e0]);
+  }, [v_2ca7e0, v_7a98d1]);
 
   v_c4deb2(() => {
     v_8e46f5();
@@ -218,10 +226,58 @@ export default function v_def15b() {
     v_8d2d61(null);
   };
 
-  const v_6ff8af = () => {
-    if (v_c9d3fa) {
-      v_fb07c9((v_ba2215) => new Set(v_ba2215).add(v_c9d3fa));
-      v_f32c49(null);
+  const [v_b10b7b, v_b816d4] = v_5ab095<string | null>(null);
+
+  const v_6ff8af = async () => {
+    if (!v_c9d3fa) return;
+    const v_b1de41 = v_c9d3fa;
+    v_f32c49(null);
+
+    if (!v_2ca7e0) {
+
+      v_fb07c9((v_ba2215) => new Set(v_ba2215).add(v_b1de41));
+      return;
+    }
+    console.log("[Dashboard] deleteClone start:", v_b1de41);
+    try {
+      const v_8f00b9 = await v_f373d8(v_2ca7e0, v_b1de41);
+      console.log("[Dashboard] deleteClone success:", v_8f00b9);
+      if (v_8f00b9.state === "transferred" && v_8f00b9.transferred) {
+        v_b816d4("공동관리자에게 권한이 이전되었어요.");
+      } else {
+        v_b816d4("페르소나가 삭제되었어요.");
+      }
+
+      v_fb07c9((v_ba2215) => new Set(v_ba2215).add(v_b1de41));
+      await v_8e46f5();
+    } catch (v_49263d) {
+      if (v_49263d instanceof v_84a859) {
+        console.warn(
+          "[Dashboard] deleteClone failed:",
+          v_49263d.code,
+          v_49263d.status,
+          v_49263d.message,
+          "details=",
+          JSON.stringify(v_49263d.details),
+        );
+
+        if (v_49263d.code === "CONFLICT" && /already deleted/i.test(v_49263d.message)) {
+          v_fb07c9((v_ba2215) => new Set(v_ba2215).add(v_b1de41));
+          v_b816d4("이미 삭제된 페르소나입니다. 목록을 갱신했어요.");
+          await v_8e46f5();
+          return;
+        }
+
+        if (v_49263d.code === "UNAUTHENTICATED" || v_49263d.status === 401) {
+          await v_1ed7d9.getState().apiLogout();
+          v_b816d4("로그인 세션이 만료됐어요. 다시 로그인해주세요.");
+          return;
+        }
+      } else {
+        console.warn("[Dashboard] deleteClone failed:", v_49263d);
+      }
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "삭제에 실패했어요.";
+      v_b816d4(v_badeaf);
     }
   };
 
@@ -294,12 +350,18 @@ export default function v_def15b() {
         {}
         <View style={v_fd5f43.cloneHeader}>
           <View style={v_fd5f43.avatarWrap}>
-            <Image source={{ uri: v_eb25ce.imageUrl ?? "" }} style={v_fd5f43.avatar} />
+            {v_eb25ce.imageUrl ? (
+              <Image source={{ uri: v_eb25ce.imageUrl }} style={v_fd5f43.avatar} />
+            ) : (
+              <View style={[v_fd5f43.avatar, { backgroundColor: v_1bfbd0.zinc100, alignItems: 'center', justifyContent: 'center' }]}>
+                <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+              </View>
+            )}
             {v_26dce6 && <View style={v_fd5f43.activeDot} />}
           </View>
           <View style={v_fd5f43.cloneInfo}>
             <Text style={v_fd5f43.cloneName}>{v_eb25ce.displayName}</Text>
-            <Text style={v_fd5f43.cloneCategory}>{v_eb25ce.interests[0] ?? ""}</Text>
+            <Text style={v_fd5f43.cloneCategory}>{v_eb25ce.interests?.[0] ?? ""}</Text>
           </View>
         </View>
 
@@ -370,7 +432,7 @@ export default function v_def15b() {
 
         {}
         <View style={v_fd5f43.tagsRow}>
-          {v_eb25ce.interests.map((v_bd1444, v_ebec57) => (
+          {(v_eb25ce.interests ?? []).map((v_bd1444, v_ebec57) => (
             <View key={v_ebec57} style={v_fd5f43.tag}>
               <Text style={v_fd5f43.tagText}>#{v_bd1444}</Text>
             </View>
@@ -414,11 +476,7 @@ export default function v_def15b() {
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title="My Persona"
-        rightAction={
-          <TouchableOpacity style={{ padding: 4 }}>
-            <Feather name="bell" size={22} color={v_1bfbd0.zinc700} />
-          </TouchableOpacity>
-        }
+        rightAction={<NotificationBell />}
       />
 
       <FlatList
@@ -486,20 +544,49 @@ export default function v_def15b() {
               <Feather name="edit-2" size={18} color={v_1bfbd0.zinc700} />
               <Text style={v_fd5f43.menuItemText}>수정</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={v_fd5f43.menuItem}
-              onPress={() => {
-                const v_389afb = v_ce3af0!;
-                v_11e385(v_389afb);
-              }}
-            >
-              <Feather
-                name={v_a6deb1(v_699459[v_ce3af0!]?.visibility ?? "public")}
-                size={18}
-                color={v_1bfbd0.zinc700}
-              />
-              <Text style={v_fd5f43.menuItemText}>공개설정</Text>
-            </TouchableOpacity>
+
+            {}
+            {v_ce3af0 != null && (() => {
+              const v_26dce6 = v_699459[v_ce3af0]?.isActive ?? true;
+              return (
+                <TouchableOpacity
+                  style={v_fd5f43.menuItem}
+                  onPress={() => {
+                    const v_389afb = v_ce3af0!;
+                    v_8d2d61(null);
+                    v_bf58a4(v_389afb);
+                  }}
+                >
+                  <Feather
+                    name={v_26dce6 ? "pause-circle" : "play-circle"}
+                    size={18}
+                    color={v_26dce6 ? v_1bfbd0.zinc700 : v_1bfbd0.success}
+                  />
+                  <Text style={v_fd5f43.menuItemText}>
+                    {v_26dce6 ? "비활성화" : "활성화"}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })()}
+
+            {}
+            {v_ce3af0 != null &&
+              v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_ce3af0)?.cloneType !== "memlow" && (
+                <TouchableOpacity
+                  style={v_fd5f43.menuItem}
+                  onPress={() => {
+                    const v_389afb = v_ce3af0!;
+                    v_11e385(v_389afb);
+                  }}
+                >
+                  <Feather
+                    name={v_a6deb1(v_699459[v_ce3af0!]?.visibility ?? "public")}
+                    size={18}
+                    color={v_1bfbd0.zinc700}
+                  />
+                  <Text style={v_fd5f43.menuItemText}>공개설정</Text>
+                </TouchableOpacity>
+              )}
             <View style={v_fd5f43.menuDivider} />
             <TouchableOpacity
               style={v_fd5f43.menuItem}
@@ -593,7 +680,10 @@ export default function v_def15b() {
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>페르소나 삭제</Text>
             <Text style={v_fd5f43.modalDesc}>
-              정말 이 페르소나를 삭제하시겠습니까?{"\n"}삭제된 페르소나는 복구할 수 없습니다.
+              {v_c9d3fa &&
+              v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_c9d3fa)?.cloneType === "memlow"
+                ? "공동관리자가 있다면 가장 먼저 수락한 분이 새 반장이 됩니다.\n없다면 페르소나가 완전히 삭제됩니다."
+                : "정말 이 페르소나를 삭제하시겠습니까?\n삭제된 페르소나는 복구할 수 없습니다."}
             </Text>
             <View style={v_fd5f43.modalBtns}>
               <Button
@@ -614,8 +704,28 @@ export default function v_def15b() {
       </Modal>
 
       {}
+      <Modal visible={!!v_b10b7b} transparent animationType="fade">
+        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_b816d4(null)}>
+          <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <Text style={v_fd5f43.modalTitle}>알림</Text>
+            <Text style={v_fd5f43.modalDesc}>{v_b10b7b}</Text>
+            <Button
+              title="확인"
+              variant="primary"
+              onPress={() => v_b816d4(null)}
+              style={{ width: "100%" }}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
       <Modal visible={!!v_36d186} transparent animationType="slide">
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dac5f(null)}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        >
+        <Pressable style={v_fd5f43.bottomSheetOverlay} onPress={() => v_2dac5f(null)}>
           <View style={v_fd5f43.inviteSheet} onStartShouldSetResponder={() => true}>
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.inviteHeader}>
@@ -707,6 +817,7 @@ export default function v_def15b() {
             </ScrollView>
           </View>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -996,6 +1107,13 @@ const v_fd5f43 = v_472849.create({
     alignItems: "center",
     padding: 24,
   },
+
+  bottomSheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
   modalBox: {
     backgroundColor: v_1bfbd0.white,
     borderRadius: 20,
@@ -1129,11 +1247,8 @@ const v_fd5f43 = v_472849.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
     paddingBottom: 32,
+    width: "100%",
     maxHeight: "70%",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
   inviteHeader: {
     flexDirection: "row",

@@ -54,9 +54,10 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         onChangeText={v_81e2ef => v_b187d9({ name: v_81e2ef })}
       />
       <TextField
-        placeholder="클론 아이디 (@예: @luna)"
+        placeholder="클론 아이디 (@clon)"
         value={v_f04727.username ?? ''}
         onChangeText={v_81e2ef => v_b187d9({ username: v_81e2ef })}
+        autoCapitalize="none"
       />
       <TextField
         placeholder="한 줄 소개"

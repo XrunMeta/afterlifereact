@@ -29,7 +29,8 @@ const PageHeader: v_a3453e.FC<PageHeaderProps> = ({
     <View
       style={[
         v_d81136.container,
-        { paddingTop: v_033e14.top + 8 },
+
+        { paddingTop: v_033e14.top },
         v_8d6034 && v_d81136.transparent,
       ]}
     >

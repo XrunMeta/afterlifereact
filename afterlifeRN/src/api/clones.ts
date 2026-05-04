@@ -23,13 +23,17 @@ export interface CreateClonePayload {
   };
 }
 
-export interface CreateCloneResponse {
+export interface CreatedClone {
   id: number;
   name: string;
   username: string;
-  clone_type: CloneType;
+  cloneType: CloneType;
   visibility: Visibility;
-  created_at: string;
+  createdAt: string;
+}
+export interface CreateCloneResponse {
+  clone: CreatedClone;
+  initial_memory: { ctx_key: string; shared_key: string } | null;
 }
 
 export function v_b55477(v_1833e7): string {
@@ -61,7 +65,7 @@ export async function v_39eaf5(
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${v_2ca7e0}`,
-      "Idempotency-Key": v_b24339,
+      "X-Idempotency-Key": v_b24339,
     },
     body: JSON.stringify(v_931bf0),
   });
@@ -124,7 +128,7 @@ async function v_04b58a<T>(
     Authorization: `Bearer ${v_2ca7e0}`,
     ...((v_00cfc6.headers as Record<string, string>) ?? {}),
   };
-  if (v_6f448e) v_3f4675["Idempotency-Key"] = v_6f448e;
+  if (v_6f448e) v_3f4675["X-Idempotency-Key"] = v_6f448e;
 
   const v_8f00b9 = await fetch(`${v_cc9198}${v_9fe22d}`, { ...v_00cfc6, headers: v_3f4675 });
   const v_9b6134 = await v_8f00b9.text();
@@ -192,6 +196,23 @@ export async function v_81dd51(
   );
 }
 
+export interface DeleteCloneResult {
+  ok: true;
+  state: "soft_deleted" | "transferred";
+  transferred: { newOwnerId: number } | null;
+}
+export async function v_f373d8(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<DeleteCloneResult> {
+  return v_04b58a<DeleteCloneResult>(
+    `/oth-path${v_6e0fd3}`,
+    v_2ca7e0,
+    { method: "DELETE" },
+    v_7f4dc3(),
+  );
+}
+
 export interface MyClone {
   id: number;
   name: string;
@@ -206,6 +227,8 @@ export interface MyClone {
   ownerId: number;
   createdAt: string;
   myRole: "owner" | "coowner";
+
+  l1Profile?: { attrs: Record<string, string>; notes: string } | null;
 }
 
 export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
