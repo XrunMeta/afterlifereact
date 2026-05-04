@@ -29,7 +29,6 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
         title="이미지 업로드"
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
-        stepInfo={{ current: 3, total: 7 }}
       />
       <StepIndicator currentStep={3} totalSteps={7} />
       {v_555f2e && <Step3EntryBanner onDismiss={() => v_4eb0c7(false)} />}

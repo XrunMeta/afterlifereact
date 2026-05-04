@@ -24,7 +24,7 @@ export default function v_f275b6({ navigation: v_c65f5d }: Props) {
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
       <PageHeader title="공개 범위" showBackButton
-        onBackPress={() => v_c65f5d.goBack()} stepInfo={{ current: 5, total: 7 }} />
+        onBackPress={() => v_c65f5d.goBack()} />
       <StepIndicator currentStep={5} totalSteps={7} />
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
         <Content draft={v_f04727} onChange={v_5795de} />

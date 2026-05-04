@@ -167,7 +167,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <PageHeader title="생성 완료" stepInfo={{ current: 7, total: 7 }} />
+      <PageHeader title="생성 완료" />
       <StepIndicator currentStep={7} totalSteps={7} />
 
       <SafeScrollView contentContainerStyle={v_d81136.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
