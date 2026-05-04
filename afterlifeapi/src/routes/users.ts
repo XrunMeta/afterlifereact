@@ -272,6 +272,30 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
 
+  const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { withXrun?: boolean };
+  const v_837dd2 = v_4d33b2?.withXrun === true;
+
+  let v_9550e4 = {
+    attempted: false,
+    closed: false,
+  };
+
+  if (v_837dd2) {
+    const v_213c33 = await v_a1651b
+      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+      .bind(v_43e90c)
+      .first<{ xrun_member_id: number | null }>();
+    const v_88fe80 = v_213c33?.xrun_member_id ?? null;
+    if (v_88fe80) {
+      const { closeXrunMember: v_a33f6b } = await import("../lib/xrun");
+      const v_8f00b9 = await v_a33f6b(v_3f4e2e.env, v_88fe80);
+      v_9550e4 = { attempted: true, closed: v_8f00b9.closed, reason: v_8f00b9.reason };
+
+    } else {
+      v_9550e4 = { attempted: true, closed: false, reason: "no xrun member linked" };
+    }
+  }
+
   const v_e2026a = [];
   const v_d1b635 = await v_a1651b
     .prepare(`SELECT phone, age_enc FROM users WHERE id = ?`)
@@ -309,9 +333,22 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
   await v_a1651b
     .prepare(
       `UPDATE users
-          SET phone = NULL, age_enc = NULL, age = NULL
+          SET phone = NULL,
+              age_enc = NULL,
+              age = NULL,
+              name = '',
+              email = 'deletedmember' || CAST(id AS TEXT),
+              gender = NULL,
+              avatar_url = NULL,
+              funnel_stage = 'deleted',
+              marketing_consent = 0
         WHERE id = ?`,
     )
+    .bind(v_43e90c)
+    .run();
+
+  await v_a1651b
+    .prepare(`DELETE FROM user_interests WHERE user_id = ?`)
     .bind(v_43e90c)
     .run();
 
@@ -349,6 +386,7 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
     state: "hard_deleted",
     shreddedDekCount: v_e2026a.length,
     purgedMessages: v_2c4648.meta.changes ?? 0,
+    xrunClose: v_9550e4,
   });
 });
 
