@@ -191,3 +191,70 @@ export async function v_81dd51(
     v_7f4dc3(),
   );
 }
+
+export interface MyClone {
+  id: number;
+  name: string;
+  username: string;
+  description: string | null;
+  cloneType: CloneType;
+  category: string | null;
+  visibility: Visibility;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  trainingStatus: string | null;
+  ownerId: number;
+  createdAt: string;
+  myRole: "owner" | "coowner";
+}
+
+export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
+  return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
+export interface InvitePreview {
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+}
+
+export async function v_a56a6a(v_21cc31): Promise<InvitePreview> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${encodeURIComponent(v_21cc31)}`);
+  const v_9b6134 = await v_8f00b9.text();
+  let v_8decf8 = null;
+  try {
+    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
+  } catch {
+
+  }
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as InvitePreview;
+}
+
+export async function v_a51300(
+  v_2ca7e0,
+  v_21cc31,
+): Promise<{ ok: true; cloneId: number }> {
+  return v_04b58a(
+    `/oth-path${encodeURIComponent(v_21cc31)}/accept`,
+    v_2ca7e0,
+    { method: "POST" },
+    v_7f4dc3(),
+  );
+}
