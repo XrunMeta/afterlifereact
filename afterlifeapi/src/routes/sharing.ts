@@ -17,7 +17,7 @@ import { v_5f30e2 } from "qcyoxusdylhcdivjkjnuowj";
 export const v_403c0a = new v_b7c41b<v_de0a25>();
 export const v_98b245 = new v_b7c41b<v_de0a25>();
 
-const v_d4f6d1 = 7 * 24 * 60 * 60 * 1000; 
+const v_d4f6d1 = 3 * 24 * 60 * 60 * 1000; 
 const v_5ee199 = 50;
 
 function v_31113b(v_3f4e2e): number {
@@ -85,7 +85,8 @@ v_403c0a.post(
     const v_f8b770 = await v_a1651b
       .prepare(
         `SELECT COUNT(*) AS n FROM invite_tokens
-          WHERE clone_id = ? AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP`,
+          WHERE clone_id = ? AND used_at IS NULL AND cancelled_at IS NULL
+            AND expires_at > CURRENT_TIMESTAMP`,
       )
       .bind(v_6e0fd3)
       .first<{ n: number }>();
@@ -98,8 +99,10 @@ v_403c0a.post(
 
     const v_21cc31 = v_8fc319();
     const v_109fd8 = v_27c443(v_21cc31);
-    const v_9d0b9e = (v_4d33b2.ttl_hours ?? 168) * 60 * 60 * 1000;
-    const v_0b8131 = new Date(Date.now() + Math.min(v_9d0b9e, v_d4f6d1 * 30 / 7))
+
+    const v_9d0b9e = (v_4d33b2.ttl_hours ?? 72) * 60 * 60 * 1000;
+    const v_2c50d3 = 30 * 24 * 60 * 60 * 1000; 
+    const v_0b8131 = new Date(Date.now() + Math.min(v_9d0b9e, v_2c50d3))
       .toISOString()
       .replace("T", " ")
       .replace(/\..*$/, "");
@@ -154,7 +157,7 @@ v_98b245.get("/:token", async (v_3f4e2e) => {
   const v_109fd8 = v_27c443(v_21cc31);
   const v_3ac7e7 = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at,
+      `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at, i.cancelled_at,
               c.name, c.username, c.avatar_url, c.clone_type
          FROM invite_tokens i JOIN clones c ON c.id = i.clone_id
         WHERE i.token_hash = ? AND c.deleted_at IS NULL`,
@@ -167,6 +170,7 @@ v_98b245.get("/:token", async (v_3f4e2e) => {
       grant_owner: number;
       expires_at: string;
       used_at: string | null;
+      cancelled_at: string | null;
       name: string;
       username: string;
       avatar_url: string | null;
@@ -174,6 +178,7 @@ v_98b245.get("/:token", async (v_3f4e2e) => {
     }>();
   if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Invite not found.");
   if (v_3ac7e7.used_at) throw new v_3ebe58("CONFLICT", "Invite already used.");
+  if (v_3ac7e7.cancelled_at) throw new v_3ebe58("CONFLICT", "Invite cancelled by owner.");
 
   const v_2699db = new Date(v_3ac7e7.expires_at.replace(" ", "T") + "Z") < new Date();
   if (v_2699db) throw new v_3ebe58("CONFLICT", "Invite expired.");
@@ -208,7 +213,7 @@ v_98b245.post(
 
     const v_f0104f = await v_a1651b
       .prepare(
-        `SELECT id, clone_id, invite_email, relation, grant_owner, expires_at, used_at
+        `SELECT id, clone_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
            FROM invite_tokens WHERE token_hash = ?`,
       )
       .bind(v_109fd8)
@@ -220,9 +225,11 @@ v_98b245.post(
         grant_owner: number;
         expires_at: string;
         used_at: string | null;
+        cancelled_at: string | null;
       }>();
     if (!v_f0104f) throw new v_3ebe58("NOT_FOUND", "Invite not found.");
     if (v_f0104f.used_at) throw new v_3ebe58("CONFLICT", "Invite already used.");
+    if (v_f0104f.cancelled_at) throw new v_3ebe58("CONFLICT", "Invite cancelled by owner.");
     const v_2699db = new Date(v_f0104f.expires_at.replace(" ", "T") + "Z") < new Date();
     if (v_2699db) throw new v_3ebe58("CONFLICT", "Invite expired.");
 
@@ -339,7 +346,6 @@ v_403c0a.delete(
     const v_b7bfe9 = v_165714(v_3f4e2e);
     const v_43e90c = v_3f4e2e.get("userId")!;
     const v_a1651b = v_3f4e2e.env.DB;
-    await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
 
     const v_5f5d6d = await v_a1651b
       .prepare(
@@ -355,11 +361,17 @@ v_403c0a.delete(
         status: string;
       }>();
     if (!v_5f5d6d) throw new v_3ebe58("NOT_FOUND", "Share not found.");
-    if (v_5f5d6d.target_user_id === v_43e90c && v_5f5d6d.role === "owner") {
+
+    const v_a3c903 = v_5f5d6d.target_user_id === v_43e90c;
+    if (v_a3c903 && v_5f5d6d.role === "owner") {
       throw new v_3ebe58(
         "OWNER_CONSTRAINT",
         "Cannot remove your own owner record — delete the clone instead.",
       );
+    }
+    if (!v_a3c903) {
+
+      await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
     }
 
     try {
@@ -376,8 +388,82 @@ v_403c0a.delete(
     }
     await v_74defc(v_3f4e2e, {
       userId: v_43e90c,
-      action: "sharing.share.delete",
-      details: { cloneId: v_6e0fd3, shareId: v_b7bfe9, removedRole: v_5f5d6d.role },
+      action: v_a3c903 ? "sharing.share.leave" : "sharing.share.kick",
+      details: { cloneId: v_6e0fd3, shareId: v_b7bfe9, removedRole: v_5f5d6d.role, removedTargetUserId: v_5f5d6d.target_user_id },
+    });
+    return v_3f4e2e.json({ ok: true, action: v_a3c903 ? "leave" : "kick" });
+  },
+);
+
+v_403c0a.get("/:id/invites", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+  await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
+
+  const v_18b8bf = await v_a1651b
+    .prepare(
+      `SELECT id, invite_email, relation, grant_owner, expires_at, created_at
+         FROM invite_tokens
+        WHERE clone_id = ? AND used_at IS NULL AND cancelled_at IS NULL
+          AND expires_at > CURRENT_TIMESTAMP
+        ORDER BY id DESC`,
+    )
+    .bind(v_6e0fd3)
+    .all<{
+      id: number;
+      invite_email: string | null;
+      relation: string | null;
+      grant_owner: number;
+      expires_at: string;
+      created_at: string;
+    }>();
+  return v_3f4e2e.json({
+    items: (v_18b8bf.results ?? []).map((v_cb35cb) => ({
+      id: v_cb35cb.id,
+      inviteEmail: v_cb35cb.invite_email,
+      relation: v_cb35cb.relation,
+      grantOwner: !!v_cb35cb.grant_owner,
+      expiresAt: v_cb35cb.expires_at,
+      createdAt: v_cb35cb.created_at,
+      status: "pending" as const,
+    })),
+  });
+});
+
+v_403c0a.delete(
+  "/:id/invites/:inviteId",
+  v_6690d9,
+  v_a04a51("sharing.invite.cancel"),
+  async (v_3f4e2e) => {
+    const v_6e0fd3 = v_31113b(v_3f4e2e);
+    const v_43e90c = v_3f4e2e.get("userId")!;
+    const v_2e18e1 = Number(v_3f4e2e.req.param("inviteId"));
+    if (!Number.isInteger(v_2e18e1) || v_2e18e1 <= 0) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Invalid invite id.");
+    }
+    const v_a1651b = v_3f4e2e.env.DB;
+    await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
+
+    const v_3ac7e7 = await v_a1651b
+      .prepare(
+        `SELECT id, used_at, cancelled_at FROM invite_tokens
+          WHERE id = ? AND clone_id = ?`,
+      )
+      .bind(v_2e18e1, v_6e0fd3)
+      .first<{ id: number; used_at: string | null; cancelled_at: string | null }>();
+    if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Invite not found.");
+    if (v_3ac7e7.used_at) throw new v_3ebe58("CONFLICT", "Invite already accepted — remove via shares delete instead.");
+    if (v_3ac7e7.cancelled_at) throw new v_3ebe58("CONFLICT", "Invite already cancelled.");
+
+    await v_a1651b
+      .prepare(`UPDATE invite_tokens SET cancelled_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(v_2e18e1)
+      .run();
+    await v_74defc(v_3f4e2e, {
+      userId: v_43e90c,
+      action: "sharing.invite.cancel",
+      details: { cloneId: v_6e0fd3, inviteId: v_2e18e1 },
     });
     return v_3f4e2e.json({ ok: true });
   },
