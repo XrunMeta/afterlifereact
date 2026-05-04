@@ -23,7 +23,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
 import { uploadFile } from "../../api/files";
 import { patchMe } from "../../api/auth";
-import { getPaymentPinStatus } from "../../api/payments";
+import { getPaymentPinStatus, getXrunBalance } from "../../api/payments";
 import PaymentPinPromptModal, {
   shouldShowPaymentPinPrompt,
 } from "../../components/my/PaymentPinPromptModal";
@@ -54,6 +54,9 @@ export default function MyScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
 
+  const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(null);
+  const [adBalance, setAdBalance] = useState<number | null | undefined>(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -70,6 +73,34 @@ export default function MyScreen() {
         }
       } catch (err) {
         console.warn("[PIN-STATUS] fetch failed:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!accessToken) return;
+      try {
+        const res = await getXrunBalance(accessToken);
+        console.log("[XRUN-BALANCE]", res);
+        if (cancelled) return;
+        if (res.linked) {
+          setXrunBalance(res.xrun);
+          setAdBalance(res.ad);
+        } else {
+          setXrunBalance(undefined);
+          setAdBalance(undefined);
+        }
+      } catch (err) {
+        console.warn("[XRUN-BALANCE] fetch failed:", err);
+        if (!cancelled) {
+          setXrunBalance(undefined);
+          setAdBalance(undefined);
+        }
       }
     })();
     return () => {
@@ -116,7 +147,10 @@ export default function MyScreen() {
   const displayName = apiUser?.name ?? user?.displayName ?? "사용자";
   const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
   const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
-  const credits = apiUser?.credits ?? 12540;
+
+  const balanceLoading = xrunBalance === null;
+  const xrunDisplay = xrunBalance ?? null;
+  const adDisplay = adBalance ?? null;
 
   const uid = apiUser?.id ?? user?.id ?? DEFAULT_USER_ID;
   const followingCount = useMemo(
@@ -242,8 +276,22 @@ export default function MyScreen() {
               <Text style={s.chargeBtnText}>충전</Text>
             </TouchableOpacity>
           </View>
-          <Text style={s.coinAmount}>{credits.toLocaleString()}</Text>
-          <Text style={s.coinWon}>약 ₩{credits.toLocaleString()} 상당</Text>
+          {balanceLoading ? (
+            <ActivityIndicator color={COLORS.zinc900} style={{ alignSelf: "flex-start", marginTop: 4 }} />
+          ) : xrunDisplay != null ? (
+            <>
+              <Text style={s.coinAmount}>{xrunDisplay.toLocaleString(undefined, { maximumFractionDigits: 4 })}</Text>
+              <Text style={s.coinWon}>
+                XRUN
+                {adDisplay != null && adDisplay > 0 ? `  ·  AD ${adDisplay.toLocaleString()}` : ""}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={s.coinAmount}>—</Text>
+              <Text style={s.coinWon}>xrun 회원 매핑이 안 되어 있습니다</Text>
+            </>
+          )}
         </View>
 
         {}
