@@ -14,6 +14,7 @@ import HomeScreen from "../screens/home/HomeScreen";
 import MyClonesDashboardScreen from "../screens/clones/MyClonesDashboardScreen";
 import CloneDetailScreen from "../screens/clones/CloneDetailScreen";
 import CloneEditScreen from "../screens/clones/CloneEditScreen";
+import CloneInviteScreen from "../screens/clones/CloneInviteScreen";
 import Step1CloneTypeScreen from "../screens/clone-creation/Step1CloneTypeScreen";
 import Step2BasicInfoScreen from "../screens/clone-creation/Step2BasicInfoScreen";
 import Step3ImageUploadScreen from "../screens/clone-creation/Step3ImageUploadScreen";
@@ -43,6 +44,7 @@ function ClonesStackNavigator() {
       <ClonesStack.Screen name="Dashboard" component={MyClonesDashboardScreen} />
       <ClonesStack.Screen name="CloneDetail" component={CloneDetailScreen} />
       <ClonesStack.Screen name="CloneEdit" component={CloneEditScreen} />
+      <ClonesStack.Screen name="CloneInvite" component={CloneInviteScreen} />
     </ClonesStack.Navigator>
   );
 }
