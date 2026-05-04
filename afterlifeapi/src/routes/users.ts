@@ -34,6 +34,28 @@ async function loadMe(c: Parameters<typeof requireAuth>[0]): Promise<never> {
 }
 void loadMe;
 
+users.get("/search", requireAuth, async (c) => {
+  const me = c.get("userId")!;
+  const q = (c.req.query("q") ?? "").trim();
+  if (q.length < 2) {
+    return c.json({ items: [] });
+  }
+  const like = `%${q}%`;
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT id, name, email, avatar_url AS avatarUrl
+         FROM users
+        WHERE deleted_at IS NULL
+          AND id != ?
+          AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
+        ORDER BY id DESC
+        LIMIT 20`,
+    )
+    .bind(me, like, like)
+    .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
+  return c.json({ items: rows.results ?? [] });
+});
+
 users.get("/me", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;
