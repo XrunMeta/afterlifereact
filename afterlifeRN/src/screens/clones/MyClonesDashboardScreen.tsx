@@ -344,12 +344,13 @@ export default function MyClonesDashboardScreen() {
     const followerCount = follows.filter(
       (f) => f.followingCloneId === clone.id,
     ).length;
+
     const coownerCount =
-      clone.cloneType === "memlow"
-        ? seedSource.coowners().filter(
+      typeof clone.coownerCount === "number"
+        ? clone.coownerCount
+        : seedSource.coowners().filter(
             (co) => co.cloneId === clone.id && co.status === "approved",
-          ).length
-        : 0;
+          ).length;
 
     return (
       <View style={s.card}>

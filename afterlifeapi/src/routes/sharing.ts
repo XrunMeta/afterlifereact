@@ -309,13 +309,14 @@ inviteTokens.post(
 
     const inv = await db
       .prepare(
-        `SELECT id, clone_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
+        `SELECT id, clone_id, owner_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
            FROM invite_tokens WHERE token_hash = ?`,
       )
       .bind(tokenHash)
       .first<{
         id: number;
         clone_id: number;
+        owner_id: number;
         invite_email: string | null;
         relation: string | null;
         grant_owner: number;
@@ -369,7 +370,8 @@ inviteTokens.post(
                (clone_id, owner_id, target_user_id, relation, role, status)
              VALUES (?, ?, ?, ?, ?, 'accepted')`,
           )
-          .bind(inv.clone_id, userId, userId, inv.relation, role),
+
+          .bind(inv.clone_id, inv.owner_id, userId, inv.relation, role),
       );
     }
     operations.push(
