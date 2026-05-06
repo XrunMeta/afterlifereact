@@ -24,6 +24,8 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
 import { v_7d2692 } from "../../api/files";
 import { v_976b89 } from "../../api/auth";
+import { v_d60cdf, v_7281a5 } from "../../api/clones";
+import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import { v_9b8cb3, v_5c99c1 } from "../../api/payments";
 import v_3cb56d, {
   v_b1f897,
@@ -33,11 +35,7 @@ import type { v_e57140 } from "../../navigation/types";
 
 const v_b9d568 = 1;
 
-const v_cca523 = [
-  { labelKey: "my.coin.txCreatePersona", date: "2024.03.25 14:32", amount: -500 },
-  { labelKey: "my.coin.txVideoCall", date: "2024.03.24 19:15", amount: -300 },
-  { labelKey: "my.coin.txRecharge", date: "2024.03.23 10:20", amount: 10000 },
-];
+const v_cca523 = [];
 
 type MyNav = v_390fcc<v_e57140>;
 
@@ -154,16 +152,41 @@ export default function v_ed02a5() {
   const v_30af0f = v_969a3a ?? null;
 
   const v_0c8987 = v_b113dd?.id ?? v_625c74?.id ?? v_b9d568;
-  const v_48d264 = v_df9f57(
-    () => v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987).length,
-    [v_1e752a, v_0c8987],
+  const [v_65adaf, v_b81b74] = v_5ab095<number | null>(null);
+  const [v_8f9093, v_3e7aad] = v_5ab095<number | null>(null);
+
+  v_cf763b(
+    v_a3453e.useCallback(() => {
+      let v_2008a4 = false;
+      if (!v_2ca7e0 || !v_b113dd?.id) {
+        v_b81b74(null);
+        v_3e7aad(null);
+        return;
+      }
+      const v_43e90c = v_b113dd.id;
+      v_7281a5(v_2ca7e0, v_43e90c)
+        .then((v_cb35cb) => {
+          if (!v_2008a4) v_b81b74(v_cb35cb.items.length);
+        })
+        .catch((v_49263d) => console.warn("[MyScreen] followedClones fail:", v_49263d));
+      v_d60cdf(v_2ca7e0)
+        .then((v_cb35cb) => {
+          if (!v_2008a4) v_3e7aad(v_cb35cb.items.length);
+        })
+        .catch((v_49263d) => console.warn("[MyScreen] myClones fail:", v_49263d));
+      return () => {
+        v_2008a4 = true;
+      };
+    }, [v_2ca7e0, v_b113dd?.id]),
   );
-  const v_8b222b = v_df9f57(
-    () =>
-      v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length +
-      v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length,
-    [v_0c8987, v_06f32b],
-  );
+
+  const v_48d264 =
+    v_65adaf ??
+    v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987).length;
+  const v_8b222b =
+    v_8f9093 ??
+    v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length +
+      v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length;
 
   const settingsItems: Array<{
     icon: keyof typeof v_dec439.glyphMap;
@@ -177,12 +200,7 @@ export default function v_ed02a5() {
       descKey: "settings.saved.title",
       route: "SavedItems",
     },
-    {
-      icon: "users",
-      labelKey: "my.menu.acquaintance",
-      descKey: "settings.acquaintance.title",
-      route: "AcquaintanceManagement",
-    },
+
     {
       icon: "user",
       labelKey: "my.menu.editProfile",

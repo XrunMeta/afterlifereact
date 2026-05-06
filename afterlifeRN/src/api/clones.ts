@@ -318,6 +318,23 @@ export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
   return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
 }
 
+export interface FollowedClone {
+  id: number;
+  name: string;
+  username: string;
+  cloneType: CloneType;
+  category: string | null;
+  avatarUrl: string | null;
+  stats: { followers: number; messages: number; gifts: number };
+  createdAt: string;
+}
+export async function v_7281a5(
+  v_2ca7e0,
+  v_43e90c,
+): Promise<{ items: FollowedClone[] }> {
+  return v_04b58a(`/oth-path${v_43e90c}/followed-clones`, v_2ca7e0, { method: "GET" });
+}
+
 export interface DiscoverFeedItem {
   id: number;
   cloneId: number;
@@ -326,6 +343,7 @@ export interface DiscoverFeedItem {
   mediaType: string | null;
   likesCount: number;
   likedByMe?: boolean;
+  commentsCount?: number;
   createdAt: string;
   clone: {
     id: number;
@@ -446,6 +464,27 @@ export async function v_3f8bc7(
   return v_04b58a(`/oth-path${v_c09aa8}/comments`, v_2ca7e0, {
     method: "POST",
     body: JSON.stringify({ content: v_b43b74 }),
+  });
+}
+
+export async function v_6f689a(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_b43b74,
+): Promise<{ ok: true; comment: { id: number; feedId: number; userId: number; content: string }; promoted?: boolean }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/comments`, v_2ca7e0, {
+    method: "POST",
+    body: JSON.stringify({ content: v_b43b74 }),
+  });
+}
+
+export async function v_0df337(
+  v_2ca7e0,
+  v_c09aa8,
+  v_d91518,
+): Promise<{ ok: true }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/comments/${v_d91518}`, v_2ca7e0, {
+    method: "DELETE",
   });
 }
 

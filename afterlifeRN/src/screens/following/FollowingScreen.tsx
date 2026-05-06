@@ -29,7 +29,14 @@ import type { v_8ad91b } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_4208e7, v_3f8bc7, type v_52af9d } from "../../api/clones";
+import {
+  v_4208e7,
+  v_3f8bc7,
+  v_6f689a,
+  v_0df337,
+  type v_52af9d,
+} from "../../api/clones";
+import { v_bfd883 } from "../../lib/relativeTime";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 
 type RootNav = v_390fcc<v_8ad91b>;
@@ -193,10 +200,15 @@ export default function v_14b43e() {
   };
 
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
   const [v_cc8bc2, v_502f4e] = v_5ab095<v_52af9d[]>([]);
   const [v_465030, v_856daf] = v_5ab095(false);
   v_c4deb2(() => {
-    if (v_5c83d5 == null || v_5c83d5 < 0) {
+    if (v_5c83d5 == null) {
+      v_502f4e([]);
+      return;
+    }
+    if (v_5c83d5 < 0) {
       v_502f4e([]);
       return;
     }
@@ -221,16 +233,35 @@ export default function v_14b43e() {
   }, [v_5c83d5]);
 
   const v_8e4668 = async () => {
-    if (v_5c83d5 == null || v_5c83d5 < 0) return;
+    if (v_5c83d5 == null) return;
     const v_b43b74 = v_48e7fe.trim();
     if (!v_b43b74 || !v_2ca7e0) return;
     try {
-      await v_3f8bc7(v_2ca7e0, v_5c83d5, v_b43b74);
+      let v_6bbace;
+      if (v_5c83d5 < 0) {
+        const v_6e0fd3 = -v_5c83d5;
+        const v_8f00b9 = await v_6f689a(v_2ca7e0, v_6e0fd3, v_b43b74);
+        v_6bbace = v_8f00b9.comment.feedId;
+        v_880166(v_6bbace);
+      } else {
+        await v_3f8bc7(v_2ca7e0, v_5c83d5, v_b43b74);
+        v_6bbace = v_5c83d5;
+      }
       v_856f84("");
-      const v_cb35cb = await v_4208e7(v_5c83d5, { limit: 100 });
+      const v_cb35cb = await v_4208e7(v_6bbace, { limit: 100 });
       v_502f4e(v_cb35cb.items);
     } catch (v_49263d) {
       console.warn("[Following] postFeedComment failed:", v_49263d);
+    }
+  };
+
+  const v_b72645 = async (v_d91518) => {
+    if (v_5c83d5 == null || v_5c83d5 < 0 || !v_2ca7e0) return;
+    try {
+      await v_0df337(v_2ca7e0, v_5c83d5, v_d91518);
+      v_502f4e((v_ba2215) => v_ba2215.filter((v_3f4e2e) => v_3f4e2e.id !== v_d91518));
+    } catch (v_49263d) {
+      console.warn("[Following] deleteFeedComment failed:", v_49263d);
     }
   };
 
@@ -453,7 +484,12 @@ export default function v_14b43e() {
                     <View style={v_fd5f43.commentInfo}>
                       <View style={v_fd5f43.commentMeta}>
                         <Text style={v_fd5f43.commentAuthor}>{v_3f4e2e.user.name ?? v_3f4e2e.user.email}</Text>
-                        <Text style={v_fd5f43.commentTime}>{v_3f4e2e.createdAt.slice(0, 16).replace("T", " ")}</Text>
+                        <Text style={v_fd5f43.commentTime}>{v_bfd883(v_3f4e2e.createdAt)}</Text>
+                        {v_3f4e2e.userId === v_f5f393 && (
+                          <TouchableOpacity onPress={() => v_b72645(v_3f4e2e.id)} style={{ marginLeft: 8 }}>
+                            <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
+                          </TouchableOpacity>
+                        )}
                       </View>
                       <Text style={v_fd5f43.commentContent}>{v_3f4e2e.content}</Text>
                     </View>
