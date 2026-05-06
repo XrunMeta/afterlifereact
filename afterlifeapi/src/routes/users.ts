@@ -642,6 +642,49 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
   });
 });
 
+users.get("/me/blocks", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT b.id           AS blockId,
+                b.created_at   AS createdAt,
+                c.id           AS cloneId,
+                c.name         AS cloneName,
+                c.username     AS cloneUsername,
+                c.avatar_url   AS cloneAvatarUrl,
+                c.clone_type   AS cloneType
+           FROM clone_blocks b
+           JOIN clones c ON c.id = b.clone_id
+          WHERE b.user_id = ? AND c.deleted_at IS NULL
+          ORDER BY b.id DESC`,
+      )
+      .bind(userId)
+      .all<{
+        blockId: number;
+        createdAt: string;
+        cloneId: number;
+        cloneName: string;
+        cloneUsername: string;
+        cloneAvatarUrl: string | null;
+        cloneType: string;
+      }>()
+  ).results;
+  return c.json({
+    items: rows.map((r) => ({
+      blockId: r.blockId,
+      createdAt: r.createdAt,
+      clone: {
+        id: r.cloneId,
+        name: r.cloneName,
+        username: r.cloneUsername,
+        avatarUrl: r.cloneAvatarUrl,
+        cloneType: r.cloneType,
+      },
+    })),
+  });
+});
+
 users.delete("/me/devices/:id", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const deviceRowId = Number(c.req.param("id"));

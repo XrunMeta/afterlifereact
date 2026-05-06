@@ -12,6 +12,7 @@ import {
   TextInput,
   Dimensions,
   Animated,
+  Alert,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from "react-native";
@@ -255,14 +256,27 @@ export default function FollowingScreen() {
     }
   };
 
-  const deleteComment = async (commentId: number) => {
+  const deleteComment = (commentId: number) => {
     if (commentPostId == null || commentPostId < 0 || !accessToken) return;
-    try {
-      await deleteFeedComment(accessToken, commentPostId, commentId);
-      setApiComments((prev) => prev.filter((c) => c.id !== commentId));
-    } catch (err) {
-      console.warn("[Following] deleteFeedComment failed:", err);
-    }
+    Alert.alert(
+      "댓글 삭제",
+      "이 댓글을 삭제하시겠습니까?",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteFeedComment(accessToken, commentPostId, commentId);
+              setApiComments((prev) => prev.filter((c) => c.id !== commentId));
+            } catch (err) {
+              console.warn("[Following] deleteFeedComment failed:", err);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const renderPost = ({ item }: { item: (typeof posts)[0] }) => {

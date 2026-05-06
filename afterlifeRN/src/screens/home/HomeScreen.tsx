@@ -13,7 +13,10 @@ import {
   ScrollView,
   Image,
   TextInput,
+  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
+import { Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
@@ -24,7 +27,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import FeedCard from "../../components/ui/FeedCard";
 import FilterModal from "../../components/ui/FilterModal";
-import { useFeedStore } from "../../stores/feedStore";
+import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useAuthStore } from "../../stores/authStore";
 import { toFeedItem } from "../../mocks/feedAdapter";
@@ -33,6 +36,7 @@ import {
   postFeedComment,
   postCloneComment,
   deleteFeedComment,
+  blockClone,
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
@@ -85,7 +89,40 @@ export default function HomeScreen() {
   const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
 
+  const [moreTarget, setMoreTarget] = useState<{ cloneId: number; author: string } | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  useEffect(() => {
+    if (toastMessage) {
+      const id = setTimeout(() => setToastMessage(null), 2000);
+      return () => clearTimeout(id);
+    }
+  }, [toastMessage]);
+
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const filteredFeeds: FeedItem[] = getFilteredFeeds().map(toFeedItem);
+
+  const setApiFeeds = useFeedStore((s) => s.apiFeeds); 
+  void setApiFeeds;
+  const [, setForceTick] = useState(0);
+  const bumpCommentsCount = useCallback((feedId: number, n: number) => {
+    apiFeedCountsCache.set(feedId, { commentsCount: n });
+    setForceTick((x) => x + 1);
+  }, []);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -166,7 +203,6 @@ export default function HomeScreen() {
         const cloneId = -commentFeedId;
         const res = await postCloneComment(accessToken, cloneId, content);
         realFeedId = res.comment.feedId;
-
         setCommentFeedId(realFeedId);
       } else {
         await postFeedComment(accessToken, commentFeedId, content);
@@ -175,19 +211,38 @@ export default function HomeScreen() {
       setCommentText("");
       const r = await listFeedComments(realFeedId, { limit: 100 });
       setComments(r.items);
+
+      bumpCommentsCount(realFeedId, r.items.length);
     } catch (err) {
       console.warn("[Home] postFeedComment failed:", err);
     }
   };
 
-  const deleteComment = async (commentId: number) => {
+  const deleteComment = (commentId: number) => {
     if (commentFeedId == null || commentFeedId < 0 || !accessToken) return;
-    try {
-      await deleteFeedComment(accessToken, commentFeedId, commentId);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-    } catch (err) {
-      console.warn("[Home] deleteFeedComment failed:", err);
-    }
+    Alert.alert(
+      "댓글 삭제",
+      "이 댓글을 삭제하시겠습니까?",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteFeedComment(accessToken, commentFeedId, commentId);
+              setComments((prev) => {
+                const next = prev.filter((c) => c.id !== commentId);
+                bumpCommentsCount(commentFeedId, next.length);
+                return next;
+              });
+            } catch (err) {
+              console.warn("[Home] deleteFeedComment failed:", err);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const renderItem = useCallback(
@@ -202,6 +257,7 @@ export default function HomeScreen() {
         onToggleFollow={() => void toggleFollow(item.cloneId)}
         onCallPress={() => rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image })}
         onCommentPress={() => setCommentFeedId(item.id)}
+        onMorePress={() => setMoreTarget({ cloneId: item.cloneId, author: item.author })}
       />
     ),
     [currentIndex, likedIds, follows, feedHeight, toggleLike, toggleFollow, isFollowing]
@@ -251,9 +307,17 @@ export default function HomeScreen() {
 
       {}
       <Modal visible={!!commentFeedId} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
         <Pressable style={styles.commentOverlay} onPress={() => setCommentFeedId(null)}>
           <View
-            style={[styles.commentSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            style={[
+              styles.commentSheet,
+
+              { paddingBottom: keyboardVisible ? 12 : 24 + Math.max(insets.bottom, 0) },
+            ]}
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.sheetHandle} />
@@ -311,6 +375,7 @@ export default function HomeScreen() {
             </View>
           </View>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -322,6 +387,62 @@ export default function HomeScreen() {
         onApply={handleApplyFilter}
         onClose={() => setShowFilter(false)}
       />
+
+      {}
+      <Modal visible={!!moreTarget} transparent animationType="fade">
+        <Pressable style={styles.moreOverlay} onPress={() => setMoreTarget(null)}>
+          <Pressable
+            style={[styles.moreSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.moreSheetHandle} />
+            <Text style={styles.moreTitle}>{moreTarget?.author}</Text>
+            <TouchableOpacity
+              style={styles.moreItem}
+              onPress={() => {
+                setMoreTarget(null);
+                setToastMessage("신고가 접수됐어요");
+              }}
+            >
+              <Feather name="flag" size={20} color="#ef4444" />
+              <Text style={[styles.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.moreItem}
+              onPress={async () => {
+                const target = moreTarget;
+                setMoreTarget(null);
+                if (!target || !accessToken) return;
+                try {
+                  await blockClone(accessToken, target.cloneId);
+                  setToastMessage("이 페르소나가 차단됐어요");
+
+                  void loadDiscover();
+                } catch (err) {
+                  console.warn("[Home] block failed:", err);
+                  setToastMessage("차단에 실패했어요");
+                }
+              }}
+            >
+              <Feather name="slash" size={20} color={COLORS.zinc900} />
+              <Text style={styles.moreItemText}>차단하기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.moreItem, { borderBottomWidth: 0 }]}
+              onPress={() => setMoreTarget(null)}
+            >
+              <Feather name="x" size={20} color={COLORS.zinc500} />
+              <Text style={[styles.moreItemText, { color: COLORS.zinc500 }]}>취소</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {toastMessage && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -384,4 +505,13 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: "rgba(255,255,255,0.4)", marginTop: 8 },
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.1)", paddingTop: 12 },
   commentInput: { flex: 1, height: 40, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: COLORS.white },
+
+  moreOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  moreSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 0, paddingHorizontal: 16 },
+  moreSheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.zinc300, alignSelf: "center", marginVertical: 12 },
+  moreTitle: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
+  moreItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
+  moreItemText: { fontSize: 15, fontWeight: "500", color: COLORS.zinc900 },
+  toast: { position: "absolute", bottom: 80, alignSelf: "center", paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: RADIUS.full },
+  toastText: { color: COLORS.white, fontSize: 14 },
 });
