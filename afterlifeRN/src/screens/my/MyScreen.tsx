@@ -282,12 +282,28 @@ export default function v_ed02a5() {
           <Text style={v_fd5f43.userHandle}>{v_04c129}</Text>
 
           <View style={v_fd5f43.statsRow}>
-            <TouchableOpacity style={v_fd5f43.statItem} onPress={() => v_d5cd7b("following")}>
+            <TouchableOpacity
+              style={v_fd5f43.statItem}
+              onPress={() => {
+                console.log(
+                  `[MyScreen] stat TAP "팔로우 중" — apiFollowingCount=${v_65adaf} apiFollowingList=${v_1f6f04?.length ?? "null"}`,
+                );
+                v_d5cd7b("following");
+              }}
+            >
               <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
               <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.following")}</Text>
             </TouchableOpacity>
             <View style={v_fd5f43.statDivider} />
-            <TouchableOpacity style={v_fd5f43.statItem} onPress={() => v_d5cd7b("myClones")}>
+            <TouchableOpacity
+              style={v_fd5f43.statItem}
+              onPress={() => {
+                console.log(
+                  `[MyScreen] stat TAP "내 페르소나" — apiMyClonesCount=${v_8f9093} apiMyClonesList=${v_58e68f?.length ?? "null"}`,
+                );
+                v_d5cd7b("myClones");
+              }}
+            >
               <Text style={v_fd5f43.statValue}>{v_8b222b}</Text>
               <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.myPersona")}</Text>
             </TouchableOpacity>
@@ -414,12 +430,20 @@ export default function v_ed02a5() {
                 ) : (
                   v_1f6f04.map((v_3f4e2e) => {
                     const v_10387a = v_b30b81(v_3f4e2e.id);
+                    console.log(
+                      `[MyScreen] following row render — cloneId=${v_3f4e2e.id} name=${v_3f4e2e.name} isFollowing=${v_10387a}`,
+                    );
                     return (
                       <TouchableOpacity
                         key={v_3f4e2e.id}
                         style={v_fd5f43.listRow}
                         activeOpacity={0.6}
-                        onPress={() => v_74ecfc(v_3f4e2e.id)}
+                        onPress={() => {
+                          console.log(
+                            `[MyScreen] following row TAP — goToClone cloneId=${v_3f4e2e.id} name=${v_3f4e2e.name}`,
+                          );
+                          v_74ecfc(v_3f4e2e.id);
+                        }}
                       >
                         {v_3f4e2e.avatarUrl ? (
                           <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
@@ -432,9 +456,15 @@ export default function v_ed02a5() {
                         </View>
                         <TouchableOpacity
                           onPress={async () => {
+                            console.log(
+                              `[MyScreen] follow toggle TAP cloneId=${v_3f4e2e.id} wasFollowing=${v_10387a}`,
+                            );
                             await v_3094d4(v_3f4e2e.id);
 
                             if (v_10387a) {
+                              console.log(
+                                `[MyScreen] post-unfollow → list filter + count -1 cloneId=${v_3f4e2e.id}`,
+                              );
                               v_9127a1((v_ba2215) =>
                                 v_ba2215 ? v_ba2215.filter((v_62c214) => v_62c214.id !== v_3f4e2e.id) : v_ba2215,
                               );
@@ -442,6 +472,9 @@ export default function v_ed02a5() {
                                 typeof v_ba2215 === "number" ? Math.max(0, v_ba2215 - 1) : v_ba2215,
                               );
                             } else {
+                              console.log(
+                                `[MyScreen] post-follow → count +1 cloneId=${v_3f4e2e.id}`,
+                              );
                               v_b81b74((v_ba2215) =>
                                 typeof v_ba2215 === "number" ? v_ba2215 + 1 : v_ba2215,
                               );
