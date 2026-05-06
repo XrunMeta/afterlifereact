@@ -11,9 +11,6 @@ import {
   v_122070,
   v_79c4f2,
   v_39a996,
-  v_e767d1,
-  v_326be8,
-  v_0e1f26,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
@@ -132,23 +129,6 @@ export default function v_def15b() {
   const [v_4568f9, v_58158a] = v_5ab095(false);
   const [v_aa2223, v_b21d0d] = v_5ab095<Set<number>>(new Set());
 
-  const [v_29375c, v_287e1c] = v_5ab095(0);
-  v_c4deb2(() => {
-    if (!v_36d186) {
-      v_287e1c(0);
-      return;
-    }
-    const v_f2aaec = v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const v_ae5641 = v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const v_53f5d7 = v_0e1f26.addListener(v_f2aaec, (v_9e86fd) => {
-      v_287e1c(v_9e86fd.endCoordinates.height);
-    });
-    const v_52528b = v_0e1f26.addListener(v_ae5641, () => v_287e1c(0));
-    return () => {
-      v_53f5d7.remove();
-      v_52528b.remove();
-    };
-  }, [v_36d186]);
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
     type: "likes" | "interactions" | "comments" | "followers";
     cloneName: string;
@@ -746,19 +726,9 @@ export default function v_def15b() {
         animationType="slide"
         onRequestClose={() => v_2dac5f(null)}
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
-        >
         <Pressable style={v_fd5f43.bottomSheetOverlay} onPress={() => v_2dac5f(null)}>
           <View
-            style={[
-              v_fd5f43.inviteSheet,
-
-              v_326be8.OS === "android" && v_29375c > 0 && {
-                marginBottom: v_29375c,
-              },
-            ]}
+            style={v_fd5f43.inviteSheet}
             onStartShouldSetResponder={() => true}
           >
             <View style={v_fd5f43.sheetHandle} />
@@ -851,7 +821,6 @@ export default function v_def15b() {
             </ScrollView>
           </View>
         </Pressable>
-        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -1283,8 +1252,7 @@ const v_fd5f43 = v_472849.create({
     paddingBottom: 16,
     paddingTop: 8,
     width: "100%",
-    minHeight: "50%",
-    maxHeight: "85%",
+    height: "70%",
   },
   inviteHeader: {
     flexDirection: "row",
