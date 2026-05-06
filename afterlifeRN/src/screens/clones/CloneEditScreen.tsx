@@ -9,6 +9,7 @@ import {
   Pressable,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ClonesStackParamList } from "../../navigation/types";
 import SafeScrollView from "../../components/ui/SafeScrollView";
@@ -42,6 +43,7 @@ for (const cat of INTEREST_CATEGORIES) {
 }
 
 export default function CloneEditScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const updateLocalClone = useCloneStore((s) => s.updateLocalClone);
@@ -89,7 +91,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   if (!clone) {
     return (
       <View style={s.notFound}>
-        <Text style={s.notFoundText}>페르소나를 찾을 수 없습니다.</Text>
+        <Text style={s.notFoundText}>{t("edit.notFound")}</Text>
       </View>
     );
   }
@@ -173,9 +175,9 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
   const getVisibilityLabel = (v: Visibility) => {
     switch (v) {
-      case "public": return "공개";
-      case "private": return "비공개";
-      case "followers": return "지인공개";
+      case "public": return t("edit.visibilityPublic");
+      case "private": return t("edit.visibilityPrivate");
+      case "followers": return t("edit.visibilityFollowers");
     }
   };
 
@@ -195,7 +197,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       showBottomBackground={false}
     >
       <PageHeader
-        title="페르소나 수정"
+        title={t("edit.title")}
         subtitle={clone.displayName}
         showBackButton
         onBackPress={() => navigation.goBack()}
@@ -228,7 +230,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
               >
                 <Feather name={getVisibilityIcon(visibility)} size={16} color={COLORS.zinc700} />
                 <Text style={s.dropdownText}>
-                  공개설정 ({getVisibilityLabel(visibility)})
+                  {t("dashboard.menuVisibility")} ({getVisibilityLabel(visibility)})
                 </Text>
               </TouchableOpacity>
             )}
@@ -240,7 +242,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
               }}
             >
               <Feather name="trash-2" size={16} color={COLORS.error} />
-              <Text style={[s.dropdownText, { color: COLORS.error }]}>삭제</Text>
+              <Text style={[s.dropdownText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -250,22 +252,22 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         {
 }
         <View style={s.section}>
-          <Text style={s.sectionTitle}>기본 정보</Text>
+          <Text style={s.sectionTitle}>{t("edit.basicSection")}</Text>
 
           {}
           <TextField
-            label="이름"
+            label={t("edit.nameLabel")}
             value={name}
             onChangeText={setName}
-            placeholder="이름을 입력해주세요"
+            placeholder={t("edit.namePlaceholder")}
           />
 
           {}
           <TextField
-            label="한 줄 소개"
+            label={t("edit.descLabel")}
             value={description}
             onChangeText={setDescription}
-            placeholder="이 페르소나의 한 줄 소개를 입력해주세요..."
+            placeholder={t("edit.descPlaceholder")}
             multiline
             containerStyle={{ marginTop: 16 }}
           />
@@ -273,7 +275,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
           {}
           {clone.cloneType === 'memlow' && (
             <>
-              <Text style={s.fieldLabel}>고인과의 관계</Text>
+              <Text style={s.fieldLabel}>{t("create.basicInfo.relationLabel")}</Text>
               <View style={s.chipRow}>
                 {MEMLOW_RELATIONS.map((r) => {
                   const active = draft.relation === r.id;
@@ -297,7 +299,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 }
           {clone.cloneType !== 'memlow' && (
             <>
-              <Text style={s.simpleLabel}>카테고리</Text>
+              <Text style={s.simpleLabel}>{t("create.basicInfo.categoryLabel")}</Text>
               <View style={s.simpleCatRow}>
                 {CATEGORIES.map((c) => (
                   <TouchableOpacity
@@ -317,7 +319,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
               {activeList.length > 0 && (
                 <>
-                  <Text style={s.simpleLabel}>관심사</Text>
+                  <Text style={s.simpleLabel}>{t("create.basicInfo.interestsLabel")}</Text>
                   <View style={s.simpleChips}>
                     {activeList.map((i) => (
                       <InterestChip
@@ -340,7 +342,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                       style={s.simpleEtcChip}
                       onPress={() => setShowCustomInput((v) => !v)}
                     >
-                      <Text style={s.simpleEtcChipText}>+ 기타</Text>
+                      <Text style={s.simpleEtcChipText}>{t("create.basicInfo.addEtc")}</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -350,14 +352,14 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                         style={s.simpleCustomTextInput}
                         value={customInput}
                         onChangeText={setCustomInput}
-                        placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
+                        placeholder={t("create.basicInfo.customPlaceholder")}
                         placeholderTextColor={COLORS.placeholder}
                         onSubmitEditing={addCustomInterests}
                         returnKeyType="done"
                         autoFocus
                       />
                       <TouchableOpacity style={s.simpleAddBtn} onPress={addCustomInterests}>
-                        <Text style={s.simpleAddBtnText}>추가</Text>
+                        <Text style={s.simpleAddBtnText}>{t("create.basicInfo.addBtn")}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -368,7 +370,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
 
           {}
           <View style={s.beforeBox}>
-            <Text style={s.beforeLabel}>변경 전 (영구 데이터)</Text>
+            <Text style={s.beforeLabel}>{t("edit.beforeLabel")}</Text>
             <Text style={s.beforeBody}>
               {formatPersonaPrompt({
                 name: clone.displayName,
@@ -389,10 +391,8 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         {
 }
         <View style={s.devBanner}>
-          <Text style={s.devBannerText}>🛠 개발용 — 프로덕션 미사용</Text>
-          <Text style={s.devBannerSub}>
-            아래 L1/L2 섹션은 메모리 시스템 직접 편집용. 위 chip 이 실제 사용자 입력 채널입니다.
-          </Text>
+          <Text style={s.devBannerText}>{t("edit.devBannerTitle")}</Text>
+          <Text style={s.devBannerSub}>{t("edit.devBannerSub")}</Text>
         </View>
 
         <View style={s.section}>
@@ -404,7 +404,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
               onPress={() => setTransferOpen(true)}
               style={{ padding: 12, borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 8, marginTop: 12 }}
             >
-              <Text>편집 권한 이전</Text>
+              <Text>{t("edit.transferEditor")}</Text>
             </TouchableOpacity>
           )}
           {isCoowner && !isPrimaryEditor && (
@@ -413,7 +413,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
               onPress={() => {}}
               style={{ padding: 12, borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 8, marginTop: 12 }}
             >
-              <Text>편집 권한 요청</Text>
+              <Text>{t("edit.requestEditor")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -422,7 +422,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       {}
       <View style={s.bottomBar}>
         <Button
-          title="저장하기"
+          title={t("edit.save")}
           variant="primary"
           onPress={handleSave}
           disabled={!name}
@@ -434,8 +434,8 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       <Modal visible={visibilityModal} transparent animationType="fade">
         <Pressable style={s.modalOverlay} onPress={() => setVisibilityModal(false)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>공개 설정</Text>
-            <Text style={s.modalDesc}>페르소나의 공개 범위를 선택하세요</Text>
+            <Text style={s.modalTitle}>{t("edit.visibilityChooseTitle")}</Text>
+            <Text style={s.modalDesc}>{t("edit.visibilityChooseDesc")}</Text>
             <View style={s.visibilityOptions}>
               {(["public", "private", "followers"] as Visibility[]).map((v) => {
                 const selected = visibility === v;
@@ -463,7 +463,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
               })}
             </View>
             <Button
-              title="취소"
+              title={t("common.cancel")}
               variant="ghost"
               onPress={() => setVisibilityModal(false)}
               style={{ marginTop: 12, width: "100%" }}
@@ -476,19 +476,17 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       <Modal visible={deleteModal} transparent animationType="fade">
         <Pressable style={s.modalOverlay} onPress={() => setDeleteModal(false)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>페르소나 삭제</Text>
-            <Text style={s.modalDesc}>
-              정말 이 페르소나를 삭제하시겠습니까?{"\n"}삭제된 페르소나는 복구할 수 없습니다.
-            </Text>
+            <Text style={s.modalTitle}>{t("edit.deleteTitle")}</Text>
+            <Text style={s.modalDesc}>{t("edit.deleteDesc")}</Text>
             <View style={s.modalBtns}>
               <Button
-                title="취소"
+                title={t("common.cancel")}
                 variant="ghost"
                 onPress={() => setDeleteModal(false)}
                 style={{ flex: 1 }}
               />
               <Button
-                title="삭제"
+                title={t("common.delete")}
                 variant="danger"
                 onPress={confirmDelete}
                 style={{ flex: 1 }}
