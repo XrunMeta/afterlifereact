@@ -506,8 +506,10 @@ export default function MyClonesDashboardScreen() {
               setInviteModal({ cloneId: clone.id });
             }}
           >
-            <Feather name="user-plus" size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>{t("dashboard.actionInvite")}</Text>
+            <Feather name={isMemlow ? "user-plus" : "share-2"} size={16} color={COLORS.zinc700} />
+            <Text style={s.actionText}>
+              {isMemlow ? t("dashboard.actionInvite") : t("dashboard.actionShare")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -800,7 +802,14 @@ export default function MyClonesDashboardScreen() {
           >
             <View style={s.sheetHandle} />
             <View style={s.inviteHeader}>
-              <Text style={s.inviteTitle}>{t("invite.create")}</Text>
+              <Text style={s.inviteTitle}>
+                {(() => {
+                  const c = myClones.find((x) => x.id === inviteModal?.cloneId);
+                  return c?.cloneType === "memlow"
+                    ? t("invite.create")
+                    : t("invite.shareTitle");
+                })()}
+              </Text>
               <TouchableOpacity onPress={() => setInviteModal(null)}>
                 <Feather name="x" size={20} color={COLORS.zinc500} />
               </TouchableOpacity>
