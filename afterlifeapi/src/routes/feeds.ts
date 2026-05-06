@@ -407,6 +407,85 @@ feedsDiscover.get("/:id/likes", async (c) => {
   });
 });
 
+cloneFeeds.post("/:id/like", requireAuth, async (c) => {
+  const cloneId = parseCloneId(c);
+  const userId = c.get("userId")!;
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (clone.visibility === "private") {
+    if (clone.owner_id !== userId) {
+      const role = await hasAcceptedShare(c.env.DB, cloneId, userId);
+      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+    }
+  }
+
+  let feedId: number;
+  let promoted = false;
+  const existing = await c.env.DB
+    .prepare(`SELECT id FROM feeds WHERE clone_id = ? ORDER BY id DESC LIMIT 1`)
+    .bind(cloneId)
+    .first<{ id: number }>();
+  if (existing) {
+    feedId = existing.id;
+  } else {
+    const cloneRow = await c.env.DB
+      .prepare(`SELECT description, avatar_url FROM clones WHERE id = ?`)
+      .bind(cloneId)
+      .first<{ description: string | null; avatar_url: string | null }>();
+    const r = await c.env.DB
+      .prepare(
+        `INSERT INTO feeds (clone_id, content, media_url, media_type, created_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      )
+      .bind(
+        cloneId,
+        cloneRow?.description ?? "",
+        cloneRow?.avatar_url ?? null,
+        null,
+      )
+      .run();
+    feedId = Number(r.meta.last_row_id);
+    promoted = true;
+  }
+
+  await c.env.DB
+    .prepare(`INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`)
+    .bind(feedId, userId)
+    .run();
+
+  const cnt = await c.env.DB
+    .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
+    .bind(feedId)
+    .first<{ likes_count: number }>();
+  return c.json({
+    ok: true,
+    liked: true,
+    feedId,
+    promoted,
+    likesCount: cnt?.likes_count ?? 0,
+  });
+});
+
+cloneFeeds.delete("/:id/like", requireAuth, async (c) => {
+  const cloneId = parseCloneId(c);
+  const userId = c.get("userId")!;
+
+  const f = await c.env.DB
+    .prepare(`SELECT id FROM feeds WHERE clone_id = ? ORDER BY id DESC LIMIT 1`)
+    .bind(cloneId)
+    .first<{ id: number }>();
+  if (!f) return c.json({ ok: true, liked: false, likesCount: 0 });
+  await c.env.DB
+    .prepare(`DELETE FROM feed_likes WHERE feed_id = ? AND user_id = ?`)
+    .bind(f.id, userId)
+    .run();
+  const cnt = await c.env.DB
+    .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
+    .bind(f.id)
+    .first<{ likes_count: number }>();
+  return c.json({ ok: true, liked: false, feedId: f.id, likesCount: cnt?.likes_count ?? 0 });
+});
+
 cloneFeeds.get("/:id/likes", async (c) => {
   const cloneId = parseCloneId(c);
   const url = new URL(c.req.url);
