@@ -191,20 +191,6 @@ export default function FollowingScreen() {
 
   const currentComments: MockComment[] = commentPostId ? mockCommentList(commentPostId) : [];
 
-  const renderHeader = () => (
-    <View style={s.heroWrap}>
-      <Image
-        source={require("../../../assets/images/grandfather-post.png")}
-        style={s.heroImage}
-        resizeMode="cover"
-      />
-      <View style={s.heroOverlay}>
-        <Text style={s.heroTitle}>{t("feed.heroTitle")}</Text>
-        <Text style={s.heroSubtitle}>{t("feed.heroSubtitle")}</Text>
-      </View>
-    </View>
-  );
-
   const renderPost = ({ item }: { item: (typeof posts)[0] }) => {
     const feedImage = item.feed.mediaUrl ?? item.persona.avatar;
     return (
@@ -322,7 +308,6 @@ export default function FollowingScreen() {
         data={posts}
         keyExtractor={(item) => String(item.feed.id)}
         renderItem={renderPost}
-        ListHeaderComponent={renderHeader}
         contentContainerStyle={s.feed}
         showsVerticalScrollIndicator={false}
         onScroll={onFeedScroll}
@@ -560,27 +545,6 @@ const s = StyleSheet.create({
 
   feed: { padding: 16, gap: 16 },
   postWrap: { marginBottom: 8 },
-
-  heroWrap: {
-    height: 160,
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 16,
-    backgroundColor: COLORS.zinc100,
-  },
-  heroImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: "100%",
-    height: "100%",
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "flex-end",
-    padding: 16,
-  },
-  heroTitle: { fontSize: 18, fontWeight: "700", color: COLORS.white },
-  heroSubtitle: { fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 },
 
   imageWrap: { borderRadius: 24, overflow: "hidden", backgroundColor: COLORS.zinc100 },
   postImage: { width: "100%", aspectRatio: 3 / 4 },
