@@ -608,6 +608,51 @@ clones.delete("/:id/follow", requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
+clones.get("/:id/followers", async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT cf.id        AS followId,
+                cf.user_id   AS userId,
+                cf.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM clone_follows cf
+           JOIN users u ON u.id = cf.user_id
+          WHERE cf.clone_id = ? AND u.deleted_at IS NULL
+          ORDER BY cf.id DESC
+          LIMIT ?`,
+      )
+      .bind(cloneId, limit)
+      .all<{
+        followId: number;
+        userId: number;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+  return c.json({
+    items: rows.map((r) => ({
+      followId: r.followId,
+      userId: r.userId,
+      name: r.userName,
+      email: r.userEmail,
+      avatarUrl: r.userAvatarUrl,
+      createdAt: r.createdAt,
+    })),
+  });
+});
+
 clones.post("/:id/block", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
