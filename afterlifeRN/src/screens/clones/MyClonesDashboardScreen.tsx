@@ -225,6 +225,21 @@ export default function MyClonesDashboardScreen() {
           setDeleteResultMessage(t("dashboard.sessionExpired"));
           return;
         }
+        if (err.code === "ALREADY_INVITED") {
+
+          setInvitedIds((prev) => new Set(prev).add(user.id));
+          setDeleteResultMessage(t("invite.alreadyInvited"));
+          return;
+        }
+        if (err.code === "ALREADY_MEMBER") {
+          setInvitedIds((prev) => new Set(prev).add(user.id));
+          setDeleteResultMessage(t("invite.alreadyMember"));
+          return;
+        }
+        if (err.code === "QUOTA_EXCEEDED") {
+          setDeleteResultMessage(t("invite.quotaExceeded"));
+          return;
+        }
       } else {
         console.warn("[Dashboard] createInvite failed:", err);
       }
@@ -329,12 +344,13 @@ export default function MyClonesDashboardScreen() {
     const followerCount = follows.filter(
       (f) => f.followingCloneId === clone.id,
     ).length;
+
     const coownerCount =
-      clone.cloneType === "memlow"
-        ? seedSource.coowners().filter(
+      typeof clone.coownerCount === "number"
+        ? clone.coownerCount
+        : seedSource.coowners().filter(
             (co) => co.cloneId === clone.id && co.status === "approved",
-          ).length
-        : 0;
+          ).length;
 
     return (
       <View style={s.card}>
@@ -620,16 +636,32 @@ export default function MyClonesDashboardScreen() {
                 </TouchableOpacity>
               )}
             <View style={s.menuDivider} />
-            <TouchableOpacity
-              style={s.menuItem}
-              onPress={() => {
-                const id = menuCloneId!;
-                handleDelete(id);
-              }}
-            >
-              <Feather name="trash-2" size={18} color={COLORS.error} />
-              <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
-            </TouchableOpacity>
+            {}
+            {menuCloneId != null &&
+              myClones.find((c) => c.id === menuCloneId)?.myRole === "owner" ? (
+              <TouchableOpacity
+                style={s.menuItem}
+                onPress={() => {
+                  const id = menuCloneId!;
+                  handleDelete(id);
+                }}
+              >
+                <Feather name="trash-2" size={18} color={COLORS.error} />
+                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={s.menuItem}
+                onPress={() => {
+                  const id = menuCloneId!;
+                  setMenuCloneId(null);
+                  navigation.navigate("CloneInvite", { cloneId: id });
+                }}
+              >
+                <Feather name="log-out" size={18} color={COLORS.error} />
+                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuLeave")}</Text>
+              </TouchableOpacity>
+            )}
           </Pressable>
         </Pressable>
       </Modal>

@@ -119,6 +119,8 @@ export default function CloneInviteScreen() {
       let msg = t("invite.sendFailed");
       if (err instanceof AuthApiError) {
         if (err.code === "QUOTA_EXCEEDED") msg = t("invite.quotaExceeded");
+        else if (err.code === "ALREADY_INVITED") msg = t("invite.alreadyInvited");
+        else if (err.code === "ALREADY_MEMBER") msg = t("invite.alreadyMember");
         else msg = err.message;
       }
       Alert.alert(t("common.error"), msg);

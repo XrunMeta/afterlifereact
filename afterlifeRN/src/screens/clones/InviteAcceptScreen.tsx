@@ -23,6 +23,7 @@ import { COLORS, RADIUS, SIZES } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
 import {
   acceptInvite,
+  declineInvite,
   getInvitePreview,
   type InvitePreview,
 } from "../../api/clones";
@@ -42,7 +43,8 @@ export default function InviteAcceptScreen() {
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [accepting, setAccepting] = useState(false);
+
+  const [acting, setActing] = useState<null | "accepting" | "declining">(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,61 +83,64 @@ export default function InviteAcceptScreen() {
       Alert.alert(t("common.notice"), t("inviteAccept.loginRequired"));
       return;
     }
-    setAccepting(true);
+    if (acting) return; 
+    setActing("accepting");
     try {
       const res = await acceptInvite(accessToken, token);
       console.log("[InviteAccept] success:", res);
-      Alert.alert(t("inviteAccept.accepted"), preview.clone.name, [
-        {
-          text: t("common.ok"),
-          onPress: () => {
 
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: "Main",
+              state: {
                 routes: [
                   {
-                    name: "Main",
+                    name: "ClonesTab",
                     state: {
                       routes: [
-                        {
-                          name: "ClonesTab",
-                          state: {
-                            routes: [
-                              { name: "Dashboard" },
-                              { name: "CloneDetail", params: { cloneId: res.cloneId } },
-                            ],
-                            index: 1,
-                          },
-                        },
+                        { name: "Dashboard" },
+                        { name: "CloneDetail", params: { cloneId: res.cloneId } },
                       ],
+                      index: 1,
                     },
                   },
                 ],
-              }),
-            );
-          },
-        },
-      ]);
+              },
+            },
+          ],
+        }),
+      );
     } catch (err) {
       let msg = t("inviteAccept.acceptFailed");
       if (err instanceof AuthApiError) {
         msg = err.message;
       }
       Alert.alert(t("common.error"), msg);
-      setAccepting(false);
+      setActing(null);
     }
   };
 
-  const handleDecline = () => {
-    Alert.alert(t("inviteAccept.errorTitle"), t("inviteAccept.body", { name: preview?.clone.name ?? "" }), [
-      { text: t("common.close"), style: "cancel" },
-      {
-        text: t("common.confirm"),
-        style: "destructive",
-        onPress: () => navigation.goBack(),
-      },
-    ]);
+  const handleDecline = async () => {
+
+    if (acting) return; 
+    if (!accessToken) {
+      navigation.goBack();
+      return;
+    }
+    setActing("declining");
+    try {
+      const res = await declineInvite(accessToken, token);
+      console.log("[InviteAccept] decline:", res);
+      navigation.goBack();
+    } catch (err) {
+      console.warn("[InviteAccept] decline failed:", err);
+      const msg = err instanceof AuthApiError ? err.message : t("inviteAccept.acceptFailed");
+      Alert.alert(t("common.error"), msg);
+      setActing(null);
+    }
   };
 
   return (
@@ -184,15 +189,15 @@ export default function InviteAcceptScreen() {
 
             <View style={s.actions}>
               <Button
-                title={accepting ? t("common.loading") : t("inviteAccept.accept")}
+                title={acting === "accepting" ? t("common.loading") : t("inviteAccept.accept")}
                 onPress={handleAccept}
-                disabled={accepting || !isLoggedIn}
+                disabled={acting !== null || !isLoggedIn}
                 variant="accent"
               />
               <Button
-                title={t("common.cancel")}
+                title={acting === "declining" ? t("common.loading") : t("inviteAccept.decline")}
                 onPress={handleDecline}
-                disabled={accepting}
+                disabled={acting !== null}
                 variant="ghost"
               />
             </View>

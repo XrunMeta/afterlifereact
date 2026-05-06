@@ -83,6 +83,46 @@ cloneShares.post(
     const db = c.env.DB;
     await assertOwner(db, cloneId, userId);
 
+    if (body.invite_email) {
+      const dupePending = await db
+        .prepare(
+          `SELECT id FROM invite_tokens
+            WHERE clone_id = ?
+              AND LOWER(invite_email) = LOWER(?)
+              AND used_at IS NULL
+              AND cancelled_at IS NULL
+              AND expires_at > CURRENT_TIMESTAMP
+            LIMIT 1`,
+        )
+        .bind(cloneId, body.invite_email)
+        .first<{ id: number }>();
+      if (dupePending) {
+        throw new APIError(
+          "ALREADY_INVITED",
+          "이 이메일로 이미 대기 중인 초대가 있어요.",
+        );
+      }
+
+      const dupeMember = await db
+        .prepare(
+          `SELECT cs.id
+             FROM clone_shares cs
+             JOIN users u ON u.id = cs.target_user_id
+            WHERE cs.clone_id = ?
+              AND LOWER(u.email) = LOWER(?)
+              AND cs.status = 'accepted'
+            LIMIT 1`,
+        )
+        .bind(cloneId, body.invite_email)
+        .first<{ id: number }>();
+      if (dupeMember) {
+        throw new APIError(
+          "ALREADY_MEMBER",
+          "이미 이 페르소나의 공동관리자예요.",
+        );
+      }
+    }
+
     const active = await db
       .prepare(
         `SELECT COUNT(*) AS n FROM invite_tokens
@@ -269,13 +309,14 @@ inviteTokens.post(
 
     const inv = await db
       .prepare(
-        `SELECT id, clone_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
+        `SELECT id, clone_id, owner_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
            FROM invite_tokens WHERE token_hash = ?`,
       )
       .bind(tokenHash)
       .first<{
         id: number;
         clone_id: number;
+        owner_id: number;
         invite_email: string | null;
         relation: string | null;
         grant_owner: number;
@@ -329,7 +370,8 @@ inviteTokens.post(
                (clone_id, owner_id, target_user_id, relation, role, status)
              VALUES (?, ?, ?, ?, ?, 'accepted')`,
           )
-          .bind(inv.clone_id, userId, userId, inv.relation, role),
+
+          .bind(inv.clone_id, inv.owner_id, userId, inv.relation, role),
       );
     }
     operations.push(
@@ -347,6 +389,78 @@ inviteTokens.post(
       details: { cloneId: inv.clone_id, inviteId: inv.id, role },
     });
     return c.json({ ok: true, cloneId: inv.clone_id, role });
+  },
+);
+
+inviteTokens.post(
+  "/:token/decline",
+  requireAuth,
+  requireIdempotencyKey("sharing.invite.decline"),
+  async (c) => {
+    const token = c.req.param("token");
+    if (!token || token.length < 32 || token.length > 256) {
+      throw new APIError("VALIDATION_FAILED", "Invalid token.");
+    }
+    const userId = c.get("userId")!;
+    const db = c.env.DB;
+    const tokenHash = hashToken(token);
+
+    const inv = await db
+      .prepare(
+        `SELECT id, clone_id, invite_email, used_at, cancelled_at
+           FROM invite_tokens WHERE token_hash = ?`,
+      )
+      .bind(tokenHash)
+      .first<{
+        id: number;
+        clone_id: number;
+        invite_email: string | null;
+        used_at: string | null;
+        cancelled_at: string | null;
+      }>();
+    if (!inv) throw new APIError("NOT_FOUND", "Invite not found.");
+    if (inv.cancelled_at) {
+
+      return c.json({ ok: true, alreadyCancelled: true });
+    }
+
+    if (inv.invite_email) {
+      const u = await db
+        .prepare(`SELECT email FROM users WHERE id = ?`)
+        .bind(userId)
+        .first<{ email: string }>();
+      if (!u || u.email.toLowerCase() !== inv.invite_email.toLowerCase()) {
+        throw new APIError("FORBIDDEN", "Invite email does not match.");
+      }
+    }
+
+    let removedShare = false;
+    if (inv.used_at) {
+      const res = await db
+        .prepare(
+          `DELETE FROM clone_shares
+             WHERE clone_id = ? AND target_user_id = ?`,
+        )
+        .bind(inv.clone_id, userId)
+        .run();
+      removedShare = (res.meta?.changes ?? 0) > 0;
+    }
+
+    await db
+      .prepare(
+        `UPDATE invite_tokens
+            SET cancelled_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND cancelled_at IS NULL`,
+      )
+      .bind(inv.id)
+      .run();
+
+    await logActivity(c, {
+      userId,
+      action: "sharing.invite.decline",
+      details: { cloneId: inv.clone_id, inviteId: inv.id, removedShare },
+    });
+    return c.json({ ok: true, cloneId: inv.clone_id, removedShare });
   },
 );
 

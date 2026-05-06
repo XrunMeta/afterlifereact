@@ -287,6 +287,8 @@ export interface MyClone {
   createdAt: string;
   myRole: "owner" | "coowner";
 
+  coownerCount: number;
+
   l1Profile?: { attrs: Record<string, string>; notes: string } | null;
 }
 
@@ -335,6 +337,18 @@ export async function acceptInvite(
 ): Promise<{ ok: true; cloneId: number }> {
   return authFetch(
     `/oth-path${encodeURIComponent(token)}/accept`,
+    accessToken,
+    { method: "POST" },
+    makeIdempotencyKey(),
+  );
+}
+
+export async function declineInvite(
+  accessToken: string,
+  token: string,
+): Promise<{ ok: true; cloneId?: number; removedShare?: boolean; alreadyCancelled?: boolean }> {
+  return authFetch(
+    `/oth-path${encodeURIComponent(token)}/decline`,
     accessToken,
     { method: "POST" },
     makeIdempotencyKey(),
