@@ -63,7 +63,8 @@ export default function CloneInviteScreen() {
     try {
 
       const sharesRes = await listShares(accessToken, cloneId);
-      setMembers(sharesRes.items);
+
+      setMembers(sharesRes.items ?? (sharesRes as unknown as { shares?: ShareMember[] }).shares ?? []);
       if (isOwner) {
         try {
           const inv = await listPendingInvites(accessToken, cloneId);
