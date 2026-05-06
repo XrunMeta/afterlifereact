@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
 
@@ -20,13 +21,13 @@ import { getOrCreateDeviceId } from "../../lib/deviceId";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "XrunOnboarding">;
 
-const GENDER_OPTIONS = [
-  { value: "male" as const, label: "남성" },
-  { value: "female" as const, label: "여성" },
-  { value: "other" as const, label: "기타" },
-];
-
 export default function XrunOnboardingScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
+  const GENDER_OPTIONS = [
+    { value: "male" as const, label: t("auth.signup.male") },
+    { value: "female" as const, label: t("auth.signup.female") },
+    { value: "other" as const, label: t("auth.signup.other") },
+  ];
   const { email } = route.params;
   const pin = "pin" in route.params ? route.params.pin : undefined;
   const verificationCode =
@@ -69,7 +70,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
     if (!trimmedName) {
-      Alert.alert("알림", "이름을 입력해주세요.");
+      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
       return false;
     }
     if (!trimmedPhone) {
