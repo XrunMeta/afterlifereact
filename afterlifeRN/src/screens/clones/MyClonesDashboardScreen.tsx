@@ -196,15 +196,38 @@ export default function MyClonesDashboardScreen() {
   }, [inviteSearch, accessToken, inviteModal]);
 
   const handleSendInvite = async (user: UserSearchItem) => {
-    if (!accessToken || !inviteModal) return;
+    if (!accessToken || !inviteModal) {
+      console.warn("[Dashboard] handleSendInvite: missing accessToken or inviteModal");
+      return;
+    }
+    console.log("[Dashboard] sendInvite start:", { cloneId: inviteModal.cloneId, email: user.email });
     try {
-      await createInvite(accessToken, inviteModal.cloneId, {
+      const res = await createInvite(accessToken, inviteModal.cloneId, {
         invite_email: user.email,
       });
+      console.log("[Dashboard] sendInvite success:", res);
       setInvitedIds((prev) => new Set(prev).add(user.id));
+      setDeleteResultMessage(`${user.name ?? user.email} 에게 초대를 보냈어요.`);
     } catch (err) {
+      if (err instanceof AuthApiError) {
+        console.warn(
+          "[Dashboard] createInvite failed:",
+          err.code,
+          err.status,
+          err.message,
+          "details=",
+          JSON.stringify(err.details),
+        );
+        if (err.code === "UNAUTHENTICATED" || err.status === 401) {
+          await useAuthStore.getState().apiLogout();
+          setDeleteResultMessage("로그인 세션이 만료됐어요. 다시 로그인해주세요.");
+          return;
+        }
+      } else {
+        console.warn("[Dashboard] createInvite failed:", err);
+      }
       const msg = err instanceof AuthApiError ? err.message : "초대 발송 실패";
-      console.warn("[Dashboard] createInvite failed:", msg);
+      setDeleteResultMessage(msg);
     }
   };
 
