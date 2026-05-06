@@ -43,7 +43,8 @@ export default function InviteAcceptScreen() {
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [accepting, setAccepting] = useState(false);
+
+  const [acting, setActing] = useState<null | "accepting" | "declining">(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +83,8 @@ export default function InviteAcceptScreen() {
       Alert.alert(t("common.notice"), t("inviteAccept.loginRequired"));
       return;
     }
-    setAccepting(true);
+    if (acting) return; 
+    setActing("accepting");
     try {
       const res = await acceptInvite(accessToken, token);
       console.log("[InviteAccept] success:", res);
@@ -117,16 +119,18 @@ export default function InviteAcceptScreen() {
         msg = err.message;
       }
       Alert.alert(t("common.error"), msg);
-      setAccepting(false);
+      setActing(null);
     }
   };
 
   const handleDecline = async () => {
 
+    if (acting) return; 
     if (!accessToken) {
       navigation.goBack();
       return;
     }
+    setActing("declining");
     try {
       const res = await declineInvite(accessToken, token);
       console.log("[InviteAccept] decline:", res);
@@ -135,6 +139,7 @@ export default function InviteAcceptScreen() {
       console.warn("[InviteAccept] decline failed:", err);
       const msg = err instanceof AuthApiError ? err.message : t("inviteAccept.acceptFailed");
       Alert.alert(t("common.error"), msg);
+      setActing(null);
     }
   };
 
@@ -184,15 +189,15 @@ export default function InviteAcceptScreen() {
 
             <View style={s.actions}>
               <Button
-                title={accepting ? t("common.loading") : t("inviteAccept.accept")}
+                title={acting === "accepting" ? t("common.loading") : t("inviteAccept.accept")}
                 onPress={handleAccept}
-                disabled={accepting || !isLoggedIn}
+                disabled={acting !== null || !isLoggedIn}
                 variant="accent"
               />
               <Button
-                title={t("inviteAccept.decline")}
+                title={acting === "declining" ? t("common.loading") : t("inviteAccept.decline")}
                 onPress={handleDecline}
-                disabled={accepting}
+                disabled={acting !== null}
                 variant="ghost"
               />
             </View>
