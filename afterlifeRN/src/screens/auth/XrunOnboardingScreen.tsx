@@ -1,6 +1,7 @@
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392, v_79c4f2 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
 
@@ -20,13 +21,13 @@ import { v_ea1c99 } from "../../lib/deviceId";
 
 type Props = v_432191<v_384e19, "XrunOnboarding">;
 
-const v_798085 = [
-  { value: "male" as const, label: "남성" },
-  { value: "female" as const, label: "여성" },
-  { value: "other" as const, label: "기타" },
-];
-
 export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
+  const v_798085 = [
+    { value: "male" as const, label: v_8d41d7("auth.signup.male") },
+    { value: "female" as const, label: v_8d41d7("auth.signup.female") },
+    { value: "other" as const, label: v_8d41d7("auth.signup.other") },
+  ];
   const { email: v_e0c7e8 } = v_c7daf6.params;
   const v_6bee94 = "pin" in v_c7daf6.params ? v_c7daf6.params.pin : undefined;
   const v_8e7cda =
@@ -69,7 +70,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     const v_affc3e = v_1833e7.trim();
     const v_d1d8b2 = v_d74a81.trim();
     if (!v_affc3e) {
-      v_03e392.alert("알림", "이름을 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return false;
     }
     if (!v_d1d8b2) {
