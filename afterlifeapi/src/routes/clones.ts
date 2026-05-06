@@ -599,6 +599,51 @@ v_f891e6.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT cf.id        AS followId,
+                cf.user_id   AS userId,
+                cf.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM clone_follows cf
+           JOIN users u ON u.id = cf.user_id
+          WHERE cf.clone_id = ? AND u.deleted_at IS NULL
+          ORDER BY cf.id DESC
+          LIMIT ?`,
+      )
+      .bind(v_6e0fd3, v_02be30)
+      .all<{
+        followId: number;
+        userId: number;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => ({
+      followId: v_cb35cb.followId,
+      userId: v_cb35cb.userId,
+      name: v_cb35cb.userName,
+      email: v_cb35cb.userEmail,
+      avatarUrl: v_cb35cb.userAvatarUrl,
+      createdAt: v_cb35cb.createdAt,
+    })),
+  });
+});
+
 v_f891e6.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
