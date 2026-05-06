@@ -318,7 +318,8 @@ export default function v_c316d8() {
       {}
       <Modal visible={!!v_ed660d} transparent animationType="slide">
         <KeyboardAvoidingView
-          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+
+          behavior="padding"
           style={{ flex: 1 }}
         >
         <Pressable style={v_d81136.commentOverlay} onPress={() => v_b07dd3(null)}>
