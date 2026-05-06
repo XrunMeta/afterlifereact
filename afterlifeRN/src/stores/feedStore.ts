@@ -98,6 +98,11 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     try {
       const res = await listDiscoverFeeds({ limit: 50 });
       console.log("[feedStore] discover loaded:", res.items.length);
+
+      if (res.items.length === 0) {
+        set({ apiLoading: false });
+        return;
+      }
       set({ apiFeeds: res.items, apiLoading: false });
     } catch (err) {
       console.warn("[feedStore] discover failed:", err);

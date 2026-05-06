@@ -23,14 +23,14 @@ function formatLikes(n: number): string {
 
 export function toFeedItem(f: DomainFeed): FeedItem {
 
+  const fromApi = apiCloneCache.has(f.cloneId);
   const c =
     apiCloneCache.get(f.cloneId) ??
     seedSource.clones().find((x) => x.id === f.cloneId);
   const h = Math.abs(f.id);
 
-  const likes =
-    typeof f.likesCount === "number" ? f.likesCount : 500 + (h % 9500);
-  const comments = 20 + (h % 480);
+  const likes = fromApi ? (f.likesCount ?? 0) : 500 + (h % 9500);
+  const comments = fromApi ? 0 : 20 + (h % 480);
   const localImage = LOCAL_IMAGE_BY_CLONE_ID[f.cloneId];
   return {
     id: f.id,
