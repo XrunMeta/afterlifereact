@@ -163,6 +163,40 @@ export async function v_7f4050(
   return v_04b58a(`/oth-path${v_6e0fd3}/oth-path`, v_2ca7e0, { method: "GET" });
 }
 
+export interface CreateInvitePayload {
+  invite_email?: string;
+  relation?: string;
+  grant_owner?: boolean;
+  ttl_hours?: number;
+}
+export interface CreateInviteResponse {
+  token: string;
+  expiresAt: string;
+  inviteEmail: string | null;
+  grantOwner: boolean;
+  notify?: {
+    inserted: boolean;
+    pushAttempted: number;
+    pushSent: number;
+    emailSent: boolean;
+  } | null;
+}
+export async function v_e4a407(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_931bf0,
+): Promise<CreateInviteResponse> {
+  return v_04b58a<CreateInviteResponse>(
+    `/oth-path${v_6e0fd3}/oth-path`,
+    v_2ca7e0,
+    {
+      method: "POST",
+      body: JSON.stringify(v_931bf0),
+    },
+    v_7f4dc3(),
+  );
+}
+
 export async function v_735203(
   v_2ca7e0,
   v_6e0fd3,
