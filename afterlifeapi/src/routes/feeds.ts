@@ -143,53 +143,61 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     "c.deleted_at IS NULL",
     "c.clone_type != 'memlow'",
     "c.visibility = 'public'",
+    "c.training_status = 'active'",
   ];
   const v_925171 = [];
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
-    v_abcc8d.push("f.id < ?");
+    v_abcc8d.push("c.id < ?");
     v_925171.push(v_75cbf4);
   }
 
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT f.id              AS feedId,
-                f.clone_id         AS cloneId,
-                f.content          AS content,
-                f.media_url        AS mediaUrl,
-                f.media_type       AS mediaType,
-                f.likes_count      AS likesCount,
-                f.created_at       AS createdAt,
+        `SELECT c.id              AS cloneId,
                 c.name             AS cloneName,
                 c.username         AS cloneUsername,
+                c.description      AS cloneDescription,
                 c.avatar_url       AS cloneAvatarUrl,
-                c.clone_type       AS cloneType
-           FROM feeds f
-           JOIN clones c ON c.id = f.clone_id
+                c.clone_type       AS cloneType,
+                c.created_at       AS cloneCreatedAt,
+                f.id               AS feedId,
+                f.content          AS feedContent,
+                f.media_url        AS feedMediaUrl,
+                f.media_type       AS feedMediaType,
+                f.likes_count      AS feedLikesCount,
+                f.created_at       AS feedCreatedAt
+           FROM clones c
+           LEFT JOIN feeds f ON f.id = (
+             SELECT id FROM feeds WHERE clone_id = c.id
+             ORDER BY id DESC LIMIT 1
+           )
           WHERE ${v_abcc8d.join(" AND ")}
-          ORDER BY f.id DESC
+          ORDER BY c.id DESC
           LIMIT ?`,
       )
       .bind(...v_925171, v_02be30 + 1)
       .all<{
-        feedId: number;
         cloneId: number;
-        content: string | null;
-        mediaUrl: string | null;
-        mediaType: string | null;
-        likesCount: number;
-        createdAt: string;
         cloneName: string;
         cloneUsername: string;
+        cloneDescription: string | null;
         cloneAvatarUrl: string | null;
         cloneType: string;
+        cloneCreatedAt: string;
+        feedId: number | null;
+        feedContent: string | null;
+        feedMediaUrl: string | null;
+        feedMediaType: string | null;
+        feedLikesCount: number | null;
+        feedCreatedAt: string | null;
       }>()
   ).results;
 
   const v_6bbe19 = v_18b8bf.length > v_02be30;
   const v_2365e9 = v_6bbe19 ? v_18b8bf.slice(0, v_02be30) : v_18b8bf;
   const v_64f859 =
-    v_6bbe19 && v_2365e9.length > 0 ? v_2365e9[v_2365e9.length - 1]!.feedId : null;
+    v_6bbe19 && v_2365e9.length > 0 ? v_2365e9[v_2365e9.length - 1]!.cloneId : null;
 
   const v_8b86f5 = Array.from(new Set(v_2365e9.map((v_cb35cb) => v_cb35cb.cloneId)));
   const v_9afb14 = new Map<number, string[]>();
@@ -213,13 +221,15 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
 
   return v_3f4e2e.json({
     items: v_2365e9.map((v_cb35cb) => ({
-      id: v_cb35cb.feedId,
+
+      id: v_cb35cb.feedId ?? -v_cb35cb.cloneId,
       cloneId: v_cb35cb.cloneId,
-      content: v_cb35cb.content,
-      mediaUrl: v_cb35cb.mediaUrl,
-      mediaType: v_cb35cb.mediaType,
-      likesCount: v_cb35cb.likesCount,
-      createdAt: v_cb35cb.createdAt,
+
+      content: v_cb35cb.feedContent ?? v_cb35cb.cloneDescription ?? "",
+      mediaUrl: v_cb35cb.feedMediaUrl ?? v_cb35cb.cloneAvatarUrl ?? null,
+      mediaType: v_cb35cb.feedMediaType,
+      likesCount: v_cb35cb.feedLikesCount ?? 0,
+      createdAt: v_cb35cb.feedCreatedAt ?? v_cb35cb.cloneCreatedAt,
       clone: {
         id: v_cb35cb.cloneId,
         name: v_cb35cb.cloneName,
