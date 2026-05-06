@@ -44,6 +44,9 @@ export interface DomainClone {
 
   myRole?: "owner" | "coowner";
   coownerCount?: number;
+  likesCount?: number;
+  followersCount?: number;
+  messagesCount?: number;
 }
 
 export interface DomainFollow {

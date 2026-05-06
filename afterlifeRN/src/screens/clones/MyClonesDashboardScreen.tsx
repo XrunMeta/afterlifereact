@@ -36,6 +36,12 @@ type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
 const DEFAULT_USER_ID = 1;
 
+function formatStat(n: number | null | undefined): string {
+  if (typeof n !== "number" || !Number.isFinite(n)) return "0";
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
 function adaptMyClone(c: MyClone): Clone {
   return {
     id: c.id,
@@ -50,6 +56,9 @@ function adaptMyClone(c: MyClone): Clone {
     createdAt: c.createdAt,
     myRole: c.myRole,
     coownerCount: c.coownerCount,
+    likesCount: c.likesCount,
+    followersCount: c.followersCount,
+    messagesCount: c.messagesCount,
     ...(c.l1Profile ? { l1Profile: c.l1Profile } : {}),
   };
 }
@@ -344,9 +353,11 @@ export default function MyClonesDashboardScreen() {
     const isActive = state?.isActive ?? true;
     const visibility = state?.visibility ?? clone.visibility;
     const isMemlow = clone.cloneType === "memlow";
-    const followerCount = follows.filter(
-      (f) => f.followingCloneId === clone.id,
-    ).length;
+
+    const followerCount =
+      typeof clone.followersCount === "number"
+        ? clone.followersCount
+        : follows.filter((f) => f.followingCloneId === clone.id).length;
 
     const coownerCount =
       typeof clone.coownerCount === "number"
@@ -434,21 +445,22 @@ export default function MyClonesDashboardScreen() {
               onPress={() => setStatsModal({ type: "likes", cloneName: clone.displayName })}
             >
               <Feather name="heart" size={14} color={COLORS.zinc500} />
-              <Text style={s.statText}>2.4k</Text>
+              <Text style={s.statText}>{formatStat(clone.likesCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.stat}
               onPress={() => setStatsModal({ type: "interactions", cloneName: clone.displayName })}
             >
               <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-              <Text style={s.statText}>4.5k</Text>
+              <Text style={s.statText}>{formatStat(clone.messagesCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.stat}
               onPress={() => setStatsModal({ type: "comments", cloneName: clone.displayName })}
             >
               <Feather name="message-circle" size={14} color={COLORS.zinc500} />
-              <Text style={s.statText}>328</Text>
+              {}
+              <Text style={s.statText}>0</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.stat}

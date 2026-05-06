@@ -359,8 +359,13 @@ users.get("/me/clones", requireAuth, async (c) => {
           c.l1_profile     AS l1ProfileJson,
           (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole,
           (SELECT COUNT(*) FROM clone_shares s
-            WHERE s.clone_id = c.id AND s.status = 'accepted') AS coownerCount
+            WHERE s.clone_id = c.id AND s.status = 'accepted') AS coownerCount,
+          (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+            WHERE f.clone_id = c.id) AS likesCount,
+          COALESCE(cs.followers_count, 0) AS followersCount,
+          COALESCE(cs.messages_count, 0) AS messagesCount
          FROM clones c
+         LEFT JOIN clone_stats cs ON cs.clone_id = c.id
         WHERE c.deletion_state = 'active'
           AND c.deleted_at IS NULL
           AND (
