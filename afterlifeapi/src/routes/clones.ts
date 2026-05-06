@@ -659,10 +659,15 @@ clones.post("/:id/block", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   }
   const userId = c.get("userId")!;
-  await c.env.DB
-    .prepare(`INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`)
-    .bind(userId, cloneId)
-    .run();
+
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
+    ).bind(userId, cloneId),
+    c.env.DB.prepare(
+      `DELETE FROM clone_follows WHERE user_id = ? AND clone_id = ?`,
+    ).bind(userId, cloneId),
+  ]);
   return c.json({ ok: true, blocked: true });
 });
 
