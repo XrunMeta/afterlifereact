@@ -422,23 +422,41 @@ export default function v_c316d8() {
               onPress={async () => {
                 const v_5f5d6d = v_12fa22;
                 v_949e66(null);
-                if (!v_5f5d6d || !v_2ca7e0) return;
+                if (!v_5f5d6d || !v_2ca7e0) {
+                  console.log(
+                    `[BLOCK] aborted — target=${!!v_5f5d6d} accessToken=${!!v_2ca7e0}`,
+                  );
+                  return;
+                }
+                console.log(
+                  `[BLOCK] start cloneId=${v_5f5d6d.cloneId} author=${v_5f5d6d.author}`,
+                );
                 try {
-                  await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
+                  console.log(`[BLOCK] → POST /oth-path${v_5f5d6d.cloneId}/block`);
+                  const v_9297f1 = await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
+                  console.log(`[BLOCK] ← block API ok:`, v_9297f1);
                   v_15c939("이 페르소나가 차단됐어요");
 
                   const v_c3bc75 = v_37977a.getState().apiFeeds;
+                  const v_f0ee2c = v_c3bc75?.length ?? 0;
                   if (v_c3bc75) {
                     v_37977a.setState({
                       apiFeeds: v_c3bc75.filter((v_23805a) => v_23805a.cloneId !== v_5f5d6d.cloneId),
                     });
                   }
+                  console.log(
+                    `[BLOCK] apiFeeds filtered — before=${v_f0ee2c} after=${
+                      v_37977a.getState().apiFeeds?.length ?? 0
+                    }`,
+                  );
 
                   await v_b4902e.getState().unfollowLocalForBlock(v_5f5d6d.cloneId);
 
+                  console.log(`[BLOCK] → loadDiscover() refetch`);
                   void v_c600ef();
+                  console.log(`[BLOCK] complete cloneId=${v_5f5d6d.cloneId}`);
                 } catch (v_49263d) {
-                  console.warn("[Home] block failed:", v_49263d);
+                  console.warn(`[BLOCK] FAILED cloneId=${v_5f5d6d.cloneId}`, v_49263d);
                   v_15c939("차단에 실패했어요");
                 }
               }}

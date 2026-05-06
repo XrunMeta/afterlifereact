@@ -361,13 +361,33 @@ export interface BlockedClone {
 }
 
 export async function v_97c75d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked: true }> {
-  return v_04b58a(`/oth-path${v_6e0fd3}/block`, v_2ca7e0, { method: "POST" });
+  console.log(`[BLOCK-API] → POST /oth-path${v_6e0fd3}/block`);
+  const v_8f00b9 = await v_04b58a<{ ok: true; blocked: true }>(
+    `/oth-path${v_6e0fd3}/block`,
+    v_2ca7e0,
+    { method: "POST" },
+  );
+  console.log(`[BLOCK-API] ← ok cloneId=${v_6e0fd3}`, v_8f00b9);
+  return v_8f00b9;
 }
 export async function v_c0dd8d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked: false }> {
-  return v_04b58a(`/oth-path${v_6e0fd3}/block`, v_2ca7e0, { method: "DELETE" });
+  console.log(`[BLOCK-API] → DELETE /oth-path${v_6e0fd3}/block`);
+  const v_8f00b9 = await v_04b58a<{ ok: true; blocked: false }>(
+    `/oth-path${v_6e0fd3}/block`,
+    v_2ca7e0,
+    { method: "DELETE" },
+  );
+  console.log(`[BLOCK-API] ← unblock ok cloneId=${v_6e0fd3}`, v_8f00b9);
+  return v_8f00b9;
 }
 export async function v_dbedc9(v_2ca7e0): Promise<{ items: BlockedClone[] }> {
-  return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
+  const v_8f00b9 = await v_04b58a<{ items: BlockedClone[] }>(
+    `/oth-path`,
+    v_2ca7e0,
+    { method: "GET" },
+  );
+  console.log(`[BLOCK-API] listMyBlocks ← ${v_8f00b9.items.length} items`);
+  return v_8f00b9;
 }
 
 export interface FollowedClone {

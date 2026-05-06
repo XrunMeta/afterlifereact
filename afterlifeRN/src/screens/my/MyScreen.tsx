@@ -180,9 +180,14 @@ export default function v_ed02a5() {
         return;
       }
       const v_43e90c = v_b113dd.id;
+      console.log(`[MyScreen] fetch start userId=${v_43e90c}`);
       v_7281a5(v_2ca7e0, v_43e90c)
         .then((v_cb35cb) => {
           if (!v_2008a4) {
+            console.log(
+              `[MyScreen] followedClones ← ${v_cb35cb.items.length} items`,
+              v_cb35cb.items.map((v_23805a) => ({ id: v_23805a.id, name: v_23805a.name })),
+            );
             v_b81b74(v_cb35cb.items.length);
             v_9127a1(v_cb35cb.items);
           }
@@ -191,6 +196,10 @@ export default function v_ed02a5() {
       v_d60cdf(v_2ca7e0)
         .then((v_cb35cb) => {
           if (!v_2008a4) {
+            console.log(
+              `[MyScreen] myClones ← ${v_cb35cb.items.length} items`,
+              v_cb35cb.items.map((v_23805a) => ({ id: v_23805a.id, name: v_23805a.name })),
+            );
             v_3e7aad(v_cb35cb.items.length);
             v_6df89a(v_cb35cb.items);
           }
