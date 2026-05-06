@@ -12,6 +12,7 @@ import { v_d0625e } from "./src/components/dev/BaseUrlBadge";
 import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
 import { v_0b10a6 } from "./src/stores/configStore";
+import { v_9bedf5 } from "./src/lib/pushNotifications";
 import type { v_8ad91b } from "./src/navigation/types";
 
 const linking: v_4c916c<v_8ad91b> = {
@@ -34,7 +35,12 @@ export default function v_6540c3() {
       v_1ed7d9.getState().hydrate(),
       v_b4902e.getState().hydrate(),
       v_0b10a6.getState().hydrate(),
-    ]).then(() => v_0189ac(true));
+    ]).then(() => {
+      v_0189ac(true);
+
+      const v_21cc31 = v_1ed7d9.getState().accessToken;
+      if (v_21cc31) v_9bedf5(v_21cc31);
+    });
   }, []);
 
   if (!v_b1717e) {

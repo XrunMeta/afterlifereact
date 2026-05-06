@@ -249,6 +249,32 @@ v_de7ba7.get("/me/devices", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ devices: v_18b8bf.results ?? [] });
 });
 
+v_de7ba7.post("/me/devices", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req.json().catch(() => ({})) as {
+    deviceId?: string;
+    pushToken?: string;
+    platform?: "ios" | "android" | "web";
+  };
+  if (!v_4d33b2.deviceId || !v_4d33b2.pushToken || !v_4d33b2.platform) {
+    throw new v_3ebe58("VALIDATION_FAILED", "deviceId, pushToken, platform required.");
+  }
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO user_devices (user_id, device_id, push_token, platform, is_active, last_active_at)
+       VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+       ON CONFLICT(user_id, device_id) DO UPDATE SET
+         push_token = excluded.push_token,
+         platform   = excluded.platform,
+         is_active  = 1,
+         last_active_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP`,
+    )
+    .bind(v_43e90c, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform)
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
 v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_18b8bf = await v_3f4e2e.env.DB
