@@ -427,6 +427,13 @@ export default function v_c316d8() {
                   await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
                   v_15c939("이 페르소나가 차단됐어요");
 
+                  const v_c3bc75 = v_37977a.getState().apiFeeds;
+                  if (v_c3bc75) {
+                    v_37977a.setState({
+                      apiFeeds: v_c3bc75.filter((v_23805a) => v_23805a.cloneId !== v_5f5d6d.cloneId),
+                    });
+                  }
+
                   void v_c600ef();
                 } catch (v_49263d) {
                   console.warn("[Home] block failed:", v_49263d);
