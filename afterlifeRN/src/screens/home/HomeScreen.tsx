@@ -18,7 +18,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -63,6 +63,12 @@ export default function HomeScreen() {
       void loadDiscover();
     }
   }, [apiFeeds, loadDiscover]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadDiscover();
+    }, [loadDiscover]),
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showFilter, setShowFilter] = useState(false);
