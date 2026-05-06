@@ -495,21 +495,18 @@ export default function v_def15b() {
             <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
             <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
           </TouchableOpacity>
-          {}
-          {v_eb25ce.myRole === "owner" && (
-            <TouchableOpacity
-              style={v_fd5f43.actionBtn}
-              onPress={() => {
-                v_35dce3("");
-                v_ff2199([]);
-                v_b21d0d(new Set());
-                v_2dac5f({ cloneId: v_eb25ce.id });
-              }}
-            >
-              <Feather name="user-plus" size={16} color={v_1bfbd0.zinc700} />
-              <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionInvite")}</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={v_fd5f43.actionBtn}
+            onPress={() => {
+              v_35dce3("");
+              v_ff2199([]);
+              v_b21d0d(new Set());
+              v_2dac5f({ cloneId: v_eb25ce.id });
+            }}
+          >
+            <Feather name="user-plus" size={16} color={v_1bfbd0.zinc700} />
+            <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionInvite")}</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
