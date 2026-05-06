@@ -491,7 +491,7 @@
       "followersTitle": "지인공개",
       "followersDesc": "팔로워만 볼 수 있어요",
       "privateTitle": "비공개",
-      "privateDesc": "본인과 공동관리자만 볼 수 있어요"
+      "privateDesc": "본인만 볼 수 있어요"
     },
     "creating": {
       "title": "페르소나 생성 중...",

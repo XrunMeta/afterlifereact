@@ -21,6 +21,8 @@ interface FollowState {
   hydrate: () => Promise<void>;
   isFollowing: (cloneId: number) => boolean;
   toggleFollow: (cloneId: number) => Promise<void>;
+
+  unfollowLocalForBlock: (cloneId: number) => Promise<void>;
   followersCount: (cloneId: number) => number;
   followingIdsFor: (userId: number) => number[];
   resetForLogout: () => Promise<void>;
@@ -123,6 +125,24 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
     } catch (v_49263d) {
       console.warn("[followStore] API toggle error:", v_49263d);
     }
+  },
+
+  unfollowLocalForBlock: async (v_6e0fd3) => {
+    const v_ceb55a = v_1ed7d9.getState().user?.id ?? v_b9d568;
+    v_bb8024({
+      follows: v_38715b().follows.filter(
+        (v_8b5cd8) => !(v_8b5cd8.followerUserId === v_ceb55a && v_8b5cd8.followingCloneId === v_6e0fd3),
+      ),
+    });
+
+    const v_479f05 = await v_e84827.getItem(v_b6c376);
+    const v_11ea7b = v_479f05 ? JSON.parse(v_479f05) : [];
+    v_11ea7b.push({
+      cloneId: v_6e0fd3,
+      action: "unfollow",
+      at: new Date().toISOString(),
+    });
+    await v_e84827.setItem(v_b6c376, JSON.stringify(v_11ea7b));
   },
 
   followersCount: (v_6e0fd3) =>

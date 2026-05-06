@@ -490,7 +490,7 @@
       "followersTitle": "Followers",
       "followersDesc": "Only followers can see",
       "privateTitle": "Private",
-      "privateDesc": "Only you and co-admins"
+      "privateDesc": "Only you"
     },
     "creating": {
       "title": "Creating persona...",
