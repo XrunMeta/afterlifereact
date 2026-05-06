@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, CommonActions } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
@@ -157,6 +157,16 @@ export default function MyScreen() {
   const uid = apiUser?.id ?? user?.id ?? DEFAULT_USER_ID;
   const [apiFollowingCount, setApiFollowingCount] = useState<number | null>(null);
   const [apiMyClonesCount, setApiMyClonesCount] = useState<number | null>(null);
+
+  const goToClone = (cloneId: number) => {
+    setStatsModal(null);
+    navigation.getParent()?.dispatch(
+      CommonActions.navigate({
+        name: "ClonesTab",
+        params: { screen: "CloneDetail", params: { cloneId } },
+      }),
+    );
+  };
   const [apiFollowingList, setApiFollowingList] = useState<FollowedClone[] | null>(null);
   const [apiMyClonesList, setApiMyClonesList] = useState<MyClone[] | null>(null);
   const [statsModal, setStatsModal] = useState<"following" | "myClones" | null>(null);
@@ -402,7 +412,12 @@ export default function MyScreen() {
                   apiFollowingList.map((c) => {
                     const followed = isFollowing(c.id);
                     return (
-                      <View key={c.id} style={s.listRow}>
+                      <TouchableOpacity
+                        key={c.id}
+                        style={s.listRow}
+                        activeOpacity={0.6}
+                        onPress={() => goToClone(c.id)}
+                      >
                         {c.avatarUrl ? (
                           <Image source={{ uri: c.avatarUrl }} style={s.listAvatar} />
                         ) : (
@@ -413,14 +428,29 @@ export default function MyScreen() {
                           <Text style={s.listSub}>@{c.username}</Text>
                         </View>
                         <TouchableOpacity
-                          onPress={() => void toggleFollow(c.id)}
+                          onPress={async () => {
+                            await toggleFollow(c.id);
+
+                            if (followed) {
+                              setApiFollowingList((prev) =>
+                                prev ? prev.filter((x) => x.id !== c.id) : prev,
+                              );
+                              setApiFollowingCount((prev) =>
+                                typeof prev === "number" ? Math.max(0, prev - 1) : prev,
+                              );
+                            } else {
+                              setApiFollowingCount((prev) =>
+                                typeof prev === "number" ? prev + 1 : prev,
+                              );
+                            }
+                          }}
                           style={[s.followToggleBtn, followed && s.followToggleBtnActive]}
                         >
                           <Text style={[s.followToggleText, followed && s.followToggleTextActive]}>
                             {followed ? "팔로잉" : "팔로우"}
                           </Text>
                         </TouchableOpacity>
-                      </View>
+                      </TouchableOpacity>
                     );
                   })
                 )
@@ -433,7 +463,12 @@ export default function MyScreen() {
                   </View>
                 ) : (
                   apiMyClonesList.map((c) => (
-                    <View key={c.id} style={s.listRow}>
+                    <TouchableOpacity
+                      key={c.id}
+                      style={s.listRow}
+                      activeOpacity={0.6}
+                      onPress={() => goToClone(c.id)}
+                    >
                       {c.avatarUrl ? (
                         <Image source={{ uri: c.avatarUrl }} style={s.listAvatar} />
                       ) : (
@@ -443,7 +478,7 @@ export default function MyScreen() {
                         <Text style={s.listName}>{c.name}</Text>
                         <Text style={s.listSub}>@{c.username}</Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ))
                 )
               )}
