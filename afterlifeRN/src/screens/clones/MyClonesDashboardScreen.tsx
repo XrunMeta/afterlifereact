@@ -47,6 +47,8 @@ function adaptMyClone(c: MyClone): Clone {
     visibility: c.visibility,
     status: (c.trainingStatus as Clone["status"]) ?? "active",
     createdAt: c.createdAt,
+    myRole: c.myRole,
+    coownerCount: c.coownerCount,
     ...(c.l1Profile ? { l1Profile: c.l1Profile } : {}),
   };
 }
