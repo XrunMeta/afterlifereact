@@ -142,7 +142,11 @@
     "muteOff": "음소거 해제",
     "videoOn": "영상 켜기",
     "videoOff": "영상 끄기",
-    "endCall": "통화 종료"
+    "endCall": "통화 종료",
+    "inCall": "통화 중 {{time}}",
+    "noCredits": "크레딧이 부족합니다",
+    "giftSent": "{{name}}을 선물했습니다",
+    "giftTitle": "선물 보내기"
   },
   "feed": {
     "homeTitle": "홈",
