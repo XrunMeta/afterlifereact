@@ -2,7 +2,12 @@ import { create } from "zustand";
 import { seedSource } from "../api/source";
 import type { DomainClone, DomainFeed } from "../types/domain";
 import { useAuthStore } from "./authStore";
-import { listDiscoverFeeds, type DiscoverFeedItem } from "../api/clones";
+import {
+  listDiscoverFeeds,
+  likeFeed,
+  unlikeFeed,
+  type DiscoverFeedItem,
+} from "../api/clones";
 
 const DEFAULT_USER_ID = 1;
 
@@ -76,12 +81,64 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   bookmarkedIds: [],
   selectedInterests: [],
 
-  toggleLike: (id) =>
-    set((s) => ({
-      likedIds: s.likedIds.includes(id)
-        ? s.likedIds.filter((i) => i !== id)
-        : [...s.likedIds, id],
-    })),
+  toggleLike: (id) => {
+    const state = get();
+    const wasLiked = state.likedIds.includes(id);
+    const willLike = !wasLiked;
+
+    set({
+      likedIds: willLike
+        ? [...state.likedIds, id]
+        : state.likedIds.filter((i) => i !== id),
+    });
+
+    const apiFeeds = state.apiFeeds;
+    if (apiFeeds) {
+      set({
+        apiFeeds: apiFeeds.map((f) =>
+          f.id === id
+            ? { ...f, likesCount: Math.max(0, f.likesCount + (willLike ? 1 : -1)) }
+            : f,
+        ),
+      });
+    }
+
+    if (id < 0) return;
+    const accessToken = useAuthStore.getState().accessToken;
+    if (!accessToken) return;
+    const op = willLike ? likeFeed : unlikeFeed;
+    op(accessToken, id)
+      .then((res) => {
+
+        const cur = get().apiFeeds;
+        if (cur) {
+          set({
+            apiFeeds: cur.map((f) =>
+              f.id === id ? { ...f, likesCount: res.likesCount } : f,
+            ),
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn("[feedStore] toggleLike failed:", err);
+
+        const cur = get();
+        set({
+          likedIds: wasLiked
+            ? [...cur.likedIds.filter((i) => i !== id), id]
+            : cur.likedIds.filter((i) => i !== id),
+        });
+        if (cur.apiFeeds) {
+          set({
+            apiFeeds: cur.apiFeeds.map((f) =>
+              f.id === id
+                ? { ...f, likesCount: Math.max(0, f.likesCount + (willLike ? -1 : 1)) }
+                : f,
+            ),
+          });
+        }
+      });
+  },
 
   toggleBookmark: (id) =>
     set((s) => ({
