@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
@@ -53,6 +54,7 @@ function adaptMyClone(c: MyClone): Clone {
 export default function MyClonesDashboardScreen() {
   const navigation = useNavigation<ClonesNav>();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const authUser = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -207,7 +209,7 @@ export default function MyClonesDashboardScreen() {
       });
       console.log("[Dashboard] sendInvite success:", res);
       setInvitedIds((prev) => new Set(prev).add(user.id));
-      setDeleteResultMessage(`${user.name ?? user.email} 에게 초대를 보냈어요.`);
+      setDeleteResultMessage(t("invite.sentToast", { target: user.name ?? user.email }));
     } catch (err) {
       if (err instanceof AuthApiError) {
         console.warn(
@@ -220,13 +222,13 @@ export default function MyClonesDashboardScreen() {
         );
         if (err.code === "UNAUTHENTICATED" || err.status === 401) {
           await useAuthStore.getState().apiLogout();
-          setDeleteResultMessage("로그인 세션이 만료됐어요. 다시 로그인해주세요.");
+          setDeleteResultMessage(t("dashboard.sessionExpired"));
           return;
         }
       } else {
         console.warn("[Dashboard] createInvite failed:", err);
       }
-      const msg = err instanceof AuthApiError ? err.message : "초대 발송 실패";
+      const msg = err instanceof AuthApiError ? err.message : t("invite.sendFailed");
       setDeleteResultMessage(msg);
     }
   };
@@ -265,9 +267,9 @@ export default function MyClonesDashboardScreen() {
       const res = await deleteClone(accessToken, targetId);
       console.log("[Dashboard] deleteClone success:", res);
       if (res.state === "transferred" && res.transferred) {
-        setDeleteResultMessage("공동관리자에게 권한이 이전되었어요.");
+        setDeleteResultMessage(t("dashboard.deleteSuccessTransferred"));
       } else {
-        setDeleteResultMessage("페르소나가 삭제되었어요.");
+        setDeleteResultMessage(t("dashboard.deleteSuccessSimple"));
       }
 
       setHiddenCloneIds((prev) => new Set(prev).add(targetId));
@@ -285,20 +287,20 @@ export default function MyClonesDashboardScreen() {
 
         if (err.code === "CONFLICT" && /already deleted/i.test(err.message)) {
           setHiddenCloneIds((prev) => new Set(prev).add(targetId));
-          setDeleteResultMessage("이미 삭제된 페르소나입니다. 목록을 갱신했어요.");
+          setDeleteResultMessage(t("dashboard.deleteAlreadyDeleted"));
           await fetchMyClones();
           return;
         }
 
         if (err.code === "UNAUTHENTICATED" || err.status === 401) {
           await useAuthStore.getState().apiLogout();
-          setDeleteResultMessage("로그인 세션이 만료됐어요. 다시 로그인해주세요.");
+          setDeleteResultMessage(t("dashboard.sessionExpired"));
           return;
         }
       } else {
         console.warn("[Dashboard] deleteClone failed:", err);
       }
-      const msg = err instanceof AuthApiError ? err.message : "삭제에 실패했어요.";
+      const msg = err instanceof AuthApiError ? err.message : t("dashboard.deleteFailed");
       setDeleteResultMessage(msg);
     }
   };
@@ -348,7 +350,7 @@ export default function MyClonesDashboardScreen() {
               color={isActive ? COLORS.success : COLORS.zinc400}
             />
             <Text style={s.activeText}>
-              {isActive ? "활동중" : "비활동중"}
+              {isActive ? t("dashboard.active") : t("dashboard.inactive")}
             </Text>
           </TouchableOpacity>
 
@@ -403,7 +405,7 @@ export default function MyClonesDashboardScreen() {
           >
             <Feather name="users" size={14} color={COLORS.zinc600} />
             <Text style={s.coownerText}>
-              공동관리자 {coownerCount}명 ›
+              {t("dashboard.coownerCount", { n: coownerCount })}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -468,14 +470,14 @@ export default function MyClonesDashboardScreen() {
             onPress={() => rootNav.navigate("Chat", { cloneId: clone.id })}
           >
             <Feather name="message-circle" size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>학습하기</Text>
+            <Text style={s.actionText}>{t("dashboard.actionLearn")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.actionBtn}
             onPress={() => rootNav.navigate("Call", { cloneId: clone.id })}
           >
             <Feather name="video" size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>통화하기</Text>
+            <Text style={s.actionText}>{t("dashboard.actionCall")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.actionBtn}
@@ -487,7 +489,7 @@ export default function MyClonesDashboardScreen() {
             }}
           >
             <Feather name="user-plus" size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>초대</Text>
+            <Text style={s.actionText}>{t("dashboard.actionInvite")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -497,7 +499,7 @@ export default function MyClonesDashboardScreen() {
   return (
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
-        title="My Persona"
+        title={t("dashboard.title")}
         rightAction={<NotificationBell />}
       />
 
@@ -510,11 +512,21 @@ export default function MyClonesDashboardScreen() {
         ListHeaderComponent={
           <>
             {}
-            <View style={s.dashTitle}>
-              <Text style={s.dashTitleText}>페르소나 대시보드</Text>
-              <Text style={s.dashSubText}>
-                생성된 AI 페르소나의 성과를 활용을 관리합니다.
-              </Text>
+            <View style={s.dashTitleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.dashTitleText}>페르소나 대시보드</Text>
+                <Text style={s.dashSubText}>
+                  생성된 AI 페르소나의 성과를 활용을 관리합니다.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={s.inviteStatusBtn}
+                onPress={() => navigation.navigate("InviteStatus")}
+                activeOpacity={0.7}
+              >
+                <Feather name="send" size={14} color={COLORS.violet600} />
+                <Text style={s.inviteStatusBtnText}>{t("inviteStatus.title")}</Text>
+              </TouchableOpacity>
             </View>
 
             {}
@@ -554,7 +566,7 @@ export default function MyClonesDashboardScreen() {
       <Modal visible={!!menuCloneId} transparent animationType="fade">
         <Pressable style={s.modalOverlay} onPress={() => setMenuCloneId(null)}>
           <Pressable style={s.menuBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.menuTitle}>관리</Text>
+            <Text style={s.menuTitle}>{t("dashboard.manage")}</Text>
             <TouchableOpacity
               style={s.menuItem}
               onPress={() => {
@@ -564,7 +576,7 @@ export default function MyClonesDashboardScreen() {
               }}
             >
               <Feather name="edit-2" size={18} color={COLORS.zinc700} />
-              <Text style={s.menuItemText}>수정</Text>
+              <Text style={s.menuItemText}>{t("dashboard.menuEdit")}</Text>
             </TouchableOpacity>
 
             {}
@@ -585,7 +597,7 @@ export default function MyClonesDashboardScreen() {
                     color={isActive ? COLORS.zinc700 : COLORS.success}
                   />
                   <Text style={s.menuItemText}>
-                    {isActive ? "비활성화" : "활성화"}
+                    {isActive ? t("dashboard.menuDeactivate") : t("dashboard.menuActivate")}
                   </Text>
                 </TouchableOpacity>
               );
@@ -606,7 +618,7 @@ export default function MyClonesDashboardScreen() {
                     size={18}
                     color={COLORS.zinc700}
                   />
-                  <Text style={s.menuItemText}>공개설정</Text>
+                  <Text style={s.menuItemText}>{t("dashboard.menuVisibility")}</Text>
                 </TouchableOpacity>
               )}
             <View style={s.menuDivider} />
@@ -618,7 +630,7 @@ export default function MyClonesDashboardScreen() {
               }}
             >
               <Feather name="trash-2" size={18} color={COLORS.error} />
-              <Text style={[s.menuItemText, { color: COLORS.error }]}>삭제</Text>
+              <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -700,12 +712,12 @@ export default function MyClonesDashboardScreen() {
       <Modal visible={!!deleteModal} transparent animationType="fade">
         <Pressable style={s.modalOverlay} onPress={() => setDeleteModal(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>페르소나 삭제</Text>
+            <Text style={s.modalTitle}>{t("dashboard.deleteTitle")}</Text>
             <Text style={s.modalDesc}>
               {deleteModal &&
               myClones.find((c) => c.id === deleteModal)?.cloneType === "memlow"
-                ? "공동관리자가 있다면 가장 먼저 수락한 분이 새 반장이 됩니다.\n없다면 페르소나가 완전히 삭제됩니다."
-                : "정말 이 페르소나를 삭제하시겠습니까?\n삭제된 페르소나는 복구할 수 없습니다."}
+                ? t("dashboard.deleteDescMemlow")
+                : t("dashboard.deleteDescDefault")}
             </Text>
             <View style={s.modalBtns}>
               <Button
@@ -756,7 +768,7 @@ export default function MyClonesDashboardScreen() {
           >
             <View style={s.sheetHandle} />
             <View style={s.inviteHeader}>
-              <Text style={s.inviteTitle}>공동관리자 초대</Text>
+              <Text style={s.inviteTitle}>{t("invite.create")}</Text>
               <TouchableOpacity onPress={() => setInviteModal(null)}>
                 <Feather name="x" size={20} color={COLORS.zinc500} />
               </TouchableOpacity>
@@ -769,7 +781,7 @@ export default function MyClonesDashboardScreen() {
                 style={s.inviteSearchInput}
                 value={inviteSearch}
                 onChangeText={setInviteSearch}
-                placeholder="이메일 또는 이름으로 검색 (afterlife 회원만)"
+                placeholder={t("dashboard.inviteSearchHint")}
                 placeholderTextColor={COLORS.placeholder}
                 autoFocus
                 autoCapitalize="none"
@@ -935,7 +947,24 @@ const s = StyleSheet.create({
   },
 
   dashTitle: { marginTop: 16, marginBottom: 20 },
+  dashTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginTop: 16,
+    marginBottom: 20,
+  },
   dashTitleText: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
+  inviteStatusBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLORS.violet100,
+    borderRadius: RADIUS.full,
+  },
+  inviteStatusBtnText: { fontSize: 12, fontWeight: "600", color: COLORS.violet600 },
   dashSubText: { fontSize: 13, color: COLORS.zinc500, marginTop: 4 },
 
   statsOverview: {

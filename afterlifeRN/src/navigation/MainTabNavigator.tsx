@@ -46,6 +46,7 @@ function ClonesStackNavigator() {
       <ClonesStack.Screen name="CloneDetail" component={CloneDetailScreen} />
       <ClonesStack.Screen name="CloneEdit" component={CloneEditScreen} />
       <ClonesStack.Screen name="CloneInvite" component={CloneInviteScreen} />
+      <ClonesStack.Screen name="InviteStatus" component={InviteStatusScreen} />
     </ClonesStack.Navigator>
   );
 }

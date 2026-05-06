@@ -51,6 +51,7 @@ export type ClonesStackParamList = {
   CloneEdit: { cloneId: number };
   CloneVisibility: { cloneId: number };
   CloneInvite: { cloneId: number };
+  InviteStatus: undefined;
 };
 
 export type ShareStackParamList = {
