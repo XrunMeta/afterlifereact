@@ -327,17 +327,6 @@ export default function EditProfileScreen() {
         </TouchableOpacity>
 
         {}
-        <TouchableOpacity
-          style={s.deleteTriggerBtn}
-          onPress={() => setDeleteOptionsVisible(true)}
-          disabled={deleting}
-        >
-          {deleting ? (
-            <ActivityIndicator color={COLORS.error} />
-          ) : (
-            <Text style={s.deleteTriggerText}>회원 탈퇴</Text>
-          )}
-        </TouchableOpacity>
       </View>
 
       {}

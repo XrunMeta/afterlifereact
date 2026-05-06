@@ -23,6 +23,7 @@ interface FollowState {
   toggleFollow: (cloneId: number) => Promise<void>;
   followersCount: (cloneId: number) => number;
   followingIdsFor: (userId: number) => number[];
+  resetForLogout: () => Promise<void>;
 }
 
 let counter = 0;
@@ -131,4 +132,9 @@ export const useFollowStore = create<FollowState>((set, get) => ({
     get()
       .follows.filter((f) => f.followerUserId === userId)
       .map((f) => f.followingCloneId),
+
+  resetForLogout: async () => {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    set({ follows: [], hydrated: false });
+  },
 }));

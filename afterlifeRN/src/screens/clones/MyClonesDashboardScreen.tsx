@@ -1077,6 +1077,15 @@ export default function MyClonesDashboardScreen() {
                           )}
                           <Text style={s.commentName}>{cm.user.name ?? cm.user.email}</Text>
                           <Text style={s.commentTime}>{formatRelativeShort(cm.createdAt)}</Text>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setStatsModal(null);
+                              setDeleteResultMessage("신고가 접수됐어요");
+                            }}
+                            style={{ marginLeft: "auto", paddingHorizontal: 6, paddingVertical: 4 }}
+                          >
+                            <Feather name="flag" size={14} color={COLORS.error} />
+                          </TouchableOpacity>
                         </View>
                         <Text style={s.commentText}>{cm.content}</Text>
                       </View>
