@@ -15,6 +15,7 @@ import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
@@ -37,6 +38,7 @@ interface FloatingGift {
 }
 
 export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
@@ -59,7 +61,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_605664, v_0f07a9] = v_5ab095<FloatingGift[]>([]);
   const v_63eb29 = v_e662ae(0);
 
-  const v_dfb220 = v_a4744c || v_eb25ce?.displayName || "페르소나";
+  const v_dfb220 = v_a4744c || v_eb25ce?.displayName || v_8d41d7("chat.personaFallback");
   const v_0e38ad = v_c1e151 || v_eb25ce?.imageUrl || "";
 
   v_c4deb2(() => {
@@ -71,12 +73,12 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_25b14f = (gift: v_84fd28) => {
     if (v_e2c945 < v_bbee9c.price) {
-      v_15c939("크레딧이 부족합니다");
+      v_15c939(v_8d41d7("call.noCredits"));
       return;
     }
 
     v_06e986((v_ba2215) => v_ba2215 - v_bbee9c.price);
-    v_15c939(`${v_bbee9c.name}을 선물했습니다`);
+    v_15c939(v_8d41d7("call.giftSent", { name: v_bbee9c.name }));
 
     const v_389afb = v_63eb29.current++;
     const v_15f379 = new v_a2349e.Value(0);
@@ -160,7 +162,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         <Text style={v_fd5f43.callName}>{v_dfb220}</Text>
         <View style={v_fd5f43.callStatusBadge}>
           <View style={v_fd5f43.callDot} />
-          <Text style={v_fd5f43.callStatusText}>통화 중 03:24</Text>
+          <Text style={v_fd5f43.callStatusText}>{v_8d41d7("call.inCall", { time: "03:24" })}</Text>
         </View>
       </View>
 
@@ -238,7 +240,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             {}
             <View style={v_fd5f43.giftHeader}>
               <View style={v_fd5f43.giftHeaderLeft}>
-                <Text style={v_fd5f43.giftTitle}>선물 보내기</Text>
+                <Text style={v_fd5f43.giftTitle}>{v_8d41d7("call.giftTitle")}</Text>
                 <View style={v_fd5f43.creditsPill}>
                   <Text style={v_fd5f43.creditsPillText}>
                     {v_e2c945.toLocaleString()} XRUN

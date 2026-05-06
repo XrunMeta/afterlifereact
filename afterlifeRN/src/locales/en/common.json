@@ -142,7 +142,11 @@
     "muteOff": "Unmute",
     "videoOn": "Video on",
     "videoOff": "Video off",
-    "endCall": "End call"
+    "endCall": "End call",
+    "inCall": "On call {{time}}",
+    "noCredits": "Not enough credits",
+    "giftSent": "Sent {{name}}",
+    "giftTitle": "Send a Gift"
   },
   "feed": {
     "homeTitle": "Home",
