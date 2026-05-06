@@ -427,6 +427,13 @@ export default function HomeScreen() {
                   await blockClone(accessToken, target.cloneId);
                   setToastMessage("이 페르소나가 차단됐어요");
 
+                  const cur = useFeedStore.getState().apiFeeds;
+                  if (cur) {
+                    useFeedStore.setState({
+                      apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
+                    });
+                  }
+
                   void loadDiscover();
                 } catch (err) {
                   console.warn("[Home] block failed:", err);
