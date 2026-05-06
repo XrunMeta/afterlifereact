@@ -86,38 +86,31 @@ export default function InviteAcceptScreen() {
     try {
       const res = await acceptInvite(accessToken, token);
       console.log("[InviteAccept] success:", res);
-      Alert.alert(t("inviteAccept.accepted"), preview.clone.name, [
-        {
-          text: t("common.ok"),
-          onPress: () => {
 
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: "Main",
+              state: {
                 routes: [
                   {
-                    name: "Main",
+                    name: "ClonesTab",
                     state: {
                       routes: [
-                        {
-                          name: "ClonesTab",
-                          state: {
-                            routes: [
-                              { name: "Dashboard" },
-                              { name: "CloneDetail", params: { cloneId: res.cloneId } },
-                            ],
-                            index: 1,
-                          },
-                        },
+                        { name: "Dashboard" },
+                        { name: "CloneDetail", params: { cloneId: res.cloneId } },
                       ],
+                      index: 1,
                     },
                   },
                 ],
-              }),
-            );
-          },
-        },
-      ]);
+              },
+            },
+          ],
+        }),
+      );
     } catch (err) {
       let msg = t("inviteAccept.acceptFailed");
       if (err instanceof AuthApiError) {
@@ -128,33 +121,21 @@ export default function InviteAcceptScreen() {
     }
   };
 
-  const handleDecline = () => {
-    Alert.alert(
-      t("inviteAccept.declineConfirmTitle"),
-      t("inviteAccept.declineConfirmDesc", { name: preview?.clone.name ?? "" }),
-      [
-        { text: t("common.close"), style: "cancel" },
-        {
-          text: t("inviteAccept.decline"),
-          style: "destructive",
-          onPress: async () => {
-            if (!accessToken) {
-              navigation.goBack();
-              return;
-            }
-            try {
-              const res = await declineInvite(accessToken, token);
-              console.log("[InviteAccept] decline:", res);
-              navigation.goBack();
-            } catch (err) {
-              console.warn("[InviteAccept] decline failed:", err);
-              const msg = err instanceof AuthApiError ? err.message : t("inviteAccept.acceptFailed");
-              Alert.alert(t("common.error"), msg);
-            }
-          },
-        },
-      ],
-    );
+  const handleDecline = async () => {
+
+    if (!accessToken) {
+      navigation.goBack();
+      return;
+    }
+    try {
+      const res = await declineInvite(accessToken, token);
+      console.log("[InviteAccept] decline:", res);
+      navigation.goBack();
+    } catch (err) {
+      console.warn("[InviteAccept] decline failed:", err);
+      const msg = err instanceof AuthApiError ? err.message : t("inviteAccept.acceptFailed");
+      Alert.alert(t("common.error"), msg);
+    }
   };
 
   return (
