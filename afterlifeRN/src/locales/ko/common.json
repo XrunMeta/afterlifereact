@@ -250,6 +250,7 @@
     "menuDeactivate": "비활성화",
     "menuVisibility": "공개설정",
     "menuDelete": "삭제",
+    "menuLeave": "공동관리 그만두기",
     "coownerCount": "공동관리자 {{n}}명 ›",
     "deleteTitle": "페르소나 삭제",
     "deleteDescDefault": "정말 이 페르소나를 삭제하시겠습니까?\n삭제된 페르소나는 복구할 수 없습니다.",
