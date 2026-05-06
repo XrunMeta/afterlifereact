@@ -2,7 +2,12 @@ import { v_a7c0d4 } from "vukrcww";
 import { v_694b7f } from "../api/source";
 import type { v_4b85a1, v_bc3df4 } from "../types/domain";
 import { v_1ed7d9 } from "./authStore";
-import { v_f5cc38, type v_4c75cf } from "../api/clones";
+import {
+  v_f5cc38,
+  v_de2a30,
+  v_11c954,
+  type v_4c75cf,
+} from "../api/clones";
 
 const v_b9d568 = 1;
 
@@ -76,12 +81,64 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
   bookmarkedIds: [],
   selectedInterests: [],
 
-  toggleLike: (v_389afb) =>
-    v_bb8024((v_fd5f43) => ({
-      likedIds: v_fd5f43.likedIds.includes(v_389afb)
-        ? v_fd5f43.likedIds.filter((v_ebec57) => v_ebec57 !== v_389afb)
-        : [...v_fd5f43.likedIds, v_389afb],
-    })),
+  toggleLike: (v_389afb) => {
+    const v_b6e533 = v_38715b();
+    const v_d50832 = v_b6e533.likedIds.includes(v_389afb);
+    const v_d60f4b = !v_d50832;
+
+    v_bb8024({
+      likedIds: v_d60f4b
+        ? [...v_b6e533.likedIds, v_389afb]
+        : v_b6e533.likedIds.filter((v_ebec57) => v_ebec57 !== v_389afb),
+    });
+
+    const v_71b114 = v_b6e533.apiFeeds;
+    if (v_71b114) {
+      v_bb8024({
+        apiFeeds: v_71b114.map((v_8b5cd8) =>
+          v_8b5cd8.id === v_389afb
+            ? { ...v_8b5cd8, likesCount: Math.max(0, v_8b5cd8.likesCount + (v_d60f4b ? 1 : -1)) }
+            : v_8b5cd8,
+        ),
+      });
+    }
+
+    if (v_389afb < 0) return;
+    const v_2ca7e0 = v_1ed7d9.getState().accessToken;
+    if (!v_2ca7e0) return;
+    const v_f96a98 = v_d60f4b ? v_de2a30 : v_11c954;
+    v_f96a98(v_2ca7e0, v_389afb)
+      .then((v_8f00b9) => {
+
+        const v_c3bc75 = v_38715b().apiFeeds;
+        if (v_c3bc75) {
+          v_bb8024({
+            apiFeeds: v_c3bc75.map((v_8b5cd8) =>
+              v_8b5cd8.id === v_389afb ? { ...v_8b5cd8, likesCount: v_8f00b9.likesCount } : v_8b5cd8,
+            ),
+          });
+        }
+      })
+      .catch((v_49263d) => {
+        console.warn("[feedStore] toggleLike failed:", v_49263d);
+
+        const v_c3bc75 = v_38715b();
+        v_bb8024({
+          likedIds: v_d50832
+            ? [...v_c3bc75.likedIds.filter((v_ebec57) => v_ebec57 !== v_389afb), v_389afb]
+            : v_c3bc75.likedIds.filter((v_ebec57) => v_ebec57 !== v_389afb),
+        });
+        if (v_c3bc75.apiFeeds) {
+          v_bb8024({
+            apiFeeds: v_c3bc75.apiFeeds.map((v_8b5cd8) =>
+              v_8b5cd8.id === v_389afb
+                ? { ...v_8b5cd8, likesCount: Math.max(0, v_8b5cd8.likesCount + (v_d60f4b ? -1 : 1)) }
+                : v_8b5cd8,
+            ),
+          });
+        }
+      });
+  },
 
   toggleBookmark: (v_389afb) =>
     v_bb8024((v_fd5f43) => ({
