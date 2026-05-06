@@ -12,7 +12,7 @@ import {
   v_122070,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
@@ -157,6 +157,16 @@ export default function v_ed02a5() {
   const v_0c8987 = v_b113dd?.id ?? v_625c74?.id ?? v_b9d568;
   const [v_65adaf, v_b81b74] = v_5ab095<number | null>(null);
   const [v_8f9093, v_3e7aad] = v_5ab095<number | null>(null);
+
+  const v_74ecfc = (v_6e0fd3) => {
+    v_d5cd7b(null);
+    v_c65f5d.getParent()?.dispatch(
+      v_650cfa.navigate({
+        name: "ClonesTab",
+        params: { screen: "CloneDetail", params: { cloneId: v_6e0fd3 } },
+      }),
+    );
+  };
   const [v_1f6f04, v_9127a1] = v_5ab095<v_c33ae3[] | null>(null);
   const [v_58e68f, v_6df89a] = v_5ab095<v_fa0201[] | null>(null);
   const [v_8bb912, v_d5cd7b] = v_5ab095<"following" | "myClones" | null>(null);
@@ -402,7 +412,12 @@ export default function v_ed02a5() {
                   v_1f6f04.map((v_3f4e2e) => {
                     const v_10387a = v_b30b81(v_3f4e2e.id);
                     return (
-                      <View key={v_3f4e2e.id} style={v_fd5f43.listRow}>
+                      <TouchableOpacity
+                        key={v_3f4e2e.id}
+                        style={v_fd5f43.listRow}
+                        activeOpacity={0.6}
+                        onPress={() => v_74ecfc(v_3f4e2e.id)}
+                      >
                         {v_3f4e2e.avatarUrl ? (
                           <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
                         ) : (
@@ -413,14 +428,29 @@ export default function v_ed02a5() {
                           <Text style={v_fd5f43.listSub}>@{v_3f4e2e.username}</Text>
                         </View>
                         <TouchableOpacity
-                          onPress={() => void v_3094d4(v_3f4e2e.id)}
+                          onPress={async () => {
+                            await v_3094d4(v_3f4e2e.id);
+
+                            if (v_10387a) {
+                              v_9127a1((v_ba2215) =>
+                                v_ba2215 ? v_ba2215.filter((v_62c214) => v_62c214.id !== v_3f4e2e.id) : v_ba2215,
+                              );
+                              v_b81b74((v_ba2215) =>
+                                typeof v_ba2215 === "number" ? Math.max(0, v_ba2215 - 1) : v_ba2215,
+                              );
+                            } else {
+                              v_b81b74((v_ba2215) =>
+                                typeof v_ba2215 === "number" ? v_ba2215 + 1 : v_ba2215,
+                              );
+                            }
+                          }}
                           style={[v_fd5f43.followToggleBtn, v_10387a && v_fd5f43.followToggleBtnActive]}
                         >
                           <Text style={[v_fd5f43.followToggleText, v_10387a && v_fd5f43.followToggleTextActive]}>
                             {v_10387a ? "팔로잉" : "팔로우"}
                           </Text>
                         </TouchableOpacity>
-                      </View>
+                      </TouchableOpacity>
                     );
                   })
                 )
@@ -433,7 +463,12 @@ export default function v_ed02a5() {
                   </View>
                 ) : (
                   v_58e68f.map((v_3f4e2e) => (
-                    <View key={v_3f4e2e.id} style={v_fd5f43.listRow}>
+                    <TouchableOpacity
+                      key={v_3f4e2e.id}
+                      style={v_fd5f43.listRow}
+                      activeOpacity={0.6}
+                      onPress={() => v_74ecfc(v_3f4e2e.id)}
+                    >
                       {v_3f4e2e.avatarUrl ? (
                         <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
                       ) : (
@@ -443,7 +478,7 @@ export default function v_ed02a5() {
                         <Text style={v_fd5f43.listName}>{v_3f4e2e.name}</Text>
                         <Text style={v_fd5f43.listSub}>@{v_3f4e2e.username}</Text>
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ))
                 )
               )}
