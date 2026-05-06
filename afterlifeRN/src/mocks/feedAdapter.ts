@@ -23,14 +23,14 @@ function v_4fea0a(v_f4e98d): string {
 
 export function v_f386b1(f: v_bc3df4): v_19b433 {
 
+  const v_38db88 = v_0b62e7.has(v_8b5cd8.cloneId);
   const v_3f4e2e =
     v_0b62e7.get(v_8b5cd8.cloneId) ??
     v_694b7f.clones().find((v_62c214) => v_62c214.id === v_8b5cd8.cloneId);
   const v_65a2cd = Math.abs(v_8b5cd8.id);
 
-  const v_30007d =
-    typeof v_8b5cd8.likesCount === "number" ? v_8b5cd8.likesCount : 500 + (v_65a2cd % 9500);
-  const v_ecfc0f = 20 + (v_65a2cd % 480);
+  const v_30007d = v_38db88 ? (v_8b5cd8.likesCount ?? 0) : 500 + (v_65a2cd % 9500);
+  const v_ecfc0f = v_38db88 ? 0 : 20 + (v_65a2cd % 480);
   const v_9ab3b1 = v_7bc7b9[v_8b5cd8.cloneId];
   return {
     id: v_8b5cd8.id,

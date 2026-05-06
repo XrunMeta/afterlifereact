@@ -36,6 +36,12 @@ type ClonesNav = v_390fcc<v_2d88fc>;
 
 const v_b9d568 = 1;
 
+function v_5c66fc(v_f4e98d): string {
+  if (typeof v_f4e98d !== "number" || !Number.isFinite(v_f4e98d)) return "0";
+  if (v_f4e98d >= 1000) return `${(v_f4e98d / 1000).toFixed(1)}k`;
+  return String(v_f4e98d);
+}
+
 function v_a8d790(c: v_fa0201): v_affcc0 {
   return {
     id: v_3f4e2e.id,
@@ -50,6 +56,9 @@ function v_a8d790(c: v_fa0201): v_affcc0 {
     createdAt: v_3f4e2e.createdAt,
     myRole: v_3f4e2e.myRole,
     coownerCount: v_3f4e2e.coownerCount,
+    likesCount: v_3f4e2e.likesCount,
+    followersCount: v_3f4e2e.followersCount,
+    messagesCount: v_3f4e2e.messagesCount,
     ...(v_3f4e2e.l1Profile ? { l1Profile: v_3f4e2e.l1Profile } : {}),
   };
 }
@@ -344,9 +353,11 @@ export default function v_def15b() {
     const v_26dce6 = v_b6e533?.isActive ?? true;
     const v_818579 = v_b6e533?.visibility ?? v_eb25ce.visibility;
     const v_e93e18 = v_eb25ce.cloneType === "memlow";
-    const v_e17daa = v_1e752a.filter(
-      (v_8b5cd8) => v_8b5cd8.followingCloneId === v_eb25ce.id,
-    ).length;
+
+    const v_e17daa =
+      typeof v_eb25ce.followersCount === "number"
+        ? v_eb25ce.followersCount
+        : v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followingCloneId === v_eb25ce.id).length;
 
     const v_77df30 =
       typeof v_eb25ce.coownerCount === "number"
@@ -434,21 +445,22 @@ export default function v_def15b() {
               onPress={() => v_d5cd7b({ type: "likes", cloneName: v_eb25ce.displayName })}
             >
               <Feather name="heart" size={14} color={v_1bfbd0.zinc500} />
-              <Text style={v_fd5f43.statText}>2.4k</Text>
+              <Text style={v_fd5f43.statText}>{v_5c66fc(v_eb25ce.likesCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={v_fd5f43.stat}
               onPress={() => v_d5cd7b({ type: "interactions", cloneName: v_eb25ce.displayName })}
             >
               <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-              <Text style={v_fd5f43.statText}>4.5k</Text>
+              <Text style={v_fd5f43.statText}>{v_5c66fc(v_eb25ce.messagesCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={v_fd5f43.stat}
               onPress={() => v_d5cd7b({ type: "comments", cloneName: v_eb25ce.displayName })}
             >
               <Feather name="message-circle" size={14} color={v_1bfbd0.zinc500} />
-              <Text style={v_fd5f43.statText}>328</Text>
+              {}
+              <Text style={v_fd5f43.statText}>0</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={v_fd5f43.stat}
