@@ -29,7 +29,14 @@ import type { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listFeedComments, postFeedComment, type FeedComment } from "../../api/clones";
+import {
+  listFeedComments,
+  postFeedComment,
+  postCloneComment,
+  deleteFeedComment,
+  type FeedComment,
+} from "../../api/clones";
+import { formatRelativeKo } from "../../lib/relativeTime";
 import type { DomainClone, DomainFeed } from "../../types/domain";
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -193,10 +200,15 @@ export default function FollowingScreen() {
   };
 
   const accessToken = useAuthStore((s) => s.accessToken);
+  const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
   const [apiComments, setApiComments] = useState<FeedComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   useEffect(() => {
-    if (commentPostId == null || commentPostId < 0) {
+    if (commentPostId == null) {
+      setApiComments([]);
+      return;
+    }
+    if (commentPostId < 0) {
       setApiComments([]);
       return;
     }
@@ -221,16 +233,35 @@ export default function FollowingScreen() {
   }, [commentPostId]);
 
   const submitComment = async () => {
-    if (commentPostId == null || commentPostId < 0) return;
+    if (commentPostId == null) return;
     const content = commentText.trim();
     if (!content || !accessToken) return;
     try {
-      await postFeedComment(accessToken, commentPostId, content);
+      let realFeedId: number;
+      if (commentPostId < 0) {
+        const cloneId = -commentPostId;
+        const res = await postCloneComment(accessToken, cloneId, content);
+        realFeedId = res.comment.feedId;
+        setCommentPostId(realFeedId);
+      } else {
+        await postFeedComment(accessToken, commentPostId, content);
+        realFeedId = commentPostId;
+      }
       setCommentText("");
-      const r = await listFeedComments(commentPostId, { limit: 100 });
+      const r = await listFeedComments(realFeedId, { limit: 100 });
       setApiComments(r.items);
     } catch (err) {
       console.warn("[Following] postFeedComment failed:", err);
+    }
+  };
+
+  const deleteComment = async (commentId: number) => {
+    if (commentPostId == null || commentPostId < 0 || !accessToken) return;
+    try {
+      await deleteFeedComment(accessToken, commentPostId, commentId);
+      setApiComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err) {
+      console.warn("[Following] deleteFeedComment failed:", err);
     }
   };
 
@@ -453,7 +484,12 @@ export default function FollowingScreen() {
                     <View style={s.commentInfo}>
                       <View style={s.commentMeta}>
                         <Text style={s.commentAuthor}>{c.user.name ?? c.user.email}</Text>
-                        <Text style={s.commentTime}>{c.createdAt.slice(0, 16).replace("T", " ")}</Text>
+                        <Text style={s.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
+                        {c.userId === myUserId && (
+                          <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }}>
+                            <Feather name="trash-2" size={14} color={COLORS.zinc400} />
+                          </TouchableOpacity>
+                        )}
                       </View>
                       <Text style={s.commentContent}>{c.content}</Text>
                     </View>

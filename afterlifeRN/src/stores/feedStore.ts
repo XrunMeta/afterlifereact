@@ -51,6 +51,8 @@ function canSeeClone(c: DomainClone, currentUserId: number): boolean {
 
 export const apiCloneCache = new Map<number, DomainClone>();
 
+export const apiFeedCountsCache = new Map<number, { commentsCount: number }>();
+
 function toDomainFeed(item: DiscoverFeedItem): DomainFeed {
   apiCloneCache.set(item.cloneId, {
     id: item.clone.id,
@@ -63,6 +65,9 @@ function toDomainFeed(item: DiscoverFeedItem): DomainFeed {
     visibility: "public",
     status: "active",
     createdAt: item.createdAt,
+  });
+  apiFeedCountsCache.set(item.id, {
+    commentsCount: item.commentsCount ?? 0,
   });
   return {
     id: item.id,

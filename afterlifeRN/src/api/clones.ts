@@ -318,6 +318,23 @@ export async function listMyClones(accessToken: string): Promise<{ items: MyClon
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface FollowedClone {
+  id: number;
+  name: string;
+  username: string;
+  cloneType: CloneType;
+  category: string | null;
+  avatarUrl: string | null;
+  stats: { followers: number; messages: number; gifts: number };
+  createdAt: string;
+}
+export async function listMyFollowedClones(
+  accessToken: string,
+  userId: number,
+): Promise<{ items: FollowedClone[] }> {
+  return authFetch(`/oth-path${userId}/followed-clones`, accessToken, { method: "GET" });
+}
+
 export interface DiscoverFeedItem {
   id: number;
   cloneId: number;
@@ -326,6 +343,7 @@ export interface DiscoverFeedItem {
   mediaType: string | null;
   likesCount: number;
   likedByMe?: boolean;
+  commentsCount?: number;
   createdAt: string;
   clone: {
     id: number;
@@ -450,6 +468,27 @@ export async function postFeedComment(
   return authFetch(`/oth-path${feedId}/comments`, accessToken, {
     method: "POST",
     body: JSON.stringify({ content }),
+  });
+}
+
+export async function postCloneComment(
+  accessToken: string,
+  cloneId: number,
+  content: string,
+): Promise<{ ok: true; comment: { id: number; feedId: number; userId: number; content: string }; promoted?: boolean }> {
+  return authFetch(`/oth-path${cloneId}/comments`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+}
+
+export async function deleteFeedComment(
+  accessToken: string,
+  feedId: number,
+  commentId: number,
+): Promise<{ ok: true }> {
+  return authFetch(`/oth-path${feedId}/comments/${commentId}`, accessToken, {
+    method: "DELETE",
   });
 }
 

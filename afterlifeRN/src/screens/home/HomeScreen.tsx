@@ -28,7 +28,14 @@ import { useFeedStore } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useAuthStore } from "../../stores/authStore";
 import { toFeedItem } from "../../mocks/feedAdapter";
-import { listFeedComments, postFeedComment, type FeedComment } from "../../api/clones";
+import {
+  listFeedComments,
+  postFeedComment,
+  postCloneComment,
+  deleteFeedComment,
+  type FeedComment,
+} from "../../api/clones";
+import { formatRelativeKo } from "../../lib/relativeTime";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { FeedItem } from "../../types/feed";
 import type { RootStackParamList } from "../../navigation/types";
@@ -116,9 +123,15 @@ export default function HomeScreen() {
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const accessToken = useAuthStore((s) => s.accessToken);
+  const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
 
   useEffect(() => {
-    if (commentFeedId == null || commentFeedId < 0) {
+    if (commentFeedId == null) {
+      setComments([]);
+      return;
+    }
+    if (commentFeedId < 0) {
+
       setComments([]);
       return;
     }
@@ -143,19 +156,37 @@ export default function HomeScreen() {
   }, [commentFeedId]);
 
   const submitComment = async () => {
-    if (commentFeedId == null || commentFeedId < 0) return;
+    if (commentFeedId == null) return;
     const content = commentText.trim();
     if (!content || !accessToken) return;
     try {
-      const res = await postFeedComment(accessToken, commentFeedId, content);
+      let realFeedId: number;
+      if (commentFeedId < 0) {
 
+        const cloneId = -commentFeedId;
+        const res = await postCloneComment(accessToken, cloneId, content);
+        realFeedId = res.comment.feedId;
+
+        setCommentFeedId(realFeedId);
+      } else {
+        await postFeedComment(accessToken, commentFeedId, content);
+        realFeedId = commentFeedId;
+      }
       setCommentText("");
-
-      const r = await listFeedComments(commentFeedId, { limit: 100 });
+      const r = await listFeedComments(realFeedId, { limit: 100 });
       setComments(r.items);
-      void res;
     } catch (err) {
       console.warn("[Home] postFeedComment failed:", err);
+    }
+  };
+
+  const deleteComment = async (commentId: number) => {
+    if (commentFeedId == null || commentFeedId < 0 || !accessToken) return;
+    try {
+      await deleteFeedComment(accessToken, commentFeedId, commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err) {
+      console.warn("[Home] deleteFeedComment failed:", err);
     }
   };
 
@@ -248,7 +279,12 @@ export default function HomeScreen() {
                     <View style={styles.commentInfo}>
                       <View style={styles.commentMeta}>
                         <Text style={styles.commentAuthor}>{c.user.name ?? c.user.email}</Text>
-                        <Text style={styles.commentTime}>{c.createdAt.slice(0, 16).replace("T", " ")}</Text>
+                        <Text style={styles.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
+                        {c.userId === myUserId && (
+                          <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }}>
+                            <Feather name="trash-2" size={14} color="rgba(255,255,255,0.6)" />
+                          </TouchableOpacity>
+                        )}
                       </View>
                       <Text style={styles.commentContent}>{c.content}</Text>
                     </View>
