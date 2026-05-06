@@ -1,4 +1,4 @@
-import v_a3453e, { v_5ab095, v_e662ae, v_de06a3 } from "bapkr";
+import v_a3453e, { v_5ab095, v_e662ae, v_de06a3, v_c4deb2 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -52,9 +52,17 @@ export default function v_c316d8() {
   const v_a96ced = v_37977a((v_fd5f43) => v_fd5f43.toggleLike);
   const v_770327 = v_37977a((v_fd5f43) => v_fd5f43.setSelectedInterests);
   const v_1c7dea = v_37977a((v_fd5f43) => v_fd5f43.getFilteredFeeds);
+  const v_c600ef = v_37977a((v_fd5f43) => v_fd5f43.loadDiscover);
+  const v_71b114 = v_37977a((v_fd5f43) => v_fd5f43.apiFeeds);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
+
+  v_c4deb2(() => {
+    if (v_71b114 == null) {
+      void v_c600ef();
+    }
+  }, [v_71b114, v_c600ef]);
 
   const [v_2bcb8f, v_ddecc4] = v_5ab095(0);
   const [v_a4bef1, v_ea2b4b] = v_5ab095(false);

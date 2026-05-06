@@ -14,6 +14,8 @@ import {
 
 export const v_96e8d7 = new v_b7c41b<v_de0a25>();
 
+export const v_f1d06f = new v_b7c41b<v_de0a25>();
+
 function v_31113b(v_3f4e2e): number {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
@@ -124,6 +126,108 @@ v_96e8d7.get("/:id/feeds", async (v_3f4e2e) => {
       likesCount: v_cb35cb.likes_count,
       visibility: v_eb25ce.visibility,
       createdAt: v_cb35cb.created_at,
+    })),
+    nextCursor: v_64f859,
+  });
+});
+
+v_f1d06f.get("/discover", async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_15c8c5 = v_f71b56.searchParams.get("cursor");
+  const v_75cbf4 = v_15c8c5 ? Number(v_15c8c5) : null;
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 20);
+  const v_02be30 = Math.max(1, Math.min(50, Number.isFinite(v_cf2260) ? v_cf2260 : 20));
+
+  const v_abcc8d = [
+    "c.deletion_state = 'active'",
+    "c.deleted_at IS NULL",
+    "c.clone_type != 'memlow'",
+    "c.visibility = 'public'",
+  ];
+  const v_925171 = [];
+  if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
+    v_abcc8d.push("f.id < ?");
+    v_925171.push(v_75cbf4);
+  }
+
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT f.id              AS feedId,
+                f.clone_id         AS cloneId,
+                f.content          AS content,
+                f.media_url        AS mediaUrl,
+                f.media_type       AS mediaType,
+                f.likes_count      AS likesCount,
+                f.created_at       AS createdAt,
+                c.name             AS cloneName,
+                c.username         AS cloneUsername,
+                c.avatar_url       AS cloneAvatarUrl,
+                c.clone_type       AS cloneType
+           FROM feeds f
+           JOIN clones c ON c.id = f.clone_id
+          WHERE ${v_abcc8d.join(" AND ")}
+          ORDER BY f.id DESC
+          LIMIT ?`,
+      )
+      .bind(...v_925171, v_02be30 + 1)
+      .all<{
+        feedId: number;
+        cloneId: number;
+        content: string | null;
+        mediaUrl: string | null;
+        mediaType: string | null;
+        likesCount: number;
+        createdAt: string;
+        cloneName: string;
+        cloneUsername: string;
+        cloneAvatarUrl: string | null;
+        cloneType: string;
+      }>()
+  ).results;
+
+  const v_6bbe19 = v_18b8bf.length > v_02be30;
+  const v_2365e9 = v_6bbe19 ? v_18b8bf.slice(0, v_02be30) : v_18b8bf;
+  const v_64f859 =
+    v_6bbe19 && v_2365e9.length > 0 ? v_2365e9[v_2365e9.length - 1]!.feedId : null;
+
+  const v_8b86f5 = Array.from(new Set(v_2365e9.map((v_cb35cb) => v_cb35cb.cloneId)));
+  const v_9afb14 = new Map<number, string[]>();
+  if (v_8b86f5.length > 0) {
+    const v_1cdc07 = v_8b86f5.map(() => "?").join(",");
+    const v_b07d8e = (
+      await v_3f4e2e.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${v_1cdc07})`,
+        )
+        .bind(...v_8b86f5)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const v_3ac7e7 of v_b07d8e) {
+      const v_d0c056 = v_9afb14.get(v_3ac7e7.clone_id) ?? [];
+      v_d0c056.push(v_3ac7e7.interest);
+      v_9afb14.set(v_3ac7e7.clone_id, v_d0c056);
+    }
+  }
+
+  return v_3f4e2e.json({
+    items: v_2365e9.map((v_cb35cb) => ({
+      id: v_cb35cb.feedId,
+      cloneId: v_cb35cb.cloneId,
+      content: v_cb35cb.content,
+      mediaUrl: v_cb35cb.mediaUrl,
+      mediaType: v_cb35cb.mediaType,
+      likesCount: v_cb35cb.likesCount,
+      createdAt: v_cb35cb.createdAt,
+      clone: {
+        id: v_cb35cb.cloneId,
+        name: v_cb35cb.cloneName,
+        username: v_cb35cb.cloneUsername,
+        avatarUrl: v_cb35cb.cloneAvatarUrl,
+        cloneType: v_cb35cb.cloneType,
+      },
+      interests: v_9afb14.get(v_cb35cb.cloneId) ?? [],
     })),
     nextCursor: v_64f859,
   });
