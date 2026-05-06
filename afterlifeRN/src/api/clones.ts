@@ -381,6 +381,19 @@ export async function unlikeFeed(
   return authFetch(`/oth-path${feedId}/like`, accessToken, { method: "DELETE" });
 }
 
+export async function likeClone(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ ok: true; liked: boolean; feedId: number; promoted?: boolean; likesCount: number }> {
+  return authFetch(`/oth-path${cloneId}/like`, accessToken, { method: "POST" });
+}
+export async function unlikeClone(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ ok: true; liked: false; feedId?: number; likesCount: number }> {
+  return authFetch(`/oth-path${cloneId}/like`, accessToken, { method: "DELETE" });
+}
+
 export async function listCloneLikes(
   cloneId: number,
   opts?: { limit?: number },

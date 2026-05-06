@@ -6,6 +6,8 @@ import {
   listDiscoverFeeds,
   likeFeed,
   unlikeFeed,
+  likeClone,
+  unlikeClone,
   type DiscoverFeedItem,
 } from "../api/clones";
 
@@ -103,20 +105,45 @@ export const useFeedStore = create<FeedState>((set, get) => ({
       });
     }
 
-    if (id < 0) return;
     const accessToken = useAuthStore.getState().accessToken;
     if (!accessToken) return;
-    const op = willLike ? likeFeed : unlikeFeed;
-    op(accessToken, id)
+
+    const isSynthetic = id < 0;
+    const cloneIdForSynthetic = isSynthetic ? -id : 0;
+    const promise = isSynthetic
+      ? willLike
+        ? likeClone(accessToken, cloneIdForSynthetic)
+        : unlikeClone(accessToken, cloneIdForSynthetic)
+      : willLike
+        ? likeFeed(accessToken, id)
+        : unlikeFeed(accessToken, id);
+
+    promise
       .then((res) => {
 
         const cur = get().apiFeeds;
         if (cur) {
+
+          const promoted =
+            isSynthetic &&
+            "promoted" in res &&
+            (res as { promoted?: boolean }).promoted &&
+            "feedId" in res;
+          const newId = promoted ? (res as { feedId: number }).feedId : id;
           set({
             apiFeeds: cur.map((f) =>
-              f.id === id ? { ...f, likesCount: res.likesCount } : f,
+              f.id === id ? { ...f, id: newId, likesCount: res.likesCount } : f,
             ),
           });
+          if (promoted) {
+
+            const ls = get().likedIds;
+            set({
+              likedIds: ls.includes(id)
+                ? [...ls.filter((x) => x !== id), newId]
+                : ls,
+            });
+          }
         }
       })
       .catch((err) => {
