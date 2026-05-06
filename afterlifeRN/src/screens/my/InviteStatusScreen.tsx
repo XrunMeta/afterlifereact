@@ -57,24 +57,31 @@ export default function InviteStatusScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<"all" | SentInviteStatus>("all");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!accessToken) {
       setItems([]);
+      setErrorMsg(t("my.loginRequired"));
       setLoading(false);
       setRefreshing(false);
       return;
     }
     try {
+      console.log("[InviteStatus] fetching me/invites...");
       const res = await listMyInvites(accessToken);
+      console.log("[InviteStatus] fetched", res.items.length, "items");
       setItems(res.items);
+      setErrorMsg(null);
     } catch (err) {
       console.warn("[InviteStatus] failed:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [accessToken]);
+  }, [accessToken, t]);
 
   useEffect(() => {
     reload();
@@ -167,10 +174,25 @@ export default function InviteStatusScreen() {
         </View>
       ) : filtered.length === 0 ? (
         <View style={s.center}>
-          <Feather name="send" size={32} color={COLORS.zinc300} />
+          <Feather name={errorMsg ? "alert-triangle" : "send"} size={32} color={errorMsg ? COLORS.error : COLORS.zinc300} />
           <Text style={s.empty}>
-            {filter === "all" ? t("inviteStatus.emptyAll") : t("inviteStatus.emptyFilter")}
+            {errorMsg
+              ? errorMsg
+              : filter === "all"
+                ? t("inviteStatus.emptyAll")
+                : t("inviteStatus.emptyFilter")}
           </Text>
+          {errorMsg && (
+            <TouchableOpacity
+              onPress={() => {
+                setLoading(true);
+                reload();
+              }}
+              style={{ marginTop: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: COLORS.zinc900, borderRadius: 8 }}
+            >
+              <Text style={{ color: COLORS.white, fontSize: 13, fontWeight: "600" }}>{t("common.retry")}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
