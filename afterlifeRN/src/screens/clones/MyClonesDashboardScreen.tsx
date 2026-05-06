@@ -225,6 +225,21 @@ export default function MyClonesDashboardScreen() {
           setDeleteResultMessage(t("dashboard.sessionExpired"));
           return;
         }
+        if (err.code === "ALREADY_INVITED") {
+
+          setInvitedIds((prev) => new Set(prev).add(user.id));
+          setDeleteResultMessage(t("invite.alreadyInvited"));
+          return;
+        }
+        if (err.code === "ALREADY_MEMBER") {
+          setInvitedIds((prev) => new Set(prev).add(user.id));
+          setDeleteResultMessage(t("invite.alreadyMember"));
+          return;
+        }
+        if (err.code === "QUOTA_EXCEEDED") {
+          setDeleteResultMessage(t("invite.quotaExceeded"));
+          return;
+        }
       } else {
         console.warn("[Dashboard] createInvite failed:", err);
       }

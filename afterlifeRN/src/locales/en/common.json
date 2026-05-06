@@ -52,6 +52,8 @@
     "invalidEmail": "Please enter a valid email.",
     "selfNotAllowed": "You cannot invite yourself.",
     "alreadyAdded": "This email is already added.",
+    "alreadyInvited": "There's already a pending invite for this email.",
+    "alreadyMember": "This person is already a co-admin.",
     "memberNotFound": "No member found with this email. Please try again.",
     "quotaExceeded": "Invite quota exceeded.",
     "sendFailed": "Failed to send invite.",

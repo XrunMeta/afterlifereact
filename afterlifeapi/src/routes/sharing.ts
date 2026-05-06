@@ -83,6 +83,46 @@ cloneShares.post(
     const db = c.env.DB;
     await assertOwner(db, cloneId, userId);
 
+    if (body.invite_email) {
+      const dupePending = await db
+        .prepare(
+          `SELECT id FROM invite_tokens
+            WHERE clone_id = ?
+              AND LOWER(invite_email) = LOWER(?)
+              AND used_at IS NULL
+              AND cancelled_at IS NULL
+              AND expires_at > CURRENT_TIMESTAMP
+            LIMIT 1`,
+        )
+        .bind(cloneId, body.invite_email)
+        .first<{ id: number }>();
+      if (dupePending) {
+        throw new APIError(
+          "ALREADY_INVITED",
+          "이 이메일로 이미 대기 중인 초대가 있어요.",
+        );
+      }
+
+      const dupeMember = await db
+        .prepare(
+          `SELECT cs.id
+             FROM clone_shares cs
+             JOIN users u ON u.id = cs.target_user_id
+            WHERE cs.clone_id = ?
+              AND LOWER(u.email) = LOWER(?)
+              AND cs.status = 'accepted'
+            LIMIT 1`,
+        )
+        .bind(cloneId, body.invite_email)
+        .first<{ id: number }>();
+      if (dupeMember) {
+        throw new APIError(
+          "ALREADY_MEMBER",
+          "이미 이 페르소나의 공동관리자예요.",
+        );
+      }
+    }
+
     const active = await db
       .prepare(
         `SELECT COUNT(*) AS n FROM invite_tokens

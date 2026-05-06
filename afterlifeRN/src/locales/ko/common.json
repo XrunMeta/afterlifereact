@@ -52,6 +52,8 @@
     "invalidEmail": "올바른 이메일을 입력해주세요.",
     "selfNotAllowed": "본인은 초대할 수 없어요.",
     "alreadyAdded": "이미 추가된 이메일이에요.",
+    "alreadyInvited": "이 이메일로 이미 대기 중인 초대가 있어요.",
+    "alreadyMember": "이미 이 페르소나의 공동관리자예요.",
     "memberNotFound": "해당 이메일을 가진 회원이 없습니다 다시 입력해주세요",
     "quotaExceeded": "초대 가능 한도를 초과했어요.",
     "sendFailed": "초대 발송에 실패했습니다.",
