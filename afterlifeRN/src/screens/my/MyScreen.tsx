@@ -216,12 +216,6 @@ export default function MyScreen() {
     descKey: string;
     route: keyof MyStackParamList;
   }> = [
-    {
-      icon: "bookmark",
-      labelKey: "my.menu.saved",
-      descKey: "settings.saved.title",
-      route: "SavedItems",
-    },
 
     {
       icon: "user",

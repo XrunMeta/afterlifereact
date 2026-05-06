@@ -602,7 +602,7 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url, c.created_at,
+        `SELECT c.id, c.name, c.username, c.description, c.clone_type, c.category, c.avatar_url, c.created_at,
                 COALESCE(s.followers_count, 0) AS followers_count,
                 COALESCE(s.messages_count, 0)  AS messages_count,
                 COALESCE(s.gifts_count, 0)     AS gifts_count
@@ -617,6 +617,7 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         id: number;
         name: string;
         username: string;
+        description: string | null;
         clone_type: string;
         category: string | null;
         avatar_url: string | null;
@@ -627,14 +628,36 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
       }>()
   ).results;
 
+  const cIds = rows.map((r) => r.id);
+  const interestsByClone = new Map<number, string[]>();
+  if (cIds.length > 0) {
+    const placeholders = cIds.map(() => "?").join(",");
+    const ir = (
+      await c.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${placeholders})`,
+        )
+        .bind(...cIds)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const row of ir) {
+      const arr = interestsByClone.get(row.clone_id) ?? [];
+      arr.push(row.interest);
+      interestsByClone.set(row.clone_id, arr);
+    }
+  }
+
   return c.json({
     items: rows.map((r) => ({
       id: r.id,
       name: r.name,
       username: r.username,
+      description: r.description,
       cloneType: r.clone_type,
       category: r.category,
       avatarUrl: r.avatar_url,
+      interests: interestsByClone.get(r.id) ?? [],
       stats: {
         followers: r.followers_count,
         messages: r.messages_count,

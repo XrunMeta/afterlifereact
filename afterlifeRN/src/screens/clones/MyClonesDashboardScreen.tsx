@@ -656,6 +656,17 @@ export default function MyClonesDashboardScreen() {
         renderItem={renderCloneCard}
         contentContainerStyle={s.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={s.dashEmpty}>
+            <View style={s.dashEmptyIconWrap}>
+              <Feather name="user-plus" size={32} color={COLORS.zinc400} />
+            </View>
+            <Text style={s.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
+            <Text style={s.dashEmptyDesc}>
+              하단 가운데 + 버튼을 눌러 첫 페르소나를 만들 수 있어요
+            </Text>
+          </View>
+        }
         ListHeaderComponent={
           <>
             {}
@@ -1169,6 +1180,24 @@ const MOCK_COMMENTS = [
 ];
 
 const s = StyleSheet.create({
+  dashEmpty: {
+    paddingVertical: 48,
+    paddingHorizontal: 32,
+    alignItems: "center",
+    gap: 8,
+  },
+  dashEmptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: COLORS.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  dashEmptyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc800 },
+  dashEmptyDesc: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", lineHeight: 18 },
+
   listContent: {
     paddingHorizontal: SIZES.medium,
     paddingBottom: 24,
