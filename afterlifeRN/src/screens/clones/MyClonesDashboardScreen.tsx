@@ -25,7 +25,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, createInvite, deleteClone, listCloneLikes, listCloneComments, type MyClone, type FeedLikeUser, type FeedComment } from "../../api/clones";
+import { listMyClones, createInvite, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
 import NotificationBell from "../../components/common/NotificationBell";
 import { searchUsers, AuthApiError, type UserSearchItem } from "../../api/auth";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -171,6 +171,8 @@ export default function MyClonesDashboardScreen() {
   const [likesLoading, setLikesLoading] = useState(false);
   const [commentsList, setCommentsList] = useState<FeedComment[] | null>(null);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [followersList, setFollowersList] = useState<CloneFollower[] | null>(null);
+  const [followersLoading, setFollowersLoading] = useState(false);
 
   useEffect(() => {
     if (statsModal?.type !== "likes" || statsModal.cloneId == null) {
@@ -216,6 +218,31 @@ export default function MyClonesDashboardScreen() {
       })
       .finally(() => {
         if (!cancelled) setCommentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [statsModal?.type, statsModal?.cloneId]);
+
+  useEffect(() => {
+    if (statsModal?.type !== "followers" || statsModal.cloneId == null) {
+      setFollowersList(null);
+      return;
+    }
+    let cancelled = false;
+    setFollowersLoading(true);
+    setFollowersList(null);
+    listCloneFollowers(statsModal.cloneId, { limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        setFollowersList(res.items);
+      })
+      .catch((err) => {
+        console.warn("[Dashboard] listCloneFollowers failed:", err);
+        if (!cancelled) setFollowersList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setFollowersLoading(false);
       });
     return () => {
       cancelled = true;
@@ -1075,28 +1102,41 @@ export default function MyClonesDashboardScreen() {
               )}
 
               {}
-              {statsModal?.type === "followers" &&
-                MOCK_ACCOUNTS.map((account) => (
-                  <View key={account.id} style={s.accountRow}>
-                    <Image source={{ uri: account.avatar }} style={s.accountAvatar} />
-                    <View style={s.accountInfo}>
-                      <Text style={s.accountName}>{account.name}</Text>
-                      <Text style={s.accountSub}>{account.detail}</Text>
+              {statsModal?.type === "followers" && (
+                <>
+                  {followersLoading ? (
+                    <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
+                  ) : !followersList || followersList.length === 0 ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 팔로워가 없어요</Text>
                     </View>
-                  </View>
-                ))}
+                  ) : (
+                    followersList.map((u) => (
+                      <View key={u.followId} style={s.accountRow}>
+                        {u.avatarUrl ? (
+                          <Image source={{ uri: u.avatarUrl }} style={s.accountAvatar} />
+                        ) : (
+                          <View style={[s.accountAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                        )}
+                        <View style={s.accountInfo}>
+                          <Text style={s.accountName}>{u.name ?? u.email}</Text>
+                          <Text style={s.accountSub}>{u.email}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
 
               {}
-              {statsModal?.type === "interactions" &&
-                MOCK_INTERACTIONS.map((account) => (
-                  <View key={account.id} style={s.accountRow}>
-                    <Image source={{ uri: account.avatar }} style={s.accountAvatar} />
-                    <View style={s.accountInfo}>
-                      <Text style={s.accountName}>{account.name}</Text>
-                      <Text style={s.accountSub}>{account.detail}</Text>
-                    </View>
-                  </View>
-                ))}
+              {statsModal?.type === "interactions" && (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Feather name="message-circle" size={28} color={COLORS.zinc300} />
+                  <Text style={{ color: COLORS.zinc500, fontSize: 13, marginTop: 8 }}>
+                    상호작용 상세 목록은 준비 중이에요
+                  </Text>
+                </View>
+              )}
             </ScrollView>
           </View>
         </Pressable>

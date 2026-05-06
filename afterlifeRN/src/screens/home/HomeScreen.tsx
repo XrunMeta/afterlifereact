@@ -198,12 +198,21 @@ export default function HomeScreen() {
     if (!content || !accessToken) return;
     try {
       let realFeedId: number;
+      const oldId = commentFeedId;
       if (commentFeedId < 0) {
 
         const cloneId = -commentFeedId;
         const res = await postCloneComment(accessToken, cloneId, content);
         realFeedId = res.comment.feedId;
         setCommentFeedId(realFeedId);
+
+        const cur = useFeedStore.getState().apiFeeds;
+        if (cur) {
+          useFeedStore.setState({
+            apiFeeds: cur.map((f) => (f.id === oldId ? { ...f, id: realFeedId } : f)),
+          });
+        }
+        apiFeedCountsCache.delete(oldId);
       } else {
         await postFeedComment(accessToken, commentFeedId, content);
         realFeedId = commentFeedId;
