@@ -310,6 +310,7 @@ export interface MyClone {
   l1Profile?: { attrs: Record<string, string>; notes: string } | null;
 
   likesCount?: number;
+  commentsCount?: number;
   followersCount?: number;
   messagesCount?: number;
 }

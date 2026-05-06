@@ -75,6 +75,7 @@ function adaptMyClone(c: MyClone): Clone {
     myRole: c.myRole,
     coownerCount: c.coownerCount,
     likesCount: c.likesCount,
+    commentsCount: c.commentsCount,
     followersCount: c.followersCount,
     messagesCount: c.messagesCount,
     ...(c.l1Profile ? { l1Profile: c.l1Profile } : {}),
@@ -560,8 +561,7 @@ export default function MyClonesDashboardScreen() {
               onPress={() => setStatsModal({ type: "comments", cloneId: clone.id, cloneName: clone.displayName })}
             >
               <Feather name="message-circle" size={14} color={COLORS.zinc500} />
-              {}
-              <Text style={s.statText}>0</Text>
+              <Text style={s.statText}>{formatStat(clone.commentsCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.stat}

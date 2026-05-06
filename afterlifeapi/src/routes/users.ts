@@ -362,6 +362,9 @@ users.get("/me/clones", requireAuth, async (c) => {
             WHERE s.clone_id = c.id AND s.status = 'accepted') AS coownerCount,
           (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
             WHERE f.clone_id = c.id) AS likesCount,
+          (SELECT COUNT(*) FROM feed_comments fc
+             JOIN feeds f2 ON f2.id = fc.feed_id
+             WHERE f2.clone_id = c.id) AS commentsCount,
           COALESCE(cs.followers_count, 0) AS followersCount,
           COALESCE(cs.messages_count, 0) AS messagesCount
          FROM clones c
