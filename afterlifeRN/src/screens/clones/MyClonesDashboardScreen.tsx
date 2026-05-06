@@ -75,6 +75,7 @@ function v_a8d790(c: v_fa0201): v_affcc0 {
     myRole: v_3f4e2e.myRole,
     coownerCount: v_3f4e2e.coownerCount,
     likesCount: v_3f4e2e.likesCount,
+    commentsCount: v_3f4e2e.commentsCount,
     followersCount: v_3f4e2e.followersCount,
     messagesCount: v_3f4e2e.messagesCount,
     ...(v_3f4e2e.l1Profile ? { l1Profile: v_3f4e2e.l1Profile } : {}),
@@ -560,8 +561,7 @@ export default function v_def15b() {
               onPress={() => v_d5cd7b({ type: "comments", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
             >
               <Feather name="message-circle" size={14} color={v_1bfbd0.zinc500} />
-              {}
-              <Text style={v_fd5f43.statText}>0</Text>
+              <Text style={v_fd5f43.statText}>{v_5c66fc(v_eb25ce.commentsCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={v_fd5f43.stat}
