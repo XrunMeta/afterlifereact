@@ -378,6 +378,19 @@ export async function v_11c954(
   return v_04b58a(`/oth-path${v_c09aa8}/like`, v_2ca7e0, { method: "DELETE" });
 }
 
+export async function v_b14fce(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ ok: true; liked: boolean; feedId: number; promoted?: boolean; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/like`, v_2ca7e0, { method: "POST" });
+}
+export async function v_0ff331(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ ok: true; liked: false; feedId?: number; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/like`, v_2ca7e0, { method: "DELETE" });
+}
+
 export async function v_20d793(
   v_6e0fd3,
   v_328259,

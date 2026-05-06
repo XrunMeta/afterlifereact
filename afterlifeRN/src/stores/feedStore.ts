@@ -6,6 +6,8 @@ import {
   v_f5cc38,
   v_de2a30,
   v_11c954,
+  v_b14fce,
+  v_0ff331,
   type v_4c75cf,
 } from "../api/clones";
 
@@ -103,20 +105,45 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
       });
     }
 
-    if (v_389afb < 0) return;
     const v_2ca7e0 = v_1ed7d9.getState().accessToken;
     if (!v_2ca7e0) return;
-    const v_f96a98 = v_d60f4b ? v_de2a30 : v_11c954;
-    v_f96a98(v_2ca7e0, v_389afb)
+
+    const v_5d003d = v_389afb < 0;
+    const v_23cdc5 = v_5d003d ? -v_389afb : 0;
+    const v_5ee69e = v_5d003d
+      ? v_d60f4b
+        ? v_b14fce(v_2ca7e0, v_23cdc5)
+        : v_0ff331(v_2ca7e0, v_23cdc5)
+      : v_d60f4b
+        ? v_de2a30(v_2ca7e0, v_389afb)
+        : v_11c954(v_2ca7e0, v_389afb);
+
+    v_5ee69e
       .then((v_8f00b9) => {
 
         const v_c3bc75 = v_38715b().apiFeeds;
         if (v_c3bc75) {
+
+          const v_3459a5 =
+            v_5d003d &&
+            "promoted" in v_8f00b9 &&
+            (v_8f00b9 as { promoted?: boolean }).promoted &&
+            "feedId" in v_8f00b9;
+          const v_ceee18 = v_3459a5 ? (v_8f00b9 as { feedId: number }).feedId : v_389afb;
           v_bb8024({
             apiFeeds: v_c3bc75.map((v_8b5cd8) =>
-              v_8b5cd8.id === v_389afb ? { ...v_8b5cd8, likesCount: v_8f00b9.likesCount } : v_8b5cd8,
+              v_8b5cd8.id === v_389afb ? { ...v_8b5cd8, id: v_ceee18, likesCount: v_8f00b9.likesCount } : v_8b5cd8,
             ),
           });
+          if (v_3459a5) {
+
+            const v_132868 = v_38715b().likedIds;
+            v_bb8024({
+              likedIds: v_132868.includes(v_389afb)
+                ? [...v_132868.filter((v_62c214) => v_62c214 !== v_389afb), v_ceee18]
+                : v_132868,
+            });
+          }
         }
       })
       .catch((v_49263d) => {
