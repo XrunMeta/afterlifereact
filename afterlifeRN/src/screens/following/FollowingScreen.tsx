@@ -18,6 +18,7 @@ import {
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
@@ -75,6 +76,7 @@ const v_cae9dc = (v_f4e98d) => (v_f4e98d >= 1000 ? `${(v_f4e98d / 1000).toFixed(
 
 export default function v_14b43e() {
   const { t: v_8d41d7 } = v_772971();
+  const v_033e14 = v_e0068c();
   const v_f4c991 = v_ada615<RootNav>();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
@@ -382,7 +384,10 @@ export default function v_14b43e() {
       {}
       <Modal visible={!!v_5c83d5} transparent animationType="slide">
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_880166(null)}>
-          <View style={v_fd5f43.commentSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[v_fd5f43.commentSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.commentHeaderRow}>
               <Text style={v_fd5f43.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_3a63e7.length })}</Text>
@@ -445,7 +450,10 @@ export default function v_14b43e() {
       {}
       <Modal visible={v_af84de} transparent animationType="slide">
         <Pressable style={v_fd5f43.bottomOverlay} onPress={() => v_22a5cb(false)}>
-          <View style={v_fd5f43.callSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[v_fd5f43.callSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.callSheetHeader}>
               <Text style={v_fd5f43.callSheetTitle}>{v_8d41d7("feed.callSheetTitle")}</Text>

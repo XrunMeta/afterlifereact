@@ -13,6 +13,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
@@ -38,6 +39,7 @@ const v_798085 = [
 ];
 
 export default function v_e2b396() {
+  const v_1f1785 = v_e0068c();
   const v_c65f5d = v_ada615();
   const { t: v_8d41d7 } = v_772971();
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
@@ -346,7 +348,10 @@ export default function v_e2b396() {
         onRequestClose={() => v_64803f(false)}
       >
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_64803f(false)}>
-          <Pressable style={v_fd5f43.modalSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+          <Pressable
+            style={[v_fd5f43.modalSheet, { paddingBottom: 32 + Math.max(v_1f1785.bottom, 0) }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             <View style={v_fd5f43.modalHandle} />
             <View style={v_fd5f43.modalHeader}>
               <Text style={v_fd5f43.modalTitle}>관심사 선택</Text>
@@ -385,7 +390,10 @@ export default function v_e2b396() {
         onRequestClose={() => v_9665cb(false)}
       >
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_9665cb(false)}>
-          <Pressable style={v_fd5f43.deleteSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+          <Pressable
+            style={[v_fd5f43.deleteSheet, { paddingBottom: 32 + Math.max(v_1f1785.bottom, 0) }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             <View style={v_fd5f43.modalHandle} />
             <Text style={v_fd5f43.deleteSheetTitle}>회원 탈퇴</Text>
             <Text style={v_fd5f43.deleteSheetSubtitle}>
