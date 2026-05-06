@@ -128,14 +128,18 @@ export default function v_000f0a() {
   };
 
   const v_a482a4 = () => {
-    v_03e392.alert(v_8d41d7("inviteAccept.errorTitle"), v_8d41d7("inviteAccept.body", { name: v_2ccff1?.clone.name ?? "" }), [
-      { text: v_8d41d7("common.close"), style: "cancel" },
-      {
-        text: v_8d41d7("common.confirm"),
-        style: "destructive",
-        onPress: () => v_c65f5d.goBack(),
-      },
-    ]);
+    v_03e392.alert(
+      v_8d41d7("inviteAccept.declineConfirmTitle"),
+      v_8d41d7("inviteAccept.declineConfirmDesc", { name: v_2ccff1?.clone.name ?? "" }),
+      [
+        { text: v_8d41d7("common.close"), style: "cancel" },
+        {
+          text: v_8d41d7("inviteAccept.decline"),
+          style: "destructive",
+          onPress: () => v_c65f5d.goBack(),
+        },
+      ],
+    );
   };
 
   return (
@@ -190,7 +194,7 @@ export default function v_000f0a() {
                 variant="accent"
               />
               <Button
-                title={v_8d41d7("common.cancel")}
+                title={v_8d41d7("inviteAccept.decline")}
                 onPress={v_a482a4}
                 disabled={v_9865d0}
                 variant="ghost"
