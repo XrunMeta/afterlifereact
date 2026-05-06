@@ -215,6 +215,7 @@
   "edit": {
     "title": "Edit Persona",
     "save": "Save",
+    "saveFailed": "Failed to save.",
     "basicSection": "Basic Info",
     "nameLabel": "Name",
     "namePlaceholder": "Enter name",

@@ -215,6 +215,7 @@
   "edit": {
     "title": "페르소나 수정",
     "save": "저장하기",
+    "saveFailed": "저장에 실패했어요.",
     "basicSection": "기본 정보",
     "nameLabel": "이름",
     "namePlaceholder": "이름을 입력해주세요",

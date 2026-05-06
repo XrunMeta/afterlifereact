@@ -314,6 +314,29 @@ export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
   return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
 }
 
+export interface PatchClonePayload {
+  name?: string;
+  description?: string;
+  visibility?: Visibility;
+  avatar_url?: string;
+  cover_image_url?: string;
+  voice_preset_id?: number | null;
+  l1_profile?: { attrs: Record<string, string>; notes: string };
+  interests?: string[];
+}
+
+export async function v_bb226e(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_931bf0,
+): Promise<{ ok: true; updatedFields: string[] }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}`,
+    v_2ca7e0,
+    { method: "PATCH", body: JSON.stringify(v_931bf0) },
+  );
+}
+
 export interface InvitePreview {
   clone: {
     id: number;
