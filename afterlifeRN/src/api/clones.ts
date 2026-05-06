@@ -378,6 +378,74 @@ export async function v_11c954(
   return v_04b58a(`/oth-path${v_c09aa8}/like`, v_2ca7e0, { method: "DELETE" });
 }
 
+export interface FeedComment {
+  id: number;
+  feedId?: number;
+  userId: number;
+  content: string;
+  createdAt: string;
+  user: {
+    id: number;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+
+export async function v_776874(
+  v_6e0fd3,
+  v_328259,
+): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_6e0fd3}/comments`);
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: FeedComment[]; nextCursor: number | null };
+}
+
+export async function v_4208e7(
+  v_c09aa8,
+  v_328259,
+): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_c09aa8}/comments`);
+  if (v_328259?.cursor) v_f71b56.searchParams.set("cursor", String(v_328259.cursor));
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: FeedComment[]; nextCursor: number | null };
+}
+
+export async function v_3f8bc7(
+  v_2ca7e0,
+  v_c09aa8,
+  v_b43b74,
+): Promise<{ ok: true; comment: { id: number; feedId: number; userId: number; content: string } }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/comments`, v_2ca7e0, {
+    method: "POST",
+    body: JSON.stringify({ content: v_b43b74 }),
+  });
+}
+
 export async function v_b14fce(
   v_2ca7e0,
   v_6e0fd3,
