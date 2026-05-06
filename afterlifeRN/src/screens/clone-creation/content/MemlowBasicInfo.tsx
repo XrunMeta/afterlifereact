@@ -43,7 +43,7 @@ function Component({ draft, onChange }: Props) {
               style={[styles.chip, active && styles.chipActive]}
               onPress={() => onChange({ relation: r.id })}
             >
-              <Text style={active ? styles.chipActiveText : styles.chipText}>{r.label}</Text>
+              <Text style={active ? styles.chipActiveText : styles.chipText}>{t(r.label)}</Text>
             </TouchableOpacity>
           );
         })}

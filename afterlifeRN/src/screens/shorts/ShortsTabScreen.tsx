@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../api/client';
 import { useAuthStore } from '../../stores/authStore';
 import type { ApiShort } from '../../api/types';
 
 export default function ShortsTabScreen() {
+  const { t } = useTranslation();
   const nav = useNavigation<any>();
   const viewerId = useAuthStore((s) => s.user?.id) ?? 1;
   const [items, setItems] = useState<ApiShort[] | null>(null);
@@ -21,10 +23,8 @@ export default function ShortsTabScreen() {
   if (items.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>아직 볼 Shorts 가 없어요</Text>
-        <Text style={styles.emptyBody}>
-          내 클론을 공개로 전환하거나, 다른 클론을 팔로우해 보세요.
-        </Text>
+        <Text style={styles.emptyTitle}>{t("feed.shortsEmptyTitle")}</Text>
+        <Text style={styles.emptyBody}>{t("feed.shortsHint")}</Text>
       </View>
     );
   }
@@ -47,7 +47,7 @@ export default function ShortsTabScreen() {
             onPress={() => nav.navigate('ClonesTab', { screen: 'CloneDetail', params: { cloneId: item.cloneId } })}
             style={styles.detailBtn}
           >
-            <Text style={styles.detailText}>자세히 보기</Text>
+            <Text style={styles.detailText}>{t("feed.shortsViewMore")}</Text>
           </TouchableOpacity>
         </View>
       )}

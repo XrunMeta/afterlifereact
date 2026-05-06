@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../constants";
 import type { FeedItem } from "../../types/feed";
 
@@ -35,6 +36,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onCallPress,
   onCommentPress,
 }) => {
+  const { t } = useTranslation();
   return (
     <View style={[styles.container, { height: cardHeight }]}>
       {}
@@ -77,7 +79,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
                   isFollowed && styles.followTextActive,
                 ]}
               >
-                {isFollowed ? "팔로잉" : "팔로우"}
+                {isFollowed ? t("feed.following") : t("feed.follow")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -120,7 +122,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
             activeOpacity={0.8}
           >
             <Feather name="video" size={20} color={COLORS.zinc900} />
-            <Text style={styles.callButtonText}>통화하기</Text>
+            <Text style={styles.callButtonText}>{t("feed.callBtn")}</Text>
           </TouchableOpacity>
         </View>
       )}

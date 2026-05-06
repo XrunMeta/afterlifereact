@@ -191,6 +191,20 @@ export default function FollowingScreen() {
 
   const currentComments: MockComment[] = commentPostId ? mockCommentList(commentPostId) : [];
 
+  const renderHeader = () => (
+    <View style={s.heroWrap}>
+      <Image
+        source={require("../../../assets/images/grandfather-post.png")}
+        style={s.heroImage}
+        resizeMode="cover"
+      />
+      <View style={s.heroOverlay}>
+        <Text style={s.heroTitle}>{t("feed.heroTitle")}</Text>
+        <Text style={s.heroSubtitle}>{t("feed.heroSubtitle")}</Text>
+      </View>
+    </View>
+  );
+
   const renderPost = ({ item }: { item: (typeof posts)[0] }) => {
     const feedImage = item.feed.mediaUrl ?? item.persona.avatar;
     return (
@@ -308,6 +322,7 @@ export default function FollowingScreen() {
         data={posts}
         keyExtractor={(item) => String(item.feed.id)}
         renderItem={renderPost}
+        ListHeaderComponent={renderHeader}
         contentContainerStyle={s.feed}
         showsVerticalScrollIndicator={false}
         onScroll={onFeedScroll}
@@ -374,7 +389,7 @@ export default function FollowingScreen() {
                 <Text key={i} style={s.activityItem}>• {a}</Text>
               ))}
             </View>
-            <Button title="확인" variant="primary" onPress={() => setShowInteractionInfo(false)} style={{ marginTop: 16, width: "100%", borderRadius: RADIUS.full }} />
+            <Button title={t("common.ok")} variant="primary" onPress={() => setShowInteractionInfo(false)} style={{ marginTop: 16, width: "100%", borderRadius: RADIUS.full }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -430,13 +445,13 @@ export default function FollowingScreen() {
       <Modal visible={!!unfollowConfirmId} transparent animationType="fade">
         <Pressable style={s.centerOverlay} onPress={() => setUnfollowConfirmId(null)}>
           <Pressable style={s.confirmBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.confirmTitle}>팔로우 취소</Text>
+            <Text style={s.confirmTitle}>{t("feed.unfollowTitle")}</Text>
             <Text style={s.confirmDesc}>
-              정말 이 페르소나의 팔로우를 취소하시겠습니까?{"\n"}피드에서 해당 페르소나의 포스트가 더 이상 표시되지 않습니다.
+              {t("feed.unfollowDesc")}
             </Text>
             <View style={s.confirmBtns}>
-              <Button title="취소" variant="ghost" onPress={() => setUnfollowConfirmId(null)} style={{ flex: 1 }} />
-              <Button title="팔로우 취소" variant="danger" onPress={confirmUnfollow} style={{ flex: 1 }} />
+              <Button title={t("common.cancel")} variant="ghost" onPress={() => setUnfollowConfirmId(null)} style={{ flex: 1 }} />
+              <Button title={t("feed.unfollowTitle")} variant="danger" onPress={confirmUnfollow} style={{ flex: 1 }} />
             </View>
           </Pressable>
         </Pressable>
@@ -448,7 +463,7 @@ export default function FollowingScreen() {
           <View style={s.callSheet} onStartShouldSetResponder={() => true}>
             <View style={s.sheetHandle} />
             <View style={s.callSheetHeader}>
-              <Text style={s.callSheetTitle}>통화하기</Text>
+              <Text style={s.callSheetTitle}>{t("feed.callSheetTitle")}</Text>
               <TouchableOpacity onPress={() => setShowCallModal(false)}>
                 <Feather name="x" size={20} color={COLORS.zinc600} />
               </TouchableOpacity>
@@ -461,7 +476,7 @@ export default function FollowingScreen() {
                 style={s.callSearchInput}
                 value={callSearchQuery}
                 onChangeText={setCallSearchQuery}
-                placeholder="페르소나 검색..."
+                placeholder={t("feed.callSearchPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
               />
               {callSearchQuery.length > 0 && (
@@ -475,7 +490,7 @@ export default function FollowingScreen() {
               {}
               {!callSearchQuery && followedPersonas.length > 0 && (
                 <View style={s.callSectionBordered}>
-                  <Text style={s.callSectionTitle}>최근 통화</Text>
+                  <Text style={s.callSectionTitle}>{t("feed.recentCalls")}</Text>
                   {followedPersonas.slice(0, 2).map((p, i) => (
                     <View key={p.id} style={s.callRow}>
                       <Image source={{ uri: p.avatar }} style={s.callAvatar} />
@@ -483,7 +498,7 @@ export default function FollowingScreen() {
                         <Text style={s.callName}>{p.name}</Text>
                         <Text style={s.callSub}>{p.creatorAccount}</Text>
                         <Text style={s.callMeta}>
-                          {i === 0 ? "어제 • 8분 21초" : "3일 전 • 15분 32초"}
+                          {i === 0 ? t("feed.callMetaYesterday") : t("feed.callMeta3DaysAgo")}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -494,7 +509,7 @@ export default function FollowingScreen() {
                         }}
                       >
                         <Feather name="video" size={14} color={COLORS.white} />
-                        <Text style={s.callBtnText}>통화</Text>
+                        <Text style={s.callBtnText}>{t("feed.callRowAction")}</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -503,7 +518,7 @@ export default function FollowingScreen() {
 
               {}
               <View style={s.callSection}>
-                <Text style={s.callSectionTitle}>{callSearchQuery ? "검색 결과" : "팔로잉 목록"}</Text>
+                <Text style={s.callSectionTitle}>{callSearchQuery ? t("feed.searchResults") : t("feed.followingList")}</Text>
                 {filteredCallList.length > 0 ? filteredCallList.map((p) => (
                   <View key={p.id} style={s.callRow}>
                     <Image source={{ uri: p.avatar }} style={s.callAvatar} />
@@ -545,6 +560,27 @@ const s = StyleSheet.create({
 
   feed: { padding: 16, gap: 16 },
   postWrap: { marginBottom: 8 },
+
+  heroWrap: {
+    height: 160,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 16,
+    backgroundColor: COLORS.zinc100,
+  },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+    padding: 16,
+  },
+  heroTitle: { fontSize: 18, fontWeight: "700", color: COLORS.white },
+  heroSubtitle: { fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 },
 
   imageWrap: { borderRadius: 24, overflow: "hidden", backgroundColor: COLORS.zinc100 },
   postImage: { width: "100%", aspectRatio: 3 / 4 },

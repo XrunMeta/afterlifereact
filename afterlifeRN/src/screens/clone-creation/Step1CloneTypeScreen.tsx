@@ -41,19 +41,19 @@ export default function Step1CloneTypeScreen({ navigation }: Props) {
         <Text style={styles.title}>{t("create.stepTitles.1")}</Text>
         <Text style={styles.subtitle}>{t("create.type.defaultDesc")}</Text>
         <View style={styles.grid}>
-          {CLONE_TYPES.map(t => {
-            const active = selected === t.id;
+          {CLONE_TYPES.map(ct => {
+            const active = selected === ct.id;
             return (
               <TouchableOpacity
-                key={t.id}
+                key={ct.id}
                 accessibilityRole="button"
                 style={[styles.card, active && styles.cardActive]}
-                onPress={() => setSelected(t.id)}
+                onPress={() => setSelected(ct.id)}
               >
-                <Feather name={t.iconName as any} size={24}
+                <Feather name={ct.iconName as any} size={24}
                   color={active ? COLORS.violet500 : COLORS.zinc600} />
-                <Text style={[styles.label, active && styles.labelActive]}>{t.label}</Text>
-                <Text style={styles.desc}>{t.desc}</Text>
+                <Text style={[styles.label, active && styles.labelActive]}>{t(ct.label)}</Text>
+                <Text style={styles.desc}>{t(ct.desc)}</Text>
               </TouchableOpacity>
             );
           })}

@@ -514,10 +514,8 @@ export default function MyClonesDashboardScreen() {
             {}
             <View style={s.dashTitleRow}>
               <View style={{ flex: 1 }}>
-                <Text style={s.dashTitleText}>페르소나 대시보드</Text>
-                <Text style={s.dashSubText}>
-                  생성된 AI 페르소나의 성과를 활용을 관리합니다.
-                </Text>
+                <Text style={s.dashTitleText}>{t("dashboard.headerTitle")}</Text>
+                <Text style={s.dashSubText}>{t("dashboard.headerDesc")}</Text>
               </View>
               <TouchableOpacity
                 style={s.inviteStatusBtn}
@@ -534,17 +532,17 @@ export default function MyClonesDashboardScreen() {
               <View style={s.statsCard}>
                 <View style={s.statsCardHeader}>
                   <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-                  <Text style={s.statsCardLabel}>총 상호작용</Text>
+                  <Text style={s.statsCardLabel}>{t("dashboard.statsTotalInteractions")}</Text>
                 </View>
                 <Text style={s.statsCardValue}>12.8k</Text>
-                <Text style={s.statsCardDelta}>+14% 지난주 대비</Text>
+                <Text style={s.statsCardDelta}>{t("dashboard.statsDelta")}</Text>
               </View>
 
               <View style={[s.statsCard, s.statsCardDark]}>
                 <View style={s.statsCardHeader}>
                   <Feather name="user" size={14} color={COLORS.zinc400} />
                   <Text style={[s.statsCardLabel, { color: COLORS.zinc400 }]}>
-                    페르소나 활동
+                    {t("dashboard.statsActivity")}
                   </Text>
                 </View>
                 <View style={s.activityCount}>
@@ -557,7 +555,7 @@ export default function MyClonesDashboardScreen() {
         }
         ListFooterComponent={
           <TouchableOpacity style={s.loadMore}>
-            <Text style={s.loadMoreText}>더보기</Text>
+            <Text style={s.loadMoreText}>{t("dashboard.loadMore")}</Text>
           </TouchableOpacity>
         }
       />
@@ -800,10 +798,10 @@ export default function MyClonesDashboardScreen() {
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Feather name="search" size={32} color={COLORS.zinc300} />
                   <Text style={{ color: COLORS.zinc500, marginTop: 8, fontSize: 13 }}>
-                    이메일 또는 이름을 입력해주세요 (2자 이상)
+                    {t("invite.inviteSearchEmpty")}
                   </Text>
                   <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
-                    afterlife 가입 회원만 초대할 수 있어요
+                    {t("invite.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : searching ? (
@@ -813,10 +811,10 @@ export default function MyClonesDashboardScreen() {
               ) : searchResults.length === 0 ? (
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
-                    검색 결과가 없어요
+                    {t("invite.inviteNoResults")}
                   </Text>
                   <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
-                    afterlife에 가입된 회원만 초대할 수 있어요
+                    {t("invite.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : (

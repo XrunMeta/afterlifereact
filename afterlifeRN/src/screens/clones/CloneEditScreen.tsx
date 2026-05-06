@@ -286,7 +286,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                       onPress={() => setDraft((d) => ({ ...d, relation: r.id }))}
                     >
                       <Text style={[s.chipText, active && s.chipTextSelected]}>
-                        {r.label}
+                        {t(r.label)}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -377,7 +377,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
                 description: clone.description,
                 interests: clone.interests,
                 l1: clone.l1Profile,
-              })}
+              }, t)}
             </Text>
           </View>
 

@@ -10,10 +10,10 @@ export interface CloneTypeMeta {
 }
 
 export const CLONE_TYPES: readonly CloneTypeMeta[] = [
-  { id: 'memlow', iconName: 'heart', label: '고인',
-    desc: '함께한 시간을 대화로 이어갑니다', defaultVisibility: 'private', visibilityLocked: true },
-  { id: 'friend', iconName: 'users', label: '일반',
-    desc: '친구·멘토·유명인 등 자유 페르소나', defaultVisibility: 'public', visibilityLocked: false },
+  { id: 'memlow', iconName: 'heart', label: 'create.type.memlowLabel',
+    desc: 'create.type.memlowShortDesc', defaultVisibility: 'private', visibilityLocked: true },
+  { id: 'friend', iconName: 'users', label: 'create.type.defaultLabel',
+    desc: 'create.type.defaultShortDesc', defaultVisibility: 'public', visibilityLocked: false },
 ] as const;
 
 export function getCloneTypeMeta(id: CloneType): CloneTypeMeta {
@@ -23,15 +23,16 @@ export function getCloneTypeMeta(id: CloneType): CloneTypeMeta {
 }
 
 export interface MemlowRelationOption { id: MemlowRelation; label: string; }
+
 export const MEMLOW_RELATIONS: readonly MemlowRelationOption[] = [
-  { id: 'mother', label: '어머니' },
-  { id: 'father', label: '아버지' },
-  { id: 'spouse', label: '배우자' },
-  { id: 'child', label: '자녀' },
-  { id: 'sibling', label: '형제자매' },
-  { id: 'friend', label: '친구' },
-  { id: 'pet', label: '반려동물' },
-  { id: 'other', label: '기타' },
+  { id: 'mother', label: 'create.relations.mother' },
+  { id: 'father', label: 'create.relations.father' },
+  { id: 'spouse', label: 'create.relations.spouse' },
+  { id: 'child', label: 'create.relations.child' },
+  { id: 'sibling', label: 'create.relations.sibling' },
+  { id: 'friend', label: 'create.relations.friend' },
+  { id: 'pet', label: 'create.relations.pet' },
+  { id: 'other', label: 'create.relations.other' },
 ] as const;
 
 export interface MemlowVoiceScript { id: string; title: string; text: string; }
