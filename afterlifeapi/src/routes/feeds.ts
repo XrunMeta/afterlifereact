@@ -173,7 +173,8 @@ feedsDiscover.get("/discover", async (c) => {
                 f.media_url        AS feedMediaUrl,
                 f.media_type       AS feedMediaType,
                 f.likes_count      AS feedLikesCount,
-                f.created_at       AS feedCreatedAt
+                f.created_at       AS feedCreatedAt,
+                (SELECT COUNT(*) FROM feed_comments WHERE feed_id = f.id) AS commentsCount
            FROM clones c
            LEFT JOIN feeds f ON f.id = (
              SELECT id FROM feeds WHERE clone_id = c.id
@@ -198,6 +199,7 @@ feedsDiscover.get("/discover", async (c) => {
         feedMediaType: string | null;
         feedLikesCount: number | null;
         feedCreatedAt: string | null;
+        commentsCount: number | null;
       }>()
   ).results;
 
@@ -258,6 +260,7 @@ feedsDiscover.get("/discover", async (c) => {
       likesCount: r.feedLikesCount ?? 0,
 
       likedByMe: r.feedId != null && likedFeedIds.has(r.feedId),
+      commentsCount: r.commentsCount ?? 0,
       createdAt: r.feedCreatedAt ?? r.cloneCreatedAt,
       clone: {
         id: r.cloneId,
@@ -637,6 +640,61 @@ feedsDiscover.get("/:id/comments", async (c) => {
     })),
     nextCursor,
   });
+});
+
+cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
+  const cloneId = parseCloneId(c);
+  const userId = c.get("userId")!;
+  const body = await parseJson(c, commentCreateSchema);
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (clone.visibility === "private") {
+    if (clone.owner_id !== userId) {
+      const role = await hasAcceptedShare(c.env.DB, cloneId, userId);
+      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+    }
+  }
+
+  let feedId: number;
+  let promoted = false;
+  const existing = await c.env.DB
+    .prepare(`SELECT id FROM feeds WHERE clone_id = ? ORDER BY id DESC LIMIT 1`)
+    .bind(cloneId)
+    .first<{ id: number }>();
+  if (existing) {
+    feedId = existing.id;
+  } else {
+    const cloneRow = await c.env.DB
+      .prepare(`SELECT description, avatar_url FROM clones WHERE id = ?`)
+      .bind(cloneId)
+      .first<{ description: string | null; avatar_url: string | null }>();
+    const r = await c.env.DB
+      .prepare(
+        `INSERT INTO feeds (clone_id, content, media_url, media_type, created_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      )
+      .bind(cloneId, cloneRow?.description ?? "", cloneRow?.avatar_url ?? null, null)
+      .run();
+    feedId = Number(r.meta.last_row_id);
+    promoted = true;
+  }
+  const r = await c.env.DB
+    .prepare(`INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`)
+    .bind(feedId, userId, body.content.trim())
+    .run();
+  return c.json(
+    {
+      ok: true,
+      comment: {
+        id: Number(r.meta.last_row_id),
+        feedId,
+        userId,
+        content: body.content.trim(),
+      },
+      promoted,
+    },
+    201,
+  );
 });
 
 cloneFeeds.get("/:id/comments", async (c) => {

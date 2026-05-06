@@ -24,6 +24,8 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
 import { uploadFile } from "../../api/files";
 import { patchMe } from "../../api/auth";
+import { listMyClones, listMyFollowedClones } from "../../api/clones";
+import { useFocusEffect } from "@react-navigation/native";
 import { getPaymentPinStatus, getXrunBalance } from "../../api/payments";
 import PaymentPinPromptModal, {
   shouldShowPaymentPinPrompt,
@@ -33,11 +35,7 @@ import type { MyStackParamList } from "../../navigation/types";
 
 const DEFAULT_USER_ID = 1;
 
-const recentTransactions = [
-  { labelKey: "my.coin.txCreatePersona", date: "2024.03.25 14:32", amount: -500 },
-  { labelKey: "my.coin.txVideoCall", date: "2024.03.24 19:15", amount: -300 },
-  { labelKey: "my.coin.txRecharge", date: "2024.03.23 10:20", amount: 10000 },
-];
+const recentTransactions: Array<{ labelKey: string; date: string; amount: number }> = [];
 
 type MyNav = NativeStackNavigationProp<MyStackParamList>;
 
@@ -154,16 +152,41 @@ export default function MyScreen() {
   const adDisplay = adBalance ?? null;
 
   const uid = apiUser?.id ?? user?.id ?? DEFAULT_USER_ID;
-  const followingCount = useMemo(
-    () => follows.filter((f) => f.followerUserId === uid).length,
-    [follows, uid],
+  const [apiFollowingCount, setApiFollowingCount] = useState<number | null>(null);
+  const [apiMyClonesCount, setApiMyClonesCount] = useState<number | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let cancelled = false;
+      if (!accessToken || !apiUser?.id) {
+        setApiFollowingCount(null);
+        setApiMyClonesCount(null);
+        return;
+      }
+      const userId = apiUser.id;
+      listMyFollowedClones(accessToken, userId)
+        .then((r) => {
+          if (!cancelled) setApiFollowingCount(r.items.length);
+        })
+        .catch((err) => console.warn("[MyScreen] followedClones fail:", err));
+      listMyClones(accessToken)
+        .then((r) => {
+          if (!cancelled) setApiMyClonesCount(r.items.length);
+        })
+        .catch((err) => console.warn("[MyScreen] myClones fail:", err));
+      return () => {
+        cancelled = true;
+      };
+    }, [accessToken, apiUser?.id]),
   );
-  const myClonesCount = useMemo(
-    () =>
-      seedSource.clones().filter((c) => c.ownerId === uid).length +
-      localClones.filter((c) => c.ownerId === uid).length,
-    [uid, localClones],
-  );
+
+  const followingCount =
+    apiFollowingCount ??
+    follows.filter((f) => f.followerUserId === uid).length;
+  const myClonesCount =
+    apiMyClonesCount ??
+    seedSource.clones().filter((c) => c.ownerId === uid).length +
+      localClones.filter((c) => c.ownerId === uid).length;
 
   const settingsItems: Array<{
     icon: keyof typeof Feather.glyphMap;
@@ -177,12 +200,7 @@ export default function MyScreen() {
       descKey: "settings.saved.title",
       route: "SavedItems",
     },
-    {
-      icon: "users",
-      labelKey: "my.menu.acquaintance",
-      descKey: "settings.acquaintance.title",
-      route: "AcquaintanceManagement",
-    },
+
     {
       icon: "user",
       labelKey: "my.menu.editProfile",
