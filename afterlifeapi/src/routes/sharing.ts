@@ -467,7 +467,19 @@ v_98b245.post(
 v_403c0a.get("/:id/shares", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
-  await v_979b07(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+
+  const v_a0737a = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT
+          (SELECT 1 FROM clones WHERE id = ? AND owner_id = ?) AS isOwner,
+          (SELECT 1 FROM clone_shares
+              WHERE clone_id = ? AND target_user_id = ? AND status = 'accepted') AS isCoowner`,
+    )
+    .bind(v_6e0fd3, v_43e90c, v_6e0fd3, v_43e90c)
+    .first<{ isOwner: number | null; isCoowner: number | null }>();
+  if (!v_a0737a || (!v_a0737a.isOwner && !v_a0737a.isCoowner)) {
+    throw new v_3ebe58("FORBIDDEN", "Access denied for this clone.");
+  }
 
   const v_18b8bf = (
     await v_3f4e2e.env.DB
