@@ -173,7 +173,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
                 f.media_url        AS feedMediaUrl,
                 f.media_type       AS feedMediaType,
                 f.likes_count      AS feedLikesCount,
-                f.created_at       AS feedCreatedAt
+                f.created_at       AS feedCreatedAt,
+                (SELECT COUNT(*) FROM feed_comments WHERE feed_id = f.id) AS commentsCount
            FROM clones c
            LEFT JOIN feeds f ON f.id = (
              SELECT id FROM feeds WHERE clone_id = c.id
@@ -198,6 +199,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
         feedMediaType: string | null;
         feedLikesCount: number | null;
         feedCreatedAt: string | null;
+        commentsCount: number | null;
       }>()
   ).results;
 
@@ -258,6 +260,7 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
       likesCount: v_cb35cb.feedLikesCount ?? 0,
 
       likedByMe: v_cb35cb.feedId != null && v_3391ce.has(v_cb35cb.feedId),
+      commentsCount: v_cb35cb.commentsCount ?? 0,
       createdAt: v_cb35cb.feedCreatedAt ?? v_cb35cb.cloneCreatedAt,
       clone: {
         id: v_cb35cb.cloneId,
@@ -637,6 +640,61 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
     })),
     nextCursor: v_64f859,
   });
+});
+
+v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_9c5bc5);
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (v_eb25ce.visibility === "private") {
+    if (v_eb25ce.owner_id !== v_43e90c) {
+      const v_22da99 = await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "Private clone.");
+    }
+  }
+
+  let v_c09aa8;
+  let v_3459a5 = false;
+  const v_3c8572 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM feeds WHERE clone_id = ? ORDER BY id DESC LIMIT 1`)
+    .bind(v_6e0fd3)
+    .first<{ id: number }>();
+  if (v_3c8572) {
+    v_c09aa8 = v_3c8572.id;
+  } else {
+    const v_1de203 = await v_3f4e2e.env.DB
+      .prepare(`SELECT description, avatar_url FROM clones WHERE id = ?`)
+      .bind(v_6e0fd3)
+      .first<{ description: string | null; avatar_url: string | null }>();
+    const v_cb35cb = await v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO feeds (clone_id, content, media_url, media_type, created_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_6e0fd3, v_1de203?.description ?? "", v_1de203?.avatar_url ?? null, null)
+      .run();
+    v_c09aa8 = Number(v_cb35cb.meta.last_row_id);
+    v_3459a5 = true;
+  }
+  const v_cb35cb = await v_3f4e2e.env.DB
+    .prepare(`INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`)
+    .bind(v_c09aa8, v_43e90c, v_4d33b2.content.trim())
+    .run();
+  return v_3f4e2e.json(
+    {
+      ok: true,
+      comment: {
+        id: Number(v_cb35cb.meta.last_row_id),
+        feedId: v_c09aa8,
+        userId: v_43e90c,
+        content: v_4d33b2.content.trim(),
+      },
+      promoted: v_3459a5,
+    },
+    201,
+  );
 });
 
 v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {

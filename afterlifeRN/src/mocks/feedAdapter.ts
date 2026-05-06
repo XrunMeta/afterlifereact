@@ -2,7 +2,7 @@ import type { v_bc3df4, v_d79d7f } from "../types/domain";
 import type { v_19b433 } from "../types/feed";
 import { v_694b7f } from "../api/source";
 import { v_a554a7 } from "./images";
-import { v_0b62e7 } from "../stores/feedStore";
+import { v_0b62e7, v_10e36e } from "../stores/feedStore";
 
 const CLONE_TYPE_LABEL: Record<v_d79d7f, string> = {
   memlow: "멤로우",
@@ -30,7 +30,9 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
   const v_65a2cd = Math.abs(v_8b5cd8.id);
 
   const v_30007d = v_38db88 ? (v_8b5cd8.likesCount ?? 0) : 500 + (v_65a2cd % 9500);
-  const v_ecfc0f = v_38db88 ? 0 : 20 + (v_65a2cd % 480);
+  const v_ecfc0f = v_38db88
+    ? (v_10e36e.get(v_8b5cd8.id)?.commentsCount ?? 0)
+    : 20 + (v_65a2cd % 480);
   const v_9ab3b1 = v_7bc7b9[v_8b5cd8.cloneId];
   return {
     id: v_8b5cd8.id,

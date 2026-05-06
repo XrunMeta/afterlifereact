@@ -51,6 +51,8 @@ function v_5b0abe(c: v_4b85a1, v_493eec): boolean {
 
 export const v_0b62e7 = new Map<number, v_4b85a1>();
 
+export const v_10e36e = new Map<number, { commentsCount: number }>();
+
 function v_0a5d7b(item: v_4c75cf): v_bc3df4 {
   v_0b62e7.set(v_8c0b26.cloneId, {
     id: v_8c0b26.clone.id,
@@ -63,6 +65,9 @@ function v_0a5d7b(item: v_4c75cf): v_bc3df4 {
     visibility: "public",
     status: "active",
     createdAt: v_8c0b26.createdAt,
+  });
+  v_10e36e.set(v_8c0b26.id, {
+    commentsCount: v_8c0b26.commentsCount ?? 0,
   });
   return {
     id: v_8c0b26.id,
