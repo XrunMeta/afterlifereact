@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import TextField from '../../../components/ui/TextField';
 import { MEMLOW_RELATIONS } from '../../../mocks/cloneTypeCatalog';
 import type { CloneCreationDraft } from '../../../types/clone';
@@ -12,26 +13,27 @@ interface Props {
 }
 
 function Component({ draft, onChange }: Props) {
+  const { t } = useTranslation();
   return (
     <View style={styles.wrap}>
       <TextField
-        placeholder="이름 (예: 엄마)"
+        placeholder={t("create.basicInfo.memlowNamePlaceholder")}
         value={draft.name ?? ''}
         onChangeText={v => onChange({ name: v })}
       />
       <TextField
-        placeholder="클론 아이디 (@clon)"
+        placeholder={t("create.basicInfo.usernamePlaceholder")}
         value={draft.username ?? ''}
         onChangeText={v => onChange({ username: v })}
         autoCapitalize="none"
       />
       <TextField
-        placeholder="한 줄 소개 (추억 한 줄)"
+        placeholder={t("create.basicInfo.memlowDescPlaceholder")}
         value={draft.description ?? ''}
         onChangeText={v => onChange({ description: v })}
       />
 
-      <Text style={styles.label}>고인과의 관계</Text>
+      <Text style={styles.label}>{t("create.basicInfo.relationLabel")}</Text>
       <View style={styles.chipRow}>
         {MEMLOW_RELATIONS.map(r => {
           const active = draft.relation === r.id;

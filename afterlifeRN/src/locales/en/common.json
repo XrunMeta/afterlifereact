@@ -132,6 +132,185 @@
       "logout": "Logout"
     }
   },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "loginBtn": "Sign In",
+      "googleBtn": "Sign in with Google",
+      "xrunBtn": "Sign in with xrun",
+      "signupHint": "Don't have an account?",
+      "signupBtn": "Sign Up",
+      "forgotPassword": "Forgot password?",
+      "loginFailed": "Sign-in failed.",
+      "invalidCredentials": "Invalid email or password.",
+      "checkingGoogle": "Verifying Google...",
+      "googleFailed": "Google sign-in failed."
+    },
+    "signup": {
+      "title": "Sign Up",
+      "name": "Name",
+      "namePlaceholder": "Enter your name",
+      "email": "Email",
+      "emailPlaceholder": "example@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "8+ characters",
+      "passwordConfirm": "Confirm Password",
+      "passwordConfirmPlaceholder": "Re-enter your password",
+      "passwordMismatch": "Passwords don't match",
+      "phone": "Phone",
+      "phonePlaceholder": "010-0000-0000",
+      "gender": "Gender",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other",
+      "age": "Age",
+      "interests": "Interests (optional)",
+      "marketingConsent": "I agree to receive marketing info (optional)",
+      "next": "Next",
+      "signupBtn": "Sign Up",
+      "verifying": "Verifying...",
+      "emailRequired": "Please enter your email",
+      "passwordTooShort": "Password must be 8+ characters",
+      "phoneTooShort": "Please enter a valid phone number",
+      "ageInvalid": "Please enter a valid age",
+      "alreadyExists": "This email is already registered",
+      "signupFailed": "Sign-up failed"
+    },
+    "emailVerify": {
+      "title": "Verify Email",
+      "desc": "Enter the 6-digit code sent to {{email}}.",
+      "codePlaceholder": "6-digit code",
+      "verifyBtn": "Verify",
+      "resend": "Resend code",
+      "resending": "Sending...",
+      "resentToast": "Verification code resent.",
+      "wrongCode": "Code doesn't match.",
+      "expired": "Code expired. Please resend.",
+      "tooMany": "Too many attempts. Please try again later."
+    },
+    "xrun": {
+      "loginTitle": "Start with xrun",
+      "loginDesc": "Sign in with the same email and PIN you use on xrun.",
+      "emailPlaceholder": "Email",
+      "pinPlaceholder": "PIN (6 digits)",
+      "next": "Next",
+      "otpTitle": "Enter xrun OTP",
+      "otpDesc": "Enter the 6-digit code sent to your xrun email.",
+      "onboardingTitle": "Welcome to afterlife",
+      "onboardingDesc": "Please fill in your basic info to get started.",
+      "submit": "Start afterlife",
+      "googleOnboardingDesc": "First time with Google. Just a quick basic info.",
+      "submitting": "Processing..."
+    }
+  },
+  "create": {
+    "step": "STEP {{cur}}/{{total}}",
+    "next": "Next",
+    "back": "Back",
+    "stepTitles": {
+      "1": "Type",
+      "2": "Basic Info",
+      "3": "Profile Image",
+      "4": "Voice",
+      "5": "Visibility",
+      "6": "Creating",
+      "7": "Done",
+      "8": "Intro Video"
+    },
+    "type": {
+      "memlowTitle": "Memorial Persona",
+      "memlowDesc": "Continue conversations with someone you've lost",
+      "defaultTitle": "General Persona",
+      "defaultDesc": "Friend, mentor, celebrity, or any persona"
+    },
+    "basicInfo": {
+      "namePlaceholder": "Persona name",
+      "memlowNamePlaceholder": "Name (e.g. Mom)",
+      "usernamePlaceholder": "Clone ID (@clon)",
+      "descPlaceholder": "Short description",
+      "memlowDescPlaceholder": "Short description (one memory line)",
+      "relationLabel": "Relation",
+      "categoryLabel": "Category",
+      "interestsLabel": "Interests",
+      "addEtc": "+ Other",
+      "customPlaceholder": "Comma-separated — e.g. books, movies, travel",
+      "addBtn": "Add"
+    },
+    "image": {
+      "upload": "Upload image",
+      "rights": "Use only your own photos or images you have rights to.",
+      "rightsAck": "Acknowledged"
+    },
+    "voice": {
+      "presets": "Default voice presets",
+      "uploadFile": "Choose audio file",
+      "uploadedFile": "File selected",
+      "record": "Record",
+      "recordHint": "30+ seconds recommended",
+      "recording": "Recording...",
+      "stop": "Stop",
+      "play": "Play"
+    },
+    "visibility": {
+      "memlowLocked": "Memorial clones are private only. Visible only to co-admins.",
+      "coownerInviteLabel": "Invite co-admin (email)",
+      "coownerHint": "Only afterlife members can be invited.",
+      "publicTitle": "Public",
+      "publicDesc": "Anyone can see",
+      "followersTitle": "Followers",
+      "followersDesc": "Only followers can see",
+      "privateTitle": "Private",
+      "privateDesc": "Only you and co-admins"
+    },
+    "creating": {
+      "title": "Creating persona...",
+      "subtitle": "Please wait a moment"
+    },
+    "complete": {
+      "memlowTitle": "Memories continue",
+      "memlowSub": "Read it together when a letter arrives.",
+      "friendTitle": "Your friend is ready",
+      "friendSub": "Shall we start the first chat?",
+      "mentorTitle": "Your mentor is ready",
+      "mentorSub": "Leave questions by topic.",
+      "celebTitle": "Fan club started",
+      "celebSub": "Send your first message.",
+      "creating": "Creating your persona...",
+      "createFailed": "Creation failed",
+      "featAutoLearn": "Auto-learning",
+      "featAutoLearnDesc": "The persona gets smarter as you chat",
+      "featSecurity": "Data Security",
+      "featSecurityDesc": "All data is securely encrypted",
+      "startVideo": "Make intro video",
+      "goDashboard": "Back to my personas"
+    },
+    "errors": {
+      "quotaExceeded": "You can only create one persona per type.",
+      "usernameConflict": "This username is taken. Please try another.",
+      "createFailed": "Failed to create persona."
+    },
+    "shorts": {
+      "title": "Intro Video",
+      "creating": "Generating…",
+      "skip": "Skip",
+      "retry": "Retry",
+      "done": "Done",
+      "forbidden": "Only the clone owner can create a video.",
+      "home": "Home"
+    },
+    "persona": {
+      "ageLabel": "Age",
+      "genderLabel": "Gender",
+      "typeLabel": "Personality (up to {{max}})",
+      "mbtiLabel": "MBTI",
+      "notesLabel": "Persona Description",
+      "notesPlaceholder": "Tone, habits, background — anything (optional)"
+    }
+  },
   "settings": {
     "editProfile": {
       "title": "Edit Profile",

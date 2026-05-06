@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 import { useAuthStore } from '../../../stores/authStore';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 function Component({ draft, onChange }: Props) {
+  const { t } = useTranslation();
   const [pending, setPending] = useState('');
   const [checking, setChecking] = useState(false);
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -28,15 +30,15 @@ function Component({ draft, onChange }: Props) {
     const v = pending.trim();
     if (!v) return;
     if (!EMAIL_RE.test(v)) {
-      Alert.alert('알림', '올바른 이메일을 입력해주세요.');
+      Alert.alert(t("common.notice"), t("invite.invalidEmail"));
       return;
     }
     if (myEmail && v.toLowerCase() === myEmail.toLowerCase()) {
-      Alert.alert('알림', '본인은 초대할 수 없어요.');
+      Alert.alert(t("common.notice"), t("invite.selfNotAllowed"));
       return;
     }
     if (invites.some((e) => e.toLowerCase() === v.toLowerCase())) {
-      Alert.alert('알림', '이미 추가된 이메일이에요.');
+      Alert.alert(t("common.notice"), t("invite.alreadyAdded"));
       return;
     }
     if (!accessToken) {
@@ -50,16 +52,14 @@ function Component({ draft, onChange }: Props) {
       const res = await searchUsers(accessToken, v);
       const exact = res.items.find((u) => u.email.toLowerCase() === v.toLowerCase());
       if (!exact) {
-
-        Alert.alert('알림', '해당 이메일을 가진 회원이 없습니다 다시 입력해주세요');
+        Alert.alert(t("common.notice"), t("invite.memberNotFound"));
         return;
       }
       onChange({ coownerInvites: [...invites, v] });
       setPending('');
     } catch (err) {
-
       console.warn('[MemlowVisibility] searchUsers failed:', err);
-      Alert.alert('오류', '회원 확인 중 오류가 났어요. 잠시 후 다시 시도해주세요.');
+      Alert.alert(t("common.error"), t("invite.memberNotFound"));
     } finally {
       setChecking(false);
     }
@@ -72,12 +72,12 @@ function Component({ draft, onChange }: Props) {
       <View style={styles.lockedRow}>
         <Feather name="lock" size={16} color={COLORS.violet600} />
         <Text style={styles.lockedText}>
-          고인 클론은 비공개로 고정돼요. 공동관리자만 볼 수 있어요.
+          {t("create.visibility.memlowLocked")}
         </Text>
       </View>
 
-      <Text style={styles.label}>공동관리자 초대 (이메일)</Text>
-      <Text style={styles.hint}>afterlife 가입 회원만 초대 가능해요.</Text>
+      <Text style={styles.label}>{t("create.visibility.coownerInviteLabel")}</Text>
+      <Text style={styles.hint}>{t("create.visibility.coownerHint")}</Text>
       <View style={styles.inputRow}>
         <TextInput
           placeholder="email@example.com"

@@ -133,6 +133,185 @@
       "logout": "로그아웃"
     }
   },
+  "auth": {
+    "login": {
+      "title": "로그인",
+      "emailLabel": "이메일",
+      "emailPlaceholder": "이메일을 입력해주세요",
+      "passwordLabel": "비밀번호",
+      "passwordPlaceholder": "비밀번호를 입력해주세요",
+      "loginBtn": "로그인",
+      "googleBtn": "Google로 로그인",
+      "xrunBtn": "xrun 계정으로 로그인",
+      "signupHint": "아직 계정이 없으신가요?",
+      "signupBtn": "회원가입",
+      "forgotPassword": "비밀번호 찾기",
+      "loginFailed": "로그인에 실패했어요.",
+      "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않아요.",
+      "checkingGoogle": "Google 인증 확인 중...",
+      "googleFailed": "Google 로그인에 실패했어요."
+    },
+    "signup": {
+      "title": "회원가입",
+      "name": "이름",
+      "namePlaceholder": "이름을 입력해주세요",
+      "email": "이메일",
+      "emailPlaceholder": "example@email.com",
+      "password": "비밀번호",
+      "passwordPlaceholder": "8자 이상",
+      "passwordConfirm": "비밀번호 확인",
+      "passwordConfirmPlaceholder": "비밀번호를 다시 입력해주세요",
+      "passwordMismatch": "비밀번호가 일치하지 않아요",
+      "phone": "전화번호",
+      "phonePlaceholder": "010-0000-0000",
+      "gender": "성별",
+      "male": "남성",
+      "female": "여성",
+      "other": "기타",
+      "age": "나이",
+      "interests": "관심사 (선택)",
+      "marketingConsent": "마케팅 정보 수신에 동의합니다 (선택)",
+      "next": "다음",
+      "signupBtn": "회원가입",
+      "verifying": "인증 중...",
+      "emailRequired": "이메일을 입력해주세요",
+      "passwordTooShort": "비밀번호는 8자 이상이어야 해요",
+      "phoneTooShort": "전화번호를 정확히 입력해주세요",
+      "ageInvalid": "나이를 정확히 입력해주세요",
+      "alreadyExists": "이미 가입된 이메일이에요",
+      "signupFailed": "회원가입에 실패했어요"
+    },
+    "emailVerify": {
+      "title": "이메일 인증",
+      "desc": "{{email}} 로 발송된 6자리 인증 코드를 입력해주세요.",
+      "codePlaceholder": "6자리 숫자",
+      "verifyBtn": "확인",
+      "resend": "코드 재발송",
+      "resending": "발송 중...",
+      "resentToast": "인증 코드를 다시 발송했어요.",
+      "wrongCode": "코드가 일치하지 않아요.",
+      "expired": "코드가 만료됐어요. 재발송 해주세요.",
+      "tooMany": "재시도가 너무 많아요. 잠시 후 다시 시도해주세요."
+    },
+    "xrun": {
+      "loginTitle": "xrun 계정으로 시작",
+      "loginDesc": "xrun 회원이라면 같은 이메일과 PIN 으로 afterlife 도 시작할 수 있어요.",
+      "emailPlaceholder": "이메일",
+      "pinPlaceholder": "PIN (6자리)",
+      "next": "다음",
+      "otpTitle": "xrun OTP 입력",
+      "otpDesc": "xrun 에 등록된 이메일로 발송된 6자리 코드를 입력해주세요.",
+      "onboardingTitle": "afterlife 시작하기",
+      "onboardingDesc": "afterlife 가 처음이라면 기본 정보를 입력해주세요.",
+      "submit": "afterlife 시작하기",
+      "googleOnboardingDesc": "Google 계정으로 처음 시작이에요. 기본 정보 한번만 입력해주세요.",
+      "submitting": "처리 중..."
+    }
+  },
+  "create": {
+    "step": "STEP {{cur}}/{{total}}",
+    "next": "다음 단계로 이동",
+    "back": "이전",
+    "stepTitles": {
+      "1": "유형 선택",
+      "2": "기본 정보",
+      "3": "프로필 사진",
+      "4": "음성",
+      "5": "공개 범위",
+      "6": "생성 중",
+      "7": "생성 완료",
+      "8": "소개 영상"
+    },
+    "type": {
+      "memlowTitle": "고인 페르소나",
+      "memlowDesc": "함께한 시간을 대화로 이어가요",
+      "defaultTitle": "일반 페르소나",
+      "defaultDesc": "친구·멘토·유명인 등 자유 페르소나"
+    },
+    "basicInfo": {
+      "namePlaceholder": "페르소나 이름",
+      "memlowNamePlaceholder": "이름 (예: 엄마)",
+      "usernamePlaceholder": "클론 아이디 (@clon)",
+      "descPlaceholder": "한 줄 소개",
+      "memlowDescPlaceholder": "한 줄 소개 (추억 한 줄)",
+      "relationLabel": "고인과의 관계",
+      "categoryLabel": "카테고리",
+      "interestsLabel": "관심사",
+      "addEtc": "+ 기타",
+      "customPlaceholder": "콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행",
+      "addBtn": "추가"
+    },
+    "image": {
+      "upload": "이미지 업로드",
+      "rights": "이미지 사용 권한이 있는 본인 사진/저작권 침해 없는 이미지만 사용해주세요.",
+      "rightsAck": "확인했어요"
+    },
+    "voice": {
+      "presets": "기본 음성 프리셋",
+      "uploadFile": "오디오 파일 선택",
+      "uploadedFile": "파일 선택됨",
+      "record": "녹음하기",
+      "recordHint": "최소 30초 녹음 권장",
+      "recording": "녹음 중...",
+      "stop": "정지",
+      "play": "재생"
+    },
+    "visibility": {
+      "memlowLocked": "고인 클론은 비공개로 고정돼요. 공동관리자만 볼 수 있어요.",
+      "coownerInviteLabel": "공동관리자 초대 (이메일)",
+      "coownerHint": "afterlife 가입 회원만 초대 가능해요.",
+      "publicTitle": "공개",
+      "publicDesc": "누구나 볼 수 있어요",
+      "followersTitle": "지인공개",
+      "followersDesc": "팔로워만 볼 수 있어요",
+      "privateTitle": "비공개",
+      "privateDesc": "본인과 공동관리자만 볼 수 있어요"
+    },
+    "creating": {
+      "title": "페르소나 생성 중...",
+      "subtitle": "잠시만 기다려주세요"
+    },
+    "complete": {
+      "memlowTitle": "추억을 이어가요",
+      "memlowSub": "편지가 도착했을 때 함께 읽어봐요.",
+      "friendTitle": "친구가 준비됐어요",
+      "friendSub": "첫 대화를 시작해 볼까요?",
+      "mentorTitle": "멘토가 준비됐어요",
+      "mentorSub": "분야별 질문을 남겨 보세요.",
+      "celebTitle": "팬클럽이 시작됐어요",
+      "celebSub": "첫 메시지를 남겨 보세요.",
+      "creating": "페르소나를 만들고 있어요...",
+      "createFailed": "생성 실패",
+      "featAutoLearn": "자동 학습",
+      "featAutoLearnDesc": "대화를 나눌수록 페르소나가 더 똑똑해져요",
+      "featSecurity": "데이터 보안",
+      "featSecurityDesc": "모든 데이터는 안전하게 암호화되어 보호됩니다",
+      "startVideo": "소개 영상 만들기",
+      "goDashboard": "나의 페르소나로 돌아가기"
+    },
+    "errors": {
+      "quotaExceeded": "같은 타입의 페르소나는 1개까지만 생성할 수 있어요.",
+      "usernameConflict": "이미 사용 중인 username 이에요. 다시 시도해주세요.",
+      "createFailed": "페르소나 생성 중 오류가 발생했습니다."
+    },
+    "shorts": {
+      "title": "소개 영상",
+      "creating": "생성 중…",
+      "skip": "건너뛰기",
+      "retry": "다시 생성",
+      "done": "완료",
+      "forbidden": "이 클론의 소유자만 영상을 만들 수 있어요.",
+      "home": "홈으로"
+    },
+    "persona": {
+      "ageLabel": "나이",
+      "genderLabel": "성별",
+      "typeLabel": "성격 유형 (최대 {{max}}개)",
+      "mbtiLabel": "MBTI",
+      "notesLabel": "페르소나 설명",
+      "notesPlaceholder": "이 페르소나의 말투·습관·배경 등을 자유롭게 적어주세요 (선택)"
+    }
+  },
   "settings": {
     "editProfile": {
       "title": "개인정보 관리",

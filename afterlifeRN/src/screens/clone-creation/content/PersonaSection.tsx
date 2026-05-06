@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import TextField from '../../../components/ui/TextField';
 import {
   PERSONA_AGE_OPTIONS,
@@ -19,6 +20,7 @@ interface Props {
 const MAX_TYPES = 4;
 
 export default function PersonaSection({ draft, onChange }: Props) {
+  const { t } = useTranslation();
   const types = draft.personaTypes ?? [];
 
   const toggleType = (id: PersonaTypeId) => {
@@ -32,7 +34,7 @@ export default function PersonaSection({ draft, onChange }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>나이</Text>
+      <Text style={styles.label}>{t("create.persona.ageLabel")}</Text>
       <View style={styles.chipRow}>
         {PERSONA_AGE_OPTIONS.map((age) => {
           const active = draft.personaAge === age;
@@ -48,7 +50,7 @@ export default function PersonaSection({ draft, onChange }: Props) {
         })}
       </View>
 
-      <Text style={styles.label}>성별</Text>
+      <Text style={styles.label}>{t("create.persona.genderLabel")}</Text>
       <View style={styles.chipRow}>
         {PERSONA_GENDER_OPTIONS.map((g) => {
           const active = draft.personaGender === g;
@@ -64,7 +66,7 @@ export default function PersonaSection({ draft, onChange }: Props) {
         })}
       </View>
 
-      <Text style={styles.label}>성격 유형 (최대 {MAX_TYPES}개)</Text>
+      <Text style={styles.label}>{t("create.persona.typeLabel", { max: MAX_TYPES })}</Text>
       <View style={styles.chipRow}>
         {PERSONA_TYPE_OPTIONS.map((p) => {
           const active = types.includes(p.id);
@@ -80,7 +82,7 @@ export default function PersonaSection({ draft, onChange }: Props) {
         })}
       </View>
 
-      <Text style={styles.label}>MBTI</Text>
+      <Text style={styles.label}>{t("create.persona.mbtiLabel")}</Text>
       <View style={styles.chipRow}>
         {PERSONA_MBTI_OPTIONS.map((m) => {
           const active = draft.personaMbti === m;
@@ -96,9 +98,9 @@ export default function PersonaSection({ draft, onChange }: Props) {
         })}
       </View>
 
-      <Text style={styles.label}>페르소나 설명</Text>
+      <Text style={styles.label}>{t("create.persona.notesLabel")}</Text>
       <TextField
-        placeholder="이 페르소나의 말투·습관·배경 등을 자유롭게 적어주세요 (선택)"
+        placeholder={t("create.persona.notesPlaceholder")}
         value={draft.personaNotes ?? ''}
         onChangeText={(v) => onChange({ personaNotes: v })}
         multiline

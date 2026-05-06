@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { CreateStackParamList } from '../../navigation/types';
 
@@ -17,6 +18,7 @@ import { COLORS, SIZES, RADIUS } from '../../components/constants';
 type Props = { navigation: NativeStackNavigationProp<CreateStackParamList, 'Step1'> };
 
 export default function Step1CloneTypeScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const setCreationDraft = useCloneStore(s => s.setCreationDraft);
   const current = useCloneStore(s => s.creationDraft.cloneType);
   const [selected, setSelected] = useState<CloneType | undefined>(current);
@@ -30,14 +32,14 @@ export default function Step1CloneTypeScreen({ navigation }: Props) {
   return (
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader
-        title="클론 타입"
+        title={t("create.stepTitles.1")}
         showBackButton
         onBackPress={() => navigation.getParent()?.navigate('HomeTab' as never)}
       />
       <StepIndicator currentStep={1} totalSteps={7} />
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
-        <Text style={styles.title}>어떤 클론을 만들까요?</Text>
-        <Text style={styles.subtitle}>나중에 변경할 수 없으니 신중히 선택해 주세요.</Text>
+        <Text style={styles.title}>{t("create.stepTitles.1")}</Text>
+        <Text style={styles.subtitle}>{t("create.type.defaultDesc")}</Text>
         <View style={styles.grid}>
           {CLONE_TYPES.map(t => {
             const active = selected === t.id;
@@ -58,7 +60,7 @@ export default function Step1CloneTypeScreen({ navigation }: Props) {
         </View>
       </SafeScrollView>
       <View style={styles.bottomBar}>
-        <Button title="다음" onPress={handleNext} disabled={!selected} />
+        <Button title={t("create.next")} onPress={handleNext} disabled={!selected} />
       </View>
     </SafeView>
   );
