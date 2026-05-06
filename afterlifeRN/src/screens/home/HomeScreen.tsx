@@ -13,7 +13,6 @@ import {
   ScrollView,
   Image,
   TextInput,
-  KeyboardAvoidingView,
   Keyboard,
 } from "react-native";
 import { Alert } from "react-native";
@@ -98,21 +97,22 @@ export default function HomeScreen() {
     }
   }, [toastMessage]);
 
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      () => setKeyboardVisible(true),
+      (e) => setKeyboardHeight(e.endCoordinates.height),
     );
     const hideSub = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setKeyboardVisible(false),
+      () => setKeyboardHeight(0),
     );
     return () => {
       showSub.remove();
       hideSub.remove();
     };
   }, []);
+  const keyboardVisible = keyboardHeight > 0;
 
   const filteredFeeds: FeedItem[] = getFilteredFeeds().map(toFeedItem);
 
@@ -316,17 +316,14 @@ export default function HomeScreen() {
 
       {}
       <Modal visible={!!commentFeedId} transparent animationType="slide">
-        <KeyboardAvoidingView
-
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ flex: 1 }}
-        >
         <Pressable style={styles.commentOverlay} onPress={() => setCommentFeedId(null)}>
           <View
             style={[
               styles.commentSheet,
-
-              { paddingBottom: keyboardVisible ? 12 : 24 + Math.max(insets.bottom, 0) },
+              {
+                paddingBottom: keyboardVisible ? 12 : 24 + Math.max(insets.bottom, 0),
+                marginBottom: keyboardHeight,
+              },
             ]}
             onStartShouldSetResponder={() => true}
           >
@@ -385,7 +382,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </Pressable>
-        </KeyboardAvoidingView>
       </Modal>
 
       {}
