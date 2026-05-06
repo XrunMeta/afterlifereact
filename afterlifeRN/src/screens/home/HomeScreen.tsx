@@ -116,12 +116,14 @@ export default function HomeScreen() {
 
   const filteredFeeds: FeedItem[] = getFilteredFeeds().map(toFeedItem);
 
-  const setApiFeeds = useFeedStore((s) => s.apiFeeds); 
-  void setApiFeeds;
-  const [, setForceTick] = useState(0);
   const bumpCommentsCount = useCallback((feedId: number, n: number) => {
     apiFeedCountsCache.set(feedId, { commentsCount: n });
-    setForceTick((x) => x + 1);
+    const cur = useFeedStore.getState().apiFeeds;
+    if (cur) {
+      useFeedStore.setState({
+        apiFeeds: cur.map((f) => (f.id === feedId ? { ...f, commentsCount: n } : f)),
+      });
+    }
   }, []);
 
   const onViewableItemsChanged = useCallback(
