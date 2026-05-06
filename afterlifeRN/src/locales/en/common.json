@@ -12,6 +12,8 @@
       "privacy": "Privacy and Visibility",
       "saved": "Saved",
       "acquaintance": "Acquaintance Management",
+      "inviteStatus": "Invite Status",
+      "inviteStatusDesc": "All co-admin invites you sent",
       "language": "Language Settings",
       "logout": "Logout"
     }

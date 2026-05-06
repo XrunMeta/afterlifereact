@@ -184,6 +184,12 @@ export default function MyScreen() {
       route: "AcquaintanceManagement",
     },
     {
+      icon: "send",
+      labelKey: "my.menu.inviteStatus",
+      descKey: "my.menu.inviteStatusDesc",
+      route: "InviteStatus",
+    },
+    {
       icon: "user",
       labelKey: "my.menu.editProfile",
       descKey: "settings.editProfile.title",

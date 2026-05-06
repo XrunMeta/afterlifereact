@@ -247,6 +247,31 @@ export async function deleteClone(
   );
 }
 
+export type SentInviteStatus = "pending" | "accepted" | "cancelled" | "expired";
+export interface SentInvite {
+  id: number;
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+  usedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  status: SentInviteStatus;
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+}
+export async function listMyInvites(
+  accessToken: string,
+): Promise<{ items: SentInvite[] }> {
+  return authFetch(`/oth-path`, accessToken, { method: "GET" });
+}
+
 export interface MyClone {
   id: number;
   name: string;

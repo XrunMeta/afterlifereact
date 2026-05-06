@@ -77,4 +77,5 @@ export type MyStackParamList = {
   AcquaintanceManagement: undefined;
   LanguageSettings: undefined;
   PaymentPin: undefined;
+  InviteStatus: undefined;
 };
