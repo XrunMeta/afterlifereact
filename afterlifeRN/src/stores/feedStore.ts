@@ -180,14 +180,21 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     if (get().apiLoading) return;
     set({ apiLoading: true });
     try {
-      const res = await listDiscoverFeeds({ limit: 50 });
+      const accessToken = useAuthStore.getState().accessToken ?? undefined;
+      const res = await listDiscoverFeeds({ limit: 50, accessToken });
       console.log("[feedStore] discover loaded:", res.items.length);
 
       if (res.items.length === 0) {
         set({ apiLoading: false });
         return;
       }
-      set({ apiFeeds: res.items, apiLoading: false });
+
+      const serverLiked = res.items
+        .filter((it) => it.likedByMe === true)
+        .map((it) => it.id);
+      const cur = get().likedIds;
+      const merged = Array.from(new Set([...cur, ...serverLiked]));
+      set({ apiFeeds: res.items, apiLoading: false, likedIds: merged });
     } catch (err) {
       console.warn("[feedStore] discover failed:", err);
 

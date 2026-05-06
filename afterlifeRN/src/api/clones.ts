@@ -325,6 +325,7 @@ export interface DiscoverFeedItem {
   mediaUrl: string | null;
   mediaType: string | null;
   likesCount: number;
+  likedByMe?: boolean;
   createdAt: string;
   clone: {
     id: number;
@@ -339,11 +340,14 @@ export interface DiscoverFeedItem {
 export async function listDiscoverFeeds(opts?: {
   cursor?: number | null;
   limit?: number;
+  accessToken?: string | null;
 }): Promise<{ items: DiscoverFeedItem[]; nextCursor: number | null }> {
   const url = new URL(`${API_BASE}/oth-path`);
   if (opts?.cursor) url.searchParams.set("cursor", String(opts.cursor));
   if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
-  const res = await fetch(url.toString());
+  const headers: Record<string, string> = {};
+  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
+  const res = await fetch(url.toString(), { headers });
   const text = await res.text();
   const parsed = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) {

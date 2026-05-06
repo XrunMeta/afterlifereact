@@ -138,6 +138,8 @@ feedsDiscover.get("/discover", async (c) => {
   const limitRaw = Number(url.searchParams.get("limit") ?? 20);
   const limit = Math.max(1, Math.min(50, Number.isFinite(limitRaw) ? limitRaw : 20));
 
+  const viewerId = await resolveOptionalUser(c);
+
   const where = [
     "c.deletion_state = 'active'",
     "c.deleted_at IS NULL",
@@ -219,6 +221,26 @@ feedsDiscover.get("/discover", async (c) => {
     }
   }
 
+  const likedFeedIds = new Set<number>();
+  if (viewerId) {
+    const feedIdsInPage = page
+      .map((r) => r.feedId)
+      .filter((x): x is number => typeof x === "number");
+    if (feedIdsInPage.length > 0) {
+      const placeholders = feedIdsInPage.map(() => "?").join(",");
+      const lr = (
+        await c.env.DB
+          .prepare(
+            `SELECT feed_id FROM feed_likes
+              WHERE user_id = ? AND feed_id IN (${placeholders})`,
+          )
+          .bind(viewerId, ...feedIdsInPage)
+          .all<{ feed_id: number }>()
+      ).results ?? [];
+      for (const row of lr) likedFeedIds.add(row.feed_id);
+    }
+  }
+
   return c.json({
     items: page.map((r) => ({
 
@@ -229,6 +251,8 @@ feedsDiscover.get("/discover", async (c) => {
       mediaUrl: r.feedMediaUrl ?? r.cloneAvatarUrl ?? null,
       mediaType: r.feedMediaType,
       likesCount: r.feedLikesCount ?? 0,
+
+      likedByMe: r.feedId != null && likedFeedIds.has(r.feedId),
       createdAt: r.feedCreatedAt ?? r.cloneCreatedAt,
       clone: {
         id: r.cloneId,
