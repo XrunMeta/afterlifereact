@@ -130,7 +130,9 @@ async function authFetch<T>(
   };
   if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
 
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  const url = `${API_BASE}${path}`;
+  const method = init.method ?? "GET";
+  const res = await fetch(url, { ...init, headers });
   const text = await res.text();
   let parsed: unknown = null;
   try {
@@ -140,6 +142,20 @@ async function authFetch<T>(
   }
   if (!res.ok) {
     const body = parsed as ApiErrorBody | null;
+
+    console.warn(
+      "[authFetch] failed:",
+      method,
+      url,
+      "status=",
+      res.status,
+      "code=",
+      body?.error?.code,
+      "msg=",
+      body?.error?.message,
+      "raw=",
+      text.slice(0, 300),
+    );
     throw new AuthApiError(
       res.status,
       body?.error?.code ?? "HTTP_ERROR",

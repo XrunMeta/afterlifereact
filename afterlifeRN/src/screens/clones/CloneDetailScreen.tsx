@@ -161,7 +161,10 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
       {}
       <Modal visible={showGiftModal} transparent animationType="slide">
         <Pressable style={s.giftOverlay} onPress={() => setShowGiftModal(false)}>
-          <Pressable style={s.giftSheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[s.giftSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             {}
             <View style={s.sheetHandle} />
 
@@ -312,8 +315,8 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingBottom: 32,
-    maxHeight: SCREEN_HEIGHT * 0.55,
+
+    maxHeight: SCREEN_HEIGHT * 0.65,
   },
   sheetHandle: {
     width: 36,
