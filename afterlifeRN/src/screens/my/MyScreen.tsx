@@ -49,6 +49,8 @@ export default function v_ed02a5() {
   const v_21f395 = v_1ed7d9((v_fd5f43) => v_fd5f43.patchApiUser);
   const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
+  const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
+  const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const [v_47abd6, v_e12360] = v_5ab095(false);
   const [v_026c2d, v_5eda29] = v_5ab095(false);
@@ -397,19 +399,30 @@ export default function v_ed02a5() {
                     <Text style={v_fd5f43.statsEmptyText}>아직 팔로우한 페르소나가 없어요</Text>
                   </View>
                 ) : (
-                  v_1f6f04.map((v_3f4e2e) => (
-                    <View key={v_3f4e2e.id} style={v_fd5f43.listRow}>
-                      {v_3f4e2e.avatarUrl ? (
-                        <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
-                      ) : (
-                        <View style={[v_fd5f43.listAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
-                      )}
-                      <View style={{ flex: 1 }}>
-                        <Text style={v_fd5f43.listName}>{v_3f4e2e.name}</Text>
-                        <Text style={v_fd5f43.listSub}>@{v_3f4e2e.username}</Text>
+                  v_1f6f04.map((v_3f4e2e) => {
+                    const v_10387a = v_b30b81(v_3f4e2e.id);
+                    return (
+                      <View key={v_3f4e2e.id} style={v_fd5f43.listRow}>
+                        {v_3f4e2e.avatarUrl ? (
+                          <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
+                        ) : (
+                          <View style={[v_fd5f43.listAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={v_fd5f43.listName}>{v_3f4e2e.name}</Text>
+                          <Text style={v_fd5f43.listSub}>@{v_3f4e2e.username}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => void v_3094d4(v_3f4e2e.id)}
+                          style={[v_fd5f43.followToggleBtn, v_10387a && v_fd5f43.followToggleBtnActive]}
+                        >
+                          <Text style={[v_fd5f43.followToggleText, v_10387a && v_fd5f43.followToggleTextActive]}>
+                            {v_10387a ? "팔로잉" : "팔로우"}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
-                    </View>
-                  ))
+                    );
+                  })
                 )
               )}
               {v_8bb912 === "myClones" && (
@@ -605,8 +618,21 @@ const v_fd5f43 = v_472849.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingBottom: 40,
-    maxHeight: "70%",
+    height: "70%",
   },
+  followToggleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  followToggleBtnActive: {
+    backgroundColor: v_1bfbd0.zinc100,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+  },
+  followToggleText: { fontSize: 12, fontWeight: "700", color: v_1bfbd0.white },
+  followToggleTextActive: { color: v_1bfbd0.zinc700 },
   sheetHandle: {
     width: 36,
     height: 4,
