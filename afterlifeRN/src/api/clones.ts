@@ -163,6 +163,40 @@ export async function listPendingInvites(
   return authFetch(`/oth-path${cloneId}/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface CreateInvitePayload {
+  invite_email?: string;
+  relation?: string;
+  grant_owner?: boolean;
+  ttl_hours?: number;
+}
+export interface CreateInviteResponse {
+  token: string;
+  expiresAt: string;
+  inviteEmail: string | null;
+  grantOwner: boolean;
+  notify?: {
+    inserted: boolean;
+    pushAttempted: number;
+    pushSent: number;
+    emailSent: boolean;
+  } | null;
+}
+export async function createInvite(
+  accessToken: string,
+  cloneId: number,
+  payload: CreateInvitePayload,
+): Promise<CreateInviteResponse> {
+  return authFetch<CreateInviteResponse>(
+    `/oth-path${cloneId}/oth-path`,
+    accessToken,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    makeIdempotencyKey(),
+  );
+}
+
 export async function cancelInvite(
   accessToken: string,
   cloneId: number,
