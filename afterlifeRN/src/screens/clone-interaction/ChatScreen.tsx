@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import TextField from "../../components/ui/TextField";
@@ -22,9 +23,9 @@ import type { DomainMessage } from "../../types/domain";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Chat">;
 
-const quickActions = ["더 구체적으로", "다른 주제로", "공감 세부 훈련"];
-
 export default function ChatScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
+  const quickActions = [t("chat.quickAction1"), t("chat.quickAction2"), t("chat.quickAction3")];
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
@@ -44,7 +45,7 @@ export default function ChatScreen({ route, navigation }: Props) {
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const personaName = clone?.displayName ?? "페르소나";
+  const personaName = clone?.displayName ?? t("chat.personaFallback");
 
   useEffect(() => {
     const showEvent =
@@ -95,7 +96,7 @@ export default function ChatScreen({ route, navigation }: Props) {
         cloneId,
         userId: currentUserId,
         role: "clone",
-        content: "네, 이해했습니다. 제가 도와드릴 수 있는 다른 것이 있나요?",
+        content: t("chat.stockReply"),
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, aiMsg]);
@@ -144,7 +145,7 @@ export default function ChatScreen({ route, navigation }: Props) {
           </TouchableOpacity>
           <View style={s.headerCenter}>
             <Text style={s.headerName}>{personaName}</Text>
-            <Text style={s.headerSub}>AI 페르소나</Text>
+            <Text style={s.headerSub}>{t("chat.subTitle")}</Text>
           </View>
           <TouchableOpacity style={{ padding: 4 }}>
             <Feather name="more-vertical" size={22} color={COLORS.zinc600} />
@@ -156,14 +157,14 @@ export default function ChatScreen({ route, navigation }: Props) {
           <View style={s.progressHeader}>
             <View style={s.progressLeft}>
               <Feather name="zap" size={16} color="#f97316" />
-              <Text style={s.progressLabel}>페르소나 학습</Text>
+              <Text style={s.progressLabel}>{t("chat.trainingLabel")}</Text>
             </View>
             <Text style={s.progressPercent}>65%</Text>
           </View>
           <View style={s.progressTrack}>
             <View style={s.progressFill} />
           </View>
-          <Text style={s.progressHint}>대화를 통해 페르소나가 학습하고 있습니다</Text>
+          <Text style={s.progressHint}>{t("chat.trainingHint")}</Text>
         </View>
       </View>
 
@@ -205,7 +206,7 @@ export default function ChatScreen({ route, navigation }: Props) {
             <TextField
               value={input}
               onChangeText={setInput}
-              placeholder="메시지를 입력하세요..."
+              placeholder={t("chat.messagePlaceholder")}
               onSubmitEditing={handleSend}
               returnKeyType="send"
               rounded={RADIUS.full}

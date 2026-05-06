@@ -122,6 +122,33 @@
     "failTitle": "복구 실패",
     "failMsg": "복구 기간(90일)이 만료되었거나 상태가 다릅니다."
   },
+  "chat": {
+    "personaFallback": "페르소나",
+    "subTitle": "AI 페르소나",
+    "trainingLabel": "페르소나 학습",
+    "trainingHint": "대화를 통해 페르소나가 학습하고 있습니다",
+    "messagePlaceholder": "메시지를 입력하세요...",
+    "quickAction1": "더 구체적으로",
+    "quickAction2": "다른 주제로",
+    "quickAction3": "공감 세부 훈련",
+    "stockReply": "네, 이해했습니다. 제가 도와드릴 수 있는 다른 것이 있나요?"
+  },
+  "call": {
+    "calling": "연결 중...",
+    "ended": "통화 종료",
+    "ringing": "호출 중",
+    "duration": "통화 시간",
+    "muteOn": "음소거",
+    "muteOff": "음소거 해제",
+    "videoOn": "영상 켜기",
+    "videoOff": "영상 끄기",
+    "endCall": "통화 종료"
+  },
+  "feed": {
+    "homeTitle": "홈",
+    "followingTitle": "팔로잉",
+    "followingEmpty": "팔로우 중인 페르소나가 없어요"
+  },
   "detail": {
     "notFound": "페르소나를 찾을 수 없습니다.",
     "coownerInvite": "공동관리자 초대",
