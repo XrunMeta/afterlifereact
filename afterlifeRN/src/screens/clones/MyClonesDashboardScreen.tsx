@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as Clipboard from "expo-clipboard";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -67,6 +68,7 @@ export default function MyClonesDashboardScreen() {
   const navigation = useNavigation<ClonesNav>();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const authUser = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -957,7 +959,10 @@ export default function MyClonesDashboardScreen() {
       {}
       <Modal visible={!!statsModal} transparent animationType="slide">
         <Pressable style={s.modalOverlay} onPress={() => setStatsModal(null)}>
-          <View style={s.statsSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[s.statsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={s.sheetHandle} />
             <Text style={s.statsSheetTitle}>
               {statsModal?.type === "likes" && "좋아요"}
@@ -1345,8 +1350,8 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingBottom: 32,
-    maxHeight: "60%",
+
+    maxHeight: "70%",
     position: "absolute",
     bottom: 0,
     left: 0,
