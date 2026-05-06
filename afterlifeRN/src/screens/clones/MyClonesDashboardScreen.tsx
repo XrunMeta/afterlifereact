@@ -24,7 +24,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_e4a407, v_f373d8, type v_fa0201 } from "../../api/clones";
+import { v_d60cdf, v_e4a407, v_f373d8, v_20d793, type v_fa0201, type v_d83ffc } from "../../api/clones";
 import v_0e981f from "../../components/common/NotificationBell";
 import { v_a41961, v_84a859, type v_3a673b } from "../../api/auth";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -145,8 +145,36 @@ export default function v_def15b() {
 
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
     type: "likes" | "interactions" | "comments" | "followers";
+    cloneId: number;
     cloneName: string;
   } | null>(null);
+  const [v_067c32, v_e2fcdd] = v_5ab095<v_d83ffc[] | null>(null);
+  const [v_02f28c, v_f442a2] = v_5ab095(false);
+
+  v_c4deb2(() => {
+    if (v_8bb912?.type !== "likes" || v_8bb912.cloneId == null) {
+      v_e2fcdd(null);
+      return;
+    }
+    let v_2008a4 = false;
+    v_f442a2(true);
+    v_e2fcdd(null);
+    v_20d793(v_8bb912.cloneId, { limit: 50 })
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_e2fcdd(v_8f00b9.items);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Dashboard] listCloneLikes failed:", v_49263d);
+        if (!v_2008a4) v_e2fcdd([]);
+      })
+      .finally(() => {
+        if (!v_2008a4) v_f442a2(false);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_8bb912?.type, v_8bb912?.cloneId]);
   const [v_16ef58, v_3e0da5] = v_5ab095<{
     cloneId: number;
     currentState: boolean;
@@ -442,21 +470,21 @@ export default function v_def15b() {
           <View style={v_fd5f43.statsRow}>
             <TouchableOpacity
               style={v_fd5f43.stat}
-              onPress={() => v_d5cd7b({ type: "likes", cloneName: v_eb25ce.displayName })}
+              onPress={() => v_d5cd7b({ type: "likes", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
             >
               <Feather name="heart" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText}>{v_5c66fc(v_eb25ce.likesCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={v_fd5f43.stat}
-              onPress={() => v_d5cd7b({ type: "interactions", cloneName: v_eb25ce.displayName })}
+              onPress={() => v_d5cd7b({ type: "interactions", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
             >
               <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText}>{v_5c66fc(v_eb25ce.messagesCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={v_fd5f43.stat}
-              onPress={() => v_d5cd7b({ type: "comments", cloneName: v_eb25ce.displayName })}
+              onPress={() => v_d5cd7b({ type: "comments", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
             >
               <Feather name="message-circle" size={14} color={v_1bfbd0.zinc500} />
               {}
@@ -464,7 +492,7 @@ export default function v_def15b() {
             </TouchableOpacity>
             <TouchableOpacity
               style={v_fd5f43.stat}
-              onPress={() => v_d5cd7b({ type: "followers", cloneName: v_eb25ce.displayName })}
+              onPress={() => v_d5cd7b({ type: "followers", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
             >
               <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
@@ -955,7 +983,34 @@ export default function v_def15b() {
               ))}
 
               {}
-              {(v_8bb912?.type === "likes" || v_8bb912?.type === "followers") &&
+              {v_8bb912?.type === "likes" && (
+                <>
+                  {v_02f28c ? (
+                    <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
+                  ) : !v_067c32 || v_067c32.length === 0 ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 좋아요가 없어요</Text>
+                    </View>
+                  ) : (
+                    v_067c32.map((v_ceb55a) => (
+                      <View key={v_ceb55a.likeId} style={v_fd5f43.accountRow}>
+                        {v_ceb55a.avatarUrl ? (
+                          <Image source={{ uri: v_ceb55a.avatarUrl }} style={v_fd5f43.accountAvatar} />
+                        ) : (
+                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                        )}
+                        <View style={v_fd5f43.accountInfo}>
+                          <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
+                          <Text style={v_fd5f43.accountSub}>{v_ceb55a.email}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
+
+              {}
+              {v_8bb912?.type === "followers" &&
                 v_b62688.map((v_b4542a) => (
                   <View key={v_b4542a.id} style={v_fd5f43.accountRow}>
                     <Image source={{ uri: v_b4542a.avatar }} style={v_fd5f43.accountAvatar} />
