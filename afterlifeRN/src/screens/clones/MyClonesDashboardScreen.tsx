@@ -506,8 +506,10 @@ export default function v_def15b() {
               v_2dac5f({ cloneId: v_eb25ce.id });
             }}
           >
-            <Feather name="user-plus" size={16} color={v_1bfbd0.zinc700} />
-            <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionInvite")}</Text>
+            <Feather name={v_e93e18 ? "user-plus" : "share-2"} size={16} color={v_1bfbd0.zinc700} />
+            <Text style={v_fd5f43.actionText}>
+              {v_e93e18 ? v_8d41d7("dashboard.actionInvite") : v_8d41d7("dashboard.actionShare")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -800,7 +802,14 @@ export default function v_def15b() {
           >
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.inviteHeader}>
-              <Text style={v_fd5f43.inviteTitle}>{v_8d41d7("invite.create")}</Text>
+              <Text style={v_fd5f43.inviteTitle}>
+                {(() => {
+                  const v_3f4e2e = v_4cd149.find((v_62c214) => v_62c214.id === v_36d186?.cloneId);
+                  return v_3f4e2e?.cloneType === "memlow"
+                    ? v_8d41d7("invite.create")
+                    : v_8d41d7("invite.shareTitle");
+                })()}
+              </Text>
               <TouchableOpacity onPress={() => v_2dac5f(null)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc500} />
               </TouchableOpacity>
