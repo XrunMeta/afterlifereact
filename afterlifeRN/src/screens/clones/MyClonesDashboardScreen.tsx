@@ -14,6 +14,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_fba5a0 from "hfxxehldoiokdq";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -67,6 +68,7 @@ export default function v_def15b() {
   const v_c65f5d = v_ada615<ClonesNav>();
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
   const { t: v_8d41d7 } = v_772971();
+  const v_033e14 = v_e0068c();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -957,7 +959,10 @@ export default function v_def15b() {
       {}
       <Modal visible={!!v_8bb912} transparent animationType="slide">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_d5cd7b(null)}>
-          <View style={v_fd5f43.statsSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={v_fd5f43.sheetHandle} />
             <Text style={v_fd5f43.statsSheetTitle}>
               {v_8bb912?.type === "likes" && "좋아요"}
@@ -1345,8 +1350,8 @@ const v_fd5f43 = v_472849.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingBottom: 32,
-    maxHeight: "60%",
+
+    maxHeight: "70%",
     position: "absolute",
     bottom: 0,
     left: 0,
