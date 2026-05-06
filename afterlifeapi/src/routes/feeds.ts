@@ -138,6 +138,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 20);
   const v_02be30 = Math.max(1, Math.min(50, Number.isFinite(v_cf2260) ? v_cf2260 : 20));
 
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
+
   const v_abcc8d = [
     "c.deletion_state = 'active'",
     "c.deleted_at IS NULL",
@@ -219,6 +221,26 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     }
   }
 
+  const v_3391ce = new Set<number>();
+  if (v_013af2) {
+    const v_2db407 = v_2365e9
+      .map((v_cb35cb) => v_cb35cb.feedId)
+      .filter((v_62c214): v_62c214 is number => typeof v_62c214 === "number");
+    if (v_2db407.length > 0) {
+      const v_1cdc07 = v_2db407.map(() => "?").join(",");
+      const v_59d4e3 = (
+        await v_3f4e2e.env.DB
+          .prepare(
+            `SELECT feed_id FROM feed_likes
+              WHERE user_id = ? AND feed_id IN (${v_1cdc07})`,
+          )
+          .bind(v_013af2, ...v_2db407)
+          .all<{ feed_id: number }>()
+      ).results ?? [];
+      for (const v_3ac7e7 of v_59d4e3) v_3391ce.add(v_3ac7e7.feed_id);
+    }
+  }
+
   return v_3f4e2e.json({
     items: v_2365e9.map((v_cb35cb) => ({
 
@@ -229,6 +251,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
       mediaUrl: v_cb35cb.feedMediaUrl ?? v_cb35cb.cloneAvatarUrl ?? null,
       mediaType: v_cb35cb.feedMediaType,
       likesCount: v_cb35cb.feedLikesCount ?? 0,
+
+      likedByMe: v_cb35cb.feedId != null && v_3391ce.has(v_cb35cb.feedId),
       createdAt: v_cb35cb.feedCreatedAt ?? v_cb35cb.cloneCreatedAt,
       clone: {
         id: v_cb35cb.cloneId,

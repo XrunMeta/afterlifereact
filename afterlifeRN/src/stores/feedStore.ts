@@ -180,14 +180,21 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     if (v_38715b().apiLoading) return;
     v_bb8024({ apiLoading: true });
     try {
-      const v_8f00b9 = await v_f5cc38({ limit: 50 });
+      const v_2ca7e0 = v_1ed7d9.getState().accessToken ?? undefined;
+      const v_8f00b9 = await v_f5cc38({ limit: 50, accessToken: v_2ca7e0 });
       console.log("[feedStore] discover loaded:", v_8f00b9.items.length);
 
       if (v_8f00b9.items.length === 0) {
         v_bb8024({ apiLoading: false });
         return;
       }
-      v_bb8024({ apiFeeds: v_8f00b9.items, apiLoading: false });
+
+      const v_cc7245 = v_8f00b9.items
+        .filter((v_23805a) => v_23805a.likedByMe === true)
+        .map((v_23805a) => v_23805a.id);
+      const v_c3bc75 = v_38715b().likedIds;
+      const v_2b7a6d = Array.from(new Set([...v_c3bc75, ...v_cc7245]));
+      v_bb8024({ apiFeeds: v_8f00b9.items, apiLoading: false, likedIds: v_2b7a6d });
     } catch (v_49263d) {
       console.warn("[feedStore] discover failed:", v_49263d);
 

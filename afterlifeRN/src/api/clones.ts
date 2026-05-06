@@ -325,6 +325,7 @@ export interface DiscoverFeedItem {
   mediaUrl: string | null;
   mediaType: string | null;
   likesCount: number;
+  likedByMe?: boolean;
   createdAt: string;
   clone: {
     id: number;
@@ -340,7 +341,9 @@ export async function v_f5cc38(v_328259): Promise<{ items: DiscoverFeedItem[]; n
   const v_f71b56 = new URL(`${v_cc9198}/oth-path`);
   if (v_328259?.cursor) v_f71b56.searchParams.set("cursor", String(v_328259.cursor));
   if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
-  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_3f4675 = {};
+  if (v_328259?.accessToken) v_3f4675.Authorization = `Bearer ${v_328259.accessToken}`;
+  const v_8f00b9 = await fetch(v_f71b56.toString(), { headers: v_3f4675 });
   const v_9b6134 = await v_8f00b9.text();
   const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
   if (!v_8f00b9.ok) {
