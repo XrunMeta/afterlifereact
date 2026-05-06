@@ -798,10 +798,10 @@ export default function v_def15b() {
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Feather name="search" size={32} color={v_1bfbd0.zinc300} />
                   <Text style={{ color: v_1bfbd0.zinc500, marginTop: 8, fontSize: 13 }}>
-                    {v_8d41d7("invite.inviteSearchEmpty")}
+                    {v_8d41d7("dashboard.inviteSearchEmpty")}
                   </Text>
                   <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {v_8d41d7("invite.inviteSearchEmptyHint")}
+                    {v_8d41d7("dashboard.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : v_4568f9 ? (
@@ -811,10 +811,10 @@ export default function v_def15b() {
               ) : v_76148b.length === 0 ? (
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
-                    {v_8d41d7("invite.inviteNoResults")}
+                    {v_8d41d7("dashboard.inviteNoResults")}
                   </Text>
                   <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {v_8d41d7("invite.inviteSearchEmptyHint")}
+                    {v_8d41d7("dashboard.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : (
@@ -844,7 +844,7 @@ export default function v_def15b() {
                           color={v_f966e3 ? v_1bfbd0.success : v_1bfbd0.white}
                         />
                         <Text style={[v_fd5f43.inviteBtnText, v_f966e3 && v_fd5f43.inviteBtnTextSent]}>
-                          {v_f966e3 ? "전송됨" : "초대"}
+                          {v_f966e3 ? v_8d41d7("invite.sent") : v_8d41d7("invite.send")}
                         </Text>
                       </TouchableOpacity>
                     </View>
