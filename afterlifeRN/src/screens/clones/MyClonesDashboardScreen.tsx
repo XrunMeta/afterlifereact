@@ -1077,6 +1077,15 @@ export default function v_def15b() {
                           )}
                           <Text style={v_fd5f43.commentName}>{v_c9a376.user.name ?? v_c9a376.user.email}</Text>
                           <Text style={v_fd5f43.commentTime}>{v_44b316(v_c9a376.createdAt)}</Text>
+                          <TouchableOpacity
+                            onPress={() => {
+                              v_d5cd7b(null);
+                              v_b816d4("신고가 접수됐어요");
+                            }}
+                            style={{ marginLeft: "auto", paddingHorizontal: 6, paddingVertical: 4 }}
+                          >
+                            <Feather name="flag" size={14} color={v_1bfbd0.error} />
+                          </TouchableOpacity>
                         </View>
                         <Text style={v_fd5f43.commentText}>{v_c9a376.content}</Text>
                       </View>

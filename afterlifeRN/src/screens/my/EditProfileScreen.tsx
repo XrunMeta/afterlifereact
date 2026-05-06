@@ -327,17 +327,6 @@ export default function v_e2b396() {
         </TouchableOpacity>
 
         {}
-        <TouchableOpacity
-          style={v_fd5f43.deleteTriggerBtn}
-          onPress={() => v_9665cb(true)}
-          disabled={v_a1f68f}
-        >
-          {v_a1f68f ? (
-            <ActivityIndicator color={v_1bfbd0.error} />
-          ) : (
-            <Text style={v_fd5f43.deleteTriggerText}>회원 탈퇴</Text>
-          )}
-        </TouchableOpacity>
       </View>
 
       {}

@@ -106,9 +106,16 @@ export default function v_14b43e() {
         v_44191e(null);
         return;
       }
+      console.log(`[Following] fetch start userId=${v_43e90c}`);
       v_7281a5(v_2ca7e0, v_43e90c)
         .then((v_cb35cb) => {
-          if (!v_2008a4) v_44191e(v_cb35cb.items);
+          if (!v_2008a4) {
+            console.log(
+              `[Following] followedClones ← ${v_cb35cb.items.length} items`,
+              v_cb35cb.items.map((v_23805a) => ({ id: v_23805a.id, name: v_23805a.name })),
+            );
+            v_44191e(v_cb35cb.items);
+          }
         })
         .catch((v_49263d) => {
           console.warn("[Following] listMyFollowedClones failed:", v_49263d);

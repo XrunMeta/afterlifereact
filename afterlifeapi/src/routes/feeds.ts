@@ -150,9 +150,6 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   const v_925171 = [];
 
   if (v_013af2) {
-    v_abcc8d.push("c.owner_id != ?");
-    v_925171.push(v_013af2);
-
     v_abcc8d.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
     v_925171.push(v_013af2);
   }

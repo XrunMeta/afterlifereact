@@ -21,8 +21,11 @@ interface FollowState {
   hydrate: () => Promise<void>;
   isFollowing: (cloneId: number) => boolean;
   toggleFollow: (cloneId: number) => Promise<void>;
+
+  unfollowLocalForBlock: (cloneId: number) => Promise<void>;
   followersCount: (cloneId: number) => number;
   followingIdsFor: (userId: number) => number[];
+  resetForLogout: () => Promise<void>;
 }
 
 let v_054741 = 0;
@@ -78,6 +81,10 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
     const v_c3c3b0 = v_38715b().follows.some(
       (v_8b5cd8) => v_8b5cd8.followerUserId === v_ceb55a && v_8b5cd8.followingCloneId === v_6e0fd3,
     );
+    const v_9b064f = v_c3c3b0 ? "unfollow" : "follow";
+    console.log(
+      `[FOLLOW][${v_9b064f}] cloneId=${v_6e0fd3} userId=${v_ceb55a} startedAt=${new Date().toISOString()} prevFollowsCount=${v_38715b().follows.length}`,
+    );
 
     if (v_c3c3b0) {
       v_bb8024({
@@ -99,29 +106,73 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
         ],
       });
     }
+    console.log(
+      `[FOLLOW][${v_9b064f}] local optimistic done — newFollowsCount=${v_38715b().follows.length}`,
+    );
 
     const v_479f05 = await v_e84827.getItem(v_b6c376);
     const v_11ea7b = v_479f05 ? JSON.parse(v_479f05) : [];
     v_11ea7b.push({
       cloneId: v_6e0fd3,
-      action: v_c3c3b0 ? "unfollow" : "follow",
+      action: v_9b064f,
       at: new Date().toISOString(),
     });
     await v_e84827.setItem(v_b6c376, JSON.stringify(v_11ea7b));
+    console.log(
+      `[FOLLOW][${v_9b064f}] AsyncStorage override saved — totalOverrides=${v_11ea7b.length}`,
+    );
 
     const v_2ca7e0 = v_1ed7d9.getState().accessToken;
-    if (!v_2ca7e0) return;
+    if (!v_2ca7e0) {
+      console.log(`[FOLLOW][${v_9b064f}] no accessToken — skip API call`);
+      return;
+    }
+    const v_f71b56 = `${v_cc9198}/oth-path${v_6e0fd3}/follow`;
+    const v_bfe9b9 = v_c3c3b0 ? "DELETE" : "POST";
+    console.log(`[FOLLOW][${v_9b064f}] → ${v_bfe9b9} ${v_f71b56}`);
     try {
-      const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_6e0fd3}/follow`, {
-        method: v_c3c3b0 ? "DELETE" : "POST",
+      const v_8f00b9 = await fetch(v_f71b56, {
+        method: v_bfe9b9,
         headers: { Authorization: `Bearer ${v_2ca7e0}` },
       });
+      console.log(
+        `[FOLLOW][${v_9b064f}] ← ${v_8f00b9.status} ${v_8f00b9.ok ? "ok" : "FAIL"}`,
+      );
       if (!v_8f00b9.ok) {
-        console.warn("[followStore] API toggle failed:", v_8f00b9.status);
+        const v_9b6134 = await v_8f00b9.text().catch(() => "");
+        console.warn(`[FOLLOW][${v_9b064f}] API toggle failed:`, v_8f00b9.status, v_9b6134);
       }
     } catch (v_49263d) {
-      console.warn("[followStore] API toggle error:", v_49263d);
+      console.warn(`[FOLLOW][${v_9b064f}] API toggle error:`, v_49263d);
     }
+  },
+
+  unfollowLocalForBlock: async (v_6e0fd3) => {
+    const v_ceb55a = v_1ed7d9.getState().user?.id ?? v_b9d568;
+    const v_e98932 = v_38715b().follows.length;
+    const v_fecfe3 = v_38715b().follows.some(
+      (v_8b5cd8) => v_8b5cd8.followerUserId === v_ceb55a && v_8b5cd8.followingCloneId === v_6e0fd3,
+    );
+    console.log(
+      `[FOLLOW][block-unfollow] cloneId=${v_6e0fd3} userId=${v_ceb55a} wasFollowing=${v_fecfe3} prevFollowsCount=${v_e98932}`,
+    );
+    v_bb8024({
+      follows: v_38715b().follows.filter(
+        (v_8b5cd8) => !(v_8b5cd8.followerUserId === v_ceb55a && v_8b5cd8.followingCloneId === v_6e0fd3),
+      ),
+    });
+
+    const v_479f05 = await v_e84827.getItem(v_b6c376);
+    const v_11ea7b = v_479f05 ? JSON.parse(v_479f05) : [];
+    v_11ea7b.push({
+      cloneId: v_6e0fd3,
+      action: "unfollow",
+      at: new Date().toISOString(),
+    });
+    await v_e84827.setItem(v_b6c376, JSON.stringify(v_11ea7b));
+    console.log(
+      `[FOLLOW][block-unfollow] done — newFollowsCount=${v_38715b().follows.length} totalOverrides=${v_11ea7b.length}`,
+    );
   },
 
   followersCount: (v_6e0fd3) =>
@@ -131,4 +182,9 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
     v_38715b()
       .follows.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_43e90c)
       .map((v_8b5cd8) => v_8b5cd8.followingCloneId),
+
+  resetForLogout: async () => {
+    await v_e84827.removeItem(v_b6c376);
+    v_bb8024({ follows: [], hydrated: false });
+  },
 }));

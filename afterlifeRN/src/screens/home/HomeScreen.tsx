@@ -14,7 +14,6 @@ import {
   v_cf9c33,
   v_79c4f2,
   v_0e1f26,
-  v_e767d1,
 } from "rcmrninabrnb";
 import { v_03e392 } from "rcmrninabrnb";
 import { v_b5df25 } from "ernurodqvmtspux";
@@ -117,12 +116,14 @@ export default function v_c316d8() {
 
   const filteredFeeds: v_19b433[] = v_1c7dea().map(v_f386b1);
 
-  const v_50ea12 = v_37977a((v_fd5f43) => v_fd5f43.apiFeeds); 
-  void v_50ea12;
-  const [, v_6154a6] = v_5ab095(0);
   const v_829e3a = v_de06a3((v_c09aa8, v_f4e98d) => {
     v_10e36e.set(v_c09aa8, { commentsCount: v_f4e98d });
-    v_6154a6((v_62c214) => v_62c214 + 1);
+    const v_c3bc75 = v_37977a.getState().apiFeeds;
+    if (v_c3bc75) {
+      v_37977a.setState({
+        apiFeeds: v_c3bc75.map((v_8b5cd8) => (v_8b5cd8.id === v_c09aa8 ? { ...v_8b5cd8, commentsCount: v_f4e98d } : v_8b5cd8)),
+      });
+    }
   }, []);
 
   const v_43bc1b = v_de06a3(
@@ -317,16 +318,16 @@ export default function v_c316d8() {
 
       {}
       <Modal visible={!!v_ed660d} transparent animationType="slide">
-        <KeyboardAvoidingView
-
-          behavior="padding"
-          style={{ flex: 1 }}
-        >
-        <Pressable style={v_d81136.commentOverlay} onPress={() => v_b07dd3(null)}>
+        <Pressable style={v_d81136.commentOverlay} onPress={() => { v_0e1f26.dismiss(); v_b07dd3(null); }}>
           <View
             style={[
               v_d81136.commentSheet,
-              { paddingBottom: v_507993 ? 12 : 24 + Math.max(v_033e14.bottom, 0) },
+
+              {
+                paddingBottom: 24 + Math.max(v_033e14.bottom, 0),
+                height: Math.max(v_28d8d8 * 0.7 - v_7e4acc, 200),
+                transform: [{ translateY: -v_7e4acc }],
+              },
             ]}
             onStartShouldSetResponder={() => true}
           >
@@ -385,7 +386,6 @@ export default function v_c316d8() {
             </View>
           </View>
         </Pressable>
-        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -422,14 +422,41 @@ export default function v_c316d8() {
               onPress={async () => {
                 const v_5f5d6d = v_12fa22;
                 v_949e66(null);
-                if (!v_5f5d6d || !v_2ca7e0) return;
+                if (!v_5f5d6d || !v_2ca7e0) {
+                  console.log(
+                    `[BLOCK] aborted — target=${!!v_5f5d6d} accessToken=${!!v_2ca7e0}`,
+                  );
+                  return;
+                }
+                console.log(
+                  `[BLOCK] start cloneId=${v_5f5d6d.cloneId} author=${v_5f5d6d.author}`,
+                );
                 try {
-                  await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
+                  console.log(`[BLOCK] → POST /oth-path${v_5f5d6d.cloneId}/block`);
+                  const v_9297f1 = await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
+                  console.log(`[BLOCK] ← block API ok:`, v_9297f1);
                   v_15c939("이 페르소나가 차단됐어요");
 
+                  const v_c3bc75 = v_37977a.getState().apiFeeds;
+                  const v_f0ee2c = v_c3bc75?.length ?? 0;
+                  if (v_c3bc75) {
+                    v_37977a.setState({
+                      apiFeeds: v_c3bc75.filter((v_23805a) => v_23805a.cloneId !== v_5f5d6d.cloneId),
+                    });
+                  }
+                  console.log(
+                    `[BLOCK] apiFeeds filtered — before=${v_f0ee2c} after=${
+                      v_37977a.getState().apiFeeds?.length ?? 0
+                    }`,
+                  );
+
+                  await v_b4902e.getState().unfollowLocalForBlock(v_5f5d6d.cloneId);
+
+                  console.log(`[BLOCK] → loadDiscover() refetch`);
                   void v_c600ef();
+                  console.log(`[BLOCK] complete cloneId=${v_5f5d6d.cloneId}`);
                 } catch (v_49263d) {
-                  console.warn("[Home] block failed:", v_49263d);
+                  console.warn(`[BLOCK] FAILED cloneId=${v_5f5d6d.cloneId}`, v_49263d);
                   v_15c939("차단에 실패했어요");
                 }
               }}

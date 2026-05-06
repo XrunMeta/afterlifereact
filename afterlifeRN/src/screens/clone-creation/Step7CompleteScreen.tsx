@@ -143,6 +143,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           name: v_f04727.name ?? 'Untitled',
           username: v_556427,
           description: v_f04727.description || undefined,
+          category: v_f04727.category || undefined,
           visibility: v_818579,
           interests: v_f04727.interests && v_f04727.interests.length > 0 ? v_f04727.interests : undefined,
           l1_profile: v_564b6a,

@@ -610,9 +610,10 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
           WHERE f.user_id = ? AND c.deleted_at IS NULL
+            AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
           ORDER BY f.created_at DESC, f.id DESC`,
       )
-      .bind(v_43e90c)
+      .bind(v_43e90c, v_43e90c)
       .all<{
         id: number;
         name: string;
