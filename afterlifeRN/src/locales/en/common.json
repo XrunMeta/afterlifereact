@@ -122,6 +122,33 @@
     "failTitle": "Restore failed",
     "failMsg": "The recovery window (90 days) has expired or the state has changed."
   },
+  "chat": {
+    "personaFallback": "Persona",
+    "subTitle": "AI Persona",
+    "trainingLabel": "Persona learning",
+    "trainingHint": "Your persona is learning through this conversation",
+    "messagePlaceholder": "Type a message...",
+    "quickAction1": "Be more specific",
+    "quickAction2": "Different topic",
+    "quickAction3": "Empathy training",
+    "stockReply": "I understand. Is there anything else I can help with?"
+  },
+  "call": {
+    "calling": "Connecting...",
+    "ended": "Call ended",
+    "ringing": "Ringing",
+    "duration": "Call duration",
+    "muteOn": "Mute",
+    "muteOff": "Unmute",
+    "videoOn": "Video on",
+    "videoOff": "Video off",
+    "endCall": "End call"
+  },
+  "feed": {
+    "homeTitle": "Home",
+    "followingTitle": "Following",
+    "followingEmpty": "You don't follow any personas yet"
+  },
   "detail": {
     "notFound": "Persona not found.",
     "coownerInvite": "Invite Co-admin",

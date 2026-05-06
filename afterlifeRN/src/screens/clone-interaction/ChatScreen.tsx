@@ -11,6 +11,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import v_e775af from "../../components/ui/TextField";
@@ -22,9 +23,9 @@ import type { v_35413f } from "../../types/domain";
 
 type Props = v_432191<v_8ad91b, "Chat">;
 
-const v_03c87c = ["더 구체적으로", "다른 주제로", "공감 세부 훈련"];
-
 export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
+  const v_03c87c = [v_8d41d7("chat.quickAction1"), v_8d41d7("chat.quickAction2"), v_8d41d7("chat.quickAction3")];
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
@@ -44,7 +45,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
 
-  const v_dfb220 = v_eb25ce?.displayName ?? "페르소나";
+  const v_dfb220 = v_eb25ce?.displayName ?? v_8d41d7("chat.personaFallback");
 
   v_c4deb2(() => {
     const v_ef3bab =
@@ -95,7 +96,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         cloneId: v_6e0fd3,
         userId: v_493eec,
         role: "clone",
-        content: "네, 이해했습니다. 제가 도와드릴 수 있는 다른 것이 있나요?",
+        content: v_8d41d7("chat.stockReply"),
         timestamp: new Date().toISOString(),
       };
       v_41d55d((v_ba2215) => [...v_ba2215, v_4d04a7]);
@@ -144,7 +145,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </TouchableOpacity>
           <View style={v_fd5f43.headerCenter}>
             <Text style={v_fd5f43.headerName}>{v_dfb220}</Text>
-            <Text style={v_fd5f43.headerSub}>AI 페르소나</Text>
+            <Text style={v_fd5f43.headerSub}>{v_8d41d7("chat.subTitle")}</Text>
           </View>
           <TouchableOpacity style={{ padding: 4 }}>
             <Feather name="more-vertical" size={22} color={v_1bfbd0.zinc600} />
@@ -156,14 +157,14 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <View style={v_fd5f43.progressHeader}>
             <View style={v_fd5f43.progressLeft}>
               <Feather name="zap" size={16} color="#f97316" />
-              <Text style={v_fd5f43.progressLabel}>페르소나 학습</Text>
+              <Text style={v_fd5f43.progressLabel}>{v_8d41d7("chat.trainingLabel")}</Text>
             </View>
             <Text style={v_fd5f43.progressPercent}>65%</Text>
           </View>
           <View style={v_fd5f43.progressTrack}>
             <View style={v_fd5f43.progressFill} />
           </View>
-          <Text style={v_fd5f43.progressHint}>대화를 통해 페르소나가 학습하고 있습니다</Text>
+          <Text style={v_fd5f43.progressHint}>{v_8d41d7("chat.trainingHint")}</Text>
         </View>
       </View>
 
@@ -205,7 +206,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             <TextField
               value={v_bbda62}
               onChangeText={v_c31db7}
-              placeholder="메시지를 입력하세요..."
+              placeholder={v_8d41d7("chat.messagePlaceholder")}
               onSubmitEditing={v_465869}
               returnKeyType="send"
               rounded={v_8b0c90.full}
