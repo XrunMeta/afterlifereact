@@ -11,8 +11,6 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -130,6 +128,7 @@ export default function MyClonesDashboardScreen() {
   const [searchResults, setSearchResults] = useState<UserSearchItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [invitedIds, setInvitedIds] = useState<Set<number>>(new Set());
+
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
     cloneName: string;
@@ -197,15 +196,38 @@ export default function MyClonesDashboardScreen() {
   }, [inviteSearch, accessToken, inviteModal]);
 
   const handleSendInvite = async (user: UserSearchItem) => {
-    if (!accessToken || !inviteModal) return;
+    if (!accessToken || !inviteModal) {
+      console.warn("[Dashboard] handleSendInvite: missing accessToken or inviteModal");
+      return;
+    }
+    console.log("[Dashboard] sendInvite start:", { cloneId: inviteModal.cloneId, email: user.email });
     try {
-      await createInvite(accessToken, inviteModal.cloneId, {
+      const res = await createInvite(accessToken, inviteModal.cloneId, {
         invite_email: user.email,
       });
+      console.log("[Dashboard] sendInvite success:", res);
       setInvitedIds((prev) => new Set(prev).add(user.id));
+      setDeleteResultMessage(`${user.name ?? user.email} 에게 초대를 보냈어요.`);
     } catch (err) {
+      if (err instanceof AuthApiError) {
+        console.warn(
+          "[Dashboard] createInvite failed:",
+          err.code,
+          err.status,
+          err.message,
+          "details=",
+          JSON.stringify(err.details),
+        );
+        if (err.code === "UNAUTHENTICATED" || err.status === 401) {
+          await useAuthStore.getState().apiLogout();
+          setDeleteResultMessage("로그인 세션이 만료됐어요. 다시 로그인해주세요.");
+          return;
+        }
+      } else {
+        console.warn("[Dashboard] createInvite failed:", err);
+      }
       const msg = err instanceof AuthApiError ? err.message : "초대 발송 실패";
-      console.warn("[Dashboard] createInvite failed:", msg);
+      setDeleteResultMessage(msg);
     }
   };
 
@@ -719,14 +741,19 @@ export default function MyClonesDashboardScreen() {
         </Pressable>
       </Modal>
 
-      {}
-      <Modal visible={!!inviteModal} transparent animationType="slide">
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+      {
+}
+      <Modal
+        visible={!!inviteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setInviteModal(null)}
+      >
         <Pressable style={s.bottomSheetOverlay} onPress={() => setInviteModal(null)}>
-          <View style={s.inviteSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={s.inviteSheet}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={s.sheetHandle} />
             <View style={s.inviteHeader}>
               <Text style={s.inviteTitle}>공동관리자 초대</Text>
@@ -817,7 +844,6 @@ export default function MyClonesDashboardScreen() {
             </ScrollView>
           </View>
         </Pressable>
-        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -1246,9 +1272,10 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingBottom: 16,
+    paddingTop: 8,
     width: "100%",
-    maxHeight: "70%",
+    height: "70%",
   },
   inviteHeader: {
     flexDirection: "row",

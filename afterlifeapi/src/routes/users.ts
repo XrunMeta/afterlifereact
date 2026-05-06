@@ -249,6 +249,32 @@ users.get("/me/devices", requireAuth, async (c) => {
   return c.json({ devices: rows.results ?? [] });
 });
 
+users.post("/me/devices", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const body = await c.req.json().catch(() => ({})) as {
+    deviceId?: string;
+    pushToken?: string;
+    platform?: "ios" | "android" | "web";
+  };
+  if (!body.deviceId || !body.pushToken || !body.platform) {
+    throw new APIError("VALIDATION_FAILED", "deviceId, pushToken, platform required.");
+  }
+  await c.env.DB
+    .prepare(
+      `INSERT INTO user_devices (user_id, device_id, push_token, platform, is_active, last_active_at)
+       VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+       ON CONFLICT(user_id, device_id) DO UPDATE SET
+         push_token = excluded.push_token,
+         platform   = excluded.platform,
+         is_active  = 1,
+         last_active_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP`,
+    )
+    .bind(userId, body.deviceId, body.pushToken, body.platform)
+    .run();
+  return c.json({ ok: true });
+});
+
 users.get("/me/clones", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const rows = await c.env.DB
