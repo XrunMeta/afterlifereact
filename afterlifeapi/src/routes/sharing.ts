@@ -484,8 +484,9 @@ cloneShares.get("/:id/shares", requireAuth, async (c) => {
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT s.id, s.target_user_id, s.invite_email, s.relation, s.role, s.status,
-                s.created_at, u.name AS target_name, u.email AS target_email
+        `SELECT s.id, s.clone_id, s.owner_id, s.target_user_id, s.invite_email,
+                s.relation, s.role, s.status, s.created_at,
+                u.name AS target_name, u.email AS target_email, u.avatar_url AS target_avatar
            FROM clone_shares s
            LEFT JOIN users u ON u.id = s.target_user_id
           WHERE s.clone_id = ?
@@ -494,6 +495,8 @@ cloneShares.get("/:id/shares", requireAuth, async (c) => {
       .bind(cloneId)
       .all<{
         id: number;
+        clone_id: number;
+        owner_id: number;
         target_user_id: number | null;
         invite_email: string | null;
         relation: string | null;
@@ -502,19 +505,28 @@ cloneShares.get("/:id/shares", requireAuth, async (c) => {
         created_at: string;
         target_name: string | null;
         target_email: string | null;
+        target_avatar: string | null;
       }>()
   ).results;
   return c.json({
-    shares: rows.map((r) => ({
+    items: rows.map((r) => ({
       id: r.id,
+      cloneId: r.clone_id,
+      ownerId: r.owner_id,
       targetUserId: r.target_user_id,
-      targetName: r.target_name,
-      targetEmail: r.target_email,
       inviteEmail: r.invite_email,
       relation: r.relation,
       role: r.role,
       status: r.status,
       createdAt: r.created_at,
+      targetUser: r.target_user_id
+        ? {
+            id: r.target_user_id,
+            name: r.target_name,
+            email: r.target_email ?? "",
+            avatarUrl: r.target_avatar,
+          }
+        : undefined,
     })),
   });
 });
