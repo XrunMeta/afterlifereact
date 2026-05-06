@@ -216,12 +216,6 @@ export default function v_ed02a5() {
     descKey: string;
     route: keyof v_e57140;
   }> = [
-    {
-      icon: "bookmark",
-      labelKey: "my.menu.saved",
-      descKey: "settings.saved.title",
-      route: "SavedItems",
-    },
 
     {
       icon: "user",

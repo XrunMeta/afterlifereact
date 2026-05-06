@@ -35,9 +35,12 @@ import {
   v_3f8bc7,
   v_6f689a,
   v_0df337,
+  v_7281a5,
   type v_52af9d,
+  type v_c33ae3,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
+import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 
 type RootNav = v_390fcc<v_8ad91b>;
@@ -92,8 +95,43 @@ export default function v_14b43e() {
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
 
   const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
+  const [v_d92a4c, v_44191e] = v_5ab095<v_c33ae3[] | null>(null);
+  v_cf763b(
+    v_de06a3(() => {
+      let v_2008a4 = false;
+      const v_43e90c = v_f38ee5?.id;
+      if (!v_2ca7e0 || !v_43e90c) {
+        v_44191e(null);
+        return;
+      }
+      v_7281a5(v_2ca7e0, v_43e90c)
+        .then((v_cb35cb) => {
+          if (!v_2008a4) v_44191e(v_cb35cb.items);
+        })
+        .catch((v_49263d) => {
+          console.warn("[Following] listMyFollowedClones failed:", v_49263d);
+        });
+      return () => {
+        v_2008a4 = true;
+      };
+    }, [v_2ca7e0, v_f38ee5?.id]),
+  );
 
   const v_a48e44 = v_df9f57<FollowedPersona[]>(() => {
+    if (v_d92a4c) {
+      return v_d92a4c.map((v_3f4e2e) => ({
+        id: v_3f4e2e.id,
+        name: v_3f4e2e.name,
+        avatar: v_3f4e2e.avatarUrl ?? "",
+        interests: v_3f4e2e.interests ?? [],
+        creatorAccount: `@${v_3f4e2e.username}`,
+        intimacy: v_3ddce5(v_3f4e2e.id),
+        interactions: v_42378f(v_3f4e2e.id),
+      }));
+    }
+
     const v_52c0ef = v_1e752a
       .filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987)
       .map((v_8b5cd8) => v_8b5cd8.followingCloneId);
@@ -104,7 +142,7 @@ export default function v_14b43e() {
         const v_257b90 = v_694b7f.users().find((v_ceb55a) => v_ceb55a.id === v_eb25ce.ownerId);
         return v_986943(v_eb25ce, v_257b90?.handle);
       });
-  }, [v_1e752a, v_0c8987]);
+  }, [v_d92a4c, v_1e752a, v_0c8987]);
 
   const v_632473 = v_df9f57<v_bc3df4[]>(() => {
     const v_da0fb9 = new Set(v_a48e44.map((v_e2a85c) => v_e2a85c.id));
@@ -200,7 +238,6 @@ export default function v_14b43e() {
     }
   };
 
-  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
   const [v_cc8bc2, v_502f4e] = v_5ab095<v_52af9d[]>([]);
   const [v_465030, v_856daf] = v_5ab095(false);

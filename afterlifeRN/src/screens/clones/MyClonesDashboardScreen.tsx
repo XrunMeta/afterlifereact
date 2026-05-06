@@ -656,6 +656,17 @@ export default function v_def15b() {
         renderItem={v_b80d74}
         contentContainerStyle={v_fd5f43.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={v_fd5f43.dashEmpty}>
+            <View style={v_fd5f43.dashEmptyIconWrap}>
+              <Feather name="user-plus" size={32} color={v_1bfbd0.zinc400} />
+            </View>
+            <Text style={v_fd5f43.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
+            <Text style={v_fd5f43.dashEmptyDesc}>
+              하단 가운데 + 버튼을 눌러 첫 페르소나를 만들 수 있어요
+            </Text>
+          </View>
+        }
         ListHeaderComponent={
           <>
             {}
@@ -1169,6 +1180,24 @@ const v_2fb1c1 = [
 ];
 
 const v_fd5f43 = v_472849.create({
+  dashEmpty: {
+    paddingVertical: 48,
+    paddingHorizontal: 32,
+    alignItems: "center",
+    gap: 8,
+  },
+  dashEmptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: v_1bfbd0.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  dashEmptyTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc800 },
+  dashEmptyDesc: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", lineHeight: 18 },
+
   listContent: {
     paddingHorizontal: v_9b1a04.medium,
     paddingBottom: 24,
