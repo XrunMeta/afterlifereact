@@ -14,6 +14,7 @@ import {
   v_cf9c33,
   v_79c4f2,
   v_0e1f26,
+  v_e767d1,
 } from "rcmrninabrnb";
 import { v_03e392 } from "rcmrninabrnb";
 import { v_b5df25 } from "ernurodqvmtspux";
@@ -316,14 +317,15 @@ export default function v_c316d8() {
 
       {}
       <Modal visible={!!v_ed660d} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
         <Pressable style={v_d81136.commentOverlay} onPress={() => v_b07dd3(null)}>
           <View
             style={[
               v_d81136.commentSheet,
-              {
-                paddingBottom: v_507993 ? 12 : 24 + Math.max(v_033e14.bottom, 0),
-                marginBottom: v_7e4acc,
-              },
+              { paddingBottom: v_507993 ? 12 : 24 + Math.max(v_033e14.bottom, 0) },
             ]}
             onStartShouldSetResponder={() => true}
           >
@@ -382,6 +384,7 @@ export default function v_c316d8() {
             </View>
           </View>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {}
