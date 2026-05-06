@@ -25,7 +25,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_e4a407, v_f373d8, v_20d793, type v_fa0201, type v_d83ffc } from "../../api/clones";
+import { v_d60cdf, v_e4a407, v_f373d8, v_20d793, v_776874, type v_fa0201, type v_d83ffc, type v_52af9d } from "../../api/clones";
 import v_0e981f from "../../components/common/NotificationBell";
 import { v_a41961, v_84a859, type v_3a673b } from "../../api/auth";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -36,6 +36,23 @@ import type { v_8ad91b } from "../../navigation/types";
 type ClonesNav = v_390fcc<v_2d88fc>;
 
 const v_b9d568 = 1;
+
+function v_44b316(v_6fc191): string {
+  try {
+    const v_d799e2 = new Date(v_6fc191.replace(" ", "T") + "Z").getTime();
+    const v_a41a1b = Date.now() - v_d799e2;
+    if (v_a41a1b < 60_000) return "방금";
+    const v_43e24b = Math.floor(v_a41a1b / 60_000);
+    if (v_43e24b < 60) return `${v_43e24b}분 전`;
+    const v_1c3551 = Math.floor(v_43e24b / 60);
+    if (v_1c3551 < 24) return `${v_1c3551}시간 전`;
+    const v_d5dda0 = Math.floor(v_1c3551 / 24);
+    if (v_d5dda0 < 30) return `${v_d5dda0}일 전`;
+    return new Date(v_d799e2).toLocaleDateString();
+  } catch {
+    return "";
+  }
+}
 
 function v_5c66fc(v_f4e98d): string {
   if (typeof v_f4e98d !== "number" || !Number.isFinite(v_f4e98d)) return "0";
@@ -152,6 +169,8 @@ export default function v_def15b() {
   } | null>(null);
   const [v_067c32, v_e2fcdd] = v_5ab095<v_d83ffc[] | null>(null);
   const [v_02f28c, v_f442a2] = v_5ab095(false);
+  const [v_a9fce9, v_1d8f1c] = v_5ab095<v_52af9d[] | null>(null);
+  const [v_465030, v_856daf] = v_5ab095(false);
 
   v_c4deb2(() => {
     if (v_8bb912?.type !== "likes" || v_8bb912.cloneId == null) {
@@ -172,6 +191,31 @@ export default function v_def15b() {
       })
       .finally(() => {
         if (!v_2008a4) v_f442a2(false);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_8bb912?.type, v_8bb912?.cloneId]);
+
+  v_c4deb2(() => {
+    if (v_8bb912?.type !== "comments" || v_8bb912.cloneId == null) {
+      v_1d8f1c(null);
+      return;
+    }
+    let v_2008a4 = false;
+    v_856daf(true);
+    v_1d8f1c(null);
+    v_776874(v_8bb912.cloneId, { limit: 50 })
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_1d8f1c(v_8f00b9.items);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Dashboard] listCloneComments failed:", v_49263d);
+        if (!v_2008a4) v_1d8f1c([]);
+      })
+      .finally(() => {
+        if (!v_2008a4) v_856daf(false);
       });
     return () => {
       v_2008a4 = true;
@@ -976,16 +1020,32 @@ export default function v_def15b() {
 
             <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
               {}
-              {v_8bb912?.type === "comments" && v_2fb1c1.map((v_3f4e2e) => (
-                <View key={v_3f4e2e.id} style={v_fd5f43.commentRow}>
-                  <View style={v_fd5f43.commentTop}>
-                    <Image source={{ uri: v_3f4e2e.avatar }} style={v_fd5f43.commentAvatar} />
-                    <Text style={v_fd5f43.commentName}>{v_3f4e2e.name}</Text>
-                    <Text style={v_fd5f43.commentTime}>{v_3f4e2e.time}</Text>
-                  </View>
-                  <Text style={v_fd5f43.commentText}>{v_3f4e2e.text}</Text>
-                </View>
-              ))}
+              {v_8bb912?.type === "comments" && (
+                <>
+                  {v_465030 ? (
+                    <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
+                  ) : !v_a9fce9 || v_a9fce9.length === 0 ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 댓글이 없어요</Text>
+                    </View>
+                  ) : (
+                    v_a9fce9.map((v_c9a376) => (
+                      <View key={v_c9a376.id} style={v_fd5f43.commentRow}>
+                        <View style={v_fd5f43.commentTop}>
+                          {v_c9a376.user.avatarUrl ? (
+                            <Image source={{ uri: v_c9a376.user.avatarUrl }} style={v_fd5f43.commentAvatar} />
+                          ) : (
+                            <View style={[v_fd5f43.commentAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                          )}
+                          <Text style={v_fd5f43.commentName}>{v_c9a376.user.name ?? v_c9a376.user.email}</Text>
+                          <Text style={v_fd5f43.commentTime}>{v_44b316(v_c9a376.createdAt)}</Text>
+                        </View>
+                        <Text style={v_fd5f43.commentText}>{v_c9a376.content}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
 
               {}
               {v_8bb912?.type === "likes" && (

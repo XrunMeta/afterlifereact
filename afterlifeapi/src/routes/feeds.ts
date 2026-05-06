@@ -138,6 +138,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 20);
   const v_02be30 = Math.max(1, Math.min(50, Number.isFinite(v_cf2260) ? v_cf2260 : 20));
 
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
+
   const v_abcc8d = [
     "c.deletion_state = 'active'",
     "c.deleted_at IS NULL",
@@ -219,6 +221,26 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     }
   }
 
+  const v_3391ce = new Set<number>();
+  if (v_013af2) {
+    const v_2db407 = v_2365e9
+      .map((v_cb35cb) => v_cb35cb.feedId)
+      .filter((v_62c214): v_62c214 is number => typeof v_62c214 === "number");
+    if (v_2db407.length > 0) {
+      const v_1cdc07 = v_2db407.map(() => "?").join(",");
+      const v_59d4e3 = (
+        await v_3f4e2e.env.DB
+          .prepare(
+            `SELECT feed_id FROM feed_likes
+              WHERE user_id = ? AND feed_id IN (${v_1cdc07})`,
+          )
+          .bind(v_013af2, ...v_2db407)
+          .all<{ feed_id: number }>()
+      ).results ?? [];
+      for (const v_3ac7e7 of v_59d4e3) v_3391ce.add(v_3ac7e7.feed_id);
+    }
+  }
+
   return v_3f4e2e.json({
     items: v_2365e9.map((v_cb35cb) => ({
 
@@ -229,6 +251,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
       mediaUrl: v_cb35cb.feedMediaUrl ?? v_cb35cb.cloneAvatarUrl ?? null,
       mediaType: v_cb35cb.feedMediaType,
       likesCount: v_cb35cb.feedLikesCount ?? 0,
+
+      likedByMe: v_cb35cb.feedId != null && v_3391ce.has(v_cb35cb.feedId),
       createdAt: v_cb35cb.feedCreatedAt ?? v_cb35cb.cloneCreatedAt,
       clone: {
         id: v_cb35cb.cloneId,
@@ -484,6 +508,183 @@ v_96e8d7.delete("/:id/like", v_6690d9, async (v_3f4e2e) => {
     .bind(v_8b5cd8.id)
     .first<{ likes_count: number }>();
   return v_3f4e2e.json({ ok: true, liked: false, feedId: v_8b5cd8.id, likesCount: v_7b3f91?.likes_count ?? 0 });
+});
+
+const v_9c5bc5 = v_1f4ea7.object({
+  content: v_1f4ea7.string().min(1).max(2000),
+});
+
+v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid feed id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_9c5bc5);
+
+  const v_2db2a5 = await v_c39991(v_3f4e2e.env.DB, v_c09aa8);
+  if (!v_2db2a5) throw new v_3ebe58("NOT_FOUND", "Feed not found.");
+  if (v_2db2a5.visibility === "private") {
+    if (v_2db2a5.ownerId !== v_43e90c) {
+      const v_22da99 = await v_7adf64(v_3f4e2e.env.DB, v_2db2a5.cloneId, v_43e90c);
+      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "Private clone.");
+    }
+  }
+  const v_cb35cb = await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`,
+    )
+    .bind(v_c09aa8, v_43e90c, v_4d33b2.content.trim())
+    .run();
+  return v_3f4e2e.json(
+    {
+      ok: true,
+      comment: {
+        id: Number(v_cb35cb.meta.last_row_id),
+        feedId: v_c09aa8,
+        userId: v_43e90c,
+        content: v_4d33b2.content.trim(),
+      },
+    },
+    201,
+  );
+});
+
+v_f1d06f.delete("/:id/comments/:cid", v_6690d9, async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_8f00b9 = await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM feed_comments WHERE id = ? AND feed_id = ? AND user_id = ?`)
+    .bind(v_062ae9, v_c09aa8, v_43e90c)
+    .run();
+  if ((v_8f00b9.meta?.changes ?? 0) === 0) {
+    throw new v_3ebe58("NOT_FOUND", "Comment not found or not yours.");
+  }
+  return v_3f4e2e.json({ ok: true });
+});
+
+v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid feed id.");
+  }
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_15c8c5 = v_f71b56.searchParams.get("cursor");
+  const v_75cbf4 = v_15c8c5 ? Number(v_15c8c5) : null;
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 30);
+  const v_02be30 = Math.max(1, Math.min(100, Number.isFinite(v_cf2260) ? v_cf2260 : 30));
+
+  const v_abcc8d = ["fc.feed_id = ?"];
+  const v_925171 = [v_c09aa8];
+  if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
+    v_abcc8d.push("fc.id < ?");
+    v_925171.push(v_75cbf4);
+  }
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT fc.id        AS commentId,
+                fc.user_id   AS userId,
+                fc.content   AS content,
+                fc.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM feed_comments fc
+           JOIN users u ON u.id = fc.user_id
+          WHERE ${v_abcc8d.join(" AND ")} AND u.deleted_at IS NULL
+          ORDER BY fc.id DESC
+          LIMIT ?`,
+      )
+      .bind(...v_925171, v_02be30 + 1)
+      .all<{
+        commentId: number;
+        userId: number;
+        content: string;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  const v_6bbe19 = v_18b8bf.length > v_02be30;
+  const v_2365e9 = v_6bbe19 ? v_18b8bf.slice(0, v_02be30) : v_18b8bf;
+  const v_64f859 =
+    v_6bbe19 && v_2365e9.length > 0 ? v_2365e9[v_2365e9.length - 1]!.commentId : null;
+
+  return v_3f4e2e.json({
+    items: v_2365e9.map((v_cb35cb) => ({
+      id: v_cb35cb.commentId,
+      userId: v_cb35cb.userId,
+      content: v_cb35cb.content,
+      createdAt: v_cb35cb.createdAt,
+      user: {
+        id: v_cb35cb.userId,
+        name: v_cb35cb.userName,
+        email: v_cb35cb.userEmail,
+        avatarUrl: v_cb35cb.userAvatarUrl,
+      },
+    })),
+    nextCursor: v_64f859,
+  });
+});
+
+v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT fc.id        AS commentId,
+                fc.feed_id   AS feedId,
+                fc.user_id   AS userId,
+                fc.content   AS content,
+                fc.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM feed_comments fc
+           JOIN feeds f ON f.id = fc.feed_id
+           JOIN users u ON u.id = fc.user_id
+          WHERE f.clone_id = ? AND u.deleted_at IS NULL
+          ORDER BY fc.id DESC
+          LIMIT ?`,
+      )
+      .bind(v_6e0fd3, v_02be30)
+      .all<{
+        commentId: number;
+        feedId: number;
+        userId: number;
+        content: string;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => ({
+      id: v_cb35cb.commentId,
+      feedId: v_cb35cb.feedId,
+      userId: v_cb35cb.userId,
+      content: v_cb35cb.content,
+      createdAt: v_cb35cb.createdAt,
+      user: {
+        id: v_cb35cb.userId,
+        name: v_cb35cb.userName,
+        email: v_cb35cb.userEmail,
+        avatarUrl: v_cb35cb.userAvatarUrl,
+      },
+    })),
+    nextCursor: null,
+  });
 });
 
 v_96e8d7.get("/:id/likes", async (v_3f4e2e) => {

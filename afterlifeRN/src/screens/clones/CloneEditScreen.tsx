@@ -10,6 +10,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2d88fc } from "../../navigation/types";
 import v_570c34 from "../../components/ui/SafeScrollView";
@@ -47,6 +48,7 @@ for (const v_9bf432 of v_6732dc) {
 
 export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
+  const v_033e14 = v_e0068c();
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_941cd7 = v_194498((v_fd5f43) => v_fd5f43.updateLocalClone);
@@ -447,7 +449,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </View>
 
       {}
-      <View style={v_fd5f43.bottomBar}>
+      <View style={[v_fd5f43.bottomBar, { paddingBottom: 16 + Math.max(v_033e14.bottom, 0) }]}>
         <Button
           title={v_35bf26 ? v_8d41d7("common.loading") : v_8d41d7("edit.save")}
           variant="primary"

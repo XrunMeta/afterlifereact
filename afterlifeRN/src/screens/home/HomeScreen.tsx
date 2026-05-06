@@ -185,7 +185,10 @@ export default function v_c316d8() {
       {}
       <Modal visible={!!v_ed660d} transparent animationType="slide">
         <Pressable style={v_d81136.commentOverlay} onPress={() => v_b07dd3(null)}>
-          <View style={v_d81136.commentSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[v_d81136.commentSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={v_d81136.sheetHandle} />
             <View style={v_d81136.commentHeaderRow}>
               <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_3a63e7.length })}</Text>
