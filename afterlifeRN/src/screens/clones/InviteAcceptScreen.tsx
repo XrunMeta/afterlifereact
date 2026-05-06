@@ -86,38 +86,31 @@ export default function v_000f0a() {
     try {
       const v_8f00b9 = await v_a51300(v_2ca7e0, v_21cc31);
       console.log("[InviteAccept] success:", v_8f00b9);
-      v_03e392.alert(v_8d41d7("inviteAccept.accepted"), v_2ccff1.clone.name, [
-        {
-          text: v_8d41d7("common.ok"),
-          onPress: () => {
 
-            v_c65f5d.dispatch(
-              v_650cfa.reset({
-                index: 0,
+      v_c65f5d.dispatch(
+        v_650cfa.reset({
+          index: 0,
+          routes: [
+            {
+              name: "Main",
+              state: {
                 routes: [
                   {
-                    name: "Main",
+                    name: "ClonesTab",
                     state: {
                       routes: [
-                        {
-                          name: "ClonesTab",
-                          state: {
-                            routes: [
-                              { name: "Dashboard" },
-                              { name: "CloneDetail", params: { cloneId: v_8f00b9.cloneId } },
-                            ],
-                            index: 1,
-                          },
-                        },
+                        { name: "Dashboard" },
+                        { name: "CloneDetail", params: { cloneId: v_8f00b9.cloneId } },
                       ],
+                      index: 1,
                     },
                   },
                 ],
-              }),
-            );
-          },
-        },
-      ]);
+              },
+            },
+          ],
+        }),
+      );
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("inviteAccept.acceptFailed");
       if (v_49263d instanceof v_84a859) {
@@ -128,33 +121,21 @@ export default function v_000f0a() {
     }
   };
 
-  const v_a482a4 = () => {
-    v_03e392.alert(
-      v_8d41d7("inviteAccept.declineConfirmTitle"),
-      v_8d41d7("inviteAccept.declineConfirmDesc", { name: v_2ccff1?.clone.name ?? "" }),
-      [
-        { text: v_8d41d7("common.close"), style: "cancel" },
-        {
-          text: v_8d41d7("inviteAccept.decline"),
-          style: "destructive",
-          onPress: async () => {
-            if (!v_2ca7e0) {
-              v_c65f5d.goBack();
-              return;
-            }
-            try {
-              const v_8f00b9 = await v_e155c8(v_2ca7e0, v_21cc31);
-              console.log("[InviteAccept] decline:", v_8f00b9);
-              v_c65f5d.goBack();
-            } catch (v_49263d) {
-              console.warn("[InviteAccept] decline failed:", v_49263d);
-              const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("inviteAccept.acceptFailed");
-              v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
-            }
-          },
-        },
-      ],
-    );
+  const v_a482a4 = async () => {
+
+    if (!v_2ca7e0) {
+      v_c65f5d.goBack();
+      return;
+    }
+    try {
+      const v_8f00b9 = await v_e155c8(v_2ca7e0, v_21cc31);
+      console.log("[InviteAccept] decline:", v_8f00b9);
+      v_c65f5d.goBack();
+    } catch (v_49263d) {
+      console.warn("[InviteAccept] decline failed:", v_49263d);
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("inviteAccept.acceptFailed");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+    }
   };
 
   return (
