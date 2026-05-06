@@ -610,9 +610,10 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
           WHERE f.user_id = ? AND c.deleted_at IS NULL
+            AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
           ORDER BY f.created_at DESC, f.id DESC`,
       )
-      .bind(userId)
+      .bind(userId, userId)
       .all<{
         id: number;
         name: string;
