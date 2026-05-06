@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, Alert, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 
@@ -10,7 +11,11 @@ interface Props {
   onChange: (patch: Partial<CloneCreationDraft>) => void;
 }
 
-async function pick(onChange: (p: Partial<CloneCreationDraft>) => void) {
+async function pick(
+  onChange: (p: Partial<CloneCreationDraft>) => void,
+  errorTitle: string,
+  errorMsg: string,
+) {
   try {
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -20,22 +25,26 @@ async function pick(onChange: (p: Partial<CloneCreationDraft>) => void) {
     });
     if (!r.canceled && r.assets[0]) onChange({ imageFile: r.assets[0].uri });
   } catch {
-    Alert.alert('오류', '사진을 불러올 수 없어요.');
+    Alert.alert(errorTitle, errorMsg);
   }
 }
 
 function Component({ draft, onChange }: Props) {
+  const { t } = useTranslation();
   const rights = draft.rightsAcknowledged ?? false;
   return (
     <View style={styles.wrap}>
-      <Text style={styles.note}>사진은 지금 추가하거나, 나중에 추가할 수 있어요.</Text>
-      <TouchableOpacity style={styles.preview} onPress={() => pick(onChange)}>
+      <Text style={styles.note}>{t('create.image.memlowNote')}</Text>
+      <TouchableOpacity
+        style={styles.preview}
+        onPress={() => pick(onChange, t('common.error'), t('create.image.loadFailed'))}
+      >
         {draft.imageFile ? (
           <Image source={{ uri: draft.imageFile }} style={styles.img} />
         ) : (
           <>
             <Feather name="image" size={32} color={COLORS.zinc400} />
-            <Text style={styles.hint}>사진을 선택하거나 건너뛸 수 있어요</Text>
+            <Text style={styles.hint}>{t('create.image.memlowSelectHint')}</Text>
           </>
         )}
       </TouchableOpacity>
@@ -50,7 +59,7 @@ function Component({ draft, onChange }: Props) {
             color={rights ? COLORS.violet600 : COLORS.zinc400}
           />
           <Text style={styles.rightsText}>
-            고인 사진 사용에 대한 권리를 확인했어요 (가족 동의·초상권).
+            {t('create.image.memlowRights')}
           </Text>
         </TouchableOpacity>
       )}

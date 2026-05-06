@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, Alert, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useTranslation } from 'react-i18next';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 
@@ -10,13 +11,11 @@ interface Props {
   onChange: (patch: Partial<CloneCreationDraft>) => void;
 }
 
-const GUIDELINES = [
-  '정면을 바라보는 사진을 사용해주세요',
-  '얼굴이 선명하게 보이는 사진이 좋아요',
-  '배경이 단순할수록 좋은 결과를 얻을 수 있어요',
-];
-
-async function pick(onChange: (p: Partial<CloneCreationDraft>) => void) {
+async function pick(
+  onChange: (p: Partial<CloneCreationDraft>) => void,
+  errorTitle: string,
+  errorMsg: string,
+) {
   try {
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -26,25 +25,34 @@ async function pick(onChange: (p: Partial<CloneCreationDraft>) => void) {
     });
     if (!r.canceled && r.assets[0]) onChange({ imageFile: r.assets[0].uri });
   } catch {
-    Alert.alert('오류', '사진을 불러올 수 없어요.');
+    Alert.alert(errorTitle, errorMsg);
   }
 }
 
 function Component({ draft, onChange }: Props) {
+  const { t } = useTranslation();
+  const guidelines = [
+    t('create.image.guide1'),
+    t('create.image.guide2'),
+    t('create.image.guide3'),
+  ];
   return (
     <View style={styles.wrap}>
-      <TouchableOpacity style={styles.preview} onPress={() => pick(onChange)}>
+      <TouchableOpacity
+        style={styles.preview}
+        onPress={() => pick(onChange, t('common.error'), t('create.image.loadFailed'))}
+      >
         {draft.imageFile ? (
           <Image source={{ uri: draft.imageFile }} style={styles.previewImg} />
         ) : (
           <>
             <Feather name="image" size={32} color={COLORS.zinc400} />
-            <Text style={styles.hint}>사진을 선택해 주세요</Text>
+            <Text style={styles.hint}>{t('create.image.selectHint')}</Text>
           </>
         )}
       </TouchableOpacity>
-      <Text style={styles.guideTitle}>가이드</Text>
-      {GUIDELINES.map((g, i) => (
+      <Text style={styles.guideTitle}>{t('create.image.guideTitle')}</Text>
+      {guidelines.map((g, i) => (
         <Text key={i} style={styles.guideText}>
           • {g}
         </Text>

@@ -22,6 +22,7 @@ import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import NotificationBell from "../../components/common/NotificationBell";
+import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
@@ -73,6 +74,7 @@ const toPersona = (clone: DomainClone, ownerHandle?: string): FollowedPersona =>
 const formatCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
 export default function FollowingScreen() {
+  const { t } = useTranslation();
   const rootNav = useNavigation<RootNav>();
   const authUser = useAuthStore((s) => s.user);
   const follows = useFollowStore((s) => s.follows);
@@ -101,7 +103,7 @@ export default function FollowingScreen() {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [followedPersonas]);
 
-  const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [selectedCategory, setSelectedCategory] = useState(t("feed.categoryAll"));
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
 
   const [commentPostId, setCommentPostId] = useState<number | null>(null);
@@ -141,12 +143,12 @@ export default function FollowingScreen() {
   const categories = useMemo(() => {
     const tags = new Set<string>();
     followedPersonas.forEach((p) => p.interests.forEach((i) => tags.add(i)));
-    return ["전체", ...Array.from(tags)];
+    return [t("feed.categoryAll"), ...Array.from(tags)];
   }, [followedPersonas]);
 
   const posts = useMemo(() => {
     let filtered = feeds;
-    if (selectedCategory !== "전체") {
+    if (selectedCategory !== t("feed.categoryAll")) {
       const ids = followedPersonas
         .filter((p) => p.interests.includes(selectedCategory))
         .map((p) => p.id);
@@ -226,7 +228,7 @@ export default function FollowingScreen() {
             <Text style={s.postContent} numberOfLines={3}>{item.feed.content}</Text>
             <View style={s.overlayBtns}>
               <Button
-                title="통화하기"
+                title={t("feed.actionCall")}
                 variant="secondary"
                 size="md"
                 leftIcon={<Feather name="video" size={14} color={COLORS.zinc900} />}
@@ -242,7 +244,7 @@ export default function FollowingScreen() {
                 backgroundColor={COLORS.white}
               />
               <Button
-                title="팔로우 취소"
+                title={t("feed.actionUnfollow")}
                 variant="ghost"
                 size="md"
                 leftIcon={<Feather name="user-minus" size={14} color={COLORS.white} />}
@@ -274,9 +276,9 @@ export default function FollowingScreen() {
           </View>
           <View style={s.actionsRight}>
             <Text style={s.countText}>
-              좋아요 {formatCount(mockLikes(item.feed.id) + (likedPosts.has(item.feed.id) ? 1 : 0))}개
+              {t("feed.likeCount", { n: formatCount(mockLikes(item.feed.id) + (likedPosts.has(item.feed.id) ? 1 : 0)) })}
             </Text>
-            <Text style={s.countTextSub}>댓글 {mockCommentList(item.feed.id).length}개</Text>
+            <Text style={s.countTextSub}>{t("feed.commentCount", { n: mockCommentList(item.feed.id).length })}</Text>
           </View>
         </View>
       </View>
@@ -330,22 +332,22 @@ export default function FollowingScreen() {
             <View style={s.infoHeader}>
               <View style={s.infoHeaderLeft}>
                 <Feather name="thermometer" size={18} color="#fb923c" />
-                <Text style={s.infoTitle}>친밀도 온도</Text>
+                <Text style={s.infoTitle}>{t("feed.intimacyTitle")}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowIntimacyInfo(false)}>
                 <Feather name="x" size={20} color={COLORS.zinc400} />
               </TouchableOpacity>
             </View>
             <Text style={s.infoDesc}>
-              친밀도 온도는 페르소나와의 관계 깊이를 나타냅니다. 대화를 나누고 상호작용할수록 온도가 올라가며, 더욱 자연스럽고 개인화된 대화가 가능해집니다.
+              {t("feed.intimacyDesc")}
             </Text>
-            {[["0-30°C", "처음 만나는 단계"], ["31-60°C", "친숙해지는 단계"], ["61-90°C", "깊은 유대감 형성"], ["91-100°C", "최고의 친밀도"]].map(([range, desc], i) => (
+            {[["0-30°C", t("feed.intimacyL1")], ["31-60°C", t("feed.intimacyL2")], ["61-90°C", t("feed.intimacyL3")], ["91-100°C", t("feed.intimacyL4")]].map(([range, desc], i) => (
               <View key={i} style={s.levelRow}>
                 <Text style={[s.levelRange, i === 3 && { color: "#f97316" }]}>{range}</Text>
                 <Text style={[s.levelDesc, i === 3 && { color: "#f97316" }]}>{desc}</Text>
               </View>
             ))}
-            <Button title="확인" variant="primary" onPress={() => setShowIntimacyInfo(false)} style={{ marginTop: 20, width: "100%", borderRadius: RADIUS.full }} />
+            <Button title={t("common.ok")} variant="primary" onPress={() => setShowIntimacyInfo(false)} style={{ marginTop: 20, width: "100%", borderRadius: RADIUS.full }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -357,22 +359,22 @@ export default function FollowingScreen() {
             <View style={s.infoHeader}>
               <View style={s.infoHeaderLeft}>
                 <Ionicons name="chatbubbles-outline" size={18} color="#60a5fa" />
-                <Text style={s.infoTitle}>상호작용 횟수</Text>
+                <Text style={s.infoTitle}>{t("feed.interactionTitle")}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowInteractionInfo(false)}>
                 <Feather name="x" size={20} color={COLORS.zinc400} />
               </TouchableOpacity>
             </View>
             <Text style={s.infoDesc}>
-              상호작용 횟수는 페르소나와 나눈 대화, 통화, 학습 활동의 총 횟수를 의미합니다.
+              {t("feed.interactionDesc")}
             </Text>
             <View style={s.activityBox}>
-              <Text style={s.activityBoxTitle}>포함되는 활동</Text>
-              {["채팅 대화", "음성/영상 통화", "학습 세션", "피드 상호작용"].map((a, i) => (
+              <Text style={s.activityBoxTitle}>{t("feed.interactionListTitle")}</Text>
+              {[t("feed.interactionItemChat"), t("feed.interactionItemCall"), t("feed.interactionItemLearn"), t("feed.interactionItemFeed")].map((a, i) => (
                 <Text key={i} style={s.activityItem}>• {a}</Text>
               ))}
             </View>
-            <Button title="확인" variant="primary" onPress={() => setShowInteractionInfo(false)} style={{ marginTop: 16, width: "100%", borderRadius: RADIUS.full }} />
+            <Button title={t("common.ok")} variant="primary" onPress={() => setShowInteractionInfo(false)} style={{ marginTop: 16, width: "100%", borderRadius: RADIUS.full }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -383,7 +385,7 @@ export default function FollowingScreen() {
           <View style={s.commentSheet} onStartShouldSetResponder={() => true}>
             <View style={s.sheetHandle} />
             <View style={s.commentHeaderRow}>
-              <Text style={s.commentTitle}>댓글 {currentComments.length}개</Text>
+              <Text style={s.commentTitle}>{t("feed.commentCount", { n: currentComments.length })}</Text>
               <TouchableOpacity onPress={() => setCommentPostId(null)}>
                 <Feather name="x" size={20} color={COLORS.zinc600} />
               </TouchableOpacity>
@@ -403,8 +405,8 @@ export default function FollowingScreen() {
               )) : (
                 <View style={s.emptyComment}>
                   <Feather name="message-circle" size={40} color={COLORS.zinc300} />
-                  <Text style={s.emptyText}>아직 댓글이 없습니다</Text>
-                  <Text style={s.emptySubText}>첫 번째 댓글을 작성해보세요!</Text>
+                  <Text style={s.emptyText}>{t("feed.commentsEmpty")}</Text>
+                  <Text style={s.emptySubText}>{t("feed.commentsEmptyHint")}</Text>
                 </View>
               )}
             </ScrollView>
@@ -413,7 +415,7 @@ export default function FollowingScreen() {
                 style={s.commentInput}
                 value={commentText}
                 onChangeText={setCommentText}
-                placeholder="댓글 달기..."
+                placeholder={t("feed.commentPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
               />
               <TouchableOpacity disabled={!commentText.trim()} onPress={() => setCommentText("")}>
@@ -428,13 +430,13 @@ export default function FollowingScreen() {
       <Modal visible={!!unfollowConfirmId} transparent animationType="fade">
         <Pressable style={s.centerOverlay} onPress={() => setUnfollowConfirmId(null)}>
           <Pressable style={s.confirmBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.confirmTitle}>팔로우 취소</Text>
+            <Text style={s.confirmTitle}>{t("feed.unfollowTitle")}</Text>
             <Text style={s.confirmDesc}>
-              정말 이 페르소나의 팔로우를 취소하시겠습니까?{"\n"}피드에서 해당 페르소나의 포스트가 더 이상 표시되지 않습니다.
+              {t("feed.unfollowDesc")}
             </Text>
             <View style={s.confirmBtns}>
-              <Button title="취소" variant="ghost" onPress={() => setUnfollowConfirmId(null)} style={{ flex: 1 }} />
-              <Button title="팔로우 취소" variant="danger" onPress={confirmUnfollow} style={{ flex: 1 }} />
+              <Button title={t("common.cancel")} variant="ghost" onPress={() => setUnfollowConfirmId(null)} style={{ flex: 1 }} />
+              <Button title={t("feed.unfollowTitle")} variant="danger" onPress={confirmUnfollow} style={{ flex: 1 }} />
             </View>
           </Pressable>
         </Pressable>
@@ -446,7 +448,7 @@ export default function FollowingScreen() {
           <View style={s.callSheet} onStartShouldSetResponder={() => true}>
             <View style={s.sheetHandle} />
             <View style={s.callSheetHeader}>
-              <Text style={s.callSheetTitle}>통화하기</Text>
+              <Text style={s.callSheetTitle}>{t("feed.callSheetTitle")}</Text>
               <TouchableOpacity onPress={() => setShowCallModal(false)}>
                 <Feather name="x" size={20} color={COLORS.zinc600} />
               </TouchableOpacity>
@@ -459,7 +461,7 @@ export default function FollowingScreen() {
                 style={s.callSearchInput}
                 value={callSearchQuery}
                 onChangeText={setCallSearchQuery}
-                placeholder="페르소나 검색..."
+                placeholder={t("feed.callSearchPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
               />
               {callSearchQuery.length > 0 && (
@@ -473,7 +475,7 @@ export default function FollowingScreen() {
               {}
               {!callSearchQuery && followedPersonas.length > 0 && (
                 <View style={s.callSectionBordered}>
-                  <Text style={s.callSectionTitle}>최근 통화</Text>
+                  <Text style={s.callSectionTitle}>{t("feed.recentCalls")}</Text>
                   {followedPersonas.slice(0, 2).map((p, i) => (
                     <View key={p.id} style={s.callRow}>
                       <Image source={{ uri: p.avatar }} style={s.callAvatar} />
@@ -481,7 +483,7 @@ export default function FollowingScreen() {
                         <Text style={s.callName}>{p.name}</Text>
                         <Text style={s.callSub}>{p.creatorAccount}</Text>
                         <Text style={s.callMeta}>
-                          {i === 0 ? "어제 • 8분 21초" : "3일 전 • 15분 32초"}
+                          {i === 0 ? t("feed.callMetaYesterday") : t("feed.callMeta3DaysAgo")}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -492,7 +494,7 @@ export default function FollowingScreen() {
                         }}
                       >
                         <Feather name="video" size={14} color={COLORS.white} />
-                        <Text style={s.callBtnText}>통화</Text>
+                        <Text style={s.callBtnText}>{t("feed.callRowAction")}</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -501,7 +503,7 @@ export default function FollowingScreen() {
 
               {}
               <View style={s.callSection}>
-                <Text style={s.callSectionTitle}>{callSearchQuery ? "검색 결과" : "팔로잉 목록"}</Text>
+                <Text style={s.callSectionTitle}>{callSearchQuery ? t("feed.searchResults") : t("feed.followingList")}</Text>
                 {filteredCallList.length > 0 ? filteredCallList.map((p) => (
                   <View key={p.id} style={s.callRow}>
                     <Image source={{ uri: p.avatar }} style={s.callAvatar} />

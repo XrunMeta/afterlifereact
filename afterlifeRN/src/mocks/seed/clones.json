@@ -3,12 +3,12 @@
     "id": 1,
     "cloneType": "memlow",
     "ownerId": 1,
-    "displayName": "할아버지",
-    "description": "1930년대에 태어나 전쟁을 겪으신 과묵한 분. 히즈키에게는 짧은 말 한마디에 깊은 울림을 남기셨던 인생의 길잡이셨다.",
+    "displayName": "Grandpa",
+    "description": "Born in the 1930s and lived through the war. A reserved man whose few words carried deep resonance for Hizuki, a true guide in life.",
     "interests": [
-      "인생 조언",
-      "역사 이야기",
-      "손자 이야기"
+      "Life advice",
+      "History stories",
+      "Grandkid stories"
     ],
     "imageUrl": "https://i.pravatar.cc/400?img=21",
     "visibility": "private",
@@ -22,19 +22,19 @@
         "personalities": "introvert,calm,organized",
         "mbti": "ISTJ"
       },
-      "notes": "말수 적고 무뚝뚝하지만 한 마디 한 마디에 무게가 있음. 손자 이야기 나오면 표정이 밝아짐."
+      "notes": "Reserved and gruff, but every word carries weight. Lights up when the grandkids come up."
     }
   },
   {
     "id": 2,
     "cloneType": "memlow",
     "ownerId": 3,
-    "displayName": "할머니",
-    "description": "평생 가정을 지키며 따뜻한 음식으로 가족을 돌보셨던 분. 히즈키가 힘들 때마다 조용히 곁에 앉아 감정을 보듬어주셨다.",
+    "displayName": "Grandma",
+    "description": "A lifelong homemaker who cared for family with warm meals. Quietly sat beside Hizuki in tough times, holding space for emotions.",
     "interests": [
-      "전통 음식",
-      "가정 이야기",
-      "감정 돌봄"
+      "Traditional food",
+      "Family life",
+      "Emotional care"
     ],
     "visibility": "private",
     "status": "active",
@@ -47,19 +47,19 @@
         "personalities": "emotional,calm,passionate",
         "mbti": "ENFP"
       },
-      "notes": "따뜻하고 표현이 풍부함. 말끝에 '아이고~' 자주 붙임. 음식 이야기와 추억 이야기를 좋아하심."
+      "notes": "Warm and expressive. Often ends sentences with a soft sigh. Loves stories about food and memories."
     }
   },
   {
     "id": 3,
     "cloneType": "memlow",
     "ownerId": 6,
-    "displayName": "아버지",
-    "description": "평생 성실하게 직장을 다니며 가족을 부양하셨던 샐러리맨. 히즈키에게 묵묵히 최선을 다하는 삶의 자세를 보여주셨다.",
+    "displayName": "Father",
+    "description": "A diligent salaryman who supported the family his whole life. Showed Hizuki, by example, the quiet posture of doing your best.",
     "interests": [
-      "직장 회고",
-      "가족 부양",
-      "성실한 삶"
+      "Career retrospect",
+      "Family provision",
+      "Diligent life"
     ],
     "imageUrl": "https://i.pravatar.cc/400?img=22",
     "visibility": "private",
@@ -71,12 +71,12 @@
     "id": 4,
     "cloneType": "memlow",
     "ownerId": 11,
-    "displayName": "어머니",
-    "description": "학생들을 사랑했던 선생님이자 따뜻한 집안의 중심. 히즈키에게는 책과 배움의 소중함을 가르쳐주신 분이다.",
+    "displayName": "Mother",
+    "description": "A teacher who loved her students and the warm heart of the home. She taught Hizuki the value of books and learning.",
     "interests": [
-      "독서",
-      "교육",
-      "집안 온기"
+      "Reading",
+      "Education",
+      "Family warmth"
     ],
     "visibility": "private",
     "status": "active",
@@ -87,12 +87,12 @@
     "id": 5,
     "cloneType": "memlow",
     "ownerId": 12,
-    "displayName": "뭉치 (반려견)",
-    "description": "히즈키의 곁에서 10년을 함께한 가족의 일원. 산책과 놀이를 좋아했고 무조건적인 사랑으로 늘 반겨주었다.",
+    "displayName": "Mungchi (Pet)",
+    "description": "A family member by Hizuki side for 10 years. Loved walks and play, always greeted with unconditional love.",
     "interests": [
-      "산책",
-      "놀이",
-      "무조건적인 사랑"
+      "Walks",
+      "Play",
+      "Unconditional love"
     ],
     "visibility": "private",
     "status": "active",
@@ -103,12 +103,12 @@
     "id": 6,
     "cloneType": "memlow",
     "ownerId": 13,
-    "displayName": "어린 시절 절친 (김민재)",
-    "description": "초등학교 때 매일 같이 뛰어놀던 히즈키의 가장 친한 친구. 교통사고로 갑작스럽게 떠났지만 그 웃음과 동심은 기억 속에 생생하다.",
+    "displayName": "Childhood BFF (Minjae Kim)",
+    "description": "Hizuki best friend in elementary school who played together every day. Lost suddenly to a traffic accident, but the laughter and innocence remain vivid.",
     "interests": [
-      "어린 시절 추억",
-      "골목 놀이",
-      "동심"
+      "Childhood memories",
+      "Alleyway games",
+      "Innocence"
     ],
     "visibility": "private",
     "status": "active",
@@ -119,12 +119,12 @@
     "id": 7,
     "cloneType": "friend",
     "ownerId": 1,
-    "displayName": "중학교 절친 (이태호)",
-    "description": "중학교 3년을 함께 보낸 히즈키의 단짝. 서로 비밀을 털어놓고 고민을 나누던 편안한 친구다.",
+    "displayName": "Middle School BFF (Taeho Lee)",
+    "description": "A close friend through 3 years of middle school with Hizuki. The kind of friend you share secrets and worries with.",
     "interests": [
-      "학창 시절 추억",
-      "솔직한 대화",
-      "게임"
+      "School day memories",
+      "Honest conversations",
+      "Games"
     ],
     "imageUrl": "https://i.pravatar.cc/400?img=23",
     "visibility": "public",
@@ -138,19 +138,19 @@
         "personalities": "extrovert,emotional,passionate",
         "mbti": "ENFP"
       },
-      "notes": "장난기 많고 솔직함. 게임 이야기 나오면 끝없이 떠듦. 진지한 고민 상담도 잘 들어줌."
+      "notes": "Playful and honest. Talks endlessly about games. Also a great listener for serious worries."
     }
   },
   {
     "id": 8,
     "cloneType": "friend",
     "ownerId": 2,
-    "displayName": "대학 동아리 선배 (박준서)",
-    "description": "히즈키가 대학 밴드 동아리에서 만난 선배. 음악 이야기라면 밤새 열정적으로 이야기할 수 있는 사람이다.",
+    "displayName": "College Club Senior (Junseo Park)",
+    "description": "A senior Hizuki met in the college band club. Could talk about music passionately all night.",
     "interests": [
-      "음악",
-      "동아리 생활",
-      "대학 시절"
+      "Music",
+      "Club life",
+      "College days"
     ],
     "visibility": "public",
     "status": "active",
@@ -161,12 +161,12 @@
     "id": 9,
     "cloneType": "friend",
     "ownerId": 3,
-    "displayName": "전 직장 동기 (최유나)",
-    "description": "히즈키와 같은 팀에서 야근을 나누던 전 직장 동기. 힘든 프로젝트를 함께 버텨낸 전우 같은 존재다.",
+    "displayName": "Former Coworker (Yuna Choi)",
+    "description": "A former coworker who pulled overtime on the same team as Hizuki. A comrade who endured tough projects together.",
     "interests": [
-      "직장 생활",
-      "커피 수다",
-      "퇴사 후 각자의 삶"
+      "Work life",
+      "Coffee chats",
+      "Lives after quitting"
     ],
     "visibility": "public",
     "status": "active",
@@ -177,12 +177,12 @@
     "id": 10,
     "cloneType": "friend",
     "ownerId": 4,
-    "displayName": "온라인 게임 친구 (불꽃전사)",
-    "description": "온라인 게임에서 몇 년째 파티를 함께 해온 친구. 실제로 만난 적은 없지만 게임 속에서 가장 믿을 수 있는 동료다.",
+    "displayName": "Online Gaming Friend (FlameWarrior)",
+    "description": "A friend who has partied with Hizuki in online games for years. Never met in person, but the most reliable teammate in-game.",
     "interests": [
-      "온라인 게임",
-      "전략 토론",
-      "게임 커뮤니티"
+      "Online gaming",
+      "Strategy talks",
+      "Gaming community"
     ],
     "visibility": "public",
     "status": "active",
@@ -193,12 +193,12 @@
     "id": 11,
     "cloneType": "friend",
     "ownerId": 5,
-    "displayName": "해외 펜팔 친구 (Sofia)",
-    "description": "스페인에 사는 펜팔 친구로 히즈키와 수년째 편지와 이메일을 주고받고 있다. 서로의 문화를 나누며 세계를 넓혀주는 존재다.",
+    "displayName": "Pen Pal Abroad (Sofia)",
+    "description": "A pen pal in Spain who has exchanged letters and emails with Hizuki for years. Sharing cultures and widening each other worlds.",
     "interests": [
-      "문화 교류",
-      "언어 공부",
-      "여행 이야기"
+      "Cultural exchange",
+      "Language study",
+      "Travel stories"
     ],
     "imageUrl": "https://i.pravatar.cc/400?img=24",
     "visibility": "public",
@@ -210,13 +210,14 @@
     "id": 12,
     "cloneType": "friend",
     "ownerId": 6,
-    "displayName": "이웃집 누나 (한소희)",
-    "description": "어릴 때부터 같은 동네에 살아온 히즈키의 이웃집 누나. 언제나 현실적인 조언과 따뜻한 격려를 해주는 편안한 존재다.",
+    "displayName": "Neighborhood Big Sis (Sohee Han)",
+    "description": "A big sis from the neighborhood Hizuki grew up with. Always gives practical advice with warm encouragement.",
     "interests": [
-      "동네 이야기",
-      "일상 조언",
-      "요리"
+      "Neighborhood stories",
+      "Daily advice",
+      "Cooking"
     ],
+    "imageUrl": "https://i.pravatar.cc/400?img=47",
     "visibility": "public",
     "status": "active",
     "createdAt": "2026-02-12T14:00:00Z",
@@ -226,12 +227,12 @@
     "id": 13,
     "cloneType": "mentor",
     "ownerId": 1,
-    "displayName": "전 직장 사수 (김형준)",
-    "description": "히즈키가 신입 시절 개발을 가르쳐준 팀 사수. 코드 리뷰부터 커리어 설계까지 실질적인 도움을 아끼지 않았다.",
+    "displayName": "Former Boss (Hyungjun Kim)",
+    "description": "The team lead who taught Hizuki coding as a junior. Generous with practical help from code review to career design.",
     "interests": [
-      "소프트웨어 개발",
-      "커리어 성장",
-      "코드 품질"
+      "Software development",
+      "Career growth",
+      "Code quality"
     ],
     "imageUrl": "https://i.pravatar.cc/400?img=25",
     "visibility": "public",
@@ -245,19 +246,19 @@
         "personalities": "logical,organized,calm",
         "mbti": "INTJ"
       },
-      "notes": "차분하고 논리적. 코드 리뷰는 칼같이 하지만 사람에게는 따뜻함. 핵심을 짚어주는 한마디를 잘 던짐."
+      "notes": "Calm and logical. Sharp on code reviews but warm with people. Good at one-liners that hit the core."
     }
   },
   {
     "id": 14,
     "cloneType": "mentor",
     "ownerId": 7,
-    "displayName": "은퇴한 국어 선생님 (오선생님)",
-    "description": "히즈키의 고등학교 국어 선생님으로 현재는 은퇴하셨다. 글쓰기와 언어의 힘을 일깨워주신 분이다.",
+    "displayName": "Retired Korean Teacher (Mr. Oh)",
+    "description": "Hizuki high school Korean teacher, now retired. Awakened the power of writing and language in Hizuki.",
     "interests": [
-      "글쓰기",
-      "한국 문학",
-      "언어의 힘"
+      "Writing",
+      "Korean literature",
+      "Power of language"
     ],
     "visibility": "public",
     "status": "active",
@@ -268,12 +269,12 @@
     "id": 15,
     "cloneType": "mentor",
     "ownerId": 8,
-    "displayName": "심리 상담가 (정선생)",
-    "description": "히즈키가 힘든 시기에 만난 심리 상담가. 감정을 정리하고 자기 자신을 이해하는 방법을 알려주는 전문가다.",
+    "displayName": "Therapist (Mr. Jeong)",
+    "description": "A therapist Hizuki met during a tough period. A pro at helping organize emotions and understand oneself.",
     "interests": [
-      "심리 치유",
-      "자기 이해",
-      "감정 관리"
+      "Mental healing",
+      "Self-understanding",
+      "Emotion management"
     ],
     "visibility": "public",
     "status": "active",
@@ -284,12 +285,12 @@
     "id": 16,
     "cloneType": "mentor",
     "ownerId": 9,
-    "displayName": "라이프 코치 (이코치)",
-    "description": "자기계발 전문 라이프 코치로 히즈키의 목표 설정과 습관 형성을 함께 해온 멘토. 실행력과 동기 부여에 강점이 있다.",
+    "displayName": "Life Coach (Coach Lee)",
+    "description": "A self-improvement life coach who has guided Hizuki goal-setting and habit-building. Strengths in execution and motivation.",
     "interests": [
-      "자기계발",
-      "목표 설정",
-      "생산성"
+      "Self-improvement",
+      "Goal setting",
+      "Productivity"
     ],
     "imageUrl": "https://i.pravatar.cc/400?img=26",
     "visibility": "public",
@@ -301,12 +302,12 @@
     "id": 17,
     "cloneType": "mentor",
     "ownerId": 10,
-    "displayName": "창업가 사촌형 (류준)",
-    "description": "IT 스타트업을 두 번이나 창업한 히즈키의 사촌형. 실패와 성공을 모두 겪은 경험을 솔직하게 나눠주는 현실 조언자다.",
+    "displayName": "Entrepreneur Cousin (Ryu Jun)",
+    "description": "Hizuki cousin who founded IT startups twice. A real-world advisor who openly shares both failures and successes.",
     "interests": [
-      "창업",
-      "스타트업 생존기",
-      "비즈니스 전략"
+      "Entrepreneurship",
+      "Startup survival stories",
+      "Business strategy"
     ],
     "visibility": "public",
     "status": "active",
@@ -317,12 +318,12 @@
     "id": 18,
     "cloneType": "mentor",
     "ownerId": 12,
-    "displayName": "대학원 지도교수 (장교수님)",
-    "description": "히즈키의 대학원 시절 지도교수. 엄격하지만 학문적 성장을 진심으로 바라며 논문 너머의 인생까지 조언해주셨다.",
+    "displayName": "Grad School Advisor (Prof. Jang)",
+    "description": "Hizuki grad school advisor. Strict but genuinely cared about academic growth, advising on life beyond the thesis.",
     "interests": [
-      "연구 방법론",
-      "학문적 성장",
-      "논문 작성"
+      "Research methodology",
+      "Academic growth",
+      "Thesis writing"
     ],
     "visibility": "public",
     "status": "active",
@@ -333,12 +334,12 @@
     "id": 19,
     "cloneType": "celeb",
     "ownerId": 1,
-    "displayName": "K-POP 아이돌 하루나",
-    "description": "히즈키가 좋아하는 여성 솔로 K-POP 아이돌. 무대 위의 카리스마와 팬들에게 보내는 진심 어린 메시지로 사랑받는 아티스트다.",
+    "displayName": "K-POP Idol Haruna",
+    "description": "Hizuki favorite female solo K-POP idol. Loved for stage charisma and heartfelt messages to fans.",
     "interests": [
-      "음악 활동",
-      "팬 소통",
-      "무대 퍼포먼스"
+      "Music activities",
+      "Fan engagement",
+      "Stage performance"
     ],
     "imageUrl": "https://i.pravatar.cc/400?img=27",
     "visibility": "public",
@@ -350,12 +351,12 @@
     "id": 20,
     "cloneType": "celeb",
     "ownerId": 14,
-    "displayName": "영화감독 박천수",
-    "description": "히즈키가 존경하는 국내 영화감독. 인간의 내면과 사회를 날카롭게 담아내는 작품으로 국제적 명성을 얻었다.",
+    "displayName": "Film Director Cheonsoo Park",
+    "description": "A film director Hizuki admires. Internationally renowned for sharp portrayals of human nature and society.",
     "interests": [
-      "영화 철학",
-      "시나리오 작업",
-      "사회적 메시지"
+      "Film philosophy",
+      "Screenwriting",
+      "Social messages"
     ],
     "visibility": "public",
     "status": "active",
@@ -366,12 +367,12 @@
     "id": 21,
     "cloneType": "celeb",
     "ownerId": 15,
-    "displayName": "테크 스타트업 CEO 김지수",
-    "description": "국내 AI 스타트업을 이끌며 주목받는 젊은 CEO. 히즈키에게는 기술과 사업을 연결하는 인사이트를 주는 롤모델이다.",
+    "displayName": "Tech Startup CEO Jisoo Kim",
+    "description": "A young CEO leading a Korean AI startup. A role model for Hizuki bridging technology and business.",
     "interests": [
-      "AI 기술",
-      "창업 철학",
-      "미래 산업"
+      "AI tech",
+      "Entrepreneurial philosophy",
+      "Future industries"
     ],
     "imageUrl": "https://i.pravatar.cc/400?img=28",
     "visibility": "public",
@@ -383,12 +384,12 @@
     "id": 22,
     "cloneType": "celeb",
     "ownerId": 16,
-    "displayName": "은퇴 축구 스타 최강민",
-    "description": "히즈키가 어릴 때부터 응원하던 축구 선수로 현재는 은퇴했다. 그라운드에서 보여준 열정과 팀정신은 지금도 귀감이 된다.",
+    "displayName": "Retired Soccer Star Gangmin Choi",
+    "description": "A soccer player Hizuki cheered for since childhood, now retired. The passion and teamwork shown on the pitch still inspire.",
     "interests": [
-      "축구",
-      "스포츠 정신",
-      "팀워크"
+      "Soccer",
+      "Sportsmanship",
+      "Teamwork"
     ],
     "visibility": "public",
     "status": "active",
@@ -399,10 +400,10 @@
     "id": 23,
     "cloneType": "celeb",
     "ownerId": 17,
-    "displayName": "해외 작가 Elena Marsh",
-    "description": "히즈키가 좋아하는 미국 소설가. 인간 관계의 복잡함을 섬세하게 묘사하는 문체로 세계 독자들의 사랑을 받고 있다.",
+    "displayName": "Author Elena Marsh",
+    "description": "An American novelist Hizuki loves. Loved by readers worldwide for delicate portrayals of complex human relationships.",
     "interests": [
-      "소설 집필",
+      "Novel writing",
       "인간 관계",
       "문학 토론"
     ],
@@ -415,8 +416,8 @@
     "id": 24,
     "cloneType": "celeb",
     "ownerId": 20,
-    "displayName": "과학 유튜버 신기한과학",
-    "description": "어려운 과학 개념을 쉽고 재미있게 설명하는 국내 인기 유튜버. 히즈키는 그의 콘텐츠로 과학에 대한 흥미를 되찾았다.",
+    "displayName": "Science YouTuber CuriousScience",
+    "description": "A popular Korean YouTuber who explains tough science concepts simply and fun. Hizuki rediscovered an interest in science through his content.",
     "interests": [
       "과학 교육",
       "콘텐츠 제작",

@@ -249,6 +249,70 @@ users.get("/me/devices", requireAuth, async (c) => {
   return c.json({ devices: rows.results ?? [] });
 });
 
+users.get("/me/invites", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT
+          i.id, i.invite_email AS inviteEmail, i.relation, i.grant_owner AS grantOwner,
+          i.expires_at AS expiresAt, i.used_at AS usedAt, i.cancelled_at AS cancelledAt,
+          i.created_at AS createdAt,
+          c.id AS cloneId, c.name AS cloneName, c.username AS cloneUsername,
+          c.avatar_url AS cloneAvatarUrl, c.clone_type AS cloneType
+         FROM invite_tokens i
+         JOIN clones c ON c.id = i.clone_id
+        WHERE i.owner_id = ? AND c.deleted_at IS NULL
+        ORDER BY i.id DESC
+        LIMIT 200`,
+    )
+    .bind(userId)
+    .all<{
+      id: number;
+      inviteEmail: string | null;
+      relation: string | null;
+      grantOwner: number;
+      expiresAt: string;
+      usedAt: string | null;
+      cancelledAt: string | null;
+      createdAt: string;
+      cloneId: number;
+      cloneName: string;
+      cloneUsername: string;
+      cloneAvatarUrl: string | null;
+      cloneType: string;
+    }>();
+
+  const now = Date.now();
+  const items = (rows.results ?? []).map((r) => {
+    let status: "pending" | "accepted" | "cancelled" | "expired";
+    if (r.usedAt) status = "accepted";
+    else if (r.cancelledAt) status = "cancelled";
+    else {
+      const exp = new Date(r.expiresAt.replace(" ", "T") + "Z").getTime();
+      status = exp < now ? "expired" : "pending";
+    }
+    return {
+      id: r.id,
+      inviteEmail: r.inviteEmail,
+      relation: r.relation,
+      grantOwner: r.grantOwner === 1,
+      expiresAt: r.expiresAt,
+      usedAt: r.usedAt,
+      cancelledAt: r.cancelledAt,
+      createdAt: r.createdAt,
+      status,
+      clone: {
+        id: r.cloneId,
+        name: r.cloneName,
+        username: r.cloneUsername,
+        avatarUrl: r.cloneAvatarUrl,
+        cloneType: r.cloneType,
+      },
+    };
+  });
+  return c.json({ items });
+});
+
 users.post("/me/devices", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const body = await c.req.json().catch(() => ({})) as {

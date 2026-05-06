@@ -34,9 +34,9 @@ import type { MyStackParamList } from "../../navigation/types";
 const DEFAULT_USER_ID = 1;
 
 const recentTransactions = [
-  { label: "페르소나 생성", date: "2024.03.25 14:32", amount: -500 },
-  { label: "영상 통화 (15분)", date: "2024.03.24 19:15", amount: -300 },
-  { label: "코인 충전", date: "2024.03.23 10:20", amount: 10000 },
+  { labelKey: "my.coin.txCreatePersona", date: "2024.03.25 14:32", amount: -500 },
+  { labelKey: "my.coin.txVideoCall", date: "2024.03.24 19:15", amount: -300 },
+  { labelKey: "my.coin.txRecharge", date: "2024.03.23 10:20", amount: 10000 },
 ];
 
 type MyNav = NativeStackNavigationProp<MyStackParamList>;
@@ -111,12 +111,12 @@ export default function MyScreen() {
 
   const handleEditAvatar = async () => {
     if (!accessToken) {
-      Alert.alert("알림", "로그인이 필요합니다.");
+      Alert.alert(t("common.notice"), t("my.loginRequired"));
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "사진 라이브러리 접근 권한을 허용해주세요.");
+      Alert.alert(t("my.permTitle"), t("my.permDesc"));
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -138,14 +138,14 @@ export default function MyScreen() {
       await patchMe(accessToken, { avatarUrl: uploaded.url });
       patchApiUser({ avatarUrl: uploaded.url });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "이미지 업로드에 실패했습니다.";
-      Alert.alert("오류", msg);
+      const msg = err instanceof Error ? err.message : t("my.uploadFailed");
+      Alert.alert(t("common.error"), msg);
     } finally {
       setUploadingAvatar(false);
     }
   };
 
-  const displayName = apiUser?.name ?? user?.displayName ?? "사용자";
+  const displayName = apiUser?.name ?? user?.displayName ?? t("my.userFallback");
   const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
   const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
 
@@ -241,19 +241,19 @@ export default function MyScreen() {
           <View style={s.statsRow}>
             <View style={s.statItem}>
               <Text style={s.statValue}>{followingCount}</Text>
-              <Text style={s.statLabel}>팔로우 중</Text>
+              <Text style={s.statLabel}>{t("my.stats.following")}</Text>
             </View>
             <View style={s.statDivider} />
             <View style={s.statItem}>
               <Text style={s.statValue}>{myClonesCount}</Text>
-              <Text style={s.statLabel}>내 페르소나</Text>
+              <Text style={s.statLabel}>{t("my.stats.myPersona")}</Text>
             </View>
           </View>
         </View>
 
         {}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>xrun 코인</Text>
+          <Text style={s.sectionLabel}>{t("my.coin.title")}</Text>
         </View>
 
         {}
@@ -261,11 +261,11 @@ export default function MyScreen() {
           <View style={s.coinCardTop}>
             <View style={s.coinLabelRow}>
               <Feather name="dollar-sign" size={18} color={COLORS.zinc700} />
-              <Text style={s.coinLabel}>보유 코인</Text>
+              <Text style={s.coinLabel}>{t("my.coin.balance")}</Text>
             </View>
             <TouchableOpacity style={s.chargeBtn}>
               <Feather name="plus" size={14} color={COLORS.white} />
-              <Text style={s.chargeBtnText}>충전</Text>
+              <Text style={s.chargeBtnText}>{t("my.coin.charge")}</Text>
             </TouchableOpacity>
           </View>
           {balanceLoading ? (
@@ -281,7 +281,7 @@ export default function MyScreen() {
           ) : (
             <>
               <Text style={s.coinAmount}>—</Text>
-              <Text style={s.coinWon}>xrun 회원 매핑이 안 되어 있습니다</Text>
+              <Text style={s.coinWon}>{t("my.coin.notMapped")}</Text>
             </>
           )}
         </View>
@@ -289,7 +289,7 @@ export default function MyScreen() {
         {}
         <View style={s.transactionsCard}>
           <View style={s.transactionsHeader}>
-            <Text style={s.transactionsTitle}>최근 거래</Text>
+            <Text style={s.transactionsTitle}>{t("my.coin.transactions")}</Text>
           </View>
           {recentTransactions.map((tx, i) => (
             <View
@@ -300,7 +300,7 @@ export default function MyScreen() {
               ]}
             >
               <View style={s.txInfo}>
-                <Text style={s.txLabel}>{tx.label}</Text>
+                <Text style={s.txLabel}>{t(tx.labelKey)}</Text>
                 <Text style={s.txDate}>{tx.date}</Text>
               </View>
               <Text style={[s.txAmount, tx.amount > 0 ? s.txGreen : s.txRed]}>
@@ -310,13 +310,13 @@ export default function MyScreen() {
             </View>
           ))}
           <TouchableOpacity style={s.viewAllBtn}>
-            <Text style={s.viewAllText}>전체 내역 보기</Text>
+            <Text style={s.viewAllText}>{t("my.coin.viewAll")}</Text>
           </TouchableOpacity>
         </View>
 
         {}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>{t("my.menu.editProfile") ? "설정" : "설정"}</Text>
+          <Text style={s.sectionLabel}>{t("my.coin.settings")}</Text>
         </View>
 
         <View style={s.settingsCard}>

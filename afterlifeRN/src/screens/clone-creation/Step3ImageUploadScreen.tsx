@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { CreateStackParamList } from '../../navigation/types';
 import SafeView from '../../components/ui/SafeView';
@@ -16,6 +17,7 @@ import { COLORS, SIZES } from '../../components/constants';
 type Props = { navigation: NativeStackNavigationProp<CreateStackParamList, 'Step3'> };
 
 export default function Step3ImageUploadScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const draft = useCloneStore(s => s.creationDraft);
   const setCreationDraft = useCloneStore(s => s.setCreationDraft);
   const [bannerOpen, setBannerOpen] = useState(true);
@@ -26,7 +28,7 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
   return (
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader
-        title="이미지 업로드"
+        title={t("create.stepTitles.3")}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
@@ -37,7 +39,7 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
       </SafeScrollView>
       <View style={styles.bottomBar}>
         <Button
-          title="다음 단계로 이동"
+          title={t("create.next")}
           onPress={() => navigation.navigate('Step4')}
           disabled={!canNext}
         />

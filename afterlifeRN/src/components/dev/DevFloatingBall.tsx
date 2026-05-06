@@ -96,7 +96,8 @@ export function DevFloatingBall() {
               유저 스위치{currentUser ? ` · ${currentUser.displayName}` : ''}
             </Text>
           </TouchableOpacity>
-          {actions.slice(1).map((a) => (
+          {}
+          {false && actions.slice(1).map((a) => (
             <TouchableOpacity
               key={a.label}
               style={styles.row}

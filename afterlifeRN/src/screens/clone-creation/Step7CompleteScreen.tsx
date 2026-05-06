@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
 
@@ -44,6 +45,7 @@ const COPY: Record<'memlow' | 'friend' | 'mentor' | 'celeb', { title: string; su
 };
 
 export default function Step7CompleteScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const resetCreationDraft = useCloneStore((s) => s.resetCreationDraft);
   const draft = useCloneStore((s) => s.creationDraft);
   const addClone = useCloneStore((s) => s.addClone);
@@ -181,19 +183,19 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           console.warn('[CLONE-CREATE] failed:', err);
         }
         if (cancelled) return;
-        let msg = '페르소나 생성 중 오류가 발생했습니다.';
+        let msg = t('create.errors.createFailed');
         if (err instanceof AuthApiError) {
           if (err.code === 'QUOTA_EXCEEDED') {
-            msg = '같은 타입의 페르소나는 1개까지만 생성할 수 있어요.';
+            msg = t('create.errors.quotaExceeded');
           } else if (err.code === 'CONFLICT') {
-            msg = '이미 사용 중인 username 이에요. 다시 시도해주세요.';
+            msg = t('create.errors.usernameConflict');
           } else {
             msg = err.message;
           }
         }
         setError(msg);
         setCreating(false);
-        Alert.alert('생성 실패', msg);
+        Alert.alert(t('create.complete.createFailed'), msg);
       }
     })();
     return () => {
@@ -201,7 +203,23 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     };
   }, []); 
 
-  const copy = COPY[draft.cloneType ?? 'friend'];
+  const cloneType = draft.cloneType ?? 'friend';
+  const copy = {
+    title: t(`create.complete.${cloneType}Title` as
+      | 'create.complete.memlowTitle'
+      | 'create.complete.friendTitle'
+      | 'create.complete.mentorTitle'
+      | 'create.complete.celebTitle'),
+    sub: t(`create.complete.${cloneType}Sub` as
+      | 'create.complete.memlowSub'
+      | 'create.complete.friendSub'
+      | 'create.complete.mentorSub'
+      | 'create.complete.celebSub'),
+  };
+  const FEATURES_I18N = [
+    { icon: 'refresh-cw' as const, title: t('create.complete.featAutoLearn'), desc: t('create.complete.featAutoLearnDesc') },
+    { icon: 'shield' as const, title: t('create.complete.featSecurity'), desc: t('create.complete.featSecurityDesc') },
+  ];
 
   const handleStartChat = () => {
     if (createdCloneId == null) return;
@@ -218,7 +236,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <PageHeader title="생성 완료" />
+      <PageHeader title={t('create.stepTitles.7')} />
       <StepIndicator currentStep={7} totalSteps={7} />
 
       <SafeScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
@@ -235,12 +253,12 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           </View>
 
           <Text style={styles.title}>
-            {creating ? '페르소나를 만들고 있어요...' : error ? '생성 실패' : copy.title}
+            {creating ? t('create.complete.creating') : error ? t('create.complete.createFailed') : copy.title}
           </Text>
           <Text style={styles.subtitle}>{error ?? copy.sub}</Text>
 
           {}
-          {!creating && !error && FEATURES.map((feat, i) => (
+          {!creating && !error && FEATURES_I18N.map((feat, i) => (
             <View key={i} style={styles.featureCard}>
               <View style={styles.featureIconBox}>
                 <Feather name={feat.icon as any} size={22} color={COLORS.violet500} />
@@ -257,14 +275,14 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       {}
       <View style={styles.bottomBar}>
         <Button
-          title="소개 영상 만들기"
+          title={t('create.complete.startVideo')}
           onPress={handleStartChat}
           variant="accent"
           disabled={creating || !!error || createdCloneId == null}
           leftIcon={<Feather name="message-circle" size={20} color={COLORS.white} />}
         />
         <Button
-          title="나의 페르소나로 돌아가기"
+          title={t('create.complete.goDashboard')}
           onPress={handleGoToDashboard}
           variant="ghost"
         />

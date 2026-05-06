@@ -33,6 +33,7 @@ import SavedItemsScreen from "../screens/my/SavedItemsScreen";
 import AcquaintanceManagementScreen from "../screens/my/AcquaintanceManagementScreen";
 import LanguageSettingsScreen from "../screens/my/LanguageSettingsScreen";
 import PaymentPinScreen from "../screens/my/PaymentPinScreen";
+import InviteStatusScreen from "../screens/my/InviteStatusScreen";
 
 const ClonesStack = createNativeStackNavigator<ClonesStackParamList>();
 const CreateStack = createNativeStackNavigator<CreateStackParamList>();
@@ -45,6 +46,7 @@ function ClonesStackNavigator() {
       <ClonesStack.Screen name="CloneDetail" component={CloneDetailScreen} />
       <ClonesStack.Screen name="CloneEdit" component={CloneEditScreen} />
       <ClonesStack.Screen name="CloneInvite" component={CloneInviteScreen} />
+      <ClonesStack.Screen name="InviteStatus" component={InviteStatusScreen} />
     </ClonesStack.Navigator>
   );
 }
@@ -75,6 +77,7 @@ function MyStackNavigator() {
       <MyStack.Screen name="AcquaintanceManagement" component={AcquaintanceManagementScreen} />
       <MyStack.Screen name="LanguageSettings" component={LanguageSettingsScreen} />
       <MyStack.Screen name="PaymentPin" component={PaymentPinScreen} />
+      <MyStack.Screen name="InviteStatus" component={InviteStatusScreen} />
     </MyStack.Navigator>
   );
 }
