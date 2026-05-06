@@ -180,9 +180,14 @@ export default function MyScreen() {
         return;
       }
       const userId = apiUser.id;
+      console.log(`[MyScreen] fetch start userId=${userId}`);
       listMyFollowedClones(accessToken, userId)
         .then((r) => {
           if (!cancelled) {
+            console.log(
+              `[MyScreen] followedClones ← ${r.items.length} items`,
+              r.items.map((it) => ({ id: it.id, name: it.name })),
+            );
             setApiFollowingCount(r.items.length);
             setApiFollowingList(r.items);
           }
@@ -191,6 +196,10 @@ export default function MyScreen() {
       listMyClones(accessToken)
         .then((r) => {
           if (!cancelled) {
+            console.log(
+              `[MyScreen] myClones ← ${r.items.length} items`,
+              r.items.map((it) => ({ id: it.id, name: it.name })),
+            );
             setApiMyClonesCount(r.items.length);
             setApiMyClonesList(r.items);
           }
@@ -273,12 +282,28 @@ export default function MyScreen() {
           <Text style={s.userHandle}>{subLabel}</Text>
 
           <View style={s.statsRow}>
-            <TouchableOpacity style={s.statItem} onPress={() => setStatsModal("following")}>
+            <TouchableOpacity
+              style={s.statItem}
+              onPress={() => {
+                console.log(
+                  `[MyScreen] stat TAP "팔로우 중" — apiFollowingCount=${apiFollowingCount} apiFollowingList=${apiFollowingList?.length ?? "null"}`,
+                );
+                setStatsModal("following");
+              }}
+            >
               <Text style={s.statValue}>{followingCount}</Text>
               <Text style={s.statLabel}>{t("my.stats.following")}</Text>
             </TouchableOpacity>
             <View style={s.statDivider} />
-            <TouchableOpacity style={s.statItem} onPress={() => setStatsModal("myClones")}>
+            <TouchableOpacity
+              style={s.statItem}
+              onPress={() => {
+                console.log(
+                  `[MyScreen] stat TAP "내 페르소나" — apiMyClonesCount=${apiMyClonesCount} apiMyClonesList=${apiMyClonesList?.length ?? "null"}`,
+                );
+                setStatsModal("myClones");
+              }}
+            >
               <Text style={s.statValue}>{myClonesCount}</Text>
               <Text style={s.statLabel}>{t("my.stats.myPersona")}</Text>
             </TouchableOpacity>
@@ -405,12 +430,20 @@ export default function MyScreen() {
                 ) : (
                   apiFollowingList.map((c) => {
                     const followed = isFollowing(c.id);
+                    console.log(
+                      `[MyScreen] following row render — cloneId=${c.id} name=${c.name} isFollowing=${followed}`,
+                    );
                     return (
                       <TouchableOpacity
                         key={c.id}
                         style={s.listRow}
                         activeOpacity={0.6}
-                        onPress={() => goToClone(c.id)}
+                        onPress={() => {
+                          console.log(
+                            `[MyScreen] following row TAP — goToClone cloneId=${c.id} name=${c.name}`,
+                          );
+                          goToClone(c.id);
+                        }}
                       >
                         {c.avatarUrl ? (
                           <Image source={{ uri: c.avatarUrl }} style={s.listAvatar} />
@@ -423,9 +456,15 @@ export default function MyScreen() {
                         </View>
                         <TouchableOpacity
                           onPress={async () => {
+                            console.log(
+                              `[MyScreen] follow toggle TAP cloneId=${c.id} wasFollowing=${followed}`,
+                            );
                             await toggleFollow(c.id);
 
                             if (followed) {
+                              console.log(
+                                `[MyScreen] post-unfollow → list filter + count -1 cloneId=${c.id}`,
+                              );
                               setApiFollowingList((prev) =>
                                 prev ? prev.filter((x) => x.id !== c.id) : prev,
                               );
@@ -433,6 +472,9 @@ export default function MyScreen() {
                                 typeof prev === "number" ? Math.max(0, prev - 1) : prev,
                               );
                             } else {
+                              console.log(
+                                `[MyScreen] post-follow → count +1 cloneId=${c.id}`,
+                              );
                               setApiFollowingCount((prev) =>
                                 typeof prev === "number" ? prev + 1 : prev,
                               );

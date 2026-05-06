@@ -74,6 +74,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await AsyncStorage.removeItem(STORAGE_KEY);
     await AsyncStorage.removeItem(TOKEN_KEY);
     set({ isLoggedIn: false, user: null, accessToken: null, apiUser: null });
+
+    try {
+      const { useFeedStore } = await import("./feedStore");
+      const { useFollowStore } = await import("./followStore");
+      useFeedStore.getState().resetForLogout();
+      await useFollowStore.getState().resetForLogout();
+    } catch (err) {
+      console.warn("[authStore] reset on logout failed:", err);
+    }
   },
 
   loginWithApi: async (payload) => {
@@ -92,6 +101,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   apiLogout: async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
     set({ accessToken: null, apiUser: null });
+    try {
+      const { useFeedStore } = await import("./feedStore");
+      const { useFollowStore } = await import("./followStore");
+      useFeedStore.getState().resetForLogout();
+      await useFollowStore.getState().resetForLogout();
+    } catch (err) {
+      console.warn("[authStore] reset on apiLogout failed:", err);
+    }
   },
 
   refreshApiUser: async () => {

@@ -361,13 +361,33 @@ export interface BlockedClone {
 }
 
 export async function blockClone(accessToken: string, cloneId: number): Promise<{ ok: true; blocked: true }> {
-  return authFetch(`/oth-path${cloneId}/block`, accessToken, { method: "POST" });
+  console.log(`[BLOCK-API] → POST /oth-path${cloneId}/block`);
+  const res = await authFetch<{ ok: true; blocked: true }>(
+    `/oth-path${cloneId}/block`,
+    accessToken,
+    { method: "POST" },
+  );
+  console.log(`[BLOCK-API] ← ok cloneId=${cloneId}`, res);
+  return res;
 }
 export async function unblockClone(accessToken: string, cloneId: number): Promise<{ ok: true; blocked: false }> {
-  return authFetch(`/oth-path${cloneId}/block`, accessToken, { method: "DELETE" });
+  console.log(`[BLOCK-API] → DELETE /oth-path${cloneId}/block`);
+  const res = await authFetch<{ ok: true; blocked: false }>(
+    `/oth-path${cloneId}/block`,
+    accessToken,
+    { method: "DELETE" },
+  );
+  console.log(`[BLOCK-API] ← unblock ok cloneId=${cloneId}`, res);
+  return res;
 }
 export async function listMyBlocks(accessToken: string): Promise<{ items: BlockedClone[] }> {
-  return authFetch(`/oth-path`, accessToken, { method: "GET" });
+  const res = await authFetch<{ items: BlockedClone[] }>(
+    `/oth-path`,
+    accessToken,
+    { method: "GET" },
+  );
+  console.log(`[BLOCK-API] listMyBlocks ← ${res.items.length} items`);
+  return res;
 }
 
 export interface FollowedClone {

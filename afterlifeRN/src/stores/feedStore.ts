@@ -28,6 +28,7 @@ interface FeedState {
   getVisibleFeeds: () => DomainFeed[];
   getFilteredFeeds: () => DomainFeed[];
   loadDiscover: () => Promise<void>;
+  resetForLogout: () => void;
 }
 
 function canSeeClone(c: DomainClone, currentUserId: number): boolean {
@@ -180,6 +181,18 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     })),
 
   setSelectedInterests: (interests) => set({ selectedInterests: interests }),
+
+  resetForLogout: () => {
+    apiCloneCache.clear();
+    apiFeedCountsCache.clear();
+    set({
+      apiFeeds: null,
+      apiLoading: false,
+      likedIds: [],
+      bookmarkedIds: [],
+      selectedInterests: [],
+    });
+  },
 
   loadDiscover: async () => {
     if (get().apiLoading) return;

@@ -14,7 +14,6 @@ import {
   Image,
   TextInput,
   Keyboard,
-  KeyboardAvoidingView,
 } from "react-native";
 import { Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -117,12 +116,14 @@ export default function HomeScreen() {
 
   const filteredFeeds: FeedItem[] = getFilteredFeeds().map(toFeedItem);
 
-  const setApiFeeds = useFeedStore((s) => s.apiFeeds); 
-  void setApiFeeds;
-  const [, setForceTick] = useState(0);
   const bumpCommentsCount = useCallback((feedId: number, n: number) => {
     apiFeedCountsCache.set(feedId, { commentsCount: n });
-    setForceTick((x) => x + 1);
+    const cur = useFeedStore.getState().apiFeeds;
+    if (cur) {
+      useFeedStore.setState({
+        apiFeeds: cur.map((f) => (f.id === feedId ? { ...f, commentsCount: n } : f)),
+      });
+    }
   }, []);
 
   const onViewableItemsChanged = useCallback(
@@ -317,16 +318,16 @@ export default function HomeScreen() {
 
       {}
       <Modal visible={!!commentFeedId} transparent animationType="slide">
-        <KeyboardAvoidingView
-
-          behavior="padding"
-          style={{ flex: 1 }}
-        >
-        <Pressable style={styles.commentOverlay} onPress={() => setCommentFeedId(null)}>
+        <Pressable style={styles.commentOverlay} onPress={() => { Keyboard.dismiss(); setCommentFeedId(null); }}>
           <View
             style={[
               styles.commentSheet,
-              { paddingBottom: keyboardVisible ? 12 : 24 + Math.max(insets.bottom, 0) },
+
+              {
+                paddingBottom: 24 + Math.max(insets.bottom, 0),
+                height: Math.max(SCREEN_HEIGHT * 0.7 - keyboardHeight, 200),
+                transform: [{ translateY: -keyboardHeight }],
+              },
             ]}
             onStartShouldSetResponder={() => true}
           >
@@ -385,7 +386,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </Pressable>
-        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -422,14 +422,41 @@ export default function HomeScreen() {
               onPress={async () => {
                 const target = moreTarget;
                 setMoreTarget(null);
-                if (!target || !accessToken) return;
+                if (!target || !accessToken) {
+                  console.log(
+                    `[BLOCK] aborted — target=${!!target} accessToken=${!!accessToken}`,
+                  );
+                  return;
+                }
+                console.log(
+                  `[BLOCK] start cloneId=${target.cloneId} author=${target.author}`,
+                );
                 try {
-                  await blockClone(accessToken, target.cloneId);
+                  console.log(`[BLOCK] → POST /oth-path${target.cloneId}/block`);
+                  const blockRes = await blockClone(accessToken, target.cloneId);
+                  console.log(`[BLOCK] ← block API ok:`, blockRes);
                   setToastMessage("이 페르소나가 차단됐어요");
 
+                  const cur = useFeedStore.getState().apiFeeds;
+                  const beforeFeed = cur?.length ?? 0;
+                  if (cur) {
+                    useFeedStore.setState({
+                      apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
+                    });
+                  }
+                  console.log(
+                    `[BLOCK] apiFeeds filtered — before=${beforeFeed} after=${
+                      useFeedStore.getState().apiFeeds?.length ?? 0
+                    }`,
+                  );
+
+                  await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
+
+                  console.log(`[BLOCK] → loadDiscover() refetch`);
                   void loadDiscover();
+                  console.log(`[BLOCK] complete cloneId=${target.cloneId}`);
                 } catch (err) {
-                  console.warn("[Home] block failed:", err);
+                  console.warn(`[BLOCK] FAILED cloneId=${target.cloneId}`, err);
                   setToastMessage("차단에 실패했어요");
                 }
               }}

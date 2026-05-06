@@ -150,9 +150,6 @@ feedsDiscover.get("/discover", async (c) => {
   const binds: unknown[] = [];
 
   if (viewerId) {
-    where.push("c.owner_id != ?");
-    binds.push(viewerId);
-
     where.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
     binds.push(viewerId);
   }
