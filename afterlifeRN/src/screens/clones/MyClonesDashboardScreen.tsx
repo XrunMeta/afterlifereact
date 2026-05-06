@@ -798,10 +798,10 @@ export default function MyClonesDashboardScreen() {
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Feather name="search" size={32} color={COLORS.zinc300} />
                   <Text style={{ color: COLORS.zinc500, marginTop: 8, fontSize: 13 }}>
-                    {t("invite.inviteSearchEmpty")}
+                    {t("dashboard.inviteSearchEmpty")}
                   </Text>
                   <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {t("invite.inviteSearchEmptyHint")}
+                    {t("dashboard.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : searching ? (
@@ -811,10 +811,10 @@ export default function MyClonesDashboardScreen() {
               ) : searchResults.length === 0 ? (
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
-                    {t("invite.inviteNoResults")}
+                    {t("dashboard.inviteNoResults")}
                   </Text>
                   <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {t("invite.inviteSearchEmptyHint")}
+                    {t("dashboard.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : (
@@ -844,7 +844,7 @@ export default function MyClonesDashboardScreen() {
                           color={sent ? COLORS.success : COLORS.white}
                         />
                         <Text style={[s.inviteBtnText, sent && s.inviteBtnTextSent]}>
-                          {sent ? "전송됨" : "초대"}
+                          {sent ? t("invite.sent") : t("invite.send")}
                         </Text>
                       </TouchableOpacity>
                     </View>
