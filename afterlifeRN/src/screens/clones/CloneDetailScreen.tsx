@@ -13,6 +13,7 @@ import {
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2d88fc } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
@@ -29,6 +30,7 @@ const { width: v_0d9f50, height: v_28d8d8 } = v_700696.get("window");
 const v_68bb66 = v_feb82c as v_84fd28[];
 
 export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);

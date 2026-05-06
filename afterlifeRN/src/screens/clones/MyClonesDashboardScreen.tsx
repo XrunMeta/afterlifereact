@@ -951,8 +951,8 @@ const v_fd5f43 = v_472849.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    marginTop: 16,
-    marginBottom: 20,
+    marginTop: 8,
+    marginBottom: 16,
   },
   dashTitleText: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900 },
   inviteStatusBtn: {

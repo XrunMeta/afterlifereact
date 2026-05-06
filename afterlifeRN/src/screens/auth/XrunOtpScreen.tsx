@@ -1,5 +1,6 @@
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392, v_79c4f2 } from "rcmrninabrnb";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
 
@@ -15,6 +16,7 @@ type Props = v_432191<v_384e19, "XrunOtp">;
 const v_d812cb = 60;
 
 export default function v_e24882({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const { email: v_e0c7e8, pin: v_6bee94 } = v_c7daf6.params;
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_600d5b, v_ec979d] = v_5ab095(v_d812cb);
@@ -34,16 +36,16 @@ export default function v_e24882({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       await v_dd506d(v_e0c7e8, v_6bee94); 
       v_ec979d(v_d812cb);
-      v_03e392.alert("재발송", "인증 코드를 다시 보냈습니다.");
+      v_03e392.alert(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
     } catch (v_49263d) {
-      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "재발송 실패";
-      v_03e392.alert("오류", v_badeaf);
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     }
   };
 
   const v_420661 = () => {
     if (v_c99bd2.length !== 6) {
-      v_03e392.alert("알림", "6자리 인증 코드를 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
       return;
     }
     v_c65f5d.navigate("XrunOnboarding", { email: v_e0c7e8, pin: v_6bee94, verificationCode: v_c99bd2 });
@@ -51,13 +53,13 @@ export default function v_e24882({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
-      <PageHeader title="이메일 인증" showBackButton onBackPress={() => v_c65f5d.goBack()} />
+      <PageHeader title={v_8d41d7("auth.xrun.otpTitle")} showBackButton onBackPress={() => v_c65f5d.goBack()} />
       <SafeScrollView contentContainerStyle={v_d81136.content} autoAdjustKeyboardPadding showBottomBackground={false}>
         <View style={v_d81136.container}>
-          <Text style={v_d81136.title}>이메일로 코드를 보냈어요</Text>
+          <Text style={v_d81136.title}>{v_8d41d7("auth.xrun.otpTitle")}</Text>
           <Text style={v_d81136.subtitle}>
-            <Text style={v_d81136.email}>{v_e0c7e8}</Text>
-            {"\n"}메일함의 6자리 인증 코드를 입력해주세요. (5분간 유효)
+            {v_8d41d7("auth.xrun.otpDesc")}
+            {"\n"}<Text style={v_d81136.email}>{v_e0c7e8}</Text>
           </Text>
 
           <TextInput
@@ -72,13 +74,12 @@ export default function v_e24882({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             autoFocus
           />
 
-          <Button title="다음" onPress={v_420661} disabled={v_c99bd2.length !== 6} />
+          <Button title={v_8d41d7("auth.xrun.next")} onPress={v_420661} disabled={v_c99bd2.length !== 6} />
 
           <View style={v_d81136.resendRow}>
-            <Text style={v_d81136.resendText}>코드를 못 받으셨나요?</Text>
             <TouchableOpacity onPress={v_cf9840} disabled={v_600d5b > 0}>
               <Text style={[v_d81136.resendLink, v_600d5b > 0 && v_d81136.resendLinkDisabled]}>
-                {v_600d5b > 0 ? `재발송 (${v_600d5b}s)` : "재발송"}
+                {v_600d5b > 0 ? `${v_8d41d7("auth.emailVerify.resend")} (${v_600d5b}s)` : v_8d41d7("auth.emailVerify.resend")}
               </Text>
             </TouchableOpacity>
           </View>
