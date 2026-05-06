@@ -314,6 +314,46 @@ export async function listMyClones(accessToken: string): Promise<{ items: MyClon
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface DiscoverFeedItem {
+  id: number;
+  cloneId: number;
+  content: string | null;
+  mediaUrl: string | null;
+  mediaType: string | null;
+  likesCount: number;
+  createdAt: string;
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+  interests: string[];
+}
+
+export async function listDiscoverFeeds(opts?: {
+  cursor?: number | null;
+  limit?: number;
+}): Promise<{ items: DiscoverFeedItem[]; nextCursor: number | null }> {
+  const url = new URL(`${API_BASE}/oth-path`);
+  if (opts?.cursor) url.searchParams.set("cursor", String(opts.cursor));
+  if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
+  const res = await fetch(url.toString());
+  const text = await res.text();
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as { items: DiscoverFeedItem[]; nextCursor: number | null };
+}
+
 export interface PatchClonePayload {
   name?: string;
   description?: string;
