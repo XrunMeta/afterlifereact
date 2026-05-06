@@ -1280,9 +1280,11 @@ const v_fd5f43 = v_472849.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingBottom: 16,
+    paddingTop: 8,
     width: "100%",
-    maxHeight: "70%",
+    minHeight: "50%",
+    maxHeight: "85%",
   },
   inviteHeader: {
     flexDirection: "row",
