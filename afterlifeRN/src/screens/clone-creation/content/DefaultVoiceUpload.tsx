@@ -2,16 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { useTranslation } from 'react-i18next';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 
 export const VOICE_SAMPLES = [
-  { id: 'v1', name: 'Nova', desc: '따뜻하고 부드러운' },
-  { id: 'v2', name: 'Ursa', desc: '차분하고 깊은' },
-  { id: 'v3', name: 'Vega', desc: '밝고 활기찬' },
-  { id: 'v4', name: 'Orion', desc: '신뢰감 있는' },
-  { id: 'v5', name: 'Luna', desc: '감성적인' },
-  { id: 'v6', name: 'Stella', desc: '우아하고 섬세한' },
+  { id: 'v1', name: 'Nova' },
+  { id: 'v2', name: 'Ursa' },
+  { id: 'v3', name: 'Vega' },
+  { id: 'v4', name: 'Orion' },
+  { id: 'v5', name: 'Luna' },
+  { id: 'v6', name: 'Stella' },
 ] as const;
 
 interface Props {
@@ -19,18 +20,23 @@ interface Props {
   onChange: (patch: Partial<CloneCreationDraft>) => void;
 }
 
-async function pickFile(onChange: Props['onChange']) {
+async function pickFile(
+  onChange: Props['onChange'],
+  errorTitle: string,
+  errorMsg: string,
+) {
   try {
     const r = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
     if (!r.canceled && r.assets[0]) {
       onChange({ voiceFile: r.assets[0].uri, voiceSampleId: undefined });
     }
   } catch {
-    Alert.alert('오류', '파일을 선택할 수 없습니다.');
+    Alert.alert(errorTitle, errorMsg);
   }
 }
 
 function Component({ draft, onChange }: Props) {
+  const { t } = useTranslation();
   const [useCustom, setUseCustom] = useState<boolean>(Boolean(draft.voiceFile));
   return (
     <View style={styles.wrap}>
@@ -45,7 +51,7 @@ function Component({ draft, onChange }: Props) {
                 onPress={() => onChange({ voiceSampleId: v.id, voiceFile: undefined })}
               >
                 <Text style={styles.cardName}>{v.name}</Text>
-                <Text style={styles.cardDesc}>{v.desc}</Text>
+                <Text style={styles.cardDesc}>{t(`create.voice.sample.${v.name}`)}</Text>
               </TouchableOpacity>
             );
           })}
@@ -57,12 +63,15 @@ function Component({ draft, onChange }: Props) {
           size={18}
           color={useCustom ? COLORS.violet600 : COLORS.zinc400}
         />
-        <Text style={styles.toggleText}>직접 녹음/업로드 사용</Text>
+        <Text style={styles.toggleText}>{t('create.voice.useCustom')}</Text>
       </TouchableOpacity>
       {useCustom && (
-        <TouchableOpacity style={styles.upload} onPress={() => pickFile(onChange)}>
+        <TouchableOpacity
+          style={styles.upload}
+          onPress={() => pickFile(onChange, t('common.error'), t('create.voice.fileError'))}
+        >
           <Feather name="upload" size={20} color={COLORS.violet600} />
-          <Text style={styles.uploadText}>{draft.voiceFile ? '파일 선택됨' : '오디오 파일 선택'}</Text>
+          <Text style={styles.uploadText}>{draft.voiceFile ? t('create.voice.uploadedFile') : t('create.voice.uploadFile')}</Text>
         </TouchableOpacity>
       )}
     </View>

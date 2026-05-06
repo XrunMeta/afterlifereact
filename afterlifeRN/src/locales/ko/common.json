@@ -263,7 +263,17 @@
       "recordHint": "최소 30초 녹음 권장",
       "recording": "녹음 중...",
       "stop": "정지",
-      "play": "재생"
+      "play": "재생",
+      "useCustom": "직접 녹음/업로드 사용",
+      "fileError": "파일을 선택할 수 없습니다.",
+      "sample": {
+        "Nova": "따뜻하고 부드러운",
+        "Ursa": "차분하고 깊은",
+        "Vega": "밝고 활기찬",
+        "Orion": "신뢰감 있는",
+        "Luna": "감성적인",
+        "Stella": "우아하고 섬세한"
+      }
     },
     "visibility": {
       "memlowLocked": "고인 클론은 비공개로 고정돼요. 공동관리자만 볼 수 있어요.",
