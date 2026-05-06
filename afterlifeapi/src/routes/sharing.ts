@@ -484,8 +484,9 @@ v_403c0a.get("/:id/shares", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT s.id, s.target_user_id, s.invite_email, s.relation, s.role, s.status,
-                s.created_at, u.name AS target_name, u.email AS target_email
+        `SELECT s.id, s.clone_id, s.owner_id, s.target_user_id, s.invite_email,
+                s.relation, s.role, s.status, s.created_at,
+                u.name AS target_name, u.email AS target_email, u.avatar_url AS target_avatar
            FROM clone_shares s
            LEFT JOIN users u ON u.id = s.target_user_id
           WHERE s.clone_id = ?
@@ -494,6 +495,8 @@ v_403c0a.get("/:id/shares", v_6690d9, async (v_3f4e2e) => {
       .bind(v_6e0fd3)
       .all<{
         id: number;
+        clone_id: number;
+        owner_id: number;
         target_user_id: number | null;
         invite_email: string | null;
         relation: string | null;
@@ -502,19 +505,28 @@ v_403c0a.get("/:id/shares", v_6690d9, async (v_3f4e2e) => {
         created_at: string;
         target_name: string | null;
         target_email: string | null;
+        target_avatar: string | null;
       }>()
   ).results;
   return v_3f4e2e.json({
-    shares: v_18b8bf.map((v_cb35cb) => ({
+    items: v_18b8bf.map((v_cb35cb) => ({
       id: v_cb35cb.id,
+      cloneId: v_cb35cb.clone_id,
+      ownerId: v_cb35cb.owner_id,
       targetUserId: v_cb35cb.target_user_id,
-      targetName: v_cb35cb.target_name,
-      targetEmail: v_cb35cb.target_email,
       inviteEmail: v_cb35cb.invite_email,
       relation: v_cb35cb.relation,
       role: v_cb35cb.role,
       status: v_cb35cb.status,
       createdAt: v_cb35cb.created_at,
+      targetUser: v_cb35cb.target_user_id
+        ? {
+            id: v_cb35cb.target_user_id,
+            name: v_cb35cb.target_name,
+            email: v_cb35cb.target_email ?? "",
+            avatarUrl: v_cb35cb.target_avatar,
+          }
+        : undefined,
     })),
   });
 });

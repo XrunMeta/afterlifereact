@@ -63,7 +63,8 @@ export default function v_07335f() {
     try {
 
       const v_19ed0e = await v_7e484f(v_2ca7e0, v_6e0fd3);
-      v_ce60a3(v_19ed0e.items);
+
+      v_ce60a3(v_19ed0e.items ?? (v_19ed0e as unknown as { shares?: v_f9a81e[] }).shares ?? []);
       if (v_2aec08) {
         try {
           const v_f0104f = await v_7f4050(v_2ca7e0, v_6e0fd3);
