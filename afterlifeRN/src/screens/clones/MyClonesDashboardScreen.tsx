@@ -344,12 +344,13 @@ export default function v_def15b() {
     const v_e17daa = v_1e752a.filter(
       (v_8b5cd8) => v_8b5cd8.followingCloneId === v_eb25ce.id,
     ).length;
+
     const v_77df30 =
-      v_eb25ce.cloneType === "memlow"
-        ? v_694b7f.coowners().filter(
+      typeof v_eb25ce.coownerCount === "number"
+        ? v_eb25ce.coownerCount
+        : v_694b7f.coowners().filter(
             (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === "approved",
-          ).length
-        : 0;
+          ).length;
 
     return (
       <View style={v_fd5f43.card}>

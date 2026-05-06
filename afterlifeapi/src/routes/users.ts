@@ -357,7 +357,9 @@ v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
           c.owner_id       AS ownerId,
           c.created_at     AS createdAt,
           c.l1_profile     AS l1ProfileJson,
-          (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole
+          (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole,
+          (SELECT COUNT(*) FROM clone_shares s
+            WHERE s.clone_id = c.id AND s.status = 'accepted') AS coownerCount
          FROM clones c
         WHERE c.deletion_state = 'active'
           AND c.deleted_at IS NULL

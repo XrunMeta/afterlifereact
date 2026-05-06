@@ -287,6 +287,8 @@ export interface MyClone {
   createdAt: string;
   myRole: "owner" | "coowner";
 
+  coownerCount: number;
+
   l1Profile?: { attrs: Record<string, string>; notes: string } | null;
 }
 

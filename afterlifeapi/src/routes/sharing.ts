@@ -309,13 +309,14 @@ v_98b245.post(
 
     const v_f0104f = await v_a1651b
       .prepare(
-        `SELECT id, clone_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
+        `SELECT id, clone_id, owner_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
            FROM invite_tokens WHERE token_hash = ?`,
       )
       .bind(v_109fd8)
       .first<{
         id: number;
         clone_id: number;
+        owner_id: number;
         invite_email: string | null;
         relation: string | null;
         grant_owner: number;
@@ -369,7 +370,8 @@ v_98b245.post(
                (clone_id, owner_id, target_user_id, relation, role, status)
              VALUES (?, ?, ?, ?, ?, 'accepted')`,
           )
-          .bind(v_f0104f.clone_id, v_43e90c, v_43e90c, v_f0104f.relation, v_22da99),
+
+          .bind(v_f0104f.clone_id, v_f0104f.owner_id, v_43e90c, v_f0104f.relation, v_22da99),
       );
     }
     v_ebc640.push(
