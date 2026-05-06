@@ -2,6 +2,7 @@ import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_cf9c33, v_03e392, v_472849 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import * as v_d05ab5 from 'khtmgrssvfqqjmzoc';
+import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 
@@ -10,13 +11,11 @@ interface Props {
   onChange: (patch: Partial<v_c2a674>) => void;
 }
 
-const v_9e26a9 = [
-  '정면을 바라보는 사진을 사용해주세요',
-  '얼굴이 선명하게 보이는 사진이 좋아요',
-  '배경이 단순할수록 좋은 결과를 얻을 수 있어요',
-];
-
-async function v_ff792b(onChange: (p: Partial<v_c2a674>) => void) {
+async function v_ff792b(
+  onChange: (p: Partial<v_c2a674>) => void,
+  v_b5cd35,
+  v_976e82,
+) {
   try {
     const v_cb35cb = await v_d05ab5.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -26,25 +25,34 @@ async function v_ff792b(onChange: (p: Partial<v_c2a674>) => void) {
     });
     if (!v_cb35cb.canceled && v_cb35cb.assets[0]) v_b187d9({ imageFile: v_cb35cb.assets[0].uri });
   } catch {
-    v_03e392.alert('오류', '사진을 불러올 수 없어요.');
+    v_03e392.alert(v_b5cd35, v_976e82);
   }
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
+  const v_3fa7fc = [
+    v_8d41d7('create.image.guide1'),
+    v_8d41d7('create.image.guide2'),
+    v_8d41d7('create.image.guide3'),
+  ];
   return (
     <View style={v_d81136.wrap}>
-      <TouchableOpacity style={v_d81136.preview} onPress={() => v_ff792b(v_b187d9)}>
+      <TouchableOpacity
+        style={v_d81136.preview}
+        onPress={() => v_ff792b(v_b187d9, v_8d41d7('common.error'), v_8d41d7('create.image.loadFailed'))}
+      >
         {v_f04727.imageFile ? (
           <Image source={{ uri: v_f04727.imageFile }} style={v_d81136.previewImg} />
         ) : (
           <>
             <Feather name="image" size={32} color={v_1bfbd0.zinc400} />
-            <Text style={v_d81136.hint}>사진을 선택해 주세요</Text>
+            <Text style={v_d81136.hint}>{v_8d41d7('create.image.selectHint')}</Text>
           </>
         )}
       </TouchableOpacity>
-      <Text style={v_d81136.guideTitle}>가이드</Text>
-      {v_9e26a9.map((v_206b88, v_ebec57) => (
+      <Text style={v_d81136.guideTitle}>{v_8d41d7('create.image.guideTitle')}</Text>
+      {v_3fa7fc.map((v_206b88, v_ebec57) => (
         <Text key={v_ebec57} style={v_d81136.guideText}>
           • {v_206b88}
         </Text>

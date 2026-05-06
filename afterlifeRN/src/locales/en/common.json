@@ -243,7 +243,13 @@
     "image": {
       "upload": "Upload image",
       "rights": "Use only your own photos or images you have rights to.",
-      "rightsAck": "Acknowledged"
+      "rightsAck": "Acknowledged",
+      "selectHint": "Tap to choose a photo",
+      "loadFailed": "Couldn't load the photo.",
+      "guideTitle": "Guidelines",
+      "guide1": "Use a photo facing forward",
+      "guide2": "A clear face shot works best",
+      "guide3": "Simple backgrounds give better results"
     },
     "voice": {
       "presets": "Default voice presets",
