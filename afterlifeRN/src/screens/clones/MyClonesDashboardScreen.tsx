@@ -951,8 +951,8 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    marginTop: 16,
-    marginBottom: 20,
+    marginTop: 8,
+    marginBottom: 16,
   },
   dashTitleText: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
   inviteStatusBtn: {

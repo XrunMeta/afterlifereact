@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from "react-native";
+import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
 
@@ -15,6 +16,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, "XrunOtp">;
 const RESEND_COOLDOWN_SEC = 60;
 
 export default function XrunOtpScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { email, pin } = route.params;
   const [code, setCode] = useState("");
   const [resendIn, setResendIn] = useState(RESEND_COOLDOWN_SEC);
@@ -34,16 +36,16 @@ export default function XrunOtpScreen({ navigation, route }: Props) {
     try {
       await xrunVerify(email, pin); 
       setResendIn(RESEND_COOLDOWN_SEC);
-      Alert.alert("재발송", "인증 코드를 다시 보냈습니다.");
+      Alert.alert(t("auth.emailVerify.resend"), t("auth.emailVerify.resentToast"));
     } catch (err) {
-      const msg = err instanceof AuthApiError ? err.message : "재발송 실패";
-      Alert.alert("오류", msg);
+      const msg = err instanceof AuthApiError ? err.message : t("common.error");
+      Alert.alert(t("common.error"), msg);
     }
   };
 
   const handleNext = () => {
     if (code.length !== 6) {
-      Alert.alert("알림", "6자리 인증 코드를 입력해주세요.");
+      Alert.alert(t("common.notice"), t("auth.emailVerify.codePlaceholder"));
       return;
     }
     navigation.navigate("XrunOnboarding", { email, pin, verificationCode: code });
@@ -51,13 +53,13 @@ export default function XrunOtpScreen({ navigation, route }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
-      <PageHeader title="이메일 인증" showBackButton onBackPress={() => navigation.goBack()} />
+      <PageHeader title={t("auth.xrun.otpTitle")} showBackButton onBackPress={() => navigation.goBack()} />
       <SafeScrollView contentContainerStyle={styles.content} autoAdjustKeyboardPadding showBottomBackground={false}>
         <View style={styles.container}>
-          <Text style={styles.title}>이메일로 코드를 보냈어요</Text>
+          <Text style={styles.title}>{t("auth.xrun.otpTitle")}</Text>
           <Text style={styles.subtitle}>
-            <Text style={styles.email}>{email}</Text>
-            {"\n"}메일함의 6자리 인증 코드를 입력해주세요. (5분간 유효)
+            {t("auth.xrun.otpDesc")}
+            {"\n"}<Text style={styles.email}>{email}</Text>
           </Text>
 
           <TextInput
@@ -72,13 +74,12 @@ export default function XrunOtpScreen({ navigation, route }: Props) {
             autoFocus
           />
 
-          <Button title="다음" onPress={handleNext} disabled={code.length !== 6} />
+          <Button title={t("auth.xrun.next")} onPress={handleNext} disabled={code.length !== 6} />
 
           <View style={styles.resendRow}>
-            <Text style={styles.resendText}>코드를 못 받으셨나요?</Text>
             <TouchableOpacity onPress={handleResend} disabled={resendIn > 0}>
               <Text style={[styles.resendLink, resendIn > 0 && styles.resendLinkDisabled]}>
-                {resendIn > 0 ? `재발송 (${resendIn}s)` : "재발송"}
+                {resendIn > 0 ? `${t("auth.emailVerify.resend")} (${resendIn}s)` : t("auth.emailVerify.resend")}
               </Text>
             </TouchableOpacity>
           </View>

@@ -91,6 +91,14 @@
     "accepted": "초대 수락 완료!",
     "acceptFailed": "초대 수락에 실패했어요."
   },
+  "detail": {
+    "notFound": "페르소나를 찾을 수 없습니다.",
+    "coownerInvite": "공동관리자 초대",
+    "giftTitle": "선물 보내기",
+    "giftDesc": "페르소나에게 특별한 선물을 보내보세요",
+    "balance": "보유 XRUN",
+    "send": "선물 보내기"
+  },
   "edit": {
     "title": "페르소나 수정",
     "save": "저장하기",

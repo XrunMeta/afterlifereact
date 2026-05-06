@@ -91,6 +91,14 @@
     "accepted": "Invite accepted!",
     "acceptFailed": "Failed to accept invite."
   },
+  "detail": {
+    "notFound": "Persona not found.",
+    "coownerInvite": "Invite Co-admin",
+    "giftTitle": "Send a Gift",
+    "giftDesc": "Send a special gift to this persona",
+    "balance": "XRUN Balance",
+    "send": "Send Gift"
+  },
   "edit": {
     "title": "Edit Persona",
     "save": "Save",

@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.zinc200,
-    paddingBottom: 12,
+    paddingBottom: 4,
     paddingHorizontal: SIZES.medium,
   },
   transparent: {
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 44,
+    minHeight: 36,
   },
   left: {
     width: 44,
