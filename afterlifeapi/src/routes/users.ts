@@ -642,6 +642,49 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
   });
 });
 
+v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT b.id           AS blockId,
+                b.created_at   AS createdAt,
+                c.id           AS cloneId,
+                c.name         AS cloneName,
+                c.username     AS cloneUsername,
+                c.avatar_url   AS cloneAvatarUrl,
+                c.clone_type   AS cloneType
+           FROM clone_blocks b
+           JOIN clones c ON c.id = b.clone_id
+          WHERE b.user_id = ? AND c.deleted_at IS NULL
+          ORDER BY b.id DESC`,
+      )
+      .bind(v_43e90c)
+      .all<{
+        blockId: number;
+        createdAt: string;
+        cloneId: number;
+        cloneName: string;
+        cloneUsername: string;
+        cloneAvatarUrl: string | null;
+        cloneType: string;
+      }>()
+  ).results;
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => ({
+      blockId: v_cb35cb.blockId,
+      createdAt: v_cb35cb.createdAt,
+      clone: {
+        id: v_cb35cb.cloneId,
+        name: v_cb35cb.cloneName,
+        username: v_cb35cb.cloneUsername,
+        avatarUrl: v_cb35cb.cloneAvatarUrl,
+        cloneType: v_cb35cb.cloneType,
+      },
+    })),
+  });
+});
+
 v_de7ba7.delete("/me/devices/:id", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_eb3eac = Number(v_3f4e2e.req.param("id"));

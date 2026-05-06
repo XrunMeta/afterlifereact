@@ -14,6 +14,7 @@ import {
   v_cf9c33,
   v_79c4f2,
   v_e767d1,
+  v_0e1f26,
 } from "rcmrninabrnb";
 import { v_03e392 } from "rcmrninabrnb";
 import { v_b5df25 } from "ernurodqvmtspux";
@@ -35,6 +36,7 @@ import {
   v_3f8bc7,
   v_6f689a,
   v_0df337,
+  v_97c75d,
   type v_52af9d,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
@@ -95,6 +97,22 @@ export default function v_c316d8() {
       return () => clearTimeout(v_389afb);
     }
   }, [v_8282fa]);
+
+  const [v_507993, v_d8029f] = v_5ab095(false);
+  v_c4deb2(() => {
+    const v_53f5d7 = v_0e1f26.addListener(
+      v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => v_d8029f(true),
+    );
+    const v_52528b = v_0e1f26.addListener(
+      v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => v_d8029f(false),
+    );
+    return () => {
+      v_53f5d7.remove();
+      v_52528b.remove();
+    };
+  }, []);
 
   const filteredFeeds: v_19b433[] = v_1c7dea().map(v_f386b1);
 
@@ -295,7 +313,11 @@ export default function v_c316d8() {
         >
         <Pressable style={v_d81136.commentOverlay} onPress={() => v_b07dd3(null)}>
           <View
-            style={[v_d81136.commentSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            style={[
+              v_d81136.commentSheet,
+
+              { paddingBottom: v_507993 ? 12 : 24 + Math.max(v_033e14.bottom, 0) },
+            ]}
             onStartShouldSetResponder={() => true}
           >
             <View style={v_d81136.sheetHandle} />
@@ -387,9 +409,19 @@ export default function v_c316d8() {
             </TouchableOpacity>
             <TouchableOpacity
               style={v_d81136.moreItem}
-              onPress={() => {
+              onPress={async () => {
+                const v_5f5d6d = v_12fa22;
                 v_949e66(null);
-                v_15c939("이 페르소나가 차단됐어요");
+                if (!v_5f5d6d || !v_2ca7e0) return;
+                try {
+                  await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
+                  v_15c939("이 페르소나가 차단됐어요");
+
+                  void v_c600ef();
+                } catch (v_49263d) {
+                  console.warn("[Home] block failed:", v_49263d);
+                  v_15c939("차단에 실패했어요");
+                }
               }}
             >
               <Feather name="slash" size={20} color={v_1bfbd0.zinc900} />

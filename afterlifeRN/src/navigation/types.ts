@@ -79,4 +79,5 @@ export type MyStackParamList = {
   LanguageSettings: undefined;
   PaymentPin: undefined;
   InviteStatus: undefined;
+  BlockedList: undefined;
 };

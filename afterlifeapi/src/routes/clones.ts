@@ -598,3 +598,29 @@ v_f891e6.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
     .run();
   return v_3f4e2e.json({ ok: true });
 });
+
+v_f891e6.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(`INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`)
+    .bind(v_43e90c, v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ ok: true, blocked: true });
+});
+
+v_f891e6.delete("/:id/block", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM clone_blocks WHERE user_id = ? AND clone_id = ?`)
+    .bind(v_43e90c, v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ ok: true, blocked: false });
+});
