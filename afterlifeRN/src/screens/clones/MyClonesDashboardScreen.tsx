@@ -225,6 +225,21 @@ export default function v_def15b() {
           v_b816d4(v_8d41d7("dashboard.sessionExpired"));
           return;
         }
+        if (v_49263d.code === "ALREADY_INVITED") {
+
+          v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
+          v_b816d4(v_8d41d7("invite.alreadyInvited"));
+          return;
+        }
+        if (v_49263d.code === "ALREADY_MEMBER") {
+          v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
+          v_b816d4(v_8d41d7("invite.alreadyMember"));
+          return;
+        }
+        if (v_49263d.code === "QUOTA_EXCEEDED") {
+          v_b816d4(v_8d41d7("invite.quotaExceeded"));
+          return;
+        }
       } else {
         console.warn("[Dashboard] createInvite failed:", v_49263d);
       }

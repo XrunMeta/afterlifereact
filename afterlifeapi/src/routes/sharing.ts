@@ -83,6 +83,46 @@ v_403c0a.post(
     const v_a1651b = v_3f4e2e.env.DB;
     await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
 
+    if (v_4d33b2.invite_email) {
+      const v_cc9bf8 = await v_a1651b
+        .prepare(
+          `SELECT id FROM invite_tokens
+            WHERE clone_id = ?
+              AND LOWER(invite_email) = LOWER(?)
+              AND used_at IS NULL
+              AND cancelled_at IS NULL
+              AND expires_at > CURRENT_TIMESTAMP
+            LIMIT 1`,
+        )
+        .bind(v_6e0fd3, v_4d33b2.invite_email)
+        .first<{ id: number }>();
+      if (v_cc9bf8) {
+        throw new v_3ebe58(
+          "ALREADY_INVITED",
+          "이 이메일로 이미 대기 중인 초대가 있어요.",
+        );
+      }
+
+      const v_181458 = await v_a1651b
+        .prepare(
+          `SELECT cs.id
+             FROM clone_shares cs
+             JOIN users u ON u.id = cs.target_user_id
+            WHERE cs.clone_id = ?
+              AND LOWER(u.email) = LOWER(?)
+              AND cs.status = 'accepted'
+            LIMIT 1`,
+        )
+        .bind(v_6e0fd3, v_4d33b2.invite_email)
+        .first<{ id: number }>();
+      if (v_181458) {
+        throw new v_3ebe58(
+          "ALREADY_MEMBER",
+          "이미 이 페르소나의 공동관리자예요.",
+        );
+      }
+    }
+
     const v_f8b770 = await v_a1651b
       .prepare(
         `SELECT COUNT(*) AS n FROM invite_tokens

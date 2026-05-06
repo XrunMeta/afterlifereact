@@ -119,6 +119,8 @@ export default function v_07335f() {
       let v_badeaf = v_8d41d7("invite.sendFailed");
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "QUOTA_EXCEEDED") v_badeaf = v_8d41d7("invite.quotaExceeded");
+        else if (v_49263d.code === "ALREADY_INVITED") v_badeaf = v_8d41d7("invite.alreadyInvited");
+        else if (v_49263d.code === "ALREADY_MEMBER") v_badeaf = v_8d41d7("invite.alreadyMember");
         else v_badeaf = v_49263d.message;
       }
       v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
