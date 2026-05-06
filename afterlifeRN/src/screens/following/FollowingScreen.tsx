@@ -191,6 +191,20 @@ export default function v_14b43e() {
 
   const v_3a63e7 = v_5c83d5 ? v_937a56(v_5c83d5) : [];
 
+  const v_6d1292 = () => (
+    <View style={v_fd5f43.heroWrap}>
+      <Image
+        source={require("../../../assets/images/grandfather-post.png")}
+        style={v_fd5f43.heroImage}
+        resizeMode="cover"
+      />
+      <View style={v_fd5f43.heroOverlay}>
+        <Text style={v_fd5f43.heroTitle}>{v_8d41d7("feed.heroTitle")}</Text>
+        <Text style={v_fd5f43.heroSubtitle}>{v_8d41d7("feed.heroSubtitle")}</Text>
+      </View>
+    </View>
+  );
+
   const v_bdaeb6 = ({ item: v_8c0b26 }: { item: (typeof v_b94d82)[0] }) => {
     const v_afeceb = v_8c0b26.feed.mediaUrl ?? v_8c0b26.persona.avatar;
     return (
@@ -308,6 +322,7 @@ export default function v_14b43e() {
         data={v_b94d82}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.feed.id)}
         renderItem={v_bdaeb6}
+        ListHeaderComponent={v_6d1292}
         contentContainerStyle={v_fd5f43.feed}
         showsVerticalScrollIndicator={false}
         onScroll={v_023642}
@@ -374,7 +389,7 @@ export default function v_14b43e() {
                 <Text key={v_ebec57} style={v_fd5f43.activityItem}>• {v_779914}</Text>
               ))}
             </View>
-            <Button title="확인" variant="primary" onPress={() => v_0af5ed(false)} style={{ marginTop: 16, width: "100%", borderRadius: v_8b0c90.full }} />
+            <Button title={v_8d41d7("common.ok")} variant="primary" onPress={() => v_0af5ed(false)} style={{ marginTop: 16, width: "100%", borderRadius: v_8b0c90.full }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -430,13 +445,13 @@ export default function v_14b43e() {
       <Modal visible={!!v_7babe8} transparent animationType="fade">
         <Pressable style={v_fd5f43.centerOverlay} onPress={() => v_cdeef7(null)}>
           <Pressable style={v_fd5f43.confirmBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.confirmTitle}>팔로우 취소</Text>
+            <Text style={v_fd5f43.confirmTitle}>{v_8d41d7("feed.unfollowTitle")}</Text>
             <Text style={v_fd5f43.confirmDesc}>
-              정말 이 페르소나의 팔로우를 취소하시겠습니까?{"\n"}피드에서 해당 페르소나의 포스트가 더 이상 표시되지 않습니다.
+              {v_8d41d7("feed.unfollowDesc")}
             </Text>
             <View style={v_fd5f43.confirmBtns}>
-              <Button title="취소" variant="ghost" onPress={() => v_cdeef7(null)} style={{ flex: 1 }} />
-              <Button title="팔로우 취소" variant="danger" onPress={v_2d8ccb} style={{ flex: 1 }} />
+              <Button title={v_8d41d7("common.cancel")} variant="ghost" onPress={() => v_cdeef7(null)} style={{ flex: 1 }} />
+              <Button title={v_8d41d7("feed.unfollowTitle")} variant="danger" onPress={v_2d8ccb} style={{ flex: 1 }} />
             </View>
           </Pressable>
         </Pressable>
@@ -448,7 +463,7 @@ export default function v_14b43e() {
           <View style={v_fd5f43.callSheet} onStartShouldSetResponder={() => true}>
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.callSheetHeader}>
-              <Text style={v_fd5f43.callSheetTitle}>통화하기</Text>
+              <Text style={v_fd5f43.callSheetTitle}>{v_8d41d7("feed.callSheetTitle")}</Text>
               <TouchableOpacity onPress={() => v_22a5cb(false)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc600} />
               </TouchableOpacity>
@@ -461,7 +476,7 @@ export default function v_14b43e() {
                 style={v_fd5f43.callSearchInput}
                 value={v_2116d2}
                 onChangeText={v_83f9d3}
-                placeholder="페르소나 검색..."
+                placeholder={v_8d41d7("feed.callSearchPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
               />
               {v_2116d2.length > 0 && (
@@ -475,7 +490,7 @@ export default function v_14b43e() {
               {}
               {!v_2116d2 && v_a48e44.length > 0 && (
                 <View style={v_fd5f43.callSectionBordered}>
-                  <Text style={v_fd5f43.callSectionTitle}>최근 통화</Text>
+                  <Text style={v_fd5f43.callSectionTitle}>{v_8d41d7("feed.recentCalls")}</Text>
                   {v_a48e44.slice(0, 2).map((v_e2a85c, v_ebec57) => (
                     <View key={v_e2a85c.id} style={v_fd5f43.callRow}>
                       <Image source={{ uri: v_e2a85c.avatar }} style={v_fd5f43.callAvatar} />
@@ -483,7 +498,7 @@ export default function v_14b43e() {
                         <Text style={v_fd5f43.callName}>{v_e2a85c.name}</Text>
                         <Text style={v_fd5f43.callSub}>{v_e2a85c.creatorAccount}</Text>
                         <Text style={v_fd5f43.callMeta}>
-                          {v_ebec57 === 0 ? "어제 • 8분 21초" : "3일 전 • 15분 32초"}
+                          {v_ebec57 === 0 ? v_8d41d7("feed.callMetaYesterday") : v_8d41d7("feed.callMeta3DaysAgo")}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -494,7 +509,7 @@ export default function v_14b43e() {
                         }}
                       >
                         <Feather name="video" size={14} color={v_1bfbd0.white} />
-                        <Text style={v_fd5f43.callBtnText}>통화</Text>
+                        <Text style={v_fd5f43.callBtnText}>{v_8d41d7("feed.callRowAction")}</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -503,7 +518,7 @@ export default function v_14b43e() {
 
               {}
               <View style={v_fd5f43.callSection}>
-                <Text style={v_fd5f43.callSectionTitle}>{v_2116d2 ? "검색 결과" : "팔로잉 목록"}</Text>
+                <Text style={v_fd5f43.callSectionTitle}>{v_2116d2 ? v_8d41d7("feed.searchResults") : v_8d41d7("feed.followingList")}</Text>
                 {v_94f30e.length > 0 ? v_94f30e.map((v_e2a85c) => (
                   <View key={v_e2a85c.id} style={v_fd5f43.callRow}>
                     <Image source={{ uri: v_e2a85c.avatar }} style={v_fd5f43.callAvatar} />
@@ -545,6 +560,27 @@ const v_fd5f43 = v_472849.create({
 
   feed: { padding: 16, gap: 16 },
   postWrap: { marginBottom: 8 },
+
+  heroWrap: {
+    height: 160,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 16,
+    backgroundColor: v_1bfbd0.zinc100,
+  },
+  heroImage: {
+    ...v_472849.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+  heroOverlay: {
+    ...v_472849.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "flex-end",
+    padding: 16,
+  },
+  heroTitle: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.white },
+  heroSubtitle: { fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 },
 
   imageWrap: { borderRadius: 24, overflow: "hidden", backgroundColor: v_1bfbd0.zinc100 },
   postImage: { width: "100%", aspectRatio: 3 / 4 },

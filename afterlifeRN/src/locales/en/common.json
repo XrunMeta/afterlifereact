@@ -150,6 +150,19 @@
   },
   "feed": {
     "homeTitle": "Home",
+    "follow": "Follow",
+    "following": "Following",
+    "callBtn": "Call",
+    "unfollowTitle": "Unfollow",
+    "unfollowDesc": "Are you sure you want to unfollow this persona?\nTheir posts will no longer appear in your feed.",
+    "callSheetTitle": "Call",
+    "shortsHint": "Make your clone public or follow other clones to see content here.",
+    "shortsEmptyTitle": "No Shorts to watch yet",
+    "shortsViewMore": "View details",
+    "interestFilter": "Interest Filter",
+    "selectedCount": "{{n}} selected",
+    "applyFilter": "Apply",
+    "clearFilter": "Clear",
     "followingTitle": "Following",
     "followingEmpty": "You don't follow any personas yet",
     "commentCount": "{{n}} comments",
@@ -172,7 +185,18 @@
     "interactionItemChat": "Chat",
     "interactionItemCall": "Voice/Video Call",
     "interactionItemLearn": "Learning Session",
-    "interactionItemFeed": "Feed Interactions"
+    "interactionItemFeed": "Feed Interactions",
+    "heroTitle": "Your followed personas",
+    "heroSubtitle": "Stories from the personas you care about",
+    "callSearchPlaceholder": "Search personas...",
+    "recentCalls": "Recent calls",
+    "callMetaYesterday": "Yesterday • 8 min 21 sec",
+    "callMeta3DaysAgo": "3 days ago • 15 min 32 sec",
+    "callRowAction": "Call",
+    "searchResults": "Search results",
+    "followingList": "Following list",
+    "cancelBtn": "Cancel",
+    "confirmBtn": "Confirm"
   },
   "detail": {
     "notFound": "Persona not found.",
@@ -207,6 +231,12 @@
   },
   "dashboard": {
     "title": "My Persona",
+    "headerTitle": "Persona Dashboard",
+    "headerDesc": "Manage the performance and engagement of your AI personas.",
+    "statsTotalInteractions": "Total Interactions",
+    "statsDelta": "+14% vs last week",
+    "statsActivity": "Persona Activity",
+    "loadMore": "Load more",
     "active": "Active",
     "inactive": "Inactive",
     "actionLearn": "Train",
@@ -234,6 +264,27 @@
   },
   "my": {
     "title": "My Page",
+    "userFallback": "User",
+    "loginRequired": "Sign-in required.",
+    "permTitle": "Permission required",
+    "permDesc": "Please allow access to your photo library.",
+    "uploadFailed": "Image upload failed.",
+    "stats": {
+      "following": "Following",
+      "myPersona": "My Personas"
+    },
+    "coin": {
+      "title": "xrun Coin",
+      "balance": "Balance",
+      "charge": "Recharge",
+      "notMapped": "xrun account isn't linked yet",
+      "transactions": "Recent Transactions",
+      "viewAll": "View all",
+      "settings": "Settings",
+      "txCreatePersona": "Persona created",
+      "txVideoCall": "Video call (15 min)",
+      "txRecharge": "Coin recharge"
+    },
     "menu": {
       "editProfile": "Edit Profile",
       "notifications": "Notification Settings",
@@ -350,8 +401,22 @@
     "type": {
       "memlowTitle": "Memorial Persona",
       "memlowDesc": "Continue conversations with someone you've lost",
+      "memlowLabel": "Memorial",
+      "memlowShortDesc": "Continue your time together through conversation",
       "defaultTitle": "General Persona",
-      "defaultDesc": "Friend, mentor, celebrity, or any persona"
+      "defaultDesc": "Friend, mentor, celebrity, or any persona",
+      "defaultLabel": "General",
+      "defaultShortDesc": "Friend, mentor, celebrity, or any persona"
+    },
+    "relations": {
+      "mother": "Mother",
+      "father": "Father",
+      "spouse": "Spouse",
+      "child": "Child",
+      "sibling": "Sibling",
+      "friend": "Friend",
+      "pet": "Pet",
+      "other": "Other"
     },
     "basicInfo": {
       "namePlaceholder": "Persona name",
@@ -456,6 +521,7 @@
       "ageLabel": "Age",
       "genderLabel": "Gender",
       "typeLabel": "Personality (up to {{max}})",
+      "typeShort": "Personality",
       "mbtiLabel": "MBTI",
       "notesLabel": "Persona Description",
       "notesPlaceholder": "Tone, habits, background — anything (optional)"

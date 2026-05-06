@@ -514,10 +514,8 @@ export default function v_def15b() {
             {}
             <View style={v_fd5f43.dashTitleRow}>
               <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.dashTitleText}>페르소나 대시보드</Text>
-                <Text style={v_fd5f43.dashSubText}>
-                  생성된 AI 페르소나의 성과를 활용을 관리합니다.
-                </Text>
+                <Text style={v_fd5f43.dashTitleText}>{v_8d41d7("dashboard.headerTitle")}</Text>
+                <Text style={v_fd5f43.dashSubText}>{v_8d41d7("dashboard.headerDesc")}</Text>
               </View>
               <TouchableOpacity
                 style={v_fd5f43.inviteStatusBtn}
@@ -534,17 +532,17 @@ export default function v_def15b() {
               <View style={v_fd5f43.statsCard}>
                 <View style={v_fd5f43.statsCardHeader}>
                   <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-                  <Text style={v_fd5f43.statsCardLabel}>총 상호작용</Text>
+                  <Text style={v_fd5f43.statsCardLabel}>{v_8d41d7("dashboard.statsTotalInteractions")}</Text>
                 </View>
                 <Text style={v_fd5f43.statsCardValue}>12.8k</Text>
-                <Text style={v_fd5f43.statsCardDelta}>+14% 지난주 대비</Text>
+                <Text style={v_fd5f43.statsCardDelta}>{v_8d41d7("dashboard.statsDelta")}</Text>
               </View>
 
               <View style={[v_fd5f43.statsCard, v_fd5f43.statsCardDark]}>
                 <View style={v_fd5f43.statsCardHeader}>
                   <Feather name="user" size={14} color={v_1bfbd0.zinc400} />
                   <Text style={[v_fd5f43.statsCardLabel, { color: v_1bfbd0.zinc400 }]}>
-                    페르소나 활동
+                    {v_8d41d7("dashboard.statsActivity")}
                   </Text>
                 </View>
                 <View style={v_fd5f43.activityCount}>
@@ -557,7 +555,7 @@ export default function v_def15b() {
         }
         ListFooterComponent={
           <TouchableOpacity style={v_fd5f43.loadMore}>
-            <Text style={v_fd5f43.loadMoreText}>더보기</Text>
+            <Text style={v_fd5f43.loadMoreText}>{v_8d41d7("dashboard.loadMore")}</Text>
           </TouchableOpacity>
         }
       />
@@ -800,10 +798,10 @@ export default function v_def15b() {
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Feather name="search" size={32} color={v_1bfbd0.zinc300} />
                   <Text style={{ color: v_1bfbd0.zinc500, marginTop: 8, fontSize: 13 }}>
-                    이메일 또는 이름을 입력해주세요 (2자 이상)
+                    {v_8d41d7("invite.inviteSearchEmpty")}
                   </Text>
                   <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
-                    afterlife 가입 회원만 초대할 수 있어요
+                    {v_8d41d7("invite.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : v_4568f9 ? (
@@ -813,10 +811,10 @@ export default function v_def15b() {
               ) : v_76148b.length === 0 ? (
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
-                    검색 결과가 없어요
+                    {v_8d41d7("invite.inviteNoResults")}
                   </Text>
                   <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
-                    afterlife에 가입된 회원만 초대할 수 있어요
+                    {v_8d41d7("invite.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : (

@@ -286,7 +286,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       onPress={() => v_a07441((v_d5dda0) => ({ ...v_d5dda0, relation: v_cb35cb.id }))}
                     >
                       <Text style={[v_fd5f43.chipText, v_f8b770 && v_fd5f43.chipTextSelected]}>
-                        {v_cb35cb.label}
+                        {v_8d41d7(v_cb35cb.label)}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -377,7 +377,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 description: v_eb25ce.description,
                 interests: v_eb25ce.interests,
                 l1: v_eb25ce.l1Profile,
-              })}
+              }, v_8d41d7)}
             </Text>
           </View>
 

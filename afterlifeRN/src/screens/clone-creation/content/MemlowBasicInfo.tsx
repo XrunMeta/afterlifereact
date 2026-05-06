@@ -43,7 +43,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
               style={[v_d81136.chip, v_f8b770 && v_d81136.chipActive]}
               onPress={() => v_b187d9({ relation: v_cb35cb.id })}
             >
-              <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>{v_cb35cb.label}</Text>
+              <Text style={v_f8b770 ? v_d81136.chipActiveText : v_d81136.chipText}>{v_8d41d7(v_cb35cb.label)}</Text>
             </TouchableOpacity>
           );
         })}

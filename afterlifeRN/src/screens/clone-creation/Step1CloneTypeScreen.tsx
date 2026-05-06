@@ -41,19 +41,19 @@ export default function v_84d7a5({ navigation: v_c65f5d }: Props) {
         <Text style={v_d81136.title}>{v_8d41d7("create.stepTitles.1")}</Text>
         <Text style={v_d81136.subtitle}>{v_8d41d7("create.type.defaultDesc")}</Text>
         <View style={v_d81136.grid}>
-          {v_aad223.map(v_8d41d7 => {
-            const v_f8b770 = v_587413 === v_8d41d7.id;
+          {v_aad223.map(v_930b2e => {
+            const v_f8b770 = v_587413 === v_930b2e.id;
             return (
               <TouchableOpacity
-                key={v_8d41d7.id}
+                key={v_930b2e.id}
                 accessibilityRole="button"
                 style={[v_d81136.card, v_f8b770 && v_d81136.cardActive]}
-                onPress={() => v_2122dd(v_8d41d7.id)}
+                onPress={() => v_2122dd(v_930b2e.id)}
               >
-                <Feather name={v_8d41d7.iconName as any} size={24}
+                <Feather name={v_930b2e.iconName as any} size={24}
                   color={v_f8b770 ? v_1bfbd0.violet500 : v_1bfbd0.zinc600} />
-                <Text style={[v_d81136.label, v_f8b770 && v_d81136.labelActive]}>{v_8d41d7.label}</Text>
-                <Text style={v_d81136.desc}>{v_8d41d7.desc}</Text>
+                <Text style={[v_d81136.label, v_f8b770 && v_d81136.labelActive]}>{v_8d41d7(v_930b2e.label)}</Text>
+                <Text style={v_d81136.desc}>{v_8d41d7(v_930b2e.desc)}</Text>
               </TouchableOpacity>
             );
           })}

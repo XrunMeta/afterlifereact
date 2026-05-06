@@ -150,6 +150,19 @@
   },
   "feed": {
     "homeTitle": "홈",
+    "follow": "팔로우",
+    "following": "팔로잉",
+    "callBtn": "통화하기",
+    "unfollowTitle": "팔로우 취소",
+    "unfollowDesc": "정말 이 페르소나의 팔로우를 취소하시겠습니까?\n피드에서 해당 페르소나의 포스트가 더 이상 표시되지 않습니다.",
+    "callSheetTitle": "통화하기",
+    "shortsHint": "내 클론을 공개로 전환하거나, 다른 클론을 팔로우해 보세요.",
+    "shortsEmptyTitle": "아직 볼 Shorts 가 없어요",
+    "shortsViewMore": "자세히 보기",
+    "interestFilter": "관심사 필터",
+    "selectedCount": "선택 {{n}}개",
+    "applyFilter": "적용",
+    "clearFilter": "초기화",
     "followingTitle": "팔로잉",
     "followingEmpty": "팔로우 중인 페르소나가 없어요",
     "commentCount": "댓글 {{n}}개",
@@ -172,7 +185,18 @@
     "interactionItemChat": "채팅 대화",
     "interactionItemCall": "음성/영상 통화",
     "interactionItemLearn": "학습 세션",
-    "interactionItemFeed": "피드 상호작용"
+    "interactionItemFeed": "피드 상호작용",
+    "heroTitle": "내가 팔로우한 페르소나",
+    "heroSubtitle": "관심 있는 페르소나의 새로운 이야기",
+    "callSearchPlaceholder": "페르소나 검색...",
+    "recentCalls": "최근 통화",
+    "callMetaYesterday": "어제 • 8분 21초",
+    "callMeta3DaysAgo": "3일 전 • 15분 32초",
+    "callRowAction": "통화",
+    "searchResults": "검색 결과",
+    "followingList": "팔로잉 목록",
+    "cancelBtn": "취소",
+    "confirmBtn": "확인"
   },
   "detail": {
     "notFound": "페르소나를 찾을 수 없습니다.",
@@ -207,6 +231,12 @@
   },
   "dashboard": {
     "title": "My Persona",
+    "headerTitle": "페르소나 대시보드",
+    "headerDesc": "생성된 AI 페르소나의 성과와 활용을 관리합니다.",
+    "statsTotalInteractions": "총 상호작용",
+    "statsDelta": "+14% 지난주 대비",
+    "statsActivity": "페르소나 활동",
+    "loadMore": "더보기",
     "active": "활동중",
     "inactive": "비활동중",
     "actionLearn": "학습하기",
@@ -234,6 +264,27 @@
   },
   "my": {
     "title": "마이 페이지",
+    "userFallback": "사용자",
+    "loginRequired": "로그인이 필요합니다.",
+    "permTitle": "권한 필요",
+    "permDesc": "사진 라이브러리 접근 권한을 허용해주세요.",
+    "uploadFailed": "이미지 업로드에 실패했습니다.",
+    "stats": {
+      "following": "팔로우 중",
+      "myPersona": "내 페르소나"
+    },
+    "coin": {
+      "title": "xrun 코인",
+      "balance": "보유 코인",
+      "charge": "충전",
+      "notMapped": "xrun 회원 매핑이 안 되어 있습니다",
+      "transactions": "최근 거래",
+      "viewAll": "전체 내역 보기",
+      "settings": "설정",
+      "txCreatePersona": "페르소나 생성",
+      "txVideoCall": "영상 통화 (15분)",
+      "txRecharge": "코인 충전"
+    },
     "menu": {
       "editProfile": "개인정보 관리",
       "notifications": "알림 설정",
@@ -351,8 +402,22 @@
     "type": {
       "memlowTitle": "고인 페르소나",
       "memlowDesc": "함께한 시간을 대화로 이어가요",
+      "memlowLabel": "고인",
+      "memlowShortDesc": "함께한 시간을 대화로 이어갑니다",
       "defaultTitle": "일반 페르소나",
-      "defaultDesc": "친구·멘토·유명인 등 자유 페르소나"
+      "defaultDesc": "친구·멘토·유명인 등 자유 페르소나",
+      "defaultLabel": "일반",
+      "defaultShortDesc": "친구·멘토·유명인 등 자유 페르소나"
+    },
+    "relations": {
+      "mother": "어머니",
+      "father": "아버지",
+      "spouse": "배우자",
+      "child": "자녀",
+      "sibling": "형제자매",
+      "friend": "친구",
+      "pet": "반려동물",
+      "other": "기타"
     },
     "basicInfo": {
       "namePlaceholder": "페르소나 이름",
@@ -457,6 +522,7 @@
       "ageLabel": "나이",
       "genderLabel": "성별",
       "typeLabel": "성격 유형 (최대 {{max}}개)",
+      "typeShort": "성격",
       "mbtiLabel": "MBTI",
       "notesLabel": "페르소나 설명",
       "notesPlaceholder": "이 페르소나의 말투·습관·배경 등을 자유롭게 적어주세요 (선택)"
