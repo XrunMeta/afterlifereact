@@ -13,6 +13,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
@@ -25,25 +26,33 @@ type Nav = v_390fcc<v_e57140>;
 
 const STATUS_META: Record<
   v_347801,
-  { label: string; color: string; bg: string; icon: keyof typeof v_dec439.glyphMap }
+  { color: string; bg: string; icon: keyof typeof v_dec439.glyphMap }
 > = {
-  pending: { label: "대기", color: "#92400e", bg: "#fef3c7", icon: "clock" },
-  accepted: { label: "수락", color: "#166534", bg: "#dcfce7", icon: "check-circle" },
-  cancelled: { label: "취소", color: "#475569", bg: "#e2e8f0", icon: "x-circle" },
-  expired: { label: "만료", color: "#991b1b", bg: "#fee2e2", icon: "alert-triangle" },
+  pending: { color: "#92400e", bg: "#fef3c7", icon: "clock" },
+  accepted: { color: "#166534", bg: "#dcfce7", icon: "check-circle" },
+  cancelled: { color: "#475569", bg: "#e2e8f0", icon: "x-circle" },
+  expired: { color: "#991b1b", bg: "#fee2e2", icon: "alert-triangle" },
 };
-
-const FILTERS: Array<{ key: "all" | v_347801; label: string }> = [
-  { key: "all", label: "전체" },
-  { key: "pending", label: "대기" },
-  { key: "accepted", label: "수락" },
-  { key: "cancelled", label: "취소" },
-  { key: "expired", label: "만료" },
-];
 
 export default function v_14fa9c() {
   const v_c65f5d = v_ada615<Nav>();
+  const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
+  const FILTERS: Array<{ key: "all" | v_347801; label: string }> = [
+    { key: "all", label: v_8d41d7("inviteStatus.filterAll") },
+    { key: "pending", label: v_8d41d7("inviteStatus.statusPending") },
+    { key: "accepted", label: v_8d41d7("inviteStatus.statusAccepted") },
+    { key: "cancelled", label: v_8d41d7("inviteStatus.statusCancelled") },
+    { key: "expired", label: v_8d41d7("inviteStatus.statusExpired") },
+  ];
+
+  const STATUS_LABEL: Record<v_347801, string> = {
+    pending: v_8d41d7("inviteStatus.statusPending"),
+    accepted: v_8d41d7("inviteStatus.statusAccepted"),
+    cancelled: v_8d41d7("inviteStatus.statusCancelled"),
+    expired: v_8d41d7("inviteStatus.statusExpired"),
+  };
   const [v_4622b9, v_fa923c] = v_5ab095<v_0b9d48[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_612e9f, v_575aad] = v_5ab095(false);
@@ -111,14 +120,14 @@ export default function v_14fa9c() {
             </Text>
             <View style={[v_fd5f43.badge, { backgroundColor: v_ab4c96.bg }]}>
               <Feather name={v_ab4c96.icon} size={11} color={v_ab4c96.color} />
-              <Text style={[v_fd5f43.badgeText, { color: v_ab4c96.color }]}>{v_ab4c96.label}</Text>
+              <Text style={[v_fd5f43.badgeText, { color: v_ab4c96.color }]}>{v_cbb531[v_8c0b26.status]}</Text>
             </View>
           </View>
           <Text style={v_fd5f43.email} numberOfLines={1}>
-            {v_8c0b26.inviteEmail ?? "(이메일 없음)"}
+            {v_8c0b26.inviteEmail ?? v_8d41d7("invite.noEmail")}
           </Text>
           <Text style={v_fd5f43.subtle}>
-            {v_197e0e(v_8c0b26)}
+            {v_197e0e(v_8c0b26, v_8d41d7)}
           </Text>
         </View>
         <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc400} />
@@ -129,7 +138,7 @@ export default function v_14fa9c() {
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
       <PageHeader
-        title="초대 현황"
+        title={v_8d41d7("inviteStatus.title")}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -160,7 +169,7 @@ export default function v_14fa9c() {
         <View style={v_fd5f43.center}>
           <Feather name="send" size={32} color={v_1bfbd0.zinc300} />
           <Text style={v_fd5f43.empty}>
-            {v_f21110 === "all" ? "아직 보낸 초대가 없어요." : `해당 상태의 초대가 없어요.`}
+            {v_f21110 === "all" ? v_8d41d7("inviteStatus.emptyAll") : v_8d41d7("inviteStatus.emptyFilter")}
           </Text>
         </View>
       ) : (
@@ -184,33 +193,35 @@ export default function v_14fa9c() {
   );
 }
 
-function v_bb6f37(v_6fc191): string {
+type T = (k: string, opts?: Record<string, unknown>) => string;
+
+function v_bb6f37(v_6fc191, v_8d41d7): string {
   try {
-    const v_8d41d7 = new Date(v_6fc191.replace(" ", "T") + "Z").getTime();
-    const v_a41a1b = Date.now() - v_8d41d7;
+    const v_d799e2 = new Date(v_6fc191.replace(" ", "T") + "Z").getTime();
+    const v_a41a1b = Date.now() - v_d799e2;
     const v_43e24b = Math.floor(v_a41a1b / 60000);
-    if (v_43e24b < 1) return "방금";
-    if (v_43e24b < 60) return `${v_43e24b}분 전`;
+    if (v_43e24b < 1) return v_8d41d7("common.now");
+    if (v_43e24b < 60) return v_8d41d7("common.agoMinutes", { n: v_43e24b });
     const v_1c3551 = Math.floor(v_43e24b / 60);
-    if (v_1c3551 < 24) return `${v_1c3551}시간 전`;
+    if (v_1c3551 < 24) return v_8d41d7("common.agoHours", { n: v_1c3551 });
     const v_d5dda0 = Math.floor(v_1c3551 / 24);
-    if (v_d5dda0 < 30) return `${v_d5dda0}일 전`;
-    return new Date(v_8d41d7).toLocaleDateString("ko-KR");
+    if (v_d5dda0 < 30) return v_8d41d7("common.agoDays", { n: v_d5dda0 });
+    return new Date(v_d799e2).toLocaleDateString();
   } catch {
     return v_6fc191;
   }
 }
 
-function v_197e0e(it: v_0b9d48): string {
+function v_197e0e(it: v_0b9d48, v_8d41d7): string {
   switch (v_23805a.status) {
     case "pending":
-      return `${v_bb6f37(v_23805a.createdAt)} 발송 · 미수락`;
+      return v_8d41d7("inviteStatus.hintPending", { rel: v_bb6f37(v_23805a.createdAt, v_8d41d7) });
     case "accepted":
-      return `${v_23805a.usedAt ? v_bb6f37(v_23805a.usedAt) : "—"} 수락됨`;
+      return v_8d41d7("inviteStatus.hintAccepted", { rel: v_23805a.usedAt ? v_bb6f37(v_23805a.usedAt, v_8d41d7) : "—" });
     case "cancelled":
-      return `${v_23805a.cancelledAt ? v_bb6f37(v_23805a.cancelledAt) : "—"} 취소`;
+      return v_8d41d7("inviteStatus.hintCancelled", { rel: v_23805a.cancelledAt ? v_bb6f37(v_23805a.cancelledAt, v_8d41d7) : "—" });
     case "expired":
-      return `${v_bb6f37(v_23805a.expiresAt)} 만료`;
+      return v_8d41d7("inviteStatus.hintExpired", { rel: v_bb6f37(v_23805a.expiresAt, v_8d41d7) });
   }
 }
 

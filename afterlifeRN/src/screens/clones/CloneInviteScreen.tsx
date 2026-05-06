@@ -14,6 +14,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_2d8264 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_2d88fc } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
@@ -38,6 +39,7 @@ const v_57ffc4 = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function v_07335f() {
   const v_c65f5d = v_ada615();
+  const { t: v_8d41d7 } = v_772971();
   const { params: v_24baff } = v_2d8264<Route>();
   const v_6e0fd3 = v_24baff.cloneId;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -88,22 +90,21 @@ export default function v_07335f() {
   const v_371aa6 = async () => {
     const v_e0c7e8 = v_c75cd4.trim();
     if (!v_57ffc4.test(v_e0c7e8)) {
-      v_03e392.alert("알림", "올바른 이메일을 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.invalidEmail"));
       return;
     }
     if (v_78547c && v_e0c7e8.toLowerCase() === v_78547c.toLowerCase()) {
-      v_03e392.alert("알림", "본인은 초대할 수 없어요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.selfNotAllowed"));
       return;
     }
     if (!v_2ca7e0) return;
     v_ee9ec1(true);
     try {
-
       const v_9875a1 = await v_a41961(v_2ca7e0, v_e0c7e8);
       const v_5f5d6d = v_e0c7e8.toLowerCase();
       const v_17ec8d = v_9875a1.items.find((v_ceb55a) => v_ceb55a.email.toLowerCase() === v_5f5d6d);
       if (!v_17ec8d) {
-        v_03e392.alert("알림", "해당 이메일을 가진 회원이 없습니다 다시 입력해주세요");
+        v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.memberNotFound"));
         v_ee9ec1(false);
         return;
       }
@@ -112,20 +113,15 @@ export default function v_07335f() {
       console.log("[CloneInvite] sent:", v_8f00b9);
       v_3b75f3("");
       await v_92fdf2();
-      const v_c226a5 = v_8f00b9.notify;
-      v_03e392.alert(
-        "초대 발송",
-        v_c226a5
-          ? `${v_e0c7e8}로 초대를 보냈어요.\n이메일: ${v_c226a5.emailSent ? "✓" : "실패"} / 푸시: ${v_c226a5.pushSent}건`
-          : `${v_e0c7e8}로 초대를 보냈어요.`,
-      );
+      v_03e392.alert(v_8d41d7("common.success"), v_8d41d7("invite.sentToast", { target: v_e0c7e8 }));
+      void v_8f00b9;
     } catch (v_49263d) {
-      let v_badeaf = "초대 발송에 실패했습니다.";
+      let v_badeaf = v_8d41d7("invite.sendFailed");
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "QUOTA_EXCEEDED") v_badeaf = "초대 가능 한도를 초과했어요.";
+        if (v_49263d.code === "QUOTA_EXCEEDED") v_badeaf = v_8d41d7("invite.quotaExceeded");
         else v_badeaf = v_49263d.message;
       }
-      v_03e392.alert("오류", v_badeaf);
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -133,35 +129,39 @@ export default function v_07335f() {
 
   const v_5ca23e = async (inv: v_fb1763) => {
     if (!v_2ca7e0) return;
-    v_03e392.alert("초대 취소", `"${v_f0104f.inviteEmail ?? "초대"}"을(를) 취소하시겠어요?`, [
-      { text: "닫기", style: "cancel" },
-      {
-        text: "취소",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await v_735203(v_2ca7e0, v_6e0fd3, v_f0104f.id);
-            await v_92fdf2();
-          } catch (v_49263d) {
-            const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "취소 실패";
-            v_03e392.alert("오류", v_badeaf);
-          }
+    v_03e392.alert(
+      v_8d41d7("invite.cancelInviteTitle"),
+      v_8d41d7("invite.cancelInviteDesc", { target: v_f0104f.inviteEmail ?? v_8d41d7("invite.create") }),
+      [
+        { text: v_8d41d7("common.close"), style: "cancel" },
+        {
+          text: v_8d41d7("common.cancel"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await v_735203(v_2ca7e0, v_6e0fd3, v_f0104f.id);
+              await v_92fdf2();
+            } catch (v_49263d) {
+              const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("invite.cancelFailed");
+              v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const v_eb4082 = async (m: v_f9a81e) => {
     if (!v_2ca7e0) return;
     const v_a3c903 = v_35f85c.targetUserId === v_493eec;
-    const v_9b064f = v_a3c903 ? "나가기" : "강퇴";
-    const v_5f5d6d = v_a3c903
-      ? "공동관리자에서 나가시겠어요?"
-      : `${v_35f85c.targetUser?.name ?? v_35f85c.inviteEmail ?? "이 멤버"}을(를) 강퇴하시겠어요?`;
-    v_03e392.alert(v_9b064f, v_5f5d6d, [
-      { text: "닫기", style: "cancel" },
+    const v_5ea0fe = v_a3c903 ? v_8d41d7("invite.leave") : v_8d41d7("invite.kick");
+    const v_c4e8fe = v_a3c903
+      ? v_8d41d7("invite.leaveTitle")
+      : v_8d41d7("invite.kickTitle", { name: v_35f85c.targetUser?.name ?? v_35f85c.inviteEmail ?? "—" });
+    v_03e392.alert(v_5ea0fe, v_c4e8fe, [
+      { text: v_8d41d7("common.close"), style: "cancel" },
       {
-        text: v_9b064f,
+        text: v_5ea0fe,
         style: "destructive",
         onPress: async () => {
           try {
@@ -173,8 +173,11 @@ export default function v_07335f() {
               await v_92fdf2();
             }
           } catch (v_49263d) {
-            const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : `${v_9b064f} 실패`;
-            v_03e392.alert("오류", v_badeaf);
+            const v_badeaf =
+              v_49263d instanceof v_84a859
+                ? v_49263d.message
+                : v_8d41d7("invite.actionFailed", { action: v_5ea0fe });
+            v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
           }
         },
       },
@@ -184,7 +187,7 @@ export default function v_07335f() {
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
       <PageHeader
-        title="공동관리자"
+        title={v_8d41d7("invite.title")}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -207,14 +210,12 @@ export default function v_07335f() {
             {}
             {v_2aec08 && (
               <View style={v_fd5f43.card}>
-                <Text style={v_fd5f43.sectionTitle}>공동관리자 초대</Text>
-                <Text style={v_fd5f43.sectionDesc}>
-                  afterlife 가입 회원만 초대 가능해요. 3일 내 미수락 시 자동 만료돼요.
-                </Text>
+                <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("invite.create")}</Text>
+                <Text style={v_fd5f43.sectionDesc}>{v_8d41d7("invite.createHint")}</Text>
                 <View style={v_fd5f43.inviteRow}>
                   <TextInput
                     style={v_fd5f43.emailInput}
-                    placeholder="example@email.com"
+                    placeholder={v_8d41d7("invite.emailPlaceholder")}
                     placeholderTextColor={v_1bfbd0.zinc400}
                     value={v_c75cd4}
                     onChangeText={v_3b75f3}
@@ -229,7 +230,7 @@ export default function v_07335f() {
                     {v_cb66b4 ? (
                       <ActivityIndicator color={v_1bfbd0.white} />
                     ) : (
-                      <Text style={v_fd5f43.sendBtnText}>초대</Text>
+                      <Text style={v_fd5f43.sendBtnText}>{v_8d41d7("invite.send")}</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -239,17 +240,17 @@ export default function v_07335f() {
             {}
             {v_2aec08 && v_483de2.length > 0 && (
               <View style={v_fd5f43.card}>
-                <Text style={v_fd5f43.sectionTitle}>대기 중 ({v_483de2.length})</Text>
+                <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("invite.pending", { n: v_483de2.length })}</Text>
                 {v_483de2.map((v_f0104f) => (
                   <View key={v_f0104f.id} style={v_fd5f43.row}>
                     <View style={{ flex: 1 }}>
-                      <Text style={v_fd5f43.rowEmail}>{v_f0104f.inviteEmail ?? "(이메일 없음)"}</Text>
+                      <Text style={v_fd5f43.rowEmail}>{v_f0104f.inviteEmail ?? v_8d41d7("invite.noEmail")}</Text>
                       <Text style={v_fd5f43.rowSub}>
-                        {v_9e04ad(v_f0104f.expiresAt)}
+                        {v_9e04ad(v_f0104f.expiresAt, v_8d41d7)}
                       </Text>
                     </View>
                     <TouchableOpacity style={v_fd5f43.cancelBtn} onPress={() => v_5ca23e(v_f0104f)}>
-                      <Text style={v_fd5f43.cancelBtnText}>취소</Text>
+                      <Text style={v_fd5f43.cancelBtnText}>{v_8d41d7("common.cancel")}</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -258,11 +259,9 @@ export default function v_07335f() {
 
             {}
             <View style={v_fd5f43.card}>
-              <Text style={v_fd5f43.sectionTitle}>
-                멤버 ({v_8673d6.length})
-              </Text>
+              <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("invite.members", { n: v_8673d6.length })}</Text>
               {v_8673d6.length === 0 ? (
-                <Text style={v_fd5f43.empty}>아직 공동관리자가 없어요.</Text>
+                <Text style={v_fd5f43.empty}>{v_8d41d7("invite.noMembers")}</Text>
               ) : (
                 v_8673d6.map((v_35f85c) => {
                   const v_a3c903 = v_35f85c.targetUserId === v_493eec;
@@ -272,8 +271,8 @@ export default function v_07335f() {
                       <View style={{ flex: 1 }}>
                         <Text style={v_fd5f43.rowEmail}>
                           {v_35f85c.targetUser?.name ?? v_35f85c.targetUser?.email ?? v_35f85c.inviteEmail ?? "—"}
-                          {v_a3c903 && <Text style={v_fd5f43.selfBadge}> (나)</Text>}
-                          {v_c48a58 && <Text style={v_fd5f43.ownerBadge}> 반장</Text>}
+                          {v_a3c903 && <Text style={v_fd5f43.selfBadge}> {v_8d41d7("invite.self")}</Text>}
+                          {v_c48a58 && <Text style={v_fd5f43.ownerBadge}> {v_8d41d7("invite.ownerBadge")}</Text>}
                         </Text>
                         <Text style={v_fd5f43.rowSub}>
                           {v_35f85c.targetUser?.email ?? v_35f85c.inviteEmail ?? ""}
@@ -286,7 +285,7 @@ export default function v_07335f() {
                           onPress={() => v_eb4082(v_35f85c)}
                         >
                           <Text style={v_a3c903 ? v_fd5f43.leaveBtnText : v_fd5f43.kickBtnText}>
-                            {v_a3c903 ? "나가기" : "강퇴"}
+                            {v_a3c903 ? v_8d41d7("invite.leave") : v_8d41d7("invite.kick")}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -302,17 +301,20 @@ export default function v_07335f() {
   );
 }
 
-function v_9e04ad(v_0b8131): string {
+function v_9e04ad(
+  v_0b8131,
+  v_8d41d7,
+): string {
   try {
     const v_f900a6 = new Date(v_0b8131.replace(" ", "T") + "Z").getTime();
     const v_d799e2 = v_f900a6 - Date.now();
-    if (v_d799e2 <= 0) return "만료됨";
+    if (v_d799e2 <= 0) return v_8d41d7("invite.expired");
     const v_6a53fd = Math.floor(v_d799e2 / (24 * 60 * 60 * 1000));
     const v_12ebc1 = Math.floor((v_d799e2 % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-    if (v_6a53fd > 0) return `${v_6a53fd}일 ${v_12ebc1}시간 후 만료`;
-    return `${v_12ebc1}시간 후 만료`;
+    if (v_6a53fd > 0) return v_8d41d7("invite.expiresInDays", { days: v_6a53fd, hours: v_12ebc1 });
+    return v_8d41d7("invite.expiresInHours", { hours: v_12ebc1 });
   } catch {
-    return "만료 정보 없음";
+    return v_8d41d7("invite.noExpiresInfo");
   }
 }
 

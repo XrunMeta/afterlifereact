@@ -55,7 +55,8 @@ export default function v_6540c3() {
           <StatusBar style="dark" />
         </NavigationContainer>
         <BaseUrlBadge />
-        {__DEV__ && <DevFloatingBall />}
+        {}
+        {}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
