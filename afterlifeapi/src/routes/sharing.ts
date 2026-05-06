@@ -392,6 +392,78 @@ inviteTokens.post(
   },
 );
 
+inviteTokens.post(
+  "/:token/decline",
+  requireAuth,
+  requireIdempotencyKey("sharing.invite.decline"),
+  async (c) => {
+    const token = c.req.param("token");
+    if (!token || token.length < 32 || token.length > 256) {
+      throw new APIError("VALIDATION_FAILED", "Invalid token.");
+    }
+    const userId = c.get("userId")!;
+    const db = c.env.DB;
+    const tokenHash = hashToken(token);
+
+    const inv = await db
+      .prepare(
+        `SELECT id, clone_id, invite_email, used_at, cancelled_at
+           FROM invite_tokens WHERE token_hash = ?`,
+      )
+      .bind(tokenHash)
+      .first<{
+        id: number;
+        clone_id: number;
+        invite_email: string | null;
+        used_at: string | null;
+        cancelled_at: string | null;
+      }>();
+    if (!inv) throw new APIError("NOT_FOUND", "Invite not found.");
+    if (inv.cancelled_at) {
+
+      return c.json({ ok: true, alreadyCancelled: true });
+    }
+
+    if (inv.invite_email) {
+      const u = await db
+        .prepare(`SELECT email FROM users WHERE id = ?`)
+        .bind(userId)
+        .first<{ email: string }>();
+      if (!u || u.email.toLowerCase() !== inv.invite_email.toLowerCase()) {
+        throw new APIError("FORBIDDEN", "Invite email does not match.");
+      }
+    }
+
+    let removedShare = false;
+    if (inv.used_at) {
+      const res = await db
+        .prepare(
+          `DELETE FROM clone_shares
+             WHERE clone_id = ? AND target_user_id = ?`,
+        )
+        .bind(inv.clone_id, userId)
+        .run();
+      removedShare = (res.meta?.changes ?? 0) > 0;
+    }
+
+    await db
+      .prepare(
+        `UPDATE invite_tokens
+            SET cancelled_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND cancelled_at IS NULL`,
+      )
+      .bind(inv.id)
+      .run();
+
+    await logActivity(c, {
+      userId,
+      action: "sharing.invite.decline",
+      details: { cloneId: inv.clone_id, inviteId: inv.id, removedShare },
+    });
+    return c.json({ ok: true, cloneId: inv.clone_id, removedShare });
+  },
+);
+
 cloneShares.get("/:id/shares", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;

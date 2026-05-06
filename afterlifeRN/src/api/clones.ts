@@ -342,3 +342,15 @@ export async function acceptInvite(
     makeIdempotencyKey(),
   );
 }
+
+export async function declineInvite(
+  accessToken: string,
+  token: string,
+): Promise<{ ok: true; cloneId?: number; removedShare?: boolean; alreadyCancelled?: boolean }> {
+  return authFetch(
+    `/oth-path${encodeURIComponent(token)}/decline`,
+    accessToken,
+    { method: "POST" },
+    makeIdempotencyKey(),
+  );
+}

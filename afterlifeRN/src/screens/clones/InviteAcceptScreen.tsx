@@ -23,6 +23,7 @@ import { COLORS, RADIUS, SIZES } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
 import {
   acceptInvite,
+  declineInvite,
   getInvitePreview,
   type InvitePreview,
 } from "../../api/clones";
@@ -136,7 +137,21 @@ export default function InviteAcceptScreen() {
         {
           text: t("inviteAccept.decline"),
           style: "destructive",
-          onPress: () => navigation.goBack(),
+          onPress: async () => {
+            if (!accessToken) {
+              navigation.goBack();
+              return;
+            }
+            try {
+              const res = await declineInvite(accessToken, token);
+              console.log("[InviteAccept] decline:", res);
+              navigation.goBack();
+            } catch (err) {
+              console.warn("[InviteAccept] decline failed:", err);
+              const msg = err instanceof AuthApiError ? err.message : t("inviteAccept.acceptFailed");
+              Alert.alert(t("common.error"), msg);
+            }
+          },
         },
       ],
     );
