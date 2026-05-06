@@ -76,5 +76,8 @@ export interface DomainFeed {
   cloneId: number;
   content: string;
   mediaUrl?: string;
+
+  mediaType?: string | null;
+  likesCount?: number;
   createdAt: string;
 }

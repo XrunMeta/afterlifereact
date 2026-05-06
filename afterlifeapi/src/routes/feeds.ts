@@ -14,6 +14,8 @@ import {
 
 export const cloneFeeds = new Hono<AppEnv>();
 
+export const feedsDiscover = new Hono<AppEnv>();
+
 function parseCloneId(c: { req: { param: (k: string) => string } }): number {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) {
@@ -124,6 +126,108 @@ cloneFeeds.get("/:id/feeds", async (c) => {
       likesCount: r.likes_count,
       visibility: clone.visibility,
       createdAt: r.created_at,
+    })),
+    nextCursor,
+  });
+});
+
+feedsDiscover.get("/discover", async (c) => {
+  const url = new URL(c.req.url);
+  const cursorRaw = url.searchParams.get("cursor");
+  const cursor = cursorRaw ? Number(cursorRaw) : null;
+  const limitRaw = Number(url.searchParams.get("limit") ?? 20);
+  const limit = Math.max(1, Math.min(50, Number.isFinite(limitRaw) ? limitRaw : 20));
+
+  const where = [
+    "c.deletion_state = 'active'",
+    "c.deleted_at IS NULL",
+    "c.clone_type != 'memlow'",
+    "c.visibility = 'public'",
+  ];
+  const binds: unknown[] = [];
+  if (cursor && Number.isInteger(cursor) && cursor > 0) {
+    where.push("f.id < ?");
+    binds.push(cursor);
+  }
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT f.id              AS feedId,
+                f.clone_id         AS cloneId,
+                f.content          AS content,
+                f.media_url        AS mediaUrl,
+                f.media_type       AS mediaType,
+                f.likes_count      AS likesCount,
+                f.created_at       AS createdAt,
+                c.name             AS cloneName,
+                c.username         AS cloneUsername,
+                c.avatar_url       AS cloneAvatarUrl,
+                c.clone_type       AS cloneType
+           FROM feeds f
+           JOIN clones c ON c.id = f.clone_id
+          WHERE ${where.join(" AND ")}
+          ORDER BY f.id DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit + 1)
+      .all<{
+        feedId: number;
+        cloneId: number;
+        content: string | null;
+        mediaUrl: string | null;
+        mediaType: string | null;
+        likesCount: number;
+        createdAt: string;
+        cloneName: string;
+        cloneUsername: string;
+        cloneAvatarUrl: string | null;
+        cloneType: string;
+      }>()
+  ).results;
+
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+  const nextCursor =
+    hasMore && page.length > 0 ? page[page.length - 1]!.feedId : null;
+
+  const cloneIds = Array.from(new Set(page.map((r) => r.cloneId)));
+  const interestsByClone = new Map<number, string[]>();
+  if (cloneIds.length > 0) {
+    const placeholders = cloneIds.map(() => "?").join(",");
+    const ir = (
+      await c.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${placeholders})`,
+        )
+        .bind(...cloneIds)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const row of ir) {
+      const arr = interestsByClone.get(row.clone_id) ?? [];
+      arr.push(row.interest);
+      interestsByClone.set(row.clone_id, arr);
+    }
+  }
+
+  return c.json({
+    items: page.map((r) => ({
+      id: r.feedId,
+      cloneId: r.cloneId,
+      content: r.content,
+      mediaUrl: r.mediaUrl,
+      mediaType: r.mediaType,
+      likesCount: r.likesCount,
+      createdAt: r.createdAt,
+      clone: {
+        id: r.cloneId,
+        name: r.cloneName,
+        username: r.cloneUsername,
+        avatarUrl: r.cloneAvatarUrl,
+        cloneType: r.cloneType,
+      },
+      interests: interestsByClone.get(r.cloneId) ?? [],
     })),
     nextCursor,
   });

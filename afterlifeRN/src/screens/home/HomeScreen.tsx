@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -52,9 +52,17 @@ export default function HomeScreen() {
   const toggleLike = useFeedStore((s) => s.toggleLike);
   const setSelectedInterests = useFeedStore((s) => s.setSelectedInterests);
   const getFilteredFeeds = useFeedStore((s) => s.getFilteredFeeds);
+  const loadDiscover = useFeedStore((s) => s.loadDiscover);
+  const apiFeeds = useFeedStore((s) => s.apiFeeds);
   const follows = useFollowStore((s) => s.follows);
   const isFollowing = useFollowStore((s) => s.isFollowing);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
+
+  useEffect(() => {
+    if (apiFeeds == null) {
+      void loadDiscover();
+    }
+  }, [apiFeeds, loadDiscover]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showFilter, setShowFilter] = useState(false);

@@ -2,11 +2,16 @@ import { create } from "zustand";
 import { seedSource } from "../api/source";
 import type { DomainClone, DomainFeed } from "../types/domain";
 import { useAuthStore } from "./authStore";
+import { listDiscoverFeeds, type DiscoverFeedItem } from "../api/clones";
 
 const DEFAULT_USER_ID = 1;
 
 interface FeedState {
+
   feeds: DomainFeed[];
+
+  apiFeeds: DiscoverFeedItem[] | null;
+  apiLoading: boolean;
   likedIds: number[];
   bookmarkedIds: number[];
   selectedInterests: string[];
@@ -15,6 +20,7 @@ interface FeedState {
   setSelectedInterests: (interests: string[]) => void;
   getVisibleFeeds: () => DomainFeed[];
   getFilteredFeeds: () => DomainFeed[];
+  loadDiscover: () => Promise<void>;
 }
 
 function canSeeClone(c: DomainClone, currentUserId: number): boolean {
@@ -36,8 +42,36 @@ function canSeeClone(c: DomainClone, currentUserId: number): boolean {
   return false;
 }
 
+export const apiCloneCache = new Map<number, DomainClone>();
+
+function toDomainFeed(item: DiscoverFeedItem): DomainFeed {
+  apiCloneCache.set(item.cloneId, {
+    id: item.clone.id,
+    cloneType: item.clone.cloneType,
+    ownerId: -1, 
+    displayName: item.clone.name,
+    description: "",
+    interests: item.interests,
+    imageUrl: item.clone.avatarUrl ?? undefined,
+    visibility: "public",
+    status: "active",
+    createdAt: item.createdAt,
+  });
+  return {
+    id: item.id,
+    cloneId: item.cloneId,
+    content: item.content ?? "",
+    mediaUrl: item.mediaUrl ?? undefined,
+    mediaType: (item.mediaType as DomainFeed["mediaType"]) ?? null,
+    likesCount: item.likesCount,
+    createdAt: item.createdAt,
+  };
+}
+
 export const useFeedStore = create<FeedState>((set, get) => ({
   feeds: seedSource.feeds(),
+  apiFeeds: null,
+  apiLoading: false,
   likedIds: [],
   bookmarkedIds: [],
   selectedInterests: [],
@@ -58,7 +92,27 @@ export const useFeedStore = create<FeedState>((set, get) => ({
 
   setSelectedInterests: (interests) => set({ selectedInterests: interests }),
 
+  loadDiscover: async () => {
+    if (get().apiLoading) return;
+    set({ apiLoading: true });
+    try {
+      const res = await listDiscoverFeeds({ limit: 50 });
+      console.log("[feedStore] discover loaded:", res.items.length);
+      set({ apiFeeds: res.items, apiLoading: false });
+    } catch (err) {
+      console.warn("[feedStore] discover failed:", err);
+
+      set({ apiLoading: false });
+    }
+  },
+
   getVisibleFeeds: () => {
+
+    const apiFeeds = get().apiFeeds;
+    if (apiFeeds) {
+      return apiFeeds.map(toDomainFeed);
+    }
+
     const u = useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
     const visibleCloneIds = new Set(
       seedSource.clones().filter((c) => canSeeClone(c, u)).map((c) => c.id),
@@ -67,9 +121,16 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   },
 
   getFilteredFeeds: () => {
-    const { selectedInterests } = get();
+    const { selectedInterests, apiFeeds } = get();
     const visible = get().getVisibleFeeds();
     if (selectedInterests.length === 0) return visible;
+    if (apiFeeds) {
+
+      return visible.filter((f) => {
+        const c = apiCloneCache.get(f.cloneId);
+        return c ? c.interests.some((i) => selectedInterests.includes(i)) : false;
+      });
+    }
     const cloneById = new Map(seedSource.clones().map((c) => [c.id, c]));
     return visible.filter((f) => {
       const c = cloneById.get(f.cloneId);

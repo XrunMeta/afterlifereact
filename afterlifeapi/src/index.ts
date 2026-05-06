@@ -12,7 +12,7 @@ import { users } from "./routes/users";
 import { clones } from "./routes/clones";
 import { memory } from "./routes/memory";
 import { cloneMessages, messages } from "./routes/messages";
-import { cloneFeeds } from "./routes/feeds";
+import { cloneFeeds, feedsDiscover } from "./routes/feeds";
 import { sessions } from "./routes/sessions";
 import { cloneShares, inviteTokens } from "./routes/sharing";
 import { cloneShorts, shortsFeed } from "./routes/shorts";
@@ -83,6 +83,8 @@ app.route("/oth-path", memory);
 app.route("/oth-path", cloneMessages);
 
 app.route("/oth-path", cloneFeeds);
+
+app.route("/oth-path", feedsDiscover);
 
 app.route("/oth-path", cloneShares);
 
