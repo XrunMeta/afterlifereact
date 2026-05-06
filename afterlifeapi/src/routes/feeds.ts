@@ -143,53 +143,61 @@ feedsDiscover.get("/discover", async (c) => {
     "c.deleted_at IS NULL",
     "c.clone_type != 'memlow'",
     "c.visibility = 'public'",
+    "c.training_status = 'active'",
   ];
   const binds: unknown[] = [];
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
-    where.push("f.id < ?");
+    where.push("c.id < ?");
     binds.push(cursor);
   }
 
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT f.id              AS feedId,
-                f.clone_id         AS cloneId,
-                f.content          AS content,
-                f.media_url        AS mediaUrl,
-                f.media_type       AS mediaType,
-                f.likes_count      AS likesCount,
-                f.created_at       AS createdAt,
+        `SELECT c.id              AS cloneId,
                 c.name             AS cloneName,
                 c.username         AS cloneUsername,
+                c.description      AS cloneDescription,
                 c.avatar_url       AS cloneAvatarUrl,
-                c.clone_type       AS cloneType
-           FROM feeds f
-           JOIN clones c ON c.id = f.clone_id
+                c.clone_type       AS cloneType,
+                c.created_at       AS cloneCreatedAt,
+                f.id               AS feedId,
+                f.content          AS feedContent,
+                f.media_url        AS feedMediaUrl,
+                f.media_type       AS feedMediaType,
+                f.likes_count      AS feedLikesCount,
+                f.created_at       AS feedCreatedAt
+           FROM clones c
+           LEFT JOIN feeds f ON f.id = (
+             SELECT id FROM feeds WHERE clone_id = c.id
+             ORDER BY id DESC LIMIT 1
+           )
           WHERE ${where.join(" AND ")}
-          ORDER BY f.id DESC
+          ORDER BY c.id DESC
           LIMIT ?`,
       )
       .bind(...binds, limit + 1)
       .all<{
-        feedId: number;
         cloneId: number;
-        content: string | null;
-        mediaUrl: string | null;
-        mediaType: string | null;
-        likesCount: number;
-        createdAt: string;
         cloneName: string;
         cloneUsername: string;
+        cloneDescription: string | null;
         cloneAvatarUrl: string | null;
         cloneType: string;
+        cloneCreatedAt: string;
+        feedId: number | null;
+        feedContent: string | null;
+        feedMediaUrl: string | null;
+        feedMediaType: string | null;
+        feedLikesCount: number | null;
+        feedCreatedAt: string | null;
       }>()
   ).results;
 
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
   const nextCursor =
-    hasMore && page.length > 0 ? page[page.length - 1]!.feedId : null;
+    hasMore && page.length > 0 ? page[page.length - 1]!.cloneId : null;
 
   const cloneIds = Array.from(new Set(page.map((r) => r.cloneId)));
   const interestsByClone = new Map<number, string[]>();
@@ -213,13 +221,15 @@ feedsDiscover.get("/discover", async (c) => {
 
   return c.json({
     items: page.map((r) => ({
-      id: r.feedId,
+
+      id: r.feedId ?? -r.cloneId,
       cloneId: r.cloneId,
-      content: r.content,
-      mediaUrl: r.mediaUrl,
-      mediaType: r.mediaType,
-      likesCount: r.likesCount,
-      createdAt: r.createdAt,
+
+      content: r.feedContent ?? r.cloneDescription ?? "",
+      mediaUrl: r.feedMediaUrl ?? r.cloneAvatarUrl ?? null,
+      mediaType: r.feedMediaType,
+      likesCount: r.feedLikesCount ?? 0,
+      createdAt: r.feedCreatedAt ?? r.cloneCreatedAt,
       clone: {
         id: r.cloneId,
         name: r.cloneName,
