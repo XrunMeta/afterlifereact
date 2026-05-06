@@ -83,7 +83,7 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.white,
     borderBottomWidth: 1,
     borderBottomColor: v_1bfbd0.zinc200,
-    paddingBottom: 4,
+    paddingBottom: 10,
     paddingHorizontal: v_9b1a04.medium,
   },
   transparent: {
