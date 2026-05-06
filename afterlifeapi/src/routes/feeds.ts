@@ -143,7 +143,8 @@ feedsDiscover.get("/discover", async (c) => {
     "c.deleted_at IS NULL",
     "c.clone_type != 'memlow'",
     "c.visibility = 'public'",
-    "c.training_status = 'active'",
+
+    "c.training_status = 'ready'",
   ];
   const binds: unknown[] = [];
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
