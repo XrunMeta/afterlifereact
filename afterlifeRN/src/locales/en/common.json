@@ -147,7 +147,10 @@
   "feed": {
     "homeTitle": "Home",
     "followingTitle": "Following",
-    "followingEmpty": "You don't follow any personas yet"
+    "followingEmpty": "You don't follow any personas yet",
+    "commentCount": "{{n}} comments",
+    "commentsEmpty": "No comments yet",
+    "commentPlaceholder": "Write a comment..."
   },
   "detail": {
     "notFound": "Persona not found.",

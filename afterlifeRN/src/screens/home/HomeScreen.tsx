@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import FeedCard from "../../components/ui/FeedCard";
@@ -35,6 +36,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const TAB_BAR_HEIGHT = 56;
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const navBarHeight = useAndroidNavigationBarHeight(0);
@@ -178,7 +180,7 @@ export default function HomeScreen() {
           <View style={styles.commentSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.sheetHandle} />
             <View style={styles.commentHeaderRow}>
-              <Text style={styles.commentTitle}>댓글 {currentComments.length}개</Text>
+              <Text style={styles.commentTitle}>{t("feed.commentCount", { n: currentComments.length })}</Text>
               <TouchableOpacity onPress={() => setCommentFeedId(null)}>
                 <Feather name="x" size={20} color={COLORS.white} />
               </TouchableOpacity>
@@ -198,7 +200,7 @@ export default function HomeScreen() {
               )) : (
                 <View style={styles.emptyComment}>
                   <Feather name="message-circle" size={40} color="rgba(255,255,255,0.3)" />
-                  <Text style={styles.emptyText}>아직 댓글이 없습니다</Text>
+                  <Text style={styles.emptyText}>{t("feed.commentsEmpty")}</Text>
                 </View>
               )}
             </ScrollView>
@@ -207,7 +209,7 @@ export default function HomeScreen() {
                 style={styles.commentInput}
                 value={commentText}
                 onChangeText={setCommentText}
-                placeholder="댓글 달기..."
+                placeholder={t("feed.commentPlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.4)"
               />
               <TouchableOpacity disabled={!commentText.trim()} onPress={() => setCommentText("")}>
