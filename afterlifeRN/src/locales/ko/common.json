@@ -91,7 +91,10 @@
     "loginRequired": "로그인 후 수락할 수 있어요.",
     "accept": "초대 수락하기",
     "accepted": "초대 수락 완료!",
-    "acceptFailed": "초대 수락에 실패했어요."
+    "acceptFailed": "초대 수락에 실패했어요.",
+    "decline": "거절하기",
+    "declineConfirmTitle": "초대 거절",
+    "declineConfirmDesc": "{{name}} 페르소나의 초대를 거절하시겠어요?"
   },
   "gdpr": {
     "title": "영구 삭제 (GDPR)",

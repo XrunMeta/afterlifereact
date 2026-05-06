@@ -91,7 +91,10 @@
     "loginRequired": "Sign in to accept this invite.",
     "accept": "Accept Invite",
     "accepted": "Invite accepted!",
-    "acceptFailed": "Failed to accept invite."
+    "acceptFailed": "Failed to accept invite.",
+    "decline": "Decline",
+    "declineConfirmTitle": "Decline invite",
+    "declineConfirmDesc": "Decline the invite for {{name}}?"
   },
   "gdpr": {
     "title": "Permanent Delete (GDPR)",

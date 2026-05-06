@@ -128,14 +128,18 @@ export default function InviteAcceptScreen() {
   };
 
   const handleDecline = () => {
-    Alert.alert(t("inviteAccept.errorTitle"), t("inviteAccept.body", { name: preview?.clone.name ?? "" }), [
-      { text: t("common.close"), style: "cancel" },
-      {
-        text: t("common.confirm"),
-        style: "destructive",
-        onPress: () => navigation.goBack(),
-      },
-    ]);
+    Alert.alert(
+      t("inviteAccept.declineConfirmTitle"),
+      t("inviteAccept.declineConfirmDesc", { name: preview?.clone.name ?? "" }),
+      [
+        { text: t("common.close"), style: "cancel" },
+        {
+          text: t("inviteAccept.decline"),
+          style: "destructive",
+          onPress: () => navigation.goBack(),
+        },
+      ],
+    );
   };
 
   return (
@@ -190,7 +194,7 @@ export default function InviteAcceptScreen() {
                 variant="accent"
               />
               <Button
-                title={t("common.cancel")}
+                title={t("inviteAccept.decline")}
                 onPress={handleDecline}
                 disabled={accepting}
                 variant="ghost"
