@@ -24,7 +24,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, createInvite, deleteClone, type MyClone } from "../../api/clones";
+import { listMyClones, createInvite, deleteClone, listCloneLikes, type MyClone, type FeedLikeUser } from "../../api/clones";
 import NotificationBell from "../../components/common/NotificationBell";
 import { searchUsers, AuthApiError, type UserSearchItem } from "../../api/auth";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -145,8 +145,36 @@ export default function MyClonesDashboardScreen() {
 
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
+    cloneId: number;
     cloneName: string;
   } | null>(null);
+  const [likesList, setLikesList] = useState<FeedLikeUser[] | null>(null);
+  const [likesLoading, setLikesLoading] = useState(false);
+
+  useEffect(() => {
+    if (statsModal?.type !== "likes" || statsModal.cloneId == null) {
+      setLikesList(null);
+      return;
+    }
+    let cancelled = false;
+    setLikesLoading(true);
+    setLikesList(null);
+    listCloneLikes(statsModal.cloneId, { limit: 50 })
+      .then((res) => {
+        if (cancelled) return;
+        setLikesList(res.items);
+      })
+      .catch((err) => {
+        console.warn("[Dashboard] listCloneLikes failed:", err);
+        if (!cancelled) setLikesList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLikesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [statsModal?.type, statsModal?.cloneId]);
   const [toggleModal, setToggleModal] = useState<{
     cloneId: number;
     currentState: boolean;
@@ -442,21 +470,21 @@ export default function MyClonesDashboardScreen() {
           <View style={s.statsRow}>
             <TouchableOpacity
               style={s.stat}
-              onPress={() => setStatsModal({ type: "likes", cloneName: clone.displayName })}
+              onPress={() => setStatsModal({ type: "likes", cloneId: clone.id, cloneName: clone.displayName })}
             >
               <Feather name="heart" size={14} color={COLORS.zinc500} />
               <Text style={s.statText}>{formatStat(clone.likesCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.stat}
-              onPress={() => setStatsModal({ type: "interactions", cloneName: clone.displayName })}
+              onPress={() => setStatsModal({ type: "interactions", cloneId: clone.id, cloneName: clone.displayName })}
             >
               <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
               <Text style={s.statText}>{formatStat(clone.messagesCount)}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.stat}
-              onPress={() => setStatsModal({ type: "comments", cloneName: clone.displayName })}
+              onPress={() => setStatsModal({ type: "comments", cloneId: clone.id, cloneName: clone.displayName })}
             >
               <Feather name="message-circle" size={14} color={COLORS.zinc500} />
               {}
@@ -464,7 +492,7 @@ export default function MyClonesDashboardScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={s.stat}
-              onPress={() => setStatsModal({ type: "followers", cloneName: clone.displayName })}
+              onPress={() => setStatsModal({ type: "followers", cloneId: clone.id, cloneName: clone.displayName })}
             >
               <Feather name="user" size={14} color={COLORS.zinc500} />
               <Text style={s.statText} testID={`follower-count-${clone.id}`}>
@@ -955,7 +983,34 @@ export default function MyClonesDashboardScreen() {
               ))}
 
               {}
-              {(statsModal?.type === "likes" || statsModal?.type === "followers") &&
+              {statsModal?.type === "likes" && (
+                <>
+                  {likesLoading ? (
+                    <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
+                  ) : !likesList || likesList.length === 0 ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 좋아요가 없어요</Text>
+                    </View>
+                  ) : (
+                    likesList.map((u) => (
+                      <View key={u.likeId} style={s.accountRow}>
+                        {u.avatarUrl ? (
+                          <Image source={{ uri: u.avatarUrl }} style={s.accountAvatar} />
+                        ) : (
+                          <View style={[s.accountAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                        )}
+                        <View style={s.accountInfo}>
+                          <Text style={s.accountName}>{u.name ?? u.email}</Text>
+                          <Text style={s.accountSub}>{u.email}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
+
+              {}
+              {statsModal?.type === "followers" &&
                 MOCK_ACCOUNTS.map((account) => (
                   <View key={account.id} style={s.accountRow}>
                     <Image source={{ uri: account.avatar }} style={s.accountAvatar} />

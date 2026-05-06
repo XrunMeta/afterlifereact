@@ -358,6 +358,72 @@ export async function listDiscoverFeeds(opts?: {
   return parsed as { items: DiscoverFeedItem[]; nextCursor: number | null };
 }
 
+export interface FeedLikeUser {
+  likeId: number;
+  userId: number;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+  createdAt: string;
+}
+
+export async function likeFeed(
+  accessToken: string,
+  feedId: number,
+): Promise<{ ok: true; liked: true; likesCount: number }> {
+  return authFetch(`/oth-path${feedId}/like`, accessToken, { method: "POST" });
+}
+
+export async function unlikeFeed(
+  accessToken: string,
+  feedId: number,
+): Promise<{ ok: true; liked: false; likesCount: number }> {
+  return authFetch(`/oth-path${feedId}/like`, accessToken, { method: "DELETE" });
+}
+
+export async function listCloneLikes(
+  cloneId: number,
+  opts?: { limit?: number },
+): Promise<{ items: FeedLikeUser[]; nextCursor: number | null }> {
+  const url = new URL(`${API_BASE}/oth-path${cloneId}/likes`);
+  if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
+  const res = await fetch(url.toString());
+  const text = await res.text();
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as { items: FeedLikeUser[]; nextCursor: number | null };
+}
+
+export async function listFeedLikes(
+  feedId: number,
+  opts?: { cursor?: number | null; limit?: number },
+): Promise<{ items: FeedLikeUser[]; nextCursor: number | null }> {
+  const url = new URL(`${API_BASE}/oth-path${feedId}/likes`);
+  if (opts?.cursor) url.searchParams.set("cursor", String(opts.cursor));
+  if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
+  const res = await fetch(url.toString());
+  const text = await res.text();
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as { items: FeedLikeUser[]; nextCursor: number | null };
+}
+
 export interface PatchClonePayload {
   name?: string;
   description?: string;

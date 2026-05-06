@@ -144,7 +144,6 @@ feedsDiscover.get("/discover", async (c) => {
     "c.clone_type != 'memlow'",
     "c.visibility = 'public'",
 
-    "c.training_status = 'ready'",
   ];
   const binds: unknown[] = [];
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
@@ -281,6 +280,178 @@ cloneFeeds.post("/:id/feeds", requireAuth, async (c) => {
     },
     201,
   );
+});
+
+async function loadFeedAccessible(
+  db: D1Database,
+  feedId: number,
+): Promise<{ id: number; cloneId: number; visibility: string; ownerId: number } | null> {
+  const row = await db
+    .prepare(
+      `SELECT f.id AS id, f.clone_id AS cloneId, c.visibility AS visibility, c.owner_id AS ownerId
+         FROM feeds f
+         JOIN clones c ON c.id = f.clone_id
+        WHERE f.id = ? AND c.deleted_at IS NULL`,
+    )
+    .bind(feedId)
+    .first<{ id: number; cloneId: number; visibility: string; ownerId: number }>();
+  return row ?? null;
+}
+
+feedsDiscover.post("/:id/like", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  if (!Number.isInteger(feedId) || feedId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+  }
+  const userId = c.get("userId")!;
+  const feed = await loadFeedAccessible(c.env.DB, feedId);
+  if (!feed) throw new APIError("NOT_FOUND", "Feed not found.");
+
+  if (feed.visibility === "private") {
+    if (feed.ownerId !== userId) {
+      const role = await hasAcceptedShare(c.env.DB, feed.cloneId, userId);
+      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+    }
+  }
+
+  await c.env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`,
+    )
+    .bind(feedId, userId)
+    .run();
+
+  const row = await c.env.DB
+    .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
+    .bind(feedId)
+    .first<{ likes_count: number }>();
+  return c.json({ ok: true, liked: true, likesCount: row?.likes_count ?? 0 });
+});
+
+feedsDiscover.delete("/:id/like", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  if (!Number.isInteger(feedId) || feedId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+  }
+  const userId = c.get("userId")!;
+  await c.env.DB
+    .prepare(`DELETE FROM feed_likes WHERE feed_id = ? AND user_id = ?`)
+    .bind(feedId, userId)
+    .run();
+
+  const row = await c.env.DB
+    .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
+    .bind(feedId)
+    .first<{ likes_count: number }>();
+  return c.json({ ok: true, liked: false, likesCount: row?.likes_count ?? 0 });
+});
+
+feedsDiscover.get("/:id/likes", async (c) => {
+  const feedId = Number(c.req.param("id"));
+  if (!Number.isInteger(feedId) || feedId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+  }
+  const url = new URL(c.req.url);
+  const cursorRaw = url.searchParams.get("cursor");
+  const cursor = cursorRaw ? Number(cursorRaw) : null;
+  const limitRaw = Number(url.searchParams.get("limit") ?? 30);
+  const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 30));
+
+  const where = ["fl.feed_id = ?"];
+  const binds: unknown[] = [feedId];
+  if (cursor && Number.isInteger(cursor) && cursor > 0) {
+    where.push("fl.id < ?");
+    binds.push(cursor);
+  }
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT fl.id        AS likeId,
+                fl.user_id   AS userId,
+                fl.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM feed_likes fl
+           JOIN users u ON u.id = fl.user_id
+          WHERE ${where.join(" AND ")} AND u.deleted_at IS NULL
+          ORDER BY fl.id DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit + 1)
+      .all<{
+        likeId: number;
+        userId: number;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+  const nextCursor =
+    hasMore && page.length > 0 ? page[page.length - 1]!.likeId : null;
+
+  return c.json({
+    items: page.map((r) => ({
+      likeId: r.likeId,
+      userId: r.userId,
+      name: r.userName,
+      email: r.userEmail,
+      avatarUrl: r.userAvatarUrl,
+      createdAt: r.createdAt,
+    })),
+    nextCursor,
+  });
+});
+
+cloneFeeds.get("/:id/likes", async (c) => {
+  const cloneId = parseCloneId(c);
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT fl.user_id     AS userId,
+                MAX(fl.id)     AS likeId,
+                MAX(fl.created_at) AS createdAt,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl
+           FROM feed_likes fl
+           JOIN feeds f ON f.id = fl.feed_id
+           JOIN users u ON u.id = fl.user_id
+          WHERE f.clone_id = ? AND u.deleted_at IS NULL
+          GROUP BY fl.user_id, u.name, u.email, u.avatar_url
+          ORDER BY likeId DESC
+          LIMIT ?`,
+      )
+      .bind(cloneId, limit)
+      .all<{
+        userId: number;
+        likeId: number;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  return c.json({
+    items: rows.map((r) => ({
+      likeId: r.likeId,
+      userId: r.userId,
+      name: r.userName,
+      email: r.userEmail,
+      avatarUrl: r.userAvatarUrl,
+      createdAt: r.createdAt,
+    })),
+    nextCursor: null,
+  });
 });
 
 cloneFeeds.delete("/:id/feeds/:feedId", requireAuth, async (c) => {
