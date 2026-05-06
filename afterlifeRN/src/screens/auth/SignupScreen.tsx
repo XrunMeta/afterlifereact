@@ -9,6 +9,7 @@ import {
 } from "rcmrninabrnb";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
 
@@ -31,15 +32,15 @@ type Props = {
   route: v_ee3714<v_384e19, "Signup">;
 };
 
-const v_798085 = [
-  { value: "male" as const, label: "남성" },
-  { value: "female" as const, label: "여성" },
-  { value: "other" as const, label: "기타" },
-];
-
 const v_bbe45f = v_bf4124;
 
 export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
+  const v_798085 = [
+    { value: "male" as const, label: v_8d41d7("auth.signup.male") },
+    { value: "female" as const, label: v_8d41d7("auth.signup.female") },
+    { value: "other" as const, label: v_8d41d7("auth.signup.other") },
+  ];
   const v_a8d185 = v_c7daf6.params?.google;
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
@@ -78,8 +79,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       const v_e43fa5 = await v_704bef();
       if (!v_e43fa5.granted) {
         v_03e392.alert(
-          "푸시 알림 권한 필요",
-          "마케팅 정보 알림을 받으려면 푸시 알림 권한이 필요합니다.\n기기 설정 → 알림 → AfterLife 에서 허용해주세요.",
+          v_8d41d7("auth.signup.pushPermTitle"),
+          v_8d41d7("auth.signup.pushPermDesc"),
         );
         return;
       }
@@ -89,7 +90,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_73f064(v_e43fa5.platform);
       v_94f796(v_de2b1c);
     } catch {
-      v_03e392.alert("오류", "권한 요청 중 문제가 발생했습니다.");
+      v_03e392.alert(v_8d41d7("common.error"), v_8d41d7("auth.signup.pushPermError"));
     } finally {
       v_3bb4d3(false);
     }
@@ -105,39 +106,33 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   const v_585b02 = async () => {
     if (!v_1833e7 || !v_e0c7e8 || !v_adc076 || !v_d74a81 || !v_c3eac4 || !v_2694bd) {
-      v_03e392.alert("알림", "필수 항목을 모두 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8)) {
-      v_03e392.alert("알림", "이메일 형식이 올바르지 않습니다. (예: hello@example.com)");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailInvalid"));
       return;
     }
-
     if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(v_adc076)) {
-      v_03e392.alert(
-        "알림",
-        "비밀번호는 영문 대문자, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.",
-      );
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.passwordTooShort"));
       return;
     }
     if (v_adc076 !== v_0b3ebe) {
-      v_03e392.alert("알림", "비밀번호가 일치하지 않습니다.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.passwordsNotMatch"));
       return;
     }
-
     if (v_d74a81.length < 4) {
-      v_03e392.alert("알림", "전화번호를 4자 이상으로 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
       return;
     }
     if (!v_5c764d) {
-      v_03e392.alert("알림", "이용약관에 동의해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
       return;
     }
 
     const v_f4fe8e = parseInt(v_2694bd, 10);
     if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
-      v_03e392.alert("알림", "나이를 13~120 사이 숫자로 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.ageInvalid"));
       return;
     }
 
@@ -183,10 +178,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       const v_badeaf =
         v_49263d instanceof v_84a859
           ? v_49263d.code === "OTP_COOLDOWN"
-            ? "잠시 후 다시 시도해주세요. (1분 쿨다운)"
+            ? v_8d41d7("auth.signup.rateLimit")
             : v_49263d.message
-          : "코드 발송에 실패했습니다. 네트워크를 확인해주세요.";
-      v_03e392.alert("오류", v_badeaf);
+          : v_8d41d7("auth.signup.sendCodeFailed");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -195,7 +190,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
       <PageHeader
-        title="회원가입"
+        title={v_8d41d7("auth.signup.title")}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -210,12 +205,12 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           <View style={v_d81136.logoRow}>
             <Image source={require("../../../assets/images/symbol.png")} style={v_d81136.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={v_d81136.logoImage} resizeMode="contain" />
-            <Text style={v_d81136.subtitle}>베타 기간, 타입별 클론 1개씩 무료</Text>
+            <Text style={v_d81136.subtitle}>{v_8d41d7("auth.signup.subtitle")}</Text>
           </View>
 
           {}
           <TextField
-            placeholder="이름"
+            placeholder={v_8d41d7("auth.signup.name")}
             value={v_1833e7}
             onChangeText={v_318f24}
             leftIcon={<Feather name="user" size={20} color={v_1bfbd0.zinc500} />}
@@ -223,7 +218,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {}
           <TextField
-            placeholder="이메일"
+            placeholder={v_8d41d7("auth.signup.email")}
             value={v_e0c7e8}
             onChangeText={v_a8d185 ? undefined : v_fedf34}
             keyboardType="email-address"
@@ -235,7 +230,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           {}
           <View>
             <TextField
-              placeholder="비밀번호"
+              placeholder={v_8d41d7("auth.signup.password")}
               value={v_adc076}
               onChangeText={v_52b279}
               secureTextEntry={!v_b5ab16}
@@ -246,14 +241,12 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 </TouchableOpacity>
               }
             />
-            <Text style={v_d81136.passwordHint}>
-              영문 대문자, 숫자, 특수문자를 포함한 8자 이상
-            </Text>
+            <Text style={v_d81136.passwordHint}>{v_8d41d7("auth.signup.passwordHint")}</Text>
           </View>
 
           {}
           <TextField
-            placeholder="비밀번호 확인"
+            placeholder={v_8d41d7("auth.signup.passwordConfirm")}
             value={v_0b3ebe}
             onChangeText={v_241a35}
             secureTextEntry={!v_0b85b1}
@@ -265,14 +258,14 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             }
             errorText={
               v_0b3ebe.length > 0 && v_0b3ebe !== v_adc076
-                ? "비밀번호가 일치하지 않습니다."
+                ? v_8d41d7("auth.signup.passwordsNotMatch")
                 : undefined
             }
           />
 
           {}
           <TextField
-            placeholder="전화번호"
+            placeholder={v_8d41d7("auth.signup.phone")}
             value={v_d74a81}
             onChangeText={v_fcce73}
             keyboardType="phone-pad"
@@ -286,12 +279,12 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 options={v_798085}
                 value={v_c3eac4}
                 onChange={v_bdc43c}
-                placeholder="성별"
+                placeholder={v_8d41d7("auth.signup.gender")}
               />
             </View>
             <View style={v_d81136.ageField}>
               <TextField
-                placeholder="나이"
+                placeholder={v_8d41d7("auth.signup.age")}
                 value={v_2694bd}
                 onChangeText={v_6e5c76}
                 keyboardType="number-pad"
@@ -301,7 +294,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {}
           <View style={v_d81136.section}>
-            <Text style={v_d81136.sectionLabel}>관심사 선택 (선택사항)</Text>
+            <Text style={v_d81136.sectionLabel}>{v_8d41d7("auth.signup.interests")}</Text>
             <View style={v_d81136.chipGrid}>
               {v_bbe45f.map((v_e4601c) => (
                 <InterestChip
@@ -323,9 +316,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               <View style={[v_d81136.checkbox, v_5c764d && v_d81136.checkboxChecked]}>
                 {v_5c764d && <Feather name="check" size={14} color={v_1bfbd0.white} />}
               </View>
-              <Text style={v_d81136.termText}>
-                <Text style={v_d81136.termBold}>(필수)</Text> 이용약관 및 개인정보 처리방침에 동의합니다
-              </Text>
+              <Text style={v_d81136.termText}>{v_8d41d7("auth.signup.termsRequired")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={v_349606}
@@ -336,24 +327,24 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 {v_8c98c4 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
               </View>
               <Text style={v_d81136.termText}>
-                <Text style={v_d81136.termOptional}>(선택)</Text> 마케팅 정보 수신에 동의합니다
-                {v_8d0e18 ? " (권한 요청 중...)" : ""}
+                {v_8d41d7("auth.signup.marketingConsent")}
+                {v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying")})` : ""}
               </Text>
             </TouchableOpacity>
           </View>
 
           {}
           <Button
-            title={v_cb66b4 ? "코드 전송 중..." : "가입하기"}
+            title={v_cb66b4 ? v_8d41d7("auth.signup.verifying") : v_8d41d7("auth.signup.signupBtn")}
             onPress={v_585b02}
             disabled={v_cb66b4}
           />
 
           {}
           <View style={v_d81136.loginRow}>
-            <Text style={v_d81136.loginText}>이미 계정이 있으신가요? </Text>
+            <Text style={v_d81136.loginText}>{v_8d41d7("auth.login.signupHint")} </Text>
             <TouchableOpacity onPress={() => v_c65f5d.navigate("Login")}>
-              <Text style={v_d81136.loginLink}>로그인</Text>
+              <Text style={v_d81136.loginLink}>{v_8d41d7("auth.login.loginBtn")}</Text>
             </TouchableOpacity>
           </View>
         </View>
