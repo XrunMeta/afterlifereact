@@ -49,6 +49,8 @@ export default function MyScreen() {
   const patchApiUser = useAuthStore((s) => s.patchApiUser);
   const logout = useAuthStore((s) => s.logout);
   const follows = useFollowStore((s) => s.follows);
+  const isFollowing = useFollowStore((s) => s.isFollowing);
+  const toggleFollow = useFollowStore((s) => s.toggleFollow);
   const localClones = useCloneStore((s) => s.localClones);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -397,19 +399,30 @@ export default function MyScreen() {
                     <Text style={s.statsEmptyText}>아직 팔로우한 페르소나가 없어요</Text>
                   </View>
                 ) : (
-                  apiFollowingList.map((c) => (
-                    <View key={c.id} style={s.listRow}>
-                      {c.avatarUrl ? (
-                        <Image source={{ uri: c.avatarUrl }} style={s.listAvatar} />
-                      ) : (
-                        <View style={[s.listAvatar, { backgroundColor: COLORS.zinc200 }]} />
-                      )}
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.listName}>{c.name}</Text>
-                        <Text style={s.listSub}>@{c.username}</Text>
+                  apiFollowingList.map((c) => {
+                    const followed = isFollowing(c.id);
+                    return (
+                      <View key={c.id} style={s.listRow}>
+                        {c.avatarUrl ? (
+                          <Image source={{ uri: c.avatarUrl }} style={s.listAvatar} />
+                        ) : (
+                          <View style={[s.listAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.listName}>{c.name}</Text>
+                          <Text style={s.listSub}>@{c.username}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => void toggleFollow(c.id)}
+                          style={[s.followToggleBtn, followed && s.followToggleBtnActive]}
+                        >
+                          <Text style={[s.followToggleText, followed && s.followToggleTextActive]}>
+                            {followed ? "팔로잉" : "팔로우"}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
-                    </View>
-                  ))
+                    );
+                  })
                 )
               )}
               {statsModal === "myClones" && (
@@ -605,8 +618,21 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingBottom: 40,
-    maxHeight: "70%",
+    height: "70%",
   },
+  followToggleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: COLORS.zinc900,
+  },
+  followToggleBtnActive: {
+    backgroundColor: COLORS.zinc100,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+  },
+  followToggleText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
+  followToggleTextActive: { color: COLORS.zinc700 },
   sheetHandle: {
     width: 36,
     height: 4,
