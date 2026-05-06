@@ -18,6 +18,9 @@ import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
+import { patchClone } from "../../api/clones";
+import { AuthApiError } from "../../api/auth";
+import { Alert } from "react-native";
 import { seedSource } from "../../api/source";
 import { L1Section } from "./components/L1Section";
 import { L2Section } from "./components/L2Section";
@@ -147,19 +150,43 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const activeList = primaryCategory ? (INTEREST_MAP[primaryCategory] ?? []) : [];
   const customSelected = interests.filter((i) => !activeList.includes(i));
 
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
     if (!clone) return;
+    if (saving) return;
+    setSaving(true);
     const l1Payload = draftToL1Profile(draft) ?? { attrs: {}, notes: '' };
-    updateLocalClone(clone.id, {
-      displayName: name,
-      description,
-      visibility,
-      l1Profile: l1Payload,
-      ...(clone.cloneType !== 'memlow' ? { interests } : {}),
-      ...(draft.relation ? ({ relation: draft.relation } as Partial<Clone>) : {}),
-    } as Partial<Clone>);
-    setL1(l1Payload);
-    navigation.goBack();
+    const accessToken = useAuthStore.getState().accessToken;
+
+    try {
+      if (accessToken) {
+        await patchClone(accessToken, clone.id, {
+          name,
+          description,
+          visibility,
+
+          ...(canEditL1 ? { l1_profile: l1Payload } : {}),
+          ...(clone.cloneType !== 'memlow' ? { interests } : {}),
+        });
+      }
+      updateLocalClone(clone.id, {
+        displayName: name,
+        description,
+        visibility,
+        l1Profile: l1Payload,
+        ...(clone.cloneType !== 'memlow' ? { interests } : {}),
+        ...(draft.relation ? ({ relation: draft.relation } as Partial<Clone>) : {}),
+      } as Partial<Clone>);
+      setL1(l1Payload);
+      navigation.goBack();
+    } catch (err) {
+      console.warn("[CloneEdit] save failed:", err);
+      const msg = err instanceof AuthApiError ? err.message : t("edit.saveFailed");
+      Alert.alert(t("common.error"), msg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const confirmVisibility = (v: Visibility) => {
@@ -422,10 +449,10 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       {}
       <View style={s.bottomBar}>
         <Button
-          title={t("edit.save")}
+          title={saving ? t("common.loading") : t("edit.save")}
           variant="primary"
           onPress={handleSave}
-          disabled={!name}
+          disabled={!name || saving}
           style={s.saveBtn}
         />
       </View>
@@ -437,7 +464,8 @@ export default function CloneEditScreen({ route, navigation }: Props) {
             <Text style={s.modalTitle}>{t("edit.visibilityChooseTitle")}</Text>
             <Text style={s.modalDesc}>{t("edit.visibilityChooseDesc")}</Text>
             <View style={s.visibilityOptions}>
-              {(["public", "private", "followers"] as Visibility[]).map((v) => {
+              {}
+              {(["public", "private"] as Visibility[]).map((v) => {
                 const selected = visibility === v;
                 return (
                   <TouchableOpacity

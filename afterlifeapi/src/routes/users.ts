@@ -376,8 +376,28 @@ users.get("/me/clones", requireAuth, async (c) => {
     .bind(userId, userId, userId)
     .all();
 
+  const cloneIds = (rows.results ?? []).map((r) => (r as { id: number }).id);
+  const interestsByCloneId = new Map<number, string[]>();
+  if (cloneIds.length > 0) {
+    const placeholders = cloneIds.map(() => "?").join(",");
+    const interestRows = (
+      await c.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${placeholders})`,
+        )
+        .bind(...cloneIds)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const ir of interestRows) {
+      const arr = interestsByCloneId.get(ir.clone_id) ?? [];
+      arr.push(ir.interest);
+      interestsByCloneId.set(ir.clone_id, arr);
+    }
+  }
+
   const items = (rows.results ?? []).map((r) => {
-    const row = r as Record<string, unknown> & { l1ProfileJson?: string | null };
+    const row = r as Record<string, unknown> & { id: number; l1ProfileJson?: string | null };
     let l1Profile: { attrs: Record<string, string>; notes: string } | null = null;
     if (row.l1ProfileJson) {
       try {
@@ -389,7 +409,11 @@ users.get("/me/clones", requireAuth, async (c) => {
     }
     const { l1ProfileJson: _drop, ...rest } = row;
     void _drop;
-    return { ...rest, l1Profile };
+    return {
+      ...rest,
+      l1Profile,
+      interests: interestsByCloneId.get(row.id) ?? [],
+    };
   });
   return c.json({ items });
 });

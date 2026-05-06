@@ -16,7 +16,6 @@ function Component({ draft, onChange }: Props) {
   const { t } = useTranslation();
   const OPTIONS: { value: V; icon: string; title: string; desc: string }[] = [
     { value: 'public', icon: 'globe', title: t('create.visibility.publicTitle'), desc: t('create.visibility.publicDesc') },
-    { value: 'followers', icon: 'users', title: t('create.visibility.followersTitle'), desc: t('create.visibility.followersDesc') },
     { value: 'private', icon: 'lock', title: t('create.visibility.privateTitle'), desc: t('create.visibility.privateDesc') },
   ];
   const current: V = (draft.visibility as V) ?? 'public';

@@ -305,11 +305,36 @@ export interface MyClone {
 
   coownerCount: number;
 
+  interests?: string[];
+
   l1Profile?: { attrs: Record<string, string>; notes: string } | null;
 }
 
 export async function listMyClones(accessToken: string): Promise<{ items: MyClone[] }> {
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
+}
+
+export interface PatchClonePayload {
+  name?: string;
+  description?: string;
+  visibility?: Visibility;
+  avatar_url?: string;
+  cover_image_url?: string;
+  voice_preset_id?: number | null;
+  l1_profile?: { attrs: Record<string, string>; notes: string };
+  interests?: string[];
+}
+
+export async function patchClone(
+  accessToken: string,
+  cloneId: number,
+  payload: PatchClonePayload,
+): Promise<{ ok: true; updatedFields: string[] }> {
+  return authFetch(
+    `/oth-path${cloneId}`,
+    accessToken,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
 }
 
 export interface InvitePreview {
