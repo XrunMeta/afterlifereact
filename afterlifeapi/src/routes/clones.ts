@@ -438,6 +438,7 @@ const patchSchema = z
     visibility: visibility.optional(),
     voice_preset_id: z.number().int().positive().nullable().optional(),
     l1_profile: l1ProfileSchema.optional(),
+    interests: z.array(z.string().min(1).max(40)).max(20).optional(),
   })
   .strict()
   .refine((o) => Object.keys(o).length > 0, {
@@ -535,6 +536,25 @@ clones.patch("/:id", requireAuth, async (c) => {
           .bind(cloneId, k, v),
       );
     }
+  }
+
+  if (body.interests !== undefined) {
+    statements.push(
+      db.prepare(`DELETE FROM clone_interests WHERE clone_id = ?`).bind(cloneId),
+    );
+
+    const seen = new Set<string>();
+    for (const raw of body.interests) {
+      const v = raw.trim();
+      if (!v || seen.has(v)) continue;
+      seen.add(v);
+      statements.push(
+        db
+          .prepare(`INSERT INTO clone_interests (clone_id, interest) VALUES (?, ?)`)
+          .bind(cloneId, v),
+      );
+    }
+    updatedFields.push("interests");
   }
 
   await db.batch(statements);
