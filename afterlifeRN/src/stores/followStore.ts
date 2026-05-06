@@ -3,6 +3,7 @@ import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_694b7f } from "../api/source";
 import type { v_7a4d15 } from "../types/domain";
 import { v_1ed7d9 } from "./authStore";
+import { v_cc9198 } from "../config/apiBase";
 
 const v_b6c376 = "@afterlifeRN/follow/overrides";
 const v_b9d568 = 1;
@@ -77,6 +78,7 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
     const v_c3c3b0 = v_38715b().follows.some(
       (v_8b5cd8) => v_8b5cd8.followerUserId === v_ceb55a && v_8b5cd8.followingCloneId === v_6e0fd3,
     );
+
     if (v_c3c3b0) {
       v_bb8024({
         follows: v_38715b().follows.filter(
@@ -97,6 +99,7 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
         ],
       });
     }
+
     const v_479f05 = await v_e84827.getItem(v_b6c376);
     const v_11ea7b = v_479f05 ? JSON.parse(v_479f05) : [];
     v_11ea7b.push({
@@ -105,6 +108,20 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
       at: new Date().toISOString(),
     });
     await v_e84827.setItem(v_b6c376, JSON.stringify(v_11ea7b));
+
+    const v_2ca7e0 = v_1ed7d9.getState().accessToken;
+    if (!v_2ca7e0) return;
+    try {
+      const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_6e0fd3}/follow`, {
+        method: v_c3c3b0 ? "DELETE" : "POST",
+        headers: { Authorization: `Bearer ${v_2ca7e0}` },
+      });
+      if (!v_8f00b9.ok) {
+        console.warn("[followStore] API toggle failed:", v_8f00b9.status);
+      }
+    } catch (v_49263d) {
+      console.warn("[followStore] API toggle error:", v_49263d);
+    }
   },
 
   followersCount: (v_6e0fd3) =>

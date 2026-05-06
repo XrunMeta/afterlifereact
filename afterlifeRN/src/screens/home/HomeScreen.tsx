@@ -13,7 +13,10 @@ import {
   v_122070,
   v_cf9c33,
   v_79c4f2,
+  v_e767d1,
+  v_0e1f26,
 } from "rcmrninabrnb";
+import { v_03e392 } from "rcmrninabrnb";
 import { v_b5df25 } from "ernurodqvmtspux";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
@@ -24,7 +27,7 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_ca88c9 from "../../components/ui/FilterModal";
-import { v_37977a } from "../../stores/feedStore";
+import { v_37977a, v_10e36e } from "../../stores/feedStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_f386b1 } from "../../mocks/feedAdapter";
@@ -33,6 +36,7 @@ import {
   v_3f8bc7,
   v_6f689a,
   v_0df337,
+  v_97c75d,
   type v_52af9d,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
@@ -85,7 +89,40 @@ export default function v_c316d8() {
   const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
+  const [v_12fa22, v_949e66] = v_5ab095<{ cloneId: number; author: string } | null>(null);
+  const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
+  v_c4deb2(() => {
+    if (v_8282fa) {
+      const v_389afb = setTimeout(() => v_15c939(null), 2000);
+      return () => clearTimeout(v_389afb);
+    }
+  }, [v_8282fa]);
+
+  const [v_507993, v_d8029f] = v_5ab095(false);
+  v_c4deb2(() => {
+    const v_53f5d7 = v_0e1f26.addListener(
+      v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => v_d8029f(true),
+    );
+    const v_52528b = v_0e1f26.addListener(
+      v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => v_d8029f(false),
+    );
+    return () => {
+      v_53f5d7.remove();
+      v_52528b.remove();
+    };
+  }, []);
+
   const filteredFeeds: v_19b433[] = v_1c7dea().map(v_f386b1);
+
+  const v_50ea12 = v_37977a((v_fd5f43) => v_fd5f43.apiFeeds); 
+  void v_50ea12;
+  const [, v_6154a6] = v_5ab095(0);
+  const v_829e3a = v_de06a3((v_c09aa8, v_f4e98d) => {
+    v_10e36e.set(v_c09aa8, { commentsCount: v_f4e98d });
+    v_6154a6((v_62c214) => v_62c214 + 1);
+  }, []);
 
   const v_43bc1b = v_de06a3(
     ({ viewableItems: v_e5cc27 }: { viewableItems: v_bd73dc[] }) => {
@@ -166,7 +203,6 @@ export default function v_c316d8() {
         const v_6e0fd3 = -v_ed660d;
         const v_8f00b9 = await v_6f689a(v_2ca7e0, v_6e0fd3, v_b43b74);
         v_6bbace = v_8f00b9.comment.feedId;
-
         v_b07dd3(v_6bbace);
       } else {
         await v_3f8bc7(v_2ca7e0, v_ed660d, v_b43b74);
@@ -175,19 +211,38 @@ export default function v_c316d8() {
       v_856f84("");
       const v_cb35cb = await v_4208e7(v_6bbace, { limit: 100 });
       v_04f2fc(v_cb35cb.items);
+
+      v_829e3a(v_6bbace, v_cb35cb.items.length);
     } catch (v_49263d) {
       console.warn("[Home] postFeedComment failed:", v_49263d);
     }
   };
 
-  const v_b72645 = async (v_d91518) => {
+  const v_b72645 = (v_d91518) => {
     if (v_ed660d == null || v_ed660d < 0 || !v_2ca7e0) return;
-    try {
-      await v_0df337(v_2ca7e0, v_ed660d, v_d91518);
-      v_04f2fc((v_ba2215) => v_ba2215.filter((v_3f4e2e) => v_3f4e2e.id !== v_d91518));
-    } catch (v_49263d) {
-      console.warn("[Home] deleteFeedComment failed:", v_49263d);
-    }
+    v_03e392.alert(
+      "댓글 삭제",
+      "이 댓글을 삭제하시겠습니까?",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await v_0df337(v_2ca7e0, v_ed660d, v_d91518);
+              v_04f2fc((v_ba2215) => {
+                const v_a448ad = v_ba2215.filter((v_3f4e2e) => v_3f4e2e.id !== v_d91518);
+                v_829e3a(v_ed660d, v_a448ad.length);
+                return v_a448ad;
+              });
+            } catch (v_49263d) {
+              console.warn("[Home] deleteFeedComment failed:", v_49263d);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const v_fcf6ec = v_de06a3(
@@ -202,6 +257,7 @@ export default function v_c316d8() {
         onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
         onCallPress={() => v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image })}
         onCommentPress={() => v_b07dd3(v_8c0b26.id)}
+        onMorePress={() => v_949e66({ cloneId: v_8c0b26.cloneId, author: v_8c0b26.author })}
       />
     ),
     [v_2bcb8f, v_632420, v_1e752a, v_1be4da, v_a96ced, v_3094d4, v_b30b81]
@@ -251,9 +307,17 @@ export default function v_c316d8() {
 
       {}
       <Modal visible={!!v_ed660d} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
         <Pressable style={v_d81136.commentOverlay} onPress={() => v_b07dd3(null)}>
           <View
-            style={[v_d81136.commentSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            style={[
+              v_d81136.commentSheet,
+
+              { paddingBottom: v_507993 ? 12 : 24 + Math.max(v_033e14.bottom, 0) },
+            ]}
             onStartShouldSetResponder={() => true}
           >
             <View style={v_d81136.sheetHandle} />
@@ -311,6 +375,7 @@ export default function v_c316d8() {
             </View>
           </View>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -322,6 +387,62 @@ export default function v_c316d8() {
         onApply={v_604177}
         onClose={() => v_ea2b4b(false)}
       />
+
+      {}
+      <Modal visible={!!v_12fa22} transparent animationType="fade">
+        <Pressable style={v_d81136.moreOverlay} onPress={() => v_949e66(null)}>
+          <Pressable
+            style={[v_d81136.moreSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
+            <View style={v_d81136.moreSheetHandle} />
+            <Text style={v_d81136.moreTitle}>{v_12fa22?.author}</Text>
+            <TouchableOpacity
+              style={v_d81136.moreItem}
+              onPress={() => {
+                v_949e66(null);
+                v_15c939("신고가 접수됐어요");
+              }}
+            >
+              <Feather name="flag" size={20} color="#ef4444" />
+              <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={v_d81136.moreItem}
+              onPress={async () => {
+                const v_5f5d6d = v_12fa22;
+                v_949e66(null);
+                if (!v_5f5d6d || !v_2ca7e0) return;
+                try {
+                  await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
+                  v_15c939("이 페르소나가 차단됐어요");
+
+                  void v_c600ef();
+                } catch (v_49263d) {
+                  console.warn("[Home] block failed:", v_49263d);
+                  v_15c939("차단에 실패했어요");
+                }
+              }}
+            >
+              <Feather name="slash" size={20} color={v_1bfbd0.zinc900} />
+              <Text style={v_d81136.moreItemText}>차단하기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[v_d81136.moreItem, { borderBottomWidth: 0 }]}
+              onPress={() => v_949e66(null)}
+            >
+              <Feather name="x" size={20} color={v_1bfbd0.zinc500} />
+              <Text style={[v_d81136.moreItemText, { color: v_1bfbd0.zinc500 }]}>취소</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {v_8282fa && (
+        <View style={v_d81136.toast}>
+          <Text style={v_d81136.toastText}>{v_8282fa}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -384,4 +505,13 @@ const v_d81136 = v_472849.create({
   emptyText: { fontSize: 14, color: "rgba(255,255,255,0.4)", marginTop: 8 },
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.1)", paddingTop: 12 },
   commentInput: { flex: 1, height: 40, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: v_1bfbd0.white },
+
+  moreOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  moreSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 0, paddingHorizontal: 16 },
+  moreSheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: v_1bfbd0.zinc300, alignSelf: "center", marginVertical: 12 },
+  moreTitle: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
+  moreItem: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: v_1bfbd0.zinc100 },
+  moreItemText: { fontSize: 15, fontWeight: "500", color: v_1bfbd0.zinc900 },
+  toast: { position: "absolute", bottom: 80, alignSelf: "center", paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: v_8b0c90.full },
+  toastText: { color: v_1bfbd0.white, fontSize: 14 },
 });

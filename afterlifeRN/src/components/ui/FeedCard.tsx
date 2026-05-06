@@ -23,6 +23,7 @@ interface FeedCardProps {
   onToggleFollow: () => void;
   onCallPress: () => void;
   onCommentPress?: () => void;
+  onMorePress?: () => void;
 }
 
 const FeedCard: v_a3453e.FC<FeedCardProps> = ({
@@ -35,6 +36,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onToggleFollow: v_cbd557,
   onCallPress: v_c1d70c,
   onCommentPress: v_48b0c1,
+  onMorePress: v_27b331,
 }) => {
   const { t: v_8d41d7 } = v_772971();
   return (
@@ -82,6 +84,17 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
                 {v_a26275 ? v_8d41d7("feed.following") : v_8d41d7("feed.follow")}
               </Text>
             </TouchableOpacity>
+            {}
+            {v_27b331 && (
+              <TouchableOpacity
+                onPress={v_27b331}
+                style={v_d81136.moreButton}
+                activeOpacity={0.7}
+                accessibilityLabel="more-options"
+              >
+                <Feather name="more-vertical" size={20} color={v_1bfbd0.white} />
+              </TouchableOpacity>
+            )}
           </View>
 
           {}
@@ -180,6 +193,15 @@ const v_d81136 = v_472849.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  moreButton: {
+    marginLeft: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   followButtonActive: {
     backgroundColor: "rgba(255,255,255,0.2)",

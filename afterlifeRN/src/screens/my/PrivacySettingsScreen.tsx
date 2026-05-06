@@ -7,17 +7,19 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import type { v_e57140 } from "../../navigation/types";
 
 export default function v_9232cf() {
-  const v_c65f5d = v_ada615();
+  const v_c65f5d = v_ada615<v_390fcc<v_e57140>>();
   const { t: v_8d41d7 } = v_772971();
 
   const v_4622b9 = [
-    { key: "profileVisibility", labelKey: "settings.privacy.profileVisibility", icon: "eye" as const },
+
     { key: "blockList", labelKey: "settings.privacy.blockList", icon: "slash" as const },
     { key: "dataDownload", labelKey: "settings.privacy.dataDownload", icon: "download" as const },
     { key: "deleteAccount", labelKey: "settings.privacy.deleteAccount", icon: "trash-2" as const, danger: true },
@@ -35,7 +37,12 @@ export default function v_9232cf() {
         <View style={v_fd5f43.card}>
           {v_4622b9.map((v_8c0b26, v_ebec57) => (
             <View key={v_8c0b26.key}>
-              <TouchableOpacity style={v_fd5f43.row}>
+              <TouchableOpacity
+                style={v_fd5f43.row}
+                onPress={() => {
+                  if (v_8c0b26.key === "blockList") v_c65f5d.navigate("BlockedList");
+                }}
+              >
                 <Feather
                   name={v_8c0b26.icon}
                   size={20}

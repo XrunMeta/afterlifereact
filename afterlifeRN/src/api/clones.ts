@@ -318,6 +318,28 @@ export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
   return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
 }
 
+export interface BlockedClone {
+  blockId: number;
+  createdAt: string;
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+}
+
+export async function v_97c75d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked: true }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/block`, v_2ca7e0, { method: "POST" });
+}
+export async function v_c0dd8d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked: false }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/block`, v_2ca7e0, { method: "DELETE" });
+}
+export async function v_dbedc9(v_2ca7e0): Promise<{ items: BlockedClone[] }> {
+  return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
 export interface FollowedClone {
   id: number;
   name: string;
