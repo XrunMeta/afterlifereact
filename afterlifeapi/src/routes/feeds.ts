@@ -148,6 +148,11 @@ feedsDiscover.get("/discover", async (c) => {
 
   ];
   const binds: unknown[] = [];
+
+  if (viewerId) {
+    where.push("c.owner_id != ?");
+    binds.push(viewerId);
+  }
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
     where.push("c.id < ?");
     binds.push(cursor);
