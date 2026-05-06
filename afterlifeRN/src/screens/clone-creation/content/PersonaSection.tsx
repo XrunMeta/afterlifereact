@@ -1,5 +1,6 @@
 import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
+import { v_772971 } from 'jmpfvteuuztnp';
 import v_e775af from '../../../components/ui/TextField';
 import {
   v_b95daf,
@@ -19,6 +20,7 @@ interface Props {
 const v_16d682 = 4;
 
 export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_db0487 = v_f04727.personaTypes ?? [];
 
   const v_c8bd6a = (id: v_344f4b) => {
@@ -32,7 +34,7 @@ export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props)
 
   return (
     <View style={v_d81136.wrap}>
-      <Text style={v_d81136.label}>나이</Text>
+      <Text style={v_d81136.label}>{v_8d41d7("create.persona.ageLabel")}</Text>
       <View style={v_d81136.chipRow}>
         {v_b95daf.map((v_2694bd) => {
           const v_f8b770 = v_f04727.personaAge === v_2694bd;
@@ -48,7 +50,7 @@ export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props)
         })}
       </View>
 
-      <Text style={v_d81136.label}>성별</Text>
+      <Text style={v_d81136.label}>{v_8d41d7("create.persona.genderLabel")}</Text>
       <View style={v_d81136.chipRow}>
         {v_f17565.map((v_206b88) => {
           const v_f8b770 = v_f04727.personaGender === v_206b88;
@@ -64,7 +66,7 @@ export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props)
         })}
       </View>
 
-      <Text style={v_d81136.label}>성격 유형 (최대 {v_16d682}개)</Text>
+      <Text style={v_d81136.label}>{v_8d41d7("create.persona.typeLabel", { max: v_16d682 })}</Text>
       <View style={v_d81136.chipRow}>
         {v_2934e9.map((v_e2a85c) => {
           const v_f8b770 = v_db0487.includes(v_e2a85c.id);
@@ -80,7 +82,7 @@ export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props)
         })}
       </View>
 
-      <Text style={v_d81136.label}>MBTI</Text>
+      <Text style={v_d81136.label}>{v_8d41d7("create.persona.mbtiLabel")}</Text>
       <View style={v_d81136.chipRow}>
         {v_336485.map((v_35f85c) => {
           const v_f8b770 = v_f04727.personaMbti === v_35f85c;
@@ -96,9 +98,9 @@ export default function v_78abf7({ draft: v_f04727, onChange: v_b187d9 }: Props)
         })}
       </View>
 
-      <Text style={v_d81136.label}>페르소나 설명</Text>
+      <Text style={v_d81136.label}>{v_8d41d7("create.persona.notesLabel")}</Text>
       <TextField
-        placeholder="이 페르소나의 말투·습관·배경 등을 자유롭게 적어주세요 (선택)"
+        placeholder={v_8d41d7("create.persona.notesPlaceholder")}
         value={v_f04727.personaNotes ?? ''}
         onChangeText={(v_81e2ef) => v_b187d9({ personaNotes: v_81e2ef })}
         multiline

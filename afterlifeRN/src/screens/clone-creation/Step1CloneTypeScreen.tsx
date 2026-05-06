@@ -1,6 +1,7 @@
 import v_a3453e, { v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
+import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_390fcc } from 'xpfgrcdafpntkgxfmgxpxnedjkvmtc';
 import type { v_2b51a5 } from '../../navigation/types';
 
@@ -17,6 +18,7 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from '../../components/constants';
 type Props = { navigation: v_390fcc<v_2b51a5, 'Step1'> };
 
 export default function v_84d7a5({ navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_5795de = v_194498(v_fd5f43 => v_fd5f43.setCreationDraft);
   const v_275ccd = v_194498(v_fd5f43 => v_fd5f43.creationDraft.cloneType);
   const [v_587413, v_2122dd] = v_5ab095<v_d79d7f | undefined>(v_275ccd);
@@ -30,14 +32,14 @@ export default function v_84d7a5({ navigation: v_c65f5d }: Props) {
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
       <PageHeader
-        title="클론 타입"
+        title={v_8d41d7("create.stepTitles.1")}
         showBackButton
         onBackPress={() => v_c65f5d.getParent()?.navigate('HomeTab' as never)}
       />
       <StepIndicator currentStep={1} totalSteps={7} />
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
-        <Text style={v_d81136.title}>어떤 클론을 만들까요?</Text>
-        <Text style={v_d81136.subtitle}>나중에 변경할 수 없으니 신중히 선택해 주세요.</Text>
+        <Text style={v_d81136.title}>{v_8d41d7("create.stepTitles.1")}</Text>
+        <Text style={v_d81136.subtitle}>{v_8d41d7("create.type.defaultDesc")}</Text>
         <View style={v_d81136.grid}>
           {v_aad223.map(v_8d41d7 => {
             const v_f8b770 = v_587413 === v_8d41d7.id;
@@ -58,7 +60,7 @@ export default function v_84d7a5({ navigation: v_c65f5d }: Props) {
         </View>
       </SafeScrollView>
       <View style={v_d81136.bottomBar}>
-        <Button title="다음" onPress={v_420661} disabled={!v_587413} />
+        <Button title={v_8d41d7("create.next")} onPress={v_420661} disabled={!v_587413} />
       </View>
     </SafeView>
   );

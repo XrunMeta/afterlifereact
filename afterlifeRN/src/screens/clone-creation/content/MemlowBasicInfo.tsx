@@ -1,5 +1,6 @@
 import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
+import { v_772971 } from 'jmpfvteuuztnp';
 import v_e775af from '../../../components/ui/TextField';
 import { v_0a40d6 } from '../../../mocks/cloneTypeCatalog';
 import type { v_c2a674 } from '../../../types/clone';
@@ -12,26 +13,27 @@ interface Props {
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   return (
     <View style={v_d81136.wrap}>
       <TextField
-        placeholder="이름 (예: 엄마)"
+        placeholder={v_8d41d7("create.basicInfo.memlowNamePlaceholder")}
         value={v_f04727.name ?? ''}
         onChangeText={v_81e2ef => v_b187d9({ name: v_81e2ef })}
       />
       <TextField
-        placeholder="클론 아이디 (@clon)"
+        placeholder={v_8d41d7("create.basicInfo.usernamePlaceholder")}
         value={v_f04727.username ?? ''}
         onChangeText={v_81e2ef => v_b187d9({ username: v_81e2ef })}
         autoCapitalize="none"
       />
       <TextField
-        placeholder="한 줄 소개 (추억 한 줄)"
+        placeholder={v_8d41d7("create.basicInfo.memlowDescPlaceholder")}
         value={v_f04727.description ?? ''}
         onChangeText={v_81e2ef => v_b187d9({ description: v_81e2ef })}
       />
 
-      <Text style={v_d81136.label}>고인과의 관계</Text>
+      <Text style={v_d81136.label}>{v_8d41d7("create.basicInfo.relationLabel")}</Text>
       <View style={v_d81136.chipRow}>
         {v_0a40d6.map(v_cb35cb => {
           const v_f8b770 = v_f04727.relation === v_cb35cb.id;
