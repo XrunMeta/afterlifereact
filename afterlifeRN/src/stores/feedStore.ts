@@ -28,6 +28,7 @@ interface FeedState {
   getVisibleFeeds: () => v_bc3df4[];
   getFilteredFeeds: () => v_bc3df4[];
   loadDiscover: () => Promise<void>;
+  resetForLogout: () => void;
 }
 
 function v_5b0abe(c: v_4b85a1, v_493eec): boolean {
@@ -180,6 +181,18 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     })),
 
   setSelectedInterests: (v_774c91) => v_bb8024({ selectedInterests: v_774c91 }),
+
+  resetForLogout: () => {
+    v_0b62e7.clear();
+    v_10e36e.clear();
+    v_bb8024({
+      apiFeeds: null,
+      apiLoading: false,
+      likedIds: [],
+      bookmarkedIds: [],
+      selectedInterests: [],
+    });
+  },
 
   loadDiscover: async () => {
     if (v_38715b().apiLoading) return;

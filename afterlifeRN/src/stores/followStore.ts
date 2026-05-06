@@ -23,6 +23,7 @@ interface FollowState {
   toggleFollow: (cloneId: number) => Promise<void>;
   followersCount: (cloneId: number) => number;
   followingIdsFor: (userId: number) => number[];
+  resetForLogout: () => Promise<void>;
 }
 
 let v_054741 = 0;
@@ -131,4 +132,9 @@ export const v_b4902e = v_a7c0d4<FollowState>((v_bb8024, v_38715b) => ({
     v_38715b()
       .follows.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_43e90c)
       .map((v_8b5cd8) => v_8b5cd8.followingCloneId),
+
+  resetForLogout: async () => {
+    await v_e84827.removeItem(v_b6c376);
+    v_bb8024({ follows: [], hydrated: false });
+  },
 }));
