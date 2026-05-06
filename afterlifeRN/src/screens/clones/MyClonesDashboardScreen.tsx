@@ -495,21 +495,18 @@ export default function MyClonesDashboardScreen() {
             <Feather name="video" size={16} color={COLORS.zinc700} />
             <Text style={s.actionText}>{t("dashboard.actionCall")}</Text>
           </TouchableOpacity>
-          {}
-          {clone.myRole === "owner" && (
-            <TouchableOpacity
-              style={s.actionBtn}
-              onPress={() => {
-                setInviteSearch("");
-                setSearchResults([]);
-                setInvitedIds(new Set());
-                setInviteModal({ cloneId: clone.id });
-              }}
-            >
-              <Feather name="user-plus" size={16} color={COLORS.zinc700} />
-              <Text style={s.actionText}>{t("dashboard.actionInvite")}</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={s.actionBtn}
+            onPress={() => {
+              setInviteSearch("");
+              setSearchResults([]);
+              setInvitedIds(new Set());
+              setInviteModal({ cloneId: clone.id });
+            }}
+          >
+            <Feather name="user-plus" size={16} color={COLORS.zinc700} />
+            <Text style={s.actionText}>{t("dashboard.actionInvite")}</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
