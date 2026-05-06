@@ -602,7 +602,7 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url, c.created_at,
+        `SELECT c.id, c.name, c.username, c.description, c.clone_type, c.category, c.avatar_url, c.created_at,
                 COALESCE(s.followers_count, 0) AS followers_count,
                 COALESCE(s.messages_count, 0)  AS messages_count,
                 COALESCE(s.gifts_count, 0)     AS gifts_count
@@ -617,6 +617,7 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         id: number;
         name: string;
         username: string;
+        description: string | null;
         clone_type: string;
         category: string | null;
         avatar_url: string | null;
@@ -627,14 +628,36 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
       }>()
   ).results;
 
+  const v_a3c713 = v_18b8bf.map((v_cb35cb) => v_cb35cb.id);
+  const v_9afb14 = new Map<number, string[]>();
+  if (v_a3c713.length > 0) {
+    const v_1cdc07 = v_a3c713.map(() => "?").join(",");
+    const v_b07d8e = (
+      await v_3f4e2e.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${v_1cdc07})`,
+        )
+        .bind(...v_a3c713)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const v_3ac7e7 of v_b07d8e) {
+      const v_d0c056 = v_9afb14.get(v_3ac7e7.clone_id) ?? [];
+      v_d0c056.push(v_3ac7e7.interest);
+      v_9afb14.set(v_3ac7e7.clone_id, v_d0c056);
+    }
+  }
+
   return v_3f4e2e.json({
     items: v_18b8bf.map((v_cb35cb) => ({
       id: v_cb35cb.id,
       name: v_cb35cb.name,
       username: v_cb35cb.username,
+      description: v_cb35cb.description,
       cloneType: v_cb35cb.clone_type,
       category: v_cb35cb.category,
       avatarUrl: v_cb35cb.avatar_url,
+      interests: v_9afb14.get(v_cb35cb.id) ?? [],
       stats: {
         followers: v_cb35cb.followers_count,
         messages: v_cb35cb.messages_count,

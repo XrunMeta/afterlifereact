@@ -374,9 +374,11 @@ export interface FollowedClone {
   id: number;
   name: string;
   username: string;
+  description?: string | null;
   cloneType: CloneType;
   category: string | null;
   avatarUrl: string | null;
+  interests?: string[];
   stats: { followers: number; messages: number; gifts: number };
   createdAt: string;
 }
