@@ -434,6 +434,17 @@ export default function v_c316d8() {
                     });
                   }
 
+                  const v_a47b72 = v_b4902e.getState();
+                  const v_1d9bd4 = v_1ed7d9.getState().user?.id;
+                  if (v_1d9bd4 != null) {
+                    v_b4902e.setState({
+                      follows: v_a47b72.follows.filter(
+                        (v_8b5cd8) =>
+                          !(v_8b5cd8.followerUserId === v_1d9bd4 && v_8b5cd8.followingCloneId === v_5f5d6d.cloneId),
+                      ),
+                    });
+                  }
+
                   void v_c600ef();
                 } catch (v_49263d) {
                   console.warn("[Home] block failed:", v_49263d);
