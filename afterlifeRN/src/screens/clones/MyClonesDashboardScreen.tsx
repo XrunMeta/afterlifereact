@@ -225,6 +225,21 @@ export default function v_def15b() {
           v_b816d4(v_8d41d7("dashboard.sessionExpired"));
           return;
         }
+        if (v_49263d.code === "ALREADY_INVITED") {
+
+          v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
+          v_b816d4(v_8d41d7("invite.alreadyInvited"));
+          return;
+        }
+        if (v_49263d.code === "ALREADY_MEMBER") {
+          v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
+          v_b816d4(v_8d41d7("invite.alreadyMember"));
+          return;
+        }
+        if (v_49263d.code === "QUOTA_EXCEEDED") {
+          v_b816d4(v_8d41d7("invite.quotaExceeded"));
+          return;
+        }
       } else {
         console.warn("[Dashboard] createInvite failed:", v_49263d);
       }
@@ -329,12 +344,13 @@ export default function v_def15b() {
     const v_e17daa = v_1e752a.filter(
       (v_8b5cd8) => v_8b5cd8.followingCloneId === v_eb25ce.id,
     ).length;
+
     const v_77df30 =
-      v_eb25ce.cloneType === "memlow"
-        ? v_694b7f.coowners().filter(
+      typeof v_eb25ce.coownerCount === "number"
+        ? v_eb25ce.coownerCount
+        : v_694b7f.coowners().filter(
             (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === "approved",
-          ).length
-        : 0;
+          ).length;
 
     return (
       <View style={v_fd5f43.card}>
@@ -620,16 +636,32 @@ export default function v_def15b() {
                 </TouchableOpacity>
               )}
             <View style={v_fd5f43.menuDivider} />
-            <TouchableOpacity
-              style={v_fd5f43.menuItem}
-              onPress={() => {
-                const v_389afb = v_ce3af0!;
-                v_57fac2(v_389afb);
-              }}
-            >
-              <Feather name="trash-2" size={18} color={v_1bfbd0.error} />
-              <Text style={[v_fd5f43.menuItemText, { color: v_1bfbd0.error }]}>{v_8d41d7("dashboard.menuDelete")}</Text>
-            </TouchableOpacity>
+            {}
+            {v_ce3af0 != null &&
+              v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_ce3af0)?.myRole === "owner" ? (
+              <TouchableOpacity
+                style={v_fd5f43.menuItem}
+                onPress={() => {
+                  const v_389afb = v_ce3af0!;
+                  v_57fac2(v_389afb);
+                }}
+              >
+                <Feather name="trash-2" size={18} color={v_1bfbd0.error} />
+                <Text style={[v_fd5f43.menuItemText, { color: v_1bfbd0.error }]}>{v_8d41d7("dashboard.menuDelete")}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={v_fd5f43.menuItem}
+                onPress={() => {
+                  const v_389afb = v_ce3af0!;
+                  v_8d2d61(null);
+                  v_c65f5d.navigate("CloneInvite", { cloneId: v_389afb });
+                }}
+              >
+                <Feather name="log-out" size={18} color={v_1bfbd0.error} />
+                <Text style={[v_fd5f43.menuItemText, { color: v_1bfbd0.error }]}>{v_8d41d7("dashboard.menuLeave")}</Text>
+              </TouchableOpacity>
+            )}
           </Pressable>
         </Pressable>
       </Modal>

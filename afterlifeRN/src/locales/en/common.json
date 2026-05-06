@@ -52,6 +52,8 @@
     "invalidEmail": "Please enter a valid email.",
     "selfNotAllowed": "You cannot invite yourself.",
     "alreadyAdded": "This email is already added.",
+    "alreadyInvited": "There's already a pending invite for this email.",
+    "alreadyMember": "This person is already a co-admin.",
     "memberNotFound": "No member found with this email. Please try again.",
     "quotaExceeded": "Invite quota exceeded.",
     "sendFailed": "Failed to send invite.",
@@ -89,7 +91,10 @@
     "loginRequired": "Sign in to accept this invite.",
     "accept": "Accept Invite",
     "accepted": "Invite accepted!",
-    "acceptFailed": "Failed to accept invite."
+    "acceptFailed": "Failed to accept invite.",
+    "decline": "Decline",
+    "declineConfirmTitle": "Decline invite",
+    "declineConfirmDesc": "Decline the invite for {{name}}?"
   },
   "gdpr": {
     "title": "Permanent Delete (GDPR)",
@@ -248,6 +253,7 @@
     "menuDeactivate": "Deactivate",
     "menuVisibility": "Visibility",
     "menuDelete": "Delete",
+    "menuLeave": "Leave co-admin",
     "coownerCount": "{{n}} co-admins ›",
     "deleteTitle": "Delete Persona",
     "deleteDescDefault": "Are you sure you want to delete this persona?\nDeleted personas cannot be recovered.",

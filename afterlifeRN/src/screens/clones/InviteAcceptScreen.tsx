@@ -23,6 +23,7 @@ import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_a51300,
+  v_e155c8,
   v_a56a6a,
   type v_9c049b,
 } from "../../api/clones";
@@ -42,7 +43,8 @@ export default function v_000f0a() {
   const [v_2ccff1, v_473e7d] = v_5ab095<v_9c049b | null>(null);
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
-  const [v_9865d0, v_a4287d] = v_5ab095(false);
+
+  const [v_a41171, v_4c9ae6] = v_5ab095<null | "accepting" | "declining">(null);
 
   v_c4deb2(() => {
     let v_2008a4 = false;
@@ -81,61 +83,64 @@ export default function v_000f0a() {
       v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("inviteAccept.loginRequired"));
       return;
     }
-    v_a4287d(true);
+    if (v_a41171) return; 
+    v_4c9ae6("accepting");
     try {
       const v_8f00b9 = await v_a51300(v_2ca7e0, v_21cc31);
       console.log("[InviteAccept] success:", v_8f00b9);
-      v_03e392.alert(v_8d41d7("inviteAccept.accepted"), v_2ccff1.clone.name, [
-        {
-          text: v_8d41d7("common.ok"),
-          onPress: () => {
 
-            v_c65f5d.dispatch(
-              v_650cfa.reset({
-                index: 0,
+      v_c65f5d.dispatch(
+        v_650cfa.reset({
+          index: 0,
+          routes: [
+            {
+              name: "Main",
+              state: {
                 routes: [
                   {
-                    name: "Main",
+                    name: "ClonesTab",
                     state: {
                       routes: [
-                        {
-                          name: "ClonesTab",
-                          state: {
-                            routes: [
-                              { name: "Dashboard" },
-                              { name: "CloneDetail", params: { cloneId: v_8f00b9.cloneId } },
-                            ],
-                            index: 1,
-                          },
-                        },
+                        { name: "Dashboard" },
+                        { name: "CloneDetail", params: { cloneId: v_8f00b9.cloneId } },
                       ],
+                      index: 1,
                     },
                   },
                 ],
-              }),
-            );
-          },
-        },
-      ]);
+              },
+            },
+          ],
+        }),
+      );
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("inviteAccept.acceptFailed");
       if (v_49263d instanceof v_84a859) {
         v_badeaf = v_49263d.message;
       }
       v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
-      v_a4287d(false);
+      v_4c9ae6(null);
     }
   };
 
-  const v_a482a4 = () => {
-    v_03e392.alert(v_8d41d7("inviteAccept.errorTitle"), v_8d41d7("inviteAccept.body", { name: v_2ccff1?.clone.name ?? "" }), [
-      { text: v_8d41d7("common.close"), style: "cancel" },
-      {
-        text: v_8d41d7("common.confirm"),
-        style: "destructive",
-        onPress: () => v_c65f5d.goBack(),
-      },
-    ]);
+  const v_a482a4 = async () => {
+
+    if (v_a41171) return; 
+    if (!v_2ca7e0) {
+      v_c65f5d.goBack();
+      return;
+    }
+    v_4c9ae6("declining");
+    try {
+      const v_8f00b9 = await v_e155c8(v_2ca7e0, v_21cc31);
+      console.log("[InviteAccept] decline:", v_8f00b9);
+      v_c65f5d.goBack();
+    } catch (v_49263d) {
+      console.warn("[InviteAccept] decline failed:", v_49263d);
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("inviteAccept.acceptFailed");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_4c9ae6(null);
+    }
   };
 
   return (
@@ -184,15 +189,15 @@ export default function v_000f0a() {
 
             <View style={v_fd5f43.actions}>
               <Button
-                title={v_9865d0 ? v_8d41d7("common.loading") : v_8d41d7("inviteAccept.accept")}
+                title={v_a41171 === "accepting" ? v_8d41d7("common.loading") : v_8d41d7("inviteAccept.accept")}
                 onPress={v_ca868d}
-                disabled={v_9865d0 || !v_042a8b}
+                disabled={v_a41171 !== null || !v_042a8b}
                 variant="accent"
               />
               <Button
-                title={v_8d41d7("common.cancel")}
+                title={v_a41171 === "declining" ? v_8d41d7("common.loading") : v_8d41d7("inviteAccept.decline")}
                 onPress={v_a482a4}
-                disabled={v_9865d0}
+                disabled={v_a41171 !== null}
                 variant="ghost"
               />
             </View>
