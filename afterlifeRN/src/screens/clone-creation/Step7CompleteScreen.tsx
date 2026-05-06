@@ -143,6 +143,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           name: draft.name ?? 'Untitled',
           username,
           description: draft.description || undefined,
+          category: draft.category || undefined,
           visibility,
           interests: draft.interests && draft.interests.length > 0 ? draft.interests : undefined,
           l1_profile: l1Profile,

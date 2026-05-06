@@ -21,6 +21,8 @@ interface FollowState {
   hydrate: () => Promise<void>;
   isFollowing: (cloneId: number) => boolean;
   toggleFollow: (cloneId: number) => Promise<void>;
+
+  unfollowLocalForBlock: (cloneId: number) => Promise<void>;
   followersCount: (cloneId: number) => number;
   followingIdsFor: (userId: number) => number[];
   resetForLogout: () => Promise<void>;
@@ -123,6 +125,24 @@ export const useFollowStore = create<FollowState>((set, get) => ({
     } catch (err) {
       console.warn("[followStore] API toggle error:", err);
     }
+  },
+
+  unfollowLocalForBlock: async (cloneId) => {
+    const u = useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
+    set({
+      follows: get().follows.filter(
+        (f) => !(f.followerUserId === u && f.followingCloneId === cloneId),
+      ),
+    });
+
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const overrides: Override[] = raw ? JSON.parse(raw) : [];
+    overrides.push({
+      cloneId,
+      action: "unfollow",
+      at: new Date().toISOString(),
+    });
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
   },
 
   followersCount: (cloneId) =>

@@ -434,16 +434,7 @@ export default function HomeScreen() {
                     });
                   }
 
-                  const followsState = useFollowStore.getState();
-                  const myUid = useAuthStore.getState().user?.id;
-                  if (myUid != null) {
-                    useFollowStore.setState({
-                      follows: followsState.follows.filter(
-                        (f) =>
-                          !(f.followerUserId === myUid && f.followingCloneId === target.cloneId),
-                      ),
-                    });
-                  }
+                  await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
 
                   void loadDiscover();
                 } catch (err) {
