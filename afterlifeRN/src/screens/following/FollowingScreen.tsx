@@ -718,7 +718,7 @@ const v_fd5f43 = v_472849.create({
   confirmBtns: { flexDirection: "row", gap: 12, width: "100%" },
 
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: v_1bfbd0.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
-  commentSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "65%" },
+  commentSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   commentHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   commentTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   commentScroll: { flex: 1 },
@@ -735,7 +735,7 @@ const v_fd5f43 = v_472849.create({
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc200, paddingTop: 12 },
   commentInput: { flex: 1, height: 40, backgroundColor: v_1bfbd0.zinc100, borderRadius: v_8b0c90.full, paddingHorizontal: 16, fontSize: 14, color: v_1bfbd0.zinc900 },
 
-  callSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "75%" },
+  callSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   callSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   callSheetTitle: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.zinc900 },
   callSearchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: v_1bfbd0.zinc100, borderRadius: v_8b0c90.full, paddingHorizontal: 16, height: 44, marginBottom: 16 },

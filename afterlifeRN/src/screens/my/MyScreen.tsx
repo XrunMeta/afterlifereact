@@ -9,6 +9,7 @@ import {
   v_09d0e5,
   v_03e392,
   v_39a996,
+  v_122070,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
@@ -24,7 +25,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
 import { v_7d2692 } from "../../api/files";
 import { v_976b89 } from "../../api/auth";
-import { v_d60cdf, v_7281a5 } from "../../api/clones";
+import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import { v_9b8cb3, v_5c99c1 } from "../../api/payments";
 import v_3cb56d, {
@@ -48,6 +49,8 @@ export default function v_ed02a5() {
   const v_21f395 = v_1ed7d9((v_fd5f43) => v_fd5f43.patchApiUser);
   const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
+  const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
+  const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const [v_47abd6, v_e12360] = v_5ab095(false);
   const [v_026c2d, v_5eda29] = v_5ab095(false);
@@ -154,6 +157,9 @@ export default function v_ed02a5() {
   const v_0c8987 = v_b113dd?.id ?? v_625c74?.id ?? v_b9d568;
   const [v_65adaf, v_b81b74] = v_5ab095<number | null>(null);
   const [v_8f9093, v_3e7aad] = v_5ab095<number | null>(null);
+  const [v_1f6f04, v_9127a1] = v_5ab095<v_c33ae3[] | null>(null);
+  const [v_58e68f, v_6df89a] = v_5ab095<v_fa0201[] | null>(null);
+  const [v_8bb912, v_d5cd7b] = v_5ab095<"following" | "myClones" | null>(null);
 
   v_cf763b(
     v_a3453e.useCallback(() => {
@@ -166,12 +172,18 @@ export default function v_ed02a5() {
       const v_43e90c = v_b113dd.id;
       v_7281a5(v_2ca7e0, v_43e90c)
         .then((v_cb35cb) => {
-          if (!v_2008a4) v_b81b74(v_cb35cb.items.length);
+          if (!v_2008a4) {
+            v_b81b74(v_cb35cb.items.length);
+            v_9127a1(v_cb35cb.items);
+          }
         })
         .catch((v_49263d) => console.warn("[MyScreen] followedClones fail:", v_49263d));
       v_d60cdf(v_2ca7e0)
         .then((v_cb35cb) => {
-          if (!v_2008a4) v_3e7aad(v_cb35cb.items.length);
+          if (!v_2008a4) {
+            v_3e7aad(v_cb35cb.items.length);
+            v_6df89a(v_cb35cb.items);
+          }
         })
         .catch((v_49263d) => console.warn("[MyScreen] myClones fail:", v_49263d));
       return () => {
@@ -257,15 +269,15 @@ export default function v_ed02a5() {
           <Text style={v_fd5f43.userHandle}>{v_04c129}</Text>
 
           <View style={v_fd5f43.statsRow}>
-            <View style={v_fd5f43.statItem}>
+            <TouchableOpacity style={v_fd5f43.statItem} onPress={() => v_d5cd7b("following")}>
               <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
               <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.following")}</Text>
-            </View>
+            </TouchableOpacity>
             <View style={v_fd5f43.statDivider} />
-            <View style={v_fd5f43.statItem}>
+            <TouchableOpacity style={v_fd5f43.statItem} onPress={() => v_d5cd7b("myClones")}>
               <Text style={v_fd5f43.statValue}>{v_8b222b}</Text>
               <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.myPersona")}</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -370,6 +382,75 @@ export default function v_ed02a5() {
         visible={v_fda1fd}
         onClose={() => v_7ece2f(false)}
       />
+
+      {}
+      <Modal visible={v_8bb912 !== null} transparent animationType="slide">
+        <Pressable style={v_fd5f43.statsOverlay} onPress={() => v_d5cd7b(null)}>
+          <Pressable style={v_fd5f43.statsSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <View style={v_fd5f43.sheetHandle} />
+            <Text style={v_fd5f43.statsTitle}>
+              {v_8bb912 === "following" ? v_8d41d7("my.stats.following") : v_8d41d7("my.stats.myPersona")}
+            </Text>
+            <ScrollView style={{ maxHeight: 480 }}>
+              {v_8bb912 === "following" && (
+                !v_1f6f04 || v_1f6f04.length === 0 ? (
+                  <View style={v_fd5f43.statsEmpty}>
+                    <Feather name="users" size={28} color={v_1bfbd0.zinc300} />
+                    <Text style={v_fd5f43.statsEmptyText}>아직 팔로우한 페르소나가 없어요</Text>
+                  </View>
+                ) : (
+                  v_1f6f04.map((v_3f4e2e) => {
+                    const v_10387a = v_b30b81(v_3f4e2e.id);
+                    return (
+                      <View key={v_3f4e2e.id} style={v_fd5f43.listRow}>
+                        {v_3f4e2e.avatarUrl ? (
+                          <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
+                        ) : (
+                          <View style={[v_fd5f43.listAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={v_fd5f43.listName}>{v_3f4e2e.name}</Text>
+                          <Text style={v_fd5f43.listSub}>@{v_3f4e2e.username}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => void v_3094d4(v_3f4e2e.id)}
+                          style={[v_fd5f43.followToggleBtn, v_10387a && v_fd5f43.followToggleBtnActive]}
+                        >
+                          <Text style={[v_fd5f43.followToggleText, v_10387a && v_fd5f43.followToggleTextActive]}>
+                            {v_10387a ? "팔로잉" : "팔로우"}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })
+                )
+              )}
+              {v_8bb912 === "myClones" && (
+                !v_58e68f || v_58e68f.length === 0 ? (
+                  <View style={v_fd5f43.statsEmpty}>
+                    <Feather name="user" size={28} color={v_1bfbd0.zinc300} />
+                    <Text style={v_fd5f43.statsEmptyText}>아직 만든 페르소나가 없어요</Text>
+                  </View>
+                ) : (
+                  v_58e68f.map((v_3f4e2e) => (
+                    <View key={v_3f4e2e.id} style={v_fd5f43.listRow}>
+                      {v_3f4e2e.avatarUrl ? (
+                        <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
+                      ) : (
+                        <View style={[v_fd5f43.listAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={v_fd5f43.listName}>{v_3f4e2e.name}</Text>
+                        <Text style={v_fd5f43.listSub}>@{v_3f4e2e.username}</Text>
+                      </View>
+                    </View>
+                  ))
+                )
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeScrollView>
   );
 }
@@ -529,4 +610,54 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 8,
   },
   logoutText: { fontSize: 14, color: v_1bfbd0.zinc600 },
+
+  statsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  statsSheet: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    height: "70%",
+  },
+  followToggleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  followToggleBtnActive: {
+    backgroundColor: v_1bfbd0.zinc100,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+  },
+  followToggleText: { fontSize: 12, fontWeight: "700", color: v_1bfbd0.white },
+  followToggleTextActive: { color: v_1bfbd0.zinc700 },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: v_1bfbd0.zinc300,
+    alignSelf: "center",
+    marginVertical: 12,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+    marginBottom: 12,
+  },
+  statsEmpty: { alignItems: "center", paddingVertical: 36, gap: 8 },
+  statsEmptyText: { color: v_1bfbd0.zinc500, fontSize: 13 },
+  listRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+  },
+  listAvatar: { width: 40, height: 40, borderRadius: 20 },
+  listName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  listSub: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
 });
