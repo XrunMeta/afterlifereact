@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -130,6 +131,24 @@ export default function MyClonesDashboardScreen() {
   const [searchResults, setSearchResults] = useState<UserSearchItem[]>([]);
   const [searching, setSearching] = useState(false);
   const [invitedIds, setInvitedIds] = useState<Set<number>>(new Set());
+
+  const [inviteKeyboardHeight, setInviteKeyboardHeight] = useState(0);
+  useEffect(() => {
+    if (!inviteModal) {
+      setInviteKeyboardHeight(0);
+      return;
+    }
+    const showEv = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEv = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEv, (e) => {
+      setInviteKeyboardHeight(e.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEv, () => setInviteKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [inviteModal]);
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
     cloneName: string;
@@ -719,14 +738,29 @@ export default function MyClonesDashboardScreen() {
         </Pressable>
       </Modal>
 
-      {}
-      <Modal visible={!!inviteModal} transparent animationType="slide">
+      {
+}
+      <Modal
+        visible={!!inviteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setInviteModal(null)}
+      >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
         <Pressable style={s.bottomSheetOverlay} onPress={() => setInviteModal(null)}>
-          <View style={s.inviteSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[
+              s.inviteSheet,
+
+              Platform.OS === "android" && inviteKeyboardHeight > 0 && {
+                marginBottom: inviteKeyboardHeight,
+              },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={s.sheetHandle} />
             <View style={s.inviteHeader}>
               <Text style={s.inviteTitle}>공동관리자 초대</Text>
