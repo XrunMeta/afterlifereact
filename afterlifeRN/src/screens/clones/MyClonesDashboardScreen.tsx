@@ -25,7 +25,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, createInvite, deleteClone, listCloneLikes, type MyClone, type FeedLikeUser } from "../../api/clones";
+import { listMyClones, createInvite, deleteClone, listCloneLikes, listCloneComments, type MyClone, type FeedLikeUser, type FeedComment } from "../../api/clones";
 import NotificationBell from "../../components/common/NotificationBell";
 import { searchUsers, AuthApiError, type UserSearchItem } from "../../api/auth";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -36,6 +36,23 @@ import type { RootStackParamList } from "../../navigation/types";
 type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
 const DEFAULT_USER_ID = 1;
+
+function formatRelativeShort(iso: string): string {
+  try {
+    const ms = new Date(iso.replace(" ", "T") + "Z").getTime();
+    const diff = Date.now() - ms;
+    if (diff < 60_000) return "방금";
+    const min = Math.floor(diff / 60_000);
+    if (min < 60) return `${min}분 전`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}시간 전`;
+    const d = Math.floor(hr / 24);
+    if (d < 30) return `${d}일 전`;
+    return new Date(ms).toLocaleDateString();
+  } catch {
+    return "";
+  }
+}
 
 function formatStat(n: number | null | undefined): string {
   if (typeof n !== "number" || !Number.isFinite(n)) return "0";
@@ -152,6 +169,8 @@ export default function MyClonesDashboardScreen() {
   } | null>(null);
   const [likesList, setLikesList] = useState<FeedLikeUser[] | null>(null);
   const [likesLoading, setLikesLoading] = useState(false);
+  const [commentsList, setCommentsList] = useState<FeedComment[] | null>(null);
+  const [commentsLoading, setCommentsLoading] = useState(false);
 
   useEffect(() => {
     if (statsModal?.type !== "likes" || statsModal.cloneId == null) {
@@ -172,6 +191,31 @@ export default function MyClonesDashboardScreen() {
       })
       .finally(() => {
         if (!cancelled) setLikesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [statsModal?.type, statsModal?.cloneId]);
+
+  useEffect(() => {
+    if (statsModal?.type !== "comments" || statsModal.cloneId == null) {
+      setCommentsList(null);
+      return;
+    }
+    let cancelled = false;
+    setCommentsLoading(true);
+    setCommentsList(null);
+    listCloneComments(statsModal.cloneId, { limit: 50 })
+      .then((res) => {
+        if (cancelled) return;
+        setCommentsList(res.items);
+      })
+      .catch((err) => {
+        console.warn("[Dashboard] listCloneComments failed:", err);
+        if (!cancelled) setCommentsList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -976,16 +1020,32 @@ export default function MyClonesDashboardScreen() {
 
             <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
               {}
-              {statsModal?.type === "comments" && MOCK_COMMENTS.map((c) => (
-                <View key={c.id} style={s.commentRow}>
-                  <View style={s.commentTop}>
-                    <Image source={{ uri: c.avatar }} style={s.commentAvatar} />
-                    <Text style={s.commentName}>{c.name}</Text>
-                    <Text style={s.commentTime}>{c.time}</Text>
-                  </View>
-                  <Text style={s.commentText}>{c.text}</Text>
-                </View>
-              ))}
+              {statsModal?.type === "comments" && (
+                <>
+                  {commentsLoading ? (
+                    <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
+                  ) : !commentsList || commentsList.length === 0 ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 댓글이 없어요</Text>
+                    </View>
+                  ) : (
+                    commentsList.map((cm) => (
+                      <View key={cm.id} style={s.commentRow}>
+                        <View style={s.commentTop}>
+                          {cm.user.avatarUrl ? (
+                            <Image source={{ uri: cm.user.avatarUrl }} style={s.commentAvatar} />
+                          ) : (
+                            <View style={[s.commentAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                          )}
+                          <Text style={s.commentName}>{cm.user.name ?? cm.user.email}</Text>
+                          <Text style={s.commentTime}>{formatRelativeShort(cm.createdAt)}</Text>
+                        </View>
+                        <Text style={s.commentText}>{cm.content}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
 
               {}
               {statsModal?.type === "likes" && (

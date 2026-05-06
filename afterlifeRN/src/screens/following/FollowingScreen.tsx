@@ -18,6 +18,7 @@ import {
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
@@ -75,6 +76,7 @@ const formatCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : St
 
 export default function FollowingScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const rootNav = useNavigation<RootNav>();
   const authUser = useAuthStore((s) => s.user);
   const follows = useFollowStore((s) => s.follows);
@@ -382,7 +384,10 @@ export default function FollowingScreen() {
       {}
       <Modal visible={!!commentPostId} transparent animationType="slide">
         <Pressable style={s.bottomOverlay} onPress={() => setCommentPostId(null)}>
-          <View style={s.commentSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[s.commentSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={s.sheetHandle} />
             <View style={s.commentHeaderRow}>
               <Text style={s.commentTitle}>{t("feed.commentCount", { n: currentComments.length })}</Text>
@@ -445,7 +450,10 @@ export default function FollowingScreen() {
       {}
       <Modal visible={showCallModal} transparent animationType="slide">
         <Pressable style={s.bottomOverlay} onPress={() => setShowCallModal(false)}>
-          <View style={s.callSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[s.callSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={s.sheetHandle} />
             <View style={s.callSheetHeader}>
               <Text style={s.callSheetTitle}>{t("feed.callSheetTitle")}</Text>

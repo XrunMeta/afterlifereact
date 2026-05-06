@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ClonesStackParamList } from "../../navigation/types";
 import SafeScrollView from "../../components/ui/SafeScrollView";
@@ -47,6 +48,7 @@ for (const cat of INTEREST_CATEGORIES) {
 
 export default function CloneEditScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const updateLocalClone = useCloneStore((s) => s.updateLocalClone);
@@ -447,7 +449,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       </View>
 
       {}
-      <View style={s.bottomBar}>
+      <View style={[s.bottomBar, { paddingBottom: 16 + Math.max(insets.bottom, 0) }]}>
         <Button
           title={saving ? t("common.loading") : t("edit.save")}
           variant="primary"

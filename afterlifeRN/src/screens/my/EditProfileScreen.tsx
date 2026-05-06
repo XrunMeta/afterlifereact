@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
@@ -38,6 +39,7 @@ const GENDER_OPTIONS: Array<{ value: Gender; label: string }> = [
 ];
 
 export default function EditProfileScreen() {
+  const insetsRef = useSafeAreaInsets();
   const navigation = useNavigation();
   const { t } = useTranslation();
   const apiUser = useAuthStore((s) => s.apiUser);
@@ -346,7 +348,10 @@ export default function EditProfileScreen() {
         onRequestClose={() => setInterestsModalVisible(false)}
       >
         <Pressable style={s.modalOverlay} onPress={() => setInterestsModalVisible(false)}>
-          <Pressable style={s.modalSheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[s.modalSheet, { paddingBottom: 32 + Math.max(insetsRef.bottom, 0) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={s.modalHandle} />
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>관심사 선택</Text>
@@ -385,7 +390,10 @@ export default function EditProfileScreen() {
         onRequestClose={() => setDeleteOptionsVisible(false)}
       >
         <Pressable style={s.modalOverlay} onPress={() => setDeleteOptionsVisible(false)}>
-          <Pressable style={s.deleteSheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[s.deleteSheet, { paddingBottom: 32 + Math.max(insetsRef.bottom, 0) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={s.modalHandle} />
             <Text style={s.deleteSheetTitle}>회원 탈퇴</Text>
             <Text style={s.deleteSheetSubtitle}>

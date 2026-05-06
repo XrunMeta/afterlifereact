@@ -325,6 +325,7 @@ export interface DiscoverFeedItem {
   mediaUrl: string | null;
   mediaType: string | null;
   likesCount: number;
+  likedByMe?: boolean;
   createdAt: string;
   clone: {
     id: number;
@@ -339,11 +340,14 @@ export interface DiscoverFeedItem {
 export async function listDiscoverFeeds(opts?: {
   cursor?: number | null;
   limit?: number;
+  accessToken?: string | null;
 }): Promise<{ items: DiscoverFeedItem[]; nextCursor: number | null }> {
   const url = new URL(`${API_BASE}/oth-path`);
   if (opts?.cursor) url.searchParams.set("cursor", String(opts.cursor));
   if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
-  const res = await fetch(url.toString());
+  const headers: Record<string, string> = {};
+  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
+  const res = await fetch(url.toString(), { headers });
   const text = await res.text();
   const parsed = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) {
@@ -379,6 +383,74 @@ export async function unlikeFeed(
   feedId: number,
 ): Promise<{ ok: true; liked: false; likesCount: number }> {
   return authFetch(`/oth-path${feedId}/like`, accessToken, { method: "DELETE" });
+}
+
+export interface FeedComment {
+  id: number;
+  feedId?: number;
+  userId: number;
+  content: string;
+  createdAt: string;
+  user: {
+    id: number;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+
+export async function listCloneComments(
+  cloneId: number,
+  opts?: { limit?: number },
+): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
+  const url = new URL(`${API_BASE}/oth-path${cloneId}/comments`);
+  if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
+  const res = await fetch(url.toString());
+  const text = await res.text();
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as { items: FeedComment[]; nextCursor: number | null };
+}
+
+export async function listFeedComments(
+  feedId: number,
+  opts?: { cursor?: number | null; limit?: number },
+): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
+  const url = new URL(`${API_BASE}/oth-path${feedId}/comments`);
+  if (opts?.cursor) url.searchParams.set("cursor", String(opts.cursor));
+  if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
+  const res = await fetch(url.toString());
+  const text = await res.text();
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as { items: FeedComment[]; nextCursor: number | null };
+}
+
+export async function postFeedComment(
+  accessToken: string,
+  feedId: number,
+  content: string,
+): Promise<{ ok: true; comment: { id: number; feedId: number; userId: number; content: string } }> {
+  return authFetch(`/oth-path${feedId}/comments`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
 }
 
 export async function likeClone(

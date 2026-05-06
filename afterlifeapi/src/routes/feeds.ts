@@ -138,6 +138,8 @@ feedsDiscover.get("/discover", async (c) => {
   const limitRaw = Number(url.searchParams.get("limit") ?? 20);
   const limit = Math.max(1, Math.min(50, Number.isFinite(limitRaw) ? limitRaw : 20));
 
+  const viewerId = await resolveOptionalUser(c);
+
   const where = [
     "c.deletion_state = 'active'",
     "c.deleted_at IS NULL",
@@ -219,6 +221,26 @@ feedsDiscover.get("/discover", async (c) => {
     }
   }
 
+  const likedFeedIds = new Set<number>();
+  if (viewerId) {
+    const feedIdsInPage = page
+      .map((r) => r.feedId)
+      .filter((x): x is number => typeof x === "number");
+    if (feedIdsInPage.length > 0) {
+      const placeholders = feedIdsInPage.map(() => "?").join(",");
+      const lr = (
+        await c.env.DB
+          .prepare(
+            `SELECT feed_id FROM feed_likes
+              WHERE user_id = ? AND feed_id IN (${placeholders})`,
+          )
+          .bind(viewerId, ...feedIdsInPage)
+          .all<{ feed_id: number }>()
+      ).results ?? [];
+      for (const row of lr) likedFeedIds.add(row.feed_id);
+    }
+  }
+
   return c.json({
     items: page.map((r) => ({
 
@@ -229,6 +251,8 @@ feedsDiscover.get("/discover", async (c) => {
       mediaUrl: r.feedMediaUrl ?? r.cloneAvatarUrl ?? null,
       mediaType: r.feedMediaType,
       likesCount: r.feedLikesCount ?? 0,
+
+      likedByMe: r.feedId != null && likedFeedIds.has(r.feedId),
       createdAt: r.feedCreatedAt ?? r.cloneCreatedAt,
       clone: {
         id: r.cloneId,
@@ -484,6 +508,183 @@ cloneFeeds.delete("/:id/like", requireAuth, async (c) => {
     .bind(f.id)
     .first<{ likes_count: number }>();
   return c.json({ ok: true, liked: false, feedId: f.id, likesCount: cnt?.likes_count ?? 0 });
+});
+
+const commentCreateSchema = z.object({
+  content: z.string().min(1).max(2000),
+});
+
+feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  if (!Number.isInteger(feedId) || feedId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+  }
+  const userId = c.get("userId")!;
+  const body = await parseJson(c, commentCreateSchema);
+
+  const feed = await loadFeedAccessible(c.env.DB, feedId);
+  if (!feed) throw new APIError("NOT_FOUND", "Feed not found.");
+  if (feed.visibility === "private") {
+    if (feed.ownerId !== userId) {
+      const role = await hasAcceptedShare(c.env.DB, feed.cloneId, userId);
+      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+    }
+  }
+  const r = await c.env.DB
+    .prepare(
+      `INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`,
+    )
+    .bind(feedId, userId, body.content.trim())
+    .run();
+  return c.json(
+    {
+      ok: true,
+      comment: {
+        id: Number(r.meta.last_row_id),
+        feedId,
+        userId,
+        content: body.content.trim(),
+      },
+    },
+    201,
+  );
+});
+
+feedsDiscover.delete("/:id/comments/:cid", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  const cid = Number(c.req.param("cid"));
+  if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  }
+  const userId = c.get("userId")!;
+  const res = await c.env.DB
+    .prepare(`DELETE FROM feed_comments WHERE id = ? AND feed_id = ? AND user_id = ?`)
+    .bind(cid, feedId, userId)
+    .run();
+  if ((res.meta?.changes ?? 0) === 0) {
+    throw new APIError("NOT_FOUND", "Comment not found or not yours.");
+  }
+  return c.json({ ok: true });
+});
+
+feedsDiscover.get("/:id/comments", async (c) => {
+  const feedId = Number(c.req.param("id"));
+  if (!Number.isInteger(feedId) || feedId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+  }
+  const url = new URL(c.req.url);
+  const cursorRaw = url.searchParams.get("cursor");
+  const cursor = cursorRaw ? Number(cursorRaw) : null;
+  const limitRaw = Number(url.searchParams.get("limit") ?? 30);
+  const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 30));
+
+  const where = ["fc.feed_id = ?"];
+  const binds: unknown[] = [feedId];
+  if (cursor && Number.isInteger(cursor) && cursor > 0) {
+    where.push("fc.id < ?");
+    binds.push(cursor);
+  }
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT fc.id        AS commentId,
+                fc.user_id   AS userId,
+                fc.content   AS content,
+                fc.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM feed_comments fc
+           JOIN users u ON u.id = fc.user_id
+          WHERE ${where.join(" AND ")} AND u.deleted_at IS NULL
+          ORDER BY fc.id DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit + 1)
+      .all<{
+        commentId: number;
+        userId: number;
+        content: string;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+  const nextCursor =
+    hasMore && page.length > 0 ? page[page.length - 1]!.commentId : null;
+
+  return c.json({
+    items: page.map((r) => ({
+      id: r.commentId,
+      userId: r.userId,
+      content: r.content,
+      createdAt: r.createdAt,
+      user: {
+        id: r.userId,
+        name: r.userName,
+        email: r.userEmail,
+        avatarUrl: r.userAvatarUrl,
+      },
+    })),
+    nextCursor,
+  });
+});
+
+cloneFeeds.get("/:id/comments", async (c) => {
+  const cloneId = parseCloneId(c);
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT fc.id        AS commentId,
+                fc.feed_id   AS feedId,
+                fc.user_id   AS userId,
+                fc.content   AS content,
+                fc.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM feed_comments fc
+           JOIN feeds f ON f.id = fc.feed_id
+           JOIN users u ON u.id = fc.user_id
+          WHERE f.clone_id = ? AND u.deleted_at IS NULL
+          ORDER BY fc.id DESC
+          LIMIT ?`,
+      )
+      .bind(cloneId, limit)
+      .all<{
+        commentId: number;
+        feedId: number;
+        userId: number;
+        content: string;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+  return c.json({
+    items: rows.map((r) => ({
+      id: r.commentId,
+      feedId: r.feedId,
+      userId: r.userId,
+      content: r.content,
+      createdAt: r.createdAt,
+      user: {
+        id: r.userId,
+        name: r.userName,
+        email: r.userEmail,
+        avatarUrl: r.userAvatarUrl,
+      },
+    })),
+    nextCursor: null,
+  });
 });
 
 cloneFeeds.get("/:id/likes", async (c) => {

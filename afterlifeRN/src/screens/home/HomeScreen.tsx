@@ -185,7 +185,10 @@ export default function HomeScreen() {
       {}
       <Modal visible={!!commentFeedId} transparent animationType="slide">
         <Pressable style={styles.commentOverlay} onPress={() => setCommentFeedId(null)}>
-          <View style={styles.commentSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[styles.commentSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={styles.sheetHandle} />
             <View style={styles.commentHeaderRow}>
               <Text style={styles.commentTitle}>{t("feed.commentCount", { n: currentComments.length })}</Text>
