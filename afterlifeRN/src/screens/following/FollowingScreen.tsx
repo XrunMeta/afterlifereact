@@ -191,20 +191,6 @@ export default function v_14b43e() {
 
   const v_3a63e7 = v_5c83d5 ? v_937a56(v_5c83d5) : [];
 
-  const v_6d1292 = () => (
-    <View style={v_fd5f43.heroWrap}>
-      <Image
-        source={require("../../../assets/images/grandfather-post.png")}
-        style={v_fd5f43.heroImage}
-        resizeMode="cover"
-      />
-      <View style={v_fd5f43.heroOverlay}>
-        <Text style={v_fd5f43.heroTitle}>{v_8d41d7("feed.heroTitle")}</Text>
-        <Text style={v_fd5f43.heroSubtitle}>{v_8d41d7("feed.heroSubtitle")}</Text>
-      </View>
-    </View>
-  );
-
   const v_bdaeb6 = ({ item: v_8c0b26 }: { item: (typeof v_b94d82)[0] }) => {
     const v_afeceb = v_8c0b26.feed.mediaUrl ?? v_8c0b26.persona.avatar;
     return (
@@ -322,7 +308,6 @@ export default function v_14b43e() {
         data={v_b94d82}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.feed.id)}
         renderItem={v_bdaeb6}
-        ListHeaderComponent={v_6d1292}
         contentContainerStyle={v_fd5f43.feed}
         showsVerticalScrollIndicator={false}
         onScroll={v_023642}
@@ -560,27 +545,6 @@ const v_fd5f43 = v_472849.create({
 
   feed: { padding: 16, gap: 16 },
   postWrap: { marginBottom: 8 },
-
-  heroWrap: {
-    height: 160,
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 16,
-    backgroundColor: v_1bfbd0.zinc100,
-  },
-  heroImage: {
-    ...v_472849.absoluteFillObject,
-    width: "100%",
-    height: "100%",
-  },
-  heroOverlay: {
-    ...v_472849.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    justifyContent: "flex-end",
-    padding: 16,
-  },
-  heroTitle: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.white },
-  heroSubtitle: { fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 },
 
   imageWrap: { borderRadius: 24, overflow: "hidden", backgroundColor: v_1bfbd0.zinc100 },
   postImage: { width: "100%", aspectRatio: 3 / 4 },
