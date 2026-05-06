@@ -1,35 +1,35 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
+import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import Button from "../../components/ui/Button";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
 
-const CONFIRM_PHRASE = "영구 삭제 요청합니다";
-
 export default function GDPRDeleteScreen() {
+  const { t } = useTranslation();
+  const CONFIRM_PHRASE = t("gdpr.phrase");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function submit() {
     if (confirm.trim() !== CONFIRM_PHRASE) {
-      Alert.alert("확인 문구가 일치하지 않습니다", `정확히 "${CONFIRM_PHRASE}"을(를) 입력해주세요.`);
+      Alert.alert(t("gdpr.phraseMismatch"), t("gdpr.phraseMismatchMsg", { phrase: CONFIRM_PHRASE }));
       return;
     }
     Alert.alert(
-      "최종 확인",
-      "귀하의 암호화 키가 영구 파기됩니다. 이후 어떤 방법으로도 데이터 복구가 불가능합니다. 계속하시겠습니까?",
+      t("gdpr.finalTitle"),
+      t("gdpr.finalDesc"),
       [
-        { text: "취소", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "영구 삭제",
+          text: t("gdpr.finalConfirm"),
           style: "destructive",
           onPress: async () => {
             setLoading(true);
             try {
-
               await new Promise((r) => setTimeout(r, 600));
-              Alert.alert("영구 삭제 완료", "계정과 관련 데이터의 암호화 키가 파기되었습니다.");
+              Alert.alert(t("gdpr.successTitle"), t("gdpr.successMsg"));
             } finally {
               setLoading(false);
             }
@@ -41,19 +41,17 @@ export default function GDPRDeleteScreen() {
 
   return (
     <SafeScrollView backgroundColor={COLORS.white}>
-      <PageHeader title="영구 삭제 (GDPR)" />
+      <PageHeader title={t("gdpr.title")} />
       <View style={s.wrap}>
-        <Text style={s.warn}>⚠ 회복 불가능한 작업입니다</Text>
+        <Text style={s.warn}>{t("gdpr.warning")}</Text>
         <Text style={s.body}>
-          이 옵션은 일반 삭제(복구 가능)와 달리 귀하의 암호화 키를 즉시 파기합니다(Crypto Shredding).
-          키가 파기되면 데이터베이스에 남은 암호문은 영원히 복호화할 수 없습니다.
+          {t("gdpr.desc1")}
           {"\n\n"}
-          단순히 계정을 그만두고 싶다면 설정의 "계정 삭제"를 사용하세요. 해당 경로는 90일 복구 기간을
-          제공합니다.
+          {t("gdpr.desc2")}
         </Text>
 
-        <Text style={s.label}>확인 문구 입력</Text>
-        <Text style={s.helper}>정확히 다음 문구를 입력하세요: "{CONFIRM_PHRASE}"</Text>
+        <Text style={s.label}>{t("gdpr.label")}</Text>
+        <Text style={s.helper}>{t("gdpr.helper", { phrase: CONFIRM_PHRASE })}</Text>
         <TextInput
           value={confirm}
           onChangeText={setConfirm}
@@ -63,7 +61,7 @@ export default function GDPRDeleteScreen() {
 
         <View style={{ height: 16 }} />
         <Button
-          title={loading ? "처리 중..." : "영구 삭제 요청"}
+          title={loading ? t("gdpr.submitting") : t("gdpr.submit")}
           onPress={submit}
           disabled={loading}
           variant="danger"

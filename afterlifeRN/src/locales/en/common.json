@@ -91,6 +91,37 @@
     "accepted": "Invite accepted!",
     "acceptFailed": "Failed to accept invite."
   },
+  "gdpr": {
+    "title": "Permanent Delete (GDPR)",
+    "warning": "⚠ This action is irreversible",
+    "desc1": "Unlike a regular delete (recoverable), this option immediately destroys your encryption keys (Crypto Shredding). Once destroyed, the ciphertext remaining in the database can never be decrypted.",
+    "desc2": "If you just want to leave your account, use \"Delete Account\" in Settings. That path offers a 90-day recovery window.",
+    "label": "Type confirmation phrase",
+    "helper": "Type exactly: \"{{phrase}}\"",
+    "submit": "Request Permanent Delete",
+    "submitting": "Processing...",
+    "phrase": "I REQUEST PERMANENT DELETE",
+    "phraseMismatch": "Confirmation phrase doesn't match",
+    "phraseMismatchMsg": "Please type exactly \"{{phrase}}\".",
+    "finalTitle": "Final confirmation",
+    "finalDesc": "Your encryption keys will be permanently destroyed. No data recovery will be possible afterwards. Continue?",
+    "finalConfirm": "Permanently delete",
+    "successTitle": "Permanent delete complete",
+    "successMsg": "Your encryption keys and account data have been destroyed."
+  },
+  "restore": {
+    "title": "Restore Account",
+    "headTitle": "Account is pending deletion",
+    "desc1": "Your account is currently soft-deleted. You can recover it within 90 days of the deletion request.",
+    "desc2": "After 90 days it moves to cold archive (additional 275 days), recoverable only via admin support. After a total of 1 year it is permanently deleted.",
+    "desc3": "Your encryption keys (DEKs) are preserved by default. For permanent destruction, use \"GDPR Delete\".",
+    "submit": "Restore now",
+    "submitting": "Restoring...",
+    "successTitle": "Restore complete",
+    "successMsg": "Your account has been reactivated.",
+    "failTitle": "Restore failed",
+    "failMsg": "The recovery window (90 days) has expired or the state has changed."
+  },
   "detail": {
     "notFound": "Persona not found.",
     "coownerInvite": "Invite Co-admin",
