@@ -23,6 +23,18 @@ const linking: v_4c916c<v_8ad91b> = {
         path: "invite/:token",
         parse: { token: (v_8d41d7) => decodeURIComponent(v_8d41d7) },
       },
+      Main: {
+        screens: {
+          ClonesTab: {
+            screens: {
+              CloneDetail: {
+                path: "clone/:cloneId",
+                parse: { cloneId: (v_389afb) => Number(v_389afb) },
+              },
+            },
+          },
+        },
+      },
     },
   },
 };

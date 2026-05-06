@@ -249,6 +249,8 @@
     "actionCall": "Call",
     "actionInvite": "Invite",
     "actionShare": "Share",
+    "shareLinkCopied": "Link copied. Share it with a friend!",
+    "shareLinkFailed": "Failed to copy link",
     "manage": "Manage",
     "menuEdit": "Edit",
     "menuActivate": "Activate",

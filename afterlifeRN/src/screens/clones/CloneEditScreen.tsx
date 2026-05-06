@@ -437,7 +437,8 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             <Text style={v_fd5f43.modalTitle}>{v_8d41d7("edit.visibilityChooseTitle")}</Text>
             <Text style={v_fd5f43.modalDesc}>{v_8d41d7("edit.visibilityChooseDesc")}</Text>
             <View style={v_fd5f43.visibilityOptions}>
-              {(["public", "private", "followers"] as Visibility[]).map((v_81e2ef) => {
+              {}
+              {(["public", "private"] as Visibility[]).map((v_81e2ef) => {
                 const v_587413 = v_818579 === v_81e2ef;
                 return (
                   <TouchableOpacity
