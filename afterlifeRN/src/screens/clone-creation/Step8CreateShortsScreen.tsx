@@ -7,6 +7,7 @@ import {
   v_39a996,
 } from 'rcmrninabrnb';
 import { v_650cfa } from 'ixigazcpvfldbecwtbvavtbi';
+import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_432191 } from 'xpfgrcdafpntkgxfmgxpxnedjkvmtc';
 import type { v_2b51a5 } from '../../navigation/types';
 import { v_9a8286 } from '../../api/client';
@@ -16,6 +17,7 @@ import type { v_813230 } from '../../types/domain';
 type Props = v_432191<v_2b51a5, 'Step8'>;
 
 export default function v_d19b01({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_6e0fd3 = v_c7daf6.params.cloneId;
   const v_013af2 = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
   const [v_d308b5, v_5193f8] = v_5ab095<v_813230>('queued');
@@ -79,16 +81,16 @@ export default function v_d19b01({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   if (v_78e23a) {
     return (
       <View style={v_d81136.root}>
-        <Text style={v_d81136.title}>소개 영상</Text>
+        <Text style={v_d81136.title}>{v_8d41d7('create.shorts.title')}</Text>
         <View accessibilityLabel="step8-forbidden" style={v_d81136.center}>
-          <Text style={v_d81136.muted}>이 클론의 소유자만 영상을 만들 수 있어요.</Text>
+          <Text style={v_d81136.muted}>{v_8d41d7('create.shorts.forbidden')}</Text>
         </View>
         <TouchableOpacity
           accessibilityLabel="step8-forbidden-skip"
           onPress={v_91ec30}
           style={v_d81136.btn}
         >
-          <Text>홈으로</Text>
+          <Text>{v_8d41d7('create.shorts.home')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -96,7 +98,7 @@ export default function v_d19b01({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   return (
     <View style={v_d81136.root}>
-      <Text style={v_d81136.title}>소개 영상</Text>
+      <Text style={v_d81136.title}>{v_8d41d7('create.shorts.title')}</Text>
       {v_d308b5 === 'ready' ? (
         <View accessibilityLabel="step8-preview" style={v_d81136.center}>
           <Text style={v_d81136.muted}>{v_1458b7 ?? '(preview)'}</Text>
@@ -104,7 +106,7 @@ export default function v_d19b01({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ) : (
         <View accessibilityLabel="step8-progress" style={v_d81136.center}>
           <ActivityIndicator />
-          <Text style={v_d81136.muted}>생성 중… ({v_d308b5})</Text>
+          <Text style={v_d81136.muted}>{v_8d41d7('create.shorts.creating')} ({v_d308b5})</Text>
         </View>
       )}
       <View style={v_d81136.row}>
@@ -113,14 +115,14 @@ export default function v_d19b01({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           onPress={v_91ec30}
           style={v_d81136.btn}
         >
-          <Text>건너뛰기</Text>
+          <Text>{v_8d41d7('create.shorts.skip')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           accessibilityLabel="step8-retry"
           onPress={v_965edf}
           style={v_d81136.btn}
         >
-          <Text>다시 생성</Text>
+          <Text>{v_8d41d7('create.shorts.retry')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           accessibilityLabel="step8-done"
@@ -128,7 +130,7 @@ export default function v_d19b01({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           onPress={v_91ec30}
           style={[v_d81136.btn, v_d308b5 !== 'ready' && v_d81136.btnDisabled]}
         >
-          <Text>완료</Text>
+          <Text>{v_8d41d7('create.shorts.done')}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -34,9 +34,9 @@ import type { v_e57140 } from "../../navigation/types";
 const v_b9d568 = 1;
 
 const v_cca523 = [
-  { label: "페르소나 생성", date: "2024.03.25 14:32", amount: -500 },
-  { label: "영상 통화 (15분)", date: "2024.03.24 19:15", amount: -300 },
-  { label: "코인 충전", date: "2024.03.23 10:20", amount: 10000 },
+  { labelKey: "my.coin.txCreatePersona", date: "2024.03.25 14:32", amount: -500 },
+  { labelKey: "my.coin.txVideoCall", date: "2024.03.24 19:15", amount: -300 },
+  { labelKey: "my.coin.txRecharge", date: "2024.03.23 10:20", amount: 10000 },
 ];
 
 type MyNav = v_390fcc<v_e57140>;
@@ -111,12 +111,12 @@ export default function v_ed02a5() {
 
   const v_d28ade = async () => {
     if (!v_2ca7e0) {
-      v_03e392.alert("알림", "로그인이 필요합니다.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("my.loginRequired"));
       return;
     }
     const v_d60769 = await v_d05ab5.requestMediaLibraryPermissionsAsync();
     if (!v_d60769.granted) {
-      v_03e392.alert("권한 필요", "사진 라이브러리 접근 권한을 허용해주세요.");
+      v_03e392.alert(v_8d41d7("my.permTitle"), v_8d41d7("my.permDesc"));
       return;
     }
     const v_07fb2e = await v_d05ab5.launchImageLibraryAsync({
@@ -138,14 +138,14 @@ export default function v_ed02a5() {
       await v_976b89(v_2ca7e0, { avatarUrl: v_57ac81.url });
       v_21f395({ avatarUrl: v_57ac81.url });
     } catch (v_49263d) {
-      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "이미지 업로드에 실패했습니다.";
-      v_03e392.alert("오류", v_badeaf);
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : v_8d41d7("my.uploadFailed");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_5eda29(false);
     }
   };
 
-  const v_8a1355 = v_b113dd?.name ?? v_625c74?.displayName ?? "사용자";
+  const v_8a1355 = v_b113dd?.name ?? v_625c74?.displayName ?? v_8d41d7("my.userFallback");
   const v_04c129 = v_b113dd?.email ?? v_625c74?.handle ?? "@afterlife";
   const v_bf6b43 = v_b113dd ? v_b113dd.avatarUrl : v_625c74?.avatarUrl ?? null;
 
@@ -241,19 +241,19 @@ export default function v_ed02a5() {
           <View style={v_fd5f43.statsRow}>
             <View style={v_fd5f43.statItem}>
               <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
-              <Text style={v_fd5f43.statLabel}>팔로우 중</Text>
+              <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.following")}</Text>
             </View>
             <View style={v_fd5f43.statDivider} />
             <View style={v_fd5f43.statItem}>
               <Text style={v_fd5f43.statValue}>{v_8b222b}</Text>
-              <Text style={v_fd5f43.statLabel}>내 페르소나</Text>
+              <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.myPersona")}</Text>
             </View>
           </View>
         </View>
 
         {}
         <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>xrun 코인</Text>
+          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.coin.title")}</Text>
         </View>
 
         {}
@@ -261,11 +261,11 @@ export default function v_ed02a5() {
           <View style={v_fd5f43.coinCardTop}>
             <View style={v_fd5f43.coinLabelRow}>
               <Feather name="dollar-sign" size={18} color={v_1bfbd0.zinc700} />
-              <Text style={v_fd5f43.coinLabel}>보유 코인</Text>
+              <Text style={v_fd5f43.coinLabel}>{v_8d41d7("my.coin.balance")}</Text>
             </View>
             <TouchableOpacity style={v_fd5f43.chargeBtn}>
               <Feather name="plus" size={14} color={v_1bfbd0.white} />
-              <Text style={v_fd5f43.chargeBtnText}>충전</Text>
+              <Text style={v_fd5f43.chargeBtnText}>{v_8d41d7("my.coin.charge")}</Text>
             </TouchableOpacity>
           </View>
           {v_747a87 ? (
@@ -281,7 +281,7 @@ export default function v_ed02a5() {
           ) : (
             <>
               <Text style={v_fd5f43.coinAmount}>—</Text>
-              <Text style={v_fd5f43.coinWon}>xrun 회원 매핑이 안 되어 있습니다</Text>
+              <Text style={v_fd5f43.coinWon}>{v_8d41d7("my.coin.notMapped")}</Text>
             </>
           )}
         </View>
@@ -289,7 +289,7 @@ export default function v_ed02a5() {
         {}
         <View style={v_fd5f43.transactionsCard}>
           <View style={v_fd5f43.transactionsHeader}>
-            <Text style={v_fd5f43.transactionsTitle}>최근 거래</Text>
+            <Text style={v_fd5f43.transactionsTitle}>{v_8d41d7("my.coin.transactions")}</Text>
           </View>
           {v_cca523.map((v_2f6fcc, v_ebec57) => (
             <View
@@ -300,7 +300,7 @@ export default function v_ed02a5() {
               ]}
             >
               <View style={v_fd5f43.txInfo}>
-                <Text style={v_fd5f43.txLabel}>{v_2f6fcc.label}</Text>
+                <Text style={v_fd5f43.txLabel}>{v_8d41d7(v_2f6fcc.labelKey)}</Text>
                 <Text style={v_fd5f43.txDate}>{v_2f6fcc.date}</Text>
               </View>
               <Text style={[v_fd5f43.txAmount, v_2f6fcc.amount > 0 ? v_fd5f43.txGreen : v_fd5f43.txRed]}>
@@ -310,13 +310,13 @@ export default function v_ed02a5() {
             </View>
           ))}
           <TouchableOpacity style={v_fd5f43.viewAllBtn}>
-            <Text style={v_fd5f43.viewAllText}>전체 내역 보기</Text>
+            <Text style={v_fd5f43.viewAllText}>{v_8d41d7("my.coin.viewAll")}</Text>
           </TouchableOpacity>
         </View>
 
         {}
         <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.menu.editProfile") ? "설정" : "설정"}</Text>
+          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.coin.settings")}</Text>
         </View>
 
         <View style={v_fd5f43.settingsCard}>

@@ -8,7 +8,9 @@ import {
   v_472849,
   v_09d0e5,
 } from "rcmrninabrnb";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import v_84e2fc from "./InterestChip";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../constants";
 import { v_bf4124 } from "../../mocks/interestHelpers";
@@ -32,6 +34,8 @@ const FilterModal: v_a3453e.FC<FilterModalProps> = ({
   onApply: v_e67921,
   onClose: v_0890f8,
 }) => {
+  const { t: v_8d41d7 } = v_772971();
+  const v_033e14 = v_e0068c();
   return (
     <Modal
       visible={v_cf55be}
@@ -47,7 +51,7 @@ const FilterModal: v_a3453e.FC<FilterModalProps> = ({
         {}
         <View style={v_d81136.header}>
           <View style={v_d81136.headerLeft}>
-            <Text style={v_d81136.headerTitle}>관심사 필터</Text>
+            <Text style={v_d81136.headerTitle}>{v_8d41d7("feed.interestFilter")}</Text>
             {v_976e06.length > 0 && (
               <View style={v_d81136.badge}>
                 <Text style={v_d81136.badgeText}>{v_976e06.length}</Text>
@@ -79,20 +83,25 @@ const FilterModal: v_a3453e.FC<FilterModalProps> = ({
         </ScrollView>
 
         {}
-        <View style={v_d81136.footer}>
+        <View
+          style={[
+            v_d81136.footer,
+            { paddingBottom: v_9b1a04.xlarge + Math.max(v_033e14.bottom, 0) },
+          ]}
+        >
           <TouchableOpacity
             onPress={v_02a1a9}
             style={v_d81136.resetButton}
             activeOpacity={0.7}
           >
-            <Text style={v_d81136.resetText}>초기화</Text>
+            <Text style={v_d81136.resetText}>{v_8d41d7("feed.clearFilter")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={v_e67921}
             style={v_d81136.applyButton}
             activeOpacity={0.7}
           >
-            <Text style={v_d81136.applyText}>적용하기</Text>
+            <Text style={v_d81136.applyText}>{v_8d41d7("feed.applyFilter")}</Text>
           </TouchableOpacity>
         </View>
       </View>

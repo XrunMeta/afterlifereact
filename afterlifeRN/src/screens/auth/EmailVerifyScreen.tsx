@@ -8,6 +8,7 @@ import {
   v_39a996,
   v_79c4f2,
 } from "rcmrninabrnb";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
 
@@ -24,6 +25,7 @@ type Props = v_432191<v_384e19, "EmailVerify">;
 const v_d812cb = 60;
 
 export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_24baff = v_c7daf6.params;
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
@@ -46,17 +48,17 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       await v_97ea8d(v_24baff.email);
       v_ec979d(v_d812cb);
-      v_03e392.alert("재발송", "인증 코드를 다시 보냈습니다. 메일함을 확인하세요.");
+      v_03e392.alert(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
     } catch (v_49263d) {
       const v_badeaf =
-        v_49263d instanceof v_84a859 ? v_49263d.message : "재발송에 실패했습니다.";
-      v_03e392.alert("오류", v_badeaf);
+        v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     }
   };
 
   const v_83b05b = async () => {
     if (v_c99bd2.length !== 6) {
-      v_03e392.alert("알림", "6자리 인증 코드를 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
       return;
     }
     v_ee9ec1(true);
@@ -81,36 +83,29 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user);
       console.log("[AUTH/signup] user:", v_9ec4c0.user, "accessExpiresIn:", v_8f00b9.accessExpiresIn);
 
-      v_03e392.alert("가입 완료", "회원가입이 완료되었습니다.", [
-        { text: "확인", onPress: () => v_c65f5d.navigate("Login") },
+      v_03e392.alert(v_8d41d7("auth.signup.signupBtn"), v_8d41d7("common.success"), [
+        { text: v_8d41d7("common.ok"), onPress: () => v_c65f5d.navigate("Login") },
       ]);
     } catch (v_49263d) {
-      let v_badeaf = "가입 처리 중 오류가 발생했습니다.";
+      let v_badeaf = v_8d41d7("auth.signup.signupFailed");
       if (v_49263d instanceof v_84a859) {
         v_badeaf = v_49263d.message;
-
-        if (/public breaches/i.test(v_49263d.message)) {
-          v_badeaf = "보안상 사용할 수 없는 비밀번호입니다. 다른 비밀번호를 사용해주세요.";
-        } else if (v_49263d.code === "CONFLICT") {
-          v_badeaf = "이미 가입된 이메일입니다. 로그인을 진행해주세요.";
+        if (v_49263d.code === "CONFLICT") {
+          v_badeaf = v_8d41d7("auth.signup.alreadyExists");
         } else if (v_49263d.code === "OTP_EXPIRED") {
-          v_badeaf = "인증 코드가 만료됐습니다. 재발송을 눌러 새 코드를 받아주세요.";
+          v_badeaf = v_8d41d7("auth.emailVerify.expired");
         } else if (v_49263d.code === "OTP_INVALID") {
-          const v_dbaa7f = v_49263d.message.match(/(\d+)\s*attempts? left/)?.[1];
-          v_badeaf = v_dbaa7f
-            ? `잘못된 인증 코드입니다. (${v_dbaa7f}회 시도 가능)`
-            : "인증 코드를 너무 많이 틀렸습니다. 재발송 받아 다시 시도해주세요.";
+          v_badeaf = v_8d41d7("auth.emailVerify.wrongCode");
         } else if (v_49263d.code === "OTP_REQUIRED") {
-          v_badeaf = "인증 코드가 만료됐거나 폐기됐습니다. 재발송을 눌러주세요.";
+          v_badeaf = v_8d41d7("auth.emailVerify.expired");
         } else if (v_49263d.code === "VALIDATION_FAILED" && Array.isArray(v_49263d.details)) {
-
           const v_712957 = v_49263d.details
             .map((v_d5dda0) => `• ${(v_d5dda0.path ?? []).join(".")}: ${v_d5dda0.message}`)
             .join("\n");
           v_badeaf = `${v_badeaf}\n\n${v_712957}`;
         }
       }
-      v_03e392.alert("오류", v_badeaf);
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -119,7 +114,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
       <PageHeader
-        title="이메일 인증"
+        title={v_8d41d7("auth.emailVerify.title")}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -129,10 +124,9 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         showBottomBackground={false}
       >
         <View style={v_d81136.container}>
-          <Text style={v_d81136.title}>이메일로 코드를 보냈어요</Text>
+          <Text style={v_d81136.title}>{v_8d41d7("auth.emailVerify.title")}</Text>
           <Text style={v_d81136.subtitle}>
-            <Text style={v_d81136.email}>{v_24baff.email}</Text>
-            {"\n"}메일함의 6자리 인증 코드를 입력해주세요. (5분간 유효)
+            {v_8d41d7("auth.emailVerify.desc", { email: v_24baff.email })}
           </Text>
 
           <TextInput
@@ -149,7 +143,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           />
 
           <Button
-            title={v_cb66b4 ? "처리 중..." : "인증하고 가입 완료"}
+            title={v_cb66b4 ? v_8d41d7("auth.signup.verifying") : v_8d41d7("auth.emailVerify.verifyBtn")}
             onPress={v_83b05b}
             disabled={v_cb66b4 || v_c99bd2.length !== 6}
           />
@@ -160,7 +154,6 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           )}
 
           <View style={v_d81136.resendRow}>
-            <Text style={v_d81136.resendText}>코드를 못 받으셨나요?</Text>
             <TouchableOpacity onPress={v_cf9840} disabled={v_600d5b > 0}>
               <Text
                 style={[
@@ -168,7 +161,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                   v_600d5b > 0 && v_d81136.resendLinkDisabled,
                 ]}
               >
-                {v_600d5b > 0 ? `재발송 (${v_600d5b}s)` : "재발송"}
+                {v_600d5b > 0 ? `${v_8d41d7("auth.emailVerify.resend")} (${v_600d5b}s)` : v_8d41d7("auth.emailVerify.resend")}
               </Text>
             </TouchableOpacity>
           </View>

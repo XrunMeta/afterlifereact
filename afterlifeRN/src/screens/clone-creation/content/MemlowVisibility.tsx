@@ -1,6 +1,7 @@
 import v_a3453e, { v_c4deb2, v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_79c4f2, v_472849, v_03e392, v_39a996 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
+import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 import { v_1ed7d9 } from '../../../stores/authStore';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const [v_483de2, v_266e0d] = v_5ab095('');
   const [v_8d779a, v_5f3183] = v_5ab095(false);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -28,15 +30,15 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     const v_81e2ef = v_483de2.trim();
     if (!v_81e2ef) return;
     if (!v_57ffc4.test(v_81e2ef)) {
-      v_03e392.alert('알림', '올바른 이메일을 입력해주세요.');
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.invalidEmail"));
       return;
     }
     if (v_78547c && v_81e2ef.toLowerCase() === v_78547c.toLowerCase()) {
-      v_03e392.alert('알림', '본인은 초대할 수 없어요.');
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.selfNotAllowed"));
       return;
     }
     if (v_c46df8.some((v_9e86fd) => v_9e86fd.toLowerCase() === v_81e2ef.toLowerCase())) {
-      v_03e392.alert('알림', '이미 추가된 이메일이에요.');
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.alreadyAdded"));
       return;
     }
     if (!v_2ca7e0) {
@@ -50,16 +52,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       const v_8f00b9 = await v_a41961(v_2ca7e0, v_81e2ef);
       const v_17ec8d = v_8f00b9.items.find((v_ceb55a) => v_ceb55a.email.toLowerCase() === v_81e2ef.toLowerCase());
       if (!v_17ec8d) {
-
-        v_03e392.alert('알림', '해당 이메일을 가진 회원이 없습니다 다시 입력해주세요');
+        v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.memberNotFound"));
         return;
       }
       v_b187d9({ coownerInvites: [...v_c46df8, v_81e2ef] });
       v_266e0d('');
     } catch (v_49263d) {
-
       console.warn('[MemlowVisibility] searchUsers failed:', v_49263d);
-      v_03e392.alert('오류', '회원 확인 중 오류가 났어요. 잠시 후 다시 시도해주세요.');
+      v_03e392.alert(v_8d41d7("common.error"), v_8d41d7("invite.memberNotFound"));
     } finally {
       v_5f3183(false);
     }
@@ -72,12 +72,12 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       <View style={v_d81136.lockedRow}>
         <Feather name="lock" size={16} color={v_1bfbd0.violet600} />
         <Text style={v_d81136.lockedText}>
-          고인 클론은 비공개로 고정돼요. 공동관리자만 볼 수 있어요.
+          {v_8d41d7("create.visibility.memlowLocked")}
         </Text>
       </View>
 
-      <Text style={v_d81136.label}>공동관리자 초대 (이메일)</Text>
-      <Text style={v_d81136.hint}>afterlife 가입 회원만 초대 가능해요.</Text>
+      <Text style={v_d81136.label}>{v_8d41d7("create.visibility.coownerInviteLabel")}</Text>
+      <Text style={v_d81136.hint}>{v_8d41d7("create.visibility.coownerHint")}</Text>
       <View style={v_d81136.inputRow}>
         <TextInput
           placeholder="email@example.com"

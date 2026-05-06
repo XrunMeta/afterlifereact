@@ -33,6 +33,7 @@ import v_e797c6 from "../screens/my/SavedItemsScreen";
 import v_99450d from "../screens/my/AcquaintanceManagementScreen";
 import v_d3b6fb from "../screens/my/LanguageSettingsScreen";
 import v_da4f91 from "../screens/my/PaymentPinScreen";
+import v_14fa9c from "../screens/my/InviteStatusScreen";
 
 const v_3ea452 = v_709be7<v_2d88fc>();
 const v_be1c7b = v_709be7<v_2b51a5>();
@@ -45,6 +46,7 @@ function v_aedede() {
       <ClonesStack.Screen name="CloneDetail" component={v_51ae06} />
       <ClonesStack.Screen name="CloneEdit" component={v_541fbd} />
       <ClonesStack.Screen name="CloneInvite" component={v_07335f} />
+      <ClonesStack.Screen name="InviteStatus" component={v_14fa9c} />
     </ClonesStack.Navigator>
   );
 }
@@ -75,6 +77,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="AcquaintanceManagement" component={v_99450d} />
       <MyStack.Screen name="LanguageSettings" component={v_d3b6fb} />
       <MyStack.Screen name="PaymentPin" component={v_da4f91} />
+      <MyStack.Screen name="InviteStatus" component={v_14fa9c} />
     </MyStack.Navigator>
   );
 }

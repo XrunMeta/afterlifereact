@@ -1,6 +1,7 @@
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392, v_79c4f2 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
 
@@ -20,13 +21,13 @@ import { v_ea1c99 } from "../../lib/deviceId";
 
 type Props = v_432191<v_384e19, "XrunOnboarding">;
 
-const v_798085 = [
-  { value: "male" as const, label: "남성" },
-  { value: "female" as const, label: "여성" },
-  { value: "other" as const, label: "기타" },
-];
-
 export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
+  const v_798085 = [
+    { value: "male" as const, label: v_8d41d7("auth.signup.male") },
+    { value: "female" as const, label: v_8d41d7("auth.signup.female") },
+    { value: "other" as const, label: v_8d41d7("auth.signup.other") },
+  ];
   const { email: v_e0c7e8 } = v_c7daf6.params;
   const v_6bee94 = "pin" in v_c7daf6.params ? v_c7daf6.params.pin : undefined;
   const v_8e7cda =
@@ -69,28 +70,28 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     const v_affc3e = v_1833e7.trim();
     const v_d1d8b2 = v_d74a81.trim();
     if (!v_affc3e) {
-      v_03e392.alert("알림", "이름을 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return false;
     }
     if (!v_d1d8b2) {
-      v_03e392.alert("알림", "전화번호를 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
       return false;
     }
     if (v_d1d8b2.length < 4) {
-      v_03e392.alert("알림", "전화번호는 4자 이상이어야 합니다.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
       return false;
     }
     if (!v_c3eac4) {
-      v_03e392.alert("알림", "성별을 선택해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return false;
     }
     if (!v_2694bd) {
-      v_03e392.alert("알림", "나이를 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return false;
     }
     const v_f4fe8e = parseInt(v_2694bd, 10);
     if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
-      v_03e392.alert("알림", "나이는 13~120 사이여야 합니다.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.ageInvalid"));
       return false;
     }
     return true;
@@ -108,10 +109,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       const v_e43fa5 = await v_704bef();
       if (!v_e43fa5.granted) {
-        v_03e392.alert(
-          "푸시 알림 권한 필요",
-          "마케팅 정보 알림을 받으려면 푸시 알림 권한이 필요합니다.\n기기 설정 → 알림 → AfterLife 에서 허용해주세요.",
-        );
+        v_03e392.alert(v_8d41d7("auth.signup.pushPermTitle"), v_8d41d7("auth.signup.pushPermDesc"));
         return;
       }
       const v_de2b1c = await v_ea1c99();
@@ -120,7 +118,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_73f064(v_e43fa5.platform);
       v_94f796(v_de2b1c);
     } catch {
-      v_03e392.alert("오류", "권한 요청 중 문제가 발생했습니다.");
+      v_03e392.alert(v_8d41d7("common.error"), v_8d41d7("auth.signup.pushPermError"));
     } finally {
       v_3bb4d3(false);
     }
@@ -128,7 +126,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   const v_b54880 = async () => {
     if (!v_5c764d) {
-      v_03e392.alert("알림", "이용약관에 동의해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
       return;
     }
     v_ee9ec1(true);
@@ -139,9 +137,9 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       setTimeout(() => v_756f7e.current?.focus(), 200);
     } catch (v_49263d) {
       const v_badeaf = v_49263d instanceof v_84a859
-        ? v_49263d.code === "OTP_COOLDOWN" ? "잠시 후 다시 시도해주세요. (1분 쿨다운)" : v_49263d.message
-        : "코드 발송에 실패했습니다.";
-      v_03e392.alert("오류", v_badeaf);
+        ? v_49263d.code === "OTP_COOLDOWN" ? v_8d41d7("auth.signup.rateLimit") : v_49263d.message
+        : v_8d41d7("auth.signup.sendCodeFailed");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -152,27 +150,26 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       await v_97ea8d(v_e0c7e8);
       v_ec979d(60);
-      v_03e392.alert("재발송", "인증 코드를 다시 보냈습니다.");
+      v_03e392.alert(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
     } catch (v_49263d) {
-      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "재발송 실패";
-      v_03e392.alert("오류", v_badeaf);
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     }
   };
 
   const v_44851c = async () => {
     if (v_a8d185 && v_729796 === 1) {
-
       if (!v_e1874e()) return;
       await v_b54880();
       return;
     }
     if (!v_5c764d) {
-      v_03e392.alert("알림", "이용약관에 동의해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
       return;
     }
     if (!v_a8d185 && !v_e1874e()) return;
     if (v_a8d185 && v_aa596d.length !== 6) {
-      v_03e392.alert("알림", "6자리 인증 코드를 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
       return;
     }
     v_ee9ec1(true);
@@ -198,14 +195,14 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       console.log("[AUTH/xrun] user:", v_9ec4c0.user);
       await v_232d52();
     } catch (v_49263d) {
-      let v_badeaf = "처리 중 오류가 발생했습니다.";
+      let v_badeaf = v_8d41d7("common.error");
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "OTP_EXPIRED") v_badeaf = "인증 코드가 만료됐습니다. 처음부터 다시 시도해주세요.";
-        else if (v_49263d.code === "OTP_INVALID") v_badeaf = "잘못된 인증 코드입니다.";
-        else if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "xrun 자격증명이 무효합니다.";
+        if (v_49263d.code === "OTP_EXPIRED") v_badeaf = v_8d41d7("auth.emailVerify.expired");
+        else if (v_49263d.code === "OTP_INVALID") v_badeaf = v_8d41d7("auth.emailVerify.wrongCode");
+        else if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = v_8d41d7("auth.login.invalidCredentials");
         else v_badeaf = v_49263d.message;
       }
-      v_03e392.alert("오류", v_badeaf);
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -214,13 +211,12 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   if (v_a8d185 && v_729796 === 2) {
     return (
       <SafeView backgroundColor={v_1bfbd0.zinc50}>
-        <PageHeader title="이메일 인증" showBackButton onBackPress={() => v_fd7d1f(1)} />
+        <PageHeader title={v_8d41d7("auth.emailVerify.title")} showBackButton onBackPress={() => v_fd7d1f(1)} />
         <SafeScrollView contentContainerStyle={v_d81136.content} autoAdjustKeyboardPadding showBottomBackground={false}>
           <View style={v_d81136.container}>
-            <Text style={v_d81136.title}>이메일로 코드를 보냈어요</Text>
+            <Text style={v_d81136.title}>{v_8d41d7("auth.emailVerify.title")}</Text>
             <Text style={v_d81136.subtitle}>
-              <Text style={v_d81136.email}>{v_e0c7e8}</Text>
-              {"\n"}메일함의 6자리 인증 코드를 입력해주세요. (5분간 유효)
+              {v_8d41d7("auth.emailVerify.desc", { email: v_e0c7e8 })}
             </Text>
             <TextInput
               ref={v_756f7e}
@@ -234,15 +230,14 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               autoFocus
             />
             <Button
-              title={v_cb66b4 ? "가입 처리 중..." : "가입 완료"}
+              title={v_cb66b4 ? v_8d41d7("auth.signup.verifying") : v_8d41d7("auth.xrun.submit")}
               onPress={v_44851c}
               disabled={v_cb66b4 || v_aa596d.length !== 6}
             />
             <View style={v_d81136.resendRow}>
-              <Text style={v_d81136.resendText}>코드를 못 받으셨나요?</Text>
               <TouchableOpacity onPress={v_cf9840} disabled={v_600d5b > 0}>
                 <Text style={[v_d81136.resendLink, v_600d5b > 0 && v_d81136.resendLinkDisabled]}>
-                  {v_600d5b > 0 ? `재발송 (${v_600d5b}s)` : "재발송"}
+                  {v_600d5b > 0 ? `${v_8d41d7("auth.emailVerify.resend")} (${v_600d5b}s)` : v_8d41d7("auth.emailVerify.resend")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -254,25 +249,25 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
-      <PageHeader title="가입 마지막 단계" showBackButton onBackPress={() => v_c65f5d.goBack()} />
+      <PageHeader title={v_8d41d7("auth.xrun.onboardingTitle")} showBackButton onBackPress={() => v_c65f5d.goBack()} />
       <SafeScrollView contentContainerStyle={v_d81136.content} autoAdjustKeyboardPadding showBottomBackground={false}>
         <View style={v_d81136.container}>
-          <Text style={v_d81136.title}>가입 정보 입력</Text>
+          <Text style={v_d81136.title}>{v_8d41d7("auth.xrun.onboardingTitle")}</Text>
           <Text style={v_d81136.subtitle}>
-            {v_a8d185 ? "Google 인증이 완료됐어요." : "xrun 인증이 완료됐어요."} afterlife 가입에 필요한 정보를 입력해주세요.
+            {v_a8d185 ? v_8d41d7("auth.xrun.googleOnboardingDesc") : v_8d41d7("auth.xrun.onboardingDesc")}
           </Text>
 
           {}
           <View style={v_d81136.section}>
-            <Text style={v_d81136.sectionLabel}>기본 정보</Text>
+            <Text style={v_d81136.sectionLabel}>{v_8d41d7("edit.basicSection")}</Text>
             <TextField
-              placeholder="이름"
+              placeholder={v_8d41d7("auth.signup.name")}
               value={v_1833e7}
               onChangeText={v_318f24}
               autoCapitalize="none"
             />
             <TextField
-              placeholder="전화번호"
+              placeholder={v_8d41d7("auth.signup.phone")}
               value={v_d74a81}
               onChangeText={v_fcce73}
               keyboardType="phone-pad"
@@ -284,7 +279,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                   options={v_798085}
                   value={v_c3eac4 || null}
                   onChange={(v_81e2ef) => v_bdc43c(v_81e2ef ?? "")}
-                  placeholder="성별"
+                  placeholder={v_8d41d7("auth.signup.gender")}
                 />
               </View>
               <View style={v_d81136.ageField}>
@@ -301,7 +296,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {}
           <View style={v_d81136.section}>
-            <Text style={v_d81136.sectionLabel}>관심사 선택 (선택사항)</Text>
+            <Text style={v_d81136.sectionLabel}>{v_8d41d7("auth.signup.interests")}</Text>
             <View style={v_d81136.chipGrid}>
               {v_bf4124.map((v_e4601c) => (
                 <InterestChip
@@ -320,17 +315,15 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               <View style={[v_d81136.checkbox, v_5c764d && v_d81136.checkboxChecked]}>
                 {v_5c764d && <Feather name="check" size={14} color={v_1bfbd0.white} />}
               </View>
-              <Text style={v_d81136.termText}>
-                <Text style={v_d81136.termBold}>(필수)</Text> 이용약관 및 개인정보 처리방침에 동의합니다
-              </Text>
+              <Text style={v_d81136.termText}>{v_8d41d7("auth.signup.termsRequired")}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={v_349606} disabled={v_8d0e18} style={v_d81136.checkRow}>
               <View style={[v_d81136.checkbox, v_8c98c4 && v_d81136.checkboxChecked]}>
                 {v_8c98c4 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
               </View>
               <Text style={v_d81136.termText}>
-                <Text style={v_d81136.termOptional}>(선택)</Text> 마케팅 정보 수신에 동의합니다
-                {v_8d0e18 ? " (권한 요청 중...)" : ""}
+                {v_8d41d7("auth.signup.marketingConsent")}
+                {v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying")})` : ""}
               </Text>
             </TouchableOpacity>
           </View>
@@ -338,10 +331,10 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           <Button
             title={
               v_cb66b4
-                ? "처리 중..."
+                ? v_8d41d7("auth.xrun.submitting")
                 : v_a8d185
-                  ? "다음 (이메일 인증)"
-                  : "가입 완료"
+                  ? v_8d41d7("auth.xrun.next")
+                  : v_8d41d7("auth.xrun.submit")
             }
             onPress={v_44851c}
             disabled={v_cb66b4 || !v_5c764d}

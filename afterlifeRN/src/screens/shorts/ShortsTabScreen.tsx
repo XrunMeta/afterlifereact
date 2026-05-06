@@ -1,11 +1,13 @@
 import v_a3453e, { v_c4deb2, v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_9cabcb, v_4623af, v_472849 } from 'rcmrninabrnb';
 import { v_ada615 } from 'ixigazcpvfldbecwtbvavtbi';
+import { v_772971 } from 'jmpfvteuuztnp';
 import { v_9a8286 } from '../../api/client';
 import { v_1ed7d9 } from '../../stores/authStore';
 import type { v_ec2546 } from '../../api/types';
 
 export default function v_87eb38() {
+  const { t: v_8d41d7 } = v_772971();
   const v_3c9f12 = v_ada615<any>();
   const v_013af2 = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
   const [v_4622b9, v_fa923c] = v_5ab095<v_ec2546[] | null>(null);
@@ -21,10 +23,8 @@ export default function v_87eb38() {
   if (v_4622b9.length === 0) {
     return (
       <View style={v_d81136.empty}>
-        <Text style={v_d81136.emptyTitle}>아직 볼 Shorts 가 없어요</Text>
-        <Text style={v_d81136.emptyBody}>
-          내 클론을 공개로 전환하거나, 다른 클론을 팔로우해 보세요.
-        </Text>
+        <Text style={v_d81136.emptyTitle}>{v_8d41d7("feed.shortsEmptyTitle")}</Text>
+        <Text style={v_d81136.emptyBody}>{v_8d41d7("feed.shortsHint")}</Text>
       </View>
     );
   }
@@ -47,7 +47,7 @@ export default function v_87eb38() {
             onPress={() => v_3c9f12.navigate('ClonesTab', { screen: 'CloneDetail', params: { cloneId: v_8c0b26.cloneId } })}
             style={v_d81136.detailBtn}
           >
-            <Text style={v_d81136.detailText}>자세히 보기</Text>
+            <Text style={v_d81136.detailText}>{v_8d41d7("feed.shortsViewMore")}</Text>
           </TouchableOpacity>
         </View>
       )}

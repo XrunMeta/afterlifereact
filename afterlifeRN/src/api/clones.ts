@@ -247,6 +247,31 @@ export async function v_f373d8(
   );
 }
 
+export type SentInviteStatus = "pending" | "accepted" | "cancelled" | "expired";
+export interface SentInvite {
+  id: number;
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+  usedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  status: SentInviteStatus;
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+}
+export async function v_674023(
+  v_2ca7e0,
+): Promise<{ items: SentInvite[] }> {
+  return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
 export interface MyClone {
   id: number;
   name: string;

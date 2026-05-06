@@ -12,6 +12,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
@@ -36,6 +37,7 @@ const TYPE_ICON: Record<string, keyof typeof v_dec439.glyphMap> = {
 
 export default function v_18ad36() {
   const v_c65f5d = v_ada615<Nav>();
+  const { t: v_8d41d7 } = v_772971();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_4622b9, v_fa923c] = v_5ab095<v_d9bc70[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(true);
@@ -117,7 +119,7 @@ export default function v_18ad36() {
               {v_8c0b26.body}
             </Text>
           ) : null}
-          <Text style={v_fd5f43.time}>{v_afaf91(v_8c0b26.createdAt)}</Text>
+          <Text style={v_fd5f43.time}>{v_afaf91(v_8c0b26.createdAt, v_8d41d7)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -126,13 +128,13 @@ export default function v_18ad36() {
   return (
     <SafeView backgroundColor={v_1bfbd0.zinc50}>
       <PageHeader
-        title="알림"
+        title={v_8d41d7("notifications.title")}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
         rightAction={
           v_20d05d ? (
             <TouchableOpacity onPress={v_e3b8da} style={{ padding: 6 }}>
-              <Text style={v_fd5f43.markAll}>모두 읽음</Text>
+              <Text style={v_fd5f43.markAll}>{v_8d41d7("notifications.markAllRead")}</Text>
             </TouchableOpacity>
           ) : null
         }
@@ -144,7 +146,7 @@ export default function v_18ad36() {
       ) : v_4622b9.length === 0 ? (
         <View style={v_fd5f43.center}>
           <Feather name="bell-off" size={32} color={v_1bfbd0.zinc300} />
-          <Text style={v_fd5f43.empty}>받은 알림이 없어요.</Text>
+          <Text style={v_fd5f43.empty}>{v_8d41d7("notifications.empty")}</Text>
         </View>
       ) : (
         <FlatList
@@ -167,18 +169,18 @@ export default function v_18ad36() {
   );
 }
 
-function v_afaf91(v_6fc191): string {
+function v_afaf91(v_6fc191, v_a1c815): string {
   try {
-    const v_8d41d7 = new Date(v_6fc191.replace(" ", "T") + "Z").getTime();
-    const v_a41a1b = Date.now() - v_8d41d7;
+    const v_d799e2 = new Date(v_6fc191.replace(" ", "T") + "Z").getTime();
+    const v_a41a1b = Date.now() - v_d799e2;
     const v_43e24b = Math.floor(v_a41a1b / 60000);
-    if (v_43e24b < 1) return "방금";
-    if (v_43e24b < 60) return `${v_43e24b}분 전`;
+    if (v_43e24b < 1) return v_a1c815("common.now");
+    if (v_43e24b < 60) return v_a1c815("common.agoMinutes", { n: v_43e24b });
     const v_1c3551 = Math.floor(v_43e24b / 60);
-    if (v_1c3551 < 24) return `${v_1c3551}시간 전`;
+    if (v_1c3551 < 24) return v_a1c815("common.agoHours", { n: v_1c3551 });
     const v_d5dda0 = Math.floor(v_1c3551 / 24);
-    if (v_d5dda0 < 30) return `${v_d5dda0}일 전`;
-    return new Date(v_8d41d7).toLocaleDateString("ko-KR");
+    if (v_d5dda0 < 30) return v_a1c815("common.agoDays", { n: v_d5dda0 });
+    return new Date(v_d799e2).toLocaleDateString();
   } catch {
     return v_6fc191;
   }

@@ -1,5 +1,6 @@
 import v_a3453e from 'bapkr';
 import { v_3094a2, v_472849 } from 'rcmrninabrnb';
+import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_390fcc } from 'xpfgrcdafpntkgxfmgxpxnedjkvmtc';
 import type { v_2b51a5 } from '../../navigation/types';
 import v_556baf from '../../components/ui/SafeView';
@@ -15,6 +16,7 @@ import { v_1bfbd0, v_9b1a04 } from '../../components/constants';
 type Props = { navigation: v_390fcc<v_2b51a5, 'Step2'> };
 
 export default function v_afe4c8({ navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_f04727 = v_194498(v_fd5f43 => v_fd5f43.creationDraft);
   const v_5795de = v_194498(v_fd5f43 => v_fd5f43.setCreationDraft);
 
@@ -24,7 +26,7 @@ export default function v_afe4c8({ navigation: v_c65f5d }: Props) {
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
       <PageHeader
-        title="기본 정보"
+        title={v_8d41d7("create.stepTitles.2")}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
@@ -39,7 +41,7 @@ export default function v_afe4c8({ navigation: v_c65f5d }: Props) {
       </SafeScrollView>
       <View style={v_d81136.bottomBar}>
         <Button
-          title="다음 단계로 이동"
+          title={v_8d41d7("create.next")}
           onPress={() => v_c65f5d.navigate('Step3')}
           disabled={!v_04fddf}
         />

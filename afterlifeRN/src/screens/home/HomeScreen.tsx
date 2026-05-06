@@ -19,6 +19,7 @@ import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
 import v_9706a6 from "../../components/ui/FeedCard";
@@ -35,6 +36,7 @@ const { height: v_28d8d8 } = v_700696.get("window");
 const v_e4d4c8 = 56;
 
 export default function v_c316d8() {
+  const { t: v_8d41d7 } = v_772971();
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
   const v_033e14 = v_e0068c();
   const v_f9771e = v_c18c22(0);
@@ -178,7 +180,7 @@ export default function v_c316d8() {
           <View style={v_d81136.commentSheet} onStartShouldSetResponder={() => true}>
             <View style={v_d81136.sheetHandle} />
             <View style={v_d81136.commentHeaderRow}>
-              <Text style={v_d81136.commentTitle}>댓글 {v_3a63e7.length}개</Text>
+              <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_3a63e7.length })}</Text>
               <TouchableOpacity onPress={() => v_b07dd3(null)}>
                 <Feather name="x" size={20} color={v_1bfbd0.white} />
               </TouchableOpacity>
@@ -198,7 +200,7 @@ export default function v_c316d8() {
               )) : (
                 <View style={v_d81136.emptyComment}>
                   <Feather name="message-circle" size={40} color="rgba(255,255,255,0.3)" />
-                  <Text style={v_d81136.emptyText}>아직 댓글이 없습니다</Text>
+                  <Text style={v_d81136.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
                 </View>
               )}
             </ScrollView>
@@ -207,7 +209,7 @@ export default function v_c316d8() {
                 style={v_d81136.commentInput}
                 value={v_48e7fe}
                 onChangeText={v_856f84}
-                placeholder="댓글 달기..."
+                placeholder={v_8d41d7("feed.commentPlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.4)"
               />
               <TouchableOpacity disabled={!v_48e7fe.trim()} onPress={() => v_856f84("")}>

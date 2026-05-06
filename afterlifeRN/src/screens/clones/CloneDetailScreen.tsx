@@ -13,6 +13,7 @@ import {
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2d88fc } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
@@ -29,6 +30,7 @@ const { width: v_0d9f50, height: v_28d8d8 } = v_700696.get("window");
 const v_68bb66 = v_feb82c as v_84fd28[];
 
 export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
@@ -48,7 +50,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   if (!v_eb25ce) {
     return (
       <View style={v_fd5f43.notFound}>
-        <Text style={v_fd5f43.notFoundText}>페르소나를 찾을 수 없습니다.</Text>
+        <Text style={v_fd5f43.notFoundText}>{v_8d41d7("detail.notFound")}</Text>
       </View>
     );
   }
@@ -123,7 +125,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             activeOpacity={0.85}
           >
             <Text style={v_fd5f43.coownerTitle}>
-              공동관리자 {v_c279e3.length}명 ›
+              {v_8d41d7("dashboard.coownerCount", { n: v_c279e3.length })}
             </Text>
             <View style={v_fd5f43.coownerList}>
               {v_c279e3.slice(0, 5).map((v_ceb55a) => (
@@ -142,7 +144,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             activeOpacity={0.85}
           >
             <Feather name="user-plus" size={14} color={v_1bfbd0.white} />
-            <Text style={v_fd5f43.coownerInviteText}>공동관리자 초대</Text>
+            <Text style={v_fd5f43.coownerInviteText}>{v_8d41d7("detail.coownerInvite")}</Text>
           </TouchableOpacity>
         )}
 
@@ -163,14 +165,14 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             {}
             <View style={v_fd5f43.sheetHandle} />
 
-            <Text style={v_fd5f43.giftSheetTitle}>선물 보내기</Text>
+            <Text style={v_fd5f43.giftSheetTitle}>{v_8d41d7("detail.giftTitle")}</Text>
             <Text style={v_fd5f43.giftSheetDesc}>
-              페르소나에게 특별한 선물을 보내보세요
+              {v_8d41d7("detail.giftDesc")}
             </Text>
 
             {}
             <View style={v_fd5f43.balanceRow}>
-              <Text style={v_fd5f43.balanceLabel}>보유 XRUN</Text>
+              <Text style={v_fd5f43.balanceLabel}>{v_8d41d7("detail.balance")}</Text>
               <Text style={v_fd5f43.balanceValue}>1,250</Text>
             </View>
 
@@ -187,7 +189,7 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
             {}
             <TouchableOpacity style={v_fd5f43.sendGiftBtn} activeOpacity={0.8}>
-              <Text style={v_fd5f43.sendGiftText}>선물 보내기</Text>
+              <Text style={v_fd5f43.sendGiftText}>{v_8d41d7("detail.send")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

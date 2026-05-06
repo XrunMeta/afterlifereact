@@ -1,15 +1,11 @@
 import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_472849 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
+import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 
 type V = 'public' | 'followers' | 'private';
-const v_95825a = [
-  { value: 'public',    icon: 'globe', title: '전체 공개',   desc: '모든 사용자가 볼 수 있어요' },
-  { value: 'followers', icon: 'users', title: '팔로워 공개', desc: '나를 팔로우한 사람만 볼 수 있어요' },
-  { value: 'private',   icon: 'lock',  title: '비공개',     desc: '나만 볼 수 있어요' },
-];
 
 interface Props {
   draft: v_c2a674;
@@ -17,6 +13,12 @@ interface Props {
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
+  const v_95825a = [
+    { value: 'public', icon: 'globe', title: v_8d41d7('create.visibility.publicTitle'), desc: v_8d41d7('create.visibility.publicDesc') },
+    { value: 'followers', icon: 'users', title: v_8d41d7('create.visibility.followersTitle'), desc: v_8d41d7('create.visibility.followersDesc') },
+    { value: 'private', icon: 'lock', title: v_8d41d7('create.visibility.privateTitle'), desc: v_8d41d7('create.visibility.privateDesc') },
+  ];
   const v_275ccd = (v_f04727.visibility as V) ?? 'public';
   return (
     <View style={v_d81136.wrap}>

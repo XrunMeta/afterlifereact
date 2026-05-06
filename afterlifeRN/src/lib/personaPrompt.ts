@@ -48,12 +48,21 @@ export interface PersonaSnapshot {
   l1?: { attrs?: Record<string, string>; notes?: string } | null;
 }
 
-const v_f75ae8 = {
-  mother: '어머니', father: '아버지', spouse: '배우자', child: '자녀',
-  sibling: '형제자매', friend: '친구', pet: '반려동물', other: '기타',
+const v_0ac3cf = {
+  mother: 'create.relations.mother',
+  father: 'create.relations.father',
+  spouse: 'create.relations.spouse',
+  child: 'create.relations.child',
+  sibling: 'create.relations.sibling',
+  friend: 'create.relations.friend',
+  pet: 'create.relations.pet',
+  other: 'create.relations.other',
 };
 
-export function v_d6d0ff(v_e2a85c): string {
+export function v_d6d0ff(
+  v_e2a85c,
+  v_8d41d7,
+): string {
   const v_779914 = v_e2a85c.l1?.attrs ?? {};
   const v_a52412 = [];
 
@@ -67,8 +76,9 @@ export function v_d6d0ff(v_e2a85c): string {
     v_a52412.push(v_ab4c96.length ? `${v_43fb07.join('')} (${v_ab4c96.join(', ')})` : v_43fb07.join(''));
   }
 
-  if (v_e2a85c.relation && v_f75ae8[v_e2a85c.relation]) {
-    v_a52412.push(`고인과의 관계: ${v_f75ae8[v_e2a85c.relation]}`);
+  if (v_e2a85c.relation && v_0ac3cf[v_e2a85c.relation]) {
+    const v_cf8ead = v_8d41d7 ? v_8d41d7(v_0ac3cf[v_e2a85c.relation]) : v_e2a85c.relation;
+    v_a52412.push(`${v_8d41d7 ? v_8d41d7('create.basicInfo.relationLabel') : 'Relation'}: ${v_cf8ead}`);
   }
 
   const v_8b5c49 = v_779914.personalities ?? v_779914.types;
@@ -77,14 +87,14 @@ export function v_d6d0ff(v_e2a85c): string {
       .split(',')
       .map((v_389afb) => v_a28029.get(v_389afb.trim() as v_344f4b))
       .filter(Boolean);
-    if (v_e0187d.length) v_a52412.push(`성격: ${v_e0187d.join(', ')}`);
+    if (v_e0187d.length) v_a52412.push(`${v_8d41d7 ? v_8d41d7('create.persona.typeShort') : 'Personality'}: ${v_e0187d.join(', ')}`);
   }
 
   if (v_e2a85c.interests && v_e2a85c.interests.length > 0) {
-    v_a52412.push(`관심사: ${v_e2a85c.interests.join(', ')}`);
+    v_a52412.push(`${v_8d41d7 ? v_8d41d7('create.basicInfo.interestsLabel') : 'Interests'}: ${v_e2a85c.interests.join(', ')}`);
   }
 
-  if (v_e2a85c.description) v_a52412.push(`한 줄 소개: ${v_e2a85c.description}`);
+  if (v_e2a85c.description) v_a52412.push(`${v_8d41d7 ? v_8d41d7('edit.descLabel') : 'Description'}: ${v_e2a85c.description}`);
 
   const v_661aec = v_e2a85c.l1?.notes?.trim();
   if (v_661aec) v_a52412.push('', v_661aec);

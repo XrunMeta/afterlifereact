@@ -3,6 +3,7 @@ import { v_3094a2, v_19b633, v_472849, v_39a996, v_03e392 } from "rcmrninabrnb";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
 
@@ -44,6 +45,7 @@ const v_549a47 = {
 };
 
 export default function v_448ad1({ navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_7a77e1 = v_194498((v_fd5f43) => v_fd5f43.resetCreationDraft);
   const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
   const v_956393 = v_194498((v_fd5f43) => v_fd5f43.addClone);
@@ -181,19 +183,19 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           console.warn('[CLONE-CREATE] failed:', v_49263d);
         }
         if (v_2008a4) return;
-        let v_badeaf = '페르소나 생성 중 오류가 발생했습니다.';
+        let v_badeaf = v_8d41d7('create.errors.createFailed');
         if (v_49263d instanceof v_84a859) {
           if (v_49263d.code === 'QUOTA_EXCEEDED') {
-            v_badeaf = '같은 타입의 페르소나는 1개까지만 생성할 수 있어요.';
+            v_badeaf = v_8d41d7('create.errors.quotaExceeded');
           } else if (v_49263d.code === 'CONFLICT') {
-            v_badeaf = '이미 사용 중인 username 이에요. 다시 시도해주세요.';
+            v_badeaf = v_8d41d7('create.errors.usernameConflict');
           } else {
             v_badeaf = v_49263d.message;
           }
         }
         v_3a7d09(v_badeaf);
         v_c7169b(false);
-        v_03e392.alert('생성 실패', v_badeaf);
+        v_03e392.alert(v_8d41d7('create.complete.createFailed'), v_badeaf);
       }
     })();
     return () => {
@@ -201,7 +203,23 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     };
   }, []); 
 
-  const v_b38746 = v_549a47[v_f04727.cloneType ?? 'friend'];
+  const v_3a8949 = v_f04727.cloneType ?? 'friend';
+  const v_b38746 = {
+    title: v_8d41d7(`create.complete.${v_3a8949}Title` as
+      | 'create.complete.memlowTitle'
+      | 'create.complete.friendTitle'
+      | 'create.complete.mentorTitle'
+      | 'create.complete.celebTitle'),
+    sub: v_8d41d7(`create.complete.${v_3a8949}Sub` as
+      | 'create.complete.memlowSub'
+      | 'create.complete.friendSub'
+      | 'create.complete.mentorSub'
+      | 'create.complete.celebSub'),
+  };
+  const v_ba68bf = [
+    { icon: 'refresh-cw' as const, title: v_8d41d7('create.complete.featAutoLearn'), desc: v_8d41d7('create.complete.featAutoLearnDesc') },
+    { icon: 'shield' as const, title: v_8d41d7('create.complete.featSecurity'), desc: v_8d41d7('create.complete.featSecurityDesc') },
+  ];
 
   const v_791884 = () => {
     if (v_af4871 == null) return;
@@ -218,7 +236,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <PageHeader title="생성 완료" />
+      <PageHeader title={v_8d41d7('create.stepTitles.7')} />
       <StepIndicator currentStep={7} totalSteps={7} />
 
       <SafeScrollView contentContainerStyle={v_d81136.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
@@ -235,12 +253,12 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           </View>
 
           <Text style={v_d81136.title}>
-            {v_805753 ? '페르소나를 만들고 있어요...' : v_5e9bfe ? '생성 실패' : v_b38746.title}
+            {v_805753 ? v_8d41d7('create.complete.creating') : v_5e9bfe ? v_8d41d7('create.complete.createFailed') : v_b38746.title}
           </Text>
           <Text style={v_d81136.subtitle}>{v_5e9bfe ?? v_b38746.sub}</Text>
 
           {}
-          {!v_805753 && !v_5e9bfe && v_1fc273.map((v_95a1b5, v_ebec57) => (
+          {!v_805753 && !v_5e9bfe && v_ba68bf.map((v_95a1b5, v_ebec57) => (
             <View key={v_ebec57} style={v_d81136.featureCard}>
               <View style={v_d81136.featureIconBox}>
                 <Feather name={v_95a1b5.icon as any} size={22} color={v_1bfbd0.violet500} />
@@ -257,14 +275,14 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       {}
       <View style={v_d81136.bottomBar}>
         <Button
-          title="소개 영상 만들기"
+          title={v_8d41d7('create.complete.startVideo')}
           onPress={v_791884}
           variant="accent"
           disabled={v_805753 || !!v_5e9bfe || v_af4871 == null}
           leftIcon={<Feather name="message-circle" size={20} color={v_1bfbd0.white} />}
         />
         <Button
-          title="나의 페르소나로 돌아가기"
+          title={v_8d41d7('create.complete.goDashboard')}
           onPress={v_704242}
           variant="ghost"
         />

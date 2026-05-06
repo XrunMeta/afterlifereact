@@ -22,6 +22,7 @@ import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_8ad91b } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -73,6 +74,7 @@ const v_986943 = (clone: v_4b85a1, v_edb3e7): FollowedPersona => ({
 const v_cae9dc = (v_f4e98d) => (v_f4e98d >= 1000 ? `${(v_f4e98d / 1000).toFixed(1)}k` : String(v_f4e98d));
 
 export default function v_14b43e() {
+  const { t: v_8d41d7 } = v_772971();
   const v_f4c991 = v_ada615<RootNav>();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
@@ -101,7 +103,7 @@ export default function v_14b43e() {
       .sort((v_779914, v_148ff6) => v_148ff6.createdAt.localeCompare(v_779914.createdAt));
   }, [v_a48e44]);
 
-  const [v_69ddfb, v_09b78b] = v_5ab095("전체");
+  const [v_69ddfb, v_09b78b] = v_5ab095(v_8d41d7("feed.categoryAll"));
   const [v_c591dc, v_6f4b5a] = v_5ab095<Set<number>>(new Set());
 
   const [v_5c83d5, v_880166] = v_5ab095<number | null>(null);
@@ -141,12 +143,12 @@ export default function v_14b43e() {
   const v_8bc599 = v_df9f57(() => {
     const v_cf5673 = new Set<string>();
     v_a48e44.forEach((v_e2a85c) => v_e2a85c.interests.forEach((v_ebec57) => v_cf5673.add(v_ebec57)));
-    return ["전체", ...Array.from(v_cf5673)];
+    return [v_8d41d7("feed.categoryAll"), ...Array.from(v_cf5673)];
   }, [v_a48e44]);
 
   const v_b94d82 = v_df9f57(() => {
     let v_e4cf17 = v_632473;
-    if (v_69ddfb !== "전체") {
+    if (v_69ddfb !== v_8d41d7("feed.categoryAll")) {
       const v_52e08b = v_a48e44
         .filter((v_e2a85c) => v_e2a85c.interests.includes(v_69ddfb))
         .map((v_e2a85c) => v_e2a85c.id);
@@ -226,7 +228,7 @@ export default function v_14b43e() {
             <Text style={v_fd5f43.postContent} numberOfLines={3}>{v_8c0b26.feed.content}</Text>
             <View style={v_fd5f43.overlayBtns}>
               <Button
-                title="통화하기"
+                title={v_8d41d7("feed.actionCall")}
                 variant="secondary"
                 size="md"
                 leftIcon={<Feather name="video" size={14} color={v_1bfbd0.zinc900} />}
@@ -242,7 +244,7 @@ export default function v_14b43e() {
                 backgroundColor={v_1bfbd0.white}
               />
               <Button
-                title="팔로우 취소"
+                title={v_8d41d7("feed.actionUnfollow")}
                 variant="ghost"
                 size="md"
                 leftIcon={<Feather name="user-minus" size={14} color={v_1bfbd0.white} />}
@@ -274,9 +276,9 @@ export default function v_14b43e() {
           </View>
           <View style={v_fd5f43.actionsRight}>
             <Text style={v_fd5f43.countText}>
-              좋아요 {v_cae9dc(v_c0a5d3(v_8c0b26.feed.id) + (v_c591dc.has(v_8c0b26.feed.id) ? 1 : 0))}개
+              {v_8d41d7("feed.likeCount", { n: v_cae9dc(v_c0a5d3(v_8c0b26.feed.id) + (v_c591dc.has(v_8c0b26.feed.id) ? 1 : 0)) })}
             </Text>
-            <Text style={v_fd5f43.countTextSub}>댓글 {v_937a56(v_8c0b26.feed.id).length}개</Text>
+            <Text style={v_fd5f43.countTextSub}>{v_8d41d7("feed.commentCount", { n: v_937a56(v_8c0b26.feed.id).length })}</Text>
           </View>
         </View>
       </View>
@@ -330,22 +332,22 @@ export default function v_14b43e() {
             <View style={v_fd5f43.infoHeader}>
               <View style={v_fd5f43.infoHeaderLeft}>
                 <Feather name="thermometer" size={18} color="#fb923c" />
-                <Text style={v_fd5f43.infoTitle}>친밀도 온도</Text>
+                <Text style={v_fd5f43.infoTitle}>{v_8d41d7("feed.intimacyTitle")}</Text>
               </View>
               <TouchableOpacity onPress={() => v_649cb3(false)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc400} />
               </TouchableOpacity>
             </View>
             <Text style={v_fd5f43.infoDesc}>
-              친밀도 온도는 페르소나와의 관계 깊이를 나타냅니다. 대화를 나누고 상호작용할수록 온도가 올라가며, 더욱 자연스럽고 개인화된 대화가 가능해집니다.
+              {v_8d41d7("feed.intimacyDesc")}
             </Text>
-            {[["0-30°C", "처음 만나는 단계"], ["31-60°C", "친숙해지는 단계"], ["61-90°C", "깊은 유대감 형성"], ["91-100°C", "최고의 친밀도"]].map(([v_4f2c9c, v_41b99d], v_ebec57) => (
+            {[["0-30°C", v_8d41d7("feed.intimacyL1")], ["31-60°C", v_8d41d7("feed.intimacyL2")], ["61-90°C", v_8d41d7("feed.intimacyL3")], ["91-100°C", v_8d41d7("feed.intimacyL4")]].map(([v_4f2c9c, v_41b99d], v_ebec57) => (
               <View key={v_ebec57} style={v_fd5f43.levelRow}>
                 <Text style={[v_fd5f43.levelRange, v_ebec57 === 3 && { color: "#f97316" }]}>{v_4f2c9c}</Text>
                 <Text style={[v_fd5f43.levelDesc, v_ebec57 === 3 && { color: "#f97316" }]}>{v_41b99d}</Text>
               </View>
             ))}
-            <Button title="확인" variant="primary" onPress={() => v_649cb3(false)} style={{ marginTop: 20, width: "100%", borderRadius: v_8b0c90.full }} />
+            <Button title={v_8d41d7("common.ok")} variant="primary" onPress={() => v_649cb3(false)} style={{ marginTop: 20, width: "100%", borderRadius: v_8b0c90.full }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -357,22 +359,22 @@ export default function v_14b43e() {
             <View style={v_fd5f43.infoHeader}>
               <View style={v_fd5f43.infoHeaderLeft}>
                 <Ionicons name="chatbubbles-outline" size={18} color="#60a5fa" />
-                <Text style={v_fd5f43.infoTitle}>상호작용 횟수</Text>
+                <Text style={v_fd5f43.infoTitle}>{v_8d41d7("feed.interactionTitle")}</Text>
               </View>
               <TouchableOpacity onPress={() => v_0af5ed(false)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc400} />
               </TouchableOpacity>
             </View>
             <Text style={v_fd5f43.infoDesc}>
-              상호작용 횟수는 페르소나와 나눈 대화, 통화, 학습 활동의 총 횟수를 의미합니다.
+              {v_8d41d7("feed.interactionDesc")}
             </Text>
             <View style={v_fd5f43.activityBox}>
-              <Text style={v_fd5f43.activityBoxTitle}>포함되는 활동</Text>
-              {["채팅 대화", "음성/영상 통화", "학습 세션", "피드 상호작용"].map((v_779914, v_ebec57) => (
+              <Text style={v_fd5f43.activityBoxTitle}>{v_8d41d7("feed.interactionListTitle")}</Text>
+              {[v_8d41d7("feed.interactionItemChat"), v_8d41d7("feed.interactionItemCall"), v_8d41d7("feed.interactionItemLearn"), v_8d41d7("feed.interactionItemFeed")].map((v_779914, v_ebec57) => (
                 <Text key={v_ebec57} style={v_fd5f43.activityItem}>• {v_779914}</Text>
               ))}
             </View>
-            <Button title="확인" variant="primary" onPress={() => v_0af5ed(false)} style={{ marginTop: 16, width: "100%", borderRadius: v_8b0c90.full }} />
+            <Button title={v_8d41d7("common.ok")} variant="primary" onPress={() => v_0af5ed(false)} style={{ marginTop: 16, width: "100%", borderRadius: v_8b0c90.full }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -383,7 +385,7 @@ export default function v_14b43e() {
           <View style={v_fd5f43.commentSheet} onStartShouldSetResponder={() => true}>
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.commentHeaderRow}>
-              <Text style={v_fd5f43.commentTitle}>댓글 {v_3a63e7.length}개</Text>
+              <Text style={v_fd5f43.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_3a63e7.length })}</Text>
               <TouchableOpacity onPress={() => v_880166(null)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc600} />
               </TouchableOpacity>
@@ -403,8 +405,8 @@ export default function v_14b43e() {
               )) : (
                 <View style={v_fd5f43.emptyComment}>
                   <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
-                  <Text style={v_fd5f43.emptyText}>아직 댓글이 없습니다</Text>
-                  <Text style={v_fd5f43.emptySubText}>첫 번째 댓글을 작성해보세요!</Text>
+                  <Text style={v_fd5f43.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
+                  <Text style={v_fd5f43.emptySubText}>{v_8d41d7("feed.commentsEmptyHint")}</Text>
                 </View>
               )}
             </ScrollView>
@@ -413,7 +415,7 @@ export default function v_14b43e() {
                 style={v_fd5f43.commentInput}
                 value={v_48e7fe}
                 onChangeText={v_856f84}
-                placeholder="댓글 달기..."
+                placeholder={v_8d41d7("feed.commentPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
               />
               <TouchableOpacity disabled={!v_48e7fe.trim()} onPress={() => v_856f84("")}>
@@ -428,13 +430,13 @@ export default function v_14b43e() {
       <Modal visible={!!v_7babe8} transparent animationType="fade">
         <Pressable style={v_fd5f43.centerOverlay} onPress={() => v_cdeef7(null)}>
           <Pressable style={v_fd5f43.confirmBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.confirmTitle}>팔로우 취소</Text>
+            <Text style={v_fd5f43.confirmTitle}>{v_8d41d7("feed.unfollowTitle")}</Text>
             <Text style={v_fd5f43.confirmDesc}>
-              정말 이 페르소나의 팔로우를 취소하시겠습니까?{"\n"}피드에서 해당 페르소나의 포스트가 더 이상 표시되지 않습니다.
+              {v_8d41d7("feed.unfollowDesc")}
             </Text>
             <View style={v_fd5f43.confirmBtns}>
-              <Button title="취소" variant="ghost" onPress={() => v_cdeef7(null)} style={{ flex: 1 }} />
-              <Button title="팔로우 취소" variant="danger" onPress={v_2d8ccb} style={{ flex: 1 }} />
+              <Button title={v_8d41d7("common.cancel")} variant="ghost" onPress={() => v_cdeef7(null)} style={{ flex: 1 }} />
+              <Button title={v_8d41d7("feed.unfollowTitle")} variant="danger" onPress={v_2d8ccb} style={{ flex: 1 }} />
             </View>
           </Pressable>
         </Pressable>
@@ -446,7 +448,7 @@ export default function v_14b43e() {
           <View style={v_fd5f43.callSheet} onStartShouldSetResponder={() => true}>
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.callSheetHeader}>
-              <Text style={v_fd5f43.callSheetTitle}>통화하기</Text>
+              <Text style={v_fd5f43.callSheetTitle}>{v_8d41d7("feed.callSheetTitle")}</Text>
               <TouchableOpacity onPress={() => v_22a5cb(false)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc600} />
               </TouchableOpacity>
@@ -459,7 +461,7 @@ export default function v_14b43e() {
                 style={v_fd5f43.callSearchInput}
                 value={v_2116d2}
                 onChangeText={v_83f9d3}
-                placeholder="페르소나 검색..."
+                placeholder={v_8d41d7("feed.callSearchPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
               />
               {v_2116d2.length > 0 && (
@@ -473,7 +475,7 @@ export default function v_14b43e() {
               {}
               {!v_2116d2 && v_a48e44.length > 0 && (
                 <View style={v_fd5f43.callSectionBordered}>
-                  <Text style={v_fd5f43.callSectionTitle}>최근 통화</Text>
+                  <Text style={v_fd5f43.callSectionTitle}>{v_8d41d7("feed.recentCalls")}</Text>
                   {v_a48e44.slice(0, 2).map((v_e2a85c, v_ebec57) => (
                     <View key={v_e2a85c.id} style={v_fd5f43.callRow}>
                       <Image source={{ uri: v_e2a85c.avatar }} style={v_fd5f43.callAvatar} />
@@ -481,7 +483,7 @@ export default function v_14b43e() {
                         <Text style={v_fd5f43.callName}>{v_e2a85c.name}</Text>
                         <Text style={v_fd5f43.callSub}>{v_e2a85c.creatorAccount}</Text>
                         <Text style={v_fd5f43.callMeta}>
-                          {v_ebec57 === 0 ? "어제 • 8분 21초" : "3일 전 • 15분 32초"}
+                          {v_ebec57 === 0 ? v_8d41d7("feed.callMetaYesterday") : v_8d41d7("feed.callMeta3DaysAgo")}
                         </Text>
                       </View>
                       <TouchableOpacity
@@ -492,7 +494,7 @@ export default function v_14b43e() {
                         }}
                       >
                         <Feather name="video" size={14} color={v_1bfbd0.white} />
-                        <Text style={v_fd5f43.callBtnText}>통화</Text>
+                        <Text style={v_fd5f43.callBtnText}>{v_8d41d7("feed.callRowAction")}</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -501,7 +503,7 @@ export default function v_14b43e() {
 
               {}
               <View style={v_fd5f43.callSection}>
-                <Text style={v_fd5f43.callSectionTitle}>{v_2116d2 ? "검색 결과" : "팔로잉 목록"}</Text>
+                <Text style={v_fd5f43.callSectionTitle}>{v_2116d2 ? v_8d41d7("feed.searchResults") : v_8d41d7("feed.followingList")}</Text>
                 {v_94f30e.length > 0 ? v_94f30e.map((v_e2a85c) => (
                   <View key={v_e2a85c.id} style={v_fd5f43.callRow}>
                     <Image source={{ uri: v_e2a85c.avatar }} style={v_fd5f43.callAvatar} />

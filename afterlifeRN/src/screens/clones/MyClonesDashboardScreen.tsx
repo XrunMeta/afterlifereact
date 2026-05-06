@@ -14,6 +14,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
@@ -53,6 +54,7 @@ function v_a8d790(c: v_fa0201): v_affcc0 {
 export default function v_def15b() {
   const v_c65f5d = v_ada615<ClonesNav>();
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
+  const { t: v_8d41d7 } = v_772971();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -207,7 +209,7 @@ export default function v_def15b() {
       });
       console.log("[Dashboard] sendInvite success:", v_8f00b9);
       v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
-      v_b816d4(`${v_625c74.name ?? v_625c74.email} 에게 초대를 보냈어요.`);
+      v_b816d4(v_8d41d7("invite.sentToast", { target: v_625c74.name ?? v_625c74.email }));
     } catch (v_49263d) {
       if (v_49263d instanceof v_84a859) {
         console.warn(
@@ -220,13 +222,13 @@ export default function v_def15b() {
         );
         if (v_49263d.code === "UNAUTHENTICATED" || v_49263d.status === 401) {
           await v_1ed7d9.getState().apiLogout();
-          v_b816d4("로그인 세션이 만료됐어요. 다시 로그인해주세요.");
+          v_b816d4(v_8d41d7("dashboard.sessionExpired"));
           return;
         }
       } else {
         console.warn("[Dashboard] createInvite failed:", v_49263d);
       }
-      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "초대 발송 실패";
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("invite.sendFailed");
       v_b816d4(v_badeaf);
     }
   };
@@ -265,9 +267,9 @@ export default function v_def15b() {
       const v_8f00b9 = await v_f373d8(v_2ca7e0, v_b1de41);
       console.log("[Dashboard] deleteClone success:", v_8f00b9);
       if (v_8f00b9.state === "transferred" && v_8f00b9.transferred) {
-        v_b816d4("공동관리자에게 권한이 이전되었어요.");
+        v_b816d4(v_8d41d7("dashboard.deleteSuccessTransferred"));
       } else {
-        v_b816d4("페르소나가 삭제되었어요.");
+        v_b816d4(v_8d41d7("dashboard.deleteSuccessSimple"));
       }
 
       v_fb07c9((v_ba2215) => new Set(v_ba2215).add(v_b1de41));
@@ -285,20 +287,20 @@ export default function v_def15b() {
 
         if (v_49263d.code === "CONFLICT" && /already deleted/i.test(v_49263d.message)) {
           v_fb07c9((v_ba2215) => new Set(v_ba2215).add(v_b1de41));
-          v_b816d4("이미 삭제된 페르소나입니다. 목록을 갱신했어요.");
+          v_b816d4(v_8d41d7("dashboard.deleteAlreadyDeleted"));
           await v_8e46f5();
           return;
         }
 
         if (v_49263d.code === "UNAUTHENTICATED" || v_49263d.status === 401) {
           await v_1ed7d9.getState().apiLogout();
-          v_b816d4("로그인 세션이 만료됐어요. 다시 로그인해주세요.");
+          v_b816d4(v_8d41d7("dashboard.sessionExpired"));
           return;
         }
       } else {
         console.warn("[Dashboard] deleteClone failed:", v_49263d);
       }
-      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "삭제에 실패했어요.";
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("dashboard.deleteFailed");
       v_b816d4(v_badeaf);
     }
   };
@@ -348,7 +350,7 @@ export default function v_def15b() {
               color={v_26dce6 ? v_1bfbd0.success : v_1bfbd0.zinc400}
             />
             <Text style={v_fd5f43.activeText}>
-              {v_26dce6 ? "활동중" : "비활동중"}
+              {v_26dce6 ? v_8d41d7("dashboard.active") : v_8d41d7("dashboard.inactive")}
             </Text>
           </TouchableOpacity>
 
@@ -403,7 +405,7 @@ export default function v_def15b() {
           >
             <Feather name="users" size={14} color={v_1bfbd0.zinc600} />
             <Text style={v_fd5f43.coownerText}>
-              공동관리자 {v_77df30}명 ›
+              {v_8d41d7("dashboard.coownerCount", { n: v_77df30 })}
             </Text>
           </TouchableOpacity>
         ) : (
@@ -468,14 +470,14 @@ export default function v_def15b() {
             onPress={() => v_f4c991.navigate("Chat", { cloneId: v_eb25ce.id })}
           >
             <Feather name="message-circle" size={16} color={v_1bfbd0.zinc700} />
-            <Text style={v_fd5f43.actionText}>학습하기</Text>
+            <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionLearn")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={v_fd5f43.actionBtn}
             onPress={() => v_f4c991.navigate("Call", { cloneId: v_eb25ce.id })}
           >
             <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
-            <Text style={v_fd5f43.actionText}>통화하기</Text>
+            <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={v_fd5f43.actionBtn}
@@ -487,7 +489,7 @@ export default function v_def15b() {
             }}
           >
             <Feather name="user-plus" size={16} color={v_1bfbd0.zinc700} />
-            <Text style={v_fd5f43.actionText}>초대</Text>
+            <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionInvite")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -497,7 +499,7 @@ export default function v_def15b() {
   return (
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
-        title="My Persona"
+        title={v_8d41d7("dashboard.title")}
         rightAction={<NotificationBell />}
       />
 
@@ -510,11 +512,19 @@ export default function v_def15b() {
         ListHeaderComponent={
           <>
             {}
-            <View style={v_fd5f43.dashTitle}>
-              <Text style={v_fd5f43.dashTitleText}>페르소나 대시보드</Text>
-              <Text style={v_fd5f43.dashSubText}>
-                생성된 AI 페르소나의 성과를 활용을 관리합니다.
-              </Text>
+            <View style={v_fd5f43.dashTitleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={v_fd5f43.dashTitleText}>{v_8d41d7("dashboard.headerTitle")}</Text>
+                <Text style={v_fd5f43.dashSubText}>{v_8d41d7("dashboard.headerDesc")}</Text>
+              </View>
+              <TouchableOpacity
+                style={v_fd5f43.inviteStatusBtn}
+                onPress={() => v_c65f5d.navigate("InviteStatus")}
+                activeOpacity={0.7}
+              >
+                <Feather name="send" size={14} color={v_1bfbd0.violet600} />
+                <Text style={v_fd5f43.inviteStatusBtnText}>{v_8d41d7("inviteStatus.title")}</Text>
+              </TouchableOpacity>
             </View>
 
             {}
@@ -522,17 +532,17 @@ export default function v_def15b() {
               <View style={v_fd5f43.statsCard}>
                 <View style={v_fd5f43.statsCardHeader}>
                   <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-                  <Text style={v_fd5f43.statsCardLabel}>총 상호작용</Text>
+                  <Text style={v_fd5f43.statsCardLabel}>{v_8d41d7("dashboard.statsTotalInteractions")}</Text>
                 </View>
                 <Text style={v_fd5f43.statsCardValue}>12.8k</Text>
-                <Text style={v_fd5f43.statsCardDelta}>+14% 지난주 대비</Text>
+                <Text style={v_fd5f43.statsCardDelta}>{v_8d41d7("dashboard.statsDelta")}</Text>
               </View>
 
               <View style={[v_fd5f43.statsCard, v_fd5f43.statsCardDark]}>
                 <View style={v_fd5f43.statsCardHeader}>
                   <Feather name="user" size={14} color={v_1bfbd0.zinc400} />
                   <Text style={[v_fd5f43.statsCardLabel, { color: v_1bfbd0.zinc400 }]}>
-                    페르소나 활동
+                    {v_8d41d7("dashboard.statsActivity")}
                   </Text>
                 </View>
                 <View style={v_fd5f43.activityCount}>
@@ -545,7 +555,7 @@ export default function v_def15b() {
         }
         ListFooterComponent={
           <TouchableOpacity style={v_fd5f43.loadMore}>
-            <Text style={v_fd5f43.loadMoreText}>더보기</Text>
+            <Text style={v_fd5f43.loadMoreText}>{v_8d41d7("dashboard.loadMore")}</Text>
           </TouchableOpacity>
         }
       />
@@ -554,7 +564,7 @@ export default function v_def15b() {
       <Modal visible={!!v_ce3af0} transparent animationType="fade">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_8d2d61(null)}>
           <Pressable style={v_fd5f43.menuBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.menuTitle}>관리</Text>
+            <Text style={v_fd5f43.menuTitle}>{v_8d41d7("dashboard.manage")}</Text>
             <TouchableOpacity
               style={v_fd5f43.menuItem}
               onPress={() => {
@@ -564,7 +574,7 @@ export default function v_def15b() {
               }}
             >
               <Feather name="edit-2" size={18} color={v_1bfbd0.zinc700} />
-              <Text style={v_fd5f43.menuItemText}>수정</Text>
+              <Text style={v_fd5f43.menuItemText}>{v_8d41d7("dashboard.menuEdit")}</Text>
             </TouchableOpacity>
 
             {}
@@ -585,7 +595,7 @@ export default function v_def15b() {
                     color={v_26dce6 ? v_1bfbd0.zinc700 : v_1bfbd0.success}
                   />
                   <Text style={v_fd5f43.menuItemText}>
-                    {v_26dce6 ? "비활성화" : "활성화"}
+                    {v_26dce6 ? v_8d41d7("dashboard.menuDeactivate") : v_8d41d7("dashboard.menuActivate")}
                   </Text>
                 </TouchableOpacity>
               );
@@ -606,7 +616,7 @@ export default function v_def15b() {
                     size={18}
                     color={v_1bfbd0.zinc700}
                   />
-                  <Text style={v_fd5f43.menuItemText}>공개설정</Text>
+                  <Text style={v_fd5f43.menuItemText}>{v_8d41d7("dashboard.menuVisibility")}</Text>
                 </TouchableOpacity>
               )}
             <View style={v_fd5f43.menuDivider} />
@@ -618,7 +628,7 @@ export default function v_def15b() {
               }}
             >
               <Feather name="trash-2" size={18} color={v_1bfbd0.error} />
-              <Text style={[v_fd5f43.menuItemText, { color: v_1bfbd0.error }]}>삭제</Text>
+              <Text style={[v_fd5f43.menuItemText, { color: v_1bfbd0.error }]}>{v_8d41d7("dashboard.menuDelete")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -700,12 +710,12 @@ export default function v_def15b() {
       <Modal visible={!!v_c9d3fa} transparent animationType="fade">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_f32c49(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>페르소나 삭제</Text>
+            <Text style={v_fd5f43.modalTitle}>{v_8d41d7("dashboard.deleteTitle")}</Text>
             <Text style={v_fd5f43.modalDesc}>
               {v_c9d3fa &&
               v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_c9d3fa)?.cloneType === "memlow"
-                ? "공동관리자가 있다면 가장 먼저 수락한 분이 새 반장이 됩니다.\n없다면 페르소나가 완전히 삭제됩니다."
-                : "정말 이 페르소나를 삭제하시겠습니까?\n삭제된 페르소나는 복구할 수 없습니다."}
+                ? v_8d41d7("dashboard.deleteDescMemlow")
+                : v_8d41d7("dashboard.deleteDescDefault")}
             </Text>
             <View style={v_fd5f43.modalBtns}>
               <Button
@@ -756,7 +766,7 @@ export default function v_def15b() {
           >
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.inviteHeader}>
-              <Text style={v_fd5f43.inviteTitle}>공동관리자 초대</Text>
+              <Text style={v_fd5f43.inviteTitle}>{v_8d41d7("invite.create")}</Text>
               <TouchableOpacity onPress={() => v_2dac5f(null)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc500} />
               </TouchableOpacity>
@@ -769,7 +779,7 @@ export default function v_def15b() {
                 style={v_fd5f43.inviteSearchInput}
                 value={v_b93ea5}
                 onChangeText={v_35dce3}
-                placeholder="이메일 또는 이름으로 검색 (afterlife 회원만)"
+                placeholder={v_8d41d7("dashboard.inviteSearchHint")}
                 placeholderTextColor={v_1bfbd0.placeholder}
                 autoFocus
                 autoCapitalize="none"
@@ -788,10 +798,10 @@ export default function v_def15b() {
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Feather name="search" size={32} color={v_1bfbd0.zinc300} />
                   <Text style={{ color: v_1bfbd0.zinc500, marginTop: 8, fontSize: 13 }}>
-                    이메일 또는 이름을 입력해주세요 (2자 이상)
+                    {v_8d41d7("dashboard.inviteSearchEmpty")}
                   </Text>
                   <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
-                    afterlife 가입 회원만 초대할 수 있어요
+                    {v_8d41d7("dashboard.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : v_4568f9 ? (
@@ -801,10 +811,10 @@ export default function v_def15b() {
               ) : v_76148b.length === 0 ? (
                 <View style={{ padding: 32, alignItems: "center" }}>
                   <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
-                    검색 결과가 없어요
+                    {v_8d41d7("dashboard.inviteNoResults")}
                   </Text>
                   <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
-                    afterlife에 가입된 회원만 초대할 수 있어요
+                    {v_8d41d7("dashboard.inviteSearchEmptyHint")}
                   </Text>
                 </View>
               ) : (
@@ -834,7 +844,7 @@ export default function v_def15b() {
                           color={v_f966e3 ? v_1bfbd0.success : v_1bfbd0.white}
                         />
                         <Text style={[v_fd5f43.inviteBtnText, v_f966e3 && v_fd5f43.inviteBtnTextSent]}>
-                          {v_f966e3 ? "전송됨" : "초대"}
+                          {v_f966e3 ? v_8d41d7("invite.sent") : v_8d41d7("invite.send")}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -935,7 +945,24 @@ const v_fd5f43 = v_472849.create({
   },
 
   dashTitle: { marginTop: 16, marginBottom: 20 },
+  dashTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 16,
+  },
   dashTitleText: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  inviteStatusBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: v_1bfbd0.violet100,
+    borderRadius: v_8b0c90.full,
+  },
+  inviteStatusBtnText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.violet600 },
   dashSubText: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 4 },
 
   statsOverview: {

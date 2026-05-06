@@ -9,6 +9,7 @@ import {
   v_09d0e5,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2d88fc } from "../../navigation/types";
 import v_570c34 from "../../components/ui/SafeScrollView";
@@ -42,6 +43,7 @@ for (const v_9bf432 of v_6732dc) {
 }
 
 export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_941cd7 = v_194498((v_fd5f43) => v_fd5f43.updateLocalClone);
@@ -89,7 +91,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   if (!v_eb25ce) {
     return (
       <View style={v_fd5f43.notFound}>
-        <Text style={v_fd5f43.notFoundText}>페르소나를 찾을 수 없습니다.</Text>
+        <Text style={v_fd5f43.notFoundText}>{v_8d41d7("edit.notFound")}</Text>
       </View>
     );
   }
@@ -173,9 +175,9 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_82830c = (v_81e2ef) => {
     switch (v_81e2ef) {
-      case "public": return "공개";
-      case "private": return "비공개";
-      case "followers": return "지인공개";
+      case "public": return v_8d41d7("edit.visibilityPublic");
+      case "private": return v_8d41d7("edit.visibilityPrivate");
+      case "followers": return v_8d41d7("edit.visibilityFollowers");
     }
   };
 
@@ -195,7 +197,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       showBottomBackground={false}
     >
       <PageHeader
-        title="페르소나 수정"
+        title={v_8d41d7("edit.title")}
         subtitle={v_eb25ce.displayName}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
@@ -228,7 +230,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               >
                 <Feather name={v_a6deb1(v_818579)} size={16} color={v_1bfbd0.zinc700} />
                 <Text style={v_fd5f43.dropdownText}>
-                  공개설정 ({v_82830c(v_818579)})
+                  {v_8d41d7("dashboard.menuVisibility")} ({v_82830c(v_818579)})
                 </Text>
               </TouchableOpacity>
             )}
@@ -240,7 +242,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               }}
             >
               <Feather name="trash-2" size={16} color={v_1bfbd0.error} />
-              <Text style={[v_fd5f43.dropdownText, { color: v_1bfbd0.error }]}>삭제</Text>
+              <Text style={[v_fd5f43.dropdownText, { color: v_1bfbd0.error }]}>{v_8d41d7("dashboard.menuDelete")}</Text>
             </TouchableOpacity>
           </View>
         </>
@@ -250,22 +252,22 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         {
 }
         <View style={v_fd5f43.section}>
-          <Text style={v_fd5f43.sectionTitle}>기본 정보</Text>
+          <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("edit.basicSection")}</Text>
 
           {}
           <TextField
-            label="이름"
+            label={v_8d41d7("edit.nameLabel")}
             value={v_1833e7}
             onChangeText={v_318f24}
-            placeholder="이름을 입력해주세요"
+            placeholder={v_8d41d7("edit.namePlaceholder")}
           />
 
           {}
           <TextField
-            label="한 줄 소개"
+            label={v_8d41d7("edit.descLabel")}
             value={v_6856a9}
             onChangeText={v_b7e174}
-            placeholder="이 페르소나의 한 줄 소개를 입력해주세요..."
+            placeholder={v_8d41d7("edit.descPlaceholder")}
             multiline
             containerStyle={{ marginTop: 16 }}
           />
@@ -273,7 +275,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           {}
           {v_eb25ce.cloneType === 'memlow' && (
             <>
-              <Text style={v_fd5f43.fieldLabel}>고인과의 관계</Text>
+              <Text style={v_fd5f43.fieldLabel}>{v_8d41d7("create.basicInfo.relationLabel")}</Text>
               <View style={v_fd5f43.chipRow}>
                 {v_0a40d6.map((v_cb35cb) => {
                   const v_f8b770 = v_f04727.relation === v_cb35cb.id;
@@ -284,7 +286,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       onPress={() => v_a07441((v_d5dda0) => ({ ...v_d5dda0, relation: v_cb35cb.id }))}
                     >
                       <Text style={[v_fd5f43.chipText, v_f8b770 && v_fd5f43.chipTextSelected]}>
-                        {v_cb35cb.label}
+                        {v_8d41d7(v_cb35cb.label)}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -297,7 +299,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
           {v_eb25ce.cloneType !== 'memlow' && (
             <>
-              <Text style={v_fd5f43.simpleLabel}>카테고리</Text>
+              <Text style={v_fd5f43.simpleLabel}>{v_8d41d7("create.basicInfo.categoryLabel")}</Text>
               <View style={v_fd5f43.simpleCatRow}>
                 {v_6e79a1.map((v_3f4e2e) => (
                   <TouchableOpacity
@@ -317,7 +319,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
               {v_02812c.length > 0 && (
                 <>
-                  <Text style={v_fd5f43.simpleLabel}>관심사</Text>
+                  <Text style={v_fd5f43.simpleLabel}>{v_8d41d7("create.basicInfo.interestsLabel")}</Text>
                   <View style={v_fd5f43.simpleChips}>
                     {v_02812c.map((v_ebec57) => (
                       <InterestChip
@@ -340,7 +342,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       style={v_fd5f43.simpleEtcChip}
                       onPress={() => v_160b34((v_81e2ef) => !v_81e2ef)}
                     >
-                      <Text style={v_fd5f43.simpleEtcChipText}>+ 기타</Text>
+                      <Text style={v_fd5f43.simpleEtcChipText}>{v_8d41d7("create.basicInfo.addEtc")}</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -350,14 +352,14 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         style={v_fd5f43.simpleCustomTextInput}
                         value={v_0f1d77}
                         onChangeText={v_e887ea}
-                        placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
+                        placeholder={v_8d41d7("create.basicInfo.customPlaceholder")}
                         placeholderTextColor={v_1bfbd0.placeholder}
                         onSubmitEditing={v_8fa105}
                         returnKeyType="done"
                         autoFocus
                       />
                       <TouchableOpacity style={v_fd5f43.simpleAddBtn} onPress={v_8fa105}>
-                        <Text style={v_fd5f43.simpleAddBtnText}>추가</Text>
+                        <Text style={v_fd5f43.simpleAddBtnText}>{v_8d41d7("create.basicInfo.addBtn")}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -368,14 +370,14 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
           {}
           <View style={v_fd5f43.beforeBox}>
-            <Text style={v_fd5f43.beforeLabel}>변경 전 (영구 데이터)</Text>
+            <Text style={v_fd5f43.beforeLabel}>{v_8d41d7("edit.beforeLabel")}</Text>
             <Text style={v_fd5f43.beforeBody}>
               {v_d6d0ff({
                 name: v_eb25ce.displayName,
                 description: v_eb25ce.description,
                 interests: v_eb25ce.interests,
                 l1: v_eb25ce.l1Profile,
-              })}
+              }, v_8d41d7)}
             </Text>
           </View>
 
@@ -389,10 +391,8 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         {
 }
         <View style={v_fd5f43.devBanner}>
-          <Text style={v_fd5f43.devBannerText}>🛠 개발용 — 프로덕션 미사용</Text>
-          <Text style={v_fd5f43.devBannerSub}>
-            아래 L1/L2 섹션은 메모리 시스템 직접 편집용. 위 chip 이 실제 사용자 입력 채널입니다.
-          </Text>
+          <Text style={v_fd5f43.devBannerText}>{v_8d41d7("edit.devBannerTitle")}</Text>
+          <Text style={v_fd5f43.devBannerSub}>{v_8d41d7("edit.devBannerSub")}</Text>
         </View>
 
         <View style={v_fd5f43.section}>
@@ -404,7 +404,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               onPress={() => v_dcba89(true)}
               style={{ padding: 12, borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 8, marginTop: 12 }}
             >
-              <Text>편집 권한 이전</Text>
+              <Text>{v_8d41d7("edit.transferEditor")}</Text>
             </TouchableOpacity>
           )}
           {v_552f41 && !v_9c4eec && (
@@ -413,7 +413,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               onPress={() => {}}
               style={{ padding: 12, borderWidth: 1, borderColor: '#d4d4d8', borderRadius: 8, marginTop: 12 }}
             >
-              <Text>편집 권한 요청</Text>
+              <Text>{v_8d41d7("edit.requestEditor")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -422,7 +422,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {}
       <View style={v_fd5f43.bottomBar}>
         <Button
-          title="저장하기"
+          title={v_8d41d7("edit.save")}
           variant="primary"
           onPress={v_1b8283}
           disabled={!v_1833e7}
@@ -434,8 +434,8 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       <Modal visible={v_7462ec} transparent animationType="fade">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(false)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>공개 설정</Text>
-            <Text style={v_fd5f43.modalDesc}>페르소나의 공개 범위를 선택하세요</Text>
+            <Text style={v_fd5f43.modalTitle}>{v_8d41d7("edit.visibilityChooseTitle")}</Text>
+            <Text style={v_fd5f43.modalDesc}>{v_8d41d7("edit.visibilityChooseDesc")}</Text>
             <View style={v_fd5f43.visibilityOptions}>
               {(["public", "private", "followers"] as Visibility[]).map((v_81e2ef) => {
                 const v_587413 = v_818579 === v_81e2ef;
@@ -463,7 +463,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               })}
             </View>
             <Button
-              title="취소"
+              title={v_8d41d7("common.cancel")}
               variant="ghost"
               onPress={() => v_2dbd8f(false)}
               style={{ marginTop: 12, width: "100%" }}
@@ -476,19 +476,17 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       <Modal visible={v_c9d3fa} transparent animationType="fade">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_f32c49(false)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>페르소나 삭제</Text>
-            <Text style={v_fd5f43.modalDesc}>
-              정말 이 페르소나를 삭제하시겠습니까?{"\n"}삭제된 페르소나는 복구할 수 없습니다.
-            </Text>
+            <Text style={v_fd5f43.modalTitle}>{v_8d41d7("edit.deleteTitle")}</Text>
+            <Text style={v_fd5f43.modalDesc}>{v_8d41d7("edit.deleteDesc")}</Text>
             <View style={v_fd5f43.modalBtns}>
               <Button
-                title="취소"
+                title={v_8d41d7("common.cancel")}
                 variant="ghost"
                 onPress={() => v_f32c49(false)}
                 style={{ flex: 1 }}
               />
               <Button
-                title="삭제"
+                title={v_8d41d7("common.delete")}
                 variant="danger"
                 onPress={v_6ff8af}
                 style={{ flex: 1 }}
