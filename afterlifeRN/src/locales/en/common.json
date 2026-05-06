@@ -262,7 +262,17 @@
       "recordHint": "30+ seconds recommended",
       "recording": "Recording...",
       "stop": "Stop",
-      "play": "Play"
+      "play": "Play",
+      "useCustom": "Use custom recording/upload",
+      "fileError": "Couldn't select the file.",
+      "sample": {
+        "Nova": "Warm and soft",
+        "Ursa": "Calm and deep",
+        "Vega": "Bright and lively",
+        "Orion": "Trustworthy",
+        "Luna": "Emotional",
+        "Stella": "Elegant and delicate"
+      }
     },
     "visibility": {
       "memlowLocked": "Memorial clones are private only. Visible only to co-admins.",
