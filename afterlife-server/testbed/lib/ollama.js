@@ -15,6 +15,8 @@ export function chatStream({ messages, options = {}, onChunk, onDone, onError })
     options: {
       temperature: 0.7,
       num_predict: 512,
+
+      num_gpu: -1,
       ...options,
     },
   });
