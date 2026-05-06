@@ -355,6 +355,72 @@ export async function v_f5cc38(v_328259): Promise<{ items: DiscoverFeedItem[]; n
   return v_8decf8 as { items: DiscoverFeedItem[]; nextCursor: number | null };
 }
 
+export interface FeedLikeUser {
+  likeId: number;
+  userId: number;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+  createdAt: string;
+}
+
+export async function v_de2a30(
+  v_2ca7e0,
+  v_c09aa8,
+): Promise<{ ok: true; liked: true; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/like`, v_2ca7e0, { method: "POST" });
+}
+
+export async function v_11c954(
+  v_2ca7e0,
+  v_c09aa8,
+): Promise<{ ok: true; liked: false; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/like`, v_2ca7e0, { method: "DELETE" });
+}
+
+export async function v_20d793(
+  v_6e0fd3,
+  v_328259,
+): Promise<{ items: FeedLikeUser[]; nextCursor: number | null }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_6e0fd3}/likes`);
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: FeedLikeUser[]; nextCursor: number | null };
+}
+
+export async function v_7f4804(
+  v_c09aa8,
+  v_328259,
+): Promise<{ items: FeedLikeUser[]; nextCursor: number | null }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_c09aa8}/likes`);
+  if (v_328259?.cursor) v_f71b56.searchParams.set("cursor", String(v_328259.cursor));
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: FeedLikeUser[]; nextCursor: number | null };
+}
+
 export interface PatchClonePayload {
   name?: string;
   description?: string;
