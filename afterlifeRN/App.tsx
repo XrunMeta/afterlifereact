@@ -12,6 +12,7 @@ import { BaseUrlBadge } from "./src/components/dev/BaseUrlBadge";
 import { useAuthStore } from "./src/stores/authStore";
 import { useFollowStore } from "./src/stores/followStore";
 import { useConfigStore } from "./src/stores/configStore";
+import { registerPushTokenIfReady } from "./src/lib/pushNotifications";
 import type { RootStackParamList } from "./src/navigation/types";
 
 const linking: LinkingOptions<RootStackParamList> = {
@@ -34,7 +35,12 @@ export default function App() {
       useAuthStore.getState().hydrate(),
       useFollowStore.getState().hydrate(),
       useConfigStore.getState().hydrate(),
-    ]).then(() => setReady(true));
+    ]).then(() => {
+      setReady(true);
+
+      const token = useAuthStore.getState().accessToken;
+      if (token) registerPushTokenIfReady(token);
+    });
   }, []);
 
   if (!ready) {
