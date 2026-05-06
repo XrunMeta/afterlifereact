@@ -318,6 +318,28 @@ export async function listMyClones(accessToken: string): Promise<{ items: MyClon
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface BlockedClone {
+  blockId: number;
+  createdAt: string;
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+}
+
+export async function blockClone(accessToken: string, cloneId: number): Promise<{ ok: true; blocked: true }> {
+  return authFetch(`/oth-path${cloneId}/block`, accessToken, { method: "POST" });
+}
+export async function unblockClone(accessToken: string, cloneId: number): Promise<{ ok: true; blocked: false }> {
+  return authFetch(`/oth-path${cloneId}/block`, accessToken, { method: "DELETE" });
+}
+export async function listMyBlocks(accessToken: string): Promise<{ items: BlockedClone[] }> {
+  return authFetch(`/oth-path`, accessToken, { method: "GET" });
+}
+
 export interface FollowedClone {
   id: number;
   name: string;

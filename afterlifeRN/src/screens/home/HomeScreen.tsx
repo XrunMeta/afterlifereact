@@ -14,6 +14,7 @@ import {
   Image,
   TextInput,
   KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import { Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -35,6 +36,7 @@ import {
   postFeedComment,
   postCloneComment,
   deleteFeedComment,
+  blockClone,
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
@@ -95,6 +97,22 @@ export default function HomeScreen() {
       return () => clearTimeout(id);
     }
   }, [toastMessage]);
+
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const filteredFeeds: FeedItem[] = getFilteredFeeds().map(toFeedItem);
 
@@ -295,7 +313,11 @@ export default function HomeScreen() {
         >
         <Pressable style={styles.commentOverlay} onPress={() => setCommentFeedId(null)}>
           <View
-            style={[styles.commentSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            style={[
+              styles.commentSheet,
+
+              { paddingBottom: keyboardVisible ? 12 : 24 + Math.max(insets.bottom, 0) },
+            ]}
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.sheetHandle} />
@@ -387,9 +409,19 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.moreItem}
-              onPress={() => {
+              onPress={async () => {
+                const target = moreTarget;
                 setMoreTarget(null);
-                setToastMessage("이 페르소나가 차단됐어요");
+                if (!target || !accessToken) return;
+                try {
+                  await blockClone(accessToken, target.cloneId);
+                  setToastMessage("이 페르소나가 차단됐어요");
+
+                  void loadDiscover();
+                } catch (err) {
+                  console.warn("[Home] block failed:", err);
+                  setToastMessage("차단에 실패했어요");
+                }
               }}
             >
               <Feather name="slash" size={20} color={COLORS.zinc900} />

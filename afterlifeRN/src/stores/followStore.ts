@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { seedSource } from "../api/source";
 import type { DomainFollow } from "../types/domain";
 import { useAuthStore } from "./authStore";
+import { API_BASE } from "../config/apiBase";
 
 const STORAGE_KEY = "@afterlifeRN/follow/overrides";
 const DEFAULT_USER_ID = 1;
@@ -77,6 +78,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
     const exists = get().follows.some(
       (f) => f.followerUserId === u && f.followingCloneId === cloneId,
     );
+
     if (exists) {
       set({
         follows: get().follows.filter(
@@ -97,6 +99,7 @@ export const useFollowStore = create<FollowState>((set, get) => ({
         ],
       });
     }
+
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     const overrides: Override[] = raw ? JSON.parse(raw) : [];
     overrides.push({
@@ -105,6 +108,20 @@ export const useFollowStore = create<FollowState>((set, get) => ({
       at: new Date().toISOString(),
     });
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+
+    const accessToken = useAuthStore.getState().accessToken;
+    if (!accessToken) return;
+    try {
+      const res = await fetch(`${API_BASE}/oth-path${cloneId}/follow`, {
+        method: exists ? "DELETE" : "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) {
+        console.warn("[followStore] API toggle failed:", res.status);
+      }
+    } catch (err) {
+      console.warn("[followStore] API toggle error:", err);
+    }
   },
 
   followersCount: (cloneId) =>

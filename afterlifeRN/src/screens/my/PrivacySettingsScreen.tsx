@@ -7,13 +7,15 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
+import type { MyStackParamList } from "../../navigation/types";
 
 export default function PrivacySettingsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<MyStackParamList>>();
   const { t } = useTranslation();
 
   const items = [
@@ -35,7 +37,12 @@ export default function PrivacySettingsScreen() {
         <View style={s.card}>
           {items.map((item, i) => (
             <View key={item.key}>
-              <TouchableOpacity style={s.row}>
+              <TouchableOpacity
+                style={s.row}
+                onPress={() => {
+                  if (item.key === "blockList") navigation.navigate("BlockedList");
+                }}
+              >
                 <Feather
                   name={item.icon}
                   size={20}

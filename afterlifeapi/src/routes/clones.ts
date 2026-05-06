@@ -607,3 +607,29 @@ clones.delete("/:id/follow", requireAuth, async (c) => {
     .run();
   return c.json({ ok: true });
 });
+
+clones.post("/:id/block", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const userId = c.get("userId")!;
+  await c.env.DB
+    .prepare(`INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`)
+    .bind(userId, cloneId)
+    .run();
+  return c.json({ ok: true, blocked: true });
+});
+
+clones.delete("/:id/block", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const userId = c.get("userId")!;
+  await c.env.DB
+    .prepare(`DELETE FROM clone_blocks WHERE user_id = ? AND clone_id = ?`)
+    .bind(userId, cloneId)
+    .run();
+  return c.json({ ok: true, blocked: false });
+});
