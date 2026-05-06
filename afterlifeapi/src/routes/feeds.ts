@@ -143,7 +143,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     "c.deleted_at IS NULL",
     "c.clone_type != 'memlow'",
     "c.visibility = 'public'",
-    "c.training_status = 'active'",
+
+    "c.training_status = 'ready'",
   ];
   const v_925171 = [];
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
