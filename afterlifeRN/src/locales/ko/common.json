@@ -249,6 +249,8 @@
     "actionCall": "통화하기",
     "actionInvite": "초대",
     "actionShare": "공유하기",
+    "shareLinkCopied": "링크가 복사됐어요. 친구한테 공유해주세요!",
+    "shareLinkFailed": "링크 복사에 실패했어요",
     "manage": "관리",
     "menuEdit": "수정",
     "menuActivate": "활성화",

@@ -437,7 +437,8 @@ export default function CloneEditScreen({ route, navigation }: Props) {
             <Text style={s.modalTitle}>{t("edit.visibilityChooseTitle")}</Text>
             <Text style={s.modalDesc}>{t("edit.visibilityChooseDesc")}</Text>
             <View style={s.visibilityOptions}>
-              {(["public", "private", "followers"] as Visibility[]).map((v) => {
+              {}
+              {(["public", "private"] as Visibility[]).map((v) => {
                 const selected = visibility === v;
                 return (
                   <TouchableOpacity
