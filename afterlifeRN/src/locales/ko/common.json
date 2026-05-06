@@ -33,6 +33,7 @@
   "invite": {
     "title": "공동관리자",
     "create": "공동관리자 초대",
+    "shareTitle": "공유하기",
     "createHint": "afterlife 가입 회원만 초대 가능해요. 3일 내 미수락 시 자동 만료돼요.",
     "emailPlaceholder": "example@email.com",
     "send": "초대",
@@ -214,6 +215,7 @@
   "edit": {
     "title": "페르소나 수정",
     "save": "저장하기",
+    "saveFailed": "저장에 실패했어요.",
     "basicSection": "기본 정보",
     "nameLabel": "이름",
     "namePlaceholder": "이름을 입력해주세요",
@@ -247,6 +249,9 @@
     "actionLearn": "학습하기",
     "actionCall": "통화하기",
     "actionInvite": "초대",
+    "actionShare": "공유하기",
+    "shareLinkCopied": "링크가 복사됐어요. 친구한테 공유해주세요!",
+    "shareLinkFailed": "링크 복사에 실패했어요",
     "manage": "관리",
     "menuEdit": "수정",
     "menuActivate": "활성화",

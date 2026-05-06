@@ -18,6 +18,9 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_bb226e } from "../../api/clones";
+import { v_84a859 } from "../../api/auth";
+import { v_03e392 } from "rcmrninabrnb";
 import { v_694b7f } from "../../api/source";
 import { v_f48a74 } from "./components/L1Section";
 import { v_193b22 } from "./components/L2Section";
@@ -147,19 +150,43 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_02812c = v_5ba743 ? (v_a3360a[v_5ba743] ?? []) : [];
   const v_32b47e = v_774c91.filter((v_ebec57) => !v_02812c.includes(v_ebec57));
 
-  const v_1b8283 = () => {
+  const [v_35bf26, v_04e389] = v_5ab095(false);
+
+  const v_1b8283 = async () => {
     if (!v_eb25ce) return;
+    if (v_35bf26) return;
+    v_04e389(true);
     const v_67628a = v_556c5b(v_f04727) ?? { attrs: {}, notes: '' };
-    v_941cd7(v_eb25ce.id, {
-      displayName: v_1833e7,
-      description: v_6856a9,
-      visibility: v_818579,
-      l1Profile: v_67628a,
-      ...(v_eb25ce.cloneType !== 'memlow' ? { interests: v_774c91 } : {}),
-      ...(v_f04727.relation ? ({ relation: v_f04727.relation } as Partial<v_affcc0>) : {}),
-    } as Partial<v_affcc0>);
-    v_15918a(v_67628a);
-    v_c65f5d.goBack();
+    const v_2ca7e0 = v_1ed7d9.getState().accessToken;
+
+    try {
+      if (v_2ca7e0) {
+        await v_bb226e(v_2ca7e0, v_eb25ce.id, {
+          name: v_1833e7,
+          description: v_6856a9,
+          visibility: v_818579,
+
+          ...(v_8e93b4 ? { l1_profile: v_67628a } : {}),
+          ...(v_eb25ce.cloneType !== 'memlow' ? { interests: v_774c91 } : {}),
+        });
+      }
+      v_941cd7(v_eb25ce.id, {
+        displayName: v_1833e7,
+        description: v_6856a9,
+        visibility: v_818579,
+        l1Profile: v_67628a,
+        ...(v_eb25ce.cloneType !== 'memlow' ? { interests: v_774c91 } : {}),
+        ...(v_f04727.relation ? ({ relation: v_f04727.relation } as Partial<v_affcc0>) : {}),
+      } as Partial<v_affcc0>);
+      v_15918a(v_67628a);
+      v_c65f5d.goBack();
+    } catch (v_49263d) {
+      console.warn("[CloneEdit] save failed:", v_49263d);
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("edit.saveFailed");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+    } finally {
+      v_04e389(false);
+    }
   };
 
   const v_c9f992 = (v_81e2ef) => {
@@ -422,10 +449,10 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {}
       <View style={v_fd5f43.bottomBar}>
         <Button
-          title={v_8d41d7("edit.save")}
+          title={v_35bf26 ? v_8d41d7("common.loading") : v_8d41d7("edit.save")}
           variant="primary"
           onPress={v_1b8283}
-          disabled={!v_1833e7}
+          disabled={!v_1833e7 || v_35bf26}
           style={v_fd5f43.saveBtn}
         />
       </View>
@@ -437,7 +464,8 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             <Text style={v_fd5f43.modalTitle}>{v_8d41d7("edit.visibilityChooseTitle")}</Text>
             <Text style={v_fd5f43.modalDesc}>{v_8d41d7("edit.visibilityChooseDesc")}</Text>
             <View style={v_fd5f43.visibilityOptions}>
-              {(["public", "private", "followers"] as Visibility[]).map((v_81e2ef) => {
+              {}
+              {(["public", "private"] as Visibility[]).map((v_81e2ef) => {
                 const v_587413 = v_818579 === v_81e2ef;
                 return (
                   <TouchableOpacity

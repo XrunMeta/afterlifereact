@@ -16,7 +16,6 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_95825a = [
     { value: 'public', icon: 'globe', title: v_8d41d7('create.visibility.publicTitle'), desc: v_8d41d7('create.visibility.publicDesc') },
-    { value: 'followers', icon: 'users', title: v_8d41d7('create.visibility.followersTitle'), desc: v_8d41d7('create.visibility.followersDesc') },
     { value: 'private', icon: 'lock', title: v_8d41d7('create.visibility.privateTitle'), desc: v_8d41d7('create.visibility.privateDesc') },
   ];
   const v_275ccd = (v_f04727.visibility as V) ?? 'public';

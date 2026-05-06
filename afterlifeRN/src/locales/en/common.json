@@ -33,6 +33,7 @@
   "invite": {
     "title": "Co-admins",
     "create": "Invite Co-admin",
+    "shareTitle": "Share",
     "createHint": "Only afterlife members can be invited. Expires in 3 days if not accepted.",
     "emailPlaceholder": "example@email.com",
     "send": "Invite",
@@ -214,6 +215,7 @@
   "edit": {
     "title": "Edit Persona",
     "save": "Save",
+    "saveFailed": "Failed to save.",
     "basicSection": "Basic Info",
     "nameLabel": "Name",
     "namePlaceholder": "Enter name",
@@ -247,6 +249,9 @@
     "actionLearn": "Train",
     "actionCall": "Call",
     "actionInvite": "Invite",
+    "actionShare": "Share",
+    "shareLinkCopied": "Link copied. Share it with a friend!",
+    "shareLinkFailed": "Failed to copy link",
     "manage": "Manage",
     "menuEdit": "Edit",
     "menuActivate": "Activate",

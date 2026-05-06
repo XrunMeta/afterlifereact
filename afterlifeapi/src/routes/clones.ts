@@ -429,6 +429,7 @@ const v_90be18 = v_1f4ea7
     visibility: v_818579.optional(),
     voice_preset_id: v_1f4ea7.number().int().positive().nullable().optional(),
     l1_profile: v_3ea364.optional(),
+    interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
   })
   .strict()
   .refine((v_b6c474) => Object.keys(v_b6c474).length > 0, {
@@ -526,6 +527,25 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
           .bind(v_6e0fd3, v_0eb677, v_81e2ef),
       );
     }
+  }
+
+  if (v_4d33b2.interests !== undefined) {
+    v_be9ad5.push(
+      v_a1651b.prepare(`DELETE FROM clone_interests WHERE clone_id = ?`).bind(v_6e0fd3),
+    );
+
+    const v_110a8b = new Set<string>();
+    for (const v_479f05 of v_4d33b2.interests) {
+      const v_81e2ef = v_479f05.trim();
+      if (!v_81e2ef || v_110a8b.has(v_81e2ef)) continue;
+      v_110a8b.add(v_81e2ef);
+      v_be9ad5.push(
+        v_a1651b
+          .prepare(`INSERT INTO clone_interests (clone_id, interest) VALUES (?, ?)`)
+          .bind(v_6e0fd3, v_81e2ef),
+      );
+    }
+    v_f73a2d.push("interests");
   }
 
   await v_a1651b.batch(v_be9ad5);

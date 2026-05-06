@@ -15,6 +15,7 @@ import {
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
+import * as v_fba5a0 from "hfxxehldoiokdq";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
@@ -42,7 +43,7 @@ function v_a8d790(c: v_fa0201): v_affcc0 {
     ownerId: v_3f4e2e.ownerId,
     displayName: v_3f4e2e.name,
     description: v_3f4e2e.description ?? "",
-    interests: [],
+    interests: v_3f4e2e.interests ?? [],
     imageUrl: v_3f4e2e.avatarUrl ?? undefined,
     visibility: v_3f4e2e.visibility,
     status: (v_3f4e2e.trainingStatus as v_affcc0["status"]) ?? "active",
@@ -499,15 +500,30 @@ export default function v_def15b() {
           </TouchableOpacity>
           <TouchableOpacity
             style={v_fd5f43.actionBtn}
-            onPress={() => {
-              v_35dce3("");
-              v_ff2199([]);
-              v_b21d0d(new Set());
-              v_2dac5f({ cloneId: v_eb25ce.id });
+            onPress={async () => {
+              if (v_e93e18) {
+
+                v_35dce3("");
+                v_ff2199([]);
+                v_b21d0d(new Set());
+                v_2dac5f({ cloneId: v_eb25ce.id });
+              } else {
+
+                const v_f71b56 = `https://afterlife.app/clone/${v_eb25ce.id}`;
+                try {
+                  await v_fba5a0.setStringAsync(v_f71b56);
+
+                  v_b816d4(v_8d41d7("dashboard.shareLinkCopied"));
+                } catch {
+                  v_b816d4(v_8d41d7("dashboard.shareLinkFailed"));
+                }
+              }
             }}
           >
-            <Feather name="user-plus" size={16} color={v_1bfbd0.zinc700} />
-            <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionInvite")}</Text>
+            <Feather name={v_e93e18 ? "user-plus" : "share-2"} size={16} color={v_1bfbd0.zinc700} />
+            <Text style={v_fd5f43.actionText}>
+              {v_e93e18 ? v_8d41d7("dashboard.actionInvite") : v_8d41d7("dashboard.actionShare")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -705,7 +721,8 @@ export default function v_def15b() {
             <Text style={v_fd5f43.modalTitle}>공개 설정</Text>
             <Text style={v_fd5f43.modalDesc}>페르소나의 공개 범위를 선택하세요</Text>
             <View style={v_fd5f43.visibilityOptions}>
-              {(["public", "private", "followers"] as v_b0b271[]).map((v_81e2ef) => {
+              {}
+              {(["public", "private"] as v_b0b271[]).map((v_81e2ef) => {
                 const v_587413 = v_7462ec?.currentVisibility === v_81e2ef;
                 return (
                   <TouchableOpacity
@@ -800,7 +817,14 @@ export default function v_def15b() {
           >
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.inviteHeader}>
-              <Text style={v_fd5f43.inviteTitle}>{v_8d41d7("invite.create")}</Text>
+              <Text style={v_fd5f43.inviteTitle}>
+                {(() => {
+                  const v_3f4e2e = v_4cd149.find((v_62c214) => v_62c214.id === v_36d186?.cloneId);
+                  return v_3f4e2e?.cloneType === "memlow"
+                    ? v_8d41d7("invite.create")
+                    : v_8d41d7("invite.shareTitle");
+                })()}
+              </Text>
               <TouchableOpacity onPress={() => v_2dac5f(null)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc500} />
               </TouchableOpacity>
