@@ -13,7 +13,6 @@ import {
   v_122070,
   v_cf9c33,
   v_79c4f2,
-  v_e767d1,
   v_0e1f26,
 } from "rcmrninabrnb";
 import { v_03e392 } from "rcmrninabrnb";
@@ -98,21 +97,22 @@ export default function v_c316d8() {
     }
   }, [v_8282fa]);
 
-  const [v_507993, v_d8029f] = v_5ab095(false);
+  const [v_7e4acc, v_de86c2] = v_5ab095(0);
   v_c4deb2(() => {
     const v_53f5d7 = v_0e1f26.addListener(
       v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
-      () => v_d8029f(true),
+      (v_9e86fd) => v_de86c2(v_9e86fd.endCoordinates.height),
     );
     const v_52528b = v_0e1f26.addListener(
       v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => v_d8029f(false),
+      () => v_de86c2(0),
     );
     return () => {
       v_53f5d7.remove();
       v_52528b.remove();
     };
   }, []);
+  const v_507993 = v_7e4acc > 0;
 
   const filteredFeeds: v_19b433[] = v_1c7dea().map(v_f386b1);
 
@@ -316,17 +316,14 @@ export default function v_c316d8() {
 
       {}
       <Modal visible={!!v_ed660d} transparent animationType="slide">
-        <KeyboardAvoidingView
-
-          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
-          style={{ flex: 1 }}
-        >
         <Pressable style={v_d81136.commentOverlay} onPress={() => v_b07dd3(null)}>
           <View
             style={[
               v_d81136.commentSheet,
-
-              { paddingBottom: v_507993 ? 12 : 24 + Math.max(v_033e14.bottom, 0) },
+              {
+                paddingBottom: v_507993 ? 12 : 24 + Math.max(v_033e14.bottom, 0),
+                marginBottom: v_7e4acc,
+              },
             ]}
             onStartShouldSetResponder={() => true}
           >
@@ -385,7 +382,6 @@ export default function v_c316d8() {
             </View>
           </View>
         </Pressable>
-        </KeyboardAvoidingView>
       </Modal>
 
       {}
