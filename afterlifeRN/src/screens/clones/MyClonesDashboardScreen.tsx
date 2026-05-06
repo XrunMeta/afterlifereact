@@ -47,6 +47,8 @@ function v_a8d790(c: v_fa0201): v_affcc0 {
     visibility: v_3f4e2e.visibility,
     status: (v_3f4e2e.trainingStatus as v_affcc0["status"]) ?? "active",
     createdAt: v_3f4e2e.createdAt,
+    myRole: v_3f4e2e.myRole,
+    coownerCount: v_3f4e2e.coownerCount,
     ...(v_3f4e2e.l1Profile ? { l1Profile: v_3f4e2e.l1Profile } : {}),
   };
 }

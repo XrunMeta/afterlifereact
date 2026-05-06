@@ -41,6 +41,9 @@ export interface DomainClone {
   createdAt: string;
   primaryEditorUserId?: number;
   l1Profile?: L1Profile;
+
+  myRole?: "owner" | "coowner";
+  coownerCount?: number;
 }
 
 export interface DomainFollow {
