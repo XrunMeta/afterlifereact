@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, Animated, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
 
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export default function Step6CreatingScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const draft = useCloneStore(s => s.creationDraft);
   const missingAssets =
     draft.cloneType === 'memlow' &&
