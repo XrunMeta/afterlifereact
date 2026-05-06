@@ -308,6 +308,10 @@ export interface MyClone {
   interests?: string[];
 
   l1Profile?: { attrs: Record<string, string>; notes: string } | null;
+
+  likesCount?: number;
+  followersCount?: number;
+  messagesCount?: number;
 }
 
 export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
