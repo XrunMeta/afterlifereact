@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import type { RouteProp } from "@react-navigation/native";
 import type { ClonesStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
@@ -38,6 +39,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function CloneInviteScreen() {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const { params } = useRoute<Route>();
   const cloneId = params.cloneId;
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -88,22 +90,21 @@ export default function CloneInviteScreen() {
   const handleAddInvite = async () => {
     const email = newEmail.trim();
     if (!EMAIL_RE.test(email)) {
-      Alert.alert("알림", "올바른 이메일을 입력해주세요.");
+      Alert.alert(t("common.notice"), t("invite.invalidEmail"));
       return;
     }
     if (myEmail && email.toLowerCase() === myEmail.toLowerCase()) {
-      Alert.alert("알림", "본인은 초대할 수 없어요.");
+      Alert.alert(t("common.notice"), t("invite.selfNotAllowed"));
       return;
     }
     if (!accessToken) return;
     setSubmitting(true);
     try {
-
       const search = await searchUsers(accessToken, email);
       const target = email.toLowerCase();
       const exact = search.items.find((u) => u.email.toLowerCase() === target);
       if (!exact) {
-        Alert.alert("알림", "해당 이메일을 가진 회원이 없습니다 다시 입력해주세요");
+        Alert.alert(t("common.notice"), t("invite.memberNotFound"));
         setSubmitting(false);
         return;
       }
@@ -112,20 +113,15 @@ export default function CloneInviteScreen() {
       console.log("[CloneInvite] sent:", res);
       setNewEmail("");
       await reload();
-      const notify = res.notify;
-      Alert.alert(
-        "초대 발송",
-        notify
-          ? `${email}로 초대를 보냈어요.\n이메일: ${notify.emailSent ? "✓" : "실패"} / 푸시: ${notify.pushSent}건`
-          : `${email}로 초대를 보냈어요.`,
-      );
+      Alert.alert(t("common.success"), t("invite.sentToast", { target: email }));
+      void res;
     } catch (err) {
-      let msg = "초대 발송에 실패했습니다.";
+      let msg = t("invite.sendFailed");
       if (err instanceof AuthApiError) {
-        if (err.code === "QUOTA_EXCEEDED") msg = "초대 가능 한도를 초과했어요.";
+        if (err.code === "QUOTA_EXCEEDED") msg = t("invite.quotaExceeded");
         else msg = err.message;
       }
-      Alert.alert("오류", msg);
+      Alert.alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -133,35 +129,39 @@ export default function CloneInviteScreen() {
 
   const handleCancel = async (inv: PendingInvite) => {
     if (!accessToken) return;
-    Alert.alert("초대 취소", `"${inv.inviteEmail ?? "초대"}"을(를) 취소하시겠어요?`, [
-      { text: "닫기", style: "cancel" },
-      {
-        text: "취소",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await cancelInvite(accessToken, cloneId, inv.id);
-            await reload();
-          } catch (err) {
-            const msg = err instanceof AuthApiError ? err.message : "취소 실패";
-            Alert.alert("오류", msg);
-          }
+    Alert.alert(
+      t("invite.cancelInviteTitle"),
+      t("invite.cancelInviteDesc", { target: inv.inviteEmail ?? t("invite.create") }),
+      [
+        { text: t("common.close"), style: "cancel" },
+        {
+          text: t("common.cancel"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await cancelInvite(accessToken, cloneId, inv.id);
+              await reload();
+            } catch (err) {
+              const msg = err instanceof AuthApiError ? err.message : t("invite.cancelFailed");
+              Alert.alert(t("common.error"), msg);
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const handleKickOrLeave = async (m: ShareMember) => {
     if (!accessToken) return;
     const isSelf = m.targetUserId === currentUserId;
-    const action = isSelf ? "나가기" : "강퇴";
-    const target = isSelf
-      ? "공동관리자에서 나가시겠어요?"
-      : `${m.targetUser?.name ?? m.inviteEmail ?? "이 멤버"}을(를) 강퇴하시겠어요?`;
-    Alert.alert(action, target, [
-      { text: "닫기", style: "cancel" },
+    const actionLabel = isSelf ? t("invite.leave") : t("invite.kick");
+    const targetText = isSelf
+      ? t("invite.leaveTitle")
+      : t("invite.kickTitle", { name: m.targetUser?.name ?? m.inviteEmail ?? "—" });
+    Alert.alert(actionLabel, targetText, [
+      { text: t("common.close"), style: "cancel" },
       {
-        text: action,
+        text: actionLabel,
         style: "destructive",
         onPress: async () => {
           try {
@@ -173,8 +173,11 @@ export default function CloneInviteScreen() {
               await reload();
             }
           } catch (err) {
-            const msg = err instanceof AuthApiError ? err.message : `${action} 실패`;
-            Alert.alert("오류", msg);
+            const msg =
+              err instanceof AuthApiError
+                ? err.message
+                : t("invite.actionFailed", { action: actionLabel });
+            Alert.alert(t("common.error"), msg);
           }
         },
       },
@@ -184,7 +187,7 @@ export default function CloneInviteScreen() {
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
       <PageHeader
-        title="공동관리자"
+        title={t("invite.title")}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
@@ -207,14 +210,12 @@ export default function CloneInviteScreen() {
             {}
             {isOwner && (
               <View style={s.card}>
-                <Text style={s.sectionTitle}>공동관리자 초대</Text>
-                <Text style={s.sectionDesc}>
-                  afterlife 가입 회원만 초대 가능해요. 3일 내 미수락 시 자동 만료돼요.
-                </Text>
+                <Text style={s.sectionTitle}>{t("invite.create")}</Text>
+                <Text style={s.sectionDesc}>{t("invite.createHint")}</Text>
                 <View style={s.inviteRow}>
                   <TextInput
                     style={s.emailInput}
-                    placeholder="example@email.com"
+                    placeholder={t("invite.emailPlaceholder")}
                     placeholderTextColor={COLORS.zinc400}
                     value={newEmail}
                     onChangeText={setNewEmail}
@@ -229,7 +230,7 @@ export default function CloneInviteScreen() {
                     {submitting ? (
                       <ActivityIndicator color={COLORS.white} />
                     ) : (
-                      <Text style={s.sendBtnText}>초대</Text>
+                      <Text style={s.sendBtnText}>{t("invite.send")}</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -239,17 +240,17 @@ export default function CloneInviteScreen() {
             {}
             {isOwner && pending.length > 0 && (
               <View style={s.card}>
-                <Text style={s.sectionTitle}>대기 중 ({pending.length})</Text>
+                <Text style={s.sectionTitle}>{t("invite.pending", { n: pending.length })}</Text>
                 {pending.map((inv) => (
                   <View key={inv.id} style={s.row}>
                     <View style={{ flex: 1 }}>
-                      <Text style={s.rowEmail}>{inv.inviteEmail ?? "(이메일 없음)"}</Text>
+                      <Text style={s.rowEmail}>{inv.inviteEmail ?? t("invite.noEmail")}</Text>
                       <Text style={s.rowSub}>
-                        {formatExpiresHint(inv.expiresAt)}
+                        {formatExpiresHint(inv.expiresAt, t)}
                       </Text>
                     </View>
                     <TouchableOpacity style={s.cancelBtn} onPress={() => handleCancel(inv)}>
-                      <Text style={s.cancelBtnText}>취소</Text>
+                      <Text style={s.cancelBtnText}>{t("common.cancel")}</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -258,11 +259,9 @@ export default function CloneInviteScreen() {
 
             {}
             <View style={s.card}>
-              <Text style={s.sectionTitle}>
-                멤버 ({members.length})
-              </Text>
+              <Text style={s.sectionTitle}>{t("invite.members", { n: members.length })}</Text>
               {members.length === 0 ? (
-                <Text style={s.empty}>아직 공동관리자가 없어요.</Text>
+                <Text style={s.empty}>{t("invite.noMembers")}</Text>
               ) : (
                 members.map((m) => {
                   const isSelf = m.targetUserId === currentUserId;
@@ -272,8 +271,8 @@ export default function CloneInviteScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={s.rowEmail}>
                           {m.targetUser?.name ?? m.targetUser?.email ?? m.inviteEmail ?? "—"}
-                          {isSelf && <Text style={s.selfBadge}> (나)</Text>}
-                          {isOwnerRow && <Text style={s.ownerBadge}> 반장</Text>}
+                          {isSelf && <Text style={s.selfBadge}> {t("invite.self")}</Text>}
+                          {isOwnerRow && <Text style={s.ownerBadge}> {t("invite.ownerBadge")}</Text>}
                         </Text>
                         <Text style={s.rowSub}>
                           {m.targetUser?.email ?? m.inviteEmail ?? ""}
@@ -286,7 +285,7 @@ export default function CloneInviteScreen() {
                           onPress={() => handleKickOrLeave(m)}
                         >
                           <Text style={isSelf ? s.leaveBtnText : s.kickBtnText}>
-                            {isSelf ? "나가기" : "강퇴"}
+                            {isSelf ? t("invite.leave") : t("invite.kick")}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -302,17 +301,20 @@ export default function CloneInviteScreen() {
   );
 }
 
-function formatExpiresHint(expiresAt: string): string {
+function formatExpiresHint(
+  expiresAt: string,
+  t: (k: string, opts?: Record<string, unknown>) => string,
+): string {
   try {
     const exp = new Date(expiresAt.replace(" ", "T") + "Z").getTime();
     const ms = exp - Date.now();
-    if (ms <= 0) return "만료됨";
+    if (ms <= 0) return t("invite.expired");
     const days = Math.floor(ms / (24 * 60 * 60 * 1000));
     const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-    if (days > 0) return `${days}일 ${hours}시간 후 만료`;
-    return `${hours}시간 후 만료`;
+    if (days > 0) return t("invite.expiresInDays", { days, hours });
+    return t("invite.expiresInHours", { hours });
   } catch {
-    return "만료 정보 없음";
+    return t("invite.noExpiresInfo");
   }
 }
 

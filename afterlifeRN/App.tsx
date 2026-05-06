@@ -55,7 +55,8 @@ export default function App() {
           <StatusBar style="dark" />
         </NavigationContainer>
         <BaseUrlBadge />
-        {__DEV__ && <DevFloatingBall />}
+        {}
+        {}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

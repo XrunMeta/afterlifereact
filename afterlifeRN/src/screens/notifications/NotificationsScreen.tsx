@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
@@ -36,6 +37,7 @@ const TYPE_ICON: Record<string, keyof typeof Feather.glyphMap> = {
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,7 +119,7 @@ export default function NotificationsScreen() {
               {item.body}
             </Text>
           ) : null}
-          <Text style={s.time}>{formatRelative(item.createdAt)}</Text>
+          <Text style={s.time}>{formatRelative(item.createdAt, t)}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -126,13 +128,13 @@ export default function NotificationsScreen() {
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
       <PageHeader
-        title="알림"
+        title={t("notifications.title")}
         showBackButton
         onBackPress={() => navigation.goBack()}
         rightAction={
           hasUnread ? (
             <TouchableOpacity onPress={handleMarkAll} style={{ padding: 6 }}>
-              <Text style={s.markAll}>모두 읽음</Text>
+              <Text style={s.markAll}>{t("notifications.markAllRead")}</Text>
             </TouchableOpacity>
           ) : null
         }
@@ -144,7 +146,7 @@ export default function NotificationsScreen() {
       ) : items.length === 0 ? (
         <View style={s.center}>
           <Feather name="bell-off" size={32} color={COLORS.zinc300} />
-          <Text style={s.empty}>받은 알림이 없어요.</Text>
+          <Text style={s.empty}>{t("notifications.empty")}</Text>
         </View>
       ) : (
         <FlatList
@@ -167,18 +169,18 @@ export default function NotificationsScreen() {
   );
 }
 
-function formatRelative(iso: string): string {
+function formatRelative(iso: string, tFn: (k: string, opts?: Record<string, unknown>) => string): string {
   try {
-    const t = new Date(iso.replace(" ", "T") + "Z").getTime();
-    const diff = Date.now() - t;
+    const ms = new Date(iso.replace(" ", "T") + "Z").getTime();
+    const diff = Date.now() - ms;
     const min = Math.floor(diff / 60000);
-    if (min < 1) return "방금";
-    if (min < 60) return `${min}분 전`;
+    if (min < 1) return tFn("common.now");
+    if (min < 60) return tFn("common.agoMinutes", { n: min });
     const hr = Math.floor(min / 60);
-    if (hr < 24) return `${hr}시간 전`;
+    if (hr < 24) return tFn("common.agoHours", { n: hr });
     const d = Math.floor(hr / 24);
-    if (d < 30) return `${d}일 전`;
-    return new Date(t).toLocaleDateString("ko-KR");
+    if (d < 30) return tFn("common.agoDays", { n: d });
+    return new Date(ms).toLocaleDateString();
   } catch {
     return iso;
   }

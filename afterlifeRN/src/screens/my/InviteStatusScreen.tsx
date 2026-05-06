@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, CommonActions } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
@@ -25,25 +26,33 @@ type Nav = NativeStackNavigationProp<MyStackParamList>;
 
 const STATUS_META: Record<
   SentInviteStatus,
-  { label: string; color: string; bg: string; icon: keyof typeof Feather.glyphMap }
+  { color: string; bg: string; icon: keyof typeof Feather.glyphMap }
 > = {
-  pending: { label: "대기", color: "#92400e", bg: "#fef3c7", icon: "clock" },
-  accepted: { label: "수락", color: "#166534", bg: "#dcfce7", icon: "check-circle" },
-  cancelled: { label: "취소", color: "#475569", bg: "#e2e8f0", icon: "x-circle" },
-  expired: { label: "만료", color: "#991b1b", bg: "#fee2e2", icon: "alert-triangle" },
+  pending: { color: "#92400e", bg: "#fef3c7", icon: "clock" },
+  accepted: { color: "#166534", bg: "#dcfce7", icon: "check-circle" },
+  cancelled: { color: "#475569", bg: "#e2e8f0", icon: "x-circle" },
+  expired: { color: "#991b1b", bg: "#fee2e2", icon: "alert-triangle" },
 };
-
-const FILTERS: Array<{ key: "all" | SentInviteStatus; label: string }> = [
-  { key: "all", label: "전체" },
-  { key: "pending", label: "대기" },
-  { key: "accepted", label: "수락" },
-  { key: "cancelled", label: "취소" },
-  { key: "expired", label: "만료" },
-];
 
 export default function InviteStatusScreen() {
   const navigation = useNavigation<Nav>();
+  const { t } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  const FILTERS: Array<{ key: "all" | SentInviteStatus; label: string }> = [
+    { key: "all", label: t("inviteStatus.filterAll") },
+    { key: "pending", label: t("inviteStatus.statusPending") },
+    { key: "accepted", label: t("inviteStatus.statusAccepted") },
+    { key: "cancelled", label: t("inviteStatus.statusCancelled") },
+    { key: "expired", label: t("inviteStatus.statusExpired") },
+  ];
+
+  const STATUS_LABEL: Record<SentInviteStatus, string> = {
+    pending: t("inviteStatus.statusPending"),
+    accepted: t("inviteStatus.statusAccepted"),
+    cancelled: t("inviteStatus.statusCancelled"),
+    expired: t("inviteStatus.statusExpired"),
+  };
   const [items, setItems] = useState<SentInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,14 +120,14 @@ export default function InviteStatusScreen() {
             </Text>
             <View style={[s.badge, { backgroundColor: meta.bg }]}>
               <Feather name={meta.icon} size={11} color={meta.color} />
-              <Text style={[s.badgeText, { color: meta.color }]}>{meta.label}</Text>
+              <Text style={[s.badgeText, { color: meta.color }]}>{STATUS_LABEL[item.status]}</Text>
             </View>
           </View>
           <Text style={s.email} numberOfLines={1}>
-            {item.inviteEmail ?? "(이메일 없음)"}
+            {item.inviteEmail ?? t("invite.noEmail")}
           </Text>
           <Text style={s.subtle}>
-            {formatStatusHint(item)}
+            {formatStatusHint(item, t)}
           </Text>
         </View>
         <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
@@ -129,7 +138,7 @@ export default function InviteStatusScreen() {
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
       <PageHeader
-        title="초대 현황"
+        title={t("inviteStatus.title")}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
@@ -160,7 +169,7 @@ export default function InviteStatusScreen() {
         <View style={s.center}>
           <Feather name="send" size={32} color={COLORS.zinc300} />
           <Text style={s.empty}>
-            {filter === "all" ? "아직 보낸 초대가 없어요." : `해당 상태의 초대가 없어요.`}
+            {filter === "all" ? t("inviteStatus.emptyAll") : t("inviteStatus.emptyFilter")}
           </Text>
         </View>
       ) : (
@@ -184,33 +193,35 @@ export default function InviteStatusScreen() {
   );
 }
 
-function formatRel(iso: string): string {
+type T = (k: string, opts?: Record<string, unknown>) => string;
+
+function formatRel(iso: string, t: T): string {
   try {
-    const t = new Date(iso.replace(" ", "T") + "Z").getTime();
-    const diff = Date.now() - t;
+    const ms = new Date(iso.replace(" ", "T") + "Z").getTime();
+    const diff = Date.now() - ms;
     const min = Math.floor(diff / 60000);
-    if (min < 1) return "방금";
-    if (min < 60) return `${min}분 전`;
+    if (min < 1) return t("common.now");
+    if (min < 60) return t("common.agoMinutes", { n: min });
     const hr = Math.floor(min / 60);
-    if (hr < 24) return `${hr}시간 전`;
+    if (hr < 24) return t("common.agoHours", { n: hr });
     const d = Math.floor(hr / 24);
-    if (d < 30) return `${d}일 전`;
-    return new Date(t).toLocaleDateString("ko-KR");
+    if (d < 30) return t("common.agoDays", { n: d });
+    return new Date(ms).toLocaleDateString();
   } catch {
     return iso;
   }
 }
 
-function formatStatusHint(it: SentInvite): string {
+function formatStatusHint(it: SentInvite, t: T): string {
   switch (it.status) {
     case "pending":
-      return `${formatRel(it.createdAt)} 발송 · 미수락`;
+      return t("inviteStatus.hintPending", { rel: formatRel(it.createdAt, t) });
     case "accepted":
-      return `${it.usedAt ? formatRel(it.usedAt) : "—"} 수락됨`;
+      return t("inviteStatus.hintAccepted", { rel: it.usedAt ? formatRel(it.usedAt, t) : "—" });
     case "cancelled":
-      return `${it.cancelledAt ? formatRel(it.cancelledAt) : "—"} 취소`;
+      return t("inviteStatus.hintCancelled", { rel: it.cancelledAt ? formatRel(it.cancelledAt, t) : "—" });
     case "expired":
-      return `${formatRel(it.expiresAt)} 만료`;
+      return t("inviteStatus.hintExpired", { rel: formatRel(it.expiresAt, t) });
   }
 }
 
