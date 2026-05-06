@@ -23,6 +23,7 @@ import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_a51300,
+  v_e155c8,
   v_a56a6a,
   type v_9c049b,
 } from "../../api/clones";
@@ -136,7 +137,21 @@ export default function v_000f0a() {
         {
           text: v_8d41d7("inviteAccept.decline"),
           style: "destructive",
-          onPress: () => v_c65f5d.goBack(),
+          onPress: async () => {
+            if (!v_2ca7e0) {
+              v_c65f5d.goBack();
+              return;
+            }
+            try {
+              const v_8f00b9 = await v_e155c8(v_2ca7e0, v_21cc31);
+              console.log("[InviteAccept] decline:", v_8f00b9);
+              v_c65f5d.goBack();
+            } catch (v_49263d) {
+              console.warn("[InviteAccept] decline failed:", v_49263d);
+              const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("inviteAccept.acceptFailed");
+              v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+            }
+          },
         },
       ],
     );

@@ -342,3 +342,15 @@ export async function v_a51300(
     v_7f4dc3(),
   );
 }
+
+export async function v_e155c8(
+  v_2ca7e0,
+  v_21cc31,
+): Promise<{ ok: true; cloneId?: number; removedShare?: boolean; alreadyCancelled?: boolean }> {
+  return v_04b58a(
+    `/oth-path${encodeURIComponent(v_21cc31)}/decline`,
+    v_2ca7e0,
+    { method: "POST" },
+    v_7f4dc3(),
+  );
+}

@@ -392,6 +392,78 @@ v_98b245.post(
   },
 );
 
+v_98b245.post(
+  "/:token/decline",
+  v_6690d9,
+  v_a04a51("sharing.invite.decline"),
+  async (v_3f4e2e) => {
+    const v_21cc31 = v_3f4e2e.req.param("token");
+    if (!v_21cc31 || v_21cc31.length < 32 || v_21cc31.length > 256) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Invalid token.");
+    }
+    const v_43e90c = v_3f4e2e.get("userId")!;
+    const v_a1651b = v_3f4e2e.env.DB;
+    const v_109fd8 = v_27c443(v_21cc31);
+
+    const v_f0104f = await v_a1651b
+      .prepare(
+        `SELECT id, clone_id, invite_email, used_at, cancelled_at
+           FROM invite_tokens WHERE token_hash = ?`,
+      )
+      .bind(v_109fd8)
+      .first<{
+        id: number;
+        clone_id: number;
+        invite_email: string | null;
+        used_at: string | null;
+        cancelled_at: string | null;
+      }>();
+    if (!v_f0104f) throw new v_3ebe58("NOT_FOUND", "Invite not found.");
+    if (v_f0104f.cancelled_at) {
+
+      return v_3f4e2e.json({ ok: true, alreadyCancelled: true });
+    }
+
+    if (v_f0104f.invite_email) {
+      const v_ceb55a = await v_a1651b
+        .prepare(`SELECT email FROM users WHERE id = ?`)
+        .bind(v_43e90c)
+        .first<{ email: string }>();
+      if (!v_ceb55a || v_ceb55a.email.toLowerCase() !== v_f0104f.invite_email.toLowerCase()) {
+        throw new v_3ebe58("FORBIDDEN", "Invite email does not match.");
+      }
+    }
+
+    let v_5b8535 = false;
+    if (v_f0104f.used_at) {
+      const v_8f00b9 = await v_a1651b
+        .prepare(
+          `DELETE FROM clone_shares
+             WHERE clone_id = ? AND target_user_id = ?`,
+        )
+        .bind(v_f0104f.clone_id, v_43e90c)
+        .run();
+      v_5b8535 = (v_8f00b9.meta?.changes ?? 0) > 0;
+    }
+
+    await v_a1651b
+      .prepare(
+        `UPDATE invite_tokens
+            SET cancelled_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND cancelled_at IS NULL`,
+      )
+      .bind(v_f0104f.id)
+      .run();
+
+    await v_74defc(v_3f4e2e, {
+      userId: v_43e90c,
+      action: "sharing.invite.decline",
+      details: { cloneId: v_f0104f.clone_id, inviteId: v_f0104f.id, removedShare: v_5b8535 },
+    });
+    return v_3f4e2e.json({ ok: true, cloneId: v_f0104f.clone_id, removedShare: v_5b8535 });
+  },
+);
+
 v_403c0a.get("/:id/shares", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
