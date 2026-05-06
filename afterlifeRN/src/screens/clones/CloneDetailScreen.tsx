@@ -161,7 +161,10 @@ export default function v_51ae06({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {}
       <Modal visible={v_a7e879} transparent animationType="slide">
         <Pressable style={v_fd5f43.giftOverlay} onPress={() => v_88d896(false)}>
-          <Pressable style={v_fd5f43.giftSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+          <Pressable
+            style={[v_fd5f43.giftSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             {}
             <View style={v_fd5f43.sheetHandle} />
 
@@ -312,8 +315,8 @@ const v_fd5f43 = v_472849.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingBottom: 32,
-    maxHeight: v_28d8d8 * 0.55,
+
+    maxHeight: v_28d8d8 * 0.65,
   },
   sheetHandle: {
     width: 36,

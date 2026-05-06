@@ -130,7 +130,9 @@ async function v_04b58a<T>(
   };
   if (v_6f448e) v_3f4675["X-Idempotency-Key"] = v_6f448e;
 
-  const v_8f00b9 = await fetch(`${v_cc9198}${v_9fe22d}`, { ...v_00cfc6, headers: v_3f4675 });
+  const v_f71b56 = `${v_cc9198}${v_9fe22d}`;
+  const v_bfe9b9 = v_00cfc6.method ?? "GET";
+  const v_8f00b9 = await fetch(v_f71b56, { ...v_00cfc6, headers: v_3f4675 });
   const v_9b6134 = await v_8f00b9.text();
   let v_8decf8 = null;
   try {
@@ -140,6 +142,20 @@ async function v_04b58a<T>(
   }
   if (!v_8f00b9.ok) {
     const v_4d33b2 = v_8decf8 as v_669377 | null;
+
+    console.warn(
+      "[authFetch] failed:",
+      v_bfe9b9,
+      v_f71b56,
+      "status=",
+      v_8f00b9.status,
+      "code=",
+      v_4d33b2?.error?.code,
+      "msg=",
+      v_4d33b2?.error?.message,
+      "raw=",
+      v_9b6134.slice(0, 300),
+    );
     throw new v_84a859(
       v_8f00b9.status,
       v_4d33b2?.error?.code ?? "HTTP_ERROR",
