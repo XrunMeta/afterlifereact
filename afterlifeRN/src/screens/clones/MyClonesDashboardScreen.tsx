@@ -196,15 +196,38 @@ export default function v_def15b() {
   }, [v_b93ea5, v_2ca7e0, v_36d186]);
 
   const v_69254d = async (user: v_3a673b) => {
-    if (!v_2ca7e0 || !v_36d186) return;
+    if (!v_2ca7e0 || !v_36d186) {
+      console.warn("[Dashboard] handleSendInvite: missing accessToken or inviteModal");
+      return;
+    }
+    console.log("[Dashboard] sendInvite start:", { cloneId: v_36d186.cloneId, email: v_625c74.email });
     try {
-      await v_e4a407(v_2ca7e0, v_36d186.cloneId, {
+      const v_8f00b9 = await v_e4a407(v_2ca7e0, v_36d186.cloneId, {
         invite_email: v_625c74.email,
       });
+      console.log("[Dashboard] sendInvite success:", v_8f00b9);
       v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
+      v_b816d4(`${v_625c74.name ?? v_625c74.email} 에게 초대를 보냈어요.`);
     } catch (v_49263d) {
+      if (v_49263d instanceof v_84a859) {
+        console.warn(
+          "[Dashboard] createInvite failed:",
+          v_49263d.code,
+          v_49263d.status,
+          v_49263d.message,
+          "details=",
+          JSON.stringify(v_49263d.details),
+        );
+        if (v_49263d.code === "UNAUTHENTICATED" || v_49263d.status === 401) {
+          await v_1ed7d9.getState().apiLogout();
+          v_b816d4("로그인 세션이 만료됐어요. 다시 로그인해주세요.");
+          return;
+        }
+      } else {
+        console.warn("[Dashboard] createInvite failed:", v_49263d);
+      }
       const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "초대 발송 실패";
-      console.warn("[Dashboard] createInvite failed:", v_badeaf);
+      v_b816d4(v_badeaf);
     }
   };
 
