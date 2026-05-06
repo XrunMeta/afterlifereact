@@ -249,6 +249,70 @@ v_de7ba7.get("/me/devices", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ devices: v_18b8bf.results ?? [] });
 });
 
+v_de7ba7.get("/me/invites", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT
+          i.id, i.invite_email AS inviteEmail, i.relation, i.grant_owner AS grantOwner,
+          i.expires_at AS expiresAt, i.used_at AS usedAt, i.cancelled_at AS cancelledAt,
+          i.created_at AS createdAt,
+          c.id AS cloneId, c.name AS cloneName, c.username AS cloneUsername,
+          c.avatar_url AS cloneAvatarUrl, c.clone_type AS cloneType
+         FROM invite_tokens i
+         JOIN clones c ON c.id = i.clone_id
+        WHERE i.owner_id = ? AND c.deleted_at IS NULL
+        ORDER BY i.id DESC
+        LIMIT 200`,
+    )
+    .bind(v_43e90c)
+    .all<{
+      id: number;
+      inviteEmail: string | null;
+      relation: string | null;
+      grantOwner: number;
+      expiresAt: string;
+      usedAt: string | null;
+      cancelledAt: string | null;
+      createdAt: string;
+      cloneId: number;
+      cloneName: string;
+      cloneUsername: string;
+      cloneAvatarUrl: string | null;
+      cloneType: string;
+    }>();
+
+  const v_5c2f9f = Date.now();
+  const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
+    let v_d308b5;
+    if (v_cb35cb.usedAt) v_d308b5 = "accepted";
+    else if (v_cb35cb.cancelledAt) v_d308b5 = "cancelled";
+    else {
+      const v_f900a6 = new Date(v_cb35cb.expiresAt.replace(" ", "T") + "Z").getTime();
+      v_d308b5 = v_f900a6 < v_5c2f9f ? "expired" : "pending";
+    }
+    return {
+      id: v_cb35cb.id,
+      inviteEmail: v_cb35cb.inviteEmail,
+      relation: v_cb35cb.relation,
+      grantOwner: v_cb35cb.grantOwner === 1,
+      expiresAt: v_cb35cb.expiresAt,
+      usedAt: v_cb35cb.usedAt,
+      cancelledAt: v_cb35cb.cancelledAt,
+      createdAt: v_cb35cb.createdAt,
+      status: v_d308b5,
+      clone: {
+        id: v_cb35cb.cloneId,
+        name: v_cb35cb.cloneName,
+        username: v_cb35cb.cloneUsername,
+        avatarUrl: v_cb35cb.cloneAvatarUrl,
+        cloneType: v_cb35cb.cloneType,
+      },
+    };
+  });
+  return v_3f4e2e.json({ items: v_4622b9 });
+});
+
 v_de7ba7.post("/me/devices", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_3f4e2e.req.json().catch(() => ({})) as {
