@@ -98,6 +98,11 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     try {
       const v_8f00b9 = await v_f5cc38({ limit: 50 });
       console.log("[feedStore] discover loaded:", v_8f00b9.items.length);
+
+      if (v_8f00b9.items.length === 0) {
+        v_bb8024({ apiLoading: false });
+        return;
+      }
       v_bb8024({ apiFeeds: v_8f00b9.items, apiLoading: false });
     } catch (v_49263d) {
       console.warn("[feedStore] discover failed:", v_49263d);
