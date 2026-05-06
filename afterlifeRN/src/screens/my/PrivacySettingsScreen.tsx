@@ -17,7 +17,7 @@ export default function v_9232cf() {
   const { t: v_8d41d7 } = v_772971();
 
   const v_4622b9 = [
-    { key: "profileVisibility", labelKey: "settings.privacy.profileVisibility", icon: "eye" as const },
+
     { key: "blockList", labelKey: "settings.privacy.blockList", icon: "slash" as const },
     { key: "dataDownload", labelKey: "settings.privacy.dataDownload", icon: "download" as const },
     { key: "deleteAccount", labelKey: "settings.privacy.deleteAccount", icon: "trash-2" as const, danger: true },

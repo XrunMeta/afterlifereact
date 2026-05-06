@@ -12,6 +12,7 @@ import {
   v_79c4f2,
   v_700696,
   v_a2349e,
+  v_03e392,
   type v_bd64bf,
   type v_da479e,
 } from "rcmrninabrnb";
@@ -255,14 +256,27 @@ export default function v_14b43e() {
     }
   };
 
-  const v_b72645 = async (v_d91518) => {
+  const v_b72645 = (v_d91518) => {
     if (v_5c83d5 == null || v_5c83d5 < 0 || !v_2ca7e0) return;
-    try {
-      await v_0df337(v_2ca7e0, v_5c83d5, v_d91518);
-      v_502f4e((v_ba2215) => v_ba2215.filter((v_3f4e2e) => v_3f4e2e.id !== v_d91518));
-    } catch (v_49263d) {
-      console.warn("[Following] deleteFeedComment failed:", v_49263d);
-    }
+    v_03e392.alert(
+      "댓글 삭제",
+      "이 댓글을 삭제하시겠습니까?",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await v_0df337(v_2ca7e0, v_5c83d5, v_d91518);
+              v_502f4e((v_ba2215) => v_ba2215.filter((v_3f4e2e) => v_3f4e2e.id !== v_d91518));
+            } catch (v_49263d) {
+              console.warn("[Following] deleteFeedComment failed:", v_49263d);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const v_bdaeb6 = ({ item: v_8c0b26 }: { item: (typeof v_b94d82)[0] }) => {
