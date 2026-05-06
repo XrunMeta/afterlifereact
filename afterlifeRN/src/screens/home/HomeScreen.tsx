@@ -116,12 +116,14 @@ export default function v_c316d8() {
 
   const filteredFeeds: v_19b433[] = v_1c7dea().map(v_f386b1);
 
-  const v_50ea12 = v_37977a((v_fd5f43) => v_fd5f43.apiFeeds); 
-  void v_50ea12;
-  const [, v_6154a6] = v_5ab095(0);
   const v_829e3a = v_de06a3((v_c09aa8, v_f4e98d) => {
     v_10e36e.set(v_c09aa8, { commentsCount: v_f4e98d });
-    v_6154a6((v_62c214) => v_62c214 + 1);
+    const v_c3bc75 = v_37977a.getState().apiFeeds;
+    if (v_c3bc75) {
+      v_37977a.setState({
+        apiFeeds: v_c3bc75.map((v_8b5cd8) => (v_8b5cd8.id === v_c09aa8 ? { ...v_8b5cd8, commentsCount: v_f4e98d } : v_8b5cd8)),
+      });
+    }
   }, []);
 
   const v_43bc1b = v_de06a3(
