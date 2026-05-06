@@ -106,9 +106,16 @@ export default function FollowingScreen() {
         setApiFollowed(null);
         return;
       }
+      console.log(`[Following] fetch start userId=${userId}`);
       listMyFollowedClones(accessToken, userId)
         .then((r) => {
-          if (!cancelled) setApiFollowed(r.items);
+          if (!cancelled) {
+            console.log(
+              `[Following] followedClones ← ${r.items.length} items`,
+              r.items.map((it) => ({ id: it.id, name: it.name })),
+            );
+            setApiFollowed(r.items);
+          }
         })
         .catch((err) => {
           console.warn("[Following] listMyFollowedClones failed:", err);

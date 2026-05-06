@@ -180,9 +180,14 @@ export default function MyScreen() {
         return;
       }
       const userId = apiUser.id;
+      console.log(`[MyScreen] fetch start userId=${userId}`);
       listMyFollowedClones(accessToken, userId)
         .then((r) => {
           if (!cancelled) {
+            console.log(
+              `[MyScreen] followedClones ← ${r.items.length} items`,
+              r.items.map((it) => ({ id: it.id, name: it.name })),
+            );
             setApiFollowingCount(r.items.length);
             setApiFollowingList(r.items);
           }
@@ -191,6 +196,10 @@ export default function MyScreen() {
       listMyClones(accessToken)
         .then((r) => {
           if (!cancelled) {
+            console.log(
+              `[MyScreen] myClones ← ${r.items.length} items`,
+              r.items.map((it) => ({ id: it.id, name: it.name })),
+            );
             setApiMyClonesCount(r.items.length);
             setApiMyClonesList(r.items);
           }

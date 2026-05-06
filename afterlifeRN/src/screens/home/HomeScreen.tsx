@@ -422,23 +422,41 @@ export default function HomeScreen() {
               onPress={async () => {
                 const target = moreTarget;
                 setMoreTarget(null);
-                if (!target || !accessToken) return;
+                if (!target || !accessToken) {
+                  console.log(
+                    `[BLOCK] aborted — target=${!!target} accessToken=${!!accessToken}`,
+                  );
+                  return;
+                }
+                console.log(
+                  `[BLOCK] start cloneId=${target.cloneId} author=${target.author}`,
+                );
                 try {
-                  await blockClone(accessToken, target.cloneId);
+                  console.log(`[BLOCK] → POST /oth-path${target.cloneId}/block`);
+                  const blockRes = await blockClone(accessToken, target.cloneId);
+                  console.log(`[BLOCK] ← block API ok:`, blockRes);
                   setToastMessage("이 페르소나가 차단됐어요");
 
                   const cur = useFeedStore.getState().apiFeeds;
+                  const beforeFeed = cur?.length ?? 0;
                   if (cur) {
                     useFeedStore.setState({
                       apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
                     });
                   }
+                  console.log(
+                    `[BLOCK] apiFeeds filtered — before=${beforeFeed} after=${
+                      useFeedStore.getState().apiFeeds?.length ?? 0
+                    }`,
+                  );
 
                   await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
 
+                  console.log(`[BLOCK] → loadDiscover() refetch`);
                   void loadDiscover();
+                  console.log(`[BLOCK] complete cloneId=${target.cloneId}`);
                 } catch (err) {
-                  console.warn("[Home] block failed:", err);
+                  console.warn(`[BLOCK] FAILED cloneId=${target.cloneId}`, err);
                   setToastMessage("차단에 실패했어요");
                 }
               }}
