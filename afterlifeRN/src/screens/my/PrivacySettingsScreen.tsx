@@ -17,7 +17,7 @@ export default function PrivacySettingsScreen() {
   const { t } = useTranslation();
 
   const items = [
-    { key: "profileVisibility", labelKey: "settings.privacy.profileVisibility", icon: "eye" as const },
+
     { key: "blockList", labelKey: "settings.privacy.blockList", icon: "slash" as const },
     { key: "dataDownload", labelKey: "settings.privacy.dataDownload", icon: "download" as const },
     { key: "deleteAccount", labelKey: "settings.privacy.deleteAccount", icon: "trash-2" as const, danger: true },
