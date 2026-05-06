@@ -43,7 +43,7 @@ function v_a8d790(c: v_fa0201): v_affcc0 {
     ownerId: v_3f4e2e.ownerId,
     displayName: v_3f4e2e.name,
     description: v_3f4e2e.description ?? "",
-    interests: [],
+    interests: v_3f4e2e.interests ?? [],
     imageUrl: v_3f4e2e.avatarUrl ?? undefined,
     visibility: v_3f4e2e.visibility,
     status: (v_3f4e2e.trainingStatus as v_affcc0["status"]) ?? "active",

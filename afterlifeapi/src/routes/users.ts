@@ -376,8 +376,28 @@ v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
     .bind(v_43e90c, v_43e90c, v_43e90c)
     .all();
 
+  const v_8b86f5 = (v_18b8bf.results ?? []).map((v_cb35cb) => (v_cb35cb as { id: number }).id);
+  const v_65d2c1 = new Map<number, string[]>();
+  if (v_8b86f5.length > 0) {
+    const v_1cdc07 = v_8b86f5.map(() => "?").join(",");
+    const v_b52787 = (
+      await v_3f4e2e.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${v_1cdc07})`,
+        )
+        .bind(...v_8b86f5)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const v_b07d8e of v_b52787) {
+      const v_d0c056 = v_65d2c1.get(v_b07d8e.clone_id) ?? [];
+      v_d0c056.push(v_b07d8e.interest);
+      v_65d2c1.set(v_b07d8e.clone_id, v_d0c056);
+    }
+  }
+
   const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
-    const v_3ac7e7 = v_cb35cb as Record<string, unknown> & { l1ProfileJson?: string | null };
+    const v_3ac7e7 = v_cb35cb as Record<string, unknown> & { id: number; l1ProfileJson?: string | null };
     let v_564b6a = null;
     if (v_3ac7e7.l1ProfileJson) {
       try {
@@ -389,7 +409,11 @@ v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
     }
     const { l1ProfileJson: v_9bd854, ...v_83bbcd } = v_3ac7e7;
     void v_9bd854;
-    return { ...v_83bbcd, l1Profile: v_564b6a };
+    return {
+      ...v_83bbcd,
+      l1Profile: v_564b6a,
+      interests: v_65d2c1.get(v_3ac7e7.id) ?? [],
+    };
   });
   return v_3f4e2e.json({ items: v_4622b9 });
 });

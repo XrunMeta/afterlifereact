@@ -305,6 +305,8 @@ export interface MyClone {
 
   coownerCount: number;
 
+  interests?: string[];
+
   l1Profile?: { attrs: Record<string, string>; notes: string } | null;
 }
 
