@@ -35,9 +35,12 @@ import {
   postFeedComment,
   postCloneComment,
   deleteFeedComment,
+  listMyFollowedClones,
   type FeedComment,
+  type FollowedClone,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
+import { useFocusEffect } from "@react-navigation/native";
 import type { DomainClone, DomainFeed } from "../../types/domain";
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -92,8 +95,43 @@ export default function FollowingScreen() {
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
   const uid = authUser?.id ?? DEFAULT_USER_ID;
+  const accessToken = useAuthStore((s) => s.accessToken);
+
+  const [apiFollowed, setApiFollowed] = useState<FollowedClone[] | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const userId = authUser?.id;
+      if (!accessToken || !userId) {
+        setApiFollowed(null);
+        return;
+      }
+      listMyFollowedClones(accessToken, userId)
+        .then((r) => {
+          if (!cancelled) setApiFollowed(r.items);
+        })
+        .catch((err) => {
+          console.warn("[Following] listMyFollowedClones failed:", err);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [accessToken, authUser?.id]),
+  );
 
   const followedPersonas = useMemo<FollowedPersona[]>(() => {
+    if (apiFollowed) {
+      return apiFollowed.map((c) => ({
+        id: c.id,
+        name: c.name,
+        avatar: c.avatarUrl ?? "",
+        interests: c.interests ?? [],
+        creatorAccount: `@${c.username}`,
+        intimacy: mockIntimacy(c.id),
+        interactions: mockInteractions(c.id),
+      }));
+    }
+
     const followingCloneIds = follows
       .filter((f) => f.followerUserId === uid)
       .map((f) => f.followingCloneId);
@@ -104,7 +142,7 @@ export default function FollowingScreen() {
         const owner = seedSource.users().find((u) => u.id === clone.ownerId);
         return toPersona(clone, owner?.handle);
       });
-  }, [follows, uid]);
+  }, [apiFollowed, follows, uid]);
 
   const feeds = useMemo<DomainFeed[]>(() => {
     const followingIds = new Set(followedPersonas.map((p) => p.id));
@@ -200,7 +238,6 @@ export default function FollowingScreen() {
     }
   };
 
-  const accessToken = useAuthStore((s) => s.accessToken);
   const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
   const [apiComments, setApiComments] = useState<FeedComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
