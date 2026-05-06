@@ -26,7 +26,9 @@ import v_9706a6 from "../../components/ui/FeedCard";
 import v_ca88c9 from "../../components/ui/FilterModal";
 import { v_37977a } from "../../stores/feedStore";
 import { v_b4902e } from "../../stores/followStore";
+import { v_1ed7d9 } from "../../stores/authStore";
 import { v_f386b1 } from "../../mocks/feedAdapter";
+import { v_4208e7, v_3f8bc7, type v_52af9d } from "../../api/clones";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_19b433 } from "../../types/feed";
 import type { v_8ad91b } from "../../navigation/types";
@@ -111,23 +113,51 @@ export default function v_c316d8() {
     v_ea2b4b(true);
   };
 
-  const v_5b3987 = {
-    1: [
-      { id: "c1", author: "마음이", avatar: "https://i.pravatar.cc/100?img=1", content: "할아버지 목소리가 그리웠어요", time: "5분 전" },
-      { id: "c2", author: "별빛", avatar: "https://i.pravatar.cc/100?img=2", content: "오늘도 힘이 되는 말씀 감사합니다", time: "12분 전" },
-      { id: "c3", author: "하늘", avatar: "https://i.pravatar.cc/100?img=3", content: "따뜻한 조언 감사해요", time: "30분 전" },
-    ],
-    2: [
-      { id: "c4", author: "소망", avatar: "https://i.pravatar.cc/100?img=9", content: "할머니 덕분에 오늘도 웃었어요", time: "3분 전" },
-      { id: "c5", author: "봄날", avatar: "https://i.pravatar.cc/100?img=10", content: "정말 위로가 됩니다", time: "20분 전" },
-    ],
-    3: [
-      { id: "c6", author: "선재팬", avatar: "https://i.pravatar.cc/100?img=5", content: "오늘도 좋은 하루!", time: "1분 전" },
-      { id: "c7", author: "해피", avatar: "https://i.pravatar.cc/100?img=7", content: "같이 놀아요~", time: "8분 전" },
-      { id: "c8", author: "루나", avatar: "https://i.pravatar.cc/100?img=8", content: "재밌어요 ㅋㅋ", time: "15분 전" },
-    ],
+  const [v_ecfc0f, v_04f2fc] = v_5ab095<v_52af9d[]>([]);
+  const [v_465030, v_856daf] = v_5ab095(false);
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
+  v_c4deb2(() => {
+    if (v_ed660d == null || v_ed660d < 0) {
+      v_04f2fc([]);
+      return;
+    }
+    let v_2008a4 = false;
+    v_856daf(true);
+    v_04f2fc([]);
+    v_4208e7(v_ed660d, { limit: 100 })
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_04f2fc(v_8f00b9.items);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Home] listFeedComments failed:", v_49263d);
+        if (!v_2008a4) v_04f2fc([]);
+      })
+      .finally(() => {
+        if (!v_2008a4) v_856daf(false);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_ed660d]);
+
+  const v_8e4668 = async () => {
+    if (v_ed660d == null || v_ed660d < 0) return;
+    const v_b43b74 = v_48e7fe.trim();
+    if (!v_b43b74 || !v_2ca7e0) return;
+    try {
+      const v_8f00b9 = await v_3f8bc7(v_2ca7e0, v_ed660d, v_b43b74);
+
+      v_856f84("");
+
+      const v_cb35cb = await v_4208e7(v_ed660d, { limit: 100 });
+      v_04f2fc(v_cb35cb.items);
+      void v_8f00b9;
+    } catch (v_49263d) {
+      console.warn("[Home] postFeedComment failed:", v_49263d);
+    }
   };
-  const v_3a63e7 = v_ed660d != null ? v_5b3987[v_ed660d] || [] : [];
 
   const v_fcf6ec = v_de06a3(
     ({ item: v_8c0b26, index: v_a56041 }: { item: v_19b433; index: number }) => (
@@ -197,24 +227,34 @@ export default function v_c316d8() {
           >
             <View style={v_d81136.sheetHandle} />
             <View style={v_d81136.commentHeaderRow}>
-              <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_3a63e7.length })}</Text>
+              <Text style={v_d81136.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}</Text>
               <TouchableOpacity onPress={() => v_b07dd3(null)}>
                 <Feather name="x" size={20} color={v_1bfbd0.white} />
               </TouchableOpacity>
             </View>
             <ScrollView style={v_d81136.commentScroll} showsVerticalScrollIndicator={false}>
-              {v_3a63e7.length > 0 ? v_3a63e7.map((v_3f4e2e) => (
-                <View key={v_3f4e2e.id} style={v_d81136.commentRow}>
-                  <Image source={{ uri: v_3f4e2e.avatar }} style={v_d81136.commentAvatar} />
-                  <View style={v_d81136.commentInfo}>
-                    <View style={v_d81136.commentMeta}>
-                      <Text style={v_d81136.commentAuthor}>{v_3f4e2e.author}</Text>
-                      <Text style={v_d81136.commentTime}>{v_3f4e2e.time}</Text>
-                    </View>
-                    <Text style={v_d81136.commentContent}>{v_3f4e2e.content}</Text>
-                  </View>
+              {v_465030 ? (
+                <View style={v_d81136.emptyComment}>
+                  <Feather name="loader" size={28} color="rgba(255,255,255,0.5)" />
                 </View>
-              )) : (
+              ) : v_ecfc0f.length > 0 ? (
+                v_ecfc0f.map((v_3f4e2e) => (
+                  <View key={v_3f4e2e.id} style={v_d81136.commentRow}>
+                    {v_3f4e2e.user.avatarUrl ? (
+                      <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_d81136.commentAvatar} />
+                    ) : (
+                      <View style={[v_d81136.commentAvatar, { backgroundColor: "rgba(255,255,255,0.15)" }]} />
+                    )}
+                    <View style={v_d81136.commentInfo}>
+                      <View style={v_d81136.commentMeta}>
+                        <Text style={v_d81136.commentAuthor}>{v_3f4e2e.user.name ?? v_3f4e2e.user.email}</Text>
+                        <Text style={v_d81136.commentTime}>{v_3f4e2e.createdAt.slice(0, 16).replace("T", " ")}</Text>
+                      </View>
+                      <Text style={v_d81136.commentContent}>{v_3f4e2e.content}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
                 <View style={v_d81136.emptyComment}>
                   <Feather name="message-circle" size={40} color="rgba(255,255,255,0.3)" />
                   <Text style={v_d81136.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
@@ -229,8 +269,8 @@ export default function v_c316d8() {
                 placeholder={v_8d41d7("feed.commentPlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.4)"
               />
-              <TouchableOpacity disabled={!v_48e7fe.trim()} onPress={() => v_856f84("")}>
-                <Feather name="send" size={18} color={v_48e7fe.trim() ? v_1bfbd0.white : "rgba(255,255,255,0.3)"} />
+              <TouchableOpacity disabled={!v_48e7fe.trim() || !v_2ca7e0} onPress={v_8e4668}>
+                <Feather name="send" size={18} color={v_48e7fe.trim() && v_2ca7e0 ? v_1bfbd0.white : "rgba(255,255,255,0.3)"} />
               </TouchableOpacity>
             </View>
           </View>

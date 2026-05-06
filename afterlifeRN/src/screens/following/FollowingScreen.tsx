@@ -29,6 +29,7 @@ import type { v_8ad91b } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
+import { v_4208e7, v_3f8bc7, type v_52af9d } from "../../api/clones";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
 
 type RootNav = v_390fcc<v_8ad91b>;
@@ -191,7 +192,47 @@ export default function v_14b43e() {
     }
   };
 
-  const v_3a63e7 = v_5c83d5 ? v_937a56(v_5c83d5) : [];
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const [v_cc8bc2, v_502f4e] = v_5ab095<v_52af9d[]>([]);
+  const [v_465030, v_856daf] = v_5ab095(false);
+  v_c4deb2(() => {
+    if (v_5c83d5 == null || v_5c83d5 < 0) {
+      v_502f4e([]);
+      return;
+    }
+    let v_2008a4 = false;
+    v_856daf(true);
+    v_502f4e([]);
+    v_4208e7(v_5c83d5, { limit: 100 })
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_502f4e(v_8f00b9.items);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Following] listFeedComments failed:", v_49263d);
+        if (!v_2008a4) v_502f4e([]);
+      })
+      .finally(() => {
+        if (!v_2008a4) v_856daf(false);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_5c83d5]);
+
+  const v_8e4668 = async () => {
+    if (v_5c83d5 == null || v_5c83d5 < 0) return;
+    const v_b43b74 = v_48e7fe.trim();
+    if (!v_b43b74 || !v_2ca7e0) return;
+    try {
+      await v_3f8bc7(v_2ca7e0, v_5c83d5, v_b43b74);
+      v_856f84("");
+      const v_cb35cb = await v_4208e7(v_5c83d5, { limit: 100 });
+      v_502f4e(v_cb35cb.items);
+    } catch (v_49263d) {
+      console.warn("[Following] postFeedComment failed:", v_49263d);
+    }
+  };
 
   const v_bdaeb6 = ({ item: v_8c0b26 }: { item: (typeof v_b94d82)[0] }) => {
     const v_afeceb = v_8c0b26.feed.mediaUrl ?? v_8c0b26.persona.avatar;
@@ -280,7 +321,8 @@ export default function v_14b43e() {
             <Text style={v_fd5f43.countText}>
               {v_8d41d7("feed.likeCount", { n: v_cae9dc(v_c0a5d3(v_8c0b26.feed.id) + (v_c591dc.has(v_8c0b26.feed.id) ? 1 : 0)) })}
             </Text>
-            <Text style={v_fd5f43.countTextSub}>{v_8d41d7("feed.commentCount", { n: v_937a56(v_8c0b26.feed.id).length })}</Text>
+            {}
+            <Text style={v_fd5f43.countTextSub}>{v_8d41d7("feed.commentCount", { n: 0 })}</Text>
           </View>
         </View>
       </View>
@@ -390,24 +432,34 @@ export default function v_14b43e() {
           >
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.commentHeaderRow}>
-              <Text style={v_fd5f43.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_3a63e7.length })}</Text>
+              <Text style={v_fd5f43.commentTitle}>{v_8d41d7("feed.commentCount", { n: v_cc8bc2.length })}</Text>
               <TouchableOpacity onPress={() => v_880166(null)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc600} />
               </TouchableOpacity>
             </View>
             <ScrollView style={v_fd5f43.commentScroll} showsVerticalScrollIndicator={false}>
-              {v_3a63e7.length > 0 ? v_3a63e7.map((v_3f4e2e) => (
-                <View key={v_3f4e2e.id} style={v_fd5f43.commentRow}>
-                  <Image source={{ uri: v_3f4e2e.avatar }} style={v_fd5f43.commentAvatar} />
-                  <View style={v_fd5f43.commentInfo}>
-                    <View style={v_fd5f43.commentMeta}>
-                      <Text style={v_fd5f43.commentAuthor}>{v_3f4e2e.author}</Text>
-                      <Text style={v_fd5f43.commentTime}>{v_3f4e2e.time}</Text>
-                    </View>
-                    <Text style={v_fd5f43.commentContent}>{v_3f4e2e.content}</Text>
-                  </View>
+              {v_465030 ? (
+                <View style={v_fd5f43.emptyComment}>
+                  <Feather name="loader" size={28} color={v_1bfbd0.zinc300} />
                 </View>
-              )) : (
+              ) : v_cc8bc2.length > 0 ? (
+                v_cc8bc2.map((v_3f4e2e) => (
+                  <View key={v_3f4e2e.id} style={v_fd5f43.commentRow}>
+                    {v_3f4e2e.user.avatarUrl ? (
+                      <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_fd5f43.commentAvatar} />
+                    ) : (
+                      <View style={[v_fd5f43.commentAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                    )}
+                    <View style={v_fd5f43.commentInfo}>
+                      <View style={v_fd5f43.commentMeta}>
+                        <Text style={v_fd5f43.commentAuthor}>{v_3f4e2e.user.name ?? v_3f4e2e.user.email}</Text>
+                        <Text style={v_fd5f43.commentTime}>{v_3f4e2e.createdAt.slice(0, 16).replace("T", " ")}</Text>
+                      </View>
+                      <Text style={v_fd5f43.commentContent}>{v_3f4e2e.content}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
                 <View style={v_fd5f43.emptyComment}>
                   <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
                   <Text style={v_fd5f43.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
@@ -423,8 +475,8 @@ export default function v_14b43e() {
                 placeholder={v_8d41d7("feed.commentPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
               />
-              <TouchableOpacity disabled={!v_48e7fe.trim()} onPress={() => v_856f84("")}>
-                <Feather name="send" size={18} color={v_48e7fe.trim() ? v_1bfbd0.zinc900 : v_1bfbd0.zinc400} />
+              <TouchableOpacity disabled={!v_48e7fe.trim() || !v_2ca7e0} onPress={v_8e4668}>
+                <Feather name="send" size={18} color={v_48e7fe.trim() && v_2ca7e0 ? v_1bfbd0.zinc900 : v_1bfbd0.zinc400} />
               </TouchableOpacity>
             </View>
           </View>
