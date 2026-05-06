@@ -24,6 +24,7 @@ account_id = "87441deffba9e9c5c28114636686a4c7"
 binding = "DB"
 database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
+migrations_dir = "migrations"
 
 [[r2_buckets]]
 binding = "R2_ARCHIVE"
@@ -77,6 +78,7 @@ crons = ["0 3 * * *"]
 binding = "DB"
 database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
+migrations_dir = "migrations"
 
 [[env.preview.kv_namespaces]]
 binding = "KV_AUTH"
@@ -129,6 +131,7 @@ name = "afterlife-api"
 binding = "DB"
 database_name = "afterlife-db"
 database_id = "09507858-14f8-4f3a-89e5-784244d592a4"
+migrations_dir = "migrations"
 
 [[env.production.kv_namespaces]]
 binding = "KV_AUTH"
