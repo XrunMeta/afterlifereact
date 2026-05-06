@@ -318,6 +318,35 @@ export async function listMyClones(accessToken: string): Promise<{ items: MyClon
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface CloneFollower {
+  followId: number;
+  userId: number;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+  createdAt: string;
+}
+export async function listCloneFollowers(
+  cloneId: number,
+  opts?: { limit?: number },
+): Promise<{ items: CloneFollower[] }> {
+  const url = new URL(`${API_BASE}/oth-path${cloneId}/followers`);
+  if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
+  const res = await fetch(url.toString());
+  const text = await res.text();
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as { items: CloneFollower[] };
+}
+
 export interface BlockedClone {
   blockId: number;
   createdAt: string;

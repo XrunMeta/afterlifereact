@@ -718,7 +718,7 @@ const s = StyleSheet.create({
   confirmBtns: { flexDirection: "row", gap: 12, width: "100%" },
 
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
-  commentSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "65%" },
+  commentSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   commentHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1 },
@@ -735,7 +735,7 @@ const s = StyleSheet.create({
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: COLORS.zinc200, paddingTop: 12 },
   commentInput: { flex: 1, height: 40, backgroundColor: COLORS.zinc100, borderRadius: RADIUS.full, paddingHorizontal: 16, fontSize: 14, color: COLORS.zinc900 },
 
-  callSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "75%" },
+  callSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   callSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   callSheetTitle: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900 },
   callSearchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: COLORS.zinc100, borderRadius: RADIUS.full, paddingHorizontal: 16, height: 44, marginBottom: 16 },

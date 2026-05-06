@@ -198,12 +198,21 @@ export default function HomeScreen() {
     if (!content || !accessToken) return;
     try {
       let realFeedId: number;
+      const oldId = commentFeedId;
       if (commentFeedId < 0) {
 
         const cloneId = -commentFeedId;
         const res = await postCloneComment(accessToken, cloneId, content);
         realFeedId = res.comment.feedId;
         setCommentFeedId(realFeedId);
+
+        const cur = useFeedStore.getState().apiFeeds;
+        if (cur) {
+          useFeedStore.setState({
+            apiFeeds: cur.map((f) => (f.id === oldId ? { ...f, id: realFeedId } : f)),
+          });
+        }
+        apiFeedCountsCache.delete(oldId);
       } else {
         await postFeedComment(accessToken, commentFeedId, content);
         realFeedId = commentFeedId;
@@ -489,7 +498,7 @@ const styles = StyleSheet.create({
   },
 
   commentOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  commentSheet: { backgroundColor: "rgba(24,24,27,0.95)", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "60%" },
+  commentSheet: { backgroundColor: "rgba(24,24,27,0.95)", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)", alignSelf: "center", marginTop: 12, marginBottom: 12 },
   commentHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.white },
