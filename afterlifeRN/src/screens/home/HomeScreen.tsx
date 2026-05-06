@@ -14,7 +14,6 @@ import {
   Image,
   TextInput,
   Keyboard,
-  KeyboardAvoidingView,
 } from "react-native";
 import { Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -317,16 +316,16 @@ export default function HomeScreen() {
 
       {}
       <Modal visible={!!commentFeedId} transparent animationType="slide">
-        <KeyboardAvoidingView
-
-          behavior="padding"
-          style={{ flex: 1 }}
-        >
-        <Pressable style={styles.commentOverlay} onPress={() => setCommentFeedId(null)}>
+        <Pressable style={styles.commentOverlay} onPress={() => { Keyboard.dismiss(); setCommentFeedId(null); }}>
           <View
             style={[
               styles.commentSheet,
-              { paddingBottom: keyboardVisible ? 12 : 24 + Math.max(insets.bottom, 0) },
+
+              {
+                paddingBottom: 24 + Math.max(insets.bottom, 0),
+                height: Math.max(SCREEN_HEIGHT * 0.7 - keyboardHeight, 200),
+                transform: [{ translateY: -keyboardHeight }],
+              },
             ]}
             onStartShouldSetResponder={() => true}
           >
@@ -385,7 +384,6 @@ export default function HomeScreen() {
             </View>
           </View>
         </Pressable>
-        </KeyboardAvoidingView>
       </Modal>
 
       {}
