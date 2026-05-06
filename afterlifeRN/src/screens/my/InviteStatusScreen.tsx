@@ -57,24 +57,31 @@ export default function v_14fa9c() {
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_612e9f, v_575aad] = v_5ab095(false);
   const [v_f21110, v_d217e7] = v_5ab095<"all" | v_347801>("all");
+  const [v_976e82, v_a7e4fc] = v_5ab095<string | null>(null);
 
   const v_92fdf2 = v_de06a3(async () => {
     if (!v_2ca7e0) {
       v_fa923c([]);
+      v_a7e4fc(v_8d41d7("my.loginRequired"));
       v_34a50a(false);
       v_575aad(false);
       return;
     }
     try {
+      console.log("[InviteStatus] fetching me/invites...");
       const v_8f00b9 = await v_674023(v_2ca7e0);
+      console.log("[InviteStatus] fetched", v_8f00b9.items.length, "items");
       v_fa923c(v_8f00b9.items);
+      v_a7e4fc(null);
     } catch (v_49263d) {
       console.warn("[InviteStatus] failed:", v_49263d);
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : String(v_49263d);
+      v_a7e4fc(v_badeaf);
     } finally {
       v_34a50a(false);
       v_575aad(false);
     }
-  }, [v_2ca7e0]);
+  }, [v_2ca7e0, v_8d41d7]);
 
   v_c4deb2(() => {
     v_92fdf2();
@@ -167,10 +174,25 @@ export default function v_14fa9c() {
         </View>
       ) : v_e4cf17.length === 0 ? (
         <View style={v_fd5f43.center}>
-          <Feather name="send" size={32} color={v_1bfbd0.zinc300} />
+          <Feather name={v_976e82 ? "alert-triangle" : "send"} size={32} color={v_976e82 ? v_1bfbd0.error : v_1bfbd0.zinc300} />
           <Text style={v_fd5f43.empty}>
-            {v_f21110 === "all" ? v_8d41d7("inviteStatus.emptyAll") : v_8d41d7("inviteStatus.emptyFilter")}
+            {v_976e82
+              ? v_976e82
+              : v_f21110 === "all"
+                ? v_8d41d7("inviteStatus.emptyAll")
+                : v_8d41d7("inviteStatus.emptyFilter")}
           </Text>
+          {v_976e82 && (
+            <TouchableOpacity
+              onPress={() => {
+                v_34a50a(true);
+                v_92fdf2();
+              }}
+              style={{ marginTop: 8, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: v_1bfbd0.zinc900, borderRadius: 8 }}
+            >
+              <Text style={{ color: v_1bfbd0.white, fontSize: 13, fontWeight: "600" }}>{v_8d41d7("common.retry")}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         <FlatList
