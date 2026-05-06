@@ -18,7 +18,7 @@ import { v_b5df25 } from "ernurodqvmtspux";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
@@ -63,6 +63,12 @@ export default function v_c316d8() {
       void v_c600ef();
     }
   }, [v_71b114, v_c600ef]);
+
+  v_cf763b(
+    v_de06a3(() => {
+      void v_c600ef();
+    }, [v_c600ef]),
+  );
 
   const [v_2bcb8f, v_ddecc4] = v_5ab095(0);
   const [v_a4bef1, v_ea2b4b] = v_5ab095(false);
