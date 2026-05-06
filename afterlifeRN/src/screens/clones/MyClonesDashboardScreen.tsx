@@ -25,7 +25,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_e4a407, v_f373d8, v_20d793, v_776874, type v_fa0201, type v_d83ffc, type v_52af9d } from "../../api/clones";
+import { v_d60cdf, v_e4a407, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
 import v_0e981f from "../../components/common/NotificationBell";
 import { v_a41961, v_84a859, type v_3a673b } from "../../api/auth";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -171,6 +171,8 @@ export default function v_def15b() {
   const [v_02f28c, v_f442a2] = v_5ab095(false);
   const [v_a9fce9, v_1d8f1c] = v_5ab095<v_52af9d[] | null>(null);
   const [v_465030, v_856daf] = v_5ab095(false);
+  const [v_e6e97a, v_a8980f] = v_5ab095<v_ceccc3[] | null>(null);
+  const [v_447616, v_3dd690] = v_5ab095(false);
 
   v_c4deb2(() => {
     if (v_8bb912?.type !== "likes" || v_8bb912.cloneId == null) {
@@ -216,6 +218,31 @@ export default function v_def15b() {
       })
       .finally(() => {
         if (!v_2008a4) v_856daf(false);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_8bb912?.type, v_8bb912?.cloneId]);
+
+  v_c4deb2(() => {
+    if (v_8bb912?.type !== "followers" || v_8bb912.cloneId == null) {
+      v_a8980f(null);
+      return;
+    }
+    let v_2008a4 = false;
+    v_3dd690(true);
+    v_a8980f(null);
+    v_914311(v_8bb912.cloneId, { limit: 100 })
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_a8980f(v_8f00b9.items);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Dashboard] listCloneFollowers failed:", v_49263d);
+        if (!v_2008a4) v_a8980f([]);
+      })
+      .finally(() => {
+        if (!v_2008a4) v_3dd690(false);
       });
     return () => {
       v_2008a4 = true;
@@ -1075,28 +1102,41 @@ export default function v_def15b() {
               )}
 
               {}
-              {v_8bb912?.type === "followers" &&
-                v_b62688.map((v_b4542a) => (
-                  <View key={v_b4542a.id} style={v_fd5f43.accountRow}>
-                    <Image source={{ uri: v_b4542a.avatar }} style={v_fd5f43.accountAvatar} />
-                    <View style={v_fd5f43.accountInfo}>
-                      <Text style={v_fd5f43.accountName}>{v_b4542a.name}</Text>
-                      <Text style={v_fd5f43.accountSub}>{v_b4542a.detail}</Text>
+              {v_8bb912?.type === "followers" && (
+                <>
+                  {v_447616 ? (
+                    <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
+                  ) : !v_e6e97a || v_e6e97a.length === 0 ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 팔로워가 없어요</Text>
                     </View>
-                  </View>
-                ))}
+                  ) : (
+                    v_e6e97a.map((v_ceb55a) => (
+                      <View key={v_ceb55a.followId} style={v_fd5f43.accountRow}>
+                        {v_ceb55a.avatarUrl ? (
+                          <Image source={{ uri: v_ceb55a.avatarUrl }} style={v_fd5f43.accountAvatar} />
+                        ) : (
+                          <View style={[v_fd5f43.accountAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                        )}
+                        <View style={v_fd5f43.accountInfo}>
+                          <Text style={v_fd5f43.accountName}>{v_ceb55a.name ?? v_ceb55a.email}</Text>
+                          <Text style={v_fd5f43.accountSub}>{v_ceb55a.email}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
 
               {}
-              {v_8bb912?.type === "interactions" &&
-                v_2c1f99.map((v_b4542a) => (
-                  <View key={v_b4542a.id} style={v_fd5f43.accountRow}>
-                    <Image source={{ uri: v_b4542a.avatar }} style={v_fd5f43.accountAvatar} />
-                    <View style={v_fd5f43.accountInfo}>
-                      <Text style={v_fd5f43.accountName}>{v_b4542a.name}</Text>
-                      <Text style={v_fd5f43.accountSub}>{v_b4542a.detail}</Text>
-                    </View>
-                  </View>
-                ))}
+              {v_8bb912?.type === "interactions" && (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Feather name="message-circle" size={28} color={v_1bfbd0.zinc300} />
+                  <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13, marginTop: 8 }}>
+                    상호작용 상세 목록은 준비 중이에요
+                  </Text>
+                </View>
+              )}
             </ScrollView>
           </View>
         </Pressable>

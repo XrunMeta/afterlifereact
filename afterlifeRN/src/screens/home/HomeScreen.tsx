@@ -198,12 +198,21 @@ export default function v_c316d8() {
     if (!v_b43b74 || !v_2ca7e0) return;
     try {
       let v_6bbace;
+      const v_e05de7 = v_ed660d;
       if (v_ed660d < 0) {
 
         const v_6e0fd3 = -v_ed660d;
         const v_8f00b9 = await v_6f689a(v_2ca7e0, v_6e0fd3, v_b43b74);
         v_6bbace = v_8f00b9.comment.feedId;
         v_b07dd3(v_6bbace);
+
+        const v_c3bc75 = v_37977a.getState().apiFeeds;
+        if (v_c3bc75) {
+          v_37977a.setState({
+            apiFeeds: v_c3bc75.map((v_8b5cd8) => (v_8b5cd8.id === v_e05de7 ? { ...v_8b5cd8, id: v_6bbace } : v_8b5cd8)),
+          });
+        }
+        v_10e36e.delete(v_e05de7);
       } else {
         await v_3f8bc7(v_2ca7e0, v_ed660d, v_b43b74);
         v_6bbace = v_ed660d;
