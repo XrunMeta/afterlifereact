@@ -495,18 +495,21 @@ export default function MyClonesDashboardScreen() {
             <Feather name="video" size={16} color={COLORS.zinc700} />
             <Text style={s.actionText}>{t("dashboard.actionCall")}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={s.actionBtn}
-            onPress={() => {
-              setInviteSearch("");
-              setSearchResults([]);
-              setInvitedIds(new Set());
-              setInviteModal({ cloneId: clone.id });
-            }}
-          >
-            <Feather name="user-plus" size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>{t("dashboard.actionInvite")}</Text>
-          </TouchableOpacity>
+          {}
+          {clone.myRole === "owner" && (
+            <TouchableOpacity
+              style={s.actionBtn}
+              onPress={() => {
+                setInviteSearch("");
+                setSearchResults([]);
+                setInvitedIds(new Set());
+                setInviteModal({ cloneId: clone.id });
+              }}
+            >
+              <Feather name="user-plus" size={16} color={COLORS.zinc700} />
+              <Text style={s.actionText}>{t("dashboard.actionInvite")}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -636,16 +639,32 @@ export default function MyClonesDashboardScreen() {
                 </TouchableOpacity>
               )}
             <View style={s.menuDivider} />
-            <TouchableOpacity
-              style={s.menuItem}
-              onPress={() => {
-                const id = menuCloneId!;
-                handleDelete(id);
-              }}
-            >
-              <Feather name="trash-2" size={18} color={COLORS.error} />
-              <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
-            </TouchableOpacity>
+            {}
+            {menuCloneId != null &&
+              myClones.find((c) => c.id === menuCloneId)?.myRole === "owner" ? (
+              <TouchableOpacity
+                style={s.menuItem}
+                onPress={() => {
+                  const id = menuCloneId!;
+                  handleDelete(id);
+                }}
+              >
+                <Feather name="trash-2" size={18} color={COLORS.error} />
+                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={s.menuItem}
+                onPress={() => {
+                  const id = menuCloneId!;
+                  setMenuCloneId(null);
+                  navigation.navigate("CloneInvite", { cloneId: id });
+                }}
+              >
+                <Feather name="log-out" size={18} color={COLORS.error} />
+                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuLeave")}</Text>
+              </TouchableOpacity>
+            )}
           </Pressable>
         </Pressable>
       </Modal>

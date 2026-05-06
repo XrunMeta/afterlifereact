@@ -250,6 +250,7 @@
     "menuDeactivate": "Deactivate",
     "menuVisibility": "Visibility",
     "menuDelete": "Delete",
+    "menuLeave": "Leave co-admin",
     "coownerCount": "{{n}} co-admins ›",
     "deleteTitle": "Delete Persona",
     "deleteDescDefault": "Are you sure you want to delete this persona?\nDeleted personas cannot be recovered.",
