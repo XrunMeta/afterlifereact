@@ -26,7 +26,9 @@ import FeedCard from "../../components/ui/FeedCard";
 import FilterModal from "../../components/ui/FilterModal";
 import { useFeedStore } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
+import { useAuthStore } from "../../stores/authStore";
 import { toFeedItem } from "../../mocks/feedAdapter";
+import { listFeedComments, postFeedComment, type FeedComment } from "../../api/clones";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { FeedItem } from "../../types/feed";
 import type { RootStackParamList } from "../../navigation/types";
@@ -111,23 +113,51 @@ export default function HomeScreen() {
     setShowFilter(true);
   };
 
-  const mockComments: Record<number, Array<{ id: string; author: string; avatar: string; content: string; time: string }>> = {
-    1: [
-      { id: "c1", author: "마음이", avatar: "https://i.pravatar.cc/100?img=1", content: "할아버지 목소리가 그리웠어요", time: "5분 전" },
-      { id: "c2", author: "별빛", avatar: "https://i.pravatar.cc/100?img=2", content: "오늘도 힘이 되는 말씀 감사합니다", time: "12분 전" },
-      { id: "c3", author: "하늘", avatar: "https://i.pravatar.cc/100?img=3", content: "따뜻한 조언 감사해요", time: "30분 전" },
-    ],
-    2: [
-      { id: "c4", author: "소망", avatar: "https://i.pravatar.cc/100?img=9", content: "할머니 덕분에 오늘도 웃었어요", time: "3분 전" },
-      { id: "c5", author: "봄날", avatar: "https://i.pravatar.cc/100?img=10", content: "정말 위로가 됩니다", time: "20분 전" },
-    ],
-    3: [
-      { id: "c6", author: "선재팬", avatar: "https://i.pravatar.cc/100?img=5", content: "오늘도 좋은 하루!", time: "1분 전" },
-      { id: "c7", author: "해피", avatar: "https://i.pravatar.cc/100?img=7", content: "같이 놀아요~", time: "8분 전" },
-      { id: "c8", author: "루나", avatar: "https://i.pravatar.cc/100?img=8", content: "재밌어요 ㅋㅋ", time: "15분 전" },
-    ],
+  const [comments, setComments] = useState<FeedComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const accessToken = useAuthStore((s) => s.accessToken);
+
+  useEffect(() => {
+    if (commentFeedId == null || commentFeedId < 0) {
+      setComments([]);
+      return;
+    }
+    let cancelled = false;
+    setCommentsLoading(true);
+    setComments([]);
+    listFeedComments(commentFeedId, { limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        setComments(res.items);
+      })
+      .catch((err) => {
+        console.warn("[Home] listFeedComments failed:", err);
+        if (!cancelled) setComments([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [commentFeedId]);
+
+  const submitComment = async () => {
+    if (commentFeedId == null || commentFeedId < 0) return;
+    const content = commentText.trim();
+    if (!content || !accessToken) return;
+    try {
+      const res = await postFeedComment(accessToken, commentFeedId, content);
+
+      setCommentText("");
+
+      const r = await listFeedComments(commentFeedId, { limit: 100 });
+      setComments(r.items);
+      void res;
+    } catch (err) {
+      console.warn("[Home] postFeedComment failed:", err);
+    }
   };
-  const currentComments = commentFeedId != null ? mockComments[commentFeedId] || [] : [];
 
   const renderItem = useCallback(
     ({ item, index }: { item: FeedItem; index: number }) => (
@@ -197,24 +227,34 @@ export default function HomeScreen() {
           >
             <View style={styles.sheetHandle} />
             <View style={styles.commentHeaderRow}>
-              <Text style={styles.commentTitle}>{t("feed.commentCount", { n: currentComments.length })}</Text>
+              <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
               <TouchableOpacity onPress={() => setCommentFeedId(null)}>
                 <Feather name="x" size={20} color={COLORS.white} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.commentScroll} showsVerticalScrollIndicator={false}>
-              {currentComments.length > 0 ? currentComments.map((c) => (
-                <View key={c.id} style={styles.commentRow}>
-                  <Image source={{ uri: c.avatar }} style={styles.commentAvatar} />
-                  <View style={styles.commentInfo}>
-                    <View style={styles.commentMeta}>
-                      <Text style={styles.commentAuthor}>{c.author}</Text>
-                      <Text style={styles.commentTime}>{c.time}</Text>
-                    </View>
-                    <Text style={styles.commentContent}>{c.content}</Text>
-                  </View>
+              {commentsLoading ? (
+                <View style={styles.emptyComment}>
+                  <Feather name="loader" size={28} color="rgba(255,255,255,0.5)" />
                 </View>
-              )) : (
+              ) : comments.length > 0 ? (
+                comments.map((c) => (
+                  <View key={c.id} style={styles.commentRow}>
+                    {c.user.avatarUrl ? (
+                      <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
+                    ) : (
+                      <View style={[styles.commentAvatar, { backgroundColor: "rgba(255,255,255,0.15)" }]} />
+                    )}
+                    <View style={styles.commentInfo}>
+                      <View style={styles.commentMeta}>
+                        <Text style={styles.commentAuthor}>{c.user.name ?? c.user.email}</Text>
+                        <Text style={styles.commentTime}>{c.createdAt.slice(0, 16).replace("T", " ")}</Text>
+                      </View>
+                      <Text style={styles.commentContent}>{c.content}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
                 <View style={styles.emptyComment}>
                   <Feather name="message-circle" size={40} color="rgba(255,255,255,0.3)" />
                   <Text style={styles.emptyText}>{t("feed.commentsEmpty")}</Text>
@@ -229,8 +269,8 @@ export default function HomeScreen() {
                 placeholder={t("feed.commentPlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.4)"
               />
-              <TouchableOpacity disabled={!commentText.trim()} onPress={() => setCommentText("")}>
-                <Feather name="send" size={18} color={commentText.trim() ? COLORS.white : "rgba(255,255,255,0.3)"} />
+              <TouchableOpacity disabled={!commentText.trim() || !accessToken} onPress={submitComment}>
+                <Feather name="send" size={18} color={commentText.trim() && accessToken ? COLORS.white : "rgba(255,255,255,0.3)"} />
               </TouchableOpacity>
             </View>
           </View>

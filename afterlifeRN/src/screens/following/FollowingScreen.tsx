@@ -29,6 +29,7 @@ import type { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
+import { listFeedComments, postFeedComment, type FeedComment } from "../../api/clones";
 import type { DomainClone, DomainFeed } from "../../types/domain";
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -191,7 +192,47 @@ export default function FollowingScreen() {
     }
   };
 
-  const currentComments: MockComment[] = commentPostId ? mockCommentList(commentPostId) : [];
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const [apiComments, setApiComments] = useState<FeedComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  useEffect(() => {
+    if (commentPostId == null || commentPostId < 0) {
+      setApiComments([]);
+      return;
+    }
+    let cancelled = false;
+    setCommentsLoading(true);
+    setApiComments([]);
+    listFeedComments(commentPostId, { limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        setApiComments(res.items);
+      })
+      .catch((err) => {
+        console.warn("[Following] listFeedComments failed:", err);
+        if (!cancelled) setApiComments([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [commentPostId]);
+
+  const submitComment = async () => {
+    if (commentPostId == null || commentPostId < 0) return;
+    const content = commentText.trim();
+    if (!content || !accessToken) return;
+    try {
+      await postFeedComment(accessToken, commentPostId, content);
+      setCommentText("");
+      const r = await listFeedComments(commentPostId, { limit: 100 });
+      setApiComments(r.items);
+    } catch (err) {
+      console.warn("[Following] postFeedComment failed:", err);
+    }
+  };
 
   const renderPost = ({ item }: { item: (typeof posts)[0] }) => {
     const feedImage = item.feed.mediaUrl ?? item.persona.avatar;
@@ -280,7 +321,8 @@ export default function FollowingScreen() {
             <Text style={s.countText}>
               {t("feed.likeCount", { n: formatCount(mockLikes(item.feed.id) + (likedPosts.has(item.feed.id) ? 1 : 0)) })}
             </Text>
-            <Text style={s.countTextSub}>{t("feed.commentCount", { n: mockCommentList(item.feed.id).length })}</Text>
+            {}
+            <Text style={s.countTextSub}>{t("feed.commentCount", { n: 0 })}</Text>
           </View>
         </View>
       </View>
@@ -390,24 +432,34 @@ export default function FollowingScreen() {
           >
             <View style={s.sheetHandle} />
             <View style={s.commentHeaderRow}>
-              <Text style={s.commentTitle}>{t("feed.commentCount", { n: currentComments.length })}</Text>
+              <Text style={s.commentTitle}>{t("feed.commentCount", { n: apiComments.length })}</Text>
               <TouchableOpacity onPress={() => setCommentPostId(null)}>
                 <Feather name="x" size={20} color={COLORS.zinc600} />
               </TouchableOpacity>
             </View>
             <ScrollView style={s.commentScroll} showsVerticalScrollIndicator={false}>
-              {currentComments.length > 0 ? currentComments.map((c) => (
-                <View key={c.id} style={s.commentRow}>
-                  <Image source={{ uri: c.avatar }} style={s.commentAvatar} />
-                  <View style={s.commentInfo}>
-                    <View style={s.commentMeta}>
-                      <Text style={s.commentAuthor}>{c.author}</Text>
-                      <Text style={s.commentTime}>{c.time}</Text>
-                    </View>
-                    <Text style={s.commentContent}>{c.content}</Text>
-                  </View>
+              {commentsLoading ? (
+                <View style={s.emptyComment}>
+                  <Feather name="loader" size={28} color={COLORS.zinc300} />
                 </View>
-              )) : (
+              ) : apiComments.length > 0 ? (
+                apiComments.map((c) => (
+                  <View key={c.id} style={s.commentRow}>
+                    {c.user.avatarUrl ? (
+                      <Image source={{ uri: c.user.avatarUrl }} style={s.commentAvatar} />
+                    ) : (
+                      <View style={[s.commentAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                    )}
+                    <View style={s.commentInfo}>
+                      <View style={s.commentMeta}>
+                        <Text style={s.commentAuthor}>{c.user.name ?? c.user.email}</Text>
+                        <Text style={s.commentTime}>{c.createdAt.slice(0, 16).replace("T", " ")}</Text>
+                      </View>
+                      <Text style={s.commentContent}>{c.content}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
                 <View style={s.emptyComment}>
                   <Feather name="message-circle" size={40} color={COLORS.zinc300} />
                   <Text style={s.emptyText}>{t("feed.commentsEmpty")}</Text>
@@ -423,8 +475,8 @@ export default function FollowingScreen() {
                 placeholder={t("feed.commentPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
               />
-              <TouchableOpacity disabled={!commentText.trim()} onPress={() => setCommentText("")}>
-                <Feather name="send" size={18} color={commentText.trim() ? COLORS.zinc900 : COLORS.zinc400} />
+              <TouchableOpacity disabled={!commentText.trim() || !accessToken} onPress={submitComment}>
+                <Feather name="send" size={18} color={commentText.trim() && accessToken ? COLORS.zinc900 : COLORS.zinc400} />
               </TouchableOpacity>
             </View>
           </View>
