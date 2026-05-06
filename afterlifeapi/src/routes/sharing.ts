@@ -467,7 +467,19 @@ inviteTokens.post(
 cloneShares.get("/:id/shares", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;
-  await assertOwner(c.env.DB, cloneId, userId);
+
+  const access = await c.env.DB
+    .prepare(
+      `SELECT
+          (SELECT 1 FROM clones WHERE id = ? AND owner_id = ?) AS isOwner,
+          (SELECT 1 FROM clone_shares
+              WHERE clone_id = ? AND target_user_id = ? AND status = 'accepted') AS isCoowner`,
+    )
+    .bind(cloneId, userId, cloneId, userId)
+    .first<{ isOwner: number | null; isCoowner: number | null }>();
+  if (!access || (!access.isOwner && !access.isCoowner)) {
+    throw new APIError("FORBIDDEN", "Access denied for this clone.");
+  }
 
   const rows = (
     await c.env.DB
