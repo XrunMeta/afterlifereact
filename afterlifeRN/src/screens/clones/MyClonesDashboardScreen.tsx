@@ -43,7 +43,7 @@ function adaptMyClone(c: MyClone): Clone {
     ownerId: c.ownerId,
     displayName: c.name,
     description: c.description ?? "",
-    interests: [],
+    interests: c.interests ?? [],
     imageUrl: c.avatarUrl ?? undefined,
     visibility: c.visibility,
     status: (c.trainingStatus as Clone["status"]) ?? "active",
