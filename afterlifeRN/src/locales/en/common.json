@@ -249,7 +249,10 @@
       "guideTitle": "Guidelines",
       "guide1": "Use a photo facing forward",
       "guide2": "A clear face shot works best",
-      "guide3": "Simple backgrounds give better results"
+      "guide3": "Simple backgrounds give better results",
+      "memlowNote": "You can add the photo now or later.",
+      "memlowSelectHint": "Pick a photo or skip",
+      "memlowRights": "I confirm the rights to use this photo (family consent, image rights)."
     },
     "voice": {
       "presets": "Default voice presets",
