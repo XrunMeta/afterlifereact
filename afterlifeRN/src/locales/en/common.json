@@ -308,6 +308,11 @@
       "play": "Play",
       "useCustom": "Use custom recording/upload",
       "fileError": "Couldn't select the file.",
+      "memlowTitle": "Pick a letter script and record",
+      "recordStart": "Start recording",
+      "recordStop": "Stop recording",
+      "recordRange": "30~60s",
+      "uploadFileMemlow": "Upload audio file",
       "sample": {
         "Nova": "Warm and soft",
         "Ursa": "Calm and deep",

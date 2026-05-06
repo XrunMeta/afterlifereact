@@ -308,7 +308,12 @@
       "stop": "정지",
       "play": "재생",
       "useCustom": "직접 녹음/업로드 사용",
-      "fileError": "파일을 선택할 수 없습니다.",
+      "fileError": "파일을 선택할 수 없어요.",
+      "memlowTitle": "편지 스크립트를 고르고, 녹음해 주세요",
+      "recordStart": "녹음 시작",
+      "recordStop": "녹음 중지",
+      "recordRange": "30~60s",
+      "uploadFileMemlow": "오디오 파일 업로드",
       "sample": {
         "Nova": "따뜻하고 부드러운",
         "Ursa": "차분하고 깊은",

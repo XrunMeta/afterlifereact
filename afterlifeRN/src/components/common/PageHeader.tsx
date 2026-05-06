@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.zinc200,
-    paddingBottom: 4,
+    paddingBottom: 10,
     paddingHorizontal: SIZES.medium,
   },
   transparent: {
