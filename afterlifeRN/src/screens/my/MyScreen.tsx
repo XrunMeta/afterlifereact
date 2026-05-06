@@ -184,12 +184,6 @@ export default function v_ed02a5() {
       route: "AcquaintanceManagement",
     },
     {
-      icon: "send",
-      labelKey: "my.menu.inviteStatus",
-      descKey: "my.menu.inviteStatusDesc",
-      route: "InviteStatus",
-    },
-    {
       icon: "user",
       labelKey: "my.menu.editProfile",
       descKey: "settings.editProfile.title",

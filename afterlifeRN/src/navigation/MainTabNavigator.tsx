@@ -46,6 +46,7 @@ function v_aedede() {
       <ClonesStack.Screen name="CloneDetail" component={v_51ae06} />
       <ClonesStack.Screen name="CloneEdit" component={v_541fbd} />
       <ClonesStack.Screen name="CloneInvite" component={v_07335f} />
+      <ClonesStack.Screen name="InviteStatus" component={v_14fa9c} />
     </ClonesStack.Navigator>
   );
 }
