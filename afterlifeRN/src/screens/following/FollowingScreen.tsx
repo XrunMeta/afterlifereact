@@ -61,8 +61,18 @@ type FollowedPersona = {
   interactions: number; 
 };
 
-const v_3ddce5 = (v_6e0fd3) => ((v_6e0fd3 * 17) % 100);
-const v_42378f = (v_6e0fd3) => 100 + ((v_6e0fd3 * 137) % 5000);
+const v_a1f1ac = (
+  v_62676b,
+  v_65186b,
+): number => {
+  const v_35f85c = v_62676b?.messages ?? 0;
+  const v_206b88 = v_62676b?.gifts ?? 0;
+  const v_1614db = v_65186b?.likesCount ?? 0;
+  const v_3f4e2e = v_65186b?.commentsCount ?? 0;
+  return v_35f85c + v_206b88 + v_1614db + v_3f4e2e;
+};
+const v_aae598 = (v_db07f5): number =>
+  Math.min(100, Math.floor(v_db07f5 / 50));
 
 type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
 const v_888327 = [
@@ -83,8 +93,8 @@ const v_986943 = (clone: v_4b85a1, v_edb3e7): FollowedPersona => ({
   avatar: v_eb25ce.imageUrl ?? "",
   interests: v_eb25ce.interests,
   creatorAccount: v_edb3e7 ? `@${v_edb3e7}` : "",
-  intimacy: v_3ddce5(v_eb25ce.id),
-  interactions: v_42378f(v_eb25ce.id),
+  intimacy: 0,
+  interactions: 0,
 });
 
 const v_cae9dc = (v_f4e98d) => (v_f4e98d >= 1000 ? `${(v_f4e98d / 1000).toFixed(1)}k` : String(v_f4e98d));
@@ -133,15 +143,18 @@ export default function v_14b43e() {
 
   const v_a48e44 = v_df9f57<FollowedPersona[]>(() => {
     if (v_d92a4c != null) {
-      return v_d92a4c.map((v_3f4e2e) => ({
-        id: v_3f4e2e.id,
-        name: v_3f4e2e.name,
-        avatar: v_3f4e2e.avatarUrl ?? "",
-        interests: v_3f4e2e.interests ?? [],
-        creatorAccount: `@${v_3f4e2e.username}`,
-        intimacy: v_3ddce5(v_3f4e2e.id),
-        interactions: v_42378f(v_3f4e2e.id),
-      }));
+      return v_d92a4c.map((v_3f4e2e) => {
+        const v_db07f5 = v_a1f1ac(v_3f4e2e.stats, v_3f4e2e.latestFeed ?? null);
+        return {
+          id: v_3f4e2e.id,
+          name: v_3f4e2e.name,
+          avatar: v_3f4e2e.avatarUrl ?? "",
+          interests: v_3f4e2e.interests ?? [],
+          creatorAccount: `@${v_3f4e2e.username}`,
+          intimacy: v_aae598(v_db07f5),
+          interactions: v_db07f5,
+        };
+      });
     }
 
     if (v_2ca7e0) return [];
@@ -758,34 +771,8 @@ export default function v_14b43e() {
             </View>
 
             <ScrollView style={v_fd5f43.callScroll} showsVerticalScrollIndicator={false}>
-              {}
-              {!v_2116d2 && v_a48e44.length > 0 && (
-                <View style={v_fd5f43.callSectionBordered}>
-                  <Text style={v_fd5f43.callSectionTitle}>{v_8d41d7("feed.recentCalls")}</Text>
-                  {v_a48e44.slice(0, 2).map((v_e2a85c, v_ebec57) => (
-                    <View key={v_e2a85c.id} style={v_fd5f43.callRow}>
-                      <Image source={{ uri: v_e2a85c.avatar }} style={v_fd5f43.callAvatar} />
-                      <View style={v_fd5f43.callInfo}>
-                        <Text style={v_fd5f43.callName}>{v_e2a85c.name}</Text>
-                        <Text style={v_fd5f43.callSub}>{v_e2a85c.creatorAccount}</Text>
-                        <Text style={v_fd5f43.callMeta}>
-                          {v_ebec57 === 0 ? v_8d41d7("feed.callMetaYesterday") : v_8d41d7("feed.callMeta3DaysAgo")}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={v_fd5f43.callBtn}
-                        onPress={() => {
-                          v_22a5cb(false);
-                          v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar });
-                        }}
-                      >
-                        <Feather name="video" size={14} color={v_1bfbd0.white} />
-                        <Text style={v_fd5f43.callBtnText}>{v_8d41d7("feed.callRowAction")}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
+              {
+}
 
               {}
               <View style={v_fd5f43.callSection}>
