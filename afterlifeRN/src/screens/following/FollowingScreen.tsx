@@ -91,6 +91,7 @@ export default function v_14b43e() {
   const v_033e14 = v_e0068c();
   const v_f4c991 = v_ada615<RootNav>();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
 
@@ -101,7 +102,7 @@ export default function v_14b43e() {
   v_cf763b(
     v_de06a3(() => {
       let v_2008a4 = false;
-      const v_43e90c = v_f38ee5?.id;
+      const v_43e90c = v_b113dd?.id;
       if (!v_2ca7e0 || !v_43e90c) {
         v_44191e(null);
         return;
@@ -123,7 +124,7 @@ export default function v_14b43e() {
       return () => {
         v_2008a4 = true;
       };
-    }, [v_2ca7e0, v_f38ee5?.id]),
+    }, [v_2ca7e0, v_b113dd?.id]),
   );
 
   const v_a48e44 = v_df9f57<FollowedPersona[]>(() => {
