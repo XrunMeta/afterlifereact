@@ -91,6 +91,7 @@ export default function FollowingScreen() {
   const insets = useSafeAreaInsets();
   const rootNav = useNavigation<RootNav>();
   const authUser = useAuthStore((s) => s.user);
+  const apiUser = useAuthStore((s) => s.apiUser);
   const follows = useFollowStore((s) => s.follows);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
@@ -101,7 +102,7 @@ export default function FollowingScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      const userId = authUser?.id;
+      const userId = apiUser?.id;
       if (!accessToken || !userId) {
         setApiFollowed(null);
         return;
@@ -123,7 +124,7 @@ export default function FollowingScreen() {
       return () => {
         cancelled = true;
       };
-    }, [accessToken, authUser?.id]),
+    }, [accessToken, apiUser?.id]),
   );
 
   const followedPersonas = useMemo<FollowedPersona[]>(() => {
