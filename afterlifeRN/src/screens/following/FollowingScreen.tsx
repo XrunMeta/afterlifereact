@@ -127,7 +127,7 @@ export default function v_14b43e() {
   );
 
   const v_a48e44 = v_df9f57<FollowedPersona[]>(() => {
-    if (v_d92a4c) {
+    if (v_d92a4c != null) {
       return v_d92a4c.map((v_3f4e2e) => ({
         id: v_3f4e2e.id,
         name: v_3f4e2e.name,
@@ -139,6 +139,7 @@ export default function v_14b43e() {
       }));
     }
 
+    if (v_2ca7e0) return [];
     const v_52c0ef = v_1e752a
       .filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987)
       .map((v_8b5cd8) => v_8b5cd8.followingCloneId);
@@ -149,15 +150,26 @@ export default function v_14b43e() {
         const v_257b90 = v_694b7f.users().find((v_ceb55a) => v_ceb55a.id === v_eb25ce.ownerId);
         return v_986943(v_eb25ce, v_257b90?.handle);
       });
-  }, [v_d92a4c, v_1e752a, v_0c8987]);
+  }, [v_d92a4c, v_2ca7e0, v_1e752a, v_0c8987]);
 
   const v_632473 = v_df9f57<v_bc3df4[]>(() => {
+    if (v_d92a4c != null) {
+      return v_d92a4c.map((v_3f4e2e) => ({
+        id: -v_3f4e2e.id, 
+        cloneId: v_3f4e2e.id,
+        content: v_3f4e2e.description ?? "",
+        mediaUrl: v_3f4e2e.avatarUrl ?? undefined,
+        mediaType: null,
+        likesCount: 0,
+        createdAt: v_3f4e2e.createdAt,
+      }));
+    }
     const v_da0fb9 = new Set(v_a48e44.map((v_e2a85c) => v_e2a85c.id));
     return v_694b7f.feeds()
       .filter((v_8b5cd8) => v_da0fb9.has(v_8b5cd8.cloneId))
       .slice()
       .sort((v_779914, v_148ff6) => v_148ff6.createdAt.localeCompare(v_779914.createdAt));
-  }, [v_a48e44]);
+  }, [v_d92a4c, v_a48e44]);
 
   const [v_69ddfb, v_09b78b] = v_5ab095(v_8d41d7("feed.categoryAll"));
   const [v_c591dc, v_6f4b5a] = v_5ab095<Set<number>>(new Set());
@@ -445,6 +457,13 @@ export default function v_14b43e() {
         showsVerticalScrollIndicator={false}
         onScroll={v_023642}
         scrollEventThrottle={16}
+        ListEmptyComponent={
+          <View style={v_fd5f43.emptyWrap}>
+            <Feather name="users" size={48} color={v_1bfbd0.zinc300} />
+            <Text style={v_fd5f43.emptyTitle}>아직 팔로우한 페르소나가 없어요</Text>
+            <Text style={v_fd5f43.emptyDesc}>홈에서 마음에 드는 페르소나를 팔로우해 보세요</Text>
+          </View>
+        }
       />
 
       {}
@@ -799,4 +818,8 @@ const v_fd5f43 = v_472849.create({
 
   toast: { position: "absolute", bottom: 100, alignSelf: "center", paddingHorizontal: 24, paddingVertical: 12, backgroundColor: "rgba(0,0,0,0.8)", borderRadius: v_8b0c90.full },
   toastText: { fontSize: 14, color: v_1bfbd0.white },
+
+  emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32, gap: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  emptyDesc: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center" },
 });
