@@ -94,6 +94,7 @@ export default function FollowingScreen() {
   const apiUser = useAuthStore((s) => s.apiUser);
   const follows = useFollowStore((s) => s.follows);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
+  const isFollowing = useFollowStore((s) => s.isFollowing);
 
   const uid = authUser?.id ?? DEFAULT_USER_ID;
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -388,16 +389,27 @@ export default function FollowingScreen() {
                 textColor={COLORS.zinc900}
                 backgroundColor={COLORS.white}
               />
-              <Button
-                title={t("feed.actionUnfollow")}
-                variant="ghost"
-                size="md"
-                leftIcon={<Feather name="user-minus" size={14} color={COLORS.white} />}
-                onPress={() => setUnfollowConfirmId(item.persona.id)}
-                style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
-                textColor={COLORS.white}
-                backgroundColor="rgba(255,255,255,0.2)"
-              />
+              {(() => {
+                const followed = isFollowing(item.persona.id);
+                return (
+                  <Button
+                    title={followed ? "팔로잉" : "팔로우"}
+                    variant="ghost"
+                    size="md"
+                    leftIcon={
+                      <Feather
+                        name={followed ? "user-check" : "user-plus"}
+                        size={14}
+                        color={COLORS.white}
+                      />
+                    }
+                    onPress={() => void toggleFollow(item.persona.id)}
+                    style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
+                    textColor={COLORS.white}
+                    backgroundColor={followed ? "rgba(255,255,255,0.2)" : COLORS.violet600}
+                  />
+                );
+              })()}
             </View>
           </View>
         </View>
