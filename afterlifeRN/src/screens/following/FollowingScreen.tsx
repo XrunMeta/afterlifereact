@@ -127,7 +127,7 @@ export default function FollowingScreen() {
   );
 
   const followedPersonas = useMemo<FollowedPersona[]>(() => {
-    if (apiFollowed) {
+    if (apiFollowed != null) {
       return apiFollowed.map((c) => ({
         id: c.id,
         name: c.name,
@@ -139,6 +139,7 @@ export default function FollowingScreen() {
       }));
     }
 
+    if (accessToken) return [];
     const followingCloneIds = follows
       .filter((f) => f.followerUserId === uid)
       .map((f) => f.followingCloneId);
@@ -149,15 +150,26 @@ export default function FollowingScreen() {
         const owner = seedSource.users().find((u) => u.id === clone.ownerId);
         return toPersona(clone, owner?.handle);
       });
-  }, [apiFollowed, follows, uid]);
+  }, [apiFollowed, accessToken, follows, uid]);
 
   const feeds = useMemo<DomainFeed[]>(() => {
+    if (apiFollowed != null) {
+      return apiFollowed.map((c) => ({
+        id: -c.id, 
+        cloneId: c.id,
+        content: c.description ?? "",
+        mediaUrl: c.avatarUrl ?? undefined,
+        mediaType: null,
+        likesCount: 0,
+        createdAt: c.createdAt,
+      }));
+    }
     const followingIds = new Set(followedPersonas.map((p) => p.id));
     return seedSource.feeds()
       .filter((f) => followingIds.has(f.cloneId))
       .slice()
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [followedPersonas]);
+  }, [apiFollowed, followedPersonas]);
 
   const [selectedCategory, setSelectedCategory] = useState(t("feed.categoryAll"));
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
@@ -445,6 +457,13 @@ export default function FollowingScreen() {
         showsVerticalScrollIndicator={false}
         onScroll={onFeedScroll}
         scrollEventThrottle={16}
+        ListEmptyComponent={
+          <View style={s.emptyWrap}>
+            <Feather name="users" size={48} color={COLORS.zinc300} />
+            <Text style={s.emptyTitle}>아직 팔로우한 페르소나가 없어요</Text>
+            <Text style={s.emptyDesc}>홈에서 마음에 드는 페르소나를 팔로우해 보세요</Text>
+          </View>
+        }
       />
 
       {}
@@ -799,4 +818,8 @@ const s = StyleSheet.create({
 
   toast: { position: "absolute", bottom: 100, alignSelf: "center", paddingHorizontal: 24, paddingVertical: 12, backgroundColor: "rgba(0,0,0,0.8)", borderRadius: RADIUS.full },
   toastText: { fontSize: 14, color: COLORS.white },
+
+  emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32, gap: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.zinc700 },
+  emptyDesc: { fontSize: 13, color: COLORS.zinc500, textAlign: "center" },
 });
