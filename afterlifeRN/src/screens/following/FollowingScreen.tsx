@@ -36,6 +36,10 @@ import {
   postCloneComment,
   deleteFeedComment,
   listMyFollowedClones,
+  likeFeed,
+  unlikeFeed,
+  likeClone,
+  unlikeClone,
   type FeedComment,
   type FollowedClone,
 } from "../../api/clones";
@@ -59,7 +63,6 @@ type FollowedPersona = {
 
 const mockIntimacy = (cloneId: number) => ((cloneId * 17) % 100);
 const mockInteractions = (cloneId: number) => 100 + ((cloneId * 137) % 5000);
-const mockLikes = (feedId: number) => 500 + ((feedId * 213) % 3000);
 
 type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
 const MOCK_COMMENT_AUTHORS: ReadonlyArray<{ author: string; avatar: string; content: string; time: string }> = [
@@ -156,15 +159,18 @@ export default function FollowingScreen() {
 
   const feeds = useMemo<DomainFeed[]>(() => {
     if (apiFollowed != null) {
-      return apiFollowed.map((c) => ({
-        id: -c.id, 
-        cloneId: c.id,
-        content: c.description ?? "",
-        mediaUrl: c.avatarUrl ?? undefined,
-        mediaType: null,
-        likesCount: 0,
-        createdAt: c.createdAt,
-      }));
+      return apiFollowed.map((c) => {
+        const realFeedId = c.latestFeed?.feedId ?? null;
+        return {
+          id: realFeedId ?? -c.id, 
+          cloneId: c.id,
+          content: c.description ?? "",
+          mediaUrl: c.avatarUrl ?? undefined,
+          mediaType: null,
+          likesCount: c.latestFeed?.likesCount ?? 0,
+          createdAt: c.createdAt,
+        };
+      });
     }
     const followingIds = new Set(followedPersonas.map((p) => p.id));
     return seedSource.feeds()
@@ -173,8 +179,36 @@ export default function FollowingScreen() {
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [apiFollowed, followedPersonas]);
 
+  const cloneMetaById = useMemo(() => {
+    const map = new Map<number, { likesCount: number; commentsCount: number; likedByMe: boolean }>();
+    if (apiFollowed) {
+      for (const c of apiFollowed) {
+        map.set(c.id, {
+          likesCount: c.latestFeed?.likesCount ?? 0,
+          commentsCount: c.latestFeed?.commentsCount ?? 0,
+          likedByMe: c.latestFeed?.likedByMe ?? false,
+        });
+      }
+    }
+    return map;
+  }, [apiFollowed]);
+
   const [selectedCategory, setSelectedCategory] = useState(t("feed.categoryAll"));
+
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
+
+  const [countDelta, setCountDelta] = useState<Map<number, { likes: number; comments: number }>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    if (!apiFollowed) return;
+    const next = new Set<number>();
+    for (const c of apiFollowed) {
+      if (c.latestFeed?.likedByMe) next.add(c.id);
+    }
+    setLikedPosts(next);
+  }, [apiFollowed]);
 
   const [commentPostId, setCommentPostId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
@@ -244,12 +278,45 @@ export default function FollowingScreen() {
     );
   }, [callSearchQuery, followedPersonas]);
 
-  const toggleLike = (id: number) => {
+  const toggleLikeForClone = async (cloneId: number, feedId: number) => {
+    const wasLiked = likedPosts.has(cloneId);
+    const willLike = !wasLiked;
+
     setLikedPosts((prev) => {
       const s = new Set(prev);
-      s.has(id) ? s.delete(id) : s.add(id);
+      willLike ? s.add(cloneId) : s.delete(cloneId);
       return s;
     });
+    setCountDelta((prev) => {
+      const next = new Map(prev);
+      const cur = next.get(cloneId) ?? { likes: 0, comments: 0 };
+      next.set(cloneId, { ...cur, likes: cur.likes + (willLike ? 1 : -1) });
+      return next;
+    });
+    if (!accessToken) return;
+    try {
+      if (feedId > 0) {
+        if (willLike) await likeFeed(accessToken, feedId);
+        else await unlikeFeed(accessToken, feedId);
+      } else {
+        if (willLike) await likeClone(accessToken, cloneId);
+        else await unlikeClone(accessToken, cloneId);
+      }
+    } catch (err) {
+      console.warn("[Following] toggleLike failed:", err);
+
+      setLikedPosts((prev) => {
+        const s = new Set(prev);
+        wasLiked ? s.add(cloneId) : s.delete(cloneId);
+        return s;
+      });
+      setCountDelta((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(cloneId) ?? { likes: 0, comments: 0 };
+        next.set(cloneId, { ...cur, likes: cur.likes - (willLike ? 1 : -1) });
+        return next;
+      });
+    }
   };
 
   const confirmUnfollow = async () => {
@@ -297,18 +364,32 @@ export default function FollowingScreen() {
     if (!content || !accessToken) return;
     try {
       let realFeedId: number;
+      let cloneIdForDelta: number;
       if (commentPostId < 0) {
         const cloneId = -commentPostId;
+        cloneIdForDelta = cloneId;
         const res = await postCloneComment(accessToken, cloneId, content);
         realFeedId = res.comment.feedId;
         setCommentPostId(realFeedId);
       } else {
         await postFeedComment(accessToken, commentPostId, content);
         realFeedId = commentPostId;
+
+        const matchedClone = apiFollowed?.find((c) => c.latestFeed?.feedId === commentPostId);
+        cloneIdForDelta = matchedClone?.id ?? -1;
       }
       setCommentText("");
       const r = await listFeedComments(realFeedId, { limit: 100 });
       setApiComments(r.items);
+
+      if (cloneIdForDelta > 0) {
+        setCountDelta((prev) => {
+          const next = new Map(prev);
+          const cur = next.get(cloneIdForDelta) ?? { likes: 0, comments: 0 };
+          next.set(cloneIdForDelta, { ...cur, comments: cur.comments + 1 });
+          return next;
+        });
+      }
     } catch (err) {
       console.warn("[Following] postFeedComment failed:", err);
     }
@@ -328,6 +409,18 @@ export default function FollowingScreen() {
             try {
               await deleteFeedComment(accessToken, commentPostId, commentId);
               setApiComments((prev) => prev.filter((c) => c.id !== commentId));
+
+              const matchedClone = apiFollowed?.find(
+                (c) => c.latestFeed?.feedId === commentPostId,
+              );
+              if (matchedClone) {
+                setCountDelta((prev) => {
+                  const next = new Map(prev);
+                  const cur = next.get(matchedClone.id) ?? { likes: 0, comments: 0 };
+                  next.set(matchedClone.id, { ...cur, comments: cur.comments - 1 });
+                  return next;
+                });
+              }
             } catch (err) {
               console.warn("[Following] deleteFeedComment failed:", err);
             }
@@ -415,30 +508,37 @@ export default function FollowingScreen() {
         </View>
 
         {}
-        <View style={s.actionsRow}>
-          <View style={s.actionsLeft}>
-            <TouchableOpacity onPress={() => toggleLike(item.feed.id)}>
-              <Ionicons
-                name={likedPosts.has(item.feed.id) ? "heart" : "heart-outline"}
-                size={24}
-                color={likedPosts.has(item.feed.id) ? "#ef4444" : COLORS.zinc700}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setCommentPostId(item.feed.id)}>
-              <Feather name="message-circle" size={24} color={COLORS.zinc700} />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Feather name="share-2" size={22} color={COLORS.zinc700} />
-            </TouchableOpacity>
-          </View>
-          <View style={s.actionsRight}>
-            <Text style={s.countText}>
-              {t("feed.likeCount", { n: formatCount(mockLikes(item.feed.id) + (likedPosts.has(item.feed.id) ? 1 : 0)) })}
-            </Text>
-            {}
-            <Text style={s.countTextSub}>{t("feed.commentCount", { n: 0 })}</Text>
-          </View>
-        </View>
+        {(() => {
+          const meta = cloneMetaById.get(item.persona.id);
+          const delta = countDelta.get(item.persona.id) ?? { likes: 0, comments: 0 };
+          const liked = likedPosts.has(item.persona.id);
+          const likesCount = (meta?.likesCount ?? 0) + delta.likes;
+          const commentsCount = (meta?.commentsCount ?? 0) + delta.comments;
+          return (
+            <View style={s.actionsRow}>
+              <View style={s.actionsLeft}>
+                <TouchableOpacity onPress={() => void toggleLikeForClone(item.persona.id, item.feed.id)}>
+                  <Ionicons
+                    name={liked ? "heart" : "heart-outline"}
+                    size={24}
+                    color={liked ? "#ef4444" : COLORS.zinc700}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setCommentPostId(item.feed.id)}>
+                  <Feather name="message-circle" size={24} color={COLORS.zinc700} />
+                </TouchableOpacity>
+              </View>
+              <View style={s.actionsRight}>
+                <Text style={s.countText}>
+                  {t("feed.likeCount", { n: formatCount(Math.max(0, likesCount)) })}
+                </Text>
+                <Text style={s.countTextSub}>
+                  {t("feed.commentCount", { n: Math.max(0, commentsCount) })}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
       </View>
     );
   };

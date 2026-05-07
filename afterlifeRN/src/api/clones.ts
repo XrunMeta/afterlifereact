@@ -400,6 +400,13 @@ export interface FollowedClone {
   avatarUrl: string | null;
   interests?: string[];
   stats: { followers: number; messages: number; gifts: number };
+
+  latestFeed?: {
+    feedId: number | null;
+    likesCount: number;
+    commentsCount: number;
+    likedByMe: boolean;
+  };
   createdAt: string;
 }
 export async function listMyFollowedClones(
