@@ -94,6 +94,7 @@ export default function v_14b43e() {
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
+  const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
 
   const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -388,16 +389,27 @@ export default function v_14b43e() {
                 textColor={v_1bfbd0.zinc900}
                 backgroundColor={v_1bfbd0.white}
               />
-              <Button
-                title={v_8d41d7("feed.actionUnfollow")}
-                variant="ghost"
-                size="md"
-                leftIcon={<Feather name="user-minus" size={14} color={v_1bfbd0.white} />}
-                onPress={() => v_cdeef7(v_8c0b26.persona.id)}
-                style={{ ...v_fd5f43.overlayBtn, ...v_fd5f43.overlayBtnGhost }}
-                textColor={v_1bfbd0.white}
-                backgroundColor="rgba(255,255,255,0.2)"
-              />
+              {(() => {
+                const v_10387a = v_b30b81(v_8c0b26.persona.id);
+                return (
+                  <Button
+                    title={v_10387a ? "팔로잉" : "팔로우"}
+                    variant="ghost"
+                    size="md"
+                    leftIcon={
+                      <Feather
+                        name={v_10387a ? "user-check" : "user-plus"}
+                        size={14}
+                        color={v_1bfbd0.white}
+                      />
+                    }
+                    onPress={() => void v_3094d4(v_8c0b26.persona.id)}
+                    style={{ ...v_fd5f43.overlayBtn, ...v_fd5f43.overlayBtnGhost }}
+                    textColor={v_1bfbd0.white}
+                    backgroundColor={v_10387a ? "rgba(255,255,255,0.2)" : v_1bfbd0.violet600}
+                  />
+                );
+              })()}
             </View>
           </View>
         </View>
