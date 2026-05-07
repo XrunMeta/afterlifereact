@@ -61,8 +61,18 @@ type FollowedPersona = {
   interactions: number; 
 };
 
-const mockIntimacy = (cloneId: number) => ((cloneId * 17) % 100);
-const mockInteractions = (cloneId: number) => 100 + ((cloneId * 137) % 5000);
+const deriveInteractions = (
+  stats?: { messages: number; gifts: number },
+  latestFeed?: { likesCount: number; commentsCount: number } | null,
+): number => {
+  const m = stats?.messages ?? 0;
+  const g = stats?.gifts ?? 0;
+  const l = latestFeed?.likesCount ?? 0;
+  const c = latestFeed?.commentsCount ?? 0;
+  return m + g + l + c;
+};
+const deriveIntimacy = (interactions: number): number =>
+  Math.min(100, Math.floor(interactions / 50));
 
 type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
 const MOCK_COMMENT_AUTHORS: ReadonlyArray<{ author: string; avatar: string; content: string; time: string }> = [
@@ -83,8 +93,8 @@ const toPersona = (clone: DomainClone, ownerHandle?: string): FollowedPersona =>
   avatar: clone.imageUrl ?? "",
   interests: clone.interests,
   creatorAccount: ownerHandle ? `@${ownerHandle}` : "",
-  intimacy: mockIntimacy(clone.id),
-  interactions: mockInteractions(clone.id),
+  intimacy: 0,
+  interactions: 0,
 });
 
 const formatCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
@@ -133,15 +143,18 @@ export default function FollowingScreen() {
 
   const followedPersonas = useMemo<FollowedPersona[]>(() => {
     if (apiFollowed != null) {
-      return apiFollowed.map((c) => ({
-        id: c.id,
-        name: c.name,
-        avatar: c.avatarUrl ?? "",
-        interests: c.interests ?? [],
-        creatorAccount: `@${c.username}`,
-        intimacy: mockIntimacy(c.id),
-        interactions: mockInteractions(c.id),
-      }));
+      return apiFollowed.map((c) => {
+        const interactions = deriveInteractions(c.stats, c.latestFeed ?? null);
+        return {
+          id: c.id,
+          name: c.name,
+          avatar: c.avatarUrl ?? "",
+          interests: c.interests ?? [],
+          creatorAccount: `@${c.username}`,
+          intimacy: deriveIntimacy(interactions),
+          interactions,
+        };
+      });
     }
 
     if (accessToken) return [];
@@ -758,34 +771,8 @@ export default function FollowingScreen() {
             </View>
 
             <ScrollView style={s.callScroll} showsVerticalScrollIndicator={false}>
-              {}
-              {!callSearchQuery && followedPersonas.length > 0 && (
-                <View style={s.callSectionBordered}>
-                  <Text style={s.callSectionTitle}>{t("feed.recentCalls")}</Text>
-                  {followedPersonas.slice(0, 2).map((p, i) => (
-                    <View key={p.id} style={s.callRow}>
-                      <Image source={{ uri: p.avatar }} style={s.callAvatar} />
-                      <View style={s.callInfo}>
-                        <Text style={s.callName}>{p.name}</Text>
-                        <Text style={s.callSub}>{p.creatorAccount}</Text>
-                        <Text style={s.callMeta}>
-                          {i === 0 ? t("feed.callMetaYesterday") : t("feed.callMeta3DaysAgo")}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={s.callBtn}
-                        onPress={() => {
-                          setShowCallModal(false);
-                          rootNav.navigate("Call", { cloneId: p.id, name: p.name, image: p.avatar });
-                        }}
-                      >
-                        <Feather name="video" size={14} color={COLORS.white} />
-                        <Text style={s.callBtnText}>{t("feed.callRowAction")}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
+              {
+}
 
               {}
               <View style={s.callSection}>
