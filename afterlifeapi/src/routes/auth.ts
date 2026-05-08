@@ -616,22 +616,35 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
   const v_3ed4c3 = await v_96aa7f(v_4d33b2.password, v_2d56e5);
   if (!v_625c74 || !v_3ed4c3) {
+    let v_45fe0c = 0;
+    let v_faa105 = false;
     if (v_625c74) {
 
       const v_d0940a = v_9ef4e1 ? 0 : v_625c74.failed_login_count ?? 0;
-      const v_27ed25 = v_d0940a + 1;
-      const v_0a64d3 =
-        v_27ed25 >= v_91027d
-          ? new Date(Date.now() + v_584268 * 60_000).toISOString()
-          : null;
+      v_45fe0c = v_d0940a + 1;
+      v_faa105 = v_45fe0c >= v_91027d;
+      const v_0a64d3 = v_faa105
+        ? new Date(Date.now() + v_584268 * 60_000).toISOString()
+        : null;
       await v_a1651b
         .prepare(
           `UPDATE users SET failed_login_count = ?, locked_until = ? WHERE id = ?`,
         )
-        .bind(v_27ed25, v_0a64d3, v_625c74.id)
+        .bind(v_45fe0c, v_0a64d3, v_625c74.id)
         .run();
     }
-    throw new v_3ebe58("UNAUTHENTICATED", "Invalid credentials.");
+
+    if (v_faa105) {
+      throw new v_3ebe58("ACCOUNT_LOCKED", "Account temporarily locked.", {
+        attempts: v_45fe0c,
+        maxAttempts: v_91027d,
+        lockMinutes: v_584268,
+      });
+    }
+    throw new v_3ebe58("UNAUTHENTICATED", "Invalid credentials.", {
+      attempts: v_45fe0c, 
+      maxAttempts: v_91027d,
+    });
   }
 
   await v_a1651b
@@ -733,10 +746,15 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   }
 
   const v_df7439 = await v_54846c(v_4d33b2.newPassword);
+
   await v_3f4e2e.env.DB
     .prepare(
-      `UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+      `UPDATE users
+          SET password_hash = ?,
+              failed_login_count = 0,
+              locked_until = NULL,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
     )
     .bind(v_df7439, v_d1b635.id)
     .run();

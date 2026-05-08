@@ -573,6 +573,13 @@ export async function v_0df337(
   });
 }
 
+export async function v_6d41b9(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ liked: boolean }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/like-status`, v_2ca7e0, { method: "GET" });
+}
+
 export async function v_b14fce(
   v_2ca7e0,
   v_6e0fd3,

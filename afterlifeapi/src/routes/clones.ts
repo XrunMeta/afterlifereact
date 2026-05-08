@@ -658,6 +658,24 @@ v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
   });
 });
 
+v_f891e6.get("/:id/like-status", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT 1 AS hit FROM feed_likes fl
+         JOIN feeds f ON f.id = fl.feed_id
+        WHERE fl.user_id = ? AND f.clone_id = ?
+        LIMIT 1`,
+    )
+    .bind(v_43e90c, v_6e0fd3)
+    .first<{ hit: number }>();
+  return v_3f4e2e.json({ liked: v_3ac7e7 != null });
+});
+
 v_f891e6.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
