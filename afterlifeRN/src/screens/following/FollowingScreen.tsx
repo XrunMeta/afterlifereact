@@ -36,6 +36,10 @@ import {
   postCloneComment,
   deleteFeedComment,
   listMyFollowedClones,
+  likeFeed,
+  unlikeFeed,
+  likeClone,
+  unlikeClone,
   type FeedComment,
   type FollowedClone,
 } from "../../api/clones";
@@ -57,9 +61,20 @@ type FollowedPersona = {
   interactions: number; 
 };
 
-const mockIntimacy = (cloneId: number) => ((cloneId * 17) % 100);
-const mockInteractions = (cloneId: number) => 100 + ((cloneId * 137) % 5000);
-const mockLikes = (feedId: number) => 500 + ((feedId * 213) % 3000);
+const deriveInteractions = (stats?: {
+  messages: number;
+  gifts: number;
+  likes?: number;
+  comments?: number;
+}): number => {
+  const m = stats?.messages ?? 0;
+  const g = stats?.gifts ?? 0;
+  const l = stats?.likes ?? 0;
+  const c = stats?.comments ?? 0;
+  return m + g + l + c;
+};
+const deriveIntimacy = (interactions: number): number =>
+  Math.min(100, Math.floor(interactions / 50));
 
 type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
 const MOCK_COMMENT_AUTHORS: ReadonlyArray<{ author: string; avatar: string; content: string; time: string }> = [
@@ -80,8 +95,8 @@ const toPersona = (clone: DomainClone, ownerHandle?: string): FollowedPersona =>
   avatar: clone.imageUrl ?? "",
   interests: clone.interests,
   creatorAccount: ownerHandle ? `@${ownerHandle}` : "",
-  intimacy: mockIntimacy(clone.id),
-  interactions: mockInteractions(clone.id),
+  intimacy: 0,
+  interactions: 0,
 });
 
 const formatCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
@@ -91,8 +106,10 @@ export default function FollowingScreen() {
   const insets = useSafeAreaInsets();
   const rootNav = useNavigation<RootNav>();
   const authUser = useAuthStore((s) => s.user);
+  const apiUser = useAuthStore((s) => s.apiUser);
   const follows = useFollowStore((s) => s.follows);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
+  const isFollowing = useFollowStore((s) => s.isFollowing);
 
   const uid = authUser?.id ?? DEFAULT_USER_ID;
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -101,7 +118,7 @@ export default function FollowingScreen() {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      const userId = authUser?.id;
+      const userId = apiUser?.id;
       if (!accessToken || !userId) {
         setApiFollowed(null);
         return;
@@ -112,7 +129,14 @@ export default function FollowingScreen() {
           if (!cancelled) {
             console.log(
               `[Following] followedClones ← ${r.items.length} items`,
-              r.items.map((it) => ({ id: it.id, name: it.name })),
+              r.items.map((it) => ({
+                id: it.id,
+                name: it.name,
+                "stats.likes": it.stats?.likes,
+                "stats.comments": it.stats?.comments,
+                "latestFeed.feedId": it.latestFeed?.feedId,
+                "latestFeed.likedByMe": it.latestFeed?.likedByMe,
+              })),
             );
             setApiFollowed(r.items);
           }
@@ -123,22 +147,26 @@ export default function FollowingScreen() {
       return () => {
         cancelled = true;
       };
-    }, [accessToken, authUser?.id]),
+    }, [accessToken, apiUser?.id]),
   );
 
   const followedPersonas = useMemo<FollowedPersona[]>(() => {
-    if (apiFollowed) {
-      return apiFollowed.map((c) => ({
-        id: c.id,
-        name: c.name,
-        avatar: c.avatarUrl ?? "",
-        interests: c.interests ?? [],
-        creatorAccount: `@${c.username}`,
-        intimacy: mockIntimacy(c.id),
-        interactions: mockInteractions(c.id),
-      }));
+    if (apiFollowed != null) {
+      return apiFollowed.map((c) => {
+        const interactions = deriveInteractions(c.stats);
+        return {
+          id: c.id,
+          name: c.name,
+          avatar: c.avatarUrl ?? "",
+          interests: c.interests ?? [],
+          creatorAccount: `@${c.username}`,
+          intimacy: deriveIntimacy(interactions),
+          interactions,
+        };
+      });
     }
 
+    if (accessToken) return [];
     const followingCloneIds = follows
       .filter((f) => f.followerUserId === uid)
       .map((f) => f.followingCloneId);
@@ -149,18 +177,61 @@ export default function FollowingScreen() {
         const owner = seedSource.users().find((u) => u.id === clone.ownerId);
         return toPersona(clone, owner?.handle);
       });
-  }, [apiFollowed, follows, uid]);
+  }, [apiFollowed, accessToken, follows, uid]);
 
   const feeds = useMemo<DomainFeed[]>(() => {
+    if (apiFollowed != null) {
+      return apiFollowed.map((c) => {
+        const realFeedId = c.latestFeed?.feedId ?? null;
+        return {
+          id: realFeedId ?? -c.id, 
+          cloneId: c.id,
+          content: c.description ?? "",
+          mediaUrl: c.avatarUrl ?? undefined,
+          mediaType: null,
+
+          likesCount: c.stats.likes ?? 0,
+          createdAt: c.createdAt,
+        };
+      });
+    }
     const followingIds = new Set(followedPersonas.map((p) => p.id));
     return seedSource.feeds()
       .filter((f) => followingIds.has(f.cloneId))
       .slice()
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [followedPersonas]);
+  }, [apiFollowed, followedPersonas]);
+
+  const cloneMetaById = useMemo(() => {
+    const map = new Map<number, { likesCount: number; commentsCount: number; likedByMe: boolean }>();
+    if (apiFollowed) {
+      for (const c of apiFollowed) {
+        map.set(c.id, {
+          likesCount: c.stats.likes ?? 0,
+          commentsCount: c.stats.comments ?? 0,
+          likedByMe: c.latestFeed?.likedByMe ?? false,
+        });
+      }
+    }
+    return map;
+  }, [apiFollowed]);
 
   const [selectedCategory, setSelectedCategory] = useState(t("feed.categoryAll"));
+
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
+
+  const [countDelta, setCountDelta] = useState<Map<number, { likes: number; comments: number }>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    if (!apiFollowed) return;
+    const next = new Set<number>();
+    for (const c of apiFollowed) {
+      if (c.latestFeed?.likedByMe) next.add(c.id);
+    }
+    setLikedPosts(next);
+  }, [apiFollowed]);
 
   const [commentPostId, setCommentPostId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
@@ -230,12 +301,45 @@ export default function FollowingScreen() {
     );
   }, [callSearchQuery, followedPersonas]);
 
-  const toggleLike = (id: number) => {
+  const toggleLikeForClone = async (cloneId: number, feedId: number) => {
+    const wasLiked = likedPosts.has(cloneId);
+    const willLike = !wasLiked;
+
     setLikedPosts((prev) => {
       const s = new Set(prev);
-      s.has(id) ? s.delete(id) : s.add(id);
+      willLike ? s.add(cloneId) : s.delete(cloneId);
       return s;
     });
+    setCountDelta((prev) => {
+      const next = new Map(prev);
+      const cur = next.get(cloneId) ?? { likes: 0, comments: 0 };
+      next.set(cloneId, { ...cur, likes: cur.likes + (willLike ? 1 : -1) });
+      return next;
+    });
+    if (!accessToken) return;
+    try {
+      if (feedId > 0) {
+        if (willLike) await likeFeed(accessToken, feedId);
+        else await unlikeFeed(accessToken, feedId);
+      } else {
+        if (willLike) await likeClone(accessToken, cloneId);
+        else await unlikeClone(accessToken, cloneId);
+      }
+    } catch (err) {
+      console.warn("[Following] toggleLike failed:", err);
+
+      setLikedPosts((prev) => {
+        const s = new Set(prev);
+        wasLiked ? s.add(cloneId) : s.delete(cloneId);
+        return s;
+      });
+      setCountDelta((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(cloneId) ?? { likes: 0, comments: 0 };
+        next.set(cloneId, { ...cur, likes: cur.likes - (willLike ? 1 : -1) });
+        return next;
+      });
+    }
   };
 
   const confirmUnfollow = async () => {
@@ -283,18 +387,32 @@ export default function FollowingScreen() {
     if (!content || !accessToken) return;
     try {
       let realFeedId: number;
+      let cloneIdForDelta: number;
       if (commentPostId < 0) {
         const cloneId = -commentPostId;
+        cloneIdForDelta = cloneId;
         const res = await postCloneComment(accessToken, cloneId, content);
         realFeedId = res.comment.feedId;
         setCommentPostId(realFeedId);
       } else {
         await postFeedComment(accessToken, commentPostId, content);
         realFeedId = commentPostId;
+
+        const matchedClone = apiFollowed?.find((c) => c.latestFeed?.feedId === commentPostId);
+        cloneIdForDelta = matchedClone?.id ?? -1;
       }
       setCommentText("");
       const r = await listFeedComments(realFeedId, { limit: 100 });
       setApiComments(r.items);
+
+      if (cloneIdForDelta > 0) {
+        setCountDelta((prev) => {
+          const next = new Map(prev);
+          const cur = next.get(cloneIdForDelta) ?? { likes: 0, comments: 0 };
+          next.set(cloneIdForDelta, { ...cur, comments: cur.comments + 1 });
+          return next;
+        });
+      }
     } catch (err) {
       console.warn("[Following] postFeedComment failed:", err);
     }
@@ -314,6 +432,18 @@ export default function FollowingScreen() {
             try {
               await deleteFeedComment(accessToken, commentPostId, commentId);
               setApiComments((prev) => prev.filter((c) => c.id !== commentId));
+
+              const matchedClone = apiFollowed?.find(
+                (c) => c.latestFeed?.feedId === commentPostId,
+              );
+              if (matchedClone) {
+                setCountDelta((prev) => {
+                  const next = new Map(prev);
+                  const cur = next.get(matchedClone.id) ?? { likes: 0, comments: 0 };
+                  next.set(matchedClone.id, { ...cur, comments: cur.comments - 1 });
+                  return next;
+                });
+              }
             } catch (err) {
               console.warn("[Following] deleteFeedComment failed:", err);
             }
@@ -375,45 +505,63 @@ export default function FollowingScreen() {
                 textColor={COLORS.zinc900}
                 backgroundColor={COLORS.white}
               />
-              <Button
-                title={t("feed.actionUnfollow")}
-                variant="ghost"
-                size="md"
-                leftIcon={<Feather name="user-minus" size={14} color={COLORS.white} />}
-                onPress={() => setUnfollowConfirmId(item.persona.id)}
-                style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
-                textColor={COLORS.white}
-                backgroundColor="rgba(255,255,255,0.2)"
-              />
+              {(() => {
+                const followed = isFollowing(item.persona.id);
+                return (
+                  <Button
+                    title={followed ? "팔로잉" : "팔로우"}
+                    variant="ghost"
+                    size="md"
+                    leftIcon={
+                      <Feather
+                        name={followed ? "user-check" : "user-plus"}
+                        size={14}
+                        color={COLORS.white}
+                      />
+                    }
+                    onPress={() => void toggleFollow(item.persona.id)}
+                    style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
+                    textColor={COLORS.white}
+                    backgroundColor={followed ? "rgba(255,255,255,0.2)" : COLORS.violet600}
+                  />
+                );
+              })()}
             </View>
           </View>
         </View>
 
         {}
-        <View style={s.actionsRow}>
-          <View style={s.actionsLeft}>
-            <TouchableOpacity onPress={() => toggleLike(item.feed.id)}>
-              <Ionicons
-                name={likedPosts.has(item.feed.id) ? "heart" : "heart-outline"}
-                size={24}
-                color={likedPosts.has(item.feed.id) ? "#ef4444" : COLORS.zinc700}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setCommentPostId(item.feed.id)}>
-              <Feather name="message-circle" size={24} color={COLORS.zinc700} />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Feather name="share-2" size={22} color={COLORS.zinc700} />
-            </TouchableOpacity>
-          </View>
-          <View style={s.actionsRight}>
-            <Text style={s.countText}>
-              {t("feed.likeCount", { n: formatCount(mockLikes(item.feed.id) + (likedPosts.has(item.feed.id) ? 1 : 0)) })}
-            </Text>
-            {}
-            <Text style={s.countTextSub}>{t("feed.commentCount", { n: 0 })}</Text>
-          </View>
-        </View>
+        {(() => {
+          const meta = cloneMetaById.get(item.persona.id);
+          const delta = countDelta.get(item.persona.id) ?? { likes: 0, comments: 0 };
+          const liked = likedPosts.has(item.persona.id);
+          const likesCount = (meta?.likesCount ?? 0) + delta.likes;
+          const commentsCount = (meta?.commentsCount ?? 0) + delta.comments;
+          return (
+            <View style={s.actionsRow}>
+              <View style={s.actionsLeft}>
+                <TouchableOpacity onPress={() => void toggleLikeForClone(item.persona.id, item.feed.id)}>
+                  <Ionicons
+                    name={liked ? "heart" : "heart-outline"}
+                    size={24}
+                    color={liked ? "#ef4444" : COLORS.zinc700}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setCommentPostId(item.feed.id)}>
+                  <Feather name="message-circle" size={24} color={COLORS.zinc700} />
+                </TouchableOpacity>
+              </View>
+              <View style={s.actionsRight}>
+                <Text style={s.countText}>
+                  {t("feed.likeCount", { n: formatCount(Math.max(0, likesCount)) })}
+                </Text>
+                <Text style={s.countTextSub}>
+                  {t("feed.commentCount", { n: Math.max(0, commentsCount) })}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
       </View>
     );
   };
@@ -445,6 +593,13 @@ export default function FollowingScreen() {
         showsVerticalScrollIndicator={false}
         onScroll={onFeedScroll}
         scrollEventThrottle={16}
+        ListEmptyComponent={
+          <View style={s.emptyWrap}>
+            <Feather name="users" size={48} color={COLORS.zinc300} />
+            <Text style={s.emptyTitle}>아직 팔로우한 페르소나가 없어요</Text>
+            <Text style={s.emptyDesc}>홈에서 마음에 드는 페르소나를 팔로우해 보세요</Text>
+          </View>
+        }
       />
 
       {}
@@ -626,34 +781,8 @@ export default function FollowingScreen() {
             </View>
 
             <ScrollView style={s.callScroll} showsVerticalScrollIndicator={false}>
-              {}
-              {!callSearchQuery && followedPersonas.length > 0 && (
-                <View style={s.callSectionBordered}>
-                  <Text style={s.callSectionTitle}>{t("feed.recentCalls")}</Text>
-                  {followedPersonas.slice(0, 2).map((p, i) => (
-                    <View key={p.id} style={s.callRow}>
-                      <Image source={{ uri: p.avatar }} style={s.callAvatar} />
-                      <View style={s.callInfo}>
-                        <Text style={s.callName}>{p.name}</Text>
-                        <Text style={s.callSub}>{p.creatorAccount}</Text>
-                        <Text style={s.callMeta}>
-                          {i === 0 ? t("feed.callMetaYesterday") : t("feed.callMeta3DaysAgo")}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={s.callBtn}
-                        onPress={() => {
-                          setShowCallModal(false);
-                          rootNav.navigate("Call", { cloneId: p.id, name: p.name, image: p.avatar });
-                        }}
-                      >
-                        <Feather name="video" size={14} color={COLORS.white} />
-                        <Text style={s.callBtnText}>{t("feed.callRowAction")}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
+              {
+}
 
               {}
               <View style={s.callSection}>
@@ -799,4 +928,8 @@ const s = StyleSheet.create({
 
   toast: { position: "absolute", bottom: 100, alignSelf: "center", paddingHorizontal: 24, paddingVertical: 12, backgroundColor: "rgba(0,0,0,0.8)", borderRadius: RADIUS.full },
   toastText: { fontSize: 14, color: COLORS.white },
+
+  emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32, gap: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.zinc700 },
+  emptyDesc: { fontSize: 13, color: COLORS.zinc500, textAlign: "center" },
 });

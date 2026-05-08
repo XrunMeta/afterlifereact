@@ -605,7 +605,13 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         `SELECT c.id, c.name, c.username, c.description, c.clone_type, c.category, c.avatar_url, c.created_at,
                 COALESCE(s.followers_count, 0) AS followers_count,
                 COALESCE(s.messages_count, 0)  AS messages_count,
-                COALESCE(s.gifts_count, 0)     AS gifts_count
+                COALESCE(s.gifts_count, 0)     AS gifts_count,
+                (SELECT id FROM feeds WHERE clone_id = c.id ORDER BY id DESC LIMIT 1) AS latest_feed_id,
+                (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+                  WHERE f.clone_id = c.id) AS total_likes,
+                (SELECT COUNT(*) FROM feed_comments fc
+                   JOIN feeds f2 ON f2.id = fc.feed_id
+                   WHERE f2.clone_id = c.id) AS total_comments
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
@@ -626,6 +632,9 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         followers_count: number;
         messages_count: number;
         gifts_count: number;
+        latest_feed_id: number | null;
+        total_likes: number;
+        total_comments: number;
       }>()
   ).results;
 
@@ -649,6 +658,23 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
     }
   }
 
+  const cIdsForLikes = rows.map((r) => r.id);
+  const likedCloneIds = new Set<number>();
+  if (cIdsForLikes.length > 0) {
+    const placeholders = cIdsForLikes.map(() => "?").join(",");
+    const lr = (
+      await c.env.DB
+        .prepare(
+          `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
+             JOIN feeds f ON f.id = fl.feed_id
+            WHERE fl.user_id = ? AND f.clone_id IN (${placeholders})`,
+        )
+        .bind(userId, ...cIdsForLikes)
+        .all<{ clone_id: number }>()
+    ).results ?? [];
+    for (const row of lr) likedCloneIds.add(row.clone_id);
+  }
+
   return c.json({
     items: rows.map((r) => ({
       id: r.id,
@@ -663,6 +689,14 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         followers: r.followers_count,
         messages: r.messages_count,
         gifts: r.gifts_count,
+
+        likes: r.total_likes,
+        comments: r.total_comments,
+      },
+
+      latestFeed: {
+        feedId: r.latest_feed_id,
+        likedByMe: likedCloneIds.has(r.id),
       },
       createdAt: r.created_at,
     })),

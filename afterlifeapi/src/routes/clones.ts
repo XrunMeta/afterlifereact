@@ -402,6 +402,18 @@ clones.get("/:id", async (c) => {
       .all<{ interest: string }>()
   ).results.map((r) => r.interest);
 
+  const aggRow = await c.env.DB
+    .prepare(
+      `SELECT
+         (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+            WHERE f.clone_id = ?) AS likesCount,
+         (SELECT COUNT(*) FROM feed_comments fc
+            JOIN feeds f2 ON f2.id = fc.feed_id
+            WHERE f2.clone_id = ?) AS commentsCount`,
+    )
+    .bind(cloneId, cloneId)
+    .first<{ likesCount: number; commentsCount: number }>();
+
   return c.json({
     clone: {
       id: clone.id,
@@ -422,6 +434,8 @@ clones.get("/:id", async (c) => {
         followers: clone.followers_count,
         messages: clone.messages_count,
         gifts: clone.gifts_count,
+        likes: aggRow?.likesCount ?? 0,
+        comments: aggRow?.commentsCount ?? 0,
       },
       createdAt: clone.created_at,
       viewerRole,

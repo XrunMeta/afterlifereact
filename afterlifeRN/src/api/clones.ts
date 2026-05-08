@@ -399,7 +399,18 @@ export interface FollowedClone {
   category: string | null;
   avatarUrl: string | null;
   interests?: string[];
-  stats: { followers: number; messages: number; gifts: number };
+
+  stats: {
+    followers: number;
+    messages: number;
+    gifts: number;
+    likes?: number;
+    comments?: number;
+  };
+  latestFeed?: {
+    feedId: number | null;
+    likedByMe: boolean;
+  };
   createdAt: string;
 }
 export async function listMyFollowedClones(

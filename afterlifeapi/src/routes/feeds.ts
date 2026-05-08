@@ -150,6 +150,8 @@ feedsDiscover.get("/discover", async (c) => {
   const binds: unknown[] = [];
 
   if (viewerId) {
+    where.push("c.owner_id != ?");
+    binds.push(viewerId);
     where.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
     binds.push(viewerId);
   }
@@ -172,9 +174,12 @@ feedsDiscover.get("/discover", async (c) => {
                 f.content          AS feedContent,
                 f.media_url        AS feedMediaUrl,
                 f.media_type       AS feedMediaType,
-                f.likes_count      AS feedLikesCount,
                 f.created_at       AS feedCreatedAt,
-                (SELECT COUNT(*) FROM feed_comments WHERE feed_id = f.id) AS commentsCount
+                (SELECT COALESCE(SUM(f2.likes_count), 0) FROM feeds f2
+                  WHERE f2.clone_id = c.id) AS likesCount,
+                (SELECT COUNT(*) FROM feed_comments fc
+                   JOIN feeds f3 ON f3.id = fc.feed_id
+                   WHERE f3.clone_id = c.id) AS commentsCount
            FROM clones c
            LEFT JOIN feeds f ON f.id = (
              SELECT id FROM feeds WHERE clone_id = c.id
@@ -197,9 +202,9 @@ feedsDiscover.get("/discover", async (c) => {
         feedContent: string | null;
         feedMediaUrl: string | null;
         feedMediaType: string | null;
-        feedLikesCount: number | null;
         feedCreatedAt: string | null;
-        commentsCount: number | null;
+        likesCount: number;
+        commentsCount: number;
       }>()
   ).results;
 
@@ -228,23 +233,22 @@ feedsDiscover.get("/discover", async (c) => {
     }
   }
 
-  const likedFeedIds = new Set<number>();
+  const likedCloneIds = new Set<number>();
   if (viewerId) {
-    const feedIdsInPage = page
-      .map((r) => r.feedId)
-      .filter((x): x is number => typeof x === "number");
-    if (feedIdsInPage.length > 0) {
-      const placeholders = feedIdsInPage.map(() => "?").join(",");
+    const cloneIdsInPage = page.map((r) => r.cloneId);
+    if (cloneIdsInPage.length > 0) {
+      const placeholders = cloneIdsInPage.map(() => "?").join(",");
       const lr = (
         await c.env.DB
           .prepare(
-            `SELECT feed_id FROM feed_likes
-              WHERE user_id = ? AND feed_id IN (${placeholders})`,
+            `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
+               JOIN feeds f ON f.id = fl.feed_id
+              WHERE fl.user_id = ? AND f.clone_id IN (${placeholders})`,
           )
-          .bind(viewerId, ...feedIdsInPage)
-          .all<{ feed_id: number }>()
+          .bind(viewerId, ...cloneIdsInPage)
+          .all<{ clone_id: number }>()
       ).results ?? [];
-      for (const row of lr) likedFeedIds.add(row.feed_id);
+      for (const row of lr) likedCloneIds.add(row.clone_id);
     }
   }
 
@@ -257,10 +261,11 @@ feedsDiscover.get("/discover", async (c) => {
       content: r.feedContent ?? r.cloneDescription ?? "",
       mediaUrl: r.feedMediaUrl ?? r.cloneAvatarUrl ?? null,
       mediaType: r.feedMediaType,
-      likesCount: r.feedLikesCount ?? 0,
 
-      likedByMe: r.feedId != null && likedFeedIds.has(r.feedId),
-      commentsCount: r.commentsCount ?? 0,
+      likesCount: r.likesCount,
+      commentsCount: r.commentsCount,
+
+      likedByMe: likedCloneIds.has(r.cloneId),
       createdAt: r.feedCreatedAt ?? r.cloneCreatedAt,
       clone: {
         id: r.cloneId,
