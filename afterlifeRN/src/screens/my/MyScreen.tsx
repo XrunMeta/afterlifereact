@@ -176,16 +176,16 @@ export default function MyScreen() {
 
   const handleOpenXrunApp = async () => {
     setChargeModalVisible(false);
-    const playStoreScheme = "market://details?id=run.xrun.xrunApp";
-    const playStoreWeb = "https://play.google.com/store/apps/details?id=run.xrun.xrunApp";
-    const appStoreWeb = "https://apps.apple.com/app/xrun";
+    const playStoreScheme = "market://details?id=run.xrun.xrunapp";
+    const playStoreWeb = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+    const appStoreSearch = "https://apps.apple.com/kr/search?term=xrun";
     try {
       if (Platform.OS === "android") {
 
         const canMarket = await Linking.canOpenURL(playStoreScheme);
         await Linking.openURL(canMarket ? playStoreScheme : playStoreWeb);
       } else {
-        await Linking.openURL(appStoreWeb);
+        await Linking.openURL(appStoreSearch);
       }
     } catch (err) {
       console.warn("[MyScreen] open xrun app failed:", err);
