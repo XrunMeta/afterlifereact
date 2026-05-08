@@ -87,6 +87,13 @@ export default function CallScreen({ route, navigation }: Props) {
     const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    console.log(
+      `[Call] 진입 cloneId=${cloneId} name=${paramName ?? "?"} 초기 isLiked=${isLiked}`,
+    );
+
+  }, []);
   const callTimeStr = `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}`;
 
   const refreshBalance = useCallback(async () => {
@@ -313,7 +320,13 @@ export default function CallScreen({ route, navigation }: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.sideBtn, isLiked && s.sideBtnLiked]}
-          onPress={() => setIsLiked(!isLiked)}
+          onPress={() => {
+            const next = !isLiked;
+            console.log(
+              `[Call] 좋아요 클릭 cloneId=${cloneId} ${isLiked ? "true" : "false"} → ${next ? "true" : "false"}`,
+            );
+            setIsLiked(next);
+          }}
         >
           <Feather
             name="heart"
