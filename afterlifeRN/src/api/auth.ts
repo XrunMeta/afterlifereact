@@ -78,6 +78,20 @@ export class v_84a859 extends Error {
 }
 
 async function v_c34e2f<T>(v_9fe22d, v_4d33b2): Promise<T> {
+
+  const v_7611fb =
+    v_9fe22d === "/oth-path" ||
+    v_9fe22d === "/oth-path" ||
+    v_9fe22d === "/oth-path" ||
+    v_9fe22d === "/oth-path";
+  const v_1936ee =
+    typeof v_4d33b2 === "object" && v_4d33b2 !== null && "email" in v_4d33b2
+      ? String((v_4d33b2 as { email?: unknown }).email ?? "")
+      : "";
+  if (v_7611fb) {
+    console.log(`[OTP-API] → POST ${v_9fe22d}${v_1936ee ? ` email=${v_1936ee}` : ""}`);
+  }
+
   const v_8f00b9 = await fetch(`${v_cc9198}${v_9fe22d}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -96,7 +110,15 @@ async function v_c34e2f<T>(v_9fe22d, v_4d33b2): Promise<T> {
     const v_9be017 = v_8decf8 as ApiErrorBody | null;
     const v_c99bd2 = v_9be017?.error?.code ?? "HTTP_ERROR";
     const v_a8cd21 = v_9be017?.error?.message ?? `HTTP ${v_8f00b9.status}`;
+    if (v_7611fb) {
+      console.warn(
+        `[OTP-API] ✗ ${v_9fe22d} ← ${v_8f00b9.status} code=${v_c99bd2} msg=${v_a8cd21}`,
+      );
+    }
     throw new v_84a859(v_8f00b9.status, v_c99bd2, v_a8cd21, v_9be017?.error?.details);
+  }
+  if (v_7611fb) {
+    console.log(`[OTP-API] ✓ ${v_9fe22d} ← ${v_8f00b9.status} (OTP 메일 발송됨, 어드민 /otp 에서 코드 확인)`);
   }
   return v_8decf8 as T;
 }
