@@ -35,6 +35,9 @@ import {
   v_3f8bc7,
   v_6f689a,
   v_0df337,
+  v_6d41b9,
+  v_b14fce,
+  v_0ff331,
   type v_52af9d,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
@@ -89,11 +92,23 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   }, []);
 
   v_c4deb2(() => {
-    console.log(
-      `[Call] 진입 cloneId=${v_6e0fd3} name=${v_a4744c ?? "?"} 초기 isLiked=${v_85c07b}`,
-    );
+    console.log(`[Call] 진입 cloneId=${v_6e0fd3} name=${v_a4744c ?? "?"} (likedByMe fetch 중...)`);
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_6d41b9(v_2ca7e0, v_6e0fd3)
+      .then((v_cb35cb) => {
+        if (v_2008a4) return;
+        console.log(`[Call] likedByMe fetch ← ${v_cb35cb.liked}`);
+        v_ff0eb0(v_cb35cb.liked);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Call] likedByMe fetch failed:", v_49263d);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
 
-  }, []);
+  }, [v_2ca7e0, v_6e0fd3]);
   const v_813acc = `${String(Math.floor(v_5a751a / 60)).padStart(2, "0")}:${String(v_5a751a % 60).padStart(2, "0")}`;
 
   const v_d3ded9 = v_de06a3(async () => {
@@ -320,12 +335,21 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </TouchableOpacity>
         <TouchableOpacity
           style={[v_fd5f43.sideBtn, v_85c07b && v_fd5f43.sideBtnLiked]}
-          onPress={() => {
+          onPress={async () => {
             const v_a448ad = !v_85c07b;
             console.log(
               `[Call] 좋아요 클릭 cloneId=${v_6e0fd3} ${v_85c07b ? "true" : "false"} → ${v_a448ad ? "true" : "false"}`,
             );
-            v_ff0eb0(v_a448ad);
+            v_ff0eb0(v_a448ad); 
+            if (!v_2ca7e0) return;
+            try {
+              if (v_a448ad) await v_b14fce(v_2ca7e0, v_6e0fd3);
+              else await v_0ff331(v_2ca7e0, v_6e0fd3);
+              console.log(`[Call] 좋아요 API ← ok next=${v_a448ad}`);
+            } catch (v_49263d) {
+              console.warn("[Call] 좋아요 API 실패:", v_49263d);
+              v_ff0eb0(!v_a448ad); 
+            }
           }}
         >
           <Feather

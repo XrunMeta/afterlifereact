@@ -93,6 +93,10 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     const v_b6e533 = v_38715b();
     const v_d50832 = v_b6e533.likedIds.includes(v_389afb);
     const v_d60f4b = !v_d50832;
+    const v_b7cae8 = v_389afb < 0 ? -v_389afb : "?"; 
+    console.log(
+      `[LIKE] toggle id=${v_389afb} ${v_389afb < 0 ? `(synthetic, cloneId=${v_b7cae8})` : ""} ${v_d50832 ? "true" : "false"} → ${v_d60f4b ? "true" : "false"}`,
+    );
 
     v_bb8024({
       likedIds: v_d60f4b
@@ -124,8 +128,12 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
         ? v_de2a30(v_2ca7e0, v_389afb)
         : v_11c954(v_2ca7e0, v_389afb);
 
+    console.log(
+      `[LIKE] → ${v_5d003d ? "POST/DELETE /oth-path" + v_23cdc5 + "/like" : (v_d60f4b ? "POST" : "DELETE") + " /oth-path" + v_389afb + "/like"}`,
+    );
     v_5ee69e
       .then((v_8f00b9) => {
+        console.log(`[LIKE] ← ok likesCount=${v_8f00b9.likesCount}`);
 
         const v_c3bc75 = v_38715b().apiFeeds;
         if (v_c3bc75) {
