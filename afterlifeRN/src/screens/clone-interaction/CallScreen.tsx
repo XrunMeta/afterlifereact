@@ -18,7 +18,7 @@ import {
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -334,7 +334,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <Feather name="gift" size={22} color={v_1bfbd0.white} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[v_fd5f43.sideBtn, v_85c07b && v_fd5f43.sideBtnLiked]}
+          style={v_fd5f43.sideBtn}
           onPress={async () => {
             const v_a448ad = !v_85c07b;
             console.log(
@@ -352,10 +352,11 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             }
           }}
         >
-          <Feather
-            name="heart"
-            size={22}
-            color={v_1bfbd0.white}
+          {}
+          <Ionicons
+            name={v_85c07b ? "heart" : "heart-outline"}
+            size={24}
+            color={v_85c07b ? "#ef4444" : v_1bfbd0.white}
           />
         </TouchableOpacity>
         <TouchableOpacity style={v_fd5f43.sideBtn} onPress={() => v_ca73f4(true)}>
@@ -646,9 +647,6 @@ const v_fd5f43 = v_472849.create({
   },
   sideBtnActive: {
     backgroundColor: v_1bfbd0.violet500,
-  },
-  sideBtnLiked: {
-    backgroundColor: "#ef4444",
   },
 
   floatingEmoji: {
