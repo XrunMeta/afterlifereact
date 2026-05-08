@@ -228,6 +228,22 @@ export default function v_14b43e() {
     v_6f4b5a(v_a448ad);
   }, [v_d92a4c]);
 
+  const [v_ff35ff, v_1cbbfc] = v_5ab095<Set<number>>(new Set());
+  v_c4deb2(() => {
+    if (!v_d92a4c) return;
+    v_1cbbfc(new Set(v_d92a4c.map((v_3f4e2e) => v_3f4e2e.id)));
+  }, [v_d92a4c]);
+  const v_57f5a9 = (v_6e0fd3) => v_ff35ff.has(v_6e0fd3);
+  const v_a87aaa = async (v_6e0fd3) => {
+
+    v_1cbbfc((v_ba2215) => {
+      const v_a448ad = new Set(v_ba2215);
+      v_a448ad.has(v_6e0fd3) ? v_a448ad.delete(v_6e0fd3) : v_a448ad.add(v_6e0fd3);
+      return v_a448ad;
+    });
+    await v_3094d4(v_6e0fd3); 
+  };
+
   const [v_5c83d5, v_880166] = v_5ab095<number | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
   const [v_7babe8, v_cdeef7] = v_5ab095<number | null>(null);
@@ -509,7 +525,7 @@ export default function v_14b43e() {
                 backgroundColor={v_1bfbd0.white}
               />
               {(() => {
-                const v_10387a = v_b30b81(v_8c0b26.persona.id);
+                const v_10387a = v_57f5a9(v_8c0b26.persona.id);
                 return (
                   <Button
                     title={v_10387a ? "팔로잉" : "팔로우"}
@@ -522,7 +538,7 @@ export default function v_14b43e() {
                         color={v_1bfbd0.white}
                       />
                     }
-                    onPress={() => void v_3094d4(v_8c0b26.persona.id)}
+                    onPress={() => void v_a87aaa(v_8c0b26.persona.id)}
                     style={{ ...v_fd5f43.overlayBtn, ...v_fd5f43.overlayBtnGhost }}
                     textColor={v_1bfbd0.white}
                     backgroundColor={v_10387a ? "rgba(255,255,255,0.2)" : v_1bfbd0.violet600}
