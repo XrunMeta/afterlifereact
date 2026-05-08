@@ -315,7 +315,7 @@
       "emailPlaceholder": "Enter your email",
       "passwordLabel": "Password",
       "passwordPlaceholder": "Enter your password",
-      "loginBtn": "Sign In",
+      "loginBtn": "Auto Sign In",
       "googleBtn": "Sign in with Google",
       "xrunBtn": "Sign in with xrun",
       "signupHint": "Don't have an account?",
