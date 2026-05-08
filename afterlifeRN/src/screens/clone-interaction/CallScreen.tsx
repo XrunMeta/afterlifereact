@@ -87,6 +87,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     const v_389afb = setInterval(() => v_6d75b1((v_fd5f43) => v_fd5f43 + 1), 1000);
     return () => clearInterval(v_389afb);
   }, []);
+
+  v_c4deb2(() => {
+    console.log(
+      `[Call] 진입 cloneId=${v_6e0fd3} name=${v_a4744c ?? "?"} 초기 isLiked=${v_85c07b}`,
+    );
+
+  }, []);
   const v_813acc = `${String(Math.floor(v_5a751a / 60)).padStart(2, "0")}:${String(v_5a751a % 60).padStart(2, "0")}`;
 
   const v_d3ded9 = v_de06a3(async () => {
@@ -313,7 +320,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </TouchableOpacity>
         <TouchableOpacity
           style={[v_fd5f43.sideBtn, v_85c07b && v_fd5f43.sideBtnLiked]}
-          onPress={() => v_ff0eb0(!v_85c07b)}
+          onPress={() => {
+            const v_a448ad = !v_85c07b;
+            console.log(
+              `[Call] 좋아요 클릭 cloneId=${v_6e0fd3} ${v_85c07b ? "true" : "false"} → ${v_a448ad ? "true" : "false"}`,
+            );
+            v_ff0eb0(v_a448ad);
+          }}
         >
           <Feather
             name="heart"
