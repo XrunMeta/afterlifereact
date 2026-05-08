@@ -325,7 +325,9 @@
       "loginFailed": "Sign-in failed.",
       "invalidCredentials": "Invalid email or password.",
       "checkingGoogle": "Verifying Google...",
-      "googleFailed": "Google sign-in failed."
+      "googleFailed": "Google sign-in failed.",
+      "lockHint": "Account locks for 10 minutes after 5 failed attempts.",
+      "accountLocked": "Account is locked. Try again in ~10 minutes, or reset your password."
     },
     "forgot": {
       "title": "Reset Password",

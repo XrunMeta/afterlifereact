@@ -93,7 +93,9 @@ export default function LoginScreen({ navigation }: Props) {
     } catch (err) {
       let msg = t("auth.login.loginFailed");
       if (err instanceof AuthApiError) {
-        if (err.code === "UNAUTHENTICATED") {
+        if (err.code === "ACCOUNT_LOCKED") {
+          msg = t("auth.login.accountLocked");
+        } else if (err.code === "UNAUTHENTICATED") {
           msg = t("auth.login.invalidCredentials");
         } else {
           msg = err.message;
@@ -210,6 +212,9 @@ export default function LoginScreen({ navigation }: Props) {
               </TouchableOpacity>
             }
           />
+
+          {}
+          <Text style={styles.lockHint}>{t("auth.login.lockHint")}</Text>
 
           {}
           <View style={styles.optionsRow}>
@@ -344,6 +349,12 @@ const styles = StyleSheet.create({
     color: COLORS.zinc900,
     fontSize: 14,
     fontWeight: "500",
+  },
+  lockHint: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    paddingHorizontal: 4,
+    marginTop: -4,
   },
   divider: {
     flexDirection: "row",
