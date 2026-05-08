@@ -93,7 +93,9 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("auth.login.loginFailed");
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "UNAUTHENTICATED") {
+        if (v_49263d.code === "ACCOUNT_LOCKED") {
+          v_badeaf = v_8d41d7("auth.login.accountLocked");
+        } else if (v_49263d.code === "UNAUTHENTICATED") {
           v_badeaf = v_8d41d7("auth.login.invalidCredentials");
         } else {
           v_badeaf = v_49263d.message;
@@ -210,6 +212,9 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
               </TouchableOpacity>
             }
           />
+
+          {}
+          <Text style={v_d81136.lockHint}>{v_8d41d7("auth.login.lockHint")}</Text>
 
           {}
           <View style={v_d81136.optionsRow}>
@@ -344,6 +349,12 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.zinc900,
     fontSize: 14,
     fontWeight: "500",
+  },
+  lockHint: {
+    fontSize: 12,
+    color: v_1bfbd0.zinc500,
+    paddingHorizontal: 4,
+    marginTop: -4,
   },
   divider: {
     flexDirection: "row",
