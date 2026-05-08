@@ -10,6 +10,8 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Linking,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, CommonActions } from "@react-navigation/native";
@@ -170,6 +172,26 @@ export default function MyScreen() {
   const [apiFollowingList, setApiFollowingList] = useState<FollowedClone[] | null>(null);
   const [apiMyClonesList, setApiMyClonesList] = useState<MyClone[] | null>(null);
   const [statsModal, setStatsModal] = useState<"following" | "myClones" | null>(null);
+  const [chargeModalVisible, setChargeModalVisible] = useState(false);
+
+  const handleOpenXrunApp = async () => {
+    setChargeModalVisible(false);
+    const playStoreScheme = "market://details?id=run.xrun.xrunApp";
+    const playStoreWeb = "https://play.google.com/store/apps/details?id=run.xrun.xrunApp";
+    const appStoreWeb = "https://apps.apple.com/app/xrun";
+    try {
+      if (Platform.OS === "android") {
+
+        const canMarket = await Linking.canOpenURL(playStoreScheme);
+        await Linking.openURL(canMarket ? playStoreScheme : playStoreWeb);
+      } else {
+        await Linking.openURL(appStoreWeb);
+      }
+    } catch (err) {
+      console.warn("[MyScreen] open xrun app failed:", err);
+      Alert.alert("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
+    }
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -322,7 +344,10 @@ export default function MyScreen() {
               <Feather name="dollar-sign" size={18} color={COLORS.zinc700} />
               <Text style={s.coinLabel}>{t("my.coin.balance")}</Text>
             </View>
-            <TouchableOpacity style={s.chargeBtn}>
+            <TouchableOpacity
+              style={s.chargeBtn}
+              onPress={() => setChargeModalVisible(true)}
+            >
               <Feather name="plus" size={14} color={COLORS.white} />
               <Text style={s.chargeBtnText}>{t("my.coin.charge")}</Text>
             </TouchableOpacity>
@@ -411,6 +436,34 @@ export default function MyScreen() {
         visible={showPinPrompt}
         onClose={() => setShowPinPrompt(false)}
       />
+
+      {}
+      <Modal visible={chargeModalVisible} transparent animationType="fade">
+        <Pressable style={s.chargeOverlay} onPress={() => setChargeModalVisible(false)}>
+          <Pressable style={s.chargeBox} onPress={(e) => e.stopPropagation()}>
+            <View style={s.chargeIconWrap}>
+              <Feather name="zap" size={28} color={COLORS.violet600} />
+            </View>
+            <Text style={s.chargeTitle}>포인트 충전 안내</Text>
+            <Text style={s.chargeDesc}>
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 포인트를 얻어보세요
+            </Text>
+            <Text style={s.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
+            <View style={s.chargeBtns}>
+              <TouchableOpacity
+                style={s.chargeCancelBtn}
+                onPress={() => setChargeModalVisible(false)}
+              >
+                <Text style={s.chargeCancelText}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.chargeGoBtn} onPress={handleOpenXrunApp}>
+                <Feather name="external-link" size={14} color={COLORS.white} />
+                <Text style={s.chargeGoText}>바로가기</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {}
       <Modal visible={statsModal !== null} transparent animationType="slide">
@@ -606,6 +659,86 @@ const s = StyleSheet.create({
     borderRadius: RADIUS.full,
   },
   chargeBtnText: { fontSize: 13, fontWeight: "700", color: COLORS.white },
+
+  chargeOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  chargeBox: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: 20,
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+  },
+  chargeIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  chargeTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+    marginBottom: 10,
+  },
+  chargeDesc: {
+    fontSize: 14,
+    color: COLORS.zinc600,
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  chargeHint: {
+    fontSize: 11,
+    color: COLORS.zinc400,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  chargeBtns: {
+    flexDirection: "row",
+    gap: 8,
+    width: "100%",
+  },
+  chargeCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chargeCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.zinc600,
+  },
+  chargeGoBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: COLORS.violet600,
+  },
+  chargeGoText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
   coinAmount: { fontSize: 32, fontWeight: "700", color: COLORS.zinc900 },
   coinWon: { fontSize: 12, color: COLORS.zinc500, marginTop: 4 },
 
