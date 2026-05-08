@@ -104,7 +104,7 @@ export function v_1d1159() {
     {
       key: "email",
       label: "Email",
-      render: (v_81e2ef, v_3ac7e7) =>
+      render: (v_81e2ef) =>
         v_81e2ef ? (
           <button
             type="button"

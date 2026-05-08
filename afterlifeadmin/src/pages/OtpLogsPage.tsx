@@ -1,4 +1,4 @@
-import { v_c4deb2, v_5ab095, v_de06a3, type v_bb76a8 } from "bapkr";
+import { v_c4deb2, v_5ab095, v_de06a3, type v_bb76a8, type v_f0e313 } from "bapkr";
 import { v_05a921 } from "../api/client";
 
 const v_7c1ed0 = {
@@ -50,7 +50,7 @@ export function v_20683c() {
     v_f6f5de();
   }, [v_f6f5de]);
 
-  const v_15fbd5 = (v_9e86fd) => {
+  const v_15fbd5 = (e: v_f0e313) => {
     v_9e86fd.preventDefault();
     v_792136(v_07613a.trim().toLowerCase());
   };
