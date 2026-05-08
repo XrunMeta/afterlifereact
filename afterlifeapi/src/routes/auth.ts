@@ -735,10 +735,15 @@ auth.post("/password/reset", async (c) => {
   }
 
   const passwordHash = await hashPassword(body.newPassword);
+
   await c.env.DB
     .prepare(
-      `UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+      `UPDATE users
+          SET password_hash = ?,
+              failed_login_count = 0,
+              locked_until = NULL,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
     )
     .bind(passwordHash, userRow.id)
     .run();
