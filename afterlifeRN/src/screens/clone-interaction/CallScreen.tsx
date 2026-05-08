@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,11 +10,17 @@ import {
   Modal,
   Pressable,
   Animated,
+  Platform,
+  Share,
+  ScrollView,
+  TextInput,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
@@ -23,6 +29,15 @@ import { useAuthStore } from "../../stores/authStore";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { Gift } from "../../types/gift";
 import giftsData from "../../mocks/gifts.json";
+import { getXrunBalance } from "../../api/payments";
+import {
+  listFeedComments,
+  postFeedComment,
+  postCloneComment,
+  deleteFeedComment,
+  type FeedComment,
+} from "../../api/clones";
+import { formatRelativeKo } from "../../lib/relativeTime";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -42,7 +57,12 @@ export default function CallScreen({ route, navigation }: Props) {
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const user = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
   const insets = useSafeAreaInsets();
+  const navBarHeight = useAndroidNavigationBarHeight(0);
+  const bottomInset =
+    Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
 
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
@@ -55,14 +75,131 @@ export default function CallScreen({ route, navigation }: Props) {
     }
   }, []);
   const [showGifts, setShowGifts] = useState(false);
-  const [credits, setCredits] = useState(5000);
+
+  const [credits, setCredits] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [floatingGifts, setFloatingGifts] = useState<FloatingGift[]>([]);
   const giftCounterRef = useRef(0);
 
+  const [callSeconds, setCallSeconds] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const callTimeStr = `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}`;
+
+  const refreshBalance = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const r = await getXrunBalance(accessToken);
+      if (r.linked && typeof r.xrun === "number") setCredits(r.xrun);
+    } catch (err) {
+      console.warn("[Call] getXrunBalance failed:", err);
+    }
+  }, [accessToken]);
+  useEffect(() => {
+    void refreshBalance();
+  }, [refreshBalance]);
+
   const personaName = paramName || clone?.displayName || t("chat.personaFallback");
   const personaImage = paramImage || clone?.imageUrl || "";
+
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<FeedComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const submittingRef = useRef(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
+
+  const loadComments = useCallback(async () => {
+    setCommentsLoading(true);
+    try {
+
+      const res = await fetch(
+        `https://edge-alt-preview.example.invalid/oth-path${cloneId}/comments?limit=100`,
+      );
+      if (res.ok) {
+        const data = (await res.json()) as { items: FeedComment[] };
+        setComments(data.items);
+
+        if (data.items.length > 0) {
+
+          const firstWithFeed = data.items.find((c: any) => c.feedId);
+          if (firstWithFeed && (firstWithFeed as any).feedId) {
+            setCommentFeedId((firstWithFeed as any).feedId);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[Call] loadComments failed:", err);
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [cloneId]);
+
+  useEffect(() => {
+    if (showComments) void loadComments();
+  }, [showComments, loadComments]);
+
+  const submitComment = async () => {
+    if (submittingRef.current) return;
+    const content = commentText.trim();
+    if (!content || !accessToken) return;
+    submittingRef.current = true;
+    setSubmittingComment(true);
+    try {
+      let realFeedId: number;
+      if (commentFeedId == null) {
+
+        const r = await postCloneComment(accessToken, cloneId, content);
+        realFeedId = r.comment.feedId;
+        setCommentFeedId(realFeedId);
+      } else {
+        await postFeedComment(accessToken, commentFeedId, content);
+        realFeedId = commentFeedId;
+      }
+      setCommentText("");
+      void loadComments();
+    } catch (err) {
+      console.warn("[Call] submitComment failed:", err);
+    } finally {
+      submittingRef.current = false;
+      setSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = (commentId: number, feedId: number) => {
+    if (!accessToken) return;
+    Alert.alert("댓글 삭제", "이 댓글을 삭제하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteFeedComment(accessToken, feedId, commentId);
+            setComments((prev) => prev.filter((c) => c.id !== commentId));
+          } catch (err) {
+            console.warn("[Call] delete comment failed:", err);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `${personaName} 와 통화해보세요!\nhttps://afterlife.run/oth-path${cloneId}`,
+        title: personaName,
+      });
+    } catch (err) {
+      console.warn("[Call] share failed:", err);
+    }
+  };
 
   useEffect(() => {
     if (toastMessage) {
@@ -162,12 +299,12 @@ export default function CallScreen({ route, navigation }: Props) {
         <Text style={s.callName}>{personaName}</Text>
         <View style={s.callStatusBadge}>
           <View style={s.callDot} />
-          <Text style={s.callStatusText}>{t("call.inCall", { time: "03:24" })}</Text>
+          <Text style={s.callStatusText}>{t("call.inCall", { time: callTimeStr })}</Text>
         </View>
       </View>
 
       {}
-      <View style={s.rightActions}>
+      <View style={[s.rightActions, { bottom: 180 + bottomInset }]}>
         <TouchableOpacity
           style={[s.sideBtn, showGifts && s.sideBtnActive]}
           onPress={() => setShowGifts(!showGifts)}
@@ -175,19 +312,19 @@ export default function CallScreen({ route, navigation }: Props) {
           <Feather name="gift" size={22} color={COLORS.white} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={s.sideBtn}
+          style={[s.sideBtn, isLiked && s.sideBtnLiked]}
           onPress={() => setIsLiked(!isLiked)}
         >
           <Feather
             name="heart"
             size={22}
-            color={isLiked ? "#ef4444" : COLORS.white}
+            color={COLORS.white}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={s.sideBtn}>
+        <TouchableOpacity style={s.sideBtn} onPress={() => setShowComments(true)}>
           <Feather name="message-circle" size={22} color={COLORS.white} />
         </TouchableOpacity>
-        <TouchableOpacity style={s.sideBtn}>
+        <TouchableOpacity style={s.sideBtn} onPress={handleShare}>
           <Feather name="share-2" size={22} color={COLORS.white} />
         </TouchableOpacity>
       </View>
@@ -210,7 +347,7 @@ export default function CallScreen({ route, navigation }: Props) {
       ))}
 
       {}
-      <View style={[s.controls, { paddingBottom: Math.max(insets.bottom, 24) + 16 }]}>
+      <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
         <TouchableOpacity
           style={[s.controlBtn, isMuted && s.controlBtnDanger]}
           onPress={() => setIsMuted(!isMuted)}
@@ -234,9 +371,17 @@ export default function CallScreen({ route, navigation }: Props) {
       </View>
 
       {}
-      <Modal visible={showGifts} transparent animationType="slide">
+      <Modal
+        visible={showGifts}
+        transparent
+        animationType="slide"
+        onShow={() => void refreshBalance()}
+      >
         <Pressable style={s.giftOverlay} onPress={() => setShowGifts(false)}>
-          <Pressable style={s.giftSheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[s.giftSheet, { paddingBottom: 24 + bottomInset }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             {}
             <View style={s.giftHeader}>
               <View style={s.giftHeaderLeft}>
@@ -277,6 +422,88 @@ export default function CallScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               )}
             />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal visible={showComments} transparent animationType="slide">
+        <Pressable style={s.commentOverlay} onPress={() => setShowComments(false)}>
+          <Pressable
+            style={[s.commentSheet, { paddingBottom: 12 + bottomInset }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={s.sheetHandle} />
+            <View style={s.commentHeaderRow}>
+              <Text style={s.commentTitle}>
+                {t("feed.commentCount", { n: comments.length })}
+              </Text>
+              <TouchableOpacity onPress={() => setShowComments(false)}>
+                <Feather name="x" size={20} color={COLORS.zinc600} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              {commentsLoading ? (
+                <View style={s.emptyComment}>
+                  <Feather name="loader" size={28} color={COLORS.zinc300} />
+                </View>
+              ) : comments.length > 0 ? (
+                comments.map((c: any) => (
+                  <View key={c.id} style={s.commentRow}>
+                    {c.user?.avatarUrl ? (
+                      <Image source={{ uri: c.user.avatarUrl }} style={s.commentAvatar} />
+                    ) : (
+                      <View style={[s.commentAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <View style={s.commentMeta}>
+                        <Text style={s.commentAuthor}>
+                          {c.user?.name ?? c.user?.email}
+                        </Text>
+                        <Text style={s.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
+                        {c.userId === myUserId && c.feedId && (
+                          <TouchableOpacity
+                            onPress={() => handleDeleteComment(c.id, c.feedId)}
+                            style={{ marginLeft: 8 }}
+                          >
+                            <Feather name="trash-2" size={14} color={COLORS.zinc400} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <Text style={s.commentContent}>{c.content}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={s.emptyComment}>
+                  <Feather name="message-circle" size={40} color={COLORS.zinc300} />
+                  <Text style={s.emptyText}>{t("feed.commentsEmpty")}</Text>
+                </View>
+              )}
+            </ScrollView>
+            <View style={s.commentInputRow}>
+              <TextInput
+                style={s.commentInput}
+                value={commentText}
+                onChangeText={setCommentText}
+                placeholder={t("feed.commentPlaceholder")}
+                placeholderTextColor={COLORS.placeholder}
+              />
+              <TouchableOpacity
+                disabled={!commentText.trim() || !accessToken || submittingComment}
+                onPress={submitComment}
+              >
+                <Feather
+                  name="send"
+                  size={18}
+                  color={
+                    commentText.trim() && accessToken && !submittingComment
+                      ? COLORS.zinc900
+                      : COLORS.zinc400
+                  }
+                />
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -382,6 +609,9 @@ const s = StyleSheet.create({
   },
   sideBtnActive: {
     backgroundColor: COLORS.violet500,
+  },
+  sideBtnLiked: {
+    backgroundColor: "#ef4444",
   },
 
   floatingEmoji: {
@@ -503,4 +733,54 @@ const s = StyleSheet.create({
     zIndex: 50,
   },
   toastText: { fontSize: 14, color: COLORS.white },
+
+  commentOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  commentSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    height: "70%",
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.zinc300,
+    alignSelf: "center",
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  commentHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
+  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16 },
+  commentMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  commentAuthor: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900 },
+  commentTime: { fontSize: 12, color: COLORS.zinc400 },
+  commentContent: { fontSize: 14, color: COLORS.zinc700, lineHeight: 20 },
+  emptyComment: { alignItems: "center", paddingVertical: 40 },
+  emptyText: { fontSize: 14, color: COLORS.zinc400, marginTop: 8 },
+  commentInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.zinc200,
+    paddingTop: 12,
+  },
+  commentInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: COLORS.zinc100,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: COLORS.zinc900,
+  },
 });
