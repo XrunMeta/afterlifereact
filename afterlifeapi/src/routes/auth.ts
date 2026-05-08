@@ -733,10 +733,15 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   }
 
   const v_df7439 = await v_54846c(v_4d33b2.newPassword);
+
   await v_3f4e2e.env.DB
     .prepare(
-      `UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+      `UPDATE users
+          SET password_hash = ?,
+              failed_login_count = 0,
+              locked_until = NULL,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
     )
     .bind(v_df7439, v_d1b635.id)
     .run();
