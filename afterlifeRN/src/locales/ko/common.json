@@ -328,7 +328,7 @@
       "checkingGoogle": "Google 인증 확인 중...",
       "googleFailed": "Google 로그인에 실패했어요.",
       "lockHint": "비밀번호를 5회 연속 틀리면 10분간 잠겨요.",
-      "accountLocked": "계정이 잠겼어요. 약 10분 뒤 다시 시도하거나, 비밀번호 찾기로 재설정해 주세요."
+      "accountLocked": "계정이 잠겼습니다. 약 10분 뒤 다시 시도하거나, 비밀번호 찾기로 재설정해 주세요."
     },
     "forgot": {
       "title": "비밀번호 재설정",
