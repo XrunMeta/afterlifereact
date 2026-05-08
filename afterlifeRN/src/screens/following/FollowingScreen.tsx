@@ -124,7 +124,14 @@ export default function v_14b43e() {
           if (!v_2008a4) {
             console.log(
               `[Following] followedClones ← ${v_cb35cb.items.length} items`,
-              v_cb35cb.items.map((v_23805a) => ({ id: v_23805a.id, name: v_23805a.name })),
+              v_cb35cb.items.map((v_23805a) => ({
+                id: v_23805a.id,
+                name: v_23805a.name,
+                "stats.likes": v_23805a.stats?.likes,
+                "stats.comments": v_23805a.stats?.comments,
+                "latestFeed.feedId": v_23805a.latestFeed?.feedId,
+                "latestFeed.likedByMe": v_23805a.latestFeed?.likedByMe,
+              })),
             );
             v_44191e(v_cb35cb.items);
           }
