@@ -699,3 +699,48 @@ v_68f0aa.post("/logout", v_6690d9, async (v_3f4e2e) => {
   if (v_43e90c) await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "auth.logout" });
   return v_3f4e2e.json({ ok: true });
 });
+
+v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
+  const v_d1b635 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(v_4d33b2.email.trim().toLowerCase())
+    .first<{ id: number }>();
+  if (v_d1b635) {
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+  }
+
+  return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
+});
+
+const v_18702b = v_1f4ea7.object({
+  email: v_1f4ea7.email().max(200),
+  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/),
+  newPassword: v_1f4ea7.string().min(8).max(128),
+});
+v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_18702b);
+  const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
+
+  await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+
+  const v_d1b635 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(v_bb4bfd)
+    .first<{ id: number }>();
+  if (!v_d1b635) {
+    throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+  }
+
+  const v_df7439 = await v_54846c(v_4d33b2.newPassword);
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+    )
+    .bind(v_df7439, v_d1b635.id)
+    .run();
+
+  await v_74defc(v_3f4e2e, { userId: v_d1b635.id, action: "auth.password.reset" });
+  return v_3f4e2e.json({ ok: true });
+});

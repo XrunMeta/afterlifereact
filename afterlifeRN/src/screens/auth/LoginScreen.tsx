@@ -187,9 +187,9 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                   <Feather name="check" size={14} color={v_1bfbd0.white} />
                 )}
               </View>
-              <Text style={v_d81136.checkboxLabel}>{v_8d41d7("auth.login.title")}</Text>
+              <Text style={v_d81136.checkboxLabel}>{v_8d41d7("auth.login.autoLoginLabel")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => v_c65f5d.navigate("ForgotPassword")}>
               <Text style={v_d81136.forgotPassword}>{v_8d41d7("auth.login.forgotPassword")}</Text>
             </TouchableOpacity>
           </View>
