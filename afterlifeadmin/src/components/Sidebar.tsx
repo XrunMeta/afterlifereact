@@ -22,6 +22,7 @@ const menu: MenuGroup[] = [
       { path: "/oth-path", label: "Clones" },
       { path: "/oth-path", label: "Feeds" },
       { path: "/messages", label: "Messages" },
+      { path: "/otp", label: "OTP" },
     ],
   },
   {

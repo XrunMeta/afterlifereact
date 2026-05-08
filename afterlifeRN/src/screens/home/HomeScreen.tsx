@@ -194,10 +194,15 @@ export default function HomeScreen() {
     };
   }, [commentFeedId]);
 
+  const submittingRef = useRef(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
   const submitComment = async () => {
     if (commentFeedId == null) return;
+    if (submittingRef.current) return; 
     const content = commentText.trim();
     if (!content || !accessToken) return;
+    submittingRef.current = true;
+    setSubmittingComment(true);
     try {
       let realFeedId: number;
       const oldId = commentFeedId;
@@ -226,6 +231,9 @@ export default function HomeScreen() {
       bumpCommentsCount(realFeedId, r.items.length);
     } catch (err) {
       console.warn("[Home] postFeedComment failed:", err);
+    } finally {
+      submittingRef.current = false;
+      setSubmittingComment(false);
     }
   };
 
@@ -380,8 +388,19 @@ export default function HomeScreen() {
                 placeholder={t("feed.commentPlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.4)"
               />
-              <TouchableOpacity disabled={!commentText.trim() || !accessToken} onPress={submitComment}>
-                <Feather name="send" size={18} color={commentText.trim() && accessToken ? COLORS.white : "rgba(255,255,255,0.3)"} />
+              <TouchableOpacity
+                disabled={!commentText.trim() || !accessToken || submittingComment}
+                onPress={submitComment}
+              >
+                <Feather
+                  name="send"
+                  size={18}
+                  color={
+                    commentText.trim() && accessToken && !submittingComment
+                      ? COLORS.white
+                      : "rgba(255,255,255,0.3)"
+                  }
+                />
               </TouchableOpacity>
             </View>
           </View>

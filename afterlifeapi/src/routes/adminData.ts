@@ -267,3 +267,57 @@ adminData.get("/stats", async (c) => {
     totalCredits: cred?.sum ?? 0,
   });
 });
+
+adminData.get("/otp-logs", async (c) => {
+  const url = new URL(c.req.url);
+  const email = (url.searchParams.get("email") ?? "").trim().toLowerCase();
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+
+  const rows = email
+    ? (
+        await c.env.DB
+          .prepare(
+            `SELECT id, email, code, sent_at AS sentAt, expires_at AS expiresAt,
+                    status, attempts, verified_at AS verifiedAt
+               FROM otp_send_logs
+              WHERE email = ?
+              ORDER BY sent_at DESC
+              LIMIT ?`,
+          )
+          .bind(email, limit)
+          .all<{
+            id: number;
+            email: string;
+            code: string;
+            sentAt: string;
+            expiresAt: string;
+            status: string;
+            attempts: number;
+            verifiedAt: string | null;
+          }>()
+      ).results
+    : (
+        await c.env.DB
+          .prepare(
+            `SELECT id, email, code, sent_at AS sentAt, expires_at AS expiresAt,
+                    status, attempts, verified_at AS verifiedAt
+               FROM otp_send_logs
+              ORDER BY sent_at DESC
+              LIMIT ?`,
+          )
+          .bind(limit)
+          .all<{
+            id: number;
+            email: string;
+            code: string;
+            sentAt: string;
+            expiresAt: string;
+            status: string;
+            attempts: number;
+            verifiedAt: string | null;
+          }>()
+      ).results;
+
+  return c.json({ items: rows });
+});

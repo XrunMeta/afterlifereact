@@ -10,6 +10,7 @@ import { FeedsPage } from "./pages/FeedsPage";
 import { MessagesPage } from "./pages/MessagesPage";
 import { ApiTestbedPage } from "./pages/ApiTestbedPage";
 import { AdminCategoryPage } from "./pages/AdminCategoryPage";
+import { OtpLogsPage } from "./pages/OtpLogsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TotpEnrollPage } from "./pages/TotpEnrollPage";
 import { TotpVerifyPage } from "./pages/TotpVerifyPage";
@@ -41,6 +42,7 @@ function App() {
         <Route path="/oth-path" element={<ProtectedLayout><CloneDetailPage /></ProtectedLayout>} />
         <Route path="/oth-path" element={<ProtectedLayout><FeedsPage /></ProtectedLayout>} />
         <Route path="/messages" element={<ProtectedLayout><MessagesPage /></ProtectedLayout>} />
+        <Route path="/otp" element={<ProtectedLayout><OtpLogsPage /></ProtectedLayout>} />
         <Route path="/testbed" element={<ProtectedLayout><ApiTestbedPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"

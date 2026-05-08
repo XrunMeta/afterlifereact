@@ -233,6 +233,22 @@ export default function FollowingScreen() {
     setLikedPosts(next);
   }, [apiFollowed]);
 
+  const [localFollowedIds, setLocalFollowedIds] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    if (!apiFollowed) return;
+    setLocalFollowedIds(new Set(apiFollowed.map((c) => c.id)));
+  }, [apiFollowed]);
+  const isFollowingPersona = (cloneId: number) => localFollowedIds.has(cloneId);
+  const toggleFollowPersona = async (cloneId: number) => {
+
+    setLocalFollowedIds((prev) => {
+      const next = new Set(prev);
+      next.has(cloneId) ? next.delete(cloneId) : next.add(cloneId);
+      return next;
+    });
+    await toggleFollow(cloneId); 
+  };
+
   const [commentPostId, setCommentPostId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
   const [unfollowConfirmId, setUnfollowConfirmId] = useState<number | null>(null);
@@ -381,10 +397,15 @@ export default function FollowingScreen() {
     };
   }, [commentPostId]);
 
+  const submittingRef = useRef(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
   const submitComment = async () => {
     if (commentPostId == null) return;
+    if (submittingRef.current) return; 
     const content = commentText.trim();
     if (!content || !accessToken) return;
+    submittingRef.current = true;
+    setSubmittingComment(true);
     try {
       let realFeedId: number;
       let cloneIdForDelta: number;
@@ -415,6 +436,9 @@ export default function FollowingScreen() {
       }
     } catch (err) {
       console.warn("[Following] postFeedComment failed:", err);
+    } finally {
+      submittingRef.current = false;
+      setSubmittingComment(false);
     }
   };
 
@@ -506,7 +530,7 @@ export default function FollowingScreen() {
                 backgroundColor={COLORS.white}
               />
               {(() => {
-                const followed = isFollowing(item.persona.id);
+                const followed = isFollowingPersona(item.persona.id);
                 return (
                   <Button
                     title={followed ? "팔로잉" : "팔로우"}
@@ -519,7 +543,7 @@ export default function FollowingScreen() {
                         color={COLORS.white}
                       />
                     }
-                    onPress={() => void toggleFollow(item.persona.id)}
+                    onPress={() => void toggleFollowPersona(item.persona.id)}
                     style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
                     textColor={COLORS.white}
                     backgroundColor={followed ? "rgba(255,255,255,0.2)" : COLORS.violet600}
@@ -724,8 +748,19 @@ export default function FollowingScreen() {
                 placeholder={t("feed.commentPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
               />
-              <TouchableOpacity disabled={!commentText.trim() || !accessToken} onPress={submitComment}>
-                <Feather name="send" size={18} color={commentText.trim() && accessToken ? COLORS.zinc900 : COLORS.zinc400} />
+              <TouchableOpacity
+                disabled={!commentText.trim() || !accessToken || submittingComment}
+                onPress={submitComment}
+              >
+                <Feather
+                  name="send"
+                  size={18}
+                  color={
+                    commentText.trim() && accessToken && !submittingComment
+                      ? COLORS.zinc900
+                      : COLORS.zinc400
+                  }
+                />
               </TouchableOpacity>
             </View>
           </View>

@@ -64,6 +64,28 @@ export async function requestSignupOtp(env: Bindings, email: string): Promise<vo
   };
 
   await env.KV_AUTH.put(k, JSON.stringify(record), { expirationTtl: TTL_SECONDS });
+
+  try {
+    const expiresAtIso = new Date(record.expiresAt).toISOString();
+    await env.DB
+      .prepare(
+        `UPDATE otp_send_logs SET status = 'expired'
+         WHERE email = ? AND status = 'pending'`,
+      )
+      .bind(email.trim().toLowerCase())
+      .run();
+    await env.DB
+      .prepare(
+        `INSERT INTO otp_send_logs (email, code, expires_at, status)
+         VALUES (?, ?, ?, 'pending')`,
+      )
+      .bind(email.trim().toLowerCase(), code, expiresAtIso)
+      .run();
+  } catch (err) {
+    console.warn("[otp] d1 log insert failed:", (err as Error).message);
+
+  }
+
   await sendMail(env, {
     to: email,
     subject: "[AfterLife] 이메일 인증 코드",
@@ -74,11 +96,13 @@ export async function requestSignupOtp(env: Bindings, email: string): Promise<vo
 export async function verifySignupOtp(env: Bindings, email: string, code: string): Promise<void> {
   const k = key(email);
   const rec = await env.KV_AUTH.get<OtpRecord>(k, "json");
+  const emailLower = email.trim().toLowerCase();
   if (!rec) {
     throw new APIError("OTP_REQUIRED", "No verification code in progress. Request one first.");
   }
   if (Date.now() > rec.expiresAt) {
     await env.KV_AUTH.delete(k);
+    await markLatestPending(env, emailLower, "expired");
     throw new APIError("OTP_EXPIRED", "Verification code has expired. Request a new one.");
   }
   const candidateHash = await sha256Hex(code.trim());
@@ -86,11 +110,54 @@ export async function verifySignupOtp(env: Bindings, email: string, code: string
     rec.attempts += 1;
     if (rec.attempts >= MAX_ATTEMPTS) {
       await env.KV_AUTH.delete(k);
+      await markLatestPending(env, emailLower, "exhausted");
       throw new APIError("OTP_INVALID", "Too many wrong attempts. Request a new code.");
     }
     const ttl = Math.max(1, Math.ceil((rec.expiresAt - Date.now()) / 1000));
     await env.KV_AUTH.put(k, JSON.stringify(rec), { expirationTtl: ttl });
+
+    try {
+      await env.DB
+        .prepare(
+          `UPDATE otp_send_logs SET attempts = ?
+           WHERE email = ? AND status = 'pending'`,
+        )
+        .bind(rec.attempts, emailLower)
+        .run();
+    } catch {
+
+    }
     throw new APIError("OTP_INVALID", `Wrong code. ${MAX_ATTEMPTS - rec.attempts} attempts left.`);
   }
   await env.KV_AUTH.delete(k);
+  await markLatestPending(env, emailLower, "verified");
+}
+
+async function markLatestPending(
+  env: Bindings,
+  emailLower: string,
+  status: "verified" | "expired" | "exhausted",
+): Promise<void> {
+  try {
+    if (status === "verified") {
+      await env.DB
+        .prepare(
+          `UPDATE otp_send_logs
+              SET status = 'verified', verified_at = CURRENT_TIMESTAMP
+            WHERE email = ? AND status = 'pending'`,
+        )
+        .bind(emailLower)
+        .run();
+    } else {
+      await env.DB
+        .prepare(
+          `UPDATE otp_send_logs SET status = ?
+            WHERE email = ? AND status = 'pending'`,
+        )
+        .bind(status, emailLower)
+        .run();
+    }
+  } catch (err) {
+    console.warn("[otp] d1 log update failed:", (err as Error).message);
+  }
 }
