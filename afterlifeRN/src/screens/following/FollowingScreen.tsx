@@ -129,7 +129,14 @@ export default function FollowingScreen() {
           if (!cancelled) {
             console.log(
               `[Following] followedClones ← ${r.items.length} items`,
-              r.items.map((it) => ({ id: it.id, name: it.name })),
+              r.items.map((it) => ({
+                id: it.id,
+                name: it.name,
+                "stats.likes": it.stats?.likes,
+                "stats.comments": it.stats?.comments,
+                "latestFeed.feedId": it.latestFeed?.feedId,
+                "latestFeed.likedByMe": it.latestFeed?.likedByMe,
+              })),
             );
             setApiFollowed(r.items);
           }
