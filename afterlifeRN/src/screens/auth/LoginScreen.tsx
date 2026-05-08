@@ -189,7 +189,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
               </View>
               <Text style={v_d81136.checkboxLabel}>{v_8d41d7("auth.login.title")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => v_c65f5d.navigate("ForgotPassword")}>
               <Text style={v_d81136.forgotPassword}>{v_8d41d7("auth.login.forgotPassword")}</Text>
             </TouchableOpacity>
           </View>
