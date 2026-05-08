@@ -150,6 +150,8 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   const v_925171 = [];
 
   if (v_013af2) {
+    v_abcc8d.push("c.owner_id != ?");
+    v_925171.push(v_013af2);
     v_abcc8d.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
     v_925171.push(v_013af2);
   }
@@ -172,9 +174,12 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
                 f.content          AS feedContent,
                 f.media_url        AS feedMediaUrl,
                 f.media_type       AS feedMediaType,
-                f.likes_count      AS feedLikesCount,
                 f.created_at       AS feedCreatedAt,
-                (SELECT COUNT(*) FROM feed_comments WHERE feed_id = f.id) AS commentsCount
+                (SELECT COALESCE(SUM(f2.likes_count), 0) FROM feeds f2
+                  WHERE f2.clone_id = c.id) AS likesCount,
+                (SELECT COUNT(*) FROM feed_comments fc
+                   JOIN feeds f3 ON f3.id = fc.feed_id
+                   WHERE f3.clone_id = c.id) AS commentsCount
            FROM clones c
            LEFT JOIN feeds f ON f.id = (
              SELECT id FROM feeds WHERE clone_id = c.id
@@ -197,9 +202,9 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
         feedContent: string | null;
         feedMediaUrl: string | null;
         feedMediaType: string | null;
-        feedLikesCount: number | null;
         feedCreatedAt: string | null;
-        commentsCount: number | null;
+        likesCount: number;
+        commentsCount: number;
       }>()
   ).results;
 
@@ -228,23 +233,22 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     }
   }
 
-  const v_3391ce = new Set<number>();
+  const v_ff3805 = new Set<number>();
   if (v_013af2) {
-    const v_2db407 = v_2365e9
-      .map((v_cb35cb) => v_cb35cb.feedId)
-      .filter((v_62c214): v_62c214 is number => typeof v_62c214 === "number");
-    if (v_2db407.length > 0) {
-      const v_1cdc07 = v_2db407.map(() => "?").join(",");
+    const v_2b96e4 = v_2365e9.map((v_cb35cb) => v_cb35cb.cloneId);
+    if (v_2b96e4.length > 0) {
+      const v_1cdc07 = v_2b96e4.map(() => "?").join(",");
       const v_59d4e3 = (
         await v_3f4e2e.env.DB
           .prepare(
-            `SELECT feed_id FROM feed_likes
-              WHERE user_id = ? AND feed_id IN (${v_1cdc07})`,
+            `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
+               JOIN feeds f ON f.id = fl.feed_id
+              WHERE fl.user_id = ? AND f.clone_id IN (${v_1cdc07})`,
           )
-          .bind(v_013af2, ...v_2db407)
-          .all<{ feed_id: number }>()
+          .bind(v_013af2, ...v_2b96e4)
+          .all<{ clone_id: number }>()
       ).results ?? [];
-      for (const v_3ac7e7 of v_59d4e3) v_3391ce.add(v_3ac7e7.feed_id);
+      for (const v_3ac7e7 of v_59d4e3) v_ff3805.add(v_3ac7e7.clone_id);
     }
   }
 
@@ -257,10 +261,11 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
       content: v_cb35cb.feedContent ?? v_cb35cb.cloneDescription ?? "",
       mediaUrl: v_cb35cb.feedMediaUrl ?? v_cb35cb.cloneAvatarUrl ?? null,
       mediaType: v_cb35cb.feedMediaType,
-      likesCount: v_cb35cb.feedLikesCount ?? 0,
 
-      likedByMe: v_cb35cb.feedId != null && v_3391ce.has(v_cb35cb.feedId),
-      commentsCount: v_cb35cb.commentsCount ?? 0,
+      likesCount: v_cb35cb.likesCount,
+      commentsCount: v_cb35cb.commentsCount,
+
+      likedByMe: v_ff3805.has(v_cb35cb.cloneId),
       createdAt: v_cb35cb.feedCreatedAt ?? v_cb35cb.cloneCreatedAt,
       clone: {
         id: v_cb35cb.cloneId,

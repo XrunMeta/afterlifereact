@@ -36,6 +36,10 @@ import {
   v_6f689a,
   v_0df337,
   v_7281a5,
+  v_de2a30,
+  v_11c954,
+  v_b14fce,
+  v_0ff331,
   type v_52af9d,
   type v_c33ae3,
 } from "../../api/clones";
@@ -57,9 +61,15 @@ type FollowedPersona = {
   interactions: number; 
 };
 
-const v_3ddce5 = (v_6e0fd3) => ((v_6e0fd3 * 17) % 100);
-const v_42378f = (v_6e0fd3) => 100 + ((v_6e0fd3 * 137) % 5000);
-const v_c0a5d3 = (v_c09aa8) => 500 + ((v_c09aa8 * 213) % 3000);
+const v_a1f1ac = (v_62676b): number => {
+  const v_35f85c = v_62676b?.messages ?? 0;
+  const v_206b88 = v_62676b?.gifts ?? 0;
+  const v_1614db = v_62676b?.likes ?? 0;
+  const v_3f4e2e = v_62676b?.comments ?? 0;
+  return v_35f85c + v_206b88 + v_1614db + v_3f4e2e;
+};
+const v_aae598 = (v_db07f5): number =>
+  Math.min(100, Math.floor(v_db07f5 / 50));
 
 type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
 const v_888327 = [
@@ -80,8 +90,8 @@ const v_986943 = (clone: v_4b85a1, v_edb3e7): FollowedPersona => ({
   avatar: v_eb25ce.imageUrl ?? "",
   interests: v_eb25ce.interests,
   creatorAccount: v_edb3e7 ? `@${v_edb3e7}` : "",
-  intimacy: v_3ddce5(v_eb25ce.id),
-  interactions: v_42378f(v_eb25ce.id),
+  intimacy: 0,
+  interactions: 0,
 });
 
 const v_cae9dc = (v_f4e98d) => (v_f4e98d >= 1000 ? `${(v_f4e98d / 1000).toFixed(1)}k` : String(v_f4e98d));
@@ -91,8 +101,10 @@ export default function v_14b43e() {
   const v_033e14 = v_e0068c();
   const v_f4c991 = v_ada615<RootNav>();
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
+  const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
 
   const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -101,7 +113,7 @@ export default function v_14b43e() {
   v_cf763b(
     v_de06a3(() => {
       let v_2008a4 = false;
-      const v_43e90c = v_f38ee5?.id;
+      const v_43e90c = v_b113dd?.id;
       if (!v_2ca7e0 || !v_43e90c) {
         v_44191e(null);
         return;
@@ -112,7 +124,14 @@ export default function v_14b43e() {
           if (!v_2008a4) {
             console.log(
               `[Following] followedClones ← ${v_cb35cb.items.length} items`,
-              v_cb35cb.items.map((v_23805a) => ({ id: v_23805a.id, name: v_23805a.name })),
+              v_cb35cb.items.map((v_23805a) => ({
+                id: v_23805a.id,
+                name: v_23805a.name,
+                "stats.likes": v_23805a.stats?.likes,
+                "stats.comments": v_23805a.stats?.comments,
+                "latestFeed.feedId": v_23805a.latestFeed?.feedId,
+                "latestFeed.likedByMe": v_23805a.latestFeed?.likedByMe,
+              })),
             );
             v_44191e(v_cb35cb.items);
           }
@@ -123,22 +142,26 @@ export default function v_14b43e() {
       return () => {
         v_2008a4 = true;
       };
-    }, [v_2ca7e0, v_f38ee5?.id]),
+    }, [v_2ca7e0, v_b113dd?.id]),
   );
 
   const v_a48e44 = v_df9f57<FollowedPersona[]>(() => {
-    if (v_d92a4c) {
-      return v_d92a4c.map((v_3f4e2e) => ({
-        id: v_3f4e2e.id,
-        name: v_3f4e2e.name,
-        avatar: v_3f4e2e.avatarUrl ?? "",
-        interests: v_3f4e2e.interests ?? [],
-        creatorAccount: `@${v_3f4e2e.username}`,
-        intimacy: v_3ddce5(v_3f4e2e.id),
-        interactions: v_42378f(v_3f4e2e.id),
-      }));
+    if (v_d92a4c != null) {
+      return v_d92a4c.map((v_3f4e2e) => {
+        const v_db07f5 = v_a1f1ac(v_3f4e2e.stats);
+        return {
+          id: v_3f4e2e.id,
+          name: v_3f4e2e.name,
+          avatar: v_3f4e2e.avatarUrl ?? "",
+          interests: v_3f4e2e.interests ?? [],
+          creatorAccount: `@${v_3f4e2e.username}`,
+          intimacy: v_aae598(v_db07f5),
+          interactions: v_db07f5,
+        };
+      });
     }
 
+    if (v_2ca7e0) return [];
     const v_52c0ef = v_1e752a
       .filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987)
       .map((v_8b5cd8) => v_8b5cd8.followingCloneId);
@@ -149,18 +172,61 @@ export default function v_14b43e() {
         const v_257b90 = v_694b7f.users().find((v_ceb55a) => v_ceb55a.id === v_eb25ce.ownerId);
         return v_986943(v_eb25ce, v_257b90?.handle);
       });
-  }, [v_d92a4c, v_1e752a, v_0c8987]);
+  }, [v_d92a4c, v_2ca7e0, v_1e752a, v_0c8987]);
 
   const v_632473 = v_df9f57<v_bc3df4[]>(() => {
+    if (v_d92a4c != null) {
+      return v_d92a4c.map((v_3f4e2e) => {
+        const v_6bbace = v_3f4e2e.latestFeed?.feedId ?? null;
+        return {
+          id: v_6bbace ?? -v_3f4e2e.id, 
+          cloneId: v_3f4e2e.id,
+          content: v_3f4e2e.description ?? "",
+          mediaUrl: v_3f4e2e.avatarUrl ?? undefined,
+          mediaType: null,
+
+          likesCount: v_3f4e2e.stats.likes ?? 0,
+          createdAt: v_3f4e2e.createdAt,
+        };
+      });
+    }
     const v_da0fb9 = new Set(v_a48e44.map((v_e2a85c) => v_e2a85c.id));
     return v_694b7f.feeds()
       .filter((v_8b5cd8) => v_da0fb9.has(v_8b5cd8.cloneId))
       .slice()
       .sort((v_779914, v_148ff6) => v_148ff6.createdAt.localeCompare(v_779914.createdAt));
-  }, [v_a48e44]);
+  }, [v_d92a4c, v_a48e44]);
+
+  const v_27a256 = v_df9f57(() => {
+    const v_8dcb51 = new Map<number, { likesCount: number; commentsCount: number; likedByMe: boolean }>();
+    if (v_d92a4c) {
+      for (const v_3f4e2e of v_d92a4c) {
+        v_8dcb51.set(v_3f4e2e.id, {
+          likesCount: v_3f4e2e.stats.likes ?? 0,
+          commentsCount: v_3f4e2e.stats.comments ?? 0,
+          likedByMe: v_3f4e2e.latestFeed?.likedByMe ?? false,
+        });
+      }
+    }
+    return v_8dcb51;
+  }, [v_d92a4c]);
 
   const [v_69ddfb, v_09b78b] = v_5ab095(v_8d41d7("feed.categoryAll"));
+
   const [v_c591dc, v_6f4b5a] = v_5ab095<Set<number>>(new Set());
+
+  const [v_211631, v_40f767] = v_5ab095<Map<number, { likes: number; comments: number }>>(
+    new Map(),
+  );
+
+  v_c4deb2(() => {
+    if (!v_d92a4c) return;
+    const v_a448ad = new Set<number>();
+    for (const v_3f4e2e of v_d92a4c) {
+      if (v_3f4e2e.latestFeed?.likedByMe) v_a448ad.add(v_3f4e2e.id);
+    }
+    v_6f4b5a(v_a448ad);
+  }, [v_d92a4c]);
 
   const [v_5c83d5, v_880166] = v_5ab095<number | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
@@ -230,12 +296,45 @@ export default function v_14b43e() {
     );
   }, [v_2116d2, v_a48e44]);
 
-  const v_a96ced = (v_389afb) => {
+  const v_936545 = async (v_6e0fd3, v_c09aa8) => {
+    const v_d50832 = v_c591dc.has(v_6e0fd3);
+    const v_d60f4b = !v_d50832;
+
     v_6f4b5a((v_ba2215) => {
       const v_fd5f43 = new Set(v_ba2215);
-      v_fd5f43.has(v_389afb) ? v_fd5f43.delete(v_389afb) : v_fd5f43.add(v_389afb);
+      v_d60f4b ? v_fd5f43.add(v_6e0fd3) : v_fd5f43.delete(v_6e0fd3);
       return v_fd5f43;
     });
+    v_40f767((v_ba2215) => {
+      const v_a448ad = new Map(v_ba2215);
+      const v_c3bc75 = v_a448ad.get(v_6e0fd3) ?? { likes: 0, comments: 0 };
+      v_a448ad.set(v_6e0fd3, { ...v_c3bc75, likes: v_c3bc75.likes + (v_d60f4b ? 1 : -1) });
+      return v_a448ad;
+    });
+    if (!v_2ca7e0) return;
+    try {
+      if (v_c09aa8 > 0) {
+        if (v_d60f4b) await v_de2a30(v_2ca7e0, v_c09aa8);
+        else await v_11c954(v_2ca7e0, v_c09aa8);
+      } else {
+        if (v_d60f4b) await v_b14fce(v_2ca7e0, v_6e0fd3);
+        else await v_0ff331(v_2ca7e0, v_6e0fd3);
+      }
+    } catch (v_49263d) {
+      console.warn("[Following] toggleLike failed:", v_49263d);
+
+      v_6f4b5a((v_ba2215) => {
+        const v_fd5f43 = new Set(v_ba2215);
+        v_d50832 ? v_fd5f43.add(v_6e0fd3) : v_fd5f43.delete(v_6e0fd3);
+        return v_fd5f43;
+      });
+      v_40f767((v_ba2215) => {
+        const v_a448ad = new Map(v_ba2215);
+        const v_c3bc75 = v_a448ad.get(v_6e0fd3) ?? { likes: 0, comments: 0 };
+        v_a448ad.set(v_6e0fd3, { ...v_c3bc75, likes: v_c3bc75.likes - (v_d60f4b ? 1 : -1) });
+        return v_a448ad;
+      });
+    }
   };
 
   const v_2d8ccb = async () => {
@@ -283,18 +382,32 @@ export default function v_14b43e() {
     if (!v_b43b74 || !v_2ca7e0) return;
     try {
       let v_6bbace;
+      let v_ab5234;
       if (v_5c83d5 < 0) {
         const v_6e0fd3 = -v_5c83d5;
+        v_ab5234 = v_6e0fd3;
         const v_8f00b9 = await v_6f689a(v_2ca7e0, v_6e0fd3, v_b43b74);
         v_6bbace = v_8f00b9.comment.feedId;
         v_880166(v_6bbace);
       } else {
         await v_3f8bc7(v_2ca7e0, v_5c83d5, v_b43b74);
         v_6bbace = v_5c83d5;
+
+        const v_5d7203 = v_d92a4c?.find((v_3f4e2e) => v_3f4e2e.latestFeed?.feedId === v_5c83d5);
+        v_ab5234 = v_5d7203?.id ?? -1;
       }
       v_856f84("");
       const v_cb35cb = await v_4208e7(v_6bbace, { limit: 100 });
       v_502f4e(v_cb35cb.items);
+
+      if (v_ab5234 > 0) {
+        v_40f767((v_ba2215) => {
+          const v_a448ad = new Map(v_ba2215);
+          const v_c3bc75 = v_a448ad.get(v_ab5234) ?? { likes: 0, comments: 0 };
+          v_a448ad.set(v_ab5234, { ...v_c3bc75, comments: v_c3bc75.comments + 1 });
+          return v_a448ad;
+        });
+      }
     } catch (v_49263d) {
       console.warn("[Following] postFeedComment failed:", v_49263d);
     }
@@ -314,6 +427,18 @@ export default function v_14b43e() {
             try {
               await v_0df337(v_2ca7e0, v_5c83d5, v_d91518);
               v_502f4e((v_ba2215) => v_ba2215.filter((v_3f4e2e) => v_3f4e2e.id !== v_d91518));
+
+              const v_5d7203 = v_d92a4c?.find(
+                (v_3f4e2e) => v_3f4e2e.latestFeed?.feedId === v_5c83d5,
+              );
+              if (v_5d7203) {
+                v_40f767((v_ba2215) => {
+                  const v_a448ad = new Map(v_ba2215);
+                  const v_c3bc75 = v_a448ad.get(v_5d7203.id) ?? { likes: 0, comments: 0 };
+                  v_a448ad.set(v_5d7203.id, { ...v_c3bc75, comments: v_c3bc75.comments - 1 });
+                  return v_a448ad;
+                });
+              }
             } catch (v_49263d) {
               console.warn("[Following] deleteFeedComment failed:", v_49263d);
             }
@@ -375,45 +500,63 @@ export default function v_14b43e() {
                 textColor={v_1bfbd0.zinc900}
                 backgroundColor={v_1bfbd0.white}
               />
-              <Button
-                title={v_8d41d7("feed.actionUnfollow")}
-                variant="ghost"
-                size="md"
-                leftIcon={<Feather name="user-minus" size={14} color={v_1bfbd0.white} />}
-                onPress={() => v_cdeef7(v_8c0b26.persona.id)}
-                style={{ ...v_fd5f43.overlayBtn, ...v_fd5f43.overlayBtnGhost }}
-                textColor={v_1bfbd0.white}
-                backgroundColor="rgba(255,255,255,0.2)"
-              />
+              {(() => {
+                const v_10387a = v_b30b81(v_8c0b26.persona.id);
+                return (
+                  <Button
+                    title={v_10387a ? "팔로잉" : "팔로우"}
+                    variant="ghost"
+                    size="md"
+                    leftIcon={
+                      <Feather
+                        name={v_10387a ? "user-check" : "user-plus"}
+                        size={14}
+                        color={v_1bfbd0.white}
+                      />
+                    }
+                    onPress={() => void v_3094d4(v_8c0b26.persona.id)}
+                    style={{ ...v_fd5f43.overlayBtn, ...v_fd5f43.overlayBtnGhost }}
+                    textColor={v_1bfbd0.white}
+                    backgroundColor={v_10387a ? "rgba(255,255,255,0.2)" : v_1bfbd0.violet600}
+                  />
+                );
+              })()}
             </View>
           </View>
         </View>
 
         {}
-        <View style={v_fd5f43.actionsRow}>
-          <View style={v_fd5f43.actionsLeft}>
-            <TouchableOpacity onPress={() => v_a96ced(v_8c0b26.feed.id)}>
-              <Ionicons
-                name={v_c591dc.has(v_8c0b26.feed.id) ? "heart" : "heart-outline"}
-                size={24}
-                color={v_c591dc.has(v_8c0b26.feed.id) ? "#ef4444" : v_1bfbd0.zinc700}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => v_880166(v_8c0b26.feed.id)}>
-              <Feather name="message-circle" size={24} color={v_1bfbd0.zinc700} />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Feather name="share-2" size={22} color={v_1bfbd0.zinc700} />
-            </TouchableOpacity>
-          </View>
-          <View style={v_fd5f43.actionsRight}>
-            <Text style={v_fd5f43.countText}>
-              {v_8d41d7("feed.likeCount", { n: v_cae9dc(v_c0a5d3(v_8c0b26.feed.id) + (v_c591dc.has(v_8c0b26.feed.id) ? 1 : 0)) })}
-            </Text>
-            {}
-            <Text style={v_fd5f43.countTextSub}>{v_8d41d7("feed.commentCount", { n: 0 })}</Text>
-          </View>
-        </View>
+        {(() => {
+          const v_ab4c96 = v_27a256.get(v_8c0b26.persona.id);
+          const v_e9396c = v_211631.get(v_8c0b26.persona.id) ?? { likes: 0, comments: 0 };
+          const v_b84498 = v_c591dc.has(v_8c0b26.persona.id);
+          const v_58313d = (v_ab4c96?.likesCount ?? 0) + v_e9396c.likes;
+          const v_7c0a2d = (v_ab4c96?.commentsCount ?? 0) + v_e9396c.comments;
+          return (
+            <View style={v_fd5f43.actionsRow}>
+              <View style={v_fd5f43.actionsLeft}>
+                <TouchableOpacity onPress={() => void v_936545(v_8c0b26.persona.id, v_8c0b26.feed.id)}>
+                  <Ionicons
+                    name={v_b84498 ? "heart" : "heart-outline"}
+                    size={24}
+                    color={v_b84498 ? "#ef4444" : v_1bfbd0.zinc700}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => v_880166(v_8c0b26.feed.id)}>
+                  <Feather name="message-circle" size={24} color={v_1bfbd0.zinc700} />
+                </TouchableOpacity>
+              </View>
+              <View style={v_fd5f43.actionsRight}>
+                <Text style={v_fd5f43.countText}>
+                  {v_8d41d7("feed.likeCount", { n: v_cae9dc(Math.max(0, v_58313d)) })}
+                </Text>
+                <Text style={v_fd5f43.countTextSub}>
+                  {v_8d41d7("feed.commentCount", { n: Math.max(0, v_7c0a2d) })}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
       </View>
     );
   };
@@ -445,6 +588,13 @@ export default function v_14b43e() {
         showsVerticalScrollIndicator={false}
         onScroll={v_023642}
         scrollEventThrottle={16}
+        ListEmptyComponent={
+          <View style={v_fd5f43.emptyWrap}>
+            <Feather name="users" size={48} color={v_1bfbd0.zinc300} />
+            <Text style={v_fd5f43.emptyTitle}>아직 팔로우한 페르소나가 없어요</Text>
+            <Text style={v_fd5f43.emptyDesc}>홈에서 마음에 드는 페르소나를 팔로우해 보세요</Text>
+          </View>
+        }
       />
 
       {}
@@ -626,34 +776,8 @@ export default function v_14b43e() {
             </View>
 
             <ScrollView style={v_fd5f43.callScroll} showsVerticalScrollIndicator={false}>
-              {}
-              {!v_2116d2 && v_a48e44.length > 0 && (
-                <View style={v_fd5f43.callSectionBordered}>
-                  <Text style={v_fd5f43.callSectionTitle}>{v_8d41d7("feed.recentCalls")}</Text>
-                  {v_a48e44.slice(0, 2).map((v_e2a85c, v_ebec57) => (
-                    <View key={v_e2a85c.id} style={v_fd5f43.callRow}>
-                      <Image source={{ uri: v_e2a85c.avatar }} style={v_fd5f43.callAvatar} />
-                      <View style={v_fd5f43.callInfo}>
-                        <Text style={v_fd5f43.callName}>{v_e2a85c.name}</Text>
-                        <Text style={v_fd5f43.callSub}>{v_e2a85c.creatorAccount}</Text>
-                        <Text style={v_fd5f43.callMeta}>
-                          {v_ebec57 === 0 ? v_8d41d7("feed.callMetaYesterday") : v_8d41d7("feed.callMeta3DaysAgo")}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={v_fd5f43.callBtn}
-                        onPress={() => {
-                          v_22a5cb(false);
-                          v_f4c991.navigate("Call", { cloneId: v_e2a85c.id, name: v_e2a85c.name, image: v_e2a85c.avatar });
-                        }}
-                      >
-                        <Feather name="video" size={14} color={v_1bfbd0.white} />
-                        <Text style={v_fd5f43.callBtnText}>{v_8d41d7("feed.callRowAction")}</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
+              {
+}
 
               {}
               <View style={v_fd5f43.callSection}>
@@ -799,4 +923,8 @@ const v_fd5f43 = v_472849.create({
 
   toast: { position: "absolute", bottom: 100, alignSelf: "center", paddingHorizontal: 24, paddingVertical: 12, backgroundColor: "rgba(0,0,0,0.8)", borderRadius: v_8b0c90.full },
   toastText: { fontSize: 14, color: v_1bfbd0.white },
+
+  emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32, gap: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  emptyDesc: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center" },
 });

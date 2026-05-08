@@ -605,7 +605,13 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         `SELECT c.id, c.name, c.username, c.description, c.clone_type, c.category, c.avatar_url, c.created_at,
                 COALESCE(s.followers_count, 0) AS followers_count,
                 COALESCE(s.messages_count, 0)  AS messages_count,
-                COALESCE(s.gifts_count, 0)     AS gifts_count
+                COALESCE(s.gifts_count, 0)     AS gifts_count,
+                (SELECT id FROM feeds WHERE clone_id = c.id ORDER BY id DESC LIMIT 1) AS latest_feed_id,
+                (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+                  WHERE f.clone_id = c.id) AS total_likes,
+                (SELECT COUNT(*) FROM feed_comments fc
+                   JOIN feeds f2 ON f2.id = fc.feed_id
+                   WHERE f2.clone_id = c.id) AS total_comments
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
@@ -626,6 +632,9 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         followers_count: number;
         messages_count: number;
         gifts_count: number;
+        latest_feed_id: number | null;
+        total_likes: number;
+        total_comments: number;
       }>()
   ).results;
 
@@ -649,6 +658,23 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
     }
   }
 
+  const v_1e80bb = v_18b8bf.map((v_cb35cb) => v_cb35cb.id);
+  const v_ff3805 = new Set<number>();
+  if (v_1e80bb.length > 0) {
+    const v_1cdc07 = v_1e80bb.map(() => "?").join(",");
+    const v_59d4e3 = (
+      await v_3f4e2e.env.DB
+        .prepare(
+          `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
+             JOIN feeds f ON f.id = fl.feed_id
+            WHERE fl.user_id = ? AND f.clone_id IN (${v_1cdc07})`,
+        )
+        .bind(v_43e90c, ...v_1e80bb)
+        .all<{ clone_id: number }>()
+    ).results ?? [];
+    for (const v_3ac7e7 of v_59d4e3) v_ff3805.add(v_3ac7e7.clone_id);
+  }
+
   return v_3f4e2e.json({
     items: v_18b8bf.map((v_cb35cb) => ({
       id: v_cb35cb.id,
@@ -663,6 +689,14 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         followers: v_cb35cb.followers_count,
         messages: v_cb35cb.messages_count,
         gifts: v_cb35cb.gifts_count,
+
+        likes: v_cb35cb.total_likes,
+        comments: v_cb35cb.total_comments,
+      },
+
+      latestFeed: {
+        feedId: v_cb35cb.latest_feed_id,
+        likedByMe: v_ff3805.has(v_cb35cb.id),
       },
       createdAt: v_cb35cb.created_at,
     })),
