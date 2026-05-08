@@ -7,6 +7,10 @@ export type RootStackParamList = {
   InheritanceAccept: { token?: string };
   RestoreDeleted: undefined;
   GDPRDelete: undefined;
+
+  InviteAccept: { token: string };
+
+  Notifications: undefined;
 };
 
 export type AuthStackParamList = {
@@ -47,6 +51,7 @@ export type ClonesStackParamList = {
   CloneEdit: { cloneId: number };
   CloneVisibility: { cloneId: number };
   CloneInvite: { cloneId: number };
+  InviteStatus: undefined;
 };
 
 export type ShareStackParamList = {
@@ -73,4 +78,6 @@ export type MyStackParamList = {
   AcquaintanceManagement: undefined;
   LanguageSettings: undefined;
   PaymentPin: undefined;
+  InviteStatus: undefined;
+  BlockedList: undefined;
 };

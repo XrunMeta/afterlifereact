@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { CreateStackParamList } from '../../navigation/types';
 import SafeView from '../../components/ui/SafeView';
@@ -15,6 +16,7 @@ import { COLORS, SIZES } from '../../components/constants';
 type Props = { navigation: NativeStackNavigationProp<CreateStackParamList, 'Step5'> };
 
 export default function Step5VisibilityScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const draft = useCloneStore(s => s.creationDraft);
   const setCreationDraft = useCloneStore(s => s.setCreationDraft);
 
@@ -23,14 +25,14 @@ export default function Step5VisibilityScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <PageHeader title="공개 범위" showBackButton
-        onBackPress={() => navigation.goBack()} stepInfo={{ current: 5, total: 7 }} />
+      <PageHeader title={t("create.stepTitles.5")} showBackButton
+        onBackPress={() => navigation.goBack()} />
       <StepIndicator currentStep={5} totalSteps={7} />
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />
       </SafeScrollView>
       <View style={styles.bottomBar}>
-        <Button title="다음 단계로 이동"
+        <Button title={t("create.next")}
           onPress={() => navigation.navigate('Step6')} disabled={!canNext} />
       </View>
     </SafeView>

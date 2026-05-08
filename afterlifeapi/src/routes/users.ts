@@ -34,6 +34,28 @@ async function loadMe(c: Parameters<typeof requireAuth>[0]): Promise<never> {
 }
 void loadMe;
 
+users.get("/search", requireAuth, async (c) => {
+  const me = c.get("userId")!;
+  const q = (c.req.query("q") ?? "").trim();
+  if (q.length < 2) {
+    return c.json({ items: [] });
+  }
+  const like = `%${q}%`;
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT id, name, email, avatar_url AS avatarUrl
+         FROM users
+        WHERE deleted_at IS NULL
+          AND id != ?
+          AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
+        ORDER BY id DESC
+        LIMIT 20`,
+    )
+    .bind(me, like, like)
+    .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
+  return c.json({ items: rows.results ?? [] });
+});
+
 users.get("/me", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;
@@ -227,6 +249,183 @@ users.get("/me/devices", requireAuth, async (c) => {
   return c.json({ devices: rows.results ?? [] });
 });
 
+users.get("/me/invites", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT
+          i.id, i.invite_email AS inviteEmail, i.relation, i.grant_owner AS grantOwner,
+          i.expires_at AS expiresAt, i.used_at AS usedAt, i.cancelled_at AS cancelledAt,
+          i.created_at AS createdAt,
+          c.id AS cloneId, c.name AS cloneName, c.username AS cloneUsername,
+          c.avatar_url AS cloneAvatarUrl, c.clone_type AS cloneType
+         FROM invite_tokens i
+         JOIN clones c ON c.id = i.clone_id
+        WHERE i.owner_id = ? AND c.deleted_at IS NULL
+        ORDER BY i.id DESC
+        LIMIT 200`,
+    )
+    .bind(userId)
+    .all<{
+      id: number;
+      inviteEmail: string | null;
+      relation: string | null;
+      grantOwner: number;
+      expiresAt: string;
+      usedAt: string | null;
+      cancelledAt: string | null;
+      createdAt: string;
+      cloneId: number;
+      cloneName: string;
+      cloneUsername: string;
+      cloneAvatarUrl: string | null;
+      cloneType: string;
+    }>();
+
+  const now = Date.now();
+  const items = (rows.results ?? []).map((r) => {
+    let status: "pending" | "accepted" | "cancelled" | "expired";
+    if (r.usedAt) status = "accepted";
+    else if (r.cancelledAt) status = "cancelled";
+    else {
+      const exp = new Date(r.expiresAt.replace(" ", "T") + "Z").getTime();
+      status = exp < now ? "expired" : "pending";
+    }
+    return {
+      id: r.id,
+      inviteEmail: r.inviteEmail,
+      relation: r.relation,
+      grantOwner: r.grantOwner === 1,
+      expiresAt: r.expiresAt,
+      usedAt: r.usedAt,
+      cancelledAt: r.cancelledAt,
+      createdAt: r.createdAt,
+      status,
+      clone: {
+        id: r.cloneId,
+        name: r.cloneName,
+        username: r.cloneUsername,
+        avatarUrl: r.cloneAvatarUrl,
+        cloneType: r.cloneType,
+      },
+    };
+  });
+  return c.json({ items });
+});
+
+users.post("/me/devices", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const body = await c.req.json().catch(() => ({})) as {
+    deviceId?: string;
+    pushToken?: string;
+    platform?: "ios" | "android" | "web";
+  };
+  if (!body.deviceId || !body.pushToken || !body.platform) {
+    throw new APIError("VALIDATION_FAILED", "deviceId, pushToken, platform required.");
+  }
+  await c.env.DB
+    .prepare(
+      `INSERT INTO user_devices (user_id, device_id, push_token, platform, is_active, last_active_at)
+       VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+       ON CONFLICT(user_id, device_id) DO UPDATE SET
+         push_token = excluded.push_token,
+         platform   = excluded.platform,
+         is_active  = 1,
+         last_active_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP`,
+    )
+    .bind(userId, body.deviceId, body.pushToken, body.platform)
+    .run();
+  return c.json({ ok: true });
+});
+
+users.get("/me/clones", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT
+          c.id,
+          c.name,
+          c.username,
+          c.description,
+          c.clone_type     AS cloneType,
+          c.category,
+          c.visibility,
+          c.avatar_url     AS avatarUrl,
+          c.cover_image_url AS coverImageUrl,
+          c.training_status AS trainingStatus,
+          c.owner_id       AS ownerId,
+          c.created_at     AS createdAt,
+          c.l1_profile     AS l1ProfileJson,
+          (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole,
+          (SELECT COUNT(*) FROM clone_shares s
+            WHERE s.clone_id = c.id AND s.status = 'accepted') AS coownerCount,
+          (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+            WHERE f.clone_id = c.id) AS likesCount,
+          (SELECT COUNT(*) FROM feed_comments fc
+             JOIN feeds f2 ON f2.id = fc.feed_id
+             WHERE f2.clone_id = c.id) AS commentsCount,
+          COALESCE(cs.followers_count, 0) AS followersCount,
+          COALESCE(cs.messages_count, 0) AS messagesCount
+         FROM clones c
+         LEFT JOIN clone_stats cs ON cs.clone_id = c.id
+        WHERE c.deletion_state = 'active'
+          AND c.deleted_at IS NULL
+          AND (
+            c.owner_id = ?
+            OR c.id IN (
+              SELECT s.clone_id FROM clone_shares s
+              WHERE s.target_user_id = ? AND s.status = 'accepted'
+            )
+          )
+        ORDER BY c.id DESC
+        LIMIT 200`,
+    )
+    .bind(userId, userId, userId)
+    .all();
+
+  const cloneIds = (rows.results ?? []).map((r) => (r as { id: number }).id);
+  const interestsByCloneId = new Map<number, string[]>();
+  if (cloneIds.length > 0) {
+    const placeholders = cloneIds.map(() => "?").join(",");
+    const interestRows = (
+      await c.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${placeholders})`,
+        )
+        .bind(...cloneIds)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const ir of interestRows) {
+      const arr = interestsByCloneId.get(ir.clone_id) ?? [];
+      arr.push(ir.interest);
+      interestsByCloneId.set(ir.clone_id, arr);
+    }
+  }
+
+  const items = (rows.results ?? []).map((r) => {
+    const row = r as Record<string, unknown> & { id: number; l1ProfileJson?: string | null };
+    let l1Profile: { attrs: Record<string, string>; notes: string } | null = null;
+    if (row.l1ProfileJson) {
+      try {
+        const parsed = JSON.parse(row.l1ProfileJson) as { attrs?: Record<string, string>; notes?: string };
+        l1Profile = { attrs: parsed.attrs ?? {}, notes: parsed.notes ?? "" };
+      } catch {
+
+      }
+    }
+    const { l1ProfileJson: _drop, ...rest } = row;
+    void _drop;
+    return {
+      ...rest,
+      l1Profile,
+      interests: interestsByCloneId.get(row.id) ?? [],
+    };
+  });
+  return c.json({ items });
+});
+
 users.post("/me/delete", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;
@@ -403,21 +602,29 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url, c.created_at,
+        `SELECT c.id, c.name, c.username, c.description, c.clone_type, c.category, c.avatar_url, c.created_at,
                 COALESCE(s.followers_count, 0) AS followers_count,
                 COALESCE(s.messages_count, 0)  AS messages_count,
-                COALESCE(s.gifts_count, 0)     AS gifts_count
+                COALESCE(s.gifts_count, 0)     AS gifts_count,
+                (SELECT id FROM feeds WHERE clone_id = c.id ORDER BY id DESC LIMIT 1) AS latest_feed_id,
+                (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+                  WHERE f.clone_id = c.id) AS total_likes,
+                (SELECT COUNT(*) FROM feed_comments fc
+                   JOIN feeds f2 ON f2.id = fc.feed_id
+                   WHERE f2.clone_id = c.id) AS total_comments
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
           WHERE f.user_id = ? AND c.deleted_at IS NULL
+            AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
           ORDER BY f.created_at DESC, f.id DESC`,
       )
-      .bind(userId)
+      .bind(userId, userId)
       .all<{
         id: number;
         name: string;
         username: string;
+        description: string | null;
         clone_type: string;
         category: string | null;
         avatar_url: string | null;
@@ -425,23 +632,116 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         followers_count: number;
         messages_count: number;
         gifts_count: number;
+        latest_feed_id: number | null;
+        total_likes: number;
+        total_comments: number;
       }>()
   ).results;
+
+  const cIds = rows.map((r) => r.id);
+  const interestsByClone = new Map<number, string[]>();
+  if (cIds.length > 0) {
+    const placeholders = cIds.map(() => "?").join(",");
+    const ir = (
+      await c.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${placeholders})`,
+        )
+        .bind(...cIds)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const row of ir) {
+      const arr = interestsByClone.get(row.clone_id) ?? [];
+      arr.push(row.interest);
+      interestsByClone.set(row.clone_id, arr);
+    }
+  }
+
+  const cIdsForLikes = rows.map((r) => r.id);
+  const likedCloneIds = new Set<number>();
+  if (cIdsForLikes.length > 0) {
+    const placeholders = cIdsForLikes.map(() => "?").join(",");
+    const lr = (
+      await c.env.DB
+        .prepare(
+          `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
+             JOIN feeds f ON f.id = fl.feed_id
+            WHERE fl.user_id = ? AND f.clone_id IN (${placeholders})`,
+        )
+        .bind(userId, ...cIdsForLikes)
+        .all<{ clone_id: number }>()
+    ).results ?? [];
+    for (const row of lr) likedCloneIds.add(row.clone_id);
+  }
 
   return c.json({
     items: rows.map((r) => ({
       id: r.id,
       name: r.name,
       username: r.username,
+      description: r.description,
       cloneType: r.clone_type,
       category: r.category,
       avatarUrl: r.avatar_url,
+      interests: interestsByClone.get(r.id) ?? [],
       stats: {
         followers: r.followers_count,
         messages: r.messages_count,
         gifts: r.gifts_count,
+
+        likes: r.total_likes,
+        comments: r.total_comments,
+      },
+
+      latestFeed: {
+        feedId: r.latest_feed_id,
+        likedByMe: likedCloneIds.has(r.id),
       },
       createdAt: r.created_at,
+    })),
+  });
+});
+
+users.get("/me/blocks", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT b.id           AS blockId,
+                b.created_at   AS createdAt,
+                c.id           AS cloneId,
+                c.name         AS cloneName,
+                c.username     AS cloneUsername,
+                c.avatar_url   AS cloneAvatarUrl,
+                c.clone_type   AS cloneType
+           FROM clone_blocks b
+           JOIN clones c ON c.id = b.clone_id
+          WHERE b.user_id = ? AND c.deleted_at IS NULL
+          ORDER BY b.id DESC`,
+      )
+      .bind(userId)
+      .all<{
+        blockId: number;
+        createdAt: string;
+        cloneId: number;
+        cloneName: string;
+        cloneUsername: string;
+        cloneAvatarUrl: string | null;
+        cloneType: string;
+      }>()
+  ).results;
+  return c.json({
+    items: rows.map((r) => ({
+      blockId: r.blockId,
+      createdAt: r.createdAt,
+      clone: {
+        id: r.cloneId,
+        name: r.cloneName,
+        username: r.cloneUsername,
+        avatarUrl: r.cloneAvatarUrl,
+        cloneType: r.cloneType,
+      },
     })),
   });
 });

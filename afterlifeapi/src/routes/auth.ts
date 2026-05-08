@@ -244,6 +244,11 @@ const xrunCompleteSchema = z.object({
   verificationCode: z.string().regex(/^\d{6}$/, "6-digit code required").optional(),
 
   googleIdToken: z.string().min(20).optional(),
+
+  name: z.string().min(1).max(80).optional(),
+  phone: z.string().min(4).max(40).optional(),
+  gender: z.enum(["male", "female", "other"]).optional(),
+  age: z.number().int().min(13).max(120).optional(),
   interests: z.array(z.string().min(1).max(40)).max(20).optional(),
   marketingConsent: z.boolean().optional().default(false),
   deviceId: z.string().min(1).max(200).optional(),
@@ -305,16 +310,27 @@ auth.post("/xrun/complete", async (c) => {
   const randomSecret = crypto.randomUUID() + crypto.randomUUID();
   const passwordHash = await hashPassword(randomSecret);
   const fallbackName = body.email.split("@")[0] ?? "user";
+  const finalName = body.name?.trim() || fallbackName;
+  const phoneEnc = body.phone
+    ? seal(body.phone, getKekProvider(c.env.ALE_KEK), "user.phone")
+    : null;
+  const ageEnc = body.age
+    ? seal(String(body.age), getKekProvider(c.env.ALE_KEK), "user.age")
+    : null;
   const inserted = await db
     .prepare(
-      `INSERT INTO users (name, email, password_hash, marketing_consent, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
        RETURNING id, name, email, funnel_stage AS funnelStage`,
     )
     .bind(
-      fallbackName,
+      finalName,
       body.email,
       passwordHash,
+      phoneEnc,
+      body.gender ?? null,
+      null, 
+      ageEnc,
       body.marketingConsent ? 1 : 0,
       xrunMember,
       xrunGuid,

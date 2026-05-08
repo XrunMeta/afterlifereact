@@ -14,6 +14,7 @@ import HomeScreen from "../screens/home/HomeScreen";
 import MyClonesDashboardScreen from "../screens/clones/MyClonesDashboardScreen";
 import CloneDetailScreen from "../screens/clones/CloneDetailScreen";
 import CloneEditScreen from "../screens/clones/CloneEditScreen";
+import CloneInviteScreen from "../screens/clones/CloneInviteScreen";
 import Step1CloneTypeScreen from "../screens/clone-creation/Step1CloneTypeScreen";
 import Step2BasicInfoScreen from "../screens/clone-creation/Step2BasicInfoScreen";
 import Step3ImageUploadScreen from "../screens/clone-creation/Step3ImageUploadScreen";
@@ -32,6 +33,8 @@ import SavedItemsScreen from "../screens/my/SavedItemsScreen";
 import AcquaintanceManagementScreen from "../screens/my/AcquaintanceManagementScreen";
 import LanguageSettingsScreen from "../screens/my/LanguageSettingsScreen";
 import PaymentPinScreen from "../screens/my/PaymentPinScreen";
+import InviteStatusScreen from "../screens/my/InviteStatusScreen";
+import BlockedListScreen from "../screens/my/BlockedListScreen";
 
 const ClonesStack = createNativeStackNavigator<ClonesStackParamList>();
 const CreateStack = createNativeStackNavigator<CreateStackParamList>();
@@ -43,6 +46,8 @@ function ClonesStackNavigator() {
       <ClonesStack.Screen name="Dashboard" component={MyClonesDashboardScreen} />
       <ClonesStack.Screen name="CloneDetail" component={CloneDetailScreen} />
       <ClonesStack.Screen name="CloneEdit" component={CloneEditScreen} />
+      <ClonesStack.Screen name="CloneInvite" component={CloneInviteScreen} />
+      <ClonesStack.Screen name="InviteStatus" component={InviteStatusScreen} />
     </ClonesStack.Navigator>
   );
 }
@@ -73,6 +78,8 @@ function MyStackNavigator() {
       <MyStack.Screen name="AcquaintanceManagement" component={AcquaintanceManagementScreen} />
       <MyStack.Screen name="LanguageSettings" component={LanguageSettingsScreen} />
       <MyStack.Screen name="PaymentPin" component={PaymentPinScreen} />
+      <MyStack.Screen name="InviteStatus" component={InviteStatusScreen} />
+      <MyStack.Screen name="BlockedList" component={BlockedListScreen} />
     </MyStack.Navigator>
   );
 }

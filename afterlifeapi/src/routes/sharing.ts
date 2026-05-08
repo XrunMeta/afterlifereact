@@ -13,11 +13,12 @@ import {
 } from "../lib/cloneAccess";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { randomBytes } from "@noble/ciphers/utils.js";
+import { notify } from "../lib/notify";
 
 export const cloneShares = new Hono<AppEnv>();
 export const inviteTokens = new Hono<AppEnv>();
 
-const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; 
+const INVITE_TTL_MS = 3 * 24 * 60 * 60 * 1000; 
 const MAX_ACTIVE_INVITES_PER_CLONE = 50;
 
 function parseCloneId(c: { req: { param: (k: string) => string } }): number {
@@ -82,10 +83,51 @@ cloneShares.post(
     const db = c.env.DB;
     await assertOwner(db, cloneId, userId);
 
+    if (body.invite_email) {
+      const dupePending = await db
+        .prepare(
+          `SELECT id FROM invite_tokens
+            WHERE clone_id = ?
+              AND LOWER(invite_email) = LOWER(?)
+              AND used_at IS NULL
+              AND cancelled_at IS NULL
+              AND expires_at > CURRENT_TIMESTAMP
+            LIMIT 1`,
+        )
+        .bind(cloneId, body.invite_email)
+        .first<{ id: number }>();
+      if (dupePending) {
+        throw new APIError(
+          "ALREADY_INVITED",
+          "이 이메일로 이미 대기 중인 초대가 있어요.",
+        );
+      }
+
+      const dupeMember = await db
+        .prepare(
+          `SELECT cs.id
+             FROM clone_shares cs
+             JOIN users u ON u.id = cs.target_user_id
+            WHERE cs.clone_id = ?
+              AND LOWER(u.email) = LOWER(?)
+              AND cs.status = 'accepted'
+            LIMIT 1`,
+        )
+        .bind(cloneId, body.invite_email)
+        .first<{ id: number }>();
+      if (dupeMember) {
+        throw new APIError(
+          "ALREADY_MEMBER",
+          "이미 이 페르소나의 공동관리자예요.",
+        );
+      }
+    }
+
     const active = await db
       .prepare(
         `SELECT COUNT(*) AS n FROM invite_tokens
-          WHERE clone_id = ? AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP`,
+          WHERE clone_id = ? AND used_at IS NULL AND cancelled_at IS NULL
+            AND expires_at > CURRENT_TIMESTAMP`,
       )
       .bind(cloneId)
       .first<{ n: number }>();
@@ -98,8 +140,10 @@ cloneShares.post(
 
     const token = generateInviteToken();
     const tokenHash = hashToken(token);
-    const ttlMs = (body.ttl_hours ?? 168) * 60 * 60 * 1000;
-    const expiresAt = new Date(Date.now() + Math.min(ttlMs, INVITE_TTL_MS * 30 / 7))
+
+    const ttlMs = (body.ttl_hours ?? 72) * 60 * 60 * 1000;
+    const MAX_TTL_MS = 30 * 24 * 60 * 60 * 1000; 
+    const expiresAt = new Date(Date.now() + Math.min(ttlMs, MAX_TTL_MS))
       .toISOString()
       .replace("T", " ")
       .replace(/\..*$/, "");
@@ -134,17 +178,72 @@ cloneShares.post(
       action: "sharing.invite.create",
       details: { cloneId, grantOwner: body.grant_owner, inviteEmail: body.invite_email },
     });
+
+    let notifyResult: Awaited<ReturnType<typeof notify>> | null = null;
+    if (body.invite_email) {
+      try {
+        const cloneRow = await db
+          .prepare(`SELECT name, username FROM clones WHERE id = ?`)
+          .bind(cloneId)
+          .first<{ name: string; username: string }>();
+        const targetUser = await db
+          .prepare(`SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL`)
+          .bind(body.invite_email)
+          .first<{ id: number }>();
+
+        const cloneName = cloneRow?.name ?? "페르소나";
+        const inviteUrl = `afterlife://invite/${token}`;
+        notifyResult = await notify(c.env, {
+          userId: targetUser?.id,
+          email: targetUser ? undefined : body.invite_email, 
+          type: "invite_received",
+          title: `${cloneName} 공동관리자 초대`,
+          body: `${cloneName} 페르소나의 공동관리자로 초대됐어요. 수락하면 함께 관리할 수 있어요.`,
+          url: inviteUrl,
+          data: { cloneId, token },
+          emailSubject: `[afterlife] ${cloneName} 공동관리자 초대`,
+          emailHtml: `
+            <div style="font-family:system-ui,-apple-system,sans-serif;line-height:1.6;max-width:480px;margin:0 auto;padding:24px">
+              <h2 style="margin:0 0 12px;color:#18181b">${escapeHtml(cloneName)} 공동관리자 초대</h2>
+              <p style="color:#52525b;margin:0 0 20px">
+                <strong>${escapeHtml(cloneName)}</strong> 페르소나의 공동관리자로 초대됐어요.
+                수락하면 함께 관리하고 채팅에 참여할 수 있어요.
+              </p>
+              <p style="margin:0 0 24px">
+                <a href="${inviteUrl}" style="display:inline-block;padding:12px 20px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">초대 수락하기</a>
+              </p>
+              <p style="color:#a1a1aa;font-size:12px;margin:24px 0 0">
+                이 초대는 ${new Date(expiresAt + "Z").toLocaleString("ko-KR")} 까지 유효해요.
+              </p>
+            </div>
+          `,
+        });
+      } catch (err) {
+        console.warn("[sharing.invite] notify failed:", (err as Error).message);
+      }
+    }
+
     return c.json(
       {
         token, 
         expiresAt,
         inviteEmail: body.invite_email ?? null,
         grantOwner: body.grant_owner,
+        notify: notifyResult,
       },
       201,
     );
   },
 );
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 inviteTokens.get("/:token", async (c) => {
   const token = c.req.param("token");
@@ -154,7 +253,7 @@ inviteTokens.get("/:token", async (c) => {
   const tokenHash = hashToken(token);
   const row = await c.env.DB
     .prepare(
-      `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at,
+      `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at, i.cancelled_at,
               c.name, c.username, c.avatar_url, c.clone_type
          FROM invite_tokens i JOIN clones c ON c.id = i.clone_id
         WHERE i.token_hash = ? AND c.deleted_at IS NULL`,
@@ -167,6 +266,7 @@ inviteTokens.get("/:token", async (c) => {
       grant_owner: number;
       expires_at: string;
       used_at: string | null;
+      cancelled_at: string | null;
       name: string;
       username: string;
       avatar_url: string | null;
@@ -174,6 +274,7 @@ inviteTokens.get("/:token", async (c) => {
     }>();
   if (!row) throw new APIError("NOT_FOUND", "Invite not found.");
   if (row.used_at) throw new APIError("CONFLICT", "Invite already used.");
+  if (row.cancelled_at) throw new APIError("CONFLICT", "Invite cancelled by owner.");
 
   const expired = new Date(row.expires_at.replace(" ", "T") + "Z") < new Date();
   if (expired) throw new APIError("CONFLICT", "Invite expired.");
@@ -208,21 +309,24 @@ inviteTokens.post(
 
     const inv = await db
       .prepare(
-        `SELECT id, clone_id, invite_email, relation, grant_owner, expires_at, used_at
+        `SELECT id, clone_id, owner_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
            FROM invite_tokens WHERE token_hash = ?`,
       )
       .bind(tokenHash)
       .first<{
         id: number;
         clone_id: number;
+        owner_id: number;
         invite_email: string | null;
         relation: string | null;
         grant_owner: number;
         expires_at: string;
         used_at: string | null;
+        cancelled_at: string | null;
       }>();
     if (!inv) throw new APIError("NOT_FOUND", "Invite not found.");
     if (inv.used_at) throw new APIError("CONFLICT", "Invite already used.");
+    if (inv.cancelled_at) throw new APIError("CONFLICT", "Invite cancelled by owner.");
     const expired = new Date(inv.expires_at.replace(" ", "T") + "Z") < new Date();
     if (expired) throw new APIError("CONFLICT", "Invite expired.");
 
@@ -266,7 +370,8 @@ inviteTokens.post(
                (clone_id, owner_id, target_user_id, relation, role, status)
              VALUES (?, ?, ?, ?, ?, 'accepted')`,
           )
-          .bind(inv.clone_id, userId, userId, inv.relation, role),
+
+          .bind(inv.clone_id, inv.owner_id, userId, inv.relation, role),
       );
     }
     operations.push(
@@ -287,16 +392,101 @@ inviteTokens.post(
   },
 );
 
+inviteTokens.post(
+  "/:token/decline",
+  requireAuth,
+  requireIdempotencyKey("sharing.invite.decline"),
+  async (c) => {
+    const token = c.req.param("token");
+    if (!token || token.length < 32 || token.length > 256) {
+      throw new APIError("VALIDATION_FAILED", "Invalid token.");
+    }
+    const userId = c.get("userId")!;
+    const db = c.env.DB;
+    const tokenHash = hashToken(token);
+
+    const inv = await db
+      .prepare(
+        `SELECT id, clone_id, invite_email, used_at, cancelled_at
+           FROM invite_tokens WHERE token_hash = ?`,
+      )
+      .bind(tokenHash)
+      .first<{
+        id: number;
+        clone_id: number;
+        invite_email: string | null;
+        used_at: string | null;
+        cancelled_at: string | null;
+      }>();
+    if (!inv) throw new APIError("NOT_FOUND", "Invite not found.");
+    if (inv.cancelled_at) {
+
+      return c.json({ ok: true, alreadyCancelled: true });
+    }
+
+    if (inv.invite_email) {
+      const u = await db
+        .prepare(`SELECT email FROM users WHERE id = ?`)
+        .bind(userId)
+        .first<{ email: string }>();
+      if (!u || u.email.toLowerCase() !== inv.invite_email.toLowerCase()) {
+        throw new APIError("FORBIDDEN", "Invite email does not match.");
+      }
+    }
+
+    let removedShare = false;
+    if (inv.used_at) {
+      const res = await db
+        .prepare(
+          `DELETE FROM clone_shares
+             WHERE clone_id = ? AND target_user_id = ?`,
+        )
+        .bind(inv.clone_id, userId)
+        .run();
+      removedShare = (res.meta?.changes ?? 0) > 0;
+    }
+
+    await db
+      .prepare(
+        `UPDATE invite_tokens
+            SET cancelled_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND cancelled_at IS NULL`,
+      )
+      .bind(inv.id)
+      .run();
+
+    await logActivity(c, {
+      userId,
+      action: "sharing.invite.decline",
+      details: { cloneId: inv.clone_id, inviteId: inv.id, removedShare },
+    });
+    return c.json({ ok: true, cloneId: inv.clone_id, removedShare });
+  },
+);
+
 cloneShares.get("/:id/shares", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;
-  await assertOwner(c.env.DB, cloneId, userId);
+
+  const access = await c.env.DB
+    .prepare(
+      `SELECT
+          (SELECT 1 FROM clones WHERE id = ? AND owner_id = ?) AS isOwner,
+          (SELECT 1 FROM clone_shares
+              WHERE clone_id = ? AND target_user_id = ? AND status = 'accepted') AS isCoowner`,
+    )
+    .bind(cloneId, userId, cloneId, userId)
+    .first<{ isOwner: number | null; isCoowner: number | null }>();
+  if (!access || (!access.isOwner && !access.isCoowner)) {
+    throw new APIError("FORBIDDEN", "Access denied for this clone.");
+  }
 
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT s.id, s.target_user_id, s.invite_email, s.relation, s.role, s.status,
-                s.created_at, u.name AS target_name, u.email AS target_email
+        `SELECT s.id, s.clone_id, s.owner_id, s.target_user_id, s.invite_email,
+                s.relation, s.role, s.status, s.created_at,
+                u.name AS target_name, u.email AS target_email, u.avatar_url AS target_avatar
            FROM clone_shares s
            LEFT JOIN users u ON u.id = s.target_user_id
           WHERE s.clone_id = ?
@@ -305,6 +495,8 @@ cloneShares.get("/:id/shares", requireAuth, async (c) => {
       .bind(cloneId)
       .all<{
         id: number;
+        clone_id: number;
+        owner_id: number;
         target_user_id: number | null;
         invite_email: string | null;
         relation: string | null;
@@ -313,19 +505,28 @@ cloneShares.get("/:id/shares", requireAuth, async (c) => {
         created_at: string;
         target_name: string | null;
         target_email: string | null;
+        target_avatar: string | null;
       }>()
   ).results;
   return c.json({
-    shares: rows.map((r) => ({
+    items: rows.map((r) => ({
       id: r.id,
+      cloneId: r.clone_id,
+      ownerId: r.owner_id,
       targetUserId: r.target_user_id,
-      targetName: r.target_name,
-      targetEmail: r.target_email,
       inviteEmail: r.invite_email,
       relation: r.relation,
       role: r.role,
       status: r.status,
       createdAt: r.created_at,
+      targetUser: r.target_user_id
+        ? {
+            id: r.target_user_id,
+            name: r.target_name,
+            email: r.target_email ?? "",
+            avatarUrl: r.target_avatar,
+          }
+        : undefined,
     })),
   });
 });
@@ -339,7 +540,6 @@ cloneShares.delete(
     const shareId = parseShareId(c);
     const userId = c.get("userId")!;
     const db = c.env.DB;
-    await assertOwner(db, cloneId, userId);
 
     const target = await db
       .prepare(
@@ -355,11 +555,17 @@ cloneShares.delete(
         status: string;
       }>();
     if (!target) throw new APIError("NOT_FOUND", "Share not found.");
-    if (target.target_user_id === userId && target.role === "owner") {
+
+    const isSelf = target.target_user_id === userId;
+    if (isSelf && target.role === "owner") {
       throw new APIError(
         "OWNER_CONSTRAINT",
         "Cannot remove your own owner record — delete the clone instead.",
       );
+    }
+    if (!isSelf) {
+
+      await assertOwner(db, cloneId, userId);
     }
 
     try {
@@ -376,8 +582,82 @@ cloneShares.delete(
     }
     await logActivity(c, {
       userId,
-      action: "sharing.share.delete",
-      details: { cloneId, shareId, removedRole: target.role },
+      action: isSelf ? "sharing.share.leave" : "sharing.share.kick",
+      details: { cloneId, shareId, removedRole: target.role, removedTargetUserId: target.target_user_id },
+    });
+    return c.json({ ok: true, action: isSelf ? "leave" : "kick" });
+  },
+);
+
+cloneShares.get("/:id/invites", requireAuth, async (c) => {
+  const cloneId = parseCloneId(c);
+  const userId = c.get("userId")!;
+  const db = c.env.DB;
+  await assertOwner(db, cloneId, userId);
+
+  const rows = await db
+    .prepare(
+      `SELECT id, invite_email, relation, grant_owner, expires_at, created_at
+         FROM invite_tokens
+        WHERE clone_id = ? AND used_at IS NULL AND cancelled_at IS NULL
+          AND expires_at > CURRENT_TIMESTAMP
+        ORDER BY id DESC`,
+    )
+    .bind(cloneId)
+    .all<{
+      id: number;
+      invite_email: string | null;
+      relation: string | null;
+      grant_owner: number;
+      expires_at: string;
+      created_at: string;
+    }>();
+  return c.json({
+    items: (rows.results ?? []).map((r) => ({
+      id: r.id,
+      inviteEmail: r.invite_email,
+      relation: r.relation,
+      grantOwner: !!r.grant_owner,
+      expiresAt: r.expires_at,
+      createdAt: r.created_at,
+      status: "pending" as const,
+    })),
+  });
+});
+
+cloneShares.delete(
+  "/:id/invites/:inviteId",
+  requireAuth,
+  requireIdempotencyKey("sharing.invite.cancel"),
+  async (c) => {
+    const cloneId = parseCloneId(c);
+    const userId = c.get("userId")!;
+    const inviteId = Number(c.req.param("inviteId"));
+    if (!Number.isInteger(inviteId) || inviteId <= 0) {
+      throw new APIError("VALIDATION_FAILED", "Invalid invite id.");
+    }
+    const db = c.env.DB;
+    await assertOwner(db, cloneId, userId);
+
+    const row = await db
+      .prepare(
+        `SELECT id, used_at, cancelled_at FROM invite_tokens
+          WHERE id = ? AND clone_id = ?`,
+      )
+      .bind(inviteId, cloneId)
+      .first<{ id: number; used_at: string | null; cancelled_at: string | null }>();
+    if (!row) throw new APIError("NOT_FOUND", "Invite not found.");
+    if (row.used_at) throw new APIError("CONFLICT", "Invite already accepted — remove via shares delete instead.");
+    if (row.cancelled_at) throw new APIError("CONFLICT", "Invite already cancelled.");
+
+    await db
+      .prepare(`UPDATE invite_tokens SET cancelled_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(inviteId)
+      .run();
+    await logActivity(c, {
+      userId,
+      action: "sharing.invite.cancel",
+      details: { cloneId, inviteId },
     });
     return c.json({ ok: true });
   },

@@ -113,7 +113,8 @@ const SafeScrollViewInner = forwardRef<ScrollView, SafeScrollViewProps>(({
       <ScrollView
         ref={internalScrollViewRef}
         style={[styles.container, style]}
-        automaticallyAdjustKeyboardInsets={autoAdjustKeyboardPadding}
+
+        automaticallyAdjustKeyboardInsets={false}
         keyboardShouldPersistTaps={props.keyboardShouldPersistTaps ?? "handled"}
         contentContainerStyle={(() => {
 

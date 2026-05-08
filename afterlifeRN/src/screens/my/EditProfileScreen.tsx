@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
@@ -38,6 +39,7 @@ const GENDER_OPTIONS: Array<{ value: Gender; label: string }> = [
 ];
 
 export default function EditProfileScreen() {
+  const insetsRef = useSafeAreaInsets();
   const navigation = useNavigation();
   const { t } = useTranslation();
   const apiUser = useAuthStore((s) => s.apiUser);
@@ -55,6 +57,7 @@ export default function EditProfileScreen() {
   const [interestsModalVisible, setInterestsModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteOptionsVisible, setDeleteOptionsVisible] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -191,21 +194,23 @@ export default function EditProfileScreen() {
 
   const handleDeleteAfterlifeOnly = () => {
     if (deleting) return;
+    setDeleteOptionsVisible(false);
     Alert.alert(
-      "에프터라이프 계정 삭제",
-      "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.\n복구할 수 없습니다.",
+      "에프터라이프 계정 탈퇴",
+      "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.",
       [
         { text: "취소", style: "cancel" },
-        { text: "삭제", style: "destructive", onPress: () => performDelete(false) },
+        { text: "탈퇴", style: "destructive", onPress: () => performDelete(false) },
       ],
     );
   };
 
   const handleDeleteWithXrun = () => {
     if (deleting) return;
+    setDeleteOptionsVisible(false);
     Alert.alert(
       "에프터라이프 + xrun 함께 탈퇴",
-      "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라지며 복구할 수 없습니다.",
+      "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라집니다.",
       [
         { text: "취소", style: "cancel" },
         { text: "모두 탈퇴", style: "destructive", onPress: () => performDelete(true) },
@@ -322,36 +327,6 @@ export default function EditProfileScreen() {
         </TouchableOpacity>
 
         {}
-        <View style={s.deleteSection}>
-          <TouchableOpacity
-            style={s.deleteOnlyBtn}
-            onPress={handleDeleteAfterlifeOnly}
-            disabled={deleting}
-          >
-            {deleting ? (
-              <ActivityIndicator color={COLORS.zinc700} />
-            ) : (
-              <Text style={s.deleteOnlyBtnText}>에프터라이프 계정만 삭제</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={s.deleteAllBtn}
-            onPress={handleDeleteWithXrun}
-            disabled={deleting}
-          >
-            {deleting ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
-              <Text style={s.deleteAllBtnText}>xrun도 함께 탈퇴</Text>
-            )}
-          </TouchableOpacity>
-
-          <Text style={s.deleteHint}>
-            모두 영구 삭제이며 복구할 수 없습니다.{"\n"}
-            "에프터라이프만 삭제"는 xrun 회원과 지갑을 유지합니다.
-          </Text>
-        </View>
       </View>
 
       {}
@@ -362,7 +337,10 @@ export default function EditProfileScreen() {
         onRequestClose={() => setInterestsModalVisible(false)}
       >
         <Pressable style={s.modalOverlay} onPress={() => setInterestsModalVisible(false)}>
-          <Pressable style={s.modalSheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[s.modalSheet, { paddingBottom: 32 + Math.max(insetsRef.bottom, 0) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={s.modalHandle} />
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>관심사 선택</Text>
@@ -388,6 +366,53 @@ export default function EditProfileScreen() {
               onPress={() => setInterestsModalVisible(false)}
             >
               <Text style={s.modalDoneBtnText}>완료</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal
+        visible={deleteOptionsVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setDeleteOptionsVisible(false)}
+      >
+        <Pressable style={s.modalOverlay} onPress={() => setDeleteOptionsVisible(false)}>
+          <Pressable
+            style={[s.deleteSheet, { paddingBottom: 32 + Math.max(insetsRef.bottom, 0) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={s.modalHandle} />
+            <Text style={s.deleteSheetTitle}>회원 탈퇴</Text>
+            <Text style={s.deleteSheetSubtitle}>
+              어느 범위로 탈퇴하시겠어요?
+            </Text>
+
+            <TouchableOpacity
+              style={s.deleteOnlyBtn}
+              onPress={handleDeleteAfterlifeOnly}
+              disabled={deleting}
+            >
+              <Text style={s.deleteOnlyBtnText}>에프터라이프 계정 탈퇴</Text>
+              <Text style={s.deleteOptionHint}>xrun 회원·지갑은 유지</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.deleteAllBtn}
+              onPress={handleDeleteWithXrun}
+              disabled={deleting}
+            >
+              <Text style={s.deleteAllBtnText}>xrun도 함께 탈퇴</Text>
+              <Text style={s.deleteAllHint}>지갑·결제 비밀번호도 모두 삭제</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.deleteCancelBtn}
+              onPress={() => setDeleteOptionsVisible(false)}
+              disabled={deleting}
+            >
+              <Text style={s.deleteCancelText}>취소</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -474,12 +499,44 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.zinc300,
   },
   saveBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
-  deleteSection: {
+
+  deleteTriggerBtn: {
     marginTop: 32,
-    gap: 10,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  deleteTriggerText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.error,
+    textDecorationLine: "underline",
+  },
+
+  deleteSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 32,
+    gap: 12,
+  },
+  deleteSheetTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+    textAlign: "center",
+    marginTop: 8,
+  },
+  deleteSheetSubtitle: {
+    fontSize: 13,
+    color: COLORS.zinc500,
+    textAlign: "center",
+    marginBottom: 8,
   },
   deleteOnlyBtn: {
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: RADIUS.lg,
     backgroundColor: COLORS.white,
     borderWidth: 1,
@@ -487,27 +544,41 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   deleteOnlyBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
-    color: COLORS.zinc700,
+    color: COLORS.zinc900,
+  },
+  deleteOptionHint: {
+    fontSize: 11,
+    color: COLORS.zinc500,
+    marginTop: 2,
   },
   deleteAllBtn: {
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: RADIUS.lg,
     backgroundColor: COLORS.error,
     alignItems: "center",
   },
   deleteAllBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.white,
   },
-  deleteHint: {
+  deleteAllHint: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+  },
+  deleteCancelBtn: {
+    paddingVertical: 12,
+    alignItems: "center",
     marginTop: 4,
-    fontSize: 12,
+  },
+  deleteCancelText: {
+    fontSize: 14,
     color: COLORS.zinc500,
-    textAlign: "center",
-    lineHeight: 18,
+    fontWeight: "500",
   },
 
   modalOverlay: {

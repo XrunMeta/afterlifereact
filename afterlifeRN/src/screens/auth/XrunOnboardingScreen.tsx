@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
 
@@ -8,6 +9,8 @@ import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import Button from "../../components/ui/Button";
 import InterestChip from "../../components/ui/InterestChip";
+import TextField from "../../components/ui/TextField";
+import SelectField from "../../components/ui/SelectField";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
@@ -19,11 +22,21 @@ import { getOrCreateDeviceId } from "../../lib/deviceId";
 type Props = NativeStackScreenProps<AuthStackParamList, "XrunOnboarding">;
 
 export default function XrunOnboardingScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
+  const GENDER_OPTIONS = [
+    { value: "male" as const, label: t("auth.signup.male") },
+    { value: "female" as const, label: t("auth.signup.female") },
+    { value: "other" as const, label: t("auth.signup.other") },
+  ];
   const { email } = route.params;
   const pin = "pin" in route.params ? route.params.pin : undefined;
   const verificationCode =
     "verificationCode" in route.params ? route.params.verificationCode : undefined;
   const google = "google" in route.params ? route.params.google : undefined;
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
+  const [age, setAge] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [agreeRequired, setAgreeRequired] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
@@ -53,6 +66,37 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     );
   };
 
+  const validateProfileInputs = (): boolean => {
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
+    if (!trimmedName) {
+      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
+      return false;
+    }
+    if (!trimmedPhone) {
+      Alert.alert(t("common.notice"), t("auth.signup.phoneTooShort"));
+      return false;
+    }
+    if (trimmedPhone.length < 4) {
+      Alert.alert(t("common.notice"), t("auth.signup.phoneTooShort"));
+      return false;
+    }
+    if (!gender) {
+      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
+      return false;
+    }
+    if (!age) {
+      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
+      return false;
+    }
+    const ageNum = parseInt(age, 10);
+    if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+      Alert.alert(t("common.notice"), t("auth.signup.ageInvalid"));
+      return false;
+    }
+    return true;
+  };
+
   const toggleMarketing = async () => {
     if (agreeMarketing) {
       setAgreeMarketing(false);
@@ -65,10 +109,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     try {
       const reg = await requestPushPermission();
       if (!reg.granted) {
-        Alert.alert(
-          "푸시 알림 권한 필요",
-          "마케팅 정보 알림을 받으려면 푸시 알림 권한이 필요합니다.\n기기 설정 → 알림 → AfterLife 에서 허용해주세요.",
-        );
+        Alert.alert(t("auth.signup.pushPermTitle"), t("auth.signup.pushPermDesc"));
         return;
       }
       const did = await getOrCreateDeviceId();
@@ -77,7 +118,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       setPushPlatform(reg.platform);
       setDeviceId(did);
     } catch {
-      Alert.alert("오류", "권한 요청 중 문제가 발생했습니다.");
+      Alert.alert(t("common.error"), t("auth.signup.pushPermError"));
     } finally {
       setRequestingPush(false);
     }
@@ -85,7 +126,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
 
   const handleNextToOtp = async () => {
     if (!agreeRequired) {
-      Alert.alert("알림", "이용약관에 동의해주세요.");
+      Alert.alert(t("common.notice"), t("auth.signup.termsAccept"));
       return;
     }
     setSubmitting(true);
@@ -96,9 +137,9 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       setTimeout(() => otpInputRef.current?.focus(), 200);
     } catch (err) {
       const msg = err instanceof AuthApiError
-        ? err.code === "OTP_COOLDOWN" ? "잠시 후 다시 시도해주세요. (1분 쿨다운)" : err.message
-        : "코드 발송에 실패했습니다.";
-      Alert.alert("오류", msg);
+        ? err.code === "OTP_COOLDOWN" ? t("auth.signup.rateLimit") : err.message
+        : t("auth.signup.sendCodeFailed");
+      Alert.alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -109,25 +150,26 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     try {
       await requestEmailCode(email);
       setResendIn(60);
-      Alert.alert("재발송", "인증 코드를 다시 보냈습니다.");
+      Alert.alert(t("auth.emailVerify.resend"), t("auth.emailVerify.resentToast"));
     } catch (err) {
-      const msg = err instanceof AuthApiError ? err.message : "재발송 실패";
-      Alert.alert("오류", msg);
+      const msg = err instanceof AuthApiError ? err.message : t("common.error");
+      Alert.alert(t("common.error"), msg);
     }
   };
 
   const handleComplete = async () => {
     if (google && step === 1) {
-
+      if (!validateProfileInputs()) return;
       await handleNextToOtp();
       return;
     }
     if (!agreeRequired) {
-      Alert.alert("알림", "이용약관에 동의해주세요.");
+      Alert.alert(t("common.notice"), t("auth.signup.termsAccept"));
       return;
     }
+    if (!google && !validateProfileInputs()) return;
     if (google && otpCode.length !== 6) {
-      Alert.alert("알림", "6자리 인증 코드를 입력해주세요.");
+      Alert.alert(t("common.notice"), t("auth.emailVerify.codePlaceholder"));
       return;
     }
     setSubmitting(true);
@@ -137,6 +179,10 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
         pin,
         verificationCode: google ? otpCode : verificationCode,
         googleIdToken: google?.idToken,
+        name: name.trim(),
+        phone: phone.trim(),
+        gender: gender || undefined,
+        age: parseInt(age, 10),
         interests: selectedInterests.length > 0 ? selectedInterests : undefined,
         marketingConsent: agreeMarketing,
         deviceId: deviceId ?? undefined,
@@ -149,14 +195,14 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       console.log("[AUTH/xrun] user:", meRes.user);
       await hydrate();
     } catch (err) {
-      let msg = "처리 중 오류가 발생했습니다.";
+      let msg = t("common.error");
       if (err instanceof AuthApiError) {
-        if (err.code === "OTP_EXPIRED") msg = "인증 코드가 만료됐습니다. 처음부터 다시 시도해주세요.";
-        else if (err.code === "OTP_INVALID") msg = "잘못된 인증 코드입니다.";
-        else if (err.code === "UNAUTHENTICATED") msg = "xrun 자격증명이 무효합니다.";
+        if (err.code === "OTP_EXPIRED") msg = t("auth.emailVerify.expired");
+        else if (err.code === "OTP_INVALID") msg = t("auth.emailVerify.wrongCode");
+        else if (err.code === "UNAUTHENTICATED") msg = t("auth.login.invalidCredentials");
         else msg = err.message;
       }
-      Alert.alert("오류", msg);
+      Alert.alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -165,13 +211,12 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
   if (google && step === 2) {
     return (
       <SafeView backgroundColor={COLORS.zinc50}>
-        <PageHeader title="이메일 인증" showBackButton onBackPress={() => setStep(1)} />
+        <PageHeader title={t("auth.emailVerify.title")} showBackButton onBackPress={() => setStep(1)} />
         <SafeScrollView contentContainerStyle={styles.content} autoAdjustKeyboardPadding showBottomBackground={false}>
           <View style={styles.container}>
-            <Text style={styles.title}>이메일로 코드를 보냈어요</Text>
+            <Text style={styles.title}>{t("auth.emailVerify.title")}</Text>
             <Text style={styles.subtitle}>
-              <Text style={styles.email}>{email}</Text>
-              {"\n"}메일함의 6자리 인증 코드를 입력해주세요. (5분간 유효)
+              {t("auth.emailVerify.desc", { email })}
             </Text>
             <TextInput
               ref={otpInputRef}
@@ -185,15 +230,14 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
               autoFocus
             />
             <Button
-              title={submitting ? "가입 처리 중..." : "가입 완료"}
+              title={submitting ? t("auth.signup.verifying") : t("auth.xrun.submit")}
               onPress={handleComplete}
               disabled={submitting || otpCode.length !== 6}
             />
             <View style={styles.resendRow}>
-              <Text style={styles.resendText}>코드를 못 받으셨나요?</Text>
               <TouchableOpacity onPress={handleResend} disabled={resendIn > 0}>
                 <Text style={[styles.resendLink, resendIn > 0 && styles.resendLinkDisabled]}>
-                  {resendIn > 0 ? `재발송 (${resendIn}s)` : "재발송"}
+                  {resendIn > 0 ? `${t("auth.emailVerify.resend")} (${resendIn}s)` : t("auth.emailVerify.resend")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -205,17 +249,54 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
-      <PageHeader title="가입 마지막 단계" showBackButton onBackPress={() => navigation.goBack()} />
+      <PageHeader title={t("auth.xrun.onboardingTitle")} showBackButton onBackPress={() => navigation.goBack()} />
       <SafeScrollView contentContainerStyle={styles.content} autoAdjustKeyboardPadding showBottomBackground={false}>
         <View style={styles.container}>
-          <Text style={styles.title}>관심사와 약관 확인</Text>
+          <Text style={styles.title}>{t("auth.xrun.onboardingTitle")}</Text>
           <Text style={styles.subtitle}>
-            {google ? "Google 인증이 완료됐어요." : "xrun 인증이 완료됐어요."} 마지막으로 관심사와 약관을 확인해주세요.
+            {google ? t("auth.xrun.googleOnboardingDesc") : t("auth.xrun.onboardingDesc")}
           </Text>
 
           {}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>관심사 선택 (선택사항)</Text>
+            <Text style={styles.sectionLabel}>{t("edit.basicSection")}</Text>
+            <TextField
+              placeholder={t("auth.signup.name")}
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="none"
+            />
+            <TextField
+              placeholder={t("auth.signup.phone")}
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+              maxLength={20}
+            />
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <SelectField<"male" | "female" | "other">
+                  options={GENDER_OPTIONS}
+                  value={gender || null}
+                  onChange={(v) => setGender(v ?? "")}
+                  placeholder={t("auth.signup.gender")}
+                />
+              </View>
+              <View style={styles.ageField}>
+                <TextField
+                  placeholder="나이"
+                  value={age}
+                  onChangeText={(v) => setAge(v.replace(/\D/g, "").slice(0, 3))}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+              </View>
+            </View>
+          </View>
+
+          {}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>{t("auth.signup.interests")}</Text>
             <View style={styles.chipGrid}>
               {ALL_INTERESTS.map((interest) => (
                 <InterestChip
@@ -234,17 +315,15 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
               <View style={[styles.checkbox, agreeRequired && styles.checkboxChecked]}>
                 {agreeRequired && <Feather name="check" size={14} color={COLORS.white} />}
               </View>
-              <Text style={styles.termText}>
-                <Text style={styles.termBold}>(필수)</Text> 이용약관 및 개인정보 처리방침에 동의합니다
-              </Text>
+              <Text style={styles.termText}>{t("auth.signup.termsRequired")}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={toggleMarketing} disabled={requestingPush} style={styles.checkRow}>
               <View style={[styles.checkbox, agreeMarketing && styles.checkboxChecked]}>
                 {agreeMarketing && <Feather name="check" size={14} color={COLORS.white} />}
               </View>
               <Text style={styles.termText}>
-                <Text style={styles.termOptional}>(선택)</Text> 마케팅 정보 수신에 동의합니다
-                {requestingPush ? " (권한 요청 중...)" : ""}
+                {t("auth.signup.marketingConsent")}
+                {requestingPush ? ` (${t("auth.signup.verifying")})` : ""}
               </Text>
             </TouchableOpacity>
           </View>
@@ -252,10 +331,10 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
           <Button
             title={
               submitting
-                ? "처리 중..."
+                ? t("auth.xrun.submitting")
                 : google
-                  ? "다음 (이메일 인증)"
-                  : "가입 완료"
+                  ? t("auth.xrun.next")
+                  : t("auth.xrun.submit")
             }
             onPress={handleComplete}
             disabled={submitting || !agreeRequired}
@@ -273,6 +352,8 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, color: COLORS.zinc600, textAlign: "center", lineHeight: 22, marginBottom: SIZES.medium },
   section: { gap: 12 },
   sectionLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
+  row: { flexDirection: "row", gap: 12 },
+  ageField: { width: 100 },
   chipGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   terms: { gap: 12, paddingTop: SIZES.medium },
   checkRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },

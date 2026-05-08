@@ -12,20 +12,39 @@ import {
   TextInput,
   Dimensions,
   Animated,
+  Alert,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
+import NotificationBell from "../../components/common/NotificationBell";
+import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { RootStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
+import {
+  listFeedComments,
+  postFeedComment,
+  postCloneComment,
+  deleteFeedComment,
+  listMyFollowedClones,
+  likeFeed,
+  unlikeFeed,
+  likeClone,
+  unlikeClone,
+  type FeedComment,
+  type FollowedClone,
+} from "../../api/clones";
+import { formatRelativeKo } from "../../lib/relativeTime";
+import { useFocusEffect } from "@react-navigation/native";
 import type { DomainClone, DomainFeed } from "../../types/domain";
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
@@ -42,9 +61,20 @@ type FollowedPersona = {
   interactions: number; 
 };
 
-const mockIntimacy = (cloneId: number) => ((cloneId * 17) % 100);
-const mockInteractions = (cloneId: number) => 100 + ((cloneId * 137) % 5000);
-const mockLikes = (feedId: number) => 500 + ((feedId * 213) % 3000);
+const deriveInteractions = (stats?: {
+  messages: number;
+  gifts: number;
+  likes?: number;
+  comments?: number;
+}): number => {
+  const m = stats?.messages ?? 0;
+  const g = stats?.gifts ?? 0;
+  const l = stats?.likes ?? 0;
+  const c = stats?.comments ?? 0;
+  return m + g + l + c;
+};
+const deriveIntimacy = (interactions: number): number =>
+  Math.min(100, Math.floor(interactions / 50));
 
 type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
 const MOCK_COMMENT_AUTHORS: ReadonlyArray<{ author: string; avatar: string; content: string; time: string }> = [
@@ -65,21 +95,78 @@ const toPersona = (clone: DomainClone, ownerHandle?: string): FollowedPersona =>
   avatar: clone.imageUrl ?? "",
   interests: clone.interests,
   creatorAccount: ownerHandle ? `@${ownerHandle}` : "",
-  intimacy: mockIntimacy(clone.id),
-  interactions: mockInteractions(clone.id),
+  intimacy: 0,
+  interactions: 0,
 });
 
 const formatCount = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
 export default function FollowingScreen() {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const rootNav = useNavigation<RootNav>();
   const authUser = useAuthStore((s) => s.user);
+  const apiUser = useAuthStore((s) => s.apiUser);
   const follows = useFollowStore((s) => s.follows);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
+  const isFollowing = useFollowStore((s) => s.isFollowing);
 
   const uid = authUser?.id ?? DEFAULT_USER_ID;
+  const accessToken = useAuthStore((s) => s.accessToken);
+
+  const [apiFollowed, setApiFollowed] = useState<FollowedClone[] | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      const userId = apiUser?.id;
+      if (!accessToken || !userId) {
+        setApiFollowed(null);
+        return;
+      }
+      console.log(`[Following] fetch start userId=${userId}`);
+      listMyFollowedClones(accessToken, userId)
+        .then((r) => {
+          if (!cancelled) {
+            console.log(
+              `[Following] followedClones ← ${r.items.length} items`,
+              r.items.map((it) => ({
+                id: it.id,
+                name: it.name,
+                "stats.likes": it.stats?.likes,
+                "stats.comments": it.stats?.comments,
+                "latestFeed.feedId": it.latestFeed?.feedId,
+                "latestFeed.likedByMe": it.latestFeed?.likedByMe,
+              })),
+            );
+            setApiFollowed(r.items);
+          }
+        })
+        .catch((err) => {
+          console.warn("[Following] listMyFollowedClones failed:", err);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [accessToken, apiUser?.id]),
+  );
 
   const followedPersonas = useMemo<FollowedPersona[]>(() => {
+    if (apiFollowed != null) {
+      return apiFollowed.map((c) => {
+        const interactions = deriveInteractions(c.stats);
+        return {
+          id: c.id,
+          name: c.name,
+          avatar: c.avatarUrl ?? "",
+          interests: c.interests ?? [],
+          creatorAccount: `@${c.username}`,
+          intimacy: deriveIntimacy(interactions),
+          interactions,
+        };
+      });
+    }
+
+    if (accessToken) return [];
     const followingCloneIds = follows
       .filter((f) => f.followerUserId === uid)
       .map((f) => f.followingCloneId);
@@ -90,18 +177,77 @@ export default function FollowingScreen() {
         const owner = seedSource.users().find((u) => u.id === clone.ownerId);
         return toPersona(clone, owner?.handle);
       });
-  }, [follows, uid]);
+  }, [apiFollowed, accessToken, follows, uid]);
 
   const feeds = useMemo<DomainFeed[]>(() => {
+    if (apiFollowed != null) {
+      return apiFollowed.map((c) => {
+        const realFeedId = c.latestFeed?.feedId ?? null;
+        return {
+          id: realFeedId ?? -c.id, 
+          cloneId: c.id,
+          content: c.description ?? "",
+          mediaUrl: c.avatarUrl ?? undefined,
+          mediaType: null,
+
+          likesCount: c.stats.likes ?? 0,
+          createdAt: c.createdAt,
+        };
+      });
+    }
     const followingIds = new Set(followedPersonas.map((p) => p.id));
     return seedSource.feeds()
       .filter((f) => followingIds.has(f.cloneId))
       .slice()
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [followedPersonas]);
+  }, [apiFollowed, followedPersonas]);
 
-  const [selectedCategory, setSelectedCategory] = useState("전체");
+  const cloneMetaById = useMemo(() => {
+    const map = new Map<number, { likesCount: number; commentsCount: number; likedByMe: boolean }>();
+    if (apiFollowed) {
+      for (const c of apiFollowed) {
+        map.set(c.id, {
+          likesCount: c.stats.likes ?? 0,
+          commentsCount: c.stats.comments ?? 0,
+          likedByMe: c.latestFeed?.likedByMe ?? false,
+        });
+      }
+    }
+    return map;
+  }, [apiFollowed]);
+
+  const [selectedCategory, setSelectedCategory] = useState(t("feed.categoryAll"));
+
   const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
+
+  const [countDelta, setCountDelta] = useState<Map<number, { likes: number; comments: number }>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    if (!apiFollowed) return;
+    const next = new Set<number>();
+    for (const c of apiFollowed) {
+      if (c.latestFeed?.likedByMe) next.add(c.id);
+    }
+    setLikedPosts(next);
+  }, [apiFollowed]);
+
+  const [localFollowedIds, setLocalFollowedIds] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    if (!apiFollowed) return;
+    setLocalFollowedIds(new Set(apiFollowed.map((c) => c.id)));
+  }, [apiFollowed]);
+  const isFollowingPersona = (cloneId: number) => localFollowedIds.has(cloneId);
+  const toggleFollowPersona = async (cloneId: number) => {
+
+    setLocalFollowedIds((prev) => {
+      const next = new Set(prev);
+      next.has(cloneId) ? next.delete(cloneId) : next.add(cloneId);
+      return next;
+    });
+    await toggleFollow(cloneId); 
+  };
 
   const [commentPostId, setCommentPostId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
@@ -140,12 +286,12 @@ export default function FollowingScreen() {
   const categories = useMemo(() => {
     const tags = new Set<string>();
     followedPersonas.forEach((p) => p.interests.forEach((i) => tags.add(i)));
-    return ["전체", ...Array.from(tags)];
+    return [t("feed.categoryAll"), ...Array.from(tags)];
   }, [followedPersonas]);
 
   const posts = useMemo(() => {
     let filtered = feeds;
-    if (selectedCategory !== "전체") {
+    if (selectedCategory !== t("feed.categoryAll")) {
       const ids = followedPersonas
         .filter((p) => p.interests.includes(selectedCategory))
         .map((p) => p.id);
@@ -171,12 +317,45 @@ export default function FollowingScreen() {
     );
   }, [callSearchQuery, followedPersonas]);
 
-  const toggleLike = (id: number) => {
+  const toggleLikeForClone = async (cloneId: number, feedId: number) => {
+    const wasLiked = likedPosts.has(cloneId);
+    const willLike = !wasLiked;
+
     setLikedPosts((prev) => {
       const s = new Set(prev);
-      s.has(id) ? s.delete(id) : s.add(id);
+      willLike ? s.add(cloneId) : s.delete(cloneId);
       return s;
     });
+    setCountDelta((prev) => {
+      const next = new Map(prev);
+      const cur = next.get(cloneId) ?? { likes: 0, comments: 0 };
+      next.set(cloneId, { ...cur, likes: cur.likes + (willLike ? 1 : -1) });
+      return next;
+    });
+    if (!accessToken) return;
+    try {
+      if (feedId > 0) {
+        if (willLike) await likeFeed(accessToken, feedId);
+        else await unlikeFeed(accessToken, feedId);
+      } else {
+        if (willLike) await likeClone(accessToken, cloneId);
+        else await unlikeClone(accessToken, cloneId);
+      }
+    } catch (err) {
+      console.warn("[Following] toggleLike failed:", err);
+
+      setLikedPosts((prev) => {
+        const s = new Set(prev);
+        wasLiked ? s.add(cloneId) : s.delete(cloneId);
+        return s;
+      });
+      setCountDelta((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(cloneId) ?? { likes: 0, comments: 0 };
+        next.set(cloneId, { ...cur, likes: cur.likes - (willLike ? 1 : -1) });
+        return next;
+      });
+    }
   };
 
   const confirmUnfollow = async () => {
@@ -186,7 +365,117 @@ export default function FollowingScreen() {
     }
   };
 
-  const currentComments: MockComment[] = commentPostId ? mockCommentList(commentPostId) : [];
+  const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
+  const [apiComments, setApiComments] = useState<FeedComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  useEffect(() => {
+    if (commentPostId == null) {
+      setApiComments([]);
+      return;
+    }
+    if (commentPostId < 0) {
+      setApiComments([]);
+      return;
+    }
+    let cancelled = false;
+    setCommentsLoading(true);
+    setApiComments([]);
+    listFeedComments(commentPostId, { limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        setApiComments(res.items);
+      })
+      .catch((err) => {
+        console.warn("[Following] listFeedComments failed:", err);
+        if (!cancelled) setApiComments([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [commentPostId]);
+
+  const submittingRef = useRef(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const submitComment = async () => {
+    if (commentPostId == null) return;
+    if (submittingRef.current) return; 
+    const content = commentText.trim();
+    if (!content || !accessToken) return;
+    submittingRef.current = true;
+    setSubmittingComment(true);
+    try {
+      let realFeedId: number;
+      let cloneIdForDelta: number;
+      if (commentPostId < 0) {
+        const cloneId = -commentPostId;
+        cloneIdForDelta = cloneId;
+        const res = await postCloneComment(accessToken, cloneId, content);
+        realFeedId = res.comment.feedId;
+        setCommentPostId(realFeedId);
+      } else {
+        await postFeedComment(accessToken, commentPostId, content);
+        realFeedId = commentPostId;
+
+        const matchedClone = apiFollowed?.find((c) => c.latestFeed?.feedId === commentPostId);
+        cloneIdForDelta = matchedClone?.id ?? -1;
+      }
+      setCommentText("");
+      const r = await listFeedComments(realFeedId, { limit: 100 });
+      setApiComments(r.items);
+
+      if (cloneIdForDelta > 0) {
+        setCountDelta((prev) => {
+          const next = new Map(prev);
+          const cur = next.get(cloneIdForDelta) ?? { likes: 0, comments: 0 };
+          next.set(cloneIdForDelta, { ...cur, comments: cur.comments + 1 });
+          return next;
+        });
+      }
+    } catch (err) {
+      console.warn("[Following] postFeedComment failed:", err);
+    } finally {
+      submittingRef.current = false;
+      setSubmittingComment(false);
+    }
+  };
+
+  const deleteComment = (commentId: number) => {
+    if (commentPostId == null || commentPostId < 0 || !accessToken) return;
+    Alert.alert(
+      "댓글 삭제",
+      "이 댓글을 삭제하시겠습니까?",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "삭제",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteFeedComment(accessToken, commentPostId, commentId);
+              setApiComments((prev) => prev.filter((c) => c.id !== commentId));
+
+              const matchedClone = apiFollowed?.find(
+                (c) => c.latestFeed?.feedId === commentPostId,
+              );
+              if (matchedClone) {
+                setCountDelta((prev) => {
+                  const next = new Map(prev);
+                  const cur = next.get(matchedClone.id) ?? { likes: 0, comments: 0 };
+                  next.set(matchedClone.id, { ...cur, comments: cur.comments - 1 });
+                  return next;
+                });
+              }
+            } catch (err) {
+              console.warn("[Following] deleteFeedComment failed:", err);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const renderPost = ({ item }: { item: (typeof posts)[0] }) => {
     const feedImage = item.feed.mediaUrl ?? item.persona.avatar;
@@ -225,7 +514,7 @@ export default function FollowingScreen() {
             <Text style={s.postContent} numberOfLines={3}>{item.feed.content}</Text>
             <View style={s.overlayBtns}>
               <Button
-                title="통화하기"
+                title={t("feed.actionCall")}
                 variant="secondary"
                 size="md"
                 leftIcon={<Feather name="video" size={14} color={COLORS.zinc900} />}
@@ -240,44 +529,63 @@ export default function FollowingScreen() {
                 textColor={COLORS.zinc900}
                 backgroundColor={COLORS.white}
               />
-              <Button
-                title="팔로우 취소"
-                variant="ghost"
-                size="md"
-                leftIcon={<Feather name="user-minus" size={14} color={COLORS.white} />}
-                onPress={() => setUnfollowConfirmId(item.persona.id)}
-                style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
-                textColor={COLORS.white}
-                backgroundColor="rgba(255,255,255,0.2)"
-              />
+              {(() => {
+                const followed = isFollowingPersona(item.persona.id);
+                return (
+                  <Button
+                    title={followed ? "팔로잉" : "팔로우"}
+                    variant="ghost"
+                    size="md"
+                    leftIcon={
+                      <Feather
+                        name={followed ? "user-check" : "user-plus"}
+                        size={14}
+                        color={COLORS.white}
+                      />
+                    }
+                    onPress={() => void toggleFollowPersona(item.persona.id)}
+                    style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
+                    textColor={COLORS.white}
+                    backgroundColor={followed ? "rgba(255,255,255,0.2)" : COLORS.violet600}
+                  />
+                );
+              })()}
             </View>
           </View>
         </View>
 
         {}
-        <View style={s.actionsRow}>
-          <View style={s.actionsLeft}>
-            <TouchableOpacity onPress={() => toggleLike(item.feed.id)}>
-              <Ionicons
-                name={likedPosts.has(item.feed.id) ? "heart" : "heart-outline"}
-                size={24}
-                color={likedPosts.has(item.feed.id) ? "#ef4444" : COLORS.zinc700}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setCommentPostId(item.feed.id)}>
-              <Feather name="message-circle" size={24} color={COLORS.zinc700} />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Feather name="share-2" size={22} color={COLORS.zinc700} />
-            </TouchableOpacity>
-          </View>
-          <View style={s.actionsRight}>
-            <Text style={s.countText}>
-              좋아요 {formatCount(mockLikes(item.feed.id) + (likedPosts.has(item.feed.id) ? 1 : 0))}개
-            </Text>
-            <Text style={s.countTextSub}>댓글 {mockCommentList(item.feed.id).length}개</Text>
-          </View>
-        </View>
+        {(() => {
+          const meta = cloneMetaById.get(item.persona.id);
+          const delta = countDelta.get(item.persona.id) ?? { likes: 0, comments: 0 };
+          const liked = likedPosts.has(item.persona.id);
+          const likesCount = (meta?.likesCount ?? 0) + delta.likes;
+          const commentsCount = (meta?.commentsCount ?? 0) + delta.comments;
+          return (
+            <View style={s.actionsRow}>
+              <View style={s.actionsLeft}>
+                <TouchableOpacity onPress={() => void toggleLikeForClone(item.persona.id, item.feed.id)}>
+                  <Ionicons
+                    name={liked ? "heart" : "heart-outline"}
+                    size={24}
+                    color={liked ? "#ef4444" : COLORS.zinc700}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setCommentPostId(item.feed.id)}>
+                  <Feather name="message-circle" size={24} color={COLORS.zinc700} />
+                </TouchableOpacity>
+              </View>
+              <View style={s.actionsRight}>
+                <Text style={s.countText}>
+                  {t("feed.likeCount", { n: formatCount(Math.max(0, likesCount)) })}
+                </Text>
+                <Text style={s.countTextSub}>
+                  {t("feed.commentCount", { n: Math.max(0, commentsCount) })}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
       </View>
     );
   };
@@ -286,11 +594,7 @@ export default function FollowingScreen() {
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
         title="Following"
-        rightAction={
-          <TouchableOpacity style={{ padding: 4 }}>
-            <Feather name="bell" size={22} color={COLORS.zinc700} />
-          </TouchableOpacity>
-        }
+        rightAction={<NotificationBell />}
       />
 
       {}
@@ -313,6 +617,13 @@ export default function FollowingScreen() {
         showsVerticalScrollIndicator={false}
         onScroll={onFeedScroll}
         scrollEventThrottle={16}
+        ListEmptyComponent={
+          <View style={s.emptyWrap}>
+            <Feather name="users" size={48} color={COLORS.zinc300} />
+            <Text style={s.emptyTitle}>아직 팔로우한 페르소나가 없어요</Text>
+            <Text style={s.emptyDesc}>홈에서 마음에 드는 페르소나를 팔로우해 보세요</Text>
+          </View>
+        }
       />
 
       {}
@@ -333,22 +644,22 @@ export default function FollowingScreen() {
             <View style={s.infoHeader}>
               <View style={s.infoHeaderLeft}>
                 <Feather name="thermometer" size={18} color="#fb923c" />
-                <Text style={s.infoTitle}>친밀도 온도</Text>
+                <Text style={s.infoTitle}>{t("feed.intimacyTitle")}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowIntimacyInfo(false)}>
                 <Feather name="x" size={20} color={COLORS.zinc400} />
               </TouchableOpacity>
             </View>
             <Text style={s.infoDesc}>
-              친밀도 온도는 페르소나와의 관계 깊이를 나타냅니다. 대화를 나누고 상호작용할수록 온도가 올라가며, 더욱 자연스럽고 개인화된 대화가 가능해집니다.
+              {t("feed.intimacyDesc")}
             </Text>
-            {[["0-30°C", "처음 만나는 단계"], ["31-60°C", "친숙해지는 단계"], ["61-90°C", "깊은 유대감 형성"], ["91-100°C", "최고의 친밀도"]].map(([range, desc], i) => (
+            {[["0-30°C", t("feed.intimacyL1")], ["31-60°C", t("feed.intimacyL2")], ["61-90°C", t("feed.intimacyL3")], ["91-100°C", t("feed.intimacyL4")]].map(([range, desc], i) => (
               <View key={i} style={s.levelRow}>
                 <Text style={[s.levelRange, i === 3 && { color: "#f97316" }]}>{range}</Text>
                 <Text style={[s.levelDesc, i === 3 && { color: "#f97316" }]}>{desc}</Text>
               </View>
             ))}
-            <Button title="확인" variant="primary" onPress={() => setShowIntimacyInfo(false)} style={{ marginTop: 20, width: "100%", borderRadius: RADIUS.full }} />
+            <Button title={t("common.ok")} variant="primary" onPress={() => setShowIntimacyInfo(false)} style={{ marginTop: 20, width: "100%", borderRadius: RADIUS.full }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -360,22 +671,22 @@ export default function FollowingScreen() {
             <View style={s.infoHeader}>
               <View style={s.infoHeaderLeft}>
                 <Ionicons name="chatbubbles-outline" size={18} color="#60a5fa" />
-                <Text style={s.infoTitle}>상호작용 횟수</Text>
+                <Text style={s.infoTitle}>{t("feed.interactionTitle")}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowInteractionInfo(false)}>
                 <Feather name="x" size={20} color={COLORS.zinc400} />
               </TouchableOpacity>
             </View>
             <Text style={s.infoDesc}>
-              상호작용 횟수는 페르소나와 나눈 대화, 통화, 학습 활동의 총 횟수를 의미합니다.
+              {t("feed.interactionDesc")}
             </Text>
             <View style={s.activityBox}>
-              <Text style={s.activityBoxTitle}>포함되는 활동</Text>
-              {["채팅 대화", "음성/영상 통화", "학습 세션", "피드 상호작용"].map((a, i) => (
+              <Text style={s.activityBoxTitle}>{t("feed.interactionListTitle")}</Text>
+              {[t("feed.interactionItemChat"), t("feed.interactionItemCall"), t("feed.interactionItemLearn"), t("feed.interactionItemFeed")].map((a, i) => (
                 <Text key={i} style={s.activityItem}>• {a}</Text>
               ))}
             </View>
-            <Button title="확인" variant="primary" onPress={() => setShowInteractionInfo(false)} style={{ marginTop: 16, width: "100%", borderRadius: RADIUS.full }} />
+            <Button title={t("common.ok")} variant="primary" onPress={() => setShowInteractionInfo(false)} style={{ marginTop: 16, width: "100%", borderRadius: RADIUS.full }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -383,31 +694,49 @@ export default function FollowingScreen() {
       {}
       <Modal visible={!!commentPostId} transparent animationType="slide">
         <Pressable style={s.bottomOverlay} onPress={() => setCommentPostId(null)}>
-          <View style={s.commentSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[s.commentSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={s.sheetHandle} />
             <View style={s.commentHeaderRow}>
-              <Text style={s.commentTitle}>댓글 {currentComments.length}개</Text>
+              <Text style={s.commentTitle}>{t("feed.commentCount", { n: apiComments.length })}</Text>
               <TouchableOpacity onPress={() => setCommentPostId(null)}>
                 <Feather name="x" size={20} color={COLORS.zinc600} />
               </TouchableOpacity>
             </View>
             <ScrollView style={s.commentScroll} showsVerticalScrollIndicator={false}>
-              {currentComments.length > 0 ? currentComments.map((c) => (
-                <View key={c.id} style={s.commentRow}>
-                  <Image source={{ uri: c.avatar }} style={s.commentAvatar} />
-                  <View style={s.commentInfo}>
-                    <View style={s.commentMeta}>
-                      <Text style={s.commentAuthor}>{c.author}</Text>
-                      <Text style={s.commentTime}>{c.time}</Text>
-                    </View>
-                    <Text style={s.commentContent}>{c.content}</Text>
-                  </View>
+              {commentsLoading ? (
+                <View style={s.emptyComment}>
+                  <Feather name="loader" size={28} color={COLORS.zinc300} />
                 </View>
-              )) : (
+              ) : apiComments.length > 0 ? (
+                apiComments.map((c) => (
+                  <View key={c.id} style={s.commentRow}>
+                    {c.user.avatarUrl ? (
+                      <Image source={{ uri: c.user.avatarUrl }} style={s.commentAvatar} />
+                    ) : (
+                      <View style={[s.commentAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                    )}
+                    <View style={s.commentInfo}>
+                      <View style={s.commentMeta}>
+                        <Text style={s.commentAuthor}>{c.user.name ?? c.user.email}</Text>
+                        <Text style={s.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
+                        {c.userId === myUserId && (
+                          <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }}>
+                            <Feather name="trash-2" size={14} color={COLORS.zinc400} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <Text style={s.commentContent}>{c.content}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
                 <View style={s.emptyComment}>
                   <Feather name="message-circle" size={40} color={COLORS.zinc300} />
-                  <Text style={s.emptyText}>아직 댓글이 없습니다</Text>
-                  <Text style={s.emptySubText}>첫 번째 댓글을 작성해보세요!</Text>
+                  <Text style={s.emptyText}>{t("feed.commentsEmpty")}</Text>
+                  <Text style={s.emptySubText}>{t("feed.commentsEmptyHint")}</Text>
                 </View>
               )}
             </ScrollView>
@@ -416,11 +745,22 @@ export default function FollowingScreen() {
                 style={s.commentInput}
                 value={commentText}
                 onChangeText={setCommentText}
-                placeholder="댓글 달기..."
+                placeholder={t("feed.commentPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
               />
-              <TouchableOpacity disabled={!commentText.trim()} onPress={() => setCommentText("")}>
-                <Feather name="send" size={18} color={commentText.trim() ? COLORS.zinc900 : COLORS.zinc400} />
+              <TouchableOpacity
+                disabled={!commentText.trim() || !accessToken || submittingComment}
+                onPress={submitComment}
+              >
+                <Feather
+                  name="send"
+                  size={18}
+                  color={
+                    commentText.trim() && accessToken && !submittingComment
+                      ? COLORS.zinc900
+                      : COLORS.zinc400
+                  }
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -431,13 +771,13 @@ export default function FollowingScreen() {
       <Modal visible={!!unfollowConfirmId} transparent animationType="fade">
         <Pressable style={s.centerOverlay} onPress={() => setUnfollowConfirmId(null)}>
           <Pressable style={s.confirmBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.confirmTitle}>팔로우 취소</Text>
+            <Text style={s.confirmTitle}>{t("feed.unfollowTitle")}</Text>
             <Text style={s.confirmDesc}>
-              정말 이 페르소나의 팔로우를 취소하시겠습니까?{"\n"}피드에서 해당 페르소나의 포스트가 더 이상 표시되지 않습니다.
+              {t("feed.unfollowDesc")}
             </Text>
             <View style={s.confirmBtns}>
-              <Button title="취소" variant="ghost" onPress={() => setUnfollowConfirmId(null)} style={{ flex: 1 }} />
-              <Button title="팔로우 취소" variant="danger" onPress={confirmUnfollow} style={{ flex: 1 }} />
+              <Button title={t("common.cancel")} variant="ghost" onPress={() => setUnfollowConfirmId(null)} style={{ flex: 1 }} />
+              <Button title={t("feed.unfollowTitle")} variant="danger" onPress={confirmUnfollow} style={{ flex: 1 }} />
             </View>
           </Pressable>
         </Pressable>
@@ -446,10 +786,13 @@ export default function FollowingScreen() {
       {}
       <Modal visible={showCallModal} transparent animationType="slide">
         <Pressable style={s.bottomOverlay} onPress={() => setShowCallModal(false)}>
-          <View style={s.callSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[s.callSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={s.sheetHandle} />
             <View style={s.callSheetHeader}>
-              <Text style={s.callSheetTitle}>통화하기</Text>
+              <Text style={s.callSheetTitle}>{t("feed.callSheetTitle")}</Text>
               <TouchableOpacity onPress={() => setShowCallModal(false)}>
                 <Feather name="x" size={20} color={COLORS.zinc600} />
               </TouchableOpacity>
@@ -462,7 +805,7 @@ export default function FollowingScreen() {
                 style={s.callSearchInput}
                 value={callSearchQuery}
                 onChangeText={setCallSearchQuery}
-                placeholder="페르소나 검색..."
+                placeholder={t("feed.callSearchPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
               />
               {callSearchQuery.length > 0 && (
@@ -473,38 +816,12 @@ export default function FollowingScreen() {
             </View>
 
             <ScrollView style={s.callScroll} showsVerticalScrollIndicator={false}>
-              {}
-              {!callSearchQuery && followedPersonas.length > 0 && (
-                <View style={s.callSectionBordered}>
-                  <Text style={s.callSectionTitle}>최근 통화</Text>
-                  {followedPersonas.slice(0, 2).map((p, i) => (
-                    <View key={p.id} style={s.callRow}>
-                      <Image source={{ uri: p.avatar }} style={s.callAvatar} />
-                      <View style={s.callInfo}>
-                        <Text style={s.callName}>{p.name}</Text>
-                        <Text style={s.callSub}>{p.creatorAccount}</Text>
-                        <Text style={s.callMeta}>
-                          {i === 0 ? "어제 • 8분 21초" : "3일 전 • 15분 32초"}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={s.callBtn}
-                        onPress={() => {
-                          setShowCallModal(false);
-                          rootNav.navigate("Call", { cloneId: p.id, name: p.name, image: p.avatar });
-                        }}
-                      >
-                        <Feather name="video" size={14} color={COLORS.white} />
-                        <Text style={s.callBtnText}>통화</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
+              {
+}
 
               {}
               <View style={s.callSection}>
-                <Text style={s.callSectionTitle}>{callSearchQuery ? "검색 결과" : "팔로잉 목록"}</Text>
+                <Text style={s.callSectionTitle}>{callSearchQuery ? t("feed.searchResults") : t("feed.followingList")}</Text>
                 {filteredCallList.length > 0 ? filteredCallList.map((p) => (
                   <View key={p.id} style={s.callRow}>
                     <Image source={{ uri: p.avatar }} style={s.callAvatar} />
@@ -609,7 +926,7 @@ const s = StyleSheet.create({
   confirmBtns: { flexDirection: "row", gap: 12, width: "100%" },
 
   sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
-  commentSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "65%" },
+  commentSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   commentHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1 },
@@ -626,7 +943,7 @@ const s = StyleSheet.create({
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: COLORS.zinc200, paddingTop: 12 },
   commentInput: { flex: 1, height: 40, backgroundColor: COLORS.zinc100, borderRadius: RADIUS.full, paddingHorizontal: 16, fontSize: 14, color: COLORS.zinc900 },
 
-  callSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "75%" },
+  callSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
   callSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   callSheetTitle: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900 },
   callSearchWrap: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: COLORS.zinc100, borderRadius: RADIUS.full, paddingHorizontal: 16, height: 44, marginBottom: 16 },
@@ -646,4 +963,8 @@ const s = StyleSheet.create({
 
   toast: { position: "absolute", bottom: 100, alignSelf: "center", paddingHorizontal: 24, paddingVertical: 12, backgroundColor: "rgba(0,0,0,0.8)", borderRadius: RADIUS.full },
   toastText: { fontSize: 14, color: COLORS.white },
+
+  emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32, gap: 12 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.zinc700 },
+  emptyDesc: { fontSize: 13, color: COLORS.zinc500, textAlign: "center" },
 });

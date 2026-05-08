@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { CreateStackParamList } from '../../navigation/types';
 import { apiClient } from '../../api/client';
@@ -16,6 +17,7 @@ import type { ShortStatus } from '../../types/domain';
 type Props = NativeStackScreenProps<CreateStackParamList, 'Step8'>;
 
 export default function Step8CreateShortsScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const cloneId = route.params.cloneId;
   const viewerId = useAuthStore((s) => s.user?.id) ?? 1;
   const [status, setStatus] = useState<ShortStatus>('queued');
@@ -79,16 +81,16 @@ export default function Step8CreateShortsScreen({ route, navigation }: Props) {
   if (forbidden) {
     return (
       <View style={styles.root}>
-        <Text style={styles.title}>소개 영상</Text>
+        <Text style={styles.title}>{t('create.shorts.title')}</Text>
         <View accessibilityLabel="step8-forbidden" style={styles.center}>
-          <Text style={styles.muted}>이 클론의 소유자만 영상을 만들 수 있어요.</Text>
+          <Text style={styles.muted}>{t('create.shorts.forbidden')}</Text>
         </View>
         <TouchableOpacity
           accessibilityLabel="step8-forbidden-skip"
           onPress={goHome}
           style={styles.btn}
         >
-          <Text>홈으로</Text>
+          <Text>{t('create.shorts.home')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -96,7 +98,7 @@ export default function Step8CreateShortsScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.root}>
-      <Text style={styles.title}>소개 영상</Text>
+      <Text style={styles.title}>{t('create.shorts.title')}</Text>
       {status === 'ready' ? (
         <View accessibilityLabel="step8-preview" style={styles.center}>
           <Text style={styles.muted}>{mediaUrl ?? '(preview)'}</Text>
@@ -104,7 +106,7 @@ export default function Step8CreateShortsScreen({ route, navigation }: Props) {
       ) : (
         <View accessibilityLabel="step8-progress" style={styles.center}>
           <ActivityIndicator />
-          <Text style={styles.muted}>생성 중… ({status})</Text>
+          <Text style={styles.muted}>{t('create.shorts.creating')} ({status})</Text>
         </View>
       )}
       <View style={styles.row}>
@@ -113,14 +115,14 @@ export default function Step8CreateShortsScreen({ route, navigation }: Props) {
           onPress={goHome}
           style={styles.btn}
         >
-          <Text>건너뛰기</Text>
+          <Text>{t('create.shorts.skip')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           accessibilityLabel="step8-retry"
           onPress={start}
           style={styles.btn}
         >
-          <Text>다시 생성</Text>
+          <Text>{t('create.shorts.retry')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           accessibilityLabel="step8-done"
@@ -128,7 +130,7 @@ export default function Step8CreateShortsScreen({ route, navigation }: Props) {
           onPress={goHome}
           style={[styles.btn, status !== 'ready' && styles.btnDisabled]}
         >
-          <Text>완료</Text>
+          <Text>{t('create.shorts.done')}</Text>
         </TouchableOpacity>
       </View>
     </View>

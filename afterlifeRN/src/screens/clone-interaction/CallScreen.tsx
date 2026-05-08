@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import { useCloneStore } from "../../stores/cloneStore";
@@ -37,6 +38,7 @@ interface FloatingGift {
 }
 
 export default function CallScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const user = useAuthStore((s) => s.user);
@@ -59,7 +61,7 @@ export default function CallScreen({ route, navigation }: Props) {
   const [floatingGifts, setFloatingGifts] = useState<FloatingGift[]>([]);
   const giftCounterRef = useRef(0);
 
-  const personaName = paramName || clone?.displayName || "페르소나";
+  const personaName = paramName || clone?.displayName || t("chat.personaFallback");
   const personaImage = paramImage || clone?.imageUrl || "";
 
   useEffect(() => {
@@ -71,12 +73,12 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const handleGiftSend = (gift: Gift) => {
     if (credits < gift.price) {
-      setToastMessage("크레딧이 부족합니다");
+      setToastMessage(t("call.noCredits"));
       return;
     }
 
     setCredits((prev) => prev - gift.price);
-    setToastMessage(`${gift.name}을 선물했습니다`);
+    setToastMessage(t("call.giftSent", { name: gift.name }));
 
     const id = giftCounterRef.current++;
     const animY = new Animated.Value(0);
@@ -160,7 +162,7 @@ export default function CallScreen({ route, navigation }: Props) {
         <Text style={s.callName}>{personaName}</Text>
         <View style={s.callStatusBadge}>
           <View style={s.callDot} />
-          <Text style={s.callStatusText}>통화 중 03:24</Text>
+          <Text style={s.callStatusText}>{t("call.inCall", { time: "03:24" })}</Text>
         </View>
       </View>
 
@@ -238,7 +240,7 @@ export default function CallScreen({ route, navigation }: Props) {
             {}
             <View style={s.giftHeader}>
               <View style={s.giftHeaderLeft}>
-                <Text style={s.giftTitle}>선물 보내기</Text>
+                <Text style={s.giftTitle}>{t("call.giftTitle")}</Text>
                 <View style={s.creditsPill}>
                   <Text style={s.creditsPillText}>
                     {credits.toLocaleString()} XRUN

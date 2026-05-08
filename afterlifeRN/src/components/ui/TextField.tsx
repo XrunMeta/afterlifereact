@@ -9,7 +9,6 @@ import {
   ViewStyle,
 } from 'react-native';
 import { COLORS, FONTS, SIZES } from '../constants';
-import { useKeyboardScroll } from '../context/KeyboardScrollContext';
 
 export interface TextFieldProps extends TextInputProps {
   label?: string;
@@ -40,13 +39,8 @@ const TextField = React.forwardRef<TextInput, TextFieldProps>(
     },
     ref,
   ) => {
-    const keyboardScroll = useKeyboardScroll();
 
     const handleFocus = (event: any) => {
-
-      if (keyboardScroll) {
-        keyboardScroll.scrollToFocusedInput(event);
-      }
 
       if (onFocus) {
         onFocus(event);

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,9 +10,13 @@ import {
   Pressable,
   ScrollView,
   TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
+import * as Clipboard from "expo-clipboard";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
@@ -21,6 +25,9 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
+import { listMyClones, createInvite, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
+import NotificationBell from "../../components/common/NotificationBell";
+import { searchUsers, AuthApiError, type UserSearchItem } from "../../api/auth";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
@@ -30,19 +37,108 @@ type ClonesNav = NativeStackNavigationProp<ClonesStackParamList>;
 
 const DEFAULT_USER_ID = 1;
 
+function formatRelativeShort(iso: string): string {
+  try {
+    const ms = new Date(iso.replace(" ", "T") + "Z").getTime();
+    const diff = Date.now() - ms;
+    if (diff < 60_000) return "방금";
+    const min = Math.floor(diff / 60_000);
+    if (min < 60) return `${min}분 전`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}시간 전`;
+    const d = Math.floor(hr / 24);
+    if (d < 30) return `${d}일 전`;
+    return new Date(ms).toLocaleDateString();
+  } catch {
+    return "";
+  }
+}
+
+function formatStat(n: number | null | undefined): string {
+  if (typeof n !== "number" || !Number.isFinite(n)) return "0";
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
+
+function adaptMyClone(c: MyClone): Clone {
+  return {
+    id: c.id,
+    cloneType: c.cloneType,
+    ownerId: c.ownerId,
+    displayName: c.name,
+    description: c.description ?? "",
+    interests: c.interests ?? [],
+    imageUrl: c.avatarUrl ?? undefined,
+    visibility: c.visibility,
+    status: (c.trainingStatus as Clone["status"]) ?? "active",
+    createdAt: c.createdAt,
+    myRole: c.myRole,
+    coownerCount: c.coownerCount,
+    likesCount: c.likesCount,
+    commentsCount: c.commentsCount,
+    followersCount: c.followersCount,
+    messagesCount: c.messagesCount,
+    ...(c.l1Profile ? { l1Profile: c.l1Profile } : {}),
+  };
+}
+
 export default function MyClonesDashboardScreen() {
   const navigation = useNavigation<ClonesNav>();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const authUser = useAuthStore((s) => s.user);
+  const apiUser = useAuthStore((s) => s.apiUser);
+  const accessToken = useAuthStore((s) => s.accessToken);
   const localClones = useCloneStore((s) => s.localClones);
+  const upsertClones = useCloneStore((s) => s.upsertClones);
   const follows = useFollowStore((s) => s.follows);
+
+  const [apiClones, setApiClones] = useState<Clone[] | null>(null);
+
+  const fetchMyClones = React.useCallback(async () => {
+    if (!accessToken) {
+      setApiClones(null);
+      return;
+    }
+    try {
+      const res = await listMyClones(accessToken);
+      const adapted = res.items.map(adaptMyClone);
+      setApiClones(adapted);
+
+      upsertClones(adapted);
+    } catch (err) {
+      console.warn("[Dashboard] listMyClones failed:", err);
+
+    }
+  }, [accessToken, upsertClones]);
+
+  useEffect(() => {
+    fetchMyClones();
+  }, [fetchMyClones]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchMyClones();
+    }, [fetchMyClones]),
+  );
+
   const myClones = useMemo<Clone[]>(() => {
-    const uid = authUser?.id ?? DEFAULT_USER_ID;
+    const uid = apiUser?.id ?? authUser?.id ?? DEFAULT_USER_ID;
+    if (apiClones != null) {
+
+      const apiIds = new Set(apiClones.map((c) => c.id));
+      const localOnly = localClones.filter(
+        (c) => c.ownerId === uid && !apiIds.has(c.id),
+      );
+      return [...apiClones, ...localOnly];
+    }
+
     return [
       ...seedSource.clones().filter((c) => c.ownerId === uid),
       ...localClones.filter((c) => c.ownerId === uid),
     ];
-  }, [authUser, localClones]);
+  }, [apiClones, apiUser, authUser, localClones]);
 
   const [cloneStates, setCloneStates] = useState<
     Record<number, { isActive: boolean; visibility: Visibility }>
@@ -61,13 +157,98 @@ export default function MyClonesDashboardScreen() {
 
   const [hiddenCloneIds, setHiddenCloneIds] = useState<Set<number>>(new Set());
   const [menuCloneId, setMenuCloneId] = useState<number | null>(null);
-  const [inviteModal, setInviteModal] = useState(false);
+  const [inviteModal, setInviteModal] = useState<{ cloneId: number } | null>(null);
   const [inviteSearch, setInviteSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<UserSearchItem[]>([]);
+  const [searching, setSearching] = useState(false);
   const [invitedIds, setInvitedIds] = useState<Set<number>>(new Set());
+
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
+    cloneId: number;
     cloneName: string;
   } | null>(null);
+  const [likesList, setLikesList] = useState<FeedLikeUser[] | null>(null);
+  const [likesLoading, setLikesLoading] = useState(false);
+  const [commentsList, setCommentsList] = useState<FeedComment[] | null>(null);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [followersList, setFollowersList] = useState<CloneFollower[] | null>(null);
+  const [followersLoading, setFollowersLoading] = useState(false);
+
+  useEffect(() => {
+    if (statsModal?.type !== "likes" || statsModal.cloneId == null) {
+      setLikesList(null);
+      return;
+    }
+    let cancelled = false;
+    setLikesLoading(true);
+    setLikesList(null);
+    listCloneLikes(statsModal.cloneId, { limit: 50 })
+      .then((res) => {
+        if (cancelled) return;
+        setLikesList(res.items);
+      })
+      .catch((err) => {
+        console.warn("[Dashboard] listCloneLikes failed:", err);
+        if (!cancelled) setLikesList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLikesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [statsModal?.type, statsModal?.cloneId]);
+
+  useEffect(() => {
+    if (statsModal?.type !== "comments" || statsModal.cloneId == null) {
+      setCommentsList(null);
+      return;
+    }
+    let cancelled = false;
+    setCommentsLoading(true);
+    setCommentsList(null);
+    listCloneComments(statsModal.cloneId, { limit: 50 })
+      .then((res) => {
+        if (cancelled) return;
+        setCommentsList(res.items);
+      })
+      .catch((err) => {
+        console.warn("[Dashboard] listCloneComments failed:", err);
+        if (!cancelled) setCommentsList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [statsModal?.type, statsModal?.cloneId]);
+
+  useEffect(() => {
+    if (statsModal?.type !== "followers" || statsModal.cloneId == null) {
+      setFollowersList(null);
+      return;
+    }
+    let cancelled = false;
+    setFollowersLoading(true);
+    setFollowersList(null);
+    listCloneFollowers(statsModal.cloneId, { limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        setFollowersList(res.items);
+      })
+      .catch((err) => {
+        console.warn("[Dashboard] listCloneFollowers failed:", err);
+        if (!cancelled) setFollowersList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setFollowersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [statsModal?.type, statsModal?.cloneId]);
   const [toggleModal, setToggleModal] = useState<{
     cloneId: number;
     currentState: boolean;
@@ -107,6 +288,80 @@ export default function MyClonesDashboardScreen() {
     setMenuCloneId(null);
   };
 
+  useEffect(() => {
+    if (!inviteModal || !accessToken) return;
+    const q = inviteSearch.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await searchUsers(accessToken, q);
+        setSearchResults(res.items);
+      } catch (err) {
+        console.warn("[Dashboard] searchUsers failed:", err);
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [inviteSearch, accessToken, inviteModal]);
+
+  const handleSendInvite = async (user: UserSearchItem) => {
+    if (!accessToken || !inviteModal) {
+      console.warn("[Dashboard] handleSendInvite: missing accessToken or inviteModal");
+      return;
+    }
+    console.log("[Dashboard] sendInvite start:", { cloneId: inviteModal.cloneId, email: user.email });
+    try {
+      const res = await createInvite(accessToken, inviteModal.cloneId, {
+        invite_email: user.email,
+      });
+      console.log("[Dashboard] sendInvite success:", res);
+      setInvitedIds((prev) => new Set(prev).add(user.id));
+      setDeleteResultMessage(t("invite.sentToast", { target: user.name ?? user.email }));
+    } catch (err) {
+      if (err instanceof AuthApiError) {
+        console.warn(
+          "[Dashboard] createInvite failed:",
+          err.code,
+          err.status,
+          err.message,
+          "details=",
+          JSON.stringify(err.details),
+        );
+        if (err.code === "UNAUTHENTICATED" || err.status === 401) {
+          await useAuthStore.getState().apiLogout();
+          setDeleteResultMessage(t("dashboard.sessionExpired"));
+          return;
+        }
+        if (err.code === "ALREADY_INVITED") {
+
+          setInvitedIds((prev) => new Set(prev).add(user.id));
+          setDeleteResultMessage(t("invite.alreadyInvited"));
+          return;
+        }
+        if (err.code === "ALREADY_MEMBER") {
+          setInvitedIds((prev) => new Set(prev).add(user.id));
+          setDeleteResultMessage(t("invite.alreadyMember"));
+          return;
+        }
+        if (err.code === "QUOTA_EXCEEDED") {
+          setDeleteResultMessage(t("invite.quotaExceeded"));
+          return;
+        }
+      } else {
+        console.warn("[Dashboard] createInvite failed:", err);
+      }
+      const msg = err instanceof AuthApiError ? err.message : t("invite.sendFailed");
+      setDeleteResultMessage(msg);
+    }
+  };
+
   const confirmVisibility = (v: Visibility) => {
     if (!visibilityModal) return;
     setCloneStates((prev) => ({
@@ -124,10 +379,58 @@ export default function MyClonesDashboardScreen() {
     setMenuCloneId(null);
   };
 
-  const confirmDelete = () => {
-    if (deleteModal) {
-      setHiddenCloneIds((prev) => new Set(prev).add(deleteModal));
-      setDeleteModal(null);
+  const [deleteResultMessage, setDeleteResultMessage] = useState<string | null>(null);
+
+  const confirmDelete = async () => {
+    if (!deleteModal) return;
+    const targetId = deleteModal;
+    setDeleteModal(null);
+
+    if (!accessToken) {
+
+      setHiddenCloneIds((prev) => new Set(prev).add(targetId));
+      return;
+    }
+    console.log("[Dashboard] deleteClone start:", targetId);
+    try {
+      const res = await deleteClone(accessToken, targetId);
+      console.log("[Dashboard] deleteClone success:", res);
+      if (res.state === "transferred" && res.transferred) {
+        setDeleteResultMessage(t("dashboard.deleteSuccessTransferred"));
+      } else {
+        setDeleteResultMessage(t("dashboard.deleteSuccessSimple"));
+      }
+
+      setHiddenCloneIds((prev) => new Set(prev).add(targetId));
+      await fetchMyClones();
+    } catch (err) {
+      if (err instanceof AuthApiError) {
+        console.warn(
+          "[Dashboard] deleteClone failed:",
+          err.code,
+          err.status,
+          err.message,
+          "details=",
+          JSON.stringify(err.details),
+        );
+
+        if (err.code === "CONFLICT" && /already deleted/i.test(err.message)) {
+          setHiddenCloneIds((prev) => new Set(prev).add(targetId));
+          setDeleteResultMessage(t("dashboard.deleteAlreadyDeleted"));
+          await fetchMyClones();
+          return;
+        }
+
+        if (err.code === "UNAUTHENTICATED" || err.status === 401) {
+          await useAuthStore.getState().apiLogout();
+          setDeleteResultMessage(t("dashboard.sessionExpired"));
+          return;
+        }
+      } else {
+        console.warn("[Dashboard] deleteClone failed:", err);
+      }
+      const msg = err instanceof AuthApiError ? err.message : t("dashboard.deleteFailed");
+      setDeleteResultMessage(msg);
     }
   };
 
@@ -151,15 +454,19 @@ export default function MyClonesDashboardScreen() {
     const state = cloneStates[clone.id];
     const isActive = state?.isActive ?? true;
     const visibility = state?.visibility ?? clone.visibility;
-    const followerCount = follows.filter(
-      (f) => f.followingCloneId === clone.id,
-    ).length;
+    const isMemlow = clone.cloneType === "memlow";
+
+    const followerCount =
+      typeof clone.followersCount === "number"
+        ? clone.followersCount
+        : follows.filter((f) => f.followingCloneId === clone.id).length;
+
     const coownerCount =
-      clone.cloneType === "memlow"
-        ? seedSource.coowners().filter(
+      typeof clone.coownerCount === "number"
+        ? clone.coownerCount
+        : seedSource.coowners().filter(
             (co) => co.cloneId === clone.id && co.status === "approved",
-          ).length
-        : 0;
+          ).length;
 
     return (
       <View style={s.card}>
@@ -175,15 +482,18 @@ export default function MyClonesDashboardScreen() {
               color={isActive ? COLORS.success : COLORS.zinc400}
             />
             <Text style={s.activeText}>
-              {isActive ? "활동중" : "비활동중"}
+              {isActive ? t("dashboard.active") : t("dashboard.inactive")}
             </Text>
           </TouchableOpacity>
 
           <View style={s.cardTopRight}>
-            <View style={s.visibilityBadge}>
-              <Feather name={getVisibilityIcon(visibility)} size={14} color={COLORS.zinc500} />
-              <Text style={s.visibilityText}>{getVisibilityLabel(visibility)}</Text>
-            </View>
+            {}
+            {!isMemlow && (
+              <View style={s.visibilityBadge}>
+                <Feather name={getVisibilityIcon(visibility)} size={14} color={COLORS.zinc500} />
+                <Text style={s.visibilityText}>{getVisibilityLabel(visibility)}</Text>
+              </View>
+            )}
             <TouchableOpacity
               style={s.moreBtn}
               onPress={() => setMenuCloneId(clone.id)}
@@ -196,12 +506,18 @@ export default function MyClonesDashboardScreen() {
         {}
         <View style={s.cloneHeader}>
           <View style={s.avatarWrap}>
-            <Image source={{ uri: clone.imageUrl ?? "" }} style={s.avatar} />
+            {clone.imageUrl ? (
+              <Image source={{ uri: clone.imageUrl }} style={s.avatar} />
+            ) : (
+              <View style={[s.avatar, { backgroundColor: COLORS.zinc100, alignItems: 'center', justifyContent: 'center' }]}>
+                <Feather name="user" size={20} color={COLORS.zinc400} />
+              </View>
+            )}
             {isActive && <View style={s.activeDot} />}
           </View>
           <View style={s.cloneInfo}>
             <Text style={s.cloneName}>{clone.displayName}</Text>
-            <Text style={s.cloneCategory}>{clone.interests[0] ?? ""}</Text>
+            <Text style={s.cloneCategory}>{clone.interests?.[0] ?? ""}</Text>
           </View>
         </View>
 
@@ -211,43 +527,51 @@ export default function MyClonesDashboardScreen() {
         </Text>
 
         {}
-        <View style={s.statsRow}>
+        {isMemlow ? (
           <TouchableOpacity
-            style={s.stat}
-            onPress={() => setStatsModal({ type: "likes", cloneName: clone.displayName })}
+            style={s.coownerBadge}
+            onPress={() =>
+              navigation.navigate("CloneInvite", { cloneId: clone.id })
+            }
+            activeOpacity={0.7}
           >
-            <Feather name="heart" size={14} color={COLORS.zinc500} />
-            <Text style={s.statText}>2.4k</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={s.stat}
-            onPress={() => setStatsModal({ type: "interactions", cloneName: clone.displayName })}
-          >
-            <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-            <Text style={s.statText}>4.5k</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={s.stat}
-            onPress={() => setStatsModal({ type: "comments", cloneName: clone.displayName })}
-          >
-            <Feather name="message-circle" size={14} color={COLORS.zinc500} />
-            <Text style={s.statText}>328</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={s.stat}
-            onPress={() => setStatsModal({ type: "followers", cloneName: clone.displayName })}
-          >
-            <Feather name="user" size={14} color={COLORS.zinc500} />
-            <Text style={s.statText} testID={`follower-count-${clone.id}`}>
-              {followerCount} 팔로워
+            <Feather name="users" size={14} color={COLORS.zinc600} />
+            <Text style={s.coownerText}>
+              {t("dashboard.coownerCount", { n: coownerCount })}
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {coownerCount > 0 && (
-          <View style={s.coownerBadge}>
-            <Feather name="users" size={12} color={COLORS.zinc600} />
-            <Text style={s.coownerText}>공동관리자 {coownerCount}명</Text>
+        ) : (
+          <View style={s.statsRow}>
+            <TouchableOpacity
+              style={s.stat}
+              onPress={() => setStatsModal({ type: "likes", cloneId: clone.id, cloneName: clone.displayName })}
+            >
+              <Feather name="heart" size={14} color={COLORS.zinc500} />
+              <Text style={s.statText}>{formatStat(clone.likesCount)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.stat}
+              onPress={() => setStatsModal({ type: "interactions", cloneId: clone.id, cloneName: clone.displayName })}
+            >
+              <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
+              <Text style={s.statText}>{formatStat(clone.messagesCount)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.stat}
+              onPress={() => setStatsModal({ type: "comments", cloneId: clone.id, cloneName: clone.displayName })}
+            >
+              <Feather name="message-circle" size={14} color={COLORS.zinc500} />
+              <Text style={s.statText}>{formatStat(clone.commentsCount)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.stat}
+              onPress={() => setStatsModal({ type: "followers", cloneId: clone.id, cloneName: clone.displayName })}
+            >
+              <Feather name="user" size={14} color={COLORS.zinc500} />
+              <Text style={s.statText} testID={`follower-count-${clone.id}`}>
+                {followerCount} 팔로워
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -264,7 +588,7 @@ export default function MyClonesDashboardScreen() {
 
         {}
         <View style={s.tagsRow}>
-          {clone.interests.map((tag, i) => (
+          {(clone.interests ?? []).map((tag, i) => (
             <View key={i} style={s.tag}>
               <Text style={s.tagText}>#{tag}</Text>
             </View>
@@ -278,25 +602,41 @@ export default function MyClonesDashboardScreen() {
             onPress={() => rootNav.navigate("Chat", { cloneId: clone.id })}
           >
             <Feather name="message-circle" size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>학습하기</Text>
+            <Text style={s.actionText}>{t("dashboard.actionLearn")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.actionBtn}
             onPress={() => rootNav.navigate("Call", { cloneId: clone.id })}
           >
             <Feather name="video" size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>통화하기</Text>
+            <Text style={s.actionText}>{t("dashboard.actionCall")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={s.actionBtn}
-            onPress={() => {
-              setInviteSearch("");
-              setInvitedIds(new Set());
-              setInviteModal(true);
+            onPress={async () => {
+              if (isMemlow) {
+
+                setInviteSearch("");
+                setSearchResults([]);
+                setInvitedIds(new Set());
+                setInviteModal({ cloneId: clone.id });
+              } else {
+
+                const url = `https://afterlife.app/clone/${clone.id}`;
+                try {
+                  await Clipboard.setStringAsync(url);
+
+                  setDeleteResultMessage(t("dashboard.shareLinkCopied"));
+                } catch {
+                  setDeleteResultMessage(t("dashboard.shareLinkFailed"));
+                }
+              }
             }}
           >
-            <Feather name="user-plus" size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>초대</Text>
+            <Feather name={isMemlow ? "user-plus" : "share-2"} size={16} color={COLORS.zinc700} />
+            <Text style={s.actionText}>
+              {isMemlow ? t("dashboard.actionInvite") : t("dashboard.actionShare")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -306,12 +646,8 @@ export default function MyClonesDashboardScreen() {
   return (
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
-        title="My Persona"
-        rightAction={
-          <TouchableOpacity style={{ padding: 4 }}>
-            <Feather name="bell" size={22} color={COLORS.zinc700} />
-          </TouchableOpacity>
-        }
+        title={t("dashboard.title")}
+        rightAction={<NotificationBell />}
       />
 
       <FlatList
@@ -320,14 +656,33 @@ export default function MyClonesDashboardScreen() {
         renderItem={renderCloneCard}
         contentContainerStyle={s.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={s.dashEmpty}>
+            <View style={s.dashEmptyIconWrap}>
+              <Feather name="user-plus" size={32} color={COLORS.zinc400} />
+            </View>
+            <Text style={s.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
+            <Text style={s.dashEmptyDesc}>
+              하단 가운데 + 버튼을 눌러 첫 페르소나를 만들 수 있어요
+            </Text>
+          </View>
+        }
         ListHeaderComponent={
           <>
             {}
-            <View style={s.dashTitle}>
-              <Text style={s.dashTitleText}>페르소나 대시보드</Text>
-              <Text style={s.dashSubText}>
-                생성된 AI 페르소나의 성과를 활용을 관리합니다.
-              </Text>
+            <View style={s.dashTitleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.dashTitleText}>{t("dashboard.headerTitle")}</Text>
+                <Text style={s.dashSubText}>{t("dashboard.headerDesc")}</Text>
+              </View>
+              <TouchableOpacity
+                style={s.inviteStatusBtn}
+                onPress={() => navigation.navigate("InviteStatus")}
+                activeOpacity={0.7}
+              >
+                <Feather name="send" size={14} color={COLORS.violet600} />
+                <Text style={s.inviteStatusBtnText}>{t("inviteStatus.title")}</Text>
+              </TouchableOpacity>
             </View>
 
             {}
@@ -335,17 +690,17 @@ export default function MyClonesDashboardScreen() {
               <View style={s.statsCard}>
                 <View style={s.statsCardHeader}>
                   <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-                  <Text style={s.statsCardLabel}>총 상호작용</Text>
+                  <Text style={s.statsCardLabel}>{t("dashboard.statsTotalInteractions")}</Text>
                 </View>
                 <Text style={s.statsCardValue}>12.8k</Text>
-                <Text style={s.statsCardDelta}>+14% 지난주 대비</Text>
+                <Text style={s.statsCardDelta}>{t("dashboard.statsDelta")}</Text>
               </View>
 
               <View style={[s.statsCard, s.statsCardDark]}>
                 <View style={s.statsCardHeader}>
                   <Feather name="user" size={14} color={COLORS.zinc400} />
                   <Text style={[s.statsCardLabel, { color: COLORS.zinc400 }]}>
-                    페르소나 활동
+                    {t("dashboard.statsActivity")}
                   </Text>
                 </View>
                 <View style={s.activityCount}>
@@ -358,7 +713,7 @@ export default function MyClonesDashboardScreen() {
         }
         ListFooterComponent={
           <TouchableOpacity style={s.loadMore}>
-            <Text style={s.loadMoreText}>더보기</Text>
+            <Text style={s.loadMoreText}>{t("dashboard.loadMore")}</Text>
           </TouchableOpacity>
         }
       />
@@ -367,7 +722,7 @@ export default function MyClonesDashboardScreen() {
       <Modal visible={!!menuCloneId} transparent animationType="fade">
         <Pressable style={s.modalOverlay} onPress={() => setMenuCloneId(null)}>
           <Pressable style={s.menuBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.menuTitle}>관리</Text>
+            <Text style={s.menuTitle}>{t("dashboard.manage")}</Text>
             <TouchableOpacity
               style={s.menuItem}
               onPress={() => {
@@ -377,33 +732,78 @@ export default function MyClonesDashboardScreen() {
               }}
             >
               <Feather name="edit-2" size={18} color={COLORS.zinc700} />
-              <Text style={s.menuItemText}>수정</Text>
+              <Text style={s.menuItemText}>{t("dashboard.menuEdit")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={s.menuItem}
-              onPress={() => {
-                const id = menuCloneId!;
-                handleVisibility(id);
-              }}
-            >
-              <Feather
-                name={getVisibilityIcon(cloneStates[menuCloneId!]?.visibility ?? "public")}
-                size={18}
-                color={COLORS.zinc700}
-              />
-              <Text style={s.menuItemText}>공개설정</Text>
-            </TouchableOpacity>
+
+            {}
+            {menuCloneId != null && (() => {
+              const isActive = cloneStates[menuCloneId]?.isActive ?? true;
+              return (
+                <TouchableOpacity
+                  style={s.menuItem}
+                  onPress={() => {
+                    const id = menuCloneId!;
+                    setMenuCloneId(null);
+                    handleToggle(id);
+                  }}
+                >
+                  <Feather
+                    name={isActive ? "pause-circle" : "play-circle"}
+                    size={18}
+                    color={isActive ? COLORS.zinc700 : COLORS.success}
+                  />
+                  <Text style={s.menuItemText}>
+                    {isActive ? t("dashboard.menuDeactivate") : t("dashboard.menuActivate")}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })()}
+
+            {}
+            {menuCloneId != null &&
+              myClones.find((c) => c.id === menuCloneId)?.cloneType !== "memlow" && (
+                <TouchableOpacity
+                  style={s.menuItem}
+                  onPress={() => {
+                    const id = menuCloneId!;
+                    handleVisibility(id);
+                  }}
+                >
+                  <Feather
+                    name={getVisibilityIcon(cloneStates[menuCloneId!]?.visibility ?? "public")}
+                    size={18}
+                    color={COLORS.zinc700}
+                  />
+                  <Text style={s.menuItemText}>{t("dashboard.menuVisibility")}</Text>
+                </TouchableOpacity>
+              )}
             <View style={s.menuDivider} />
-            <TouchableOpacity
-              style={s.menuItem}
-              onPress={() => {
-                const id = menuCloneId!;
-                handleDelete(id);
-              }}
-            >
-              <Feather name="trash-2" size={18} color={COLORS.error} />
-              <Text style={[s.menuItemText, { color: COLORS.error }]}>삭제</Text>
-            </TouchableOpacity>
+            {}
+            {menuCloneId != null &&
+              myClones.find((c) => c.id === menuCloneId)?.myRole === "owner" ? (
+              <TouchableOpacity
+                style={s.menuItem}
+                onPress={() => {
+                  const id = menuCloneId!;
+                  handleDelete(id);
+                }}
+              >
+                <Feather name="trash-2" size={18} color={COLORS.error} />
+                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={s.menuItem}
+                onPress={() => {
+                  const id = menuCloneId!;
+                  setMenuCloneId(null);
+                  navigation.navigate("CloneInvite", { cloneId: id });
+                }}
+              >
+                <Feather name="log-out" size={18} color={COLORS.error} />
+                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuLeave")}</Text>
+              </TouchableOpacity>
+            )}
           </Pressable>
         </Pressable>
       </Modal>
@@ -445,7 +845,8 @@ export default function MyClonesDashboardScreen() {
             <Text style={s.modalTitle}>공개 설정</Text>
             <Text style={s.modalDesc}>페르소나의 공개 범위를 선택하세요</Text>
             <View style={s.visibilityOptions}>
-              {(["public", "private", "followers"] as Visibility[]).map((v) => {
+              {}
+              {(["public", "private"] as Visibility[]).map((v) => {
                 const selected = visibilityModal?.currentVisibility === v;
                 return (
                   <TouchableOpacity
@@ -484,9 +885,12 @@ export default function MyClonesDashboardScreen() {
       <Modal visible={!!deleteModal} transparent animationType="fade">
         <Pressable style={s.modalOverlay} onPress={() => setDeleteModal(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>페르소나 삭제</Text>
+            <Text style={s.modalTitle}>{t("dashboard.deleteTitle")}</Text>
             <Text style={s.modalDesc}>
-              정말 이 페르소나를 삭제하시겠습니까?{"\n"}삭제된 페르소나는 복구할 수 없습니다.
+              {deleteModal &&
+              myClones.find((c) => c.id === deleteModal)?.cloneType === "memlow"
+                ? t("dashboard.deleteDescMemlow")
+                : t("dashboard.deleteDescDefault")}
             </Text>
             <View style={s.modalBtns}>
               <Button
@@ -507,13 +911,45 @@ export default function MyClonesDashboardScreen() {
       </Modal>
 
       {}
-      <Modal visible={inviteModal} transparent animationType="slide">
-        <Pressable style={s.modalOverlay} onPress={() => setInviteModal(false)}>
-          <View style={s.inviteSheet} onStartShouldSetResponder={() => true}>
+      <Modal visible={!!deleteResultMessage} transparent animationType="fade">
+        <Pressable style={s.modalOverlay} onPress={() => setDeleteResultMessage(null)}>
+          <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
+            <Text style={s.modalTitle}>알림</Text>
+            <Text style={s.modalDesc}>{deleteResultMessage}</Text>
+            <Button
+              title="확인"
+              variant="primary"
+              onPress={() => setDeleteResultMessage(null)}
+              style={{ width: "100%" }}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {
+}
+      <Modal
+        visible={!!inviteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setInviteModal(null)}
+      >
+        <Pressable style={s.bottomSheetOverlay} onPress={() => setInviteModal(null)}>
+          <View
+            style={s.inviteSheet}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={s.sheetHandle} />
             <View style={s.inviteHeader}>
-              <Text style={s.inviteTitle}>페르소나 초대</Text>
-              <TouchableOpacity onPress={() => setInviteModal(false)}>
+              <Text style={s.inviteTitle}>
+                {(() => {
+                  const c = myClones.find((x) => x.id === inviteModal?.cloneId);
+                  return c?.cloneType === "memlow"
+                    ? t("invite.create")
+                    : t("invite.shareTitle");
+                })()}
+              </Text>
+              <TouchableOpacity onPress={() => setInviteModal(null)}>
                 <Feather name="x" size={20} color={COLORS.zinc500} />
               </TouchableOpacity>
             </View>
@@ -525,9 +961,11 @@ export default function MyClonesDashboardScreen() {
                 style={s.inviteSearchInput}
                 value={inviteSearch}
                 onChangeText={setInviteSearch}
-                placeholder="이름 또는 계정으로 검색"
+                placeholder={t("dashboard.inviteSearchHint")}
                 placeholderTextColor={COLORS.placeholder}
                 autoFocus
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
               {inviteSearch.length > 0 && (
                 <TouchableOpacity onPress={() => setInviteSearch("")}>
@@ -538,27 +976,49 @@ export default function MyClonesDashboardScreen() {
 
             {}
             <ScrollView style={s.inviteList} showsVerticalScrollIndicator={false}>
-              {MOCK_INVITE_USERS
-                .filter((u) =>
-                  inviteSearch.length === 0 ||
-                  u.name.includes(inviteSearch) ||
-                  u.username.toLowerCase().includes(inviteSearch.toLowerCase()),
-                )
-                .map((user) => {
+              {inviteSearch.trim().length < 2 ? (
+                <View style={{ padding: 32, alignItems: "center" }}>
+                  <Feather name="search" size={32} color={COLORS.zinc300} />
+                  <Text style={{ color: COLORS.zinc500, marginTop: 8, fontSize: 13 }}>
+                    {t("dashboard.inviteSearchEmpty")}
+                  </Text>
+                  <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
+                    {t("dashboard.inviteSearchEmptyHint")}
+                  </Text>
+                </View>
+              ) : searching ? (
+                <View style={{ padding: 32, alignItems: "center" }}>
+                  <ActivityIndicator color={COLORS.zinc500} />
+                </View>
+              ) : searchResults.length === 0 ? (
+                <View style={{ padding: 32, alignItems: "center" }}>
+                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
+                    {t("dashboard.inviteNoResults")}
+                  </Text>
+                  <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
+                    {t("dashboard.inviteSearchEmptyHint")}
+                  </Text>
+                </View>
+              ) : (
+                searchResults.map((user) => {
                   const sent = invitedIds.has(user.id);
                   return (
                     <View key={user.id} style={s.inviteRow}>
-                      <Image source={{ uri: user.avatar }} style={s.inviteAvatar} />
+                      {user.avatarUrl ? (
+                        <Image source={{ uri: user.avatarUrl }} style={s.inviteAvatar} />
+                      ) : (
+                        <View style={[s.inviteAvatar, { backgroundColor: COLORS.zinc100, alignItems: "center", justifyContent: "center" }]}>
+                          <Feather name="user" size={20} color={COLORS.zinc400} />
+                        </View>
+                      )}
                       <View style={s.inviteInfo}>
-                        <Text style={s.inviteName}>{user.name}</Text>
-                        <Text style={s.inviteUsername}>{user.username}</Text>
+                        <Text style={s.inviteName}>{user.name ?? user.email}</Text>
+                        <Text style={s.inviteUsername}>{user.email}</Text>
                       </View>
                       <TouchableOpacity
                         style={[s.inviteBtn, sent && s.inviteBtnSent]}
                         disabled={sent}
-                        onPress={() =>
-                          setInvitedIds((prev) => new Set(prev).add(user.id))
-                        }
+                        onPress={() => handleSendInvite(user)}
                       >
                         <Feather
                           name={sent ? "check" : "send"}
@@ -566,12 +1026,13 @@ export default function MyClonesDashboardScreen() {
                           color={sent ? COLORS.success : COLORS.white}
                         />
                         <Text style={[s.inviteBtnText, sent && s.inviteBtnTextSent]}>
-                          {sent ? "전송됨" : "초대"}
+                          {sent ? t("invite.sent") : t("invite.send")}
                         </Text>
                       </TouchableOpacity>
                     </View>
                   );
-                })}
+                })
+              )}
             </ScrollView>
           </View>
         </Pressable>
@@ -580,7 +1041,10 @@ export default function MyClonesDashboardScreen() {
       {}
       <Modal visible={!!statsModal} transparent animationType="slide">
         <Pressable style={s.modalOverlay} onPress={() => setStatsModal(null)}>
-          <View style={s.statsSheet} onStartShouldSetResponder={() => true}>
+          <View
+            style={[s.statsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={s.sheetHandle} />
             <Text style={s.statsSheetTitle}>
               {statsModal?.type === "likes" && "좋아요"}
@@ -594,40 +1058,105 @@ export default function MyClonesDashboardScreen() {
 
             <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
               {}
-              {statsModal?.type === "comments" && MOCK_COMMENTS.map((c) => (
-                <View key={c.id} style={s.commentRow}>
-                  <View style={s.commentTop}>
-                    <Image source={{ uri: c.avatar }} style={s.commentAvatar} />
-                    <Text style={s.commentName}>{c.name}</Text>
-                    <Text style={s.commentTime}>{c.time}</Text>
-                  </View>
-                  <Text style={s.commentText}>{c.text}</Text>
+              {statsModal?.type === "comments" && (
+                <>
+                  {commentsLoading ? (
+                    <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
+                  ) : !commentsList || commentsList.length === 0 ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 댓글이 없어요</Text>
+                    </View>
+                  ) : (
+                    commentsList.map((cm) => (
+                      <View key={cm.id} style={s.commentRow}>
+                        <View style={s.commentTop}>
+                          {cm.user.avatarUrl ? (
+                            <Image source={{ uri: cm.user.avatarUrl }} style={s.commentAvatar} />
+                          ) : (
+                            <View style={[s.commentAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                          )}
+                          <Text style={s.commentName}>{cm.user.name ?? cm.user.email}</Text>
+                          <Text style={s.commentTime}>{formatRelativeShort(cm.createdAt)}</Text>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setStatsModal(null);
+                              setDeleteResultMessage("신고가 접수됐어요");
+                            }}
+                            style={{ marginLeft: "auto", paddingHorizontal: 6, paddingVertical: 4 }}
+                          >
+                            <Feather name="flag" size={14} color={COLORS.error} />
+                          </TouchableOpacity>
+                        </View>
+                        <Text style={s.commentText}>{cm.content}</Text>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
+
+              {}
+              {statsModal?.type === "likes" && (
+                <>
+                  {likesLoading ? (
+                    <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
+                  ) : !likesList || likesList.length === 0 ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 좋아요가 없어요</Text>
+                    </View>
+                  ) : (
+                    likesList.map((u) => (
+                      <View key={u.likeId} style={s.accountRow}>
+                        {u.avatarUrl ? (
+                          <Image source={{ uri: u.avatarUrl }} style={s.accountAvatar} />
+                        ) : (
+                          <View style={[s.accountAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                        )}
+                        <View style={s.accountInfo}>
+                          <Text style={s.accountName}>{u.name ?? u.email}</Text>
+                          <Text style={s.accountSub}>{u.email}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
+
+              {}
+              {statsModal?.type === "followers" && (
+                <>
+                  {followersLoading ? (
+                    <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
+                  ) : !followersList || followersList.length === 0 ? (
+                    <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 팔로워가 없어요</Text>
+                    </View>
+                  ) : (
+                    followersList.map((u) => (
+                      <View key={u.followId} style={s.accountRow}>
+                        {u.avatarUrl ? (
+                          <Image source={{ uri: u.avatarUrl }} style={s.accountAvatar} />
+                        ) : (
+                          <View style={[s.accountAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                        )}
+                        <View style={s.accountInfo}>
+                          <Text style={s.accountName}>{u.name ?? u.email}</Text>
+                          <Text style={s.accountSub}>{u.email}</Text>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </>
+              )}
+
+              {}
+              {statsModal?.type === "interactions" && (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Feather name="message-circle" size={28} color={COLORS.zinc300} />
+                  <Text style={{ color: COLORS.zinc500, fontSize: 13, marginTop: 8 }}>
+                    상호작용 상세 목록은 준비 중이에요
+                  </Text>
                 </View>
-              ))}
-
-              {}
-              {(statsModal?.type === "likes" || statsModal?.type === "followers") &&
-                MOCK_ACCOUNTS.map((account) => (
-                  <View key={account.id} style={s.accountRow}>
-                    <Image source={{ uri: account.avatar }} style={s.accountAvatar} />
-                    <View style={s.accountInfo}>
-                      <Text style={s.accountName}>{account.name}</Text>
-                      <Text style={s.accountSub}>{account.detail}</Text>
-                    </View>
-                  </View>
-                ))}
-
-              {}
-              {statsModal?.type === "interactions" &&
-                MOCK_INTERACTIONS.map((account) => (
-                  <View key={account.id} style={s.accountRow}>
-                    <Image source={{ uri: account.avatar }} style={s.accountAvatar} />
-                    <View style={s.accountInfo}>
-                      <Text style={s.accountName}>{account.name}</Text>
-                      <Text style={s.accountSub}>{account.detail}</Text>
-                    </View>
-                  </View>
-                ))}
+              )}
             </ScrollView>
           </View>
         </Pressable>
@@ -659,25 +1188,49 @@ const MOCK_COMMENTS = [
   { id: "c5", name: "정하은", avatar: "https://i.pravatar.cc/100?img=10", text: "목소리도 자연스럽고 너무 좋아요", time: "3일 전" },
 ];
 
-const MOCK_INVITE_USERS = [
-  { id: 9001, name: "김태희", username: "@taehee_kim", avatar: "https://i.pravatar.cc/100?img=11" },
-  { id: 9002, name: "이준혁", username: "@junhyuk_lee", avatar: "https://i.pravatar.cc/100?img=12" },
-  { id: 9003, name: "박소연", username: "@soyeon_park", avatar: "https://i.pravatar.cc/100?img=13" },
-  { id: 9004, name: "최민재", username: "@minjae_choi", avatar: "https://i.pravatar.cc/100?img=14" },
-  { id: 9005, name: "정유나", username: "@yuna_jung", avatar: "https://i.pravatar.cc/100?img=15" },
-  { id: 9006, name: "한서준", username: "@seojun_han", avatar: "https://i.pravatar.cc/100?img=16" },
-  { id: 9007, name: "윤채원", username: "@chaewon_yoon", avatar: "https://i.pravatar.cc/100?img=17" },
-  { id: 9008, name: "김하늘", username: "@haneul_k", avatar: "https://i.pravatar.cc/100?img=18" },
-];
-
 const s = StyleSheet.create({
+  dashEmpty: {
+    paddingVertical: 48,
+    paddingHorizontal: 32,
+    alignItems: "center",
+    gap: 8,
+  },
+  dashEmptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: COLORS.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  dashEmptyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc800 },
+  dashEmptyDesc: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", lineHeight: 18 },
+
   listContent: {
     paddingHorizontal: SIZES.medium,
     paddingBottom: 24,
   },
 
   dashTitle: { marginTop: 16, marginBottom: 20 },
+  dashTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 16,
+  },
   dashTitleText: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
+  inviteStatusBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLORS.violet100,
+    borderRadius: RADIUS.full,
+  },
+  inviteStatusBtnText: { fontSize: 12, fontWeight: "600", color: COLORS.violet600 },
   dashSubText: { fontSize: 13, color: COLORS.zinc500, marginTop: 4 },
 
   statsOverview: {
@@ -875,6 +1428,13 @@ const s = StyleSheet.create({
     alignItems: "center",
     padding: 24,
   },
+
+  bottomSheetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
   modalBox: {
     backgroundColor: COLORS.white,
     borderRadius: 20,
@@ -928,8 +1488,8 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingBottom: 32,
-    maxHeight: "60%",
+
+    maxHeight: "70%",
     position: "absolute",
     bottom: 0,
     left: 0,
@@ -1007,12 +1567,10 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingBottom: 32,
-    maxHeight: "70%",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    paddingBottom: 16,
+    paddingTop: 8,
+    width: "100%",
+    height: "70%",
   },
   inviteHeader: {
     flexDirection: "row",

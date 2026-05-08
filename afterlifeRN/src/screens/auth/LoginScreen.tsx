@@ -8,6 +8,7 @@ import {
   Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
 
@@ -34,6 +35,7 @@ type Props = {
 };
 
 export default function LoginScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -45,7 +47,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      Alert.alert(t("common.notice"), t("auth.signup.emailRequired"));
       return;
     }
     setLoggingIn(true);
@@ -56,17 +58,15 @@ export default function LoginScreen({ navigation }: Props) {
 
       await hydrate();
     } catch (err) {
-      let msg = "로그인에 실패했습니다.";
+      let msg = t("auth.login.loginFailed");
       if (err instanceof AuthApiError) {
         if (err.code === "UNAUTHENTICATED") {
-          msg = "이메일 또는 비밀번호가 올바르지 않습니다.";
-        } else if (err.code === "ACCOUNT_LOCKED") {
-          msg = "비밀번호를 너무 많이 틀려 일시적으로 잠겼습니다. 잠시 후 다시 시도해주세요.";
+          msg = t("auth.login.invalidCredentials");
         } else {
           msg = err.message;
         }
       }
-      Alert.alert("로그인 실패", msg);
+      Alert.alert(t("auth.login.loginFailed"), msg);
     } finally {
       setLoggingIn(false);
     }
@@ -116,12 +116,10 @@ export default function LoginScreen({ navigation }: Props) {
         }
       } catch (err: any) {
         if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
-        let msg = "Google 로그인 중 오류가 발생했습니다.";
+        let msg = t("auth.login.googleFailed");
         if (err instanceof AuthApiError) msg = err.message;
-        else if (err?.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE)
-          msg = "Google Play 서비스가 필요합니다.";
         else if (err?.message) msg = err.message;
-        Alert.alert("Google 로그인 실패", msg);
+        Alert.alert(t("auth.login.googleFailed"), msg);
       }
       return;
     }
@@ -142,14 +140,14 @@ export default function LoginScreen({ navigation }: Props) {
           <View style={styles.logoContainer}>
             <Image source={require("../../../assets/images/symbol.png")} style={styles.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.subtitle}>돌아오신 걸 환영해요</Text>
+            <Text style={styles.subtitle}>{t("auth.login.title")}</Text>
           </View>
 
           {}
           <TextField
             value={email}
             onChangeText={setEmail}
-            placeholder="이메일"
+            placeholder={t("auth.login.emailLabel")}
             keyboardType="email-address"
             autoCapitalize="none"
             leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
@@ -159,7 +157,7 @@ export default function LoginScreen({ navigation }: Props) {
           <TextField
             value={password}
             onChangeText={setPassword}
-            placeholder="비밀번호"
+            placeholder={t("auth.login.passwordLabel")}
             secureTextEntry={!showPassword}
             leftIcon={<Feather name="lock" size={20} color={COLORS.zinc900} />}
             rightIcon={
@@ -189,16 +187,16 @@ export default function LoginScreen({ navigation }: Props) {
                   <Feather name="check" size={14} color={COLORS.white} />
                 )}
               </View>
-              <Text style={styles.checkboxLabel}>자동 로그인</Text>
+              <Text style={styles.checkboxLabel}>{t("auth.login.title")}</Text>
             </TouchableOpacity>
             <TouchableOpacity>
-              <Text style={styles.forgotPassword}>비밀번호 찾기</Text>
+              <Text style={styles.forgotPassword}>{t("auth.login.forgotPassword")}</Text>
             </TouchableOpacity>
           </View>
 
           {}
           <Button
-            title={loggingIn ? "로그인 중..." : "로그인"}
+            title={loggingIn ? t("auth.signup.verifying") : t("auth.login.loginBtn")}
             onPress={handleLogin}
             variant="primary"
             disabled={loggingIn}
@@ -208,13 +206,13 @@ export default function LoginScreen({ navigation }: Props) {
           {}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>또는</Text>
+            <Text style={styles.dividerText}>—</Text>
             <View style={styles.dividerLine} />
           </View>
 
           {}
           <Button
-            title="Google로 계속하기"
+            title={t("auth.login.googleBtn")}
             onPress={() => handleSocialLogin("google")}
             variant="secondary"
             size="md"
@@ -223,7 +221,7 @@ export default function LoginScreen({ navigation }: Props) {
 
           {}
           <Button
-            title="Xrun으로 계속하기"
+            title={t("auth.login.xrunBtn")}
             onPress={() => handleSocialLogin("xrun")}
             variant="secondary"
             size="md"
@@ -232,9 +230,9 @@ export default function LoginScreen({ navigation }: Props) {
 
           {}
           <View style={styles.signupRow}>
-            <Text style={styles.signupText}>계정이 없으신가요? </Text>
+            <Text style={styles.signupText}>{t("auth.login.signupHint")} </Text>
             <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
-              <Text style={styles.signupLink}>회원가입</Text>
+              <Text style={styles.signupLink}>{t("auth.login.signupBtn")}</Text>
             </TouchableOpacity>
           </View>
         </View>

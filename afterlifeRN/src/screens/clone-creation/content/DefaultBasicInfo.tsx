@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import TextField from '../../../components/ui/TextField';
 import InterestChip from '../../../components/ui/InterestChip';
 import { CATEGORIES, INTEREST_MAP } from '../../../mocks/interestHelpers';
@@ -13,6 +14,7 @@ interface Props {
 }
 
 function Component({ draft, onChange }: Props) {
+  const { t } = useTranslation();
   const interests = draft.interests ?? [];
   const activeList = draft.category ? (INTEREST_MAP[draft.category] ?? []) : [];
 
@@ -49,22 +51,23 @@ function Component({ draft, onChange }: Props) {
   return (
     <View style={styles.wrap}>
       <TextField
-        placeholder="페르소나 이름"
+        placeholder={t("create.basicInfo.namePlaceholder")}
         value={draft.name ?? ''}
         onChangeText={v => onChange({ name: v })}
       />
       <TextField
-        placeholder="클론 아이디 (@예: @luna)"
+        placeholder={t("create.basicInfo.usernamePlaceholder")}
         value={draft.username ?? ''}
         onChangeText={v => onChange({ username: v })}
+        autoCapitalize="none"
       />
       <TextField
-        placeholder="한 줄 소개"
+        placeholder={t("create.basicInfo.descPlaceholder")}
         value={draft.description ?? ''}
         onChangeText={v => onChange({ description: v })}
       />
 
-      <Text style={styles.label}>카테고리</Text>
+      <Text style={styles.label}>{t("create.basicInfo.categoryLabel")}</Text>
       <View style={styles.catRow}>
         {CATEGORIES.map(c => (
           <TouchableOpacity
@@ -79,7 +82,7 @@ function Component({ draft, onChange }: Props) {
 
       {activeList.length > 0 && (
         <>
-          <Text style={styles.label}>관심사</Text>
+          <Text style={styles.label}>{t("create.basicInfo.interestsLabel")}</Text>
           <View style={styles.chips}>
             {}
             {activeList.map((i) => (
@@ -105,7 +108,7 @@ function Component({ draft, onChange }: Props) {
               style={styles.etcChip}
               onPress={() => setShowCustomInput((v) => !v)}
             >
-              <Text style={styles.etcChipText}>+ 기타</Text>
+              <Text style={styles.etcChipText}>{t("create.basicInfo.addEtc")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -115,14 +118,14 @@ function Component({ draft, onChange }: Props) {
                 style={styles.customTextInput}
                 value={customInput}
                 onChangeText={setCustomInput}
-                placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
+                placeholder={t("create.basicInfo.customPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
                 onSubmitEditing={addCustomInterests}
                 returnKeyType="done"
                 autoFocus
               />
               <TouchableOpacity style={styles.addBtn} onPress={addCustomInterests}>
-                <Text style={styles.addBtnText}>추가</Text>
+                <Text style={styles.addBtnText}>{t("create.basicInfo.addBtn")}</Text>
               </TouchableOpacity>
             </View>
           )}

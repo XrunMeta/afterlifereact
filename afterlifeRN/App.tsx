@@ -1,6 +1,6 @@
 import './src/i18n';
 import { useEffect, useState } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, type LinkingOptions } from "@react-navigation/native";
 import { navigationRef } from "./src/navigation/navigationRef";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -12,6 +12,32 @@ import { BaseUrlBadge } from "./src/components/dev/BaseUrlBadge";
 import { useAuthStore } from "./src/stores/authStore";
 import { useFollowStore } from "./src/stores/followStore";
 import { useConfigStore } from "./src/stores/configStore";
+import { registerPushTokenIfReady } from "./src/lib/pushNotifications";
+import type { RootStackParamList } from "./src/navigation/types";
+
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ["afterlife://", "https://afterlife.app"],
+  config: {
+    screens: {
+      InviteAccept: {
+        path: "invite/:token",
+        parse: { token: (t: string) => decodeURIComponent(t) },
+      },
+      Main: {
+        screens: {
+          ClonesTab: {
+            screens: {
+              CloneDetail: {
+                path: "clone/:cloneId",
+                parse: { cloneId: (id: string) => Number(id) },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -21,7 +47,12 @@ export default function App() {
       useAuthStore.getState().hydrate(),
       useFollowStore.getState().hydrate(),
       useConfigStore.getState().hydrate(),
-    ]).then(() => setReady(true));
+    ]).then(() => {
+      setReady(true);
+
+      const token = useAuthStore.getState().accessToken;
+      if (token) registerPushTokenIfReady(token);
+    });
   }, []);
 
   if (!ready) {
@@ -31,7 +62,7 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <NavigationContainer ref={navigationRef}>
+        <NavigationContainer ref={navigationRef} linking={linking}>
           <RootNavigator />
           <StatusBar style="dark" />
         </NavigationContainer>

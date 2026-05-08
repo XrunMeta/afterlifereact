@@ -1,23 +1,58 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
+import type { MyStackParamList } from "../../navigation/types";
+import { useAuthStore } from "../../stores/authStore";
+import { deleteMe, AuthApiError } from "../../api/auth";
 
 export default function PrivacySettingsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<MyStackParamList>>();
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const logout = useAuthStore((s) => s.logout);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "회원 탈퇴",
+      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(90일 내 복구 가능)",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "탈퇴",
+          style: "destructive",
+          onPress: async () => {
+            if (!accessToken) return;
+            setDeleting(true);
+            try {
+              await deleteMe(accessToken, { withXrun: false });
+              await logout();
+            } catch (err) {
+              const msg = err instanceof AuthApiError ? err.message : "탈퇴에 실패했어요.";
+              Alert.alert("오류", msg);
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
   const { t } = useTranslation();
 
   const items = [
-    { key: "profileVisibility", labelKey: "settings.privacy.profileVisibility", icon: "eye" as const },
+
     { key: "blockList", labelKey: "settings.privacy.blockList", icon: "slash" as const },
     { key: "dataDownload", labelKey: "settings.privacy.dataDownload", icon: "download" as const },
     { key: "deleteAccount", labelKey: "settings.privacy.deleteAccount", icon: "trash-2" as const, danger: true },
@@ -35,7 +70,14 @@ export default function PrivacySettingsScreen() {
         <View style={s.card}>
           {items.map((item, i) => (
             <View key={item.key}>
-              <TouchableOpacity style={s.row}>
+              <TouchableOpacity
+                style={s.row}
+                disabled={deleting && item.key === "deleteAccount"}
+                onPress={() => {
+                  if (item.key === "blockList") navigation.navigate("BlockedList");
+                  else if (item.key === "deleteAccount") handleDeleteAccount();
+                }}
+              >
                 <Feather
                   name={item.icon}
                   size={20}
@@ -45,7 +87,11 @@ export default function PrivacySettingsScreen() {
                 <Text style={[s.rowLabel, item.danger && s.rowLabelDanger]}>
                   {t(item.labelKey)}
                 </Text>
-                <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
+                {deleting && item.key === "deleteAccount" ? (
+                  <ActivityIndicator color={COLORS.error} />
+                ) : (
+                  <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
+                )}
               </TouchableOpacity>
               {i < items.length - 1 && <View style={s.divider} />}
             </View>

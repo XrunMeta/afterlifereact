@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { ClonesStackParamList } from "../../navigation/types";
 import { useCloneStore } from "../../stores/cloneStore";
@@ -29,6 +30,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const gifts = giftsData as Gift[];
 
 export default function CloneDetailScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const user = useAuthStore((s) => s.user);
@@ -48,7 +50,7 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
   if (!clone) {
     return (
       <View style={s.notFound}>
-        <Text style={s.notFoundText}>페르소나를 찾을 수 없습니다.</Text>
+        <Text style={s.notFoundText}>{t("detail.notFound")}</Text>
       </View>
     );
   }
@@ -70,11 +72,13 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
   return (
     <View style={s.container}>
       {}
-      <Image
-        source={{ uri: clone.imageUrl ?? "" }}
-        style={s.bgImage}
-        resizeMode="cover"
-      />
+      {clone.imageUrl ? (
+        <Image
+          source={{ uri: clone.imageUrl }}
+          style={s.bgImage}
+          resizeMode="cover"
+        />
+      ) : null}
 
       {}
       <LinearGradient
@@ -114,9 +118,14 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
         style={s.bottomGradient}
       >
         {approvedCoowners.length > 0 && (
-          <View style={s.coownerBlock} testID="coowner-section">
+          <TouchableOpacity
+            style={s.coownerBlock}
+            testID="coowner-section"
+            onPress={() => navigation.navigate("CloneInvite", { cloneId: clone.id })}
+            activeOpacity={0.85}
+          >
             <Text style={s.coownerTitle}>
-              공동관리자 {approvedCoowners.length}명
+              {t("dashboard.coownerCount", { n: approvedCoowners.length })}
             </Text>
             <View style={s.coownerList}>
               {approvedCoowners.slice(0, 5).map((u) => (
@@ -125,7 +134,18 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
                 </View>
               ))}
             </View>
-          </View>
+          </TouchableOpacity>
+        )}
+        {}
+        {approvedCoowners.length === 0 && canEdit && (
+          <TouchableOpacity
+            style={s.coownerInviteBtn}
+            onPress={() => navigation.navigate("CloneInvite", { cloneId: clone.id })}
+            activeOpacity={0.85}
+          >
+            <Feather name="user-plus" size={14} color={COLORS.white} />
+            <Text style={s.coownerInviteText}>{t("detail.coownerInvite")}</Text>
+          </TouchableOpacity>
         )}
 
         {}
@@ -141,18 +161,21 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
       {}
       <Modal visible={showGiftModal} transparent animationType="slide">
         <Pressable style={s.giftOverlay} onPress={() => setShowGiftModal(false)}>
-          <Pressable style={s.giftSheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[s.giftSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             {}
             <View style={s.sheetHandle} />
 
-            <Text style={s.giftSheetTitle}>선물 보내기</Text>
+            <Text style={s.giftSheetTitle}>{t("detail.giftTitle")}</Text>
             <Text style={s.giftSheetDesc}>
-              페르소나에게 특별한 선물을 보내보세요
+              {t("detail.giftDesc")}
             </Text>
 
             {}
             <View style={s.balanceRow}>
-              <Text style={s.balanceLabel}>보유 XRUN</Text>
+              <Text style={s.balanceLabel}>{t("detail.balance")}</Text>
               <Text style={s.balanceValue}>1,250</Text>
             </View>
 
@@ -169,7 +192,7 @@ export default function CloneDetailScreen({ route, navigation }: Props) {
 
             {}
             <TouchableOpacity style={s.sendGiftBtn} activeOpacity={0.8}>
-              <Text style={s.sendGiftText}>선물 보내기</Text>
+              <Text style={s.sendGiftText}>{t("detail.send")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -256,6 +279,18 @@ const s = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "500",
   },
+  coownerInviteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    marginBottom: 12,
+  },
+  coownerInviteText: { fontSize: 12, color: COLORS.white, fontWeight: "600" },
   giftBtn: {
     width: 56,
     height: 56,
@@ -280,8 +315,8 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
-    paddingBottom: 32,
-    maxHeight: SCREEN_HEIGHT * 0.55,
+
+    maxHeight: SCREEN_HEIGHT * 0.65,
   },
   sheetHandle: {
     width: 36,

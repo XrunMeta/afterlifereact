@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { useTranslation } from 'react-i18next';
 import { MEMLOW_VOICE_SCRIPTS } from '../../../mocks/cloneTypeCatalog';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
@@ -11,18 +12,23 @@ interface Props {
   onChange: (patch: Partial<CloneCreationDraft>) => void;
 }
 
-async function pickFile(onChange: Props['onChange']) {
+async function pickFile(
+  onChange: Props['onChange'],
+  errorTitle: string,
+  errorMsg: string,
+) {
   try {
     const r = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
     if (!r.canceled && r.assets[0]) {
       onChange({ voiceFile: r.assets[0].uri, recordDuration: 0 });
     }
   } catch {
-    Alert.alert('오류', '파일을 선택할 수 없어요.');
+    Alert.alert(errorTitle, errorMsg);
   }
 }
 
 function Component({ draft, onChange }: Props) {
+  const { t } = useTranslation();
   const [recording, setRecording] = useState(false);
   const tick = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -52,7 +58,7 @@ function Component({ draft, onChange }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>편지 스크립트를 고르고, 녹음해 주세요</Text>
+      <Text style={styles.title}>{t("create.voice.memlowTitle")}</Text>
       <View style={styles.scriptList}>
         {MEMLOW_VOICE_SCRIPTS.map(s => {
           const active = draft.voiceScriptId === s.id;
@@ -74,14 +80,17 @@ function Component({ draft, onChange }: Props) {
       <TouchableOpacity style={[styles.rec, recording && styles.recActive]} onPress={startStop}>
         <Feather name={recording ? 'square' : 'mic'} size={22} color={COLORS.white} />
         <Text style={styles.recText}>
-          {recording ? '녹음 중지' : '녹음 시작'} ({draft.recordDuration ?? 0}s / 30~60s)
+          {recording ? t("create.voice.recordStop") : t("create.voice.recordStart")} ({draft.recordDuration ?? 0}s / {t("create.voice.recordRange")})
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.upload} onPress={() => pickFile(onChange)}>
+      <TouchableOpacity
+        style={styles.upload}
+        onPress={() => pickFile(onChange, t("common.error"), t("create.voice.fileError"))}
+      >
         <Feather name="upload" size={20} color={COLORS.violet600} />
         <Text style={styles.uploadText}>
-          {draft.voiceFile ? '파일 선택됨' : '오디오 파일 업로드'}
+          {draft.voiceFile ? t("create.voice.uploadedFile") : t("create.voice.uploadFileMemlow")}
         </Text>
       </TouchableOpacity>
     </View>

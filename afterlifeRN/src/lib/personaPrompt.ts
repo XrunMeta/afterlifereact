@@ -17,11 +17,12 @@ export function l1ProfileToDraft(
   l1: { attrs?: Record<string, string>; notes?: string } | null | undefined,
 ): Partial<CloneCreationDraft> {
   const a = l1?.attrs ?? {};
+  const typesCsv = a.personalities ?? a.types;
   return {
     personaAge: a.age as CloneCreationDraft['personaAge'],
     personaGender: a.gender as CloneCreationDraft['personaGender'],
-    personaTypes: a.personalities
-      ? (a.personalities.split(',').map((s) => s.trim()).filter(Boolean) as CloneCreationDraft['personaTypes'])
+    personaTypes: typesCsv
+      ? (typesCsv.split(',').map((s) => s.trim()).filter(Boolean) as CloneCreationDraft['personaTypes'])
       : undefined,
     personaMbti: a.mbti as CloneCreationDraft['personaMbti'],
     personaNotes: l1?.notes ?? '',
@@ -47,12 +48,21 @@ export interface PersonaSnapshot {
   l1?: { attrs?: Record<string, string>; notes?: string } | null;
 }
 
-const RELATION_LABEL: Record<string, string> = {
-  mother: '어머니', father: '아버지', spouse: '배우자', child: '자녀',
-  sibling: '형제자매', friend: '친구', pet: '반려동물', other: '기타',
+const RELATION_KEY: Record<string, string> = {
+  mother: 'create.relations.mother',
+  father: 'create.relations.father',
+  spouse: 'create.relations.spouse',
+  child: 'create.relations.child',
+  sibling: 'create.relations.sibling',
+  friend: 'create.relations.friend',
+  pet: 'create.relations.pet',
+  other: 'create.relations.other',
 };
 
-export function formatPersonaPrompt(p: PersonaSnapshot): string {
+export function formatPersonaPrompt(
+  p: PersonaSnapshot,
+  t?: (k: string) => string,
+): string {
   const a = p.l1?.attrs ?? {};
   const lines: string[] = [];
 
@@ -66,23 +76,25 @@ export function formatPersonaPrompt(p: PersonaSnapshot): string {
     lines.push(meta.length ? `${head.join('')} (${meta.join(', ')})` : head.join(''));
   }
 
-  if (p.relation && RELATION_LABEL[p.relation]) {
-    lines.push(`고인과의 관계: ${RELATION_LABEL[p.relation]}`);
+  if (p.relation && RELATION_KEY[p.relation]) {
+    const relLabel = t ? t(RELATION_KEY[p.relation]) : p.relation;
+    lines.push(`${t ? t('create.basicInfo.relationLabel') : 'Relation'}: ${relLabel}`);
   }
 
-  if (a.personalities) {
-    const labels = a.personalities
+  const typesCsv = a.personalities ?? a.types;
+  if (typesCsv) {
+    const labels = typesCsv
       .split(',')
       .map((id) => TYPE_LABEL.get(id.trim() as PersonaTypeId))
       .filter(Boolean);
-    if (labels.length) lines.push(`성격: ${labels.join(', ')}`);
+    if (labels.length) lines.push(`${t ? t('create.persona.typeShort') : 'Personality'}: ${labels.join(', ')}`);
   }
 
   if (p.interests && p.interests.length > 0) {
-    lines.push(`관심사: ${p.interests.join(', ')}`);
+    lines.push(`${t ? t('create.basicInfo.interestsLabel') : 'Interests'}: ${p.interests.join(', ')}`);
   }
 
-  if (p.description) lines.push(`한 줄 소개: ${p.description}`);
+  if (p.description) lines.push(`${t ? t('edit.descLabel') : 'Description'}: ${p.description}`);
 
   const notes = p.l1?.notes?.trim();
   if (notes) lines.push('', notes);

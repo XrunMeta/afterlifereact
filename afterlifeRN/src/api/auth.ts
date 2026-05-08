@@ -143,6 +143,10 @@ export interface XrunCompletePayload {
   pin?: string;
   verificationCode?: string;
   googleIdToken?: string;
+  name?: string;
+  phone?: string;
+  gender?: "male" | "female" | "other";
+  age?: number;
   interests?: string[];
   marketingConsent?: boolean;
   deviceId?: string;
@@ -176,6 +180,20 @@ export async function googleCheck(idToken: string): Promise<GoogleCheckResponse>
 
 export async function getMe(accessToken: string): Promise<{ user: AuthUser; interests: string[] }> {
   return getJson("/oth-path", accessToken);
+}
+
+export interface UserSearchItem {
+  id: number;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+}
+
+export async function searchUsers(
+  accessToken: string,
+  q: string,
+): Promise<{ items: UserSearchItem[] }> {
+  return getJson(`/oth-path?q=${encodeURIComponent(q)}`, accessToken);
 }
 
 export interface PatchMePayload {

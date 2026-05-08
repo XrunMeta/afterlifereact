@@ -1,15 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
 
 type V = 'public' | 'followers' | 'private';
-const OPTIONS: { value: V; icon: string; title: string; desc: string }[] = [
-  { value: 'public',    icon: 'globe', title: '전체 공개',   desc: '모든 사용자가 볼 수 있어요' },
-  { value: 'followers', icon: 'users', title: '팔로워 공개', desc: '나를 팔로우한 사람만 볼 수 있어요' },
-  { value: 'private',   icon: 'lock',  title: '비공개',     desc: '나만 볼 수 있어요' },
-];
 
 interface Props {
   draft: CloneCreationDraft;
@@ -17,6 +13,11 @@ interface Props {
 }
 
 function Component({ draft, onChange }: Props) {
+  const { t } = useTranslation();
+  const OPTIONS: { value: V; icon: string; title: string; desc: string }[] = [
+    { value: 'public', icon: 'globe', title: t('create.visibility.publicTitle'), desc: t('create.visibility.publicDesc') },
+    { value: 'private', icon: 'lock', title: t('create.visibility.privateTitle'), desc: t('create.visibility.privateDesc') },
+  ];
   const current: V = (draft.visibility as V) ?? 'public';
   return (
     <View style={styles.wrap}>

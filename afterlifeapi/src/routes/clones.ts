@@ -78,7 +78,11 @@ clones.post(
 
     const existing = await db
       .prepare(
-        `SELECT COUNT(*) AS n FROM clones WHERE owner_id = ? AND clone_type = ?`,
+        `SELECT COUNT(*) AS n FROM clones
+          WHERE owner_id = ?
+            AND clone_type = ?
+            AND deletion_state = 'active'
+            AND deleted_at IS NULL`,
       )
       .bind(userId, body.clone_type)
       .first<{ n: number }>();
@@ -398,6 +402,18 @@ clones.get("/:id", async (c) => {
       .all<{ interest: string }>()
   ).results.map((r) => r.interest);
 
+  const aggRow = await c.env.DB
+    .prepare(
+      `SELECT
+         (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+            WHERE f.clone_id = ?) AS likesCount,
+         (SELECT COUNT(*) FROM feed_comments fc
+            JOIN feeds f2 ON f2.id = fc.feed_id
+            WHERE f2.clone_id = ?) AS commentsCount`,
+    )
+    .bind(cloneId, cloneId)
+    .first<{ likesCount: number; commentsCount: number }>();
+
   return c.json({
     clone: {
       id: clone.id,
@@ -418,6 +434,8 @@ clones.get("/:id", async (c) => {
         followers: clone.followers_count,
         messages: clone.messages_count,
         gifts: clone.gifts_count,
+        likes: aggRow?.likesCount ?? 0,
+        comments: aggRow?.commentsCount ?? 0,
       },
       createdAt: clone.created_at,
       viewerRole,
@@ -434,6 +452,7 @@ const patchSchema = z
     visibility: visibility.optional(),
     voice_preset_id: z.number().int().positive().nullable().optional(),
     l1_profile: l1ProfileSchema.optional(),
+    interests: z.array(z.string().min(1).max(40)).max(20).optional(),
   })
   .strict()
   .refine((o) => Object.keys(o).length > 0, {
@@ -533,6 +552,25 @@ clones.patch("/:id", requireAuth, async (c) => {
     }
   }
 
+  if (body.interests !== undefined) {
+    statements.push(
+      db.prepare(`DELETE FROM clone_interests WHERE clone_id = ?`).bind(cloneId),
+    );
+
+    const seen = new Set<string>();
+    for (const raw of body.interests) {
+      const v = raw.trim();
+      if (!v || seen.has(v)) continue;
+      seen.add(v);
+      statements.push(
+        db
+          .prepare(`INSERT INTO clone_interests (clone_id, interest) VALUES (?, ?)`)
+          .bind(cloneId, v),
+      );
+    }
+    updatedFields.push("interests");
+  }
+
   await db.batch(statements);
 
   await logActivity(c, {
@@ -582,4 +620,80 @@ clones.delete("/:id/follow", requireAuth, async (c) => {
     .bind(userId, cloneId)
     .run();
   return c.json({ ok: true });
+});
+
+clones.get("/:id/followers", async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT cf.id        AS followId,
+                cf.user_id   AS userId,
+                cf.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM clone_follows cf
+           JOIN users u ON u.id = cf.user_id
+          WHERE cf.clone_id = ? AND u.deleted_at IS NULL
+          ORDER BY cf.id DESC
+          LIMIT ?`,
+      )
+      .bind(cloneId, limit)
+      .all<{
+        followId: number;
+        userId: number;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+  return c.json({
+    items: rows.map((r) => ({
+      followId: r.followId,
+      userId: r.userId,
+      name: r.userName,
+      email: r.userEmail,
+      avatarUrl: r.userAvatarUrl,
+      createdAt: r.createdAt,
+    })),
+  });
+});
+
+clones.post("/:id/block", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const userId = c.get("userId")!;
+
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
+    ).bind(userId, cloneId),
+    c.env.DB.prepare(
+      `DELETE FROM clone_follows WHERE user_id = ? AND clone_id = ?`,
+    ).bind(userId, cloneId),
+  ]);
+  return c.json({ ok: true, blocked: true });
+});
+
+clones.delete("/:id/block", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const userId = c.get("userId")!;
+  await c.env.DB
+    .prepare(`DELETE FROM clone_blocks WHERE user_id = ? AND clone_id = ?`)
+    .bind(userId, cloneId)
+    .run();
+  return c.json({ ok: true, blocked: false });
 });

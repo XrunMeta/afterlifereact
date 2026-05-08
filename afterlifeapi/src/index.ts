@@ -12,7 +12,7 @@ import { users } from "./routes/users";
 import { clones } from "./routes/clones";
 import { memory } from "./routes/memory";
 import { cloneMessages, messages } from "./routes/messages";
-import { cloneFeeds } from "./routes/feeds";
+import { cloneFeeds, feedsDiscover } from "./routes/feeds";
 import { sessions } from "./routes/sessions";
 import { cloneShares, inviteTokens } from "./routes/sharing";
 import { cloneShorts, shortsFeed } from "./routes/shorts";
@@ -31,6 +31,7 @@ import { deletion } from "./routes/deletion";
 import { adminDeletion } from "./routes/adminDeletion";
 import { files } from "./routes/files";
 import { payments } from "./routes/payments";
+import { notifications } from "./routes/notifications";
 
 const app = new Hono<AppEnv>();
 
@@ -83,6 +84,8 @@ app.route("/oth-path", cloneMessages);
 
 app.route("/oth-path", cloneFeeds);
 
+app.route("/oth-path", feedsDiscover);
+
 app.route("/oth-path", cloneShares);
 
 app.route("/oth-path", cloneShorts);
@@ -96,6 +99,7 @@ app.route("/oth-path", sessions);
 app.route("/oth-path", inviteTokens);
 app.route("/oth-path", credits);
 app.route("/oth-path", payments);
+app.route("/oth-path", notifications);
 app.route("/oth-path", adminAuth);
 app.route("/oth-path", adminWebauthn);
 app.route("/oth-path", coldRecovery);

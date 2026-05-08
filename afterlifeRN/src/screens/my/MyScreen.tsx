@@ -9,20 +9,24 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, CommonActions } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import * as ImagePicker from "expo-image-picker";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
+import NotificationBell from "../../components/common/NotificationBell";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
 import { uploadFile } from "../../api/files";
 import { patchMe } from "../../api/auth";
+import { listMyClones, listMyFollowedClones, type FollowedClone, type MyClone } from "../../api/clones";
+import { useFocusEffect } from "@react-navigation/native";
 import { getPaymentPinStatus, getXrunBalance } from "../../api/payments";
 import PaymentPinPromptModal, {
   shouldShowPaymentPinPrompt,
@@ -32,11 +36,7 @@ import type { MyStackParamList } from "../../navigation/types";
 
 const DEFAULT_USER_ID = 1;
 
-const recentTransactions = [
-  { label: "페르소나 생성", date: "2024.03.25 14:32", amount: -500 },
-  { label: "영상 통화 (15분)", date: "2024.03.24 19:15", amount: -300 },
-  { label: "코인 충전", date: "2024.03.23 10:20", amount: 10000 },
-];
+const recentTransactions: Array<{ labelKey: string; date: string; amount: number }> = [];
 
 type MyNav = NativeStackNavigationProp<MyStackParamList>;
 
@@ -49,6 +49,8 @@ export default function MyScreen() {
   const patchApiUser = useAuthStore((s) => s.patchApiUser);
   const logout = useAuthStore((s) => s.logout);
   const follows = useFollowStore((s) => s.follows);
+  const isFollowing = useFollowStore((s) => s.isFollowing);
+  const toggleFollow = useFollowStore((s) => s.toggleFollow);
   const localClones = useCloneStore((s) => s.localClones);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -110,12 +112,12 @@ export default function MyScreen() {
 
   const handleEditAvatar = async () => {
     if (!accessToken) {
-      Alert.alert("알림", "로그인이 필요합니다.");
+      Alert.alert(t("common.notice"), t("my.loginRequired"));
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("권한 필요", "사진 라이브러리 접근 권한을 허용해주세요.");
+      Alert.alert(t("my.permTitle"), t("my.permDesc"));
       return;
     }
     const picked = await ImagePicker.launchImageLibraryAsync({
@@ -137,14 +139,14 @@ export default function MyScreen() {
       await patchMe(accessToken, { avatarUrl: uploaded.url });
       patchApiUser({ avatarUrl: uploaded.url });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "이미지 업로드에 실패했습니다.";
-      Alert.alert("오류", msg);
+      const msg = err instanceof Error ? err.message : t("my.uploadFailed");
+      Alert.alert(t("common.error"), msg);
     } finally {
       setUploadingAvatar(false);
     }
   };
 
-  const displayName = apiUser?.name ?? user?.displayName ?? "사용자";
+  const displayName = apiUser?.name ?? user?.displayName ?? t("my.userFallback");
   const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
   const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
 
@@ -153,16 +155,69 @@ export default function MyScreen() {
   const adDisplay = adBalance ?? null;
 
   const uid = apiUser?.id ?? user?.id ?? DEFAULT_USER_ID;
-  const followingCount = useMemo(
-    () => follows.filter((f) => f.followerUserId === uid).length,
-    [follows, uid],
+  const [apiFollowingCount, setApiFollowingCount] = useState<number | null>(null);
+  const [apiMyClonesCount, setApiMyClonesCount] = useState<number | null>(null);
+
+  const goToClone = (cloneId: number) => {
+    setStatsModal(null);
+    navigation.getParent()?.dispatch(
+      CommonActions.navigate({
+        name: "ClonesTab",
+        params: { screen: "CloneDetail", params: { cloneId } },
+      }),
+    );
+  };
+  const [apiFollowingList, setApiFollowingList] = useState<FollowedClone[] | null>(null);
+  const [apiMyClonesList, setApiMyClonesList] = useState<MyClone[] | null>(null);
+  const [statsModal, setStatsModal] = useState<"following" | "myClones" | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      let cancelled = false;
+      if (!accessToken || !apiUser?.id) {
+        setApiFollowingCount(null);
+        setApiMyClonesCount(null);
+        return;
+      }
+      const userId = apiUser.id;
+      console.log(`[MyScreen] fetch start userId=${userId}`);
+      listMyFollowedClones(accessToken, userId)
+        .then((r) => {
+          if (!cancelled) {
+            console.log(
+              `[MyScreen] followedClones ← ${r.items.length} items`,
+              r.items.map((it) => ({ id: it.id, name: it.name })),
+            );
+            setApiFollowingCount(r.items.length);
+            setApiFollowingList(r.items);
+          }
+        })
+        .catch((err) => console.warn("[MyScreen] followedClones fail:", err));
+      listMyClones(accessToken)
+        .then((r) => {
+          if (!cancelled) {
+            console.log(
+              `[MyScreen] myClones ← ${r.items.length} items`,
+              r.items.map((it) => ({ id: it.id, name: it.name })),
+            );
+            setApiMyClonesCount(r.items.length);
+            setApiMyClonesList(r.items);
+          }
+        })
+        .catch((err) => console.warn("[MyScreen] myClones fail:", err));
+      return () => {
+        cancelled = true;
+      };
+    }, [accessToken, apiUser?.id]),
   );
-  const myClonesCount = useMemo(
-    () =>
-      seedSource.clones().filter((c) => c.ownerId === uid).length +
-      localClones.filter((c) => c.ownerId === uid).length,
-    [uid, localClones],
-  );
+
+  const followingCount =
+    apiFollowingCount ??
+    follows.filter((f) => f.followerUserId === uid).length;
+  const myClonesCount =
+    apiMyClonesCount ??
+    seedSource.clones().filter((c) => c.ownerId === uid).length +
+      localClones.filter((c) => c.ownerId === uid).length;
 
   const settingsItems: Array<{
     icon: keyof typeof Feather.glyphMap;
@@ -170,18 +225,7 @@ export default function MyScreen() {
     descKey: string;
     route: keyof MyStackParamList;
   }> = [
-    {
-      icon: "bookmark",
-      labelKey: "my.menu.saved",
-      descKey: "settings.saved.title",
-      route: "SavedItems",
-    },
-    {
-      icon: "users",
-      labelKey: "my.menu.acquaintance",
-      descKey: "settings.acquaintance.title",
-      route: "AcquaintanceManagement",
-    },
+
     {
       icon: "user",
       labelKey: "my.menu.editProfile",
@@ -212,16 +256,7 @@ export default function MyScreen() {
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
         title="My Page"
-        rightAction={
-          <View style={s.headerRight}>
-            <TouchableOpacity style={s.headerBtn}>
-              <Feather name="bell" size={22} color={COLORS.zinc700} />
-            </TouchableOpacity>
-            <TouchableOpacity style={s.headerBtn}>
-              <Feather name="settings" size={22} color={COLORS.zinc700} />
-            </TouchableOpacity>
-          </View>
-        }
+        rightAction={<NotificationBell />}
       />
 
       <View style={s.content}>
@@ -247,21 +282,37 @@ export default function MyScreen() {
           <Text style={s.userHandle}>{subLabel}</Text>
 
           <View style={s.statsRow}>
-            <View style={s.statItem}>
+            <TouchableOpacity
+              style={s.statItem}
+              onPress={() => {
+                console.log(
+                  `[MyScreen] stat TAP "팔로우 중" — apiFollowingCount=${apiFollowingCount} apiFollowingList=${apiFollowingList?.length ?? "null"}`,
+                );
+                setStatsModal("following");
+              }}
+            >
               <Text style={s.statValue}>{followingCount}</Text>
-              <Text style={s.statLabel}>팔로우 중</Text>
-            </View>
+              <Text style={s.statLabel}>{t("my.stats.following")}</Text>
+            </TouchableOpacity>
             <View style={s.statDivider} />
-            <View style={s.statItem}>
+            <TouchableOpacity
+              style={s.statItem}
+              onPress={() => {
+                console.log(
+                  `[MyScreen] stat TAP "내 페르소나" — apiMyClonesCount=${apiMyClonesCount} apiMyClonesList=${apiMyClonesList?.length ?? "null"}`,
+                );
+                setStatsModal("myClones");
+              }}
+            >
               <Text style={s.statValue}>{myClonesCount}</Text>
-              <Text style={s.statLabel}>내 페르소나</Text>
-            </View>
+              <Text style={s.statLabel}>{t("my.stats.myPersona")}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         {}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>xrun 코인</Text>
+          <Text style={s.sectionLabel}>{t("my.coin.title")}</Text>
         </View>
 
         {}
@@ -269,11 +320,11 @@ export default function MyScreen() {
           <View style={s.coinCardTop}>
             <View style={s.coinLabelRow}>
               <Feather name="dollar-sign" size={18} color={COLORS.zinc700} />
-              <Text style={s.coinLabel}>보유 코인</Text>
+              <Text style={s.coinLabel}>{t("my.coin.balance")}</Text>
             </View>
             <TouchableOpacity style={s.chargeBtn}>
               <Feather name="plus" size={14} color={COLORS.white} />
-              <Text style={s.chargeBtnText}>충전</Text>
+              <Text style={s.chargeBtnText}>{t("my.coin.charge")}</Text>
             </TouchableOpacity>
           </View>
           {balanceLoading ? (
@@ -289,7 +340,7 @@ export default function MyScreen() {
           ) : (
             <>
               <Text style={s.coinAmount}>—</Text>
-              <Text style={s.coinWon}>xrun 회원 매핑이 안 되어 있습니다</Text>
+              <Text style={s.coinWon}>{t("my.coin.notMapped")}</Text>
             </>
           )}
         </View>
@@ -297,7 +348,7 @@ export default function MyScreen() {
         {}
         <View style={s.transactionsCard}>
           <View style={s.transactionsHeader}>
-            <Text style={s.transactionsTitle}>최근 거래</Text>
+            <Text style={s.transactionsTitle}>{t("my.coin.transactions")}</Text>
           </View>
           {recentTransactions.map((tx, i) => (
             <View
@@ -308,7 +359,7 @@ export default function MyScreen() {
               ]}
             >
               <View style={s.txInfo}>
-                <Text style={s.txLabel}>{tx.label}</Text>
+                <Text style={s.txLabel}>{t(tx.labelKey)}</Text>
                 <Text style={s.txDate}>{tx.date}</Text>
               </View>
               <Text style={[s.txAmount, tx.amount > 0 ? s.txGreen : s.txRed]}>
@@ -318,13 +369,13 @@ export default function MyScreen() {
             </View>
           ))}
           <TouchableOpacity style={s.viewAllBtn}>
-            <Text style={s.viewAllText}>전체 내역 보기</Text>
+            <Text style={s.viewAllText}>{t("my.coin.viewAll")}</Text>
           </TouchableOpacity>
         </View>
 
         {}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>{t("my.menu.editProfile") ? "설정" : "설정"}</Text>
+          <Text style={s.sectionLabel}>{t("my.coin.settings")}</Text>
         </View>
 
         <View style={s.settingsCard}>
@@ -360,6 +411,117 @@ export default function MyScreen() {
         visible={showPinPrompt}
         onClose={() => setShowPinPrompt(false)}
       />
+
+      {}
+      <Modal visible={statsModal !== null} transparent animationType="slide">
+        <Pressable style={s.statsOverlay} onPress={() => setStatsModal(null)}>
+          <Pressable style={s.statsSheet} onPress={(e) => e.stopPropagation()}>
+            <View style={s.sheetHandle} />
+            <Text style={s.statsTitle}>
+              {statsModal === "following" ? t("my.stats.following") : t("my.stats.myPersona")}
+            </Text>
+            <ScrollView style={{ maxHeight: 480 }}>
+              {statsModal === "following" && (
+                !apiFollowingList || apiFollowingList.length === 0 ? (
+                  <View style={s.statsEmpty}>
+                    <Feather name="users" size={28} color={COLORS.zinc300} />
+                    <Text style={s.statsEmptyText}>아직 팔로우한 페르소나가 없어요</Text>
+                  </View>
+                ) : (
+                  apiFollowingList.map((c) => {
+                    const followed = isFollowing(c.id);
+                    console.log(
+                      `[MyScreen] following row render — cloneId=${c.id} name=${c.name} isFollowing=${followed}`,
+                    );
+                    return (
+                      <TouchableOpacity
+                        key={c.id}
+                        style={s.listRow}
+                        activeOpacity={0.6}
+                        onPress={() => {
+                          console.log(
+                            `[MyScreen] following row TAP — goToClone cloneId=${c.id} name=${c.name}`,
+                          );
+                          goToClone(c.id);
+                        }}
+                      >
+                        {c.avatarUrl ? (
+                          <Image source={{ uri: c.avatarUrl }} style={s.listAvatar} />
+                        ) : (
+                          <View style={[s.listAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.listName}>{c.name}</Text>
+                          <Text style={s.listSub}>@{c.username}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={async () => {
+                            console.log(
+                              `[MyScreen] follow toggle TAP cloneId=${c.id} wasFollowing=${followed}`,
+                            );
+                            await toggleFollow(c.id);
+
+                            if (followed) {
+                              console.log(
+                                `[MyScreen] post-unfollow → list filter + count -1 cloneId=${c.id}`,
+                              );
+                              setApiFollowingList((prev) =>
+                                prev ? prev.filter((x) => x.id !== c.id) : prev,
+                              );
+                              setApiFollowingCount((prev) =>
+                                typeof prev === "number" ? Math.max(0, prev - 1) : prev,
+                              );
+                            } else {
+                              console.log(
+                                `[MyScreen] post-follow → count +1 cloneId=${c.id}`,
+                              );
+                              setApiFollowingCount((prev) =>
+                                typeof prev === "number" ? prev + 1 : prev,
+                              );
+                            }
+                          }}
+                          style={[s.followToggleBtn, followed && s.followToggleBtnActive]}
+                        >
+                          <Text style={[s.followToggleText, followed && s.followToggleTextActive]}>
+                            {followed ? "팔로잉" : "팔로우"}
+                          </Text>
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    );
+                  })
+                )
+              )}
+              {statsModal === "myClones" && (
+                !apiMyClonesList || apiMyClonesList.length === 0 ? (
+                  <View style={s.statsEmpty}>
+                    <Feather name="user" size={28} color={COLORS.zinc300} />
+                    <Text style={s.statsEmptyText}>아직 만든 페르소나가 없어요</Text>
+                  </View>
+                ) : (
+                  apiMyClonesList.map((c) => (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={s.listRow}
+                      activeOpacity={0.6}
+                      onPress={() => goToClone(c.id)}
+                    >
+                      {c.avatarUrl ? (
+                        <Image source={{ uri: c.avatarUrl }} style={s.listAvatar} />
+                      ) : (
+                        <View style={[s.listAvatar, { backgroundColor: COLORS.zinc200 }]} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.listName}>{c.name}</Text>
+                        <Text style={s.listSub}>@{c.username}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeScrollView>
   );
 }
@@ -519,4 +681,54 @@ const s = StyleSheet.create({
     paddingVertical: 8,
   },
   logoutText: { fontSize: 14, color: COLORS.zinc600 },
+
+  statsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  statsSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    height: "70%",
+  },
+  followToggleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: COLORS.zinc900,
+  },
+  followToggleBtnActive: {
+    backgroundColor: COLORS.zinc100,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+  },
+  followToggleText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
+  followToggleTextActive: { color: COLORS.zinc700 },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.zinc300,
+    alignSelf: "center",
+    marginVertical: 12,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+    marginBottom: 12,
+  },
+  statsEmpty: { alignItems: "center", paddingVertical: 36, gap: 8 },
+  statsEmptyText: { color: COLORS.zinc500, fontSize: 13 },
+  listRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+  },
+  listAvatar: { width: 40, height: 40, borderRadius: 20 },
+  listName: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
+  listSub: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
 });

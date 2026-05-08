@@ -29,22 +29,23 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     <View
       style={[
         styles.container,
-        { paddingTop: insets.top + 8 },
+
+        { paddingTop: insets.top },
         transparent && styles.transparent,
       ]}
     >
       <View style={styles.row}>
         {}
-        <View style={styles.left}>
-          {showBackButton && (
+        {showBackButton && (
+          <View style={styles.left}>
             <TouchableOpacity
               onPress={onBackPress}
               style={styles.backButton}
             >
               <Feather name="arrow-left" size={24} color={transparent ? COLORS.white : COLORS.zinc900} />
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
 
         {}
         <View style={styles.center}>
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.zinc200,
-    paddingBottom: 12,
+    paddingBottom: 10,
     paddingHorizontal: SIZES.medium,
   },
   transparent: {
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 44,
+    minHeight: 36,
   },
   left: {
     width: 44,

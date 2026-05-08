@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
 
@@ -15,6 +16,9 @@ import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
 import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
+import { createClone, deriveUsernameFromName } from "../../api/clones";
+import { AuthApiError } from "../../api/auth";
+import { uploadFile } from "../../api/files";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step7">;
@@ -41,35 +45,182 @@ const COPY: Record<'memlow' | 'friend' | 'mentor' | 'celeb', { title: string; su
 };
 
 export default function Step7CompleteScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const resetCreationDraft = useCloneStore((s) => s.resetCreationDraft);
   const draft = useCloneStore((s) => s.creationDraft);
   const addClone = useCloneStore((s) => s.addClone);
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
+  const accessToken = useAuthStore((s) => s.accessToken);
   const [createdCloneId, setCreatedCloneId] = useState<number | null>(null);
+  const [creating, setCreating] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!draft.cloneType) return;
-    const id = Date.now();
-    const hasImage = Boolean(draft.imageFile);
-    const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
-      || (draft.recordDuration ?? 0) >= 30);
-    const clone: Clone = {
-      id,
-      cloneType: draft.cloneType,
-      ownerId: currentUserId,
-      displayName: draft.name ?? '',
-      description: draft.description ?? '',
-      interests: draft.interests ?? [],
-      imageUrl: draft.imageFile ?? undefined,
-      visibility: draft.visibility ?? getCloneTypeMeta(draft.cloneType).defaultVisibility,
-      status: hasImage && hasVoice ? 'active' : 'pending_assets',
-      createdAt: new Date().toISOString(),
+    let cancelled = false;
+    (async () => {
+      setCreating(true);
+      setError(null);
+
+      const hasImage = Boolean(draft.imageFile);
+      const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
+        || (draft.recordDuration ?? 0) >= 30);
+      const visibility = draft.visibility ?? getCloneTypeMeta(draft.cloneType!).defaultVisibility;
+
+      if (!accessToken) {
+        const localId = Date.now();
+        const localAttrs: Record<string, string> = {
+          ...(draft.personaAge ? { age: draft.personaAge } : {}),
+          ...(draft.personaGender ? { gender: draft.personaGender } : {}),
+          ...(draft.personaTypes && draft.personaTypes.length > 0
+            ? { personalities: draft.personaTypes.join(',') }
+            : {}),
+          ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
+        };
+        const clone: Clone = {
+          id: localId,
+          cloneType: draft.cloneType!,
+          ownerId: currentUserId,
+          displayName: draft.name ?? '',
+          description: draft.description ?? '',
+          interests: draft.interests ?? [],
+          imageUrl: draft.imageFile ?? undefined,
+          visibility,
+          status: hasImage && hasVoice ? 'active' : 'pending_assets',
+          createdAt: new Date().toISOString(),
+          l1Profile: { attrs: localAttrs, notes: draft.personaNotes ?? '' },
+        };
+        addClone(clone);
+        if (!cancelled) {
+          setCreatedCloneId(localId);
+          setCreating(false);
+        }
+        return;
+      }
+
+      try {
+
+        const USERNAME_RE = /^[a-z0-9_]+$/;
+        const typed = draft.username?.trim() ?? '';
+        const isValid = typed.length >= 3 && typed.length <= 30 && USERNAME_RE.test(typed);
+        const username = isValid ? typed : deriveUsernameFromName(typed || draft.name || 'user');
+
+        const l1Attrs: Record<string, string> = {
+          ...(draft.personaAge ? { age: draft.personaAge } : {}),
+          ...(draft.personaGender ? { gender: draft.personaGender } : {}),
+          ...(draft.personaTypes && draft.personaTypes.length > 0
+            ? { personalities: draft.personaTypes.join(',') }
+            : {}),
+          ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
+        };
+        const l1Profile = { attrs: l1Attrs, notes: draft.personaNotes ?? '' };
+
+        let avatarUrl: string | undefined;
+        if (draft.imageFile) {
+          try {
+
+            const ext = draft.imageFile.split('.').pop()?.toLowerCase() ?? '';
+            const mime =
+              ext === 'png' ? 'image/png'
+              : ext === 'webp' ? 'image/webp'
+              : ext === 'gif' ? 'image/gif'
+              : 'image/jpeg';
+            const uploaded = await uploadFile(accessToken, draft.imageFile, {
+              purpose: 'clone_avatar',
+              mimeType: mime,
+              fileName: `avatar.${ext || 'jpg'}`,
+            });
+            avatarUrl = uploaded.url;
+            console.log('[CLONE-CREATE] avatar uploaded:', avatarUrl);
+          } catch (uploadErr) {
+            console.warn('[CLONE-CREATE] avatar upload failed:', uploadErr);
+
+          }
+        }
+
+        const res = await createClone(accessToken, {
+          clone_type: draft.cloneType!,
+          name: draft.name ?? 'Untitled',
+          username,
+          description: draft.description || undefined,
+          category: draft.category || undefined,
+          visibility,
+          interests: draft.interests && draft.interests.length > 0 ? draft.interests : undefined,
+          l1_profile: l1Profile,
+          ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+        });
+        console.log('[CLONE-CREATE] success:', res);
+        const createdClone = res.clone;
+
+        const clone: Clone = {
+          id: createdClone.id,
+          cloneType: createdClone.cloneType,
+          ownerId: currentUserId,
+          displayName: createdClone.name,
+          description: draft.description ?? '',
+          interests: draft.interests ?? [],
+          imageUrl: avatarUrl ?? draft.imageFile ?? undefined,
+          visibility: createdClone.visibility,
+          status: hasImage && hasVoice ? 'active' : 'pending_assets',
+          createdAt: createdClone.createdAt,
+          l1Profile,
+        };
+        addClone(clone);
+        if (!cancelled) {
+          setCreatedCloneId(createdClone.id);
+          setCreating(false);
+        }
+      } catch (err) {
+
+        if (err instanceof AuthApiError) {
+          console.warn(
+            '[CLONE-CREATE] failed:',
+            err.code,
+            err.message,
+            'details=',
+            JSON.stringify(err.details),
+          );
+        } else {
+          console.warn('[CLONE-CREATE] failed:', err);
+        }
+        if (cancelled) return;
+        let msg = t('create.errors.createFailed');
+        if (err instanceof AuthApiError) {
+          if (err.code === 'QUOTA_EXCEEDED') {
+            msg = t('create.errors.quotaExceeded');
+          } else if (err.code === 'CONFLICT') {
+            msg = t('create.errors.usernameConflict');
+          } else {
+            msg = err.message;
+          }
+        }
+        setError(msg);
+        setCreating(false);
+        Alert.alert(t('create.complete.createFailed'), msg);
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
-    addClone(clone);
-    setCreatedCloneId(id);
   }, []); 
 
-  const copy = COPY[draft.cloneType ?? 'friend'];
+  const cloneType = draft.cloneType ?? 'friend';
+  const copy = {
+    title: t(`create.complete.${cloneType}Title` as
+      | 'create.complete.memlowTitle'
+      | 'create.complete.friendTitle'
+      | 'create.complete.mentorTitle'
+      | 'create.complete.celebTitle'),
+    sub: t(`create.complete.${cloneType}Sub` as
+      | 'create.complete.memlowSub'
+      | 'create.complete.friendSub'
+      | 'create.complete.mentorSub'
+      | 'create.complete.celebSub'),
+  };
+  const FEATURES_I18N = [
+    { icon: 'refresh-cw' as const, title: t('create.complete.featAutoLearn'), desc: t('create.complete.featAutoLearnDesc') },
+    { icon: 'shield' as const, title: t('create.complete.featSecurity'), desc: t('create.complete.featSecurityDesc') },
+  ];
 
   const handleStartChat = () => {
     if (createdCloneId == null) return;
@@ -86,21 +237,29 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <PageHeader title="생성 완료" stepInfo={{ current: 7, total: 7 }} />
+      <PageHeader title={t('create.stepTitles.7')} />
       <StepIndicator currentStep={7} totalSteps={7} />
 
       <SafeScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
         <View style={styles.container}>
           {}
-          <View style={styles.successCircle}>
-            <Feather name="check" size={48} color={COLORS.white} />
+          <View style={[styles.successCircle, error && { backgroundColor: COLORS.error }]}>
+            {creating ? (
+              <ActivityIndicator size="large" color={COLORS.white} />
+            ) : error ? (
+              <Feather name="alert-triangle" size={48} color={COLORS.white} />
+            ) : (
+              <Feather name="check" size={48} color={COLORS.white} />
+            )}
           </View>
 
-          <Text style={styles.title}>{copy.title}</Text>
-          <Text style={styles.subtitle}>{copy.sub}</Text>
+          <Text style={styles.title}>
+            {creating ? t('create.complete.creating') : error ? t('create.complete.createFailed') : copy.title}
+          </Text>
+          <Text style={styles.subtitle}>{error ?? copy.sub}</Text>
 
           {}
-          {FEATURES.map((feat, i) => (
+          {!creating && !error && FEATURES_I18N.map((feat, i) => (
             <View key={i} style={styles.featureCard}>
               <View style={styles.featureIconBox}>
                 <Feather name={feat.icon as any} size={22} color={COLORS.violet500} />
@@ -116,8 +275,18 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
       {}
       <View style={styles.bottomBar}>
-        <Button title="소개 영상 만들기" onPress={handleStartChat} variant="accent" leftIcon={<Feather name="message-circle" size={20} color={COLORS.white} />} />
-        <Button title="나의 페르소나로 돌아가기" onPress={handleGoToDashboard} variant="ghost" />
+        <Button
+          title={t('create.complete.startVideo')}
+          onPress={handleStartChat}
+          variant="accent"
+          disabled={creating || !!error || createdCloneId == null}
+          leftIcon={<Feather name="message-circle" size={20} color={COLORS.white} />}
+        />
+        <Button
+          title={t('create.complete.goDashboard')}
+          onPress={handleGoToDashboard}
+          variant="ghost"
+        />
       </View>
     </SafeView>
   );

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../../navigation/types";
 
@@ -31,15 +32,15 @@ type Props = {
   route: RouteProp<AuthStackParamList, "Signup">;
 };
 
-const GENDER_OPTIONS = [
-  { value: "male" as const, label: "남성" },
-  { value: "female" as const, label: "여성" },
-  { value: "other" as const, label: "기타" },
-];
-
 const INTEREST_OPTIONS = ALL_INTERESTS;
 
 export default function SignupScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
+  const GENDER_OPTIONS = [
+    { value: "male" as const, label: t("auth.signup.male") },
+    { value: "female" as const, label: t("auth.signup.female") },
+    { value: "other" as const, label: t("auth.signup.other") },
+  ];
   const google = route.params?.google;
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
   const hydrate = useAuthStore((s) => s.hydrate);
@@ -78,8 +79,8 @@ export default function SignupScreen({ navigation, route }: Props) {
       const reg = await requestPushPermission();
       if (!reg.granted) {
         Alert.alert(
-          "푸시 알림 권한 필요",
-          "마케팅 정보 알림을 받으려면 푸시 알림 권한이 필요합니다.\n기기 설정 → 알림 → AfterLife 에서 허용해주세요.",
+          t("auth.signup.pushPermTitle"),
+          t("auth.signup.pushPermDesc"),
         );
         return;
       }
@@ -89,7 +90,7 @@ export default function SignupScreen({ navigation, route }: Props) {
       setPushPlatform(reg.platform);
       setDeviceId(did);
     } catch {
-      Alert.alert("오류", "권한 요청 중 문제가 발생했습니다.");
+      Alert.alert(t("common.error"), t("auth.signup.pushPermError"));
     } finally {
       setRequestingPush(false);
     }
@@ -105,39 +106,33 @@ export default function SignupScreen({ navigation, route }: Props) {
 
   const handleSubmit = async () => {
     if (!name || !email || !password || !phone || !gender || !age) {
-      Alert.alert("알림", "필수 항목을 모두 입력해주세요.");
+      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
       return;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Alert.alert("알림", "이메일 형식이 올바르지 않습니다. (예: hello@example.com)");
+      Alert.alert(t("common.notice"), t("auth.signup.emailInvalid"));
       return;
     }
-
     if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password)) {
-      Alert.alert(
-        "알림",
-        "비밀번호는 영문 대문자, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.",
-      );
+      Alert.alert(t("common.notice"), t("auth.signup.passwordTooShort"));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("알림", "비밀번호가 일치하지 않습니다.");
+      Alert.alert(t("common.notice"), t("auth.signup.passwordsNotMatch"));
       return;
     }
-
     if (phone.length < 4) {
-      Alert.alert("알림", "전화번호를 4자 이상으로 입력해주세요.");
+      Alert.alert(t("common.notice"), t("auth.signup.phoneTooShort"));
       return;
     }
     if (!agreeRequired) {
-      Alert.alert("알림", "이용약관에 동의해주세요.");
+      Alert.alert(t("common.notice"), t("auth.signup.termsAccept"));
       return;
     }
 
     const ageNum = parseInt(age, 10);
     if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
-      Alert.alert("알림", "나이를 13~120 사이 숫자로 입력해주세요.");
+      Alert.alert(t("common.notice"), t("auth.signup.ageInvalid"));
       return;
     }
 
@@ -183,10 +178,10 @@ export default function SignupScreen({ navigation, route }: Props) {
       const msg =
         err instanceof AuthApiError
           ? err.code === "OTP_COOLDOWN"
-            ? "잠시 후 다시 시도해주세요. (1분 쿨다운)"
+            ? t("auth.signup.rateLimit")
             : err.message
-          : "코드 발송에 실패했습니다. 네트워크를 확인해주세요.";
-      Alert.alert("오류", msg);
+          : t("auth.signup.sendCodeFailed");
+      Alert.alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -195,7 +190,7 @@ export default function SignupScreen({ navigation, route }: Props) {
   return (
     <SafeView backgroundColor={COLORS.zinc50}>
       <PageHeader
-        title="회원가입"
+        title={t("auth.signup.title")}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
@@ -210,12 +205,12 @@ export default function SignupScreen({ navigation, route }: Props) {
           <View style={styles.logoRow}>
             <Image source={require("../../../assets/images/symbol.png")} style={styles.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.subtitle}>베타 기간, 타입별 클론 1개씩 무료</Text>
+            <Text style={styles.subtitle}>{t("auth.signup.subtitle")}</Text>
           </View>
 
           {}
           <TextField
-            placeholder="이름"
+            placeholder={t("auth.signup.name")}
             value={name}
             onChangeText={setName}
             leftIcon={<Feather name="user" size={20} color={COLORS.zinc500} />}
@@ -223,7 +218,7 @@ export default function SignupScreen({ navigation, route }: Props) {
 
           {}
           <TextField
-            placeholder="이메일"
+            placeholder={t("auth.signup.email")}
             value={email}
             onChangeText={google ? undefined : setEmail}
             keyboardType="email-address"
@@ -235,7 +230,7 @@ export default function SignupScreen({ navigation, route }: Props) {
           {}
           <View>
             <TextField
-              placeholder="비밀번호"
+              placeholder={t("auth.signup.password")}
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
@@ -246,14 +241,12 @@ export default function SignupScreen({ navigation, route }: Props) {
                 </TouchableOpacity>
               }
             />
-            <Text style={styles.passwordHint}>
-              영문 대문자, 숫자, 특수문자를 포함한 8자 이상
-            </Text>
+            <Text style={styles.passwordHint}>{t("auth.signup.passwordHint")}</Text>
           </View>
 
           {}
           <TextField
-            placeholder="비밀번호 확인"
+            placeholder={t("auth.signup.passwordConfirm")}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={!showConfirmPassword}
@@ -265,14 +258,14 @@ export default function SignupScreen({ navigation, route }: Props) {
             }
             errorText={
               confirmPassword.length > 0 && confirmPassword !== password
-                ? "비밀번호가 일치하지 않습니다."
+                ? t("auth.signup.passwordsNotMatch")
                 : undefined
             }
           />
 
           {}
           <TextField
-            placeholder="전화번호"
+            placeholder={t("auth.signup.phone")}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -286,12 +279,12 @@ export default function SignupScreen({ navigation, route }: Props) {
                 options={GENDER_OPTIONS}
                 value={gender}
                 onChange={setGender}
-                placeholder="성별"
+                placeholder={t("auth.signup.gender")}
               />
             </View>
             <View style={styles.ageField}>
               <TextField
-                placeholder="나이"
+                placeholder={t("auth.signup.age")}
                 value={age}
                 onChangeText={setAge}
                 keyboardType="number-pad"
@@ -301,7 +294,7 @@ export default function SignupScreen({ navigation, route }: Props) {
 
           {}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>관심사 선택 (선택사항)</Text>
+            <Text style={styles.sectionLabel}>{t("auth.signup.interests")}</Text>
             <View style={styles.chipGrid}>
               {INTEREST_OPTIONS.map((interest) => (
                 <InterestChip
@@ -323,9 +316,7 @@ export default function SignupScreen({ navigation, route }: Props) {
               <View style={[styles.checkbox, agreeRequired && styles.checkboxChecked]}>
                 {agreeRequired && <Feather name="check" size={14} color={COLORS.white} />}
               </View>
-              <Text style={styles.termText}>
-                <Text style={styles.termBold}>(필수)</Text> 이용약관 및 개인정보 처리방침에 동의합니다
-              </Text>
+              <Text style={styles.termText}>{t("auth.signup.termsRequired")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={toggleMarketing}
@@ -336,24 +327,24 @@ export default function SignupScreen({ navigation, route }: Props) {
                 {agreeMarketing && <Feather name="check" size={14} color={COLORS.white} />}
               </View>
               <Text style={styles.termText}>
-                <Text style={styles.termOptional}>(선택)</Text> 마케팅 정보 수신에 동의합니다
-                {requestingPush ? " (권한 요청 중...)" : ""}
+                {t("auth.signup.marketingConsent")}
+                {requestingPush ? ` (${t("auth.signup.verifying")})` : ""}
               </Text>
             </TouchableOpacity>
           </View>
 
           {}
           <Button
-            title={submitting ? "코드 전송 중..." : "가입하기"}
+            title={submitting ? t("auth.signup.verifying") : t("auth.signup.signupBtn")}
             onPress={handleSubmit}
             disabled={submitting}
           />
 
           {}
           <View style={styles.loginRow}>
-            <Text style={styles.loginText}>이미 계정이 있으신가요? </Text>
+            <Text style={styles.loginText}>{t("auth.login.signupHint")} </Text>
             <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-              <Text style={styles.loginLink}>로그인</Text>
+              <Text style={styles.loginLink}>{t("auth.login.loginBtn")}</Text>
             </TouchableOpacity>
           </View>
         </View>

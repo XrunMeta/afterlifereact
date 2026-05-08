@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
+import { useAuthStore } from '../../../stores/authStore';
+import { searchUsers } from '../../../api/auth';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -12,18 +15,54 @@ interface Props {
 }
 
 function Component({ draft, onChange }: Props) {
+  const { t } = useTranslation();
   const [pending, setPending] = useState('');
+  const [checking, setChecking] = useState(false);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const myEmail = useAuthStore((s) => s.apiUser?.email ?? s.user?.email ?? null);
   useEffect(() => {
     if (draft.visibility !== 'private') onChange({ visibility: 'private' });
   }, []); 
 
   const invites = draft.coownerInvites ?? [];
 
-  const addInvite = () => {
+  const addInvite = async () => {
     const v = pending.trim();
     if (!v) return;
-    onChange({ coownerInvites: [...invites, v] });
-    setPending('');
+    if (!EMAIL_RE.test(v)) {
+      Alert.alert(t("common.notice"), t("invite.invalidEmail"));
+      return;
+    }
+    if (myEmail && v.toLowerCase() === myEmail.toLowerCase()) {
+      Alert.alert(t("common.notice"), t("invite.selfNotAllowed"));
+      return;
+    }
+    if (invites.some((e) => e.toLowerCase() === v.toLowerCase())) {
+      Alert.alert(t("common.notice"), t("invite.alreadyAdded"));
+      return;
+    }
+    if (!accessToken) {
+
+      onChange({ coownerInvites: [...invites, v] });
+      setPending('');
+      return;
+    }
+    setChecking(true);
+    try {
+      const res = await searchUsers(accessToken, v);
+      const exact = res.items.find((u) => u.email.toLowerCase() === v.toLowerCase());
+      if (!exact) {
+        Alert.alert(t("common.notice"), t("invite.memberNotFound"));
+        return;
+      }
+      onChange({ coownerInvites: [...invites, v] });
+      setPending('');
+    } catch (err) {
+      console.warn('[MemlowVisibility] searchUsers failed:', err);
+      Alert.alert(t("common.error"), t("invite.memberNotFound"));
+    } finally {
+      setChecking(false);
+    }
   };
   const removeInvite = (i: number) =>
     onChange({ coownerInvites: invites.filter((_, j) => j !== i) });
@@ -33,20 +72,26 @@ function Component({ draft, onChange }: Props) {
       <View style={styles.lockedRow}>
         <Feather name="lock" size={16} color={COLORS.violet600} />
         <Text style={styles.lockedText}>
-          멤로우 클론은 비공개로 고정돼요. 공동관리자만 볼 수 있어요.
+          {t("create.visibility.memlowLocked")}
         </Text>
       </View>
 
-      <Text style={styles.label}>공동관리자 초대 (이메일)</Text>
+      <Text style={styles.label}>{t("create.visibility.coownerInviteLabel")}</Text>
+      <Text style={styles.hint}>{t("create.visibility.coownerHint")}</Text>
       <View style={styles.inputRow}>
         <TextInput
           placeholder="email@example.com"
           value={pending} onChangeText={setPending}
           autoCapitalize="none" keyboardType="email-address"
           style={styles.input} onSubmitEditing={addInvite}
+          editable={!checking}
         />
-        <TouchableOpacity style={styles.addBtn} onPress={addInvite}>
-          <Feather name="plus" size={18} color={COLORS.white} />
+        <TouchableOpacity style={styles.addBtn} onPress={addInvite} disabled={checking}>
+          {checking ? (
+            <ActivityIndicator color={COLORS.white} />
+          ) : (
+            <Feather name="plus" size={18} color={COLORS.white} />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -81,6 +126,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.violet100, padding: 12, borderRadius: RADIUS.sm },
   lockedText: { flex: 1, fontSize: 13, color: COLORS.violet700 },
   label: { fontSize: 13, fontWeight: '600', color: COLORS.zinc700, marginTop: 12 },
+  hint: { fontSize: 12, color: COLORS.zinc500, marginTop: -8 },
   inputRow: { flexDirection: 'row', gap: 8 },
   input: { flex: 1, borderWidth: 1, borderColor: COLORS.zinc200,
     borderRadius: RADIUS.sm, paddingHorizontal: 12, paddingVertical: 10 },

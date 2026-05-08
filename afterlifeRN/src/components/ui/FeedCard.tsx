@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../constants";
 import type { FeedItem } from "../../types/feed";
 
@@ -22,6 +23,7 @@ interface FeedCardProps {
   onToggleFollow: () => void;
   onCallPress: () => void;
   onCommentPress?: () => void;
+  onMorePress?: () => void;
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -34,7 +36,9 @@ const FeedCard: React.FC<FeedCardProps> = ({
   onToggleFollow,
   onCallPress,
   onCommentPress,
+  onMorePress,
 }) => {
+  const { t } = useTranslation();
   return (
     <View style={[styles.container, { height: cardHeight }]}>
       {}
@@ -77,9 +81,20 @@ const FeedCard: React.FC<FeedCardProps> = ({
                   isFollowed && styles.followTextActive,
                 ]}
               >
-                {isFollowed ? "팔로잉" : "팔로우"}
+                {isFollowed ? t("feed.following") : t("feed.follow")}
               </Text>
             </TouchableOpacity>
+            {}
+            {onMorePress && (
+              <TouchableOpacity
+                onPress={onMorePress}
+                style={styles.moreButton}
+                activeOpacity={0.7}
+                accessibilityLabel="more-options"
+              >
+                <Feather name="more-vertical" size={20} color={COLORS.white} />
+              </TouchableOpacity>
+            )}
           </View>
 
           {}
@@ -120,7 +135,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
             activeOpacity={0.8}
           >
             <Feather name="video" size={20} color={COLORS.zinc900} />
-            <Text style={styles.callButtonText}>통화하기</Text>
+            <Text style={styles.callButtonText}>{t("feed.callBtn")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -178,6 +193,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  moreButton: {
+    marginLeft: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   followButtonActive: {
     backgroundColor: "rgba(255,255,255,0.2)",

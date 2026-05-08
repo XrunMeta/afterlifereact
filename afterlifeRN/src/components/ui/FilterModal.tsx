@@ -8,7 +8,9 @@ import {
   StyleSheet,
   Pressable,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import InterestChip from "./InterestChip";
 import { COLORS, SIZES, RADIUS } from "../constants";
 import { ALL_INTERESTS } from "../../mocks/interestHelpers";
@@ -32,6 +34,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onApply,
   onClose,
 }) => {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   return (
     <Modal
       visible={visible}
@@ -47,7 +51,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
         {}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.headerTitle}>관심사 필터</Text>
+            <Text style={styles.headerTitle}>{t("feed.interestFilter")}</Text>
             {selectedInterests.length > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{selectedInterests.length}</Text>
@@ -79,20 +83,25 @@ const FilterModal: React.FC<FilterModalProps> = ({
         </ScrollView>
 
         {}
-        <View style={styles.footer}>
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: SIZES.xlarge + Math.max(insets.bottom, 0) },
+          ]}
+        >
           <TouchableOpacity
             onPress={onClearAll}
             style={styles.resetButton}
             activeOpacity={0.7}
           >
-            <Text style={styles.resetText}>초기화</Text>
+            <Text style={styles.resetText}>{t("feed.clearFilter")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onApply}
             style={styles.applyButton}
             activeOpacity={0.7}
           >
-            <Text style={styles.applyText}>적용하기</Text>
+            <Text style={styles.applyText}>{t("feed.applyFilter")}</Text>
           </TouchableOpacity>
         </View>
       </View>
