@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -334,7 +334,7 @@ export default function CallScreen({ route, navigation }: Props) {
           <Feather name="gift" size={22} color={COLORS.white} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[s.sideBtn, isLiked && s.sideBtnLiked]}
+          style={s.sideBtn}
           onPress={async () => {
             const next = !isLiked;
             console.log(
@@ -352,10 +352,11 @@ export default function CallScreen({ route, navigation }: Props) {
             }
           }}
         >
-          <Feather
-            name="heart"
-            size={22}
-            color={COLORS.white}
+          {}
+          <Ionicons
+            name={isLiked ? "heart" : "heart-outline"}
+            size={24}
+            color={isLiked ? "#ef4444" : COLORS.white}
           />
         </TouchableOpacity>
         <TouchableOpacity style={s.sideBtn} onPress={() => setShowComments(true)}>
@@ -646,9 +647,6 @@ const s = StyleSheet.create({
   },
   sideBtnActive: {
     backgroundColor: COLORS.violet500,
-  },
-  sideBtnLiked: {
-    backgroundColor: "#ef4444",
   },
 
   floatingEmoji: {
