@@ -267,3 +267,57 @@ v_133c2c.get("/stats", async (v_3f4e2e) => {
     totalCredits: v_e6f3e7?.sum ?? 0,
   });
 });
+
+v_133c2c.get("/otp-logs", async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_e0c7e8 = (v_f71b56.searchParams.get("email") ?? "").trim().toLowerCase();
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+
+  const v_18b8bf = v_e0c7e8
+    ? (
+        await v_3f4e2e.env.DB
+          .prepare(
+            `SELECT id, email, code, sent_at AS sentAt, expires_at AS expiresAt,
+                    status, attempts, verified_at AS verifiedAt
+               FROM otp_send_logs
+              WHERE email = ?
+              ORDER BY sent_at DESC
+              LIMIT ?`,
+          )
+          .bind(v_e0c7e8, v_02be30)
+          .all<{
+            id: number;
+            email: string;
+            code: string;
+            sentAt: string;
+            expiresAt: string;
+            status: string;
+            attempts: number;
+            verifiedAt: string | null;
+          }>()
+      ).results
+    : (
+        await v_3f4e2e.env.DB
+          .prepare(
+            `SELECT id, email, code, sent_at AS sentAt, expires_at AS expiresAt,
+                    status, attempts, verified_at AS verifiedAt
+               FROM otp_send_logs
+              ORDER BY sent_at DESC
+              LIMIT ?`,
+          )
+          .bind(v_02be30)
+          .all<{
+            id: number;
+            email: string;
+            code: string;
+            sentAt: string;
+            expiresAt: string;
+            status: string;
+            attempts: number;
+            verifiedAt: string | null;
+          }>()
+      ).results;
+
+  return v_3f4e2e.json({ items: v_18b8bf });
+});

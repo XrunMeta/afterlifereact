@@ -194,10 +194,15 @@ export default function v_c316d8() {
     };
   }, [v_ed660d]);
 
+  const v_4c2809 = v_e662ae(false);
+  const [v_b0af20, v_52390e] = v_5ab095(false);
   const v_8e4668 = async () => {
     if (v_ed660d == null) return;
+    if (v_4c2809.current) return; 
     const v_b43b74 = v_48e7fe.trim();
     if (!v_b43b74 || !v_2ca7e0) return;
+    v_4c2809.current = true;
+    v_52390e(true);
     try {
       let v_6bbace;
       const v_e05de7 = v_ed660d;
@@ -226,6 +231,9 @@ export default function v_c316d8() {
       v_829e3a(v_6bbace, v_cb35cb.items.length);
     } catch (v_49263d) {
       console.warn("[Home] postFeedComment failed:", v_49263d);
+    } finally {
+      v_4c2809.current = false;
+      v_52390e(false);
     }
   };
 
@@ -380,8 +388,19 @@ export default function v_c316d8() {
                 placeholder={v_8d41d7("feed.commentPlaceholder")}
                 placeholderTextColor="rgba(255,255,255,0.4)"
               />
-              <TouchableOpacity disabled={!v_48e7fe.trim() || !v_2ca7e0} onPress={v_8e4668}>
-                <Feather name="send" size={18} color={v_48e7fe.trim() && v_2ca7e0 ? v_1bfbd0.white : "rgba(255,255,255,0.3)"} />
+              <TouchableOpacity
+                disabled={!v_48e7fe.trim() || !v_2ca7e0 || v_b0af20}
+                onPress={v_8e4668}
+              >
+                <Feather
+                  name="send"
+                  size={18}
+                  color={
+                    v_48e7fe.trim() && v_2ca7e0 && !v_b0af20
+                      ? v_1bfbd0.white
+                      : "rgba(255,255,255,0.3)"
+                  }
+                />
               </TouchableOpacity>
             </View>
           </View>

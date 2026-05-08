@@ -64,6 +64,28 @@ export async function v_b78f7e(env: v_273a0c, v_e0c7e8): Promise<void> {
   };
 
   await v_c9c489.KV_AUTH.put(v_0eb677, JSON.stringify(v_cbbd71), { expirationTtl: v_7dab9c });
+
+  try {
+    const v_b2a65a = new Date(v_cbbd71.expiresAt).toISOString();
+    await v_c9c489.DB
+      .prepare(
+        `UPDATE otp_send_logs SET status = 'expired'
+         WHERE email = ? AND status = 'pending'`,
+      )
+      .bind(v_e0c7e8.trim().toLowerCase())
+      .run();
+    await v_c9c489.DB
+      .prepare(
+        `INSERT INTO otp_send_logs (email, code, expires_at, status)
+         VALUES (?, ?, ?, 'pending')`,
+      )
+      .bind(v_e0c7e8.trim().toLowerCase(), v_c99bd2, v_b2a65a)
+      .run();
+  } catch (v_49263d) {
+    console.warn("[otp] d1 log insert failed:", (v_49263d as Error).message);
+
+  }
+
   await v_a71d8b(v_c9c489, {
     to: v_e0c7e8,
     subject: "[AfterLife] 이메일 인증 코드",
@@ -74,11 +96,13 @@ export async function v_b78f7e(env: v_273a0c, v_e0c7e8): Promise<void> {
 export async function v_656e8b(env: v_273a0c, v_e0c7e8, v_c99bd2): Promise<void> {
   const v_0eb677 = v_b24339(v_e0c7e8);
   const v_94a7a9 = await v_c9c489.KV_AUTH.get<OtpRecord>(v_0eb677, "json");
+  const v_bb4bfd = v_e0c7e8.trim().toLowerCase();
   if (!v_94a7a9) {
     throw new v_3ebe58("OTP_REQUIRED", "No verification code in progress. Request one first.");
   }
   if (Date.now() > v_94a7a9.expiresAt) {
     await v_c9c489.KV_AUTH.delete(v_0eb677);
+    await v_470581(v_c9c489, v_bb4bfd, "expired");
     throw new v_3ebe58("OTP_EXPIRED", "Verification code has expired. Request a new one.");
   }
   const v_cc1855 = await v_921b04(v_c99bd2.trim());
@@ -86,11 +110,54 @@ export async function v_656e8b(env: v_273a0c, v_e0c7e8, v_c99bd2): Promise<void>
     v_94a7a9.attempts += 1;
     if (v_94a7a9.attempts >= v_138a00) {
       await v_c9c489.KV_AUTH.delete(v_0eb677);
+      await v_470581(v_c9c489, v_bb4bfd, "exhausted");
       throw new v_3ebe58("OTP_INVALID", "Too many wrong attempts. Request a new code.");
     }
     const v_aaa6bf = Math.max(1, Math.ceil((v_94a7a9.expiresAt - Date.now()) / 1000));
     await v_c9c489.KV_AUTH.put(v_0eb677, JSON.stringify(v_94a7a9), { expirationTtl: v_aaa6bf });
+
+    try {
+      await v_c9c489.DB
+        .prepare(
+          `UPDATE otp_send_logs SET attempts = ?
+           WHERE email = ? AND status = 'pending'`,
+        )
+        .bind(v_94a7a9.attempts, v_bb4bfd)
+        .run();
+    } catch {
+
+    }
     throw new v_3ebe58("OTP_INVALID", `Wrong code. ${v_138a00 - v_94a7a9.attempts} attempts left.`);
   }
   await v_c9c489.KV_AUTH.delete(v_0eb677);
+  await v_470581(v_c9c489, v_bb4bfd, "verified");
+}
+
+async function v_470581(
+  env: v_273a0c,
+  v_bb4bfd,
+  v_d308b5,
+): Promise<void> {
+  try {
+    if (v_d308b5 === "verified") {
+      await v_c9c489.DB
+        .prepare(
+          `UPDATE otp_send_logs
+              SET status = 'verified', verified_at = CURRENT_TIMESTAMP
+            WHERE email = ? AND status = 'pending'`,
+        )
+        .bind(v_bb4bfd)
+        .run();
+    } else {
+      await v_c9c489.DB
+        .prepare(
+          `UPDATE otp_send_logs SET status = ?
+            WHERE email = ? AND status = 'pending'`,
+        )
+        .bind(v_d308b5, v_bb4bfd)
+        .run();
+    }
+  } catch (v_49263d) {
+    console.warn("[otp] d1 log update failed:", (v_49263d as Error).message);
+  }
 }

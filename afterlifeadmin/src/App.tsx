@@ -10,6 +10,7 @@ import { v_6a2d07 } from "./pages/FeedsPage";
 import { v_110d5c } from "./pages/MessagesPage";
 import { v_f2e9f5 } from "./pages/ApiTestbedPage";
 import { v_9ddede } from "./pages/AdminCategoryPage";
+import { v_20683c } from "./pages/OtpLogsPage";
 import { v_f913c9 } from "./pages/LoginPage";
 import { v_6cc6aa } from "./pages/TotpEnrollPage";
 import { v_4686cd } from "./pages/TotpVerifyPage";
@@ -41,6 +42,7 @@ function v_6540c3() {
         <Route path="/oth-path" element={<ProtectedLayout><CloneDetailPage /></ProtectedLayout>} />
         <Route path="/oth-path" element={<ProtectedLayout><FeedsPage /></ProtectedLayout>} />
         <Route path="/messages" element={<ProtectedLayout><MessagesPage /></ProtectedLayout>} />
+        <Route path="/otp" element={<ProtectedLayout><OtpLogsPage /></ProtectedLayout>} />
         <Route path="/testbed" element={<ProtectedLayout><ApiTestbedPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"
