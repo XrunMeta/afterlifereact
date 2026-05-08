@@ -1,4 +1,5 @@
-import { v_5ab095 } from "bapkr";
+import { v_c4deb2, v_5ab095 } from "bapkr";
+import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import {
   v_3094a2,
   v_19b633,
@@ -34,6 +35,9 @@ type Props = {
   navigation: v_390fcc<v_384e19, "Login">;
 };
 
+const v_101856 = "@afterlifeRN/auth/autoLoginPref";
+const v_6a7868 = "@afterlifeRN/auth/lastEmail";
+
 export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const [v_e0c7e8, v_fedf34] = v_5ab095("");
@@ -45,6 +49,21 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const v_957ace = v_1ed7d9((v_fd5f43) => v_fd5f43.loginWithApi);
   const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
 
+  v_c4deb2(() => {
+    void (async () => {
+      try {
+        const [v_6e1e74, v_60fc43] = await Promise.all([
+          v_e84827.getItem(v_101856),
+          v_e84827.getItem(v_6a7868),
+        ]);
+        if (v_6e1e74 === "1") v_36bbbe(true);
+        if (v_60fc43) v_fedf34(v_60fc43);
+      } catch (v_49263d) {
+        console.warn("[AUTH/login] restore prefs failed:", v_49263d);
+      }
+    })();
+  }, []);
+
   const v_ec4736 = async () => {
     if (!v_e0c7e8 || !v_adc076) {
       v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailRequired"));
@@ -53,8 +72,22 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     v_7ba4a6(true);
     try {
       const v_929b58 = await v_ea1c99();
-      const v_625c74 = await v_957ace({ email: v_e0c7e8, password: v_adc076, deviceId: v_929b58 });
-      console.log("[AUTH/login] user:", v_625c74);
+
+      const v_625c74 = await v_957ace(
+        { email: v_e0c7e8, password: v_adc076, deviceId: v_929b58 },
+        { persist: v_f53eaa },
+      );
+      console.log(
+        `[AUTH/login] user: ${v_625c74.email} autoLogin=${v_f53eaa ? "ON" : "OFF"}`,
+      );
+
+      if (v_f53eaa) {
+        await v_e84827.setItem(v_101856, "1");
+        await v_e84827.setItem(v_6a7868, v_e0c7e8);
+      } else {
+        await v_e84827.removeItem(v_101856);
+        await v_e84827.removeItem(v_6a7868);
+      }
 
       await v_232d52();
     } catch (v_49263d) {
@@ -104,7 +137,14 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           const v_929b58 = await v_ea1c99();
           const v_8f00b9 = await v_dd2158({ idToken: v_b50834, deviceId: v_929b58, platform: "android" });
           const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
-          await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user);
+          await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
+          if (v_f53eaa) {
+            await v_e84827.setItem(v_101856, "1");
+            await v_e84827.setItem(v_6a7868, v_9ec4c0.user.email);
+          } else {
+            await v_e84827.removeItem(v_101856);
+            await v_e84827.removeItem(v_6a7868);
+          }
           console.log("[AUTH/google] user:", v_9ec4c0.user);
           await v_232d52();
         } else if (v_de130a.xrunExists) {

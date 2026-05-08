@@ -19,8 +19,8 @@ interface AuthState {
 
   accessToken: string | null;
   apiUser: v_7289ef | null;
-  loginWithApi: (payload: v_a93c97) => Promise<v_7289ef>;
-  setApiAuth: (token: string, user: v_7289ef) => Promise<void>;
+  loginWithApi: (payload: v_a93c97, opts?: { persist?: boolean }) => Promise<v_7289ef>;
+  setApiAuth: (token: string, user: v_7289ef, opts?: { persist?: boolean }) => Promise<void>;
   apiLogout: () => Promise<void>;
   refreshApiUser: () => Promise<v_7289ef | null>;
   patchApiUser: (patch: Partial<v_7289ef>) => void;
@@ -85,16 +85,27 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     }
   },
 
-  loginWithApi: async (v_931bf0) => {
+  loginWithApi: async (v_931bf0, v_328259) => {
+    const v_3c038e = v_328259?.persist !== false;
     const { accessToken: v_2ca7e0 } = await v_ac9e58(v_931bf0);
     const { user: v_625c74 } = await v_7ef860(v_2ca7e0);
-    await v_e84827.setItem(v_1278db, v_2ca7e0);
+    if (v_3c038e) {
+      await v_e84827.setItem(v_1278db, v_2ca7e0);
+    } else {
+
+      await v_e84827.removeItem(v_1278db);
+    }
     v_bb8024({ accessToken: v_2ca7e0, apiUser: v_625c74 });
     return v_625c74;
   },
 
-  setApiAuth: async (v_21cc31, v_625c74) => {
-    await v_e84827.setItem(v_1278db, v_21cc31);
+  setApiAuth: async (v_21cc31, v_625c74, v_328259) => {
+    const v_3c038e = v_328259?.persist !== false;
+    if (v_3c038e) {
+      await v_e84827.setItem(v_1278db, v_21cc31);
+    } else {
+      await v_e84827.removeItem(v_1278db);
+    }
     v_bb8024({ accessToken: v_21cc31, apiUser: v_625c74 });
   },
 
