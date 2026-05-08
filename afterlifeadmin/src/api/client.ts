@@ -169,4 +169,23 @@ export const v_05a921 = {
     v_576f5a<any[]>(`/oth-path${v_6e0fd3}`),
 
   getStats: () => v_576f5a<any>("/oth-path"),
+
+  getOtpLogs: (v_24baff) => {
+    const v_212049 = new URLSearchParams();
+    if (v_24baff?.email) v_212049.set("email", v_24baff.email);
+    if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
+    const v_25c4f7 = v_212049.toString();
+    return v_576f5a<{
+      items: Array<{
+        id: number;
+        email: string;
+        code: string;
+        sentAt: string;
+        expiresAt: string;
+        status: "pending" | "verified" | "expired" | "exhausted";
+        attempts: number;
+        verifiedAt: string | null;
+      }>;
+    }>(`/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`);
+  },
 };

@@ -9,7 +9,6 @@ import {
   v_7e4944,
 } from 'rcmrninabrnb';
 import { v_1bfbd0, v_843035, v_9b1a04 } from '../constants';
-import { v_f3168c } from '../context/KeyboardScrollContext';
 
 export interface TextFieldProps extends v_b60ea2 {
   label?: string;
@@ -40,13 +39,8 @@ const v_e775af = v_a3453e.forwardRef<v_79c4f2, TextFieldProps>(
     },
     v_6d4ed3,
   ) => {
-    const v_73e70b = v_f3168c();
 
     const v_086489 = (v_d48baf) => {
-
-      if (v_73e70b) {
-        v_73e70b.scrollToFocusedInput(v_d48baf);
-      }
 
       if (v_cd3cee) {
         v_cd3cee(v_d48baf);

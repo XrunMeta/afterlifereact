@@ -13,6 +13,7 @@ import {
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
@@ -38,6 +39,7 @@ const v_798085 = [
 ];
 
 export default function v_e2b396() {
+  const v_1f1785 = v_e0068c();
   const v_c65f5d = v_ada615();
   const { t: v_8d41d7 } = v_772971();
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
@@ -55,6 +57,7 @@ export default function v_e2b396() {
   const [v_03ee33, v_64803f] = v_5ab095(false);
   const [v_35bf26, v_04e389] = v_5ab095(false);
   const [v_a1f68f, v_bdf535] = v_5ab095(false);
+  const [v_5f58fc, v_9665cb] = v_5ab095(false);
 
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
@@ -191,21 +194,23 @@ export default function v_e2b396() {
 
   const v_ffa2a1 = () => {
     if (v_a1f68f) return;
+    v_9665cb(false);
     v_03e392.alert(
-      "에프터라이프 계정 삭제",
-      "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.\n복구할 수 없습니다.",
+      "에프터라이프 계정 탈퇴",
+      "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.",
       [
         { text: "취소", style: "cancel" },
-        { text: "삭제", style: "destructive", onPress: () => v_a24698(false) },
+        { text: "탈퇴", style: "destructive", onPress: () => v_a24698(false) },
       ],
     );
   };
 
   const v_916cd9 = () => {
     if (v_a1f68f) return;
+    v_9665cb(false);
     v_03e392.alert(
       "에프터라이프 + xrun 함께 탈퇴",
-      "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라지며 복구할 수 없습니다.",
+      "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라집니다.",
       [
         { text: "취소", style: "cancel" },
         { text: "모두 탈퇴", style: "destructive", onPress: () => v_a24698(true) },
@@ -322,36 +327,6 @@ export default function v_e2b396() {
         </TouchableOpacity>
 
         {}
-        <View style={v_fd5f43.deleteSection}>
-          <TouchableOpacity
-            style={v_fd5f43.deleteOnlyBtn}
-            onPress={v_ffa2a1}
-            disabled={v_a1f68f}
-          >
-            {v_a1f68f ? (
-              <ActivityIndicator color={v_1bfbd0.zinc700} />
-            ) : (
-              <Text style={v_fd5f43.deleteOnlyBtnText}>에프터라이프 계정만 삭제</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={v_fd5f43.deleteAllBtn}
-            onPress={v_916cd9}
-            disabled={v_a1f68f}
-          >
-            {v_a1f68f ? (
-              <ActivityIndicator color={v_1bfbd0.white} />
-            ) : (
-              <Text style={v_fd5f43.deleteAllBtnText}>xrun도 함께 탈퇴</Text>
-            )}
-          </TouchableOpacity>
-
-          <Text style={v_fd5f43.deleteHint}>
-            모두 영구 삭제이며 복구할 수 없습니다.{"\n"}
-            "에프터라이프만 삭제"는 xrun 회원과 지갑을 유지합니다.
-          </Text>
-        </View>
       </View>
 
       {}
@@ -362,7 +337,10 @@ export default function v_e2b396() {
         onRequestClose={() => v_64803f(false)}
       >
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_64803f(false)}>
-          <Pressable style={v_fd5f43.modalSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+          <Pressable
+            style={[v_fd5f43.modalSheet, { paddingBottom: 32 + Math.max(v_1f1785.bottom, 0) }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             <View style={v_fd5f43.modalHandle} />
             <View style={v_fd5f43.modalHeader}>
               <Text style={v_fd5f43.modalTitle}>관심사 선택</Text>
@@ -388,6 +366,53 @@ export default function v_e2b396() {
               onPress={() => v_64803f(false)}
             >
               <Text style={v_fd5f43.modalDoneBtnText}>완료</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal
+        visible={v_5f58fc}
+        transparent
+        animationType="slide"
+        onRequestClose={() => v_9665cb(false)}
+      >
+        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_9665cb(false)}>
+          <Pressable
+            style={[v_fd5f43.deleteSheet, { paddingBottom: 32 + Math.max(v_1f1785.bottom, 0) }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
+            <View style={v_fd5f43.modalHandle} />
+            <Text style={v_fd5f43.deleteSheetTitle}>회원 탈퇴</Text>
+            <Text style={v_fd5f43.deleteSheetSubtitle}>
+              어느 범위로 탈퇴하시겠어요?
+            </Text>
+
+            <TouchableOpacity
+              style={v_fd5f43.deleteOnlyBtn}
+              onPress={v_ffa2a1}
+              disabled={v_a1f68f}
+            >
+              <Text style={v_fd5f43.deleteOnlyBtnText}>에프터라이프 계정 탈퇴</Text>
+              <Text style={v_fd5f43.deleteOptionHint}>xrun 회원·지갑은 유지</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={v_fd5f43.deleteAllBtn}
+              onPress={v_916cd9}
+              disabled={v_a1f68f}
+            >
+              <Text style={v_fd5f43.deleteAllBtnText}>xrun도 함께 탈퇴</Text>
+              <Text style={v_fd5f43.deleteAllHint}>지갑·결제 비밀번호도 모두 삭제</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={v_fd5f43.deleteCancelBtn}
+              onPress={() => v_9665cb(false)}
+              disabled={v_a1f68f}
+            >
+              <Text style={v_fd5f43.deleteCancelText}>취소</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -474,12 +499,44 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc300,
   },
   saveBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
-  deleteSection: {
+
+  deleteTriggerBtn: {
     marginTop: 32,
-    gap: 10,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  deleteTriggerText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.error,
+    textDecorationLine: "underline",
+  },
+
+  deleteSheet: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 32,
+    gap: 12,
+  },
+  deleteSheetTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+    textAlign: "center",
+    marginTop: 8,
+  },
+  deleteSheetSubtitle: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc500,
+    textAlign: "center",
+    marginBottom: 8,
   },
   deleteOnlyBtn: {
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: v_8b0c90.lg,
     backgroundColor: v_1bfbd0.white,
     borderWidth: 1,
@@ -487,27 +544,41 @@ const v_fd5f43 = v_472849.create({
     alignItems: "center",
   },
   deleteOnlyBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
-    color: v_1bfbd0.zinc700,
+    color: v_1bfbd0.zinc900,
+  },
+  deleteOptionHint: {
+    fontSize: 11,
+    color: v_1bfbd0.zinc500,
+    marginTop: 2,
   },
   deleteAllBtn: {
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: v_8b0c90.lg,
     backgroundColor: v_1bfbd0.error,
     alignItems: "center",
   },
   deleteAllBtnText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
     color: v_1bfbd0.white,
   },
-  deleteHint: {
+  deleteAllHint: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+  },
+  deleteCancelBtn: {
+    paddingVertical: 12,
+    alignItems: "center",
     marginTop: 4,
-    fontSize: 12,
+  },
+  deleteCancelText: {
+    fontSize: 14,
     color: v_1bfbd0.zinc500,
-    textAlign: "center",
-    lineHeight: 18,
+    fontWeight: "500",
   },
 
   modalOverlay: {

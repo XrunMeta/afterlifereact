@@ -8,6 +8,7 @@ import {
   v_03e392,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_384e19 } from "../../navigation/types";
 
@@ -34,6 +35,7 @@ type Props = {
 };
 
 export default function v_f4f851({ navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const [v_e0c7e8, v_fedf34] = v_5ab095("");
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
@@ -45,7 +47,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
   const v_ec4736 = async () => {
     if (!v_e0c7e8 || !v_adc076) {
-      v_03e392.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailRequired"));
       return;
     }
     v_7ba4a6(true);
@@ -56,17 +58,15 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
       await v_232d52();
     } catch (v_49263d) {
-      let v_badeaf = "로그인에 실패했습니다.";
+      let v_badeaf = v_8d41d7("auth.login.loginFailed");
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "UNAUTHENTICATED") {
-          v_badeaf = "이메일 또는 비밀번호가 올바르지 않습니다.";
-        } else if (v_49263d.code === "ACCOUNT_LOCKED") {
-          v_badeaf = "비밀번호를 너무 많이 틀려 일시적으로 잠겼습니다. 잠시 후 다시 시도해주세요.";
+          v_badeaf = v_8d41d7("auth.login.invalidCredentials");
         } else {
           v_badeaf = v_49263d.message;
         }
       }
-      v_03e392.alert("로그인 실패", v_badeaf);
+      v_03e392.alert(v_8d41d7("auth.login.loginFailed"), v_badeaf);
     } finally {
       v_7ba4a6(false);
     }
@@ -116,12 +116,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         }
       } catch (v_49263d) {
         if (v_49263d?.code === v_8d3720.SIGN_IN_CANCELLED) return;
-        let v_badeaf = "Google 로그인 중 오류가 발생했습니다.";
+        let v_badeaf = v_8d41d7("auth.login.googleFailed");
         if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
-        else if (v_49263d?.code === v_8d3720.PLAY_SERVICES_NOT_AVAILABLE)
-          v_badeaf = "Google Play 서비스가 필요합니다.";
         else if (v_49263d?.message) v_badeaf = v_49263d.message;
-        v_03e392.alert("Google 로그인 실패", v_badeaf);
+        v_03e392.alert(v_8d41d7("auth.login.googleFailed"), v_badeaf);
       }
       return;
     }
@@ -142,14 +140,14 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           <View style={v_d81136.logoContainer}>
             <Image source={require("../../../assets/images/symbol.png")} style={v_d81136.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={v_d81136.logoImage} resizeMode="contain" />
-            <Text style={v_d81136.subtitle}>돌아오신 걸 환영해요</Text>
+            <Text style={v_d81136.subtitle}>{v_8d41d7("auth.login.title")}</Text>
           </View>
 
           {}
           <TextField
             value={v_e0c7e8}
             onChangeText={v_fedf34}
-            placeholder="이메일"
+            placeholder={v_8d41d7("auth.login.emailLabel")}
             keyboardType="email-address"
             autoCapitalize="none"
             leftIcon={<Feather name="mail" size={20} color={v_1bfbd0.zinc500} />}
@@ -159,7 +157,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           <TextField
             value={v_adc076}
             onChangeText={v_52b279}
-            placeholder="비밀번호"
+            placeholder={v_8d41d7("auth.login.passwordLabel")}
             secureTextEntry={!v_b5ab16}
             leftIcon={<Feather name="lock" size={20} color={v_1bfbd0.zinc900} />}
             rightIcon={
@@ -189,16 +187,16 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                   <Feather name="check" size={14} color={v_1bfbd0.white} />
                 )}
               </View>
-              <Text style={v_d81136.checkboxLabel}>자동 로그인</Text>
+              <Text style={v_d81136.checkboxLabel}>{v_8d41d7("auth.login.title")}</Text>
             </TouchableOpacity>
             <TouchableOpacity>
-              <Text style={v_d81136.forgotPassword}>비밀번호 찾기</Text>
+              <Text style={v_d81136.forgotPassword}>{v_8d41d7("auth.login.forgotPassword")}</Text>
             </TouchableOpacity>
           </View>
 
           {}
           <Button
-            title={v_a5d73f ? "로그인 중..." : "로그인"}
+            title={v_a5d73f ? v_8d41d7("auth.signup.verifying") : v_8d41d7("auth.login.loginBtn")}
             onPress={v_ec4736}
             variant="primary"
             disabled={v_a5d73f}
@@ -208,13 +206,13 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           {}
           <View style={v_d81136.divider}>
             <View style={v_d81136.dividerLine} />
-            <Text style={v_d81136.dividerText}>또는</Text>
+            <Text style={v_d81136.dividerText}>—</Text>
             <View style={v_d81136.dividerLine} />
           </View>
 
           {}
           <Button
-            title="Google로 계속하기"
+            title={v_8d41d7("auth.login.googleBtn")}
             onPress={() => v_78c15c("google")}
             variant="secondary"
             size="md"
@@ -223,7 +221,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
           {}
           <Button
-            title="Xrun으로 계속하기"
+            title={v_8d41d7("auth.login.xrunBtn")}
             onPress={() => v_78c15c("xrun")}
             variant="secondary"
             size="md"
@@ -232,9 +230,9 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
           {}
           <View style={v_d81136.signupRow}>
-            <Text style={v_d81136.signupText}>계정이 없으신가요? </Text>
+            <Text style={v_d81136.signupText}>{v_8d41d7("auth.login.signupHint")} </Text>
             <TouchableOpacity onPress={() => v_c65f5d.navigate("Signup")}>
-              <Text style={v_d81136.signupLink}>회원가입</Text>
+              <Text style={v_d81136.signupLink}>{v_8d41d7("auth.login.signupBtn")}</Text>
             </TouchableOpacity>
           </View>
         </View>

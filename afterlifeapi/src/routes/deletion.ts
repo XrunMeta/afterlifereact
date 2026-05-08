@@ -142,9 +142,56 @@ v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_43c42e = await v_b4f765(v_3f4e2e.env.DB, "clone", v_6e0fd3, "owner_id", v_43e90c);
-  v_d24e3e(v_43c42e);
-  return v_3f4e2e.json({ ok: true, state: "soft_deleted" });
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const v_eb25ce = await v_a1651b
+    .prepare("SELECT id, owner_id, deletion_state FROM clones WHERE id = ?")
+    .bind(v_6e0fd3)
+    .first<{ id: number; owner_id: number; deletion_state: string }>();
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (v_eb25ce.owner_id !== v_43e90c) throw new v_3ebe58("FORBIDDEN", "You do not own this clone.");
+  if (v_eb25ce.deletion_state !== "active") throw new v_3ebe58("CONFLICT", "Clone is already deleted.");
+
+  const v_820a60 = await v_a1651b
+    .prepare(
+      `SELECT id, target_user_id
+         FROM clone_shares
+        WHERE clone_id = ? AND status = 'accepted' AND target_user_id IS NOT NULL
+        ORDER BY created_at ASC, id ASC
+        LIMIT 1`,
+    )
+    .bind(v_6e0fd3)
+    .first<{ id: number; target_user_id: number }>();
+
+  if (!v_820a60) {
+
+    await v_a1651b
+      .prepare(
+        `UPDATE clones
+            SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+      )
+      .bind(v_6e0fd3)
+      .run();
+    return v_3f4e2e.json({ ok: true, state: "soft_deleted", transferred: null });
+  }
+
+  await v_a1651b.batch([
+    v_a1651b.prepare("UPDATE clones SET owner_id = ? WHERE id = ?").bind(v_820a60.target_user_id, v_6e0fd3),
+    v_a1651b
+      .prepare(
+        `UPDATE clones SET primary_editor_user_id = ?
+          WHERE id = ? AND primary_editor_user_id = ?`,
+      )
+      .bind(v_820a60.target_user_id, v_6e0fd3, v_43e90c),
+    v_a1651b.prepare("DELETE FROM clone_shares WHERE id = ?").bind(v_820a60.id),
+  ]);
+
+  return v_3f4e2e.json({
+    ok: true,
+    state: "transferred",
+    transferred: { newOwnerId: v_820a60.target_user_id },
+  });
 });
 
 v_dda4b9.post("/oth-path", v_6690d9, async (v_3f4e2e) => {

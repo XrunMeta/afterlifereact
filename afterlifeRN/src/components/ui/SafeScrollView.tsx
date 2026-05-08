@@ -113,7 +113,8 @@ const v_91ca58 = v_680bcc<v_122070, SafeScrollViewProps>(({
       <ScrollView
         ref={v_90527e}
         style={[v_d81136.container, v_7fa4e4]}
-        automaticallyAdjustKeyboardInsets={v_4d1023}
+
+        automaticallyAdjustKeyboardInsets={false}
         keyboardShouldPersistTaps={v_b1927c.keyboardShouldPersistTaps ?? "handled"}
         contentContainerStyle={(() => {
 

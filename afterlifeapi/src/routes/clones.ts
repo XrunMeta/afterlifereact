@@ -78,7 +78,11 @@ v_f891e6.post(
 
     const v_3c8572 = await v_a1651b
       .prepare(
-        `SELECT COUNT(*) AS n FROM clones WHERE owner_id = ? AND clone_type = ?`,
+        `SELECT COUNT(*) AS n FROM clones
+          WHERE owner_id = ?
+            AND clone_type = ?
+            AND deletion_state = 'active'
+            AND deleted_at IS NULL`,
       )
       .bind(v_43e90c, v_4d33b2.clone_type)
       .first<{ n: number }>();
@@ -389,6 +393,18 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       .all<{ interest: string }>()
   ).results.map((v_cb35cb) => v_cb35cb.interest);
 
+  const v_218436 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT
+         (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+            WHERE f.clone_id = ?) AS likesCount,
+         (SELECT COUNT(*) FROM feed_comments fc
+            JOIN feeds f2 ON f2.id = fc.feed_id
+            WHERE f2.clone_id = ?) AS commentsCount`,
+    )
+    .bind(v_6e0fd3, v_6e0fd3)
+    .first<{ likesCount: number; commentsCount: number }>();
+
   return v_3f4e2e.json({
     clone: {
       id: v_eb25ce.id,
@@ -409,6 +425,8 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
         followers: v_eb25ce.followers_count,
         messages: v_eb25ce.messages_count,
         gifts: v_eb25ce.gifts_count,
+        likes: v_218436?.likesCount ?? 0,
+        comments: v_218436?.commentsCount ?? 0,
       },
       createdAt: v_eb25ce.created_at,
       viewerRole: v_00efe2,
@@ -425,6 +443,7 @@ const v_90be18 = v_1f4ea7
     visibility: v_818579.optional(),
     voice_preset_id: v_1f4ea7.number().int().positive().nullable().optional(),
     l1_profile: v_3ea364.optional(),
+    interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
   })
   .strict()
   .refine((v_b6c474) => Object.keys(v_b6c474).length > 0, {
@@ -524,6 +543,25 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
     }
   }
 
+  if (v_4d33b2.interests !== undefined) {
+    v_be9ad5.push(
+      v_a1651b.prepare(`DELETE FROM clone_interests WHERE clone_id = ?`).bind(v_6e0fd3),
+    );
+
+    const v_110a8b = new Set<string>();
+    for (const v_479f05 of v_4d33b2.interests) {
+      const v_81e2ef = v_479f05.trim();
+      if (!v_81e2ef || v_110a8b.has(v_81e2ef)) continue;
+      v_110a8b.add(v_81e2ef);
+      v_be9ad5.push(
+        v_a1651b
+          .prepare(`INSERT INTO clone_interests (clone_id, interest) VALUES (?, ?)`)
+          .bind(v_6e0fd3, v_81e2ef),
+      );
+    }
+    v_f73a2d.push("interests");
+  }
+
   await v_a1651b.batch(v_be9ad5);
 
   await v_74defc(v_3f4e2e, {
@@ -573,4 +611,80 @@ v_f891e6.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
     .bind(v_43e90c, v_6e0fd3)
     .run();
   return v_3f4e2e.json({ ok: true });
+});
+
+v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT cf.id        AS followId,
+                cf.user_id   AS userId,
+                cf.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM clone_follows cf
+           JOIN users u ON u.id = cf.user_id
+          WHERE cf.clone_id = ? AND u.deleted_at IS NULL
+          ORDER BY cf.id DESC
+          LIMIT ?`,
+      )
+      .bind(v_6e0fd3, v_02be30)
+      .all<{
+        followId: number;
+        userId: number;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => ({
+      followId: v_cb35cb.followId,
+      userId: v_cb35cb.userId,
+      name: v_cb35cb.userName,
+      email: v_cb35cb.userEmail,
+      avatarUrl: v_cb35cb.userAvatarUrl,
+      createdAt: v_cb35cb.createdAt,
+    })),
+  });
+});
+
+v_f891e6.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
+    ).bind(v_43e90c, v_6e0fd3),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM clone_follows WHERE user_id = ? AND clone_id = ?`,
+    ).bind(v_43e90c, v_6e0fd3),
+  ]);
+  return v_3f4e2e.json({ ok: true, blocked: true });
+});
+
+v_f891e6.delete("/:id/block", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM clone_blocks WHERE user_id = ? AND clone_id = ?`)
+    .bind(v_43e90c, v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ ok: true, blocked: false });
 });

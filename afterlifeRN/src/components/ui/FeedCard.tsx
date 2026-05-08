@@ -9,6 +9,7 @@ import {
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
+import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../constants";
 import type { v_19b433 } from "../../types/feed";
 
@@ -22,6 +23,7 @@ interface FeedCardProps {
   onToggleFollow: () => void;
   onCallPress: () => void;
   onCommentPress?: () => void;
+  onMorePress?: () => void;
 }
 
 const FeedCard: v_a3453e.FC<FeedCardProps> = ({
@@ -34,7 +36,9 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   onToggleFollow: v_cbd557,
   onCallPress: v_c1d70c,
   onCommentPress: v_48b0c1,
+  onMorePress: v_27b331,
 }) => {
+  const { t: v_8d41d7 } = v_772971();
   return (
     <View style={[v_d81136.container, { height: v_3d6201 }]}>
       {}
@@ -77,9 +81,20 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
                   v_a26275 && v_d81136.followTextActive,
                 ]}
               >
-                {v_a26275 ? "팔로잉" : "팔로우"}
+                {v_a26275 ? v_8d41d7("feed.following") : v_8d41d7("feed.follow")}
               </Text>
             </TouchableOpacity>
+            {}
+            {v_27b331 && (
+              <TouchableOpacity
+                onPress={v_27b331}
+                style={v_d81136.moreButton}
+                activeOpacity={0.7}
+                accessibilityLabel="more-options"
+              >
+                <Feather name="more-vertical" size={20} color={v_1bfbd0.white} />
+              </TouchableOpacity>
+            )}
           </View>
 
           {}
@@ -120,7 +135,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
             activeOpacity={0.8}
           >
             <Feather name="video" size={20} color={v_1bfbd0.zinc900} />
-            <Text style={v_d81136.callButtonText}>통화하기</Text>
+            <Text style={v_d81136.callButtonText}>{v_8d41d7("feed.callBtn")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -178,6 +193,15 @@ const v_d81136 = v_472849.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  moreButton: {
+    marginLeft: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.3)",
   },
   followButtonActive: {
     backgroundColor: "rgba(255,255,255,0.2)",

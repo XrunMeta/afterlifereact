@@ -41,6 +41,13 @@ export interface DomainClone {
   createdAt: string;
   primaryEditorUserId?: number;
   l1Profile?: L1Profile;
+
+  myRole?: "owner" | "coowner";
+  coownerCount?: number;
+  likesCount?: number;
+  commentsCount?: number;
+  followersCount?: number;
+  messagesCount?: number;
 }
 
 export interface DomainFollow {
@@ -73,5 +80,8 @@ export interface DomainFeed {
   cloneId: number;
   content: string;
   mediaUrl?: string;
+
+  mediaType?: string | null;
+  likesCount?: number;
   createdAt: string;
 }

@@ -1,5 +1,6 @@
 import v_a3453e, { v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_472849, v_79c4f2 } from 'rcmrninabrnb';
+import { v_772971 } from 'jmpfvteuuztnp';
 import v_e775af from '../../../components/ui/TextField';
 import v_84e2fc from '../../../components/ui/InterestChip';
 import { v_6e79a1, v_a3360a } from '../../../mocks/interestHelpers';
@@ -13,6 +14,7 @@ interface Props {
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_774c91 = v_f04727.interests ?? [];
   const v_02812c = v_f04727.category ? (v_a3360a[v_f04727.category] ?? []) : [];
 
@@ -49,22 +51,23 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   return (
     <View style={v_d81136.wrap}>
       <TextField
-        placeholder="페르소나 이름"
+        placeholder={v_8d41d7("create.basicInfo.namePlaceholder")}
         value={v_f04727.name ?? ''}
         onChangeText={v_81e2ef => v_b187d9({ name: v_81e2ef })}
       />
       <TextField
-        placeholder="클론 아이디 (@예: @luna)"
+        placeholder={v_8d41d7("create.basicInfo.usernamePlaceholder")}
         value={v_f04727.username ?? ''}
         onChangeText={v_81e2ef => v_b187d9({ username: v_81e2ef })}
+        autoCapitalize="none"
       />
       <TextField
-        placeholder="한 줄 소개"
+        placeholder={v_8d41d7("create.basicInfo.descPlaceholder")}
         value={v_f04727.description ?? ''}
         onChangeText={v_81e2ef => v_b187d9({ description: v_81e2ef })}
       />
 
-      <Text style={v_d81136.label}>카테고리</Text>
+      <Text style={v_d81136.label}>{v_8d41d7("create.basicInfo.categoryLabel")}</Text>
       <View style={v_d81136.catRow}>
         {v_6e79a1.map(v_3f4e2e => (
           <TouchableOpacity
@@ -79,7 +82,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
       {v_02812c.length > 0 && (
         <>
-          <Text style={v_d81136.label}>관심사</Text>
+          <Text style={v_d81136.label}>{v_8d41d7("create.basicInfo.interestsLabel")}</Text>
           <View style={v_d81136.chips}>
             {}
             {v_02812c.map((v_ebec57) => (
@@ -105,7 +108,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
               style={v_d81136.etcChip}
               onPress={() => v_160b34((v_81e2ef) => !v_81e2ef)}
             >
-              <Text style={v_d81136.etcChipText}>+ 기타</Text>
+              <Text style={v_d81136.etcChipText}>{v_8d41d7("create.basicInfo.addEtc")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -115,14 +118,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
                 style={v_d81136.customTextInput}
                 value={v_0f1d77}
                 onChangeText={v_e887ea}
-                placeholder="콤마(,) 로 여러 개 가능 — 예: 책, 영화, 여행"
+                placeholder={v_8d41d7("create.basicInfo.customPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
                 onSubmitEditing={v_8fa105}
                 returnKeyType="done"
                 autoFocus
               />
               <TouchableOpacity style={v_d81136.addBtn} onPress={v_8fa105}>
-                <Text style={v_d81136.addBtnText}>추가</Text>
+                <Text style={v_d81136.addBtnText}>{v_8d41d7("create.basicInfo.addBtn")}</Text>
               </TouchableOpacity>
             </View>
           )}

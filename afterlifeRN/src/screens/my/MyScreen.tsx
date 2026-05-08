@@ -9,20 +9,24 @@ import {
   v_09d0e5,
   v_03e392,
   v_39a996,
+  v_122070,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
+import v_0e981f from "../../components/common/NotificationBell";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
 import { v_7d2692 } from "../../api/files";
 import { v_976b89 } from "../../api/auth";
+import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
+import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import { v_9b8cb3, v_5c99c1 } from "../../api/payments";
 import v_3cb56d, {
   v_b1f897,
@@ -32,11 +36,7 @@ import type { v_e57140 } from "../../navigation/types";
 
 const v_b9d568 = 1;
 
-const v_cca523 = [
-  { label: "페르소나 생성", date: "2024.03.25 14:32", amount: -500 },
-  { label: "영상 통화 (15분)", date: "2024.03.24 19:15", amount: -300 },
-  { label: "코인 충전", date: "2024.03.23 10:20", amount: 10000 },
-];
+const v_cca523 = [];
 
 type MyNav = v_390fcc<v_e57140>;
 
@@ -49,6 +49,8 @@ export default function v_ed02a5() {
   const v_21f395 = v_1ed7d9((v_fd5f43) => v_fd5f43.patchApiUser);
   const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
+  const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
+  const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const [v_47abd6, v_e12360] = v_5ab095(false);
   const [v_026c2d, v_5eda29] = v_5ab095(false);
@@ -110,12 +112,12 @@ export default function v_ed02a5() {
 
   const v_d28ade = async () => {
     if (!v_2ca7e0) {
-      v_03e392.alert("알림", "로그인이 필요합니다.");
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("my.loginRequired"));
       return;
     }
     const v_d60769 = await v_d05ab5.requestMediaLibraryPermissionsAsync();
     if (!v_d60769.granted) {
-      v_03e392.alert("권한 필요", "사진 라이브러리 접근 권한을 허용해주세요.");
+      v_03e392.alert(v_8d41d7("my.permTitle"), v_8d41d7("my.permDesc"));
       return;
     }
     const v_07fb2e = await v_d05ab5.launchImageLibraryAsync({
@@ -137,14 +139,14 @@ export default function v_ed02a5() {
       await v_976b89(v_2ca7e0, { avatarUrl: v_57ac81.url });
       v_21f395({ avatarUrl: v_57ac81.url });
     } catch (v_49263d) {
-      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "이미지 업로드에 실패했습니다.";
-      v_03e392.alert("오류", v_badeaf);
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : v_8d41d7("my.uploadFailed");
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_5eda29(false);
     }
   };
 
-  const v_8a1355 = v_b113dd?.name ?? v_625c74?.displayName ?? "사용자";
+  const v_8a1355 = v_b113dd?.name ?? v_625c74?.displayName ?? v_8d41d7("my.userFallback");
   const v_04c129 = v_b113dd?.email ?? v_625c74?.handle ?? "@afterlife";
   const v_bf6b43 = v_b113dd ? v_b113dd.avatarUrl : v_625c74?.avatarUrl ?? null;
 
@@ -153,16 +155,69 @@ export default function v_ed02a5() {
   const v_30af0f = v_969a3a ?? null;
 
   const v_0c8987 = v_b113dd?.id ?? v_625c74?.id ?? v_b9d568;
-  const v_48d264 = v_df9f57(
-    () => v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987).length,
-    [v_1e752a, v_0c8987],
+  const [v_65adaf, v_b81b74] = v_5ab095<number | null>(null);
+  const [v_8f9093, v_3e7aad] = v_5ab095<number | null>(null);
+
+  const v_74ecfc = (v_6e0fd3) => {
+    v_d5cd7b(null);
+    v_c65f5d.getParent()?.dispatch(
+      v_650cfa.navigate({
+        name: "ClonesTab",
+        params: { screen: "CloneDetail", params: { cloneId: v_6e0fd3 } },
+      }),
+    );
+  };
+  const [v_1f6f04, v_9127a1] = v_5ab095<v_c33ae3[] | null>(null);
+  const [v_58e68f, v_6df89a] = v_5ab095<v_fa0201[] | null>(null);
+  const [v_8bb912, v_d5cd7b] = v_5ab095<"following" | "myClones" | null>(null);
+
+  v_cf763b(
+    v_a3453e.useCallback(() => {
+      let v_2008a4 = false;
+      if (!v_2ca7e0 || !v_b113dd?.id) {
+        v_b81b74(null);
+        v_3e7aad(null);
+        return;
+      }
+      const v_43e90c = v_b113dd.id;
+      console.log(`[MyScreen] fetch start userId=${v_43e90c}`);
+      v_7281a5(v_2ca7e0, v_43e90c)
+        .then((v_cb35cb) => {
+          if (!v_2008a4) {
+            console.log(
+              `[MyScreen] followedClones ← ${v_cb35cb.items.length} items`,
+              v_cb35cb.items.map((v_23805a) => ({ id: v_23805a.id, name: v_23805a.name })),
+            );
+            v_b81b74(v_cb35cb.items.length);
+            v_9127a1(v_cb35cb.items);
+          }
+        })
+        .catch((v_49263d) => console.warn("[MyScreen] followedClones fail:", v_49263d));
+      v_d60cdf(v_2ca7e0)
+        .then((v_cb35cb) => {
+          if (!v_2008a4) {
+            console.log(
+              `[MyScreen] myClones ← ${v_cb35cb.items.length} items`,
+              v_cb35cb.items.map((v_23805a) => ({ id: v_23805a.id, name: v_23805a.name })),
+            );
+            v_3e7aad(v_cb35cb.items.length);
+            v_6df89a(v_cb35cb.items);
+          }
+        })
+        .catch((v_49263d) => console.warn("[MyScreen] myClones fail:", v_49263d));
+      return () => {
+        v_2008a4 = true;
+      };
+    }, [v_2ca7e0, v_b113dd?.id]),
   );
-  const v_8b222b = v_df9f57(
-    () =>
-      v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length +
-      v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length,
-    [v_0c8987, v_06f32b],
-  );
+
+  const v_48d264 =
+    v_65adaf ??
+    v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followerUserId === v_0c8987).length;
+  const v_8b222b =
+    v_8f9093 ??
+    v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length +
+      v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length;
 
   const settingsItems: Array<{
     icon: keyof typeof v_dec439.glyphMap;
@@ -170,18 +225,7 @@ export default function v_ed02a5() {
     descKey: string;
     route: keyof v_e57140;
   }> = [
-    {
-      icon: "bookmark",
-      labelKey: "my.menu.saved",
-      descKey: "settings.saved.title",
-      route: "SavedItems",
-    },
-    {
-      icon: "users",
-      labelKey: "my.menu.acquaintance",
-      descKey: "settings.acquaintance.title",
-      route: "AcquaintanceManagement",
-    },
+
     {
       icon: "user",
       labelKey: "my.menu.editProfile",
@@ -212,16 +256,7 @@ export default function v_ed02a5() {
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title="My Page"
-        rightAction={
-          <View style={v_fd5f43.headerRight}>
-            <TouchableOpacity style={v_fd5f43.headerBtn}>
-              <Feather name="bell" size={22} color={v_1bfbd0.zinc700} />
-            </TouchableOpacity>
-            <TouchableOpacity style={v_fd5f43.headerBtn}>
-              <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
-            </TouchableOpacity>
-          </View>
-        }
+        rightAction={<NotificationBell />}
       />
 
       <View style={v_fd5f43.content}>
@@ -247,21 +282,37 @@ export default function v_ed02a5() {
           <Text style={v_fd5f43.userHandle}>{v_04c129}</Text>
 
           <View style={v_fd5f43.statsRow}>
-            <View style={v_fd5f43.statItem}>
+            <TouchableOpacity
+              style={v_fd5f43.statItem}
+              onPress={() => {
+                console.log(
+                  `[MyScreen] stat TAP "팔로우 중" — apiFollowingCount=${v_65adaf} apiFollowingList=${v_1f6f04?.length ?? "null"}`,
+                );
+                v_d5cd7b("following");
+              }}
+            >
               <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
-              <Text style={v_fd5f43.statLabel}>팔로우 중</Text>
-            </View>
+              <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.following")}</Text>
+            </TouchableOpacity>
             <View style={v_fd5f43.statDivider} />
-            <View style={v_fd5f43.statItem}>
+            <TouchableOpacity
+              style={v_fd5f43.statItem}
+              onPress={() => {
+                console.log(
+                  `[MyScreen] stat TAP "내 페르소나" — apiMyClonesCount=${v_8f9093} apiMyClonesList=${v_58e68f?.length ?? "null"}`,
+                );
+                v_d5cd7b("myClones");
+              }}
+            >
               <Text style={v_fd5f43.statValue}>{v_8b222b}</Text>
-              <Text style={v_fd5f43.statLabel}>내 페르소나</Text>
-            </View>
+              <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.myPersona")}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         {}
         <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>xrun 코인</Text>
+          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.coin.title")}</Text>
         </View>
 
         {}
@@ -269,11 +320,11 @@ export default function v_ed02a5() {
           <View style={v_fd5f43.coinCardTop}>
             <View style={v_fd5f43.coinLabelRow}>
               <Feather name="dollar-sign" size={18} color={v_1bfbd0.zinc700} />
-              <Text style={v_fd5f43.coinLabel}>보유 코인</Text>
+              <Text style={v_fd5f43.coinLabel}>{v_8d41d7("my.coin.balance")}</Text>
             </View>
             <TouchableOpacity style={v_fd5f43.chargeBtn}>
               <Feather name="plus" size={14} color={v_1bfbd0.white} />
-              <Text style={v_fd5f43.chargeBtnText}>충전</Text>
+              <Text style={v_fd5f43.chargeBtnText}>{v_8d41d7("my.coin.charge")}</Text>
             </TouchableOpacity>
           </View>
           {v_747a87 ? (
@@ -289,7 +340,7 @@ export default function v_ed02a5() {
           ) : (
             <>
               <Text style={v_fd5f43.coinAmount}>—</Text>
-              <Text style={v_fd5f43.coinWon}>xrun 회원 매핑이 안 되어 있습니다</Text>
+              <Text style={v_fd5f43.coinWon}>{v_8d41d7("my.coin.notMapped")}</Text>
             </>
           )}
         </View>
@@ -297,7 +348,7 @@ export default function v_ed02a5() {
         {}
         <View style={v_fd5f43.transactionsCard}>
           <View style={v_fd5f43.transactionsHeader}>
-            <Text style={v_fd5f43.transactionsTitle}>최근 거래</Text>
+            <Text style={v_fd5f43.transactionsTitle}>{v_8d41d7("my.coin.transactions")}</Text>
           </View>
           {v_cca523.map((v_2f6fcc, v_ebec57) => (
             <View
@@ -308,7 +359,7 @@ export default function v_ed02a5() {
               ]}
             >
               <View style={v_fd5f43.txInfo}>
-                <Text style={v_fd5f43.txLabel}>{v_2f6fcc.label}</Text>
+                <Text style={v_fd5f43.txLabel}>{v_8d41d7(v_2f6fcc.labelKey)}</Text>
                 <Text style={v_fd5f43.txDate}>{v_2f6fcc.date}</Text>
               </View>
               <Text style={[v_fd5f43.txAmount, v_2f6fcc.amount > 0 ? v_fd5f43.txGreen : v_fd5f43.txRed]}>
@@ -318,13 +369,13 @@ export default function v_ed02a5() {
             </View>
           ))}
           <TouchableOpacity style={v_fd5f43.viewAllBtn}>
-            <Text style={v_fd5f43.viewAllText}>전체 내역 보기</Text>
+            <Text style={v_fd5f43.viewAllText}>{v_8d41d7("my.coin.viewAll")}</Text>
           </TouchableOpacity>
         </View>
 
         {}
         <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.menu.editProfile") ? "설정" : "설정"}</Text>
+          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.coin.settings")}</Text>
         </View>
 
         <View style={v_fd5f43.settingsCard}>
@@ -360,6 +411,117 @@ export default function v_ed02a5() {
         visible={v_fda1fd}
         onClose={() => v_7ece2f(false)}
       />
+
+      {}
+      <Modal visible={v_8bb912 !== null} transparent animationType="slide">
+        <Pressable style={v_fd5f43.statsOverlay} onPress={() => v_d5cd7b(null)}>
+          <Pressable style={v_fd5f43.statsSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <View style={v_fd5f43.sheetHandle} />
+            <Text style={v_fd5f43.statsTitle}>
+              {v_8bb912 === "following" ? v_8d41d7("my.stats.following") : v_8d41d7("my.stats.myPersona")}
+            </Text>
+            <ScrollView style={{ maxHeight: 480 }}>
+              {v_8bb912 === "following" && (
+                !v_1f6f04 || v_1f6f04.length === 0 ? (
+                  <View style={v_fd5f43.statsEmpty}>
+                    <Feather name="users" size={28} color={v_1bfbd0.zinc300} />
+                    <Text style={v_fd5f43.statsEmptyText}>아직 팔로우한 페르소나가 없어요</Text>
+                  </View>
+                ) : (
+                  v_1f6f04.map((v_3f4e2e) => {
+                    const v_10387a = v_b30b81(v_3f4e2e.id);
+                    console.log(
+                      `[MyScreen] following row render — cloneId=${v_3f4e2e.id} name=${v_3f4e2e.name} isFollowing=${v_10387a}`,
+                    );
+                    return (
+                      <TouchableOpacity
+                        key={v_3f4e2e.id}
+                        style={v_fd5f43.listRow}
+                        activeOpacity={0.6}
+                        onPress={() => {
+                          console.log(
+                            `[MyScreen] following row TAP — goToClone cloneId=${v_3f4e2e.id} name=${v_3f4e2e.name}`,
+                          );
+                          v_74ecfc(v_3f4e2e.id);
+                        }}
+                      >
+                        {v_3f4e2e.avatarUrl ? (
+                          <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
+                        ) : (
+                          <View style={[v_fd5f43.listAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                        )}
+                        <View style={{ flex: 1 }}>
+                          <Text style={v_fd5f43.listName}>{v_3f4e2e.name}</Text>
+                          <Text style={v_fd5f43.listSub}>@{v_3f4e2e.username}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={async () => {
+                            console.log(
+                              `[MyScreen] follow toggle TAP cloneId=${v_3f4e2e.id} wasFollowing=${v_10387a}`,
+                            );
+                            await v_3094d4(v_3f4e2e.id);
+
+                            if (v_10387a) {
+                              console.log(
+                                `[MyScreen] post-unfollow → list filter + count -1 cloneId=${v_3f4e2e.id}`,
+                              );
+                              v_9127a1((v_ba2215) =>
+                                v_ba2215 ? v_ba2215.filter((v_62c214) => v_62c214.id !== v_3f4e2e.id) : v_ba2215,
+                              );
+                              v_b81b74((v_ba2215) =>
+                                typeof v_ba2215 === "number" ? Math.max(0, v_ba2215 - 1) : v_ba2215,
+                              );
+                            } else {
+                              console.log(
+                                `[MyScreen] post-follow → count +1 cloneId=${v_3f4e2e.id}`,
+                              );
+                              v_b81b74((v_ba2215) =>
+                                typeof v_ba2215 === "number" ? v_ba2215 + 1 : v_ba2215,
+                              );
+                            }
+                          }}
+                          style={[v_fd5f43.followToggleBtn, v_10387a && v_fd5f43.followToggleBtnActive]}
+                        >
+                          <Text style={[v_fd5f43.followToggleText, v_10387a && v_fd5f43.followToggleTextActive]}>
+                            {v_10387a ? "팔로잉" : "팔로우"}
+                          </Text>
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    );
+                  })
+                )
+              )}
+              {v_8bb912 === "myClones" && (
+                !v_58e68f || v_58e68f.length === 0 ? (
+                  <View style={v_fd5f43.statsEmpty}>
+                    <Feather name="user" size={28} color={v_1bfbd0.zinc300} />
+                    <Text style={v_fd5f43.statsEmptyText}>아직 만든 페르소나가 없어요</Text>
+                  </View>
+                ) : (
+                  v_58e68f.map((v_3f4e2e) => (
+                    <TouchableOpacity
+                      key={v_3f4e2e.id}
+                      style={v_fd5f43.listRow}
+                      activeOpacity={0.6}
+                      onPress={() => v_74ecfc(v_3f4e2e.id)}
+                    >
+                      {v_3f4e2e.avatarUrl ? (
+                        <Image source={{ uri: v_3f4e2e.avatarUrl }} style={v_fd5f43.listAvatar} />
+                      ) : (
+                        <View style={[v_fd5f43.listAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <Text style={v_fd5f43.listName}>{v_3f4e2e.name}</Text>
+                        <Text style={v_fd5f43.listSub}>@{v_3f4e2e.username}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                )
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeScrollView>
   );
 }
@@ -519,4 +681,54 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 8,
   },
   logoutText: { fontSize: 14, color: v_1bfbd0.zinc600 },
+
+  statsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  statsSheet: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    height: "70%",
+  },
+  followToggleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  followToggleBtnActive: {
+    backgroundColor: v_1bfbd0.zinc100,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+  },
+  followToggleText: { fontSize: 12, fontWeight: "700", color: v_1bfbd0.white },
+  followToggleTextActive: { color: v_1bfbd0.zinc700 },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: v_1bfbd0.zinc300,
+    alignSelf: "center",
+    marginVertical: 12,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+    marginBottom: 12,
+  },
+  statsEmpty: { alignItems: "center", paddingVertical: 36, gap: 8 },
+  statsEmptyText: { color: v_1bfbd0.zinc500, fontSize: 13 },
+  listRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+  },
+  listAvatar: { width: 40, height: 40, borderRadius: 20 },
+  listName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  listSub: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
 });

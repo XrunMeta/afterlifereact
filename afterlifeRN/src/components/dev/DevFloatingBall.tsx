@@ -96,7 +96,8 @@ export function v_0f28c1() {
               유저 스위치{v_f73be6 ? ` · ${v_f73be6.displayName}` : ''}
             </Text>
           </TouchableOpacity>
-          {v_dd943a.slice(1).map((v_779914) => (
+          {}
+          {false && v_dd943a.slice(1).map((v_779914) => (
             <TouchableOpacity
               key={v_779914.label}
               style={v_d81136.row}

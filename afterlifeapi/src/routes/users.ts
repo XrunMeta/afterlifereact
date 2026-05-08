@@ -34,6 +34,28 @@ async function v_3fb498(c: Parameters<typeof v_6690d9>[0]): Promise<never> {
 }
 void v_3fb498;
 
+v_de7ba7.get("/search", v_6690d9, async (v_3f4e2e) => {
+  const v_b32680 = v_3f4e2e.get("userId")!;
+  const v_ab6401 = (v_3f4e2e.req.query("q") ?? "").trim();
+  if (v_ab6401.length < 2) {
+    return v_3f4e2e.json({ items: [] });
+  }
+  const v_2a1d60 = `%${v_ab6401}%`;
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, email, avatar_url AS avatarUrl
+         FROM users
+        WHERE deleted_at IS NULL
+          AND id != ?
+          AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
+        ORDER BY id DESC
+        LIMIT 20`,
+    )
+    .bind(v_b32680, v_2a1d60, v_2a1d60)
+    .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
+  return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+});
+
 v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
@@ -227,6 +249,183 @@ v_de7ba7.get("/me/devices", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ devices: v_18b8bf.results ?? [] });
 });
 
+v_de7ba7.get("/me/invites", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT
+          i.id, i.invite_email AS inviteEmail, i.relation, i.grant_owner AS grantOwner,
+          i.expires_at AS expiresAt, i.used_at AS usedAt, i.cancelled_at AS cancelledAt,
+          i.created_at AS createdAt,
+          c.id AS cloneId, c.name AS cloneName, c.username AS cloneUsername,
+          c.avatar_url AS cloneAvatarUrl, c.clone_type AS cloneType
+         FROM invite_tokens i
+         JOIN clones c ON c.id = i.clone_id
+        WHERE i.owner_id = ? AND c.deleted_at IS NULL
+        ORDER BY i.id DESC
+        LIMIT 200`,
+    )
+    .bind(v_43e90c)
+    .all<{
+      id: number;
+      inviteEmail: string | null;
+      relation: string | null;
+      grantOwner: number;
+      expiresAt: string;
+      usedAt: string | null;
+      cancelledAt: string | null;
+      createdAt: string;
+      cloneId: number;
+      cloneName: string;
+      cloneUsername: string;
+      cloneAvatarUrl: string | null;
+      cloneType: string;
+    }>();
+
+  const v_5c2f9f = Date.now();
+  const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
+    let v_d308b5;
+    if (v_cb35cb.usedAt) v_d308b5 = "accepted";
+    else if (v_cb35cb.cancelledAt) v_d308b5 = "cancelled";
+    else {
+      const v_f900a6 = new Date(v_cb35cb.expiresAt.replace(" ", "T") + "Z").getTime();
+      v_d308b5 = v_f900a6 < v_5c2f9f ? "expired" : "pending";
+    }
+    return {
+      id: v_cb35cb.id,
+      inviteEmail: v_cb35cb.inviteEmail,
+      relation: v_cb35cb.relation,
+      grantOwner: v_cb35cb.grantOwner === 1,
+      expiresAt: v_cb35cb.expiresAt,
+      usedAt: v_cb35cb.usedAt,
+      cancelledAt: v_cb35cb.cancelledAt,
+      createdAt: v_cb35cb.createdAt,
+      status: v_d308b5,
+      clone: {
+        id: v_cb35cb.cloneId,
+        name: v_cb35cb.cloneName,
+        username: v_cb35cb.cloneUsername,
+        avatarUrl: v_cb35cb.cloneAvatarUrl,
+        cloneType: v_cb35cb.cloneType,
+      },
+    };
+  });
+  return v_3f4e2e.json({ items: v_4622b9 });
+});
+
+v_de7ba7.post("/me/devices", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req.json().catch(() => ({})) as {
+    deviceId?: string;
+    pushToken?: string;
+    platform?: "ios" | "android" | "web";
+  };
+  if (!v_4d33b2.deviceId || !v_4d33b2.pushToken || !v_4d33b2.platform) {
+    throw new v_3ebe58("VALIDATION_FAILED", "deviceId, pushToken, platform required.");
+  }
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO user_devices (user_id, device_id, push_token, platform, is_active, last_active_at)
+       VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+       ON CONFLICT(user_id, device_id) DO UPDATE SET
+         push_token = excluded.push_token,
+         platform   = excluded.platform,
+         is_active  = 1,
+         last_active_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP`,
+    )
+    .bind(v_43e90c, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform)
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
+v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT
+          c.id,
+          c.name,
+          c.username,
+          c.description,
+          c.clone_type     AS cloneType,
+          c.category,
+          c.visibility,
+          c.avatar_url     AS avatarUrl,
+          c.cover_image_url AS coverImageUrl,
+          c.training_status AS trainingStatus,
+          c.owner_id       AS ownerId,
+          c.created_at     AS createdAt,
+          c.l1_profile     AS l1ProfileJson,
+          (CASE WHEN c.owner_id = ? THEN 'owner' ELSE 'coowner' END) AS myRole,
+          (SELECT COUNT(*) FROM clone_shares s
+            WHERE s.clone_id = c.id AND s.status = 'accepted') AS coownerCount,
+          (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+            WHERE f.clone_id = c.id) AS likesCount,
+          (SELECT COUNT(*) FROM feed_comments fc
+             JOIN feeds f2 ON f2.id = fc.feed_id
+             WHERE f2.clone_id = c.id) AS commentsCount,
+          COALESCE(cs.followers_count, 0) AS followersCount,
+          COALESCE(cs.messages_count, 0) AS messagesCount
+         FROM clones c
+         LEFT JOIN clone_stats cs ON cs.clone_id = c.id
+        WHERE c.deletion_state = 'active'
+          AND c.deleted_at IS NULL
+          AND (
+            c.owner_id = ?
+            OR c.id IN (
+              SELECT s.clone_id FROM clone_shares s
+              WHERE s.target_user_id = ? AND s.status = 'accepted'
+            )
+          )
+        ORDER BY c.id DESC
+        LIMIT 200`,
+    )
+    .bind(v_43e90c, v_43e90c, v_43e90c)
+    .all();
+
+  const v_8b86f5 = (v_18b8bf.results ?? []).map((v_cb35cb) => (v_cb35cb as { id: number }).id);
+  const v_65d2c1 = new Map<number, string[]>();
+  if (v_8b86f5.length > 0) {
+    const v_1cdc07 = v_8b86f5.map(() => "?").join(",");
+    const v_b52787 = (
+      await v_3f4e2e.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${v_1cdc07})`,
+        )
+        .bind(...v_8b86f5)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const v_b07d8e of v_b52787) {
+      const v_d0c056 = v_65d2c1.get(v_b07d8e.clone_id) ?? [];
+      v_d0c056.push(v_b07d8e.interest);
+      v_65d2c1.set(v_b07d8e.clone_id, v_d0c056);
+    }
+  }
+
+  const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => {
+    const v_3ac7e7 = v_cb35cb as Record<string, unknown> & { id: number; l1ProfileJson?: string | null };
+    let v_564b6a = null;
+    if (v_3ac7e7.l1ProfileJson) {
+      try {
+        const v_8decf8 = JSON.parse(v_3ac7e7.l1ProfileJson) as { attrs?: Record<string, string>; notes?: string };
+        v_564b6a = { attrs: v_8decf8.attrs ?? {}, notes: v_8decf8.notes ?? "" };
+      } catch {
+
+      }
+    }
+    const { l1ProfileJson: v_9bd854, ...v_83bbcd } = v_3ac7e7;
+    void v_9bd854;
+    return {
+      ...v_83bbcd,
+      l1Profile: v_564b6a,
+      interests: v_65d2c1.get(v_3ac7e7.id) ?? [],
+    };
+  });
+  return v_3f4e2e.json({ items: v_4622b9 });
+});
+
 v_de7ba7.post("/me/delete", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
@@ -403,21 +602,29 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url, c.created_at,
+        `SELECT c.id, c.name, c.username, c.description, c.clone_type, c.category, c.avatar_url, c.created_at,
                 COALESCE(s.followers_count, 0) AS followers_count,
                 COALESCE(s.messages_count, 0)  AS messages_count,
-                COALESCE(s.gifts_count, 0)     AS gifts_count
+                COALESCE(s.gifts_count, 0)     AS gifts_count,
+                (SELECT id FROM feeds WHERE clone_id = c.id ORDER BY id DESC LIMIT 1) AS latest_feed_id,
+                (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+                  WHERE f.clone_id = c.id) AS total_likes,
+                (SELECT COUNT(*) FROM feed_comments fc
+                   JOIN feeds f2 ON f2.id = fc.feed_id
+                   WHERE f2.clone_id = c.id) AS total_comments
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
           WHERE f.user_id = ? AND c.deleted_at IS NULL
+            AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
           ORDER BY f.created_at DESC, f.id DESC`,
       )
-      .bind(v_43e90c)
+      .bind(v_43e90c, v_43e90c)
       .all<{
         id: number;
         name: string;
         username: string;
+        description: string | null;
         clone_type: string;
         category: string | null;
         avatar_url: string | null;
@@ -425,23 +632,116 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         followers_count: number;
         messages_count: number;
         gifts_count: number;
+        latest_feed_id: number | null;
+        total_likes: number;
+        total_comments: number;
       }>()
   ).results;
+
+  const v_a3c713 = v_18b8bf.map((v_cb35cb) => v_cb35cb.id);
+  const v_9afb14 = new Map<number, string[]>();
+  if (v_a3c713.length > 0) {
+    const v_1cdc07 = v_a3c713.map(() => "?").join(",");
+    const v_b07d8e = (
+      await v_3f4e2e.env.DB
+        .prepare(
+          `SELECT clone_id, interest FROM clone_interests
+            WHERE clone_id IN (${v_1cdc07})`,
+        )
+        .bind(...v_a3c713)
+        .all<{ clone_id: number; interest: string }>()
+    ).results ?? [];
+    for (const v_3ac7e7 of v_b07d8e) {
+      const v_d0c056 = v_9afb14.get(v_3ac7e7.clone_id) ?? [];
+      v_d0c056.push(v_3ac7e7.interest);
+      v_9afb14.set(v_3ac7e7.clone_id, v_d0c056);
+    }
+  }
+
+  const v_1e80bb = v_18b8bf.map((v_cb35cb) => v_cb35cb.id);
+  const v_ff3805 = new Set<number>();
+  if (v_1e80bb.length > 0) {
+    const v_1cdc07 = v_1e80bb.map(() => "?").join(",");
+    const v_59d4e3 = (
+      await v_3f4e2e.env.DB
+        .prepare(
+          `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
+             JOIN feeds f ON f.id = fl.feed_id
+            WHERE fl.user_id = ? AND f.clone_id IN (${v_1cdc07})`,
+        )
+        .bind(v_43e90c, ...v_1e80bb)
+        .all<{ clone_id: number }>()
+    ).results ?? [];
+    for (const v_3ac7e7 of v_59d4e3) v_ff3805.add(v_3ac7e7.clone_id);
+  }
 
   return v_3f4e2e.json({
     items: v_18b8bf.map((v_cb35cb) => ({
       id: v_cb35cb.id,
       name: v_cb35cb.name,
       username: v_cb35cb.username,
+      description: v_cb35cb.description,
       cloneType: v_cb35cb.clone_type,
       category: v_cb35cb.category,
       avatarUrl: v_cb35cb.avatar_url,
+      interests: v_9afb14.get(v_cb35cb.id) ?? [],
       stats: {
         followers: v_cb35cb.followers_count,
         messages: v_cb35cb.messages_count,
         gifts: v_cb35cb.gifts_count,
+
+        likes: v_cb35cb.total_likes,
+        comments: v_cb35cb.total_comments,
+      },
+
+      latestFeed: {
+        feedId: v_cb35cb.latest_feed_id,
+        likedByMe: v_ff3805.has(v_cb35cb.id),
       },
       createdAt: v_cb35cb.created_at,
+    })),
+  });
+});
+
+v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT b.id           AS blockId,
+                b.created_at   AS createdAt,
+                c.id           AS cloneId,
+                c.name         AS cloneName,
+                c.username     AS cloneUsername,
+                c.avatar_url   AS cloneAvatarUrl,
+                c.clone_type   AS cloneType
+           FROM clone_blocks b
+           JOIN clones c ON c.id = b.clone_id
+          WHERE b.user_id = ? AND c.deleted_at IS NULL
+          ORDER BY b.id DESC`,
+      )
+      .bind(v_43e90c)
+      .all<{
+        blockId: number;
+        createdAt: string;
+        cloneId: number;
+        cloneName: string;
+        cloneUsername: string;
+        cloneAvatarUrl: string | null;
+        cloneType: string;
+      }>()
+  ).results;
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => ({
+      blockId: v_cb35cb.blockId,
+      createdAt: v_cb35cb.createdAt,
+      clone: {
+        id: v_cb35cb.cloneId,
+        name: v_cb35cb.cloneName,
+        username: v_cb35cb.cloneUsername,
+        avatarUrl: v_cb35cb.cloneAvatarUrl,
+        cloneType: v_cb35cb.cloneType,
+      },
     })),
   });
 });

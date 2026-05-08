@@ -13,11 +13,12 @@ import {
 } from "../lib/cloneAccess";
 import { v_084137 } from "jyrbilrsgaufsmqlwpinn";
 import { v_5f30e2 } from "qcyoxusdylhcdivjkjnuowj";
+import { v_c226a5 } from "../lib/notify";
 
 export const v_403c0a = new v_b7c41b<v_de0a25>();
 export const v_98b245 = new v_b7c41b<v_de0a25>();
 
-const v_d4f6d1 = 7 * 24 * 60 * 60 * 1000; 
+const v_d4f6d1 = 3 * 24 * 60 * 60 * 1000; 
 const v_5ee199 = 50;
 
 function v_31113b(v_3f4e2e): number {
@@ -82,10 +83,51 @@ v_403c0a.post(
     const v_a1651b = v_3f4e2e.env.DB;
     await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
 
+    if (v_4d33b2.invite_email) {
+      const v_cc9bf8 = await v_a1651b
+        .prepare(
+          `SELECT id FROM invite_tokens
+            WHERE clone_id = ?
+              AND LOWER(invite_email) = LOWER(?)
+              AND used_at IS NULL
+              AND cancelled_at IS NULL
+              AND expires_at > CURRENT_TIMESTAMP
+            LIMIT 1`,
+        )
+        .bind(v_6e0fd3, v_4d33b2.invite_email)
+        .first<{ id: number }>();
+      if (v_cc9bf8) {
+        throw new v_3ebe58(
+          "ALREADY_INVITED",
+          "이 이메일로 이미 대기 중인 초대가 있어요.",
+        );
+      }
+
+      const v_181458 = await v_a1651b
+        .prepare(
+          `SELECT cs.id
+             FROM clone_shares cs
+             JOIN users u ON u.id = cs.target_user_id
+            WHERE cs.clone_id = ?
+              AND LOWER(u.email) = LOWER(?)
+              AND cs.status = 'accepted'
+            LIMIT 1`,
+        )
+        .bind(v_6e0fd3, v_4d33b2.invite_email)
+        .first<{ id: number }>();
+      if (v_181458) {
+        throw new v_3ebe58(
+          "ALREADY_MEMBER",
+          "이미 이 페르소나의 공동관리자예요.",
+        );
+      }
+    }
+
     const v_f8b770 = await v_a1651b
       .prepare(
         `SELECT COUNT(*) AS n FROM invite_tokens
-          WHERE clone_id = ? AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP`,
+          WHERE clone_id = ? AND used_at IS NULL AND cancelled_at IS NULL
+            AND expires_at > CURRENT_TIMESTAMP`,
       )
       .bind(v_6e0fd3)
       .first<{ n: number }>();
@@ -98,8 +140,10 @@ v_403c0a.post(
 
     const v_21cc31 = v_8fc319();
     const v_109fd8 = v_27c443(v_21cc31);
-    const v_9d0b9e = (v_4d33b2.ttl_hours ?? 168) * 60 * 60 * 1000;
-    const v_0b8131 = new Date(Date.now() + Math.min(v_9d0b9e, v_d4f6d1 * 30 / 7))
+
+    const v_9d0b9e = (v_4d33b2.ttl_hours ?? 72) * 60 * 60 * 1000;
+    const v_2c50d3 = 30 * 24 * 60 * 60 * 1000; 
+    const v_0b8131 = new Date(Date.now() + Math.min(v_9d0b9e, v_2c50d3))
       .toISOString()
       .replace("T", " ")
       .replace(/\..*$/, "");
@@ -134,17 +178,72 @@ v_403c0a.post(
       action: "sharing.invite.create",
       details: { cloneId: v_6e0fd3, grantOwner: v_4d33b2.grant_owner, inviteEmail: v_4d33b2.invite_email },
     });
+
+    let notifyResult: Awaited<ReturnType<typeof v_c226a5>> | null = null;
+    if (v_4d33b2.invite_email) {
+      try {
+        const v_1de203 = await v_a1651b
+          .prepare(`SELECT name, username FROM clones WHERE id = ?`)
+          .bind(v_6e0fd3)
+          .first<{ name: string; username: string }>();
+        const v_1fd611 = await v_a1651b
+          .prepare(`SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL`)
+          .bind(v_4d33b2.invite_email)
+          .first<{ id: number }>();
+
+        const v_f2ff36 = v_1de203?.name ?? "페르소나";
+        const v_9466ca = `afterlife://invite/${v_21cc31}`;
+        v_666ddb = await v_c226a5(v_3f4e2e.env, {
+          userId: v_1fd611?.id,
+          email: v_1fd611 ? undefined : v_4d33b2.invite_email, 
+          type: "invite_received",
+          title: `${v_f2ff36} 공동관리자 초대`,
+          body: `${v_f2ff36} 페르소나의 공동관리자로 초대됐어요. 수락하면 함께 관리할 수 있어요.`,
+          url: v_9466ca,
+          data: { cloneId: v_6e0fd3, token: v_21cc31 },
+          emailSubject: `[afterlife] ${v_f2ff36} 공동관리자 초대`,
+          emailHtml: `
+            <div style="font-family:system-ui,-apple-system,sans-serif;line-height:1.6;max-width:480px;margin:0 auto;padding:24px">
+              <h2 style="margin:0 0 12px;color:#18181b">${v_8fd199(v_f2ff36)} 공동관리자 초대</h2>
+              <p style="color:#52525b;margin:0 0 20px">
+                <strong>${v_8fd199(v_f2ff36)}</strong> 페르소나의 공동관리자로 초대됐어요.
+                수락하면 함께 관리하고 채팅에 참여할 수 있어요.
+              </p>
+              <p style="margin:0 0 24px">
+                <a href="${v_9466ca}" style="display:inline-block;padding:12px 20px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">초대 수락하기</a>
+              </p>
+              <p style="color:#a1a1aa;font-size:12px;margin:24px 0 0">
+                이 초대는 ${new Date(v_0b8131 + "Z").toLocaleString("ko-KR")} 까지 유효해요.
+              </p>
+            </div>
+          `,
+        });
+      } catch (v_49263d) {
+        console.warn("[sharing.invite] notify failed:", (v_49263d as Error).message);
+      }
+    }
+
     return v_3f4e2e.json(
       {
         token: v_21cc31, 
         expiresAt: v_0b8131,
         inviteEmail: v_4d33b2.invite_email ?? null,
         grantOwner: v_4d33b2.grant_owner,
+        notify: v_666ddb,
       },
       201,
     );
   },
 );
+
+function v_8fd199(v_fd5f43): string {
+  return v_fd5f43
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 v_98b245.get("/:token", async (v_3f4e2e) => {
   const v_21cc31 = v_3f4e2e.req.param("token");
@@ -154,7 +253,7 @@ v_98b245.get("/:token", async (v_3f4e2e) => {
   const v_109fd8 = v_27c443(v_21cc31);
   const v_3ac7e7 = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at,
+      `SELECT i.clone_id, i.invite_email, i.relation, i.grant_owner, i.expires_at, i.used_at, i.cancelled_at,
               c.name, c.username, c.avatar_url, c.clone_type
          FROM invite_tokens i JOIN clones c ON c.id = i.clone_id
         WHERE i.token_hash = ? AND c.deleted_at IS NULL`,
@@ -167,6 +266,7 @@ v_98b245.get("/:token", async (v_3f4e2e) => {
       grant_owner: number;
       expires_at: string;
       used_at: string | null;
+      cancelled_at: string | null;
       name: string;
       username: string;
       avatar_url: string | null;
@@ -174,6 +274,7 @@ v_98b245.get("/:token", async (v_3f4e2e) => {
     }>();
   if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Invite not found.");
   if (v_3ac7e7.used_at) throw new v_3ebe58("CONFLICT", "Invite already used.");
+  if (v_3ac7e7.cancelled_at) throw new v_3ebe58("CONFLICT", "Invite cancelled by owner.");
 
   const v_2699db = new Date(v_3ac7e7.expires_at.replace(" ", "T") + "Z") < new Date();
   if (v_2699db) throw new v_3ebe58("CONFLICT", "Invite expired.");
@@ -208,21 +309,24 @@ v_98b245.post(
 
     const v_f0104f = await v_a1651b
       .prepare(
-        `SELECT id, clone_id, invite_email, relation, grant_owner, expires_at, used_at
+        `SELECT id, clone_id, owner_id, invite_email, relation, grant_owner, expires_at, used_at, cancelled_at
            FROM invite_tokens WHERE token_hash = ?`,
       )
       .bind(v_109fd8)
       .first<{
         id: number;
         clone_id: number;
+        owner_id: number;
         invite_email: string | null;
         relation: string | null;
         grant_owner: number;
         expires_at: string;
         used_at: string | null;
+        cancelled_at: string | null;
       }>();
     if (!v_f0104f) throw new v_3ebe58("NOT_FOUND", "Invite not found.");
     if (v_f0104f.used_at) throw new v_3ebe58("CONFLICT", "Invite already used.");
+    if (v_f0104f.cancelled_at) throw new v_3ebe58("CONFLICT", "Invite cancelled by owner.");
     const v_2699db = new Date(v_f0104f.expires_at.replace(" ", "T") + "Z") < new Date();
     if (v_2699db) throw new v_3ebe58("CONFLICT", "Invite expired.");
 
@@ -266,7 +370,8 @@ v_98b245.post(
                (clone_id, owner_id, target_user_id, relation, role, status)
              VALUES (?, ?, ?, ?, ?, 'accepted')`,
           )
-          .bind(v_f0104f.clone_id, v_43e90c, v_43e90c, v_f0104f.relation, v_22da99),
+
+          .bind(v_f0104f.clone_id, v_f0104f.owner_id, v_43e90c, v_f0104f.relation, v_22da99),
       );
     }
     v_ebc640.push(
@@ -287,16 +392,101 @@ v_98b245.post(
   },
 );
 
+v_98b245.post(
+  "/:token/decline",
+  v_6690d9,
+  v_a04a51("sharing.invite.decline"),
+  async (v_3f4e2e) => {
+    const v_21cc31 = v_3f4e2e.req.param("token");
+    if (!v_21cc31 || v_21cc31.length < 32 || v_21cc31.length > 256) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Invalid token.");
+    }
+    const v_43e90c = v_3f4e2e.get("userId")!;
+    const v_a1651b = v_3f4e2e.env.DB;
+    const v_109fd8 = v_27c443(v_21cc31);
+
+    const v_f0104f = await v_a1651b
+      .prepare(
+        `SELECT id, clone_id, invite_email, used_at, cancelled_at
+           FROM invite_tokens WHERE token_hash = ?`,
+      )
+      .bind(v_109fd8)
+      .first<{
+        id: number;
+        clone_id: number;
+        invite_email: string | null;
+        used_at: string | null;
+        cancelled_at: string | null;
+      }>();
+    if (!v_f0104f) throw new v_3ebe58("NOT_FOUND", "Invite not found.");
+    if (v_f0104f.cancelled_at) {
+
+      return v_3f4e2e.json({ ok: true, alreadyCancelled: true });
+    }
+
+    if (v_f0104f.invite_email) {
+      const v_ceb55a = await v_a1651b
+        .prepare(`SELECT email FROM users WHERE id = ?`)
+        .bind(v_43e90c)
+        .first<{ email: string }>();
+      if (!v_ceb55a || v_ceb55a.email.toLowerCase() !== v_f0104f.invite_email.toLowerCase()) {
+        throw new v_3ebe58("FORBIDDEN", "Invite email does not match.");
+      }
+    }
+
+    let v_5b8535 = false;
+    if (v_f0104f.used_at) {
+      const v_8f00b9 = await v_a1651b
+        .prepare(
+          `DELETE FROM clone_shares
+             WHERE clone_id = ? AND target_user_id = ?`,
+        )
+        .bind(v_f0104f.clone_id, v_43e90c)
+        .run();
+      v_5b8535 = (v_8f00b9.meta?.changes ?? 0) > 0;
+    }
+
+    await v_a1651b
+      .prepare(
+        `UPDATE invite_tokens
+            SET cancelled_at = CURRENT_TIMESTAMP
+          WHERE id = ? AND cancelled_at IS NULL`,
+      )
+      .bind(v_f0104f.id)
+      .run();
+
+    await v_74defc(v_3f4e2e, {
+      userId: v_43e90c,
+      action: "sharing.invite.decline",
+      details: { cloneId: v_f0104f.clone_id, inviteId: v_f0104f.id, removedShare: v_5b8535 },
+    });
+    return v_3f4e2e.json({ ok: true, cloneId: v_f0104f.clone_id, removedShare: v_5b8535 });
+  },
+);
+
 v_403c0a.get("/:id/shares", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
-  await v_979b07(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+
+  const v_a0737a = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT
+          (SELECT 1 FROM clones WHERE id = ? AND owner_id = ?) AS isOwner,
+          (SELECT 1 FROM clone_shares
+              WHERE clone_id = ? AND target_user_id = ? AND status = 'accepted') AS isCoowner`,
+    )
+    .bind(v_6e0fd3, v_43e90c, v_6e0fd3, v_43e90c)
+    .first<{ isOwner: number | null; isCoowner: number | null }>();
+  if (!v_a0737a || (!v_a0737a.isOwner && !v_a0737a.isCoowner)) {
+    throw new v_3ebe58("FORBIDDEN", "Access denied for this clone.");
+  }
 
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT s.id, s.target_user_id, s.invite_email, s.relation, s.role, s.status,
-                s.created_at, u.name AS target_name, u.email AS target_email
+        `SELECT s.id, s.clone_id, s.owner_id, s.target_user_id, s.invite_email,
+                s.relation, s.role, s.status, s.created_at,
+                u.name AS target_name, u.email AS target_email, u.avatar_url AS target_avatar
            FROM clone_shares s
            LEFT JOIN users u ON u.id = s.target_user_id
           WHERE s.clone_id = ?
@@ -305,6 +495,8 @@ v_403c0a.get("/:id/shares", v_6690d9, async (v_3f4e2e) => {
       .bind(v_6e0fd3)
       .all<{
         id: number;
+        clone_id: number;
+        owner_id: number;
         target_user_id: number | null;
         invite_email: string | null;
         relation: string | null;
@@ -313,19 +505,28 @@ v_403c0a.get("/:id/shares", v_6690d9, async (v_3f4e2e) => {
         created_at: string;
         target_name: string | null;
         target_email: string | null;
+        target_avatar: string | null;
       }>()
   ).results;
   return v_3f4e2e.json({
-    shares: v_18b8bf.map((v_cb35cb) => ({
+    items: v_18b8bf.map((v_cb35cb) => ({
       id: v_cb35cb.id,
+      cloneId: v_cb35cb.clone_id,
+      ownerId: v_cb35cb.owner_id,
       targetUserId: v_cb35cb.target_user_id,
-      targetName: v_cb35cb.target_name,
-      targetEmail: v_cb35cb.target_email,
       inviteEmail: v_cb35cb.invite_email,
       relation: v_cb35cb.relation,
       role: v_cb35cb.role,
       status: v_cb35cb.status,
       createdAt: v_cb35cb.created_at,
+      targetUser: v_cb35cb.target_user_id
+        ? {
+            id: v_cb35cb.target_user_id,
+            name: v_cb35cb.target_name,
+            email: v_cb35cb.target_email ?? "",
+            avatarUrl: v_cb35cb.target_avatar,
+          }
+        : undefined,
     })),
   });
 });
@@ -339,7 +540,6 @@ v_403c0a.delete(
     const v_b7bfe9 = v_165714(v_3f4e2e);
     const v_43e90c = v_3f4e2e.get("userId")!;
     const v_a1651b = v_3f4e2e.env.DB;
-    await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
 
     const v_5f5d6d = await v_a1651b
       .prepare(
@@ -355,11 +555,17 @@ v_403c0a.delete(
         status: string;
       }>();
     if (!v_5f5d6d) throw new v_3ebe58("NOT_FOUND", "Share not found.");
-    if (v_5f5d6d.target_user_id === v_43e90c && v_5f5d6d.role === "owner") {
+
+    const v_a3c903 = v_5f5d6d.target_user_id === v_43e90c;
+    if (v_a3c903 && v_5f5d6d.role === "owner") {
       throw new v_3ebe58(
         "OWNER_CONSTRAINT",
         "Cannot remove your own owner record — delete the clone instead.",
       );
+    }
+    if (!v_a3c903) {
+
+      await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
     }
 
     try {
@@ -376,8 +582,82 @@ v_403c0a.delete(
     }
     await v_74defc(v_3f4e2e, {
       userId: v_43e90c,
-      action: "sharing.share.delete",
-      details: { cloneId: v_6e0fd3, shareId: v_b7bfe9, removedRole: v_5f5d6d.role },
+      action: v_a3c903 ? "sharing.share.leave" : "sharing.share.kick",
+      details: { cloneId: v_6e0fd3, shareId: v_b7bfe9, removedRole: v_5f5d6d.role, removedTargetUserId: v_5f5d6d.target_user_id },
+    });
+    return v_3f4e2e.json({ ok: true, action: v_a3c903 ? "leave" : "kick" });
+  },
+);
+
+v_403c0a.get("/:id/invites", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+  await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
+
+  const v_18b8bf = await v_a1651b
+    .prepare(
+      `SELECT id, invite_email, relation, grant_owner, expires_at, created_at
+         FROM invite_tokens
+        WHERE clone_id = ? AND used_at IS NULL AND cancelled_at IS NULL
+          AND expires_at > CURRENT_TIMESTAMP
+        ORDER BY id DESC`,
+    )
+    .bind(v_6e0fd3)
+    .all<{
+      id: number;
+      invite_email: string | null;
+      relation: string | null;
+      grant_owner: number;
+      expires_at: string;
+      created_at: string;
+    }>();
+  return v_3f4e2e.json({
+    items: (v_18b8bf.results ?? []).map((v_cb35cb) => ({
+      id: v_cb35cb.id,
+      inviteEmail: v_cb35cb.invite_email,
+      relation: v_cb35cb.relation,
+      grantOwner: !!v_cb35cb.grant_owner,
+      expiresAt: v_cb35cb.expires_at,
+      createdAt: v_cb35cb.created_at,
+      status: "pending" as const,
+    })),
+  });
+});
+
+v_403c0a.delete(
+  "/:id/invites/:inviteId",
+  v_6690d9,
+  v_a04a51("sharing.invite.cancel"),
+  async (v_3f4e2e) => {
+    const v_6e0fd3 = v_31113b(v_3f4e2e);
+    const v_43e90c = v_3f4e2e.get("userId")!;
+    const v_2e18e1 = Number(v_3f4e2e.req.param("inviteId"));
+    if (!Number.isInteger(v_2e18e1) || v_2e18e1 <= 0) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Invalid invite id.");
+    }
+    const v_a1651b = v_3f4e2e.env.DB;
+    await v_979b07(v_a1651b, v_6e0fd3, v_43e90c);
+
+    const v_3ac7e7 = await v_a1651b
+      .prepare(
+        `SELECT id, used_at, cancelled_at FROM invite_tokens
+          WHERE id = ? AND clone_id = ?`,
+      )
+      .bind(v_2e18e1, v_6e0fd3)
+      .first<{ id: number; used_at: string | null; cancelled_at: string | null }>();
+    if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Invite not found.");
+    if (v_3ac7e7.used_at) throw new v_3ebe58("CONFLICT", "Invite already accepted — remove via shares delete instead.");
+    if (v_3ac7e7.cancelled_at) throw new v_3ebe58("CONFLICT", "Invite already cancelled.");
+
+    await v_a1651b
+      .prepare(`UPDATE invite_tokens SET cancelled_at = CURRENT_TIMESTAMP WHERE id = ?`)
+      .bind(v_2e18e1)
+      .run();
+    await v_74defc(v_3f4e2e, {
+      userId: v_43e90c,
+      action: "sharing.invite.cancel",
+      details: { cloneId: v_6e0fd3, inviteId: v_2e18e1 },
     });
     return v_3f4e2e.json({ ok: true });
   },

@@ -1,0 +1,712 @@
+
+
+import { v_cc9198 } from "../config/apiBase";
+import { v_84a859, type v_669377 } from "./auth";
+
+export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
+export type Visibility = "public" | "private" | "followers";
+
+export interface CreateClonePayload {
+  clone_type: CloneType;
+  name: string;
+  username: string; 
+  description?: string;
+  category?: string;
+  visibility?: Visibility;
+  avatar_url?: string;
+  cover_image_url?: string;
+  voice_preset_id?: number;
+  interests?: string[];
+  l1_profile?: {
+    attrs: Record<string, string>;
+    notes: string;
+  };
+}
+
+export interface CreatedClone {
+  id: number;
+  name: string;
+  username: string;
+  cloneType: CloneType;
+  visibility: Visibility;
+  createdAt: string;
+}
+export interface CreateCloneResponse {
+  clone: CreatedClone;
+  initial_memory: { ctx_key: string; shared_key: string } | null;
+}
+
+export function v_b55477(v_1833e7): string {
+  const v_8f0374 = v_1833e7
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+  const v_694b25 = v_8f0374 && v_8f0374.length >= 3 ? v_8f0374 : "user";
+
+  const v_2f361a = v_694b25.slice(0, 20);
+  const v_ae8e76 = Math.random().toString(36).slice(2, 8);
+  return `${v_2f361a}_${v_ae8e76}`;
+}
+
+export async function v_39eaf5(
+  v_2ca7e0,
+  v_931bf0,
+  v_6f448e,
+): Promise<CreateCloneResponse> {
+  const v_b24339 =
+    v_6f448e ??
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${v_2ca7e0}`,
+      "X-Idempotency-Key": v_b24339,
+    },
+    body: JSON.stringify(v_931bf0),
+  });
+  const v_9b6134 = await v_8f00b9.text();
+  let v_8decf8 = null;
+  try {
+    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
+  } catch {
+
+  }
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as CreateCloneResponse;
+}
+
+export interface PendingInvite {
+  id: number;
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+  createdAt: string;
+  status: "pending";
+}
+
+export interface ShareMember {
+  id: number;
+  cloneId: number;
+  ownerId: number;
+  targetUserId: number | null;
+  inviteEmail: string | null;
+  relation: string | null;
+  role: "owner" | "editor" | "viewer";
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
+
+  targetUser?: {
+    id: number;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+
+async function v_04b58a<T>(
+  v_9fe22d,
+  v_2ca7e0,
+  v_00cfc6 = {},
+  v_6f448e,
+): Promise<T> {
+  const v_3f4675 = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${v_2ca7e0}`,
+    ...((v_00cfc6.headers as Record<string, string>) ?? {}),
+  };
+  if (v_6f448e) v_3f4675["X-Idempotency-Key"] = v_6f448e;
+
+  const v_f71b56 = `${v_cc9198}${v_9fe22d}`;
+  const v_bfe9b9 = v_00cfc6.method ?? "GET";
+  const v_8f00b9 = await fetch(v_f71b56, { ...v_00cfc6, headers: v_3f4675 });
+  const v_9b6134 = await v_8f00b9.text();
+  let v_8decf8 = null;
+  try {
+    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
+  } catch {
+
+  }
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+
+    console.warn(
+      "[authFetch] failed:",
+      v_bfe9b9,
+      v_f71b56,
+      "status=",
+      v_8f00b9.status,
+      "code=",
+      v_4d33b2?.error?.code,
+      "msg=",
+      v_4d33b2?.error?.message,
+      "raw=",
+      v_9b6134.slice(0, 300),
+    );
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as T;
+}
+
+function v_7f4dc3(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export async function v_7f4050(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ items: PendingInvite[] }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
+export interface CreateInvitePayload {
+  invite_email?: string;
+  relation?: string;
+  grant_owner?: boolean;
+  ttl_hours?: number;
+}
+export interface CreateInviteResponse {
+  token: string;
+  expiresAt: string;
+  inviteEmail: string | null;
+  grantOwner: boolean;
+  notify?: {
+    inserted: boolean;
+    pushAttempted: number;
+    pushSent: number;
+    emailSent: boolean;
+  } | null;
+}
+export async function v_e4a407(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_931bf0,
+): Promise<CreateInviteResponse> {
+  return v_04b58a<CreateInviteResponse>(
+    `/oth-path${v_6e0fd3}/oth-path`,
+    v_2ca7e0,
+    {
+      method: "POST",
+      body: JSON.stringify(v_931bf0),
+    },
+    v_7f4dc3(),
+  );
+}
+
+export async function v_735203(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_2e18e1,
+): Promise<{ ok: true }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/oth-path${v_2e18e1}`,
+    v_2ca7e0,
+    { method: "DELETE" },
+    v_7f4dc3(),
+  );
+}
+
+export async function v_7e484f(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ items: ShareMember[] }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/shares`, v_2ca7e0, { method: "GET" });
+}
+
+export async function v_81dd51(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_b7bfe9,
+): Promise<{ ok: true; action: "kick" | "leave" }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/shares/${v_b7bfe9}`,
+    v_2ca7e0,
+    { method: "DELETE" },
+    v_7f4dc3(),
+  );
+}
+
+export interface DeleteCloneResult {
+  ok: true;
+  state: "soft_deleted" | "transferred";
+  transferred: { newOwnerId: number } | null;
+}
+export async function v_f373d8(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<DeleteCloneResult> {
+  return v_04b58a<DeleteCloneResult>(
+    `/oth-path${v_6e0fd3}`,
+    v_2ca7e0,
+    { method: "DELETE" },
+    v_7f4dc3(),
+  );
+}
+
+export type SentInviteStatus = "pending" | "accepted" | "cancelled" | "expired";
+export interface SentInvite {
+  id: number;
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+  usedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  status: SentInviteStatus;
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+}
+export async function v_674023(
+  v_2ca7e0,
+): Promise<{ items: SentInvite[] }> {
+  return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
+export interface MyClone {
+  id: number;
+  name: string;
+  username: string;
+  description: string | null;
+  cloneType: CloneType;
+  category: string | null;
+  visibility: Visibility;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  trainingStatus: string | null;
+  ownerId: number;
+  createdAt: string;
+  myRole: "owner" | "coowner";
+
+  coownerCount: number;
+
+  interests?: string[];
+
+  l1Profile?: { attrs: Record<string, string>; notes: string } | null;
+
+  likesCount?: number;
+  commentsCount?: number;
+  followersCount?: number;
+  messagesCount?: number;
+}
+
+export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
+  return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
+export interface CloneFollower {
+  followId: number;
+  userId: number;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+  createdAt: string;
+}
+export async function v_914311(
+  v_6e0fd3,
+  v_328259,
+): Promise<{ items: CloneFollower[] }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_6e0fd3}/followers`);
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: CloneFollower[] };
+}
+
+export interface BlockedClone {
+  blockId: number;
+  createdAt: string;
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+}
+
+export async function v_97c75d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked: true }> {
+  console.log(`[BLOCK-API] → POST /oth-path${v_6e0fd3}/block`);
+  const v_8f00b9 = await v_04b58a<{ ok: true; blocked: true }>(
+    `/oth-path${v_6e0fd3}/block`,
+    v_2ca7e0,
+    { method: "POST" },
+  );
+  console.log(`[BLOCK-API] ← ok cloneId=${v_6e0fd3}`, v_8f00b9);
+  return v_8f00b9;
+}
+export async function v_c0dd8d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked: false }> {
+  console.log(`[BLOCK-API] → DELETE /oth-path${v_6e0fd3}/block`);
+  const v_8f00b9 = await v_04b58a<{ ok: true; blocked: false }>(
+    `/oth-path${v_6e0fd3}/block`,
+    v_2ca7e0,
+    { method: "DELETE" },
+  );
+  console.log(`[BLOCK-API] ← unblock ok cloneId=${v_6e0fd3}`, v_8f00b9);
+  return v_8f00b9;
+}
+export async function v_dbedc9(v_2ca7e0): Promise<{ items: BlockedClone[] }> {
+  const v_8f00b9 = await v_04b58a<{ items: BlockedClone[] }>(
+    `/oth-path`,
+    v_2ca7e0,
+    { method: "GET" },
+  );
+  console.log(`[BLOCK-API] listMyBlocks ← ${v_8f00b9.items.length} items`);
+  return v_8f00b9;
+}
+
+export interface FollowedClone {
+  id: number;
+  name: string;
+  username: string;
+  description?: string | null;
+  cloneType: CloneType;
+  category: string | null;
+  avatarUrl: string | null;
+  interests?: string[];
+
+  stats: {
+    followers: number;
+    messages: number;
+    gifts: number;
+    likes?: number;
+    comments?: number;
+  };
+  latestFeed?: {
+    feedId: number | null;
+    likedByMe: boolean;
+  };
+  createdAt: string;
+}
+export async function v_7281a5(
+  v_2ca7e0,
+  v_43e90c,
+): Promise<{ items: FollowedClone[] }> {
+  return v_04b58a(`/oth-path${v_43e90c}/followed-clones`, v_2ca7e0, { method: "GET" });
+}
+
+export interface DiscoverFeedItem {
+  id: number;
+  cloneId: number;
+  content: string | null;
+  mediaUrl: string | null;
+  mediaType: string | null;
+  likesCount: number;
+  likedByMe?: boolean;
+  commentsCount?: number;
+  createdAt: string;
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+  interests: string[];
+}
+
+export async function v_f5cc38(v_328259): Promise<{ items: DiscoverFeedItem[]; nextCursor: number | null }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path`);
+  if (v_328259?.cursor) v_f71b56.searchParams.set("cursor", String(v_328259.cursor));
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_3f4675 = {};
+  if (v_328259?.accessToken) v_3f4675.Authorization = `Bearer ${v_328259.accessToken}`;
+  const v_8f00b9 = await fetch(v_f71b56.toString(), { headers: v_3f4675 });
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: DiscoverFeedItem[]; nextCursor: number | null };
+}
+
+export interface FeedLikeUser {
+  likeId: number;
+  userId: number;
+  name: string | null;
+  email: string;
+  avatarUrl: string | null;
+  createdAt: string;
+}
+
+export async function v_de2a30(
+  v_2ca7e0,
+  v_c09aa8,
+): Promise<{ ok: true; liked: true; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/like`, v_2ca7e0, { method: "POST" });
+}
+
+export async function v_11c954(
+  v_2ca7e0,
+  v_c09aa8,
+): Promise<{ ok: true; liked: false; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/like`, v_2ca7e0, { method: "DELETE" });
+}
+
+export interface FeedComment {
+  id: number;
+  feedId?: number;
+  userId: number;
+  content: string;
+  createdAt: string;
+  user: {
+    id: number;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+
+export async function v_776874(
+  v_6e0fd3,
+  v_328259,
+): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_6e0fd3}/comments`);
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: FeedComment[]; nextCursor: number | null };
+}
+
+export async function v_4208e7(
+  v_c09aa8,
+  v_328259,
+): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_c09aa8}/comments`);
+  if (v_328259?.cursor) v_f71b56.searchParams.set("cursor", String(v_328259.cursor));
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: FeedComment[]; nextCursor: number | null };
+}
+
+export async function v_3f8bc7(
+  v_2ca7e0,
+  v_c09aa8,
+  v_b43b74,
+): Promise<{ ok: true; comment: { id: number; feedId: number; userId: number; content: string } }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/comments`, v_2ca7e0, {
+    method: "POST",
+    body: JSON.stringify({ content: v_b43b74 }),
+  });
+}
+
+export async function v_6f689a(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_b43b74,
+): Promise<{ ok: true; comment: { id: number; feedId: number; userId: number; content: string }; promoted?: boolean }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/comments`, v_2ca7e0, {
+    method: "POST",
+    body: JSON.stringify({ content: v_b43b74 }),
+  });
+}
+
+export async function v_0df337(
+  v_2ca7e0,
+  v_c09aa8,
+  v_d91518,
+): Promise<{ ok: true }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/comments/${v_d91518}`, v_2ca7e0, {
+    method: "DELETE",
+  });
+}
+
+export async function v_b14fce(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ ok: true; liked: boolean; feedId: number; promoted?: boolean; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/like`, v_2ca7e0, { method: "POST" });
+}
+export async function v_0ff331(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ ok: true; liked: false; feedId?: number; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/like`, v_2ca7e0, { method: "DELETE" });
+}
+
+export async function v_20d793(
+  v_6e0fd3,
+  v_328259,
+): Promise<{ items: FeedLikeUser[]; nextCursor: number | null }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_6e0fd3}/likes`);
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: FeedLikeUser[]; nextCursor: number | null };
+}
+
+export async function v_7f4804(
+  v_c09aa8,
+  v_328259,
+): Promise<{ items: FeedLikeUser[]; nextCursor: number | null }> {
+  const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_c09aa8}/likes`);
+  if (v_328259?.cursor) v_f71b56.searchParams.set("cursor", String(v_328259.cursor));
+  if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
+  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_9b6134 = await v_8f00b9.text();
+  const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as { items: FeedLikeUser[]; nextCursor: number | null };
+}
+
+export interface PatchClonePayload {
+  name?: string;
+  description?: string;
+  visibility?: Visibility;
+  avatar_url?: string;
+  cover_image_url?: string;
+  voice_preset_id?: number | null;
+  l1_profile?: { attrs: Record<string, string>; notes: string };
+  interests?: string[];
+}
+
+export async function v_bb226e(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_931bf0,
+): Promise<{ ok: true; updatedFields: string[] }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}`,
+    v_2ca7e0,
+    { method: "PATCH", body: JSON.stringify(v_931bf0) },
+  );
+}
+
+export interface InvitePreview {
+  clone: {
+    id: number;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    cloneType: CloneType;
+  };
+  inviteEmail: string | null;
+  relation: string | null;
+  grantOwner: boolean;
+  expiresAt: string;
+}
+
+export async function v_a56a6a(v_21cc31): Promise<InvitePreview> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${encodeURIComponent(v_21cc31)}`);
+  const v_9b6134 = await v_8f00b9.text();
+  let v_8decf8 = null;
+  try {
+    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
+  } catch {
+
+  }
+  if (!v_8f00b9.ok) {
+    const v_4d33b2 = v_8decf8 as v_669377 | null;
+    throw new v_84a859(
+      v_8f00b9.status,
+      v_4d33b2?.error?.code ?? "HTTP_ERROR",
+      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
+      v_4d33b2?.error?.details,
+    );
+  }
+  return v_8decf8 as InvitePreview;
+}
+
+export async function v_a51300(
+  v_2ca7e0,
+  v_21cc31,
+): Promise<{ ok: true; cloneId: number }> {
+  return v_04b58a(
+    `/oth-path${encodeURIComponent(v_21cc31)}/accept`,
+    v_2ca7e0,
+    { method: "POST" },
+    v_7f4dc3(),
+  );
+}
+
+export async function v_e155c8(
+  v_2ca7e0,
+  v_21cc31,
+): Promise<{ ok: true; cloneId?: number; removedShare?: boolean; alreadyCancelled?: boolean }> {
+  return v_04b58a(
+    `/oth-path${encodeURIComponent(v_21cc31)}/decline`,
+    v_2ca7e0,
+    { method: "POST" },
+    v_7f4dc3(),
+  );
+}

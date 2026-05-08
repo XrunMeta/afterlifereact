@@ -2,6 +2,7 @@ import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_cf9c33, v_03e392, v_472849 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import * as v_d05ab5 from 'khtmgrssvfqqjmzoc';
+import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
 
@@ -10,7 +11,11 @@ interface Props {
   onChange: (patch: Partial<v_c2a674>) => void;
 }
 
-async function v_ff792b(onChange: (p: Partial<v_c2a674>) => void) {
+async function v_ff792b(
+  onChange: (p: Partial<v_c2a674>) => void,
+  v_b5cd35,
+  v_976e82,
+) {
   try {
     const v_cb35cb = await v_d05ab5.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -20,22 +25,26 @@ async function v_ff792b(onChange: (p: Partial<v_c2a674>) => void) {
     });
     if (!v_cb35cb.canceled && v_cb35cb.assets[0]) v_b187d9({ imageFile: v_cb35cb.assets[0].uri });
   } catch {
-    v_03e392.alert('오류', '사진을 불러올 수 없어요.');
+    v_03e392.alert(v_b5cd35, v_976e82);
   }
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_d32efd = v_f04727.rightsAcknowledged ?? false;
   return (
     <View style={v_d81136.wrap}>
-      <Text style={v_d81136.note}>사진은 지금 추가하거나, 나중에 추가할 수 있어요.</Text>
-      <TouchableOpacity style={v_d81136.preview} onPress={() => v_ff792b(v_b187d9)}>
+      <Text style={v_d81136.note}>{v_8d41d7('create.image.memlowNote')}</Text>
+      <TouchableOpacity
+        style={v_d81136.preview}
+        onPress={() => v_ff792b(v_b187d9, v_8d41d7('common.error'), v_8d41d7('create.image.loadFailed'))}
+      >
         {v_f04727.imageFile ? (
           <Image source={{ uri: v_f04727.imageFile }} style={v_d81136.img} />
         ) : (
           <>
             <Feather name="image" size={32} color={v_1bfbd0.zinc400} />
-            <Text style={v_d81136.hint}>사진을 선택하거나 건너뛸 수 있어요</Text>
+            <Text style={v_d81136.hint}>{v_8d41d7('create.image.memlowSelectHint')}</Text>
           </>
         )}
       </TouchableOpacity>
@@ -50,7 +59,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             color={v_d32efd ? v_1bfbd0.violet600 : v_1bfbd0.zinc400}
           />
           <Text style={v_d81136.rightsText}>
-            고인 사진 사용에 대한 권리를 확인했어요 (가족 동의·초상권).
+            {v_8d41d7('create.image.memlowRights')}
           </Text>
         </TouchableOpacity>
       )}

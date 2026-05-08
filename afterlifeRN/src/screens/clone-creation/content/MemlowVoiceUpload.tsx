@@ -2,6 +2,7 @@ import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_03e392, v_472849 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
 import * as v_c95b2c from 'gketqwckyalygtuqsawm';
+import { v_772971 } from 'jmpfvteuuztnp';
 import { v_37549e } from '../../../mocks/cloneTypeCatalog';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
@@ -11,18 +12,23 @@ interface Props {
   onChange: (patch: Partial<v_c2a674>) => void;
 }
 
-async function v_467998(v_b187d9) {
+async function v_467998(
+  v_b187d9,
+  v_b5cd35,
+  v_976e82,
+) {
   try {
     const v_cb35cb = await v_c95b2c.getDocumentAsync({ type: 'audio/*' });
     if (!v_cb35cb.canceled && v_cb35cb.assets[0]) {
       v_b187d9({ voiceFile: v_cb35cb.assets[0].uri, recordDuration: 0 });
     }
   } catch {
-    v_03e392.alert('오류', '파일을 선택할 수 없어요.');
+    v_03e392.alert(v_b5cd35, v_976e82);
   }
 }
 
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const [v_5fba7b, v_d59b37] = v_5ab095(false);
   const v_9a5f22 = v_e662ae<ReturnType<typeof setInterval> | null>(null);
 
@@ -52,7 +58,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   return (
     <View style={v_d81136.wrap}>
-      <Text style={v_d81136.title}>편지 스크립트를 고르고, 녹음해 주세요</Text>
+      <Text style={v_d81136.title}>{v_8d41d7("create.voice.memlowTitle")}</Text>
       <View style={v_d81136.scriptList}>
         {v_37549e.map(v_fd5f43 => {
           const v_f8b770 = v_f04727.voiceScriptId === v_fd5f43.id;
@@ -74,14 +80,17 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       <TouchableOpacity style={[v_d81136.rec, v_5fba7b && v_d81136.recActive]} onPress={v_6971ef}>
         <Feather name={v_5fba7b ? 'square' : 'mic'} size={22} color={v_1bfbd0.white} />
         <Text style={v_d81136.recText}>
-          {v_5fba7b ? '녹음 중지' : '녹음 시작'} ({v_f04727.recordDuration ?? 0}s / 30~60s)
+          {v_5fba7b ? v_8d41d7("create.voice.recordStop") : v_8d41d7("create.voice.recordStart")} ({v_f04727.recordDuration ?? 0}s / {v_8d41d7("create.voice.recordRange")})
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={v_d81136.upload} onPress={() => v_467998(v_b187d9)}>
+      <TouchableOpacity
+        style={v_d81136.upload}
+        onPress={() => v_467998(v_b187d9, v_8d41d7("common.error"), v_8d41d7("create.voice.fileError"))}
+      >
         <Feather name="upload" size={20} color={v_1bfbd0.violet600} />
         <Text style={v_d81136.uploadText}>
-          {v_f04727.voiceFile ? '파일 선택됨' : '오디오 파일 업로드'}
+          {v_f04727.voiceFile ? v_8d41d7("create.voice.uploadedFile") : v_8d41d7("create.voice.uploadFileMemlow")}
         </Text>
       </TouchableOpacity>
     </View>

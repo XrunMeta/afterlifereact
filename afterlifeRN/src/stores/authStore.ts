@@ -74,6 +74,15 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     await v_e84827.removeItem(v_b6c376);
     await v_e84827.removeItem(v_1278db);
     v_bb8024({ isLoggedIn: false, user: null, accessToken: null, apiUser: null });
+
+    try {
+      const { useFeedStore: v_37977a } = await import("./feedStore");
+      const { useFollowStore: v_b4902e } = await import("./followStore");
+      v_37977a.getState().resetForLogout();
+      await v_b4902e.getState().resetForLogout();
+    } catch (v_49263d) {
+      console.warn("[authStore] reset on logout failed:", v_49263d);
+    }
   },
 
   loginWithApi: async (v_931bf0) => {
@@ -92,6 +101,14 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
   apiLogout: async () => {
     await v_e84827.removeItem(v_1278db);
     v_bb8024({ accessToken: null, apiUser: null });
+    try {
+      const { useFeedStore: v_37977a } = await import("./feedStore");
+      const { useFollowStore: v_b4902e } = await import("./followStore");
+      v_37977a.getState().resetForLogout();
+      await v_b4902e.getState().resetForLogout();
+    } catch (v_49263d) {
+      console.warn("[authStore] reset on apiLogout failed:", v_49263d);
+    }
   },
 
   refreshApiUser: async () => {

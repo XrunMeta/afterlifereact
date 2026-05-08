@@ -1,8 +1,9 @@
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
-import { v_3094a2, v_19b633, v_472849 } from "rcmrninabrnb";
+import { v_3094a2, v_19b633, v_472849, v_39a996, v_03e392 } from "rcmrninabrnb";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
+import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
 
@@ -15,6 +16,9 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
 import { v_c4c43f } from "../../mocks/cloneTypeCatalog";
+import { v_39eaf5, v_b55477 } from "../../api/clones";
+import { v_84a859 } from "../../api/auth";
+import { v_7d2692 } from "../../api/files";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step7">;
@@ -41,35 +45,182 @@ const v_549a47 = {
 };
 
 export default function v_448ad1({ navigation: v_c65f5d }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const v_7a77e1 = v_194498((v_fd5f43) => v_fd5f43.resetCreationDraft);
   const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
   const v_956393 = v_194498((v_fd5f43) => v_fd5f43.addClone);
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const [v_af4871, v_67122d] = v_5ab095<number | null>(null);
+  const [v_805753, v_c7169b] = v_5ab095(true);
+  const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
 
   v_c4deb2(() => {
     if (!v_f04727.cloneType) return;
-    const v_389afb = Date.now();
-    const v_01a739 = Boolean(v_f04727.imageFile);
-    const v_f9c770 = Boolean(v_f04727.voiceFile || v_f04727.voiceSampleId
-      || (v_f04727.recordDuration ?? 0) >= 30);
-    const clone: v_affcc0 = {
-      id: v_389afb,
-      cloneType: v_f04727.cloneType,
-      ownerId: v_493eec,
-      displayName: v_f04727.name ?? '',
-      description: v_f04727.description ?? '',
-      interests: v_f04727.interests ?? [],
-      imageUrl: v_f04727.imageFile ?? undefined,
-      visibility: v_f04727.visibility ?? v_c4c43f(v_f04727.cloneType).defaultVisibility,
-      status: v_01a739 && v_f9c770 ? 'active' : 'pending_assets',
-      createdAt: new Date().toISOString(),
+    let v_2008a4 = false;
+    (async () => {
+      v_c7169b(true);
+      v_3a7d09(null);
+
+      const v_01a739 = Boolean(v_f04727.imageFile);
+      const v_f9c770 = Boolean(v_f04727.voiceFile || v_f04727.voiceSampleId
+        || (v_f04727.recordDuration ?? 0) >= 30);
+      const v_818579 = v_f04727.visibility ?? v_c4c43f(v_f04727.cloneType!).defaultVisibility;
+
+      if (!v_2ca7e0) {
+        const v_17d8be = Date.now();
+        const v_5ccd43 = {
+          ...(v_f04727.personaAge ? { age: v_f04727.personaAge } : {}),
+          ...(v_f04727.personaGender ? { gender: v_f04727.personaGender } : {}),
+          ...(v_f04727.personaTypes && v_f04727.personaTypes.length > 0
+            ? { personalities: v_f04727.personaTypes.join(',') }
+            : {}),
+          ...(v_f04727.personaMbti ? { mbti: v_f04727.personaMbti } : {}),
+        };
+        const clone: v_affcc0 = {
+          id: v_17d8be,
+          cloneType: v_f04727.cloneType!,
+          ownerId: v_493eec,
+          displayName: v_f04727.name ?? '',
+          description: v_f04727.description ?? '',
+          interests: v_f04727.interests ?? [],
+          imageUrl: v_f04727.imageFile ?? undefined,
+          visibility: v_818579,
+          status: v_01a739 && v_f9c770 ? 'active' : 'pending_assets',
+          createdAt: new Date().toISOString(),
+          l1Profile: { attrs: v_5ccd43, notes: v_f04727.personaNotes ?? '' },
+        };
+        v_956393(v_eb25ce);
+        if (!v_2008a4) {
+          v_67122d(v_17d8be);
+          v_c7169b(false);
+        }
+        return;
+      }
+
+      try {
+
+        const v_6be727 = /^[a-z0-9_]+$/;
+        const v_ae88f2 = v_f04727.username?.trim() ?? '';
+        const v_a71df8 = v_ae88f2.length >= 3 && v_ae88f2.length <= 30 && v_6be727.test(v_ae88f2);
+        const v_556427 = v_a71df8 ? v_ae88f2 : v_b55477(v_ae88f2 || v_f04727.name || 'user');
+
+        const v_55a58f = {
+          ...(v_f04727.personaAge ? { age: v_f04727.personaAge } : {}),
+          ...(v_f04727.personaGender ? { gender: v_f04727.personaGender } : {}),
+          ...(v_f04727.personaTypes && v_f04727.personaTypes.length > 0
+            ? { personalities: v_f04727.personaTypes.join(',') }
+            : {}),
+          ...(v_f04727.personaMbti ? { mbti: v_f04727.personaMbti } : {}),
+        };
+        const v_564b6a = { attrs: v_55a58f, notes: v_f04727.personaNotes ?? '' };
+
+        let v_bf6b43;
+        if (v_f04727.imageFile) {
+          try {
+
+            const v_40a923 = v_f04727.imageFile.split('.').pop()?.toLowerCase() ?? '';
+            const v_b66751 =
+              v_40a923 === 'png' ? 'image/png'
+              : v_40a923 === 'webp' ? 'image/webp'
+              : v_40a923 === 'gif' ? 'image/gif'
+              : 'image/jpeg';
+            const v_57ac81 = await v_7d2692(v_2ca7e0, v_f04727.imageFile, {
+              purpose: 'clone_avatar',
+              mimeType: v_b66751,
+              fileName: `avatar.${v_40a923 || 'jpg'}`,
+            });
+            v_bf6b43 = v_57ac81.url;
+            console.log('[CLONE-CREATE] avatar uploaded:', v_bf6b43);
+          } catch (v_9b4b36) {
+            console.warn('[CLONE-CREATE] avatar upload failed:', v_9b4b36);
+
+          }
+        }
+
+        const v_8f00b9 = await v_39eaf5(v_2ca7e0, {
+          clone_type: v_f04727.cloneType!,
+          name: v_f04727.name ?? 'Untitled',
+          username: v_556427,
+          description: v_f04727.description || undefined,
+          category: v_f04727.category || undefined,
+          visibility: v_818579,
+          interests: v_f04727.interests && v_f04727.interests.length > 0 ? v_f04727.interests : undefined,
+          l1_profile: v_564b6a,
+          ...(v_bf6b43 ? { avatar_url: v_bf6b43 } : {}),
+        });
+        console.log('[CLONE-CREATE] success:', v_8f00b9);
+        const v_94519a = v_8f00b9.clone;
+
+        const clone: v_affcc0 = {
+          id: v_94519a.id,
+          cloneType: v_94519a.cloneType,
+          ownerId: v_493eec,
+          displayName: v_94519a.name,
+          description: v_f04727.description ?? '',
+          interests: v_f04727.interests ?? [],
+          imageUrl: v_bf6b43 ?? v_f04727.imageFile ?? undefined,
+          visibility: v_94519a.visibility,
+          status: v_01a739 && v_f9c770 ? 'active' : 'pending_assets',
+          createdAt: v_94519a.createdAt,
+          l1Profile: v_564b6a,
+        };
+        v_956393(v_eb25ce);
+        if (!v_2008a4) {
+          v_67122d(v_94519a.id);
+          v_c7169b(false);
+        }
+      } catch (v_49263d) {
+
+        if (v_49263d instanceof v_84a859) {
+          console.warn(
+            '[CLONE-CREATE] failed:',
+            v_49263d.code,
+            v_49263d.message,
+            'details=',
+            JSON.stringify(v_49263d.details),
+          );
+        } else {
+          console.warn('[CLONE-CREATE] failed:', v_49263d);
+        }
+        if (v_2008a4) return;
+        let v_badeaf = v_8d41d7('create.errors.createFailed');
+        if (v_49263d instanceof v_84a859) {
+          if (v_49263d.code === 'QUOTA_EXCEEDED') {
+            v_badeaf = v_8d41d7('create.errors.quotaExceeded');
+          } else if (v_49263d.code === 'CONFLICT') {
+            v_badeaf = v_8d41d7('create.errors.usernameConflict');
+          } else {
+            v_badeaf = v_49263d.message;
+          }
+        }
+        v_3a7d09(v_badeaf);
+        v_c7169b(false);
+        v_03e392.alert(v_8d41d7('create.complete.createFailed'), v_badeaf);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
     };
-    v_956393(v_eb25ce);
-    v_67122d(v_389afb);
   }, []); 
 
-  const v_b38746 = v_549a47[v_f04727.cloneType ?? 'friend'];
+  const v_3a8949 = v_f04727.cloneType ?? 'friend';
+  const v_b38746 = {
+    title: v_8d41d7(`create.complete.${v_3a8949}Title` as
+      | 'create.complete.memlowTitle'
+      | 'create.complete.friendTitle'
+      | 'create.complete.mentorTitle'
+      | 'create.complete.celebTitle'),
+    sub: v_8d41d7(`create.complete.${v_3a8949}Sub` as
+      | 'create.complete.memlowSub'
+      | 'create.complete.friendSub'
+      | 'create.complete.mentorSub'
+      | 'create.complete.celebSub'),
+  };
+  const v_ba68bf = [
+    { icon: 'refresh-cw' as const, title: v_8d41d7('create.complete.featAutoLearn'), desc: v_8d41d7('create.complete.featAutoLearnDesc') },
+    { icon: 'shield' as const, title: v_8d41d7('create.complete.featSecurity'), desc: v_8d41d7('create.complete.featSecurityDesc') },
+  ];
 
   const v_791884 = () => {
     if (v_af4871 == null) return;
@@ -86,21 +237,29 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <PageHeader title="생성 완료" stepInfo={{ current: 7, total: 7 }} />
+      <PageHeader title={v_8d41d7('create.stepTitles.7')} />
       <StepIndicator currentStep={7} totalSteps={7} />
 
       <SafeScrollView contentContainerStyle={v_d81136.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
         <View style={v_d81136.container}>
           {}
-          <View style={v_d81136.successCircle}>
-            <Feather name="check" size={48} color={v_1bfbd0.white} />
+          <View style={[v_d81136.successCircle, v_5e9bfe && { backgroundColor: v_1bfbd0.error }]}>
+            {v_805753 ? (
+              <ActivityIndicator size="large" color={v_1bfbd0.white} />
+            ) : v_5e9bfe ? (
+              <Feather name="alert-triangle" size={48} color={v_1bfbd0.white} />
+            ) : (
+              <Feather name="check" size={48} color={v_1bfbd0.white} />
+            )}
           </View>
 
-          <Text style={v_d81136.title}>{v_b38746.title}</Text>
-          <Text style={v_d81136.subtitle}>{v_b38746.sub}</Text>
+          <Text style={v_d81136.title}>
+            {v_805753 ? v_8d41d7('create.complete.creating') : v_5e9bfe ? v_8d41d7('create.complete.createFailed') : v_b38746.title}
+          </Text>
+          <Text style={v_d81136.subtitle}>{v_5e9bfe ?? v_b38746.sub}</Text>
 
           {}
-          {v_1fc273.map((v_95a1b5, v_ebec57) => (
+          {!v_805753 && !v_5e9bfe && v_ba68bf.map((v_95a1b5, v_ebec57) => (
             <View key={v_ebec57} style={v_d81136.featureCard}>
               <View style={v_d81136.featureIconBox}>
                 <Feather name={v_95a1b5.icon as any} size={22} color={v_1bfbd0.violet500} />
@@ -116,8 +275,18 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
       {}
       <View style={v_d81136.bottomBar}>
-        <Button title="소개 영상 만들기" onPress={v_791884} variant="accent" leftIcon={<Feather name="message-circle" size={20} color={v_1bfbd0.white} />} />
-        <Button title="나의 페르소나로 돌아가기" onPress={v_704242} variant="ghost" />
+        <Button
+          title={v_8d41d7('create.complete.startVideo')}
+          onPress={v_791884}
+          variant="accent"
+          disabled={v_805753 || !!v_5e9bfe || v_af4871 == null}
+          leftIcon={<Feather name="message-circle" size={20} color={v_1bfbd0.white} />}
+        />
+        <Button
+          title={v_8d41d7('create.complete.goDashboard')}
+          onPress={v_704242}
+          variant="ghost"
+        />
       </View>
     </SafeView>
   );
