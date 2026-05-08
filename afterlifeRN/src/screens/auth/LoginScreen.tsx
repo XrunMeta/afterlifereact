@@ -93,25 +93,10 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("auth.login.loginFailed");
       if (v_49263d instanceof v_84a859) {
-
-        const v_5ab5bd = (v_49263d.details ?? {}) as {
-          attempts?: number;
-          maxAttempts?: number;
-          lockMinutes?: number;
-        };
-        const v_45fe0c = typeof v_5ab5bd.attempts === "number" ? v_5ab5bd.attempts : null;
-        const v_3d627c =
-          typeof v_5ab5bd.maxAttempts === "number" ? v_5ab5bd.maxAttempts : 5;
-
         if (v_49263d.code === "ACCOUNT_LOCKED") {
           v_badeaf = v_8d41d7("auth.login.accountLocked");
         } else if (v_49263d.code === "UNAUTHENTICATED") {
-
-          if (v_45fe0c && v_45fe0c > 0) {
-            v_badeaf = `${v_8d41d7("auth.login.invalidCredentials")} (${v_45fe0c}/${v_3d627c})`;
-          } else {
-            v_badeaf = v_8d41d7("auth.login.invalidCredentials");
-          }
+          v_badeaf = v_8d41d7("auth.login.invalidCredentials");
         } else {
           v_badeaf = v_49263d.message;
         }

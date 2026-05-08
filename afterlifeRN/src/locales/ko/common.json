@@ -324,7 +324,7 @@
       "signupBtn": "회원가입",
       "forgotPassword": "비밀번호 찾기",
       "loginFailed": "로그인에 실패했어요.",
-      "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않아요.",
+      "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다. 5번 틀린 경우 계정이 잠깁니다.",
       "checkingGoogle": "Google 인증 확인 중...",
       "googleFailed": "Google 로그인에 실패했어요.",
       "lockHint": "비밀번호를 5회 연속 틀리면 10분간 잠겨요.",
