@@ -618,22 +618,35 @@ auth.post("/login", async (c) => {
 
   const ok = await verifyPassword(body.password, hashForCheck);
   if (!user || !ok) {
+    let attempts = 0;
+    let lockedJustNow = false;
     if (user) {
 
       const prevFails = lockExpired ? 0 : user.failed_login_count ?? 0;
-      const fails = prevFails + 1;
-      const lockUntil =
-        fails >= MAX_FAILED
-          ? new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString()
-          : null;
+      attempts = prevFails + 1;
+      lockedJustNow = attempts >= MAX_FAILED;
+      const lockUntil = lockedJustNow
+        ? new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString()
+        : null;
       await db
         .prepare(
           `UPDATE users SET failed_login_count = ?, locked_until = ? WHERE id = ?`,
         )
-        .bind(fails, lockUntil, user.id)
+        .bind(attempts, lockUntil, user.id)
         .run();
     }
-    throw new APIError("UNAUTHENTICATED", "Invalid credentials.");
+
+    if (lockedJustNow) {
+      throw new APIError("ACCOUNT_LOCKED", "Account temporarily locked.", {
+        attempts,
+        maxAttempts: MAX_FAILED,
+        lockMinutes: LOCK_MINUTES,
+      });
+    }
+    throw new APIError("UNAUTHENTICATED", "Invalid credentials.", {
+      attempts, 
+      maxAttempts: MAX_FAILED,
+    });
   }
 
   await db
@@ -735,10 +748,15 @@ auth.post("/password/reset", async (c) => {
   }
 
   const passwordHash = await hashPassword(body.newPassword);
+
   await c.env.DB
     .prepare(
-      `UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?`,
+      `UPDATE users
+          SET password_hash = ?,
+              failed_login_count = 0,
+              locked_until = NULL,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
     )
     .bind(passwordHash, userRow.id)
     .run();

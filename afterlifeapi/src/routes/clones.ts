@@ -667,6 +667,24 @@ clones.get("/:id/followers", async (c) => {
   });
 });
 
+clones.get("/:id/like-status", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const userId = c.get("userId")!;
+  const row = await c.env.DB
+    .prepare(
+      `SELECT 1 AS hit FROM feed_likes fl
+         JOIN feeds f ON f.id = fl.feed_id
+        WHERE fl.user_id = ? AND f.clone_id = ?
+        LIMIT 1`,
+    )
+    .bind(userId, cloneId)
+    .first<{ hit: number }>();
+  return c.json({ liked: row != null });
+});
+
 clones.post("/:id/block", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {

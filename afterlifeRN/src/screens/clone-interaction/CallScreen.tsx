@@ -35,6 +35,9 @@ import {
   postFeedComment,
   postCloneComment,
   deleteFeedComment,
+  getCloneLikeStatus,
+  likeClone,
+  unlikeClone,
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
@@ -89,11 +92,23 @@ export default function CallScreen({ route, navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    console.log(
-      `[Call] 진입 cloneId=${cloneId} name=${paramName ?? "?"} 초기 isLiked=${isLiked}`,
-    );
+    console.log(`[Call] 진입 cloneId=${cloneId} name=${paramName ?? "?"} (likedByMe fetch 중...)`);
+    if (!accessToken) return;
+    let cancelled = false;
+    getCloneLikeStatus(accessToken, cloneId)
+      .then((r) => {
+        if (cancelled) return;
+        console.log(`[Call] likedByMe fetch ← ${r.liked}`);
+        setIsLiked(r.liked);
+      })
+      .catch((err) => {
+        console.warn("[Call] likedByMe fetch failed:", err);
+      });
+    return () => {
+      cancelled = true;
+    };
 
-  }, []);
+  }, [accessToken, cloneId]);
   const callTimeStr = `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}`;
 
   const refreshBalance = useCallback(async () => {
@@ -320,12 +335,21 @@ export default function CallScreen({ route, navigation }: Props) {
         </TouchableOpacity>
         <TouchableOpacity
           style={[s.sideBtn, isLiked && s.sideBtnLiked]}
-          onPress={() => {
+          onPress={async () => {
             const next = !isLiked;
             console.log(
               `[Call] 좋아요 클릭 cloneId=${cloneId} ${isLiked ? "true" : "false"} → ${next ? "true" : "false"}`,
             );
-            setIsLiked(next);
+            setIsLiked(next); 
+            if (!accessToken) return;
+            try {
+              if (next) await likeClone(accessToken, cloneId);
+              else await unlikeClone(accessToken, cloneId);
+              console.log(`[Call] 좋아요 API ← ok next=${next}`);
+            } catch (err) {
+              console.warn("[Call] 좋아요 API 실패:", err);
+              setIsLiked(!next); 
+            }
           }}
         >
           <Feather

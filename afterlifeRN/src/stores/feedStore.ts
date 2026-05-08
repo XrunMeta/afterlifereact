@@ -93,6 +93,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     const state = get();
     const wasLiked = state.likedIds.includes(id);
     const willLike = !wasLiked;
+    const cloneIdHint = id < 0 ? -id : "?"; 
+    console.log(
+      `[LIKE] toggle id=${id} ${id < 0 ? `(synthetic, cloneId=${cloneIdHint})` : ""} ${wasLiked ? "true" : "false"} → ${willLike ? "true" : "false"}`,
+    );
 
     set({
       likedIds: willLike
@@ -124,8 +128,12 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         ? likeFeed(accessToken, id)
         : unlikeFeed(accessToken, id);
 
+    console.log(
+      `[LIKE] → ${isSynthetic ? "POST/DELETE /oth-path" + cloneIdForSynthetic + "/like" : (willLike ? "POST" : "DELETE") + " /oth-path" + id + "/like"}`,
+    );
     promise
       .then((res) => {
+        console.log(`[LIKE] ← ok likesCount=${res.likesCount}`);
 
         const cur = get().apiFeeds;
         if (cur) {
