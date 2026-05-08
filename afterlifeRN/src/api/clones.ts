@@ -577,6 +577,13 @@ export async function deleteFeedComment(
   });
 }
 
+export async function getCloneLikeStatus(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ liked: boolean }> {
+  return authFetch(`/oth-path${cloneId}/like-status`, accessToken, { method: "GET" });
+}
+
 export async function likeClone(
   accessToken: string,
   cloneId: number,
