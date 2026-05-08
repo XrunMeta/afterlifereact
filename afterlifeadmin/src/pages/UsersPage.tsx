@@ -104,7 +104,7 @@ export function UsersPage() {
     {
       key: "email",
       label: "Email",
-      render: (v: string | undefined, row: any) =>
+      render: (v: string | undefined) =>
         v ? (
           <button
             type="button"
