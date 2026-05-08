@@ -93,25 +93,10 @@ export default function LoginScreen({ navigation }: Props) {
     } catch (err) {
       let msg = t("auth.login.loginFailed");
       if (err instanceof AuthApiError) {
-
-        const details = (err.details ?? {}) as {
-          attempts?: number;
-          maxAttempts?: number;
-          lockMinutes?: number;
-        };
-        const attempts = typeof details.attempts === "number" ? details.attempts : null;
-        const maxAttempts =
-          typeof details.maxAttempts === "number" ? details.maxAttempts : 5;
-
         if (err.code === "ACCOUNT_LOCKED") {
           msg = t("auth.login.accountLocked");
         } else if (err.code === "UNAUTHENTICATED") {
-
-          if (attempts && attempts > 0) {
-            msg = `${t("auth.login.invalidCredentials")} (${attempts}/${maxAttempts})`;
-          } else {
-            msg = t("auth.login.invalidCredentials");
-          }
+          msg = t("auth.login.invalidCredentials");
         } else {
           msg = err.message;
         }

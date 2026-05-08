@@ -323,7 +323,7 @@
       "signupBtn": "Sign Up",
       "forgotPassword": "Forgot password?",
       "loginFailed": "Sign-in failed.",
-      "invalidCredentials": "Invalid email or password.",
+      "invalidCredentials": "Invalid email or password. Account locks after 5 failed attempts.",
       "checkingGoogle": "Verifying Google...",
       "googleFailed": "Google sign-in failed.",
       "lockHint": "Account locks for 10 minutes after 5 failed attempts.",
