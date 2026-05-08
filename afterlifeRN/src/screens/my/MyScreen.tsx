@@ -176,16 +176,16 @@ export default function v_ed02a5() {
 
   const v_d37d97 = async () => {
     v_d6a117(false);
-    const v_41e43c = "market://details?id=run.xrun.xrunApp";
-    const v_5bca88 = "https://play.google.com/store/apps/details?id=run.xrun.xrunApp";
-    const v_dcd2a6 = "https://apps.apple.com/app/xrun";
+    const v_41e43c = "market://details?id=run.xrun.xrunapp";
+    const v_5bca88 = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+    const v_2292ca = "https://apps.apple.com/kr/search?term=xrun";
     try {
       if (v_326be8.OS === "android") {
 
         const v_e4c8cf = await v_f2c756.canOpenURL(v_41e43c);
         await v_f2c756.openURL(v_e4c8cf ? v_41e43c : v_5bca88);
       } else {
-        await v_f2c756.openURL(v_dcd2a6);
+        await v_f2c756.openURL(v_2292ca);
       }
     } catch (v_49263d) {
       console.warn("[MyScreen] open xrun app failed:", v_49263d);
