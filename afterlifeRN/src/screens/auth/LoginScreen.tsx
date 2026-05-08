@@ -187,9 +187,9 @@ export default function LoginScreen({ navigation }: Props) {
                   <Feather name="check" size={14} color={COLORS.white} />
                 )}
               </View>
-              <Text style={styles.checkboxLabel}>{t("auth.login.title")}</Text>
+              <Text style={styles.checkboxLabel}>{t("auth.login.autoLoginLabel")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
               <Text style={styles.forgotPassword}>{t("auth.login.forgotPassword")}</Text>
             </TouchableOpacity>
           </View>

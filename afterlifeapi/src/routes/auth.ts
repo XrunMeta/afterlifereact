@@ -701,3 +701,48 @@ auth.post("/logout", requireAuth, async (c) => {
   if (userId) await logActivity(c, { userId, action: "auth.logout" });
   return c.json({ ok: true });
 });
+
+auth.post("/password/request-reset", async (c) => {
+  const body = await parseJson(c, requestEmailCodeSchema);
+  const userRow = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(body.email.trim().toLowerCase())
+    .first<{ id: number }>();
+  if (userRow) {
+    await requestSignupOtp(c.env, body.email);
+  }
+
+  return c.json({ ok: true, expiresInSec: 300 });
+});
+
+const resetPasswordSchema = z.object({
+  email: z.email().max(200),
+  verificationCode: z.string().regex(/^\d{6}$/),
+  newPassword: z.string().min(8).max(128),
+});
+auth.post("/password/reset", async (c) => {
+  const body = await parseJson(c, resetPasswordSchema);
+  const emailLower = body.email.trim().toLowerCase();
+
+  await verifySignupOtp(c.env, body.email, body.verificationCode);
+
+  const userRow = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(emailLower)
+    .first<{ id: number }>();
+  if (!userRow) {
+    throw new APIError("NOT_FOUND", "가입된 이메일이 아닙니다.");
+  }
+
+  const passwordHash = await hashPassword(body.newPassword);
+  await c.env.DB
+    .prepare(
+      `UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+    )
+    .bind(passwordHash, userRow.id)
+    .run();
+
+  await logActivity(c, { userId: userRow.id, action: "auth.password.reset" });
+  return c.json({ ok: true });
+});
