@@ -233,6 +233,22 @@ export default function FollowingScreen() {
     setLikedPosts(next);
   }, [apiFollowed]);
 
+  const [localFollowedIds, setLocalFollowedIds] = useState<Set<number>>(new Set());
+  useEffect(() => {
+    if (!apiFollowed) return;
+    setLocalFollowedIds(new Set(apiFollowed.map((c) => c.id)));
+  }, [apiFollowed]);
+  const isFollowingPersona = (cloneId: number) => localFollowedIds.has(cloneId);
+  const toggleFollowPersona = async (cloneId: number) => {
+
+    setLocalFollowedIds((prev) => {
+      const next = new Set(prev);
+      next.has(cloneId) ? next.delete(cloneId) : next.add(cloneId);
+      return next;
+    });
+    await toggleFollow(cloneId); 
+  };
+
   const [commentPostId, setCommentPostId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
   const [unfollowConfirmId, setUnfollowConfirmId] = useState<number | null>(null);
@@ -514,7 +530,7 @@ export default function FollowingScreen() {
                 backgroundColor={COLORS.white}
               />
               {(() => {
-                const followed = isFollowing(item.persona.id);
+                const followed = isFollowingPersona(item.persona.id);
                 return (
                   <Button
                     title={followed ? "팔로잉" : "팔로우"}
@@ -527,7 +543,7 @@ export default function FollowingScreen() {
                         color={COLORS.white}
                       />
                     }
-                    onPress={() => void toggleFollow(item.persona.id)}
+                    onPress={() => void toggleFollowPersona(item.persona.id)}
                     style={{ ...s.overlayBtn, ...s.overlayBtnGhost }}
                     textColor={COLORS.white}
                     backgroundColor={followed ? "rgba(255,255,255,0.2)" : COLORS.violet600}
