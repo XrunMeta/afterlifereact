@@ -1,4 +1,4 @@
-import v_a3453e, { v_5ab095, v_c4deb2, v_e662ae } from "bapkr";
+import v_a3453e, { v_5ab095, v_c4deb2, v_e662ae, v_de06a3 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -10,11 +10,17 @@ import {
   v_aa7413,
   v_09d0e5,
   v_a2349e,
+  v_326be8,
+  v_5f4661,
+  v_122070,
+  v_79c4f2,
+  v_03e392,
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
@@ -23,6 +29,15 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_84fd28 } from "../../types/gift";
 import v_feb82c from "../../mocks/gifts.json";
+import { v_5c99c1 } from "../../api/payments";
+import {
+  v_4208e7,
+  v_3f8bc7,
+  v_6f689a,
+  v_0df337,
+  type v_52af9d,
+} from "../../api/clones";
+import { v_bfd883 } from "../../lib/relativeTime";
 
 type Props = v_432191<v_8ad91b, "Call">;
 
@@ -42,7 +57,12 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
   const v_033e14 = v_e0068c();
+  const v_f9771e = v_c18c22(0);
+  const v_53dd92 =
+    v_326be8.OS === "ios" ? v_033e14.bottom : Math.max(v_f9771e, v_033e14.bottom);
 
   const [v_d1a6bb, v_1e66f0] = v_d4f1cc();
   const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
@@ -55,14 +75,131 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   }, []);
   const [v_d416b8, v_2a4980] = v_5ab095(false);
-  const [v_e2c945, v_06e986] = v_5ab095(5000);
+
+  const [v_e2c945, v_06e986] = v_5ab095<number>(0);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
   const [v_85c07b, v_ff0eb0] = v_5ab095(false);
   const [v_605664, v_0f07a9] = v_5ab095<FloatingGift[]>([]);
   const v_63eb29 = v_e662ae(0);
 
+  const [v_5a751a, v_6d75b1] = v_5ab095(0);
+  v_c4deb2(() => {
+    const v_389afb = setInterval(() => v_6d75b1((v_fd5f43) => v_fd5f43 + 1), 1000);
+    return () => clearInterval(v_389afb);
+  }, []);
+  const v_813acc = `${String(Math.floor(v_5a751a / 60)).padStart(2, "0")}:${String(v_5a751a % 60).padStart(2, "0")}`;
+
+  const v_d3ded9 = v_de06a3(async () => {
+    if (!v_2ca7e0) return;
+    try {
+      const v_cb35cb = await v_5c99c1(v_2ca7e0);
+      if (v_cb35cb.linked && typeof v_cb35cb.xrun === "number") v_06e986(v_cb35cb.xrun);
+    } catch (v_49263d) {
+      console.warn("[Call] getXrunBalance failed:", v_49263d);
+    }
+  }, [v_2ca7e0]);
+  v_c4deb2(() => {
+    void v_d3ded9();
+  }, [v_d3ded9]);
+
   const v_dfb220 = v_a4744c || v_eb25ce?.displayName || v_8d41d7("chat.personaFallback");
   const v_0e38ad = v_c1e151 || v_eb25ce?.imageUrl || "";
+
+  const [v_62e1db, v_ca73f4] = v_5ab095(false);
+  const [v_ecfc0f, v_04f2fc] = v_5ab095<v_52af9d[]>([]);
+  const [v_465030, v_856daf] = v_5ab095(false);
+  const [v_48e7fe, v_856f84] = v_5ab095("");
+  const v_4c2809 = v_e662ae(false);
+  const [v_b0af20, v_52390e] = v_5ab095(false);
+
+  const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
+
+  const v_cabe8e = v_de06a3(async () => {
+    v_856daf(true);
+    try {
+
+      const v_8f00b9 = await fetch(
+        `https://edge-alt-preview.example.invalid/oth-path${v_6e0fd3}/comments?limit=100`,
+      );
+      if (v_8f00b9.ok) {
+        const v_9390e8 = (await v_8f00b9.json()) as { items: v_52af9d[] };
+        v_04f2fc(v_9390e8.items);
+
+        if (v_9390e8.items.length > 0) {
+
+          const v_d4f03e = v_9390e8.items.find((v_3f4e2e) => v_3f4e2e.feedId);
+          if (v_d4f03e && (v_d4f03e as any).feedId) {
+            v_b07dd3((v_d4f03e as any).feedId);
+          }
+        }
+      }
+    } catch (v_49263d) {
+      console.warn("[Call] loadComments failed:", v_49263d);
+    } finally {
+      v_856daf(false);
+    }
+  }, [v_6e0fd3]);
+
+  v_c4deb2(() => {
+    if (v_62e1db) void v_cabe8e();
+  }, [v_62e1db, v_cabe8e]);
+
+  const v_8e4668 = async () => {
+    if (v_4c2809.current) return;
+    const v_b43b74 = v_48e7fe.trim();
+    if (!v_b43b74 || !v_2ca7e0) return;
+    v_4c2809.current = true;
+    v_52390e(true);
+    try {
+      let v_6bbace;
+      if (v_ed660d == null) {
+
+        const v_cb35cb = await v_6f689a(v_2ca7e0, v_6e0fd3, v_b43b74);
+        v_6bbace = v_cb35cb.comment.feedId;
+        v_b07dd3(v_6bbace);
+      } else {
+        await v_3f8bc7(v_2ca7e0, v_ed660d, v_b43b74);
+        v_6bbace = v_ed660d;
+      }
+      v_856f84("");
+      void v_cabe8e();
+    } catch (v_49263d) {
+      console.warn("[Call] submitComment failed:", v_49263d);
+    } finally {
+      v_4c2809.current = false;
+      v_52390e(false);
+    }
+  };
+
+  const v_2d4fef = (v_d91518, v_c09aa8) => {
+    if (!v_2ca7e0) return;
+    v_03e392.alert("댓글 삭제", "이 댓글을 삭제하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await v_0df337(v_2ca7e0, v_c09aa8, v_d91518);
+            v_04f2fc((v_ba2215) => v_ba2215.filter((v_3f4e2e) => v_3f4e2e.id !== v_d91518));
+          } catch (v_49263d) {
+            console.warn("[Call] delete comment failed:", v_49263d);
+          }
+        },
+      },
+    ]);
+  };
+
+  const v_22cd2d = async () => {
+    try {
+      await v_5f4661.share({
+        message: `${v_dfb220} 와 통화해보세요!\nhttps://afterlife.run/oth-path${v_6e0fd3}`,
+        title: v_dfb220,
+      });
+    } catch (v_49263d) {
+      console.warn("[Call] share failed:", v_49263d);
+    }
+  };
 
   v_c4deb2(() => {
     if (v_8282fa) {
@@ -162,12 +299,12 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         <Text style={v_fd5f43.callName}>{v_dfb220}</Text>
         <View style={v_fd5f43.callStatusBadge}>
           <View style={v_fd5f43.callDot} />
-          <Text style={v_fd5f43.callStatusText}>{v_8d41d7("call.inCall", { time: "03:24" })}</Text>
+          <Text style={v_fd5f43.callStatusText}>{v_8d41d7("call.inCall", { time: v_813acc })}</Text>
         </View>
       </View>
 
       {}
-      <View style={v_fd5f43.rightActions}>
+      <View style={[v_fd5f43.rightActions, { bottom: 180 + v_53dd92 }]}>
         <TouchableOpacity
           style={[v_fd5f43.sideBtn, v_d416b8 && v_fd5f43.sideBtnActive]}
           onPress={() => v_2a4980(!v_d416b8)}
@@ -175,19 +312,19 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <Feather name="gift" size={22} color={v_1bfbd0.white} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={v_fd5f43.sideBtn}
+          style={[v_fd5f43.sideBtn, v_85c07b && v_fd5f43.sideBtnLiked]}
           onPress={() => v_ff0eb0(!v_85c07b)}
         >
           <Feather
             name="heart"
             size={22}
-            color={v_85c07b ? "#ef4444" : v_1bfbd0.white}
+            color={v_1bfbd0.white}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={v_fd5f43.sideBtn}>
+        <TouchableOpacity style={v_fd5f43.sideBtn} onPress={() => v_ca73f4(true)}>
           <Feather name="message-circle" size={22} color={v_1bfbd0.white} />
         </TouchableOpacity>
-        <TouchableOpacity style={v_fd5f43.sideBtn}>
+        <TouchableOpacity style={v_fd5f43.sideBtn} onPress={v_22cd2d}>
           <Feather name="share-2" size={22} color={v_1bfbd0.white} />
         </TouchableOpacity>
       </View>
@@ -210,7 +347,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ))}
 
       {}
-      <View style={[v_fd5f43.controls, { paddingBottom: Math.max(v_033e14.bottom, 24) + 16 }]}>
+      <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
         <TouchableOpacity
           style={[v_fd5f43.controlBtn, v_4e2aec && v_fd5f43.controlBtnDanger]}
           onPress={() => v_326ca4(!v_4e2aec)}
@@ -234,9 +371,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </View>
 
       {}
-      <Modal visible={v_d416b8} transparent animationType="slide">
+      <Modal
+        visible={v_d416b8}
+        transparent
+        animationType="slide"
+        onShow={() => void v_d3ded9()}
+      >
         <Pressable style={v_fd5f43.giftOverlay} onPress={() => v_2a4980(false)}>
-          <Pressable style={v_fd5f43.giftSheet} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+          <Pressable
+            style={[v_fd5f43.giftSheet, { paddingBottom: 24 + v_53dd92 }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             {}
             <View style={v_fd5f43.giftHeader}>
               <View style={v_fd5f43.giftHeaderLeft}>
@@ -277,6 +422,88 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 </TouchableOpacity>
               )}
             />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal visible={v_62e1db} transparent animationType="slide">
+        <Pressable style={v_fd5f43.commentOverlay} onPress={() => v_ca73f4(false)}>
+          <Pressable
+            style={[v_fd5f43.commentSheet, { paddingBottom: 12 + v_53dd92 }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
+            <View style={v_fd5f43.sheetHandle} />
+            <View style={v_fd5f43.commentHeaderRow}>
+              <Text style={v_fd5f43.commentTitle}>
+                {v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}
+              </Text>
+              <TouchableOpacity onPress={() => v_ca73f4(false)}>
+                <Feather name="x" size={20} color={v_1bfbd0.zinc600} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              {v_465030 ? (
+                <View style={v_fd5f43.emptyComment}>
+                  <Feather name="loader" size={28} color={v_1bfbd0.zinc300} />
+                </View>
+              ) : v_ecfc0f.length > 0 ? (
+                v_ecfc0f.map((v_3f4e2e) => (
+                  <View key={v_3f4e2e.id} style={v_fd5f43.commentRow}>
+                    {v_3f4e2e.user?.avatarUrl ? (
+                      <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_fd5f43.commentAvatar} />
+                    ) : (
+                      <View style={[v_fd5f43.commentAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <View style={v_fd5f43.commentMeta}>
+                        <Text style={v_fd5f43.commentAuthor}>
+                          {v_3f4e2e.user?.name ?? v_3f4e2e.user?.email}
+                        </Text>
+                        <Text style={v_fd5f43.commentTime}>{v_bfd883(v_3f4e2e.createdAt)}</Text>
+                        {v_3f4e2e.userId === v_f5f393 && v_3f4e2e.feedId && (
+                          <TouchableOpacity
+                            onPress={() => v_2d4fef(v_3f4e2e.id, v_3f4e2e.feedId)}
+                            style={{ marginLeft: 8 }}
+                          >
+                            <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <Text style={v_fd5f43.commentContent}>{v_3f4e2e.content}</Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={v_fd5f43.emptyComment}>
+                  <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
+                  <Text style={v_fd5f43.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
+                </View>
+              )}
+            </ScrollView>
+            <View style={v_fd5f43.commentInputRow}>
+              <TextInput
+                style={v_fd5f43.commentInput}
+                value={v_48e7fe}
+                onChangeText={v_856f84}
+                placeholder={v_8d41d7("feed.commentPlaceholder")}
+                placeholderTextColor={v_1bfbd0.placeholder}
+              />
+              <TouchableOpacity
+                disabled={!v_48e7fe.trim() || !v_2ca7e0 || v_b0af20}
+                onPress={v_8e4668}
+              >
+                <Feather
+                  name="send"
+                  size={18}
+                  color={
+                    v_48e7fe.trim() && v_2ca7e0 && !v_b0af20
+                      ? v_1bfbd0.zinc900
+                      : v_1bfbd0.zinc400
+                  }
+                />
+              </TouchableOpacity>
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -382,6 +609,9 @@ const v_fd5f43 = v_472849.create({
   },
   sideBtnActive: {
     backgroundColor: v_1bfbd0.violet500,
+  },
+  sideBtnLiked: {
+    backgroundColor: "#ef4444",
   },
 
   floatingEmoji: {
@@ -503,4 +733,54 @@ const v_fd5f43 = v_472849.create({
     zIndex: 50,
   },
   toastText: { fontSize: 14, color: v_1bfbd0.white },
+
+  commentOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  commentSheet: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    height: "70%",
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: v_1bfbd0.zinc300,
+    alignSelf: "center",
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  commentHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  commentTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16 },
+  commentMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
+  commentAuthor: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  commentTime: { fontSize: 12, color: v_1bfbd0.zinc400 },
+  commentContent: { fontSize: 14, color: v_1bfbd0.zinc700, lineHeight: 20 },
+  emptyComment: { alignItems: "center", paddingVertical: 40 },
+  emptyText: { fontSize: 14, color: v_1bfbd0.zinc400, marginTop: 8 },
+  commentInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: v_1bfbd0.zinc200,
+    paddingTop: 12,
+  },
+  commentInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: v_1bfbd0.zinc100,
+    borderRadius: v_8b0c90.full,
+    paddingHorizontal: 16,
+    fontSize: 14,
+    color: v_1bfbd0.zinc900,
+  },
 });
