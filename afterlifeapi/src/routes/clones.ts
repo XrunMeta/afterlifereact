@@ -393,6 +393,18 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       .all<{ interest: string }>()
   ).results.map((v_cb35cb) => v_cb35cb.interest);
 
+  const v_218436 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT
+         (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+            WHERE f.clone_id = ?) AS likesCount,
+         (SELECT COUNT(*) FROM feed_comments fc
+            JOIN feeds f2 ON f2.id = fc.feed_id
+            WHERE f2.clone_id = ?) AS commentsCount`,
+    )
+    .bind(v_6e0fd3, v_6e0fd3)
+    .first<{ likesCount: number; commentsCount: number }>();
+
   return v_3f4e2e.json({
     clone: {
       id: v_eb25ce.id,
@@ -413,6 +425,8 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
         followers: v_eb25ce.followers_count,
         messages: v_eb25ce.messages_count,
         gifts: v_eb25ce.gifts_count,
+        likes: v_218436?.likesCount ?? 0,
+        comments: v_218436?.commentsCount ?? 0,
       },
       createdAt: v_eb25ce.created_at,
       viewerRole: v_00efe2,

@@ -61,14 +61,11 @@ type FollowedPersona = {
   interactions: number; 
 };
 
-const v_a1f1ac = (
-  v_62676b,
-  v_65186b,
-): number => {
+const v_a1f1ac = (v_62676b): number => {
   const v_35f85c = v_62676b?.messages ?? 0;
   const v_206b88 = v_62676b?.gifts ?? 0;
-  const v_1614db = v_65186b?.likesCount ?? 0;
-  const v_3f4e2e = v_65186b?.commentsCount ?? 0;
+  const v_1614db = v_62676b?.likes ?? 0;
+  const v_3f4e2e = v_62676b?.comments ?? 0;
   return v_35f85c + v_206b88 + v_1614db + v_3f4e2e;
 };
 const v_aae598 = (v_db07f5): number =>
@@ -144,7 +141,7 @@ export default function v_14b43e() {
   const v_a48e44 = v_df9f57<FollowedPersona[]>(() => {
     if (v_d92a4c != null) {
       return v_d92a4c.map((v_3f4e2e) => {
-        const v_db07f5 = v_a1f1ac(v_3f4e2e.stats, v_3f4e2e.latestFeed ?? null);
+        const v_db07f5 = v_a1f1ac(v_3f4e2e.stats);
         return {
           id: v_3f4e2e.id,
           name: v_3f4e2e.name,
@@ -180,7 +177,8 @@ export default function v_14b43e() {
           content: v_3f4e2e.description ?? "",
           mediaUrl: v_3f4e2e.avatarUrl ?? undefined,
           mediaType: null,
-          likesCount: v_3f4e2e.latestFeed?.likesCount ?? 0,
+
+          likesCount: v_3f4e2e.stats.likes ?? 0,
           createdAt: v_3f4e2e.createdAt,
         };
       });
@@ -197,8 +195,8 @@ export default function v_14b43e() {
     if (v_d92a4c) {
       for (const v_3f4e2e of v_d92a4c) {
         v_8dcb51.set(v_3f4e2e.id, {
-          likesCount: v_3f4e2e.latestFeed?.likesCount ?? 0,
-          commentsCount: v_3f4e2e.latestFeed?.commentsCount ?? 0,
+          likesCount: v_3f4e2e.stats.likes ?? 0,
+          commentsCount: v_3f4e2e.stats.comments ?? 0,
           likedByMe: v_3f4e2e.latestFeed?.likedByMe ?? false,
         });
       }
