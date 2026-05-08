@@ -169,4 +169,23 @@ export const api = {
     request<any[]>(`/oth-path${cloneId}`),
 
   getStats: () => request<any>("/oth-path"),
+
+  getOtpLogs: (params?: { email?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.email) qs.set("email", params.email);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const tail = qs.toString();
+    return request<{
+      items: Array<{
+        id: number;
+        email: string;
+        code: string;
+        sentAt: string;
+        expiresAt: string;
+        status: "pending" | "verified" | "expired" | "exhausted";
+        attempts: number;
+        verifiedAt: string | null;
+      }>;
+    }>(`/oth-path${tail ? `?${tail}` : ""}`);
+  },
 };
