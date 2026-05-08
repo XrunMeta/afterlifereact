@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, type CSSProperties } from "react";
+import { useEffect, useState, useCallback, type CSSProperties, type FormEvent } from "react";
 import { api } from "../api/client";
 
 const OTP_STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
@@ -50,7 +50,7 @@ export function OtpLogsPage() {
     load();
   }, [load]);
 
-  const onApplyFilter = (e: React.FormEvent) => {
+  const onApplyFilter = (e: FormEvent) => {
     e.preventDefault();
     setAppliedEmail(emailFilter.trim().toLowerCase());
   };
