@@ -83,6 +83,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     path === "/oth-path" ||
     path === "/oth-path" ||
     path === "/oth-path" ||
+    path === "/oth-path" ||
     path === "/oth-path";
   const emailHint =
     typeof body === "object" && body !== null && "email" in body
@@ -146,6 +147,18 @@ async function getJson<T>(path: string, accessToken?: string): Promise<T> {
 
 export async function requestEmailCode(email: string): Promise<{ ok: true; expiresInSec: number }> {
   return postJson("/oth-path", { email });
+}
+
+export async function requestPasswordReset(email: string): Promise<{ ok: true; expiresInSec: number }> {
+  return postJson("/oth-path", { email });
+}
+
+export async function resetPassword(payload: {
+  email: string;
+  verificationCode: string;
+  newPassword: string;
+}): Promise<{ ok: true }> {
+  return postJson("/oth-path", payload);
 }
 
 export async function signup(payload: SignupPayload): Promise<SignupResponse> {

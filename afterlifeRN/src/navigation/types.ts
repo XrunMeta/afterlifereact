@@ -32,6 +32,7 @@ export type AuthStackParamList = {
   };
   XrunLogin: undefined;
   XrunOtp: { email: string; pin: string };
+  ForgotPassword: undefined;
   XrunOnboarding:
     | { email: string; pin: string; verificationCode: string; google?: undefined }
     | { email: string; pin?: undefined; verificationCode?: undefined; google: { idToken: string } };
