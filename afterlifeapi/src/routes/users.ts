@@ -606,15 +606,15 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
                 COALESCE(s.followers_count, 0) AS followers_count,
                 COALESCE(s.messages_count, 0)  AS messages_count,
                 COALESCE(s.gifts_count, 0)     AS gifts_count,
-                lf.id           AS feed_id,
-                lf.likes_count  AS feed_likes_count,
-                (SELECT COUNT(*) FROM feed_comments WHERE feed_id = lf.id) AS feed_comments_count
+                (SELECT id FROM feeds WHERE clone_id = c.id ORDER BY id DESC LIMIT 1) AS latest_feed_id,
+                (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+                  WHERE f.clone_id = c.id) AS total_likes,
+                (SELECT COUNT(*) FROM feed_comments fc
+                   JOIN feeds f2 ON f2.id = fc.feed_id
+                   WHERE f2.clone_id = c.id) AS total_comments
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
-           LEFT JOIN feeds lf ON lf.id = (
-             SELECT id FROM feeds WHERE clone_id = c.id ORDER BY id DESC LIMIT 1
-           )
           WHERE f.user_id = ? AND c.deleted_at IS NULL
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
           ORDER BY f.created_at DESC, f.id DESC`,
@@ -632,9 +632,9 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         followers_count: number;
         messages_count: number;
         gifts_count: number;
-        feed_id: number | null;
-        feed_likes_count: number | null;
-        feed_comments_count: number | null;
+        latest_feed_id: number | null;
+        total_likes: number;
+        total_comments: number;
       }>()
   ).results;
 
@@ -658,21 +658,21 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
     }
   }
 
-  const feedIdsInPage = rows
-    .map((r) => r.feed_id)
-    .filter((x): x is number => typeof x === "number");
-  const likedFeedIds = new Set<number>();
-  if (feedIdsInPage.length > 0) {
-    const placeholders = feedIdsInPage.map(() => "?").join(",");
+  const cIdsForLikes = rows.map((r) => r.id);
+  const likedCloneIds = new Set<number>();
+  if (cIdsForLikes.length > 0) {
+    const placeholders = cIdsForLikes.map(() => "?").join(",");
     const lr = (
       await c.env.DB
         .prepare(
-          `SELECT feed_id FROM feed_likes WHERE user_id = ? AND feed_id IN (${placeholders})`,
+          `SELECT DISTINCT f.clone_id AS clone_id FROM feed_likes fl
+             JOIN feeds f ON f.id = fl.feed_id
+            WHERE fl.user_id = ? AND f.clone_id IN (${placeholders})`,
         )
-        .bind(userId, ...feedIdsInPage)
-        .all<{ feed_id: number }>()
+        .bind(userId, ...cIdsForLikes)
+        .all<{ clone_id: number }>()
     ).results ?? [];
-    for (const row of lr) likedFeedIds.add(row.feed_id);
+    for (const row of lr) likedCloneIds.add(row.clone_id);
   }
 
   return c.json({
@@ -689,13 +689,14 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         followers: r.followers_count,
         messages: r.messages_count,
         gifts: r.gifts_count,
+
+        likes: r.total_likes,
+        comments: r.total_comments,
       },
 
       latestFeed: {
-        feedId: r.feed_id,
-        likesCount: r.feed_likes_count ?? 0,
-        commentsCount: r.feed_comments_count ?? 0,
-        likedByMe: r.feed_id != null && likedFeedIds.has(r.feed_id),
+        feedId: r.latest_feed_id,
+        likedByMe: likedCloneIds.has(r.id),
       },
       createdAt: r.created_at,
     })),

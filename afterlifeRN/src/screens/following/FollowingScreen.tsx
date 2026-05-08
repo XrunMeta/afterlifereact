@@ -61,14 +61,16 @@ type FollowedPersona = {
   interactions: number; 
 };
 
-const deriveInteractions = (
-  stats?: { messages: number; gifts: number },
-  latestFeed?: { likesCount: number; commentsCount: number } | null,
-): number => {
+const deriveInteractions = (stats?: {
+  messages: number;
+  gifts: number;
+  likes?: number;
+  comments?: number;
+}): number => {
   const m = stats?.messages ?? 0;
   const g = stats?.gifts ?? 0;
-  const l = latestFeed?.likesCount ?? 0;
-  const c = latestFeed?.commentsCount ?? 0;
+  const l = stats?.likes ?? 0;
+  const c = stats?.comments ?? 0;
   return m + g + l + c;
 };
 const deriveIntimacy = (interactions: number): number =>
@@ -144,7 +146,7 @@ export default function FollowingScreen() {
   const followedPersonas = useMemo<FollowedPersona[]>(() => {
     if (apiFollowed != null) {
       return apiFollowed.map((c) => {
-        const interactions = deriveInteractions(c.stats, c.latestFeed ?? null);
+        const interactions = deriveInteractions(c.stats);
         return {
           id: c.id,
           name: c.name,
@@ -180,7 +182,8 @@ export default function FollowingScreen() {
           content: c.description ?? "",
           mediaUrl: c.avatarUrl ?? undefined,
           mediaType: null,
-          likesCount: c.latestFeed?.likesCount ?? 0,
+
+          likesCount: c.stats.likes ?? 0,
           createdAt: c.createdAt,
         };
       });
@@ -197,8 +200,8 @@ export default function FollowingScreen() {
     if (apiFollowed) {
       for (const c of apiFollowed) {
         map.set(c.id, {
-          likesCount: c.latestFeed?.likesCount ?? 0,
-          commentsCount: c.latestFeed?.commentsCount ?? 0,
+          likesCount: c.stats.likes ?? 0,
+          commentsCount: c.stats.comments ?? 0,
           likedByMe: c.latestFeed?.likedByMe ?? false,
         });
       }
