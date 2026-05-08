@@ -10,6 +10,8 @@ import {
   v_03e392,
   v_39a996,
   v_122070,
+  v_f2c756,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
@@ -170,6 +172,26 @@ export default function v_ed02a5() {
   const [v_1f6f04, v_9127a1] = v_5ab095<v_c33ae3[] | null>(null);
   const [v_58e68f, v_6df89a] = v_5ab095<v_fa0201[] | null>(null);
   const [v_8bb912, v_d5cd7b] = v_5ab095<"following" | "myClones" | null>(null);
+  const [v_04e734, v_d6a117] = v_5ab095(false);
+
+  const v_d37d97 = async () => {
+    v_d6a117(false);
+    const v_41e43c = "market://details?id=run.xrun.xrunApp";
+    const v_5bca88 = "https://play.google.com/store/apps/details?id=run.xrun.xrunApp";
+    const v_dcd2a6 = "https://apps.apple.com/app/xrun";
+    try {
+      if (v_326be8.OS === "android") {
+
+        const v_e4c8cf = await v_f2c756.canOpenURL(v_41e43c);
+        await v_f2c756.openURL(v_e4c8cf ? v_41e43c : v_5bca88);
+      } else {
+        await v_f2c756.openURL(v_dcd2a6);
+      }
+    } catch (v_49263d) {
+      console.warn("[MyScreen] open xrun app failed:", v_49263d);
+      v_03e392.alert("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
+    }
+  };
 
   v_cf763b(
     v_a3453e.useCallback(() => {
@@ -322,7 +344,10 @@ export default function v_ed02a5() {
               <Feather name="dollar-sign" size={18} color={v_1bfbd0.zinc700} />
               <Text style={v_fd5f43.coinLabel}>{v_8d41d7("my.coin.balance")}</Text>
             </View>
-            <TouchableOpacity style={v_fd5f43.chargeBtn}>
+            <TouchableOpacity
+              style={v_fd5f43.chargeBtn}
+              onPress={() => v_d6a117(true)}
+            >
               <Feather name="plus" size={14} color={v_1bfbd0.white} />
               <Text style={v_fd5f43.chargeBtnText}>{v_8d41d7("my.coin.charge")}</Text>
             </TouchableOpacity>
@@ -411,6 +436,34 @@ export default function v_ed02a5() {
         visible={v_fda1fd}
         onClose={() => v_7ece2f(false)}
       />
+
+      {}
+      <Modal visible={v_04e734} transparent animationType="fade">
+        <Pressable style={v_fd5f43.chargeOverlay} onPress={() => v_d6a117(false)}>
+          <Pressable style={v_fd5f43.chargeBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <View style={v_fd5f43.chargeIconWrap}>
+              <Feather name="zap" size={28} color={v_1bfbd0.violet600} />
+            </View>
+            <Text style={v_fd5f43.chargeTitle}>포인트 충전 안내</Text>
+            <Text style={v_fd5f43.chargeDesc}>
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 포인트를 얻어보세요
+            </Text>
+            <Text style={v_fd5f43.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
+            <View style={v_fd5f43.chargeBtns}>
+              <TouchableOpacity
+                style={v_fd5f43.chargeCancelBtn}
+                onPress={() => v_d6a117(false)}
+              >
+                <Text style={v_fd5f43.chargeCancelText}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={v_fd5f43.chargeGoBtn} onPress={v_d37d97}>
+                <Feather name="external-link" size={14} color={v_1bfbd0.white} />
+                <Text style={v_fd5f43.chargeGoText}>바로가기</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {}
       <Modal visible={v_8bb912 !== null} transparent animationType="slide">
@@ -606,6 +659,86 @@ const v_fd5f43 = v_472849.create({
     borderRadius: v_8b0c90.full,
   },
   chargeBtnText: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.white },
+
+  chargeOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  chargeBox: {
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 20,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: 20,
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+  },
+  chargeIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: v_1bfbd0.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  chargeTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+    marginBottom: 10,
+  },
+  chargeDesc: {
+    fontSize: 14,
+    color: v_1bfbd0.zinc600,
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  chargeHint: {
+    fontSize: 11,
+    color: v_1bfbd0.zinc400,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  chargeBtns: {
+    flexDirection: "row",
+    gap: 8,
+    width: "100%",
+  },
+  chargeCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chargeCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc600,
+  },
+  chargeGoBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: v_1bfbd0.violet600,
+  },
+  chargeGoText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: v_1bfbd0.white,
+  },
   coinAmount: { fontSize: 32, fontWeight: "700", color: v_1bfbd0.zinc900 },
   coinWon: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 4 },
 
