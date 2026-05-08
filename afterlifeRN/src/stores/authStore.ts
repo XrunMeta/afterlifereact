@@ -19,8 +19,8 @@ interface AuthState {
 
   accessToken: string | null;
   apiUser: AuthUser | null;
-  loginWithApi: (payload: LoginPayload) => Promise<AuthUser>;
-  setApiAuth: (token: string, user: AuthUser) => Promise<void>;
+  loginWithApi: (payload: LoginPayload, opts?: { persist?: boolean }) => Promise<AuthUser>;
+  setApiAuth: (token: string, user: AuthUser, opts?: { persist?: boolean }) => Promise<void>;
   apiLogout: () => Promise<void>;
   refreshApiUser: () => Promise<AuthUser | null>;
   patchApiUser: (patch: Partial<AuthUser>) => void;
@@ -85,16 +85,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  loginWithApi: async (payload) => {
+  loginWithApi: async (payload, opts) => {
+    const persist = opts?.persist !== false;
     const { accessToken } = await apiLogin(payload);
     const { user } = await getMe(accessToken);
-    await AsyncStorage.setItem(TOKEN_KEY, accessToken);
+    if (persist) {
+      await AsyncStorage.setItem(TOKEN_KEY, accessToken);
+    } else {
+
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    }
     set({ accessToken, apiUser: user });
     return user;
   },
 
-  setApiAuth: async (token, user) => {
-    await AsyncStorage.setItem(TOKEN_KEY, token);
+  setApiAuth: async (token, user, opts) => {
+    const persist = opts?.persist !== false;
+    if (persist) {
+      await AsyncStorage.setItem(TOKEN_KEY, token);
+    } else {
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    }
     set({ accessToken: token, apiUser: user });
   },
 

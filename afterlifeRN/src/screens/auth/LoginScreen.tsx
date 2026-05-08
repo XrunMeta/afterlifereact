@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -34,6 +35,9 @@ type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Login">;
 };
 
+const AUTO_LOGIN_PREF_KEY = "@afterlifeRN/auth/autoLoginPref";
+const LAST_EMAIL_KEY = "@afterlifeRN/auth/lastEmail";
+
 export default function LoginScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
@@ -45,6 +49,21 @@ export default function LoginScreen({ navigation }: Props) {
   const loginWithApi = useAuthStore((s) => s.loginWithApi);
   const [loggingIn, setLoggingIn] = useState(false);
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [pref, savedEmail] = await Promise.all([
+          AsyncStorage.getItem(AUTO_LOGIN_PREF_KEY),
+          AsyncStorage.getItem(LAST_EMAIL_KEY),
+        ]);
+        if (pref === "1") setAutoLogin(true);
+        if (savedEmail) setEmail(savedEmail);
+      } catch (err) {
+        console.warn("[AUTH/login] restore prefs failed:", err);
+      }
+    })();
+  }, []);
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert(t("common.notice"), t("auth.signup.emailRequired"));
@@ -53,8 +72,22 @@ export default function LoginScreen({ navigation }: Props) {
     setLoggingIn(true);
     try {
       const deviceId = await getOrCreateDeviceId();
-      const user = await loginWithApi({ email, password, deviceId });
-      console.log("[AUTH/login] user:", user);
+
+      const user = await loginWithApi(
+        { email, password, deviceId },
+        { persist: autoLogin },
+      );
+      console.log(
+        `[AUTH/login] user: ${user.email} autoLogin=${autoLogin ? "ON" : "OFF"}`,
+      );
+
+      if (autoLogin) {
+        await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
+        await AsyncStorage.setItem(LAST_EMAIL_KEY, email);
+      } else {
+        await AsyncStorage.removeItem(AUTO_LOGIN_PREF_KEY);
+        await AsyncStorage.removeItem(LAST_EMAIL_KEY);
+      }
 
       await hydrate();
     } catch (err) {
@@ -104,7 +137,14 @@ export default function LoginScreen({ navigation }: Props) {
           const deviceId = await getOrCreateDeviceId();
           const res = await googleSignIn({ idToken, deviceId, platform: "android" });
           const meRes = await getMe(res.accessToken);
-          await setApiAuth(res.accessToken, meRes.user);
+          await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
+          if (autoLogin) {
+            await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
+            await AsyncStorage.setItem(LAST_EMAIL_KEY, meRes.user.email);
+          } else {
+            await AsyncStorage.removeItem(AUTO_LOGIN_PREF_KEY);
+            await AsyncStorage.removeItem(LAST_EMAIL_KEY);
+          }
           console.log("[AUTH/google] user:", meRes.user);
           await hydrate();
         } else if (check.xrunExists) {
