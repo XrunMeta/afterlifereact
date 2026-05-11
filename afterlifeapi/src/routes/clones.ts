@@ -54,7 +54,11 @@ const createSchema = z.object({
   memlow_profile: z.record(z.string(), z.unknown()).optional(),
 
   l1_profile: l1ProfileSchema.optional(),
+
+  pin: z.string().regex(/^\d{6}$/).optional(),
 });
+
+const PERSONA_PAID_PRICE_XRUN = 100;
 
 clones.post(
   "/",
@@ -82,19 +86,67 @@ clones.post(
       .prepare(
         `SELECT COUNT(*) AS n FROM clones
           WHERE owner_id = ?
-            AND clone_type = ?
             AND deletion_state = 'active'
             AND deleted_at IS NULL`,
       )
-      .bind(userId, body.clone_type)
+      .bind(userId)
       .first<{ n: number }>();
     const usedCount = existing?.n ?? 0;
     if (usedCount >= 1) {
 
-      throw new APIError(
-        "QUOTA_EXCEEDED",
-        "Free quota exhausted. Paid creation not yet available (beta).",
-      );
+      const sameType = await db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM clones
+            WHERE owner_id = ?
+              AND clone_type = ?
+              AND deletion_state = 'active'
+              AND deleted_at IS NULL`,
+        )
+        .bind(userId, body.clone_type)
+        .first<{ n: number }>();
+      if ((sameType?.n ?? 0) >= 1) {
+        throw new APIError(
+          "CONFLICT",
+          "이미 같은 타입의 페르소나가 있습니다. 다른 타입을 선택해주세요.",
+        );
+      }
+
+      if (!body.pin) {
+        throw new APIError("PAYMENT_REQUIRED", "Persona creation requires payment.", {
+          priceXrun: PERSONA_PAID_PRICE_XRUN,
+          message: `2번째 페르소나부터 ${PERSONA_PAID_PRICE_XRUN} XRUN 이 부과됩니다.`,
+        });
+      }
+
+      const companyAddr = c.env.COMPANY_CHARGE_WALLET;
+      if (!companyAddr) {
+        throw new APIError("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
+      }
+      const senderRow = await db
+        .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+        .bind(userId)
+        .first<{ xrun_member_id: number | null }>();
+      if (!senderRow?.xrun_member_id) {
+        throw new APIError("CONFLICT", "xrun account not linked.");
+      }
+      const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
+      const { externalTransferSplit } = await import("../lib/xrun");
+      const payRes = await externalTransferSplit(c.env, {
+        fromMember: senderRow.xrun_member_id,
+        recipients: [{ toAddress: companyAddr, amount: String(PERSONA_PAID_PRICE_XRUN) }],
+        currency,
+        pin: body.pin,
+        source: "afterlife.persona-create",
+      });
+      if (!payRes.ok) {
+        if (payRes.code === 401 || payRes.code === 403) {
+          throw new APIError("UNAUTHENTICATED", "PIN verification failed.");
+        }
+        if (payRes.code === 402) {
+          throw new APIError("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.");
+        }
+        throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
+      }
     }
 
     const voiceType = body.voice_preset_id ? "preset" : "text_only";

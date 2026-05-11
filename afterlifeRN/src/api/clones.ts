@@ -21,6 +21,8 @@ export interface CreateClonePayload {
     attrs: Record<string, string>;
     notes: string;
   };
+
+  pin?: string;
 }
 
 export interface CreatedClone {
