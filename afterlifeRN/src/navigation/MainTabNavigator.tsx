@@ -35,6 +35,7 @@ import LanguageSettingsScreen from "../screens/my/LanguageSettingsScreen";
 import PaymentPinScreen from "../screens/my/PaymentPinScreen";
 import InviteStatusScreen from "../screens/my/InviteStatusScreen";
 import BlockedListScreen from "../screens/my/BlockedListScreen";
+import TransactionsScreen from "../screens/my/TransactionsScreen";
 
 const ClonesStack = createNativeStackNavigator<ClonesStackParamList>();
 const CreateStack = createNativeStackNavigator<CreateStackParamList>();
@@ -80,6 +81,7 @@ function MyStackNavigator() {
       <MyStack.Screen name="PaymentPin" component={PaymentPinScreen} />
       <MyStack.Screen name="InviteStatus" component={InviteStatusScreen} />
       <MyStack.Screen name="BlockedList" component={BlockedListScreen} />
+      <MyStack.Screen name="Transactions" component={TransactionsScreen} />
     </MyStack.Navigator>
   );
 }

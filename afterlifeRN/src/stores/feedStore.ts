@@ -240,11 +240,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
       return apiFeeds.map(toDomainFeed);
     }
 
-    const u = useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
-    const visibleCloneIds = new Set(
-      seedSource.clones().filter((c) => canSeeClone(c, u)).map((c) => c.id),
-    );
-    return get().feeds.filter((f) => visibleCloneIds.has(f.cloneId));
+    return [];
   },
 
   getFilteredFeeds: () => {

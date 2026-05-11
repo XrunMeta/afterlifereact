@@ -731,14 +731,15 @@ clones.post("/:id/gift", requireAuth, async (c) => {
 
   const owner = await c.env.DB
     .prepare(
-      `SELECT id, xrun_wallet FROM users WHERE id = ? AND deleted_at IS NULL`,
+      `SELECT id, xrun_wallet, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
     .bind(clone.owner_id)
-    .first<{ id: number; xrun_wallet: string | null }>();
-  if (!owner?.xrun_wallet) {
+    .first<{ id: number; xrun_wallet: string | null; xrun_member_id: number | null }>();
+
+  if (!owner?.xrun_member_id) {
     throw new APIError(
       "CONFLICT",
-      "Persona owner has no xrun wallet — cannot route 40% share.",
+      "Persona owner has no xrun account — cannot route 40% share.",
     );
   }
 
@@ -764,7 +765,7 @@ clones.post("/:id/gift", requireAuth, async (c) => {
       companyAmount,
       ownerAmount,
       companyAddr,
-      owner.xrun_wallet,
+      owner.xrun_wallet, 
     )
     .run();
   const logId = Number(insertRes.meta.last_row_id);
@@ -773,7 +774,7 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     fromMember: sender.xrun_member_id,
     recipients: [
       { toAddress: companyAddr, amount: String(companyAmount) },
-      { toAddress: owner.xrun_wallet, amount: String(ownerAmount) },
+      { toMember: owner.xrun_member_id, amount: String(ownerAmount) },
     ],
     currency,
     pin: body.pin,
@@ -810,9 +811,8 @@ clones.post("/:id/gift", requireAuth, async (c) => {
   }
 
   const companyAddrL = companyAddr.toLowerCase();
-  const ownerWalletL = owner.xrun_wallet.toLowerCase();
   const companyTx = xrunRes.txs.find((t) => t.toAddress.toLowerCase() === companyAddrL);
-  const ownerTx = xrunRes.txs.find((t) => t.toAddress.toLowerCase() === ownerWalletL);
+  const ownerTx = xrunRes.txs.find((t) => t.toAddress.toLowerCase() !== companyAddrL);
   console.log(
     `[gift] xrun txs:`,
     xrunRes.txs.map((t) => `${t.toAddress}=${(t.txHash ?? "").slice(0, 12)}`).join(" | "),
@@ -824,10 +824,16 @@ clones.post("/:id/gift", requireAuth, async (c) => {
           SET status = 'sent',
               tx_company = ?,
               tx_owner = ?,
+              owner_address = COALESCE(?, owner_address),
               completed_at = CURRENT_TIMESTAMP
         WHERE id = ?`,
     )
-    .bind(companyTx?.txHash ?? null, ownerTx?.txHash ?? null, logId)
+    .bind(
+      companyTx?.txHash ?? null,
+      ownerTx?.txHash ?? null,
+      ownerTx?.toAddress ?? null, 
+      logId,
+    )
     .run();
 
   await logActivity(c, {
