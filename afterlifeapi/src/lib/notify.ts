@@ -8,7 +8,11 @@ export type NotificationType =
   | "invite_received"
   | "invite_accepted"
   | "share_kicked"
-  | "ownership_transferred";
+  | "ownership_transferred"
+  | "clone_like"
+  | "clone_comment"
+  | "clone_follow"
+  | "clone_gift";
 
 export interface NotifyOptions {
 
@@ -26,6 +30,8 @@ export interface NotifyOptions {
   emailHtml?: string;
 
   emailSubject?: string;
+
+  skipEmail?: boolean;
 }
 
 export interface NotifyResult {
@@ -76,8 +82,8 @@ export async function notify(env: Bindings, opts: NotifyOptions): Promise<Notify
     }
   }
 
-  let emailTo = opts.email;
-  if (!emailTo && opts.userId) {
+  let emailTo = opts.skipEmail ? undefined : opts.email;
+  if (!emailTo && opts.userId && !opts.skipEmail) {
     try {
       const row = await env.DB
         .prepare(`SELECT email FROM users WHERE id = ?`)
@@ -109,6 +115,64 @@ export async function notify(env: Bindings, opts: NotifyOptions): Promise<Notify
   }
 
   return { inserted, pushAttempted, pushSent, emailSent };
+}
+
+export async function notifyCloneEvent(
+  env: Bindings,
+  type: "clone_like" | "clone_comment" | "clone_follow" | "clone_gift",
+  args: { actorId: number; cloneId: number; extraBody?: string },
+): Promise<void> {
+  try {
+    const clone = await env.DB
+      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND deleted_at IS NULL`)
+      .bind(args.cloneId)
+      .first<{ owner_id: number; name: string }>();
+    if (!clone) return;
+    if (clone.owner_id === args.actorId) return; 
+
+    const actor = await env.DB
+      .prepare(`SELECT name, email FROM users WHERE id = ?`)
+      .bind(args.actorId)
+      .first<{ name: string | null; email: string | null }>();
+    const actorName = actor?.name || actor?.email?.split("@")[0] || "누군가";
+
+    let title = "";
+    let body = "";
+    switch (type) {
+      case "clone_like":
+        title = "❤️ 좋아요";
+        body = `${actorName} 님이 ${clone.name} 에게 좋아요를 눌렀어요`;
+        break;
+      case "clone_comment":
+        title = "💬 새 댓글";
+        body = args.extraBody
+          ? `${actorName} 님: ${args.extraBody.slice(0, 60)}`
+          : `${actorName} 님이 ${clone.name} 에게 댓글을 남겼어요`;
+        break;
+      case "clone_follow":
+        title = "✨ 새 팔로워";
+        body = `${actorName} 님이 ${clone.name} 을(를) 팔로우했어요`;
+        break;
+      case "clone_gift":
+        title = "🎁 선물 도착";
+        body = args.extraBody
+          ? `${actorName} 님이 ${args.extraBody}`
+          : `${actorName} 님이 ${clone.name} 에게 선물을 보냈어요`;
+        break;
+    }
+
+    await notify(env, {
+      userId: clone.owner_id,
+      type,
+      title,
+      body,
+      url: `afterlife://clone/${args.cloneId}`,
+      data: { cloneId: args.cloneId, actorId: args.actorId },
+      skipEmail: true,
+    });
+  } catch (err) {
+    console.warn("[notifyCloneEvent] failed:", (err as Error).message);
+  }
 }
 
 function escapeHtml(s: string): string {

@@ -5,6 +5,7 @@ import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
+import { notifyCloneEvent } from "../lib/notify";
 import {
   hasAcceptedShare,
   isFollower,
@@ -362,6 +363,8 @@ feedsDiscover.post("/:id/like", requireAuth, async (c) => {
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(feedId)
     .first<{ likes_count: number }>();
+
+  await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId: feed.cloneId });
   return c.json({ ok: true, liked: true, likesCount: row?.likes_count ?? 0 });
 });
 
@@ -494,6 +497,8 @@ cloneFeeds.post("/:id/like", requireAuth, async (c) => {
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(feedId)
     .first<{ likes_count: number }>();
+
+  await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId });
   return c.json({
     ok: true,
     liked: true,
@@ -549,6 +554,12 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
     )
     .bind(feedId, userId, body.content.trim())
     .run();
+
+  await notifyCloneEvent(c.env, "clone_comment", {
+    actorId: userId,
+    cloneId: feed.cloneId,
+    extraBody: body.content.trim(),
+  });
   return c.json(
     {
       ok: true,
@@ -687,6 +698,12 @@ cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
     .prepare(`INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`)
     .bind(feedId, userId, body.content.trim())
     .run();
+
+  await notifyCloneEvent(c.env, "clone_comment", {
+    actorId: userId,
+    cloneId,
+    extraBody: body.content.trim(),
+  });
   return c.json(
     {
       ok: true,
