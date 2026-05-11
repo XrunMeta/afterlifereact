@@ -6,6 +6,7 @@ import { APIError } from "../lib/errors";
 import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { notifyCloneEvent } from "../lib/notify";
+import { bumpInteraction } from "../lib/interactions";
 import {
   hasAcceptedShare,
   isFollower,
@@ -365,6 +366,8 @@ feedsDiscover.post("/:id/like", requireAuth, async (c) => {
     .first<{ likes_count: number }>();
 
   await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId: feed.cloneId });
+
+  await bumpInteraction(c.env, userId, feed.cloneId, "feed");
   return c.json({ ok: true, liked: true, likesCount: row?.likes_count ?? 0 });
 });
 
@@ -499,6 +502,7 @@ cloneFeeds.post("/:id/like", requireAuth, async (c) => {
     .first<{ likes_count: number }>();
 
   await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId });
+  await bumpInteraction(c.env, userId, cloneId, "feed");
   return c.json({
     ok: true,
     liked: true,
@@ -560,6 +564,7 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
     cloneId: feed.cloneId,
     extraBody: body.content.trim(),
   });
+  await bumpInteraction(c.env, userId, feed.cloneId, "feed");
   return c.json(
     {
       ok: true,
@@ -704,6 +709,7 @@ cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
     cloneId,
     extraBody: body.content.trim(),
   });
+  await bumpInteraction(c.env, userId, cloneId, "feed");
   return c.json(
     {
       ok: true,

@@ -413,6 +413,15 @@ export interface FollowedClone {
     feedId: number | null;
     likedByMe: boolean;
   };
+
+  myInteractions?: {
+    chat: number;
+    call: number;
+    learn: number;
+    feed: number;
+    total: number;
+    intimacy: number; 
+  };
   createdAt: string;
 }
 export async function listMyFollowedClones(
