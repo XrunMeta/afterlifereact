@@ -215,12 +215,17 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
         return;
       }
 
-      const v_cc7245 = v_8f00b9.items
-        .filter((v_23805a) => v_23805a.likedByMe === true)
-        .map((v_23805a) => v_23805a.id);
+      const v_312319 = new Set(v_8f00b9.items.map((v_23805a) => v_23805a.id));
+      const v_3b193d = new Set(
+        v_8f00b9.items.filter((v_23805a) => v_23805a.likedByMe === true).map((v_23805a) => v_23805a.id),
+      );
       const v_c3bc75 = v_38715b().likedIds;
-      const v_2b7a6d = Array.from(new Set([...v_c3bc75, ...v_cc7245]));
-      v_bb8024({ apiFeeds: v_8f00b9.items, apiLoading: false, likedIds: v_2b7a6d });
+
+      const v_a448ad = [
+        ...v_c3bc75.filter((v_389afb) => !v_312319.has(v_389afb)),
+        ...Array.from(v_3b193d),
+      ];
+      v_bb8024({ apiFeeds: v_8f00b9.items, apiLoading: false, likedIds: v_a448ad });
     } catch (v_49263d) {
       console.warn("[feedStore] discover failed:", v_49263d);
 

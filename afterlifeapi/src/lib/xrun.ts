@@ -332,3 +332,65 @@ export async function v_5f6369(env: v_273a0c, v_660822): Promise<XrunBalancesRes
     reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
   };
 }
+
+export interface TransferRecipient {
+  toAddress: string;
+  amount: string; 
+}
+export interface TransferSplitResult {
+  ok: boolean;
+  txs: Array<{ toAddress: string; amount: string; txHash: string | null }>;
+  newBalance: string | null;
+  reason?: string;
+  code?: number;
+}
+
+export async function v_7a6fc0(
+  env: v_273a0c,
+  v_4317d1,
+): Promise<TransferSplitResult> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, txs: [], newBalance: null, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({
+        fromMember: v_4317d1.fromMember,
+        recipients: v_4317d1.recipients,
+        currency: v_4317d1.currency,
+        pin: v_4317d1.pin,
+        source: v_4317d1.source ?? "afterlife",
+      }),
+    });
+  } catch (v_49263d) {
+    return { ok: false, txs: [], newBalance: null, reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { ok: false, txs: [], newBalance: null, code: v_8f00b9.status, reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success" && v_7ecfd1.data) {
+    return {
+      ok: true,
+      txs: (v_7ecfd1.data.txs ?? []).map((v_8d41d7) => ({
+        toAddress: v_8d41d7.toAddress ?? "",
+        amount: v_8d41d7.amount ?? "",
+        txHash: v_8d41d7.txHash ?? null,
+      })),
+      newBalance:
+        v_7ecfd1.data.newBalance == null ? null : String(v_7ecfd1.data.newBalance),
+    };
+  }
+  return {
+    ok: false,
+    txs: [],
+    newBalance: null,
+    code: v_8f00b9.status,
+    reason: `xrun transfer ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
+  };
+}
