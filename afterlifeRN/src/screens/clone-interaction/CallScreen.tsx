@@ -267,9 +267,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       if (v_8f00b9.gift.newBalance != null && !Number.isNaN(Number(v_8f00b9.gift.newBalance))) {
         v_06e986(Number(v_8f00b9.gift.newBalance));
-      } else {
-        void v_d3ded9();
+        console.log(`[Call] credits = ${v_8f00b9.gift.newBalance} (from newBalance)`);
       }
+      void v_d3ded9().then(() => console.log("[Call] balance refetched after gift"));
       v_ece29b(false);
       v_5afccf(null);
       v_d0452a("");
