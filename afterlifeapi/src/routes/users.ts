@@ -611,15 +611,22 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
                   WHERE f.clone_id = c.id) AS total_likes,
                 (SELECT COUNT(*) FROM feed_comments fc
                    JOIN feeds f2 ON f2.id = fc.feed_id
-                   WHERE f2.clone_id = c.id) AS total_comments
+                   WHERE f2.clone_id = c.id) AS total_comments,
+                -- per-(user, clone) 상호작용 카운터 (기획서 정의)
+                COALESCE(uci.chat_count, 0)  AS my_chat,
+                COALESCE(uci.call_count, 0)  AS my_call,
+                COALESCE(uci.learn_count, 0) AS my_learn,
+                COALESCE(uci.feed_count, 0)  AS my_feed
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
+           LEFT JOIN user_clone_interactions uci
+                  ON uci.user_id = ? AND uci.clone_id = c.id
           WHERE f.user_id = ? AND c.deleted_at IS NULL
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
           ORDER BY f.created_at DESC, f.id DESC`,
       )
-      .bind(v_43e90c, v_43e90c)
+      .bind(v_43e90c, v_43e90c, v_43e90c)
       .all<{
         id: number;
         name: string;
@@ -635,6 +642,10 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         latest_feed_id: number | null;
         total_likes: number;
         total_comments: number;
+        my_chat: number;
+        my_call: number;
+        my_learn: number;
+        my_feed: number;
       }>()
   ).results;
 
@@ -697,6 +708,15 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
       latestFeed: {
         feedId: v_cb35cb.latest_feed_id,
         likedByMe: v_ff3805.has(v_cb35cb.id),
+      },
+
+      myInteractions: {
+        chat: v_cb35cb.my_chat,
+        call: v_cb35cb.my_call,
+        learn: v_cb35cb.my_learn,
+        feed: v_cb35cb.my_feed,
+        total: v_cb35cb.my_chat + v_cb35cb.my_call + v_cb35cb.my_learn + v_cb35cb.my_feed,
+        intimacy: Math.min(100, (v_cb35cb.my_chat + v_cb35cb.my_call + v_cb35cb.my_learn + v_cb35cb.my_feed) * 2),
       },
       createdAt: v_cb35cb.created_at,
     })),
