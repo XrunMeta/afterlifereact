@@ -214,9 +214,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           />
 
           {}
-          <Text style={v_d81136.lockHint}>{v_8d41d7("auth.login.lockHint")}</Text>
-
-          {}
           <View style={v_d81136.optionsRow}>
             <TouchableOpacity
               onPress={() => v_36bbbe(!v_f53eaa)}

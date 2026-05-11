@@ -5,6 +5,7 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
+import { v_80a022 } from "../lib/notify";
 import {
   v_7adf64,
   v_ab84f6,
@@ -362,6 +363,8 @@ v_f1d06f.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(v_c09aa8)
     .first<{ likes_count: number }>();
+
+  await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_2db2a5.cloneId });
   return v_3f4e2e.json({ ok: true, liked: true, likesCount: v_3ac7e7?.likes_count ?? 0 });
 });
 
@@ -494,6 +497,8 @@ v_96e8d7.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(v_c09aa8)
     .first<{ likes_count: number }>();
+
+  await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_6e0fd3 });
   return v_3f4e2e.json({
     ok: true,
     liked: true,
@@ -549,6 +554,12 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     )
     .bind(v_c09aa8, v_43e90c, v_4d33b2.content.trim())
     .run();
+
+  await v_80a022(v_3f4e2e.env, "clone_comment", {
+    actorId: v_43e90c,
+    cloneId: v_2db2a5.cloneId,
+    extraBody: v_4d33b2.content.trim(),
+  });
   return v_3f4e2e.json(
     {
       ok: true,
@@ -687,6 +698,12 @@ v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     .prepare(`INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`)
     .bind(v_c09aa8, v_43e90c, v_4d33b2.content.trim())
     .run();
+
+  await v_80a022(v_3f4e2e.env, "clone_comment", {
+    actorId: v_43e90c,
+    cloneId: v_6e0fd3,
+    extraBody: v_4d33b2.content.trim(),
+  });
   return v_3f4e2e.json(
     {
       ok: true,

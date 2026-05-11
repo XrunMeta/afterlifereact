@@ -14,6 +14,7 @@ import {
 } from "../lib/cloneAccess";
 import { v_9c8187, v_55eb2a } from "../lib/memoryStore";
 import { v_7a6fc0 } from "../lib/xrun";
+import { v_80a022 } from "../lib/notify";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -592,12 +593,16 @@ v_f891e6.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
     if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "Cannot follow private clone.");
   }
 
-  await v_a1651b
+  const v_43c42e = await v_a1651b
     .prepare(
       `INSERT OR IGNORE INTO clone_follows (user_id, clone_id) VALUES (?, ?)`,
     )
     .bind(v_43e90c, v_6e0fd3)
     .run();
+
+  if ((v_43c42e.meta?.changes ?? 0) > 0) {
+    await v_80a022(v_3f4e2e.env, "clone_follow", { actorId: v_43e90c, cloneId: v_6e0fd3 });
+  }
   return v_3f4e2e.json({ ok: true });
 });
 
@@ -836,6 +841,12 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
       giftId: v_4d33b2.giftId,
       amount: v_c83285,
     },
+  });
+
+  await v_80a022(v_3f4e2e.env, "clone_gift", {
+    actorId: v_f7e120,
+    cloneId: v_6e0fd3,
+    extraBody: `${v_4d33b2.giftName} 선물 (+${v_1d6a30} XRUN)`,
   });
 
   return v_3f4e2e.json({

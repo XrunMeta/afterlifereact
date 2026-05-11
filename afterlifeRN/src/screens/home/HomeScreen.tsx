@@ -20,7 +20,7 @@ import { v_b5df25 } from "ernurodqvmtspux";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
@@ -286,23 +286,48 @@ export default function v_c316d8() {
     <View style={v_d81136.root}>
       <StatusBar style="light" />
       {}
-      <FlatList
-        ref={v_ebdf9a}
-        data={v_ff422a}
-        renderItem={v_fcf6ec}
-        keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
-        pagingEnabled
-        showsVerticalScrollIndicator={false}
-        snapToInterval={v_1be4da}
-        decelerationRate="fast"
-        onViewableItemsChanged={v_43bc1b}
-        viewabilityConfig={v_10f7ba}
-        getItemLayout={(v_37eab7, v_a56041) => ({
-          length: v_1be4da,
-          offset: v_1be4da * v_a56041,
-          index: v_a56041,
-        })}
-      />
+      {v_ff422a.length === 0 ? (
+        <View style={[v_d81136.emptyWrap, { height: v_1be4da }]}>
+          <View style={v_d81136.emptyIconWrap}>
+            <Feather name="users" size={36} color="rgba(255,255,255,0.7)" />
+          </View>
+          <Text style={v_d81136.emptyTitle}>아직 만나볼 페르소나가 없어요</Text>
+          <Text style={v_d81136.emptyDesc}>
+            첫 페르소나의 주인공이 되어보시는 건 어때요?{"\n"}
+            나만의 페르소나를 만들어 시작해 보세요
+          </Text>
+          <TouchableOpacity
+            style={v_d81136.emptyBtn}
+            activeOpacity={0.85}
+            onPress={() =>
+              v_f4c991.getParent()?.dispatch(
+                v_650cfa.navigate({ name: "CreateTab" }),
+              )
+            }
+          >
+            <Feather name="plus" size={18} color={v_1bfbd0.zinc950} />
+            <Text style={v_d81136.emptyBtnText}>페르소나 만들기</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          ref={v_ebdf9a}
+          data={v_ff422a}
+          renderItem={v_fcf6ec}
+          keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
+          pagingEnabled
+          showsVerticalScrollIndicator={false}
+          snapToInterval={v_1be4da}
+          decelerationRate="fast"
+          onViewableItemsChanged={v_43bc1b}
+          viewabilityConfig={v_10f7ba}
+          getItemLayout={(v_37eab7, v_a56041) => ({
+            length: v_1be4da,
+            offset: v_1be4da * v_a56041,
+            index: v_a56041,
+          })}
+        />
+      )}
 
       {}
       <View style={[v_d81136.topOverlay, { top: v_033e14.top + 8 }]}>
@@ -570,4 +595,44 @@ const v_d81136 = v_472849.create({
   moreItemText: { fontSize: 15, fontWeight: "500", color: v_1bfbd0.zinc900 },
   toast: { position: "absolute", bottom: 80, alignSelf: "center", paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: v_8b0c90.full },
   toastText: { color: v_1bfbd0.white, fontSize: 14 },
+
+  emptyWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  emptyIconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: v_1bfbd0.white,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  emptyDesc: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  emptyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: v_8b0c90.full,
+  },
+  emptyBtnText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc950 },
 });

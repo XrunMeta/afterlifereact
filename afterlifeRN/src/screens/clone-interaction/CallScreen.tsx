@@ -11,6 +11,7 @@ import {
   v_09d0e5,
   v_a2349e,
   v_326be8,
+  v_e767d1,
   v_5f4661,
   v_122070,
   v_79c4f2,
@@ -606,51 +607,56 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       {}
       <Modal visible={v_58c86d} transparent animationType="fade">
-        <Pressable
-          style={v_fd5f43.pinOverlay}
-          onPress={() => !v_904d6c && v_ece29b(false)}
+        <KeyboardAvoidingView
+          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
         >
-          <Pressable style={v_fd5f43.pinBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <View style={v_fd5f43.pinIconWrap}>
-              <Feather name="lock" size={26} color={v_1bfbd0.violet600} />
-            </View>
-            <Text style={v_fd5f43.pinTitle}>결제 비밀번호</Text>
-            {v_555760 && (
-              <Text style={v_fd5f43.pinDesc}>
-                {v_555760.emoji} {v_555760.name} · {v_555760.price} XRUN
-                {"\n"}을 보내시려면 6자리 PIN 을 입력해 주세요
-              </Text>
-            )}
-            <TextInput
-              style={v_fd5f43.pinInput}
-              value={v_c924cc}
-              onChangeText={(v_81e2ef) => v_d0452a(v_81e2ef.replace(/\D/g, "").slice(0, 6))}
-              placeholder="● ● ● ● ● ●"
-              placeholderTextColor={v_1bfbd0.zinc400}
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={6}
-              autoFocus
-              editable={!v_904d6c}
-            />
-            <View style={v_fd5f43.pinBtns}>
-              <TouchableOpacity
-                style={v_fd5f43.pinCancelBtn}
-                onPress={() => v_ece29b(false)}
-                disabled={v_904d6c}
-              >
-                <Text style={v_fd5f43.pinCancelText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[v_fd5f43.pinConfirmBtn, (v_c924cc.length !== 6 || v_904d6c) && v_fd5f43.pinBtnDisabled]}
-                onPress={v_c04570}
-                disabled={v_c924cc.length !== 6 || v_904d6c}
-              >
-                <Text style={v_fd5f43.pinConfirmText}>{v_904d6c ? "송금 중..." : "보내기"}</Text>
-              </TouchableOpacity>
-            </View>
+          <Pressable
+            style={v_fd5f43.pinOverlay}
+            onPress={() => !v_904d6c && v_ece29b(false)}
+          >
+            <Pressable style={v_fd5f43.pinBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+              <View style={v_fd5f43.pinIconWrap}>
+                <Feather name="lock" size={26} color={v_1bfbd0.violet600} />
+              </View>
+              <Text style={v_fd5f43.pinTitle}>결제 비밀번호</Text>
+              {v_555760 && (
+                <Text style={v_fd5f43.pinDesc}>
+                  {v_555760.emoji} {v_555760.name} · {v_555760.price} XRUN
+                  {"\n"}선물하시려면 6자리 PIN 을 입력해 주세요
+                </Text>
+              )}
+              <TextInput
+                style={v_fd5f43.pinInput}
+                value={v_c924cc}
+                onChangeText={(v_81e2ef) => v_d0452a(v_81e2ef.replace(/\D/g, "").slice(0, 6))}
+                placeholder="PIN 6자리"
+                placeholderTextColor={v_1bfbd0.zinc400}
+                keyboardType="number-pad"
+                secureTextEntry
+                maxLength={6}
+                autoFocus
+                editable={!v_904d6c}
+              />
+              <View style={v_fd5f43.pinBtns}>
+                <TouchableOpacity
+                  style={v_fd5f43.pinCancelBtn}
+                  onPress={() => v_ece29b(false)}
+                  disabled={v_904d6c}
+                >
+                  <Text style={v_fd5f43.pinCancelText}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[v_fd5f43.pinConfirmBtn, (v_c924cc.length !== 6 || v_904d6c) && v_fd5f43.pinBtnDisabled]}
+                  onPress={v_c04570}
+                  disabled={v_c924cc.length !== 6 || v_904d6c}
+                >
+                  <Text style={v_fd5f43.pinConfirmText}>{v_904d6c ? "선물 중..." : "선물하기"}</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -967,9 +973,9 @@ const v_fd5f43 = v_472849.create({
     borderColor: v_1bfbd0.zinc200,
     borderRadius: 12,
     paddingHorizontal: 16,
-    fontSize: 22,
+    fontSize: 20,
     textAlign: "center",
-    letterSpacing: 8,
+    letterSpacing: 4, 
     color: v_1bfbd0.zinc900,
     backgroundColor: v_1bfbd0.zinc50,
     marginBottom: 18,
