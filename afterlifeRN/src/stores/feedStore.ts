@@ -240,11 +240,7 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
       return v_71b114.map(v_0a5d7b);
     }
 
-    const v_ceb55a = v_1ed7d9.getState().user?.id ?? v_b9d568;
-    const v_44e401 = new Set(
-      v_694b7f.clones().filter((v_3f4e2e) => v_5b0abe(v_3f4e2e, v_ceb55a)).map((v_3f4e2e) => v_3f4e2e.id),
-    );
-    return v_38715b().feeds.filter((v_8b5cd8) => v_44e401.has(v_8b5cd8.cloneId));
+    return [];
   },
 
   getFilteredFeeds: () => {

@@ -35,6 +35,7 @@ import v_d3b6fb from "../screens/my/LanguageSettingsScreen";
 import v_da4f91 from "../screens/my/PaymentPinScreen";
 import v_14fa9c from "../screens/my/InviteStatusScreen";
 import v_65df53 from "../screens/my/BlockedListScreen";
+import v_9e01f7 from "../screens/my/TransactionsScreen";
 
 const v_3ea452 = v_709be7<v_2d88fc>();
 const v_be1c7b = v_709be7<v_2b51a5>();
@@ -80,6 +81,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="PaymentPin" component={v_da4f91} />
       <MyStack.Screen name="InviteStatus" component={v_14fa9c} />
       <MyStack.Screen name="BlockedList" component={v_65df53} />
+      <MyStack.Screen name="Transactions" component={v_9e01f7} />
     </MyStack.Navigator>
   );
 }
