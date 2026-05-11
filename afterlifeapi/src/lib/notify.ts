@@ -8,7 +8,11 @@ export type NotificationType =
   | "invite_received"
   | "invite_accepted"
   | "share_kicked"
-  | "ownership_transferred";
+  | "ownership_transferred"
+  | "clone_like"
+  | "clone_comment"
+  | "clone_follow"
+  | "clone_gift";
 
 export interface NotifyOptions {
 
@@ -26,6 +30,8 @@ export interface NotifyOptions {
   emailHtml?: string;
 
   emailSubject?: string;
+
+  skipEmail?: boolean;
 }
 
 export interface NotifyResult {
@@ -76,8 +82,8 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
     }
   }
 
-  let v_db9acb = v_328259.email;
-  if (!v_db9acb && v_328259.userId) {
+  let v_db9acb = v_328259.skipEmail ? undefined : v_328259.email;
+  if (!v_db9acb && v_328259.userId && !v_328259.skipEmail) {
     try {
       const v_3ac7e7 = await v_c9c489.DB
         .prepare(`SELECT email FROM users WHERE id = ?`)
@@ -109,6 +115,64 @@ export async function v_c226a5(env: v_273a0c, v_328259): Promise<NotifyResult> {
   }
 
   return { inserted: v_81161e, pushAttempted: v_871c5a, pushSent: v_49ca22, emailSent: v_c5c953 };
+}
+
+export async function v_80a022(
+  env: v_273a0c,
+  v_3b27d9,
+  v_4317d1,
+): Promise<void> {
+  try {
+    const v_eb25ce = await v_c9c489.DB
+      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND deleted_at IS NULL`)
+      .bind(v_4317d1.cloneId)
+      .first<{ owner_id: number; name: string }>();
+    if (!v_eb25ce) return;
+    if (v_eb25ce.owner_id === v_4317d1.actorId) return; 
+
+    const v_380fb2 = await v_c9c489.DB
+      .prepare(`SELECT name, email FROM users WHERE id = ?`)
+      .bind(v_4317d1.actorId)
+      .first<{ name: string | null; email: string | null }>();
+    const v_6dd0ab = v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+
+    let v_9f1622 = "";
+    let v_4d33b2 = "";
+    switch (v_3b27d9) {
+      case "clone_like":
+        v_9f1622 = "❤️ 좋아요";
+        v_4d33b2 = `${v_6dd0ab} 님이 ${v_eb25ce.name} 에게 좋아요를 눌렀어요`;
+        break;
+      case "clone_comment":
+        v_9f1622 = "💬 새 댓글";
+        v_4d33b2 = v_4317d1.extraBody
+          ? `${v_6dd0ab} 님: ${v_4317d1.extraBody.slice(0, 60)}`
+          : `${v_6dd0ab} 님이 ${v_eb25ce.name} 에게 댓글을 남겼어요`;
+        break;
+      case "clone_follow":
+        v_9f1622 = "✨ 새 팔로워";
+        v_4d33b2 = `${v_6dd0ab} 님이 ${v_eb25ce.name} 을(를) 팔로우했어요`;
+        break;
+      case "clone_gift":
+        v_9f1622 = "🎁 선물 도착";
+        v_4d33b2 = v_4317d1.extraBody
+          ? `${v_6dd0ab} 님이 ${v_4317d1.extraBody}`
+          : `${v_6dd0ab} 님이 ${v_eb25ce.name} 에게 선물을 보냈어요`;
+        break;
+    }
+
+    await v_c226a5(v_c9c489, {
+      userId: v_eb25ce.owner_id,
+      type: v_3b27d9,
+      title: v_9f1622,
+      body: v_4d33b2,
+      url: `afterlife://clone/${v_4317d1.cloneId}`,
+      data: { cloneId: v_4317d1.cloneId, actorId: v_4317d1.actorId },
+      skipEmail: true,
+    });
+  } catch (v_49263d) {
+    console.warn("[notifyCloneEvent] failed:", (v_49263d as Error).message);
+  }
 }
 
 function v_8fd199(v_fd5f43): string {
