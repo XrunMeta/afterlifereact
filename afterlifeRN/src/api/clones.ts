@@ -577,6 +577,31 @@ export async function deleteFeedComment(
   });
 }
 
+export interface GiftSendResult {
+  ok: true;
+  gift: {
+    id: number;
+    giftId: string;
+    giftName: string;
+    total: number;
+    companyAmount: number;
+    ownerAmount: number;
+    txCompany: string | null;
+    txOwner: string | null;
+    newBalance: string | null;
+  };
+}
+export async function sendGiftToClone(
+  accessToken: string,
+  cloneId: number,
+  payload: { giftId: string; giftName: string; amount: number; pin: string },
+): Promise<GiftSendResult> {
+  return authFetch(`/oth-path${cloneId}/gift`, accessToken, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getCloneLikeStatus(
   accessToken: string,
   cloneId: number,

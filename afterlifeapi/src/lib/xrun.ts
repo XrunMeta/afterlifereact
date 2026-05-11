@@ -342,3 +342,79 @@ export async function getXrunBalances(env: Bindings, member: number): Promise<Xr
     reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
   };
 }
+
+export interface TransferRecipient {
+  toAddress: string;
+  amount: string; 
+}
+export interface TransferSplitResult {
+  ok: boolean;
+  txs: Array<{ toAddress: string; amount: string; txHash: string | null }>;
+  newBalance: string | null;
+  reason?: string;
+  code?: number;
+}
+
+export async function externalTransferSplit(
+  env: Bindings,
+  args: {
+    fromMember: number;
+    recipients: TransferRecipient[];
+    currency: number;
+    pin: string;
+    source?: string;
+  },
+): Promise<TransferSplitResult> {
+  if (!env.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, txs: [], newBalance: null, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: gatewayHeaders(env),
+      body: JSON.stringify({
+        fromMember: args.fromMember,
+        recipients: args.recipients,
+        currency: args.currency,
+        pin: args.pin,
+        source: args.source ?? "afterlife",
+      }),
+    });
+  } catch (err) {
+    return { ok: false, txs: [], newBalance: null, reason: `network: ${(err as Error).message}` };
+  }
+  let json: {
+    status?: string;
+    code?: number;
+    message?: string;
+    data?: {
+      txs?: Array<{ toAddress?: string; amount?: string; txHash?: string | null }>;
+      newBalance?: string | number | null;
+    } | null;
+  };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { ok: false, txs: [], newBalance: null, code: res.status, reason: `non-json (${res.status})` };
+  }
+  if (res.ok && json?.status === "success" && json.data) {
+    return {
+      ok: true,
+      txs: (json.data.txs ?? []).map((t) => ({
+        toAddress: t.toAddress ?? "",
+        amount: t.amount ?? "",
+        txHash: t.txHash ?? null,
+      })),
+      newBalance:
+        json.data.newBalance == null ? null : String(json.data.newBalance),
+    };
+  }
+  return {
+    ok: false,
+    txs: [],
+    newBalance: null,
+    code: res.status,
+    reason: `xrun transfer ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
+  };
+}

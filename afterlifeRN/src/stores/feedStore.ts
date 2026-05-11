@@ -215,12 +215,17 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         return;
       }
 
-      const serverLiked = res.items
-        .filter((it) => it.likedByMe === true)
-        .map((it) => it.id);
+      const pageIds = new Set(res.items.map((it) => it.id));
+      const serverLikedSet = new Set(
+        res.items.filter((it) => it.likedByMe === true).map((it) => it.id),
+      );
       const cur = get().likedIds;
-      const merged = Array.from(new Set([...cur, ...serverLiked]));
-      set({ apiFeeds: res.items, apiLoading: false, likedIds: merged });
+
+      const next = [
+        ...cur.filter((id) => !pageIds.has(id)),
+        ...Array.from(serverLikedSet),
+      ];
+      set({ apiFeeds: res.items, apiLoading: false, likedIds: next });
     } catch (err) {
       console.warn("[feedStore] discover failed:", err);
 
