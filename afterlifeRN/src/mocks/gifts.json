@@ -1,4 +1,5 @@
 [
+  { "id": "gift-test", "name": "테스트", "emoji": "🧪", "price": 0.001 },
   { "id": "gift-1", "name": "장미", "emoji": "🌹", "price": 10 },
   { "id": "gift-2", "name": "해바라기", "emoji": "🌻", "price": 10 },
   { "id": "gift-3", "name": "튤립", "emoji": "🌷", "price": 10 },
