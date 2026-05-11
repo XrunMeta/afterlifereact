@@ -419,7 +419,10 @@ export default function v_ed02a5() {
               );
             })
           )}
-          <TouchableOpacity style={v_fd5f43.viewAllBtn}>
+          <TouchableOpacity
+            style={v_fd5f43.viewAllBtn}
+            onPress={() => v_c65f5d.navigate("Transactions")}
+          >
             <Text style={v_fd5f43.viewAllText}>{v_8d41d7("my.coin.viewAll")}</Text>
           </TouchableOpacity>
         </View>
