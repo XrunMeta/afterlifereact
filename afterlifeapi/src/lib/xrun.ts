@@ -344,7 +344,10 @@ export async function getXrunBalances(env: Bindings, member: number): Promise<Xr
 }
 
 export interface TransferRecipient {
-  toAddress: string;
+
+  toAddress?: string;
+
+  toMember?: number;
   amount: string; 
 }
 export interface TransferSplitResult {
