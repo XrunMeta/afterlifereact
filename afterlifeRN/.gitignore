@@ -21,6 +21,8 @@ expo-env.d.ts
 # Firebase — FCM API key 포함, 커밋 금지
 google-services.json
 GoogleService-Info.plist
+firebase-service-account.json
+*-firebase-adminsdk-*.json
 
 # Metro
 .metro-health-check*

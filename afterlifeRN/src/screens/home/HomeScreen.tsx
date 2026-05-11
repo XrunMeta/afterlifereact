@@ -300,8 +300,12 @@ export default function HomeScreen() {
             style={styles.emptyBtn}
             activeOpacity={0.85}
             onPress={() =>
-              rootNav.getParent()?.dispatch(
-                CommonActions.navigate({ name: "CreateTab" }),
+
+              rootNav.dispatch(
+                CommonActions.navigate({
+                  name: "CreateTab",
+                  params: { screen: "Step1" },
+                }),
               )
             }
           >
