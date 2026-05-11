@@ -334,7 +334,10 @@ export async function v_5f6369(env: v_273a0c, v_660822): Promise<XrunBalancesRes
 }
 
 export interface TransferRecipient {
-  toAddress: string;
+
+  toAddress?: string;
+
+  toMember?: number;
   amount: string; 
 }
 export interface TransferSplitResult {

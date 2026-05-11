@@ -722,14 +722,15 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
 
   const v_257b90 = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT id, xrun_wallet FROM users WHERE id = ? AND deleted_at IS NULL`,
+      `SELECT id, xrun_wallet, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
     .bind(v_eb25ce.owner_id)
-    .first<{ id: number; xrun_wallet: string | null }>();
-  if (!v_257b90?.xrun_wallet) {
+    .first<{ id: number; xrun_wallet: string | null; xrun_member_id: number | null }>();
+
+  if (!v_257b90?.xrun_member_id) {
     throw new v_3ebe58(
       "CONFLICT",
-      "Persona owner has no xrun wallet — cannot route 40% share.",
+      "Persona owner has no xrun account — cannot route 40% share.",
     );
   }
 
@@ -755,7 +756,7 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
       v_22c1da,
       v_1d6a30,
       v_72b02d,
-      v_257b90.xrun_wallet,
+      v_257b90.xrun_wallet, 
     )
     .run();
   const v_7a7843 = Number(v_f5353f.meta.last_row_id);
@@ -764,7 +765,7 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
     fromMember: v_eddf67.xrun_member_id,
     recipients: [
       { toAddress: v_72b02d, amount: String(v_22c1da) },
-      { toAddress: v_257b90.xrun_wallet, amount: String(v_1d6a30) },
+      { toMember: v_257b90.xrun_member_id, amount: String(v_1d6a30) },
     ],
     currency: v_a832b3,
     pin: v_4d33b2.pin,
@@ -801,9 +802,8 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
   }
 
   const v_e58fdc = v_72b02d.toLowerCase();
-  const v_b9b3a7 = v_257b90.xrun_wallet.toLowerCase();
   const v_2cc4d6 = v_38fb16.txs.find((v_8d41d7) => v_8d41d7.toAddress.toLowerCase() === v_e58fdc);
-  const v_ed8237 = v_38fb16.txs.find((v_8d41d7) => v_8d41d7.toAddress.toLowerCase() === v_b9b3a7);
+  const v_ed8237 = v_38fb16.txs.find((v_8d41d7) => v_8d41d7.toAddress.toLowerCase() !== v_e58fdc);
   console.log(
     `[gift] xrun txs:`,
     v_38fb16.txs.map((v_8d41d7) => `${v_8d41d7.toAddress}=${(v_8d41d7.txHash ?? "").slice(0, 12)}`).join(" | "),
@@ -815,10 +815,16 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
           SET status = 'sent',
               tx_company = ?,
               tx_owner = ?,
+              owner_address = COALESCE(?, owner_address),
               completed_at = CURRENT_TIMESTAMP
         WHERE id = ?`,
     )
-    .bind(v_2cc4d6?.txHash ?? null, v_ed8237?.txHash ?? null, v_7a7843)
+    .bind(
+      v_2cc4d6?.txHash ?? null,
+      v_ed8237?.txHash ?? null,
+      v_ed8237?.toAddress ?? null, 
+      v_7a7843,
+    )
     .run();
 
   await v_74defc(v_3f4e2e, {
