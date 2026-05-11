@@ -81,4 +81,5 @@ export type MyStackParamList = {
   PaymentPin: undefined;
   InviteStatus: undefined;
   BlockedList: undefined;
+  Transactions: undefined;
 };

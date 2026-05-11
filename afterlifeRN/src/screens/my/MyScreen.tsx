@@ -419,7 +419,10 @@ export default function MyScreen() {
               );
             })
           )}
-          <TouchableOpacity style={s.viewAllBtn}>
+          <TouchableOpacity
+            style={s.viewAllBtn}
+            onPress={() => navigation.navigate("Transactions")}
+          >
             <Text style={s.viewAllText}>{t("my.coin.viewAll")}</Text>
           </TouchableOpacity>
         </View>
