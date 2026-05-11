@@ -1,5 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
 import { CommonActions } from "@react-navigation/native";
@@ -55,9 +67,101 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const [creating, setCreating] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [paymentModal, setPaymentModal] = useState(false);
+  const [payPrice, setPayPrice] = useState<number>(100);
+  const [pinInput, setPinInput] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const cancelledRef = useRef(false);
+
+  const avatarUrlRef = useRef<string | undefined>(undefined);
+
+  const attemptCreate = useCallback(
+    async (pin?: string) => {
+      if (!draft.cloneType || !accessToken) return;
+      const hasImage = Boolean(draft.imageFile);
+      const hasVoice = Boolean(
+        draft.voiceFile || draft.voiceSampleId || (draft.recordDuration ?? 0) >= 30,
+      );
+      const visibility = draft.visibility ?? getCloneTypeMeta(draft.cloneType).defaultVisibility;
+
+      const USERNAME_RE = /^[a-z0-9_]+$/;
+      const typed = draft.username?.trim() ?? "";
+      const isValid = typed.length >= 3 && typed.length <= 30 && USERNAME_RE.test(typed);
+      const username = isValid ? typed : deriveUsernameFromName(typed || draft.name || "user");
+
+      const l1Attrs: Record<string, string> = {
+        ...(draft.personaAge ? { age: draft.personaAge } : {}),
+        ...(draft.personaGender ? { gender: draft.personaGender } : {}),
+        ...(draft.personaTypes && draft.personaTypes.length > 0
+          ? { personalities: draft.personaTypes.join(",") }
+          : {}),
+        ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
+      };
+      const l1Profile = { attrs: l1Attrs, notes: draft.personaNotes ?? "" };
+
+      let avatarUrl: string | undefined = avatarUrlRef.current;
+      if (!avatarUrl && draft.imageFile) {
+        try {
+          const ext = draft.imageFile.split(".").pop()?.toLowerCase() ?? "";
+          const mime =
+            ext === "png" ? "image/png"
+            : ext === "webp" ? "image/webp"
+            : ext === "gif" ? "image/gif"
+            : "image/jpeg";
+          const uploaded = await uploadFile(accessToken, draft.imageFile, {
+            purpose: "clone_avatar",
+            mimeType: mime,
+            fileName: `avatar.${ext || "jpg"}`,
+          });
+          avatarUrl = uploaded.url;
+          avatarUrlRef.current = avatarUrl;
+          console.log("[CLONE-CREATE] avatar uploaded:", avatarUrl);
+        } catch (uploadErr) {
+          console.warn("[CLONE-CREATE] avatar upload failed:", uploadErr);
+        }
+      }
+
+      const res = await createClone(accessToken, {
+        clone_type: draft.cloneType,
+        name: draft.name ?? "Untitled",
+        username,
+        description: draft.description || undefined,
+        category: draft.category || undefined,
+        visibility,
+        interests: draft.interests && draft.interests.length > 0 ? draft.interests : undefined,
+        l1_profile: l1Profile,
+        ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+        ...(pin ? { pin } : {}),
+      });
+      console.log("[CLONE-CREATE] success:", res);
+      const createdClone = res.clone;
+
+      const clone: Clone = {
+        id: createdClone.id,
+        cloneType: createdClone.cloneType,
+        ownerId: currentUserId,
+        displayName: createdClone.name,
+        description: draft.description ?? "",
+        interests: draft.interests ?? [],
+        imageUrl: avatarUrl ?? draft.imageFile ?? undefined,
+        visibility: createdClone.visibility,
+        status: hasImage && hasVoice ? "active" : "pending_assets",
+        createdAt: createdClone.createdAt,
+        l1Profile,
+      };
+      addClone(clone);
+      if (!cancelledRef.current) {
+        setCreatedCloneId(createdClone.id);
+        setCreating(false);
+      }
+    },
+    [draft, accessToken, currentUserId, addClone],
+  );
+
   useEffect(() => {
     if (!draft.cloneType) return;
-    let cancelled = false;
+    cancelledRef.current = false;
     (async () => {
       setCreating(true);
       setError(null);
@@ -91,7 +195,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           l1Profile: { attrs: localAttrs, notes: draft.personaNotes ?? '' },
         };
         addClone(clone);
-        if (!cancelled) {
+        if (!cancelledRef.current) {
           setCreatedCloneId(localId);
           setCreating(false);
         }
@@ -99,79 +203,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       }
 
       try {
-
-        const USERNAME_RE = /^[a-z0-9_]+$/;
-        const typed = draft.username?.trim() ?? '';
-        const isValid = typed.length >= 3 && typed.length <= 30 && USERNAME_RE.test(typed);
-        const username = isValid ? typed : deriveUsernameFromName(typed || draft.name || 'user');
-
-        const l1Attrs: Record<string, string> = {
-          ...(draft.personaAge ? { age: draft.personaAge } : {}),
-          ...(draft.personaGender ? { gender: draft.personaGender } : {}),
-          ...(draft.personaTypes && draft.personaTypes.length > 0
-            ? { personalities: draft.personaTypes.join(',') }
-            : {}),
-          ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
-        };
-        const l1Profile = { attrs: l1Attrs, notes: draft.personaNotes ?? '' };
-
-        let avatarUrl: string | undefined;
-        if (draft.imageFile) {
-          try {
-
-            const ext = draft.imageFile.split('.').pop()?.toLowerCase() ?? '';
-            const mime =
-              ext === 'png' ? 'image/png'
-              : ext === 'webp' ? 'image/webp'
-              : ext === 'gif' ? 'image/gif'
-              : 'image/jpeg';
-            const uploaded = await uploadFile(accessToken, draft.imageFile, {
-              purpose: 'clone_avatar',
-              mimeType: mime,
-              fileName: `avatar.${ext || 'jpg'}`,
-            });
-            avatarUrl = uploaded.url;
-            console.log('[CLONE-CREATE] avatar uploaded:', avatarUrl);
-          } catch (uploadErr) {
-            console.warn('[CLONE-CREATE] avatar upload failed:', uploadErr);
-
-          }
-        }
-
-        const res = await createClone(accessToken, {
-          clone_type: draft.cloneType!,
-          name: draft.name ?? 'Untitled',
-          username,
-          description: draft.description || undefined,
-          category: draft.category || undefined,
-          visibility,
-          interests: draft.interests && draft.interests.length > 0 ? draft.interests : undefined,
-          l1_profile: l1Profile,
-          ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
-        });
-        console.log('[CLONE-CREATE] success:', res);
-        const createdClone = res.clone;
-
-        const clone: Clone = {
-          id: createdClone.id,
-          cloneType: createdClone.cloneType,
-          ownerId: currentUserId,
-          displayName: createdClone.name,
-          description: draft.description ?? '',
-          interests: draft.interests ?? [],
-          imageUrl: avatarUrl ?? draft.imageFile ?? undefined,
-          visibility: createdClone.visibility,
-          status: hasImage && hasVoice ? 'active' : 'pending_assets',
-          createdAt: createdClone.createdAt,
-          l1Profile,
-        };
-        addClone(clone);
-        if (!cancelled) {
-          setCreatedCloneId(createdClone.id);
-          setCreating(false);
-        }
+        await attemptCreate();
       } catch (err) {
-
+        if (cancelledRef.current) return;
         if (err instanceof AuthApiError) {
           console.warn(
             '[CLONE-CREATE] failed:',
@@ -180,29 +214,36 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             'details=',
             JSON.stringify(err.details),
           );
-        } else {
-          console.warn('[CLONE-CREATE] failed:', err);
-        }
-        if (cancelled) return;
-        let msg = t('create.errors.createFailed');
-        if (err instanceof AuthApiError) {
+          if (err.code === 'PAYMENT_REQUIRED') {
+
+            const details = (err.details ?? {}) as { priceXrun?: number };
+            if (typeof details.priceXrun === 'number') setPayPrice(details.priceXrun);
+            setPaymentModal(true);
+            setCreating(false);
+            return;
+          }
+          let msg = t('create.errors.createFailed');
           if (err.code === 'QUOTA_EXCEEDED') {
             msg = t('create.errors.quotaExceeded');
           } else if (err.code === 'CONFLICT') {
-            msg = t('create.errors.usernameConflict');
+            msg = err.message || t('create.errors.usernameConflict');
           } else {
             msg = err.message;
           }
+          setError(msg);
+          setCreating(false);
+          Alert.alert(t('create.complete.createFailed'), msg);
+        } else {
+          console.warn('[CLONE-CREATE] failed:', err);
+          setError(t('create.errors.createFailed'));
+          setCreating(false);
         }
-        setError(msg);
-        setCreating(false);
-        Alert.alert(t('create.complete.createFailed'), msg);
       }
     })();
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
     };
-  }, []); 
+  }, [attemptCreate, draft.cloneType]); 
 
   const cloneType = draft.cloneType ?? 'friend';
   const copy = {
@@ -233,6 +274,34 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     navigation.getParent()?.dispatch(
       CommonActions.navigate({ name: "ClonesTab" })
     );
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!/^\d{6}$/.test(pinInput)) {
+      setPinError("PIN 6자리를 입력해 주세요");
+      return;
+    }
+    setPaying(true);
+    setPinError(null);
+    try {
+      setCreating(true);
+      await attemptCreate(pinInput);
+      setPaymentModal(false);
+    } catch (err) {
+      let msg = "결제에 실패했어요.";
+      if (err instanceof AuthApiError) {
+        if (err.code === "UNAUTHENTICATED") msg = "결제 비밀번호가 일치하지 않아요";
+        else if (err.code === "INSUFFICIENT_FUNDS") msg = "XRUN 잔액이 부족해요";
+        else if (err.code === "CONFLICT") msg = err.message;
+        else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
+          msg = "xrun 송금 기능이 아직 준비 중입니다";
+        else msg = err.message;
+      }
+      setPinError(msg);
+      setCreating(false);
+    } finally {
+      setPaying(false);
+    }
   };
 
   return (
@@ -288,9 +357,122 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           variant="ghost"
         />
       </View>
+
+      {}
+      <Modal visible={paymentModal} transparent animationType="fade">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
+        >
+          <Pressable
+            style={payStyles.overlay}
+            onPress={() => !paying && setPaymentModal(false)}
+          >
+            <Pressable style={payStyles.box} onPress={(e) => e.stopPropagation()}>
+              <View style={payStyles.iconWrap}>
+                <Feather name="credit-card" size={26} color={COLORS.violet600} />
+              </View>
+              <Text style={payStyles.title}>페르소나 생성 결제</Text>
+              <Text style={payStyles.desc}>
+                두 번째 페르소나부터 {payPrice} XRUN 이 부과돼요{"\n"}
+                결제 비밀번호 6자리를 입력해 주세요
+              </Text>
+              <TextInput
+                style={payStyles.input}
+                value={pinInput}
+                onChangeText={(v) => setPinInput(v.replace(/\D/g, "").slice(0, 6))}
+                placeholder="PIN 6자리"
+                placeholderTextColor={COLORS.zinc400}
+                keyboardType="number-pad"
+                secureTextEntry
+                maxLength={6}
+                autoFocus
+                editable={!paying}
+              />
+              {pinError && <Text style={payStyles.error}>{pinError}</Text>}
+              <View style={payStyles.btns}>
+                <TouchableOpacity
+                  style={payStyles.cancel}
+                  onPress={() => setPaymentModal(false)}
+                  disabled={paying}
+                >
+                  <Text style={payStyles.cancelText}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[payStyles.confirm, (pinInput.length !== 6 || paying) && payStyles.disabled]}
+                  onPress={handleConfirmPayment}
+                  disabled={pinInput.length !== 6 || paying}
+                >
+                  <Text style={payStyles.confirmText}>
+                    {paying ? "결제 중..." : `${payPrice} XRUN 결제`}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeView>
   );
 }
+
+const payStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  box: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: 20,
+    alignItems: "center",
+  },
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  title: { fontSize: 17, fontWeight: "700", color: COLORS.zinc900, marginBottom: 10 },
+  desc: { fontSize: 13, color: COLORS.zinc600, textAlign: "center", lineHeight: 20, marginBottom: 18 },
+  input: {
+    width: "100%",
+    height: 52,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 20,
+    textAlign: "center",
+    letterSpacing: 4,
+    color: COLORS.zinc900,
+    backgroundColor: COLORS.zinc50,
+    marginBottom: 12,
+  },
+  error: { fontSize: 12, color: "#ef4444", marginBottom: 12, textAlign: "center" },
+  btns: { flexDirection: "row", gap: 8, width: "100%" },
+  cancel: {
+    flex: 1, paddingVertical: 12, borderRadius: 10,
+    borderWidth: 1, borderColor: COLORS.zinc200, alignItems: "center",
+  },
+  cancelText: { fontSize: 14, fontWeight: "600", color: COLORS.zinc600 },
+  confirm: {
+    flex: 1.5, paddingVertical: 12, borderRadius: 10,
+    backgroundColor: COLORS.violet600, alignItems: "center",
+  },
+  confirmText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
+  disabled: { backgroundColor: COLORS.zinc300 },
+});
 
 const styles = StyleSheet.create({
   content: {
