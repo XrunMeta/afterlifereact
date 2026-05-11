@@ -103,11 +103,6 @@ export default function TransactionsScreen() {
                       {label}
                     </Text>
                     <Text style={s.date}>{fmtDate(tx.createdAt)}</Text>
-                    {tx.txHash && (
-                      <Text style={s.tx} numberOfLines={1}>
-                        tx: {tx.txHash}
-                      </Text>
-                    )}
                   </View>
                   <Text style={[s.amount, positive ? s.green : s.red]}>
                     {positive ? "+" : ""}
@@ -141,7 +136,6 @@ const s = StyleSheet.create({
   info: { flex: 1, minWidth: 0 },
   label: { fontSize: 14, fontWeight: "500", color: COLORS.zinc900, marginBottom: 2 },
   date: { fontSize: 12, color: COLORS.zinc500 },
-  tx: { fontSize: 10, color: COLORS.zinc400, fontFamily: "monospace", marginTop: 2 },
   amount: { fontSize: 14, fontWeight: "700", marginLeft: 12 },
   green: { color: "#10b981" },
   red: { color: "#ef4444" },
