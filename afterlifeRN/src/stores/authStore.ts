@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({
       accessToken: apiUser ? token : null,
       apiUser,
-      isLoggedIn: !!u,
+      isLoggedIn: !!apiUser, 
       user: u,
       hydrated: true,
     });
@@ -95,7 +95,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       await AsyncStorage.removeItem(TOKEN_KEY);
     }
-    set({ accessToken, apiUser: user });
+    set({ accessToken, apiUser: user, isLoggedIn: true });
     return user;
   },
 
@@ -106,12 +106,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } else {
       await AsyncStorage.removeItem(TOKEN_KEY);
     }
-    set({ accessToken: token, apiUser: user });
+    set({ accessToken: token, apiUser: user, isLoggedIn: true });
   },
 
   apiLogout: async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
-    set({ accessToken: null, apiUser: null });
+    set({ accessToken: null, apiUser: null, isLoggedIn: false });
     try {
       const { useFeedStore } = await import("./feedStore");
       const { useFollowStore } = await import("./followStore");
