@@ -573,6 +573,31 @@ export async function v_0df337(
   });
 }
 
+export interface GiftSendResult {
+  ok: true;
+  gift: {
+    id: number;
+    giftId: string;
+    giftName: string;
+    total: number;
+    companyAmount: number;
+    ownerAmount: number;
+    txCompany: string | null;
+    txOwner: string | null;
+    newBalance: string | null;
+  };
+}
+export async function v_28dc16(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_931bf0,
+): Promise<GiftSendResult> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/gift`, v_2ca7e0, {
+    method: "POST",
+    body: JSON.stringify(v_931bf0),
+  });
+}
+
 export async function v_6d41b9(
   v_2ca7e0,
   v_6e0fd3,

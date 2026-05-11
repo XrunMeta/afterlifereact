@@ -38,8 +38,10 @@ import {
   v_6d41b9,
   v_b14fce,
   v_0ff331,
+  v_28dc16,
   type v_52af9d,
 } from "../../api/clones";
+import { v_84a859 } from "../../api/auth";
 import { v_bfd883 } from "../../lib/relativeTime";
 
 type Props = v_432191<v_8ad91b, "Call">;
@@ -230,13 +232,69 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   }, [v_8282fa]);
 
+  const [v_58c86d, v_ece29b] = v_5ab095(false);
+  const [v_555760, v_5afccf] = v_5ab095<v_84fd28 | null>(null);
+  const [v_c924cc, v_d0452a] = v_5ab095("");
+  const [v_904d6c, v_a8bf66] = v_5ab095(false);
+
   const v_25b14f = (gift: v_84fd28) => {
     if (v_e2c945 < v_bbee9c.price) {
       v_15c939(v_8d41d7("call.noCredits"));
       return;
     }
+    v_5afccf(v_bbee9c);
+    v_d0452a("");
+    v_2a4980(false);
+    v_ece29b(true);
+  };
 
-    v_06e986((v_ba2215) => v_ba2215 - v_bbee9c.price);
+  const v_c04570 = async () => {
+    if (!v_555760 || !v_2ca7e0) return;
+    if (!/^\d{6}$/.test(v_c924cc)) {
+      v_15c939("PIN 6자리를 입력해 주세요");
+      return;
+    }
+    v_a8bf66(true);
+    try {
+      const v_8f00b9 = await v_28dc16(v_2ca7e0, v_6e0fd3, {
+        giftId: v_555760.id,
+        giftName: v_555760.name,
+        amount: v_555760.price,
+        pin: v_c924cc,
+      });
+      console.log("[Call] gift sent:", v_8f00b9.gift);
+      const v_bbee9c = v_555760;
+
+      if (v_8f00b9.gift.newBalance != null && !Number.isNaN(Number(v_8f00b9.gift.newBalance))) {
+        v_06e986(Number(v_8f00b9.gift.newBalance));
+      } else {
+        void v_d3ded9();
+      }
+      v_ece29b(false);
+      v_5afccf(null);
+      v_d0452a("");
+
+      v_161a89(v_bbee9c);
+    } catch (v_49263d) {
+      console.warn("[Call] gift failed:", v_49263d);
+      let v_badeaf = "송금에 실패했어요.";
+      if (v_49263d instanceof v_84a859) {
+        if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "결제 비밀번호가 일치하지 않아요.";
+        else if (v_49263d.code === "INSUFFICIENT_FUNDS") v_badeaf = "잔액이 부족해요.";
+        else if (v_49263d.code === "CONFLICT") v_badeaf = v_49263d.message;
+        else if (v_49263d.code === "UPSTREAM_NOT_IMPLEMENTED")
+          v_badeaf = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
+        else if (v_49263d.code === "UPSTREAM_FAILURE")
+          v_badeaf = "xrun 송금 처리 중 오류가 발생했어요.";
+        else v_badeaf = v_49263d.message;
+      }
+      v_03e392.alert("송금 실패", v_badeaf);
+    } finally {
+      v_a8bf66(false);
+    }
+  };
+
+  const v_161a89 = (gift: v_84fd28) => {
     v_15c939(v_8d41d7("call.giftSent", { name: v_bbee9c.name }));
 
     const v_389afb = v_63eb29.current++;
@@ -547,6 +605,55 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </Modal>
 
       {}
+      <Modal visible={v_58c86d} transparent animationType="fade">
+        <Pressable
+          style={v_fd5f43.pinOverlay}
+          onPress={() => !v_904d6c && v_ece29b(false)}
+        >
+          <Pressable style={v_fd5f43.pinBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <View style={v_fd5f43.pinIconWrap}>
+              <Feather name="lock" size={26} color={v_1bfbd0.violet600} />
+            </View>
+            <Text style={v_fd5f43.pinTitle}>결제 비밀번호</Text>
+            {v_555760 && (
+              <Text style={v_fd5f43.pinDesc}>
+                {v_555760.emoji} {v_555760.name} · {v_555760.price} XRUN
+                {"\n"}을 보내시려면 6자리 PIN 을 입력해 주세요
+              </Text>
+            )}
+            <TextInput
+              style={v_fd5f43.pinInput}
+              value={v_c924cc}
+              onChangeText={(v_81e2ef) => v_d0452a(v_81e2ef.replace(/\D/g, "").slice(0, 6))}
+              placeholder="● ● ● ● ● ●"
+              placeholderTextColor={v_1bfbd0.zinc400}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={6}
+              autoFocus
+              editable={!v_904d6c}
+            />
+            <View style={v_fd5f43.pinBtns}>
+              <TouchableOpacity
+                style={v_fd5f43.pinCancelBtn}
+                onPress={() => v_ece29b(false)}
+                disabled={v_904d6c}
+              >
+                <Text style={v_fd5f43.pinCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[v_fd5f43.pinConfirmBtn, (v_c924cc.length !== 6 || v_904d6c) && v_fd5f43.pinBtnDisabled]}
+                onPress={v_c04570}
+                disabled={v_c924cc.length !== 6 || v_904d6c}
+              >
+                <Text style={v_fd5f43.pinConfirmText}>{v_904d6c ? "송금 중..." : "보내기"}</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
       {v_8282fa && (
         <View style={v_fd5f43.toast}>
           <Text style={v_fd5f43.toastText}>{v_8282fa}</Text>
@@ -818,4 +925,72 @@ const v_fd5f43 = v_472849.create({
     fontSize: 14,
     color: v_1bfbd0.zinc900,
   },
+
+  pinOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  pinBox: {
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 20,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: 20,
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+  },
+  pinIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: v_1bfbd0.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  pinTitle: { fontSize: 17, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 10 },
+  pinDesc: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc600,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 18,
+  },
+  pinInput: {
+    width: "100%",
+    height: 52,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 22,
+    textAlign: "center",
+    letterSpacing: 8,
+    color: v_1bfbd0.zinc900,
+    backgroundColor: v_1bfbd0.zinc50,
+    marginBottom: 18,
+  },
+  pinBtns: { flexDirection: "row", gap: 8, width: "100%" },
+  pinCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    alignItems: "center",
+  },
+  pinCancelText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc600 },
+  pinConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: v_1bfbd0.violet600,
+    alignItems: "center",
+  },
+  pinConfirmText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
+  pinBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
 });
