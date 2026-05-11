@@ -809,8 +809,15 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     throw new APIError("UPSTREAM_FAILURE", xrunRes.reason ?? "xrun transfer error");
   }
 
-  const companyTx = xrunRes.txs.find((t) => t.toAddress === companyAddr);
-  const ownerTx = xrunRes.txs.find((t) => t.toAddress === owner.xrun_wallet);
+  const companyAddrL = companyAddr.toLowerCase();
+  const ownerWalletL = owner.xrun_wallet.toLowerCase();
+  const companyTx = xrunRes.txs.find((t) => t.toAddress.toLowerCase() === companyAddrL);
+  const ownerTx = xrunRes.txs.find((t) => t.toAddress.toLowerCase() === ownerWalletL);
+  console.log(
+    `[gift] xrun txs:`,
+    xrunRes.txs.map((t) => `${t.toAddress}=${(t.txHash ?? "").slice(0, 12)}`).join(" | "),
+    `companyMatch=${!!companyTx} ownerMatch=${!!ownerTx} newBalance=${xrunRes.newBalance}`,
+  );
   await c.env.DB
     .prepare(
       `UPDATE gift_logs
