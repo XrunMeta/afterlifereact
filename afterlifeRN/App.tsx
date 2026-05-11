@@ -7,8 +7,6 @@ import { v_b2c639 } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_b5df25 } from "ernurodqvmtspux";
 import { v_472849, v_3094a2 } from "rcmrninabrnb";
 import v_3b950c from "./src/navigation/RootNavigator";
-import { v_0f28c1 } from "./src/components/dev/DevFloatingBall";
-import { v_d0625e } from "./src/components/dev/BaseUrlBadge";
 import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
 import { v_0b10a6 } from "./src/stores/configStore";
@@ -66,8 +64,6 @@ export default function v_6540c3() {
           <RootNavigator />
           <StatusBar style="dark" />
         </NavigationContainer>
-        <BaseUrlBadge />
-        {__DEV__ && <DevFloatingBall />}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

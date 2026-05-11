@@ -57,7 +57,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     v_bb8024({
       accessToken: v_b113dd ? v_21cc31 : null,
       apiUser: v_b113dd,
-      isLoggedIn: !!v_ceb55a,
+      isLoggedIn: !!v_b113dd, 
       user: v_ceb55a,
       hydrated: true,
     });
@@ -95,7 +95,7 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
 
       await v_e84827.removeItem(v_1278db);
     }
-    v_bb8024({ accessToken: v_2ca7e0, apiUser: v_625c74 });
+    v_bb8024({ accessToken: v_2ca7e0, apiUser: v_625c74, isLoggedIn: true });
     return v_625c74;
   },
 
@@ -106,12 +106,12 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     } else {
       await v_e84827.removeItem(v_1278db);
     }
-    v_bb8024({ accessToken: v_21cc31, apiUser: v_625c74 });
+    v_bb8024({ accessToken: v_21cc31, apiUser: v_625c74, isLoggedIn: true });
   },
 
   apiLogout: async () => {
     await v_e84827.removeItem(v_1278db);
-    v_bb8024({ accessToken: null, apiUser: null });
+    v_bb8024({ accessToken: null, apiUser: null, isLoggedIn: false });
     try {
       const { useFeedStore: v_37977a } = await import("./feedStore");
       const { useFollowStore: v_b4902e } = await import("./followStore");
