@@ -759,3 +759,68 @@ users.delete("/me/devices/:id", requireAuth, async (c) => {
   if ((res.meta?.changes ?? 0) === 0) throw new APIError("NOT_FOUND", "Device not found.");
   return c.json({ ok: true });
 });
+
+users.get("/me/transactions", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 20);
+  const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 20));
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT g.id, g.sender_user_id AS senderId, g.owner_user_id AS ownerId,
+                g.clone_id AS cloneId, g.gift_id AS giftId, g.gift_name AS giftName,
+                g.total_amount AS totalAmount, g.company_amount AS companyAmount,
+                g.owner_amount AS ownerAmount,
+                g.status, g.tx_company AS txCompany, g.tx_owner AS txOwner,
+                g.created_at AS createdAt, g.completed_at AS completedAt,
+                c.name AS cloneName, c.avatar_url AS cloneAvatarUrl
+           FROM gift_logs g
+           LEFT JOIN clones c ON c.id = g.clone_id
+          WHERE (g.sender_user_id = ? OR g.owner_user_id = ?)
+            AND g.status = 'sent'
+          ORDER BY g.created_at DESC
+          LIMIT ?`,
+      )
+      .bind(userId, userId, limit)
+      .all<{
+        id: number;
+        senderId: number;
+        ownerId: number;
+        cloneId: number;
+        giftId: string;
+        giftName: string;
+        totalAmount: number;
+        companyAmount: number;
+        ownerAmount: number;
+        status: string;
+        txCompany: string | null;
+        txOwner: string | null;
+        createdAt: string;
+        completedAt: string | null;
+        cloneName: string | null;
+        cloneAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  return c.json({
+    items: rows.map((r) => {
+      const sent = r.senderId === userId;
+      return {
+        id: r.id,
+        type: sent ? "gift_sent" : "gift_received",
+
+        amount: sent ? -r.totalAmount : r.ownerAmount,
+        sign: sent ? "-" : "+",
+        giftId: r.giftId,
+        giftName: r.giftName,
+        cloneId: r.cloneId,
+        cloneName: r.cloneName,
+        cloneAvatarUrl: r.cloneAvatarUrl,
+        txHash: sent ? r.txCompany : r.txOwner,
+        createdAt: r.createdAt,
+      };
+    }),
+  });
+});

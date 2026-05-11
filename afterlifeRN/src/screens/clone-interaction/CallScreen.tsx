@@ -267,9 +267,9 @@ export default function CallScreen({ route, navigation }: Props) {
 
       if (res.gift.newBalance != null && !Number.isNaN(Number(res.gift.newBalance))) {
         setCredits(Number(res.gift.newBalance));
-      } else {
-        void refreshBalance();
+        console.log(`[Call] credits = ${res.gift.newBalance} (from newBalance)`);
       }
+      void refreshBalance().then(() => console.log("[Call] balance refetched after gift"));
       setPinModalVisible(false);
       setPendingGift(null);
       setPinInput("");
