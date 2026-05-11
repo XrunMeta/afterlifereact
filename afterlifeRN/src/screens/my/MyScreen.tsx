@@ -63,8 +63,9 @@ export default function MyScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
 
-  const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(null);
-  const [adBalance, setAdBalance] = useState<number | null | undefined>(null);
+  const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
+  const [adBalance, setAdBalance] = useState<number | null | undefined>(undefined);
+  const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,15 +92,23 @@ export default function MyScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    if (!accessToken) {
+
+      setXrunBalanceLoading(false);
+      setXrunBalance(undefined);
+      setAdBalance(undefined);
+      return;
+    }
+    setXrunBalanceLoading(true);
     (async () => {
-      if (!accessToken) return;
       try {
         const res = await getXrunBalance(accessToken);
         console.log("[XRUN-BALANCE]", res);
         if (cancelled) return;
         if (res.linked) {
-          setXrunBalance(res.xrun);
-          setAdBalance(res.ad);
+
+          setXrunBalance(res.xrun ?? 0);
+          setAdBalance(res.ad ?? 0);
         } else {
           setXrunBalance(undefined);
           setAdBalance(undefined);
@@ -110,6 +119,8 @@ export default function MyScreen() {
           setXrunBalance(undefined);
           setAdBalance(undefined);
         }
+      } finally {
+        if (!cancelled) setXrunBalanceLoading(false);
       }
     })();
     return () => {
@@ -157,7 +168,7 @@ export default function MyScreen() {
   const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
   const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
 
-  const balanceLoading = xrunBalance === null;
+  const balanceLoading = xrunBalanceLoading;
   const xrunDisplay = xrunBalance ?? null;
   const adDisplay = adBalance ?? null;
 
