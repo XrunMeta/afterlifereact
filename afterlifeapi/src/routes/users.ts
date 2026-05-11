@@ -611,15 +611,22 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
                   WHERE f.clone_id = c.id) AS total_likes,
                 (SELECT COUNT(*) FROM feed_comments fc
                    JOIN feeds f2 ON f2.id = fc.feed_id
-                   WHERE f2.clone_id = c.id) AS total_comments
+                   WHERE f2.clone_id = c.id) AS total_comments,
+                -- per-(user, clone) 상호작용 카운터 (기획서 정의)
+                COALESCE(uci.chat_count, 0)  AS my_chat,
+                COALESCE(uci.call_count, 0)  AS my_call,
+                COALESCE(uci.learn_count, 0) AS my_learn,
+                COALESCE(uci.feed_count, 0)  AS my_feed
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
+           LEFT JOIN user_clone_interactions uci
+                  ON uci.user_id = ? AND uci.clone_id = c.id
           WHERE f.user_id = ? AND c.deleted_at IS NULL
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
           ORDER BY f.created_at DESC, f.id DESC`,
       )
-      .bind(userId, userId)
+      .bind(userId, userId, userId)
       .all<{
         id: number;
         name: string;
@@ -635,6 +642,10 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         latest_feed_id: number | null;
         total_likes: number;
         total_comments: number;
+        my_chat: number;
+        my_call: number;
+        my_learn: number;
+        my_feed: number;
       }>()
   ).results;
 
@@ -697,6 +708,15 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
       latestFeed: {
         feedId: r.latest_feed_id,
         likedByMe: likedCloneIds.has(r.id),
+      },
+
+      myInteractions: {
+        chat: r.my_chat,
+        call: r.my_call,
+        learn: r.my_learn,
+        feed: r.my_feed,
+        total: r.my_chat + r.my_call + r.my_learn + r.my_feed,
+        intimacy: Math.min(100, (r.my_chat + r.my_call + r.my_learn + r.my_feed) * 2),
       },
       createdAt: r.created_at,
     })),
