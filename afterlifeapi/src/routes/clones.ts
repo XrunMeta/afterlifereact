@@ -14,6 +14,7 @@ import {
 } from "../lib/cloneAccess";
 import { writeCtx, writeShared } from "../lib/memoryStore";
 import { externalTransferSplit } from "../lib/xrun";
+import { notifyCloneEvent } from "../lib/notify";
 
 export const clones = new Hono<AppEnv>();
 
@@ -601,12 +602,16 @@ clones.post("/:id/follow", requireAuth, async (c) => {
     if (!role) throw new APIError("FORBIDDEN", "Cannot follow private clone.");
   }
 
-  await db
+  const result = await db
     .prepare(
       `INSERT OR IGNORE INTO clone_follows (user_id, clone_id) VALUES (?, ?)`,
     )
     .bind(userId, cloneId)
     .run();
+
+  if ((result.meta?.changes ?? 0) > 0) {
+    await notifyCloneEvent(c.env, "clone_follow", { actorId: userId, cloneId });
+  }
   return c.json({ ok: true });
 });
 
@@ -845,6 +850,12 @@ clones.post("/:id/gift", requireAuth, async (c) => {
       giftId: body.giftId,
       amount: total,
     },
+  });
+
+  await notifyCloneEvent(c.env, "clone_gift", {
+    actorId: senderId,
+    cloneId,
+    extraBody: `${body.giftName} 선물 (+${ownerAmount} XRUN)`,
   });
 
   return c.json({

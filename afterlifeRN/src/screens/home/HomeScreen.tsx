@@ -20,7 +20,7 @@ import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { Feather } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
@@ -286,23 +286,48 @@ export default function HomeScreen() {
     <View style={styles.root}>
       <StatusBar style="light" />
       {}
-      <FlatList
-        ref={flatListRef}
-        data={filteredFeeds}
-        renderItem={renderItem}
-        keyExtractor={(item) => String(item.id)}
-        pagingEnabled
-        showsVerticalScrollIndicator={false}
-        snapToInterval={feedHeight}
-        decelerationRate="fast"
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        getItemLayout={(_, index) => ({
-          length: feedHeight,
-          offset: feedHeight * index,
-          index,
-        })}
-      />
+      {filteredFeeds.length === 0 ? (
+        <View style={[styles.emptyWrap, { height: feedHeight }]}>
+          <View style={styles.emptyIconWrap}>
+            <Feather name="users" size={36} color="rgba(255,255,255,0.7)" />
+          </View>
+          <Text style={styles.emptyTitle}>아직 만나볼 페르소나가 없어요</Text>
+          <Text style={styles.emptyDesc}>
+            첫 페르소나의 주인공이 되어보시는 건 어때요?{"\n"}
+            나만의 페르소나를 만들어 시작해 보세요
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyBtn}
+            activeOpacity={0.85}
+            onPress={() =>
+              rootNav.getParent()?.dispatch(
+                CommonActions.navigate({ name: "CreateTab" }),
+              )
+            }
+          >
+            <Feather name="plus" size={18} color={COLORS.zinc950} />
+            <Text style={styles.emptyBtnText}>페르소나 만들기</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={filteredFeeds}
+          renderItem={renderItem}
+          keyExtractor={(item) => String(item.id)}
+          pagingEnabled
+          showsVerticalScrollIndicator={false}
+          snapToInterval={feedHeight}
+          decelerationRate="fast"
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          getItemLayout={(_, index) => ({
+            length: feedHeight,
+            offset: feedHeight * index,
+            index,
+          })}
+        />
+      )}
 
       {}
       <View style={[styles.topOverlay, { top: insets.top + 8 }]}>
@@ -570,4 +595,44 @@ const styles = StyleSheet.create({
   moreItemText: { fontSize: 15, fontWeight: "500", color: COLORS.zinc900 },
   toast: { position: "absolute", bottom: 80, alignSelf: "center", paddingHorizontal: 20, paddingVertical: 10, backgroundColor: "rgba(0,0,0,0.85)", borderRadius: RADIUS.full },
   toastText: { color: COLORS.white, fontSize: 14 },
+
+  emptyWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 32,
+  },
+  emptyIconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.white,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  emptyDesc: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  emptyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.full,
+  },
+  emptyBtnText: { fontSize: 14, fontWeight: "700", color: COLORS.zinc950 },
 });

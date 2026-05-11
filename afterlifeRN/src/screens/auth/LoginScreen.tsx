@@ -214,9 +214,6 @@ export default function LoginScreen({ navigation }: Props) {
           />
 
           {}
-          <Text style={styles.lockHint}>{t("auth.login.lockHint")}</Text>
-
-          {}
           <View style={styles.optionsRow}>
             <TouchableOpacity
               onPress={() => setAutoLogin(!autoLogin)}
