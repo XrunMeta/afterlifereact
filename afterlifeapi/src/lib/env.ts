@@ -35,6 +35,11 @@ export interface Bindings {
 
   XRUN_GATEWAY_TOKEN?: string;
 
+  COMPANY_CHARGE_WALLET?: string;  
+  COMPANY_GIFT_WALLET?: string;    
+
+  PAYMENT_CURRENCY?: string;       
+
   GOOGLE_WEB_CLIENT_ID: string;
 
   WEBAUTHN_RP_ID: string;        

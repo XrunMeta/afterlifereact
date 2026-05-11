@@ -38,8 +38,10 @@ import {
   getCloneLikeStatus,
   likeClone,
   unlikeClone,
+  sendGiftToClone,
   type FeedComment,
 } from "../../api/clones";
+import { AuthApiError } from "../../api/auth";
 import { formatRelativeKo } from "../../lib/relativeTime";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
@@ -230,13 +232,69 @@ export default function CallScreen({ route, navigation }: Props) {
     }
   }, [toastMessage]);
 
+  const [pinModalVisible, setPinModalVisible] = useState(false);
+  const [pendingGift, setPendingGift] = useState<Gift | null>(null);
+  const [pinInput, setPinInput] = useState("");
+  const [paying, setPaying] = useState(false);
+
   const handleGiftSend = (gift: Gift) => {
     if (credits < gift.price) {
       setToastMessage(t("call.noCredits"));
       return;
     }
+    setPendingGift(gift);
+    setPinInput("");
+    setShowGifts(false);
+    setPinModalVisible(true);
+  };
 
-    setCredits((prev) => prev - gift.price);
+  const submitGift = async () => {
+    if (!pendingGift || !accessToken) return;
+    if (!/^\d{6}$/.test(pinInput)) {
+      setToastMessage("PIN 6자리를 입력해 주세요");
+      return;
+    }
+    setPaying(true);
+    try {
+      const res = await sendGiftToClone(accessToken, cloneId, {
+        giftId: pendingGift.id,
+        giftName: pendingGift.name,
+        amount: pendingGift.price,
+        pin: pinInput,
+      });
+      console.log("[Call] gift sent:", res.gift);
+      const gift = pendingGift;
+
+      if (res.gift.newBalance != null && !Number.isNaN(Number(res.gift.newBalance))) {
+        setCredits(Number(res.gift.newBalance));
+      } else {
+        void refreshBalance();
+      }
+      setPinModalVisible(false);
+      setPendingGift(null);
+      setPinInput("");
+
+      playGiftAnimation(gift);
+    } catch (err) {
+      console.warn("[Call] gift failed:", err);
+      let msg = "송금에 실패했어요.";
+      if (err instanceof AuthApiError) {
+        if (err.code === "UNAUTHENTICATED") msg = "결제 비밀번호가 일치하지 않아요.";
+        else if (err.code === "INSUFFICIENT_FUNDS") msg = "잔액이 부족해요.";
+        else if (err.code === "CONFLICT") msg = err.message;
+        else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
+          msg = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
+        else if (err.code === "UPSTREAM_FAILURE")
+          msg = "xrun 송금 처리 중 오류가 발생했어요.";
+        else msg = err.message;
+      }
+      Alert.alert("송금 실패", msg);
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const playGiftAnimation = (gift: Gift) => {
     setToastMessage(t("call.giftSent", { name: gift.name }));
 
     const id = giftCounterRef.current++;
@@ -547,6 +605,55 @@ export default function CallScreen({ route, navigation }: Props) {
       </Modal>
 
       {}
+      <Modal visible={pinModalVisible} transparent animationType="fade">
+        <Pressable
+          style={s.pinOverlay}
+          onPress={() => !paying && setPinModalVisible(false)}
+        >
+          <Pressable style={s.pinBox} onPress={(e) => e.stopPropagation()}>
+            <View style={s.pinIconWrap}>
+              <Feather name="lock" size={26} color={COLORS.violet600} />
+            </View>
+            <Text style={s.pinTitle}>결제 비밀번호</Text>
+            {pendingGift && (
+              <Text style={s.pinDesc}>
+                {pendingGift.emoji} {pendingGift.name} · {pendingGift.price} XRUN
+                {"\n"}을 보내시려면 6자리 PIN 을 입력해 주세요
+              </Text>
+            )}
+            <TextInput
+              style={s.pinInput}
+              value={pinInput}
+              onChangeText={(v) => setPinInput(v.replace(/\D/g, "").slice(0, 6))}
+              placeholder="● ● ● ● ● ●"
+              placeholderTextColor={COLORS.zinc400}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={6}
+              autoFocus
+              editable={!paying}
+            />
+            <View style={s.pinBtns}>
+              <TouchableOpacity
+                style={s.pinCancelBtn}
+                onPress={() => setPinModalVisible(false)}
+                disabled={paying}
+              >
+                <Text style={s.pinCancelText}>취소</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.pinConfirmBtn, (pinInput.length !== 6 || paying) && s.pinBtnDisabled]}
+                onPress={submitGift}
+                disabled={pinInput.length !== 6 || paying}
+              >
+                <Text style={s.pinConfirmText}>{paying ? "송금 중..." : "보내기"}</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
       {toastMessage && (
         <View style={s.toast}>
           <Text style={s.toastText}>{toastMessage}</Text>
@@ -818,4 +925,72 @@ const s = StyleSheet.create({
     fontSize: 14,
     color: COLORS.zinc900,
   },
+
+  pinOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  pinBox: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: 20,
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+  },
+  pinIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  pinTitle: { fontSize: 17, fontWeight: "700", color: COLORS.zinc900, marginBottom: 10 },
+  pinDesc: {
+    fontSize: 13,
+    color: COLORS.zinc600,
+    textAlign: "center",
+    lineHeight: 20,
+    marginBottom: 18,
+  },
+  pinInput: {
+    width: "100%",
+    height: 52,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 22,
+    textAlign: "center",
+    letterSpacing: 8,
+    color: COLORS.zinc900,
+    backgroundColor: COLORS.zinc50,
+    marginBottom: 18,
+  },
+  pinBtns: { flexDirection: "row", gap: 8, width: "100%" },
+  pinCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    alignItems: "center",
+  },
+  pinCancelText: { fontSize: 14, fontWeight: "600", color: COLORS.zinc600 },
+  pinConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: COLORS.violet600,
+    alignItems: "center",
+  },
+  pinConfirmText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
+  pinBtnDisabled: { backgroundColor: COLORS.zinc300 },
 });
