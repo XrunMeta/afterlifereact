@@ -103,11 +103,6 @@ export default function v_9e01f7() {
                       {v_2869c1}
                     </Text>
                     <Text style={v_fd5f43.date}>{v_9f7632(v_2f6fcc.createdAt)}</Text>
-                    {v_2f6fcc.txHash && (
-                      <Text style={v_fd5f43.tx} numberOfLines={1}>
-                        tx: {v_2f6fcc.txHash}
-                      </Text>
-                    )}
                   </View>
                   <Text style={[v_fd5f43.amount, v_d39e5b ? v_fd5f43.green : v_fd5f43.red]}>
                     {v_d39e5b ? "+" : ""}
@@ -141,7 +136,6 @@ const v_fd5f43 = v_472849.create({
   info: { flex: 1, minWidth: 0 },
   label: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc900, marginBottom: 2 },
   date: { fontSize: 12, color: v_1bfbd0.zinc500 },
-  tx: { fontSize: 10, color: v_1bfbd0.zinc400, fontFamily: "monospace", marginTop: 2 },
   amount: { fontSize: 14, fontWeight: "700", marginLeft: 12 },
   green: { color: "#10b981" },
   red: { color: "#ef4444" },
