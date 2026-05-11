@@ -11,6 +11,7 @@ import {
   Pressable,
   Animated,
   Platform,
+  KeyboardAvoidingView,
   Share,
   ScrollView,
   TextInput,
@@ -606,51 +607,56 @@ export default function CallScreen({ route, navigation }: Props) {
 
       {}
       <Modal visible={pinModalVisible} transparent animationType="fade">
-        <Pressable
-          style={s.pinOverlay}
-          onPress={() => !paying && setPinModalVisible(false)}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          style={{ flex: 1 }}
         >
-          <Pressable style={s.pinBox} onPress={(e) => e.stopPropagation()}>
-            <View style={s.pinIconWrap}>
-              <Feather name="lock" size={26} color={COLORS.violet600} />
-            </View>
-            <Text style={s.pinTitle}>결제 비밀번호</Text>
-            {pendingGift && (
-              <Text style={s.pinDesc}>
-                {pendingGift.emoji} {pendingGift.name} · {pendingGift.price} XRUN
-                {"\n"}을 보내시려면 6자리 PIN 을 입력해 주세요
-              </Text>
-            )}
-            <TextInput
-              style={s.pinInput}
-              value={pinInput}
-              onChangeText={(v) => setPinInput(v.replace(/\D/g, "").slice(0, 6))}
-              placeholder="● ● ● ● ● ●"
-              placeholderTextColor={COLORS.zinc400}
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={6}
-              autoFocus
-              editable={!paying}
-            />
-            <View style={s.pinBtns}>
-              <TouchableOpacity
-                style={s.pinCancelBtn}
-                onPress={() => setPinModalVisible(false)}
-                disabled={paying}
-              >
-                <Text style={s.pinCancelText}>취소</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.pinConfirmBtn, (pinInput.length !== 6 || paying) && s.pinBtnDisabled]}
-                onPress={submitGift}
-                disabled={pinInput.length !== 6 || paying}
-              >
-                <Text style={s.pinConfirmText}>{paying ? "송금 중..." : "보내기"}</Text>
-              </TouchableOpacity>
-            </View>
+          <Pressable
+            style={s.pinOverlay}
+            onPress={() => !paying && setPinModalVisible(false)}
+          >
+            <Pressable style={s.pinBox} onPress={(e) => e.stopPropagation()}>
+              <View style={s.pinIconWrap}>
+                <Feather name="lock" size={26} color={COLORS.violet600} />
+              </View>
+              <Text style={s.pinTitle}>결제 비밀번호</Text>
+              {pendingGift && (
+                <Text style={s.pinDesc}>
+                  {pendingGift.emoji} {pendingGift.name} · {pendingGift.price} XRUN
+                  {"\n"}선물하시려면 6자리 PIN 을 입력해 주세요
+                </Text>
+              )}
+              <TextInput
+                style={s.pinInput}
+                value={pinInput}
+                onChangeText={(v) => setPinInput(v.replace(/\D/g, "").slice(0, 6))}
+                placeholder="PIN 6자리"
+                placeholderTextColor={COLORS.zinc400}
+                keyboardType="number-pad"
+                secureTextEntry
+                maxLength={6}
+                autoFocus
+                editable={!paying}
+              />
+              <View style={s.pinBtns}>
+                <TouchableOpacity
+                  style={s.pinCancelBtn}
+                  onPress={() => setPinModalVisible(false)}
+                  disabled={paying}
+                >
+                  <Text style={s.pinCancelText}>취소</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[s.pinConfirmBtn, (pinInput.length !== 6 || paying) && s.pinBtnDisabled]}
+                  onPress={submitGift}
+                  disabled={pinInput.length !== 6 || paying}
+                >
+                  <Text style={s.pinConfirmText}>{paying ? "선물 중..." : "선물하기"}</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
 
       {}
@@ -967,9 +973,9 @@ const s = StyleSheet.create({
     borderColor: COLORS.zinc200,
     borderRadius: 12,
     paddingHorizontal: 16,
-    fontSize: 22,
+    fontSize: 20,
     textAlign: "center",
-    letterSpacing: 8,
+    letterSpacing: 4, 
     color: COLORS.zinc900,
     backgroundColor: COLORS.zinc50,
     marginBottom: 18,
