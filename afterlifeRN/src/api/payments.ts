@@ -76,3 +76,25 @@ export async function v_5b2249(
 export async function v_5c99c1(v_2ca7e0): Promise<XrunBalance> {
   return v_04b58a("/oth-path", v_2ca7e0, { method: "GET" });
 }
+
+export interface TransactionItem {
+  id: number;
+  type: "gift_sent" | "gift_received";
+  amount: number; 
+  sign: "-" | "+";
+  giftId: string;
+  giftName: string;
+  cloneId: number;
+  cloneName: string | null;
+  cloneAvatarUrl: string | null;
+  txHash: string | null;
+  createdAt: string;
+}
+
+export async function v_2a15d8(
+  v_2ca7e0,
+  v_328259,
+): Promise<{ items: TransactionItem[] }> {
+  const v_212049 = v_328259?.limit ? `?limit=${v_328259.limit}` : "";
+  return v_04b58a(`/oth-path${v_212049}`, v_2ca7e0, { method: "GET" });
+}

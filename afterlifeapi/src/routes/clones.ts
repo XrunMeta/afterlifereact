@@ -800,8 +800,15 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("UPSTREAM_FAILURE", v_38fb16.reason ?? "xrun transfer error");
   }
 
-  const v_2cc4d6 = v_38fb16.txs.find((v_8d41d7) => v_8d41d7.toAddress === v_72b02d);
-  const v_ed8237 = v_38fb16.txs.find((v_8d41d7) => v_8d41d7.toAddress === v_257b90.xrun_wallet);
+  const v_e58fdc = v_72b02d.toLowerCase();
+  const v_b9b3a7 = v_257b90.xrun_wallet.toLowerCase();
+  const v_2cc4d6 = v_38fb16.txs.find((v_8d41d7) => v_8d41d7.toAddress.toLowerCase() === v_e58fdc);
+  const v_ed8237 = v_38fb16.txs.find((v_8d41d7) => v_8d41d7.toAddress.toLowerCase() === v_b9b3a7);
+  console.log(
+    `[gift] xrun txs:`,
+    v_38fb16.txs.map((v_8d41d7) => `${v_8d41d7.toAddress}=${(v_8d41d7.txHash ?? "").slice(0, 12)}`).join(" | "),
+    `companyMatch=${!!v_2cc4d6} ownerMatch=${!!v_ed8237} newBalance=${v_38fb16.newBalance}`,
+  );
   await v_3f4e2e.env.DB
     .prepare(
       `UPDATE gift_logs

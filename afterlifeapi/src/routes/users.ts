@@ -759,3 +759,68 @@ v_de7ba7.delete("/me/devices/:id", v_6690d9, async (v_3f4e2e) => {
   if ((v_8f00b9.meta?.changes ?? 0) === 0) throw new v_3ebe58("NOT_FOUND", "Device not found.");
   return v_3f4e2e.json({ ok: true });
 });
+
+v_de7ba7.get("/me/transactions", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 20);
+  const v_02be30 = Math.max(1, Math.min(100, Number.isFinite(v_cf2260) ? v_cf2260 : 20));
+
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT g.id, g.sender_user_id AS senderId, g.owner_user_id AS ownerId,
+                g.clone_id AS cloneId, g.gift_id AS giftId, g.gift_name AS giftName,
+                g.total_amount AS totalAmount, g.company_amount AS companyAmount,
+                g.owner_amount AS ownerAmount,
+                g.status, g.tx_company AS txCompany, g.tx_owner AS txOwner,
+                g.created_at AS createdAt, g.completed_at AS completedAt,
+                c.name AS cloneName, c.avatar_url AS cloneAvatarUrl
+           FROM gift_logs g
+           LEFT JOIN clones c ON c.id = g.clone_id
+          WHERE (g.sender_user_id = ? OR g.owner_user_id = ?)
+            AND g.status = 'sent'
+          ORDER BY g.created_at DESC
+          LIMIT ?`,
+      )
+      .bind(v_43e90c, v_43e90c, v_02be30)
+      .all<{
+        id: number;
+        senderId: number;
+        ownerId: number;
+        cloneId: number;
+        giftId: string;
+        giftName: string;
+        totalAmount: number;
+        companyAmount: number;
+        ownerAmount: number;
+        status: string;
+        txCompany: string | null;
+        txOwner: string | null;
+        createdAt: string;
+        completedAt: string | null;
+        cloneName: string | null;
+        cloneAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => {
+      const v_f966e3 = v_cb35cb.senderId === v_43e90c;
+      return {
+        id: v_cb35cb.id,
+        type: v_f966e3 ? "gift_sent" : "gift_received",
+
+        amount: v_f966e3 ? -v_cb35cb.totalAmount : v_cb35cb.ownerAmount,
+        sign: v_f966e3 ? "-" : "+",
+        giftId: v_cb35cb.giftId,
+        giftName: v_cb35cb.giftName,
+        cloneId: v_cb35cb.cloneId,
+        cloneName: v_cb35cb.cloneName,
+        cloneAvatarUrl: v_cb35cb.cloneAvatarUrl,
+        txHash: v_f966e3 ? v_cb35cb.txCompany : v_cb35cb.txOwner,
+        createdAt: v_cb35cb.createdAt,
+      };
+    }),
+  });
+});
