@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, Animated, StyleSheet } from "react-native";
-import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
@@ -81,11 +80,6 @@ export default function Step6CreatingScreen({ navigation }: Props) {
         {}
         <View style={styles.barTrack}>
           <View style={[styles.barFill, { width: `${progress}%` }]} />
-        </View>
-
-        <View style={styles.labelRow}>
-          <Feather name="cpu" size={14} color={COLORS.violet500} />
-          <Text style={styles.labelText}>MUSETALK SYNC</Text>
         </View>
       </View>
       <MissingAssetsModal
