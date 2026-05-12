@@ -194,6 +194,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       navigation.replace("SignupComplete", {
         accessToken: res.accessToken,
         persist: true,
+        email,
       });
     } catch (err) {
       let msg = t("common.error");

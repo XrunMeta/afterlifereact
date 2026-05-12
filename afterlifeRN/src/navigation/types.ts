@@ -41,6 +41,7 @@ export type AuthStackParamList = {
   SignupComplete: {
     accessToken: string;
     persist: boolean; 
+    email?: string;  
   };
   XrunOnboarding:
     | { email: string; pin: string; verificationCode: string; google?: undefined }

@@ -84,6 +84,7 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
       navigation.replace("SignupComplete", {
         accessToken: res.accessToken,
         persist: true,
+        email: params.email,
       });
     } catch (err) {
       let msg = t("auth.signup.signupFailed");

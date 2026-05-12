@@ -208,6 +208,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         navigation.replace("SignupComplete", {
           accessToken: res.accessToken,
           persist: true,
+          email,
         });
         return;
       }
