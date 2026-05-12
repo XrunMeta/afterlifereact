@@ -74,6 +74,8 @@ export async function registerXrunForAfterlifeUser(
     age: ctx.age ?? 0,
     recommand: 0,
     social_code: 0,
+
+    app_source: "afterlife",
   };
 
   let res: Response;
