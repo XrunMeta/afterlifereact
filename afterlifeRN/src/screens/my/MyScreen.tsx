@@ -25,7 +25,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
-import { v_9b8cb3, v_5c99c1, v_2a15d8, type v_42880a } from "../../api/payments";
+import { v_9b8cb3, v_5c99c1 } from "../../api/payments";
 import v_3cb56d, {
   v_b1f897,
 } from "../../components/my/PaymentPinPromptModal";
@@ -33,13 +33,6 @@ import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 
 const v_b9d568 = 1;
-
-function v_47562b(v_6fc191): string {
-  const v_d5dda0 = new Date(v_6fc191.includes("T") ? v_6fc191 : v_6fc191.replace(" ", "T") + "Z");
-  if (Number.isNaN(v_d5dda0.getTime())) return v_6fc191;
-  const v_3ee5fb = (v_f4e98d) => String(v_f4e98d).padStart(2, "0");
-  return `${v_d5dda0.getFullYear()}-${v_3ee5fb(v_d5dda0.getMonth() + 1)}-${v_3ee5fb(v_d5dda0.getDate())} ${v_3ee5fb(v_d5dda0.getHours())}:${v_3ee5fb(v_d5dda0.getMinutes())}`;
-}
 
 type MyNav = v_390fcc<v_e57140>;
 
@@ -143,7 +136,6 @@ export default function v_ed02a5() {
   const [v_58e68f, v_6df89a] = v_5ab095<v_fa0201[] | null>(null);
   const [v_8bb912, v_d5cd7b] = v_5ab095<"following" | "myClones" | null>(null);
   const [v_04e734, v_d6a117] = v_5ab095(false);
-  const [v_020dac, v_386b34] = v_5ab095<v_42880a[]>([]);
 
   const v_d37d97 = async () => {
     v_d6a117(false);
@@ -199,14 +191,6 @@ export default function v_ed02a5() {
         })
         .catch((v_49263d) => console.warn("[MyScreen] myClones fail:", v_49263d));
 
-      v_2a15d8(v_2ca7e0, { limit: 20 })
-        .then((v_cb35cb) => {
-          if (!v_2008a4) {
-            console.log(`[MyScreen] transactions ← ${v_cb35cb.items.length} items`);
-            v_386b34(v_cb35cb.items);
-          }
-        })
-        .catch((v_49263d) => console.warn("[MyScreen] transactions fail:", v_49263d));
       return () => {
         v_2008a4 = true;
       };
@@ -252,6 +236,12 @@ export default function v_ed02a5() {
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
     },
+    {
+      icon: "file-text",
+      labelKey: "my.coin.transactions",
+      descKey: "my.coin.viewAll",
+      route: "Transactions",
+    },
   ];
 
   return (
@@ -268,47 +258,8 @@ export default function v_ed02a5() {
 
         {}
 
-        {}
-        <View style={v_fd5f43.transactionsCard}>
-          <View style={v_fd5f43.transactionsHeader}>
-            <Text style={v_fd5f43.transactionsTitle}>{v_8d41d7("my.coin.transactions")}</Text>
-          </View>
-          {v_020dac.length === 0 ? (
-            <View style={[v_fd5f43.txRow, { justifyContent: "center" }]}>
-              <Text style={[v_fd5f43.txDate, { textAlign: "center" }]}>
-                아직 거래 내역이 없어요
-              </Text>
-            </View>
-          ) : (
-            v_020dac.map((v_2f6fcc, v_ebec57) => {
-              const v_2869c1 =
-                v_2f6fcc.type === "gift_sent"
-                  ? `${v_2f6fcc.cloneName ?? "페르소나"}에게 ${v_2f6fcc.giftName} 선물`
-                  : `${v_2f6fcc.cloneName ?? "페르소나"}로부터 ${v_2f6fcc.giftName} 선물 수익`;
-              return (
-                <View
-                  key={v_2f6fcc.id}
-                  style={[v_fd5f43.txRow, v_ebec57 < v_020dac.length - 1 && v_fd5f43.txRowBorder]}
-                >
-                  <View style={v_fd5f43.txInfo}>
-                    <Text style={v_fd5f43.txLabel}>{v_2869c1}</Text>
-                    <Text style={v_fd5f43.txDate}>{v_47562b(v_2f6fcc.createdAt)}</Text>
-                  </View>
-                  <Text style={[v_fd5f43.txAmount, v_2f6fcc.amount > 0 ? v_fd5f43.txGreen : v_fd5f43.txRed]}>
-                    {v_2f6fcc.amount > 0 ? "+" : ""}
-                    {v_2f6fcc.amount.toLocaleString(undefined, { maximumFractionDigits: 6 })} xrun
-                  </Text>
-                </View>
-              );
-            })
-          )}
-          <TouchableOpacity
-            style={v_fd5f43.viewAllBtn}
-            onPress={() => v_c65f5d.navigate("Transactions")}
-          >
-            <Text style={v_fd5f43.viewAllText}>{v_8d41d7("my.coin.viewAll")}</Text>
-          </TouchableOpacity>
-        </View>
+        {
+}
 
         {}
         <View style={v_fd5f43.sectionHeader}>
