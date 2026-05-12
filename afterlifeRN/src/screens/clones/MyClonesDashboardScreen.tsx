@@ -27,9 +27,9 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, createInvite, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
+import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
 import NotificationBell from "../../components/common/NotificationBell";
-import { searchUsers, AuthApiError, type UserSearchItem } from "../../api/auth";
+import { AuthApiError } from "../../api/auth";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
@@ -159,11 +159,6 @@ export default function MyClonesDashboardScreen() {
 
   const [hiddenCloneIds, setHiddenCloneIds] = useState<Set<number>>(new Set());
   const [menuCloneId, setMenuCloneId] = useState<number | null>(null);
-  const [inviteModal, setInviteModal] = useState<{ cloneId: number } | null>(null);
-  const [inviteSearch, setInviteSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<UserSearchItem[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [invitedIds, setInvitedIds] = useState<Set<number>>(new Set());
 
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
@@ -290,80 +285,6 @@ export default function MyClonesDashboardScreen() {
     setMenuCloneId(null);
   };
 
-  useEffect(() => {
-    if (!inviteModal || !accessToken) return;
-    const q = inviteSearch.trim();
-    if (q.length < 2) {
-      setSearchResults([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const t = setTimeout(async () => {
-      try {
-        const res = await searchUsers(accessToken, q);
-        setSearchResults(res.items);
-      } catch (err) {
-        console.warn("[Dashboard] searchUsers failed:", err);
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [inviteSearch, accessToken, inviteModal]);
-
-  const handleSendInvite = async (user: UserSearchItem) => {
-    if (!accessToken || !inviteModal) {
-      console.warn("[Dashboard] handleSendInvite: missing accessToken or inviteModal");
-      return;
-    }
-    console.log("[Dashboard] sendInvite start:", { cloneId: inviteModal.cloneId, email: user.email });
-    try {
-      const res = await createInvite(accessToken, inviteModal.cloneId, {
-        invite_email: user.email,
-      });
-      console.log("[Dashboard] sendInvite success:", res);
-      setInvitedIds((prev) => new Set(prev).add(user.id));
-      setDeleteResultMessage(t("invite.sentToast", { target: user.name ?? user.email }));
-    } catch (err) {
-      if (err instanceof AuthApiError) {
-        console.warn(
-          "[Dashboard] createInvite failed:",
-          err.code,
-          err.status,
-          err.message,
-          "details=",
-          JSON.stringify(err.details),
-        );
-        if (err.code === "UNAUTHENTICATED" || err.status === 401) {
-          await useAuthStore.getState().apiLogout();
-          setDeleteResultMessage(t("dashboard.sessionExpired"));
-          return;
-        }
-        if (err.code === "ALREADY_INVITED") {
-
-          setInvitedIds((prev) => new Set(prev).add(user.id));
-          setDeleteResultMessage(t("invite.alreadyInvited"));
-          return;
-        }
-        if (err.code === "ALREADY_MEMBER") {
-          setInvitedIds((prev) => new Set(prev).add(user.id));
-          setDeleteResultMessage(t("invite.alreadyMember"));
-          return;
-        }
-        if (err.code === "QUOTA_EXCEEDED") {
-          setDeleteResultMessage(t("invite.quotaExceeded"));
-          return;
-        }
-      } else {
-        console.warn("[Dashboard] createInvite failed:", err);
-      }
-      const msg = err instanceof AuthApiError ? err.message : t("invite.sendFailed");
-      setDeleteResultMessage(msg);
-    }
-  };
-
   const confirmVisibility = (v: Visibility) => {
     if (!visibilityModal) return;
     setCloneStates((prev) => ({
@@ -463,13 +384,6 @@ export default function MyClonesDashboardScreen() {
         ? clone.followersCount
         : follows.filter((f) => f.followingCloneId === clone.id).length;
 
-    const coownerCount =
-      typeof clone.coownerCount === "number"
-        ? clone.coownerCount
-        : seedSource.coowners().filter(
-            (co) => co.cloneId === clone.id && co.status === "approved",
-          ).length;
-
     return (
       <View style={s.card}>
         {}
@@ -528,21 +442,10 @@ export default function MyClonesDashboardScreen() {
           {clone.description}
         </Text>
 
-        {}
-        {isMemlow ? (
-          <TouchableOpacity
-            style={s.coownerBadge}
-            onPress={() =>
-              navigation.navigate("CloneInvite", { cloneId: clone.id })
-            }
-            activeOpacity={0.7}
-          >
-            <Feather name="users" size={14} color={COLORS.zinc600} />
-            <Text style={s.coownerText}>
-              {t("dashboard.coownerCount", { n: coownerCount })}
-            </Text>
-          </TouchableOpacity>
-        ) : (
+        {
+
+}
+        {isMemlow ? null : (
           <View style={s.statsRow}>
             <TouchableOpacity
               style={s.stat}
@@ -616,40 +519,29 @@ export default function MyClonesDashboardScreen() {
           <TouchableOpacity
             style={s.actionBtn}
             onPress={async () => {
-              if (isMemlow) {
 
-                setInviteSearch("");
-                setSearchResults([]);
-                setInvitedIds(new Set());
-                setInviteModal({ cloneId: clone.id });
-              } else {
-
-                const url = `https://afterlife.app/clone/${clone.id}`;
-                const message = `${clone.displayName} 페르소나와 대화해보세요!\n${url}`;
+              const url = `https://afterlife.app/clone/${clone.id}`;
+              const message = `${clone.displayName} 페르소나와 대화해보세요!\n${url}`;
+              try {
+                await Share.share(
+                  Platform.OS === "ios"
+                    ? { message, url, title: clone.displayName }
+                    : { message },
+                  { dialogTitle: clone.displayName },
+                );
+              } catch (err) {
+                console.warn("[dashboard] share failed:", err);
                 try {
-                  await Share.share(
-                    Platform.OS === "ios"
-                      ? { message, url, title: clone.displayName }
-                      : { message },
-                    { dialogTitle: clone.displayName },
-                  );
-                } catch (err) {
-                  console.warn("[dashboard] share failed:", err);
-
-                  try {
-                    await Clipboard.setStringAsync(url);
-                    setDeleteResultMessage(t("dashboard.shareLinkCopied"));
-                  } catch {
-                    setDeleteResultMessage(t("dashboard.shareLinkFailed"));
-                  }
+                  await Clipboard.setStringAsync(url);
+                  setDeleteResultMessage(t("dashboard.shareLinkCopied"));
+                } catch {
+                  setDeleteResultMessage(t("dashboard.shareLinkFailed"));
                 }
               }
             }}
           >
-            <Feather name={isMemlow ? "user-plus" : "share-2"} size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>
-              {isMemlow ? t("dashboard.actionInvite") : t("dashboard.actionShare")}
-            </Text>
+            <Feather name="share-2" size={16} color={COLORS.zinc700} />
+            <Text style={s.actionText}>{t("dashboard.actionShare")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -723,14 +615,6 @@ export default function MyClonesDashboardScreen() {
                 <Text style={s.dashTitleText}>{t("dashboard.headerTitle")}</Text>
                 <Text style={s.dashSubText}>{t("dashboard.headerDesc")}</Text>
               </View>
-              <TouchableOpacity
-                style={s.inviteStatusBtn}
-                onPress={() => navigation.navigate("InviteStatus")}
-                activeOpacity={0.7}
-              >
-                <Feather name="send" size={14} color={COLORS.violet600} />
-                <Text style={s.inviteStatusBtnText}>{t("inviteStatus.title")}</Text>
-              </TouchableOpacity>
             </View>
 
             {}
@@ -827,31 +711,16 @@ export default function MyClonesDashboardScreen() {
               )}
             <View style={s.menuDivider} />
             {}
-            {menuCloneId != null &&
-              myClones.find((c) => c.id === menuCloneId)?.myRole === "owner" ? (
-              <TouchableOpacity
-                style={s.menuItem}
-                onPress={() => {
-                  const id = menuCloneId!;
-                  handleDelete(id);
-                }}
-              >
-                <Feather name="trash-2" size={18} color={COLORS.error} />
-                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={s.menuItem}
-                onPress={() => {
-                  const id = menuCloneId!;
-                  setMenuCloneId(null);
-                  navigation.navigate("CloneInvite", { cloneId: id });
-                }}
-              >
-                <Feather name="log-out" size={18} color={COLORS.error} />
-                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuLeave")}</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={s.menuItem}
+              onPress={() => {
+                const id = menuCloneId!;
+                handleDelete(id);
+              }}
+            >
+              <Feather name="trash-2" size={18} color={COLORS.error} />
+              <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -975,116 +844,8 @@ export default function MyClonesDashboardScreen() {
       </Modal>
 
       {
+
 }
-      <Modal
-        visible={!!inviteModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setInviteModal(null)}
-      >
-        <Pressable style={s.bottomSheetOverlay} onPress={() => setInviteModal(null)}>
-          <View
-            style={s.inviteSheet}
-            onStartShouldSetResponder={() => true}
-          >
-            <View style={s.sheetHandle} />
-            <View style={s.inviteHeader}>
-              <Text style={s.inviteTitle}>
-                {(() => {
-                  const c = myClones.find((x) => x.id === inviteModal?.cloneId);
-                  return c?.cloneType === "memlow"
-                    ? t("invite.create")
-                    : t("invite.shareTitle");
-                })()}
-              </Text>
-              <TouchableOpacity onPress={() => setInviteModal(null)}>
-                <Feather name="x" size={20} color={COLORS.zinc500} />
-              </TouchableOpacity>
-            </View>
-
-            {}
-            <View style={s.inviteSearchWrap}>
-              <Feather name="search" size={18} color={COLORS.zinc400} />
-              <TextInput
-                style={s.inviteSearchInput}
-                value={inviteSearch}
-                onChangeText={setInviteSearch}
-                placeholder={t("dashboard.inviteSearchHint")}
-                placeholderTextColor={COLORS.placeholder}
-                autoFocus
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-              {inviteSearch.length > 0 && (
-                <TouchableOpacity onPress={() => setInviteSearch("")}>
-                  <Feather name="x-circle" size={16} color={COLORS.zinc400} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {}
-            <ScrollView style={s.inviteList} showsVerticalScrollIndicator={false}>
-              {inviteSearch.trim().length < 2 ? (
-                <View style={{ padding: 32, alignItems: "center" }}>
-                  <Feather name="search" size={32} color={COLORS.zinc300} />
-                  <Text style={{ color: COLORS.zinc500, marginTop: 8, fontSize: 13 }}>
-                    {t("dashboard.inviteSearchEmpty")}
-                  </Text>
-                  <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {t("dashboard.inviteSearchEmptyHint")}
-                  </Text>
-                </View>
-              ) : searching ? (
-                <View style={{ padding: 32, alignItems: "center" }}>
-                  <ActivityIndicator color={COLORS.zinc500} />
-                </View>
-              ) : searchResults.length === 0 ? (
-                <View style={{ padding: 32, alignItems: "center" }}>
-                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
-                    {t("dashboard.inviteNoResults")}
-                  </Text>
-                  <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {t("dashboard.inviteSearchEmptyHint")}
-                  </Text>
-                </View>
-              ) : (
-                searchResults.map((user) => {
-                  const sent = invitedIds.has(user.id);
-                  return (
-                    <View key={user.id} style={s.inviteRow}>
-                      {user.avatarUrl ? (
-                        <Image source={{ uri: user.avatarUrl }} style={s.inviteAvatar} />
-                      ) : (
-                        <View style={[s.inviteAvatar, { backgroundColor: COLORS.zinc100, alignItems: "center", justifyContent: "center" }]}>
-                          <Feather name="user" size={20} color={COLORS.zinc400} />
-                        </View>
-                      )}
-                      <View style={s.inviteInfo}>
-                        <Text style={s.inviteName}>{user.name ?? user.email}</Text>
-                        <Text style={s.inviteUsername}>{user.email}</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={[s.inviteBtn, sent && s.inviteBtnSent]}
-                        disabled={sent}
-                        onPress={() => handleSendInvite(user)}
-                      >
-                        <Feather
-                          name={sent ? "check" : "send"}
-                          size={14}
-                          color={sent ? COLORS.success : COLORS.white}
-                        />
-                        <Text style={[s.inviteBtnText, sent && s.inviteBtnTextSent]}>
-                          {sent ? t("invite.sent") : t("invite.send")}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })
-              )}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
 
       {}
       <Modal visible={!!statsModal} transparent animationType="slide">
