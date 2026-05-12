@@ -30,7 +30,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, listMyFollowedClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
+import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
 import { AuthApiError, patchMe } from "../../api/auth";
 import { getXrunBalance } from "../../api/payments";
 import { uploadFile } from "../../api/files";
@@ -171,8 +171,6 @@ export default function MyClonesDashboardScreen() {
   const followingCount = 0;
   const followersCount = 0;
 
-  const [subscribedCount, setSubscribedCount] = useState<number>(0);
-
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [chargeModalVisible, setChargeModalVisible] = useState(false);
@@ -297,22 +295,6 @@ export default function MyClonesDashboardScreen() {
     setVisibilityModal({ cloneId, currentVisibility: current });
     setMenuCloneId(null);
   };
-
-  useEffect(() => {
-    if (!accessToken || !apiUser?.id) {
-      setSubscribedCount(0);
-      return;
-    }
-    let cancelled = false;
-    listMyFollowedClones(accessToken, apiUser.id)
-      .then((r) => {
-        if (!cancelled) setSubscribedCount(r.items.length);
-      })
-      .catch((err) => console.warn("[Dashboard] subscribed count fetch failed:", err));
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, apiUser?.id]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -763,11 +745,6 @@ export default function MyClonesDashboardScreen() {
                     <View style={s.profileStatItem}>
                       <Text style={s.profileStatValue}>{visibleClones.length}</Text>
                       <Text style={s.profileStatLabel}>페르소나</Text>
-                    </View>
-                    <View style={s.profileStatDivider} />
-                    <View style={s.profileStatItem}>
-                      <Text style={s.profileStatValue}>{subscribedCount}</Text>
-                      <Text style={s.profileStatLabel}>구독</Text>
                     </View>
                   </View>
                 </View>

@@ -249,7 +249,15 @@ export default function MyScreen() {
       <PageHeader
         title="설정"
         showBackButton
-        onBackPress={() => navigation.goBack()}
+        onBackPress={() => {
+
+          navigation.getParent()?.dispatch(
+            CommonActions.navigate({
+              name: "ClonesTab",
+              params: { screen: "Dashboard" },
+            }),
+          );
+        }}
       />
 
       <View style={s.content}>
