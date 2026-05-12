@@ -20,11 +20,10 @@ import PageHeader from "../../components/common/PageHeader";
 import CountryRegionPicker from "../../components/common/CountryRegionPicker";
 import TermsModal, { type AgreementType } from "../../components/common/TermsModal";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import { requestEmailCode, signup, getMe, AuthApiError } from "../../api/auth";
+import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import type { RouteProp } from "@react-navigation/native";
-import { useAuthStore } from "../../stores/authStore";
 import type { CountryDialCode } from "../../types/country";
 import { GLOBAL_REGION } from "../../constants/regions";
 
@@ -55,8 +54,6 @@ export default function SignupScreen({ navigation, route }: Props) {
     return years;
   }, [t]);
   const google = route.params?.google;
-  const setApiAuth = useAuthStore((s) => s.setApiAuth);
-  const hydrate = useAuthStore((s) => s.hydrate);
 
   const [name, setName] = useState(google?.name ?? "");
   const [email, setEmail] = useState(google?.email ?? "");
@@ -205,10 +202,11 @@ export default function SignupScreen({ navigation, route }: Props) {
           platform: pushPlatform ?? undefined,
           googleIdToken: google.idToken,
         });
-        const meRes = await getMe(res.accessToken);
-        await setApiAuth(res.accessToken, meRes.user);
-        console.log("[AUTH/google.signup] user:", meRes.user);
-        await hydrate();
+
+        navigation.replace("SignupComplete", {
+          accessToken: res.accessToken,
+          persist: true,
+        });
         return;
       }
       await requestEmailCode(email);
