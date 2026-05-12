@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Share,
   Platform,
+  Linking,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
@@ -30,6 +31,7 @@ import { seedSource } from "../../api/source";
 import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
 import NotificationBell from "../../components/common/NotificationBell";
 import { AuthApiError } from "../../api/auth";
+import { getXrunBalance } from "../../api/payments";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
@@ -160,6 +162,9 @@ export default function MyClonesDashboardScreen() {
   const [hiddenCloneIds, setHiddenCloneIds] = useState<Set<number>>(new Set());
   const [menuCloneId, setMenuCloneId] = useState<number | null>(null);
 
+  const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
+  const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
+
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
     cloneId: number;
@@ -283,6 +288,47 @@ export default function MyClonesDashboardScreen() {
     const current = cloneStates[cloneId]?.visibility ?? "public";
     setVisibilityModal({ cloneId, currentVisibility: current });
     setMenuCloneId(null);
+  };
+
+  useEffect(() => {
+    if (!accessToken) {
+      setXrunBalanceLoading(false);
+      setXrunBalance(undefined);
+      return;
+    }
+    let cancelled = false;
+    setXrunBalanceLoading(true);
+    getXrunBalance(accessToken)
+      .then((res) => {
+        if (cancelled) return;
+        setXrunBalance(res.linked ? (res.xrun ?? 0) : undefined);
+      })
+      .catch((err) => {
+        console.warn("[Dashboard] xrun balance fetch failed:", err);
+        if (!cancelled) setXrunBalance(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setXrunBalanceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
+
+  const openXrunStore = async () => {
+    const playStore = "market://details?id=run.xrun.xrunapp";
+    const playStoreWeb = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+    const appStore = "https://apps.apple.com/app/id1492389867";
+    try {
+      if (Platform.OS === "android") {
+        const canMarket = await Linking.canOpenURL(playStore);
+        await Linking.openURL(canMarket ? playStore : playStoreWeb);
+      } else {
+        await Linking.openURL(appStore);
+      }
+    } catch (err) {
+      console.warn("[Dashboard] open xrun store failed:", err);
+    }
   };
 
   const confirmVisibility = (v: Visibility) => {
@@ -615,6 +661,40 @@ export default function MyClonesDashboardScreen() {
                 <Text style={s.dashTitleText}>{t("dashboard.headerTitle")}</Text>
                 <Text style={s.dashSubText}>{t("dashboard.headerDesc")}</Text>
               </View>
+            </View>
+
+            {
+}
+            <View style={s.coinRow}>
+              <Image
+                source={require("../../../assets/images/xrun-round-logo.png")}
+                style={s.coinIcon}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={s.coinSymbol}>XRUN</Text>
+                <Text style={s.coinNetwork}>Polygon</Text>
+              </View>
+              <View style={s.coinAmountWrap}>
+                {xrunBalanceLoading ? (
+                  <ActivityIndicator color={COLORS.zinc900} />
+                ) : xrunBalance != null ? (
+                  <Text style={s.coinAmountText}>
+                    {xrunBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                    <Text style={s.coinUnit}> XRUN</Text>
+                  </Text>
+                ) : (
+                  <Text style={s.coinAmountText}>
+                    —<Text style={s.coinUnit}> XRUN</Text>
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={s.coinChargeBtn}
+                onPress={() => openXrunStore()}
+                hitSlop={8}
+              >
+                <Feather name="plus-circle" size={24} color={COLORS.violet600} />
+              </TouchableOpacity>
             </View>
 
             {}
@@ -1052,6 +1132,36 @@ const s = StyleSheet.create({
   },
   inviteStatusBtnText: { fontSize: 12, fontWeight: "600", color: COLORS.violet600 },
   dashSubText: { fontSize: 13, color: COLORS.zinc500, marginTop: 4 },
+
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.zinc100,
+  },
+  coinIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  coinSymbol: { fontSize: 16, fontWeight: "600", color: COLORS.zinc900 },
+  coinNetwork: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  coinAmountWrap: { alignItems: "flex-end", marginRight: 8 },
+  coinAmountText: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
+  coinUnit: { fontSize: 13, fontWeight: "600", color: COLORS.zinc700 },
+  coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 
   statsOverview: {
     flexDirection: "row",

@@ -320,7 +320,8 @@ export default function MyScreen() {
             )}
             <TouchableOpacity
               style={s.editAvatarBtn}
-              onPress={() => navigation.navigate("EditProfile")}
+              onPress={handleEditAvatar}
+              disabled={uploadingAvatar}
             >
               <Feather name="edit-2" size={14} color={COLORS.white} />
             </TouchableOpacity>
@@ -339,62 +340,26 @@ export default function MyScreen() {
                 setStatsModal("following");
               }}
             >
-              <Text style={s.statValue}>{followingCount}</Text>
-              <Text style={s.statLabel}>{t("my.stats.following")}</Text>
+              <Text style={s.statValue}>0</Text>
+              <Text style={s.statLabel}>팔로워</Text>
             </TouchableOpacity>
             <View style={s.statDivider} />
             <TouchableOpacity
               style={s.statItem}
               onPress={() => {
                 console.log(
-                  `[MyScreen] stat TAP "내 페르소나" — apiMyClonesCount=${apiMyClonesCount} apiMyClonesList=${apiMyClonesList?.length ?? "null"}`,
+                  `[MyScreen] stat TAP "팔로잉" — apiFollowingCount=${apiFollowingCount}`,
                 );
-                setStatsModal("myClones");
+                setStatsModal("following");
               }}
             >
-              <Text style={s.statValue}>{myClonesCount}</Text>
-              <Text style={s.statLabel}>{t("my.stats.myPersona")}</Text>
+              <Text style={s.statValue}>{followingCount}</Text>
+              <Text style={s.statLabel}>팔로잉</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {}
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>{t("my.coin.title")}</Text>
-        </View>
-
-        {}
-        <View style={s.coinCard}>
-          <View style={s.coinCardTop}>
-            <View style={s.coinLabelRow}>
-              <Feather name="dollar-sign" size={18} color={COLORS.zinc700} />
-              <Text style={s.coinLabel}>{t("my.coin.balance")}</Text>
-            </View>
-            <TouchableOpacity
-              style={s.chargeBtn}
-              onPress={() => setChargeModalVisible(true)}
-            >
-              <Feather name="plus" size={14} color={COLORS.white} />
-              <Text style={s.chargeBtnText}>{t("my.coin.charge")}</Text>
-            </TouchableOpacity>
-          </View>
-          {balanceLoading ? (
-            <ActivityIndicator color={COLORS.zinc900} style={{ alignSelf: "flex-start", marginTop: 4 }} />
-          ) : xrunDisplay != null ? (
-            <>
-              <Text style={s.coinAmount}>{xrunDisplay.toLocaleString(undefined, { maximumFractionDigits: 4 })}</Text>
-              <Text style={s.coinWon}>
-                XRUN
-                {adDisplay != null && adDisplay > 0 ? `  ·  AD ${adDisplay.toLocaleString()}` : ""}
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={s.coinAmount}>—</Text>
-              <Text style={s.coinWon}>{t("my.coin.notMapped")}</Text>
-            </>
-          )}
-        </View>
 
         {}
         <View style={s.transactionsCard}>
@@ -484,9 +449,9 @@ export default function MyScreen() {
             <View style={s.chargeIconWrap}>
               <Feather name="zap" size={28} color={COLORS.violet600} />
             </View>
-            <Text style={s.chargeTitle}>포인트 충전 안내</Text>
+            <Text style={s.chargeTitle}>암호화폐 충전 안내</Text>
             <Text style={s.chargeDesc}>
-              금액을 충전하고 싶다면{"\n"}xrun 앱에서 포인트를 얻어보세요
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
             </Text>
             <Text style={s.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
             <View style={s.chargeBtns}>
@@ -672,6 +637,67 @@ const s = StyleSheet.create({
 
   sectionHeader: { marginBottom: 10 },
   sectionLabel: { fontSize: 13, fontWeight: "500", color: COLORS.zinc400, paddingHorizontal: 4 },
+
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.zinc100,
+  },
+  coinIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  coinTextWrap: { flex: 1 },
+  coinSymbol: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.zinc900,
+  },
+  coinNetwork: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    marginTop: 2,
+  },
+  coinAmountWrap: {
+    alignItems: "flex-end",
+    marginRight: 8,
+  },
+  coinAmountText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+  },
+  coinUnit: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.zinc700,
+  },
+  coinChargeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adNote: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    marginTop: -4,
+  },
 
   coinCard: {
     backgroundColor: COLORS.white,

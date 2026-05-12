@@ -17,18 +17,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
-import InterestChip from "../../components/ui/InterestChip";
 import { COLORS, RADIUS } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
 import {
-  getMe,
   patchMe,
-  patchInterests,
   deleteMe,
   AuthApiError,
   type PatchMePayload,
 } from "../../api/auth";
-import { ALL_INTERESTS } from "../../mocks/interestHelpers";
 
 type Gender = "male" | "female" | "other";
 
@@ -52,37 +48,9 @@ export default function EditProfileScreen() {
   const [gender, setGender] = useState<Gender | null>((apiUser?.gender as Gender) ?? null);
   const [ageStr, setAgeStr] = useState(apiUser?.age != null ? String(apiUser.age) : "");
 
-  const [originalInterests, setOriginalInterests] = useState<string[]>([]);
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [interestsModalVisible, setInterestsModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteOptionsVisible, setDeleteOptionsVisible] = useState(false);
-
-  useEffect(() => {
-    if (!accessToken) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const me = await getMe(accessToken);
-        if (cancelled) return;
-        const initial = me.interests ?? [];
-        setOriginalInterests(initial);
-        setSelectedInterests(initial);
-      } catch (err) {
-        console.warn("[EditProfile] getMe failed:", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken]);
-
-  const interestsDirty = useMemo(() => {
-    if (selectedInterests.length !== originalInterests.length) return true;
-    const orig = new Set(originalInterests);
-    return selectedInterests.some((it) => !orig.has(it));
-  }, [selectedInterests, originalInterests]);
 
   const dirty = useMemo(() => {
     const ageNum = ageStr.trim() === "" ? null : Number(ageStr.trim());
@@ -90,16 +58,9 @@ export default function EditProfileScreen() {
       name.trim() !== (apiUser?.name ?? "") ||
       phone.trim() !== (apiUser?.phone ?? "") ||
       gender !== (apiUser?.gender ?? null) ||
-      ageNum !== (apiUser?.age ?? null) ||
-      interestsDirty
+      ageNum !== (apiUser?.age ?? null)
     );
-  }, [name, phone, gender, ageStr, apiUser, interestsDirty]);
-
-  const toggleInterest = (interest: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest],
-    );
-  };
+  }, [name, phone, gender, ageStr, apiUser]);
 
   const handleSave = async () => {
     if (!accessToken || !apiUser || saving || !dirty) return;
@@ -130,22 +91,12 @@ export default function EditProfileScreen() {
 
     setSaving(true);
     try {
-      const calls: Array<Promise<unknown>> = [];
       if (Object.keys(patch).length > 0) {
-        calls.push(patchMe(accessToken, patch));
+        await patchMe(accessToken, patch);
       }
-      if (interestsDirty) {
-        const origSet = new Set(originalInterests);
-        const newSet = new Set(selectedInterests);
-        const add = selectedInterests.filter((it) => !origSet.has(it));
-        const remove = originalInterests.filter((it) => !newSet.has(it));
-        calls.push(patchInterests(accessToken, { add, remove }));
-      }
-      await Promise.all(calls);
-      console.log("[EditProfile] saved", { patch, interestsDirty });
+      console.log("[EditProfile] saved", { patch });
 
       if (Object.keys(patch).length > 0) patchApiUser(patch);
-      if (interestsDirty) setOriginalInterests(selectedInterests);
 
       Alert.alert("저장됨", "프로필이 저장되었습니다.", [
         { text: "확인", onPress: () => navigation.goBack() },
@@ -296,22 +247,7 @@ export default function EditProfileScreen() {
             />
           </View>
 
-          <View style={s.divider} />
-
           {}
-          <TouchableOpacity
-            style={s.fieldRow}
-            onPress={() => setInterestsModalVisible(true)}
-          >
-            <Text style={s.fieldLabel}>{t("settings.editProfile.fields.interests")}</Text>
-            <Text
-              style={[s.fieldValue, selectedInterests.length > 0 && s.fieldValueFilled]}
-              numberOfLines={1}
-            >
-              {selectedInterests.length > 0 ? selectedInterests.join(", ") : "—"}
-            </Text>
-            <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
-          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -330,46 +266,6 @@ export default function EditProfileScreen() {
       </View>
 
       {}
-      <Modal
-        visible={interestsModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setInterestsModalVisible(false)}
-      >
-        <Pressable style={s.modalOverlay} onPress={() => setInterestsModalVisible(false)}>
-          <Pressable
-            style={[s.modalSheet, { paddingBottom: 32 + Math.max(insetsRef.bottom, 0) }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={s.modalHandle} />
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>관심사 선택</Text>
-              <TouchableOpacity onPress={() => setInterestsModalVisible(false)}>
-                <Feather name="x" size={24} color={COLORS.zinc700} />
-              </TouchableOpacity>
-            </View>
-            <Text style={s.modalSubtitle}>
-              관심 있는 항목을 자유롭게 선택하세요 ({selectedInterests.length}개 선택됨)
-            </Text>
-            <ScrollView contentContainerStyle={s.chipGrid}>
-              {ALL_INTERESTS.map((interest) => (
-                <InterestChip
-                  key={interest}
-                  label={interest}
-                  selected={selectedInterests.includes(interest)}
-                  onPress={() => toggleInterest(interest)}
-                />
-              ))}
-            </ScrollView>
-            <TouchableOpacity
-              style={s.modalDoneBtn}
-              onPress={() => setInterestsModalVisible(false)}
-            >
-              <Text style={s.modalDoneBtnText}>완료</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {}
       <Modal

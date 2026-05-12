@@ -1,55 +1,41 @@
+
+
 import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Switch,
   Linking,
   Alert,
   ActivityIndicator,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
-import * as Clipboard from "expo-clipboard";
-import { Feather } from "@expo/vector-icons";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
-import { getCurrentPushStatus } from "../../lib/pushNotifications";
-
-interface PushState {
-  granted: boolean;
-  token: string | null;
-  supported: boolean; 
-  loading: boolean;
-}
+import {
+  getCurrentPushStatus,
+  requestPushPermission,
+} from "../../lib/pushNotifications";
 
 export default function NotificationSettingsScreen() {
   const navigation = useNavigation();
   const { t } = useTranslation();
-
-  const [state, setState] = useState<PushState>({
-    granted: false,
-    token: null,
-    supported: true,
-    loading: true,
-  });
+  const [granted, setGranted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const refresh = React.useCallback(async () => {
-    setState((prev) => ({ ...prev, loading: true }));
+    setLoading(true);
     try {
       const res = await getCurrentPushStatus();
-      console.log("[PUSH-STATUS]", res);
-
-      setState({
-        granted: res.granted,
-        token: res.token,
-        supported: true,
-        loading: false,
-      });
+      setGranted(res.granted);
     } catch (err) {
-      console.warn("[PUSH-STATUS] failed:", err);
-      setState({ granted: false, token: null, supported: true, loading: false });
+      console.warn("[notifications] status failed:", err);
+      setGranted(false);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -63,114 +49,78 @@ export default function NotificationSettingsScreen() {
     }, [refresh]),
   );
 
-  const handleOpenSettings = async () => {
-    try {
-      await Linking.openSettings();
-    } catch (err) {
-      console.warn("[PUSH-STATUS] openSettings failed:", err);
-    }
-  };
+  const handleToggle = async (next: boolean) => {
+    if (next) {
 
-  const handleCopyToken = async () => {
-    if (!state.token) return;
-    try {
-      await Clipboard.setStringAsync(state.token);
-      Alert.alert("알림", t("settings.notifications.copied"));
-    } catch (err) {
-      console.warn("[PUSH-STATUS] copy failed:", err);
+      try {
+        const reg = await requestPushPermission();
+        if (reg.granted) {
+          setGranted(true);
+        } else {
+          Alert.alert(
+            t("settings.notifications.permTitle", { defaultValue: "권한 필요" }),
+            t("settings.notifications.deniedHint", {
+              defaultValue:
+                "OS 설정에서 알림을 허용해주세요.",
+            }),
+            [
+              { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+              {
+                text: t("settings.notifications.openSettings", {
+                  defaultValue: "설정 열기",
+                }),
+                onPress: () => Linking.openSettings(),
+              },
+            ],
+          );
+        }
+      } catch (err) {
+        console.warn("[notifications] toggle on failed:", err);
+      }
+    } else {
+
+      Alert.alert(
+        t("settings.notifications.offTitle", { defaultValue: "알림 끄기" }),
+        t("settings.notifications.offHint", {
+          defaultValue: "알림을 끄려면 OS 설정에서 변경해주세요.",
+        }),
+        [
+          { text: t("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+          {
+            text: t("settings.notifications.openSettings", {
+              defaultValue: "설정 열기",
+            }),
+            onPress: () => Linking.openSettings(),
+          },
+        ],
+      );
     }
   };
 
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
-        title={t("settings.notifications.title")}
+        title={t("settings.notifications.title", { defaultValue: "알림" })}
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
 
       <View style={s.content}>
-        {}
-        <View style={s.card}>
-          <View style={s.row}>
-            <Text style={s.rowLabel}>{t("settings.notifications.push")}</Text>
-            {state.loading ? (
-              <ActivityIndicator color={COLORS.zinc500} />
-            ) : (
-              <View
-                style={[
-                  s.badge,
-                  state.granted ? s.badgeGranted : s.badgeDenied,
-                ]}
-              >
-                <Feather
-                  name={state.granted ? "check-circle" : "x-circle"}
-                  size={14}
-                  color={state.granted ? COLORS.success : COLORS.error}
-                />
-                <Text
-                  style={[
-                    s.badgeText,
-                    state.granted ? s.badgeTextGranted : s.badgeTextDenied,
-                  ]}
-                >
-                  {state.granted
-                    ? t("settings.notifications.statusGranted")
-                    : t("settings.notifications.statusDenied")}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {!state.loading && !state.granted && (
-            <>
-              <View style={s.divider} />
-              <View style={s.deniedSection}>
-                <Text style={s.deniedHint}>
-                  {t("settings.notifications.deniedHint")}
-                </Text>
-                <TouchableOpacity style={s.openBtn} onPress={handleOpenSettings}>
-                  <Feather name="external-link" size={14} color={COLORS.white} />
-                  <Text style={s.openBtnText}>
-                    {t("settings.notifications.openSettings")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
+        <View style={s.row}>
+          <Text style={s.rowLabel}>
+            {t("settings.notifications.alarm", { defaultValue: "알람" })}
+          </Text>
+          {loading ? (
+            <ActivityIndicator color={COLORS.zinc500} />
+          ) : (
+            <Switch
+              value={granted}
+              onValueChange={handleToggle}
+              trackColor={{ false: COLORS.zinc200, true: COLORS.violet600 }}
+              thumbColor={COLORS.white}
+            />
           )}
         </View>
-
-        {}
-        {state.granted && (
-          <View style={[s.card, { marginTop: 16 }]}>
-            <View style={s.tokenSection}>
-              <Text style={s.tokenLabel}>
-                {t("settings.notifications.tokenLabel")}
-              </Text>
-              {state.loading ? (
-                <Text style={s.tokenValueMuted}>
-                  {t("settings.notifications.tokenLoading")}
-                </Text>
-              ) : state.token ? (
-                <>
-                  <Text style={s.tokenValue} selectable>
-                    {state.token}
-                  </Text>
-                  <TouchableOpacity style={s.copyBtn} onPress={handleCopyToken}>
-                    <Feather name="copy" size={14} color={COLORS.zinc700} />
-                    <Text style={s.copyBtnText}>
-                      {t("settings.notifications.copyToken")}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <Text style={s.tokenValueMuted}>
-                  {t("settings.notifications.tokenNone")}
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
       </View>
     </SafeScrollView>
   );
@@ -185,101 +135,16 @@ const s = StyleSheet.create({
     alignSelf: "center",
     width: "100%",
   },
-  card: {
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    borderRadius: RADIUS.lg,
-    overflow: "hidden",
-  },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 18,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    borderRadius: RADIUS.lg,
   },
   rowLabel: { fontSize: 15, fontWeight: "500", color: COLORS.zinc900 },
-  divider: { height: 1, backgroundColor: COLORS.zinc100, marginLeft: 20 },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: RADIUS.full ?? 999,
-    borderWidth: 1,
-  },
-  badgeGranted: {
-    backgroundColor: "#f0fdf4",
-    borderColor: "#bbf7d0",
-  },
-  badgeDenied: {
-    backgroundColor: "#fef2f2",
-    borderColor: "#fecaca",
-  },
-  badgeText: { fontSize: 12, fontWeight: "600" },
-  badgeTextGranted: { color: COLORS.success },
-  badgeTextDenied: { color: COLORS.error },
-  deniedSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    gap: 10,
-  },
-  deniedHint: {
-    fontSize: 13,
-    color: COLORS.zinc600,
-    lineHeight: 18,
-  },
-  openBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.zinc900,
-  },
-  openBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: COLORS.white,
-  },
-  tokenSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 10,
-  },
-  tokenLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: COLORS.zinc500,
-  },
-  tokenValue: {
-    fontSize: 12,
-    color: COLORS.zinc900,
-    fontFamily: "monospace",
-    lineHeight: 18,
-  },
-  tokenValueMuted: {
-    fontSize: 13,
-    color: COLORS.zinc400,
-  },
-  copyBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.zinc100,
-  },
-  copyBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: COLORS.zinc700,
-  },
 });
