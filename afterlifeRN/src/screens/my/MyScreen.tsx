@@ -293,9 +293,9 @@ export default function MyScreen() {
         </View>
 
         {}
-        <TouchableOpacity style={s.logoutBtn} onPress={() => void logout()}>
-          <Feather name="log-out" size={16} color={COLORS.zinc600} />
-          <Text style={s.logoutText}>{t("my.menu.logout")}</Text>
+        <TouchableOpacity style={s.logoutBigBtn} onPress={() => void logout()} activeOpacity={0.85}>
+          <Feather name="log-out" size={18} color={COLORS.white} />
+          <Text style={s.logoutBigText}>{t("my.menu.logout")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -743,6 +743,18 @@ const s = StyleSheet.create({
     paddingVertical: 8,
   },
   logoutText: { fontSize: 14, color: COLORS.zinc600 },
+
+  logoutBigBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    backgroundColor: COLORS.zinc900,
+    borderRadius: RADIUS.lg,
+    marginTop: 4,
+  },
+  logoutBigText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
 
   statsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   statsSheet: {
