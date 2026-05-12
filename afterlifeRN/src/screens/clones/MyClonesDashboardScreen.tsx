@@ -29,7 +29,6 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
-import v_0e981f from "../../components/common/NotificationBell";
 import { v_84a859 } from "../../api/auth";
 import { v_5c99c1 } from "../../api/payments";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -165,6 +164,9 @@ export default function v_def15b() {
   const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
   const [v_19340b, v_14129c] = v_5ab095(true);
 
+  const v_48d264 = 0;
+  const v_a7e127 = 0;
+
   const [v_04e734, v_d6a117] = v_5ab095(false);
 
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
@@ -264,10 +266,6 @@ export default function v_def15b() {
   const [v_c9d3fa, v_f32c49] = v_5ab095<number | null>(null);
 
   const v_fc7f92 = v_4cd149.filter((v_3f4e2e) => !v_8769c2.has(v_3f4e2e.id));
-
-  const v_2ba0d1 = v_fc7f92.filter(
-    (v_3f4e2e) => v_699459[v_3f4e2e.id]?.isActive ?? true,
-  ).length;
 
   const v_bf58a4 = (v_6e0fd3) => {
     const v_7d13fd = v_699459[v_6e0fd3]?.isActive ?? true;
@@ -522,7 +520,7 @@ export default function v_def15b() {
             >
               <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
-                {v_e17daa} 팔로워
+                {v_e17daa} 구독자
               </Text>
             </TouchableOpacity>
           </View>
@@ -602,23 +600,20 @@ export default function v_def15b() {
         title={v_8d41d7("dashboard.title")}
         rightAction={
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <NotificationBell />
-            <TouchableOpacity
-              onPress={() =>
-                v_f4c991.dispatch(
-                  v_650cfa.navigate({
-                    name: "MyTab",
-                    params: { screen: "MyHome" },
-                  }),
-                )
-              }
-              activeOpacity={0.7}
-              hitSlop={8}
-            >
-              <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() =>
+              v_f4c991.dispatch(
+                v_650cfa.navigate({
+                  name: "MyTab",
+                  params: { screen: "MyHome" },
+                }),
+              )
+            }
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
+          </TouchableOpacity>
         }
       />
 
@@ -657,35 +652,40 @@ export default function v_def15b() {
         }
         ListHeaderComponent={
           <>
-            {}
-            <View style={v_fd5f43.dashTitleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.dashTitleText}>{v_8d41d7("dashboard.headerTitle")}</Text>
-                <Text style={v_fd5f43.dashSubText}>{v_8d41d7("dashboard.headerDesc")}</Text>
-              </View>
-            </View>
-
-            {}
-            <View style={v_fd5f43.statsOverview}>
-              <View style={v_fd5f43.statsCard}>
-                <View style={v_fd5f43.statsCardHeader}>
-                  <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-                  <Text style={v_fd5f43.statsCardLabel}>{v_8d41d7("dashboard.statsTotalInteractions")}</Text>
-                </View>
-                <Text style={v_fd5f43.statsCardValue}>12.8k</Text>
-                <Text style={v_fd5f43.statsCardDelta}>{v_8d41d7("dashboard.statsDelta")}</Text>
-              </View>
-
-              <View style={[v_fd5f43.statsCard, v_fd5f43.statsCardDark]}>
-                <View style={v_fd5f43.statsCardHeader}>
-                  <Feather name="user" size={14} color={v_1bfbd0.zinc400} />
-                  <Text style={[v_fd5f43.statsCardLabel, { color: v_1bfbd0.zinc400 }]}>
-                    {v_8d41d7("dashboard.statsActivity")}
+            {
+}
+            <View style={v_fd5f43.profileSection}>
+              <View style={v_fd5f43.profileLeft}>
+                {v_b113dd?.avatarUrl || v_f38ee5?.avatarUrl ? (
+                  <Image
+                    source={{ uri: (v_b113dd?.avatarUrl ?? v_f38ee5?.avatarUrl) as string }}
+                    style={v_fd5f43.profileAvatar}
+                  />
+                ) : (
+                  <View style={[v_fd5f43.profileAvatar, v_fd5f43.profileAvatarPlaceholder]}>
+                    <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
+                  </View>
+                )}
+                <View style={{ flex: 1, marginLeft: 26 }}>
+                  <Text style={v_fd5f43.profileName} numberOfLines={1}>
+                    {v_b113dd?.name ?? v_f38ee5?.displayName ?? "사용자"}
                   </Text>
-                </View>
-                <View style={v_fd5f43.activityCount}>
-                  <Text style={v_fd5f43.activityActive}>{v_2ba0d1}</Text>
-                  <Text style={v_fd5f43.activityTotal}>/ {v_fc7f92.length}</Text>
+                  <View style={v_fd5f43.profileStatsRow}>
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_a7e127}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>팔로워</Text>
+                    </View>
+                    <View style={v_fd5f43.profileStatDivider} />
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_48d264}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>팔로잉</Text>
+                    </View>
+                    <View style={v_fd5f43.profileStatDivider} />
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>페르소나</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
@@ -697,9 +697,7 @@ export default function v_def15b() {
                 source={require("../../../assets/images/xrun-round-logo.png")}
                 style={v_fd5f43.coinIcon}
               />
-              <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.coinSymbol}>XRUN</Text>
-              </View>
+              <View style={{ flex: 1 }} />
               <View style={v_fd5f43.coinAmountWrap}>
                 {v_19340b ? (
                   <ActivityIndicator color={v_1bfbd0.zinc900} />
@@ -722,12 +720,10 @@ export default function v_def15b() {
                 <Feather name="plus-circle" size={24} color={v_1bfbd0.violet600} />
               </TouchableOpacity>
             </View>
+
+            {
+}
           </>
-        }
-        ListFooterComponent={
-          <TouchableOpacity style={v_fd5f43.loadMore}>
-            <Text style={v_fd5f43.loadMoreText}>{v_8d41d7("dashboard.loadMore")}</Text>
-          </TouchableOpacity>
         }
       />
 
@@ -978,7 +974,7 @@ export default function v_def15b() {
               {v_8bb912?.type === "likes" && "좋아요"}
               {v_8bb912?.type === "interactions" && "상호작용"}
               {v_8bb912?.type === "comments" && "댓글"}
-              {v_8bb912?.type === "followers" && "팔로워"}
+              {v_8bb912?.type === "followers" && "구독자"}
             </Text>
             <Text style={v_fd5f43.statsSheetSub}>
               {v_8bb912?.cloneName}
@@ -1056,7 +1052,7 @@ export default function v_def15b() {
                     <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !v_e6e97a || v_e6e97a.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 팔로워가 없어요</Text>
+                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 구독자가 없어요</Text>
                     </View>
                   ) : (
                     v_e6e97a.map((v_ceb55a) => (
@@ -1151,6 +1147,31 @@ const v_fd5f43 = v_472849.create({
     paddingBottom: 24,
   },
 
+  profileSection: {
+    paddingTop: 28,
+    paddingBottom: 14,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatar: { width: 64, height: 64, borderRadius: 32 },
+  profileAvatarPlaceholder: {
+    backgroundColor: v_1bfbd0.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+    marginBottom: 8,
+  },
+  profileStatsRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  profileStatItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  profileStatValue: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  profileStatLabel: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  profileStatDivider: { width: 1, height: 12, backgroundColor: v_1bfbd0.zinc200 },
+
   dashTitle: { marginTop: 16, marginBottom: 20 },
   dashTitleRow: {
     flexDirection: "row",
@@ -1199,7 +1220,7 @@ const v_fd5f43 = v_472849.create({
   coinNetwork: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   coinAmountWrap: { alignItems: "flex-end", marginRight: 8 },
   coinAmountText: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  coinUnit: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  coinUnit: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc700 },
   coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 
   chargeOverlay: {

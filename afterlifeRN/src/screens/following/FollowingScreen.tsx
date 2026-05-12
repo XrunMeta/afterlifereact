@@ -529,7 +529,7 @@ export default function v_14b43e() {
                 const v_10387a = v_57f5a9(v_8c0b26.persona.id);
                 return (
                   <Button
-                    title={v_10387a ? "팔로잉" : "팔로우"}
+                    title={v_10387a ? "구독 중" : "구독"}
                     variant="ghost"
                     size="md"
                     leftIcon={
@@ -616,8 +616,8 @@ export default function v_14b43e() {
         ListEmptyComponent={
           <View style={v_fd5f43.emptyWrap}>
             <Feather name="users" size={48} color={v_1bfbd0.zinc300} />
-            <Text style={v_fd5f43.emptyTitle}>아직 팔로우한 페르소나가 없어요</Text>
-            <Text style={v_fd5f43.emptyDesc}>홈에서 마음에 드는 페르소나를 팔로우해 보세요</Text>
+            <Text style={v_fd5f43.emptyTitle}>아직 구독한 페르소나가 없어요</Text>
+            <Text style={v_fd5f43.emptyDesc}>홈에서 마음에 드는 페르소나를 구독해 보세요</Text>
           </View>
         }
       />

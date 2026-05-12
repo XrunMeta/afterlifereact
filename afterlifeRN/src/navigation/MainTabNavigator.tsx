@@ -92,7 +92,7 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; label: 
   HomeTab: { icon: "home", label: "홈" },
   ClonesTab: { icon: "users", label: "페르소나" },
   CreateTab: { icon: "plus-circle", label: "생성" },
-  ShortsTab: { icon: "user-check", label: "팔로잉" },
+  ShortsTab: { icon: "user-check", label: "구독 중" },
   MyTab: { icon: "user", label: "마이" },
 };
 
