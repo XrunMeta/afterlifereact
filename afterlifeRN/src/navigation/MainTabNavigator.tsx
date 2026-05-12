@@ -140,8 +140,11 @@ export default function v_19ba0e() {
         },
       })}
     >
+      {
+
+}
       <Tab.Screen name="HomeTab" component={v_c316d8} />
-      <Tab.Screen name="ClonesTab" component={v_aedede} />
+      <Tab.Screen name="ShortsTab" component={v_14b43e} />
       <Tab.Screen
         name="CreateTab"
         component={v_31fee5}
@@ -180,10 +183,14 @@ export default function v_19ba0e() {
           },
         })}
       />
+      <Tab.Screen name="ClonesTab" component={v_aedede} />
       {
 }
-      <Tab.Screen name="ShortsTab" component={v_14b43e} />
-      <Tab.Screen name="MyTab" component={v_d9c5dd} />
+      <Tab.Screen
+        name="MyTab"
+        component={v_d9c5dd}
+        options={{ tabBarButton: () => null }}
+      />
     </Tab.Navigator>
   );
 }

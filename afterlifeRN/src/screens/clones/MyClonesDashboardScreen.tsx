@@ -660,7 +660,26 @@ export default function v_def15b() {
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title={v_8d41d7("dashboard.title")}
-        rightAction={<NotificationBell />}
+        rightAction={
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <NotificationBell />
+            <TouchableOpacity
+              onPress={() =>
+                v_f4c991.dispatch(
+                  v_650cfa.navigate({
+                    name: "MyTab",
+                    params: { screen: "MyHome" },
+                  }),
+                )
+              }
+              activeOpacity={0.7}
+              hitSlop={8}
+            >
+              <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
+            </TouchableOpacity>
+          </View>
+        }
       />
 
       <FlatList
