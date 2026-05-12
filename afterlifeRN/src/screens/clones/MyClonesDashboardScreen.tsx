@@ -29,7 +29,6 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
-import v_0e981f from "../../components/common/NotificationBell";
 import { v_84a859 } from "../../api/auth";
 import { v_5c99c1 } from "../../api/payments";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -602,23 +601,20 @@ export default function v_def15b() {
         title={v_8d41d7("dashboard.title")}
         rightAction={
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <NotificationBell />
-            <TouchableOpacity
-              onPress={() =>
-                v_f4c991.dispatch(
-                  v_650cfa.navigate({
-                    name: "MyTab",
-                    params: { screen: "MyHome" },
-                  }),
-                )
-              }
-              activeOpacity={0.7}
-              hitSlop={8}
-            >
-              <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() =>
+              v_f4c991.dispatch(
+                v_650cfa.navigate({
+                  name: "MyTab",
+                  params: { screen: "MyHome" },
+                }),
+              )
+            }
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
+          </TouchableOpacity>
         }
       />
 
