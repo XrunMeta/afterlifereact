@@ -17,16 +17,12 @@ import { Feather } from "@expo/vector-icons";
 import { useNavigation, CommonActions } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
-import * as ImagePicker from "expo-image-picker";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
-import NotificationBell from "../../components/common/NotificationBell";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
-import { uploadFile } from "../../api/files";
-import { patchMe } from "../../api/auth";
 import { listMyClones, listMyFollowedClones, type FollowedClone, type MyClone } from "../../api/clones";
 import { useFocusEffect } from "@react-navigation/native";
 import { getPaymentPinStatus, getXrunBalance, getMyTransactions, type TransactionItem } from "../../api/payments";
@@ -53,14 +49,12 @@ export default function MyScreen() {
   const user = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const patchApiUser = useAuthStore((s) => s.patchApiUser);
   const logout = useAuthStore((s) => s.logout);
   const follows = useFollowStore((s) => s.follows);
   const isFollowing = useFollowStore((s) => s.isFollowing);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
   const localClones = useCloneStore((s) => s.localClones);
   const [showComingSoon, setShowComingSoon] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
 
   const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
@@ -127,46 +121,6 @@ export default function MyScreen() {
       cancelled = true;
     };
   }, [accessToken]);
-
-  const handleEditAvatar = async () => {
-    if (!accessToken) {
-      Alert.alert(t("common.notice"), t("my.loginRequired"));
-      return;
-    }
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert(t("my.permTitle"), t("my.permDesc"));
-      return;
-    }
-    const picked = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (picked.canceled || !picked.assets?.[0]) return;
-    const asset = picked.assets[0];
-
-    setUploadingAvatar(true);
-    try {
-      const uploaded = await uploadFile(accessToken, asset.uri, {
-        purpose: "avatar",
-        fileName: asset.fileName ?? "avatar.jpg",
-        mimeType: asset.mimeType ?? "image/jpeg",
-      });
-      await patchMe(accessToken, { avatarUrl: uploaded.url });
-      patchApiUser({ avatarUrl: uploaded.url });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : t("my.uploadFailed");
-      Alert.alert(t("common.error"), msg);
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-  const displayName = apiUser?.name ?? user?.displayName ?? t("my.userFallback");
-  const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
-  const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
 
   const balanceLoading = xrunBalanceLoading;
   const xrunDisplay = xrunBalance ?? null;
@@ -303,61 +257,14 @@ export default function MyScreen() {
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
-        title="My Page"
-        rightAction={<NotificationBell />}
+        title="설정"
+        showBackButton
+        onBackPress={() => navigation.goBack()}
       />
 
       <View style={s.content}>
-        {}
-        <View style={s.profileSection}>
-          <View style={s.avatarWrap}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={s.avatar} />
-            ) : (
-              <View style={[s.avatar, s.avatarPlaceholder]}>
-                <Feather name="user" size={40} color={COLORS.zinc400} />
-              </View>
-            )}
-            <TouchableOpacity
-              style={s.editAvatarBtn}
-              onPress={handleEditAvatar}
-              disabled={uploadingAvatar}
-            >
-              <Feather name="edit-2" size={14} color={COLORS.white} />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={s.userName}>{displayName}</Text>
-          <Text style={s.userHandle}>{subLabel}</Text>
-
-          {
-
+        {
 }
-          <View style={s.statsRow}>
-            <View style={s.statItem}>
-              <Text style={s.statValue}>0</Text>
-              <Text style={s.statLabel}>팔로워</Text>
-            </View>
-            <View style={s.statDivider} />
-            <View style={s.statItem}>
-              <Text style={s.statValue}>0</Text>
-              <Text style={s.statLabel}>팔로잉</Text>
-            </View>
-            <View style={s.statDivider} />
-            <TouchableOpacity
-              style={s.statItem}
-              onPress={() => {
-                console.log(
-                  `[MyScreen] stat TAP "구독 중" — apiFollowingCount=${apiFollowingCount}`,
-                );
-                setStatsModal("following");
-              }}
-            >
-              <Text style={s.statValue}>{followingCount}</Text>
-              <Text style={s.statLabel}>구독 중</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         {}
 
