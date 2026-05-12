@@ -25,6 +25,7 @@ import Step7CompleteScreen from "../screens/clone-creation/Step7CompleteScreen";
 import Step8CreateShortsScreen from "../screens/clone-creation/Step8CreateShortsScreen";
 import FollowingScreen from "../screens/following/FollowingScreen";
 import ShortsTabScreen from "../screens/shorts/ShortsTabScreen";
+import SearchScreen from "../screens/search/SearchScreen";
 import MyScreen from "../screens/my/MyScreen";
 import EditProfileScreen from "../screens/my/EditProfileScreen";
 import NotificationSettingsScreen from "../screens/my/NotificationSettingsScreen";
@@ -92,7 +93,7 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof Feather.glyphMap; label: s
   HomeTab: { icon: "home", label: "홈" },
   ClonesTab: { icon: "users", label: "페르소나" },
   CreateTab: { icon: "plus-circle", label: "생성" },
-  ShortsTab: { icon: "user-check", label: "구독 중" },
+  ShortsTab: { icon: "search", label: "검색" },
   MyTab: { icon: "user", label: "마이" },
 };
 
@@ -144,7 +145,8 @@ export default function MainTabNavigator() {
 
 }
       <Tab.Screen name="HomeTab" component={HomeScreen} />
-      <Tab.Screen name="ShortsTab" component={FollowingScreen} />
+      {}
+      <Tab.Screen name="ShortsTab" component={SearchScreen} />
       <Tab.Screen
         name="CreateTab"
         component={CreateStackNavigator}
