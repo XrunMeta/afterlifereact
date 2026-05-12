@@ -53,9 +53,14 @@ export default function v_5db6c6() {
   const [v_866dc6, v_7c1422] = v_5ab095(false);
 
   const v_bcfa24 = v_700696.get("window").width;
-  const v_af8b43 = v_df9f57(
+  const v_675c6a = v_df9f57(
     () => Math.floor((v_bcfa24 - v_296ef9 * (v_f229b8 - 1)) / v_f229b8),
     [v_bcfa24],
+  );
+
+  const v_6367e4 = v_df9f57(
+    () => Math.floor(v_675c6a * (16 / 9)),
+    [v_675c6a],
   );
 
   const v_b0ad70 = v_de06a3(async () => {
@@ -168,7 +173,7 @@ export default function v_5db6c6() {
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={() => v_74ecfc(v_8c0b26.cloneId)}
-        style={{ width: v_af8b43, height: v_af8b43, marginRight: v_d88de1, marginBottom: v_296ef9 }}
+        style={{ width: v_675c6a, height: v_6367e4, marginRight: v_d88de1, marginBottom: v_296ef9 }}
       >
         {v_8c0b26.mediaUrl ? (
           <Image source={{ uri: v_8c0b26.mediaUrl }} style={v_fd5f43.cellImage} />
