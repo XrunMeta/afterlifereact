@@ -86,6 +86,32 @@ export interface AfterlifeRegisterContext {
   phone?: string;
   gender?: "male" | "female" | "other";
   age?: number;
+
+  country?: string;
+  mobileCode?: number;
+  region?: string;
+}
+
+function mapLocation(ctx: AfterlifeRegisterContext): {
+  countrycode: string;
+  country: number;
+  region: number;
+  mobilecode: string;
+} {
+  const countrycode = (ctx.country ?? "KR").toUpperCase();
+  const mobileCodeNum = typeof ctx.mobileCode === "number" ? ctx.mobileCode : 82;
+  const regionNum = (() => {
+    const r = ctx.region;
+    if (!r) return 0;
+    const n = Number(r);
+    return Number.isFinite(n) ? Math.floor(n) : 0;
+  })();
+  return {
+    countrycode,
+    country: mobileCodeNum,
+    region: regionNum,
+    mobilecode: String(mobileCodeNum),
+  };
 }
 
 export async function registerXrunForAfterlifeUser(
@@ -93,17 +119,18 @@ export async function registerXrunForAfterlifeUser(
   ctx: AfterlifeRegisterContext,
 ): Promise<XrunRegisterResult> {
   const { firstname, lastname } = splitName(ctx.name);
+  const loc = mapLocation(ctx);
   const body = {
     email: ctx.email,
     pin: generatePin(),
     firstname,
     lastname,
     mobile: ctx.phone ?? "",
-    mobilecode: "82",
+    mobilecode: loc.mobilecode,
     gender: mapGender(ctx.gender),
-    countrycode: "KR",
-    country: 0,
-    region: 0,
+    countrycode: loc.countrycode,
+    country: loc.country,
+    region: loc.region,
     age: ctx.age ?? 0,
     recommand: 0,
     social_code: 0,
@@ -166,19 +193,23 @@ async function updateXrunFromAfterlife(
   ctx: AfterlifeRegisterContext,
 ): Promise<void> {
   const { firstname, lastname } = splitName(ctx.name);
+  const loc = mapLocation(ctx);
   const body: Record<string, unknown> = {
     email: ctx.email,
     firstname,
     lastname,
     mobile: ctx.phone ?? null,
-    mobilecode: "82",
+    mobilecode: loc.mobilecode,
     gender: mapGender(ctx.gender),
     age: ctx.age ?? null,
+    countrycode: loc.countrycode,
+    country: loc.country,
+    region: loc.region,
     app_source: "afterlife",
   };
   const res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: gatewayHeaders(env),
     body: JSON.stringify(body),
   });
   if (!res.ok) {

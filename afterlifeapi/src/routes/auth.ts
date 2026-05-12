@@ -129,6 +129,7 @@ auth.post("/google", async (c) => {
       const xrun = await registerXrunForAfterlifeUser(c.env, {
         email: payload.email,
         name: fallbackName,
+
       });
       let xMember: number | null = null;
       let xGuid: string | null = null;
@@ -512,6 +513,10 @@ auth.post("/signup", async (c) => {
       phone: body.phone,
       gender: body.gender,
       age: body.age,
+
+      country: body.country,
+      mobileCode: body.mobileCode,
+      region: body.region,
     });
 
     let memberToSave: number | null = null;
