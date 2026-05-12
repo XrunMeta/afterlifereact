@@ -17,8 +17,7 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import { requestEmailCode, signup, getMe, AuthApiError } from "../../api/auth";
-import { useAuthStore } from "../../stores/authStore";
+import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "EmailVerify">;
 
@@ -31,7 +30,6 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [resendIn, setResendIn] = useState(RESEND_COOLDOWN_SEC);
   const inputRef = useRef<TextInput>(null);
-  const setApiAuth = useAuthStore((s) => s.setApiAuth);
 
   useEffect(() => {
     const t = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000);
@@ -73,19 +71,21 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         gender: params.gender,
         age: params.age,
         interests: params.interests,
+        country: params.country,
+        mobileCode: params.mobileCode,
+        region: params.region,
         marketingConsent: params.marketingConsent,
         deviceId: params.deviceId,
         pushToken: params.pushToken,
         platform: params.platform,
       });
 
-      const meRes = await getMe(res.accessToken);
-      await setApiAuth(res.accessToken, meRes.user);
-      console.log("[AUTH/signup] user:", meRes.user, "accessExpiresIn:", res.accessExpiresIn);
-
-      Alert.alert(t("auth.signup.signupBtn"), t("common.success"), [
-        { text: t("common.ok"), onPress: () => navigation.navigate("Login") },
-      ]);
+      console.log("[AUTH/signup] success, accessExpiresIn:", res.accessExpiresIn);
+      navigation.replace("SignupComplete", {
+        accessToken: res.accessToken,
+        persist: true,
+        email: params.email,
+      });
     } catch (err) {
       let msg = t("auth.signup.signupFailed");
       if (err instanceof AuthApiError) {

@@ -39,6 +39,10 @@ const signupSchema = z.object({
   gender: z.enum(["male", "female", "other"]).optional(),
   age: z.number().int().min(13).max(120).optional(),
   interests: z.array(z.string().min(1).max(40)).max(20).optional(),
+
+  country: z.string().length(2).regex(/^[A-Z]{2}$/).optional(),
+  mobileCode: z.number().int().min(0).max(99999).optional(),
+  region: z.string().max(20).optional(),
   marketingConsent: z.boolean().optional().default(false),
   deviceId: z.string().min(1).max(200).optional(),
   pushToken: z.string().min(1).max(500).optional(),
@@ -433,8 +437,8 @@ auth.post("/signup", async (c) => {
   try {
     inserted = await db
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
@@ -446,6 +450,9 @@ auth.post("/signup", async (c) => {
         null, 
         ageEnc,
         body.marketingConsent ? 1 : 0,
+        body.country ?? null,
+        body.mobileCode ?? null,
+        body.region ?? null,
       )
       .first();
   } catch (err) {

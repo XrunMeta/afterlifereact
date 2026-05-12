@@ -110,10 +110,6 @@ export default function LoginScreen({ navigation }: Props) {
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
 
   const handleSocialLogin = async (provider: string) => {
-    if (provider === "xrun") {
-      navigation.navigate("XrunLogin");
-      return;
-    }
     if (provider === "google") {
       try {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -149,12 +145,11 @@ export default function LoginScreen({ navigation }: Props) {
           }
           console.log("[AUTH/google] user:", meRes.user);
           await hydrate();
-        } else if (check.xrunExists) {
-
-          navigation.navigate("XrunOnboarding", { email: check.email, google: { idToken } });
         } else {
 
-          navigation.navigate("Signup", { google: { idToken, email: check.email, name: check.name } });
+          navigation.navigate("Signup", {
+            google: { idToken, email: check.email, name: check.name },
+          });
         }
       } catch (err: any) {
         if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
@@ -238,7 +233,7 @@ export default function LoginScreen({ navigation }: Props) {
 
           {}
           <Button
-            title={loggingIn ? t("auth.signup.verifying") : t("auth.login.loginBtn")}
+            title={loggingIn ? t("auth.login.loggingIn") : t("auth.login.loginBtn")}
             onPress={handleLogin}
             variant="primary"
             disabled={loggingIn}
@@ -259,15 +254,6 @@ export default function LoginScreen({ navigation }: Props) {
             variant="secondary"
             size="md"
             leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-          />
-
-          {}
-          <Button
-            title={t("auth.login.xrunBtn")}
-            onPress={() => handleSocialLogin("xrun")}
-            variant="secondary"
-            size="md"
-            leftIcon={<Feather name="smartphone" size={18} color={COLORS.zinc900} />}
           />
 
           {}

@@ -154,13 +154,18 @@ deletion.delete("/oth-path", requireAuth, async (c) => {
 
   const successor = await db
     .prepare(
-      `SELECT id, target_user_id
-         FROM clone_shares
-        WHERE clone_id = ? AND status = 'accepted' AND target_user_id IS NOT NULL
-        ORDER BY created_at ASC, id ASC
+      `SELECT cs.id, cs.target_user_id
+         FROM clone_shares cs
+         JOIN users u ON u.id = cs.target_user_id
+        WHERE cs.clone_id = ?
+          AND cs.status = 'accepted'
+          AND cs.target_user_id IS NOT NULL
+          AND cs.target_user_id != ?
+          AND u.deleted_at IS NULL
+        ORDER BY cs.created_at ASC, cs.id ASC
         LIMIT 1`,
     )
-    .bind(cloneId)
+    .bind(cloneId, userId)
     .first<{ id: number; target_user_id: number }>();
 
   if (!successor) {

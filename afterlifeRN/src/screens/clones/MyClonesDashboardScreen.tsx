@@ -11,9 +11,11 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  Share,
+  Platform,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as Clipboard from "expo-clipboard";
@@ -623,12 +625,23 @@ export default function MyClonesDashboardScreen() {
               } else {
 
                 const url = `https://afterlife.app/clone/${clone.id}`;
+                const message = `${clone.displayName} 페르소나와 대화해보세요!\n${url}`;
                 try {
-                  await Clipboard.setStringAsync(url);
+                  await Share.share(
+                    Platform.OS === "ios"
+                      ? { message, url, title: clone.displayName }
+                      : { message },
+                    { dialogTitle: clone.displayName },
+                  );
+                } catch (err) {
+                  console.warn("[dashboard] share failed:", err);
 
-                  setDeleteResultMessage(t("dashboard.shareLinkCopied"));
-                } catch {
-                  setDeleteResultMessage(t("dashboard.shareLinkFailed"));
+                  try {
+                    await Clipboard.setStringAsync(url);
+                    setDeleteResultMessage(t("dashboard.shareLinkCopied"));
+                  } catch {
+                    setDeleteResultMessage(t("dashboard.shareLinkFailed"));
+                  }
                 }
               }
             }}
@@ -647,7 +660,26 @@ export default function MyClonesDashboardScreen() {
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
         title={t("dashboard.title")}
-        rightAction={<NotificationBell />}
+        rightAction={
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <NotificationBell />
+            <TouchableOpacity
+              onPress={() =>
+                rootNav.dispatch(
+                  CommonActions.navigate({
+                    name: "MyTab",
+                    params: { screen: "MyHome" },
+                  }),
+                )
+              }
+              activeOpacity={0.7}
+              hitSlop={8}
+            >
+              <Feather name="settings" size={22} color={COLORS.zinc700} />
+            </TouchableOpacity>
+          </View>
+        }
       />
 
       <FlatList
@@ -663,8 +695,24 @@ export default function MyClonesDashboardScreen() {
             </View>
             <Text style={s.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
             <Text style={s.dashEmptyDesc}>
-              하단 가운데 + 버튼을 눌러 첫 페르소나를 만들 수 있어요
+              아래 버튼을 눌러 첫 페르소나를 만들 수 있어요
             </Text>
+            <TouchableOpacity
+              style={s.dashEmptyBtn}
+              activeOpacity={0.85}
+              onPress={() =>
+
+                navigation.dispatch(
+                  CommonActions.navigate({
+                    name: "CreateTab",
+                    params: { screen: "Step1" },
+                  }),
+                )
+              }
+            >
+              <Feather name="plus" size={18} color={COLORS.white} />
+              <Text style={s.dashEmptyBtnText}>페르소나 만들기</Text>
+            </TouchableOpacity>
           </View>
         }
         ListHeaderComponent={
@@ -1206,6 +1254,17 @@ const s = StyleSheet.create({
   },
   dashEmptyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc800 },
   dashEmptyDesc: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", lineHeight: 18 },
+  dashEmptyBtn: {
+    marginTop: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.zinc900,
+  },
+  dashEmptyBtnText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
 
   listContent: {
     paddingHorizontal: SIZES.medium,

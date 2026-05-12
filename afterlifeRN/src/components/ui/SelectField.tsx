@@ -1,3 +1,5 @@
+
+
 import React, { useState } from "react";
 import {
   View,
@@ -8,6 +10,7 @@ import {
   StyleSheet,
   StyleProp,
   ViewStyle,
+  ScrollView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { COLORS, FONTS, SIZES, RADIUS } from "../constants";
@@ -27,6 +30,8 @@ export interface SelectFieldProps<T extends string = string> {
   leftIcon?: React.ReactNode;
   containerStyle?: StyleProp<ViewStyle>;
   rounded?: number;
+
+  dropdownMaxHeight?: number;
 }
 
 export default function SelectField<T extends string = string>({
@@ -39,6 +44,7 @@ export default function SelectField<T extends string = string>({
   leftIcon,
   containerStyle,
   rounded = 10,
+  dropdownMaxHeight = 400,
 }: SelectFieldProps<T>) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.value === value);
@@ -59,25 +65,49 @@ export default function SelectField<T extends string = string>({
       </TouchableOpacity>
       {errorText ? <Text style={styles.errorText}>{errorText}</Text> : null}
 
-      <Modal visible={open} transparent animationType="fade">
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
         <Pressable style={styles.overlay} onPress={() => setOpen(false)}>
-          <Pressable style={styles.dropdownBox} onPress={(e) => e.stopPropagation()}>
-            {options.map((opt, idx) => (
-              <TouchableOpacity
-                key={opt.value}
-                style={[
-                  styles.item,
-                  value === opt.value && styles.itemActive,
-                  idx === options.length - 1 && styles.itemLast,
-                ]}
-                onPress={() => { onChange(opt.value); setOpen(false); }}
-              >
-                <Text style={[styles.itemText, value === opt.value && styles.itemTextActive]}>
-                  {opt.label}
-                </Text>
-                {value === opt.value && <Feather name="check" size={16} color={COLORS.zinc900} />}
-              </TouchableOpacity>
-            ))}
+          <Pressable
+            style={[styles.dropdownBox, { maxHeight: dropdownMaxHeight }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <ScrollView
+              style={{ maxHeight: dropdownMaxHeight }}
+              showsVerticalScrollIndicator
+              keyboardShouldPersistTaps="handled"
+            >
+              {options.map((opt, idx) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.item,
+                    value === opt.value && styles.itemActive,
+                    idx === options.length - 1 && styles.itemLast,
+                  ]}
+                  onPress={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.itemText,
+                      value === opt.value && styles.itemTextActive,
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
+                  {value === opt.value && (
+                    <Feather name="check" size={16} color={COLORS.zinc900} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -86,9 +116,7 @@ export default function SelectField<T extends string = string>({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    alignSelf: "stretch",
-  },
+  container: { alignSelf: "stretch" },
   label: {
     fontSize: 14,
     color: COLORS.mutedText,
@@ -104,18 +132,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     paddingHorizontal: SIZES.medium,
   },
-  leftIcon: {
-    marginRight: SIZES.small,
-  },
+  leftIcon: { marginRight: SIZES.small },
   selectText: {
     flex: 1,
     fontSize: 16,
     color: COLORS.text,
     fontFamily: FONTS.regular,
   },
-  placeholder: {
-    color: COLORS.placeholder,
-  },
+  placeholder: { color: COLORS.placeholder },
   errorText: {
     marginTop: SIZES.small / 2,
     fontSize: 12,
@@ -124,7 +148,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
@@ -133,7 +157,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.lg,
     width: "100%",
-    maxWidth: 320,
+    maxWidth: 360,
     overflow: "hidden",
   },
   item: {
@@ -141,22 +165,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.zinc100,
   },
-  itemActive: {
-    backgroundColor: COLORS.zinc50,
-  },
-  itemLast: {
-    borderBottomWidth: 0,
-  },
-  itemText: {
-    fontSize: 15,
-    color: COLORS.zinc700,
-  },
-  itemTextActive: {
-    color: COLORS.zinc900,
-    fontWeight: "600",
-  },
+  itemActive: { backgroundColor: COLORS.zinc50 },
+  itemLast: { borderBottomWidth: 0 },
+  itemText: { fontSize: 15, color: COLORS.zinc700 },
+  itemTextActive: { color: COLORS.zinc900, fontWeight: "600" },
 });

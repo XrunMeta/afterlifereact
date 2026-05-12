@@ -35,15 +35,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   hydrate: async () => {
 
-    const token = await AsyncStorage.getItem(TOKEN_KEY);
-    let apiUser: AuthUser | null = null;
-    if (token) {
-      try {
-        const res = await getMe(token);
-        apiUser = res.user;
-      } catch {
+    const current = get();
+    let apiUser: AuthUser | null = current.apiUser;
+    let token: string | null = current.accessToken;
 
-        await AsyncStorage.removeItem(TOKEN_KEY);
+    if (!apiUser) {
+      token = await AsyncStorage.getItem(TOKEN_KEY);
+      if (token) {
+        try {
+          const res = await getMe(token);
+          apiUser = res.user;
+        } catch {
+
+          await AsyncStorage.removeItem(TOKEN_KEY);
+          token = null;
+        }
       }
     }
 

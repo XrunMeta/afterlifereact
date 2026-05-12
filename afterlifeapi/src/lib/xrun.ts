@@ -19,6 +19,39 @@ export interface XrunWalletLookupResult {
   reason?: string;
 }
 
+function isXrunMemberMissing(
+  res: Response,
+  json: { status?: string; code?: number; message?: string } | undefined,
+): boolean {
+  if (res.status === 404) return true;
+  if (json?.code === 404) return true;
+  const msg = (json?.message ?? "").toLowerCase();
+  return /not\s*found|no\s*such\s*member|not\s*exist|withdrawn|inactive\s*member/.test(msg);
+}
+
+export async function markXrunUnlinked(env: Bindings, xrunMember: number): Promise<void> {
+  try {
+    const res = await env.DB
+      .prepare(
+        `UPDATE users
+            SET xrun_member_id = NULL,
+                xrun_guid = NULL,
+                xrun_wallet = NULL,
+                xrun_linked_at = NULL
+          WHERE xrun_member_id = ?`,
+      )
+      .bind(xrunMember)
+      .run();
+    if ((res.meta?.changes ?? 0) > 0) {
+      console.log(
+        `[xrun] markXrunUnlinked member=${xrunMember} rows=${res.meta?.changes ?? 0}`,
+      );
+    }
+  } catch (err) {
+    console.warn("[xrun] markXrunUnlinked error:", (err as Error).message);
+  }
+}
+
 function generatePin(): string {
   const buf = new Uint8Array(16);
   crypto.getRandomValues(buf);
@@ -74,6 +107,8 @@ export async function registerXrunForAfterlifeUser(
     age: ctx.age ?? 0,
     recommand: 0,
     social_code: 0,
+
+    app_source: "afterlife",
   };
 
   let res: Response;
@@ -100,6 +135,12 @@ export async function registerXrunForAfterlifeUser(
   }
 
   if (json?.code === 409 || /already exists/i.test(json?.message ?? "")) {
+
+    try {
+      await updateXrunFromAfterlife(env, ctx);
+    } catch (err) {
+      console.warn("[xrun] update-from-afterlife failed:", (err as Error).message);
+    }
     return { status: "duplicate", email: ctx.email };
   }
 
@@ -118,6 +159,35 @@ export async function registerXrunForAfterlifeUser(
     status: "failed",
     reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
   };
+}
+
+async function updateXrunFromAfterlife(
+  env: Bindings,
+  ctx: AfterlifeRegisterContext,
+): Promise<void> {
+  const { firstname, lastname } = splitName(ctx.name);
+  const body: Record<string, unknown> = {
+    email: ctx.email,
+    firstname,
+    lastname,
+    mobile: ctx.phone ?? null,
+    mobilecode: "82",
+    gender: mapGender(ctx.gender),
+    age: ctx.age ?? null,
+    app_source: "afterlife",
+  };
+  const res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  const json = (await res.json()) as { status?: string; code?: number; message?: string };
+  if (json.status !== "success") {
+    throw new Error(`xrun update failed: ${json.message}`);
+  }
 }
 
 export async function verifyXrunCredentials(
@@ -227,6 +297,9 @@ export async function hasXrunPaymentPin(env: Bindings, member: number): Promise<
   if (res.ok && json?.status === "success") {
     return { ok: true, hasPin: !!json.data?.[0]?.hasPin };
   }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
+  }
   return { ok: false, hasPin: false, reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
 }
 
@@ -255,6 +328,9 @@ export async function verifyXrunPaymentPin(
   if (res.ok && json?.status === "success") {
     const first = json.data?.[0] ?? {};
     return { ok: true, match: !!first.match, hasPin: !!first.hasPin };
+  }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
   }
   return { ok: false, match: false, hasPin: false, reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
 }
@@ -300,10 +376,13 @@ export async function closeXrunMember(env: Bindings, member: number): Promise<Xr
     return { ok: false, closed: false, reason: `non-json (${res.status})` };
   }
   if (res.ok && json?.status === "success") {
+
+    await markXrunUnlinked(env, member);
     return { ok: true, closed: true };
   }
 
-  if (res.status === 404 || json?.code === 404) {
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
     return { ok: true, closed: false, reason: "member not found (already closed?)" };
   }
   return {
@@ -335,6 +414,10 @@ export async function getXrunBalances(env: Bindings, member: number): Promise<Xr
   }
   if (res.ok && json?.status === "success") {
     return { ok: true, balances: json.data ?? [] };
+  }
+
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
   }
   return {
     ok: false,
@@ -412,6 +495,9 @@ export async function externalTransferSplit(
       newBalance:
         json.data.newBalance == null ? null : String(json.data.newBalance),
     };
+  }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, args.fromMember);
   }
   return {
     ok: false,
