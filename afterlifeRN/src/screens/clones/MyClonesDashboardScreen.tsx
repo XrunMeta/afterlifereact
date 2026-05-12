@@ -28,7 +28,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, listMyFollowedClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
+import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import { getXrunBalance } from "../../api/payments";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -164,7 +164,8 @@ export default function MyClonesDashboardScreen() {
   const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
   const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
 
-  const [followingCount, setFollowingCount] = useState<number>(0);
+  const followingCount = 0;
+  const followersCount = 0;
 
   const [chargeModalVisible, setChargeModalVisible] = useState(false);
 
@@ -292,22 +293,6 @@ export default function MyClonesDashboardScreen() {
     setVisibilityModal({ cloneId, currentVisibility: current });
     setMenuCloneId(null);
   };
-
-  useEffect(() => {
-    if (!accessToken || !apiUser?.id) {
-      setFollowingCount(0);
-      return;
-    }
-    let cancelled = false;
-    listMyFollowedClones(accessToken, apiUser.id)
-      .then((r) => {
-        if (!cancelled) setFollowingCount(r.items.length);
-      })
-      .catch((err) => console.warn("[Dashboard] following count fetch failed:", err));
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, apiUser?.id]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -539,7 +524,7 @@ export default function MyClonesDashboardScreen() {
             >
               <Feather name="user" size={14} color={COLORS.zinc500} />
               <Text style={s.statText} testID={`follower-count-${clone.id}`}>
-                {followerCount} 팔로워
+                {followerCount} 구독자
               </Text>
             </TouchableOpacity>
           </View>
@@ -691,7 +676,7 @@ export default function MyClonesDashboardScreen() {
                   </Text>
                   <View style={s.profileStatsRow}>
                     <View style={s.profileStatItem}>
-                      <Text style={s.profileStatValue}>0</Text>
+                      <Text style={s.profileStatValue}>{followersCount}</Text>
                       <Text style={s.profileStatLabel}>팔로워</Text>
                     </View>
                     <View style={s.profileStatDivider} />
@@ -1025,7 +1010,7 @@ export default function MyClonesDashboardScreen() {
               {statsModal?.type === "likes" && "좋아요"}
               {statsModal?.type === "interactions" && "상호작용"}
               {statsModal?.type === "comments" && "댓글"}
-              {statsModal?.type === "followers" && "팔로워"}
+              {statsModal?.type === "followers" && "구독자"}
             </Text>
             <Text style={s.statsSheetSub}>
               {statsModal?.cloneName}
@@ -1103,7 +1088,7 @@ export default function MyClonesDashboardScreen() {
                     <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !followersList || followersList.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 팔로워가 없어요</Text>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 구독자가 없어요</Text>
                     </View>
                   ) : (
                     followersList.map((u) => (

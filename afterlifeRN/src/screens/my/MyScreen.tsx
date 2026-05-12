@@ -330,31 +330,31 @@ export default function MyScreen() {
           <Text style={s.userName}>{displayName}</Text>
           <Text style={s.userHandle}>{subLabel}</Text>
 
+          {
+
+}
           <View style={s.statsRow}>
-            <TouchableOpacity
-              style={s.statItem}
-              onPress={() => {
-                console.log(
-                  `[MyScreen] stat TAP "팔로우 중" — apiFollowingCount=${apiFollowingCount} apiFollowingList=${apiFollowingList?.length ?? "null"}`,
-                );
-                setStatsModal("following");
-              }}
-            >
+            <View style={s.statItem}>
               <Text style={s.statValue}>0</Text>
               <Text style={s.statLabel}>팔로워</Text>
-            </TouchableOpacity>
+            </View>
+            <View style={s.statDivider} />
+            <View style={s.statItem}>
+              <Text style={s.statValue}>0</Text>
+              <Text style={s.statLabel}>팔로잉</Text>
+            </View>
             <View style={s.statDivider} />
             <TouchableOpacity
               style={s.statItem}
               onPress={() => {
                 console.log(
-                  `[MyScreen] stat TAP "팔로잉" — apiFollowingCount=${apiFollowingCount}`,
+                  `[MyScreen] stat TAP "구독 중" — apiFollowingCount=${apiFollowingCount}`,
                 );
                 setStatsModal("following");
               }}
             >
               <Text style={s.statValue}>{followingCount}</Text>
-              <Text style={s.statLabel}>팔로잉</Text>
+              <Text style={s.statLabel}>구독 중</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -483,7 +483,7 @@ export default function MyScreen() {
                 !apiFollowingList || apiFollowingList.length === 0 ? (
                   <View style={s.statsEmpty}>
                     <Feather name="users" size={28} color={COLORS.zinc300} />
-                    <Text style={s.statsEmptyText}>아직 팔로우한 페르소나가 없어요</Text>
+                    <Text style={s.statsEmptyText}>아직 구독한 페르소나가 없어요</Text>
                   </View>
                 ) : (
                   apiFollowingList.map((c) => {
@@ -541,7 +541,7 @@ export default function MyScreen() {
                           style={[s.followToggleBtn, followed && s.followToggleBtnActive]}
                         >
                           <Text style={[s.followToggleText, followed && s.followToggleTextActive]}>
-                            {followed ? "팔로잉" : "팔로우"}
+                            {followed ? "구독 중" : "구독"}
                           </Text>
                         </TouchableOpacity>
                       </TouchableOpacity>
