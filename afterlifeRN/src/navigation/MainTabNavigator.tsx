@@ -188,11 +188,15 @@ export default function v_19ba0e() {
       <Tab.Screen name="ShortsTab" component={v_14b43e} />
       <Tab.Screen name="ClonesTab" component={v_aedede} />
       {
+
 }
       <Tab.Screen
         name="MyTab"
         component={v_d9c5dd}
-        options={{ tabBarButton: () => null }}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: "none" },
+        }}
       />
     </Tab.Navigator>
   );
