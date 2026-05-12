@@ -659,28 +659,32 @@ export default function v_def15b() {
             {
 }
             <View style={v_fd5f43.profileSection}>
-              {v_b113dd?.avatarUrl || v_f38ee5?.avatarUrl ? (
-                <Image
-                  source={{ uri: (v_b113dd?.avatarUrl ?? v_f38ee5?.avatarUrl) as string }}
-                  style={v_fd5f43.profileAvatar}
-                />
-              ) : (
-                <View style={[v_fd5f43.profileAvatar, v_fd5f43.profileAvatarPlaceholder]}>
-                  <Feather name="user" size={36} color={v_1bfbd0.zinc400} />
-                </View>
-              )}
-              <Text style={v_fd5f43.profileName} numberOfLines={1}>
-                {v_b113dd?.name ?? v_f38ee5?.displayName ?? "사용자"}
-              </Text>
-              <View style={v_fd5f43.profileStatsRow}>
-                <View style={v_fd5f43.profileStatItem}>
-                  <Text style={v_fd5f43.profileStatValue}>{v_a7e127}</Text>
-                  <Text style={v_fd5f43.profileStatLabel}>팔로워</Text>
-                </View>
-                <View style={v_fd5f43.profileStatDivider} />
-                <View style={v_fd5f43.profileStatItem}>
-                  <Text style={v_fd5f43.profileStatValue}>{v_48d264}</Text>
-                  <Text style={v_fd5f43.profileStatLabel}>팔로잉</Text>
+              <View style={v_fd5f43.profileLeft}>
+                {v_b113dd?.avatarUrl || v_f38ee5?.avatarUrl ? (
+                  <Image
+                    source={{ uri: (v_b113dd?.avatarUrl ?? v_f38ee5?.avatarUrl) as string }}
+                    style={v_fd5f43.profileAvatar}
+                  />
+                ) : (
+                  <View style={[v_fd5f43.profileAvatar, v_fd5f43.profileAvatarPlaceholder]}>
+                    <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
+                  </View>
+                )}
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={v_fd5f43.profileName} numberOfLines={1}>
+                    {v_b113dd?.name ?? v_f38ee5?.displayName ?? "사용자"}
+                  </Text>
+                  <View style={v_fd5f43.profileStatsRow}>
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_a7e127}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>팔로워</Text>
+                    </View>
+                    <View style={v_fd5f43.profileStatDivider} />
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_48d264}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>팔로잉</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
@@ -1180,54 +1184,38 @@ const v_fd5f43 = v_472849.create({
   },
 
   profileSection: {
-    alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 16,
-    marginBottom: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    marginBottom: 8,
   },
-  profileAvatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    marginBottom: 12,
-    borderWidth: 3,
-    borderColor: v_1bfbd0.white,
-  },
+  profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatar: { width: 64, height: 64, borderRadius: 32 },
   profileAvatarPlaceholder: {
     backgroundColor: v_1bfbd0.zinc100,
     alignItems: "center",
     justifyContent: "center",
   },
   profileName: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "700",
     color: v_1bfbd0.zinc900,
-    marginBottom: 14,
+    marginBottom: 8,
   },
-  profileStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    alignSelf: "stretch",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    backgroundColor: v_1bfbd0.zinc50,
-    borderRadius: 16,
-  },
-  profileStatItem: { flex: 1, alignItems: "center" },
-  profileStatValue: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  profileStatLabel: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 4 },
-  profileStatDivider: { width: 1, height: 28, backgroundColor: v_1bfbd0.zinc200 },
+  profileStatsRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  profileStatItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  profileStatValue: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  profileStatLabel: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  profileStatDivider: { width: 1, height: 12, backgroundColor: v_1bfbd0.zinc200 },
 
   dashTitle: { marginTop: 16, marginBottom: 20 },
   dashTitleRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: 8,
+    marginBottom: 16,
   },
-  dashTitleText: { fontSize: 17, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  dashTitleText: { fontSize: 20, fontWeight: "700", color: v_1bfbd0.zinc900 },
   inviteStatusBtn: {
     flexDirection: "row",
     alignItems: "center",
