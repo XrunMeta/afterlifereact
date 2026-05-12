@@ -24,6 +24,10 @@ export type AuthStackParamList = {
     gender?: "male" | "female" | "other";
     age?: number;
     interests?: string[];
+
+    country?: string;
+    mobileCode?: number;
+    region?: number;
     marketingConsent: boolean;
 
     pushToken?: string;

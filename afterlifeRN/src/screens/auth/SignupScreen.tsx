@@ -17,12 +17,15 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import SelectField from "../../components/ui/SelectField";
 import PageHeader from "../../components/common/PageHeader";
+import CountryRegionPicker from "../../components/common/CountryRegionPicker";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, getMe, AuthApiError } from "../../api/auth";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import type { RouteProp } from "@react-navigation/native";
 import { useAuthStore } from "../../stores/authStore";
+import type { CountryDialCode } from "../../types/country";
+import { GLOBAL_REGION } from "../../constants/regions";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
@@ -47,6 +50,9 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
   const [age, setAge] = useState("");
+  const [country, setCountry] = useState<CountryDialCode | null>(null);
+  const [region, setRegion] = useState<CountryDialCode | null>(null);
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeRequired, setAgreeRequired] = useState(false);
@@ -95,6 +101,10 @@ export default function SignupScreen({ navigation, route }: Props) {
       Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
       return;
     }
+    if (!country) {
+      Alert.alert(t("common.notice"), t("auth.signup.countryRequired"));
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       Alert.alert(t("common.notice"), t("auth.signup.emailInvalid"));
       return;
@@ -124,6 +134,14 @@ export default function SignupScreen({ navigation, route }: Props) {
 
     setSubmitting(true);
     try {
+
+      const countryCode = country.iso2.toUpperCase();
+      const mobileCode = country.countryCode ?? 0;
+      const regionCode =
+        region && region.iso2 !== "global"
+          ? parseInt(region.dialCode, 10) || 0
+          : 0;
+
       if (google) {
 
         const res = await signup({
@@ -133,6 +151,9 @@ export default function SignupScreen({ navigation, route }: Props) {
           phone,
           gender: gender || undefined,
           age: ageNum,
+          country: countryCode,
+          mobileCode,
+          region: regionCode,
           marketingConsent: agreeMarketing,
           deviceId: deviceId ?? undefined,
           pushToken: pushToken ?? undefined,
@@ -153,6 +174,9 @@ export default function SignupScreen({ navigation, route }: Props) {
         phone,
         gender: gender || undefined,
         age: ageNum,
+        country: countryCode,
+        mobileCode,
+        region: regionCode,
         marketingConsent: agreeMarketing,
         pushToken: pushToken ?? undefined,
         platform: pushPlatform ?? undefined,
@@ -270,6 +294,37 @@ export default function SignupScreen({ navigation, route }: Props) {
           </View>
 
           {}
+          <TouchableOpacity
+            style={styles.pickerField}
+            onPress={() => setCountryPickerOpen(true)}
+            activeOpacity={0.7}
+          >
+            <Feather name="globe" size={18} color={COLORS.zinc500} />
+            <View style={styles.pickerLabelWrap}>
+              {country ? (
+                <Text style={styles.pickerValue} numberOfLines={1}>
+                  {country.flagEmoji}{" "}
+                  {t(`countries:${country.iso2.toUpperCase()}`, country.name)}
+                  {region && region.iso2 !== "global" && (
+                    <Text style={styles.pickerRegion}>
+                      {"  ·  "}
+                      {t(
+                        `regions:${region.countryCode}_${region.dialCode}`,
+                        region.name,
+                      )}
+                    </Text>
+                  )}
+                </Text>
+              ) : (
+                <Text style={styles.pickerPlaceholder}>
+                  {t("auth.signup.countryPlaceholder")}
+                </Text>
+              )}
+            </View>
+            <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
+          </TouchableOpacity>
+
+          {}
           <View style={styles.terms}>
             <TouchableOpacity
               onPress={() => setAgreeRequired(!agreeRequired)}
@@ -303,6 +358,19 @@ export default function SignupScreen({ navigation, route }: Props) {
           />
         </View>
       </SafeScrollView>
+
+      {
+}
+      <CountryRegionPicker
+        visible={countryPickerOpen}
+        onClose={() => setCountryPickerOpen(false)}
+        selectedCountry={country}
+        selectedRegion={region}
+        onSelect={(c, r) => {
+          setCountry(c);
+          setRegion(r);
+        }}
+      />
     </SafeView>
   );
 }
@@ -326,6 +394,21 @@ const styles = StyleSheet.create({
   ageField: {
     width: 100,
   },
+  pickerField: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    backgroundColor: COLORS.white,
+  },
+  pickerLabelWrap: { flex: 1 },
+  pickerPlaceholder: { fontSize: 14, color: COLORS.zinc400 },
+  pickerValue: { fontSize: 14, color: COLORS.zinc900 },
+  pickerRegion: { color: COLORS.zinc500, fontSize: 13 },
   passwordHint: {
     fontSize: 12,
     color: COLORS.zinc500,
