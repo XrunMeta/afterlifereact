@@ -685,7 +685,7 @@ export default function v_def15b() {
                 v_c65f5d.dispatch(
                   v_650cfa.navigate({
                     name: "CreateTab",
-                    params: { screen: "Step2" },
+                    params: { screen: "Step3" },
                   }),
                 )
               }

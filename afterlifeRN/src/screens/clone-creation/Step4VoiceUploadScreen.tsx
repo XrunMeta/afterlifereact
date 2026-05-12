@@ -30,14 +30,15 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
-      <StepIndicator currentStep={3} totalSteps={6} />
+      <StepIndicator currentStep={2} totalSteps={4} />
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
         <Content draft={v_f04727} onChange={v_5795de} />
       </SafeScrollView>
       <View style={v_d81136.bottomBar}>
         <Button
           title={v_8d41d7("create.next")}
-          onPress={() => v_c65f5d.navigate('Step5')}
+
+          onPress={() => v_c65f5d.navigate('Step6')}
           disabled={!v_04fddf}
         />
       </View>
