@@ -14,12 +14,14 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../constants";
 import {
-  v_1bd8ad,
+  v_202d44,
   v_52495e,
   v_789afd,
   v_369014,
 } from "../../constants";
 import type { v_da1883 } from "../../types/country";
+
+const v_aedc3e = ["kr", "us", "jp", "cn", "id"];
 
 type Mode = "country" | "region";
 
@@ -49,7 +51,31 @@ export default function v_57037e({
     }
   }, [v_cf55be]);
 
-  const v_6c7bef = v_1bd8ad;
+  const v_6c7bef = v_df9f57<v_da1883[]>(() => {
+    const v_110a8b = new Set<string>();
+    const uniq: v_da1883[] = [];
+    for (const v_3f4e2e of v_202d44) {
+      if (!v_3f4e2e.iso2 || v_110a8b.has(v_3f4e2e.iso2.toLowerCase())) continue;
+      v_110a8b.add(v_3f4e2e.iso2.toLowerCase());
+      v_300473.push(v_3f4e2e);
+    }
+    const top: v_da1883[] = [];
+    const rest: v_da1883[] = [];
+    for (const v_3f4e2e of v_300473) {
+      const v_e86ad8 = v_aedc3e.indexOf(v_3f4e2e.iso2.toLowerCase());
+      if (v_e86ad8 >= 0) v_fbc0a4[v_e86ad8] = v_3f4e2e;
+      else v_83bbcd.push(v_3f4e2e);
+    }
+
+    const v_e74124 = v_fbc0a4.filter(Boolean);
+
+    v_83bbcd.sort((v_779914, v_148ff6) => {
+      const v_922dab = v_8d41d7(`countries:${v_779914.iso2.toUpperCase()}`, v_779914.name);
+      const v_b3e922 = v_8d41d7(`countries:${v_148ff6.iso2.toUpperCase()}`, v_148ff6.name);
+      return v_922dab.localeCompare(v_b3e922);
+    });
+    return [...v_e74124, ...v_83bbcd];
+  }, [v_8d41d7]);
 
   const v_e94fdf = v_df9f57<v_da1883[]>(() => {
     if (!v_0899ab) return [];
