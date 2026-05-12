@@ -276,7 +276,6 @@ export default function MyScreen() {
       icon: "trash-2",
       labelKey: "settings.privacy.deleteAccount",
       descKey: "settings.privacy.deleteAccount",
-      danger: true,
       action: handleDeleteAccount,
     },
     {
@@ -343,7 +342,7 @@ export default function MyScreen() {
                   <Text style={s.settingsDesc}>{t(item.descKey)}</Text>
                 </View>
                 {disabled ? (
-                  <ActivityIndicator color={COLORS.error} />
+                  <ActivityIndicator color={COLORS.zinc500} />
                 ) : (
                   <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
                 )}
