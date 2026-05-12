@@ -193,7 +193,6 @@ export default function CountryRegionPicker({
                   onPress={() => handleSelect(item)}
                   activeOpacity={0.7}
                 >
-                  <Text style={s.flag}>{item.flagEmoji}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={s.name} numberOfLines={1}>
                       {labelFor(item)}

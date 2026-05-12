@@ -348,7 +348,6 @@ export default function SignupScreen({ navigation, route }: Props) {
             <View style={styles.pickerLabelWrap}>
               {country ? (
                 <Text style={styles.pickerValue} numberOfLines={1}>
-                  {country.flagEmoji}{" "}
                   {t(`countries:${country.iso2.toUpperCase()}`, {
                     defaultValue: country.name,
                   })}
