@@ -1,7 +1,15 @@
 
 
 import v_a3453e, { v_5ab095 } from "bapkr";
-import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392 } from "rcmrninabrnb";
+import {
+  v_3094a2,
+  v_19b633,
+  v_4623af,
+  v_472849,
+  v_03e392,
+  v_f2c756,
+  v_326be8,
+} from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -14,28 +22,57 @@ import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 import { v_7ef860, v_84a859 } from "../../api/auth";
 import { v_1ed7d9 } from "../../stores/authStore";
 
-type Props = v_432191<v_384e19, "SignupComplete">;
+const v_6847f9 = "xrun://";
+const v_afac13 =
+  "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+const v_8220cd =
+  "https://apps.apple.com/app/id1492389867"; 
+const v_15fd6d = "https://apps.apple.com/search?term=xrun";
 
-type ServiceKey = "afterlife" | "xrun";
+async function v_ca0728(v_e0c7e8) {
+  const v_6045c3 = v_e0c7e8
+    ? `${v_6847f9}?email=${encodeURIComponent(v_e0c7e8)}&from=afterlife`
+    : v_6847f9;
+  try {
+    const v_20e8d1 = await v_f2c756.canOpenURL(v_6045c3);
+    if (v_20e8d1) {
+      await v_f2c756.openURL(v_6045c3);
+      return;
+    }
+  } catch (v_49263d) {
+    console.warn("[SignupComplete] openXrun deepLink failed:", v_49263d);
+  }
+
+  const v_b71a74 =
+    v_326be8.OS === "android" ? v_afac13 : v_8220cd;
+  try {
+    const v_20e8d1 = await v_f2c756.canOpenURL(v_b71a74);
+    if (v_20e8d1) {
+      await v_f2c756.openURL(v_b71a74);
+      return;
+    }
+  } catch (v_49263d) {
+    console.warn("[SignupComplete] openXrun store failed:", v_49263d);
+  }
+
+  if (v_326be8.OS === "ios") {
+    v_f2c756.openURL(v_15fd6d).catch(() => {});
+  }
+}
+
+type Props = v_432191<v_384e19, "SignupComplete">;
 
 export default function v_933130({ route: v_c7daf6 }: Props) {
   const { t: v_8d41d7 } = v_772971();
 
   const v_2ca7e0 = v_c7daf6.params?.accessToken;
   const v_3c038e = v_c7daf6.params?.persist ?? true;
+  const v_e0c7e8 = v_c7daf6.params?.email;
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
-  console.log("[SignupComplete] mounted, hasToken:", !!v_2ca7e0);
+  console.log("[SignupComplete] mounted, hasToken:", !!v_2ca7e0, "email:", v_e0c7e8);
 
-  const [v_587413, v_2122dd] = v_5ab095<Record<ServiceKey, boolean>>({
-    afterlife: true,
-    xrun: true,
-  });
   const [v_1d049f, v_558bed] = v_5ab095(false);
-
-  const v_09f2bd = (v_b24339) => {
-    v_2122dd((v_ba2215) => ({ ...v_ba2215, [v_b24339]: !v_ba2215[v_b24339] }));
-  };
 
   const v_d0bbf9 = async () => {
     if (!v_2ca7e0) {
@@ -47,8 +84,6 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
 
       const v_9ec4c0 = await v_7ef860(v_2ca7e0);
       await v_31080f(v_2ca7e0, v_9ec4c0.user, { persist: v_3c038e });
-
-      console.log("[SignupComplete] services selected:", v_587413);
       await v_232d52();
     } catch (v_49263d) {
       console.warn("[SignupComplete] start failed:", v_49263d);
@@ -80,20 +115,22 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
             })}
           </Text>
 
-          {}
+          {
+
+}
           <View style={v_fd5f43.cards}>
             <ServiceCard
-              icon={
-                <Text style={v_fd5f43.iconText}>∞</Text>
-              }
+              icon={<Text style={v_fd5f43.iconText}>∞</Text>}
               title={v_8d41d7("auth.signupComplete.afterlifeTitle", {
                 defaultValue: "애프터라이프",
               })}
               subtitle={v_8d41d7("auth.signupComplete.afterlifeDesc", {
                 defaultValue: "다음 세상의 삶",
               })}
-              selected={v_587413.afterlife}
-              onPress={() => v_09f2bd("afterlife")}
+              rightIcon={
+                <Feather name="check" size={16} color={v_1bfbd0.violet500} />
+              }
+              onPress={undefined}
             />
             <ServiceCard
               icon={<Text style={v_fd5f43.iconText}>X</Text>}
@@ -103,8 +140,10 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
               subtitle={v_8d41d7("auth.signupComplete.xrunDesc", {
                 defaultValue: "Move to Earn",
               })}
-              selected={v_587413.xrun}
-              onPress={() => v_09f2bd("xrun")}
+              rightIcon={
+                <Feather name="external-link" size={16} color={v_1bfbd0.zinc500} />
+              }
+              onPress={() => v_ca0728(v_e0c7e8)}
             />
           </View>
         </View>
@@ -130,31 +169,31 @@ type ServiceCardProps = {
   icon: v_a3453e.ReactNode;
   title: string;
   subtitle: string;
-  selected: boolean;
-  onPress: () => void;
+  rightIcon?: v_a3453e.ReactNode;
+
+  onPress?: () => void;
 };
 
 function v_fd3960({
   icon: v_9ddfab,
   title: v_9f1622,
   subtitle: v_dda473,
-  selected: v_587413,
+  rightIcon: v_ca3ded,
   onPress: v_719eed,
 }: ServiceCardProps) {
   return (
     <TouchableOpacity
-      style={[v_fd5f43.card, v_587413 && v_fd5f43.cardSelected]}
+      style={v_fd5f43.card}
       onPress={v_719eed}
-      activeOpacity={0.85}
+      activeOpacity={v_719eed ? 0.85 : 1}
+      disabled={!v_719eed}
     >
       <View style={v_fd5f43.iconWrap}>{v_9ddfab}</View>
       <View style={{ flex: 1 }}>
         <Text style={v_fd5f43.cardTitle}>{v_9f1622}</Text>
         <Text style={v_fd5f43.cardSubtitle}>{v_dda473}</Text>
       </View>
-      <View style={[v_fd5f43.check, v_587413 && v_fd5f43.checkActive]}>
-        {v_587413 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
-      </View>
+      {v_ca3ded ? <View style={v_fd5f43.rightIconWrap}>{v_ca3ded}</View> : null}
     </TouchableOpacity>
   );
 }
@@ -198,9 +237,11 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 18,
     paddingHorizontal: 16,
   },
-  cardSelected: {
-    borderColor: v_1bfbd0.violet500,
-    borderWidth: 2,
+  rightIconWrap: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconWrap: {
     width: 48,
@@ -224,19 +265,6 @@ const v_fd5f43 = v_472849.create({
     fontSize: 12,
     color: v_1bfbd0.zinc500,
     marginTop: 2,
-  },
-  check: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: v_1bfbd0.zinc300,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkActive: {
-    backgroundColor: v_1bfbd0.violet500,
-    borderColor: v_1bfbd0.violet500,
   },
   footer: {
     paddingHorizontal: v_9b1a04.xlarge,

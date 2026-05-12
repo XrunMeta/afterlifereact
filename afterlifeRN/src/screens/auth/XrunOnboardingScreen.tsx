@@ -194,6 +194,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_c65f5d.replace("SignupComplete", {
         accessToken: v_8f00b9.accessToken,
         persist: true,
+        email: v_e0c7e8,
       });
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("common.error");

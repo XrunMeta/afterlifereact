@@ -208,6 +208,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         v_c65f5d.replace("SignupComplete", {
           accessToken: v_8f00b9.accessToken,
           persist: true,
+          email: v_e0c7e8,
         });
         return;
       }
