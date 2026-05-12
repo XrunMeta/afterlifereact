@@ -670,7 +670,7 @@ export default function MyClonesDashboardScreen() {
                     <Feather name="user" size={28} color={COLORS.zinc400} />
                   </View>
                 )}
-                <View style={{ flex: 1, marginLeft: 14 }}>
+                <View style={{ flex: 1, marginLeft: 20 }}>
                   <Text style={s.profileName} numberOfLines={1}>
                     {apiUser?.name ?? authUser?.displayName ?? "사용자"}
                   </Text>
