@@ -725,11 +725,6 @@ export default function MyClonesDashboardScreen() {
 }
           </>
         }
-        ListFooterComponent={
-          <TouchableOpacity style={s.loadMore}>
-            <Text style={s.loadMoreText}>{t("dashboard.loadMore")}</Text>
-          </TouchableOpacity>
-        }
       />
 
       {}
