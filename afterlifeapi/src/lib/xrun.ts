@@ -19,6 +19,39 @@ export interface XrunWalletLookupResult {
   reason?: string;
 }
 
+function isXrunMemberMissing(
+  res: Response,
+  json: { status?: string; code?: number; message?: string } | undefined,
+): boolean {
+  if (res.status === 404) return true;
+  if (json?.code === 404) return true;
+  const msg = (json?.message ?? "").toLowerCase();
+  return /not\s*found|no\s*such\s*member|not\s*exist|withdrawn|inactive\s*member/.test(msg);
+}
+
+export async function markXrunUnlinked(env: Bindings, xrunMember: number): Promise<void> {
+  try {
+    const res = await env.DB
+      .prepare(
+        `UPDATE users
+            SET xrun_member_id = NULL,
+                xrun_guid = NULL,
+                xrun_wallet = NULL,
+                xrun_linked_at = NULL
+          WHERE xrun_member_id = ?`,
+      )
+      .bind(xrunMember)
+      .run();
+    if ((res.meta?.changes ?? 0) > 0) {
+      console.log(
+        `[xrun] markXrunUnlinked member=${xrunMember} rows=${res.meta?.changes ?? 0}`,
+      );
+    }
+  } catch (err) {
+    console.warn("[xrun] markXrunUnlinked error:", (err as Error).message);
+  }
+}
+
 function generatePin(): string {
   const buf = new Uint8Array(16);
   crypto.getRandomValues(buf);
@@ -264,6 +297,9 @@ export async function hasXrunPaymentPin(env: Bindings, member: number): Promise<
   if (res.ok && json?.status === "success") {
     return { ok: true, hasPin: !!json.data?.[0]?.hasPin };
   }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
+  }
   return { ok: false, hasPin: false, reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
 }
 
@@ -292,6 +328,9 @@ export async function verifyXrunPaymentPin(
   if (res.ok && json?.status === "success") {
     const first = json.data?.[0] ?? {};
     return { ok: true, match: !!first.match, hasPin: !!first.hasPin };
+  }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
   }
   return { ok: false, match: false, hasPin: false, reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
 }
@@ -337,10 +376,13 @@ export async function closeXrunMember(env: Bindings, member: number): Promise<Xr
     return { ok: false, closed: false, reason: `non-json (${res.status})` };
   }
   if (res.ok && json?.status === "success") {
+
+    await markXrunUnlinked(env, member);
     return { ok: true, closed: true };
   }
 
-  if (res.status === 404 || json?.code === 404) {
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
     return { ok: true, closed: false, reason: "member not found (already closed?)" };
   }
   return {
@@ -372,6 +414,10 @@ export async function getXrunBalances(env: Bindings, member: number): Promise<Xr
   }
   if (res.ok && json?.status === "success") {
     return { ok: true, balances: json.data ?? [] };
+  }
+
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
   }
   return {
     ok: false,
@@ -449,6 +495,9 @@ export async function externalTransferSplit(
       newBalance:
         json.data.newBalance == null ? null : String(json.data.newBalance),
     };
+  }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, args.fromMember);
   }
   return {
     ok: false,
