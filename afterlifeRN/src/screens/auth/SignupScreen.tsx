@@ -20,11 +20,10 @@ import v_258c1c from "../../components/common/PageHeader";
 import v_57037e from "../../components/common/CountryRegionPicker";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import { v_97ea8d, v_35200c, v_7ef860, v_84a859 } from "../../api/auth";
+import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
 import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
-import { v_1ed7d9 } from "../../stores/authStore";
 import type { v_da1883 } from "../../types/country";
 import { v_789afd } from "../../constants/regions";
 
@@ -55,8 +54,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     return v_d47c2d;
   }, [v_8d41d7]);
   const v_a8d185 = v_c7daf6.params?.google;
-  const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
-  const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
 
   const [v_1833e7, v_318f24] = v_5ab095(v_a8d185?.name ?? "");
   const [v_e0c7e8, v_fedf34] = v_5ab095(v_a8d185?.email ?? "");
@@ -205,10 +202,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           platform: v_ea920b ?? undefined,
           googleIdToken: v_a8d185.idToken,
         });
-        const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
-        await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user);
-        console.log("[AUTH/google.signup] user:", v_9ec4c0.user);
-        await v_232d52();
+
+        v_c65f5d.replace("SignupComplete", {
+          accessToken: v_8f00b9.accessToken,
+          persist: true,
+        });
         return;
       }
       await v_97ea8d(v_e0c7e8);

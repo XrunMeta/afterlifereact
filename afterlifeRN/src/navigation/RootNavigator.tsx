@@ -10,6 +10,7 @@ import v_61d670 from "../screens/auth/XrunLoginScreen";
 import v_e24882 from "../screens/auth/XrunOtpScreen";
 import v_033f95 from "../screens/auth/XrunOnboardingScreen";
 import v_040c8f from "../screens/auth/ForgotPasswordScreen";
+import v_933130 from "../screens/auth/SignupCompleteScreen";
 
 import v_19ba0e from "./MainTabNavigator";
 
@@ -31,6 +32,7 @@ function v_aebbaf() {
       <AuthStack.Screen name="XrunOtp" component={v_e24882} />
       <AuthStack.Screen name="XrunOnboarding" component={v_033f95} />
       <AuthStack.Screen name="ForgotPassword" component={v_040c8f} />
+      <AuthStack.Screen name="SignupComplete" component={v_933130} />
     </AuthStack.Navigator>
   );
 }
