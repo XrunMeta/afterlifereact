@@ -39,6 +39,10 @@ const v_7b8b17 = v_1f4ea7.object({
   gender: v_1f4ea7.enum(["male", "female", "other"]).optional(),
   age: v_1f4ea7.number().int().min(13).max(120).optional(),
   interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
+
+  country: v_1f4ea7.string().length(2).regex(/^[A-Z]{2}$/).optional(),
+  mobileCode: v_1f4ea7.number().int().min(0).max(99999).optional(),
+  region: v_1f4ea7.string().max(20).optional(),
   marketingConsent: v_1f4ea7.boolean().optional().default(false),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
   pushToken: v_1f4ea7.string().min(1).max(500).optional(),
@@ -431,8 +435,8 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   try {
     v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
@@ -444,6 +448,9 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
         null, 
         v_1f5d19,
         v_4d33b2.marketingConsent ? 1 : 0,
+        v_4d33b2.country ?? null,
+        v_4d33b2.mobileCode ?? null,
+        v_4d33b2.region ?? null,
       )
       .first();
   } catch (v_49263d) {

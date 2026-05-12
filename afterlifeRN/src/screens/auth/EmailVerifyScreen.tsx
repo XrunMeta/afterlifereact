@@ -17,8 +17,7 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import { v_97ea8d, v_35200c, v_7ef860, v_84a859 } from "../../api/auth";
-import { v_1ed7d9 } from "../../stores/authStore";
+import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
 
 type Props = v_432191<v_384e19, "EmailVerify">;
 
@@ -31,7 +30,6 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
   const [v_600d5b, v_ec979d] = v_5ab095(v_d812cb);
   const v_32f473 = v_e662ae<v_79c4f2>(null);
-  const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
 
   v_c4deb2(() => {
     const v_8d41d7 = setInterval(() => v_ec979d((v_fd5f43) => (v_fd5f43 > 0 ? v_fd5f43 - 1 : 0)), 1000);
@@ -73,19 +71,21 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         gender: v_24baff.gender,
         age: v_24baff.age,
         interests: v_24baff.interests,
+        country: v_24baff.country,
+        mobileCode: v_24baff.mobileCode,
+        region: v_24baff.region,
         marketingConsent: v_24baff.marketingConsent,
         deviceId: v_24baff.deviceId,
         pushToken: v_24baff.pushToken,
         platform: v_24baff.platform,
       });
 
-      const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
-      await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user);
-      console.log("[AUTH/signup] user:", v_9ec4c0.user, "accessExpiresIn:", v_8f00b9.accessExpiresIn);
-
-      v_03e392.alert(v_8d41d7("auth.signup.signupBtn"), v_8d41d7("common.success"), [
-        { text: v_8d41d7("common.ok"), onPress: () => v_c65f5d.navigate("Login") },
-      ]);
+      console.log("[AUTH/signup] success, accessExpiresIn:", v_8f00b9.accessExpiresIn);
+      v_c65f5d.replace("SignupComplete", {
+        accessToken: v_8f00b9.accessToken,
+        persist: true,
+        email: v_24baff.email,
+      });
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("auth.signup.signupFailed");
       if (v_49263d instanceof v_84a859) {

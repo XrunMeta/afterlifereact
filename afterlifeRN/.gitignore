@@ -18,6 +18,16 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Firebase
+# - google-services.json 은 클라이언트 식별자 + 자동 제한된 client API key 만
+#   포함하므로 git 커밋 OK. 어차피 APK 에 박혀 배포되어 누구나 추출 가능.
+#   (Expo 공식 가이드도 커밋 권장.) → 커밋 허용 (gitignore 제외 안 함).
+# - firebase-service-account.json (admin SDK private key) 는 절대 커밋 금지.
+#   EAS credentials 통해 빌드 서버에만 업로드되어 푸시 발송 시 사용됨.
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+GoogleService-Info.plist
+
 # Metro
 .metro-health-check*
 

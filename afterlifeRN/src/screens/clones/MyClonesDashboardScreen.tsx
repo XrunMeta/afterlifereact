@@ -11,9 +11,11 @@ import {
   v_122070,
   v_79c4f2,
   v_39a996,
+  v_5f4661,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_fba5a0 from "hfxxehldoiokdq";
@@ -623,12 +625,23 @@ export default function v_def15b() {
               } else {
 
                 const v_f71b56 = `https://afterlife.app/clone/${v_eb25ce.id}`;
+                const v_a8cd21 = `${v_eb25ce.displayName} 페르소나와 대화해보세요!\n${v_f71b56}`;
                 try {
-                  await v_fba5a0.setStringAsync(v_f71b56);
+                  await v_5f4661.share(
+                    v_326be8.OS === "ios"
+                      ? { message: v_a8cd21, url: v_f71b56, title: v_eb25ce.displayName }
+                      : { message: v_a8cd21 },
+                    { dialogTitle: v_eb25ce.displayName },
+                  );
+                } catch (v_49263d) {
+                  console.warn("[dashboard] share failed:", v_49263d);
 
-                  v_b816d4(v_8d41d7("dashboard.shareLinkCopied"));
-                } catch {
-                  v_b816d4(v_8d41d7("dashboard.shareLinkFailed"));
+                  try {
+                    await v_fba5a0.setStringAsync(v_f71b56);
+                    v_b816d4(v_8d41d7("dashboard.shareLinkCopied"));
+                  } catch {
+                    v_b816d4(v_8d41d7("dashboard.shareLinkFailed"));
+                  }
                 }
               }
             }}
@@ -647,7 +660,26 @@ export default function v_def15b() {
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title={v_8d41d7("dashboard.title")}
-        rightAction={<NotificationBell />}
+        rightAction={
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <NotificationBell />
+            <TouchableOpacity
+              onPress={() =>
+                v_f4c991.dispatch(
+                  v_650cfa.navigate({
+                    name: "MyTab",
+                    params: { screen: "MyHome" },
+                  }),
+                )
+              }
+              activeOpacity={0.7}
+              hitSlop={8}
+            >
+              <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
+            </TouchableOpacity>
+          </View>
+        }
       />
 
       <FlatList
@@ -663,8 +695,24 @@ export default function v_def15b() {
             </View>
             <Text style={v_fd5f43.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
             <Text style={v_fd5f43.dashEmptyDesc}>
-              하단 가운데 + 버튼을 눌러 첫 페르소나를 만들 수 있어요
+              아래 버튼을 눌러 첫 페르소나를 만들 수 있어요
             </Text>
+            <TouchableOpacity
+              style={v_fd5f43.dashEmptyBtn}
+              activeOpacity={0.85}
+              onPress={() =>
+
+                v_c65f5d.dispatch(
+                  v_650cfa.navigate({
+                    name: "CreateTab",
+                    params: { screen: "Step1" },
+                  }),
+                )
+              }
+            >
+              <Feather name="plus" size={18} color={v_1bfbd0.white} />
+              <Text style={v_fd5f43.dashEmptyBtnText}>페르소나 만들기</Text>
+            </TouchableOpacity>
           </View>
         }
         ListHeaderComponent={
@@ -1206,6 +1254,17 @@ const v_fd5f43 = v_472849.create({
   },
   dashEmptyTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc800 },
   dashEmptyDesc: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", lineHeight: 18 },
+  dashEmptyBtn: {
+    marginTop: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  dashEmptyBtnText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 
   listContent: {
     paddingHorizontal: v_9b1a04.medium,

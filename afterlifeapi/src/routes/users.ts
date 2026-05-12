@@ -442,8 +442,27 @@ v_de7ba7.post("/me/delete", v_6690d9, async (v_3f4e2e) => {
   if ((v_8f00b9.meta?.changes ?? 0) === 0) {
     throw new v_3ebe58("CONFLICT", "Account is not in active state.");
   }
-  await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "user.soft_delete" });
-  return v_3f4e2e.json({ ok: true, state: "soft_deleted", restorableUntil: "+90d" });
+
+  const v_90e6ec = await v_a1651b
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE owner_id = ? AND deletion_state = 'active'`,
+    )
+    .bind(v_43e90c)
+    .run();
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "user.soft_delete",
+    details: { cascaded_clones: v_90e6ec.meta?.changes ?? 0 },
+  });
+  return v_3f4e2e.json({
+    ok: true,
+    state: "soft_deleted",
+    restorableUntil: "+90d",
+    cascadedClones: v_90e6ec.meta?.changes ?? 0,
+  });
 });
 
 v_de7ba7.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
@@ -463,8 +482,26 @@ v_de7ba7.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
   if ((v_8f00b9.meta?.changes ?? 0) === 0) {
     throw new v_3ebe58("CONFLICT", "Restoration window expired or account not soft-deleted.");
   }
-  await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "user.restore" });
-  return v_3f4e2e.json({ ok: true, state: "active" });
+
+  const v_90e6ec = await v_a1651b
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'active',
+              soft_deleted_at = NULL
+        WHERE owner_id = ? AND deletion_state = 'soft_deleted'`,
+    )
+    .bind(v_43e90c)
+    .run();
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "user.restore",
+    details: { restored_clones: v_90e6ec.meta?.changes ?? 0 },
+  });
+  return v_3f4e2e.json({
+    ok: true,
+    state: "active",
+    restoredClones: v_90e6ec.meta?.changes ?? 0,
+  });
 });
 
 v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
@@ -572,12 +609,27 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
     .bind(v_43e90c)
     .run();
 
+  const v_ad5d03 = await v_a1651b
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'hard_deleted',
+              deleted_at = CURRENT_TIMESTAMP,
+              name = 'deletedclone' || CAST(id AS TEXT),
+              description = NULL,
+              avatar_url = NULL,
+              cover_image_url = NULL
+        WHERE owner_id = ?`,
+    )
+    .bind(v_43e90c)
+    .run();
+
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
     action: "user.gdpr_delete",
     details: {
       shredded_deks: v_e2026a.length,
       purged_messages: v_2c4648.meta.changes ?? 0,
+      purged_clones: v_ad5d03.meta?.changes ?? 0,
     },
   });
   return v_3f4e2e.json({
@@ -585,6 +637,7 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
     state: "hard_deleted",
     shreddedDekCount: v_e2026a.length,
     purgedMessages: v_2c4648.meta.changes ?? 0,
+    purgedClones: v_ad5d03.meta?.changes ?? 0,
     xrunClose: v_9550e4,
   });
 });

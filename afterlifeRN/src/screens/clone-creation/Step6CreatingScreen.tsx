@@ -1,6 +1,5 @@
 import v_a3453e, { v_5ab095, v_c4deb2, v_e662ae } from "bapkr";
 import { v_3094a2, v_19b633, v_a2349e, v_472849 } from "rcmrninabrnb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
@@ -81,11 +80,6 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
         {}
         <View style={v_d81136.barTrack}>
           <View style={[v_d81136.barFill, { width: `${v_a63fde}%` }]} />
-        </View>
-
-        <View style={v_d81136.labelRow}>
-          <Feather name="cpu" size={14} color={v_1bfbd0.violet500} />
-          <Text style={v_d81136.labelText}>MUSETALK SYNC</Text>
         </View>
       </View>
       <MissingAssetsModal

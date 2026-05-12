@@ -35,15 +35,21 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
 
   hydrate: async () => {
 
-    const v_21cc31 = await v_e84827.getItem(v_1278db);
-    let apiUser: v_7289ef | null = null;
-    if (v_21cc31) {
-      try {
-        const v_8f00b9 = await v_7ef860(v_21cc31);
-        v_b113dd = v_8f00b9.user;
-      } catch {
+    const v_275ccd = v_38715b();
+    let apiUser: v_7289ef | null = v_275ccd.apiUser;
+    let v_21cc31 = v_275ccd.accessToken;
 
-        await v_e84827.removeItem(v_1278db);
+    if (!v_b113dd) {
+      v_21cc31 = await v_e84827.getItem(v_1278db);
+      if (v_21cc31) {
+        try {
+          const v_8f00b9 = await v_7ef860(v_21cc31);
+          v_b113dd = v_8f00b9.user;
+        } catch {
+
+          await v_e84827.removeItem(v_1278db);
+          v_21cc31 = null;
+        }
       }
     }
 

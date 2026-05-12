@@ -1,3 +1,5 @@
+
+
 import v_a3453e, { v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -8,6 +10,7 @@ import {
   v_472849,
   v_961e77,
   v_7e4944,
+  v_122070,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_1bfbd0, v_843035, v_9b1a04, v_8b0c90 } from "../constants";
@@ -27,6 +30,8 @@ export interface SelectFieldProps<T extends string = string> {
   leftIcon?: v_a3453e.ReactNode;
   containerStyle?: v_961e77<v_7e4944>;
   rounded?: number;
+
+  dropdownMaxHeight?: number;
 }
 
 export default function v_d56c0a<T extends string = string>({
@@ -39,6 +44,7 @@ export default function v_d56c0a<T extends string = string>({
   leftIcon: v_86ef18,
   containerStyle: v_4affe9,
   rounded: v_f52086 = 10,
+  dropdownMaxHeight: v_79040b = 400,
 }: SelectFieldProps<T>) {
   const [v_207c31, v_3cc8fd] = v_5ab095(false);
   const v_587413 = v_b36f96.find((v_b6c474) => v_b6c474.value === v_3b402b);
@@ -59,25 +65,49 @@ export default function v_d56c0a<T extends string = string>({
       </TouchableOpacity>
       {v_74dc8b ? <Text style={v_d81136.errorText}>{v_74dc8b}</Text> : null}
 
-      <Modal visible={v_207c31} transparent animationType="fade">
+      <Modal
+        visible={v_207c31}
+        transparent
+        animationType="fade"
+        onRequestClose={() => v_3cc8fd(false)}
+      >
         <Pressable style={v_d81136.overlay} onPress={() => v_3cc8fd(false)}>
-          <Pressable style={v_d81136.dropdownBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            {v_b36f96.map((v_68b2be, v_e86ad8) => (
-              <TouchableOpacity
-                key={v_68b2be.value}
-                style={[
-                  v_d81136.item,
-                  v_3b402b === v_68b2be.value && v_d81136.itemActive,
-                  v_e86ad8 === v_b36f96.length - 1 && v_d81136.itemLast,
-                ]}
-                onPress={() => { v_b187d9(v_68b2be.value); v_3cc8fd(false); }}
-              >
-                <Text style={[v_d81136.itemText, v_3b402b === v_68b2be.value && v_d81136.itemTextActive]}>
-                  {v_68b2be.label}
-                </Text>
-                {v_3b402b === v_68b2be.value && <Feather name="check" size={16} color={v_1bfbd0.zinc900} />}
-              </TouchableOpacity>
-            ))}
+          <Pressable
+            style={[v_d81136.dropdownBox, { maxHeight: v_79040b }]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
+            <ScrollView
+              style={{ maxHeight: v_79040b }}
+              showsVerticalScrollIndicator
+              keyboardShouldPersistTaps="handled"
+            >
+              {v_b36f96.map((v_68b2be, v_e86ad8) => (
+                <TouchableOpacity
+                  key={v_68b2be.value}
+                  style={[
+                    v_d81136.item,
+                    v_3b402b === v_68b2be.value && v_d81136.itemActive,
+                    v_e86ad8 === v_b36f96.length - 1 && v_d81136.itemLast,
+                  ]}
+                  onPress={() => {
+                    v_b187d9(v_68b2be.value);
+                    v_3cc8fd(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      v_d81136.itemText,
+                      v_3b402b === v_68b2be.value && v_d81136.itemTextActive,
+                    ]}
+                  >
+                    {v_68b2be.label}
+                  </Text>
+                  {v_3b402b === v_68b2be.value && (
+                    <Feather name="check" size={16} color={v_1bfbd0.zinc900} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -86,9 +116,7 @@ export default function v_d56c0a<T extends string = string>({
 }
 
 const v_d81136 = v_472849.create({
-  container: {
-    alignSelf: "stretch",
-  },
+  container: { alignSelf: "stretch" },
   label: {
     fontSize: 14,
     color: v_1bfbd0.mutedText,
@@ -104,18 +132,14 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.white,
     paddingHorizontal: v_9b1a04.medium,
   },
-  leftIcon: {
-    marginRight: v_9b1a04.small,
-  },
+  leftIcon: { marginRight: v_9b1a04.small },
   selectText: {
     flex: 1,
     fontSize: 16,
     color: v_1bfbd0.text,
     fontFamily: v_843035.regular,
   },
-  placeholder: {
-    color: v_1bfbd0.placeholder,
-  },
+  placeholder: { color: v_1bfbd0.placeholder },
   errorText: {
     marginTop: v_9b1a04.small / 2,
     fontSize: 12,
@@ -124,7 +148,7 @@ const v_d81136 = v_472849.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
@@ -133,7 +157,7 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.white,
     borderRadius: v_8b0c90.lg,
     width: "100%",
-    maxWidth: 320,
+    maxWidth: 360,
     overflow: "hidden",
   },
   item: {
@@ -141,22 +165,12 @@ const v_d81136 = v_472849.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: v_1bfbd0.zinc100,
   },
-  itemActive: {
-    backgroundColor: v_1bfbd0.zinc50,
-  },
-  itemLast: {
-    borderBottomWidth: 0,
-  },
-  itemText: {
-    fontSize: 15,
-    color: v_1bfbd0.zinc700,
-  },
-  itemTextActive: {
-    color: v_1bfbd0.zinc900,
-    fontWeight: "600",
-  },
+  itemActive: { backgroundColor: v_1bfbd0.zinc50 },
+  itemLast: { borderBottomWidth: 0 },
+  itemText: { fontSize: 15, color: v_1bfbd0.zinc700 },
+  itemTextActive: { color: v_1bfbd0.zinc900, fontWeight: "600" },
 });

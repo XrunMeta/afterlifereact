@@ -12,6 +12,10 @@ export interface SignupPayload {
   gender?: "male" | "female" | "other";
   age?: number;
   interests?: string[];
+
+  country?: string;
+  mobileCode?: number;
+  region?: string;
   marketingConsent?: boolean;
   deviceId?: string;
   pushToken?: string;

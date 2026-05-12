@@ -300,8 +300,12 @@ export default function v_c316d8() {
             style={v_d81136.emptyBtn}
             activeOpacity={0.85}
             onPress={() =>
-              v_f4c991.getParent()?.dispatch(
-                v_650cfa.navigate({ name: "CreateTab" }),
+
+              v_f4c991.dispatch(
+                v_650cfa.navigate({
+                  name: "CreateTab",
+                  params: { screen: "Step1" },
+                }),
               )
             }
           >
