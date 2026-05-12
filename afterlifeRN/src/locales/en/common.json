@@ -399,6 +399,8 @@
       "female": "Female",
       "other": "Other",
       "age": "Age",
+      "birthYearPlaceholder": "Birth Year",
+      "birthYearLabel": "Born {{year}}",
       "interests": "Choose interests (optional)",
       "country": "Country",
       "region": "Region",

@@ -39,6 +39,21 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     { value: "female" as const, label: v_8d41d7("auth.signup.female") },
     { value: "other" as const, label: v_8d41d7("auth.signup.other") },
   ];
+
+  const v_f701fd = v_a3453e.useMemo(() => {
+    const v_7d8cc0 = new Date().getFullYear();
+    const v_8ce3bd = v_7d8cc0 - 13; 
+    const v_b77ebc = v_7d8cc0 - 120;
+    const v_d47c2d = [];
+    for (let v_64877a = v_8ce3bd; v_64877a >= v_b77ebc; v_64877a--) {
+      const v_1f7c90 = String(v_64877a);
+      v_d47c2d.push({
+        value: v_1f7c90,
+        label: v_8d41d7("auth.signup.birthYearLabel", { year: v_1f7c90, defaultValue: `${v_1f7c90}년생` }),
+      });
+    }
+    return v_d47c2d;
+  }, [v_8d41d7]);
   const v_a8d185 = v_c7daf6.params?.google;
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
@@ -49,7 +64,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_0b3ebe, v_241a35] = v_5ab095("");
   const [v_d74a81, v_fcce73] = v_5ab095("");
   const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "other" | "">("");
-  const [v_2694bd, v_6e5c76] = v_5ab095("");
+
+  const [v_a95e84, v_8d7b85] = v_5ab095<string>("");
   const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(null);
   const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(null);
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
@@ -97,7 +113,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   };
 
   const v_585b02 = async () => {
-    if (!v_1833e7 || !v_e0c7e8 || !v_adc076 || !v_d74a81 || !v_c3eac4 || !v_2694bd) {
+    if (!v_1833e7 || !v_e0c7e8 || !v_adc076 || !v_d74a81 || !v_c3eac4 || !v_a95e84) {
       v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return;
     }
@@ -126,7 +142,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       return;
     }
 
-    const v_f4fe8e = parseInt(v_2694bd, 10);
+    const v_dc9d4a = parseInt(v_a95e84, 10);
+    const v_7d8cc0 = new Date().getFullYear();
+    const v_f4fe8e = v_7d8cc0 - v_dc9d4a;
     if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
       v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.ageInvalid"));
       return;
@@ -283,12 +301,12 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 placeholder={v_8d41d7("auth.signup.gender")}
               />
             </View>
-            <View style={v_d81136.ageField}>
-              <TextField
-                placeholder={v_8d41d7("auth.signup.age")}
-                value={v_2694bd}
-                onChangeText={v_6e5c76}
-                keyboardType="number-pad"
+            <View style={{ flex: 1 }}>
+              <SelectField<string>
+                options={v_f701fd}
+                value={v_a95e84}
+                onChange={v_8d7b85}
+                placeholder={v_8d41d7("auth.signup.birthYearPlaceholder")}
               />
             </View>
           </View>
