@@ -1,6 +1,6 @@
 
 
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Modal,
   View,
@@ -10,7 +10,6 @@ import {
   FlatList,
   StyleSheet,
   Pressable,
-  Dimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -30,52 +29,28 @@ type Mode = "country" | "region";
 type Props = {
   visible: boolean;
   onClose: () => void;
-
-  anchorRef: React.RefObject<View | null>;
   selectedCountry: CountryDialCode | null;
   selectedRegion: CountryDialCode | null;
   onSelect: (country: CountryDialCode, region: CountryDialCode | null) => void;
-
-  dropdownMaxHeight?: number;
 };
-
-type Anchor = { top: number; left: number; width: number; below: boolean };
 
 export default function CountryRegionPicker({
   visible,
   onClose,
-  anchorRef,
   selectedCountry,
   selectedRegion,
   onSelect,
-  dropdownMaxHeight = 360,
 }: Props) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>("country");
   const [query, setQuery] = useState("");
-  const [anchor, setAnchor] = useState<Anchor | null>(null);
 
   useEffect(() => {
-    if (!visible) return;
-    setMode("country");
-    setQuery("");
-
-    const tid = setTimeout(() => {
-      anchorRef.current?.measureInWindow?.((x, y, width, height) => {
-        const screenH = Dimensions.get("window").height;
-        const spaceBelow = screenH - (y + height);
-        const spaceAbove = y;
-        const below = spaceBelow >= 220 || spaceBelow >= spaceAbove;
-        setAnchor({
-          top: below ? y + height + 4 : y - 4,
-          left: x,
-          width,
-          below,
-        });
-      });
-    }, 0);
-    return () => clearTimeout(tid);
-  }, [visible, anchorRef]);
+    if (visible) {
+      setMode("country");
+      setQuery("");
+    }
+  }, [visible]);
 
   const countries = useMemo<CountryDialCode[]>(() => {
     const seen = new Set<string>();
@@ -117,7 +92,6 @@ export default function CountryRegionPicker({
         mode === "country"
           ? `countries:${item.iso2.toUpperCase()}`
           : `regions:${item.countryCode}_${item.dialCode}`;
-
       const translated = t(tKey, { defaultValue: "" }).toLowerCase();
       return name.includes(q) || (!!translated && translated.includes(q));
     });
@@ -146,182 +120,163 @@ export default function CountryRegionPicker({
 
   const labelFor = (item: CountryDialCode): string => {
     if (mode === "country") {
-      return t(`countries:${item.iso2.toUpperCase()}`, {
-        defaultValue: item.name,
-      });
+      return t(`countries:${item.iso2.toUpperCase()}`, { defaultValue: item.name });
     }
-    return t(`regions:${item.countryCode}_${item.dialCode}`, {
-      defaultValue: item.name,
-    });
+    return t(`regions:${item.countryCode}_${item.dialCode}`, { defaultValue: item.name });
   };
 
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="none"
+      animationType="fade"
       onRequestClose={onClose}
     >
       <Pressable style={s.overlay} onPress={onClose}>
-        {anchor && (
-          <Pressable
-            style={[
-              s.dropdown,
-              {
-                position: "absolute",
-                top: anchor.below ? anchor.top : undefined,
-                bottom: anchor.below
-                  ? undefined
-                  : Dimensions.get("window").height - anchor.top,
-                left: anchor.left,
-                width: anchor.width,
-                maxHeight: dropdownMaxHeight,
-              },
-            ]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            {}
-            <View style={s.header}>
-              {mode === "region" ? (
-                <TouchableOpacity
-                  onPress={() => {
-                    setMode("country");
-                    setQuery("");
-                  }}
-                  style={s.backBtn}
-                >
-                  <Feather name="arrow-left" size={16} color={COLORS.zinc700} />
-                </TouchableOpacity>
-              ) : (
-                <View style={s.backBtn} />
-              )}
-              <Text style={s.headerTitle}>
-                {mode === "country"
-                  ? t("common:auth.signup.country") || "국가"
-                  : t("common:auth.signup.region") || "지역"}
-              </Text>
-              <View style={s.backBtn} />
-            </View>
+        <Pressable style={s.card} onPress={(e) => e.stopPropagation()}>
+          {}
+          <View style={s.header}>
+            {mode === "region" ? (
+              <TouchableOpacity
+                onPress={() => {
+                  setMode("country");
+                  setQuery("");
+                }}
+                style={s.headerBtn}
+              >
+                <Feather name="arrow-left" size={20} color={COLORS.zinc700} />
+              </TouchableOpacity>
+            ) : (
+              <View style={s.headerBtn} />
+            )}
+            <Text style={s.headerTitle}>
+              {mode === "country"
+                ? t("common:auth.signup.country") || "국가"
+                : t("common:auth.signup.region") || "지역"}
+            </Text>
+            <TouchableOpacity onPress={onClose} style={s.headerBtn}>
+              <Feather name="x" size={20} color={COLORS.zinc700} />
+            </TouchableOpacity>
+          </View>
 
-            {}
-            <View style={s.searchWrap}>
-              <Feather name="search" size={14} color={COLORS.zinc400} />
-              <TextInput
-                style={s.searchInput}
-                placeholder={
-                  t("common:auth.signup.searchPlaceholder") || "검색..."
-                }
-                placeholderTextColor={COLORS.zinc400}
-                value={query}
-                onChangeText={setQuery}
-                autoCapitalize="none"
-              />
-            </View>
-
-            {}
-            <FlatList
-              data={filtered}
-              keyExtractor={(item, idx) =>
-                mode === "country"
-                  ? `c-${item.iso2}-${idx}`
-                  : `r-${item.countryCode}-${item.dialCode}-${idx}`
-              }
-              keyboardShouldPersistTaps="handled"
-              renderItem={({ item }) => {
-                const isSelected =
-                  mode === "country"
-                    ? selectedCountry?.iso2 === item.iso2
-                    : selectedRegion?.dialCode === item.dialCode &&
-                      selectedRegion?.countryCode === item.countryCode;
-                return (
-                  <TouchableOpacity
-                    style={[s.row, isSelected && s.rowSelected]}
-                    onPress={() => handleSelect(item)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={s.flag}>{item.flagEmoji}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={s.name} numberOfLines={1}>
-                        {labelFor(item)}
-                      </Text>
-                      {mode === "country" && (
-                        <Text style={s.sub}>{item.dialCode}</Text>
-                      )}
-                    </View>
-                    {isSelected && (
-                      <Feather name="check" size={16} color={COLORS.violet500} />
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-              ListEmptyComponent={
-                <Text style={s.emptyText}>
-                  {t("common:auth.signup.noResults") || "결과 없음"}
-                </Text>
-              }
+          {}
+          <View style={s.searchWrap}>
+            <Feather name="search" size={16} color={COLORS.zinc400} />
+            <TextInput
+              style={s.searchInput}
+              placeholder={t("common:auth.signup.searchPlaceholder") || "검색..."}
+              placeholderTextColor={COLORS.zinc400}
+              value={query}
+              onChangeText={setQuery}
+              autoCapitalize="none"
             />
-          </Pressable>
-        )}
+          </View>
+
+          {}
+          <FlatList
+            data={filtered}
+            keyExtractor={(item, idx) =>
+              mode === "country"
+                ? `c-${item.iso2}-${idx}`
+                : `r-${item.countryCode}-${item.dialCode}-${idx}`
+            }
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => {
+              const isSelected =
+                mode === "country"
+                  ? selectedCountry?.iso2 === item.iso2
+                  : selectedRegion?.dialCode === item.dialCode &&
+                    selectedRegion?.countryCode === item.countryCode;
+              return (
+                <TouchableOpacity
+                  style={[s.row, isSelected && s.rowSelected]}
+                  onPress={() => handleSelect(item)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.flag}>{item.flagEmoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.name} numberOfLines={1}>
+                      {labelFor(item)}
+                    </Text>
+                    {mode === "country" && (
+                      <Text style={s.sub}>{item.dialCode}</Text>
+                    )}
+                  </View>
+                  {isSelected && (
+                    <Feather name="check" size={18} color={COLORS.violet500} />
+                  )}
+                </TouchableOpacity>
+              );
+            }}
+            ListEmptyComponent={
+              <Text style={s.emptyText}>
+                {t("common:auth.signup.noResults") || "결과 없음"}
+              </Text>
+            }
+          />
+        </Pressable>
       </Pressable>
     </Modal>
   );
 }
 
 const s = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
 
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.08)" },
-  dropdown: {
+  card: {
+    width: "100%",
+    maxWidth: 420,
+    maxHeight: "85%",
     backgroundColor: COLORS.white,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
+    borderRadius: RADIUS.lg,
     overflow: "hidden",
   },
   header: {
+    height: 52,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.zinc100,
   },
-  backBtn: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 13, fontWeight: "700", color: COLORS.zinc900 },
+  headerBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  headerTitle: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    margin: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: RADIUS.sm,
+    gap: 8,
+    margin: SIZES.medium,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
     backgroundColor: COLORS.zinc100,
   },
-  searchInput: { flex: 1, fontSize: 13, color: COLORS.zinc900, padding: 0 },
+  searchInput: { flex: 1, fontSize: 14, color: COLORS.zinc900, padding: 0 },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 12,
+    paddingHorizontal: SIZES.large,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.zinc100,
   },
   rowSelected: { backgroundColor: COLORS.violet100 },
-  flag: { fontSize: 18 },
-  name: { fontSize: 13, color: COLORS.zinc900, fontWeight: "500" },
-  sub: { fontSize: 11, color: COLORS.zinc500, marginTop: 1 },
+  flag: { fontSize: 22 },
+  name: { fontSize: 14, color: COLORS.zinc900, fontWeight: "500" },
+  sub: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
   emptyText: {
     textAlign: "center",
     color: COLORS.zinc400,
-    paddingTop: 24,
-    paddingBottom: 16,
-    fontSize: 13,
+    paddingTop: 32,
+    paddingBottom: 24,
+    fontSize: 14,
   },
 });
