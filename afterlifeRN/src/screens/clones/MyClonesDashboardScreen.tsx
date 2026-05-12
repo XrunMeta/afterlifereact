@@ -13,6 +13,7 @@ import {
   v_39a996,
   v_5f4661,
   v_326be8,
+  v_f2c756,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
@@ -30,6 +31,7 @@ import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
 import v_0e981f from "../../components/common/NotificationBell";
 import { v_84a859 } from "../../api/auth";
+import { v_5c99c1 } from "../../api/payments";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
@@ -160,6 +162,9 @@ export default function v_def15b() {
   const [v_8769c2, v_fb07c9] = v_5ab095<Set<number>>(new Set());
   const [v_ce3af0, v_8d2d61] = v_5ab095<number | null>(null);
 
+  const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
+  const [v_19340b, v_14129c] = v_5ab095(true);
+
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
     type: "likes" | "interactions" | "comments" | "followers";
     cloneId: number;
@@ -283,6 +288,47 @@ export default function v_def15b() {
     const v_275ccd = v_699459[v_6e0fd3]?.visibility ?? "public";
     v_2dbd8f({ cloneId: v_6e0fd3, currentVisibility: v_275ccd });
     v_8d2d61(null);
+  };
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) {
+      v_14129c(false);
+      v_67ba02(undefined);
+      return;
+    }
+    let v_2008a4 = false;
+    v_14129c(true);
+    v_5c99c1(v_2ca7e0)
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_67ba02(v_8f00b9.linked ? (v_8f00b9.xrun ?? 0) : undefined);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Dashboard] xrun balance fetch failed:", v_49263d);
+        if (!v_2008a4) v_67ba02(undefined);
+      })
+      .finally(() => {
+        if (!v_2008a4) v_14129c(false);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2ca7e0]);
+
+  const v_63ceb4 = async () => {
+    const v_be4a9f = "market://details?id=run.xrun.xrunapp";
+    const v_5bca88 = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+    const v_789b41 = "https://apps.apple.com/app/id1492389867";
+    try {
+      if (v_326be8.OS === "android") {
+        const v_e4c8cf = await v_f2c756.canOpenURL(v_be4a9f);
+        await v_f2c756.openURL(v_e4c8cf ? v_be4a9f : v_5bca88);
+      } else {
+        await v_f2c756.openURL(v_789b41);
+      }
+    } catch (v_49263d) {
+      console.warn("[Dashboard] open xrun store failed:", v_49263d);
+    }
   };
 
   const v_c9f992 = (v: v_b0b271) => {
@@ -615,6 +661,40 @@ export default function v_def15b() {
                 <Text style={v_fd5f43.dashTitleText}>{v_8d41d7("dashboard.headerTitle")}</Text>
                 <Text style={v_fd5f43.dashSubText}>{v_8d41d7("dashboard.headerDesc")}</Text>
               </View>
+            </View>
+
+            {
+}
+            <View style={v_fd5f43.coinRow}>
+              <Image
+                source={require("../../../assets/images/xrun-round-logo.png")}
+                style={v_fd5f43.coinIcon}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={v_fd5f43.coinSymbol}>XRUN</Text>
+                <Text style={v_fd5f43.coinNetwork}>Polygon</Text>
+              </View>
+              <View style={v_fd5f43.coinAmountWrap}>
+                {v_19340b ? (
+                  <ActivityIndicator color={v_1bfbd0.zinc900} />
+                ) : v_1d54f1 != null ? (
+                  <Text style={v_fd5f43.coinAmountText}>
+                    {v_1d54f1.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                    <Text style={v_fd5f43.coinUnit}> XRUN</Text>
+                  </Text>
+                ) : (
+                  <Text style={v_fd5f43.coinAmountText}>
+                    —<Text style={v_fd5f43.coinUnit}> XRUN</Text>
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={v_fd5f43.coinChargeBtn}
+                onPress={() => v_63ceb4()}
+                hitSlop={8}
+              >
+                <Feather name="plus-circle" size={24} color={v_1bfbd0.violet600} />
+              </TouchableOpacity>
             </View>
 
             {}
@@ -1052,6 +1132,36 @@ const v_fd5f43 = v_472849.create({
   },
   inviteStatusBtnText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.violet600 },
   dashSubText: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 4 },
+
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc100,
+  },
+  coinIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  coinSymbol: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  coinNetwork: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  coinAmountWrap: { alignItems: "flex-end", marginRight: 8 },
+  coinAmountText: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  coinUnit: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 
   statsOverview: {
     flexDirection: "row",

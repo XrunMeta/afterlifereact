@@ -320,7 +320,8 @@ export default function v_ed02a5() {
             )}
             <TouchableOpacity
               style={v_fd5f43.editAvatarBtn}
-              onPress={() => v_c65f5d.navigate("EditProfile")}
+              onPress={v_d28ade}
+              disabled={v_026c2d}
             >
               <Feather name="edit-2" size={14} color={v_1bfbd0.white} />
             </TouchableOpacity>
@@ -339,66 +340,26 @@ export default function v_ed02a5() {
                 v_d5cd7b("following");
               }}
             >
-              <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
-              <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.following")}</Text>
+              <Text style={v_fd5f43.statValue}>0</Text>
+              <Text style={v_fd5f43.statLabel}>팔로워</Text>
             </TouchableOpacity>
             <View style={v_fd5f43.statDivider} />
             <TouchableOpacity
               style={v_fd5f43.statItem}
               onPress={() => {
                 console.log(
-                  `[MyScreen] stat TAP "내 페르소나" — apiMyClonesCount=${v_8f9093} apiMyClonesList=${v_58e68f?.length ?? "null"}`,
+                  `[MyScreen] stat TAP "팔로잉" — apiFollowingCount=${v_65adaf}`,
                 );
-                v_d5cd7b("myClones");
+                v_d5cd7b("following");
               }}
             >
-              <Text style={v_fd5f43.statValue}>{v_8b222b}</Text>
-              <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.myPersona")}</Text>
+              <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
+              <Text style={v_fd5f43.statLabel}>팔로잉</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {}
-        <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.coin.title")}</Text>
-        </View>
-
-        {
-}
-        <View style={v_fd5f43.coinRow}>
-          <Image
-            source={require("../../../assets/images/xrun-round-logo.png")}
-            style={v_fd5f43.coinIcon}
-          />
-          <View style={v_fd5f43.coinTextWrap}>
-            <Text style={v_fd5f43.coinSymbol}>XRUN</Text>
-            <Text style={v_fd5f43.coinNetwork}>Polygon</Text>
-          </View>
-          <View style={v_fd5f43.coinAmountWrap}>
-            {v_747a87 ? (
-              <ActivityIndicator color={v_1bfbd0.zinc900} />
-            ) : v_519444 != null ? (
-              <Text style={v_fd5f43.coinAmountText}>
-                {v_519444.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                <Text style={v_fd5f43.coinUnit}> XRUN</Text>
-              </Text>
-            ) : (
-              <Text style={v_fd5f43.coinAmountText}>
-                —<Text style={v_fd5f43.coinUnit}> XRUN</Text>
-              </Text>
-            )}
-          </View>
-          <TouchableOpacity
-            style={v_fd5f43.coinChargeBtn}
-            onPress={() => v_d6a117(true)}
-            hitSlop={8}
-          >
-            <Feather name="plus-circle" size={24} color={v_1bfbd0.violet600} />
-          </TouchableOpacity>
-        </View>
-        {v_30af0f != null && v_30af0f > 0 && (
-          <Text style={v_fd5f43.adNote}>AD {v_30af0f.toLocaleString()}</Text>
-        )}
 
         {}
         <View style={v_fd5f43.transactionsCard}>
@@ -488,9 +449,9 @@ export default function v_ed02a5() {
             <View style={v_fd5f43.chargeIconWrap}>
               <Feather name="zap" size={28} color={v_1bfbd0.violet600} />
             </View>
-            <Text style={v_fd5f43.chargeTitle}>포인트 충전 안내</Text>
+            <Text style={v_fd5f43.chargeTitle}>암호화폐 충전 안내</Text>
             <Text style={v_fd5f43.chargeDesc}>
-              금액을 충전하고 싶다면{"\n"}xrun 앱에서 포인트를 얻어보세요
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
             </Text>
             <Text style={v_fd5f43.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
             <View style={v_fd5f43.chargeBtns}>
