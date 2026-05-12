@@ -145,12 +145,11 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           }
           console.log("[AUTH/google] user:", v_9ec4c0.user);
           await v_232d52();
-        } else if (v_de130a.xrunExists) {
-
-          v_c65f5d.navigate("XrunOnboarding", { email: v_de130a.email, google: { idToken: v_b50834 } });
         } else {
 
-          v_c65f5d.navigate("Signup", { google: { idToken: v_b50834, email: v_de130a.email, name: v_de130a.name } });
+          v_c65f5d.navigate("Signup", {
+            google: { idToken: v_b50834, email: v_de130a.email, name: v_de130a.name },
+          });
         }
       } catch (v_49263d) {
         if (v_49263d?.code === v_8d3720.SIGN_IN_CANCELLED) return;

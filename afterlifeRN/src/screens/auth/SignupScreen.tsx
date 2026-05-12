@@ -262,7 +262,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             leftIcon={<Feather name="user" size={20} color={v_1bfbd0.zinc500} />}
           />
 
-          {}
+          {
+}
           <TextField
             placeholder={v_8d41d7("auth.signup.email")}
             value={v_e0c7e8}
@@ -271,6 +272,12 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             autoCapitalize="none"
             editable={!v_a8d185}
             leftIcon={<Feather name="mail" size={20} color={v_1bfbd0.zinc500} />}
+            rightIcon={
+              v_a8d185 ? (
+                <Feather name="lock" size={16} color={v_1bfbd0.zinc400} />
+              ) : undefined
+            }
+            containerStyle={v_a8d185 ? v_d81136.lockedField : undefined}
           />
 
           {}
@@ -524,6 +531,10 @@ const v_d81136 = v_472849.create({
   },
   ageField: {
     width: 100,
+  },
+
+  lockedField: {
+    opacity: 0.75,
   },
   pickerField: {
     flexDirection: "row",
