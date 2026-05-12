@@ -18,6 +18,7 @@ import TextField from "../../components/ui/TextField";
 import SelectField from "../../components/ui/SelectField";
 import PageHeader from "../../components/common/PageHeader";
 import CountryRegionPicker from "../../components/common/CountryRegionPicker";
+import TermsModal, { type AgreementType } from "../../components/common/TermsModal";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, getMe, AuthApiError } from "../../api/auth";
 import { requestPushPermission } from "../../lib/pushNotifications";
@@ -68,6 +69,8 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [country, setCountry] = useState<CountryDialCode | null>(null);
   const [region, setRegion] = useState<CountryDialCode | null>(null);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
+
+  const [termsModalType, setTermsModalType] = useState<AgreementType | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -386,43 +389,67 @@ export default function SignupScreen({ navigation, route }: Props) {
             <View style={styles.termsDivider} />
 
             {}
-            <TouchableOpacity
-              onPress={() => setAgreeService(!agreeService)}
-              style={styles.checkRow}
-            >
-              <View style={[styles.checkbox, agreeService && styles.checkboxChecked]}>
-                {agreeService && <Feather name="check" size={14} color={COLORS.white} />}
-              </View>
-              <Text style={styles.termText}>
-                {t("auth.signup.termsService")}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.checkRow}>
+              <TouchableOpacity
+                onPress={() => setAgreeService(!agreeService)}
+                hitSlop={8}
+              >
+                <View style={[styles.checkbox, agreeService && styles.checkboxChecked]}>
+                  {agreeService && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termTextWrap}
+                onPress={() => setTermsModalType(1)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.termText, styles.termLink]}>
+                  {t("auth.signup.termsService")}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {}
-            <TouchableOpacity
-              onPress={() => setAgreeLocation(!agreeLocation)}
-              style={styles.checkRow}
-            >
-              <View style={[styles.checkbox, agreeLocation && styles.checkboxChecked]}>
-                {agreeLocation && <Feather name="check" size={14} color={COLORS.white} />}
-              </View>
-              <Text style={styles.termText}>
-                {t("auth.signup.termsLocation")}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.checkRow}>
+              <TouchableOpacity
+                onPress={() => setAgreeLocation(!agreeLocation)}
+                hitSlop={8}
+              >
+                <View style={[styles.checkbox, agreeLocation && styles.checkboxChecked]}>
+                  {agreeLocation && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termTextWrap}
+                onPress={() => setTermsModalType(2)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.termText, styles.termLink]}>
+                  {t("auth.signup.termsLocation")}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {}
-            <TouchableOpacity
-              onPress={() => setAgreePrivacy(!agreePrivacy)}
-              style={styles.checkRow}
-            >
-              <View style={[styles.checkbox, agreePrivacy && styles.checkboxChecked]}>
-                {agreePrivacy && <Feather name="check" size={14} color={COLORS.white} />}
-              </View>
-              <Text style={styles.termText}>
-                {t("auth.signup.termsPrivacy")}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.checkRow}>
+              <TouchableOpacity
+                onPress={() => setAgreePrivacy(!agreePrivacy)}
+                hitSlop={8}
+              >
+                <View style={[styles.checkbox, agreePrivacy && styles.checkboxChecked]}>
+                  {agreePrivacy && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termTextWrap}
+                onPress={() => setTermsModalType(3)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.termText, styles.termLink]}>
+                  {t("auth.signup.termsPrivacy")}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {}
             <TouchableOpacity
@@ -460,6 +487,20 @@ export default function SignupScreen({ navigation, route }: Props) {
         onSelect={(c, r) => {
           setCountry(c);
           setRegion(r);
+        }}
+      />
+
+      {
+}
+      <TermsModal
+        visible={termsModalType !== null}
+        type={termsModalType}
+        onClose={() => setTermsModalType(null)}
+        onAgree={() => {
+          if (termsModalType === 1) setAgreeService(true);
+          else if (termsModalType === 2) setAgreeLocation(true);
+          else if (termsModalType === 3) setAgreePrivacy(true);
+          setTermsModalType(null);
         }}
       />
     </SafeView>
@@ -549,6 +590,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.zinc600,
     lineHeight: 20,
+  },
+  termTextWrap: {
+    flex: 1,
+  },
+
+  termLink: {
+    textDecorationLine: "underline",
   },
   termBold: {
     fontWeight: "600",
