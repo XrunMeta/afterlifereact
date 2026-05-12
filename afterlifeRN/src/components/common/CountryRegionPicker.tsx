@@ -14,12 +14,14 @@ import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, RADIUS, SIZES } from "../constants";
 import {
-  ALLOWED_COUNTRIES,
+  COUNTRY_DIAL_CODES,
   REGIONS_AS_COUNTRY_DIAL_CODES,
   GLOBAL_REGION,
   getRegionsByCountryIso2,
 } from "../../constants";
 import type { CountryDialCode } from "../../types/country";
+
+const TOP_PRIORITY_ISO2 = ["kr", "us", "jp", "cn", "id"];
 
 type Mode = "country" | "region";
 
@@ -49,7 +51,31 @@ export default function CountryRegionPicker({
     }
   }, [visible]);
 
-  const countries = ALLOWED_COUNTRIES;
+  const countries = useMemo<CountryDialCode[]>(() => {
+    const seen = new Set<string>();
+    const uniq: CountryDialCode[] = [];
+    for (const c of COUNTRY_DIAL_CODES) {
+      if (!c.iso2 || seen.has(c.iso2.toLowerCase())) continue;
+      seen.add(c.iso2.toLowerCase());
+      uniq.push(c);
+    }
+    const top: CountryDialCode[] = [];
+    const rest: CountryDialCode[] = [];
+    for (const c of uniq) {
+      const idx = TOP_PRIORITY_ISO2.indexOf(c.iso2.toLowerCase());
+      if (idx >= 0) top[idx] = c;
+      else rest.push(c);
+    }
+
+    const topFiltered = top.filter(Boolean);
+
+    rest.sort((a, b) => {
+      const an = t(`countries:${a.iso2.toUpperCase()}`, a.name);
+      const bn = t(`countries:${b.iso2.toUpperCase()}`, b.name);
+      return an.localeCompare(bn);
+    });
+    return [...topFiltered, ...rest];
+  }, [t]);
 
   const regions = useMemo<CountryDialCode[]>(() => {
     if (!selectedCountry) return [];
