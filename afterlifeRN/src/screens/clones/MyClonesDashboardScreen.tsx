@@ -267,10 +267,6 @@ export default function v_def15b() {
 
   const v_fc7f92 = v_4cd149.filter((v_3f4e2e) => !v_8769c2.has(v_3f4e2e.id));
 
-  const v_2ba0d1 = v_fc7f92.filter(
-    (v_3f4e2e) => v_699459[v_3f4e2e.id]?.isActive ?? true,
-  ).length;
-
   const v_bf58a4 = (v_6e0fd3) => {
     const v_7d13fd = v_699459[v_6e0fd3]?.isActive ?? true;
     v_3e0da5({ cloneId: v_6e0fd3, currentState: v_7d13fd });
@@ -725,38 +721,8 @@ export default function v_def15b() {
               </TouchableOpacity>
             </View>
 
-            {}
-            <View style={v_fd5f43.dashTitleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.dashTitleText}>{v_8d41d7("dashboard.headerTitle")}</Text>
-                <Text style={v_fd5f43.dashSubText}>{v_8d41d7("dashboard.headerDesc")}</Text>
-              </View>
-            </View>
-
-            {}
-            <View style={v_fd5f43.statsOverview}>
-              <View style={v_fd5f43.statsCard}>
-                <View style={v_fd5f43.statsCardHeader}>
-                  <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-                  <Text style={v_fd5f43.statsCardLabel}>{v_8d41d7("dashboard.statsTotalInteractions")}</Text>
-                </View>
-                <Text style={v_fd5f43.statsCardValue}>12.8k</Text>
-                <Text style={v_fd5f43.statsCardDelta}>{v_8d41d7("dashboard.statsDelta")}</Text>
-              </View>
-
-              <View style={[v_fd5f43.statsCard, v_fd5f43.statsCardDark]}>
-                <View style={v_fd5f43.statsCardHeader}>
-                  <Feather name="user" size={14} color={v_1bfbd0.zinc400} />
-                  <Text style={[v_fd5f43.statsCardLabel, { color: v_1bfbd0.zinc400 }]}>
-                    {v_8d41d7("dashboard.statsActivity")}
-                  </Text>
-                </View>
-                <View style={v_fd5f43.activityCount}>
-                  <Text style={v_fd5f43.activityActive}>{v_2ba0d1}</Text>
-                  <Text style={v_fd5f43.activityTotal}>/ {v_fc7f92.length}</Text>
-                </View>
-              </View>
-            </View>
+            {
+}
           </>
         }
         ListFooterComponent={
