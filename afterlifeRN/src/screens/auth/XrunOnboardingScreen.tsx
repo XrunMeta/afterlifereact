@@ -230,7 +230,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
               autoFocus
             />
             <Button
-              title={submitting ? t("auth.signup.verifying") : t("auth.xrun.submit")}
+              title={submitting ? t("auth.signup.signingUp") : t("auth.xrun.submit")}
               onPress={handleComplete}
               disabled={submitting || otpCode.length !== 6}
             />

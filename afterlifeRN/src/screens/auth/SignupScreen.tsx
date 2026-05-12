@@ -468,7 +468,7 @@ export default function SignupScreen({ navigation, route }: Props) {
 
           {}
           <Button
-            title={submitting ? t("auth.signup.verifying") : t("auth.signup.signupBtn")}
+            title={submitting ? t("auth.signup.signingUp") : t("auth.signup.signupBtn")}
             onPress={handleSubmit}
             disabled={submitting}
           />

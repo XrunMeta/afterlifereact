@@ -234,7 +234,7 @@ export default function LoginScreen({ navigation }: Props) {
 
           {}
           <Button
-            title={loggingIn ? t("auth.signup.verifying") : t("auth.login.loginBtn")}
+            title={loggingIn ? t("auth.login.loggingIn") : t("auth.login.loginBtn")}
             onPress={handleLogin}
             variant="primary"
             disabled={loggingIn}
