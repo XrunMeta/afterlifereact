@@ -670,7 +670,7 @@ export default function v_def15b() {
                     <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
                   </View>
                 )}
-                <View style={{ flex: 1, marginLeft: 20 }}>
+                <View style={{ flex: 1, marginLeft: 26 }}>
                   <Text style={v_fd5f43.profileName} numberOfLines={1}>
                     {v_b113dd?.name ?? v_f38ee5?.displayName ?? "사용자"}
                   </Text>
