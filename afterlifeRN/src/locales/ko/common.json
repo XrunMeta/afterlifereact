@@ -238,7 +238,7 @@
     "devBannerSub": "아래 L1/L2 섹션은 메모리 시스템 직접 편집용. 위 chip 이 실제 사용자 입력 채널입니다."
   },
   "dashboard": {
-    "title": "My Persona",
+    "title": "My Page",
     "headerTitle": "페르소나 대시보드",
     "headerDesc": "생성된 AI 페르소나의 성과와 활용을 관리합니다.",
     "statsTotalInteractions": "총 상호작용",

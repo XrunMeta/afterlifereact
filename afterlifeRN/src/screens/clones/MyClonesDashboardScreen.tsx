@@ -28,7 +28,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
+import { listMyClones, listMyFollowedClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import { getXrunBalance } from "../../api/payments";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -164,6 +164,8 @@ export default function MyClonesDashboardScreen() {
   const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
   const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
 
+  const [followingCount, setFollowingCount] = useState<number>(0);
+
   const [chargeModalVisible, setChargeModalVisible] = useState(false);
 
   const [statsModal, setStatsModal] = useState<{
@@ -290,6 +292,22 @@ export default function MyClonesDashboardScreen() {
     setVisibilityModal({ cloneId, currentVisibility: current });
     setMenuCloneId(null);
   };
+
+  useEffect(() => {
+    if (!accessToken || !apiUser?.id) {
+      setFollowingCount(0);
+      return;
+    }
+    let cancelled = false;
+    listMyFollowedClones(accessToken, apiUser.id)
+      .then((r) => {
+        if (!cancelled) setFollowingCount(r.items.length);
+      })
+      .catch((err) => console.warn("[Dashboard] following count fetch failed:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, apiUser?.id]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -653,6 +671,39 @@ export default function MyClonesDashboardScreen() {
         }
         ListHeaderComponent={
           <>
+            {
+}
+            <View style={s.profileSection}>
+              <View style={s.profileLeft}>
+                {apiUser?.avatarUrl || authUser?.avatarUrl ? (
+                  <Image
+                    source={{ uri: (apiUser?.avatarUrl ?? authUser?.avatarUrl) as string }}
+                    style={s.profileAvatar}
+                  />
+                ) : (
+                  <View style={[s.profileAvatar, s.profileAvatarPlaceholder]}>
+                    <Feather name="user" size={28} color={COLORS.zinc400} />
+                  </View>
+                )}
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={s.profileName} numberOfLines={1}>
+                    {apiUser?.name ?? authUser?.displayName ?? "사용자"}
+                  </Text>
+                  <View style={s.profileStatsRow}>
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>0</Text>
+                      <Text style={s.profileStatLabel}>팔로워</Text>
+                    </View>
+                    <View style={s.profileStatDivider} />
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{followingCount}</Text>
+                      <Text style={s.profileStatLabel}>팔로잉</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
             {}
             <View style={s.dashTitleRow}>
               <View style={{ flex: 1 }}>
@@ -1146,6 +1197,30 @@ const s = StyleSheet.create({
     paddingHorizontal: SIZES.medium,
     paddingBottom: 24,
   },
+
+  profileSection: {
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatar: { width: 64, height: 64, borderRadius: 32 },
+  profileAvatarPlaceholder: {
+    backgroundColor: COLORS.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+    marginBottom: 8,
+  },
+  profileStatsRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  profileStatItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  profileStatValue: { fontSize: 14, fontWeight: "700", color: COLORS.zinc900 },
+  profileStatLabel: { fontSize: 12, color: COLORS.zinc500 },
+  profileStatDivider: { width: 1, height: 12, backgroundColor: COLORS.zinc200 },
 
   dashTitle: { marginTop: 16, marginBottom: 20 },
   dashTitleRow: {
