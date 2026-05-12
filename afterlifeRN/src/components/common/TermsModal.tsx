@@ -30,15 +30,21 @@ async function fetchAgreement(
   type: AgreementType,
   language: string,
 ): Promise<string> {
-  const key = `${type}_${language}`;
-  if (cache.has(key)) return cache.get(key)!;
 
-  const langParam = language.startsWith("zh") ? "zh" : language;
+  let langParam = (language || "ko").toLowerCase();
+  if (langParam.startsWith("zh")) langParam = "zh";
+  else langParam = langParam.split("-")[0]; 
+  const key = `${type}_${langParam}`;
+  if (cache.has(key)) return cache.get(key)!;
   const url = `https://oth-path-gw.example.invalid/agreements?type=${type}&language=${langParam}`;
+  console.log("[TermsModal] fetch:", url);
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to load agreement (${res.status})`);
   const json = (await res.json()) as { data?: { content?: string } };
   const content = json?.data?.content ?? "";
+  console.log(
+    `[TermsModal] response ok — content length=${content.length}`,
+  );
   cache.set(key, content);
   return content;
 }
@@ -159,13 +165,15 @@ const s = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
+
   card: {
-    width: "100%",
+    width: "92%",
     maxWidth: 480,
-    maxHeight: "85%",
+    height: "80%",
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.lg,
     overflow: "hidden",
+    flexDirection: "column",
   },
   header: {
     height: 52,
