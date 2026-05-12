@@ -701,9 +701,7 @@ export default function MyClonesDashboardScreen() {
                 source={require("../../../assets/images/xrun-round-logo.png")}
                 style={s.coinIcon}
               />
-              <View style={{ flex: 1 }}>
-                <Text style={s.coinSymbol}>XRUN</Text>
-              </View>
+              <View style={{ flex: 1 }} />
               <View style={s.coinAmountWrap}>
                 {xrunBalanceLoading ? (
                   <ActivityIndicator color={COLORS.zinc900} />
