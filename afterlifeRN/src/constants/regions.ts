@@ -1,5 +1,6 @@
 import { CountryDialCode } from '../types/country';
 import { State } from 'country-state-city';
+import enRegions from '../locales/en/regions';
 
 export interface Region {
   id: number;
@@ -15,7 +16,34 @@ export const GLOBAL_REGION: CountryDialCode = {
   countryCode: 0,
 };
 
-const HARDCODED_REGION_COUNTRIES_ISO2 = ['kr', 'id'];
+const PRIORITY_PHONE_CODES = new Set([1, 81, 82, 86, 62]);
+
+const PRIORITY_REGIONS_BY_CC: Record<number, CountryDialCode[]> = (() => {
+  const result: Record<number, CountryDialCode[]> = {};
+  const data = enRegions as Record<string, string>;
+  for (const [key, name] of Object.entries(data)) {
+    const m = /^(\d+)_(\d+)$/.exec(key);
+    if (!m) continue;
+    const cc = parseInt(m[1], 10);
+    if (!PRIORITY_PHONE_CODES.has(cc)) continue;
+    const sub = m[2];
+    if (!result[cc]) result[cc] = [];
+    result[cc].push({
+      iso2: `${cc}_${sub}`,
+      name, 
+      dialCode: sub,
+      flagEmoji: '📍',
+      countryCode: cc,
+    });
+  }
+
+  for (const cc of Object.keys(result)) {
+    result[Number(cc)].sort(
+      (a, b) => parseInt(a.dialCode, 10) - parseInt(b.dialCode, 10),
+    );
+  }
+  return result;
+})();
 
 const COUNTRY_PHONE_CODE: Record<string, number> = {
   kr: 82,
@@ -34,16 +62,12 @@ const toRegionFromState = (s: { name: string; isoCode: string; countryCode: stri
 });
 
 export const getRegionsByCountryIso2 = (iso2?: string): CountryDialCode[] => {
-  if (!iso2) {
-    return [GLOBAL_REGION];
-  }
+  if (!iso2) return [GLOBAL_REGION];
   const lowerIso2 = iso2.toLowerCase();
 
-  if (HARDCODED_REGION_COUNTRIES_ISO2.includes(lowerIso2)) {
-    const cc = COUNTRY_PHONE_CODE[lowerIso2];
-    return REGIONS_AS_COUNTRY_DIAL_CODES.filter(
-      (region) => (region as { countryCode?: number }).countryCode === cc,
-    );
+  const cc = COUNTRY_PHONE_CODE[lowerIso2];
+  if (cc && PRIORITY_REGIONS_BY_CC[cc]) {
+    return PRIORITY_REGIONS_BY_CC[cc];
   }
 
   try {
