@@ -74,6 +74,8 @@ export async function v_6e4cc8(
     age: v_16e2dd.age ?? 0,
     recommand: 0,
     social_code: 0,
+
+    app_source: "afterlife",
   };
 
   let v_8f00b9;
