@@ -301,14 +301,6 @@ export default function SignupScreen({ navigation, route }: Props) {
             onPress={handleSubmit}
             disabled={submitting}
           />
-
-          {}
-          <View style={styles.loginRow}>
-            <Text style={styles.loginText}>{t("auth.login.signupHint")} </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-              <Text style={styles.loginLink}>{t("auth.login.loginBtn")}</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </SafeScrollView>
     </SafeView>
@@ -376,19 +368,5 @@ const styles = StyleSheet.create({
   },
   termOptional: {
     color: COLORS.zinc400,
-  },
-  loginRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: SIZES.medium,
-  },
-  loginText: {
-    fontSize: 14,
-    color: COLORS.zinc500,
-  },
-  loginLink: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.zinc900,
   },
 });
