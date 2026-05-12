@@ -320,7 +320,8 @@ export default function v_ed02a5() {
             )}
             <TouchableOpacity
               style={v_fd5f43.editAvatarBtn}
-              onPress={() => v_c65f5d.navigate("EditProfile")}
+              onPress={v_d28ade}
+              disabled={v_026c2d}
             >
               <Feather name="edit-2" size={14} color={v_1bfbd0.white} />
             </TouchableOpacity>
@@ -339,62 +340,26 @@ export default function v_ed02a5() {
                 v_d5cd7b("following");
               }}
             >
-              <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
-              <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.following")}</Text>
+              <Text style={v_fd5f43.statValue}>0</Text>
+              <Text style={v_fd5f43.statLabel}>팔로워</Text>
             </TouchableOpacity>
             <View style={v_fd5f43.statDivider} />
             <TouchableOpacity
               style={v_fd5f43.statItem}
               onPress={() => {
                 console.log(
-                  `[MyScreen] stat TAP "내 페르소나" — apiMyClonesCount=${v_8f9093} apiMyClonesList=${v_58e68f?.length ?? "null"}`,
+                  `[MyScreen] stat TAP "팔로잉" — apiFollowingCount=${v_65adaf}`,
                 );
-                v_d5cd7b("myClones");
+                v_d5cd7b("following");
               }}
             >
-              <Text style={v_fd5f43.statValue}>{v_8b222b}</Text>
-              <Text style={v_fd5f43.statLabel}>{v_8d41d7("my.stats.myPersona")}</Text>
+              <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
+              <Text style={v_fd5f43.statLabel}>팔로잉</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {}
-        <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.coin.title")}</Text>
-        </View>
-
-        {}
-        <View style={v_fd5f43.coinCard}>
-          <View style={v_fd5f43.coinCardTop}>
-            <View style={v_fd5f43.coinLabelRow}>
-              <Feather name="dollar-sign" size={18} color={v_1bfbd0.zinc700} />
-              <Text style={v_fd5f43.coinLabel}>{v_8d41d7("my.coin.balance")}</Text>
-            </View>
-            <TouchableOpacity
-              style={v_fd5f43.chargeBtn}
-              onPress={() => v_d6a117(true)}
-            >
-              <Feather name="plus" size={14} color={v_1bfbd0.white} />
-              <Text style={v_fd5f43.chargeBtnText}>{v_8d41d7("my.coin.charge")}</Text>
-            </TouchableOpacity>
-          </View>
-          {v_747a87 ? (
-            <ActivityIndicator color={v_1bfbd0.zinc900} style={{ alignSelf: "flex-start", marginTop: 4 }} />
-          ) : v_519444 != null ? (
-            <>
-              <Text style={v_fd5f43.coinAmount}>{v_519444.toLocaleString(undefined, { maximumFractionDigits: 4 })}</Text>
-              <Text style={v_fd5f43.coinWon}>
-                XRUN
-                {v_30af0f != null && v_30af0f > 0 ? `  ·  AD ${v_30af0f.toLocaleString()}` : ""}
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={v_fd5f43.coinAmount}>—</Text>
-              <Text style={v_fd5f43.coinWon}>{v_8d41d7("my.coin.notMapped")}</Text>
-            </>
-          )}
-        </View>
 
         {}
         <View style={v_fd5f43.transactionsCard}>
@@ -484,9 +449,9 @@ export default function v_ed02a5() {
             <View style={v_fd5f43.chargeIconWrap}>
               <Feather name="zap" size={28} color={v_1bfbd0.violet600} />
             </View>
-            <Text style={v_fd5f43.chargeTitle}>포인트 충전 안내</Text>
+            <Text style={v_fd5f43.chargeTitle}>암호화폐 충전 안내</Text>
             <Text style={v_fd5f43.chargeDesc}>
-              금액을 충전하고 싶다면{"\n"}xrun 앱에서 포인트를 얻어보세요
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
             </Text>
             <Text style={v_fd5f43.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
             <View style={v_fd5f43.chargeBtns}>
@@ -672,6 +637,67 @@ const v_fd5f43 = v_472849.create({
 
   sectionHeader: { marginBottom: 10 },
   sectionLabel: { fontSize: 13, fontWeight: "500", color: v_1bfbd0.zinc400, paddingHorizontal: 4 },
+
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc100,
+  },
+  coinIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  coinTextWrap: { flex: 1 },
+  coinSymbol: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc900,
+  },
+  coinNetwork: {
+    fontSize: 12,
+    color: v_1bfbd0.zinc500,
+    marginTop: 2,
+  },
+  coinAmountWrap: {
+    alignItems: "flex-end",
+    marginRight: 8,
+  },
+  coinAmountText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+  },
+  coinUnit: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc700,
+  },
+  coinChargeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adNote: {
+    fontSize: 12,
+    color: v_1bfbd0.zinc500,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    marginTop: -4,
+  },
 
   coinCard: {
     backgroundColor: v_1bfbd0.white,
