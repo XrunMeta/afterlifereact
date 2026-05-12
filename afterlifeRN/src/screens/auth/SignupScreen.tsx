@@ -17,12 +17,15 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_e775af from "../../components/ui/TextField";
 import v_d56c0a from "../../components/ui/SelectField";
 import v_258c1c from "../../components/common/PageHeader";
+import v_57037e from "../../components/common/CountryRegionPicker";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_7ef860, v_84a859 } from "../../api/auth";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
 import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_1ed7d9 } from "../../stores/authStore";
+import type { v_da1883 } from "../../types/country";
+import { v_789afd } from "../../constants/regions";
 
 type Props = {
   navigation: v_390fcc<v_384e19, "Signup">;
@@ -47,6 +50,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_d74a81, v_fcce73] = v_5ab095("");
   const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "other" | "">("");
   const [v_2694bd, v_6e5c76] = v_5ab095("");
+  const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(null);
+  const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(null);
+  const [v_9d56c4, v_7168a2] = v_5ab095(false);
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
   const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
@@ -95,6 +101,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return;
     }
+    if (!v_b9bbbd) {
+      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.countryRequired"));
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8)) {
       v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailInvalid"));
       return;
@@ -124,6 +134,14 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
     v_ee9ec1(true);
     try {
+
+      const v_a4d981 = v_b9bbbd.iso2.toUpperCase();
+      const v_6c3a47 = v_b9bbbd.countryCode ?? 0;
+      const v_222917 =
+        v_a6c30b && v_a6c30b.iso2 !== "global"
+          ? parseInt(v_a6c30b.dialCode, 10) || 0
+          : 0;
+
       if (v_a8d185) {
 
         const v_8f00b9 = await v_35200c({
@@ -133,6 +151,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           phone: v_d74a81,
           gender: v_c3eac4 || undefined,
           age: v_f4fe8e,
+          country: v_a4d981,
+          mobileCode: v_6c3a47,
+          region: v_222917,
           marketingConsent: v_8c98c4,
           deviceId: v_929b58 ?? undefined,
           pushToken: v_1a29d0 ?? undefined,
@@ -153,6 +174,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         phone: v_d74a81,
         gender: v_c3eac4 || undefined,
         age: v_f4fe8e,
+        country: v_a4d981,
+        mobileCode: v_6c3a47,
+        region: v_222917,
         marketingConsent: v_8c98c4,
         pushToken: v_1a29d0 ?? undefined,
         platform: v_ea920b ?? undefined,
@@ -270,6 +294,37 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           </View>
 
           {}
+          <TouchableOpacity
+            style={v_d81136.pickerField}
+            onPress={() => v_7168a2(true)}
+            activeOpacity={0.7}
+          >
+            <Feather name="globe" size={18} color={v_1bfbd0.zinc500} />
+            <View style={v_d81136.pickerLabelWrap}>
+              {v_b9bbbd ? (
+                <Text style={v_d81136.pickerValue} numberOfLines={1}>
+                  {v_b9bbbd.flagEmoji}{" "}
+                  {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, v_b9bbbd.name)}
+                  {v_a6c30b && v_a6c30b.iso2 !== "global" && (
+                    <Text style={v_d81136.pickerRegion}>
+                      {"  ·  "}
+                      {v_8d41d7(
+                        `regions:${v_a6c30b.countryCode}_${v_a6c30b.dialCode}`,
+                        v_a6c30b.name,
+                      )}
+                    </Text>
+                  )}
+                </Text>
+              ) : (
+                <Text style={v_d81136.pickerPlaceholder}>
+                  {v_8d41d7("auth.signup.countryPlaceholder")}
+                </Text>
+              )}
+            </View>
+            <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc400} />
+          </TouchableOpacity>
+
+          {}
           <View style={v_d81136.terms}>
             <TouchableOpacity
               onPress={() => v_c5baa3(!v_5c764d)}
@@ -303,6 +358,19 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           />
         </View>
       </SafeScrollView>
+
+      {
+}
+      <CountryRegionPicker
+        visible={v_9d56c4}
+        onClose={() => v_7168a2(false)}
+        selectedCountry={v_b9bbbd}
+        selectedRegion={v_a6c30b}
+        onSelect={(v_3f4e2e, v_cb35cb) => {
+          v_b7066f(v_3f4e2e);
+          v_c030e3(v_cb35cb);
+        }}
+      />
     </SafeView>
   );
 }
@@ -326,6 +394,21 @@ const v_d81136 = v_472849.create({
   ageField: {
     width: 100,
   },
+  pickerField: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: v_8b0c90.md,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    backgroundColor: v_1bfbd0.white,
+  },
+  pickerLabelWrap: { flex: 1 },
+  pickerPlaceholder: { fontSize: 14, color: v_1bfbd0.zinc400 },
+  pickerValue: { fontSize: 14, color: v_1bfbd0.zinc900 },
+  pickerRegion: { color: v_1bfbd0.zinc500, fontSize: 13 },
   passwordHint: {
     fontSize: 12,
     color: v_1bfbd0.zinc500,
