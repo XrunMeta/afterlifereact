@@ -29,8 +29,8 @@ import type { v_97a9a8 } from "../../navigation/types";
 
 type TabNav = v_5b8240<v_97a9a8>;
 
-const v_296ef9 = 2; 
-const v_f229b8 = 3;
+const v_296ef9 = 4; 
+const v_f229b8 = 2;
 
 type TabKey = "recommend" | "clone" | "account" | "tag";
 const v_1bc355 = [
