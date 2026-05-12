@@ -262,7 +262,8 @@ export default function SignupScreen({ navigation, route }: Props) {
             leftIcon={<Feather name="user" size={20} color={COLORS.zinc500} />}
           />
 
-          {}
+          {
+}
           <TextField
             placeholder={t("auth.signup.email")}
             value={email}
@@ -271,6 +272,12 @@ export default function SignupScreen({ navigation, route }: Props) {
             autoCapitalize="none"
             editable={!google}
             leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
+            rightIcon={
+              google ? (
+                <Feather name="lock" size={16} color={COLORS.zinc400} />
+              ) : undefined
+            }
+            containerStyle={google ? styles.lockedField : undefined}
           />
 
           {}
@@ -524,6 +531,10 @@ const styles = StyleSheet.create({
   },
   ageField: {
     width: 100,
+  },
+
+  lockedField: {
+    opacity: 0.75,
   },
   pickerField: {
     flexDirection: "row",

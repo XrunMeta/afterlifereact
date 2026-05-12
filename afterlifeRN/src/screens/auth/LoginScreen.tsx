@@ -145,12 +145,11 @@ export default function LoginScreen({ navigation }: Props) {
           }
           console.log("[AUTH/google] user:", meRes.user);
           await hydrate();
-        } else if (check.xrunExists) {
-
-          navigation.navigate("XrunOnboarding", { email: check.email, google: { idToken } });
         } else {
 
-          navigation.navigate("Signup", { google: { idToken, email: check.email, name: check.name } });
+          navigation.navigate("Signup", {
+            google: { idToken, email: check.email, name: check.name },
+          });
         }
       } catch (err: any) {
         if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
