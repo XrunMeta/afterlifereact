@@ -154,6 +154,11 @@ export default function v_19ba0e() {
         listeners={({ navigation: v_c65f5d }) => ({
           tabPress: (v_9e86fd) => {
             v_9e86fd.preventDefault();
+
+            const { setCreationDraft: v_5795de, resetCreationDraft: v_7a77e1 } =
+              require("../stores/cloneStore").useCloneStore.getState();
+            v_7a77e1();
+            v_5795de({ cloneType: "default" });
             const v_b6e533 = v_c65f5d.getState();
             const v_3f8a47 = v_b6e533.routes.findIndex(
               (v_cb35cb) => v_cb35cb.name === "CreateTab"
@@ -166,8 +171,8 @@ export default function v_19ba0e() {
                     state: {
                       routes: [
                         {
-                          name: "Step1" as const,
-                          key: `Step1-${Date.now()}`,
+                          name: "Step2" as const,
+                          key: `Step2-${Date.now()}`,
                         },
                       ],
                       index: 0,

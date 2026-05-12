@@ -30,7 +30,7 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
-      <StepIndicator currentStep={4} totalSteps={7} />
+      <StepIndicator currentStep={3} totalSteps={6} />
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
         <Content draft={v_f04727} onChange={v_5795de} />
       </SafeScrollView>

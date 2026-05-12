@@ -27,7 +27,7 @@ export default function v_f275b6({ navigation: v_c65f5d }: Props) {
     <SafeView backgroundColor={v_1bfbd0.white}>
       <PageHeader title={v_8d41d7("create.stepTitles.5")} showBackButton
         onBackPress={() => v_c65f5d.goBack()} />
-      <StepIndicator currentStep={5} totalSteps={7} />
+      <StepIndicator currentStep={4} totalSteps={6} />
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
         <Content draft={v_f04727} onChange={v_5795de} />
       </SafeScrollView>

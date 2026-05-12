@@ -307,7 +307,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
       <PageHeader title={v_8d41d7('create.stepTitles.7')} />
-      <StepIndicator currentStep={7} totalSteps={7} />
+      <StepIndicator currentStep={6} totalSteps={6} />
 
       <SafeScrollView contentContainerStyle={v_d81136.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
         <View style={v_d81136.container}>
