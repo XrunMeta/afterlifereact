@@ -29,7 +29,6 @@ import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
 import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
-import NotificationBell from "../../components/common/NotificationBell";
 import { AuthApiError } from "../../api/auth";
 import { getXrunBalance } from "../../api/payments";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -602,23 +601,20 @@ export default function MyClonesDashboardScreen() {
         title={t("dashboard.title")}
         rightAction={
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <NotificationBell />
-            <TouchableOpacity
-              onPress={() =>
-                rootNav.dispatch(
-                  CommonActions.navigate({
-                    name: "MyTab",
-                    params: { screen: "MyHome" },
-                  }),
-                )
-              }
-              activeOpacity={0.7}
-              hitSlop={8}
-            >
-              <Feather name="settings" size={22} color={COLORS.zinc700} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() =>
+              rootNav.dispatch(
+                CommonActions.navigate({
+                  name: "MyTab",
+                  params: { screen: "MyHome" },
+                }),
+              )
+            }
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <Feather name="settings" size={22} color={COLORS.zinc700} />
+          </TouchableOpacity>
         }
       />
 
