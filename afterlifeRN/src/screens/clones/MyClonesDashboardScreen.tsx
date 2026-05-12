@@ -165,6 +165,8 @@ export default function v_def15b() {
   const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
   const [v_19340b, v_14129c] = v_5ab095(true);
 
+  const [v_04e734, v_d6a117] = v_5ab095(false);
+
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
     type: "likes" | "interactions" | "comments" | "followers";
     cloneId: number;
@@ -697,7 +699,6 @@ export default function v_def15b() {
               />
               <View style={{ flex: 1 }}>
                 <Text style={v_fd5f43.coinSymbol}>XRUN</Text>
-                <Text style={v_fd5f43.coinNetwork}>Polygon</Text>
               </View>
               <View style={v_fd5f43.coinAmountWrap}>
                 {v_19340b ? (
@@ -715,7 +716,7 @@ export default function v_def15b() {
               </View>
               <TouchableOpacity
                 style={v_fd5f43.coinChargeBtn}
-                onPress={() => v_63ceb4()}
+                onPress={() => v_d6a117(true)}
                 hitSlop={8}
               >
                 <Feather name="plus-circle" size={24} color={v_1bfbd0.violet600} />
@@ -926,6 +927,44 @@ export default function v_def15b() {
       {
 
 }
+
+      {
+}
+      <Modal visible={v_04e734} transparent animationType="fade">
+        <Pressable
+          style={v_fd5f43.chargeOverlay}
+          onPress={() => v_d6a117(false)}
+        >
+          <Pressable style={v_fd5f43.chargeBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <View style={v_fd5f43.chargeIconWrap}>
+              <Feather name="zap" size={28} color={v_1bfbd0.violet600} />
+            </View>
+            <Text style={v_fd5f43.chargeTitle}>암호화폐 충전 안내</Text>
+            <Text style={v_fd5f43.chargeDesc}>
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
+            </Text>
+            <Text style={v_fd5f43.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
+            <View style={v_fd5f43.chargeBtns}>
+              <TouchableOpacity
+                style={v_fd5f43.chargeCancelBtn}
+                onPress={() => v_d6a117(false)}
+              >
+                <Text style={v_fd5f43.chargeCancelText}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={v_fd5f43.chargeGoBtn}
+                onPress={() => {
+                  v_d6a117(false);
+                  v_63ceb4();
+                }}
+              >
+                <Feather name="external-link" size={14} color={v_1bfbd0.white} />
+                <Text style={v_fd5f43.chargeGoText}>바로가기</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {}
       <Modal visible={!!v_8bb912} transparent animationType="slide">
@@ -1162,6 +1201,61 @@ const v_fd5f43 = v_472849.create({
   coinAmountText: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   coinUnit: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
   coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+
+  chargeOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  chargeBox: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+  },
+  chargeIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: v_1bfbd0.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  chargeTitle: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 8 },
+  chargeDesc: {
+    fontSize: 14,
+    color: v_1bfbd0.zinc600,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  chargeHint: { fontSize: 12, color: v_1bfbd0.zinc500, marginBottom: 20 },
+  chargeBtns: { flexDirection: "row", gap: 8, width: "100%" },
+  chargeCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: v_8b0c90.md,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+    alignItems: "center",
+  },
+  chargeCancelText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  chargeGoBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: v_8b0c90.md,
+    backgroundColor: v_1bfbd0.violet600,
+  },
+  chargeGoText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 
   statsOverview: {
     flexDirection: "row",
