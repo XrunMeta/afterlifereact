@@ -37,7 +37,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const v_798085 = [
     { value: "male" as const, label: v_8d41d7("auth.signup.male") },
     { value: "female" as const, label: v_8d41d7("auth.signup.female") },
-    { value: "other" as const, label: v_8d41d7("auth.signup.other") },
   ];
 
   const v_f701fd = v_a3453e.useMemo(() => {
@@ -63,7 +62,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_0b3ebe, v_241a35] = v_5ab095("");
   const [v_d74a81, v_fcce73] = v_5ab095("");
-  const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "other" | "">("");
+  const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "">("");
 
   const [v_a95e84, v_8d7b85] = v_5ab095<string>("");
   const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(null);
@@ -292,7 +291,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           {}
           <View style={v_d81136.row}>
             <View style={{ flex: 1 }}>
-              <SelectField<"male" | "female" | "other">
+              <SelectField<"male" | "female">
                 options={v_798085}
                 value={v_c3eac4}
                 onChange={v_bdc43c}
