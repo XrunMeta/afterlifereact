@@ -363,38 +363,42 @@ export default function MyScreen() {
           <Text style={s.sectionLabel}>{t("my.coin.title")}</Text>
         </View>
 
-        {}
-        <View style={s.coinCard}>
-          <View style={s.coinCardTop}>
-            <View style={s.coinLabelRow}>
-              <Feather name="dollar-sign" size={18} color={COLORS.zinc700} />
-              <Text style={s.coinLabel}>{t("my.coin.balance")}</Text>
-            </View>
-            <TouchableOpacity
-              style={s.chargeBtn}
-              onPress={() => setChargeModalVisible(true)}
-            >
-              <Feather name="plus" size={14} color={COLORS.white} />
-              <Text style={s.chargeBtnText}>{t("my.coin.charge")}</Text>
-            </TouchableOpacity>
+        {
+}
+        <View style={s.coinRow}>
+          <Image
+            source={require("../../../assets/images/xrun-round-logo.png")}
+            style={s.coinIcon}
+          />
+          <View style={s.coinTextWrap}>
+            <Text style={s.coinSymbol}>XRUN</Text>
+            <Text style={s.coinNetwork}>Polygon</Text>
           </View>
-          {balanceLoading ? (
-            <ActivityIndicator color={COLORS.zinc900} style={{ alignSelf: "flex-start", marginTop: 4 }} />
-          ) : xrunDisplay != null ? (
-            <>
-              <Text style={s.coinAmount}>{xrunDisplay.toLocaleString(undefined, { maximumFractionDigits: 4 })}</Text>
-              <Text style={s.coinWon}>
-                XRUN
-                {adDisplay != null && adDisplay > 0 ? `  ·  AD ${adDisplay.toLocaleString()}` : ""}
+          <View style={s.coinAmountWrap}>
+            {balanceLoading ? (
+              <ActivityIndicator color={COLORS.zinc900} />
+            ) : xrunDisplay != null ? (
+              <Text style={s.coinAmountText}>
+                {xrunDisplay.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                <Text style={s.coinUnit}> XRUN</Text>
               </Text>
-            </>
-          ) : (
-            <>
-              <Text style={s.coinAmount}>—</Text>
-              <Text style={s.coinWon}>{t("my.coin.notMapped")}</Text>
-            </>
-          )}
+            ) : (
+              <Text style={s.coinAmountText}>
+                —<Text style={s.coinUnit}> XRUN</Text>
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity
+            style={s.coinChargeBtn}
+            onPress={() => setChargeModalVisible(true)}
+            hitSlop={8}
+          >
+            <Feather name="plus-circle" size={24} color={COLORS.violet600} />
+          </TouchableOpacity>
         </View>
+        {adDisplay != null && adDisplay > 0 && (
+          <Text style={s.adNote}>AD {adDisplay.toLocaleString()}</Text>
+        )}
 
         {}
         <View style={s.transactionsCard}>
@@ -672,6 +676,67 @@ const s = StyleSheet.create({
 
   sectionHeader: { marginBottom: 10 },
   sectionLabel: { fontSize: 13, fontWeight: "500", color: COLORS.zinc400, paddingHorizontal: 4 },
+
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.zinc100,
+  },
+  coinIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  coinTextWrap: { flex: 1 },
+  coinSymbol: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.zinc900,
+  },
+  coinNetwork: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    marginTop: 2,
+  },
+  coinAmountWrap: {
+    alignItems: "flex-end",
+    marginRight: 8,
+  },
+  coinAmountText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+  },
+  coinUnit: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.zinc700,
+  },
+  coinChargeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adNote: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    marginTop: -4,
+  },
 
   coinCard: {
     backgroundColor: COLORS.white,
