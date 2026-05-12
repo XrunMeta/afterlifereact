@@ -1148,7 +1148,8 @@ const v_fd5f43 = v_472849.create({
   },
 
   profileSection: {
-    paddingVertical: 14,
+    paddingTop: 28,
+    paddingBottom: 14,
     paddingHorizontal: 4,
     marginBottom: 8,
   },
