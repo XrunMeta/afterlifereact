@@ -188,7 +188,7 @@ export default function v_4036d1() {
         {}
         <View style={v_fd5f43.row}>
           <Text style={v_fd5f43.rowLabel}>
-            {v_8d41d7("settings.notifications.alarm", { defaultValue: "알람" })}
+            {v_8d41d7("settings.notifications.alarm", { defaultValue: "알림" })}
           </Text>
           {v_683210 ? (
             <ActivityIndicator color={v_1bfbd0.zinc500} />

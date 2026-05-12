@@ -270,10 +270,6 @@ export default function v_ed02a5() {
 }
 
         {}
-        <View style={v_fd5f43.sectionHeader}>
-          <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.coin.settings")}</Text>
-        </View>
-
         <View style={v_fd5f43.settingsCard}>
           {v_7f0fd3.map((v_8c0b26, v_ebec57) => (
             <TouchableOpacity
