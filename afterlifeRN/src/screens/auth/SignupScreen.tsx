@@ -323,14 +323,15 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               {v_b9bbbd ? (
                 <Text style={v_d81136.pickerValue} numberOfLines={1}>
                   {v_b9bbbd.flagEmoji}{" "}
-                  {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, v_b9bbbd.name)}
+                  {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, {
+                    defaultValue: v_b9bbbd.name,
+                  })}
                   {v_a6c30b && v_a6c30b.iso2 !== "global" && (
                     <Text style={v_d81136.pickerRegion}>
                       {"  ·  "}
-                      {v_8d41d7(
-                        `regions:${v_a6c30b.countryCode}_${v_a6c30b.dialCode}`,
-                        v_a6c30b.name,
-                      )}
+                      {v_8d41d7(`regions:${v_a6c30b.countryCode}_${v_a6c30b.dialCode}`, {
+                        defaultValue: v_a6c30b.name,
+                      })}
                     </Text>
                   )}
                 </Text>
