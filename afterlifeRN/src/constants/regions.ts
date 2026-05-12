@@ -53,9 +53,42 @@ const v_3762f9 = {
   id: 62,
 };
 
+const v_1f2b3d = {
+
+  'Bayern': 'Bavaria',
+  'Baden-Württemberg': 'Baden-Wurttemberg',
+  'Niedersachsen': 'Lower Saxony',
+  'Nordrhein-Westfalen': 'North Rhine-Westphalia',
+  'Rheinland-Pfalz': 'Rhineland-Palatinate',
+  'Sachsen': 'Saxony',
+  'Sachsen-Anhalt': 'Saxony-Anhalt',
+  'Thüringen': 'Thuringia',
+  'Hessen': 'Hesse',
+
+  'Cataluña': 'Catalonia',
+  'Andalucía': 'Andalusia',
+  'País Vasco': 'Basque Country',
+  'Castilla y León': 'Castile and Leon',
+  'Castilla-La Mancha': 'Castile-La Mancha',
+
+  'Toscana': 'Tuscany',
+  'Sicilia': 'Sicily',
+  'Sardegna': 'Sardinia',
+  'Lombardia': 'Lombardy',
+  'Piemonte': 'Piedmont',
+  'Puglia': 'Apulia',
+
+};
+
+const v_acfdaf = (v_479f05): string => {
+  if (v_1f2b3d[v_479f05]) return v_1f2b3d[v_479f05];
+
+  return v_479f05.normalize('NFD').replace(/[̀-ͯ]/g, '');
+};
+
 const v_1c645f = (v_fd5f43): v_da1883 => ({
   iso2: v_fd5f43.isoCode,
-  name: v_fd5f43.name,
+  name: v_acfdaf(v_fd5f43.name),
   dialCode: v_fd5f43.isoCode,
   flagEmoji: '📍',
   countryCode: v_3762f9[v_fd5f43.countryCode.toLowerCase()] ?? 0,
