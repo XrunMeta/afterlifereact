@@ -24,29 +24,25 @@ type Props = {
   onAgree: () => void;
 };
 
-const cache = new Map<string, string>();
-
 async function fetchAgreement(
   type: AgreementType,
   language: string,
-): Promise<string> {
+): Promise<{ content: string; returnedLang: string }> {
 
   let langParam = (language || "ko").toLowerCase();
   if (langParam.startsWith("zh")) langParam = "zh";
   else langParam = langParam.split("-")[0]; 
-  const key = `${type}_${langParam}`;
-  if (cache.has(key)) return cache.get(key)!;
   const url = `https://oth-path-gw.example.invalid/agreements?type=${type}&language=${langParam}`;
-  console.log("[TermsModal] fetch:", url);
+  console.log("[TermsModal] fetch:", url, "(i18n.language =", language, ")");
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to load agreement (${res.status})`);
-  const json = (await res.json()) as { data?: { content?: string } };
+  const json = (await res.json()) as { data?: { content?: string; language?: string } };
   const content = json?.data?.content ?? "";
+  const returnedLang = json?.data?.language ?? "";
   console.log(
-    `[TermsModal] response ok — content length=${content.length}`,
+    `[TermsModal] response ok — content length=${content.length}, returnedLang=${returnedLang}`,
   );
-  cache.set(key, content);
-  return content;
+  return { content, returnedLang };
 }
 
 const TITLE_KEYS: Record<AgreementType, string> = {
@@ -64,6 +60,7 @@ const TITLE_FALLBACK: Record<AgreementType, string> = {
 export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
   const { t, i18n } = useTranslation();
   const [content, setContent] = useState<string>("");
+  const [returnedLang, setReturnedLang] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,9 +70,13 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
     setLoading(true);
     setError(null);
     setContent("");
+    setReturnedLang("");
     fetchAgreement(type, i18n.language)
-      .then((c) => {
-        if (!cancelled) setContent(c);
+      .then(({ content: c, returnedLang: r }) => {
+        if (!cancelled) {
+          setContent(c);
+          setReturnedLang(r);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -94,6 +95,14 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
       cancelled = true;
     };
   }, [visible, type, i18n.language, t]);
+
+  const expectedLang = (() => {
+    const l = (i18n.language || "ko").toLowerCase();
+    if (l.startsWith("zh")) return "zh";
+    return l.split("-")[0];
+  })();
+  const langMismatch =
+    returnedLang && expectedLang && returnedLang !== expectedLang;
 
   if (!type) return null;
   const title = t(TITLE_KEYS[type], { defaultValue: TITLE_FALLBACK[type] });
@@ -130,7 +139,14 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
             ) : error ? (
               <Text style={s.errorText}>{error}</Text>
             ) : (
-              <Text style={s.contentText}>{content}</Text>
+              <>
+                {langMismatch && (
+                  <Text style={s.langNotice}>
+                    ⚠️ {expectedLang} → {returnedLang} (해당 언어 약관 준비 중)
+                  </Text>
+                )}
+                <Text style={s.contentText}>{content}</Text>
+              </>
             )}
           </ScrollView>
 
@@ -197,6 +213,15 @@ const s = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: COLORS.zinc700,
+  },
+  langNotice: {
+    fontSize: 12,
+    color: COLORS.amber700,
+    backgroundColor: COLORS.amber50,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
+    marginBottom: 12,
   },
   errorText: {
     fontSize: 14,
