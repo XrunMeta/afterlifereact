@@ -29,8 +29,8 @@ import type { MainTabParamList } from "../../navigation/types";
 
 type TabNav = BottomTabNavigationProp<MainTabParamList>;
 
-const GAP = 2; 
-const NUM_COLS = 3;
+const GAP = 4; 
+const NUM_COLS = 2;
 
 type TabKey = "recommend" | "clone" | "account" | "tag";
 const TABS: Array<{ key: TabKey; label: string }> = [
