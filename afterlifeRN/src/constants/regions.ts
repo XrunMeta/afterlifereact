@@ -53,9 +53,42 @@ const COUNTRY_PHONE_CODE: Record<string, number> = {
   id: 62,
 };
 
+const WELL_KNOWN_ENGLISH_NAMES: Record<string, string> = {
+
+  'Bayern': 'Bavaria',
+  'Baden-Württemberg': 'Baden-Wurttemberg',
+  'Niedersachsen': 'Lower Saxony',
+  'Nordrhein-Westfalen': 'North Rhine-Westphalia',
+  'Rheinland-Pfalz': 'Rhineland-Palatinate',
+  'Sachsen': 'Saxony',
+  'Sachsen-Anhalt': 'Saxony-Anhalt',
+  'Thüringen': 'Thuringia',
+  'Hessen': 'Hesse',
+
+  'Cataluña': 'Catalonia',
+  'Andalucía': 'Andalusia',
+  'País Vasco': 'Basque Country',
+  'Castilla y León': 'Castile and Leon',
+  'Castilla-La Mancha': 'Castile-La Mancha',
+
+  'Toscana': 'Tuscany',
+  'Sicilia': 'Sicily',
+  'Sardegna': 'Sardinia',
+  'Lombardia': 'Lombardy',
+  'Piemonte': 'Piedmont',
+  'Puglia': 'Apulia',
+
+};
+
+const toEnglishName = (raw: string): string => {
+  if (WELL_KNOWN_ENGLISH_NAMES[raw]) return WELL_KNOWN_ENGLISH_NAMES[raw];
+
+  return raw.normalize('NFD').replace(/[̀-ͯ]/g, '');
+};
+
 const toRegionFromState = (s: { name: string; isoCode: string; countryCode: string }): CountryDialCode => ({
   iso2: s.isoCode,
-  name: s.name,
+  name: toEnglishName(s.name),
   dialCode: s.isoCode,
   flagEmoji: '📍',
   countryCode: COUNTRY_PHONE_CODE[s.countryCode.toLowerCase()] ?? 0,
