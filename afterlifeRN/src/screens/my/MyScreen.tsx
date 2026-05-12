@@ -249,7 +249,15 @@ export default function v_ed02a5() {
       <PageHeader
         title="설정"
         showBackButton
-        onBackPress={() => v_c65f5d.goBack()}
+        onBackPress={() => {
+
+          v_c65f5d.getParent()?.dispatch(
+            v_650cfa.navigate({
+              name: "ClonesTab",
+              params: { screen: "Dashboard" },
+            }),
+          );
+        }}
       />
 
       <View style={v_fd5f43.content}>

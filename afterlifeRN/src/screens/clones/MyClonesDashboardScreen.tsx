@@ -30,7 +30,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_7281a5, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
+import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
 import { v_84a859, v_976b89 } from "../../api/auth";
 import { v_5c99c1 } from "../../api/payments";
 import { v_7d2692 } from "../../api/files";
@@ -171,8 +171,6 @@ export default function v_def15b() {
   const v_48d264 = 0;
   const v_a7e127 = 0;
 
-  const [v_d97b95, v_77857e] = v_5ab095<number>(0);
-
   const [v_026c2d, v_5eda29] = v_5ab095(false);
 
   const [v_04e734, v_d6a117] = v_5ab095(false);
@@ -297,22 +295,6 @@ export default function v_def15b() {
     v_2dbd8f({ cloneId: v_6e0fd3, currentVisibility: v_275ccd });
     v_8d2d61(null);
   };
-
-  v_c4deb2(() => {
-    if (!v_2ca7e0 || !v_b113dd?.id) {
-      v_77857e(0);
-      return;
-    }
-    let v_2008a4 = false;
-    v_7281a5(v_2ca7e0, v_b113dd.id)
-      .then((v_cb35cb) => {
-        if (!v_2008a4) v_77857e(v_cb35cb.items.length);
-      })
-      .catch((v_49263d) => console.warn("[Dashboard] subscribed count fetch failed:", v_49263d));
-    return () => {
-      v_2008a4 = true;
-    };
-  }, [v_2ca7e0, v_b113dd?.id]);
 
   v_c4deb2(() => {
     if (!v_2ca7e0) {
@@ -763,11 +745,6 @@ export default function v_def15b() {
                     <View style={v_fd5f43.profileStatItem}>
                       <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
                       <Text style={v_fd5f43.profileStatLabel}>페르소나</Text>
-                    </View>
-                    <View style={v_fd5f43.profileStatDivider} />
-                    <View style={v_fd5f43.profileStatItem}>
-                      <Text style={v_fd5f43.profileStatValue}>{v_d97b95}</Text>
-                      <Text style={v_fd5f43.profileStatLabel}>구독</Text>
                     </View>
                   </View>
                 </View>
