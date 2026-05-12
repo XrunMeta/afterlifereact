@@ -276,7 +276,6 @@ export default function v_ed02a5() {
       icon: "trash-2",
       labelKey: "settings.privacy.deleteAccount",
       descKey: "settings.privacy.deleteAccount",
-      danger: true,
       action: v_5bc46a,
     },
     {
@@ -343,7 +342,7 @@ export default function v_ed02a5() {
                   <Text style={v_fd5f43.settingsDesc}>{v_8d41d7(v_8c0b26.descKey)}</Text>
                 </View>
                 {v_4a6533 ? (
-                  <ActivityIndicator color={v_1bfbd0.error} />
+                  <ActivityIndicator color={v_1bfbd0.zinc500} />
                 ) : (
                   <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
                 )}
