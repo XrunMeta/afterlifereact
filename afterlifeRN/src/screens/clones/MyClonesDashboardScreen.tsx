@@ -701,9 +701,7 @@ export default function v_def15b() {
                 source={require("../../../assets/images/xrun-round-logo.png")}
                 style={v_fd5f43.coinIcon}
               />
-              <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.coinSymbol}>XRUN</Text>
-              </View>
+              <View style={{ flex: 1 }} />
               <View style={v_fd5f43.coinAmountWrap}>
                 {v_19340b ? (
                   <ActivityIndicator color={v_1bfbd0.zinc900} />
