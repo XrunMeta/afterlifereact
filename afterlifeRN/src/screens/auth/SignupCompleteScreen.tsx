@@ -1,7 +1,7 @@
 
 
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -20,9 +20,12 @@ type ServiceKey = "afterlife" | "xrun";
 
 export default function SignupCompleteScreen({ route }: Props) {
   const { t } = useTranslation();
-  const { accessToken, persist } = route.params;
+
+  const accessToken = route.params?.accessToken;
+  const persist = route.params?.persist ?? true;
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
   const hydrate = useAuthStore((s) => s.hydrate);
+  console.log("[SignupComplete] mounted, hasToken:", !!accessToken);
 
   const [selected, setSelected] = useState<Record<ServiceKey, boolean>>({
     afterlife: true,
@@ -35,6 +38,10 @@ export default function SignupCompleteScreen({ route }: Props) {
   };
 
   const handleStart = async () => {
+    if (!accessToken) {
+      console.warn("[SignupComplete] no accessToken in route.params");
+      return;
+    }
     setProceeding(true);
     try {
 
@@ -46,10 +53,11 @@ export default function SignupCompleteScreen({ route }: Props) {
     } catch (err) {
       console.warn("[SignupComplete] start failed:", err);
       const msg =
-        err instanceof AuthApiError ? err.message : t("common.error");
+        err instanceof AuthApiError ? err.message : String(err);
+      Alert.alert(t("common.error"), msg);
 
+    } finally {
       setProceeding(false);
-      throw new Error(msg);
     }
   };
 
