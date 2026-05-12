@@ -28,9 +28,13 @@ export default function Step2BasicInfoScreen({ navigation }: Props) {
       <PageHeader
         title={t("create.stepTitles.2")}
         showBackButton
-        onBackPress={() => navigation.goBack()}
+        onBackPress={() => {
+
+          navigation.getParent()?.navigate("HomeTab" as never);
+        }}
       />
-      <StepIndicator currentStep={2} totalSteps={7} />
+      {}
+      <StepIndicator currentStep={1} totalSteps={6} />
       <SafeScrollView
         contentContainerStyle={styles.content}
         showBottomBackground={false}

@@ -32,7 +32,7 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
-      <StepIndicator currentStep={3} totalSteps={7} />
+      <StepIndicator currentStep={2} totalSteps={6} />
       {bannerOpen && <Step3EntryBanner onDismiss={() => setBannerOpen(false)} />}
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />

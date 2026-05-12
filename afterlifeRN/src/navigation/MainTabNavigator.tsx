@@ -154,6 +154,11 @@ export default function MainTabNavigator() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
+
+            const { setCreationDraft, resetCreationDraft } =
+              require("../stores/cloneStore").useCloneStore.getState();
+            resetCreationDraft();
+            setCreationDraft({ cloneType: "default" });
             const state = navigation.getState();
             const createIndex = state.routes.findIndex(
               (r) => r.name === "CreateTab"
@@ -166,8 +171,8 @@ export default function MainTabNavigator() {
                     state: {
                       routes: [
                         {
-                          name: "Step1" as const,
-                          key: `Step1-${Date.now()}`,
+                          name: "Step2" as const,
+                          key: `Step2-${Date.now()}`,
                         },
                       ],
                       index: 0,

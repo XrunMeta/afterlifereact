@@ -61,7 +61,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   return (
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader title="클론 생성" />
-      <StepIndicator currentStep={6} totalSteps={7} />
+      <StepIndicator currentStep={5} totalSteps={6} />
 
       <View style={styles.center}>
         {}

@@ -304,7 +304,7 @@ export default function HomeScreen() {
               rootNav.dispatch(
                 CommonActions.navigate({
                   name: "CreateTab",
-                  params: { screen: "Step1" },
+                  params: { screen: "Step2" },
                 }),
               )
             }
