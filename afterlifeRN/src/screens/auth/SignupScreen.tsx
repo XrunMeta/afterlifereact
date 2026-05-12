@@ -323,14 +323,15 @@ export default function SignupScreen({ navigation, route }: Props) {
               {country ? (
                 <Text style={styles.pickerValue} numberOfLines={1}>
                   {country.flagEmoji}{" "}
-                  {t(`countries:${country.iso2.toUpperCase()}`, country.name)}
+                  {t(`countries:${country.iso2.toUpperCase()}`, {
+                    defaultValue: country.name,
+                  })}
                   {region && region.iso2 !== "global" && (
                     <Text style={styles.pickerRegion}>
                       {"  ·  "}
-                      {t(
-                        `regions:${region.countryCode}_${region.dialCode}`,
-                        region.name,
-                      )}
+                      {t(`regions:${region.countryCode}_${region.dialCode}`, {
+                        defaultValue: region.name,
+                      })}
                     </Text>
                   )}
                 </Text>

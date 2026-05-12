@@ -94,8 +94,8 @@ export default function CountryRegionPicker({
     }
     const topFiltered = top.filter(Boolean);
     rest.sort((a, b) => {
-      const an = t(`countries:${a.iso2.toUpperCase()}`, a.name);
-      const bn = t(`countries:${b.iso2.toUpperCase()}`, b.name);
+      const an = t(`countries:${a.iso2.toUpperCase()}`, { defaultValue: a.name });
+      const bn = t(`countries:${b.iso2.toUpperCase()}`, { defaultValue: b.name });
       return an.localeCompare(bn);
     });
     return [...topFiltered, ...rest];
@@ -117,8 +117,9 @@ export default function CountryRegionPicker({
         mode === "country"
           ? `countries:${item.iso2.toUpperCase()}`
           : `regions:${item.countryCode}_${item.dialCode}`;
-      const translated = t(tKey).toLowerCase();
-      return name.includes(q) || translated.includes(q);
+
+      const translated = t(tKey, { defaultValue: "" }).toLowerCase();
+      return name.includes(q) || (!!translated && translated.includes(q));
     });
   }, [items, query, mode, t]);
 
@@ -145,14 +146,13 @@ export default function CountryRegionPicker({
 
   const labelFor = (item: CountryDialCode): string => {
     if (mode === "country") {
-      const key = `countries:${item.iso2.toUpperCase()}`;
-      const v = t(key);
-      return v && v !== key ? v : item.name;
-    } else {
-      const key = `regions:${item.countryCode}_${item.dialCode}`;
-      const v = t(key);
-      return v && v !== key ? v : item.name;
+      return t(`countries:${item.iso2.toUpperCase()}`, {
+        defaultValue: item.name,
+      });
     }
+    return t(`regions:${item.countryCode}_${item.dialCode}`, {
+      defaultValue: item.name,
+    });
   };
 
   return (
