@@ -293,9 +293,9 @@ export default function v_ed02a5() {
         </View>
 
         {}
-        <TouchableOpacity style={v_fd5f43.logoutBtn} onPress={() => void v_d7d5a2()}>
-          <Feather name="log-out" size={16} color={v_1bfbd0.zinc600} />
-          <Text style={v_fd5f43.logoutText}>{v_8d41d7("my.menu.logout")}</Text>
+        <TouchableOpacity style={v_fd5f43.logoutBigBtn} onPress={() => void v_d7d5a2()} activeOpacity={0.85}>
+          <Feather name="log-out" size={18} color={v_1bfbd0.white} />
+          <Text style={v_fd5f43.logoutBigText}>{v_8d41d7("my.menu.logout")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -743,6 +743,18 @@ const v_fd5f43 = v_472849.create({
     paddingVertical: 8,
   },
   logoutText: { fontSize: 14, color: v_1bfbd0.zinc600 },
+
+  logoutBigBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    backgroundColor: v_1bfbd0.zinc900,
+    borderRadius: v_8b0c90.lg,
+    marginTop: 4,
+  },
+  logoutBigText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
 
   statsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   statsSheet: {
