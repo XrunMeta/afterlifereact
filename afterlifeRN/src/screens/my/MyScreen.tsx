@@ -363,38 +363,42 @@ export default function v_ed02a5() {
           <Text style={v_fd5f43.sectionLabel}>{v_8d41d7("my.coin.title")}</Text>
         </View>
 
-        {}
-        <View style={v_fd5f43.coinCard}>
-          <View style={v_fd5f43.coinCardTop}>
-            <View style={v_fd5f43.coinLabelRow}>
-              <Feather name="dollar-sign" size={18} color={v_1bfbd0.zinc700} />
-              <Text style={v_fd5f43.coinLabel}>{v_8d41d7("my.coin.balance")}</Text>
-            </View>
-            <TouchableOpacity
-              style={v_fd5f43.chargeBtn}
-              onPress={() => v_d6a117(true)}
-            >
-              <Feather name="plus" size={14} color={v_1bfbd0.white} />
-              <Text style={v_fd5f43.chargeBtnText}>{v_8d41d7("my.coin.charge")}</Text>
-            </TouchableOpacity>
+        {
+}
+        <View style={v_fd5f43.coinRow}>
+          <Image
+            source={require("../../../assets/images/xrun-round-logo.png")}
+            style={v_fd5f43.coinIcon}
+          />
+          <View style={v_fd5f43.coinTextWrap}>
+            <Text style={v_fd5f43.coinSymbol}>XRUN</Text>
+            <Text style={v_fd5f43.coinNetwork}>Polygon</Text>
           </View>
-          {v_747a87 ? (
-            <ActivityIndicator color={v_1bfbd0.zinc900} style={{ alignSelf: "flex-start", marginTop: 4 }} />
-          ) : v_519444 != null ? (
-            <>
-              <Text style={v_fd5f43.coinAmount}>{v_519444.toLocaleString(undefined, { maximumFractionDigits: 4 })}</Text>
-              <Text style={v_fd5f43.coinWon}>
-                XRUN
-                {v_30af0f != null && v_30af0f > 0 ? `  ·  AD ${v_30af0f.toLocaleString()}` : ""}
+          <View style={v_fd5f43.coinAmountWrap}>
+            {v_747a87 ? (
+              <ActivityIndicator color={v_1bfbd0.zinc900} />
+            ) : v_519444 != null ? (
+              <Text style={v_fd5f43.coinAmountText}>
+                {v_519444.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                <Text style={v_fd5f43.coinUnit}> XRUN</Text>
               </Text>
-            </>
-          ) : (
-            <>
-              <Text style={v_fd5f43.coinAmount}>—</Text>
-              <Text style={v_fd5f43.coinWon}>{v_8d41d7("my.coin.notMapped")}</Text>
-            </>
-          )}
+            ) : (
+              <Text style={v_fd5f43.coinAmountText}>
+                —<Text style={v_fd5f43.coinUnit}> XRUN</Text>
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity
+            style={v_fd5f43.coinChargeBtn}
+            onPress={() => v_d6a117(true)}
+            hitSlop={8}
+          >
+            <Feather name="plus-circle" size={24} color={v_1bfbd0.violet600} />
+          </TouchableOpacity>
         </View>
+        {v_30af0f != null && v_30af0f > 0 && (
+          <Text style={v_fd5f43.adNote}>AD {v_30af0f.toLocaleString()}</Text>
+        )}
 
         {}
         <View style={v_fd5f43.transactionsCard}>
@@ -672,6 +676,67 @@ const v_fd5f43 = v_472849.create({
 
   sectionHeader: { marginBottom: 10 },
   sectionLabel: { fontSize: 13, fontWeight: "500", color: v_1bfbd0.zinc400, paddingHorizontal: 4 },
+
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc100,
+  },
+  coinIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  coinTextWrap: { flex: 1 },
+  coinSymbol: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc900,
+  },
+  coinNetwork: {
+    fontSize: 12,
+    color: v_1bfbd0.zinc500,
+    marginTop: 2,
+  },
+  coinAmountWrap: {
+    alignItems: "flex-end",
+    marginRight: 8,
+  },
+  coinAmountText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+  },
+  coinUnit: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc700,
+  },
+  coinChargeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adNote: {
+    fontSize: 12,
+    color: v_1bfbd0.zinc500,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    marginTop: -4,
+  },
 
   coinCard: {
     backgroundColor: v_1bfbd0.white,
