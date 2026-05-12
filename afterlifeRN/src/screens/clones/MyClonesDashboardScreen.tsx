@@ -725,11 +725,6 @@ export default function v_def15b() {
 }
           </>
         }
-        ListFooterComponent={
-          <TouchableOpacity style={v_fd5f43.loadMore}>
-            <Text style={v_fd5f43.loadMoreText}>{v_8d41d7("dashboard.loadMore")}</Text>
-          </TouchableOpacity>
-        }
       />
 
       {}
