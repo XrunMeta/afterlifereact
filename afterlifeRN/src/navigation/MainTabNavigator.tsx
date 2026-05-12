@@ -140,8 +140,11 @@ export default function MainTabNavigator() {
         },
       })}
     >
+      {
+
+}
       <Tab.Screen name="HomeTab" component={HomeScreen} />
-      <Tab.Screen name="ClonesTab" component={ClonesStackNavigator} />
+      <Tab.Screen name="ShortsTab" component={FollowingScreen} />
       <Tab.Screen
         name="CreateTab"
         component={CreateStackNavigator}
@@ -180,10 +183,14 @@ export default function MainTabNavigator() {
           },
         })}
       />
+      <Tab.Screen name="ClonesTab" component={ClonesStackNavigator} />
       {
 }
-      <Tab.Screen name="ShortsTab" component={FollowingScreen} />
-      <Tab.Screen name="MyTab" component={MyStackNavigator} />
+      <Tab.Screen
+        name="MyTab"
+        component={MyStackNavigator}
+        options={{ tabBarButton: () => null }}
+      />
     </Tab.Navigator>
   );
 }

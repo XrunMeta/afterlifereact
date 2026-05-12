@@ -660,7 +660,26 @@ export default function MyClonesDashboardScreen() {
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
         title={t("dashboard.title")}
-        rightAction={<NotificationBell />}
+        rightAction={
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <NotificationBell />
+            <TouchableOpacity
+              onPress={() =>
+                rootNav.dispatch(
+                  CommonActions.navigate({
+                    name: "MyTab",
+                    params: { screen: "MyHome" },
+                  }),
+                )
+              }
+              activeOpacity={0.7}
+              hitSlop={8}
+            >
+              <Feather name="settings" size={22} color={COLORS.zinc700} />
+            </TouchableOpacity>
+          </View>
+        }
       />
 
       <FlatList
