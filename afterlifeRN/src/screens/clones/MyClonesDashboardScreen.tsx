@@ -14,7 +14,9 @@ import {
   Share,
   Platform,
   Linking,
+  Alert,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -29,8 +31,9 @@ import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
 import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
-import { AuthApiError } from "../../api/auth";
+import { AuthApiError, patchMe } from "../../api/auth";
 import { getXrunBalance } from "../../api/payments";
+import { uploadFile } from "../../api/files";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
@@ -93,6 +96,7 @@ export default function MyClonesDashboardScreen() {
   const authUser = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
   const accessToken = useAuthStore((s) => s.accessToken);
+  const patchApiUser = useAuthStore((s) => s.patchApiUser);
   const localClones = useCloneStore((s) => s.localClones);
   const upsertClones = useCloneStore((s) => s.upsertClones);
   const follows = useFollowStore((s) => s.follows);
@@ -166,6 +170,8 @@ export default function MyClonesDashboardScreen() {
 
   const followingCount = 0;
   const followersCount = 0;
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [chargeModalVisible, setChargeModalVisible] = useState(false);
 
@@ -314,6 +320,45 @@ export default function MyClonesDashboardScreen() {
       cancelled = true;
     };
   }, [accessToken]);
+
+  const handleEditAvatar = async () => {
+    if (!accessToken) {
+      Alert.alert(t("common.notice", { defaultValue: "알림" }), t("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        t("my.permTitle", { defaultValue: "권한 필요" }),
+        t("my.permDesc", { defaultValue: "사진 라이브러리 접근 권한을 허용해주세요." }),
+      );
+      return;
+    }
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (picked.canceled || !picked.assets?.[0]) return;
+    const asset = picked.assets[0];
+
+    setUploadingAvatar(true);
+    try {
+      const uploaded = await uploadFile(accessToken, asset.uri, {
+        purpose: "avatar",
+        fileName: asset.fileName ?? "avatar.jpg",
+        mimeType: asset.mimeType ?? "image/jpeg",
+      });
+      await patchMe(accessToken, { avatarUrl: uploaded.url });
+      patchApiUser({ avatarUrl: uploaded.url });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "이미지 업로드에 실패했어요";
+      Alert.alert(t("common.error", { defaultValue: "오류" }), msg);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const openXrunStore = async () => {
     const playStore = "market://details?id=run.xrun.xrunapp";
@@ -640,7 +685,7 @@ export default function MyClonesDashboardScreen() {
                 navigation.dispatch(
                   CommonActions.navigate({
                     name: "CreateTab",
-                    params: { screen: "Step1" },
+                    params: { screen: "Step3" },
                   }),
                 )
               }
@@ -653,19 +698,35 @@ export default function MyClonesDashboardScreen() {
         ListHeaderComponent={
           <>
             {
+
 }
             <View style={s.profileSection}>
               <View style={s.profileLeft}>
-                {apiUser?.avatarUrl || authUser?.avatarUrl ? (
-                  <Image
-                    source={{ uri: (apiUser?.avatarUrl ?? authUser?.avatarUrl) as string }}
-                    style={s.profileAvatar}
-                  />
-                ) : (
-                  <View style={[s.profileAvatar, s.profileAvatarPlaceholder]}>
-                    <Feather name="user" size={28} color={COLORS.zinc400} />
-                  </View>
-                )}
+                <View style={s.profileAvatarWrap}>
+                  {apiUser?.avatarUrl || authUser?.avatarUrl ? (
+                    <Image
+                      source={{ uri: (apiUser?.avatarUrl ?? authUser?.avatarUrl) as string }}
+                      style={s.profileAvatar}
+                    />
+                  ) : (
+                    <View style={[s.profileAvatar, s.profileAvatarPlaceholder]}>
+                      <Feather name="user" size={28} color={COLORS.zinc400} />
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={s.profileAvatarEditBtn}
+                    onPress={handleEditAvatar}
+                    disabled={uploadingAvatar}
+                    activeOpacity={0.8}
+                    hitSlop={6}
+                  >
+                    {uploadingAvatar ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <Feather name="edit-2" size={12} color={COLORS.white} />
+                    )}
+                  </TouchableOpacity>
+                </View>
                 <View style={{ flex: 1, marginLeft: 26 }}>
                   <Text style={s.profileName} numberOfLines={1}>
                     {apiUser?.name ?? authUser?.displayName ?? "사용자"}
@@ -1154,11 +1215,25 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatarWrap: { position: "relative" },
   profileAvatar: { width: 64, height: 64, borderRadius: 32 },
   profileAvatarPlaceholder: {
     backgroundColor: COLORS.zinc100,
     alignItems: "center",
     justifyContent: "center",
+  },
+  profileAvatarEditBtn: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.zinc900,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
   profileName: {
     fontSize: 17,

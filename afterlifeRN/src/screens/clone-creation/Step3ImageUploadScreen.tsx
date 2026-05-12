@@ -30,9 +30,12 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
       <PageHeader
         title={t("create.stepTitles.3")}
         showBackButton
-        onBackPress={() => navigation.goBack()}
+        onBackPress={() => {
+
+          navigation.getParent()?.navigate("HomeTab" as never);
+        }}
       />
-      <StepIndicator currentStep={3} totalSteps={7} />
+      <StepIndicator currentStep={1} totalSteps={4} />
       {bannerOpen && <Step3EntryBanner onDismiss={() => setBannerOpen(false)} />}
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />

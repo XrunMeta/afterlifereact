@@ -17,19 +17,16 @@ import { Feather } from "@expo/vector-icons";
 import { useNavigation, CommonActions } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
-import * as ImagePicker from "expo-image-picker";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
-import NotificationBell from "../../components/common/NotificationBell";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
-import { uploadFile } from "../../api/files";
-import { patchMe } from "../../api/auth";
+import { deleteMe, AuthApiError } from "../../api/auth";
 import { listMyClones, listMyFollowedClones, type FollowedClone, type MyClone } from "../../api/clones";
 import { useFocusEffect } from "@react-navigation/native";
-import { getPaymentPinStatus, getXrunBalance, getMyTransactions, type TransactionItem } from "../../api/payments";
+import { getPaymentPinStatus, getXrunBalance } from "../../api/payments";
 import PaymentPinPromptModal, {
   shouldShowPaymentPinPrompt,
 } from "../../components/my/PaymentPinPromptModal";
@@ -37,13 +34,6 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
 
 const DEFAULT_USER_ID = 1;
-
-function fmtTxDate(iso: string): string {
-  const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
-  if (Number.isNaN(d.getTime())) return iso;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 type MyNav = NativeStackNavigationProp<MyStackParamList>;
 
@@ -53,14 +43,12 @@ export default function MyScreen() {
   const user = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const patchApiUser = useAuthStore((s) => s.patchApiUser);
   const logout = useAuthStore((s) => s.logout);
   const follows = useFollowStore((s) => s.follows);
   const isFollowing = useFollowStore((s) => s.isFollowing);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
   const localClones = useCloneStore((s) => s.localClones);
   const [showComingSoon, setShowComingSoon] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
 
   const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
@@ -128,46 +116,6 @@ export default function MyScreen() {
     };
   }, [accessToken]);
 
-  const handleEditAvatar = async () => {
-    if (!accessToken) {
-      Alert.alert(t("common.notice"), t("my.loginRequired"));
-      return;
-    }
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert(t("my.permTitle"), t("my.permDesc"));
-      return;
-    }
-    const picked = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (picked.canceled || !picked.assets?.[0]) return;
-    const asset = picked.assets[0];
-
-    setUploadingAvatar(true);
-    try {
-      const uploaded = await uploadFile(accessToken, asset.uri, {
-        purpose: "avatar",
-        fileName: asset.fileName ?? "avatar.jpg",
-        mimeType: asset.mimeType ?? "image/jpeg",
-      });
-      await patchMe(accessToken, { avatarUrl: uploaded.url });
-      patchApiUser({ avatarUrl: uploaded.url });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : t("my.uploadFailed");
-      Alert.alert(t("common.error"), msg);
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-  const displayName = apiUser?.name ?? user?.displayName ?? t("my.userFallback");
-  const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
-  const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
-
   const balanceLoading = xrunBalanceLoading;
   const xrunDisplay = xrunBalance ?? null;
   const adDisplay = adBalance ?? null;
@@ -189,7 +137,6 @@ export default function MyScreen() {
   const [apiMyClonesList, setApiMyClonesList] = useState<MyClone[] | null>(null);
   const [statsModal, setStatsModal] = useState<"following" | "myClones" | null>(null);
   const [chargeModalVisible, setChargeModalVisible] = useState(false);
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
 
   const handleOpenXrunApp = async () => {
     setChargeModalVisible(false);
@@ -245,14 +192,6 @@ export default function MyScreen() {
         })
         .catch((err) => console.warn("[MyScreen] myClones fail:", err));
 
-      getMyTransactions(accessToken, { limit: 20 })
-        .then((r) => {
-          if (!cancelled) {
-            console.log(`[MyScreen] transactions ← ${r.items.length} items`);
-            setTransactions(r.items);
-          }
-        })
-        .catch((err) => console.warn("[MyScreen] transactions fail:", err));
       return () => {
         cancelled = true;
       };
@@ -267,13 +206,43 @@ export default function MyScreen() {
     seedSource.clones().filter((c) => c.ownerId === uid).length +
       localClones.filter((c) => c.ownerId === uid).length;
 
-  const settingsItems: Array<{
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "회원 탈퇴",
+      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(xrun 가입자라면 xrun 계정은 유지됩니다)",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "탈퇴",
+          style: "destructive",
+          onPress: async () => {
+            if (!accessToken) return;
+            setDeleting(true);
+            try {
+
+              await deleteMe(accessToken);
+              await logout();
+            } catch (err) {
+              const msg = err instanceof AuthApiError ? err.message : "탈퇴에 실패했어요.";
+              Alert.alert("오류", msg);
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  type SettingsItem = {
     icon: keyof typeof Feather.glyphMap;
     labelKey: string;
     descKey: string;
-    route: keyof MyStackParamList;
-  }> = [
+    danger?: boolean;
+  } & ({ route: keyof MyStackParamList } | { action: () => void });
 
+  const settingsItems: SettingsItem[] = [
     {
       icon: "user",
       labelKey: "my.menu.editProfile",
@@ -293,148 +262,95 @@ export default function MyScreen() {
       route: "LanguageSettings",
     },
     {
-      icon: "shield",
+      icon: "slash",
       labelKey: "my.menu.privacy",
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
+    },
+    {
+      icon: "file-text",
+      labelKey: "my.coin.transactions",
+      descKey: "my.coin.viewAll",
+      route: "Transactions",
+    },
+    {
+      icon: "trash-2",
+      labelKey: "settings.privacy.deleteAccount",
+      descKey: "settings.privacy.deleteAccount",
+      action: handleDeleteAccount,
+    },
+    {
+      icon: "log-out",
+      labelKey: "my.menu.logout",
+      descKey: "my.menu.logout",
+      action: () => void logout(),
     },
   ];
 
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
-        title="My Page"
-        rightAction={<NotificationBell />}
+        title="설정"
+        showBackButton
+        onBackPress={() => {
+
+          navigation.getParent()?.dispatch(
+            CommonActions.navigate({
+              name: "ClonesTab",
+              params: { screen: "Dashboard" },
+            }),
+          );
+        }}
       />
 
       <View style={s.content}>
-        {}
-        <View style={s.profileSection}>
-          <View style={s.avatarWrap}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={s.avatar} />
-            ) : (
-              <View style={[s.avatar, s.avatarPlaceholder]}>
-                <Feather name="user" size={40} color={COLORS.zinc400} />
-              </View>
-            )}
-            <TouchableOpacity
-              style={s.editAvatarBtn}
-              onPress={handleEditAvatar}
-              disabled={uploadingAvatar}
-            >
-              <Feather name="edit-2" size={14} color={COLORS.white} />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={s.userName}>{displayName}</Text>
-          <Text style={s.userHandle}>{subLabel}</Text>
-
-          {
-
+        {
 }
-          <View style={s.statsRow}>
-            <View style={s.statItem}>
-              <Text style={s.statValue}>0</Text>
-              <Text style={s.statLabel}>팔로워</Text>
-            </View>
-            <View style={s.statDivider} />
-            <View style={s.statItem}>
-              <Text style={s.statValue}>0</Text>
-              <Text style={s.statLabel}>팔로잉</Text>
-            </View>
-            <View style={s.statDivider} />
-            <TouchableOpacity
-              style={s.statItem}
-              onPress={() => {
-                console.log(
-                  `[MyScreen] stat TAP "구독 중" — apiFollowingCount=${apiFollowingCount}`,
-                );
-                setStatsModal("following");
-              }}
-            >
-              <Text style={s.statValue}>{followingCount}</Text>
-              <Text style={s.statLabel}>구독 중</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         {}
 
-        {}
-        <View style={s.transactionsCard}>
-          <View style={s.transactionsHeader}>
-            <Text style={s.transactionsTitle}>{t("my.coin.transactions")}</Text>
-          </View>
-          {transactions.length === 0 ? (
-            <View style={[s.txRow, { justifyContent: "center" }]}>
-              <Text style={[s.txDate, { textAlign: "center" }]}>
-                아직 거래 내역이 없어요
-              </Text>
-            </View>
-          ) : (
-            transactions.map((tx, i) => {
-              const label =
-                tx.type === "gift_sent"
-                  ? `${tx.cloneName ?? "페르소나"}에게 ${tx.giftName} 선물`
-                  : `${tx.cloneName ?? "페르소나"}로부터 ${tx.giftName} 선물 수익`;
-              return (
-                <View
-                  key={tx.id}
-                  style={[s.txRow, i < transactions.length - 1 && s.txRowBorder]}
-                >
-                  <View style={s.txInfo}>
-                    <Text style={s.txLabel}>{label}</Text>
-                    <Text style={s.txDate}>{fmtTxDate(tx.createdAt)}</Text>
-                  </View>
-                  <Text style={[s.txAmount, tx.amount > 0 ? s.txGreen : s.txRed]}>
-                    {tx.amount > 0 ? "+" : ""}
-                    {tx.amount.toLocaleString(undefined, { maximumFractionDigits: 6 })} xrun
-                  </Text>
-                </View>
-              );
-            })
-          )}
-          <TouchableOpacity
-            style={s.viewAllBtn}
-            onPress={() => navigation.navigate("Transactions")}
-          >
-            <Text style={s.viewAllText}>{t("my.coin.viewAll")}</Text>
-          </TouchableOpacity>
-        </View>
+        {
+}
 
-        {}
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>{t("my.coin.settings")}</Text>
-        </View>
-
+        {
+}
         <View style={s.settingsCard}>
-          {settingsItems.map((item, i) => (
-            <TouchableOpacity
-              key={item.route}
-              style={[
-                s.settingsRow,
-                i < settingsItems.length - 1 && s.settingsRowBorder,
-              ]}
-              onPress={() => navigation.navigate(item.route)}
-            >
-              <View style={s.settingsIcon}>
-                <Feather name={item.icon} size={22} color={COLORS.zinc900} />
-              </View>
-              <View style={s.settingsInfo}>
-                <Text style={s.settingsLabel}>{t(item.labelKey)}</Text>
-                <Text style={s.settingsDesc}>{t(item.descKey)}</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
-            </TouchableOpacity>
-          ))}
+          {settingsItems.map((item, i) => {
+            const isAction = "action" in item;
+            const isDeleteRow = item.labelKey === "settings.privacy.deleteAccount";
+            const disabled = isDeleteRow && deleting;
+            const iconColor = item.danger ? COLORS.error : COLORS.zinc900;
+            return (
+              <TouchableOpacity
+                key={item.labelKey}
+                style={[
+                  s.settingsRow,
+                  i < settingsItems.length - 1 && s.settingsRowBorder,
+                ]}
+                disabled={disabled}
+                onPress={() => {
+                  if (isAction) item.action();
+                  else navigation.navigate(item.route);
+                }}
+              >
+                <View style={s.settingsIcon}>
+                  <Feather name={item.icon} size={22} color={iconColor} />
+                </View>
+                <View style={s.settingsInfo}>
+                  <Text style={[s.settingsLabel, item.danger && { color: COLORS.error }]}>
+                    {t(item.labelKey)}
+                  </Text>
+                  <Text style={s.settingsDesc}>{t(item.descKey)}</Text>
+                </View>
+                {disabled ? (
+                  <ActivityIndicator color={COLORS.zinc500} />
+                ) : (
+                  <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
-
-        {}
-        <TouchableOpacity style={s.logoutBtn} onPress={() => void logout()}>
-          <Feather name="log-out" size={16} color={COLORS.zinc600} />
-          <Text style={s.logoutText}>{t("my.menu.logout")}</Text>
-        </TouchableOpacity>
       </View>
 
       <PaymentPinPromptModal
@@ -881,6 +797,18 @@ const s = StyleSheet.create({
     paddingVertical: 8,
   },
   logoutText: { fontSize: 14, color: COLORS.zinc600 },
+
+  logoutBigBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    backgroundColor: COLORS.zinc900,
+    borderRadius: RADIUS.lg,
+    marginTop: 4,
+  },
+  logoutBigText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
 
   statsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   statsSheet: {

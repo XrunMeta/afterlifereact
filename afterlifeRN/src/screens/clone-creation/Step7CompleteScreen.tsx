@@ -307,7 +307,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   return (
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader title={t('create.stepTitles.7')} />
-      <StepIndicator currentStep={7} totalSteps={7} />
+      <StepIndicator currentStep={6} totalSteps={6} />
 
       <SafeScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
         <View style={styles.container}>

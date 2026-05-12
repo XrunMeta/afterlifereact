@@ -25,6 +25,7 @@ import Step7CompleteScreen from "../screens/clone-creation/Step7CompleteScreen";
 import Step8CreateShortsScreen from "../screens/clone-creation/Step8CreateShortsScreen";
 import FollowingScreen from "../screens/following/FollowingScreen";
 import ShortsTabScreen from "../screens/shorts/ShortsTabScreen";
+import SearchScreen from "../screens/search/SearchScreen";
 import MyScreen from "../screens/my/MyScreen";
 import EditProfileScreen from "../screens/my/EditProfileScreen";
 import NotificationSettingsScreen from "../screens/my/NotificationSettingsScreen";
@@ -90,9 +91,10 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_CONFIG: Record<string, { icon: keyof typeof Feather.glyphMap; label: string }> = {
   HomeTab: { icon: "home", label: "홈" },
-  ClonesTab: { icon: "users", label: "페르소나" },
+  SearchTab: { icon: "search", label: "검색" },
   CreateTab: { icon: "plus-circle", label: "생성" },
   ShortsTab: { icon: "user-check", label: "구독 중" },
+  ClonesTab: { icon: "users", label: "페르소나" },
   MyTab: { icon: "user", label: "마이" },
 };
 
@@ -144,7 +146,7 @@ export default function MainTabNavigator() {
 
 }
       <Tab.Screen name="HomeTab" component={HomeScreen} />
-      <Tab.Screen name="ShortsTab" component={FollowingScreen} />
+      <Tab.Screen name="SearchTab" component={SearchScreen} />
       <Tab.Screen
         name="CreateTab"
         component={CreateStackNavigator}
@@ -152,6 +154,11 @@ export default function MainTabNavigator() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
+
+            const { setCreationDraft, resetCreationDraft } =
+              require("../stores/cloneStore").useCloneStore.getState();
+            resetCreationDraft();
+            setCreationDraft({ cloneType: "default", visibility: "public" });
             const state = navigation.getState();
             const createIndex = state.routes.findIndex(
               (r) => r.name === "CreateTab"
@@ -164,8 +171,8 @@ export default function MainTabNavigator() {
                     state: {
                       routes: [
                         {
-                          name: "Step1" as const,
-                          key: `Step1-${Date.now()}`,
+                          name: "Step3" as const,
+                          key: `Step3-${Date.now()}`,
                         },
                       ],
                       index: 0,
@@ -183,13 +190,18 @@ export default function MainTabNavigator() {
           },
         })}
       />
+      <Tab.Screen name="ShortsTab" component={FollowingScreen} />
       <Tab.Screen name="ClonesTab" component={ClonesStackNavigator} />
       {
+
 }
       <Tab.Screen
         name="MyTab"
         component={MyStackNavigator}
-        options={{ tabBarButton: () => null }}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: "none" },
+        }}
       />
     </Tab.Navigator>
   );

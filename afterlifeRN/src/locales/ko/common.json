@@ -300,7 +300,7 @@
     "menu": {
       "editProfile": "개인정보 관리",
       "notifications": "알림 설정",
-      "privacy": "개인정보 및 공개 범위",
+      "privacy": "차단 관리",
       "saved": "저장됨",
       "acquaintance": "지인 관리",
       "inviteStatus": "초대 현황",
@@ -635,7 +635,7 @@
       "copied": "토큰이 복사되었습니다."
     },
     "privacy": {
-      "title": "개인정보 및 공개 범위",
+      "title": "차단 관리",
       "profileVisibility": "프로필 공개 범위",
       "blockList": "차단 목록",
       "dataDownload": "내 데이터 다운로드",
