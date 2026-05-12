@@ -660,6 +660,27 @@ export default function MyClonesDashboardScreen() {
 }
             <View style={s.profileSection}>
               <View style={s.profileLeft}>
+                <View style={{ flex: 1, marginRight: 14 }}>
+                  <Text style={s.profileName} numberOfLines={1}>
+                    {apiUser?.name ?? authUser?.displayName ?? "사용자"}
+                  </Text>
+                  <View style={s.profileStatsRow}>
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{visibleClones.length}</Text>
+                      <Text style={s.profileStatLabel}>페르소나</Text>
+                    </View>
+                    <View style={s.profileStatDivider} />
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{followingCount}</Text>
+                      <Text style={s.profileStatLabel}>팔로잉</Text>
+                    </View>
+                    <View style={s.profileStatDivider} />
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{followersCount}</Text>
+                      <Text style={s.profileStatLabel}>팔로워</Text>
+                    </View>
+                  </View>
+                </View>
                 {apiUser?.avatarUrl || authUser?.avatarUrl ? (
                   <Image
                     source={{ uri: (apiUser?.avatarUrl ?? authUser?.avatarUrl) as string }}
@@ -670,27 +691,6 @@ export default function MyClonesDashboardScreen() {
                     <Feather name="user" size={28} color={COLORS.zinc400} />
                   </View>
                 )}
-                <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={s.profileName} numberOfLines={1}>
-                    {apiUser?.name ?? authUser?.displayName ?? "사용자"}
-                  </Text>
-                  <View style={s.profileStatsRow}>
-                    <View style={s.profileStatItem}>
-                      <Text style={s.profileStatValue}>{followersCount}</Text>
-                      <Text style={s.profileStatLabel}>팔로워</Text>
-                    </View>
-                    <View style={s.profileStatDivider} />
-                    <View style={s.profileStatItem}>
-                      <Text style={s.profileStatValue}>{followingCount}</Text>
-                      <Text style={s.profileStatLabel}>팔로잉</Text>
-                    </View>
-                    <View style={s.profileStatDivider} />
-                    <View style={s.profileStatItem}>
-                      <Text style={s.profileStatValue}>{visibleClones.length}</Text>
-                      <Text style={s.profileStatLabel}>페르소나</Text>
-                    </View>
-                  </View>
-                </View>
               </View>
             </View>
 
