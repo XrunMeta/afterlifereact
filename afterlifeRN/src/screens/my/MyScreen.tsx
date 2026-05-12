@@ -330,31 +330,31 @@ export default function v_ed02a5() {
           <Text style={v_fd5f43.userName}>{v_8a1355}</Text>
           <Text style={v_fd5f43.userHandle}>{v_04c129}</Text>
 
+          {
+
+}
           <View style={v_fd5f43.statsRow}>
-            <TouchableOpacity
-              style={v_fd5f43.statItem}
-              onPress={() => {
-                console.log(
-                  `[MyScreen] stat TAP "팔로우 중" — apiFollowingCount=${v_65adaf} apiFollowingList=${v_1f6f04?.length ?? "null"}`,
-                );
-                v_d5cd7b("following");
-              }}
-            >
+            <View style={v_fd5f43.statItem}>
               <Text style={v_fd5f43.statValue}>0</Text>
               <Text style={v_fd5f43.statLabel}>팔로워</Text>
-            </TouchableOpacity>
+            </View>
+            <View style={v_fd5f43.statDivider} />
+            <View style={v_fd5f43.statItem}>
+              <Text style={v_fd5f43.statValue}>0</Text>
+              <Text style={v_fd5f43.statLabel}>팔로잉</Text>
+            </View>
             <View style={v_fd5f43.statDivider} />
             <TouchableOpacity
               style={v_fd5f43.statItem}
               onPress={() => {
                 console.log(
-                  `[MyScreen] stat TAP "팔로잉" — apiFollowingCount=${v_65adaf}`,
+                  `[MyScreen] stat TAP "구독 중" — apiFollowingCount=${v_65adaf}`,
                 );
                 v_d5cd7b("following");
               }}
             >
               <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
-              <Text style={v_fd5f43.statLabel}>팔로잉</Text>
+              <Text style={v_fd5f43.statLabel}>구독 중</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -483,7 +483,7 @@ export default function v_ed02a5() {
                 !v_1f6f04 || v_1f6f04.length === 0 ? (
                   <View style={v_fd5f43.statsEmpty}>
                     <Feather name="users" size={28} color={v_1bfbd0.zinc300} />
-                    <Text style={v_fd5f43.statsEmptyText}>아직 팔로우한 페르소나가 없어요</Text>
+                    <Text style={v_fd5f43.statsEmptyText}>아직 구독한 페르소나가 없어요</Text>
                   </View>
                 ) : (
                   v_1f6f04.map((v_3f4e2e) => {
@@ -541,7 +541,7 @@ export default function v_ed02a5() {
                           style={[v_fd5f43.followToggleBtn, v_10387a && v_fd5f43.followToggleBtnActive]}
                         >
                           <Text style={[v_fd5f43.followToggleText, v_10387a && v_fd5f43.followToggleTextActive]}>
-                            {v_10387a ? "팔로잉" : "팔로우"}
+                            {v_10387a ? "구독 중" : "구독"}
                           </Text>
                         </TouchableOpacity>
                       </TouchableOpacity>

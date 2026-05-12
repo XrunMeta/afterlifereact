@@ -28,7 +28,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_7281a5, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
+import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import { v_5c99c1 } from "../../api/payments";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -164,7 +164,8 @@ export default function v_def15b() {
   const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
   const [v_19340b, v_14129c] = v_5ab095(true);
 
-  const [v_48d264, v_72083c] = v_5ab095<number>(0);
+  const v_48d264 = 0;
+  const v_a7e127 = 0;
 
   const [v_04e734, v_d6a117] = v_5ab095(false);
 
@@ -292,22 +293,6 @@ export default function v_def15b() {
     v_2dbd8f({ cloneId: v_6e0fd3, currentVisibility: v_275ccd });
     v_8d2d61(null);
   };
-
-  v_c4deb2(() => {
-    if (!v_2ca7e0 || !v_b113dd?.id) {
-      v_72083c(0);
-      return;
-    }
-    let v_2008a4 = false;
-    v_7281a5(v_2ca7e0, v_b113dd.id)
-      .then((v_cb35cb) => {
-        if (!v_2008a4) v_72083c(v_cb35cb.items.length);
-      })
-      .catch((v_49263d) => console.warn("[Dashboard] following count fetch failed:", v_49263d));
-    return () => {
-      v_2008a4 = true;
-    };
-  }, [v_2ca7e0, v_b113dd?.id]);
 
   v_c4deb2(() => {
     if (!v_2ca7e0) {
@@ -539,7 +524,7 @@ export default function v_def15b() {
             >
               <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
-                {v_e17daa} 팔로워
+                {v_e17daa} 구독자
               </Text>
             </TouchableOpacity>
           </View>
@@ -691,7 +676,7 @@ export default function v_def15b() {
                   </Text>
                   <View style={v_fd5f43.profileStatsRow}>
                     <View style={v_fd5f43.profileStatItem}>
-                      <Text style={v_fd5f43.profileStatValue}>0</Text>
+                      <Text style={v_fd5f43.profileStatValue}>{v_a7e127}</Text>
                       <Text style={v_fd5f43.profileStatLabel}>팔로워</Text>
                     </View>
                     <View style={v_fd5f43.profileStatDivider} />
@@ -1025,7 +1010,7 @@ export default function v_def15b() {
               {v_8bb912?.type === "likes" && "좋아요"}
               {v_8bb912?.type === "interactions" && "상호작용"}
               {v_8bb912?.type === "comments" && "댓글"}
-              {v_8bb912?.type === "followers" && "팔로워"}
+              {v_8bb912?.type === "followers" && "구독자"}
             </Text>
             <Text style={v_fd5f43.statsSheetSub}>
               {v_8bb912?.cloneName}
@@ -1103,7 +1088,7 @@ export default function v_def15b() {
                     <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !v_e6e97a || v_e6e97a.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 팔로워가 없어요</Text>
+                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 구독자가 없어요</Text>
                     </View>
                   ) : (
                     v_e6e97a.map((v_ceb55a) => (
