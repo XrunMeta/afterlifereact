@@ -25,7 +25,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
 import { listMyClones, listMyFollowedClones, type FollowedClone, type MyClone } from "../../api/clones";
 import { useFocusEffect } from "@react-navigation/native";
-import { getPaymentPinStatus, getXrunBalance, getMyTransactions, type TransactionItem } from "../../api/payments";
+import { getPaymentPinStatus, getXrunBalance } from "../../api/payments";
 import PaymentPinPromptModal, {
   shouldShowPaymentPinPrompt,
 } from "../../components/my/PaymentPinPromptModal";
@@ -33,13 +33,6 @@ import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
 
 const DEFAULT_USER_ID = 1;
-
-function fmtTxDate(iso: string): string {
-  const d = new Date(iso.includes("T") ? iso : iso.replace(" ", "T") + "Z");
-  if (Number.isNaN(d.getTime())) return iso;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 type MyNav = NativeStackNavigationProp<MyStackParamList>;
 
@@ -143,7 +136,6 @@ export default function MyScreen() {
   const [apiMyClonesList, setApiMyClonesList] = useState<MyClone[] | null>(null);
   const [statsModal, setStatsModal] = useState<"following" | "myClones" | null>(null);
   const [chargeModalVisible, setChargeModalVisible] = useState(false);
-  const [transactions, setTransactions] = useState<TransactionItem[]>([]);
 
   const handleOpenXrunApp = async () => {
     setChargeModalVisible(false);
@@ -199,14 +191,6 @@ export default function MyScreen() {
         })
         .catch((err) => console.warn("[MyScreen] myClones fail:", err));
 
-      getMyTransactions(accessToken, { limit: 20 })
-        .then((r) => {
-          if (!cancelled) {
-            console.log(`[MyScreen] transactions ← ${r.items.length} items`);
-            setTransactions(r.items);
-          }
-        })
-        .catch((err) => console.warn("[MyScreen] transactions fail:", err));
       return () => {
         cancelled = true;
       };
@@ -252,6 +236,12 @@ export default function MyScreen() {
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
     },
+    {
+      icon: "file-text",
+      labelKey: "my.coin.transactions",
+      descKey: "my.coin.viewAll",
+      route: "Transactions",
+    },
   ];
 
   return (
@@ -268,47 +258,8 @@ export default function MyScreen() {
 
         {}
 
-        {}
-        <View style={s.transactionsCard}>
-          <View style={s.transactionsHeader}>
-            <Text style={s.transactionsTitle}>{t("my.coin.transactions")}</Text>
-          </View>
-          {transactions.length === 0 ? (
-            <View style={[s.txRow, { justifyContent: "center" }]}>
-              <Text style={[s.txDate, { textAlign: "center" }]}>
-                아직 거래 내역이 없어요
-              </Text>
-            </View>
-          ) : (
-            transactions.map((tx, i) => {
-              const label =
-                tx.type === "gift_sent"
-                  ? `${tx.cloneName ?? "페르소나"}에게 ${tx.giftName} 선물`
-                  : `${tx.cloneName ?? "페르소나"}로부터 ${tx.giftName} 선물 수익`;
-              return (
-                <View
-                  key={tx.id}
-                  style={[s.txRow, i < transactions.length - 1 && s.txRowBorder]}
-                >
-                  <View style={s.txInfo}>
-                    <Text style={s.txLabel}>{label}</Text>
-                    <Text style={s.txDate}>{fmtTxDate(tx.createdAt)}</Text>
-                  </View>
-                  <Text style={[s.txAmount, tx.amount > 0 ? s.txGreen : s.txRed]}>
-                    {tx.amount > 0 ? "+" : ""}
-                    {tx.amount.toLocaleString(undefined, { maximumFractionDigits: 6 })} xrun
-                  </Text>
-                </View>
-              );
-            })
-          )}
-          <TouchableOpacity
-            style={s.viewAllBtn}
-            onPress={() => navigation.navigate("Transactions")}
-          >
-            <Text style={s.viewAllText}>{t("my.coin.viewAll")}</Text>
-          </TouchableOpacity>
-        </View>
+        {
+}
 
         {}
         <View style={s.sectionHeader}>
