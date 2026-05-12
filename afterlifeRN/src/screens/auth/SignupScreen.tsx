@@ -39,6 +39,21 @@ export default function SignupScreen({ navigation, route }: Props) {
     { value: "female" as const, label: t("auth.signup.female") },
     { value: "other" as const, label: t("auth.signup.other") },
   ];
+
+  const BIRTH_YEAR_OPTIONS = React.useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const maxYear = currentYear - 13; 
+    const minYear = currentYear - 120;
+    const years: { value: string; label: string }[] = [];
+    for (let y = maxYear; y >= minYear; y--) {
+      const yStr = String(y);
+      years.push({
+        value: yStr,
+        label: t("auth.signup.birthYearLabel", { year: yStr, defaultValue: `${yStr}년생` }),
+      });
+    }
+    return years;
+  }, [t]);
   const google = route.params?.google;
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
   const hydrate = useAuthStore((s) => s.hydrate);
@@ -49,7 +64,8 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
-  const [age, setAge] = useState("");
+
+  const [birthYear, setBirthYear] = useState<string>("");
   const [country, setCountry] = useState<CountryDialCode | null>(null);
   const [region, setRegion] = useState<CountryDialCode | null>(null);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
@@ -97,7 +113,7 @@ export default function SignupScreen({ navigation, route }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!name || !email || !password || !phone || !gender || !age) {
+    if (!name || !email || !password || !phone || !gender || !birthYear) {
       Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
       return;
     }
@@ -126,7 +142,9 @@ export default function SignupScreen({ navigation, route }: Props) {
       return;
     }
 
-    const ageNum = parseInt(age, 10);
+    const birthYearNum = parseInt(birthYear, 10);
+    const currentYear = new Date().getFullYear();
+    const ageNum = currentYear - birthYearNum;
     if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
       Alert.alert(t("common.notice"), t("auth.signup.ageInvalid"));
       return;
@@ -283,12 +301,12 @@ export default function SignupScreen({ navigation, route }: Props) {
                 placeholder={t("auth.signup.gender")}
               />
             </View>
-            <View style={styles.ageField}>
-              <TextField
-                placeholder={t("auth.signup.age")}
-                value={age}
-                onChangeText={setAge}
-                keyboardType="number-pad"
+            <View style={{ flex: 1 }}>
+              <SelectField<string>
+                options={BIRTH_YEAR_OPTIONS}
+                value={birthYear}
+                onChange={setBirthYear}
+                placeholder={t("auth.signup.birthYearPlaceholder")}
               />
             </View>
           </View>

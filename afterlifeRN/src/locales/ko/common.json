@@ -400,6 +400,8 @@
       "female": "여성",
       "other": "기타",
       "age": "나이",
+      "birthYearPlaceholder": "출생년도",
+      "birthYearLabel": "{{year}}년생",
       "interests": "관심사 선택 (선택사항)",
       "country": "국가",
       "region": "지역",
