@@ -355,6 +355,54 @@ export interface XrunCloseResult {
   reason?: string;
 }
 
+export async function getXrunMemberInfo(
+  env: Bindings,
+  member: number,
+): Promise<
+  | { ok: true; appSource: string | null; status: number }
+  | { ok: false; reason: string; missing?: boolean }
+> {
+  if (!env.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: gatewayHeaders(env),
+      body: JSON.stringify({ member }),
+    });
+  } catch (err) {
+    return { ok: false, reason: `network: ${(err as Error).message}` };
+  }
+  let json: {
+    status?: string;
+    code?: number;
+    message?: string;
+    data?: { member: number; app_source: string | null; status: number } | null;
+  };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { ok: false, reason: `non-json (${res.status})` };
+  }
+  if (res.ok && json?.status === "success" && json.data) {
+    return {
+      ok: true,
+      appSource: json.data.app_source ?? null,
+      status: json.data.status,
+    };
+  }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
+    return { ok: false, reason: "member not found", missing: true };
+  }
+  return {
+    ok: false,
+    reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
+  };
+}
+
 export async function closeXrunMember(env: Bindings, member: number): Promise<XrunCloseResult> {
   if (!env.XRUN_GATEWAY_TOKEN) {
     return { ok: false, closed: false, reason: "missing XRUN_GATEWAY_TOKEN" };

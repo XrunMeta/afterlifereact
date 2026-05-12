@@ -211,7 +211,7 @@ export default function MyScreen() {
   const handleDeleteAccount = () => {
     Alert.alert(
       "회원 탈퇴",
-      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(90일 내 복구 가능)",
+      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(xrun 가입자라면 xrun 계정은 유지됩니다)",
       [
         { text: "취소", style: "cancel" },
         {
@@ -221,7 +221,8 @@ export default function MyScreen() {
             if (!accessToken) return;
             setDeleting(true);
             try {
-              await deleteMe(accessToken, { withXrun: false });
+
+              await deleteMe(accessToken);
               await logout();
             } catch (err) {
               const msg = err instanceof AuthApiError ? err.message : "탈퇴에 실패했어요.";

@@ -516,26 +516,40 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
   const db = c.env.DB;
 
   const body = (await c.req.json().catch(() => ({}))) as { withXrun?: boolean };
-  const withXrun = body?.withXrun === true;
+  void body; 
 
   let xrunClose: { attempted: boolean; closed: boolean; reason?: string } = {
     attempted: false,
     closed: false,
   };
 
-  if (withXrun) {
-    const linkRow = await db
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(userId)
-      .first<{ xrun_member_id: number | null }>();
-    const xrunMember = linkRow?.xrun_member_id ?? null;
-    if (xrunMember) {
-      const { closeXrunMember } = await import("../lib/xrun");
-      const res = await closeXrunMember(c.env, xrunMember);
-      xrunClose = { attempted: true, closed: res.closed, reason: res.reason };
-
+  const linkRow = await db
+    .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ xrun_member_id: number | null }>();
+  const xrunMember = linkRow?.xrun_member_id ?? null;
+  if (xrunMember) {
+    const { getXrunMemberInfo, closeXrunMember } = await import("../lib/xrun");
+    const info = await getXrunMemberInfo(c.env, xrunMember);
+    if (info.ok) {
+      const isAfterlifeOrigin = (info.appSource ?? "").toLowerCase() === "afterlife";
+      if (isAfterlifeOrigin) {
+        const res = await closeXrunMember(c.env, xrunMember);
+        xrunClose = { attempted: true, closed: res.closed, reason: res.reason };
+      } else {
+        xrunClose = {
+          attempted: true,
+          closed: false,
+          reason: `kept (app_source=${info.appSource ?? "null"})`,
+        };
+      }
     } else {
-      xrunClose = { attempted: true, closed: false, reason: "no xrun member linked" };
+
+      xrunClose = {
+        attempted: false,
+        closed: false,
+        reason: info.missing ? "xrun member missing (auto-unlinked)" : `lookup failed: ${info.reason}`,
+      };
     }
   }
 
