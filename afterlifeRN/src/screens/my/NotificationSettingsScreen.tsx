@@ -192,7 +192,7 @@ export default function NotificationSettingsScreen() {
         {}
         <View style={s.row}>
           <Text style={s.rowLabel}>
-            {t("settings.notifications.alarm", { defaultValue: "알람" })}
+            {t("settings.notifications.alarm", { defaultValue: "알림" })}
           </Text>
           {loading ? (
             <ActivityIndicator color={COLORS.zinc500} />

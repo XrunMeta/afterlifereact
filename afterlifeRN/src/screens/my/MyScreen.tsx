@@ -270,10 +270,6 @@ export default function MyScreen() {
 }
 
         {}
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>{t("my.coin.settings")}</Text>
-        </View>
-
         <View style={s.settingsCard}>
           {settingsItems.map((item, i) => (
             <TouchableOpacity
