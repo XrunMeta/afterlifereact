@@ -1,4 +1,4 @@
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -69,6 +69,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(null);
   const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(null);
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
+
+  const v_0f2eec = v_e662ae<v_3094a2>(null);
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
   const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
@@ -313,6 +315,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {}
           <TouchableOpacity
+            ref={v_0f2eec as v_a3453e.MutableRefObject<v_3094a2>}
             style={v_d81136.pickerField}
             onPress={() => v_7168a2(true)}
             activeOpacity={0.7}
@@ -378,9 +381,11 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       </SafeScrollView>
 
       {
+
 }
       <CountryRegionPicker
         visible={v_9d56c4}
+        anchorRef={v_0f2eec}
         onClose={() => v_7168a2(false)}
         selectedCountry={v_b9bbbd}
         selectedRegion={v_a6c30b}
