@@ -30,15 +30,21 @@ async function v_33650f(
   v_3b27d9,
   v_05bb19,
 ): Promise<string> {
-  const v_b24339 = `${v_3b27d9}_${v_05bb19}`;
-  if (v_a23604.has(v_b24339)) return v_a23604.get(v_b24339)!;
 
-  const v_c87c7a = v_05bb19.startsWith("zh") ? "zh" : v_05bb19;
+  let v_c87c7a = (v_05bb19 || "ko").toLowerCase();
+  if (v_c87c7a.startsWith("zh")) v_c87c7a = "zh";
+  else v_c87c7a = v_c87c7a.split("-")[0]; 
+  const v_b24339 = `${v_3b27d9}_${v_c87c7a}`;
+  if (v_a23604.has(v_b24339)) return v_a23604.get(v_b24339)!;
   const v_f71b56 = `https://oth-path-f0013c.example.invalid/agreements?type=${v_3b27d9}&language=${v_c87c7a}`;
+  console.log("[TermsModal] fetch:", v_f71b56);
   const v_8f00b9 = await fetch(v_f71b56);
   if (!v_8f00b9.ok) throw new Error(`Failed to load agreement (${v_8f00b9.status})`);
   const v_7ecfd1 = (await v_8f00b9.json()) as { data?: { content?: string } };
   const v_b43b74 = v_7ecfd1?.data?.content ?? "";
+  console.log(
+    `[TermsModal] response ok — content length=${v_b43b74.length}`,
+  );
   v_a23604.set(v_b24339, v_b43b74);
   return v_b43b74;
 }
@@ -159,13 +165,15 @@ const v_fd5f43 = v_472849.create({
     alignItems: "center",
     padding: 20,
   },
+
   card: {
-    width: "100%",
+    width: "92%",
     maxWidth: 480,
-    maxHeight: "85%",
+    height: "80%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: v_8b0c90.lg,
     overflow: "hidden",
+    flexDirection: "column",
   },
   header: {
     height: 52,
