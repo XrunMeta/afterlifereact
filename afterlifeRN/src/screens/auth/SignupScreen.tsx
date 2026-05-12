@@ -37,7 +37,6 @@ export default function SignupScreen({ navigation, route }: Props) {
   const GENDER_OPTIONS = [
     { value: "male" as const, label: t("auth.signup.male") },
     { value: "female" as const, label: t("auth.signup.female") },
-    { value: "other" as const, label: t("auth.signup.other") },
   ];
 
   const BIRTH_YEAR_OPTIONS = React.useMemo(() => {
@@ -63,7 +62,7 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
-  const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
 
   const [birthYear, setBirthYear] = useState<string>("");
   const [country, setCountry] = useState<CountryDialCode | null>(null);
@@ -292,7 +291,7 @@ export default function SignupScreen({ navigation, route }: Props) {
           {}
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <SelectField<"male" | "female" | "other">
+              <SelectField<"male" | "female">
                 options={GENDER_OPTIONS}
                 value={gender}
                 onChange={setGender}
