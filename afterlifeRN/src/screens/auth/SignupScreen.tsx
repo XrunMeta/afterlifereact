@@ -70,14 +70,41 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreeRequired, setAgreeRequired] = useState(false);
+
+  const [agreeService, setAgreeService] = useState(false);
+  const [agreeLocation, setAgreeLocation] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
+
+  const agreeRequired = agreeService && agreeLocation && agreePrivacy;
+  const agreeAll = agreeRequired && agreeMarketing;
   const [submitting, setSubmitting] = useState(false);
 
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushPlatform, setPushPlatform] = useState<"ios" | "android" | "web" | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [requestingPush, setRequestingPush] = useState(false);
+
+  const toggleAll = async () => {
+    if (agreeAll) {
+
+      setAgreeService(false);
+      setAgreeLocation(false);
+      setAgreePrivacy(false);
+      setAgreeMarketing(false);
+      setPushToken(null);
+      setPushPlatform(null);
+      setDeviceId(null);
+      return;
+    }
+
+    setAgreeService(true);
+    setAgreeLocation(true);
+    setAgreePrivacy(true);
+    if (!agreeMarketing) {
+      await toggleMarketing();
+    }
+  };
 
   const toggleMarketing = async () => {
 
@@ -342,15 +369,62 @@ export default function SignupScreen({ navigation, route }: Props) {
 
           {}
           <View style={styles.terms}>
+            {}
             <TouchableOpacity
-              onPress={() => setAgreeRequired(!agreeRequired)}
+              onPress={toggleAll}
+              disabled={requestingPush}
+              style={[styles.checkRow, styles.checkRowAll]}
+            >
+              <View style={[styles.checkbox, agreeAll && styles.checkboxChecked]}>
+                {agreeAll && <Feather name="check" size={14} color={COLORS.white} />}
+              </View>
+              <Text style={[styles.termText, styles.termTextAll]}>
+                {t("auth.signup.termsAgreeAll")}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.termsDivider} />
+
+            {}
+            <TouchableOpacity
+              onPress={() => setAgreeService(!agreeService)}
               style={styles.checkRow}
             >
-              <View style={[styles.checkbox, agreeRequired && styles.checkboxChecked]}>
-                {agreeRequired && <Feather name="check" size={14} color={COLORS.white} />}
+              <View style={[styles.checkbox, agreeService && styles.checkboxChecked]}>
+                {agreeService && <Feather name="check" size={14} color={COLORS.white} />}
               </View>
-              <Text style={styles.termText}>{t("auth.signup.termsRequired")}</Text>
+              <Text style={styles.termText}>
+                {t("auth.signup.termsService")}
+              </Text>
             </TouchableOpacity>
+
+            {}
+            <TouchableOpacity
+              onPress={() => setAgreeLocation(!agreeLocation)}
+              style={styles.checkRow}
+            >
+              <View style={[styles.checkbox, agreeLocation && styles.checkboxChecked]}>
+                {agreeLocation && <Feather name="check" size={14} color={COLORS.white} />}
+              </View>
+              <Text style={styles.termText}>
+                {t("auth.signup.termsLocation")}
+              </Text>
+            </TouchableOpacity>
+
+            {}
+            <TouchableOpacity
+              onPress={() => setAgreePrivacy(!agreePrivacy)}
+              style={styles.checkRow}
+            >
+              <View style={[styles.checkbox, agreePrivacy && styles.checkboxChecked]}>
+                {agreePrivacy && <Feather name="check" size={14} color={COLORS.white} />}
+              </View>
+              <Text style={styles.termText}>
+                {t("auth.signup.termsPrivacy")}
+              </Text>
+            </TouchableOpacity>
+
+            {}
             <TouchableOpacity
               onPress={toggleMarketing}
               disabled={requestingPush}
@@ -433,13 +507,27 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   terms: {
-    gap: 12,
+    gap: 10,
     paddingTop: SIZES.medium,
   },
   checkRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
+  },
+
+  checkRowAll: {
+    paddingVertical: 4,
+  },
+  termTextAll: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+  },
+  termsDivider: {
+    height: 1,
+    backgroundColor: COLORS.zinc200,
+    marginVertical: 4,
   },
   checkbox: {
     width: 20,
