@@ -301,14 +301,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             onPress={v_585b02}
             disabled={v_cb66b4}
           />
-
-          {}
-          <View style={v_d81136.loginRow}>
-            <Text style={v_d81136.loginText}>{v_8d41d7("auth.login.signupHint")} </Text>
-            <TouchableOpacity onPress={() => v_c65f5d.navigate("Login")}>
-              <Text style={v_d81136.loginLink}>{v_8d41d7("auth.login.loginBtn")}</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </SafeScrollView>
     </SafeView>
@@ -376,19 +368,5 @@ const v_d81136 = v_472849.create({
   },
   termOptional: {
     color: v_1bfbd0.zinc400,
-  },
-  loginRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: v_9b1a04.medium,
-  },
-  loginText: {
-    fontSize: 14,
-    color: v_1bfbd0.zinc500,
-  },
-  loginLink: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: v_1bfbd0.zinc900,
   },
 });
