@@ -23,6 +23,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
+import { v_55fc7c, v_84a859 } from "../../api/auth";
 import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import { v_9b8cb3, v_5c99c1 } from "../../api/payments";
@@ -205,13 +206,42 @@ export default function v_ed02a5() {
     v_694b7f.clones().filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length +
       v_06f32b.filter((v_3f4e2e) => v_3f4e2e.ownerId === v_0c8987).length;
 
-  const settingsItems: Array<{
+  const [v_a1f68f, v_bdf535] = v_5ab095(false);
+
+  const v_5bc46a = () => {
+    v_03e392.alert(
+      "회원 탈퇴",
+      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(90일 내 복구 가능)",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "탈퇴",
+          style: "destructive",
+          onPress: async () => {
+            if (!v_2ca7e0) return;
+            v_bdf535(true);
+            try {
+              await v_55fc7c(v_2ca7e0, { withXrun: false });
+              await v_d7d5a2();
+            } catch (v_49263d) {
+              const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "탈퇴에 실패했어요.";
+              v_03e392.alert("오류", v_badeaf);
+              v_bdf535(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  type SettingsItem = {
     icon: keyof typeof v_dec439.glyphMap;
     labelKey: string;
     descKey: string;
-    route: keyof v_e57140;
-  }> = [
+    danger?: boolean;
+  } & ({ route: keyof v_e57140 } | { action: () => void });
 
+  const v_7f0fd3 = [
     {
       icon: "user",
       labelKey: "my.menu.editProfile",
@@ -231,7 +261,7 @@ export default function v_ed02a5() {
       route: "LanguageSettings",
     },
     {
-      icon: "shield",
+      icon: "slash",
       labelKey: "my.menu.privacy",
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
@@ -241,6 +271,19 @@ export default function v_ed02a5() {
       labelKey: "my.coin.transactions",
       descKey: "my.coin.viewAll",
       route: "Transactions",
+    },
+    {
+      icon: "trash-2",
+      labelKey: "settings.privacy.deleteAccount",
+      descKey: "settings.privacy.deleteAccount",
+      danger: true,
+      action: v_5bc46a,
+    },
+    {
+      icon: "log-out",
+      labelKey: "my.menu.logout",
+      descKey: "my.menu.logout",
+      action: () => void v_d7d5a2(),
     },
   ];
 
@@ -269,34 +312,45 @@ export default function v_ed02a5() {
         {
 }
 
-        {}
+        {
+}
         <View style={v_fd5f43.settingsCard}>
-          {v_7f0fd3.map((v_8c0b26, v_ebec57) => (
-            <TouchableOpacity
-              key={v_8c0b26.route}
-              style={[
-                v_fd5f43.settingsRow,
-                v_ebec57 < v_7f0fd3.length - 1 && v_fd5f43.settingsRowBorder,
-              ]}
-              onPress={() => v_c65f5d.navigate(v_8c0b26.route)}
-            >
-              <View style={v_fd5f43.settingsIcon}>
-                <Feather name={v_8c0b26.icon} size={22} color={v_1bfbd0.zinc900} />
-              </View>
-              <View style={v_fd5f43.settingsInfo}>
-                <Text style={v_fd5f43.settingsLabel}>{v_8d41d7(v_8c0b26.labelKey)}</Text>
-                <Text style={v_fd5f43.settingsDesc}>{v_8d41d7(v_8c0b26.descKey)}</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
-            </TouchableOpacity>
-          ))}
+          {v_7f0fd3.map((v_8c0b26, v_ebec57) => {
+            const v_d57179 = "action" in v_8c0b26;
+            const v_cdbcb3 = v_8c0b26.labelKey === "settings.privacy.deleteAccount";
+            const v_4a6533 = v_cdbcb3 && v_a1f68f;
+            const v_ef160b = v_8c0b26.danger ? v_1bfbd0.error : v_1bfbd0.zinc900;
+            return (
+              <TouchableOpacity
+                key={v_8c0b26.labelKey}
+                style={[
+                  v_fd5f43.settingsRow,
+                  v_ebec57 < v_7f0fd3.length - 1 && v_fd5f43.settingsRowBorder,
+                ]}
+                disabled={v_4a6533}
+                onPress={() => {
+                  if (v_d57179) v_8c0b26.action();
+                  else v_c65f5d.navigate(v_8c0b26.route);
+                }}
+              >
+                <View style={v_fd5f43.settingsIcon}>
+                  <Feather name={v_8c0b26.icon} size={22} color={v_ef160b} />
+                </View>
+                <View style={v_fd5f43.settingsInfo}>
+                  <Text style={[v_fd5f43.settingsLabel, v_8c0b26.danger && { color: v_1bfbd0.error }]}>
+                    {v_8d41d7(v_8c0b26.labelKey)}
+                  </Text>
+                  <Text style={v_fd5f43.settingsDesc}>{v_8d41d7(v_8c0b26.descKey)}</Text>
+                </View>
+                {v_4a6533 ? (
+                  <ActivityIndicator color={v_1bfbd0.error} />
+                ) : (
+                  <Feather name="chevron-right" size={20} color={v_1bfbd0.zinc400} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
-
-        {}
-        <TouchableOpacity style={v_fd5f43.logoutBigBtn} onPress={() => void v_d7d5a2()} activeOpacity={0.85}>
-          <Feather name="log-out" size={18} color={v_1bfbd0.white} />
-          <Text style={v_fd5f43.logoutBigText}>{v_8d41d7("my.menu.logout")}</Text>
-        </TouchableOpacity>
       </View>
 
       <PaymentPinPromptModal
