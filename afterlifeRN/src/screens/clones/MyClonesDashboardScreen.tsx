@@ -1258,7 +1258,7 @@ const s = StyleSheet.create({
   coinNetwork: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
   coinAmountWrap: { alignItems: "flex-end", marginRight: 8 },
   coinAmountText: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
-  coinUnit: { fontSize: 13, fontWeight: "600", color: COLORS.zinc700 },
+  coinUnit: { fontSize: 15, fontWeight: "600", color: COLORS.zinc700 },
   coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 
   chargeOverlay: {
