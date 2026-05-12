@@ -211,7 +211,7 @@ export default function v_ed02a5() {
   const v_5bc46a = () => {
     v_03e392.alert(
       "회원 탈퇴",
-      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(90일 내 복구 가능)",
+      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(xrun 가입자라면 xrun 계정은 유지됩니다)",
       [
         { text: "취소", style: "cancel" },
         {
@@ -221,7 +221,8 @@ export default function v_ed02a5() {
             if (!v_2ca7e0) return;
             v_bdf535(true);
             try {
-              await v_55fc7c(v_2ca7e0, { withXrun: false });
+
+              await v_55fc7c(v_2ca7e0);
               await v_d7d5a2();
             } catch (v_49263d) {
               const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "탈퇴에 실패했어요.";

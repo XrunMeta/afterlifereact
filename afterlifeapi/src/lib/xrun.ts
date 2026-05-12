@@ -345,6 +345,49 @@ export interface XrunCloseResult {
   reason?: string;
 }
 
+export async function v_d19f98(
+  env: v_273a0c,
+  v_660822,
+): Promise<
+  | { ok: true; appSource: string | null; status: number }
+  | { ok: false; reason: string; missing?: boolean }
+> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({ member: v_660822 }),
+    });
+  } catch (v_49263d) {
+    return { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { ok: false, reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success" && v_7ecfd1.data) {
+    return {
+      ok: true,
+      appSource: v_7ecfd1.data.app_source ?? null,
+      status: v_7ecfd1.data.status,
+    };
+  }
+  if (v_06d04c(v_8f00b9, v_7ecfd1)) {
+    await v_8ae861(v_c9c489, v_660822);
+    return { ok: false, reason: "member not found", missing: true };
+  }
+  return {
+    ok: false,
+    reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
+  };
+}
+
 export async function v_a33f6b(env: v_273a0c, v_660822): Promise<XrunCloseResult> {
   if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
     return { ok: false, closed: false, reason: "missing XRUN_GATEWAY_TOKEN" };
