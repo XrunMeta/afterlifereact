@@ -238,7 +238,7 @@
     "devBannerSub": "The L1/L2 sections below are for direct memory editing. The chips above are the actual user input."
   },
   "dashboard": {
-    "title": "My Persona",
+    "title": "My Page",
     "headerTitle": "Persona Dashboard",
     "headerDesc": "Manage the performance and engagement of your AI personas.",
     "statsTotalInteractions": "Total Interactions",

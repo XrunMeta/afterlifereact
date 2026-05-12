@@ -28,7 +28,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
+import { v_d60cdf, v_7281a5, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import { v_5c99c1 } from "../../api/payments";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -164,6 +164,8 @@ export default function v_def15b() {
   const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
   const [v_19340b, v_14129c] = v_5ab095(true);
 
+  const [v_48d264, v_72083c] = v_5ab095<number>(0);
+
   const [v_04e734, v_d6a117] = v_5ab095(false);
 
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
@@ -290,6 +292,22 @@ export default function v_def15b() {
     v_2dbd8f({ cloneId: v_6e0fd3, currentVisibility: v_275ccd });
     v_8d2d61(null);
   };
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0 || !v_b113dd?.id) {
+      v_72083c(0);
+      return;
+    }
+    let v_2008a4 = false;
+    v_7281a5(v_2ca7e0, v_b113dd.id)
+      .then((v_cb35cb) => {
+        if (!v_2008a4) v_72083c(v_cb35cb.items.length);
+      })
+      .catch((v_49263d) => console.warn("[Dashboard] following count fetch failed:", v_49263d));
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2ca7e0, v_b113dd?.id]);
 
   v_c4deb2(() => {
     if (!v_2ca7e0) {
@@ -653,6 +671,39 @@ export default function v_def15b() {
         }
         ListHeaderComponent={
           <>
+            {
+}
+            <View style={v_fd5f43.profileSection}>
+              <View style={v_fd5f43.profileLeft}>
+                {v_b113dd?.avatarUrl || v_f38ee5?.avatarUrl ? (
+                  <Image
+                    source={{ uri: (v_b113dd?.avatarUrl ?? v_f38ee5?.avatarUrl) as string }}
+                    style={v_fd5f43.profileAvatar}
+                  />
+                ) : (
+                  <View style={[v_fd5f43.profileAvatar, v_fd5f43.profileAvatarPlaceholder]}>
+                    <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
+                  </View>
+                )}
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={v_fd5f43.profileName} numberOfLines={1}>
+                    {v_b113dd?.name ?? v_f38ee5?.displayName ?? "사용자"}
+                  </Text>
+                  <View style={v_fd5f43.profileStatsRow}>
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>0</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>팔로워</Text>
+                    </View>
+                    <View style={v_fd5f43.profileStatDivider} />
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_48d264}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>팔로잉</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
             {}
             <View style={v_fd5f43.dashTitleRow}>
               <View style={{ flex: 1 }}>
@@ -1146,6 +1197,30 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: v_9b1a04.medium,
     paddingBottom: 24,
   },
+
+  profileSection: {
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatar: { width: 64, height: 64, borderRadius: 32 },
+  profileAvatarPlaceholder: {
+    backgroundColor: v_1bfbd0.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+    marginBottom: 8,
+  },
+  profileStatsRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  profileStatItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  profileStatValue: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  profileStatLabel: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  profileStatDivider: { width: 1, height: 12, backgroundColor: v_1bfbd0.zinc200 },
 
   dashTitle: { marginTop: 16, marginBottom: 20 },
   dashTitleRow: {
