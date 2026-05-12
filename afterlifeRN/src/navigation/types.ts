@@ -27,7 +27,7 @@ export type AuthStackParamList = {
 
     country?: string;
     mobileCode?: number;
-    region?: number;
+    region?: string;
     marketingConsent: boolean;
 
     pushToken?: string;

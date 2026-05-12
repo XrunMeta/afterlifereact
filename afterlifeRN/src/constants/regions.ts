@@ -1,4 +1,5 @@
 import { v_da1883 } from '../types/country';
+import { v_944e0c } from 'zjvstacmhzoahupuiw';
 
 export interface Region {
   id: number;
@@ -14,7 +15,23 @@ export const GLOBAL_REGION: v_da1883 = {
   countryCode: 0,
 };
 
-const v_34a9c8 = ['kr', 'jp', 'cn', 'us', 'id'];
+const v_1030f0 = ['kr', 'id'];
+
+const v_3762f9 = {
+  kr: 82,
+  us: 1,
+  jp: 81,
+  cn: 86,
+  id: 62,
+};
+
+const v_1c645f = (v_fd5f43): v_da1883 => ({
+  iso2: v_fd5f43.isoCode,
+  name: v_fd5f43.name,
+  dialCode: v_fd5f43.isoCode,
+  flagEmoji: '📍',
+  countryCode: v_3762f9[v_fd5f43.countryCode.toLowerCase()] ?? 0,
+});
 
 export const v_369014 = (v_cc0c7d): v_da1883[] => {
   if (!v_cc0c7d) {
@@ -22,25 +39,20 @@ export const v_369014 = (v_cc0c7d): v_da1883[] => {
   }
   const v_550aed = v_cc0c7d.toLowerCase();
 
-  if (!v_34a9c8.includes(v_550aed)) {
-    return [v_789afd];
-  }
-
-  if (v_550aed === 'kr' || v_550aed === 'id') {
+  if (v_1030f0.includes(v_550aed)) {
+    const v_a252ed = v_3762f9[v_550aed];
     return v_52495e.filter(
-      (v_a6c30b) => {
-        const v_a4d981 = (v_a6c30b as any).countryCode;
-        if (v_550aed === 'kr') {
-          return v_a4d981 === 82;
-        } else if (v_550aed === 'id') {
-          return v_a4d981 === 62;
-        }
-        return false;
-      }
+      (v_a6c30b) => (v_a6c30b as { countryCode?: number }).countryCode === v_a252ed,
     );
   }
 
-  return [v_789afd];
+  try {
+    const v_4cbaf4 = v_944e0c.getStatesOfCountry(v_cc0c7d.toUpperCase());
+    if (v_4cbaf4.length === 0) return [v_789afd];
+    return v_4cbaf4.map(v_1c645f);
+  } catch {
+    return [v_789afd];
+  }
 };
 
 export const REGIONS_AS_COUNTRY_DIAL_CODES: v_da1883[] = [

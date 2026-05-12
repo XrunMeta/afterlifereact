@@ -42,7 +42,7 @@ const v_7b8b17 = v_1f4ea7.object({
 
   country: v_1f4ea7.string().length(2).regex(/^[A-Z]{2}$/).optional(),
   mobileCode: v_1f4ea7.number().int().min(0).max(99999).optional(),
-  region: v_1f4ea7.number().int().min(0).max(99999).optional(),
+  region: v_1f4ea7.string().max(20).optional(),
   marketingConsent: v_1f4ea7.boolean().optional().default(false),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
   pushToken: v_1f4ea7.string().min(1).max(500).optional(),
