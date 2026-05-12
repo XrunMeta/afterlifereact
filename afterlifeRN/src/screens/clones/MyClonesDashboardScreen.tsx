@@ -684,6 +684,11 @@ export default function MyClonesDashboardScreen() {
                       <Text style={s.profileStatValue}>{followingCount}</Text>
                       <Text style={s.profileStatLabel}>팔로잉</Text>
                     </View>
+                    <View style={s.profileStatDivider} />
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{visibleClones.length}</Text>
+                      <Text style={s.profileStatLabel}>페르소나</Text>
+                    </View>
                   </View>
                 </View>
               </View>
