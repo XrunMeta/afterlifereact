@@ -91,9 +91,10 @@ const v_866a65 = v_cdbda8<v_97a9a8>();
 
 const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; label: string }> = {
   HomeTab: { icon: "home", label: "홈" },
-  ClonesTab: { icon: "users", label: "페르소나" },
+  SearchTab: { icon: "search", label: "검색" },
   CreateTab: { icon: "plus-circle", label: "생성" },
-  ShortsTab: { icon: "search", label: "검색" },
+  ShortsTab: { icon: "user-check", label: "구독 중" },
+  ClonesTab: { icon: "users", label: "페르소나" },
   MyTab: { icon: "user", label: "마이" },
 };
 
@@ -145,8 +146,7 @@ export default function v_19ba0e() {
 
 }
       <Tab.Screen name="HomeTab" component={v_c316d8} />
-      {}
-      <Tab.Screen name="ShortsTab" component={v_5db6c6} />
+      <Tab.Screen name="SearchTab" component={v_5db6c6} />
       <Tab.Screen
         name="CreateTab"
         component={v_31fee5}
@@ -185,6 +185,7 @@ export default function v_19ba0e() {
           },
         })}
       />
+      <Tab.Screen name="ShortsTab" component={v_14b43e} />
       <Tab.Screen name="ClonesTab" component={v_aedede} />
       {
 }
