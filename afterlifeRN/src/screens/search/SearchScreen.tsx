@@ -244,7 +244,7 @@ export default function v_5db6c6() {
   return (
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       {}
-      <View style={[v_fd5f43.searchWrap, { paddingTop: 8 }]}>
+      <View style={[v_fd5f43.searchWrap, { paddingTop: v_033e14.top + 8 }]}>
         <View style={v_fd5f43.searchBar}>
           <Feather name="search" size={18} color={v_1bfbd0.zinc500} />
           <TextInput
