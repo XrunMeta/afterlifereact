@@ -244,7 +244,7 @@ export default function SearchScreen() {
   return (
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       {}
-      <View style={[s.searchWrap, { paddingTop: 8 }]}>
+      <View style={[s.searchWrap, { paddingTop: insets.top + 8 }]}>
         <View style={s.searchBar}>
           <Feather name="search" size={18} color={COLORS.zinc500} />
           <TextInput
