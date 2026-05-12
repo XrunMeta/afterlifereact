@@ -17,16 +17,12 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
-import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
-import v_0e981f from "../../components/common/NotificationBell";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_694b7f } from "../../api/source";
-import { v_7d2692 } from "../../api/files";
-import { v_976b89 } from "../../api/auth";
 import { v_d60cdf, v_7281a5, type v_c33ae3, type v_fa0201 } from "../../api/clones";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import { v_9b8cb3, v_5c99c1, v_2a15d8, type v_42880a } from "../../api/payments";
@@ -53,14 +49,12 @@ export default function v_ed02a5() {
   const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-  const v_21f395 = v_1ed7d9((v_fd5f43) => v_fd5f43.patchApiUser);
   const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const [v_47abd6, v_e12360] = v_5ab095(false);
-  const [v_026c2d, v_5eda29] = v_5ab095(false);
   const [v_fda1fd, v_7ece2f] = v_5ab095(false);
 
   const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
@@ -127,46 +121,6 @@ export default function v_ed02a5() {
       v_2008a4 = true;
     };
   }, [v_2ca7e0]);
-
-  const v_d28ade = async () => {
-    if (!v_2ca7e0) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("my.loginRequired"));
-      return;
-    }
-    const v_d60769 = await v_d05ab5.requestMediaLibraryPermissionsAsync();
-    if (!v_d60769.granted) {
-      v_03e392.alert(v_8d41d7("my.permTitle"), v_8d41d7("my.permDesc"));
-      return;
-    }
-    const v_07fb2e = await v_d05ab5.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (v_07fb2e.canceled || !v_07fb2e.assets?.[0]) return;
-    const v_b76cd8 = v_07fb2e.assets[0];
-
-    v_5eda29(true);
-    try {
-      const v_57ac81 = await v_7d2692(v_2ca7e0, v_b76cd8.uri, {
-        purpose: "avatar",
-        fileName: v_b76cd8.fileName ?? "avatar.jpg",
-        mimeType: v_b76cd8.mimeType ?? "image/jpeg",
-      });
-      await v_976b89(v_2ca7e0, { avatarUrl: v_57ac81.url });
-      v_21f395({ avatarUrl: v_57ac81.url });
-    } catch (v_49263d) {
-      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : v_8d41d7("my.uploadFailed");
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
-    } finally {
-      v_5eda29(false);
-    }
-  };
-
-  const v_8a1355 = v_b113dd?.name ?? v_625c74?.displayName ?? v_8d41d7("my.userFallback");
-  const v_04c129 = v_b113dd?.email ?? v_625c74?.handle ?? "@afterlife";
-  const v_bf6b43 = v_b113dd ? v_b113dd.avatarUrl : v_625c74?.avatarUrl ?? null;
 
   const v_747a87 = v_19340b;
   const v_519444 = v_1d54f1 ?? null;
@@ -303,61 +257,14 @@ export default function v_ed02a5() {
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
-        title="My Page"
-        rightAction={<NotificationBell />}
+        title="설정"
+        showBackButton
+        onBackPress={() => v_c65f5d.goBack()}
       />
 
       <View style={v_fd5f43.content}>
-        {}
-        <View style={v_fd5f43.profileSection}>
-          <View style={v_fd5f43.avatarWrap}>
-            {v_bf6b43 ? (
-              <Image source={{ uri: v_bf6b43 }} style={v_fd5f43.avatar} />
-            ) : (
-              <View style={[v_fd5f43.avatar, v_fd5f43.avatarPlaceholder]}>
-                <Feather name="user" size={40} color={v_1bfbd0.zinc400} />
-              </View>
-            )}
-            <TouchableOpacity
-              style={v_fd5f43.editAvatarBtn}
-              onPress={v_d28ade}
-              disabled={v_026c2d}
-            >
-              <Feather name="edit-2" size={14} color={v_1bfbd0.white} />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={v_fd5f43.userName}>{v_8a1355}</Text>
-          <Text style={v_fd5f43.userHandle}>{v_04c129}</Text>
-
-          {
-
+        {
 }
-          <View style={v_fd5f43.statsRow}>
-            <View style={v_fd5f43.statItem}>
-              <Text style={v_fd5f43.statValue}>0</Text>
-              <Text style={v_fd5f43.statLabel}>팔로워</Text>
-            </View>
-            <View style={v_fd5f43.statDivider} />
-            <View style={v_fd5f43.statItem}>
-              <Text style={v_fd5f43.statValue}>0</Text>
-              <Text style={v_fd5f43.statLabel}>팔로잉</Text>
-            </View>
-            <View style={v_fd5f43.statDivider} />
-            <TouchableOpacity
-              style={v_fd5f43.statItem}
-              onPress={() => {
-                console.log(
-                  `[MyScreen] stat TAP "구독 중" — apiFollowingCount=${v_65adaf}`,
-                );
-                v_d5cd7b("following");
-              }}
-            >
-              <Text style={v_fd5f43.statValue}>{v_48d264}</Text>
-              <Text style={v_fd5f43.statLabel}>구독 중</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
         {}
 
