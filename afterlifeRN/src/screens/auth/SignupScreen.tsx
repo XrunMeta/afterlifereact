@@ -348,7 +348,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             <View style={v_d81136.pickerLabelWrap}>
               {v_b9bbbd ? (
                 <Text style={v_d81136.pickerValue} numberOfLines={1}>
-                  {v_b9bbbd.flagEmoji}{" "}
                   {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, {
                     defaultValue: v_b9bbbd.name,
                   })}

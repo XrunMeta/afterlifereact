@@ -193,7 +193,6 @@ export default function v_57037e({
                   onPress={() => v_6121dc(v_8c0b26)}
                   activeOpacity={0.7}
                 >
-                  <Text style={v_fd5f43.flag}>{v_8c0b26.flagEmoji}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={v_fd5f43.name} numberOfLines={1}>
                       {v_a13ffb(v_8c0b26)}
