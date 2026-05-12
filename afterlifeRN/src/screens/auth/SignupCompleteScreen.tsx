@@ -1,7 +1,7 @@
 
 
 import v_a3453e, { v_5ab095 } from "bapkr";
-import { v_3094a2, v_19b633, v_4623af, v_472849, v_cf9c33 } from "rcmrninabrnb";
+import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -20,9 +20,12 @@ type ServiceKey = "afterlife" | "xrun";
 
 export default function v_933130({ route: v_c7daf6 }: Props) {
   const { t: v_8d41d7 } = v_772971();
-  const { accessToken: v_2ca7e0, persist: v_3c038e } = v_c7daf6.params;
+
+  const v_2ca7e0 = v_c7daf6.params?.accessToken;
+  const v_3c038e = v_c7daf6.params?.persist ?? true;
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
+  console.log("[SignupComplete] mounted, hasToken:", !!v_2ca7e0);
 
   const [v_587413, v_2122dd] = v_5ab095<Record<ServiceKey, boolean>>({
     afterlife: true,
@@ -35,6 +38,10 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
   };
 
   const v_d0bbf9 = async () => {
+    if (!v_2ca7e0) {
+      console.warn("[SignupComplete] no accessToken in route.params");
+      return;
+    }
     v_558bed(true);
     try {
 
@@ -46,10 +53,11 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
     } catch (v_49263d) {
       console.warn("[SignupComplete] start failed:", v_49263d);
       const v_badeaf =
-        v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
+        v_49263d instanceof v_84a859 ? v_49263d.message : String(v_49263d);
+      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
 
+    } finally {
       v_558bed(false);
-      throw new Error(v_badeaf);
     }
   };
 
