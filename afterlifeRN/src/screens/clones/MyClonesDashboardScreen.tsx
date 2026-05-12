@@ -704,39 +704,6 @@ export default function MyClonesDashboardScreen() {
               </View>
             </View>
 
-            {}
-            <View style={s.dashTitleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.dashTitleText}>{t("dashboard.headerTitle")}</Text>
-                <Text style={s.dashSubText}>{t("dashboard.headerDesc")}</Text>
-              </View>
-            </View>
-
-            {}
-            <View style={s.statsOverview}>
-              <View style={s.statsCard}>
-                <View style={s.statsCardHeader}>
-                  <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-                  <Text style={s.statsCardLabel}>{t("dashboard.statsTotalInteractions")}</Text>
-                </View>
-                <Text style={s.statsCardValue}>12.8k</Text>
-                <Text style={s.statsCardDelta}>{t("dashboard.statsDelta")}</Text>
-              </View>
-
-              <View style={[s.statsCard, s.statsCardDark]}>
-                <View style={s.statsCardHeader}>
-                  <Feather name="user" size={14} color={COLORS.zinc400} />
-                  <Text style={[s.statsCardLabel, { color: COLORS.zinc400 }]}>
-                    {t("dashboard.statsActivity")}
-                  </Text>
-                </View>
-                <View style={s.activityCount}>
-                  <Text style={s.activityActive}>{activeCount}</Text>
-                  <Text style={s.activityTotal}>/ {visibleClones.length}</Text>
-                </View>
-              </View>
-            </View>
-
             {
 }
             <View style={s.coinRow}>
@@ -768,6 +735,39 @@ export default function MyClonesDashboardScreen() {
               >
                 <Feather name="plus-circle" size={24} color={COLORS.violet600} />
               </TouchableOpacity>
+            </View>
+
+            {}
+            <View style={s.dashTitleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.dashTitleText}>{t("dashboard.headerTitle")}</Text>
+                <Text style={s.dashSubText}>{t("dashboard.headerDesc")}</Text>
+              </View>
+            </View>
+
+            {}
+            <View style={s.statsOverview}>
+              <View style={s.statsCard}>
+                <View style={s.statsCardHeader}>
+                  <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
+                  <Text style={s.statsCardLabel}>{t("dashboard.statsTotalInteractions")}</Text>
+                </View>
+                <Text style={s.statsCardValue}>12.8k</Text>
+                <Text style={s.statsCardDelta}>{t("dashboard.statsDelta")}</Text>
+              </View>
+
+              <View style={[s.statsCard, s.statsCardDark]}>
+                <View style={s.statsCardHeader}>
+                  <Feather name="user" size={14} color={COLORS.zinc400} />
+                  <Text style={[s.statsCardLabel, { color: COLORS.zinc400 }]}>
+                    {t("dashboard.statsActivity")}
+                  </Text>
+                </View>
+                <View style={s.activityCount}>
+                  <Text style={s.activityActive}>{activeCount}</Text>
+                  <Text style={s.activityTotal}>/ {visibleClones.length}</Text>
+                </View>
+              </View>
             </View>
           </>
         }
