@@ -70,14 +70,41 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
   const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
-  const [v_5c764d, v_c5baa3] = v_5ab095(false);
+
+  const [v_51b53b, v_c8f346] = v_5ab095(false);
+  const [v_540cd3, v_a67880] = v_5ab095(false);
+  const [v_09b7fa, v_1d4807] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
+
+  const v_5c764d = v_51b53b && v_540cd3 && v_09b7fa;
+  const v_33f2ba = v_5c764d && v_8c98c4;
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const [v_1a29d0, v_704175] = v_5ab095<string | null>(null);
   const [v_ea920b, v_73f064] = v_5ab095<"ios" | "android" | "web" | null>(null);
   const [v_929b58, v_94f796] = v_5ab095<string | null>(null);
   const [v_8d0e18, v_3bb4d3] = v_5ab095(false);
+
+  const v_0217e6 = async () => {
+    if (v_33f2ba) {
+
+      v_c8f346(false);
+      v_a67880(false);
+      v_1d4807(false);
+      v_e378a4(false);
+      v_704175(null);
+      v_73f064(null);
+      v_94f796(null);
+      return;
+    }
+
+    v_c8f346(true);
+    v_a67880(true);
+    v_1d4807(true);
+    if (!v_8c98c4) {
+      await v_349606();
+    }
+  };
 
   const v_349606 = async () => {
 
@@ -342,15 +369,62 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
           {}
           <View style={v_d81136.terms}>
+            {}
             <TouchableOpacity
-              onPress={() => v_c5baa3(!v_5c764d)}
+              onPress={v_0217e6}
+              disabled={v_8d0e18}
+              style={[v_d81136.checkRow, v_d81136.checkRowAll]}
+            >
+              <View style={[v_d81136.checkbox, v_33f2ba && v_d81136.checkboxChecked]}>
+                {v_33f2ba && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+              </View>
+              <Text style={[v_d81136.termText, v_d81136.termTextAll]}>
+                {v_8d41d7("auth.signup.termsAgreeAll")}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={v_d81136.termsDivider} />
+
+            {}
+            <TouchableOpacity
+              onPress={() => v_c8f346(!v_51b53b)}
               style={v_d81136.checkRow}
             >
-              <View style={[v_d81136.checkbox, v_5c764d && v_d81136.checkboxChecked]}>
-                {v_5c764d && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+              <View style={[v_d81136.checkbox, v_51b53b && v_d81136.checkboxChecked]}>
+                {v_51b53b && <Feather name="check" size={14} color={v_1bfbd0.white} />}
               </View>
-              <Text style={v_d81136.termText}>{v_8d41d7("auth.signup.termsRequired")}</Text>
+              <Text style={v_d81136.termText}>
+                {v_8d41d7("auth.signup.termsService")}
+              </Text>
             </TouchableOpacity>
+
+            {}
+            <TouchableOpacity
+              onPress={() => v_a67880(!v_540cd3)}
+              style={v_d81136.checkRow}
+            >
+              <View style={[v_d81136.checkbox, v_540cd3 && v_d81136.checkboxChecked]}>
+                {v_540cd3 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+              </View>
+              <Text style={v_d81136.termText}>
+                {v_8d41d7("auth.signup.termsLocation")}
+              </Text>
+            </TouchableOpacity>
+
+            {}
+            <TouchableOpacity
+              onPress={() => v_1d4807(!v_09b7fa)}
+              style={v_d81136.checkRow}
+            >
+              <View style={[v_d81136.checkbox, v_09b7fa && v_d81136.checkboxChecked]}>
+                {v_09b7fa && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+              </View>
+              <Text style={v_d81136.termText}>
+                {v_8d41d7("auth.signup.termsPrivacy")}
+              </Text>
+            </TouchableOpacity>
+
+            {}
             <TouchableOpacity
               onPress={v_349606}
               disabled={v_8d0e18}
@@ -433,13 +507,27 @@ const v_d81136 = v_472849.create({
     marginLeft: 4,
   },
   terms: {
-    gap: 12,
+    gap: 10,
     paddingTop: v_9b1a04.medium,
   },
   checkRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
+  },
+
+  checkRowAll: {
+    paddingVertical: 4,
+  },
+  termTextAll: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+  },
+  termsDivider: {
+    height: 1,
+    backgroundColor: v_1bfbd0.zinc200,
+    marginVertical: 4,
   },
   checkbox: {
     width: 20,
