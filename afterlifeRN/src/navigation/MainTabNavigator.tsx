@@ -25,6 +25,7 @@ import v_448ad1 from "../screens/clone-creation/Step7CompleteScreen";
 import v_d19b01 from "../screens/clone-creation/Step8CreateShortsScreen";
 import v_14b43e from "../screens/following/FollowingScreen";
 import v_87eb38 from "../screens/shorts/ShortsTabScreen";
+import v_5db6c6 from "../screens/search/SearchScreen";
 import v_ed02a5 from "../screens/my/MyScreen";
 import v_e2b396 from "../screens/my/EditProfileScreen";
 import v_4036d1 from "../screens/my/NotificationSettingsScreen";
@@ -90,9 +91,10 @@ const v_866a65 = v_cdbda8<v_97a9a8>();
 
 const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; label: string }> = {
   HomeTab: { icon: "home", label: "홈" },
-  ClonesTab: { icon: "users", label: "페르소나" },
+  SearchTab: { icon: "search", label: "검색" },
   CreateTab: { icon: "plus-circle", label: "생성" },
   ShortsTab: { icon: "user-check", label: "구독 중" },
+  ClonesTab: { icon: "users", label: "페르소나" },
   MyTab: { icon: "user", label: "마이" },
 };
 
@@ -144,7 +146,7 @@ export default function v_19ba0e() {
 
 }
       <Tab.Screen name="HomeTab" component={v_c316d8} />
-      <Tab.Screen name="ShortsTab" component={v_14b43e} />
+      <Tab.Screen name="SearchTab" component={v_5db6c6} />
       <Tab.Screen
         name="CreateTab"
         component={v_31fee5}
@@ -152,6 +154,11 @@ export default function v_19ba0e() {
         listeners={({ navigation: v_c65f5d }) => ({
           tabPress: (v_9e86fd) => {
             v_9e86fd.preventDefault();
+
+            const { setCreationDraft: v_5795de, resetCreationDraft: v_7a77e1 } =
+              require("../stores/cloneStore").useCloneStore.getState();
+            v_7a77e1();
+            v_5795de({ cloneType: "default", visibility: "public" });
             const v_b6e533 = v_c65f5d.getState();
             const v_3f8a47 = v_b6e533.routes.findIndex(
               (v_cb35cb) => v_cb35cb.name === "CreateTab"
@@ -164,8 +171,8 @@ export default function v_19ba0e() {
                     state: {
                       routes: [
                         {
-                          name: "Step1" as const,
-                          key: `Step1-${Date.now()}`,
+                          name: "Step3" as const,
+                          key: `Step3-${Date.now()}`,
                         },
                       ],
                       index: 0,
@@ -183,13 +190,18 @@ export default function v_19ba0e() {
           },
         })}
       />
+      <Tab.Screen name="ShortsTab" component={v_14b43e} />
       <Tab.Screen name="ClonesTab" component={v_aedede} />
       {
+
 }
       <Tab.Screen
         name="MyTab"
         component={v_d9c5dd}
-        options={{ tabBarButton: () => null }}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: "none" },
+        }}
       />
     </Tab.Navigator>
   );

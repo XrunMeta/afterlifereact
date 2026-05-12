@@ -14,7 +14,9 @@ import {
   v_5f4661,
   v_326be8,
   v_f2c756,
+  v_03e392,
 } from "rcmrninabrnb";
+import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -29,8 +31,9 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
-import { v_84a859 } from "../../api/auth";
+import { v_84a859, v_976b89 } from "../../api/auth";
 import { v_5c99c1 } from "../../api/payments";
+import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
@@ -93,6 +96,7 @@ export default function v_def15b() {
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_21f395 = v_1ed7d9((v_fd5f43) => v_fd5f43.patchApiUser);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const v_7a98d1 = v_194498((v_fd5f43) => v_fd5f43.upsertClones);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
@@ -166,6 +170,8 @@ export default function v_def15b() {
 
   const v_48d264 = 0;
   const v_a7e127 = 0;
+
+  const [v_026c2d, v_5eda29] = v_5ab095(false);
 
   const [v_04e734, v_d6a117] = v_5ab095(false);
 
@@ -314,6 +320,45 @@ export default function v_def15b() {
       v_2008a4 = true;
     };
   }, [v_2ca7e0]);
+
+  const v_d28ade = async () => {
+    if (!v_2ca7e0) {
+      v_03e392.alert(v_8d41d7("common.notice", { defaultValue: "알림" }), v_8d41d7("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
+      return;
+    }
+    const v_d60769 = await v_d05ab5.requestMediaLibraryPermissionsAsync();
+    if (!v_d60769.granted) {
+      v_03e392.alert(
+        v_8d41d7("my.permTitle", { defaultValue: "권한 필요" }),
+        v_8d41d7("my.permDesc", { defaultValue: "사진 라이브러리 접근 권한을 허용해주세요." }),
+      );
+      return;
+    }
+    const v_07fb2e = await v_d05ab5.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (v_07fb2e.canceled || !v_07fb2e.assets?.[0]) return;
+    const v_b76cd8 = v_07fb2e.assets[0];
+
+    v_5eda29(true);
+    try {
+      const v_57ac81 = await v_7d2692(v_2ca7e0, v_b76cd8.uri, {
+        purpose: "avatar",
+        fileName: v_b76cd8.fileName ?? "avatar.jpg",
+        mimeType: v_b76cd8.mimeType ?? "image/jpeg",
+      });
+      await v_976b89(v_2ca7e0, { avatarUrl: v_57ac81.url });
+      v_21f395({ avatarUrl: v_57ac81.url });
+    } catch (v_49263d) {
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "이미지 업로드에 실패했어요";
+      v_03e392.alert(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
+    } finally {
+      v_5eda29(false);
+    }
+  };
 
   const v_63ceb4 = async () => {
     const v_be4a9f = "market://details?id=run.xrun.xrunapp";
@@ -640,7 +685,7 @@ export default function v_def15b() {
                 v_c65f5d.dispatch(
                   v_650cfa.navigate({
                     name: "CreateTab",
-                    params: { screen: "Step1" },
+                    params: { screen: "Step3" },
                   }),
                 )
               }
@@ -653,19 +698,35 @@ export default function v_def15b() {
         ListHeaderComponent={
           <>
             {
+
 }
             <View style={v_fd5f43.profileSection}>
               <View style={v_fd5f43.profileLeft}>
-                {v_b113dd?.avatarUrl || v_f38ee5?.avatarUrl ? (
-                  <Image
-                    source={{ uri: (v_b113dd?.avatarUrl ?? v_f38ee5?.avatarUrl) as string }}
-                    style={v_fd5f43.profileAvatar}
-                  />
-                ) : (
-                  <View style={[v_fd5f43.profileAvatar, v_fd5f43.profileAvatarPlaceholder]}>
-                    <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
-                  </View>
-                )}
+                <View style={v_fd5f43.profileAvatarWrap}>
+                  {v_b113dd?.avatarUrl || v_f38ee5?.avatarUrl ? (
+                    <Image
+                      source={{ uri: (v_b113dd?.avatarUrl ?? v_f38ee5?.avatarUrl) as string }}
+                      style={v_fd5f43.profileAvatar}
+                    />
+                  ) : (
+                    <View style={[v_fd5f43.profileAvatar, v_fd5f43.profileAvatarPlaceholder]}>
+                      <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={v_fd5f43.profileAvatarEditBtn}
+                    onPress={v_d28ade}
+                    disabled={v_026c2d}
+                    activeOpacity={0.8}
+                    hitSlop={6}
+                  >
+                    {v_026c2d ? (
+                      <ActivityIndicator size="small" color={v_1bfbd0.white} />
+                    ) : (
+                      <Feather name="edit-2" size={12} color={v_1bfbd0.white} />
+                    )}
+                  </TouchableOpacity>
+                </View>
                 <View style={{ flex: 1, marginLeft: 26 }}>
                   <Text style={v_fd5f43.profileName} numberOfLines={1}>
                     {v_b113dd?.name ?? v_f38ee5?.displayName ?? "사용자"}
@@ -1154,11 +1215,25 @@ const v_fd5f43 = v_472849.create({
     marginBottom: 8,
   },
   profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatarWrap: { position: "relative" },
   profileAvatar: { width: 64, height: 64, borderRadius: 32 },
   profileAvatarPlaceholder: {
     backgroundColor: v_1bfbd0.zinc100,
     alignItems: "center",
     justifyContent: "center",
+  },
+  profileAvatarEditBtn: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: v_1bfbd0.zinc900,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: v_1bfbd0.white,
   },
   profileName: {
     fontSize: 17,

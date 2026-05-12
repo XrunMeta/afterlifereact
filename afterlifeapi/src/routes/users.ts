@@ -23,6 +23,9 @@ interface UserRow {
   age: number | null;
   age_enc: string | null;
   created_at: string;
+  country: string | null;
+  mobile_code: number | null;
+  region: string | null;
   xrun_member_id: number | null;
   xrun_guid: string | null;
   xrun_wallet: string | null;
@@ -62,6 +65,7 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
   const v_3ac7e7 = await v_a1651b
     .prepare(
       `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at,
+              country, mobile_code, region,
               xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
@@ -141,6 +145,9 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
       gender: v_3ac7e7.gender,
       age: v_2694bd,
       createdAt: v_3ac7e7.created_at,
+      country: v_3ac7e7.country ?? null,
+      mobileCode: v_3ac7e7.mobile_code ?? null,
+      region: v_3ac7e7.region ?? null,
       xrunMemberId: v_3ac7e7.xrun_member_id,
       xrunGuid: v_3ac7e7.xrun_guid,
       xrunWallet: v_3ac7e7.xrun_wallet,
@@ -509,26 +516,40 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
   const v_a1651b = v_3f4e2e.env.DB;
 
   const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { withXrun?: boolean };
-  const v_837dd2 = v_4d33b2?.withXrun === true;
+  void v_4d33b2; 
 
   let v_9550e4 = {
     attempted: false,
     closed: false,
   };
 
-  if (v_837dd2) {
-    const v_213c33 = await v_a1651b
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(v_43e90c)
-      .first<{ xrun_member_id: number | null }>();
-    const v_88fe80 = v_213c33?.xrun_member_id ?? null;
-    if (v_88fe80) {
-      const { closeXrunMember: v_a33f6b } = await import("../lib/xrun");
-      const v_8f00b9 = await v_a33f6b(v_3f4e2e.env, v_88fe80);
-      v_9550e4 = { attempted: true, closed: v_8f00b9.closed, reason: v_8f00b9.reason };
-
+  const v_213c33 = await v_a1651b
+    .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+    .bind(v_43e90c)
+    .first<{ xrun_member_id: number | null }>();
+  const v_88fe80 = v_213c33?.xrun_member_id ?? null;
+  if (v_88fe80) {
+    const { getXrunMemberInfo: v_d19f98, closeXrunMember: v_a33f6b } = await import("../lib/xrun");
+    const v_34d5e3 = await v_d19f98(v_3f4e2e.env, v_88fe80);
+    if (v_34d5e3.ok) {
+      const v_aa632d = (v_34d5e3.appSource ?? "").toLowerCase() === "afterlife";
+      if (v_aa632d) {
+        const v_8f00b9 = await v_a33f6b(v_3f4e2e.env, v_88fe80);
+        v_9550e4 = { attempted: true, closed: v_8f00b9.closed, reason: v_8f00b9.reason };
+      } else {
+        v_9550e4 = {
+          attempted: true,
+          closed: false,
+          reason: `kept (app_source=${v_34d5e3.appSource ?? "null"})`,
+        };
+      }
     } else {
-      v_9550e4 = { attempted: true, closed: false, reason: "no xrun member linked" };
+
+      v_9550e4 = {
+        attempted: false,
+        closed: false,
+        reason: v_34d5e3.missing ? "xrun member missing (auto-unlinked)" : `lookup failed: ${v_34d5e3.reason}`,
+      };
     }
   }
 

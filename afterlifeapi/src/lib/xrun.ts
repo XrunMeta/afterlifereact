@@ -86,6 +86,32 @@ export interface AfterlifeRegisterContext {
   phone?: string;
   gender?: "male" | "female" | "other";
   age?: number;
+
+  country?: string;
+  mobileCode?: number;
+  region?: string;
+}
+
+function v_b6cf08(v_16e2dd): {
+  countrycode: string;
+  country: number;
+  region: number;
+  mobilecode: string;
+} {
+  const v_f6504f = (v_16e2dd.country ?? "KR").toUpperCase();
+  const v_15594c = typeof v_16e2dd.mobileCode === "number" ? v_16e2dd.mobileCode : 82;
+  const v_5cf162 = (() => {
+    const v_cb35cb = v_16e2dd.region;
+    if (!v_cb35cb) return 0;
+    const v_f4e98d = Number(v_cb35cb);
+    return Number.isFinite(v_f4e98d) ? Math.floor(v_f4e98d) : 0;
+  })();
+  return {
+    countrycode: v_f6504f,
+    country: v_15594c,
+    region: v_5cf162,
+    mobilecode: String(v_15594c),
+  };
 }
 
 export async function v_6e4cc8(
@@ -93,17 +119,18 @@ export async function v_6e4cc8(
   v_16e2dd,
 ): Promise<XrunRegisterResult> {
   const { firstname: v_54d565, lastname: v_9517dc } = v_c9bfd6(v_16e2dd.name);
+  const v_99e8e7 = v_b6cf08(v_16e2dd);
   const v_4d33b2 = {
     email: v_16e2dd.email,
     pin: v_b35290(),
     firstname: v_54d565,
     lastname: v_9517dc,
     mobile: v_16e2dd.phone ?? "",
-    mobilecode: "82",
+    mobilecode: v_99e8e7.mobilecode,
     gender: v_845bdb(v_16e2dd.gender),
-    countrycode: "KR",
-    country: 0,
-    region: 0,
+    countrycode: v_99e8e7.countrycode,
+    country: v_99e8e7.country,
+    region: v_99e8e7.region,
     age: v_16e2dd.age ?? 0,
     recommand: 0,
     social_code: 0,
@@ -161,19 +188,23 @@ async function v_36f334(
   v_16e2dd,
 ): Promise<void> {
   const { firstname: v_54d565, lastname: v_9517dc } = v_c9bfd6(v_16e2dd.name);
+  const v_99e8e7 = v_b6cf08(v_16e2dd);
   const v_4d33b2 = {
     email: v_16e2dd.email,
     firstname: v_54d565,
     lastname: v_9517dc,
     mobile: v_16e2dd.phone ?? null,
-    mobilecode: "82",
+    mobilecode: v_99e8e7.mobilecode,
     gender: v_845bdb(v_16e2dd.gender),
     age: v_16e2dd.age ?? null,
+    countrycode: v_99e8e7.countrycode,
+    country: v_99e8e7.country,
+    region: v_99e8e7.region,
     app_source: "afterlife",
   };
   const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: v_4d1f4f(v_c9c489),
     body: JSON.stringify(v_4d33b2),
   });
   if (!v_8f00b9.ok) {
@@ -343,6 +374,49 @@ export interface XrunCloseResult {
   ok: boolean;
   closed: boolean;
   reason?: string;
+}
+
+export async function v_d19f98(
+  env: v_273a0c,
+  v_660822,
+): Promise<
+  | { ok: true; appSource: string | null; status: number }
+  | { ok: false; reason: string; missing?: boolean }
+> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({ member: v_660822 }),
+    });
+  } catch (v_49263d) {
+    return { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { ok: false, reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success" && v_7ecfd1.data) {
+    return {
+      ok: true,
+      appSource: v_7ecfd1.data.app_source ?? null,
+      status: v_7ecfd1.data.status,
+    };
+  }
+  if (v_06d04c(v_8f00b9, v_7ecfd1)) {
+    await v_8ae861(v_c9c489, v_660822);
+    return { ok: false, reason: "member not found", missing: true };
+  }
+  return {
+    ok: false,
+    reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
+  };
 }
 
 export async function v_a33f6b(env: v_273a0c, v_660822): Promise<XrunCloseResult> {

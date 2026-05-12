@@ -1,5 +1,16 @@
-import v_a3453e, { v_5ab095, v_c4deb2, v_e662ae } from "bapkr";
-import { v_3094a2, v_19b633, v_a2349e, v_472849 } from "rcmrninabrnb";
+
+
+import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
+import {
+  v_3094a2,
+  v_19b633,
+  v_a2349e,
+  v_472849,
+  v_79c4f2,
+  v_4623af,
+  v_326be8,
+  v_e767d1,
+} from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
@@ -9,96 +20,235 @@ import v_258c1c from "../../components/common/PageHeader";
 import v_3183b2 from "../../components/common/StepIndicator";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_194498 } from "../../stores/cloneStore";
-import v_f81454 from "../../components/common/MissingAssetsModal";
+import { v_b55477 } from "../../api/clones";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step6">;
 };
 
+type Phase = "name" | "username" | "personality" | "loading";
+
 export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
-  const v_f04727 = v_194498(v_fd5f43 => v_fd5f43.creationDraft);
-  const v_03a9b2 =
-    v_f04727.cloneType === 'memlow' &&
-    (!v_f04727.imageFile || (!v_f04727.voiceFile && (v_f04727.recordDuration ?? 0) < 30));
-  const [v_4cd8b2, v_294326] = v_5ab095(v_03a9b2);
-  const [v_1d049f, v_558bed] = v_5ab095(!v_03a9b2);
+  const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
+  const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
+
+  const [v_ab4803, v_ae4844] = v_5ab095<Phase>("name");
+  const [v_1833e7, v_318f24] = v_5ab095<string>(v_f04727.name ?? "");
+  const [v_556427, v_e71a3b] = v_5ab095<string>(v_f04727.username ?? "");
+  const [v_324a89, v_87462f] = v_5ab095<string>(v_f04727.personaNotes ?? "");
 
   const [v_a63fde, v_6306c3] = v_5ab095(0);
   const v_e05861 = v_e662ae(new v_a2349e.Value(0)).current;
 
   v_c4deb2(() => {
-
+    if (v_ab4803 !== "loading") return;
     v_a2349e.loop(
       v_a2349e.timing(v_e05861, {
         toValue: 1,
         duration: 2000,
         useNativeDriver: true,
-      })
+      }),
     ).start();
-  }, []);
+  }, [v_ab4803, v_e05861]);
 
   v_c4deb2(() => {
-    if (!v_1d049f) return;
-    const v_ad1d65 = setInterval(() => {
-      v_6306c3(v_e2a85c => (v_e2a85c >= 100 ? 100 : v_e2a85c + 2));
-    }, 100);
-    return () => clearInterval(v_ad1d65);
-  }, [v_1d049f]);
+    if (v_ab4803 !== "loading") return;
+    const v_389afb = setInterval(() => {
+      v_6306c3((v_e2a85c) => (v_e2a85c >= 100 ? 100 : v_e2a85c + 4));
+    }, 80);
+    return () => clearInterval(v_389afb);
+  }, [v_ab4803]);
 
   v_c4deb2(() => {
-    if (v_a63fde >= 100) {
-      const v_cb36b1 = setTimeout(() => v_c65f5d.navigate("Step7"), 500);
-      return () => clearTimeout(v_cb36b1);
+    if (v_ab4803 === "loading" && v_a63fde >= 100) {
+      const v_8d41d7 = setTimeout(() => v_c65f5d.navigate("Step7"), 400);
+      return () => clearTimeout(v_8d41d7);
     }
-  }, [v_a63fde]);
+  }, [v_ab4803, v_a63fde, v_c65f5d]);
 
   const v_c75b31 = v_e05861.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "360deg"],
   });
 
+  const v_219251 = () => {
+    if (v_ab4803 === "name") {
+      const v_2f361a = v_1833e7.trim();
+      if (!v_2f361a) return;
+      v_5795de({ name: v_2f361a });
+      v_ae4844("username");
+    } else if (v_ab4803 === "username") {
+
+      const v_479f05 = v_556427.trim();
+      const v_1794cd = v_479f05.length >= 3
+        ? v_479f05.toLowerCase().replace(/[^a-z0-9_]/g, "_")
+        : v_b55477(v_1833e7.trim());
+      v_e71a3b(v_1794cd);
+      v_5795de({ username: v_1794cd });
+      v_ae4844("personality");
+    } else if (v_ab4803 === "personality") {
+      v_5795de({ personaNotes: v_324a89.trim() });
+      v_ae4844("loading");
+      v_6306c3(0);
+    }
+  };
+
+  const v_c7ac57 = () => {
+    if (v_ab4803 === "username") v_ae4844("name");
+    else if (v_ab4803 === "personality") v_ae4844("username");
+    else v_c65f5d.goBack();
+  };
+
+  const v_fc0cf5 = v_ab4803 === "name" ? v_1833e7.trim().length > 0
+    : v_ab4803 === "username" ? true 
+    : v_ab4803 === "personality" ? true 
+    : false;
+
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <PageHeader title="클론 생성" />
-      <StepIndicator currentStep={6} totalSteps={7} />
+      <PageHeader
+        title="페르소나 만들기"
+        showBackButton={v_ab4803 !== "loading"}
+        onBackPress={v_c7ac57}
+      />
+      <StepIndicator currentStep={3} totalSteps={4} />
 
-      <View style={v_d81136.center}>
-        {}
-        <View style={v_d81136.ringContainer}>
-          <Animated.View style={[v_d81136.outerRing, { transform: [{ rotate: v_c75b31 }] }]}>
-            <View style={v_d81136.outerRingInner} />
-          </Animated.View>
-          <View style={v_d81136.innerCircle}>
-            <Text style={v_d81136.progressText}>{v_a63fde}%</Text>
+      {v_ab4803 === "loading" ? (
+        <View style={v_d81136.center}>
+          <View style={v_d81136.ringContainer}>
+            <Animated.View style={[v_d81136.outerRing, { transform: [{ rotate: v_c75b31 }] }]}>
+              <View style={v_d81136.outerRingInner} />
+            </Animated.View>
+            <View style={v_d81136.innerCircle}>
+              <Text style={v_d81136.progressText}>{v_a63fde}%</Text>
+            </View>
+          </View>
+          <Text style={v_d81136.title}>페르소나를 만들고 있어요</Text>
+          <Text style={v_d81136.subtitle}>잠시만 기다려주세요</Text>
+          <View style={v_d81136.barTrack}>
+            <View style={[v_d81136.barFill, { width: `${v_a63fde}%` }]} />
           </View>
         </View>
+      ) : (
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={v_d81136.formWrap}>
+            {v_ab4803 === "name" && (
+              <>
+                <Text style={v_d81136.qLabel}>1 / 3</Text>
+                <Text style={v_d81136.qTitle}>페르소나의 이름은 무엇인가요?</Text>
+                <Text style={v_d81136.qDesc}>다른 사용자에게 표시될 이름입니다.</Text>
+                <TextInput
+                  style={v_d81136.input}
+                  value={v_1833e7}
+                  onChangeText={v_318f24}
+                  placeholder="예: 김프로"
+                  placeholderTextColor={v_1bfbd0.zinc400}
+                  autoFocus
+                  returnKeyType="next"
+                  onSubmitEditing={v_219251}
+                  maxLength={40}
+                />
+              </>
+            )}
 
-        <Text style={v_d81136.title}>페르소나를 생성하고 있어요</Text>
-        <Text style={v_d81136.subtitle}>약 2~5분 정도 소요됩니다</Text>
+            {v_ab4803 === "username" && (
+              <>
+                <Text style={v_d81136.qLabel}>2 / 3</Text>
+                <Text style={v_d81136.qTitle}>클론 아이디를 정해주세요</Text>
+                <Text style={v_d81136.qDesc}>
+                  영문 소문자/숫자/언더스코어. 비워두면 이름에서 자동 생성됩니다.
+                </Text>
+                <View style={v_d81136.handleRow}>
+                  <Text style={v_d81136.handlePrefix}>@</Text>
+                  <TextInput
+                    style={[v_d81136.input, { flex: 1 }]}
+                    value={v_556427}
+                    onChangeText={(v_81e2ef) => v_e71a3b(v_81e2ef.toLowerCase().replace(/[^a-z0-9_]/g, "_"))}
+                    placeholder="kimpro123"
+                    placeholderTextColor={v_1bfbd0.zinc400}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                    onSubmitEditing={v_219251}
+                    maxLength={30}
+                  />
+                </View>
+              </>
+            )}
 
-        {}
-        <View style={v_d81136.barTrack}>
-          <View style={[v_d81136.barFill, { width: `${v_a63fde}%` }]} />
-        </View>
-      </View>
-      <MissingAssetsModal
-        visible={v_4cd8b2}
-        onAddNow={() => {
-          v_294326(false);
-          v_558bed(false);
-          v_c65f5d.navigate('Step3');
-        }}
-        onLater={() => {
-          v_294326(false);
-          v_558bed(true);
-        }}
-      />
+            {v_ab4803 === "personality" && (
+              <>
+                <Text style={v_d81136.qLabel}>3 / 3</Text>
+                <Text style={v_d81136.qTitle}>어떤 성격인가요?</Text>
+                <Text style={v_d81136.qDesc}>
+                  말투, 좋아하는 것, 평소 분위기 등을 자유롭게 적어주세요.
+                </Text>
+                <TextInput
+                  style={[v_d81136.input, v_d81136.textarea]}
+                  value={v_324a89}
+                  onChangeText={v_87462f}
+                  placeholder="예: 차분하고 따뜻한 말투로 대화해요. 책 읽기와 산책을 좋아합니다."
+                  placeholderTextColor={v_1bfbd0.zinc400}
+                  multiline
+                  numberOfLines={6}
+                  textAlignVertical="top"
+                  autoFocus
+                />
+              </>
+            )}
+          </View>
+          <View style={v_d81136.bottomBar}>
+            <TouchableOpacity
+              style={[v_d81136.btn, !v_fc0cf5 && v_d81136.btnDisabled]}
+              onPress={v_219251}
+              disabled={!v_fc0cf5}
+              activeOpacity={0.85}
+            >
+              <Text style={v_d81136.btnText}>
+                {v_ab4803 === "personality" ? "생성 시작" : "다음"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      )}
     </SafeView>
   );
 }
 
 const v_d81136 = v_472849.create({
+
+  formWrap: { flex: 1, paddingHorizontal: v_9b1a04.xlarge, paddingTop: 32 },
+  qLabel: { fontSize: 12, fontWeight: "700", color: v_1bfbd0.violet600, marginBottom: 8 },
+  qTitle: { fontSize: 22, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 8 },
+  qDesc: { fontSize: 13, color: v_1bfbd0.zinc500, marginBottom: 20, lineHeight: 20 },
+  input: {
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: v_8b0c90.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: v_1bfbd0.zinc900,
+    backgroundColor: v_1bfbd0.zinc50,
+  },
+  textarea: { minHeight: 140, paddingTop: 12 },
+  handleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  handlePrefix: { fontSize: 18, color: v_1bfbd0.zinc500, fontWeight: "600" },
+
+  bottomBar: { padding: v_9b1a04.large, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc100 },
+  btn: {
+    paddingVertical: 14,
+    borderRadius: v_8b0c90.md,
+    backgroundColor: v_1bfbd0.zinc900,
+    alignItems: "center",
+  },
+  btnDisabled: { opacity: 0.4 },
+  btnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
+
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: v_9b1a04.xlarge, gap: 16 },
   ringContainer: { width: 140, height: 140, alignItems: "center", justifyContent: "center", marginBottom: 16 },
   outerRing: {
@@ -111,11 +261,7 @@ const v_d81136 = v_472849.create({
     borderTopColor: v_1bfbd0.violet500,
     borderRightColor: v_1bfbd0.violet500,
   },
-  outerRingInner: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
+  outerRingInner: { width: 120, height: 120, borderRadius: 60 },
   innerCircle: {
     width: 100,
     height: 100,
@@ -136,6 +282,4 @@ const v_d81136 = v_472849.create({
     marginTop: 8,
   },
   barFill: { height: "100%", backgroundColor: v_1bfbd0.violet500, borderRadius: 3 },
-  labelRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
-  labelText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.violet500 },
 });

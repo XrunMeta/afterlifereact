@@ -40,6 +40,10 @@ export interface AuthUser {
   gender: "male" | "female" | "other" | null;
   age: number | null;
   createdAt: string;
+
+  country: string | null;
+  mobileCode: number | null;
+  region: string | null;
   xrunMemberId: number | null;
   xrunGuid: string | null;
   xrunWallet: string | null;
