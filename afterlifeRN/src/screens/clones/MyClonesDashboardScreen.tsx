@@ -684,6 +684,11 @@ export default function v_def15b() {
                       <Text style={v_fd5f43.profileStatValue}>{v_48d264}</Text>
                       <Text style={v_fd5f43.profileStatLabel}>팔로잉</Text>
                     </View>
+                    <View style={v_fd5f43.profileStatDivider} />
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>페르소나</Text>
+                    </View>
                   </View>
                 </View>
               </View>
