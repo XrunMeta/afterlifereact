@@ -234,7 +234,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
           {}
           <Button
-            title={v_a5d73f ? v_8d41d7("auth.signup.verifying") : v_8d41d7("auth.login.loginBtn")}
+            title={v_a5d73f ? v_8d41d7("auth.login.loggingIn") : v_8d41d7("auth.login.loginBtn")}
             onPress={v_ec4736}
             variant="primary"
             disabled={v_a5d73f}

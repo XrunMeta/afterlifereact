@@ -230,7 +230,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               autoFocus
             />
             <Button
-              title={v_cb66b4 ? v_8d41d7("auth.signup.verifying") : v_8d41d7("auth.xrun.submit")}
+              title={v_cb66b4 ? v_8d41d7("auth.signup.signingUp") : v_8d41d7("auth.xrun.submit")}
               onPress={v_44851c}
               disabled={v_cb66b4 || v_aa596d.length !== 6}
             />
