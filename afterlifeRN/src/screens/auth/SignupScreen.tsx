@@ -186,7 +186,7 @@ export default function SignupScreen({ navigation, route }: Props) {
 
       if (google) {
 
-        const res = await signup({
+        const payload = {
           email,
           password,
           name,
@@ -201,7 +201,9 @@ export default function SignupScreen({ navigation, route }: Props) {
           pushToken: pushToken ?? undefined,
           platform: pushPlatform ?? undefined,
           googleIdToken: google.idToken,
-        });
+        };
+        console.log("[AUTH/google.signup] payload:", JSON.stringify(payload, null, 2));
+        const res = await signup(payload);
 
         navigation.replace("SignupComplete", {
           accessToken: res.accessToken,
@@ -226,12 +228,28 @@ export default function SignupScreen({ navigation, route }: Props) {
         deviceId: deviceId ?? undefined,
       });
     } catch (err) {
-      const msg =
-        err instanceof AuthApiError
-          ? err.code === "OTP_COOLDOWN"
-            ? t("auth.signup.rateLimit")
-            : err.message
-          : t("auth.signup.sendCodeFailed");
+      let msg: string = t("auth.signup.sendCodeFailed");
+      if (err instanceof AuthApiError) {
+        if (err.code === "OTP_COOLDOWN") {
+          msg = t("auth.signup.rateLimit");
+        } else {
+          msg = err.message;
+
+          if (err.code === "VALIDATION_FAILED" && err.details) {
+            console.warn(
+              "[AUTH/signup] VALIDATION_FAILED details:",
+              JSON.stringify(err.details, null, 2),
+            );
+            const issues = err.details as Array<{ path?: string[]; message?: string }>;
+            if (Array.isArray(issues) && issues.length > 0) {
+              const lines = issues
+                .map((i) => `• ${(i.path ?? []).join(".")}: ${i.message ?? "?"}`)
+                .join("\n");
+              msg = `${err.message}\n\n${lines}`;
+            }
+          }
+        }
+      }
       Alert.alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
