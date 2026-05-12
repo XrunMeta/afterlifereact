@@ -659,28 +659,32 @@ export default function MyClonesDashboardScreen() {
             {
 }
             <View style={s.profileSection}>
-              {apiUser?.avatarUrl || authUser?.avatarUrl ? (
-                <Image
-                  source={{ uri: (apiUser?.avatarUrl ?? authUser?.avatarUrl) as string }}
-                  style={s.profileAvatar}
-                />
-              ) : (
-                <View style={[s.profileAvatar, s.profileAvatarPlaceholder]}>
-                  <Feather name="user" size={36} color={COLORS.zinc400} />
-                </View>
-              )}
-              <Text style={s.profileName} numberOfLines={1}>
-                {apiUser?.name ?? authUser?.displayName ?? "사용자"}
-              </Text>
-              <View style={s.profileStatsRow}>
-                <View style={s.profileStatItem}>
-                  <Text style={s.profileStatValue}>{followersCount}</Text>
-                  <Text style={s.profileStatLabel}>팔로워</Text>
-                </View>
-                <View style={s.profileStatDivider} />
-                <View style={s.profileStatItem}>
-                  <Text style={s.profileStatValue}>{followingCount}</Text>
-                  <Text style={s.profileStatLabel}>팔로잉</Text>
+              <View style={s.profileLeft}>
+                {apiUser?.avatarUrl || authUser?.avatarUrl ? (
+                  <Image
+                    source={{ uri: (apiUser?.avatarUrl ?? authUser?.avatarUrl) as string }}
+                    style={s.profileAvatar}
+                  />
+                ) : (
+                  <View style={[s.profileAvatar, s.profileAvatarPlaceholder]}>
+                    <Feather name="user" size={28} color={COLORS.zinc400} />
+                  </View>
+                )}
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={s.profileName} numberOfLines={1}>
+                    {apiUser?.name ?? authUser?.displayName ?? "사용자"}
+                  </Text>
+                  <View style={s.profileStatsRow}>
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{followersCount}</Text>
+                      <Text style={s.profileStatLabel}>팔로워</Text>
+                    </View>
+                    <View style={s.profileStatDivider} />
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{followingCount}</Text>
+                      <Text style={s.profileStatLabel}>팔로잉</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
@@ -1180,54 +1184,38 @@ const s = StyleSheet.create({
   },
 
   profileSection: {
-    alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 16,
-    marginBottom: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    marginBottom: 8,
   },
-  profileAvatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    marginBottom: 12,
-    borderWidth: 3,
-    borderColor: COLORS.white,
-  },
+  profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatar: { width: 64, height: 64, borderRadius: 32 },
   profileAvatarPlaceholder: {
     backgroundColor: COLORS.zinc100,
     alignItems: "center",
     justifyContent: "center",
   },
   profileName: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "700",
     color: COLORS.zinc900,
-    marginBottom: 14,
+    marginBottom: 8,
   },
-  profileStatsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    alignSelf: "stretch",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    backgroundColor: COLORS.zinc50,
-    borderRadius: 16,
-  },
-  profileStatItem: { flex: 1, alignItems: "center" },
-  profileStatValue: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900 },
-  profileStatLabel: { fontSize: 12, color: COLORS.zinc500, marginTop: 4 },
-  profileStatDivider: { width: 1, height: 28, backgroundColor: COLORS.zinc200 },
+  profileStatsRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  profileStatItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  profileStatValue: { fontSize: 14, fontWeight: "700", color: COLORS.zinc900 },
+  profileStatLabel: { fontSize: 12, color: COLORS.zinc500 },
+  profileStatDivider: { width: 1, height: 12, backgroundColor: COLORS.zinc200 },
 
   dashTitle: { marginTop: 16, marginBottom: 20 },
   dashTitleRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
-    marginTop: 16,
-    marginBottom: 12,
+    marginTop: 8,
+    marginBottom: 16,
   },
-  dashTitleText: { fontSize: 17, fontWeight: "700", color: COLORS.zinc900 },
+  dashTitleText: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
   inviteStatusBtn: {
     flexDirection: "row",
     alignItems: "center",
