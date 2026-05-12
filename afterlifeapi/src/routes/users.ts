@@ -442,8 +442,27 @@ users.post("/me/delete", requireAuth, async (c) => {
   if ((res.meta?.changes ?? 0) === 0) {
     throw new APIError("CONFLICT", "Account is not in active state.");
   }
-  await logActivity(c, { userId, action: "user.soft_delete" });
-  return c.json({ ok: true, state: "soft_deleted", restorableUntil: "+90d" });
+
+  const cloneRes = await db
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE owner_id = ? AND deletion_state = 'active'`,
+    )
+    .bind(userId)
+    .run();
+  await logActivity(c, {
+    userId,
+    action: "user.soft_delete",
+    details: { cascaded_clones: cloneRes.meta?.changes ?? 0 },
+  });
+  return c.json({
+    ok: true,
+    state: "soft_deleted",
+    restorableUntil: "+90d",
+    cascadedClones: cloneRes.meta?.changes ?? 0,
+  });
 });
 
 users.post("/me/restore", requireAuth, async (c) => {
@@ -463,8 +482,26 @@ users.post("/me/restore", requireAuth, async (c) => {
   if ((res.meta?.changes ?? 0) === 0) {
     throw new APIError("CONFLICT", "Restoration window expired or account not soft-deleted.");
   }
-  await logActivity(c, { userId, action: "user.restore" });
-  return c.json({ ok: true, state: "active" });
+
+  const cloneRes = await db
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'active',
+              soft_deleted_at = NULL
+        WHERE owner_id = ? AND deletion_state = 'soft_deleted'`,
+    )
+    .bind(userId)
+    .run();
+  await logActivity(c, {
+    userId,
+    action: "user.restore",
+    details: { restored_clones: cloneRes.meta?.changes ?? 0 },
+  });
+  return c.json({
+    ok: true,
+    state: "active",
+    restoredClones: cloneRes.meta?.changes ?? 0,
+  });
 });
 
 users.post("/me/delete/gdpr", requireAuth, async (c) => {
@@ -572,12 +609,27 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
     .bind(userId)
     .run();
 
+  const cloneDelRes = await db
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'hard_deleted',
+              deleted_at = CURRENT_TIMESTAMP,
+              name = 'deletedclone' || CAST(id AS TEXT),
+              description = NULL,
+              avatar_url = NULL,
+              cover_image_url = NULL
+        WHERE owner_id = ?`,
+    )
+    .bind(userId)
+    .run();
+
   await logActivity(c, {
     userId,
     action: "user.gdpr_delete",
     details: {
       shredded_deks: dekIds.length,
       purged_messages: msgPurge.meta.changes ?? 0,
+      purged_clones: cloneDelRes.meta?.changes ?? 0,
     },
   });
   return c.json({
@@ -585,6 +637,7 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
     state: "hard_deleted",
     shreddedDekCount: dekIds.length,
     purgedMessages: msgPurge.meta.changes ?? 0,
+    purgedClones: cloneDelRes.meta?.changes ?? 0,
     xrunClose,
   });
 });
