@@ -23,6 +23,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
+import { deleteMe, AuthApiError } from "../../api/auth";
 import { listMyClones, listMyFollowedClones, type FollowedClone, type MyClone } from "../../api/clones";
 import { useFocusEffect } from "@react-navigation/native";
 import { getPaymentPinStatus, getXrunBalance } from "../../api/payments";
@@ -205,13 +206,42 @@ export default function MyScreen() {
     seedSource.clones().filter((c) => c.ownerId === uid).length +
       localClones.filter((c) => c.ownerId === uid).length;
 
-  const settingsItems: Array<{
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "회원 탈퇴",
+      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(90일 내 복구 가능)",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "탈퇴",
+          style: "destructive",
+          onPress: async () => {
+            if (!accessToken) return;
+            setDeleting(true);
+            try {
+              await deleteMe(accessToken, { withXrun: false });
+              await logout();
+            } catch (err) {
+              const msg = err instanceof AuthApiError ? err.message : "탈퇴에 실패했어요.";
+              Alert.alert("오류", msg);
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  type SettingsItem = {
     icon: keyof typeof Feather.glyphMap;
     labelKey: string;
     descKey: string;
-    route: keyof MyStackParamList;
-  }> = [
+    danger?: boolean;
+  } & ({ route: keyof MyStackParamList } | { action: () => void });
 
+  const settingsItems: SettingsItem[] = [
     {
       icon: "user",
       labelKey: "my.menu.editProfile",
@@ -231,7 +261,7 @@ export default function MyScreen() {
       route: "LanguageSettings",
     },
     {
-      icon: "shield",
+      icon: "slash",
       labelKey: "my.menu.privacy",
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
@@ -241,6 +271,19 @@ export default function MyScreen() {
       labelKey: "my.coin.transactions",
       descKey: "my.coin.viewAll",
       route: "Transactions",
+    },
+    {
+      icon: "trash-2",
+      labelKey: "settings.privacy.deleteAccount",
+      descKey: "settings.privacy.deleteAccount",
+      danger: true,
+      action: handleDeleteAccount,
+    },
+    {
+      icon: "log-out",
+      labelKey: "my.menu.logout",
+      descKey: "my.menu.logout",
+      action: () => void logout(),
     },
   ];
 
@@ -269,34 +312,45 @@ export default function MyScreen() {
         {
 }
 
-        {}
+        {
+}
         <View style={s.settingsCard}>
-          {settingsItems.map((item, i) => (
-            <TouchableOpacity
-              key={item.route}
-              style={[
-                s.settingsRow,
-                i < settingsItems.length - 1 && s.settingsRowBorder,
-              ]}
-              onPress={() => navigation.navigate(item.route)}
-            >
-              <View style={s.settingsIcon}>
-                <Feather name={item.icon} size={22} color={COLORS.zinc900} />
-              </View>
-              <View style={s.settingsInfo}>
-                <Text style={s.settingsLabel}>{t(item.labelKey)}</Text>
-                <Text style={s.settingsDesc}>{t(item.descKey)}</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
-            </TouchableOpacity>
-          ))}
+          {settingsItems.map((item, i) => {
+            const isAction = "action" in item;
+            const isDeleteRow = item.labelKey === "settings.privacy.deleteAccount";
+            const disabled = isDeleteRow && deleting;
+            const iconColor = item.danger ? COLORS.error : COLORS.zinc900;
+            return (
+              <TouchableOpacity
+                key={item.labelKey}
+                style={[
+                  s.settingsRow,
+                  i < settingsItems.length - 1 && s.settingsRowBorder,
+                ]}
+                disabled={disabled}
+                onPress={() => {
+                  if (isAction) item.action();
+                  else navigation.navigate(item.route);
+                }}
+              >
+                <View style={s.settingsIcon}>
+                  <Feather name={item.icon} size={22} color={iconColor} />
+                </View>
+                <View style={s.settingsInfo}>
+                  <Text style={[s.settingsLabel, item.danger && { color: COLORS.error }]}>
+                    {t(item.labelKey)}
+                  </Text>
+                  <Text style={s.settingsDesc}>{t(item.descKey)}</Text>
+                </View>
+                {disabled ? (
+                  <ActivityIndicator color={COLORS.error} />
+                ) : (
+                  <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
-
-        {}
-        <TouchableOpacity style={s.logoutBigBtn} onPress={() => void logout()} activeOpacity={0.85}>
-          <Feather name="log-out" size={18} color={COLORS.white} />
-          <Text style={s.logoutBigText}>{t("my.menu.logout")}</Text>
-        </TouchableOpacity>
       </View>
 
       <PaymentPinPromptModal
