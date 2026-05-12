@@ -110,10 +110,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
 
   const v_78c15c = async (v_e38ca2) => {
-    if (v_e38ca2 === "xrun") {
-      v_c65f5d.navigate("XrunLogin");
-      return;
-    }
     if (v_e38ca2 === "google") {
       try {
         await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -259,15 +255,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             variant="secondary"
             size="md"
             leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-          />
-
-          {}
-          <Button
-            title={v_8d41d7("auth.login.xrunBtn")}
-            onPress={() => v_78c15c("xrun")}
-            variant="secondary"
-            size="md"
-            leftIcon={<Feather name="smartphone" size={18} color={v_1bfbd0.zinc900} />}
           />
 
           {}

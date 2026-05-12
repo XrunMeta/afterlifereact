@@ -5,7 +5,6 @@ import {
   v_4623af,
   v_472849,
   v_03e392,
-  v_cf9c33,
 } from "rcmrninabrnb";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -17,10 +16,8 @@ import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_e775af from "../../components/ui/TextField";
 import v_d56c0a from "../../components/ui/SelectField";
-import v_84e2fc from "../../components/ui/InterestChip";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import { v_bf4124 } from "../../mocks/interestHelpers";
 import { v_97ea8d, v_35200c, v_7ef860, v_84a859 } from "../../api/auth";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
@@ -31,8 +28,6 @@ type Props = {
   navigation: v_390fcc<v_384e19, "Signup">;
   route: v_ee3714<v_384e19, "Signup">;
 };
-
-const v_bbe45f = v_bf4124;
 
 export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Props) {
   const { t: v_8d41d7 } = v_772971();
@@ -52,7 +47,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_d74a81, v_fcce73] = v_5ab095("");
   const [v_c3eac4, v_bdc43c] = v_5ab095<"male" | "female" | "other" | "">("");
   const [v_2694bd, v_6e5c76] = v_5ab095("");
-  const [v_976e06, v_770327] = v_5ab095<string[]>([]);
   const [v_b5ab16, v_b7733b] = v_5ab095(false);
   const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
   const [v_5c764d, v_c5baa3] = v_5ab095(false);
@@ -94,14 +88,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     } finally {
       v_3bb4d3(false);
     }
-  };
-
-  const v_d82a00 = (v_e4601c) => {
-    v_770327((v_ba2215) =>
-      v_ba2215.includes(v_e4601c)
-        ? v_ba2215.filter((v_ebec57) => v_ebec57 !== v_e4601c)
-        : [...v_ba2215, v_e4601c]
-    );
   };
 
   const v_585b02 = async () => {
@@ -147,7 +133,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           phone: v_d74a81,
           gender: v_c3eac4 || undefined,
           age: v_f4fe8e,
-          interests: v_976e06.length > 0 ? v_976e06 : undefined,
           marketingConsent: v_8c98c4,
           deviceId: v_929b58 ?? undefined,
           pushToken: v_1a29d0 ?? undefined,
@@ -168,7 +153,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         phone: v_d74a81,
         gender: v_c3eac4 || undefined,
         age: v_f4fe8e,
-        interests: v_976e06.length > 0 ? v_976e06 : undefined,
         marketingConsent: v_8c98c4,
         pushToken: v_1a29d0 ?? undefined,
         platform: v_ea920b ?? undefined,
@@ -201,13 +185,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         showsVerticalScrollIndicator={false}
       >
         <View style={v_d81136.container}>
-          {}
-          <View style={v_d81136.logoRow}>
-            <Image source={require("../../../assets/images/symbol.png")} style={v_d81136.symbolImage} />
-            <Image source={require("../../../assets/images/logo.png")} style={v_d81136.logoImage} resizeMode="contain" />
-            <Text style={v_d81136.subtitle}>{v_8d41d7("auth.signup.subtitle")}</Text>
-          </View>
-
           {}
           <TextField
             placeholder={v_8d41d7("auth.signup.name")}
@@ -293,21 +270,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           </View>
 
           {}
-          <View style={v_d81136.section}>
-            <Text style={v_d81136.sectionLabel}>{v_8d41d7("auth.signup.interests")}</Text>
-            <View style={v_d81136.chipGrid}>
-              {v_bbe45f.map((v_e4601c) => (
-                <InterestChip
-                  key={v_e4601c}
-                  label={v_e4601c}
-                  selected={v_976e06.includes(v_e4601c)}
-                  onPress={() => v_d82a00(v_e4601c)}
-                />
-              ))}
-            </View>
-          </View>
-
-          {}
           <View style={v_d81136.terms}>
             <TouchableOpacity
               onPress={() => v_c5baa3(!v_5c764d)}
@@ -365,24 +327,6 @@ const v_d81136 = v_472849.create({
     maxWidth: 780,
     gap: v_9b1a04.medium,
   },
-  logoRow: {
-    alignItems: "center",
-    marginBottom: v_9b1a04.large,
-  },
-  symbolImage: {
-    width: 100,
-    height: 80,
-    marginBottom: 12,
-  },
-  logoImage: {
-    width: 160,
-    height: 32,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: v_1bfbd0.zinc600,
-  },
   row: {
     flexDirection: "row",
     gap: 12,
@@ -395,19 +339,6 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.zinc500,
     marginTop: 6,
     marginLeft: 4,
-  },
-  section: {
-    gap: 12,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: v_1bfbd0.zinc900,
-  },
-  chipGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
   },
   terms: {
     gap: 12,
