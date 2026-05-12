@@ -53,9 +53,14 @@ export default function SearchScreen() {
   const [usersLoading, setUsersLoading] = useState(false);
 
   const screenWidth = Dimensions.get("window").width;
-  const cellSize = useMemo(
+  const cellWidth = useMemo(
     () => Math.floor((screenWidth - GAP * (NUM_COLS - 1)) / NUM_COLS),
     [screenWidth],
+  );
+
+  const cellHeight = useMemo(
+    () => Math.floor(cellWidth * (16 / 9)),
+    [cellWidth],
   );
 
   const loadFeeds = useCallback(async () => {
@@ -168,7 +173,7 @@ export default function SearchScreen() {
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={() => goToClone(item.cloneId)}
-        style={{ width: cellSize, height: cellSize, marginRight, marginBottom: GAP }}
+        style={{ width: cellWidth, height: cellHeight, marginRight, marginBottom: GAP }}
       >
         {item.mediaUrl ? (
           <Image source={{ uri: item.mediaUrl }} style={s.cellImage} />
