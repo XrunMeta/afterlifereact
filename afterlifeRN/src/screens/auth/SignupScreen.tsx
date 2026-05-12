@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Image,
 } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
@@ -17,10 +16,8 @@ import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import SelectField from "../../components/ui/SelectField";
-import InterestChip from "../../components/ui/InterestChip";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import { ALL_INTERESTS } from "../../mocks/interestHelpers";
 import { requestEmailCode, signup, getMe, AuthApiError } from "../../api/auth";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
@@ -31,8 +28,6 @@ type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
   route: RouteProp<AuthStackParamList, "Signup">;
 };
-
-const INTEREST_OPTIONS = ALL_INTERESTS;
 
 export default function SignupScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
@@ -52,7 +47,6 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
   const [age, setAge] = useState("");
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeRequired, setAgreeRequired] = useState(false);
@@ -94,14 +88,6 @@ export default function SignupScreen({ navigation, route }: Props) {
     } finally {
       setRequestingPush(false);
     }
-  };
-
-  const toggleInterest = (interest: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(interest)
-        ? prev.filter((i) => i !== interest)
-        : [...prev, interest]
-    );
   };
 
   const handleSubmit = async () => {
@@ -147,7 +133,6 @@ export default function SignupScreen({ navigation, route }: Props) {
           phone,
           gender: gender || undefined,
           age: ageNum,
-          interests: selectedInterests.length > 0 ? selectedInterests : undefined,
           marketingConsent: agreeMarketing,
           deviceId: deviceId ?? undefined,
           pushToken: pushToken ?? undefined,
@@ -168,7 +153,6 @@ export default function SignupScreen({ navigation, route }: Props) {
         phone,
         gender: gender || undefined,
         age: ageNum,
-        interests: selectedInterests.length > 0 ? selectedInterests : undefined,
         marketingConsent: agreeMarketing,
         pushToken: pushToken ?? undefined,
         platform: pushPlatform ?? undefined,
@@ -201,13 +185,6 @@ export default function SignupScreen({ navigation, route }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
-          {}
-          <View style={styles.logoRow}>
-            <Image source={require("../../../assets/images/symbol.png")} style={styles.symbolImage} />
-            <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.subtitle}>{t("auth.signup.subtitle")}</Text>
-          </View>
-
           {}
           <TextField
             placeholder={t("auth.signup.name")}
@@ -293,21 +270,6 @@ export default function SignupScreen({ navigation, route }: Props) {
           </View>
 
           {}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>{t("auth.signup.interests")}</Text>
-            <View style={styles.chipGrid}>
-              {INTEREST_OPTIONS.map((interest) => (
-                <InterestChip
-                  key={interest}
-                  label={interest}
-                  selected={selectedInterests.includes(interest)}
-                  onPress={() => toggleInterest(interest)}
-                />
-              ))}
-            </View>
-          </View>
-
-          {}
           <View style={styles.terms}>
             <TouchableOpacity
               onPress={() => setAgreeRequired(!agreeRequired)}
@@ -365,24 +327,6 @@ const styles = StyleSheet.create({
     maxWidth: 780,
     gap: SIZES.medium,
   },
-  logoRow: {
-    alignItems: "center",
-    marginBottom: SIZES.large,
-  },
-  symbolImage: {
-    width: 100,
-    height: 80,
-    marginBottom: 12,
-  },
-  logoImage: {
-    width: 160,
-    height: 32,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.zinc600,
-  },
   row: {
     flexDirection: "row",
     gap: 12,
@@ -395,19 +339,6 @@ const styles = StyleSheet.create({
     color: COLORS.zinc500,
     marginTop: 6,
     marginLeft: 4,
-  },
-  section: {
-    gap: 12,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.zinc900,
-  },
-  chipGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
   },
   terms: {
     gap: 12,

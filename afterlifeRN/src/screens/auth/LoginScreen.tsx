@@ -110,10 +110,6 @@ export default function LoginScreen({ navigation }: Props) {
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
 
   const handleSocialLogin = async (provider: string) => {
-    if (provider === "xrun") {
-      navigation.navigate("XrunLogin");
-      return;
-    }
     if (provider === "google") {
       try {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -259,15 +255,6 @@ export default function LoginScreen({ navigation }: Props) {
             variant="secondary"
             size="md"
             leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-          />
-
-          {}
-          <Button
-            title={t("auth.login.xrunBtn")}
-            onPress={() => handleSocialLogin("xrun")}
-            variant="secondary"
-            size="md"
-            leftIcon={<Feather name="smartphone" size={18} color={COLORS.zinc900} />}
           />
 
           {}
