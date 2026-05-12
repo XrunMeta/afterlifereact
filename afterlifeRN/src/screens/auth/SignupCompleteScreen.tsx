@@ -75,7 +75,8 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
           </Text>
           <Text style={v_fd5f43.subtitle}>
             {v_8d41d7("auth.signupComplete.subtitle", {
-              defaultValue: "이용할 서비스를 선택해주세요.",
+              defaultValue:
+                "방금 만든 계정 그대로,\n연동된 다른 서비스도 로그인만 해서\n바로 이용해 보세요.",
             })}
           </Text>
 
@@ -179,6 +180,7 @@ const v_fd5f43 = v_472849.create({
     fontSize: 14,
     color: v_1bfbd0.zinc500,
     textAlign: "center",
+    lineHeight: 22,
     marginBottom: 32,
   },
   cards: {
