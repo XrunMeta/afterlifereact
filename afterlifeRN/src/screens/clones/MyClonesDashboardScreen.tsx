@@ -1258,7 +1258,7 @@ const v_fd5f43 = v_472849.create({
   coinNetwork: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   coinAmountWrap: { alignItems: "flex-end", marginRight: 8 },
   coinAmountText: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  coinUnit: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  coinUnit: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc700 },
   coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 
   chargeOverlay: {
