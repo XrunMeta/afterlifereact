@@ -1,5 +1,6 @@
 import { v_da1883 } from '../types/country';
 import { v_944e0c } from 'zjvstacmhzoahupuiw';
+import v_098d07 from '../locales/en/regions';
 
 export interface Region {
   id: number;
@@ -15,7 +16,34 @@ export const GLOBAL_REGION: v_da1883 = {
   countryCode: 0,
 };
 
-const v_1030f0 = ['kr', 'id'];
+const v_9560c9 = new Set([1, 81, 82, 86, 62]);
+
+const PRIORITY_REGIONS_BY_CC: Record<number, v_da1883[]> = (() => {
+  const result: Record<number, v_da1883[]> = {};
+  const v_9390e8 = v_098d07 as Record<string, string>;
+  for (const [v_b24339, v_1833e7] of Object.entries(v_9390e8)) {
+    const v_35f85c = /^(\d+)_(\d+)$/.exec(v_b24339);
+    if (!v_35f85c) continue;
+    const v_a252ed = parseInt(v_35f85c[1], 10);
+    if (!v_9560c9.has(v_a252ed)) continue;
+    const v_1ae212 = v_35f85c[2];
+    if (!v_43c42e[v_a252ed]) v_43c42e[v_a252ed] = [];
+    v_43c42e[v_a252ed].push({
+      iso2: `${v_a252ed}_${v_1ae212}`,
+      name: v_1833e7, 
+      dialCode: v_1ae212,
+      flagEmoji: '📍',
+      countryCode: v_a252ed,
+    });
+  }
+
+  for (const v_a252ed of Object.keys(v_43c42e)) {
+    v_43c42e[Number(v_a252ed)].sort(
+      (v_779914, v_148ff6) => parseInt(v_779914.dialCode, 10) - parseInt(v_148ff6.dialCode, 10),
+    );
+  }
+  return v_43c42e;
+})();
 
 const v_3762f9 = {
   kr: 82,
@@ -34,16 +62,12 @@ const v_1c645f = (v_fd5f43): v_da1883 => ({
 });
 
 export const v_369014 = (v_cc0c7d): v_da1883[] => {
-  if (!v_cc0c7d) {
-    return [v_789afd];
-  }
+  if (!v_cc0c7d) return [v_789afd];
   const v_550aed = v_cc0c7d.toLowerCase();
 
-  if (v_1030f0.includes(v_550aed)) {
-    const v_a252ed = v_3762f9[v_550aed];
-    return v_52495e.filter(
-      (v_a6c30b) => (v_a6c30b as { countryCode?: number }).countryCode === v_a252ed,
-    );
+  const v_a252ed = v_3762f9[v_550aed];
+  if (v_a252ed && v_a0d916[v_a252ed]) {
+    return v_a0d916[v_a252ed];
   }
 
   try {
