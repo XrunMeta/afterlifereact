@@ -102,6 +102,12 @@ export async function registerXrunForAfterlifeUser(
   }
 
   if (json?.code === 409 || /already exists/i.test(json?.message ?? "")) {
+
+    try {
+      await updateXrunFromAfterlife(env, ctx);
+    } catch (err) {
+      console.warn("[xrun] update-from-afterlife failed:", (err as Error).message);
+    }
     return { status: "duplicate", email: ctx.email };
   }
 
@@ -120,6 +126,35 @@ export async function registerXrunForAfterlifeUser(
     status: "failed",
     reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
   };
+}
+
+async function updateXrunFromAfterlife(
+  env: Bindings,
+  ctx: AfterlifeRegisterContext,
+): Promise<void> {
+  const { firstname, lastname } = splitName(ctx.name);
+  const body: Record<string, unknown> = {
+    email: ctx.email,
+    firstname,
+    lastname,
+    mobile: ctx.phone ?? null,
+    mobilecode: "82",
+    gender: mapGender(ctx.gender),
+    age: ctx.age ?? null,
+    app_source: "afterlife",
+  };
+  const res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  const json = (await res.json()) as { status?: string; code?: number; message?: string };
+  if (json.status !== "success") {
+    throw new Error(`xrun update failed: ${json.message}`);
+  }
 }
 
 export async function verifyXrunCredentials(
