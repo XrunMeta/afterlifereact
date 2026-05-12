@@ -29,7 +29,6 @@ import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
 import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
-import NotificationBell from "../../components/common/NotificationBell";
 import { AuthApiError } from "../../api/auth";
 import { getXrunBalance } from "../../api/payments";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -165,6 +164,9 @@ export default function MyClonesDashboardScreen() {
   const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
   const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
 
+  const followingCount = 0;
+  const followersCount = 0;
+
   const [chargeModalVisible, setChargeModalVisible] = useState(false);
 
   const [statsModal, setStatsModal] = useState<{
@@ -264,10 +266,6 @@ export default function MyClonesDashboardScreen() {
   const [deleteModal, setDeleteModal] = useState<number | null>(null);
 
   const visibleClones = myClones.filter((c) => !hiddenCloneIds.has(c.id));
-
-  const activeCount = visibleClones.filter(
-    (c) => cloneStates[c.id]?.isActive ?? true,
-  ).length;
 
   const handleToggle = (cloneId: number) => {
     const currentState = cloneStates[cloneId]?.isActive ?? true;
@@ -522,7 +520,7 @@ export default function MyClonesDashboardScreen() {
             >
               <Feather name="user" size={14} color={COLORS.zinc500} />
               <Text style={s.statText} testID={`follower-count-${clone.id}`}>
-                {followerCount} 팔로워
+                {followerCount} 구독자
               </Text>
             </TouchableOpacity>
           </View>
@@ -602,23 +600,20 @@ export default function MyClonesDashboardScreen() {
         title={t("dashboard.title")}
         rightAction={
 
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <NotificationBell />
-            <TouchableOpacity
-              onPress={() =>
-                rootNav.dispatch(
-                  CommonActions.navigate({
-                    name: "MyTab",
-                    params: { screen: "MyHome" },
-                  }),
-                )
-              }
-              activeOpacity={0.7}
-              hitSlop={8}
-            >
-              <Feather name="settings" size={22} color={COLORS.zinc700} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() =>
+              rootNav.dispatch(
+                CommonActions.navigate({
+                  name: "MyTab",
+                  params: { screen: "MyHome" },
+                }),
+              )
+            }
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <Feather name="settings" size={22} color={COLORS.zinc700} />
+          </TouchableOpacity>
         }
       />
 
@@ -657,35 +652,40 @@ export default function MyClonesDashboardScreen() {
         }
         ListHeaderComponent={
           <>
-            {}
-            <View style={s.dashTitleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.dashTitleText}>{t("dashboard.headerTitle")}</Text>
-                <Text style={s.dashSubText}>{t("dashboard.headerDesc")}</Text>
-              </View>
-            </View>
-
-            {}
-            <View style={s.statsOverview}>
-              <View style={s.statsCard}>
-                <View style={s.statsCardHeader}>
-                  <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-                  <Text style={s.statsCardLabel}>{t("dashboard.statsTotalInteractions")}</Text>
-                </View>
-                <Text style={s.statsCardValue}>12.8k</Text>
-                <Text style={s.statsCardDelta}>{t("dashboard.statsDelta")}</Text>
-              </View>
-
-              <View style={[s.statsCard, s.statsCardDark]}>
-                <View style={s.statsCardHeader}>
-                  <Feather name="user" size={14} color={COLORS.zinc400} />
-                  <Text style={[s.statsCardLabel, { color: COLORS.zinc400 }]}>
-                    {t("dashboard.statsActivity")}
+            {
+}
+            <View style={s.profileSection}>
+              <View style={s.profileLeft}>
+                {apiUser?.avatarUrl || authUser?.avatarUrl ? (
+                  <Image
+                    source={{ uri: (apiUser?.avatarUrl ?? authUser?.avatarUrl) as string }}
+                    style={s.profileAvatar}
+                  />
+                ) : (
+                  <View style={[s.profileAvatar, s.profileAvatarPlaceholder]}>
+                    <Feather name="user" size={28} color={COLORS.zinc400} />
+                  </View>
+                )}
+                <View style={{ flex: 1, marginLeft: 26 }}>
+                  <Text style={s.profileName} numberOfLines={1}>
+                    {apiUser?.name ?? authUser?.displayName ?? "사용자"}
                   </Text>
-                </View>
-                <View style={s.activityCount}>
-                  <Text style={s.activityActive}>{activeCount}</Text>
-                  <Text style={s.activityTotal}>/ {visibleClones.length}</Text>
+                  <View style={s.profileStatsRow}>
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{followersCount}</Text>
+                      <Text style={s.profileStatLabel}>팔로워</Text>
+                    </View>
+                    <View style={s.profileStatDivider} />
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{followingCount}</Text>
+                      <Text style={s.profileStatLabel}>팔로잉</Text>
+                    </View>
+                    <View style={s.profileStatDivider} />
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{visibleClones.length}</Text>
+                      <Text style={s.profileStatLabel}>페르소나</Text>
+                    </View>
+                  </View>
                 </View>
               </View>
             </View>
@@ -697,9 +697,7 @@ export default function MyClonesDashboardScreen() {
                 source={require("../../../assets/images/xrun-round-logo.png")}
                 style={s.coinIcon}
               />
-              <View style={{ flex: 1 }}>
-                <Text style={s.coinSymbol}>XRUN</Text>
-              </View>
+              <View style={{ flex: 1 }} />
               <View style={s.coinAmountWrap}>
                 {xrunBalanceLoading ? (
                   <ActivityIndicator color={COLORS.zinc900} />
@@ -722,12 +720,10 @@ export default function MyClonesDashboardScreen() {
                 <Feather name="plus-circle" size={24} color={COLORS.violet600} />
               </TouchableOpacity>
             </View>
+
+            {
+}
           </>
-        }
-        ListFooterComponent={
-          <TouchableOpacity style={s.loadMore}>
-            <Text style={s.loadMoreText}>{t("dashboard.loadMore")}</Text>
-          </TouchableOpacity>
         }
       />
 
@@ -978,7 +974,7 @@ export default function MyClonesDashboardScreen() {
               {statsModal?.type === "likes" && "좋아요"}
               {statsModal?.type === "interactions" && "상호작용"}
               {statsModal?.type === "comments" && "댓글"}
-              {statsModal?.type === "followers" && "팔로워"}
+              {statsModal?.type === "followers" && "구독자"}
             </Text>
             <Text style={s.statsSheetSub}>
               {statsModal?.cloneName}
@@ -1056,7 +1052,7 @@ export default function MyClonesDashboardScreen() {
                     <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !followersList || followersList.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 팔로워가 없어요</Text>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 구독자가 없어요</Text>
                     </View>
                   ) : (
                     followersList.map((u) => (
@@ -1151,6 +1147,31 @@ const s = StyleSheet.create({
     paddingBottom: 24,
   },
 
+  profileSection: {
+    paddingTop: 28,
+    paddingBottom: 14,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatar: { width: 64, height: 64, borderRadius: 32 },
+  profileAvatarPlaceholder: {
+    backgroundColor: COLORS.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+    marginBottom: 8,
+  },
+  profileStatsRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  profileStatItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  profileStatValue: { fontSize: 14, fontWeight: "700", color: COLORS.zinc900 },
+  profileStatLabel: { fontSize: 12, color: COLORS.zinc500 },
+  profileStatDivider: { width: 1, height: 12, backgroundColor: COLORS.zinc200 },
+
   dashTitle: { marginTop: 16, marginBottom: 20 },
   dashTitleRow: {
     flexDirection: "row",
@@ -1199,7 +1220,7 @@ const s = StyleSheet.create({
   coinNetwork: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
   coinAmountWrap: { alignItems: "flex-end", marginRight: 8 },
   coinAmountText: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
-  coinUnit: { fontSize: 13, fontWeight: "600", color: COLORS.zinc700 },
+  coinUnit: { fontSize: 15, fontWeight: "600", color: COLORS.zinc700 },
   coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
 
   chargeOverlay: {
