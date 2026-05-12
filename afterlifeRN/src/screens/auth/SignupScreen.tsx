@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -69,6 +69,8 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [country, setCountry] = useState<CountryDialCode | null>(null);
   const [region, setRegion] = useState<CountryDialCode | null>(null);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
+
+  const countryFieldRef = useRef<View>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeRequired, setAgreeRequired] = useState(false);
@@ -313,6 +315,7 @@ export default function SignupScreen({ navigation, route }: Props) {
 
           {}
           <TouchableOpacity
+            ref={countryFieldRef as React.MutableRefObject<View>}
             style={styles.pickerField}
             onPress={() => setCountryPickerOpen(true)}
             activeOpacity={0.7}
@@ -378,9 +381,11 @@ export default function SignupScreen({ navigation, route }: Props) {
       </SafeScrollView>
 
       {
+
 }
       <CountryRegionPicker
         visible={countryPickerOpen}
+        anchorRef={countryFieldRef}
         onClose={() => setCountryPickerOpen(false)}
         selectedCountry={country}
         selectedRegion={region}
