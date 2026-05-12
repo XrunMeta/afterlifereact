@@ -97,6 +97,12 @@ export async function v_6e4cc8(
   }
 
   if (v_7ecfd1?.code === 409 || /already exists/i.test(v_7ecfd1?.message ?? "")) {
+
+    try {
+      await v_36f334(v_c9c489, v_16e2dd);
+    } catch (v_49263d) {
+      console.warn("[xrun] update-from-afterlife failed:", (v_49263d as Error).message);
+    }
     return { status: "duplicate", email: v_16e2dd.email };
   }
 
@@ -115,6 +121,35 @@ export async function v_6e4cc8(
     status: "failed",
     reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
   };
+}
+
+async function v_36f334(
+  env: v_273a0c,
+  v_16e2dd,
+): Promise<void> {
+  const { firstname: v_54d565, lastname: v_9517dc } = v_c9bfd6(v_16e2dd.name);
+  const v_4d33b2 = {
+    email: v_16e2dd.email,
+    firstname: v_54d565,
+    lastname: v_9517dc,
+    mobile: v_16e2dd.phone ?? null,
+    mobilecode: "82",
+    gender: v_845bdb(v_16e2dd.gender),
+    age: v_16e2dd.age ?? null,
+    app_source: "afterlife",
+  };
+  const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(v_4d33b2),
+  });
+  if (!v_8f00b9.ok) {
+    throw new Error(`HTTP ${v_8f00b9.status}`);
+  }
+  const v_7ecfd1 = (await v_8f00b9.json()) as { status?: string; code?: number; message?: string };
+  if (v_7ecfd1.status !== "success") {
+    throw new Error(`xrun update failed: ${v_7ecfd1.message}`);
+  }
 }
 
 export async function v_937e23(
