@@ -24,29 +24,25 @@ type Props = {
   onAgree: () => void;
 };
 
-const v_a23604 = new Map<string, string>();
-
 async function v_33650f(
   v_3b27d9,
   v_05bb19,
-): Promise<string> {
+): Promise<{ content: string; returnedLang: string }> {
 
   let v_c87c7a = (v_05bb19 || "ko").toLowerCase();
   if (v_c87c7a.startsWith("zh")) v_c87c7a = "zh";
   else v_c87c7a = v_c87c7a.split("-")[0]; 
-  const v_b24339 = `${v_3b27d9}_${v_c87c7a}`;
-  if (v_a23604.has(v_b24339)) return v_a23604.get(v_b24339)!;
   const v_f71b56 = `https://oth-path-f0013c.example.invalid/agreements?type=${v_3b27d9}&language=${v_c87c7a}`;
-  console.log("[TermsModal] fetch:", v_f71b56);
+  console.log("[TermsModal] fetch:", v_f71b56, "(i18n.language =", v_05bb19, ")");
   const v_8f00b9 = await fetch(v_f71b56);
   if (!v_8f00b9.ok) throw new Error(`Failed to load agreement (${v_8f00b9.status})`);
-  const v_7ecfd1 = (await v_8f00b9.json()) as { data?: { content?: string } };
+  const v_7ecfd1 = (await v_8f00b9.json()) as { data?: { content?: string; language?: string } };
   const v_b43b74 = v_7ecfd1?.data?.content ?? "";
+  const v_c61b34 = v_7ecfd1?.data?.language ?? "";
   console.log(
-    `[TermsModal] response ok — content length=${v_b43b74.length}`,
+    `[TermsModal] response ok — content length=${v_b43b74.length}, returnedLang=${v_c61b34}`,
   );
-  v_a23604.set(v_b24339, v_b43b74);
-  return v_b43b74;
+  return { content: v_b43b74, returnedLang: v_c61b34 };
 }
 
 const v_259ade = {
@@ -64,6 +60,7 @@ const v_9fab8c = {
 export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v_0890f8, onAgree: v_5cccfe }: Props) {
   const { t: v_8d41d7, i18n: v_9c213b } = v_772971();
   const [v_b43b74, v_f435cb] = v_5ab095<string>("");
+  const [v_c61b34, v_1083a7] = v_5ab095<string>("");
   const [v_683210, v_34a50a] = v_5ab095(false);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
 
@@ -73,9 +70,13 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
     v_34a50a(true);
     v_3a7d09(null);
     v_f435cb("");
+    v_1083a7("");
     v_33650f(v_3b27d9, v_9c213b.language)
-      .then((v_3f4e2e) => {
-        if (!v_2008a4) v_f435cb(v_3f4e2e);
+      .then(({ content: v_3f4e2e, returnedLang: v_cb35cb }) => {
+        if (!v_2008a4) {
+          v_f435cb(v_3f4e2e);
+          v_1083a7(v_cb35cb);
+        }
       })
       .catch((v_49263d) => {
         if (!v_2008a4) {
@@ -94,6 +95,14 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
       v_2008a4 = true;
     };
   }, [v_cf55be, v_3b27d9, v_9c213b.language, v_8d41d7]);
+
+  const v_449829 = (() => {
+    const v_1614db = (v_9c213b.language || "ko").toLowerCase();
+    if (v_1614db.startsWith("zh")) return "zh";
+    return v_1614db.split("-")[0];
+  })();
+  const v_6cf134 =
+    v_c61b34 && v_449829 && v_c61b34 !== v_449829;
 
   if (!v_3b27d9) return null;
   const v_9f1622 = v_8d41d7(v_259ade[v_3b27d9], { defaultValue: v_9fab8c[v_3b27d9] });
@@ -130,7 +139,14 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
             ) : v_5e9bfe ? (
               <Text style={v_fd5f43.errorText}>{v_5e9bfe}</Text>
             ) : (
-              <Text style={v_fd5f43.contentText}>{v_b43b74}</Text>
+              <>
+                {v_6cf134 && (
+                  <Text style={v_fd5f43.langNotice}>
+                    ⚠️ {v_449829} → {v_c61b34} (해당 언어 약관 준비 중)
+                  </Text>
+                )}
+                <Text style={v_fd5f43.contentText}>{v_b43b74}</Text>
+              </>
             )}
           </ScrollView>
 
@@ -197,6 +213,15 @@ const v_fd5f43 = v_472849.create({
     fontSize: 13,
     lineHeight: 20,
     color: v_1bfbd0.zinc700,
+  },
+  langNotice: {
+    fontSize: 12,
+    color: v_1bfbd0.amber700,
+    backgroundColor: v_1bfbd0.amber50,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: v_8b0c90.sm,
+    marginBottom: 12,
   },
   errorText: {
     fontSize: 14,
