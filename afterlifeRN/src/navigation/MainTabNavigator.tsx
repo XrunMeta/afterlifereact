@@ -188,11 +188,15 @@ export default function MainTabNavigator() {
       <Tab.Screen name="ShortsTab" component={FollowingScreen} />
       <Tab.Screen name="ClonesTab" component={ClonesStackNavigator} />
       {
+
 }
       <Tab.Screen
         name="MyTab"
         component={MyStackNavigator}
-        options={{ tabBarButton: () => null }}
+        options={{
+          tabBarButton: () => null,
+          tabBarItemStyle: { display: "none" },
+        }}
       />
     </Tab.Navigator>
   );
