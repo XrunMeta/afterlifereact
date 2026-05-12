@@ -1148,7 +1148,8 @@ const s = StyleSheet.create({
   },
 
   profileSection: {
-    paddingVertical: 14,
+    paddingTop: 28,
+    paddingBottom: 14,
     paddingHorizontal: 4,
     marginBottom: 8,
   },
