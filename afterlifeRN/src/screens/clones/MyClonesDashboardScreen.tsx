@@ -663,6 +663,31 @@ export default function v_def15b() {
               </View>
             </View>
 
+            {}
+            <View style={v_fd5f43.statsOverview}>
+              <View style={v_fd5f43.statsCard}>
+                <View style={v_fd5f43.statsCardHeader}>
+                  <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
+                  <Text style={v_fd5f43.statsCardLabel}>{v_8d41d7("dashboard.statsTotalInteractions")}</Text>
+                </View>
+                <Text style={v_fd5f43.statsCardValue}>12.8k</Text>
+                <Text style={v_fd5f43.statsCardDelta}>{v_8d41d7("dashboard.statsDelta")}</Text>
+              </View>
+
+              <View style={[v_fd5f43.statsCard, v_fd5f43.statsCardDark]}>
+                <View style={v_fd5f43.statsCardHeader}>
+                  <Feather name="user" size={14} color={v_1bfbd0.zinc400} />
+                  <Text style={[v_fd5f43.statsCardLabel, { color: v_1bfbd0.zinc400 }]}>
+                    {v_8d41d7("dashboard.statsActivity")}
+                  </Text>
+                </View>
+                <View style={v_fd5f43.activityCount}>
+                  <Text style={v_fd5f43.activityActive}>{v_2ba0d1}</Text>
+                  <Text style={v_fd5f43.activityTotal}>/ {v_fc7f92.length}</Text>
+                </View>
+              </View>
+            </View>
+
             {
 }
             <View style={v_fd5f43.coinRow}>
@@ -695,31 +720,6 @@ export default function v_def15b() {
               >
                 <Feather name="plus-circle" size={24} color={v_1bfbd0.violet600} />
               </TouchableOpacity>
-            </View>
-
-            {}
-            <View style={v_fd5f43.statsOverview}>
-              <View style={v_fd5f43.statsCard}>
-                <View style={v_fd5f43.statsCardHeader}>
-                  <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-                  <Text style={v_fd5f43.statsCardLabel}>{v_8d41d7("dashboard.statsTotalInteractions")}</Text>
-                </View>
-                <Text style={v_fd5f43.statsCardValue}>12.8k</Text>
-                <Text style={v_fd5f43.statsCardDelta}>{v_8d41d7("dashboard.statsDelta")}</Text>
-              </View>
-
-              <View style={[v_fd5f43.statsCard, v_fd5f43.statsCardDark]}>
-                <View style={v_fd5f43.statsCardHeader}>
-                  <Feather name="user" size={14} color={v_1bfbd0.zinc400} />
-                  <Text style={[v_fd5f43.statsCardLabel, { color: v_1bfbd0.zinc400 }]}>
-                    {v_8d41d7("dashboard.statsActivity")}
-                  </Text>
-                </View>
-                <View style={v_fd5f43.activityCount}>
-                  <Text style={v_fd5f43.activityActive}>{v_2ba0d1}</Text>
-                  <Text style={v_fd5f43.activityTotal}>/ {v_fc7f92.length}</Text>
-                </View>
-              </View>
             </View>
           </>
         }
