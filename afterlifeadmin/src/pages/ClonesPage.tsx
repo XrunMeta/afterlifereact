@@ -3,8 +3,33 @@ import { v_80cb8d } from "pgmzxjkoagjpdcvd";
 import { v_05a921 } from "../api/client";
 import { v_c1eeb6 } from "../components/DataTable";
 
+const v_ff2fa5 = {
+  active: { label: "활성", color: "#15803d", bg: "#dcfce7" },
+  soft_deleted: { label: "탈퇴(복구가능)", color: "#b45309", bg: "#fef3c7" },
+  hard_deleted: { label: "영구 삭제", color: "#b91c1c", bg: "#fee2e2" },
+  archived_cold: { label: "보관됨", color: "#1d4ed8", bg: "#dbeafe" },
+};
+const v_9f536f = (v_81e2ef) => {
+  const v_34d5e3 = v_ff2fa5[v_81e2ef ?? "active"] ?? { label: v_81e2ef ?? "—", color: "#52525b", bg: "#f4f4f5" };
+  return (
+    <span
+      style={{
+        fontSize: 11,
+        fontWeight: 600,
+        color: v_34d5e3.color,
+        backgroundColor: v_34d5e3.bg,
+        padding: "2px 8px",
+        borderRadius: 4,
+      }}
+    >
+      {v_34d5e3.label}
+    </span>
+  );
+};
+
 const v_b9fa58 = [
   { key: "id", label: "ID" },
+  { key: "deletionState", label: "상태", render: v_9f536f },
   { key: "name", label: "Name" },
   { key: "username", label: "클론 ID" },
   { key: "cloneType", label: "Type" },
