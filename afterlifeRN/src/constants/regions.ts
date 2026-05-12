@@ -1,4 +1,5 @@
 import { CountryDialCode } from '../types/country';
+import { State } from 'country-state-city';
 
 export interface Region {
   id: number;
@@ -14,7 +15,23 @@ export const GLOBAL_REGION: CountryDialCode = {
   countryCode: 0,
 };
 
-const COUNTRIES_WITH_REGIONS_ISO2 = ['kr', 'jp', 'cn', 'us', 'id'];
+const HARDCODED_REGION_COUNTRIES_ISO2 = ['kr', 'id'];
+
+const COUNTRY_PHONE_CODE: Record<string, number> = {
+  kr: 82,
+  us: 1,
+  jp: 81,
+  cn: 86,
+  id: 62,
+};
+
+const toRegionFromState = (s: { name: string; isoCode: string; countryCode: string }): CountryDialCode => ({
+  iso2: s.isoCode,
+  name: s.name,
+  dialCode: s.isoCode,
+  flagEmoji: '📍',
+  countryCode: COUNTRY_PHONE_CODE[s.countryCode.toLowerCase()] ?? 0,
+});
 
 export const getRegionsByCountryIso2 = (iso2?: string): CountryDialCode[] => {
   if (!iso2) {
@@ -22,25 +39,20 @@ export const getRegionsByCountryIso2 = (iso2?: string): CountryDialCode[] => {
   }
   const lowerIso2 = iso2.toLowerCase();
 
-  if (!COUNTRIES_WITH_REGIONS_ISO2.includes(lowerIso2)) {
-    return [GLOBAL_REGION];
-  }
-
-  if (lowerIso2 === 'kr' || lowerIso2 === 'id') {
+  if (HARDCODED_REGION_COUNTRIES_ISO2.includes(lowerIso2)) {
+    const cc = COUNTRY_PHONE_CODE[lowerIso2];
     return REGIONS_AS_COUNTRY_DIAL_CODES.filter(
-      (region) => {
-        const countryCode = (region as any).countryCode;
-        if (lowerIso2 === 'kr') {
-          return countryCode === 82;
-        } else if (lowerIso2 === 'id') {
-          return countryCode === 62;
-        }
-        return false;
-      }
+      (region) => (region as { countryCode?: number }).countryCode === cc,
     );
   }
 
-  return [GLOBAL_REGION];
+  try {
+    const states = State.getStatesOfCountry(iso2.toUpperCase());
+    if (states.length === 0) return [GLOBAL_REGION];
+    return states.map(toRegionFromState);
+  } catch {
+    return [GLOBAL_REGION];
+  }
 };
 
 export const REGIONS_AS_COUNTRY_DIAL_CODES: CountryDialCode[] = [

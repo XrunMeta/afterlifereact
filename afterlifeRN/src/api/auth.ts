@@ -15,7 +15,7 @@ export interface SignupPayload {
 
   country?: string;
   mobileCode?: number;
-  region?: number;
+  region?: string;
   marketingConsent?: boolean;
   deviceId?: string;
   pushToken?: string;

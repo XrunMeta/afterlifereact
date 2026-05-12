@@ -42,7 +42,7 @@ const signupSchema = z.object({
 
   country: z.string().length(2).regex(/^[A-Z]{2}$/).optional(),
   mobileCode: z.number().int().min(0).max(99999).optional(),
-  region: z.number().int().min(0).max(99999).optional(),
+  region: z.string().max(20).optional(),
   marketingConsent: z.boolean().optional().default(false),
   deviceId: z.string().min(1).max(200).optional(),
   pushToken: z.string().min(1).max(500).optional(),

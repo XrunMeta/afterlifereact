@@ -158,9 +158,7 @@ export default function SignupScreen({ navigation, route }: Props) {
       const countryCode = country.iso2.toUpperCase();
       const mobileCode = country.countryCode ?? 0;
       const regionCode =
-        region && region.iso2 !== "global"
-          ? parseInt(region.dialCode, 10) || 0
-          : 0;
+        region && region.iso2 !== "global" ? region.dialCode : undefined;
 
       if (google) {
 
