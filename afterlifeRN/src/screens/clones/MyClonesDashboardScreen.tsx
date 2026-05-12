@@ -165,6 +165,8 @@ export default function MyClonesDashboardScreen() {
   const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
   const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
 
+  const [chargeModalVisible, setChargeModalVisible] = useState(false);
+
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
     cloneId: number;
@@ -663,40 +665,6 @@ export default function MyClonesDashboardScreen() {
               </View>
             </View>
 
-            {
-}
-            <View style={s.coinRow}>
-              <Image
-                source={require("../../../assets/images/xrun-round-logo.png")}
-                style={s.coinIcon}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={s.coinSymbol}>XRUN</Text>
-                <Text style={s.coinNetwork}>Polygon</Text>
-              </View>
-              <View style={s.coinAmountWrap}>
-                {xrunBalanceLoading ? (
-                  <ActivityIndicator color={COLORS.zinc900} />
-                ) : xrunBalance != null ? (
-                  <Text style={s.coinAmountText}>
-                    {xrunBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                    <Text style={s.coinUnit}> XRUN</Text>
-                  </Text>
-                ) : (
-                  <Text style={s.coinAmountText}>
-                    —<Text style={s.coinUnit}> XRUN</Text>
-                  </Text>
-                )}
-              </View>
-              <TouchableOpacity
-                style={s.coinChargeBtn}
-                onPress={() => openXrunStore()}
-                hitSlop={8}
-              >
-                <Feather name="plus-circle" size={24} color={COLORS.violet600} />
-              </TouchableOpacity>
-            </View>
-
             {}
             <View style={s.statsOverview}>
               <View style={s.statsCard}>
@@ -720,6 +688,39 @@ export default function MyClonesDashboardScreen() {
                   <Text style={s.activityTotal}>/ {visibleClones.length}</Text>
                 </View>
               </View>
+            </View>
+
+            {
+}
+            <View style={s.coinRow}>
+              <Image
+                source={require("../../../assets/images/xrun-round-logo.png")}
+                style={s.coinIcon}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={s.coinSymbol}>XRUN</Text>
+              </View>
+              <View style={s.coinAmountWrap}>
+                {xrunBalanceLoading ? (
+                  <ActivityIndicator color={COLORS.zinc900} />
+                ) : xrunBalance != null ? (
+                  <Text style={s.coinAmountText}>
+                    {xrunBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                    <Text style={s.coinUnit}> XRUN</Text>
+                  </Text>
+                ) : (
+                  <Text style={s.coinAmountText}>
+                    —<Text style={s.coinUnit}> XRUN</Text>
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                style={s.coinChargeBtn}
+                onPress={() => setChargeModalVisible(true)}
+                hitSlop={8}
+              >
+                <Feather name="plus-circle" size={24} color={COLORS.violet600} />
+              </TouchableOpacity>
             </View>
           </>
         }
@@ -926,6 +927,44 @@ export default function MyClonesDashboardScreen() {
       {
 
 }
+
+      {
+}
+      <Modal visible={chargeModalVisible} transparent animationType="fade">
+        <Pressable
+          style={s.chargeOverlay}
+          onPress={() => setChargeModalVisible(false)}
+        >
+          <Pressable style={s.chargeBox} onPress={(e) => e.stopPropagation()}>
+            <View style={s.chargeIconWrap}>
+              <Feather name="zap" size={28} color={COLORS.violet600} />
+            </View>
+            <Text style={s.chargeTitle}>암호화폐 충전 안내</Text>
+            <Text style={s.chargeDesc}>
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
+            </Text>
+            <Text style={s.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
+            <View style={s.chargeBtns}>
+              <TouchableOpacity
+                style={s.chargeCancelBtn}
+                onPress={() => setChargeModalVisible(false)}
+              >
+                <Text style={s.chargeCancelText}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.chargeGoBtn}
+                onPress={() => {
+                  setChargeModalVisible(false);
+                  openXrunStore();
+                }}
+              >
+                <Feather name="external-link" size={14} color={COLORS.white} />
+                <Text style={s.chargeGoText}>바로가기</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {}
       <Modal visible={!!statsModal} transparent animationType="slide">
@@ -1162,6 +1201,61 @@ const s = StyleSheet.create({
   coinAmountText: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   coinUnit: { fontSize: 13, fontWeight: "600", color: COLORS.zinc700 },
   coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+
+  chargeOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  chargeBox: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+  },
+  chargeIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  chargeTitle: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900, marginBottom: 8 },
+  chargeDesc: {
+    fontSize: 14,
+    color: COLORS.zinc600,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  chargeHint: { fontSize: 12, color: COLORS.zinc500, marginBottom: 20 },
+  chargeBtns: { flexDirection: "row", gap: 8, width: "100%" },
+  chargeCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+    alignItems: "center",
+  },
+  chargeCancelText: { fontSize: 14, fontWeight: "600", color: COLORS.zinc700 },
+  chargeGoBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.violet600,
+  },
+  chargeGoText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
 
   statsOverview: {
     flexDirection: "row",
