@@ -320,7 +320,8 @@ export default function MyScreen() {
             )}
             <TouchableOpacity
               style={s.editAvatarBtn}
-              onPress={() => navigation.navigate("EditProfile")}
+              onPress={handleEditAvatar}
+              disabled={uploadingAvatar}
             >
               <Feather name="edit-2" size={14} color={COLORS.white} />
             </TouchableOpacity>
@@ -339,66 +340,26 @@ export default function MyScreen() {
                 setStatsModal("following");
               }}
             >
-              <Text style={s.statValue}>{followingCount}</Text>
-              <Text style={s.statLabel}>{t("my.stats.following")}</Text>
+              <Text style={s.statValue}>0</Text>
+              <Text style={s.statLabel}>팔로워</Text>
             </TouchableOpacity>
             <View style={s.statDivider} />
             <TouchableOpacity
               style={s.statItem}
               onPress={() => {
                 console.log(
-                  `[MyScreen] stat TAP "내 페르소나" — apiMyClonesCount=${apiMyClonesCount} apiMyClonesList=${apiMyClonesList?.length ?? "null"}`,
+                  `[MyScreen] stat TAP "팔로잉" — apiFollowingCount=${apiFollowingCount}`,
                 );
-                setStatsModal("myClones");
+                setStatsModal("following");
               }}
             >
-              <Text style={s.statValue}>{myClonesCount}</Text>
-              <Text style={s.statLabel}>{t("my.stats.myPersona")}</Text>
+              <Text style={s.statValue}>{followingCount}</Text>
+              <Text style={s.statLabel}>팔로잉</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {}
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>{t("my.coin.title")}</Text>
-        </View>
-
-        {
-}
-        <View style={s.coinRow}>
-          <Image
-            source={require("../../../assets/images/xrun-round-logo.png")}
-            style={s.coinIcon}
-          />
-          <View style={s.coinTextWrap}>
-            <Text style={s.coinSymbol}>XRUN</Text>
-            <Text style={s.coinNetwork}>Polygon</Text>
-          </View>
-          <View style={s.coinAmountWrap}>
-            {balanceLoading ? (
-              <ActivityIndicator color={COLORS.zinc900} />
-            ) : xrunDisplay != null ? (
-              <Text style={s.coinAmountText}>
-                {xrunDisplay.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                <Text style={s.coinUnit}> XRUN</Text>
-              </Text>
-            ) : (
-              <Text style={s.coinAmountText}>
-                —<Text style={s.coinUnit}> XRUN</Text>
-              </Text>
-            )}
-          </View>
-          <TouchableOpacity
-            style={s.coinChargeBtn}
-            onPress={() => setChargeModalVisible(true)}
-            hitSlop={8}
-          >
-            <Feather name="plus-circle" size={24} color={COLORS.violet600} />
-          </TouchableOpacity>
-        </View>
-        {adDisplay != null && adDisplay > 0 && (
-          <Text style={s.adNote}>AD {adDisplay.toLocaleString()}</Text>
-        )}
 
         {}
         <View style={s.transactionsCard}>
@@ -488,9 +449,9 @@ export default function MyScreen() {
             <View style={s.chargeIconWrap}>
               <Feather name="zap" size={28} color={COLORS.violet600} />
             </View>
-            <Text style={s.chargeTitle}>포인트 충전 안내</Text>
+            <Text style={s.chargeTitle}>암호화폐 충전 안내</Text>
             <Text style={s.chargeDesc}>
-              금액을 충전하고 싶다면{"\n"}xrun 앱에서 포인트를 얻어보세요
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
             </Text>
             <Text style={s.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
             <View style={s.chargeBtns}>
