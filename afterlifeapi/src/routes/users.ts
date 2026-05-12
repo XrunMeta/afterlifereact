@@ -23,6 +23,9 @@ interface UserRow {
   age: number | null;
   age_enc: string | null;
   created_at: string;
+  country: string | null;
+  mobile_code: number | null;
+  region: string | null;
   xrun_member_id: number | null;
   xrun_guid: string | null;
   xrun_wallet: string | null;
@@ -62,6 +65,7 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
   const v_3ac7e7 = await v_a1651b
     .prepare(
       `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at,
+              country, mobile_code, region,
               xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
@@ -141,6 +145,9 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
       gender: v_3ac7e7.gender,
       age: v_2694bd,
       createdAt: v_3ac7e7.created_at,
+      country: v_3ac7e7.country ?? null,
+      mobileCode: v_3ac7e7.mobile_code ?? null,
+      region: v_3ac7e7.region ?? null,
       xrunMemberId: v_3ac7e7.xrun_member_id,
       xrunGuid: v_3ac7e7.xrun_guid,
       xrunWallet: v_3ac7e7.xrun_wallet,
