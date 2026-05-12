@@ -186,7 +186,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
       if (v_a8d185) {
 
-        const v_8f00b9 = await v_35200c({
+        const v_931bf0 = {
           email: v_e0c7e8,
           password: v_adc076,
           name: v_1833e7,
@@ -201,7 +201,9 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           pushToken: v_1a29d0 ?? undefined,
           platform: v_ea920b ?? undefined,
           googleIdToken: v_a8d185.idToken,
-        });
+        };
+        console.log("[AUTH/google.signup] payload:", JSON.stringify(v_931bf0, null, 2));
+        const v_8f00b9 = await v_35200c(v_931bf0);
 
         v_c65f5d.replace("SignupComplete", {
           accessToken: v_8f00b9.accessToken,
@@ -226,12 +228,28 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         deviceId: v_929b58 ?? undefined,
       });
     } catch (v_49263d) {
-      const v_badeaf =
-        v_49263d instanceof v_84a859
-          ? v_49263d.code === "OTP_COOLDOWN"
-            ? v_8d41d7("auth.signup.rateLimit")
-            : v_49263d.message
-          : v_8d41d7("auth.signup.sendCodeFailed");
+      let v_badeaf = v_8d41d7("auth.signup.sendCodeFailed");
+      if (v_49263d instanceof v_84a859) {
+        if (v_49263d.code === "OTP_COOLDOWN") {
+          v_badeaf = v_8d41d7("auth.signup.rateLimit");
+        } else {
+          v_badeaf = v_49263d.message;
+
+          if (v_49263d.code === "VALIDATION_FAILED" && v_49263d.details) {
+            console.warn(
+              "[AUTH/signup] VALIDATION_FAILED details:",
+              JSON.stringify(v_49263d.details, null, 2),
+            );
+            const v_f8a42c = v_49263d.details as Array<{ path?: string[]; message?: string }>;
+            if (Array.isArray(v_f8a42c) && v_f8a42c.length > 0) {
+              const v_a52412 = v_f8a42c
+                .map((v_ebec57) => `• ${(v_ebec57.path ?? []).join(".")}: ${v_ebec57.message ?? "?"}`)
+                .join("\n");
+              v_badeaf = `${v_49263d.message}\n\n${v_a52412}`;
+            }
+          }
+        }
+      }
       v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
