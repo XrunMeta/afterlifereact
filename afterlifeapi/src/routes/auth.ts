@@ -129,6 +129,7 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       const v_76be17 = await v_6e4cc8(v_3f4e2e.env, {
         email: v_931bf0.email,
         name: v_ef7664,
+
       });
       let v_e2be75 = null;
       let v_3f61e9 = null;
@@ -510,6 +511,10 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       phone: v_4d33b2.phone,
       gender: v_4d33b2.gender,
       age: v_4d33b2.age,
+
+      country: v_4d33b2.country,
+      mobileCode: v_4d33b2.mobileCode,
+      region: v_4d33b2.region,
     });
 
     let v_d03cc0 = null;
