@@ -1,9 +1,15 @@
 
 
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_03e392, v_472849 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import * as v_c95b2c from "gketqwckyalygtuqsawm";
+import {
+  v_8a9d74,
+  v_b3e89c,
+  v_542f2a,
+  v_66d7d4,
+} from "qmmwyqbwrg";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_c2a674 } from "../../../types/clone";
 import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
@@ -73,20 +79,68 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const [v_34e5bb, v_038d7f] = v_5ab095<Mode>(v_2ba26d);
   const [v_0c0b03, v_c98f46] = v_5ab095<string | null>(null);
 
+  const v_5ebce3 = v_8a9d74(v_542f2a.HIGH_QUALITY);
+  const v_ea28de = v_b3e89c(v_5ebce3);
+  const v_97c26f = v_ea28de.isRecording;
+
+  const v_ef12d9 = Math.floor((v_ea28de.durationMillis ?? 0) / 1000);
+
+  v_c4deb2(() => {
+    return () => {
+      if (v_5ebce3.isRecording) {
+        v_5ebce3.stop().catch(() => {});
+      }
+    };
+  }, [v_5ebce3]);
+
   const v_69341a = (v_a448ad) => {
     if (v_a448ad === v_34e5bb) return;
+
+    if (v_5ebce3.isRecording) {
+      v_5ebce3.stop().catch(() => {});
+    }
     v_038d7f(v_a448ad);
     v_b187d9({ voiceSampleId: undefined, voiceFile: undefined, recordDuration: undefined });
     v_c98f46(null);
   };
 
-  const v_c93629 = () => {
+  const v_c93629 = async () => {
+    try {
+      if (v_97c26f) {
 
-    v_03e392.alert(
-      "준비 중",
-      "녹음 기능은 곧 제공돼요. 지금은 [음성 선택] 또는 [파일 업로드] 를 이용해주세요.",
-    );
+        await v_5ebce3.stop();
+        const v_cd1446 = v_5ebce3.uri;
+        if (v_cd1446) {
+          v_b187d9({
+            voiceFile: v_cd1446,
+            voiceSampleId: undefined,
+            recordDuration: v_ef12d9,
+          });
+        } else {
+          v_03e392.alert("녹음 실패", "녹음 파일을 가져오지 못했어요. 다시 시도해주세요.");
+        }
+        return;
+      }
+
+      const v_d60769 = await v_66d7d4();
+      if (!v_d60769.granted) {
+        v_03e392.alert(
+          "마이크 권한 필요",
+          "직접 녹음을 사용하려면 설정에서 마이크 권한을 허용해주세요.",
+        );
+        return;
+      }
+
+      v_b187d9({ voiceFile: undefined, recordDuration: undefined });
+      await v_5ebce3.prepareToRecordAsync();
+      v_5ebce3.record();
+    } catch (v_49263d) {
+      console.warn("[Voice] record toggle failed:", v_49263d);
+      v_03e392.alert("녹음 오류", "녹음을 시작/중단하지 못했어요. 다시 시도해주세요.");
+    }
   };
+
+  const v_2268dd = v_34e5bb === "record" && !!v_f04727.voiceFile && !v_97c26f;
 
   return (
     <View style={v_d81136.wrap}>
@@ -147,6 +201,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
                 key={v_fd5f43.id}
                 style={[v_d81136.scriptCard, v_f8b770 && v_d81136.scriptCardActive]}
                 onPress={() => v_c98f46(v_fd5f43.id)}
+                disabled={v_97c26f}
               >
                 <Text style={v_d81136.scriptTitle}>{v_fd5f43.title}</Text>
                 <Text style={v_d81136.scriptText}>{v_fd5f43.text}</Text>
@@ -154,17 +209,32 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             );
           })}
           <TouchableOpacity
-            style={[v_d81136.recordBtn, !v_0c0b03 && v_d81136.recordBtnDisabled]}
+            style={[
+              v_d81136.recordBtn,
+              !v_0c0b03 && !v_97c26f && v_d81136.recordBtnDisabled,
+              v_97c26f && v_d81136.recordBtnActive,
+            ]}
             onPress={v_c93629}
-            disabled={!v_0c0b03}
+            disabled={!v_0c0b03 && !v_97c26f}
             activeOpacity={0.85}
           >
-            <View style={v_d81136.recordDot} />
-            <Text style={v_d81136.recordBtnText}>녹음 시작</Text>
+            <View style={[v_d81136.recordDot, v_97c26f && v_d81136.recordDotPulse]} />
+            <Text style={v_d81136.recordBtnText}>
+              {v_97c26f
+                ? `녹음 중 · ${v_ef12d9}s · 누르면 정지`
+                : v_2268dd
+                  ? "다시 녹음"
+                  : "녹음 시작"}
+            </Text>
           </TouchableOpacity>
-          <Text style={v_d81136.disabledNote}>
-            * 녹음 기능은 준비 중이에요 — 임시로 [음성 선택] 또는 [파일 업로드] 를 사용해주세요.
-          </Text>
+          {v_2268dd && (
+            <View style={v_d81136.recordedRow}>
+              <Feather name="check-circle" size={16} color={v_1bfbd0.violet600} />
+              <Text style={v_d81136.recordedText}>
+                녹음 저장됨 ({v_f04727.recordDuration ?? 0}초). 다음 단계로 진행하세요.
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -248,8 +318,17 @@ const v_d81136 = v_472849.create({
     marginTop: 4,
   },
   recordBtnDisabled: { opacity: 0.4 },
+  recordBtnActive: { backgroundColor: v_1bfbd0.zinc900 },
   recordDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: v_1bfbd0.white },
+  recordDotPulse: { backgroundColor: v_1bfbd0.error },
   recordBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
+  recordedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  recordedText: { fontSize: 13, color: v_1bfbd0.violet700, fontWeight: "500" },
   disabledNote: {
     fontSize: 12,
     color: v_1bfbd0.zinc500,

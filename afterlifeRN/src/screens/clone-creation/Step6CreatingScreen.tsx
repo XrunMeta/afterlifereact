@@ -72,12 +72,18 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const [v_5e91e6, v_ad78c2] = v_5ab095<string[]>(() => v_d52b26.map(() => ""));
   const [v_b49aa2, v_b7772b] = v_5ab095(false);
 
+  const [v_e85448, v_afa9b8] = v_5ab095(false);
   const v_2954b6 = v_110960(
     require("../../../assets/fairy-intro.mp4"),
     (v_86394a) => {
-      v_86394a.loop = true;
-      v_86394a.muted = true;
-      v_86394a.play();
+      try {
+        v_86394a.loop = true;
+        v_86394a.muted = true;
+        v_86394a.play();
+      } catch (v_49263d) {
+        console.warn("[Step6] fairy video setup failed:", v_49263d);
+        v_afa9b8(true);
+      }
     },
   );
   const v_f7adb5 = () => {
@@ -248,7 +254,8 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
                 activeOpacity={1}
                 accessibilityLabel="도입부 건너뛰기"
               >
-                {}
+                {
+}
                 <Animated.View
                   style={[
                     v_d81136.videoWrap,
@@ -259,12 +266,16 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
                   ]}
                   pointerEvents="none"
                 >
-                  <VideoView
-                    style={v_d81136.video}
-                    player={v_2954b6}
-                    contentFit="contain"
-                    nativeControls={false}
-                  />
+                  {v_e85448 ? (
+                    <Text style={v_d81136.fallbackEmoji}>✨</Text>
+                  ) : (
+                    <VideoView
+                      style={v_d81136.video}
+                      player={v_2954b6}
+                      contentFit="contain"
+                      nativeControls={false}
+                    />
+                  )}
                 </Animated.View>
 
                 {
@@ -434,6 +445,11 @@ const v_d81136 = v_472849.create({
     alignSelf: "center",
   },
   video: { width: "100%", height: "100%" },
+  fallbackEmoji: {
+    fontSize: 100,
+    textAlign: "center",
+    lineHeight: 180,
+  },
   introTitle: {
     fontSize: 20,
     fontWeight: "700",
