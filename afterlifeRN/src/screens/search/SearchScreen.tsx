@@ -229,10 +229,11 @@ export default function SearchScreen() {
     return all.filter((t) => t.toLowerCase().includes(q));
   }, [feeds, query]);
 
-  const goToClone = (cloneId: number, term?: string) => {
+  const goToCloneFeed = (feedItem: DiscoverFeedItem, term?: string) => {
     if (term) saveRecent(term);
+    Keyboard.dismiss();
 
-    nav.navigate("ClonesTab", { screen: "CloneDetail", params: { cloneId } });
+    nav.navigate("CloneFeed", { feed: feedItem });
   };
 
   const onSubmitSearch = () => {
@@ -260,7 +261,7 @@ export default function SearchScreen() {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => goToClone(item.cloneId, query)}
+        onPress={() => goToCloneFeed(item, query)}
         style={{ width: cellWidth, height: cellHeight, marginRight, marginBottom: GAP }}
       >
         {item.mediaUrl ? (
@@ -274,21 +275,50 @@ export default function SearchScreen() {
     );
   };
 
-  const renderCloneRow = ({ item }: { item: DiscoverFeedItem["clone"] }) => (
-    <TouchableOpacity style={s.row} onPress={() => goToClone(item.id, item.name)}>
-      {item.avatarUrl ? (
-        <Image source={{ uri: item.avatarUrl }} style={s.rowAvatar} />
-      ) : (
-        <View style={[s.rowAvatar, s.rowAvatarPh]}>
-          <Feather name="user" size={20} color={COLORS.zinc400} />
+  const renderCloneRow = ({ item }: { item: DiscoverFeedItem["clone"] }) => {
+
+    const matchedFeed = feeds.find((f) => f.cloneId === item.id);
+    return (
+      <TouchableOpacity
+        style={s.row}
+        onPress={() => {
+          if (matchedFeed) {
+            goToCloneFeed(matchedFeed, item.name);
+          } else {
+
+            goToCloneFeed(
+              {
+                id: -item.id,
+                cloneId: item.id,
+                content: null,
+                mediaUrl: item.avatarUrl,
+                mediaType: null,
+                likesCount: 0,
+                commentsCount: 0,
+                likedByMe: false,
+                createdAt: new Date().toISOString(),
+                clone: item,
+                interests: [],
+              },
+              item.name,
+            );
+          }
+        }}
+      >
+        {item.avatarUrl ? (
+          <Image source={{ uri: item.avatarUrl }} style={s.rowAvatar} />
+        ) : (
+          <View style={[s.rowAvatar, s.rowAvatarPh]}>
+            <Feather name="user" size={20} color={COLORS.zinc400} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={s.rowName} numberOfLines={1}>{item.name}</Text>
+          <Text style={s.rowSub} numberOfLines={1}>@{item.username}</Text>
         </View>
-      )}
-      <View style={{ flex: 1 }}>
-        <Text style={s.rowName} numberOfLines={1}>{item.name}</Text>
-        <Text style={s.rowSub} numberOfLines={1}>@{item.username}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderUserRow = ({ item }: { item: UserSearchItem }) => (
     <Pressable

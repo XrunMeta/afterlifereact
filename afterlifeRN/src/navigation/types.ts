@@ -15,6 +15,8 @@ export type RootStackParamList = {
   UserProfile: { userId: number };
 
   UserFollowList: { userId: number; mode: "followers" | "following"; userName?: string };
+
+  CloneFeed: { feed: import("../api/clones").DiscoverFeedItem };
 };
 
 export type AuthStackParamList = {
