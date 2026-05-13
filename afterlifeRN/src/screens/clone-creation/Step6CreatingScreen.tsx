@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   Platform,
   KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -135,6 +137,10 @@ export default function Step6CreatingScreen({ navigation }: Props) {
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
+          {
+
+}
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.formWrap}>
             {phase === "name" && (
               <>
@@ -201,6 +207,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
               </>
             )}
           </View>
+          </TouchableWithoutFeedback>
           <View style={styles.bottomBar}>
             <TouchableOpacity
               style={[styles.btn, !canProceed && styles.btnDisabled]}
