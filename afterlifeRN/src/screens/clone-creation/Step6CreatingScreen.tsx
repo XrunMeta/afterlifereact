@@ -139,10 +139,12 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const cursorOpacity = useRef(new Animated.Value(1)).current;
 
   const skipIntro = () => {
+    Keyboard.dismiss();
     setTypedParas(INTRO_PARAGRAPHS.map((p) => p));
     setIntroDone(true);
   };
   const skipQuestion = () => {
+    Keyboard.dismiss();
     if (phase === "intro") return;
     const q = QUESTIONS[phase as keyof typeof QUESTIONS];
     if (!q) return;
@@ -276,6 +278,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   };
 
   const goNext = () => {
+    Keyboard.dismiss();
     if (phase === "intro") {
       setPhase("name");
       return;
@@ -311,6 +314,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   };
 
   const goBack = () => {
+    Keyboard.dismiss();
     const idx = QUESTION_PHASES.indexOf(phase as (typeof QUESTION_PHASES)[number]);
     if (phase === "intro") {
       navigation.goBack();
