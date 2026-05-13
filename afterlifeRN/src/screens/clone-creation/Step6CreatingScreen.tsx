@@ -10,6 +10,8 @@ import {
   v_4623af,
   v_326be8,
   v_e767d1,
+  v_a944fa,
+  v_0e1f26,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -135,6 +137,10 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
           style={{ flex: 1 }}
           behavior={v_326be8.OS === "ios" ? "padding" : undefined}
         >
+          {
+
+}
+          <TouchableWithoutFeedback onPress={v_0e1f26.dismiss} accessible={false}>
           <View style={v_d81136.formWrap}>
             {v_ab4803 === "name" && (
               <>
@@ -201,6 +207,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
               </>
             )}
           </View>
+          </TouchableWithoutFeedback>
           <View style={v_d81136.bottomBar}>
             <TouchableOpacity
               style={[v_d81136.btn, !v_fc0cf5 && v_d81136.btnDisabled]}
