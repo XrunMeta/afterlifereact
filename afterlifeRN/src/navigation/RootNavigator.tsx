@@ -18,6 +18,8 @@ import v_02d653 from "../screens/clone-interaction/ChatScreen";
 import v_bfc6c1 from "../screens/clone-interaction/CallScreen";
 import v_000f0a from "../screens/clones/InviteAcceptScreen";
 import v_18ad36 from "../screens/notifications/NotificationsScreen";
+import v_c501aa from "../screens/user/UserProfileScreen";
+import v_7d236a from "../screens/user/UserFollowListScreen";
 
 const v_36a793 = v_709be7<v_8ad91b>();
 const v_e8bc89 = v_709be7<v_384e19>();
@@ -66,6 +68,8 @@ export default function v_3b950c() {
           />
           <RootStack.Screen name="InviteAccept" component={v_000f0a} />
           <RootStack.Screen name="Notifications" component={v_18ad36} />
+          <RootStack.Screen name="UserProfile" component={v_c501aa} />
+          <RootStack.Screen name="UserFollowList" component={v_7d236a} />
         </>
       )}
     </RootStack.Navigator>
