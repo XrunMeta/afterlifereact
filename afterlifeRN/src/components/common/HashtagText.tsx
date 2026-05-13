@@ -46,7 +46,8 @@ export default function v_5778ce({ children: v_21f619, style: v_7fa4e4, tagStyle
 
   const v_6eb948 = (v_bd1444) => {
 
-    v_3c9f12.navigate("SearchTab", { initialQuery: v_bd1444 });
+    const v_f23d49 = v_bd1444.replace(/^#+/, "");
+    v_3c9f12.navigate("SearchTab", { initialQuery: v_f23d49 });
   };
 
   return (

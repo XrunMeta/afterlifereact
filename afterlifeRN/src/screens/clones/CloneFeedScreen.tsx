@@ -35,6 +35,12 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_632420 = v_37977a((v_fd5f43) => v_fd5f43.likedIds);
   const v_a96ced = v_37977a((v_fd5f43) => v_fd5f43.toggleLike);
 
+  let v_6856a9 = v_2db2a5.content ?? "";
+  const v_167615 = /#[\p{L}\p{N}_]+/u.test(v_6856a9);
+  if (v_2db2a5.interests.length > 0 && !v_167615) {
+    const v_cf5673 = v_2db2a5.interests.map((v_ebec57) => `#${v_ebec57}`).join(" ");
+    v_6856a9 = v_6856a9.trim().length > 0 ? `${v_6856a9} ${v_cf5673}` : v_cf5673;
+  }
   const item: v_19b433 = {
     id: v_2db2a5.id,
     cloneId: v_2db2a5.cloneId,
@@ -45,7 +51,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     authorAvatar: v_2db2a5.clone.avatarUrl ?? "",
     image: v_2db2a5.mediaUrl ?? v_2db2a5.clone.avatarUrl ?? "",
     title: v_2db2a5.clone.name,
-    description: v_2db2a5.content ?? "",
+    description: v_6856a9,
     type: v_2db2a5.clone.cloneType,
     mainCategory: "",
     interests: v_2db2a5.interests,

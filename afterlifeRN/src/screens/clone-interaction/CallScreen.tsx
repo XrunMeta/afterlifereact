@@ -270,14 +270,11 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {}
       <View style={[v_fd5f43.callInfo, { top: v_033e14.top + 24 }]}>
         <Text style={v_fd5f43.callName}>{v_dfb220}</Text>
-        <View style={v_fd5f43.callStatusBadge}>
-          <View style={v_fd5f43.callDot} />
-          <Text style={v_fd5f43.callStatusText}>{v_8d41d7("call.inCall", { time: v_813acc })}</Text>
-        </View>
+        <Text style={v_fd5f43.callTimeText}>{v_813acc}</Text>
       </View>
 
       {}
-      <View style={[v_fd5f43.rightActions, { bottom: 180 + v_53dd92 }]}>
+      <View style={v_fd5f43.rightActions}>
         <TouchableOpacity
           style={[v_fd5f43.sideBtn, v_d416b8 && v_fd5f43.sideBtnActive]}
           onPress={() => v_2a4980(!v_d416b8)}
@@ -520,29 +517,23 @@ const v_fd5f43 = v_472849.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  callStatusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
 
-    backgroundColor: "rgba(0,0,0,0.45)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: v_8b0c90.full,
+  callTimeText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: v_1bfbd0.white,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  callDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: v_1bfbd0.white,
-  },
-  callStatusText: { fontSize: 13, fontWeight: "500", color: v_1bfbd0.white },
 
   rightActions: {
     position: "absolute",
     right: 16,
-    bottom: 180,
-    gap: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    gap: 20,
     zIndex: 20,
   },
   sideBtn: {
