@@ -163,9 +163,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
             disabled={!v_fc0cf5}
             activeOpacity={0.85}
           >
-            <Text style={v_d81136.btnText}>
-              {v_ab4803 === "personality" ? "생성 시작" : "다음"}
-            </Text>
+            <Text style={v_d81136.btnText}>다음</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
