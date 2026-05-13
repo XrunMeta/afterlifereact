@@ -58,12 +58,14 @@ function toDomainFeed(item: DiscoverFeedItem): DomainFeed {
   apiCloneCache.set(item.cloneId, {
     id: item.clone.id,
     cloneType: item.clone.cloneType,
-    ownerId: -1, 
+
+    ownerId: item.clone.ownerId ?? -1,
     displayName: item.clone.name,
     description: "",
     interests: item.interests,
     imageUrl: item.clone.avatarUrl ?? undefined,
-    visibility: "public",
+
+    visibility: (item.clone.visibility as DomainClone["visibility"]) ?? "public",
     status: "active",
     createdAt: item.createdAt,
   });

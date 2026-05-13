@@ -18,6 +18,8 @@ interface FeedCardProps {
   isActive: boolean;
   isLiked: boolean;
   isFollowed: boolean;
+
+  isOwn?: boolean;
   cardHeight: number;
   onToggleLike: () => void;
   onToggleFollow: () => void;
@@ -31,6 +33,7 @@ const FeedCard: React.FC<FeedCardProps> = ({
   isActive,
   isLiked,
   isFollowed,
+  isOwn = false,
   cardHeight,
   onToggleLike,
   onToggleFollow,
@@ -62,28 +65,31 @@ const FeedCard: React.FC<FeedCardProps> = ({
               <Text style={styles.authorName}>{item.author}</Text>
               <Text style={styles.username}>{item.username}</Text>
             </View>
-            <TouchableOpacity
-              onPress={onToggleFollow}
-              style={[
-                styles.followButton,
-                isFollowed && styles.followButtonActive,
-              ]}
-              activeOpacity={0.7}
-            >
-              <Feather
-                name={isFollowed ? "user-check" : "user-plus"}
-                size={14}
-                color={isFollowed ? COLORS.white : COLORS.zinc900}
-              />
-              <Text
+            {}
+            {!isOwn && (
+              <TouchableOpacity
+                onPress={onToggleFollow}
                 style={[
-                  styles.followText,
-                  isFollowed && styles.followTextActive,
+                  styles.followButton,
+                  isFollowed && styles.followButtonActive,
                 ]}
+                activeOpacity={0.7}
               >
-                {isFollowed ? t("feed.following") : t("feed.follow")}
-              </Text>
-            </TouchableOpacity>
+                <Feather
+                  name={isFollowed ? "user-check" : "user-plus"}
+                  size={14}
+                  color={isFollowed ? COLORS.white : COLORS.zinc900}
+                />
+                <Text
+                  style={[
+                    styles.followText,
+                    isFollowed && styles.followTextActive,
+                  ]}
+                >
+                  {isFollowed ? t("feed.following") : t("feed.follow")}
+                </Text>
+              </TouchableOpacity>
+            )}
             {}
             {onMorePress && (
               <TouchableOpacity

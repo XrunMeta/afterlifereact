@@ -463,10 +463,13 @@ export interface DiscoverFeedItem {
   createdAt: string;
   clone: {
     id: number;
+
+    ownerId?: number;
     name: string;
     username: string;
     avatarUrl: string | null;
     cloneType: CloneType;
+    visibility?: string;
   };
   interests: string[];
 }
