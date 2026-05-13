@@ -21,7 +21,7 @@ import type { v_2b51a5 } from "../../navigation/types";
 
 import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
-
+import v_258c1c from "../../components/common/PageHeader";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -334,17 +334,14 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <View style={v_d81136.composerHeader}>
-        <TouchableOpacity onPress={v_704242} hitSlop={8} style={v_d81136.headerBack}>
-          <Feather name="chevron-left" size={26} color={v_1bfbd0.zinc900} />
-        </TouchableOpacity>
-        <View style={v_d81136.headerCenter}>
-          <Text style={v_d81136.headerName} numberOfLines={1}>{v_8a1355}</Text>
-          <Text style={v_d81136.headerHandle} numberOfLines={1}>@{v_3e86f3}</Text>
-        </View>
-        {}
-        <View style={v_d81136.headerBack} />
-      </View>
+      {
+}
+      <PageHeader
+        title={v_8a1355}
+        subtitle={`@${v_3e86f3}`}
+        showBackButton
+        onBackPress={v_704242}
+      />
 
       {
 
@@ -525,20 +522,6 @@ const v_9b1720 = v_472849.create({
 });
 
 const v_d81136 = v_472849.create({
-
-  composerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: v_1bfbd0.zinc100,
-  },
-  headerBack: { width: 40, alignItems: "flex-start" },
-  headerCenter: { flex: 1, alignItems: "center" },
-  headerName: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  headerHandle: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
 
   composerContent: {
     flexGrow: 1,
