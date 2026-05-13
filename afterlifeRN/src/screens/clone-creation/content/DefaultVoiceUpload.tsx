@@ -1,23 +1,10 @@
 
 
-import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
-import {
-  v_3094a2,
-  v_19b633,
-  v_4623af,
-  v_03e392,
-  v_472849,
-  v_39a996,
-} from "rcmrninabrnb";
+import v_a3453e, { v_5ab095 } from "bapkr";
+import { v_3094a2, v_19b633, v_4623af, v_03e392, v_472849 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import * as v_c95b2c from "gketqwckyalygtuqsawm";
-import {
-  v_8a9d74,
-  v_407393,
-  v_542f2a,
-  v_774006,
-  v_0e491a,
-} from "qmmwyqbwrg";
+
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_c2a674 } from "../../../types/clone";
 import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
@@ -31,34 +18,7 @@ export const v_e79da6 = [
   { id: "v6", name: "Stella" },
 ] as const;
 
-const v_58b6a9 = [
-  {
-    id: "s1",
-    title: "일상 인사",
-    text:
-      "안녕하세요. 오늘은 정말 좋은 하루였어요. 햇살이 따뜻하고 바람도 부드러워서 " +
-      "산책하기에 딱 좋았답니다. 이렇게 평화로운 시간이 정말 소중하게 느껴져요. " +
-      "오늘 하루도 즐겁게 잘 보내세요.",
-  },
-  {
-    id: "s2",
-    title: "음식 이야기",
-    text:
-      "요즘 가장 좋아하는 음식이 뭐예요? 저는 김치찌개를 정말 좋아해요. 매운 맛이 " +
-      "진하고 따끈한 국물을 한 숟갈 떠먹으면 하루의 피로가 싹 풀리는 기분이거든요. " +
-      "특히 비 오는 날에 먹으면 더 맛있어요.",
-  },
-  {
-    id: "s3",
-    title: "추억 회상",
-    text:
-      "어릴 적 추억 중에 가장 기억에 남는 건 가족과 함께 갔던 바다 여행이에요. 파도 " +
-      "소리와 짭조름한 바람, 그리고 모래사장에서 뛰놀던 그 순간들이 아직도 생생해요. " +
-      "그때 행복했던 기분이 다시 떠올라요.",
-  },
-] as const;
-
-type Mode = "preset" | "record" | "upload";
+type Mode = "preset" | "upload";
 
 interface Props {
   draft: v_c2a674;
@@ -83,101 +43,22 @@ async function v_467998(
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7 } = v_772971();
 
-  const v_2ba26d = v_f04727.voiceFile
-    ? v_f04727.recordDuration && v_f04727.recordDuration > 0
-      ? "record"
-      : "upload"
-    : "preset";
+  const v_2ba26d = v_f04727.voiceFile ? "upload" : "preset";
   const [v_34e5bb, v_038d7f] = v_5ab095<Mode>(v_2ba26d);
-
-  const [v_0c0b03, v_c98f46] = v_5ab095<string | null>(null);
-  const [v_614d75, v_f5819f] = v_5ab095<string | null>(
-    v_f04727.recordDuration && v_f04727.voiceFile ? v_f04727.voiceFile : null,
-  );
-  const [v_ef12d9, v_2b678a] = v_5ab095(0);
-
-  const v_5ebce3 = v_8a9d74(v_542f2a.HIGH_QUALITY);
-
-  const v_86394a = v_407393(v_614d75 ?? undefined);
-
-  v_c4deb2(() => {
-    (async () => {
-      try {
-        await v_0e491a({ allowsRecording: true, playsInSilentMode: true });
-      } catch (v_49263d) {
-        console.warn("[voice-upload] setAudioModeAsync failed:", v_49263d);
-      }
-    })();
-  }, []);
-
-  v_c4deb2(() => {
-    if (!v_5ebce3.isRecording) return;
-    v_2b678a(0);
-    const v_389afb = setInterval(() => v_2b678a((v_fd5f43) => v_fd5f43 + 1), 1000);
-    return () => clearInterval(v_389afb);
-  }, [v_5ebce3.isRecording]);
-
-  const v_3d1981 = async () => {
-    try {
-      const v_d60769 = await v_774006.requestRecordingPermissionsAsync();
-      if (!v_d60769.granted) {
-        v_03e392.alert("권한 필요", "마이크 사용 권한이 필요해요.");
-        return;
-      }
-      await v_5ebce3.prepareToRecordAsync();
-      v_5ebce3.record();
-    } catch (v_49263d) {
-      console.warn("[voice-upload] start failed:", v_49263d);
-      v_03e392.alert("녹음 실패", "녹음을 시작할 수 없어요.");
-    }
-  };
-
-  const v_a196bd = async () => {
-    try {
-      await v_5ebce3.stop();
-      const v_cd1446 = v_5ebce3.uri;
-      if (v_cd1446) {
-        v_f5819f(v_cd1446);
-        v_b187d9({ voiceFile: v_cd1446, voiceSampleId: undefined, recordDuration: v_ef12d9 });
-      }
-    } catch (v_49263d) {
-      console.warn("[voice-upload] stop failed:", v_49263d);
-    }
-  };
-
-  const v_57b643 = () => {
-    if (!v_614d75) return;
-    try {
-      v_86394a.seekTo(0);
-      v_86394a.play();
-    } catch (v_49263d) {
-      console.warn("[voice-upload] play failed:", v_49263d);
-    }
-  };
-
-  const v_dcda54 = () => {
-    v_f5819f(null);
-    v_2b678a(0);
-    v_c98f46(null);
-    v_b187d9({ voiceFile: undefined, recordDuration: undefined });
-  };
 
   const v_69341a = (v_a448ad) => {
     if (v_a448ad === v_34e5bb) return;
     v_038d7f(v_a448ad);
     v_b187d9({ voiceSampleId: undefined, voiceFile: undefined, recordDuration: undefined });
-    v_f5819f(null);
-    v_c98f46(null);
   };
 
   return (
     <View style={v_d81136.wrap}>
       {}
       <View style={v_d81136.modeRow}>
-        {(["preset", "record", "upload"] as const).map((v_35f85c) => {
+        {(["preset", "upload"] as const).map((v_35f85c) => {
           const v_e0187d = {
             preset: "음성 선택",
-            record: "직접 녹음",
             upload: "파일 업로드",
           };
           const v_f8b770 = v_34e5bb === v_35f85c;
@@ -216,69 +97,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         </View>
       )}
 
-      {}
-      {v_34e5bb === "record" && (
-        <View style={{ gap: 12 }}>
-          {}
-          {v_614d75 ? (
-            <View style={v_d81136.recordedBox}>
-              <Feather name="check-circle" size={28} color={v_1bfbd0.violet600} />
-              <Text style={v_d81136.recordedTitle}>녹음 완료</Text>
-              <Text style={v_d81136.recordedSub}>{v_ef12d9}초 녹음됨</Text>
-              <View style={v_d81136.recordedBtns}>
-                <TouchableOpacity style={v_d81136.playBtn} onPress={v_57b643}>
-                  <Feather name="play" size={16} color={v_1bfbd0.white} />
-                  <Text style={v_d81136.playBtnText}>재생</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={v_d81136.resetBtn} onPress={v_dcda54}>
-                  <Feather name="refresh-cw" size={16} color={v_1bfbd0.zinc700} />
-                  <Text style={v_d81136.resetBtnText}>다시 녹음</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : v_5ebce3.isRecording ? (
+      {
 
-            <View style={v_d81136.recordingBox}>
-              <ActivityIndicator color={v_1bfbd0.error} />
-              <Text style={v_d81136.recordingTitle}>녹음 중...</Text>
-              <Text style={v_d81136.recordingTime}>{v_ef12d9}초</Text>
-              <TouchableOpacity style={v_d81136.stopBtn} onPress={v_a196bd}>
-                <Feather name="square" size={16} color={v_1bfbd0.white} />
-                <Text style={v_d81136.stopBtnText}>멈춤</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-
-            <>
-              <Text style={v_d81136.scriptHint}>
-                아래 3개 중 하나를 골라 자연스럽게 읽어주세요. (약 30초)
-              </Text>
-              {v_58b6a9.map((v_fd5f43) => {
-                const v_f8b770 = v_0c0b03 === v_fd5f43.id;
-                return (
-                  <TouchableOpacity
-                    key={v_fd5f43.id}
-                    style={[v_d81136.scriptCard, v_f8b770 && v_d81136.scriptCardActive]}
-                    onPress={() => v_c98f46(v_fd5f43.id)}
-                  >
-                    <Text style={v_d81136.scriptTitle}>{v_fd5f43.title}</Text>
-                    <Text style={v_d81136.scriptText}>{v_fd5f43.text}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-              <TouchableOpacity
-                style={[v_d81136.recordBtn, !v_0c0b03 && v_d81136.recordBtnDisabled]}
-                onPress={v_3d1981}
-                disabled={!v_0c0b03}
-                activeOpacity={0.85}
-              >
-                <View style={v_d81136.recordDot} />
-                <Text style={v_d81136.recordBtnText}>녹음 시작</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
+}
 
       {}
       {v_34e5bb === "upload" && (
@@ -337,90 +158,6 @@ const v_d81136 = v_472849.create({
   cardActive: { borderColor: v_1bfbd0.violet600, backgroundColor: v_1bfbd0.violet100 },
   cardName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc800 },
   cardDesc: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
-
-  scriptHint: { fontSize: 13, color: v_1bfbd0.zinc600, marginBottom: 4 },
-  scriptCard: {
-    padding: 14,
-    borderRadius: v_8b0c90.md,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
-    backgroundColor: v_1bfbd0.white,
-  },
-  scriptCardActive: { borderColor: v_1bfbd0.violet600, backgroundColor: v_1bfbd0.violet100 },
-  scriptTitle: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 6 },
-  scriptText: { fontSize: 14, lineHeight: 22, color: v_1bfbd0.zinc700 },
-
-  recordBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    paddingVertical: 14,
-    borderRadius: v_8b0c90.lg,
-    backgroundColor: v_1bfbd0.error,
-    marginTop: 4,
-  },
-  recordBtnDisabled: { opacity: 0.4 },
-  recordDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: v_1bfbd0.white },
-  recordBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
-
-  recordingBox: {
-    padding: 24,
-    borderRadius: v_8b0c90.lg,
-    borderWidth: 2,
-    borderColor: v_1bfbd0.error,
-    backgroundColor: v_1bfbd0.white,
-    alignItems: "center",
-    gap: 10,
-  },
-  recordingTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.error },
-  recordingTime: { fontSize: 28, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  stopBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    backgroundColor: v_1bfbd0.zinc900,
-    borderRadius: v_8b0c90.md,
-    marginTop: 4,
-  },
-  stopBtnText: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.white },
-
-  recordedBox: {
-    padding: 20,
-    borderRadius: v_8b0c90.lg,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.violet600,
-    backgroundColor: v_1bfbd0.violet100,
-    alignItems: "center",
-    gap: 8,
-  },
-  recordedTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  recordedSub: { fontSize: 13, color: v_1bfbd0.zinc600 },
-  recordedBtns: { flexDirection: "row", gap: 8, marginTop: 8 },
-  playBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: v_1bfbd0.violet600,
-    borderRadius: v_8b0c90.md,
-  },
-  playBtnText: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.white },
-  resetBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: v_1bfbd0.white,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc300,
-    borderRadius: v_8b0c90.md,
-  },
-  resetBtnText: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
 
   upload: {
     flexDirection: "row",
