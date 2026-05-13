@@ -46,14 +46,56 @@ const QUESTION_PHASES: Phase[] = [
   "memory",
 ];
 
-const INTRO_PARAGRAPHS: readonly (readonly string[])[] = [
-  ["안녕!", "나는 네 소중한 기억 속에", "살고 있는 요정이야"],
-  ["지금 네가 가장 보고 싶은", "'그 얼굴'을 한 번 떠올려봐..."],
-  ["떠올랐어!?", "그럼, 네 머리속에 있는 그 소중한 존재를", "생각하며 답해줘!"],
+const INTRO_PARAGRAPHS: readonly string[] = [
+  "안녕!\n나는 네 소중한 기억 속에\n살고 있는 요정이야",
+  "지금 네가 가장 보고 싶은\n'그 얼굴'을 한 번 떠올려봐...",
+  "떠올랐어!?\n그럼, 네 머리속에 있는 그 소중한 존재를\n생각하며 답해줘!",
 ] as const;
-const PARA_FADE_MS = 700;   
-const PARA_GAP_MS = 800;    
-const PARA_DELAY_MS = 400;  
+const TYPE_SPEED_MS = 35;
+const PARA_GAP_MS = 500;
+const INTRO_START_DELAY_MS = 700;  
+
+type QuestionMeta = {
+  title: string;
+  desc: string;
+  placeholder: string;
+  multiline: boolean;
+};
+const QUESTIONS: Record<
+  "name" | "firstMeeting" | "habit" | "personality" | "memory",
+  QuestionMeta
+> = {
+  name: {
+    title: "그 존재의 이름이 뭐였어?",
+    desc: "네가 부르던 이름이나 별명,\n어떤 호칭이든 좋아.",
+    placeholder: "예: 별이, 할머니, 모리",
+    multiline: false,
+  },
+  firstMeeting: {
+    title: "그 존재와는 어떻게\n처음 만나게 되었어?",
+    desc: "우리 사이에 잊지 못할 특별한 첫 순간이나\n추억이 있었는지 궁금해!",
+    placeholder: "떠오르는 그 첫 장면을 자유롭게 적어줘.",
+    multiline: true,
+  },
+  habit: {
+    title: "자주 하던 말이나\n눈길이 가던 습관이 있었니?",
+    desc: "꼬리를 살랑이거나\n특유의 말투 같은 사소한 거라도 좋아!",
+    placeholder: "입버릇, 작은 습관, 좋아하던 자리 — 사소할수록 좋아.",
+    multiline: true,
+  },
+  personality: {
+    title: "그 존재의 성격은 어땠어?",
+    desc: "혹시 MBTI가 생각나니?\n기억이 안 난다면 평소 성격을 말해줘도 돼!",
+    placeholder: "예: 조용하고 다정한 INFP. 잘 웃고 잘 우는 사람이었어.",
+    multiline: true,
+  },
+  memory: {
+    title: "눈 감으면 어제처럼\n선명한 장면이 있을까?",
+    desc: "가장 행복하게 웃고(혹은 뛰놀고)\n있던 순간을 나한테도 공유해줘",
+    placeholder: "그 순간의 풍경, 표정, 소리 — 떠오르는 대로.",
+    multiline: true,
+  },
+};
 
 export default function Step6CreatingScreen({ navigation }: Props) {
   useTranslation();
@@ -67,7 +109,14 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const [personality, setPersonality] = useState<string>("");
   const [memory, setMemory] = useState<string>("");
 
+  const [typedParas, setTypedParas] = useState<string[]>(() =>
+    INTRO_PARAGRAPHS.map(() => ""),
+  );
   const [introDone, setIntroDone] = useState(false);
+
+  const [typedQTitle, setTypedQTitle] = useState("");
+  const [typedQDesc, setTypedQDesc] = useState("");
+  const [qDone, setQDone] = useState(false);
 
   const [videoFailed, setVideoFailed] = useState(false);
   const fairyVideoPlayer = useVideoPlayer(
@@ -87,20 +136,29 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const emojiOpacity = useRef(new Animated.Value(0)).current;
   const emojiScale = useRef(new Animated.Value(0.6)).current;
 
-  const paragraphOpacities = useRef(
-    INTRO_PARAGRAPHS.map(() => new Animated.Value(0)),
-  ).current;
+  const cursorOpacity = useRef(new Animated.Value(1)).current;
 
   const skipIntro = () => {
-
-    paragraphOpacities.forEach((op) => op.setValue(1));
+    setTypedParas(INTRO_PARAGRAPHS.map((p) => p));
     setIntroDone(true);
+  };
+  const skipQuestion = () => {
+    if (phase === "intro") return;
+    const q = QUESTIONS[phase as keyof typeof QUESTIONS];
+    if (!q) return;
+    setTypedQTitle(q.title);
+    setTypedQDesc(q.desc);
+    setQDone(true);
   };
 
   useEffect(() => {
     if (phase !== "intro") return;
     let cancelled = false;
-    const timeouts: ReturnType<typeof setTimeout>[] = [];
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, ms);
+      });
 
     Animated.parallel([
       Animated.timing(emojiOpacity, {
@@ -116,32 +174,80 @@ export default function Step6CreatingScreen({ navigation }: Props) {
       }),
     ]).start();
 
-    INTRO_PARAGRAPHS.forEach((_, idx) => {
-      const delay = PARA_DELAY_MS + idx * (PARA_FADE_MS + PARA_GAP_MS);
-      const t = setTimeout(() => {
-        if (cancelled) return;
-        Animated.timing(paragraphOpacities[idx]!, {
-          toValue: 1,
-          duration: PARA_FADE_MS,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }).start();
-      }, delay);
-      timeouts.push(t);
-    });
+    const cursorLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(cursorOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+        Animated.timing(cursorOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ]),
+    );
+    cursorLoop.start();
 
-    const totalMs =
-      PARA_DELAY_MS +
-      INTRO_PARAGRAPHS.length * (PARA_FADE_MS + PARA_GAP_MS) -
-      PARA_GAP_MS;
-    const doneT = setTimeout(() => {
+    const run = async () => {
+      await wait(INTRO_START_DELAY_MS);
+      if (cancelled) return;
+
+      const acc = INTRO_PARAGRAPHS.map(() => "");
+      for (let pIdx = 0; pIdx < INTRO_PARAGRAPHS.length; pIdx++) {
+        const full = INTRO_PARAGRAPHS[pIdx]!;
+        for (let ci = 1; ci <= full.length; ci++) {
+          if (cancelled) return;
+          acc[pIdx] = full.slice(0, ci);
+          setTypedParas([...acc]);
+          await wait(TYPE_SPEED_MS);
+        }
+        if (cancelled) return;
+        await wait(PARA_GAP_MS);
+      }
       if (!cancelled) setIntroDone(true);
-    }, totalMs);
-    timeouts.push(doneT);
+    };
+    run();
 
     return () => {
       cancelled = true;
-      timeouts.forEach(clearTimeout);
+      if (timer) clearTimeout(timer);
+      cursorLoop.stop();
+    };
+
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase === "intro") return;
+    const q = QUESTIONS[phase as keyof typeof QUESTIONS];
+    if (!q) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, ms);
+      });
+
+    setTypedQTitle("");
+    setTypedQDesc("");
+    setQDone(false);
+
+    const run = async () => {
+      await wait(200);
+
+      for (let i = 1; i <= q.title.length; i++) {
+        if (cancelled) return;
+        setTypedQTitle(q.title.slice(0, i));
+        await wait(TYPE_SPEED_MS);
+      }
+      if (cancelled) return;
+      await wait(350);
+
+      for (let i = 1; i <= q.desc.length; i++) {
+        if (cancelled) return;
+        setTypedQDesc(q.desc.slice(0, i));
+        await wait(TYPE_SPEED_MS);
+      }
+      if (!cancelled) setQDone(true);
+    };
+    run();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
     };
 
   }, [phase]);
@@ -224,62 +330,27 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   })();
 
   const isIntro = phase === "intro";
-
-  const questionFade = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (phase === "intro") return;
-    questionFade.setValue(0);
-    Animated.timing(questionFade, {
-      toValue: 1,
-      duration: 450,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [phase, questionFade]);
-
-  const QUESTIONS = {
-    name: {
-      title: "그 존재의 이름이 뭐였어?",
-      desc: "네가 부르던 이름이나 별명, 어떤 호칭이든 좋아.",
-      placeholder: "예: 별이, 할머니, 모리",
-      value: name,
-      onChange: setName,
-      multiline: false,
-    },
-    firstMeeting: {
-      title: "그 존재와는 어떻게 처음 만나게 되었어?",
-      desc: "우리 사이에 잊지 못할 특별한 첫 순간이나 추억이 있었는지 궁금해!",
-      placeholder: "떠오르는 그 첫 장면을 자유롭게 적어줘.",
-      value: firstMeeting,
-      onChange: setFirstMeeting,
-      multiline: true,
-    },
-    habit: {
-      title: "자주 하던 말이나 눈길이 가던 습관이 있었니?",
-      desc: "꼬리를 살랑이거나, 특유의 말투 같은 사소한 거라도 좋아!",
-      placeholder: "입버릇, 작은 습관, 좋아하던 자리 — 사소할수록 좋아.",
-      value: habit,
-      onChange: setHabit,
-      multiline: true,
-    },
-    personality: {
-      title: "그 존재의 성격은 어땠어?",
-      desc: "혹시 MBTI가 생각나니? 기억이 안 난다면 평소 성격을 살짝 귀띔해 줄래?",
-      placeholder: "예: 조용하고 다정한 INFP. 잘 웃고 잘 우는 사람이었어.",
-      value: personality,
-      onChange: setPersonality,
-      multiline: true,
-    },
-    memory: {
-      title: "눈 감으면 어제처럼 선명한 그 장면이 있을까?",
-      desc: "가장 행복하게 웃고(혹은 뛰놀고) 있던 그 순간을 나에게도 공유해 줘! ✨",
-      placeholder: "그 순간의 풍경, 표정, 소리 — 떠오르는 대로.",
-      value: memory,
-      onChange: setMemory,
-      multiline: true,
-    },
-  } as const;
   const q = !isIntro ? QUESTIONS[phase as keyof typeof QUESTIONS] : null;
+  const valueForPhase = (() => {
+    switch (phase) {
+      case "name": return name;
+      case "firstMeeting": return firstMeeting;
+      case "habit": return habit;
+      case "personality": return personality;
+      case "memory": return memory;
+      default: return "";
+    }
+  })();
+  const onChangeForPhase = (() => {
+    switch (phase) {
+      case "name": return setName;
+      case "firstMeeting": return setFirstMeeting;
+      case "habit": return setHabit;
+      case "personality": return setPersonality;
+      case "memory": return setMemory;
+      default: return () => {};
+    }
+  })();
 
   return (
     <SafeView backgroundColor="#000000">
@@ -332,53 +403,76 @@ export default function Step6CreatingScreen({ navigation }: Props) {
                 accessibilityLabel="도입부 건너뛰기"
                 style={styles.introTextBox}
               >
-                {INTRO_PARAGRAPHS.map((para, pIdx) => {
+                {typedParas.map((text, pIdx) => {
+                  if (!text) return null;
                   const isTitlePara = pIdx === 0;
+                  const fullLen = INTRO_PARAGRAPHS[pIdx]!.length;
+                  const isTypingThis = !introDone && text.length < fullLen;
                   return (
-                    <Animated.View
-                      key={pIdx}
-                      style={[
-                        styles.paragraph,
-                        { opacity: paragraphOpacities[pIdx]! },
-                      ]}
-                    >
-                      {para.map((line, lIdx) => (
-                        <Text
-                          key={lIdx}
-                          style={isTitlePara ? styles.introTitle : styles.introBody}
-                        >
-                          {line}
-                        </Text>
-                      ))}
-                    </Animated.View>
+                    <View key={pIdx} style={styles.paragraph}>
+                      <Text style={isTitlePara ? styles.introTitle : styles.introBody}>
+                        {text}
+                        {isTypingThis && (
+                          <Animated.Text
+                            style={{ opacity: cursorOpacity, color: COLORS.white }}
+                          >
+                            ▍
+                          </Animated.Text>
+                        )}
+                      </Text>
+                    </View>
                   );
                 })}
               </TouchableOpacity>
             )}
 
-            {
-}
+            {}
             {q && (
-              <Animated.View style={[styles.questionBox, { opacity: questionFade }]}>
-                <Text style={styles.qTitle}>{q.title}</Text>
-                <Text style={styles.qDesc}>{q.desc}</Text>
-                <TextInput
+              <TouchableOpacity
+                onPress={skipQuestion}
+                activeOpacity={1}
+                style={styles.questionBox}
+              >
+                <Text style={styles.qTitle}>
+                  {typedQTitle}
+                  {typedQTitle.length > 0 && typedQTitle.length < q.title.length && (
+                    <Animated.Text style={{ opacity: cursorOpacity, color: COLORS.white }}>
+                      ▍
+                    </Animated.Text>
+                  )}
+                </Text>
+                {typedQDesc.length > 0 && (
+                  <Text style={styles.qDesc}>
+                    {typedQDesc}
+                    {typedQDesc.length < q.desc.length && (
+                      <Animated.Text
+                        style={{ opacity: cursorOpacity, color: "rgba(255,255,255,0.7)" }}
+                      >
+                        ▍
+                      </Animated.Text>
+                    )}
+                  </Text>
+                )}
+                {}
+                {qDone && (
+                  <TextInput
 
-                  key={phase}
-                  style={[styles.input, q.multiline && styles.textarea]}
-                  value={q.value}
-                  onChangeText={q.onChange}
-                  placeholder={q.placeholder}
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  autoFocus
-                  multiline={q.multiline}
-                  textAlignVertical={q.multiline ? "top" : "center"}
-                  returnKeyType={q.multiline ? "default" : "next"}
-                  onSubmitEditing={q.multiline ? undefined : goNext}
-                  maxLength={q.multiline ? 500 : 40}
-                  selectionColor={COLORS.white}
-                />
-              </Animated.View>
+                    key={phase}
+                    style={[styles.input, q.multiline && styles.textarea]}
+                    value={valueForPhase}
+                    onChangeText={onChangeForPhase}
+                    placeholder={q.placeholder}
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    autoFocus
+                    multiline={q.multiline}
+                    textAlignVertical={q.multiline ? "top" : "center"}
+                    returnKeyType={q.multiline ? "default" : "next"}
+                    onSubmitEditing={q.multiline ? undefined : goNext}
+                    maxLength={q.multiline ? 500 : 40}
+                    selectionColor={COLORS.white}
+                  />
+                )}
+              </TouchableOpacity>
             )}
           </ScrollView>
         </TouchableWithoutFeedback>
@@ -404,8 +498,8 @@ const styles = StyleSheet.create({
   formWrap: {
     flexGrow: 1,
     paddingHorizontal: SIZES.xlarge,
-    paddingTop: 32,
-    paddingBottom: 32,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
 
   topBar: {
@@ -416,28 +510,28 @@ const styles = StyleSheet.create({
   backBtn: { padding: 8, alignSelf: "flex-start" },
 
   videoWrap: {
-    width: 180,
-    height: 180,
+    width: 140,
+    height: 140,
     alignSelf: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   video: { width: "100%", height: "100%" },
-  fallbackEmoji: { fontSize: 100, textAlign: "center", lineHeight: 180 },
+  fallbackEmoji: { fontSize: 80, textAlign: "center", lineHeight: 140 },
 
-  introTextBox: { gap: 20, alignItems: "center", width: "100%" },
-  paragraph: { gap: 4, alignItems: "center", paddingHorizontal: 8 },
+  introTextBox: { gap: 16, alignItems: "center", width: "100%" },
+  paragraph: { alignItems: "center", paddingHorizontal: 8 },
   introTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     color: COLORS.white,
     textAlign: "center",
-    lineHeight: 32,
+    lineHeight: 30,
   },
   introBody: {
-    fontSize: 16,
+    fontSize: 15,
     color: "rgba(255,255,255,0.85)",
     textAlign: "center",
-    lineHeight: 26,
+    lineHeight: 24,
   },
 
   questionBox: { width: "100%", gap: 10 },
