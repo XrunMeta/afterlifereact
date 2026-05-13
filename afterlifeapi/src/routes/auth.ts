@@ -39,6 +39,10 @@ const signupSchema = z.object({
   gender: z.enum(["male", "female", "other"]).optional(),
   age: z.number().int().min(13).max(120).optional(),
   interests: z.array(z.string().min(1).max(40)).max(20).optional(),
+
+  country: z.string().length(2).regex(/^[A-Z]{2}$/).optional(),
+  mobileCode: z.number().int().min(0).max(99999).optional(),
+  region: z.string().max(20).optional(),
   marketingConsent: z.boolean().optional().default(false),
   deviceId: z.string().min(1).max(200).optional(),
   pushToken: z.string().min(1).max(500).optional(),
@@ -125,6 +129,7 @@ auth.post("/google", async (c) => {
       const xrun = await registerXrunForAfterlifeUser(c.env, {
         email: payload.email,
         name: fallbackName,
+
       });
       let xMember: number | null = null;
       let xGuid: string | null = null;
@@ -433,8 +438,8 @@ auth.post("/signup", async (c) => {
   try {
     inserted = await db
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
@@ -446,6 +451,9 @@ auth.post("/signup", async (c) => {
         null, 
         ageEnc,
         body.marketingConsent ? 1 : 0,
+        body.country ?? null,
+        body.mobileCode ?? null,
+        body.region ?? null,
       )
       .first();
   } catch (err) {
@@ -505,6 +513,10 @@ auth.post("/signup", async (c) => {
       phone: body.phone,
       gender: body.gender,
       age: body.age,
+
+      country: body.country,
+      mobileCode: body.mobileCode,
+      region: body.region,
     });
 
     let memberToSave: number | null = null;
@@ -618,22 +630,35 @@ auth.post("/login", async (c) => {
 
   const ok = await verifyPassword(body.password, hashForCheck);
   if (!user || !ok) {
+    let attempts = 0;
+    let lockedJustNow = false;
     if (user) {
 
       const prevFails = lockExpired ? 0 : user.failed_login_count ?? 0;
-      const fails = prevFails + 1;
-      const lockUntil =
-        fails >= MAX_FAILED
-          ? new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString()
-          : null;
+      attempts = prevFails + 1;
+      lockedJustNow = attempts >= MAX_FAILED;
+      const lockUntil = lockedJustNow
+        ? new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString()
+        : null;
       await db
         .prepare(
           `UPDATE users SET failed_login_count = ?, locked_until = ? WHERE id = ?`,
         )
-        .bind(fails, lockUntil, user.id)
+        .bind(attempts, lockUntil, user.id)
         .run();
     }
-    throw new APIError("UNAUTHENTICATED", "Invalid credentials.");
+
+    if (lockedJustNow) {
+      throw new APIError("ACCOUNT_LOCKED", "Account temporarily locked.", {
+        attempts,
+        maxAttempts: MAX_FAILED,
+        lockMinutes: LOCK_MINUTES,
+      });
+    }
+    throw new APIError("UNAUTHENTICATED", "Invalid credentials.", {
+      attempts, 
+      maxAttempts: MAX_FAILED,
+    });
   }
 
   await db
@@ -699,5 +724,55 @@ auth.post("/logout", requireAuth, async (c) => {
       .run();
   }
   if (userId) await logActivity(c, { userId, action: "auth.logout" });
+  return c.json({ ok: true });
+});
+
+auth.post("/password/request-reset", async (c) => {
+  const body = await parseJson(c, requestEmailCodeSchema);
+  const userRow = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(body.email.trim().toLowerCase())
+    .first<{ id: number }>();
+  if (userRow) {
+    await requestSignupOtp(c.env, body.email);
+  }
+
+  return c.json({ ok: true, expiresInSec: 300 });
+});
+
+const resetPasswordSchema = z.object({
+  email: z.email().max(200),
+  verificationCode: z.string().regex(/^\d{6}$/),
+  newPassword: z.string().min(8).max(128),
+});
+auth.post("/password/reset", async (c) => {
+  const body = await parseJson(c, resetPasswordSchema);
+  const emailLower = body.email.trim().toLowerCase();
+
+  await verifySignupOtp(c.env, body.email, body.verificationCode);
+
+  const userRow = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(emailLower)
+    .first<{ id: number }>();
+  if (!userRow) {
+    throw new APIError("NOT_FOUND", "가입된 이메일이 아닙니다.");
+  }
+
+  const passwordHash = await hashPassword(body.newPassword);
+
+  await c.env.DB
+    .prepare(
+      `UPDATE users
+          SET password_hash = ?,
+              failed_login_count = 0,
+              locked_until = NULL,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(passwordHash, userRow.id)
+    .run();
+
+  await logActivity(c, { userId: userRow.id, action: "auth.password.reset" });
   return c.json({ ok: true });
 });

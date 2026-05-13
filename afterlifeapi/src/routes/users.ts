@@ -23,6 +23,9 @@ interface UserRow {
   age: number | null;
   age_enc: string | null;
   created_at: string;
+  country: string | null;
+  mobile_code: number | null;
+  region: string | null;
   xrun_member_id: number | null;
   xrun_guid: string | null;
   xrun_wallet: string | null;
@@ -62,6 +65,7 @@ users.get("/me", requireAuth, async (c) => {
   const row = await db
     .prepare(
       `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at,
+              country, mobile_code, region,
               xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
@@ -141,6 +145,9 @@ users.get("/me", requireAuth, async (c) => {
       gender: row.gender,
       age,
       createdAt: row.created_at,
+      country: row.country ?? null,
+      mobileCode: row.mobile_code ?? null,
+      region: row.region ?? null,
       xrunMemberId: row.xrun_member_id,
       xrunGuid: row.xrun_guid,
       xrunWallet: row.xrun_wallet,
@@ -442,8 +449,27 @@ users.post("/me/delete", requireAuth, async (c) => {
   if ((res.meta?.changes ?? 0) === 0) {
     throw new APIError("CONFLICT", "Account is not in active state.");
   }
-  await logActivity(c, { userId, action: "user.soft_delete" });
-  return c.json({ ok: true, state: "soft_deleted", restorableUntil: "+90d" });
+
+  const cloneRes = await db
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE owner_id = ? AND deletion_state = 'active'`,
+    )
+    .bind(userId)
+    .run();
+  await logActivity(c, {
+    userId,
+    action: "user.soft_delete",
+    details: { cascaded_clones: cloneRes.meta?.changes ?? 0 },
+  });
+  return c.json({
+    ok: true,
+    state: "soft_deleted",
+    restorableUntil: "+90d",
+    cascadedClones: cloneRes.meta?.changes ?? 0,
+  });
 });
 
 users.post("/me/restore", requireAuth, async (c) => {
@@ -463,8 +489,26 @@ users.post("/me/restore", requireAuth, async (c) => {
   if ((res.meta?.changes ?? 0) === 0) {
     throw new APIError("CONFLICT", "Restoration window expired or account not soft-deleted.");
   }
-  await logActivity(c, { userId, action: "user.restore" });
-  return c.json({ ok: true, state: "active" });
+
+  const cloneRes = await db
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'active',
+              soft_deleted_at = NULL
+        WHERE owner_id = ? AND deletion_state = 'soft_deleted'`,
+    )
+    .bind(userId)
+    .run();
+  await logActivity(c, {
+    userId,
+    action: "user.restore",
+    details: { restored_clones: cloneRes.meta?.changes ?? 0 },
+  });
+  return c.json({
+    ok: true,
+    state: "active",
+    restoredClones: cloneRes.meta?.changes ?? 0,
+  });
 });
 
 users.post("/me/delete/gdpr", requireAuth, async (c) => {
@@ -472,26 +516,40 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
   const db = c.env.DB;
 
   const body = (await c.req.json().catch(() => ({}))) as { withXrun?: boolean };
-  const withXrun = body?.withXrun === true;
+  void body; 
 
   let xrunClose: { attempted: boolean; closed: boolean; reason?: string } = {
     attempted: false,
     closed: false,
   };
 
-  if (withXrun) {
-    const linkRow = await db
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(userId)
-      .first<{ xrun_member_id: number | null }>();
-    const xrunMember = linkRow?.xrun_member_id ?? null;
-    if (xrunMember) {
-      const { closeXrunMember } = await import("../lib/xrun");
-      const res = await closeXrunMember(c.env, xrunMember);
-      xrunClose = { attempted: true, closed: res.closed, reason: res.reason };
-
+  const linkRow = await db
+    .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ xrun_member_id: number | null }>();
+  const xrunMember = linkRow?.xrun_member_id ?? null;
+  if (xrunMember) {
+    const { getXrunMemberInfo, closeXrunMember } = await import("../lib/xrun");
+    const info = await getXrunMemberInfo(c.env, xrunMember);
+    if (info.ok) {
+      const isAfterlifeOrigin = (info.appSource ?? "").toLowerCase() === "afterlife";
+      if (isAfterlifeOrigin) {
+        const res = await closeXrunMember(c.env, xrunMember);
+        xrunClose = { attempted: true, closed: res.closed, reason: res.reason };
+      } else {
+        xrunClose = {
+          attempted: true,
+          closed: false,
+          reason: `kept (app_source=${info.appSource ?? "null"})`,
+        };
+      }
     } else {
-      xrunClose = { attempted: true, closed: false, reason: "no xrun member linked" };
+
+      xrunClose = {
+        attempted: false,
+        closed: false,
+        reason: info.missing ? "xrun member missing (auto-unlinked)" : `lookup failed: ${info.reason}`,
+      };
     }
   }
 
@@ -572,12 +630,27 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
     .bind(userId)
     .run();
 
+  const cloneDelRes = await db
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'hard_deleted',
+              deleted_at = CURRENT_TIMESTAMP,
+              name = 'deletedclone' || CAST(id AS TEXT),
+              description = NULL,
+              avatar_url = NULL,
+              cover_image_url = NULL
+        WHERE owner_id = ?`,
+    )
+    .bind(userId)
+    .run();
+
   await logActivity(c, {
     userId,
     action: "user.gdpr_delete",
     details: {
       shredded_deks: dekIds.length,
       purged_messages: msgPurge.meta.changes ?? 0,
+      purged_clones: cloneDelRes.meta?.changes ?? 0,
     },
   });
   return c.json({
@@ -585,6 +658,7 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
     state: "hard_deleted",
     shreddedDekCount: dekIds.length,
     purgedMessages: msgPurge.meta.changes ?? 0,
+    purgedClones: cloneDelRes.meta?.changes ?? 0,
     xrunClose,
   });
 });
@@ -611,15 +685,22 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
                   WHERE f.clone_id = c.id) AS total_likes,
                 (SELECT COUNT(*) FROM feed_comments fc
                    JOIN feeds f2 ON f2.id = fc.feed_id
-                   WHERE f2.clone_id = c.id) AS total_comments
+                   WHERE f2.clone_id = c.id) AS total_comments,
+                -- per-(user, clone) 상호작용 카운터 (기획서 정의)
+                COALESCE(uci.chat_count, 0)  AS my_chat,
+                COALESCE(uci.call_count, 0)  AS my_call,
+                COALESCE(uci.learn_count, 0) AS my_learn,
+                COALESCE(uci.feed_count, 0)  AS my_feed
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
+           LEFT JOIN user_clone_interactions uci
+                  ON uci.user_id = ? AND uci.clone_id = c.id
           WHERE f.user_id = ? AND c.deleted_at IS NULL
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
           ORDER BY f.created_at DESC, f.id DESC`,
       )
-      .bind(userId, userId)
+      .bind(userId, userId, userId)
       .all<{
         id: number;
         name: string;
@@ -635,6 +716,10 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         latest_feed_id: number | null;
         total_likes: number;
         total_comments: number;
+        my_chat: number;
+        my_call: number;
+        my_learn: number;
+        my_feed: number;
       }>()
   ).results;
 
@@ -698,6 +783,15 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         feedId: r.latest_feed_id,
         likedByMe: likedCloneIds.has(r.id),
       },
+
+      myInteractions: {
+        chat: r.my_chat,
+        call: r.my_call,
+        learn: r.my_learn,
+        feed: r.my_feed,
+        total: r.my_chat + r.my_call + r.my_learn + r.my_feed,
+        intimacy: Math.min(100, (r.my_chat + r.my_call + r.my_learn + r.my_feed) * 2),
+      },
       createdAt: r.created_at,
     })),
   });
@@ -758,4 +852,69 @@ users.delete("/me/devices/:id", requireAuth, async (c) => {
     .run();
   if ((res.meta?.changes ?? 0) === 0) throw new APIError("NOT_FOUND", "Device not found.");
   return c.json({ ok: true });
+});
+
+users.get("/me/transactions", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 20);
+  const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 20));
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT g.id, g.sender_user_id AS senderId, g.owner_user_id AS ownerId,
+                g.clone_id AS cloneId, g.gift_id AS giftId, g.gift_name AS giftName,
+                g.total_amount AS totalAmount, g.company_amount AS companyAmount,
+                g.owner_amount AS ownerAmount,
+                g.status, g.tx_company AS txCompany, g.tx_owner AS txOwner,
+                g.created_at AS createdAt, g.completed_at AS completedAt,
+                c.name AS cloneName, c.avatar_url AS cloneAvatarUrl
+           FROM gift_logs g
+           LEFT JOIN clones c ON c.id = g.clone_id
+          WHERE (g.sender_user_id = ? OR g.owner_user_id = ?)
+            AND g.status = 'sent'
+          ORDER BY g.created_at DESC
+          LIMIT ?`,
+      )
+      .bind(userId, userId, limit)
+      .all<{
+        id: number;
+        senderId: number;
+        ownerId: number;
+        cloneId: number;
+        giftId: string;
+        giftName: string;
+        totalAmount: number;
+        companyAmount: number;
+        ownerAmount: number;
+        status: string;
+        txCompany: string | null;
+        txOwner: string | null;
+        createdAt: string;
+        completedAt: string | null;
+        cloneName: string | null;
+        cloneAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  return c.json({
+    items: rows.map((r) => {
+      const sent = r.senderId === userId;
+      return {
+        id: r.id,
+        type: sent ? "gift_sent" : "gift_received",
+
+        amount: sent ? -r.totalAmount : r.ownerAmount,
+        sign: sent ? "-" : "+",
+        giftId: r.giftId,
+        giftName: r.giftName,
+        cloneId: r.cloneId,
+        cloneName: r.cloneName,
+        cloneAvatarUrl: r.cloneAvatarUrl,
+        txHash: sent ? r.txCompany : r.txOwner,
+        createdAt: r.createdAt,
+      };
+    }),
+  });
 });

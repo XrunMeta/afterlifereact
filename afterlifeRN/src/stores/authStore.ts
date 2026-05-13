@@ -19,8 +19,8 @@ interface AuthState {
 
   accessToken: string | null;
   apiUser: AuthUser | null;
-  loginWithApi: (payload: LoginPayload) => Promise<AuthUser>;
-  setApiAuth: (token: string, user: AuthUser) => Promise<void>;
+  loginWithApi: (payload: LoginPayload, opts?: { persist?: boolean }) => Promise<AuthUser>;
+  setApiAuth: (token: string, user: AuthUser, opts?: { persist?: boolean }) => Promise<void>;
   apiLogout: () => Promise<void>;
   refreshApiUser: () => Promise<AuthUser | null>;
   patchApiUser: (patch: Partial<AuthUser>) => void;
@@ -35,15 +35,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   hydrate: async () => {
 
-    const token = await AsyncStorage.getItem(TOKEN_KEY);
-    let apiUser: AuthUser | null = null;
-    if (token) {
-      try {
-        const res = await getMe(token);
-        apiUser = res.user;
-      } catch {
+    const current = get();
+    let apiUser: AuthUser | null = current.apiUser;
+    let token: string | null = current.accessToken;
 
-        await AsyncStorage.removeItem(TOKEN_KEY);
+    if (!apiUser) {
+      token = await AsyncStorage.getItem(TOKEN_KEY);
+      if (token) {
+        try {
+          const res = await getMe(token);
+          apiUser = res.user;
+        } catch {
+
+          await AsyncStorage.removeItem(TOKEN_KEY);
+          token = null;
+        }
       }
     }
 
@@ -57,7 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({
       accessToken: apiUser ? token : null,
       apiUser,
-      isLoggedIn: !!u,
+      isLoggedIn: !!apiUser, 
       user: u,
       hydrated: true,
     });
@@ -85,22 +91,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  loginWithApi: async (payload) => {
+  loginWithApi: async (payload, opts) => {
+    const persist = opts?.persist !== false;
     const { accessToken } = await apiLogin(payload);
     const { user } = await getMe(accessToken);
-    await AsyncStorage.setItem(TOKEN_KEY, accessToken);
-    set({ accessToken, apiUser: user });
+    if (persist) {
+      await AsyncStorage.setItem(TOKEN_KEY, accessToken);
+    } else {
+
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    }
+    set({ accessToken, apiUser: user, isLoggedIn: true });
     return user;
   },
 
-  setApiAuth: async (token, user) => {
-    await AsyncStorage.setItem(TOKEN_KEY, token);
-    set({ accessToken: token, apiUser: user });
+  setApiAuth: async (token, user, opts) => {
+    const persist = opts?.persist !== false;
+    if (persist) {
+      await AsyncStorage.setItem(TOKEN_KEY, token);
+    } else {
+      await AsyncStorage.removeItem(TOKEN_KEY);
+    }
+    set({ accessToken: token, apiUser: user, isLoggedIn: true });
   },
 
   apiLogout: async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
-    set({ accessToken: null, apiUser: null });
+    set({ accessToken: null, apiUser: null, isLoggedIn: false });
     try {
       const { useFeedStore } = await import("./feedStore");
       const { useFollowStore } = await import("./followStore");

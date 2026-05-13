@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  Image,
 } from "react-native";
 import Button from "../../components/ui/Button";
 import { Feather } from "@expo/vector-icons";
@@ -17,52 +16,95 @@ import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import SelectField from "../../components/ui/SelectField";
-import InterestChip from "../../components/ui/InterestChip";
 import PageHeader from "../../components/common/PageHeader";
+import CountryRegionPicker from "../../components/common/CountryRegionPicker";
+import TermsModal, { type AgreementType } from "../../components/common/TermsModal";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import { ALL_INTERESTS } from "../../mocks/interestHelpers";
-import { requestEmailCode, signup, getMe, AuthApiError } from "../../api/auth";
+import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import type { RouteProp } from "@react-navigation/native";
-import { useAuthStore } from "../../stores/authStore";
+import type { CountryDialCode } from "../../types/country";
+import { GLOBAL_REGION } from "../../constants/regions";
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Signup">;
   route: RouteProp<AuthStackParamList, "Signup">;
 };
 
-const INTEREST_OPTIONS = ALL_INTERESTS;
-
 export default function SignupScreen({ navigation, route }: Props) {
   const { t } = useTranslation();
   const GENDER_OPTIONS = [
     { value: "male" as const, label: t("auth.signup.male") },
     { value: "female" as const, label: t("auth.signup.female") },
-    { value: "other" as const, label: t("auth.signup.other") },
   ];
+
+  const BIRTH_YEAR_OPTIONS = React.useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const maxYear = currentYear - 13; 
+    const minYear = currentYear - 120;
+    const years: { value: string; label: string }[] = [];
+    for (let y = maxYear; y >= minYear; y--) {
+      const yStr = String(y);
+      years.push({
+        value: yStr,
+        label: t("auth.signup.birthYearLabel", { year: yStr, defaultValue: `${yStr}년생` }),
+      });
+    }
+    return years;
+  }, [t]);
   const google = route.params?.google;
-  const setApiAuth = useAuthStore((s) => s.setApiAuth);
-  const hydrate = useAuthStore((s) => s.hydrate);
 
   const [name, setName] = useState(google?.name ?? "");
   const [email, setEmail] = useState(google?.email ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phone, setPhone] = useState("");
-  const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
-  const [age, setAge] = useState("");
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [gender, setGender] = useState<"male" | "female" | "">("");
+
+  const [birthYear, setBirthYear] = useState<string>("");
+  const [country, setCountry] = useState<CountryDialCode | null>(null);
+  const [region, setRegion] = useState<CountryDialCode | null>(null);
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
+
+  const [termsModalType, setTermsModalType] = useState<AgreementType | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreeRequired, setAgreeRequired] = useState(false);
+
+  const [agreeService, setAgreeService] = useState(false);
+  const [agreeLocation, setAgreeLocation] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
+
+  const agreeRequired = agreeService && agreeLocation && agreePrivacy;
+  const agreeAll = agreeRequired && agreeMarketing;
   const [submitting, setSubmitting] = useState(false);
 
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushPlatform, setPushPlatform] = useState<"ios" | "android" | "web" | null>(null);
   const [deviceId, setDeviceId] = useState<string | null>(null);
   const [requestingPush, setRequestingPush] = useState(false);
+
+  const toggleAll = async () => {
+    if (agreeAll) {
+
+      setAgreeService(false);
+      setAgreeLocation(false);
+      setAgreePrivacy(false);
+      setAgreeMarketing(false);
+      setPushToken(null);
+      setPushPlatform(null);
+      setDeviceId(null);
+      return;
+    }
+
+    setAgreeService(true);
+    setAgreeLocation(true);
+    setAgreePrivacy(true);
+    if (!agreeMarketing) {
+      await toggleMarketing();
+    }
+  };
 
   const toggleMarketing = async () => {
 
@@ -96,17 +138,13 @@ export default function SignupScreen({ navigation, route }: Props) {
     }
   };
 
-  const toggleInterest = (interest: string) => {
-    setSelectedInterests((prev) =>
-      prev.includes(interest)
-        ? prev.filter((i) => i !== interest)
-        : [...prev, interest]
-    );
-  };
-
   const handleSubmit = async () => {
-    if (!name || !email || !password || !phone || !gender || !age) {
+    if (!name || !email || !password || !phone || !gender || !birthYear) {
       Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
+      return;
+    }
+    if (!country) {
+      Alert.alert(t("common.notice"), t("auth.signup.countryRequired"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -130,7 +168,9 @@ export default function SignupScreen({ navigation, route }: Props) {
       return;
     }
 
-    const ageNum = parseInt(age, 10);
+    const birthYearNum = parseInt(birthYear, 10);
+    const currentYear = new Date().getFullYear();
+    const ageNum = currentYear - birthYearNum;
     if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
       Alert.alert(t("common.notice"), t("auth.signup.ageInvalid"));
       return;
@@ -138,26 +178,38 @@ export default function SignupScreen({ navigation, route }: Props) {
 
     setSubmitting(true);
     try {
+
+      const countryCode = country.iso2.toUpperCase();
+      const mobileCode = country.countryCode ?? 0;
+      const regionCode =
+        region && region.iso2 !== "global" ? region.dialCode : undefined;
+
       if (google) {
 
-        const res = await signup({
+        const payload = {
           email,
           password,
           name,
           phone,
           gender: gender || undefined,
           age: ageNum,
-          interests: selectedInterests.length > 0 ? selectedInterests : undefined,
+          country: countryCode,
+          mobileCode,
+          region: regionCode,
           marketingConsent: agreeMarketing,
           deviceId: deviceId ?? undefined,
           pushToken: pushToken ?? undefined,
           platform: pushPlatform ?? undefined,
           googleIdToken: google.idToken,
+        };
+        console.log("[AUTH/google.signup] payload:", JSON.stringify(payload, null, 2));
+        const res = await signup(payload);
+
+        navigation.replace("SignupComplete", {
+          accessToken: res.accessToken,
+          persist: true,
+          email,
         });
-        const meRes = await getMe(res.accessToken);
-        await setApiAuth(res.accessToken, meRes.user);
-        console.log("[AUTH/google.signup] user:", meRes.user);
-        await hydrate();
         return;
       }
       await requestEmailCode(email);
@@ -168,19 +220,37 @@ export default function SignupScreen({ navigation, route }: Props) {
         phone,
         gender: gender || undefined,
         age: ageNum,
-        interests: selectedInterests.length > 0 ? selectedInterests : undefined,
+        country: countryCode,
+        mobileCode,
+        region: regionCode,
         marketingConsent: agreeMarketing,
         pushToken: pushToken ?? undefined,
         platform: pushPlatform ?? undefined,
         deviceId: deviceId ?? undefined,
       });
     } catch (err) {
-      const msg =
-        err instanceof AuthApiError
-          ? err.code === "OTP_COOLDOWN"
-            ? t("auth.signup.rateLimit")
-            : err.message
-          : t("auth.signup.sendCodeFailed");
+      let msg: string = t("auth.signup.sendCodeFailed");
+      if (err instanceof AuthApiError) {
+        if (err.code === "OTP_COOLDOWN") {
+          msg = t("auth.signup.rateLimit");
+        } else {
+          msg = err.message;
+
+          if (err.code === "VALIDATION_FAILED" && err.details) {
+            console.warn(
+              "[AUTH/signup] VALIDATION_FAILED details:",
+              JSON.stringify(err.details, null, 2),
+            );
+            const issues = err.details as Array<{ path?: string[]; message?: string }>;
+            if (Array.isArray(issues) && issues.length > 0) {
+              const lines = issues
+                .map((i) => `• ${(i.path ?? []).join(".")}: ${i.message ?? "?"}`)
+                .join("\n");
+              msg = `${err.message}\n\n${lines}`;
+            }
+          }
+        }
+      }
       Alert.alert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
@@ -202,13 +272,6 @@ export default function SignupScreen({ navigation, route }: Props) {
       >
         <View style={styles.container}>
           {}
-          <View style={styles.logoRow}>
-            <Image source={require("../../../assets/images/symbol.png")} style={styles.symbolImage} />
-            <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.subtitle}>{t("auth.signup.subtitle")}</Text>
-          </View>
-
-          {}
           <TextField
             placeholder={t("auth.signup.name")}
             value={name}
@@ -216,7 +279,8 @@ export default function SignupScreen({ navigation, route }: Props) {
             leftIcon={<Feather name="user" size={20} color={COLORS.zinc500} />}
           />
 
-          {}
+          {
+}
           <TextField
             placeholder={t("auth.signup.email")}
             value={email}
@@ -225,6 +289,12 @@ export default function SignupScreen({ navigation, route }: Props) {
             autoCapitalize="none"
             editable={!google}
             leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
+            rightIcon={
+              google ? (
+                <Feather name="lock" size={16} color={COLORS.zinc400} />
+              ) : undefined
+            }
+            containerStyle={google ? styles.lockedField : undefined}
           />
 
           {}
@@ -275,49 +345,136 @@ export default function SignupScreen({ navigation, route }: Props) {
           {}
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <SelectField<"male" | "female" | "other">
+              <SelectField<"male" | "female">
                 options={GENDER_OPTIONS}
                 value={gender}
                 onChange={setGender}
                 placeholder={t("auth.signup.gender")}
               />
             </View>
-            <View style={styles.ageField}>
-              <TextField
-                placeholder={t("auth.signup.age")}
-                value={age}
-                onChangeText={setAge}
-                keyboardType="number-pad"
+            <View style={{ flex: 1 }}>
+              <SelectField<string>
+                options={BIRTH_YEAR_OPTIONS}
+                value={birthYear}
+                onChange={setBirthYear}
+                placeholder={t("auth.signup.birthYearPlaceholder")}
               />
             </View>
           </View>
 
           {}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>{t("auth.signup.interests")}</Text>
-            <View style={styles.chipGrid}>
-              {INTEREST_OPTIONS.map((interest) => (
-                <InterestChip
-                  key={interest}
-                  label={interest}
-                  selected={selectedInterests.includes(interest)}
-                  onPress={() => toggleInterest(interest)}
-                />
-              ))}
+          <TouchableOpacity
+            style={styles.pickerField}
+            onPress={() => setCountryPickerOpen(true)}
+            activeOpacity={0.7}
+          >
+            <Feather name="globe" size={18} color={COLORS.zinc500} />
+            <View style={styles.pickerLabelWrap}>
+              {country ? (
+                <Text style={styles.pickerValue} numberOfLines={1}>
+                  {t(`countries:${country.iso2.toUpperCase()}`, {
+                    defaultValue: country.name,
+                  })}
+                  {region && region.iso2 !== "global" && (
+                    <Text style={styles.pickerRegion}>
+                      {"  ·  "}
+                      {t(`regions:${region.countryCode}_${region.dialCode}`, {
+                        defaultValue: region.name,
+                      })}
+                    </Text>
+                  )}
+                </Text>
+              ) : (
+                <Text style={styles.pickerPlaceholder}>
+                  {t("auth.signup.countryPlaceholder")}
+                </Text>
+              )}
             </View>
-          </View>
+            <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
+          </TouchableOpacity>
 
           {}
           <View style={styles.terms}>
+            {}
             <TouchableOpacity
-              onPress={() => setAgreeRequired(!agreeRequired)}
-              style={styles.checkRow}
+              onPress={toggleAll}
+              disabled={requestingPush}
+              style={[styles.checkRow, styles.checkRowAll]}
             >
-              <View style={[styles.checkbox, agreeRequired && styles.checkboxChecked]}>
-                {agreeRequired && <Feather name="check" size={14} color={COLORS.white} />}
+              <View style={[styles.checkbox, agreeAll && styles.checkboxChecked]}>
+                {agreeAll && <Feather name="check" size={14} color={COLORS.white} />}
               </View>
-              <Text style={styles.termText}>{t("auth.signup.termsRequired")}</Text>
+              <Text style={[styles.termText, styles.termTextAll]}>
+                {t("auth.signup.termsAgreeAll")}
+              </Text>
             </TouchableOpacity>
+
+            <View style={styles.termsDivider} />
+
+            {}
+            <View style={styles.checkRow}>
+              <TouchableOpacity
+                onPress={() => setAgreeService(!agreeService)}
+                hitSlop={8}
+              >
+                <View style={[styles.checkbox, agreeService && styles.checkboxChecked]}>
+                  {agreeService && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termTextWrap}
+                onPress={() => setTermsModalType(1)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.termText, styles.termLink]}>
+                  {t("auth.signup.termsService")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {}
+            <View style={styles.checkRow}>
+              <TouchableOpacity
+                onPress={() => setAgreeLocation(!agreeLocation)}
+                hitSlop={8}
+              >
+                <View style={[styles.checkbox, agreeLocation && styles.checkboxChecked]}>
+                  {agreeLocation && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termTextWrap}
+                onPress={() => setTermsModalType(2)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.termText, styles.termLink]}>
+                  {t("auth.signup.termsLocation")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {}
+            <View style={styles.checkRow}>
+              <TouchableOpacity
+                onPress={() => setAgreePrivacy(!agreePrivacy)}
+                hitSlop={8}
+              >
+                <View style={[styles.checkbox, agreePrivacy && styles.checkboxChecked]}>
+                  {agreePrivacy && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termTextWrap}
+                onPress={() => setTermsModalType(3)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.termText, styles.termLink]}>
+                  {t("auth.signup.termsPrivacy")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {}
             <TouchableOpacity
               onPress={toggleMarketing}
               disabled={requestingPush}
@@ -335,20 +492,40 @@ export default function SignupScreen({ navigation, route }: Props) {
 
           {}
           <Button
-            title={submitting ? t("auth.signup.verifying") : t("auth.signup.signupBtn")}
+            title={submitting ? t("auth.signup.signingUp") : t("auth.signup.signupBtn")}
             onPress={handleSubmit}
             disabled={submitting}
           />
-
-          {}
-          <View style={styles.loginRow}>
-            <Text style={styles.loginText}>{t("auth.login.signupHint")} </Text>
-            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-              <Text style={styles.loginLink}>{t("auth.login.loginBtn")}</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </SafeScrollView>
+
+      {
+
+}
+      <CountryRegionPicker
+        visible={countryPickerOpen}
+        onClose={() => setCountryPickerOpen(false)}
+        selectedCountry={country}
+        selectedRegion={region}
+        onSelect={(c, r) => {
+          setCountry(c);
+          setRegion(r);
+        }}
+      />
+
+      {
+}
+      <TermsModal
+        visible={termsModalType !== null}
+        type={termsModalType}
+        onClose={() => setTermsModalType(null)}
+        onAgree={() => {
+          if (termsModalType === 1) setAgreeService(true);
+          else if (termsModalType === 2) setAgreeLocation(true);
+          else if (termsModalType === 3) setAgreePrivacy(true);
+          setTermsModalType(null);
+        }}
+      />
     </SafeView>
   );
 }
@@ -365,24 +542,6 @@ const styles = StyleSheet.create({
     maxWidth: 780,
     gap: SIZES.medium,
   },
-  logoRow: {
-    alignItems: "center",
-    marginBottom: SIZES.large,
-  },
-  symbolImage: {
-    width: 100,
-    height: 80,
-    marginBottom: 12,
-  },
-  logoImage: {
-    width: 160,
-    height: 32,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.zinc600,
-  },
   row: {
     flexDirection: "row",
     gap: 12,
@@ -390,33 +549,53 @@ const styles = StyleSheet.create({
   ageField: {
     width: 100,
   },
+
+  lockedField: {
+    opacity: 0.75,
+  },
+  pickerField: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    backgroundColor: COLORS.white,
+  },
+  pickerLabelWrap: { flex: 1 },
+  pickerPlaceholder: { fontSize: 14, color: COLORS.zinc400 },
+  pickerValue: { fontSize: 14, color: COLORS.zinc900 },
+  pickerRegion: { color: COLORS.zinc500, fontSize: 13 },
   passwordHint: {
     fontSize: 12,
     color: COLORS.zinc500,
     marginTop: 6,
     marginLeft: 4,
   },
-  section: {
-    gap: 12,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.zinc900,
-  },
-  chipGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
   terms: {
-    gap: 12,
+    gap: 10,
     paddingTop: SIZES.medium,
   },
   checkRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
+  },
+
+  checkRowAll: {
+    paddingVertical: 4,
+  },
+  termTextAll: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+  },
+  termsDivider: {
+    height: 1,
+    backgroundColor: COLORS.zinc200,
+    marginVertical: 4,
   },
   checkbox: {
     width: 20,
@@ -439,25 +618,18 @@ const styles = StyleSheet.create({
     color: COLORS.zinc600,
     lineHeight: 20,
   },
+  termTextWrap: {
+    flex: 1,
+  },
+
+  termLink: {
+    textDecorationLine: "underline",
+  },
   termBold: {
     fontWeight: "600",
     color: COLORS.zinc900,
   },
   termOptional: {
     color: COLORS.zinc400,
-  },
-  loginRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: SIZES.medium,
-  },
-  loginText: {
-    fontSize: 14,
-    color: COLORS.zinc500,
-  },
-  loginLink: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.zinc900,
   },
 });

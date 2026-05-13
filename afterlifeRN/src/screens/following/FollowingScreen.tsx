@@ -61,7 +61,7 @@ type FollowedPersona = {
   interactions: number; 
 };
 
-const deriveInteractions = (stats?: {
+const deriveInteractionsFromStats = (stats?: {
   messages: number;
   gifts: number;
   likes?: number;
@@ -73,8 +73,6 @@ const deriveInteractions = (stats?: {
   const c = stats?.comments ?? 0;
   return m + g + l + c;
 };
-const deriveIntimacy = (interactions: number): number =>
-  Math.min(100, Math.floor(interactions / 50));
 
 type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
 const MOCK_COMMENT_AUTHORS: ReadonlyArray<{ author: string; avatar: string; content: string; time: string }> = [
@@ -153,14 +151,17 @@ export default function FollowingScreen() {
   const followedPersonas = useMemo<FollowedPersona[]>(() => {
     if (apiFollowed != null) {
       return apiFollowed.map((c) => {
-        const interactions = deriveInteractions(c.stats);
+
+        const my = c.myInteractions;
+        const interactions = my ? my.total : deriveInteractionsFromStats(c.stats);
+        const intimacy = my ? my.intimacy : Math.min(100, Math.floor(interactions / 50));
         return {
           id: c.id,
           name: c.name,
           avatar: c.avatarUrl ?? "",
           interests: c.interests ?? [],
           creatorAccount: `@${c.username}`,
-          intimacy: deriveIntimacy(interactions),
+          intimacy,
           interactions,
         };
       });
@@ -533,7 +534,7 @@ export default function FollowingScreen() {
                 const followed = isFollowingPersona(item.persona.id);
                 return (
                   <Button
-                    title={followed ? "팔로잉" : "팔로우"}
+                    title={followed ? "구독 중" : "구독"}
                     variant="ghost"
                     size="md"
                     leftIcon={
@@ -620,8 +621,8 @@ export default function FollowingScreen() {
         ListEmptyComponent={
           <View style={s.emptyWrap}>
             <Feather name="users" size={48} color={COLORS.zinc300} />
-            <Text style={s.emptyTitle}>아직 팔로우한 페르소나가 없어요</Text>
-            <Text style={s.emptyDesc}>홈에서 마음에 드는 페르소나를 팔로우해 보세요</Text>
+            <Text style={s.emptyTitle}>아직 구독한 페르소나가 없어요</Text>
+            <Text style={s.emptyDesc}>홈에서 마음에 드는 페르소나를 구독해 보세요</Text>
           </View>
         }
       />

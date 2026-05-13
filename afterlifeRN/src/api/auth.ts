@@ -12,6 +12,10 @@ export interface SignupPayload {
   gender?: "male" | "female" | "other";
   age?: number;
   interests?: string[];
+
+  country?: string;
+  mobileCode?: number;
+  region?: string;
   marketingConsent?: boolean;
   deviceId?: string;
   pushToken?: string;
@@ -36,6 +40,10 @@ export interface AuthUser {
   gender: "male" | "female" | "other" | null;
   age: number | null;
   createdAt: string;
+
+  country: string | null;
+  mobileCode: number | null;
+  region: string | null;
   xrunMemberId: number | null;
   xrunGuid: string | null;
   xrunWallet: string | null;
@@ -78,6 +86,21 @@ export class AuthApiError extends Error {
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
+
+  const isOtpTrigger =
+    path === "/oth-path" ||
+    path === "/oth-path" ||
+    path === "/oth-path" ||
+    path === "/oth-path" ||
+    path === "/oth-path";
+  const emailHint =
+    typeof body === "object" && body !== null && "email" in body
+      ? String((body as { email?: unknown }).email ?? "")
+      : "";
+  if (isOtpTrigger) {
+    console.log(`[OTP-API] → POST ${path}${emailHint ? ` email=${emailHint}` : ""}`);
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -96,7 +119,15 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     const errBody = parsed as ApiErrorBody | null;
     const code = errBody?.error?.code ?? "HTTP_ERROR";
     const message = errBody?.error?.message ?? `HTTP ${res.status}`;
+    if (isOtpTrigger) {
+      console.warn(
+        `[OTP-API] ✗ ${path} ← ${res.status} code=${code} msg=${message}`,
+      );
+    }
     throw new AuthApiError(res.status, code, message, errBody?.error?.details);
+  }
+  if (isOtpTrigger) {
+    console.log(`[OTP-API] ✓ ${path} ← ${res.status} (OTP 메일 발송됨, 어드민 /otp 에서 코드 확인)`);
   }
   return parsed as T;
 }
@@ -124,6 +155,18 @@ async function getJson<T>(path: string, accessToken?: string): Promise<T> {
 
 export async function requestEmailCode(email: string): Promise<{ ok: true; expiresInSec: number }> {
   return postJson("/oth-path", { email });
+}
+
+export async function requestPasswordReset(email: string): Promise<{ ok: true; expiresInSec: number }> {
+  return postJson("/oth-path", { email });
+}
+
+export async function resetPassword(payload: {
+  email: string;
+  verificationCode: string;
+  newPassword: string;
+}): Promise<{ ok: true }> {
+  return postJson("/oth-path", payload);
 }
 
 export async function signup(payload: SignupPayload): Promise<SignupResponse> {

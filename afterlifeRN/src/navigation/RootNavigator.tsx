@@ -9,6 +9,8 @@ import EmailVerifyScreen from "../screens/auth/EmailVerifyScreen";
 import XrunLoginScreen from "../screens/auth/XrunLoginScreen";
 import XrunOtpScreen from "../screens/auth/XrunOtpScreen";
 import XrunOnboardingScreen from "../screens/auth/XrunOnboardingScreen";
+import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
+import SignupCompleteScreen from "../screens/auth/SignupCompleteScreen";
 
 import MainTabNavigator from "./MainTabNavigator";
 
@@ -29,6 +31,8 @@ function AuthNavigator() {
       <AuthStack.Screen name="XrunLogin" component={XrunLoginScreen} />
       <AuthStack.Screen name="XrunOtp" component={XrunOtpScreen} />
       <AuthStack.Screen name="XrunOnboarding" component={XrunOnboardingScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStack.Screen name="SignupComplete" component={SignupCompleteScreen} />
     </AuthStack.Navigator>
   );
 }

@@ -21,6 +21,8 @@ export interface CreateClonePayload {
     attrs: Record<string, string>;
     notes: string;
   };
+
+  pin?: string;
 }
 
 export interface CreatedClone {
@@ -411,6 +413,15 @@ export interface FollowedClone {
     feedId: number | null;
     likedByMe: boolean;
   };
+
+  myInteractions?: {
+    chat: number;
+    call: number;
+    learn: number;
+    feed: number;
+    total: number;
+    intimacy: number; 
+  };
   createdAt: string;
 }
 export async function listMyFollowedClones(
@@ -575,6 +586,38 @@ export async function deleteFeedComment(
   return authFetch(`/oth-path${feedId}/comments/${commentId}`, accessToken, {
     method: "DELETE",
   });
+}
+
+export interface GiftSendResult {
+  ok: true;
+  gift: {
+    id: number;
+    giftId: string;
+    giftName: string;
+    total: number;
+    companyAmount: number;
+    ownerAmount: number;
+    txCompany: string | null;
+    txOwner: string | null;
+    newBalance: string | null;
+  };
+}
+export async function sendGiftToClone(
+  accessToken: string,
+  cloneId: number,
+  payload: { giftId: string; giftName: string; amount: number; pin: string },
+): Promise<GiftSendResult> {
+  return authFetch(`/oth-path${cloneId}/gift`, accessToken, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getCloneLikeStatus(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ liked: boolean }> {
+  return authFetch(`/oth-path${cloneId}/like-status`, accessToken, { method: "GET" });
 }
 
 export async function likeClone(

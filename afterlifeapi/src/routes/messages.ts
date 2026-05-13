@@ -15,6 +15,7 @@ import { spend } from "../lib/credits";
 import { loadCloneById, resolveViewerRole } from "../lib/cloneAccess";
 import { estimateMessageCost } from "../lib/pricing";
 import { readCtx, readShared, readOnt } from "../lib/memoryStore";
+import { bumpInteraction } from "../lib/interactions";
 
 export const cloneMessages = new Hono<AppEnv>();
 export const messages = new Hono<AppEnv>();
@@ -78,6 +79,8 @@ cloneMessages.post(
       .bind(cloneId, userId, sessionId, userCiphertext)
       .first<{ id: number; created_at: string }>();
     if (!userMsg) throw new APIError("INTERNAL_ERROR", "Failed to persist user message.");
+
+    await bumpInteraction(c.env, userId, cloneId, "chat");
 
     const [l1Raw, sharedData, l2Raw] = await Promise.all([
       readCtx(c.env, cloneId),

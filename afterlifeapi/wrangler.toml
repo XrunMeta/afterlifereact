@@ -65,6 +65,10 @@ WEBAUTHN_RP_ORIGIN = "http://localhost:8787"
 LAZY_ROTATION_ENABLED = "0"
 LAZY_V2_MIGRATE_ENABLED = "0"
 XRUN_API_URL = "https://oth-path-gw.example.invalid"
+# 결제 wallets — 회사 보유 외부 EOA. 사용자 wallet 에서 분할 송금 대상.
+COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
+COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
+PAYMENT_CURRENCY      = "18"
 
 # M-6: cron — orphan clones 정기 스윕 (매일 03:00 UTC)
 [triggers]
@@ -119,6 +123,10 @@ WEBAUTHN_RP_ORIGIN = "https://edge-alt-preview.example.invalid"
 LAZY_ROTATION_ENABLED = "0"
 LAZY_V2_MIGRATE_ENABLED = "0"
 XRUN_API_URL = "https://oth-path-gw.example.invalid"
+# 결제 wallets — 회사 보유 외부 EOA. 사용자 wallet 에서 분할 송금 대상.
+COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
+COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
+PAYMENT_CURRENCY      = "18"
 
 [env.preview.triggers]
 crons = ["0 3 * * *"]
@@ -172,6 +180,10 @@ WEBAUTHN_RP_ORIGIN = "https://oth-path.afterlife.app"
 LAZY_ROTATION_ENABLED = "0"
 LAZY_V2_MIGRATE_ENABLED = "0"
 XRUN_API_URL = "https://oth-path-gw.example.invalid"
+# 결제 wallets — 회사 보유 외부 EOA. 사용자 wallet 에서 분할 송금 대상.
+COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
+COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
+PAYMENT_CURRENCY      = "18"
 
 [env.production.triggers]
 crons = ["0 3 * * *"]

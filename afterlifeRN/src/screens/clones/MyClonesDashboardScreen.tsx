@@ -11,9 +11,14 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  Share,
+  Platform,
+  Linking,
+  Alert,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as Clipboard from "expo-clipboard";
@@ -25,9 +30,10 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, createInvite, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
-import NotificationBell from "../../components/common/NotificationBell";
-import { searchUsers, AuthApiError, type UserSearchItem } from "../../api/auth";
+import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
+import { AuthApiError, patchMe } from "../../api/auth";
+import { getXrunBalance } from "../../api/payments";
+import { uploadFile } from "../../api/files";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
 import type { ClonesStackParamList } from "../../navigation/types";
@@ -90,6 +96,7 @@ export default function MyClonesDashboardScreen() {
   const authUser = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
   const accessToken = useAuthStore((s) => s.accessToken);
+  const patchApiUser = useAuthStore((s) => s.patchApiUser);
   const localClones = useCloneStore((s) => s.localClones);
   const upsertClones = useCloneStore((s) => s.upsertClones);
   const follows = useFollowStore((s) => s.follows);
@@ -157,11 +164,16 @@ export default function MyClonesDashboardScreen() {
 
   const [hiddenCloneIds, setHiddenCloneIds] = useState<Set<number>>(new Set());
   const [menuCloneId, setMenuCloneId] = useState<number | null>(null);
-  const [inviteModal, setInviteModal] = useState<{ cloneId: number } | null>(null);
-  const [inviteSearch, setInviteSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<UserSearchItem[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [invitedIds, setInvitedIds] = useState<Set<number>>(new Set());
+
+  const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
+  const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
+
+  const followingCount = 0;
+  const followersCount = 0;
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const [chargeModalVisible, setChargeModalVisible] = useState(false);
 
   const [statsModal, setStatsModal] = useState<{
     type: "likes" | "interactions" | "comments" | "followers";
@@ -261,10 +273,6 @@ export default function MyClonesDashboardScreen() {
 
   const visibleClones = myClones.filter((c) => !hiddenCloneIds.has(c.id));
 
-  const activeCount = visibleClones.filter(
-    (c) => cloneStates[c.id]?.isActive ?? true,
-  ).length;
-
   const handleToggle = (cloneId: number) => {
     const currentState = cloneStates[cloneId]?.isActive ?? true;
     setToggleModal({ cloneId, currentState });
@@ -289,76 +297,82 @@ export default function MyClonesDashboardScreen() {
   };
 
   useEffect(() => {
-    if (!inviteModal || !accessToken) return;
-    const q = inviteSearch.trim();
-    if (q.length < 2) {
-      setSearchResults([]);
-      setSearching(false);
+    if (!accessToken) {
+      setXrunBalanceLoading(false);
+      setXrunBalance(undefined);
       return;
     }
-    setSearching(true);
-    const t = setTimeout(async () => {
-      try {
-        const res = await searchUsers(accessToken, q);
-        setSearchResults(res.items);
-      } catch (err) {
-        console.warn("[Dashboard] searchUsers failed:", err);
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [inviteSearch, accessToken, inviteModal]);
-
-  const handleSendInvite = async (user: UserSearchItem) => {
-    if (!accessToken || !inviteModal) {
-      console.warn("[Dashboard] handleSendInvite: missing accessToken or inviteModal");
-      return;
-    }
-    console.log("[Dashboard] sendInvite start:", { cloneId: inviteModal.cloneId, email: user.email });
-    try {
-      const res = await createInvite(accessToken, inviteModal.cloneId, {
-        invite_email: user.email,
+    let cancelled = false;
+    setXrunBalanceLoading(true);
+    getXrunBalance(accessToken)
+      .then((res) => {
+        if (cancelled) return;
+        setXrunBalance(res.linked ? (res.xrun ?? 0) : undefined);
+      })
+      .catch((err) => {
+        console.warn("[Dashboard] xrun balance fetch failed:", err);
+        if (!cancelled) setXrunBalance(undefined);
+      })
+      .finally(() => {
+        if (!cancelled) setXrunBalanceLoading(false);
       });
-      console.log("[Dashboard] sendInvite success:", res);
-      setInvitedIds((prev) => new Set(prev).add(user.id));
-      setDeleteResultMessage(t("invite.sentToast", { target: user.name ?? user.email }));
-    } catch (err) {
-      if (err instanceof AuthApiError) {
-        console.warn(
-          "[Dashboard] createInvite failed:",
-          err.code,
-          err.status,
-          err.message,
-          "details=",
-          JSON.stringify(err.details),
-        );
-        if (err.code === "UNAUTHENTICATED" || err.status === 401) {
-          await useAuthStore.getState().apiLogout();
-          setDeleteResultMessage(t("dashboard.sessionExpired"));
-          return;
-        }
-        if (err.code === "ALREADY_INVITED") {
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
-          setInvitedIds((prev) => new Set(prev).add(user.id));
-          setDeleteResultMessage(t("invite.alreadyInvited"));
-          return;
-        }
-        if (err.code === "ALREADY_MEMBER") {
-          setInvitedIds((prev) => new Set(prev).add(user.id));
-          setDeleteResultMessage(t("invite.alreadyMember"));
-          return;
-        }
-        if (err.code === "QUOTA_EXCEEDED") {
-          setDeleteResultMessage(t("invite.quotaExceeded"));
-          return;
-        }
+  const handleEditAvatar = async () => {
+    if (!accessToken) {
+      Alert.alert(t("common.notice", { defaultValue: "알림" }), t("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
+      return;
+    }
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        t("my.permTitle", { defaultValue: "권한 필요" }),
+        t("my.permDesc", { defaultValue: "사진 라이브러리 접근 권한을 허용해주세요." }),
+      );
+      return;
+    }
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (picked.canceled || !picked.assets?.[0]) return;
+    const asset = picked.assets[0];
+
+    setUploadingAvatar(true);
+    try {
+      const uploaded = await uploadFile(accessToken, asset.uri, {
+        purpose: "avatar",
+        fileName: asset.fileName ?? "avatar.jpg",
+        mimeType: asset.mimeType ?? "image/jpeg",
+      });
+      await patchMe(accessToken, { avatarUrl: uploaded.url });
+      patchApiUser({ avatarUrl: uploaded.url });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "이미지 업로드에 실패했어요";
+      Alert.alert(t("common.error", { defaultValue: "오류" }), msg);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const openXrunStore = async () => {
+    const playStore = "market://details?id=run.xrun.xrunapp";
+    const playStoreWeb = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+    const appStore = "https://apps.apple.com/app/id1492389867";
+    try {
+      if (Platform.OS === "android") {
+        const canMarket = await Linking.canOpenURL(playStore);
+        await Linking.openURL(canMarket ? playStore : playStoreWeb);
       } else {
-        console.warn("[Dashboard] createInvite failed:", err);
+        await Linking.openURL(appStore);
       }
-      const msg = err instanceof AuthApiError ? err.message : t("invite.sendFailed");
-      setDeleteResultMessage(msg);
+    } catch (err) {
+      console.warn("[Dashboard] open xrun store failed:", err);
     }
   };
 
@@ -461,13 +475,6 @@ export default function MyClonesDashboardScreen() {
         ? clone.followersCount
         : follows.filter((f) => f.followingCloneId === clone.id).length;
 
-    const coownerCount =
-      typeof clone.coownerCount === "number"
-        ? clone.coownerCount
-        : seedSource.coowners().filter(
-            (co) => co.cloneId === clone.id && co.status === "approved",
-          ).length;
-
     return (
       <View style={s.card}>
         {}
@@ -526,21 +533,10 @@ export default function MyClonesDashboardScreen() {
           {clone.description}
         </Text>
 
-        {}
-        {isMemlow ? (
-          <TouchableOpacity
-            style={s.coownerBadge}
-            onPress={() =>
-              navigation.navigate("CloneInvite", { cloneId: clone.id })
-            }
-            activeOpacity={0.7}
-          >
-            <Feather name="users" size={14} color={COLORS.zinc600} />
-            <Text style={s.coownerText}>
-              {t("dashboard.coownerCount", { n: coownerCount })}
-            </Text>
-          </TouchableOpacity>
-        ) : (
+        {
+
+}
+        {isMemlow ? null : (
           <View style={s.statsRow}>
             <TouchableOpacity
               style={s.stat}
@@ -569,7 +565,7 @@ export default function MyClonesDashboardScreen() {
             >
               <Feather name="user" size={14} color={COLORS.zinc500} />
               <Text style={s.statText} testID={`follower-count-${clone.id}`}>
-                {followerCount} 팔로워
+                {followerCount} 구독자
               </Text>
             </TouchableOpacity>
           </View>
@@ -614,18 +610,20 @@ export default function MyClonesDashboardScreen() {
           <TouchableOpacity
             style={s.actionBtn}
             onPress={async () => {
-              if (isMemlow) {
 
-                setInviteSearch("");
-                setSearchResults([]);
-                setInvitedIds(new Set());
-                setInviteModal({ cloneId: clone.id });
-              } else {
-
-                const url = `https://afterlife.app/clone/${clone.id}`;
+              const url = `https://afterlife.app/clone/${clone.id}`;
+              const message = `${clone.displayName} 페르소나와 대화해보세요!\n${url}`;
+              try {
+                await Share.share(
+                  Platform.OS === "ios"
+                    ? { message, url, title: clone.displayName }
+                    : { message },
+                  { dialogTitle: clone.displayName },
+                );
+              } catch (err) {
+                console.warn("[dashboard] share failed:", err);
                 try {
                   await Clipboard.setStringAsync(url);
-
                   setDeleteResultMessage(t("dashboard.shareLinkCopied"));
                 } catch {
                   setDeleteResultMessage(t("dashboard.shareLinkFailed"));
@@ -633,10 +631,8 @@ export default function MyClonesDashboardScreen() {
               }
             }}
           >
-            <Feather name={isMemlow ? "user-plus" : "share-2"} size={16} color={COLORS.zinc700} />
-            <Text style={s.actionText}>
-              {isMemlow ? t("dashboard.actionInvite") : t("dashboard.actionShare")}
-            </Text>
+            <Feather name="share-2" size={16} color={COLORS.zinc700} />
+            <Text style={s.actionText}>{t("dashboard.actionShare")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -647,7 +643,23 @@ export default function MyClonesDashboardScreen() {
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
         title={t("dashboard.title")}
-        rightAction={<NotificationBell />}
+        rightAction={
+
+          <TouchableOpacity
+            onPress={() =>
+              rootNav.dispatch(
+                CommonActions.navigate({
+                  name: "MyTab",
+                  params: { screen: "MyHome" },
+                }),
+              )
+            }
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <Feather name="settings" size={22} color={COLORS.zinc700} />
+          </TouchableOpacity>
+        }
       />
 
       <FlatList
@@ -663,58 +675,116 @@ export default function MyClonesDashboardScreen() {
             </View>
             <Text style={s.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
             <Text style={s.dashEmptyDesc}>
-              하단 가운데 + 버튼을 눌러 첫 페르소나를 만들 수 있어요
+              아래 버튼을 눌러 첫 페르소나를 만들 수 있어요
             </Text>
+            <TouchableOpacity
+              style={s.dashEmptyBtn}
+              activeOpacity={0.85}
+              onPress={() =>
+
+                navigation.dispatch(
+                  CommonActions.navigate({
+                    name: "CreateTab",
+                    params: { screen: "Step3" },
+                  }),
+                )
+              }
+            >
+              <Feather name="plus" size={18} color={COLORS.white} />
+              <Text style={s.dashEmptyBtnText}>페르소나 만들기</Text>
+            </TouchableOpacity>
           </View>
         }
         ListHeaderComponent={
           <>
-            {}
-            <View style={s.dashTitleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.dashTitleText}>{t("dashboard.headerTitle")}</Text>
-                <Text style={s.dashSubText}>{t("dashboard.headerDesc")}</Text>
+            {
+
+}
+            <View style={s.profileSection}>
+              <View style={s.profileLeft}>
+                <View style={s.profileAvatarWrap}>
+                  {apiUser?.avatarUrl || authUser?.avatarUrl ? (
+                    <Image
+                      source={{ uri: (apiUser?.avatarUrl ?? authUser?.avatarUrl) as string }}
+                      style={s.profileAvatar}
+                    />
+                  ) : (
+                    <View style={[s.profileAvatar, s.profileAvatarPlaceholder]}>
+                      <Feather name="user" size={28} color={COLORS.zinc400} />
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={s.profileAvatarEditBtn}
+                    onPress={handleEditAvatar}
+                    disabled={uploadingAvatar}
+                    activeOpacity={0.8}
+                    hitSlop={6}
+                  >
+                    {uploadingAvatar ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <Feather name="edit-2" size={12} color={COLORS.white} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1, marginLeft: 26 }}>
+                  <Text style={s.profileName} numberOfLines={1}>
+                    {apiUser?.name ?? authUser?.displayName ?? "사용자"}
+                  </Text>
+                  <View style={s.profileStatsRow}>
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{followersCount}</Text>
+                      <Text style={s.profileStatLabel}>팔로워</Text>
+                    </View>
+                    <View style={s.profileStatDivider} />
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{followingCount}</Text>
+                      <Text style={s.profileStatLabel}>팔로잉</Text>
+                    </View>
+                    <View style={s.profileStatDivider} />
+                    <View style={s.profileStatItem}>
+                      <Text style={s.profileStatValue}>{visibleClones.length}</Text>
+                      <Text style={s.profileStatLabel}>페르소나</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {
+}
+            <View style={s.coinRow}>
+              <Image
+                source={require("../../../assets/images/xrun-round-logo.png")}
+                style={s.coinIcon}
+              />
+              <View style={{ flex: 1 }} />
+              <View style={s.coinAmountWrap}>
+                {xrunBalanceLoading ? (
+                  <ActivityIndicator color={COLORS.zinc900} />
+                ) : xrunBalance != null ? (
+                  <Text style={s.coinAmountText}>
+                    {xrunBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                    <Text style={s.coinUnit}> XRUN</Text>
+                  </Text>
+                ) : (
+                  <Text style={s.coinAmountText}>
+                    —<Text style={s.coinUnit}> XRUN</Text>
+                  </Text>
+                )}
               </View>
               <TouchableOpacity
-                style={s.inviteStatusBtn}
-                onPress={() => navigation.navigate("InviteStatus")}
-                activeOpacity={0.7}
+                style={s.coinChargeBtn}
+                onPress={() => setChargeModalVisible(true)}
+                hitSlop={8}
               >
-                <Feather name="send" size={14} color={COLORS.violet600} />
-                <Text style={s.inviteStatusBtnText}>{t("inviteStatus.title")}</Text>
+                <Feather name="plus-circle" size={24} color={COLORS.violet600} />
               </TouchableOpacity>
             </View>
 
-            {}
-            <View style={s.statsOverview}>
-              <View style={s.statsCard}>
-                <View style={s.statsCardHeader}>
-                  <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-                  <Text style={s.statsCardLabel}>{t("dashboard.statsTotalInteractions")}</Text>
-                </View>
-                <Text style={s.statsCardValue}>12.8k</Text>
-                <Text style={s.statsCardDelta}>{t("dashboard.statsDelta")}</Text>
-              </View>
-
-              <View style={[s.statsCard, s.statsCardDark]}>
-                <View style={s.statsCardHeader}>
-                  <Feather name="user" size={14} color={COLORS.zinc400} />
-                  <Text style={[s.statsCardLabel, { color: COLORS.zinc400 }]}>
-                    {t("dashboard.statsActivity")}
-                  </Text>
-                </View>
-                <View style={s.activityCount}>
-                  <Text style={s.activityActive}>{activeCount}</Text>
-                  <Text style={s.activityTotal}>/ {visibleClones.length}</Text>
-                </View>
-              </View>
-            </View>
+            {
+}
           </>
-        }
-        ListFooterComponent={
-          <TouchableOpacity style={s.loadMore}>
-            <Text style={s.loadMoreText}>{t("dashboard.loadMore")}</Text>
-          </TouchableOpacity>
         }
       />
 
@@ -779,31 +849,16 @@ export default function MyClonesDashboardScreen() {
               )}
             <View style={s.menuDivider} />
             {}
-            {menuCloneId != null &&
-              myClones.find((c) => c.id === menuCloneId)?.myRole === "owner" ? (
-              <TouchableOpacity
-                style={s.menuItem}
-                onPress={() => {
-                  const id = menuCloneId!;
-                  handleDelete(id);
-                }}
-              >
-                <Feather name="trash-2" size={18} color={COLORS.error} />
-                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={s.menuItem}
-                onPress={() => {
-                  const id = menuCloneId!;
-                  setMenuCloneId(null);
-                  navigation.navigate("CloneInvite", { cloneId: id });
-                }}
-              >
-                <Feather name="log-out" size={18} color={COLORS.error} />
-                <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuLeave")}</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={s.menuItem}
+              onPress={() => {
+                const id = menuCloneId!;
+                handleDelete(id);
+              }}
+            >
+              <Feather name="trash-2" size={18} color={COLORS.error} />
+              <Text style={[s.menuItemText, { color: COLORS.error }]}>{t("dashboard.menuDelete")}</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -927,114 +982,44 @@ export default function MyClonesDashboardScreen() {
       </Modal>
 
       {
+
 }
-      <Modal
-        visible={!!inviteModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setInviteModal(null)}
-      >
-        <Pressable style={s.bottomSheetOverlay} onPress={() => setInviteModal(null)}>
-          <View
-            style={s.inviteSheet}
-            onStartShouldSetResponder={() => true}
-          >
-            <View style={s.sheetHandle} />
-            <View style={s.inviteHeader}>
-              <Text style={s.inviteTitle}>
-                {(() => {
-                  const c = myClones.find((x) => x.id === inviteModal?.cloneId);
-                  return c?.cloneType === "memlow"
-                    ? t("invite.create")
-                    : t("invite.shareTitle");
-                })()}
-              </Text>
-              <TouchableOpacity onPress={() => setInviteModal(null)}>
-                <Feather name="x" size={20} color={COLORS.zinc500} />
+
+      {
+}
+      <Modal visible={chargeModalVisible} transparent animationType="fade">
+        <Pressable
+          style={s.chargeOverlay}
+          onPress={() => setChargeModalVisible(false)}
+        >
+          <Pressable style={s.chargeBox} onPress={(e) => e.stopPropagation()}>
+            <View style={s.chargeIconWrap}>
+              <Feather name="zap" size={28} color={COLORS.violet600} />
+            </View>
+            <Text style={s.chargeTitle}>암호화폐 충전 안내</Text>
+            <Text style={s.chargeDesc}>
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
+            </Text>
+            <Text style={s.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
+            <View style={s.chargeBtns}>
+              <TouchableOpacity
+                style={s.chargeCancelBtn}
+                onPress={() => setChargeModalVisible(false)}
+              >
+                <Text style={s.chargeCancelText}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.chargeGoBtn}
+                onPress={() => {
+                  setChargeModalVisible(false);
+                  openXrunStore();
+                }}
+              >
+                <Feather name="external-link" size={14} color={COLORS.white} />
+                <Text style={s.chargeGoText}>바로가기</Text>
               </TouchableOpacity>
             </View>
-
-            {}
-            <View style={s.inviteSearchWrap}>
-              <Feather name="search" size={18} color={COLORS.zinc400} />
-              <TextInput
-                style={s.inviteSearchInput}
-                value={inviteSearch}
-                onChangeText={setInviteSearch}
-                placeholder={t("dashboard.inviteSearchHint")}
-                placeholderTextColor={COLORS.placeholder}
-                autoFocus
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-              {inviteSearch.length > 0 && (
-                <TouchableOpacity onPress={() => setInviteSearch("")}>
-                  <Feather name="x-circle" size={16} color={COLORS.zinc400} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {}
-            <ScrollView style={s.inviteList} showsVerticalScrollIndicator={false}>
-              {inviteSearch.trim().length < 2 ? (
-                <View style={{ padding: 32, alignItems: "center" }}>
-                  <Feather name="search" size={32} color={COLORS.zinc300} />
-                  <Text style={{ color: COLORS.zinc500, marginTop: 8, fontSize: 13 }}>
-                    {t("dashboard.inviteSearchEmpty")}
-                  </Text>
-                  <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {t("dashboard.inviteSearchEmptyHint")}
-                  </Text>
-                </View>
-              ) : searching ? (
-                <View style={{ padding: 32, alignItems: "center" }}>
-                  <ActivityIndicator color={COLORS.zinc500} />
-                </View>
-              ) : searchResults.length === 0 ? (
-                <View style={{ padding: 32, alignItems: "center" }}>
-                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
-                    {t("dashboard.inviteNoResults")}
-                  </Text>
-                  <Text style={{ color: COLORS.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {t("dashboard.inviteSearchEmptyHint")}
-                  </Text>
-                </View>
-              ) : (
-                searchResults.map((user) => {
-                  const sent = invitedIds.has(user.id);
-                  return (
-                    <View key={user.id} style={s.inviteRow}>
-                      {user.avatarUrl ? (
-                        <Image source={{ uri: user.avatarUrl }} style={s.inviteAvatar} />
-                      ) : (
-                        <View style={[s.inviteAvatar, { backgroundColor: COLORS.zinc100, alignItems: "center", justifyContent: "center" }]}>
-                          <Feather name="user" size={20} color={COLORS.zinc400} />
-                        </View>
-                      )}
-                      <View style={s.inviteInfo}>
-                        <Text style={s.inviteName}>{user.name ?? user.email}</Text>
-                        <Text style={s.inviteUsername}>{user.email}</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={[s.inviteBtn, sent && s.inviteBtnSent]}
-                        disabled={sent}
-                        onPress={() => handleSendInvite(user)}
-                      >
-                        <Feather
-                          name={sent ? "check" : "send"}
-                          size={14}
-                          color={sent ? COLORS.success : COLORS.white}
-                        />
-                        <Text style={[s.inviteBtnText, sent && s.inviteBtnTextSent]}>
-                          {sent ? t("invite.sent") : t("invite.send")}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })
-              )}
-            </ScrollView>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -1050,7 +1035,7 @@ export default function MyClonesDashboardScreen() {
               {statsModal?.type === "likes" && "좋아요"}
               {statsModal?.type === "interactions" && "상호작용"}
               {statsModal?.type === "comments" && "댓글"}
-              {statsModal?.type === "followers" && "팔로워"}
+              {statsModal?.type === "followers" && "구독자"}
             </Text>
             <Text style={s.statsSheetSub}>
               {statsModal?.cloneName}
@@ -1128,7 +1113,7 @@ export default function MyClonesDashboardScreen() {
                     <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !followersList || followersList.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 팔로워가 없어요</Text>
+                      <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 구독자가 없어요</Text>
                     </View>
                   ) : (
                     followersList.map((u) => (
@@ -1206,11 +1191,61 @@ const s = StyleSheet.create({
   },
   dashEmptyTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc800 },
   dashEmptyDesc: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", lineHeight: 18 },
+  dashEmptyBtn: {
+    marginTop: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.zinc900,
+  },
+  dashEmptyBtnText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
 
   listContent: {
     paddingHorizontal: SIZES.medium,
     paddingBottom: 24,
   },
+
+  profileSection: {
+    paddingTop: 28,
+    paddingBottom: 14,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatarWrap: { position: "relative" },
+  profileAvatar: { width: 64, height: 64, borderRadius: 32 },
+  profileAvatarPlaceholder: {
+    backgroundColor: COLORS.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileAvatarEditBtn: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.zinc900,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  profileName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+    marginBottom: 8,
+  },
+  profileStatsRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  profileStatItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  profileStatValue: { fontSize: 14, fontWeight: "700", color: COLORS.zinc900 },
+  profileStatLabel: { fontSize: 12, color: COLORS.zinc500 },
+  profileStatDivider: { width: 1, height: 12, backgroundColor: COLORS.zinc200 },
 
   dashTitle: { marginTop: 16, marginBottom: 20 },
   dashTitleRow: {
@@ -1232,6 +1267,91 @@ const s = StyleSheet.create({
   },
   inviteStatusBtnText: { fontSize: 12, fontWeight: "600", color: COLORS.violet600 },
   dashSubText: { fontSize: 13, color: COLORS.zinc500, marginTop: 4 },
+
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.zinc100,
+  },
+  coinIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  coinSymbol: { fontSize: 16, fontWeight: "600", color: COLORS.zinc900 },
+  coinNetwork: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  coinAmountWrap: { alignItems: "flex-end", marginRight: 8 },
+  coinAmountText: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
+  coinUnit: { fontSize: 15, fontWeight: "600", color: COLORS.zinc700 },
+  coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+
+  chargeOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  chargeBox: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+  },
+  chargeIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  chargeTitle: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900, marginBottom: 8 },
+  chargeDesc: {
+    fontSize: 14,
+    color: COLORS.zinc600,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  chargeHint: { fontSize: 12, color: COLORS.zinc500, marginBottom: 20 },
+  chargeBtns: { flexDirection: "row", gap: 8, width: "100%" },
+  chargeCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+    alignItems: "center",
+  },
+  chargeCancelText: { fontSize: 14, fontWeight: "600", color: COLORS.zinc700 },
+  chargeGoBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.violet600,
+  },
+  chargeGoText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
 
   statsOverview: {
     flexDirection: "row",

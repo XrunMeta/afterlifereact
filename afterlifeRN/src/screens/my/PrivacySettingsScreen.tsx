@@ -1,14 +1,17 @@
-import React, { useState } from "react";
+
+
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
+  Image,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
@@ -16,47 +19,73 @@ import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
-import { deleteMe, AuthApiError } from "../../api/auth";
+import {
+  listMyBlocks,
+  unblockClone,
+  type BlockedClone,
+} from "../../api/clones";
 
 export default function PrivacySettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MyStackParamList>>();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const logout = useAuthStore((s) => s.logout);
-  const [deleting, setDeleting] = useState(false);
+  const { t } = useTranslation();
 
-  const handleDeleteAccount = () => {
+  const [items, setItems] = useState<BlockedClone[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unblockingId, setUnblockingId] = useState<number | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!accessToken) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await listMyBlocks(accessToken);
+      setItems(res.items);
+    } catch (err) {
+      console.warn("[Privacy] listMyBlocks failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
+  const handleUnblock = (item: BlockedClone) => {
     Alert.alert(
-      "회원 탈퇴",
-      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(90일 내 복구 가능)",
+      "차단 해제",
+      `${item.clone.name} 차단을 해제하시겠어요?`,
       [
         { text: "취소", style: "cancel" },
         {
-          text: "탈퇴",
-          style: "destructive",
+          text: "해제",
           onPress: async () => {
             if (!accessToken) return;
-            setDeleting(true);
+            setUnblockingId(item.clone.id);
             try {
-              await deleteMe(accessToken, { withXrun: false });
-              await logout();
+              await unblockClone(accessToken, item.clone.id);
+              setItems((prev) => prev.filter((b) => b.clone.id !== item.clone.id));
             } catch (err) {
-              const msg = err instanceof AuthApiError ? err.message : "탈퇴에 실패했어요.";
+              const msg = err instanceof Error ? err.message : "해제에 실패했어요.";
               Alert.alert("오류", msg);
-              setDeleting(false);
+            } finally {
+              setUnblockingId(null);
             }
           },
         },
       ],
     );
   };
-  const { t } = useTranslation();
-
-  const items = [
-
-    { key: "blockList", labelKey: "settings.privacy.blockList", icon: "slash" as const },
-    { key: "dataDownload", labelKey: "settings.privacy.dataDownload", icon: "download" as const },
-    { key: "deleteAccount", labelKey: "settings.privacy.deleteAccount", icon: "trash-2" as const, danger: true },
-  ];
 
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
@@ -67,36 +96,56 @@ export default function PrivacySettingsScreen() {
       />
 
       <View style={s.content}>
-        <View style={s.card}>
-          {items.map((item, i) => (
-            <View key={item.key}>
-              <TouchableOpacity
-                style={s.row}
-                disabled={deleting && item.key === "deleteAccount"}
-                onPress={() => {
-                  if (item.key === "blockList") navigation.navigate("BlockedList");
-                  else if (item.key === "deleteAccount") handleDeleteAccount();
-                }}
-              >
-                <Feather
-                  name={item.icon}
-                  size={20}
-                  color={item.danger ? COLORS.error : COLORS.zinc700}
-                  style={s.rowIcon}
-                />
-                <Text style={[s.rowLabel, item.danger && s.rowLabelDanger]}>
-                  {t(item.labelKey)}
-                </Text>
-                {deleting && item.key === "deleteAccount" ? (
-                  <ActivityIndicator color={COLORS.error} />
-                ) : (
-                  <Feather name="chevron-right" size={18} color={COLORS.zinc400} />
-                )}
-              </TouchableOpacity>
-              {i < items.length - 1 && <View style={s.divider} />}
-            </View>
-          ))}
-        </View>
+        {loading ? (
+          <ActivityIndicator color={COLORS.zinc500} style={{ paddingTop: 60 }} />
+        ) : items.length === 0 ? (
+          <View style={s.empty}>
+            <Feather name="slash" size={36} color={COLORS.zinc300} />
+            <Text style={s.emptyText}>차단한 페르소나가 없어요</Text>
+            <Text style={s.emptySub}>
+              페르소나 메뉴에서 차단할 수 있어요
+            </Text>
+          </View>
+        ) : (
+          <View style={s.card}>
+            {items.map((it, i) => (
+              <View key={it.blockId}>
+                <View style={s.row}>
+                  {it.clone.avatarUrl ? (
+                    <Image source={{ uri: it.clone.avatarUrl }} style={s.avatar} />
+                  ) : (
+                    <View style={[s.avatar, s.avatarPh]}>
+                      <Feather name="user" size={20} color={COLORS.zinc400} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.rowName} numberOfLines={1}>
+                      {it.clone.name}
+                    </Text>
+                    <Text style={s.rowSub} numberOfLines={1}>
+                      @{it.clone.username}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      s.unblockBtn,
+                      unblockingId === it.clone.id && { opacity: 0.6 },
+                    ]}
+                    onPress={() => handleUnblock(it)}
+                    disabled={unblockingId === it.clone.id}
+                  >
+                    {unblockingId === it.clone.id ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <Text style={s.unblockText}>차단 해제</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {i < items.length - 1 && <View style={s.divider} />}
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </SafeScrollView>
   );
@@ -121,12 +170,30 @@ const s = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 18,
     gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  rowIcon: { width: 24, textAlign: "center" },
-  rowLabel: { flex: 1, fontSize: 15, fontWeight: "500", color: COLORS.zinc900 },
-  rowLabelDanger: { color: COLORS.error },
-  divider: { height: 1, backgroundColor: COLORS.zinc100, marginLeft: 20 },
+  avatar: { width: 44, height: 44, borderRadius: 22 },
+  avatarPh: {
+    backgroundColor: COLORS.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowName: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
+  rowSub: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  unblockBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: COLORS.zinc900,
+    minWidth: 78,
+    alignItems: "center",
+  },
+  unblockText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
+  divider: { height: 1, backgroundColor: COLORS.zinc100, marginLeft: 72 },
+
+  empty: { alignItems: "center", paddingTop: 60, gap: 10 },
+  emptyText: { color: COLORS.zinc600, fontSize: 14, fontWeight: "600" },
+  emptySub: { color: COLORS.zinc400, fontSize: 12 },
 });

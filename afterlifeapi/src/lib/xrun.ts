@@ -19,6 +19,39 @@ export interface XrunWalletLookupResult {
   reason?: string;
 }
 
+function isXrunMemberMissing(
+  res: Response,
+  json: { status?: string; code?: number; message?: string } | undefined,
+): boolean {
+  if (res.status === 404) return true;
+  if (json?.code === 404) return true;
+  const msg = (json?.message ?? "").toLowerCase();
+  return /not\s*found|no\s*such\s*member|not\s*exist|withdrawn|inactive\s*member/.test(msg);
+}
+
+export async function markXrunUnlinked(env: Bindings, xrunMember: number): Promise<void> {
+  try {
+    const res = await env.DB
+      .prepare(
+        `UPDATE users
+            SET xrun_member_id = NULL,
+                xrun_guid = NULL,
+                xrun_wallet = NULL,
+                xrun_linked_at = NULL
+          WHERE xrun_member_id = ?`,
+      )
+      .bind(xrunMember)
+      .run();
+    if ((res.meta?.changes ?? 0) > 0) {
+      console.log(
+        `[xrun] markXrunUnlinked member=${xrunMember} rows=${res.meta?.changes ?? 0}`,
+      );
+    }
+  } catch (err) {
+    console.warn("[xrun] markXrunUnlinked error:", (err as Error).message);
+  }
+}
+
 function generatePin(): string {
   const buf = new Uint8Array(16);
   crypto.getRandomValues(buf);
@@ -53,6 +86,32 @@ export interface AfterlifeRegisterContext {
   phone?: string;
   gender?: "male" | "female" | "other";
   age?: number;
+
+  country?: string;
+  mobileCode?: number;
+  region?: string;
+}
+
+function mapLocation(ctx: AfterlifeRegisterContext): {
+  countrycode: string;
+  country: number;
+  region: number;
+  mobilecode: string;
+} {
+  const countrycode = (ctx.country ?? "KR").toUpperCase();
+  const mobileCodeNum = typeof ctx.mobileCode === "number" ? ctx.mobileCode : 82;
+  const regionNum = (() => {
+    const r = ctx.region;
+    if (!r) return 0;
+    const n = Number(r);
+    return Number.isFinite(n) ? Math.floor(n) : 0;
+  })();
+  return {
+    countrycode,
+    country: mobileCodeNum,
+    region: regionNum,
+    mobilecode: String(mobileCodeNum),
+  };
 }
 
 export async function registerXrunForAfterlifeUser(
@@ -60,20 +119,23 @@ export async function registerXrunForAfterlifeUser(
   ctx: AfterlifeRegisterContext,
 ): Promise<XrunRegisterResult> {
   const { firstname, lastname } = splitName(ctx.name);
+  const loc = mapLocation(ctx);
   const body = {
     email: ctx.email,
     pin: generatePin(),
     firstname,
     lastname,
     mobile: ctx.phone ?? "",
-    mobilecode: "82",
+    mobilecode: loc.mobilecode,
     gender: mapGender(ctx.gender),
-    countrycode: "KR",
-    country: 0,
-    region: 0,
+    countrycode: loc.countrycode,
+    country: loc.country,
+    region: loc.region,
     age: ctx.age ?? 0,
     recommand: 0,
     social_code: 0,
+
+    app_source: "afterlife",
   };
 
   let res: Response;
@@ -100,6 +162,12 @@ export async function registerXrunForAfterlifeUser(
   }
 
   if (json?.code === 409 || /already exists/i.test(json?.message ?? "")) {
+
+    try {
+      await updateXrunFromAfterlife(env, ctx);
+    } catch (err) {
+      console.warn("[xrun] update-from-afterlife failed:", (err as Error).message);
+    }
     return { status: "duplicate", email: ctx.email };
   }
 
@@ -118,6 +186,39 @@ export async function registerXrunForAfterlifeUser(
     status: "failed",
     reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
   };
+}
+
+async function updateXrunFromAfterlife(
+  env: Bindings,
+  ctx: AfterlifeRegisterContext,
+): Promise<void> {
+  const { firstname, lastname } = splitName(ctx.name);
+  const loc = mapLocation(ctx);
+  const body: Record<string, unknown> = {
+    email: ctx.email,
+    firstname,
+    lastname,
+    mobile: ctx.phone ?? null,
+    mobilecode: loc.mobilecode,
+    gender: mapGender(ctx.gender),
+    age: ctx.age ?? null,
+    countrycode: loc.countrycode,
+    country: loc.country,
+    region: loc.region,
+    app_source: "afterlife",
+  };
+  const res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+    method: "POST",
+    headers: gatewayHeaders(env),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  const json = (await res.json()) as { status?: string; code?: number; message?: string };
+  if (json.status !== "success") {
+    throw new Error(`xrun update failed: ${json.message}`);
+  }
 }
 
 export async function verifyXrunCredentials(
@@ -227,6 +328,9 @@ export async function hasXrunPaymentPin(env: Bindings, member: number): Promise<
   if (res.ok && json?.status === "success") {
     return { ok: true, hasPin: !!json.data?.[0]?.hasPin };
   }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
+  }
   return { ok: false, hasPin: false, reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
 }
 
@@ -256,6 +360,9 @@ export async function verifyXrunPaymentPin(
     const first = json.data?.[0] ?? {};
     return { ok: true, match: !!first.match, hasPin: !!first.hasPin };
   }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
+  }
   return { ok: false, match: false, hasPin: false, reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}` };
 }
 
@@ -279,6 +386,54 @@ export interface XrunCloseResult {
   reason?: string;
 }
 
+export async function getXrunMemberInfo(
+  env: Bindings,
+  member: number,
+): Promise<
+  | { ok: true; appSource: string | null; status: number }
+  | { ok: false; reason: string; missing?: boolean }
+> {
+  if (!env.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: gatewayHeaders(env),
+      body: JSON.stringify({ member }),
+    });
+  } catch (err) {
+    return { ok: false, reason: `network: ${(err as Error).message}` };
+  }
+  let json: {
+    status?: string;
+    code?: number;
+    message?: string;
+    data?: { member: number; app_source: string | null; status: number } | null;
+  };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { ok: false, reason: `non-json (${res.status})` };
+  }
+  if (res.ok && json?.status === "success" && json.data) {
+    return {
+      ok: true,
+      appSource: json.data.app_source ?? null,
+      status: json.data.status,
+    };
+  }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
+    return { ok: false, reason: "member not found", missing: true };
+  }
+  return {
+    ok: false,
+    reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
+  };
+}
+
 export async function closeXrunMember(env: Bindings, member: number): Promise<XrunCloseResult> {
   if (!env.XRUN_GATEWAY_TOKEN) {
     return { ok: false, closed: false, reason: "missing XRUN_GATEWAY_TOKEN" };
@@ -300,10 +455,13 @@ export async function closeXrunMember(env: Bindings, member: number): Promise<Xr
     return { ok: false, closed: false, reason: `non-json (${res.status})` };
   }
   if (res.ok && json?.status === "success") {
+
+    await markXrunUnlinked(env, member);
     return { ok: true, closed: true };
   }
 
-  if (res.status === 404 || json?.code === 404) {
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
     return { ok: true, closed: false, reason: "member not found (already closed?)" };
   }
   return {
@@ -336,9 +494,95 @@ export async function getXrunBalances(env: Bindings, member: number): Promise<Xr
   if (res.ok && json?.status === "success") {
     return { ok: true, balances: json.data ?? [] };
   }
+
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, member);
+  }
   return {
     ok: false,
     balances: [],
     reason: `xrun ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
+  };
+}
+
+export interface TransferRecipient {
+
+  toAddress?: string;
+
+  toMember?: number;
+  amount: string; 
+}
+export interface TransferSplitResult {
+  ok: boolean;
+  txs: Array<{ toAddress: string; amount: string; txHash: string | null }>;
+  newBalance: string | null;
+  reason?: string;
+  code?: number;
+}
+
+export async function externalTransferSplit(
+  env: Bindings,
+  args: {
+    fromMember: number;
+    recipients: TransferRecipient[];
+    currency: number;
+    pin: string;
+    source?: string;
+  },
+): Promise<TransferSplitResult> {
+  if (!env.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, txs: [], newBalance: null, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let res: Response;
+  try {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: gatewayHeaders(env),
+      body: JSON.stringify({
+        fromMember: args.fromMember,
+        recipients: args.recipients,
+        currency: args.currency,
+        pin: args.pin,
+        source: args.source ?? "afterlife",
+      }),
+    });
+  } catch (err) {
+    return { ok: false, txs: [], newBalance: null, reason: `network: ${(err as Error).message}` };
+  }
+  let json: {
+    status?: string;
+    code?: number;
+    message?: string;
+    data?: {
+      txs?: Array<{ toAddress?: string; amount?: string; txHash?: string | null }>;
+      newBalance?: string | number | null;
+    } | null;
+  };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return { ok: false, txs: [], newBalance: null, code: res.status, reason: `non-json (${res.status})` };
+  }
+  if (res.ok && json?.status === "success" && json.data) {
+    return {
+      ok: true,
+      txs: (json.data.txs ?? []).map((t) => ({
+        toAddress: t.toAddress ?? "",
+        amount: t.amount ?? "",
+        txHash: t.txHash ?? null,
+      })),
+      newBalance:
+        json.data.newBalance == null ? null : String(json.data.newBalance),
+    };
+  }
+  if (isXrunMemberMissing(res, json)) {
+    await markXrunUnlinked(env, args.fromMember);
+  }
+  return {
+    ok: false,
+    txs: [],
+    newBalance: null,
+    code: res.status,
+    reason: `xrun transfer ${res.status} ${json?.code ?? ""}: ${json?.message ?? "unknown"}`,
   };
 }

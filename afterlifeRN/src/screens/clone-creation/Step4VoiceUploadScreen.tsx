@@ -30,14 +30,15 @@ export default function Step4VoiceUploadScreen({ navigation }: Props) {
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
-      <StepIndicator currentStep={4} totalSteps={7} />
+      <StepIndicator currentStep={2} totalSteps={4} />
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />
       </SafeScrollView>
       <View style={styles.bottomBar}>
         <Button
           title={t("create.next")}
-          onPress={() => navigation.navigate('Step5')}
+
+          onPress={() => navigation.navigate('Step6')}
           disabled={!canNext}
         />
       </View>

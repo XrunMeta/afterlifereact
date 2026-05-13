@@ -24,6 +24,10 @@ export type AuthStackParamList = {
     gender?: "male" | "female" | "other";
     age?: number;
     interests?: string[];
+
+    country?: string;
+    mobileCode?: number;
+    region?: string;
     marketingConsent: boolean;
 
     pushToken?: string;
@@ -32,6 +36,13 @@ export type AuthStackParamList = {
   };
   XrunLogin: undefined;
   XrunOtp: { email: string; pin: string };
+  ForgotPassword: undefined;
+
+  SignupComplete: {
+    accessToken: string;
+    persist: boolean; 
+    email?: string;  
+  };
   XrunOnboarding:
     | { email: string; pin: string; verificationCode: string; google?: undefined }
     | { email: string; pin?: undefined; verificationCode?: undefined; google: { idToken: string } };
@@ -39,6 +50,7 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   HomeTab: undefined;
+  SearchTab: undefined;
   ClonesTab: undefined;
   CreateTab: undefined;
   ShortsTab: undefined;
@@ -80,4 +92,5 @@ export type MyStackParamList = {
   PaymentPin: undefined;
   InviteStatus: undefined;
   BlockedList: undefined;
+  Transactions: undefined;
 };

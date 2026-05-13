@@ -13,6 +13,8 @@ import {
   resolveResponseViewerRole,
 } from "../lib/cloneAccess";
 import { writeCtx, writeShared } from "../lib/memoryStore";
+import { externalTransferSplit } from "../lib/xrun";
+import { notifyCloneEvent } from "../lib/notify";
 
 export const clones = new Hono<AppEnv>();
 
@@ -52,7 +54,11 @@ const createSchema = z.object({
   memlow_profile: z.record(z.string(), z.unknown()).optional(),
 
   l1_profile: l1ProfileSchema.optional(),
+
+  pin: z.string().regex(/^\d{6}$/).optional(),
 });
+
+const PERSONA_PAID_PRICE_XRUN = 100;
 
 clones.post(
   "/",
@@ -80,19 +86,67 @@ clones.post(
       .prepare(
         `SELECT COUNT(*) AS n FROM clones
           WHERE owner_id = ?
-            AND clone_type = ?
             AND deletion_state = 'active'
             AND deleted_at IS NULL`,
       )
-      .bind(userId, body.clone_type)
+      .bind(userId)
       .first<{ n: number }>();
     const usedCount = existing?.n ?? 0;
     if (usedCount >= 1) {
 
-      throw new APIError(
-        "QUOTA_EXCEEDED",
-        "Free quota exhausted. Paid creation not yet available (beta).",
-      );
+      const sameType = await db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM clones
+            WHERE owner_id = ?
+              AND clone_type = ?
+              AND deletion_state = 'active'
+              AND deleted_at IS NULL`,
+        )
+        .bind(userId, body.clone_type)
+        .first<{ n: number }>();
+      if ((sameType?.n ?? 0) >= 1) {
+        throw new APIError(
+          "CONFLICT",
+          "이미 같은 타입의 페르소나가 있습니다. 다른 타입을 선택해주세요.",
+        );
+      }
+
+      if (!body.pin) {
+        throw new APIError("PAYMENT_REQUIRED", "Persona creation requires payment.", {
+          priceXrun: PERSONA_PAID_PRICE_XRUN,
+          message: `2번째 페르소나부터 ${PERSONA_PAID_PRICE_XRUN} XRUN 이 부과됩니다.`,
+        });
+      }
+
+      const companyAddr = c.env.COMPANY_CHARGE_WALLET;
+      if (!companyAddr) {
+        throw new APIError("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
+      }
+      const senderRow = await db
+        .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+        .bind(userId)
+        .first<{ xrun_member_id: number | null }>();
+      if (!senderRow?.xrun_member_id) {
+        throw new APIError("CONFLICT", "xrun account not linked.");
+      }
+      const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
+      const { externalTransferSplit } = await import("../lib/xrun");
+      const payRes = await externalTransferSplit(c.env, {
+        fromMember: senderRow.xrun_member_id,
+        recipients: [{ toAddress: companyAddr, amount: String(PERSONA_PAID_PRICE_XRUN) }],
+        currency,
+        pin: body.pin,
+        source: "afterlife.persona-create",
+      });
+      if (!payRes.ok) {
+        if (payRes.code === 401 || payRes.code === 403) {
+          throw new APIError("UNAUTHENTICATED", "PIN verification failed.");
+        }
+        if (payRes.code === 402) {
+          throw new APIError("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.");
+        }
+        throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
+      }
     }
 
     const voiceType = body.voice_preset_id ? "preset" : "text_only";
@@ -600,12 +654,16 @@ clones.post("/:id/follow", requireAuth, async (c) => {
     if (!role) throw new APIError("FORBIDDEN", "Cannot follow private clone.");
   }
 
-  await db
+  const result = await db
     .prepare(
       `INSERT OR IGNORE INTO clone_follows (user_id, clone_id) VALUES (?, ?)`,
     )
     .bind(userId, cloneId)
     .run();
+
+  if ((result.meta?.changes ?? 0) > 0) {
+    await notifyCloneEvent(c.env, "clone_follow", { actorId: userId, cloneId });
+  }
   return c.json({ ok: true });
 });
 
@@ -664,6 +722,207 @@ clones.get("/:id/followers", async (c) => {
       avatarUrl: r.userAvatarUrl,
       createdAt: r.createdAt,
     })),
+  });
+});
+
+clones.get("/:id/like-status", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const userId = c.get("userId")!;
+  const row = await c.env.DB
+    .prepare(
+      `SELECT 1 AS hit FROM feed_likes fl
+         JOIN feeds f ON f.id = fl.feed_id
+        WHERE fl.user_id = ? AND f.clone_id = ?
+        LIMIT 1`,
+    )
+    .bind(userId, cloneId)
+    .first<{ hit: number }>();
+  return c.json({ liked: row != null });
+});
+
+const giftSchema = z.object({
+  giftId: z.string().min(1).max(80),
+  giftName: z.string().min(1).max(120),
+  amount: z.number().positive().max(10_000_000), 
+  pin: z.string().regex(/^\d{6}$/, "6-digit PIN required"),
+});
+
+clones.post("/:id/gift", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const senderId = c.get("userId")!;
+  const body = await parseJson(c, giftSchema);
+
+  const companyAddr = c.env.COMPANY_GIFT_WALLET;
+  if (!companyAddr) {
+    throw new APIError(
+      "INTERNAL_ERROR",
+      "Server missing COMPANY_GIFT_WALLET configuration.",
+    );
+  }
+  const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
+
+  const sender = await c.env.DB
+    .prepare(`SELECT id, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(senderId)
+    .first<{ id: number; xrun_member_id: number | null }>();
+  if (!sender) throw new APIError("UNAUTHENTICATED", "User not found.");
+  if (!sender.xrun_member_id) {
+    throw new APIError("CONFLICT", "xrun account not linked to your afterlife user.");
+  }
+
+  const clone = await c.env.DB
+    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .bind(cloneId)
+    .first<{ id: number; owner_id: number }>();
+  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+
+  if (clone.owner_id === senderId) {
+    throw new APIError("VALIDATION_FAILED", "Cannot send a gift to your own persona.");
+  }
+
+  const owner = await c.env.DB
+    .prepare(
+      `SELECT id, xrun_wallet, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(clone.owner_id)
+    .first<{ id: number; xrun_wallet: string | null; xrun_member_id: number | null }>();
+
+  if (!owner?.xrun_member_id) {
+    throw new APIError(
+      "CONFLICT",
+      "Persona owner has no xrun account — cannot route 40% share.",
+    );
+  }
+
+  const total = body.amount;
+  const companyAmount = Math.round(total * 0.6 * 1_000_000) / 1_000_000;
+  const ownerAmount = Math.round(total * 0.4 * 1_000_000) / 1_000_000;
+
+  const insertRes = await c.env.DB
+    .prepare(
+      `INSERT INTO gift_logs
+         (sender_user_id, clone_id, owner_user_id, gift_id, gift_name,
+          total_amount, company_amount, owner_amount,
+          company_address, owner_address, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    )
+    .bind(
+      senderId,
+      cloneId,
+      clone.owner_id,
+      body.giftId,
+      body.giftName,
+      total,
+      companyAmount,
+      ownerAmount,
+      companyAddr,
+      owner.xrun_wallet, 
+    )
+    .run();
+  const logId = Number(insertRes.meta.last_row_id);
+
+  const xrunRes = await externalTransferSplit(c.env, {
+    fromMember: sender.xrun_member_id,
+    recipients: [
+      { toAddress: companyAddr, amount: String(companyAmount) },
+      { toMember: owner.xrun_member_id, amount: String(ownerAmount) },
+    ],
+    currency,
+    pin: body.pin,
+    source: "afterlife.gift",
+  });
+
+  if (!xrunRes.ok) {
+
+    await c.env.DB
+      .prepare(
+        `UPDATE gift_logs SET status = 'failed', failure_reason = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      )
+      .bind(xrunRes.reason ?? "unknown", logId)
+      .run();
+
+    if (xrunRes.code === 401 || xrunRes.code === 403) {
+      throw new APIError("UNAUTHENTICATED", "PIN verification failed.", {
+        reason: xrunRes.reason,
+      });
+    }
+    if (xrunRes.code === 402) {
+      throw new APIError("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.", {
+        reason: xrunRes.reason,
+      });
+    }
+    if (xrunRes.code === 501 || xrunRes.code === 404) {
+      throw new APIError(
+        "UPSTREAM_NOT_IMPLEMENTED",
+        "xrun transfer endpoint not yet available.",
+        { reason: xrunRes.reason },
+      );
+    }
+    throw new APIError("UPSTREAM_FAILURE", xrunRes.reason ?? "xrun transfer error");
+  }
+
+  const companyAddrL = companyAddr.toLowerCase();
+  const companyTx = xrunRes.txs.find((t) => t.toAddress.toLowerCase() === companyAddrL);
+  const ownerTx = xrunRes.txs.find((t) => t.toAddress.toLowerCase() !== companyAddrL);
+  console.log(
+    `[gift] xrun txs:`,
+    xrunRes.txs.map((t) => `${t.toAddress}=${(t.txHash ?? "").slice(0, 12)}`).join(" | "),
+    `companyMatch=${!!companyTx} ownerMatch=${!!ownerTx} newBalance=${xrunRes.newBalance}`,
+  );
+  await c.env.DB
+    .prepare(
+      `UPDATE gift_logs
+          SET status = 'sent',
+              tx_company = ?,
+              tx_owner = ?,
+              owner_address = COALESCE(?, owner_address),
+              completed_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(
+      companyTx?.txHash ?? null,
+      ownerTx?.txHash ?? null,
+      ownerTx?.toAddress ?? null, 
+      logId,
+    )
+    .run();
+
+  await logActivity(c, {
+    userId: senderId,
+    action: "clone.gift.sent",
+    details: {
+      cloneId,
+      ownerId: clone.owner_id,
+      giftId: body.giftId,
+      amount: total,
+    },
+  });
+
+  await notifyCloneEvent(c.env, "clone_gift", {
+    actorId: senderId,
+    cloneId,
+    extraBody: `${body.giftName} 선물 (+${ownerAmount} XRUN)`,
+  });
+
+  return c.json({
+    ok: true,
+    gift: {
+      id: logId,
+      giftId: body.giftId,
+      giftName: body.giftName,
+      total,
+      companyAmount,
+      ownerAmount,
+      txCompany: companyTx?.txHash ?? null,
+      txOwner: ownerTx?.txHash ?? null,
+      newBalance: xrunRes.newBalance,
+    },
   });
 });
 

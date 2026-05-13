@@ -27,7 +27,7 @@ export default function Step5VisibilityScreen({ navigation }: Props) {
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader title={t("create.stepTitles.5")} showBackButton
         onBackPress={() => navigation.goBack()} />
-      <StepIndicator currentStep={5} totalSteps={7} />
+      <StepIndicator currentStep={4} totalSteps={6} />
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />
       </SafeScrollView>

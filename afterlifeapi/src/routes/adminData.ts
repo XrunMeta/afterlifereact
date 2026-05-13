@@ -90,7 +90,10 @@ adminData.get("/oth-path", async (c) => {
               c.clone_type AS cloneType, c.visibility,
               c.training_status AS trainingStatus,
               c.owner_id AS ownerId, u.name AS ownerName,
-              c.created_at AS createdAt
+              c.created_at AS createdAt,
+              c.deletion_state AS deletionState,
+              c.soft_deleted_at AS softDeletedAt,
+              c.deleted_at AS deletedAt
          FROM clones c
          LEFT JOIN users u ON u.id = c.owner_id
         ORDER BY c.id DESC

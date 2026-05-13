@@ -9,6 +9,18 @@ import enCommon from '../locales/en/common.json';
 import zhCnCommon from '../locales/zh-CN/common.json';
 import idCommon from '../locales/id/common.json';
 
+import koCountries from '../locales/ko/countries';
+import jaCountries from '../locales/ja/countries';
+import enCountries from '../locales/en/countries';
+import zhCnCountries from '../locales/zh-CN/countries';
+import idCountries from '../locales/id/countries';
+
+import koRegions from '../locales/ko/regions';
+import jaRegions from '../locales/ja/regions';
+import enRegions from '../locales/en/regions';
+import zhCnRegions from '../locales/zh-CN/regions';
+import idRegions from '../locales/id/regions';
+
 const LANGUAGE_STORAGE_KEY = 'afterlife_app_language';
 
 export const SUPPORTED_LANGUAGES = [
@@ -20,11 +32,11 @@ export const SUPPORTED_LANGUAGES = [
 ];
 
 const resources = {
-  ko: { common: koCommon },
-  ja: { common: jaCommon },
-  en: { common: enCommon },
-  'zh-CN': { common: zhCnCommon },
-  id: { common: idCommon },
+  ko: { common: koCommon, countries: koCountries, regions: koRegions },
+  ja: { common: jaCommon, countries: jaCountries, regions: jaRegions },
+  en: { common: enCommon, countries: enCountries, regions: enRegions },
+  'zh-CN': { common: zhCnCommon, countries: zhCnCountries, regions: zhCnRegions },
+  id: { common: idCommon, countries: idCountries, regions: idRegions },
 };
 
 const getSystemLanguage = (): string => {
@@ -54,7 +66,7 @@ const initializeI18n = async () => {
         resources,
         lng: defaultLanguage,
         fallbackLng: 'ko',
-        ns: ['common'],
+        ns: ['common', 'countries', 'regions'],
         defaultNS: 'common',
         interpolation: {
           escapeValue: false, 
@@ -69,7 +81,7 @@ const initializeI18n = async () => {
         resources,
         lng: 'ko',
         fallbackLng: 'ko',
-        ns: ['common'],
+        ns: ['common', 'countries', 'regions'],
         defaultNS: 'common',
         interpolation: {
           escapeValue: false,

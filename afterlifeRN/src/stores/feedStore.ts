@@ -93,6 +93,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     const state = get();
     const wasLiked = state.likedIds.includes(id);
     const willLike = !wasLiked;
+    const cloneIdHint = id < 0 ? -id : "?"; 
+    console.log(
+      `[LIKE] toggle id=${id} ${id < 0 ? `(synthetic, cloneId=${cloneIdHint})` : ""} ${wasLiked ? "true" : "false"} → ${willLike ? "true" : "false"}`,
+    );
 
     set({
       likedIds: willLike
@@ -124,8 +128,12 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         ? likeFeed(accessToken, id)
         : unlikeFeed(accessToken, id);
 
+    console.log(
+      `[LIKE] → ${isSynthetic ? "POST/DELETE /oth-path" + cloneIdForSynthetic + "/like" : (willLike ? "POST" : "DELETE") + " /oth-path" + id + "/like"}`,
+    );
     promise
       .then((res) => {
+        console.log(`[LIKE] ← ok likesCount=${res.likesCount}`);
 
         const cur = get().apiFeeds;
         if (cur) {
@@ -207,12 +215,17 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         return;
       }
 
-      const serverLiked = res.items
-        .filter((it) => it.likedByMe === true)
-        .map((it) => it.id);
+      const pageIds = new Set(res.items.map((it) => it.id));
+      const serverLikedSet = new Set(
+        res.items.filter((it) => it.likedByMe === true).map((it) => it.id),
+      );
       const cur = get().likedIds;
-      const merged = Array.from(new Set([...cur, ...serverLiked]));
-      set({ apiFeeds: res.items, apiLoading: false, likedIds: merged });
+
+      const next = [
+        ...cur.filter((id) => !pageIds.has(id)),
+        ...Array.from(serverLikedSet),
+      ];
+      set({ apiFeeds: res.items, apiLoading: false, likedIds: next });
     } catch (err) {
       console.warn("[feedStore] discover failed:", err);
 
@@ -227,11 +240,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
       return apiFeeds.map(toDomainFeed);
     }
 
-    const u = useAuthStore.getState().user?.id ?? DEFAULT_USER_ID;
-    const visibleCloneIds = new Set(
-      seedSource.clones().filter((c) => canSeeClone(c, u)).map((c) => c.id),
-    );
-    return get().feeds.filter((f) => visibleCloneIds.has(f.cloneId));
+    return [];
   },
 
   getFilteredFeeds: () => {

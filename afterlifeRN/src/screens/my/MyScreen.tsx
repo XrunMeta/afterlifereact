@@ -10,12 +10,13 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Linking,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, CommonActions } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
-import * as ImagePicker from "expo-image-picker";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import NotificationBell from "../../components/common/NotificationBell";
@@ -23,8 +24,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useCloneStore } from "../../stores/cloneStore";
 import { seedSource } from "../../api/source";
-import { uploadFile } from "../../api/files";
-import { patchMe } from "../../api/auth";
+import { deleteMe, AuthApiError } from "../../api/auth";
 import { listMyClones, listMyFollowedClones, type FollowedClone, type MyClone } from "../../api/clones";
 import { useFocusEffect } from "@react-navigation/native";
 import { getPaymentPinStatus, getXrunBalance } from "../../api/payments";
@@ -36,8 +36,6 @@ import type { MyStackParamList } from "../../navigation/types";
 
 const DEFAULT_USER_ID = 1;
 
-const recentTransactions: Array<{ labelKey: string; date: string; amount: number }> = [];
-
 type MyNav = NativeStackNavigationProp<MyStackParamList>;
 
 export default function MyScreen() {
@@ -46,18 +44,17 @@ export default function MyScreen() {
   const user = useAuthStore((s) => s.user);
   const apiUser = useAuthStore((s) => s.apiUser);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const patchApiUser = useAuthStore((s) => s.patchApiUser);
   const logout = useAuthStore((s) => s.logout);
   const follows = useFollowStore((s) => s.follows);
   const isFollowing = useFollowStore((s) => s.isFollowing);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
   const localClones = useCloneStore((s) => s.localClones);
   const [showComingSoon, setShowComingSoon] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
 
-  const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(null);
-  const [adBalance, setAdBalance] = useState<number | null | undefined>(null);
+  const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
+  const [adBalance, setAdBalance] = useState<number | null | undefined>(undefined);
+  const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,15 +81,23 @@ export default function MyScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    if (!accessToken) {
+
+      setXrunBalanceLoading(false);
+      setXrunBalance(undefined);
+      setAdBalance(undefined);
+      return;
+    }
+    setXrunBalanceLoading(true);
     (async () => {
-      if (!accessToken) return;
       try {
         const res = await getXrunBalance(accessToken);
         console.log("[XRUN-BALANCE]", res);
         if (cancelled) return;
         if (res.linked) {
-          setXrunBalance(res.xrun);
-          setAdBalance(res.ad);
+
+          setXrunBalance(res.xrun ?? 0);
+          setAdBalance(res.ad ?? 0);
         } else {
           setXrunBalance(undefined);
           setAdBalance(undefined);
@@ -103,6 +108,8 @@ export default function MyScreen() {
           setXrunBalance(undefined);
           setAdBalance(undefined);
         }
+      } finally {
+        if (!cancelled) setXrunBalanceLoading(false);
       }
     })();
     return () => {
@@ -110,47 +117,7 @@ export default function MyScreen() {
     };
   }, [accessToken]);
 
-  const handleEditAvatar = async () => {
-    if (!accessToken) {
-      Alert.alert(t("common.notice"), t("my.loginRequired"));
-      return;
-    }
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      Alert.alert(t("my.permTitle"), t("my.permDesc"));
-      return;
-    }
-    const picked = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (picked.canceled || !picked.assets?.[0]) return;
-    const asset = picked.assets[0];
-
-    setUploadingAvatar(true);
-    try {
-      const uploaded = await uploadFile(accessToken, asset.uri, {
-        purpose: "avatar",
-        fileName: asset.fileName ?? "avatar.jpg",
-        mimeType: asset.mimeType ?? "image/jpeg",
-      });
-      await patchMe(accessToken, { avatarUrl: uploaded.url });
-      patchApiUser({ avatarUrl: uploaded.url });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : t("my.uploadFailed");
-      Alert.alert(t("common.error"), msg);
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-  const displayName = apiUser?.name ?? user?.displayName ?? t("my.userFallback");
-  const subLabel = apiUser?.email ?? user?.handle ?? "@afterlife";
-  const avatarUrl = apiUser ? apiUser.avatarUrl : user?.avatarUrl ?? null;
-
-  const balanceLoading = xrunBalance === null;
+  const balanceLoading = xrunBalanceLoading;
   const xrunDisplay = xrunBalance ?? null;
   const adDisplay = adBalance ?? null;
 
@@ -170,6 +137,26 @@ export default function MyScreen() {
   const [apiFollowingList, setApiFollowingList] = useState<FollowedClone[] | null>(null);
   const [apiMyClonesList, setApiMyClonesList] = useState<MyClone[] | null>(null);
   const [statsModal, setStatsModal] = useState<"following" | "myClones" | null>(null);
+  const [chargeModalVisible, setChargeModalVisible] = useState(false);
+
+  const handleOpenXrunApp = async () => {
+    setChargeModalVisible(false);
+    const playStoreScheme = "market://details?id=run.xrun.xrunapp";
+    const playStoreWeb = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+    const appStoreSearch = "https://apps.apple.com/kr/search?term=xrun";
+    try {
+      if (Platform.OS === "android") {
+
+        const canMarket = await Linking.canOpenURL(playStoreScheme);
+        await Linking.openURL(canMarket ? playStoreScheme : playStoreWeb);
+      } else {
+        await Linking.openURL(appStoreSearch);
+      }
+    } catch (err) {
+      console.warn("[MyScreen] open xrun app failed:", err);
+      Alert.alert("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
+    }
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -205,6 +192,7 @@ export default function MyScreen() {
           }
         })
         .catch((err) => console.warn("[MyScreen] myClones fail:", err));
+
       return () => {
         cancelled = true;
       };
@@ -219,13 +207,43 @@ export default function MyScreen() {
     seedSource.clones().filter((c) => c.ownerId === uid).length +
       localClones.filter((c) => c.ownerId === uid).length;
 
-  const settingsItems: Array<{
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "회원 탈퇴",
+      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(xrun 가입자라면 xrun 계정은 유지됩니다)",
+      [
+        { text: "취소", style: "cancel" },
+        {
+          text: "탈퇴",
+          style: "destructive",
+          onPress: async () => {
+            if (!accessToken) return;
+            setDeleting(true);
+            try {
+
+              await deleteMe(accessToken);
+              await logout();
+            } catch (err) {
+              const msg = err instanceof AuthApiError ? err.message : "탈퇴에 실패했어요.";
+              Alert.alert("오류", msg);
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  type SettingsItem = {
     icon: keyof typeof Feather.glyphMap;
     labelKey: string;
     descKey: string;
-    route: keyof MyStackParamList;
-  }> = [
+    danger?: boolean;
+  } & ({ route: keyof MyStackParamList } | { action: () => void });
 
+  const settingsItems: SettingsItem[] = [
     {
       icon: "user",
       labelKey: "my.menu.editProfile",
@@ -245,172 +263,129 @@ export default function MyScreen() {
       route: "LanguageSettings",
     },
     {
-      icon: "shield",
+      icon: "slash",
       labelKey: "my.menu.privacy",
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
+    },
+    {
+      icon: "file-text",
+      labelKey: "my.coin.transactions",
+      descKey: "my.coin.viewAll",
+      route: "Transactions",
+    },
+    {
+      icon: "trash-2",
+      labelKey: "settings.privacy.deleteAccount",
+      descKey: "settings.privacy.deleteAccount",
+      action: handleDeleteAccount,
+    },
+    {
+      icon: "log-out",
+      labelKey: "my.menu.logout",
+      descKey: "my.menu.logout",
+      action: () => void logout(),
     },
   ];
 
   return (
     <SafeScrollView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
-        title="My Page"
-        rightAction={<NotificationBell />}
+        title="설정"
+        showBackButton
+        onBackPress={() => {
+
+          navigation.getParent()?.dispatch(
+            CommonActions.navigate({
+              name: "ClonesTab",
+              params: { screen: "Dashboard" },
+            }),
+          );
+        }}
       />
 
       <View style={s.content}>
-        {}
-        <View style={s.profileSection}>
-          <View style={s.avatarWrap}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={s.avatar} />
-            ) : (
-              <View style={[s.avatar, s.avatarPlaceholder]}>
-                <Feather name="user" size={40} color={COLORS.zinc400} />
-              </View>
-            )}
-            <TouchableOpacity
-              style={s.editAvatarBtn}
-              onPress={() => navigation.navigate("EditProfile")}
-            >
-              <Feather name="edit-2" size={14} color={COLORS.white} />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={s.userName}>{displayName}</Text>
-          <Text style={s.userHandle}>{subLabel}</Text>
-
-          <View style={s.statsRow}>
-            <TouchableOpacity
-              style={s.statItem}
-              onPress={() => {
-                console.log(
-                  `[MyScreen] stat TAP "팔로우 중" — apiFollowingCount=${apiFollowingCount} apiFollowingList=${apiFollowingList?.length ?? "null"}`,
-                );
-                setStatsModal("following");
-              }}
-            >
-              <Text style={s.statValue}>{followingCount}</Text>
-              <Text style={s.statLabel}>{t("my.stats.following")}</Text>
-            </TouchableOpacity>
-            <View style={s.statDivider} />
-            <TouchableOpacity
-              style={s.statItem}
-              onPress={() => {
-                console.log(
-                  `[MyScreen] stat TAP "내 페르소나" — apiMyClonesCount=${apiMyClonesCount} apiMyClonesList=${apiMyClonesList?.length ?? "null"}`,
-                );
-                setStatsModal("myClones");
-              }}
-            >
-              <Text style={s.statValue}>{myClonesCount}</Text>
-              <Text style={s.statLabel}>{t("my.stats.myPersona")}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {
+}
 
         {}
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>{t("my.coin.title")}</Text>
-        </View>
 
-        {}
-        <View style={s.coinCard}>
-          <View style={s.coinCardTop}>
-            <View style={s.coinLabelRow}>
-              <Feather name="dollar-sign" size={18} color={COLORS.zinc700} />
-              <Text style={s.coinLabel}>{t("my.coin.balance")}</Text>
-            </View>
-            <TouchableOpacity style={s.chargeBtn}>
-              <Feather name="plus" size={14} color={COLORS.white} />
-              <Text style={s.chargeBtnText}>{t("my.coin.charge")}</Text>
-            </TouchableOpacity>
-          </View>
-          {balanceLoading ? (
-            <ActivityIndicator color={COLORS.zinc900} style={{ alignSelf: "flex-start", marginTop: 4 }} />
-          ) : xrunDisplay != null ? (
-            <>
-              <Text style={s.coinAmount}>{xrunDisplay.toLocaleString(undefined, { maximumFractionDigits: 4 })}</Text>
-              <Text style={s.coinWon}>
-                XRUN
-                {adDisplay != null && adDisplay > 0 ? `  ·  AD ${adDisplay.toLocaleString()}` : ""}
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={s.coinAmount}>—</Text>
-              <Text style={s.coinWon}>{t("my.coin.notMapped")}</Text>
-            </>
-          )}
-        </View>
+        {
+}
 
-        {}
-        <View style={s.transactionsCard}>
-          <View style={s.transactionsHeader}>
-            <Text style={s.transactionsTitle}>{t("my.coin.transactions")}</Text>
-          </View>
-          {recentTransactions.map((tx, i) => (
-            <View
-              key={i}
-              style={[
-                s.txRow,
-                i < recentTransactions.length - 1 && s.txRowBorder,
-              ]}
-            >
-              <View style={s.txInfo}>
-                <Text style={s.txLabel}>{t(tx.labelKey)}</Text>
-                <Text style={s.txDate}>{tx.date}</Text>
-              </View>
-              <Text style={[s.txAmount, tx.amount > 0 ? s.txGreen : s.txRed]}>
-                {tx.amount > 0 ? "+" : ""}
-                {tx.amount.toLocaleString()} xrun
-              </Text>
-            </View>
-          ))}
-          <TouchableOpacity style={s.viewAllBtn}>
-            <Text style={s.viewAllText}>{t("my.coin.viewAll")}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {}
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionLabel}>{t("my.coin.settings")}</Text>
-        </View>
-
+        {
+}
         <View style={s.settingsCard}>
-          {settingsItems.map((item, i) => (
-            <TouchableOpacity
-              key={item.route}
-              style={[
-                s.settingsRow,
-                i < settingsItems.length - 1 && s.settingsRowBorder,
-              ]}
-              onPress={() => navigation.navigate(item.route)}
-            >
-              <View style={s.settingsIcon}>
-                <Feather name={item.icon} size={22} color={COLORS.zinc900} />
-              </View>
-              <View style={s.settingsInfo}>
-                <Text style={s.settingsLabel}>{t(item.labelKey)}</Text>
-                <Text style={s.settingsDesc}>{t(item.descKey)}</Text>
-              </View>
-              <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
-            </TouchableOpacity>
-          ))}
+          {settingsItems.map((item, i) => {
+            const isAction = "action" in item;
+            const isDeleteRow = item.labelKey === "settings.privacy.deleteAccount";
+            const disabled = isDeleteRow && deleting;
+            const iconColor = item.danger ? COLORS.error : COLORS.zinc900;
+            return (
+              <TouchableOpacity
+                key={item.labelKey}
+                style={[
+                  s.settingsRow,
+                  i < settingsItems.length - 1 && s.settingsRowBorder,
+                ]}
+                disabled={disabled}
+                onPress={() => {
+                  if (isAction) item.action();
+                  else navigation.navigate(item.route);
+                }}
+              >
+                <View style={s.settingsIcon}>
+                  <Feather name={item.icon} size={22} color={iconColor} />
+                </View>
+                <View style={s.settingsInfo}>
+                  <Text style={[s.settingsLabel, item.danger && { color: COLORS.error }]}>
+                    {t(item.labelKey)}
+                  </Text>
+                  <Text style={s.settingsDesc}>{t(item.descKey)}</Text>
+                </View>
+                {disabled ? (
+                  <ActivityIndicator color={COLORS.zinc500} />
+                ) : (
+                  <Feather name="chevron-right" size={20} color={COLORS.zinc400} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
-
-        {}
-        <TouchableOpacity style={s.logoutBtn} onPress={() => void logout()}>
-          <Feather name="log-out" size={16} color={COLORS.zinc600} />
-          <Text style={s.logoutText}>{t("my.menu.logout")}</Text>
-        </TouchableOpacity>
       </View>
 
       <PaymentPinPromptModal
         visible={showPinPrompt}
         onClose={() => setShowPinPrompt(false)}
       />
+
+      {}
+      <Modal visible={chargeModalVisible} transparent animationType="fade">
+        <Pressable style={s.chargeOverlay} onPress={() => setChargeModalVisible(false)}>
+          <Pressable style={s.chargeBox} onPress={(e) => e.stopPropagation()}>
+            <View style={s.chargeIconWrap}>
+              <Feather name="zap" size={28} color={COLORS.violet600} />
+            </View>
+            <Text style={s.chargeTitle}>암호화폐 충전 안내</Text>
+            <Text style={s.chargeDesc}>
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
+            </Text>
+            <Text style={s.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
+            <View style={s.chargeBtns}>
+              <TouchableOpacity
+                style={s.chargeCancelBtn}
+                onPress={() => setChargeModalVisible(false)}
+              >
+                <Text style={s.chargeCancelText}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.chargeGoBtn} onPress={handleOpenXrunApp}>
+                <Feather name="external-link" size={14} color={COLORS.white} />
+                <Text style={s.chargeGoText}>바로가기</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {}
       <Modal visible={statsModal !== null} transparent animationType="slide">
@@ -425,7 +400,7 @@ export default function MyScreen() {
                 !apiFollowingList || apiFollowingList.length === 0 ? (
                   <View style={s.statsEmpty}>
                     <Feather name="users" size={28} color={COLORS.zinc300} />
-                    <Text style={s.statsEmptyText}>아직 팔로우한 페르소나가 없어요</Text>
+                    <Text style={s.statsEmptyText}>아직 구독한 페르소나가 없어요</Text>
                   </View>
                 ) : (
                   apiFollowingList.map((c) => {
@@ -483,7 +458,7 @@ export default function MyScreen() {
                           style={[s.followToggleBtn, followed && s.followToggleBtnActive]}
                         >
                           <Text style={[s.followToggleText, followed && s.followToggleTextActive]}>
-                            {followed ? "팔로잉" : "팔로우"}
+                            {followed ? "구독 중" : "구독"}
                           </Text>
                         </TouchableOpacity>
                       </TouchableOpacity>
@@ -565,20 +540,82 @@ const s = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 24,
+    justifyContent: "space-around",
     marginTop: 16,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: COLORS.zinc50,
     borderRadius: 16,
+    alignSelf: "stretch",
   },
-  statItem: { alignItems: "center", minWidth: 64 },
+  statItem: { flex: 1, alignItems: "center" },
   statValue: { fontSize: 20, fontWeight: "700", color: COLORS.zinc900 },
   statLabel: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
   statDivider: { width: 1, height: 24, backgroundColor: COLORS.zinc200 },
 
   sectionHeader: { marginBottom: 10 },
   sectionLabel: { fontSize: 13, fontWeight: "500", color: COLORS.zinc400, paddingHorizontal: 4 },
+
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.zinc100,
+  },
+  coinIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  coinTextWrap: { flex: 1 },
+  coinSymbol: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.zinc900,
+  },
+  coinNetwork: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    marginTop: 2,
+  },
+  coinAmountWrap: {
+    alignItems: "flex-end",
+    marginRight: 8,
+  },
+  coinAmountText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+  },
+  coinUnit: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.zinc700,
+  },
+  coinChargeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  adNote: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    marginTop: -4,
+  },
 
   coinCard: {
     backgroundColor: COLORS.white,
@@ -606,6 +643,86 @@ const s = StyleSheet.create({
     borderRadius: RADIUS.full,
   },
   chargeBtnText: { fontSize: 13, fontWeight: "700", color: COLORS.white },
+
+  chargeOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  chargeBox: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: 20,
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+  },
+  chargeIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  chargeTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.zinc900,
+    marginBottom: 10,
+  },
+  chargeDesc: {
+    fontSize: 14,
+    color: COLORS.zinc600,
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  chargeHint: {
+    fontSize: 11,
+    color: COLORS.zinc400,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  chargeBtns: {
+    flexDirection: "row",
+    gap: 8,
+    width: "100%",
+  },
+  chargeCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chargeCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.zinc600,
+  },
+  chargeGoBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: COLORS.violet600,
+  },
+  chargeGoText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
   coinAmount: { fontSize: 32, fontWeight: "700", color: COLORS.zinc900 },
   coinWon: { fontSize: 12, color: COLORS.zinc500, marginTop: 4 },
 
@@ -681,6 +798,18 @@ const s = StyleSheet.create({
     paddingVertical: 8,
   },
   logoutText: { fontSize: 14, color: COLORS.zinc600 },
+
+  logoutBigBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    backgroundColor: COLORS.zinc900,
+    borderRadius: RADIUS.lg,
+    marginTop: 4,
+  },
+  logoutBigText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
 
   statsOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   statsSheet: {

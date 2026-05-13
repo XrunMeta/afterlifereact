@@ -76,3 +76,25 @@ export async function verifyPaymentPin(
 export async function getXrunBalance(accessToken: string): Promise<XrunBalance> {
   return authFetch("/oth-path", accessToken, { method: "GET" });
 }
+
+export interface TransactionItem {
+  id: number;
+  type: "gift_sent" | "gift_received";
+  amount: number; 
+  sign: "-" | "+";
+  giftId: string;
+  giftName: string;
+  cloneId: number;
+  cloneName: string | null;
+  cloneAvatarUrl: string | null;
+  txHash: string | null;
+  createdAt: string;
+}
+
+export async function getMyTransactions(
+  accessToken: string,
+  opts?: { limit?: number },
+): Promise<{ items: TransactionItem[] }> {
+  const qs = opts?.limit ? `?limit=${opts.limit}` : "";
+  return authFetch(`/oth-path${qs}`, accessToken, { method: "GET" });
+}

@@ -190,10 +190,12 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
         platform: pushPlatform ?? undefined,
       });
 
-      const meRes = await getMe(res.accessToken);
-      await setApiAuth(res.accessToken, meRes.user);
-      console.log("[AUTH/xrun] user:", meRes.user);
-      await hydrate();
+      console.log("[AUTH/xrun] success");
+      navigation.replace("SignupComplete", {
+        accessToken: res.accessToken,
+        persist: true,
+        email,
+      });
     } catch (err) {
       let msg = t("common.error");
       if (err instanceof AuthApiError) {
@@ -230,7 +232,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
               autoFocus
             />
             <Button
-              title={submitting ? t("auth.signup.verifying") : t("auth.xrun.submit")}
+              title={submitting ? t("auth.signup.signingUp") : t("auth.xrun.submit")}
               onPress={handleComplete}
               disabled={submitting || otpCode.length !== 6}
             />

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -34,6 +35,9 @@ type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, "Login">;
 };
 
+const AUTO_LOGIN_PREF_KEY = "@afterlifeRN/auth/autoLoginPref";
+const LAST_EMAIL_KEY = "@afterlifeRN/auth/lastEmail";
+
 export default function LoginScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const [email, setEmail] = useState("");
@@ -45,6 +49,21 @@ export default function LoginScreen({ navigation }: Props) {
   const loginWithApi = useAuthStore((s) => s.loginWithApi);
   const [loggingIn, setLoggingIn] = useState(false);
 
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [pref, savedEmail] = await Promise.all([
+          AsyncStorage.getItem(AUTO_LOGIN_PREF_KEY),
+          AsyncStorage.getItem(LAST_EMAIL_KEY),
+        ]);
+        if (pref === "1") setAutoLogin(true);
+        if (savedEmail) setEmail(savedEmail);
+      } catch (err) {
+        console.warn("[AUTH/login] restore prefs failed:", err);
+      }
+    })();
+  }, []);
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert(t("common.notice"), t("auth.signup.emailRequired"));
@@ -53,14 +72,30 @@ export default function LoginScreen({ navigation }: Props) {
     setLoggingIn(true);
     try {
       const deviceId = await getOrCreateDeviceId();
-      const user = await loginWithApi({ email, password, deviceId });
-      console.log("[AUTH/login] user:", user);
+
+      const user = await loginWithApi(
+        { email, password, deviceId },
+        { persist: autoLogin },
+      );
+      console.log(
+        `[AUTH/login] user: ${user.email} autoLogin=${autoLogin ? "ON" : "OFF"}`,
+      );
+
+      if (autoLogin) {
+        await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
+        await AsyncStorage.setItem(LAST_EMAIL_KEY, email);
+      } else {
+        await AsyncStorage.removeItem(AUTO_LOGIN_PREF_KEY);
+        await AsyncStorage.removeItem(LAST_EMAIL_KEY);
+      }
 
       await hydrate();
     } catch (err) {
       let msg = t("auth.login.loginFailed");
       if (err instanceof AuthApiError) {
-        if (err.code === "UNAUTHENTICATED") {
+        if (err.code === "ACCOUNT_LOCKED") {
+          msg = t("auth.login.accountLocked");
+        } else if (err.code === "UNAUTHENTICATED") {
           msg = t("auth.login.invalidCredentials");
         } else {
           msg = err.message;
@@ -75,10 +110,6 @@ export default function LoginScreen({ navigation }: Props) {
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
 
   const handleSocialLogin = async (provider: string) => {
-    if (provider === "xrun") {
-      navigation.navigate("XrunLogin");
-      return;
-    }
     if (provider === "google") {
       try {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -104,15 +135,21 @@ export default function LoginScreen({ navigation }: Props) {
           const deviceId = await getOrCreateDeviceId();
           const res = await googleSignIn({ idToken, deviceId, platform: "android" });
           const meRes = await getMe(res.accessToken);
-          await setApiAuth(res.accessToken, meRes.user);
+          await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
+          if (autoLogin) {
+            await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
+            await AsyncStorage.setItem(LAST_EMAIL_KEY, meRes.user.email);
+          } else {
+            await AsyncStorage.removeItem(AUTO_LOGIN_PREF_KEY);
+            await AsyncStorage.removeItem(LAST_EMAIL_KEY);
+          }
           console.log("[AUTH/google] user:", meRes.user);
           await hydrate();
-        } else if (check.xrunExists) {
-
-          navigation.navigate("XrunOnboarding", { email: check.email, google: { idToken } });
         } else {
 
-          navigation.navigate("Signup", { google: { idToken, email: check.email, name: check.name } });
+          navigation.navigate("Signup", {
+            google: { idToken, email: check.email, name: check.name },
+          });
         }
       } catch (err: any) {
         if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
@@ -187,16 +224,16 @@ export default function LoginScreen({ navigation }: Props) {
                   <Feather name="check" size={14} color={COLORS.white} />
                 )}
               </View>
-              <Text style={styles.checkboxLabel}>{t("auth.login.title")}</Text>
+              <Text style={styles.checkboxLabel}>{t("auth.login.autoLoginLabel")}</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
               <Text style={styles.forgotPassword}>{t("auth.login.forgotPassword")}</Text>
             </TouchableOpacity>
           </View>
 
           {}
           <Button
-            title={loggingIn ? t("auth.signup.verifying") : t("auth.login.loginBtn")}
+            title={loggingIn ? t("auth.login.loggingIn") : t("auth.login.loginBtn")}
             onPress={handleLogin}
             variant="primary"
             disabled={loggingIn}
@@ -217,15 +254,6 @@ export default function LoginScreen({ navigation }: Props) {
             variant="secondary"
             size="md"
             leftIcon={<Text style={{ fontSize: 18, fontWeight: "bold" }}>G</Text>}
-          />
-
-          {}
-          <Button
-            title={t("auth.login.xrunBtn")}
-            onPress={() => handleSocialLogin("xrun")}
-            variant="secondary"
-            size="md"
-            leftIcon={<Feather name="smartphone" size={18} color={COLORS.zinc900} />}
           />
 
           {}
@@ -304,6 +332,12 @@ const styles = StyleSheet.create({
     color: COLORS.zinc900,
     fontSize: 14,
     fontWeight: "500",
+  },
+  lockHint: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    paddingHorizontal: 4,
+    marginTop: -4,
   },
   divider: {
     flexDirection: "row",
