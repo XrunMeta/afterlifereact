@@ -1,6 +1,6 @@
 
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ScrollView,
+  Animated,
+  Easing,
 } from "react-native";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -45,6 +47,14 @@ const QUESTION_PHASES: Phase[] = [
 ];
 const TOTAL_QUESTIONS = QUESTION_PHASES.length;
 
+const INTRO_LINES = [
+  "안녕! 나는 네 소중한 기억 속에 살고 있는 요정이야.",
+  "지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...",
+  "떠올랐어?! 그럼, 네 머릿속에 있는 그 소중한 존재를 생각하며 답해줘!",
+] as const;
+const TYPE_SPEED_MS = 35;   
+const LINE_PAUSE_MS = 450;  
+
 export default function Step6CreatingScreen({ navigation }: Props) {
   useTranslation();
   const draft = useCloneStore((s) => s.creationDraft);
@@ -56,6 +66,69 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const [habit, setHabit] = useState<string>("");
   const [personality, setPersonality] = useState<string>("");
   const [memory, setMemory] = useState<string>("");
+
+  const [typedLines, setTypedLines] = useState<string[]>(() => INTRO_LINES.map(() => ""));
+  const [introDone, setIntroDone] = useState(false);
+  const skipIntro = () => {
+    setTypedLines(INTRO_LINES.map((l) => l));
+    setIntroDone(true);
+  };
+
+  const emojiOpacity = useRef(new Animated.Value(0)).current;
+  const emojiScale = useRef(new Animated.Value(0.6)).current;
+
+  const cursorOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (phase !== "intro") return;
+    let cancelled = false;
+
+    Animated.parallel([
+      Animated.timing(emojiOpacity, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(emojiScale, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const cursorLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(cursorOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+        Animated.timing(cursorOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ]),
+    );
+    cursorLoop.start();
+
+    const run = async () => {
+
+      await new Promise((r) => setTimeout(r, 400));
+      const accumulated = INTRO_LINES.map(() => "");
+      for (let li = 0; li < INTRO_LINES.length; li++) {
+        const line = INTRO_LINES[li]!;
+        for (let ci = 1; ci <= line.length; ci++) {
+          if (cancelled) return;
+          accumulated[li] = line.slice(0, ci);
+          setTypedLines([...accumulated]);
+          await new Promise((r) => setTimeout(r, TYPE_SPEED_MS));
+        }
+        if (cancelled) return;
+        await new Promise((r) => setTimeout(r, LINE_PAUSE_MS));
+      }
+      if (!cancelled) setIntroDone(true);
+    };
+    run();
+
+    return () => {
+      cancelled = true;
+      cursorLoop.stop();
+    };
+  }, [phase, emojiOpacity, emojiScale, cursorOpacity]);
 
   const buildPersonaNotes = (): string => {
     const sections: string[] = [];
@@ -127,7 +200,8 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   };
 
   const canProceed = (() => {
-    if (phase === "intro") return true;
+
+    if (phase === "intro") return introDone;
     if (phase === "name") return name.trim().length > 0;
 
     return true;
@@ -157,19 +231,45 @@ export default function Step6CreatingScreen({ navigation }: Props) {
             showsVerticalScrollIndicator={false}
           >
             {phase === "intro" && (
-              <View style={styles.introBox}>
-                <Text style={styles.introEmoji}>✨</Text>
-                <Text style={styles.introTitle}>
-                  안녕! 나는 네 소중한 기억 속에 살고 있는 요정이야.
-                </Text>
-                <Text style={styles.introBody}>
-                  지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...
-                </Text>
-                <Text style={styles.introBody}>
-                  떠올랐어?!{"\n"}
-                  그럼, 네 머릿속에 있는 그 소중한 존재를 생각하며 답해줘!
-                </Text>
-              </View>
+              <TouchableOpacity
+                style={styles.introBox}
+                onPress={skipIntro}
+                activeOpacity={1}
+                accessibilityLabel="도입부 건너뛰기"
+              >
+                {}
+                <Animated.Text
+                  style={[
+                    styles.introEmoji,
+                    {
+                      opacity: emojiOpacity,
+                      transform: [{ scale: emojiScale }],
+                    },
+                  ]}
+                >
+                  ✨
+                </Animated.Text>
+
+                {
+}
+                {INTRO_LINES.map((line, i) => {
+                  if (typedLines[i].length === 0) return null;
+
+                  const isTypingThis = !introDone && typedLines[i].length < line.length;
+                  const isTitle = i === 0;
+                  const textStyle = isTitle ? styles.introTitle : styles.introBody;
+                  return (
+                    <Text key={i} style={textStyle}>
+                      {typedLines[i]}
+                      {isTypingThis && (
+                        <Animated.Text style={{ opacity: cursorOpacity, color: COLORS.violet600 }}>
+                          ▍
+                        </Animated.Text>
+                      )}
+                    </Text>
+                  );
+                })}
+              </TouchableOpacity>
             )}
 
             {phase === "name" && (
