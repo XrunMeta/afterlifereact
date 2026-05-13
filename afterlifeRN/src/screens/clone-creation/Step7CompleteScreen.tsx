@@ -21,7 +21,7 @@ import type { CreateStackParamList } from "../../navigation/types";
 
 import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
-
+import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -334,17 +334,14 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <View style={styles.composerHeader}>
-        <TouchableOpacity onPress={handleGoToDashboard} hitSlop={8} style={styles.headerBack}>
-          <Feather name="chevron-left" size={26} color={COLORS.zinc900} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerName} numberOfLines={1}>{displayName}</Text>
-          <Text style={styles.headerHandle} numberOfLines={1}>@{displayHandle}</Text>
-        </View>
-        {}
-        <View style={styles.headerBack} />
-      </View>
+      {
+}
+      <PageHeader
+        title={displayName}
+        subtitle={`@${displayHandle}`}
+        showBackButton
+        onBackPress={handleGoToDashboard}
+      />
 
       {
 
@@ -525,20 +522,6 @@ const payStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-
-  composerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.zinc100,
-  },
-  headerBack: { width: 40, alignItems: "flex-start" },
-  headerCenter: { flex: 1, alignItems: "center" },
-  headerName: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
-  headerHandle: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
 
   composerContent: {
     flexGrow: 1,
