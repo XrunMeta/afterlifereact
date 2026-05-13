@@ -367,15 +367,10 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             </View>
           </View>
 
-          {}
-          <View style={styles.imageBox}>
-            {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
-            ) : (
-              <View style={[styles.image, styles.imagePlaceholder]}>
-                <Feather name="image" size={36} color={COLORS.zinc400} />
-              </View>
-            )}
+          {
+}
+          <View style={styles.previewBox}>
+            <Text style={styles.previewText}>움직이는 페르소나로 보일 예정</Text>
           </View>
 
           {}
@@ -571,20 +566,22 @@ const styles = StyleSheet.create({
   authorName: { fontSize: 14, fontWeight: "700", color: COLORS.zinc900 },
   authorHandle: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
 
-  imageBox: {
+  previewBox: {
     width: "80%",
     aspectRatio: 1,
     alignSelf: "center",
     borderRadius: RADIUS.md,
-    overflow: "hidden",
-    backgroundColor: COLORS.zinc50,
-    marginBottom: 24,
-  },
-  image: { width: "100%", height: "100%" },
-  imagePlaceholder: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.zinc100,
+    marginBottom: 24,
+  },
+  previewText: {
+    fontSize: 14,
+    color: COLORS.zinc500,
+    textAlign: "center",
   },
 
   captionInput: {
