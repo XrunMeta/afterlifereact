@@ -47,13 +47,52 @@ const v_1613bd = [
 ];
 
 const v_398571 = [
-  ["안녕!", "나는 네 소중한 기억 속에", "살고 있는 요정이야"],
-  ["지금 네가 가장 보고 싶은", "'그 얼굴'을 한 번 떠올려봐..."],
-  ["떠올랐어!?", "그럼, 네 머리속에 있는 그 소중한 존재를", "생각하며 답해줘!"],
+  "안녕!\n나는 네 소중한 기억 속에\n살고 있는 요정이야",
+  "지금 네가 가장 보고 싶은\n'그 얼굴'을 한 번 떠올려봐...",
+  "떠올랐어!?\n그럼, 네 머리속에 있는 그 소중한 존재를\n생각하며 답해줘!",
 ] as const;
-const v_578b11 = 700;   
-const v_864f4c = 800;    
-const v_4c4012 = 400;  
+const v_0d2e40 = 35;
+const v_864f4c = 500;
+const v_cd5517 = 700;  
+
+type QuestionMeta = {
+  title: string;
+  desc: string;
+  placeholder: string;
+  multiline: boolean;
+};
+const v_d57121 = {
+  name: {
+    title: "그 존재의 이름이 뭐였어?",
+    desc: "네가 부르던 이름이나 별명,\n어떤 호칭이든 좋아.",
+    placeholder: "예: 별이, 할머니, 모리",
+    multiline: false,
+  },
+  firstMeeting: {
+    title: "그 존재와는 어떻게\n처음 만나게 되었어?",
+    desc: "우리 사이에 잊지 못할 특별한 첫 순간이나\n추억이 있었는지 궁금해!",
+    placeholder: "떠오르는 그 첫 장면을 자유롭게 적어줘.",
+    multiline: true,
+  },
+  habit: {
+    title: "자주 하던 말이나\n눈길이 가던 습관이 있었니?",
+    desc: "꼬리를 살랑이거나\n특유의 말투 같은 사소한 거라도 좋아!",
+    placeholder: "입버릇, 작은 습관, 좋아하던 자리 — 사소할수록 좋아.",
+    multiline: true,
+  },
+  personality: {
+    title: "그 존재의 성격은 어땠어?",
+    desc: "혹시 MBTI가 생각나니?\n기억이 안 난다면 평소 성격을 말해줘도 돼!",
+    placeholder: "예: 조용하고 다정한 INFP. 잘 웃고 잘 우는 사람이었어.",
+    multiline: true,
+  },
+  memory: {
+    title: "눈 감으면 어제처럼\n선명한 장면이 있을까?",
+    desc: "가장 행복하게 웃고(혹은 뛰놀고)\n있던 순간을 나한테도 공유해줘",
+    placeholder: "그 순간의 풍경, 표정, 소리 — 떠오르는 대로.",
+    multiline: true,
+  },
+};
 
 export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   v_772971();
@@ -67,7 +106,14 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const [v_324a89, v_87462f] = v_5ab095<string>("");
   const [v_773b4c, v_f714d9] = v_5ab095<string>("");
 
+  const [v_1b9b76, v_d74fbd] = v_5ab095<string[]>(() =>
+    v_398571.map(() => ""),
+  );
   const [v_b49aa2, v_b7772b] = v_5ab095(false);
+
+  const [v_08a9d4, v_11a5be] = v_5ab095("");
+  const [v_53f978, v_1050e9] = v_5ab095("");
+  const [v_8d03ad, v_f2920a] = v_5ab095(false);
 
   const [v_e85448, v_afa9b8] = v_5ab095(false);
   const v_2954b6 = v_110960(
@@ -87,20 +133,29 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const v_be1ebe = v_e662ae(new v_a2349e.Value(0)).current;
   const v_63f408 = v_e662ae(new v_a2349e.Value(0.6)).current;
 
-  const v_8e9bbd = v_e662ae(
-    v_398571.map(() => new v_a2349e.Value(0)),
-  ).current;
+  const v_6821b6 = v_e662ae(new v_a2349e.Value(1)).current;
 
   const v_f7adb5 = () => {
-
-    v_8e9bbd.forEach((v_f96a98) => v_f96a98.setValue(1));
+    v_d74fbd(v_398571.map((v_e2a85c) => v_e2a85c));
     v_b7772b(true);
+  };
+  const v_3289ba = () => {
+    if (v_ab4803 === "intro") return;
+    const v_ab6401 = v_d57121[v_ab4803 as keyof typeof v_d57121];
+    if (!v_ab6401) return;
+    v_11a5be(v_ab6401.title);
+    v_1050e9(v_ab6401.desc);
+    v_f2920a(true);
   };
 
   v_c4deb2(() => {
     if (v_ab4803 !== "intro") return;
     let v_2008a4 = false;
-    const v_e90120 = [];
+    let v_cb36b1 = null;
+    const v_aa4609 = (v_d799e2) =>
+      new Promise<void>((v_6f7712) => {
+        v_cb36b1 = setTimeout(v_6f7712, v_d799e2);
+      });
 
     v_a2349e.parallel([
       v_a2349e.timing(v_be1ebe, {
@@ -116,32 +171,80 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
       }),
     ]).start();
 
-    v_398571.forEach((v_37eab7, v_e86ad8) => {
-      const v_4b24d2 = v_4c4012 + v_e86ad8 * (v_578b11 + v_864f4c);
-      const v_8d41d7 = setTimeout(() => {
-        if (v_2008a4) return;
-        v_a2349e.timing(v_8e9bbd[v_e86ad8]!, {
-          toValue: 1,
-          duration: v_578b11,
-          easing: v_cdbae1.out(v_cdbae1.cubic),
-          useNativeDriver: true,
-        }).start();
-      }, v_4b24d2);
-      v_e90120.push(v_8d41d7);
-    });
+    const v_d083b4 = v_a2349e.loop(
+      v_a2349e.sequence([
+        v_a2349e.timing(v_6821b6, { toValue: 0, duration: 500, useNativeDriver: true }),
+        v_a2349e.timing(v_6821b6, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ]),
+    );
+    v_d083b4.start();
 
-    const v_57324b =
-      v_4c4012 +
-      v_398571.length * (v_578b11 + v_864f4c) -
-      v_864f4c;
-    const v_217439 = setTimeout(() => {
+    const v_d9b231 = async () => {
+      await v_aa4609(v_cd5517);
+      if (v_2008a4) return;
+
+      const v_9f1d92 = v_398571.map(() => "");
+      for (let v_ccbc5e = 0; v_ccbc5e < v_398571.length; v_ccbc5e++) {
+        const v_e13cd0 = v_398571[v_ccbc5e]!;
+        for (let v_9f8c39 = 1; v_9f8c39 <= v_e13cd0.length; v_9f8c39++) {
+          if (v_2008a4) return;
+          v_9f1d92[v_ccbc5e] = v_e13cd0.slice(0, v_9f8c39);
+          v_d74fbd([...v_9f1d92]);
+          await v_aa4609(v_0d2e40);
+        }
+        if (v_2008a4) return;
+        await v_aa4609(v_864f4c);
+      }
       if (!v_2008a4) v_b7772b(true);
-    }, v_57324b);
-    v_e90120.push(v_217439);
+    };
+    v_d9b231();
 
     return () => {
       v_2008a4 = true;
-      v_e90120.forEach(clearTimeout);
+      if (v_cb36b1) clearTimeout(v_cb36b1);
+      v_d083b4.stop();
+    };
+
+  }, [v_ab4803]);
+
+  v_c4deb2(() => {
+    if (v_ab4803 === "intro") return;
+    const v_ab6401 = v_d57121[v_ab4803 as keyof typeof v_d57121];
+    if (!v_ab6401) return;
+    let v_2008a4 = false;
+    let v_cb36b1 = null;
+    const v_aa4609 = (v_d799e2) =>
+      new Promise<void>((v_6f7712) => {
+        v_cb36b1 = setTimeout(v_6f7712, v_d799e2);
+      });
+
+    v_11a5be("");
+    v_1050e9("");
+    v_f2920a(false);
+
+    const v_d9b231 = async () => {
+      await v_aa4609(200);
+
+      for (let v_ebec57 = 1; v_ebec57 <= v_ab6401.title.length; v_ebec57++) {
+        if (v_2008a4) return;
+        v_11a5be(v_ab6401.title.slice(0, v_ebec57));
+        await v_aa4609(v_0d2e40);
+      }
+      if (v_2008a4) return;
+      await v_aa4609(350);
+
+      for (let v_ebec57 = 1; v_ebec57 <= v_ab6401.desc.length; v_ebec57++) {
+        if (v_2008a4) return;
+        v_1050e9(v_ab6401.desc.slice(0, v_ebec57));
+        await v_aa4609(v_0d2e40);
+      }
+      if (!v_2008a4) v_f2920a(true);
+    };
+    v_d9b231();
+
+    return () => {
+      v_2008a4 = true;
+      if (v_cb36b1) clearTimeout(v_cb36b1);
     };
 
   }, [v_ab4803]);
@@ -224,62 +327,27 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   })();
 
   const v_e2f265 = v_ab4803 === "intro";
-
-  const v_969fe9 = v_e662ae(new v_a2349e.Value(0)).current;
-  v_c4deb2(() => {
-    if (v_ab4803 === "intro") return;
-    v_969fe9.setValue(0);
-    v_a2349e.timing(v_969fe9, {
-      toValue: 1,
-      duration: 450,
-      easing: v_cdbae1.out(v_cdbae1.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [v_ab4803, v_969fe9]);
-
-  const v_d57121 = {
-    name: {
-      title: "그 존재의 이름이 뭐였어?",
-      desc: "네가 부르던 이름이나 별명, 어떤 호칭이든 좋아.",
-      placeholder: "예: 별이, 할머니, 모리",
-      value: v_1833e7,
-      onChange: v_318f24,
-      multiline: false,
-    },
-    firstMeeting: {
-      title: "그 존재와는 어떻게 처음 만나게 되었어?",
-      desc: "우리 사이에 잊지 못할 특별한 첫 순간이나 추억이 있었는지 궁금해!",
-      placeholder: "떠오르는 그 첫 장면을 자유롭게 적어줘.",
-      value: v_9d451c,
-      onChange: v_087901,
-      multiline: true,
-    },
-    habit: {
-      title: "자주 하던 말이나 눈길이 가던 습관이 있었니?",
-      desc: "꼬리를 살랑이거나, 특유의 말투 같은 사소한 거라도 좋아!",
-      placeholder: "입버릇, 작은 습관, 좋아하던 자리 — 사소할수록 좋아.",
-      value: v_7fae74,
-      onChange: v_e2f100,
-      multiline: true,
-    },
-    personality: {
-      title: "그 존재의 성격은 어땠어?",
-      desc: "혹시 MBTI가 생각나니? 기억이 안 난다면 평소 성격을 살짝 귀띔해 줄래?",
-      placeholder: "예: 조용하고 다정한 INFP. 잘 웃고 잘 우는 사람이었어.",
-      value: v_324a89,
-      onChange: v_87462f,
-      multiline: true,
-    },
-    memory: {
-      title: "눈 감으면 어제처럼 선명한 그 장면이 있을까?",
-      desc: "가장 행복하게 웃고(혹은 뛰놀고) 있던 그 순간을 나에게도 공유해 줘! ✨",
-      placeholder: "그 순간의 풍경, 표정, 소리 — 떠오르는 대로.",
-      value: v_773b4c,
-      onChange: v_f714d9,
-      multiline: true,
-    },
-  } as const;
   const v_ab6401 = !v_e2f265 ? v_d57121[v_ab4803 as keyof typeof v_d57121] : null;
+  const v_a9cd32 = (() => {
+    switch (v_ab4803) {
+      case "name": return v_1833e7;
+      case "firstMeeting": return v_9d451c;
+      case "habit": return v_7fae74;
+      case "personality": return v_324a89;
+      case "memory": return v_773b4c;
+      default: return "";
+    }
+  })();
+  const v_87e703 = (() => {
+    switch (v_ab4803) {
+      case "name": return v_318f24;
+      case "firstMeeting": return v_087901;
+      case "habit": return v_e2f100;
+      case "personality": return v_87462f;
+      case "memory": return v_f714d9;
+      default: return () => {};
+    }
+  })();
 
   return (
     <SafeView backgroundColor="#000000">
@@ -332,53 +400,76 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
                 accessibilityLabel="도입부 건너뛰기"
                 style={v_d81136.introTextBox}
               >
-                {v_398571.map((v_43dc75, v_ccbc5e) => {
+                {v_1b9b76.map((v_9b6134, v_ccbc5e) => {
+                  if (!v_9b6134) return null;
                   const v_664b8c = v_ccbc5e === 0;
+                  const v_aaee4e = v_398571[v_ccbc5e]!.length;
+                  const v_359bf6 = !v_b49aa2 && v_9b6134.length < v_aaee4e;
                   return (
-                    <Animated.View
-                      key={v_ccbc5e}
-                      style={[
-                        v_d81136.paragraph,
-                        { opacity: v_8e9bbd[v_ccbc5e]! },
-                      ]}
-                    >
-                      {v_43dc75.map((v_e6293e, v_939ac9) => (
-                        <Text
-                          key={v_939ac9}
-                          style={v_664b8c ? v_d81136.introTitle : v_d81136.introBody}
-                        >
-                          {v_e6293e}
-                        </Text>
-                      ))}
-                    </Animated.View>
+                    <View key={v_ccbc5e} style={v_d81136.paragraph}>
+                      <Text style={v_664b8c ? v_d81136.introTitle : v_d81136.introBody}>
+                        {v_9b6134}
+                        {v_359bf6 && (
+                          <Animated.Text
+                            style={{ opacity: v_6821b6, color: v_1bfbd0.white }}
+                          >
+                            ▍
+                          </Animated.Text>
+                        )}
+                      </Text>
+                    </View>
                   );
                 })}
               </TouchableOpacity>
             )}
 
-            {
-}
+            {}
             {v_ab6401 && (
-              <Animated.View style={[v_d81136.questionBox, { opacity: v_969fe9 }]}>
-                <Text style={v_d81136.qTitle}>{v_ab6401.title}</Text>
-                <Text style={v_d81136.qDesc}>{v_ab6401.desc}</Text>
-                <TextInput
+              <TouchableOpacity
+                onPress={v_3289ba}
+                activeOpacity={1}
+                style={v_d81136.questionBox}
+              >
+                <Text style={v_d81136.qTitle}>
+                  {v_08a9d4}
+                  {v_08a9d4.length > 0 && v_08a9d4.length < v_ab6401.title.length && (
+                    <Animated.Text style={{ opacity: v_6821b6, color: v_1bfbd0.white }}>
+                      ▍
+                    </Animated.Text>
+                  )}
+                </Text>
+                {v_53f978.length > 0 && (
+                  <Text style={v_d81136.qDesc}>
+                    {v_53f978}
+                    {v_53f978.length < v_ab6401.desc.length && (
+                      <Animated.Text
+                        style={{ opacity: v_6821b6, color: "rgba(255,255,255,0.7)" }}
+                      >
+                        ▍
+                      </Animated.Text>
+                    )}
+                  </Text>
+                )}
+                {}
+                {v_8d03ad && (
+                  <TextInput
 
-                  key={v_ab4803}
-                  style={[v_d81136.input, v_ab6401.multiline && v_d81136.textarea]}
-                  value={v_ab6401.value}
-                  onChangeText={v_ab6401.onChange}
-                  placeholder={v_ab6401.placeholder}
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  autoFocus
-                  multiline={v_ab6401.multiline}
-                  textAlignVertical={v_ab6401.multiline ? "top" : "center"}
-                  returnKeyType={v_ab6401.multiline ? "default" : "next"}
-                  onSubmitEditing={v_ab6401.multiline ? undefined : v_219251}
-                  maxLength={v_ab6401.multiline ? 500 : 40}
-                  selectionColor={v_1bfbd0.white}
-                />
-              </Animated.View>
+                    key={v_ab4803}
+                    style={[v_d81136.input, v_ab6401.multiline && v_d81136.textarea]}
+                    value={v_a9cd32}
+                    onChangeText={v_87e703}
+                    placeholder={v_ab6401.placeholder}
+                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    autoFocus
+                    multiline={v_ab6401.multiline}
+                    textAlignVertical={v_ab6401.multiline ? "top" : "center"}
+                    returnKeyType={v_ab6401.multiline ? "default" : "next"}
+                    onSubmitEditing={v_ab6401.multiline ? undefined : v_219251}
+                    maxLength={v_ab6401.multiline ? 500 : 40}
+                    selectionColor={v_1bfbd0.white}
+                  />
+                )}
+              </TouchableOpacity>
             )}
           </ScrollView>
         </TouchableWithoutFeedback>
@@ -404,8 +495,8 @@ const v_d81136 = v_472849.create({
   formWrap: {
     flexGrow: 1,
     paddingHorizontal: v_9b1a04.xlarge,
-    paddingTop: 32,
-    paddingBottom: 32,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
 
   topBar: {
@@ -416,28 +507,28 @@ const v_d81136 = v_472849.create({
   backBtn: { padding: 8, alignSelf: "flex-start" },
 
   videoWrap: {
-    width: 180,
-    height: 180,
+    width: 140,
+    height: 140,
     alignSelf: "center",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   video: { width: "100%", height: "100%" },
-  fallbackEmoji: { fontSize: 100, textAlign: "center", lineHeight: 180 },
+  fallbackEmoji: { fontSize: 80, textAlign: "center", lineHeight: 140 },
 
-  introTextBox: { gap: 20, alignItems: "center", width: "100%" },
-  paragraph: { gap: 4, alignItems: "center", paddingHorizontal: 8 },
+  introTextBox: { gap: 16, alignItems: "center", width: "100%" },
+  paragraph: { alignItems: "center", paddingHorizontal: 8 },
   introTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     color: v_1bfbd0.white,
     textAlign: "center",
-    lineHeight: 32,
+    lineHeight: 30,
   },
   introBody: {
-    fontSize: 16,
+    fontSize: 15,
     color: "rgba(255,255,255,0.85)",
     textAlign: "center",
-    lineHeight: 26,
+    lineHeight: 24,
   },
 
   questionBox: { width: "100%", gap: 10 },
