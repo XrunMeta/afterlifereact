@@ -75,8 +75,8 @@ function v_c9bfd6(v_e13cd0): { firstname: string; lastname: string } {
 }
 
 function v_845bdb(v_206b88): number {
-  if (v_206b88 === "male") return 2101;
-  if (v_206b88 === "female") return 2102;
+  if (v_206b88 === "male") return 2110;
+  if (v_206b88 === "female") return 2111;
   return 2100;
 }
 
