@@ -33,6 +33,7 @@ type Props = {
 type Phase =
   | "intro"
   | "name"
+  | "username"
   | "firstMeeting"
   | "habit"
   | "personality"
@@ -40,6 +41,7 @@ type Phase =
 
 const v_1613bd = [
   "name",
+  "username",
   "firstMeeting",
   "habit",
   "personality",
@@ -66,6 +68,12 @@ const v_d57121 = {
     title: "그 존재의 이름이 뭐였어?",
     desc: "네가 부르던 이름이나 별명,\n어떤 호칭이든 좋아.",
     placeholder: "예: 별이, 할머니, 모리",
+    multiline: false,
+  },
+  username: {
+    title: "@아이디는 어떻게 할까?",
+    desc: "영문 소문자/숫자/_ 만 가능해. 비워두면\n이름으로 자동 만들어줄게.",
+    placeholder: "예: starry_kim, modi_v",
     multiline: false,
   },
   firstMeeting: {
@@ -101,6 +109,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
   const [v_ab4803, v_ae4844] = v_5ab095<Phase>("intro");
   const [v_1833e7, v_318f24] = v_5ab095<string>(v_f04727.name ?? "");
+  const [v_556427, v_e71a3b] = v_5ab095<string>(v_f04727.username ?? "");
   const [v_9d451c, v_087901] = v_5ab095<string>("");
   const [v_7fae74, v_e2f100] = v_5ab095<string>("");
   const [v_324a89, v_87462f] = v_5ab095<string>("");
@@ -283,10 +292,23 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
     if (v_ab4803 === "name") {
       const v_2f361a = v_1833e7.trim();
       if (!v_2f361a) return;
-      v_5795de({
-        name: v_2f361a,
-        username: v_b55477(v_2f361a),
-      });
+      v_5795de({ name: v_2f361a });
+
+      if (!v_556427) {
+        v_e71a3b(v_b55477(v_2f361a));
+      }
+      v_ae4844("username");
+      return;
+    }
+    if (v_ab4803 === "username") {
+
+      const v_479f05 = v_556427.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
+      const v_94812a =
+        v_479f05.length >= 3 && v_479f05.length <= 30
+          ? v_479f05
+          : v_b55477(v_1833e7.trim() || "user");
+      v_e71a3b(v_94812a);
+      v_5795de({ username: v_94812a });
       v_ae4844("firstMeeting");
       return;
     }
@@ -335,6 +357,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const v_a9cd32 = (() => {
     switch (v_ab4803) {
       case "name": return v_1833e7;
+      case "username": return v_556427;
       case "firstMeeting": return v_9d451c;
       case "habit": return v_7fae74;
       case "personality": return v_324a89;
@@ -345,6 +368,9 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const v_87e703 = (() => {
     switch (v_ab4803) {
       case "name": return v_318f24;
+      case "username": return (v_81e2ef) =>
+
+        v_e71a3b(v_81e2ef.toLowerCase().replace(/[^a-z0-9_]/g, ""));
       case "firstMeeting": return v_087901;
       case "habit": return v_e2f100;
       case "personality": return v_87462f;
