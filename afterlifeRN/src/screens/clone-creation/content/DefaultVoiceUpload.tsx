@@ -213,11 +213,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
           <TouchableOpacity
             style={[
               v_d81136.recordBtn,
-              !v_0c0b03 && !v_97c26f && v_d81136.recordBtnDisabled,
               v_97c26f && v_d81136.recordBtnActive,
             ]}
             onPress={v_c93629}
-            disabled={!v_0c0b03 && !v_97c26f}
             activeOpacity={0.85}
           >
             <View style={[v_d81136.recordDot, v_97c26f && v_d81136.recordDotPulse]} />

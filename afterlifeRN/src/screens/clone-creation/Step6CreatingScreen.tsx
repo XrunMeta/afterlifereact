@@ -46,14 +46,14 @@ const v_1613bd = [
   "memory",
 ];
 
-const v_d52b26 = [
-  "안녕!",
-  "나는 네 소중한 기억 속에 살고 있는 요정이야.",
-  "지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...",
-  "떠올랐어?! 그럼, 네 머릿속에 있는 그 소중한 존재를 생각하며 답해줘!",
+const v_398571 = [
+  ["안녕!", "나는 네 소중한 기억 속에", "살고 있는 요정이야"],
+  ["지금 네가 가장 보고 싶은", "'그 얼굴'을 한 번 떠올려봐..."],
+  ["떠올랐어!?", "그럼, 네 머리속에 있는 그 소중한 존재를", "생각하며 답해줘!"],
 ] as const;
-const v_0d2e40 = 35;   
-const v_cf0e03 = 450;  
+const v_578b11 = 700;   
+const v_864f4c = 800;    
+const v_4c4012 = 400;  
 
 export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   v_772971();
@@ -67,7 +67,6 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const [v_324a89, v_87462f] = v_5ab095<string>("");
   const [v_773b4c, v_f714d9] = v_5ab095<string>("");
 
-  const [v_5e91e6, v_ad78c2] = v_5ab095<string[]>(() => v_d52b26.map(() => ""));
   const [v_b49aa2, v_b7772b] = v_5ab095(false);
 
   const [v_e85448, v_afa9b8] = v_5ab095(false);
@@ -84,19 +83,24 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
       }
     },
   );
-  const v_f7adb5 = () => {
-    v_ad78c2(v_d52b26.map((v_1614db) => v_1614db));
-    v_b7772b(true);
-  };
 
   const v_be1ebe = v_e662ae(new v_a2349e.Value(0)).current;
   const v_63f408 = v_e662ae(new v_a2349e.Value(0.6)).current;
 
-  const v_6821b6 = v_e662ae(new v_a2349e.Value(1)).current;
+  const v_8e9bbd = v_e662ae(
+    v_398571.map(() => new v_a2349e.Value(0)),
+  ).current;
+
+  const v_f7adb5 = () => {
+
+    v_8e9bbd.forEach((v_f96a98) => v_f96a98.setValue(1));
+    v_b7772b(true);
+  };
 
   v_c4deb2(() => {
     if (v_ab4803 !== "intro") return;
     let v_2008a4 = false;
+    const v_e90120 = [];
 
     v_a2349e.parallel([
       v_a2349e.timing(v_be1ebe, {
@@ -112,38 +116,35 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
       }),
     ]).start();
 
-    const v_d083b4 = v_a2349e.loop(
-      v_a2349e.sequence([
-        v_a2349e.timing(v_6821b6, { toValue: 0, duration: 500, useNativeDriver: true }),
-        v_a2349e.timing(v_6821b6, { toValue: 1, duration: 500, useNativeDriver: true }),
-      ]),
-    );
-    v_d083b4.start();
-
-    const v_d9b231 = async () => {
-
-      await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 400));
-      const v_5e40b9 = v_d52b26.map(() => "");
-      for (let v_ea26ea = 0; v_ea26ea < v_d52b26.length; v_ea26ea++) {
-        const v_e6293e = v_d52b26[v_ea26ea]!;
-        for (let v_9f8c39 = 1; v_9f8c39 <= v_e6293e.length; v_9f8c39++) {
-          if (v_2008a4) return;
-          v_5e40b9[v_ea26ea] = v_e6293e.slice(0, v_9f8c39);
-          v_ad78c2([...v_5e40b9]);
-          await new Promise((v_cb35cb) => setTimeout(v_cb35cb, v_0d2e40));
-        }
+    v_398571.forEach((v_37eab7, v_e86ad8) => {
+      const v_4b24d2 = v_4c4012 + v_e86ad8 * (v_578b11 + v_864f4c);
+      const v_8d41d7 = setTimeout(() => {
         if (v_2008a4) return;
-        await new Promise((v_cb35cb) => setTimeout(v_cb35cb, v_cf0e03));
-      }
+        v_a2349e.timing(v_8e9bbd[v_e86ad8]!, {
+          toValue: 1,
+          duration: v_578b11,
+          easing: v_cdbae1.out(v_cdbae1.cubic),
+          useNativeDriver: true,
+        }).start();
+      }, v_4b24d2);
+      v_e90120.push(v_8d41d7);
+    });
+
+    const v_57324b =
+      v_4c4012 +
+      v_398571.length * (v_578b11 + v_864f4c) -
+      v_864f4c;
+    const v_217439 = setTimeout(() => {
       if (!v_2008a4) v_b7772b(true);
-    };
-    v_d9b231();
+    }, v_57324b);
+    v_e90120.push(v_217439);
 
     return () => {
       v_2008a4 = true;
-      v_d083b4.stop();
+      v_e90120.forEach(clearTimeout);
     };
-  }, [v_ab4803, v_be1ebe, v_63f408, v_6821b6]);
+
+  }, [v_ab4803]);
 
   const v_6c06d1 = (): string => {
     const v_946c09 = [];
@@ -277,22 +278,26 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
                 {
 }
-                {v_d52b26.map((v_e6293e, v_ebec57) => {
-                  if (v_5e91e6[v_ebec57].length === 0) return null;
+                {v_398571.map((v_43dc75, v_ccbc5e) => {
 
-                  const v_359bf6 = !v_b49aa2 && v_5e91e6[v_ebec57].length < v_e6293e.length;
-
-                  const v_809f45 = v_ebec57 <= 1;
-                  const v_197d6e = v_809f45 ? v_d81136.introTitle : v_d81136.introBody;
+                  const v_664b8c = v_ccbc5e === 0;
                   return (
-                    <Text key={v_ebec57} style={v_197d6e}>
-                      {v_5e91e6[v_ebec57]}
-                      {v_359bf6 && (
-                        <Animated.Text style={{ opacity: v_6821b6, color: v_1bfbd0.violet600 }}>
-                          ▍
-                        </Animated.Text>
-                      )}
-                    </Text>
+                    <Animated.View
+                      key={v_ccbc5e}
+                      style={[
+                        v_d81136.paragraph,
+                        { opacity: v_8e9bbd[v_ccbc5e]! },
+                      ]}
+                    >
+                      {v_43dc75.map((v_e6293e, v_939ac9) => (
+                        <Text
+                          key={v_939ac9}
+                          style={v_664b8c ? v_d81136.introTitle : v_d81136.introBody}
+                        >
+                          {v_e6293e}
+                        </Text>
+                      ))}
+                    </Animated.View>
                   );
                 })}
               </TouchableOpacity>
@@ -432,8 +437,10 @@ const v_d81136 = v_472849.create({
     paddingBottom: 32,
   },
 
-  introBox: { gap: 14, paddingTop: 12, alignItems: "center" },
+  introBox: { gap: 20, paddingTop: 12, alignItems: "center" },
   introEmoji: { fontSize: 40, textAlign: "center", marginBottom: 8 },
+
+  paragraph: { gap: 4, alignItems: "center", paddingHorizontal: 8 },
   videoWrap: {
     width: 180,
     height: 180,
