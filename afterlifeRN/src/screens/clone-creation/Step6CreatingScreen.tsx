@@ -33,6 +33,7 @@ type Props = {
 type Phase =
   | "intro"
   | "name"
+  | "username"
   | "firstMeeting"
   | "habit"
   | "personality"
@@ -40,6 +41,7 @@ type Phase =
 
 const QUESTION_PHASES: Phase[] = [
   "name",
+  "username",
   "firstMeeting",
   "habit",
   "personality",
@@ -62,13 +64,19 @@ type QuestionMeta = {
   multiline: boolean;
 };
 const QUESTIONS: Record<
-  "name" | "firstMeeting" | "habit" | "personality" | "memory",
+  "name" | "username" | "firstMeeting" | "habit" | "personality" | "memory",
   QuestionMeta
 > = {
   name: {
     title: "그 존재의 이름이 뭐였어?",
     desc: "네가 부르던 이름이나 별명,\n어떤 호칭이든 좋아.",
     placeholder: "예: 별이, 할머니, 모리",
+    multiline: false,
+  },
+  username: {
+    title: "@아이디는 어떻게 할까?",
+    desc: "영문 소문자/숫자/_ 만 가능해. 비워두면\n이름으로 자동 만들어줄게.",
+    placeholder: "예: starry_kim, modi_v",
     multiline: false,
   },
   firstMeeting: {
@@ -108,6 +116,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
   const [phase, setPhase] = useState<Phase>("intro");
   const [name, setName] = useState<string>(draft.name ?? "");
+  const [username, setUsername] = useState<string>(draft.username ?? "");
   const [firstMeeting, setFirstMeeting] = useState<string>("");
   const [habit, setHabit] = useState<string>("");
   const [personality, setPersonality] = useState<string>("");
@@ -290,10 +299,23 @@ export default function Step6CreatingScreen({ navigation }: Props) {
     if (phase === "name") {
       const trimmed = name.trim();
       if (!trimmed) return;
-      setCreationDraft({
-        name: trimmed,
-        username: deriveUsernameFromName(trimmed),
-      });
+      setCreationDraft({ name: trimmed });
+
+      if (!username) {
+        setUsername(deriveUsernameFromName(trimmed));
+      }
+      setPhase("username");
+      return;
+    }
+    if (phase === "username") {
+
+      const raw = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
+      const finalUsername =
+        raw.length >= 3 && raw.length <= 30
+          ? raw
+          : deriveUsernameFromName(name.trim() || "user");
+      setUsername(finalUsername);
+      setCreationDraft({ username: finalUsername });
       setPhase("firstMeeting");
       return;
     }
@@ -342,6 +364,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const valueForPhase = (() => {
     switch (phase) {
       case "name": return name;
+      case "username": return username;
       case "firstMeeting": return firstMeeting;
       case "habit": return habit;
       case "personality": return personality;
@@ -352,6 +375,9 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const onChangeForPhase = (() => {
     switch (phase) {
       case "name": return setName;
+      case "username": return (v: string) =>
+
+        setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""));
       case "firstMeeting": return setFirstMeeting;
       case "habit": return setHabit;
       case "personality": return setPersonality;
