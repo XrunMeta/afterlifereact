@@ -78,6 +78,14 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
     .bind(v_43e90c)
     .all<{ interest: string }>();
 
+  const v_62676b = await v_a1651b
+    .prepare(
+      `SELECT followers_count AS followersCount, following_count AS followingCount
+         FROM user_stats WHERE user_id = ?`,
+    )
+    .bind(v_43e90c)
+    .first<{ followersCount: number; followingCount: number }>();
+
   const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
 
   let v3Provider: Awaited<ReturnType<typeof v_e44d97>> | undefined;
@@ -152,6 +160,8 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
       xrunGuid: v_3ac7e7.xrun_guid,
       xrunWallet: v_3ac7e7.xrun_wallet,
       xrunLinkedAt: v_3ac7e7.xrun_linked_at,
+      followersCount: v_62676b?.followersCount ?? 0,
+      followingCount: v_62676b?.followingCount ?? 0,
     },
     interests: (v_774c91.results ?? []).map((v_cb35cb) => v_cb35cb.interest),
   });
@@ -925,3 +935,236 @@ v_de7ba7.get("/me/transactions", v_6690d9, async (v_3f4e2e) => {
     }),
   });
 });
+
+function v_586d97(c: Parameters<typeof v_6690d9>[0]): number {
+  const v_479f05 = v_3f4e2e.req.param("id");
+  const v_389afb = Number(v_479f05);
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  }
+  return v_389afb;
+}
+
+v_de7ba7.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = v_586d97(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  if (v_b1de41 === v_43e90c) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Cannot follow yourself.");
+  }
+
+  const v_c3c3b0 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(v_b1de41)
+    .first<{ id: number }>();
+  if (!v_c3c3b0) throw new v_3ebe58("NOT_FOUND", "User not found.");
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO user_follows (follower_id, followee_id) VALUES (?, ?)`,
+    )
+    .bind(v_43e90c, v_b1de41)
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
+v_de7ba7.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = v_586d97(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
+    )
+    .bind(v_43e90c, v_b1de41)
+    .run();
+  return v_3f4e2e.json({ ok: true });
+});
+
+v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = v_586d97(v_3f4e2e);
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT uf.id          AS followId,
+                uf.follower_id  AS userId,
+                uf.created_at   AS createdAt,
+                u.name          AS name,
+                u.email         AS email,
+                u.avatar_url    AS avatarUrl
+           FROM user_follows uf
+           JOIN users u ON u.id = uf.follower_id
+          WHERE uf.followee_id = ? AND u.deleted_at IS NULL
+          ORDER BY uf.id DESC
+          LIMIT ?`,
+      )
+      .bind(v_b1de41, v_02be30)
+      .all<{
+        followId: number;
+        userId: number;
+        createdAt: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+      }>()
+  ).results ?? [];
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => ({
+      followId: v_cb35cb.followId,
+      userId: v_cb35cb.userId,
+      name: v_cb35cb.name,
+      email: v_cb35cb.email,
+      avatarUrl: v_cb35cb.avatarUrl,
+      createdAt: v_cb35cb.createdAt,
+    })),
+  });
+});
+
+v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = v_586d97(v_3f4e2e);
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT uf.id          AS followId,
+                uf.followee_id  AS userId,
+                uf.created_at   AS createdAt,
+                u.name          AS name,
+                u.email         AS email,
+                u.avatar_url    AS avatarUrl
+           FROM user_follows uf
+           JOIN users u ON u.id = uf.followee_id
+          WHERE uf.follower_id = ? AND u.deleted_at IS NULL
+          ORDER BY uf.id DESC
+          LIMIT ?`,
+      )
+      .bind(v_b1de41, v_02be30)
+      .all<{
+        followId: number;
+        userId: number;
+        createdAt: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+      }>()
+  ).results ?? [];
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => ({
+      followId: v_cb35cb.followId,
+      userId: v_cb35cb.userId,
+      name: v_cb35cb.name,
+      email: v_cb35cb.email,
+      avatarUrl: v_cb35cb.avatarUrl,
+      createdAt: v_cb35cb.createdAt,
+    })),
+  });
+});
+
+v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = v_586d97(v_3f4e2e);
+  const v_013af2 = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const v_3ac7e7 = await v_a1651b
+    .prepare(
+      `SELECT id, name, email, avatar_url AS avatarUrl, created_at AS createdAt
+         FROM users WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(v_b1de41)
+    .first<{
+      id: number;
+      name: string | null;
+      email: string;
+      avatarUrl: string | null;
+      createdAt: string;
+    }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "User not found.");
+
+  const v_62676b = await v_a1651b
+    .prepare(
+      `SELECT followers_count AS followersCount, following_count AS followingCount
+         FROM user_stats WHERE user_id = ?`,
+    )
+    .bind(v_b1de41)
+    .first<{ followersCount: number; followingCount: number }>();
+
+  let v_b30b81 = false;
+  if (v_013af2 !== v_b1de41) {
+    const v_e84077 = await v_a1651b
+      .prepare(
+        `SELECT 1 AS x FROM user_follows
+          WHERE follower_id = ? AND followee_id = ? LIMIT 1`,
+      )
+      .bind(v_013af2, v_b1de41)
+      .first<{ x: number }>();
+    v_b30b81 = !!v_e84077;
+  }
+
+  const v_e2cd33 =
+    v_013af2 === v_b1de41
+      ? ""
+      : "AND c.visibility = 'public'";
+  const v_8ffcf8 = (
+    await v_a1651b
+      .prepare(
+        `SELECT c.id, c.name, c.username, c.description, c.clone_type AS cloneType,
+                c.category, c.avatar_url AS avatarUrl, c.visibility, c.created_at AS createdAt,
+                COALESCE(cs.followers_count, 0) AS followersCount,
+                (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+                  WHERE f.clone_id = c.id) AS likesCount
+           FROM clones c
+           LEFT JOIN clone_stats cs ON cs.clone_id = c.id
+          WHERE c.owner_id = ?
+            AND c.deletion_state = 'active'
+            AND c.deleted_at IS NULL
+            ${v_e2cd33}
+          ORDER BY c.id DESC
+          LIMIT 60`,
+      )
+      .bind(v_b1de41)
+      .all<{
+        id: number;
+        name: string;
+        username: string;
+        description: string | null;
+        cloneType: string;
+        category: string | null;
+        avatarUrl: string | null;
+        visibility: string;
+        createdAt: string;
+        followersCount: number;
+        likesCount: number;
+      }>()
+  ).results ?? [];
+
+  return v_3f4e2e.json({
+    user: {
+      id: v_3ac7e7.id,
+      name: v_3ac7e7.name,
+      email: v_3ac7e7.email,
+      avatarUrl: v_3ac7e7.avatarUrl,
+      createdAt: v_3ac7e7.createdAt,
+      followersCount: v_62676b?.followersCount ?? 0,
+      followingCount: v_62676b?.followingCount ?? 0,
+      isMe: v_013af2 === v_b1de41,
+      isFollowing: v_b30b81,
+    },
+    clones: v_8ffcf8.map((v_cb35cb) => ({
+      id: v_cb35cb.id,
+      name: v_cb35cb.name,
+      username: v_cb35cb.username,
+      description: v_cb35cb.description,
+      cloneType: v_cb35cb.cloneType,
+      category: v_cb35cb.category,
+      avatarUrl: v_cb35cb.avatarUrl,
+      visibility: v_cb35cb.visibility,
+      followersCount: v_cb35cb.followersCount,
+      likesCount: v_cb35cb.likesCount,
+      createdAt: v_cb35cb.createdAt,
+    })),
+  });
+});
+
