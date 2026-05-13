@@ -265,6 +265,26 @@ export async function v_f373d8(
   );
 }
 
+export interface UpdateClonePayload {
+  name?: string;
+  description?: string;
+  avatar_url?: string;
+  cover_image_url?: string;
+  visibility?: string;
+  interests?: string[];
+}
+export async function v_b4f9f6(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_931bf0,
+): Promise<{ ok: true; updatedFields: string[] }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}`,
+    v_2ca7e0,
+    { method: "PATCH", body: JSON.stringify(v_931bf0) },
+  );
+}
+
 export type SentInviteStatus = "pending" | "accepted" | "cancelled" | "expired";
 export interface SentInvite {
   id: number;

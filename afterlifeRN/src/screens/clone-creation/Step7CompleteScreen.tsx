@@ -27,7 +27,7 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
 import { v_c4c43f } from "../../mocks/cloneTypeCatalog";
-import { v_39eaf5, v_b55477, v_5e388b } from "../../api/clones";
+import { v_39eaf5, v_b55477, v_5e388b, v_b4f9f6 } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
@@ -300,13 +300,21 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const v_d01790 = async () => {
     if (v_af4871 == null) return;
-    const v_1298c5 = v_6044a8.trim().length > 0;
+    const v_2f361a = v_6044a8.trim();
+    const v_1298c5 = v_2f361a.length > 0;
     v_4b9b17(true);
     try {
       if (v_1298c5 && v_2ca7e0) {
+
+        try {
+          await v_b4f9f6(v_2ca7e0, v_af4871, { description: v_2f361a });
+        } catch (v_4cf250) {
+          console.warn("[CLONE-CREATE] update description failed:", v_4cf250);
+        }
+
         const v_1458b7 = v_6de415.current ?? null;
         await v_5e388b(v_2ca7e0, v_af4871, {
-          content: v_6044a8.trim(),
+          content: v_2f361a,
           ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
         });
       }
