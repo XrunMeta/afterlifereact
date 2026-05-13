@@ -80,6 +80,14 @@ function v_845bdb(v_206b88): number {
   return 2100;
 }
 
+function v_ea45fe(v_2694bd): number | null {
+  if (typeof v_2694bd !== "number" || !Number.isFinite(v_2694bd) || v_2694bd < 10) return null;
+  if (v_2694bd >= 60) return 2260;
+
+  const v_74f5e8 = Math.floor(v_2694bd / 10);
+  return 2200 + v_74f5e8 * 10; 
+}
+
 export interface AfterlifeRegisterContext {
   email: string;
   name: string;
@@ -120,6 +128,7 @@ export async function v_6e4cc8(
 ): Promise<XrunRegisterResult> {
   const { firstname: v_54d565, lastname: v_9517dc } = v_c9bfd6(v_16e2dd.name);
   const v_99e8e7 = v_b6cf08(v_16e2dd);
+  const v_42b696 = v_ea45fe(v_16e2dd.age);
   const v_4d33b2 = {
     email: v_16e2dd.email,
     pin: v_b35290(),
@@ -131,7 +140,8 @@ export async function v_6e4cc8(
     countrycode: v_99e8e7.countrycode,
     country: v_99e8e7.country,
     region: v_99e8e7.region,
-    age: v_16e2dd.age ?? 0,
+
+    age: v_42b696 ?? 0,
     recommand: 0,
     social_code: 0,
 
@@ -189,6 +199,7 @@ async function v_36f334(
 ): Promise<void> {
   const { firstname: v_54d565, lastname: v_9517dc } = v_c9bfd6(v_16e2dd.name);
   const v_99e8e7 = v_b6cf08(v_16e2dd);
+  const v_42b696 = v_ea45fe(v_16e2dd.age);
   const v_4d33b2 = {
     email: v_16e2dd.email,
     firstname: v_54d565,
@@ -196,7 +207,8 @@ async function v_36f334(
     mobile: v_16e2dd.phone ?? null,
     mobilecode: v_99e8e7.mobilecode,
     gender: v_845bdb(v_16e2dd.gender),
-    age: v_16e2dd.age ?? null,
+
+    age: v_42b696,
     countrycode: v_99e8e7.countrycode,
     country: v_99e8e7.country,
     region: v_99e8e7.region,
@@ -374,6 +386,30 @@ export interface XrunCloseResult {
   ok: boolean;
   closed: boolean;
   reason?: string;
+}
+
+export async function v_a23589(
+  env: v_273a0c,
+  v_660822,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  try {
+    const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({ member: v_660822 }),
+    });
+    if (!v_8f00b9.ok) {
+      return { ok: false, reason: `HTTP ${v_8f00b9.status}` };
+    }
+    const v_7ecfd1 = (await v_8f00b9.json()) as { status?: string; message?: string };
+    if (v_7ecfd1.status === "success") return { ok: true };
+    return { ok: false, reason: v_7ecfd1.message ?? "unknown" };
+  } catch (v_49263d) {
+    return { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
 }
 
 export async function v_d19f98(
