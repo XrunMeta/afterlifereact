@@ -345,9 +345,15 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <SafeScrollView contentContainerStyle={styles.composerContent} showBottomBackground={false}>
+        <SafeScrollView
+          contentContainerStyle={styles.composerContent}
+          showBottomBackground={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {}
           <View style={styles.imageBox}>
             {imageUri ? (
@@ -531,16 +537,18 @@ const styles = StyleSheet.create({
   composerContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
   },
+
   imageBox: {
-    width: "100%",
-    aspectRatio: 4 / 5,
+    width: "60%",
+    aspectRatio: 1,
+    alignSelf: "center",
     borderRadius: RADIUS.md,
     overflow: "hidden",
     backgroundColor: COLORS.zinc50,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   image: { width: "100%", height: "100%" },
   imagePlaceholder: {
@@ -548,12 +556,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: COLORS.zinc100,
   },
+
   captionInput: {
-    minHeight: 60,
+    minHeight: 100,
     fontSize: 14,
     color: COLORS.zinc900,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     textAlignVertical: "top",
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.zinc50,
   },
   errorBox: {
     flexDirection: "row",
