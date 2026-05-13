@@ -335,11 +335,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      {
-}
+      {}
       <PageHeader
-        title={displayName}
-        subtitle={`@${displayHandle}`}
+        title="게시물 작성"
         showBackButton
         onBackPress={handleGoToDashboard}
       />
@@ -354,6 +352,21 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
+          {}
+          <View style={styles.authorRow}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.authorAvatar} />
+            ) : (
+              <View style={[styles.authorAvatar, styles.authorAvatarPh]}>
+                <Feather name="user" size={16} color={COLORS.zinc400} />
+              </View>
+            )}
+            <View style={styles.authorTextCol}>
+              <Text style={styles.authorName} numberOfLines={1}>{displayName}</Text>
+              <Text style={styles.authorHandle} numberOfLines={1}>@{displayHandle}</Text>
+            </View>
+          </View>
+
           {}
           <View style={styles.imageBox}>
             {imageUri ? (
@@ -540,6 +553,23 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 40,
   },
+
+  authorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
+  authorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.zinc100,
+  },
+  authorAvatarPh: { alignItems: "center", justifyContent: "center" },
+  authorTextCol: { flex: 1 },
+  authorName: { fontSize: 14, fontWeight: "700", color: COLORS.zinc900 },
+  authorHandle: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
 
   imageBox: {
     width: "80%",
