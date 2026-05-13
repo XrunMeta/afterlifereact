@@ -956,3 +956,34 @@ clones.delete("/:id/block", requireAuth, async (c) => {
     .run();
   return c.json({ ok: true, blocked: false });
 });
+
+const reportSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+clones.post("/:id/report", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const userId = c.get("userId")!;
+  const body = await parseJson(c, reportSchema).catch(() => ({ reason: undefined }));
+
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_reports (user_id, clone_id, reason)
+         VALUES (?, ?, ?)`,
+    ).bind(userId, cloneId, body.reason ?? null),
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
+    ).bind(userId, cloneId),
+    c.env.DB.prepare(
+      `DELETE FROM clone_follows WHERE user_id = ? AND clone_id = ?`,
+    ).bind(userId, cloneId),
+  ]);
+  await logActivity(c, {
+    userId,
+    action: "clone.report",
+    details: { cloneId, reason: body.reason ?? null },
+  });
+  return c.json({ ok: true, reported: true, blocked: true });
+});

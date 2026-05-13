@@ -15,7 +15,7 @@ import {
   TextInput,
   Keyboard,
 } from "react-native";
-import { Alert } from "react-native";
+import { Alert, Share } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
@@ -293,6 +293,16 @@ export default function HomeScreen() {
               visibility: item.cloneVisibility,
             })
           }
+          onSharePress={async () => {
+            try {
+              await Share.share({
+                message: `${item.author} 페르소나와 만나보세요!\nhttps://afterlife.app/clone/${item.cloneId}`,
+                title: item.author,
+              });
+            } catch (err) {
+              console.warn("[Home] share failed:", err);
+            }
+          }}
         />
       );
     },
@@ -526,7 +536,7 @@ export default function HomeScreen() {
                   <Text style={styles.moreItemText}>공개 범위 수정</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.moreItem}
+                  style={[styles.moreItem, { borderBottomWidth: 0 }]}
                   onPress={async () => {
                     const target = moreTarget;
                     setMoreTarget(null);
@@ -571,16 +581,34 @@ export default function HomeScreen() {
               <>
                 <TouchableOpacity
                   style={styles.moreItem}
-                  onPress={() => {
+                  onPress={async () => {
+                    const target = moreTarget;
                     setMoreTarget(null);
-                    setToastMessage("신고가 접수됐어요");
+                    if (!target || !accessToken) return;
+
+                    try {
+                      const { reportClone } = await import("../../api/clones");
+                      await reportClone(accessToken, target.cloneId);
+                      setToastMessage("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+                      const cur = useFeedStore.getState().apiFeeds;
+                      if (cur) {
+                        useFeedStore.setState({
+                          apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
+                        });
+                      }
+                      await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
+                      void loadDiscover();
+                    } catch (err) {
+                      console.warn(`[REPORT] FAILED cloneId=${target.cloneId}`, err);
+                      setToastMessage("신고에 실패했어요");
+                    }
                   }}
                 >
                   <Feather name="flag" size={20} color="#ef4444" />
                   <Text style={[styles.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.moreItem}
+                  style={[styles.moreItem, { borderBottomWidth: 0 }]}
                   onPress={async () => {
                     const target = moreTarget;
                     setMoreTarget(null);
@@ -607,14 +635,7 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               </>
             )}
-
-            <TouchableOpacity
-              style={[styles.moreItem, { borderBottomWidth: 0 }]}
-              onPress={() => setMoreTarget(null)}
-            >
-              <Feather name="x" size={20} color={COLORS.zinc500} />
-              <Text style={[styles.moreItemText, { color: COLORS.zinc500 }]}>취소</Text>
-            </TouchableOpacity>
+            {}
           </Pressable>
         </Pressable>
       </Modal>
