@@ -22,7 +22,6 @@ import type { CreateStackParamList } from "../../navigation/types";
 
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
-import StepIndicator from "../../components/common/StepIndicator";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { useCloneStore } from "../../stores/cloneStore";
 import { deriveUsernameFromName } from "../../api/clones";
@@ -46,7 +45,6 @@ const QUESTION_PHASES: Phase[] = [
   "personality",
   "memory",
 ];
-const TOTAL_QUESTIONS = QUESTION_PHASES.length;
 
 const INTRO_LINES = [
   "안녕!",
@@ -224,18 +222,17 @@ export default function Step6CreatingScreen({ navigation }: Props) {
     return true;
   })();
 
-  const currentQuestionNum = QUESTION_PHASES.indexOf(
-    phase as (typeof QUESTION_PHASES)[number],
-  ) + 1;
+  const isIntro = phase === "intro";
 
   return (
-    <SafeView backgroundColor={COLORS.white}>
-      <PageHeader
-        title="페르소나 만들기"
-        showBackButton
-        onBackPress={goBack}
-      />
-      <StepIndicator currentStep={3} totalSteps={4} />
+    <SafeView backgroundColor={isIntro ? "#000000" : COLORS.white}>
+      {!isIntro && (
+        <PageHeader
+          title="페르소나 만들기"
+          showBackButton
+          onBackPress={goBack}
+        />
+      )}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -303,8 +300,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
             {phase === "name" && (
               <>
-                <Text style={styles.qLabel}>{currentQuestionNum} / {TOTAL_QUESTIONS}</Text>
-                <Text style={styles.qTitle}>그 존재의 이름이 뭐였어?</Text>
+<Text style={styles.qTitle}>그 존재의 이름이 뭐였어?</Text>
                 <Text style={styles.qDesc}>
                   네가 부르던 이름이나 별명, 어떤 호칭이든 좋아.
                 </Text>
@@ -324,8 +320,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
             {phase === "firstMeeting" && (
               <>
-                <Text style={styles.qLabel}>{currentQuestionNum} / {TOTAL_QUESTIONS}</Text>
-                <Text style={styles.qTitle}>
+<Text style={styles.qTitle}>
                   그 존재와는 어떻게 처음 만나게 되었어?
                 </Text>
                 <Text style={styles.qDesc}>
@@ -346,8 +341,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
             {phase === "habit" && (
               <>
-                <Text style={styles.qLabel}>{currentQuestionNum} / {TOTAL_QUESTIONS}</Text>
-                <Text style={styles.qTitle}>
+<Text style={styles.qTitle}>
                   자주 하던 말이나 눈길이 가던 습관이 있었니?
                 </Text>
                 <Text style={styles.qDesc}>
@@ -368,8 +362,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
             {phase === "personality" && (
               <>
-                <Text style={styles.qLabel}>{currentQuestionNum} / {TOTAL_QUESTIONS}</Text>
-                <Text style={styles.qTitle}>
+<Text style={styles.qTitle}>
                   그 존재의 성격은 어땠어?
                 </Text>
                 <Text style={styles.qDesc}>
@@ -390,8 +383,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
             {phase === "memory" && (
               <>
-                <Text style={styles.qLabel}>{currentQuestionNum} / {TOTAL_QUESTIONS}</Text>
-                <Text style={styles.qTitle}>
+<Text style={styles.qTitle}>
                   눈 감으면 어제처럼 선명한 그 장면이 있을까?
                 </Text>
                 <Text style={styles.qDesc}>
@@ -411,14 +403,18 @@ export default function Step6CreatingScreen({ navigation }: Props) {
             )}
           </ScrollView>
         </TouchableWithoutFeedback>
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, isIntro && styles.bottomBarDark]}>
           <TouchableOpacity
-            style={[styles.btn, !canProceed && styles.btnDisabled]}
+            style={[
+              styles.btn,
+              isIntro && styles.btnLight,
+              !canProceed && styles.btnDisabled,
+            ]}
             onPress={goNext}
             disabled={!canProceed}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnText}>
+            <Text style={[styles.btnText, isIntro && styles.btnTextDark]}>
               {phase === "intro" ? "시작하기" : "다음"}
             </Text>
           </TouchableOpacity>
@@ -450,26 +446,21 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 180,
   },
+
   introTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
-    color: COLORS.zinc900,
+    color: COLORS.white,
     textAlign: "center",
-    lineHeight: 30,
+    lineHeight: 32,
   },
   introBody: {
-    fontSize: 15,
-    color: COLORS.zinc600,
+    fontSize: 16,
+    color: "rgba(255,255,255,0.85)",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 26,
   },
 
-  qLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: COLORS.violet600,
-    marginBottom: 8,
-  },
   qTitle: {
     fontSize: 22,
     fontWeight: "700",
@@ -500,12 +491,20 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.zinc100,
   },
+
+  bottomBarDark: {
+    borderTopWidth: 0,
+    backgroundColor: "transparent",
+  },
   btn: {
     paddingVertical: 14,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.zinc900,
     alignItems: "center",
   },
+
+  btnLight: { backgroundColor: COLORS.white },
+  btnTextDark: { color: COLORS.zinc900 },
   btnDisabled: { opacity: 0.4 },
   btnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
 });
