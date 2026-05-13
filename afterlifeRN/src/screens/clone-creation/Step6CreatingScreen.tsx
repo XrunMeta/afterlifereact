@@ -15,6 +15,7 @@ import {
   Animated,
   Easing,
 } from "react-native";
+import { VideoView, useVideoPlayer } from "expo-video";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
@@ -69,6 +70,15 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
   const [typedLines, setTypedLines] = useState<string[]>(() => INTRO_LINES.map(() => ""));
   const [introDone, setIntroDone] = useState(false);
+
+  const fairyVideoPlayer = useVideoPlayer(
+    require("../../../assets/fairy-intro.mp4"),
+    (player) => {
+      player.loop = true;
+      player.muted = true;
+      player.play();
+    },
+  );
   const skipIntro = () => {
     setTypedLines(INTRO_LINES.map((l) => l));
     setIntroDone(true);
@@ -238,17 +248,23 @@ export default function Step6CreatingScreen({ navigation }: Props) {
                 accessibilityLabel="도입부 건너뛰기"
               >
                 {}
-                <Animated.Text
+                <Animated.View
                   style={[
-                    styles.introEmoji,
+                    styles.videoWrap,
                     {
                       opacity: emojiOpacity,
                       transform: [{ scale: emojiScale }],
                     },
                   ]}
+                  pointerEvents="none"
                 >
-                  ✨
-                </Animated.Text>
+                  <VideoView
+                    style={styles.video}
+                    player={fairyVideoPlayer}
+                    contentFit="contain"
+                    nativeControls={false}
+                  />
+                </Animated.View>
 
                 {
 }
@@ -407,8 +423,15 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
 
-  introBox: { gap: 14, paddingTop: 12 },
+  introBox: { gap: 14, paddingTop: 12, alignItems: "center" },
   introEmoji: { fontSize: 40, textAlign: "center", marginBottom: 8 },
+  videoWrap: {
+    width: 180,
+    height: 180,
+    marginBottom: 8,
+    alignSelf: "center",
+  },
+  video: { width: "100%", height: "100%" },
   introTitle: {
     fontSize: 20,
     fontWeight: "700",
