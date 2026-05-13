@@ -45,6 +45,11 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
 }
 
 const v_d81136 = v_472849.create({
-  content: { padding: v_9b1a04.large },
+
+  content: {
+    paddingHorizontal: v_9b1a04.large,
+    paddingTop: 32,
+    paddingBottom: v_9b1a04.large,
+  },
   bottomBar: { padding: v_9b1a04.large, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc100 },
 });
