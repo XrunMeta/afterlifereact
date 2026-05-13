@@ -1,155 +1,78 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
-import { CommonActions } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { CreateStackParamList } from '../../navigation/types';
-import { apiClient } from '../../api/client';
-import { useAuthStore } from '../../stores/authStore';
-import type { ShortStatus } from '../../types/domain';
 
-type Props = NativeStackScreenProps<CreateStackParamList, 'Step8'>;
 
-export default function Step8CreateShortsScreen({ route, navigation }: Props) {
-  const { t } = useTranslation();
-  const cloneId = route.params.cloneId;
-  const viewerId = useAuthStore((s) => s.user?.id) ?? 1;
-  const [status, setStatus] = useState<ShortStatus>('queued');
-  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-  const [shortId, setShortId] = useState<number | null>(null);
-  const [forbidden, setForbidden] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { CommonActions } from "@react-navigation/native";
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import type { CreateStackParamList } from "../../navigation/types";
+import SafeView from "../../components/ui/SafeView";
+import Button from "../../components/ui/Button";
+import { COLORS, SIZES, RADIUS } from "../../components/constants";
 
-  const start = () => {
-    setStatus('queued');
-    setMediaUrl(null);
-    setForbidden(false);
-    apiClient
-      .generateShort(cloneId, viewerId)
-      .then(({ shortId: id }) => setShortId(id))
-      .catch((e) => {
-        if (String(e?.message ?? '').includes('Forbidden')) {
-          setForbidden(true);
-        } else {
-          setStatus('failed');
-        }
-      });
-  };
+type Props = NativeStackScreenProps<CreateStackParamList, "Step8">;
 
-  useEffect(() => {
-    start();
-
-  }, [cloneId, viewerId]);
-
-  useEffect(() => {
-    if (shortId == null) return;
-    const tick = async () => {
-      try {
-        const s = await apiClient.getShort(shortId);
-        setStatus(s.status);
-        setMediaUrl(s.mediaUrl);
-        if ((s.status === 'ready' || s.status === 'failed') && timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-      } catch {
-        setStatus('failed');
-      }
-    };
-    timerRef.current = setInterval(tick, 250);
-    tick();
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [shortId]);
-
-  const goHome = () => {
-    navigation
-      .getParent()
-      ?.dispatch(CommonActions.navigate({ name: 'HomeTab' }));
-  };
-
-  if (forbidden) {
-    return (
-      <View style={styles.root}>
-        <Text style={styles.title}>{t('create.shorts.title')}</Text>
-        <View accessibilityLabel="step8-forbidden" style={styles.center}>
-          <Text style={styles.muted}>{t('create.shorts.forbidden')}</Text>
-        </View>
-        <TouchableOpacity
-          accessibilityLabel="step8-forbidden-skip"
-          onPress={goHome}
-          style={styles.btn}
-        >
-          <Text>{t('create.shorts.home')}</Text>
-        </TouchableOpacity>
-      </View>
+export default function Step8CreateShortsScreen({ navigation }: Props) {
+  const handleGoToDashboard = () => {
+    navigation.getParent()?.dispatch(
+      CommonActions.navigate({ name: "ClonesTab" }),
     );
-  }
+  };
 
   return (
-    <View style={styles.root}>
-      <Text style={styles.title}>{t('create.shorts.title')}</Text>
-      {status === 'ready' ? (
-        <View accessibilityLabel="step8-preview" style={styles.center}>
-          <Text style={styles.muted}>{mediaUrl ?? '(preview)'}</Text>
+    <SafeView backgroundColor={COLORS.white}>
+      <View style={styles.center}>
+        <View style={styles.successCircle}>
+          <Feather name="check" size={48} color={COLORS.white} />
         </View>
-      ) : (
-        <View accessibilityLabel="step8-progress" style={styles.center}>
-          <ActivityIndicator />
-          <Text style={styles.muted}>{t('create.shorts.creating')} ({status})</Text>
-        </View>
-      )}
-      <View style={styles.row}>
-        <TouchableOpacity
-          accessibilityLabel="step8-skip"
-          onPress={goHome}
-          style={styles.btn}
-        >
-          <Text>{t('create.shorts.skip')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityLabel="step8-retry"
-          onPress={start}
-          style={styles.btn}
-        >
-          <Text>{t('create.shorts.retry')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          accessibilityLabel="step8-done"
-          disabled={status !== 'ready'}
-          onPress={goHome}
-          style={[styles.btn, status !== 'ready' && styles.btnDisabled]}
-        >
-          <Text>{t('create.shorts.done')}</Text>
-        </TouchableOpacity>
+        <Text style={styles.title}>페르소나가 완성되었습니다</Text>
+        <Text style={styles.subtitle}>
+          이제 페르소나와 대화하거나{"\n"}새 게시물을 올릴 수 있어요.
+        </Text>
       </View>
-    </View>
+
+      <View style={styles.bottomBar}>
+        <Button
+          title="대시보드로"
+          onPress={handleGoToDashboard}
+          variant="accent"
+        />
+      </View>
+    </SafeView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, padding: 24 },
-  title: { fontSize: 20, fontWeight: '700', marginBottom: 12 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  muted: { color: '#6b7280' },
-  row: { flexDirection: 'row', gap: 12, justifyContent: 'space-between' },
-  btn: {
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 8,
+  center: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: SIZES.xlarge,
+    gap: 14,
   },
-  btnDisabled: { opacity: 0.5 },
+  successCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: COLORS.violet500,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  title: { fontSize: 22, fontWeight: "700", color: COLORS.zinc900, textAlign: "center" },
+  subtitle: {
+    fontSize: 14,
+    color: COLORS.zinc500,
+    textAlign: "center",
+    lineHeight: 21,
+  },
+  bottomBar: {
+    paddingHorizontal: SIZES.xlarge,
+    paddingVertical: SIZES.medium,
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.zinc100,
+  },
+
+  _radiusRef: { borderRadius: RADIUS.md },
 });
