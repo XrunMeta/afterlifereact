@@ -469,7 +469,6 @@ export default function v_def15b() {
 
   const v_b80d74 = ({ item: v_eb25ce }: { item: v_affcc0 }) => {
     const v_b6e533 = v_699459[v_eb25ce.id];
-    const v_26dce6 = v_b6e533?.isActive ?? true;
     const v_818579 = v_b6e533?.visibility ?? v_eb25ce.visibility;
     const v_e93e18 = v_eb25ce.cloneType === "memlow";
 
@@ -482,20 +481,6 @@ export default function v_def15b() {
       <View style={v_fd5f43.card}>
         {}
         <View style={v_fd5f43.cardTopRow}>
-          <TouchableOpacity
-            style={v_fd5f43.activeToggle}
-            onPress={() => v_bf58a4(v_eb25ce.id)}
-          >
-            <Feather
-              name={v_26dce6 ? "check-circle" : "circle"}
-              size={18}
-              color={v_26dce6 ? v_1bfbd0.success : v_1bfbd0.zinc400}
-            />
-            <Text style={v_fd5f43.activeText}>
-              {v_26dce6 ? v_8d41d7("dashboard.active") : v_8d41d7("dashboard.inactive")}
-            </Text>
-          </TouchableOpacity>
-
           <View style={v_fd5f43.cardTopRight}>
             {}
             {!v_e93e18 && (
@@ -523,7 +508,7 @@ export default function v_def15b() {
                 <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
               </View>
             )}
-            {v_26dce6 && <View style={v_fd5f43.activeDot} />}
+            {}
           </View>
           <View style={v_fd5f43.cloneInfo}>
             <Text style={v_fd5f43.cloneName}>{v_eb25ce.displayName}</Text>
@@ -834,30 +819,9 @@ export default function v_def15b() {
             </TouchableOpacity>
 
             {}
-            {v_ce3af0 != null && (() => {
-              const v_26dce6 = v_699459[v_ce3af0]?.isActive ?? true;
-              return (
-                <TouchableOpacity
-                  style={v_fd5f43.menuItem}
-                  onPress={() => {
-                    const v_389afb = v_ce3af0!;
-                    v_8d2d61(null);
-                    v_bf58a4(v_389afb);
-                  }}
-                >
-                  <Feather
-                    name={v_26dce6 ? "pause-circle" : "play-circle"}
-                    size={18}
-                    color={v_26dce6 ? v_1bfbd0.zinc700 : v_1bfbd0.success}
-                  />
-                  <Text style={v_fd5f43.menuItemText}>
-                    {v_26dce6 ? v_8d41d7("dashboard.menuDeactivate") : v_8d41d7("dashboard.menuActivate")}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })()}
 
-            {}
+            {
+}
             {v_ce3af0 != null &&
               v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_ce3af0)?.cloneType !== "memlow" && (
                 <TouchableOpacity
@@ -872,7 +836,7 @@ export default function v_def15b() {
                     size={18}
                     color={v_1bfbd0.zinc700}
                   />
-                  <Text style={v_fd5f43.menuItemText}>{v_8d41d7("dashboard.menuVisibility")}</Text>
+                  <Text style={v_fd5f43.menuItemText}>공개 범위</Text>
                 </TouchableOpacity>
               )}
             <View style={v_fd5f43.menuDivider} />
