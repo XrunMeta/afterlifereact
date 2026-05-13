@@ -335,11 +335,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      {
-}
+      {}
       <PageHeader
-        title={v_8a1355}
-        subtitle={`@${v_3e86f3}`}
+        title="게시물 작성"
         showBackButton
         onBackPress={v_704242}
       />
@@ -354,6 +352,21 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
+          {}
+          <View style={v_d81136.authorRow}>
+            {v_ee89db ? (
+              <Image source={{ uri: v_ee89db }} style={v_d81136.authorAvatar} />
+            ) : (
+              <View style={[v_d81136.authorAvatar, v_d81136.authorAvatarPh]}>
+                <Feather name="user" size={16} color={v_1bfbd0.zinc400} />
+              </View>
+            )}
+            <View style={v_d81136.authorTextCol}>
+              <Text style={v_d81136.authorName} numberOfLines={1}>{v_8a1355}</Text>
+              <Text style={v_d81136.authorHandle} numberOfLines={1}>@{v_3e86f3}</Text>
+            </View>
+          </View>
+
           {}
           <View style={v_d81136.imageBox}>
             {v_ee89db ? (
@@ -540,6 +553,23 @@ const v_d81136 = v_472849.create({
     paddingTop: 32,
     paddingBottom: 40,
   },
+
+  authorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
+  authorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: v_1bfbd0.zinc100,
+  },
+  authorAvatarPh: { alignItems: "center", justifyContent: "center" },
+  authorTextCol: { flex: 1 },
+  authorName: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  authorHandle: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
 
   imageBox: {
     width: "80%",
