@@ -367,15 +367,10 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             </View>
           </View>
 
-          {}
-          <View style={v_d81136.imageBox}>
-            {v_ee89db ? (
-              <Image source={{ uri: v_ee89db }} style={v_d81136.image} resizeMode="cover" />
-            ) : (
-              <View style={[v_d81136.image, v_d81136.imagePlaceholder]}>
-                <Feather name="image" size={36} color={v_1bfbd0.zinc400} />
-              </View>
-            )}
+          {
+}
+          <View style={v_d81136.previewBox}>
+            <Text style={v_d81136.previewText}>움직이는 페르소나로 보일 예정</Text>
           </View>
 
           {}
@@ -571,20 +566,22 @@ const v_d81136 = v_472849.create({
   authorName: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
   authorHandle: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
 
-  imageBox: {
+  previewBox: {
     width: "80%",
     aspectRatio: 1,
     alignSelf: "center",
     borderRadius: v_8b0c90.md,
-    overflow: "hidden",
-    backgroundColor: v_1bfbd0.zinc50,
-    marginBottom: 24,
-  },
-  image: { width: "100%", height: "100%" },
-  imagePlaceholder: {
+    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: v_1bfbd0.zinc100,
+    marginBottom: 24,
+  },
+  previewText: {
+    fontSize: 14,
+    color: v_1bfbd0.zinc500,
+    textAlign: "center",
   },
 
   captionInput: {
