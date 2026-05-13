@@ -50,6 +50,11 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: SIZES.large },
+
+  content: {
+    paddingHorizontal: SIZES.large,
+    paddingTop: 32,
+    paddingBottom: SIZES.large,
+  },
   bottomBar: { padding: SIZES.large, borderTopWidth: 1, borderTopColor: COLORS.zinc100 },
 });

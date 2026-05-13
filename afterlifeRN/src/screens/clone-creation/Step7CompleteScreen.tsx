@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
   composerContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 32,
+    paddingTop: 40,
     paddingBottom: 40,
   },
 
