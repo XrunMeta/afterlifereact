@@ -165,6 +165,16 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   v_c4deb2(() => {
     if (!v_f04727.cloneType) return;
     v_b12f33.current = false;
+
+    const v_5b257e = setTimeout(() => {
+      if (v_b12f33.current) return;
+      v_c7169b((v_ba2215) => {
+        if (!v_ba2215) return v_ba2215;
+        console.warn("[CLONE-CREATE] timeout — 30s no response, forcing stop");
+        v_3a7d09("요청이 너무 오래 걸려요. 다시 시도해주세요.");
+        return false;
+      });
+    }, 30000);
     (async () => {
       v_c7169b(true);
       v_3a7d09(null);
@@ -264,6 +274,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     })();
     return () => {
       v_b12f33.current = true;
+      clearTimeout(v_5b257e);
     };
   }, [v_140aea, v_f04727.cloneType]); 
 
@@ -420,19 +431,40 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           )}
         </SafeScrollView>
 
-        {}
+        {
+
+}
         <View style={v_d81136.bottomBar}>
           <Button
             title={
-              v_c3de9c
-                ? "잠시만요..."
-                : v_805753
+              v_5e9bfe
+                ? "다시 시도"
+                : v_af4871 != null
+                ? "다음"
+                : v_c3de9c || v_805753
                 ? "잠시만요..."
                 : "다음"
             }
-            onPress={v_d01790}
+            onPress={
+              v_5e9bfe
+                ? () => {
+
+                    v_3a7d09(null);
+                    v_c7169b(true);
+                    (async () => {
+                      try {
+                        await v_140aea();
+                      } catch (v_49263d) {
+                        console.warn("[CLONE-CREATE] retry failed:", v_49263d);
+                        v_3a7d09(v_8d41d7("create.errors.createFailed"));
+                        v_c7169b(false);
+                      }
+                    })();
+                  }
+                : v_d01790
+            }
             variant="accent"
-            disabled={v_c3de9c || v_805753 || !!v_5e9bfe}
+            disabled={v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
           />
         </View>
       </KeyboardAvoidingView>
