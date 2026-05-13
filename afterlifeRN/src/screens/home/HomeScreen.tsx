@@ -15,7 +15,7 @@ import {
   v_79c4f2,
   v_0e1f26,
 } from "rcmrninabrnb";
-import { v_03e392 } from "rcmrninabrnb";
+import { v_03e392, v_5f4661 } from "rcmrninabrnb";
 import { v_b5df25 } from "ernurodqvmtspux";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
@@ -293,6 +293,16 @@ export default function v_c316d8() {
               visibility: v_8c0b26.cloneVisibility,
             })
           }
+          onSharePress={async () => {
+            try {
+              await v_5f4661.share({
+                message: `${v_8c0b26.author} 페르소나와 만나보세요!\nhttps://afterlife.app/clone/${v_8c0b26.cloneId}`,
+                title: v_8c0b26.author,
+              });
+            } catch (v_49263d) {
+              console.warn("[Home] share failed:", v_49263d);
+            }
+          }}
         />
       );
     },
@@ -526,7 +536,7 @@ export default function v_c316d8() {
                   <Text style={v_d81136.moreItemText}>공개 범위 수정</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={v_d81136.moreItem}
+                  style={[v_d81136.moreItem, { borderBottomWidth: 0 }]}
                   onPress={async () => {
                     const v_5f5d6d = v_12fa22;
                     v_949e66(null);
@@ -571,16 +581,34 @@ export default function v_c316d8() {
               <>
                 <TouchableOpacity
                   style={v_d81136.moreItem}
-                  onPress={() => {
+                  onPress={async () => {
+                    const v_5f5d6d = v_12fa22;
                     v_949e66(null);
-                    v_15c939("신고가 접수됐어요");
+                    if (!v_5f5d6d || !v_2ca7e0) return;
+
+                    try {
+                      const { reportClone: v_9deb40 } = await import("../../api/clones");
+                      await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId);
+                      v_15c939("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+                      const v_c3bc75 = v_37977a.getState().apiFeeds;
+                      if (v_c3bc75) {
+                        v_37977a.setState({
+                          apiFeeds: v_c3bc75.filter((v_23805a) => v_23805a.cloneId !== v_5f5d6d.cloneId),
+                        });
+                      }
+                      await v_b4902e.getState().unfollowLocalForBlock(v_5f5d6d.cloneId);
+                      void v_c600ef();
+                    } catch (v_49263d) {
+                      console.warn(`[REPORT] FAILED cloneId=${v_5f5d6d.cloneId}`, v_49263d);
+                      v_15c939("신고에 실패했어요");
+                    }
                   }}
                 >
                   <Feather name="flag" size={20} color="#ef4444" />
                   <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={v_d81136.moreItem}
+                  style={[v_d81136.moreItem, { borderBottomWidth: 0 }]}
                   onPress={async () => {
                     const v_5f5d6d = v_12fa22;
                     v_949e66(null);
@@ -607,14 +635,7 @@ export default function v_c316d8() {
                 </TouchableOpacity>
               </>
             )}
-
-            <TouchableOpacity
-              style={[v_d81136.moreItem, { borderBottomWidth: 0 }]}
-              onPress={() => v_949e66(null)}
-            >
-              <Feather name="x" size={20} color={v_1bfbd0.zinc500} />
-              <Text style={[v_d81136.moreItemText, { color: v_1bfbd0.zinc500 }]}>취소</Text>
-            </TouchableOpacity>
+            {}
           </Pressable>
         </Pressable>
       </Modal>
