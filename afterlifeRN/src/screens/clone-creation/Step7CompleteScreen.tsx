@@ -345,9 +345,15 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+
+        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
       >
-        <SafeScrollView contentContainerStyle={v_d81136.composerContent} showBottomBackground={false}>
+        <SafeScrollView
+          contentContainerStyle={v_d81136.composerContent}
+          showBottomBackground={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {}
           <View style={v_d81136.imageBox}>
             {v_ee89db ? (
@@ -531,16 +537,18 @@ const v_d81136 = v_472849.create({
   composerContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingTop: 32,
+    paddingBottom: 40,
   },
+
   imageBox: {
-    width: "100%",
-    aspectRatio: 4 / 5,
+    width: "60%",
+    aspectRatio: 1,
+    alignSelf: "center",
     borderRadius: v_8b0c90.md,
     overflow: "hidden",
     backgroundColor: v_1bfbd0.zinc50,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   image: { width: "100%", height: "100%" },
   imagePlaceholder: {
@@ -548,12 +556,18 @@ const v_d81136 = v_472849.create({
     justifyContent: "center",
     backgroundColor: v_1bfbd0.zinc100,
   },
+
   captionInput: {
-    minHeight: 60,
+    minHeight: 100,
     fontSize: 14,
     color: v_1bfbd0.zinc900,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     textAlignVertical: "top",
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: v_8b0c90.md,
+    backgroundColor: v_1bfbd0.zinc50,
   },
   errorBox: {
     flexDirection: "row",
