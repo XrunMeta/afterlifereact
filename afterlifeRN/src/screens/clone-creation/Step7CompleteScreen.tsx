@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
   },
 
   imageBox: {
-    width: "60%",
+    width: "80%",
     aspectRatio: 1,
     alignSelf: "center",
     borderRadius: RADIUS.md,
