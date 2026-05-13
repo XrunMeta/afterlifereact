@@ -12,6 +12,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../constants";
 import type { FeedItem } from "../../types/feed";
+import HashtagText from "../common/HashtagText";
 
 interface FeedCardProps {
   item: FeedItem;
@@ -126,9 +127,13 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
             {}
             {item.description ? (
-              <Text style={styles.description} numberOfLines={3}>
+              <HashtagText
+                style={styles.description}
+                tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                numberOfLines={3}
+              >
                 {item.description}
-              </Text>
+              </HashtagText>
             ) : null}
 
             {}
