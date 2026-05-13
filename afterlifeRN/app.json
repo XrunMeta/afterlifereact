@@ -55,7 +55,16 @@
       "@react-native-google-signin/google-signin",
       "expo-localization",
       "expo-audio",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/feather.ttf",
+            "./assets/fonts/ionicons.ttf"
+          ]
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png"

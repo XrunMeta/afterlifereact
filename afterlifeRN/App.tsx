@@ -6,8 +6,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
-import { useFonts } from "expo-font";
-import { Feather, Ionicons } from "@expo/vector-icons";
 import RootNavigator from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/stores/authStore";
 import { useFollowStore } from "./src/stores/followStore";
@@ -41,18 +39,6 @@ const linking: LinkingOptions<RootStackParamList> = {
 
 export default function App() {
   const [ready, setReady] = useState(false);
-
-  const [fontsLoaded, fontsError] = useFonts({
-    ...Feather.font,
-    ...Ionicons.font,
-  });
-
-  useEffect(() => {
-
-    console.log(
-      `[Fonts] loaded=${fontsLoaded} error=${fontsError ? String(fontsError) : "none"} keys=${JSON.stringify(Object.keys({ ...Feather.font, ...Ionicons.font }))}`,
-    );
-  }, [fontsLoaded, fontsError]);
 
   useEffect(() => {
     Promise.all([
