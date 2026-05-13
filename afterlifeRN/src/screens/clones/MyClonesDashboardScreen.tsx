@@ -17,6 +17,7 @@ import {
   Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { pickAndCropImage } from "../../lib/imagePicker";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -334,7 +335,8 @@ export default function MyClonesDashboardScreen() {
       );
       return;
     }
-    const picked = await ImagePicker.launchImageLibraryAsync({
+
+    const picked = await pickAndCropImage({
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
