@@ -1,10 +1,9 @@
 
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
-  Animated,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -28,10 +27,10 @@ type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step6">;
 };
 
-type Phase = "name" | "username" | "personality" | "loading";
+type Phase = "name" | "username" | "personality";
 
 export default function Step6CreatingScreen({ navigation }: Props) {
-  const { t } = useTranslation();
+  useTranslation();
   const draft = useCloneStore((s) => s.creationDraft);
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
 
@@ -39,40 +38,6 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const [name, setName] = useState<string>(draft.name ?? "");
   const [username, setUsername] = useState<string>(draft.username ?? "");
   const [personality, setPersonality] = useState<string>(draft.personaNotes ?? "");
-
-  const [progress, setProgress] = useState(0);
-  const spinAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (phase !== "loading") return;
-    Animated.loop(
-      Animated.timing(spinAnim, {
-        toValue: 1,
-        duration: 2000,
-        useNativeDriver: true,
-      }),
-    ).start();
-  }, [phase, spinAnim]);
-
-  useEffect(() => {
-    if (phase !== "loading") return;
-    const id = setInterval(() => {
-      setProgress((p) => (p >= 100 ? 100 : p + 4));
-    }, 80);
-    return () => clearInterval(id);
-  }, [phase]);
-
-  useEffect(() => {
-    if (phase === "loading" && progress >= 100) {
-      const t = setTimeout(() => navigation.navigate("Step7"), 400);
-      return () => clearTimeout(t);
-    }
-  }, [phase, progress, navigation]);
-
-  const spin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
 
   const goNext = () => {
     if (phase === "name") {
@@ -91,8 +56,8 @@ export default function Step6CreatingScreen({ navigation }: Props) {
       setPhase("personality");
     } else if (phase === "personality") {
       setCreationDraft({ personaNotes: personality.trim() });
-      setPhase("loading");
-      setProgress(0);
+
+      navigation.navigate("Step7");
     }
   };
 
@@ -111,36 +76,19 @@ export default function Step6CreatingScreen({ navigation }: Props) {
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader
         title="페르소나 만들기"
-        showBackButton={phase !== "loading"}
+        showBackButton
         onBackPress={goBack}
       />
       <StepIndicator currentStep={3} totalSteps={4} />
 
-      {phase === "loading" ? (
-        <View style={styles.center}>
-          <View style={styles.ringContainer}>
-            <Animated.View style={[styles.outerRing, { transform: [{ rotate: spin }] }]}>
-              <View style={styles.outerRingInner} />
-            </Animated.View>
-            <View style={styles.innerCircle}>
-              <Text style={styles.progressText}>{progress}%</Text>
-            </View>
-          </View>
-          <Text style={styles.title}>페르소나를 만들고 있어요</Text>
-          <Text style={styles.subtitle}>잠시만 기다려주세요</Text>
-          <View style={styles.barTrack}>
-            <View style={[styles.barFill, { width: `${progress}%` }]} />
-          </View>
-        </View>
-      ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          {
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {
 
 }
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.formWrap}>
             {phase === "name" && (
               <>
@@ -207,21 +155,20 @@ export default function Step6CreatingScreen({ navigation }: Props) {
               </>
             )}
           </View>
-          </TouchableWithoutFeedback>
-          <View style={styles.bottomBar}>
-            <TouchableOpacity
-              style={[styles.btn, !canProceed && styles.btnDisabled]}
-              onPress={goNext}
-              disabled={!canProceed}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.btnText}>
-                {phase === "personality" ? "생성 시작" : "다음"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      )}
+        </TouchableWithoutFeedback>
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={[styles.btn, !canProceed && styles.btnDisabled]}
+            onPress={goNext}
+            disabled={!canProceed}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.btnText}>
+              {phase === "personality" ? "생성 시작" : "다음"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeView>
   );
 }
@@ -255,38 +202,4 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.4 },
   btnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
-
-  center: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: SIZES.xlarge, gap: 16 },
-  ringContainer: { width: 140, height: 140, alignItems: "center", justifyContent: "center", marginBottom: 16 },
-  outerRing: {
-    position: "absolute",
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 3,
-    borderColor: "transparent",
-    borderTopColor: COLORS.violet500,
-    borderRightColor: COLORS.violet500,
-  },
-  outerRingInner: { width: 120, height: 120, borderRadius: 60 },
-  innerCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.zinc50,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  progressText: { fontSize: 28, fontWeight: "bold", color: COLORS.violet500 },
-  title: { fontSize: 18, fontWeight: "700", color: COLORS.zinc900 },
-  subtitle: { fontSize: 14, color: COLORS.zinc500 },
-  barTrack: {
-    width: "80%",
-    height: 6,
-    backgroundColor: COLORS.zinc200,
-    borderRadius: 3,
-    overflow: "hidden",
-    marginTop: 8,
-  },
-  barFill: { height: "100%", backgroundColor: COLORS.violet500, borderRadius: 3 },
 });

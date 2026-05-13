@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
-
 import { useTranslation } from "react-i18next";
 import type { CloneCreationDraft } from "../../../types/clone";
 import { COLORS, RADIUS } from "../../../components/constants";
@@ -18,7 +17,34 @@ export const VOICE_SAMPLES = [
   { id: "v6", name: "Stella" },
 ] as const;
 
-type Mode = "preset" | "upload";
+const RECORD_SCRIPTS = [
+  {
+    id: "s1",
+    title: "일상 인사",
+    text:
+      "안녕하세요. 오늘은 정말 좋은 하루였어요. 햇살이 따뜻하고 바람도 부드러워서 " +
+      "산책하기에 딱 좋았답니다. 이렇게 평화로운 시간이 정말 소중하게 느껴져요. " +
+      "오늘 하루도 즐겁게 잘 보내세요.",
+  },
+  {
+    id: "s2",
+    title: "음식 이야기",
+    text:
+      "요즘 가장 좋아하는 음식이 뭐예요? 저는 김치찌개를 정말 좋아해요. 매운 맛이 " +
+      "진하고 따끈한 국물을 한 숟갈 떠먹으면 하루의 피로가 싹 풀리는 기분이거든요. " +
+      "특히 비 오는 날에 먹으면 더 맛있어요.",
+  },
+  {
+    id: "s3",
+    title: "추억 회상",
+    text:
+      "어릴 적 추억 중에 가장 기억에 남는 건 가족과 함께 갔던 바다 여행이에요. 파도 " +
+      "소리와 짭조름한 바람, 그리고 모래사장에서 뛰놀던 그 순간들이 아직도 생생해요. " +
+      "그때 행복했던 기분이 다시 떠올라요.",
+  },
+] as const;
+
+type Mode = "preset" | "record" | "upload";
 
 interface Props {
   draft: CloneCreationDraft;
@@ -45,20 +71,31 @@ function Component({ draft, onChange }: Props) {
 
   const initialMode: Mode = draft.voiceFile ? "upload" : "preset";
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [selectedScript, setSelectedScript] = useState<string | null>(null);
 
   const switchMode = (next: Mode) => {
     if (next === mode) return;
     setMode(next);
     onChange({ voiceSampleId: undefined, voiceFile: undefined, recordDuration: undefined });
+    setSelectedScript(null);
+  };
+
+  const handleRecordPress = () => {
+
+    Alert.alert(
+      "준비 중",
+      "녹음 기능은 곧 제공돼요. 지금은 [음성 선택] 또는 [파일 업로드] 를 이용해주세요.",
+    );
   };
 
   return (
     <View style={styles.wrap}>
       {}
       <View style={styles.modeRow}>
-        {(["preset", "upload"] as const).map((m) => {
+        {(["preset", "record", "upload"] as const).map((m) => {
           const labels: Record<Mode, string> = {
             preset: "음성 선택",
+            record: "직접 녹음",
             upload: "파일 업로드",
           };
           const active = mode === m;
@@ -97,9 +134,39 @@ function Component({ draft, onChange }: Props) {
         </View>
       )}
 
-      {
-
-}
+      {}
+      {mode === "record" && (
+        <View style={{ gap: 12 }}>
+          <Text style={styles.scriptHint}>
+            아래 3개 중 하나를 골라 자연스럽게 읽어주세요. (약 30초)
+          </Text>
+          {RECORD_SCRIPTS.map((s) => {
+            const active = selectedScript === s.id;
+            return (
+              <TouchableOpacity
+                key={s.id}
+                style={[styles.scriptCard, active && styles.scriptCardActive]}
+                onPress={() => setSelectedScript(s.id)}
+              >
+                <Text style={styles.scriptTitle}>{s.title}</Text>
+                <Text style={styles.scriptText}>{s.text}</Text>
+              </TouchableOpacity>
+            );
+          })}
+          <TouchableOpacity
+            style={[styles.recordBtn, !selectedScript && styles.recordBtnDisabled]}
+            onPress={handleRecordPress}
+            disabled={!selectedScript}
+            activeOpacity={0.85}
+          >
+            <View style={styles.recordDot} />
+            <Text style={styles.recordBtnText}>녹음 시작</Text>
+          </TouchableOpacity>
+          <Text style={styles.disabledNote}>
+            * 녹음 기능은 준비 중이에요 — 임시로 [음성 선택] 또는 [파일 업로드] 를 사용해주세요.
+          </Text>
+        </View>
+      )}
 
       {}
       {mode === "upload" && (
@@ -158,6 +225,37 @@ const styles = StyleSheet.create({
   cardActive: { borderColor: COLORS.violet600, backgroundColor: COLORS.violet100 },
   cardName: { fontSize: 14, fontWeight: "600", color: COLORS.zinc800 },
   cardDesc: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+
+  scriptHint: { fontSize: 13, color: COLORS.zinc600, marginBottom: 4 },
+  scriptCard: {
+    padding: 14,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    backgroundColor: COLORS.white,
+  },
+  scriptCardActive: { borderColor: COLORS.violet600, backgroundColor: COLORS.violet100 },
+  scriptTitle: { fontSize: 13, fontWeight: "700", color: COLORS.zinc900, marginBottom: 6 },
+  scriptText: { fontSize: 14, lineHeight: 22, color: COLORS.zinc700 },
+  recordBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 14,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.error,
+    marginTop: 4,
+  },
+  recordBtnDisabled: { opacity: 0.4 },
+  recordDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.white },
+  recordBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
+  disabledNote: {
+    fontSize: 12,
+    color: COLORS.zinc500,
+    textAlign: "center",
+    marginTop: 4,
+  },
 
   upload: {
     flexDirection: "row",
