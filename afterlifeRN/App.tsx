@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
 import { useFonts } from "expo-font";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import RootNavigator from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/stores/authStore";
 import { useFollowStore } from "./src/stores/followStore";
@@ -42,16 +43,15 @@ export default function App() {
   const [ready, setReady] = useState(false);
 
   const [fontsLoaded, fontsError] = useFonts({
-    feather: require("./assets/fonts/feather.ttf"),
-    ionicons: require("./assets/fonts/ionicons.ttf"),
+    ...Feather.font,
+    ...Ionicons.font,
   });
 
   useEffect(() => {
-    if (fontsError) {
-      console.warn("[App] icon font load error (non-blocking):", fontsError);
-    } else if (fontsLoaded) {
-      console.log("[App] icon fonts loaded — feather/ionicons");
-    }
+
+    console.log(
+      `[Fonts] loaded=${fontsLoaded} error=${fontsError ? String(fontsError) : "none"} keys=${JSON.stringify(Object.keys({ ...Feather.font, ...Ionicons.font }))}`,
+    );
   }, [fontsLoaded, fontsError]);
 
   useEffect(() => {
