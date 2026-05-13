@@ -50,7 +50,8 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   HomeTab: undefined;
-  SearchTab: undefined;
+
+  SearchTab: { initialQuery?: string } | undefined;
   ClonesTab: undefined;
   CreateTab: undefined;
   ShortsTab: undefined;

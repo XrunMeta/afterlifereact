@@ -27,6 +27,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
+import HashtagText from "../../components/common/HashtagText";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
@@ -531,9 +532,9 @@ export default function MyClonesDashboardScreen() {
         </View>
 
         {}
-        <Text style={s.description} numberOfLines={2}>
+        <HashtagText style={s.description} numberOfLines={2}>
           {clone.description}
-        </Text>
+        </HashtagText>
 
         {
 
