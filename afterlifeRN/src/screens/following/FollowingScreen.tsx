@@ -184,10 +184,18 @@ export default function FollowingScreen() {
     if (apiFollowed != null) {
       return apiFollowed.map((c) => {
         const realFeedId = c.latestFeed?.feedId ?? null;
+
+        let desc = c.description ?? "";
+        const hasHashtag = /#[\p{L}\p{N}_]+/u.test(desc);
+        const ints = c.interests ?? [];
+        if (!hasHashtag && ints.length > 0) {
+          const tags = ints.map((i: string) => `#${i}`).join(" ");
+          desc = desc.trim().length > 0 ? `${desc} ${tags}` : tags;
+        }
         return {
           id: realFeedId ?? -c.id, 
           cloneId: c.id,
-          content: c.description ?? "",
+          content: desc,
           mediaUrl: c.avatarUrl ?? undefined,
           mediaType: null,
 
@@ -505,13 +513,6 @@ export default function FollowingScreen() {
             {item.persona.creatorAccount ? (
               <Text style={s.creatorAccount}>{item.persona.creatorAccount}</Text>
             ) : null}
-            <View style={s.tagRow}>
-              {item.persona.interests.map((tag, i) => (
-                <View key={i} style={s.overlayTag}>
-                  <Text style={s.overlayTagText}>#{tag}</Text>
-                </View>
-              ))}
-            </View>
             <Text style={s.postContent} numberOfLines={3}>{item.feed.content}</Text>
             <View style={s.overlayBtns}>
               <Button
@@ -599,15 +600,6 @@ export default function FollowingScreen() {
       />
 
       {}
-      <View style={s.tabWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabRow}>
-          {categories.map((cat) => (
-            <TouchableOpacity key={cat} style={[s.tab, selectedCategory === cat && s.tabActive]} onPress={() => setSelectedCategory(cat)}>
-              <Text style={[s.tabText, selectedCategory === cat && s.tabTextActive]}>{cat}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
 
       {}
       <FlatList
