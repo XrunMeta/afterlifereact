@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   composerContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 40,
+    paddingTop: 56,
     paddingBottom: 40,
   },
 

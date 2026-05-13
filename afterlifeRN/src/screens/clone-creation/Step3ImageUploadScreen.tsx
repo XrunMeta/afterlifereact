@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: SIZES.large,
-    paddingTop: 32,
+    paddingTop: 48,
     paddingBottom: SIZES.large,
   },
   bottomBar: { padding: SIZES.large, borderTopWidth: 1, borderTopColor: COLORS.zinc100 },
