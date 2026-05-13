@@ -225,6 +225,25 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             v_c7169b(false);
             return;
           }
+          if (v_49263d.code === 'UNAUTHENTICATED') {
+
+            v_c7169b(false);
+            const v_badeaf = '세션이 만료됐어요. 다시 로그인해주세요.';
+            v_3a7d09(v_badeaf);
+            v_03e392.alert('세션 만료', v_badeaf, [
+              {
+                text: '로그인하기',
+                onPress: async () => {
+                  await v_1ed7d9.getState().logout();
+
+                  v_c65f5d.getParent()?.dispatch(
+                    v_650cfa.navigate({ name: "ClonesTab" }),
+                  );
+                },
+              },
+            ]);
+            return;
+          }
           let v_badeaf = v_8d41d7('create.errors.createFailed');
           if (v_49263d.code === 'QUOTA_EXCEEDED') {
             v_badeaf = v_8d41d7('create.errors.quotaExceeded');
@@ -335,28 +354,42 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      {
-}
+      {}
       <PageHeader
-        title={v_8a1355}
-        subtitle={`@${v_3e86f3}`}
+        title="게시물 작성"
         showBackButton
         onBackPress={v_704242}
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+
+        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
       >
-        <SafeScrollView contentContainerStyle={v_d81136.composerContent} showBottomBackground={false}>
+        <SafeScrollView
+          contentContainerStyle={v_d81136.composerContent}
+          showBottomBackground={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {}
-          <View style={v_d81136.imageBox}>
+          <View style={v_d81136.authorRow}>
             {v_ee89db ? (
-              <Image source={{ uri: v_ee89db }} style={v_d81136.image} resizeMode="cover" />
+              <Image source={{ uri: v_ee89db }} style={v_d81136.authorAvatar} />
             ) : (
-              <View style={[v_d81136.image, v_d81136.imagePlaceholder]}>
-                <Feather name="image" size={36} color={v_1bfbd0.zinc400} />
+              <View style={[v_d81136.authorAvatar, v_d81136.authorAvatarPh]}>
+                <Feather name="user" size={16} color={v_1bfbd0.zinc400} />
               </View>
             )}
+            <View style={v_d81136.authorTextCol}>
+              <Text style={v_d81136.authorName} numberOfLines={1}>{v_8a1355}</Text>
+              <Text style={v_d81136.authorHandle} numberOfLines={1}>@{v_3e86f3}</Text>
+            </View>
+          </View>
+
+          {
+}
+          <View style={v_d81136.previewBox}>
+            <Text style={v_d81136.previewText}>움직이는 페르소나로 보일 예정</Text>
           </View>
 
           {}
@@ -531,29 +564,56 @@ const v_d81136 = v_472849.create({
   composerContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingTop: 56,
+    paddingBottom: 40,
   },
-  imageBox: {
-    width: "100%",
-    aspectRatio: 4 / 5,
-    borderRadius: v_8b0c90.md,
-    overflow: "hidden",
-    backgroundColor: v_1bfbd0.zinc50,
-    marginBottom: 16,
-  },
-  image: { width: "100%", height: "100%" },
-  imagePlaceholder: {
+
+  authorRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
+  authorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: v_1bfbd0.zinc100,
   },
+  authorAvatarPh: { alignItems: "center", justifyContent: "center" },
+  authorTextCol: { flex: 1 },
+  authorName: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  authorHandle: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+
+  previewBox: {
+    width: "80%",
+    aspectRatio: 1,
+    alignSelf: "center",
+    borderRadius: v_8b0c90.md,
+    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  previewText: {
+    fontSize: 14,
+    color: v_1bfbd0.zinc500,
+    textAlign: "center",
+  },
+
   captionInput: {
-    minHeight: 60,
+    minHeight: 100,
     fontSize: 14,
     color: v_1bfbd0.zinc900,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     textAlignVertical: "top",
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: v_8b0c90.md,
+    backgroundColor: v_1bfbd0.zinc50,
   },
   errorBox: {
     flexDirection: "row",
