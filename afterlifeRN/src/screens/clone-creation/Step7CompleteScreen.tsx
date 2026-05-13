@@ -281,23 +281,24 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   };
 
   const handleSharePost = async () => {
-    if (createdCloneId == null || !accessToken) {
-      handleGoToDashboard();
-      return;
-    }
+    if (createdCloneId == null) return;
+    const hasCaption = caption.trim().length > 0;
     setPosting(true);
     try {
-      const mediaUrl = avatarUrlRef.current ?? null;
-      await createCloneFeed(accessToken, createdCloneId, {
-        content: caption.trim() || undefined,
-        ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
-      });
+      if (hasCaption && accessToken) {
+        const mediaUrl = avatarUrlRef.current ?? null;
+        await createCloneFeed(accessToken, createdCloneId, {
+          content: caption.trim(),
+          ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
+        });
+      }
     } catch (err) {
       console.warn("[CLONE-CREATE] post first feed failed:", err);
 
     } finally {
       setPosting(false);
-      handleGoToDashboard();
+      resetCreationDraft();
+      navigation.replace("Step8", { cloneId: createdCloneId });
     }
   };
 
@@ -335,79 +336,68 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <View style={styles.composerHeader}>
-        <TouchableOpacity onPress={handleGoToDashboard} hitSlop={8} style={styles.headerBack}>
-          <Feather name="chevron-left" size={26} color={COLORS.zinc900} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerName} numberOfLines={1}>{displayName}</Text>
-          <Text style={styles.headerHandle} numberOfLines={1}>@{displayHandle}</Text>
-        </View>
-        {}
-        <View style={styles.headerBack} />
-      </View>
+      {
+}
+      <PageHeader
+        title={displayName}
+        subtitle={`@${displayHandle}`}
+        showBackButton
+        onBackPress={handleGoToDashboard}
+      />
+      <StepIndicator currentStep={4} totalSteps={4} />
 
-      {creating ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.violet600} />
-          <Text style={styles.creatingText}>{t('create.complete.creating')}</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.center}>
-          <View style={[styles.successCircle, { backgroundColor: COLORS.error, width: 60, height: 60, borderRadius: 30 }]}>
-            <Feather name="alert-triangle" size={28} color={COLORS.white} />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <SafeScrollView contentContainerStyle={styles.composerContent} showBottomBackground={false}>
+          {}
+          <View style={styles.imageBox}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+            ) : (
+              <View style={[styles.image, styles.imagePlaceholder]}>
+                <Feather name="image" size={36} color={COLORS.zinc400} />
+              </View>
+            )}
           </View>
-          <Text style={[styles.creatingText, { color: COLORS.error }]}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={handleGoToDashboard}>
-            <Text style={styles.retryText}>대시보드로</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <SafeScrollView contentContainerStyle={styles.composerContent} showBottomBackground={false}>
-            {}
-            <View style={styles.imageBox}>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
-              ) : (
-                <View style={[styles.image, styles.imagePlaceholder]}>
-                  <Feather name="image" size={36} color={COLORS.zinc400} />
-                </View>
-              )}
-            </View>
-
-            {}
-            <TextInput
-              style={styles.captionInput}
-              value={caption}
-              onChangeText={setCaption}
-              placeholder="캡션 추가..."
-              placeholderTextColor={COLORS.zinc400}
-              multiline
-              maxLength={2000}
-            />
-          </SafeScrollView>
 
           {}
-          <View style={styles.bottomBar}>
-            <Button
-              title={posting ? "공유 중..." : "공유"}
-              onPress={handleSharePost}
-              variant="accent"
-              disabled={posting || createdCloneId == null}
-            />
-            <Button
-              title="건너뛰기"
-              onPress={handleGoToDashboard}
-              variant="ghost"
-              disabled={posting}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      )}
+          <TextInput
+            style={styles.captionInput}
+            value={caption}
+            onChangeText={setCaption}
+            placeholder="소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)"
+            placeholderTextColor={COLORS.zinc400}
+            multiline
+            maxLength={2000}
+          />
+
+          {}
+          {error && (
+            <View style={styles.errorBox}>
+              <Feather name="alert-triangle" size={16} color={COLORS.error} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+        </SafeScrollView>
+
+        {}
+        <View style={styles.bottomBar}>
+          <Button
+            title={
+              posting
+                ? "잠시만요..."
+                : creating
+                ? "잠시만요..."
+                : "다음"
+            }
+            onPress={handleSharePost}
+            variant="accent"
+            disabled={posting || creating || !!error}
+          />
+        </View>
+      </KeyboardAvoidingView>
 
       {}
       <Modal visible={paymentModal} transparent animationType="fade">
@@ -568,6 +558,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     textAlignVertical: "top",
   },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "#fef2f2",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+  },
+  errorText: { flex: 1, fontSize: 13, color: COLORS.error, lineHeight: 18 },
 
   center: {
     flex: 1,

@@ -163,9 +163,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
             disabled={!canProceed}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnText}>
-              {phase === "personality" ? "생성 시작" : "다음"}
-            </Text>
+            <Text style={styles.btnText}>다음</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
