@@ -181,7 +181,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
 
       const v_a4d981 = v_b9bbbd.iso2.toUpperCase();
-      const v_6c3a47 = v_b9bbbd.countryCode ?? 0;
+
+      const v_6c3a47 =
+        v_b9bbbd.countryCode ??
+        (Number(v_b9bbbd.dialCode.replace(/[^\d]/g, "")) || 0);
       const v_222917 =
         v_a6c30b && v_a6c30b.iso2 !== "global" ? v_a6c30b.dialCode : undefined;
 
