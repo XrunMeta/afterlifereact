@@ -170,8 +170,8 @@ export default function v_def15b() {
   const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
   const [v_19340b, v_14129c] = v_5ab095(true);
 
-  const v_48d264 = 0;
-  const v_a7e127 = 0;
+  const v_48d264 = (v_b113dd as { followingCount?: number } | null)?.followingCount ?? 0;
+  const v_a7e127 = (v_b113dd as { followersCount?: number } | null)?.followersCount ?? 0;
 
   const [v_026c2d, v_5eda29] = v_5ab095(false);
 
@@ -738,15 +738,37 @@ export default function v_def15b() {
                     {v_b113dd?.name ?? v_f38ee5?.displayName ?? "사용자"}
                   </Text>
                   <View style={v_fd5f43.profileStatsRow}>
-                    <View style={v_fd5f43.profileStatItem}>
+                    <TouchableOpacity
+                      style={v_fd5f43.profileStatItem}
+                      onPress={() => {
+                        const v_44e218 = v_b113dd?.id;
+                        if (!v_44e218) return;
+                        v_f4c991.navigate("UserFollowList", {
+                          userId: v_44e218,
+                          mode: "followers",
+                          userName: v_b113dd?.name ?? undefined,
+                        });
+                      }}
+                    >
                       <Text style={v_fd5f43.profileStatValue}>{v_a7e127}</Text>
                       <Text style={v_fd5f43.profileStatLabel}>팔로워</Text>
-                    </View>
+                    </TouchableOpacity>
                     <View style={v_fd5f43.profileStatDivider} />
-                    <View style={v_fd5f43.profileStatItem}>
+                    <TouchableOpacity
+                      style={v_fd5f43.profileStatItem}
+                      onPress={() => {
+                        const v_44e218 = v_b113dd?.id;
+                        if (!v_44e218) return;
+                        v_f4c991.navigate("UserFollowList", {
+                          userId: v_44e218,
+                          mode: "following",
+                          userName: v_b113dd?.name ?? undefined,
+                        });
+                      }}
+                    >
                       <Text style={v_fd5f43.profileStatValue}>{v_48d264}</Text>
                       <Text style={v_fd5f43.profileStatLabel}>팔로잉</Text>
-                    </View>
+                    </TouchableOpacity>
                     <View style={v_fd5f43.profileStatDivider} />
                     <View style={v_fd5f43.profileStatItem}>
                       <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>

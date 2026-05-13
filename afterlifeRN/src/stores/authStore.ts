@@ -121,8 +121,10 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
     try {
       const { useFeedStore: v_37977a } = await import("./feedStore");
       const { useFollowStore: v_b4902e } = await import("./followStore");
+      const { useUserFollowStore: v_98d20a } = await import("./userFollowStore");
       v_37977a.getState().resetForLogout();
       await v_b4902e.getState().resetForLogout();
+      v_98d20a.getState().resetForLogout();
     } catch (v_49263d) {
       console.warn("[authStore] reset on apiLogout failed:", v_49263d);
     }
