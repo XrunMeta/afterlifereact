@@ -612,14 +612,14 @@ const styles = StyleSheet.create({
   },
 
   captionInput: {
-    minHeight: 100,
+    minHeight: 120,
     fontSize: 14,
     color: COLORS.zinc900,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     textAlignVertical: "top",
     borderWidth: 1,
-    borderColor: COLORS.zinc200,
+    borderColor: COLORS.zinc300,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.zinc50,
   },
