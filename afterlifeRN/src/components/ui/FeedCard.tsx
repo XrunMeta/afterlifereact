@@ -78,7 +78,6 @@ const FeedCard: React.FC<FeedCardProps> = ({
             </TouchableOpacity>
             <TouchableOpacity onPress={onSharePress} style={styles.actionBtn} activeOpacity={0.7}>
               <Feather name="share-2" size={28} color={COLORS.white} />
-              <Text style={styles.actionLabel}>공유</Text>
             </TouchableOpacity>
             {onMorePress && (
               <TouchableOpacity
@@ -214,9 +213,11 @@ const styles = StyleSheet.create({
   rightActions: {
     position: "absolute",
     right: 12,
-    bottom: 160,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
     alignItems: "center",
-    gap: 22,
+    gap: 24,
   },
   actionBtn: {
     alignItems: "center",

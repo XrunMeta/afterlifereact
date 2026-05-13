@@ -270,14 +270,11 @@ export default function CallScreen({ route, navigation }: Props) {
       {}
       <View style={[s.callInfo, { top: insets.top + 24 }]}>
         <Text style={s.callName}>{personaName}</Text>
-        <View style={s.callStatusBadge}>
-          <View style={s.callDot} />
-          <Text style={s.callStatusText}>{t("call.inCall", { time: callTimeStr })}</Text>
-        </View>
+        <Text style={s.callTimeText}>{callTimeStr}</Text>
       </View>
 
       {}
-      <View style={[s.rightActions, { bottom: 180 + bottomInset }]}>
+      <View style={s.rightActions}>
         <TouchableOpacity
           style={[s.sideBtn, showGifts && s.sideBtnActive]}
           onPress={() => setShowGifts(!showGifts)}
@@ -520,29 +517,23 @@ const s = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  callStatusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
 
-    backgroundColor: "rgba(0,0,0,0.45)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: RADIUS.full,
+  callTimeText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.white,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  callDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.white,
-  },
-  callStatusText: { fontSize: 13, fontWeight: "500", color: COLORS.white },
 
   rightActions: {
     position: "absolute",
     right: 16,
-    bottom: 180,
-    gap: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    gap: 20,
     zIndex: 20,
   },
   sideBtn: {

@@ -34,6 +34,15 @@ export function toFeedItem(f: DomainFeed): FeedItem {
     ? (apiFeedCountsCache.get(f.id)?.commentsCount ?? 0)
     : 20 + (h % 480);
   const localImage = LOCAL_IMAGE_BY_CLONE_ID[f.cloneId];
+
+  const interestsList = c?.interests ?? [];
+  let description = f.content ?? "";
+  const hasHashtagInDesc = /#[\p{L}\p{N}_]+/u.test(description);
+  if (interestsList.length > 0 && !hasHashtagInDesc) {
+    const tags = interestsList.map((i) => `#${i}`).join(" ");
+    description = description.trim().length > 0 ? `${description} ${tags}` : tags;
+  }
+
   return {
     id: f.id,
     cloneId: f.cloneId,
@@ -45,10 +54,11 @@ export function toFeedItem(f: DomainFeed): FeedItem {
     authorAvatar: localImage ?? c?.imageUrl ?? "",
     image: f.mediaUrl ?? localImage ?? c?.imageUrl ?? "",
     title: c?.displayName ?? "",
-    description: f.content,
+    description,
     type: c ? CLONE_TYPE_LABEL[c.cloneType] : "친구",
     mainCategory: "",
-    interests: c?.interests ?? [],
+
+    interests: interestsList,
     likes: formatLikes(likes),
     comments,
   };

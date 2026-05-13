@@ -46,7 +46,8 @@ export default function HashtagText({ children, style, tagStyle, numberOfLines }
 
   const onTagPress = (tag: string) => {
 
-    nav.navigate("SearchTab", { initialQuery: tag });
+    const stripped = tag.replace(/^#+/, "");
+    nav.navigate("SearchTab", { initialQuery: stripped });
   };
 
   return (
