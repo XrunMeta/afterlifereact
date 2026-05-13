@@ -21,6 +21,7 @@
     "babel-preset-expo": "~54.0.10",
     "country-state-city": "^3.2.1",
     "expo": "~54.0.33",
+    "expo-audio": "~1.1.1",
     "expo-camera": "~17.0.10",
     "expo-clipboard": "~8.0.8",
     "expo-dev-client": "~6.0.20",
