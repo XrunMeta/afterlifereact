@@ -9,6 +9,7 @@ import { StyleSheet, View } from "react-native";
 import RootNavigator from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/stores/authStore";
 import { useFollowStore } from "./src/stores/followStore";
+import { useUserFollowStore } from "./src/stores/userFollowStore";
 import { useConfigStore } from "./src/stores/configStore";
 import { registerPushTokenIfReady } from "./src/lib/pushNotifications";
 import type { RootStackParamList } from "./src/navigation/types";
@@ -49,7 +50,11 @@ export default function App() {
       setReady(true);
 
       const token = useAuthStore.getState().accessToken;
-      if (token) registerPushTokenIfReady(token);
+      if (token) {
+        registerPushTokenIfReady(token);
+
+        useUserFollowStore.getState().hydrate();
+      }
     });
   }, []);
 

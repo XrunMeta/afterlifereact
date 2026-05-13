@@ -18,6 +18,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { CompositeNavigationProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SafeView from "../../components/ui/SafeView";
 import { useAuthStore } from "../../stores/authStore";
@@ -27,9 +29,12 @@ import {
 } from "../../api/clones";
 import { searchUsers, type UserSearchItem } from "../../api/auth";
 import { COLORS, RADIUS } from "../../components/constants";
-import type { MainTabParamList } from "../../navigation/types";
+import type { MainTabParamList, RootStackParamList } from "../../navigation/types";
 
-type TabNav = BottomTabNavigationProp<MainTabParamList>;
+type TabNav = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 const GAP = 4; 
 const NUM_COLS = 2;
@@ -270,7 +275,12 @@ export default function SearchScreen() {
   const renderUserRow = ({ item }: { item: UserSearchItem }) => (
     <Pressable
       style={s.row}
-      onPress={() => saveRecent(item.name ?? item.email)}
+      onPress={() => {
+        saveRecent(item.name ?? item.email);
+        Keyboard.dismiss();
+
+        nav.navigate("UserProfile", { userId: item.id });
+      }}
     >
       {item.avatarUrl ? (
         <Image source={{ uri: item.avatarUrl }} style={s.rowAvatar} />
