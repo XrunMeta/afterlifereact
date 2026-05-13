@@ -25,7 +25,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
 import v_9706a6 from "../../components/ui/FeedCard";
-import v_ca88c9 from "../../components/ui/FilterModal";
+
 import { v_37977a, v_10e36e } from "../../stores/feedStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -83,8 +83,7 @@ export default function v_c316d8() {
   );
 
   const [v_2bcb8f, v_ddecc4] = v_5ab095(0);
-  const [v_a4bef1, v_ea2b4b] = v_5ab095(false);
-  const [v_c79424, v_4c8a46] = v_5ab095<string[]>(v_976e06);
+
   const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
@@ -144,25 +143,7 @@ export default function v_c316d8() {
     itemVisiblePercentThreshold: 50,
   };
 
-  const v_f10970 = (v_e4601c) => {
-    v_4c8a46((v_ba2215) =>
-      v_ba2215.includes(v_e4601c)
-        ? v_ba2215.filter((v_ebec57) => v_ebec57 !== v_e4601c)
-        : [...v_ba2215, v_e4601c]
-    );
-  };
-
-  const v_604177 = () => {
-    v_770327(v_c79424);
-    v_ddecc4(0);
-    v_ebdf9a.current?.scrollToOffset({ offset: 0, animated: false });
-    v_ea2b4b(false);
-  };
-
-  const v_61765c = () => {
-    v_4c8a46(v_976e06);
-    v_ea2b4b(true);
-  };
+  void v_770327;
 
   const [v_ecfc0f, v_04f2fc] = v_5ab095<v_52af9d[]>([]);
   const [v_465030, v_856daf] = v_5ab095(false);
@@ -361,24 +342,6 @@ export default function v_c316d8() {
       )}
 
       {}
-      <View style={[v_d81136.topOverlay, { top: v_033e14.top + 8 }]}>
-        {v_976e06.length > 0 && (
-          <View style={v_d81136.tagsRow}>
-            {v_976e06.map((v_e4601c) => (
-              <View key={v_e4601c} style={v_d81136.topTag}>
-                <Text style={v_d81136.topTagText}>#{v_e4601c}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-        <TouchableOpacity
-          onPress={v_61765c}
-          style={v_d81136.filterButton}
-          activeOpacity={0.7}
-        >
-          <Feather name="filter" size={20} color={v_1bfbd0.white} />
-        </TouchableOpacity>
-      </View>
 
       {}
       <Modal visible={!!v_ed660d} transparent animationType="slide">
@@ -464,14 +427,6 @@ export default function v_c316d8() {
       </Modal>
 
       {}
-      <FilterModal
-        visible={v_a4bef1}
-        selectedInterests={v_c79424}
-        onToggleInterest={v_f10970}
-        onClearAll={() => v_4c8a46([])}
-        onApply={v_604177}
-        onClose={() => v_ea2b4b(false)}
-      />
 
       {}
       <Modal visible={!!v_12fa22} transparent animationType="fade">
