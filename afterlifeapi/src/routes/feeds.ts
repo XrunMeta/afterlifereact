@@ -152,8 +152,6 @@ feedsDiscover.get("/discover", async (c) => {
   const binds: unknown[] = [];
 
   if (viewerId) {
-    where.push("c.owner_id != ?");
-    binds.push(viewerId);
     where.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
     binds.push(viewerId);
   }
@@ -166,12 +164,14 @@ feedsDiscover.get("/discover", async (c) => {
     await c.env.DB
       .prepare(
         `SELECT c.id              AS cloneId,
+                c.owner_id         AS cloneOwnerId,
                 c.name             AS cloneName,
                 c.username         AS cloneUsername,
                 c.description      AS cloneDescription,
                 c.avatar_url       AS cloneAvatarUrl,
                 c.clone_type       AS cloneType,
                 c.created_at       AS cloneCreatedAt,
+                c.visibility       AS cloneVisibility,
                 f.id               AS feedId,
                 f.content          AS feedContent,
                 f.media_url        AS feedMediaUrl,
@@ -194,12 +194,14 @@ feedsDiscover.get("/discover", async (c) => {
       .bind(...binds, limit + 1)
       .all<{
         cloneId: number;
+        cloneOwnerId: number;
         cloneName: string;
         cloneUsername: string;
         cloneDescription: string | null;
         cloneAvatarUrl: string | null;
         cloneType: string;
         cloneCreatedAt: string;
+        cloneVisibility: string;
         feedId: number | null;
         feedContent: string | null;
         feedMediaUrl: string | null;
@@ -271,10 +273,13 @@ feedsDiscover.get("/discover", async (c) => {
       createdAt: r.feedCreatedAt ?? r.cloneCreatedAt,
       clone: {
         id: r.cloneId,
+
+        ownerId: r.cloneOwnerId,
         name: r.cloneName,
         username: r.cloneUsername,
         avatarUrl: r.cloneAvatarUrl,
         cloneType: r.cloneType,
+        visibility: r.cloneVisibility,
       },
       interests: interestsByClone.get(r.cloneId) ?? [],
     })),

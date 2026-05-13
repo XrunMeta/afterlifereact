@@ -88,7 +88,12 @@ export default function HomeScreen() {
   const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
 
-  const [moreTarget, setMoreTarget] = useState<{ cloneId: number; author: string } | null>(null);
+  const [moreTarget, setMoreTarget] = useState<{
+    cloneId: number;
+    author: string;
+    isOwn: boolean;
+    visibility?: string;
+  } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   useEffect(() => {
     if (toastMessage) {
@@ -265,21 +270,33 @@ export default function HomeScreen() {
   };
 
   const renderItem = useCallback(
-    ({ item, index }: { item: FeedItem; index: number }) => (
-      <FeedCard
-        item={item}
-        isActive={index === currentIndex}
-        isLiked={likedIds.includes(item.id)}
-        isFollowed={isFollowing(item.cloneId)}
-        cardHeight={feedHeight}
-        onToggleLike={() => toggleLike(item.id)}
-        onToggleFollow={() => void toggleFollow(item.cloneId)}
-        onCallPress={() => rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image })}
-        onCommentPress={() => setCommentFeedId(item.id)}
-        onMorePress={() => setMoreTarget({ cloneId: item.cloneId, author: item.author })}
-      />
-    ),
-    [currentIndex, likedIds, follows, feedHeight, toggleLike, toggleFollow, isFollowing]
+    ({ item, index }: { item: FeedItem; index: number }) => {
+
+      const isOwn = myUserId != null && item.cloneOwnerId === myUserId;
+      return (
+        <FeedCard
+          item={item}
+          isActive={index === currentIndex}
+          isLiked={likedIds.includes(item.id)}
+          isFollowed={isFollowing(item.cloneId)}
+          isOwn={isOwn}
+          cardHeight={feedHeight}
+          onToggleLike={() => toggleLike(item.id)}
+          onToggleFollow={() => void toggleFollow(item.cloneId)}
+          onCallPress={() => rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image })}
+          onCommentPress={() => setCommentFeedId(item.id)}
+          onMorePress={() =>
+            setMoreTarget({
+              cloneId: item.cloneId,
+              author: item.author,
+              isOwn,
+              visibility: item.cloneVisibility,
+            })
+          }
+        />
+      );
+    },
+    [currentIndex, likedIds, follows, feedHeight, toggleLike, toggleFollow, isFollowing, myUserId]
   );
 
   return (
@@ -455,63 +472,142 @@ export default function HomeScreen() {
           >
             <View style={styles.moreSheetHandle} />
             <Text style={styles.moreTitle}>{moreTarget?.author}</Text>
-            <TouchableOpacity
-              style={styles.moreItem}
-              onPress={() => {
-                setMoreTarget(null);
-                setToastMessage("신고가 접수됐어요");
-              }}
-            >
-              <Feather name="flag" size={20} color="#ef4444" />
-              <Text style={[styles.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.moreItem}
-              onPress={async () => {
-                const target = moreTarget;
-                setMoreTarget(null);
-                if (!target || !accessToken) {
-                  console.log(
-                    `[BLOCK] aborted — target=${!!target} accessToken=${!!accessToken}`,
-                  );
-                  return;
-                }
-                console.log(
-                  `[BLOCK] start cloneId=${target.cloneId} author=${target.author}`,
-                );
-                try {
-                  console.log(`[BLOCK] → POST /oth-path${target.cloneId}/block`);
-                  const blockRes = await blockClone(accessToken, target.cloneId);
-                  console.log(`[BLOCK] ← block API ok:`, blockRes);
-                  setToastMessage("이 페르소나가 차단됐어요");
 
-                  const cur = useFeedStore.getState().apiFeeds;
-                  const beforeFeed = cur?.length ?? 0;
-                  if (cur) {
-                    useFeedStore.setState({
-                      apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
-                    });
-                  }
-                  console.log(
-                    `[BLOCK] apiFeeds filtered — before=${beforeFeed} after=${
-                      useFeedStore.getState().apiFeeds?.length ?? 0
-                    }`,
-                  );
+            {moreTarget?.isOwn ? (
 
-                  await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
+              <>
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={() => {
+                    const target = moreTarget;
+                    setMoreTarget(null);
+                    if (!target) return;
 
-                  console.log(`[BLOCK] → loadDiscover() refetch`);
-                  void loadDiscover();
-                  console.log(`[BLOCK] complete cloneId=${target.cloneId}`);
-                } catch (err) {
-                  console.warn(`[BLOCK] FAILED cloneId=${target.cloneId}`, err);
-                  setToastMessage("차단에 실패했어요");
-                }
-              }}
-            >
-              <Feather name="slash" size={20} color={COLORS.zinc900} />
-              <Text style={styles.moreItemText}>차단하기</Text>
-            </TouchableOpacity>
+                    rootNav.dispatch(
+                      CommonActions.navigate({
+                        name: "Main",
+                        params: {
+                          screen: "ClonesTab",
+                          params: {
+                            screen: "CloneEdit",
+                            params: { cloneId: target.cloneId },
+                          },
+                        },
+                      }),
+                    );
+                  }}
+                >
+                  <Feather name="edit-3" size={20} color={COLORS.zinc900} />
+                  <Text style={styles.moreItemText}>수정하기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={() => {
+                    const target = moreTarget;
+                    setMoreTarget(null);
+                    if (!target) return;
+
+                    rootNav.dispatch(
+                      CommonActions.navigate({
+                        name: "Main",
+                        params: {
+                          screen: "ClonesTab",
+                          params: {
+                            screen: "CloneEdit",
+                            params: { cloneId: target.cloneId },
+                          },
+                        },
+                      }),
+                    );
+                    setToastMessage("페르소나 편집 → 공개 범위에서 변경하세요");
+                  }}
+                >
+                  <Feather name="eye" size={20} color={COLORS.zinc900} />
+                  <Text style={styles.moreItemText}>공개 범위 수정</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={async () => {
+                    const target = moreTarget;
+                    setMoreTarget(null);
+                    if (!target || !accessToken) return;
+
+                    Alert.alert(
+                      "페르소나 삭제",
+                      `'${target.author}' 페르소나를 삭제할까요?\n복구 불가합니다.`,
+                      [
+                        { text: "취소", style: "cancel" },
+                        {
+                          text: "삭제",
+                          style: "destructive",
+                          onPress: async () => {
+                            try {
+                              const { deleteClone } = await import("../../api/clones");
+                              await deleteClone(accessToken, target.cloneId);
+                              setToastMessage("페르소나가 삭제됐어요");
+                              const cur = useFeedStore.getState().apiFeeds;
+                              if (cur) {
+                                useFeedStore.setState({
+                                  apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
+                                });
+                              }
+                              void loadDiscover();
+                            } catch (err) {
+                              console.warn("[Delete clone] failed:", err);
+                              setToastMessage("삭제에 실패했어요");
+                            }
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                >
+                  <Feather name="trash-2" size={20} color="#ef4444" />
+                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>삭제</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+
+              <>
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={() => {
+                    setMoreTarget(null);
+                    setToastMessage("신고가 접수됐어요");
+                  }}
+                >
+                  <Feather name="flag" size={20} color="#ef4444" />
+                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={async () => {
+                    const target = moreTarget;
+                    setMoreTarget(null);
+                    if (!target || !accessToken) return;
+                    try {
+                      await blockClone(accessToken, target.cloneId);
+                      setToastMessage("이 페르소나가 차단됐어요");
+                      const cur = useFeedStore.getState().apiFeeds;
+                      if (cur) {
+                        useFeedStore.setState({
+                          apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
+                        });
+                      }
+                      await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
+                      void loadDiscover();
+                    } catch (err) {
+                      console.warn(`[BLOCK] FAILED cloneId=${target.cloneId}`, err);
+                      setToastMessage("차단에 실패했어요");
+                    }
+                  }}
+                >
+                  <Feather name="slash" size={20} color={COLORS.zinc900} />
+                  <Text style={styles.moreItemText}>차단하기</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
             <TouchableOpacity
               style={[styles.moreItem, { borderBottomWidth: 0 }]}
               onPress={() => setMoreTarget(null)}

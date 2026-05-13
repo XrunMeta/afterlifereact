@@ -37,6 +37,9 @@ export function toFeedItem(f: DomainFeed): FeedItem {
   return {
     id: f.id,
     cloneId: f.cloneId,
+
+    cloneOwnerId: c?.ownerId,
+    cloneVisibility: c?.visibility,
     author: c?.displayName ?? "알 수 없음",
     username: c ? `@${c.cloneType}-${c.id}` : "@unknown",
     authorAvatar: localImage ?? c?.imageUrl ?? "",

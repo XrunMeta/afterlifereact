@@ -1,6 +1,10 @@
 export interface FeedItem {
   id: number;
   cloneId: number;
+
+  cloneOwnerId?: number;
+
+  cloneVisibility?: string;
   author: string;
   username: string;
   authorAvatar: string | number;
