@@ -11,6 +11,10 @@ export type RootStackParamList = {
   InviteAccept: { token: string };
 
   Notifications: undefined;
+
+  UserProfile: { userId: number };
+
+  UserFollowList: { userId: number; mode: "followers" | "following"; userName?: string };
 };
 
 export type AuthStackParamList = {

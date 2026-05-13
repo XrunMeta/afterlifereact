@@ -48,6 +48,9 @@ export interface AuthUser {
   xrunGuid: string | null;
   xrunWallet: string | null;
   xrunLinkedAt: string | null;
+
+  followersCount: number;
+  followingCount: number;
 }
 
 export interface SignupResponse {

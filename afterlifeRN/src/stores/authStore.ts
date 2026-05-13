@@ -121,8 +121,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { useFeedStore } = await import("./feedStore");
       const { useFollowStore } = await import("./followStore");
+      const { useUserFollowStore } = await import("./userFollowStore");
       useFeedStore.getState().resetForLogout();
       await useFollowStore.getState().resetForLogout();
+      useUserFollowStore.getState().resetForLogout();
     } catch (err) {
       console.warn("[authStore] reset on apiLogout failed:", err);
     }
