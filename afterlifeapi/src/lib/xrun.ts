@@ -80,6 +80,14 @@ function mapGender(g?: "male" | "female" | "other"): number {
   return 2100;
 }
 
+function mapAges(age?: number): number | null {
+  if (typeof age !== "number" || !Number.isFinite(age) || age < 10) return null;
+  if (age >= 60) return 2260;
+
+  const decade = Math.floor(age / 10);
+  return 2200 + decade * 10; 
+}
+
 export interface AfterlifeRegisterContext {
   email: string;
   name: string;
@@ -120,6 +128,7 @@ export async function registerXrunForAfterlifeUser(
 ): Promise<XrunRegisterResult> {
   const { firstname, lastname } = splitName(ctx.name);
   const loc = mapLocation(ctx);
+  const agesCode = mapAges(ctx.age);
   const body = {
     email: ctx.email,
     pin: generatePin(),
@@ -131,7 +140,8 @@ export async function registerXrunForAfterlifeUser(
     countrycode: loc.countrycode,
     country: loc.country,
     region: loc.region,
-    age: ctx.age ?? 0,
+
+    age: agesCode ?? 0,
     recommand: 0,
     social_code: 0,
 
@@ -194,6 +204,7 @@ async function updateXrunFromAfterlife(
 ): Promise<void> {
   const { firstname, lastname } = splitName(ctx.name);
   const loc = mapLocation(ctx);
+  const agesCode = mapAges(ctx.age);
   const body: Record<string, unknown> = {
     email: ctx.email,
     firstname,
@@ -201,7 +212,8 @@ async function updateXrunFromAfterlife(
     mobile: ctx.phone ?? null,
     mobilecode: loc.mobilecode,
     gender: mapGender(ctx.gender),
-    age: ctx.age ?? null,
+
+    age: agesCode,
     countrycode: loc.countrycode,
     country: loc.country,
     region: loc.region,

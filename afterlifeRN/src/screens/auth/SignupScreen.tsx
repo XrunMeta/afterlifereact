@@ -181,7 +181,10 @@ export default function SignupScreen({ navigation, route }: Props) {
     try {
 
       const countryCode = country.iso2.toUpperCase();
-      const mobileCode = country.countryCode ?? 0;
+
+      const mobileCode =
+        country.countryCode ??
+        (Number(country.dialCode.replace(/[^\d]/g, "")) || 0);
       const regionCode =
         region && region.iso2 !== "global" ? region.dialCode : undefined;
 
