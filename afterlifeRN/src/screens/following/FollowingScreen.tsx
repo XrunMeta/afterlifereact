@@ -179,10 +179,18 @@ export default function v_14b43e() {
     if (v_d92a4c != null) {
       return v_d92a4c.map((v_3f4e2e) => {
         const v_6bbace = v_3f4e2e.latestFeed?.feedId ?? null;
+
+        let v_41b99d = v_3f4e2e.description ?? "";
+        const v_167615 = /#[\p{L}\p{N}_]+/u.test(v_41b99d);
+        const v_ac0b78 = v_3f4e2e.interests ?? [];
+        if (!v_167615 && v_ac0b78.length > 0) {
+          const v_cf5673 = v_ac0b78.map((v_ebec57) => `#${v_ebec57}`).join(" ");
+          v_41b99d = v_41b99d.trim().length > 0 ? `${v_41b99d} ${v_cf5673}` : v_cf5673;
+        }
         return {
           id: v_6bbace ?? -v_3f4e2e.id, 
           cloneId: v_3f4e2e.id,
-          content: v_3f4e2e.description ?? "",
+          content: v_41b99d,
           mediaUrl: v_3f4e2e.avatarUrl ?? undefined,
           mediaType: null,
 
@@ -500,13 +508,6 @@ export default function v_14b43e() {
             {v_8c0b26.persona.creatorAccount ? (
               <Text style={v_fd5f43.creatorAccount}>{v_8c0b26.persona.creatorAccount}</Text>
             ) : null}
-            <View style={v_fd5f43.tagRow}>
-              {v_8c0b26.persona.interests.map((v_bd1444, v_ebec57) => (
-                <View key={v_ebec57} style={v_fd5f43.overlayTag}>
-                  <Text style={v_fd5f43.overlayTagText}>#{v_bd1444}</Text>
-                </View>
-              ))}
-            </View>
             <Text style={v_fd5f43.postContent} numberOfLines={3}>{v_8c0b26.feed.content}</Text>
             <View style={v_fd5f43.overlayBtns}>
               <Button
@@ -594,15 +595,6 @@ export default function v_14b43e() {
       />
 
       {}
-      <View style={v_fd5f43.tabWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={v_fd5f43.tabRow}>
-          {v_8bc599.map((v_9bf432) => (
-            <TouchableOpacity key={v_9bf432} style={[v_fd5f43.tab, v_69ddfb === v_9bf432 && v_fd5f43.tabActive]} onPress={() => v_09b78b(v_9bf432)}>
-              <Text style={[v_fd5f43.tabText, v_69ddfb === v_9bf432 && v_fd5f43.tabTextActive]}>{v_9bf432}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
 
       {}
       <FlatList

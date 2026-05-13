@@ -114,11 +114,29 @@ export default function v_c501aa() {
     });
   };
 
-  const v_74ecfc = (v_6e0fd3) => {
-
-    v_c65f5d.navigate("Main", {
-      screen: "ClonesTab",
-      params: { screen: "CloneDetail", params: { cloneId: v_6e0fd3 } },
+  const v_74ecfc = (c: v_d64743) => {
+    v_c65f5d.navigate("CloneFeed", {
+      feed: {
+        id: -v_3f4e2e.id,
+        cloneId: v_3f4e2e.id,
+        content: v_3f4e2e.description ?? "",
+        mediaUrl: v_3f4e2e.avatarUrl,
+        mediaType: null,
+        likesCount: v_3f4e2e.likesCount ?? 0,
+        commentsCount: 0,
+        likedByMe: false,
+        createdAt: v_3f4e2e.createdAt,
+        clone: {
+          id: v_3f4e2e.id,
+          ownerId: v_43e90c, 
+          name: v_3f4e2e.name,
+          username: v_3f4e2e.username,
+          avatarUrl: v_3f4e2e.avatarUrl,
+          cloneType: v_3f4e2e.cloneType as never,
+          visibility: v_3f4e2e.visibility,
+        },
+        interests: [],
+      },
     });
   };
 
@@ -134,7 +152,7 @@ export default function v_c501aa() {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => v_74ecfc(v_8c0b26.id)}
+        onPress={() => v_74ecfc(v_8c0b26)}
         style={{ width: v_e66b8c, marginRight: v_d88de1, marginBottom: v_ae5c4a }}
       >
         <View style={[v_fd5f43.cellImageWrap, { width: v_e66b8c, height: v_e66b8c }]}>
