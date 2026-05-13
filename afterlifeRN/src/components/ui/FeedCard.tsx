@@ -12,6 +12,7 @@ import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../constants";
 import type { v_19b433 } from "../../types/feed";
+import v_5778ce from "../common/HashtagText";
 
 interface FeedCardProps {
   item: v_19b433;
@@ -126,9 +127,13 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
 
             {}
             {v_8c0b26.description ? (
-              <Text style={v_d81136.description} numberOfLines={3}>
+              <HashtagText
+                style={v_d81136.description}
+                tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                numberOfLines={3}
+              >
                 {v_8c0b26.description}
-              </Text>
+              </HashtagText>
             ) : null}
 
             {}

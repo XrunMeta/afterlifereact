@@ -28,6 +28,7 @@ import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import v_5778ce from "../../components/common/HashtagText";
+import v_4c2648 from "./components/FriendPickerModal";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
@@ -379,16 +380,35 @@ export default function v_def15b() {
     }
   };
 
-  const v_c9f992 = (v: v_b0b271) => {
+  const [v_480a32, v_4ccd21] = v_5ab095<number | null>(null);
+
+  const v_c9f992 = async (v: v_b0b271) => {
     if (!v_7462ec) return;
+    const v_6e0fd3 = v_7462ec.cloneId;
+    v_2dbd8f(null);
+
+    if (v_81e2ef === "selected") {
+      v_4ccd21(v_6e0fd3);
+      return;
+    }
+
     v_2bf327((v_ba2215) => ({
       ...v_ba2215,
-      [v_7462ec.cloneId]: {
-        ...v_ba2215[v_7462ec.cloneId],
-        visibility: v_81e2ef,
-      },
+      [v_6e0fd3]: { ...v_ba2215[v_6e0fd3], visibility: v_81e2ef },
     }));
-    v_2dbd8f(null);
+
+    if (v_2ca7e0) {
+      try {
+        const { patchClone: v_bb226e } = await import("../../api/clones");
+        await v_bb226e(v_2ca7e0, v_6e0fd3, {
+          visibility: v_81e2ef,
+
+          allowed_viewers: [],
+        });
+      } catch (v_49263d) {
+        console.warn("[Dashboard] update visibility failed:", v_49263d);
+      }
+    }
   };
 
   const v_57fac2 = (v_6e0fd3) => {
@@ -453,17 +473,19 @@ export default function v_def15b() {
 
   const v_82830c = (v: v_b0b271) => {
     switch (v_81e2ef) {
-      case "public": return "공개";
-      case "private": return "비공개";
-      case "followers": return "지인공개";
+      case "public": return "전체 공개";
+      case "followers": return "팔로워만";
+      case "selected": return "특정 친구";
+      case "private": return "나만 보기";
     }
   };
 
   const v_a6deb1 = (v: v_b0b271): keyof typeof v_dec439.glyphMap => {
     switch (v_81e2ef) {
-      case "public": return "eye";
-      case "private": return "eye-off";
-      case "followers": return "user-check";
+      case "public": return "globe";
+      case "followers": return "users";
+      case "selected": return "user-check";
+      case "private": return "lock";
     }
   };
 
@@ -889,11 +911,10 @@ export default function v_def15b() {
       <Modal visible={!!v_7462ec} transparent animationType="fade">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>공개 설정</Text>
-            <Text style={v_fd5f43.modalDesc}>페르소나의 공개 범위를 선택하세요</Text>
+            <Text style={v_fd5f43.modalTitle}>공개 범위</Text>
+            <Text style={v_fd5f43.modalDesc}>이 페르소나를 누구에게 보일까요?</Text>
             <View style={v_fd5f43.visibilityOptions}>
-              {}
-              {(["public", "private"] as v_b0b271[]).map((v_81e2ef) => {
+              {(["public", "followers", "selected", "private"] as v_b0b271[]).map((v_81e2ef) => {
                 const v_587413 = v_7462ec?.currentVisibility === v_81e2ef;
                 return (
                   <TouchableOpacity
@@ -927,6 +948,32 @@ export default function v_def15b() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {}
+      <FriendPickerModal
+        visible={v_480a32 != null}
+        onClose={() => v_4ccd21(null)}
+        onConfirm={async (v_9b3001) => {
+          const v_6e0fd3 = v_480a32;
+          v_4ccd21(null);
+          if (!v_6e0fd3) return;
+          v_2bf327((v_ba2215) => ({
+            ...v_ba2215,
+            [v_6e0fd3]: { ...v_ba2215[v_6e0fd3], visibility: "selected" },
+          }));
+          if (v_2ca7e0) {
+            try {
+              const { patchClone: v_bb226e } = await import("../../api/clones");
+              await v_bb226e(v_2ca7e0, v_6e0fd3, {
+                visibility: "selected",
+                allowed_viewers: v_9b3001,
+              });
+            } catch (v_49263d) {
+              console.warn("[Dashboard] selected visibility PATCH failed:", v_49263d);
+            }
+          }
+        }}
+      />
 
       {}
       <Modal visible={!!v_c9d3fa} transparent animationType="fade">

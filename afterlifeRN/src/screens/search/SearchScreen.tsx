@@ -371,14 +371,15 @@ export default function v_5db6c6() {
   );
 
   const v_35b27e = ({ item: v_8c0b26 }: { item: string }) => (
-    <View style={v_fd5f43.recentRow}>
-      <TouchableOpacity
-        style={v_fd5f43.recentLeft}
-        onPress={() => v_ba29e7(v_8c0b26)}
-      >
+    <TouchableOpacity
+      style={v_fd5f43.recentRow}
+      activeOpacity={0.7}
+      onPress={() => v_ba29e7(v_8c0b26)}
+    >
+      <View style={v_fd5f43.recentLeft}>
         <Feather name="clock" size={18} color={v_1bfbd0.zinc400} />
         <Text style={v_fd5f43.recentText} numberOfLines={1}>{v_8c0b26}</Text>
-      </TouchableOpacity>
+      </View>
       <TouchableOpacity
         style={v_fd5f43.recentRemoveBtn}
         onPress={() => v_c26d3f(v_8c0b26)}
@@ -386,7 +387,7 @@ export default function v_5db6c6() {
       >
         <Feather name="x" size={16} color={v_1bfbd0.zinc400} />
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   const v_e544cb = ({ label: v_2869c1 }: { label: string }) => (

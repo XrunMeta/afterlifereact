@@ -4,7 +4,8 @@ import { v_cc9198 } from "../config/apiBase";
 import { v_84a859, type v_669377 } from "./auth";
 
 export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
-export type Visibility = "public" | "private" | "followers";
+
+export type Visibility = "public" | "private" | "followers" | "selected";
 
 export interface CreateClonePayload {
   clone_type: CloneType;
@@ -747,6 +748,8 @@ export interface PatchClonePayload {
   voice_preset_id?: number | null;
   l1_profile?: { attrs: Record<string, string>; notes: string };
   interests?: string[];
+
+  allowed_viewers?: number[];
 }
 
 export async function v_bb226e(

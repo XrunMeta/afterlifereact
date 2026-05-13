@@ -21,7 +21,8 @@ export const v_f891e6 = new v_b7c41b<v_de0a25>();
 v_f891e6.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "clones" }));
 
 const v_3a8949 = v_1f4ea7.enum(["memlow", "friend", "mentor", "celeb"]);
-const v_818579 = v_1f4ea7.enum(["public", "private", "followers"]);
+
+const v_818579 = v_1f4ea7.enum(["public", "private", "followers", "selected"]);
 
 const v_d2663f = new Set([
   "admin", "administrator", "root", "staff", "system", "support",
@@ -439,6 +440,17 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
   if (v_eb25ce.visibility === "followers" && v_00efe2 === null) {
     throw new v_3ebe58("FORBIDDEN", "Followers-only clone.");
   }
+  if (v_eb25ce.visibility === "selected") {
+    const v_030f63 = v_00efe2 === "owner" || v_00efe2 === "coowner"
+      ? true
+      : v_43e90c != null && await v_3f4e2e.env.DB
+          .prepare(
+            `SELECT 1 FROM clone_allowed_viewers WHERE clone_id = ? AND user_id = ? LIMIT 1`,
+          )
+          .bind(v_6e0fd3, v_43e90c)
+          .first();
+    if (!v_030f63) throw new v_3ebe58("FORBIDDEN", "Restricted clone.");
+  }
 
   const v_774c91 = (
     await v_3f4e2e.env.DB
@@ -446,6 +458,14 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       .bind(v_6e0fd3)
       .all<{ interest: string }>()
   ).results.map((v_cb35cb) => v_cb35cb.interest);
+
+  const v_548b93 =
+    v_00efe2 === "owner" || v_00efe2 === "coowner"
+      ? (await v_3f4e2e.env.DB
+          .prepare(`SELECT user_id AS userId FROM clone_allowed_viewers WHERE clone_id = ?`)
+          .bind(v_6e0fd3)
+          .all<{ userId: number }>()).results.map((v_cb35cb) => v_cb35cb.userId)
+      : undefined;
 
   const v_218436 = await v_3f4e2e.env.DB
     .prepare(
@@ -475,6 +495,7 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       voicePresetId: v_eb25ce.voice_preset_id,
       trainingStatus: v_eb25ce.training_status,
       interests: v_774c91,
+      ...(v_548b93 !== undefined ? { allowedViewers: v_548b93 } : {}),
       stats: {
         followers: v_eb25ce.followers_count,
         messages: v_eb25ce.messages_count,
@@ -498,6 +519,8 @@ const v_90be18 = v_1f4ea7
     voice_preset_id: v_1f4ea7.number().int().positive().nullable().optional(),
     l1_profile: v_3ea364.optional(),
     interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
+
+    allowed_viewers: v_1f4ea7.array(v_1f4ea7.number().int().positive()).max(200).optional(),
   })
   .strict()
   .refine((v_b6c474) => Object.keys(v_b6c474).length > 0, {
@@ -614,6 +637,26 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
       );
     }
     v_f73a2d.push("interests");
+  }
+
+  if (v_4d33b2.allowed_viewers !== undefined) {
+    v_be9ad5.push(
+      v_a1651b.prepare(`DELETE FROM clone_allowed_viewers WHERE clone_id = ?`).bind(v_6e0fd3),
+    );
+    const v_72b85d = new Set<number>();
+    for (const v_0c8987 of v_4d33b2.allowed_viewers) {
+      if (v_0c8987 === v_43e90c) continue; 
+      if (v_72b85d.has(v_0c8987)) continue;
+      v_72b85d.add(v_0c8987);
+      v_be9ad5.push(
+        v_a1651b
+          .prepare(
+            `INSERT INTO clone_allowed_viewers (clone_id, user_id) VALUES (?, ?)`,
+          )
+          .bind(v_6e0fd3, v_0c8987),
+      );
+    }
+    v_f73a2d.push("allowed_viewers");
   }
 
   await v_a1651b.batch(v_be9ad5);
