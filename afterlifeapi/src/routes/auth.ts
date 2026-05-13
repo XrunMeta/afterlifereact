@@ -30,7 +30,11 @@ auth.get("/health", (c) => c.json({ ok: true, module: "auth" }));
 
 const signupSchema = z.object({
   email: z.email().max(200),
-  password: z.string().min(8).max(200),
+
+  password: z.string().min(7).max(200).regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/,
+    "Password must be 7+ chars with lowercase, uppercase, and digit.",
+  ),
   name: z.string().min(1).max(80),
 
   verificationCode: z.string().regex(/^\d{6}$/, "6-digit code required").optional(),
