@@ -51,7 +51,7 @@ const linking: LinkingOptions<RootStackParamList> = {
 export default function App() {
   const [ready, setReady] = useState(false);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontsError] = useFonts({
     ...Feather.font,
     ...Ionicons.font,
     ...MaterialIcons.font,
@@ -61,6 +61,14 @@ export default function App() {
     ...AntDesign.font,
     ...Entypo.font,
   });
+
+  useEffect(() => {
+    if (fontsError) {
+      console.warn("[App] icon font load error (non-blocking):", fontsError);
+    } else if (fontsLoaded) {
+      console.log("[App] icon fonts loaded");
+    }
+  }, [fontsLoaded, fontsError]);
 
   useEffect(() => {
     Promise.all([
@@ -75,7 +83,7 @@ export default function App() {
     });
   }, []);
 
-  if (!ready || !fontsLoaded) {
+  if (!ready) {
     return <View style={styles.root} />;
   }
 
