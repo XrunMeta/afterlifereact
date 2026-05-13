@@ -1,10 +1,10 @@
 import v_a3453e from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_cf9c33, v_03e392, v_472849 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
-import * as v_d05ab5 from 'khtmgrssvfqqjmzoc';
 import { v_772971 } from 'jmpfvteuuztnp';
 import type { v_c2a674 } from '../../../types/clone';
 import { v_1bfbd0, v_8b0c90 } from '../../../components/constants';
+import { v_04686a } from '../../../lib/imagePicker';
 
 interface Props {
   draft: v_c2a674;
@@ -17,7 +17,7 @@ async function v_ff792b(
   v_976e82,
 ) {
   try {
-    const v_cb35cb = await v_d05ab5.launchImageLibraryAsync({
+    const v_cb35cb = await v_04686a({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [3, 4],

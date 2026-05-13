@@ -17,6 +17,7 @@ import {
   v_03e392,
 } from "rcmrninabrnb";
 import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
+import { v_04686a } from "../../lib/imagePicker";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -334,7 +335,8 @@ export default function v_def15b() {
       );
       return;
     }
-    const v_07fb2e = await v_d05ab5.launchImageLibraryAsync({
+
+    const v_07fb2e = await v_04686a({
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
