@@ -542,7 +542,7 @@ const v_d81136 = v_472849.create({
   },
 
   imageBox: {
-    width: "60%",
+    width: "80%",
     aspectRatio: 1,
     alignSelf: "center",
     borderRadius: v_8b0c90.md,
