@@ -5,12 +5,8 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Modal,
-  Pressable,
   Alert,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -21,7 +17,7 @@ import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
-import { patchClone, deleteClone } from "../../api/clones";
+import { patchClone } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import type { L1Profile, DomainClone as Clone } from "../../types/domain";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -100,8 +96,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
   const [l1Attrs, setL1Attrs] = useState<Record<string, string>>({});
 
   const [visibility, setVisibility] = useState<Visibility>("public");
-  const [showMenu, setShowMenu] = useState(false);
-  const [visibilityModal, setVisibilityModal] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -157,46 +151,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleDelete = () => {
-    setShowMenu(false);
-    Alert.alert(
-      t("edit.deleteTitle"),
-      t("edit.deleteDesc"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("common.delete"),
-          style: "destructive",
-          onPress: async () => {
-            const accessToken = useAuthStore.getState().accessToken;
-            if (!accessToken) return;
-            try {
-              await deleteClone(accessToken, clone.id);
-              navigation.getParent()?.goBack();
-            } catch (err) {
-              console.warn("[CloneEdit] delete failed:", err);
-              Alert.alert(t("common.error"), t("edit.saveFailed"));
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  const getVisibilityLabel = (v: Visibility) => {
-    switch (v) {
-      case "public": return t("edit.visibilityPublic");
-      case "private": return t("edit.visibilityPrivate");
-      case "followers": return t("edit.visibilityFollowers");
-    }
-  };
-  const getVisibilityIcon = (v: Visibility): keyof typeof Feather.glyphMap => {
-    switch (v) {
-      case "public": return "eye";
-      case "private": return "eye-off";
-      case "followers": return "user-check";
-    }
-  };
+  void setVisibility;
 
   return (
     <SafeScrollView
@@ -205,52 +160,12 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       additionalBottomPadding={80}
       showBottomBackground={false}
     >
+      {}
       <PageHeader
         title={t("edit.title")}
-        subtitle={clone.displayName}
         showBackButton
         onBackPress={() => navigation.goBack()}
-        rightAction={
-          <TouchableOpacity
-            style={{ padding: 4 }}
-            onPress={() => setShowMenu(!showMenu)}
-          >
-            <Feather name="more-vertical" size={22} color={COLORS.zinc700} />
-          </TouchableOpacity>
-        }
       />
-
-      {}
-      {showMenu && (
-        <>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setShowMenu(false)}
-          />
-          <View style={s.dropdown}>
-            {clone.cloneType !== "memlow" && (
-              <TouchableOpacity
-                style={s.dropdownItem}
-                onPress={() => {
-                  setShowMenu(false);
-                  setVisibilityModal(true);
-                }}
-              >
-                <Feather name={getVisibilityIcon(visibility)} size={16} color={COLORS.zinc700} />
-                <Text style={s.dropdownText}>
-                  {t("dashboard.menuVisibility")} ({getVisibilityLabel(visibility)})
-                </Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={s.dropdownItem} onPress={handleDelete}>
-              <Feather name="trash-2" size={16} color={COLORS.error} />
-              <Text style={[s.dropdownText, { color: COLORS.error }]}>
-                {t("dashboard.menuDelete")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
 
       <View style={s.content}>
         {}
@@ -319,49 +234,6 @@ export default function CloneEditScreen({ route, navigation }: Props) {
       </View>
 
       {}
-      <Modal visible={visibilityModal} transparent animationType="fade">
-        <Pressable style={s.modalOverlay} onPress={() => setVisibilityModal(false)}>
-          <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>{t("edit.visibilityChooseTitle")}</Text>
-            <Text style={s.modalDesc}>{t("edit.visibilityChooseDesc")}</Text>
-            <View style={s.visibilityOptions}>
-              {(["public", "private"] as Visibility[]).map((v) => {
-                const selected = visibility === v;
-                return (
-                  <TouchableOpacity
-                    key={v}
-                    style={[s.visibilityOption, selected && s.visibilityOptionSelected]}
-                    onPress={() => {
-                      setVisibility(v);
-                      setVisibilityModal(false);
-                    }}
-                  >
-                    <Feather
-                      name={getVisibilityIcon(v)}
-                      size={16}
-                      color={selected ? COLORS.white : COLORS.zinc700}
-                    />
-                    <Text
-                      style={[
-                        s.visibilityOptionText,
-                        selected && { color: COLORS.white },
-                      ]}
-                    >
-                      {getVisibilityLabel(v)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Button
-              title={t("common.cancel")}
-              variant="ghost"
-              onPress={() => setVisibilityModal(false)}
-              style={{ marginTop: 12, width: "100%" }}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
     </SafeScrollView>
   );
 }

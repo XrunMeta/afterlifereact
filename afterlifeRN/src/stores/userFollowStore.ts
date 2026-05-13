@@ -64,6 +64,14 @@ export const useUserFollowStore = create<UserFollowState>((set, get) => ({
     else next.add(userId);
     set({ followingIds: next });
 
+    const auth = useAuthStore.getState();
+    const cur = auth.apiUser;
+    if (cur) {
+      const delta = exists ? -1 : 1;
+      const nextCount = Math.max(0, (cur.followingCount ?? 0) + delta);
+      auth.patchApiUser({ followingCount: nextCount });
+    }
+
     const accessToken = useAuthStore.getState().accessToken;
     if (!accessToken) {
       console.warn("[userFollowStore] toggleFollow: no accessToken");
@@ -82,6 +90,12 @@ export const useUserFollowStore = create<UserFollowState>((set, get) => ({
       if (exists) rollback.add(userId);
       else rollback.delete(userId);
       set({ followingIds: rollback });
+      const rollbackCur = useAuthStore.getState().apiUser;
+      if (rollbackCur) {
+        const delta = exists ? 1 : -1;
+        const nextCount = Math.max(0, (rollbackCur.followingCount ?? 0) + delta);
+        useAuthStore.getState().patchApiUser({ followingCount: nextCount });
+      }
       console.warn("[userFollowStore] toggleFollow API failed:", err);
       throw err;
     }

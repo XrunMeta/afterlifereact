@@ -469,7 +469,6 @@ export default function MyClonesDashboardScreen() {
 
   const renderCloneCard = ({ item: clone }: { item: Clone }) => {
     const state = cloneStates[clone.id];
-    const isActive = state?.isActive ?? true;
     const visibility = state?.visibility ?? clone.visibility;
     const isMemlow = clone.cloneType === "memlow";
 
@@ -482,20 +481,6 @@ export default function MyClonesDashboardScreen() {
       <View style={s.card}>
         {}
         <View style={s.cardTopRow}>
-          <TouchableOpacity
-            style={s.activeToggle}
-            onPress={() => handleToggle(clone.id)}
-          >
-            <Feather
-              name={isActive ? "check-circle" : "circle"}
-              size={18}
-              color={isActive ? COLORS.success : COLORS.zinc400}
-            />
-            <Text style={s.activeText}>
-              {isActive ? t("dashboard.active") : t("dashboard.inactive")}
-            </Text>
-          </TouchableOpacity>
-
           <View style={s.cardTopRight}>
             {}
             {!isMemlow && (
@@ -523,7 +508,7 @@ export default function MyClonesDashboardScreen() {
                 <Feather name="user" size={20} color={COLORS.zinc400} />
               </View>
             )}
-            {isActive && <View style={s.activeDot} />}
+            {}
           </View>
           <View style={s.cloneInfo}>
             <Text style={s.cloneName}>{clone.displayName}</Text>
@@ -834,30 +819,9 @@ export default function MyClonesDashboardScreen() {
             </TouchableOpacity>
 
             {}
-            {menuCloneId != null && (() => {
-              const isActive = cloneStates[menuCloneId]?.isActive ?? true;
-              return (
-                <TouchableOpacity
-                  style={s.menuItem}
-                  onPress={() => {
-                    const id = menuCloneId!;
-                    setMenuCloneId(null);
-                    handleToggle(id);
-                  }}
-                >
-                  <Feather
-                    name={isActive ? "pause-circle" : "play-circle"}
-                    size={18}
-                    color={isActive ? COLORS.zinc700 : COLORS.success}
-                  />
-                  <Text style={s.menuItemText}>
-                    {isActive ? t("dashboard.menuDeactivate") : t("dashboard.menuActivate")}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })()}
 
-            {}
+            {
+}
             {menuCloneId != null &&
               myClones.find((c) => c.id === menuCloneId)?.cloneType !== "memlow" && (
                 <TouchableOpacity
@@ -872,7 +836,7 @@ export default function MyClonesDashboardScreen() {
                     size={18}
                     color={COLORS.zinc700}
                   />
-                  <Text style={s.menuItemText}>{t("dashboard.menuVisibility")}</Text>
+                  <Text style={s.menuItemText}>공개 범위</Text>
                 </TouchableOpacity>
               )}
             <View style={s.menuDivider} />
