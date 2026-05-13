@@ -225,6 +225,25 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             setCreating(false);
             return;
           }
+          if (err.code === 'UNAUTHENTICATED') {
+
+            setCreating(false);
+            const msg = '세션이 만료됐어요. 다시 로그인해주세요.';
+            setError(msg);
+            Alert.alert('세션 만료', msg, [
+              {
+                text: '로그인하기',
+                onPress: async () => {
+                  await useAuthStore.getState().logout();
+
+                  navigation.getParent()?.dispatch(
+                    CommonActions.navigate({ name: "ClonesTab" }),
+                  );
+                },
+              },
+            ]);
+            return;
+          }
           let msg = t('create.errors.createFailed');
           if (err.code === 'QUOTA_EXCEEDED') {
             msg = t('create.errors.quotaExceeded');
@@ -335,28 +354,42 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      {
-}
+      {}
       <PageHeader
-        title={displayName}
-        subtitle={`@${displayHandle}`}
+        title="게시물 작성"
         showBackButton
         onBackPress={handleGoToDashboard}
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <SafeScrollView contentContainerStyle={styles.composerContent} showBottomBackground={false}>
+        <SafeScrollView
+          contentContainerStyle={styles.composerContent}
+          showBottomBackground={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
           {}
-          <View style={styles.imageBox}>
+          <View style={styles.authorRow}>
             {imageUri ? (
-              <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+              <Image source={{ uri: imageUri }} style={styles.authorAvatar} />
             ) : (
-              <View style={[styles.image, styles.imagePlaceholder]}>
-                <Feather name="image" size={36} color={COLORS.zinc400} />
+              <View style={[styles.authorAvatar, styles.authorAvatarPh]}>
+                <Feather name="user" size={16} color={COLORS.zinc400} />
               </View>
             )}
+            <View style={styles.authorTextCol}>
+              <Text style={styles.authorName} numberOfLines={1}>{displayName}</Text>
+              <Text style={styles.authorHandle} numberOfLines={1}>@{displayHandle}</Text>
+            </View>
+          </View>
+
+          {
+}
+          <View style={styles.previewBox}>
+            <Text style={styles.previewText}>움직이는 페르소나로 보일 예정</Text>
           </View>
 
           {}
@@ -531,29 +564,56 @@ const styles = StyleSheet.create({
   composerContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingTop: 56,
+    paddingBottom: 40,
   },
-  imageBox: {
-    width: "100%",
-    aspectRatio: 4 / 5,
-    borderRadius: RADIUS.md,
-    overflow: "hidden",
-    backgroundColor: COLORS.zinc50,
-    marginBottom: 16,
-  },
-  image: { width: "100%", height: "100%" },
-  imagePlaceholder: {
+
+  authorRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
+  authorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.zinc100,
   },
+  authorAvatarPh: { alignItems: "center", justifyContent: "center" },
+  authorTextCol: { flex: 1 },
+  authorName: { fontSize: 14, fontWeight: "700", color: COLORS.zinc900 },
+  authorHandle: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+
+  previewBox: {
+    width: "80%",
+    aspectRatio: 1,
+    alignSelf: "center",
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  previewText: {
+    fontSize: 14,
+    color: COLORS.zinc500,
+    textAlign: "center",
+  },
+
   captionInput: {
-    minHeight: 60,
+    minHeight: 100,
     fontSize: 14,
     color: COLORS.zinc900,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     textAlignVertical: "top",
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.zinc50,
   },
   errorBox: {
     flexDirection: "row",

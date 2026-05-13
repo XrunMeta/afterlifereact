@@ -47,7 +47,7 @@ const QUESTION_PHASES: Phase[] = [
 ];
 
 const INTRO_PARAGRAPHS: readonly string[] = [
-  "안녕!\n나는 네 소중한 기억 속에\n살고 있는 요정이야",
+  "안녕!\n나는 네 소중한 기억 속에\n살고 있는 요정이야 ✨",
   "지금 네가 가장 보고 싶은\n'그 얼굴'을 한 번 떠올려봐...",
   "떠올랐어!?\n그럼, 네 머리속에 있는 그 소중한 존재를\n생각하며 답해줘!",
 ] as const;
@@ -139,10 +139,12 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const cursorOpacity = useRef(new Animated.Value(1)).current;
 
   const skipIntro = () => {
+    Keyboard.dismiss();
     setTypedParas(INTRO_PARAGRAPHS.map((p) => p));
     setIntroDone(true);
   };
   const skipQuestion = () => {
+    Keyboard.dismiss();
     if (phase === "intro") return;
     const q = QUESTIONS[phase as keyof typeof QUESTIONS];
     if (!q) return;
@@ -276,6 +278,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   };
 
   const goNext = () => {
+    Keyboard.dismiss();
     if (phase === "intro") {
       setPhase("name");
       return;
@@ -311,6 +314,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   };
 
   const goBack = () => {
+    Keyboard.dismiss();
     const idx = QUESTION_PHASES.indexOf(phase as (typeof QUESTION_PHASES)[number]);
     if (phase === "intro") {
       navigation.goBack();
@@ -510,10 +514,10 @@ const styles = StyleSheet.create({
   backBtn: { padding: 8, alignSelf: "flex-start" },
 
   videoWrap: {
-    width: 120,
-    height: 120,
+    width: 150,
+    height: 150,
     alignSelf: "center",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   video: { width: "100%", height: "100%" },
   fallbackEmoji: { fontSize: 80, textAlign: "center", lineHeight: 140 },
@@ -522,17 +526,17 @@ const styles = StyleSheet.create({
   paragraph: { alignItems: "center", paddingHorizontal: 8 },
 
   introTitle: {
-    fontSize: 26,
+    fontSize: 23,
     fontWeight: "700",
     color: COLORS.white,
     textAlign: "center",
-    lineHeight: 38,
+    lineHeight: 34,
   },
   introBody: {
-    fontSize: 19,
+    fontSize: 17,
     color: "rgba(255,255,255,0.9)",
     textAlign: "center",
-    lineHeight: 30,
+    lineHeight: 27,
   },
 
   questionBox: { width: "100%", gap: 10 },

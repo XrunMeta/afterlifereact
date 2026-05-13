@@ -158,7 +158,7 @@ export default function MainTabNavigator() {
             const { setCreationDraft, resetCreationDraft } =
               require("../stores/cloneStore").useCloneStore.getState();
             resetCreationDraft();
-            setCreationDraft({ cloneType: "default", visibility: "public" });
+            setCreationDraft({ cloneType: "friend", visibility: "public" });
             const state = navigation.getState();
             const createIndex = state.routes.findIndex(
               (r) => r.name === "CreateTab"
