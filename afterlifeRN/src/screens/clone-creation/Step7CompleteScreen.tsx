@@ -225,6 +225,25 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             v_c7169b(false);
             return;
           }
+          if (v_49263d.code === 'UNAUTHENTICATED') {
+
+            v_c7169b(false);
+            const v_badeaf = '세션이 만료됐어요. 다시 로그인해주세요.';
+            v_3a7d09(v_badeaf);
+            v_03e392.alert('세션 만료', v_badeaf, [
+              {
+                text: '로그인하기',
+                onPress: async () => {
+                  await v_1ed7d9.getState().logout();
+
+                  v_c65f5d.getParent()?.dispatch(
+                    v_650cfa.navigate({ name: "ClonesTab" }),
+                  );
+                },
+              },
+            ]);
+            return;
+          }
           let v_badeaf = v_8d41d7('create.errors.createFailed');
           if (v_49263d.code === 'QUOTA_EXCEEDED') {
             v_badeaf = v_8d41d7('create.errors.quotaExceeded');

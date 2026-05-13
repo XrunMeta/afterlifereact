@@ -158,7 +158,7 @@ export default function v_19ba0e() {
             const { setCreationDraft: v_5795de, resetCreationDraft: v_7a77e1 } =
               require("../stores/cloneStore").useCloneStore.getState();
             v_7a77e1();
-            v_5795de({ cloneType: "default", visibility: "public" });
+            v_5795de({ cloneType: "friend", visibility: "public" });
             const v_b6e533 = v_c65f5d.getState();
             const v_3f8a47 = v_b6e533.routes.findIndex(
               (v_cb35cb) => v_cb35cb.name === "CreateTab"
