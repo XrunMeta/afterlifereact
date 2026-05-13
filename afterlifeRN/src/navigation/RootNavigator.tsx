@@ -18,6 +18,9 @@ import ChatScreen from "../screens/clone-interaction/ChatScreen";
 import CallScreen from "../screens/clone-interaction/CallScreen";
 import InviteAcceptScreen from "../screens/clones/InviteAcceptScreen";
 import NotificationsScreen from "../screens/notifications/NotificationsScreen";
+import UserProfileScreen from "../screens/user/UserProfileScreen";
+import UserFollowListScreen from "../screens/user/UserFollowListScreen";
+import CloneFeedScreen from "../screens/clones/CloneFeedScreen";
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -66,6 +69,13 @@ export default function RootNavigator() {
           />
           <RootStack.Screen name="InviteAccept" component={InviteAcceptScreen} />
           <RootStack.Screen name="Notifications" component={NotificationsScreen} />
+          <RootStack.Screen name="UserProfile" component={UserProfileScreen} />
+          <RootStack.Screen name="UserFollowList" component={UserFollowListScreen} />
+          <RootStack.Screen
+            name="CloneFeed"
+            component={CloneFeedScreen}
+            options={{ animation: "slide_from_right" }}
+          />
         </>
       )}
     </RootStack.Navigator>

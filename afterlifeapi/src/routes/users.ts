@@ -78,6 +78,14 @@ users.get("/me", requireAuth, async (c) => {
     .bind(userId)
     .all<{ interest: string }>();
 
+  const stats = await db
+    .prepare(
+      `SELECT followers_count AS followersCount, following_count AS followingCount
+         FROM user_stats WHERE user_id = ?`,
+    )
+    .bind(userId)
+    .first<{ followersCount: number; followingCount: number }>();
+
   const legacyProvider = getKekProvider(c.env.ALE_KEK);
 
   let v3Provider: Awaited<ReturnType<typeof requestKekProvider>> | undefined;
@@ -152,6 +160,8 @@ users.get("/me", requireAuth, async (c) => {
       xrunGuid: row.xrun_guid,
       xrunWallet: row.xrun_wallet,
       xrunLinkedAt: row.xrun_linked_at,
+      followersCount: stats?.followersCount ?? 0,
+      followingCount: stats?.followingCount ?? 0,
     },
     interests: (interests.results ?? []).map((r) => r.interest),
   });
@@ -925,3 +935,236 @@ users.get("/me/transactions", requireAuth, async (c) => {
     }),
   });
 });
+
+function parseUserIdParam(c: Parameters<typeof requireAuth>[0]): number {
+  const raw = c.req.param("id");
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  return id;
+}
+
+users.post("/:id/follow", requireAuth, async (c) => {
+  const targetId = parseUserIdParam(c);
+  const userId = c.get("userId")!;
+  if (targetId === userId) {
+    throw new APIError("VALIDATION_FAILED", "Cannot follow yourself.");
+  }
+
+  const exists = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(targetId)
+    .first<{ id: number }>();
+  if (!exists) throw new APIError("NOT_FOUND", "User not found.");
+
+  await c.env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO user_follows (follower_id, followee_id) VALUES (?, ?)`,
+    )
+    .bind(userId, targetId)
+    .run();
+  return c.json({ ok: true });
+});
+
+users.delete("/:id/follow", requireAuth, async (c) => {
+  const targetId = parseUserIdParam(c);
+  const userId = c.get("userId")!;
+  await c.env.DB
+    .prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
+    )
+    .bind(userId, targetId)
+    .run();
+  return c.json({ ok: true });
+});
+
+users.get("/:id/followers", requireAuth, async (c) => {
+  const targetId = parseUserIdParam(c);
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT uf.id          AS followId,
+                uf.follower_id  AS userId,
+                uf.created_at   AS createdAt,
+                u.name          AS name,
+                u.email         AS email,
+                u.avatar_url    AS avatarUrl
+           FROM user_follows uf
+           JOIN users u ON u.id = uf.follower_id
+          WHERE uf.followee_id = ? AND u.deleted_at IS NULL
+          ORDER BY uf.id DESC
+          LIMIT ?`,
+      )
+      .bind(targetId, limit)
+      .all<{
+        followId: number;
+        userId: number;
+        createdAt: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+      }>()
+  ).results ?? [];
+  return c.json({
+    items: rows.map((r) => ({
+      followId: r.followId,
+      userId: r.userId,
+      name: r.name,
+      email: r.email,
+      avatarUrl: r.avatarUrl,
+      createdAt: r.createdAt,
+    })),
+  });
+});
+
+users.get("/:id/following", requireAuth, async (c) => {
+  const targetId = parseUserIdParam(c);
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT uf.id          AS followId,
+                uf.followee_id  AS userId,
+                uf.created_at   AS createdAt,
+                u.name          AS name,
+                u.email         AS email,
+                u.avatar_url    AS avatarUrl
+           FROM user_follows uf
+           JOIN users u ON u.id = uf.followee_id
+          WHERE uf.follower_id = ? AND u.deleted_at IS NULL
+          ORDER BY uf.id DESC
+          LIMIT ?`,
+      )
+      .bind(targetId, limit)
+      .all<{
+        followId: number;
+        userId: number;
+        createdAt: string;
+        name: string | null;
+        email: string;
+        avatarUrl: string | null;
+      }>()
+  ).results ?? [];
+  return c.json({
+    items: rows.map((r) => ({
+      followId: r.followId,
+      userId: r.userId,
+      name: r.name,
+      email: r.email,
+      avatarUrl: r.avatarUrl,
+      createdAt: r.createdAt,
+    })),
+  });
+});
+
+users.get("/:id", requireAuth, async (c) => {
+  const targetId = parseUserIdParam(c);
+  const viewerId = c.get("userId")!;
+  const db = c.env.DB;
+
+  const row = await db
+    .prepare(
+      `SELECT id, name, email, avatar_url AS avatarUrl, created_at AS createdAt
+         FROM users WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(targetId)
+    .first<{
+      id: number;
+      name: string | null;
+      email: string;
+      avatarUrl: string | null;
+      createdAt: string;
+    }>();
+  if (!row) throw new APIError("NOT_FOUND", "User not found.");
+
+  const stats = await db
+    .prepare(
+      `SELECT followers_count AS followersCount, following_count AS followingCount
+         FROM user_stats WHERE user_id = ?`,
+    )
+    .bind(targetId)
+    .first<{ followersCount: number; followingCount: number }>();
+
+  let isFollowing = false;
+  if (viewerId !== targetId) {
+    const fr = await db
+      .prepare(
+        `SELECT 1 AS x FROM user_follows
+          WHERE follower_id = ? AND followee_id = ? LIMIT 1`,
+      )
+      .bind(viewerId, targetId)
+      .first<{ x: number }>();
+    isFollowing = !!fr;
+  }
+
+  const visibilityClause =
+    viewerId === targetId
+      ? ""
+      : "AND c.visibility = 'public'";
+  const clonesRows = (
+    await db
+      .prepare(
+        `SELECT c.id, c.name, c.username, c.description, c.clone_type AS cloneType,
+                c.category, c.avatar_url AS avatarUrl, c.visibility, c.created_at AS createdAt,
+                COALESCE(cs.followers_count, 0) AS followersCount,
+                (SELECT COALESCE(SUM(f.likes_count), 0) FROM feeds f
+                  WHERE f.clone_id = c.id) AS likesCount
+           FROM clones c
+           LEFT JOIN clone_stats cs ON cs.clone_id = c.id
+          WHERE c.owner_id = ?
+            AND c.deletion_state = 'active'
+            AND c.deleted_at IS NULL
+            ${visibilityClause}
+          ORDER BY c.id DESC
+          LIMIT 60`,
+      )
+      .bind(targetId)
+      .all<{
+        id: number;
+        name: string;
+        username: string;
+        description: string | null;
+        cloneType: string;
+        category: string | null;
+        avatarUrl: string | null;
+        visibility: string;
+        createdAt: string;
+        followersCount: number;
+        likesCount: number;
+      }>()
+  ).results ?? [];
+
+  return c.json({
+    user: {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      avatarUrl: row.avatarUrl,
+      createdAt: row.createdAt,
+      followersCount: stats?.followersCount ?? 0,
+      followingCount: stats?.followingCount ?? 0,
+      isMe: viewerId === targetId,
+      isFollowing,
+    },
+    clones: clonesRows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      username: r.username,
+      description: r.description,
+      cloneType: r.cloneType,
+      category: r.category,
+      avatarUrl: r.avatarUrl,
+      visibility: r.visibility,
+      followersCount: r.followersCount,
+      likesCount: r.likesCount,
+      createdAt: r.createdAt,
+    })),
+  });
+});
+
