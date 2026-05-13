@@ -64,11 +64,10 @@ export default function v_5db6c6() {
       const v_24baff = v_c7daf6.params as { initialQuery?: string } | undefined;
       const v_fc6010 = v_24baff?.initialQuery;
       if (typeof v_fc6010 === "string" && v_fc6010.trim().length > 0) {
-        v_c57190(v_fc6010);
 
-        if (v_fc6010.trim().startsWith("#")) {
-          v_02dd63("tag");
-        }
+        const v_f23d49 = v_fc6010.replace(/^#+/, "").trim();
+        v_c57190(v_f23d49);
+        v_02dd63("recommend");
 
         v_3c9f12.setParams({ initialQuery: undefined } as never);
       }
@@ -189,7 +188,8 @@ export default function v_5db6c6() {
   const v_9c529a = !v_3ddc98 && v_50c827;
 
   const v_ff422a = v_df9f57(() => {
-    const v_ab6401 = v_7c5791.trim().toLowerCase();
+
+    const v_ab6401 = v_7c5791.trim().replace(/^#+/, "").toLowerCase();
     if (!v_ab6401) return v_632473;
     return v_632473.filter((v_8b5cd8) => {
       const v_1833e7 = v_8b5cd8.clone.name.toLowerCase();
@@ -197,6 +197,7 @@ export default function v_5db6c6() {
       const v_3e7de0 = v_8b5cd8.interests.some((v_23805a) =>
         v_23805a.toLowerCase().includes(v_ab6401),
       );
+
       const v_73c4d7 = (v_8b5cd8.content ?? "").toLowerCase().includes(v_ab6401);
       return v_1833e7.includes(v_ab6401) || v_1ed516.includes(v_ab6401) || v_3e7de0 || v_73c4d7;
     });
@@ -221,9 +222,15 @@ export default function v_5db6c6() {
   }, [v_632473, v_7c5791]);
 
   const v_fc704f = v_df9f57(() => {
-    const v_ab6401 = v_7c5791.trim().toLowerCase();
+
+    const v_ab6401 = v_7c5791.trim().replace(/^#+/, "").toLowerCase();
     const v_bb8024 = new Set<string>();
-    for (const v_8b5cd8 of v_632473) for (const v_23805a of v_8b5cd8.interests) v_bb8024.add(v_23805a);
+    for (const v_8b5cd8 of v_632473) {
+      for (const v_23805a of v_8b5cd8.interests) v_bb8024.add(v_23805a);
+      const v_b43b74 = v_8b5cd8.content ?? "";
+      const v_a49907 = v_b43b74.match(/#[\p{L}\p{N}_]+/gu) ?? [];
+      for (const v_35f85c of v_a49907) v_bb8024.add(v_35f85c.replace(/^#+/, ""));
+    }
     const v_48c915 = Array.from(v_bb8024);
     if (!v_ab6401) return v_48c915.slice(0, 30);
     return v_48c915.filter((v_8d41d7) => v_8d41d7.toLowerCase().includes(v_ab6401));
@@ -345,7 +352,15 @@ export default function v_5db6c6() {
   );
 
   const v_854a87 = ({ item: v_8c0b26 }: { item: string }) => (
-    <Pressable style={v_fd5f43.row} onPress={() => { v_c57190(v_8c0b26); v_2dbcf9(v_8c0b26); }}>
+    <Pressable
+      style={v_fd5f43.row}
+      onPress={() => {
+
+        v_c57190(v_8c0b26);
+        v_02dd63("recommend");
+        v_2dbcf9(v_8c0b26);
+      }}
+    >
       <View style={[v_fd5f43.rowAvatar, v_fd5f43.rowAvatarTag]}>
         <Feather name="hash" size={20} color={v_1bfbd0.zinc700} />
       </View>

@@ -78,7 +78,6 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
             </TouchableOpacity>
             <TouchableOpacity onPress={v_d51485} style={v_d81136.actionBtn} activeOpacity={0.7}>
               <Feather name="share-2" size={28} color={v_1bfbd0.white} />
-              <Text style={v_d81136.actionLabel}>공유</Text>
             </TouchableOpacity>
             {v_27b331 && (
               <TouchableOpacity
@@ -214,9 +213,11 @@ const v_d81136 = v_472849.create({
   rightActions: {
     position: "absolute",
     right: 12,
-    bottom: 160,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
     alignItems: "center",
-    gap: 22,
+    gap: 24,
   },
   actionBtn: {
     alignItems: "center",
