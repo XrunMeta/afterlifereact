@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
+import v_a3453e, { v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_03e392, v_472849 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import * as v_c95b2c from "gketqwckyalygtuqsawm";
@@ -85,19 +85,15 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
 
   const v_ef12d9 = Math.floor((v_ea28de.durationMillis ?? 0) / 1000);
 
-  v_c4deb2(() => {
-    return () => {
-      if (v_5ebce3.isRecording) {
-        v_5ebce3.stop().catch(() => {});
-      }
-    };
-  }, [v_5ebce3]);
-
-  const v_69341a = (v_a448ad) => {
+  const v_69341a = async (v_a448ad) => {
     if (v_a448ad === v_34e5bb) return;
 
-    if (v_5ebce3.isRecording) {
-      v_5ebce3.stop().catch(() => {});
+    if (v_97c26f) {
+      try {
+        await v_5ebce3.stop();
+      } catch (v_49263d) {
+        console.warn("[Voice] stop on mode switch failed:", v_49263d);
+      }
     }
     v_038d7f(v_a448ad);
     v_b187d9({ voiceSampleId: undefined, voiceFile: undefined, recordDuration: undefined });
@@ -109,7 +105,13 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       if (v_97c26f) {
 
         await v_5ebce3.stop();
-        const v_cd1446 = v_5ebce3.uri;
+
+        let v_cd1446 = null;
+        try {
+          v_cd1446 = v_5ebce3.uri ?? null;
+        } catch (v_49263d) {
+          console.warn("[Voice] read uri failed:", v_49263d);
+        }
         if (v_cd1446) {
           v_b187d9({
             voiceFile: v_cd1446,
