@@ -6,6 +6,17 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
+import { useFonts } from "expo-font";
+import {
+  Feather,
+  Ionicons,
+  MaterialIcons,
+  MaterialCommunityIcons,
+  FontAwesome,
+  FontAwesome5,
+  AntDesign,
+  Entypo,
+} from "@expo/vector-icons";
 import RootNavigator from "./src/navigation/RootNavigator";
 import { useAuthStore } from "./src/stores/authStore";
 import { useFollowStore } from "./src/stores/followStore";
@@ -40,6 +51,17 @@ const linking: LinkingOptions<RootStackParamList> = {
 export default function App() {
   const [ready, setReady] = useState(false);
 
+  const [fontsLoaded] = useFonts({
+    ...Feather.font,
+    ...Ionicons.font,
+    ...MaterialIcons.font,
+    ...MaterialCommunityIcons.font,
+    ...FontAwesome.font,
+    ...FontAwesome5.font,
+    ...AntDesign.font,
+    ...Entypo.font,
+  });
+
   useEffect(() => {
     Promise.all([
       useAuthStore.getState().hydrate(),
@@ -53,7 +75,7 @@ export default function App() {
     });
   }, []);
 
-  if (!ready) {
+  if (!ready || !fontsLoaded) {
     return <View style={styles.root} />;
   }
 
