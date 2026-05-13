@@ -49,7 +49,8 @@ const v_1613bd = [
 const v_1c0e96 = v_1613bd.length;
 
 const v_d52b26 = [
-  "안녕! 나는 네 소중한 기억 속에 살고 있는 요정이야.",
+  "안녕!",
+  "나는 네 소중한 기억 속에 살고 있는 요정이야.",
   "지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...",
   "떠올랐어?! 그럼, 네 머릿속에 있는 그 소중한 존재를 생각하며 답해줘!",
 ] as const;
@@ -272,7 +273,8 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
                   if (v_5e91e6[v_ebec57].length === 0) return null;
 
                   const v_359bf6 = !v_b49aa2 && v_5e91e6[v_ebec57].length < v_e6293e.length;
-                  const v_809f45 = v_ebec57 === 0;
+
+                  const v_809f45 = v_ebec57 <= 1;
                   const v_197d6e = v_809f45 ? v_d81136.introTitle : v_d81136.introBody;
                   return (
                     <Text key={v_ebec57} style={v_197d6e}>
