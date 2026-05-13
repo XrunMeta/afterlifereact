@@ -386,6 +386,30 @@ export interface XrunCloseResult {
   reason?: string;
 }
 
+export async function markAfterlifeDeletedOnXrun(
+  env: Bindings,
+  member: number,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!env.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  try {
+    const res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: gatewayHeaders(env),
+      body: JSON.stringify({ member }),
+    });
+    if (!res.ok) {
+      return { ok: false, reason: `HTTP ${res.status}` };
+    }
+    const json = (await res.json()) as { status?: string; message?: string };
+    if (json.status === "success") return { ok: true };
+    return { ok: false, reason: json.message ?? "unknown" };
+  } catch (err) {
+    return { ok: false, reason: `network: ${(err as Error).message}` };
+  }
+}
+
 export async function getXrunMemberInfo(
   env: Bindings,
   member: number,
