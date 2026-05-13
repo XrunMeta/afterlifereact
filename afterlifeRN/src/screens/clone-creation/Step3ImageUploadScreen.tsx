@@ -6,7 +6,6 @@ import type { v_2b51a5 } from '../../navigation/types';
 import v_556baf from '../../components/ui/SafeView';
 import v_570c34 from '../../components/ui/SafeScrollView';
 import v_258c1c from '../../components/common/PageHeader';
-import v_3183b2 from '../../components/common/StepIndicator';
 import v_d52542 from '../../components/common/Step3EntryBanner';
 import v_1a40c4 from '../../components/ui/Button';
 import { v_194498 } from '../../stores/cloneStore';
@@ -35,7 +34,6 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
           v_c65f5d.getParent()?.navigate("HomeTab" as never);
         }}
       />
-      <StepIndicator currentStep={1} totalSteps={4} />
       {v_555f2e && <Step3EntryBanner onDismiss={() => v_4eb0c7(false)} />}
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
         <Content draft={v_f04727} onChange={v_5795de} />
