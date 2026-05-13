@@ -703,16 +703,19 @@ export default function MyClonesDashboardScreen() {
             <View style={s.profileSection}>
               <View style={s.profileLeft}>
                 <View style={s.profileAvatarWrap}>
-                  {apiUser?.avatarUrl || authUser?.avatarUrl ? (
-                    <Image
-                      source={{ uri: (apiUser?.avatarUrl ?? authUser?.avatarUrl) as string }}
-                      style={s.profileAvatar}
-                    />
-                  ) : (
-                    <View style={[s.profileAvatar, s.profileAvatarPlaceholder]}>
-                      <Feather name="user" size={28} color={COLORS.zinc400} />
-                    </View>
-                  )}
+                  {(() => {
+
+                    const uri = apiUser
+                      ? apiUser.avatarUrl
+                      : authUser?.avatarUrl ?? null;
+                    return uri ? (
+                      <Image source={{ uri }} style={s.profileAvatar} />
+                    ) : (
+                      <View style={[s.profileAvatar, s.profileAvatarPlaceholder]}>
+                        <Feather name="user" size={28} color={COLORS.zinc400} />
+                      </View>
+                    );
+                  })()}
                   <TouchableOpacity
                     style={s.profileAvatarEditBtn}
                     onPress={handleEditAvatar}

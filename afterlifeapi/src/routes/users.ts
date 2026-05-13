@@ -529,7 +529,8 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
     .first<{ xrun_member_id: number | null }>();
   const xrunMember = linkRow?.xrun_member_id ?? null;
   if (xrunMember) {
-    const { getXrunMemberInfo, closeXrunMember } = await import("../lib/xrun");
+    const { getXrunMemberInfo, closeXrunMember, markAfterlifeDeletedOnXrun } =
+      await import("../lib/xrun");
     const info = await getXrunMemberInfo(c.env, xrunMember);
     if (info.ok) {
       const isAfterlifeOrigin = (info.appSource ?? "").toLowerCase() === "afterlife";
@@ -550,6 +551,12 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
         closed: false,
         reason: info.missing ? "xrun member missing (auto-unlinked)" : `lookup failed: ${info.reason}`,
       };
+    }
+
+    try {
+      await markAfterlifeDeletedOnXrun(c.env, xrunMember);
+    } catch (err) {
+      console.warn("[gdpr] markAfterlifeDeletedOnXrun failed:", (err as Error).message);
     }
   }
 

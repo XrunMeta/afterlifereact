@@ -151,7 +151,8 @@ export default function SignupScreen({ navigation, route }: Props) {
       Alert.alert(t("common.notice"), t("auth.signup.emailInvalid"));
       return;
     }
-    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password)) {
+
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
       Alert.alert(t("common.notice"), t("auth.signup.passwordTooShort"));
       return;
     }
@@ -180,7 +181,10 @@ export default function SignupScreen({ navigation, route }: Props) {
     try {
 
       const countryCode = country.iso2.toUpperCase();
-      const mobileCode = country.countryCode ?? 0;
+
+      const mobileCode =
+        country.countryCode ??
+        (Number(country.dialCode.replace(/[^\d]/g, "")) || 0);
       const regionCode =
         region && region.iso2 !== "global" ? region.dialCode : undefined;
 
