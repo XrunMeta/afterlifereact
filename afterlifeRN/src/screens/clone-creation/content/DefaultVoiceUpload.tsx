@@ -1,9 +1,15 @@
 
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import {
+  useAudioRecorder,
+  useAudioRecorderState,
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+} from "expo-audio";
 import { useTranslation } from "react-i18next";
 import type { CloneCreationDraft } from "../../../types/clone";
 import { COLORS, RADIUS } from "../../../components/constants";
@@ -73,20 +79,68 @@ function Component({ draft, onChange }: Props) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [selectedScript, setSelectedScript] = useState<string | null>(null);
 
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(recorder);
+  const isRecording = recorderState.isRecording;
+
+  const elapsedSec = Math.floor((recorderState.durationMillis ?? 0) / 1000);
+
+  useEffect(() => {
+    return () => {
+      if (recorder.isRecording) {
+        recorder.stop().catch(() => {});
+      }
+    };
+  }, [recorder]);
+
   const switchMode = (next: Mode) => {
     if (next === mode) return;
+
+    if (recorder.isRecording) {
+      recorder.stop().catch(() => {});
+    }
     setMode(next);
     onChange({ voiceSampleId: undefined, voiceFile: undefined, recordDuration: undefined });
     setSelectedScript(null);
   };
 
-  const handleRecordPress = () => {
+  const handleRecordPress = async () => {
+    try {
+      if (isRecording) {
 
-    Alert.alert(
-      "준비 중",
-      "녹음 기능은 곧 제공돼요. 지금은 [음성 선택] 또는 [파일 업로드] 를 이용해주세요.",
-    );
+        await recorder.stop();
+        const uri = recorder.uri;
+        if (uri) {
+          onChange({
+            voiceFile: uri,
+            voiceSampleId: undefined,
+            recordDuration: elapsedSec,
+          });
+        } else {
+          Alert.alert("녹음 실패", "녹음 파일을 가져오지 못했어요. 다시 시도해주세요.");
+        }
+        return;
+      }
+
+      const perm = await requestRecordingPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          "마이크 권한 필요",
+          "직접 녹음을 사용하려면 설정에서 마이크 권한을 허용해주세요.",
+        );
+        return;
+      }
+
+      onChange({ voiceFile: undefined, recordDuration: undefined });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+    } catch (err) {
+      console.warn("[Voice] record toggle failed:", err);
+      Alert.alert("녹음 오류", "녹음을 시작/중단하지 못했어요. 다시 시도해주세요.");
+    }
   };
+
+  const hasRecorded = mode === "record" && !!draft.voiceFile && !isRecording;
 
   return (
     <View style={styles.wrap}>
@@ -147,6 +201,7 @@ function Component({ draft, onChange }: Props) {
                 key={s.id}
                 style={[styles.scriptCard, active && styles.scriptCardActive]}
                 onPress={() => setSelectedScript(s.id)}
+                disabled={isRecording}
               >
                 <Text style={styles.scriptTitle}>{s.title}</Text>
                 <Text style={styles.scriptText}>{s.text}</Text>
@@ -154,17 +209,32 @@ function Component({ draft, onChange }: Props) {
             );
           })}
           <TouchableOpacity
-            style={[styles.recordBtn, !selectedScript && styles.recordBtnDisabled]}
+            style={[
+              styles.recordBtn,
+              !selectedScript && !isRecording && styles.recordBtnDisabled,
+              isRecording && styles.recordBtnActive,
+            ]}
             onPress={handleRecordPress}
-            disabled={!selectedScript}
+            disabled={!selectedScript && !isRecording}
             activeOpacity={0.85}
           >
-            <View style={styles.recordDot} />
-            <Text style={styles.recordBtnText}>녹음 시작</Text>
+            <View style={[styles.recordDot, isRecording && styles.recordDotPulse]} />
+            <Text style={styles.recordBtnText}>
+              {isRecording
+                ? `녹음 중 · ${elapsedSec}s · 누르면 정지`
+                : hasRecorded
+                  ? "다시 녹음"
+                  : "녹음 시작"}
+            </Text>
           </TouchableOpacity>
-          <Text style={styles.disabledNote}>
-            * 녹음 기능은 준비 중이에요 — 임시로 [음성 선택] 또는 [파일 업로드] 를 사용해주세요.
-          </Text>
+          {hasRecorded && (
+            <View style={styles.recordedRow}>
+              <Feather name="check-circle" size={16} color={COLORS.violet600} />
+              <Text style={styles.recordedText}>
+                녹음 저장됨 ({draft.recordDuration ?? 0}초). 다음 단계로 진행하세요.
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -248,8 +318,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   recordBtnDisabled: { opacity: 0.4 },
+  recordBtnActive: { backgroundColor: COLORS.zinc900 },
   recordDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.white },
+  recordDotPulse: { backgroundColor: COLORS.error },
   recordBtnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
+  recordedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  recordedText: { fontSize: 13, color: COLORS.violet700, fontWeight: "500" },
   disabledNote: {
     fontSize: 12,
     color: COLORS.zinc500,

@@ -72,12 +72,18 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const [typedLines, setTypedLines] = useState<string[]>(() => INTRO_LINES.map(() => ""));
   const [introDone, setIntroDone] = useState(false);
 
+  const [videoFailed, setVideoFailed] = useState(false);
   const fairyVideoPlayer = useVideoPlayer(
     require("../../../assets/fairy-intro.mp4"),
     (player) => {
-      player.loop = true;
-      player.muted = true;
-      player.play();
+      try {
+        player.loop = true;
+        player.muted = true;
+        player.play();
+      } catch (err) {
+        console.warn("[Step6] fairy video setup failed:", err);
+        setVideoFailed(true);
+      }
     },
   );
   const skipIntro = () => {
@@ -248,7 +254,8 @@ export default function Step6CreatingScreen({ navigation }: Props) {
                 activeOpacity={1}
                 accessibilityLabel="도입부 건너뛰기"
               >
-                {}
+                {
+}
                 <Animated.View
                   style={[
                     styles.videoWrap,
@@ -259,12 +266,16 @@ export default function Step6CreatingScreen({ navigation }: Props) {
                   ]}
                   pointerEvents="none"
                 >
-                  <VideoView
-                    style={styles.video}
-                    player={fairyVideoPlayer}
-                    contentFit="contain"
-                    nativeControls={false}
-                  />
+                  {videoFailed ? (
+                    <Text style={styles.fallbackEmoji}>✨</Text>
+                  ) : (
+                    <VideoView
+                      style={styles.video}
+                      player={fairyVideoPlayer}
+                      contentFit="contain"
+                      nativeControls={false}
+                    />
+                  )}
                 </Animated.View>
 
                 {
@@ -434,6 +445,11 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   video: { width: "100%", height: "100%" },
+  fallbackEmoji: {
+    fontSize: 100,
+    textAlign: "center",
+    lineHeight: 180,
+  },
   introTitle: {
     fontSize: 20,
     fontWeight: "700",
