@@ -165,6 +165,16 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   useEffect(() => {
     if (!draft.cloneType) return;
     cancelledRef.current = false;
+
+    const timeoutHandle = setTimeout(() => {
+      if (cancelledRef.current) return;
+      setCreating((prev) => {
+        if (!prev) return prev;
+        console.warn("[CLONE-CREATE] timeout — 30s no response, forcing stop");
+        setError("요청이 너무 오래 걸려요. 다시 시도해주세요.");
+        return false;
+      });
+    }, 30000);
     (async () => {
       setCreating(true);
       setError(null);
@@ -264,6 +274,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     })();
     return () => {
       cancelledRef.current = true;
+      clearTimeout(timeoutHandle);
     };
   }, [attemptCreate, draft.cloneType]); 
 
@@ -420,19 +431,40 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           )}
         </SafeScrollView>
 
-        {}
+        {
+
+}
         <View style={styles.bottomBar}>
           <Button
             title={
-              posting
-                ? "잠시만요..."
-                : creating
+              error
+                ? "다시 시도"
+                : createdCloneId != null
+                ? "다음"
+                : posting || creating
                 ? "잠시만요..."
                 : "다음"
             }
-            onPress={handleSharePost}
+            onPress={
+              error
+                ? () => {
+
+                    setError(null);
+                    setCreating(true);
+                    (async () => {
+                      try {
+                        await attemptCreate();
+                      } catch (err) {
+                        console.warn("[CLONE-CREATE] retry failed:", err);
+                        setError(t("create.errors.createFailed"));
+                        setCreating(false);
+                      }
+                    })();
+                  }
+                : handleSharePost
+            }
             variant="accent"
-            disabled={posting || creating || !!error}
+            disabled={posting || (creating && createdCloneId == null && !error)}
           />
         </View>
       </KeyboardAvoidingView>
