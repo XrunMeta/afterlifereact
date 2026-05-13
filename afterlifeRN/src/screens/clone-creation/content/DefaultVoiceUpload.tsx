@@ -213,11 +213,9 @@ function Component({ draft, onChange }: Props) {
           <TouchableOpacity
             style={[
               styles.recordBtn,
-              !selectedScript && !isRecording && styles.recordBtnDisabled,
               isRecording && styles.recordBtnActive,
             ]}
             onPress={handleRecordPress}
-            disabled={!selectedScript && !isRecording}
             activeOpacity={0.85}
           >
             <View style={[styles.recordDot, isRecording && styles.recordDotPulse]} />

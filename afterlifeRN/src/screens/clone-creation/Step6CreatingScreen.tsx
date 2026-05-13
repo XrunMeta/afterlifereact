@@ -46,14 +46,14 @@ const QUESTION_PHASES: Phase[] = [
   "memory",
 ];
 
-const INTRO_LINES = [
-  "안녕!",
-  "나는 네 소중한 기억 속에 살고 있는 요정이야.",
-  "지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...",
-  "떠올랐어?! 그럼, 네 머릿속에 있는 그 소중한 존재를 생각하며 답해줘!",
+const INTRO_PARAGRAPHS: readonly (readonly string[])[] = [
+  ["안녕!", "나는 네 소중한 기억 속에", "살고 있는 요정이야"],
+  ["지금 네가 가장 보고 싶은", "'그 얼굴'을 한 번 떠올려봐..."],
+  ["떠올랐어!?", "그럼, 네 머리속에 있는 그 소중한 존재를", "생각하며 답해줘!"],
 ] as const;
-const TYPE_SPEED_MS = 35;   
-const LINE_PAUSE_MS = 450;  
+const PARA_FADE_MS = 700;   
+const PARA_GAP_MS = 800;    
+const PARA_DELAY_MS = 400;  
 
 export default function Step6CreatingScreen({ navigation }: Props) {
   useTranslation();
@@ -67,7 +67,6 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   const [personality, setPersonality] = useState<string>("");
   const [memory, setMemory] = useState<string>("");
 
-  const [typedLines, setTypedLines] = useState<string[]>(() => INTRO_LINES.map(() => ""));
   const [introDone, setIntroDone] = useState(false);
 
   const [videoFailed, setVideoFailed] = useState(false);
@@ -84,19 +83,24 @@ export default function Step6CreatingScreen({ navigation }: Props) {
       }
     },
   );
-  const skipIntro = () => {
-    setTypedLines(INTRO_LINES.map((l) => l));
-    setIntroDone(true);
-  };
 
   const emojiOpacity = useRef(new Animated.Value(0)).current;
   const emojiScale = useRef(new Animated.Value(0.6)).current;
 
-  const cursorOpacity = useRef(new Animated.Value(1)).current;
+  const paragraphOpacities = useRef(
+    INTRO_PARAGRAPHS.map(() => new Animated.Value(0)),
+  ).current;
+
+  const skipIntro = () => {
+
+    paragraphOpacities.forEach((op) => op.setValue(1));
+    setIntroDone(true);
+  };
 
   useEffect(() => {
     if (phase !== "intro") return;
     let cancelled = false;
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
 
     Animated.parallel([
       Animated.timing(emojiOpacity, {
@@ -112,38 +116,35 @@ export default function Step6CreatingScreen({ navigation }: Props) {
       }),
     ]).start();
 
-    const cursorLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(cursorOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
-        Animated.timing(cursorOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-      ]),
-    );
-    cursorLoop.start();
-
-    const run = async () => {
-
-      await new Promise((r) => setTimeout(r, 400));
-      const accumulated = INTRO_LINES.map(() => "");
-      for (let li = 0; li < INTRO_LINES.length; li++) {
-        const line = INTRO_LINES[li]!;
-        for (let ci = 1; ci <= line.length; ci++) {
-          if (cancelled) return;
-          accumulated[li] = line.slice(0, ci);
-          setTypedLines([...accumulated]);
-          await new Promise((r) => setTimeout(r, TYPE_SPEED_MS));
-        }
+    INTRO_PARAGRAPHS.forEach((_, idx) => {
+      const delay = PARA_DELAY_MS + idx * (PARA_FADE_MS + PARA_GAP_MS);
+      const t = setTimeout(() => {
         if (cancelled) return;
-        await new Promise((r) => setTimeout(r, LINE_PAUSE_MS));
-      }
+        Animated.timing(paragraphOpacities[idx]!, {
+          toValue: 1,
+          duration: PARA_FADE_MS,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      }, delay);
+      timeouts.push(t);
+    });
+
+    const totalMs =
+      PARA_DELAY_MS +
+      INTRO_PARAGRAPHS.length * (PARA_FADE_MS + PARA_GAP_MS) -
+      PARA_GAP_MS;
+    const doneT = setTimeout(() => {
       if (!cancelled) setIntroDone(true);
-    };
-    run();
+    }, totalMs);
+    timeouts.push(doneT);
 
     return () => {
       cancelled = true;
-      cursorLoop.stop();
+      timeouts.forEach(clearTimeout);
     };
-  }, [phase, emojiOpacity, emojiScale, cursorOpacity]);
+
+  }, [phase]);
 
   const buildPersonaNotes = (): string => {
     const sections: string[] = [];
@@ -277,22 +278,26 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
                 {
 }
-                {INTRO_LINES.map((line, i) => {
-                  if (typedLines[i].length === 0) return null;
+                {INTRO_PARAGRAPHS.map((para, pIdx) => {
 
-                  const isTypingThis = !introDone && typedLines[i].length < line.length;
-
-                  const isTitle = i <= 1;
-                  const textStyle = isTitle ? styles.introTitle : styles.introBody;
+                  const isTitlePara = pIdx === 0;
                   return (
-                    <Text key={i} style={textStyle}>
-                      {typedLines[i]}
-                      {isTypingThis && (
-                        <Animated.Text style={{ opacity: cursorOpacity, color: COLORS.violet600 }}>
-                          ▍
-                        </Animated.Text>
-                      )}
-                    </Text>
+                    <Animated.View
+                      key={pIdx}
+                      style={[
+                        styles.paragraph,
+                        { opacity: paragraphOpacities[pIdx]! },
+                      ]}
+                    >
+                      {para.map((line, lIdx) => (
+                        <Text
+                          key={lIdx}
+                          style={isTitlePara ? styles.introTitle : styles.introBody}
+                        >
+                          {line}
+                        </Text>
+                      ))}
+                    </Animated.View>
                   );
                 })}
               </TouchableOpacity>
@@ -432,8 +437,10 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
 
-  introBox: { gap: 14, paddingTop: 12, alignItems: "center" },
+  introBox: { gap: 20, paddingTop: 12, alignItems: "center" },
   introEmoji: { fontSize: 40, textAlign: "center", marginBottom: 8 },
+
+  paragraph: { gap: 4, alignItems: "center", paddingHorizontal: 8 },
   videoWrap: {
     width: 180,
     height: 180,
