@@ -28,9 +28,10 @@ import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
 import { v_c4c43f } from "../../mocks/cloneTypeCatalog";
-import { v_39eaf5, v_b55477 } from "../../api/clones";
+import { v_39eaf5, v_b55477, v_5e388b } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
+import { v_cf9c33 } from "rcmrninabrnb";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step7">;
@@ -75,6 +76,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_b12f33 = v_e662ae(false);
 
   const v_6de415 = v_e662ae<string | undefined>(undefined);
+
+  const [v_6044a8, v_1d6b6a] = v_5ab095("");
+  const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
   const v_140aea = v_de06a3(
     async (v_6bee94) => {
@@ -276,6 +280,27 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     );
   };
 
+  const v_d01790 = async () => {
+    if (v_af4871 == null || !v_2ca7e0) {
+      v_704242();
+      return;
+    }
+    v_4b9b17(true);
+    try {
+      const v_1458b7 = v_6de415.current ?? null;
+      await v_5e388b(v_2ca7e0, v_af4871, {
+        content: v_6044a8.trim() || undefined,
+        ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
+      });
+    } catch (v_49263d) {
+      console.warn("[CLONE-CREATE] post first feed failed:", v_49263d);
+
+    } finally {
+      v_4b9b17(false);
+      v_704242();
+    }
+  };
+
   const v_24584b = async () => {
     if (!/^\d{6}$/.test(v_c924cc)) {
       v_04103a("PIN 6자리를 입력해 주세요");
@@ -304,59 +329,85 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     }
   };
 
+  const v_8a1355 = v_f04727.name ?? "사용자 이름";
+  const v_3e86f3 = v_f04727.username ?? "아이디";
+  const v_ee89db = v_f04727.imageFile;
+
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <PageHeader title={v_8d41d7('create.stepTitles.7')} />
-      <StepIndicator currentStep={6} totalSteps={6} />
-
-      <SafeScrollView contentContainerStyle={v_d81136.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
-        <View style={v_d81136.container}>
-          {}
-          <View style={[v_d81136.successCircle, v_5e9bfe && { backgroundColor: v_1bfbd0.error }]}>
-            {v_805753 ? (
-              <ActivityIndicator size="large" color={v_1bfbd0.white} />
-            ) : v_5e9bfe ? (
-              <Feather name="alert-triangle" size={48} color={v_1bfbd0.white} />
-            ) : (
-              <Feather name="check" size={48} color={v_1bfbd0.white} />
-            )}
-          </View>
-
-          <Text style={v_d81136.title}>
-            {v_805753 ? v_8d41d7('create.complete.creating') : v_5e9bfe ? v_8d41d7('create.complete.createFailed') : v_b38746.title}
-          </Text>
-          <Text style={v_d81136.subtitle}>{v_5e9bfe ?? v_b38746.sub}</Text>
-
-          {}
-          {!v_805753 && !v_5e9bfe && v_ba68bf.map((v_95a1b5, v_ebec57) => (
-            <View key={v_ebec57} style={v_d81136.featureCard}>
-              <View style={v_d81136.featureIconBox}>
-                <Feather name={v_95a1b5.icon as any} size={22} color={v_1bfbd0.violet500} />
-              </View>
-              <View style={v_d81136.featureInfo}>
-                <Text style={v_d81136.featureTitle}>{v_95a1b5.title}</Text>
-                <Text style={v_d81136.featureDesc}>{v_95a1b5.desc}</Text>
-              </View>
-            </View>
-          ))}
+      <View style={v_d81136.composerHeader}>
+        <TouchableOpacity onPress={v_704242} hitSlop={8} style={v_d81136.headerBack}>
+          <Feather name="chevron-left" size={26} color={v_1bfbd0.zinc900} />
+        </TouchableOpacity>
+        <View style={v_d81136.headerCenter}>
+          <Text style={v_d81136.headerName} numberOfLines={1}>{v_8a1355}</Text>
+          <Text style={v_d81136.headerHandle} numberOfLines={1}>@{v_3e86f3}</Text>
         </View>
-      </SafeScrollView>
-
-      {}
-      <View style={v_d81136.bottomBar}>
-        <Button
-          title={v_8d41d7('create.complete.startVideo')}
-          onPress={v_791884}
-          variant="accent"
-          disabled={v_805753 || !!v_5e9bfe || v_af4871 == null}
-          leftIcon={<Feather name="message-circle" size={20} color={v_1bfbd0.white} />}
-        />
-        <Button
-          title={v_8d41d7('create.complete.goDashboard')}
-          onPress={v_704242}
-          variant="ghost"
-        />
+        {}
+        <View style={v_d81136.headerBack} />
       </View>
+
+      {v_805753 ? (
+        <View style={v_d81136.center}>
+          <ActivityIndicator size="large" color={v_1bfbd0.violet600} />
+          <Text style={v_d81136.creatingText}>{v_8d41d7('create.complete.creating')}</Text>
+        </View>
+      ) : v_5e9bfe ? (
+        <View style={v_d81136.center}>
+          <View style={[v_d81136.successCircle, { backgroundColor: v_1bfbd0.error, width: 60, height: 60, borderRadius: 30 }]}>
+            <Feather name="alert-triangle" size={28} color={v_1bfbd0.white} />
+          </View>
+          <Text style={[v_d81136.creatingText, { color: v_1bfbd0.error }]}>{v_5e9bfe}</Text>
+          <TouchableOpacity style={v_d81136.retryBtn} onPress={v_704242}>
+            <Text style={v_d81136.retryText}>대시보드로</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        >
+          <SafeScrollView contentContainerStyle={v_d81136.composerContent} showBottomBackground={false}>
+            {}
+            <View style={v_d81136.imageBox}>
+              {v_ee89db ? (
+                <Image source={{ uri: v_ee89db }} style={v_d81136.image} resizeMode="cover" />
+              ) : (
+                <View style={[v_d81136.image, v_d81136.imagePlaceholder]}>
+                  <Feather name="image" size={36} color={v_1bfbd0.zinc400} />
+                </View>
+              )}
+            </View>
+
+            {}
+            <TextInput
+              style={v_d81136.captionInput}
+              value={v_6044a8}
+              onChangeText={v_1d6b6a}
+              placeholder="캡션 추가..."
+              placeholderTextColor={v_1bfbd0.zinc400}
+              multiline
+              maxLength={2000}
+            />
+          </SafeScrollView>
+
+          {}
+          <View style={v_d81136.bottomBar}>
+            <Button
+              title={v_c3de9c ? "공유 중..." : "공유"}
+              onPress={v_d01790}
+              variant="accent"
+              disabled={v_c3de9c || v_af4871 == null}
+            />
+            <Button
+              title="건너뛰기"
+              onPress={v_704242}
+              variant="ghost"
+              disabled={v_c3de9c}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      )}
 
       {}
       <Modal visible={v_db004a} transparent animationType="fade">
@@ -475,6 +526,66 @@ const v_9b1720 = v_472849.create({
 });
 
 const v_d81136 = v_472849.create({
+
+  composerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+  },
+  headerBack: { width: 40, alignItems: "flex-start" },
+  headerCenter: { flex: 1, alignItems: "center" },
+  headerName: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  headerHandle: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+
+  composerContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  imageBox: {
+    width: "100%",
+    aspectRatio: 4 / 5,
+    borderRadius: v_8b0c90.md,
+    overflow: "hidden",
+    backgroundColor: v_1bfbd0.zinc50,
+    marginBottom: 16,
+  },
+  image: { width: "100%", height: "100%" },
+  imagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: v_1bfbd0.zinc100,
+  },
+  captionInput: {
+    minHeight: 60,
+    fontSize: 14,
+    color: v_1bfbd0.zinc900,
+    paddingVertical: 8,
+    textAlignVertical: "top",
+  },
+
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+    paddingHorizontal: v_9b1a04.xlarge,
+  },
+  creatingText: { fontSize: 14, color: v_1bfbd0.zinc600 },
+  retryBtn: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: v_8b0c90.md,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  retryText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.white },
+
   content: {
     flexGrow: 1,
     alignItems: "center",
