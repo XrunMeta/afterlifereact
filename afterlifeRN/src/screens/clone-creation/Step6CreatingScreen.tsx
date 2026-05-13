@@ -136,10 +136,12 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const v_6821b6 = v_e662ae(new v_a2349e.Value(1)).current;
 
   const v_f7adb5 = () => {
+    v_0e1f26.dismiss();
     v_d74fbd(v_398571.map((v_e2a85c) => v_e2a85c));
     v_b7772b(true);
   };
   const v_3289ba = () => {
+    v_0e1f26.dismiss();
     if (v_ab4803 === "intro") return;
     const v_ab6401 = v_d57121[v_ab4803 as keyof typeof v_d57121];
     if (!v_ab6401) return;
@@ -273,6 +275,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   };
 
   const v_219251 = () => {
+    v_0e1f26.dismiss();
     if (v_ab4803 === "intro") {
       v_ae4844("name");
       return;
@@ -308,6 +311,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   };
 
   const v_c7ac57 = () => {
+    v_0e1f26.dismiss();
     const v_e86ad8 = v_1613bd.indexOf(v_ab4803 as (typeof v_1613bd)[number]);
     if (v_ab4803 === "intro") {
       v_c65f5d.goBack();
