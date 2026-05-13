@@ -1,6 +1,6 @@
 
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
@@ -85,19 +85,15 @@ function Component({ draft, onChange }: Props) {
 
   const elapsedSec = Math.floor((recorderState.durationMillis ?? 0) / 1000);
 
-  useEffect(() => {
-    return () => {
-      if (recorder.isRecording) {
-        recorder.stop().catch(() => {});
-      }
-    };
-  }, [recorder]);
-
-  const switchMode = (next: Mode) => {
+  const switchMode = async (next: Mode) => {
     if (next === mode) return;
 
-    if (recorder.isRecording) {
-      recorder.stop().catch(() => {});
+    if (isRecording) {
+      try {
+        await recorder.stop();
+      } catch (err) {
+        console.warn("[Voice] stop on mode switch failed:", err);
+      }
     }
     setMode(next);
     onChange({ voiceSampleId: undefined, voiceFile: undefined, recordDuration: undefined });
@@ -109,7 +105,13 @@ function Component({ draft, onChange }: Props) {
       if (isRecording) {
 
         await recorder.stop();
-        const uri = recorder.uri;
+
+        let uri: string | null = null;
+        try {
+          uri = recorder.uri ?? null;
+        } catch (err) {
+          console.warn("[Voice] read uri failed:", err);
+        }
         if (uri) {
           onChange({
             voiceFile: uri,
