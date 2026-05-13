@@ -27,6 +27,7 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
+import v_5778ce from "../../components/common/HashtagText";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
@@ -531,9 +532,9 @@ export default function v_def15b() {
         </View>
 
         {}
-        <Text style={v_fd5f43.description} numberOfLines={2}>
+        <HashtagText style={v_fd5f43.description} numberOfLines={2}>
           {v_eb25ce.description}
-        </Text>
+        </HashtagText>
 
         {
 
