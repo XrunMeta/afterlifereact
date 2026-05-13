@@ -48,7 +48,7 @@ const v_d81136 = v_472849.create({
 
   content: {
     paddingHorizontal: v_9b1a04.large,
-    paddingTop: 32,
+    paddingTop: 48,
     paddingBottom: v_9b1a04.large,
   },
   bottomBar: { padding: v_9b1a04.large, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc100 },
