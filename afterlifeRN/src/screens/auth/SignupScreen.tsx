@@ -151,7 +151,8 @@ export default function SignupScreen({ navigation, route }: Props) {
       Alert.alert(t("common.notice"), t("auth.signup.emailInvalid"));
       return;
     }
-    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password)) {
+
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
       Alert.alert(t("common.notice"), t("auth.signup.passwordTooShort"));
       return;
     }

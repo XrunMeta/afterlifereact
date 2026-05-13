@@ -69,7 +69,8 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleSavePassword = async () => {
-    if (password.length < 8) {
+
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
       Alert.alert("알림", t("auth.forgot.passwordTooShort"));
       return;
     }

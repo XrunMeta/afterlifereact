@@ -24,8 +24,12 @@ function unb64(str: string): Uint8Array {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  if (password.length < 8) {
-    throw new APIError("VALIDATION_FAILED", "Password must be at least 8 characters.");
+
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
+    throw new APIError(
+      "VALIDATION_FAILED",
+      "Password must be 7+ chars with lowercase, uppercase, and digit.",
+    );
   }
   const salt = randomBytes(16);
   const derived = scrypt(new TextEncoder().encode(password), salt, { N, r, p, dkLen: KEY_LEN });
