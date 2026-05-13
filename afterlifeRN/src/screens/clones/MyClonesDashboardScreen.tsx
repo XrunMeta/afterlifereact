@@ -169,8 +169,8 @@ export default function MyClonesDashboardScreen() {
   const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
   const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
 
-  const followingCount = 0;
-  const followersCount = 0;
+  const followingCount = (apiUser as { followingCount?: number } | null)?.followingCount ?? 0;
+  const followersCount = (apiUser as { followersCount?: number } | null)?.followersCount ?? 0;
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -737,15 +737,37 @@ export default function MyClonesDashboardScreen() {
                     {apiUser?.name ?? authUser?.displayName ?? "사용자"}
                   </Text>
                   <View style={s.profileStatsRow}>
-                    <View style={s.profileStatItem}>
+                    <TouchableOpacity
+                      style={s.profileStatItem}
+                      onPress={() => {
+                        const meId = apiUser?.id;
+                        if (!meId) return;
+                        rootNav.navigate("UserFollowList", {
+                          userId: meId,
+                          mode: "followers",
+                          userName: apiUser?.name ?? undefined,
+                        });
+                      }}
+                    >
                       <Text style={s.profileStatValue}>{followersCount}</Text>
                       <Text style={s.profileStatLabel}>팔로워</Text>
-                    </View>
+                    </TouchableOpacity>
                     <View style={s.profileStatDivider} />
-                    <View style={s.profileStatItem}>
+                    <TouchableOpacity
+                      style={s.profileStatItem}
+                      onPress={() => {
+                        const meId = apiUser?.id;
+                        if (!meId) return;
+                        rootNav.navigate("UserFollowList", {
+                          userId: meId,
+                          mode: "following",
+                          userName: apiUser?.name ?? undefined,
+                        });
+                      }}
+                    >
                       <Text style={s.profileStatValue}>{followingCount}</Text>
                       <Text style={s.profileStatLabel}>팔로잉</Text>
-                    </View>
+                    </TouchableOpacity>
                     <View style={s.profileStatDivider} />
                     <View style={s.profileStatItem}>
                       <Text style={s.profileStatValue}>{visibleClones.length}</Text>
