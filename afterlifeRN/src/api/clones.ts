@@ -382,6 +382,22 @@ export interface BlockedClone {
   };
 }
 
+export async function v_9deb40(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_58ca36,
+): Promise<{ ok: true; reported: true; blocked: true }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/report`,
+    v_2ca7e0,
+    {
+      method: "POST",
+      body: JSON.stringify(v_58ca36 ? { reason: v_58ca36 } : {}),
+    },
+    v_7f4dc3(),
+  );
+}
+
 export async function v_97c75d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked: true }> {
   console.log(`[BLOCK-API] → POST /oth-path${v_6e0fd3}/block`);
   const v_8f00b9 = await v_04b58a<{ ok: true; blocked: true }>(

@@ -947,3 +947,34 @@ v_f891e6.delete("/:id/block", v_6690d9, async (v_3f4e2e) => {
     .run();
   return v_3f4e2e.json({ ok: true, blocked: false });
 });
+
+const v_4a3250 = v_1f4ea7.object({
+  reason: v_1f4ea7.string().max(500).optional(),
+});
+v_f891e6.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_4a3250).catch(() => ({ reason: undefined }));
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_reports (user_id, clone_id, reason)
+         VALUES (?, ?, ?)`,
+    ).bind(v_43e90c, v_6e0fd3, v_4d33b2.reason ?? null),
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
+    ).bind(v_43e90c, v_6e0fd3),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM clone_follows WHERE user_id = ? AND clone_id = ?`,
+    ).bind(v_43e90c, v_6e0fd3),
+  ]);
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "clone.report",
+    details: { cloneId: v_6e0fd3, reason: v_4d33b2.reason ?? null },
+  });
+  return v_3f4e2e.json({ ok: true, reported: true, blocked: true });
+});
