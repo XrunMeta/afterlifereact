@@ -510,28 +510,29 @@ const styles = StyleSheet.create({
   backBtn: { padding: 8, alignSelf: "flex-start" },
 
   videoWrap: {
-    width: 140,
-    height: 140,
+    width: 120,
+    height: 120,
     alignSelf: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   video: { width: "100%", height: "100%" },
   fallbackEmoji: { fontSize: 80, textAlign: "center", lineHeight: 140 },
 
   introTextBox: { gap: 16, alignItems: "center", width: "100%" },
   paragraph: { alignItems: "center", paddingHorizontal: 8 },
+
   introTitle: {
-    fontSize: 20,
+    fontSize: 26,
     fontWeight: "700",
     color: COLORS.white,
     textAlign: "center",
-    lineHeight: 30,
+    lineHeight: 38,
   },
   introBody: {
-    fontSize: 15,
-    color: "rgba(255,255,255,0.85)",
+    fontSize: 19,
+    color: "rgba(255,255,255,0.9)",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 30,
   },
 
   questionBox: { width: "100%", gap: 10 },
