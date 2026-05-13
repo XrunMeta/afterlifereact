@@ -6,6 +6,17 @@ import { v_70c669 } from "zwwvjiopxcaovigclhtwpklelhlr";
 import { v_b2c639 } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_b5df25 } from "ernurodqvmtspux";
 import { v_472849, v_3094a2 } from "rcmrninabrnb";
+import { v_c06f2c } from "kjiqsgell";
+import {
+  v_dec439,
+  v_25515d,
+  v_872acb,
+  v_f832ec,
+  v_081b3c,
+  v_37ba1a,
+  v_5fe194,
+  v_08f2b6,
+} from "zvyjokvuouwvifyzks";
 import v_3b950c from "./src/navigation/RootNavigator";
 import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
@@ -40,6 +51,17 @@ const linking: v_4c916c<v_8ad91b> = {
 export default function v_6540c3() {
   const [v_b1717e, v_0189ac] = v_5ab095(false);
 
+  const [v_43f571] = v_c06f2c({
+    ...v_dec439.font,
+    ...v_25515d.font,
+    ...v_872acb.font,
+    ...v_f832ec.font,
+    ...v_081b3c.font,
+    ...v_37ba1a.font,
+    ...v_5fe194.font,
+    ...v_08f2b6.font,
+  });
+
   v_c4deb2(() => {
     Promise.all([
       v_1ed7d9.getState().hydrate(),
@@ -53,7 +75,7 @@ export default function v_6540c3() {
     });
   }, []);
 
-  if (!v_b1717e) {
+  if (!v_b1717e || !v_43f571) {
     return <View style={v_d81136.root} />;
   }
 
