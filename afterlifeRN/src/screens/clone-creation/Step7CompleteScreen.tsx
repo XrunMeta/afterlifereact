@@ -225,6 +225,25 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             setCreating(false);
             return;
           }
+          if (err.code === 'UNAUTHENTICATED') {
+
+            setCreating(false);
+            const msg = '세션이 만료됐어요. 다시 로그인해주세요.';
+            setError(msg);
+            Alert.alert('세션 만료', msg, [
+              {
+                text: '로그인하기',
+                onPress: async () => {
+                  await useAuthStore.getState().logout();
+
+                  navigation.getParent()?.dispatch(
+                    CommonActions.navigate({ name: "ClonesTab" }),
+                  );
+                },
+              },
+            ]);
+            return;
+          }
           let msg = t('create.errors.createFailed');
           if (err.code === 'QUOTA_EXCEEDED') {
             msg = t('create.errors.quotaExceeded');
