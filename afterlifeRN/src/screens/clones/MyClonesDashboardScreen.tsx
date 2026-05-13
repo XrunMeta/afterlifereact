@@ -310,7 +310,21 @@ export default function MyClonesDashboardScreen() {
     getXrunBalance(accessToken)
       .then((res) => {
         if (cancelled) return;
-        setXrunBalance(res.linked ? (res.xrun ?? 0) : undefined);
+        console.log(
+          "[Dashboard] xrun balance ←",
+          "linked=", res.linked,
+          "xrun=", res.xrun,
+          "balances.length=", res.balances?.length ?? 0,
+          "balances=", JSON.stringify(res.balances),
+        );
+
+        if (!res.linked) {
+          setXrunBalance(undefined);
+        } else if (typeof res.xrun === "number" && Number.isFinite(res.xrun)) {
+          setXrunBalance(res.xrun);
+        } else {
+          setXrunBalance(undefined);
+        }
       })
       .catch((err) => {
         console.warn("[Dashboard] xrun balance fetch failed:", err);

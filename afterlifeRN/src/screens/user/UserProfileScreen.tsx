@@ -114,11 +114,29 @@ export default function UserProfileScreen() {
     });
   };
 
-  const goToClone = (cloneId: number) => {
-
-    navigation.navigate("Main", {
-      screen: "ClonesTab",
-      params: { screen: "CloneDetail", params: { cloneId } },
+  const goToClone = (c: UserProfileClone) => {
+    navigation.navigate("CloneFeed", {
+      feed: {
+        id: -c.id,
+        cloneId: c.id,
+        content: c.description ?? "",
+        mediaUrl: c.avatarUrl,
+        mediaType: null,
+        likesCount: c.likesCount ?? 0,
+        commentsCount: 0,
+        likedByMe: false,
+        createdAt: c.createdAt,
+        clone: {
+          id: c.id,
+          ownerId: userId, 
+          name: c.name,
+          username: c.username,
+          avatarUrl: c.avatarUrl,
+          cloneType: c.cloneType as never,
+          visibility: c.visibility,
+        },
+        interests: [],
+      },
     });
   };
 
@@ -134,7 +152,7 @@ export default function UserProfileScreen() {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => goToClone(item.id)}
+        onPress={() => goToClone(item)}
         style={{ width: cellW, marginRight, marginBottom: GRID_GAP }}
       >
         <View style={[s.cellImageWrap, { width: cellW, height: cellW }]}>

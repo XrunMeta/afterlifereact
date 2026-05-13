@@ -15,8 +15,9 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
-import { COLORS } from "../../components/constants";
+import { COLORS, RADIUS } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
+import { useUserFollowStore } from "../../stores/userFollowStore";
 import {
   listUserFollowers,
   listUserFollowing,
@@ -30,8 +31,12 @@ type NavProp = NativeStackNavigationProp<RootStackParamList>;
 export default function UserFollowListScreen() {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteProps>();
-  const { userId, mode, userName } = route.params;
+
+  const { userId, mode } = route.params;
   const accessToken = useAuthStore((s) => s.accessToken);
+  const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
+  const isFollowingUser = useUserFollowStore((st) => st.isFollowing);
+  const toggleFollowUser = useUserFollowStore((st) => st.toggleFollow);
 
   const [items, setItems] = useState<UserFollowItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,32 +64,50 @@ export default function UserFollowListScreen() {
     load();
   }, [load]);
 
-  const renderRow = ({ item }: { item: UserFollowItem }) => (
-    <TouchableOpacity
-      style={s.row}
-      onPress={() => navigation.push("UserProfile", { userId: item.userId })}
-    >
-      {item.avatarUrl ? (
-        <Image source={{ uri: item.avatarUrl }} style={s.avatar} />
-      ) : (
-        <View style={[s.avatar, s.avatarPh]}>
-          <Feather name="user" size={20} color={COLORS.zinc400} />
+  const renderRow = ({ item }: { item: UserFollowItem }) => {
+    const isMe = item.userId === myUserId;
+    const followed = isFollowingUser(item.userId);
+    return (
+      <TouchableOpacity
+        style={s.row}
+        onPress={() => navigation.push("UserProfile", { userId: item.userId })}
+        activeOpacity={0.7}
+      >
+        {item.avatarUrl ? (
+          <Image source={{ uri: item.avatarUrl }} style={s.avatar} />
+        ) : (
+          <View style={[s.avatar, s.avatarPh]}>
+            <Feather name="user" size={20} color={COLORS.zinc400} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={s.name} numberOfLines={1}>
+            {item.name ?? item.email}
+          </Text>
+          <Text style={s.email} numberOfLines={1}>
+            {item.email}
+          </Text>
         </View>
-      )}
-      <View style={{ flex: 1 }}>
-        <Text style={s.name} numberOfLines={1}>
-          {item.name ?? item.email}
-        </Text>
-        <Text style={s.email} numberOfLines={1}>
-          {item.email}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+        {}
+        {!isMe && (
+          <TouchableOpacity
+            onPress={(e) => {
+              e.stopPropagation?.();
+              void toggleFollowUser(item.userId);
+            }}
+            style={[s.followBtn, followed && s.followBtnActive]}
+            activeOpacity={0.8}
+          >
+            <Text style={[s.followBtnText, followed && s.followBtnTextActive]}>
+              {followed ? "팔로잉" : "팔로우"}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
-  const title = `${userName ? userName + "님의 " : ""}${
-    mode === "followers" ? "팔로워" : "팔로잉"
-  }`;
+  const title = mode === "followers" ? "팔로워" : "팔로잉";
 
   return (
     <SafeView backgroundColor={COLORS.white}>
@@ -141,4 +164,19 @@ const s = StyleSheet.create({
   },
   name: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
   email: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  followBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.violet600,
+    minWidth: 70,
+    alignItems: "center",
+  },
+  followBtnActive: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.zinc300,
+  },
+  followBtnText: { color: COLORS.white, fontSize: 13, fontWeight: "700" },
+  followBtnTextActive: { color: COLORS.zinc700 },
 });
