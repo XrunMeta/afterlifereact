@@ -17,18 +17,14 @@ import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
-import v_84e2fc from "../../components/ui/InterestChip";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
-  v_7ef860,
   v_976b89,
-  v_b21d35,
   v_55fc7c,
   v_84a859,
   type v_fd8a01,
 } from "../../api/auth";
-import { v_bf4124 } from "../../mocks/interestHelpers";
 
 type Gender = "male" | "female" | "other";
 
@@ -52,37 +48,9 @@ export default function v_e2b396() {
   const [v_c3eac4, v_bdc43c] = v_5ab095<Gender | null>((v_b113dd?.gender as Gender) ?? null);
   const [v_8894cf, v_d74734] = v_5ab095(v_b113dd?.age != null ? String(v_b113dd.age) : "");
 
-  const [v_0b34f3, v_5e3eef] = v_5ab095<string[]>([]);
-  const [v_976e06, v_770327] = v_5ab095<string[]>([]);
-  const [v_03ee33, v_64803f] = v_5ab095(false);
   const [v_35bf26, v_04e389] = v_5ab095(false);
   const [v_a1f68f, v_bdf535] = v_5ab095(false);
   const [v_5f58fc, v_9665cb] = v_5ab095(false);
-
-  v_c4deb2(() => {
-    if (!v_2ca7e0) return;
-    let v_2008a4 = false;
-    (async () => {
-      try {
-        const v_b32680 = await v_7ef860(v_2ca7e0);
-        if (v_2008a4) return;
-        const v_fc6010 = v_b32680.interests ?? [];
-        v_5e3eef(v_fc6010);
-        v_770327(v_fc6010);
-      } catch (v_49263d) {
-        console.warn("[EditProfile] getMe failed:", v_49263d);
-      }
-    })();
-    return () => {
-      v_2008a4 = true;
-    };
-  }, [v_2ca7e0]);
-
-  const v_458631 = v_df9f57(() => {
-    if (v_976e06.length !== v_0b34f3.length) return true;
-    const v_f6e2cb = new Set(v_0b34f3);
-    return v_976e06.some((v_23805a) => !v_f6e2cb.has(v_23805a));
-  }, [v_976e06, v_0b34f3]);
 
   const v_12b1d1 = v_df9f57(() => {
     const v_f4fe8e = v_8894cf.trim() === "" ? null : Number(v_8894cf.trim());
@@ -90,16 +58,9 @@ export default function v_e2b396() {
       v_1833e7.trim() !== (v_b113dd?.name ?? "") ||
       v_d74a81.trim() !== (v_b113dd?.phone ?? "") ||
       v_c3eac4 !== (v_b113dd?.gender ?? null) ||
-      v_f4fe8e !== (v_b113dd?.age ?? null) ||
-      v_458631
+      v_f4fe8e !== (v_b113dd?.age ?? null)
     );
-  }, [v_1833e7, v_d74a81, v_c3eac4, v_8894cf, v_b113dd, v_458631]);
-
-  const v_d82a00 = (v_e4601c) => {
-    v_770327((v_ba2215) =>
-      v_ba2215.includes(v_e4601c) ? v_ba2215.filter((v_ebec57) => v_ebec57 !== v_e4601c) : [...v_ba2215, v_e4601c],
-    );
-  };
+  }, [v_1833e7, v_d74a81, v_c3eac4, v_8894cf, v_b113dd]);
 
   const v_1b8283 = async () => {
     if (!v_2ca7e0 || !v_b113dd || v_35bf26 || !v_12b1d1) return;
@@ -130,22 +91,12 @@ export default function v_e2b396() {
 
     v_04e389(true);
     try {
-      const v_20e160 = [];
       if (Object.keys(v_17dc8a).length > 0) {
-        v_20e160.push(v_976b89(v_2ca7e0, v_17dc8a));
+        await v_976b89(v_2ca7e0, v_17dc8a);
       }
-      if (v_458631) {
-        const v_794ee5 = new Set(v_0b34f3);
-        const v_d38aef = new Set(v_976e06);
-        const v_90fa09 = v_976e06.filter((v_23805a) => !v_794ee5.has(v_23805a));
-        const v_d428e3 = v_0b34f3.filter((v_23805a) => !v_d38aef.has(v_23805a));
-        v_20e160.push(v_b21d35(v_2ca7e0, { add: v_90fa09, remove: v_d428e3 }));
-      }
-      await Promise.all(v_20e160);
-      console.log("[EditProfile] saved", { patch: v_17dc8a, interestsDirty: v_458631 });
+      console.log("[EditProfile] saved", { patch: v_17dc8a });
 
       if (Object.keys(v_17dc8a).length > 0) v_21f395(v_17dc8a);
-      if (v_458631) v_5e3eef(v_976e06);
 
       v_03e392.alert("저장됨", "프로필이 저장되었습니다.", [
         { text: "확인", onPress: () => v_c65f5d.goBack() },
@@ -296,22 +247,7 @@ export default function v_e2b396() {
             />
           </View>
 
-          <View style={v_fd5f43.divider} />
-
           {}
-          <TouchableOpacity
-            style={v_fd5f43.fieldRow}
-            onPress={() => v_64803f(true)}
-          >
-            <Text style={v_fd5f43.fieldLabel}>{v_8d41d7("settings.editProfile.fields.interests")}</Text>
-            <Text
-              style={[v_fd5f43.fieldValue, v_976e06.length > 0 && v_fd5f43.fieldValueFilled]}
-              numberOfLines={1}
-            >
-              {v_976e06.length > 0 ? v_976e06.join(", ") : "—"}
-            </Text>
-            <Feather name="chevron-right" size={18} color={v_1bfbd0.zinc400} />
-          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -330,42 +266,49 @@ export default function v_e2b396() {
       </View>
 
       {}
+
+      {}
       <Modal
-        visible={v_03ee33}
+        visible={v_5f58fc}
         transparent
         animationType="slide"
-        onRequestClose={() => v_64803f(false)}
+        onRequestClose={() => v_9665cb(false)}
       >
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_64803f(false)}>
+        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_9665cb(false)}>
           <Pressable
-            style={[v_fd5f43.modalSheet, { paddingBottom: 32 + Math.max(v_1f1785.bottom, 0) }]}
+            style={[v_fd5f43.deleteSheet, { paddingBottom: 32 + Math.max(v_1f1785.bottom, 0) }]}
             onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
           >
             <View style={v_fd5f43.modalHandle} />
-            <View style={v_fd5f43.modalHeader}>
-              <Text style={v_fd5f43.modalTitle}>관심사 선택</Text>
-              <TouchableOpacity onPress={() => v_64803f(false)}>
-                <Feather name="x" size={24} color={v_1bfbd0.zinc700} />
-              </TouchableOpacity>
-            </View>
-            <Text style={v_fd5f43.modalSubtitle}>
-              관심 있는 항목을 자유롭게 선택하세요 ({v_976e06.length}개 선택됨)
+            <Text style={v_fd5f43.deleteSheetTitle}>회원 탈퇴</Text>
+            <Text style={v_fd5f43.deleteSheetSubtitle}>
+              어느 범위로 탈퇴하시겠어요?
             </Text>
-            <ScrollView contentContainerStyle={v_fd5f43.chipGrid}>
-              {v_bf4124.map((v_e4601c) => (
-                <InterestChip
-                  key={v_e4601c}
-                  label={v_e4601c}
-                  selected={v_976e06.includes(v_e4601c)}
-                  onPress={() => v_d82a00(v_e4601c)}
-                />
-              ))}
-            </ScrollView>
+
             <TouchableOpacity
-              style={v_fd5f43.modalDoneBtn}
-              onPress={() => v_64803f(false)}
+              style={v_fd5f43.deleteOnlyBtn}
+              onPress={v_ffa2a1}
+              disabled={v_a1f68f}
             >
-              <Text style={v_fd5f43.modalDoneBtnText}>완료</Text>
+              <Text style={v_fd5f43.deleteOnlyBtnText}>에프터라이프 계정 탈퇴</Text>
+              <Text style={v_fd5f43.deleteOptionHint}>xrun 회원·지갑은 유지</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={v_fd5f43.deleteAllBtn}
+              onPress={v_916cd9}
+              disabled={v_a1f68f}
+            >
+              <Text style={v_fd5f43.deleteAllBtnText}>xrun도 함께 탈퇴</Text>
+              <Text style={v_fd5f43.deleteAllHint}>지갑·결제 비밀번호도 모두 삭제</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={v_fd5f43.deleteCancelBtn}
+              onPress={() => v_9665cb(false)}
+              disabled={v_a1f68f}
+            >
+              <Text style={v_fd5f43.deleteCancelText}>취소</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

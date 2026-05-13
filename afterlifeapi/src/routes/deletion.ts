@@ -154,13 +154,18 @@ v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {
 
   const v_820a60 = await v_a1651b
     .prepare(
-      `SELECT id, target_user_id
-         FROM clone_shares
-        WHERE clone_id = ? AND status = 'accepted' AND target_user_id IS NOT NULL
-        ORDER BY created_at ASC, id ASC
+      `SELECT cs.id, cs.target_user_id
+         FROM clone_shares cs
+         JOIN users u ON u.id = cs.target_user_id
+        WHERE cs.clone_id = ?
+          AND cs.status = 'accepted'
+          AND cs.target_user_id IS NOT NULL
+          AND cs.target_user_id != ?
+          AND u.deleted_at IS NULL
+        ORDER BY cs.created_at ASC, cs.id ASC
         LIMIT 1`,
     )
-    .bind(v_6e0fd3)
+    .bind(v_6e0fd3, v_43e90c)
     .first<{ id: number; target_user_id: number }>();
 
   if (!v_820a60) {

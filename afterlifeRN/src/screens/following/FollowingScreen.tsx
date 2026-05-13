@@ -61,15 +61,13 @@ type FollowedPersona = {
   interactions: number; 
 };
 
-const v_a1f1ac = (v_62676b): number => {
+const v_c8b54a = (v_62676b): number => {
   const v_35f85c = v_62676b?.messages ?? 0;
   const v_206b88 = v_62676b?.gifts ?? 0;
   const v_1614db = v_62676b?.likes ?? 0;
   const v_3f4e2e = v_62676b?.comments ?? 0;
   return v_35f85c + v_206b88 + v_1614db + v_3f4e2e;
 };
-const v_aae598 = (v_db07f5): number =>
-  Math.min(100, Math.floor(v_db07f5 / 50));
 
 type MockComment = { id: string; author: string; avatar: string; content: string; time: string };
 const v_888327 = [
@@ -148,14 +146,17 @@ export default function v_14b43e() {
   const v_a48e44 = v_df9f57<FollowedPersona[]>(() => {
     if (v_d92a4c != null) {
       return v_d92a4c.map((v_3f4e2e) => {
-        const v_db07f5 = v_a1f1ac(v_3f4e2e.stats);
+
+        const v_8fc8f0 = v_3f4e2e.myInteractions;
+        const v_db07f5 = v_8fc8f0 ? v_8fc8f0.total : v_c8b54a(v_3f4e2e.stats);
+        const v_b74b9c = v_8fc8f0 ? v_8fc8f0.intimacy : Math.min(100, Math.floor(v_db07f5 / 50));
         return {
           id: v_3f4e2e.id,
           name: v_3f4e2e.name,
           avatar: v_3f4e2e.avatarUrl ?? "",
           interests: v_3f4e2e.interests ?? [],
           creatorAccount: `@${v_3f4e2e.username}`,
-          intimacy: v_aae598(v_db07f5),
+          intimacy: v_b74b9c,
           interactions: v_db07f5,
         };
       });
@@ -528,7 +529,7 @@ export default function v_14b43e() {
                 const v_10387a = v_57f5a9(v_8c0b26.persona.id);
                 return (
                   <Button
-                    title={v_10387a ? "팔로잉" : "팔로우"}
+                    title={v_10387a ? "구독 중" : "구독"}
                     variant="ghost"
                     size="md"
                     leftIcon={
@@ -615,8 +616,8 @@ export default function v_14b43e() {
         ListEmptyComponent={
           <View style={v_fd5f43.emptyWrap}>
             <Feather name="users" size={48} color={v_1bfbd0.zinc300} />
-            <Text style={v_fd5f43.emptyTitle}>아직 팔로우한 페르소나가 없어요</Text>
-            <Text style={v_fd5f43.emptyDesc}>홈에서 마음에 드는 페르소나를 팔로우해 보세요</Text>
+            <Text style={v_fd5f43.emptyTitle}>아직 구독한 페르소나가 없어요</Text>
+            <Text style={v_fd5f43.emptyDesc}>홈에서 마음에 드는 페르소나를 구독해 보세요</Text>
           </View>
         }
       />

@@ -190,10 +190,12 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         platform: v_ea920b ?? undefined,
       });
 
-      const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
-      await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user);
-      console.log("[AUTH/xrun] user:", v_9ec4c0.user);
-      await v_232d52();
+      console.log("[AUTH/xrun] success");
+      v_c65f5d.replace("SignupComplete", {
+        accessToken: v_8f00b9.accessToken,
+        persist: true,
+        email: v_e0c7e8,
+      });
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("common.error");
       if (v_49263d instanceof v_84a859) {
@@ -230,7 +232,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
               autoFocus
             />
             <Button
-              title={v_cb66b4 ? v_8d41d7("auth.signup.verifying") : v_8d41d7("auth.xrun.submit")}
+              title={v_cb66b4 ? v_8d41d7("auth.signup.signingUp") : v_8d41d7("auth.xrun.submit")}
               onPress={v_44851c}
               disabled={v_cb66b4 || v_aa596d.length !== 6}
             />

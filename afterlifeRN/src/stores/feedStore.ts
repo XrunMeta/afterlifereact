@@ -93,6 +93,10 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
     const v_b6e533 = v_38715b();
     const v_d50832 = v_b6e533.likedIds.includes(v_389afb);
     const v_d60f4b = !v_d50832;
+    const v_b7cae8 = v_389afb < 0 ? -v_389afb : "?"; 
+    console.log(
+      `[LIKE] toggle id=${v_389afb} ${v_389afb < 0 ? `(synthetic, cloneId=${v_b7cae8})` : ""} ${v_d50832 ? "true" : "false"} → ${v_d60f4b ? "true" : "false"}`,
+    );
 
     v_bb8024({
       likedIds: v_d60f4b
@@ -124,8 +128,12 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
         ? v_de2a30(v_2ca7e0, v_389afb)
         : v_11c954(v_2ca7e0, v_389afb);
 
+    console.log(
+      `[LIKE] → ${v_5d003d ? "POST/DELETE /oth-path" + v_23cdc5 + "/like" : (v_d60f4b ? "POST" : "DELETE") + " /oth-path" + v_389afb + "/like"}`,
+    );
     v_5ee69e
       .then((v_8f00b9) => {
+        console.log(`[LIKE] ← ok likesCount=${v_8f00b9.likesCount}`);
 
         const v_c3bc75 = v_38715b().apiFeeds;
         if (v_c3bc75) {
@@ -207,12 +215,17 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
         return;
       }
 
-      const v_cc7245 = v_8f00b9.items
-        .filter((v_23805a) => v_23805a.likedByMe === true)
-        .map((v_23805a) => v_23805a.id);
+      const v_312319 = new Set(v_8f00b9.items.map((v_23805a) => v_23805a.id));
+      const v_3b193d = new Set(
+        v_8f00b9.items.filter((v_23805a) => v_23805a.likedByMe === true).map((v_23805a) => v_23805a.id),
+      );
       const v_c3bc75 = v_38715b().likedIds;
-      const v_2b7a6d = Array.from(new Set([...v_c3bc75, ...v_cc7245]));
-      v_bb8024({ apiFeeds: v_8f00b9.items, apiLoading: false, likedIds: v_2b7a6d });
+
+      const v_a448ad = [
+        ...v_c3bc75.filter((v_389afb) => !v_312319.has(v_389afb)),
+        ...Array.from(v_3b193d),
+      ];
+      v_bb8024({ apiFeeds: v_8f00b9.items, apiLoading: false, likedIds: v_a448ad });
     } catch (v_49263d) {
       console.warn("[feedStore] discover failed:", v_49263d);
 
@@ -227,11 +240,7 @@ export const v_37977a = v_a7c0d4<FeedState>((v_bb8024, v_38715b) => ({
       return v_71b114.map(v_0a5d7b);
     }
 
-    const v_ceb55a = v_1ed7d9.getState().user?.id ?? v_b9d568;
-    const v_44e401 = new Set(
-      v_694b7f.clones().filter((v_3f4e2e) => v_5b0abe(v_3f4e2e, v_ceb55a)).map((v_3f4e2e) => v_3f4e2e.id),
-    );
-    return v_38715b().feeds.filter((v_8b5cd8) => v_44e401.has(v_8b5cd8.cloneId));
+    return [];
   },
 
   getFilteredFeeds: () => {

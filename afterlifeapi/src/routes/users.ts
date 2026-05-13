@@ -23,6 +23,9 @@ interface UserRow {
   age: number | null;
   age_enc: string | null;
   created_at: string;
+  country: string | null;
+  mobile_code: number | null;
+  region: string | null;
   xrun_member_id: number | null;
   xrun_guid: string | null;
   xrun_wallet: string | null;
@@ -62,6 +65,7 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
   const v_3ac7e7 = await v_a1651b
     .prepare(
       `SELECT id, name, email, avatar_url, credits, funnel_stage, phone, gender, age, age_enc, created_at,
+              country, mobile_code, region,
               xrun_member_id, xrun_guid, xrun_wallet, xrun_linked_at
          FROM users WHERE id = ? AND deleted_at IS NULL`,
     )
@@ -141,6 +145,9 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
       gender: v_3ac7e7.gender,
       age: v_2694bd,
       createdAt: v_3ac7e7.created_at,
+      country: v_3ac7e7.country ?? null,
+      mobileCode: v_3ac7e7.mobile_code ?? null,
+      region: v_3ac7e7.region ?? null,
       xrunMemberId: v_3ac7e7.xrun_member_id,
       xrunGuid: v_3ac7e7.xrun_guid,
       xrunWallet: v_3ac7e7.xrun_wallet,
@@ -442,8 +449,27 @@ v_de7ba7.post("/me/delete", v_6690d9, async (v_3f4e2e) => {
   if ((v_8f00b9.meta?.changes ?? 0) === 0) {
     throw new v_3ebe58("CONFLICT", "Account is not in active state.");
   }
-  await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "user.soft_delete" });
-  return v_3f4e2e.json({ ok: true, state: "soft_deleted", restorableUntil: "+90d" });
+
+  const v_90e6ec = await v_a1651b
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE owner_id = ? AND deletion_state = 'active'`,
+    )
+    .bind(v_43e90c)
+    .run();
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "user.soft_delete",
+    details: { cascaded_clones: v_90e6ec.meta?.changes ?? 0 },
+  });
+  return v_3f4e2e.json({
+    ok: true,
+    state: "soft_deleted",
+    restorableUntil: "+90d",
+    cascadedClones: v_90e6ec.meta?.changes ?? 0,
+  });
 });
 
 v_de7ba7.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
@@ -463,8 +489,26 @@ v_de7ba7.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
   if ((v_8f00b9.meta?.changes ?? 0) === 0) {
     throw new v_3ebe58("CONFLICT", "Restoration window expired or account not soft-deleted.");
   }
-  await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "user.restore" });
-  return v_3f4e2e.json({ ok: true, state: "active" });
+
+  const v_90e6ec = await v_a1651b
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'active',
+              soft_deleted_at = NULL
+        WHERE owner_id = ? AND deletion_state = 'soft_deleted'`,
+    )
+    .bind(v_43e90c)
+    .run();
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "user.restore",
+    details: { restored_clones: v_90e6ec.meta?.changes ?? 0 },
+  });
+  return v_3f4e2e.json({
+    ok: true,
+    state: "active",
+    restoredClones: v_90e6ec.meta?.changes ?? 0,
+  });
 });
 
 v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
@@ -472,26 +516,40 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
   const v_a1651b = v_3f4e2e.env.DB;
 
   const v_4d33b2 = (await v_3f4e2e.req.json().catch(() => ({}))) as { withXrun?: boolean };
-  const v_837dd2 = v_4d33b2?.withXrun === true;
+  void v_4d33b2; 
 
   let v_9550e4 = {
     attempted: false,
     closed: false,
   };
 
-  if (v_837dd2) {
-    const v_213c33 = await v_a1651b
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(v_43e90c)
-      .first<{ xrun_member_id: number | null }>();
-    const v_88fe80 = v_213c33?.xrun_member_id ?? null;
-    if (v_88fe80) {
-      const { closeXrunMember: v_a33f6b } = await import("../lib/xrun");
-      const v_8f00b9 = await v_a33f6b(v_3f4e2e.env, v_88fe80);
-      v_9550e4 = { attempted: true, closed: v_8f00b9.closed, reason: v_8f00b9.reason };
-
+  const v_213c33 = await v_a1651b
+    .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+    .bind(v_43e90c)
+    .first<{ xrun_member_id: number | null }>();
+  const v_88fe80 = v_213c33?.xrun_member_id ?? null;
+  if (v_88fe80) {
+    const { getXrunMemberInfo: v_d19f98, closeXrunMember: v_a33f6b } = await import("../lib/xrun");
+    const v_34d5e3 = await v_d19f98(v_3f4e2e.env, v_88fe80);
+    if (v_34d5e3.ok) {
+      const v_aa632d = (v_34d5e3.appSource ?? "").toLowerCase() === "afterlife";
+      if (v_aa632d) {
+        const v_8f00b9 = await v_a33f6b(v_3f4e2e.env, v_88fe80);
+        v_9550e4 = { attempted: true, closed: v_8f00b9.closed, reason: v_8f00b9.reason };
+      } else {
+        v_9550e4 = {
+          attempted: true,
+          closed: false,
+          reason: `kept (app_source=${v_34d5e3.appSource ?? "null"})`,
+        };
+      }
     } else {
-      v_9550e4 = { attempted: true, closed: false, reason: "no xrun member linked" };
+
+      v_9550e4 = {
+        attempted: false,
+        closed: false,
+        reason: v_34d5e3.missing ? "xrun member missing (auto-unlinked)" : `lookup failed: ${v_34d5e3.reason}`,
+      };
     }
   }
 
@@ -572,12 +630,27 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
     .bind(v_43e90c)
     .run();
 
+  const v_ad5d03 = await v_a1651b
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'hard_deleted',
+              deleted_at = CURRENT_TIMESTAMP,
+              name = 'deletedclone' || CAST(id AS TEXT),
+              description = NULL,
+              avatar_url = NULL,
+              cover_image_url = NULL
+        WHERE owner_id = ?`,
+    )
+    .bind(v_43e90c)
+    .run();
+
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
     action: "user.gdpr_delete",
     details: {
       shredded_deks: v_e2026a.length,
       purged_messages: v_2c4648.meta.changes ?? 0,
+      purged_clones: v_ad5d03.meta?.changes ?? 0,
     },
   });
   return v_3f4e2e.json({
@@ -585,6 +658,7 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
     state: "hard_deleted",
     shreddedDekCount: v_e2026a.length,
     purgedMessages: v_2c4648.meta.changes ?? 0,
+    purgedClones: v_ad5d03.meta?.changes ?? 0,
     xrunClose: v_9550e4,
   });
 });
@@ -611,15 +685,22 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
                   WHERE f.clone_id = c.id) AS total_likes,
                 (SELECT COUNT(*) FROM feed_comments fc
                    JOIN feeds f2 ON f2.id = fc.feed_id
-                   WHERE f2.clone_id = c.id) AS total_comments
+                   WHERE f2.clone_id = c.id) AS total_comments,
+                -- per-(user, clone) 상호작용 카운터 (기획서 정의)
+                COALESCE(uci.chat_count, 0)  AS my_chat,
+                COALESCE(uci.call_count, 0)  AS my_call,
+                COALESCE(uci.learn_count, 0) AS my_learn,
+                COALESCE(uci.feed_count, 0)  AS my_feed
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
+           LEFT JOIN user_clone_interactions uci
+                  ON uci.user_id = ? AND uci.clone_id = c.id
           WHERE f.user_id = ? AND c.deleted_at IS NULL
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
           ORDER BY f.created_at DESC, f.id DESC`,
       )
-      .bind(v_43e90c, v_43e90c)
+      .bind(v_43e90c, v_43e90c, v_43e90c)
       .all<{
         id: number;
         name: string;
@@ -635,6 +716,10 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         latest_feed_id: number | null;
         total_likes: number;
         total_comments: number;
+        my_chat: number;
+        my_call: number;
+        my_learn: number;
+        my_feed: number;
       }>()
   ).results;
 
@@ -698,6 +783,15 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         feedId: v_cb35cb.latest_feed_id,
         likedByMe: v_ff3805.has(v_cb35cb.id),
       },
+
+      myInteractions: {
+        chat: v_cb35cb.my_chat,
+        call: v_cb35cb.my_call,
+        learn: v_cb35cb.my_learn,
+        feed: v_cb35cb.my_feed,
+        total: v_cb35cb.my_chat + v_cb35cb.my_call + v_cb35cb.my_learn + v_cb35cb.my_feed,
+        intimacy: Math.min(100, (v_cb35cb.my_chat + v_cb35cb.my_call + v_cb35cb.my_learn + v_cb35cb.my_feed) * 2),
+      },
       createdAt: v_cb35cb.created_at,
     })),
   });
@@ -758,4 +852,69 @@ v_de7ba7.delete("/me/devices/:id", v_6690d9, async (v_3f4e2e) => {
     .run();
   if ((v_8f00b9.meta?.changes ?? 0) === 0) throw new v_3ebe58("NOT_FOUND", "Device not found.");
   return v_3f4e2e.json({ ok: true });
+});
+
+v_de7ba7.get("/me/transactions", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 20);
+  const v_02be30 = Math.max(1, Math.min(100, Number.isFinite(v_cf2260) ? v_cf2260 : 20));
+
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT g.id, g.sender_user_id AS senderId, g.owner_user_id AS ownerId,
+                g.clone_id AS cloneId, g.gift_id AS giftId, g.gift_name AS giftName,
+                g.total_amount AS totalAmount, g.company_amount AS companyAmount,
+                g.owner_amount AS ownerAmount,
+                g.status, g.tx_company AS txCompany, g.tx_owner AS txOwner,
+                g.created_at AS createdAt, g.completed_at AS completedAt,
+                c.name AS cloneName, c.avatar_url AS cloneAvatarUrl
+           FROM gift_logs g
+           LEFT JOIN clones c ON c.id = g.clone_id
+          WHERE (g.sender_user_id = ? OR g.owner_user_id = ?)
+            AND g.status = 'sent'
+          ORDER BY g.created_at DESC
+          LIMIT ?`,
+      )
+      .bind(v_43e90c, v_43e90c, v_02be30)
+      .all<{
+        id: number;
+        senderId: number;
+        ownerId: number;
+        cloneId: number;
+        giftId: string;
+        giftName: string;
+        totalAmount: number;
+        companyAmount: number;
+        ownerAmount: number;
+        status: string;
+        txCompany: string | null;
+        txOwner: string | null;
+        createdAt: string;
+        completedAt: string | null;
+        cloneName: string | null;
+        cloneAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  return v_3f4e2e.json({
+    items: v_18b8bf.map((v_cb35cb) => {
+      const v_f966e3 = v_cb35cb.senderId === v_43e90c;
+      return {
+        id: v_cb35cb.id,
+        type: v_f966e3 ? "gift_sent" : "gift_received",
+
+        amount: v_f966e3 ? -v_cb35cb.totalAmount : v_cb35cb.ownerAmount,
+        sign: v_f966e3 ? "-" : "+",
+        giftId: v_cb35cb.giftId,
+        giftName: v_cb35cb.giftName,
+        cloneId: v_cb35cb.cloneId,
+        cloneName: v_cb35cb.cloneName,
+        cloneAvatarUrl: v_cb35cb.cloneAvatarUrl,
+        txHash: v_f966e3 ? v_cb35cb.txCompany : v_cb35cb.txOwner,
+        createdAt: v_cb35cb.createdAt,
+      };
+    }),
+  });
 });

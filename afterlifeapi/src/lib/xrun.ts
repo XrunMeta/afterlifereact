@@ -19,6 +19,39 @@ export interface XrunWalletLookupResult {
   reason?: string;
 }
 
+function v_06d04c(
+  v_8f00b9,
+  v_7ecfd1,
+): boolean {
+  if (v_8f00b9.status === 404) return true;
+  if (v_7ecfd1?.code === 404) return true;
+  const v_badeaf = (v_7ecfd1?.message ?? "").toLowerCase();
+  return /not\s*found|no\s*such\s*member|not\s*exist|withdrawn|inactive\s*member/.test(v_badeaf);
+}
+
+export async function v_8ae861(env: v_273a0c, v_88fe80): Promise<void> {
+  try {
+    const v_8f00b9 = await v_c9c489.DB
+      .prepare(
+        `UPDATE users
+            SET xrun_member_id = NULL,
+                xrun_guid = NULL,
+                xrun_wallet = NULL,
+                xrun_linked_at = NULL
+          WHERE xrun_member_id = ?`,
+      )
+      .bind(v_88fe80)
+      .run();
+    if ((v_8f00b9.meta?.changes ?? 0) > 0) {
+      console.log(
+        `[xrun] markXrunUnlinked member=${v_88fe80} rows=${v_8f00b9.meta?.changes ?? 0}`,
+      );
+    }
+  } catch (v_49263d) {
+    console.warn("[xrun] markXrunUnlinked error:", (v_49263d as Error).message);
+  }
+}
+
 function v_b35290(): string {
   const v_83ee53 = new Uint8Array(16);
   crypto.getRandomValues(v_83ee53);
@@ -53,6 +86,32 @@ export interface AfterlifeRegisterContext {
   phone?: string;
   gender?: "male" | "female" | "other";
   age?: number;
+
+  country?: string;
+  mobileCode?: number;
+  region?: string;
+}
+
+function v_b6cf08(v_16e2dd): {
+  countrycode: string;
+  country: number;
+  region: number;
+  mobilecode: string;
+} {
+  const v_f6504f = (v_16e2dd.country ?? "KR").toUpperCase();
+  const v_15594c = typeof v_16e2dd.mobileCode === "number" ? v_16e2dd.mobileCode : 82;
+  const v_5cf162 = (() => {
+    const v_cb35cb = v_16e2dd.region;
+    if (!v_cb35cb) return 0;
+    const v_f4e98d = Number(v_cb35cb);
+    return Number.isFinite(v_f4e98d) ? Math.floor(v_f4e98d) : 0;
+  })();
+  return {
+    countrycode: v_f6504f,
+    country: v_15594c,
+    region: v_5cf162,
+    mobilecode: String(v_15594c),
+  };
 }
 
 export async function v_6e4cc8(
@@ -60,20 +119,23 @@ export async function v_6e4cc8(
   v_16e2dd,
 ): Promise<XrunRegisterResult> {
   const { firstname: v_54d565, lastname: v_9517dc } = v_c9bfd6(v_16e2dd.name);
+  const v_99e8e7 = v_b6cf08(v_16e2dd);
   const v_4d33b2 = {
     email: v_16e2dd.email,
     pin: v_b35290(),
     firstname: v_54d565,
     lastname: v_9517dc,
     mobile: v_16e2dd.phone ?? "",
-    mobilecode: "82",
+    mobilecode: v_99e8e7.mobilecode,
     gender: v_845bdb(v_16e2dd.gender),
-    countrycode: "KR",
-    country: 0,
-    region: 0,
+    countrycode: v_99e8e7.countrycode,
+    country: v_99e8e7.country,
+    region: v_99e8e7.region,
     age: v_16e2dd.age ?? 0,
     recommand: 0,
     social_code: 0,
+
+    app_source: "afterlife",
   };
 
   let v_8f00b9;
@@ -95,6 +157,12 @@ export async function v_6e4cc8(
   }
 
   if (v_7ecfd1?.code === 409 || /already exists/i.test(v_7ecfd1?.message ?? "")) {
+
+    try {
+      await v_36f334(v_c9c489, v_16e2dd);
+    } catch (v_49263d) {
+      console.warn("[xrun] update-from-afterlife failed:", (v_49263d as Error).message);
+    }
     return { status: "duplicate", email: v_16e2dd.email };
   }
 
@@ -113,6 +181,39 @@ export async function v_6e4cc8(
     status: "failed",
     reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
   };
+}
+
+async function v_36f334(
+  env: v_273a0c,
+  v_16e2dd,
+): Promise<void> {
+  const { firstname: v_54d565, lastname: v_9517dc } = v_c9bfd6(v_16e2dd.name);
+  const v_99e8e7 = v_b6cf08(v_16e2dd);
+  const v_4d33b2 = {
+    email: v_16e2dd.email,
+    firstname: v_54d565,
+    lastname: v_9517dc,
+    mobile: v_16e2dd.phone ?? null,
+    mobilecode: v_99e8e7.mobilecode,
+    gender: v_845bdb(v_16e2dd.gender),
+    age: v_16e2dd.age ?? null,
+    countrycode: v_99e8e7.countrycode,
+    country: v_99e8e7.country,
+    region: v_99e8e7.region,
+    app_source: "afterlife",
+  };
+  const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+    method: "POST",
+    headers: v_4d1f4f(v_c9c489),
+    body: JSON.stringify(v_4d33b2),
+  });
+  if (!v_8f00b9.ok) {
+    throw new Error(`HTTP ${v_8f00b9.status}`);
+  }
+  const v_7ecfd1 = (await v_8f00b9.json()) as { status?: string; code?: number; message?: string };
+  if (v_7ecfd1.status !== "success") {
+    throw new Error(`xrun update failed: ${v_7ecfd1.message}`);
+  }
 }
 
 export async function v_937e23(
@@ -217,6 +318,9 @@ export async function v_807b74(env: v_273a0c, v_660822): Promise<PaymentPinStatu
   if (v_8f00b9.ok && v_7ecfd1?.status === "success") {
     return { ok: true, hasPin: !!v_7ecfd1.data?.[0]?.hasPin };
   }
+  if (v_06d04c(v_8f00b9, v_7ecfd1)) {
+    await v_8ae861(v_c9c489, v_660822);
+  }
   return { ok: false, hasPin: false, reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}` };
 }
 
@@ -246,6 +350,9 @@ export async function v_de391e(
     const v_ea719c = v_7ecfd1.data?.[0] ?? {};
     return { ok: true, match: !!v_ea719c.match, hasPin: !!v_ea719c.hasPin };
   }
+  if (v_06d04c(v_8f00b9, v_7ecfd1)) {
+    await v_8ae861(v_c9c489, v_660822);
+  }
   return { ok: false, match: false, hasPin: false, reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}` };
 }
 
@@ -269,6 +376,49 @@ export interface XrunCloseResult {
   reason?: string;
 }
 
+export async function v_d19f98(
+  env: v_273a0c,
+  v_660822,
+): Promise<
+  | { ok: true; appSource: string | null; status: number }
+  | { ok: false; reason: string; missing?: boolean }
+> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({ member: v_660822 }),
+    });
+  } catch (v_49263d) {
+    return { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { ok: false, reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success" && v_7ecfd1.data) {
+    return {
+      ok: true,
+      appSource: v_7ecfd1.data.app_source ?? null,
+      status: v_7ecfd1.data.status,
+    };
+  }
+  if (v_06d04c(v_8f00b9, v_7ecfd1)) {
+    await v_8ae861(v_c9c489, v_660822);
+    return { ok: false, reason: "member not found", missing: true };
+  }
+  return {
+    ok: false,
+    reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
+  };
+}
+
 export async function v_a33f6b(env: v_273a0c, v_660822): Promise<XrunCloseResult> {
   if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
     return { ok: false, closed: false, reason: "missing XRUN_GATEWAY_TOKEN" };
@@ -290,10 +440,13 @@ export async function v_a33f6b(env: v_273a0c, v_660822): Promise<XrunCloseResult
     return { ok: false, closed: false, reason: `non-json (${v_8f00b9.status})` };
   }
   if (v_8f00b9.ok && v_7ecfd1?.status === "success") {
+
+    await v_8ae861(v_c9c489, v_660822);
     return { ok: true, closed: true };
   }
 
-  if (v_8f00b9.status === 404 || v_7ecfd1?.code === 404) {
+  if (v_06d04c(v_8f00b9, v_7ecfd1)) {
+    await v_8ae861(v_c9c489, v_660822);
     return { ok: true, closed: false, reason: "member not found (already closed?)" };
   }
   return {
@@ -326,9 +479,81 @@ export async function v_5f6369(env: v_273a0c, v_660822): Promise<XrunBalancesRes
   if (v_8f00b9.ok && v_7ecfd1?.status === "success") {
     return { ok: true, balances: v_7ecfd1.data ?? [] };
   }
+
+  if (v_06d04c(v_8f00b9, v_7ecfd1)) {
+    await v_8ae861(v_c9c489, v_660822);
+  }
   return {
     ok: false,
     balances: [],
     reason: `xrun ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
+  };
+}
+
+export interface TransferRecipient {
+
+  toAddress?: string;
+
+  toMember?: number;
+  amount: string; 
+}
+export interface TransferSplitResult {
+  ok: boolean;
+  txs: Array<{ toAddress: string; amount: string; txHash: string | null }>;
+  newBalance: string | null;
+  reason?: string;
+  code?: number;
+}
+
+export async function v_7a6fc0(
+  env: v_273a0c,
+  v_4317d1,
+): Promise<TransferSplitResult> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, txs: [], newBalance: null, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({
+        fromMember: v_4317d1.fromMember,
+        recipients: v_4317d1.recipients,
+        currency: v_4317d1.currency,
+        pin: v_4317d1.pin,
+        source: v_4317d1.source ?? "afterlife",
+      }),
+    });
+  } catch (v_49263d) {
+    return { ok: false, txs: [], newBalance: null, reason: `network: ${(v_49263d as Error).message}` };
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return { ok: false, txs: [], newBalance: null, code: v_8f00b9.status, reason: `non-json (${v_8f00b9.status})` };
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success" && v_7ecfd1.data) {
+    return {
+      ok: true,
+      txs: (v_7ecfd1.data.txs ?? []).map((v_8d41d7) => ({
+        toAddress: v_8d41d7.toAddress ?? "",
+        amount: v_8d41d7.amount ?? "",
+        txHash: v_8d41d7.txHash ?? null,
+      })),
+      newBalance:
+        v_7ecfd1.data.newBalance == null ? null : String(v_7ecfd1.data.newBalance),
+    };
+  }
+  if (v_06d04c(v_8f00b9, v_7ecfd1)) {
+    await v_8ae861(v_c9c489, v_4317d1.fromMember);
+  }
+  return {
+    ok: false,
+    txs: [],
+    newBalance: null,
+    code: v_8f00b9.status,
+    reason: `xrun transfer ${v_8f00b9.status} ${v_7ecfd1?.code ?? ""}: ${v_7ecfd1?.message ?? "unknown"}`,
   };
 }

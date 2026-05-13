@@ -1,13 +1,16 @@
+
+
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
   v_472849,
-  v_4623af,
+  v_79139e,
   v_f2c756,
   v_03e392,
   v_39a996,
 } from "rcmrninabrnb";
+import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_ada615, v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_fba5a0 from "hfxxehldoiokdq";
@@ -15,42 +18,95 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
-import { v_11921f } from "../../lib/pushNotifications";
+import {
+  v_11921f,
+  v_704bef,
+} from "../../lib/pushNotifications";
 
-interface PushState {
-  granted: boolean;
-  token: string | null;
-  supported: boolean; 
-  loading: boolean;
-}
+type PrefKey =
+  | "newFollower"
+  | "followingActivity"
+  | "reactions"
+  | "chat"
+  | "promotions";
+
+const v_5c002e = "@notif_pref:";
+
+const v_a5887f = [
+  {
+    key: "newFollower",
+    label: "새로운 팔로워",
+    desc: "나를 팔로우 하는 멤버 안내",
+  },
+  {
+    key: "followingActivity",
+    label: "팔로잉하는 멤버 소식",
+    desc: "팔로잉 멤버의 새로운 활동 안내",
+  },
+  {
+    key: "reactions",
+    label: "반응",
+    desc: "좋아요 댓글",
+  },
+  {
+    key: "chat",
+    label: "채팅",
+    desc: "새로운 메시지",
+  },
+  {
+    key: "promotions",
+    label: "혜택정보 수신",
+    desc: "개인 맞춤 혜택과 이벤트 소식을 앱 푸시, 문자로 안내",
+  },
+];
 
 export default function v_4036d1() {
   const v_c65f5d = v_ada615();
   const { t: v_8d41d7 } = v_772971();
+  const [v_b6d66b, v_a43b75] = v_5ab095(false);
+  const [v_683210, v_34a50a] = v_5ab095(true);
 
-  const [v_b6e533, v_1fa668] = v_5ab095<PushState>({
-    granted: false,
-    token: null,
-    supported: true,
-    loading: true,
+  const [v_207650, v_950221] = v_5ab095<Record<PrefKey, boolean>>({
+    newFollower: true,
+    followingActivity: true,
+    reactions: true,
+    chat: true,
+    promotions: true,
   });
+  const [v_389da6, v_844010] = v_5ab095(false);
 
   const v_1a1b9b = v_a3453e.useCallback(async () => {
-    v_1fa668((v_ba2215) => ({ ...v_ba2215, loading: true }));
+    v_34a50a(true);
     try {
       const v_8f00b9 = await v_11921f();
-      console.log("[PUSH-STATUS]", v_8f00b9);
-
-      v_1fa668({
-        granted: v_8f00b9.granted,
-        token: v_8f00b9.token,
-        supported: true,
-        loading: false,
-      });
+      v_a43b75(v_8f00b9.granted);
     } catch (v_49263d) {
-      console.warn("[PUSH-STATUS] failed:", v_49263d);
-      v_1fa668({ granted: false, token: null, supported: true, loading: false });
+      console.warn("[notifications] status failed:", v_49263d);
+      v_a43b75(false);
+    } finally {
+      v_34a50a(false);
     }
+  }, []);
+
+  v_c4deb2(() => {
+    (async () => {
+      try {
+        const v_1e6eca = await Promise.all(
+          v_a5887f.map(async (v_23805a) => {
+            const v_81e2ef = await v_e84827.getItem(v_5c002e + v_23805a.key);
+            return [v_23805a.key, v_81e2ef === null ? true : v_81e2ef === "1"] as const;
+          }),
+        );
+        const v_a448ad = { ...v_207650 };
+        for (const [v_0eb677, v_81e2ef] of v_1e6eca) v_a448ad[v_0eb677] = v_81e2ef;
+        v_950221(v_a448ad);
+      } catch (v_49263d) {
+        console.warn("[notifications] load prefs failed:", v_49263d);
+      } finally {
+        v_844010(true);
+      }
+    })();
+
   }, []);
 
   v_c4deb2(() => {
@@ -63,100 +119,134 @@ export default function v_4036d1() {
     }, [v_1a1b9b]),
   );
 
-  const v_e34bc5 = async () => {
-    try {
-      await v_f2c756.openSettings();
-    } catch (v_49263d) {
-      console.warn("[PUSH-STATUS] openSettings failed:", v_49263d);
+  const v_bf58a4 = async (v_a448ad) => {
+    if (v_a448ad) {
+
+      try {
+        const v_e43fa5 = await v_704bef();
+        if (v_e43fa5.granted) {
+          v_a43b75(true);
+        } else {
+          v_03e392.alert(
+            v_8d41d7("settings.notifications.permTitle", { defaultValue: "권한 필요" }),
+            v_8d41d7("settings.notifications.deniedHint", {
+              defaultValue:
+                "OS 설정에서 알림을 허용해주세요.",
+            }),
+            [
+              { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+              {
+                text: v_8d41d7("settings.notifications.openSettings", {
+                  defaultValue: "설정 열기",
+                }),
+                onPress: () => v_f2c756.openSettings(),
+              },
+            ],
+          );
+        }
+      } catch (v_49263d) {
+        console.warn("[notifications] toggle on failed:", v_49263d);
+      }
+    } else {
+
+      v_03e392.alert(
+        v_8d41d7("settings.notifications.offTitle", { defaultValue: "알림 끄기" }),
+        v_8d41d7("settings.notifications.offHint", {
+          defaultValue: "알림을 끄려면 OS 설정에서 변경해주세요.",
+        }),
+        [
+          { text: v_8d41d7("common.cancel", { defaultValue: "취소" }), style: "cancel" },
+          {
+            text: v_8d41d7("settings.notifications.openSettings", {
+              defaultValue: "설정 열기",
+            }),
+            onPress: () => v_f2c756.openSettings(),
+          },
+        ],
+      );
     }
   };
 
-  const v_58cf06 = async () => {
-    if (!v_b6e533.token) return;
+  const v_2ee23e = async (v_b24339, v_a448ad) => {
+    v_950221((v_e2a85c) => ({ ...v_e2a85c, [v_b24339]: v_a448ad }));
     try {
-      await v_fba5a0.setStringAsync(v_b6e533.token);
-      v_03e392.alert("알림", v_8d41d7("settings.notifications.copied"));
+      await v_e84827.setItem(v_5c002e + v_b24339, v_a448ad ? "1" : "0");
     } catch (v_49263d) {
-      console.warn("[PUSH-STATUS] copy failed:", v_49263d);
+      console.warn("[notifications] save pref failed:", v_49263d);
     }
   };
+
+  const v_e44bd3 = !v_b6d66b;
 
   return (
     <SafeScrollView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
-        title={v_8d41d7("settings.notifications.title")}
+        title={v_8d41d7("settings.notifications.title", { defaultValue: "알림" })}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
       />
 
       <View style={v_fd5f43.content}>
         {}
-        <View style={v_fd5f43.card}>
-          <View style={v_fd5f43.row}>
-            <Text style={v_fd5f43.rowLabel}>{v_8d41d7("settings.notifications.push")}</Text>
-            {v_b6e533.loading ? (
-              <ActivityIndicator color={v_1bfbd0.zinc500} />
-            ) : (
-              <View
-                style={[
-                  v_fd5f43.badge,
-                  v_b6e533.granted ? v_fd5f43.badgeGranted : v_fd5f43.badgeDenied,
-                ]}
-              >
-                <Feather
-                  name={v_b6e533.granted ? "check-circle" : "x-circle"}
-                  size={14}
-                  color={v_b6e533.granted ? v_1bfbd0.success : v_1bfbd0.error}
-                />
-                <Text
-                  style={[
-                    v_fd5f43.badgeText,
-                    v_b6e533.granted ? v_fd5f43.badgeTextGranted : v_fd5f43.badgeTextDenied,
-                  ]}
-                >
-                  {v_b6e533.granted
-                    ? v_8d41d7("settings.notifications.statusGranted")
-                    : v_8d41d7("settings.notifications.statusDenied")}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {!v_b6e533.loading && !v_b6e533.granted && (
-            <>
-              <View style={v_fd5f43.divider} />
-              <View style={v_fd5f43.deniedSection}>
-                <Text style={v_fd5f43.deniedHint}>
-                  {v_8d41d7("settings.notifications.deniedHint")}
-                </Text>
-                <TouchableOpacity style={v_fd5f43.openBtn} onPress={v_e34bc5}>
-                  <Feather name="external-link" size={14} color={v_1bfbd0.white} />
-                  <Text style={v_fd5f43.openBtnText}>
-                    {v_8d41d7("settings.notifications.openSettings")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
+        <View style={v_fd5f43.row}>
+          <Text style={v_fd5f43.rowLabel}>
+            {v_8d41d7("settings.notifications.alarm", { defaultValue: "알림" })}
+          </Text>
+          {v_683210 ? (
+            <ActivityIndicator color={v_1bfbd0.zinc500} />
+          ) : (
+            <Switch
+              value={v_b6d66b}
+              onValueChange={v_bf58a4}
+              trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
+              thumbColor={v_1bfbd0.white}
+            />
           )}
         </View>
 
         {}
-        {v_b6e533.granted && (
+        <View style={v_fd5f43.subCard}>
+          {v_a5887f.map((v_23805a, v_ebec57) => (
+            <View
+              key={v_23805a.key}
+              style={[v_fd5f43.subRow, v_ebec57 < v_a5887f.length - 1 && v_fd5f43.subRowBorder]}
+            >
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={[v_fd5f43.subLabel, v_e44bd3 && v_fd5f43.subTextDim]}>
+                  {v_23805a.label}
+                </Text>
+                <Text style={[v_fd5f43.subDesc, v_e44bd3 && v_fd5f43.subTextDim]}>
+                  {v_23805a.desc}
+                </Text>
+              </View>
+              <Switch
+                value={v_207650[v_23805a.key] && v_b6d66b}
+                onValueChange={(v_81e2ef) => v_2ee23e(v_23805a.key, v_81e2ef)}
+                disabled={!v_389da6 || v_e44bd3}
+                trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
+                thumbColor={v_1bfbd0.white}
+              />
+            </View>
+          ))}
+        </View>
+
+        {}
+        {state.granted && (
           <View style={[v_fd5f43.card, { marginTop: 16 }]}>
             <View style={v_fd5f43.tokenSection}>
               <Text style={v_fd5f43.tokenLabel}>
                 {v_8d41d7("settings.notifications.tokenLabel")}
               </Text>
-              {v_b6e533.loading ? (
+              {state.loading ? (
                 <Text style={v_fd5f43.tokenValueMuted}>
                   {v_8d41d7("settings.notifications.tokenLoading")}
                 </Text>
-              ) : v_b6e533.token ? (
+              ) : state.token ? (
                 <>
                   <Text style={v_fd5f43.tokenValue} selectable>
-                    {v_b6e533.token}
+                    {state.token}
                   </Text>
-                  <TouchableOpacity style={v_fd5f43.copyBtn} onPress={v_58cf06}>
+                  <TouchableOpacity style={v_fd5f43.copyBtn} onPress={handleCopyToken}>
                     <Feather name="copy" size={14} color={v_1bfbd0.zinc700} />
                     <Text style={v_fd5f43.copyBtnText}>
                       {v_8d41d7("settings.notifications.copyToken")}
@@ -185,101 +275,39 @@ const v_fd5f43 = v_472849.create({
     alignSelf: "center",
     width: "100%",
   },
-  card: {
-    backgroundColor: v_1bfbd0.white,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
-    borderRadius: v_8b0c90.lg,
-    overflow: "hidden",
-  },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 18,
+    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: v_8b0c90.lg,
   },
   rowLabel: { fontSize: 15, fontWeight: "500", color: v_1bfbd0.zinc900 },
-  divider: { height: 1, backgroundColor: v_1bfbd0.zinc100, marginLeft: 20 },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: v_8b0c90.full ?? 999,
+
+  subCard: {
+    marginTop: 12,
+    backgroundColor: v_1bfbd0.white,
     borderWidth: 1,
+    borderColor: v_1bfbd0.zinc200,
+    borderRadius: v_8b0c90.lg,
+    overflow: "hidden",
   },
-  badgeGranted: {
-    backgroundColor: "#f0fdf4",
-    borderColor: "#bbf7d0",
-  },
-  badgeDenied: {
-    backgroundColor: "#fef2f2",
-    borderColor: "#fecaca",
-  },
-  badgeText: { fontSize: 12, fontWeight: "600" },
-  badgeTextGranted: { color: v_1bfbd0.success },
-  badgeTextDenied: { color: v_1bfbd0.error },
-  deniedSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    gap: 10,
-  },
-  deniedHint: {
-    fontSize: 13,
-    color: v_1bfbd0.zinc600,
-    lineHeight: 18,
-  },
-  openBtn: {
+  subRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: v_8b0c90.lg,
-    backgroundColor: v_1bfbd0.zinc900,
-  },
-  openBtnText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: v_1bfbd0.white,
-  },
-  tokenSection: {
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    gap: 10,
   },
-  tokenLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: v_1bfbd0.zinc500,
+  subRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
   },
-  tokenValue: {
-    fontSize: 12,
-    color: v_1bfbd0.zinc900,
-    fontFamily: "monospace",
-    lineHeight: 18,
-  },
-  tokenValueMuted: {
-    fontSize: 13,
-    color: v_1bfbd0.zinc400,
-  },
-  copyBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: v_8b0c90.lg,
-    backgroundColor: v_1bfbd0.zinc100,
-  },
-  copyBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: v_1bfbd0.zinc700,
-  },
+  subLabel: { fontSize: 15, fontWeight: "500", color: v_1bfbd0.zinc900 },
+  subDesc: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 4 },
+  subTextDim: { color: v_1bfbd0.zinc400 },
 });

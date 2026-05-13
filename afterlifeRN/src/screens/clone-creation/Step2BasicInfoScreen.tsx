@@ -28,9 +28,13 @@ export default function v_afe4c8({ navigation: v_c65f5d }: Props) {
       <PageHeader
         title={v_8d41d7("create.stepTitles.2")}
         showBackButton
-        onBackPress={() => v_c65f5d.goBack()}
+        onBackPress={() => {
+
+          v_c65f5d.getParent()?.navigate("HomeTab" as never);
+        }}
       />
-      <StepIndicator currentStep={2} totalSteps={7} />
+      {}
+      <StepIndicator currentStep={1} totalSteps={6} />
       <SafeScrollView
         contentContainerStyle={v_d81136.content}
         showBottomBackground={false}

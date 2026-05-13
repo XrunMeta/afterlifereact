@@ -13,6 +13,8 @@ import {
   v_d875d1,
 } from "../lib/cloneAccess";
 import { v_9c8187, v_55eb2a } from "../lib/memoryStore";
+import { v_7a6fc0 } from "../lib/xrun";
+import { v_80a022 } from "../lib/notify";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -52,7 +54,11 @@ const v_722b6d = v_1f4ea7.object({
   memlow_profile: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.unknown()).optional(),
 
   l1_profile: v_3ea364.optional(),
+
+  pin: v_1f4ea7.string().regex(/^\d{6}$/).optional(),
 });
+
+const v_c02c4c = 100;
 
 v_f891e6.post(
   "/",
@@ -80,19 +86,67 @@ v_f891e6.post(
       .prepare(
         `SELECT COUNT(*) AS n FROM clones
           WHERE owner_id = ?
-            AND clone_type = ?
             AND deletion_state = 'active'
             AND deleted_at IS NULL`,
       )
-      .bind(v_43e90c, v_4d33b2.clone_type)
+      .bind(v_43e90c)
       .first<{ n: number }>();
     const v_faa47d = v_3c8572?.n ?? 0;
     if (v_faa47d >= 1) {
 
-      throw new v_3ebe58(
-        "QUOTA_EXCEEDED",
-        "Free quota exhausted. Paid creation not yet available (beta).",
-      );
+      const v_c54e53 = await v_a1651b
+        .prepare(
+          `SELECT COUNT(*) AS n FROM clones
+            WHERE owner_id = ?
+              AND clone_type = ?
+              AND deletion_state = 'active'
+              AND deleted_at IS NULL`,
+        )
+        .bind(v_43e90c, v_4d33b2.clone_type)
+        .first<{ n: number }>();
+      if ((v_c54e53?.n ?? 0) >= 1) {
+        throw new v_3ebe58(
+          "CONFLICT",
+          "이미 같은 타입의 페르소나가 있습니다. 다른 타입을 선택해주세요.",
+        );
+      }
+
+      if (!v_4d33b2.pin) {
+        throw new v_3ebe58("PAYMENT_REQUIRED", "Persona creation requires payment.", {
+          priceXrun: v_c02c4c,
+          message: `2번째 페르소나부터 ${v_c02c4c} XRUN 이 부과됩니다.`,
+        });
+      }
+
+      const v_72b02d = v_3f4e2e.env.COMPANY_CHARGE_WALLET;
+      if (!v_72b02d) {
+        throw new v_3ebe58("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
+      }
+      const v_3645f3 = await v_a1651b
+        .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+        .bind(v_43e90c)
+        .first<{ xrun_member_id: number | null }>();
+      if (!v_3645f3?.xrun_member_id) {
+        throw new v_3ebe58("CONFLICT", "xrun account not linked.");
+      }
+      const v_a832b3 = Number(v_3f4e2e.env.PAYMENT_CURRENCY ?? "18") || 18;
+      const { externalTransferSplit: v_7a6fc0 } = await import("../lib/xrun");
+      const v_e69235 = await v_7a6fc0(v_3f4e2e.env, {
+        fromMember: v_3645f3.xrun_member_id,
+        recipients: [{ toAddress: v_72b02d, amount: String(v_c02c4c) }],
+        currency: v_a832b3,
+        pin: v_4d33b2.pin,
+        source: "afterlife.persona-create",
+      });
+      if (!v_e69235.ok) {
+        if (v_e69235.code === 401 || v_e69235.code === 403) {
+          throw new v_3ebe58("UNAUTHENTICATED", "PIN verification failed.");
+        }
+        if (v_e69235.code === 402) {
+          throw new v_3ebe58("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.");
+        }
+        throw new v_3ebe58("UPSTREAM_FAILURE", v_e69235.reason ?? "xrun transfer error");
+      }
     }
 
     const v_8e49c9 = v_4d33b2.voice_preset_id ? "preset" : "text_only";
@@ -591,12 +645,16 @@ v_f891e6.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
     if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "Cannot follow private clone.");
   }
 
-  await v_a1651b
+  const v_43c42e = await v_a1651b
     .prepare(
       `INSERT OR IGNORE INTO clone_follows (user_id, clone_id) VALUES (?, ?)`,
     )
     .bind(v_43e90c, v_6e0fd3)
     .run();
+
+  if ((v_43c42e.meta?.changes ?? 0) > 0) {
+    await v_80a022(v_3f4e2e.env, "clone_follow", { actorId: v_43e90c, cloneId: v_6e0fd3 });
+  }
   return v_3f4e2e.json({ ok: true });
 });
 
@@ -655,6 +713,207 @@ v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
       avatarUrl: v_cb35cb.userAvatarUrl,
       createdAt: v_cb35cb.createdAt,
     })),
+  });
+});
+
+v_f891e6.get("/:id/like-status", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT 1 AS hit FROM feed_likes fl
+         JOIN feeds f ON f.id = fl.feed_id
+        WHERE fl.user_id = ? AND f.clone_id = ?
+        LIMIT 1`,
+    )
+    .bind(v_43e90c, v_6e0fd3)
+    .first<{ hit: number }>();
+  return v_3f4e2e.json({ liked: v_3ac7e7 != null });
+});
+
+const v_df219a = v_1f4ea7.object({
+  giftId: v_1f4ea7.string().min(1).max(80),
+  giftName: v_1f4ea7.string().min(1).max(120),
+  amount: v_1f4ea7.number().positive().max(10_000_000), 
+  pin: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit PIN required"),
+});
+
+v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_f7e120 = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_df219a);
+
+  const v_72b02d = v_3f4e2e.env.COMPANY_GIFT_WALLET;
+  if (!v_72b02d) {
+    throw new v_3ebe58(
+      "INTERNAL_ERROR",
+      "Server missing COMPANY_GIFT_WALLET configuration.",
+    );
+  }
+  const v_a832b3 = Number(v_3f4e2e.env.PAYMENT_CURRENCY ?? "18") || 18;
+
+  const v_eddf67 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(v_f7e120)
+    .first<{ id: number; xrun_member_id: number | null }>();
+  if (!v_eddf67) throw new v_3ebe58("UNAUTHENTICATED", "User not found.");
+  if (!v_eddf67.xrun_member_id) {
+    throw new v_3ebe58("CONFLICT", "xrun account not linked to your afterlife user.");
+  }
+
+  const v_eb25ce = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .bind(v_6e0fd3)
+    .first<{ id: number; owner_id: number }>();
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+
+  if (v_eb25ce.owner_id === v_f7e120) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Cannot send a gift to your own persona.");
+  }
+
+  const v_257b90 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, xrun_wallet, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(v_eb25ce.owner_id)
+    .first<{ id: number; xrun_wallet: string | null; xrun_member_id: number | null }>();
+
+  if (!v_257b90?.xrun_member_id) {
+    throw new v_3ebe58(
+      "CONFLICT",
+      "Persona owner has no xrun account — cannot route 40% share.",
+    );
+  }
+
+  const v_c83285 = v_4d33b2.amount;
+  const v_22c1da = Math.round(v_c83285 * 0.6 * 1_000_000) / 1_000_000;
+  const v_1d6a30 = Math.round(v_c83285 * 0.4 * 1_000_000) / 1_000_000;
+
+  const v_f5353f = await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO gift_logs
+         (sender_user_id, clone_id, owner_user_id, gift_id, gift_name,
+          total_amount, company_amount, owner_amount,
+          company_address, owner_address, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    )
+    .bind(
+      v_f7e120,
+      v_6e0fd3,
+      v_eb25ce.owner_id,
+      v_4d33b2.giftId,
+      v_4d33b2.giftName,
+      v_c83285,
+      v_22c1da,
+      v_1d6a30,
+      v_72b02d,
+      v_257b90.xrun_wallet, 
+    )
+    .run();
+  const v_7a7843 = Number(v_f5353f.meta.last_row_id);
+
+  const v_38fb16 = await v_7a6fc0(v_3f4e2e.env, {
+    fromMember: v_eddf67.xrun_member_id,
+    recipients: [
+      { toAddress: v_72b02d, amount: String(v_22c1da) },
+      { toMember: v_257b90.xrun_member_id, amount: String(v_1d6a30) },
+    ],
+    currency: v_a832b3,
+    pin: v_4d33b2.pin,
+    source: "afterlife.gift",
+  });
+
+  if (!v_38fb16.ok) {
+
+    await v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE gift_logs SET status = 'failed', failure_reason = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      )
+      .bind(v_38fb16.reason ?? "unknown", v_7a7843)
+      .run();
+
+    if (v_38fb16.code === 401 || v_38fb16.code === 403) {
+      throw new v_3ebe58("UNAUTHENTICATED", "PIN verification failed.", {
+        reason: v_38fb16.reason,
+      });
+    }
+    if (v_38fb16.code === 402) {
+      throw new v_3ebe58("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.", {
+        reason: v_38fb16.reason,
+      });
+    }
+    if (v_38fb16.code === 501 || v_38fb16.code === 404) {
+      throw new v_3ebe58(
+        "UPSTREAM_NOT_IMPLEMENTED",
+        "xrun transfer endpoint not yet available.",
+        { reason: v_38fb16.reason },
+      );
+    }
+    throw new v_3ebe58("UPSTREAM_FAILURE", v_38fb16.reason ?? "xrun transfer error");
+  }
+
+  const v_e58fdc = v_72b02d.toLowerCase();
+  const v_2cc4d6 = v_38fb16.txs.find((v_8d41d7) => v_8d41d7.toAddress.toLowerCase() === v_e58fdc);
+  const v_ed8237 = v_38fb16.txs.find((v_8d41d7) => v_8d41d7.toAddress.toLowerCase() !== v_e58fdc);
+  console.log(
+    `[gift] xrun txs:`,
+    v_38fb16.txs.map((v_8d41d7) => `${v_8d41d7.toAddress}=${(v_8d41d7.txHash ?? "").slice(0, 12)}`).join(" | "),
+    `companyMatch=${!!v_2cc4d6} ownerMatch=${!!v_ed8237} newBalance=${v_38fb16.newBalance}`,
+  );
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE gift_logs
+          SET status = 'sent',
+              tx_company = ?,
+              tx_owner = ?,
+              owner_address = COALESCE(?, owner_address),
+              completed_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(
+      v_2cc4d6?.txHash ?? null,
+      v_ed8237?.txHash ?? null,
+      v_ed8237?.toAddress ?? null, 
+      v_7a7843,
+    )
+    .run();
+
+  await v_74defc(v_3f4e2e, {
+    userId: v_f7e120,
+    action: "clone.gift.sent",
+    details: {
+      cloneId: v_6e0fd3,
+      ownerId: v_eb25ce.owner_id,
+      giftId: v_4d33b2.giftId,
+      amount: v_c83285,
+    },
+  });
+
+  await v_80a022(v_3f4e2e.env, "clone_gift", {
+    actorId: v_f7e120,
+    cloneId: v_6e0fd3,
+    extraBody: `${v_4d33b2.giftName} 선물 (+${v_1d6a30} XRUN)`,
+  });
+
+  return v_3f4e2e.json({
+    ok: true,
+    gift: {
+      id: v_7a7843,
+      giftId: v_4d33b2.giftId,
+      giftName: v_4d33b2.giftName,
+      total: v_c83285,
+      companyAmount: v_22c1da,
+      ownerAmount: v_1d6a30,
+      txCompany: v_2cc4d6?.txHash ?? null,
+      txOwner: v_ed8237?.txHash ?? null,
+      newBalance: v_38fb16.newBalance,
+    },
   });
 });
 

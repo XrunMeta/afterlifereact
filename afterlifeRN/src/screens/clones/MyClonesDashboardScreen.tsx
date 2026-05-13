@@ -11,9 +11,14 @@ import {
   v_122070,
   v_79c4f2,
   v_39a996,
+  v_5f4661,
+  v_326be8,
+  v_f2c756,
+  v_03e392,
 } from "rcmrninabrnb";
+import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_fba5a0 from "hfxxehldoiokdq";
@@ -25,9 +30,10 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_e4a407, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
-import v_0e981f from "../../components/common/NotificationBell";
-import { v_a41961, v_84a859, type v_3a673b } from "../../api/auth";
+import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
+import { v_84a859, v_976b89 } from "../../api/auth";
+import { v_5c99c1 } from "../../api/payments";
+import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
 import type { v_2d88fc } from "../../navigation/types";
@@ -90,6 +96,7 @@ export default function v_def15b() {
   const v_f38ee5 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_21f395 = v_1ed7d9((v_fd5f43) => v_fd5f43.patchApiUser);
   const v_06f32b = v_194498((v_fd5f43) => v_fd5f43.localClones);
   const v_7a98d1 = v_194498((v_fd5f43) => v_fd5f43.upsertClones);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
@@ -157,11 +164,16 @@ export default function v_def15b() {
 
   const [v_8769c2, v_fb07c9] = v_5ab095<Set<number>>(new Set());
   const [v_ce3af0, v_8d2d61] = v_5ab095<number | null>(null);
-  const [v_36d186, v_2dac5f] = v_5ab095<{ cloneId: number } | null>(null);
-  const [v_b93ea5, v_35dce3] = v_5ab095("");
-  const [v_76148b, v_ff2199] = v_5ab095<v_3a673b[]>([]);
-  const [v_4568f9, v_58158a] = v_5ab095(false);
-  const [v_aa2223, v_b21d0d] = v_5ab095<Set<number>>(new Set());
+
+  const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
+  const [v_19340b, v_14129c] = v_5ab095(true);
+
+  const v_48d264 = 0;
+  const v_a7e127 = 0;
+
+  const [v_026c2d, v_5eda29] = v_5ab095(false);
+
+  const [v_04e734, v_d6a117] = v_5ab095(false);
 
   const [v_8bb912, v_d5cd7b] = v_5ab095<{
     type: "likes" | "interactions" | "comments" | "followers";
@@ -261,10 +273,6 @@ export default function v_def15b() {
 
   const v_fc7f92 = v_4cd149.filter((v_3f4e2e) => !v_8769c2.has(v_3f4e2e.id));
 
-  const v_2ba0d1 = v_fc7f92.filter(
-    (v_3f4e2e) => v_699459[v_3f4e2e.id]?.isActive ?? true,
-  ).length;
-
   const v_bf58a4 = (v_6e0fd3) => {
     const v_7d13fd = v_699459[v_6e0fd3]?.isActive ?? true;
     v_3e0da5({ cloneId: v_6e0fd3, currentState: v_7d13fd });
@@ -289,76 +297,82 @@ export default function v_def15b() {
   };
 
   v_c4deb2(() => {
-    if (!v_36d186 || !v_2ca7e0) return;
-    const v_ab6401 = v_b93ea5.trim();
-    if (v_ab6401.length < 2) {
-      v_ff2199([]);
-      v_58158a(false);
+    if (!v_2ca7e0) {
+      v_14129c(false);
+      v_67ba02(undefined);
       return;
     }
-    v_58158a(true);
-    const v_8d41d7 = setTimeout(async () => {
-      try {
-        const v_8f00b9 = await v_a41961(v_2ca7e0, v_ab6401);
-        v_ff2199(v_8f00b9.items);
-      } catch (v_49263d) {
-        console.warn("[Dashboard] searchUsers failed:", v_49263d);
-        v_ff2199([]);
-      } finally {
-        v_58158a(false);
-      }
-    }, 300);
-    return () => clearTimeout(v_8d41d7);
-  }, [v_b93ea5, v_2ca7e0, v_36d186]);
-
-  const v_69254d = async (user: v_3a673b) => {
-    if (!v_2ca7e0 || !v_36d186) {
-      console.warn("[Dashboard] handleSendInvite: missing accessToken or inviteModal");
-      return;
-    }
-    console.log("[Dashboard] sendInvite start:", { cloneId: v_36d186.cloneId, email: v_625c74.email });
-    try {
-      const v_8f00b9 = await v_e4a407(v_2ca7e0, v_36d186.cloneId, {
-        invite_email: v_625c74.email,
+    let v_2008a4 = false;
+    v_14129c(true);
+    v_5c99c1(v_2ca7e0)
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_67ba02(v_8f00b9.linked ? (v_8f00b9.xrun ?? 0) : undefined);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Dashboard] xrun balance fetch failed:", v_49263d);
+        if (!v_2008a4) v_67ba02(undefined);
+      })
+      .finally(() => {
+        if (!v_2008a4) v_14129c(false);
       });
-      console.log("[Dashboard] sendInvite success:", v_8f00b9);
-      v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
-      v_b816d4(v_8d41d7("invite.sentToast", { target: v_625c74.name ?? v_625c74.email }));
-    } catch (v_49263d) {
-      if (v_49263d instanceof v_84a859) {
-        console.warn(
-          "[Dashboard] createInvite failed:",
-          v_49263d.code,
-          v_49263d.status,
-          v_49263d.message,
-          "details=",
-          JSON.stringify(v_49263d.details),
-        );
-        if (v_49263d.code === "UNAUTHENTICATED" || v_49263d.status === 401) {
-          await v_1ed7d9.getState().apiLogout();
-          v_b816d4(v_8d41d7("dashboard.sessionExpired"));
-          return;
-        }
-        if (v_49263d.code === "ALREADY_INVITED") {
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2ca7e0]);
 
-          v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
-          v_b816d4(v_8d41d7("invite.alreadyInvited"));
-          return;
-        }
-        if (v_49263d.code === "ALREADY_MEMBER") {
-          v_b21d0d((v_ba2215) => new Set(v_ba2215).add(v_625c74.id));
-          v_b816d4(v_8d41d7("invite.alreadyMember"));
-          return;
-        }
-        if (v_49263d.code === "QUOTA_EXCEEDED") {
-          v_b816d4(v_8d41d7("invite.quotaExceeded"));
-          return;
-        }
+  const v_d28ade = async () => {
+    if (!v_2ca7e0) {
+      v_03e392.alert(v_8d41d7("common.notice", { defaultValue: "알림" }), v_8d41d7("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
+      return;
+    }
+    const v_d60769 = await v_d05ab5.requestMediaLibraryPermissionsAsync();
+    if (!v_d60769.granted) {
+      v_03e392.alert(
+        v_8d41d7("my.permTitle", { defaultValue: "권한 필요" }),
+        v_8d41d7("my.permDesc", { defaultValue: "사진 라이브러리 접근 권한을 허용해주세요." }),
+      );
+      return;
+    }
+    const v_07fb2e = await v_d05ab5.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (v_07fb2e.canceled || !v_07fb2e.assets?.[0]) return;
+    const v_b76cd8 = v_07fb2e.assets[0];
+
+    v_5eda29(true);
+    try {
+      const v_57ac81 = await v_7d2692(v_2ca7e0, v_b76cd8.uri, {
+        purpose: "avatar",
+        fileName: v_b76cd8.fileName ?? "avatar.jpg",
+        mimeType: v_b76cd8.mimeType ?? "image/jpeg",
+      });
+      await v_976b89(v_2ca7e0, { avatarUrl: v_57ac81.url });
+      v_21f395({ avatarUrl: v_57ac81.url });
+    } catch (v_49263d) {
+      const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "이미지 업로드에 실패했어요";
+      v_03e392.alert(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
+    } finally {
+      v_5eda29(false);
+    }
+  };
+
+  const v_63ceb4 = async () => {
+    const v_be4a9f = "market://details?id=run.xrun.xrunapp";
+    const v_5bca88 = "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+    const v_789b41 = "https://apps.apple.com/app/id1492389867";
+    try {
+      if (v_326be8.OS === "android") {
+        const v_e4c8cf = await v_f2c756.canOpenURL(v_be4a9f);
+        await v_f2c756.openURL(v_e4c8cf ? v_be4a9f : v_5bca88);
       } else {
-        console.warn("[Dashboard] createInvite failed:", v_49263d);
+        await v_f2c756.openURL(v_789b41);
       }
-      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("invite.sendFailed");
-      v_b816d4(v_badeaf);
+    } catch (v_49263d) {
+      console.warn("[Dashboard] open xrun store failed:", v_49263d);
     }
   };
 
@@ -461,13 +475,6 @@ export default function v_def15b() {
         ? v_eb25ce.followersCount
         : v_1e752a.filter((v_8b5cd8) => v_8b5cd8.followingCloneId === v_eb25ce.id).length;
 
-    const v_77df30 =
-      typeof v_eb25ce.coownerCount === "number"
-        ? v_eb25ce.coownerCount
-        : v_694b7f.coowners().filter(
-            (v_c4a45b) => v_c4a45b.cloneId === v_eb25ce.id && v_c4a45b.status === "approved",
-          ).length;
-
     return (
       <View style={v_fd5f43.card}>
         {}
@@ -526,21 +533,10 @@ export default function v_def15b() {
           {v_eb25ce.description}
         </Text>
 
-        {}
-        {v_e93e18 ? (
-          <TouchableOpacity
-            style={v_fd5f43.coownerBadge}
-            onPress={() =>
-              v_c65f5d.navigate("CloneInvite", { cloneId: v_eb25ce.id })
-            }
-            activeOpacity={0.7}
-          >
-            <Feather name="users" size={14} color={v_1bfbd0.zinc600} />
-            <Text style={v_fd5f43.coownerText}>
-              {v_8d41d7("dashboard.coownerCount", { n: v_77df30 })}
-            </Text>
-          </TouchableOpacity>
-        ) : (
+        {
+
+}
+        {v_e93e18 ? null : (
           <View style={v_fd5f43.statsRow}>
             <TouchableOpacity
               style={v_fd5f43.stat}
@@ -569,7 +565,7 @@ export default function v_def15b() {
             >
               <Feather name="user" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
-                {v_e17daa} 팔로워
+                {v_e17daa} 구독자
               </Text>
             </TouchableOpacity>
           </View>
@@ -614,18 +610,20 @@ export default function v_def15b() {
           <TouchableOpacity
             style={v_fd5f43.actionBtn}
             onPress={async () => {
-              if (v_e93e18) {
 
-                v_35dce3("");
-                v_ff2199([]);
-                v_b21d0d(new Set());
-                v_2dac5f({ cloneId: v_eb25ce.id });
-              } else {
-
-                const v_f71b56 = `https://afterlife.app/clone/${v_eb25ce.id}`;
+              const v_f71b56 = `https://afterlife.app/clone/${v_eb25ce.id}`;
+              const v_a8cd21 = `${v_eb25ce.displayName} 페르소나와 대화해보세요!\n${v_f71b56}`;
+              try {
+                await v_5f4661.share(
+                  v_326be8.OS === "ios"
+                    ? { message: v_a8cd21, url: v_f71b56, title: v_eb25ce.displayName }
+                    : { message: v_a8cd21 },
+                  { dialogTitle: v_eb25ce.displayName },
+                );
+              } catch (v_49263d) {
+                console.warn("[dashboard] share failed:", v_49263d);
                 try {
                   await v_fba5a0.setStringAsync(v_f71b56);
-
                   v_b816d4(v_8d41d7("dashboard.shareLinkCopied"));
                 } catch {
                   v_b816d4(v_8d41d7("dashboard.shareLinkFailed"));
@@ -633,10 +631,8 @@ export default function v_def15b() {
               }
             }}
           >
-            <Feather name={v_e93e18 ? "user-plus" : "share-2"} size={16} color={v_1bfbd0.zinc700} />
-            <Text style={v_fd5f43.actionText}>
-              {v_e93e18 ? v_8d41d7("dashboard.actionInvite") : v_8d41d7("dashboard.actionShare")}
-            </Text>
+            <Feather name="share-2" size={16} color={v_1bfbd0.zinc700} />
+            <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionShare")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -647,7 +643,23 @@ export default function v_def15b() {
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
       <PageHeader
         title={v_8d41d7("dashboard.title")}
-        rightAction={<NotificationBell />}
+        rightAction={
+
+          <TouchableOpacity
+            onPress={() =>
+              v_f4c991.dispatch(
+                v_650cfa.navigate({
+                  name: "MyTab",
+                  params: { screen: "MyHome" },
+                }),
+              )
+            }
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <Feather name="settings" size={22} color={v_1bfbd0.zinc700} />
+          </TouchableOpacity>
+        }
       />
 
       <FlatList
@@ -663,58 +675,116 @@ export default function v_def15b() {
             </View>
             <Text style={v_fd5f43.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
             <Text style={v_fd5f43.dashEmptyDesc}>
-              하단 가운데 + 버튼을 눌러 첫 페르소나를 만들 수 있어요
+              아래 버튼을 눌러 첫 페르소나를 만들 수 있어요
             </Text>
+            <TouchableOpacity
+              style={v_fd5f43.dashEmptyBtn}
+              activeOpacity={0.85}
+              onPress={() =>
+
+                v_c65f5d.dispatch(
+                  v_650cfa.navigate({
+                    name: "CreateTab",
+                    params: { screen: "Step3" },
+                  }),
+                )
+              }
+            >
+              <Feather name="plus" size={18} color={v_1bfbd0.white} />
+              <Text style={v_fd5f43.dashEmptyBtnText}>페르소나 만들기</Text>
+            </TouchableOpacity>
           </View>
         }
         ListHeaderComponent={
           <>
-            {}
-            <View style={v_fd5f43.dashTitleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={v_fd5f43.dashTitleText}>{v_8d41d7("dashboard.headerTitle")}</Text>
-                <Text style={v_fd5f43.dashSubText}>{v_8d41d7("dashboard.headerDesc")}</Text>
+            {
+
+}
+            <View style={v_fd5f43.profileSection}>
+              <View style={v_fd5f43.profileLeft}>
+                <View style={v_fd5f43.profileAvatarWrap}>
+                  {v_b113dd?.avatarUrl || v_f38ee5?.avatarUrl ? (
+                    <Image
+                      source={{ uri: (v_b113dd?.avatarUrl ?? v_f38ee5?.avatarUrl) as string }}
+                      style={v_fd5f43.profileAvatar}
+                    />
+                  ) : (
+                    <View style={[v_fd5f43.profileAvatar, v_fd5f43.profileAvatarPlaceholder]}>
+                      <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={v_fd5f43.profileAvatarEditBtn}
+                    onPress={v_d28ade}
+                    disabled={v_026c2d}
+                    activeOpacity={0.8}
+                    hitSlop={6}
+                  >
+                    {v_026c2d ? (
+                      <ActivityIndicator size="small" color={v_1bfbd0.white} />
+                    ) : (
+                      <Feather name="edit-2" size={12} color={v_1bfbd0.white} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1, marginLeft: 26 }}>
+                  <Text style={v_fd5f43.profileName} numberOfLines={1}>
+                    {v_b113dd?.name ?? v_f38ee5?.displayName ?? "사용자"}
+                  </Text>
+                  <View style={v_fd5f43.profileStatsRow}>
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_a7e127}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>팔로워</Text>
+                    </View>
+                    <View style={v_fd5f43.profileStatDivider} />
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_48d264}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>팔로잉</Text>
+                    </View>
+                    <View style={v_fd5f43.profileStatDivider} />
+                    <View style={v_fd5f43.profileStatItem}>
+                      <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>페르소나</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {
+}
+            <View style={v_fd5f43.coinRow}>
+              <Image
+                source={require("../../../assets/images/xrun-round-logo.png")}
+                style={v_fd5f43.coinIcon}
+              />
+              <View style={{ flex: 1 }} />
+              <View style={v_fd5f43.coinAmountWrap}>
+                {v_19340b ? (
+                  <ActivityIndicator color={v_1bfbd0.zinc900} />
+                ) : v_1d54f1 != null ? (
+                  <Text style={v_fd5f43.coinAmountText}>
+                    {v_1d54f1.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                    <Text style={v_fd5f43.coinUnit}> XRUN</Text>
+                  </Text>
+                ) : (
+                  <Text style={v_fd5f43.coinAmountText}>
+                    —<Text style={v_fd5f43.coinUnit}> XRUN</Text>
+                  </Text>
+                )}
               </View>
               <TouchableOpacity
-                style={v_fd5f43.inviteStatusBtn}
-                onPress={() => v_c65f5d.navigate("InviteStatus")}
-                activeOpacity={0.7}
+                style={v_fd5f43.coinChargeBtn}
+                onPress={() => v_d6a117(true)}
+                hitSlop={8}
               >
-                <Feather name="send" size={14} color={v_1bfbd0.violet600} />
-                <Text style={v_fd5f43.inviteStatusBtnText}>{v_8d41d7("inviteStatus.title")}</Text>
+                <Feather name="plus-circle" size={24} color={v_1bfbd0.violet600} />
               </TouchableOpacity>
             </View>
 
-            {}
-            <View style={v_fd5f43.statsOverview}>
-              <View style={v_fd5f43.statsCard}>
-                <View style={v_fd5f43.statsCardHeader}>
-                  <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-                  <Text style={v_fd5f43.statsCardLabel}>{v_8d41d7("dashboard.statsTotalInteractions")}</Text>
-                </View>
-                <Text style={v_fd5f43.statsCardValue}>12.8k</Text>
-                <Text style={v_fd5f43.statsCardDelta}>{v_8d41d7("dashboard.statsDelta")}</Text>
-              </View>
-
-              <View style={[v_fd5f43.statsCard, v_fd5f43.statsCardDark]}>
-                <View style={v_fd5f43.statsCardHeader}>
-                  <Feather name="user" size={14} color={v_1bfbd0.zinc400} />
-                  <Text style={[v_fd5f43.statsCardLabel, { color: v_1bfbd0.zinc400 }]}>
-                    {v_8d41d7("dashboard.statsActivity")}
-                  </Text>
-                </View>
-                <View style={v_fd5f43.activityCount}>
-                  <Text style={v_fd5f43.activityActive}>{v_2ba0d1}</Text>
-                  <Text style={v_fd5f43.activityTotal}>/ {v_fc7f92.length}</Text>
-                </View>
-              </View>
-            </View>
+            {
+}
           </>
-        }
-        ListFooterComponent={
-          <TouchableOpacity style={v_fd5f43.loadMore}>
-            <Text style={v_fd5f43.loadMoreText}>{v_8d41d7("dashboard.loadMore")}</Text>
-          </TouchableOpacity>
         }
       />
 
@@ -779,31 +849,16 @@ export default function v_def15b() {
               )}
             <View style={v_fd5f43.menuDivider} />
             {}
-            {v_ce3af0 != null &&
-              v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_ce3af0)?.myRole === "owner" ? (
-              <TouchableOpacity
-                style={v_fd5f43.menuItem}
-                onPress={() => {
-                  const v_389afb = v_ce3af0!;
-                  v_57fac2(v_389afb);
-                }}
-              >
-                <Feather name="trash-2" size={18} color={v_1bfbd0.error} />
-                <Text style={[v_fd5f43.menuItemText, { color: v_1bfbd0.error }]}>{v_8d41d7("dashboard.menuDelete")}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={v_fd5f43.menuItem}
-                onPress={() => {
-                  const v_389afb = v_ce3af0!;
-                  v_8d2d61(null);
-                  v_c65f5d.navigate("CloneInvite", { cloneId: v_389afb });
-                }}
-              >
-                <Feather name="log-out" size={18} color={v_1bfbd0.error} />
-                <Text style={[v_fd5f43.menuItemText, { color: v_1bfbd0.error }]}>{v_8d41d7("dashboard.menuLeave")}</Text>
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={v_fd5f43.menuItem}
+              onPress={() => {
+                const v_389afb = v_ce3af0!;
+                v_57fac2(v_389afb);
+              }}
+            >
+              <Feather name="trash-2" size={18} color={v_1bfbd0.error} />
+              <Text style={[v_fd5f43.menuItemText, { color: v_1bfbd0.error }]}>{v_8d41d7("dashboard.menuDelete")}</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -927,114 +982,44 @@ export default function v_def15b() {
       </Modal>
 
       {
+
 }
-      <Modal
-        visible={!!v_36d186}
-        transparent
-        animationType="slide"
-        onRequestClose={() => v_2dac5f(null)}
-      >
-        <Pressable style={v_fd5f43.bottomSheetOverlay} onPress={() => v_2dac5f(null)}>
-          <View
-            style={v_fd5f43.inviteSheet}
-            onStartShouldSetResponder={() => true}
-          >
-            <View style={v_fd5f43.sheetHandle} />
-            <View style={v_fd5f43.inviteHeader}>
-              <Text style={v_fd5f43.inviteTitle}>
-                {(() => {
-                  const v_3f4e2e = v_4cd149.find((v_62c214) => v_62c214.id === v_36d186?.cloneId);
-                  return v_3f4e2e?.cloneType === "memlow"
-                    ? v_8d41d7("invite.create")
-                    : v_8d41d7("invite.shareTitle");
-                })()}
-              </Text>
-              <TouchableOpacity onPress={() => v_2dac5f(null)}>
-                <Feather name="x" size={20} color={v_1bfbd0.zinc500} />
+
+      {
+}
+      <Modal visible={v_04e734} transparent animationType="fade">
+        <Pressable
+          style={v_fd5f43.chargeOverlay}
+          onPress={() => v_d6a117(false)}
+        >
+          <Pressable style={v_fd5f43.chargeBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <View style={v_fd5f43.chargeIconWrap}>
+              <Feather name="zap" size={28} color={v_1bfbd0.violet600} />
+            </View>
+            <Text style={v_fd5f43.chargeTitle}>암호화폐 충전 안내</Text>
+            <Text style={v_fd5f43.chargeDesc}>
+              금액을 충전하고 싶다면{"\n"}xrun 앱에서 암호화폐를 얻어보세요
+            </Text>
+            <Text style={v_fd5f43.chargeHint}>※ 같은 아이디로 로그인 하셔야 합니다</Text>
+            <View style={v_fd5f43.chargeBtns}>
+              <TouchableOpacity
+                style={v_fd5f43.chargeCancelBtn}
+                onPress={() => v_d6a117(false)}
+              >
+                <Text style={v_fd5f43.chargeCancelText}>닫기</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={v_fd5f43.chargeGoBtn}
+                onPress={() => {
+                  v_d6a117(false);
+                  v_63ceb4();
+                }}
+              >
+                <Feather name="external-link" size={14} color={v_1bfbd0.white} />
+                <Text style={v_fd5f43.chargeGoText}>바로가기</Text>
               </TouchableOpacity>
             </View>
-
-            {}
-            <View style={v_fd5f43.inviteSearchWrap}>
-              <Feather name="search" size={18} color={v_1bfbd0.zinc400} />
-              <TextInput
-                style={v_fd5f43.inviteSearchInput}
-                value={v_b93ea5}
-                onChangeText={v_35dce3}
-                placeholder={v_8d41d7("dashboard.inviteSearchHint")}
-                placeholderTextColor={v_1bfbd0.placeholder}
-                autoFocus
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-              {v_b93ea5.length > 0 && (
-                <TouchableOpacity onPress={() => v_35dce3("")}>
-                  <Feather name="x-circle" size={16} color={v_1bfbd0.zinc400} />
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {}
-            <ScrollView style={v_fd5f43.inviteList} showsVerticalScrollIndicator={false}>
-              {v_b93ea5.trim().length < 2 ? (
-                <View style={{ padding: 32, alignItems: "center" }}>
-                  <Feather name="search" size={32} color={v_1bfbd0.zinc300} />
-                  <Text style={{ color: v_1bfbd0.zinc500, marginTop: 8, fontSize: 13 }}>
-                    {v_8d41d7("dashboard.inviteSearchEmpty")}
-                  </Text>
-                  <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {v_8d41d7("dashboard.inviteSearchEmptyHint")}
-                  </Text>
-                </View>
-              ) : v_4568f9 ? (
-                <View style={{ padding: 32, alignItems: "center" }}>
-                  <ActivityIndicator color={v_1bfbd0.zinc500} />
-                </View>
-              ) : v_76148b.length === 0 ? (
-                <View style={{ padding: 32, alignItems: "center" }}>
-                  <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
-                    {v_8d41d7("dashboard.inviteNoResults")}
-                  </Text>
-                  <Text style={{ color: v_1bfbd0.zinc400, marginTop: 4, fontSize: 11 }}>
-                    {v_8d41d7("dashboard.inviteSearchEmptyHint")}
-                  </Text>
-                </View>
-              ) : (
-                v_76148b.map((v_625c74) => {
-                  const v_f966e3 = v_aa2223.has(v_625c74.id);
-                  return (
-                    <View key={v_625c74.id} style={v_fd5f43.inviteRow}>
-                      {v_625c74.avatarUrl ? (
-                        <Image source={{ uri: v_625c74.avatarUrl }} style={v_fd5f43.inviteAvatar} />
-                      ) : (
-                        <View style={[v_fd5f43.inviteAvatar, { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" }]}>
-                          <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
-                        </View>
-                      )}
-                      <View style={v_fd5f43.inviteInfo}>
-                        <Text style={v_fd5f43.inviteName}>{v_625c74.name ?? v_625c74.email}</Text>
-                        <Text style={v_fd5f43.inviteUsername}>{v_625c74.email}</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={[v_fd5f43.inviteBtn, v_f966e3 && v_fd5f43.inviteBtnSent]}
-                        disabled={v_f966e3}
-                        onPress={() => v_69254d(v_625c74)}
-                      >
-                        <Feather
-                          name={v_f966e3 ? "check" : "send"}
-                          size={14}
-                          color={v_f966e3 ? v_1bfbd0.success : v_1bfbd0.white}
-                        />
-                        <Text style={[v_fd5f43.inviteBtnText, v_f966e3 && v_fd5f43.inviteBtnTextSent]}>
-                          {v_f966e3 ? v_8d41d7("invite.sent") : v_8d41d7("invite.send")}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  );
-                })
-              )}
-            </ScrollView>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -1050,7 +1035,7 @@ export default function v_def15b() {
               {v_8bb912?.type === "likes" && "좋아요"}
               {v_8bb912?.type === "interactions" && "상호작용"}
               {v_8bb912?.type === "comments" && "댓글"}
-              {v_8bb912?.type === "followers" && "팔로워"}
+              {v_8bb912?.type === "followers" && "구독자"}
             </Text>
             <Text style={v_fd5f43.statsSheetSub}>
               {v_8bb912?.cloneName}
@@ -1128,7 +1113,7 @@ export default function v_def15b() {
                     <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
                   ) : !v_e6e97a || v_e6e97a.length === 0 ? (
                     <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 팔로워가 없어요</Text>
+                      <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 구독자가 없어요</Text>
                     </View>
                   ) : (
                     v_e6e97a.map((v_ceb55a) => (
@@ -1206,11 +1191,61 @@ const v_fd5f43 = v_472849.create({
   },
   dashEmptyTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc800 },
   dashEmptyDesc: { fontSize: 13, color: v_1bfbd0.zinc500, textAlign: "center", lineHeight: 18 },
+  dashEmptyBtn: {
+    marginTop: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: v_8b0c90.lg,
+    backgroundColor: v_1bfbd0.zinc900,
+  },
+  dashEmptyBtnText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 
   listContent: {
     paddingHorizontal: v_9b1a04.medium,
     paddingBottom: 24,
   },
+
+  profileSection: {
+    paddingTop: 28,
+    paddingBottom: 14,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  profileLeft: { flexDirection: "row", alignItems: "center" },
+  profileAvatarWrap: { position: "relative" },
+  profileAvatar: { width: 64, height: 64, borderRadius: 32 },
+  profileAvatarPlaceholder: {
+    backgroundColor: v_1bfbd0.zinc100,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileAvatarEditBtn: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: v_1bfbd0.zinc900,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: v_1bfbd0.white,
+  },
+  profileName: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc900,
+    marginBottom: 8,
+  },
+  profileStatsRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  profileStatItem: { flexDirection: "row", alignItems: "baseline", gap: 4 },
+  profileStatValue: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  profileStatLabel: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  profileStatDivider: { width: 1, height: 12, backgroundColor: v_1bfbd0.zinc200 },
 
   dashTitle: { marginTop: 16, marginBottom: 20 },
   dashTitleRow: {
@@ -1232,6 +1267,91 @@ const v_fd5f43 = v_472849.create({
   },
   inviteStatusBtnText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.violet600 },
   dashSubText: { fontSize: 13, color: v_1bfbd0.zinc500, marginTop: 4 },
+
+  coinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc100,
+  },
+  coinIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  coinSymbol: { fontSize: 16, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  coinNetwork: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  coinAmountWrap: { alignItems: "flex-end", marginRight: 8 },
+  coinAmountText: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  coinUnit: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  coinChargeBtn: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+
+  chargeOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  chargeBox: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: v_1bfbd0.white,
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+  },
+  chargeIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: v_1bfbd0.violet100,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  chargeTitle: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.zinc900, marginBottom: 8 },
+  chargeDesc: {
+    fontSize: 14,
+    color: v_1bfbd0.zinc600,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  chargeHint: { fontSize: 12, color: v_1bfbd0.zinc500, marginBottom: 20 },
+  chargeBtns: { flexDirection: "row", gap: 8, width: "100%" },
+  chargeCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: v_8b0c90.md,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+    alignItems: "center",
+  },
+  chargeCancelText: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  chargeGoBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: v_8b0c90.md,
+    backgroundColor: v_1bfbd0.violet600,
+  },
+  chargeGoText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 
   statsOverview: {
     flexDirection: "row",

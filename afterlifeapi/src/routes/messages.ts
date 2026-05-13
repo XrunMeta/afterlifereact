@@ -15,6 +15,7 @@ import { v_20a4f4 } from "../lib/credits";
 import { v_5d4a51, v_09d461 } from "../lib/cloneAccess";
 import { v_fbb58c } from "../lib/pricing";
 import { v_e86502, v_fda4d7, v_3821c0 } from "../lib/memoryStore";
+import { v_dd9d7c } from "../lib/interactions";
 
 export const v_19e2a3 = new v_b7c41b<v_de0a25>();
 export const v_fa56e0 = new v_b7c41b<v_de0a25>();
@@ -78,6 +79,8 @@ v_19e2a3.post(
       .bind(v_6e0fd3, v_43e90c, v_c5607b, v_369293)
       .first<{ id: number; created_at: string }>();
     if (!v_43f890) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist user message.");
+
+    await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
 
     const [v_19fdaa, v_1405be, v_ee6431] = await Promise.all([
       v_e86502(v_3f4e2e.env, v_6e0fd3),

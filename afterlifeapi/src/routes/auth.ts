@@ -39,6 +39,10 @@ const v_7b8b17 = v_1f4ea7.object({
   gender: v_1f4ea7.enum(["male", "female", "other"]).optional(),
   age: v_1f4ea7.number().int().min(13).max(120).optional(),
   interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
+
+  country: v_1f4ea7.string().length(2).regex(/^[A-Z]{2}$/).optional(),
+  mobileCode: v_1f4ea7.number().int().min(0).max(99999).optional(),
+  region: v_1f4ea7.string().max(20).optional(),
   marketingConsent: v_1f4ea7.boolean().optional().default(false),
   deviceId: v_1f4ea7.string().min(1).max(200).optional(),
   pushToken: v_1f4ea7.string().min(1).max(500).optional(),
@@ -125,6 +129,7 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       const v_76be17 = await v_6e4cc8(v_3f4e2e.env, {
         email: v_931bf0.email,
         name: v_ef7664,
+
       });
       let v_e2be75 = null;
       let v_3f61e9 = null;
@@ -431,8 +436,8 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   try {
     v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
@@ -444,6 +449,9 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
         null, 
         v_1f5d19,
         v_4d33b2.marketingConsent ? 1 : 0,
+        v_4d33b2.country ?? null,
+        v_4d33b2.mobileCode ?? null,
+        v_4d33b2.region ?? null,
       )
       .first();
   } catch (v_49263d) {
@@ -503,6 +511,10 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
       phone: v_4d33b2.phone,
       gender: v_4d33b2.gender,
       age: v_4d33b2.age,
+
+      country: v_4d33b2.country,
+      mobileCode: v_4d33b2.mobileCode,
+      region: v_4d33b2.region,
     });
 
     let v_d03cc0 = null;
@@ -616,22 +628,35 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
   const v_3ed4c3 = await v_96aa7f(v_4d33b2.password, v_2d56e5);
   if (!v_625c74 || !v_3ed4c3) {
+    let v_45fe0c = 0;
+    let v_faa105 = false;
     if (v_625c74) {
 
       const v_d0940a = v_9ef4e1 ? 0 : v_625c74.failed_login_count ?? 0;
-      const v_27ed25 = v_d0940a + 1;
-      const v_0a64d3 =
-        v_27ed25 >= v_91027d
-          ? new Date(Date.now() + v_584268 * 60_000).toISOString()
-          : null;
+      v_45fe0c = v_d0940a + 1;
+      v_faa105 = v_45fe0c >= v_91027d;
+      const v_0a64d3 = v_faa105
+        ? new Date(Date.now() + v_584268 * 60_000).toISOString()
+        : null;
       await v_a1651b
         .prepare(
           `UPDATE users SET failed_login_count = ?, locked_until = ? WHERE id = ?`,
         )
-        .bind(v_27ed25, v_0a64d3, v_625c74.id)
+        .bind(v_45fe0c, v_0a64d3, v_625c74.id)
         .run();
     }
-    throw new v_3ebe58("UNAUTHENTICATED", "Invalid credentials.");
+
+    if (v_faa105) {
+      throw new v_3ebe58("ACCOUNT_LOCKED", "Account temporarily locked.", {
+        attempts: v_45fe0c,
+        maxAttempts: v_91027d,
+        lockMinutes: v_584268,
+      });
+    }
+    throw new v_3ebe58("UNAUTHENTICATED", "Invalid credentials.", {
+      attempts: v_45fe0c, 
+      maxAttempts: v_91027d,
+    });
   }
 
   await v_a1651b
@@ -697,5 +722,55 @@ v_68f0aa.post("/logout", v_6690d9, async (v_3f4e2e) => {
       .run();
   }
   if (v_43e90c) await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "auth.logout" });
+  return v_3f4e2e.json({ ok: true });
+});
+
+v_68f0aa.post("/password/request-reset", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
+  const v_d1b635 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(v_4d33b2.email.trim().toLowerCase())
+    .first<{ id: number }>();
+  if (v_d1b635) {
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+  }
+
+  return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
+});
+
+const v_18702b = v_1f4ea7.object({
+  email: v_1f4ea7.email().max(200),
+  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/),
+  newPassword: v_1f4ea7.string().min(8).max(128),
+});
+v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_18702b);
+  const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
+
+  await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+
+  const v_d1b635 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(v_bb4bfd)
+    .first<{ id: number }>();
+  if (!v_d1b635) {
+    throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+  }
+
+  const v_df7439 = await v_54846c(v_4d33b2.newPassword);
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE users
+          SET password_hash = ?,
+              failed_login_count = 0,
+              locked_until = NULL,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(v_df7439, v_d1b635.id)
+    .run();
+
+  await v_74defc(v_3f4e2e, { userId: v_d1b635.id, action: "auth.password.reset" });
   return v_3f4e2e.json({ ok: true });
 });
