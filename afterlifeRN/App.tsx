@@ -51,7 +51,7 @@ const linking: v_4c916c<v_8ad91b> = {
 export default function v_6540c3() {
   const [v_b1717e, v_0189ac] = v_5ab095(false);
 
-  const [v_43f571] = v_c06f2c({
+  const [v_43f571, v_72be40] = v_c06f2c({
     ...v_dec439.font,
     ...v_25515d.font,
     ...v_872acb.font,
@@ -61,6 +61,14 @@ export default function v_6540c3() {
     ...v_5fe194.font,
     ...v_08f2b6.font,
   });
+
+  v_c4deb2(() => {
+    if (v_72be40) {
+      console.warn("[App] icon font load error (non-blocking):", v_72be40);
+    } else if (v_43f571) {
+      console.log("[App] icon fonts loaded");
+    }
+  }, [v_43f571, v_72be40]);
 
   v_c4deb2(() => {
     Promise.all([
@@ -75,7 +83,7 @@ export default function v_6540c3() {
     });
   }, []);
 
-  if (!v_b1717e || !v_43f571) {
+  if (!v_b1717e) {
     return <View style={v_d81136.root} />;
   }
 
