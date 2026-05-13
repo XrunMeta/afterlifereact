@@ -16,12 +16,12 @@ import {
   v_cdbae1,
 } from "rcmrninabrnb";
 import { v_52ec3e, v_110960 } from "euzpkmxzoe";
+import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
 
 import v_556baf from "../../components/ui/SafeView";
-import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_b55477 } from "../../api/clones";
@@ -225,61 +225,114 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
   const v_e2f265 = v_ab4803 === "intro";
 
-  return (
-    <SafeView backgroundColor={v_e2f265 ? "#000000" : v_1bfbd0.white}>
-      {!v_e2f265 && (
-        <PageHeader
-          title="페르소나 만들기"
-          showBackButton
-          onBackPress={v_c7ac57}
-        />
-      )}
+  const v_969fe9 = v_e662ae(new v_a2349e.Value(0)).current;
+  v_c4deb2(() => {
+    if (v_ab4803 === "intro") return;
+    v_969fe9.setValue(0);
+    v_a2349e.timing(v_969fe9, {
+      toValue: 1,
+      duration: 450,
+      easing: v_cdbae1.out(v_cdbae1.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [v_ab4803, v_969fe9]);
 
+  const v_d57121 = {
+    name: {
+      title: "그 존재의 이름이 뭐였어?",
+      desc: "네가 부르던 이름이나 별명, 어떤 호칭이든 좋아.",
+      placeholder: "예: 별이, 할머니, 모리",
+      value: v_1833e7,
+      onChange: v_318f24,
+      multiline: false,
+    },
+    firstMeeting: {
+      title: "그 존재와는 어떻게 처음 만나게 되었어?",
+      desc: "우리 사이에 잊지 못할 특별한 첫 순간이나 추억이 있었는지 궁금해!",
+      placeholder: "떠오르는 그 첫 장면을 자유롭게 적어줘.",
+      value: v_9d451c,
+      onChange: v_087901,
+      multiline: true,
+    },
+    habit: {
+      title: "자주 하던 말이나 눈길이 가던 습관이 있었니?",
+      desc: "꼬리를 살랑이거나, 특유의 말투 같은 사소한 거라도 좋아!",
+      placeholder: "입버릇, 작은 습관, 좋아하던 자리 — 사소할수록 좋아.",
+      value: v_7fae74,
+      onChange: v_e2f100,
+      multiline: true,
+    },
+    personality: {
+      title: "그 존재의 성격은 어땠어?",
+      desc: "혹시 MBTI가 생각나니? 기억이 안 난다면 평소 성격을 살짝 귀띔해 줄래?",
+      placeholder: "예: 조용하고 다정한 INFP. 잘 웃고 잘 우는 사람이었어.",
+      value: v_324a89,
+      onChange: v_87462f,
+      multiline: true,
+    },
+    memory: {
+      title: "눈 감으면 어제처럼 선명한 그 장면이 있을까?",
+      desc: "가장 행복하게 웃고(혹은 뛰놀고) 있던 그 순간을 나에게도 공유해 줘! ✨",
+      placeholder: "그 순간의 풍경, 표정, 소리 — 떠오르는 대로.",
+      value: v_773b4c,
+      onChange: v_f714d9,
+      multiline: true,
+    },
+  } as const;
+  const v_ab6401 = !v_e2f265 ? v_d57121[v_ab4803 as keyof typeof v_d57121] : null;
+
+  return (
+    <SafeView backgroundColor="#000000">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={v_326be8.OS === "ios" ? "padding" : undefined}
       >
+        {
+}
+        <View style={v_d81136.topBar}>
+          <TouchableOpacity onPress={v_c7ac57} hitSlop={12} style={v_d81136.backBtn}>
+            <Feather name="arrow-left" size={24} color={v_1bfbd0.white} />
+          </TouchableOpacity>
+        </View>
+
         <TouchableWithoutFeedback onPress={v_0e1f26.dismiss} accessible={false}>
           <ScrollView
             contentContainerStyle={v_d81136.formWrap}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {v_ab4803 === "intro" && (
+            {
+}
+            <Animated.View
+              style={[
+                v_d81136.videoWrap,
+                v_e2f265
+                  ? { opacity: v_be1ebe, transform: [{ scale: v_63f408 }] }
+                  : null,
+              ]}
+              pointerEvents="none"
+            >
+              {v_e85448 ? (
+                <Text style={v_d81136.fallbackEmoji}>✨</Text>
+              ) : (
+                <VideoView
+                  style={v_d81136.video}
+                  player={v_2954b6}
+                  contentFit="contain"
+                  nativeControls={false}
+                />
+              )}
+            </Animated.View>
+
+            {}
+            {v_e2f265 && (
               <TouchableOpacity
-                style={v_d81136.introBox}
                 onPress={v_f7adb5}
                 activeOpacity={1}
                 accessibilityLabel="도입부 건너뛰기"
+                style={v_d81136.introTextBox}
               >
-                {
-}
-                <Animated.View
-                  style={[
-                    v_d81136.videoWrap,
-                    {
-                      opacity: v_be1ebe,
-                      transform: [{ scale: v_63f408 }],
-                    },
-                  ]}
-                  pointerEvents="none"
-                >
-                  {v_e85448 ? (
-                    <Text style={v_d81136.fallbackEmoji}>✨</Text>
-                  ) : (
-                    <VideoView
-                      style={v_d81136.video}
-                      player={v_2954b6}
-                      contentFit="contain"
-                      nativeControls={false}
-                    />
-                  )}
-                </Animated.View>
-
-                {
-}
                 {v_398571.map((v_43dc75, v_ccbc5e) => {
-
                   const v_664b8c = v_ccbc5e === 0;
                   return (
                     <Animated.View
@@ -303,124 +356,42 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
               </TouchableOpacity>
             )}
 
-            {v_ab4803 === "name" && (
-              <>
-<Text style={v_d81136.qTitle}>그 존재의 이름이 뭐였어?</Text>
-                <Text style={v_d81136.qDesc}>
-                  네가 부르던 이름이나 별명, 어떤 호칭이든 좋아.
-                </Text>
+            {
+}
+            {v_ab6401 && (
+              <Animated.View style={[v_d81136.questionBox, { opacity: v_969fe9 }]}>
+                <Text style={v_d81136.qTitle}>{v_ab6401.title}</Text>
+                <Text style={v_d81136.qDesc}>{v_ab6401.desc}</Text>
                 <TextInput
-                  style={v_d81136.input}
-                  value={v_1833e7}
-                  onChangeText={v_318f24}
-                  placeholder="예: 별이, 할머니, 모리"
-                  placeholderTextColor={v_1bfbd0.zinc400}
-                  autoFocus
-                  returnKeyType="next"
-                  onSubmitEditing={v_219251}
-                  maxLength={40}
-                />
-              </>
-            )}
 
-            {v_ab4803 === "firstMeeting" && (
-              <>
-<Text style={v_d81136.qTitle}>
-                  그 존재와는 어떻게 처음 만나게 되었어?
-                </Text>
-                <Text style={v_d81136.qDesc}>
-                  우리 사이에 잊지 못할 특별한 첫 순간이나 추억이 있었는지 궁금해!
-                </Text>
-                <TextInput
-                  style={[v_d81136.input, v_d81136.textarea]}
-                  value={v_9d451c}
-                  onChangeText={v_087901}
-                  placeholder="떠오르는 그 첫 장면을 자유롭게 적어줘."
-                  placeholderTextColor={v_1bfbd0.zinc400}
-                  multiline
-                  textAlignVertical="top"
+                  key={v_ab4803}
+                  style={[v_d81136.input, v_ab6401.multiline && v_d81136.textarea]}
+                  value={v_ab6401.value}
+                  onChangeText={v_ab6401.onChange}
+                  placeholder={v_ab6401.placeholder}
+                  placeholderTextColor="rgba(255,255,255,0.4)"
                   autoFocus
+                  multiline={v_ab6401.multiline}
+                  textAlignVertical={v_ab6401.multiline ? "top" : "center"}
+                  returnKeyType={v_ab6401.multiline ? "default" : "next"}
+                  onSubmitEditing={v_ab6401.multiline ? undefined : v_219251}
+                  maxLength={v_ab6401.multiline ? 500 : 40}
+                  selectionColor={v_1bfbd0.white}
                 />
-              </>
-            )}
-
-            {v_ab4803 === "habit" && (
-              <>
-<Text style={v_d81136.qTitle}>
-                  자주 하던 말이나 눈길이 가던 습관이 있었니?
-                </Text>
-                <Text style={v_d81136.qDesc}>
-                  꼬리를 살랑이거나, 특유의 말투 같은 사소한 거라도 좋아!
-                </Text>
-                <TextInput
-                  style={[v_d81136.input, v_d81136.textarea]}
-                  value={v_7fae74}
-                  onChangeText={v_e2f100}
-                  placeholder="입버릇, 작은 습관, 좋아하던 자리 — 사소할수록 좋아."
-                  placeholderTextColor={v_1bfbd0.zinc400}
-                  multiline
-                  textAlignVertical="top"
-                  autoFocus
-                />
-              </>
-            )}
-
-            {v_ab4803 === "personality" && (
-              <>
-<Text style={v_d81136.qTitle}>
-                  그 존재의 성격은 어땠어?
-                </Text>
-                <Text style={v_d81136.qDesc}>
-                  혹시 MBTI가 생각나니? 기억이 안 난다면 평소 성격을 살짝 귀띔해 줄래?
-                </Text>
-                <TextInput
-                  style={[v_d81136.input, v_d81136.textarea]}
-                  value={v_324a89}
-                  onChangeText={v_87462f}
-                  placeholder="예: 조용하고 다정한 INFP. 잘 웃고 잘 우는 사람이었어."
-                  placeholderTextColor={v_1bfbd0.zinc400}
-                  multiline
-                  textAlignVertical="top"
-                  autoFocus
-                />
-              </>
-            )}
-
-            {v_ab4803 === "memory" && (
-              <>
-<Text style={v_d81136.qTitle}>
-                  눈 감으면 어제처럼 선명한 그 장면이 있을까?
-                </Text>
-                <Text style={v_d81136.qDesc}>
-                  가장 행복하게 웃고(혹은 뛰놀고) 있던 그 순간을 나에게도 공유해 줘! ✨
-                </Text>
-                <TextInput
-                  style={[v_d81136.input, v_d81136.textarea]}
-                  value={v_773b4c}
-                  onChangeText={v_f714d9}
-                  placeholder="그 순간의 풍경, 표정, 소리 — 떠오르는 대로."
-                  placeholderTextColor={v_1bfbd0.zinc400}
-                  multiline
-                  textAlignVertical="top"
-                  autoFocus
-                />
-              </>
+              </Animated.View>
             )}
           </ScrollView>
         </TouchableWithoutFeedback>
-        <View style={[v_d81136.bottomBar, v_e2f265 && v_d81136.bottomBarDark]}>
+
+        <View style={v_d81136.bottomBar}>
           <TouchableOpacity
-            style={[
-              v_d81136.btn,
-              v_e2f265 && v_d81136.btnLight,
-              !v_fc0cf5 && v_d81136.btnDisabled,
-            ]}
+            style={[v_d81136.btn, !v_fc0cf5 && v_d81136.btnDisabled]}
             onPress={v_219251}
             disabled={!v_fc0cf5}
             activeOpacity={0.85}
           >
-            <Text style={[v_d81136.btnText, v_e2f265 && v_d81136.btnTextDark]}>
-              {v_ab4803 === "intro" ? "시작하기" : "다음"}
+            <Text style={v_d81136.btnText}>
+              {v_e2f265 ? "시작하기" : "다음"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -437,23 +408,24 @@ const v_d81136 = v_472849.create({
     paddingBottom: 32,
   },
 
-  introBox: { gap: 20, paddingTop: 12, alignItems: "center" },
-  introEmoji: { fontSize: 40, textAlign: "center", marginBottom: 8 },
+  topBar: {
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  backBtn: { padding: 8, alignSelf: "flex-start" },
 
-  paragraph: { gap: 4, alignItems: "center", paddingHorizontal: 8 },
   videoWrap: {
     width: 180,
     height: 180,
-    marginBottom: 8,
     alignSelf: "center",
+    marginBottom: 12,
   },
   video: { width: "100%", height: "100%" },
-  fallbackEmoji: {
-    fontSize: 100,
-    textAlign: "center",
-    lineHeight: 180,
-  },
+  fallbackEmoji: { fontSize: 100, textAlign: "center", lineHeight: 180 },
 
+  introTextBox: { gap: 20, alignItems: "center", width: "100%" },
+  paragraph: { gap: 4, alignItems: "center", paddingHorizontal: 8 },
   introTitle: {
     fontSize: 22,
     fontWeight: "700",
@@ -468,50 +440,43 @@ const v_d81136 = v_472849.create({
     lineHeight: 26,
   },
 
+  questionBox: { width: "100%", gap: 10 },
   qTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: v_1bfbd0.zinc900,
-    marginBottom: 8,
+    color: v_1bfbd0.white,
+    textAlign: "center",
     lineHeight: 30,
+    marginBottom: 4,
   },
   qDesc: {
-    fontSize: 13,
-    color: v_1bfbd0.zinc500,
-    marginBottom: 20,
-    lineHeight: 20,
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 14,
   },
   input: {
     borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
+    borderColor: "rgba(255,255,255,0.2)",
     borderRadius: v_8b0c90.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: v_1bfbd0.zinc900,
-    backgroundColor: v_1bfbd0.zinc50,
+    color: v_1bfbd0.white,
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
   textarea: { minHeight: 140, paddingTop: 12 },
 
   bottomBar: {
     padding: v_9b1a04.large,
-    borderTopWidth: 1,
-    borderTopColor: v_1bfbd0.zinc100,
-  },
-
-  bottomBarDark: {
-    borderTopWidth: 0,
-    backgroundColor: "transparent",
   },
   btn: {
     paddingVertical: 14,
     borderRadius: v_8b0c90.md,
-    backgroundColor: v_1bfbd0.zinc900,
+    backgroundColor: v_1bfbd0.white,
     alignItems: "center",
   },
-
-  btnLight: { backgroundColor: v_1bfbd0.white },
-  btnTextDark: { color: v_1bfbd0.zinc900 },
   btnDisabled: { opacity: 0.4 },
-  btnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
+  btnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
 });
