@@ -281,23 +281,24 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   };
 
   const v_d01790 = async () => {
-    if (v_af4871 == null || !v_2ca7e0) {
-      v_704242();
-      return;
-    }
+    if (v_af4871 == null) return;
+    const v_1298c5 = v_6044a8.trim().length > 0;
     v_4b9b17(true);
     try {
-      const v_1458b7 = v_6de415.current ?? null;
-      await v_5e388b(v_2ca7e0, v_af4871, {
-        content: v_6044a8.trim() || undefined,
-        ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
-      });
+      if (v_1298c5 && v_2ca7e0) {
+        const v_1458b7 = v_6de415.current ?? null;
+        await v_5e388b(v_2ca7e0, v_af4871, {
+          content: v_6044a8.trim(),
+          ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
+        });
+      }
     } catch (v_49263d) {
       console.warn("[CLONE-CREATE] post first feed failed:", v_49263d);
 
     } finally {
       v_4b9b17(false);
-      v_704242();
+      v_7a77e1();
+      v_c65f5d.replace("Step8", { cloneId: v_af4871 });
     }
   };
 
@@ -335,79 +336,68 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      <View style={v_d81136.composerHeader}>
-        <TouchableOpacity onPress={v_704242} hitSlop={8} style={v_d81136.headerBack}>
-          <Feather name="chevron-left" size={26} color={v_1bfbd0.zinc900} />
-        </TouchableOpacity>
-        <View style={v_d81136.headerCenter}>
-          <Text style={v_d81136.headerName} numberOfLines={1}>{v_8a1355}</Text>
-          <Text style={v_d81136.headerHandle} numberOfLines={1}>@{v_3e86f3}</Text>
-        </View>
-        {}
-        <View style={v_d81136.headerBack} />
-      </View>
+      {
+}
+      <PageHeader
+        title={v_8a1355}
+        subtitle={`@${v_3e86f3}`}
+        showBackButton
+        onBackPress={v_704242}
+      />
+      <StepIndicator currentStep={4} totalSteps={4} />
 
-      {v_805753 ? (
-        <View style={v_d81136.center}>
-          <ActivityIndicator size="large" color={v_1bfbd0.violet600} />
-          <Text style={v_d81136.creatingText}>{v_8d41d7('create.complete.creating')}</Text>
-        </View>
-      ) : v_5e9bfe ? (
-        <View style={v_d81136.center}>
-          <View style={[v_d81136.successCircle, { backgroundColor: v_1bfbd0.error, width: 60, height: 60, borderRadius: 30 }]}>
-            <Feather name="alert-triangle" size={28} color={v_1bfbd0.white} />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+      >
+        <SafeScrollView contentContainerStyle={v_d81136.composerContent} showBottomBackground={false}>
+          {}
+          <View style={v_d81136.imageBox}>
+            {v_ee89db ? (
+              <Image source={{ uri: v_ee89db }} style={v_d81136.image} resizeMode="cover" />
+            ) : (
+              <View style={[v_d81136.image, v_d81136.imagePlaceholder]}>
+                <Feather name="image" size={36} color={v_1bfbd0.zinc400} />
+              </View>
+            )}
           </View>
-          <Text style={[v_d81136.creatingText, { color: v_1bfbd0.error }]}>{v_5e9bfe}</Text>
-          <TouchableOpacity style={v_d81136.retryBtn} onPress={v_704242}>
-            <Text style={v_d81136.retryText}>대시보드로</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
-        >
-          <SafeScrollView contentContainerStyle={v_d81136.composerContent} showBottomBackground={false}>
-            {}
-            <View style={v_d81136.imageBox}>
-              {v_ee89db ? (
-                <Image source={{ uri: v_ee89db }} style={v_d81136.image} resizeMode="cover" />
-              ) : (
-                <View style={[v_d81136.image, v_d81136.imagePlaceholder]}>
-                  <Feather name="image" size={36} color={v_1bfbd0.zinc400} />
-                </View>
-              )}
-            </View>
-
-            {}
-            <TextInput
-              style={v_d81136.captionInput}
-              value={v_6044a8}
-              onChangeText={v_1d6b6a}
-              placeholder="캡션 추가..."
-              placeholderTextColor={v_1bfbd0.zinc400}
-              multiline
-              maxLength={2000}
-            />
-          </SafeScrollView>
 
           {}
-          <View style={v_d81136.bottomBar}>
-            <Button
-              title={v_c3de9c ? "공유 중..." : "공유"}
-              onPress={v_d01790}
-              variant="accent"
-              disabled={v_c3de9c || v_af4871 == null}
-            />
-            <Button
-              title="건너뛰기"
-              onPress={v_704242}
-              variant="ghost"
-              disabled={v_c3de9c}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      )}
+          <TextInput
+            style={v_d81136.captionInput}
+            value={v_6044a8}
+            onChangeText={v_1d6b6a}
+            placeholder="소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)"
+            placeholderTextColor={v_1bfbd0.zinc400}
+            multiline
+            maxLength={2000}
+          />
+
+          {}
+          {v_5e9bfe && (
+            <View style={v_d81136.errorBox}>
+              <Feather name="alert-triangle" size={16} color={v_1bfbd0.error} />
+              <Text style={v_d81136.errorText}>{v_5e9bfe}</Text>
+            </View>
+          )}
+        </SafeScrollView>
+
+        {}
+        <View style={v_d81136.bottomBar}>
+          <Button
+            title={
+              v_c3de9c
+                ? "잠시만요..."
+                : v_805753
+                ? "잠시만요..."
+                : "다음"
+            }
+            onPress={v_d01790}
+            variant="accent"
+            disabled={v_c3de9c || v_805753 || !!v_5e9bfe}
+          />
+        </View>
+      </KeyboardAvoidingView>
 
       {}
       <Modal visible={v_db004a} transparent animationType="fade">
@@ -568,6 +558,18 @@ const v_d81136 = v_472849.create({
     paddingVertical: 8,
     textAlignVertical: "top",
   },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "#fef2f2",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+  },
+  errorText: { flex: 1, fontSize: 13, color: v_1bfbd0.error, lineHeight: 18 },
 
   center: {
     flex: 1,
