@@ -30,7 +30,11 @@ v_68f0aa.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "auth" }
 
 const v_7b8b17 = v_1f4ea7.object({
   email: v_1f4ea7.email().max(200),
-  password: v_1f4ea7.string().min(8).max(200),
+
+  password: v_1f4ea7.string().min(7).max(200).regex(
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/,
+    "Password must be 7+ chars with lowercase, uppercase, and digit.",
+  ),
   name: v_1f4ea7.string().min(1).max(80),
 
   verificationCode: v_1f4ea7.string().regex(/^\d{6}$/, "6-digit code required").optional(),

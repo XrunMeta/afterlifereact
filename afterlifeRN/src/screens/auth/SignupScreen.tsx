@@ -151,7 +151,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailInvalid"));
       return;
     }
-    if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(v_adc076)) {
+
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)) {
       v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.passwordTooShort"));
       return;
     }

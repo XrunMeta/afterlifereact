@@ -24,8 +24,12 @@ function v_394453(v_fba864): Uint8Array {
 }
 
 export async function v_54846c(v_adc076): Promise<string> {
-  if (v_adc076.length < 8) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Password must be at least 8 characters.");
+
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)) {
+    throw new v_3ebe58(
+      "VALIDATION_FAILED",
+      "Password must be 7+ chars with lowercase, uppercase, and digit.",
+    );
   }
   const v_83f336 = v_5f30e2(16);
   const v_bff627 = v_38446f(new TextEncoder().encode(v_adc076), v_83f336, { N: v_f791ed, r: v_cb35cb, p: v_e2a85c, dkLen: v_18af92 });
