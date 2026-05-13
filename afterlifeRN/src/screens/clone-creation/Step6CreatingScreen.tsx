@@ -16,12 +16,12 @@ import {
   Easing,
 } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
 
 import SafeView from "../../components/ui/SafeView";
-import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { useCloneStore } from "../../stores/cloneStore";
 import { deriveUsernameFromName } from "../../api/clones";
@@ -225,61 +225,114 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
   const isIntro = phase === "intro";
 
-  return (
-    <SafeView backgroundColor={isIntro ? "#000000" : COLORS.white}>
-      {!isIntro && (
-        <PageHeader
-          title="페르소나 만들기"
-          showBackButton
-          onBackPress={goBack}
-        />
-      )}
+  const questionFade = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (phase === "intro") return;
+    questionFade.setValue(0);
+    Animated.timing(questionFade, {
+      toValue: 1,
+      duration: 450,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [phase, questionFade]);
 
+  const QUESTIONS = {
+    name: {
+      title: "그 존재의 이름이 뭐였어?",
+      desc: "네가 부르던 이름이나 별명, 어떤 호칭이든 좋아.",
+      placeholder: "예: 별이, 할머니, 모리",
+      value: name,
+      onChange: setName,
+      multiline: false,
+    },
+    firstMeeting: {
+      title: "그 존재와는 어떻게 처음 만나게 되었어?",
+      desc: "우리 사이에 잊지 못할 특별한 첫 순간이나 추억이 있었는지 궁금해!",
+      placeholder: "떠오르는 그 첫 장면을 자유롭게 적어줘.",
+      value: firstMeeting,
+      onChange: setFirstMeeting,
+      multiline: true,
+    },
+    habit: {
+      title: "자주 하던 말이나 눈길이 가던 습관이 있었니?",
+      desc: "꼬리를 살랑이거나, 특유의 말투 같은 사소한 거라도 좋아!",
+      placeholder: "입버릇, 작은 습관, 좋아하던 자리 — 사소할수록 좋아.",
+      value: habit,
+      onChange: setHabit,
+      multiline: true,
+    },
+    personality: {
+      title: "그 존재의 성격은 어땠어?",
+      desc: "혹시 MBTI가 생각나니? 기억이 안 난다면 평소 성격을 살짝 귀띔해 줄래?",
+      placeholder: "예: 조용하고 다정한 INFP. 잘 웃고 잘 우는 사람이었어.",
+      value: personality,
+      onChange: setPersonality,
+      multiline: true,
+    },
+    memory: {
+      title: "눈 감으면 어제처럼 선명한 그 장면이 있을까?",
+      desc: "가장 행복하게 웃고(혹은 뛰놀고) 있던 그 순간을 나에게도 공유해 줘! ✨",
+      placeholder: "그 순간의 풍경, 표정, 소리 — 떠오르는 대로.",
+      value: memory,
+      onChange: setMemory,
+      multiline: true,
+    },
+  } as const;
+  const q = !isIntro ? QUESTIONS[phase as keyof typeof QUESTIONS] : null;
+
+  return (
+    <SafeView backgroundColor="#000000">
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        {
+}
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={goBack} hitSlop={12} style={styles.backBtn}>
+            <Feather name="arrow-left" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+        </View>
+
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <ScrollView
             contentContainerStyle={styles.formWrap}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {phase === "intro" && (
+            {
+}
+            <Animated.View
+              style={[
+                styles.videoWrap,
+                isIntro
+                  ? { opacity: emojiOpacity, transform: [{ scale: emojiScale }] }
+                  : null,
+              ]}
+              pointerEvents="none"
+            >
+              {videoFailed ? (
+                <Text style={styles.fallbackEmoji}>✨</Text>
+              ) : (
+                <VideoView
+                  style={styles.video}
+                  player={fairyVideoPlayer}
+                  contentFit="contain"
+                  nativeControls={false}
+                />
+              )}
+            </Animated.View>
+
+            {}
+            {isIntro && (
               <TouchableOpacity
-                style={styles.introBox}
                 onPress={skipIntro}
                 activeOpacity={1}
                 accessibilityLabel="도입부 건너뛰기"
+                style={styles.introTextBox}
               >
-                {
-}
-                <Animated.View
-                  style={[
-                    styles.videoWrap,
-                    {
-                      opacity: emojiOpacity,
-                      transform: [{ scale: emojiScale }],
-                    },
-                  ]}
-                  pointerEvents="none"
-                >
-                  {videoFailed ? (
-                    <Text style={styles.fallbackEmoji}>✨</Text>
-                  ) : (
-                    <VideoView
-                      style={styles.video}
-                      player={fairyVideoPlayer}
-                      contentFit="contain"
-                      nativeControls={false}
-                    />
-                  )}
-                </Animated.View>
-
-                {
-}
                 {INTRO_PARAGRAPHS.map((para, pIdx) => {
-
                   const isTitlePara = pIdx === 0;
                   return (
                     <Animated.View
@@ -303,124 +356,42 @@ export default function Step6CreatingScreen({ navigation }: Props) {
               </TouchableOpacity>
             )}
 
-            {phase === "name" && (
-              <>
-<Text style={styles.qTitle}>그 존재의 이름이 뭐였어?</Text>
-                <Text style={styles.qDesc}>
-                  네가 부르던 이름이나 별명, 어떤 호칭이든 좋아.
-                </Text>
+            {
+}
+            {q && (
+              <Animated.View style={[styles.questionBox, { opacity: questionFade }]}>
+                <Text style={styles.qTitle}>{q.title}</Text>
+                <Text style={styles.qDesc}>{q.desc}</Text>
                 <TextInput
-                  style={styles.input}
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="예: 별이, 할머니, 모리"
-                  placeholderTextColor={COLORS.zinc400}
-                  autoFocus
-                  returnKeyType="next"
-                  onSubmitEditing={goNext}
-                  maxLength={40}
-                />
-              </>
-            )}
 
-            {phase === "firstMeeting" && (
-              <>
-<Text style={styles.qTitle}>
-                  그 존재와는 어떻게 처음 만나게 되었어?
-                </Text>
-                <Text style={styles.qDesc}>
-                  우리 사이에 잊지 못할 특별한 첫 순간이나 추억이 있었는지 궁금해!
-                </Text>
-                <TextInput
-                  style={[styles.input, styles.textarea]}
-                  value={firstMeeting}
-                  onChangeText={setFirstMeeting}
-                  placeholder="떠오르는 그 첫 장면을 자유롭게 적어줘."
-                  placeholderTextColor={COLORS.zinc400}
-                  multiline
-                  textAlignVertical="top"
+                  key={phase}
+                  style={[styles.input, q.multiline && styles.textarea]}
+                  value={q.value}
+                  onChangeText={q.onChange}
+                  placeholder={q.placeholder}
+                  placeholderTextColor="rgba(255,255,255,0.4)"
                   autoFocus
+                  multiline={q.multiline}
+                  textAlignVertical={q.multiline ? "top" : "center"}
+                  returnKeyType={q.multiline ? "default" : "next"}
+                  onSubmitEditing={q.multiline ? undefined : goNext}
+                  maxLength={q.multiline ? 500 : 40}
+                  selectionColor={COLORS.white}
                 />
-              </>
-            )}
-
-            {phase === "habit" && (
-              <>
-<Text style={styles.qTitle}>
-                  자주 하던 말이나 눈길이 가던 습관이 있었니?
-                </Text>
-                <Text style={styles.qDesc}>
-                  꼬리를 살랑이거나, 특유의 말투 같은 사소한 거라도 좋아!
-                </Text>
-                <TextInput
-                  style={[styles.input, styles.textarea]}
-                  value={habit}
-                  onChangeText={setHabit}
-                  placeholder="입버릇, 작은 습관, 좋아하던 자리 — 사소할수록 좋아."
-                  placeholderTextColor={COLORS.zinc400}
-                  multiline
-                  textAlignVertical="top"
-                  autoFocus
-                />
-              </>
-            )}
-
-            {phase === "personality" && (
-              <>
-<Text style={styles.qTitle}>
-                  그 존재의 성격은 어땠어?
-                </Text>
-                <Text style={styles.qDesc}>
-                  혹시 MBTI가 생각나니? 기억이 안 난다면 평소 성격을 살짝 귀띔해 줄래?
-                </Text>
-                <TextInput
-                  style={[styles.input, styles.textarea]}
-                  value={personality}
-                  onChangeText={setPersonality}
-                  placeholder="예: 조용하고 다정한 INFP. 잘 웃고 잘 우는 사람이었어."
-                  placeholderTextColor={COLORS.zinc400}
-                  multiline
-                  textAlignVertical="top"
-                  autoFocus
-                />
-              </>
-            )}
-
-            {phase === "memory" && (
-              <>
-<Text style={styles.qTitle}>
-                  눈 감으면 어제처럼 선명한 그 장면이 있을까?
-                </Text>
-                <Text style={styles.qDesc}>
-                  가장 행복하게 웃고(혹은 뛰놀고) 있던 그 순간을 나에게도 공유해 줘! ✨
-                </Text>
-                <TextInput
-                  style={[styles.input, styles.textarea]}
-                  value={memory}
-                  onChangeText={setMemory}
-                  placeholder="그 순간의 풍경, 표정, 소리 — 떠오르는 대로."
-                  placeholderTextColor={COLORS.zinc400}
-                  multiline
-                  textAlignVertical="top"
-                  autoFocus
-                />
-              </>
+              </Animated.View>
             )}
           </ScrollView>
         </TouchableWithoutFeedback>
-        <View style={[styles.bottomBar, isIntro && styles.bottomBarDark]}>
+
+        <View style={styles.bottomBar}>
           <TouchableOpacity
-            style={[
-              styles.btn,
-              isIntro && styles.btnLight,
-              !canProceed && styles.btnDisabled,
-            ]}
+            style={[styles.btn, !canProceed && styles.btnDisabled]}
             onPress={goNext}
             disabled={!canProceed}
             activeOpacity={0.85}
           >
-            <Text style={[styles.btnText, isIntro && styles.btnTextDark]}>
-              {phase === "intro" ? "시작하기" : "다음"}
+            <Text style={styles.btnText}>
+              {isIntro ? "시작하기" : "다음"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -437,23 +408,24 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
 
-  introBox: { gap: 20, paddingTop: 12, alignItems: "center" },
-  introEmoji: { fontSize: 40, textAlign: "center", marginBottom: 8 },
+  topBar: {
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  backBtn: { padding: 8, alignSelf: "flex-start" },
 
-  paragraph: { gap: 4, alignItems: "center", paddingHorizontal: 8 },
   videoWrap: {
     width: 180,
     height: 180,
-    marginBottom: 8,
     alignSelf: "center",
+    marginBottom: 12,
   },
   video: { width: "100%", height: "100%" },
-  fallbackEmoji: {
-    fontSize: 100,
-    textAlign: "center",
-    lineHeight: 180,
-  },
+  fallbackEmoji: { fontSize: 100, textAlign: "center", lineHeight: 180 },
 
+  introTextBox: { gap: 20, alignItems: "center", width: "100%" },
+  paragraph: { gap: 4, alignItems: "center", paddingHorizontal: 8 },
   introTitle: {
     fontSize: 22,
     fontWeight: "700",
@@ -468,50 +440,43 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
 
+  questionBox: { width: "100%", gap: 10 },
   qTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: COLORS.zinc900,
-    marginBottom: 8,
+    color: COLORS.white,
+    textAlign: "center",
     lineHeight: 30,
+    marginBottom: 4,
   },
   qDesc: {
-    fontSize: 13,
-    color: COLORS.zinc500,
-    marginBottom: 20,
-    lineHeight: 20,
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
+    lineHeight: 21,
+    marginBottom: 14,
   },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.zinc200,
+    borderColor: "rgba(255,255,255,0.2)",
     borderRadius: RADIUS.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
-    color: COLORS.zinc900,
-    backgroundColor: COLORS.zinc50,
+    color: COLORS.white,
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
   textarea: { minHeight: 140, paddingTop: 12 },
 
   bottomBar: {
     padding: SIZES.large,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.zinc100,
-  },
-
-  bottomBarDark: {
-    borderTopWidth: 0,
-    backgroundColor: "transparent",
   },
   btn: {
     paddingVertical: 14,
     borderRadius: RADIUS.md,
-    backgroundColor: COLORS.zinc900,
+    backgroundColor: COLORS.white,
     alignItems: "center",
   },
-
-  btnLight: { backgroundColor: COLORS.white },
-  btnTextDark: { color: COLORS.zinc900 },
   btnDisabled: { opacity: 0.4 },
-  btnText: { fontSize: 15, fontWeight: "700", color: COLORS.white },
+  btnText: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
 });
