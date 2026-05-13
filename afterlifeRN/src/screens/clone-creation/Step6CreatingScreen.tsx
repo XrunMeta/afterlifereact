@@ -49,7 +49,8 @@ const QUESTION_PHASES: Phase[] = [
 const TOTAL_QUESTIONS = QUESTION_PHASES.length;
 
 const INTRO_LINES = [
-  "안녕! 나는 네 소중한 기억 속에 살고 있는 요정이야.",
+  "안녕!",
+  "나는 네 소중한 기억 속에 살고 있는 요정이야.",
   "지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...",
   "떠올랐어?! 그럼, 네 머릿속에 있는 그 소중한 존재를 생각하며 답해줘!",
 ] as const;
@@ -272,7 +273,8 @@ export default function Step6CreatingScreen({ navigation }: Props) {
                   if (typedLines[i].length === 0) return null;
 
                   const isTypingThis = !introDone && typedLines[i].length < line.length;
-                  const isTitle = i === 0;
+
+                  const isTitle = i <= 1;
                   const textStyle = isTitle ? styles.introTitle : styles.introBody;
                   return (
                     <Text key={i} style={textStyle}>
