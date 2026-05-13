@@ -75,8 +75,8 @@ function splitName(full: string): { firstname: string; lastname: string } {
 }
 
 function mapGender(g?: "male" | "female" | "other"): number {
-  if (g === "male") return 2101;
-  if (g === "female") return 2102;
+  if (g === "male") return 2110;
+  if (g === "female") return 2111;
   return 2100;
 }
 
