@@ -18,6 +18,8 @@ interface FeedCardProps {
   isActive: boolean;
   isLiked: boolean;
   isFollowed: boolean;
+
+  isOwn?: boolean;
   cardHeight: number;
   onToggleLike: () => void;
   onToggleFollow: () => void;
@@ -31,6 +33,7 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
   isActive: v_26dce6,
   isLiked: v_85c07b,
   isFollowed: v_a26275,
+  isOwn: v_799eb5 = false,
   cardHeight: v_3d6201,
   onToggleLike: v_5bca36,
   onToggleFollow: v_cbd557,
@@ -62,28 +65,31 @@ const FeedCard: v_a3453e.FC<FeedCardProps> = ({
               <Text style={v_d81136.authorName}>{v_8c0b26.author}</Text>
               <Text style={v_d81136.username}>{v_8c0b26.username}</Text>
             </View>
-            <TouchableOpacity
-              onPress={v_cbd557}
-              style={[
-                v_d81136.followButton,
-                v_a26275 && v_d81136.followButtonActive,
-              ]}
-              activeOpacity={0.7}
-            >
-              <Feather
-                name={v_a26275 ? "user-check" : "user-plus"}
-                size={14}
-                color={v_a26275 ? v_1bfbd0.white : v_1bfbd0.zinc900}
-              />
-              <Text
+            {}
+            {!v_799eb5 && (
+              <TouchableOpacity
+                onPress={v_cbd557}
                 style={[
-                  v_d81136.followText,
-                  v_a26275 && v_d81136.followTextActive,
+                  v_d81136.followButton,
+                  v_a26275 && v_d81136.followButtonActive,
                 ]}
+                activeOpacity={0.7}
               >
-                {v_a26275 ? v_8d41d7("feed.following") : v_8d41d7("feed.follow")}
-              </Text>
-            </TouchableOpacity>
+                <Feather
+                  name={v_a26275 ? "user-check" : "user-plus"}
+                  size={14}
+                  color={v_a26275 ? v_1bfbd0.white : v_1bfbd0.zinc900}
+                />
+                <Text
+                  style={[
+                    v_d81136.followText,
+                    v_a26275 && v_d81136.followTextActive,
+                  ]}
+                >
+                  {v_a26275 ? v_8d41d7("feed.following") : v_8d41d7("feed.follow")}
+                </Text>
+              </TouchableOpacity>
+            )}
             {}
             {v_27b331 && (
               <TouchableOpacity
