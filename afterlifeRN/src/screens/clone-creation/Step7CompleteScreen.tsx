@@ -347,67 +347,67 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         <View style={v_d81136.headerBack} />
       </View>
 
-      {v_805753 ? (
-        <View style={v_d81136.center}>
-          <ActivityIndicator size="large" color={v_1bfbd0.violet600} />
-          <Text style={v_d81136.creatingText}>{v_8d41d7('create.complete.creating')}</Text>
-        </View>
-      ) : v_5e9bfe ? (
-        <View style={v_d81136.center}>
-          <View style={[v_d81136.successCircle, { backgroundColor: v_1bfbd0.error, width: 60, height: 60, borderRadius: 30 }]}>
-            <Feather name="alert-triangle" size={28} color={v_1bfbd0.white} />
-          </View>
-          <Text style={[v_d81136.creatingText, { color: v_1bfbd0.error }]}>{v_5e9bfe}</Text>
-          <TouchableOpacity style={v_d81136.retryBtn} onPress={v_704242}>
-            <Text style={v_d81136.retryText}>대시보드로</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
-        >
-          <SafeScrollView contentContainerStyle={v_d81136.composerContent} showBottomBackground={false}>
-            {}
-            <View style={v_d81136.imageBox}>
-              {v_ee89db ? (
-                <Image source={{ uri: v_ee89db }} style={v_d81136.image} resizeMode="cover" />
-              ) : (
-                <View style={[v_d81136.image, v_d81136.imagePlaceholder]}>
-                  <Feather name="image" size={36} color={v_1bfbd0.zinc400} />
-                </View>
-              )}
-            </View>
+      {
 
-            {}
-            <TextInput
-              style={v_d81136.captionInput}
-              value={v_6044a8}
-              onChangeText={v_1d6b6a}
-              placeholder="캡션 추가..."
-              placeholderTextColor={v_1bfbd0.zinc400}
-              multiline
-              maxLength={2000}
-            />
-          </SafeScrollView>
+}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+      >
+        <SafeScrollView contentContainerStyle={v_d81136.composerContent} showBottomBackground={false}>
+          {}
+          <View style={v_d81136.imageBox}>
+            {v_ee89db ? (
+              <Image source={{ uri: v_ee89db }} style={v_d81136.image} resizeMode="cover" />
+            ) : (
+              <View style={[v_d81136.image, v_d81136.imagePlaceholder]}>
+                <Feather name="image" size={36} color={v_1bfbd0.zinc400} />
+              </View>
+            )}
+          </View>
 
           {}
-          <View style={v_d81136.bottomBar}>
-            <Button
-              title={v_c3de9c ? "공유 중..." : "공유"}
-              onPress={v_d01790}
-              variant="accent"
-              disabled={v_c3de9c || v_af4871 == null}
-            />
-            <Button
-              title="건너뛰기"
-              onPress={v_704242}
-              variant="ghost"
-              disabled={v_c3de9c}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      )}
+          <TextInput
+            style={v_d81136.captionInput}
+            value={v_6044a8}
+            onChangeText={v_1d6b6a}
+            placeholder="캡션 추가..."
+            placeholderTextColor={v_1bfbd0.zinc400}
+            multiline
+            maxLength={2000}
+          />
+
+          {}
+          {v_5e9bfe && (
+            <View style={v_d81136.errorBox}>
+              <Feather name="alert-triangle" size={16} color={v_1bfbd0.error} />
+              <Text style={v_d81136.errorText}>{v_5e9bfe}</Text>
+            </View>
+          )}
+        </SafeScrollView>
+
+        {}
+        <View style={v_d81136.bottomBar}>
+          <Button
+            title={
+              v_c3de9c
+                ? "공유 중..."
+                : v_805753
+                ? "잠시만요..."
+                : "공유"
+            }
+            onPress={v_d01790}
+            variant="accent"
+            disabled={v_c3de9c || v_805753 || !!v_5e9bfe}
+          />
+          <Button
+            title="건너뛰기"
+            onPress={v_704242}
+            variant="ghost"
+            disabled={v_c3de9c}
+          />
+        </View>
+      </KeyboardAvoidingView>
 
       {}
       <Modal visible={v_db004a} transparent animationType="fade">
@@ -568,6 +568,18 @@ const v_d81136 = v_472849.create({
     paddingVertical: 8,
     textAlignVertical: "top",
   },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "#fef2f2",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+  },
+  errorText: { flex: 1, fontSize: 13, color: v_1bfbd0.error, lineHeight: 18 },
 
   center: {
     flex: 1,
