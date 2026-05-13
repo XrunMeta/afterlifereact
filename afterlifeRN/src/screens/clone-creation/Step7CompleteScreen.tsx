@@ -21,8 +21,7 @@ import type { v_2b51a5 } from "../../navigation/types";
 
 import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
-import v_258c1c from "../../components/common/PageHeader";
-import v_3183b2 from "../../components/common/StepIndicator";
+
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
