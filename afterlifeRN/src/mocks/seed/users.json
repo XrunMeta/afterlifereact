@@ -167,5 +167,21 @@
     "avatarUrl": "https://i.pravatar.cc/300?img=51",
     "bio": "K-pop 팬, 음악 듣는 게 일상",
     "createdAt": "2026-05-13T11:00:00Z"
+  },
+  {
+    "id": 23,
+    "displayName": "김보윤",
+    "handle": "@boyun",
+    "avatarUrl": "https://i.pravatar.cc/300?img=47",
+    "bio": "패션과 사진을 사랑해요",
+    "createdAt": "2026-05-13T14:00:00Z"
+  },
+  {
+    "id": 24,
+    "displayName": "최강민",
+    "handle": "@kangmin",
+    "avatarUrl": "https://i.pravatar.cc/300?img=54",
+    "bio": "야생 동물 관찰이 취미",
+    "createdAt": "2026-05-13T15:00:00Z"
   }
 ]
