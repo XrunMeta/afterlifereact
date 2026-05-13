@@ -151,5 +151,21 @@
     "avatarUrl": "https://i.pravatar.cc/300?img=20",
     "bio": "셀럽 팬덤 활동 중입니다",
     "createdAt": "2026-02-15T14:00:00Z"
+  },
+  {
+    "id": 21,
+    "displayName": "이수민",
+    "handle": "@sumin",
+    "avatarUrl": "https://i.pravatar.cc/300?img=44",
+    "bio": "동물과 캐릭터 좋아하는 사람",
+    "createdAt": "2026-05-13T10:00:00Z"
+  },
+  {
+    "id": 22,
+    "displayName": "정태우",
+    "handle": "@taewoo",
+    "avatarUrl": "https://i.pravatar.cc/300?img=51",
+    "bio": "K-pop 팬, 음악 듣는 게 일상",
+    "createdAt": "2026-05-13T11:00:00Z"
   }
 ]
