@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SafeView from "../../components/ui/SafeView";
@@ -46,12 +46,30 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 
 export default function SearchScreen() {
   const nav = useNavigation<TabNav>();
+  const route = useRoute();
   const accessToken = useAuthStore((s) => s.accessToken);
   const insets = useSafeAreaInsets();
 
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("recommend");
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const params = route.params as { initialQuery?: string } | undefined;
+      const initial = params?.initialQuery;
+      if (typeof initial === "string" && initial.trim().length > 0) {
+        setQuery(initial);
+
+        if (initial.trim().startsWith("#")) {
+          setActiveTab("tag");
+        }
+
+        nav.setParams({ initialQuery: undefined } as never);
+      }
+
+    }, [route.params, nav]),
+  );
   const [feeds, setFeeds] = useState<DiscoverFeedItem[]>([]);
   const [feedsLoading, setFeedsLoading] = useState(true);
   const [users, setUsers] = useState<UserSearchItem[]>([]);
