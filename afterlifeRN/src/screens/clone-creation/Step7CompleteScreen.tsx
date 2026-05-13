@@ -22,7 +22,6 @@ import type { CreateStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
-import StepIndicator from "../../components/common/StepIndicator";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -344,8 +343,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         showBackButton
         onBackPress={handleGoToDashboard}
       />
-      <StepIndicator currentStep={4} totalSteps={4} />
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
