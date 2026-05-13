@@ -347,67 +347,67 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         <View style={styles.headerBack} />
       </View>
 
-      {creating ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.violet600} />
-          <Text style={styles.creatingText}>{t('create.complete.creating')}</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.center}>
-          <View style={[styles.successCircle, { backgroundColor: COLORS.error, width: 60, height: 60, borderRadius: 30 }]}>
-            <Feather name="alert-triangle" size={28} color={COLORS.white} />
-          </View>
-          <Text style={[styles.creatingText, { color: COLORS.error }]}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={handleGoToDashboard}>
-            <Text style={styles.retryText}>대시보드로</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <SafeScrollView contentContainerStyle={styles.composerContent} showBottomBackground={false}>
-            {}
-            <View style={styles.imageBox}>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
-              ) : (
-                <View style={[styles.image, styles.imagePlaceholder]}>
-                  <Feather name="image" size={36} color={COLORS.zinc400} />
-                </View>
-              )}
-            </View>
+      {
 
-            {}
-            <TextInput
-              style={styles.captionInput}
-              value={caption}
-              onChangeText={setCaption}
-              placeholder="캡션 추가..."
-              placeholderTextColor={COLORS.zinc400}
-              multiline
-              maxLength={2000}
-            />
-          </SafeScrollView>
+}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <SafeScrollView contentContainerStyle={styles.composerContent} showBottomBackground={false}>
+          {}
+          <View style={styles.imageBox}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+            ) : (
+              <View style={[styles.image, styles.imagePlaceholder]}>
+                <Feather name="image" size={36} color={COLORS.zinc400} />
+              </View>
+            )}
+          </View>
 
           {}
-          <View style={styles.bottomBar}>
-            <Button
-              title={posting ? "공유 중..." : "공유"}
-              onPress={handleSharePost}
-              variant="accent"
-              disabled={posting || createdCloneId == null}
-            />
-            <Button
-              title="건너뛰기"
-              onPress={handleGoToDashboard}
-              variant="ghost"
-              disabled={posting}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      )}
+          <TextInput
+            style={styles.captionInput}
+            value={caption}
+            onChangeText={setCaption}
+            placeholder="캡션 추가..."
+            placeholderTextColor={COLORS.zinc400}
+            multiline
+            maxLength={2000}
+          />
+
+          {}
+          {error && (
+            <View style={styles.errorBox}>
+              <Feather name="alert-triangle" size={16} color={COLORS.error} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+        </SafeScrollView>
+
+        {}
+        <View style={styles.bottomBar}>
+          <Button
+            title={
+              posting
+                ? "공유 중..."
+                : creating
+                ? "잠시만요..."
+                : "공유"
+            }
+            onPress={handleSharePost}
+            variant="accent"
+            disabled={posting || creating || !!error}
+          />
+          <Button
+            title="건너뛰기"
+            onPress={handleGoToDashboard}
+            variant="ghost"
+            disabled={posting}
+          />
+        </View>
+      </KeyboardAvoidingView>
 
       {}
       <Modal visible={paymentModal} transparent animationType="fade">
@@ -568,6 +568,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     textAlignVertical: "top",
   },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "#fef2f2",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+  },
+  errorText: { flex: 1, fontSize: 13, color: COLORS.error, lineHeight: 18 },
 
   center: {
     flex: 1,
