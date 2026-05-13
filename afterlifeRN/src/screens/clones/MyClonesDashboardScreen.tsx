@@ -703,16 +703,19 @@ export default function v_def15b() {
             <View style={v_fd5f43.profileSection}>
               <View style={v_fd5f43.profileLeft}>
                 <View style={v_fd5f43.profileAvatarWrap}>
-                  {v_b113dd?.avatarUrl || v_f38ee5?.avatarUrl ? (
-                    <Image
-                      source={{ uri: (v_b113dd?.avatarUrl ?? v_f38ee5?.avatarUrl) as string }}
-                      style={v_fd5f43.profileAvatar}
-                    />
-                  ) : (
-                    <View style={[v_fd5f43.profileAvatar, v_fd5f43.profileAvatarPlaceholder]}>
-                      <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
-                    </View>
-                  )}
+                  {(() => {
+
+                    const v_cd1446 = v_b113dd
+                      ? v_b113dd.avatarUrl
+                      : v_f38ee5?.avatarUrl ?? null;
+                    return v_cd1446 ? (
+                      <Image source={{ uri: v_cd1446 }} style={v_fd5f43.profileAvatar} />
+                    ) : (
+                      <View style={[v_fd5f43.profileAvatar, v_fd5f43.profileAvatarPlaceholder]}>
+                        <Feather name="user" size={28} color={v_1bfbd0.zinc400} />
+                      </View>
+                    );
+                  })()}
                   <TouchableOpacity
                     style={v_fd5f43.profileAvatarEditBtn}
                     onPress={v_d28ade}

@@ -69,7 +69,8 @@ export default function v_040c8f() {
   };
 
   const v_9831a6 = async () => {
-    if (v_adc076.length < 8) {
+
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)) {
       v_03e392.alert("알림", v_8d41d7("auth.forgot.passwordTooShort"));
       return;
     }
