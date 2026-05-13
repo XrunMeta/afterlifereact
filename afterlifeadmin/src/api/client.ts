@@ -188,4 +188,29 @@ export const api = {
       }>;
     }>(`/oth-path${tail ? `?${tail}` : ""}`);
   },
+
+  getCloneReports: (params?: { status?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const tail = qs.toString();
+    return request<{
+      items: Array<{
+        id: number;
+        userId: number;
+        userName: string | null;
+        userEmail: string;
+        cloneId: number;
+        cloneName: string;
+        cloneUsername: string;
+        cloneOwnerId: number;
+        cloneOwnerName: string | null;
+        cloneOwnerEmail: string | null;
+        reason: string | null;
+        status: string;
+        createdAt: string;
+        reviewedAt: string | null;
+      }>;
+    }>(`/oth-path${tail ? `?${tail}` : ""}`);
+  },
 };

@@ -382,6 +382,22 @@ export interface BlockedClone {
   };
 }
 
+export async function reportClone(
+  accessToken: string,
+  cloneId: number,
+  reason?: string,
+): Promise<{ ok: true; reported: true; blocked: true }> {
+  return authFetch(
+    `/oth-path${cloneId}/report`,
+    accessToken,
+    {
+      method: "POST",
+      body: JSON.stringify(reason ? { reason } : {}),
+    },
+    makeIdempotencyKey(),
+  );
+}
+
 export async function blockClone(accessToken: string, cloneId: number): Promise<{ ok: true; blocked: true }> {
   console.log(`[BLOCK-API] → POST /oth-path${cloneId}/block`);
   const res = await authFetch<{ ok: true; blocked: true }>(
