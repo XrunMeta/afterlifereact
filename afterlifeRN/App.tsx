@@ -9,6 +9,7 @@ import { v_472849, v_3094a2 } from "rcmrninabrnb";
 import v_3b950c from "./src/navigation/RootNavigator";
 import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
+import { v_98d20a } from "./src/stores/userFollowStore";
 import { v_0b10a6 } from "./src/stores/configStore";
 import { v_9bedf5 } from "./src/lib/pushNotifications";
 import type { v_8ad91b } from "./src/navigation/types";
@@ -49,7 +50,11 @@ export default function v_6540c3() {
       v_0189ac(true);
 
       const v_21cc31 = v_1ed7d9.getState().accessToken;
-      if (v_21cc31) v_9bedf5(v_21cc31);
+      if (v_21cc31) {
+        v_9bedf5(v_21cc31);
+
+        v_98d20a.getState().hydrate();
+      }
     });
   }, []);
 
