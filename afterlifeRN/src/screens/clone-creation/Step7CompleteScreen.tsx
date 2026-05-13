@@ -28,9 +28,10 @@ import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
 import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
-import { createClone, deriveUsernameFromName } from "../../api/clones";
+import { createClone, deriveUsernameFromName, createCloneFeed } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
+import { Image } from "react-native";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step7">;
@@ -75,6 +76,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const cancelledRef = useRef(false);
 
   const avatarUrlRef = useRef<string | undefined>(undefined);
+
+  const [caption, setCaption] = useState("");
+  const [posting, setPosting] = useState(false);
 
   const attemptCreate = useCallback(
     async (pin?: string) => {
@@ -276,6 +280,27 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     );
   };
 
+  const handleSharePost = async () => {
+    if (createdCloneId == null || !accessToken) {
+      handleGoToDashboard();
+      return;
+    }
+    setPosting(true);
+    try {
+      const mediaUrl = avatarUrlRef.current ?? null;
+      await createCloneFeed(accessToken, createdCloneId, {
+        content: caption.trim() || undefined,
+        ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
+      });
+    } catch (err) {
+      console.warn("[CLONE-CREATE] post first feed failed:", err);
+
+    } finally {
+      setPosting(false);
+      handleGoToDashboard();
+    }
+  };
+
   const handleConfirmPayment = async () => {
     if (!/^\d{6}$/.test(pinInput)) {
       setPinError("PIN 6자리를 입력해 주세요");
@@ -304,59 +329,85 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     }
   };
 
+  const displayName = draft.name ?? "사용자 이름";
+  const displayHandle = draft.username ?? "아이디";
+  const imageUri = draft.imageFile;
+
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <PageHeader title={t('create.stepTitles.7')} />
-      <StepIndicator currentStep={6} totalSteps={6} />
-
-      <SafeScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} showBottomBackground={false}>
-        <View style={styles.container}>
-          {}
-          <View style={[styles.successCircle, error && { backgroundColor: COLORS.error }]}>
-            {creating ? (
-              <ActivityIndicator size="large" color={COLORS.white} />
-            ) : error ? (
-              <Feather name="alert-triangle" size={48} color={COLORS.white} />
-            ) : (
-              <Feather name="check" size={48} color={COLORS.white} />
-            )}
-          </View>
-
-          <Text style={styles.title}>
-            {creating ? t('create.complete.creating') : error ? t('create.complete.createFailed') : copy.title}
-          </Text>
-          <Text style={styles.subtitle}>{error ?? copy.sub}</Text>
-
-          {}
-          {!creating && !error && FEATURES_I18N.map((feat, i) => (
-            <View key={i} style={styles.featureCard}>
-              <View style={styles.featureIconBox}>
-                <Feather name={feat.icon as any} size={22} color={COLORS.violet500} />
-              </View>
-              <View style={styles.featureInfo}>
-                <Text style={styles.featureTitle}>{feat.title}</Text>
-                <Text style={styles.featureDesc}>{feat.desc}</Text>
-              </View>
-            </View>
-          ))}
+      <View style={styles.composerHeader}>
+        <TouchableOpacity onPress={handleGoToDashboard} hitSlop={8} style={styles.headerBack}>
+          <Feather name="chevron-left" size={26} color={COLORS.zinc900} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerName} numberOfLines={1}>{displayName}</Text>
+          <Text style={styles.headerHandle} numberOfLines={1}>@{displayHandle}</Text>
         </View>
-      </SafeScrollView>
-
-      {}
-      <View style={styles.bottomBar}>
-        <Button
-          title={t('create.complete.startVideo')}
-          onPress={handleStartChat}
-          variant="accent"
-          disabled={creating || !!error || createdCloneId == null}
-          leftIcon={<Feather name="message-circle" size={20} color={COLORS.white} />}
-        />
-        <Button
-          title={t('create.complete.goDashboard')}
-          onPress={handleGoToDashboard}
-          variant="ghost"
-        />
+        {}
+        <View style={styles.headerBack} />
       </View>
+
+      {creating ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={COLORS.violet600} />
+          <Text style={styles.creatingText}>{t('create.complete.creating')}</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.center}>
+          <View style={[styles.successCircle, { backgroundColor: COLORS.error, width: 60, height: 60, borderRadius: 30 }]}>
+            <Feather name="alert-triangle" size={28} color={COLORS.white} />
+          </View>
+          <Text style={[styles.creatingText, { color: COLORS.error }]}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={handleGoToDashboard}>
+            <Text style={styles.retryText}>대시보드로</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <SafeScrollView contentContainerStyle={styles.composerContent} showBottomBackground={false}>
+            {}
+            <View style={styles.imageBox}>
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+              ) : (
+                <View style={[styles.image, styles.imagePlaceholder]}>
+                  <Feather name="image" size={36} color={COLORS.zinc400} />
+                </View>
+              )}
+            </View>
+
+            {}
+            <TextInput
+              style={styles.captionInput}
+              value={caption}
+              onChangeText={setCaption}
+              placeholder="캡션 추가..."
+              placeholderTextColor={COLORS.zinc400}
+              multiline
+              maxLength={2000}
+            />
+          </SafeScrollView>
+
+          {}
+          <View style={styles.bottomBar}>
+            <Button
+              title={posting ? "공유 중..." : "공유"}
+              onPress={handleSharePost}
+              variant="accent"
+              disabled={posting || createdCloneId == null}
+            />
+            <Button
+              title="건너뛰기"
+              onPress={handleGoToDashboard}
+              variant="ghost"
+              disabled={posting}
+            />
+          </View>
+        </KeyboardAvoidingView>
+      )}
 
       {}
       <Modal visible={paymentModal} transparent animationType="fade">
@@ -475,6 +526,66 @@ const payStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
+
+  composerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+  },
+  headerBack: { width: 40, alignItems: "flex-start" },
+  headerCenter: { flex: 1, alignItems: "center" },
+  headerName: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
+  headerHandle: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+
+  composerContent: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+  },
+  imageBox: {
+    width: "100%",
+    aspectRatio: 4 / 5,
+    borderRadius: RADIUS.md,
+    overflow: "hidden",
+    backgroundColor: COLORS.zinc50,
+    marginBottom: 16,
+  },
+  image: { width: "100%", height: "100%" },
+  imagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.zinc100,
+  },
+  captionInput: {
+    minHeight: 60,
+    fontSize: 14,
+    color: COLORS.zinc900,
+    paddingVertical: 8,
+    textAlignVertical: "top",
+  },
+
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+    paddingHorizontal: SIZES.xlarge,
+  },
+  creatingText: { fontSize: 14, color: COLORS.zinc600 },
+  retryBtn: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.zinc900,
+  },
+  retryText: { fontSize: 14, fontWeight: "600", color: COLORS.white },
+
   content: {
     flexGrow: 1,
     alignItems: "center",

@@ -476,6 +476,33 @@ export async function listDiscoverFeeds(opts?: {
   return parsed as { items: DiscoverFeedItem[]; nextCursor: number | null };
 }
 
+export async function createCloneFeed(
+  accessToken: string,
+  cloneId: number,
+  payload: { content?: string; mediaUrl?: string; mediaType?: string },
+): Promise<{ feed: { id: number; cloneId: number; content: string | null; mediaUrl: string | null } }> {
+  const res = await fetch(`${API_BASE}/oth-path${cloneId}/oth-path`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as { feed: { id: number; cloneId: number; content: string | null; mediaUrl: string | null } };
+}
+
 export interface FeedLikeUser {
   likeId: number;
   userId: number;
