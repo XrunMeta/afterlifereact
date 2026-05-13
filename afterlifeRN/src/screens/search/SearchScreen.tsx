@@ -16,7 +16,7 @@ import {
 } from "rcmrninabrnb";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_2d8264, v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_5b8240 } from "ykfzqfftuciufdadykzsyvzknqnwb";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import v_556baf from "../../components/ui/SafeView";
@@ -46,12 +46,30 @@ const v_1bc355 = [
 
 export default function v_5db6c6() {
   const v_3c9f12 = v_ada615<TabNav>();
+  const v_c7daf6 = v_2d8264();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_033e14 = v_e0068c();
 
   const [v_7c5791, v_c57190] = v_5ab095("");
   const [v_50c827, v_b6749d] = v_5ab095(false);
   const [v_ac1d22, v_02dd63] = v_5ab095<TabKey>("recommend");
+
+  v_cf763b(
+    v_a3453e.useCallback(() => {
+      const v_24baff = v_c7daf6.params as { initialQuery?: string } | undefined;
+      const v_fc6010 = v_24baff?.initialQuery;
+      if (typeof v_fc6010 === "string" && v_fc6010.trim().length > 0) {
+        v_c57190(v_fc6010);
+
+        if (v_fc6010.trim().startsWith("#")) {
+          v_02dd63("tag");
+        }
+
+        v_3c9f12.setParams({ initialQuery: undefined } as never);
+      }
+
+    }, [v_c7daf6.params, v_3c9f12]),
+  );
   const [v_632473, v_5593fb] = v_5ab095<v_4c75cf[]>([]);
   const [v_9debb9, v_dbbd5d] = v_5ab095(true);
   const [v_de7ba7, v_28d82a] = v_5ab095<v_3a673b[]>([]);
