@@ -27,7 +27,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
 import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
-import { createClone, deriveUsernameFromName, createCloneFeed } from "../../api/clones";
+import { createClone, deriveUsernameFromName, createCloneFeed, updateClone } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
 import { Image } from "react-native";
@@ -300,13 +300,21 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   const handleSharePost = async () => {
     if (createdCloneId == null) return;
-    const hasCaption = caption.trim().length > 0;
+    const trimmed = caption.trim();
+    const hasCaption = trimmed.length > 0;
     setPosting(true);
     try {
       if (hasCaption && accessToken) {
+
+        try {
+          await updateClone(accessToken, createdCloneId, { description: trimmed });
+        } catch (patchErr) {
+          console.warn("[CLONE-CREATE] update description failed:", patchErr);
+        }
+
         const mediaUrl = avatarUrlRef.current ?? null;
         await createCloneFeed(accessToken, createdCloneId, {
-          content: caption.trim(),
+          content: trimmed,
           ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
         });
       }

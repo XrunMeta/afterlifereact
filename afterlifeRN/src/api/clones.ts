@@ -265,6 +265,26 @@ export async function deleteClone(
   );
 }
 
+export interface UpdateClonePayload {
+  name?: string;
+  description?: string;
+  avatar_url?: string;
+  cover_image_url?: string;
+  visibility?: string;
+  interests?: string[];
+}
+export async function updateClone(
+  accessToken: string,
+  cloneId: number,
+  payload: UpdateClonePayload,
+): Promise<{ ok: true; updatedFields: string[] }> {
+  return authFetch(
+    `/oth-path${cloneId}`,
+    accessToken,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
 export type SentInviteStatus = "pending" | "accepted" | "cancelled" | "expired";
 export interface SentInvite {
   id: number;
