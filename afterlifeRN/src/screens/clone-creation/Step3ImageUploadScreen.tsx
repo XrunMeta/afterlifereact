@@ -6,7 +6,6 @@ import type { CreateStackParamList } from '../../navigation/types';
 import SafeView from '../../components/ui/SafeView';
 import SafeScrollView from '../../components/ui/SafeScrollView';
 import PageHeader from '../../components/common/PageHeader';
-import StepIndicator from '../../components/common/StepIndicator';
 import Step3EntryBanner from '../../components/common/Step3EntryBanner';
 import Button from '../../components/ui/Button';
 import { useCloneStore } from '../../stores/cloneStore';
@@ -35,7 +34,6 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
           navigation.getParent()?.navigate("HomeTab" as never);
         }}
       />
-      <StepIndicator currentStep={1} totalSteps={4} />
       {bannerOpen && <Step3EntryBanner onDismiss={() => setBannerOpen(false)} />}
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />
