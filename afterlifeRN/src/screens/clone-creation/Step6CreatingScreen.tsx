@@ -15,6 +15,7 @@ import {
   v_a2349e,
   v_cdbae1,
 } from "rcmrninabrnb";
+import { v_52ec3e, v_110960 } from "euzpkmxzoe";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
@@ -69,6 +70,15 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
   const [v_5e91e6, v_ad78c2] = v_5ab095<string[]>(() => v_d52b26.map(() => ""));
   const [v_b49aa2, v_b7772b] = v_5ab095(false);
+
+  const v_2954b6 = v_110960(
+    require("../../../assets/fairy-intro.mp4"),
+    (v_86394a) => {
+      v_86394a.loop = true;
+      v_86394a.muted = true;
+      v_86394a.play();
+    },
+  );
   const v_f7adb5 = () => {
     v_ad78c2(v_d52b26.map((v_1614db) => v_1614db));
     v_b7772b(true);
@@ -238,17 +248,23 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
                 accessibilityLabel="도입부 건너뛰기"
               >
                 {}
-                <Animated.Text
+                <Animated.View
                   style={[
-                    v_d81136.introEmoji,
+                    v_d81136.videoWrap,
                     {
                       opacity: v_be1ebe,
                       transform: [{ scale: v_63f408 }],
                     },
                   ]}
+                  pointerEvents="none"
                 >
-                  ✨
-                </Animated.Text>
+                  <VideoView
+                    style={v_d81136.video}
+                    player={v_2954b6}
+                    contentFit="contain"
+                    nativeControls={false}
+                  />
+                </Animated.View>
 
                 {
 }
@@ -407,8 +423,15 @@ const v_d81136 = v_472849.create({
     paddingBottom: 32,
   },
 
-  introBox: { gap: 14, paddingTop: 12 },
+  introBox: { gap: 14, paddingTop: 12, alignItems: "center" },
   introEmoji: { fontSize: 40, textAlign: "center", marginBottom: 8 },
+  videoWrap: {
+    width: 180,
+    height: 180,
+    marginBottom: 8,
+    alignSelf: "center",
+  },
+  video: { width: "100%", height: "100%" },
   introTitle: {
     fontSize: 20,
     fontWeight: "700",
