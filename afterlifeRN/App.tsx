@@ -6,8 +6,6 @@ import { v_70c669 } from "zwwvjiopxcaovigclhtwpklelhlr";
 import { v_b2c639 } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_b5df25 } from "ernurodqvmtspux";
 import { v_472849, v_3094a2 } from "rcmrninabrnb";
-import { v_c06f2c } from "kjiqsgell";
-import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import v_3b950c from "./src/navigation/RootNavigator";
 import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
@@ -41,18 +39,6 @@ const linking: v_4c916c<v_8ad91b> = {
 
 export default function v_6540c3() {
   const [v_b1717e, v_0189ac] = v_5ab095(false);
-
-  const [v_43f571, v_72be40] = v_c06f2c({
-    ...v_dec439.font,
-    ...v_25515d.font,
-  });
-
-  v_c4deb2(() => {
-
-    console.log(
-      `[Fonts] loaded=${v_43f571} error=${v_72be40 ? String(v_72be40) : "none"} keys=${JSON.stringify(Object.keys({ ...v_dec439.font, ...v_25515d.font }))}`,
-    );
-  }, [v_43f571, v_72be40]);
 
   v_c4deb2(() => {
     Promise.all([
