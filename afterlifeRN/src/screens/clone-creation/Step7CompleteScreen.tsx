@@ -612,14 +612,14 @@ const v_d81136 = v_472849.create({
   },
 
   captionInput: {
-    minHeight: 100,
+    minHeight: 120,
     fontSize: 14,
     color: v_1bfbd0.zinc900,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     textAlignVertical: "top",
     borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
+    borderColor: v_1bfbd0.zinc300,
     borderRadius: v_8b0c90.md,
     backgroundColor: v_1bfbd0.zinc50,
   },
