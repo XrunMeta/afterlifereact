@@ -12,7 +12,9 @@ import {
   v_39a996,
   v_700696,
   v_09d0e5,
+  v_0e1f26,
 } from "rcmrninabrnb";
+import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_5b8240 } from "ykfzqfftuciufdadykzsyvzknqnwb";
@@ -31,6 +33,8 @@ type TabNav = v_5b8240<v_97a9a8>;
 
 const v_296ef9 = 4; 
 const v_f229b8 = 2;
+const v_d056d4 = "@search_recent";
+const v_0ee015 = 10;
 
 type TabKey = "recommend" | "clone" | "account" | "tag";
 const v_1bc355 = [
@@ -46,11 +50,14 @@ export default function v_5db6c6() {
   const v_033e14 = v_e0068c();
 
   const [v_7c5791, v_c57190] = v_5ab095("");
+  const [v_50c827, v_b6749d] = v_5ab095(false);
   const [v_ac1d22, v_02dd63] = v_5ab095<TabKey>("recommend");
   const [v_632473, v_5593fb] = v_5ab095<v_4c75cf[]>([]);
   const [v_9debb9, v_dbbd5d] = v_5ab095(true);
   const [v_de7ba7, v_28d82a] = v_5ab095<v_3a673b[]>([]);
   const [v_866dc6, v_7c1422] = v_5ab095(false);
+  const [v_4cd692, v_895d47] = v_5ab095<string[]>([]);
+  const v_32f473 = v_e662ae<v_79c4f2>(null);
 
   const v_bcfa24 = v_700696.get("window").width;
   const v_675c6a = v_df9f57(
@@ -62,6 +69,54 @@ export default function v_5db6c6() {
     () => Math.floor(v_675c6a * (16 / 9)),
     [v_675c6a],
   );
+
+  v_c4deb2(() => {
+    (async () => {
+      try {
+        const v_479f05 = await v_e84827.getItem(v_d056d4);
+        if (v_479f05) {
+          const v_8decf8 = JSON.parse(v_479f05);
+          if (Array.isArray(v_8decf8)) {
+            v_895d47(v_8decf8.filter((v_62c214) => typeof v_62c214 === "string").slice(0, v_0ee015));
+          }
+        }
+      } catch (v_49263d) {
+        console.warn("[Search] recent load failed:", v_49263d);
+      }
+    })();
+  }, []);
+
+  const v_2dbcf9 = v_de06a3(async (v_ebaa25) => {
+    const v_8d41d7 = v_ebaa25.trim();
+    if (!v_8d41d7) return;
+    const v_a448ad = [v_8d41d7, ...v_4cd692.filter((v_62c214) => v_62c214.toLowerCase() !== v_8d41d7.toLowerCase())]
+      .slice(0, v_0ee015);
+    v_895d47(v_a448ad);
+    try {
+      await v_e84827.setItem(v_d056d4, JSON.stringify(v_a448ad));
+    } catch (v_49263d) {
+      console.warn("[Search] recent save failed:", v_49263d);
+    }
+  }, [v_4cd692]);
+
+  const v_c26d3f = v_de06a3(async (v_ebaa25) => {
+    const v_a448ad = v_4cd692.filter((v_62c214) => v_62c214 !== v_ebaa25);
+    v_895d47(v_a448ad);
+    try {
+      await v_e84827.setItem(v_d056d4, JSON.stringify(v_a448ad));
+    } catch (v_49263d) {
+      console.warn("[Search] recent remove failed:", v_49263d);
+    }
+  }, [v_4cd692]);
+
+  const v_e51925 = v_de06a3(async () => {
+    v_895d47([]);
+    try {
+      await v_e84827.removeItem(v_d056d4);
+    } catch (v_49263d) {
+      console.warn("[Search] recent clear failed:", v_49263d);
+    }
+  }, []);
 
   const v_b0ad70 = v_de06a3(async () => {
     v_dbbd5d(true);
@@ -108,6 +163,7 @@ export default function v_5db6c6() {
   }, [v_7c5791, v_2ca7e0]);
 
   const v_3ddc98 = v_7c5791.trim().length > 0;
+  const v_9c529a = !v_3ddc98 && v_50c827;
 
   const v_ff422a = v_df9f57(() => {
     const v_ab6401 = v_7c5791.trim().toLowerCase();
@@ -119,12 +175,7 @@ export default function v_5db6c6() {
         v_23805a.toLowerCase().includes(v_ab6401),
       );
       const v_73c4d7 = (v_8b5cd8.content ?? "").toLowerCase().includes(v_ab6401);
-      return (
-        v_1833e7.includes(v_ab6401) ||
-        v_1ed516.includes(v_ab6401) ||
-        v_3e7de0 ||
-        v_73c4d7
-      );
+      return v_1833e7.includes(v_ab6401) || v_1ed516.includes(v_ab6401) || v_3e7de0 || v_73c4d7;
     });
   }, [v_632473, v_7c5791]);
 
@@ -155,9 +206,23 @@ export default function v_5db6c6() {
     return v_48c915.filter((v_8d41d7) => v_8d41d7.toLowerCase().includes(v_ab6401));
   }, [v_632473, v_7c5791]);
 
-  const v_74ecfc = (v_6e0fd3) => {
+  const v_74ecfc = (v_6e0fd3, v_ebaa25) => {
+    if (v_ebaa25) v_2dbcf9(v_ebaa25);
 
     v_3c9f12.navigate("ClonesTab", { screen: "CloneDetail", params: { cloneId: v_6e0fd3 } });
+  };
+
+  const v_670702 = () => {
+    const v_8d41d7 = v_7c5791.trim();
+    if (v_8d41d7) v_2dbcf9(v_8d41d7);
+    v_0e1f26.dismiss();
+    v_b6749d(false);
+  };
+
+  const v_ba29e7 = (v_ebaa25) => {
+    v_c57190(v_ebaa25);
+    v_2dbcf9(v_ebaa25);
+    v_32f473.current?.blur();
   };
 
   const v_71d43d = ({
@@ -172,7 +237,7 @@ export default function v_5db6c6() {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => v_74ecfc(v_8c0b26.cloneId)}
+        onPress={() => v_74ecfc(v_8c0b26.cloneId, v_7c5791)}
         style={{ width: v_675c6a, height: v_6367e4, marginRight: v_d88de1, marginBottom: v_296ef9 }}
       >
         {v_8c0b26.mediaUrl ? (
@@ -187,7 +252,7 @@ export default function v_5db6c6() {
   };
 
   const v_51e832 = ({ item: v_8c0b26 }: { item: v_4c75cf["clone"] }) => (
-    <TouchableOpacity style={v_fd5f43.row} onPress={() => v_74ecfc(v_8c0b26.id)}>
+    <TouchableOpacity style={v_fd5f43.row} onPress={() => v_74ecfc(v_8c0b26.id, v_8c0b26.name)}>
       {v_8c0b26.avatarUrl ? (
         <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.rowAvatar} />
       ) : (
@@ -196,18 +261,17 @@ export default function v_5db6c6() {
         </View>
       )}
       <View style={{ flex: 1 }}>
-        <Text style={v_fd5f43.rowName} numberOfLines={1}>
-          {v_8c0b26.name}
-        </Text>
-        <Text style={v_fd5f43.rowSub} numberOfLines={1}>
-          @{v_8c0b26.username}
-        </Text>
+        <Text style={v_fd5f43.rowName} numberOfLines={1}>{v_8c0b26.name}</Text>
+        <Text style={v_fd5f43.rowSub} numberOfLines={1}>@{v_8c0b26.username}</Text>
       </View>
     </TouchableOpacity>
   );
 
   const v_358f4f = ({ item: v_8c0b26 }: { item: v_3a673b }) => (
-    <View style={v_fd5f43.row}>
+    <Pressable
+      style={v_fd5f43.row}
+      onPress={() => v_2dbcf9(v_8c0b26.name ?? v_8c0b26.email)}
+    >
       {v_8c0b26.avatarUrl ? (
         <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.rowAvatar} />
       ) : (
@@ -216,27 +280,40 @@ export default function v_5db6c6() {
         </View>
       )}
       <View style={{ flex: 1 }}>
-        <Text style={v_fd5f43.rowName} numberOfLines={1}>
-          {v_8c0b26.name ?? v_8c0b26.email}
-        </Text>
-        <Text style={v_fd5f43.rowSub} numberOfLines={1}>
-          {v_8c0b26.email}
-        </Text>
+        <Text style={v_fd5f43.rowName} numberOfLines={1}>{v_8c0b26.name ?? v_8c0b26.email}</Text>
+        <Text style={v_fd5f43.rowSub} numberOfLines={1}>{v_8c0b26.email}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 
   const v_854a87 = ({ item: v_8c0b26 }: { item: string }) => (
-    <Pressable style={v_fd5f43.row} onPress={() => v_c57190(v_8c0b26)}>
+    <Pressable style={v_fd5f43.row} onPress={() => { v_c57190(v_8c0b26); v_2dbcf9(v_8c0b26); }}>
       <View style={[v_fd5f43.rowAvatar, v_fd5f43.rowAvatarTag]}>
         <Feather name="hash" size={20} color={v_1bfbd0.zinc700} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={v_fd5f43.rowName} numberOfLines={1}>
-          #{v_8c0b26}
-        </Text>
+        <Text style={v_fd5f43.rowName} numberOfLines={1}>#{v_8c0b26}</Text>
       </View>
     </Pressable>
+  );
+
+  const v_35b27e = ({ item: v_8c0b26 }: { item: string }) => (
+    <View style={v_fd5f43.recentRow}>
+      <TouchableOpacity
+        style={v_fd5f43.recentLeft}
+        onPress={() => v_ba29e7(v_8c0b26)}
+      >
+        <Feather name="clock" size={18} color={v_1bfbd0.zinc400} />
+        <Text style={v_fd5f43.recentText} numberOfLines={1}>{v_8c0b26}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={v_fd5f43.recentRemoveBtn}
+        onPress={() => v_c26d3f(v_8c0b26)}
+        hitSlop={8}
+      >
+        <Feather name="x" size={16} color={v_1bfbd0.zinc400} />
+      </TouchableOpacity>
+    </View>
   );
 
   const v_e544cb = ({ label: v_2869c1 }: { label: string }) => (
@@ -253,6 +330,7 @@ export default function v_5db6c6() {
         <View style={v_fd5f43.searchBar}>
           <Feather name="search" size={18} color={v_1bfbd0.zinc500} />
           <TextInput
+            ref={v_32f473}
             style={v_fd5f43.searchInput}
             value={v_7c5791}
             onChangeText={v_c57190}
@@ -261,6 +339,9 @@ export default function v_5db6c6() {
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"
+            onFocus={() => v_b6749d(true)}
+            onBlur={() => v_b6749d(false)}
+            onSubmitEditing={v_670702}
           />
           {v_7c5791.length > 0 && (
             <TouchableOpacity onPress={() => v_c57190("")} hitSlop={8}>
@@ -270,7 +351,31 @@ export default function v_5db6c6() {
         </View>
       </View>
 
-      {v_3ddc98 ? (
+      {v_9c529a ? (
+
+        v_4cd692.length === 0 ? (
+          <View style={v_fd5f43.empty}>
+            <Feather name="clock" size={36} color={v_1bfbd0.zinc300} />
+            <Text style={v_fd5f43.emptyText}>최근 검색어가 없어요</Text>
+          </View>
+        ) : (
+          <View style={{ flex: 1 }}>
+            <View style={v_fd5f43.recentHeader}>
+              <Text style={v_fd5f43.recentHeaderTitle}>최근 검색</Text>
+              <TouchableOpacity onPress={v_e51925} hitSlop={8}>
+                <Text style={v_fd5f43.recentClearText}>모두 삭제</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={v_4cd692}
+              keyExtractor={(v_23805a) => v_23805a}
+              renderItem={v_35b27e}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
+            />
+          </View>
+        )
+      ) : v_3ddc98 ? (
         <>
           {}
           <View style={v_fd5f43.tabRow}>
@@ -291,7 +396,6 @@ export default function v_5db6c6() {
             })}
           </View>
 
-          {}
           {v_ac1d22 === "recommend" && (
             v_9debb9 ? (
               <ActivityIndicator style={v_fd5f43.loader} color={v_1bfbd0.zinc500} />
@@ -303,6 +407,7 @@ export default function v_5db6c6() {
                 keyExtractor={(v_23805a) => String(v_23805a.id)}
                 renderItem={v_71d43d}
                 numColumns={v_f229b8}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
               />
             )
@@ -316,6 +421,7 @@ export default function v_5db6c6() {
                 data={v_e12281}
                 keyExtractor={(v_23805a) => String(v_23805a.id)}
                 renderItem={v_51e832}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
               />
             )
@@ -331,6 +437,7 @@ export default function v_5db6c6() {
                 data={v_de7ba7}
                 keyExtractor={(v_23805a) => String(v_23805a.id)}
                 renderItem={v_358f4f}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
               />
             )
@@ -344,6 +451,7 @@ export default function v_5db6c6() {
                 data={v_fc704f}
                 keyExtractor={(v_23805a) => v_23805a}
                 renderItem={v_854a87}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingBottom: v_033e14.bottom + 32 }}
               />
             )
@@ -383,12 +491,7 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc100,
     borderRadius: v_8b0c90.lg,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: v_1bfbd0.zinc900,
-    padding: 0,
-  },
+  searchInput: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc900, padding: 0 },
 
   tabRow: {
     flexDirection: "row",
@@ -396,12 +499,7 @@ const v_fd5f43 = v_472849.create({
     borderBottomWidth: 1,
     borderBottomColor: v_1bfbd0.zinc100,
   },
-  tabItem: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 12,
-    position: "relative",
-  },
+  tabItem: { flex: 1, alignItems: "center", paddingVertical: 12, position: "relative" },
   tabLabel: { fontSize: 14, fontWeight: "500", color: v_1bfbd0.zinc500 },
   tabLabelActive: { color: v_1bfbd0.zinc900, fontWeight: "700" },
   tabUnderline: {
@@ -426,14 +524,30 @@ const v_fd5f43 = v_472849.create({
     borderBottomColor: v_1bfbd0.zinc100,
   },
   rowAvatar: { width: 44, height: 44, borderRadius: 22 },
-  rowAvatarPh: {
-    backgroundColor: v_1bfbd0.zinc100,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  rowAvatarPh: { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" },
   rowAvatarTag: { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" },
   rowName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
   rowSub: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+
+  recentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  recentHeaderTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  recentClearText: { fontSize: 13, color: v_1bfbd0.violet600, fontWeight: "500" },
+  recentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  recentLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12 },
+  recentText: { flex: 1, fontSize: 14, color: v_1bfbd0.zinc900 },
+  recentRemoveBtn: { padding: 4 },
 
   loader: { paddingTop: 60 },
   empty: { alignItems: "center", paddingTop: 60, gap: 12 },
