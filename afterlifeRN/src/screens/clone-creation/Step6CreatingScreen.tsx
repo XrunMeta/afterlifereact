@@ -22,7 +22,6 @@ import type { v_2b51a5 } from "../../navigation/types";
 
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
-import v_3183b2 from "../../components/common/StepIndicator";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_b55477 } from "../../api/clones";
@@ -46,7 +45,6 @@ const v_1613bd = [
   "personality",
   "memory",
 ];
-const v_1c0e96 = v_1613bd.length;
 
 const v_d52b26 = [
   "안녕!",
@@ -224,18 +222,17 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
     return true;
   })();
 
-  const v_34b72e = v_1613bd.indexOf(
-    v_ab4803 as (typeof v_1613bd)[number],
-  ) + 1;
+  const v_e2f265 = v_ab4803 === "intro";
 
   return (
-    <SafeView backgroundColor={v_1bfbd0.white}>
-      <PageHeader
-        title="페르소나 만들기"
-        showBackButton
-        onBackPress={v_c7ac57}
-      />
-      <StepIndicator currentStep={3} totalSteps={4} />
+    <SafeView backgroundColor={v_e2f265 ? "#000000" : v_1bfbd0.white}>
+      {!v_e2f265 && (
+        <PageHeader
+          title="페르소나 만들기"
+          showBackButton
+          onBackPress={v_c7ac57}
+        />
+      )}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -303,8 +300,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
             {v_ab4803 === "name" && (
               <>
-                <Text style={v_d81136.qLabel}>{v_34b72e} / {v_1c0e96}</Text>
-                <Text style={v_d81136.qTitle}>그 존재의 이름이 뭐였어?</Text>
+<Text style={v_d81136.qTitle}>그 존재의 이름이 뭐였어?</Text>
                 <Text style={v_d81136.qDesc}>
                   네가 부르던 이름이나 별명, 어떤 호칭이든 좋아.
                 </Text>
@@ -324,8 +320,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
             {v_ab4803 === "firstMeeting" && (
               <>
-                <Text style={v_d81136.qLabel}>{v_34b72e} / {v_1c0e96}</Text>
-                <Text style={v_d81136.qTitle}>
+<Text style={v_d81136.qTitle}>
                   그 존재와는 어떻게 처음 만나게 되었어?
                 </Text>
                 <Text style={v_d81136.qDesc}>
@@ -346,8 +341,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
             {v_ab4803 === "habit" && (
               <>
-                <Text style={v_d81136.qLabel}>{v_34b72e} / {v_1c0e96}</Text>
-                <Text style={v_d81136.qTitle}>
+<Text style={v_d81136.qTitle}>
                   자주 하던 말이나 눈길이 가던 습관이 있었니?
                 </Text>
                 <Text style={v_d81136.qDesc}>
@@ -368,8 +362,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
             {v_ab4803 === "personality" && (
               <>
-                <Text style={v_d81136.qLabel}>{v_34b72e} / {v_1c0e96}</Text>
-                <Text style={v_d81136.qTitle}>
+<Text style={v_d81136.qTitle}>
                   그 존재의 성격은 어땠어?
                 </Text>
                 <Text style={v_d81136.qDesc}>
@@ -390,8 +383,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
             {v_ab4803 === "memory" && (
               <>
-                <Text style={v_d81136.qLabel}>{v_34b72e} / {v_1c0e96}</Text>
-                <Text style={v_d81136.qTitle}>
+<Text style={v_d81136.qTitle}>
                   눈 감으면 어제처럼 선명한 그 장면이 있을까?
                 </Text>
                 <Text style={v_d81136.qDesc}>
@@ -411,14 +403,18 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
             )}
           </ScrollView>
         </TouchableWithoutFeedback>
-        <View style={v_d81136.bottomBar}>
+        <View style={[v_d81136.bottomBar, v_e2f265 && v_d81136.bottomBarDark]}>
           <TouchableOpacity
-            style={[v_d81136.btn, !v_fc0cf5 && v_d81136.btnDisabled]}
+            style={[
+              v_d81136.btn,
+              v_e2f265 && v_d81136.btnLight,
+              !v_fc0cf5 && v_d81136.btnDisabled,
+            ]}
             onPress={v_219251}
             disabled={!v_fc0cf5}
             activeOpacity={0.85}
           >
-            <Text style={v_d81136.btnText}>
+            <Text style={[v_d81136.btnText, v_e2f265 && v_d81136.btnTextDark]}>
               {v_ab4803 === "intro" ? "시작하기" : "다음"}
             </Text>
           </TouchableOpacity>
@@ -450,26 +446,21 @@ const v_d81136 = v_472849.create({
     textAlign: "center",
     lineHeight: 180,
   },
+
   introTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
-    color: v_1bfbd0.zinc900,
+    color: v_1bfbd0.white,
     textAlign: "center",
-    lineHeight: 30,
+    lineHeight: 32,
   },
   introBody: {
-    fontSize: 15,
-    color: v_1bfbd0.zinc600,
+    fontSize: 16,
+    color: "rgba(255,255,255,0.85)",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 26,
   },
 
-  qLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: v_1bfbd0.violet600,
-    marginBottom: 8,
-  },
   qTitle: {
     fontSize: 22,
     fontWeight: "700",
@@ -500,12 +491,20 @@ const v_d81136 = v_472849.create({
     borderTopWidth: 1,
     borderTopColor: v_1bfbd0.zinc100,
   },
+
+  bottomBarDark: {
+    borderTopWidth: 0,
+    backgroundColor: "transparent",
+  },
   btn: {
     paddingVertical: 14,
     borderRadius: v_8b0c90.md,
     backgroundColor: v_1bfbd0.zinc900,
     alignItems: "center",
   },
+
+  btnLight: { backgroundColor: v_1bfbd0.white },
+  btnTextDark: { color: v_1bfbd0.zinc900 },
   btnDisabled: { opacity: 0.4 },
   btnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
 });
