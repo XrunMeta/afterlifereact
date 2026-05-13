@@ -376,6 +376,30 @@ export interface XrunCloseResult {
   reason?: string;
 }
 
+export async function v_a23589(
+  env: v_273a0c,
+  v_660822,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
+    return { ok: false, reason: "missing XRUN_GATEWAY_TOKEN" };
+  }
+  try {
+    const v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({ member: v_660822 }),
+    });
+    if (!v_8f00b9.ok) {
+      return { ok: false, reason: `HTTP ${v_8f00b9.status}` };
+    }
+    const v_7ecfd1 = (await v_8f00b9.json()) as { status?: string; message?: string };
+    if (v_7ecfd1.status === "success") return { ok: true };
+    return { ok: false, reason: v_7ecfd1.message ?? "unknown" };
+  } catch (v_49263d) {
+    return { ok: false, reason: `network: ${(v_49263d as Error).message}` };
+  }
+}
+
 export async function v_d19f98(
   env: v_273a0c,
   v_660822,

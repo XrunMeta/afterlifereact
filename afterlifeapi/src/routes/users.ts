@@ -529,7 +529,8 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
     .first<{ xrun_member_id: number | null }>();
   const v_88fe80 = v_213c33?.xrun_member_id ?? null;
   if (v_88fe80) {
-    const { getXrunMemberInfo: v_d19f98, closeXrunMember: v_a33f6b } = await import("../lib/xrun");
+    const { getXrunMemberInfo: v_d19f98, closeXrunMember: v_a33f6b, markAfterlifeDeletedOnXrun: v_a23589 } =
+      await import("../lib/xrun");
     const v_34d5e3 = await v_d19f98(v_3f4e2e.env, v_88fe80);
     if (v_34d5e3.ok) {
       const v_aa632d = (v_34d5e3.appSource ?? "").toLowerCase() === "afterlife";
@@ -550,6 +551,12 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
         closed: false,
         reason: v_34d5e3.missing ? "xrun member missing (auto-unlinked)" : `lookup failed: ${v_34d5e3.reason}`,
       };
+    }
+
+    try {
+      await v_a23589(v_3f4e2e.env, v_88fe80);
+    } catch (v_49263d) {
+      console.warn("[gdpr] markAfterlifeDeletedOnXrun failed:", (v_49263d as Error).message);
     }
   }
 
