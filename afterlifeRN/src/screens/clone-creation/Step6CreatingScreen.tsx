@@ -1,6 +1,6 @@
 
 
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -12,6 +12,8 @@ import {
   v_a944fa,
   v_0e1f26,
   v_122070,
+  v_a2349e,
+  v_cdbae1,
 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -45,6 +47,14 @@ const v_1613bd = [
 ];
 const v_1c0e96 = v_1613bd.length;
 
+const v_d52b26 = [
+  "안녕! 나는 네 소중한 기억 속에 살고 있는 요정이야.",
+  "지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...",
+  "떠올랐어?! 그럼, 네 머릿속에 있는 그 소중한 존재를 생각하며 답해줘!",
+] as const;
+const v_0d2e40 = 35;   
+const v_cf0e03 = 450;  
+
 export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   v_772971();
   const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
@@ -56,6 +66,69 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const [v_7fae74, v_e2f100] = v_5ab095<string>("");
   const [v_324a89, v_87462f] = v_5ab095<string>("");
   const [v_773b4c, v_f714d9] = v_5ab095<string>("");
+
+  const [v_5e91e6, v_ad78c2] = v_5ab095<string[]>(() => v_d52b26.map(() => ""));
+  const [v_b49aa2, v_b7772b] = v_5ab095(false);
+  const v_f7adb5 = () => {
+    v_ad78c2(v_d52b26.map((v_1614db) => v_1614db));
+    v_b7772b(true);
+  };
+
+  const v_be1ebe = v_e662ae(new v_a2349e.Value(0)).current;
+  const v_63f408 = v_e662ae(new v_a2349e.Value(0.6)).current;
+
+  const v_6821b6 = v_e662ae(new v_a2349e.Value(1)).current;
+
+  v_c4deb2(() => {
+    if (v_ab4803 !== "intro") return;
+    let v_2008a4 = false;
+
+    v_a2349e.parallel([
+      v_a2349e.timing(v_be1ebe, {
+        toValue: 1,
+        duration: 500,
+        easing: v_cdbae1.out(v_cdbae1.cubic),
+        useNativeDriver: true,
+      }),
+      v_a2349e.spring(v_63f408, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    const v_d083b4 = v_a2349e.loop(
+      v_a2349e.sequence([
+        v_a2349e.timing(v_6821b6, { toValue: 0, duration: 500, useNativeDriver: true }),
+        v_a2349e.timing(v_6821b6, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ]),
+    );
+    v_d083b4.start();
+
+    const v_d9b231 = async () => {
+
+      await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 400));
+      const v_5e40b9 = v_d52b26.map(() => "");
+      for (let v_ea26ea = 0; v_ea26ea < v_d52b26.length; v_ea26ea++) {
+        const v_e6293e = v_d52b26[v_ea26ea]!;
+        for (let v_9f8c39 = 1; v_9f8c39 <= v_e6293e.length; v_9f8c39++) {
+          if (v_2008a4) return;
+          v_5e40b9[v_ea26ea] = v_e6293e.slice(0, v_9f8c39);
+          v_ad78c2([...v_5e40b9]);
+          await new Promise((v_cb35cb) => setTimeout(v_cb35cb, v_0d2e40));
+        }
+        if (v_2008a4) return;
+        await new Promise((v_cb35cb) => setTimeout(v_cb35cb, v_cf0e03));
+      }
+      if (!v_2008a4) v_b7772b(true);
+    };
+    v_d9b231();
+
+    return () => {
+      v_2008a4 = true;
+      v_d083b4.stop();
+    };
+  }, [v_ab4803, v_be1ebe, v_63f408, v_6821b6]);
 
   const v_6c06d1 = (): string => {
     const v_946c09 = [];
@@ -127,7 +200,8 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   };
 
   const v_fc0cf5 = (() => {
-    if (v_ab4803 === "intro") return true;
+
+    if (v_ab4803 === "intro") return v_b49aa2;
     if (v_ab4803 === "name") return v_1833e7.trim().length > 0;
 
     return true;
@@ -157,19 +231,45 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
             showsVerticalScrollIndicator={false}
           >
             {v_ab4803 === "intro" && (
-              <View style={v_d81136.introBox}>
-                <Text style={v_d81136.introEmoji}>✨</Text>
-                <Text style={v_d81136.introTitle}>
-                  안녕! 나는 네 소중한 기억 속에 살고 있는 요정이야.
-                </Text>
-                <Text style={v_d81136.introBody}>
-                  지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...
-                </Text>
-                <Text style={v_d81136.introBody}>
-                  떠올랐어?!{"\n"}
-                  그럼, 네 머릿속에 있는 그 소중한 존재를 생각하며 답해줘!
-                </Text>
-              </View>
+              <TouchableOpacity
+                style={v_d81136.introBox}
+                onPress={v_f7adb5}
+                activeOpacity={1}
+                accessibilityLabel="도입부 건너뛰기"
+              >
+                {}
+                <Animated.Text
+                  style={[
+                    v_d81136.introEmoji,
+                    {
+                      opacity: v_be1ebe,
+                      transform: [{ scale: v_63f408 }],
+                    },
+                  ]}
+                >
+                  ✨
+                </Animated.Text>
+
+                {
+}
+                {v_d52b26.map((v_e6293e, v_ebec57) => {
+                  if (v_5e91e6[v_ebec57].length === 0) return null;
+
+                  const v_359bf6 = !v_b49aa2 && v_5e91e6[v_ebec57].length < v_e6293e.length;
+                  const v_809f45 = v_ebec57 === 0;
+                  const v_197d6e = v_809f45 ? v_d81136.introTitle : v_d81136.introBody;
+                  return (
+                    <Text key={v_ebec57} style={v_197d6e}>
+                      {v_5e91e6[v_ebec57]}
+                      {v_359bf6 && (
+                        <Animated.Text style={{ opacity: v_6821b6, color: v_1bfbd0.violet600 }}>
+                          ▍
+                        </Animated.Text>
+                      )}
+                    </Text>
+                  );
+                })}
+              </TouchableOpacity>
             )}
 
             {v_ab4803 === "name" && (
