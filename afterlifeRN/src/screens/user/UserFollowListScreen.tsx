@@ -15,8 +15,9 @@ import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
-import { v_1bfbd0 } from "../../components/constants";
+import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
+import { v_98d20a } from "../../stores/userFollowStore";
 import {
   v_00fbca,
   v_5959d8,
@@ -30,8 +31,12 @@ type NavProp = v_390fcc<v_8ad91b>;
 export default function v_7d236a() {
   const v_c65f5d = v_ada615<NavProp>();
   const v_c7daf6 = v_2d8264<RouteProps>();
-  const { userId: v_43e90c, mode: v_34e5bb, userName: v_f08a5e } = v_c7daf6.params;
+
+  const { userId: v_43e90c, mode: v_34e5bb } = v_c7daf6.params;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
+  const v_a5842c = v_98d20a((v_72c7a6) => v_72c7a6.isFollowing);
+  const v_eb95ab = v_98d20a((v_72c7a6) => v_72c7a6.toggleFollow);
 
   const [v_4622b9, v_fa923c] = v_5ab095<v_7428e9[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(true);
@@ -59,32 +64,50 @@ export default function v_7d236a() {
     v_f6f5de();
   }, [v_f6f5de]);
 
-  const v_f6ad52 = ({ item: v_8c0b26 }: { item: v_7428e9 }) => (
-    <TouchableOpacity
-      style={v_fd5f43.row}
-      onPress={() => v_c65f5d.push("UserProfile", { userId: v_8c0b26.userId })}
-    >
-      {v_8c0b26.avatarUrl ? (
-        <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.avatar} />
-      ) : (
-        <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
-          <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+  const v_f6ad52 = ({ item: v_8c0b26 }: { item: v_7428e9 }) => {
+    const v_0c8fa1 = v_8c0b26.userId === v_f5f393;
+    const v_10387a = v_a5842c(v_8c0b26.userId);
+    return (
+      <TouchableOpacity
+        style={v_fd5f43.row}
+        onPress={() => v_c65f5d.push("UserProfile", { userId: v_8c0b26.userId })}
+        activeOpacity={0.7}
+      >
+        {v_8c0b26.avatarUrl ? (
+          <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.avatar} />
+        ) : (
+          <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
+            <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={v_fd5f43.name} numberOfLines={1}>
+            {v_8c0b26.name ?? v_8c0b26.email}
+          </Text>
+          <Text style={v_fd5f43.email} numberOfLines={1}>
+            {v_8c0b26.email}
+          </Text>
         </View>
-      )}
-      <View style={{ flex: 1 }}>
-        <Text style={v_fd5f43.name} numberOfLines={1}>
-          {v_8c0b26.name ?? v_8c0b26.email}
-        </Text>
-        <Text style={v_fd5f43.email} numberOfLines={1}>
-          {v_8c0b26.email}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+        {}
+        {!v_0c8fa1 && (
+          <TouchableOpacity
+            onPress={(v_9e86fd) => {
+              v_9e86fd.stopPropagation?.();
+              void v_eb95ab(v_8c0b26.userId);
+            }}
+            style={[v_fd5f43.followBtn, v_10387a && v_fd5f43.followBtnActive]}
+            activeOpacity={0.8}
+          >
+            <Text style={[v_fd5f43.followBtnText, v_10387a && v_fd5f43.followBtnTextActive]}>
+              {v_10387a ? "팔로잉" : "팔로우"}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
-  const v_9f1622 = `${v_f08a5e ? v_f08a5e + "님의 " : ""}${
-    v_34e5bb === "followers" ? "팔로워" : "팔로잉"
-  }`;
+  const v_9f1622 = v_34e5bb === "followers" ? "팔로워" : "팔로잉";
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
@@ -141,4 +164,19 @@ const v_fd5f43 = v_472849.create({
   },
   name: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
   email: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  followBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: v_8b0c90.full,
+    backgroundColor: v_1bfbd0.violet600,
+    minWidth: 70,
+    alignItems: "center",
+  },
+  followBtnActive: {
+    backgroundColor: v_1bfbd0.white,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc300,
+  },
+  followBtnText: { color: v_1bfbd0.white, fontSize: 13, fontWeight: "700" },
+  followBtnTextActive: { color: v_1bfbd0.zinc700 },
 });

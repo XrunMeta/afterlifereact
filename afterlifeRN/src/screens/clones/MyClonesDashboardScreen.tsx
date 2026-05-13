@@ -310,7 +310,21 @@ export default function v_def15b() {
     v_5c99c1(v_2ca7e0)
       .then((v_8f00b9) => {
         if (v_2008a4) return;
-        v_67ba02(v_8f00b9.linked ? (v_8f00b9.xrun ?? 0) : undefined);
+        console.log(
+          "[Dashboard] xrun balance ←",
+          "linked=", v_8f00b9.linked,
+          "xrun=", v_8f00b9.xrun,
+          "balances.length=", v_8f00b9.balances?.length ?? 0,
+          "balances=", JSON.stringify(v_8f00b9.balances),
+        );
+
+        if (!v_8f00b9.linked) {
+          v_67ba02(undefined);
+        } else if (typeof v_8f00b9.xrun === "number" && Number.isFinite(v_8f00b9.xrun)) {
+          v_67ba02(v_8f00b9.xrun);
+        } else {
+          v_67ba02(undefined);
+        }
       })
       .catch((v_49263d) => {
         console.warn("[Dashboard] xrun balance fetch failed:", v_49263d);
