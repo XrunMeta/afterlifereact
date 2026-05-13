@@ -28,6 +28,7 @@ import SafeView from "../../components/ui/SafeView";
 import Button from "../../components/ui/Button";
 import PageHeader from "../../components/common/PageHeader";
 import HashtagText from "../../components/common/HashtagText";
+import FriendPickerModal from "./components/FriendPickerModal";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
@@ -379,16 +380,35 @@ export default function MyClonesDashboardScreen() {
     }
   };
 
-  const confirmVisibility = (v: Visibility) => {
+  const [friendPickerCloneId, setFriendPickerCloneId] = useState<number | null>(null);
+
+  const confirmVisibility = async (v: Visibility) => {
     if (!visibilityModal) return;
+    const cloneId = visibilityModal.cloneId;
+    setVisibilityModal(null);
+
+    if (v === "selected") {
+      setFriendPickerCloneId(cloneId);
+      return;
+    }
+
     setCloneStates((prev) => ({
       ...prev,
-      [visibilityModal.cloneId]: {
-        ...prev[visibilityModal.cloneId],
-        visibility: v,
-      },
+      [cloneId]: { ...prev[cloneId], visibility: v },
     }));
-    setVisibilityModal(null);
+
+    if (accessToken) {
+      try {
+        const { patchClone } = await import("../../api/clones");
+        await patchClone(accessToken, cloneId, {
+          visibility: v,
+
+          allowed_viewers: [],
+        });
+      } catch (err) {
+        console.warn("[Dashboard] update visibility failed:", err);
+      }
+    }
   };
 
   const handleDelete = (cloneId: number) => {
@@ -453,17 +473,19 @@ export default function MyClonesDashboardScreen() {
 
   const getVisibilityLabel = (v: Visibility) => {
     switch (v) {
-      case "public": return "공개";
-      case "private": return "비공개";
-      case "followers": return "지인공개";
+      case "public": return "전체 공개";
+      case "followers": return "팔로워만";
+      case "selected": return "특정 친구";
+      case "private": return "나만 보기";
     }
   };
 
   const getVisibilityIcon = (v: Visibility): keyof typeof Feather.glyphMap => {
     switch (v) {
-      case "public": return "eye";
-      case "private": return "eye-off";
-      case "followers": return "user-check";
+      case "public": return "globe";
+      case "followers": return "users";
+      case "selected": return "user-check";
+      case "private": return "lock";
     }
   };
 
@@ -889,11 +911,10 @@ export default function MyClonesDashboardScreen() {
       <Modal visible={!!visibilityModal} transparent animationType="fade">
         <Pressable style={s.modalOverlay} onPress={() => setVisibilityModal(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
-            <Text style={s.modalTitle}>공개 설정</Text>
-            <Text style={s.modalDesc}>페르소나의 공개 범위를 선택하세요</Text>
+            <Text style={s.modalTitle}>공개 범위</Text>
+            <Text style={s.modalDesc}>이 페르소나를 누구에게 보일까요?</Text>
             <View style={s.visibilityOptions}>
-              {}
-              {(["public", "private"] as Visibility[]).map((v) => {
+              {(["public", "followers", "selected", "private"] as Visibility[]).map((v) => {
                 const selected = visibilityModal?.currentVisibility === v;
                 return (
                   <TouchableOpacity
@@ -927,6 +948,32 @@ export default function MyClonesDashboardScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {}
+      <FriendPickerModal
+        visible={friendPickerCloneId != null}
+        onClose={() => setFriendPickerCloneId(null)}
+        onConfirm={async (userIds) => {
+          const cloneId = friendPickerCloneId;
+          setFriendPickerCloneId(null);
+          if (!cloneId) return;
+          setCloneStates((prev) => ({
+            ...prev,
+            [cloneId]: { ...prev[cloneId], visibility: "selected" },
+          }));
+          if (accessToken) {
+            try {
+              const { patchClone } = await import("../../api/clones");
+              await patchClone(accessToken, cloneId, {
+                visibility: "selected",
+                allowed_viewers: userIds,
+              });
+            } catch (err) {
+              console.warn("[Dashboard] selected visibility PATCH failed:", err);
+            }
+          }
+        }}
+      />
 
       {}
       <Modal visible={!!deleteModal} transparent animationType="fade">

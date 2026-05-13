@@ -371,14 +371,15 @@ export default function SearchScreen() {
   );
 
   const renderRecentRow = ({ item }: { item: string }) => (
-    <View style={s.recentRow}>
-      <TouchableOpacity
-        style={s.recentLeft}
-        onPress={() => pickRecent(item)}
-      >
+    <TouchableOpacity
+      style={s.recentRow}
+      activeOpacity={0.7}
+      onPress={() => pickRecent(item)}
+    >
+      <View style={s.recentLeft}>
         <Feather name="clock" size={18} color={COLORS.zinc400} />
         <Text style={s.recentText} numberOfLines={1}>{item}</Text>
-      </TouchableOpacity>
+      </View>
       <TouchableOpacity
         style={s.recentRemoveBtn}
         onPress={() => removeRecent(item)}
@@ -386,7 +387,7 @@ export default function SearchScreen() {
       >
         <Feather name="x" size={16} color={COLORS.zinc400} />
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   const EmptyResult = ({ label }: { label: string }) => (

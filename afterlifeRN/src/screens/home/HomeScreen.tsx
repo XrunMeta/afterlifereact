@@ -25,7 +25,7 @@ import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import FeedCard from "../../components/ui/FeedCard";
-import FilterModal from "../../components/ui/FilterModal";
+
 import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useAuthStore } from "../../stores/authStore";
@@ -83,8 +83,7 @@ export default function HomeScreen() {
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showFilter, setShowFilter] = useState(false);
-  const [localInterests, setLocalInterests] = useState<string[]>(selectedInterests);
+
   const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
 
@@ -144,25 +143,7 @@ export default function HomeScreen() {
     itemVisiblePercentThreshold: 50,
   };
 
-  const toggleLocalInterest = (interest: string) => {
-    setLocalInterests((prev) =>
-      prev.includes(interest)
-        ? prev.filter((i) => i !== interest)
-        : [...prev, interest]
-    );
-  };
-
-  const handleApplyFilter = () => {
-    setSelectedInterests(localInterests);
-    setCurrentIndex(0);
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-    setShowFilter(false);
-  };
-
-  const handleOpenFilter = () => {
-    setLocalInterests(selectedInterests);
-    setShowFilter(true);
-  };
+  void setSelectedInterests;
 
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -361,24 +342,6 @@ export default function HomeScreen() {
       )}
 
       {}
-      <View style={[styles.topOverlay, { top: insets.top + 8 }]}>
-        {selectedInterests.length > 0 && (
-          <View style={styles.tagsRow}>
-            {selectedInterests.map((interest) => (
-              <View key={interest} style={styles.topTag}>
-                <Text style={styles.topTagText}>#{interest}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-        <TouchableOpacity
-          onPress={handleOpenFilter}
-          style={styles.filterButton}
-          activeOpacity={0.7}
-        >
-          <Feather name="filter" size={20} color={COLORS.white} />
-        </TouchableOpacity>
-      </View>
 
       {}
       <Modal visible={!!commentFeedId} transparent animationType="slide">
@@ -464,14 +427,6 @@ export default function HomeScreen() {
       </Modal>
 
       {}
-      <FilterModal
-        visible={showFilter}
-        selectedInterests={localInterests}
-        onToggleInterest={toggleLocalInterest}
-        onClearAll={() => setLocalInterests([])}
-        onApply={handleApplyFilter}
-        onClose={() => setShowFilter(false)}
-      />
 
       {}
       <Modal visible={!!moreTarget} transparent animationType="fade">

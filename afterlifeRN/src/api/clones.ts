@@ -4,7 +4,8 @@ import { API_BASE } from "../config/apiBase";
 import { AuthApiError, type ApiErrorBody } from "./auth";
 
 export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
-export type Visibility = "public" | "private" | "followers";
+
+export type Visibility = "public" | "private" | "followers" | "selected";
 
 export interface CreateClonePayload {
   clone_type: CloneType;
@@ -751,6 +752,8 @@ export interface PatchClonePayload {
   voice_preset_id?: number | null;
   l1_profile?: { attrs: Record<string, string>; notes: string };
   interests?: string[];
+
+  allowed_viewers?: number[];
 }
 
 export async function patchClone(

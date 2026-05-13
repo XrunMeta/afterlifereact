@@ -21,7 +21,8 @@ export const clones = new Hono<AppEnv>();
 clones.get("/health", (c) => c.json({ ok: true, module: "clones" }));
 
 const cloneType = z.enum(["memlow", "friend", "mentor", "celeb"]);
-const visibility = z.enum(["public", "private", "followers"]);
+
+const visibility = z.enum(["public", "private", "followers", "selected"]);
 
 const USERNAME_BLACKLIST = new Set([
   "admin", "administrator", "root", "staff", "system", "support",
@@ -448,6 +449,17 @@ clones.get("/:id", async (c) => {
   if (clone.visibility === "followers" && viewerRole === null) {
     throw new APIError("FORBIDDEN", "Followers-only clone.");
   }
+  if (clone.visibility === "selected") {
+    const isAllowed = viewerRole === "owner" || viewerRole === "coowner"
+      ? true
+      : userId != null && await c.env.DB
+          .prepare(
+            `SELECT 1 FROM clone_allowed_viewers WHERE clone_id = ? AND user_id = ? LIMIT 1`,
+          )
+          .bind(cloneId, userId)
+          .first();
+    if (!isAllowed) throw new APIError("FORBIDDEN", "Restricted clone.");
+  }
 
   const interests = (
     await c.env.DB
@@ -455,6 +467,14 @@ clones.get("/:id", async (c) => {
       .bind(cloneId)
       .all<{ interest: string }>()
   ).results.map((r) => r.interest);
+
+  const allowedViewers =
+    viewerRole === "owner" || viewerRole === "coowner"
+      ? (await c.env.DB
+          .prepare(`SELECT user_id AS userId FROM clone_allowed_viewers WHERE clone_id = ?`)
+          .bind(cloneId)
+          .all<{ userId: number }>()).results.map((r) => r.userId)
+      : undefined;
 
   const aggRow = await c.env.DB
     .prepare(
@@ -484,6 +504,7 @@ clones.get("/:id", async (c) => {
       voicePresetId: clone.voice_preset_id,
       trainingStatus: clone.training_status,
       interests,
+      ...(allowedViewers !== undefined ? { allowedViewers } : {}),
       stats: {
         followers: clone.followers_count,
         messages: clone.messages_count,
@@ -507,6 +528,8 @@ const patchSchema = z
     voice_preset_id: z.number().int().positive().nullable().optional(),
     l1_profile: l1ProfileSchema.optional(),
     interests: z.array(z.string().min(1).max(40)).max(20).optional(),
+
+    allowed_viewers: z.array(z.number().int().positive()).max(200).optional(),
   })
   .strict()
   .refine((o) => Object.keys(o).length > 0, {
@@ -623,6 +646,26 @@ clones.patch("/:id", requireAuth, async (c) => {
       );
     }
     updatedFields.push("interests");
+  }
+
+  if (body.allowed_viewers !== undefined) {
+    statements.push(
+      db.prepare(`DELETE FROM clone_allowed_viewers WHERE clone_id = ?`).bind(cloneId),
+    );
+    const seenU = new Set<number>();
+    for (const uid of body.allowed_viewers) {
+      if (uid === userId) continue; 
+      if (seenU.has(uid)) continue;
+      seenU.add(uid);
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO clone_allowed_viewers (clone_id, user_id) VALUES (?, ?)`,
+          )
+          .bind(cloneId, uid),
+      );
+    }
+    updatedFields.push("allowed_viewers");
   }
 
   await db.batch(statements);
