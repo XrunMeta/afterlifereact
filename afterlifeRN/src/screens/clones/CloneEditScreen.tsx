@@ -5,12 +5,8 @@ import {
   v_3094a2,
   v_19b633,
   v_472849,
-  v_4623af,
-  v_aa7413,
-  v_09d0e5,
   v_03e392,
 } from "rcmrninabrnb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -21,7 +17,7 @@ import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_bb226e, v_f373d8 } from "../../api/clones";
+import { v_bb226e } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import type { v_eceede, v_4b85a1 as v_affcc0 } from "../../types/domain";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -100,8 +96,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_55a58f, v_249bdc] = v_5ab095<Record<string, string>>({});
 
   const [v_818579, v_2cf16e] = v_5ab095<Visibility>("public");
-  const [v_e58f3d, v_40c384] = v_5ab095(false);
-  const [v_7462ec, v_2dbd8f] = v_5ab095(false);
   const [v_35bf26, v_04e389] = v_5ab095(false);
 
   v_c4deb2(() => {
@@ -157,46 +151,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   };
 
-  const v_57fac2 = () => {
-    v_40c384(false);
-    v_03e392.alert(
-      v_8d41d7("edit.deleteTitle"),
-      v_8d41d7("edit.deleteDesc"),
-      [
-        { text: v_8d41d7("common.cancel"), style: "cancel" },
-        {
-          text: v_8d41d7("common.delete"),
-          style: "destructive",
-          onPress: async () => {
-            const v_2ca7e0 = v_1ed7d9.getState().accessToken;
-            if (!v_2ca7e0) return;
-            try {
-              await v_f373d8(v_2ca7e0, v_eb25ce.id);
-              v_c65f5d.getParent()?.goBack();
-            } catch (v_49263d) {
-              console.warn("[CloneEdit] delete failed:", v_49263d);
-              v_03e392.alert(v_8d41d7("common.error"), v_8d41d7("edit.saveFailed"));
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  const v_82830c = (v_81e2ef) => {
-    switch (v_81e2ef) {
-      case "public": return v_8d41d7("edit.visibilityPublic");
-      case "private": return v_8d41d7("edit.visibilityPrivate");
-      case "followers": return v_8d41d7("edit.visibilityFollowers");
-    }
-  };
-  const v_a6deb1 = (v_81e2ef): keyof typeof v_dec439.glyphMap => {
-    switch (v_81e2ef) {
-      case "public": return "eye";
-      case "private": return "eye-off";
-      case "followers": return "user-check";
-    }
-  };
+  void v_2cf16e;
 
   return (
     <SafeScrollView
@@ -205,52 +160,12 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       additionalBottomPadding={80}
       showBottomBackground={false}
     >
+      {}
       <PageHeader
         title={v_8d41d7("edit.title")}
-        subtitle={v_eb25ce.displayName}
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
-        rightAction={
-          <TouchableOpacity
-            style={{ padding: 4 }}
-            onPress={() => v_40c384(!v_e58f3d)}
-          >
-            <Feather name="more-vertical" size={22} color={v_1bfbd0.zinc700} />
-          </TouchableOpacity>
-        }
       />
-
-      {}
-      {v_e58f3d && (
-        <>
-          <Pressable
-            style={v_472849.absoluteFill}
-            onPress={() => v_40c384(false)}
-          />
-          <View style={v_fd5f43.dropdown}>
-            {v_eb25ce.cloneType !== "memlow" && (
-              <TouchableOpacity
-                style={v_fd5f43.dropdownItem}
-                onPress={() => {
-                  v_40c384(false);
-                  v_2dbd8f(true);
-                }}
-              >
-                <Feather name={v_a6deb1(v_818579)} size={16} color={v_1bfbd0.zinc700} />
-                <Text style={v_fd5f43.dropdownText}>
-                  {v_8d41d7("dashboard.menuVisibility")} ({v_82830c(v_818579)})
-                </Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={v_fd5f43.dropdownItem} onPress={v_57fac2}>
-              <Feather name="trash-2" size={16} color={v_1bfbd0.error} />
-              <Text style={[v_fd5f43.dropdownText, { color: v_1bfbd0.error }]}>
-                {v_8d41d7("dashboard.menuDelete")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
 
       <View style={v_fd5f43.content}>
         {}
@@ -319,49 +234,6 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </View>
 
       {}
-      <Modal visible={v_7462ec} transparent animationType="fade">
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(false)}>
-          <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>{v_8d41d7("edit.visibilityChooseTitle")}</Text>
-            <Text style={v_fd5f43.modalDesc}>{v_8d41d7("edit.visibilityChooseDesc")}</Text>
-            <View style={v_fd5f43.visibilityOptions}>
-              {(["public", "private"] as Visibility[]).map((v_81e2ef) => {
-                const v_587413 = v_818579 === v_81e2ef;
-                return (
-                  <TouchableOpacity
-                    key={v_81e2ef}
-                    style={[v_fd5f43.visibilityOption, v_587413 && v_fd5f43.visibilityOptionSelected]}
-                    onPress={() => {
-                      v_2cf16e(v_81e2ef);
-                      v_2dbd8f(false);
-                    }}
-                  >
-                    <Feather
-                      name={v_a6deb1(v_81e2ef)}
-                      size={16}
-                      color={v_587413 ? v_1bfbd0.white : v_1bfbd0.zinc700}
-                    />
-                    <Text
-                      style={[
-                        v_fd5f43.visibilityOptionText,
-                        v_587413 && { color: v_1bfbd0.white },
-                      ]}
-                    >
-                      {v_82830c(v_81e2ef)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Button
-              title={v_8d41d7("common.cancel")}
-              variant="ghost"
-              onPress={() => v_2dbd8f(false)}
-              style={{ marginTop: 12, width: "100%" }}
-            />
-          </Pressable>
-        </Pressable>
-      </Modal>
     </SafeScrollView>
   );
 }
