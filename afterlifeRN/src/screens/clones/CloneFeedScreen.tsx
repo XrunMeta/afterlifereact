@@ -35,6 +35,12 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
   const likedIds = useFeedStore((s) => s.likedIds);
   const toggleLike = useFeedStore((s) => s.toggleLike);
 
+  let description = feed.content ?? "";
+  const hasHashtag = /#[\p{L}\p{N}_]+/u.test(description);
+  if (feed.interests.length > 0 && !hasHashtag) {
+    const tags = feed.interests.map((i) => `#${i}`).join(" ");
+    description = description.trim().length > 0 ? `${description} ${tags}` : tags;
+  }
   const item: FeedItem = {
     id: feed.id,
     cloneId: feed.cloneId,
@@ -45,7 +51,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
     authorAvatar: feed.clone.avatarUrl ?? "",
     image: feed.mediaUrl ?? feed.clone.avatarUrl ?? "",
     title: feed.clone.name,
-    description: feed.content ?? "",
+    description,
     type: feed.clone.cloneType,
     mainCategory: "",
     interests: feed.interests,

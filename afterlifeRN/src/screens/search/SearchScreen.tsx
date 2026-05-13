@@ -64,11 +64,10 @@ export default function SearchScreen() {
       const params = route.params as { initialQuery?: string } | undefined;
       const initial = params?.initialQuery;
       if (typeof initial === "string" && initial.trim().length > 0) {
-        setQuery(initial);
 
-        if (initial.trim().startsWith("#")) {
-          setActiveTab("tag");
-        }
+        const stripped = initial.replace(/^#+/, "").trim();
+        setQuery(stripped);
+        setActiveTab("recommend");
 
         nav.setParams({ initialQuery: undefined } as never);
       }
@@ -189,7 +188,8 @@ export default function SearchScreen() {
   const showRecent = !isSearching && focused;
 
   const filteredFeeds = useMemo(() => {
-    const q = query.trim().toLowerCase();
+
+    const q = query.trim().replace(/^#+/, "").toLowerCase();
     if (!q) return feeds;
     return feeds.filter((f) => {
       const name = f.clone.name.toLowerCase();
@@ -197,6 +197,7 @@ export default function SearchScreen() {
       const interestsMatch = f.interests.some((it) =>
         it.toLowerCase().includes(q),
       );
+
       const contentMatch = (f.content ?? "").toLowerCase().includes(q);
       return name.includes(q) || uname.includes(q) || interestsMatch || contentMatch;
     });
@@ -221,9 +222,15 @@ export default function SearchScreen() {
   }, [feeds, query]);
 
   const filteredTags = useMemo(() => {
-    const q = query.trim().toLowerCase();
+
+    const q = query.trim().replace(/^#+/, "").toLowerCase();
     const set = new Set<string>();
-    for (const f of feeds) for (const it of f.interests) set.add(it);
+    for (const f of feeds) {
+      for (const it of f.interests) set.add(it);
+      const content = f.content ?? "";
+      const matches = content.match(/#[\p{L}\p{N}_]+/gu) ?? [];
+      for (const m of matches) set.add(m.replace(/^#+/, ""));
+    }
     const all = Array.from(set);
     if (!q) return all.slice(0, 30);
     return all.filter((t) => t.toLowerCase().includes(q));
@@ -345,7 +352,15 @@ export default function SearchScreen() {
   );
 
   const renderTagRow = ({ item }: { item: string }) => (
-    <Pressable style={s.row} onPress={() => { setQuery(item); saveRecent(item); }}>
+    <Pressable
+      style={s.row}
+      onPress={() => {
+
+        setQuery(item);
+        setActiveTab("recommend");
+        saveRecent(item);
+      }}
+    >
       <View style={[s.rowAvatar, s.rowAvatarTag]}>
         <Feather name="hash" size={20} color={COLORS.zinc700} />
       </View>
