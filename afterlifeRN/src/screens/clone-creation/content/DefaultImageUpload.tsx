@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, Alert, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
+import { pickAndCropImage } from '../../../lib/imagePicker';
 
 interface Props {
   draft: CloneCreationDraft;
@@ -17,7 +17,7 @@ async function pick(
   errorMsg: string,
 ) {
   try {
-    const r = await ImagePicker.launchImageLibraryAsync({
+    const r = await pickAndCropImage({
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [3, 4],
