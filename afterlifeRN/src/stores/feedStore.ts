@@ -58,12 +58,14 @@ function v_0a5d7b(item: v_4c75cf): v_bc3df4 {
   v_0b62e7.set(v_8c0b26.cloneId, {
     id: v_8c0b26.clone.id,
     cloneType: v_8c0b26.clone.cloneType,
-    ownerId: -1, 
+
+    ownerId: v_8c0b26.clone.ownerId ?? -1,
     displayName: v_8c0b26.clone.name,
     description: "",
     interests: v_8c0b26.interests,
     imageUrl: v_8c0b26.clone.avatarUrl ?? undefined,
-    visibility: "public",
+
+    visibility: (v_8c0b26.clone.visibility as v_4b85a1["visibility"]) ?? "public",
     status: "active",
     createdAt: v_8c0b26.createdAt,
   });

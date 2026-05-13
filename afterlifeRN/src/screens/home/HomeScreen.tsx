@@ -88,7 +88,12 @@ export default function v_c316d8() {
   const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
   const [v_48e7fe, v_856f84] = v_5ab095("");
 
-  const [v_12fa22, v_949e66] = v_5ab095<{ cloneId: number; author: string } | null>(null);
+  const [v_12fa22, v_949e66] = v_5ab095<{
+    cloneId: number;
+    author: string;
+    isOwn: boolean;
+    visibility?: string;
+  } | null>(null);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
   v_c4deb2(() => {
     if (v_8282fa) {
@@ -265,21 +270,33 @@ export default function v_c316d8() {
   };
 
   const v_fcf6ec = v_de06a3(
-    ({ item: v_8c0b26, index: v_a56041 }: { item: v_19b433; index: number }) => (
-      <FeedCard
-        item={v_8c0b26}
-        isActive={v_a56041 === v_2bcb8f}
-        isLiked={v_632420.includes(v_8c0b26.id)}
-        isFollowed={v_b30b81(v_8c0b26.cloneId)}
-        cardHeight={v_1be4da}
-        onToggleLike={() => v_a96ced(v_8c0b26.id)}
-        onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
-        onCallPress={() => v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image })}
-        onCommentPress={() => v_b07dd3(v_8c0b26.id)}
-        onMorePress={() => v_949e66({ cloneId: v_8c0b26.cloneId, author: v_8c0b26.author })}
-      />
-    ),
-    [v_2bcb8f, v_632420, v_1e752a, v_1be4da, v_a96ced, v_3094d4, v_b30b81]
+    ({ item: v_8c0b26, index: v_a56041 }: { item: v_19b433; index: number }) => {
+
+      const v_799eb5 = v_f5f393 != null && v_8c0b26.cloneOwnerId === v_f5f393;
+      return (
+        <FeedCard
+          item={v_8c0b26}
+          isActive={v_a56041 === v_2bcb8f}
+          isLiked={v_632420.includes(v_8c0b26.id)}
+          isFollowed={v_b30b81(v_8c0b26.cloneId)}
+          isOwn={v_799eb5}
+          cardHeight={v_1be4da}
+          onToggleLike={() => v_a96ced(v_8c0b26.id)}
+          onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
+          onCallPress={() => v_f4c991.navigate("Call", { cloneId: v_8c0b26.cloneId, name: v_8c0b26.author, image: v_8c0b26.image })}
+          onCommentPress={() => v_b07dd3(v_8c0b26.id)}
+          onMorePress={() =>
+            v_949e66({
+              cloneId: v_8c0b26.cloneId,
+              author: v_8c0b26.author,
+              isOwn: v_799eb5,
+              visibility: v_8c0b26.cloneVisibility,
+            })
+          }
+        />
+      );
+    },
+    [v_2bcb8f, v_632420, v_1e752a, v_1be4da, v_a96ced, v_3094d4, v_b30b81, v_f5f393]
   );
 
   return (
@@ -455,63 +472,142 @@ export default function v_c316d8() {
           >
             <View style={v_d81136.moreSheetHandle} />
             <Text style={v_d81136.moreTitle}>{v_12fa22?.author}</Text>
-            <TouchableOpacity
-              style={v_d81136.moreItem}
-              onPress={() => {
-                v_949e66(null);
-                v_15c939("신고가 접수됐어요");
-              }}
-            >
-              <Feather name="flag" size={20} color="#ef4444" />
-              <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={v_d81136.moreItem}
-              onPress={async () => {
-                const v_5f5d6d = v_12fa22;
-                v_949e66(null);
-                if (!v_5f5d6d || !v_2ca7e0) {
-                  console.log(
-                    `[BLOCK] aborted — target=${!!v_5f5d6d} accessToken=${!!v_2ca7e0}`,
-                  );
-                  return;
-                }
-                console.log(
-                  `[BLOCK] start cloneId=${v_5f5d6d.cloneId} author=${v_5f5d6d.author}`,
-                );
-                try {
-                  console.log(`[BLOCK] → POST /oth-path${v_5f5d6d.cloneId}/block`);
-                  const v_9297f1 = await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
-                  console.log(`[BLOCK] ← block API ok:`, v_9297f1);
-                  v_15c939("이 페르소나가 차단됐어요");
 
-                  const v_c3bc75 = v_37977a.getState().apiFeeds;
-                  const v_f0ee2c = v_c3bc75?.length ?? 0;
-                  if (v_c3bc75) {
-                    v_37977a.setState({
-                      apiFeeds: v_c3bc75.filter((v_23805a) => v_23805a.cloneId !== v_5f5d6d.cloneId),
-                    });
-                  }
-                  console.log(
-                    `[BLOCK] apiFeeds filtered — before=${v_f0ee2c} after=${
-                      v_37977a.getState().apiFeeds?.length ?? 0
-                    }`,
-                  );
+            {v_12fa22?.isOwn ? (
 
-                  await v_b4902e.getState().unfollowLocalForBlock(v_5f5d6d.cloneId);
+              <>
+                <TouchableOpacity
+                  style={v_d81136.moreItem}
+                  onPress={() => {
+                    const v_5f5d6d = v_12fa22;
+                    v_949e66(null);
+                    if (!v_5f5d6d) return;
 
-                  console.log(`[BLOCK] → loadDiscover() refetch`);
-                  void v_c600ef();
-                  console.log(`[BLOCK] complete cloneId=${v_5f5d6d.cloneId}`);
-                } catch (v_49263d) {
-                  console.warn(`[BLOCK] FAILED cloneId=${v_5f5d6d.cloneId}`, v_49263d);
-                  v_15c939("차단에 실패했어요");
-                }
-              }}
-            >
-              <Feather name="slash" size={20} color={v_1bfbd0.zinc900} />
-              <Text style={v_d81136.moreItemText}>차단하기</Text>
-            </TouchableOpacity>
+                    v_f4c991.dispatch(
+                      v_650cfa.navigate({
+                        name: "Main",
+                        params: {
+                          screen: "ClonesTab",
+                          params: {
+                            screen: "CloneEdit",
+                            params: { cloneId: v_5f5d6d.cloneId },
+                          },
+                        },
+                      }),
+                    );
+                  }}
+                >
+                  <Feather name="edit-3" size={20} color={v_1bfbd0.zinc900} />
+                  <Text style={v_d81136.moreItemText}>수정하기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={v_d81136.moreItem}
+                  onPress={() => {
+                    const v_5f5d6d = v_12fa22;
+                    v_949e66(null);
+                    if (!v_5f5d6d) return;
+
+                    v_f4c991.dispatch(
+                      v_650cfa.navigate({
+                        name: "Main",
+                        params: {
+                          screen: "ClonesTab",
+                          params: {
+                            screen: "CloneEdit",
+                            params: { cloneId: v_5f5d6d.cloneId },
+                          },
+                        },
+                      }),
+                    );
+                    v_15c939("페르소나 편집 → 공개 범위에서 변경하세요");
+                  }}
+                >
+                  <Feather name="eye" size={20} color={v_1bfbd0.zinc900} />
+                  <Text style={v_d81136.moreItemText}>공개 범위 수정</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={v_d81136.moreItem}
+                  onPress={async () => {
+                    const v_5f5d6d = v_12fa22;
+                    v_949e66(null);
+                    if (!v_5f5d6d || !v_2ca7e0) return;
+
+                    v_03e392.alert(
+                      "페르소나 삭제",
+                      `'${v_5f5d6d.author}' 페르소나를 삭제할까요?\n복구 불가합니다.`,
+                      [
+                        { text: "취소", style: "cancel" },
+                        {
+                          text: "삭제",
+                          style: "destructive",
+                          onPress: async () => {
+                            try {
+                              const { deleteClone: v_f373d8 } = await import("../../api/clones");
+                              await v_f373d8(v_2ca7e0, v_5f5d6d.cloneId);
+                              v_15c939("페르소나가 삭제됐어요");
+                              const v_c3bc75 = v_37977a.getState().apiFeeds;
+                              if (v_c3bc75) {
+                                v_37977a.setState({
+                                  apiFeeds: v_c3bc75.filter((v_23805a) => v_23805a.cloneId !== v_5f5d6d.cloneId),
+                                });
+                              }
+                              void v_c600ef();
+                            } catch (v_49263d) {
+                              console.warn("[Delete clone] failed:", v_49263d);
+                              v_15c939("삭제에 실패했어요");
+                            }
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                >
+                  <Feather name="trash-2" size={20} color="#ef4444" />
+                  <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>삭제</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+
+              <>
+                <TouchableOpacity
+                  style={v_d81136.moreItem}
+                  onPress={() => {
+                    v_949e66(null);
+                    v_15c939("신고가 접수됐어요");
+                  }}
+                >
+                  <Feather name="flag" size={20} color="#ef4444" />
+                  <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={v_d81136.moreItem}
+                  onPress={async () => {
+                    const v_5f5d6d = v_12fa22;
+                    v_949e66(null);
+                    if (!v_5f5d6d || !v_2ca7e0) return;
+                    try {
+                      await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
+                      v_15c939("이 페르소나가 차단됐어요");
+                      const v_c3bc75 = v_37977a.getState().apiFeeds;
+                      if (v_c3bc75) {
+                        v_37977a.setState({
+                          apiFeeds: v_c3bc75.filter((v_23805a) => v_23805a.cloneId !== v_5f5d6d.cloneId),
+                        });
+                      }
+                      await v_b4902e.getState().unfollowLocalForBlock(v_5f5d6d.cloneId);
+                      void v_c600ef();
+                    } catch (v_49263d) {
+                      console.warn(`[BLOCK] FAILED cloneId=${v_5f5d6d.cloneId}`, v_49263d);
+                      v_15c939("차단에 실패했어요");
+                    }
+                  }}
+                >
+                  <Feather name="slash" size={20} color={v_1bfbd0.zinc900} />
+                  <Text style={v_d81136.moreItemText}>차단하기</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
             <TouchableOpacity
               style={[v_d81136.moreItem, { borderBottomWidth: 0 }]}
               onPress={() => v_949e66(null)}

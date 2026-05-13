@@ -152,8 +152,6 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
   const v_925171 = [];
 
   if (v_013af2) {
-    v_abcc8d.push("c.owner_id != ?");
-    v_925171.push(v_013af2);
     v_abcc8d.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
     v_925171.push(v_013af2);
   }
@@ -166,12 +164,14 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     await v_3f4e2e.env.DB
       .prepare(
         `SELECT c.id              AS cloneId,
+                c.owner_id         AS cloneOwnerId,
                 c.name             AS cloneName,
                 c.username         AS cloneUsername,
                 c.description      AS cloneDescription,
                 c.avatar_url       AS cloneAvatarUrl,
                 c.clone_type       AS cloneType,
                 c.created_at       AS cloneCreatedAt,
+                c.visibility       AS cloneVisibility,
                 f.id               AS feedId,
                 f.content          AS feedContent,
                 f.media_url        AS feedMediaUrl,
@@ -194,12 +194,14 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
       .bind(...v_925171, v_02be30 + 1)
       .all<{
         cloneId: number;
+        cloneOwnerId: number;
         cloneName: string;
         cloneUsername: string;
         cloneDescription: string | null;
         cloneAvatarUrl: string | null;
         cloneType: string;
         cloneCreatedAt: string;
+        cloneVisibility: string;
         feedId: number | null;
         feedContent: string | null;
         feedMediaUrl: string | null;
@@ -271,10 +273,13 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
       createdAt: v_cb35cb.feedCreatedAt ?? v_cb35cb.cloneCreatedAt,
       clone: {
         id: v_cb35cb.cloneId,
+
+        ownerId: v_cb35cb.cloneOwnerId,
         name: v_cb35cb.cloneName,
         username: v_cb35cb.cloneUsername,
         avatarUrl: v_cb35cb.cloneAvatarUrl,
         cloneType: v_cb35cb.cloneType,
+        visibility: v_cb35cb.cloneVisibility,
       },
       interests: v_9afb14.get(v_cb35cb.cloneId) ?? [],
     })),
