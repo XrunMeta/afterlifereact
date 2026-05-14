@@ -62,7 +62,8 @@ const v_3ea364 = v_1f4ea7.object({
 });
 
 const v_722b6d = v_1f4ea7.object({
-  clone_type: v_3a8949,
+
+  clone_type: v_3a8949.default("friend"),
   name: v_1f4ea7.string().min(1).max(80),
   username: v_1f4ea7
     .string()

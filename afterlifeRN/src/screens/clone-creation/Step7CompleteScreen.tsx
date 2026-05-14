@@ -27,7 +27,6 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
-import { v_c4c43f } from "../../mocks/cloneTypeCatalog";
 import { v_39eaf5, v_b55477, v_5e388b, v_b4f9f6 } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
@@ -96,14 +95,13 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       if (!v_2ca7e0) {
         throw new Error("로그인 정보가 없어요. 다시 로그인해주세요.");
       }
-      if (!v_f04727.cloneType) {
-        throw new Error("페르소나 정보가 없어요. 처음부터 다시 만들어주세요. (cloneType 누락)");
-      }
+
       const v_01a739 = Boolean(v_f04727.imageFile);
       const v_f9c770 = Boolean(
         v_f04727.voiceFile || v_f04727.voiceSampleId || (v_f04727.recordDuration ?? 0) >= 30,
       );
-      const v_818579 = v_f04727.visibility ?? v_c4c43f(v_f04727.cloneType).defaultVisibility;
+
+      const v_818579 = v_f04727.visibility ?? "public";
 
       const v_6be727 = /^[a-z0-9_]+$/;
       const v_ae88f2 = v_f04727.username?.trim() ?? "";
@@ -147,8 +145,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         }
       }
 
+      const v_285e72 = "friend" as const;
       console.log("[CLONE-CREATE] createClone request →", {
-        clone_type: v_f04727.cloneType,
+        clone_type: v_285e72,
         name: v_f04727.name ?? "Untitled",
         username: v_556427,
         visibility: v_818579,
@@ -156,7 +155,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         hasPin: !!v_6bee94,
       });
       const v_8f00b9 = await v_39eaf5(v_2ca7e0, {
-        clone_type: v_f04727.cloneType,
+        clone_type: v_285e72,
         name: v_f04727.name ?? "Untitled",
         username: v_556427,
         description: v_f04727.description || undefined,
@@ -273,14 +272,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       return;
     }
 
-    if (!v_f04727.cloneType) {
-      console.warn(
-        "[CLONE-CREATE] cloneType missing — auto-fallback to 'friend'. full draft=",
-        JSON.stringify(v_f04727, null, 2),
-      );
-      v_194498.getState().setCreationDraft({ cloneType: "friend" });
-
-    }
     if (!v_f04727.name || v_f04727.name.trim().length === 0) {
       console.log("[CLONE-CREATE] BLOCKED: name missing. full draft=", JSON.stringify(v_f04727, null, 2));
       v_889fad(
