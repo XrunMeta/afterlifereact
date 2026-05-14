@@ -700,6 +700,13 @@ export default function MyClonesDashboardScreen() {
         }
       />
 
+      {}
+      {accessToken && apiClones === null ? (
+        <View style={s.dashLoading}>
+          <ActivityIndicator color={COLORS.violet600} size="large" />
+          <Text style={s.dashLoadingText}>불러오는 중...</Text>
+        </View>
+      ) : (
       <FlatList
         data={visibleClones}
         keyExtractor={(item) => String(item.id)}
@@ -850,6 +857,7 @@ export default function MyClonesDashboardScreen() {
           </>
         }
       />
+      )}
 
       {}
       <Modal visible={!!menuCloneId} transparent animationType="fade">
@@ -1247,6 +1255,16 @@ const MOCK_COMMENTS = [
 ];
 
 const s = StyleSheet.create({
+  dashLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  dashLoadingText: {
+    fontSize: 13,
+    color: COLORS.zinc500,
+  },
   dashEmpty: {
     paddingVertical: 48,
     paddingHorizontal: 32,

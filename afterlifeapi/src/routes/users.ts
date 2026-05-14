@@ -181,8 +181,13 @@ const patchSchema = z.object({
   name: z.string().min(1).max(80).optional(),
   avatarUrl: z.url().max(500).nullable().optional(),
   phone: z.string().min(4).max(40).nullable().optional(),
-  gender: z.enum(["male", "female", "other"]).nullable().optional(),
+
+  gender: z.enum(["male", "female"]).nullable().optional(),
   age: z.number().int().min(13).max(120).nullable().optional(),
+
+  country: z.string().min(2).max(8).nullable().optional(),
+  mobileCode: z.number().int().min(1).max(9999).nullable().optional(),
+  region: z.string().min(1).max(40).nullable().optional(),
 });
 
 users.patch("/me", requireAuth, async (c) => {
@@ -224,6 +229,21 @@ users.patch("/me", requireAuth, async (c) => {
       null, 
     );
     updatedFields.push("age");
+  }
+  if (body.country !== undefined) {
+    updates.push("country = ?");
+    binds.push(body.country);
+    updatedFields.push("country");
+  }
+  if (body.mobileCode !== undefined) {
+    updates.push("mobile_code = ?");
+    binds.push(body.mobileCode);
+    updatedFields.push("mobileCode");
+  }
+  if (body.region !== undefined) {
+    updates.push("region = ?");
+    binds.push(body.region);
+    updatedFields.push("region");
   }
 
   if (updates.length === 0) return c.json({ ok: true, updatedFields: [] });

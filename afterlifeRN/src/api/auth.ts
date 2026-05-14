@@ -246,8 +246,12 @@ export interface PatchMePayload {
   name?: string;
   avatarUrl?: string | null;
   phone?: string | null;
-  gender?: "male" | "female" | "other" | null;
+  gender?: "male" | "female" | null;
   age?: number | null;
+
+  country?: string | null;
+  mobileCode?: number | null;
+  region?: string | null;
 }
 
 export interface DeleteMeResult {

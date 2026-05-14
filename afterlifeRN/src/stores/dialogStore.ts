@@ -14,13 +14,24 @@ export interface DialogState {
   visible: boolean;
   title: string;
   message?: string;
+
+  subMessage?: string;
   buttons: DialogButton[];
 
   key: number;
 }
 
+interface DialogOptions {
+  subMessage?: string;
+}
+
 interface DialogStore extends DialogState {
-  open: (title: string, message?: string, buttons?: DialogButton[]) => void;
+  open: (
+    title: string,
+    message?: string,
+    buttons?: DialogButton[],
+    options?: DialogOptions,
+  ) => void;
   close: () => void;
 }
 
@@ -28,13 +39,15 @@ export const useDialogStore = create<DialogStore>((set, get) => ({
   visible: false,
   title: "",
   message: undefined,
+  subMessage: undefined,
   buttons: [],
   key: 0,
-  open: (title, message, buttons) => {
+  open: (title, message, buttons, options) => {
     set({
       visible: true,
       title,
       message,
+      subMessage: options?.subMessage,
 
       buttons: buttons && buttons.length > 0 ? buttons : [{ text: "확인" }],
       key: get().key + 1,
@@ -47,6 +60,7 @@ export function showAlert(
   title: string,
   message?: string,
   buttons?: DialogButton[],
+  options?: DialogOptions,
 ): void {
-  useDialogStore.getState().open(title, message, buttons);
+  useDialogStore.getState().open(title, message, buttons, options);
 }
