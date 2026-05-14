@@ -301,9 +301,6 @@ export default function Step6CreatingScreen({ navigation }: Props) {
       if (!trimmed) return;
       setCreationDraft({ name: trimmed });
 
-      if (!username) {
-        setUsername(deriveUsernameFromName(trimmed));
-      }
       setPhase("username");
       return;
     }

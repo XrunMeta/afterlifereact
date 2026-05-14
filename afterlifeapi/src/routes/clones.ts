@@ -95,21 +95,29 @@ clones.post(
     const usedCount = existing?.n ?? 0;
     if (usedCount >= 1) {
 
-      const sameType = await db
-        .prepare(
-          `SELECT COUNT(*) AS n FROM clones
-            WHERE owner_id = ?
-              AND clone_type = ?
-              AND deletion_state = 'active'
-              AND deleted_at IS NULL`,
-        )
-        .bind(userId, body.clone_type)
-        .first<{ n: number }>();
-      if ((sameType?.n ?? 0) >= 1) {
-        throw new APIError(
-          "CONFLICT",
-          "이미 같은 타입의 페르소나가 있습니다. 다른 타입을 선택해주세요.",
-        );
+      if (body.clone_type !== "memlow") {
+        const usedTypes = await db
+          .prepare(
+            `SELECT clone_type FROM clones
+              WHERE owner_id = ?
+                AND deletion_state = 'active'
+                AND deleted_at IS NULL`,
+          )
+          .bind(userId)
+          .all<{ clone_type: string }>();
+        const usedSet = new Set(usedTypes.results.map((r) => r.clone_type));
+        if (usedSet.has(body.clone_type)) {
+          const candidates: ("friend" | "mentor" | "celeb")[] = ["friend", "mentor", "celeb"];
+          const free = candidates.find((t) => !usedSet.has(t));
+          if (!free) {
+            throw new APIError(
+              "QUOTA_EXCEEDED",
+              "최대 페르소나 개수(4개)에 도달했어요.",
+            );
+          }
+
+          body.clone_type = free;
+        }
       }
 
       if (!body.pin) {
@@ -192,7 +200,7 @@ clones.post(
     } catch (err) {
       const msg = (err as Error).message ?? "";
       if (/UNIQUE constraint failed: clones\.username/i.test(msg)) {
-        throw new APIError("CONFLICT", "Username already taken.");
+        throw new APIError("CONFLICT", "중복된 아이디입니다. 다른 아이디를 사용해주세요.");
       }
 
       if (/UNIQUE constraint failed: clones\.owner_id, clones\.clone_type/i.test(msg)) {
@@ -339,8 +347,27 @@ clones.get("/search", async (c) => {
   const params = q.data;
   const db = c.env.DB;
 
-  const where: string[] = [`c.deleted_at IS NULL`, `c.visibility = 'public'`];
+  const viewerId = await resolveOptionalUser(c);
+
+  const where: string[] = [`c.deleted_at IS NULL`];
   const binds: unknown[] = [];
+  if (viewerId) {
+    where.push(
+      `(
+         c.visibility = 'public'
+         OR c.owner_id = ?
+         OR (c.visibility = 'followers' AND
+             EXISTS (SELECT 1 FROM clone_follows cf
+                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
+         OR (c.visibility = 'selected' AND
+             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+       )`,
+    );
+    binds.push(viewerId, viewerId, viewerId);
+  } else {
+    where.push(`c.visibility = 'public'`);
+  }
   if (params.q) {
     where.push(`(c.name LIKE ? OR c.username LIKE ?)`);
     const like = `%${params.q}%`;
