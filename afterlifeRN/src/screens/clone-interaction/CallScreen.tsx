@@ -173,18 +173,39 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_161a89(v_bbee9c);
     } catch (v_49263d) {
       console.warn("[Call] gift failed:", v_49263d);
+      let v_9f1622 = "송금 실패";
       let v_badeaf = "송금에 실패했어요.";
+      let v_81532e = false;
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "결제 비밀번호가 일치하지 않아요.";
-        else if (v_49263d.code === "INSUFFICIENT_FUNDS") v_badeaf = "잔액이 부족해요.";
-        else if (v_49263d.code === "CONFLICT") v_badeaf = v_49263d.message;
+        else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
+          v_81532e = true;
+          v_9f1622 = "XRUN 잔액 부족";
+          v_badeaf = "XRUN 잔액이 부족해요.\nxrun 앱에서 더 벌어와주세요.";
+        } else if (v_49263d.code === "CONFLICT") v_badeaf = v_49263d.message;
         else if (v_49263d.code === "UPSTREAM_NOT_IMPLEMENTED")
           v_badeaf = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
-        else if (v_49263d.code === "UPSTREAM_FAILURE")
-          v_badeaf = "xrun 송금 처리 중 오류가 발생했어요.";
-        else v_badeaf = v_49263d.message;
+        else if (v_49263d.code === "UPSTREAM_FAILURE") {
+
+          if (/insufficient|잔액|balance/i.test(v_49263d.message)) {
+            v_81532e = true;
+            v_9f1622 = "XRUN 잔액 부족";
+            v_badeaf = "XRUN 잔액이 부족해요.\nxrun 앱에서 더 벌어와주세요.";
+          } else {
+            v_badeaf = "xrun 송금 처리 중 오류가 발생했어요.";
+          }
+        } else v_badeaf = v_49263d.message;
       }
-      v_889fad("송금 실패", v_badeaf);
+
+      v_ece29b(false);
+      v_d0452a("");
+      v_889fad(
+        v_9f1622,
+        v_badeaf,
+        v_81532e
+          ? [{ text: "확인", style: "default" }]
+          : undefined,
+      );
     } finally {
       v_a8bf66(false);
     }
