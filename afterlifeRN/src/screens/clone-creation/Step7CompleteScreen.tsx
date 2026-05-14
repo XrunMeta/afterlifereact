@@ -82,8 +82,22 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const [posting, setPosting] = useState(false);
 
   const attemptCreate = useCallback(
-    async (pin?: string) => {
-      if (!draft.cloneType || !accessToken) return;
+    async (pin?: string): Promise<number> => {
+      console.log("[CLONE-CREATE] attemptCreate start. draft snapshot:", {
+        cloneType: draft.cloneType,
+        name: draft.name,
+        username: draft.username,
+        hasImage: !!draft.imageFile,
+        hasVoice: !!(draft.voiceFile || draft.voiceSampleId),
+        descriptionLen: draft.description?.length ?? 0,
+        notesLen: draft.personaNotes?.length ?? 0,
+      });
+      if (!accessToken) {
+        throw new Error("로그인 정보가 없어요. 다시 로그인해주세요.");
+      }
+      if (!draft.cloneType) {
+        throw new Error("페르소나 정보가 없어요. 처음부터 다시 만들어주세요. (cloneType 누락)");
+      }
       const hasImage = Boolean(draft.imageFile);
       const hasVoice = Boolean(
         draft.voiceFile || draft.voiceSampleId || (draft.recordDuration ?? 0) >= 30,
@@ -114,6 +128,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             : ext === "webp" ? "image/webp"
             : ext === "gif" ? "image/gif"
             : "image/jpeg";
+          console.log("[CLONE-CREATE] avatar uploading...", { mime, path: draft.imageFile });
           const uploaded = await uploadFile(accessToken, draft.imageFile, {
             purpose: "clone_avatar",
             mimeType: mime,
@@ -124,9 +139,21 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           console.log("[CLONE-CREATE] avatar uploaded:", avatarUrl);
         } catch (uploadErr) {
           console.warn("[CLONE-CREATE] avatar upload failed:", uploadErr);
+
+          throw new Error(
+            `이미지 업로드에 실패했어요. 네트워크 상태를 확인해주세요. (${uploadErr instanceof Error ? uploadErr.message : "unknown"})`,
+          );
         }
       }
 
+      console.log("[CLONE-CREATE] createClone request →", {
+        clone_type: draft.cloneType,
+        name: draft.name ?? "Untitled",
+        username,
+        visibility,
+        hasAvatar: !!avatarUrl,
+        hasPin: !!pin,
+      });
       const res = await createClone(accessToken, {
         clone_type: draft.cloneType,
         name: draft.name ?? "Untitled",
@@ -160,6 +187,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         setCreatedCloneId(createdClone.id);
         setCreating(false);
       }
+      return createdClone.id;
     },
     [draft, accessToken, currentUserId, addClone],
   );
@@ -204,10 +232,31 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const handleSharePost = async () => {
     if (creating || posting) return;
     const trimmed = caption.trim();
+    console.log("[CLONE-CREATE] handleSharePost tap. captionLen=", trimmed.length, "createdCloneId=", createdCloneId);
     if (trimmed.length === 0) {
       showAlert("소개글", "한 줄 소개를 입력해주세요.");
       return;
     }
+
+    if (!accessToken) {
+      showAlert("로그인 필요", "로그인 정보가 없어요. 다시 로그인해주세요.");
+      return;
+    }
+    if (!draft.cloneType) {
+      showAlert(
+        "페르소나 정보 누락",
+        "페르소나 유형이 설정되지 않았어요. 처음부터 다시 만들어주세요.",
+      );
+      return;
+    }
+    if (!draft.name || draft.name.trim().length === 0) {
+      showAlert(
+        "이름 누락",
+        "페르소나 이름이 없어요. 이전 단계로 돌아가서 이름을 입력해주세요.",
+      );
+      return;
+    }
+
     setPosting(true);
     setError(null);
 
@@ -220,27 +269,22 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
       if (newCloneId == null) {
         setCreating(true);
-        await attemptCreate();
+        newCloneId = await attemptCreate();
         setCreating(false);
-        newCloneId = useCloneStore.getState().creationDraft
-          ? 
-
-            createdCloneId
-          : null;
-
-        await new Promise((r) => setTimeout(r, 50));
-        newCloneId = useCloneStore.getState().localClones.at(-1)?.id ?? null;
+        console.log("[CLONE-CREATE] new cloneId=", newCloneId);
       }
-      if (!newCloneId || !accessToken) {
-        setPosting(false);
-        return;
+      if (!newCloneId) {
+
+        throw new Error("페르소나 생성에 실패했어요. (cloneId 누락)");
       }
 
       const mediaUrl = avatarUrlRef.current ?? null;
+      console.log("[CLONE-CREATE] createCloneFeed →", { cloneId: newCloneId, hasMedia: !!mediaUrl });
       await createCloneFeed(accessToken, newCloneId, {
         content: trimmed,
         ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
       });
+      console.log("[CLONE-CREATE] feed created.");
     } catch (err) {
       console.warn("[CLONE-CREATE] share post failed:", err);
       setCreating(false);
@@ -257,10 +301,14 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           setPosting(false);
           return;
         }
+
         setError(err.message);
-        showAlert("게시 실패", err.message);
+        showAlert(`게시 실패 (${err.code})`, err.message);
       } else {
-        setError("게시 중 오류가 발생했어요.");
+
+        const msg = err instanceof Error ? err.message : "알 수 없는 오류";
+        setError(msg);
+        showAlert("게시 실패", msg);
       }
       setPosting(false);
       return;
@@ -280,8 +328,23 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     setPinError(null);
     try {
       setCreating(true);
-      await attemptCreate(pinInput);
+      const newId = await attemptCreate(pinInput);
       setPaymentModal(false);
+
+      const trimmed = caption.trim();
+      if (trimmed.length > 0 && accessToken) {
+        try {
+          const mediaUrl = avatarUrlRef.current ?? null;
+          await createCloneFeed(accessToken, newId, {
+            content: trimmed,
+            ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
+          });
+        } catch (feedErr) {
+          console.warn("[CLONE-CREATE] post-payment feed failed:", feedErr);
+        }
+        resetCreationDraft();
+        navigation.replace("Step8", { cloneId: newId });
+      }
     } catch (err) {
       let msg = "결제에 실패했어요.";
       if (err instanceof AuthApiError) {
@@ -291,6 +354,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
           msg = "xrun 송금 기능이 아직 준비 중입니다";
         else msg = err.message;
+      } else if (err instanceof Error) {
+        msg = err.message;
       }
       setPinError(msg);
       setCreating(false);
@@ -390,16 +455,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
                 ? () => {
 
                     setError(null);
-                    setCreating(true);
-                    (async () => {
-                      try {
-                        await attemptCreate();
-                      } catch (err) {
-                        console.warn("[CLONE-CREATE] retry failed:", err);
-                        setError(t("create.errors.createFailed"));
-                        setCreating(false);
-                      }
-                    })();
+                    void handleSharePost();
                   }
                 : handleSharePost
             }
