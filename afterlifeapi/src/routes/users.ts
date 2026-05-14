@@ -181,8 +181,13 @@ const v_90be18 = v_1f4ea7.object({
   name: v_1f4ea7.string().min(1).max(80).optional(),
   avatarUrl: v_1f4ea7.url().max(500).nullable().optional(),
   phone: v_1f4ea7.string().min(4).max(40).nullable().optional(),
-  gender: v_1f4ea7.enum(["male", "female", "other"]).nullable().optional(),
+
+  gender: v_1f4ea7.enum(["male", "female"]).nullable().optional(),
   age: v_1f4ea7.number().int().min(13).max(120).nullable().optional(),
+
+  country: v_1f4ea7.string().min(2).max(8).nullable().optional(),
+  mobileCode: v_1f4ea7.number().int().min(1).max(9999).nullable().optional(),
+  region: v_1f4ea7.string().min(1).max(40).nullable().optional(),
 });
 
 v_de7ba7.patch("/me", v_6690d9, async (v_3f4e2e) => {
@@ -224,6 +229,21 @@ v_de7ba7.patch("/me", v_6690d9, async (v_3f4e2e) => {
       null, 
     );
     v_f73a2d.push("age");
+  }
+  if (v_4d33b2.country !== undefined) {
+    v_97eacf.push("country = ?");
+    v_925171.push(v_4d33b2.country);
+    v_f73a2d.push("country");
+  }
+  if (v_4d33b2.mobileCode !== undefined) {
+    v_97eacf.push("mobile_code = ?");
+    v_925171.push(v_4d33b2.mobileCode);
+    v_f73a2d.push("mobileCode");
+  }
+  if (v_4d33b2.region !== undefined) {
+    v_97eacf.push("region = ?");
+    v_925171.push(v_4d33b2.region);
+    v_f73a2d.push("region");
   }
 
   if (v_97eacf.length === 0) return v_3f4e2e.json({ ok: true, updatedFields: [] });

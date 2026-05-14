@@ -700,6 +700,13 @@ export default function v_def15b() {
         }
       />
 
+      {}
+      {v_2ca7e0 && v_8a7926 === null ? (
+        <View style={v_fd5f43.dashLoading}>
+          <ActivityIndicator color={v_1bfbd0.violet600} size="large" />
+          <Text style={v_fd5f43.dashLoadingText}>불러오는 중...</Text>
+        </View>
+      ) : (
       <FlatList
         data={v_fc7f92}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
@@ -850,6 +857,7 @@ export default function v_def15b() {
           </>
         }
       />
+      )}
 
       {}
       <Modal visible={!!v_ce3af0} transparent animationType="fade">
@@ -1247,6 +1255,16 @@ const v_2fb1c1 = [
 ];
 
 const v_fd5f43 = v_472849.create({
+  dashLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  dashLoadingText: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc500,
+  },
   dashEmpty: {
     paddingVertical: 48,
     paddingHorizontal: 32,
