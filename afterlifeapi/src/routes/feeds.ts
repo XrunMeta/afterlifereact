@@ -618,6 +618,39 @@ v_f1d06f.delete("/:id/comments/:cid", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+v_f1d06f.post("/:id/comments/:cid/report", v_6690d9, async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req.json<{ reason?: string }>().catch(() => ({} as { reason?: string }));
+  const v_58ca36 = (v_4d33b2.reason ?? "").slice(0, 500) || null;
+
+  const v_ab4c96 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT fc.id AS cid, fc.feed_id AS feedId, f.clone_id AS cloneId
+         FROM feed_comments fc
+         JOIN feeds f ON f.id = fc.feed_id
+        WHERE fc.id = ? AND fc.feed_id = ?
+        LIMIT 1`,
+    )
+    .bind(v_062ae9, v_c09aa8)
+    .first<{ cid: number; feedId: number; cloneId: number }>();
+  if (!v_ab4c96) throw new v_3ebe58("NOT_FOUND", "Comment not found.");
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO comment_reports
+         (user_id, comment_id, feed_id, clone_id, reason)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .bind(v_43e90c, v_062ae9, v_ab4c96.feedId, v_ab4c96.cloneId, v_58ca36)
+    .run();
+  return v_3f4e2e.json({ ok: true, reported: true });
+});
+
 v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
   const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
