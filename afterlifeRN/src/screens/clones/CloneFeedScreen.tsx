@@ -268,12 +268,12 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
               v_0e1f26.dismiss();
               v_0c9768(false);
             }}
+            keyboardOffset={v_7e4acc}
             style={[
               v_d81136.commentSheet,
               {
                 paddingBottom: 24 + Math.max(v_033e14.bottom, 0),
                 height: Math.max(v_28d8d8 * 0.7 - v_7e4acc, 200),
-                transform: [{ translateY: -v_7e4acc }],
               },
             ]}
           >

@@ -352,13 +352,13 @@ export default function v_c316d8() {
         <Pressable style={v_d81136.commentOverlay} onPress={() => { v_0e1f26.dismiss(); v_b07dd3(null); }}>
           <SwipeDownSheet
             onClose={() => { v_0e1f26.dismiss(); v_b07dd3(null); }}
+            keyboardOffset={v_7e4acc}
             style={[
               v_d81136.commentSheet,
 
               {
                 paddingBottom: 24 + Math.max(v_033e14.bottom, 0),
                 height: Math.max(v_28d8d8 * 0.7 - v_7e4acc, 200),
-                transform: [{ translateY: -v_7e4acc }],
               },
             ]}
           >
