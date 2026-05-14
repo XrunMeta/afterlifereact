@@ -27,7 +27,6 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
-import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
 import { createClone, deriveUsernameFromName, createCloneFeed, updateClone } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
@@ -96,14 +95,13 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       if (!accessToken) {
         throw new Error("로그인 정보가 없어요. 다시 로그인해주세요.");
       }
-      if (!draft.cloneType) {
-        throw new Error("페르소나 정보가 없어요. 처음부터 다시 만들어주세요. (cloneType 누락)");
-      }
+
       const hasImage = Boolean(draft.imageFile);
       const hasVoice = Boolean(
         draft.voiceFile || draft.voiceSampleId || (draft.recordDuration ?? 0) >= 30,
       );
-      const visibility = draft.visibility ?? getCloneTypeMeta(draft.cloneType).defaultVisibility;
+
+      const visibility = draft.visibility ?? "public";
 
       const USERNAME_RE = /^[a-z0-9_]+$/;
       const typed = draft.username?.trim() ?? "";
@@ -147,8 +145,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         }
       }
 
+      const cloneTypeForApi = "friend" as const;
       console.log("[CLONE-CREATE] createClone request →", {
-        clone_type: draft.cloneType,
+        clone_type: cloneTypeForApi,
         name: draft.name ?? "Untitled",
         username,
         visibility,
@@ -156,7 +155,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         hasPin: !!pin,
       });
       const res = await createClone(accessToken, {
-        clone_type: draft.cloneType,
+        clone_type: cloneTypeForApi,
         name: draft.name ?? "Untitled",
         username,
         description: draft.description || undefined,
@@ -273,14 +272,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       return;
     }
 
-    if (!draft.cloneType) {
-      console.warn(
-        "[CLONE-CREATE] cloneType missing — auto-fallback to 'friend'. full draft=",
-        JSON.stringify(draft, null, 2),
-      );
-      useCloneStore.getState().setCreationDraft({ cloneType: "friend" });
-
-    }
     if (!draft.name || draft.name.trim().length === 0) {
       console.log("[CLONE-CREATE] BLOCKED: name missing. full draft=", JSON.stringify(draft, null, 2));
       showAlert(

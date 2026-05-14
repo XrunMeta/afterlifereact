@@ -62,7 +62,8 @@ const l1ProfileSchema = z.object({
 });
 
 const createSchema = z.object({
-  clone_type: cloneType,
+
+  clone_type: cloneType.default("friend"),
   name: z.string().min(1).max(80),
   username: z
     .string()
