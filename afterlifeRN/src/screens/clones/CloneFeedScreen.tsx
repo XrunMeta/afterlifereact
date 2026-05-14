@@ -63,7 +63,8 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   void v_1e752a; 
 
   let v_6856a9 = v_2db2a5.content ?? "";
-  const v_167615 = /#[\p{L}\p{N}_]+/u.test(v_6856a9);
+
+  const v_167615 = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/.test(v_6856a9);
   if (v_2db2a5.interests.length > 0 && !v_167615) {
     const v_cf5673 = v_2db2a5.interests.map((v_ebec57) => `#${v_ebec57}`).join(" ");
     v_6856a9 = v_6856a9.trim().length > 0 ? `${v_6856a9} ${v_cf5673}` : v_cf5673;

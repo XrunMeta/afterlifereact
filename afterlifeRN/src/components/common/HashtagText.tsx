@@ -7,7 +7,7 @@ import type { v_5b8240 } from "ykfzqfftuciufdadykzsyvzknqnwb";
 import type { v_97a9a8 } from "../../navigation/types";
 import { v_1bfbd0 } from "../constants";
 
-const v_2c17d6 = /#[\p{L}\p{N}_]+/gu;
+const v_2c17d6 = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/g;
 
 type Props = {
   children: string;

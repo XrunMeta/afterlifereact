@@ -181,7 +181,8 @@ export default function v_14b43e() {
         const v_6bbace = v_3f4e2e.latestFeed?.feedId ?? null;
 
         let v_41b99d = v_3f4e2e.description ?? "";
-        const v_167615 = /#[\p{L}\p{N}_]+/u.test(v_41b99d);
+
+        const v_167615 = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/.test(v_41b99d);
         const v_ac0b78 = v_3f4e2e.interests ?? [];
         if (!v_167615 && v_ac0b78.length > 0) {
           const v_cf5673 = v_ac0b78.map((v_ebec57) => `#${v_ebec57}`).join(" ");
