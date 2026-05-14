@@ -15,6 +15,7 @@ import {
   Image,
   TextInput,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { Alert, Share } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -72,19 +73,24 @@ export default function HomeScreen() {
   const getFilteredFeeds = useFeedStore((s) => s.getFilteredFeeds);
   const loadDiscover = useFeedStore((s) => s.loadDiscover);
   const apiFeeds = useFeedStore((s) => s.apiFeeds);
+  const apiLoading = useFeedStore((s) => s.apiLoading);
   const follows = useFollowStore((s) => s.follows);
   const isFollowing = useFollowStore((s) => s.isFollowing);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
+  const [firstLoadDone, setFirstLoadDone] = useState(false);
+
   useEffect(() => {
     if (apiFeeds == null) {
-      void loadDiscover();
+      void loadDiscover().finally(() => setFirstLoadDone(true));
+    } else {
+      setFirstLoadDone(true);
     }
   }, [apiFeeds, loadDiscover]);
 
   useFocusEffect(
     useCallback(() => {
-      void loadDiscover();
+      void loadDiscover().finally(() => setFirstLoadDone(true));
     }, [loadDiscover]),
   );
 
@@ -374,11 +380,20 @@ export default function HomeScreen() {
     [currentIndex, likedIds, follows, feedHeight, toggleLike, toggleFollow, isFollowing, myUserId]
   );
 
+  const showLoading = !firstLoadDone || (filteredFeeds.length === 0 && apiLoading);
+  const showEmpty = !showLoading && filteredFeeds.length === 0;
+
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      {}
-      {filteredFeeds.length === 0 ? (
+      {
+
+}
+      {showLoading ? (
+        <View style={[styles.emptyWrap, { height: feedHeight }]}>
+          <ActivityIndicator size="small" color="rgba(255,255,255,0.6)" />
+        </View>
+      ) : showEmpty ? (
         <View style={[styles.emptyWrap, { height: feedHeight }]}>
           <View style={styles.emptyIconWrap}>
             <Feather name="users" size={36} color="rgba(255,255,255,0.7)" />
