@@ -867,6 +867,7 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
@@ -877,11 +878,15 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
                 fc.created_at AS createdAt,
                 u.name       AS userName,
                 u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+                u.avatar_url AS userAvatarUrl,
+                (SELECT COUNT(*) FROM feed_comments fcc
+                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
            JOIN feeds f ON f.id = fc.feed_id
            JOIN users u ON u.id = fc.user_id
-          WHERE f.clone_id = ? AND u.deleted_at IS NULL
+          WHERE f.clone_id = ?
+            AND fc.parent_comment_id IS NULL
+            AND u.deleted_at IS NULL
           ORDER BY fc.id DESC
           LIMIT ?`,
       )
@@ -895,6 +900,7 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
+        repliesCount: number;
       }>()
   ).results;
   return v_3f4e2e.json({
@@ -904,6 +910,7 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
       userId: v_cb35cb.userId,
       content: v_cb35cb.content,
       createdAt: v_cb35cb.createdAt,
+      repliesCount: v_cb35cb.repliesCount ?? 0,
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,
