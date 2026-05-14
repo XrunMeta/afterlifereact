@@ -45,8 +45,11 @@ const ALLOWED_ORIGINS = new Set<string>([
   "http://localhost:5174",
   "http://localhost:8787",
   "https://afterlife-admin.pages.dev",
+  "https://xrun-admin.pages.dev",
+  "https://preview.xrun-admin.pages.dev",
 ]);
 const PAGES_HOST_RE = /^https:\/\/[a-z0-9-]+\.afterlife-admin\.pages\.dev$/;
+const XRUN_ADMIN_HOST_RE = /^https:\/\/[a-z0-9-]+\.xrun-admin\.pages\.dev$/;
 
 app.use(
   "*",
@@ -55,6 +58,7 @@ app.use(
       if (!origin) return "*";
       if (ALLOWED_ORIGINS.has(origin)) return origin;
       if (PAGES_HOST_RE.test(origin)) return origin;
+      if (XRUN_ADMIN_HOST_RE.test(origin)) return origin;
       return null;
     },
     credentials: true,
