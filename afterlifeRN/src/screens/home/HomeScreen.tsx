@@ -26,6 +26,7 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
 import v_9706a6 from "../../components/ui/FeedCard";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
+import v_4d58d7 from "../../components/common/ReportReasonModal";
 
 import { v_37977a, v_10e36e } from "../../stores/feedStore";
 import { v_b4902e } from "../../stores/followStore";
@@ -94,6 +95,11 @@ export default function v_c316d8() {
     author: string;
     isOwn: boolean;
     visibility?: string;
+  } | null>(null);
+
+  const [v_f18195, v_fdd7c1] = v_5ab095<{
+    cloneId: number;
+    author: string;
   } | null>(null);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
   v_c4deb2(() => {
@@ -555,27 +561,12 @@ export default function v_c316d8() {
                 )}
                 <TouchableOpacity
                   style={v_d81136.moreItem}
-                  onPress={async () => {
+                  onPress={() => {
                     const v_5f5d6d = v_12fa22;
                     v_949e66(null);
-                    if (!v_5f5d6d || !v_2ca7e0) return;
+                    if (!v_5f5d6d) return;
 
-                    try {
-                      const { reportClone: v_9deb40 } = await import("../../api/clones");
-                      await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId);
-                      v_15c939("신고가 접수됐어요. 이 페르소나는 차단됐어요");
-                      const v_c3bc75 = v_37977a.getState().apiFeeds;
-                      if (v_c3bc75) {
-                        v_37977a.setState({
-                          apiFeeds: v_c3bc75.filter((v_23805a) => v_23805a.cloneId !== v_5f5d6d.cloneId),
-                        });
-                      }
-                      await v_b4902e.getState().unfollowLocalForBlock(v_5f5d6d.cloneId);
-                      void v_c600ef();
-                    } catch (v_49263d) {
-                      console.warn(`[REPORT] FAILED cloneId=${v_5f5d6d.cloneId}`, v_49263d);
-                      v_15c939("신고에 실패했어요");
-                    }
+                    v_fdd7c1({ cloneId: v_5f5d6d.cloneId, author: v_5f5d6d.author });
                   }}
                 >
                   <Feather name="flag" size={20} color="#ef4444" />
@@ -613,6 +604,35 @@ export default function v_c316d8() {
           </SwipeDownSheet>
         </Pressable>
       </Modal>
+
+      {}
+      <ReportReasonModal
+        visible={!!v_f18195}
+        targetName={v_f18195?.author}
+        onCancel={() => v_fdd7c1(null)}
+        onConfirm={async (v_58ca36) => {
+          const v_5f5d6d = v_f18195;
+          v_fdd7c1(null);
+          if (!v_5f5d6d || !v_2ca7e0) return;
+
+          try {
+            const { reportClone: v_9deb40 } = await import("../../api/clones");
+            await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
+            v_15c939("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            const v_c3bc75 = v_37977a.getState().apiFeeds;
+            if (v_c3bc75) {
+              v_37977a.setState({
+                apiFeeds: v_c3bc75.filter((v_23805a) => v_23805a.cloneId !== v_5f5d6d.cloneId),
+              });
+            }
+            await v_b4902e.getState().unfollowLocalForBlock(v_5f5d6d.cloneId);
+            void v_c600ef();
+          } catch (v_49263d) {
+            console.warn(`[REPORT] FAILED cloneId=${v_5f5d6d.cloneId}`, v_49263d);
+            v_15c939("신고에 실패했어요");
+          }
+        }}
+      />
 
       {v_8282fa && (
         <View style={v_d81136.toast}>
