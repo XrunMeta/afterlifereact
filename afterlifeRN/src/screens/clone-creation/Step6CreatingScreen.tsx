@@ -309,12 +309,32 @@ export default function Step6CreatingScreen({ navigation }: Props) {
       return;
     }
     if (phase === "username") {
+      const raw = username.trim().toLowerCase();
 
-      const raw = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
-      const finalUsername =
-        raw.length >= 3 && raw.length <= 30
-          ? raw
-          : deriveUsernameFromName(name.trim() || "user");
+      if (raw.length === 0) {
+        const finalUsername = deriveUsernameFromName(name.trim() || "user");
+        setUsername(finalUsername);
+        setCreationDraft({ username: finalUsername });
+        setPhase("firstMeeting");
+        return;
+      }
+
+      if (!/^[a-z0-9_]+$/.test(raw)) {
+        showAlert(
+          "아이디 형식 오류",
+          "영문 소문자, 숫자, _ 만 사용 가능해요.\n다시 입력해주세요.",
+        );
+        return;
+      }
+      if (raw.length < 3) {
+        showAlert("아이디 길이", "아이디는 3자 이상이어야 해요.");
+        return;
+      }
+      if (raw.length > 30) {
+        showAlert("아이디 길이", "아이디는 30자 이하여야 해요.");
+        return;
+      }
+      const finalUsername = raw;
 
       if (checkingUsername) return;
       setCheckingUsername(true);
