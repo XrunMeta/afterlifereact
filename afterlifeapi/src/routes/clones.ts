@@ -161,7 +161,7 @@ clones.post(
         .bind(userId)
         .first<{ xrun_member_id: number | null }>();
       if (!senderRow?.xrun_member_id) {
-        throw new APIError("CONFLICT", "xrun account not linked.");
+        throw new APIError("CONFLICT", "xrun 계정이 연동되어 있지 않아요.");
       }
       const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
       const { externalTransferSplit } = await import("../lib/xrun");
@@ -174,10 +174,10 @@ clones.post(
       });
       if (!payRes.ok) {
         if (payRes.code === 401 || payRes.code === 403) {
-          throw new APIError("UNAUTHENTICATED", "PIN verification failed.");
+          throw new APIError("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
         }
         if (payRes.code === 402) {
-          throw new APIError("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.");
+          throw new APIError("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
         }
         throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
       }
@@ -236,7 +236,7 @@ clones.post(
       }
       throw err;
     }
-    if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create clone.");
+    if (!inserted) throw new APIError("INTERNAL_ERROR", "페르소나 생성에 실패했어요.");
 
     const cloneId = inserted.id;
 
@@ -487,19 +487,19 @@ clones.get("/search", async (c) => {
 clones.get("/:id", async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   const userId = await resolveOptionalUser(c);
   const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
 
   if (clone.visibility === "private" && viewerRole !== "owner" && viewerRole !== "coowner") {
-    throw new APIError("FORBIDDEN", "Private clone.");
+    throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
   }
   if (clone.visibility === "followers" && viewerRole === null) {
-    throw new APIError("FORBIDDEN", "Followers-only clone.");
+    throw new APIError("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
   }
   if (clone.visibility === "selected") {
     const isAllowed = viewerRole === "owner" || viewerRole === "coowner"
@@ -510,7 +510,7 @@ clones.get("/:id", async (c) => {
           )
           .bind(cloneId, userId)
           .first();
-    if (!isAllowed) throw new APIError("FORBIDDEN", "Restricted clone.");
+    if (!isAllowed) throw new APIError("FORBIDDEN", "이 페르소나에 접근할 권한이 없어요.");
   }
 
   const interests = (
@@ -591,18 +591,18 @@ const patchSchema = z
 clones.patch("/:id", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const body = await parseJson(c, patchSchema);
   const userId = c.get("userId")!;
   const db = c.env.DB;
 
   const clone = await loadCloneById(db, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   const isOwner =
     clone.owner_id === userId ||
     (await hasAcceptedShare(db, cloneId, userId)) === "owner";
-  if (!isOwner) throw new APIError("FORBIDDEN", "Owner role required.");
+  if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 변경할 수 있어요.");
 
   if (body.l1_profile !== undefined) {
     const row = await db
@@ -610,7 +610,7 @@ clones.patch("/:id", requireAuth, async (c) => {
       .bind(cloneId)
       .first<{ primary_editor_user_id: number | null }>();
     if (row?.primary_editor_user_id !== userId) {
-      throw new APIError("FORBIDDEN", "Only the primary editor may edit L1.");
+      throw new APIError("FORBIDDEN", "주 편집자만 페르소나 정보를 수정할 수 있어요.");
     }
   }
 
@@ -733,20 +733,20 @@ clones.patch("/:id", requireAuth, async (c) => {
 clones.post("/:id/follow", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
   const db = c.env.DB;
 
   const clone = await loadCloneById(db, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (clone.visibility === "private") {
     const role =
       clone.owner_id === userId
         ? "owner"
         : await hasAcceptedShare(db, cloneId, userId);
-    if (!role) throw new APIError("FORBIDDEN", "Cannot follow private clone.");
+    if (!role) throw new APIError("FORBIDDEN", "비공개 페르소나는 팔로우할 수 없어요.");
   }
 
   const result = await db
@@ -765,7 +765,7 @@ clones.post("/:id/follow", requireAuth, async (c) => {
 clones.delete("/:id/follow", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
   await c.env.DB
@@ -778,7 +778,7 @@ clones.delete("/:id/follow", requireAuth, async (c) => {
 clones.get("/:id/followers", async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
@@ -823,7 +823,7 @@ clones.get("/:id/followers", async (c) => {
 clones.get("/:id/like-status", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
   const row = await c.env.DB
@@ -848,7 +848,7 @@ const giftSchema = z.object({
 clones.post("/:id/gift", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const senderId = c.get("userId")!;
   const body = await parseJson(c, giftSchema);
@@ -866,19 +866,19 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     .prepare(`SELECT id, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(senderId)
     .first<{ id: number; xrun_member_id: number | null }>();
-  if (!sender) throw new APIError("UNAUTHENTICATED", "User not found.");
+  if (!sender) throw new APIError("UNAUTHENTICATED", "사용자를 찾을 수 없어요.");
   if (!sender.xrun_member_id) {
-    throw new APIError("CONFLICT", "xrun account not linked to your afterlife user.");
+    throw new APIError("CONFLICT", "내 계정에 xrun 이 연동되어 있지 않아요.");
   }
 
   const clone = await c.env.DB
     .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND deleted_at IS NULL`)
     .bind(cloneId)
     .first<{ id: number; owner_id: number }>();
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (clone.owner_id === senderId) {
-    throw new APIError("VALIDATION_FAILED", "Cannot send a gift to your own persona.");
+    throw new APIError("VALIDATION_FAILED", "자기 자신의 페르소나에는 선물할 수 없어요.");
   }
 
   const owner = await c.env.DB
@@ -1027,7 +1027,7 @@ clones.post("/:id/gift", requireAuth, async (c) => {
 clones.post("/:id/block", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
 
@@ -1045,7 +1045,7 @@ clones.post("/:id/block", requireAuth, async (c) => {
 clones.delete("/:id/block", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
   await c.env.DB
@@ -1061,7 +1061,7 @@ const reportSchema = z.object({
 clones.post("/:id/report", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
   const body = await parseJson(c, reportSchema).catch(() => ({ reason: undefined }));
