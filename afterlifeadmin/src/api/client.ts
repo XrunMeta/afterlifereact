@@ -213,4 +213,26 @@ export const v_05a921 = {
       }>;
     }>(`/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`);
   },
+
+  getUserReports: (v_24baff) => {
+    const v_212049 = new URLSearchParams();
+    if (v_24baff?.status) v_212049.set("status", v_24baff.status);
+    if (v_24baff?.limit) v_212049.set("limit", String(v_24baff.limit));
+    const v_25c4f7 = v_212049.toString();
+    return v_576f5a<{
+      items: Array<{
+        id: number;
+        reporterId: number;
+        reporterName: string | null;
+        reporterEmail: string;
+        targetId: number;
+        targetName: string | null;
+        targetEmail: string;
+        reason: string | null;
+        status: string;
+        createdAt: string;
+        reviewedAt: string | null;
+      }>;
+    }>(`/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`);
+  },
 };
