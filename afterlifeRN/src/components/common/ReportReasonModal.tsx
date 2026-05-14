@@ -10,7 +10,9 @@ import {
   v_472849,
   v_09d0e5,
   v_e767d1,
+  v_0e1f26,
   v_326be8,
+  v_e45a99,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
@@ -32,12 +34,39 @@ export default function v_4d58d7({
 }: Props) {
   const [v_58ca36, v_b6141f] = v_5ab095("");
 
+  const [v_7e4acc, v_de86c2] = v_5ab095(0);
+  const { height: v_5a448f } = v_e45a99();
+
   v_c4deb2(() => {
     if (v_cf55be) v_b6141f("");
   }, [v_cf55be]);
 
+  v_c4deb2(() => {
+    const v_53f5d7 = v_0e1f26.addListener(
+      v_326be8.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (v_9e86fd) => v_de86c2(v_9e86fd.endCoordinates.height),
+    );
+    const v_52528b = v_0e1f26.addListener(
+      v_326be8.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => v_de86c2(0),
+    );
+    return () => {
+      v_53f5d7.remove();
+      v_52528b.remove();
+    };
+  }, []);
+
   const v_fbb22a = () => {
+    v_0e1f26.dismiss();
     v_e2be2d(v_58ca36.trim());
+  };
+
+  const v_cd2551 = () => {
+    if (v_7e4acc > 0) {
+      v_0e1f26.dismiss();
+    } else {
+      v_c7001c();
+    }
   };
 
   return (
@@ -46,8 +75,17 @@ export default function v_4d58d7({
         behavior={v_326be8.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <Pressable style={v_d81136.overlay} onPress={v_c7001c}>
-          <Pressable style={v_d81136.box} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+        <Pressable style={v_d81136.overlay} onPress={v_cd2551}>
+          <Pressable
+            style={[
+              v_d81136.box,
+
+              v_326be8.OS === "android" && v_7e4acc > 0
+                ? { marginBottom: Math.min(v_7e4acc - 24, v_5a448f * 0.4) }
+                : null,
+            ]}
+            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+          >
             <View style={v_d81136.iconWrap}>
               <Feather name="flag" size={24} color="#ef4444" />
             </View>
