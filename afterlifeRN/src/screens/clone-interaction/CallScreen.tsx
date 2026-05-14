@@ -15,6 +15,7 @@ import {
   KeyboardAvoidingView,
   TextInput,
   Alert,
+  Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -133,15 +134,50 @@ export default function CallScreen({ route, navigation }: Props) {
   const [pinInput, setPinInput] = useState("");
   const [paying, setPaying] = useState(false);
 
+  const openXrunApp = async () => {
+    const email = useAuthStore.getState().apiUser?.email ?? null;
+    const deeplink = email
+      ? `xrun://?email=${encodeURIComponent(email)}&from=afterlife`
+      : "xrun://";
+    try {
+      await Linking.openURL(deeplink);
+    } catch {
+      const storeUrl =
+        Platform.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try {
+        await Linking.openURL(storeUrl);
+      } catch {
+
+      }
+    }
+  };
+
   const handleGiftSend = (gift: Gift) => {
+    console.log(
+      `[Call][gift-tap] giftId=${gift.id} name=${gift.name} price=${gift.price} ` +
+        `myCredits=${credits} (typeof=${typeof credits}) enough=${credits >= gift.price}`,
+    );
     if (credits < gift.price) {
-      setToastMessage(t("call.noCredits"));
+      console.log(
+        `[Call][gift-insufficient-precheck] ${credits} < ${gift.price} → block PIN modal`,
+      );
+      showAlert(
+        "XRUN 잔액이 부족해요",
+        `이 선물은 ${gift.price} XRUN 이 필요한데\n내 잔액은 ${credits} XRUN 이에요.`,
+        [
+          { text: "확인", style: "cancel" },
+          { text: "xrun 바로가기", onPress: () => void openXrunApp() },
+        ],
+      );
       return;
     }
     setPendingGift(gift);
     setPinInput("");
     setShowGifts(false);
     setPinModalVisible(true);
+    console.log(`[Call][gift-pin-open] open PIN modal for gift=${gift.name}`);
   };
 
   const submitGift = async () => {
@@ -150,6 +186,10 @@ export default function CallScreen({ route, navigation }: Props) {
       setToastMessage("PIN 6자리를 입력해 주세요");
       return;
     }
+    console.log(
+      `[Call][gift-submit] giftId=${pendingGift.id} amount=${pendingGift.price} ` +
+        `myCredits=${credits} cloneId=${cloneId} pin=*** (${pinInput.length} chars)`,
+    );
     setPaying(true);
     try {
       const res = await sendGiftToClone(accessToken, cloneId, {
@@ -158,7 +198,7 @@ export default function CallScreen({ route, navigation }: Props) {
         amount: pendingGift.price,
         pin: pinInput,
       });
-      console.log("[Call] gift sent:", res.gift);
+      console.log("[Call][gift-ok] gift sent:", res.gift);
       const gift = pendingGift;
 
       if (res.gift.newBalance != null && !Number.isNaN(Number(res.gift.newBalance))) {
@@ -172,7 +212,14 @@ export default function CallScreen({ route, navigation }: Props) {
 
       playGiftAnimation(gift);
     } catch (err) {
-      console.warn("[Call] gift failed:", err);
+      console.warn("[Call][gift-fail] raw err =", err);
+      if (err instanceof AuthApiError) {
+        console.warn(
+          `[Call][gift-fail] code=${err.code} status=${err.status} msg="${err.message}" details=${JSON.stringify(err.details)}`,
+        );
+      } else if (err instanceof Error) {
+        console.warn(`[Call][gift-fail] non-AuthApiError name=${err.name} msg=${err.message}`);
+      }
       let title = "송금 실패";
       let msg = "송금에 실패했어요.";
       let isInsufficient = false;
@@ -180,8 +227,8 @@ export default function CallScreen({ route, navigation }: Props) {
         if (err.code === "UNAUTHENTICATED") msg = "결제 비밀번호가 일치하지 않아요.";
         else if (err.code === "INSUFFICIENT_FUNDS") {
           isInsufficient = true;
-          title = "XRUN 잔액 부족";
-          msg = "XRUN 잔액이 부족해요.\nxrun 앱에서 더 벌어와주세요.";
+          title = "XRUN 잔액이 부족해요";
+          msg = "선물 보내기에 필요한 XRUN 이 부족해요.";
         } else if (err.code === "CONFLICT") msg = err.message;
         else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
           msg = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
@@ -189,8 +236,8 @@ export default function CallScreen({ route, navigation }: Props) {
 
           if (/insufficient|잔액|balance/i.test(err.message)) {
             isInsufficient = true;
-            title = "XRUN 잔액 부족";
-            msg = "XRUN 잔액이 부족해요.\nxrun 앱에서 더 벌어와주세요.";
+            title = "XRUN 잔액이 부족해요";
+            msg = "선물 보내기에 필요한 XRUN 이 부족해요.";
           } else {
             msg = "xrun 송금 처리 중 오류가 발생했어요.";
           }
@@ -203,7 +250,10 @@ export default function CallScreen({ route, navigation }: Props) {
         title,
         msg,
         isInsufficient
-          ? [{ text: "확인", style: "default" }]
+          ? [
+              { text: "확인", style: "cancel" },
+              { text: "xrun 바로가기", onPress: () => void openXrunApp() },
+            ]
           : undefined,
       );
     } finally {
