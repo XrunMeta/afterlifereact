@@ -15,6 +15,7 @@ import {
   v_cf9c33,
   v_79c4f2,
   v_0e1f26,
+  v_39a996,
 } from "rcmrninabrnb";
 import { v_03e392, v_5f4661 } from "rcmrninabrnb";
 import { v_b5df25 } from "ernurodqvmtspux";
@@ -72,19 +73,24 @@ export default function v_c316d8() {
   const v_1c7dea = v_37977a((v_fd5f43) => v_fd5f43.getFilteredFeeds);
   const v_c600ef = v_37977a((v_fd5f43) => v_fd5f43.loadDiscover);
   const v_71b114 = v_37977a((v_fd5f43) => v_fd5f43.apiFeeds);
+  const v_dec728 = v_37977a((v_fd5f43) => v_fd5f43.apiLoading);
   const v_1e752a = v_b4902e((v_fd5f43) => v_fd5f43.follows);
   const v_b30b81 = v_b4902e((v_fd5f43) => v_fd5f43.isFollowing);
   const v_3094d4 = v_b4902e((v_fd5f43) => v_fd5f43.toggleFollow);
 
+  const [v_708913, v_f0e470] = v_5ab095(false);
+
   v_c4deb2(() => {
     if (v_71b114 == null) {
-      void v_c600ef();
+      void v_c600ef().finally(() => v_f0e470(true));
+    } else {
+      v_f0e470(true);
     }
   }, [v_71b114, v_c600ef]);
 
   v_cf763b(
     v_de06a3(() => {
-      void v_c600ef();
+      void v_c600ef().finally(() => v_f0e470(true));
     }, [v_c600ef]),
   );
 
@@ -374,11 +380,20 @@ export default function v_c316d8() {
     [v_2bcb8f, v_632420, v_1e752a, v_1be4da, v_a96ced, v_3094d4, v_b30b81, v_f5f393]
   );
 
+  const v_587901 = !v_708913 || (v_ff422a.length === 0 && v_dec728);
+  const v_60483c = !v_587901 && v_ff422a.length === 0;
+
   return (
     <View style={v_d81136.root}>
       <StatusBar style="light" />
-      {}
-      {v_ff422a.length === 0 ? (
+      {
+
+}
+      {v_587901 ? (
+        <View style={[v_d81136.emptyWrap, { height: v_1be4da }]}>
+          <ActivityIndicator size="small" color="rgba(255,255,255,0.6)" />
+        </View>
+      ) : v_60483c ? (
         <View style={[v_d81136.emptyWrap, { height: v_1be4da }]}>
           <View style={v_d81136.emptyIconWrap}>
             <Feather name="users" size={36} color="rgba(255,255,255,0.7)" />
