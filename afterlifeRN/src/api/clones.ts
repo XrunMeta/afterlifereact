@@ -39,6 +39,41 @@ export interface CreateCloneResponse {
   initial_memory: { ctx_key: string; shared_key: string } | null;
 }
 
+export interface CloneDetailResponse {
+  clone: {
+    id: number;
+    ownerId: number;
+    name: string;
+    username: string;
+    description: string | null;
+    avatarUrl: string | null;
+    cloneType: string;
+    visibility: string;
+    stats: {
+      followers: number;
+      messages: number;
+      gifts: number;
+      likes: number;
+      comments: number;
+    };
+    likedByMe: boolean;
+    createdAt: string;
+  };
+}
+export async function getCloneDetail(
+  cloneId: number,
+  accessToken?: string,
+): Promise<CloneDetailResponse> {
+  const url = `${API_BASE}/oth-path${cloneId}`;
+  const res = await fetch(url, {
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  });
+  if (!res.ok) {
+    throw new Error(`getCloneDetail HTTP ${res.status}`);
+  }
+  return (await res.json()) as CloneDetailResponse;
+}
+
 export async function checkCloneUsername(
   username: string,
 ): Promise<{ available: boolean; reason?: "taken" | "reserved" | "invalid" }> {

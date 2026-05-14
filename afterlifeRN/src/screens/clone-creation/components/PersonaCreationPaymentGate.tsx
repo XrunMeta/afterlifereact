@@ -18,6 +18,7 @@ import { COLORS, RADIUS } from "../../../components/constants";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCloneStore } from "../../../stores/cloneStore";
 import { listMyClones } from "../../../api/clones";
+import { getXrunBalance } from "../../../api/payments";
 
 const PERSONA_PAID_PRICE_XRUN = 100;
 
@@ -37,6 +38,8 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const [balance, setBalance] = useState<number | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -53,6 +56,15 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
         if (cancelled) return;
         const count = res.items?.length ?? 0;
         if (count >= 1) {
+
+          try {
+            const bal = await getXrunBalance(accessToken);
+            if (!cancelled) setBalance(bal.xrun ?? 0);
+          } catch (balErr) {
+            console.warn("[PaymentGate] balance fetch failed:", balErr);
+            if (!cancelled) setBalance(null);
+          }
+          if (cancelled) return;
           setNeedPay(true);
           setLoading(false);
         } else {
@@ -74,7 +86,16 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
 
   }, [accessToken]);
 
+  const insufficient =
+    balance !== null && balance < PERSONA_PAID_PRICE_XRUN;
+
   const handleConfirm = () => {
+    if (insufficient) {
+      setError(
+        `XRUN 잔액이 부족해요. (${balance ?? 0} / ${PERSONA_PAID_PRICE_XRUN} XRUN)`,
+      );
+      return;
+    }
     if (pin.length !== 6) {
       setError("PIN 6자리를 입력해주세요.");
       return;
@@ -110,19 +131,26 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
               두 번째 페르소나부터 {PERSONA_PAID_PRICE_XRUN} XRUN 이 부과돼요.{"\n"}
               결제 비밀번호 6자리를 입력해주세요.
             </Text>
+            {balance !== null && (
+              <Text style={[styles.balance, insufficient && styles.balanceLow]}>
+                내 XRUN 잔액: {balance.toLocaleString()} XRUN
+                {insufficient && " — 잔액 부족"}
+              </Text>
+            )}
             <TextInput
-              style={styles.input}
+              style={[styles.input, insufficient && styles.inputDisabled]}
               value={pin}
               onChangeText={(v) => {
                 setPin(v.replace(/\D/g, "").slice(0, 6));
                 setError(null);
               }}
-              placeholder="PIN 6자리"
+              placeholder={insufficient ? "잔액 부족" : "PIN 6자리"}
               placeholderTextColor={COLORS.zinc400}
               keyboardType="number-pad"
               secureTextEntry
               maxLength={6}
-              autoFocus
+              autoFocus={!insufficient}
+              editable={!insufficient}
             />
             {error && <Text style={styles.error}>{error}</Text>}
             <View style={styles.btns}>
@@ -130,12 +158,17 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 <Text style={styles.cancelText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.confirm, pin.length !== 6 && styles.disabled]}
+                style={[
+                  styles.confirm,
+                  (pin.length !== 6 || insufficient) && styles.disabled,
+                ]}
                 onPress={handleConfirm}
-                disabled={pin.length !== 6}
+                disabled={pin.length !== 6 || insufficient}
               >
                 <Text style={styles.confirmText}>
-                  {PERSONA_PAID_PRICE_XRUN} XRUN 결제
+                  {insufficient
+                    ? "잔액 부족"
+                    : `${PERSONA_PAID_PRICE_XRUN} XRUN 결제`}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -186,6 +219,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
+  balance: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.zinc700,
+    marginBottom: 10,
+  },
+  balanceLow: {
+    color: "#ef4444",
+  },
   input: {
     width: "100%",
     borderWidth: 1,
@@ -197,6 +239,10 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     color: COLORS.zinc900,
     marginBottom: 8,
+  },
+  inputDisabled: {
+    backgroundColor: COLORS.zinc100,
+    color: COLORS.zinc400,
   },
   error: { fontSize: 12, color: "#ef4444", marginBottom: 8 },
   btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 12 },

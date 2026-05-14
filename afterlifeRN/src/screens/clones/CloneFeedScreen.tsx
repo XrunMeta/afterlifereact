@@ -28,6 +28,7 @@ import type { FeedItem } from "../../types/feed";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useFeedStore } from "../../stores/feedStore";
+import { Alert } from "react-native";
 import {
   likeClone,
   unlikeClone,
@@ -35,8 +36,12 @@ import {
   postFeedComment,
   postCloneComment,
   deleteFeedComment,
+  getCloneDetail,
+  reportClone,
+  blockClone,
   type FeedComment,
 } from "../../api/clones";
+import ReportReasonModal from "../../components/common/ReportReasonModal";
 import { formatRelativeKo } from "../../lib/relativeTime";
 import { COLORS } from "../../components/constants";
 
@@ -95,6 +100,37 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
 
   const [liked, setLiked] = useState<boolean>(feed.likedByMe ?? likedIds.includes(realFeedId));
   const isOwn = myUserId != null && item.cloneOwnerId === myUserId;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getCloneDetail(feed.cloneId, accessToken ?? undefined);
+        if (cancelled) return;
+        setLikesCount(res.clone.stats.likes ?? 0);
+        setCommentsCount(res.clone.stats.comments ?? 0);
+        setLiked(res.clone.likedByMe);
+      } catch (err) {
+        console.warn("[CloneFeed] hydrate detail failed:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [feed.cloneId, accessToken]);
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{
+    cloneId: number;
+    author: string;
+  } | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  useEffect(() => {
+    if (toastMessage) {
+      const id = setTimeout(() => setToastMessage(null), 2000);
+      return () => clearTimeout(id);
+    }
+  }, [toastMessage]);
 
   const handleLike = async () => {
     const next = !liked;
@@ -243,6 +279,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
         onToggleFollow={() => void toggleFollow(item.cloneId)}
         onCallPress={handleCall}
         onCommentPress={() => setCommentOpen(true)}
+        onMorePress={() => setMoreOpen(true)}
         onSharePress={handleShare}
       />
 
@@ -357,6 +394,92 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
           </SwipeDownSheet>
         </Pressable>
       </Modal>
+
+      {}
+      <Modal visible={moreOpen} transparent animationType="fade">
+        <Pressable style={styles.moreOverlay} onPress={() => setMoreOpen(false)}>
+          <SwipeDownSheet
+            onClose={() => setMoreOpen(false)}
+            style={[styles.moreSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+          >
+            <View style={styles.moreSheetHandle} />
+            <Text style={styles.moreTitle}>{item.author}</Text>
+            {!isOwn && (
+              <>
+                {item.cloneOwnerId != null && (
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={() => {
+                    setMoreOpen(false);
+                    if (item.cloneOwnerId == null) return;
+                    navigation.navigate("UserProfile", {
+                      userId: item.cloneOwnerId,
+                    });
+                  }}
+                >
+                  <Feather name="user" size={20} color="#0f172a" />
+                  <Text style={styles.moreItemText}>유저 정보보기</Text>
+                </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={() => {
+                    setMoreOpen(false);
+                    setReportTarget({ cloneId: item.cloneId, author: item.author });
+                  }}
+                >
+                  <Feather name="flag" size={20} color="#ef4444" />
+                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.moreItem, { borderBottomWidth: 0 }]}
+                  onPress={async () => {
+                    setMoreOpen(false);
+                    if (!accessToken) return;
+                    try {
+                      await blockClone(accessToken, item.cloneId);
+                      setToastMessage("이 페르소나가 차단됐어요");
+                      navigation.goBack();
+                    } catch (err) {
+                      console.warn("[CloneFeed] block failed:", err);
+                      setToastMessage("차단에 실패했어요");
+                    }
+                  }}
+                >
+                  <Feather name="slash" size={20} color="#0f172a" />
+                  <Text style={styles.moreItemText}>차단하기</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </SwipeDownSheet>
+        </Pressable>
+      </Modal>
+
+      {}
+      <ReportReasonModal
+        visible={!!reportTarget}
+        targetName={reportTarget?.author}
+        onCancel={() => setReportTarget(null)}
+        onConfirm={async (reason) => {
+          const target = reportTarget;
+          setReportTarget(null);
+          if (!target || !accessToken) return;
+          try {
+            await reportClone(accessToken, target.cloneId, reason || undefined);
+            setToastMessage("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            navigation.goBack();
+          } catch (err) {
+            console.warn("[CloneFeed] report failed:", err);
+            setToastMessage("신고에 실패했어요");
+          }
+        }}
+      />
+
+      {toastMessage && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>{toastMessage}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -433,4 +556,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.white,
   },
+
+  moreOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  moreSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 0,
+    paddingHorizontal: 16,
+  },
+  moreSheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#cbd5e1",
+    alignSelf: "center",
+    marginVertical: 12,
+  },
+  moreTitle: {
+    fontSize: 13,
+    color: "#64748b",
+    fontWeight: "600",
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  moreItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+  moreItemText: { fontSize: 15, color: "#0f172a" },
+  toast: {
+    position: "absolute",
+    bottom: 80,
+    left: 24,
+    right: 24,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  toastText: { color: COLORS.white, fontSize: 13 },
 });
