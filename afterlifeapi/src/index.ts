@@ -45,8 +45,11 @@ const v_9ebb7a = new Set<string>([
   "http://localhost:5174",
   "http://localhost:8787",
   "https://site-x.example.invalid",
+  "https://console2.example.invalid",
+  "https://console-preview2.example.invalid",
 ]);
 const v_b5d625 = /^https:\/\/[a-z0-9-]+\.afterlife-admin\.pages\.dev$/;
+const v_e00aa1 = /^https:\/\/[a-z0-9-]+\.xrun-admin\.pages\.dev$/;
 
 v_466992.use(
   "*",
@@ -55,6 +58,7 @@ v_466992.use(
       if (!v_f17108) return "*";
       if (v_9ebb7a.has(v_f17108)) return v_f17108;
       if (v_b5d625.test(v_f17108)) return v_f17108;
+      if (v_e00aa1.test(v_f17108)) return v_f17108;
       return null;
     },
     credentials: true,
