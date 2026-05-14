@@ -231,7 +231,7 @@ const v_fd5f43 = v_472849.create({
   card: {
     width: "100%",
     maxWidth: 420,
-    maxHeight: "85%",
+    height: "75%",
     backgroundColor: v_1bfbd0.white,
     borderRadius: v_8b0c90.lg,
     overflow: "hidden",

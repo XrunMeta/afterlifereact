@@ -3,6 +3,8 @@
 export interface Bindings {
   DB: D1Database;
 
+  XRUN_DB?: D1Database;
+
   KV_CTX: KVNamespace;          
   KV_SHARED: KVNamespace;       
   KV_SHARED_VER: KVNamespace;   
