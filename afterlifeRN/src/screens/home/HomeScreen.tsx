@@ -352,13 +352,13 @@ export default function HomeScreen() {
         <Pressable style={styles.commentOverlay} onPress={() => { Keyboard.dismiss(); setCommentFeedId(null); }}>
           <SwipeDownSheet
             onClose={() => { Keyboard.dismiss(); setCommentFeedId(null); }}
+            keyboardOffset={keyboardHeight}
             style={[
               styles.commentSheet,
 
               {
                 paddingBottom: 24 + Math.max(insets.bottom, 0),
                 height: Math.max(SCREEN_HEIGHT * 0.7 - keyboardHeight, 200),
-                transform: [{ translateY: -keyboardHeight }],
               },
             ]}
           >
