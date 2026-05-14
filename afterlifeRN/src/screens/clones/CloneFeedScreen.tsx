@@ -33,6 +33,7 @@ import {
   likeClone,
   unlikeClone,
   listFeedComments,
+  listCloneComments,
   postFeedComment,
   postCloneComment,
   deleteFeedComment,
@@ -201,20 +202,19 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
       setComments([]);
       return;
     }
-    if (realFeedId < 0) {
-      setComments([]);
-      return;
-    }
     let cancelled = false;
     setCommentsLoading(true);
     setComments([]);
-    listFeedComments(realFeedId, { limit: 100 })
+    const fetcher = realFeedId < 0
+      ? listCloneComments(feed.cloneId, { limit: 100 })
+      : listFeedComments(realFeedId, { limit: 100 });
+    fetcher
       .then((res) => {
         if (cancelled) return;
         setComments(res.items);
       })
       .catch((err) => {
-        console.warn("[CloneFeed] listFeedComments failed:", err);
+        console.warn("[CloneFeed] list comments failed:", err);
         if (!cancelled) setComments([]);
       })
       .finally(() => {
@@ -223,7 +223,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [commentOpen, realFeedId]);
+  }, [commentOpen, realFeedId, feed.cloneId]);
 
   const submitComment = async () => {
     if (submittingRef.current) return;
@@ -395,7 +395,9 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                         {(c.repliesCount ?? 0) > 0 && (
                           <TouchableOpacity
                             onPress={async () => {
-                              if (realFeedId < 0) return;
+
+                              const fid = realFeedId > 0 ? realFeedId : (c.feedId ?? 0);
+                              if (!fid) return;
                               if (showReplies) {
                                 setExpandedReplies((p) => {
                                   const n = { ...p };
@@ -404,7 +406,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                                 });
                               } else {
                                 try {
-                                  const r = await listFeedCommentReplies(realFeedId, c.id, { limit: 100 });
+                                  const r = await listFeedCommentReplies(fid, c.id, { limit: 100 });
                                   setExpandedReplies((p) => ({ ...p, [c.id]: r.items }));
                                 } catch (err) {
                                   console.warn("[CloneFeed] listReplies failed:", err);

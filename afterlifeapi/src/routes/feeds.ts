@@ -867,6 +867,7 @@ cloneFeeds.get("/:id/comments", async (c) => {
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
   const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+
   const rows = (
     await c.env.DB
       .prepare(
@@ -877,11 +878,15 @@ cloneFeeds.get("/:id/comments", async (c) => {
                 fc.created_at AS createdAt,
                 u.name       AS userName,
                 u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+                u.avatar_url AS userAvatarUrl,
+                (SELECT COUNT(*) FROM feed_comments fcc
+                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
            JOIN feeds f ON f.id = fc.feed_id
            JOIN users u ON u.id = fc.user_id
-          WHERE f.clone_id = ? AND u.deleted_at IS NULL
+          WHERE f.clone_id = ?
+            AND fc.parent_comment_id IS NULL
+            AND u.deleted_at IS NULL
           ORDER BY fc.id DESC
           LIMIT ?`,
       )
@@ -895,6 +900,7 @@ cloneFeeds.get("/:id/comments", async (c) => {
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
+        repliesCount: number;
       }>()
   ).results;
   return c.json({
@@ -904,6 +910,7 @@ cloneFeeds.get("/:id/comments", async (c) => {
       userId: r.userId,
       content: r.content,
       createdAt: r.createdAt,
+      repliesCount: r.repliesCount ?? 0,
       user: {
         id: r.userId,
         name: r.userName,
