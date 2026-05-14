@@ -13,8 +13,6 @@ import {
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_ada615, v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
-import * as v_fba5a0 from "hfxxehldoiokdq";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
@@ -230,37 +228,9 @@ export default function v_4036d1() {
           ))}
         </View>
 
-        {}
-        {state.granted && (
-          <View style={[v_fd5f43.card, { marginTop: 16 }]}>
-            <View style={v_fd5f43.tokenSection}>
-              <Text style={v_fd5f43.tokenLabel}>
-                {v_8d41d7("settings.notifications.tokenLabel")}
-              </Text>
-              {state.loading ? (
-                <Text style={v_fd5f43.tokenValueMuted}>
-                  {v_8d41d7("settings.notifications.tokenLoading")}
-                </Text>
-              ) : state.token ? (
-                <>
-                  <Text style={v_fd5f43.tokenValue} selectable>
-                    {state.token}
-                  </Text>
-                  <TouchableOpacity style={v_fd5f43.copyBtn} onPress={handleCopyToken}>
-                    <Feather name="copy" size={14} color={v_1bfbd0.zinc700} />
-                    <Text style={v_fd5f43.copyBtnText}>
-                      {v_8d41d7("settings.notifications.copyToken")}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <Text style={v_fd5f43.tokenValueMuted}>
-                  {v_8d41d7("settings.notifications.tokenNone")}
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
+        {
+
+}
       </View>
     </SafeScrollView>
   );

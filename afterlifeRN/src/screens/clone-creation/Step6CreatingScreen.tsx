@@ -21,10 +21,11 @@ import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
 
+import { v_03e392 } from "rcmrninabrnb";
 import v_556baf from "../../components/ui/SafeView";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_194498 } from "../../stores/cloneStore";
-import { v_b55477 } from "../../api/clones";
+import { v_6c3f29, v_b55477 } from "../../api/clones";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step6">;
@@ -287,7 +288,9 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
     return v_aabc29.has(v_c99bd2 as PersonaMbtiCode) ? (v_c99bd2 as PersonaMbtiCode) : undefined;
   };
 
-  const v_219251 = () => {
+  const [v_dff7ca, v_08d488] = v_5ab095(false);
+
+  const v_219251 = async () => {
     v_0e1f26.dismiss();
     if (v_ab4803 === "intro") {
       v_ae4844("name");
@@ -308,6 +311,36 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
         v_479f05.length >= 3 && v_479f05.length <= 30
           ? v_479f05
           : v_b55477(v_1833e7.trim() || "user");
+
+      if (v_dff7ca) return;
+      v_08d488(true);
+      try {
+        const v_cb35cb = await v_6c3f29(v_94812a);
+        if (!v_cb35cb.available) {
+          if (v_cb35cb.reason === "reserved") {
+            v_03e392.alert(
+              "사용할 수 없는 아이디",
+              "예약된 아이디입니다. 다른 아이디를 입력해주세요.",
+            );
+          } else if (v_cb35cb.reason === "invalid") {
+            v_03e392.alert(
+              "아이디 형식 오류",
+              "영문 소문자/숫자/_ 만 사용 가능하고 3-30자여야 해요.",
+            );
+          } else {
+            v_03e392.alert(
+              "이미 사용중인 아이디",
+              "이미 사용중인 아이디가 있습니다. 다른 아이디를 입력해주세요.",
+            );
+          }
+          return;
+        }
+      } catch (v_49263d) {
+        console.warn("[Step6] checkCloneUsername failed:", v_49263d);
+
+      } finally {
+        v_08d488(false);
+      }
       v_e71a3b(v_94812a);
       v_5795de({ username: v_94812a });
       v_ae4844("firstMeeting");
