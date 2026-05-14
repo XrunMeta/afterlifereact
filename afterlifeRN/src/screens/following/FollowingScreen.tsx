@@ -186,7 +186,8 @@ export default function FollowingScreen() {
         const realFeedId = c.latestFeed?.feedId ?? null;
 
         let desc = c.description ?? "";
-        const hasHashtag = /#[\p{L}\p{N}_]+/u.test(desc);
+
+        const hasHashtag = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/.test(desc);
         const ints = c.interests ?? [];
         if (!hasHashtag && ints.length > 0) {
           const tags = ints.map((i: string) => `#${i}`).join(" ");

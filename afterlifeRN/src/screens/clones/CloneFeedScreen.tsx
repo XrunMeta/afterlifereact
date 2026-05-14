@@ -63,7 +63,8 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
   void follows; 
 
   let description = feed.content ?? "";
-  const hasHashtag = /#[\p{L}\p{N}_]+/u.test(description);
+
+  const hasHashtag = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/.test(description);
   if (feed.interests.length > 0 && !hasHashtag) {
     const tags = feed.interests.map((i) => `#${i}`).join(" ");
     description = description.trim().length > 0 ? `${description} ${tags}` : tags;
