@@ -683,6 +683,7 @@ feedsDiscover.get("/:id/comments", async (c) => {
   const cursor = cursorRaw ? Number(cursorRaw) : null;
   const limitRaw = Number(url.searchParams.get("limit") ?? 30);
   const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 30));
+  const viewerId = await resolveOptionalUser(c);
 
   const where = ["fc.feed_id = ?", "fc.parent_comment_id IS NULL"];
   const binds: unknown[] = [feedId];
@@ -690,16 +691,23 @@ feedsDiscover.get("/:id/comments", async (c) => {
     where.push("fc.id < ?");
     binds.push(cursor);
   }
+
+  const likedByMeExpr = viewerId
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  if (viewerId) binds.unshift(viewerId); 
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl,
+        `SELECT fc.id          AS commentId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${likedByMeExpr} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
                    WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
@@ -714,6 +722,8 @@ feedsDiscover.get("/:id/comments", async (c) => {
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
@@ -733,6 +743,8 @@ feedsDiscover.get("/:id/comments", async (c) => {
       content: r.content,
       createdAt: r.createdAt,
       repliesCount: r.repliesCount ?? 0,
+      likesCount: r.likesCount ?? 0,
+      likedByMe: !!r.likedByMe,
       user: {
         id: r.userId,
         name: r.userName,
@@ -753,16 +765,23 @@ feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
   const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const viewerId = await resolveOptionalUser(c);
+  const likedByMeExpr = viewerId
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  const binds: unknown[] = viewerId ? [viewerId, feedId, cid, limit] : [feedId, cid, limit];
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+        `SELECT fc.id          AS commentId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${likedByMeExpr} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE fc.feed_id = ?
@@ -771,12 +790,14 @@ feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
           ORDER BY fc.id ASC
           LIMIT ?`,
       )
-      .bind(feedId, cid, limit)
+      .bind(...binds)
       .all<{
         commentId: number;
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
@@ -790,6 +811,8 @@ feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
       content: r.content,
       createdAt: r.createdAt,
       parentCommentId: cid,
+      likesCount: r.likesCount ?? 0,
+      likedByMe: !!r.likedByMe,
       user: {
         id: r.userId,
         name: r.userName,
@@ -798,6 +821,48 @@ feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
       },
     })),
   });
+});
+
+feedsDiscover.post("/:id/comments/:cid/like", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  const cid = Number(c.req.param("cid"));
+  if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+
+  const row = await c.env.DB
+    .prepare(`SELECT id FROM feed_comments WHERE id = ? AND feed_id = ?`)
+    .bind(cid, feedId)
+    .first<{ id: number }>();
+  if (!row) throw new APIError("NOT_FOUND", "댓글을 찾을 수 없어요.");
+  await c.env.DB
+    .prepare(`INSERT OR IGNORE INTO feed_comment_likes (comment_id, user_id) VALUES (?, ?)`)
+    .bind(cid, userId)
+    .run();
+  const cnt = await c.env.DB
+    .prepare(`SELECT likes_count FROM feed_comments WHERE id = ?`)
+    .bind(cid)
+    .first<{ likes_count: number }>();
+  return c.json({ ok: true, liked: true, likesCount: cnt?.likes_count ?? 0 });
+});
+
+feedsDiscover.delete("/:id/comments/:cid/like", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  const cid = Number(c.req.param("cid"));
+  if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  await c.env.DB
+    .prepare(`DELETE FROM feed_comment_likes WHERE comment_id = ? AND user_id = ?`)
+    .bind(cid, userId)
+    .run();
+  const cnt = await c.env.DB
+    .prepare(`SELECT likes_count FROM feed_comments WHERE id = ?`)
+    .bind(cid)
+    .first<{ likes_count: number }>();
+  return c.json({ ok: true, liked: false, likesCount: cnt?.likes_count ?? 0 });
 });
 
 cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
@@ -867,18 +932,25 @@ cloneFeeds.get("/:id/comments", async (c) => {
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
   const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const viewerId = await resolveOptionalUser(c);
 
+  const likedByMeExpr = viewerId
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  const binds: unknown[] = viewerId ? [viewerId, cloneId, limit] : [cloneId, limit];
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.feed_id   AS feedId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl,
+        `SELECT fc.id          AS commentId,
+                fc.feed_id     AS feedId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${likedByMeExpr} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
                    WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
@@ -890,13 +962,15 @@ cloneFeeds.get("/:id/comments", async (c) => {
           ORDER BY fc.id DESC
           LIMIT ?`,
       )
-      .bind(cloneId, limit)
+      .bind(...binds)
       .all<{
         commentId: number;
         feedId: number;
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
@@ -911,6 +985,8 @@ cloneFeeds.get("/:id/comments", async (c) => {
       content: r.content,
       createdAt: r.createdAt,
       repliesCount: r.repliesCount ?? 0,
+      likesCount: r.likesCount ?? 0,
+      likedByMe: !!r.likedByMe,
       user: {
         id: r.userId,
         name: r.userName,

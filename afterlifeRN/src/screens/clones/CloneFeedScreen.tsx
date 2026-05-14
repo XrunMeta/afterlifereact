@@ -41,6 +41,8 @@ import {
   reportClone,
   blockClone,
   listFeedCommentReplies,
+  likeFeedComment,
+  unlikeFeedComment,
   type FeedComment,
 } from "../../api/clones";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
@@ -206,8 +208,8 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
     setCommentsLoading(true);
     setComments([]);
     const fetcher = realFeedId < 0
-      ? listCloneComments(feed.cloneId, { limit: 100 })
-      : listFeedComments(realFeedId, { limit: 100 });
+      ? listCloneComments(feed.cloneId, { limit: 100, accessToken })
+      : listFeedComments(realFeedId, { limit: 100, accessToken });
     fetcher
       .then((res) => {
         if (cancelled) return;
@@ -233,21 +235,32 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
     setSubmittingComment(true);
     try {
       let targetFeedId: number;
-      if (realFeedId < 0) {
+      if (replyingTo) {
+
+        const parent = comments.find((c) => c.id === replyingTo.commentId);
+        const fid = parent?.feedId ?? (realFeedId > 0 ? realFeedId : 0);
+        if (!fid) {
+          submittingRef.current = false;
+          setSubmittingComment(false);
+          return;
+        }
+        await postFeedComment(accessToken, fid, content, {
+          parentCommentId: replyingTo.commentId,
+        });
+        targetFeedId = fid;
+      } else if (realFeedId < 0) {
 
         const res = await postCloneComment(accessToken, feed.cloneId, content);
         targetFeedId = res.comment.feedId;
         setRealFeedId(targetFeedId);
       } else {
-        await postFeedComment(accessToken, realFeedId, content, {
-          parentCommentId: replyingTo?.commentId,
-        });
+        await postFeedComment(accessToken, realFeedId, content);
         targetFeedId = realFeedId;
       }
       setCommentText("");
       if (replyingTo) {
         try {
-          const rep = await listFeedCommentReplies(targetFeedId, replyingTo.commentId, { limit: 100 });
+          const rep = await listFeedCommentReplies(targetFeedId, replyingTo.commentId, { limit: 100, accessToken });
           setExpandedReplies((p) => ({ ...p, [replyingTo.commentId]: rep.items }));
           setComments((prev) =>
             prev.map((c) =>
@@ -260,7 +273,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
         }
         setReplyingTo(null);
       } else {
-        const r = await listFeedComments(targetFeedId, { limit: 100 });
+        const r = await listFeedComments(targetFeedId, { limit: 100, accessToken });
         setComments(r.items);
         setCommentsCount(r.items.length);
       }
@@ -284,6 +297,52 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
         });
       } catch (err) {
         console.warn("[CloneFeed] deleteFeedComment failed:", err);
+      }
+    })();
+  };
+
+  const toggleCommentLike = (
+    comment: FeedComment,
+    parentCommentId?: number,
+  ) => {
+    if (!accessToken) return;
+
+    const fid = comment.feedId ?? (realFeedId > 0 ? realFeedId : 0);
+    if (!fid) return;
+    const wasLiked = !!comment.likedByMe;
+    const curCount = comment.likesCount ?? 0;
+    const nextLiked = !wasLiked;
+    const nextCount = Math.max(0, curCount + (nextLiked ? 1 : -1));
+
+    const apply = (c: FeedComment): FeedComment =>
+      c.id === comment.id ? { ...c, likedByMe: nextLiked, likesCount: nextCount } : c;
+    if (parentCommentId) {
+      setExpandedReplies((p) => {
+        const list = p[parentCommentId];
+        if (!list) return p;
+        return { ...p, [parentCommentId]: list.map(apply) };
+      });
+    } else {
+      setComments((prev) => prev.map(apply));
+    }
+    void (async () => {
+      try {
+        if (nextLiked) await likeFeedComment(accessToken, fid, comment.id);
+        else await unlikeFeedComment(accessToken, fid, comment.id);
+      } catch (err) {
+        console.warn("[CloneFeed] toggleCommentLike failed:", err);
+
+        const rollback = (c: FeedComment): FeedComment =>
+          c.id === comment.id ? { ...c, likedByMe: wasLiked, likesCount: curCount } : c;
+        if (parentCommentId) {
+          setExpandedReplies((p) => {
+            const list = p[parentCommentId];
+            if (!list) return p;
+            return { ...p, [parentCommentId]: list.map(rollback) };
+          });
+        } else {
+          setComments((prev) => prev.map(rollback));
+        }
       }
     })();
   };
@@ -406,7 +465,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                                 });
                               } else {
                                 try {
-                                  const r = await listFeedCommentReplies(fid, c.id, { limit: 100 });
+                                  const r = await listFeedCommentReplies(fid, c.id, { limit: 100, accessToken });
                                   setExpandedReplies((p) => ({ ...p, [c.id]: r.items }));
                                 } catch (err) {
                                   console.warn("[CloneFeed] listReplies failed:", err);
@@ -436,9 +495,50 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                             </View>
                             <Text style={styles.commentContent}>{rc.content}</Text>
                           </View>
+                          {}
+                          <TouchableOpacity
+                            style={styles.commentHeart}
+                            onPress={() => toggleCommentLike(rc, c.id)}
+                            hitSlop={8}
+                          >
+                            <Feather
+                              name="heart"
+                              size={14}
+                              color={rc.likedByMe ? "#ef4444" : COLORS.zinc400}
+                              style={rc.likedByMe ? { opacity: 1 } : undefined}
+                            />
+                            <Text
+                              style={[
+                                styles.commentHeartCount,
+                                rc.likedByMe ? { color: "#ef4444" } : null,
+                              ]}
+                            >
+                              {rc.likesCount ?? 0}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                       ))}
                     </View>
+                    {}
+                    <TouchableOpacity
+                      style={styles.commentHeart}
+                      onPress={() => toggleCommentLike(c)}
+                      hitSlop={8}
+                    >
+                      <Feather
+                        name="heart"
+                        size={16}
+                        color={c.likedByMe ? "#ef4444" : COLORS.zinc400}
+                      />
+                      <Text
+                        style={[
+                          styles.commentHeartCount,
+                          c.likedByMe ? { color: "#ef4444" } : null,
+                        ]}
+                      >
+                        {c.likesCount ?? 0}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 );
                 })
@@ -619,7 +719,9 @@ const styles = StyleSheet.create({
   },
   commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1, marginTop: 12 },
-  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16, alignItems: "flex-start" },
+  commentHeart: { alignItems: "center", paddingHorizontal: 4, paddingTop: 2, minWidth: 28 },
+  commentHeartCount: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.zinc100 },
   commentInfo: { flex: 1 },
   commentMeta: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 },

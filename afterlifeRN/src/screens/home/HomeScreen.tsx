@@ -40,6 +40,8 @@ import {
   deleteFeedComment,
   blockClone,
   listFeedCommentReplies,
+  likeFeedComment,
+  unlikeFeedComment,
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
@@ -181,7 +183,7 @@ export default function HomeScreen() {
     let cancelled = false;
     setCommentsLoading(true);
     setComments([]);
-    listFeedComments(commentFeedId, { limit: 100 })
+    listFeedComments(commentFeedId, { limit: 100, accessToken })
       .then((res) => {
         if (cancelled) return;
         setComments(res.items);
@@ -234,7 +236,7 @@ export default function HomeScreen() {
 
       if (replyingTo) {
         try {
-          const rep = await listFeedCommentReplies(realFeedId, replyingTo.commentId, { limit: 100 });
+          const rep = await listFeedCommentReplies(realFeedId, replyingTo.commentId, { limit: 100, accessToken });
           setExpandedReplies((prev) => ({ ...prev, [replyingTo.commentId]: rep.items }));
           setComments((prev) =>
             prev.map((c) =>
@@ -252,7 +254,7 @@ export default function HomeScreen() {
         const target = cur?.find((f) => f.id === realFeedId);
         bumpCommentsCount(realFeedId, (target?.commentsCount ?? 0) + 1);
       } else {
-        const r = await listFeedComments(realFeedId, { limit: 100 });
+        const r = await listFeedComments(realFeedId, { limit: 100, accessToken });
         setComments(r.items);
         bumpCommentsCount(realFeedId, r.items.length);
       }
@@ -289,6 +291,46 @@ export default function HomeScreen() {
         },
       ],
     );
+  };
+
+  const toggleCommentLike = (comment: FeedComment, parentCommentId?: number) => {
+    if (!accessToken) return;
+    const fid = comment.feedId ?? (commentFeedId != null && commentFeedId > 0 ? commentFeedId : 0);
+    if (!fid) return;
+    const wasLiked = !!comment.likedByMe;
+    const curCount = comment.likesCount ?? 0;
+    const nextLiked = !wasLiked;
+    const nextCount = Math.max(0, curCount + (nextLiked ? 1 : -1));
+    const apply = (c: FeedComment): FeedComment =>
+      c.id === comment.id ? { ...c, likedByMe: nextLiked, likesCount: nextCount } : c;
+    if (parentCommentId) {
+      setExpandedReplies((p) => {
+        const list = p[parentCommentId];
+        if (!list) return p;
+        return { ...p, [parentCommentId]: list.map(apply) };
+      });
+    } else {
+      setComments((prev) => prev.map(apply));
+    }
+    void (async () => {
+      try {
+        if (nextLiked) await likeFeedComment(accessToken, fid, comment.id);
+        else await unlikeFeedComment(accessToken, fid, comment.id);
+      } catch (err) {
+        console.warn("[Home] toggleCommentLike failed:", err);
+        const rollback = (c: FeedComment): FeedComment =>
+          c.id === comment.id ? { ...c, likedByMe: wasLiked, likesCount: curCount } : c;
+        if (parentCommentId) {
+          setExpandedReplies((p) => {
+            const list = p[parentCommentId];
+            if (!list) return p;
+            return { ...p, [parentCommentId]: list.map(rollback) };
+          });
+        } else {
+          setComments((prev) => prev.map(rollback));
+        }
+      }
+    })();
   };
 
   const renderItem = useCallback(
@@ -470,7 +512,7 @@ export default function HomeScreen() {
                                 });
                               } else {
                                 try {
-                                  const r = await listFeedCommentReplies(commentFeedId, c.id, { limit: 100 });
+                                  const r = await listFeedCommentReplies(commentFeedId, c.id, { limit: 100, accessToken });
                                   setExpandedReplies((p) => ({ ...p, [c.id]: r.items }));
                                 } catch (err) {
                                   console.warn("[Home] listReplies failed:", err);
@@ -501,9 +543,49 @@ export default function HomeScreen() {
                             </View>
                             <Text style={styles.commentContent}>{rc.content}</Text>
                           </View>
+                          {}
+                          <TouchableOpacity
+                            style={styles.commentHeart}
+                            onPress={() => toggleCommentLike(rc, c.id)}
+                            hitSlop={8}
+                          >
+                            <Feather
+                              name="heart"
+                              size={14}
+                              color={rc.likedByMe ? "#ef4444" : COLORS.zinc400}
+                            />
+                            <Text
+                              style={[
+                                styles.commentHeartCount,
+                                rc.likedByMe ? { color: "#ef4444" } : null,
+                              ]}
+                            >
+                              {rc.likesCount ?? 0}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
                       ))}
                     </View>
+                    {}
+                    <TouchableOpacity
+                      style={styles.commentHeart}
+                      onPress={() => toggleCommentLike(c)}
+                      hitSlop={8}
+                    >
+                      <Feather
+                        name="heart"
+                        size={16}
+                        color={c.likedByMe ? "#ef4444" : COLORS.zinc400}
+                      />
+                      <Text
+                        style={[
+                          styles.commentHeartCount,
+                          c.likedByMe ? { color: "#ef4444" } : null,
+                        ]}
+                      >
+                        {c.likesCount ?? 0}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 );
                 })
@@ -831,7 +913,9 @@ const styles = StyleSheet.create({
   commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
   commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1 },
-  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16, alignItems: "flex-start" },
+  commentHeart: { alignItems: "center", paddingHorizontal: 4, paddingTop: 2, minWidth: 28 },
+  commentHeartCount: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.zinc100 },
   commentInfo: { flex: 1 },
   commentMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
