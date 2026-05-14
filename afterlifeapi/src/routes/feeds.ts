@@ -556,6 +556,8 @@ cloneFeeds.delete("/:id/like", requireAuth, async (c) => {
 
 const commentCreateSchema = z.object({
   content: z.string().min(1).max(2000),
+
+  parentCommentId: z.number().int().positive().optional(),
 });
 
 feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
@@ -574,11 +576,30 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
       if (role === null) throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
+
+  let resolvedParentId: number | null = null;
+  if (body.parentCommentId) {
+    const parent = await c.env.DB
+      .prepare(
+        `SELECT id, feed_id AS feedId, parent_comment_id AS parentId
+           FROM feed_comments
+          WHERE id = ?`,
+      )
+      .bind(body.parentCommentId)
+      .first<{ id: number; feedId: number; parentId: number | null }>();
+    if (!parent) throw new APIError("NOT_FOUND", "댓글을 찾을 수 없어요.");
+    if (parent.feedId !== feedId) {
+      throw new APIError("VALIDATION_FAILED", "부모 댓글이 다른 피드에 속해 있어요.");
+    }
+
+    resolvedParentId = parent.parentId ?? parent.id;
+  }
   const r = await c.env.DB
     .prepare(
-      `INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`,
+      `INSERT INTO feed_comments (feed_id, user_id, content, parent_comment_id)
+       VALUES (?, ?, ?, ?)`,
     )
-    .bind(feedId, userId, body.content.trim())
+    .bind(feedId, userId, body.content.trim(), resolvedParentId)
     .run();
 
   await notifyCloneEvent(c.env, "clone_comment", {
@@ -595,6 +616,7 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
         feedId,
         userId,
         content: body.content.trim(),
+        parentCommentId: resolvedParentId,
       },
     },
     201,
@@ -662,7 +684,7 @@ feedsDiscover.get("/:id/comments", async (c) => {
   const limitRaw = Number(url.searchParams.get("limit") ?? 30);
   const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 30));
 
-  const where = ["fc.feed_id = ?"];
+  const where = ["fc.feed_id = ?", "fc.parent_comment_id IS NULL"];
   const binds: unknown[] = [feedId];
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
     where.push("fc.id < ?");
@@ -677,7 +699,9 @@ feedsDiscover.get("/:id/comments", async (c) => {
                 fc.created_at AS createdAt,
                 u.name       AS userName,
                 u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+                u.avatar_url AS userAvatarUrl,
+                (SELECT COUNT(*) FROM feed_comments fcc
+                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE ${where.join(" AND ")} AND u.deleted_at IS NULL
@@ -693,6 +717,7 @@ feedsDiscover.get("/:id/comments", async (c) => {
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
+        repliesCount: number;
       }>()
   ).results;
 
@@ -707,6 +732,7 @@ feedsDiscover.get("/:id/comments", async (c) => {
       userId: r.userId,
       content: r.content,
       createdAt: r.createdAt,
+      repliesCount: r.repliesCount ?? 0,
       user: {
         id: r.userId,
         name: r.userName,
@@ -715,6 +741,62 @@ feedsDiscover.get("/:id/comments", async (c) => {
       },
     })),
     nextCursor,
+  });
+});
+
+feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
+  const feedId = Number(c.req.param("id"));
+  const cid = Number(c.req.param("cid"));
+  if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT fc.id        AS commentId,
+                fc.user_id   AS userId,
+                fc.content   AS content,
+                fc.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM feed_comments fc
+           JOIN users u ON u.id = fc.user_id
+          WHERE fc.feed_id = ?
+            AND fc.parent_comment_id = ?
+            AND u.deleted_at IS NULL
+          ORDER BY fc.id ASC
+          LIMIT ?`,
+      )
+      .bind(feedId, cid, limit)
+      .all<{
+        commentId: number;
+        userId: number;
+        content: string;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  return c.json({
+    items: (rows ?? []).map((r) => ({
+      id: r.commentId,
+      userId: r.userId,
+      content: r.content,
+      createdAt: r.createdAt,
+      parentCommentId: cid,
+      user: {
+        id: r.userId,
+        name: r.userName,
+        email: r.userEmail,
+        avatarUrl: r.userAvatarUrl,
+      },
+    })),
   });
 });
 

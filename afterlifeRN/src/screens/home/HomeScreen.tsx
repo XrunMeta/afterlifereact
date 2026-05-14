@@ -39,6 +39,7 @@ import {
   postCloneComment,
   deleteFeedComment,
   blockClone,
+  listFeedCommentReplies,
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
@@ -164,6 +165,9 @@ export default function HomeScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
 
+  const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Record<number, FeedComment[]>>({});
+
   useEffect(() => {
     if (commentFeedId == null) {
       setComments([]);
@@ -221,14 +225,37 @@ export default function HomeScreen() {
         }
         apiFeedCountsCache.delete(oldId);
       } else {
-        await postFeedComment(accessToken, commentFeedId, content);
+        await postFeedComment(accessToken, commentFeedId, content, {
+          parentCommentId: replyingTo?.commentId,
+        });
         realFeedId = commentFeedId;
       }
       setCommentText("");
-      const r = await listFeedComments(realFeedId, { limit: 100 });
-      setComments(r.items);
 
-      bumpCommentsCount(realFeedId, r.items.length);
+      if (replyingTo) {
+        try {
+          const rep = await listFeedCommentReplies(realFeedId, replyingTo.commentId, { limit: 100 });
+          setExpandedReplies((prev) => ({ ...prev, [replyingTo.commentId]: rep.items }));
+          setComments((prev) =>
+            prev.map((c) =>
+              c.id === replyingTo.commentId
+                ? { ...c, repliesCount: rep.items.length }
+                : c,
+            ),
+          );
+        } catch (err) {
+          console.warn("[Home] refresh replies failed:", err);
+        }
+        setReplyingTo(null);
+
+        const cur = useFeedStore.getState().apiFeeds;
+        const target = cur?.find((f) => f.id === realFeedId);
+        bumpCommentsCount(realFeedId, (target?.commentsCount ?? 0) + 1);
+      } else {
+        const r = await listFeedComments(realFeedId, { limit: 100 });
+        setComments(r.items);
+        bumpCommentsCount(realFeedId, r.items.length);
+      }
     } catch (err) {
       console.warn("[Home] postFeedComment failed:", err);
     } finally {
@@ -385,7 +412,10 @@ export default function HomeScreen() {
                   <Feather name="loader" size={28} color={COLORS.zinc400} />
                 </View>
               ) : comments.length > 0 ? (
-                comments.map((c) => (
+                comments.map((c) => {
+                  const replies = expandedReplies[c.id];
+                  const showReplies = replies !== undefined;
+                  return (
                   <View key={c.id} style={styles.commentRow}>
                     {c.user.avatarUrl ? (
                       <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
@@ -401,7 +431,6 @@ export default function HomeScreen() {
                             <Feather name="trash-2" size={14} color={COLORS.zinc400} />
                           </TouchableOpacity>
                         ) : (
-
                           <TouchableOpacity
                             onPress={() =>
                               setReportCommentTarget({
@@ -416,9 +445,68 @@ export default function HomeScreen() {
                         )}
                       </View>
                       <Text style={styles.commentContent}>{c.content}</Text>
+                      {}
+                      <View style={styles.replyActions}>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setReplyingTo({
+                              commentId: c.id,
+                              userName: c.user.name ?? c.user.email ?? "",
+                            })
+                          }
+                        >
+                          <Text style={styles.replyActionText}>답글 달기</Text>
+                        </TouchableOpacity>
+                        {(c.repliesCount ?? 0) > 0 && (
+                          <TouchableOpacity
+                            onPress={async () => {
+                              if (commentFeedId == null || commentFeedId < 0) return;
+                              if (showReplies) {
+
+                                setExpandedReplies((p) => {
+                                  const n = { ...p };
+                                  delete n[c.id];
+                                  return n;
+                                });
+                              } else {
+                                try {
+                                  const r = await listFeedCommentReplies(commentFeedId, c.id, { limit: 100 });
+                                  setExpandedReplies((p) => ({ ...p, [c.id]: r.items }));
+                                } catch (err) {
+                                  console.warn("[Home] listReplies failed:", err);
+                                }
+                              }
+                            }}
+                          >
+                            <Text style={styles.replyToggleText}>
+                              {showReplies
+                                ? "── 답글 숨기기"
+                                : `── 답글 ${c.repliesCount}개 더 보기`}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      {}
+                      {showReplies && replies && replies.map((rc) => (
+                        <View key={rc.id} style={styles.replyRow}>
+                          {rc.user.avatarUrl ? (
+                            <Image source={{ uri: rc.user.avatarUrl }} style={styles.replyAvatar} />
+                          ) : (
+                            <View style={[styles.replyAvatar, { backgroundColor: COLORS.zinc100 }]} />
+                          )}
+                          <View style={{ flex: 1 }}>
+                            <View style={styles.commentMeta}>
+                              <Text style={styles.commentAuthor}>{rc.user.name ?? rc.user.email}</Text>
+                              <Text style={styles.commentTime}>{formatRelativeKo(rc.createdAt)}</Text>
+                            </View>
+                            <Text style={styles.commentContent}>{rc.content}</Text>
+                          </View>
+                        </View>
+                      ))}
                     </View>
                   </View>
-                ))
+                );
+                })
               ) : (
                 <View style={styles.emptyComment}>
                   <Feather name="message-circle" size={40} color={COLORS.zinc300} />
@@ -426,12 +514,23 @@ export default function HomeScreen() {
                 </View>
               )}
             </ScrollView>
+            {}
+            {replyingTo && (
+              <View style={styles.replyingBanner}>
+                <Text style={styles.replyingText}>
+                  @{replyingTo.userName} 에게 답글
+                </Text>
+                <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                  <Feather name="x" size={14} color={COLORS.zinc500} />
+                </TouchableOpacity>
+              </View>
+            )}
             <View style={styles.commentInputRow}>
               <TextInput
                 style={styles.commentInput}
                 value={commentText}
                 onChangeText={setCommentText}
-                placeholder={t("feed.commentPlaceholder")}
+                placeholder={replyingTo ? "답글 입력..." : t("feed.commentPlaceholder")}
                 placeholderTextColor={COLORS.zinc400}
               />
               <TouchableOpacity
@@ -743,6 +842,14 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: COLORS.zinc400, marginTop: 8 },
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: COLORS.zinc100, paddingTop: 12 },
   commentInput: { flex: 1, height: 40, backgroundColor: COLORS.zinc50 ?? COLORS.zinc100, borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: COLORS.zinc900 },
+
+  replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
+  replyActionText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
+  replyToggleText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
+  replyRow: { flexDirection: "row", gap: 8, marginTop: 10, marginLeft: 0 },
+  replyAvatar: { width: 24, height: 24, borderRadius: 12 },
+  replyingBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 4, backgroundColor: COLORS.zinc50 ?? COLORS.zinc100, borderRadius: 8, marginTop: 6 },
+  replyingText: { fontSize: 12, color: COLORS.zinc600 },
 
   moreOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   moreSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 0, paddingHorizontal: 16 },

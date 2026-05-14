@@ -39,6 +39,7 @@ import {
   getCloneDetail,
   reportClone,
   blockClone,
+  listFeedCommentReplies,
   type FeedComment,
 } from "../../api/clones";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
@@ -176,6 +177,9 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
   const submittingRef = useRef(false);
   const [submittingComment, setSubmittingComment] = useState(false);
 
+  const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Record<number, FeedComment[]>>({});
+
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
     const showSub = Keyboard.addListener(
@@ -235,13 +239,31 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
         targetFeedId = res.comment.feedId;
         setRealFeedId(targetFeedId);
       } else {
-        await postFeedComment(accessToken, realFeedId, content);
+        await postFeedComment(accessToken, realFeedId, content, {
+          parentCommentId: replyingTo?.commentId,
+        });
         targetFeedId = realFeedId;
       }
       setCommentText("");
-      const r = await listFeedComments(targetFeedId, { limit: 100 });
-      setComments(r.items);
-      setCommentsCount(r.items.length);
+      if (replyingTo) {
+        try {
+          const rep = await listFeedCommentReplies(targetFeedId, replyingTo.commentId, { limit: 100 });
+          setExpandedReplies((p) => ({ ...p, [replyingTo.commentId]: rep.items }));
+          setComments((prev) =>
+            prev.map((c) =>
+              c.id === replyingTo.commentId ? { ...c, repliesCount: rep.items.length } : c,
+            ),
+          );
+          setCommentsCount((n) => n + 1);
+        } catch (err) {
+          console.warn("[CloneFeed] refresh replies failed:", err);
+        }
+        setReplyingTo(null);
+      } else {
+        const r = await listFeedComments(targetFeedId, { limit: 100 });
+        setComments(r.items);
+        setCommentsCount(r.items.length);
+      }
     } catch (err) {
       console.warn("[CloneFeed] postFeedComment failed:", err);
     } finally {
@@ -328,7 +350,10 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                   <Feather name="loader" size={28} color={COLORS.zinc400} />
                 </View>
               ) : comments.length > 0 ? (
-                comments.map((c) => (
+                comments.map((c) => {
+                  const replies = expandedReplies[c.id];
+                  const showReplies = replies !== undefined;
+                  return (
                   <View key={c.id} style={styles.commentRow}>
                     {c.user.avatarUrl ? (
                       <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
@@ -356,9 +381,65 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                         )}
                       </View>
                       <Text style={styles.commentContent}>{c.content}</Text>
+                      <View style={styles.replyActions}>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setReplyingTo({
+                              commentId: c.id,
+                              userName: c.user.name ?? c.user.email ?? "",
+                            })
+                          }
+                        >
+                          <Text style={styles.replyActionText}>답글 달기</Text>
+                        </TouchableOpacity>
+                        {(c.repliesCount ?? 0) > 0 && (
+                          <TouchableOpacity
+                            onPress={async () => {
+                              if (realFeedId < 0) return;
+                              if (showReplies) {
+                                setExpandedReplies((p) => {
+                                  const n = { ...p };
+                                  delete n[c.id];
+                                  return n;
+                                });
+                              } else {
+                                try {
+                                  const r = await listFeedCommentReplies(realFeedId, c.id, { limit: 100 });
+                                  setExpandedReplies((p) => ({ ...p, [c.id]: r.items }));
+                                } catch (err) {
+                                  console.warn("[CloneFeed] listReplies failed:", err);
+                                }
+                              }
+                            }}
+                          >
+                            <Text style={styles.replyToggleText}>
+                              {showReplies
+                                ? "── 답글 숨기기"
+                                : `── 답글 ${c.repliesCount}개 더 보기`}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      {showReplies && replies && replies.map((rc) => (
+                        <View key={rc.id} style={styles.replyRow}>
+                          {rc.user.avatarUrl ? (
+                            <Image source={{ uri: rc.user.avatarUrl }} style={styles.replyAvatar} />
+                          ) : (
+                            <View style={[styles.replyAvatar, { backgroundColor: COLORS.zinc100 }]} />
+                          )}
+                          <View style={{ flex: 1 }}>
+                            <View style={styles.commentMeta}>
+                              <Text style={styles.commentAuthor}>{rc.user.name ?? rc.user.email}</Text>
+                              <Text style={styles.commentTime}>{formatRelativeKo(rc.createdAt)}</Text>
+                            </View>
+                            <Text style={styles.commentContent}>{rc.content}</Text>
+                          </View>
+                        </View>
+                      ))}
                     </View>
                   </View>
-                ))
+                );
+                })
               ) : (
                 <View style={styles.emptyComment}>
                   <Feather name="message-circle" size={40} color={COLORS.zinc300} />
@@ -366,12 +447,20 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                 </View>
               )}
             </ScrollView>
+            {replyingTo && (
+              <View style={styles.replyingBanner}>
+                <Text style={styles.replyingText}>@{replyingTo.userName} 에게 답글</Text>
+                <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                  <Feather name="x" size={14} color={COLORS.zinc500} />
+                </TouchableOpacity>
+              </View>
+            )}
             <View style={styles.commentInputRow}>
               <TextInput
                 style={styles.commentInput}
                 value={commentText}
                 onChangeText={setCommentText}
-                placeholder={t("feed.commentPlaceholder")}
+                placeholder={replyingTo ? "답글 입력..." : t("feed.commentPlaceholder")}
                 placeholderTextColor={COLORS.zinc400}
               />
               <TouchableOpacity
@@ -554,6 +643,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.zinc900,
   },
+  replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
+  replyActionText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
+  replyToggleText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
+  replyRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  replyAvatar: { width: 24, height: 24, borderRadius: 12 },
+  replyingBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 4, backgroundColor: COLORS.zinc50 ?? COLORS.zinc100, borderRadius: 8, marginTop: 6 },
+  replyingText: { fontSize: 12, color: COLORS.zinc600 },
 
   moreOverlay: {
     flex: 1,
