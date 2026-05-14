@@ -1445,7 +1445,7 @@ const v_fd5f43 = v_472849.create({
 
   cardTopRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginBottom: 10,
   },
