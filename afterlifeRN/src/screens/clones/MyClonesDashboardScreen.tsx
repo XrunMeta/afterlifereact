@@ -589,13 +589,7 @@ export default function MyClonesDashboardScreen() {
               <Feather name="heart" size={14} color={COLORS.zinc500} />
               <Text style={s.statText}>{formatStat(clone.likesCount)}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={s.stat}
-              onPress={() => setStatsModal({ type: "interactions", cloneId: clone.id, cloneName: clone.displayName })}
-            >
-              <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
-              <Text style={s.statText}>{formatStat(clone.messagesCount)}</Text>
-            </TouchableOpacity>
+            {}
             <TouchableOpacity
               style={s.stat}
               onPress={() => setStatsModal({ type: "comments", cloneId: clone.id, cloneName: clone.displayName })}
@@ -1688,7 +1682,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
 
-    height: "60%",
+    height: "80%",
     position: "absolute",
     bottom: 0,
     left: 0,

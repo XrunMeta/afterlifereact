@@ -81,10 +81,19 @@ users.get("/me", requireAuth, async (c) => {
 
   const stats = await db
     .prepare(
-      `SELECT followers_count AS followersCount, following_count AS followingCount
-         FROM user_stats WHERE user_id = ?`,
+      `SELECT
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.follower_id
+           WHERE uf.followee_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followersCount,
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.followee_id
+           WHERE uf.follower_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followingCount`,
     )
-    .bind(userId)
+    .bind(userId, userId)
     .first<{ followersCount: number; followingCount: number }>();
 
   const legacyProvider = getKekProvider(c.env.ALE_KEK);
@@ -1018,7 +1027,9 @@ users.get("/:id/followers", requireAuth, async (c) => {
                 u.avatar_url    AS avatarUrl
            FROM user_follows uf
            JOIN users u ON u.id = uf.follower_id
-          WHERE uf.followee_id = ? AND u.deleted_at IS NULL
+          WHERE uf.followee_id = ?
+            AND u.deletion_state = 'active'
+            AND u.deleted_at IS NULL
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
@@ -1060,7 +1071,9 @@ users.get("/:id/following", requireAuth, async (c) => {
                 u.avatar_url    AS avatarUrl
            FROM user_follows uf
            JOIN users u ON u.id = uf.followee_id
-          WHERE uf.follower_id = ? AND u.deleted_at IS NULL
+          WHERE uf.follower_id = ?
+            AND u.deletion_state = 'active'
+            AND u.deleted_at IS NULL
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
@@ -1108,10 +1121,19 @@ users.get("/:id", requireAuth, async (c) => {
 
   const stats = await db
     .prepare(
-      `SELECT followers_count AS followersCount, following_count AS followingCount
-         FROM user_stats WHERE user_id = ?`,
+      `SELECT
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.follower_id
+           WHERE uf.followee_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followersCount,
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.followee_id
+           WHERE uf.follower_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followingCount`,
     )
-    .bind(targetId)
+    .bind(targetId, targetId)
     .first<{ followersCount: number; followingCount: number }>();
 
   let isFollowing = false;

@@ -400,6 +400,13 @@ export default function SearchScreen() {
 
   return (
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
+      {
+}
+      <Pressable
+        style={{ flex: 1 }}
+        onPress={() => Keyboard.dismiss()}
+
+      >
       {}
       <View style={[s.searchWrap, { paddingTop: insets.top + 8 }]}>
         <View style={s.searchBar}>
@@ -547,6 +554,7 @@ export default function SearchScreen() {
           />
         )
       )}
+      </Pressable>
     </SafeView>
   );
 }

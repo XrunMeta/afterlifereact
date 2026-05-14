@@ -602,7 +602,8 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 24,
-    maxHeight: "50%",
+
+    height: "80%",
   },
   giftHeader: {
     flexDirection: "row",
