@@ -306,12 +306,32 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
       return;
     }
     if (v_ab4803 === "username") {
+      const v_479f05 = v_556427.trim().toLowerCase();
 
-      const v_479f05 = v_556427.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
-      const v_94812a =
-        v_479f05.length >= 3 && v_479f05.length <= 30
-          ? v_479f05
-          : v_b55477(v_1833e7.trim() || "user");
+      if (v_479f05.length === 0) {
+        const v_94812a = v_b55477(v_1833e7.trim() || "user");
+        v_e71a3b(v_94812a);
+        v_5795de({ username: v_94812a });
+        v_ae4844("firstMeeting");
+        return;
+      }
+
+      if (!/^[a-z0-9_]+$/.test(v_479f05)) {
+        v_889fad(
+          "아이디 형식 오류",
+          "영문 소문자, 숫자, _ 만 사용 가능해요.\n다시 입력해주세요.",
+        );
+        return;
+      }
+      if (v_479f05.length < 3) {
+        v_889fad("아이디 길이", "아이디는 3자 이상이어야 해요.");
+        return;
+      }
+      if (v_479f05.length > 30) {
+        v_889fad("아이디 길이", "아이디는 30자 이하여야 해요.");
+        return;
+      }
+      const v_94812a = v_479f05;
 
       if (v_dff7ca) return;
       v_08d488(true);
