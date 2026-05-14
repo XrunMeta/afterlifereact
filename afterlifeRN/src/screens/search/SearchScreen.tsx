@@ -228,7 +228,8 @@ export default function v_5db6c6() {
     for (const v_8b5cd8 of v_632473) {
       for (const v_23805a of v_8b5cd8.interests) v_bb8024.add(v_23805a);
       const v_b43b74 = v_8b5cd8.content ?? "";
-      const v_a49907 = v_b43b74.match(/#[\p{L}\p{N}_]+/gu) ?? [];
+
+      const v_a49907 = v_b43b74.match(/#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/g) ?? [];
       for (const v_35f85c of v_a49907) v_bb8024.add(v_35f85c.replace(/^#+/, ""));
     }
     const v_48c915 = Array.from(v_bb8024);

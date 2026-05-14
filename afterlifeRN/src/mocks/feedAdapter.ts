@@ -37,7 +37,8 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
 
   const v_40d2e4 = v_3f4e2e?.interests ?? [];
   let v_6856a9 = v_8b5cd8.content ?? "";
-  const v_58a04c = /#[\p{L}\p{N}_]+/u.test(v_6856a9);
+
+  const v_58a04c = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/.test(v_6856a9);
   if (v_40d2e4.length > 0 && !v_58a04c) {
     const v_cf5673 = v_40d2e4.map((v_ebec57) => `#${v_ebec57}`).join(" ");
     v_6856a9 = v_6856a9.trim().length > 0 ? `${v_6856a9} ${v_cf5673}` : v_cf5673;
