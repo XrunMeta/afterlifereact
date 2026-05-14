@@ -1172,6 +1172,12 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
     v_013af2 === v_b1de41
       ? ""
       : "AND c.visibility = 'public'";
+  const v_3c44ec =
+    v_013af2 === v_b1de41
+      ? ""
+      : "AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)";
+  const v_bea9ea =
+    v_013af2 === v_b1de41 ? [v_b1de41] : [v_b1de41, v_013af2];
   const v_8ffcf8 = (
     await v_a1651b
       .prepare(
@@ -1186,10 +1192,11 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
             AND c.deletion_state = 'active'
             AND c.deleted_at IS NULL
             ${v_e2cd33}
+            ${v_3c44ec}
           ORDER BY c.id DESC
           LIMIT 60`,
       )
-      .bind(v_b1de41)
+      .bind(...v_bea9ea)
       .all<{
         id: number;
         name: string;
