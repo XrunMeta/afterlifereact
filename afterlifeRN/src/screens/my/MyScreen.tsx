@@ -354,8 +354,10 @@ export default function v_ed02a5() {
         </View>
       </View>
 
+      {
+}
       <PaymentPinPromptModal
-        visible={v_fda1fd}
+        visible={false}
         onClose={() => v_7ece2f(false)}
       />
 

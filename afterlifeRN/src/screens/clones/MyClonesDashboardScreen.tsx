@@ -35,7 +35,8 @@ import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
 import { v_84a859, v_976b89 } from "../../api/auth";
-import { v_5c99c1 } from "../../api/payments";
+import { v_5c99c1, v_9b8cb3 } from "../../api/payments";
+import v_3cb56d from "../../components/my/PaymentPinPromptModal";
 import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
@@ -170,6 +171,24 @@ export default function v_def15b() {
 
   const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
   const [v_19340b, v_14129c] = v_5ab095(true);
+
+  const [v_fda1fd, v_7ece2f] = v_5ab095(false);
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    (async () => {
+      try {
+        const v_d308b5 = await v_9b8cb3(v_2ca7e0);
+        if (v_2008a4) return;
+        if (v_d308b5.linked && !v_d308b5.hasPin) v_7ece2f(true);
+      } catch (v_49263d) {
+        console.warn("[Dashboard] PIN status fetch failed:", v_49263d);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2ca7e0]);
 
   const v_48d264 = (v_b113dd as { followingCount?: number } | null)?.followingCount ?? 0;
   const v_a7e127 = (v_b113dd as { followersCount?: number } | null)?.followersCount ?? 0;
@@ -1199,6 +1218,12 @@ export default function v_def15b() {
           </View>
         </Pressable>
       </Modal>
+
+      {}
+      <PaymentPinPromptModal
+        visible={v_fda1fd}
+        onClose={() => v_7ece2f(false)}
+      />
     </SafeView>
   );
 }
