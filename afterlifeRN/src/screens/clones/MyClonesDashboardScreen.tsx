@@ -77,6 +77,7 @@ function v_a8d790(c: v_fa0201): v_affcc0 {
     cloneType: v_3f4e2e.cloneType,
     ownerId: v_3f4e2e.ownerId,
     displayName: v_3f4e2e.name,
+    username: v_3f4e2e.username,
     description: v_3f4e2e.description ?? "",
     interests: v_3f4e2e.interests ?? [],
     imageUrl: v_3f4e2e.avatarUrl ?? undefined,
@@ -568,6 +569,9 @@ export default function v_def15b() {
           </View>
           <View style={v_fd5f43.cloneInfo}>
             <Text style={v_fd5f43.cloneName}>{v_eb25ce.displayName}</Text>
+            {v_eb25ce.username && (
+              <Text style={v_fd5f43.cloneUsername}>@{v_eb25ce.username}</Text>
+            )}
             <Text style={v_fd5f43.cloneCategory}>{v_eb25ce.interests?.[0] ?? ""}</Text>
           </View>
         </View>
@@ -1553,6 +1557,7 @@ const v_fd5f43 = v_472849.create({
   },
   cloneInfo: { flex: 1 },
   cloneName: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  cloneUsername: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   cloneCategory: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
 
   description: {
