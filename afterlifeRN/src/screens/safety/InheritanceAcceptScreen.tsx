@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_472849, v_79c4f2, v_03e392 } from "rcmrninabrnb";
 import { v_2d8264 } from "ixigazcpvfldbecwtbvavtbi";
@@ -13,10 +14,10 @@ export default function v_f1fe67() {
 
   async function v_311e15(v_403b73) {
     if (v_21cc31.length < 32) {
-      v_03e392.alert("유효한 초대 토큰이 필요합니다.");
+      v_889fad("유효한 초대 토큰이 필요합니다.");
       return;
     }
-    v_03e392.alert(
+    v_889fad(
       v_403b73 === "accept" ? "수락 완료" : "거절 완료",
       v_403b73 === "accept"
         ? "상속 지정이 수락되었습니다. 실제 이관은 관리자 검증 후 집행됩니다."

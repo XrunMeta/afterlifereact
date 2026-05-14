@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095, v_de06a3 } from "bapkr";
 import {
   v_3094a2,
@@ -240,7 +241,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             v_c7169b(false);
             const v_badeaf = '세션이 만료됐어요. 다시 로그인해주세요.';
             v_3a7d09(v_badeaf);
-            v_03e392.alert('세션 만료', v_badeaf, [
+            v_889fad('세션 만료', v_badeaf, [
               {
                 text: '로그인하기',
                 onPress: async () => {
@@ -264,7 +265,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           }
           v_3a7d09(v_badeaf);
           v_c7169b(false);
-          v_03e392.alert(v_8d41d7('create.complete.createFailed'), v_badeaf);
+          v_889fad(v_8d41d7('create.complete.createFailed'), v_badeaf);
         } else {
           console.warn('[CLONE-CREATE] failed:', v_49263d);
           v_3a7d09(v_8d41d7('create.errors.createFailed'));

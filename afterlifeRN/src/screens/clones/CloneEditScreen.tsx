@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -145,7 +146,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     } catch (v_49263d) {
       console.warn("[CloneEdit] save failed:", v_49263d);
       const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("edit.saveFailed");
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_04e389(false);
     }

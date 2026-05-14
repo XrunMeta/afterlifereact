@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -46,17 +47,17 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       await v_97ea8d(v_24baff.email);
       v_ec979d(v_d812cb);
-      v_03e392.alert(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
+      v_889fad(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
     } catch (v_49263d) {
       const v_badeaf =
         v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     }
   };
 
   const v_83b05b = async () => {
     if (v_c99bd2.length !== 6) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
       return;
     }
     v_ee9ec1(true);
@@ -105,7 +106,7 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           v_badeaf = `${v_badeaf}\n\n${v_712957}`;
         }
       }
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }

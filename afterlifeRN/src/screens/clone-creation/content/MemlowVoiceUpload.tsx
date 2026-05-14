@@ -1,3 +1,4 @@
+import { v_889fad } from "../../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_03e392, v_472849 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
@@ -23,7 +24,7 @@ async function v_467998(
       v_b187d9({ voiceFile: v_cb35cb.assets[0].uri, recordDuration: 0 });
     }
   } catch {
-    v_03e392.alert(v_b5cd35, v_976e82);
+    v_889fad(v_b5cd35, v_976e82);
   }
 }
 

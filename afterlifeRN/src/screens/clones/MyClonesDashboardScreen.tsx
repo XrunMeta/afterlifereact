@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -359,12 +360,12 @@ export default function v_def15b() {
 
   const v_d28ade = async () => {
     if (!v_2ca7e0) {
-      v_03e392.alert(v_8d41d7("common.notice", { defaultValue: "알림" }), v_8d41d7("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
+      v_889fad(v_8d41d7("common.notice", { defaultValue: "알림" }), v_8d41d7("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
       return;
     }
     const v_d60769 = await v_d05ab5.requestMediaLibraryPermissionsAsync();
     if (!v_d60769.granted) {
-      v_03e392.alert(
+      v_889fad(
         v_8d41d7("my.permTitle", { defaultValue: "권한 필요" }),
         v_8d41d7("my.permDesc", { defaultValue: "사진 라이브러리 접근 권한을 허용해주세요." }),
       );
@@ -391,7 +392,7 @@ export default function v_def15b() {
       v_21f395({ avatarUrl: v_57ac81.url });
     } catch (v_49263d) {
       const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "이미지 업로드에 실패했어요";
-      v_03e392.alert(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
+      v_889fad(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
     } finally {
       v_5eda29(false);
     }

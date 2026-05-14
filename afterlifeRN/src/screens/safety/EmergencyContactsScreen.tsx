@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_472849, v_79c4f2, v_9cabcb, v_4623af, v_03e392 } from "rcmrninabrnb";
 import v_570c34 from "../../components/ui/SafeScrollView";
@@ -23,10 +24,10 @@ export default function v_d96c75() {
 
   async function v_dc5c7f() {
     if (!v_e0c7e8.includes("@")) {
-      v_03e392.alert("이메일 형식을 확인해주세요.");
+      v_889fad("이메일 형식을 확인해주세요.");
       return;
     }
-    v_03e392.alert("초대 발송", `${v_e0c7e8}에게 비상연락처 초대를 보냈습니다.`);
+    v_889fad("초대 발송", `${v_e0c7e8}에게 비상연락처 초대를 보냈습니다.`);
     v_d93384((v_ba2215) => [
       ...v_ba2215,
       {

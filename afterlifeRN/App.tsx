@@ -7,6 +7,7 @@ import { v_b2c639 } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_b5df25 } from "ernurodqvmtspux";
 import { v_472849, v_3094a2 } from "rcmrninabrnb";
 import v_3b950c from "./src/navigation/RootNavigator";
+import v_d714a5 from "./src/components/ui/AppDialog";
 import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
 import { v_98d20a } from "./src/stores/userFollowStore";
@@ -69,6 +70,8 @@ export default function v_6540c3() {
           <RootNavigator />
           <StatusBar style="dark" />
         </NavigationContainer>
+        {}
+        <AppDialog />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

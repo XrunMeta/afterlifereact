@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_472849, v_79c4f2, v_03e392 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -14,10 +15,10 @@ export default function v_89f5f5() {
 
   async function v_fbb22a() {
     if (v_ce9295.trim() !== v_80f3c7) {
-      v_03e392.alert(v_8d41d7("gdpr.phraseMismatch"), v_8d41d7("gdpr.phraseMismatchMsg", { phrase: v_80f3c7 }));
+      v_889fad(v_8d41d7("gdpr.phraseMismatch"), v_8d41d7("gdpr.phraseMismatchMsg", { phrase: v_80f3c7 }));
       return;
     }
-    v_03e392.alert(
+    v_889fad(
       v_8d41d7("gdpr.finalTitle"),
       v_8d41d7("gdpr.finalDesc"),
       [
@@ -29,7 +30,7 @@ export default function v_89f5f5() {
             v_34a50a(true);
             try {
               await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 600));
-              v_03e392.alert(v_8d41d7("gdpr.successTitle"), v_8d41d7("gdpr.successMsg"));
+              v_889fad(v_8d41d7("gdpr.successTitle"), v_8d41d7("gdpr.successMsg"));
             } finally {
               v_34a50a(false);
             }
