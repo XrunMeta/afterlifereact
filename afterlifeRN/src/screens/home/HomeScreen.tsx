@@ -218,6 +218,8 @@ export default function v_c316d8() {
     if (v_4c2809.current) return; 
     const v_b43b74 = v_48e7fe.trim();
     if (!v_b43b74 || !v_2ca7e0) return;
+
+    v_0e1f26.dismiss();
     v_4c2809.current = true;
     v_52390e(true);
     try {
@@ -478,7 +480,9 @@ export default function v_c316d8() {
                   const v_271e2a = v_2ced3d[v_3f4e2e.id];
                   const v_f72477 = v_271e2a !== undefined;
                   return (
-                  <View key={v_3f4e2e.id} style={v_d81136.commentRow}>
+
+                  <View key={v_3f4e2e.id} style={v_d81136.commentBlock}>
+                  <View style={v_d81136.commentRow}>
                     {v_3f4e2e.user.avatarUrl ? (
                       <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_d81136.commentAvatar} />
                     ) : (
@@ -548,43 +552,6 @@ export default function v_c316d8() {
                           </TouchableOpacity>
                         )}
                       </View>
-                      {}
-                      {v_f72477 && v_271e2a && v_271e2a.map((v_5cfb2c) => (
-                        <View key={v_5cfb2c.id} style={v_d81136.replyRow}>
-                          {v_5cfb2c.user.avatarUrl ? (
-                            <Image source={{ uri: v_5cfb2c.user.avatarUrl }} style={v_d81136.replyAvatar} />
-                          ) : (
-                            <View style={[v_d81136.replyAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
-                          )}
-                          <View style={{ flex: 1 }}>
-                            <View style={v_d81136.commentMeta}>
-                              <Text style={v_d81136.commentAuthor}>{v_5cfb2c.user.name ?? v_5cfb2c.user.email}</Text>
-                              <Text style={v_d81136.commentTime}>{v_bfd883(v_5cfb2c.createdAt)}</Text>
-                            </View>
-                            <Text style={v_d81136.commentContent}>{v_5cfb2c.content}</Text>
-                          </View>
-                          {}
-                          <TouchableOpacity
-                            style={v_d81136.commentHeart}
-                            onPress={() => v_71affe(v_5cfb2c, v_3f4e2e.id)}
-                            hitSlop={8}
-                          >
-                            <Feather
-                              name="heart"
-                              size={14}
-                              color={v_5cfb2c.likedByMe ? "#ef4444" : v_1bfbd0.zinc400}
-                            />
-                            <Text
-                              style={[
-                                v_d81136.commentHeartCount,
-                                v_5cfb2c.likedByMe ? { color: "#ef4444" } : null,
-                              ]}
-                            >
-                              {v_5cfb2c.likesCount ?? 0}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      ))}
                     </View>
                     {}
                     <TouchableOpacity
@@ -606,6 +573,47 @@ export default function v_c316d8() {
                         {v_3f4e2e.likesCount ?? 0}
                       </Text>
                     </TouchableOpacity>
+                  </View>
+                  {
+
+}
+                  {v_f72477 && v_271e2a && v_271e2a.map((v_5cfb2c) => (
+                    <View key={v_5cfb2c.id} style={v_d81136.replyRow}>
+                      <View style={v_d81136.replyIndent} />
+                      {v_5cfb2c.user.avatarUrl ? (
+                        <Image source={{ uri: v_5cfb2c.user.avatarUrl }} style={v_d81136.replyAvatar} />
+                      ) : (
+                        <View style={[v_d81136.replyAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <View style={v_d81136.commentMeta}>
+                          <Text style={v_d81136.commentAuthor}>{v_5cfb2c.user.name ?? v_5cfb2c.user.email}</Text>
+                          <Text style={v_d81136.commentTime}>{v_bfd883(v_5cfb2c.createdAt)}</Text>
+                        </View>
+                        <Text style={v_d81136.commentContent}>{v_5cfb2c.content}</Text>
+                      </View>
+                      {}
+                      <TouchableOpacity
+                        style={v_d81136.commentHeart}
+                        onPress={() => v_71affe(v_5cfb2c, v_3f4e2e.id)}
+                        hitSlop={8}
+                      >
+                        <Feather
+                          name="heart"
+                          size={14}
+                          color={v_5cfb2c.likedByMe ? "#ef4444" : v_1bfbd0.zinc400}
+                        />
+                        <Text
+                          style={[
+                            v_d81136.commentHeartCount,
+                            v_5cfb2c.likedByMe ? { color: "#ef4444" } : null,
+                          ]}
+                        >
+                          {v_5cfb2c.likesCount ?? 0}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
                   </View>
                 );
                 })
@@ -933,7 +941,12 @@ const v_d81136 = v_472849.create({
   commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
   commentTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   commentScroll: { flex: 1 },
-  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16, alignItems: "flex-start" },
+
+  commentBlock: { marginBottom: 16 },
+
+  commentRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+
+  replyIndent: { width: 42 },
   commentHeart: { alignItems: "center", paddingHorizontal: 4, paddingTop: 2, minWidth: 28 },
   commentHeartCount: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 2 },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: v_1bfbd0.zinc100 },
@@ -950,7 +963,7 @@ const v_d81136 = v_472849.create({
   replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
   replyActionText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.zinc500 },
   replyToggleText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.zinc500 },
-  replyRow: { flexDirection: "row", gap: 8, marginTop: 10, marginLeft: 0 },
+  replyRow: { flexDirection: "row", gap: 8, marginTop: 10, alignItems: "flex-start" },
   replyAvatar: { width: 24, height: 24, borderRadius: 12 },
   replyingBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 4, backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100, borderRadius: 8, marginTop: 6 },
   replyingText: { fontSize: 12, color: v_1bfbd0.zinc600 },
