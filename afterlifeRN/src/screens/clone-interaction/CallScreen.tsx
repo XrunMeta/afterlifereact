@@ -173,18 +173,39 @@ export default function CallScreen({ route, navigation }: Props) {
       playGiftAnimation(gift);
     } catch (err) {
       console.warn("[Call] gift failed:", err);
+      let title = "송금 실패";
       let msg = "송금에 실패했어요.";
+      let isInsufficient = false;
       if (err instanceof AuthApiError) {
         if (err.code === "UNAUTHENTICATED") msg = "결제 비밀번호가 일치하지 않아요.";
-        else if (err.code === "INSUFFICIENT_FUNDS") msg = "잔액이 부족해요.";
-        else if (err.code === "CONFLICT") msg = err.message;
+        else if (err.code === "INSUFFICIENT_FUNDS") {
+          isInsufficient = true;
+          title = "XRUN 잔액 부족";
+          msg = "XRUN 잔액이 부족해요.\nxrun 앱에서 더 벌어와주세요.";
+        } else if (err.code === "CONFLICT") msg = err.message;
         else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
           msg = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
-        else if (err.code === "UPSTREAM_FAILURE")
-          msg = "xrun 송금 처리 중 오류가 발생했어요.";
-        else msg = err.message;
+        else if (err.code === "UPSTREAM_FAILURE") {
+
+          if (/insufficient|잔액|balance/i.test(err.message)) {
+            isInsufficient = true;
+            title = "XRUN 잔액 부족";
+            msg = "XRUN 잔액이 부족해요.\nxrun 앱에서 더 벌어와주세요.";
+          } else {
+            msg = "xrun 송금 처리 중 오류가 발생했어요.";
+          }
+        } else msg = err.message;
       }
-      showAlert("송금 실패", msg);
+
+      setPinModalVisible(false);
+      setPinInput("");
+      showAlert(
+        title,
+        msg,
+        isInsufficient
+          ? [{ text: "확인", style: "default" }]
+          : undefined,
+      );
     } finally {
       setPaying(false);
     }
