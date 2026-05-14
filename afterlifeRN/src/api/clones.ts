@@ -639,6 +639,10 @@ export interface FeedComment {
   repliesCount?: number;
 
   parentCommentId?: number;
+
+  likesCount?: number;
+
+  likedByMe?: boolean;
   user: {
     id: number;
     name: string | null;
@@ -653,7 +657,9 @@ export async function v_776874(
 ): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
   const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_6e0fd3}/comments`);
   if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
-  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_3f4675 = {};
+  if (v_328259?.accessToken) v_3f4675.Authorization = `Bearer ${v_328259.accessToken}`;
+  const v_8f00b9 = await fetch(v_f71b56.toString(), { headers: v_3f4675 });
   const v_9b6134 = await v_8f00b9.text();
   const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
   if (!v_8f00b9.ok) {
@@ -675,7 +681,9 @@ export async function v_4208e7(
   const v_f71b56 = new URL(`${v_cc9198}/oth-path${v_c09aa8}/comments`);
   if (v_328259?.cursor) v_f71b56.searchParams.set("cursor", String(v_328259.cursor));
   if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
-  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_3f4675 = {};
+  if (v_328259?.accessToken) v_3f4675.Authorization = `Bearer ${v_328259.accessToken}`;
+  const v_8f00b9 = await fetch(v_f71b56.toString(), { headers: v_3f4675 });
   const v_9b6134 = await v_8f00b9.text();
   const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
   if (!v_8f00b9.ok) {
@@ -724,7 +732,9 @@ export async function v_f5a9ea(
     `${v_cc9198}/oth-path${v_c09aa8}/comments/${v_d91518}/replies`,
   );
   if (v_328259?.limit) v_f71b56.searchParams.set("limit", String(v_328259.limit));
-  const v_8f00b9 = await fetch(v_f71b56.toString());
+  const v_3f4675 = {};
+  if (v_328259?.accessToken) v_3f4675.Authorization = `Bearer ${v_328259.accessToken}`;
+  const v_8f00b9 = await fetch(v_f71b56.toString(), { headers: v_3f4675 });
   const v_9b6134 = await v_8f00b9.text();
   const v_8decf8 = v_9b6134 ? (JSON.parse(v_9b6134) as unknown) : null;
   if (!v_8f00b9.ok) {
@@ -737,6 +747,26 @@ export async function v_f5a9ea(
     );
   }
   return v_8decf8 as { items: FeedComment[] };
+}
+
+export async function v_f1ff2a(
+  v_2ca7e0,
+  v_c09aa8,
+  v_d91518,
+): Promise<{ ok: true; liked: true; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/comments/${v_d91518}/like`, v_2ca7e0, {
+    method: "POST",
+  });
+}
+
+export async function v_99e260(
+  v_2ca7e0,
+  v_c09aa8,
+  v_d91518,
+): Promise<{ ok: true; liked: false; likesCount: number }> {
+  return v_04b58a(`/oth-path${v_c09aa8}/comments/${v_d91518}/like`, v_2ca7e0, {
+    method: "DELETE",
+  });
 }
 
 export async function v_6f689a(
