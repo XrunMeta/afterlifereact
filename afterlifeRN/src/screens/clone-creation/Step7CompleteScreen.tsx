@@ -164,7 +164,12 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   );
 
   v_c4deb2(() => {
-    if (!v_f04727.cloneType) return;
+    if (!v_f04727.cloneType) {
+
+      v_c7169b(false);
+      v_3a7d09("페르소나 정보가 없어요. 처음부터 다시 만들어주세요.");
+      return;
+    }
     v_b12f33.current = false;
 
     const v_5b257e = setTimeout(() => {
