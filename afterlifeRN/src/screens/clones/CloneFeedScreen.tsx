@@ -33,6 +33,7 @@ import {
   v_b14fce,
   v_0ff331,
   v_4208e7,
+  v_776874,
   v_3f8bc7,
   v_6f689a,
   v_0df337,
@@ -201,20 +202,19 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_04f2fc([]);
       return;
     }
-    if (v_6bbace < 0) {
-      v_04f2fc([]);
-      return;
-    }
     let v_2008a4 = false;
     v_856daf(true);
     v_04f2fc([]);
-    v_4208e7(v_6bbace, { limit: 100 })
+    const v_19e91c = v_6bbace < 0
+      ? v_776874(v_2db2a5.cloneId, { limit: 100 })
+      : v_4208e7(v_6bbace, { limit: 100 });
+    v_19e91c
       .then((v_8f00b9) => {
         if (v_2008a4) return;
         v_04f2fc(v_8f00b9.items);
       })
       .catch((v_49263d) => {
-        console.warn("[CloneFeed] listFeedComments failed:", v_49263d);
+        console.warn("[CloneFeed] list comments failed:", v_49263d);
         if (!v_2008a4) v_04f2fc([]);
       })
       .finally(() => {
@@ -223,7 +223,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     return () => {
       v_2008a4 = true;
     };
-  }, [v_1126f9, v_6bbace]);
+  }, [v_1126f9, v_6bbace, v_2db2a5.cloneId]);
 
   const v_8e4668 = async () => {
     if (v_4c2809.current) return;
@@ -395,7 +395,9 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         {(v_3f4e2e.repliesCount ?? 0) > 0 && (
                           <TouchableOpacity
                             onPress={async () => {
-                              if (v_6bbace < 0) return;
+
+                              const v_8e2335 = v_6bbace > 0 ? v_6bbace : (v_3f4e2e.feedId ?? 0);
+                              if (!v_8e2335) return;
                               if (v_f72477) {
                                 v_74a05a((v_e2a85c) => {
                                   const v_f4e98d = { ...v_e2a85c };
@@ -404,7 +406,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                                 });
                               } else {
                                 try {
-                                  const v_cb35cb = await v_f5a9ea(v_6bbace, v_3f4e2e.id, { limit: 100 });
+                                  const v_cb35cb = await v_f5a9ea(v_8e2335, v_3f4e2e.id, { limit: 100 });
                                   v_74a05a((v_e2a85c) => ({ ...v_e2a85c, [v_3f4e2e.id]: v_cb35cb.items }));
                                 } catch (v_49263d) {
                                   console.warn("[CloneFeed] listReplies failed:", v_49263d);
