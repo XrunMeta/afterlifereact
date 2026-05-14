@@ -76,6 +76,14 @@ export default function RootNavigator() {
             component={CloneFeedScreen}
             options={{ animation: "slide_from_right" }}
           />
+          {
+
+}
+          <RootStack.Screen
+            name="ResetPassword"
+            component={ForgotPasswordScreen}
+            options={{ animation: "slide_from_right" }}
+          />
         </>
       )}
     </RootStack.Navigator>
