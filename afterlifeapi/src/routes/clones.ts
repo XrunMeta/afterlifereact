@@ -95,21 +95,29 @@ v_f891e6.post(
     const v_faa47d = v_3c8572?.n ?? 0;
     if (v_faa47d >= 1) {
 
-      const v_c54e53 = await v_a1651b
-        .prepare(
-          `SELECT COUNT(*) AS n FROM clones
-            WHERE owner_id = ?
-              AND clone_type = ?
-              AND deletion_state = 'active'
-              AND deleted_at IS NULL`,
-        )
-        .bind(v_43e90c, v_4d33b2.clone_type)
-        .first<{ n: number }>();
-      if ((v_c54e53?.n ?? 0) >= 1) {
-        throw new v_3ebe58(
-          "CONFLICT",
-          "이미 같은 타입의 페르소나가 있습니다. 다른 타입을 선택해주세요.",
-        );
+      if (v_4d33b2.clone_type !== "memlow") {
+        const v_fbff43 = await v_a1651b
+          .prepare(
+            `SELECT clone_type FROM clones
+              WHERE owner_id = ?
+                AND deletion_state = 'active'
+                AND deleted_at IS NULL`,
+          )
+          .bind(v_43e90c)
+          .all<{ clone_type: string }>();
+        const v_47e8dd = new Set(v_fbff43.results.map((v_cb35cb) => v_cb35cb.clone_type));
+        if (v_47e8dd.has(v_4d33b2.clone_type)) {
+          const v_6f7c85 = ["friend", "mentor", "celeb"];
+          const v_3dca11 = v_6f7c85.find((v_8d41d7) => !v_47e8dd.has(v_8d41d7));
+          if (!v_3dca11) {
+            throw new v_3ebe58(
+              "QUOTA_EXCEEDED",
+              "최대 페르소나 개수(4개)에 도달했어요.",
+            );
+          }
+
+          v_4d33b2.clone_type = v_3dca11;
+        }
       }
 
       if (!v_4d33b2.pin) {
@@ -183,7 +191,7 @@ v_f891e6.post(
     } catch (v_49263d) {
       const v_badeaf = (v_49263d as Error).message ?? "";
       if (/UNIQUE constraint failed: clones\.username/i.test(v_badeaf)) {
-        throw new v_3ebe58("CONFLICT", "Username already taken.");
+        throw new v_3ebe58("CONFLICT", "중복된 아이디입니다. 다른 아이디를 사용해주세요.");
       }
 
       if (/UNIQUE constraint failed: clones\.owner_id, clones\.clone_type/i.test(v_badeaf)) {
@@ -330,8 +338,27 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
   const v_24baff = v_ab6401.data;
   const v_a1651b = v_3f4e2e.env.DB;
 
-  const v_abcc8d = [`c.deleted_at IS NULL`, `c.visibility = 'public'`];
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
+
+  const v_abcc8d = [`c.deleted_at IS NULL`];
   const v_925171 = [];
+  if (v_013af2) {
+    v_abcc8d.push(
+      `(
+         c.visibility = 'public'
+         OR c.owner_id = ?
+         OR (c.visibility = 'followers' AND
+             EXISTS (SELECT 1 FROM clone_follows cf
+                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
+         OR (c.visibility = 'selected' AND
+             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+       )`,
+    );
+    v_925171.push(v_013af2, v_013af2, v_013af2);
+  } else {
+    v_abcc8d.push(`c.visibility = 'public'`);
+  }
   if (v_24baff.q) {
     v_abcc8d.push(`(c.name LIKE ? OR c.username LIKE ?)`);
     const v_2a1d60 = `%${v_24baff.q}%`;

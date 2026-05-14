@@ -146,10 +146,27 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     "c.deletion_state = 'active'",
     "c.deleted_at IS NULL",
     "c.clone_type != 'memlow'",
-    "c.visibility = 'public'",
-
   ];
   const v_925171 = [];
+
+  if (v_013af2) {
+    v_abcc8d.push(
+      `(
+         c.visibility = 'public'
+         OR c.owner_id = ?
+         OR (c.visibility = 'followers' AND
+             EXISTS (SELECT 1 FROM clone_follows cf
+                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
+         OR (c.visibility = 'selected' AND
+             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+       )`,
+    );
+    v_925171.push(v_013af2, v_013af2, v_013af2);
+  } else {
+
+    v_abcc8d.push("c.visibility = 'public'");
+  }
 
   if (v_013af2) {
     v_abcc8d.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
