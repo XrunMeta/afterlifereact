@@ -513,11 +513,7 @@ export default function v_14b43e() {
             ) : null}
             {
 }
-            <HashtagText
-              style={v_fd5f43.postContent}
-              numberOfLines={3}
-              tagStyle={{ color: v_1bfbd0.white, fontWeight: "700", textDecorationLine: "underline" }}
-            >
+            <HashtagText style={v_fd5f43.postContent} numberOfLines={3}>
               {v_8c0b26.feed.content}
             </HashtagText>
             <View style={v_fd5f43.overlayBtns}>
