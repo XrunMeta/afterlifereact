@@ -11,6 +11,8 @@ interface Props {
   handleZoneHeight?: number;
 
   closeThreshold?: number;
+
+  keyboardOffset?: number;
 }
 
 export default function v_8e7ad4({
@@ -19,8 +21,11 @@ export default function v_8e7ad4({
   children: v_21f619,
   handleZoneHeight: v_0b30e9 = 48,
   closeThreshold: v_1f95e5 = 60,
+  keyboardOffset: v_f92037 = 0,
 }: Props) {
   const v_5aac04 = v_e662ae(new v_a2349e.Value(0)).current;
+
+  const v_153714 = v_a2349e.subtract(v_5aac04, v_f92037);
 
   const v_e7cf0f = v_e662ae(
     v_f6c856.create({
@@ -64,7 +69,8 @@ export default function v_8e7ad4({
     <Animated.View
       style={[
         Array.isArray(v_7fa4e4) ? v_7fa4e4 : v_7fa4e4 ? [v_7fa4e4] : [],
-        { transform: [{ translateY: v_5aac04 }] },
+
+        { transform: [{ translateY: v_153714 }] },
       ]}
 
       onStartShouldSetResponder={() => true}
