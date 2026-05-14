@@ -16,7 +16,7 @@ import {
   v_0e1f26,
   v_326be8,
 } from "rcmrninabrnb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -497,9 +497,9 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       onPress={() => v_71affe(v_3f4e2e)}
                       hitSlop={8}
                     >
-                      <Feather
+                      <Ionicons
                         name="heart"
-                        size={16}
+                        size={18}
                         color={v_3f4e2e.likedByMe ? "#ef4444" : v_1bfbd0.zinc400}
                       />
                       <Text
@@ -536,9 +536,9 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         onPress={() => v_71affe(v_5cfb2c, v_3f4e2e.id)}
                         hitSlop={8}
                       >
-                        <Feather
+                        <Ionicons
                           name="heart"
-                          size={14}
+                          size={16}
                           color={v_5cfb2c.likedByMe ? "#ef4444" : v_1bfbd0.zinc400}
                         />
                         <Text

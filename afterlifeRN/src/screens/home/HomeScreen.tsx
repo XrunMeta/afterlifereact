@@ -21,7 +21,7 @@ import { v_03e392, v_5f4661 } from "rcmrninabrnb";
 import { v_b5df25 } from "ernurodqvmtspux";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
@@ -559,9 +559,9 @@ export default function v_c316d8() {
                       onPress={() => v_71affe(v_3f4e2e)}
                       hitSlop={8}
                     >
-                      <Feather
+                      <Ionicons
                         name="heart"
-                        size={16}
+                        size={18}
                         color={v_3f4e2e.likedByMe ? "#ef4444" : v_1bfbd0.zinc400}
                       />
                       <Text
@@ -598,9 +598,9 @@ export default function v_c316d8() {
                         onPress={() => v_71affe(v_5cfb2c, v_3f4e2e.id)}
                         hitSlop={8}
                       >
-                        <Feather
+                        <Ionicons
                           name="heart"
-                          size={14}
+                          size={16}
                           color={v_5cfb2c.likedByMe ? "#ef4444" : v_1bfbd0.zinc400}
                         />
                         <Text
