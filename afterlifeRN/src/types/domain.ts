@@ -33,6 +33,8 @@ export interface DomainClone {
   cloneType: CloneType;
   ownerId: number;
   displayName: string;
+
+  username?: string;
   description: string;
   interests: string[];
   imageUrl?: string;
