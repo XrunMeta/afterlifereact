@@ -25,6 +25,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 
 import v_9706a6 from "../../components/ui/FeedCard";
+import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 
 import { v_37977a, v_10e36e } from "../../stores/feedStore";
 import { v_b4902e } from "../../stores/followStore";
@@ -89,6 +90,7 @@ export default function v_c316d8() {
 
   const [v_12fa22, v_949e66] = v_5ab095<{
     cloneId: number;
+    ownerId?: number;
     author: string;
     isOwn: boolean;
     visibility?: string;
@@ -269,6 +271,7 @@ export default function v_c316d8() {
           onMorePress={() =>
             v_949e66({
               cloneId: v_8c0b26.cloneId,
+              ownerId: v_8c0b26.cloneOwnerId,
               author: v_8c0b26.author,
               isOwn: v_799eb5,
               visibility: v_8c0b26.cloneVisibility,
@@ -343,10 +346,12 @@ export default function v_c316d8() {
 
       {}
 
-      {}
+      {
+}
       <Modal visible={!!v_ed660d} transparent animationType="slide">
         <Pressable style={v_d81136.commentOverlay} onPress={() => { v_0e1f26.dismiss(); v_b07dd3(null); }}>
-          <View
+          <SwipeDownSheet
+            onClose={() => { v_0e1f26.dismiss(); v_b07dd3(null); }}
             style={[
               v_d81136.commentSheet,
 
@@ -356,7 +361,6 @@ export default function v_c316d8() {
                 transform: [{ translateY: -v_7e4acc }],
               },
             ]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={v_d81136.sheetHandle} />
             <View style={v_d81136.commentHeaderRow}>
@@ -422,18 +426,19 @@ export default function v_c316d8() {
                 />
               </TouchableOpacity>
             </View>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 
       {}
 
-      {}
+      {
+}
       <Modal visible={!!v_12fa22} transparent animationType="fade">
         <Pressable style={v_d81136.moreOverlay} onPress={() => v_949e66(null)}>
-          <Pressable
+          <SwipeDownSheet
+            onClose={() => v_949e66(null)}
             style={[v_d81136.moreSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
-            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
           >
             <View style={v_d81136.moreSheetHandle} />
             <Text style={v_d81136.moreTitle}>{v_12fa22?.author}</Text>
@@ -534,6 +539,20 @@ export default function v_c316d8() {
             ) : (
 
               <>
+                {v_12fa22?.ownerId != null && (
+                  <TouchableOpacity
+                    style={v_d81136.moreItem}
+                    onPress={() => {
+                      const v_5f5d6d = v_12fa22;
+                      v_949e66(null);
+                      if (!v_5f5d6d?.ownerId) return;
+                      v_f4c991.navigate("UserProfile", { userId: v_5f5d6d.ownerId });
+                    }}
+                  >
+                    <Feather name="user" size={20} color={v_1bfbd0.zinc900} />
+                    <Text style={v_d81136.moreItemText}>유저 정보보기</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={v_d81136.moreItem}
                   onPress={async () => {
@@ -591,7 +610,7 @@ export default function v_c316d8() {
               </>
             )}
             {}
-          </Pressable>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 

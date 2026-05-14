@@ -35,8 +35,17 @@ export default function v_7d236a() {
   const { userId: v_43e90c, mode: v_34e5bb } = v_c7daf6.params;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
+
+  const v_da0fb9 = v_98d20a((v_72c7a6) => v_72c7a6.followingIds);
   const v_a5842c = v_98d20a((v_72c7a6) => v_72c7a6.isFollowing);
   const v_eb95ab = v_98d20a((v_72c7a6) => v_72c7a6.toggleFollow);
+  const v_5721c1 = v_98d20a((v_72c7a6) => v_72c7a6.hydrate);
+  const v_e8ed0f = v_98d20a((v_72c7a6) => v_72c7a6.hydrated);
+  void v_da0fb9; 
+
+  v_c4deb2(() => {
+    if (!v_e8ed0f) void v_5721c1();
+  }, [v_e8ed0f, v_5721c1]);
 
   const [v_4622b9, v_fa923c] = v_5ab095<v_7428e9[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(true);
