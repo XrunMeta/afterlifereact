@@ -597,7 +597,7 @@ export default function FollowingScreen() {
   return (
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
       <PageHeader
-        title="Following"
+        title="Subscribe"
         rightAction={<NotificationBell />}
       />
 
