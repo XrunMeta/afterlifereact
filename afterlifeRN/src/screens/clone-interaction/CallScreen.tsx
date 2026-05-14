@@ -160,15 +160,16 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         `myCredits=${v_e2c945} (typeof=${typeof v_e2c945}) enough=${v_e2c945 >= v_bbee9c.price}`,
     );
     if (v_e2c945 < v_bbee9c.price) {
+      const v_ff3b79 = Math.max(0, v_bbee9c.price - v_e2c945);
       console.log(
-        `[Call][gift-insufficient-precheck] ${v_e2c945} < ${v_bbee9c.price} → block PIN modal`,
+        `[Call][gift-insufficient-precheck] ${v_e2c945} < ${v_bbee9c.price} (shortage=${v_ff3b79}) → block PIN modal`,
       );
       v_889fad(
-        "XRUN 잔액이 부족해요",
-        `이 선물은 ${v_bbee9c.price} XRUN 이 필요한데\n내 잔액은 ${v_e2c945} XRUN 이에요.`,
+        `${v_ff3b79} 잔액이 부족합니다`,
+        `선물을 보내기 위해 ${v_ff3b79} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`,
         [
-          { text: "확인", style: "cancel" },
-          { text: "xrun 바로가기", onPress: () => void v_0c2802() },
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
         ],
       );
       return;
@@ -227,8 +228,16 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "결제 비밀번호가 일치하지 않아요.";
         else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
           v_81532e = true;
-          v_9f1622 = "XRUN 잔액이 부족해요";
-          v_badeaf = "선물 보내기에 필요한 XRUN 이 부족해요.";
+
+          const v_ff3b79 = v_555760
+            ? Math.max(0, v_555760.price - v_e2c945)
+            : 0;
+          v_9f1622 = v_ff3b79 > 0
+            ? `${v_ff3b79} 잔액이 부족합니다`
+            : "잔액이 부족합니다";
+          v_badeaf = v_ff3b79 > 0
+            ? `선물을 보내기 위해 ${v_ff3b79} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
+            : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
         } else if (v_49263d.code === "CONFLICT") v_badeaf = v_49263d.message;
         else if (v_49263d.code === "UPSTREAM_NOT_IMPLEMENTED")
           v_badeaf = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
@@ -236,8 +245,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
           if (/insufficient|잔액|balance/i.test(v_49263d.message)) {
             v_81532e = true;
-            v_9f1622 = "XRUN 잔액이 부족해요";
-            v_badeaf = "선물 보내기에 필요한 XRUN 이 부족해요.";
+            const v_ff3b79 = v_555760
+              ? Math.max(0, v_555760.price - v_e2c945)
+              : 0;
+            v_9f1622 = v_ff3b79 > 0
+              ? `${v_ff3b79} 잔액이 부족합니다`
+              : "잔액이 부족합니다";
+            v_badeaf = v_ff3b79 > 0
+              ? `선물을 보내기 위해 ${v_ff3b79} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
+              : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
           } else {
             v_badeaf = "xrun 송금 처리 중 오류가 발생했어요.";
           }
@@ -251,8 +267,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         v_badeaf,
         v_81532e
           ? [
-              { text: "확인", style: "cancel" },
-              { text: "xrun 바로가기", onPress: () => void v_0c2802() },
+              { text: "다음에 하기", style: "cancel" },
+              { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
             ]
           : undefined,
       );
