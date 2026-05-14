@@ -26,6 +26,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import FeedCard from "../../components/ui/FeedCard";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
+import ReportReasonModal from "../../components/common/ReportReasonModal";
 
 import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
@@ -94,6 +95,11 @@ export default function HomeScreen() {
     author: string;
     isOwn: boolean;
     visibility?: string;
+  } | null>(null);
+
+  const [reportTarget, setReportTarget] = useState<{
+    cloneId: number;
+    author: string;
   } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   useEffect(() => {
@@ -555,27 +561,12 @@ export default function HomeScreen() {
                 )}
                 <TouchableOpacity
                   style={styles.moreItem}
-                  onPress={async () => {
+                  onPress={() => {
                     const target = moreTarget;
                     setMoreTarget(null);
-                    if (!target || !accessToken) return;
+                    if (!target) return;
 
-                    try {
-                      const { reportClone } = await import("../../api/clones");
-                      await reportClone(accessToken, target.cloneId);
-                      setToastMessage("신고가 접수됐어요. 이 페르소나는 차단됐어요");
-                      const cur = useFeedStore.getState().apiFeeds;
-                      if (cur) {
-                        useFeedStore.setState({
-                          apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
-                        });
-                      }
-                      await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
-                      void loadDiscover();
-                    } catch (err) {
-                      console.warn(`[REPORT] FAILED cloneId=${target.cloneId}`, err);
-                      setToastMessage("신고에 실패했어요");
-                    }
+                    setReportTarget({ cloneId: target.cloneId, author: target.author });
                   }}
                 >
                   <Feather name="flag" size={20} color="#ef4444" />
@@ -613,6 +604,35 @@ export default function HomeScreen() {
           </SwipeDownSheet>
         </Pressable>
       </Modal>
+
+      {}
+      <ReportReasonModal
+        visible={!!reportTarget}
+        targetName={reportTarget?.author}
+        onCancel={() => setReportTarget(null)}
+        onConfirm={async (reason) => {
+          const target = reportTarget;
+          setReportTarget(null);
+          if (!target || !accessToken) return;
+
+          try {
+            const { reportClone } = await import("../../api/clones");
+            await reportClone(accessToken, target.cloneId, reason || undefined);
+            setToastMessage("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            const cur = useFeedStore.getState().apiFeeds;
+            if (cur) {
+              useFeedStore.setState({
+                apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
+              });
+            }
+            await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
+            void loadDiscover();
+          } catch (err) {
+            console.warn(`[REPORT] FAILED cloneId=${target.cloneId}`, err);
+            setToastMessage("신고에 실패했어요");
+          }
+        }}
+      />
 
       {toastMessage && (
         <View style={styles.toast}>
