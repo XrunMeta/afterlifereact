@@ -35,7 +35,8 @@ import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
 import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
 import { AuthApiError, patchMe } from "../../api/auth";
-import { getXrunBalance } from "../../api/payments";
+import { getXrunBalance, getPaymentPinStatus } from "../../api/payments";
+import PaymentPinPromptModal from "../../components/my/PaymentPinPromptModal";
 import { uploadFile } from "../../api/files";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone, Visibility } from "../../types/clone";
@@ -170,6 +171,24 @@ export default function MyClonesDashboardScreen() {
 
   const [xrunBalance, setXrunBalance] = useState<number | null | undefined>(undefined);
   const [xrunBalanceLoading, setXrunBalanceLoading] = useState(true);
+
+  const [showPinPrompt, setShowPinPrompt] = useState(false);
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const status = await getPaymentPinStatus(accessToken);
+        if (cancelled) return;
+        if (status.linked && !status.hasPin) setShowPinPrompt(true);
+      } catch (err) {
+        console.warn("[Dashboard] PIN status fetch failed:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   const followingCount = (apiUser as { followingCount?: number } | null)?.followingCount ?? 0;
   const followersCount = (apiUser as { followersCount?: number } | null)?.followersCount ?? 0;
@@ -1199,6 +1218,12 @@ export default function MyClonesDashboardScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {}
+      <PaymentPinPromptModal
+        visible={showPinPrompt}
+        onClose={() => setShowPinPrompt(false)}
+      />
     </SafeView>
   );
 }

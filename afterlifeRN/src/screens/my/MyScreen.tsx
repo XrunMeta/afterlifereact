@@ -354,8 +354,10 @@ export default function MyScreen() {
         </View>
       </View>
 
+      {
+}
       <PaymentPinPromptModal
-        visible={showPinPrompt}
+        visible={false}
         onClose={() => setShowPinPrompt(false)}
       />
 

@@ -540,6 +540,20 @@ clones.get("/:id", async (c) => {
     .bind(cloneId, cloneId)
     .first<{ likesCount: number; commentsCount: number }>();
 
+  let likedByMe = false;
+  if (userId) {
+    const r = await c.env.DB
+      .prepare(
+        `SELECT 1 AS x FROM feed_likes fl
+           JOIN feeds f ON f.id = fl.feed_id
+          WHERE fl.user_id = ? AND f.clone_id = ?
+          LIMIT 1`,
+      )
+      .bind(userId, cloneId)
+      .first<{ x: number }>();
+    likedByMe = !!r;
+  }
+
   return c.json({
     clone: {
       id: clone.id,
@@ -564,6 +578,7 @@ clones.get("/:id", async (c) => {
         likes: aggRow?.likesCount ?? 0,
         comments: aggRow?.commentsCount ?? 0,
       },
+      likedByMe,
       createdAt: clone.created_at,
       viewerRole,
     },
