@@ -11,8 +11,10 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../../../stores/authStore";
 import { listUserFollowing, type UserFollowItem } from "../../../api/users";
 import Button from "../../../components/ui/Button";
@@ -34,6 +36,9 @@ export default function FriendPickerModal({
 }: Props) {
   const accessToken = useAuthStore((s) => s.accessToken);
   const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
+  const insets = useSafeAreaInsets();
+
+  const bottomPad = Math.max(insets.bottom, Platform.OS === "android" ? 24 : 12);
 
   const [following, setFollowing] = useState<UserFollowItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -67,9 +72,17 @@ export default function FriendPickerModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+    >
       <Pressable style={s.overlay} onPress={onClose}>
-        <Pressable style={s.box} onPress={(e) => e.stopPropagation()}>
+        <Pressable
+          style={[s.box, { paddingBottom: bottomPad }]}
+          onPress={(e) => e.stopPropagation()}
+        >
           <View style={s.handle} />
           <Text style={s.title}>특정 친구에게만 공개</Text>
           <Text style={s.desc}>
@@ -141,8 +154,8 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: SIZES.large,
     paddingTop: 12,
-    paddingBottom: 24,
-    maxHeight: "80%",
+
+    maxHeight: "85%",
   },
   handle: {
     width: 40,
