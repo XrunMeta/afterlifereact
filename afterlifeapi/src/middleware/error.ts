@@ -11,7 +11,7 @@ export const onError: ErrorHandler<AppEnv> = (err, c) => {
     {
       error: {
         code: "INTERNAL_ERROR",
-        message: "Unexpected server error.",
+        message: "예기치 못한 서버 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
         requestId: c.get("requestId"),
       },
     },

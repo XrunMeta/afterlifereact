@@ -21,14 +21,14 @@ export const feedsDiscover = new Hono<AppEnv>();
 function parseCloneId(c: { req: { param: (k: string) => string } }): number {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   return id;
 }
 function parseFeedId(c: { req: { param: (k: string) => string } }): number {
   const fid = Number(c.req.param("feedId"));
   if (!Number.isInteger(fid) || fid <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   return fid;
 }
@@ -42,7 +42,7 @@ async function assertWriter(
   if (clone.owner_id === userId) return;
   const role = await hasAcceptedShare(db, cloneId, userId);
   if (role !== "owner") {
-    throw new APIError("FORBIDDEN", "Owner/coowner only.");
+    throw new APIError("FORBIDDEN", "소유자만 가능해요.");
   }
 }
 
@@ -59,7 +59,7 @@ const createSchema = z
 cloneFeeds.get("/:id/feeds", async (c) => {
   const cloneId = parseCloneId(c);
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   const userId = await resolveOptionalUser(c);
   let role: "owner" | "coowner" | "follower" | null = null;
@@ -73,10 +73,10 @@ cloneFeeds.get("/:id/feeds", async (c) => {
   }
 
   if (clone.visibility === "private" && role !== "owner" && role !== "coowner") {
-    throw new APIError("FORBIDDEN", "Private clone.");
+    throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
   }
   if (clone.visibility === "followers" && !role) {
-    throw new APIError("FORBIDDEN", "Followers-only clone.");
+    throw new APIError("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
   }
 
   const url = new URL(c.req.url);
@@ -308,7 +308,7 @@ cloneFeeds.post("/:id/feeds", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   await assertWriter(c.env.DB, cloneId, userId, clone);
 
   const body = await parseJson(c, createSchema);
@@ -362,16 +362,16 @@ async function loadFeedAccessible(
 feedsDiscover.post("/:id/like", requireAuth, async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const userId = c.get("userId")!;
   const feed = await loadFeedAccessible(c.env.DB, feedId);
-  if (!feed) throw new APIError("NOT_FOUND", "Feed not found.");
+  if (!feed) throw new APIError("NOT_FOUND", "피드를 찾을 수 없어요.");
 
   if (feed.visibility === "private") {
     if (feed.ownerId !== userId) {
       const role = await hasAcceptedShare(c.env.DB, feed.cloneId, userId);
-      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+      if (role === null) throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
 
@@ -396,7 +396,7 @@ feedsDiscover.post("/:id/like", requireAuth, async (c) => {
 feedsDiscover.delete("/:id/like", requireAuth, async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const userId = c.get("userId")!;
   await c.env.DB
@@ -414,7 +414,7 @@ feedsDiscover.delete("/:id/like", requireAuth, async (c) => {
 feedsDiscover.get("/:id/likes", async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const url = new URL(c.req.url);
   const cursorRaw = url.searchParams.get("cursor");
@@ -476,11 +476,11 @@ cloneFeeds.post("/:id/like", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   if (clone.visibility === "private") {
     if (clone.owner_id !== userId) {
       const role = await hasAcceptedShare(c.env.DB, cloneId, userId);
-      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+      if (role === null) throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
 
@@ -561,17 +561,17 @@ const commentCreateSchema = z.object({
 feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const userId = c.get("userId")!;
   const body = await parseJson(c, commentCreateSchema);
 
   const feed = await loadFeedAccessible(c.env.DB, feedId);
-  if (!feed) throw new APIError("NOT_FOUND", "Feed not found.");
+  if (!feed) throw new APIError("NOT_FOUND", "피드를 찾을 수 없어요.");
   if (feed.visibility === "private") {
     if (feed.ownerId !== userId) {
       const role = await hasAcceptedShare(c.env.DB, feed.cloneId, userId);
-      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+      if (role === null) throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
   const r = await c.env.DB
@@ -605,7 +605,7 @@ feedsDiscover.delete("/:id/comments/:cid", requireAuth, async (c) => {
   const feedId = Number(c.req.param("id"));
   const cid = Number(c.req.param("cid"));
   if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
   }
   const userId = c.get("userId")!;
   const res = await c.env.DB
@@ -613,7 +613,7 @@ feedsDiscover.delete("/:id/comments/:cid", requireAuth, async (c) => {
     .bind(cid, feedId, userId)
     .run();
   if ((res.meta?.changes ?? 0) === 0) {
-    throw new APIError("NOT_FOUND", "Comment not found or not yours.");
+    throw new APIError("NOT_FOUND", "댓글을 찾을 수 없거나 본인의 댓글이 아니에요.");
   }
   return c.json({ ok: true });
 });
@@ -622,7 +622,7 @@ feedsDiscover.post("/:id/comments/:cid/report", requireAuth, async (c) => {
   const feedId = Number(c.req.param("id"));
   const cid = Number(c.req.param("cid"));
   if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
   }
   const userId = c.get("userId")!;
   const body = await c.req.json<{ reason?: string }>().catch(() => ({} as { reason?: string }));
@@ -638,7 +638,7 @@ feedsDiscover.post("/:id/comments/:cid/report", requireAuth, async (c) => {
     )
     .bind(cid, feedId)
     .first<{ cid: number; feedId: number; cloneId: number }>();
-  if (!meta) throw new APIError("NOT_FOUND", "Comment not found.");
+  if (!meta) throw new APIError("NOT_FOUND", "댓글을 찾을 수 없어요.");
 
   await c.env.DB
     .prepare(
@@ -654,7 +654,7 @@ feedsDiscover.post("/:id/comments/:cid/report", requireAuth, async (c) => {
 feedsDiscover.get("/:id/comments", async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const url = new URL(c.req.url);
   const cursorRaw = url.searchParams.get("cursor");
@@ -723,11 +723,11 @@ cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const body = await parseJson(c, commentCreateSchema);
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   if (clone.visibility === "private") {
     if (clone.owner_id !== userId) {
       const role = await hasAcceptedShare(c.env.DB, cloneId, userId);
-      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+      if (role === null) throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
 
@@ -885,7 +885,7 @@ cloneFeeds.delete("/:id/feeds/:feedId", requireAuth, async (c) => {
   const feedId = parseFeedId(c);
   const userId = c.get("userId")!;
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   await assertWriter(c.env.DB, cloneId, userId, clone);
 
   const res = await c.env.DB
