@@ -10,7 +10,9 @@ import {
   StyleSheet,
   Pressable,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { COLORS, RADIUS } from "../constants";
@@ -32,12 +34,39 @@ export default function ReportReasonModal({
 }: Props) {
   const [reason, setReason] = useState("");
 
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const { height: SCREEN_H } = useWindowDimensions();
+
   useEffect(() => {
     if (visible) setReason("");
   }, [visible]);
 
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      (e) => setKeyboardHeight(e.endCoordinates.height),
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardHeight(0),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const submit = () => {
+    Keyboard.dismiss();
     onConfirm(reason.trim());
+  };
+
+  const handleOverlayTap = () => {
+    if (keyboardHeight > 0) {
+      Keyboard.dismiss();
+    } else {
+      onCancel();
+    }
   };
 
   return (
@@ -46,8 +75,17 @@ export default function ReportReasonModal({
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <Pressable style={styles.overlay} onPress={onCancel}>
-          <Pressable style={styles.box} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={styles.overlay} onPress={handleOverlayTap}>
+          <Pressable
+            style={[
+              styles.box,
+
+              Platform.OS === "android" && keyboardHeight > 0
+                ? { marginBottom: Math.min(keyboardHeight - 24, SCREEN_H * 0.4) }
+                : null,
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.iconWrap}>
               <Feather name="flag" size={24} color="#ef4444" />
             </View>
