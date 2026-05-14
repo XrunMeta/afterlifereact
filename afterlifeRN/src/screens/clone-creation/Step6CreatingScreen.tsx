@@ -148,8 +148,8 @@ export default function Step6CreatingScreen({ navigation }: Props) {
     },
   );
 
-  const emojiOpacity = useRef(new Animated.Value(0)).current;
-  const emojiScale = useRef(new Animated.Value(0.6)).current;
+  const emojiOpacity = useRef(new Animated.Value(1)).current;
+  const emojiScale = useRef(new Animated.Value(1)).current;
 
   const cursorOpacity = useRef(new Animated.Value(1)).current;
 
