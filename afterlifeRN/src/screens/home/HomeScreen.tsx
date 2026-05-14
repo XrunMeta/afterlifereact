@@ -375,16 +375,14 @@ export default function HomeScreen() {
             ]}
           >
             <View style={styles.sheetHandle} />
+            {}
             <View style={styles.commentHeaderRow}>
               <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
-              <TouchableOpacity onPress={() => setCommentFeedId(null)}>
-                <Feather name="x" size={20} color={COLORS.white} />
-              </TouchableOpacity>
             </View>
             <ScrollView style={styles.commentScroll} showsVerticalScrollIndicator={false}>
               {commentsLoading ? (
                 <View style={styles.emptyComment}>
-                  <Feather name="loader" size={28} color="rgba(255,255,255,0.5)" />
+                  <Feather name="loader" size={28} color={COLORS.zinc400} />
                 </View>
               ) : comments.length > 0 ? (
                 comments.map((c) => (
@@ -392,7 +390,7 @@ export default function HomeScreen() {
                     {c.user.avatarUrl ? (
                       <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
                     ) : (
-                      <View style={[styles.commentAvatar, { backgroundColor: "rgba(255,255,255,0.15)" }]} />
+                      <View style={[styles.commentAvatar, { backgroundColor: COLORS.zinc100 }]} />
                     )}
                     <View style={styles.commentInfo}>
                       <View style={styles.commentMeta}>
@@ -400,7 +398,7 @@ export default function HomeScreen() {
                         <Text style={styles.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
                         {c.userId === myUserId ? (
                           <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }}>
-                            <Feather name="trash-2" size={14} color="rgba(255,255,255,0.6)" />
+                            <Feather name="trash-2" size={14} color={COLORS.zinc400} />
                           </TouchableOpacity>
                         ) : (
 
@@ -413,7 +411,7 @@ export default function HomeScreen() {
                             }
                             style={{ marginLeft: 8 }}
                           >
-                            <Feather name="flag" size={14} color="rgba(255,255,255,0.6)" />
+                            <Feather name="flag" size={14} color={COLORS.zinc400} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -423,7 +421,7 @@ export default function HomeScreen() {
                 ))
               ) : (
                 <View style={styles.emptyComment}>
-                  <Feather name="message-circle" size={40} color="rgba(255,255,255,0.3)" />
+                  <Feather name="message-circle" size={40} color={COLORS.zinc300} />
                   <Text style={styles.emptyText}>{t("feed.commentsEmpty")}</Text>
                 </View>
               )}
@@ -434,7 +432,7 @@ export default function HomeScreen() {
                 value={commentText}
                 onChangeText={setCommentText}
                 placeholder={t("feed.commentPlaceholder")}
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={COLORS.zinc400}
               />
               <TouchableOpacity
                 disabled={!commentText.trim() || !accessToken || submittingComment}
@@ -445,8 +443,8 @@ export default function HomeScreen() {
                   size={18}
                   color={
                     commentText.trim() && accessToken && !submittingComment
-                      ? COLORS.white
-                      : "rgba(255,255,255,0.3)"
+                      ? COLORS.violet600
+                      : COLORS.zinc400
                   }
                 />
               </TouchableOpacity>
@@ -729,22 +727,22 @@ const styles = StyleSheet.create({
   },
 
   commentOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  commentSheet: { backgroundColor: "rgba(24,24,27,0.95)", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
-  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)", alignSelf: "center", marginTop: 12, marginBottom: 12 },
-  commentHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.white },
+  commentSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
+  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
+  commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
+  commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1 },
   commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.zinc100 },
   commentInfo: { flex: 1 },
   commentMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  commentAuthor: { fontSize: 13, fontWeight: "600", color: COLORS.white },
-  commentTime: { fontSize: 12, color: "rgba(255,255,255,0.5)" },
-  commentContent: { fontSize: 14, color: "rgba(255,255,255,0.85)", lineHeight: 20 },
+  commentAuthor: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900 },
+  commentTime: { fontSize: 12, color: COLORS.zinc500 },
+  commentContent: { fontSize: 14, color: COLORS.zinc800, lineHeight: 20 },
   emptyComment: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { fontSize: 14, color: "rgba(255,255,255,0.4)", marginTop: 8 },
-  commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.1)", paddingTop: 12 },
-  commentInput: { flex: 1, height: 40, backgroundColor: COLORS.white, borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: COLORS.zinc900 },
+  emptyText: { fontSize: 14, color: COLORS.zinc400, marginTop: 8 },
+  commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: COLORS.zinc100, paddingTop: 12 },
+  commentInput: { flex: 1, height: 40, backgroundColor: COLORS.zinc50 ?? COLORS.zinc100, borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: COLORS.zinc900 },
 
   moreOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   moreSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 0, paddingHorizontal: 16 },
