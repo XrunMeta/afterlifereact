@@ -121,19 +121,17 @@ export default function v_e2b396() {
     }
   };
 
-  const v_a24698 = async (v_837dd2) => {
+  const v_a24698 = async (v_5da76b) => {
     if (!v_2ca7e0) {
       v_889fad("알림", "로그인이 필요합니다.");
       return;
     }
+
+    void v_5da76b;
     v_bdf535(true);
     try {
-      const v_8f00b9 = await v_55fc7c(v_2ca7e0, { withXrun: v_837dd2 });
+      const v_8f00b9 = await v_55fc7c(v_2ca7e0);
       console.log("[EditProfile] deleteMe ok:", v_8f00b9);
-      if (v_837dd2 && v_8f00b9.xrunClose && !v_8f00b9.xrunClose.closed) {
-
-        console.warn("[EditProfile] xrun close failed:", v_8f00b9.xrunClose.reason);
-      }
       await v_d7d5a2();
     } catch (v_49263d) {
       console.warn("[EditProfile] deleteMe failed:", v_49263d);
