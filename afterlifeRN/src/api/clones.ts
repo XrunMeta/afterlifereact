@@ -39,6 +39,41 @@ export interface CreateCloneResponse {
   initial_memory: { ctx_key: string; shared_key: string } | null;
 }
 
+export interface CloneDetailResponse {
+  clone: {
+    id: number;
+    ownerId: number;
+    name: string;
+    username: string;
+    description: string | null;
+    avatarUrl: string | null;
+    cloneType: string;
+    visibility: string;
+    stats: {
+      followers: number;
+      messages: number;
+      gifts: number;
+      likes: number;
+      comments: number;
+    };
+    likedByMe: boolean;
+    createdAt: string;
+  };
+}
+export async function v_003cf2(
+  v_6e0fd3,
+  v_2ca7e0,
+): Promise<CloneDetailResponse> {
+  const v_f71b56 = `${v_cc9198}/oth-path${v_6e0fd3}`;
+  const v_8f00b9 = await fetch(v_f71b56, {
+    headers: v_2ca7e0 ? { Authorization: `Bearer ${v_2ca7e0}` } : {},
+  });
+  if (!v_8f00b9.ok) {
+    throw new Error(`getCloneDetail HTTP ${v_8f00b9.status}`);
+  }
+  return (await v_8f00b9.json()) as CloneDetailResponse;
+}
+
 export async function v_6c3f29(
   v_556427,
 ): Promise<{ available: boolean; reason?: "taken" | "reserved" | "invalid" }> {

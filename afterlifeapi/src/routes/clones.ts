@@ -531,6 +531,20 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
     .bind(v_6e0fd3, v_6e0fd3)
     .first<{ likesCount: number; commentsCount: number }>();
 
+  let v_db2b0a = false;
+  if (v_43e90c) {
+    const v_cb35cb = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT 1 AS x FROM feed_likes fl
+           JOIN feeds f ON f.id = fl.feed_id
+          WHERE fl.user_id = ? AND f.clone_id = ?
+          LIMIT 1`,
+      )
+      .bind(v_43e90c, v_6e0fd3)
+      .first<{ x: number }>();
+    v_db2b0a = !!v_cb35cb;
+  }
+
   return v_3f4e2e.json({
     clone: {
       id: v_eb25ce.id,
@@ -555,6 +569,7 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
         likes: v_218436?.likesCount ?? 0,
         comments: v_218436?.commentsCount ?? 0,
       },
+      likedByMe: v_db2b0a,
       createdAt: v_eb25ce.created_at,
       viewerRole: v_00efe2,
     },

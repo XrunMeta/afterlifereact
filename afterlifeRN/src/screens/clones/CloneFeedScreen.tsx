@@ -28,6 +28,7 @@ import type { v_19b433 } from "../../types/feed";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_37977a } from "../../stores/feedStore";
+import { v_03e392 } from "rcmrninabrnb";
 import {
   v_b14fce,
   v_0ff331,
@@ -35,8 +36,12 @@ import {
   v_3f8bc7,
   v_6f689a,
   v_0df337,
+  v_003cf2,
+  v_9deb40,
+  v_97c75d,
   type v_52af9d,
 } from "../../api/clones";
+import v_4d58d7 from "../../components/common/ReportReasonModal";
 import { v_bfd883 } from "../../lib/relativeTime";
 import { v_1bfbd0 } from "../../components/constants";
 
@@ -95,6 +100,37 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_b84498, v_e24028] = v_5ab095<boolean>(v_2db2a5.likedByMe ?? v_632420.includes(v_6bbace));
   const v_799eb5 = v_f5f393 != null && v_8c0b26.cloneOwnerId === v_f5f393;
+
+  v_c4deb2(() => {
+    let v_2008a4 = false;
+    (async () => {
+      try {
+        const v_8f00b9 = await v_003cf2(v_2db2a5.cloneId, v_2ca7e0 ?? undefined);
+        if (v_2008a4) return;
+        v_abdcca(v_8f00b9.clone.stats.likes ?? 0);
+        v_d9b4b4(v_8f00b9.clone.stats.comments ?? 0);
+        v_e24028(v_8f00b9.clone.likedByMe);
+      } catch (v_49263d) {
+        console.warn("[CloneFeed] hydrate detail failed:", v_49263d);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2db2a5.cloneId, v_2ca7e0]);
+
+  const [v_3e9618, v_eda097] = v_5ab095(false);
+  const [v_f18195, v_fdd7c1] = v_5ab095<{
+    cloneId: number;
+    author: string;
+  } | null>(null);
+  const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
+  v_c4deb2(() => {
+    if (v_8282fa) {
+      const v_389afb = setTimeout(() => v_15c939(null), 2000);
+      return () => clearTimeout(v_389afb);
+    }
+  }, [v_8282fa]);
 
   const v_d3af9c = async () => {
     const v_a448ad = !v_b84498;
@@ -243,6 +279,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         onToggleFollow={() => void v_3094d4(v_8c0b26.cloneId)}
         onCallPress={v_f8043e}
         onCommentPress={() => v_0c9768(true)}
+        onMorePress={() => v_eda097(true)}
         onSharePress={v_22cd2d}
       />
 
@@ -357,6 +394,92 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           </SwipeDownSheet>
         </Pressable>
       </Modal>
+
+      {}
+      <Modal visible={v_3e9618} transparent animationType="fade">
+        <Pressable style={v_d81136.moreOverlay} onPress={() => v_eda097(false)}>
+          <SwipeDownSheet
+            onClose={() => v_eda097(false)}
+            style={[v_d81136.moreSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+          >
+            <View style={v_d81136.moreSheetHandle} />
+            <Text style={v_d81136.moreTitle}>{v_8c0b26.author}</Text>
+            {!v_799eb5 && (
+              <>
+                {v_8c0b26.cloneOwnerId != null && (
+                <TouchableOpacity
+                  style={v_d81136.moreItem}
+                  onPress={() => {
+                    v_eda097(false);
+                    if (v_8c0b26.cloneOwnerId == null) return;
+                    v_c65f5d.navigate("UserProfile", {
+                      userId: v_8c0b26.cloneOwnerId,
+                    });
+                  }}
+                >
+                  <Feather name="user" size={20} color="#0f172a" />
+                  <Text style={v_d81136.moreItemText}>유저 정보보기</Text>
+                </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={v_d81136.moreItem}
+                  onPress={() => {
+                    v_eda097(false);
+                    v_fdd7c1({ cloneId: v_8c0b26.cloneId, author: v_8c0b26.author });
+                  }}
+                >
+                  <Feather name="flag" size={20} color="#ef4444" />
+                  <Text style={[v_d81136.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[v_d81136.moreItem, { borderBottomWidth: 0 }]}
+                  onPress={async () => {
+                    v_eda097(false);
+                    if (!v_2ca7e0) return;
+                    try {
+                      await v_97c75d(v_2ca7e0, v_8c0b26.cloneId);
+                      v_15c939("이 페르소나가 차단됐어요");
+                      v_c65f5d.goBack();
+                    } catch (v_49263d) {
+                      console.warn("[CloneFeed] block failed:", v_49263d);
+                      v_15c939("차단에 실패했어요");
+                    }
+                  }}
+                >
+                  <Feather name="slash" size={20} color="#0f172a" />
+                  <Text style={v_d81136.moreItemText}>차단하기</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </SwipeDownSheet>
+        </Pressable>
+      </Modal>
+
+      {}
+      <ReportReasonModal
+        visible={!!v_f18195}
+        targetName={v_f18195?.author}
+        onCancel={() => v_fdd7c1(null)}
+        onConfirm={async (v_58ca36) => {
+          const v_5f5d6d = v_f18195;
+          v_fdd7c1(null);
+          if (!v_5f5d6d || !v_2ca7e0) return;
+          try {
+            await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
+            v_15c939("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            v_c65f5d.goBack();
+          } catch (v_49263d) {
+            console.warn("[CloneFeed] report failed:", v_49263d);
+            v_15c939("신고에 실패했어요");
+          }
+        }}
+      />
+
+      {v_8282fa && (
+        <View style={v_d81136.toast}>
+          <Text style={v_d81136.toastText}>{v_8282fa}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -433,4 +556,53 @@ const v_d81136 = v_472849.create({
     fontSize: 14,
     color: v_1bfbd0.white,
   },
+
+  moreOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  moreSheet: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 0,
+    paddingHorizontal: 16,
+  },
+  moreSheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#cbd5e1",
+    alignSelf: "center",
+    marginVertical: 12,
+  },
+  moreTitle: {
+    fontSize: 13,
+    color: "#64748b",
+    fontWeight: "600",
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  moreItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+  moreItemText: { fontSize: 15, color: "#0f172a" },
+  toast: {
+    position: "absolute",
+    bottom: 80,
+    left: 24,
+    right: 24,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  toastText: { color: v_1bfbd0.white, fontSize: 13 },
 });

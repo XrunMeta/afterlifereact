@@ -18,6 +18,7 @@ import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_194498 } from "../../../stores/cloneStore";
 import { v_d60cdf } from "../../../api/clones";
+import { v_5c99c1 } from "../../../api/payments";
 
 const v_c02c4c = 100;
 
@@ -37,6 +38,8 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   const [v_6bee94, v_240fbf] = v_5ab095("");
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
 
+  const [v_c88e9b, v_de20d8] = v_5ab095<number | null>(null);
+
   v_c4deb2(() => {
     let v_2008a4 = false;
     (async () => {
@@ -53,6 +56,15 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
         if (v_2008a4) return;
         const v_9e8c70 = v_8f00b9.items?.length ?? 0;
         if (v_9e8c70 >= 1) {
+
+          try {
+            const v_1b6657 = await v_5c99c1(v_2ca7e0);
+            if (!v_2008a4) v_de20d8(v_1b6657.xrun ?? 0);
+          } catch (v_04f1a8) {
+            console.warn("[PaymentGate] balance fetch failed:", v_04f1a8);
+            if (!v_2008a4) v_de20d8(null);
+          }
+          if (v_2008a4) return;
           v_337a5f(true);
           v_34a50a(false);
         } else {
@@ -74,7 +86,16 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
 
   }, [v_2ca7e0]);
 
+  const v_f6096a =
+    v_c88e9b !== null && v_c88e9b < v_c02c4c;
+
   const v_03cae9 = () => {
+    if (v_f6096a) {
+      v_3a7d09(
+        `XRUN 잔액이 부족해요. (${v_c88e9b ?? 0} / ${v_c02c4c} XRUN)`,
+      );
+      return;
+    }
     if (v_6bee94.length !== 6) {
       v_3a7d09("PIN 6자리를 입력해주세요.");
       return;
@@ -110,19 +131,26 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
               두 번째 페르소나부터 {v_c02c4c} XRUN 이 부과돼요.{"\n"}
               결제 비밀번호 6자리를 입력해주세요.
             </Text>
+            {v_c88e9b !== null && (
+              <Text style={[v_d81136.balance, v_f6096a && v_d81136.balanceLow]}>
+                내 XRUN 잔액: {v_c88e9b.toLocaleString()} XRUN
+                {v_f6096a && " — 잔액 부족"}
+              </Text>
+            )}
             <TextInput
-              style={v_d81136.input}
+              style={[v_d81136.input, v_f6096a && v_d81136.inputDisabled]}
               value={v_6bee94}
               onChangeText={(v_81e2ef) => {
                 v_240fbf(v_81e2ef.replace(/\D/g, "").slice(0, 6));
                 v_3a7d09(null);
               }}
-              placeholder="PIN 6자리"
+              placeholder={v_f6096a ? "잔액 부족" : "PIN 6자리"}
               placeholderTextColor={v_1bfbd0.zinc400}
               keyboardType="number-pad"
               secureTextEntry
               maxLength={6}
-              autoFocus
+              autoFocus={!v_f6096a}
+              editable={!v_f6096a}
             />
             {v_5e9bfe && <Text style={v_d81136.error}>{v_5e9bfe}</Text>}
             <View style={v_d81136.btns}>
@@ -130,12 +158,17 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 <Text style={v_d81136.cancelText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[v_d81136.confirm, v_6bee94.length !== 6 && v_d81136.disabled]}
+                style={[
+                  v_d81136.confirm,
+                  (v_6bee94.length !== 6 || v_f6096a) && v_d81136.disabled,
+                ]}
                 onPress={v_03cae9}
-                disabled={v_6bee94.length !== 6}
+                disabled={v_6bee94.length !== 6 || v_f6096a}
               >
                 <Text style={v_d81136.confirmText}>
-                  {v_c02c4c} XRUN 결제
+                  {v_f6096a
+                    ? "잔액 부족"
+                    : `${v_c02c4c} XRUN 결제`}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -186,6 +219,15 @@ const v_d81136 = v_472849.create({
     textAlign: "center",
     lineHeight: 20,
   },
+  balance: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc700,
+    marginBottom: 10,
+  },
+  balanceLow: {
+    color: "#ef4444",
+  },
   input: {
     width: "100%",
     borderWidth: 1,
@@ -197,6 +239,10 @@ const v_d81136 = v_472849.create({
     letterSpacing: 4,
     color: v_1bfbd0.zinc900,
     marginBottom: 8,
+  },
+  inputDisabled: {
+    backgroundColor: v_1bfbd0.zinc100,
+    color: v_1bfbd0.zinc400,
   },
   error: { fontSize: 12, color: "#ef4444", marginBottom: 8 },
   btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 12 },
