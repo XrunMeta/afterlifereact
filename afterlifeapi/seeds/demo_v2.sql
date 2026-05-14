@@ -60,6 +60,8 @@ VALUES
 
 -- ─── 3) 클론 7개 ────────────────────────────────────────────
 -- description 에 해시태그 3개 이상 포함 (사용자 요구). interests 테이블엔 안 넣음.
+-- clone_type 은 (owner_id, clone_type) UNIQUE 제약 (migration 0004) 때문에
+-- owner 한 명당 같은 type 하나만 — friend/mentor/celeb 으로 분배.
 INSERT INTO clones (id, owner_id, name, username, description, clone_type, visibility, training_status, avatar_url, created_at)
 VALUES
   -- user 9001 의 페르소나 2개 (이미지 2, 3)
@@ -67,7 +69,7 @@ VALUES
     'friend', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
     '2026-05-14 00:01:00'),
   (9003, 9001, '지훈',  'jihoon_t1',  '스크림 끝나면 라면 한 그릇이 최고죠 🍜 #카페인과다 #밤샘 #esports',
-    'friend', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
+    'mentor', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
     '2026-05-14 00:02:00'),
 
   -- user 9004 의 페르소나 2개 (이미지 6, 7)
@@ -75,7 +77,7 @@ VALUES
     'friend', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
     '2026-05-14 00:03:00'),
   (9007, 9004, '도현',  'dohyun_lee', '오늘도 산책이 제일 좋아 🚶 #카페투어 #브이로그 #여행스타그램',
-    'friend', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
+    'celeb', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
     '2026-05-14 00:04:00'),
 
   -- user 9005 의 페르소나 3개 (이미지 8, 9, 10)
@@ -83,10 +85,10 @@ VALUES
     'friend', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
     '2026-05-14 00:05:00'),
   (9009, 9005, '하준',  'hajun_park', '보드 타고 바람 가르기 🛹 #스케이트보드 #스트릿 #영화감상',
-    'friend', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
+    'mentor', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
     '2026-05-14 00:06:00'),
   (9010, 9005, '민재',  'minjae_kim', '오늘 미팅 끝! 한잔 하러 가야지 🍷 #비즈니스 #골프 #와인',
-    'friend', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
+    'celeb', 'public', 'ready', 'https://edge-alt-preview.example.invalid/oth-path',
     '2026-05-14 00:07:00');
 
 -- ─── 4) clone_stats (기본 0) ───────────────────────────────
