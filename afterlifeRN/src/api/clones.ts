@@ -639,6 +639,10 @@ export interface FeedComment {
   userId: number;
   content: string;
   createdAt: string;
+
+  repliesCount?: number;
+
+  parentCommentId?: number;
   user: {
     id: number;
     name: string | null;
@@ -694,11 +698,49 @@ export async function postFeedComment(
   accessToken: string,
   feedId: number,
   content: string,
-): Promise<{ ok: true; comment: { id: number; feedId: number; userId: number; content: string } }> {
+  options?: { parentCommentId?: number },
+): Promise<{
+  ok: true;
+  comment: {
+    id: number;
+    feedId: number;
+    userId: number;
+    content: string;
+    parentCommentId: number | null;
+  };
+}> {
   return authFetch(`/oth-path${feedId}/comments`, accessToken, {
     method: "POST",
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(
+      options?.parentCommentId
+        ? { content, parentCommentId: options.parentCommentId }
+        : { content },
+    ),
   });
+}
+
+export async function listFeedCommentReplies(
+  feedId: number,
+  commentId: number,
+  opts?: { limit?: number },
+): Promise<{ items: FeedComment[] }> {
+  const url = new URL(
+    `${API_BASE}/oth-path${feedId}/comments/${commentId}/replies`,
+  );
+  if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
+  const res = await fetch(url.toString());
+  const text = await res.text();
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as { items: FeedComment[] };
 }
 
 export async function postCloneComment(
