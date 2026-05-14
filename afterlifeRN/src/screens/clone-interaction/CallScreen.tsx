@@ -15,6 +15,7 @@ import {
   v_e767d1,
   v_79c4f2,
   v_03e392,
+  v_f2c756,
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
@@ -133,15 +134,50 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_c924cc, v_d0452a] = v_5ab095("");
   const [v_904d6c, v_a8bf66] = v_5ab095(false);
 
+  const v_0c2802 = async () => {
+    const v_e0c7e8 = v_1ed7d9.getState().apiUser?.email ?? null;
+    const v_2208dc = v_e0c7e8
+      ? `xrun://?email=${encodeURIComponent(v_e0c7e8)}&from=afterlife`
+      : "xrun://";
+    try {
+      await v_f2c756.openURL(v_2208dc);
+    } catch {
+      const v_b71a74 =
+        v_326be8.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try {
+        await v_f2c756.openURL(v_b71a74);
+      } catch {
+
+      }
+    }
+  };
+
   const v_25b14f = (gift: v_84fd28) => {
+    console.log(
+      `[Call][gift-tap] giftId=${v_bbee9c.id} name=${v_bbee9c.name} price=${v_bbee9c.price} ` +
+        `myCredits=${v_e2c945} (typeof=${typeof v_e2c945}) enough=${v_e2c945 >= v_bbee9c.price}`,
+    );
     if (v_e2c945 < v_bbee9c.price) {
-      v_15c939(v_8d41d7("call.noCredits"));
+      console.log(
+        `[Call][gift-insufficient-precheck] ${v_e2c945} < ${v_bbee9c.price} → block PIN modal`,
+      );
+      v_889fad(
+        "XRUN 잔액이 부족해요",
+        `이 선물은 ${v_bbee9c.price} XRUN 이 필요한데\n내 잔액은 ${v_e2c945} XRUN 이에요.`,
+        [
+          { text: "확인", style: "cancel" },
+          { text: "xrun 바로가기", onPress: () => void v_0c2802() },
+        ],
+      );
       return;
     }
     v_5afccf(v_bbee9c);
     v_d0452a("");
     v_2a4980(false);
     v_ece29b(true);
+    console.log(`[Call][gift-pin-open] open PIN modal for gift=${v_bbee9c.name}`);
   };
 
   const v_c04570 = async () => {
@@ -150,6 +186,10 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_15c939("PIN 6자리를 입력해 주세요");
       return;
     }
+    console.log(
+      `[Call][gift-submit] giftId=${v_555760.id} amount=${v_555760.price} ` +
+        `myCredits=${v_e2c945} cloneId=${v_6e0fd3} pin=*** (${v_c924cc.length} chars)`,
+    );
     v_a8bf66(true);
     try {
       const v_8f00b9 = await v_28dc16(v_2ca7e0, v_6e0fd3, {
@@ -158,7 +198,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         amount: v_555760.price,
         pin: v_c924cc,
       });
-      console.log("[Call] gift sent:", v_8f00b9.gift);
+      console.log("[Call][gift-ok] gift sent:", v_8f00b9.gift);
       const v_bbee9c = v_555760;
 
       if (v_8f00b9.gift.newBalance != null && !Number.isNaN(Number(v_8f00b9.gift.newBalance))) {
@@ -172,7 +212,14 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       v_161a89(v_bbee9c);
     } catch (v_49263d) {
-      console.warn("[Call] gift failed:", v_49263d);
+      console.warn("[Call][gift-fail] raw err =", v_49263d);
+      if (v_49263d instanceof v_84a859) {
+        console.warn(
+          `[Call][gift-fail] code=${v_49263d.code} status=${v_49263d.status} msg="${v_49263d.message}" details=${JSON.stringify(v_49263d.details)}`,
+        );
+      } else if (v_49263d instanceof Error) {
+        console.warn(`[Call][gift-fail] non-AuthApiError name=${v_49263d.name} msg=${v_49263d.message}`);
+      }
       let v_9f1622 = "송금 실패";
       let v_badeaf = "송금에 실패했어요.";
       let v_81532e = false;
@@ -180,8 +227,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "결제 비밀번호가 일치하지 않아요.";
         else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
           v_81532e = true;
-          v_9f1622 = "XRUN 잔액 부족";
-          v_badeaf = "XRUN 잔액이 부족해요.\nxrun 앱에서 더 벌어와주세요.";
+          v_9f1622 = "XRUN 잔액이 부족해요";
+          v_badeaf = "선물 보내기에 필요한 XRUN 이 부족해요.";
         } else if (v_49263d.code === "CONFLICT") v_badeaf = v_49263d.message;
         else if (v_49263d.code === "UPSTREAM_NOT_IMPLEMENTED")
           v_badeaf = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
@@ -189,8 +236,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
           if (/insufficient|잔액|balance/i.test(v_49263d.message)) {
             v_81532e = true;
-            v_9f1622 = "XRUN 잔액 부족";
-            v_badeaf = "XRUN 잔액이 부족해요.\nxrun 앱에서 더 벌어와주세요.";
+            v_9f1622 = "XRUN 잔액이 부족해요";
+            v_badeaf = "선물 보내기에 필요한 XRUN 이 부족해요.";
           } else {
             v_badeaf = "xrun 송금 처리 중 오류가 발생했어요.";
           }
@@ -203,7 +250,10 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         v_9f1622,
         v_badeaf,
         v_81532e
-          ? [{ text: "확인", style: "default" }]
+          ? [
+              { text: "확인", style: "cancel" },
+              { text: "xrun 바로가기", onPress: () => void v_0c2802() },
+            ]
           : undefined,
       );
     } finally {
