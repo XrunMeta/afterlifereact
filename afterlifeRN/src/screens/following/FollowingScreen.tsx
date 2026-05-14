@@ -47,6 +47,7 @@ import {
 import { v_bfd883 } from "../../lib/relativeTime";
 import { v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_4b85a1, v_bc3df4 } from "../../types/domain";
+import v_5778ce from "../../components/common/HashtagText";
 
 type RootNav = v_390fcc<v_8ad91b>;
 const { width: v_437248 } = v_700696.get("window");
@@ -510,7 +511,15 @@ export default function v_14b43e() {
             {v_8c0b26.persona.creatorAccount ? (
               <Text style={v_fd5f43.creatorAccount}>{v_8c0b26.persona.creatorAccount}</Text>
             ) : null}
-            <Text style={v_fd5f43.postContent} numberOfLines={3}>{v_8c0b26.feed.content}</Text>
+            {
+}
+            <HashtagText
+              style={v_fd5f43.postContent}
+              numberOfLines={3}
+              tagStyle={{ color: v_1bfbd0.white, fontWeight: "700", textDecorationLine: "underline" }}
+            >
+              {v_8c0b26.feed.content}
+            </HashtagText>
             <View style={v_fd5f43.overlayBtns}>
               <Button
                 title={v_8d41d7("feed.actionCall")}
