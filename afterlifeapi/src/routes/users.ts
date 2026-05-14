@@ -6,6 +6,7 @@ import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_137694, v_85de88, v_a8614b, v_8ea38c, v_b31343 } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_74defc } from "../lib/logger";
+import { v_c226a5 } from "../lib/notify";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
 
@@ -958,12 +959,34 @@ v_de7ba7.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
     .first<{ id: number }>();
   if (!v_c3c3b0) throw new v_3ebe58("NOT_FOUND", "User not found.");
 
-  await v_3f4e2e.env.DB
+  const v_cb35cb = await v_3f4e2e.env.DB
     .prepare(
       `INSERT OR IGNORE INTO user_follows (follower_id, followee_id) VALUES (?, ?)`,
     )
     .bind(v_43e90c, v_b1de41)
     .run();
+
+  if ((v_cb35cb.meta?.changes ?? 0) > 0) {
+    try {
+      const v_380fb2 = await v_3f4e2e.env.DB
+        .prepare(`SELECT name, email FROM users WHERE id = ?`)
+        .bind(v_43e90c)
+        .first<{ name: string | null; email: string | null }>();
+      const v_6dd0ab =
+        v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+      await v_c226a5(v_3f4e2e.env, {
+        userId: v_b1de41,
+        type: "user_follow",
+        title: "✨ 새 팔로워",
+        body: `${v_6dd0ab} 님이 회원님을 팔로우했어요`,
+        url: `afterlife://oth-path${v_43e90c}`,
+        data: { followerId: v_43e90c },
+        skipEmail: true,
+      });
+    } catch (v_49263d) {
+      console.warn("[user.follow] notify failed:", v_49263d);
+    }
+  }
   return v_3f4e2e.json({ ok: true });
 });
 

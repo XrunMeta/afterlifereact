@@ -14,7 +14,7 @@ import {
 } from "../lib/cloneAccess";
 import { v_9c8187, v_55eb2a } from "../lib/memoryStore";
 import { v_7a6fc0 } from "../lib/xrun";
-import { v_80a022 } from "../lib/notify";
+import { v_c226a5, v_80a022 } from "../lib/notify";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -304,6 +304,39 @@ v_f891e6.post(
       action: "clone.create",
       details: { cloneId: v_6e0fd3, cloneType: v_4d33b2.clone_type },
     });
+
+    if (v_4d33b2.visibility === "public" && v_4d33b2.clone_type !== "memlow") {
+      try {
+        const v_380fb2 = await v_a1651b
+          .prepare(`SELECT name, email FROM users WHERE id = ?`)
+          .bind(v_43e90c)
+          .first<{ name: string | null; email: string | null }>();
+        const v_6dd0ab =
+          v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+        const v_823f08 = await v_a1651b
+          .prepare(`SELECT follower_id FROM user_follows WHERE followee_id = ?`)
+          .bind(v_43e90c)
+          .all<{ follower_id: number }>();
+
+        const v_110a8b = new Set<number>();
+        for (const v_3ac7e7 of v_823f08.results ?? []) {
+          if (v_3ac7e7.follower_id === v_43e90c) continue;
+          if (v_110a8b.has(v_3ac7e7.follower_id)) continue;
+          v_110a8b.add(v_3ac7e7.follower_id);
+          await v_c226a5(v_3f4e2e.env, {
+            userId: v_3ac7e7.follower_id,
+            type: "followee_new_clone",
+            title: "🌟 새 페르소나",
+            body: `${v_6dd0ab} 님이 새 페르소나 '${v_4d33b2.name}' 을(를) 만들었어요`,
+            url: `afterlife://clone/${v_6e0fd3}`,
+            data: { cloneId: v_6e0fd3, ownerId: v_43e90c },
+            skipEmail: true,
+          });
+        }
+      } catch (v_49263d) {
+        console.warn("[clone.create] followee_new_clone notify failed:", v_49263d);
+      }
+    }
 
     return v_3f4e2e.json(
       {
