@@ -164,7 +164,12 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   );
 
   useEffect(() => {
-    if (!draft.cloneType) return;
+    if (!draft.cloneType) {
+
+      setCreating(false);
+      setError("페르소나 정보가 없어요. 처음부터 다시 만들어주세요.");
+      return;
+    }
     cancelledRef.current = false;
 
     const timeoutHandle = setTimeout(() => {
