@@ -589,13 +589,7 @@ export default function v_def15b() {
               <Feather name="heart" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText}>{v_5c66fc(v_eb25ce.likesCount)}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={v_fd5f43.stat}
-              onPress={() => v_d5cd7b({ type: "interactions", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
-            >
-              <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-              <Text style={v_fd5f43.statText}>{v_5c66fc(v_eb25ce.messagesCount)}</Text>
-            </TouchableOpacity>
+            {}
             <TouchableOpacity
               style={v_fd5f43.stat}
               onPress={() => v_d5cd7b({ type: "comments", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
@@ -1688,7 +1682,7 @@ const v_fd5f43 = v_472849.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
 
-    height: "60%",
+    height: "80%",
     position: "absolute",
     bottom: 0,
     left: 0,

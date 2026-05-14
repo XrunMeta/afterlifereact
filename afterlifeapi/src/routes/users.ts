@@ -81,10 +81,19 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
 
   const v_62676b = await v_a1651b
     .prepare(
-      `SELECT followers_count AS followersCount, following_count AS followingCount
-         FROM user_stats WHERE user_id = ?`,
+      `SELECT
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.follower_id
+           WHERE uf.followee_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followersCount,
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.followee_id
+           WHERE uf.follower_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followingCount`,
     )
-    .bind(v_43e90c)
+    .bind(v_43e90c, v_43e90c)
     .first<{ followersCount: number; followingCount: number }>();
 
   const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
@@ -1018,7 +1027,9 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
                 u.avatar_url    AS avatarUrl
            FROM user_follows uf
            JOIN users u ON u.id = uf.follower_id
-          WHERE uf.followee_id = ? AND u.deleted_at IS NULL
+          WHERE uf.followee_id = ?
+            AND u.deletion_state = 'active'
+            AND u.deleted_at IS NULL
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
@@ -1060,7 +1071,9 @@ v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
                 u.avatar_url    AS avatarUrl
            FROM user_follows uf
            JOIN users u ON u.id = uf.followee_id
-          WHERE uf.follower_id = ? AND u.deleted_at IS NULL
+          WHERE uf.follower_id = ?
+            AND u.deletion_state = 'active'
+            AND u.deleted_at IS NULL
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
@@ -1108,10 +1121,19 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
 
   const v_62676b = await v_a1651b
     .prepare(
-      `SELECT followers_count AS followersCount, following_count AS followingCount
-         FROM user_stats WHERE user_id = ?`,
+      `SELECT
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.follower_id
+           WHERE uf.followee_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followersCount,
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.followee_id
+           WHERE uf.follower_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followingCount`,
     )
-    .bind(v_b1de41)
+    .bind(v_b1de41, v_b1de41)
     .first<{ followersCount: number; followingCount: number }>();
 
   let v_b30b81 = false;
