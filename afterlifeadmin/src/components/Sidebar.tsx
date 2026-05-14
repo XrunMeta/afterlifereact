@@ -23,7 +23,8 @@ const menu: MenuGroup[] = [
       { path: "/oth-path", label: "Feeds" },
       { path: "/messages", label: "Messages" },
       { path: "/otp", label: "OTP" },
-      { path: "/reports", label: "Reports" },
+      { path: "/reports", label: "Reports (Personas)" },
+      { path: "/oth-path-reports", label: "Reports (Users)" },
     ],
   },
   {

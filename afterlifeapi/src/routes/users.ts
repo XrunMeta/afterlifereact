@@ -45,17 +45,19 @@ users.get("/search", requireAuth, async (c) => {
     return c.json({ items: [] });
   }
   const like = `%${q}%`;
+
   const rows = await c.env.DB
     .prepare(
       `SELECT id, name, email, avatar_url AS avatarUrl
          FROM users
         WHERE deleted_at IS NULL
           AND id != ?
+          AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
         ORDER BY id DESC
         LIMIT 20`,
     )
-    .bind(me, like, like)
+    .bind(me, me, like, like)
     .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
   return c.json({ items: rows.results ?? [] });
 });
@@ -1157,6 +1159,7 @@ users.get("/:id", requireAuth, async (c) => {
     .first<{ followersCount: number; followingCount: number }>();
 
   let isFollowing = false;
+  let isBlocked = false;
   if (viewerId !== targetId) {
     const fr = await db
       .prepare(
@@ -1166,6 +1169,15 @@ users.get("/:id", requireAuth, async (c) => {
       .bind(viewerId, targetId)
       .first<{ x: number }>();
     isFollowing = !!fr;
+
+    const br = await db
+      .prepare(
+        `SELECT 1 AS x FROM user_blocks
+          WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`,
+      )
+      .bind(viewerId, targetId)
+      .first<{ x: number }>();
+    isBlocked = !!br;
   }
 
   const visibilityClause =
@@ -1223,6 +1235,7 @@ users.get("/:id", requireAuth, async (c) => {
       followingCount: stats?.followingCount ?? 0,
       isMe: viewerId === targetId,
       isFollowing,
+      isBlocked,
     },
     clones: clonesRows.map((r) => ({
       id: r.id,
@@ -1238,5 +1251,84 @@ users.get("/:id", requireAuth, async (c) => {
       createdAt: r.createdAt,
     })),
   });
+});
+
+users.post("/:id/block", requireAuth, async (c) => {
+  const targetId = Number(c.req.param("id"));
+  if (!Number.isInteger(targetId) || targetId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  if (userId === targetId) {
+    throw new APIError("VALIDATION_FAILED", "본인은 차단할 수 없어요.");
+  }
+
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
+    ).bind(userId, targetId),
+    c.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(userId, targetId),
+    c.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(targetId, userId),
+  ]);
+  await logActivity(c, {
+    userId,
+    action: "user.block",
+    details: { targetId },
+  });
+  return c.json({ ok: true, blocked: true });
+});
+
+users.delete("/:id/block", requireAuth, async (c) => {
+  const targetId = Number(c.req.param("id"));
+  if (!Number.isInteger(targetId) || targetId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  await c.env.DB
+    .prepare(`DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?`)
+    .bind(userId, targetId)
+    .run();
+  return c.json({ ok: true, blocked: false });
+});
+
+const userReportSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+users.post("/:id/report", requireAuth, async (c) => {
+  const targetId = Number(c.req.param("id"));
+  if (!Number.isInteger(targetId) || targetId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  if (userId === targetId) {
+    throw new APIError("VALIDATION_FAILED", "본인은 신고할 수 없어요.");
+  }
+  const body = await parseJson(c, userReportSchema).catch(() => ({ reason: undefined }));
+
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_reports (reporter_id, target_id, reason)
+         VALUES (?, ?, ?)`,
+    ).bind(userId, targetId, body.reason ?? null),
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
+    ).bind(userId, targetId),
+    c.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(userId, targetId),
+    c.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(targetId, userId),
+  ]);
+  await logActivity(c, {
+    userId,
+    action: "user.report",
+    details: { targetId, reason: body.reason ?? null },
+  });
+  return c.json({ ok: true, reported: true, blocked: true });
 });
 
