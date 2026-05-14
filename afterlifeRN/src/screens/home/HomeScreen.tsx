@@ -21,7 +21,7 @@ import { Alert, Share } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -559,9 +559,9 @@ export default function HomeScreen() {
                       onPress={() => toggleCommentLike(c)}
                       hitSlop={8}
                     >
-                      <Feather
+                      <Ionicons
                         name="heart"
-                        size={16}
+                        size={18}
                         color={c.likedByMe ? "#ef4444" : COLORS.zinc400}
                       />
                       <Text
@@ -598,9 +598,9 @@ export default function HomeScreen() {
                         onPress={() => toggleCommentLike(rc, c.id)}
                         hitSlop={8}
                       >
-                        <Feather
+                        <Ionicons
                           name="heart"
-                          size={14}
+                          size={16}
                           color={rc.likedByMe ? "#ef4444" : COLORS.zinc400}
                         />
                         <Text

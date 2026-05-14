@@ -16,7 +16,7 @@ import {
   Keyboard,
   Platform,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -497,9 +497,9 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                       onPress={() => toggleCommentLike(c)}
                       hitSlop={8}
                     >
-                      <Feather
+                      <Ionicons
                         name="heart"
-                        size={16}
+                        size={18}
                         color={c.likedByMe ? "#ef4444" : COLORS.zinc400}
                       />
                       <Text
@@ -536,9 +536,9 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                         onPress={() => toggleCommentLike(rc, c.id)}
                         hitSlop={8}
                       >
-                        <Feather
+                        <Ionicons
                           name="heart"
-                          size={14}
+                          size={16}
                           color={rc.likedByMe ? "#ef4444" : COLORS.zinc400}
                         />
                         <Text
