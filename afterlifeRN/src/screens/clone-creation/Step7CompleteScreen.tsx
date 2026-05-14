@@ -64,8 +64,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const addClone = useCloneStore((s) => s.addClone);
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
   const accessToken = useAuthStore((s) => s.accessToken);
+
   const [createdCloneId, setCreatedCloneId] = useState<number | null>(null);
-  const [creating, setCreating] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [paymentModal, setPaymentModal] = useState(false);
@@ -165,124 +166,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (!draft.cloneType) {
-
-      setCreating(false);
       setError("페르소나 정보가 없어요. 처음부터 다시 만들어주세요.");
-      return;
     }
-    cancelledRef.current = false;
-
-    const timeoutHandle = setTimeout(() => {
-      if (cancelledRef.current) return;
-      setCreating((prev) => {
-        if (!prev) return prev;
-        console.warn("[CLONE-CREATE] timeout — 30s no response, forcing stop");
-        setError("요청이 너무 오래 걸려요. 다시 시도해주세요.");
-        return false;
-      });
-    }, 30000);
-    (async () => {
-      setCreating(true);
-      setError(null);
-
-      const hasImage = Boolean(draft.imageFile);
-      const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
-        || (draft.recordDuration ?? 0) >= 30);
-      const visibility = draft.visibility ?? getCloneTypeMeta(draft.cloneType!).defaultVisibility;
-
-      if (!accessToken) {
-        const localId = Date.now();
-        const localAttrs: Record<string, string> = {
-          ...(draft.personaAge ? { age: draft.personaAge } : {}),
-          ...(draft.personaGender ? { gender: draft.personaGender } : {}),
-          ...(draft.personaTypes && draft.personaTypes.length > 0
-            ? { personalities: draft.personaTypes.join(',') }
-            : {}),
-          ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
-        };
-        const clone: Clone = {
-          id: localId,
-          cloneType: draft.cloneType!,
-          ownerId: currentUserId,
-          displayName: draft.name ?? '',
-          description: draft.description ?? '',
-          interests: draft.interests ?? [],
-          imageUrl: draft.imageFile ?? undefined,
-          visibility,
-          status: hasImage && hasVoice ? 'active' : 'pending_assets',
-          createdAt: new Date().toISOString(),
-          l1Profile: { attrs: localAttrs, notes: draft.personaNotes ?? '' },
-        };
-        addClone(clone);
-        if (!cancelledRef.current) {
-          setCreatedCloneId(localId);
-          setCreating(false);
-        }
-        return;
-      }
-
-      try {
-        await attemptCreate();
-      } catch (err) {
-        if (cancelledRef.current) return;
-        if (err instanceof AuthApiError) {
-          console.warn(
-            '[CLONE-CREATE] failed:',
-            err.code,
-            err.message,
-            'details=',
-            JSON.stringify(err.details),
-          );
-          if (err.code === 'PAYMENT_REQUIRED') {
-
-            const details = (err.details ?? {}) as { priceXrun?: number };
-            if (typeof details.priceXrun === 'number') setPayPrice(details.priceXrun);
-            setPaymentModal(true);
-            setCreating(false);
-            return;
-          }
-          if (err.code === 'UNAUTHENTICATED') {
-
-            setCreating(false);
-            const msg = '세션이 만료됐어요. 다시 로그인해주세요.';
-            setError(msg);
-            showAlert('세션 만료', msg, [
-              {
-                text: '로그인하기',
-                onPress: async () => {
-                  await useAuthStore.getState().logout();
-
-                  navigation.getParent()?.dispatch(
-                    CommonActions.navigate({ name: "ClonesTab" }),
-                  );
-                },
-              },
-            ]);
-            return;
-          }
-          let msg = t('create.errors.createFailed');
-          if (err.code === 'QUOTA_EXCEEDED') {
-            msg = t('create.errors.quotaExceeded');
-          } else if (err.code === 'CONFLICT') {
-            msg = err.message || t('create.errors.usernameConflict');
-          } else {
-            msg = err.message;
-          }
-          setError(msg);
-          setCreating(false);
-          showAlert(t('create.complete.createFailed'), msg);
-        } else {
-          console.warn('[CLONE-CREATE] failed:', err);
-          setError(t('create.errors.createFailed'));
-          setCreating(false);
-        }
-      }
-    })();
-    return () => {
-      cancelledRef.current = true;
-      clearTimeout(timeoutHandle);
-    };
-  }, [attemptCreate, draft.cloneType]); 
+  }, [draft.cloneType]);
 
   const cloneType = draft.cloneType ?? 'friend';
   const copy = {
@@ -316,33 +202,73 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   };
 
   const handleSharePost = async () => {
-    if (createdCloneId == null) return;
+    if (creating || posting) return;
     const trimmed = caption.trim();
-    const hasCaption = trimmed.length > 0;
-    setPosting(true);
-    try {
-      if (hasCaption && accessToken) {
-
-        try {
-          await updateClone(accessToken, createdCloneId, { description: trimmed });
-        } catch (patchErr) {
-          console.warn("[CLONE-CREATE] update description failed:", patchErr);
-        }
-
-        const mediaUrl = avatarUrlRef.current ?? null;
-        await createCloneFeed(accessToken, createdCloneId, {
-          content: trimmed,
-          ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
-        });
-      }
-    } catch (err) {
-      console.warn("[CLONE-CREATE] post first feed failed:", err);
-
-    } finally {
-      setPosting(false);
-      resetCreationDraft();
-      navigation.replace("Step8", { cloneId: createdCloneId });
+    if (trimmed.length === 0) {
+      showAlert("소개글", "한 줄 소개를 입력해주세요.");
+      return;
     }
+    setPosting(true);
+    setError(null);
+
+    if (draft.description !== trimmed) {
+      useCloneStore.getState().setCreationDraft({ description: trimmed });
+    }
+
+    let newCloneId = createdCloneId;
+    try {
+
+      if (newCloneId == null) {
+        setCreating(true);
+        await attemptCreate();
+        setCreating(false);
+        newCloneId = useCloneStore.getState().creationDraft
+          ? 
+
+            createdCloneId
+          : null;
+
+        await new Promise((r) => setTimeout(r, 50));
+        newCloneId = useCloneStore.getState().localClones.at(-1)?.id ?? null;
+      }
+      if (!newCloneId || !accessToken) {
+        setPosting(false);
+        return;
+      }
+
+      const mediaUrl = avatarUrlRef.current ?? null;
+      await createCloneFeed(accessToken, newCloneId, {
+        content: trimmed,
+        ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
+      });
+    } catch (err) {
+      console.warn("[CLONE-CREATE] share post failed:", err);
+      setCreating(false);
+      if (err instanceof AuthApiError) {
+        if (err.code === "PAYMENT_REQUIRED") {
+          const details = (err.details ?? {}) as { priceXrun?: number };
+          if (typeof details.priceXrun === "number") setPayPrice(details.priceXrun);
+          setPaymentModal(true);
+          setPosting(false);
+          return;
+        }
+        if (err.code === "CONFLICT" && err.message.includes("아이디")) {
+          showAlert("아이디 중복", err.message);
+          setPosting(false);
+          return;
+        }
+        setError(err.message);
+        showAlert("게시 실패", err.message);
+      } else {
+        setError("게시 중 오류가 발생했어요.");
+      }
+      setPosting(false);
+      return;
+    }
+
+    setPosting(false);
+    resetCreationDraft();
+    if (newCloneId) navigation.replace("Step8", { cloneId: newCloneId });
   };
 
   const handleConfirmPayment = async () => {
@@ -383,7 +309,15 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       <PageHeader
         title="게시물 작성"
         showBackButton
-        onBackPress={handleGoToDashboard}
+        onBackPress={() => {
+
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+
+            navigation.getParent()?.navigate("HomeTab" as never);
+          }
+        }}
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
