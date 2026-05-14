@@ -11,7 +11,7 @@ export const onError: v_fbaea4<v_de0a25> = (v_49263d, v_3f4e2e) => {
     {
       error: {
         code: "INTERNAL_ERROR",
-        message: "Unexpected server error.",
+        message: "예기치 못한 서버 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
         requestId: v_3f4e2e.get("requestId"),
       },
     },
