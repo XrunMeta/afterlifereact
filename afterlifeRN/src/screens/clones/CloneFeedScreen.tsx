@@ -550,11 +550,11 @@ const styles = StyleSheet.create({
   commentInput: {
     flex: 1,
     height: 40,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: COLORS.white,
     borderRadius: 20,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: COLORS.white,
+    color: COLORS.zinc900,
   },
 
   moreOverlay: {

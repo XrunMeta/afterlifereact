@@ -316,7 +316,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
 
-    maxHeight: SCREEN_HEIGHT * 0.65,
+    height: SCREEN_HEIGHT * 0.8,
   },
   sheetHandle: {
     width: 36,
