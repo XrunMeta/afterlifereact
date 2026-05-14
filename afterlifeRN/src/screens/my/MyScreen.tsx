@@ -216,7 +216,7 @@ export default function v_ed02a5() {
       v_b113dd?.name || v_b113dd?.email?.split("@")[0] || "회원";
     v_889fad(
       "벌써 떠나시나요?",
-      `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 페르소나는 영구적으로 사라져요.\n(xrun 가입자라면 xrun 계정은 유지됩니다)`,
+      `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 페르소나는 영구적으로 사라져요.`,
       [
 
         { text: "조금 더 써볼래요", style: "cancel" },
@@ -237,6 +237,8 @@ export default function v_ed02a5() {
           },
         },
       ],
+
+      { subMessage: "xrun 가입자라면 xrun 계정은 유지됩니다" },
     );
   };
 

@@ -1,67 +1,90 @@
-import { v_889fad } from "../../stores/dialogStore";
-import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
+
+
+import v_a3453e, { v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
   v_472849,
   v_4623af,
   v_79c4f2,
-  v_03e392,
   v_39a996,
-  v_aa7413,
-  v_09d0e5,
-  v_122070,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
-import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
+import v_d56c0a from "../../components/ui/SelectField";
+import v_57037e from "../../components/common/CountryRegionPicker";
+import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_976b89,
-  v_55fc7c,
   v_84a859,
   type v_fd8a01,
 } from "../../api/auth";
+import type { v_da1883 } from "../../types/country";
+import { v_202d44 } from "../../constants/countryDialCodes";
+import type { v_8ad91b } from "../../navigation/types";
 
-type Gender = "male" | "female" | "other";
-
-const v_798085 = [
-  { value: "male", label: "남성" },
-  { value: "female", label: "여성" },
-  { value: "other", label: "기타" },
-];
+type Gender = "male" | "female";
+type NavProp = v_390fcc<v_8ad91b>;
 
 export default function v_e2b396() {
-  const v_1f1785 = v_e0068c();
-  const v_c65f5d = v_ada615();
+  const v_c65f5d = v_ada615<NavProp>();
   const { t: v_8d41d7 } = v_772971();
   const v_b113dd = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_21f395 = v_1ed7d9((v_fd5f43) => v_fd5f43.patchApiUser);
-  const v_d7d5a2 = v_1ed7d9((v_fd5f43) => v_fd5f43.logout);
+
+  const v_798085 = v_df9f57(
+    () => [
+      { value: "male" as const, label: v_8d41d7("auth.signup.male") },
+      { value: "female" as const, label: v_8d41d7("auth.signup.female") },
+    ],
+    [v_8d41d7],
+  );
 
   const [v_1833e7, v_318f24] = v_5ab095(v_b113dd?.name ?? "");
   const [v_d74a81, v_fcce73] = v_5ab095(v_b113dd?.phone ?? "");
-  const [v_c3eac4, v_bdc43c] = v_5ab095<Gender | null>((v_b113dd?.gender as Gender) ?? null);
-  const [v_8894cf, v_d74734] = v_5ab095(v_b113dd?.age != null ? String(v_b113dd.age) : "");
+
+  const [v_c3eac4, v_bdc43c] = v_5ab095<Gender | "">(
+    v_b113dd?.gender === "male" || v_b113dd?.gender === "female"
+      ? v_b113dd.gender
+      : "",
+  );
+  const [v_8894cf, v_d74734] = v_5ab095(
+    v_b113dd?.age != null ? String(v_b113dd.age) : "",
+  );
+
+  const v_686096 = v_df9f57<v_da1883 | null>(() => {
+    if (!v_b113dd?.country) return null;
+    return (
+      v_202d44.find(
+        (v_3f4e2e) => v_3f4e2e.iso2.toUpperCase() === v_b113dd.country!.toUpperCase(),
+      ) ?? null
+    );
+  }, [v_b113dd]);
+  const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(v_686096);
+  const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(null);
+  const [v_9d56c4, v_7168a2] = v_5ab095(false);
 
   const [v_35bf26, v_04e389] = v_5ab095(false);
-  const [v_a1f68f, v_bdf535] = v_5ab095(false);
-  const [v_5f58fc, v_9665cb] = v_5ab095(false);
 
   const v_12b1d1 = v_df9f57(() => {
     const v_f4fe8e = v_8894cf.trim() === "" ? null : Number(v_8894cf.trim());
     return (
       v_1833e7.trim() !== (v_b113dd?.name ?? "") ||
       v_d74a81.trim() !== (v_b113dd?.phone ?? "") ||
-      v_c3eac4 !== (v_b113dd?.gender ?? null) ||
-      v_f4fe8e !== (v_b113dd?.age ?? null)
+      v_c3eac4 !== ((v_b113dd?.gender as Gender) ?? "") ||
+      v_f4fe8e !== (v_b113dd?.age ?? null) ||
+      (v_b9bbbd?.iso2 ?? null) !== (v_b113dd?.country?.toLowerCase() ?? null) ||
+      (v_a6c30b && v_a6c30b.iso2 !== "global" ? v_a6c30b.dialCode : null) !==
+        (v_b113dd?.region ?? null)
     );
-  }, [v_1833e7, v_d74a81, v_c3eac4, v_8894cf, v_b113dd]);
+  }, [v_1833e7, v_d74a81, v_c3eac4, v_8894cf, v_b9bbbd, v_a6c30b, v_b113dd]);
 
   const v_1b8283 = async () => {
     if (!v_2ca7e0 || !v_b113dd || v_35bf26 || !v_12b1d1) return;
@@ -75,7 +98,10 @@ export default function v_e2b396() {
       v_889fad("알림", "이름은 비워둘 수 없습니다.");
       return;
     }
-    if (v_435fbe !== "" && (!Number.isInteger(v_f4fe8e) || v_f4fe8e! < 13 || v_f4fe8e! > 120)) {
+    if (
+      v_435fbe !== "" &&
+      (!Number.isInteger(v_f4fe8e) || v_f4fe8e! < 13 || v_f4fe8e! > 120)
+    ) {
       v_889fad("알림", "나이는 13~120 사이의 숫자여야 합니다.");
       return;
     }
@@ -86,86 +112,41 @@ export default function v_e2b396() {
 
     const patch: v_fd8a01 = {};
     if (v_affc3e !== (v_b113dd.name ?? "")) v_17dc8a.name = v_affc3e;
-    if (v_d1d8b2 !== (v_b113dd.phone ?? "")) v_17dc8a.phone = v_d1d8b2 || null;
-    if (v_c3eac4 !== (v_b113dd.gender ?? null)) v_17dc8a.gender = v_c3eac4;
+    if (v_d1d8b2 !== (v_b113dd.phone ?? ""))
+      v_17dc8a.phone = v_d1d8b2 || null;
+    if (v_c3eac4 !== ((v_b113dd.gender as Gender) ?? ""))
+      v_17dc8a.gender = v_c3eac4 || null;
     if (v_f4fe8e !== (v_b113dd.age ?? null)) v_17dc8a.age = v_f4fe8e;
+    if (v_b9bbbd) {
+      const v_6fc191 = v_b9bbbd.iso2.toUpperCase();
+      if (v_6fc191 !== (v_b113dd.country?.toUpperCase() ?? null)) v_17dc8a.country = v_6fc191;
+      const v_15594c =
+        v_b9bbbd.countryCode ??
+        (Number(v_b9bbbd.dialCode.replace(/[^\d]/g, "")) || null);
+      if (v_15594c !== (v_b113dd.mobileCode ?? null))
+        v_17dc8a.mobileCode = v_15594c;
+    }
+    if (v_a6c30b && v_a6c30b.iso2 !== "global") {
+      if (v_a6c30b.dialCode !== (v_b113dd.region ?? null))
+        v_17dc8a.region = v_a6c30b.dialCode;
+    }
 
     v_04e389(true);
     try {
       if (Object.keys(v_17dc8a).length > 0) {
         await v_976b89(v_2ca7e0, v_17dc8a);
+        v_21f395(v_17dc8a);
       }
-      console.log("[EditProfile] saved", { patch: v_17dc8a });
-
-      if (Object.keys(v_17dc8a).length > 0) v_21f395(v_17dc8a);
-
       v_889fad("저장됨", "프로필이 저장되었습니다.", [
         { text: "확인", onPress: () => v_c65f5d.goBack() },
       ]);
     } catch (v_49263d) {
-      console.warn("[EditProfile] save failed:", v_49263d);
       let v_badeaf = "저장 중 오류가 발생했습니다.";
-      if (v_49263d instanceof v_84a859) {
-        v_badeaf = v_49263d.message;
-
-        if (v_49263d.code === "VALIDATION_FAILED" && Array.isArray(v_49263d.details)) {
-          const v_f8a42c = v_49263d.details as Array<{ path?: unknown[]; message?: string }>;
-          const v_ea719c = v_f8a42c[0];
-          const v_d4610c = Array.isArray(v_ea719c?.path) ? v_ea719c.path.join(".") : "";
-          if (v_d4610c) v_badeaf = `${v_badeaf}\n(필드: ${v_d4610c} — ${v_ea719c?.message ?? ""})`;
-        }
-      }
+      if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
       v_889fad("저장 실패", v_badeaf);
     } finally {
       v_04e389(false);
     }
-  };
-
-  const v_a24698 = async (v_5da76b) => {
-    if (!v_2ca7e0) {
-      v_889fad("알림", "로그인이 필요합니다.");
-      return;
-    }
-
-    void v_5da76b;
-    v_bdf535(true);
-    try {
-      const v_8f00b9 = await v_55fc7c(v_2ca7e0);
-      console.log("[EditProfile] deleteMe ok:", v_8f00b9);
-      await v_d7d5a2();
-    } catch (v_49263d) {
-      console.warn("[EditProfile] deleteMe failed:", v_49263d);
-      let v_badeaf = "탈퇴 처리 중 오류가 발생했습니다.";
-      if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
-      v_889fad("탈퇴 실패", v_badeaf);
-      v_bdf535(false);
-    }
-  };
-
-  const v_ffa2a1 = () => {
-    if (v_a1f68f) return;
-    v_9665cb(false);
-    v_889fad(
-      "에프터라이프 계정 탈퇴",
-      "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.",
-      [
-        { text: "취소", style: "cancel" },
-        { text: "탈퇴", style: "destructive", onPress: () => v_a24698(false) },
-      ],
-    );
-  };
-
-  const v_916cd9 = () => {
-    if (v_a1f68f) return;
-    v_9665cb(false);
-    v_889fad(
-      "에프터라이프 + xrun 함께 탈퇴",
-      "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라집니다.",
-      [
-        { text: "취소", style: "cancel" },
-        { text: "모두 탈퇴", style: "destructive", onPress: () => v_a24698(true) },
-      ],
-    );
   };
 
   return (
@@ -190,7 +171,6 @@ export default function v_e2b396() {
               maxLength={30}
             />
           </View>
-
           <View style={v_fd5f43.divider} />
 
           {}
@@ -206,30 +186,22 @@ export default function v_e2b396() {
               maxLength={20}
             />
           </View>
-
           <View style={v_fd5f43.divider} />
 
           {}
-          <View style={v_fd5f43.fieldRow}>
-            <Text style={v_fd5f43.fieldLabel}>{v_8d41d7("settings.editProfile.fields.gender")}</Text>
-            <View style={v_fd5f43.genderChips}>
-              {v_798085.map((v_68b2be) => {
-                const v_587413 = v_c3eac4 === v_68b2be.value;
-                return (
-                  <TouchableOpacity
-                    key={v_68b2be.value}
-                    style={[v_fd5f43.chip, v_587413 && v_fd5f43.chipSelected]}
-                    onPress={() => v_bdc43c(v_587413 ? null : v_68b2be.value)}
-                  >
-                    <Text style={[v_fd5f43.chipText, v_587413 && v_fd5f43.chipTextSelected]}>
-                      {v_68b2be.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+          <View style={v_fd5f43.fieldRowStack}>
+            <Text style={v_fd5f43.fieldLabelStack}>
+              {v_8d41d7("settings.editProfile.fields.gender")}
+            </Text>
+            <View style={v_fd5f43.selectWrap}>
+              <SelectField<"male" | "female">
+                options={v_798085}
+                value={v_c3eac4}
+                onChange={v_bdc43c}
+                placeholder={v_8d41d7("auth.signup.gender")}
+              />
             </View>
           </View>
-
           <View style={v_fd5f43.divider} />
 
           {}
@@ -245,8 +217,62 @@ export default function v_e2b396() {
               maxLength={3}
             />
           </View>
+          <View style={v_fd5f43.divider} />
 
           {}
+          <View style={v_fd5f43.fieldRowStack}>
+            <Text style={v_fd5f43.fieldLabelStack}>국가 / 지역</Text>
+            <TouchableOpacity
+              style={v_fd5f43.pickerField}
+              onPress={() => v_7168a2(true)}
+              activeOpacity={0.7}
+            >
+              <Feather name="globe" size={18} color={v_1bfbd0.zinc500} />
+              <View style={{ flex: 1 }}>
+                {v_b9bbbd ? (
+                  <Text style={v_fd5f43.pickerValue} numberOfLines={1}>
+                    {v_8d41d7(`countries:${v_b9bbbd.iso2.toUpperCase()}`, {
+                      defaultValue: v_b9bbbd.name,
+                    })}
+                    {v_a6c30b && v_a6c30b.iso2 !== "global" && (
+                      <Text style={v_fd5f43.pickerRegion}>
+                        {"  ·  "}
+                        {v_8d41d7(`regions:${v_a6c30b.countryCode}_${v_a6c30b.dialCode}`, {
+                          defaultValue: v_a6c30b.name,
+                        })}
+                      </Text>
+                    )}
+                  </Text>
+                ) : (
+                  <Text style={v_fd5f43.pickerPlaceholder}>국가를 선택해주세요</Text>
+                )}
+              </View>
+              <Feather name="chevron-down" size={18} color={v_1bfbd0.zinc500} />
+            </TouchableOpacity>
+          </View>
+          <View style={v_fd5f43.divider} />
+
+          {
+
+}
+          <TouchableOpacity
+            style={v_fd5f43.fieldRow}
+            onPress={() =>
+              v_889fad(
+                "비밀번호 재설정",
+                "로그아웃 후 [비밀번호를 잊으셨나요?] 에서 이메일 인증으로 재설정할 수 있어요.",
+              )
+            }
+          >
+            <Text style={v_fd5f43.fieldLabel}>비밀번호</Text>
+            <Text style={[v_fd5f43.fieldValueLink]}>재설정</Text>
+            <Feather
+              name="chevron-right"
+              size={18}
+              color={v_1bfbd0.zinc400}
+              style={{ marginLeft: 4 }}
+            />
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -260,105 +286,18 @@ export default function v_e2b396() {
             <Text style={v_fd5f43.saveBtnText}>저장</Text>
           )}
         </TouchableOpacity>
-
-        {}
       </View>
 
-      {}
-
-      {}
-      <Modal
-        visible={v_5f58fc}
-        transparent
-        animationType="slide"
-        onRequestClose={() => v_9665cb(false)}
-      >
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_9665cb(false)}>
-          <Pressable
-            style={[v_fd5f43.deleteSheet, { paddingBottom: 32 + Math.max(v_1f1785.bottom, 0) }]}
-            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
-          >
-            <View style={v_fd5f43.modalHandle} />
-            <Text style={v_fd5f43.deleteSheetTitle}>회원 탈퇴</Text>
-            <Text style={v_fd5f43.deleteSheetSubtitle}>
-              어느 범위로 탈퇴하시겠어요?
-            </Text>
-
-            <TouchableOpacity
-              style={v_fd5f43.deleteOnlyBtn}
-              onPress={v_ffa2a1}
-              disabled={v_a1f68f}
-            >
-              <Text style={v_fd5f43.deleteOnlyBtnText}>에프터라이프 계정 탈퇴</Text>
-              <Text style={v_fd5f43.deleteOptionHint}>xrun 회원·지갑은 유지</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={v_fd5f43.deleteAllBtn}
-              onPress={v_916cd9}
-              disabled={v_a1f68f}
-            >
-              <Text style={v_fd5f43.deleteAllBtnText}>xrun도 함께 탈퇴</Text>
-              <Text style={v_fd5f43.deleteAllHint}>지갑·결제 비밀번호도 모두 삭제</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={v_fd5f43.deleteCancelBtn}
-              onPress={() => v_9665cb(false)}
-              disabled={v_a1f68f}
-            >
-              <Text style={v_fd5f43.deleteCancelText}>취소</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {}
-      <Modal
-        visible={v_5f58fc}
-        transparent
-        animationType="slide"
-        onRequestClose={() => v_9665cb(false)}
-      >
-        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_9665cb(false)}>
-          <Pressable
-            style={[v_fd5f43.deleteSheet, { paddingBottom: 32 + Math.max(v_1f1785.bottom, 0) }]}
-            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
-          >
-            <View style={v_fd5f43.modalHandle} />
-            <Text style={v_fd5f43.deleteSheetTitle}>회원 탈퇴</Text>
-            <Text style={v_fd5f43.deleteSheetSubtitle}>
-              어느 범위로 탈퇴하시겠어요?
-            </Text>
-
-            <TouchableOpacity
-              style={v_fd5f43.deleteOnlyBtn}
-              onPress={v_ffa2a1}
-              disabled={v_a1f68f}
-            >
-              <Text style={v_fd5f43.deleteOnlyBtnText}>에프터라이프 계정 탈퇴</Text>
-              <Text style={v_fd5f43.deleteOptionHint}>xrun 회원·지갑은 유지</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={v_fd5f43.deleteAllBtn}
-              onPress={v_916cd9}
-              disabled={v_a1f68f}
-            >
-              <Text style={v_fd5f43.deleteAllBtnText}>xrun도 함께 탈퇴</Text>
-              <Text style={v_fd5f43.deleteAllHint}>지갑·결제 비밀번호도 모두 삭제</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={v_fd5f43.deleteCancelBtn}
-              onPress={() => v_9665cb(false)}
-              disabled={v_a1f68f}
-            >
-              <Text style={v_fd5f43.deleteCancelText}>취소</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <CountryRegionPicker
+        visible={v_9d56c4}
+        selectedCountry={v_b9bbbd}
+        selectedRegion={v_a6c30b}
+        onClose={() => v_7168a2(false)}
+        onSelect={(c: v_da1883, r: v_da1883 | null) => {
+          v_b7066f(v_3f4e2e);
+          v_c030e3(v_cb35cb);
+        }}
+      />
     </SafeScrollView>
   );
 }
@@ -387,8 +326,18 @@ const v_fd5f43 = v_472849.create({
     gap: 12,
     minHeight: 56,
   },
+  fieldRowStack: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 8,
+  },
   fieldLabel: {
     width: 80,
+    fontSize: 14,
+    fontWeight: "500",
+    color: v_1bfbd0.zinc700,
+  },
+  fieldLabelStack: {
     fontSize: 14,
     fontWeight: "500",
     color: v_1bfbd0.zinc700,
@@ -400,175 +349,38 @@ const v_fd5f43 = v_472849.create({
     textAlign: "right",
     padding: 0,
   },
-  fieldValue: {
+  fieldValueLink: {
     flex: 1,
     fontSize: 14,
-    color: v_1bfbd0.zinc400,
+    color: v_1bfbd0.violet600,
     textAlign: "right",
-  },
-  fieldValueFilled: {
-    color: v_1bfbd0.zinc900,
+    fontWeight: "600",
   },
   divider: { height: 1, backgroundColor: v_1bfbd0.zinc100, marginLeft: 20 },
-  genderChips: {
-    flex: 1,
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 8,
+  selectWrap: {
+    width: "100%",
   },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: v_8b0c90.full ?? 999,
+  pickerField: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     borderWidth: 1,
     borderColor: v_1bfbd0.zinc200,
+    borderRadius: v_8b0c90.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     backgroundColor: v_1bfbd0.white,
   },
-  chipSelected: {
-    backgroundColor: v_1bfbd0.zinc900,
-    borderColor: v_1bfbd0.zinc900,
-  },
-  chipText: { fontSize: 13, color: v_1bfbd0.zinc600, fontWeight: "500" },
-  chipTextSelected: { color: v_1bfbd0.white },
+  pickerValue: { fontSize: 14, color: v_1bfbd0.zinc900 },
+  pickerRegion: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  pickerPlaceholder: { fontSize: 14, color: v_1bfbd0.zinc400 },
   saveBtn: {
     marginTop: 24,
     paddingVertical: 16,
     borderRadius: v_8b0c90.lg,
-    backgroundColor: v_1bfbd0.zinc900,
+    backgroundColor: v_1bfbd0.violet600,
     alignItems: "center",
   },
-  saveBtnDisabled: {
-    backgroundColor: v_1bfbd0.zinc300,
-  },
+  saveBtnDisabled: { backgroundColor: v_1bfbd0.zinc300 },
   saveBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
-
-  deleteTriggerBtn: {
-    marginTop: 32,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  deleteTriggerText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: v_1bfbd0.error,
-    textDecorationLine: "underline",
-  },
-
-  deleteSheet: {
-    backgroundColor: v_1bfbd0.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 32,
-    gap: 12,
-  },
-  deleteSheetTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: v_1bfbd0.zinc900,
-    textAlign: "center",
-    marginTop: 8,
-  },
-  deleteSheetSubtitle: {
-    fontSize: 13,
-    color: v_1bfbd0.zinc500,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  deleteOnlyBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: v_8b0c90.lg,
-    backgroundColor: v_1bfbd0.white,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc300,
-    alignItems: "center",
-  },
-  deleteOnlyBtnText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: v_1bfbd0.zinc900,
-  },
-  deleteOptionHint: {
-    fontSize: 11,
-    color: v_1bfbd0.zinc500,
-    marginTop: 2,
-  },
-  deleteAllBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: v_8b0c90.lg,
-    backgroundColor: v_1bfbd0.error,
-    alignItems: "center",
-  },
-  deleteAllBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: v_1bfbd0.white,
-  },
-  deleteAllHint: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.85)",
-    marginTop: 2,
-  },
-  deleteCancelBtn: {
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 4,
-  },
-  deleteCancelText: {
-    fontSize: 14,
-    color: v_1bfbd0.zinc500,
-    fontWeight: "500",
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalSheet: {
-    backgroundColor: v_1bfbd0.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 32,
-    maxHeight: "85%",
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: v_1bfbd0.zinc300,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  modalSubtitle: {
-    fontSize: 13,
-    color: v_1bfbd0.zinc500,
-    marginBottom: 16,
-  },
-  chipGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    paddingBottom: 16,
-  },
-  modalDoneBtn: {
-    marginTop: 8,
-    paddingVertical: 14,
-    borderRadius: v_8b0c90.lg,
-    backgroundColor: v_1bfbd0.zinc900,
-    alignItems: "center",
-  },
-  modalDoneBtnText: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.white },
 });

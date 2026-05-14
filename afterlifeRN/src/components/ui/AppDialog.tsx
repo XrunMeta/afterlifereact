@@ -13,7 +13,7 @@ import { v_b54176, type v_2bdc79 } from "../../stores/dialogStore";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 
 export default function v_d714a5() {
-  const { visible: v_cf55be, title: v_9f1622, message: v_a8cd21, buttons: v_3d694a, key: v_b24339, close: v_c78a36 } = v_b54176();
+  const { visible: v_cf55be, title: v_9f1622, message: v_a8cd21, subMessage: v_b16388, buttons: v_3d694a, key: v_b24339, close: v_c78a36 } = v_b54176();
 
   const v_5ba0f2 = (btn: v_2bdc79) => {
     v_c78a36();
@@ -46,6 +46,7 @@ export default function v_d714a5() {
         <View style={v_d81136.box} onStartShouldSetResponder={() => true}>
           <Text style={v_d81136.title}>{v_9f1622}</Text>
           {v_a8cd21 ? <Text style={v_d81136.message}>{v_a8cd21}</Text> : null}
+          {v_b16388 ? <Text style={v_d81136.subMessage}>{v_b16388}</Text> : null}
           <View
             style={[
               v_d81136.btnRow,
@@ -116,7 +117,15 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.zinc600,
     textAlign: "center",
     lineHeight: 21,
-    marginBottom: 18,
+    marginBottom: 6,
+  },
+
+  subMessage: {
+    fontSize: 11,
+    color: v_1bfbd0.zinc400,
+    textAlign: "center",
+    lineHeight: 16,
+    marginBottom: 14,
   },
   btnRow: {
     flexDirection: "row",
