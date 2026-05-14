@@ -202,11 +202,16 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (!commentOpen) {
       setComments([]);
+
+      setExpandedReplies({});
+      setReplyingTo(null);
       return;
     }
     let cancelled = false;
     setCommentsLoading(true);
     setComments([]);
+
+    setExpandedReplies({});
     const fetcher = realFeedId < 0
       ? listCloneComments(feed.cloneId, { limit: 100, accessToken })
       : listFeedComments(realFeedId, { limit: 100, accessToken });

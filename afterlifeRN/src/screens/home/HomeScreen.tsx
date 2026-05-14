@@ -179,16 +179,21 @@ export default function HomeScreen() {
   useEffect(() => {
     if (commentFeedId == null) {
       setComments([]);
+
+      setExpandedReplies({});
+      setReplyingTo(null);
       return;
     }
     if (commentFeedId < 0) {
 
       setComments([]);
+      setExpandedReplies({});
       return;
     }
     let cancelled = false;
     setCommentsLoading(true);
     setComments([]);
+    setExpandedReplies({});
     listFeedComments(commentFeedId, { limit: 100, accessToken })
       .then((res) => {
         if (cancelled) return;
