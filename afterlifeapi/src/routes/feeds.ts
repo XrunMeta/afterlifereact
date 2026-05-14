@@ -618,6 +618,39 @@ feedsDiscover.delete("/:id/comments/:cid", requireAuth, async (c) => {
   return c.json({ ok: true });
 });
 
+feedsDiscover.post("/:id/comments/:cid/report", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  const cid = Number(c.req.param("cid"));
+  if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  }
+  const userId = c.get("userId")!;
+  const body = await c.req.json<{ reason?: string }>().catch(() => ({} as { reason?: string }));
+  const reason = (body.reason ?? "").slice(0, 500) || null;
+
+  const meta = await c.env.DB
+    .prepare(
+      `SELECT fc.id AS cid, fc.feed_id AS feedId, f.clone_id AS cloneId
+         FROM feed_comments fc
+         JOIN feeds f ON f.id = fc.feed_id
+        WHERE fc.id = ? AND fc.feed_id = ?
+        LIMIT 1`,
+    )
+    .bind(cid, feedId)
+    .first<{ cid: number; feedId: number; cloneId: number }>();
+  if (!meta) throw new APIError("NOT_FOUND", "Comment not found.");
+
+  await c.env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO comment_reports
+         (user_id, comment_id, feed_id, clone_id, reason)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .bind(userId, cid, meta.feedId, meta.cloneId, reason)
+    .run();
+  return c.json({ ok: true, reported: true });
+});
+
 feedsDiscover.get("/:id/comments", async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {

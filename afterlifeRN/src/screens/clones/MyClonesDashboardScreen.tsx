@@ -1662,7 +1662,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
 
-    maxHeight: "70%",
+    height: "60%",
     position: "absolute",
     bottom: 0,
     left: 0,
