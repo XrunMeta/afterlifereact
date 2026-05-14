@@ -39,6 +39,21 @@ export interface CreateCloneResponse {
   initial_memory: { ctx_key: string; shared_key: string } | null;
 }
 
+export async function v_6c3f29(
+  v_556427,
+): Promise<{ available: boolean; reason?: "taken" | "reserved" | "invalid" }> {
+  const v_ceb55a = encodeURIComponent(v_556427);
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path?u=${v_ceb55a}`);
+  if (!v_8f00b9.ok) {
+
+    return { available: true };
+  }
+  return (await v_8f00b9.json()) as {
+    available: boolean;
+    reason?: "taken" | "reserved" | "invalid";
+  };
+}
+
 export function v_b55477(v_1833e7): string {
   const v_8f0374 = v_1833e7
     .toLowerCase()

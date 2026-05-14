@@ -20,6 +20,31 @@ export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
 v_f891e6.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "clones" }));
 
+v_f891e6.get("/check-username", async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_ceb55a = (v_f71b56.searchParams.get("u") ?? "").trim().toLowerCase();
+  if (!v_ceb55a) {
+    return v_3f4e2e.json({ available: false, reason: "invalid" });
+  }
+  if (!/^[a-z0-9_]{3,30}$/.test(v_ceb55a)) {
+    return v_3f4e2e.json({ available: false, reason: "invalid" });
+  }
+
+  const v_51789f = new Set([
+    "admin", "administrator", "root", "staff", "system", "support",
+    "help", "official", "afterlife", "api", "null", "undefined",
+    "anonymous", "mod", "moderator", "owner",
+  ]);
+  if (v_51789f.has(v_ceb55a)) {
+    return v_3f4e2e.json({ available: false, reason: "reserved" });
+  }
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT 1 AS x FROM clones WHERE username = ? LIMIT 1`)
+    .bind(v_ceb55a)
+    .first<{ x: number }>();
+  return v_3f4e2e.json({ available: !v_3ac7e7 });
+});
+
 const v_3a8949 = v_1f4ea7.enum(["memlow", "friend", "mentor", "celeb"]);
 
 const v_818579 = v_1f4ea7.enum(["public", "private", "followers", "selected"]);
