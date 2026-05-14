@@ -11,8 +11,10 @@ import {
   v_4623af,
   v_cf9c33,
   v_39a996,
+  v_326be8,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_5959d8, type v_7428e9 } from "../../../api/users";
 import v_1a40c4 from "../../../components/ui/Button";
@@ -34,6 +36,9 @@ export default function v_4c2648({
 }: Props) {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
+  const v_033e14 = v_e0068c();
+
+  const v_284e24 = Math.max(v_033e14.bottom, v_326be8.OS === "android" ? 24 : 12);
 
   const [v_ba3f04, v_cd488d] = v_5ab095<v_7428e9[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(false);
@@ -67,9 +72,17 @@ export default function v_4c2648({
   };
 
   return (
-    <Modal visible={v_cf55be} transparent animationType="slide">
+    <Modal
+      visible={v_cf55be}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+    >
       <Pressable style={v_fd5f43.overlay} onPress={v_0890f8}>
-        <Pressable style={v_fd5f43.box} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+        <Pressable
+          style={[v_fd5f43.box, { paddingBottom: v_284e24 }]}
+          onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
+        >
           <View style={v_fd5f43.handle} />
           <Text style={v_fd5f43.title}>특정 친구에게만 공개</Text>
           <Text style={v_fd5f43.desc}>
@@ -141,8 +154,8 @@ const v_fd5f43 = v_472849.create({
     borderTopRightRadius: 24,
     paddingHorizontal: v_9b1a04.large,
     paddingTop: 12,
-    paddingBottom: 24,
-    maxHeight: "80%",
+
+    maxHeight: "85%",
   },
   handle: {
     width: 40,
