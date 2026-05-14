@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -66,7 +67,7 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert(t("common.notice"), t("auth.signup.emailRequired"));
+      showAlert(t("common.notice"), t("auth.signup.emailRequired"));
       return;
     }
     setLoggingIn(true);
@@ -101,7 +102,7 @@ export default function LoginScreen({ navigation }: Props) {
           msg = err.message;
         }
       }
-      Alert.alert(t("auth.login.loginFailed"), msg);
+      showAlert(t("auth.login.loginFailed"), msg);
     } finally {
       setLoggingIn(false);
     }
@@ -124,7 +125,7 @@ export default function LoginScreen({ navigation }: Props) {
         };
         const idToken = userInfo?.idToken ?? userInfo?.data?.idToken;
         if (!idToken) {
-          Alert.alert("오류", "Google 로그인 토큰을 받지 못했습니다.");
+          showAlert("오류", "Google 로그인 토큰을 받지 못했습니다.");
           return;
         }
 
@@ -156,7 +157,7 @@ export default function LoginScreen({ navigation }: Props) {
         let msg = t("auth.login.googleFailed");
         if (err instanceof AuthApiError) msg = err.message;
         else if (err?.message) msg = err.message;
-        Alert.alert(t("auth.login.googleFailed"), msg);
+        showAlert(t("auth.login.googleFailed"), msg);
       }
       return;
     }

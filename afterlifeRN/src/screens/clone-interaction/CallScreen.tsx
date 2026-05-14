@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
@@ -183,7 +184,7 @@ export default function CallScreen({ route, navigation }: Props) {
           msg = "xrun 송금 처리 중 오류가 발생했어요.";
         else msg = err.message;
       }
-      Alert.alert("송금 실패", msg);
+      showAlert("송금 실패", msg);
     } finally {
       setPaying(false);
     }

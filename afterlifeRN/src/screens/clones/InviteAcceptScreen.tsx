@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -80,7 +81,7 @@ export default function InviteAcceptScreen() {
 
   const handleAccept = async () => {
     if (!accessToken || !preview) {
-      Alert.alert(t("common.notice"), t("inviteAccept.loginRequired"));
+      showAlert(t("common.notice"), t("inviteAccept.loginRequired"));
       return;
     }
     if (acting) return; 
@@ -118,7 +119,7 @@ export default function InviteAcceptScreen() {
       if (err instanceof AuthApiError) {
         msg = err.message;
       }
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
       setActing(null);
     }
   };
@@ -138,7 +139,7 @@ export default function InviteAcceptScreen() {
     } catch (err) {
       console.warn("[InviteAccept] decline failed:", err);
       const msg = err instanceof AuthApiError ? err.message : t("inviteAccept.acceptFailed");
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
       setActing(null);
     }
   };

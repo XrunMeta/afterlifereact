@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, Alert } from "react-native";
 import SafeScrollView from "../../components/ui/SafeScrollView";
@@ -23,10 +24,10 @@ export default function EmergencyContactsScreen() {
 
   async function invite() {
     if (!email.includes("@")) {
-      Alert.alert("이메일 형식을 확인해주세요.");
+      showAlert("이메일 형식을 확인해주세요.");
       return;
     }
-    Alert.alert("초대 발송", `${email}에게 비상연락처 초대를 보냈습니다.`);
+    showAlert("초대 발송", `${email}에게 비상연락처 초대를 보냈습니다.`);
     setContacts((prev) => [
       ...prev,
       {

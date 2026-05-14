@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -129,7 +130,7 @@ export default function NotificationSettingsScreen() {
         if (reg.granted) {
           setGranted(true);
         } else {
-          Alert.alert(
+          showAlert(
             t("settings.notifications.permTitle", { defaultValue: "권한 필요" }),
             t("settings.notifications.deniedHint", {
               defaultValue:
@@ -151,7 +152,7 @@ export default function NotificationSettingsScreen() {
       }
     } else {
 
-      Alert.alert(
+      showAlert(
         t("settings.notifications.offTitle", { defaultValue: "알림 끄기" }),
         t("settings.notifications.offHint", {
           defaultValue: "알림을 끄려면 OS 설정에서 변경해주세요.",

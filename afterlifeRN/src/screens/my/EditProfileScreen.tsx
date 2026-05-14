@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -71,15 +72,15 @@ export default function EditProfileScreen() {
     const ageNum = ageRaw === "" ? null : Number(ageRaw);
 
     if (trimmedName.length === 0) {
-      Alert.alert("알림", "이름은 비워둘 수 없습니다.");
+      showAlert("알림", "이름은 비워둘 수 없습니다.");
       return;
     }
     if (ageRaw !== "" && (!Number.isInteger(ageNum) || ageNum! < 13 || ageNum! > 120)) {
-      Alert.alert("알림", "나이는 13~120 사이의 숫자여야 합니다.");
+      showAlert("알림", "나이는 13~120 사이의 숫자여야 합니다.");
       return;
     }
     if (trimmedPhone !== "" && trimmedPhone.length < 4) {
-      Alert.alert("알림", "전화번호는 4자 이상 입력하거나 비워두세요.");
+      showAlert("알림", "전화번호는 4자 이상 입력하거나 비워두세요.");
       return;
     }
 
@@ -98,7 +99,7 @@ export default function EditProfileScreen() {
 
       if (Object.keys(patch).length > 0) patchApiUser(patch);
 
-      Alert.alert("저장됨", "프로필이 저장되었습니다.", [
+      showAlert("저장됨", "프로필이 저장되었습니다.", [
         { text: "확인", onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
@@ -114,7 +115,7 @@ export default function EditProfileScreen() {
           if (fieldPath) msg = `${msg}\n(필드: ${fieldPath} — ${first?.message ?? ""})`;
         }
       }
-      Alert.alert("저장 실패", msg);
+      showAlert("저장 실패", msg);
     } finally {
       setSaving(false);
     }
@@ -122,7 +123,7 @@ export default function EditProfileScreen() {
 
   const performDelete = async (withXrun: boolean) => {
     if (!accessToken) {
-      Alert.alert("알림", "로그인이 필요합니다.");
+      showAlert("알림", "로그인이 필요합니다.");
       return;
     }
     setDeleting(true);
@@ -138,7 +139,7 @@ export default function EditProfileScreen() {
       console.warn("[EditProfile] deleteMe failed:", err);
       let msg = "탈퇴 처리 중 오류가 발생했습니다.";
       if (err instanceof AuthApiError) msg = err.message;
-      Alert.alert("탈퇴 실패", msg);
+      showAlert("탈퇴 실패", msg);
       setDeleting(false);
     }
   };
@@ -146,7 +147,7 @@ export default function EditProfileScreen() {
   const handleDeleteAfterlifeOnly = () => {
     if (deleting) return;
     setDeleteOptionsVisible(false);
-    Alert.alert(
+    showAlert(
       "에프터라이프 계정 탈퇴",
       "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.",
       [
@@ -159,7 +160,7 @@ export default function EditProfileScreen() {
   const handleDeleteWithXrun = () => {
     if (deleting) return;
     setDeleteOptionsVisible(false);
-    Alert.alert(
+    showAlert(
       "에프터라이프 + xrun 함께 탈퇴",
       "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라집니다.",
       [

@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
 import { useRoute } from "@react-navigation/native";
@@ -13,10 +14,10 @@ export default function InheritanceAcceptScreen() {
 
   async function respond(decision: "accept" | "decline") {
     if (token.length < 32) {
-      Alert.alert("유효한 초대 토큰이 필요합니다.");
+      showAlert("유효한 초대 토큰이 필요합니다.");
       return;
     }
-    Alert.alert(
+    showAlert(
       decision === "accept" ? "수락 완료" : "거절 완료",
       decision === "accept"
         ? "상속 지정이 수락되었습니다. 실제 이관은 관리자 검증 후 집행됩니다."

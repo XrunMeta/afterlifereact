@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState } from "react";
 import {
   View,
@@ -120,7 +121,7 @@ export default function SignupScreen({ navigation, route }: Props) {
     try {
       const reg = await requestPushPermission();
       if (!reg.granted) {
-        Alert.alert(
+        showAlert(
           t("auth.signup.pushPermTitle"),
           t("auth.signup.pushPermDesc"),
         );
@@ -132,7 +133,7 @@ export default function SignupScreen({ navigation, route }: Props) {
       setPushPlatform(reg.platform);
       setDeviceId(did);
     } catch {
-      Alert.alert(t("common.error"), t("auth.signup.pushPermError"));
+      showAlert(t("common.error"), t("auth.signup.pushPermError"));
     } finally {
       setRequestingPush(false);
     }
@@ -140,32 +141,32 @@ export default function SignupScreen({ navigation, route }: Props) {
 
   const handleSubmit = async () => {
     if (!name || !email || !password || !phone || !gender || !birthYear) {
-      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
+      showAlert(t("common.notice"), t("auth.signup.requiredFields"));
       return;
     }
     if (!country) {
-      Alert.alert(t("common.notice"), t("auth.signup.countryRequired"));
+      showAlert(t("common.notice"), t("auth.signup.countryRequired"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Alert.alert(t("common.notice"), t("auth.signup.emailInvalid"));
+      showAlert(t("common.notice"), t("auth.signup.emailInvalid"));
       return;
     }
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
-      Alert.alert(t("common.notice"), t("auth.signup.passwordTooShort"));
+      showAlert(t("common.notice"), t("auth.signup.passwordTooShort"));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert(t("common.notice"), t("auth.signup.passwordsNotMatch"));
+      showAlert(t("common.notice"), t("auth.signup.passwordsNotMatch"));
       return;
     }
     if (phone.length < 4) {
-      Alert.alert(t("common.notice"), t("auth.signup.phoneTooShort"));
+      showAlert(t("common.notice"), t("auth.signup.phoneTooShort"));
       return;
     }
     if (!agreeRequired) {
-      Alert.alert(t("common.notice"), t("auth.signup.termsAccept"));
+      showAlert(t("common.notice"), t("auth.signup.termsAccept"));
       return;
     }
 
@@ -173,7 +174,7 @@ export default function SignupScreen({ navigation, route }: Props) {
     const currentYear = new Date().getFullYear();
     const ageNum = currentYear - birthYearNum;
     if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
-      Alert.alert(t("common.notice"), t("auth.signup.ageInvalid"));
+      showAlert(t("common.notice"), t("auth.signup.ageInvalid"));
       return;
     }
 
@@ -255,7 +256,7 @@ export default function SignupScreen({ navigation, route }: Props) {
           }
         }
       }
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }

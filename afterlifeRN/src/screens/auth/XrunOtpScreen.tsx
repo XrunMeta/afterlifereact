@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -36,16 +37,16 @@ export default function XrunOtpScreen({ navigation, route }: Props) {
     try {
       await xrunVerify(email, pin); 
       setResendIn(RESEND_COOLDOWN_SEC);
-      Alert.alert(t("auth.emailVerify.resend"), t("auth.emailVerify.resentToast"));
+      showAlert(t("auth.emailVerify.resend"), t("auth.emailVerify.resentToast"));
     } catch (err) {
       const msg = err instanceof AuthApiError ? err.message : t("common.error");
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
     }
   };
 
   const handleNext = () => {
     if (code.length !== 6) {
-      Alert.alert(t("common.notice"), t("auth.emailVerify.codePlaceholder"));
+      showAlert(t("common.notice"), t("auth.emailVerify.codePlaceholder"));
       return;
     }
     navigation.navigate("XrunOnboarding", { email, pin, verificationCode: code });
