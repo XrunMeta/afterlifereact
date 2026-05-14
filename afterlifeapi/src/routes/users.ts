@@ -6,6 +6,7 @@ import { parseJson, z } from "../lib/validate";
 import { openAny, seal, getKekProvider, extractDekId, shredV3 } from "../lib/ale";
 import { requestKekProvider } from "../lib/kekProvider";
 import { logActivity } from "../lib/logger";
+import { notify } from "../lib/notify";
 
 export const users = new Hono<AppEnv>();
 
@@ -958,12 +959,34 @@ users.post("/:id/follow", requireAuth, async (c) => {
     .first<{ id: number }>();
   if (!exists) throw new APIError("NOT_FOUND", "User not found.");
 
-  await c.env.DB
+  const r = await c.env.DB
     .prepare(
       `INSERT OR IGNORE INTO user_follows (follower_id, followee_id) VALUES (?, ?)`,
     )
     .bind(userId, targetId)
     .run();
+
+  if ((r.meta?.changes ?? 0) > 0) {
+    try {
+      const actor = await c.env.DB
+        .prepare(`SELECT name, email FROM users WHERE id = ?`)
+        .bind(userId)
+        .first<{ name: string | null; email: string | null }>();
+      const actorName =
+        actor?.name || actor?.email?.split("@")[0] || "누군가";
+      await notify(c.env, {
+        userId: targetId,
+        type: "user_follow",
+        title: "✨ 새 팔로워",
+        body: `${actorName} 님이 회원님을 팔로우했어요`,
+        url: `afterlife://oth-path${userId}`,
+        data: { followerId: userId },
+        skipEmail: true,
+      });
+    } catch (err) {
+      console.warn("[user.follow] notify failed:", err);
+    }
+  }
   return c.json({ ok: true });
 });
 

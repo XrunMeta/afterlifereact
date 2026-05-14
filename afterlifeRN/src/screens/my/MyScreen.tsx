@@ -211,19 +211,22 @@ export default function MyScreen() {
   const [deleting, setDeleting] = useState(false);
 
   const handleDeleteAccount = () => {
+
+    const displayName =
+      apiUser?.name || apiUser?.email?.split("@")[0] || "회원";
     showAlert(
-      "회원 탈퇴",
-      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(xrun 가입자라면 xrun 계정은 유지됩니다)",
+      "벌써 떠나시나요?",
+      `${displayName} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 페르소나는 영구적으로 사라져요.\n(xrun 가입자라면 xrun 계정은 유지됩니다)`,
       [
-        { text: "취소", style: "cancel" },
+
+        { text: "조금 더 써볼래요", style: "cancel" },
         {
-          text: "탈퇴",
+          text: "탈퇴하기",
           style: "destructive",
           onPress: async () => {
             if (!accessToken) return;
             setDeleting(true);
             try {
-
               await deleteMe(accessToken);
               await logout();
             } catch (err) {

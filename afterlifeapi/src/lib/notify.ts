@@ -12,7 +12,11 @@ export type NotificationType =
   | "clone_like"
   | "clone_comment"
   | "clone_follow"
-  | "clone_gift";
+  | "clone_gift"
+
+  | "user_follow"
+
+  | "followee_new_clone";
 
 export interface NotifyOptions {
 

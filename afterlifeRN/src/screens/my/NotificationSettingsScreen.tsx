@@ -26,7 +26,6 @@ type PrefKey =
   | "newFollower"
   | "followingActivity"
   | "reactions"
-  | "chat"
   | "promotions";
 
 const PREF_STORAGE_PREFIX = "@notif_pref:";
@@ -39,27 +38,22 @@ const PREF_ITEMS: Array<{
   {
     key: "newFollower",
     label: "새로운 팔로워",
-    desc: "나를 팔로우 하는 멤버 안내",
+    desc: "누군가가 나를 팔로우했을 때",
   },
   {
     key: "followingActivity",
     label: "팔로잉하는 멤버 소식",
-    desc: "팔로잉 멤버의 새로운 활동 안내",
+    desc: "내가 팔로우한 사람이 새 페르소나를 만들 때",
   },
   {
     key: "reactions",
     label: "반응",
-    desc: "좋아요 댓글",
-  },
-  {
-    key: "chat",
-    label: "채팅",
-    desc: "새로운 메시지",
+    desc: "내 페르소나에 좋아요·댓글·신고가 발생할 때",
   },
   {
     key: "promotions",
     label: "혜택정보 수신",
-    desc: "개인 맞춤 혜택과 이벤트 소식을 앱 푸시, 문자로 안내",
+    desc: "개인 맞춤 혜택과 이벤트 소식 안내",
   },
 ];
 
@@ -73,7 +67,6 @@ export default function NotificationSettingsScreen() {
     newFollower: true,
     followingActivity: true,
     reactions: true,
-    chat: true,
     promotions: true,
   });
   const [prefsLoaded, setPrefsLoaded] = useState(false);
