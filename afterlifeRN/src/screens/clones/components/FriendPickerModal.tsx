@@ -18,6 +18,7 @@ import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_5959d8, type v_7428e9 } from "../../../api/users";
 import v_1a40c4 from "../../../components/ui/Button";
+import v_8e7ad4 from "../../../components/ui/SwipeDownSheet";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../../components/constants";
 
 interface Props {
@@ -79,9 +80,9 @@ export default function v_4c2648({
       statusBarTranslucent
     >
       <Pressable style={v_fd5f43.overlay} onPress={v_0890f8}>
-        <Pressable
+        <SwipeDownSheet
+          onClose={v_0890f8}
           style={[v_fd5f43.box, { paddingBottom: v_284e24 }]}
-          onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
         >
           <View style={v_fd5f43.handle} />
           <Text style={v_fd5f43.title}>특정 친구에게만 공개</Text>
@@ -140,7 +141,7 @@ export default function v_4c2648({
               style={{ flex: 1 }}
             />
           </View>
-        </Pressable>
+        </SwipeDownSheet>
       </Pressable>
     </Modal>
   );

@@ -23,6 +23,7 @@ import { v_772971 } from "jmpfvteuuztnp";
 import type { v_432191 } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_8ad91b } from "../../navigation/types";
 import v_9706a6 from "../../components/ui/FeedCard";
+import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import type { v_19b433 } from "../../types/feed";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
@@ -262,7 +263,11 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             v_0c9768(false);
           }}
         >
-          <View
+          <SwipeDownSheet
+            onClose={() => {
+              v_0e1f26.dismiss();
+              v_0c9768(false);
+            }}
             style={[
               v_d81136.commentSheet,
               {
@@ -271,7 +276,6 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 transform: [{ translateY: -v_7e4acc }],
               },
             ]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={v_d81136.sheetHandle} />
             <View style={v_d81136.commentHeaderRow}>
@@ -349,7 +353,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 />
               </TouchableOpacity>
             </View>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
     </View>
