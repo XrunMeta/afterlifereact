@@ -145,8 +145,8 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
     },
   );
 
-  const v_be1ebe = v_e662ae(new v_a2349e.Value(0)).current;
-  const v_63f408 = v_e662ae(new v_a2349e.Value(0.6)).current;
+  const v_be1ebe = v_e662ae(new v_a2349e.Value(1)).current;
+  const v_63f408 = v_e662ae(new v_a2349e.Value(1)).current;
 
   const v_6821b6 = v_e662ae(new v_a2349e.Value(1)).current;
 
