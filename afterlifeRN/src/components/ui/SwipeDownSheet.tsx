@@ -11,6 +11,8 @@ interface Props {
   handleZoneHeight?: number;
 
   closeThreshold?: number;
+
+  keyboardOffset?: number;
 }
 
 export default function SwipeDownSheet({
@@ -19,8 +21,11 @@ export default function SwipeDownSheet({
   children,
   handleZoneHeight = 48,
   closeThreshold = 60,
+  keyboardOffset = 0,
 }: Props) {
   const translateY = useRef(new Animated.Value(0)).current;
+
+  const composedTranslateY = Animated.subtract(translateY, keyboardOffset);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -64,7 +69,8 @@ export default function SwipeDownSheet({
     <Animated.View
       style={[
         Array.isArray(style) ? style : style ? [style] : [],
-        { transform: [{ translateY }] },
+
+        { transform: [{ translateY: composedTranslateY }] },
       ]}
 
       onStartShouldSetResponder={() => true}

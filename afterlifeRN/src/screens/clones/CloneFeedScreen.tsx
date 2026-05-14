@@ -268,12 +268,12 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
               Keyboard.dismiss();
               setCommentOpen(false);
             }}
+            keyboardOffset={keyboardHeight}
             style={[
               styles.commentSheet,
               {
                 paddingBottom: 24 + Math.max(insets.bottom, 0),
                 height: Math.max(SCREEN_HEIGHT * 0.7 - keyboardHeight, 200),
-                transform: [{ translateY: -keyboardHeight }],
               },
             ]}
           >
