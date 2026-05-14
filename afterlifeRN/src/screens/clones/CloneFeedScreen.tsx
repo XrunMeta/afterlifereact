@@ -23,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import FeedCard from "../../components/ui/FeedCard";
+import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import type { FeedItem } from "../../types/feed";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
@@ -262,7 +263,11 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
             setCommentOpen(false);
           }}
         >
-          <View
+          <SwipeDownSheet
+            onClose={() => {
+              Keyboard.dismiss();
+              setCommentOpen(false);
+            }}
             style={[
               styles.commentSheet,
               {
@@ -271,7 +276,6 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                 transform: [{ translateY: -keyboardHeight }],
               },
             ]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={styles.sheetHandle} />
             <View style={styles.commentHeaderRow}>
@@ -349,7 +353,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                 />
               </TouchableOpacity>
             </View>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
     </View>

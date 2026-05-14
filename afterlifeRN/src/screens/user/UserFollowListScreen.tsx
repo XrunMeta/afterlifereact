@@ -35,8 +35,17 @@ export default function UserFollowListScreen() {
   const { userId, mode } = route.params;
   const accessToken = useAuthStore((s) => s.accessToken);
   const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
+
+  const followingIds = useUserFollowStore((st) => st.followingIds);
   const isFollowingUser = useUserFollowStore((st) => st.isFollowing);
   const toggleFollowUser = useUserFollowStore((st) => st.toggleFollow);
+  const hydrateUserFollows = useUserFollowStore((st) => st.hydrate);
+  const userFollowHydrated = useUserFollowStore((st) => st.hydrated);
+  void followingIds; 
+
+  useEffect(() => {
+    if (!userFollowHydrated) void hydrateUserFollows();
+  }, [userFollowHydrated, hydrateUserFollows]);
 
   const [items, setItems] = useState<UserFollowItem[]>([]);
   const [loading, setLoading] = useState(true);

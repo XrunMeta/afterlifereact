@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../../../stores/authStore";
 import { listUserFollowing, type UserFollowItem } from "../../../api/users";
 import Button from "../../../components/ui/Button";
+import SwipeDownSheet from "../../../components/ui/SwipeDownSheet";
 import { COLORS, RADIUS, SIZES } from "../../../components/constants";
 
 interface Props {
@@ -79,9 +80,9 @@ export default function FriendPickerModal({
       statusBarTranslucent
     >
       <Pressable style={s.overlay} onPress={onClose}>
-        <Pressable
+        <SwipeDownSheet
+          onClose={onClose}
           style={[s.box, { paddingBottom: bottomPad }]}
-          onPress={(e) => e.stopPropagation()}
         >
           <View style={s.handle} />
           <Text style={s.title}>특정 친구에게만 공개</Text>
@@ -140,7 +141,7 @@ export default function FriendPickerModal({
               style={{ flex: 1 }}
             />
           </View>
-        </Pressable>
+        </SwipeDownSheet>
       </Pressable>
     </Modal>
   );
