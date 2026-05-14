@@ -83,6 +83,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const v_140aea = v_de06a3(
     async (v_6bee94): Promise<number> => {
+      const v_f04727 = v_194498.getState().creationDraft;
       console.log("[CLONE-CREATE] attemptCreate start. draft snapshot:", {
         cloneType: v_f04727.cloneType,
         name: v_f04727.name,
@@ -232,30 +233,63 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_d01790 = async () => {
     if (v_805753 || v_c3de9c) return;
     const v_2f361a = v_6044a8.trim();
-    console.log("[CLONE-CREATE] handleSharePost tap. captionLen=", v_2f361a.length, "createdCloneId=", v_af4871);
+
+    const v_055e6a = {
+      cloneType: v_f04727.cloneType,
+      name: v_f04727.name,
+      nameLen: v_f04727.name?.length ?? 0,
+      username: v_f04727.username,
+      description: v_f04727.description,
+      hasImageFile: !!v_f04727.imageFile,
+      imageFile: v_f04727.imageFile,
+      visibility: v_f04727.visibility,
+      category: v_f04727.category,
+      interests: v_f04727.interests,
+      personaAge: v_f04727.personaAge,
+      personaGender: v_f04727.personaGender,
+      personaMbti: v_f04727.personaMbti,
+      personaTypes: v_f04727.personaTypes,
+      personaNotesLen: v_f04727.personaNotes?.length ?? 0,
+    };
+    console.log(
+      "[CLONE-CREATE] handleSharePost tap. captionLen=",
+      v_2f361a.length,
+      "createdCloneId=",
+      v_af4871,
+      "hasAccessToken=",
+      !!v_2ca7e0,
+    );
+    console.log("[CLONE-CREATE] DRAFT DUMP:", JSON.stringify(v_055e6a, null, 2));
+
     if (v_2f361a.length === 0) {
+      console.log("[CLONE-CREATE] BLOCKED: caption empty");
       v_889fad("소개글", "한 줄 소개를 입력해주세요.");
       return;
     }
 
     if (!v_2ca7e0) {
+      console.log("[CLONE-CREATE] BLOCKED: no accessToken");
       v_889fad("로그인 필요", "로그인 정보가 없어요. 다시 로그인해주세요.");
       return;
     }
+
     if (!v_f04727.cloneType) {
-      v_889fad(
-        "페르소나 정보 누락",
-        "페르소나 유형이 설정되지 않았어요. 처음부터 다시 만들어주세요.",
+      console.warn(
+        "[CLONE-CREATE] cloneType missing — auto-fallback to 'friend'. full draft=",
+        JSON.stringify(v_f04727, null, 2),
       );
-      return;
+      v_194498.getState().setCreationDraft({ cloneType: "friend" });
+
     }
     if (!v_f04727.name || v_f04727.name.trim().length === 0) {
+      console.log("[CLONE-CREATE] BLOCKED: name missing. full draft=", JSON.stringify(v_f04727, null, 2));
       v_889fad(
         "이름 누락",
         "페르소나 이름이 없어요. 이전 단계로 돌아가서 이름을 입력해주세요.",
       );
       return;
     }
+    console.log("[CLONE-CREATE] sanity check passed → proceed to attemptCreate");
 
     v_4b9b17(true);
     v_3a7d09(null);
