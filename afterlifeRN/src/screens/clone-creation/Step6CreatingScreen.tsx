@@ -298,9 +298,6 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
       if (!v_2f361a) return;
       v_5795de({ name: v_2f361a });
 
-      if (!v_556427) {
-        v_e71a3b(v_b55477(v_2f361a));
-      }
       v_ae4844("username");
       return;
     }
