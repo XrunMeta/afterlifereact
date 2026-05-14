@@ -550,11 +550,11 @@ const v_d81136 = v_472849.create({
   commentInput: {
     flex: 1,
     height: 40,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: v_1bfbd0.white,
     borderRadius: 20,
     paddingHorizontal: 16,
     fontSize: 14,
-    color: v_1bfbd0.white,
+    color: v_1bfbd0.zinc900,
   },
 
   moreOverlay: {

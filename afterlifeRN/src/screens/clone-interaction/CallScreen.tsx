@@ -602,7 +602,8 @@ const v_fd5f43 = v_472849.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 24,
-    maxHeight: "50%",
+
+    height: "80%",
   },
   giftHeader: {
     flexDirection: "row",
