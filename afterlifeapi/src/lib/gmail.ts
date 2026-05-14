@@ -79,6 +79,7 @@ export async function v_a71d8b(env: v_273a0c, v_328259): Promise<void> {
     v_a122f8({ from: v_c9c489.GMAIL_SENDER, to: v_328259.to, subject: v_328259.subject, html: v_328259.html }),
   );
 
+  let v_d8479a = null;
   const v_8f00b9 = await fetch(v_57f0fd, {
     method: "POST",
     headers: {
@@ -89,6 +90,30 @@ export async function v_a71d8b(env: v_273a0c, v_328259): Promise<void> {
   });
   if (!v_8f00b9.ok) {
     const v_c70495 = await v_8f00b9.text();
-    throw new v_3ebe58("UPSTREAM_FAILURE", `Gmail send failed (${v_8f00b9.status}): ${v_c70495}`);
+    v_d8479a = `${v_8f00b9.status}: ${v_c70495.slice(0, 500)}`;
+  }
+
+  if (v_c9c489.XRUN_DB) {
+    try {
+      await v_c9c489.XRUN_DB
+        .prepare(
+          `INSERT INTO EmailLogs (recipient, subject, body, status, sender, member, error_message, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 'afterlife', NULL, ?, datetime('now'), datetime('now'))`,
+        )
+        .bind(
+          v_328259.to,
+          v_328259.subject,
+          v_328259.html.slice(0, 8000),
+          v_d8479a ? "failed" : "sent",
+          v_d8479a,
+        )
+        .run();
+    } catch (v_49263d) {
+      console.warn("[sendMail] EmailLogs insert failed:", (v_49263d as Error).message);
+    }
+  }
+
+  if (v_d8479a) {
+    throw new v_3ebe58("UPSTREAM_FAILURE", `Gmail send failed (${v_d8479a})`);
   }
 }
