@@ -64,8 +64,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_956393 = v_194498((v_fd5f43) => v_fd5f43.addClone);
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
   const [v_af4871, v_67122d] = v_5ab095<number | null>(null);
-  const [v_805753, v_c7169b] = v_5ab095(true);
+  const [v_805753, v_c7169b] = v_5ab095(false);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
 
   const [v_db004a, v_148b42] = v_5ab095(false);
@@ -165,124 +166,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   v_c4deb2(() => {
     if (!v_f04727.cloneType) {
-
-      v_c7169b(false);
       v_3a7d09("페르소나 정보가 없어요. 처음부터 다시 만들어주세요.");
-      return;
     }
-    v_b12f33.current = false;
-
-    const v_5b257e = setTimeout(() => {
-      if (v_b12f33.current) return;
-      v_c7169b((v_ba2215) => {
-        if (!v_ba2215) return v_ba2215;
-        console.warn("[CLONE-CREATE] timeout — 30s no response, forcing stop");
-        v_3a7d09("요청이 너무 오래 걸려요. 다시 시도해주세요.");
-        return false;
-      });
-    }, 30000);
-    (async () => {
-      v_c7169b(true);
-      v_3a7d09(null);
-
-      const v_01a739 = Boolean(v_f04727.imageFile);
-      const v_f9c770 = Boolean(v_f04727.voiceFile || v_f04727.voiceSampleId
-        || (v_f04727.recordDuration ?? 0) >= 30);
-      const v_818579 = v_f04727.visibility ?? v_c4c43f(v_f04727.cloneType!).defaultVisibility;
-
-      if (!v_2ca7e0) {
-        const v_17d8be = Date.now();
-        const v_5ccd43 = {
-          ...(v_f04727.personaAge ? { age: v_f04727.personaAge } : {}),
-          ...(v_f04727.personaGender ? { gender: v_f04727.personaGender } : {}),
-          ...(v_f04727.personaTypes && v_f04727.personaTypes.length > 0
-            ? { personalities: v_f04727.personaTypes.join(',') }
-            : {}),
-          ...(v_f04727.personaMbti ? { mbti: v_f04727.personaMbti } : {}),
-        };
-        const clone: v_affcc0 = {
-          id: v_17d8be,
-          cloneType: v_f04727.cloneType!,
-          ownerId: v_493eec,
-          displayName: v_f04727.name ?? '',
-          description: v_f04727.description ?? '',
-          interests: v_f04727.interests ?? [],
-          imageUrl: v_f04727.imageFile ?? undefined,
-          visibility: v_818579,
-          status: v_01a739 && v_f9c770 ? 'active' : 'pending_assets',
-          createdAt: new Date().toISOString(),
-          l1Profile: { attrs: v_5ccd43, notes: v_f04727.personaNotes ?? '' },
-        };
-        v_956393(v_eb25ce);
-        if (!v_b12f33.current) {
-          v_67122d(v_17d8be);
-          v_c7169b(false);
-        }
-        return;
-      }
-
-      try {
-        await v_140aea();
-      } catch (v_49263d) {
-        if (v_b12f33.current) return;
-        if (v_49263d instanceof v_84a859) {
-          console.warn(
-            '[CLONE-CREATE] failed:',
-            v_49263d.code,
-            v_49263d.message,
-            'details=',
-            JSON.stringify(v_49263d.details),
-          );
-          if (v_49263d.code === 'PAYMENT_REQUIRED') {
-
-            const v_5ab5bd = (v_49263d.details ?? {}) as { priceXrun?: number };
-            if (typeof v_5ab5bd.priceXrun === 'number') v_26e048(v_5ab5bd.priceXrun);
-            v_148b42(true);
-            v_c7169b(false);
-            return;
-          }
-          if (v_49263d.code === 'UNAUTHENTICATED') {
-
-            v_c7169b(false);
-            const v_badeaf = '세션이 만료됐어요. 다시 로그인해주세요.';
-            v_3a7d09(v_badeaf);
-            v_889fad('세션 만료', v_badeaf, [
-              {
-                text: '로그인하기',
-                onPress: async () => {
-                  await v_1ed7d9.getState().logout();
-
-                  v_c65f5d.getParent()?.dispatch(
-                    v_650cfa.navigate({ name: "ClonesTab" }),
-                  );
-                },
-              },
-            ]);
-            return;
-          }
-          let v_badeaf = v_8d41d7('create.errors.createFailed');
-          if (v_49263d.code === 'QUOTA_EXCEEDED') {
-            v_badeaf = v_8d41d7('create.errors.quotaExceeded');
-          } else if (v_49263d.code === 'CONFLICT') {
-            v_badeaf = v_49263d.message || v_8d41d7('create.errors.usernameConflict');
-          } else {
-            v_badeaf = v_49263d.message;
-          }
-          v_3a7d09(v_badeaf);
-          v_c7169b(false);
-          v_889fad(v_8d41d7('create.complete.createFailed'), v_badeaf);
-        } else {
-          console.warn('[CLONE-CREATE] failed:', v_49263d);
-          v_3a7d09(v_8d41d7('create.errors.createFailed'));
-          v_c7169b(false);
-        }
-      }
-    })();
-    return () => {
-      v_b12f33.current = true;
-      clearTimeout(v_5b257e);
-    };
-  }, [v_140aea, v_f04727.cloneType]); 
+  }, [v_f04727.cloneType]);
 
   const v_3a8949 = v_f04727.cloneType ?? 'friend';
   const v_b38746 = {
@@ -316,33 +202,73 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   };
 
   const v_d01790 = async () => {
-    if (v_af4871 == null) return;
+    if (v_805753 || v_c3de9c) return;
     const v_2f361a = v_6044a8.trim();
-    const v_1298c5 = v_2f361a.length > 0;
-    v_4b9b17(true);
-    try {
-      if (v_1298c5 && v_2ca7e0) {
-
-        try {
-          await v_b4f9f6(v_2ca7e0, v_af4871, { description: v_2f361a });
-        } catch (v_4cf250) {
-          console.warn("[CLONE-CREATE] update description failed:", v_4cf250);
-        }
-
-        const v_1458b7 = v_6de415.current ?? null;
-        await v_5e388b(v_2ca7e0, v_af4871, {
-          content: v_2f361a,
-          ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
-        });
-      }
-    } catch (v_49263d) {
-      console.warn("[CLONE-CREATE] post first feed failed:", v_49263d);
-
-    } finally {
-      v_4b9b17(false);
-      v_7a77e1();
-      v_c65f5d.replace("Step8", { cloneId: v_af4871 });
+    if (v_2f361a.length === 0) {
+      v_889fad("소개글", "한 줄 소개를 입력해주세요.");
+      return;
     }
+    v_4b9b17(true);
+    v_3a7d09(null);
+
+    if (v_f04727.description !== v_2f361a) {
+      v_194498.getState().setCreationDraft({ description: v_2f361a });
+    }
+
+    let v_80a1e3 = v_af4871;
+    try {
+
+      if (v_80a1e3 == null) {
+        v_c7169b(true);
+        await v_140aea();
+        v_c7169b(false);
+        v_80a1e3 = v_194498.getState().creationDraft
+          ? 
+
+            v_af4871
+          : null;
+
+        await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 50));
+        v_80a1e3 = v_194498.getState().localClones.at(-1)?.id ?? null;
+      }
+      if (!v_80a1e3 || !v_2ca7e0) {
+        v_4b9b17(false);
+        return;
+      }
+
+      const v_1458b7 = v_6de415.current ?? null;
+      await v_5e388b(v_2ca7e0, v_80a1e3, {
+        content: v_2f361a,
+        ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
+      });
+    } catch (v_49263d) {
+      console.warn("[CLONE-CREATE] share post failed:", v_49263d);
+      v_c7169b(false);
+      if (v_49263d instanceof v_84a859) {
+        if (v_49263d.code === "PAYMENT_REQUIRED") {
+          const v_5ab5bd = (v_49263d.details ?? {}) as { priceXrun?: number };
+          if (typeof v_5ab5bd.priceXrun === "number") v_26e048(v_5ab5bd.priceXrun);
+          v_148b42(true);
+          v_4b9b17(false);
+          return;
+        }
+        if (v_49263d.code === "CONFLICT" && v_49263d.message.includes("아이디")) {
+          v_889fad("아이디 중복", v_49263d.message);
+          v_4b9b17(false);
+          return;
+        }
+        v_3a7d09(v_49263d.message);
+        v_889fad("게시 실패", v_49263d.message);
+      } else {
+        v_3a7d09("게시 중 오류가 발생했어요.");
+      }
+      v_4b9b17(false);
+      return;
+    }
+
+    v_4b9b17(false);
+    v_7a77e1();
+    if (v_80a1e3) v_c65f5d.replace("Step8", { cloneId: v_80a1e3 });
   };
 
   const v_24584b = async () => {
@@ -383,7 +309,15 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       <PageHeader
         title="게시물 작성"
         showBackButton
-        onBackPress={v_704242}
+        onBackPress={() => {
+
+          if (v_c65f5d.canGoBack()) {
+            v_c65f5d.goBack();
+          } else {
+
+            v_c65f5d.getParent()?.navigate("HomeTab" as never);
+          }
+        }}
       />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
