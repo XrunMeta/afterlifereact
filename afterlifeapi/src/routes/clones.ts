@@ -20,6 +20,31 @@ export const clones = new Hono<AppEnv>();
 
 clones.get("/health", (c) => c.json({ ok: true, module: "clones" }));
 
+clones.get("/check-username", async (c) => {
+  const url = new URL(c.req.url);
+  const u = (url.searchParams.get("u") ?? "").trim().toLowerCase();
+  if (!u) {
+    return c.json({ available: false, reason: "invalid" });
+  }
+  if (!/^[a-z0-9_]{3,30}$/.test(u)) {
+    return c.json({ available: false, reason: "invalid" });
+  }
+
+  const reserved = new Set([
+    "admin", "administrator", "root", "staff", "system", "support",
+    "help", "official", "afterlife", "api", "null", "undefined",
+    "anonymous", "mod", "moderator", "owner",
+  ]);
+  if (reserved.has(u)) {
+    return c.json({ available: false, reason: "reserved" });
+  }
+  const row = await c.env.DB
+    .prepare(`SELECT 1 AS x FROM clones WHERE username = ? LIMIT 1`)
+    .bind(u)
+    .first<{ x: number }>();
+  return c.json({ available: !row });
+});
+
 const cloneType = z.enum(["memlow", "friend", "mentor", "celeb"]);
 
 const visibility = z.enum(["public", "private", "followers", "selected"]);

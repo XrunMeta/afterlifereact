@@ -39,6 +39,21 @@ export interface CreateCloneResponse {
   initial_memory: { ctx_key: string; shared_key: string } | null;
 }
 
+export async function checkCloneUsername(
+  username: string,
+): Promise<{ available: boolean; reason?: "taken" | "reserved" | "invalid" }> {
+  const u = encodeURIComponent(username);
+  const res = await fetch(`${API_BASE}/oth-path?u=${u}`);
+  if (!res.ok) {
+
+    return { available: true };
+  }
+  return (await res.json()) as {
+    available: boolean;
+    reason?: "taken" | "reserved" | "invalid";
+  };
+}
+
 export function deriveUsernameFromName(name: string): string {
   const ascii = name
     .toLowerCase()
