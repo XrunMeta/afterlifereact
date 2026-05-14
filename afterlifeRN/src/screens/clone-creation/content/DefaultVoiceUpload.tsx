@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_03e392, v_472849 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -68,7 +69,7 @@ async function v_467998(
       v_b187d9({ voiceFile: v_cb35cb.assets[0].uri, voiceSampleId: undefined });
     }
   } catch {
-    v_03e392.alert(v_b5cd35, v_976e82);
+    v_889fad(v_b5cd35, v_976e82);
   }
 }
 
@@ -119,14 +120,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
             recordDuration: v_ef12d9,
           });
         } else {
-          v_03e392.alert("녹음 실패", "녹음 파일을 가져오지 못했어요. 다시 시도해주세요.");
+          v_889fad("녹음 실패", "녹음 파일을 가져오지 못했어요. 다시 시도해주세요.");
         }
         return;
       }
 
       const v_d60769 = await v_66d7d4();
       if (!v_d60769.granted) {
-        v_03e392.alert(
+        v_889fad(
           "마이크 권한 필요",
           "직접 녹음을 사용하려면 설정에서 마이크 권한을 허용해주세요.",
         );
@@ -138,7 +139,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       v_5ebce3.record();
     } catch (v_49263d) {
       console.warn("[Voice] record toggle failed:", v_49263d);
-      v_03e392.alert("녹음 오류", "녹음을 시작/중단하지 못했어요. 다시 시도해주세요.");
+      v_889fad("녹음 오류", "녹음을 시작/중단하지 못했어요. 다시 시도해주세요.");
     }
   };
 

@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -318,17 +319,17 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
         const v_cb35cb = await v_6c3f29(v_94812a);
         if (!v_cb35cb.available) {
           if (v_cb35cb.reason === "reserved") {
-            v_03e392.alert(
+            v_889fad(
               "사용할 수 없는 아이디",
               "예약된 아이디입니다. 다른 아이디를 입력해주세요.",
             );
           } else if (v_cb35cb.reason === "invalid") {
-            v_03e392.alert(
+            v_889fad(
               "아이디 형식 오류",
               "영문 소문자/숫자/_ 만 사용 가능하고 3-30자여야 해요.",
             );
           } else {
-            v_03e392.alert(
+            v_889fad(
               "이미 사용중인 아이디",
               "이미 사용중인 아이디가 있습니다. 다른 아이디를 입력해주세요.",
             );

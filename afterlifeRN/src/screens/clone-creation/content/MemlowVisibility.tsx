@@ -1,3 +1,4 @@
+import { v_889fad } from "../../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_5ab095 } from 'bapkr';
 import { v_3094a2, v_19b633, v_4623af, v_79c4f2, v_472849, v_03e392, v_39a996 } from 'rcmrninabrnb';
 import { v_dec439 } from 'zvyjokvuouwvifyzks';
@@ -30,15 +31,15 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     const v_81e2ef = v_483de2.trim();
     if (!v_81e2ef) return;
     if (!v_57ffc4.test(v_81e2ef)) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.invalidEmail"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("invite.invalidEmail"));
       return;
     }
     if (v_78547c && v_81e2ef.toLowerCase() === v_78547c.toLowerCase()) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.selfNotAllowed"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("invite.selfNotAllowed"));
       return;
     }
     if (v_c46df8.some((v_9e86fd) => v_9e86fd.toLowerCase() === v_81e2ef.toLowerCase())) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.alreadyAdded"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("invite.alreadyAdded"));
       return;
     }
     if (!v_2ca7e0) {
@@ -52,14 +53,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       const v_8f00b9 = await v_a41961(v_2ca7e0, v_81e2ef);
       const v_17ec8d = v_8f00b9.items.find((v_ceb55a) => v_ceb55a.email.toLowerCase() === v_81e2ef.toLowerCase());
       if (!v_17ec8d) {
-        v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.memberNotFound"));
+        v_889fad(v_8d41d7("common.notice"), v_8d41d7("invite.memberNotFound"));
         return;
       }
       v_b187d9({ coownerInvites: [...v_c46df8, v_81e2ef] });
       v_266e0d('');
     } catch (v_49263d) {
       console.warn('[MemlowVisibility] searchUsers failed:', v_49263d);
-      v_03e392.alert(v_8d41d7("common.error"), v_8d41d7("invite.memberNotFound"));
+      v_889fad(v_8d41d7("common.error"), v_8d41d7("invite.memberNotFound"));
     } finally {
       v_5f3183(false);
     }

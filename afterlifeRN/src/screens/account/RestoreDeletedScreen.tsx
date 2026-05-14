@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_472849, v_03e392 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -14,9 +15,9 @@ export default function v_ecb3c9() {
     v_34a50a(true);
     try {
       await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 400));
-      v_03e392.alert(v_8d41d7("restore.successTitle"), v_8d41d7("restore.successMsg"));
+      v_889fad(v_8d41d7("restore.successTitle"), v_8d41d7("restore.successMsg"));
     } catch (v_9e86fd) {
-      v_03e392.alert(v_8d41d7("restore.failTitle"), v_8d41d7("restore.failMsg"));
+      v_889fad(v_8d41d7("restore.failTitle"), v_8d41d7("restore.failMsg"));
     } finally {
       v_34a50a(false);
     }

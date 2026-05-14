@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -125,7 +126,7 @@ export default function v_4036d1() {
         if (v_e43fa5.granted) {
           v_a43b75(true);
         } else {
-          v_03e392.alert(
+          v_889fad(
             v_8d41d7("settings.notifications.permTitle", { defaultValue: "권한 필요" }),
             v_8d41d7("settings.notifications.deniedHint", {
               defaultValue:
@@ -147,7 +148,7 @@ export default function v_4036d1() {
       }
     } else {
 
-      v_03e392.alert(
+      v_889fad(
         v_8d41d7("settings.notifications.offTitle", { defaultValue: "알림 끄기" }),
         v_8d41d7("settings.notifications.offHint", {
           defaultValue: "알림을 끄려면 OS 설정에서 변경해주세요.",

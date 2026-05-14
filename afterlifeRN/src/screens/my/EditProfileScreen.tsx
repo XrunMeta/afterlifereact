@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -71,15 +72,15 @@ export default function v_e2b396() {
     const v_f4fe8e = v_435fbe === "" ? null : Number(v_435fbe);
 
     if (v_affc3e.length === 0) {
-      v_03e392.alert("알림", "이름은 비워둘 수 없습니다.");
+      v_889fad("알림", "이름은 비워둘 수 없습니다.");
       return;
     }
     if (v_435fbe !== "" && (!Number.isInteger(v_f4fe8e) || v_f4fe8e! < 13 || v_f4fe8e! > 120)) {
-      v_03e392.alert("알림", "나이는 13~120 사이의 숫자여야 합니다.");
+      v_889fad("알림", "나이는 13~120 사이의 숫자여야 합니다.");
       return;
     }
     if (v_d1d8b2 !== "" && v_d1d8b2.length < 4) {
-      v_03e392.alert("알림", "전화번호는 4자 이상 입력하거나 비워두세요.");
+      v_889fad("알림", "전화번호는 4자 이상 입력하거나 비워두세요.");
       return;
     }
 
@@ -98,7 +99,7 @@ export default function v_e2b396() {
 
       if (Object.keys(v_17dc8a).length > 0) v_21f395(v_17dc8a);
 
-      v_03e392.alert("저장됨", "프로필이 저장되었습니다.", [
+      v_889fad("저장됨", "프로필이 저장되었습니다.", [
         { text: "확인", onPress: () => v_c65f5d.goBack() },
       ]);
     } catch (v_49263d) {
@@ -114,7 +115,7 @@ export default function v_e2b396() {
           if (v_d4610c) v_badeaf = `${v_badeaf}\n(필드: ${v_d4610c} — ${v_ea719c?.message ?? ""})`;
         }
       }
-      v_03e392.alert("저장 실패", v_badeaf);
+      v_889fad("저장 실패", v_badeaf);
     } finally {
       v_04e389(false);
     }
@@ -122,7 +123,7 @@ export default function v_e2b396() {
 
   const v_a24698 = async (v_837dd2) => {
     if (!v_2ca7e0) {
-      v_03e392.alert("알림", "로그인이 필요합니다.");
+      v_889fad("알림", "로그인이 필요합니다.");
       return;
     }
     v_bdf535(true);
@@ -138,7 +139,7 @@ export default function v_e2b396() {
       console.warn("[EditProfile] deleteMe failed:", v_49263d);
       let v_badeaf = "탈퇴 처리 중 오류가 발생했습니다.";
       if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
-      v_03e392.alert("탈퇴 실패", v_badeaf);
+      v_889fad("탈퇴 실패", v_badeaf);
       v_bdf535(false);
     }
   };
@@ -146,7 +147,7 @@ export default function v_e2b396() {
   const v_ffa2a1 = () => {
     if (v_a1f68f) return;
     v_9665cb(false);
-    v_03e392.alert(
+    v_889fad(
       "에프터라이프 계정 탈퇴",
       "에프터라이프 계정만 영구 삭제됩니다.\nxrun 회원 정보와 지갑은 그대로 유지됩니다.",
       [
@@ -159,7 +160,7 @@ export default function v_e2b396() {
   const v_916cd9 = () => {
     if (v_a1f68f) return;
     v_9665cb(false);
-    v_03e392.alert(
+    v_889fad(
       "에프터라이프 + xrun 함께 탈퇴",
       "에프터라이프와 xrun 계정이 모두 영구 삭제됩니다.\nxrun 지갑·결제 비밀번호 등 모든 데이터가 사라집니다.",
       [

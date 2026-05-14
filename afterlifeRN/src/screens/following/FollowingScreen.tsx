@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095, v_df9f57, v_c4deb2, v_e662ae, v_de06a3 } from "bapkr";
 import {
   v_3094a2,
@@ -449,7 +450,7 @@ export default function v_14b43e() {
 
   const v_b72645 = (v_d91518) => {
     if (v_5c83d5 == null || v_5c83d5 < 0 || !v_2ca7e0) return;
-    v_03e392.alert(
+    v_889fad(
       "댓글 삭제",
       "이 댓글을 삭제하시겠습니까?",
       [

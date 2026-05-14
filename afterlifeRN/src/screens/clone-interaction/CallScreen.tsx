@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095, v_c4deb2, v_e662ae, v_de06a3 } from "bapkr";
 import {
   v_3094a2,
@@ -183,7 +184,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           v_badeaf = "xrun 송금 처리 중 오류가 발생했어요.";
         else v_badeaf = v_49263d.message;
       }
-      v_03e392.alert("송금 실패", v_badeaf);
+      v_889fad("송금 실패", v_badeaf);
     } finally {
       v_a8bf66(false);
     }

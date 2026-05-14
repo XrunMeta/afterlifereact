@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095, v_e662ae, v_de06a3, v_c4deb2 } from "bapkr";
 import {
   v_3094a2,
@@ -238,7 +239,7 @@ export default function v_c316d8() {
 
   const v_b72645 = (v_d91518) => {
     if (v_ed660d == null || v_ed660d < 0 || !v_2ca7e0) return;
-    v_03e392.alert(
+    v_889fad(
       "댓글 삭제",
       "이 댓글을 삭제하시겠습니까?",
       [
@@ -526,7 +527,7 @@ export default function v_c316d8() {
                     v_949e66(null);
                     if (!v_5f5d6d || !v_2ca7e0) return;
 
-                    v_03e392.alert(
+                    v_889fad(
                       "페르소나 삭제",
                       `'${v_5f5d6d.author}' 페르소나를 삭제할까요?\n복구 불가합니다.`,
                       [

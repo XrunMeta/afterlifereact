@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -40,20 +41,20 @@ export default function v_040c8f() {
   const v_2de427 = async () => {
     const v_9e86fd = v_e0c7e8.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(v_9e86fd)) {
-      v_03e392.alert("알림", "이메일 형식이 올바르지 않아요.");
+      v_889fad("알림", "이메일 형식이 올바르지 않아요.");
       return;
     }
     v_ee9ec1(true);
     try {
       await v_63aa82(v_9e86fd);
-      v_03e392.alert(v_8d41d7("auth.forgot.title"), v_8d41d7("auth.forgot.codeSent"));
+      v_889fad(v_8d41d7("auth.forgot.title"), v_8d41d7("auth.forgot.codeSent"));
       v_fd7d1f("otp");
     } catch (v_49263d) {
       const v_badeaf =
         v_49263d instanceof v_84a859 && v_49263d.code === "OTP_COOLDOWN"
           ? v_49263d.message
           : v_8d41d7("auth.forgot.resetFailed");
-      v_03e392.alert("오류", v_badeaf);
+      v_889fad("오류", v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -61,7 +62,7 @@ export default function v_040c8f() {
 
   const v_4f034c = () => {
     if (!/^\d{6}$/.test(v_c99bd2.trim())) {
-      v_03e392.alert("알림", v_8d41d7("auth.forgot.wrongCode"));
+      v_889fad("알림", v_8d41d7("auth.forgot.wrongCode"));
       return;
     }
 
@@ -71,11 +72,11 @@ export default function v_040c8f() {
   const v_9831a6 = async () => {
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)) {
-      v_03e392.alert("알림", v_8d41d7("auth.forgot.passwordTooShort"));
+      v_889fad("알림", v_8d41d7("auth.forgot.passwordTooShort"));
       return;
     }
     if (v_adc076 !== v_1e51a9) {
-      v_03e392.alert("알림", v_8d41d7("auth.forgot.passwordMismatch"));
+      v_889fad("알림", v_8d41d7("auth.forgot.passwordMismatch"));
       return;
     }
     v_ee9ec1(true);
@@ -85,7 +86,7 @@ export default function v_040c8f() {
         verificationCode: v_c99bd2.trim(),
         newPassword: v_adc076,
       });
-      v_03e392.alert(v_8d41d7("auth.forgot.successTitle"), v_8d41d7("auth.forgot.successDesc"), [
+      v_889fad(v_8d41d7("auth.forgot.successTitle"), v_8d41d7("auth.forgot.successDesc"), [
         { text: "확인", onPress: () => v_c65f5d.goBack() },
       ]);
     } catch (v_49263d) {
@@ -98,7 +99,7 @@ export default function v_040c8f() {
         } else if (v_49263d.code === "NOT_FOUND") v_badeaf = v_8d41d7("auth.forgot.notFound");
         else if (v_49263d.message) v_badeaf = v_49263d.message;
       }
-      v_03e392.alert("오류", v_badeaf);
+      v_889fad("오류", v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
