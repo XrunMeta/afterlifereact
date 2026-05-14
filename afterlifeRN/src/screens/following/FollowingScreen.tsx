@@ -518,11 +518,7 @@ export default function FollowingScreen() {
             ) : null}
             {
 }
-            <HashtagText
-              style={s.postContent}
-              numberOfLines={3}
-              tagStyle={{ color: COLORS.white, fontWeight: "700", textDecorationLine: "underline" }}
-            >
+            <HashtagText style={s.postContent} numberOfLines={3}>
               {item.feed.content}
             </HashtagText>
             <View style={s.overlayBtns}>
