@@ -121,19 +121,17 @@ export default function EditProfileScreen() {
     }
   };
 
-  const performDelete = async (withXrun: boolean) => {
+  const performDelete = async (_withXrun: boolean) => {
     if (!accessToken) {
       showAlert("알림", "로그인이 필요합니다.");
       return;
     }
+
+    void _withXrun;
     setDeleting(true);
     try {
-      const res = await deleteMe(accessToken, { withXrun });
+      const res = await deleteMe(accessToken);
       console.log("[EditProfile] deleteMe ok:", res);
-      if (withXrun && res.xrunClose && !res.xrunClose.closed) {
-
-        console.warn("[EditProfile] xrun close failed:", res.xrunClose.reason);
-      }
       await logout();
     } catch (err) {
       console.warn("[EditProfile] deleteMe failed:", err);
