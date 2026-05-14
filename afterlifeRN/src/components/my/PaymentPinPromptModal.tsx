@@ -27,24 +27,15 @@ function buildXrunDeeplink(email: string | null | undefined): string {
 }
 
 export async function shouldShowPaymentPinPrompt(): Promise<boolean> {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (!raw) return true;
-    const until = Number(raw);
-    if (!Number.isFinite(until)) return true;
-    return Date.now() >= until;
-  } catch {
-    return true;
-  }
+
+  return true;
 }
 
 async function dismissForADay(): Promise<void> {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY, String(Date.now() + DISMISS_DURATION_MS));
-  } catch (err) {
-    console.warn("[PIN-PROMPT] dismiss save failed:", err);
-  }
+  return;
 }
+void STORAGE_KEY;
+void DISMISS_DURATION_MS;
 
 interface Props {
   visible: boolean;

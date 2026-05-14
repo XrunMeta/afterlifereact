@@ -101,6 +101,11 @@ export default function HomeScreen() {
     cloneId: number;
     author: string;
   } | null>(null);
+
+  const [reportCommentTarget, setReportCommentTarget] = useState<{
+    commentId: number;
+    author: string;
+  } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   useEffect(() => {
     if (toastMessage) {
@@ -392,9 +397,22 @@ export default function HomeScreen() {
                       <View style={styles.commentMeta}>
                         <Text style={styles.commentAuthor}>{c.user.name ?? c.user.email}</Text>
                         <Text style={styles.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
-                        {c.userId === myUserId && (
+                        {c.userId === myUserId ? (
                           <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }}>
                             <Feather name="trash-2" size={14} color="rgba(255,255,255,0.6)" />
+                          </TouchableOpacity>
+                        ) : (
+
+                          <TouchableOpacity
+                            onPress={() =>
+                              setReportCommentTarget({
+                                commentId: c.id,
+                                author: c.user.name ?? c.user.email ?? "",
+                              })
+                            }
+                            style={{ marginLeft: 8 }}
+                          >
+                            <Feather name="flag" size={14} color="rgba(255,255,255,0.6)" />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -604,6 +622,31 @@ export default function HomeScreen() {
           </SwipeDownSheet>
         </Pressable>
       </Modal>
+
+      {}
+      <ReportReasonModal
+        visible={!!reportCommentTarget}
+        targetName={reportCommentTarget?.author}
+        onCancel={() => setReportCommentTarget(null)}
+        onConfirm={async (reason) => {
+          const target = reportCommentTarget;
+          setReportCommentTarget(null);
+          if (!target || !accessToken || commentFeedId == null) return;
+          try {
+            const { reportFeedComment } = await import("../../api/clones");
+            await reportFeedComment(
+              accessToken,
+              commentFeedId,
+              target.commentId,
+              reason || undefined,
+            );
+            setToastMessage("댓글이 신고됐어요");
+          } catch (err) {
+            console.warn(`[REPORT-COMMENT] FAILED commentId=${target.commentId}`, err);
+            setToastMessage("신고에 실패했어요");
+          }
+        }}
+      />
 
       {}
       <ReportReasonModal

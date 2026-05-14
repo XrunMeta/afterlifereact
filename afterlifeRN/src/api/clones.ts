@@ -414,6 +414,23 @@ export async function reportClone(
   );
 }
 
+export async function reportFeedComment(
+  accessToken: string,
+  feedId: number,
+  commentId: number,
+  reason?: string,
+): Promise<{ ok: true; reported: true }> {
+  return authFetch(
+    `/oth-path${feedId}/comments/${commentId}/report`,
+    accessToken,
+    {
+      method: "POST",
+      body: JSON.stringify(reason ? { reason } : {}),
+    },
+    makeIdempotencyKey(),
+  );
+}
+
 export async function blockClone(accessToken: string, cloneId: number): Promise<{ ok: true; blocked: true }> {
   console.log(`[BLOCK-API] → POST /oth-path${cloneId}/block`);
   const res = await authFetch<{ ok: true; blocked: true }>(

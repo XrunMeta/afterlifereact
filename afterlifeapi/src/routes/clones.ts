@@ -888,16 +888,15 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     .bind(clone.owner_id)
     .first<{ id: number; xrun_wallet: string | null; xrun_member_id: number | null }>();
 
-  if (!owner?.xrun_member_id) {
-    throw new APIError(
-      "CONFLICT",
-      "Persona owner has no xrun account — cannot route 40% share.",
-    );
-  }
+  const ownerLinked = !!owner?.xrun_member_id;
 
   const total = body.amount;
-  const companyAmount = Math.round(total * 0.6 * 1_000_000) / 1_000_000;
-  const ownerAmount = Math.round(total * 0.4 * 1_000_000) / 1_000_000;
+  const companyAmount = ownerLinked
+    ? Math.round(total * 0.6 * 1_000_000) / 1_000_000
+    : total;
+  const ownerAmount = ownerLinked
+    ? Math.round(total * 0.4 * 1_000_000) / 1_000_000
+    : 0;
 
   const insertRes = await c.env.DB
     .prepare(
@@ -917,17 +916,21 @@ clones.post("/:id/gift", requireAuth, async (c) => {
       companyAmount,
       ownerAmount,
       companyAddr,
-      owner.xrun_wallet, 
+
+      owner?.xrun_wallet ?? null,
     )
     .run();
   const logId = Number(insertRes.meta.last_row_id);
 
+  const recipients = ownerLinked
+    ? [
+        { toAddress: companyAddr, amount: String(companyAmount) },
+        { toMember: owner!.xrun_member_id!, amount: String(ownerAmount) },
+      ]
+    : [{ toAddress: companyAddr, amount: String(companyAmount) }];
   const xrunRes = await externalTransferSplit(c.env, {
     fromMember: sender.xrun_member_id,
-    recipients: [
-      { toAddress: companyAddr, amount: String(companyAmount) },
-      { toMember: owner.xrun_member_id, amount: String(ownerAmount) },
-    ],
+    recipients,
     currency,
     pin: body.pin,
     source: "afterlife.gift",
