@@ -27,6 +27,7 @@ import {
 } from "../../api/auth";
 import type { v_da1883 } from "../../types/country";
 import { v_202d44 } from "../../constants/countryDialCodes";
+import { v_369014 } from "../../constants/regions";
 import type { v_8ad91b } from "../../navigation/types";
 
 type Gender = "male" | "female";
@@ -68,7 +69,13 @@ export default function v_e2b396() {
     );
   }, [v_b113dd]);
   const [v_b9bbbd, v_b7066f] = v_5ab095<v_da1883 | null>(v_686096);
-  const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(null);
+
+  const v_2a5c62 = v_df9f57<v_da1883 | null>(() => {
+    if (!v_b113dd?.country || !v_b113dd.region) return null;
+    const v_e94fdf = v_369014(v_b113dd.country.toLowerCase());
+    return v_e94fdf.find((v_cb35cb) => v_cb35cb.dialCode === v_b113dd.region) ?? null;
+  }, [v_b113dd]);
+  const [v_a6c30b, v_c030e3] = v_5ab095<v_da1883 | null>(v_2a5c62);
   const [v_9d56c4, v_7168a2] = v_5ab095(false);
 
   const [v_35bf26, v_04e389] = v_5ab095(false);

@@ -316,18 +316,16 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             ]}
           >
             <View style={v_d81136.sheetHandle} />
+            {}
             <View style={v_d81136.commentHeaderRow}>
               <Text style={v_d81136.commentTitle}>
                 {v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}
               </Text>
-              <TouchableOpacity onPress={() => v_0c9768(false)}>
-                <Feather name="x" size={20} color={v_1bfbd0.white} />
-              </TouchableOpacity>
             </View>
             <ScrollView style={v_d81136.commentScroll} showsVerticalScrollIndicator={false}>
               {v_465030 ? (
                 <View style={v_d81136.emptyComment}>
-                  <Feather name="loader" size={28} color="rgba(255,255,255,0.5)" />
+                  <Feather name="loader" size={28} color={v_1bfbd0.zinc400} />
                 </View>
               ) : v_ecfc0f.length > 0 ? (
                 v_ecfc0f.map((v_3f4e2e) => (
@@ -338,7 +336,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                       <View
                         style={[
                           v_d81136.commentAvatar,
-                          { backgroundColor: "rgba(255,255,255,0.15)" },
+                          { backgroundColor: v_1bfbd0.zinc100 },
                         ]}
                       />
                     )}
@@ -353,7 +351,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                             onPress={() => v_b72645(v_3f4e2e.id)}
                             style={{ marginLeft: 8 }}
                           >
-                            <Feather name="trash-2" size={14} color="rgba(255,255,255,0.6)" />
+                            <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -363,7 +361,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 ))
               ) : (
                 <View style={v_d81136.emptyComment}>
-                  <Feather name="message-circle" size={40} color="rgba(255,255,255,0.3)" />
+                  <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
                   <Text style={v_d81136.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
                 </View>
               )}
@@ -374,7 +372,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                 value={v_48e7fe}
                 onChangeText={v_856f84}
                 placeholder={v_8d41d7("feed.commentPlaceholder")}
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={v_1bfbd0.zinc400}
               />
               <TouchableOpacity
                 disabled={!v_48e7fe.trim() || !v_2ca7e0 || v_b0af20}
@@ -385,8 +383,8 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   size={18}
                   color={
                     v_48e7fe.trim() && v_2ca7e0 && !v_b0af20
-                      ? v_1bfbd0.white
-                      : "rgba(255,255,255,0.3)"
+                      ? v_1bfbd0.violet600
+                      : v_1bfbd0.zinc400
                   }
                 />
               </TouchableOpacity>
@@ -504,7 +502,7 @@ const v_d81136 = v_472849.create({
     justifyContent: "flex-end",
   },
   commentSheet: {
-    backgroundColor: "rgba(24,24,27,0.95)",
+    backgroundColor: v_1bfbd0.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -515,7 +513,7 @@ const v_d81136 = v_472849.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.3)",
+    backgroundColor: v_1bfbd0.zinc300,
     alignSelf: "center",
     marginTop: 12,
     marginBottom: 12,
@@ -523,34 +521,34 @@ const v_d81136 = v_472849.create({
   commentHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: v_1bfbd0.zinc100,
   },
-  commentTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.white },
+  commentTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   commentScroll: { flex: 1, marginTop: 12 },
   commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: v_1bfbd0.zinc100 },
   commentInfo: { flex: 1 },
   commentMeta: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 },
-  commentAuthor: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.white },
-  commentTime: { fontSize: 11, color: "rgba(255,255,255,0.5)" },
-  commentContent: { fontSize: 14, color: "rgba(255,255,255,0.9)", lineHeight: 19 },
+  commentAuthor: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  commentTime: { fontSize: 11, color: v_1bfbd0.zinc500 },
+  commentContent: { fontSize: 14, color: v_1bfbd0.zinc800, lineHeight: 19 },
   emptyComment: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 8 },
+  emptyText: { fontSize: 13, color: v_1bfbd0.zinc400, marginTop: 8 },
   commentInputRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
+    borderTopColor: v_1bfbd0.zinc100,
     paddingTop: 12,
   },
   commentInput: {
     flex: 1,
     height: 40,
-    backgroundColor: v_1bfbd0.white,
+    backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100,
     borderRadius: 20,
     paddingHorizontal: 16,
     fontSize: 14,
