@@ -39,6 +39,7 @@ import {
   v_6f689a,
   v_0df337,
   v_97c75d,
+  v_f5a9ea,
   type v_52af9d,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
@@ -164,6 +165,9 @@ export default function v_c316d8() {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
 
+  const [v_90b93a, v_f1ad38] = v_5ab095<{ commentId: number; userName: string } | null>(null);
+  const [v_2ced3d, v_74a05a] = v_5ab095<Record<number, v_52af9d[]>>({});
+
   v_c4deb2(() => {
     if (v_ed660d == null) {
       v_04f2fc([]);
@@ -221,14 +225,37 @@ export default function v_c316d8() {
         }
         v_10e36e.delete(v_e05de7);
       } else {
-        await v_3f8bc7(v_2ca7e0, v_ed660d, v_b43b74);
+        await v_3f8bc7(v_2ca7e0, v_ed660d, v_b43b74, {
+          parentCommentId: v_90b93a?.commentId,
+        });
         v_6bbace = v_ed660d;
       }
       v_856f84("");
-      const v_cb35cb = await v_4208e7(v_6bbace, { limit: 100 });
-      v_04f2fc(v_cb35cb.items);
 
-      v_829e3a(v_6bbace, v_cb35cb.items.length);
+      if (v_90b93a) {
+        try {
+          const v_f10744 = await v_f5a9ea(v_6bbace, v_90b93a.commentId, { limit: 100 });
+          v_74a05a((v_ba2215) => ({ ...v_ba2215, [v_90b93a.commentId]: v_f10744.items }));
+          v_04f2fc((v_ba2215) =>
+            v_ba2215.map((v_3f4e2e) =>
+              v_3f4e2e.id === v_90b93a.commentId
+                ? { ...v_3f4e2e, repliesCount: v_f10744.items.length }
+                : v_3f4e2e,
+            ),
+          );
+        } catch (v_49263d) {
+          console.warn("[Home] refresh replies failed:", v_49263d);
+        }
+        v_f1ad38(null);
+
+        const v_c3bc75 = v_37977a.getState().apiFeeds;
+        const v_5f5d6d = v_c3bc75?.find((v_8b5cd8) => v_8b5cd8.id === v_6bbace);
+        v_829e3a(v_6bbace, (v_5f5d6d?.commentsCount ?? 0) + 1);
+      } else {
+        const v_cb35cb = await v_4208e7(v_6bbace, { limit: 100 });
+        v_04f2fc(v_cb35cb.items);
+        v_829e3a(v_6bbace, v_cb35cb.items.length);
+      }
     } catch (v_49263d) {
       console.warn("[Home] postFeedComment failed:", v_49263d);
     } finally {
@@ -385,7 +412,10 @@ export default function v_c316d8() {
                   <Feather name="loader" size={28} color={v_1bfbd0.zinc400} />
                 </View>
               ) : v_ecfc0f.length > 0 ? (
-                v_ecfc0f.map((v_3f4e2e) => (
+                v_ecfc0f.map((v_3f4e2e) => {
+                  const v_271e2a = v_2ced3d[v_3f4e2e.id];
+                  const v_f72477 = v_271e2a !== undefined;
+                  return (
                   <View key={v_3f4e2e.id} style={v_d81136.commentRow}>
                     {v_3f4e2e.user.avatarUrl ? (
                       <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_d81136.commentAvatar} />
@@ -401,7 +431,6 @@ export default function v_c316d8() {
                             <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
                           </TouchableOpacity>
                         ) : (
-
                           <TouchableOpacity
                             onPress={() =>
                               v_c03d7d({
@@ -416,9 +445,68 @@ export default function v_c316d8() {
                         )}
                       </View>
                       <Text style={v_d81136.commentContent}>{v_3f4e2e.content}</Text>
+                      {}
+                      <View style={v_d81136.replyActions}>
+                        <TouchableOpacity
+                          onPress={() =>
+                            v_f1ad38({
+                              commentId: v_3f4e2e.id,
+                              userName: v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "",
+                            })
+                          }
+                        >
+                          <Text style={v_d81136.replyActionText}>답글 달기</Text>
+                        </TouchableOpacity>
+                        {(v_3f4e2e.repliesCount ?? 0) > 0 && (
+                          <TouchableOpacity
+                            onPress={async () => {
+                              if (v_ed660d == null || v_ed660d < 0) return;
+                              if (v_f72477) {
+
+                                v_74a05a((v_e2a85c) => {
+                                  const v_f4e98d = { ...v_e2a85c };
+                                  delete v_f4e98d[v_3f4e2e.id];
+                                  return v_f4e98d;
+                                });
+                              } else {
+                                try {
+                                  const v_cb35cb = await v_f5a9ea(v_ed660d, v_3f4e2e.id, { limit: 100 });
+                                  v_74a05a((v_e2a85c) => ({ ...v_e2a85c, [v_3f4e2e.id]: v_cb35cb.items }));
+                                } catch (v_49263d) {
+                                  console.warn("[Home] listReplies failed:", v_49263d);
+                                }
+                              }
+                            }}
+                          >
+                            <Text style={v_d81136.replyToggleText}>
+                              {v_f72477
+                                ? "── 답글 숨기기"
+                                : `── 답글 ${v_3f4e2e.repliesCount}개 더 보기`}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      {}
+                      {v_f72477 && v_271e2a && v_271e2a.map((v_5cfb2c) => (
+                        <View key={v_5cfb2c.id} style={v_d81136.replyRow}>
+                          {v_5cfb2c.user.avatarUrl ? (
+                            <Image source={{ uri: v_5cfb2c.user.avatarUrl }} style={v_d81136.replyAvatar} />
+                          ) : (
+                            <View style={[v_d81136.replyAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
+                          )}
+                          <View style={{ flex: 1 }}>
+                            <View style={v_d81136.commentMeta}>
+                              <Text style={v_d81136.commentAuthor}>{v_5cfb2c.user.name ?? v_5cfb2c.user.email}</Text>
+                              <Text style={v_d81136.commentTime}>{v_bfd883(v_5cfb2c.createdAt)}</Text>
+                            </View>
+                            <Text style={v_d81136.commentContent}>{v_5cfb2c.content}</Text>
+                          </View>
+                        </View>
+                      ))}
                     </View>
                   </View>
-                ))
+                );
+                })
               ) : (
                 <View style={v_d81136.emptyComment}>
                   <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
@@ -426,12 +514,23 @@ export default function v_c316d8() {
                 </View>
               )}
             </ScrollView>
+            {}
+            {v_90b93a && (
+              <View style={v_d81136.replyingBanner}>
+                <Text style={v_d81136.replyingText}>
+                  @{v_90b93a.userName} 에게 답글
+                </Text>
+                <TouchableOpacity onPress={() => v_f1ad38(null)}>
+                  <Feather name="x" size={14} color={v_1bfbd0.zinc500} />
+                </TouchableOpacity>
+              </View>
+            )}
             <View style={v_d81136.commentInputRow}>
               <TextInput
                 style={v_d81136.commentInput}
                 value={v_48e7fe}
                 onChangeText={v_856f84}
-                placeholder={v_8d41d7("feed.commentPlaceholder")}
+                placeholder={v_90b93a ? "답글 입력..." : v_8d41d7("feed.commentPlaceholder")}
                 placeholderTextColor={v_1bfbd0.zinc400}
               />
               <TouchableOpacity
@@ -743,6 +842,14 @@ const v_d81136 = v_472849.create({
   emptyText: { fontSize: 14, color: v_1bfbd0.zinc400, marginTop: 8 },
   commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: v_1bfbd0.zinc100, paddingTop: 12 },
   commentInput: { flex: 1, height: 40, backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100, borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: v_1bfbd0.zinc900 },
+
+  replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
+  replyActionText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.zinc500 },
+  replyToggleText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.zinc500 },
+  replyRow: { flexDirection: "row", gap: 8, marginTop: 10, marginLeft: 0 },
+  replyAvatar: { width: 24, height: 24, borderRadius: 12 },
+  replyingBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 4, backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100, borderRadius: 8, marginTop: 6 },
+  replyingText: { fontSize: 12, color: v_1bfbd0.zinc600 },
 
   moreOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   moreSheet: { backgroundColor: v_1bfbd0.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 0, paddingHorizontal: 16 },

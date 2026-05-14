@@ -556,6 +556,8 @@ v_96e8d7.delete("/:id/like", v_6690d9, async (v_3f4e2e) => {
 
 const v_9c5bc5 = v_1f4ea7.object({
   content: v_1f4ea7.string().min(1).max(2000),
+
+  parentCommentId: v_1f4ea7.number().int().positive().optional(),
 });
 
 v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
@@ -574,11 +576,30 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
       if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
+
+  let v_ab1564 = null;
+  if (v_4d33b2.parentCommentId) {
+    const v_4eab4b = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, feed_id AS feedId, parent_comment_id AS parentId
+           FROM feed_comments
+          WHERE id = ?`,
+      )
+      .bind(v_4d33b2.parentCommentId)
+      .first<{ id: number; feedId: number; parentId: number | null }>();
+    if (!v_4eab4b) throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없어요.");
+    if (v_4eab4b.feedId !== v_c09aa8) {
+      throw new v_3ebe58("VALIDATION_FAILED", "부모 댓글이 다른 피드에 속해 있어요.");
+    }
+
+    v_ab1564 = v_4eab4b.parentId ?? v_4eab4b.id;
+  }
   const v_cb35cb = await v_3f4e2e.env.DB
     .prepare(
-      `INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`,
+      `INSERT INTO feed_comments (feed_id, user_id, content, parent_comment_id)
+       VALUES (?, ?, ?, ?)`,
     )
-    .bind(v_c09aa8, v_43e90c, v_4d33b2.content.trim())
+    .bind(v_c09aa8, v_43e90c, v_4d33b2.content.trim(), v_ab1564)
     .run();
 
   await v_80a022(v_3f4e2e.env, "clone_comment", {
@@ -595,6 +616,7 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
         feedId: v_c09aa8,
         userId: v_43e90c,
         content: v_4d33b2.content.trim(),
+        parentCommentId: v_ab1564,
       },
     },
     201,
@@ -662,7 +684,7 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 30);
   const v_02be30 = Math.max(1, Math.min(100, Number.isFinite(v_cf2260) ? v_cf2260 : 30));
 
-  const v_abcc8d = ["fc.feed_id = ?"];
+  const v_abcc8d = ["fc.feed_id = ?", "fc.parent_comment_id IS NULL"];
   const v_925171 = [v_c09aa8];
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
     v_abcc8d.push("fc.id < ?");
@@ -677,7 +699,9 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
                 fc.created_at AS createdAt,
                 u.name       AS userName,
                 u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+                u.avatar_url AS userAvatarUrl,
+                (SELECT COUNT(*) FROM feed_comments fcc
+                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE ${v_abcc8d.join(" AND ")} AND u.deleted_at IS NULL
@@ -693,6 +717,7 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
+        repliesCount: number;
       }>()
   ).results;
 
@@ -707,6 +732,7 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
       userId: v_cb35cb.userId,
       content: v_cb35cb.content,
       createdAt: v_cb35cb.createdAt,
+      repliesCount: v_cb35cb.repliesCount ?? 0,
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,
@@ -715,6 +741,62 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
       },
     })),
     nextCursor: v_64f859,
+  });
+});
+
+v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT fc.id        AS commentId,
+                fc.user_id   AS userId,
+                fc.content   AS content,
+                fc.created_at AS createdAt,
+                u.name       AS userName,
+                u.email      AS userEmail,
+                u.avatar_url AS userAvatarUrl
+           FROM feed_comments fc
+           JOIN users u ON u.id = fc.user_id
+          WHERE fc.feed_id = ?
+            AND fc.parent_comment_id = ?
+            AND u.deleted_at IS NULL
+          ORDER BY fc.id ASC
+          LIMIT ?`,
+      )
+      .bind(v_c09aa8, v_062ae9, v_02be30)
+      .all<{
+        commentId: number;
+        userId: number;
+        content: string;
+        createdAt: string;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  return v_3f4e2e.json({
+    items: (v_18b8bf ?? []).map((v_cb35cb) => ({
+      id: v_cb35cb.commentId,
+      userId: v_cb35cb.userId,
+      content: v_cb35cb.content,
+      createdAt: v_cb35cb.createdAt,
+      parentCommentId: v_062ae9,
+      user: {
+        id: v_cb35cb.userId,
+        name: v_cb35cb.userName,
+        email: v_cb35cb.userEmail,
+        avatarUrl: v_cb35cb.userAvatarUrl,
+      },
+    })),
   });
 });
 
