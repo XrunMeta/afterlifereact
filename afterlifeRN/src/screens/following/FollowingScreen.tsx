@@ -47,6 +47,7 @@ import {
 import { formatRelativeKo } from "../../lib/relativeTime";
 import { useFocusEffect } from "@react-navigation/native";
 import type { DomainClone, DomainFeed } from "../../types/domain";
+import HashtagText from "../../components/common/HashtagText";
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_W } = Dimensions.get("window");
@@ -515,7 +516,15 @@ export default function FollowingScreen() {
             {item.persona.creatorAccount ? (
               <Text style={s.creatorAccount}>{item.persona.creatorAccount}</Text>
             ) : null}
-            <Text style={s.postContent} numberOfLines={3}>{item.feed.content}</Text>
+            {
+}
+            <HashtagText
+              style={s.postContent}
+              numberOfLines={3}
+              tagStyle={{ color: COLORS.white, fontWeight: "700", textDecorationLine: "underline" }}
+            >
+              {item.feed.content}
+            </HashtagText>
             <View style={s.overlayBtns}>
               <Button
                 title={t("feed.actionCall")}
