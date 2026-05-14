@@ -264,12 +264,16 @@ export default function v_e2b396() {
 }
           <TouchableOpacity
             style={v_fd5f43.fieldRow}
-            onPress={() =>
-              v_889fad(
-                "비밀번호 재설정",
-                "로그아웃 후 [비밀번호를 잊으셨나요?] 에서 이메일 인증으로 재설정할 수 있어요.",
-              )
-            }
+            onPress={() => {
+              if (!v_b113dd?.email) {
+                v_889fad(
+                  "이메일 없음",
+                  "계정 이메일이 없어요. 로그아웃 후 [비밀번호를 잊으셨나요?] 에서 진행해주세요.",
+                );
+                return;
+              }
+              v_c65f5d.navigate("ResetPassword", { email: v_b113dd.email });
+            }}
           >
             <Text style={v_fd5f43.fieldLabel}>비밀번호</Text>
             <Text style={[v_fd5f43.fieldValueLink]}>재설정</Text>

@@ -17,6 +17,8 @@ export type RootStackParamList = {
   UserFollowList: { userId: number; mode: "followers" | "following"; userName?: string };
 
   CloneFeed: { feed: import("../api/clones").DiscoverFeedItem };
+
+  ResetPassword: { email?: string } | undefined;
 };
 
 export type AuthStackParamList = {

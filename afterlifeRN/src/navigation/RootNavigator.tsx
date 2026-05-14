@@ -76,6 +76,14 @@ export default function v_3b950c() {
             component={v_9887a2}
             options={{ animation: "slide_from_right" }}
           />
+          {
+
+}
+          <RootStack.Screen
+            name="ResetPassword"
+            component={v_040c8f}
+            options={{ animation: "slide_from_right" }}
+          />
         </>
       )}
     </RootStack.Navigator>
