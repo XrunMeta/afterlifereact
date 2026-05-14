@@ -498,12 +498,12 @@ export default function FollowingScreen() {
           <View style={s.statsBadge}>
             <TouchableOpacity style={s.badgeBtn} onPress={() => setShowIntimacyInfo(true)}>
               <Feather name="thermometer" size={12} color="#fb923c" />
-              <Text style={s.badgeText}>{item.persona.intimacy}°C</Text>
+              <Text style={s.badgeText}>{item.persona.intimacy}</Text>
             </TouchableOpacity>
             <View style={s.badgeDivider} />
             <TouchableOpacity style={s.badgeBtn} onPress={() => setShowInteractionInfo(true)}>
               <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
-              <Text style={s.badgeText}>{formatCount(item.persona.interactions)}</Text>
+              <Text style={s.badgeText}>{item.persona.interactions}</Text>
             </TouchableOpacity>
           </View>
 

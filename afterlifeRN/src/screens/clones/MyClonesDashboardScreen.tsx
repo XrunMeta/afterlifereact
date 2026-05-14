@@ -1445,7 +1445,7 @@ const s = StyleSheet.create({
 
   cardTopRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginBottom: 10,
   },
