@@ -202,11 +202,16 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   v_c4deb2(() => {
     if (!v_1126f9) {
       v_04f2fc([]);
+
+      v_74a05a({});
+      v_f1ad38(null);
       return;
     }
     let v_2008a4 = false;
     v_856daf(true);
     v_04f2fc([]);
+
+    v_74a05a({});
     const v_19e91c = v_6bbace < 0
       ? v_776874(v_2db2a5.cloneId, { limit: 100, accessToken: v_2ca7e0 })
       : v_4208e7(v_6bbace, { limit: 100, accessToken: v_2ca7e0 });

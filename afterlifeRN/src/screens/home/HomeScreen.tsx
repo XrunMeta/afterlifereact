@@ -179,16 +179,21 @@ export default function v_c316d8() {
   v_c4deb2(() => {
     if (v_ed660d == null) {
       v_04f2fc([]);
+
+      v_74a05a({});
+      v_f1ad38(null);
       return;
     }
     if (v_ed660d < 0) {
 
       v_04f2fc([]);
+      v_74a05a({});
       return;
     }
     let v_2008a4 = false;
     v_856daf(true);
     v_04f2fc([]);
+    v_74a05a({});
     v_4208e7(v_ed660d, { limit: 100, accessToken: v_2ca7e0 })
       .then((v_8f00b9) => {
         if (v_2008a4) return;
