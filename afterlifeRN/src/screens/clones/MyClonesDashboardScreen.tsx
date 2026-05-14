@@ -569,10 +569,14 @@ export default function v_def15b() {
           </View>
           <View style={v_fd5f43.cloneInfo}>
             <Text style={v_fd5f43.cloneName}>{v_eb25ce.displayName}</Text>
-            {v_eb25ce.username && (
+            {v_eb25ce.username ? (
               <Text style={v_fd5f43.cloneUsername}>@{v_eb25ce.username}</Text>
-            )}
-            <Text style={v_fd5f43.cloneCategory}>{v_eb25ce.interests?.[0] ?? ""}</Text>
+            ) : null}
+            {
+}
+            {v_eb25ce.interests?.[0] ? (
+              <Text style={v_fd5f43.cloneCategory}>{v_eb25ce.interests[0]}</Text>
+            ) : null}
           </View>
         </View>
 
