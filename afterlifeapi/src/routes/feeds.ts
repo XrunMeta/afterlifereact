@@ -146,10 +146,27 @@ feedsDiscover.get("/discover", async (c) => {
     "c.deletion_state = 'active'",
     "c.deleted_at IS NULL",
     "c.clone_type != 'memlow'",
-    "c.visibility = 'public'",
-
   ];
   const binds: unknown[] = [];
+
+  if (viewerId) {
+    where.push(
+      `(
+         c.visibility = 'public'
+         OR c.owner_id = ?
+         OR (c.visibility = 'followers' AND
+             EXISTS (SELECT 1 FROM clone_follows cf
+                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
+         OR (c.visibility = 'selected' AND
+             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+       )`,
+    );
+    binds.push(viewerId, viewerId, viewerId);
+  } else {
+
+    where.push("c.visibility = 'public'");
+  }
 
   if (viewerId) {
     where.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
