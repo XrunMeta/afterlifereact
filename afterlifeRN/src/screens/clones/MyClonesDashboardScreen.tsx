@@ -569,10 +569,14 @@ export default function MyClonesDashboardScreen() {
           </View>
           <View style={s.cloneInfo}>
             <Text style={s.cloneName}>{clone.displayName}</Text>
-            {clone.username && (
+            {clone.username ? (
               <Text style={s.cloneUsername}>@{clone.username}</Text>
-            )}
-            <Text style={s.cloneCategory}>{clone.interests?.[0] ?? ""}</Text>
+            ) : null}
+            {
+}
+            {clone.interests?.[0] ? (
+              <Text style={s.cloneCategory}>{clone.interests[0]}</Text>
+            ) : null}
           </View>
         </View>
 
