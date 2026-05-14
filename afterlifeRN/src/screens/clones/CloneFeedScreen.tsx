@@ -316,18 +316,16 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
             ]}
           >
             <View style={styles.sheetHandle} />
+            {}
             <View style={styles.commentHeaderRow}>
               <Text style={styles.commentTitle}>
                 {t("feed.commentCount", { n: comments.length })}
               </Text>
-              <TouchableOpacity onPress={() => setCommentOpen(false)}>
-                <Feather name="x" size={20} color={COLORS.white} />
-              </TouchableOpacity>
             </View>
             <ScrollView style={styles.commentScroll} showsVerticalScrollIndicator={false}>
               {commentsLoading ? (
                 <View style={styles.emptyComment}>
-                  <Feather name="loader" size={28} color="rgba(255,255,255,0.5)" />
+                  <Feather name="loader" size={28} color={COLORS.zinc400} />
                 </View>
               ) : comments.length > 0 ? (
                 comments.map((c) => (
@@ -338,7 +336,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                       <View
                         style={[
                           styles.commentAvatar,
-                          { backgroundColor: "rgba(255,255,255,0.15)" },
+                          { backgroundColor: COLORS.zinc100 },
                         ]}
                       />
                     )}
@@ -353,7 +351,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                             onPress={() => deleteComment(c.id)}
                             style={{ marginLeft: 8 }}
                           >
-                            <Feather name="trash-2" size={14} color="rgba(255,255,255,0.6)" />
+                            <Feather name="trash-2" size={14} color={COLORS.zinc400} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -363,7 +361,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                 ))
               ) : (
                 <View style={styles.emptyComment}>
-                  <Feather name="message-circle" size={40} color="rgba(255,255,255,0.3)" />
+                  <Feather name="message-circle" size={40} color={COLORS.zinc300} />
                   <Text style={styles.emptyText}>{t("feed.commentsEmpty")}</Text>
                 </View>
               )}
@@ -374,7 +372,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                 value={commentText}
                 onChangeText={setCommentText}
                 placeholder={t("feed.commentPlaceholder")}
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={COLORS.zinc400}
               />
               <TouchableOpacity
                 disabled={!commentText.trim() || !accessToken || submittingComment}
@@ -385,8 +383,8 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                   size={18}
                   color={
                     commentText.trim() && accessToken && !submittingComment
-                      ? COLORS.white
-                      : "rgba(255,255,255,0.3)"
+                      ? COLORS.violet600
+                      : COLORS.zinc400
                   }
                 />
               </TouchableOpacity>
@@ -504,7 +502,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   commentSheet: {
-    backgroundColor: "rgba(24,24,27,0.95)",
+    backgroundColor: COLORS.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -515,7 +513,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.3)",
+    backgroundColor: COLORS.zinc300,
     alignSelf: "center",
     marginTop: 12,
     marginBottom: 12,
@@ -523,34 +521,34 @@ const styles = StyleSheet.create({
   commentHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.1)",
+    borderBottomColor: COLORS.zinc100,
   },
-  commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.white },
+  commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1, marginTop: 12 },
   commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.zinc100 },
   commentInfo: { flex: 1 },
   commentMeta: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 },
-  commentAuthor: { fontSize: 13, fontWeight: "600", color: COLORS.white },
-  commentTime: { fontSize: 11, color: "rgba(255,255,255,0.5)" },
-  commentContent: { fontSize: 14, color: "rgba(255,255,255,0.9)", lineHeight: 19 },
+  commentAuthor: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900 },
+  commentTime: { fontSize: 11, color: COLORS.zinc500 },
+  commentContent: { fontSize: 14, color: COLORS.zinc800, lineHeight: 19 },
   emptyComment: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { fontSize: 13, color: "rgba(255,255,255,0.5)", marginTop: 8 },
+  emptyText: { fontSize: 13, color: COLORS.zinc400, marginTop: 8 },
   commentInputRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.1)",
+    borderTopColor: COLORS.zinc100,
     paddingTop: 12,
   },
   commentInput: {
     flex: 1,
     height: 40,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.zinc50 ?? COLORS.zinc100,
     borderRadius: 20,
     paddingHorizontal: 16,
     fontSize: 14,

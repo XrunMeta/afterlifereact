@@ -27,6 +27,7 @@ import {
 } from "../../api/auth";
 import type { CountryDialCode } from "../../types/country";
 import { COUNTRY_DIAL_CODES } from "../../constants/countryDialCodes";
+import { getRegionsByCountryIso2 } from "../../constants/regions";
 import type { RootStackParamList } from "../../navigation/types";
 
 type Gender = "male" | "female";
@@ -68,7 +69,13 @@ export default function EditProfileScreen() {
     );
   }, [apiUser]);
   const [country, setCountry] = useState<CountryDialCode | null>(initialCountry);
-  const [region, setRegion] = useState<CountryDialCode | null>(null);
+
+  const initialRegion = useMemo<CountryDialCode | null>(() => {
+    if (!apiUser?.country || !apiUser.region) return null;
+    const regions = getRegionsByCountryIso2(apiUser.country.toLowerCase());
+    return regions.find((r) => r.dialCode === apiUser.region) ?? null;
+  }, [apiUser]);
+  const [region, setRegion] = useState<CountryDialCode | null>(initialRegion);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
   const [saving, setSaving] = useState(false);
