@@ -55,6 +55,15 @@ function ClonesStackNavigator() {
 }
 
 function CreateStackNavigator() {
+
+  React.useEffect(() => {
+    const { creationDraft, setCreationDraft } =
+      require("../stores/cloneStore").useCloneStore.getState();
+    if (!creationDraft.cloneType) {
+      console.log("[CreateStack] cloneType missing on mount — defaulting to friend");
+      setCreationDraft({ cloneType: "friend", visibility: "public" });
+    }
+  }, []);
   return (
     <CreateStack.Navigator screenOptions={{ headerShown: false }}>
       <CreateStack.Screen name="Step1" component={Step1CloneTypeScreen} />

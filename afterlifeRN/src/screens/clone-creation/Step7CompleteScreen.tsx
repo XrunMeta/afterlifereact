@@ -83,6 +83,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   const attemptCreate = useCallback(
     async (pin?: string): Promise<number> => {
+      const draft = useCloneStore.getState().creationDraft;
       console.log("[CLONE-CREATE] attemptCreate start. draft snapshot:", {
         cloneType: draft.cloneType,
         name: draft.name,
@@ -232,30 +233,63 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const handleSharePost = async () => {
     if (creating || posting) return;
     const trimmed = caption.trim();
-    console.log("[CLONE-CREATE] handleSharePost tap. captionLen=", trimmed.length, "createdCloneId=", createdCloneId);
+
+    const draftDump = {
+      cloneType: draft.cloneType,
+      name: draft.name,
+      nameLen: draft.name?.length ?? 0,
+      username: draft.username,
+      description: draft.description,
+      hasImageFile: !!draft.imageFile,
+      imageFile: draft.imageFile,
+      visibility: draft.visibility,
+      category: draft.category,
+      interests: draft.interests,
+      personaAge: draft.personaAge,
+      personaGender: draft.personaGender,
+      personaMbti: draft.personaMbti,
+      personaTypes: draft.personaTypes,
+      personaNotesLen: draft.personaNotes?.length ?? 0,
+    };
+    console.log(
+      "[CLONE-CREATE] handleSharePost tap. captionLen=",
+      trimmed.length,
+      "createdCloneId=",
+      createdCloneId,
+      "hasAccessToken=",
+      !!accessToken,
+    );
+    console.log("[CLONE-CREATE] DRAFT DUMP:", JSON.stringify(draftDump, null, 2));
+
     if (trimmed.length === 0) {
+      console.log("[CLONE-CREATE] BLOCKED: caption empty");
       showAlert("소개글", "한 줄 소개를 입력해주세요.");
       return;
     }
 
     if (!accessToken) {
+      console.log("[CLONE-CREATE] BLOCKED: no accessToken");
       showAlert("로그인 필요", "로그인 정보가 없어요. 다시 로그인해주세요.");
       return;
     }
+
     if (!draft.cloneType) {
-      showAlert(
-        "페르소나 정보 누락",
-        "페르소나 유형이 설정되지 않았어요. 처음부터 다시 만들어주세요.",
+      console.warn(
+        "[CLONE-CREATE] cloneType missing — auto-fallback to 'friend'. full draft=",
+        JSON.stringify(draft, null, 2),
       );
-      return;
+      useCloneStore.getState().setCreationDraft({ cloneType: "friend" });
+
     }
     if (!draft.name || draft.name.trim().length === 0) {
+      console.log("[CLONE-CREATE] BLOCKED: name missing. full draft=", JSON.stringify(draft, null, 2));
       showAlert(
         "이름 누락",
         "페르소나 이름이 없어요. 이전 단계로 돌아가서 이름을 입력해주세요.",
       );
       return;
     }
+    console.log("[CLONE-CREATE] sanity check passed → proceed to attemptCreate");
 
     setPosting(true);
     setError(null);
