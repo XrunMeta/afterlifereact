@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
@@ -240,7 +241,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             setCreating(false);
             const msg = '세션이 만료됐어요. 다시 로그인해주세요.';
             setError(msg);
-            Alert.alert('세션 만료', msg, [
+            showAlert('세션 만료', msg, [
               {
                 text: '로그인하기',
                 onPress: async () => {
@@ -264,7 +265,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           }
           setError(msg);
           setCreating(false);
-          Alert.alert(t('create.complete.createFailed'), msg);
+          showAlert(t('create.complete.createFailed'), msg);
         } else {
           console.warn('[CLONE-CREATE] failed:', err);
           setError(t('create.errors.createFailed'));

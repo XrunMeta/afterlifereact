@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -359,12 +360,12 @@ export default function MyClonesDashboardScreen() {
 
   const handleEditAvatar = async () => {
     if (!accessToken) {
-      Alert.alert(t("common.notice", { defaultValue: "알림" }), t("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
+      showAlert(t("common.notice", { defaultValue: "알림" }), t("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      showAlert(
         t("my.permTitle", { defaultValue: "권한 필요" }),
         t("my.permDesc", { defaultValue: "사진 라이브러리 접근 권한을 허용해주세요." }),
       );
@@ -391,7 +392,7 @@ export default function MyClonesDashboardScreen() {
       patchApiUser({ avatarUrl: uploaded.url });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "이미지 업로드에 실패했어요";
-      Alert.alert(t("common.error", { defaultValue: "오류" }), msg);
+      showAlert(t("common.error", { defaultValue: "오류" }), msg);
     } finally {
       setUploadingAvatar(false);
     }

@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   View,
@@ -454,7 +455,7 @@ export default function FollowingScreen() {
 
   const deleteComment = (commentId: number) => {
     if (commentPostId == null || commentPostId < 0 || !accessToken) return;
-    Alert.alert(
+    showAlert(
       "댓글 삭제",
       "이 댓글을 삭제하시겠습니까?",
       [

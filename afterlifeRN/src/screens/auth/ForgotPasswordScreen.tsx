@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState } from "react";
 import {
   View,
@@ -40,20 +41,20 @@ export default function ForgotPasswordScreen() {
   const handleSendCode = async () => {
     const e = email.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(e)) {
-      Alert.alert("알림", "이메일 형식이 올바르지 않아요.");
+      showAlert("알림", "이메일 형식이 올바르지 않아요.");
       return;
     }
     setSubmitting(true);
     try {
       await requestPasswordReset(e);
-      Alert.alert(t("auth.forgot.title"), t("auth.forgot.codeSent"));
+      showAlert(t("auth.forgot.title"), t("auth.forgot.codeSent"));
       setStep("otp");
     } catch (err) {
       const msg =
         err instanceof AuthApiError && err.code === "OTP_COOLDOWN"
           ? err.message
           : t("auth.forgot.resetFailed");
-      Alert.alert("오류", msg);
+      showAlert("오류", msg);
     } finally {
       setSubmitting(false);
     }
@@ -61,7 +62,7 @@ export default function ForgotPasswordScreen() {
 
   const handleVerifyCode = () => {
     if (!/^\d{6}$/.test(code.trim())) {
-      Alert.alert("알림", t("auth.forgot.wrongCode"));
+      showAlert("알림", t("auth.forgot.wrongCode"));
       return;
     }
 
@@ -71,11 +72,11 @@ export default function ForgotPasswordScreen() {
   const handleSavePassword = async () => {
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
-      Alert.alert("알림", t("auth.forgot.passwordTooShort"));
+      showAlert("알림", t("auth.forgot.passwordTooShort"));
       return;
     }
     if (password !== passwordConfirm) {
-      Alert.alert("알림", t("auth.forgot.passwordMismatch"));
+      showAlert("알림", t("auth.forgot.passwordMismatch"));
       return;
     }
     setSubmitting(true);
@@ -85,7 +86,7 @@ export default function ForgotPasswordScreen() {
         verificationCode: code.trim(),
         newPassword: password,
       });
-      Alert.alert(t("auth.forgot.successTitle"), t("auth.forgot.successDesc"), [
+      showAlert(t("auth.forgot.successTitle"), t("auth.forgot.successDesc"), [
         { text: "확인", onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
@@ -98,7 +99,7 @@ export default function ForgotPasswordScreen() {
         } else if (err.code === "NOT_FOUND") msg = t("auth.forgot.notFound");
         else if (err.message) msg = err.message;
       }
-      Alert.alert("오류", msg);
+      showAlert("오류", msg);
     } finally {
       setSubmitting(false);
     }

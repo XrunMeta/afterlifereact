@@ -1,3 +1,4 @@
+import { showAlert } from "../../../stores/dialogStore";
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -23,7 +24,7 @@ async function pickFile(
       onChange({ voiceFile: r.assets[0].uri, recordDuration: 0 });
     }
   } catch {
-    Alert.alert(errorTitle, errorMsg);
+    showAlert(errorTitle, errorMsg);
   }
 }
 

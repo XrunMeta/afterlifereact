@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, View } from "react-native";
 import RootNavigator from "./src/navigation/RootNavigator";
+import AppDialog from "./src/components/ui/AppDialog";
 import { useAuthStore } from "./src/stores/authStore";
 import { useFollowStore } from "./src/stores/followStore";
 import { useUserFollowStore } from "./src/stores/userFollowStore";
@@ -69,6 +70,8 @@ export default function App() {
           <RootNavigator />
           <StatusBar style="dark" />
         </NavigationContainer>
+        {}
+        <AppDialog />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

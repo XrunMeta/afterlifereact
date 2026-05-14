@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { useAuthStore } from '../../stores/authStore';
@@ -43,7 +44,7 @@ export function defaultDevActions(): DevAction[] {
           messages: seedSource.messages().length,
           feeds: seedSource.feeds().length,
         };
-        Alert.alert('SEED counts', JSON.stringify(counts, null, 2));
+        showAlert('SEED counts', JSON.stringify(counts, null, 2));
       },
     },
   ];

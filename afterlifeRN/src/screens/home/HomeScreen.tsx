@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
@@ -238,7 +239,7 @@ export default function HomeScreen() {
 
   const deleteComment = (commentId: number) => {
     if (commentFeedId == null || commentFeedId < 0 || !accessToken) return;
-    Alert.alert(
+    showAlert(
       "댓글 삭제",
       "이 댓글을 삭제하시겠습니까?",
       [
@@ -526,7 +527,7 @@ export default function HomeScreen() {
                     setMoreTarget(null);
                     if (!target || !accessToken) return;
 
-                    Alert.alert(
+                    showAlert(
                       "페르소나 삭제",
                       `'${target.author}' 페르소나를 삭제할까요?\n복구 불가합니다.`,
                       [

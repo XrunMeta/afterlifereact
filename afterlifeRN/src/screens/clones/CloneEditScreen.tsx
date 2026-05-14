@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -145,7 +146,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
     } catch (err) {
       console.warn("[CloneEdit] save failed:", err);
       const msg = err instanceof AuthApiError ? err.message : t("edit.saveFailed");
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
     } finally {
       setSaving(false);
     }

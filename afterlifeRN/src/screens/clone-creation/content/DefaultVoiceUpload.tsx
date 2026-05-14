@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../../stores/dialogStore";
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -68,7 +69,7 @@ async function pickFile(
       onChange({ voiceFile: r.assets[0].uri, voiceSampleId: undefined });
     }
   } catch {
-    Alert.alert(errorTitle, errorMsg);
+    showAlert(errorTitle, errorMsg);
   }
 }
 
@@ -119,14 +120,14 @@ function Component({ draft, onChange }: Props) {
             recordDuration: elapsedSec,
           });
         } else {
-          Alert.alert("녹음 실패", "녹음 파일을 가져오지 못했어요. 다시 시도해주세요.");
+          showAlert("녹음 실패", "녹음 파일을 가져오지 못했어요. 다시 시도해주세요.");
         }
         return;
       }
 
       const perm = await requestRecordingPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert(
+        showAlert(
           "마이크 권한 필요",
           "직접 녹음을 사용하려면 설정에서 마이크 권한을 허용해주세요.",
         );
@@ -138,7 +139,7 @@ function Component({ draft, onChange }: Props) {
       recorder.record();
     } catch (err) {
       console.warn("[Voice] record toggle failed:", err);
-      Alert.alert("녹음 오류", "녹음을 시작/중단하지 못했어요. 다시 시도해주세요.");
+      showAlert("녹음 오류", "녹음을 시작/중단하지 못했어요. 다시 시도해주세요.");
     }
   };
 

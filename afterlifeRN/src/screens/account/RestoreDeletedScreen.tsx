@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Alert } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -14,9 +15,9 @@ export default function RestoreDeletedScreen() {
     setLoading(true);
     try {
       await new Promise((r) => setTimeout(r, 400));
-      Alert.alert(t("restore.successTitle"), t("restore.successMsg"));
+      showAlert(t("restore.successTitle"), t("restore.successMsg"));
     } catch (e) {
-      Alert.alert(t("restore.failTitle"), t("restore.failMsg"));
+      showAlert(t("restore.failTitle"), t("restore.failMsg"));
     } finally {
       setLoading(false);
     }

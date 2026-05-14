@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState } from "react";
 import {
   View,
@@ -89,7 +90,7 @@ export default function SignupCompleteScreen({ route }: Props) {
       console.warn("[SignupComplete] start failed:", err);
       const msg =
         err instanceof AuthApiError ? err.message : String(err);
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
 
     } finally {
       setProceeding(false);

@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -47,7 +48,7 @@ export default function PaymentPinScreen() {
         console.log("[PIN] mount status:", status);
         if (cancelled) return;
         if (!status.linked) {
-          Alert.alert("알림", "xrun 회원 매핑이 안 되어 있습니다.");
+          showAlert("알림", "xrun 회원 매핑이 안 되어 있습니다.");
           navigation.goBack();
           return;
         }
@@ -90,7 +91,7 @@ export default function PaymentPinScreen() {
     console.log("[PIN] verify clicked, len:", pin.length, "attemptsLeft:", attemptsLeft);
     if (pin.length !== PIN_LENGTH || verifying) return;
     if (!accessToken) {
-      Alert.alert("알림", "로그인이 필요합니다.");
+      showAlert("알림", "로그인이 필요합니다.");
       return;
     }
     setVerifying(true);
@@ -104,7 +105,7 @@ export default function PaymentPinScreen() {
         return;
       }
       if (result.match) {
-        Alert.alert("확인", "비밀번호가 확인되었습니다.");
+        showAlert("확인", "비밀번호가 확인되었습니다.");
         navigation.goBack();
         return;
       }
@@ -157,7 +158,7 @@ export default function PaymentPinScreen() {
       try {
         await Linking.openURL(storeUrl);
       } catch {
-        Alert.alert("알림", "xrun 앱이 설치되어 있지 않습니다.");
+        showAlert("알림", "xrun 앱이 설치되어 있지 않습니다.");
       }
     }
   };

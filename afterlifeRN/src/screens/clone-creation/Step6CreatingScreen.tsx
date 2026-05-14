@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -321,17 +322,17 @@ export default function Step6CreatingScreen({ navigation }: Props) {
         const r = await checkCloneUsername(finalUsername);
         if (!r.available) {
           if (r.reason === "reserved") {
-            Alert.alert(
+            showAlert(
               "사용할 수 없는 아이디",
               "예약된 아이디입니다. 다른 아이디를 입력해주세요.",
             );
           } else if (r.reason === "invalid") {
-            Alert.alert(
+            showAlert(
               "아이디 형식 오류",
               "영문 소문자/숫자/_ 만 사용 가능하고 3-30자여야 해요.",
             );
           } else {
-            Alert.alert(
+            showAlert(
               "이미 사용중인 아이디",
               "이미 사용중인 아이디가 있습니다. 다른 아이디를 입력해주세요.",
             );

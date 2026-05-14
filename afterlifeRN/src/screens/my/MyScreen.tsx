@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -154,7 +155,7 @@ export default function MyScreen() {
       }
     } catch (err) {
       console.warn("[MyScreen] open xrun app failed:", err);
-      Alert.alert("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
+      showAlert("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
     }
   };
 
@@ -210,7 +211,7 @@ export default function MyScreen() {
   const [deleting, setDeleting] = useState(false);
 
   const handleDeleteAccount = () => {
-    Alert.alert(
+    showAlert(
       "회원 탈퇴",
       "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(xrun 가입자라면 xrun 계정은 유지됩니다)",
       [
@@ -227,7 +228,7 @@ export default function MyScreen() {
               await logout();
             } catch (err) {
               const msg = err instanceof AuthApiError ? err.message : "탈퇴에 실패했어요.";
-              Alert.alert("오류", msg);
+              showAlert("오류", msg);
               setDeleting(false);
             }
           },
