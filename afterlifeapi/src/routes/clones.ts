@@ -14,7 +14,7 @@ import {
 } from "../lib/cloneAccess";
 import { writeCtx, writeShared } from "../lib/memoryStore";
 import { externalTransferSplit } from "../lib/xrun";
-import { notifyCloneEvent } from "../lib/notify";
+import { notify, notifyCloneEvent } from "../lib/notify";
 
 export const clones = new Hono<AppEnv>();
 
@@ -313,6 +313,39 @@ clones.post(
       action: "clone.create",
       details: { cloneId, cloneType: body.clone_type },
     });
+
+    if (body.visibility === "public" && body.clone_type !== "memlow") {
+      try {
+        const actor = await db
+          .prepare(`SELECT name, email FROM users WHERE id = ?`)
+          .bind(userId)
+          .first<{ name: string | null; email: string | null }>();
+        const actorName =
+          actor?.name || actor?.email?.split("@")[0] || "누군가";
+        const followers = await db
+          .prepare(`SELECT follower_id FROM user_follows WHERE followee_id = ?`)
+          .bind(userId)
+          .all<{ follower_id: number }>();
+
+        const seen = new Set<number>();
+        for (const row of followers.results ?? []) {
+          if (row.follower_id === userId) continue;
+          if (seen.has(row.follower_id)) continue;
+          seen.add(row.follower_id);
+          await notify(c.env, {
+            userId: row.follower_id,
+            type: "followee_new_clone",
+            title: "🌟 새 페르소나",
+            body: `${actorName} 님이 새 페르소나 '${body.name}' 을(를) 만들었어요`,
+            url: `afterlife://clone/${cloneId}`,
+            data: { cloneId, ownerId: userId },
+            skipEmail: true,
+          });
+        }
+      } catch (err) {
+        console.warn("[clone.create] followee_new_clone notify failed:", err);
+      }
+    }
 
     return c.json(
       {
