@@ -37,7 +37,8 @@ export function toFeedItem(f: DomainFeed): FeedItem {
 
   const interestsList = c?.interests ?? [];
   let description = f.content ?? "";
-  const hasHashtagInDesc = /#[\p{L}\p{N}_]+/u.test(description);
+
+  const hasHashtagInDesc = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/.test(description);
   if (interestsList.length > 0 && !hasHashtagInDesc) {
     const tags = interestsList.map((i) => `#${i}`).join(" ");
     description = description.trim().length > 0 ? `${description} ${tags}` : tags;

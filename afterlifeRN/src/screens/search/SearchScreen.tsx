@@ -228,7 +228,8 @@ export default function SearchScreen() {
     for (const f of feeds) {
       for (const it of f.interests) set.add(it);
       const content = f.content ?? "";
-      const matches = content.match(/#[\p{L}\p{N}_]+/gu) ?? [];
+
+      const matches = content.match(/#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/g) ?? [];
       for (const m of matches) set.add(m.replace(/^#+/, ""));
     }
     const all = Array.from(set);

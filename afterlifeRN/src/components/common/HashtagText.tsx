@@ -7,7 +7,7 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { MainTabParamList } from "../../navigation/types";
 import { COLORS } from "../constants";
 
-const HASHTAG_RE = /#[\p{L}\p{N}_]+/gu;
+const HASHTAG_RE = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/g;
 
 type Props = {
   children: string;
