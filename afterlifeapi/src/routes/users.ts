@@ -1172,6 +1172,12 @@ users.get("/:id", requireAuth, async (c) => {
     viewerId === targetId
       ? ""
       : "AND c.visibility = 'public'";
+  const blockedClause =
+    viewerId === targetId
+      ? ""
+      : "AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)";
+  const clonesBinds: unknown[] =
+    viewerId === targetId ? [targetId] : [targetId, viewerId];
   const clonesRows = (
     await db
       .prepare(
@@ -1186,10 +1192,11 @@ users.get("/:id", requireAuth, async (c) => {
             AND c.deletion_state = 'active'
             AND c.deleted_at IS NULL
             ${visibilityClause}
+            ${blockedClause}
           ORDER BY c.id DESC
           LIMIT 60`,
       )
-      .bind(targetId)
+      .bind(...clonesBinds)
       .all<{
         id: number;
         name: string;
