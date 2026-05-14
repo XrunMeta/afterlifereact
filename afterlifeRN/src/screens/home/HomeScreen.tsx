@@ -218,6 +218,8 @@ export default function HomeScreen() {
     if (submittingRef.current) return; 
     const content = commentText.trim();
     if (!content || !accessToken) return;
+
+    Keyboard.dismiss();
     submittingRef.current = true;
     setSubmittingComment(true);
     try {
@@ -478,7 +480,9 @@ export default function HomeScreen() {
                   const replies = expandedReplies[c.id];
                   const showReplies = replies !== undefined;
                   return (
-                  <View key={c.id} style={styles.commentRow}>
+
+                  <View key={c.id} style={styles.commentBlock}>
+                  <View style={styles.commentRow}>
                     {c.user.avatarUrl ? (
                       <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
                     ) : (
@@ -548,43 +552,6 @@ export default function HomeScreen() {
                           </TouchableOpacity>
                         )}
                       </View>
-                      {}
-                      {showReplies && replies && replies.map((rc) => (
-                        <View key={rc.id} style={styles.replyRow}>
-                          {rc.user.avatarUrl ? (
-                            <Image source={{ uri: rc.user.avatarUrl }} style={styles.replyAvatar} />
-                          ) : (
-                            <View style={[styles.replyAvatar, { backgroundColor: COLORS.zinc100 }]} />
-                          )}
-                          <View style={{ flex: 1 }}>
-                            <View style={styles.commentMeta}>
-                              <Text style={styles.commentAuthor}>{rc.user.name ?? rc.user.email}</Text>
-                              <Text style={styles.commentTime}>{formatRelativeKo(rc.createdAt)}</Text>
-                            </View>
-                            <Text style={styles.commentContent}>{rc.content}</Text>
-                          </View>
-                          {}
-                          <TouchableOpacity
-                            style={styles.commentHeart}
-                            onPress={() => toggleCommentLike(rc, c.id)}
-                            hitSlop={8}
-                          >
-                            <Feather
-                              name="heart"
-                              size={14}
-                              color={rc.likedByMe ? "#ef4444" : COLORS.zinc400}
-                            />
-                            <Text
-                              style={[
-                                styles.commentHeartCount,
-                                rc.likedByMe ? { color: "#ef4444" } : null,
-                              ]}
-                            >
-                              {rc.likesCount ?? 0}
-                            </Text>
-                          </TouchableOpacity>
-                        </View>
-                      ))}
                     </View>
                     {}
                     <TouchableOpacity
@@ -606,6 +573,47 @@ export default function HomeScreen() {
                         {c.likesCount ?? 0}
                       </Text>
                     </TouchableOpacity>
+                  </View>
+                  {
+
+}
+                  {showReplies && replies && replies.map((rc) => (
+                    <View key={rc.id} style={styles.replyRow}>
+                      <View style={styles.replyIndent} />
+                      {rc.user.avatarUrl ? (
+                        <Image source={{ uri: rc.user.avatarUrl }} style={styles.replyAvatar} />
+                      ) : (
+                        <View style={[styles.replyAvatar, { backgroundColor: COLORS.zinc100 }]} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.commentMeta}>
+                          <Text style={styles.commentAuthor}>{rc.user.name ?? rc.user.email}</Text>
+                          <Text style={styles.commentTime}>{formatRelativeKo(rc.createdAt)}</Text>
+                        </View>
+                        <Text style={styles.commentContent}>{rc.content}</Text>
+                      </View>
+                      {}
+                      <TouchableOpacity
+                        style={styles.commentHeart}
+                        onPress={() => toggleCommentLike(rc, c.id)}
+                        hitSlop={8}
+                      >
+                        <Feather
+                          name="heart"
+                          size={14}
+                          color={rc.likedByMe ? "#ef4444" : COLORS.zinc400}
+                        />
+                        <Text
+                          style={[
+                            styles.commentHeartCount,
+                            rc.likedByMe ? { color: "#ef4444" } : null,
+                          ]}
+                        >
+                          {rc.likesCount ?? 0}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
                   </View>
                 );
                 })
@@ -933,7 +941,12 @@ const styles = StyleSheet.create({
   commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
   commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1 },
-  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16, alignItems: "flex-start" },
+
+  commentBlock: { marginBottom: 16 },
+
+  commentRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+
+  replyIndent: { width: 42 },
   commentHeart: { alignItems: "center", paddingHorizontal: 4, paddingTop: 2, minWidth: 28 },
   commentHeartCount: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.zinc100 },
@@ -950,7 +963,7 @@ const styles = StyleSheet.create({
   replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
   replyActionText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
   replyToggleText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
-  replyRow: { flexDirection: "row", gap: 8, marginTop: 10, marginLeft: 0 },
+  replyRow: { flexDirection: "row", gap: 8, marginTop: 10, alignItems: "flex-start" },
   replyAvatar: { width: 24, height: 24, borderRadius: 12 },
   replyingBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 4, backgroundColor: COLORS.zinc50 ?? COLORS.zinc100, borderRadius: 8, marginTop: 6 },
   replyingText: { fontSize: 12, color: COLORS.zinc600 },
