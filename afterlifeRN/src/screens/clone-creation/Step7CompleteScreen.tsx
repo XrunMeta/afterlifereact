@@ -82,8 +82,22 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
   const v_140aea = v_de06a3(
-    async (v_6bee94) => {
-      if (!v_f04727.cloneType || !v_2ca7e0) return;
+    async (v_6bee94): Promise<number> => {
+      console.log("[CLONE-CREATE] attemptCreate start. draft snapshot:", {
+        cloneType: v_f04727.cloneType,
+        name: v_f04727.name,
+        username: v_f04727.username,
+        hasImage: !!v_f04727.imageFile,
+        hasVoice: !!(v_f04727.voiceFile || v_f04727.voiceSampleId),
+        descriptionLen: v_f04727.description?.length ?? 0,
+        notesLen: v_f04727.personaNotes?.length ?? 0,
+      });
+      if (!v_2ca7e0) {
+        throw new Error("로그인 정보가 없어요. 다시 로그인해주세요.");
+      }
+      if (!v_f04727.cloneType) {
+        throw new Error("페르소나 정보가 없어요. 처음부터 다시 만들어주세요. (cloneType 누락)");
+      }
       const v_01a739 = Boolean(v_f04727.imageFile);
       const v_f9c770 = Boolean(
         v_f04727.voiceFile || v_f04727.voiceSampleId || (v_f04727.recordDuration ?? 0) >= 30,
@@ -114,6 +128,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             : v_40a923 === "webp" ? "image/webp"
             : v_40a923 === "gif" ? "image/gif"
             : "image/jpeg";
+          console.log("[CLONE-CREATE] avatar uploading...", { mime: v_b66751, path: v_f04727.imageFile });
           const v_57ac81 = await v_7d2692(v_2ca7e0, v_f04727.imageFile, {
             purpose: "clone_avatar",
             mimeType: v_b66751,
@@ -124,9 +139,21 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           console.log("[CLONE-CREATE] avatar uploaded:", v_bf6b43);
         } catch (v_9b4b36) {
           console.warn("[CLONE-CREATE] avatar upload failed:", v_9b4b36);
+
+          throw new Error(
+            `이미지 업로드에 실패했어요. 네트워크 상태를 확인해주세요. (${v_9b4b36 instanceof Error ? v_9b4b36.message : "unknown"})`,
+          );
         }
       }
 
+      console.log("[CLONE-CREATE] createClone request →", {
+        clone_type: v_f04727.cloneType,
+        name: v_f04727.name ?? "Untitled",
+        username: v_556427,
+        visibility: v_818579,
+        hasAvatar: !!v_bf6b43,
+        hasPin: !!v_6bee94,
+      });
       const v_8f00b9 = await v_39eaf5(v_2ca7e0, {
         clone_type: v_f04727.cloneType,
         name: v_f04727.name ?? "Untitled",
@@ -160,6 +187,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         v_67122d(v_94519a.id);
         v_c7169b(false);
       }
+      return v_94519a.id;
     },
     [v_f04727, v_2ca7e0, v_493eec, v_956393],
   );
@@ -204,10 +232,31 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const v_d01790 = async () => {
     if (v_805753 || v_c3de9c) return;
     const v_2f361a = v_6044a8.trim();
+    console.log("[CLONE-CREATE] handleSharePost tap. captionLen=", v_2f361a.length, "createdCloneId=", v_af4871);
     if (v_2f361a.length === 0) {
       v_889fad("소개글", "한 줄 소개를 입력해주세요.");
       return;
     }
+
+    if (!v_2ca7e0) {
+      v_889fad("로그인 필요", "로그인 정보가 없어요. 다시 로그인해주세요.");
+      return;
+    }
+    if (!v_f04727.cloneType) {
+      v_889fad(
+        "페르소나 정보 누락",
+        "페르소나 유형이 설정되지 않았어요. 처음부터 다시 만들어주세요.",
+      );
+      return;
+    }
+    if (!v_f04727.name || v_f04727.name.trim().length === 0) {
+      v_889fad(
+        "이름 누락",
+        "페르소나 이름이 없어요. 이전 단계로 돌아가서 이름을 입력해주세요.",
+      );
+      return;
+    }
+
     v_4b9b17(true);
     v_3a7d09(null);
 
@@ -220,27 +269,22 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
       if (v_80a1e3 == null) {
         v_c7169b(true);
-        await v_140aea();
+        v_80a1e3 = await v_140aea();
         v_c7169b(false);
-        v_80a1e3 = v_194498.getState().creationDraft
-          ? 
-
-            v_af4871
-          : null;
-
-        await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 50));
-        v_80a1e3 = v_194498.getState().localClones.at(-1)?.id ?? null;
+        console.log("[CLONE-CREATE] new cloneId=", v_80a1e3);
       }
-      if (!v_80a1e3 || !v_2ca7e0) {
-        v_4b9b17(false);
-        return;
+      if (!v_80a1e3) {
+
+        throw new Error("페르소나 생성에 실패했어요. (cloneId 누락)");
       }
 
       const v_1458b7 = v_6de415.current ?? null;
+      console.log("[CLONE-CREATE] createCloneFeed →", { cloneId: v_80a1e3, hasMedia: !!v_1458b7 });
       await v_5e388b(v_2ca7e0, v_80a1e3, {
         content: v_2f361a,
         ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
       });
+      console.log("[CLONE-CREATE] feed created.");
     } catch (v_49263d) {
       console.warn("[CLONE-CREATE] share post failed:", v_49263d);
       v_c7169b(false);
@@ -257,10 +301,14 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           v_4b9b17(false);
           return;
         }
+
         v_3a7d09(v_49263d.message);
-        v_889fad("게시 실패", v_49263d.message);
+        v_889fad(`게시 실패 (${v_49263d.code})`, v_49263d.message);
       } else {
-        v_3a7d09("게시 중 오류가 발생했어요.");
+
+        const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "알 수 없는 오류";
+        v_3a7d09(v_badeaf);
+        v_889fad("게시 실패", v_badeaf);
       }
       v_4b9b17(false);
       return;
@@ -280,8 +328,23 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     v_04103a(null);
     try {
       v_c7169b(true);
-      await v_140aea(v_c924cc);
+      const v_ceee18 = await v_140aea(v_c924cc);
       v_148b42(false);
+
+      const v_2f361a = v_6044a8.trim();
+      if (v_2f361a.length > 0 && v_2ca7e0) {
+        try {
+          const v_1458b7 = v_6de415.current ?? null;
+          await v_5e388b(v_2ca7e0, v_ceee18, {
+            content: v_2f361a,
+            ...(v_1458b7 ? { mediaUrl: v_1458b7, mediaType: "image" } : {}),
+          });
+        } catch (v_57fcbe) {
+          console.warn("[CLONE-CREATE] post-payment feed failed:", v_57fcbe);
+        }
+        v_7a77e1();
+        v_c65f5d.replace("Step8", { cloneId: v_ceee18 });
+      }
     } catch (v_49263d) {
       let v_badeaf = "결제에 실패했어요.";
       if (v_49263d instanceof v_84a859) {
@@ -291,6 +354,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         else if (v_49263d.code === "UPSTREAM_NOT_IMPLEMENTED")
           v_badeaf = "xrun 송금 기능이 아직 준비 중입니다";
         else v_badeaf = v_49263d.message;
+      } else if (v_49263d instanceof Error) {
+        v_badeaf = v_49263d.message;
       }
       v_04103a(v_badeaf);
       v_c7169b(false);
@@ -390,16 +455,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 ? () => {
 
                     v_3a7d09(null);
-                    v_c7169b(true);
-                    (async () => {
-                      try {
-                        await v_140aea();
-                      } catch (v_49263d) {
-                        console.warn("[CLONE-CREATE] retry failed:", v_49263d);
-                        v_3a7d09(v_8d41d7("create.errors.createFailed"));
-                        v_c7169b(false);
-                      }
-                    })();
+                    void v_d01790();
                   }
                 : v_d01790
             }
