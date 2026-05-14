@@ -231,7 +231,7 @@ const s = StyleSheet.create({
   card: {
     width: "100%",
     maxWidth: 420,
-    maxHeight: "85%",
+    height: "75%",
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.lg,
     overflow: "hidden",

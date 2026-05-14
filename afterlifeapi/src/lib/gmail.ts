@@ -79,6 +79,7 @@ export async function sendMail(env: Bindings, opts: SendMailOptions): Promise<vo
     buildMime({ from: env.GMAIL_SENDER, to: opts.to, subject: opts.subject, html: opts.html }),
   );
 
+  let sendError: string | null = null;
   const res = await fetch(SEND_URL, {
     method: "POST",
     headers: {
@@ -89,6 +90,30 @@ export async function sendMail(env: Bindings, opts: SendMailOptions): Promise<vo
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new APIError("UPSTREAM_FAILURE", `Gmail send failed (${res.status}): ${txt}`);
+    sendError = `${res.status}: ${txt.slice(0, 500)}`;
+  }
+
+  if (env.XRUN_DB) {
+    try {
+      await env.XRUN_DB
+        .prepare(
+          `INSERT INTO EmailLogs (recipient, subject, body, status, sender, member, error_message, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 'afterlife', NULL, ?, datetime('now'), datetime('now'))`,
+        )
+        .bind(
+          opts.to,
+          opts.subject,
+          opts.html.slice(0, 8000),
+          sendError ? "failed" : "sent",
+          sendError,
+        )
+        .run();
+    } catch (err) {
+      console.warn("[sendMail] EmailLogs insert failed:", (err as Error).message);
+    }
+  }
+
+  if (sendError) {
+    throw new APIError("UPSTREAM_FAILURE", `Gmail send failed (${sendError})`);
   }
 }

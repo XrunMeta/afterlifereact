@@ -26,6 +26,13 @@ database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
 migrations_dir = "migrations"
 
+# xrun D1 — afterlife 측 이메일 발송 시 sender='afterlife' 로 EmailLogs 에
+# row 기록. xrun-admin 의 이메일 관리 페이지가 한 곳에서 양쪽 발송내역 조회.
+[[d1_databases]]
+binding = "XRUN_DB"
+database_name = "xrun"
+database_id = "f446edf4-05aa-45c0-a5b1-67f1f96a9544"
+
 [[r2_buckets]]
 binding = "R2_ARCHIVE"
 bucket_name = "afterlife-archive-dev"
@@ -83,6 +90,11 @@ binding = "DB"
 database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
 migrations_dir = "migrations"
+
+[[env.preview.d1_databases]]
+binding = "XRUN_DB"
+database_name = "xrun"
+database_id = "f446edf4-05aa-45c0-a5b1-67f1f96a9544"
 
 [[env.preview.kv_namespaces]]
 binding = "KV_AUTH"
