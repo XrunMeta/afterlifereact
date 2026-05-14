@@ -13,8 +13,6 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
-import * as Clipboard from "expo-clipboard";
-import { Feather } from "@expo/vector-icons";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
@@ -234,37 +232,9 @@ export default function NotificationSettingsScreen() {
           ))}
         </View>
 
-        {}
-        {state.granted && (
-          <View style={[s.card, { marginTop: 16 }]}>
-            <View style={s.tokenSection}>
-              <Text style={s.tokenLabel}>
-                {t("settings.notifications.tokenLabel")}
-              </Text>
-              {state.loading ? (
-                <Text style={s.tokenValueMuted}>
-                  {t("settings.notifications.tokenLoading")}
-                </Text>
-              ) : state.token ? (
-                <>
-                  <Text style={s.tokenValue} selectable>
-                    {state.token}
-                  </Text>
-                  <TouchableOpacity style={s.copyBtn} onPress={handleCopyToken}>
-                    <Feather name="copy" size={14} color={COLORS.zinc700} />
-                    <Text style={s.copyBtnText}>
-                      {t("settings.notifications.copyToken")}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <Text style={s.tokenValueMuted}>
-                  {t("settings.notifications.tokenNone")}
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
+        {
+
+}
       </View>
     </SafeScrollView>
   );

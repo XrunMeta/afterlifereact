@@ -11,6 +11,7 @@ import Button from '../../components/ui/Button';
 import { useCloneStore } from '../../stores/cloneStore';
 import MemlowImageUpload from './content/MemlowImageUpload';
 import DefaultImageUpload from './content/DefaultImageUpload';
+import PersonaCreationPaymentGate from './components/PersonaCreationPaymentGate';
 import { COLORS, SIZES } from '../../components/constants';
 
 type Props = { navigation: NativeStackNavigationProp<CreateStackParamList, 'Step3'> };
@@ -21,8 +22,24 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
   const setCreationDraft = useCloneStore(s => s.setCreationDraft);
   const [bannerOpen, setBannerOpen] = useState(true);
 
+  const [paymentPassed, setPaymentPassed] = useState(false);
+
   const Content = draft.cloneType === 'memlow' ? MemlowImageUpload : DefaultImageUpload;
   const canNext = Content.validate(draft);
+
+  if (!paymentPassed) {
+    return (
+      <SafeView backgroundColor={COLORS.white}>
+        <PersonaCreationPaymentGate
+          onProceed={() => setPaymentPassed(true)}
+          onCancel={() => {
+
+            navigation.getParent()?.navigate("HomeTab" as never);
+          }}
+        />
+      </SafeView>
+    );
+  }
 
   return (
     <SafeView backgroundColor={COLORS.white}>

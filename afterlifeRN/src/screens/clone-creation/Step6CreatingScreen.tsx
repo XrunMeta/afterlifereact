@@ -21,10 +21,11 @@ import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
 
+import { Alert } from "react-native";
 import SafeView from "../../components/ui/SafeView";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { useCloneStore } from "../../stores/cloneStore";
-import { deriveUsernameFromName } from "../../api/clones";
+import { checkCloneUsername, deriveUsernameFromName } from "../../api/clones";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step6">;
@@ -290,7 +291,9 @@ export default function Step6CreatingScreen({ navigation }: Props) {
     return MBTI_SET.has(code as PersonaMbtiCode) ? (code as PersonaMbtiCode) : undefined;
   };
 
-  const goNext = () => {
+  const [checkingUsername, setCheckingUsername] = useState(false);
+
+  const goNext = async () => {
     Keyboard.dismiss();
     if (phase === "intro") {
       setPhase("name");
@@ -311,6 +314,36 @@ export default function Step6CreatingScreen({ navigation }: Props) {
         raw.length >= 3 && raw.length <= 30
           ? raw
           : deriveUsernameFromName(name.trim() || "user");
+
+      if (checkingUsername) return;
+      setCheckingUsername(true);
+      try {
+        const r = await checkCloneUsername(finalUsername);
+        if (!r.available) {
+          if (r.reason === "reserved") {
+            Alert.alert(
+              "사용할 수 없는 아이디",
+              "예약된 아이디입니다. 다른 아이디를 입력해주세요.",
+            );
+          } else if (r.reason === "invalid") {
+            Alert.alert(
+              "아이디 형식 오류",
+              "영문 소문자/숫자/_ 만 사용 가능하고 3-30자여야 해요.",
+            );
+          } else {
+            Alert.alert(
+              "이미 사용중인 아이디",
+              "이미 사용중인 아이디가 있습니다. 다른 아이디를 입력해주세요.",
+            );
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn("[Step6] checkCloneUsername failed:", err);
+
+      } finally {
+        setCheckingUsername(false);
+      }
       setUsername(finalUsername);
       setCreationDraft({ username: finalUsername });
       setPhase("firstMeeting");

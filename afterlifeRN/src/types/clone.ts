@@ -63,4 +63,6 @@ export interface CloneCreationDraft {
   personaTypes?: PersonaTypeId[];
   personaMbti?: PersonaMbti;
   personaNotes?: string;
+
+  pin?: string;
 }
