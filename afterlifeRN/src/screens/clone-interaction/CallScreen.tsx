@@ -160,15 +160,16 @@ export default function CallScreen({ route, navigation }: Props) {
         `myCredits=${credits} (typeof=${typeof credits}) enough=${credits >= gift.price}`,
     );
     if (credits < gift.price) {
+      const shortage = Math.max(0, gift.price - credits);
       console.log(
-        `[Call][gift-insufficient-precheck] ${credits} < ${gift.price} → block PIN modal`,
+        `[Call][gift-insufficient-precheck] ${credits} < ${gift.price} (shortage=${shortage}) → block PIN modal`,
       );
       showAlert(
-        "XRUN 잔액이 부족해요",
-        `이 선물은 ${gift.price} XRUN 이 필요한데\n내 잔액은 ${credits} XRUN 이에요.`,
+        `${shortage} 잔액이 부족합니다`,
+        `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`,
         [
-          { text: "확인", style: "cancel" },
-          { text: "xrun 바로가기", onPress: () => void openXrunApp() },
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
         ],
       );
       return;
@@ -227,8 +228,16 @@ export default function CallScreen({ route, navigation }: Props) {
         if (err.code === "UNAUTHENTICATED") msg = "결제 비밀번호가 일치하지 않아요.";
         else if (err.code === "INSUFFICIENT_FUNDS") {
           isInsufficient = true;
-          title = "XRUN 잔액이 부족해요";
-          msg = "선물 보내기에 필요한 XRUN 이 부족해요.";
+
+          const shortage = pendingGift
+            ? Math.max(0, pendingGift.price - credits)
+            : 0;
+          title = shortage > 0
+            ? `${shortage} 잔액이 부족합니다`
+            : "잔액이 부족합니다";
+          msg = shortage > 0
+            ? `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
+            : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
         } else if (err.code === "CONFLICT") msg = err.message;
         else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
           msg = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
@@ -236,8 +245,15 @@ export default function CallScreen({ route, navigation }: Props) {
 
           if (/insufficient|잔액|balance/i.test(err.message)) {
             isInsufficient = true;
-            title = "XRUN 잔액이 부족해요";
-            msg = "선물 보내기에 필요한 XRUN 이 부족해요.";
+            const shortage = pendingGift
+              ? Math.max(0, pendingGift.price - credits)
+              : 0;
+            title = shortage > 0
+              ? `${shortage} 잔액이 부족합니다`
+              : "잔액이 부족합니다";
+            msg = shortage > 0
+              ? `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
+              : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
           } else {
             msg = "xrun 송금 처리 중 오류가 발생했어요.";
           }
@@ -251,8 +267,8 @@ export default function CallScreen({ route, navigation }: Props) {
         msg,
         isInsufficient
           ? [
-              { text: "확인", style: "cancel" },
-              { text: "xrun 바로가기", onPress: () => void openXrunApp() },
+              { text: "다음에 하기", style: "cancel" },
+              { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
             ]
           : undefined,
       );
