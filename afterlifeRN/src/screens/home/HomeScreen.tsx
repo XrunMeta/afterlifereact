@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import FeedCard from "../../components/ui/FeedCard";
+import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 
 import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
@@ -89,6 +90,7 @@ export default function HomeScreen() {
 
   const [moreTarget, setMoreTarget] = useState<{
     cloneId: number;
+    ownerId?: number;
     author: string;
     isOwn: boolean;
     visibility?: string;
@@ -269,6 +271,7 @@ export default function HomeScreen() {
           onMorePress={() =>
             setMoreTarget({
               cloneId: item.cloneId,
+              ownerId: item.cloneOwnerId,
               author: item.author,
               isOwn,
               visibility: item.cloneVisibility,
@@ -343,10 +346,12 @@ export default function HomeScreen() {
 
       {}
 
-      {}
+      {
+}
       <Modal visible={!!commentFeedId} transparent animationType="slide">
         <Pressable style={styles.commentOverlay} onPress={() => { Keyboard.dismiss(); setCommentFeedId(null); }}>
-          <View
+          <SwipeDownSheet
+            onClose={() => { Keyboard.dismiss(); setCommentFeedId(null); }}
             style={[
               styles.commentSheet,
 
@@ -356,7 +361,6 @@ export default function HomeScreen() {
                 transform: [{ translateY: -keyboardHeight }],
               },
             ]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={styles.sheetHandle} />
             <View style={styles.commentHeaderRow}>
@@ -422,18 +426,19 @@ export default function HomeScreen() {
                 />
               </TouchableOpacity>
             </View>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 
       {}
 
-      {}
+      {
+}
       <Modal visible={!!moreTarget} transparent animationType="fade">
         <Pressable style={styles.moreOverlay} onPress={() => setMoreTarget(null)}>
-          <Pressable
+          <SwipeDownSheet
+            onClose={() => setMoreTarget(null)}
             style={[styles.moreSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
-            onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.moreSheetHandle} />
             <Text style={styles.moreTitle}>{moreTarget?.author}</Text>
@@ -534,6 +539,20 @@ export default function HomeScreen() {
             ) : (
 
               <>
+                {moreTarget?.ownerId != null && (
+                  <TouchableOpacity
+                    style={styles.moreItem}
+                    onPress={() => {
+                      const target = moreTarget;
+                      setMoreTarget(null);
+                      if (!target?.ownerId) return;
+                      rootNav.navigate("UserProfile", { userId: target.ownerId });
+                    }}
+                  >
+                    <Feather name="user" size={20} color={COLORS.zinc900} />
+                    <Text style={styles.moreItemText}>유저 정보보기</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={styles.moreItem}
                   onPress={async () => {
@@ -591,7 +610,7 @@ export default function HomeScreen() {
               </>
             )}
             {}
-          </Pressable>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 
