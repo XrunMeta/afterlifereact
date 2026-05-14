@@ -126,6 +126,21 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_43c42e = await v_b4f765(v_3f4e2e.env.DB, "user", v_43e90c, "id", v_43e90c);
   v_d24e3e(v_43c42e);
+
+  try {
+    const v_213c33 = await v_3f4e2e.env.DB
+      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+      .bind(v_43e90c)
+      .first<{ xrun_member_id: number | null }>();
+    const v_88fe80 = v_213c33?.xrun_member_id ?? null;
+    if (v_88fe80) {
+      const { markAfterlifeDeletedOnXrun: v_a23589 } = await import("../lib/xrun");
+      await v_a23589(v_3f4e2e.env, v_88fe80);
+    }
+  } catch (v_49263d) {
+    console.warn("[deletion.me] xrun mark failed:", (v_49263d as Error).message);
+  }
+
   return v_3f4e2e.json({ ok: true, state: "soft_deleted" });
 });
 
@@ -133,6 +148,24 @@ v_dda4b9.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_43c42e = await v_c8311e(v_3f4e2e.env.DB, "user", v_43e90c, "id", v_43e90c);
   v_7b6df3(v_43c42e);
+
+  try {
+    const v_213c33 = await v_3f4e2e.env.DB
+      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+      .bind(v_43e90c)
+      .first<{ xrun_member_id: number | null }>();
+    const v_88fe80 = v_213c33?.xrun_member_id ?? null;
+    if (v_88fe80 && v_3f4e2e.env.XRUN_DB) {
+
+      await v_3f4e2e.env.XRUN_DB
+        .prepare(`UPDATE Members SET afterlife_deleted_at = NULL WHERE member = ?`)
+        .bind(v_88fe80)
+        .run();
+    }
+  } catch (v_49263d) {
+    console.warn("[deletion.me.restore] xrun unmark failed:", (v_49263d as Error).message);
+  }
+
   return v_3f4e2e.json({ ok: true, state: "active" });
 });
 
