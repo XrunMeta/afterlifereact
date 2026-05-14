@@ -879,16 +879,15 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
     .bind(v_eb25ce.owner_id)
     .first<{ id: number; xrun_wallet: string | null; xrun_member_id: number | null }>();
 
-  if (!v_257b90?.xrun_member_id) {
-    throw new v_3ebe58(
-      "CONFLICT",
-      "Persona owner has no xrun account — cannot route 40% share.",
-    );
-  }
+  const v_ed9f44 = !!v_257b90?.xrun_member_id;
 
   const v_c83285 = v_4d33b2.amount;
-  const v_22c1da = Math.round(v_c83285 * 0.6 * 1_000_000) / 1_000_000;
-  const v_1d6a30 = Math.round(v_c83285 * 0.4 * 1_000_000) / 1_000_000;
+  const v_22c1da = v_ed9f44
+    ? Math.round(v_c83285 * 0.6 * 1_000_000) / 1_000_000
+    : v_c83285;
+  const v_1d6a30 = v_ed9f44
+    ? Math.round(v_c83285 * 0.4 * 1_000_000) / 1_000_000
+    : 0;
 
   const v_f5353f = await v_3f4e2e.env.DB
     .prepare(
@@ -908,17 +907,21 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
       v_22c1da,
       v_1d6a30,
       v_72b02d,
-      v_257b90.xrun_wallet, 
+
+      v_257b90?.xrun_wallet ?? null,
     )
     .run();
   const v_7a7843 = Number(v_f5353f.meta.last_row_id);
 
+  const v_69d950 = v_ed9f44
+    ? [
+        { toAddress: v_72b02d, amount: String(v_22c1da) },
+        { toMember: v_257b90!.xrun_member_id!, amount: String(v_1d6a30) },
+      ]
+    : [{ toAddress: v_72b02d, amount: String(v_22c1da) }];
   const v_38fb16 = await v_7a6fc0(v_3f4e2e.env, {
     fromMember: v_eddf67.xrun_member_id,
-    recipients: [
-      { toAddress: v_72b02d, amount: String(v_22c1da) },
-      { toMember: v_257b90.xrun_member_id, amount: String(v_1d6a30) },
-    ],
+    recipients: v_69d950,
     currency: v_a832b3,
     pin: v_4d33b2.pin,
     source: "afterlife.gift",

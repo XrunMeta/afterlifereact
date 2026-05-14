@@ -27,24 +27,15 @@ function v_6fa927(v_e0c7e8): string {
 }
 
 export async function v_b1f897(): Promise<boolean> {
-  try {
-    const v_479f05 = await v_e84827.getItem(v_b6c376);
-    if (!v_479f05) return true;
-    const v_604a0d = Number(v_479f05);
-    if (!Number.isFinite(v_604a0d)) return true;
-    return Date.now() >= v_604a0d;
-  } catch {
-    return true;
-  }
+
+  return true;
 }
 
 async function v_a48f41(): Promise<void> {
-  try {
-    await v_e84827.setItem(v_b6c376, String(Date.now() + v_1a5fdc));
-  } catch (v_49263d) {
-    console.warn("[PIN-PROMPT] dismiss save failed:", v_49263d);
-  }
+  return;
 }
+void v_b6c376;
+void v_1a5fdc;
 
 interface Props {
   visible: boolean;

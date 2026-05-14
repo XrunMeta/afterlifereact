@@ -101,6 +101,11 @@ export default function v_c316d8() {
     cloneId: number;
     author: string;
   } | null>(null);
+
+  const [v_b38909, v_c03d7d] = v_5ab095<{
+    commentId: number;
+    author: string;
+  } | null>(null);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
   v_c4deb2(() => {
     if (v_8282fa) {
@@ -392,9 +397,22 @@ export default function v_c316d8() {
                       <View style={v_d81136.commentMeta}>
                         <Text style={v_d81136.commentAuthor}>{v_3f4e2e.user.name ?? v_3f4e2e.user.email}</Text>
                         <Text style={v_d81136.commentTime}>{v_bfd883(v_3f4e2e.createdAt)}</Text>
-                        {v_3f4e2e.userId === v_f5f393 && (
+                        {v_3f4e2e.userId === v_f5f393 ? (
                           <TouchableOpacity onPress={() => v_b72645(v_3f4e2e.id)} style={{ marginLeft: 8 }}>
                             <Feather name="trash-2" size={14} color="rgba(255,255,255,0.6)" />
+                          </TouchableOpacity>
+                        ) : (
+
+                          <TouchableOpacity
+                            onPress={() =>
+                              v_c03d7d({
+                                commentId: v_3f4e2e.id,
+                                author: v_3f4e2e.user.name ?? v_3f4e2e.user.email ?? "",
+                              })
+                            }
+                            style={{ marginLeft: 8 }}
+                          >
+                            <Feather name="flag" size={14} color="rgba(255,255,255,0.6)" />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -604,6 +622,31 @@ export default function v_c316d8() {
           </SwipeDownSheet>
         </Pressable>
       </Modal>
+
+      {}
+      <ReportReasonModal
+        visible={!!v_b38909}
+        targetName={v_b38909?.author}
+        onCancel={() => v_c03d7d(null)}
+        onConfirm={async (v_58ca36) => {
+          const v_5f5d6d = v_b38909;
+          v_c03d7d(null);
+          if (!v_5f5d6d || !v_2ca7e0 || v_ed660d == null) return;
+          try {
+            const { reportFeedComment: v_fca2f4 } = await import("../../api/clones");
+            await v_fca2f4(
+              v_2ca7e0,
+              v_ed660d,
+              v_5f5d6d.commentId,
+              v_58ca36 || undefined,
+            );
+            v_15c939("댓글이 신고됐어요");
+          } catch (v_49263d) {
+            console.warn(`[REPORT-COMMENT] FAILED commentId=${v_5f5d6d.commentId}`, v_49263d);
+            v_15c939("신고에 실패했어요");
+          }
+        }}
+      />
 
       {}
       <ReportReasonModal
