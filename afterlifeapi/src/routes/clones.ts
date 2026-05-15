@@ -13,6 +13,7 @@ import {
   v_d875d1,
 } from "../lib/cloneAccess";
 import { v_9c8187, v_55eb2a } from "../lib/memoryStore";
+import { v_dd9d7c, v_1ad6ed } from "../lib/interactions";
 import { v_7a6fc0 } from "../lib/xrun";
 import { v_c226a5, v_80a022 } from "../lib/notify";
 
@@ -1124,4 +1125,39 @@ v_f891e6.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
     details: { cloneId: v_6e0fd3, reason: v_4d33b2.reason ?? null },
   });
   return v_3f4e2e.json({ ok: true, reported: true, blocked: true });
+});
+
+const v_1e23ae = v_1f4ea7.object({
+  durationSeconds: v_1f4ea7.number().int().min(0).max(86400).optional(),
+});
+v_f891e6.post("/:id/call-event", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_1e23ae).catch(() => ({ durationSeconds: undefined }));
+  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "call");
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "clone.call_event",
+    details: { cloneId: v_6e0fd3, durationSeconds: v_4d33b2.durationSeconds ?? null },
+  });
+  return v_3f4e2e.json({ ok: true });
+});
+
+v_f891e6.post("/:id/learn-event", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const { bumped: v_b2eea1 } = await v_1ad6ed(
+    v_3f4e2e.env,
+    v_43e90c,
+    v_6e0fd3,
+    "learn",
+    600, 
+  );
+  return v_3f4e2e.json({ ok: true, bumped: v_b2eea1 });
 });

@@ -43,6 +43,7 @@ import {
   v_f5a9ea,
   v_f1ff2a,
   v_99e260,
+  v_ba8b3a,
   type v_52af9d,
 } from "../../api/clones";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
@@ -104,6 +105,14 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_b84498, v_e24028] = v_5ab095<boolean>(v_2db2a5.likedByMe ?? v_632420.includes(v_6bbace));
   const v_799eb5 = v_f5f393 != null && v_8c0b26.cloneOwnerId === v_f5f393;
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    void v_ba8b3a(v_2ca7e0, v_2db2a5.cloneId).catch((v_49263d) =>
+      console.warn("[CloneFeed] learn event failed:", v_49263d),
+    );
+
+  }, [v_2db2a5.cloneId]);
 
   v_c4deb2(() => {
     let v_2008a4 = false;

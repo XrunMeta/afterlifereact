@@ -36,6 +36,30 @@ export async function v_dd9d7c(
   }
 }
 
+export async function v_1ad6ed(
+  env: v_273a0c,
+  v_43e90c,
+  v_6e0fd3,
+  v_94302c,
+  v_2a320e,
+): Promise<{ bumped: boolean }> {
+  if (!v_43e90c || !v_6e0fd3) return { bumped: false };
+  const v_b24339 = `interact:${v_94302c}:${v_43e90c}:${v_6e0fd3}`;
+  try {
+    const v_110a8b = await v_c9c489.KV_RATE.get(v_b24339);
+    if (v_110a8b) return { bumped: false };
+    await v_c9c489.KV_RATE.put(v_b24339, "1", { expirationTtl: v_2a320e });
+    await v_dd9d7c(v_c9c489, v_43e90c, v_6e0fd3, v_94302c);
+    return { bumped: true };
+  } catch (v_49263d) {
+    console.warn(
+      `[interactions] throttled bump ${v_94302c} failed:`,
+      (v_49263d as Error).message,
+    );
+    return { bumped: false };
+  }
+}
+
 export function v_4d20a8(v_c83285): number {
   if (v_c83285 <= 0) return 0;
   return Math.min(100, Math.floor(v_c83285 * 2));

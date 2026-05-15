@@ -466,6 +466,27 @@ export async function v_fca2f4(
   );
 }
 
+export async function v_c0681d(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_b36f96,
+): Promise<{ ok: true }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/call-event`, v_2ca7e0, {
+    method: "POST",
+    body: JSON.stringify(v_b36f96?.durationSeconds ? { durationSeconds: v_b36f96.durationSeconds } : {}),
+  });
+}
+
+export async function v_ba8b3a(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ ok: true; bumped: boolean }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/learn-event`, v_2ca7e0, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 export async function v_97c75d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked: true }> {
   console.log(`[BLOCK-API] → POST /oth-path${v_6e0fd3}/block`);
   const v_8f00b9 = await v_04b58a<{ ok: true; blocked: true }>(

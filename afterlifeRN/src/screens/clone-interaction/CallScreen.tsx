@@ -36,6 +36,7 @@ import {
   v_b14fce,
   v_0ff331,
   v_28dc16,
+  v_c0681d,
 } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 
@@ -84,6 +85,26 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   v_c4deb2(() => {
     const v_389afb = setInterval(() => v_6d75b1((v_fd5f43) => v_fd5f43 + 1), 1000);
     return () => clearInterval(v_389afb);
+  }, []);
+
+  const v_1406a6 = v_e662ae<number>(Date.now());
+  const v_4d96d4 = v_e662ae(v_2ca7e0);
+  const v_32c215 = v_e662ae(v_6e0fd3);
+  v_c4deb2(() => {
+    v_4d96d4.current = v_2ca7e0;
+    v_32c215.current = v_6e0fd3;
+  }, [v_2ca7e0, v_6e0fd3]);
+  v_c4deb2(() => {
+    return () => {
+      const v_21cc31 = v_4d96d4.current;
+      const v_062ae9 = v_32c215.current;
+      if (!v_21cc31 || !v_062ae9) return;
+      const v_40c855 = Math.floor((Date.now() - v_1406a6.current) / 1000);
+
+      void v_c0681d(v_21cc31, v_062ae9, { durationSeconds: v_40c855 }).catch((v_49263d) =>
+        console.warn("[Call] postCloneCallEvent failed:", v_49263d),
+      );
+    };
   }, []);
 
   v_c4deb2(() => {
