@@ -36,6 +36,30 @@ export async function bumpInteraction(
   }
 }
 
+export async function bumpInteractionThrottled(
+  env: Bindings,
+  userId: number,
+  cloneId: number,
+  kind: InteractionKind,
+  cooldownSec: number,
+): Promise<{ bumped: boolean }> {
+  if (!userId || !cloneId) return { bumped: false };
+  const key = `interact:${kind}:${userId}:${cloneId}`;
+  try {
+    const seen = await env.KV_RATE.get(key);
+    if (seen) return { bumped: false };
+    await env.KV_RATE.put(key, "1", { expirationTtl: cooldownSec });
+    await bumpInteraction(env, userId, cloneId, kind);
+    return { bumped: true };
+  } catch (err) {
+    console.warn(
+      `[interactions] throttled bump ${kind} failed:`,
+      (err as Error).message,
+    );
+    return { bumped: false };
+  }
+}
+
 export function deriveIntimacyTemp(total: number): number {
   if (total <= 0) return 0;
   return Math.min(100, Math.floor(total * 2));

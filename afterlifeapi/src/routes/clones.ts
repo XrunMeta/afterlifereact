@@ -13,6 +13,7 @@ import {
   resolveResponseViewerRole,
 } from "../lib/cloneAccess";
 import { writeCtx, writeShared } from "../lib/memoryStore";
+import { bumpInteraction, bumpInteractionThrottled } from "../lib/interactions";
 import { externalTransferSplit } from "../lib/xrun";
 import { notify, notifyCloneEvent } from "../lib/notify";
 
@@ -1133,4 +1134,39 @@ clones.post("/:id/report", requireAuth, async (c) => {
     details: { cloneId, reason: body.reason ?? null },
   });
   return c.json({ ok: true, reported: true, blocked: true });
+});
+
+const callEventSchema = z.object({
+  durationSeconds: z.number().int().min(0).max(86400).optional(),
+});
+clones.post("/:id/call-event", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  const body = await parseJson(c, callEventSchema).catch(() => ({ durationSeconds: undefined }));
+  await bumpInteraction(c.env, userId, cloneId, "call");
+  await logActivity(c, {
+    userId,
+    action: "clone.call_event",
+    details: { cloneId, durationSeconds: body.durationSeconds ?? null },
+  });
+  return c.json({ ok: true });
+});
+
+clones.post("/:id/learn-event", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  const { bumped } = await bumpInteractionThrottled(
+    c.env,
+    userId,
+    cloneId,
+    "learn",
+    600, 
+  );
+  return c.json({ ok: true, bumped });
 });

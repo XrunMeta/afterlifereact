@@ -466,6 +466,27 @@ export async function reportFeedComment(
   );
 }
 
+export async function postCloneCallEvent(
+  accessToken: string,
+  cloneId: number,
+  options?: { durationSeconds?: number },
+): Promise<{ ok: true }> {
+  return authFetch(`/oth-path${cloneId}/call-event`, accessToken, {
+    method: "POST",
+    body: JSON.stringify(options?.durationSeconds ? { durationSeconds: options.durationSeconds } : {}),
+  });
+}
+
+export async function postCloneLearnEvent(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ ok: true; bumped: boolean }> {
+  return authFetch(`/oth-path${cloneId}/learn-event`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 export async function blockClone(accessToken: string, cloneId: number): Promise<{ ok: true; blocked: true }> {
   console.log(`[BLOCK-API] → POST /oth-path${cloneId}/block`);
   const res = await authFetch<{ ok: true; blocked: true }>(

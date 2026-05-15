@@ -43,6 +43,7 @@ import {
   listFeedCommentReplies,
   likeFeedComment,
   unlikeFeedComment,
+  postCloneLearnEvent,
   type FeedComment,
 } from "../../api/clones";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
@@ -104,6 +105,14 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
 
   const [liked, setLiked] = useState<boolean>(feed.likedByMe ?? likedIds.includes(realFeedId));
   const isOwn = myUserId != null && item.cloneOwnerId === myUserId;
+
+  useEffect(() => {
+    if (!accessToken) return;
+    void postCloneLearnEvent(accessToken, feed.cloneId).catch((err) =>
+      console.warn("[CloneFeed] learn event failed:", err),
+    );
+
+  }, [feed.cloneId]);
 
   useEffect(() => {
     let cancelled = false;
