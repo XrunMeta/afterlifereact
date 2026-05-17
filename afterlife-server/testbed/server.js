@@ -451,7 +451,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
             });
             const v_43c42e = await v_a16f6e({
               audio_path: v_6944b4.path,
-              output_id: `sess-${v_c5607b}`,
+              output_id: v_c5607b,
               stream: false,
             });
             if (v_6c558f) return;
