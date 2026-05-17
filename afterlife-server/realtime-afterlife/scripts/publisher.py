@@ -844,12 +844,45 @@ def make_app() -> web.Application:
           3. video first real frame queue.put 시 sync_event.set → audio gate open
              → 두 track 동시 시작 (RTCP-SR NTP anchor 일치 → WebRTC client sync)
           4. 끝나면 signal_end + sync_event.clear (다음 mp4 push 위해)
+
+        회차 029-D-3c-mp4-source-fix1:
+          - mp4 즉시 메모리로 read (musetalk 가 동일 파일명 덮어쓰므로 file race 회피)
+          - 새 mp4 시작 시 기존 video queue + audio buffer flush + sync_event.clear
+            → 이전 메시지가 아직 송출 중이면 폐기. 사용자가 새 메시지 응답 즉시.
         """
+        # 1) mp4 즉시 메모리로 read (덮어쓰기 회피)
+        try:
+            mp4_bytes = await asyncio.to_thread(
+                lambda: Path(mp4_path).read_bytes()
+            )
+        except Exception as e:  # noqa: BLE001
+            log.warning("push_mp4 read failed: %s", e)
+            return
+        # 2) 기존 큐/버퍼 flush + gate close
+        if state.track is not None:
+            try:
+                while not state.track.queue.empty():
+                    state.track.queue.get_nowait()
+            except Exception:  # noqa: BLE001
+                pass
+            state.track._last_frame = None
+        if state.audio_track is not None:
+            async with state.audio_track._buffer_lock:
+                state.audio_track._buffer = np.zeros(0, dtype=np.int16)
+        _ev_pre = (
+            getattr(state.audio_track, "_video_sync_event", None)
+            if state.audio_track else None
+        )
+        if _ev_pre is not None:
+            _ev_pre.clear()
+
         container = None
         try:
-            container = await asyncio.to_thread(av.open, mp4_path)
+            container = await asyncio.to_thread(
+                lambda: av.open(io.BytesIO(mp4_bytes))
+            )
             a_stream = container.streams.audio[0] if container.streams.audio else None
-            # 1) audio decode + resample + push_pcm_int16 (buffer 미리 채움)
+            # 3) audio decode + resample + push_pcm_int16 (buffer 미리 채움)
             if a_stream is not None and state.audio_track is not None:
                 def _decode_audio() -> np.ndarray:
                     resampler = AudioResampler(
@@ -871,10 +904,12 @@ def make_app() -> web.Application:
                     state.audio_track.push_pcm_int16(pcm)
                     log.info("push_mp4 audio queued samples=%d (~%.2fs)",
                              pcm.size, pcm.size / AUDIO_OUTPUT_SR)
-            # 2) video decode + 25fps wallclock pacing push.
-            # audio decode 가 container 위치를 끝까지 옮겼으니 re-open.
+            # 4) video decode + 25fps wallclock pacing push.
+            # audio decode 가 container 위치를 끝까지 옮겼으니 re-open (새 BytesIO).
             await asyncio.to_thread(container.close)
-            container = await asyncio.to_thread(av.open, mp4_path)
+            container = await asyncio.to_thread(
+                lambda: av.open(io.BytesIO(mp4_bytes))
+            )
             v_stream = container.streams.video[0]
             target_fps = (
                 float(v_stream.average_rate) if v_stream.average_rate else 25.0
