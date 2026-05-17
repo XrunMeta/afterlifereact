@@ -451,7 +451,7 @@ app.post('/oth-path', (req, res) => {
             });
             const result = await museTalkInfer({
               audio_path: tmp.path,
-              output_id: `sess-${sessionId}`,
+              output_id: sessionId,
               stream: false,
             });
             if (aborted) return;
