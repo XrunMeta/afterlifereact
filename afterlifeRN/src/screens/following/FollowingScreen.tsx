@@ -712,62 +712,48 @@ export default function FollowingScreen() {
             style={[s.eventsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
           >
             <View style={s.eventsSheetHandle} />
-            <Text style={s.eventsSheetTitle}>친밀도 활동 내역</Text>
+            <Text style={s.eventsSheetTitle}>친밀도 · 상호작용</Text>
             <Text style={s.eventsSheetSub}>{intimacyEventsModal?.cloneName}</Text>
 
-            {intimacyEventsData?.summary && (
-              <View style={s.eventsSummary}>
-                <View style={s.eventsSummaryRow}>
-                  <Feather name="thermometer" size={20} color="#fb923c" />
-                  <Text style={s.eventsSummaryScore}>
-                    {Math.min(100, intimacyEventsData.summary.totalScore)}°C
-                  </Text>
-                  <Text style={s.eventsSummaryCount}>
-                    · {intimacyEventsData.summary.eventCount}회 누적
-                  </Text>
-                </View>
-                <View style={s.eventsBreakdownRow}>
-                  <Text style={s.eventsBreakdownItem}>채팅 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.chat}°C</Text></Text>
-                  <Text style={s.eventsBreakdownItem}>통화 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.call}°C</Text></Text>
-                  <Text style={s.eventsBreakdownItem}>탐색 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.learn}°C</Text></Text>
-                  <Text style={s.eventsBreakdownItem}>피드 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.feed}°C</Text></Text>
-                </View>
-              </View>
-            )}
-
             <ScrollView style={s.eventsScrollArea} showsVerticalScrollIndicator={false}>
-              {intimacyEventsLoading ? (
-                <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
-              ) : !intimacyEventsData || intimacyEventsData.items.length === 0 ? (
-                <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 활동 내역이 없어요</Text>
+              {}
+              <View style={s.infoSection}>
+                <View style={s.infoSectionHeader}>
+                  <Feather name="thermometer" size={16} color="#fb923c" />
+                  <Text style={s.infoSectionTitle}>친밀도 온도 (°C)</Text>
                 </View>
-              ) : (
-                intimacyEventsData.items.map((ev) => {
-                  const META: Record<
-                    "chat" | "call" | "learn" | "feed",
-                    { label: string; icon: keyof typeof Feather.glyphMap; color: string }
-                  > = {
-                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
-                    call: { label: "통화", icon: "phone", color: "#34d399" },
-                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
-                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
-                  };
-                  const meta = META[ev.action];
-                  return (
-                    <View key={ev.id} style={s.eventRow}>
-                      <View style={[s.eventIcon, { backgroundColor: meta.color + "22" }]}>
-                        <Feather name={meta.icon} size={14} color={meta.color} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.eventLabel}>{meta.label}</Text>
-                        <Text style={s.eventTime}>{formatRelativeKo(ev.createdAt)}</Text>
-                      </View>
-                      <Text style={s.eventScore}>+{ev.score}°C</Text>
-                    </View>
-                  );
-                })
-              )}
+                <Text style={s.infoSectionDesc}>
+                  페르소나와의 관계 깊이를 나타냅니다. 대화·통화·탐색·피드 활동을 할수록 °C 가 올라가요. 최대 100°C.
+                </Text>
+                {[
+                  ["0-30°C", "처음 만나는 단계"],
+                  ["31-60°C", "친숙해지는 단계"],
+                  ["61-90°C", "깊은 유대감"],
+                  ["91-100°C", "최고의 친밀도"],
+                ].map(([range, desc], i) => (
+                  <View key={i} style={s.infoLevelRow}>
+                    <Text style={[s.infoLevelRange, i === 3 && { color: "#f97316" }]}>{range}</Text>
+                    <Text style={[s.infoLevelDesc, i === 3 && { color: "#f97316" }]}>{desc}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {}
+              <View style={s.infoSection}>
+                <View style={s.infoSectionHeader}>
+                  <Ionicons name="chatbubbles-outline" size={16} color="#60a5fa" />
+                  <Text style={s.infoSectionTitle}>온도 올리는 방법</Text>
+                </View>
+                <View style={s.infoActivityBox}>
+                  <Text style={s.infoActivityItem}>• 채팅 메시지: <Text style={s.infoActivityScore}>+1°C / 무제한</Text></Text>
+                  <Text style={s.infoActivityItem}>• 음성 통화: <Text style={s.infoActivityScore}>+15°C / 20분 이상</Text></Text>
+                  <Text style={s.infoActivityItem}>• 페르소나 탐색: <Text style={s.infoActivityScore}>+2°C / 20분 쿨다운</Text></Text>
+                  <Text style={s.infoActivityItem}>• 피드 소통 (좋아요·댓글): <Text style={s.infoActivityScore}>+2°C / 피드당 최대 4°C</Text></Text>
+                </View>
+                <Text style={s.infoSectionFootnote}>
+                  하루 최대 15°C 까지 적립 가능 (자정 KST 리셋). 100°C 만점에 도달하려면 최소 7일 꾸준한 활동 필요.
+                </Text>
+              </View>
             </ScrollView>
           </SwipeDownSheet>
         </Pressable>
@@ -1077,4 +1063,21 @@ const s = StyleSheet.create({
   eventLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
   eventTime: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
   eventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
+
+  infoSection: {
+    paddingHorizontal: 4,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+  },
+  infoSectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  infoSectionTitle: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
+  infoSectionDesc: { fontSize: 13, color: COLORS.zinc600, lineHeight: 20, marginBottom: 12 },
+  infoSectionFootnote: { fontSize: 11, color: COLORS.zinc500, lineHeight: 16, marginTop: 10 },
+  infoLevelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
+  infoLevelRange: { width: 90, fontSize: 13, fontWeight: "600", color: COLORS.zinc700 },
+  infoLevelDesc: { fontSize: 13, color: COLORS.zinc500 },
+  infoActivityBox: { backgroundColor: COLORS.zinc50, borderRadius: 8, padding: 12, gap: 6 },
+  infoActivityItem: { fontSize: 13, color: COLORS.zinc700, lineHeight: 20 },
+  infoActivityScore: { color: "#fb923c", fontWeight: "700" },
 });
