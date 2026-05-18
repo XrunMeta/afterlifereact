@@ -327,7 +327,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
         </TouchableOpacity>
         <View style={s.headerCenter}>
           <View style={s.headerAvatar}>
-            <Image source={AI_AVATAR_SRC} style={s.headerAvatarImg} resizeMode="cover" />
+            <Image source={AI_AVATAR_SRC} style={s.headerAvatarImg} resizeMode="contain" />
           </View>
           <Text style={s.headerName}>{AI_NAME}</Text>
         </View>
@@ -356,7 +356,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
               <View key={m.id} style={[s.row, isAi ? s.rowAi : s.rowUser]}>
                 {isAi && (
                   <View style={[s.avatar, isContinuation && { opacity: 0 }]}>
-                    <Image source={AI_AVATAR_SRC} style={s.avatarImg} resizeMode="cover" />
+                    <Image source={AI_AVATAR_SRC} style={s.avatarImg} resizeMode="contain" />
                   </View>
                 )}
                 <View
@@ -375,7 +375,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
           {aiTyping && (
             <View style={[s.row, s.rowAi]}>
               <View style={s.avatar}>
-                <Image source={AI_AVATAR_SRC} style={s.avatarImg} resizeMode="cover" />
+                <Image source={AI_AVATAR_SRC} style={s.avatarImg} resizeMode="contain" />
               </View>
               <View style={[s.bubble, s.bubbleAi, s.typingBubble]}>
                 <ActivityIndicator size="small" color={COLORS.zinc500} />
@@ -451,7 +451,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  headerAvatarImg: { width: 30, height: 30 },
+  headerAvatarImg: { width: 22, height: 22 },
   headerName: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
 
   chatScroll: { flex: 1, backgroundColor: "#f1f5f9"  },
@@ -471,7 +471,7 @@ const s = StyleSheet.create({
     marginBottom: 2,
     overflow: "hidden",
   },
-  avatarImg: { width: 32, height: 32 },
+  avatarImg: { width: 24, height: 24 },
 
   bubble: {
     paddingHorizontal: 12,
