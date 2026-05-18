@@ -14,6 +14,7 @@ import {
   v_122070,
   v_a2349e,
   v_39a996,
+  v_cf9c33,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -46,11 +47,12 @@ const v_063b58 = [
   "memory",
 ];
 
-const v_291e91 = "도연";
-const v_9ce9aa = "도";
+const v_291e91 = "페르소나 생성 도우미";
+
+const v_90ef75 = require("../../../assets/images/symbol.png");
 
 const v_64bd1a = [
-  "안녕하세요, 페르소나 생성을 도와드릴 도연이라고 해요.",
+  "안녕하세요, 페르소나 생성을 도와드리는 도우미입니다.",
   "마음에 떠올리고 계신 분에 대해 몇 가지 여쭤볼게요.",
   "편하게 답해주시면, 그 모습에 맞는 페르소나를 만들어드릴게요.",
 ];
@@ -325,7 +327,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
         </TouchableOpacity>
         <View style={v_fd5f43.headerCenter}>
           <View style={v_fd5f43.headerAvatar}>
-            <Text style={v_fd5f43.headerAvatarEmoji}>{v_9ce9aa}</Text>
+            <Image source={v_90ef75} style={v_fd5f43.headerAvatarImg} resizeMode="cover" />
           </View>
           <Text style={v_fd5f43.headerName}>{v_291e91}</Text>
         </View>
@@ -354,7 +356,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
               <View key={v_35f85c.id} style={[v_fd5f43.row, v_0bd65d ? v_fd5f43.rowAi : v_fd5f43.rowUser]}>
                 {v_0bd65d && (
                   <View style={[v_fd5f43.avatar, v_80139d && { opacity: 0 }]}>
-                    <Text style={v_fd5f43.avatarEmoji}>{v_9ce9aa}</Text>
+                    <Image source={v_90ef75} style={v_fd5f43.avatarImg} resizeMode="cover" />
                   </View>
                 )}
                 <View
@@ -373,7 +375,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
           {v_6bae32 && (
             <View style={[v_fd5f43.row, v_fd5f43.rowAi]}>
               <View style={v_fd5f43.avatar}>
-                <Text style={v_fd5f43.avatarEmoji}>{v_9ce9aa}</Text>
+                <Image source={v_90ef75} style={v_fd5f43.avatarImg} resizeMode="cover" />
               </View>
               <View style={[v_fd5f43.bubble, v_fd5f43.bubbleAi, v_fd5f43.typingBubble]}>
                 <ActivityIndicator size="small" color={v_1bfbd0.zinc500} />
@@ -444,16 +446,12 @@ const v_fd5f43 = v_472849.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.white,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
-  headerAvatarEmoji: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: v_1bfbd0.white,
-    lineHeight: 18,
-  },
+  headerAvatarImg: { width: 30, height: 30 },
   headerName: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
 
   chatScroll: { flex: 1, backgroundColor: "#f1f5f9"  },
@@ -467,17 +465,13 @@ const v_fd5f43 = v_472849.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: v_1bfbd0.violet600,
+    backgroundColor: v_1bfbd0.white,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
+    overflow: "hidden",
   },
-  avatarEmoji: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: v_1bfbd0.white,
-    lineHeight: 20,
-  },
+  avatarImg: { width: 32, height: 32 },
 
   bubble: {
     paddingHorizontal: 12,
