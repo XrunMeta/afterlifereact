@@ -138,6 +138,7 @@ export default function FollowingScreen() {
               r.items.map((it) => ({
                 id: it.id,
                 name: it.name,
+                isOwn: it.isOwn, 
                 "stats.likes": it.stats?.likes,
                 "stats.comments": it.stats?.comments,
                 "latestFeed.feedId": it.latestFeed?.feedId,
