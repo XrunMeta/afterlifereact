@@ -383,3 +383,55 @@ adminData.get("/oth-path", async (c) => {
   ).results;
   return c.json({ items: rows });
 });
+
+adminData.get("/oth-path", async (c) => {
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 100);
+  const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
+  const status = url.searchParams.get("status");
+
+  const where: string[] = ["1=1"];
+  const binds: unknown[] = [];
+  if (status && ["open", "reviewed", "dismissed", "actioned"].includes(status)) {
+    where.push("r.status = ?");
+    binds.push(status);
+  }
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT r.id AS id,
+                r.reporter_id AS reporterId,
+                ru.name AS reporterName,
+                ru.email AS reporterEmail,
+                r.target_id AS targetId,
+                tu.name AS targetName,
+                tu.email AS targetEmail,
+                r.reason AS reason,
+                r.status AS status,
+                r.created_at AS createdAt,
+                r.reviewed_at AS reviewedAt
+           FROM user_reports r
+           JOIN users ru ON ru.id = r.reporter_id
+           JOIN users tu ON tu.id = r.target_id
+          WHERE ${where.join(" AND ")}
+          ORDER BY r.created_at DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit)
+      .all<{
+        id: number;
+        reporterId: number;
+        reporterName: string | null;
+        reporterEmail: string;
+        targetId: number;
+        targetName: string | null;
+        targetEmail: string;
+        reason: string | null;
+        status: string;
+        createdAt: string;
+        reviewedAt: string | null;
+      }>()
+  ).results;
+  return c.json({ items: rows });
+});

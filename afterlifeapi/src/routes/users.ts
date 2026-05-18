@@ -45,17 +45,19 @@ users.get("/search", requireAuth, async (c) => {
     return c.json({ items: [] });
   }
   const like = `%${q}%`;
+
   const rows = await c.env.DB
     .prepare(
       `SELECT id, name, email, avatar_url AS avatarUrl
          FROM users
         WHERE deleted_at IS NULL
           AND id != ?
+          AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
         ORDER BY id DESC
         LIMIT 20`,
     )
-    .bind(me, like, like)
+    .bind(me, me, like, like)
     .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
   return c.json({ items: rows.results ?? [] });
 });
@@ -737,7 +739,9 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
                 COALESCE(uci.chat_count, 0)  AS my_chat,
                 COALESCE(uci.call_count, 0)  AS my_call,
                 COALESCE(uci.learn_count, 0) AS my_learn,
-                COALESCE(uci.feed_count, 0)  AS my_feed
+                COALESCE(uci.feed_count, 0)  AS my_feed,
+                -- 친밀도 가중치 점수 (Daily Cap 15°C 적립, 100°C 상한)
+                COALESCE(uci.intimacy_score, 0) AS my_intimacy
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
@@ -767,6 +771,7 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         my_call: number;
         my_learn: number;
         my_feed: number;
+        my_intimacy: number;
       }>()
   ).results;
 
@@ -837,7 +842,7 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         learn: r.my_learn,
         feed: r.my_feed,
         total: r.my_chat + r.my_call + r.my_learn + r.my_feed,
-        intimacy: Math.min(100, (r.my_chat + r.my_call + r.my_learn + r.my_feed) * 2),
+        intimacy: Math.min(100, Math.max(0, r.my_intimacy)),
       },
       createdAt: r.created_at,
     })),
@@ -1157,6 +1162,7 @@ users.get("/:id", requireAuth, async (c) => {
     .first<{ followersCount: number; followingCount: number }>();
 
   let isFollowing = false;
+  let isBlocked = false;
   if (viewerId !== targetId) {
     const fr = await db
       .prepare(
@@ -1166,6 +1172,15 @@ users.get("/:id", requireAuth, async (c) => {
       .bind(viewerId, targetId)
       .first<{ x: number }>();
     isFollowing = !!fr;
+
+    const br = await db
+      .prepare(
+        `SELECT 1 AS x FROM user_blocks
+          WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`,
+      )
+      .bind(viewerId, targetId)
+      .first<{ x: number }>();
+    isBlocked = !!br;
   }
 
   const visibilityClause =
@@ -1223,6 +1238,7 @@ users.get("/:id", requireAuth, async (c) => {
       followingCount: stats?.followingCount ?? 0,
       isMe: viewerId === targetId,
       isFollowing,
+      isBlocked,
     },
     clones: clonesRows.map((r) => ({
       id: r.id,
@@ -1238,5 +1254,84 @@ users.get("/:id", requireAuth, async (c) => {
       createdAt: r.createdAt,
     })),
   });
+});
+
+users.post("/:id/block", requireAuth, async (c) => {
+  const targetId = Number(c.req.param("id"));
+  if (!Number.isInteger(targetId) || targetId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  if (userId === targetId) {
+    throw new APIError("VALIDATION_FAILED", "본인은 차단할 수 없어요.");
+  }
+
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
+    ).bind(userId, targetId),
+    c.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(userId, targetId),
+    c.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(targetId, userId),
+  ]);
+  await logActivity(c, {
+    userId,
+    action: "user.block",
+    details: { targetId },
+  });
+  return c.json({ ok: true, blocked: true });
+});
+
+users.delete("/:id/block", requireAuth, async (c) => {
+  const targetId = Number(c.req.param("id"));
+  if (!Number.isInteger(targetId) || targetId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  await c.env.DB
+    .prepare(`DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?`)
+    .bind(userId, targetId)
+    .run();
+  return c.json({ ok: true, blocked: false });
+});
+
+const userReportSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+users.post("/:id/report", requireAuth, async (c) => {
+  const targetId = Number(c.req.param("id"));
+  if (!Number.isInteger(targetId) || targetId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  if (userId === targetId) {
+    throw new APIError("VALIDATION_FAILED", "본인은 신고할 수 없어요.");
+  }
+  const body = await parseJson(c, userReportSchema).catch(() => ({ reason: undefined }));
+
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_reports (reporter_id, target_id, reason)
+         VALUES (?, ?, ?)`,
+    ).bind(userId, targetId, body.reason ?? null),
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
+    ).bind(userId, targetId),
+    c.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(userId, targetId),
+    c.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(targetId, userId),
+  ]);
+  await logActivity(c, {
+    userId,
+    action: "user.report",
+    details: { targetId, reason: body.reason ?? null },
+  });
+  return c.json({ ok: true, reported: true, blocked: true });
 });
 

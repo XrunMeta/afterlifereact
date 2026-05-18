@@ -264,12 +264,16 @@ export default function EditProfileScreen() {
 }
           <TouchableOpacity
             style={s.fieldRow}
-            onPress={() =>
-              showAlert(
-                "비밀번호 재설정",
-                "로그아웃 후 [비밀번호를 잊으셨나요?] 에서 이메일 인증으로 재설정할 수 있어요.",
-              )
-            }
+            onPress={() => {
+              if (!apiUser?.email) {
+                showAlert(
+                  "이메일 없음",
+                  "계정 이메일이 없어요. 로그아웃 후 [비밀번호를 잊으셨나요?] 에서 진행해주세요.",
+                );
+                return;
+              }
+              navigation.navigate("ResetPassword", { email: apiUser.email });
+            }}
           >
             <Text style={s.fieldLabel}>비밀번호</Text>
             <Text style={[s.fieldValueLink]}>재설정</Text>

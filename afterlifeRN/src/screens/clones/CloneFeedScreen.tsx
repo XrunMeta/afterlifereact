@@ -16,7 +16,7 @@ import {
   Keyboard,
   Platform,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -41,6 +41,9 @@ import {
   reportClone,
   blockClone,
   listFeedCommentReplies,
+  likeFeedComment,
+  unlikeFeedComment,
+  postCloneLearnEvent,
   type FeedComment,
 } from "../../api/clones";
 import ReportReasonModal from "../../components/common/ReportReasonModal";
@@ -102,6 +105,14 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
 
   const [liked, setLiked] = useState<boolean>(feed.likedByMe ?? likedIds.includes(realFeedId));
   const isOwn = myUserId != null && item.cloneOwnerId === myUserId;
+
+  useEffect(() => {
+    if (!accessToken) return;
+    void postCloneLearnEvent(accessToken, feed.cloneId).catch((err) =>
+      console.warn("[CloneFeed] learn event failed:", err),
+    );
+
+  }, [feed.cloneId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -200,14 +211,19 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (!commentOpen) {
       setComments([]);
+
+      setExpandedReplies({});
+      setReplyingTo(null);
       return;
     }
     let cancelled = false;
     setCommentsLoading(true);
     setComments([]);
+
+    setExpandedReplies({});
     const fetcher = realFeedId < 0
-      ? listCloneComments(feed.cloneId, { limit: 100 })
-      : listFeedComments(realFeedId, { limit: 100 });
+      ? listCloneComments(feed.cloneId, { limit: 100, accessToken })
+      : listFeedComments(realFeedId, { limit: 100, accessToken });
     fetcher
       .then((res) => {
         if (cancelled) return;
@@ -229,25 +245,38 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
     if (submittingRef.current) return;
     const content = commentText.trim();
     if (!content || !accessToken) return;
+
+    Keyboard.dismiss();
     submittingRef.current = true;
     setSubmittingComment(true);
     try {
       let targetFeedId: number;
-      if (realFeedId < 0) {
+      if (replyingTo) {
+
+        const parent = comments.find((c) => c.id === replyingTo.commentId);
+        const fid = parent?.feedId ?? (realFeedId > 0 ? realFeedId : 0);
+        if (!fid) {
+          submittingRef.current = false;
+          setSubmittingComment(false);
+          return;
+        }
+        await postFeedComment(accessToken, fid, content, {
+          parentCommentId: replyingTo.commentId,
+        });
+        targetFeedId = fid;
+      } else if (realFeedId < 0) {
 
         const res = await postCloneComment(accessToken, feed.cloneId, content);
         targetFeedId = res.comment.feedId;
         setRealFeedId(targetFeedId);
       } else {
-        await postFeedComment(accessToken, realFeedId, content, {
-          parentCommentId: replyingTo?.commentId,
-        });
+        await postFeedComment(accessToken, realFeedId, content);
         targetFeedId = realFeedId;
       }
       setCommentText("");
       if (replyingTo) {
         try {
-          const rep = await listFeedCommentReplies(targetFeedId, replyingTo.commentId, { limit: 100 });
+          const rep = await listFeedCommentReplies(targetFeedId, replyingTo.commentId, { limit: 100, accessToken });
           setExpandedReplies((p) => ({ ...p, [replyingTo.commentId]: rep.items }));
           setComments((prev) =>
             prev.map((c) =>
@@ -260,7 +289,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
         }
         setReplyingTo(null);
       } else {
-        const r = await listFeedComments(targetFeedId, { limit: 100 });
+        const r = await listFeedComments(targetFeedId, { limit: 100, accessToken });
         setComments(r.items);
         setCommentsCount(r.items.length);
       }
@@ -284,6 +313,52 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
         });
       } catch (err) {
         console.warn("[CloneFeed] deleteFeedComment failed:", err);
+      }
+    })();
+  };
+
+  const toggleCommentLike = (
+    comment: FeedComment,
+    parentCommentId?: number,
+  ) => {
+    if (!accessToken) return;
+
+    const fid = comment.feedId ?? (realFeedId > 0 ? realFeedId : 0);
+    if (!fid) return;
+    const wasLiked = !!comment.likedByMe;
+    const curCount = comment.likesCount ?? 0;
+    const nextLiked = !wasLiked;
+    const nextCount = Math.max(0, curCount + (nextLiked ? 1 : -1));
+
+    const apply = (c: FeedComment): FeedComment =>
+      c.id === comment.id ? { ...c, likedByMe: nextLiked, likesCount: nextCount } : c;
+    if (parentCommentId) {
+      setExpandedReplies((p) => {
+        const list = p[parentCommentId];
+        if (!list) return p;
+        return { ...p, [parentCommentId]: list.map(apply) };
+      });
+    } else {
+      setComments((prev) => prev.map(apply));
+    }
+    void (async () => {
+      try {
+        if (nextLiked) await likeFeedComment(accessToken, fid, comment.id);
+        else await unlikeFeedComment(accessToken, fid, comment.id);
+      } catch (err) {
+        console.warn("[CloneFeed] toggleCommentLike failed:", err);
+
+        const rollback = (c: FeedComment): FeedComment =>
+          c.id === comment.id ? { ...c, likedByMe: wasLiked, likesCount: curCount } : c;
+        if (parentCommentId) {
+          setExpandedReplies((p) => {
+            const list = p[parentCommentId];
+            if (!list) return p;
+            return { ...p, [parentCommentId]: list.map(rollback) };
+          });
+        } else {
+          setComments((prev) => prev.map(rollback));
+        }
       }
     })();
   };
@@ -354,7 +429,9 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                   const replies = expandedReplies[c.id];
                   const showReplies = replies !== undefined;
                   return (
-                  <View key={c.id} style={styles.commentRow}>
+
+                  <View key={c.id} style={styles.commentBlock}>
+                  <View style={styles.commentRow}>
                     {c.user.avatarUrl ? (
                       <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
                     ) : (
@@ -406,7 +483,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                                 });
                               } else {
                                 try {
-                                  const r = await listFeedCommentReplies(fid, c.id, { limit: 100 });
+                                  const r = await listFeedCommentReplies(fid, c.id, { limit: 100, accessToken });
                                   setExpandedReplies((p) => ({ ...p, [c.id]: r.items }));
                                 } catch (err) {
                                   console.warn("[CloneFeed] listReplies failed:", err);
@@ -422,23 +499,68 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                           </TouchableOpacity>
                         )}
                       </View>
-                      {showReplies && replies && replies.map((rc) => (
-                        <View key={rc.id} style={styles.replyRow}>
-                          {rc.user.avatarUrl ? (
-                            <Image source={{ uri: rc.user.avatarUrl }} style={styles.replyAvatar} />
-                          ) : (
-                            <View style={[styles.replyAvatar, { backgroundColor: COLORS.zinc100 }]} />
-                          )}
-                          <View style={{ flex: 1 }}>
-                            <View style={styles.commentMeta}>
-                              <Text style={styles.commentAuthor}>{rc.user.name ?? rc.user.email}</Text>
-                              <Text style={styles.commentTime}>{formatRelativeKo(rc.createdAt)}</Text>
-                            </View>
-                            <Text style={styles.commentContent}>{rc.content}</Text>
-                          </View>
-                        </View>
-                      ))}
                     </View>
+                    {}
+                    <TouchableOpacity
+                      style={styles.commentHeart}
+                      onPress={() => toggleCommentLike(c)}
+                      hitSlop={8}
+                    >
+                      <Ionicons
+                        name="heart"
+                        size={18}
+                        color={c.likedByMe ? "#ef4444" : COLORS.zinc400}
+                      />
+                      <Text
+                        style={[
+                          styles.commentHeartCount,
+                          c.likedByMe ? { color: "#ef4444" } : null,
+                        ]}
+                      >
+                        {c.likesCount ?? 0}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {
+
+}
+                  {showReplies && replies && replies.map((rc) => (
+                    <View key={rc.id} style={styles.replyRow}>
+                      <View style={styles.replyIndent} />
+                      {rc.user.avatarUrl ? (
+                        <Image source={{ uri: rc.user.avatarUrl }} style={styles.replyAvatar} />
+                      ) : (
+                        <View style={[styles.replyAvatar, { backgroundColor: COLORS.zinc100 }]} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.commentMeta}>
+                          <Text style={styles.commentAuthor}>{rc.user.name ?? rc.user.email}</Text>
+                          <Text style={styles.commentTime}>{formatRelativeKo(rc.createdAt)}</Text>
+                        </View>
+                        <Text style={styles.commentContent}>{rc.content}</Text>
+                      </View>
+                      {}
+                      <TouchableOpacity
+                        style={styles.commentHeart}
+                        onPress={() => toggleCommentLike(rc, c.id)}
+                        hitSlop={8}
+                      >
+                        <Ionicons
+                          name="heart"
+                          size={16}
+                          color={rc.likedByMe ? "#ef4444" : COLORS.zinc400}
+                        />
+                        <Text
+                          style={[
+                            styles.commentHeartCount,
+                            rc.likedByMe ? { color: "#ef4444" } : null,
+                          ]}
+                        >
+                          {rc.likesCount ?? 0}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
                   </View>
                 );
                 })
@@ -619,7 +741,14 @@ const styles = StyleSheet.create({
   },
   commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1, marginTop: 12 },
-  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+
+  commentBlock: { marginBottom: 16 },
+
+  commentRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+  commentHeart: { alignItems: "center", paddingHorizontal: 4, paddingTop: 2, minWidth: 28 },
+  commentHeartCount: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
+
+  replyIndent: { width: 42 },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.zinc100 },
   commentInfo: { flex: 1 },
   commentMeta: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 },
@@ -648,7 +777,7 @@ const styles = StyleSheet.create({
   replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
   replyActionText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
   replyToggleText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
-  replyRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  replyRow: { flexDirection: "row", gap: 8, marginTop: 10, alignItems: "flex-start" },
   replyAvatar: { width: 24, height: 24, borderRadius: 12 },
   replyingBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 4, backgroundColor: COLORS.zinc50 ?? COLORS.zinc100, borderRadius: 8, marginTop: 6 },
   replyingText: { fontSize: 12, color: COLORS.zinc600 },

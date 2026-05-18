@@ -1,7 +1,7 @@
 
 
 import { showAlert } from "../../stores/dialogStore";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -11,14 +11,12 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { Feather } from "@expo/vector-icons";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
-import type { AuthStackParamList } from "../../navigation/types";
 import {
   AuthApiError,
   requestPasswordReset,
@@ -27,12 +25,17 @@ import {
 
 type Step = "email" | "otp" | "password";
 
+type Params = { email?: string } | undefined;
+
 export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const navigation = useNavigation();
+  const route = useRoute<RouteProp<{ key: Params }, "key">>();
+  const initialEmail = (route.params as { email?: string } | undefined)?.email;
+  const lockEmail = !!initialEmail;
 
-  const [step, setStep] = useState<Step>("email");
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<Step>(initialEmail ? "otp" : "email");
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -59,6 +62,12 @@ export default function ForgotPasswordScreen() {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (!initialEmail) return;
+    void handleSendCode();
+
+  }, []);
 
   const handleVerifyCode = () => {
     if (!/^\d{6}$/.test(code.trim())) {
@@ -95,7 +104,9 @@ export default function ForgotPasswordScreen() {
         if (err.code === "OTP_INVALID") msg = t("auth.forgot.wrongCode");
         else if (err.code === "OTP_EXPIRED") {
           msg = t("auth.forgot.expiredCode");
-          setStep("email");
+
+          if (!lockEmail) setStep("email");
+          else setStep("otp");
         } else if (err.code === "NOT_FOUND") msg = t("auth.forgot.notFound");
         else if (err.message) msg = err.message;
       }
@@ -126,7 +137,8 @@ export default function ForgotPasswordScreen() {
                 placeholderTextColor={COLORS.placeholder}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                autoFocus
+                autoFocus={!lockEmail}
+                editable={!lockEmail}
               />
             </View>
             <TouchableOpacity

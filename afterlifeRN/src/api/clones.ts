@@ -466,6 +466,27 @@ export async function reportFeedComment(
   );
 }
 
+export async function postCloneCallEvent(
+  accessToken: string,
+  cloneId: number,
+  options?: { durationSeconds?: number },
+): Promise<{ ok: true }> {
+  return authFetch(`/oth-path${cloneId}/call-event`, accessToken, {
+    method: "POST",
+    body: JSON.stringify(options?.durationSeconds ? { durationSeconds: options.durationSeconds } : {}),
+  });
+}
+
+export async function postCloneLearnEvent(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ ok: true; bumped: boolean }> {
+  return authFetch(`/oth-path${cloneId}/learn-event`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 export async function blockClone(accessToken: string, cloneId: number): Promise<{ ok: true; blocked: true }> {
   console.log(`[BLOCK-API] → POST /oth-path${cloneId}/block`);
   const res = await authFetch<{ ok: true; blocked: true }>(
@@ -643,6 +664,10 @@ export interface FeedComment {
   repliesCount?: number;
 
   parentCommentId?: number;
+
+  likesCount?: number;
+
+  likedByMe?: boolean;
   user: {
     id: number;
     name: string | null;
@@ -653,11 +678,13 @@ export interface FeedComment {
 
 export async function listCloneComments(
   cloneId: number,
-  opts?: { limit?: number },
+  opts?: { limit?: number; accessToken?: string | null },
 ): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
   const url = new URL(`${API_BASE}/oth-path${cloneId}/comments`);
   if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
-  const res = await fetch(url.toString());
+  const headers: Record<string, string> = {};
+  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
+  const res = await fetch(url.toString(), { headers });
   const text = await res.text();
   const parsed = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) {
@@ -674,12 +701,14 @@ export async function listCloneComments(
 
 export async function listFeedComments(
   feedId: number,
-  opts?: { cursor?: number | null; limit?: number },
+  opts?: { cursor?: number | null; limit?: number; accessToken?: string | null },
 ): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
   const url = new URL(`${API_BASE}/oth-path${feedId}/comments`);
   if (opts?.cursor) url.searchParams.set("cursor", String(opts.cursor));
   if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
-  const res = await fetch(url.toString());
+  const headers: Record<string, string> = {};
+  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
+  const res = await fetch(url.toString(), { headers });
   const text = await res.text();
   const parsed = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) {
@@ -722,13 +751,15 @@ export async function postFeedComment(
 export async function listFeedCommentReplies(
   feedId: number,
   commentId: number,
-  opts?: { limit?: number },
+  opts?: { limit?: number; accessToken?: string | null },
 ): Promise<{ items: FeedComment[] }> {
   const url = new URL(
     `${API_BASE}/oth-path${feedId}/comments/${commentId}/replies`,
   );
   if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
-  const res = await fetch(url.toString());
+  const headers: Record<string, string> = {};
+  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
+  const res = await fetch(url.toString(), { headers });
   const text = await res.text();
   const parsed = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) {
@@ -741,6 +772,26 @@ export async function listFeedCommentReplies(
     );
   }
   return parsed as { items: FeedComment[] };
+}
+
+export async function likeFeedComment(
+  accessToken: string,
+  feedId: number,
+  commentId: number,
+): Promise<{ ok: true; liked: true; likesCount: number }> {
+  return authFetch(`/oth-path${feedId}/comments/${commentId}/like`, accessToken, {
+    method: "POST",
+  });
+}
+
+export async function unlikeFeedComment(
+  accessToken: string,
+  feedId: number,
+  commentId: number,
+): Promise<{ ok: true; liked: false; likesCount: number }> {
+  return authFetch(`/oth-path${feedId}/comments/${commentId}/like`, accessToken, {
+    method: "DELETE",
+  });
 }
 
 export async function postCloneComment(

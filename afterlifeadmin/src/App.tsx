@@ -12,6 +12,7 @@ import { ApiTestbedPage } from "./pages/ApiTestbedPage";
 import { AdminCategoryPage } from "./pages/AdminCategoryPage";
 import { OtpLogsPage } from "./pages/OtpLogsPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { UserReportsPage } from "./pages/UserReportsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TotpEnrollPage } from "./pages/TotpEnrollPage";
 import { TotpVerifyPage } from "./pages/TotpVerifyPage";
@@ -45,6 +46,7 @@ function App() {
         <Route path="/messages" element={<ProtectedLayout><MessagesPage /></ProtectedLayout>} />
         <Route path="/otp" element={<ProtectedLayout><OtpLogsPage /></ProtectedLayout>} />
         <Route path="/reports" element={<ProtectedLayout><ReportsPage /></ProtectedLayout>} />
+        <Route path="/oth-path-reports" element={<ProtectedLayout><UserReportsPage /></ProtectedLayout>} />
         <Route path="/testbed" element={<ProtectedLayout><ApiTestbedPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"

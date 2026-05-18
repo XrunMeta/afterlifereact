@@ -36,6 +36,7 @@ import {
   likeClone,
   unlikeClone,
   sendGiftToClone,
+  postCloneCallEvent,
 } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 
@@ -84,6 +85,26 @@ export default function CallScreen({ route, navigation }: Props) {
   useEffect(() => {
     const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  const callStartRef = useRef<number>(Date.now());
+  const tokenRef = useRef(accessToken);
+  const cloneIdRef = useRef(cloneId);
+  useEffect(() => {
+    tokenRef.current = accessToken;
+    cloneIdRef.current = cloneId;
+  }, [accessToken, cloneId]);
+  useEffect(() => {
+    return () => {
+      const token = tokenRef.current;
+      const cid = cloneIdRef.current;
+      if (!token || !cid) return;
+      const durationSeconds = Math.floor((Date.now() - callStartRef.current) / 1000);
+
+      void postCloneCallEvent(token, cid, { durationSeconds }).catch((err) =>
+        console.warn("[Call] postCloneCallEvent failed:", err),
+      );
+    };
   }, []);
 
   useEffect(() => {

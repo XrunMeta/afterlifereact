@@ -30,7 +30,12 @@ export default function SwipeDownSheet({
   const panResponder = useRef(
     PanResponder.create({
 
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+
       onMoveShouldSetPanResponder: (_, g) =>
+        g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
+      onMoveShouldSetPanResponderCapture: (_, g) =>
         g.dy > 4 && Math.abs(g.dy) > Math.abs(g.dx),
       onPanResponderMove: (_, g) => {
         if (g.dy > 0) translateY.setValue(g.dy);
@@ -62,6 +67,8 @@ export default function SwipeDownSheet({
           bounciness: 4,
         }).start();
       },
+
+      onPanResponderTerminationRequest: () => false,
     }),
   ).current;
 

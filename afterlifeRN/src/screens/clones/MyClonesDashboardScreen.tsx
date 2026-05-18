@@ -77,6 +77,7 @@ function adaptMyClone(c: MyClone): Clone {
     cloneType: c.cloneType,
     ownerId: c.ownerId,
     displayName: c.name,
+    username: c.username,
     description: c.description ?? "",
     interests: c.interests ?? [],
     imageUrl: c.avatarUrl ?? undefined,
@@ -568,7 +569,14 @@ export default function MyClonesDashboardScreen() {
           </View>
           <View style={s.cloneInfo}>
             <Text style={s.cloneName}>{clone.displayName}</Text>
-            <Text style={s.cloneCategory}>{clone.interests?.[0] ?? ""}</Text>
+            {clone.username ? (
+              <Text style={s.cloneUsername}>@{clone.username}</Text>
+            ) : null}
+            {
+}
+            {clone.interests?.[0] ? (
+              <Text style={s.cloneCategory}>{clone.interests[0]}</Text>
+            ) : null}
           </View>
         </View>
 
@@ -1553,6 +1561,7 @@ const s = StyleSheet.create({
   },
   cloneInfo: { flex: 1 },
   cloneName: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
+  cloneUsername: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
   cloneCategory: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
 
   description: {
