@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
 
@@ -121,6 +122,7 @@ function extractMbti(text: string): PersonaMbtiCode | undefined {
 export default function Step6CreatingScreen({ navigation }: Props) {
   const draft = useCloneStore((s) => s.creationDraft);
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
+  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
@@ -314,8 +316,10 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      {}
-      <View style={s.header}>
+      {
+
+}
+      <View style={[s.header, { paddingTop: insets.top + 6 }]}>
         <TouchableOpacity onPress={goBack} hitSlop={12} style={s.backBtn}>
           <Feather name="arrow-left" size={22} color={COLORS.zinc900} />
         </TouchableOpacity>
