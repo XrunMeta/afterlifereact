@@ -6,7 +6,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
 import { v_80a022 } from "../lib/notify";
-import { v_dd9d7c } from "../lib/interactions";
+import { v_dd9d7c, v_6f97bc, v_cf0463 } from "../lib/interactions";
 import {
   v_7adf64,
   v_ab84f6,
@@ -390,6 +390,8 @@ v_f1d06f.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
   await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_2db2a5.cloneId });
 
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json({ ok: true, liked: true, likesCount: v_3ac7e7?.likes_count ?? 0 });
 });
 
@@ -525,6 +527,8 @@ v_96e8d7.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
 
   await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_6e0fd3 });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json({
     ok: true,
     liked: true,
@@ -608,6 +612,8 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     extraBody: v_4d33b2.content.trim(),
   });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json(
     {
       ok: true,
@@ -912,6 +918,8 @@ v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     extraBody: v_4d33b2.content.trim(),
   });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json(
     {
       ok: true,
