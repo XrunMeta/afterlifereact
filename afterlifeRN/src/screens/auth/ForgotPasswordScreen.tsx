@@ -39,6 +39,9 @@ export default function v_040c8f() {
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_1e51a9, v_014c88] = v_5ab095("");
+
+  const [v_b5ab16, v_b7733b] = v_5ab095(false);
+  const [v_e7340a, v_30513e] = v_5ab095(false);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const v_2de427 = async () => {
@@ -198,9 +201,21 @@ export default function v_040c8f() {
                 onChangeText={v_52b279}
                 placeholder={v_8d41d7("auth.forgot.newPasswordPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
-                secureTextEntry
+                secureTextEntry={!v_b5ab16}
                 autoFocus
               />
+              <TouchableOpacity
+                onPress={() => v_b7733b((v_81e2ef) => !v_81e2ef)}
+                hitSlop={8}
+                accessibilityLabel="비밀번호 표시 전환"
+                style={v_fd5f43.toggleBtn}
+              >
+                <Feather
+                  name={v_b5ab16 ? "eye-off" : "eye"}
+                  size={18}
+                  color={v_1bfbd0.zinc500}
+                />
+              </TouchableOpacity>
             </View>
             <View style={v_fd5f43.inputRow}>
               <Feather name="key" size={18} color={v_1bfbd0.zinc500} style={v_fd5f43.inputIcon} />
@@ -210,8 +225,20 @@ export default function v_040c8f() {
                 onChangeText={v_014c88}
                 placeholder={v_8d41d7("auth.forgot.confirmPasswordPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
-                secureTextEntry
+                secureTextEntry={!v_e7340a}
               />
+              <TouchableOpacity
+                onPress={() => v_30513e((v_81e2ef) => !v_81e2ef)}
+                hitSlop={8}
+                accessibilityLabel="비밀번호 확인 표시 전환"
+                style={v_fd5f43.toggleBtn}
+              >
+                <Feather
+                  name={v_e7340a ? "eye-off" : "eye"}
+                  size={18}
+                  color={v_1bfbd0.zinc500}
+                />
+              </TouchableOpacity>
             </View>
             <TouchableOpacity
               style={[v_fd5f43.primaryBtn, (v_cb66b4 || !v_adc076 || !v_1e51a9) && v_fd5f43.btnDisabled]}
@@ -253,6 +280,7 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: 14,
   },
   inputIcon: { marginRight: 10 },
+  toggleBtn: { paddingHorizontal: 6, paddingVertical: 8 },
   input: {
     flex: 1,
     height: 48,
