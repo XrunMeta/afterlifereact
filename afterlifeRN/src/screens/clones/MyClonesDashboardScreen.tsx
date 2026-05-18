@@ -1284,7 +1284,7 @@ export default function MyClonesDashboardScreen() {
             <View style={s.sheetHandle} />
             <View style={s.intimacyTitleRow}>
               <View style={{ width: 28 }} />
-              <Text style={s.statsSheetTitle}>친밀도 활동 내역</Text>
+              <Text style={s.statsSheetTitle}>{t("feed.eventsTitle")}</Text>
               <TouchableOpacity
                 onPress={() => setIntimacyInfoVisible(true)}
                 hitSlop={8}
@@ -1304,7 +1304,7 @@ export default function MyClonesDashboardScreen() {
                     {Math.min(100, intimacyData.summary.totalScore)}°C
                   </Text>
                   <Text style={s.intimacySummaryCount}>
-                    · {intimacyData.summary.eventCount}회 누적
+                    · {t("feed.summaryCount", { n: intimacyData.summary.eventCount })}
                   </Text>
                 </View>
                 <View style={s.intimacyBreakdownRow}>
@@ -1330,7 +1330,7 @@ export default function MyClonesDashboardScreen() {
               ) : !intimacyData || intimacyData.items.length === 0 ? (
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
-                    아직 친밀도 적립 내역이 없어요
+                    {t("feed.emptyEventsMine")}
                   </Text>
                 </View>
               ) : (
@@ -1339,10 +1339,10 @@ export default function MyClonesDashboardScreen() {
                     "chat" | "call" | "learn" | "feed",
                     { label: string; icon: keyof typeof Feather.glyphMap; color: string }
                   > = {
-                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
-                    call: { label: "통화", icon: "phone", color: "#34d399" },
-                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
-                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
+                    chat: { label: t("feed.actionLabelChat"), icon: "message-circle", color: "#60a5fa" },
+                    call: { label: t("feed.actionLabelCall"), icon: "phone", color: "#34d399" },
+                    learn: { label: t("feed.actionLabelLearn"), icon: "search", color: "#a78bfa" },
+                    feed: { label: t("feed.actionLabelFeed"), icon: "heart", color: "#ef4444" },
                   };
                   const meta = ACTION_META[ev.action];
                   return (
@@ -1374,44 +1374,40 @@ export default function MyClonesDashboardScreen() {
             <View style={s.intimacyInfoHeader}>
               <View style={s.intimacyInfoHeaderLeft}>
                 <Feather name="thermometer" size={18} color="#fb923c" />
-                <Text style={s.intimacyInfoTitle}>친밀도 · 상호작용</Text>
+                <Text style={s.intimacyInfoTitle}>{t("feed.intimacyInfoTitle")}</Text>
               </View>
               <TouchableOpacity onPress={() => setIntimacyInfoVisible(false)}>
                 <Feather name="x" size={20} color={COLORS.zinc400} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 460 }}>
-              <Text style={s.intimacyInfoSectionTitle}>친밀도 온도 (°C)</Text>
-              <Text style={s.intimacyInfoDesc}>
-                페르소나와의 관계 깊이. 활동할수록 올라가요. 최대 100°C.
-              </Text>
+              <Text style={s.intimacyInfoSectionTitle}>{t("feed.intimacyTempSectionLabel")}</Text>
+              <Text style={s.intimacyInfoDesc}>{t("feed.intimacyTempShortDesc")}</Text>
               {[
-                ["0-30°C", "처음 만나는 단계"],
-                ["31-60°C", "친숙해지는 단계"],
-                ["61-90°C", "깊은 유대감"],
-                ["91-100°C", "최고의 친밀도"],
+                ["0-30°C", t("feed.intimacyL1")],
+                ["31-60°C", t("feed.intimacyL2")],
+                ["61-90°C", t("feed.intimacyL3")],
+                ["91-100°C", t("feed.intimacyL4")],
               ].map(([range, desc], i) => (
                 <View key={i} style={s.intimacyInfoLevelRow}>
                   <Text style={[s.intimacyInfoLevelRange, i === 3 && { color: "#f97316" }]}>{range}</Text>
                   <Text style={[s.intimacyInfoLevelDesc, i === 3 && { color: "#f97316" }]}>{desc}</Text>
                 </View>
               ))}
-              <Text style={s.intimacyInfoSectionTitle}>온도 올리는 방법</Text>
+              <Text style={s.intimacyInfoSectionTitle}>{t("feed.intimacyHowToTitle")}</Text>
               <View style={s.intimacyInfoActivityBox}>
-                <Text style={s.intimacyInfoActivityItem}>• 채팅 메시지 — +1°C / 무제한</Text>
-                <Text style={s.intimacyInfoActivityItem}>• 음성 통화 — +15°C / 20분 이상</Text>
-                <Text style={s.intimacyInfoActivityItem}>• 페르소나 탐색 — +2°C / 20분 쿨다운</Text>
-                <Text style={s.intimacyInfoActivityItem}>• 피드 좋아요·댓글 — +2°C / 피드당 최대 4°C</Text>
+                <Text style={s.intimacyInfoActivityItem}>• {t("feed.intimacyHowChat")}</Text>
+                <Text style={s.intimacyInfoActivityItem}>• {t("feed.intimacyHowCall")}</Text>
+                <Text style={s.intimacyInfoActivityItem}>• {t("feed.intimacyHowLearn")}</Text>
+                <Text style={s.intimacyInfoActivityItem}>• {t("feed.intimacyHowFeed")}</Text>
               </View>
-              <Text style={s.intimacyInfoFootnote}>
-                하루 최대 15°C 적립 (자정 KST 리셋). 100°C 만점은 최소 7일 꾸준한 활동 필요.
-              </Text>
+              <Text style={s.intimacyInfoFootnote}>{t("feed.intimacyFootnote")}</Text>
             </ScrollView>
             <TouchableOpacity
               style={s.intimacyInfoOkBtn}
               onPress={() => setIntimacyInfoVisible(false)}
             >
-              <Text style={s.intimacyInfoOkText}>확인</Text>
+              <Text style={s.intimacyInfoOkText}>{t("common.ok")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

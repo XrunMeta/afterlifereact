@@ -716,7 +716,7 @@ export default function FollowingScreen() {
             <View style={s.eventsSheetHandle} />
             <View style={s.eventsSheetTitleRow}>
               <View style={{ width: 28 }} />
-              <Text style={s.eventsSheetTitle}>친밀도 활동 내역</Text>
+              <Text style={s.eventsSheetTitle}>{t("feed.eventsTitle")}</Text>
               {}
               <TouchableOpacity
                 onPress={() => setIntimacyInfoModalVisible(true)}
@@ -736,7 +736,7 @@ export default function FollowingScreen() {
                     {Math.min(100, intimacyEventsData.summary.totalScore)}°C
                   </Text>
                   <Text style={s.eventsSummaryCount}>
-                    · {intimacyEventsData.summary.eventCount}회 누적
+                    · {t("feed.summaryCount", { n: intimacyEventsData.summary.eventCount })}
                   </Text>
                 </View>
                 <View style={s.eventsBreakdownRow}>
@@ -753,7 +753,7 @@ export default function FollowingScreen() {
                 <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
               ) : !intimacyEventsData || intimacyEventsData.items.length === 0 ? (
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 활동 내역이 없어요</Text>
+                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>{t("feed.emptyEvents")}</Text>
                 </View>
               ) : (
                 intimacyEventsData.items.map((ev) => {
@@ -761,10 +761,10 @@ export default function FollowingScreen() {
                     "chat" | "call" | "learn" | "feed",
                     { label: string; icon: keyof typeof Feather.glyphMap; color: string }
                   > = {
-                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
-                    call: { label: "통화", icon: "phone", color: "#34d399" },
-                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
-                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
+                    chat: { label: t("feed.actionLabelChat"), icon: "message-circle", color: "#60a5fa" },
+                    call: { label: t("feed.actionLabelCall"), icon: "phone", color: "#34d399" },
+                    learn: { label: t("feed.actionLabelLearn"), icon: "search", color: "#a78bfa" },
+                    feed: { label: t("feed.actionLabelFeed"), icon: "heart", color: "#ef4444" },
                   };
                   const meta = META[ev.action];
                   return (
@@ -796,38 +796,34 @@ export default function FollowingScreen() {
             <View style={s.infoHeader}>
               <View style={s.infoHeaderLeft}>
                 <Feather name="thermometer" size={18} color="#fb923c" />
-                <Text style={s.infoTitle}>친밀도 · 상호작용</Text>
+                <Text style={s.infoTitle}>{t("feed.intimacyInfoTitle")}</Text>
               </View>
               <TouchableOpacity onPress={() => setIntimacyInfoModalVisible(false)}>
                 <Feather name="x" size={20} color={COLORS.zinc400} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 460 }}>
-              <Text style={s.infoSectionTitleInline}>친밀도 온도 (°C)</Text>
-              <Text style={s.infoDescInline}>
-                페르소나와의 관계 깊이. 활동할수록 올라가요. 최대 100°C.
-              </Text>
+              <Text style={s.infoSectionTitleInline}>{t("feed.intimacyTempSectionLabel")}</Text>
+              <Text style={s.infoDescInline}>{t("feed.intimacyTempShortDesc")}</Text>
               {[
-                ["0-30°C", "처음 만나는 단계"],
-                ["31-60°C", "친숙해지는 단계"],
-                ["61-90°C", "깊은 유대감"],
-                ["91-100°C", "최고의 친밀도"],
+                ["0-30°C", t("feed.intimacyL1")],
+                ["31-60°C", t("feed.intimacyL2")],
+                ["61-90°C", t("feed.intimacyL3")],
+                ["91-100°C", t("feed.intimacyL4")],
               ].map(([range, desc], i) => (
                 <View key={i} style={s.levelRow}>
                   <Text style={[s.levelRange, i === 3 && { color: "#f97316" }]}>{range}</Text>
                   <Text style={[s.levelDesc, i === 3 && { color: "#f97316" }]}>{desc}</Text>
                 </View>
               ))}
-              <Text style={s.infoSectionTitleInline}>온도 올리는 방법</Text>
+              <Text style={s.infoSectionTitleInline}>{t("feed.intimacyHowToTitle")}</Text>
               <View style={s.activityBox}>
-                <Text style={s.activityItem}>• 채팅 메시지 — +1°C / 무제한</Text>
-                <Text style={s.activityItem}>• 음성 통화 — +15°C / 20분 이상</Text>
-                <Text style={s.activityItem}>• 페르소나 탐색 — +2°C / 20분 쿨다운</Text>
-                <Text style={s.activityItem}>• 피드 좋아요·댓글 — +2°C / 피드당 최대 4°C</Text>
+                <Text style={s.activityItem}>• {t("feed.intimacyHowChat")}</Text>
+                <Text style={s.activityItem}>• {t("feed.intimacyHowCall")}</Text>
+                <Text style={s.activityItem}>• {t("feed.intimacyHowLearn")}</Text>
+                <Text style={s.activityItem}>• {t("feed.intimacyHowFeed")}</Text>
               </View>
-              <Text style={s.infoFootnote}>
-                하루 최대 15°C 적립 (자정 KST 리셋). 100°C 만점은 최소 7일 꾸준한 활동 필요.
-              </Text>
+              <Text style={s.infoFootnote}>{t("feed.intimacyFootnote")}</Text>
             </ScrollView>
             <Button
               title={t("common.ok")}

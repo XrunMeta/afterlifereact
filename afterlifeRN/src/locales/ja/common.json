@@ -2,7 +2,8 @@
   "common": {
     "back": "戻る",
     "save": "保存",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "ok": "確認"
   },
   "my": {
     "title": "マイページ",
@@ -58,5 +59,28 @@
       "zh-CN": "简体中文",
       "id": "Bahasa Indonesia"
     }
+  },
+  "feed": {
+    "eventsTitle": "親密度アクティビティ",
+    "emptyEvents": "まだアクティビティがありません",
+    "emptyEventsMine": "まだ親密度が貯まっていません",
+    "summaryCount": "合計 {{n}} 回",
+    "actionLabelChat": "チャット",
+    "actionLabelCall": "通話",
+    "actionLabelLearn": "プロフィール訪問",
+    "actionLabelFeed": "フィード活動",
+    "intimacyInfoTitle": "親密度 · 交流",
+    "intimacyHowToTitle": "温度を上げる方法",
+    "intimacyHowChat": "チャットメッセージ — +1°C / 制限なし",
+    "intimacyHowCall": "音声通話 — +15°C / 20分以上",
+    "intimacyHowLearn": "プロフィール訪問 — +2°C / 20分クールダウン",
+    "intimacyHowFeed": "フィードいいね・コメント — +2°C / 投稿あたり最大 4°C",
+    "intimacyFootnote": "1日最大 15°C 獲得可能(KST 深夜にリセット)。100°C 到達には最低 7 日の継続活動が必要です。",
+    "intimacyTempSectionLabel": "親密度温度 (°C)",
+    "intimacyTempShortDesc": "ペルソナとの関係の深さ。活動するほど上昇します。最大 100°C。",
+    "intimacyL1": "初対面の段階",
+    "intimacyL2": "親しくなる段階",
+    "intimacyL3": "深い絆",
+    "intimacyL4": "最高の親密度"
   }
 }

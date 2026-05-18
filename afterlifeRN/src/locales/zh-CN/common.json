@@ -2,7 +2,8 @@
   "common": {
     "back": "返回",
     "save": "保存",
-    "cancel": "取消"
+    "cancel": "取消",
+    "ok": "确认"
   },
   "my": {
     "title": "我的页面",
@@ -58,5 +59,28 @@
       "zh-CN": "简体中文",
       "id": "Bahasa Indonesia"
     }
+  },
+  "feed": {
+    "eventsTitle": "亲密度活动记录",
+    "emptyEvents": "暂无活动记录",
+    "emptyEventsMine": "暂无亲密度累积",
+    "summaryCount": "共 {{n}} 次",
+    "actionLabelChat": "聊天",
+    "actionLabelCall": "通话",
+    "actionLabelLearn": "查看主页",
+    "actionLabelFeed": "动态互动",
+    "intimacyInfoTitle": "亲密度 · 互动",
+    "intimacyHowToTitle": "如何提升温度",
+    "intimacyHowChat": "聊天消息 — +1°C / 无限制",
+    "intimacyHowCall": "语音通话 — +15°C / 20分钟以上",
+    "intimacyHowLearn": "查看主页 — +2°C / 20分钟冷却",
+    "intimacyHowFeed": "动态点赞·评论 — +2°C / 每条动态最多 4°C",
+    "intimacyFootnote": "每日最多累积 15°C(韩国时间午夜重置)。达到 100°C 需至少 7 天持续活动。",
+    "intimacyTempSectionLabel": "亲密度温度 (°C)",
+    "intimacyTempShortDesc": "与人物的关系深度。互动越多越上升,最高 100°C。",
+    "intimacyL1": "初次相识阶段",
+    "intimacyL2": "渐渐熟悉阶段",
+    "intimacyL3": "深度纽带",
+    "intimacyL4": "最高亲密度"
   }
 }
