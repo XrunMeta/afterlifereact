@@ -573,12 +573,19 @@ export default function MyClonesDashboardScreen() {
         {}
         <View style={s.cardTopRow}>
           <View style={s.cardTopRight}>
-            {}
+            {
+
+}
             {!isMemlow && (
-              <View style={s.visibilityBadge}>
+              <TouchableOpacity
+                style={s.visibilityBadge}
+                onPress={() => handleVisibility(clone.id)}
+                hitSlop={8}
+              >
                 <Feather name={getVisibilityIcon(visibility)} size={14} color={COLORS.zinc500} />
                 <Text style={s.visibilityText}>{getVisibilityLabel(visibility)}</Text>
-              </View>
+                <Feather name="chevron-down" size={12} color={COLORS.zinc400} />
+              </TouchableOpacity>
             )}
             <TouchableOpacity
               style={s.moreBtn}
@@ -938,23 +945,6 @@ export default function MyClonesDashboardScreen() {
 
             {
 }
-            {menuCloneId != null &&
-              myClones.find((c) => c.id === menuCloneId)?.cloneType !== "memlow" && (
-                <TouchableOpacity
-                  style={s.menuItem}
-                  onPress={() => {
-                    const id = menuCloneId!;
-                    handleVisibility(id);
-                  }}
-                >
-                  <Feather
-                    name={getVisibilityIcon(cloneStates[menuCloneId!]?.visibility ?? "public")}
-                    size={18}
-                    color={COLORS.zinc700}
-                  />
-                  <Text style={s.menuItemText}>공개 범위</Text>
-                </TouchableOpacity>
-              )}
             <View style={s.menuDivider} />
             {}
             <TouchableOpacity
