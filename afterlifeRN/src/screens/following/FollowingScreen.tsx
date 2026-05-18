@@ -14,6 +14,7 @@ import {
   Dimensions,
   Animated,
   Alert,
+  ActivityIndicator,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
 } from "react-native";
