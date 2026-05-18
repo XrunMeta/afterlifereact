@@ -34,7 +34,8 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
+import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse } from "../../api/clones";
+import { formatRelativeKo } from "../../lib/relativeTime";
 import { AuthApiError, patchMe } from "../../api/auth";
 import { getXrunBalance, getPaymentPinStatus } from "../../api/payments";
 import PaymentPinPromptModal from "../../components/my/PaymentPinPromptModal";
@@ -210,6 +211,39 @@ export default function MyClonesDashboardScreen() {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [followersList, setFollowersList] = useState<CloneFollower[] | null>(null);
   const [followersLoading, setFollowersLoading] = useState(false);
+
+  const [intimacyModal, setIntimacyModal] = useState<{
+    cloneId: number;
+    cloneName: string;
+  } | null>(null);
+  const [intimacyData, setIntimacyData] = useState<IntimacyEventsResponse | null>(null);
+  const [intimacyLoading, setIntimacyLoading] = useState(false);
+
+  useEffect(() => {
+    if (!intimacyModal) {
+      setIntimacyData(null);
+      return;
+    }
+    if (!accessToken) return;
+    let cancelled = false;
+    setIntimacyLoading(true);
+    setIntimacyData(null);
+    listCloneIntimacyEvents(accessToken, intimacyModal.cloneId, { limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        setIntimacyData(res);
+      })
+      .catch((err) => {
+        console.warn("[MyClones] listCloneIntimacyEvents failed:", err);
+        if (!cancelled) setIntimacyData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIntimacyLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [intimacyModal, accessToken]);
 
   useEffect(() => {
     if (statsModal?.type !== "likes" || statsModal.cloneId == null) {
@@ -613,6 +647,22 @@ export default function MyClonesDashboardScreen() {
               <Text style={s.statText} testID={`follower-count-${clone.id}`}>
                 {followerCount} 구독자
               </Text>
+            </TouchableOpacity>
+            {
+}
+            <TouchableOpacity
+              style={s.stat}
+              onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
+            >
+              <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
+              <Text style={s.statText}>상호작용</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.stat}
+              onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
+            >
+              <Feather name="thermometer" size={14} color="#fb923c" />
+              <Text style={s.statText}>온도</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1224,6 +1274,86 @@ export default function MyClonesDashboardScreen() {
                     상호작용 상세 목록은 준비 중이에요
                   </Text>
                 </View>
+              )}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal visible={!!intimacyModal} transparent animationType="slide">
+        <Pressable style={s.modalOverlay} onPress={() => setIntimacyModal(null)}>
+          <View
+            style={[s.statsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={s.sheetHandle} />
+            <Text style={s.statsSheetTitle}>친밀도 활동 내역</Text>
+            <Text style={s.statsSheetSub}>{intimacyModal?.cloneName}</Text>
+
+            {}
+            {intimacyData?.summary && (
+              <View style={s.intimacySummary}>
+                <View style={s.intimacySummaryRow}>
+                  <Feather name="thermometer" size={20} color="#fb923c" />
+                  <Text style={s.intimacySummaryScore}>
+                    {Math.min(100, intimacyData.summary.totalScore)}°C
+                  </Text>
+                  <Text style={s.intimacySummaryCount}>
+                    · {intimacyData.summary.eventCount}회 누적
+                  </Text>
+                </View>
+                <View style={s.intimacyBreakdownRow}>
+                  <Text style={s.intimacyBreakdownItem}>
+                    채팅 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.chat}°C</Text>
+                  </Text>
+                  <Text style={s.intimacyBreakdownItem}>
+                    통화 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.call}°C</Text>
+                  </Text>
+                  <Text style={s.intimacyBreakdownItem}>
+                    탐색 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.learn}°C</Text>
+                  </Text>
+                  <Text style={s.intimacyBreakdownItem}>
+                    피드 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.feed}°C</Text>
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
+              {intimacyLoading ? (
+                <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
+              ) : !intimacyData || intimacyData.items.length === 0 ? (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
+                    아직 친밀도 적립 내역이 없어요
+                  </Text>
+                </View>
+              ) : (
+                intimacyData.items.map((ev) => {
+                  const ACTION_META: Record<
+                    "chat" | "call" | "learn" | "feed",
+                    { label: string; icon: keyof typeof Feather.glyphMap; color: string }
+                  > = {
+                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
+                    call: { label: "통화", icon: "phone", color: "#34d399" },
+                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
+                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
+                  };
+                  const meta = ACTION_META[ev.action];
+                  return (
+                    <View key={ev.id} style={s.intimacyEventRow}>
+                      <View style={[s.intimacyEventIcon, { backgroundColor: meta.color + "22" }]}>
+                        <Feather name={meta.icon} size={14} color={meta.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.intimacyEventLabel}>{meta.label}</Text>
+                        <Text style={s.intimacyEventTime}>{formatRelativeKo(ev.createdAt)}</Text>
+                      </View>
+                      <Text style={s.intimacyEventScore}>+{ev.score}°C</Text>
+                    </View>
+                  );
+                })
               )}
             </ScrollView>
           </View>
@@ -1846,4 +1976,47 @@ const s = StyleSheet.create({
   },
   inviteBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.white },
   inviteBtnTextSent: { color: COLORS.success },
+
+  intimacySummary: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+    marginBottom: 8,
+  },
+  intimacySummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  intimacySummaryScore: { fontSize: 24, fontWeight: "700", color: "#fb923c" },
+  intimacySummaryCount: { fontSize: 13, color: COLORS.zinc500 },
+  intimacyBreakdownRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  intimacyBreakdownItem: { fontSize: 12, color: COLORS.zinc500 },
+  intimacyBreakdownVal: { color: COLORS.zinc900, fontWeight: "600" },
+  intimacyEventRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+  },
+  intimacyEventIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  intimacyEventLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
+  intimacyEventTime: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
+  intimacyEventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
 });

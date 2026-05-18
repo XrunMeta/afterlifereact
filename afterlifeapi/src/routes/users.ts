@@ -475,6 +475,92 @@ users.get("/me/clones", requireAuth, async (c) => {
   return c.json({ items });
 });
 
+users.get("/me/clones/:cloneId/intimacy-events", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const cloneId = Number(c.req.param("cloneId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+
+  const clone = await c.env.DB
+    .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .bind(cloneId)
+    .first<{ ownerId: number }>();
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  if (clone.ownerId !== userId) {
+    throw new APIError("FORBIDDEN", "본인의 페르소나만 조회할 수 있어요.");
+  }
+
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const cursorRaw = url.searchParams.get("cursor");
+  const cursor = cursorRaw ? Number(cursorRaw) : null;
+
+  const where: string[] = ["clone_id = ?"];
+  const binds: unknown[] = [cloneId];
+  if (cursor && Number.isInteger(cursor) && cursor > 0) {
+    where.push("id < ?");
+    binds.push(cursor);
+  }
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, action, score, feed_id AS feedId, created_at AS createdAt
+           FROM intimacy_events
+          WHERE ${where.join(" AND ")}
+          ORDER BY id DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit + 1)
+      .all<{
+        id: number;
+        action: string;
+        score: number;
+        feedId: number | null;
+        createdAt: string;
+      }>()
+  ).results ?? [];
+
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  const nextCursor = hasMore && items.length > 0 ? items[items.length - 1]!.id : null;
+
+  const aggRow = await c.env.DB
+    .prepare(
+      `SELECT
+         COALESCE(SUM(score), 0)                                            AS totalScore,
+         SUM(CASE WHEN action = 'chat'  THEN score ELSE 0 END)              AS chatScore,
+         SUM(CASE WHEN action = 'call'  THEN score ELSE 0 END)              AS callScore,
+         SUM(CASE WHEN action = 'learn' THEN score ELSE 0 END)              AS learnScore,
+         SUM(CASE WHEN action = 'feed'  THEN score ELSE 0 END)              AS feedScore,
+         COUNT(*)                                                           AS eventCount
+       FROM intimacy_events WHERE clone_id = ?`,
+    )
+    .bind(cloneId)
+    .first<{
+      totalScore: number;
+      chatScore: number;
+      callScore: number;
+      learnScore: number;
+      feedScore: number;
+      eventCount: number;
+    }>();
+
+  return c.json({
+    summary: {
+      totalScore: aggRow?.totalScore ?? 0,
+      chat: aggRow?.chatScore ?? 0,
+      call: aggRow?.callScore ?? 0,
+      learn: aggRow?.learnScore ?? 0,
+      feed: aggRow?.feedScore ?? 0,
+      eventCount: aggRow?.eventCount ?? 0,
+    },
+    items,
+    nextCursor,
+  });
+});
+
 users.post("/me/delete", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;

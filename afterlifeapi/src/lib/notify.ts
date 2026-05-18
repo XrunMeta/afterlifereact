@@ -16,7 +16,9 @@ export type NotificationType =
 
   | "user_follow"
 
-  | "followee_new_clone";
+  | "followee_new_clone"
+
+  | "intimacy_score";
 
 export interface NotifyOptions {
 
@@ -176,6 +178,51 @@ export async function notifyCloneEvent(
     });
   } catch (err) {
     console.warn("[notifyCloneEvent] failed:", (err as Error).message);
+  }
+}
+
+export async function notifyIntimacyScore(
+  env: Bindings,
+  args: {
+    actorId: number;
+    cloneId: number;
+    action: "chat" | "call" | "learn" | "feed";
+    score: number;
+  },
+): Promise<void> {
+  try {
+    if (args.score <= 0) return;
+    const clone = await env.DB
+      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND deleted_at IS NULL`)
+      .bind(args.cloneId)
+      .first<{ owner_id: number; name: string }>();
+    if (!clone) return;
+    if (clone.owner_id === args.actorId) return; 
+
+    const ACTION_LABEL: Record<"chat" | "call" | "learn" | "feed", string> = {
+      chat: "채팅",
+      call: "통화",
+      learn: "프로필 탐색",
+      feed: "피드 소통",
+    };
+    const label = ACTION_LABEL[args.action];
+
+    await notify(env, {
+      userId: clone.owner_id,
+      type: "intimacy_score",
+      title: `🌡️ +${args.score}°C 온도 상승`,
+      body: `${clone.name} 의 친밀도가 ${label} 활동으로 ${args.score}°C 올랐어요`,
+      url: `afterlife://clone/${args.cloneId}/intimacy`,
+      data: {
+        cloneId: args.cloneId,
+        action: args.action,
+        score: args.score,
+        actorId: args.actorId,
+      },
+      skipEmail: true,
+    });
+  } catch (err) {
+    console.warn("[notifyIntimacyScore] failed:", (err as Error).message);
   }
 }
 

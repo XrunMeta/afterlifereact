@@ -1,6 +1,7 @@
 
 
 import type { Bindings } from "./env";
+import { notifyIntimacyScore } from "./notify";
 
 type InteractionKind = "chat" | "call" | "learn" | "feed";
 
@@ -93,6 +94,8 @@ export async function addIntimacyScore(
   userId: number,
   cloneId: number,
   score: number,
+  action: InteractionKind,
+  feedId?: number,
 ): Promise<{ applied: number; dailyRemaining: number }> {
   if (!userId || !cloneId || score <= 0) {
     return { applied: 0, dailyRemaining: INTIMACY_DAILY_CAP };
@@ -122,6 +125,28 @@ export async function addIntimacyScore(
       expirationTtl: 26 * 60 * 60,
     });
 
+    try {
+      await env.DB
+        .prepare(
+          `INSERT INTO intimacy_events (user_id, clone_id, action, score, feed_id)
+           VALUES (?, ?, ?, ?, ?)`,
+        )
+        .bind(userId, cloneId, action, applied, feedId ?? null)
+        .run();
+    } catch (logErr) {
+      console.warn(
+        `[interactions] event log failed:`,
+        (logErr as Error).message,
+      );
+    }
+
+    await notifyIntimacyScore(env, {
+      actorId: userId,
+      cloneId,
+      action,
+      score: applied,
+    });
+
     return { applied, dailyRemaining: dailyRemaining - applied };
   } catch (err) {
     console.warn(
@@ -147,7 +172,14 @@ export async function addPerFeedIntimacyScore(
     const perFeedRemaining = Math.max(0, INTIMACY_PER_FEED_CAP - used);
     if (perFeedRemaining <= 0) return { applied: 0 };
     const candidate = Math.min(score, perFeedRemaining);
-    const { applied } = await addIntimacyScore(env, userId, cloneId, candidate);
+    const { applied } = await addIntimacyScore(
+      env,
+      userId,
+      cloneId,
+      candidate,
+      "feed",
+      feedId,
+    );
     if (applied > 0) {
       await env.KV_RATE.put(key, String(used + applied), {
         expirationTtl: 30 * 24 * 60 * 60, 
