@@ -133,6 +133,7 @@ export default function v_14b43e() {
               v_cb35cb.items.map((v_23805a) => ({
                 id: v_23805a.id,
                 name: v_23805a.name,
+                isOwn: v_23805a.isOwn, 
                 "stats.likes": v_23805a.stats?.likes,
                 "stats.comments": v_23805a.stats?.comments,
                 "latestFeed.feedId": v_23805a.latestFeed?.feedId,
