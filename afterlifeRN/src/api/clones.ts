@@ -517,8 +517,18 @@ export async function postCloneCallEvent(
 export async function postCloneLearnEvent(
   accessToken: string,
   cloneId: number,
-): Promise<{ ok: true; bumped: boolean }> {
+): Promise<{ ok: true; bumped: boolean; scoreApplied?: number }> {
   return authFetch(`/oth-path${cloneId}/learn-event`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function postCloneChatEvent(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ ok: true; scoreApplied?: number }> {
+  return authFetch(`/oth-path${cloneId}/chat-event`, accessToken, {
     method: "POST",
     body: JSON.stringify({}),
   });

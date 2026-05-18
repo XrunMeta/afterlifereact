@@ -1189,3 +1189,14 @@ clones.post("/:id/learn-event", requireAuth, async (c) => {
   }
   return c.json({ ok: true, bumped: true, scoreApplied });
 });
+
+clones.post("/:id/chat-event", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  await bumpInteraction(c.env, userId, cloneId, "chat");
+  const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.chat, "chat");
+  return c.json({ ok: true, scoreApplied: r.applied });
+});

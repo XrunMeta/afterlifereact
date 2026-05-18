@@ -98,12 +98,19 @@ export default function CallScreen({ route, navigation }: Props) {
     return () => {
       const token = tokenRef.current;
       const cid = cloneIdRef.current;
-      if (!token || !cid) return;
+      console.log(`[Call] 화면 종료 — call-event 전송 시도 token=${!!token} cloneId=${cid}`);
+      if (!token || !cid) {
+        console.warn(`[Call] call-event 전송 SKIP (token=${!!token} cid=${cid})`);
+        return;
+      }
       const durationSeconds = Math.floor((Date.now() - callStartRef.current) / 1000);
+      console.log(`[Call] POST /oth-path${cid}/call-event { durationSeconds: ${durationSeconds} }`);
 
-      void postCloneCallEvent(token, cid, { durationSeconds }).catch((err) =>
-        console.warn("[Call] postCloneCallEvent failed:", err),
-      );
+      postCloneCallEvent(token, cid, { durationSeconds })
+        .then((res) =>
+          console.log(`[Call] call-event ← ok scoreApplied=${(res as { scoreApplied?: number }).scoreApplied ?? 0}°C (duration=${durationSeconds}s, >=1200 이면 +15°C)`),
+        )
+        .catch((err) => console.warn("[Call] postCloneCallEvent failed:", err));
     };
   }, []);
 
