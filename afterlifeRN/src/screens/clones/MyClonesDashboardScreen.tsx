@@ -1271,7 +1271,6 @@ export default function v_def15b() {
         </Pressable>
       </Modal>
 
-      {}
       {
 }
       <Modal visible={!!v_d3a183} transparent animationType="slide">
@@ -1281,51 +1280,73 @@ export default function v_def15b() {
             style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
           >
             <View style={v_fd5f43.sheetHandle} />
-            <Text style={v_fd5f43.statsSheetTitle}>친밀도 · 상호작용</Text>
+            <Text style={v_fd5f43.statsSheetTitle}>친밀도 활동 내역</Text>
             <Text style={v_fd5f43.statsSheetSub}>{v_d3a183?.cloneName}</Text>
 
-            <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
-              {}
-              <View style={v_fd5f43.infoSection}>
-                <View style={v_fd5f43.infoSectionHeader}>
-                  <Feather name="thermometer" size={16} color="#fb923c" />
-                  <Text style={v_fd5f43.infoSectionTitle}>친밀도 온도 (°C)</Text>
+            {}
+            {v_e3b01d?.summary && (
+              <View style={v_fd5f43.intimacySummary}>
+                <View style={v_fd5f43.intimacySummaryRow}>
+                  <Feather name="thermometer" size={20} color="#fb923c" />
+                  <Text style={v_fd5f43.intimacySummaryScore}>
+                    {Math.min(100, v_e3b01d.summary.totalScore)}°C
+                  </Text>
+                  <Text style={v_fd5f43.intimacySummaryCount}>
+                    · {v_e3b01d.summary.eventCount}회 누적
+                  </Text>
                 </View>
-                <Text style={v_fd5f43.infoSectionDesc}>
-                  페르소나와의 관계 깊이를 나타냅니다. 대화·통화·탐색·피드 활동을 할수록 °C 가 올라가요. 최대 100°C.
-                </Text>
-                {[
-                  ["0-30°C", "처음 만나는 단계"],
-                  ["31-60°C", "친숙해지는 단계"],
-                  ["61-90°C", "깊은 유대감"],
-                  ["91-100°C", "최고의 친밀도"],
-                ].map(([v_4f2c9c, v_41b99d], v_ebec57) => (
-                  <View key={v_ebec57} style={v_fd5f43.infoLevelRow}>
-                    <Text style={[v_fd5f43.infoLevelRange, v_ebec57 === 3 && { color: "#f97316" }]}>{v_4f2c9c}</Text>
-                    <Text style={[v_fd5f43.infoLevelDesc, v_ebec57 === 3 && { color: "#f97316" }]}>{v_41b99d}</Text>
-                  </View>
-                ))}
+                <View style={v_fd5f43.intimacyBreakdownRow}>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    채팅 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.chat}°C</Text>
+                  </Text>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    통화 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.call}°C</Text>
+                  </Text>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    탐색 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.learn}°C</Text>
+                  </Text>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    피드 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.feed}°C</Text>
+                  </Text>
+                </View>
               </View>
+            )}
 
-              {}
-              <View style={v_fd5f43.infoSection}>
-                <View style={v_fd5f43.infoSectionHeader}>
-                  <Ionicons name="chatbubbles-outline" size={16} color="#60a5fa" />
-                  <Text style={v_fd5f43.infoSectionTitle}>상호작용 횟수</Text>
+            <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
+              {v_5be645 ? (
+                <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
+              ) : !v_e3b01d || v_e3b01d.items.length === 0 ? (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
+                    아직 친밀도 적립 내역이 없어요
+                  </Text>
                 </View>
-                <Text style={v_fd5f43.infoSectionDesc}>
-                  페르소나와 한 모든 활동의 누적 횟수입니다. 상한 없이 계속 누적돼요.
-                </Text>
-                <View style={v_fd5f43.infoActivityBox}>
-                  <Text style={v_fd5f43.infoActivityItem}>• 채팅 메시지: <Text style={v_fd5f43.infoActivityScore}>+1°C / 무제한</Text></Text>
-                  <Text style={v_fd5f43.infoActivityItem}>• 음성 통화: <Text style={v_fd5f43.infoActivityScore}>+15°C / 20분 이상</Text></Text>
-                  <Text style={v_fd5f43.infoActivityItem}>• 페르소나 탐색: <Text style={v_fd5f43.infoActivityScore}>+2°C / 20분 쿨다운</Text></Text>
-                  <Text style={v_fd5f43.infoActivityItem}>• 피드 소통 (좋아요·댓글): <Text style={v_fd5f43.infoActivityScore}>+2°C / 피드당 최대 4°C</Text></Text>
-                </View>
-                <Text style={v_fd5f43.infoSectionFootnote}>
-                  하루 최대 15°C 까지 적립 가능 (자정 KST 리셋). 100°C 만점에 도달하려면 최소 7일 꾸준한 활동 필요.
-                </Text>
-              </View>
+              ) : (
+                v_e3b01d.items.map((v_1d299c) => {
+                  const ACTION_META: Record<
+                    "chat" | "call" | "learn" | "feed",
+                    { label: string; icon: keyof typeof v_dec439.glyphMap; color: string }
+                  > = {
+                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
+                    call: { label: "통화", icon: "phone", color: "#34d399" },
+                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
+                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
+                  };
+                  const v_ab4c96 = v_894daa[v_1d299c.action];
+                  return (
+                    <View key={v_1d299c.id} style={v_fd5f43.intimacyEventRow}>
+                      <View style={[v_fd5f43.intimacyEventIcon, { backgroundColor: v_ab4c96.color + "22" }]}>
+                        <Feather name={v_ab4c96.icon} size={14} color={v_ab4c96.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={v_fd5f43.intimacyEventLabel}>{v_ab4c96.label}</Text>
+                        <Text style={v_fd5f43.intimacyEventTime}>{v_bfd883(v_1d299c.createdAt)}</Text>
+                      </View>
+                      <Text style={v_fd5f43.intimacyEventScore}>+{v_1d299c.score}°C</Text>
+                    </View>
+                  );
+                })
+              )}
             </ScrollView>
           </SwipeDownSheet>
         </Pressable>

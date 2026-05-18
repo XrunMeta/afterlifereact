@@ -707,62 +707,48 @@ export default function v_14b43e() {
             style={[v_fd5f43.eventsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
           >
             <View style={v_fd5f43.eventsSheetHandle} />
-            <Text style={v_fd5f43.eventsSheetTitle}>친밀도 활동 내역</Text>
+            <Text style={v_fd5f43.eventsSheetTitle}>친밀도 · 상호작용</Text>
             <Text style={v_fd5f43.eventsSheetSub}>{v_821fc1?.cloneName}</Text>
 
-            {v_077f23?.summary && (
-              <View style={v_fd5f43.eventsSummary}>
-                <View style={v_fd5f43.eventsSummaryRow}>
-                  <Feather name="thermometer" size={20} color="#fb923c" />
-                  <Text style={v_fd5f43.eventsSummaryScore}>
-                    {Math.min(100, v_077f23.summary.totalScore)}°C
-                  </Text>
-                  <Text style={v_fd5f43.eventsSummaryCount}>
-                    · {v_077f23.summary.eventCount}회 누적
-                  </Text>
-                </View>
-                <View style={v_fd5f43.eventsBreakdownRow}>
-                  <Text style={v_fd5f43.eventsBreakdownItem}>채팅 <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.chat}°C</Text></Text>
-                  <Text style={v_fd5f43.eventsBreakdownItem}>통화 <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.call}°C</Text></Text>
-                  <Text style={v_fd5f43.eventsBreakdownItem}>탐색 <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.learn}°C</Text></Text>
-                  <Text style={v_fd5f43.eventsBreakdownItem}>피드 <Text style={v_fd5f43.eventsBreakdownVal}>{v_077f23.summary.feed}°C</Text></Text>
-                </View>
-              </View>
-            )}
-
             <ScrollView style={v_fd5f43.eventsScrollArea} showsVerticalScrollIndicator={false}>
-              {v_34e317 ? (
-                <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
-              ) : !v_077f23 || v_077f23.items.length === 0 ? (
-                <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                  <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>아직 활동 내역이 없어요</Text>
+              {}
+              <View style={v_fd5f43.infoSection}>
+                <View style={v_fd5f43.infoSectionHeader}>
+                  <Feather name="thermometer" size={16} color="#fb923c" />
+                  <Text style={v_fd5f43.infoSectionTitle}>친밀도 온도 (°C)</Text>
                 </View>
-              ) : (
-                v_077f23.items.map((v_1d299c) => {
-                  const META: Record<
-                    "chat" | "call" | "learn" | "feed",
-                    { label: string; icon: keyof typeof v_dec439.glyphMap; color: string }
-                  > = {
-                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
-                    call: { label: "통화", icon: "phone", color: "#34d399" },
-                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
-                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
-                  };
-                  const v_ab4c96 = v_afc1e0[v_1d299c.action];
-                  return (
-                    <View key={v_1d299c.id} style={v_fd5f43.eventRow}>
-                      <View style={[v_fd5f43.eventIcon, { backgroundColor: v_ab4c96.color + "22" }]}>
-                        <Feather name={v_ab4c96.icon} size={14} color={v_ab4c96.color} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={v_fd5f43.eventLabel}>{v_ab4c96.label}</Text>
-                        <Text style={v_fd5f43.eventTime}>{v_bfd883(v_1d299c.createdAt)}</Text>
-                      </View>
-                      <Text style={v_fd5f43.eventScore}>+{v_1d299c.score}°C</Text>
-                    </View>
-                  );
-                })
-              )}
+                <Text style={v_fd5f43.infoSectionDesc}>
+                  페르소나와의 관계 깊이를 나타냅니다. 대화·통화·탐색·피드 활동을 할수록 °C 가 올라가요. 최대 100°C.
+                </Text>
+                {[
+                  ["0-30°C", "처음 만나는 단계"],
+                  ["31-60°C", "친숙해지는 단계"],
+                  ["61-90°C", "깊은 유대감"],
+                  ["91-100°C", "최고의 친밀도"],
+                ].map(([v_4f2c9c, v_41b99d], v_ebec57) => (
+                  <View key={v_ebec57} style={v_fd5f43.infoLevelRow}>
+                    <Text style={[v_fd5f43.infoLevelRange, v_ebec57 === 3 && { color: "#f97316" }]}>{v_4f2c9c}</Text>
+                    <Text style={[v_fd5f43.infoLevelDesc, v_ebec57 === 3 && { color: "#f97316" }]}>{v_41b99d}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {}
+              <View style={v_fd5f43.infoSection}>
+                <View style={v_fd5f43.infoSectionHeader}>
+                  <Ionicons name="chatbubbles-outline" size={16} color="#60a5fa" />
+                  <Text style={v_fd5f43.infoSectionTitle}>온도 올리는 방법</Text>
+                </View>
+                <View style={v_fd5f43.infoActivityBox}>
+                  <Text style={v_fd5f43.infoActivityItem}>• 채팅 메시지: <Text style={v_fd5f43.infoActivityScore}>+1°C / 무제한</Text></Text>
+                  <Text style={v_fd5f43.infoActivityItem}>• 음성 통화: <Text style={v_fd5f43.infoActivityScore}>+15°C / 20분 이상</Text></Text>
+                  <Text style={v_fd5f43.infoActivityItem}>• 페르소나 탐색: <Text style={v_fd5f43.infoActivityScore}>+2°C / 20분 쿨다운</Text></Text>
+                  <Text style={v_fd5f43.infoActivityItem}>• 피드 소통 (좋아요·댓글): <Text style={v_fd5f43.infoActivityScore}>+2°C / 피드당 최대 4°C</Text></Text>
+                </View>
+                <Text style={v_fd5f43.infoSectionFootnote}>
+                  하루 최대 15°C 까지 적립 가능 (자정 KST 리셋). 100°C 만점에 도달하려면 최소 7일 꾸준한 활동 필요.
+                </Text>
+              </View>
             </ScrollView>
           </SwipeDownSheet>
         </Pressable>
@@ -1072,4 +1058,21 @@ const v_fd5f43 = v_472849.create({
   eventLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
   eventTime: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 2 },
   eventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
+
+  infoSection: {
+    paddingHorizontal: 4,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+  },
+  infoSectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 },
+  infoSectionTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  infoSectionDesc: { fontSize: 13, color: v_1bfbd0.zinc600, lineHeight: 20, marginBottom: 12 },
+  infoSectionFootnote: { fontSize: 11, color: v_1bfbd0.zinc500, lineHeight: 16, marginTop: 10 },
+  infoLevelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
+  infoLevelRange: { width: 90, fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  infoLevelDesc: { fontSize: 13, color: v_1bfbd0.zinc500 },
+  infoActivityBox: { backgroundColor: v_1bfbd0.zinc50, borderRadius: 8, padding: 12, gap: 6 },
+  infoActivityItem: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 20 },
+  infoActivityScore: { color: "#fb923c", fontWeight: "700" },
 });
