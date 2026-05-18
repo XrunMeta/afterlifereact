@@ -36,6 +36,7 @@ import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
 import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
+import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_84a859, v_976b89 } from "../../api/auth";
 import { v_5c99c1, v_9b8cb3 } from "../../api/payments";
 import v_3cb56d from "../../components/my/PaymentPinPromptModal";
@@ -1149,9 +1150,9 @@ export default function v_def15b() {
       {}
       <Modal visible={!!v_8bb912} transparent animationType="slide">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_d5cd7b(null)}>
-          <View
+          <SwipeDownSheet
+            onClose={() => v_d5cd7b(null)}
             style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={v_fd5f43.sheetHandle} />
             <Text style={v_fd5f43.statsSheetTitle}>
@@ -1266,16 +1267,16 @@ export default function v_def15b() {
                 </View>
               )}
             </ScrollView>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 
       {}
       <Modal visible={!!v_d3a183} transparent animationType="slide">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_598141(null)}>
-          <View
+          <SwipeDownSheet
+            onClose={() => v_598141(null)}
             style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={v_fd5f43.sheetHandle} />
             <Text style={v_fd5f43.statsSheetTitle}>친밀도 활동 내역</Text>
@@ -1346,7 +1347,7 @@ export default function v_def15b() {
                 })
               )}
             </ScrollView>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 
