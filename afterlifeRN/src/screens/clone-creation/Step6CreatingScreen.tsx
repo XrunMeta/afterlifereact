@@ -18,7 +18,6 @@ import {
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
-import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 
 import v_556baf from "../../components/ui/SafeView";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -46,51 +45,51 @@ const v_063b58 = [
   "memory",
 ];
 
-const v_291e91 = "기억의 요정";
-const v_e61074 = "✨";
+const v_291e91 = "안내 도우미";
+const v_e61074 = "🙋";
 
 const v_64bd1a = [
-  "안녕! 나는 네 소중한 기억 속에 살고 있는 요정이야 ✨",
-  "지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...",
-  "떠올랐어!? 그럼 몇 가지 물어볼게.",
+  "안녕하세요! 페르소나 생성을 도와드릴 안내 도우미입니다.",
+  "마음에 떠올리고 계신 분에 대해 몇 가지 여쭤볼게요.",
+  "편하게 답해주시면, 그 모습에 맞는 페르소나를 만들어드릴게요.",
 ];
 
 const v_d57121 = {
   name: {
-    prompt: "그 존재의 이름은 뭐였어?\n네가 부르던 이름이나 별명, 어떤 호칭이든 좋아!",
+    prompt: "먼저 이름을 알려주실 수 있을까요?\n평소 부르시던 이름이나 별명, 어떤 호칭이든 괜찮습니다.",
     placeholder: "예: 별이, 할머니, 모리",
     multiline: false,
-    ack: "예쁜 이름이네! 기억할게.",
+    ack: "감사합니다. 잘 적어두었어요.",
   },
   username: {
-    prompt: "@아이디는 어떻게 할까?\n영문 소문자/숫자/_ 만 가능해. 비워두면 이름으로 자동 만들어줄게.",
+    prompt: "@아이디는 어떻게 설정해드릴까요?\n영문 소문자, 숫자, 밑줄(_) 만 사용 가능합니다. 비워두시면 이름을 바탕으로 자동 생성해드려요.",
     placeholder: "예: starry_kim, modi_v",
     multiline: false,
-    ack: "좋아, 다음으로 넘어갈게.",
+    ack: "확인했습니다. 다음으로 넘어갈게요.",
   },
   firstMeeting: {
-    prompt: "그 존재와는 어떻게 처음 만나게 되었어?\n우리 사이에 잊지 못할 특별한 첫 순간이나 추억이 있었는지 궁금해!",
-    placeholder: "예: 학교에서 처음 봤을 때 분위기가 차가워 보였는데, 말 걸어보니 너무 순진해서 반전이 예뻤어.",
+    prompt: "처음 만나게 된 이야기를 들려주실 수 있을까요?\n특별했던 순간이나 첫인상이 궁금합니다.",
+    placeholder: "예: 학교에서 처음 봤을 때 분위기가 차가워 보였는데, 말 걸어보니 정말 순진했어요.",
     multiline: true,
-    ack: "그 순간이 떠올라.",
+    ack: "잘 들었습니다. 소중한 이야기네요.",
   },
   habit: {
-    prompt: "자주 하던 말이나 눈길이 가던 습관이 있었니?\n사소한 거라도 좋아!",
-    placeholder: "예: 기분 좋으면 '하자, 하자!' 하고 아이처럼 말을 반복했어.",
+    prompt: "자주 하시던 말이나 눈길이 가던 습관이 있었나요?\n사소한 것이라도 괜찮습니다.",
+    placeholder: "예: 기분 좋으시면 '하자, 하자!' 하고 아이처럼 말을 반복하셨어요.",
     multiline: true,
-    ack: "귀엽다, 그런 거.",
+    ack: "그런 모습도 기억해두겠습니다.",
   },
   personality: {
-    prompt: "그 존재의 성격은 어땠어?\n혹시 MBTI가 생각나니? 기억이 안 난다면 평소 성격을 말해줘도 돼!",
-    placeholder: "예: MBTI는 INFP인데 사람들 만나는 걸 좋아했어. 근데 집에 가면 방전 되곤 했지.",
+    prompt: "그분의 성격은 어땠나요?\nMBTI 가 떠오르신다면 함께 알려주셔도 좋고, 평소 성격을 말씀해주셔도 됩니다.",
+    placeholder: "예: MBTI 는 INFP 였고, 사람들과 만나는 걸 좋아하셨지만 집에 오면 방전되곤 하셨어요.",
     multiline: true,
-    ack: "성격도 잘 기억하고 있을게.",
+    ack: "성격까지 잘 정리해두었습니다.",
   },
   memory: {
-    prompt: "눈 감으면 어제처럼 선명한 장면이 있을까?\n가장 행복하게 웃고 있던 순간을 나한테도 공유해줘.",
-    placeholder: "예: 놀이동산에서 불꽃 터질 때 고백했었는데, 너가 해맑게 웃으면서 받아줬어.",
+    prompt: "마지막으로, 눈 감으면 어제처럼 선명한 장면이 있다면 한 장면 들려주실 수 있을까요?\n가장 행복하게 웃으시던 순간이면 좋아요.",
+    placeholder: "예: 놀이동산에서 불꽃이 터질 때 고백했었는데, 해맑게 웃으시며 받아주셨어요.",
     multiline: true,
-    ack: "잘 들었어! 이제 페르소나를 빚어볼 차례야.",
+    ack: "감사합니다. 모든 정보를 잘 정리해드릴게요.",
   },
 };
 
@@ -122,7 +121,6 @@ function v_ab7d46(v_9b6134): PersonaMbtiCode | undefined {
 export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
   const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
-  const v_033e14 = v_e0068c();
 
   const [v_fa56e0, v_41d55d] = v_5ab095<ChatMessage[]>([]);
 
@@ -221,7 +219,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
       if (v_9b6134.length === 0) {
         const v_bff627 = v_b55477(v_03f138.current.name || "user");
-        v_13cb29(`(빈 칸 → ${v_bff627} 로 자동 생성)`);
+        v_13cb29(`(빈 칸 — ${v_bff627} 로 자동 생성)`);
         v_03f138.current.username = v_bff627;
         v_5795de({ username: v_bff627 });
         v_c31db7("");
@@ -295,7 +293,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
     } else {
 
       v_5795de({ personaNotes: v_fa41c6() });
-      await v_f76640("좋아, 이제 페르소나를 빚으러 가볼까? 곧 게시물 작성 화면으로 넘어가.", 700);
+      await v_f76640("모두 잘 받았습니다. 이제 게시물 작성 화면으로 안내해드릴게요.", 700);
       setTimeout(() => {
         v_c65f5d.navigate("Step7");
       }, 1000);
@@ -381,7 +379,9 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
         </ScrollView>
 
         {}
-        <View style={[v_fd5f43.inputBar, { paddingBottom: 8 + Math.max(v_033e14.bottom, 0) }]}>
+        {
+}
+        <View style={v_fd5f43.inputBar}>
           <TextInput
             style={[v_fd5f43.input, v_577bb3 && v_fd5f43.inputMultiline]}
             value={v_bbda62}
@@ -439,7 +439,7 @@ const v_fd5f43 = v_472849.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#fef3c7",
+    backgroundColor: "#dbeafe" ,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -457,7 +457,7 @@ const v_fd5f43 = v_472849.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#fef3c7",
+    backgroundColor: "#dbeafe" ,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
@@ -492,6 +492,7 @@ const v_fd5f43 = v_472849.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingTop: 8,
+    paddingBottom: 8, 
     backgroundColor: v_1bfbd0.white,
     borderTopWidth: 1,
     borderTopColor: v_1bfbd0.zinc100,
