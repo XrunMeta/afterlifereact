@@ -220,6 +220,8 @@ export default function v_def15b() {
   const [v_e3b01d, v_34611c] = v_5ab095<v_6349d0 | null>(null);
   const [v_5be645, v_b3ab13] = v_5ab095(false);
 
+  const [v_eaf85e, v_aff30f] = v_5ab095(false);
+
   v_c4deb2(() => {
     if (!v_d3a183) {
       v_34611c(null);
@@ -1280,7 +1282,17 @@ export default function v_def15b() {
             style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
           >
             <View style={v_fd5f43.sheetHandle} />
-            <Text style={v_fd5f43.statsSheetTitle}>친밀도 활동 내역</Text>
+            <View style={v_fd5f43.intimacyTitleRow}>
+              <View style={{ width: 28 }} />
+              <Text style={v_fd5f43.statsSheetTitle}>친밀도 활동 내역</Text>
+              <TouchableOpacity
+                onPress={() => v_aff30f(true)}
+                hitSlop={8}
+                style={{ width: 28, alignItems: "flex-end" }}
+              >
+                <Feather name="help-circle" size={20} color={v_1bfbd0.zinc400} />
+              </TouchableOpacity>
+            </View>
             <Text style={v_fd5f43.statsSheetSub}>{v_d3a183?.cloneName}</Text>
 
             {}
@@ -1349,6 +1361,59 @@ export default function v_def15b() {
               )}
             </ScrollView>
           </SwipeDownSheet>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal visible={v_eaf85e} transparent animationType="fade">
+        <Pressable
+          style={v_fd5f43.intimacyInfoOverlay}
+          onPress={() => v_aff30f(false)}
+        >
+          <Pressable style={v_fd5f43.intimacyInfoBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <View style={v_fd5f43.intimacyInfoHeader}>
+              <View style={v_fd5f43.intimacyInfoHeaderLeft}>
+                <Feather name="thermometer" size={18} color="#fb923c" />
+                <Text style={v_fd5f43.intimacyInfoTitle}>친밀도 · 상호작용</Text>
+              </View>
+              <TouchableOpacity onPress={() => v_aff30f(false)}>
+                <Feather name="x" size={20} color={v_1bfbd0.zinc400} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 460 }}>
+              <Text style={v_fd5f43.intimacyInfoSectionTitle}>친밀도 온도 (°C)</Text>
+              <Text style={v_fd5f43.intimacyInfoDesc}>
+                페르소나와의 관계 깊이. 활동할수록 올라가요. 최대 100°C.
+              </Text>
+              {[
+                ["0-30°C", "처음 만나는 단계"],
+                ["31-60°C", "친숙해지는 단계"],
+                ["61-90°C", "깊은 유대감"],
+                ["91-100°C", "최고의 친밀도"],
+              ].map(([v_4f2c9c, v_41b99d], v_ebec57) => (
+                <View key={v_ebec57} style={v_fd5f43.intimacyInfoLevelRow}>
+                  <Text style={[v_fd5f43.intimacyInfoLevelRange, v_ebec57 === 3 && { color: "#f97316" }]}>{v_4f2c9c}</Text>
+                  <Text style={[v_fd5f43.intimacyInfoLevelDesc, v_ebec57 === 3 && { color: "#f97316" }]}>{v_41b99d}</Text>
+                </View>
+              ))}
+              <Text style={v_fd5f43.intimacyInfoSectionTitle}>온도 올리는 방법</Text>
+              <View style={v_fd5f43.intimacyInfoActivityBox}>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• 채팅 메시지 — +1°C / 무제한</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• 음성 통화 — +15°C / 20분 이상</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• 페르소나 탐색 — +2°C / 20분 쿨다운</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• 피드 좋아요·댓글 — +2°C / 피드당 최대 4°C</Text>
+              </View>
+              <Text style={v_fd5f43.intimacyInfoFootnote}>
+                하루 최대 15°C 적립 (자정 KST 리셋). 100°C 만점은 최소 7일 꾸준한 활동 필요.
+              </Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={v_fd5f43.intimacyInfoOkBtn}
+              onPress={() => v_aff30f(false)}
+            >
+              <Text style={v_fd5f43.intimacyInfoOkText}>확인</Text>
+            </TouchableOpacity>
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -2038,4 +2103,21 @@ const v_fd5f43 = v_472849.create({
   },
   infoActivityItem: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 20 },
   infoActivityScore: { color: "#fb923c", fontWeight: "700" },
+
+  intimacyTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 },
+  intimacyInfoOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 24 },
+  intimacyInfoBox: { width: "100%", maxWidth: 360, backgroundColor: v_1bfbd0.white, borderRadius: v_8b0c90.lg, padding: 20 },
+  intimacyInfoHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  intimacyInfoHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  intimacyInfoTitle: { fontSize: 17, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  intimacyInfoDesc: { fontSize: 13, color: v_1bfbd0.zinc600, lineHeight: 20, marginBottom: 10 },
+  intimacyInfoSectionTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900, marginTop: 12, marginBottom: 8 },
+  intimacyInfoFootnote: { fontSize: 11, color: v_1bfbd0.zinc500, lineHeight: 16, marginTop: 12 },
+  intimacyInfoLevelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
+  intimacyInfoLevelRange: { width: 90, fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  intimacyInfoLevelDesc: { fontSize: 13, color: v_1bfbd0.zinc500 },
+  intimacyInfoActivityBox: { backgroundColor: v_1bfbd0.zinc50, borderRadius: 8, padding: 12, gap: 6 },
+  intimacyInfoActivityItem: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 20 },
+  intimacyInfoOkBtn: { marginTop: 16, paddingVertical: 12, borderRadius: v_8b0c90.full, backgroundColor: v_1bfbd0.violet600, alignItems: "center" },
+  intimacyInfoOkText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 });
