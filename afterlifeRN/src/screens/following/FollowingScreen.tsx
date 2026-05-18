@@ -64,6 +64,8 @@ type FollowedPersona = {
   creatorAccount: string;
   intimacy: number; 
   interactions: number; 
+
+  isOwn?: boolean;
 };
 
 const v_c8b54a = (v_62676b): number => {
@@ -170,6 +172,7 @@ export default function v_14b43e() {
           creatorAccount: `@${v_3f4e2e.username}`,
           intimacy: v_b74b9c,
           interactions: v_db07f5,
+          isOwn: v_3f4e2e.isOwn,
         };
       });
     }
@@ -592,6 +595,8 @@ export default function v_14b43e() {
                 backgroundColor={v_1bfbd0.white}
               />
               {(() => {
+
+                if (v_8c0b26.persona.isOwn) return null;
                 const v_10387a = v_57f5a9(v_8c0b26.persona.id);
                 return (
                   <Button

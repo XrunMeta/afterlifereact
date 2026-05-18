@@ -830,17 +830,25 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
                 COALESCE(uci.learn_count, 0) AS my_learn,
                 COALESCE(uci.feed_count, 0)  AS my_feed,
                 -- 친밀도 가중치 점수 (Daily Cap 15°C 적립, 100°C 상한)
-                COALESCE(uci.intimacy_score, 0) AS my_intimacy
-           FROM clone_follows f
-           JOIN clones c ON c.id = f.clone_id
+                COALESCE(uci.intimacy_score, 0) AS my_intimacy,
+                -- 본인 페르소나 여부 — 클라이언트가 '팔로우' 버튼 숨김 처리.
+                (c.owner_id = ?) AS is_own
+           FROM clones c
            LEFT JOIN clone_stats s ON s.clone_id = c.id
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
-          WHERE f.user_id = ? AND c.deleted_at IS NULL
+          WHERE c.deleted_at IS NULL
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
-          ORDER BY f.created_at DESC, f.id DESC`,
+            AND (
+              -- 본인이 만든 페르소나
+              c.owner_id = ?
+              OR
+              -- 또는 본인이 팔로우 중인 페르소나
+              c.id IN (SELECT clone_id FROM clone_follows WHERE user_id = ?)
+            )
+          ORDER BY c.created_at DESC, c.id DESC`,
       )
-      .bind(v_43e90c, v_43e90c, v_43e90c)
+      .bind(v_43e90c, v_43e90c, v_43e90c, v_43e90c, v_43e90c)
       .all<{
         id: number;
         name: string;
@@ -861,6 +869,7 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         my_learn: number;
         my_feed: number;
         my_intimacy: number;
+        is_own: number;
       }>()
   ).results;
 
@@ -933,6 +942,8 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         total: v_cb35cb.my_chat + v_cb35cb.my_call + v_cb35cb.my_learn + v_cb35cb.my_feed,
         intimacy: Math.min(100, Math.max(0, v_cb35cb.my_intimacy)),
       },
+
+      isOwn: !!v_cb35cb.is_own,
       createdAt: v_cb35cb.created_at,
     })),
   });
