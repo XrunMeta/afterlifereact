@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Keyboard,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { COLORS, RADIUS } from "../../../components/constants";
@@ -89,6 +90,12 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   const insufficient =
     balance !== null && balance < PERSONA_PAID_PRICE_XRUN;
 
+  const handleCancel = () => {
+    console.log("[PaymentGate] cancel tapped");
+    Keyboard.dismiss();
+    onCancel();
+  };
+
   const handleConfirm = () => {
     if (insufficient) {
       setError(
@@ -121,7 +128,15 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <Pressable style={styles.overlay} onPress={onCancel}>
+        {
+}
+        <Pressable
+          style={styles.overlay}
+          onPress={() => {
+            console.log("[PaymentGate] overlay tapped");
+            Keyboard.dismiss();
+          }}
+        >
           <Pressable style={styles.box} onPress={(e) => e.stopPropagation()}>
             <View style={styles.iconWrap}>
               <Feather name="credit-card" size={26} color={COLORS.violet600} />
@@ -154,7 +169,12 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
             />
             {error && <Text style={styles.error}>{error}</Text>}
             <View style={styles.btns}>
-              <TouchableOpacity style={styles.cancel} onPress={onCancel}>
+              <TouchableOpacity
+                style={styles.cancel}
+                onPress={handleCancel}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.cancelText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity
