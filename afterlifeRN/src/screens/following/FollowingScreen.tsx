@@ -136,6 +136,13 @@ export default function FollowingScreen() {
                 "stats.comments": it.stats?.comments,
                 "latestFeed.feedId": it.latestFeed?.feedId,
                 "latestFeed.likedByMe": it.latestFeed?.likedByMe,
+
+                "my.chat": it.myInteractions?.chat,
+                "my.call": it.myInteractions?.call,
+                "my.learn": it.myInteractions?.learn,
+                "my.feed": it.myInteractions?.feed,
+                "my.total": it.myInteractions?.total,
+                "my.intimacy": it.myInteractions?.intimacy,
               })),
             );
             setApiFollowed(r.items);
