@@ -52,14 +52,12 @@ const AI_NAME = "페르소나 생성 도우미";
 const AI_AVATAR_SRC = require("../../../assets/images/symbol.png");
 
 const INTRO_MESSAGES: string[] = [
-  "안녕하세요! 페르소나 만들기 도와드릴게요.",
-  "마음에 두고 계신 분에 대해 몇 가지 물어볼게요.",
-  "편하게 답해주시면 돼요!",
+  "안녕하세요! 페르소나 생성 도우미입니다",
 ];
 
 const QUESTIONS: Record<Phase, { prompt: string; placeholder: string; multiline: boolean; ack: string }> = {
   name: {
-    prompt: "먼저 이름이 뭔가요?\n평소 부르던 이름이나 별명도 좋아요.",
+    prompt: "지금 생성하는 페르소나의 이름이 뭔가요??\n평소에 부르던 이름이나 별명도 좋아요",
     placeholder: "예: 별이, 할머니, 모리",
     multiline: false,
     ack: "좋아요, 잘 기억해뒀어요!",
