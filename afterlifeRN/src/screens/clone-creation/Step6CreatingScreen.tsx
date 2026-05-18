@@ -14,6 +14,7 @@ import {
   ScrollView,
   Animated,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -46,11 +47,12 @@ const PHASES: Phase[] = [
   "memory",
 ];
 
-const AI_NAME = "도연";
-const AI_AVATAR_INITIAL = "도";
+const AI_NAME = "페르소나 생성 도우미";
+
+const AI_AVATAR_SRC = require("../../../assets/images/symbol.png");
 
 const INTRO_MESSAGES: string[] = [
-  "안녕하세요, 페르소나 생성을 도와드릴 도연이라고 해요.",
+  "안녕하세요, 페르소나 생성을 도와드리는 도우미입니다.",
   "마음에 떠올리고 계신 분에 대해 몇 가지 여쭤볼게요.",
   "편하게 답해주시면, 그 모습에 맞는 페르소나를 만들어드릴게요.",
 ];
@@ -325,7 +327,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
         </TouchableOpacity>
         <View style={s.headerCenter}>
           <View style={s.headerAvatar}>
-            <Text style={s.headerAvatarEmoji}>{AI_AVATAR_INITIAL}</Text>
+            <Image source={AI_AVATAR_SRC} style={s.headerAvatarImg} resizeMode="cover" />
           </View>
           <Text style={s.headerName}>{AI_NAME}</Text>
         </View>
@@ -354,7 +356,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
               <View key={m.id} style={[s.row, isAi ? s.rowAi : s.rowUser]}>
                 {isAi && (
                   <View style={[s.avatar, isContinuation && { opacity: 0 }]}>
-                    <Text style={s.avatarEmoji}>{AI_AVATAR_INITIAL}</Text>
+                    <Image source={AI_AVATAR_SRC} style={s.avatarImg} resizeMode="cover" />
                   </View>
                 )}
                 <View
@@ -373,7 +375,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
           {aiTyping && (
             <View style={[s.row, s.rowAi]}>
               <View style={s.avatar}>
-                <Text style={s.avatarEmoji}>{AI_AVATAR_INITIAL}</Text>
+                <Image source={AI_AVATAR_SRC} style={s.avatarImg} resizeMode="cover" />
               </View>
               <View style={[s.bubble, s.bubbleAi, s.typingBubble]}>
                 <ActivityIndicator size="small" color={COLORS.zinc500} />
@@ -444,16 +446,12 @@ const s = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: COLORS.violet600,
+    backgroundColor: COLORS.white,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
-  headerAvatarEmoji: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: COLORS.white,
-    lineHeight: 18,
-  },
+  headerAvatarImg: { width: 30, height: 30 },
   headerName: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
 
   chatScroll: { flex: 1, backgroundColor: "#f1f5f9"  },
@@ -467,17 +465,13 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.violet600,
+    backgroundColor: COLORS.white,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
+    overflow: "hidden",
   },
-  avatarEmoji: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: COLORS.white,
-    lineHeight: 20,
-  },
+  avatarImg: { width: 32, height: 32 },
 
   bubble: {
     paddingHorizontal: 12,
