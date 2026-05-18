@@ -573,12 +573,19 @@ export default function v_def15b() {
         {}
         <View style={v_fd5f43.cardTopRow}>
           <View style={v_fd5f43.cardTopRight}>
-            {}
+            {
+
+}
             {!v_e93e18 && (
-              <View style={v_fd5f43.visibilityBadge}>
+              <TouchableOpacity
+                style={v_fd5f43.visibilityBadge}
+                onPress={() => v_11e385(v_eb25ce.id)}
+                hitSlop={8}
+              >
                 <Feather name={v_a6deb1(v_818579)} size={14} color={v_1bfbd0.zinc500} />
                 <Text style={v_fd5f43.visibilityText}>{v_82830c(v_818579)}</Text>
-              </View>
+                <Feather name="chevron-down" size={12} color={v_1bfbd0.zinc400} />
+              </TouchableOpacity>
             )}
             <TouchableOpacity
               style={v_fd5f43.moreBtn}
@@ -938,23 +945,6 @@ export default function v_def15b() {
 
             {
 }
-            {v_ce3af0 != null &&
-              v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_ce3af0)?.cloneType !== "memlow" && (
-                <TouchableOpacity
-                  style={v_fd5f43.menuItem}
-                  onPress={() => {
-                    const v_389afb = v_ce3af0!;
-                    v_11e385(v_389afb);
-                  }}
-                >
-                  <Feather
-                    name={v_a6deb1(v_699459[v_ce3af0!]?.visibility ?? "public")}
-                    size={18}
-                    color={v_1bfbd0.zinc700}
-                  />
-                  <Text style={v_fd5f43.menuItemText}>공개 범위</Text>
-                </TouchableOpacity>
-              )}
             <View style={v_fd5f43.menuDivider} />
             {}
             <TouchableOpacity
