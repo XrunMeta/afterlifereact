@@ -41,13 +41,16 @@ import {
   unlikeFeed,
   likeClone,
   unlikeClone,
+  listCloneIntimacyEvents,
   type FeedComment,
   type FollowedClone,
+  type IntimacyEventsResponse,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
 import { useFocusEffect } from "@react-navigation/native";
 import type { DomainClone, DomainFeed } from "../../types/domain";
 import HashtagText from "../../components/common/HashtagText";
+import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 
 type RootNav = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_W } = Dimensions.get("window");
@@ -271,11 +274,43 @@ export default function FollowingScreen() {
   const [commentPostId, setCommentPostId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
   const [unfollowConfirmId, setUnfollowConfirmId] = useState<number | null>(null);
-  const [showIntimacyInfo, setShowIntimacyInfo] = useState(false);
-  const [showInteractionInfo, setShowInteractionInfo] = useState(false);
+
+  const [intimacyEventsModal, setIntimacyEventsModal] = useState<{
+    cloneId: number;
+    cloneName: string;
+  } | null>(null);
+  const [intimacyEventsData, setIntimacyEventsData] =
+    useState<IntimacyEventsResponse | null>(null);
+  const [intimacyEventsLoading, setIntimacyEventsLoading] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const [callSearchQuery, setCallSearchQuery] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!intimacyEventsModal) {
+      setIntimacyEventsData(null);
+      return;
+    }
+    if (!accessToken) return;
+    let cancelled = false;
+    setIntimacyEventsLoading(true);
+    setIntimacyEventsData(null);
+    listCloneIntimacyEvents(accessToken, intimacyEventsModal.cloneId, { limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        setIntimacyEventsData(res);
+      })
+      .catch((err) => {
+        console.warn("[Following] listCloneIntimacyEvents failed:", err);
+        if (!cancelled) setIntimacyEventsData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIntimacyEventsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [intimacyEventsModal, accessToken]);
 
   const scrollY = useRef(0);
   const fabAnim = useRef(new Animated.Value(0)).current; 
@@ -506,12 +541,28 @@ export default function FollowingScreen() {
 
           {}
           <View style={s.statsBadge}>
-            <TouchableOpacity style={s.badgeBtn} onPress={() => setShowIntimacyInfo(true)}>
+            <TouchableOpacity
+              style={s.badgeBtn}
+              onPress={() =>
+                setIntimacyEventsModal({
+                  cloneId: item.persona.id,
+                  cloneName: item.persona.name,
+                })
+              }
+            >
               <Feather name="thermometer" size={12} color="#fb923c" />
               <Text style={s.badgeText}>{item.persona.intimacy}</Text>
             </TouchableOpacity>
             <View style={s.badgeDivider} />
-            <TouchableOpacity style={s.badgeBtn} onPress={() => setShowInteractionInfo(true)}>
+            <TouchableOpacity
+              style={s.badgeBtn}
+              onPress={() =>
+                setIntimacyEventsModal({
+                  cloneId: item.persona.id,
+                  cloneName: item.persona.name,
+                })
+              }
+            >
               <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
               <Text style={s.badgeText}>{item.persona.interactions}</Text>
             </TouchableOpacity>
@@ -645,56 +696,71 @@ export default function FollowingScreen() {
       </Animated.View>
 
       {}
-      <Modal visible={showIntimacyInfo} transparent animationType="fade">
-        <Pressable style={s.centerOverlay} onPress={() => setShowIntimacyInfo(false)}>
-          <Pressable style={s.infoBox} onPress={(e) => e.stopPropagation()}>
-            <View style={s.infoHeader}>
-              <View style={s.infoHeaderLeft}>
-                <Feather name="thermometer" size={18} color="#fb923c" />
-                <Text style={s.infoTitle}>{t("feed.intimacyTitle")}</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowIntimacyInfo(false)}>
-                <Feather name="x" size={20} color={COLORS.zinc400} />
-              </TouchableOpacity>
-            </View>
-            <Text style={s.infoDesc}>
-              {t("feed.intimacyDesc")}
-            </Text>
-            {[["0-30°C", t("feed.intimacyL1")], ["31-60°C", t("feed.intimacyL2")], ["61-90°C", t("feed.intimacyL3")], ["91-100°C", t("feed.intimacyL4")]].map(([range, desc], i) => (
-              <View key={i} style={s.levelRow}>
-                <Text style={[s.levelRange, i === 3 && { color: "#f97316" }]}>{range}</Text>
-                <Text style={[s.levelDesc, i === 3 && { color: "#f97316" }]}>{desc}</Text>
-              </View>
-            ))}
-            <Button title={t("common.ok")} variant="primary" onPress={() => setShowIntimacyInfo(false)} style={{ marginTop: 20, width: "100%", borderRadius: RADIUS.full }} />
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <Modal visible={!!intimacyEventsModal} transparent animationType="slide">
+        <Pressable style={s.bottomOverlay} onPress={() => setIntimacyEventsModal(null)}>
+          <SwipeDownSheet
+            onClose={() => setIntimacyEventsModal(null)}
+            style={[s.eventsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+          >
+            <View style={s.eventsSheetHandle} />
+            <Text style={s.eventsSheetTitle}>친밀도 활동 내역</Text>
+            <Text style={s.eventsSheetSub}>{intimacyEventsModal?.cloneName}</Text>
 
-      {}
-      <Modal visible={showInteractionInfo} transparent animationType="fade">
-        <Pressable style={s.centerOverlay} onPress={() => setShowInteractionInfo(false)}>
-          <Pressable style={s.infoBox} onPress={(e) => e.stopPropagation()}>
-            <View style={s.infoHeader}>
-              <View style={s.infoHeaderLeft}>
-                <Ionicons name="chatbubbles-outline" size={18} color="#60a5fa" />
-                <Text style={s.infoTitle}>{t("feed.interactionTitle")}</Text>
+            {intimacyEventsData?.summary && (
+              <View style={s.eventsSummary}>
+                <View style={s.eventsSummaryRow}>
+                  <Feather name="thermometer" size={20} color="#fb923c" />
+                  <Text style={s.eventsSummaryScore}>
+                    {Math.min(100, intimacyEventsData.summary.totalScore)}°C
+                  </Text>
+                  <Text style={s.eventsSummaryCount}>
+                    · {intimacyEventsData.summary.eventCount}회 누적
+                  </Text>
+                </View>
+                <View style={s.eventsBreakdownRow}>
+                  <Text style={s.eventsBreakdownItem}>채팅 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.chat}°C</Text></Text>
+                  <Text style={s.eventsBreakdownItem}>통화 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.call}°C</Text></Text>
+                  <Text style={s.eventsBreakdownItem}>탐색 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.learn}°C</Text></Text>
+                  <Text style={s.eventsBreakdownItem}>피드 <Text style={s.eventsBreakdownVal}>{intimacyEventsData.summary.feed}°C</Text></Text>
+                </View>
               </View>
-              <TouchableOpacity onPress={() => setShowInteractionInfo(false)}>
-                <Feather name="x" size={20} color={COLORS.zinc400} />
-              </TouchableOpacity>
-            </View>
-            <Text style={s.infoDesc}>
-              {t("feed.interactionDesc")}
-            </Text>
-            <View style={s.activityBox}>
-              <Text style={s.activityBoxTitle}>{t("feed.interactionListTitle")}</Text>
-              {[t("feed.interactionItemChat"), t("feed.interactionItemCall"), t("feed.interactionItemLearn"), t("feed.interactionItemFeed")].map((a, i) => (
-                <Text key={i} style={s.activityItem}>• {a}</Text>
-              ))}
-            </View>
-            <Button title={t("common.ok")} variant="primary" onPress={() => setShowInteractionInfo(false)} style={{ marginTop: 16, width: "100%", borderRadius: RADIUS.full }} />
-          </Pressable>
+            )}
+
+            <ScrollView style={s.eventsScrollArea} showsVerticalScrollIndicator={false}>
+              {intimacyEventsLoading ? (
+                <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
+              ) : !intimacyEventsData || intimacyEventsData.items.length === 0 ? (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>아직 활동 내역이 없어요</Text>
+                </View>
+              ) : (
+                intimacyEventsData.items.map((ev) => {
+                  const META: Record<
+                    "chat" | "call" | "learn" | "feed",
+                    { label: string; icon: keyof typeof Feather.glyphMap; color: string }
+                  > = {
+                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
+                    call: { label: "통화", icon: "phone", color: "#34d399" },
+                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
+                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
+                  };
+                  const meta = META[ev.action];
+                  return (
+                    <View key={ev.id} style={s.eventRow}>
+                      <View style={[s.eventIcon, { backgroundColor: meta.color + "22" }]}>
+                        <Feather name={meta.icon} size={14} color={meta.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.eventLabel}>{meta.label}</Text>
+                        <Text style={s.eventTime}>{formatRelativeKo(ev.createdAt)}</Text>
+                      </View>
+                      <Text style={s.eventScore}>+{ev.score}°C</Text>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 
@@ -974,4 +1040,32 @@ const s = StyleSheet.create({
   emptyWrap: { alignItems: "center", justifyContent: "center", paddingVertical: 80, paddingHorizontal: 32, gap: 12 },
   emptyTitle: { fontSize: 16, fontWeight: "600", color: COLORS.zinc700 },
   emptyDesc: { fontSize: 13, color: COLORS.zinc500, textAlign: "center" },
+
+  eventsSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    maxHeight: "80%",
+  },
+  eventsSheetHandle: {
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: COLORS.zinc300, alignSelf: "center", marginBottom: 12,
+  },
+  eventsSheetTitle: { fontSize: 17, fontWeight: "700", color: COLORS.zinc900, textAlign: "center" },
+  eventsSheetSub: { fontSize: 13, color: COLORS.zinc500, textAlign: "center", marginTop: 4, marginBottom: 12 },
+  eventsSummary: { paddingHorizontal: 4, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100, marginBottom: 8 },
+  eventsSummaryRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 },
+  eventsSummaryScore: { fontSize: 24, fontWeight: "700", color: "#fb923c" },
+  eventsSummaryCount: { fontSize: 13, color: COLORS.zinc500 },
+  eventsBreakdownRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  eventsBreakdownItem: { fontSize: 12, color: COLORS.zinc500 },
+  eventsBreakdownVal: { color: COLORS.zinc900, fontWeight: "600" },
+  eventsScrollArea: { maxHeight: 400 },
+  eventRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.zinc100 },
+  eventIcon: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  eventLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
+  eventTime: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
+  eventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
 });

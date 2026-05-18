@@ -1272,6 +1272,8 @@ export default function MyClonesDashboardScreen() {
       </Modal>
 
       {}
+      {
+}
       <Modal visible={!!intimacyModal} transparent animationType="slide">
         <Pressable style={s.modalOverlay} onPress={() => setIntimacyModal(null)}>
           <SwipeDownSheet
@@ -1279,73 +1281,51 @@ export default function MyClonesDashboardScreen() {
             style={[s.statsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
           >
             <View style={s.sheetHandle} />
-            <Text style={s.statsSheetTitle}>친밀도 활동 내역</Text>
+            <Text style={s.statsSheetTitle}>친밀도 · 상호작용</Text>
             <Text style={s.statsSheetSub}>{intimacyModal?.cloneName}</Text>
 
-            {}
-            {intimacyData?.summary && (
-              <View style={s.intimacySummary}>
-                <View style={s.intimacySummaryRow}>
-                  <Feather name="thermometer" size={20} color="#fb923c" />
-                  <Text style={s.intimacySummaryScore}>
-                    {Math.min(100, intimacyData.summary.totalScore)}°C
-                  </Text>
-                  <Text style={s.intimacySummaryCount}>
-                    · {intimacyData.summary.eventCount}회 누적
-                  </Text>
-                </View>
-                <View style={s.intimacyBreakdownRow}>
-                  <Text style={s.intimacyBreakdownItem}>
-                    채팅 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.chat}°C</Text>
-                  </Text>
-                  <Text style={s.intimacyBreakdownItem}>
-                    통화 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.call}°C</Text>
-                  </Text>
-                  <Text style={s.intimacyBreakdownItem}>
-                    탐색 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.learn}°C</Text>
-                  </Text>
-                  <Text style={s.intimacyBreakdownItem}>
-                    피드 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.feed}°C</Text>
-                  </Text>
-                </View>
-              </View>
-            )}
-
             <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
-              {intimacyLoading ? (
-                <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
-              ) : !intimacyData || intimacyData.items.length === 0 ? (
-                <View style={{ paddingVertical: 24, alignItems: "center" }}>
-                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
-                    아직 친밀도 적립 내역이 없어요
-                  </Text>
+              {}
+              <View style={s.infoSection}>
+                <View style={s.infoSectionHeader}>
+                  <Feather name="thermometer" size={16} color="#fb923c" />
+                  <Text style={s.infoSectionTitle}>친밀도 온도 (°C)</Text>
                 </View>
-              ) : (
-                intimacyData.items.map((ev) => {
-                  const ACTION_META: Record<
-                    "chat" | "call" | "learn" | "feed",
-                    { label: string; icon: keyof typeof Feather.glyphMap; color: string }
-                  > = {
-                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
-                    call: { label: "통화", icon: "phone", color: "#34d399" },
-                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
-                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
-                  };
-                  const meta = ACTION_META[ev.action];
-                  return (
-                    <View key={ev.id} style={s.intimacyEventRow}>
-                      <View style={[s.intimacyEventIcon, { backgroundColor: meta.color + "22" }]}>
-                        <Feather name={meta.icon} size={14} color={meta.color} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.intimacyEventLabel}>{meta.label}</Text>
-                        <Text style={s.intimacyEventTime}>{formatRelativeKo(ev.createdAt)}</Text>
-                      </View>
-                      <Text style={s.intimacyEventScore}>+{ev.score}°C</Text>
-                    </View>
-                  );
-                })
-              )}
+                <Text style={s.infoSectionDesc}>
+                  페르소나와의 관계 깊이를 나타냅니다. 대화·통화·탐색·피드 활동을 할수록 °C 가 올라가요. 최대 100°C.
+                </Text>
+                {[
+                  ["0-30°C", "처음 만나는 단계"],
+                  ["31-60°C", "친숙해지는 단계"],
+                  ["61-90°C", "깊은 유대감"],
+                  ["91-100°C", "최고의 친밀도"],
+                ].map(([range, desc], i) => (
+                  <View key={i} style={s.infoLevelRow}>
+                    <Text style={[s.infoLevelRange, i === 3 && { color: "#f97316" }]}>{range}</Text>
+                    <Text style={[s.infoLevelDesc, i === 3 && { color: "#f97316" }]}>{desc}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {}
+              <View style={s.infoSection}>
+                <View style={s.infoSectionHeader}>
+                  <Ionicons name="chatbubbles-outline" size={16} color="#60a5fa" />
+                  <Text style={s.infoSectionTitle}>상호작용 횟수</Text>
+                </View>
+                <Text style={s.infoSectionDesc}>
+                  페르소나와 한 모든 활동의 누적 횟수입니다. 상한 없이 계속 누적돼요.
+                </Text>
+                <View style={s.infoActivityBox}>
+                  <Text style={s.infoActivityItem}>• 채팅 메시지: <Text style={s.infoActivityScore}>+1°C / 무제한</Text></Text>
+                  <Text style={s.infoActivityItem}>• 음성 통화: <Text style={s.infoActivityScore}>+15°C / 20분 이상</Text></Text>
+                  <Text style={s.infoActivityItem}>• 페르소나 탐색: <Text style={s.infoActivityScore}>+2°C / 20분 쿨다운</Text></Text>
+                  <Text style={s.infoActivityItem}>• 피드 소통 (좋아요·댓글): <Text style={s.infoActivityScore}>+2°C / 피드당 최대 4°C</Text></Text>
+                </View>
+                <Text style={s.infoSectionFootnote}>
+                  하루 최대 15°C 까지 적립 가능 (자정 KST 리셋). 100°C 만점에 도달하려면 최소 7일 꾸준한 활동 필요.
+                </Text>
+              </View>
             </ScrollView>
           </SwipeDownSheet>
         </Pressable>
@@ -2010,4 +1990,31 @@ const s = StyleSheet.create({
   intimacyEventLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
   intimacyEventTime: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
   intimacyEventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
+
+  infoSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+  },
+  infoSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  infoSectionTitle: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
+  infoSectionDesc: { fontSize: 13, color: COLORS.zinc600, lineHeight: 20, marginBottom: 12 },
+  infoSectionFootnote: { fontSize: 11, color: COLORS.zinc500, lineHeight: 16, marginTop: 10 },
+  infoLevelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
+  infoLevelRange: { width: 90, fontSize: 13, fontWeight: "600", color: COLORS.zinc700 },
+  infoLevelDesc: { fontSize: 13, color: COLORS.zinc500 },
+  infoActivityBox: {
+    backgroundColor: COLORS.zinc50,
+    borderRadius: 8,
+    padding: 12,
+    gap: 6,
+  },
+  infoActivityItem: { fontSize: 13, color: COLORS.zinc700, lineHeight: 20 },
+  infoActivityScore: { color: "#fb923c", fontWeight: "700" },
 });

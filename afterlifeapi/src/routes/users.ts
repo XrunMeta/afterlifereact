@@ -481,15 +481,12 @@ users.get("/me/clones/:cloneId/intimacy-events", requireAuth, async (c) => {
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
     throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
-
   const clone = await c.env.DB
     .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ? AND deleted_at IS NULL`)
     .bind(cloneId)
     .first<{ ownerId: number }>();
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
-  if (clone.ownerId !== userId) {
-    throw new APIError("FORBIDDEN", "본인의 페르소나만 조회할 수 있어요.");
-  }
+  const isOwner = clone.ownerId === userId;
 
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
@@ -499,6 +496,10 @@ users.get("/me/clones/:cloneId/intimacy-events", requireAuth, async (c) => {
 
   const where: string[] = ["clone_id = ?"];
   const binds: unknown[] = [cloneId];
+  if (!isOwner) {
+    where.push("user_id = ?");
+    binds.push(userId);
+  }
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
     where.push("id < ?");
     binds.push(cursor);
@@ -526,6 +527,8 @@ users.get("/me/clones/:cloneId/intimacy-events", requireAuth, async (c) => {
   const items = hasMore ? rows.slice(0, limit) : rows;
   const nextCursor = hasMore && items.length > 0 ? items[items.length - 1]!.id : null;
 
+  const aggWhere = isOwner ? "clone_id = ?" : "clone_id = ? AND user_id = ?";
+  const aggBinds = isOwner ? [cloneId] : [cloneId, userId];
   const aggRow = await c.env.DB
     .prepare(
       `SELECT
@@ -535,9 +538,9 @@ users.get("/me/clones/:cloneId/intimacy-events", requireAuth, async (c) => {
          SUM(CASE WHEN action = 'learn' THEN score ELSE 0 END)              AS learnScore,
          SUM(CASE WHEN action = 'feed'  THEN score ELSE 0 END)              AS feedScore,
          COUNT(*)                                                           AS eventCount
-       FROM intimacy_events WHERE clone_id = ?`,
+       FROM intimacy_events WHERE ${aggWhere}`,
     )
-    .bind(cloneId)
+    .bind(...aggBinds)
     .first<{
       totalScore: number;
       chatScore: number;
