@@ -1284,7 +1284,7 @@ export default function v_def15b() {
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.intimacyTitleRow}>
               <View style={{ width: 28 }} />
-              <Text style={v_fd5f43.statsSheetTitle}>친밀도 활동 내역</Text>
+              <Text style={v_fd5f43.statsSheetTitle}>{v_8d41d7("feed.eventsTitle")}</Text>
               <TouchableOpacity
                 onPress={() => v_aff30f(true)}
                 hitSlop={8}
@@ -1304,7 +1304,7 @@ export default function v_def15b() {
                     {Math.min(100, v_e3b01d.summary.totalScore)}°C
                   </Text>
                   <Text style={v_fd5f43.intimacySummaryCount}>
-                    · {v_e3b01d.summary.eventCount}회 누적
+                    · {v_8d41d7("feed.summaryCount", { n: v_e3b01d.summary.eventCount })}
                   </Text>
                 </View>
                 <View style={v_fd5f43.intimacyBreakdownRow}>
@@ -1330,7 +1330,7 @@ export default function v_def15b() {
               ) : !v_e3b01d || v_e3b01d.items.length === 0 ? (
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
-                    아직 친밀도 적립 내역이 없어요
+                    {v_8d41d7("feed.emptyEventsMine")}
                   </Text>
                 </View>
               ) : (
@@ -1339,10 +1339,10 @@ export default function v_def15b() {
                     "chat" | "call" | "learn" | "feed",
                     { label: string; icon: keyof typeof v_dec439.glyphMap; color: string }
                   > = {
-                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
-                    call: { label: "통화", icon: "phone", color: "#34d399" },
-                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
-                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
+                    chat: { label: v_8d41d7("feed.actionLabelChat"), icon: "message-circle", color: "#60a5fa" },
+                    call: { label: v_8d41d7("feed.actionLabelCall"), icon: "phone", color: "#34d399" },
+                    learn: { label: v_8d41d7("feed.actionLabelLearn"), icon: "search", color: "#a78bfa" },
+                    feed: { label: v_8d41d7("feed.actionLabelFeed"), icon: "heart", color: "#ef4444" },
                   };
                   const v_ab4c96 = v_894daa[v_1d299c.action];
                   return (
@@ -1374,44 +1374,40 @@ export default function v_def15b() {
             <View style={v_fd5f43.intimacyInfoHeader}>
               <View style={v_fd5f43.intimacyInfoHeaderLeft}>
                 <Feather name="thermometer" size={18} color="#fb923c" />
-                <Text style={v_fd5f43.intimacyInfoTitle}>친밀도 · 상호작용</Text>
+                <Text style={v_fd5f43.intimacyInfoTitle}>{v_8d41d7("feed.intimacyInfoTitle")}</Text>
               </View>
               <TouchableOpacity onPress={() => v_aff30f(false)}>
                 <Feather name="x" size={20} color={v_1bfbd0.zinc400} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 460 }}>
-              <Text style={v_fd5f43.intimacyInfoSectionTitle}>친밀도 온도 (°C)</Text>
-              <Text style={v_fd5f43.intimacyInfoDesc}>
-                페르소나와의 관계 깊이. 활동할수록 올라가요. 최대 100°C.
-              </Text>
+              <Text style={v_fd5f43.intimacyInfoSectionTitle}>{v_8d41d7("feed.intimacyTempSectionLabel")}</Text>
+              <Text style={v_fd5f43.intimacyInfoDesc}>{v_8d41d7("feed.intimacyTempShortDesc")}</Text>
               {[
-                ["0-30°C", "처음 만나는 단계"],
-                ["31-60°C", "친숙해지는 단계"],
-                ["61-90°C", "깊은 유대감"],
-                ["91-100°C", "최고의 친밀도"],
+                ["0-30°C", v_8d41d7("feed.intimacyL1")],
+                ["31-60°C", v_8d41d7("feed.intimacyL2")],
+                ["61-90°C", v_8d41d7("feed.intimacyL3")],
+                ["91-100°C", v_8d41d7("feed.intimacyL4")],
               ].map(([v_4f2c9c, v_41b99d], v_ebec57) => (
                 <View key={v_ebec57} style={v_fd5f43.intimacyInfoLevelRow}>
                   <Text style={[v_fd5f43.intimacyInfoLevelRange, v_ebec57 === 3 && { color: "#f97316" }]}>{v_4f2c9c}</Text>
                   <Text style={[v_fd5f43.intimacyInfoLevelDesc, v_ebec57 === 3 && { color: "#f97316" }]}>{v_41b99d}</Text>
                 </View>
               ))}
-              <Text style={v_fd5f43.intimacyInfoSectionTitle}>온도 올리는 방법</Text>
+              <Text style={v_fd5f43.intimacyInfoSectionTitle}>{v_8d41d7("feed.intimacyHowToTitle")}</Text>
               <View style={v_fd5f43.intimacyInfoActivityBox}>
-                <Text style={v_fd5f43.intimacyInfoActivityItem}>• 채팅 메시지 — +1°C / 무제한</Text>
-                <Text style={v_fd5f43.intimacyInfoActivityItem}>• 음성 통화 — +15°C / 20분 이상</Text>
-                <Text style={v_fd5f43.intimacyInfoActivityItem}>• 페르소나 탐색 — +2°C / 20분 쿨다운</Text>
-                <Text style={v_fd5f43.intimacyInfoActivityItem}>• 피드 좋아요·댓글 — +2°C / 피드당 최대 4°C</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• {v_8d41d7("feed.intimacyHowChat")}</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• {v_8d41d7("feed.intimacyHowCall")}</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• {v_8d41d7("feed.intimacyHowLearn")}</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• {v_8d41d7("feed.intimacyHowFeed")}</Text>
               </View>
-              <Text style={v_fd5f43.intimacyInfoFootnote}>
-                하루 최대 15°C 적립 (자정 KST 리셋). 100°C 만점은 최소 7일 꾸준한 활동 필요.
-              </Text>
+              <Text style={v_fd5f43.intimacyInfoFootnote}>{v_8d41d7("feed.intimacyFootnote")}</Text>
             </ScrollView>
             <TouchableOpacity
               style={v_fd5f43.intimacyInfoOkBtn}
               onPress={() => v_aff30f(false)}
             >
-              <Text style={v_fd5f43.intimacyInfoOkText}>확인</Text>
+              <Text style={v_fd5f43.intimacyInfoOkText}>{v_8d41d7("common.ok")}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
