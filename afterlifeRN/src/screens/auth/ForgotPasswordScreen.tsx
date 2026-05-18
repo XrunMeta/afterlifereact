@@ -39,6 +39,9 @@ export default function ForgotPasswordScreen() {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSendCode = async () => {
@@ -198,9 +201,21 @@ export default function ForgotPasswordScreen() {
                 onChangeText={setPassword}
                 placeholder={t("auth.forgot.newPasswordPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 autoFocus
               />
+              <TouchableOpacity
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={8}
+                accessibilityLabel="비밀번호 표시 전환"
+                style={s.toggleBtn}
+              >
+                <Feather
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={18}
+                  color={COLORS.zinc500}
+                />
+              </TouchableOpacity>
             </View>
             <View style={s.inputRow}>
               <Feather name="key" size={18} color={COLORS.zinc500} style={s.inputIcon} />
@@ -210,8 +225,20 @@ export default function ForgotPasswordScreen() {
                 onChangeText={setPasswordConfirm}
                 placeholder={t("auth.forgot.confirmPasswordPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
-                secureTextEntry
+                secureTextEntry={!showPasswordConfirm}
               />
+              <TouchableOpacity
+                onPress={() => setShowPasswordConfirm((v) => !v)}
+                hitSlop={8}
+                accessibilityLabel="비밀번호 확인 표시 전환"
+                style={s.toggleBtn}
+              >
+                <Feather
+                  name={showPasswordConfirm ? "eye-off" : "eye"}
+                  size={18}
+                  color={COLORS.zinc500}
+                />
+              </TouchableOpacity>
             </View>
             <TouchableOpacity
               style={[s.primaryBtn, (submitting || !password || !passwordConfirm) && s.btnDisabled]}
@@ -253,6 +280,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
   },
   inputIcon: { marginRight: 10 },
+  toggleBtn: { paddingHorizontal: 6, paddingVertical: 8 },
   input: {
     flex: 1,
     height: 48,
