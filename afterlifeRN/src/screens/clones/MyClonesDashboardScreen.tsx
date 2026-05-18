@@ -36,6 +36,7 @@ import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
 import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
+import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import { AuthApiError, patchMe } from "../../api/auth";
 import { getXrunBalance, getPaymentPinStatus } from "../../api/payments";
 import PaymentPinPromptModal from "../../components/my/PaymentPinPromptModal";
@@ -1149,9 +1150,9 @@ export default function MyClonesDashboardScreen() {
       {}
       <Modal visible={!!statsModal} transparent animationType="slide">
         <Pressable style={s.modalOverlay} onPress={() => setStatsModal(null)}>
-          <View
+          <SwipeDownSheet
+            onClose={() => setStatsModal(null)}
             style={[s.statsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={s.sheetHandle} />
             <Text style={s.statsSheetTitle}>
@@ -1266,16 +1267,16 @@ export default function MyClonesDashboardScreen() {
                 </View>
               )}
             </ScrollView>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 
       {}
       <Modal visible={!!intimacyModal} transparent animationType="slide">
         <Pressable style={s.modalOverlay} onPress={() => setIntimacyModal(null)}>
-          <View
+          <SwipeDownSheet
+            onClose={() => setIntimacyModal(null)}
             style={[s.statsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={s.sheetHandle} />
             <Text style={s.statsSheetTitle}>친밀도 활동 내역</Text>
@@ -1346,7 +1347,7 @@ export default function MyClonesDashboardScreen() {
                 })
               )}
             </ScrollView>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 
