@@ -16,6 +16,7 @@ import {
   v_39a996,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_2b51a5 } from "../../navigation/types";
 
@@ -121,6 +122,7 @@ function v_ab7d46(v_9b6134): PersonaMbtiCode | undefined {
 export default function v_baac2f({ navigation: v_c65f5d }: Props) {
   const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
   const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
+  const v_033e14 = v_e0068c();
 
   const [v_fa56e0, v_41d55d] = v_5ab095<ChatMessage[]>([]);
 
@@ -314,8 +316,10 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
-      {}
-      <View style={v_fd5f43.header}>
+      {
+
+}
+      <View style={[v_fd5f43.header, { paddingTop: v_033e14.top + 6 }]}>
         <TouchableOpacity onPress={v_c7ac57} hitSlop={12} style={v_fd5f43.backBtn}>
           <Feather name="arrow-left" size={22} color={v_1bfbd0.zinc900} />
         </TouchableOpacity>
