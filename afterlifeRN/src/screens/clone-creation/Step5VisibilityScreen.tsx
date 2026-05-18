@@ -32,9 +32,8 @@ export default function v_f275b6({ navigation: v_c65f5d }: Props) {
         <Content draft={v_f04727} onChange={v_5795de} />
       </SafeScrollView>
       <View style={v_d81136.bottomBar}>
-        {}
         <Button title={v_8d41d7("create.next")}
-          onPress={() => v_c65f5d.navigate('Step7')} disabled={!v_04fddf} />
+          onPress={() => v_c65f5d.navigate('Step6')} disabled={!v_04fddf} />
       </View>
     </SafeView>
   );

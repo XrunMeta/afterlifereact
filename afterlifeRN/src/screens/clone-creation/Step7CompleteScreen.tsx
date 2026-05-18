@@ -80,8 +80,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const [v_6044a8, v_1d6b6a] = v_5ab095("");
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
-  const [v_1833e7, v_318f24] = v_5ab095<string>(v_f04727.name ?? "");
-
   const v_140aea = v_de06a3(
     async (v_6bee94): Promise<number> => {
       const v_f04727 = v_194498.getState().creationDraft;
@@ -274,10 +272,12 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       return;
     }
 
-    const v_affc3e = v_1833e7.trim();
-    if (v_affc3e.length === 0) {
+    if (!v_f04727.name || v_f04727.name.trim().length === 0) {
       console.log("[CLONE-CREATE] BLOCKED: name missing");
-      v_889fad("이름 입력", "페르소나 이름을 입력해주세요.");
+      v_889fad(
+        "이름 누락",
+        "페르소나 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
+      );
       return;
     }
     console.log("[CLONE-CREATE] sanity check passed → proceed to attemptCreate");
@@ -285,9 +285,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     v_4b9b17(true);
     v_3a7d09(null);
 
-    if (v_f04727.name !== v_affc3e) {
-      v_194498.getState().setCreationDraft({ name: v_affc3e });
-    }
     if (v_f04727.description !== v_2f361a) {
       v_194498.getState().setCreationDraft({ description: v_2f361a });
     }
@@ -392,7 +389,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     }
   };
 
-  const v_8a1355 = v_1833e7.trim() || v_f04727.name || "사용자 이름";
+  const v_8a1355 = v_f04727.name ?? "사용자 이름";
   const v_3e86f3 = v_f04727.username ?? "아이디";
   const v_ee89db = v_f04727.imageFile;
 
@@ -443,18 +440,6 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           <View style={v_d81136.previewBox}>
             <Text style={v_d81136.previewText}>움직이는 페르소나로 보일 예정</Text>
           </View>
-
-          {
-}
-          <TextInput
-            style={v_d81136.nameInput}
-            value={v_1833e7}
-            onChangeText={v_318f24}
-            placeholder="페르소나 이름 (예: 별이, 할머니, 모리)"
-            placeholderTextColor={v_1bfbd0.zinc400}
-            maxLength={40}
-            returnKeyType="next"
-          />
 
           {}
           <TextInput
@@ -677,19 +662,6 @@ const v_d81136 = v_472849.create({
     fontSize: 14,
     color: v_1bfbd0.zinc500,
     textAlign: "center",
-  },
-
-  nameInput: {
-    height: 48,
-    fontSize: 15,
-    fontWeight: "600",
-    color: v_1bfbd0.zinc900,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: v_1bfbd0.zinc200,
-    borderRadius: v_8b0c90.md,
-    backgroundColor: v_1bfbd0.zinc50,
-    marginBottom: 10,
   },
 
   captionInput: {
