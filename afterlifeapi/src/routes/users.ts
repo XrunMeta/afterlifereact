@@ -739,7 +739,9 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
                 COALESCE(uci.chat_count, 0)  AS my_chat,
                 COALESCE(uci.call_count, 0)  AS my_call,
                 COALESCE(uci.learn_count, 0) AS my_learn,
-                COALESCE(uci.feed_count, 0)  AS my_feed
+                COALESCE(uci.feed_count, 0)  AS my_feed,
+                -- 친밀도 가중치 점수 (Daily Cap 15°C 적립, 100°C 상한)
+                COALESCE(uci.intimacy_score, 0) AS my_intimacy
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
@@ -769,6 +771,7 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         my_call: number;
         my_learn: number;
         my_feed: number;
+        my_intimacy: number;
       }>()
   ).results;
 
@@ -839,7 +842,7 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         learn: r.my_learn,
         feed: r.my_feed,
         total: r.my_chat + r.my_call + r.my_learn + r.my_feed,
-        intimacy: Math.min(100, (r.my_chat + r.my_call + r.my_learn + r.my_feed) * 2),
+        intimacy: Math.min(100, Math.max(0, r.my_intimacy)),
       },
       createdAt: r.created_at,
     })),

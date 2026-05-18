@@ -6,7 +6,7 @@ import { APIError } from "../lib/errors";
 import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { notifyCloneEvent } from "../lib/notify";
-import { bumpInteraction } from "../lib/interactions";
+import { bumpInteraction, addPerFeedIntimacyScore, INTIMACY_WEIGHTS } from "../lib/interactions";
 import {
   hasAcceptedShare,
   isFollower,
@@ -390,6 +390,8 @@ feedsDiscover.post("/:id/like", requireAuth, async (c) => {
   await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId: feed.cloneId });
 
   await bumpInteraction(c.env, userId, feed.cloneId, "feed");
+
+  await addPerFeedIntimacyScore(c.env, userId, feed.cloneId, feedId, INTIMACY_WEIGHTS.feed);
   return c.json({ ok: true, liked: true, likesCount: row?.likes_count ?? 0 });
 });
 
@@ -525,6 +527,8 @@ cloneFeeds.post("/:id/like", requireAuth, async (c) => {
 
   await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId });
   await bumpInteraction(c.env, userId, cloneId, "feed");
+
+  await addPerFeedIntimacyScore(c.env, userId, cloneId, feedId, INTIMACY_WEIGHTS.feed);
   return c.json({
     ok: true,
     liked: true,
@@ -608,6 +612,8 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
     extraBody: body.content.trim(),
   });
   await bumpInteraction(c.env, userId, feed.cloneId, "feed");
+
+  await addPerFeedIntimacyScore(c.env, userId, feed.cloneId, feedId, INTIMACY_WEIGHTS.feed);
   return c.json(
     {
       ok: true,
@@ -912,6 +918,8 @@ cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
     extraBody: body.content.trim(),
   });
   await bumpInteraction(c.env, userId, cloneId, "feed");
+
+  await addPerFeedIntimacyScore(c.env, userId, cloneId, feedId, INTIMACY_WEIGHTS.feed);
   return c.json(
     {
       ok: true,

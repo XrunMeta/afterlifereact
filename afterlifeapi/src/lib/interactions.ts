@@ -64,3 +64,101 @@ export function deriveIntimacyTemp(total: number): number {
   if (total <= 0) return 0;
   return Math.min(100, Math.floor(total * 2));
 }
+
+export const INTIMACY_DAILY_CAP = 15;
+
+export const INTIMACY_MAX = 100;
+
+export const INTIMACY_PER_FEED_CAP = 4;
+
+export const INTIMACY_WEIGHTS = {
+  chat: 1,
+  call: 15,
+  learn: 2,
+  feed: 2,
+} as const;
+
+export const CALL_MIN_SECONDS_FOR_SCORE = 1200;
+
+function kstDateYYYYMMDD(now: Date = new Date()): string {
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const y = kst.getUTCFullYear();
+  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(kst.getUTCDate()).padStart(2, "0");
+  return `${y}${m}${d}`;
+}
+
+export async function addIntimacyScore(
+  env: Bindings,
+  userId: number,
+  cloneId: number,
+  score: number,
+): Promise<{ applied: number; dailyRemaining: number }> {
+  if (!userId || !cloneId || score <= 0) {
+    return { applied: 0, dailyRemaining: INTIMACY_DAILY_CAP };
+  }
+  const dailyKey = `intimacy_daily:${userId}:${cloneId}:${kstDateYYYYMMDD()}`;
+  try {
+    const dailyUsedRaw = await env.KV_RATE.get(dailyKey);
+    const dailyUsed = dailyUsedRaw ? Number(dailyUsedRaw) : 0;
+    const dailyRemaining = Math.max(0, INTIMACY_DAILY_CAP - dailyUsed);
+    if (dailyRemaining <= 0) {
+      return { applied: 0, dailyRemaining: 0 };
+    }
+    const applied = Math.min(score, dailyRemaining);
+
+    await env.DB
+      .prepare(
+        `INSERT INTO user_clone_interactions (user_id, clone_id, intimacy_score)
+         VALUES (?, ?, ?)
+         ON CONFLICT(user_id, clone_id) DO UPDATE
+            SET intimacy_score = MIN(${INTIMACY_MAX}, intimacy_score + excluded.intimacy_score),
+                last_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(userId, cloneId, applied)
+      .run();
+
+    await env.KV_RATE.put(dailyKey, String(dailyUsed + applied), {
+      expirationTtl: 26 * 60 * 60,
+    });
+
+    return { applied, dailyRemaining: dailyRemaining - applied };
+  } catch (err) {
+    console.warn(
+      `[interactions] addIntimacyScore failed:`,
+      (err as Error).message,
+    );
+    return { applied: 0, dailyRemaining: INTIMACY_DAILY_CAP };
+  }
+}
+
+export async function addPerFeedIntimacyScore(
+  env: Bindings,
+  userId: number,
+  cloneId: number,
+  feedId: number,
+  score: number,
+): Promise<{ applied: number }> {
+  if (!userId || !cloneId || !feedId || score <= 0) return { applied: 0 };
+  const key = `intimacy_feed:${userId}:${cloneId}:${feedId}`;
+  try {
+    const usedRaw = await env.KV_RATE.get(key);
+    const used = usedRaw ? Number(usedRaw) : 0;
+    const perFeedRemaining = Math.max(0, INTIMACY_PER_FEED_CAP - used);
+    if (perFeedRemaining <= 0) return { applied: 0 };
+    const candidate = Math.min(score, perFeedRemaining);
+    const { applied } = await addIntimacyScore(env, userId, cloneId, candidate);
+    if (applied > 0) {
+      await env.KV_RATE.put(key, String(used + applied), {
+        expirationTtl: 30 * 24 * 60 * 60, 
+      });
+    }
+    return { applied };
+  } catch (err) {
+    console.warn(
+      `[interactions] addPerFeedIntimacyScore failed:`,
+      (err as Error).message,
+    );
+    return { applied: 0 };
+  }
+}

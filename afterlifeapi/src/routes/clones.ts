@@ -13,7 +13,13 @@ import {
   resolveResponseViewerRole,
 } from "../lib/cloneAccess";
 import { writeCtx, writeShared } from "../lib/memoryStore";
-import { bumpInteraction, bumpInteractionThrottled } from "../lib/interactions";
+import {
+  bumpInteraction,
+  bumpInteractionThrottled,
+  addIntimacyScore,
+  INTIMACY_WEIGHTS,
+  CALL_MIN_SECONDS_FOR_SCORE,
+} from "../lib/interactions";
 import { externalTransferSplit } from "../lib/xrun";
 import { notify, notifyCloneEvent } from "../lib/notify";
 
@@ -1147,12 +1153,19 @@ clones.post("/:id/call-event", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const body = await parseJson(c, callEventSchema).catch(() => ({ durationSeconds: undefined }));
   await bumpInteraction(c.env, userId, cloneId, "call");
+
+  const duration = body.durationSeconds ?? 0;
+  let scoreApplied = 0;
+  if (duration >= CALL_MIN_SECONDS_FOR_SCORE) {
+    const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.call);
+    scoreApplied = r.applied;
+  }
   await logActivity(c, {
     userId,
     action: "clone.call_event",
-    details: { cloneId, durationSeconds: body.durationSeconds ?? null },
+    details: { cloneId, durationSeconds: duration, scoreApplied },
   });
-  return c.json({ ok: true });
+  return c.json({ ok: true, scoreApplied });
 });
 
 clones.post("/:id/learn-event", requireAuth, async (c) => {
@@ -1161,12 +1174,18 @@ clones.post("/:id/learn-event", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
-  const { bumped } = await bumpInteractionThrottled(
-    c.env,
-    userId,
-    cloneId,
-    "learn",
-    600, 
-  );
-  return c.json({ ok: true, bumped });
+
+  await bumpInteraction(c.env, userId, cloneId, "learn");
+
+  const cooldownKey = `intimacy_cd:learn:${userId}:${cloneId}`;
+  const onCooldown = !!(await c.env.KV_RATE.get(cooldownKey));
+  let scoreApplied = 0;
+  if (!onCooldown) {
+    const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.learn);
+    scoreApplied = r.applied;
+    if (scoreApplied > 0) {
+      await c.env.KV_RATE.put(cooldownKey, "1", { expirationTtl: 20 * 60 });
+    }
+  }
+  return c.json({ ok: true, bumped: true, scoreApplied });
 });
