@@ -375,23 +375,26 @@ feedsDiscover.post("/:id/like", requireAuth, async (c) => {
     }
   }
 
-  await c.env.DB
+  const ins = await c.env.DB
     .prepare(
       `INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`,
     )
     .bind(feedId, userId)
     .run();
+  const inserted = (ins.meta?.changes ?? 0) > 0;
 
   const row = await c.env.DB
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(feedId)
     .first<{ likes_count: number }>();
+  if (inserted) {
 
-  await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId: feed.cloneId });
+    await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId: feed.cloneId });
 
-  await bumpInteraction(c.env, userId, feed.cloneId, "feed");
+    await bumpInteraction(c.env, userId, feed.cloneId, "feed");
 
-  await addPerFeedIntimacyScore(c.env, userId, feed.cloneId, feedId, INTIMACY_WEIGHTS.feed);
+    await addPerFeedIntimacyScore(c.env, userId, feed.cloneId, feedId, INTIMACY_WEIGHTS.feed);
+  }
   return c.json({ ok: true, liked: true, likesCount: row?.likes_count ?? 0 });
 });
 
@@ -515,20 +518,23 @@ cloneFeeds.post("/:id/like", requireAuth, async (c) => {
     promoted = true;
   }
 
-  await c.env.DB
+  const ins = await c.env.DB
     .prepare(`INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`)
     .bind(feedId, userId)
     .run();
+  const inserted = (ins.meta?.changes ?? 0) > 0;
 
   const cnt = await c.env.DB
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(feedId)
     .first<{ likes_count: number }>();
+  if (inserted) {
 
-  await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId });
-  await bumpInteraction(c.env, userId, cloneId, "feed");
+    await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId });
+    await bumpInteraction(c.env, userId, cloneId, "feed");
 
-  await addPerFeedIntimacyScore(c.env, userId, cloneId, feedId, INTIMACY_WEIGHTS.feed);
+    await addPerFeedIntimacyScore(c.env, userId, cloneId, feedId, INTIMACY_WEIGHTS.feed);
+  }
   return c.json({
     ok: true,
     liked: true,
