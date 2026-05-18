@@ -52,47 +52,47 @@ const AI_NAME = "페르소나 생성 도우미";
 const AI_AVATAR_SRC = require("../../../assets/images/symbol.png");
 
 const INTRO_MESSAGES: string[] = [
-  "안녕하세요, 페르소나 생성을 도와드리는 도우미입니다.",
-  "마음에 떠올리고 계신 분에 대해 몇 가지 여쭤볼게요.",
-  "편하게 답해주시면, 그 모습에 맞는 페르소나를 만들어드릴게요.",
+  "안녕하세요! 페르소나 만들기 도와드릴게요.",
+  "마음에 두고 계신 분에 대해 몇 가지 물어볼게요.",
+  "편하게 답해주시면 돼요!",
 ];
 
 const QUESTIONS: Record<Phase, { prompt: string; placeholder: string; multiline: boolean; ack: string }> = {
   name: {
-    prompt: "먼저 이름을 알려주실 수 있을까요?\n평소 부르시던 이름이나 별명, 어떤 호칭이든 괜찮습니다.",
+    prompt: "먼저 이름이 뭔가요?\n평소 부르던 이름이나 별명도 좋아요.",
     placeholder: "예: 별이, 할머니, 모리",
     multiline: false,
-    ack: "감사합니다. 잘 적어두었어요.",
+    ack: "좋아요, 잘 기억해뒀어요!",
   },
   username: {
-    prompt: "@아이디는 어떻게 설정해드릴까요?\n영문 소문자, 숫자, 밑줄(_) 만 사용 가능합니다. 비워두시면 이름을 바탕으로 자동 생성해드려요.",
+    prompt: "@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!",
     placeholder: "예: starry_kim, modi_v",
     multiline: false,
-    ack: "확인했습니다. 다음으로 넘어갈게요.",
+    ack: "확인! 다음 질문이에요.",
   },
   firstMeeting: {
-    prompt: "처음 만나게 된 이야기를 들려주실 수 있을까요?\n특별했던 순간이나 첫인상이 궁금합니다.",
-    placeholder: "예: 학교에서 처음 봤을 때 분위기가 차가워 보였는데, 말 걸어보니 정말 순진했어요.",
+    prompt: "처음 만난 이야기를 들려주실래요?\n특별했던 순간이나 첫인상이 궁금해요.",
+    placeholder: "예: 학교에서 처음 봤을 때 차가워 보였는데, 말 걸어보니 정말 순진했어요.",
     multiline: true,
-    ack: "잘 들었습니다. 소중한 이야기네요.",
+    ack: "정말 소중한 순간이네요!",
   },
   habit: {
-    prompt: "자주 하시던 말이나 눈길이 가던 습관이 있었나요?\n사소한 것이라도 괜찮습니다.",
-    placeholder: "예: 기분 좋으시면 '하자, 하자!' 하고 아이처럼 말을 반복하셨어요.",
+    prompt: "자주 하던 말이나 인상적인 습관이 있었나요?\n사소한 것도 좋아요!",
+    placeholder: "예: 기분 좋으면 '하자, 하자!' 하고 아이처럼 말을 반복했어요.",
     multiline: true,
-    ack: "그런 모습도 기억해두겠습니다.",
+    ack: "그런 모습까지 잘 기억해둘게요!",
   },
   personality: {
-    prompt: "그분의 성격은 어땠나요?\nMBTI 가 떠오르신다면 함께 알려주셔도 좋고, 평소 성격을 말씀해주셔도 됩니다.",
-    placeholder: "예: MBTI 는 INFP 였고, 사람들과 만나는 걸 좋아하셨지만 집에 오면 방전되곤 하셨어요.",
+    prompt: "성격은 어땠어요?\nMBTI 가 떠오르면 같이 알려주셔도 좋고, 평소 모습을 말씀해주셔도 돼요.",
+    placeholder: "예: MBTI 는 INFP 였고, 사람 만나는 건 좋아했지만 집에 오면 방전되곤 했어요.",
     multiline: true,
-    ack: "성격까지 잘 정리해두었습니다.",
+    ack: "성격까지 다 들었어요!",
   },
   memory: {
-    prompt: "마지막으로, 눈 감으면 어제처럼 선명한 장면이 있다면 한 장면 들려주실 수 있을까요?\n가장 행복하게 웃으시던 순간이면 좋아요.",
-    placeholder: "예: 놀이동산에서 불꽃이 터질 때 고백했었는데, 해맑게 웃으시며 받아주셨어요.",
+    prompt: "마지막으로, 눈 감으면 떠오르는 한 장면이 있으면 들려주실래요?\n가장 행복하게 웃던 순간이면 좋아요.",
+    placeholder: "예: 놀이동산에서 불꽃 터질 때 고백했었는데, 해맑게 웃으면서 받아줬어요.",
     multiline: true,
-    ack: "감사합니다. 모든 정보를 잘 정리해드릴게요.",
+    ack: "다 들었어요! 이제 페르소나 만들러 가볼게요.",
   },
 };
 
@@ -297,7 +297,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
     } else {
 
       setCreationDraft({ personaNotes: buildNotes() });
-      await pushAi("모두 잘 받았습니다. 이제 게시물 작성 화면으로 안내해드릴게요.", 700);
+      await pushAi("이제 게시물 작성 화면으로 갈게요!", 700);
       setTimeout(() => {
         navigation.navigate("Step7");
       }, 1000);
