@@ -18,7 +18,6 @@ import {
 import { Feather } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import SafeView from "../../components/ui/SafeView";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -46,51 +45,51 @@ const PHASES: Phase[] = [
   "memory",
 ];
 
-const AI_NAME = "기억의 요정";
-const AI_AVATAR_EMOJI = "✨";
+const AI_NAME = "안내 도우미";
+const AI_AVATAR_EMOJI = "🙋";
 
 const INTRO_MESSAGES: string[] = [
-  "안녕! 나는 네 소중한 기억 속에 살고 있는 요정이야 ✨",
-  "지금 네가 가장 보고 싶은 '그 얼굴'을 한 번 떠올려봐...",
-  "떠올랐어!? 그럼 몇 가지 물어볼게.",
+  "안녕하세요! 페르소나 생성을 도와드릴 안내 도우미입니다.",
+  "마음에 떠올리고 계신 분에 대해 몇 가지 여쭤볼게요.",
+  "편하게 답해주시면, 그 모습에 맞는 페르소나를 만들어드릴게요.",
 ];
 
 const QUESTIONS: Record<Phase, { prompt: string; placeholder: string; multiline: boolean; ack: string }> = {
   name: {
-    prompt: "그 존재의 이름은 뭐였어?\n네가 부르던 이름이나 별명, 어떤 호칭이든 좋아!",
+    prompt: "먼저 이름을 알려주실 수 있을까요?\n평소 부르시던 이름이나 별명, 어떤 호칭이든 괜찮습니다.",
     placeholder: "예: 별이, 할머니, 모리",
     multiline: false,
-    ack: "예쁜 이름이네! 기억할게.",
+    ack: "감사합니다. 잘 적어두었어요.",
   },
   username: {
-    prompt: "@아이디는 어떻게 할까?\n영문 소문자/숫자/_ 만 가능해. 비워두면 이름으로 자동 만들어줄게.",
+    prompt: "@아이디는 어떻게 설정해드릴까요?\n영문 소문자, 숫자, 밑줄(_) 만 사용 가능합니다. 비워두시면 이름을 바탕으로 자동 생성해드려요.",
     placeholder: "예: starry_kim, modi_v",
     multiline: false,
-    ack: "좋아, 다음으로 넘어갈게.",
+    ack: "확인했습니다. 다음으로 넘어갈게요.",
   },
   firstMeeting: {
-    prompt: "그 존재와는 어떻게 처음 만나게 되었어?\n우리 사이에 잊지 못할 특별한 첫 순간이나 추억이 있었는지 궁금해!",
-    placeholder: "예: 학교에서 처음 봤을 때 분위기가 차가워 보였는데, 말 걸어보니 너무 순진해서 반전이 예뻤어.",
+    prompt: "처음 만나게 된 이야기를 들려주실 수 있을까요?\n특별했던 순간이나 첫인상이 궁금합니다.",
+    placeholder: "예: 학교에서 처음 봤을 때 분위기가 차가워 보였는데, 말 걸어보니 정말 순진했어요.",
     multiline: true,
-    ack: "그 순간이 떠올라.",
+    ack: "잘 들었습니다. 소중한 이야기네요.",
   },
   habit: {
-    prompt: "자주 하던 말이나 눈길이 가던 습관이 있었니?\n사소한 거라도 좋아!",
-    placeholder: "예: 기분 좋으면 '하자, 하자!' 하고 아이처럼 말을 반복했어.",
+    prompt: "자주 하시던 말이나 눈길이 가던 습관이 있었나요?\n사소한 것이라도 괜찮습니다.",
+    placeholder: "예: 기분 좋으시면 '하자, 하자!' 하고 아이처럼 말을 반복하셨어요.",
     multiline: true,
-    ack: "귀엽다, 그런 거.",
+    ack: "그런 모습도 기억해두겠습니다.",
   },
   personality: {
-    prompt: "그 존재의 성격은 어땠어?\n혹시 MBTI가 생각나니? 기억이 안 난다면 평소 성격을 말해줘도 돼!",
-    placeholder: "예: MBTI는 INFP인데 사람들 만나는 걸 좋아했어. 근데 집에 가면 방전 되곤 했지.",
+    prompt: "그분의 성격은 어땠나요?\nMBTI 가 떠오르신다면 함께 알려주셔도 좋고, 평소 성격을 말씀해주셔도 됩니다.",
+    placeholder: "예: MBTI 는 INFP 였고, 사람들과 만나는 걸 좋아하셨지만 집에 오면 방전되곤 하셨어요.",
     multiline: true,
-    ack: "성격도 잘 기억하고 있을게.",
+    ack: "성격까지 잘 정리해두었습니다.",
   },
   memory: {
-    prompt: "눈 감으면 어제처럼 선명한 장면이 있을까?\n가장 행복하게 웃고 있던 순간을 나한테도 공유해줘.",
-    placeholder: "예: 놀이동산에서 불꽃 터질 때 고백했었는데, 너가 해맑게 웃으면서 받아줬어.",
+    prompt: "마지막으로, 눈 감으면 어제처럼 선명한 장면이 있다면 한 장면 들려주실 수 있을까요?\n가장 행복하게 웃으시던 순간이면 좋아요.",
+    placeholder: "예: 놀이동산에서 불꽃이 터질 때 고백했었는데, 해맑게 웃으시며 받아주셨어요.",
     multiline: true,
-    ack: "잘 들었어! 이제 페르소나를 빚어볼 차례야.",
+    ack: "감사합니다. 모든 정보를 잘 정리해드릴게요.",
   },
 };
 
@@ -122,7 +121,6 @@ function extractMbti(text: string): PersonaMbtiCode | undefined {
 export default function Step6CreatingScreen({ navigation }: Props) {
   const draft = useCloneStore((s) => s.creationDraft);
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
-  const insets = useSafeAreaInsets();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
@@ -221,7 +219,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
 
       if (text.length === 0) {
         const derived = deriveUsernameFromName(answersRef.current.name || "user");
-        pushUser(`(빈 칸 → ${derived} 로 자동 생성)`);
+        pushUser(`(빈 칸 — ${derived} 로 자동 생성)`);
         answersRef.current.username = derived;
         setCreationDraft({ username: derived });
         setInput("");
@@ -295,7 +293,7 @@ export default function Step6CreatingScreen({ navigation }: Props) {
     } else {
 
       setCreationDraft({ personaNotes: buildNotes() });
-      await pushAi("좋아, 이제 페르소나를 빚으러 가볼까? 곧 게시물 작성 화면으로 넘어가.", 700);
+      await pushAi("모두 잘 받았습니다. 이제 게시물 작성 화면으로 안내해드릴게요.", 700);
       setTimeout(() => {
         navigation.navigate("Step7");
       }, 1000);
@@ -381,7 +379,9 @@ export default function Step6CreatingScreen({ navigation }: Props) {
         </ScrollView>
 
         {}
-        <View style={[s.inputBar, { paddingBottom: 8 + Math.max(insets.bottom, 0) }]}>
+        {
+}
+        <View style={s.inputBar}>
           <TextInput
             style={[s.input, multiline && s.inputMultiline]}
             value={input}
@@ -439,7 +439,7 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#fef3c7",
+    backgroundColor: "#dbeafe" ,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -457,7 +457,7 @@ const s = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#fef3c7",
+    backgroundColor: "#dbeafe" ,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
@@ -492,6 +492,7 @@ const s = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingTop: 8,
+    paddingBottom: 8, 
     backgroundColor: COLORS.white,
     borderTopWidth: 1,
     borderTopColor: COLORS.zinc100,
