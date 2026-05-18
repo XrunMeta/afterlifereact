@@ -131,6 +131,13 @@ export default function v_14b43e() {
                 "stats.comments": v_23805a.stats?.comments,
                 "latestFeed.feedId": v_23805a.latestFeed?.feedId,
                 "latestFeed.likedByMe": v_23805a.latestFeed?.likedByMe,
+
+                "my.chat": v_23805a.myInteractions?.chat,
+                "my.call": v_23805a.myInteractions?.call,
+                "my.learn": v_23805a.myInteractions?.learn,
+                "my.feed": v_23805a.myInteractions?.feed,
+                "my.total": v_23805a.myInteractions?.total,
+                "my.intimacy": v_23805a.myInteractions?.intimacy,
               })),
             );
             v_44191e(v_cb35cb.items);
