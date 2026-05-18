@@ -327,7 +327,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
         </TouchableOpacity>
         <View style={v_fd5f43.headerCenter}>
           <View style={v_fd5f43.headerAvatar}>
-            <Image source={v_90ef75} style={v_fd5f43.headerAvatarImg} resizeMode="cover" />
+            <Image source={v_90ef75} style={v_fd5f43.headerAvatarImg} resizeMode="contain" />
           </View>
           <Text style={v_fd5f43.headerName}>{v_291e91}</Text>
         </View>
@@ -356,7 +356,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
               <View key={v_35f85c.id} style={[v_fd5f43.row, v_0bd65d ? v_fd5f43.rowAi : v_fd5f43.rowUser]}>
                 {v_0bd65d && (
                   <View style={[v_fd5f43.avatar, v_80139d && { opacity: 0 }]}>
-                    <Image source={v_90ef75} style={v_fd5f43.avatarImg} resizeMode="cover" />
+                    <Image source={v_90ef75} style={v_fd5f43.avatarImg} resizeMode="contain" />
                   </View>
                 )}
                 <View
@@ -375,7 +375,7 @@ export default function v_baac2f({ navigation: v_c65f5d }: Props) {
           {v_6bae32 && (
             <View style={[v_fd5f43.row, v_fd5f43.rowAi]}>
               <View style={v_fd5f43.avatar}>
-                <Image source={v_90ef75} style={v_fd5f43.avatarImg} resizeMode="cover" />
+                <Image source={v_90ef75} style={v_fd5f43.avatarImg} resizeMode="contain" />
               </View>
               <View style={[v_fd5f43.bubble, v_fd5f43.bubbleAi, v_fd5f43.typingBubble]}>
                 <ActivityIndicator size="small" color={v_1bfbd0.zinc500} />
@@ -451,7 +451,7 @@ const v_fd5f43 = v_472849.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  headerAvatarImg: { width: 30, height: 30 },
+  headerAvatarImg: { width: 22, height: 22 },
   headerName: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
 
   chatScroll: { flex: 1, backgroundColor: "#f1f5f9"  },
@@ -471,7 +471,7 @@ const v_fd5f43 = v_472849.create({
     marginBottom: 2,
     overflow: "hidden",
   },
-  avatarImg: { width: 32, height: 32 },
+  avatarImg: { width: 24, height: 24 },
 
   bubble: {
     paddingHorizontal: 12,
