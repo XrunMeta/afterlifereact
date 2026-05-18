@@ -55,6 +55,15 @@ function v_aedede() {
 }
 
 function v_31fee5() {
+
+  v_a3453e.useEffect(() => {
+    const { creationDraft: v_9d4877, setCreationDraft: v_5795de } =
+      require("../stores/cloneStore").useCloneStore.getState();
+    if (!v_9d4877.cloneType) {
+      console.log("[CreateStack] cloneType missing on mount — defaulting to friend");
+      v_5795de({ cloneType: "friend", visibility: "public" });
+    }
+  }, []);
   return (
     <CreateStack.Navigator screenOptions={{ headerShown: false }}>
       <CreateStack.Screen name="Step1" component={v_84d7a5} />

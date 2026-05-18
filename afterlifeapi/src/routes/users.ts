@@ -45,17 +45,19 @@ v_de7ba7.get("/search", v_6690d9, async (v_3f4e2e) => {
     return v_3f4e2e.json({ items: [] });
   }
   const v_2a1d60 = `%${v_ab6401}%`;
+
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
       `SELECT id, name, email, avatar_url AS avatarUrl
          FROM users
         WHERE deleted_at IS NULL
           AND id != ?
+          AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
         ORDER BY id DESC
         LIMIT 20`,
     )
-    .bind(v_b32680, v_2a1d60, v_2a1d60)
+    .bind(v_b32680, v_b32680, v_2a1d60, v_2a1d60)
     .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
   return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
 });
@@ -737,7 +739,9 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
                 COALESCE(uci.chat_count, 0)  AS my_chat,
                 COALESCE(uci.call_count, 0)  AS my_call,
                 COALESCE(uci.learn_count, 0) AS my_learn,
-                COALESCE(uci.feed_count, 0)  AS my_feed
+                COALESCE(uci.feed_count, 0)  AS my_feed,
+                -- 친밀도 가중치 점수 (Daily Cap 15°C 적립, 100°C 상한)
+                COALESCE(uci.intimacy_score, 0) AS my_intimacy
            FROM clone_follows f
            JOIN clones c ON c.id = f.clone_id
            LEFT JOIN clone_stats s ON s.clone_id = c.id
@@ -767,6 +771,7 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         my_call: number;
         my_learn: number;
         my_feed: number;
+        my_intimacy: number;
       }>()
   ).results;
 
@@ -837,7 +842,7 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         learn: v_cb35cb.my_learn,
         feed: v_cb35cb.my_feed,
         total: v_cb35cb.my_chat + v_cb35cb.my_call + v_cb35cb.my_learn + v_cb35cb.my_feed,
-        intimacy: Math.min(100, (v_cb35cb.my_chat + v_cb35cb.my_call + v_cb35cb.my_learn + v_cb35cb.my_feed) * 2),
+        intimacy: Math.min(100, Math.max(0, v_cb35cb.my_intimacy)),
       },
       createdAt: v_cb35cb.created_at,
     })),
@@ -1157,6 +1162,7 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
     .first<{ followersCount: number; followingCount: number }>();
 
   let v_b30b81 = false;
+  let v_4258ec = false;
   if (v_013af2 !== v_b1de41) {
     const v_e84077 = await v_a1651b
       .prepare(
@@ -1166,6 +1172,15 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
       .bind(v_013af2, v_b1de41)
       .first<{ x: number }>();
     v_b30b81 = !!v_e84077;
+
+    const v_a37dd6 = await v_a1651b
+      .prepare(
+        `SELECT 1 AS x FROM user_blocks
+          WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`,
+      )
+      .bind(v_013af2, v_b1de41)
+      .first<{ x: number }>();
+    v_4258ec = !!v_a37dd6;
   }
 
   const v_e2cd33 =
@@ -1223,6 +1238,7 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
       followingCount: v_62676b?.followingCount ?? 0,
       isMe: v_013af2 === v_b1de41,
       isFollowing: v_b30b81,
+      isBlocked: v_4258ec,
     },
     clones: v_8ffcf8.map((v_cb35cb) => ({
       id: v_cb35cb.id,
@@ -1238,5 +1254,84 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
       createdAt: v_cb35cb.createdAt,
     })),
   });
+});
+
+v_de7ba7.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_b1de41) || v_b1de41 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  if (v_43e90c === v_b1de41) {
+    throw new v_3ebe58("VALIDATION_FAILED", "본인은 차단할 수 없어요.");
+  }
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
+    ).bind(v_43e90c, v_b1de41),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(v_43e90c, v_b1de41),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(v_b1de41, v_43e90c),
+  ]);
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "user.block",
+    details: { targetId: v_b1de41 },
+  });
+  return v_3f4e2e.json({ ok: true, blocked: true });
+});
+
+v_de7ba7.delete("/:id/block", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_b1de41) || v_b1de41 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?`)
+    .bind(v_43e90c, v_b1de41)
+    .run();
+  return v_3f4e2e.json({ ok: true, blocked: false });
+});
+
+const v_59bd98 = v_1f4ea7.object({
+  reason: v_1f4ea7.string().max(500).optional(),
+});
+v_de7ba7.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_b1de41) || v_b1de41 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  if (v_43e90c === v_b1de41) {
+    throw new v_3ebe58("VALIDATION_FAILED", "본인은 신고할 수 없어요.");
+  }
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_59bd98).catch(() => ({ reason: undefined }));
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_reports (reporter_id, target_id, reason)
+         VALUES (?, ?, ?)`,
+    ).bind(v_43e90c, v_b1de41, v_4d33b2.reason ?? null),
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
+    ).bind(v_43e90c, v_b1de41),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(v_43e90c, v_b1de41),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(v_b1de41, v_43e90c),
+  ]);
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "user.report",
+    details: { targetId: v_b1de41, reason: v_4d33b2.reason ?? null },
+  });
+  return v_3f4e2e.json({ ok: true, reported: true, blocked: true });
 });
 

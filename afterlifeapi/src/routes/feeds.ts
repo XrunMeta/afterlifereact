@@ -6,7 +6,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
 import { v_80a022 } from "../lib/notify";
-import { v_dd9d7c } from "../lib/interactions";
+import { v_dd9d7c, v_6f97bc, v_cf0463 } from "../lib/interactions";
 import {
   v_7adf64,
   v_ab84f6,
@@ -390,6 +390,8 @@ v_f1d06f.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
   await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_2db2a5.cloneId });
 
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json({ ok: true, liked: true, likesCount: v_3ac7e7?.likes_count ?? 0 });
 });
 
@@ -525,6 +527,8 @@ v_96e8d7.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
 
   await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_6e0fd3 });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json({
     ok: true,
     liked: true,
@@ -608,6 +612,8 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     extraBody: v_4d33b2.content.trim(),
   });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json(
     {
       ok: true,
@@ -683,6 +689,7 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
   const v_75cbf4 = v_15c8c5 ? Number(v_15c8c5) : null;
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 30);
   const v_02be30 = Math.max(1, Math.min(100, Number.isFinite(v_cf2260) ? v_cf2260 : 30));
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
 
   const v_abcc8d = ["fc.feed_id = ?", "fc.parent_comment_id IS NULL"];
   const v_925171 = [v_c09aa8];
@@ -690,16 +697,23 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
     v_abcc8d.push("fc.id < ?");
     v_925171.push(v_75cbf4);
   }
+
+  const v_f36334 = v_013af2
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  if (v_013af2) v_925171.unshift(v_013af2); 
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl,
+        `SELECT fc.id          AS commentId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${v_f36334} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
                    WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
@@ -714,6 +728,8 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
@@ -733,6 +749,8 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
       content: v_cb35cb.content,
       createdAt: v_cb35cb.createdAt,
       repliesCount: v_cb35cb.repliesCount ?? 0,
+      likesCount: v_cb35cb.likesCount ?? 0,
+      likedByMe: !!v_cb35cb.likedByMe,
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,
@@ -753,16 +771,23 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
+  const v_f36334 = v_013af2
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  const v_925171 = v_013af2 ? [v_013af2, v_c09aa8, v_062ae9, v_02be30] : [v_c09aa8, v_062ae9, v_02be30];
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+        `SELECT fc.id          AS commentId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${v_f36334} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE fc.feed_id = ?
@@ -771,12 +796,14 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
           ORDER BY fc.id ASC
           LIMIT ?`,
       )
-      .bind(v_c09aa8, v_062ae9, v_02be30)
+      .bind(...v_925171)
       .all<{
         commentId: number;
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
@@ -790,6 +817,8 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
       content: v_cb35cb.content,
       createdAt: v_cb35cb.createdAt,
       parentCommentId: v_062ae9,
+      likesCount: v_cb35cb.likesCount ?? 0,
+      likedByMe: !!v_cb35cb.likedByMe,
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,
@@ -798,6 +827,48 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
       },
     })),
   });
+});
+
+v_f1d06f.post("/:id/comments/:cid/like", v_6690d9, async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM feed_comments WHERE id = ? AND feed_id = ?`)
+    .bind(v_062ae9, v_c09aa8)
+    .first<{ id: number }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없어요.");
+  await v_3f4e2e.env.DB
+    .prepare(`INSERT OR IGNORE INTO feed_comment_likes (comment_id, user_id) VALUES (?, ?)`)
+    .bind(v_062ae9, v_43e90c)
+    .run();
+  const v_7b3f91 = await v_3f4e2e.env.DB
+    .prepare(`SELECT likes_count FROM feed_comments WHERE id = ?`)
+    .bind(v_062ae9)
+    .first<{ likes_count: number }>();
+  return v_3f4e2e.json({ ok: true, liked: true, likesCount: v_7b3f91?.likes_count ?? 0 });
+});
+
+v_f1d06f.delete("/:id/comments/:cid/like", v_6690d9, async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM feed_comment_likes WHERE comment_id = ? AND user_id = ?`)
+    .bind(v_062ae9, v_43e90c)
+    .run();
+  const v_7b3f91 = await v_3f4e2e.env.DB
+    .prepare(`SELECT likes_count FROM feed_comments WHERE id = ?`)
+    .bind(v_062ae9)
+    .first<{ likes_count: number }>();
+  return v_3f4e2e.json({ ok: true, liked: false, likesCount: v_7b3f91?.likes_count ?? 0 });
 });
 
 v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
@@ -847,6 +918,8 @@ v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     extraBody: v_4d33b2.content.trim(),
   });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json(
     {
       ok: true,
@@ -867,18 +940,25 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
 
+  const v_f36334 = v_013af2
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  const v_925171 = v_013af2 ? [v_013af2, v_6e0fd3, v_02be30] : [v_6e0fd3, v_02be30];
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.feed_id   AS feedId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl,
+        `SELECT fc.id          AS commentId,
+                fc.feed_id     AS feedId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${v_f36334} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
                    WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
@@ -890,13 +970,15 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
           ORDER BY fc.id DESC
           LIMIT ?`,
       )
-      .bind(v_6e0fd3, v_02be30)
+      .bind(...v_925171)
       .all<{
         commentId: number;
         feedId: number;
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
@@ -911,6 +993,8 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
       content: v_cb35cb.content,
       createdAt: v_cb35cb.createdAt,
       repliesCount: v_cb35cb.repliesCount ?? 0,
+      likesCount: v_cb35cb.likesCount ?? 0,
+      likedByMe: !!v_cb35cb.likedByMe,
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,

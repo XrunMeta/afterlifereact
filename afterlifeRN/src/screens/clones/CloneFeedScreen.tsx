@@ -16,7 +16,7 @@ import {
   v_0e1f26,
   v_326be8,
 } from "rcmrninabrnb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -41,6 +41,9 @@ import {
   v_9deb40,
   v_97c75d,
   v_f5a9ea,
+  v_f1ff2a,
+  v_99e260,
+  v_ba8b3a,
   type v_52af9d,
 } from "../../api/clones";
 import v_4d58d7 from "../../components/common/ReportReasonModal";
@@ -102,6 +105,14 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_b84498, v_e24028] = v_5ab095<boolean>(v_2db2a5.likedByMe ?? v_632420.includes(v_6bbace));
   const v_799eb5 = v_f5f393 != null && v_8c0b26.cloneOwnerId === v_f5f393;
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    void v_ba8b3a(v_2ca7e0, v_2db2a5.cloneId).catch((v_49263d) =>
+      console.warn("[CloneFeed] learn event failed:", v_49263d),
+    );
+
+  }, [v_2db2a5.cloneId]);
 
   v_c4deb2(() => {
     let v_2008a4 = false;
@@ -200,14 +211,19 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   v_c4deb2(() => {
     if (!v_1126f9) {
       v_04f2fc([]);
+
+      v_74a05a({});
+      v_f1ad38(null);
       return;
     }
     let v_2008a4 = false;
     v_856daf(true);
     v_04f2fc([]);
+
+    v_74a05a({});
     const v_19e91c = v_6bbace < 0
-      ? v_776874(v_2db2a5.cloneId, { limit: 100 })
-      : v_4208e7(v_6bbace, { limit: 100 });
+      ? v_776874(v_2db2a5.cloneId, { limit: 100, accessToken: v_2ca7e0 })
+      : v_4208e7(v_6bbace, { limit: 100, accessToken: v_2ca7e0 });
     v_19e91c
       .then((v_8f00b9) => {
         if (v_2008a4) return;
@@ -229,25 +245,38 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     if (v_4c2809.current) return;
     const v_b43b74 = v_48e7fe.trim();
     if (!v_b43b74 || !v_2ca7e0) return;
+
+    v_0e1f26.dismiss();
     v_4c2809.current = true;
     v_52390e(true);
     try {
       let v_bb71b6;
-      if (v_6bbace < 0) {
+      if (v_90b93a) {
+
+        const v_4eab4b = v_ecfc0f.find((v_3f4e2e) => v_3f4e2e.id === v_90b93a.commentId);
+        const v_8e2335 = v_4eab4b?.feedId ?? (v_6bbace > 0 ? v_6bbace : 0);
+        if (!v_8e2335) {
+          v_4c2809.current = false;
+          v_52390e(false);
+          return;
+        }
+        await v_3f8bc7(v_2ca7e0, v_8e2335, v_b43b74, {
+          parentCommentId: v_90b93a.commentId,
+        });
+        v_bb71b6 = v_8e2335;
+      } else if (v_6bbace < 0) {
 
         const v_8f00b9 = await v_6f689a(v_2ca7e0, v_2db2a5.cloneId, v_b43b74);
         v_bb71b6 = v_8f00b9.comment.feedId;
         v_a97d6f(v_bb71b6);
       } else {
-        await v_3f8bc7(v_2ca7e0, v_6bbace, v_b43b74, {
-          parentCommentId: v_90b93a?.commentId,
-        });
+        await v_3f8bc7(v_2ca7e0, v_6bbace, v_b43b74);
         v_bb71b6 = v_6bbace;
       }
       v_856f84("");
       if (v_90b93a) {
         try {
-          const v_f10744 = await v_f5a9ea(v_bb71b6, v_90b93a.commentId, { limit: 100 });
+          const v_f10744 = await v_f5a9ea(v_bb71b6, v_90b93a.commentId, { limit: 100, accessToken: v_2ca7e0 });
           v_74a05a((v_e2a85c) => ({ ...v_e2a85c, [v_90b93a.commentId]: v_f10744.items }));
           v_04f2fc((v_ba2215) =>
             v_ba2215.map((v_3f4e2e) =>
@@ -260,7 +289,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         }
         v_f1ad38(null);
       } else {
-        const v_cb35cb = await v_4208e7(v_bb71b6, { limit: 100 });
+        const v_cb35cb = await v_4208e7(v_bb71b6, { limit: 100, accessToken: v_2ca7e0 });
         v_04f2fc(v_cb35cb.items);
         v_d9b4b4(v_cb35cb.items.length);
       }
@@ -284,6 +313,52 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         });
       } catch (v_49263d) {
         console.warn("[CloneFeed] deleteFeedComment failed:", v_49263d);
+      }
+    })();
+  };
+
+  const v_71affe = (
+    comment: v_52af9d,
+    v_fdf350,
+  ) => {
+    if (!v_2ca7e0) return;
+
+    const v_8e2335 = v_61b01a.feedId ?? (v_6bbace > 0 ? v_6bbace : 0);
+    if (!v_8e2335) return;
+    const v_d50832 = !!v_61b01a.likedByMe;
+    const v_43f08c = v_61b01a.likesCount ?? 0;
+    const v_86472f = !v_d50832;
+    const v_c97dd8 = Math.max(0, v_43f08c + (v_86472f ? 1 : -1));
+
+    const v_00b8d8 = (c: v_52af9d): v_52af9d =>
+      v_3f4e2e.id === v_61b01a.id ? { ...v_3f4e2e, likedByMe: v_86472f, likesCount: v_c97dd8 } : v_3f4e2e;
+    if (v_fdf350) {
+      v_74a05a((v_e2a85c) => {
+        const v_ef8ab1 = v_e2a85c[v_fdf350];
+        if (!v_ef8ab1) return v_e2a85c;
+        return { ...v_e2a85c, [v_fdf350]: v_ef8ab1.map(v_00b8d8) };
+      });
+    } else {
+      v_04f2fc((v_ba2215) => v_ba2215.map(v_00b8d8));
+    }
+    void (async () => {
+      try {
+        if (v_86472f) await v_f1ff2a(v_2ca7e0, v_8e2335, v_61b01a.id);
+        else await v_99e260(v_2ca7e0, v_8e2335, v_61b01a.id);
+      } catch (v_49263d) {
+        console.warn("[CloneFeed] toggleCommentLike failed:", v_49263d);
+
+        const v_86fa3e = (c: v_52af9d): v_52af9d =>
+          v_3f4e2e.id === v_61b01a.id ? { ...v_3f4e2e, likedByMe: v_d50832, likesCount: v_43f08c } : v_3f4e2e;
+        if (v_fdf350) {
+          v_74a05a((v_e2a85c) => {
+            const v_ef8ab1 = v_e2a85c[v_fdf350];
+            if (!v_ef8ab1) return v_e2a85c;
+            return { ...v_e2a85c, [v_fdf350]: v_ef8ab1.map(v_86fa3e) };
+          });
+        } else {
+          v_04f2fc((v_ba2215) => v_ba2215.map(v_86fa3e));
+        }
       }
     })();
   };
@@ -354,7 +429,9 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   const v_271e2a = v_2ced3d[v_3f4e2e.id];
                   const v_f72477 = v_271e2a !== undefined;
                   return (
-                  <View key={v_3f4e2e.id} style={v_d81136.commentRow}>
+
+                  <View key={v_3f4e2e.id} style={v_d81136.commentBlock}>
+                  <View style={v_d81136.commentRow}>
                     {v_3f4e2e.user.avatarUrl ? (
                       <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_d81136.commentAvatar} />
                     ) : (
@@ -406,7 +483,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                                 });
                               } else {
                                 try {
-                                  const v_cb35cb = await v_f5a9ea(v_8e2335, v_3f4e2e.id, { limit: 100 });
+                                  const v_cb35cb = await v_f5a9ea(v_8e2335, v_3f4e2e.id, { limit: 100, accessToken: v_2ca7e0 });
                                   v_74a05a((v_e2a85c) => ({ ...v_e2a85c, [v_3f4e2e.id]: v_cb35cb.items }));
                                 } catch (v_49263d) {
                                   console.warn("[CloneFeed] listReplies failed:", v_49263d);
@@ -422,23 +499,68 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                           </TouchableOpacity>
                         )}
                       </View>
-                      {v_f72477 && v_271e2a && v_271e2a.map((v_5cfb2c) => (
-                        <View key={v_5cfb2c.id} style={v_d81136.replyRow}>
-                          {v_5cfb2c.user.avatarUrl ? (
-                            <Image source={{ uri: v_5cfb2c.user.avatarUrl }} style={v_d81136.replyAvatar} />
-                          ) : (
-                            <View style={[v_d81136.replyAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
-                          )}
-                          <View style={{ flex: 1 }}>
-                            <View style={v_d81136.commentMeta}>
-                              <Text style={v_d81136.commentAuthor}>{v_5cfb2c.user.name ?? v_5cfb2c.user.email}</Text>
-                              <Text style={v_d81136.commentTime}>{v_bfd883(v_5cfb2c.createdAt)}</Text>
-                            </View>
-                            <Text style={v_d81136.commentContent}>{v_5cfb2c.content}</Text>
-                          </View>
-                        </View>
-                      ))}
                     </View>
+                    {}
+                    <TouchableOpacity
+                      style={v_d81136.commentHeart}
+                      onPress={() => v_71affe(v_3f4e2e)}
+                      hitSlop={8}
+                    >
+                      <Ionicons
+                        name="heart"
+                        size={18}
+                        color={v_3f4e2e.likedByMe ? "#ef4444" : v_1bfbd0.zinc400}
+                      />
+                      <Text
+                        style={[
+                          v_d81136.commentHeartCount,
+                          v_3f4e2e.likedByMe ? { color: "#ef4444" } : null,
+                        ]}
+                      >
+                        {v_3f4e2e.likesCount ?? 0}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {
+
+}
+                  {v_f72477 && v_271e2a && v_271e2a.map((v_5cfb2c) => (
+                    <View key={v_5cfb2c.id} style={v_d81136.replyRow}>
+                      <View style={v_d81136.replyIndent} />
+                      {v_5cfb2c.user.avatarUrl ? (
+                        <Image source={{ uri: v_5cfb2c.user.avatarUrl }} style={v_d81136.replyAvatar} />
+                      ) : (
+                        <View style={[v_d81136.replyAvatar, { backgroundColor: v_1bfbd0.zinc100 }]} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <View style={v_d81136.commentMeta}>
+                          <Text style={v_d81136.commentAuthor}>{v_5cfb2c.user.name ?? v_5cfb2c.user.email}</Text>
+                          <Text style={v_d81136.commentTime}>{v_bfd883(v_5cfb2c.createdAt)}</Text>
+                        </View>
+                        <Text style={v_d81136.commentContent}>{v_5cfb2c.content}</Text>
+                      </View>
+                      {}
+                      <TouchableOpacity
+                        style={v_d81136.commentHeart}
+                        onPress={() => v_71affe(v_5cfb2c, v_3f4e2e.id)}
+                        hitSlop={8}
+                      >
+                        <Ionicons
+                          name="heart"
+                          size={16}
+                          color={v_5cfb2c.likedByMe ? "#ef4444" : v_1bfbd0.zinc400}
+                        />
+                        <Text
+                          style={[
+                            v_d81136.commentHeartCount,
+                            v_5cfb2c.likedByMe ? { color: "#ef4444" } : null,
+                          ]}
+                        >
+                          {v_5cfb2c.likesCount ?? 0}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
                   </View>
                 );
                 })
@@ -619,7 +741,14 @@ const v_d81136 = v_472849.create({
   },
   commentTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
   commentScroll: { flex: 1, marginTop: 12 },
-  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+
+  commentBlock: { marginBottom: 16 },
+
+  commentRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+  commentHeart: { alignItems: "center", paddingHorizontal: 4, paddingTop: 2, minWidth: 28 },
+  commentHeartCount: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 2 },
+
+  replyIndent: { width: 42 },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: v_1bfbd0.zinc100 },
   commentInfo: { flex: 1 },
   commentMeta: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 },
@@ -648,7 +777,7 @@ const v_d81136 = v_472849.create({
   replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
   replyActionText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.zinc500 },
   replyToggleText: { fontSize: 12, fontWeight: "600", color: v_1bfbd0.zinc500 },
-  replyRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  replyRow: { flexDirection: "row", gap: 8, marginTop: 10, alignItems: "flex-start" },
   replyAvatar: { width: 24, height: 24, borderRadius: 12 },
   replyingBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 4, backgroundColor: v_1bfbd0.zinc50 ?? v_1bfbd0.zinc100, borderRadius: 8, marginTop: 6 },
   replyingText: { fontSize: 12, color: v_1bfbd0.zinc600 },

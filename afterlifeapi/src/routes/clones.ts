@@ -13,6 +13,13 @@ import {
   v_d875d1,
 } from "../lib/cloneAccess";
 import { v_9c8187, v_55eb2a } from "../lib/memoryStore";
+import {
+  v_dd9d7c,
+  v_1ad6ed,
+  v_721d54,
+  v_cf0463,
+  v_22b4d2,
+} from "../lib/interactions";
 import { v_7a6fc0 } from "../lib/xrun";
 import { v_c226a5, v_80a022 } from "../lib/notify";
 
@@ -62,7 +69,8 @@ const v_3ea364 = v_1f4ea7.object({
 });
 
 const v_722b6d = v_1f4ea7.object({
-  clone_type: v_3a8949,
+
+  clone_type: v_3a8949.default("friend"),
   name: v_1f4ea7.string().min(1).max(80),
   username: v_1f4ea7
     .string()
@@ -1123,4 +1131,52 @@ v_f891e6.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
     details: { cloneId: v_6e0fd3, reason: v_4d33b2.reason ?? null },
   });
   return v_3f4e2e.json({ ok: true, reported: true, blocked: true });
+});
+
+const v_1e23ae = v_1f4ea7.object({
+  durationSeconds: v_1f4ea7.number().int().min(0).max(86400).optional(),
+});
+v_f891e6.post("/:id/call-event", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_1e23ae).catch(() => ({ durationSeconds: undefined }));
+  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "call");
+
+  const v_a712cf = v_4d33b2.durationSeconds ?? 0;
+  let v_27e8db = 0;
+  if (v_a712cf >= v_22b4d2) {
+    const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.call);
+    v_27e8db = v_cb35cb.applied;
+  }
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "clone.call_event",
+    details: { cloneId: v_6e0fd3, durationSeconds: v_a712cf, scoreApplied: v_27e8db },
+  });
+  return v_3f4e2e.json({ ok: true, scoreApplied: v_27e8db });
+});
+
+v_f891e6.post("/:id/learn-event", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+
+  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "learn");
+
+  const v_4d76f9 = `intimacy_cd:learn:${v_43e90c}:${v_6e0fd3}`;
+  const v_2ba83d = !!(await v_3f4e2e.env.KV_RATE.get(v_4d76f9));
+  let v_27e8db = 0;
+  if (!v_2ba83d) {
+    const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.learn);
+    v_27e8db = v_cb35cb.applied;
+    if (v_27e8db > 0) {
+      await v_3f4e2e.env.KV_RATE.put(v_4d76f9, "1", { expirationTtl: 20 * 60 });
+    }
+  }
+  return v_3f4e2e.json({ ok: true, bumped: true, scoreApplied: v_27e8db });
 });

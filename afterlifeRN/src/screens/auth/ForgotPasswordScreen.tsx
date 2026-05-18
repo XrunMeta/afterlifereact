@@ -1,7 +1,7 @@
 
 
 import { v_889fad } from "../../stores/dialogStore";
-import v_a3453e, { v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -11,14 +11,12 @@ import {
   v_03e392,
   v_39a996,
 } from "rcmrninabrnb";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
-import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
-import type { v_384e19 } from "../../navigation/types";
 import {
   v_84a859,
   v_63aa82,
@@ -27,12 +25,17 @@ import {
 
 type Step = "email" | "otp" | "password";
 
+type Params = { email?: string } | undefined;
+
 export default function v_040c8f() {
   const { t: v_8d41d7 } = v_772971();
-  const v_c65f5d = v_ada615<v_390fcc<v_384e19>>();
+  const v_c65f5d = v_ada615();
+  const v_c7daf6 = v_2d8264<v_ee3714<{ key: Params }, "key">>();
+  const v_44ec09 = (v_c7daf6.params as { email?: string } | undefined)?.email;
+  const v_c76a8b = !!v_44ec09;
 
-  const [v_729796, v_fd7d1f] = v_5ab095<Step>("email");
-  const [v_e0c7e8, v_fedf34] = v_5ab095("");
+  const [v_729796, v_fd7d1f] = v_5ab095<Step>(v_44ec09 ? "otp" : "email");
+  const [v_e0c7e8, v_fedf34] = v_5ab095(v_44ec09 ?? "");
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_1e51a9, v_014c88] = v_5ab095("");
@@ -59,6 +62,12 @@ export default function v_040c8f() {
       v_ee9ec1(false);
     }
   };
+
+  v_c4deb2(() => {
+    if (!v_44ec09) return;
+    void v_2de427();
+
+  }, []);
 
   const v_4f034c = () => {
     if (!/^\d{6}$/.test(v_c99bd2.trim())) {
@@ -95,7 +104,9 @@ export default function v_040c8f() {
         if (v_49263d.code === "OTP_INVALID") v_badeaf = v_8d41d7("auth.forgot.wrongCode");
         else if (v_49263d.code === "OTP_EXPIRED") {
           v_badeaf = v_8d41d7("auth.forgot.expiredCode");
-          v_fd7d1f("email");
+
+          if (!v_c76a8b) v_fd7d1f("email");
+          else v_fd7d1f("otp");
         } else if (v_49263d.code === "NOT_FOUND") v_badeaf = v_8d41d7("auth.forgot.notFound");
         else if (v_49263d.message) v_badeaf = v_49263d.message;
       }
@@ -126,7 +137,8 @@ export default function v_040c8f() {
                 placeholderTextColor={v_1bfbd0.placeholder}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                autoFocus
+                autoFocus={!v_c76a8b}
+                editable={!v_c76a8b}
               />
             </View>
             <TouchableOpacity

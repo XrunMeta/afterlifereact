@@ -30,7 +30,12 @@ export default function v_8e7ad4({
   const v_e7cf0f = v_e662ae(
     v_f6c856.create({
 
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+
       onMoveShouldSetPanResponder: (v_37eab7, v_206b88) =>
+        v_206b88.dy > 4 && Math.abs(v_206b88.dy) > Math.abs(v_206b88.dx),
+      onMoveShouldSetPanResponderCapture: (v_37eab7, v_206b88) =>
         v_206b88.dy > 4 && Math.abs(v_206b88.dy) > Math.abs(v_206b88.dx),
       onPanResponderMove: (v_37eab7, v_206b88) => {
         if (v_206b88.dy > 0) v_5aac04.setValue(v_206b88.dy);
@@ -62,6 +67,8 @@ export default function v_8e7ad4({
           bounciness: 4,
         }).start();
       },
+
+      onPanResponderTerminationRequest: () => false,
     }),
   ).current;
 
