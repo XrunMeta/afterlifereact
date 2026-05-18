@@ -64,6 +64,8 @@ type FollowedPersona = {
   creatorAccount: string;
   intimacy: number; 
   interactions: number; 
+
+  isOwn?: boolean;
 };
 
 const deriveInteractionsFromStats = (stats?: {
@@ -175,6 +177,7 @@ export default function FollowingScreen() {
           creatorAccount: `@${c.username}`,
           intimacy,
           interactions,
+          isOwn: c.isOwn,
         };
       });
     }
@@ -597,6 +600,8 @@ export default function FollowingScreen() {
                 backgroundColor={COLORS.white}
               />
               {(() => {
+
+                if (item.persona.isOwn) return null;
                 const followed = isFollowingPersona(item.persona.id);
                 return (
                   <Button

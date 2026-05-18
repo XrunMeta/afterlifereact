@@ -594,6 +594,8 @@ export interface FollowedClone {
     total: number;
     intimacy: number; 
   };
+
+  isOwn?: boolean;
   createdAt: string;
 }
 export async function listMyFollowedClones(
