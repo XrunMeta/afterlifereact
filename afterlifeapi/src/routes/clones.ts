@@ -1180,3 +1180,14 @@ v_f891e6.post("/:id/learn-event", v_6690d9, async (v_3f4e2e) => {
   }
   return v_3f4e2e.json({ ok: true, bumped: true, scoreApplied: v_27e8db });
 });
+
+v_f891e6.post("/:id/chat-event", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
+  const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.chat, "chat");
+  return v_3f4e2e.json({ ok: true, scoreApplied: v_cb35cb.applied });
+});

@@ -517,8 +517,18 @@ export async function v_c0681d(
 export async function v_ba8b3a(
   v_2ca7e0,
   v_6e0fd3,
-): Promise<{ ok: true; bumped: boolean }> {
+): Promise<{ ok: true; bumped: boolean; scoreApplied?: number }> {
   return v_04b58a(`/oth-path${v_6e0fd3}/learn-event`, v_2ca7e0, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function v_7b4c9e(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ ok: true; scoreApplied?: number }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/chat-event`, v_2ca7e0, {
     method: "POST",
     body: JSON.stringify({}),
   });
