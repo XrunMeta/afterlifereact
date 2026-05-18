@@ -481,15 +481,12 @@ v_de7ba7.get("/me/clones/:cloneId/intimacy-events", v_6690d9, async (v_3f4e2e) =
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
-
   const v_eb25ce = await v_3f4e2e.env.DB
     .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ? AND deleted_at IS NULL`)
     .bind(v_6e0fd3)
     .first<{ ownerId: number }>();
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
-  if (v_eb25ce.ownerId !== v_43e90c) {
-    throw new v_3ebe58("FORBIDDEN", "본인의 페르소나만 조회할 수 있어요.");
-  }
+  const v_2aec08 = v_eb25ce.ownerId === v_43e90c;
 
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
@@ -499,6 +496,10 @@ v_de7ba7.get("/me/clones/:cloneId/intimacy-events", v_6690d9, async (v_3f4e2e) =
 
   const v_abcc8d = ["clone_id = ?"];
   const v_925171 = [v_6e0fd3];
+  if (!v_2aec08) {
+    v_abcc8d.push("user_id = ?");
+    v_925171.push(v_43e90c);
+  }
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
     v_abcc8d.push("id < ?");
     v_925171.push(v_75cbf4);
@@ -526,6 +527,8 @@ v_de7ba7.get("/me/clones/:cloneId/intimacy-events", v_6690d9, async (v_3f4e2e) =
   const v_4622b9 = v_6bbe19 ? v_18b8bf.slice(0, v_02be30) : v_18b8bf;
   const v_64f859 = v_6bbe19 && v_4622b9.length > 0 ? v_4622b9[v_4622b9.length - 1]!.id : null;
 
+  const v_87014f = v_2aec08 ? "clone_id = ?" : "clone_id = ? AND user_id = ?";
+  const v_74e89c = v_2aec08 ? [v_6e0fd3] : [v_6e0fd3, v_43e90c];
   const v_218436 = await v_3f4e2e.env.DB
     .prepare(
       `SELECT
@@ -535,9 +538,9 @@ v_de7ba7.get("/me/clones/:cloneId/intimacy-events", v_6690d9, async (v_3f4e2e) =
          SUM(CASE WHEN action = 'learn' THEN score ELSE 0 END)              AS learnScore,
          SUM(CASE WHEN action = 'feed'  THEN score ELSE 0 END)              AS feedScore,
          COUNT(*)                                                           AS eventCount
-       FROM intimacy_events WHERE clone_id = ?`,
+       FROM intimacy_events WHERE ${v_87014f}`,
     )
-    .bind(v_6e0fd3)
+    .bind(...v_74e89c)
     .first<{
       totalScore: number;
       chatScore: number;
