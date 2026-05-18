@@ -66,7 +66,7 @@ const QUESTIONS: Record<Phase, { prompt: string; placeholder: string; multiline:
     prompt: "@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!",
     placeholder: "예: starry_kim, modi_v",
     multiline: false,
-    ack: "확인! 다음 질문이에요.",
+    ack: "확인했습니다! 다음 질문이에요.",
   },
   firstMeeting: {
     prompt: "처음 만난 이야기를 들려주실래요?\n특별했던 순간이나 첫인상이 궁금해요.",
