@@ -82,7 +82,7 @@ v_19e2a3.post(
 
     await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
 
-    await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.chat);
+    await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.chat, "chat");
 
     const [v_19fdaa, v_1405be, v_ee6431] = await Promise.all([
       v_e86502(v_3f4e2e.env, v_6e0fd3),

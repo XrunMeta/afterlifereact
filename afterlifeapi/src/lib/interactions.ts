@@ -1,6 +1,7 @@
 
 
 import type { v_273a0c } from "./env";
+import { v_33d48f } from "./notify";
 
 type InteractionKind = "chat" | "call" | "learn" | "feed";
 
@@ -93,6 +94,8 @@ export async function v_721d54(
   v_43e90c,
   v_6e0fd3,
   v_740dd8,
+  v_9b064f,
+  v_c09aa8,
 ): Promise<{ applied: number; dailyRemaining: number }> {
   if (!v_43e90c || !v_6e0fd3 || v_740dd8 <= 0) {
     return { applied: 0, dailyRemaining: v_9cb764 };
@@ -122,6 +125,28 @@ export async function v_721d54(
       expirationTtl: 26 * 60 * 60,
     });
 
+    try {
+      await v_c9c489.DB
+        .prepare(
+          `INSERT INTO intimacy_events (user_id, clone_id, action, score, feed_id)
+           VALUES (?, ?, ?, ?, ?)`,
+        )
+        .bind(v_43e90c, v_6e0fd3, v_9b064f, v_cdef5f, v_c09aa8 ?? null)
+        .run();
+    } catch (v_4e67d8) {
+      console.warn(
+        `[interactions] event log failed:`,
+        (v_4e67d8 as Error).message,
+      );
+    }
+
+    await v_33d48f(v_c9c489, {
+      actorId: v_43e90c,
+      cloneId: v_6e0fd3,
+      action: v_9b064f,
+      score: v_cdef5f,
+    });
+
     return { applied: v_cdef5f, dailyRemaining: v_179598 - v_cdef5f };
   } catch (v_49263d) {
     console.warn(
@@ -147,7 +172,14 @@ export async function v_6f97bc(
     const v_15064d = Math.max(0, v_7cdbac - v_87cbd5);
     if (v_15064d <= 0) return { applied: 0 };
     const v_19dc48 = Math.min(v_740dd8, v_15064d);
-    const { applied: v_cdef5f } = await v_721d54(v_c9c489, v_43e90c, v_6e0fd3, v_19dc48);
+    const { applied: v_cdef5f } = await v_721d54(
+      v_c9c489,
+      v_43e90c,
+      v_6e0fd3,
+      v_19dc48,
+      "feed",
+      v_c09aa8,
+    );
     if (v_cdef5f > 0) {
       await v_c9c489.KV_RATE.put(v_b24339, String(v_87cbd5 + v_cdef5f), {
         expirationTtl: 30 * 24 * 60 * 60, 

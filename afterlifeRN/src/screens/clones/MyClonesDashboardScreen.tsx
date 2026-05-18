@@ -34,7 +34,8 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
+import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0 } from "../../api/clones";
+import { v_bfd883 } from "../../lib/relativeTime";
 import { v_84a859, v_976b89 } from "../../api/auth";
 import { v_5c99c1, v_9b8cb3 } from "../../api/payments";
 import v_3cb56d from "../../components/my/PaymentPinPromptModal";
@@ -210,6 +211,39 @@ export default function v_def15b() {
   const [v_465030, v_856daf] = v_5ab095(false);
   const [v_e6e97a, v_a8980f] = v_5ab095<v_ceccc3[] | null>(null);
   const [v_447616, v_3dd690] = v_5ab095(false);
+
+  const [v_d3a183, v_598141] = v_5ab095<{
+    cloneId: number;
+    cloneName: string;
+  } | null>(null);
+  const [v_e3b01d, v_34611c] = v_5ab095<v_6349d0 | null>(null);
+  const [v_5be645, v_b3ab13] = v_5ab095(false);
+
+  v_c4deb2(() => {
+    if (!v_d3a183) {
+      v_34611c(null);
+      return;
+    }
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_b3ab13(true);
+    v_34611c(null);
+    v_8ce643(v_2ca7e0, v_d3a183.cloneId, { limit: 100 })
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_34611c(v_8f00b9);
+      })
+      .catch((v_49263d) => {
+        console.warn("[MyClones] listCloneIntimacyEvents failed:", v_49263d);
+        if (!v_2008a4) v_34611c(null);
+      })
+      .finally(() => {
+        if (!v_2008a4) v_b3ab13(false);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_d3a183, v_2ca7e0]);
 
   v_c4deb2(() => {
     if (v_8bb912?.type !== "likes" || v_8bb912.cloneId == null) {
@@ -613,6 +647,22 @@ export default function v_def15b() {
               <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
                 {v_e17daa} 구독자
               </Text>
+            </TouchableOpacity>
+            {
+}
+            <TouchableOpacity
+              style={v_fd5f43.stat}
+              onPress={() => v_598141({ cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
+            >
+              <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
+              <Text style={v_fd5f43.statText}>상호작용</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={v_fd5f43.stat}
+              onPress={() => v_598141({ cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
+            >
+              <Feather name="thermometer" size={14} color="#fb923c" />
+              <Text style={v_fd5f43.statText}>온도</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1224,6 +1274,86 @@ export default function v_def15b() {
                     상호작용 상세 목록은 준비 중이에요
                   </Text>
                 </View>
+              )}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal visible={!!v_d3a183} transparent animationType="slide">
+        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_598141(null)}>
+          <View
+            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={v_fd5f43.sheetHandle} />
+            <Text style={v_fd5f43.statsSheetTitle}>친밀도 활동 내역</Text>
+            <Text style={v_fd5f43.statsSheetSub}>{v_d3a183?.cloneName}</Text>
+
+            {}
+            {v_e3b01d?.summary && (
+              <View style={v_fd5f43.intimacySummary}>
+                <View style={v_fd5f43.intimacySummaryRow}>
+                  <Feather name="thermometer" size={20} color="#fb923c" />
+                  <Text style={v_fd5f43.intimacySummaryScore}>
+                    {Math.min(100, v_e3b01d.summary.totalScore)}°C
+                  </Text>
+                  <Text style={v_fd5f43.intimacySummaryCount}>
+                    · {v_e3b01d.summary.eventCount}회 누적
+                  </Text>
+                </View>
+                <View style={v_fd5f43.intimacyBreakdownRow}>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    채팅 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.chat}°C</Text>
+                  </Text>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    통화 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.call}°C</Text>
+                  </Text>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    탐색 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.learn}°C</Text>
+                  </Text>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    피드 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.feed}°C</Text>
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
+              {v_5be645 ? (
+                <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
+              ) : !v_e3b01d || v_e3b01d.items.length === 0 ? (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
+                    아직 친밀도 적립 내역이 없어요
+                  </Text>
+                </View>
+              ) : (
+                v_e3b01d.items.map((v_1d299c) => {
+                  const ACTION_META: Record<
+                    "chat" | "call" | "learn" | "feed",
+                    { label: string; icon: keyof typeof v_dec439.glyphMap; color: string }
+                  > = {
+                    chat: { label: "채팅", icon: "message-circle", color: "#60a5fa" },
+                    call: { label: "통화", icon: "phone", color: "#34d399" },
+                    learn: { label: "프로필 탐색", icon: "search", color: "#a78bfa" },
+                    feed: { label: "피드 소통", icon: "heart", color: "#ef4444" },
+                  };
+                  const v_ab4c96 = v_894daa[v_1d299c.action];
+                  return (
+                    <View key={v_1d299c.id} style={v_fd5f43.intimacyEventRow}>
+                      <View style={[v_fd5f43.intimacyEventIcon, { backgroundColor: v_ab4c96.color + "22" }]}>
+                        <Feather name={v_ab4c96.icon} size={14} color={v_ab4c96.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={v_fd5f43.intimacyEventLabel}>{v_ab4c96.label}</Text>
+                        <Text style={v_fd5f43.intimacyEventTime}>{v_bfd883(v_1d299c.createdAt)}</Text>
+                      </View>
+                      <Text style={v_fd5f43.intimacyEventScore}>+{v_1d299c.score}°C</Text>
+                    </View>
+                  );
+                })
               )}
             </ScrollView>
           </View>
@@ -1846,4 +1976,47 @@ const v_fd5f43 = v_472849.create({
   },
   inviteBtnText: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.white },
   inviteBtnTextSent: { color: v_1bfbd0.success },
+
+  intimacySummary: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+    marginBottom: 8,
+  },
+  intimacySummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  intimacySummaryScore: { fontSize: 24, fontWeight: "700", color: "#fb923c" },
+  intimacySummaryCount: { fontSize: 13, color: v_1bfbd0.zinc500 },
+  intimacyBreakdownRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  intimacyBreakdownItem: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  intimacyBreakdownVal: { color: v_1bfbd0.zinc900, fontWeight: "600" },
+  intimacyEventRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+  },
+  intimacyEventIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  intimacyEventLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  intimacyEventTime: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 2 },
+  intimacyEventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
 });
