@@ -80,8 +80,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const [caption, setCaption] = useState("");
   const [posting, setPosting] = useState(false);
 
-  const [name, setName] = useState<string>(draft.name ?? "");
-
   const attemptCreate = useCallback(
     async (pin?: string): Promise<number> => {
       const draft = useCloneStore.getState().creationDraft;
@@ -274,10 +272,12 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       return;
     }
 
-    const trimmedName = name.trim();
-    if (trimmedName.length === 0) {
+    if (!draft.name || draft.name.trim().length === 0) {
       console.log("[CLONE-CREATE] BLOCKED: name missing");
-      showAlert("이름 입력", "페르소나 이름을 입력해주세요.");
+      showAlert(
+        "이름 누락",
+        "페르소나 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
+      );
       return;
     }
     console.log("[CLONE-CREATE] sanity check passed → proceed to attemptCreate");
@@ -285,9 +285,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     setPosting(true);
     setError(null);
 
-    if (draft.name !== trimmedName) {
-      useCloneStore.getState().setCreationDraft({ name: trimmedName });
-    }
     if (draft.description !== trimmed) {
       useCloneStore.getState().setCreationDraft({ description: trimmed });
     }
@@ -392,7 +389,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     }
   };
 
-  const displayName = name.trim() || draft.name || "사용자 이름";
+  const displayName = draft.name ?? "사용자 이름";
   const displayHandle = draft.username ?? "아이디";
   const imageUri = draft.imageFile;
 
@@ -443,18 +440,6 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           <View style={styles.previewBox}>
             <Text style={styles.previewText}>움직이는 페르소나로 보일 예정</Text>
           </View>
-
-          {
-}
-          <TextInput
-            style={styles.nameInput}
-            value={name}
-            onChangeText={setName}
-            placeholder="페르소나 이름 (예: 별이, 할머니, 모리)"
-            placeholderTextColor={COLORS.zinc400}
-            maxLength={40}
-            returnKeyType="next"
-          />
 
           {}
           <TextInput
@@ -677,19 +662,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.zinc500,
     textAlign: "center",
-  },
-
-  nameInput: {
-    height: 48,
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.zinc900,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: COLORS.zinc200,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.zinc50,
-    marginBottom: 10,
   },
 
   captionInput: {
