@@ -97,12 +97,8 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   };
 
   const handleConfirm = () => {
-    if (insufficient) {
-      setError(
-        `XRUN 잔액이 부족해요. (${balance ?? 0} / ${PERSONA_PAID_PRICE_XRUN} XRUN)`,
-      );
-      return;
-    }
+
+    if (insufficient) return;
     if (pin.length !== 6) {
       setError("PIN 6자리를 입력해주세요.");
       return;
@@ -159,7 +155,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 setPin(v.replace(/\D/g, "").slice(0, 6));
                 setError(null);
               }}
-              placeholder={insufficient ? "잔액 부족" : "PIN 6자리"}
+              placeholder="PIN 6자리"
               placeholderTextColor={COLORS.zinc400}
               keyboardType="number-pad"
               secureTextEntry
@@ -186,9 +182,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 disabled={pin.length !== 6 || insufficient}
               >
                 <Text style={styles.confirmText}>
-                  {insufficient
-                    ? "잔액 부족"
-                    : `${PERSONA_PAID_PRICE_XRUN} XRUN 결제`}
+                  {`${PERSONA_PAID_PRICE_XRUN} XRUN 결제`}
                 </Text>
               </TouchableOpacity>
             </View>
