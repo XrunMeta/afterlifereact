@@ -76,7 +76,11 @@ async function pickFile(
 function Component({ draft, onChange }: Props) {
   const { t } = useTranslation();
 
-  const initialMode: Mode = draft.voiceFile ? "upload" : "preset";
+  const initialMode: Mode = draft.voiceFile
+    ? "upload"
+    : draft.voiceSampleId
+      ? "preset"
+      : "record";
   const [mode, setMode] = useState<Mode>(initialMode);
   const [selectedScript, setSelectedScript] = useState<string | null>(null);
 
