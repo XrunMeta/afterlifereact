@@ -97,12 +97,8 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   };
 
   const v_03cae9 = () => {
-    if (v_f6096a) {
-      v_3a7d09(
-        `XRUN 잔액이 부족해요. (${v_c88e9b ?? 0} / ${v_c02c4c} XRUN)`,
-      );
-      return;
-    }
+
+    if (v_f6096a) return;
     if (v_6bee94.length !== 6) {
       v_3a7d09("PIN 6자리를 입력해주세요.");
       return;
@@ -159,7 +155,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 v_240fbf(v_81e2ef.replace(/\D/g, "").slice(0, 6));
                 v_3a7d09(null);
               }}
-              placeholder={v_f6096a ? "잔액 부족" : "PIN 6자리"}
+              placeholder="PIN 6자리"
               placeholderTextColor={v_1bfbd0.zinc400}
               keyboardType="number-pad"
               secureTextEntry
@@ -186,9 +182,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 disabled={v_6bee94.length !== 6 || v_f6096a}
               >
                 <Text style={v_d81136.confirmText}>
-                  {v_f6096a
-                    ? "잔액 부족"
-                    : `${v_c02c4c} XRUN 결제`}
+                  {`${v_c02c4c} XRUN 결제`}
                 </Text>
               </TouchableOpacity>
             </View>
