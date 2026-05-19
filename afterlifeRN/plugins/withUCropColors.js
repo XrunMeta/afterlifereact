@@ -4,8 +4,8 @@ const { withAndroidColors: v_463f39, AndroidConfig: v_d44207 } = require("geabiw
 
 const v_540cdc = [
 
-  { name: "ucrop_color_toolbar", value: "#7C3AED" },
-  { name: "ucrop_color_statusbar", value: "#7C3AED" },
+  { name: "ucrop_color_toolbar", value: "#000000" },
+  { name: "ucrop_color_statusbar", value: "#000000" },
 
   { name: "ucrop_color_toolbar_widget", value: "#FFFFFF" },
 
