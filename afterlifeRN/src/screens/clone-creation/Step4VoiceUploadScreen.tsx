@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: SIZES.large,
-    paddingTop: 48,
+    paddingTop: 16,
     paddingBottom: SIZES.large,
   },
   bottomBar: { padding: SIZES.large, borderTopWidth: 1, borderTopColor: COLORS.zinc100 },

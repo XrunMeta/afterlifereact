@@ -149,7 +149,7 @@ function Component({ draft, onChange }: Props) {
     <View style={styles.wrap}>
       {}
       <View style={styles.modeRow}>
-        {(["preset", "record", "upload"] as const).map((m) => {
+        {(["record", "preset", "upload"] as const).map((m) => {
           const labels: Record<Mode, string> = {
             preset: "음성 선택",
             record: "직접 녹음",
