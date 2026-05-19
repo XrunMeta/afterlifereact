@@ -4,8 +4,8 @@ const { withAndroidColors, AndroidConfig } = require("@expo/config-plugins");
 
 const UCROP_COLORS = [
 
-  { name: "ucrop_color_toolbar", value: "#7C3AED" },
-  { name: "ucrop_color_statusbar", value: "#7C3AED" },
+  { name: "ucrop_color_toolbar", value: "#000000" },
+  { name: "ucrop_color_statusbar", value: "#000000" },
 
   { name: "ucrop_color_toolbar_widget", value: "#FFFFFF" },
 
