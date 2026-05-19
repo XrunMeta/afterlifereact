@@ -149,7 +149,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     <View style={v_d81136.wrap}>
       {}
       <View style={v_d81136.modeRow}>
-        {(["preset", "record", "upload"] as const).map((v_35f85c) => {
+        {(["record", "preset", "upload"] as const).map((v_35f85c) => {
           const v_e0187d = {
             preset: "음성 선택",
             record: "직접 녹음",
