@@ -253,8 +253,24 @@ const LIVE_UNMUTE_KEY = 'afterlife.testbed.live.unmuted';
   const unmuteBtn = document.getElementById('liveUnmuteBtn');
   if (!liveVideo || !liveStatusEl) return;
 
-  const wantUnmuted = localStorage.getItem(LIVE_UNMUTE_KEY) === 'true';
+  const stored = localStorage.getItem(LIVE_UNMUTE_KEY);
+  const wantUnmuted = stored !== 'false';
   let userInteracted = false;
+
+  function autoUnmuteOnFirstGesture() {
+    userInteracted = true;
+    if (!wantUnmuted) return;
+    if (liveAudio && liveAudio.muted) {
+      liveAudio.muted = false;
+      liveAudio.play().catch(() => {
+        liveAudio.muted = true;
+      });
+      localStorage.setItem(LIVE_UNMUTE_KEY, 'true');
+      applyLiveUnmuteUI();
+    }
+  }
+  document.addEventListener('pointerdown', autoUnmuteOnFirstGesture, { once: true });
+  document.addEventListener('keydown', autoUnmuteOnFirstGesture, { once: true });
 
   if (liveAudio) {
     liveAudio.muted = true; 
@@ -511,14 +527,14 @@ composer.addEventListener('submit', async (e) => {
           setStatus(`(${payload.eval_count ?? 0} tok / ${(payload.total_duration_ms ?? 0) / 1000 | 0}s · 영상 합성 중…)`);
         } else if (event === 'video' && payload.url) {
 
-          const v = document.createElement('video');
-          v.src = payload.url;
-          v.controls = true;
-          v.autoplay = true;
-          v.playsInline = true;
-          v.preload = 'auto';
-          v.className = 'reply-video';
-          themEl.appendChild(v);
+          const a = document.createElement('a');
+          a.href = payload.url;
+          a.textContent = `📼 mp4 원본 (${payload.mp4_basename ?? 'video'})`;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.className = 'reply-mp4-link';
+          themEl.appendChild(document.createElement('br'));
+          themEl.appendChild(a);
           messagesEl.scrollTop = messagesEl.scrollHeight;
           const sec = Math.max(0, (payload.infer_ms ?? 0) / 1000) | 0;
           setStatus(`(영상 도착 · ${sec}s)`);

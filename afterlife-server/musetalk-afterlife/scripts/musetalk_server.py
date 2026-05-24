@@ -27,6 +27,7 @@ CWD: source/ 강제 (inference_lib 도 상대경로 ./models/, ./ffmpeg-4.4-amd6
 
 import io
 import os
+import shutil
 import sys
 import time
 import threading
@@ -303,12 +304,25 @@ def infer(req: InferReq):
         mp4_path_str = None
     else:
         if not expected.is_file():
-            mp4s = sorted(out_subdir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
+            # 029-D-3c-mp4-source-fix2: 이전 sess-*.mp4 는 fallback 후보에서 제외
+            # (이전 호출이 만든 unique copy 가 가장 최근일 수 있으므로).
+            mp4s = sorted(
+                (p for p in out_subdir.glob("*.mp4") if not p.name.startswith("sess-")),
+                key=lambda p: p.stat().st_mtime, reverse=True,
+            )
             if mp4s:
                 expected = mp4s[0]
             else:
                 raise HTTPException(500, "output mp4 not found")
-        mp4_path_str = str(expected)
+        # 029-D-3c-mp4-source-fix2: unique 파일명으로 copy → chat bubble URL cache-bust
+        # + 다음 inference 가 expected 를 덮어써도 이 unique copy 는 안전 (publisher 읽기 race 회피 보강).
+        unique_mp4 = out_subdir / f"sess-{safe_id}.mp4"
+        try:
+            shutil.copy2(str(expected), str(unique_mp4))
+            mp4_path_str = str(unique_mp4)
+        except Exception as _ce:
+            print(f"[mp4-unique-copy] fail: {_ce} — fallback to expected", flush=True)
+            mp4_path_str = str(expected)
 
     resp = {
         "mp4_path": mp4_path_str,
