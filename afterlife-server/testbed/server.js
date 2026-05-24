@@ -255,6 +255,58 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   const v_af1e0d = []; 
   const v_c5607b = v_b070ed.randomBytes(6).toString('hex');
 
+  const v_b95b29 = Date.now();
+  let v_5fb2c2 = null;
+  let v_32b1d6 = '';
+  let v_9a1a8e = 0;
+  let v_2c141f = 0;
+  let v_f778a0 = null;        
+  let v_312499 = null;
+  let v_928047 = null;
+  let v_749b14 = null;
+  let v_001385 = false;  
+  let v_3ccb8e = null;   
+
+  const v_ef86b4 = (v_34e5bb) => {
+    if (v_001385) return;
+    v_001385 = true;
+    try {
+      const v_4d4347 = v_af1e0d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.wav.length, 0);
+      v_e173d2({
+        session_id: v_c5607b,
+        created_at: new Date().toISOString(),
+        mode: v_34e5bb,
+        user_text: v_e629b5,
+        llm_text: v_32b1d6,
+        llm_first_token_ms: v_5fb2c2,
+        llm_total_ms: v_3ccb8e?.total_duration_ms ?? null,
+        tts_total_ms: v_9a1a8e || null,
+        tts_count: v_2c141f || null,
+        mt_whisper_ms: v_f778a0?.whisper ?? null,
+        mt_coord_ms: v_f778a0?.coord ?? null,
+        mt_vae_ms: v_f778a0?.vae ?? null,
+        mt_unet_ms: v_f778a0?.unet ?? null,
+        mt_padding_ms: v_f778a0?.padding ?? null,
+        mt_ffmpeg_ms: v_f778a0?.ffmpeg ?? null,
+        mt_infer_ms: v_312499,
+        e2e_ms: Date.now() - v_b95b29,
+        sentence_count: v_af1e0d.length || null,
+        audio_bytes: v_4d4347 || null,
+        frames_pushed: v_928047,
+        wav_basename: null,
+        mp4_basename: v_749b14,
+        raw_json: JSON.stringify({
+          llm: v_3ccb8e ?? null,
+          mt_phase: v_f778a0,
+          mt_infer_ms: v_312499,
+          frames_pushed: v_928047,
+        }),
+      });
+    } catch (v_49263d) {
+      console.warn('[monitor] finalizeTurn failed:', v_49263d?.message ?? v_49263d);
+    }
+  };
+
   const v_3bfe38 = Number.POSITIVE_INFINITY;
   let v_f42a31 = false;
   let v_a5b0d0 = 0;
@@ -274,6 +326,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     const v_e2a85c = v_27fa47(v_738e47)
       .then(({ wav: v_7ab8bd, synthMs: v_3691b5 }) => {
         if (v_6c558f) return;
+        v_9a1a8e += v_3691b5 ?? 0;
+        v_2c141f += 1;
 
         if (!v_2c3445) {
           v_9c423d('tts', {
@@ -330,6 +384,10 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           output_id: v_c5607b,
           stream: true,
         });
+        v_312499 = v_43c42e?.infer_ms ?? null;
+        v_f778a0 = v_43c42e?.phase_ms ?? null;
+        v_928047 = v_43c42e?.frames_pushed ?? null;
+        v_749b14 = v_43c42e?.mp4_basename ?? null;
         await v_00b49d(v_c5607b, {
           mp4_path: v_43c42e?.mp4_path ?? null,
           mp4_basename: v_43c42e?.mp4_basename ?? null,
@@ -385,6 +443,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
       const v_76a373 = v_c80dec(v_9b6134);
       if (!v_76a373) return;
+      if (v_5fb2c2 === null) v_5fb2c2 = Date.now() - v_b95b29;
+      v_32b1d6 += v_76a373;
       v_9c423d('chunk', { text: v_76a373 });
 
       const v_fe6160 = v_138fc0.feed(v_76a373);
@@ -392,6 +452,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     },
     onDone: (v_34d5e3) => {
       if (v_6c558f) return;
+      v_3ccb8e = v_34d5e3;
 
       const v_916658 = v_138fc0.flush();
       for (const v_fd5f43 of v_916658) v_ff0d3e(v_fd5f43);
@@ -416,6 +477,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           if (v_2c3445) {
 
             v_cbdd58.finally(() => {
+              v_ef86b4('stream');
               if (!v_8f00b9.writableEnded) v_8f00b9.end();
             }).catch(() => {});
             return;
@@ -425,6 +487,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           try {
             v_6944b4 = await v_034be8(v_d33958);
             if (!v_6944b4) {
+
+              v_ef86b4('batch');
               v_8f00b9.end();
               return;
             }
@@ -439,6 +503,10 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
               stream: false,
             });
             if (v_6c558f) return;
+            v_312499 = v_43c42e?.infer_ms ?? null;
+            v_f778a0 = v_43c42e?.phase_ms ?? null;
+            v_928047 = v_43c42e?.frames_pushed ?? null;
+            v_749b14 = v_43c42e?.mp4_basename ?? null;
             await v_00b49d(v_c5607b, {
               mp4_path: v_43c42e?.mp4_path ?? null,
               mp4_basename: v_43c42e?.mp4_basename ?? null,
@@ -473,9 +541,11 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
             }
           } finally {
             if (v_6944b4) await v_ba8718(v_6944b4.dir);
+            v_ef86b4('batch');
             v_8f00b9.end();
           }
         } else {
+          v_ef86b4(v_2c3445 ? 'stream' : 'batch');
           v_8f00b9.end();
         }
       });
