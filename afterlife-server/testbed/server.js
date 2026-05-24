@@ -307,7 +307,7 @@ app.post('/oth-path', (req, res) => {
     }
   };
 
-  const FIRST_CHUNK_WORD_TARGET = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '5', 10); 
+  const FIRST_CHUNK_WORD_TARGET = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '3', 10); 
   let firstChunkClosed = false;
   let firstChunkWordCount = 0;
   const firstChunkInflight = new Set();
@@ -476,7 +476,48 @@ app.post('/oth-path', (req, res) => {
 
           if (MUSETALK_STREAM_MODE) {
 
-            firstChunkPromise.finally(() => {
+            firstChunkPromise.then(async () => {
+              if (aborted) return;
+              const c2 = collectedWavs
+                .filter((x) => x.chunkIdx === 2)
+                .sort((a, b) => a.seq - b.seq)
+                .map((x) => x.wav);
+              if (!c2.length) return;
+              let tmp2 = null;
+              try {
+                tmp2 = await concatWavs(c2);
+                if (!tmp2) return;
+                if (REALTIME_AUDIO_STREAM) {
+                  pushWavToPublisher(tmp2.path).catch((e) =>
+                    console.warn('[realtime-audio c2] push_audio failed:', e?.message ?? e),
+                  );
+                }
+                const r2 = await museTalkInfer({
+                  audio_path: tmp2.path,
+                  output_id: `${sessionId}-c2`,
+                  stream: true,
+                });
+                if (REALTIME_AUDIO_STREAM) {
+                  await fetch(`${REALTIME_PUBLISHER_URL}/push_audio_end`, {
+                    method: 'POST',
+                  }).catch(() => {});
+                }
+                if (!aborted && r2?.mp4_path) {
+                  send('video', {
+                    url: mp4PathToUrl(r2.mp4_path),
+                    mp4_path: r2.mp4_path,
+                    mp4_basename: r2.mp4_basename,
+                    infer_ms: r2?.infer_ms,
+                    streaming: true,
+                    chunk: 2,
+                  });
+                }
+              } catch (e) {
+                console.warn('musetalk c2 bg failed:', e?.message ?? e);
+              } finally {
+                if (tmp2) await cleanupTempDir(tmp2.dir).catch(() => {});
+              }
+            }).finally(() => {
               finalizeTurn('stream');
               if (!res.writableEnded) res.end();
             }).catch(() => {});
