@@ -307,7 +307,7 @@ app.post('/oth-path', (req, res) => {
     }
   };
 
-  const FIRST_CHUNK_WORD_TARGET = Number.POSITIVE_INFINITY;
+  const FIRST_CHUNK_WORD_TARGET = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '5', 10); 
   let firstChunkClosed = false;
   let firstChunkWordCount = 0;
   const firstChunkInflight = new Set();
