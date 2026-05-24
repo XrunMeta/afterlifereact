@@ -307,7 +307,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     }
   };
 
-  const v_3bfe38 = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '5', 10); 
+  const v_3bfe38 = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '3', 10); 
   let v_f42a31 = false;
   let v_a5b0d0 = 0;
   const v_983857 = new Set();
@@ -476,7 +476,48 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
           if (v_2c3445) {
 
-            v_cbdd58.finally(() => {
+            v_cbdd58.then(async () => {
+              if (v_6c558f) return;
+              const v_c8af91 = v_af1e0d
+                .filter((v_62c214) => v_62c214.chunkIdx === 2)
+                .sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq)
+                .map((v_62c214) => v_62c214.wav);
+              if (!v_c8af91.length) return;
+              let v_cd2834 = null;
+              try {
+                v_cd2834 = await v_034be8(v_c8af91);
+                if (!v_cd2834) return;
+                if (v_e01c9c) {
+                  v_e705d0(v_cd2834.path).catch((v_9e86fd) =>
+                    console.warn('[realtime-audio c2] push_audio failed:', v_9e86fd?.message ?? v_9e86fd),
+                  );
+                }
+                const v_b96973 = await v_a16f6e({
+                  audio_path: v_cd2834.path,
+                  output_id: `${v_c5607b}-c2`,
+                  stream: true,
+                });
+                if (v_e01c9c) {
+                  await fetch(`${v_de4278}/push_audio_end`, {
+                    method: 'POST',
+                  }).catch(() => {});
+                }
+                if (!v_6c558f && v_b96973?.mp4_path) {
+                  v_9c423d('video', {
+                    url: v_6edf8f(v_b96973.mp4_path),
+                    mp4_path: v_b96973.mp4_path,
+                    mp4_basename: v_b96973.mp4_basename,
+                    infer_ms: v_b96973?.infer_ms,
+                    streaming: true,
+                    chunk: 2,
+                  });
+                }
+              } catch (v_9e86fd) {
+                console.warn('musetalk c2 bg failed:', v_9e86fd?.message ?? v_9e86fd);
+              } finally {
+                if (v_cd2834) await v_ba8718(v_cd2834.dir).catch(() => {});
+              }
+            }).finally(() => {
               v_ef86b4('stream');
               if (!v_8f00b9.writableEnded) v_8f00b9.end();
             }).catch(() => {});
