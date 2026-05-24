@@ -321,6 +321,8 @@ body {
   display: flex; flex-direction: column;
   font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+/* display:flex 가 hidden 속성을 덮으므로 명시적으로 숨김 (특이성 0,2,0 > 0,1,0) */
+.mon-panel[hidden] { display: none; }
 .mon-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #2a221a; }
 .mon-head strong { font-size: 12px; }
 .mon-meta { color: #b89; margin-left: auto; }
