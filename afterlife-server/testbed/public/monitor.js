@@ -65,12 +65,14 @@
 
   function open() {
     panel.hidden = false;
+    document.body.classList.add('mon-open'); 
     toggleBtn.setAttribute('aria-pressed', 'true');
     poll();
     timer = setInterval(poll, 1500);
   }
   function close() {
     panel.hidden = true;
+    document.body.classList.remove('mon-open');
     toggleBtn.setAttribute('aria-pressed', 'false');
     if (timer) { clearInterval(timer); timer = null; }
   }
