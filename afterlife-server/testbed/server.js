@@ -308,7 +308,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   };
 
   const v_3bfe38 = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '3', 10); 
-  const v_66b4cd = Number.parseInt(process.env.CHUNK_WORD_TARGET ?? '7', 10);             
+  const v_66b4cd = Number.parseInt(process.env.CHUNK_WORD_TARGET ?? '4', 10);             
 
   let v_a562b5 = 0;          
   let v_c882d5 = false;
