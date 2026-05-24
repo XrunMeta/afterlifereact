@@ -241,7 +241,7 @@ app.post('/oth-path', (req, res) => {
   const collectedWavs = []; 
   const sessionId = crypto.randomBytes(6).toString('hex');
 
-  const FIRST_CHUNK_WORD_TARGET = 10;
+  const FIRST_CHUNK_WORD_TARGET = Number.POSITIVE_INFINITY;
   let firstChunkClosed = false;
   let firstChunkWordCount = 0;
   const firstChunkInflight = new Set();
@@ -301,23 +301,50 @@ app.post('/oth-path', (req, res) => {
       try {
         tmp = await concatWavs(c1);
         if (!tmp) return;
+        await dumpGroundTruthWav(sessionId, tmp.path, {
+          mode: 'stream',
+          sentence_count: c1.length,
+          audio_bytes: c1.reduce((a, b) => a + b.length, 0),
+        });
         if (REALTIME_AUDIO_STREAM) {
           pushWavToPublisher(tmp.path).catch((err) =>
             console.warn('[realtime-audio c1] push_audio failed:', err?.message ?? err),
           );
         }
-        await museTalkInfer({
+        const result = await museTalkInfer({
           audio_path: tmp.path,
-          output_id: `sess-${sessionId}-c1`,
+          output_id: sessionId,
           stream: true,
+        });
+        await updateGroundTruthSidecar(sessionId, {
+          mp4_path: result?.mp4_path ?? null,
+          mp4_basename: result?.mp4_basename ?? null,
+          infer_ms: result?.infer_ms ?? null,
+          frames_pushed: result?.frames_pushed ?? null,
         });
         if (REALTIME_AUDIO_STREAM) {
           await fetch(`${REALTIME_PUBLISHER_URL}/push_audio_end`, {
             method: 'POST',
           }).catch(() => {});
         }
+
+        if (!aborted && result?.mp4_path) {
+          send('video', {
+            url: mp4PathToUrl(result.mp4_path),
+            mp4_path: result.mp4_path,
+            mp4_basename: result.mp4_basename,
+            infer_ms: result?.infer_ms,
+            frames_pushed: result?.frames_pushed ?? null,
+            sentence_count: c1.length,
+            audio_bytes: c1.reduce((a, b) => a + b.length, 0),
+            streaming: true,
+          });
+        }
       } catch (err) {
         console.warn('musetalk c1 bg failed:', err?.message ?? err);
+        if (!aborted) {
+          send('video_error', { error: err?.message ?? 'musetalk stream failed' });
+        }
       } finally {
         if (tmp) await cleanupTempDir(tmp.dir).catch(() => {});
       }
@@ -374,66 +401,9 @@ app.post('/oth-path', (req, res) => {
 
           if (MUSETALK_STREAM_MODE) {
 
-            res.end();
-            (async () => {
-              await firstChunkPromise;
-              if (aborted) return;
-              const c2 = collectedWavs
-                .filter((x) => x.chunkIdx === 2)
-                .sort((a, b) => a.seq - b.seq)
-                .map((x) => x.wav);
-              if (!c2.length) {
-
-                try {
-                  await dumpGroundTruthWav(sessionId, null, {
-                    mode: 'stream',
-                    sentence_count: collectedWavs.length,
-                    audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
-                    single_chunk: true,
-                  }).catch(() => {});
-                } catch (_e) {}
-                return;
-              }
-              let tmp = null;
-              try {
-                tmp = await concatWavs(c2);
-                if (!tmp) return;
-                await dumpGroundTruthWav(sessionId, tmp.path, {
-                  mode: 'stream',
-                  sentence_count: collectedWavs.length,
-                  audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
-                  chunk: 2,
-                });
-                if (REALTIME_AUDIO_STREAM) {
-                  pushWavToPublisher(tmp.path).catch((err) =>
-                    console.warn(
-                      '[realtime-audio c2] push_audio failed:',
-                      err?.message ?? err,
-                    ),
-                  );
-                }
-                const result = await museTalkInfer({
-                  audio_path: tmp.path,
-                  output_id: `sess-${sessionId}-c2`,
-                  stream: true,
-                });
-                await updateGroundTruthSidecar(sessionId, {
-                  mp4_path: result?.mp4_path ?? null,
-                  mp4_basename: result?.mp4_basename ?? null,
-                  infer_ms: result?.infer_ms ?? null,
-                  frames_pushed: result?.frames_pushed ?? null,
-                });
-                if (REALTIME_AUDIO_STREAM) {
-                  fetch(`${REALTIME_PUBLISHER_URL}/push_audio_end`, {
-                    method: 'POST',
-                  }).catch(() => {});
-                }
-              } catch (err) {
-                console.warn('musetalk c2 bg failed:', err?.message ?? err);
-              } finally {
-                if (tmp) await cleanupTempDir(tmp.dir).catch(() => {});
-              }
-            })();
+            firstChunkPromise.finally(() => {
+              if (!res.writableEnded) res.end();
+            }).catch(() => {});
             return;
           }
 
