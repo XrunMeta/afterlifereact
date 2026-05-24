@@ -308,21 +308,27 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   };
 
   const v_3bfe38 = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '3', 10); 
-  let v_f42a31 = false;
-  let v_a5b0d0 = 0;
-  const v_983857 = new Set();
-  let v_c8f3e1 = false;
-  let v_cbdd58 = Promise.resolve();
+  const v_66b4cd = Number.parseInt(process.env.CHUNK_WORD_TARGET ?? '7', 10);             
+
+  let v_a562b5 = 0;          
+  let v_c882d5 = false;
+  let v_85ce4d = 0;
+  const v_dd70e4 = new Map();   
+  let v_de64ac = Promise.resolve();
 
   const v_ce98b2 = (v_fd5f43) => (v_fd5f43.match(/\S+/g) || []).length;
 
-  const v_80a694 = (v_9b6134, v_a562b5) => {
+  const v_fbe50b = (v_e86ad8) => (v_e86ad8 === 1 ? v_3bfe38 : v_66b4cd);
+  const v_26651a = (v_e86ad8) => (v_e86ad8 === 1 ? v_c5607b : `${v_c5607b}-c${v_e86ad8}`);
+
+  const v_80a694 = (v_9b6134, v_e86ad8) => {
     if (!v_455f07) return Promise.resolve();
 
     const v_738e47 = v_0f0580(v_9b6134);
     if (!v_738e47) return Promise.resolve();
     const v_1923e2 = ++v_213fa0;
     const v_b66f2c = Date.now();
+    const v_d7fc78 = v_dd70e4.get(v_e86ad8);
     const v_e2a85c = v_27fa47(v_738e47)
       .then(({ wav: v_7ab8bd, synthMs: v_3691b5 }) => {
         if (v_6c558f) return;
@@ -339,7 +345,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
             bytes: v_7ab8bd.length,
           });
         }
-        if (v_77b004) v_af1e0d.push({ seq: v_1923e2, wav: v_7ab8bd, chunkIdx: v_a562b5 });
+        if (v_77b004) v_af1e0d.push({ seq: v_1923e2, wav: v_7ab8bd, chunkIdx: v_e86ad8 });
       })
       .catch((v_49263d) => {
         if (v_6c558f) return;
@@ -347,93 +353,106 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
       })
       .finally(() => {
         v_e8b841.delete(v_e2a85c);
-        if (v_a562b5 === 1) v_983857.delete(v_e2a85c);
+        v_d7fc78?.delete(v_e2a85c);
       });
     v_e8b841.add(v_e2a85c);
-    if (v_a562b5 === 1) v_983857.add(v_e2a85c);
+    v_d7fc78?.add(v_e2a85c);
     return v_e2a85c;
   };
 
-  const v_210e32 = () => {
-    if (v_c8f3e1 || !v_2c3445 || !v_77b004) return;
-    v_c8f3e1 = true;
-    v_cbdd58 = (async () => {
-      await Promise.allSettled([...v_983857]);
-      if (v_6c558f) return;
-      const v_6e7a7d = v_af1e0d
-        .filter((v_62c214) => v_62c214.chunkIdx === 1)
-        .sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq)
-        .map((v_62c214) => v_62c214.wav);
-      if (!v_6e7a7d.length) return;
-      let v_6944b4 = null;
-      try {
-        v_6944b4 = await v_034be8(v_6e7a7d);
-        if (!v_6944b4) return;
-        await v_db6543(v_c5607b, v_6944b4.path, {
-          mode: 'stream',
-          sentence_count: v_6e7a7d.length,
-          audio_bytes: v_6e7a7d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
-        });
-        if (v_e01c9c) {
-          v_e705d0(v_6944b4.path).catch((v_49263d) =>
-            console.warn('[realtime-audio c1] push_audio failed:', v_49263d?.message ?? v_49263d),
-          );
-        }
-        const v_43c42e = await v_a16f6e({
-          audio_path: v_6944b4.path,
-          output_id: v_c5607b,
-          stream: true,
-        });
+  const v_cc698e = async (v_e86ad8) => {
+    const v_d7fc78 = v_dd70e4.get(v_e86ad8) ?? new Set();
+    await Promise.allSettled([...v_d7fc78]);
+    if (v_6c558f) return;
+    const v_96bf40 = v_af1e0d
+      .filter((v_62c214) => v_62c214.chunkIdx === v_e86ad8)
+      .sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq)
+      .map((v_62c214) => v_62c214.wav);
+    if (!v_96bf40.length) return;
+    const v_dad203 = v_26651a(v_e86ad8);
+    let v_6944b4 = null;
+    try {
+      v_6944b4 = await v_034be8(v_96bf40);
+      if (!v_6944b4) return;
+      await v_db6543(v_dad203, v_6944b4.path, {
+        mode: 'stream',
+        chunk: v_e86ad8,
+        sentence_count: v_96bf40.length,
+        audio_bytes: v_96bf40.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+      });
+      if (v_e01c9c) {
+
+        await v_e705d0(v_6944b4.path).catch((v_49263d) =>
+          console.warn(`[realtime-audio c${v_e86ad8}] push_audio failed:`, v_49263d?.message ?? v_49263d),
+        );
+      }
+      const v_43c42e = await v_a16f6e({
+        audio_path: v_6944b4.path,
+        output_id: v_dad203,
+        stream: true,
+      });
+      if (v_e01c9c) {
+        await fetch(`${v_de4278}/push_audio_end`, {
+          method: 'POST',
+        }).catch(() => {});
+      }
+
+      if (v_e86ad8 === 1) {
         v_312499 = v_43c42e?.infer_ms ?? null;
         v_f778a0 = v_43c42e?.phase_ms ?? null;
         v_928047 = v_43c42e?.frames_pushed ?? null;
         v_749b14 = v_43c42e?.mp4_basename ?? null;
-        await v_00b49d(v_c5607b, {
-          mp4_path: v_43c42e?.mp4_path ?? null,
-          mp4_basename: v_43c42e?.mp4_basename ?? null,
-          infer_ms: v_43c42e?.infer_ms ?? null,
-          frames_pushed: v_43c42e?.frames_pushed ?? null,
-        });
-        if (v_e01c9c) {
-          await fetch(`${v_de4278}/push_audio_end`, {
-            method: 'POST',
-          }).catch(() => {});
-        }
-
-        if (!v_6c558f && v_43c42e?.mp4_path) {
-          v_9c423d('video', {
-            url: v_6edf8f(v_43c42e.mp4_path),
-            mp4_path: v_43c42e.mp4_path,
-            mp4_basename: v_43c42e.mp4_basename,
-            infer_ms: v_43c42e?.infer_ms,
-            frames_pushed: v_43c42e?.frames_pushed ?? null,
-            sentence_count: v_6e7a7d.length,
-            audio_bytes: v_6e7a7d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
-            streaming: true,
-          });
-        }
-      } catch (v_49263d) {
-        console.warn('musetalk c1 bg failed:', v_49263d?.message ?? v_49263d);
-        if (!v_6c558f) {
-          v_9c423d('video_error', { error: v_49263d?.message ?? 'musetalk stream failed' });
-        }
-      } finally {
-        if (v_6944b4) await v_ba8718(v_6944b4.dir).catch(() => {});
       }
-    })();
+      await v_00b49d(v_dad203, {
+        mp4_path: v_43c42e?.mp4_path ?? null,
+        mp4_basename: v_43c42e?.mp4_basename ?? null,
+        infer_ms: v_43c42e?.infer_ms ?? null,
+        frames_pushed: v_43c42e?.frames_pushed ?? null,
+      });
+      if (!v_6c558f && v_43c42e?.mp4_path) {
+        v_9c423d('video', {
+          url: v_6edf8f(v_43c42e.mp4_path),
+          mp4_path: v_43c42e.mp4_path,
+          mp4_basename: v_43c42e.mp4_basename,
+          infer_ms: v_43c42e?.infer_ms,
+          frames_pushed: v_43c42e?.frames_pushed ?? null,
+          sentence_count: v_96bf40.length,
+          audio_bytes: v_96bf40.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+          streaming: true,
+          chunk: v_e86ad8,
+        });
+      }
+    } catch (v_49263d) {
+      console.warn(`musetalk c${v_e86ad8} bg failed:`, v_49263d?.message ?? v_49263d);
+      if (!v_6c558f) {
+
+        v_9c423d('video_error', { chunk: v_e86ad8, error: v_49263d?.message ?? 'musetalk stream failed' });
+      }
+    } finally {
+      if (v_6944b4) await v_ba8718(v_6944b4.dir).catch(() => {});
+    }
+  };
+
+  const v_128b4e = () => {
+    if (!v_c882d5) return;
+    const v_e86ad8 = v_a562b5;
+    v_c882d5 = false;
+    if (!(v_2c3445 && v_77b004)) return;
+    v_de64ac = v_de64ac
+      .then(() => v_cc698e(v_e86ad8))
+      .catch((v_9e86fd) => console.warn(`[chunk ${v_e86ad8}] process chain failed:`, v_9e86fd?.message ?? v_9e86fd));
   };
 
   const v_ff0d3e = (v_fd5f43) => {
-    if (!v_f42a31) {
-      v_a5b0d0 += v_ce98b2(v_fd5f43);
-      v_80a694(v_fd5f43, 1);
-      if (v_a5b0d0 >= v_3bfe38) {
-        v_f42a31 = true;
-        v_210e32();
-      }
-    } else {
-      v_80a694(v_fd5f43, 2);
+    if (!v_c882d5) {
+      v_a562b5 += 1;
+      v_c882d5 = true;
+      v_85ce4d = 0;
+      v_dd70e4.set(v_a562b5, new Set());
     }
+    v_85ce4d += v_ce98b2(v_fd5f43);
+    v_80a694(v_fd5f43, v_a562b5);
+    if (v_85ce4d >= v_fbe50b(v_a562b5)) v_128b4e();
   };
 
   const v_57bcd5 = v_a26277({
@@ -457,10 +476,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
       const v_916658 = v_138fc0.flush();
       for (const v_fd5f43 of v_916658) v_ff0d3e(v_fd5f43);
 
-      if (!v_f42a31) {
-        v_f42a31 = true;
-        v_210e32();
-      }
+      if (v_c882d5) v_128b4e();
 
       Promise.allSettled([...v_e8b841]).then(async () => {
         if (v_6c558f) return;
@@ -476,51 +492,12 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
           if (v_2c3445) {
 
-            v_cbdd58.then(async () => {
-              if (v_6c558f) return;
-              const v_c8af91 = v_af1e0d
-                .filter((v_62c214) => v_62c214.chunkIdx === 2)
-                .sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq)
-                .map((v_62c214) => v_62c214.wav);
-              if (!v_c8af91.length) return;
-              let v_cd2834 = null;
-              try {
-                v_cd2834 = await v_034be8(v_c8af91);
-                if (!v_cd2834) return;
-                if (v_e01c9c) {
-                  v_e705d0(v_cd2834.path).catch((v_9e86fd) =>
-                    console.warn('[realtime-audio c2] push_audio failed:', v_9e86fd?.message ?? v_9e86fd),
-                  );
-                }
-                const v_b96973 = await v_a16f6e({
-                  audio_path: v_cd2834.path,
-                  output_id: `${v_c5607b}-c2`,
-                  stream: true,
-                });
-                if (v_e01c9c) {
-                  await fetch(`${v_de4278}/push_audio_end`, {
-                    method: 'POST',
-                  }).catch(() => {});
-                }
-                if (!v_6c558f && v_b96973?.mp4_path) {
-                  v_9c423d('video', {
-                    url: v_6edf8f(v_b96973.mp4_path),
-                    mp4_path: v_b96973.mp4_path,
-                    mp4_basename: v_b96973.mp4_basename,
-                    infer_ms: v_b96973?.infer_ms,
-                    streaming: true,
-                    chunk: 2,
-                  });
-                }
-              } catch (v_9e86fd) {
-                console.warn('musetalk c2 bg failed:', v_9e86fd?.message ?? v_9e86fd);
-              } finally {
-                if (v_cd2834) await v_ba8718(v_cd2834.dir).catch(() => {});
-              }
-            }).finally(() => {
-              v_ef86b4('stream');
-              if (!v_8f00b9.writableEnded) v_8f00b9.end();
-            }).catch(() => {});
+            v_de64ac
+              .finally(() => {
+                v_ef86b4('stream');
+                if (!v_8f00b9.writableEnded) v_8f00b9.end();
+              })
+              .catch(() => {});
             return;
           }
 
