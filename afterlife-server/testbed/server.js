@@ -255,6 +255,58 @@ app.post('/oth-path', (req, res) => {
   const collectedWavs = []; 
   const sessionId = crypto.randomBytes(6).toString('hex');
 
+  const turnT0 = Date.now();
+  let llmFirstTokenMs = null;
+  let llmText = '';
+  let ttsTotalMs = 0;
+  let ttsCount = 0;
+  let mtPhase = null;        
+  let mtInferMs = null;
+  let mtFramesPushed = null;
+  let mtMp4Basename = null;
+  let turnRecorded = false;  
+  let lastDoneInfo = null;   
+
+  const finalizeTurn = (mode) => {
+    if (turnRecorded) return;
+    turnRecorded = true;
+    try {
+      const audioBytes = collectedWavs.reduce((a, b) => a + b.wav.length, 0);
+      recordTurn({
+        session_id: sessionId,
+        created_at: new Date().toISOString(),
+        mode,
+        user_text: userMessage,
+        llm_text: llmText,
+        llm_first_token_ms: llmFirstTokenMs,
+        llm_total_ms: lastDoneInfo?.total_duration_ms ?? null,
+        tts_total_ms: ttsTotalMs || null,
+        tts_count: ttsCount || null,
+        mt_whisper_ms: mtPhase?.whisper ?? null,
+        mt_coord_ms: mtPhase?.coord ?? null,
+        mt_vae_ms: mtPhase?.vae ?? null,
+        mt_unet_ms: mtPhase?.unet ?? null,
+        mt_padding_ms: mtPhase?.padding ?? null,
+        mt_ffmpeg_ms: mtPhase?.ffmpeg ?? null,
+        mt_infer_ms: mtInferMs,
+        e2e_ms: Date.now() - turnT0,
+        sentence_count: collectedWavs.length || null,
+        audio_bytes: audioBytes || null,
+        frames_pushed: mtFramesPushed,
+        wav_basename: null,
+        mp4_basename: mtMp4Basename,
+        raw_json: JSON.stringify({
+          llm: lastDoneInfo ?? null,
+          mt_phase: mtPhase,
+          mt_infer_ms: mtInferMs,
+          frames_pushed: mtFramesPushed,
+        }),
+      });
+    } catch (err) {
+      console.warn('[monitor] finalizeTurn failed:', err?.message ?? err);
+    }
+  };
+
   const FIRST_CHUNK_WORD_TARGET = Number.POSITIVE_INFINITY;
   let firstChunkClosed = false;
   let firstChunkWordCount = 0;
@@ -274,6 +326,8 @@ app.post('/oth-path', (req, res) => {
     const p = ttsSynthesize(cleaned)
       .then(({ wav, synthMs }) => {
         if (aborted) return;
+        ttsTotalMs += synthMs ?? 0;
+        ttsCount += 1;
 
         if (!MUSETALK_STREAM_MODE) {
           send('tts', {
@@ -330,6 +384,10 @@ app.post('/oth-path', (req, res) => {
           output_id: sessionId,
           stream: true,
         });
+        mtInferMs = result?.infer_ms ?? null;
+        mtPhase = result?.phase_ms ?? null;
+        mtFramesPushed = result?.frames_pushed ?? null;
+        mtMp4Basename = result?.mp4_basename ?? null;
         await updateGroundTruthSidecar(sessionId, {
           mp4_path: result?.mp4_path ?? null,
           mp4_basename: result?.mp4_basename ?? null,
@@ -385,6 +443,8 @@ app.post('/oth-path', (req, res) => {
 
       const clean = sanitizeChunk(text);
       if (!clean) return;
+      if (llmFirstTokenMs === null) llmFirstTokenMs = Date.now() - turnT0;
+      llmText += clean;
       send('chunk', { text: clean });
 
       const sentences = sb.feed(clean);
@@ -392,6 +452,7 @@ app.post('/oth-path', (req, res) => {
     },
     onDone: (info) => {
       if (aborted) return;
+      lastDoneInfo = info;
 
       const remaining = sb.flush();
       for (const s of remaining) routeSentence(s);
@@ -416,6 +477,7 @@ app.post('/oth-path', (req, res) => {
           if (MUSETALK_STREAM_MODE) {
 
             firstChunkPromise.finally(() => {
+              finalizeTurn('stream');
               if (!res.writableEnded) res.end();
             }).catch(() => {});
             return;
@@ -425,6 +487,8 @@ app.post('/oth-path', (req, res) => {
           try {
             tmp = await concatWavs(wavOnly);
             if (!tmp) {
+
+              finalizeTurn('batch');
               res.end();
               return;
             }
@@ -439,6 +503,10 @@ app.post('/oth-path', (req, res) => {
               stream: false,
             });
             if (aborted) return;
+            mtInferMs = result?.infer_ms ?? null;
+            mtPhase = result?.phase_ms ?? null;
+            mtFramesPushed = result?.frames_pushed ?? null;
+            mtMp4Basename = result?.mp4_basename ?? null;
             await updateGroundTruthSidecar(sessionId, {
               mp4_path: result?.mp4_path ?? null,
               mp4_basename: result?.mp4_basename ?? null,
@@ -473,9 +541,11 @@ app.post('/oth-path', (req, res) => {
             }
           } finally {
             if (tmp) await cleanupTempDir(tmp.dir);
+            finalizeTurn('batch');
             res.end();
           }
         } else {
+          finalizeTurn(MUSETALK_STREAM_MODE ? 'stream' : 'batch');
           res.end();
         }
       });
