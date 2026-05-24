@@ -18,6 +18,7 @@ import {
 } from './lib/musetalk.js';
 import v_b070ed from 'hikhkjexnsh';
 import v_d4f750 from 'fnffflguqbrqugbi';
+import { v_e173d2, v_483137, v_f456fa } from './logger.js';
 
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
 const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
@@ -76,6 +77,19 @@ v_466992.get('/oth-path', (v_5ebc52, v_8f00b9) => {
   const { profile: v_727031 } = v_464116();
 
   v_8f00b9.json(v_727031);
+});
+
+v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
+  const v_02be30 = Math.min(Number.parseInt(v_309144.query.limit ?? '50', 10) || 50, 200);
+  const v_a35e1b = Number.parseInt(v_309144.query.since ?? '0', 10) || 0;
+  v_8f00b9.json({ turns: v_483137({ limit: v_02be30, sinceId: v_a35e1b }) });
+});
+
+v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
+  const v_389afb = Number.parseInt(v_309144.params.id, 10);
+  const v_3ac7e7 = Number.isFinite(v_389afb) ? v_f456fa(v_389afb) : null;
+  if (!v_3ac7e7) return v_8f00b9.status(404).json({ error: 'not_found' });
+  v_8f00b9.json(v_3ac7e7);
 });
 
 async function v_e705d0(v_f2bb81) {
