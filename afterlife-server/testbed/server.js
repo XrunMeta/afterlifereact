@@ -314,7 +314,15 @@ app.post('/oth-path', (req, res) => {
   let chunkOpen = false;
   let curChunkWords = 0;
   const chunkInflight = new Map();   
-  let processChain = Promise.resolve();
+
+  const MUSETALK_POOL = (process.env.MUSETALK_URLS ?? process.env.MUSETALK_URL ?? 'http://127.0.0.1:8300')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+    .map((urlStr) => { const x = new URL(urlStr); return { host: x.hostname, port: x.port ? Number.parseInt(x.port, 10) : 80 }; });
+  const chunkInferPromises = [];     
+  const mp4Ready = new Map();        
+  let nextPushIdx = 1;               
+  let pushChain = Promise.resolve(); 
+  let rrCursor = 0;                  
 
   const countWords = (s) => (s.match(/\S+/g) || []).length;
 
@@ -360,42 +368,54 @@ app.post('/oth-path', (req, res) => {
     return p;
   };
 
-  const processChunk = async (idx) => {
-    const inflight = chunkInflight.get(idx) ?? new Set();
-    await Promise.allSettled([...inflight]);
-    if (aborted) return;
-    const wavs = collectedWavs
-      .filter((x) => x.chunkIdx === idx)
-      .sort((a, b) => a.seq - b.seq)
-      .map((x) => x.wav);
-    if (!wavs.length) return;
-    const outId = chunkOutId(idx);
+  const schedulePush = () => {
+    pushChain = pushChain
+      .then(async () => {
+        while (mp4Ready.has(nextPushIdx)) {
+          const r = mp4Ready.get(nextPushIdx);
+          mp4Ready.delete(nextPushIdx);
+          const idxNow = nextPushIdx;
+          nextPushIdx += 1;
+          if (r?.mp4_path && REALTIME_AUDIO_STREAM && !aborted) {
+            await fetch(`${REALTIME_PUBLISHER_URL}/push_mp4`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: r.mp4_path, reset: idxNow === 1 }),
+            }).catch((e) => console.warn(`[push_mp4 c${idxNow}] failed:`, e?.message ?? e));
+          }
+        }
+      })
+      .catch(() => {});
+  };
+
+  const processChunkMp4 = async (idx, inst) => {
+    let result = null;
     let tmp = null;
     try {
-      tmp = await concatWavs(wavs);
+      const inflight = chunkInflight.get(idx) ?? new Set();
+      await Promise.allSettled([...inflight]);
+      if (aborted) return;
+      const wavs = collectedWavs
+        .filter((x) => x.chunkIdx === idx)
+        .sort((a, b) => a.seq - b.seq)
+        .map((x) => x.wav);
+      if (!wavs.length) return;
+      const outId = chunkOutId(idx);
+      tmp = await concatWavs(wavs, outId);
       if (!tmp) return;
       await dumpGroundTruthWav(outId, tmp.path, {
-        mode: 'stream',
+        mode: 'mp4-source',
         chunk: idx,
         sentence_count: wavs.length,
         audio_bytes: wavs.reduce((a, b) => a + b.length, 0),
       });
-      if (REALTIME_AUDIO_STREAM) {
-
-        await pushWavToPublisher(tmp.path).catch((err) =>
-          console.warn(`[realtime-audio c${idx}] push_audio failed:`, err?.message ?? err),
-        );
-      }
-      const result = await museTalkInfer({
+      result = await museTalkInfer({
         audio_path: tmp.path,
         output_id: outId,
-        stream: true,
+        stream: false,
+        host: inst.host,
+        port: inst.port,
       });
-      if (REALTIME_AUDIO_STREAM) {
-        await fetch(`${REALTIME_PUBLISHER_URL}/push_audio_end`, {
-          method: 'POST',
-        }).catch(() => {});
-      }
 
       if (idx === 1) {
         mtInferMs = result?.infer_ms ?? null;
@@ -407,7 +427,6 @@ app.post('/oth-path', (req, res) => {
         mp4_path: result?.mp4_path ?? null,
         mp4_basename: result?.mp4_basename ?? null,
         infer_ms: result?.infer_ms ?? null,
-        frames_pushed: result?.frames_pushed ?? null,
       });
       if (!aborted && result?.mp4_path) {
         send('video', {
@@ -415,21 +434,21 @@ app.post('/oth-path', (req, res) => {
           mp4_path: result.mp4_path,
           mp4_basename: result.mp4_basename,
           infer_ms: result?.infer_ms,
-          frames_pushed: result?.frames_pushed ?? null,
           sentence_count: wavs.length,
           audio_bytes: wavs.reduce((a, b) => a + b.length, 0),
           streaming: true,
           chunk: idx,
+          instance: `${inst.host}:${inst.port}`,
         });
       }
     } catch (err) {
-      console.warn(`musetalk c${idx} bg failed:`, err?.message ?? err);
-      if (!aborted) {
-
-        send('video_error', { chunk: idx, error: err?.message ?? 'musetalk stream failed' });
-      }
+      console.warn(`musetalk c${idx} (mp4) failed:`, err?.message ?? err);
+      if (!aborted) send('video_error', { chunk: idx, error: err?.message ?? 'musetalk failed' });
     } finally {
       if (tmp) await cleanupTempDir(tmp.dir).catch(() => {});
+
+      mp4Ready.set(idx, result?.mp4_path ? result : null);
+      schedulePush();
     }
   };
 
@@ -438,9 +457,9 @@ app.post('/oth-path', (req, res) => {
     const idx = chunkIdx;
     chunkOpen = false;
     if (!(MUSETALK_STREAM_MODE && MUSETALK_ENABLED)) return;
-    processChain = processChain
-      .then(() => processChunk(idx))
-      .catch((e) => console.warn(`[chunk ${idx}] process chain failed:`, e?.message ?? e));
+    const inst = MUSETALK_POOL[rrCursor];
+    rrCursor = (rrCursor + 1) % MUSETALK_POOL.length;  
+    chunkInferPromises.push(processChunkMp4(idx, inst));
   };
 
   const routeSentence = (s) => {
@@ -492,7 +511,8 @@ app.post('/oth-path', (req, res) => {
 
           if (MUSETALK_STREAM_MODE) {
 
-            processChain
+            Promise.allSettled(chunkInferPromises)
+              .then(() => { schedulePush(); return pushChain; })  
               .finally(() => {
                 finalizeTurn('stream');
                 if (!res.writableEnded) res.end();

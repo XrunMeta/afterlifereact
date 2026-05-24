@@ -16,14 +16,16 @@ const u = new URL(MUSETALK_URL_RAW);
 const HOST = u.hostname;
 const PORT = u.port ? Number.parseInt(u.port, 10) : 80;
 
-export async function concatWavs(wavBuffers) {
+export async function concatWavs(wavBuffers, name = 'concat') {
   if (!Array.isArray(wavBuffers) || wavBuffers.length === 0) return null;
 
   await fs.mkdir(MUSETALK_INPUT_DIR, { recursive: true }).catch(() => {});
   const dir = await fs.mkdtemp(path.join(MUSETALK_INPUT_DIR, 'mt-'));
 
+  const safeName = String(name).replace(/[^A-Za-z0-9_-]/g, '') || 'concat';
+
   if (wavBuffers.length === 1) {
-    const out = path.join(dir, 'concat.wav');
+    const out = path.join(dir, `${safeName}.wav`);
     await fs.writeFile(out, wavBuffers[0]);
     return { path: out, dir };
   }
@@ -38,7 +40,7 @@ export async function concatWavs(wavBuffers) {
   }
   await fs.writeFile(listPath, lines.join('\n') + '\n');
 
-  const out = path.join(dir, 'concat.wav');
+  const out = path.join(dir, `${safeName}.wav`);
 
   const ok = await runFfmpeg([
     '-y', '-loglevel', 'error',
@@ -84,7 +86,7 @@ export async function cleanupTempDir(dir) {
   }
 }
 
-export function museTalkInfer({ audio_path, video_path, output_id, stream }) {
+export function museTalkInfer({ audio_path, video_path, output_id, stream, host, port }) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       audio_path,
@@ -95,8 +97,9 @@ export function museTalkInfer({ audio_path, video_path, output_id, stream }) {
 
     const req = http.request(
       {
-        hostname: HOST,
-        port: PORT,
+
+        hostname: host ?? HOST,
+        port: port ?? PORT,
         path: '/infer',
         method: 'POST',
         headers: {
