@@ -332,3 +332,8 @@ body {
 .mon-row { cursor: pointer; }
 .mon-row:hover { background: #221a12; }
 .mon-detail pre { margin: 0; padding: 6px 10px; white-space: pre-wrap; color: #a99; background: #0f0b07; }
+/* 패널 열릴 때 본문을 왼쪽으로 밀어 대화창과 패널 나란히 (PC, ≥900px). 좁은 화면은 overlay 유지 */
+body { transition: margin-right .2s ease; }
+@media (min-width: 900px) {
+  body.mon-open { margin-right: 560px; }
+}

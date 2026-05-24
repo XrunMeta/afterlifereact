@@ -65,12 +65,14 @@
 
   function v_207c31() {
     v_a5975a.hidden = false;
+    document.body.classList.add('mon-open'); 
     v_e792be.setAttribute('aria-pressed', 'true');
     v_16badd();
     v_cb36b1 = setInterval(v_16badd, 1500);
   }
   function v_c78a36() {
     v_a5975a.hidden = true;
+    document.body.classList.remove('mon-open');
     v_e792be.setAttribute('aria-pressed', 'false');
     if (v_cb36b1) { clearInterval(v_cb36b1); v_cb36b1 = null; }
   }
