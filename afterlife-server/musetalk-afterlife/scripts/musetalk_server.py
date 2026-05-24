@@ -276,12 +276,13 @@ def infer(req: InferReq):
     args.skip_mp4_output = skip_mp4
 
     t0 = time.time()
+    _timing = {}
     with infer_lock:
         try:
             if cb is not None:
-                inference_lib.run_inference(args, MODELS, frame_callback=cb)
+                inference_lib.run_inference(args, MODELS, frame_callback=cb, timing_out=_timing)
             else:
-                inference_lib.run_inference(args, MODELS)
+                inference_lib.run_inference(args, MODELS, timing_out=_timing)
         except Exception as e:
             if cb is not None:
                 _signal_stream_end()
@@ -332,6 +333,7 @@ def infer(req: InferReq):
         "mp4_path": mp4_path_str,
         "infer_ms": elapsed_ms,
         "output_id": safe_id,
+        "phase_ms": (_timing or None),
     }
     if cb is not None:
         resp["streamed"] = True
