@@ -308,7 +308,7 @@ app.post('/oth-path', (req, res) => {
   };
 
   const FIRST_CHUNK_WORD_TARGET = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '3', 10); 
-  const CHUNK_WORD_TARGET = Number.parseInt(process.env.CHUNK_WORD_TARGET ?? '7', 10);             
+  const CHUNK_WORD_TARGET = Number.parseInt(process.env.CHUNK_WORD_TARGET ?? '4', 10);             
 
   let chunkIdx = 0;          
   let chunkOpen = false;
