@@ -15,6 +15,8 @@ export function v_a26277({ messages: v_fa56e0, options: v_b36f96 = {}, onChunk: 
     options: {
       temperature: 0.7,
       num_predict: 512,
+
+      num_gpu: -1,
       ...v_b36f96,
     },
   });
