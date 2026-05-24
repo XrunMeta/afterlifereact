@@ -18,6 +18,7 @@ import {
 } from './lib/musetalk.js';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
+import { recordTurn, recentTurns, getTurn } from './logger.js';
 
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
 const MUSETALK_ENABLED = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
@@ -76,6 +77,19 @@ app.get('/oth-path', (_req, res) => {
   const { profile } = loadPersona();
 
   res.json(profile);
+});
+
+app.get('/oth-path', (req, res) => {
+  const limit = Math.min(Number.parseInt(req.query.limit ?? '50', 10) || 50, 200);
+  const sinceId = Number.parseInt(req.query.since ?? '0', 10) || 0;
+  res.json({ turns: recentTurns({ limit, sinceId }) });
+});
+
+app.get('/oth-path', (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  const row = Number.isFinite(id) ? getTurn(id) : null;
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  res.json(row);
 });
 
 async function pushWavToPublisher(wavPath) {
