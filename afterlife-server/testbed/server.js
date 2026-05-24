@@ -314,7 +314,15 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   let v_c882d5 = false;
   let v_85ce4d = 0;
   const v_dd70e4 = new Map();   
-  let v_de64ac = Promise.resolve();
+
+  const v_99333a = (process.env.MUSETALK_URLS ?? process.env.MUSETALK_URL ?? 'http://127.0.0.1:8300')
+    .split(',').map((v_fd5f43) => v_fd5f43.trim()).filter(Boolean)
+    .map((v_234c7c) => { const v_62c214 = new URL(v_234c7c); return { host: v_62c214.hostname, port: v_62c214.port ? Number.parseInt(v_62c214.port, 10) : 80 }; });
+  const v_0b8503 = [];     
+  const v_cdae05 = new Map();        
+  let v_536a75 = 1;               
+  let v_51387f = Promise.resolve(); 
+  let v_7d5f83 = 0;                  
 
   const v_ce98b2 = (v_fd5f43) => (v_fd5f43.match(/\S+/g) || []).length;
 
@@ -360,42 +368,54 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     return v_e2a85c;
   };
 
-  const v_cc698e = async (v_e86ad8) => {
-    const v_d7fc78 = v_dd70e4.get(v_e86ad8) ?? new Set();
-    await Promise.allSettled([...v_d7fc78]);
-    if (v_6c558f) return;
-    const v_96bf40 = v_af1e0d
-      .filter((v_62c214) => v_62c214.chunkIdx === v_e86ad8)
-      .sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq)
-      .map((v_62c214) => v_62c214.wav);
-    if (!v_96bf40.length) return;
-    const v_dad203 = v_26651a(v_e86ad8);
+  const v_f6d2f5 = () => {
+    v_51387f = v_51387f
+      .then(async () => {
+        while (v_cdae05.has(v_536a75)) {
+          const v_cb35cb = v_cdae05.get(v_536a75);
+          v_cdae05.delete(v_536a75);
+          const v_eabacc = v_536a75;
+          v_536a75 += 1;
+          if (v_cb35cb?.mp4_path && v_e01c9c && !v_6c558f) {
+            await fetch(`${v_de4278}/push_mp4`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: v_cb35cb.mp4_path, reset: v_eabacc === 1 }),
+            }).catch((v_9e86fd) => console.warn(`[push_mp4 c${v_eabacc}] failed:`, v_9e86fd?.message ?? v_9e86fd));
+          }
+        }
+      })
+      .catch(() => {});
+  };
+
+  const v_02480e = async (v_e86ad8, v_2d2f94) => {
+    let v_43c42e = null;
     let v_6944b4 = null;
     try {
-      v_6944b4 = await v_034be8(v_96bf40);
+      const v_d7fc78 = v_dd70e4.get(v_e86ad8) ?? new Set();
+      await Promise.allSettled([...v_d7fc78]);
+      if (v_6c558f) return;
+      const v_96bf40 = v_af1e0d
+        .filter((v_62c214) => v_62c214.chunkIdx === v_e86ad8)
+        .sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq)
+        .map((v_62c214) => v_62c214.wav);
+      if (!v_96bf40.length) return;
+      const v_dad203 = v_26651a(v_e86ad8);
+      v_6944b4 = await v_034be8(v_96bf40, v_dad203);
       if (!v_6944b4) return;
       await v_db6543(v_dad203, v_6944b4.path, {
-        mode: 'stream',
+        mode: 'mp4-source',
         chunk: v_e86ad8,
         sentence_count: v_96bf40.length,
         audio_bytes: v_96bf40.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
       });
-      if (v_e01c9c) {
-
-        await v_e705d0(v_6944b4.path).catch((v_49263d) =>
-          console.warn(`[realtime-audio c${v_e86ad8}] push_audio failed:`, v_49263d?.message ?? v_49263d),
-        );
-      }
-      const v_43c42e = await v_a16f6e({
+      v_43c42e = await v_a16f6e({
         audio_path: v_6944b4.path,
         output_id: v_dad203,
-        stream: true,
+        stream: false,
+        host: v_2d2f94.host,
+        port: v_2d2f94.port,
       });
-      if (v_e01c9c) {
-        await fetch(`${v_de4278}/push_audio_end`, {
-          method: 'POST',
-        }).catch(() => {});
-      }
 
       if (v_e86ad8 === 1) {
         v_312499 = v_43c42e?.infer_ms ?? null;
@@ -407,7 +427,6 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
         mp4_path: v_43c42e?.mp4_path ?? null,
         mp4_basename: v_43c42e?.mp4_basename ?? null,
         infer_ms: v_43c42e?.infer_ms ?? null,
-        frames_pushed: v_43c42e?.frames_pushed ?? null,
       });
       if (!v_6c558f && v_43c42e?.mp4_path) {
         v_9c423d('video', {
@@ -415,21 +434,21 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           mp4_path: v_43c42e.mp4_path,
           mp4_basename: v_43c42e.mp4_basename,
           infer_ms: v_43c42e?.infer_ms,
-          frames_pushed: v_43c42e?.frames_pushed ?? null,
           sentence_count: v_96bf40.length,
           audio_bytes: v_96bf40.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
           streaming: true,
           chunk: v_e86ad8,
+          instance: `${v_2d2f94.host}:${v_2d2f94.port}`,
         });
       }
     } catch (v_49263d) {
-      console.warn(`musetalk c${v_e86ad8} bg failed:`, v_49263d?.message ?? v_49263d);
-      if (!v_6c558f) {
-
-        v_9c423d('video_error', { chunk: v_e86ad8, error: v_49263d?.message ?? 'musetalk stream failed' });
-      }
+      console.warn(`musetalk c${v_e86ad8} (mp4) failed:`, v_49263d?.message ?? v_49263d);
+      if (!v_6c558f) v_9c423d('video_error', { chunk: v_e86ad8, error: v_49263d?.message ?? 'musetalk failed' });
     } finally {
       if (v_6944b4) await v_ba8718(v_6944b4.dir).catch(() => {});
+
+      v_cdae05.set(v_e86ad8, v_43c42e?.mp4_path ? v_43c42e : null);
+      v_f6d2f5();
     }
   };
 
@@ -438,9 +457,9 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     const v_e86ad8 = v_a562b5;
     v_c882d5 = false;
     if (!(v_2c3445 && v_77b004)) return;
-    v_de64ac = v_de64ac
-      .then(() => v_cc698e(v_e86ad8))
-      .catch((v_9e86fd) => console.warn(`[chunk ${v_e86ad8}] process chain failed:`, v_9e86fd?.message ?? v_9e86fd));
+    const v_2d2f94 = v_99333a[v_7d5f83];
+    v_7d5f83 = (v_7d5f83 + 1) % v_99333a.length;  
+    v_0b8503.push(v_02480e(v_e86ad8, v_2d2f94));
   };
 
   const v_ff0d3e = (v_fd5f43) => {
@@ -492,7 +511,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
           if (v_2c3445) {
 
-            v_de64ac
+            Promise.allSettled(v_0b8503)
+              .then(() => { v_f6d2f5(); return v_51387f; })  
               .finally(() => {
                 v_ef86b4('stream');
                 if (!v_8f00b9.writableEnded) v_8f00b9.end();
