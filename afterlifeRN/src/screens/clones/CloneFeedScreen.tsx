@@ -107,10 +107,16 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
   const isOwn = myUserId != null && item.cloneOwnerId === myUserId;
 
   useEffect(() => {
-    if (!accessToken) return;
-    void postCloneLearnEvent(accessToken, feed.cloneId).catch((err) =>
-      console.warn("[CloneFeed] learn event failed:", err),
-    );
+    if (!accessToken) {
+      console.warn(`[CloneFeed] learn-event SKIP — no accessToken (cloneId=${feed.cloneId})`);
+      return;
+    }
+    console.log(`[CloneFeed] POST /oth-path${feed.cloneId}/learn-event`);
+    postCloneLearnEvent(accessToken, feed.cloneId)
+      .then((res) =>
+        console.log(`[CloneFeed] learn-event ← ok bumped=${res.bumped} scoreApplied=${(res as { scoreApplied?: number }).scoreApplied ?? 0}°C (10분 쿨다운 적용)`),
+      )
+      .catch((err) => console.warn("[CloneFeed] learn event failed:", err));
 
   }, [feed.cloneId]);
 

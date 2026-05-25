@@ -20,6 +20,7 @@ import Step2BasicInfoScreen from "../screens/clone-creation/Step2BasicInfoScreen
 import Step3ImageUploadScreen from "../screens/clone-creation/Step3ImageUploadScreen";
 import Step4VoiceUploadScreen from "../screens/clone-creation/Step4VoiceUploadScreen";
 import Step5VisibilityScreen from "../screens/clone-creation/Step5VisibilityScreen";
+
 import Step6CreatingScreen from "../screens/clone-creation/Step6CreatingScreen";
 import Step7CompleteScreen from "../screens/clone-creation/Step7CompleteScreen";
 import Step8CreateShortsScreen from "../screens/clone-creation/Step8CreateShortsScreen";

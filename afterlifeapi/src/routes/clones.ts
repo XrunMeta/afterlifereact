@@ -1157,7 +1157,7 @@ clones.post("/:id/call-event", requireAuth, async (c) => {
   const duration = body.durationSeconds ?? 0;
   let scoreApplied = 0;
   if (duration >= CALL_MIN_SECONDS_FOR_SCORE) {
-    const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.call);
+    const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.call, "call");
     scoreApplied = r.applied;
   }
   await logActivity(c, {
@@ -1181,11 +1181,22 @@ clones.post("/:id/learn-event", requireAuth, async (c) => {
   const onCooldown = !!(await c.env.KV_RATE.get(cooldownKey));
   let scoreApplied = 0;
   if (!onCooldown) {
-    const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.learn);
+    const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.learn, "learn");
     scoreApplied = r.applied;
     if (scoreApplied > 0) {
       await c.env.KV_RATE.put(cooldownKey, "1", { expirationTtl: 20 * 60 });
     }
   }
   return c.json({ ok: true, bumped: true, scoreApplied });
+});
+
+clones.post("/:id/chat-event", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  await bumpInteraction(c.env, userId, cloneId, "chat");
+  const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.chat, "chat");
+  return c.json({ ok: true, scoreApplied: r.applied });
 });

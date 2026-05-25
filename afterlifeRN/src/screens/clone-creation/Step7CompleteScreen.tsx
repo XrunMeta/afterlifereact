@@ -273,10 +273,10 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     }
 
     if (!draft.name || draft.name.trim().length === 0) {
-      console.log("[CLONE-CREATE] BLOCKED: name missing. full draft=", JSON.stringify(draft, null, 2));
+      console.log("[CLONE-CREATE] BLOCKED: name missing");
       showAlert(
         "이름 누락",
-        "페르소나 이름이 없어요. 이전 단계로 돌아가서 이름을 입력해주세요.",
+        "페르소나 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
       );
       return;
     }

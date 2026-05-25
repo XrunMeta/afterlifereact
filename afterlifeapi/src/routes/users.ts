@@ -475,6 +475,95 @@ users.get("/me/clones", requireAuth, async (c) => {
   return c.json({ items });
 });
 
+users.get("/me/clones/:cloneId/intimacy-events", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const cloneId = Number(c.req.param("cloneId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const clone = await c.env.DB
+    .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .bind(cloneId)
+    .first<{ ownerId: number }>();
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const isOwner = clone.ownerId === userId;
+
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const cursorRaw = url.searchParams.get("cursor");
+  const cursor = cursorRaw ? Number(cursorRaw) : null;
+
+  const where: string[] = ["clone_id = ?"];
+  const binds: unknown[] = [cloneId];
+  if (!isOwner) {
+    where.push("user_id = ?");
+    binds.push(userId);
+  }
+  if (cursor && Number.isInteger(cursor) && cursor > 0) {
+    where.push("id < ?");
+    binds.push(cursor);
+  }
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, action, score, feed_id AS feedId, created_at AS createdAt
+           FROM intimacy_events
+          WHERE ${where.join(" AND ")}
+          ORDER BY id DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit + 1)
+      .all<{
+        id: number;
+        action: string;
+        score: number;
+        feedId: number | null;
+        createdAt: string;
+      }>()
+  ).results ?? [];
+
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  const nextCursor = hasMore && items.length > 0 ? items[items.length - 1]!.id : null;
+
+  const aggWhere = isOwner ? "clone_id = ?" : "clone_id = ? AND user_id = ?";
+  const aggBinds = isOwner ? [cloneId] : [cloneId, userId];
+  const aggRow = await c.env.DB
+    .prepare(
+      `SELECT
+         COALESCE(SUM(score), 0)                                            AS totalScore,
+         SUM(CASE WHEN action = 'chat'  THEN score ELSE 0 END)              AS chatScore,
+         SUM(CASE WHEN action = 'call'  THEN score ELSE 0 END)              AS callScore,
+         SUM(CASE WHEN action = 'learn' THEN score ELSE 0 END)              AS learnScore,
+         SUM(CASE WHEN action = 'feed'  THEN score ELSE 0 END)              AS feedScore,
+         COUNT(*)                                                           AS eventCount
+       FROM intimacy_events WHERE ${aggWhere}`,
+    )
+    .bind(...aggBinds)
+    .first<{
+      totalScore: number;
+      chatScore: number;
+      callScore: number;
+      learnScore: number;
+      feedScore: number;
+      eventCount: number;
+    }>();
+
+  return c.json({
+    summary: {
+      totalScore: aggRow?.totalScore ?? 0,
+      chat: aggRow?.chatScore ?? 0,
+      call: aggRow?.callScore ?? 0,
+      learn: aggRow?.learnScore ?? 0,
+      feed: aggRow?.feedScore ?? 0,
+      eventCount: aggRow?.eventCount ?? 0,
+    },
+    items,
+    nextCursor,
+  });
+});
+
 users.post("/me/delete", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;
@@ -741,17 +830,25 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
                 COALESCE(uci.learn_count, 0) AS my_learn,
                 COALESCE(uci.feed_count, 0)  AS my_feed,
                 -- 친밀도 가중치 점수 (Daily Cap 15°C 적립, 100°C 상한)
-                COALESCE(uci.intimacy_score, 0) AS my_intimacy
-           FROM clone_follows f
-           JOIN clones c ON c.id = f.clone_id
+                COALESCE(uci.intimacy_score, 0) AS my_intimacy,
+                -- 본인 페르소나 여부 — 클라이언트가 '팔로우' 버튼 숨김 처리.
+                (c.owner_id = ?) AS is_own
+           FROM clones c
            LEFT JOIN clone_stats s ON s.clone_id = c.id
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
-          WHERE f.user_id = ? AND c.deleted_at IS NULL
+          WHERE c.deleted_at IS NULL
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
-          ORDER BY f.created_at DESC, f.id DESC`,
+            AND (
+              -- 본인이 만든 페르소나
+              c.owner_id = ?
+              OR
+              -- 또는 본인이 팔로우 중인 페르소나
+              c.id IN (SELECT clone_id FROM clone_follows WHERE user_id = ?)
+            )
+          ORDER BY c.created_at DESC, c.id DESC`,
       )
-      .bind(userId, userId, userId)
+      .bind(userId, userId, userId, userId, userId)
       .all<{
         id: number;
         name: string;
@@ -772,6 +869,7 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         my_learn: number;
         my_feed: number;
         my_intimacy: number;
+        is_own: number;
       }>()
   ).results;
 
@@ -844,6 +942,8 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
         total: r.my_chat + r.my_call + r.my_learn + r.my_feed,
         intimacy: Math.min(100, Math.max(0, r.my_intimacy)),
       },
+
+      isOwn: !!r.is_own,
       createdAt: r.created_at,
     })),
   });

@@ -392,6 +392,43 @@ export async function listMyClones(accessToken: string): Promise<{ items: MyClon
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface IntimacyEvent {
+  id: number;
+  action: "chat" | "call" | "learn" | "feed";
+  score: number;
+  feedId: number | null;
+  createdAt: string;
+}
+
+export interface IntimacyEventsResponse {
+  summary: {
+    totalScore: number;
+    chat: number;
+    call: number;
+    learn: number;
+    feed: number;
+    eventCount: number;
+  };
+  items: IntimacyEvent[];
+  nextCursor: number | null;
+}
+
+export async function listCloneIntimacyEvents(
+  accessToken: string,
+  cloneId: number,
+  opts?: { limit?: number; cursor?: number | null },
+): Promise<IntimacyEventsResponse> {
+  const qs = new URLSearchParams();
+  if (opts?.limit) qs.set("limit", String(opts.limit));
+  if (opts?.cursor) qs.set("cursor", String(opts.cursor));
+  const tail = qs.toString();
+  return authFetch(
+    `/oth-path${cloneId}/intimacy-events${tail ? `?${tail}` : ""}`,
+    accessToken,
+    { method: "GET" },
+  );
+}
+
 export interface CloneFollower {
   followId: number;
   userId: number;
@@ -480,8 +517,18 @@ export async function postCloneCallEvent(
 export async function postCloneLearnEvent(
   accessToken: string,
   cloneId: number,
-): Promise<{ ok: true; bumped: boolean }> {
+): Promise<{ ok: true; bumped: boolean; scoreApplied?: number }> {
   return authFetch(`/oth-path${cloneId}/learn-event`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function postCloneChatEvent(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ ok: true; scoreApplied?: number }> {
+  return authFetch(`/oth-path${cloneId}/chat-event`, accessToken, {
     method: "POST",
     body: JSON.stringify({}),
   });
@@ -547,6 +594,8 @@ export interface FollowedClone {
     total: number;
     intimacy: number; 
   };
+
+  isOwn?: boolean;
   createdAt: string;
 }
 export async function listMyFollowedClones(

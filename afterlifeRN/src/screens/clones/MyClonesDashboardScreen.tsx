@@ -34,7 +34,9 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower } from "../../api/clones";
+import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse } from "../../api/clones";
+import { formatRelativeKo } from "../../lib/relativeTime";
+import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import { AuthApiError, patchMe } from "../../api/auth";
 import { getXrunBalance, getPaymentPinStatus } from "../../api/payments";
 import PaymentPinPromptModal from "../../components/my/PaymentPinPromptModal";
@@ -210,6 +212,41 @@ export default function MyClonesDashboardScreen() {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [followersList, setFollowersList] = useState<CloneFollower[] | null>(null);
   const [followersLoading, setFollowersLoading] = useState(false);
+
+  const [intimacyModal, setIntimacyModal] = useState<{
+    cloneId: number;
+    cloneName: string;
+  } | null>(null);
+  const [intimacyData, setIntimacyData] = useState<IntimacyEventsResponse | null>(null);
+  const [intimacyLoading, setIntimacyLoading] = useState(false);
+
+  const [intimacyInfoVisible, setIntimacyInfoVisible] = useState(false);
+
+  useEffect(() => {
+    if (!intimacyModal) {
+      setIntimacyData(null);
+      return;
+    }
+    if (!accessToken) return;
+    let cancelled = false;
+    setIntimacyLoading(true);
+    setIntimacyData(null);
+    listCloneIntimacyEvents(accessToken, intimacyModal.cloneId, { limit: 100 })
+      .then((res) => {
+        if (cancelled) return;
+        setIntimacyData(res);
+      })
+      .catch((err) => {
+        console.warn("[MyClones] listCloneIntimacyEvents failed:", err);
+        if (!cancelled) setIntimacyData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setIntimacyLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [intimacyModal, accessToken]);
 
   useEffect(() => {
     if (statsModal?.type !== "likes" || statsModal.cloneId == null) {
@@ -539,12 +576,19 @@ export default function MyClonesDashboardScreen() {
         {}
         <View style={s.cardTopRow}>
           <View style={s.cardTopRight}>
-            {}
+            {
+
+}
             {!isMemlow && (
-              <View style={s.visibilityBadge}>
+              <TouchableOpacity
+                style={s.visibilityBadge}
+                onPress={() => handleVisibility(clone.id)}
+                hitSlop={8}
+              >
                 <Feather name={getVisibilityIcon(visibility)} size={14} color={COLORS.zinc500} />
                 <Text style={s.visibilityText}>{getVisibilityLabel(visibility)}</Text>
-              </View>
+                <Feather name="chevron-down" size={12} color={COLORS.zinc400} />
+              </TouchableOpacity>
             )}
             <TouchableOpacity
               style={s.moreBtn}
@@ -613,6 +657,22 @@ export default function MyClonesDashboardScreen() {
               <Text style={s.statText} testID={`follower-count-${clone.id}`}>
                 {followerCount} 구독자
               </Text>
+            </TouchableOpacity>
+            {
+}
+            <TouchableOpacity
+              style={s.stat}
+              onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
+            >
+              <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
+              <Text style={s.statText}>상호작용</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.stat}
+              onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
+            >
+              <Feather name="thermometer" size={14} color="#fb923c" />
+              <Text style={s.statText}>온도</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -888,23 +948,6 @@ export default function MyClonesDashboardScreen() {
 
             {
 }
-            {menuCloneId != null &&
-              myClones.find((c) => c.id === menuCloneId)?.cloneType !== "memlow" && (
-                <TouchableOpacity
-                  style={s.menuItem}
-                  onPress={() => {
-                    const id = menuCloneId!;
-                    handleVisibility(id);
-                  }}
-                >
-                  <Feather
-                    name={getVisibilityIcon(cloneStates[menuCloneId!]?.visibility ?? "public")}
-                    size={18}
-                    color={COLORS.zinc700}
-                  />
-                  <Text style={s.menuItemText}>공개 범위</Text>
-                </TouchableOpacity>
-              )}
             <View style={s.menuDivider} />
             {}
             <TouchableOpacity
@@ -1109,9 +1152,9 @@ export default function MyClonesDashboardScreen() {
       {}
       <Modal visible={!!statsModal} transparent animationType="slide">
         <Pressable style={s.modalOverlay} onPress={() => setStatsModal(null)}>
-          <View
+          <SwipeDownSheet
+            onClose={() => setStatsModal(null)}
             style={[s.statsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={s.sheetHandle} />
             <Text style={s.statsSheetTitle}>
@@ -1226,7 +1269,147 @@ export default function MyClonesDashboardScreen() {
                 </View>
               )}
             </ScrollView>
-          </View>
+          </SwipeDownSheet>
+        </Pressable>
+      </Modal>
+
+      {
+}
+      <Modal visible={!!intimacyModal} transparent animationType="slide">
+        <Pressable style={s.modalOverlay} onPress={() => setIntimacyModal(null)}>
+          <SwipeDownSheet
+            onClose={() => setIntimacyModal(null)}
+            style={[s.statsSheet, { paddingBottom: 32 + Math.max(insets.bottom, 0) }]}
+          >
+            <View style={s.sheetHandle} />
+            <View style={s.intimacyTitleRow}>
+              <View style={{ width: 28 }} />
+              <Text style={s.statsSheetTitle}>{t("feed.eventsTitle")}</Text>
+              <TouchableOpacity
+                onPress={() => setIntimacyInfoVisible(true)}
+                hitSlop={8}
+                style={{ width: 28, alignItems: "flex-end" }}
+              >
+                <Feather name="help-circle" size={20} color={COLORS.zinc400} />
+              </TouchableOpacity>
+            </View>
+            <Text style={s.statsSheetSub}>{intimacyModal?.cloneName}</Text>
+
+            {}
+            {intimacyData?.summary && (
+              <View style={s.intimacySummary}>
+                <View style={s.intimacySummaryRow}>
+                  <Feather name="thermometer" size={20} color="#fb923c" />
+                  <Text style={s.intimacySummaryScore}>
+                    {Math.min(100, intimacyData.summary.totalScore)}°C
+                  </Text>
+                  <Text style={s.intimacySummaryCount}>
+                    · {t("feed.summaryCount", { n: intimacyData.summary.eventCount })}
+                  </Text>
+                </View>
+                <View style={s.intimacyBreakdownRow}>
+                  <Text style={s.intimacyBreakdownItem}>
+                    채팅 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.chat}°C</Text>
+                  </Text>
+                  <Text style={s.intimacyBreakdownItem}>
+                    통화 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.call}°C</Text>
+                  </Text>
+                  <Text style={s.intimacyBreakdownItem}>
+                    탐색 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.learn}°C</Text>
+                  </Text>
+                  <Text style={s.intimacyBreakdownItem}>
+                    피드 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.feed}°C</Text>
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
+              {intimacyLoading ? (
+                <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
+              ) : !intimacyData || intimacyData.items.length === 0 ? (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
+                    {t("feed.emptyEventsMine")}
+                  </Text>
+                </View>
+              ) : (
+                intimacyData.items.map((ev) => {
+                  const ACTION_META: Record<
+                    "chat" | "call" | "learn" | "feed",
+                    { label: string; icon: keyof typeof Feather.glyphMap; color: string }
+                  > = {
+                    chat: { label: t("feed.actionLabelChat"), icon: "message-circle", color: "#60a5fa" },
+                    call: { label: t("feed.actionLabelCall"), icon: "phone", color: "#34d399" },
+                    learn: { label: t("feed.actionLabelLearn"), icon: "search", color: "#a78bfa" },
+                    feed: { label: t("feed.actionLabelFeed"), icon: "heart", color: "#ef4444" },
+                  };
+                  const meta = ACTION_META[ev.action];
+                  return (
+                    <View key={ev.id} style={s.intimacyEventRow}>
+                      <View style={[s.intimacyEventIcon, { backgroundColor: meta.color + "22" }]}>
+                        <Feather name={meta.icon} size={14} color={meta.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.intimacyEventLabel}>{meta.label}</Text>
+                        <Text style={s.intimacyEventTime}>{formatRelativeKo(ev.createdAt)}</Text>
+                      </View>
+                      <Text style={s.intimacyEventScore}>+{ev.score}°C</Text>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </SwipeDownSheet>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal visible={intimacyInfoVisible} transparent animationType="fade">
+        <Pressable
+          style={s.intimacyInfoOverlay}
+          onPress={() => setIntimacyInfoVisible(false)}
+        >
+          <Pressable style={s.intimacyInfoBox} onPress={(e) => e.stopPropagation()}>
+            <View style={s.intimacyInfoHeader}>
+              <View style={s.intimacyInfoHeaderLeft}>
+                <Feather name="thermometer" size={18} color="#fb923c" />
+                <Text style={s.intimacyInfoTitle}>{t("feed.intimacyInfoTitle")}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setIntimacyInfoVisible(false)}>
+                <Feather name="x" size={20} color={COLORS.zinc400} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 460 }}>
+              <Text style={s.intimacyInfoSectionTitle}>{t("feed.intimacyTempSectionLabel")}</Text>
+              <Text style={s.intimacyInfoDesc}>{t("feed.intimacyTempShortDesc")}</Text>
+              {[
+                ["0-30°C", t("feed.intimacyL1")],
+                ["31-60°C", t("feed.intimacyL2")],
+                ["61-90°C", t("feed.intimacyL3")],
+                ["91-100°C", t("feed.intimacyL4")],
+              ].map(([range, desc], i) => (
+                <View key={i} style={s.intimacyInfoLevelRow}>
+                  <Text style={[s.intimacyInfoLevelRange, i === 3 && { color: "#f97316" }]}>{range}</Text>
+                  <Text style={[s.intimacyInfoLevelDesc, i === 3 && { color: "#f97316" }]}>{desc}</Text>
+                </View>
+              ))}
+              <Text style={s.intimacyInfoSectionTitle}>{t("feed.intimacyHowToTitle")}</Text>
+              <View style={s.intimacyInfoActivityBox}>
+                <Text style={s.intimacyInfoActivityItem}>• {t("feed.intimacyHowChat")}</Text>
+                <Text style={s.intimacyInfoActivityItem}>• {t("feed.intimacyHowCall")}</Text>
+                <Text style={s.intimacyInfoActivityItem}>• {t("feed.intimacyHowLearn")}</Text>
+                <Text style={s.intimacyInfoActivityItem}>• {t("feed.intimacyHowFeed")}</Text>
+              </View>
+              <Text style={s.intimacyInfoFootnote}>{t("feed.intimacyFootnote")}</Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={s.intimacyInfoOkBtn}
+              onPress={() => setIntimacyInfoVisible(false)}
+            >
+              <Text style={s.intimacyInfoOkText}>{t("common.ok")}</Text>
+            </TouchableOpacity>
+          </Pressable>
         </Pressable>
       </Modal>
 
@@ -1846,4 +2029,91 @@ const s = StyleSheet.create({
   },
   inviteBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.white },
   inviteBtnTextSent: { color: COLORS.success },
+
+  intimacySummary: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+    marginBottom: 8,
+  },
+  intimacySummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  intimacySummaryScore: { fontSize: 24, fontWeight: "700", color: "#fb923c" },
+  intimacySummaryCount: { fontSize: 13, color: COLORS.zinc500 },
+  intimacyBreakdownRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  intimacyBreakdownItem: { fontSize: 12, color: COLORS.zinc500 },
+  intimacyBreakdownVal: { color: COLORS.zinc900, fontWeight: "600" },
+  intimacyEventRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+  },
+  intimacyEventIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  intimacyEventLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
+  intimacyEventTime: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
+  intimacyEventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
+
+  infoSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+  },
+  infoSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  infoSectionTitle: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
+  infoSectionDesc: { fontSize: 13, color: COLORS.zinc600, lineHeight: 20, marginBottom: 12 },
+  infoSectionFootnote: { fontSize: 11, color: COLORS.zinc500, lineHeight: 16, marginTop: 10 },
+  infoLevelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
+  infoLevelRange: { width: 90, fontSize: 13, fontWeight: "600", color: COLORS.zinc700 },
+  infoLevelDesc: { fontSize: 13, color: COLORS.zinc500 },
+  infoActivityBox: {
+    backgroundColor: COLORS.zinc50,
+    borderRadius: 8,
+    padding: 12,
+    gap: 6,
+  },
+  infoActivityItem: { fontSize: 13, color: COLORS.zinc700, lineHeight: 20 },
+  infoActivityScore: { color: "#fb923c", fontWeight: "700" },
+
+  intimacyTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 },
+  intimacyInfoOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 24 },
+  intimacyInfoBox: { width: "100%", maxWidth: 360, backgroundColor: COLORS.white, borderRadius: RADIUS.lg, padding: 20 },
+  intimacyInfoHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  intimacyInfoHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  intimacyInfoTitle: { fontSize: 17, fontWeight: "700", color: COLORS.zinc900 },
+  intimacyInfoDesc: { fontSize: 13, color: COLORS.zinc600, lineHeight: 20, marginBottom: 10 },
+  intimacyInfoSectionTitle: { fontSize: 14, fontWeight: "700", color: COLORS.zinc900, marginTop: 12, marginBottom: 8 },
+  intimacyInfoFootnote: { fontSize: 11, color: COLORS.zinc500, lineHeight: 16, marginTop: 12 },
+  intimacyInfoLevelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
+  intimacyInfoLevelRange: { width: 90, fontSize: 13, fontWeight: "600", color: COLORS.zinc700 },
+  intimacyInfoLevelDesc: { fontSize: 13, color: COLORS.zinc500 },
+  intimacyInfoActivityBox: { backgroundColor: COLORS.zinc50, borderRadius: 8, padding: 12, gap: 6 },
+  intimacyInfoActivityItem: { fontSize: 13, color: COLORS.zinc700, lineHeight: 20 },
+  intimacyInfoOkBtn: { marginTop: 16, paddingVertical: 12, borderRadius: RADIUS.full, backgroundColor: COLORS.violet600, alignItems: "center" },
+  intimacyInfoOkText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
 });

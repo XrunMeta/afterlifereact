@@ -1,7 +1,7 @@
 
 
 import { showAlert } from "../../stores/dialogStore";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -10,19 +10,17 @@ import {
   TouchableOpacity,
   Platform,
   KeyboardAvoidingView,
-  TouchableWithoutFeedback,
   Keyboard,
   ScrollView,
   Animated,
-  Easing,
+  ActivityIndicator,
+  Image,
 } from "react-native";
-import { VideoView, useVideoPlayer } from "expo-video";
 import { Feather } from "@expo/vector-icons";
-import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CreateStackParamList } from "../../navigation/types";
 
-import { Alert } from "react-native";
 import SafeView from "../../components/ui/SafeView";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { useCloneStore } from "../../stores/cloneStore";
@@ -33,7 +31,6 @@ type Props = {
 };
 
 type Phase =
-  | "intro"
   | "name"
   | "username"
   | "firstMeeting"
@@ -41,7 +38,7 @@ type Phase =
   | "personality"
   | "memory";
 
-const QUESTION_PHASES: Phase[] = [
+const PHASES: Phase[] = [
   "name",
   "username",
   "firstMeeting",
@@ -50,280 +47,195 @@ const QUESTION_PHASES: Phase[] = [
   "memory",
 ];
 
-const INTRO_PARAGRAPHS: readonly string[] = [
-  "안녕!\n나는 네 소중한 기억 속에\n살고 있는 요정이야 ✨",
-  "지금 네가 가장 보고 싶은\n'그 얼굴'을 한 번 떠올려봐...",
-  "떠올랐어!?\n그럼, 네 머리속에 있는 그 소중한 존재를\n생각하며 답해줘!",
-] as const;
-const TYPE_SPEED_MS = 35;
-const PARA_GAP_MS = 500;
-const INTRO_START_DELAY_MS = 700;  
+const AI_NAME = "페르소나 생성 도우미";
 
-type QuestionMeta = {
-  title: string;
-  desc: string;
-  placeholder: string;
-  multiline: boolean;
-};
-const QUESTIONS: Record<
-  "name" | "username" | "firstMeeting" | "habit" | "personality" | "memory",
-  QuestionMeta
-> = {
+const AI_AVATAR_SRC = require("../../../assets/images/symbol.png");
+
+const INTRO_MESSAGES: string[] = [
+  "안녕하세요! 페르소나 생성 도우미입니다",
+];
+
+const QUESTIONS: Record<Phase, { prompt: string; placeholder: string; multiline: boolean; ack: string }> = {
   name: {
-    title: "그 존재의 이름이 뭐였어?",
-    desc: "네가 부르던 이름이나 별명,\n어떤 호칭이든 좋아.",
+    prompt: "지금 생성하는 페르소나의 이름이 뭔가요??\n평소에 부르던 이름이나 별명도 좋아요",
     placeholder: "예: 별이, 할머니, 모리",
     multiline: false,
+    ack: "좋아요, 잘 기억해뒀어요!",
   },
   username: {
-    title: "@아이디는 어떻게 할까?",
-    desc: "영문 소문자/숫자/_ 만 가능해. 비워두면\n이름으로 자동 만들어줄게.",
+    prompt: "@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!",
     placeholder: "예: starry_kim, modi_v",
     multiline: false,
+    ack: "확인했습니다! 다음 질문이에요.",
   },
   firstMeeting: {
-    title: "그 존재와는 어떻게\n처음 만나게 되었어?",
-    desc: "우리 사이에 잊지 못할 특별한 첫 순간이나\n추억이 있었는지 궁금해!",
-    placeholder:
-      "학교에서 처음 봤을 때, 유난히 하얀 피부에 긴 생머리를 늘어뜨린 모습이 멀리서도 눈에 띄었거든. 사실 처음엔 분위기가 좀 차가워 보여서 말 한마디 붙이기가 진짜 어려웠어. 용기내서 말을 걸어보니까 사람이 생각보다 너무 순진한 거야. 그 반전이 참 예뻐 보였지. 게다가 좋아하는 게임이나 옷 취미까지 어쩜 그렇게 나랑 비슷하던지... 공통점이 많아서 같이 있으면 시간 가는 줄 모르고 참 즐거웠던 기억이 나.",
+    prompt: "처음 만난 이야기를 들려주실래요?\n특별했던 순간이나 첫인상이 궁금해요.",
+    placeholder: "예: 학교에서 처음 봤을 때 차가워 보였는데, 말 걸어보니 정말 순진했어요.",
     multiline: true,
+    ack: "정말 소중한 순간이네요!",
   },
   habit: {
-    title: "자주 하던 말이나\n눈길이 가던 습관이 있었니?",
-    desc: "꼬리를 살랑이거나\n특유의 말투 같은 사소한 거라도 좋아!",
-    placeholder:
-      "되게 솔직하고 밝은 스타일이에요. 기분 좋으면 '하자, 하자!' 하고 아이처럼 말을 반복하는 귀여운 습관이 있거든요. 부끄러울 때마다 머리에 손이 가는 버릇도 있어서 감정이 투명하게 다 보여요.",
+    prompt: "자주 하던 말이나 인상적인 습관이 있었나요?\n사소한 것도 좋아요!",
+    placeholder: "예: 기분 좋으면 '하자, 하자!' 하고 아이처럼 말을 반복했어요.",
     multiline: true,
+    ack: "그런 모습까지 잘 기억해둘게요!",
   },
   personality: {
-    title: "그 존재의 성격은 어땠어?",
-    desc: "혹시 MBTI가 생각나니?\n기억이 안 난다면 평소 성격을 말해줘도 돼!",
-    placeholder:
-      "MBTI는 INFP인데 사람들 만나는 걸 좋아하던 아이였어. 근데 맨날 방전 돼서 집에 가면 연락두절 되기도 했지.",
+    prompt: "성격은 어땠어요?\nMBTI 가 떠오르면 같이 알려주셔도 좋고, 평소 모습을 말씀해주셔도 돼요.",
+    placeholder: "예: MBTI 는 INFP 였고, 사람 만나는 건 좋아했지만 집에 오면 방전되곤 했어요.",
     multiline: true,
+    ack: "성격까지 다 들었어요!",
   },
   memory: {
-    title: "눈 감으면 어제처럼\n선명한 장면이 있을까?",
-    desc: "가장 행복하게 웃고(혹은 뛰놀고)\n있던 순간을 나한테도 공유해줘",
-    placeholder:
-      "첫 고백했던 날이 생각나. 그때 놀이동산에서 불꽃 터질 때 내가 그때 고백했었는데 너가 해맑게 웃으면서 받아줬던 그때가 생각나.",
+    prompt: "마지막으로, 눈 감으면 떠오르는 한 장면이 있으면 들려주실래요?\n가장 행복하게 웃던 순간이면 좋아요.",
+    placeholder: "예: 놀이동산에서 불꽃 터질 때 고백했었는데, 해맑게 웃으면서 받아줬어요.",
     multiline: true,
+    ack: "다 들었어요! 이제 페르소나 만들러 가볼게요.",
   },
 };
 
+interface ChatMessage {
+  id: string;
+  role: "ai" | "user";
+  text: string;
+}
+
+let _msgIdSeq = 1;
+function newMsgId(): string {
+  return `m${_msgIdSeq++}_${Date.now()}`;
+}
+
+const MBTI_SET = new Set([
+  "ISTJ", "ISFJ", "INFJ", "INTJ",
+  "ISTP", "ISFP", "INFP", "INTP",
+  "ESTP", "ESFP", "ENFP", "ENTP",
+  "ESTJ", "ESFJ", "ENFJ", "ENTJ",
+] as const);
+type PersonaMbtiCode = "ISTJ"|"ISFJ"|"INFJ"|"INTJ"|"ISTP"|"ISFP"|"INFP"|"INTP"|"ESTP"|"ESFP"|"ENFP"|"ENTP"|"ESTJ"|"ESFJ"|"ENFJ"|"ENTJ";
+function extractMbti(text: string): PersonaMbtiCode | undefined {
+  const m = text.match(/\b([EI][NS][FT][JP])\b/i);
+  if (!m) return undefined;
+  const code = m[1]!.toUpperCase() as PersonaMbtiCode;
+  return MBTI_SET.has(code) ? code : undefined;
+}
+
 export default function Step6CreatingScreen({ navigation }: Props) {
-  useTranslation();
   const draft = useCloneStore((s) => s.creationDraft);
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
+  const insets = useSafeAreaInsets();
 
-  const [phase, setPhase] = useState<Phase>("intro");
-  const [name, setName] = useState<string>(draft.name ?? "");
-  const [username, setUsername] = useState<string>(draft.username ?? "");
-  const [firstMeeting, setFirstMeeting] = useState<string>("");
-  const [habit, setHabit] = useState<string>("");
-  const [personality, setPersonality] = useState<string>("");
-  const [memory, setMemory] = useState<string>("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
-  const [typedParas, setTypedParas] = useState<string[]>(() =>
-    INTRO_PARAGRAPHS.map(() => ""),
-  );
-  const [introDone, setIntroDone] = useState(false);
+  const [phaseIdx, setPhaseIdx] = useState<number | null>(null);
 
-  const [typedQTitle, setTypedQTitle] = useState("");
-  const [typedQDesc, setTypedQDesc] = useState("");
-  const [qDone, setQDone] = useState(false);
+  const [input, setInput] = useState<string>("");
 
-  const [videoFailed, setVideoFailed] = useState(false);
-  const fairyVideoPlayer = useVideoPlayer(
-    require("../../../assets/fairy-intro.mp4"),
-    (player) => {
-      try {
-        player.loop = true;
-        player.muted = true;
-        player.play();
-      } catch (err) {
-        console.warn("[Step6] fairy video setup failed:", err);
-        setVideoFailed(true);
-      }
-    },
-  );
+  const [aiTyping, setAiTyping] = useState<boolean>(false);
 
-  const emojiOpacity = useRef(new Animated.Value(1)).current;
-  const emojiScale = useRef(new Animated.Value(1)).current;
+  const answersRef = useRef<Partial<Record<Phase, string>>>({});
 
-  const cursorOpacity = useRef(new Animated.Value(1)).current;
+  const [checkingUsername, setCheckingUsername] = useState<boolean>(false);
 
-  const skipIntro = () => {
-    Keyboard.dismiss();
-    setTypedParas(INTRO_PARAGRAPHS.map((p) => p));
-    setIntroDone(true);
-  };
-  const skipQuestion = () => {
-    Keyboard.dismiss();
-    if (phase === "intro") return;
-    const q = QUESTIONS[phase as keyof typeof QUESTIONS];
-    if (!q) return;
-    setTypedQTitle(q.title);
-    setTypedQDesc(q.desc);
-    setQDone(true);
-  };
+  const scrollRef = useRef<ScrollView>(null);
+
+  const scrollToBottom = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  }, []);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, aiTyping, scrollToBottom]);
+
+  const pushAi = useCallback(async (text: string, typingMs = 600) => {
+    setAiTyping(true);
+    await new Promise<void>((r) => setTimeout(r, typingMs));
+    setAiTyping(false);
+    setMessages((prev) => [...prev, { id: newMsgId(), role: "ai", text }]);
+  }, []);
+
+  const pushUser = useCallback((text: string) => {
+    setMessages((prev) => [...prev, { id: newMsgId(), role: "user", text }]);
+  }, []);
 
   useEffect(() => {
-    if (phase !== "intro") return;
     let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const wait = (ms: number) =>
-      new Promise<void>((resolve) => {
-        timer = setTimeout(resolve, ms);
-      });
-
-    Animated.parallel([
-      Animated.timing(emojiOpacity, {
-        toValue: 1,
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.spring(emojiScale, {
-        toValue: 1,
-        friction: 4,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    const cursorLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(cursorOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
-        Animated.timing(cursorOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
-      ]),
-    );
-    cursorLoop.start();
-
-    const run = async () => {
-      await wait(INTRO_START_DELAY_MS);
+    (async () => {
+      for (let i = 0; i < INTRO_MESSAGES.length; i++) {
+        if (cancelled) return;
+        await pushAi(INTRO_MESSAGES[i]!, i === 0 ? 400 : 700);
+      }
       if (cancelled) return;
 
-      const acc = INTRO_PARAGRAPHS.map(() => "");
-      for (let pIdx = 0; pIdx < INTRO_PARAGRAPHS.length; pIdx++) {
-        const full = INTRO_PARAGRAPHS[pIdx]!;
-        for (let ci = 1; ci <= full.length; ci++) {
-          if (cancelled) return;
-          acc[pIdx] = full.slice(0, ci);
-          setTypedParas([...acc]);
-          await wait(TYPE_SPEED_MS);
-        }
-        if (cancelled) return;
-        await wait(PARA_GAP_MS);
-      }
-      if (!cancelled) setIntroDone(true);
-    };
-    run();
-
+      setPhaseIdx(0);
+      await pushAi(QUESTIONS[PHASES[0]!].prompt, 500);
+    })();
     return () => {
       cancelled = true;
-      if (timer) clearTimeout(timer);
-      cursorLoop.stop();
     };
 
-  }, [phase]);
+  }, []);
 
-  useEffect(() => {
-    if (phase === "intro") return;
-    const q = QUESTIONS[phase as keyof typeof QUESTIONS];
-    if (!q) return;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const wait = (ms: number) =>
-      new Promise<void>((resolve) => {
-        timer = setTimeout(resolve, ms);
-      });
+  const currentPhase = phaseIdx != null && phaseIdx < PHASES.length ? PHASES[phaseIdx]! : null;
+  const inputHint = useMemo(() => {
+    if (currentPhase) return QUESTIONS[currentPhase].placeholder;
+    return "답변을 입력하세요...";
+  }, [currentPhase]);
+  const multiline = useMemo(() => {
+    return currentPhase ? QUESTIONS[currentPhase].multiline : true;
+  }, [currentPhase]);
 
-    setTypedQTitle("");
-    setTypedQDesc("");
-    setQDone(false);
-
-    const run = async () => {
-      await wait(200);
-
-      for (let i = 1; i <= q.title.length; i++) {
-        if (cancelled) return;
-        setTypedQTitle(q.title.slice(0, i));
-        await wait(TYPE_SPEED_MS);
-      }
-      if (cancelled) return;
-      await wait(350);
-
-      for (let i = 1; i <= q.desc.length; i++) {
-        if (cancelled) return;
-        setTypedQDesc(q.desc.slice(0, i));
-        await wait(TYPE_SPEED_MS);
-      }
-      if (!cancelled) setQDone(true);
-    };
-    run();
-
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-    };
-
-  }, [phase]);
-
-  const buildPersonaNotes = (): string => {
+  const buildNotes = (): string => {
+    const a = answersRef.current;
     const sections: string[] = [];
-    if (firstMeeting.trim()) sections.push(`[첫 만남]\n${firstMeeting.trim()}`);
-    if (habit.trim()) sections.push(`[습관/말투]\n${habit.trim()}`);
-    if (personality.trim()) sections.push(`[성격]\n${personality.trim()}`);
-    if (memory.trim()) sections.push(`[가장 선명한 추억]\n${memory.trim()}`);
+    if (a.firstMeeting) sections.push(`[첫 만남]\n${a.firstMeeting.trim()}`);
+    if (a.habit) sections.push(`[습관/말투]\n${a.habit.trim()}`);
+    if (a.personality) sections.push(`[성격]\n${a.personality.trim()}`);
+    if (a.memory) sections.push(`[가장 선명한 추억]\n${a.memory.trim()}`);
     return sections.join("\n\n");
   };
 
-  const MBTI_SET = new Set([
-    "ISTJ","ISFJ","INFJ","INTJ",
-    "ISTP","ISFP","INFP","INTP",
-    "ESTP","ESFP","ENFP","ENTP",
-    "ESTJ","ESFJ","ENFJ","ENTJ",
-  ] as const);
-  type PersonaMbtiCode = typeof MBTI_SET extends Set<infer T> ? T : never;
-  const extractMbti = (text: string): PersonaMbtiCode | undefined => {
-    const m = text.match(/\b([EI][NS][FT][JP])\b/i);
-    if (!m) return undefined;
-    const code = m[1]!.toUpperCase();
-    return MBTI_SET.has(code as PersonaMbtiCode) ? (code as PersonaMbtiCode) : undefined;
-  };
+  const submit = async () => {
+    if (currentPhase == null) return;
+    const text = input.trim();
+    if (!text && currentPhase !== "username") return; 
 
-  const [checkingUsername, setCheckingUsername] = useState(false);
+    if (currentPhase === "name") {
 
-  const goNext = async () => {
-    Keyboard.dismiss();
-    if (phase === "intro") {
-      setPhase("name");
+      if (text.length === 0) return;
+      pushUser(text);
+      answersRef.current.name = text;
+      setCreationDraft({ name: text });
+      setInput("");
+
+      await pushAi(QUESTIONS[currentPhase].ack, 400);
+      const next = phaseIdx! + 1;
+      setPhaseIdx(next);
+      if (next < PHASES.length) {
+        await pushAi(QUESTIONS[PHASES[next]!].prompt, 500);
+      }
       return;
     }
-    if (phase === "name") {
-      const trimmed = name.trim();
-      if (!trimmed) return;
-      setCreationDraft({ name: trimmed });
 
-      setPhase("username");
-      return;
-    }
-    if (phase === "username") {
-      const raw = username.trim().toLowerCase();
+    if (currentPhase === "username") {
 
-      if (raw.length === 0) {
-        const finalUsername = deriveUsernameFromName(name.trim() || "user");
-        setUsername(finalUsername);
-        setCreationDraft({ username: finalUsername });
-        setPhase("firstMeeting");
+      if (text.length === 0) {
+        const derived = deriveUsernameFromName(answersRef.current.name || "user");
+        pushUser(`(빈 칸 — ${derived} 로 자동 생성)`);
+        answersRef.current.username = derived;
+        setCreationDraft({ username: derived });
+        setInput("");
+        await pushAi(QUESTIONS[currentPhase].ack, 400);
+        const next = phaseIdx! + 1;
+        setPhaseIdx(next);
+        if (next < PHASES.length) {
+          await pushAi(QUESTIONS[PHASES[next]!].prompt, 500);
+        }
         return;
       }
-
+      const raw = text.toLowerCase();
       if (!/^[a-z0-9_]+$/.test(raw)) {
-        showAlert(
-          "아이디 형식 오류",
-          "영문 소문자, 숫자, _ 만 사용 가능해요.\n다시 입력해주세요.",
-        );
+        showAlert("아이디 형식 오류", "영문 소문자, 숫자, _ 만 사용 가능해요.");
         return;
       }
       if (raw.length < 3) {
@@ -334,29 +246,16 @@ export default function Step6CreatingScreen({ navigation }: Props) {
         showAlert("아이디 길이", "아이디는 30자 이하여야 해요.");
         return;
       }
-      const finalUsername = raw;
 
       if (checkingUsername) return;
       setCheckingUsername(true);
       try {
-        const r = await checkCloneUsername(finalUsername);
+        const r = await checkCloneUsername(raw);
         if (!r.available) {
-          if (r.reason === "reserved") {
-            showAlert(
-              "사용할 수 없는 아이디",
-              "예약된 아이디입니다. 다른 아이디를 입력해주세요.",
-            );
-          } else if (r.reason === "invalid") {
-            showAlert(
-              "아이디 형식 오류",
-              "영문 소문자/숫자/_ 만 사용 가능하고 3-30자여야 해요.",
-            );
-          } else {
-            showAlert(
-              "이미 사용중인 아이디",
-              "이미 사용중인 아이디가 있습니다. 다른 아이디를 입력해주세요.",
-            );
-          }
+          let msg = "이미 사용중인 아이디예요. 다른 걸 입력해주세요.";
+          if (r.reason === "reserved") msg = "예약된 아이디입니다. 다른 아이디를 입력해주세요.";
+          else if (r.reason === "invalid") msg = "아이디 형식이 올바르지 않아요.";
+          showAlert("사용할 수 없는 아이디", msg);
           return;
         }
       } catch (err) {
@@ -365,213 +264,155 @@ export default function Step6CreatingScreen({ navigation }: Props) {
       } finally {
         setCheckingUsername(false);
       }
-      setUsername(finalUsername);
-      setCreationDraft({ username: finalUsername });
-      setPhase("firstMeeting");
+      pushUser(`@${raw}`);
+      answersRef.current.username = raw;
+      setCreationDraft({ username: raw });
+      setInput("");
+      await pushAi(QUESTIONS[currentPhase].ack, 400);
+      const next = phaseIdx! + 1;
+      setPhaseIdx(next);
+      if (next < PHASES.length) {
+        await pushAi(QUESTIONS[PHASES[next]!].prompt, 500);
+      }
       return;
     }
-    if (phase === "firstMeeting") {
-      setPhase("habit");
-      return;
-    }
-    if (phase === "habit") {
-      setPhase("personality");
-      return;
-    }
-    if (phase === "personality") {
-      const mbti = extractMbti(personality);
+
+    pushUser(text);
+    answersRef.current[currentPhase] = text;
+    setInput("");
+
+    if (currentPhase === "personality") {
+      const mbti = extractMbti(text);
       if (mbti) setCreationDraft({ personaMbti: mbti });
-      setPhase("memory");
-      return;
     }
-    if (phase === "memory") {
-      setCreationDraft({ personaNotes: buildPersonaNotes() });
-      navigation.navigate("Step7");
+
+    await pushAi(QUESTIONS[currentPhase].ack, 400);
+
+    const next = phaseIdx! + 1;
+    setPhaseIdx(next);
+    if (next < PHASES.length) {
+      await pushAi(QUESTIONS[PHASES[next]!].prompt, 500);
+    } else {
+
+      setCreationDraft({ personaNotes: buildNotes() });
+      await pushAi("이제 게시물 작성 화면으로 갈게요!", 700);
+      setTimeout(() => {
+        navigation.navigate("Step7");
+      }, 1000);
     }
   };
 
   const goBack = () => {
     Keyboard.dismiss();
-    const idx = QUESTION_PHASES.indexOf(phase as (typeof QUESTION_PHASES)[number]);
-    if (phase === "intro") {
-      navigation.goBack();
-    } else if (idx === 0) {
-      setPhase("intro");
-    } else if (idx > 0) {
-      setPhase(QUESTION_PHASES[idx - 1]!);
-    }
+    navigation.goBack();
   };
 
-  const canProceed = (() => {
-
-    if (phase === "intro") return introDone;
-    if (phase === "name") return name.trim().length > 0;
-
-    return true;
-  })();
-
-  const isIntro = phase === "intro";
-  const q = !isIntro ? QUESTIONS[phase as keyof typeof QUESTIONS] : null;
-  const valueForPhase = (() => {
-    switch (phase) {
-      case "name": return name;
-      case "username": return username;
-      case "firstMeeting": return firstMeeting;
-      case "habit": return habit;
-      case "personality": return personality;
-      case "memory": return memory;
-      default: return "";
-    }
-  })();
-  const onChangeForPhase = (() => {
-    switch (phase) {
-      case "name": return setName;
-      case "username": return (v: string) =>
-
-        setUsername(v.toLowerCase().replace(/[^a-z0-9_]/g, ""));
-      case "firstMeeting": return setFirstMeeting;
-      case "habit": return setHabit;
-      case "personality": return setPersonality;
-      case "memory": return setMemory;
-      default: return () => {};
-    }
+  const isDone = phaseIdx != null && phaseIdx >= PHASES.length;
+  const canSend = (() => {
+    if (currentPhase == null) return false; 
+    if (currentPhase === "username") return !checkingUsername; 
+    return input.trim().length > 0;
   })();
 
   return (
-    <SafeView backgroundColor="#000000">
+    <SafeView backgroundColor={COLORS.white}>
+      {
+
+}
+      <View style={[s.header, { paddingTop: insets.top + 6 }]}>
+        <TouchableOpacity onPress={goBack} hitSlop={12} style={s.backBtn}>
+          <Feather name="arrow-left" size={22} color={COLORS.zinc900} />
+        </TouchableOpacity>
+        <View style={s.headerCenter}>
+          <View style={s.headerAvatar}>
+            <Image source={AI_AVATAR_SRC} style={s.headerAvatarImg} resizeMode="contain" />
+          </View>
+          <Text style={s.headerName}>{AI_NAME}</Text>
+        </View>
+        <View style={{ width: 38 }} />
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
+        {}
+        <ScrollView
+          ref={scrollRef}
+          style={s.chatScroll}
+          contentContainerStyle={s.chatContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {messages.map((m, i) => {
+            const isAi = m.role === "ai";
+
+            const prev = messages[i - 1];
+            const isContinuation = prev && prev.role === m.role;
+            return (
+              <View key={m.id} style={[s.row, isAi ? s.rowAi : s.rowUser]}>
+                {isAi && (
+                  <View style={[s.avatar, isContinuation && { opacity: 0 }]}>
+                    <Image source={AI_AVATAR_SRC} style={s.avatarImg} resizeMode="contain" />
+                  </View>
+                )}
+                <View
+                  style={[
+                    s.bubble,
+                    isAi ? s.bubbleAi : s.bubbleUser,
+                    isAi && isContinuation && { marginLeft: 0 },
+                  ]}
+                >
+                  <Text style={isAi ? s.bubbleTextAi : s.bubbleTextUser}>{m.text}</Text>
+                </View>
+              </View>
+            );
+          })}
+          {}
+          {aiTyping && (
+            <View style={[s.row, s.rowAi]}>
+              <View style={s.avatar}>
+                <Image source={AI_AVATAR_SRC} style={s.avatarImg} resizeMode="contain" />
+              </View>
+              <View style={[s.bubble, s.bubbleAi, s.typingBubble]}>
+                <ActivityIndicator size="small" color={COLORS.zinc500} />
+              </View>
+            </View>
+          )}
+        </ScrollView>
+
+        {}
         {
 }
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={goBack} hitSlop={12} style={styles.backBtn}>
-            <Feather name="arrow-left" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-        </View>
+        <View style={s.inputBar}>
+          <TextInput
+            style={[s.input, multiline && s.inputMultiline]}
+            value={input}
+            onChangeText={(v) => {
+              if (currentPhase === "username") {
 
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <ScrollView
-            contentContainerStyle={styles.formWrap}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {
-}
-            <Animated.View
-              style={[
-                styles.videoWrap,
-                isIntro
-                  ? { opacity: emojiOpacity, transform: [{ scale: emojiScale }] }
-                  : null,
-              ]}
-              pointerEvents="none"
-            >
-              {videoFailed ? (
-                <Text style={styles.fallbackEmoji}>✨</Text>
-              ) : (
-                <VideoView
-                  style={styles.video}
-                  player={fairyVideoPlayer}
-                  contentFit="contain"
-                  nativeControls={false}
-                />
-              )}
-            </Animated.View>
-
-            {}
-            {isIntro && (
-              <TouchableOpacity
-                onPress={skipIntro}
-                activeOpacity={1}
-                accessibilityLabel="도입부 건너뛰기"
-                style={styles.introTextBox}
-              >
-                {typedParas.map((text, pIdx) => {
-                  if (!text) return null;
-                  const isTitlePara = pIdx === 0;
-                  const fullLen = INTRO_PARAGRAPHS[pIdx]!.length;
-                  const isTypingThis = !introDone && text.length < fullLen;
-                  return (
-                    <View key={pIdx} style={styles.paragraph}>
-                      <Text style={isTitlePara ? styles.introTitle : styles.introBody}>
-                        {text}
-                        {isTypingThis && (
-                          <Animated.Text
-                            style={{ opacity: cursorOpacity, color: COLORS.white }}
-                          >
-                            ▍
-                          </Animated.Text>
-                        )}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </TouchableOpacity>
-            )}
-
-            {}
-            {q && (
-              <TouchableOpacity
-                onPress={skipQuestion}
-                activeOpacity={1}
-                style={styles.questionBox}
-              >
-                <Text style={styles.qTitle}>
-                  {typedQTitle}
-                  {typedQTitle.length > 0 && typedQTitle.length < q.title.length && (
-                    <Animated.Text style={{ opacity: cursorOpacity, color: COLORS.white }}>
-                      ▍
-                    </Animated.Text>
-                  )}
-                </Text>
-                {typedQDesc.length > 0 && (
-                  <Text style={styles.qDesc}>
-                    {typedQDesc}
-                    {typedQDesc.length < q.desc.length && (
-                      <Animated.Text
-                        style={{ opacity: cursorOpacity, color: "rgba(255,255,255,0.7)" }}
-                      >
-                        ▍
-                      </Animated.Text>
-                    )}
-                  </Text>
-                )}
-                {}
-                {qDone && (
-                  <TextInput
-
-                    key={phase}
-                    style={[styles.input, q.multiline && styles.textarea]}
-                    value={valueForPhase}
-                    onChangeText={onChangeForPhase}
-                    placeholder={q.placeholder}
-                    placeholderTextColor="rgba(255,255,255,0.4)"
-                    autoFocus
-                    multiline={q.multiline}
-                    textAlignVertical={q.multiline ? "top" : "center"}
-                    returnKeyType={q.multiline ? "default" : "next"}
-                    onSubmitEditing={q.multiline ? undefined : goNext}
-                    maxLength={q.multiline ? 500 : 40}
-                    selectionColor={COLORS.white}
-                  />
-                )}
-              </TouchableOpacity>
-            )}
-          </ScrollView>
-        </TouchableWithoutFeedback>
-
-        <View style={styles.bottomBar}>
+                setInput(v.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+              } else {
+                setInput(v);
+              }
+            }}
+            placeholder={inputHint}
+            placeholderTextColor={COLORS.zinc400}
+            multiline={multiline}
+            maxLength={multiline ? 500 : 40}
+            editable={!isDone && currentPhase != null}
+            returnKeyType={multiline ? "default" : "send"}
+            onSubmitEditing={multiline ? undefined : submit}
+            blurOnSubmit={!multiline}
+          />
           <TouchableOpacity
-            style={[styles.btn, !canProceed && styles.btnDisabled]}
-            onPress={goNext}
-            disabled={!canProceed}
+            style={[s.sendBtn, !canSend && s.sendBtnDisabled]}
+            onPress={submit}
+            disabled={!canSend}
             activeOpacity={0.85}
           >
-            <Text style={styles.btnText}>
-              {isIntro ? "시작하기" : "다음"}
-            </Text>
+            <Feather name="send" size={18} color={canSend ? COLORS.white : COLORS.zinc400} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -579,84 +420,114 @@ export default function Step6CreatingScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  formWrap: {
-    flexGrow: 1,
-    paddingHorizontal: SIZES.xlarge,
-    paddingTop: 12,
-    paddingBottom: 24,
-  },
+const s = StyleSheet.create({
 
-  topBar: {
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 8,
-    paddingTop: 4,
-    paddingBottom: 4,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+    backgroundColor: COLORS.white,
   },
-  backBtn: { padding: 8, alignSelf: "flex-start" },
-
-  videoWrap: {
-    width: 150,
-    height: 150,
-    alignSelf: "center",
-    marginBottom: 8,
-  },
-  video: { width: "100%", height: "100%" },
-  fallbackEmoji: { fontSize: 80, textAlign: "center", lineHeight: 140 },
-
-  introTextBox: { gap: 16, alignItems: "center", width: "100%" },
-  paragraph: { alignItems: "center", paddingHorizontal: 8 },
-
-  introTitle: {
-    fontSize: 23,
-    fontWeight: "700",
-    color: COLORS.white,
-    textAlign: "center",
-    lineHeight: 34,
-  },
-  introBody: {
-    fontSize: 17,
-    color: "rgba(255,255,255,0.9)",
-    textAlign: "center",
-    lineHeight: 27,
+  backBtn: { padding: 8, width: 38 },
+  headerCenter: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
 
-  questionBox: { width: "100%", gap: 10 },
-  qTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: COLORS.white,
-    textAlign: "center",
-    lineHeight: 30,
-    marginBottom: 4,
-  },
-  qDesc: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.7)",
-    textAlign: "center",
-    lineHeight: 21,
-    marginBottom: 14,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    borderRadius: RADIUS.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: COLORS.white,
-    backgroundColor: "rgba(255,255,255,0.06)",
-  },
-  textarea: { minHeight: 140, paddingTop: 12 },
-
-  bottomBar: {
-    padding: SIZES.large,
-  },
-  btn: {
-    paddingVertical: 14,
-    borderRadius: RADIUS.md,
+  headerAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: COLORS.white,
     alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
   },
-  btnDisabled: { opacity: 0.4 },
-  btnText: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
+  headerAvatarImg: { width: 22, height: 22 },
+  headerName: { fontSize: 15, fontWeight: "700", color: COLORS.zinc900 },
+
+  chatScroll: { flex: 1, backgroundColor: "#f1f5f9"  },
+  chatContent: { paddingVertical: 16, paddingHorizontal: 12, gap: 8 },
+
+  row: { flexDirection: "row", alignItems: "flex-end", gap: 6, maxWidth: "100%" },
+  rowAi: { justifyContent: "flex-start" },
+  rowUser: { justifyContent: "flex-end" },
+
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.white,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 2,
+    overflow: "hidden",
+  },
+  avatarImg: { width: 24, height: 24 },
+
+  bubble: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 16,
+    maxWidth: "75%",
+  },
+  bubbleAi: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+  },
+  bubbleUser: {
+    backgroundColor: COLORS.violet600,
+    borderTopRightRadius: 4,
+    marginLeft: 8,
+  },
+  bubbleTextAi: { fontSize: 14, color: COLORS.zinc900, lineHeight: 20 },
+  bubbleTextUser: { fontSize: 14, color: COLORS.white, lineHeight: 20 },
+
+  typingBubble: { paddingVertical: 14, paddingHorizontal: 16 },
+
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8, 
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.zinc100,
+  },
+  input: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 120,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    borderRadius: 20,
+    backgroundColor: COLORS.zinc50,
+    fontSize: 14,
+    color: COLORS.zinc900,
+  },
+  inputMultiline: { paddingTop: 10 },
+  sendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.violet600,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendBtnDisabled: { backgroundColor: COLORS.zinc200 },
 });
+
+void SIZES;
+void RADIUS;

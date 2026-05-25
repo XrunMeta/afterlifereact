@@ -54,6 +54,10 @@ export async function requestSignupOtp(env: Bindings, email: string): Promise<vo
   }
 
   const code = generateCode();
+
+  if (env.ENVIRONMENT !== "production") {
+    console.log(`[OTP] email=${email} code=${code} expiresInSec=${TTL_SECONDS}`);
+  }
   const codeHash = await sha256Hex(code);
   const now = Date.now();
   const record: OtpRecord = {

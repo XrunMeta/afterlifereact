@@ -76,7 +76,11 @@ async function pickFile(
 function Component({ draft, onChange }: Props) {
   const { t } = useTranslation();
 
-  const initialMode: Mode = draft.voiceFile ? "upload" : "preset";
+  const initialMode: Mode = draft.voiceFile
+    ? "upload"
+    : draft.voiceSampleId
+      ? "preset"
+      : "record";
   const [mode, setMode] = useState<Mode>(initialMode);
   const [selectedScript, setSelectedScript] = useState<string | null>(null);
 
@@ -149,7 +153,7 @@ function Component({ draft, onChange }: Props) {
     <View style={styles.wrap}>
       {}
       <View style={styles.modeRow}>
-        {(["preset", "record", "upload"] as const).map((m) => {
+        {(["record", "preset", "upload"] as const).map((m) => {
           const labels: Record<Mode, string> = {
             preset: "음성 선택",
             record: "직접 녹음",

@@ -82,7 +82,7 @@ cloneMessages.post(
 
     await bumpInteraction(c.env, userId, cloneId, "chat");
 
-    await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.chat);
+    await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.chat, "chat");
 
     const [l1Raw, sharedData, l2Raw] = await Promise.all([
       readCtx(c.env, cloneId),

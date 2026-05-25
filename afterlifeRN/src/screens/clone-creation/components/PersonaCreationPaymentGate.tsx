@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Keyboard,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { COLORS, RADIUS } from "../../../components/constants";
@@ -89,13 +90,15 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   const insufficient =
     balance !== null && balance < PERSONA_PAID_PRICE_XRUN;
 
+  const handleCancel = () => {
+    console.log("[PaymentGate] cancel tapped");
+    Keyboard.dismiss();
+    onCancel();
+  };
+
   const handleConfirm = () => {
-    if (insufficient) {
-      setError(
-        `XRUN 잔액이 부족해요. (${balance ?? 0} / ${PERSONA_PAID_PRICE_XRUN} XRUN)`,
-      );
-      return;
-    }
+
+    if (insufficient) return;
     if (pin.length !== 6) {
       setError("PIN 6자리를 입력해주세요.");
       return;
@@ -121,7 +124,15 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <Pressable style={styles.overlay} onPress={onCancel}>
+        {
+}
+        <Pressable
+          style={styles.overlay}
+          onPress={() => {
+            console.log("[PaymentGate] overlay tapped");
+            Keyboard.dismiss();
+          }}
+        >
           <Pressable style={styles.box} onPress={(e) => e.stopPropagation()}>
             <View style={styles.iconWrap}>
               <Feather name="credit-card" size={26} color={COLORS.violet600} />
@@ -144,7 +155,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 setPin(v.replace(/\D/g, "").slice(0, 6));
                 setError(null);
               }}
-              placeholder={insufficient ? "잔액 부족" : "PIN 6자리"}
+              placeholder="PIN 6자리"
               placeholderTextColor={COLORS.zinc400}
               keyboardType="number-pad"
               secureTextEntry
@@ -154,7 +165,12 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
             />
             {error && <Text style={styles.error}>{error}</Text>}
             <View style={styles.btns}>
-              <TouchableOpacity style={styles.cancel} onPress={onCancel}>
+              <TouchableOpacity
+                style={styles.cancel}
+                onPress={handleCancel}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.cancelText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -166,9 +182,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 disabled={pin.length !== 6 || insufficient}
               >
                 <Text style={styles.confirmText}>
-                  {insufficient
-                    ? "잔액 부족"
-                    : `${PERSONA_PAID_PRICE_XRUN} XRUN 결제`}
+                  {`${PERSONA_PAID_PRICE_XRUN} XRUN 결제`}
                 </Text>
               </TouchableOpacity>
             </View>
