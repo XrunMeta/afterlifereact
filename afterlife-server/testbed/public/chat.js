@@ -10,6 +10,18 @@ const v_b74a53 = v_6adf3a('#resetBtn');
 const v_fcca65 = v_6adf3a('#ttsToggleBtn');
 const v_538921 = v_6adf3a('#ttsPlayer');
 
+const v_884abc = document.querySelectorAll('input[name="speakerRole"]');
+const v_1337d9 = document.getElementById('visitorIdInput');
+function v_0a520f() {
+  const v_f2d7a9 = document.querySelector('input[name="speakerRole"]:checked');
+  const v_22da99 = v_f2d7a9 ? v_f2d7a9.value : 'creator';
+  return { speaker_role: v_22da99, user_label: v_22da99 === 'visitor' ? (v_1337d9?.value?.trim() || 'visitor-test') : 'creator-test' };
+}
+v_884abc.forEach((v_cb35cb) => v_cb35cb.addEventListener('change', () => {
+  const v_f20841 = document.querySelector('input[name="speakerRole"]:checked')?.value === 'visitor';
+  if (v_1337d9) v_1337d9.hidden = !v_f20841;
+}));
+
 const v_371185 = 'afterlife.testbed.history.v0';
 const v_ee7dca = 'afterlife.testbed.tts.enabled';
 
@@ -489,7 +501,13 @@ v_9e2838.addEventListener('submit', async (v_9e86fd) => {
     const v_8f00b9 = await fetch('/oth-path', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: v_9b6134, history: v_10740d.slice(0, -1) }),
+      body: JSON.stringify({
+        message: v_9b6134,
+        history: v_10740d.slice(0, -1),
+        source: 'browser',
+        ...v_0a520f(),
+        persona_slug: 'halbae',
+      }),
       signal: v_15718d.signal,
     });
     if (!v_8f00b9.ok || !v_8f00b9.body) throw new Error(`server ${v_8f00b9.status}`);
