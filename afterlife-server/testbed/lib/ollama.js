@@ -107,3 +107,36 @@ export function chatStream({ messages, options = {}, onChunk, onDone, onError })
     },
   };
 }
+
+export function chatOnce({ messages, options = {}, format = 'json', timeoutMs = 60000 }) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({
+      model: MODEL,
+      messages,
+      stream: false,
+      ...(format ? { format } : {}),
+      options: { temperature: 0.2, num_predict: 1024, num_gpu: -1, ...options },
+    });
+    const req = http.request(
+      {
+        hostname: HOST, port: PORT, path: '/oth-path', method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), Connection: 'close' },
+      },
+      (res) => {
+        let buf = '';
+        res.setEncoding('utf8');
+        res.on('data', (c) => (buf += c));
+        res.on('end', () => {
+          if (res.statusCode !== 200) return reject(new Error(`ollama ${res.statusCode}: ${buf.slice(0, 300)}`));
+          try { resolve(JSON.parse(buf)?.message?.content ?? ''); }
+          catch (e) { reject(new Error('ollama JSON parse 실패: ' + (e?.message ?? e))); }
+        });
+        res.on('error', reject);
+      },
+    );
+    req.setTimeout(timeoutMs, () => { req.destroy(new Error('ollama chatOnce timeout')); });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
