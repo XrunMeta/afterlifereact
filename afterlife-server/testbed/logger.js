@@ -14,6 +14,7 @@ const v_af189e = [
   'mt_padding_ms', 'mt_ffmpeg_ms', 'mt_infer_ms',
   'e2e_ms', 'sentence_count', 'audio_bytes', 'frames_pushed',
   'wav_basename', 'mp4_basename', 'raw_json',
+  'source', 'speaker_role', 'user_label', 'persona_slug', 
 ];
 
 const v_40b39c = ['id', ...v_af189e.filter((v_3f4e2e) => v_3f4e2e !== 'raw_json')];
@@ -35,10 +36,16 @@ function v_602bcd() {
       mt_unet_ms INTEGER, mt_padding_ms INTEGER, mt_ffmpeg_ms INTEGER,
       mt_infer_ms INTEGER, e2e_ms INTEGER,
       sentence_count INTEGER, audio_bytes INTEGER, frames_pushed INTEGER,
-      wav_basename TEXT, mp4_basename TEXT, raw_json TEXT
+      wav_basename TEXT, mp4_basename TEXT, raw_json TEXT,
+      source TEXT, speaker_role TEXT, user_label TEXT, persona_slug TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_turns_id_desc ON turns(id DESC);
   `);
+
+  const v_4173e3 = new Set(v_94ad75.prepare(`PRAGMA table_info(turns)`).all().map((v_cb35cb) => v_cb35cb.name));
+  for (const v_3f4e2e of ['source', 'speaker_role', 'user_label', 'persona_slug']) {
+    if (!v_4173e3.has(v_3f4e2e)) v_94ad75.exec(`ALTER TABLE turns ADD COLUMN ${v_3f4e2e} TEXT`);
+  }
   return v_94ad75;
 }
 

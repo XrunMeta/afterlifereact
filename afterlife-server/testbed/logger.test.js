@@ -52,3 +52,13 @@ v_2a805f('누락 필드는 null, throw 안 함', () => {
 v_2a805f('getTurn 없는 id → null', () => {
   v_ce93bd.equal(v_f456fa(999999), null);
 });
+
+v_2a805f('신규 컬럼 source/speaker_role/user_label/persona_slug 라운드트립', () => {
+  const v_389afb = v_e173d2({ session_id: 'kv1', source: 'agent', speaker_role: 'visitor',
+    user_label: 'visB', persona_slug: 'halbae' });
+  const v_e13cd0 = v_f456fa(v_389afb);
+  v_ce93bd.equal(v_e13cd0.source, 'agent');
+  v_ce93bd.equal(v_e13cd0.speaker_role, 'visitor');
+  v_ce93bd.equal(v_e13cd0.user_label, 'visB');
+  v_ce93bd.equal(v_e13cd0.persona_slug, 'halbae');
+});
