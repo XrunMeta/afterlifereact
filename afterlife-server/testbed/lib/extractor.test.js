@@ -10,7 +10,7 @@ v_2a805f('buildExtractionMessages — level별 지시 + 기존 KV 포함', () =>
   });
   v_ce93bd.equal(v_765b79[0].role, 'system');
   v_ce93bd.match(v_765b79[0].content, /페르소나/);
-  v_ce93bd.match(JSON.stringify(v_765b79), /"id":5/);
+  v_ce93bd.match(v_765b79[1].content, /"id":5/);
   const v_3d0298 = v_b9729c({ level: 'l2', persona_label: '할배', turnUser: 'x', turnAssistant: 'y', existingAttrs: [] });
   v_ce93bd.match(v_3d0298[0].content, /방문자/);
 });

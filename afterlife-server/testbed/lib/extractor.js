@@ -19,10 +19,11 @@ export function v_b9729c({ level: v_fbe91e, persona_label: v_dd43f9, turnUser: v
     `- 반드시 {"ops":[...]} JSON 만 출력.`;
   const v_3c8572 = (v_676b49 ?? []).map((v_779914) => ({ id: v_779914.id, category: v_779914.category, key: v_779914.key, value: v_779914.value }));
   const v_625c74 =
+    `[기존 KV]\n${JSON.stringify(v_3c8572)}\n\n` +
     `[이번 대화]\n사용자: ${v_e78466 ?? ''}\n페르소나: ${v_22155b ?? ''}`;
   return [
     { role: 'system', content: v_15c2da },
-    { role: 'user', content: v_625c74, existing: v_3c8572 },
+    { role: 'user', content: v_625c74 },
   ];
 }
 
