@@ -96,6 +96,16 @@ app.get('/oth-path', (req, res) => {
   res.json(row);
 });
 
+app.get('/oth-path', (req, res) => {
+  const persona = (req.query.persona ?? 'halbae').toString();
+  const level = req.query.level ? req.query.level.toString() : null;
+  const user = req.query.user ? req.query.user.toString() : null;
+  res.json({ kv: recentAttrs({ persona_slug: persona, level, user_label: user }) });
+});
+app.get('/oth-path', (req, res) => {
+  res.json({ history: getHistory(Number(req.params.id)) });
+});
+
 async function pushWavToPublisher(wavPath) {
   const buf = await fsp.readFile(wavPath);
   const r = await fetch(`${REALTIME_PUBLISHER_URL}/push_audio`, {
