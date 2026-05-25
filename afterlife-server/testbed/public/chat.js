@@ -10,6 +10,18 @@ const resetBtn = $('#resetBtn');
 const ttsToggleBtn = $('#ttsToggleBtn');
 const ttsPlayer = $('#ttsPlayer');
 
+const speakerRadios = document.querySelectorAll('input[name="speakerRole"]');
+const visitorIdInput = document.getElementById('visitorIdInput');
+function currentSpeaker() {
+  const sel = document.querySelector('input[name="speakerRole"]:checked');
+  const role = sel ? sel.value : 'creator';
+  return { speaker_role: role, user_label: role === 'visitor' ? (visitorIdInput?.value?.trim() || 'visitor-test') : 'creator-test' };
+}
+speakerRadios.forEach((r) => r.addEventListener('change', () => {
+  const isVisitor = document.querySelector('input[name="speakerRole"]:checked')?.value === 'visitor';
+  if (visitorIdInput) visitorIdInput.hidden = !isVisitor;
+}));
+
 const HISTORY_KEY = 'afterlife.testbed.history.v0';
 const TTS_KEY = 'afterlife.testbed.tts.enabled';
 
@@ -489,7 +501,13 @@ composer.addEventListener('submit', async (e) => {
     const res = await fetch('/oth-path', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+      body: JSON.stringify({
+        message: text,
+        history: history.slice(0, -1),
+        source: 'browser',
+        ...currentSpeaker(),
+        persona_slug: 'halbae',
+      }),
       signal: aborter.signal,
     });
     if (!res.ok || !res.body) throw new Error(`server ${res.status}`);

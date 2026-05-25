@@ -44,6 +44,40 @@
     );
   }
 
+  const kvRowsEl = document.getElementById('kvRows');
+  const kvMeta = document.getElementById('kvMeta');
+  const kvLevelFilter = document.getElementById('kvLevelFilter');
+  const kvUserFilter = document.getElementById('kvUserFilter');
+  let kvPrev = new Map(); 
+
+  function kvRowHtml(a, fresh) {
+    return (
+      `<tr data-kvid="${a.id}" class="kv-row${fresh ? ' kv-fresh' : ''}">` +
+      `<td>${esc(a.category)}</td><td>${esc(a.key)}</td>` +
+      `<td title="${esc(a.value)}">${esc(clip(a.value, 24))}</td>` +
+      `<td>${esc(a.level)}</td><td>${esc(a.user_label ?? '·')}</td>` +
+      `<td>${a.confidence ?? '·'}</td><td>${esc(String(a.updated_at ?? '').slice(5, 19))}</td>` +
+      `</tr>`
+    );
+  }
+
+  async function pollKv() {
+    try {
+      const lvl = kvLevelFilter?.value ?? '';
+      const usr = (kvUserFilter?.value ?? '').trim();
+      const qs = new URLSearchParams({ persona: 'halbae' });
+      if (lvl) qs.set('level', lvl);
+      if (usr) qs.set('user', usr);
+      const r = await fetch(`/oth-path?${qs}`, { cache: 'no-store' });
+      if (!r.ok) return;
+      const { kv } = await r.json();
+      if (!Array.isArray(kv)) return;
+      kvRowsEl.innerHTML = kv.map((a) => kvRowHtml(a, kvPrev.get(a.id) !== a.updated_at)).join('');
+      kvMeta.textContent = `${kv.length} attrs`;
+      kvPrev = new Map(kv.map((a) => [a.id, a.updated_at]));
+    } catch {}
+  }
+
   async function poll() {
     try {
       const r = await fetch(`/oth-path?limit=50&since=${lastSeenId}`, { cache: 'no-store' });
@@ -67,8 +101,8 @@
     panel.hidden = false;
     document.body.classList.add('mon-open'); 
     toggleBtn.setAttribute('aria-pressed', 'true');
-    poll();
-    timer = setInterval(poll, 1500);
+    poll(); pollKv();
+    timer = setInterval(() => { poll(); pollKv(); }, 1500);
   }
   function close() {
     panel.hidden = true;
@@ -95,4 +129,23 @@
       tr.after(det);
     } catch {}
   });
+
+  if (kvRowsEl) kvRowsEl.addEventListener('click', async (e) => {
+    const tr = e.target.closest('.kv-row');
+    if (!tr) return;
+    const next = tr.nextElementSibling;
+    if (next && next.classList.contains('kv-detail')) { next.remove(); return; }
+    try {
+      const r = await fetch(`/oth-path${tr.dataset.kvid}/history`, { cache: 'no-store' });
+      if (!r.ok) return;
+      const { history } = await r.json();
+      const det = document.createElement('tr');
+      det.className = 'kv-detail';
+      const lines = (history ?? []).map((h) => `${h.op} ${esc(h.old_value ?? '')}→${esc(h.new_value ?? '')} (${esc(h.reason ?? '')}) turn#${h.source_turn_id ?? '·'}`).join('<br>');
+      det.innerHTML = `<td colspan="7"><pre>${lines || '(이력 없음)'}</pre></td>`;
+      tr.after(det);
+    } catch {}
+  });
+  if (kvLevelFilter) kvLevelFilter.addEventListener('change', pollKv);
+  if (kvUserFilter) kvUserFilter.addEventListener('input', () => { clearTimeout(kvUserFilter._t); kvUserFilter._t = setTimeout(pollKv, 400); });
 })();

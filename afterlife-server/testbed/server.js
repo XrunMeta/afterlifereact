@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import 'dotenv/config';
 
 import { buildSystemPrompt, loadPersona } from './lib/prompt.js';
-import { chatStream } from './lib/ollama.js';
+import { chatStream, chatOnce } from './lib/ollama.js';
+import { applyOps, recentAttrs, getHistory } from './lib/kvStore.js'; 
+import { extractTurn } from './lib/extractor.js';
 import { createSentenceBuffer } from './lib/sentence_buffer.js';
 import { ttsSynthesize } from './lib/tts.js';
 import { stripEmoji, sanitizeChunk } from './lib/sanitize.js';
@@ -20,6 +22,8 @@ import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import { recordTurn, recentTurns, getTurn } from './logger.js';
 
+const LEARN_ENABLED = process.env.LEARN_ENABLED !== '0'; 
+const PERSONA_LABEL = process.env.PERSONA_LABEL ?? '할배';
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
 const MUSETALK_ENABLED = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
@@ -90,6 +94,16 @@ app.get('/oth-path', (req, res) => {
   const row = Number.isFinite(id) ? getTurn(id) : null;
   if (!row) return res.status(404).json({ error: 'not_found' });
   res.json(row);
+});
+
+app.get('/oth-path', (req, res) => {
+  const persona = (req.query.persona ?? 'halbae').toString();
+  const level = req.query.level ? req.query.level.toString() : null;
+  const user = req.query.user ? req.query.user.toString() : null;
+  res.json({ kv: recentAttrs({ persona_slug: persona, level, user_label: user }) });
+});
+app.get('/oth-path', (req, res) => {
+  res.json({ history: getHistory(Number(req.params.id)) });
 });
 
 async function pushWavToPublisher(wavPath) {
@@ -226,6 +240,12 @@ app.post('/oth-path', (req, res) => {
     return res.status(400).json({ error: 'message is required' });
   }
 
+  const source = req.body?.source === 'agent' ? 'agent' : 'browser';
+  const speakerRole = req.body?.speaker_role === 'visitor' ? 'visitor' : 'creator';
+  const learnLevel = speakerRole === 'visitor' ? 'l2' : 'l1';
+  const userLabel = (req.body?.user_label ?? (speakerRole === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
+  const personaSlug = (req.body?.persona_slug ?? 'halbae').toString();
+
   const messages = [
     { role: 'system', content: buildSystemPrompt() },
     ...history
@@ -267,15 +287,32 @@ app.post('/oth-path', (req, res) => {
   let turnRecorded = false;  
   let lastDoneInfo = null;   
 
+  const triggerExtraction = async (turnId) => {
+    if (!turnId || !LEARN_ENABLED) return;
+    try {
+      const existingAttrs = recentAttrs({ persona_slug: personaSlug, level: learnLevel, user_label: learnLevel === 'l2' ? userLabel : null });
+      const ops = await extractTurn(
+        { level: learnLevel, persona_label: PERSONA_LABEL, turnUser: userMessage, turnAssistant: llmText, existingAttrs },
+        chatOnce,
+      );
+      if (ops.length === 0) return;
+      const applyResult = applyOps({ persona_slug: personaSlug, level: learnLevel, user_label: learnLevel === 'l1' ? null : userLabel, source_turn_id: turnId }, ops);
+      console.log(`[029-E-learn] turn=${turnId} ${learnLevel} ops applied=${applyResult.applied} rejected=${applyResult.rejected}`);
+    } catch (err) {
+      console.warn('[029-E-learn] triggerExtraction failed:', err?.message ?? err);
+    }
+  };
+
   const finalizeTurn = (mode) => {
     if (turnRecorded) return;
     turnRecorded = true;
     try {
       const audioBytes = collectedWavs.reduce((a, b) => a + b.wav.length, 0);
-      recordTurn({
+      const turnId = recordTurn({
         session_id: sessionId,
         created_at: new Date().toISOString(),
         mode,
+        source, speaker_role: speakerRole, user_label: userLabel, persona_slug: personaSlug, 
         user_text: userMessage,
         llm_text: llmText,
         llm_first_token_ms: llmFirstTokenMs,
@@ -302,27 +339,42 @@ app.post('/oth-path', (req, res) => {
           frames_pushed: mtFramesPushed,
         }),
       });
+      triggerExtraction(turnId).catch(() => {}); 
     } catch (err) {
       console.warn('[monitor] finalizeTurn failed:', err?.message ?? err);
     }
   };
 
-  const FIRST_CHUNK_WORD_TARGET = Number.POSITIVE_INFINITY;
-  let firstChunkClosed = false;
-  let firstChunkWordCount = 0;
-  const firstChunkInflight = new Set();
-  let firstChunkAsyncStarted = false;
-  let firstChunkPromise = Promise.resolve();
+  const FIRST_CHUNK_WORD_TARGET = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '3', 10); 
+  const CHUNK_WORD_TARGET = Number.parseInt(process.env.CHUNK_WORD_TARGET ?? '4', 10);             
+
+  let chunkIdx = 0;          
+  let chunkOpen = false;
+  let curChunkWords = 0;
+  const chunkInflight = new Map();   
+
+  const MUSETALK_POOL = (process.env.MUSETALK_URLS ?? process.env.MUSETALK_URL ?? 'http://127.0.0.1:8300')
+    .split(',').map((s) => s.trim()).filter(Boolean)
+    .map((urlStr) => { const x = new URL(urlStr); return { host: x.hostname, port: x.port ? Number.parseInt(x.port, 10) : 80 }; });
+  const chunkInferPromises = [];     
+  const mp4Ready = new Map();        
+  let nextPushIdx = 1;               
+  let pushChain = Promise.resolve(); 
+  let rrCursor = 0;                  
 
   const countWords = (s) => (s.match(/\S+/g) || []).length;
 
-  const synthAndSend = (text, chunkIdx) => {
+  const wordTargetFor = (idx) => (idx === 1 ? FIRST_CHUNK_WORD_TARGET : CHUNK_WORD_TARGET);
+  const chunkOutId = (idx) => (idx === 1 ? sessionId : `${sessionId}-c${idx}`);
+
+  const synthAndSend = (text, idx) => {
     if (!TTS_ENABLED) return Promise.resolve();
 
     const cleaned = stripEmoji(text);
     if (!cleaned) return Promise.resolve();
     const seq = ++ttsSeq;
     const t0 = Date.now();
+    const inflight = chunkInflight.get(idx);
     const p = ttsSynthesize(cleaned)
       .then(({ wav, synthMs }) => {
         if (aborted) return;
@@ -339,7 +391,7 @@ app.post('/oth-path', (req, res) => {
             bytes: wav.length,
           });
         }
-        if (MUSETALK_ENABLED) collectedWavs.push({ seq, wav, chunkIdx });
+        if (MUSETALK_ENABLED) collectedWavs.push({ seq, wav, chunkIdx: idx });
       })
       .catch((err) => {
         if (aborted) return;
@@ -347,93 +399,117 @@ app.post('/oth-path', (req, res) => {
       })
       .finally(() => {
         inflightTts.delete(p);
-        if (chunkIdx === 1) firstChunkInflight.delete(p);
+        inflight?.delete(p);
       });
     inflightTts.add(p);
-    if (chunkIdx === 1) firstChunkInflight.add(p);
+    inflight?.add(p);
     return p;
   };
 
-  const kickoffFirstChunkAsync = () => {
-    if (firstChunkAsyncStarted || !MUSETALK_STREAM_MODE || !MUSETALK_ENABLED) return;
-    firstChunkAsyncStarted = true;
-    firstChunkPromise = (async () => {
-      await Promise.allSettled([...firstChunkInflight]);
+  const schedulePush = () => {
+    pushChain = pushChain
+      .then(async () => {
+        while (mp4Ready.has(nextPushIdx)) {
+          const r = mp4Ready.get(nextPushIdx);
+          mp4Ready.delete(nextPushIdx);
+          const idxNow = nextPushIdx;
+          nextPushIdx += 1;
+          if (r?.mp4_path && REALTIME_AUDIO_STREAM && !aborted) {
+            await fetch(`${REALTIME_PUBLISHER_URL}/push_mp4`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: r.mp4_path, reset: idxNow === 1 }),
+            }).catch((e) => console.warn(`[push_mp4 c${idxNow}] failed:`, e?.message ?? e));
+          }
+        }
+      })
+      .catch(() => {});
+  };
+
+  const processChunkMp4 = async (idx, inst) => {
+    let result = null;
+    let tmp = null;
+    try {
+      const inflight = chunkInflight.get(idx) ?? new Set();
+      await Promise.allSettled([...inflight]);
       if (aborted) return;
-      const c1 = collectedWavs
-        .filter((x) => x.chunkIdx === 1)
+      const wavs = collectedWavs
+        .filter((x) => x.chunkIdx === idx)
         .sort((a, b) => a.seq - b.seq)
         .map((x) => x.wav);
-      if (!c1.length) return;
-      let tmp = null;
-      try {
-        tmp = await concatWavs(c1);
-        if (!tmp) return;
-        await dumpGroundTruthWav(sessionId, tmp.path, {
-          mode: 'stream',
-          sentence_count: c1.length,
-          audio_bytes: c1.reduce((a, b) => a + b.length, 0),
-        });
-        if (REALTIME_AUDIO_STREAM) {
-          pushWavToPublisher(tmp.path).catch((err) =>
-            console.warn('[realtime-audio c1] push_audio failed:', err?.message ?? err),
-          );
-        }
-        const result = await museTalkInfer({
-          audio_path: tmp.path,
-          output_id: sessionId,
-          stream: true,
-        });
+      if (!wavs.length) return;
+      const outId = chunkOutId(idx);
+      tmp = await concatWavs(wavs, outId);
+      if (!tmp) return;
+      await dumpGroundTruthWav(outId, tmp.path, {
+        mode: 'mp4-source',
+        chunk: idx,
+        sentence_count: wavs.length,
+        audio_bytes: wavs.reduce((a, b) => a + b.length, 0),
+      });
+      result = await museTalkInfer({
+        audio_path: tmp.path,
+        output_id: outId,
+        stream: false,
+        host: inst.host,
+        port: inst.port,
+      });
+
+      if (idx === 1) {
         mtInferMs = result?.infer_ms ?? null;
         mtPhase = result?.phase_ms ?? null;
         mtFramesPushed = result?.frames_pushed ?? null;
         mtMp4Basename = result?.mp4_basename ?? null;
-        await updateGroundTruthSidecar(sessionId, {
-          mp4_path: result?.mp4_path ?? null,
-          mp4_basename: result?.mp4_basename ?? null,
-          infer_ms: result?.infer_ms ?? null,
-          frames_pushed: result?.frames_pushed ?? null,
-        });
-        if (REALTIME_AUDIO_STREAM) {
-          await fetch(`${REALTIME_PUBLISHER_URL}/push_audio_end`, {
-            method: 'POST',
-          }).catch(() => {});
-        }
-
-        if (!aborted && result?.mp4_path) {
-          send('video', {
-            url: mp4PathToUrl(result.mp4_path),
-            mp4_path: result.mp4_path,
-            mp4_basename: result.mp4_basename,
-            infer_ms: result?.infer_ms,
-            frames_pushed: result?.frames_pushed ?? null,
-            sentence_count: c1.length,
-            audio_bytes: c1.reduce((a, b) => a + b.length, 0),
-            streaming: true,
-          });
-        }
-      } catch (err) {
-        console.warn('musetalk c1 bg failed:', err?.message ?? err);
-        if (!aborted) {
-          send('video_error', { error: err?.message ?? 'musetalk stream failed' });
-        }
-      } finally {
-        if (tmp) await cleanupTempDir(tmp.dir).catch(() => {});
       }
-    })();
+      await updateGroundTruthSidecar(outId, {
+        mp4_path: result?.mp4_path ?? null,
+        mp4_basename: result?.mp4_basename ?? null,
+        infer_ms: result?.infer_ms ?? null,
+      });
+      if (!aborted && result?.mp4_path) {
+        send('video', {
+          url: mp4PathToUrl(result.mp4_path),
+          mp4_path: result.mp4_path,
+          mp4_basename: result.mp4_basename,
+          infer_ms: result?.infer_ms,
+          sentence_count: wavs.length,
+          audio_bytes: wavs.reduce((a, b) => a + b.length, 0),
+          streaming: true,
+          chunk: idx,
+          instance: `${inst.host}:${inst.port}`,
+        });
+      }
+    } catch (err) {
+      console.warn(`musetalk c${idx} (mp4) failed:`, err?.message ?? err);
+      if (!aborted) send('video_error', { chunk: idx, error: err?.message ?? 'musetalk failed' });
+    } finally {
+      if (tmp) await cleanupTempDir(tmp.dir).catch(() => {});
+
+      mp4Ready.set(idx, result?.mp4_path ? result : null);
+      schedulePush();
+    }
+  };
+
+  const closeChunk = () => {
+    if (!chunkOpen) return;
+    const idx = chunkIdx;
+    chunkOpen = false;
+    if (!(MUSETALK_STREAM_MODE && MUSETALK_ENABLED)) return;
+    const inst = MUSETALK_POOL[rrCursor];
+    rrCursor = (rrCursor + 1) % MUSETALK_POOL.length;  
+    chunkInferPromises.push(processChunkMp4(idx, inst));
   };
 
   const routeSentence = (s) => {
-    if (!firstChunkClosed) {
-      firstChunkWordCount += countWords(s);
-      synthAndSend(s, 1);
-      if (firstChunkWordCount >= FIRST_CHUNK_WORD_TARGET) {
-        firstChunkClosed = true;
-        kickoffFirstChunkAsync();
-      }
-    } else {
-      synthAndSend(s, 2);
+    if (!chunkOpen) {
+      chunkIdx += 1;
+      chunkOpen = true;
+      curChunkWords = 0;
+      chunkInflight.set(chunkIdx, new Set());
     }
+    curChunkWords += countWords(s);
+    synthAndSend(s, chunkIdx);
+    if (curChunkWords >= wordTargetFor(chunkIdx)) closeChunk();
   };
 
   const ac = chatStream({
@@ -457,10 +533,7 @@ app.post('/oth-path', (req, res) => {
       const remaining = sb.flush();
       for (const s of remaining) routeSentence(s);
 
-      if (!firstChunkClosed) {
-        firstChunkClosed = true;
-        kickoffFirstChunkAsync();
-      }
+      if (chunkOpen) closeChunk();
 
       Promise.allSettled([...inflightTts]).then(async () => {
         if (aborted) return;
@@ -476,10 +549,13 @@ app.post('/oth-path', (req, res) => {
 
           if (MUSETALK_STREAM_MODE) {
 
-            firstChunkPromise.finally(() => {
-              finalizeTurn('stream');
-              if (!res.writableEnded) res.end();
-            }).catch(() => {});
+            Promise.allSettled(chunkInferPromises)
+              .then(() => { schedulePush(); return pushChain; })  
+              .finally(() => {
+                finalizeTurn('stream');
+                if (!res.writableEnded) res.end();
+              })
+              .catch(() => {});
             return;
           }
 
