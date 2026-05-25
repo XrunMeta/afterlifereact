@@ -103,15 +103,19 @@ def _make_frame_callback(session_id: str):
 
     def cb(idx: int, combine_frame_bgr) -> None:
         try:
-            # encode in inference thread (cheap)
-            rgb = cv2.cvtColor(combine_frame_bgr, cv2.COLOR_BGR2RGB)
-            img = Image.fromarray(rgb)
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=STREAM_JPEG_QUALITY)
-            data = buf.getvalue()
-            # backpressure: 너무 많이 쌓이면 drop / wait
+            # 029-D-3c-latency-stream2: PIL JPEG (Python, GIL holding) → cv2.imencode
+            # (C ext, GIL release). main thread 가 encode 동안 worker 가 acquire 가능
+            # → padding loop 와 publisher push 동시 진행 (burst 회피).
+            ok, encoded = cv2.imencode(
+                ".jpg", combine_frame_bgr,
+                [int(cv2.IMWRITE_JPEG_QUALITY), STREAM_JPEG_QUALITY],
+            )
+            if not ok:
+                push_count["fail"] += 1
+                return
+            data = encoded.tobytes()
+            # backpressure: 너무 많이 쌓이면 완료된 것만 정리
             if len(futures) > 64:
-                # 가장 오래된 future 들 정리 (완료된 것만)
                 futures[:] = [f for f in futures if not f.done()]
             fut = pool.submit(_do_post, idx, data)
             futures.append(fut)
@@ -272,12 +276,13 @@ def infer(req: InferReq):
     args.skip_mp4_output = skip_mp4
 
     t0 = time.time()
+    _timing = {}
     with infer_lock:
         try:
             if cb is not None:
-                inference_lib.run_inference(args, MODELS, frame_callback=cb)
+                inference_lib.run_inference(args, MODELS, frame_callback=cb, timing_out=_timing)
             else:
-                inference_lib.run_inference(args, MODELS)
+                inference_lib.run_inference(args, MODELS, timing_out=_timing)
         except Exception as e:
             if cb is not None:
                 _signal_stream_end()
@@ -328,6 +333,7 @@ def infer(req: InferReq):
         "mp4_path": mp4_path_str,
         "infer_ms": elapsed_ms,
         "output_id": safe_id,
+        "phase_ms": (_timing or None),
     }
     if cb is not None:
         resp["streamed"] = True

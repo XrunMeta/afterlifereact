@@ -18,6 +18,7 @@ import {
 } from './lib/musetalk.js';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
+import { recordTurn, recentTurns, getTurn } from './logger.js';
 
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
 const MUSETALK_ENABLED = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
@@ -76,6 +77,19 @@ app.get('/oth-path', (_req, res) => {
   const { profile } = loadPersona();
 
   res.json(profile);
+});
+
+app.get('/oth-path', (req, res) => {
+  const limit = Math.min(Number.parseInt(req.query.limit ?? '50', 10) || 50, 200);
+  const sinceId = Number.parseInt(req.query.since ?? '0', 10) || 0;
+  res.json({ turns: recentTurns({ limit, sinceId }) });
+});
+
+app.get('/oth-path', (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  const row = Number.isFinite(id) ? getTurn(id) : null;
+  if (!row) return res.status(404).json({ error: 'not_found' });
+  res.json(row);
 });
 
 async function pushWavToPublisher(wavPath) {
@@ -241,7 +255,59 @@ app.post('/oth-path', (req, res) => {
   const collectedWavs = []; 
   const sessionId = crypto.randomBytes(6).toString('hex');
 
-  const FIRST_CHUNK_WORD_TARGET = 10;
+  const turnT0 = Date.now();
+  let llmFirstTokenMs = null;
+  let llmText = '';
+  let ttsTotalMs = 0;
+  let ttsCount = 0;
+  let mtPhase = null;        
+  let mtInferMs = null;
+  let mtFramesPushed = null;
+  let mtMp4Basename = null;
+  let turnRecorded = false;  
+  let lastDoneInfo = null;   
+
+  const finalizeTurn = (mode) => {
+    if (turnRecorded) return;
+    turnRecorded = true;
+    try {
+      const audioBytes = collectedWavs.reduce((a, b) => a + b.wav.length, 0);
+      recordTurn({
+        session_id: sessionId,
+        created_at: new Date().toISOString(),
+        mode,
+        user_text: userMessage,
+        llm_text: llmText,
+        llm_first_token_ms: llmFirstTokenMs,
+        llm_total_ms: lastDoneInfo?.total_duration_ms ?? null,
+        tts_total_ms: ttsTotalMs || null,
+        tts_count: ttsCount || null,
+        mt_whisper_ms: mtPhase?.whisper ?? null,
+        mt_coord_ms: mtPhase?.coord ?? null,
+        mt_vae_ms: mtPhase?.vae ?? null,
+        mt_unet_ms: mtPhase?.unet ?? null,
+        mt_padding_ms: mtPhase?.padding ?? null,
+        mt_ffmpeg_ms: mtPhase?.ffmpeg ?? null,
+        mt_infer_ms: mtInferMs,
+        e2e_ms: Date.now() - turnT0,
+        sentence_count: collectedWavs.length || null,
+        audio_bytes: audioBytes || null,
+        frames_pushed: mtFramesPushed,
+        wav_basename: null,
+        mp4_basename: mtMp4Basename,
+        raw_json: JSON.stringify({
+          llm: lastDoneInfo ?? null,
+          mt_phase: mtPhase,
+          mt_infer_ms: mtInferMs,
+          frames_pushed: mtFramesPushed,
+        }),
+      });
+    } catch (err) {
+      console.warn('[monitor] finalizeTurn failed:', err?.message ?? err);
+    }
+  };
+
+  const FIRST_CHUNK_WORD_TARGET = Number.POSITIVE_INFINITY;
   let firstChunkClosed = false;
   let firstChunkWordCount = 0;
   const firstChunkInflight = new Set();
@@ -260,6 +326,8 @@ app.post('/oth-path', (req, res) => {
     const p = ttsSynthesize(cleaned)
       .then(({ wav, synthMs }) => {
         if (aborted) return;
+        ttsTotalMs += synthMs ?? 0;
+        ttsCount += 1;
 
         if (!MUSETALK_STREAM_MODE) {
           send('tts', {
@@ -301,23 +369,54 @@ app.post('/oth-path', (req, res) => {
       try {
         tmp = await concatWavs(c1);
         if (!tmp) return;
+        await dumpGroundTruthWav(sessionId, tmp.path, {
+          mode: 'stream',
+          sentence_count: c1.length,
+          audio_bytes: c1.reduce((a, b) => a + b.length, 0),
+        });
         if (REALTIME_AUDIO_STREAM) {
           pushWavToPublisher(tmp.path).catch((err) =>
             console.warn('[realtime-audio c1] push_audio failed:', err?.message ?? err),
           );
         }
-        await museTalkInfer({
+        const result = await museTalkInfer({
           audio_path: tmp.path,
-          output_id: `sess-${sessionId}-c1`,
+          output_id: sessionId,
           stream: true,
+        });
+        mtInferMs = result?.infer_ms ?? null;
+        mtPhase = result?.phase_ms ?? null;
+        mtFramesPushed = result?.frames_pushed ?? null;
+        mtMp4Basename = result?.mp4_basename ?? null;
+        await updateGroundTruthSidecar(sessionId, {
+          mp4_path: result?.mp4_path ?? null,
+          mp4_basename: result?.mp4_basename ?? null,
+          infer_ms: result?.infer_ms ?? null,
+          frames_pushed: result?.frames_pushed ?? null,
         });
         if (REALTIME_AUDIO_STREAM) {
           await fetch(`${REALTIME_PUBLISHER_URL}/push_audio_end`, {
             method: 'POST',
           }).catch(() => {});
         }
+
+        if (!aborted && result?.mp4_path) {
+          send('video', {
+            url: mp4PathToUrl(result.mp4_path),
+            mp4_path: result.mp4_path,
+            mp4_basename: result.mp4_basename,
+            infer_ms: result?.infer_ms,
+            frames_pushed: result?.frames_pushed ?? null,
+            sentence_count: c1.length,
+            audio_bytes: c1.reduce((a, b) => a + b.length, 0),
+            streaming: true,
+          });
+        }
       } catch (err) {
         console.warn('musetalk c1 bg failed:', err?.message ?? err);
+        if (!aborted) {
+          send('video_error', { error: err?.message ?? 'musetalk stream failed' });
+        }
       } finally {
         if (tmp) await cleanupTempDir(tmp.dir).catch(() => {});
       }
@@ -344,6 +443,8 @@ app.post('/oth-path', (req, res) => {
 
       const clean = sanitizeChunk(text);
       if (!clean) return;
+      if (llmFirstTokenMs === null) llmFirstTokenMs = Date.now() - turnT0;
+      llmText += clean;
       send('chunk', { text: clean });
 
       const sentences = sb.feed(clean);
@@ -351,6 +452,7 @@ app.post('/oth-path', (req, res) => {
     },
     onDone: (info) => {
       if (aborted) return;
+      lastDoneInfo = info;
 
       const remaining = sb.flush();
       for (const s of remaining) routeSentence(s);
@@ -374,66 +476,10 @@ app.post('/oth-path', (req, res) => {
 
           if (MUSETALK_STREAM_MODE) {
 
-            res.end();
-            (async () => {
-              await firstChunkPromise;
-              if (aborted) return;
-              const c2 = collectedWavs
-                .filter((x) => x.chunkIdx === 2)
-                .sort((a, b) => a.seq - b.seq)
-                .map((x) => x.wav);
-              if (!c2.length) {
-
-                try {
-                  await dumpGroundTruthWav(sessionId, null, {
-                    mode: 'stream',
-                    sentence_count: collectedWavs.length,
-                    audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
-                    single_chunk: true,
-                  }).catch(() => {});
-                } catch (_e) {}
-                return;
-              }
-              let tmp = null;
-              try {
-                tmp = await concatWavs(c2);
-                if (!tmp) return;
-                await dumpGroundTruthWav(sessionId, tmp.path, {
-                  mode: 'stream',
-                  sentence_count: collectedWavs.length,
-                  audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
-                  chunk: 2,
-                });
-                if (REALTIME_AUDIO_STREAM) {
-                  pushWavToPublisher(tmp.path).catch((err) =>
-                    console.warn(
-                      '[realtime-audio c2] push_audio failed:',
-                      err?.message ?? err,
-                    ),
-                  );
-                }
-                const result = await museTalkInfer({
-                  audio_path: tmp.path,
-                  output_id: `sess-${sessionId}-c2`,
-                  stream: true,
-                });
-                await updateGroundTruthSidecar(sessionId, {
-                  mp4_path: result?.mp4_path ?? null,
-                  mp4_basename: result?.mp4_basename ?? null,
-                  infer_ms: result?.infer_ms ?? null,
-                  frames_pushed: result?.frames_pushed ?? null,
-                });
-                if (REALTIME_AUDIO_STREAM) {
-                  fetch(`${REALTIME_PUBLISHER_URL}/push_audio_end`, {
-                    method: 'POST',
-                  }).catch(() => {});
-                }
-              } catch (err) {
-                console.warn('musetalk c2 bg failed:', err?.message ?? err);
-              } finally {
-                if (tmp) await cleanupTempDir(tmp.dir).catch(() => {});
-              }
-            })();
+            firstChunkPromise.finally(() => {
+              finalizeTurn('stream');
+              if (!res.writableEnded) res.end();
+            }).catch(() => {});
             return;
           }
 
@@ -441,6 +487,8 @@ app.post('/oth-path', (req, res) => {
           try {
             tmp = await concatWavs(wavOnly);
             if (!tmp) {
+
+              finalizeTurn('batch');
               res.end();
               return;
             }
@@ -451,10 +499,14 @@ app.post('/oth-path', (req, res) => {
             });
             const result = await museTalkInfer({
               audio_path: tmp.path,
-              output_id: `sess-${sessionId}`,
+              output_id: sessionId,
               stream: false,
             });
             if (aborted) return;
+            mtInferMs = result?.infer_ms ?? null;
+            mtPhase = result?.phase_ms ?? null;
+            mtFramesPushed = result?.frames_pushed ?? null;
+            mtMp4Basename = result?.mp4_basename ?? null;
             await updateGroundTruthSidecar(sessionId, {
               mp4_path: result?.mp4_path ?? null,
               mp4_basename: result?.mp4_basename ?? null,
@@ -489,9 +541,11 @@ app.post('/oth-path', (req, res) => {
             }
           } finally {
             if (tmp) await cleanupTempDir(tmp.dir);
+            finalizeTurn('batch');
             res.end();
           }
         } else {
+          finalizeTurn(MUSETALK_STREAM_MODE ? 'stream' : 'batch');
           res.end();
         }
       });
