@@ -96,6 +96,16 @@ v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
   v_8f00b9.json(v_3ac7e7);
 });
 
+v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
+  const v_5ed063 = (v_309144.query.persona ?? 'halbae').toString();
+  const v_fbe91e = v_309144.query.level ? v_309144.query.level.toString() : null;
+  const v_625c74 = v_309144.query.user ? v_309144.query.user.toString() : null;
+  v_8f00b9.json({ kv: v_e9fc79({ persona_slug: v_5ed063, level: v_fbe91e, user_label: v_625c74 }) });
+});
+v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
+  v_8f00b9.json({ history: v_49715e(Number(v_309144.params.id)) });
+});
+
 async function v_e705d0(v_f2bb81) {
   const v_83ee53 = await v_d4f750.readFile(v_f2bb81);
   const v_cb35cb = await fetch(`${v_de4278}/push_audio`, {
