@@ -296,7 +296,7 @@ app.post('/oth-path', (req, res) => {
         chatOnce,
       );
       if (ops.length === 0) return;
-      const applyResult = applyOps({ persona_slug: personaSlug, level: learnLevel, user_label: userLabel, source_turn_id: turnId }, ops);
+      const applyResult = applyOps({ persona_slug: personaSlug, level: learnLevel, user_label: learnLevel === 'l1' ? null : userLabel, source_turn_id: turnId }, ops);
       console.log(`[029-E-learn] turn=${turnId} ${learnLevel} ops applied=${applyResult.applied} rejected=${applyResult.rejected}`);
     } catch (err) {
       console.warn('[029-E-learn] triggerExtraction failed:', err?.message ?? err);
