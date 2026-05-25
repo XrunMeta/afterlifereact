@@ -7,7 +7,7 @@ import 'dotenv/config';
 
 import { buildSystemPrompt, loadPersona } from './lib/prompt.js';
 import { chatStream, chatOnce } from './lib/ollama.js';
-import { applyOps, recentAttrs, getHistory } from './lib/kvStore.js';
+import { applyOps, recentAttrs, getHistory } from './lib/kvStore.js'; 
 import { extractTurn } from './lib/extractor.js';
 import { createSentenceBuffer } from './lib/sentence_buffer.js';
 import { ttsSynthesize } from './lib/tts.js';
@@ -286,8 +286,8 @@ app.post('/oth-path', (req, res) => {
         chatOnce,
       );
       if (ops.length === 0) return;
-      const res = applyOps({ persona_slug: personaSlug, level: learnLevel, user_label: userLabel, source_turn_id: turnId }, ops);
-      console.log(`[029-E-learn] turn=${turnId} ${learnLevel} ops applied=${res.applied} rejected=${res.rejected}`);
+      const applyResult = applyOps({ persona_slug: personaSlug, level: learnLevel, user_label: userLabel, source_turn_id: turnId }, ops);
+      console.log(`[029-E-learn] turn=${turnId} ${learnLevel} ops applied=${applyResult.applied} rejected=${applyResult.rejected}`);
     } catch (err) {
       console.warn('[029-E-learn] triggerExtraction failed:', err?.message ?? err);
     }
