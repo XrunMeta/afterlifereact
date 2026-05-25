@@ -76,3 +76,16 @@ test('update target_id 소유권 위반 → 거부(applied 0)', () => {
   assert.equal(res.applied, 0);
   assert.equal(res.rejected, 1);
 });
+
+test('L2 격리 침범 — 다른 user_label ctx 로 update/delete 거부', () => {
+  const a = { persona_slug: 'p6', level: 'l2', user_label: 'owner', source_turn_id: 1 };
+  kv.applyOps(a, [{ op: 'add', category: 'relationship', key: '관계', value: '손자' }]);
+  const id = kv.getAttrsFor({ persona_slug: 'p6', level: 'l2', user_label: 'owner' })[0].id;
+  const other = { persona_slug: 'p6', level: 'l2', user_label: 'intruder', source_turn_id: 2 };
+  const up = kv.applyOps(other, [{ op: 'update', target_id: id, value: 'x' }]);
+  assert.equal(up.rejected, 1);
+  const del = kv.applyOps(other, [{ op: 'delete', target_id: id }]);
+  assert.equal(del.rejected, 1);
+
+  assert.equal(kv.getAttrsFor({ persona_slug: 'p6', level: 'l2', user_label: 'owner' })[0].value, '손자');
+});

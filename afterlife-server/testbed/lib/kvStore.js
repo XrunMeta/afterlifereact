@@ -98,7 +98,7 @@ export function applyOps(ctx, ops) {
         if (op.op === 'add') {
           const existing = findActive(d, ctx, op.key);
           if (existing) {
-            setVal.run({ id: existing.id, value: op.value, confidence: op.confidence ?? null,
+            setVal.run({ id: existing.id, value: op.value, confidence: op.confidence ?? existing.confidence,
               category: op.category ?? null, source_turn_id: ctx.source_turn_id ?? null });
             addHist.run({ attr_id: existing.id, op: 'update', old_value: existing.value,
               new_value: op.value, reason: op.reason ?? 'add→update(중복)', source_turn_id: ctx.source_turn_id ?? null });
