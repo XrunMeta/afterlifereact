@@ -89,3 +89,13 @@ v_2a805f('L2 격리 침범 — 다른 user_label ctx 로 update/delete 거부', 
 
   v_ce93bd.equal(v_120460.getAttrsFor({ persona_slug: 'p6', level: 'l2', user_label: 'owner' })[0].value, '손자');
 });
+
+v_2a805f('recentAttrs — persona 필터 + level/user 옵션', () => {
+  const v_16e2dd = { persona_slug: 'pr', level: 'l1', source_turn_id: 1 };
+  v_120460.applyOps(v_16e2dd, [{ op: 'add', category: 'profile', key: '이름', value: '할배' }]);
+  v_120460.applyOps({ persona_slug: 'pr', level: 'l2', user_label: 'v1', source_turn_id: 1 },
+    [{ op: 'add', category: 'relationship', key: '관계', value: '손자' }]);
+  v_ce93bd.equal(v_120460.recentAttrs({ persona_slug: 'pr' }).length, 2);
+  v_ce93bd.equal(v_120460.recentAttrs({ persona_slug: 'pr', level: 'l1' }).length, 1);
+  v_ce93bd.equal(v_120460.recentAttrs({ persona_slug: 'pr', level: 'l2', user_label: 'v1' })[0].value, '손자');
+});

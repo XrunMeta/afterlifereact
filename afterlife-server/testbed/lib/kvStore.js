@@ -148,6 +148,25 @@ export function v_49715e(v_3d3c70) {
   }
 }
 
+export function v_e9fc79({ persona_slug: v_bb0b45, level: v_fbe91e = null, user_label: v_5f6f0b = null, limit: v_02be30 = 200 }) {
+  try {
+    const v_d5dda0 = v_602bcd();
+    const v_abcc8d = ['persona_slug=?', "status='active'"];
+    const v_4317d1 = [v_bb0b45];
+    if (v_fbe91e) { v_abcc8d.push('level=?'); v_4317d1.push(v_fbe91e); }
+    if (v_5f6f0b != null) { v_abcc8d.push('user_label=?'); v_4317d1.push(v_5f6f0b); }
+    v_4317d1.push(v_02be30);
+    return v_d5dda0.prepare(
+      `SELECT id, persona_slug, level, category, key, value, confidence, user_label, source_turn_id, updated_at
+       FROM persona_attributes WHERE ${v_abcc8d.join(' AND ')}
+       ORDER BY updated_at DESC, id DESC LIMIT ?`,
+    ).all(...v_4317d1);
+  } catch (v_49263d) {
+    console.warn('[029-E-learn] recentAttrs failed:', v_49263d?.message ?? v_49263d);
+    return [];
+  }
+}
+
 export function v_ff48df({ persona_slug: v_bb0b45, level: v_fbe91e, user_label: v_5f6f0b = null }) {
   try {
     const v_d5dda0 = v_602bcd();
