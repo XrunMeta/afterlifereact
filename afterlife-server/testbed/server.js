@@ -296,7 +296,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
         v_3f4abd,
       );
       if (v_152909.length === 0) return;
-      const v_a78550 = v_3ad6c0({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_1231fa, source_turn_id: v_544e9a }, v_152909);
+      const v_a78550 = v_3ad6c0({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_d63eac === 'l1' ? null : v_1231fa, source_turn_id: v_544e9a }, v_152909);
       console.log(`[029-E-learn] turn=${v_544e9a} ${v_d63eac} ops applied=${v_a78550.applied} rejected=${v_a78550.rejected}`);
     } catch (v_49263d) {
       console.warn('[029-E-learn] triggerExtraction failed:', v_49263d?.message ?? v_49263d);
