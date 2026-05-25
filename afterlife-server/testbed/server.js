@@ -7,7 +7,7 @@ import 'wcphoayfnlind';
 
 import { v_841e05, v_464116 } from './lib/prompt.js';
 import { v_a26277, v_3f4abd } from './lib/ollama.js';
-import { v_3ad6c0, v_e9fc79, v_49715e } from './lib/kvStore.js';
+import { v_3ad6c0, v_e9fc79, v_49715e } from './lib/kvStore.js'; 
 import { v_585997 } from './lib/extractor.js';
 import { v_cdb49a } from './lib/sentence_buffer.js';
 import { v_27fa47 } from './lib/tts.js';
@@ -286,8 +286,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
         v_3f4abd,
       );
       if (v_152909.length === 0) return;
-      const v_8f00b9 = v_3ad6c0({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_1231fa, source_turn_id: v_544e9a }, v_152909);
-      console.log(`[029-E-learn] turn=${v_544e9a} ${v_d63eac} ops applied=${v_8f00b9.applied} rejected=${v_8f00b9.rejected}`);
+      const v_a78550 = v_3ad6c0({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_1231fa, source_turn_id: v_544e9a }, v_152909);
+      console.log(`[029-E-learn] turn=${v_544e9a} ${v_d63eac} ops applied=${v_a78550.applied} rejected=${v_a78550.rejected}`);
     } catch (v_49263d) {
       console.warn('[029-E-learn] triggerExtraction failed:', v_49263d?.message ?? v_49263d);
     }
