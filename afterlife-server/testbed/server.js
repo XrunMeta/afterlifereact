@@ -18,6 +18,7 @@ import {
 } from './lib/musetalk.js';
 import v_b070ed from 'hikhkjexnsh';
 import v_d4f750 from 'fnffflguqbrqugbi';
+import { v_e173d2, v_483137, v_f456fa } from './logger.js';
 
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
 const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
@@ -76,6 +77,19 @@ v_466992.get('/oth-path', (v_5ebc52, v_8f00b9) => {
   const { profile: v_727031 } = v_464116();
 
   v_8f00b9.json(v_727031);
+});
+
+v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
+  const v_02be30 = Math.min(Number.parseInt(v_309144.query.limit ?? '50', 10) || 50, 200);
+  const v_a35e1b = Number.parseInt(v_309144.query.since ?? '0', 10) || 0;
+  v_8f00b9.json({ turns: v_483137({ limit: v_02be30, sinceId: v_a35e1b }) });
+});
+
+v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
+  const v_389afb = Number.parseInt(v_309144.params.id, 10);
+  const v_3ac7e7 = Number.isFinite(v_389afb) ? v_f456fa(v_389afb) : null;
+  if (!v_3ac7e7) return v_8f00b9.status(404).json({ error: 'not_found' });
+  v_8f00b9.json(v_3ac7e7);
 });
 
 async function v_e705d0(v_f2bb81) {
@@ -241,7 +255,59 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   const v_af1e0d = []; 
   const v_c5607b = v_b070ed.randomBytes(6).toString('hex');
 
-  const v_3bfe38 = 10;
+  const v_b95b29 = Date.now();
+  let v_5fb2c2 = null;
+  let v_32b1d6 = '';
+  let v_9a1a8e = 0;
+  let v_2c141f = 0;
+  let v_f778a0 = null;        
+  let v_312499 = null;
+  let v_928047 = null;
+  let v_749b14 = null;
+  let v_001385 = false;  
+  let v_3ccb8e = null;   
+
+  const v_ef86b4 = (v_34e5bb) => {
+    if (v_001385) return;
+    v_001385 = true;
+    try {
+      const v_4d4347 = v_af1e0d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.wav.length, 0);
+      v_e173d2({
+        session_id: v_c5607b,
+        created_at: new Date().toISOString(),
+        mode: v_34e5bb,
+        user_text: v_e629b5,
+        llm_text: v_32b1d6,
+        llm_first_token_ms: v_5fb2c2,
+        llm_total_ms: v_3ccb8e?.total_duration_ms ?? null,
+        tts_total_ms: v_9a1a8e || null,
+        tts_count: v_2c141f || null,
+        mt_whisper_ms: v_f778a0?.whisper ?? null,
+        mt_coord_ms: v_f778a0?.coord ?? null,
+        mt_vae_ms: v_f778a0?.vae ?? null,
+        mt_unet_ms: v_f778a0?.unet ?? null,
+        mt_padding_ms: v_f778a0?.padding ?? null,
+        mt_ffmpeg_ms: v_f778a0?.ffmpeg ?? null,
+        mt_infer_ms: v_312499,
+        e2e_ms: Date.now() - v_b95b29,
+        sentence_count: v_af1e0d.length || null,
+        audio_bytes: v_4d4347 || null,
+        frames_pushed: v_928047,
+        wav_basename: null,
+        mp4_basename: v_749b14,
+        raw_json: JSON.stringify({
+          llm: v_3ccb8e ?? null,
+          mt_phase: v_f778a0,
+          mt_infer_ms: v_312499,
+          frames_pushed: v_928047,
+        }),
+      });
+    } catch (v_49263d) {
+      console.warn('[monitor] finalizeTurn failed:', v_49263d?.message ?? v_49263d);
+    }
+  };
+
+  const v_3bfe38 = Number.POSITIVE_INFINITY;
   let v_f42a31 = false;
   let v_a5b0d0 = 0;
   const v_983857 = new Set();
@@ -260,6 +326,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     const v_e2a85c = v_27fa47(v_738e47)
       .then(({ wav: v_7ab8bd, synthMs: v_3691b5 }) => {
         if (v_6c558f) return;
+        v_9a1a8e += v_3691b5 ?? 0;
+        v_2c141f += 1;
 
         if (!v_2c3445) {
           v_9c423d('tts', {
@@ -301,23 +369,54 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
       try {
         v_6944b4 = await v_034be8(v_6e7a7d);
         if (!v_6944b4) return;
+        await v_db6543(v_c5607b, v_6944b4.path, {
+          mode: 'stream',
+          sentence_count: v_6e7a7d.length,
+          audio_bytes: v_6e7a7d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+        });
         if (v_e01c9c) {
           v_e705d0(v_6944b4.path).catch((v_49263d) =>
             console.warn('[realtime-audio c1] push_audio failed:', v_49263d?.message ?? v_49263d),
           );
         }
-        await v_a16f6e({
+        const v_43c42e = await v_a16f6e({
           audio_path: v_6944b4.path,
-          output_id: `sess-${v_c5607b}-c1`,
+          output_id: v_c5607b,
           stream: true,
+        });
+        v_312499 = v_43c42e?.infer_ms ?? null;
+        v_f778a0 = v_43c42e?.phase_ms ?? null;
+        v_928047 = v_43c42e?.frames_pushed ?? null;
+        v_749b14 = v_43c42e?.mp4_basename ?? null;
+        await v_00b49d(v_c5607b, {
+          mp4_path: v_43c42e?.mp4_path ?? null,
+          mp4_basename: v_43c42e?.mp4_basename ?? null,
+          infer_ms: v_43c42e?.infer_ms ?? null,
+          frames_pushed: v_43c42e?.frames_pushed ?? null,
         });
         if (v_e01c9c) {
           await fetch(`${v_de4278}/push_audio_end`, {
             method: 'POST',
           }).catch(() => {});
         }
+
+        if (!v_6c558f && v_43c42e?.mp4_path) {
+          v_9c423d('video', {
+            url: v_6edf8f(v_43c42e.mp4_path),
+            mp4_path: v_43c42e.mp4_path,
+            mp4_basename: v_43c42e.mp4_basename,
+            infer_ms: v_43c42e?.infer_ms,
+            frames_pushed: v_43c42e?.frames_pushed ?? null,
+            sentence_count: v_6e7a7d.length,
+            audio_bytes: v_6e7a7d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+            streaming: true,
+          });
+        }
       } catch (v_49263d) {
         console.warn('musetalk c1 bg failed:', v_49263d?.message ?? v_49263d);
+        if (!v_6c558f) {
+          v_9c423d('video_error', { error: v_49263d?.message ?? 'musetalk stream failed' });
+        }
       } finally {
         if (v_6944b4) await v_ba8718(v_6944b4.dir).catch(() => {});
       }
@@ -344,6 +443,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
       const v_76a373 = v_c80dec(v_9b6134);
       if (!v_76a373) return;
+      if (v_5fb2c2 === null) v_5fb2c2 = Date.now() - v_b95b29;
+      v_32b1d6 += v_76a373;
       v_9c423d('chunk', { text: v_76a373 });
 
       const v_fe6160 = v_138fc0.feed(v_76a373);
@@ -351,6 +452,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     },
     onDone: (v_34d5e3) => {
       if (v_6c558f) return;
+      v_3ccb8e = v_34d5e3;
 
       const v_916658 = v_138fc0.flush();
       for (const v_fd5f43 of v_916658) v_ff0d3e(v_fd5f43);
@@ -374,66 +476,10 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
           if (v_2c3445) {
 
-            v_8f00b9.end();
-            (async () => {
-              await v_cbdd58;
-              if (v_6c558f) return;
-              const v_c8af91 = v_af1e0d
-                .filter((v_62c214) => v_62c214.chunkIdx === 2)
-                .sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq)
-                .map((v_62c214) => v_62c214.wav);
-              if (!v_c8af91.length) {
-
-                try {
-                  await v_db6543(v_c5607b, null, {
-                    mode: 'stream',
-                    sentence_count: v_af1e0d.length,
-                    audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
-                    single_chunk: true,
-                  }).catch(() => {});
-                } catch (v_3b6836) {}
-                return;
-              }
-              let v_6944b4 = null;
-              try {
-                v_6944b4 = await v_034be8(v_c8af91);
-                if (!v_6944b4) return;
-                await v_db6543(v_c5607b, v_6944b4.path, {
-                  mode: 'stream',
-                  sentence_count: v_af1e0d.length,
-                  audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
-                  chunk: 2,
-                });
-                if (v_e01c9c) {
-                  v_e705d0(v_6944b4.path).catch((v_49263d) =>
-                    console.warn(
-                      '[realtime-audio c2] push_audio failed:',
-                      v_49263d?.message ?? v_49263d,
-                    ),
-                  );
-                }
-                const v_43c42e = await v_a16f6e({
-                  audio_path: v_6944b4.path,
-                  output_id: `sess-${v_c5607b}-c2`,
-                  stream: true,
-                });
-                await v_00b49d(v_c5607b, {
-                  mp4_path: v_43c42e?.mp4_path ?? null,
-                  mp4_basename: v_43c42e?.mp4_basename ?? null,
-                  infer_ms: v_43c42e?.infer_ms ?? null,
-                  frames_pushed: v_43c42e?.frames_pushed ?? null,
-                });
-                if (v_e01c9c) {
-                  fetch(`${v_de4278}/push_audio_end`, {
-                    method: 'POST',
-                  }).catch(() => {});
-                }
-              } catch (v_49263d) {
-                console.warn('musetalk c2 bg failed:', v_49263d?.message ?? v_49263d);
-              } finally {
-                if (v_6944b4) await v_ba8718(v_6944b4.dir).catch(() => {});
-              }
-            })();
+            v_cbdd58.finally(() => {
+              v_ef86b4('stream');
+              if (!v_8f00b9.writableEnded) v_8f00b9.end();
+            }).catch(() => {});
             return;
           }
 
@@ -441,6 +487,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           try {
             v_6944b4 = await v_034be8(v_d33958);
             if (!v_6944b4) {
+
+              v_ef86b4('batch');
               v_8f00b9.end();
               return;
             }
@@ -451,10 +499,14 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
             });
             const v_43c42e = await v_a16f6e({
               audio_path: v_6944b4.path,
-              output_id: `sess-${v_c5607b}`,
+              output_id: v_c5607b,
               stream: false,
             });
             if (v_6c558f) return;
+            v_312499 = v_43c42e?.infer_ms ?? null;
+            v_f778a0 = v_43c42e?.phase_ms ?? null;
+            v_928047 = v_43c42e?.frames_pushed ?? null;
+            v_749b14 = v_43c42e?.mp4_basename ?? null;
             await v_00b49d(v_c5607b, {
               mp4_path: v_43c42e?.mp4_path ?? null,
               mp4_basename: v_43c42e?.mp4_basename ?? null,
@@ -489,9 +541,11 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
             }
           } finally {
             if (v_6944b4) await v_ba8718(v_6944b4.dir);
+            v_ef86b4('batch');
             v_8f00b9.end();
           }
         } else {
+          v_ef86b4(v_2c3445 ? 'stream' : 'batch');
           v_8f00b9.end();
         }
       });

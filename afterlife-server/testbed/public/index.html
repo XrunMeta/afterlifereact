@@ -18,6 +18,7 @@
     </div>
     <div class="actions">
       <button class="ghost" id="ttsToggleBtn" type="button" title="음성 on/off" aria-pressed="true">🔊</button>
+      <button class="ghost" id="monToggleBtn" type="button" title="모니터" aria-pressed="false">📊</button>
       <button class="ghost" id="resetBtn" type="button" title="대화 초기화">⟲</button>
     </div>
   </header>
@@ -55,5 +56,24 @@
   <audio id="ttsPlayer" preload="auto" hidden></audio>
 
   <script src="/chat.js" defer></script>
+  <section id="monPanel" class="mon-panel" hidden aria-label="turn 모니터">
+    <div class="mon-head">
+      <strong>turn timing (ms)</strong>
+      <span id="monMeta" class="mon-meta"></span>
+      <button id="monCloseBtn" class="ghost" type="button" title="닫기">✕</button>
+    </div>
+    <div class="mon-scroll">
+      <table class="mon-table">
+        <thead><tr>
+          <th>#</th><th>시각</th><th>mode</th><th>user</th><th>llm</th>
+          <th>LLM(1st/tot)</th><th>TTS(tot/n)</th>
+          <th>whisper</th><th>coord</th><th>vae</th><th>unet</th><th>ffmpeg</th>
+          <th>infer</th><th>e2e</th>
+        </tr></thead>
+        <tbody id="monRows"></tbody>
+      </table>
+    </div>
+  </section>
+  <script src="/monitor.js" defer></script>
 </body>
 </html>
