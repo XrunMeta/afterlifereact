@@ -10,7 +10,7 @@ test('buildExtractionMessages — level별 지시 + 기존 KV 포함', () => {
   });
   assert.equal(msgs[0].role, 'system');
   assert.match(msgs[0].content, /페르소나/);
-  assert.match(JSON.stringify(msgs), /"id":5/);
+  assert.match(msgs[1].content, /"id":5/);
   const msgs2 = buildExtractionMessages({ level: 'l2', persona_label: '할배', turnUser: 'x', turnAssistant: 'y', existingAttrs: [] });
   assert.match(msgs2[0].content, /방문자/);
 });

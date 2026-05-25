@@ -19,10 +19,11 @@ export function buildExtractionMessages({ level, persona_label, turnUser, turnAs
     `- 반드시 {"ops":[...]} JSON 만 출력.`;
   const existing = (existingAttrs ?? []).map((a) => ({ id: a.id, category: a.category, key: a.key, value: a.value }));
   const user =
+    `[기존 KV]\n${JSON.stringify(existing)}\n\n` +
     `[이번 대화]\n사용자: ${turnUser ?? ''}\n페르소나: ${turnAssistant ?? ''}`;
   return [
     { role: 'system', content: system },
-    { role: 'user', content: user, existing },
+    { role: 'user', content: user },
   ];
 }
 
