@@ -98,7 +98,7 @@ export function v_3ad6c0(v_16e2dd, v_152909) {
         if (v_f96a98.op === 'add') {
           const v_3c8572 = v_cd3306(v_d5dda0, v_16e2dd, v_f96a98.key);
           if (v_3c8572) {
-            v_3a3e6d.run({ id: v_3c8572.id, value: v_f96a98.value, confidence: v_f96a98.confidence ?? null,
+            v_3a3e6d.run({ id: v_3c8572.id, value: v_f96a98.value, confidence: v_f96a98.confidence ?? v_3c8572.confidence,
               category: v_f96a98.category ?? null, source_turn_id: v_16e2dd.source_turn_id ?? null });
             v_96f472.run({ attr_id: v_3c8572.id, op: 'update', old_value: v_3c8572.value,
               new_value: v_f96a98.value, reason: v_f96a98.reason ?? 'add→update(중복)', source_turn_id: v_16e2dd.source_turn_id ?? null });

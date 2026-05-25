@@ -76,3 +76,16 @@ v_2a805f('update target_id 소유권 위반 → 거부(applied 0)', () => {
   v_ce93bd.equal(v_8f00b9.applied, 0);
   v_ce93bd.equal(v_8f00b9.rejected, 1);
 });
+
+v_2a805f('L2 격리 침범 — 다른 user_label ctx 로 update/delete 거부', () => {
+  const v_779914 = { persona_slug: 'p6', level: 'l2', user_label: 'owner', source_turn_id: 1 };
+  v_120460.applyOps(v_779914, [{ op: 'add', category: 'relationship', key: '관계', value: '손자' }]);
+  const v_389afb = v_120460.getAttrsFor({ persona_slug: 'p6', level: 'l2', user_label: 'owner' })[0].id;
+  const v_a9cbf1 = { persona_slug: 'p6', level: 'l2', user_label: 'intruder', source_turn_id: 2 };
+  const v_d8f778 = v_120460.applyOps(v_a9cbf1, [{ op: 'update', target_id: v_389afb, value: 'x' }]);
+  v_ce93bd.equal(v_d8f778.rejected, 1);
+  const v_d0ca5b = v_120460.applyOps(v_a9cbf1, [{ op: 'delete', target_id: v_389afb }]);
+  v_ce93bd.equal(v_d0ca5b.rejected, 1);
+
+  v_ce93bd.equal(v_120460.getAttrsFor({ persona_slug: 'p6', level: 'l2', user_label: 'owner' })[0].value, '손자');
+});
