@@ -6,7 +6,9 @@ import { v_6b8a99 } from 'bujvoezm';
 import 'wcphoayfnlind';
 
 import { v_841e05, v_464116 } from './lib/prompt.js';
-import { v_a26277 } from './lib/ollama.js';
+import { v_a26277, v_3f4abd } from './lib/ollama.js';
+import { v_3ad6c0, v_e9fc79, v_49715e } from './lib/kvStore.js'; 
+import { v_585997 } from './lib/extractor.js';
 import { v_cdb49a } from './lib/sentence_buffer.js';
 import { v_27fa47 } from './lib/tts.js';
 import { v_0f0580, v_c80dec } from './lib/sanitize.js';
@@ -20,6 +22,8 @@ import v_b070ed from 'hikhkjexnsh';
 import v_d4f750 from 'fnffflguqbrqugbi';
 import { v_e173d2, v_483137, v_f456fa } from './logger.js';
 
+const v_327f32 = process.env.LEARN_ENABLED !== '0'; 
+const v_ef177e = process.env.PERSONA_LABEL ?? '할배';
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
 const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
@@ -90,6 +94,16 @@ v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
   const v_3ac7e7 = Number.isFinite(v_389afb) ? v_f456fa(v_389afb) : null;
   if (!v_3ac7e7) return v_8f00b9.status(404).json({ error: 'not_found' });
   v_8f00b9.json(v_3ac7e7);
+});
+
+v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
+  const v_5ed063 = (v_309144.query.persona ?? 'halbae').toString();
+  const v_fbe91e = v_309144.query.level ? v_309144.query.level.toString() : null;
+  const v_625c74 = v_309144.query.user ? v_309144.query.user.toString() : null;
+  v_8f00b9.json({ kv: v_e9fc79({ persona_slug: v_5ed063, level: v_fbe91e, user_label: v_625c74 }) });
+});
+v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
+  v_8f00b9.json({ history: v_49715e(Number(v_309144.params.id)) });
 });
 
 async function v_e705d0(v_f2bb81) {
@@ -226,6 +240,12 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     return v_8f00b9.status(400).json({ error: 'message is required' });
   }
 
+  const v_04e790 = v_309144.body?.source === 'agent' ? 'agent' : 'browser';
+  const v_9a14d9 = v_309144.body?.speaker_role === 'visitor' ? 'visitor' : 'creator';
+  const v_d63eac = v_9a14d9 === 'visitor' ? 'l2' : 'l1';
+  const v_1231fa = (v_309144.body?.user_label ?? (v_9a14d9 === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
+  const v_47fe3d = (v_309144.body?.persona_slug ?? 'halbae').toString();
+
   const v_fa56e0 = [
     { role: 'system', content: v_841e05() },
     ...v_10740d
@@ -267,15 +287,32 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   let v_001385 = false;  
   let v_3ccb8e = null;   
 
+  const v_73c1c8 = async (v_544e9a) => {
+    if (!v_544e9a || !v_327f32) return;
+    try {
+      const v_676b49 = v_e9fc79({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_d63eac === 'l2' ? v_1231fa : null });
+      const v_152909 = await v_585997(
+        { level: v_d63eac, persona_label: v_ef177e, turnUser: v_e629b5, turnAssistant: v_32b1d6, existingAttrs: v_676b49 },
+        v_3f4abd,
+      );
+      if (v_152909.length === 0) return;
+      const v_a78550 = v_3ad6c0({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_d63eac === 'l1' ? null : v_1231fa, source_turn_id: v_544e9a }, v_152909);
+      console.log(`[029-E-learn] turn=${v_544e9a} ${v_d63eac} ops applied=${v_a78550.applied} rejected=${v_a78550.rejected}`);
+    } catch (v_49263d) {
+      console.warn('[029-E-learn] triggerExtraction failed:', v_49263d?.message ?? v_49263d);
+    }
+  };
+
   const v_ef86b4 = (v_34e5bb) => {
     if (v_001385) return;
     v_001385 = true;
     try {
       const v_4d4347 = v_af1e0d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.wav.length, 0);
-      v_e173d2({
+      const v_544e9a = v_e173d2({
         session_id: v_c5607b,
         created_at: new Date().toISOString(),
         mode: v_34e5bb,
+        source: v_04e790, speaker_role: v_9a14d9, user_label: v_1231fa, persona_slug: v_47fe3d, 
         user_text: v_e629b5,
         llm_text: v_32b1d6,
         llm_first_token_ms: v_5fb2c2,
@@ -302,27 +339,42 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           frames_pushed: v_928047,
         }),
       });
+      v_73c1c8(v_544e9a).catch(() => {}); 
     } catch (v_49263d) {
       console.warn('[monitor] finalizeTurn failed:', v_49263d?.message ?? v_49263d);
     }
   };
 
-  const v_3bfe38 = Number.POSITIVE_INFINITY;
-  let v_f42a31 = false;
-  let v_a5b0d0 = 0;
-  const v_983857 = new Set();
-  let v_c8f3e1 = false;
-  let v_cbdd58 = Promise.resolve();
+  const v_3bfe38 = Number.parseInt(process.env.FIRST_CHUNK_WORD_TARGET ?? '3', 10); 
+  const v_66b4cd = Number.parseInt(process.env.CHUNK_WORD_TARGET ?? '4', 10);             
+
+  let v_a562b5 = 0;          
+  let v_c882d5 = false;
+  let v_85ce4d = 0;
+  const v_dd70e4 = new Map();   
+
+  const v_99333a = (process.env.MUSETALK_URLS ?? process.env.MUSETALK_URL ?? 'http://127.0.0.1:8300')
+    .split(',').map((v_fd5f43) => v_fd5f43.trim()).filter(Boolean)
+    .map((v_234c7c) => { const v_62c214 = new URL(v_234c7c); return { host: v_62c214.hostname, port: v_62c214.port ? Number.parseInt(v_62c214.port, 10) : 80 }; });
+  const v_0b8503 = [];     
+  const v_cdae05 = new Map();        
+  let v_536a75 = 1;               
+  let v_51387f = Promise.resolve(); 
+  let v_7d5f83 = 0;                  
 
   const v_ce98b2 = (v_fd5f43) => (v_fd5f43.match(/\S+/g) || []).length;
 
-  const v_80a694 = (v_9b6134, v_a562b5) => {
+  const v_fbe50b = (v_e86ad8) => (v_e86ad8 === 1 ? v_3bfe38 : v_66b4cd);
+  const v_26651a = (v_e86ad8) => (v_e86ad8 === 1 ? v_c5607b : `${v_c5607b}-c${v_e86ad8}`);
+
+  const v_80a694 = (v_9b6134, v_e86ad8) => {
     if (!v_455f07) return Promise.resolve();
 
     const v_738e47 = v_0f0580(v_9b6134);
     if (!v_738e47) return Promise.resolve();
     const v_1923e2 = ++v_213fa0;
     const v_b66f2c = Date.now();
+    const v_d7fc78 = v_dd70e4.get(v_e86ad8);
     const v_e2a85c = v_27fa47(v_738e47)
       .then(({ wav: v_7ab8bd, synthMs: v_3691b5 }) => {
         if (v_6c558f) return;
@@ -339,7 +391,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
             bytes: v_7ab8bd.length,
           });
         }
-        if (v_77b004) v_af1e0d.push({ seq: v_1923e2, wav: v_7ab8bd, chunkIdx: v_a562b5 });
+        if (v_77b004) v_af1e0d.push({ seq: v_1923e2, wav: v_7ab8bd, chunkIdx: v_e86ad8 });
       })
       .catch((v_49263d) => {
         if (v_6c558f) return;
@@ -347,93 +399,117 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
       })
       .finally(() => {
         v_e8b841.delete(v_e2a85c);
-        if (v_a562b5 === 1) v_983857.delete(v_e2a85c);
+        v_d7fc78?.delete(v_e2a85c);
       });
     v_e8b841.add(v_e2a85c);
-    if (v_a562b5 === 1) v_983857.add(v_e2a85c);
+    v_d7fc78?.add(v_e2a85c);
     return v_e2a85c;
   };
 
-  const v_210e32 = () => {
-    if (v_c8f3e1 || !v_2c3445 || !v_77b004) return;
-    v_c8f3e1 = true;
-    v_cbdd58 = (async () => {
-      await Promise.allSettled([...v_983857]);
+  const v_f6d2f5 = () => {
+    v_51387f = v_51387f
+      .then(async () => {
+        while (v_cdae05.has(v_536a75)) {
+          const v_cb35cb = v_cdae05.get(v_536a75);
+          v_cdae05.delete(v_536a75);
+          const v_eabacc = v_536a75;
+          v_536a75 += 1;
+          if (v_cb35cb?.mp4_path && v_e01c9c && !v_6c558f) {
+            await fetch(`${v_de4278}/push_mp4`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: v_cb35cb.mp4_path, reset: v_eabacc === 1 }),
+            }).catch((v_9e86fd) => console.warn(`[push_mp4 c${v_eabacc}] failed:`, v_9e86fd?.message ?? v_9e86fd));
+          }
+        }
+      })
+      .catch(() => {});
+  };
+
+  const v_02480e = async (v_e86ad8, v_2d2f94) => {
+    let v_43c42e = null;
+    let v_6944b4 = null;
+    try {
+      const v_d7fc78 = v_dd70e4.get(v_e86ad8) ?? new Set();
+      await Promise.allSettled([...v_d7fc78]);
       if (v_6c558f) return;
-      const v_6e7a7d = v_af1e0d
-        .filter((v_62c214) => v_62c214.chunkIdx === 1)
+      const v_96bf40 = v_af1e0d
+        .filter((v_62c214) => v_62c214.chunkIdx === v_e86ad8)
         .sort((v_779914, v_148ff6) => v_779914.seq - v_148ff6.seq)
         .map((v_62c214) => v_62c214.wav);
-      if (!v_6e7a7d.length) return;
-      let v_6944b4 = null;
-      try {
-        v_6944b4 = await v_034be8(v_6e7a7d);
-        if (!v_6944b4) return;
-        await v_db6543(v_c5607b, v_6944b4.path, {
-          mode: 'stream',
-          sentence_count: v_6e7a7d.length,
-          audio_bytes: v_6e7a7d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
-        });
-        if (v_e01c9c) {
-          v_e705d0(v_6944b4.path).catch((v_49263d) =>
-            console.warn('[realtime-audio c1] push_audio failed:', v_49263d?.message ?? v_49263d),
-          );
-        }
-        const v_43c42e = await v_a16f6e({
-          audio_path: v_6944b4.path,
-          output_id: v_c5607b,
-          stream: true,
-        });
+      if (!v_96bf40.length) return;
+      const v_dad203 = v_26651a(v_e86ad8);
+      v_6944b4 = await v_034be8(v_96bf40, v_dad203);
+      if (!v_6944b4) return;
+      await v_db6543(v_dad203, v_6944b4.path, {
+        mode: 'mp4-source',
+        chunk: v_e86ad8,
+        sentence_count: v_96bf40.length,
+        audio_bytes: v_96bf40.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+      });
+      v_43c42e = await v_a16f6e({
+        audio_path: v_6944b4.path,
+        output_id: v_dad203,
+        stream: false,
+        host: v_2d2f94.host,
+        port: v_2d2f94.port,
+      });
+
+      if (v_e86ad8 === 1) {
         v_312499 = v_43c42e?.infer_ms ?? null;
         v_f778a0 = v_43c42e?.phase_ms ?? null;
         v_928047 = v_43c42e?.frames_pushed ?? null;
         v_749b14 = v_43c42e?.mp4_basename ?? null;
-        await v_00b49d(v_c5607b, {
-          mp4_path: v_43c42e?.mp4_path ?? null,
-          mp4_basename: v_43c42e?.mp4_basename ?? null,
-          infer_ms: v_43c42e?.infer_ms ?? null,
-          frames_pushed: v_43c42e?.frames_pushed ?? null,
-        });
-        if (v_e01c9c) {
-          await fetch(`${v_de4278}/push_audio_end`, {
-            method: 'POST',
-          }).catch(() => {});
-        }
-
-        if (!v_6c558f && v_43c42e?.mp4_path) {
-          v_9c423d('video', {
-            url: v_6edf8f(v_43c42e.mp4_path),
-            mp4_path: v_43c42e.mp4_path,
-            mp4_basename: v_43c42e.mp4_basename,
-            infer_ms: v_43c42e?.infer_ms,
-            frames_pushed: v_43c42e?.frames_pushed ?? null,
-            sentence_count: v_6e7a7d.length,
-            audio_bytes: v_6e7a7d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
-            streaming: true,
-          });
-        }
-      } catch (v_49263d) {
-        console.warn('musetalk c1 bg failed:', v_49263d?.message ?? v_49263d);
-        if (!v_6c558f) {
-          v_9c423d('video_error', { error: v_49263d?.message ?? 'musetalk stream failed' });
-        }
-      } finally {
-        if (v_6944b4) await v_ba8718(v_6944b4.dir).catch(() => {});
       }
-    })();
+      await v_00b49d(v_dad203, {
+        mp4_path: v_43c42e?.mp4_path ?? null,
+        mp4_basename: v_43c42e?.mp4_basename ?? null,
+        infer_ms: v_43c42e?.infer_ms ?? null,
+      });
+      if (!v_6c558f && v_43c42e?.mp4_path) {
+        v_9c423d('video', {
+          url: v_6edf8f(v_43c42e.mp4_path),
+          mp4_path: v_43c42e.mp4_path,
+          mp4_basename: v_43c42e.mp4_basename,
+          infer_ms: v_43c42e?.infer_ms,
+          sentence_count: v_96bf40.length,
+          audio_bytes: v_96bf40.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
+          streaming: true,
+          chunk: v_e86ad8,
+          instance: `${v_2d2f94.host}:${v_2d2f94.port}`,
+        });
+      }
+    } catch (v_49263d) {
+      console.warn(`musetalk c${v_e86ad8} (mp4) failed:`, v_49263d?.message ?? v_49263d);
+      if (!v_6c558f) v_9c423d('video_error', { chunk: v_e86ad8, error: v_49263d?.message ?? 'musetalk failed' });
+    } finally {
+      if (v_6944b4) await v_ba8718(v_6944b4.dir).catch(() => {});
+
+      v_cdae05.set(v_e86ad8, v_43c42e?.mp4_path ? v_43c42e : null);
+      v_f6d2f5();
+    }
+  };
+
+  const v_128b4e = () => {
+    if (!v_c882d5) return;
+    const v_e86ad8 = v_a562b5;
+    v_c882d5 = false;
+    if (!(v_2c3445 && v_77b004)) return;
+    const v_2d2f94 = v_99333a[v_7d5f83];
+    v_7d5f83 = (v_7d5f83 + 1) % v_99333a.length;  
+    v_0b8503.push(v_02480e(v_e86ad8, v_2d2f94));
   };
 
   const v_ff0d3e = (v_fd5f43) => {
-    if (!v_f42a31) {
-      v_a5b0d0 += v_ce98b2(v_fd5f43);
-      v_80a694(v_fd5f43, 1);
-      if (v_a5b0d0 >= v_3bfe38) {
-        v_f42a31 = true;
-        v_210e32();
-      }
-    } else {
-      v_80a694(v_fd5f43, 2);
+    if (!v_c882d5) {
+      v_a562b5 += 1;
+      v_c882d5 = true;
+      v_85ce4d = 0;
+      v_dd70e4.set(v_a562b5, new Set());
     }
+    v_85ce4d += v_ce98b2(v_fd5f43);
+    v_80a694(v_fd5f43, v_a562b5);
+    if (v_85ce4d >= v_fbe50b(v_a562b5)) v_128b4e();
   };
 
   const v_57bcd5 = v_a26277({
@@ -457,10 +533,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
       const v_916658 = v_138fc0.flush();
       for (const v_fd5f43 of v_916658) v_ff0d3e(v_fd5f43);
 
-      if (!v_f42a31) {
-        v_f42a31 = true;
-        v_210e32();
-      }
+      if (v_c882d5) v_128b4e();
 
       Promise.allSettled([...v_e8b841]).then(async () => {
         if (v_6c558f) return;
@@ -476,10 +549,13 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
           if (v_2c3445) {
 
-            v_cbdd58.finally(() => {
-              v_ef86b4('stream');
-              if (!v_8f00b9.writableEnded) v_8f00b9.end();
-            }).catch(() => {});
+            Promise.allSettled(v_0b8503)
+              .then(() => { v_f6d2f5(); return v_51387f; })  
+              .finally(() => {
+                v_ef86b4('stream');
+                if (!v_8f00b9.writableEnded) v_8f00b9.end();
+              })
+              .catch(() => {});
             return;
           }
 

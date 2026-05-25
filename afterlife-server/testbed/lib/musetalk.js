@@ -16,14 +16,16 @@ const v_ceb55a = new URL(v_3cde1e);
 const v_899d88 = v_ceb55a.hostname;
 const v_66d977 = v_ceb55a.port ? Number.parseInt(v_ceb55a.port, 10) : 80;
 
-export async function v_034be8(v_ccfc2b) {
+export async function v_034be8(v_ccfc2b, v_1833e7 = 'concat') {
   if (!Array.isArray(v_ccfc2b) || v_ccfc2b.length === 0) return null;
 
   await v_9d3c52.mkdir(v_1adf82, { recursive: true }).catch(() => {});
   const v_b7cff2 = await v_9d3c52.mkdtemp(v_9fe22d.join(v_1adf82, 'mt-'));
 
+  const v_51c9d7 = String(v_1833e7).replace(/[^A-Za-z0-9_-]/g, '') || 'concat';
+
   if (v_ccfc2b.length === 1) {
-    const v_8d4337 = v_9fe22d.join(v_b7cff2, 'concat.wav');
+    const v_8d4337 = v_9fe22d.join(v_b7cff2, `${v_51c9d7}.wav`);
     await v_9d3c52.writeFile(v_8d4337, v_ccfc2b[0]);
     return { path: v_8d4337, dir: v_b7cff2 };
   }
@@ -38,7 +40,7 @@ export async function v_034be8(v_ccfc2b) {
   }
   await v_9d3c52.writeFile(v_da664d, v_a52412.join('\n') + '\n');
 
-  const v_8d4337 = v_9fe22d.join(v_b7cff2, 'concat.wav');
+  const v_8d4337 = v_9fe22d.join(v_b7cff2, `${v_51c9d7}.wav`);
 
   const v_3ed4c3 = await v_1b4bbf([
     '-y', '-loglevel', 'error',
@@ -84,7 +86,7 @@ export async function v_ba8718(v_b7cff2) {
   }
 }
 
-export function v_a16f6e({ audio_path: v_58c233, video_path: v_dda915, output_id: v_55918b, stream: v_cab51f }) {
+export function v_a16f6e({ audio_path: v_58c233, video_path: v_dda915, output_id: v_55918b, stream: v_cab51f, host: v_e11752, port: v_f31c63 }) {
   return new Promise((v_6f7712, v_bad6f3) => {
     const v_4d33b2 = JSON.stringify({
       audio_path: v_58c233,
@@ -95,8 +97,9 @@ export function v_a16f6e({ audio_path: v_58c233, video_path: v_dda915, output_id
 
     const v_309144 = v_00cd2e.request(
       {
-        hostname: v_899d88,
-        port: v_66d977,
+
+        hostname: v_e11752 ?? v_899d88,
+        port: v_f31c63 ?? v_66d977,
         path: '/infer',
         method: 'POST',
         headers: {
