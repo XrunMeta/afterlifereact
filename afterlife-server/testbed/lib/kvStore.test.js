@@ -89,3 +89,13 @@ test('L2 격리 침범 — 다른 user_label ctx 로 update/delete 거부', () =
 
   assert.equal(kv.getAttrsFor({ persona_slug: 'p6', level: 'l2', user_label: 'owner' })[0].value, '손자');
 });
+
+test('recentAttrs — persona 필터 + level/user 옵션', () => {
+  const ctx = { persona_slug: 'pr', level: 'l1', source_turn_id: 1 };
+  kv.applyOps(ctx, [{ op: 'add', category: 'profile', key: '이름', value: '할배' }]);
+  kv.applyOps({ persona_slug: 'pr', level: 'l2', user_label: 'v1', source_turn_id: 1 },
+    [{ op: 'add', category: 'relationship', key: '관계', value: '손자' }]);
+  assert.equal(kv.recentAttrs({ persona_slug: 'pr' }).length, 2);
+  assert.equal(kv.recentAttrs({ persona_slug: 'pr', level: 'l1' }).length, 1);
+  assert.equal(kv.recentAttrs({ persona_slug: 'pr', level: 'l2', user_label: 'v1' })[0].value, '손자');
+});

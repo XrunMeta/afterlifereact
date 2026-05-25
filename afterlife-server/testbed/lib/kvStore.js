@@ -148,6 +148,25 @@ export function getHistory(attrId) {
   }
 }
 
+export function recentAttrs({ persona_slug, level = null, user_label = null, limit = 200 }) {
+  try {
+    const d = getDb();
+    const where = ['persona_slug=?', "status='active'"];
+    const args = [persona_slug];
+    if (level) { where.push('level=?'); args.push(level); }
+    if (user_label != null) { where.push('user_label=?'); args.push(user_label); }
+    args.push(limit);
+    return d.prepare(
+      `SELECT id, persona_slug, level, category, key, value, confidence, user_label, source_turn_id, updated_at
+       FROM persona_attributes WHERE ${where.join(' AND ')}
+       ORDER BY updated_at DESC, id DESC LIMIT ?`,
+    ).all(...args);
+  } catch (err) {
+    console.warn('[029-E-learn] recentAttrs failed:', err?.message ?? err);
+    return [];
+  }
+}
+
 export function getAttrsFor({ persona_slug, level, user_label = null }) {
   try {
     const d = getDb();
