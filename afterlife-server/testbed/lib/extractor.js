@@ -54,3 +54,14 @@ export function parseOps(jsonText) {
   }
   return out;
 }
+
+export async function extractTurn(ctx, chatOnceFn) {
+  try {
+    const messages = buildExtractionMessages(ctx);
+    const text = await chatOnceFn({ messages, format: 'json' });
+    return parseOps(text);
+  } catch (err) {
+    console.warn('[029-E-learn] extractTurn failed:', err?.message ?? err);
+    return [];
+  }
+}

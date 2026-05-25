@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { buildExtractionMessages, parseOps } from './extractor.js';
+import { buildExtractionMessages, parseOps, extractTurn } from './extractor.js';
 
 test('buildExtractionMessages — level별 지시 + 기존 KV 포함', () => {
   const msgs = buildExtractionMessages({
@@ -36,4 +36,25 @@ test('parseOps — update/delete 는 target_id 필수', () => {
 test('parseOps — 깨진 JSON / ops 누락 → 빈 배열', () => {
   assert.deepEqual(parseOps('not json'), []);
   assert.deepEqual(parseOps('{"foo":1}'), []);
+});
+
+test('extractTurn — chatOnceFn 주입, 파싱된 ops 반환', async () => {
+  const fakeChatOnce = async ({ messages }) => {
+    assert.ok(messages.length === 2);
+    return '{"ops":[{"op":"add","category":"preference","key":"취미","value":"낚시"}]}';
+  };
+  const ops = await extractTurn(
+    { level: 'l1', persona_label: '할배', turnUser: '낚시 좋아', turnAssistant: '그려', existingAttrs: [] },
+    fakeChatOnce,
+  );
+  assert.equal(ops.length, 1);
+  assert.equal(ops[0].value, '낚시');
+});
+
+test('extractTurn — chatOnceFn throw 시 빈 배열(삼킴)', async () => {
+  const ops = await extractTurn(
+    { level: 'l1', turnUser: 'x', turnAssistant: 'y', existingAttrs: [] },
+    async () => { throw new Error('gemma down'); },
+  );
+  assert.deepEqual(ops, []);
 });
