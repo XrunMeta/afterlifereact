@@ -6,7 +6,9 @@ import { v_6b8a99 } from 'bujvoezm';
 import 'wcphoayfnlind';
 
 import { v_841e05, v_464116 } from './lib/prompt.js';
-import { v_a26277 } from './lib/ollama.js';
+import { v_a26277, v_3f4abd } from './lib/ollama.js';
+import { v_3ad6c0, v_e9fc79, v_49715e } from './lib/kvStore.js';
+import { v_585997 } from './lib/extractor.js';
 import { v_cdb49a } from './lib/sentence_buffer.js';
 import { v_27fa47 } from './lib/tts.js';
 import { v_0f0580, v_c80dec } from './lib/sanitize.js';
@@ -20,6 +22,8 @@ import v_b070ed from 'hikhkjexnsh';
 import v_d4f750 from 'fnffflguqbrqugbi';
 import { v_e173d2, v_483137, v_f456fa } from './logger.js';
 
+const v_327f32 = process.env.LEARN_ENABLED !== '0'; 
+const v_ef177e = process.env.PERSONA_LABEL ?? '할배';
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
 const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
@@ -226,6 +230,12 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     return v_8f00b9.status(400).json({ error: 'message is required' });
   }
 
+  const v_04e790 = v_309144.body?.source === 'agent' ? 'agent' : 'browser';
+  const v_9a14d9 = v_309144.body?.speaker_role === 'visitor' ? 'visitor' : 'creator';
+  const v_d63eac = v_9a14d9 === 'visitor' ? 'l2' : 'l1';
+  const v_1231fa = (v_309144.body?.user_label ?? (v_9a14d9 === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
+  const v_47fe3d = (v_309144.body?.persona_slug ?? 'halbae').toString();
+
   const v_fa56e0 = [
     { role: 'system', content: v_841e05() },
     ...v_10740d
@@ -267,15 +277,32 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   let v_001385 = false;  
   let v_3ccb8e = null;   
 
+  const v_73c1c8 = async (v_544e9a) => {
+    if (!v_544e9a || !v_327f32) return;
+    try {
+      const v_676b49 = v_e9fc79({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_d63eac === 'l2' ? v_1231fa : null });
+      const v_152909 = await v_585997(
+        { level: v_d63eac, persona_label: v_ef177e, turnUser: v_e629b5, turnAssistant: v_32b1d6, existingAttrs: v_676b49 },
+        v_3f4abd,
+      );
+      if (v_152909.length === 0) return;
+      const v_8f00b9 = v_3ad6c0({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_1231fa, source_turn_id: v_544e9a }, v_152909);
+      console.log(`[029-E-learn] turn=${v_544e9a} ${v_d63eac} ops applied=${v_8f00b9.applied} rejected=${v_8f00b9.rejected}`);
+    } catch (v_49263d) {
+      console.warn('[029-E-learn] triggerExtraction failed:', v_49263d?.message ?? v_49263d);
+    }
+  };
+
   const v_ef86b4 = (v_34e5bb) => {
     if (v_001385) return;
     v_001385 = true;
     try {
       const v_4d4347 = v_af1e0d.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.wav.length, 0);
-      v_e173d2({
+      const v_544e9a = v_e173d2({
         session_id: v_c5607b,
         created_at: new Date().toISOString(),
         mode: v_34e5bb,
+        source: v_04e790, speaker_role: v_9a14d9, user_label: v_1231fa, persona_slug: v_47fe3d, 
         user_text: v_e629b5,
         llm_text: v_32b1d6,
         llm_first_token_ms: v_5fb2c2,
@@ -302,6 +329,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           frames_pushed: v_928047,
         }),
       });
+      v_73c1c8(v_544e9a).catch(() => {}); 
     } catch (v_49263d) {
       console.warn('[monitor] finalizeTurn failed:', v_49263d?.message ?? v_49263d);
     }
