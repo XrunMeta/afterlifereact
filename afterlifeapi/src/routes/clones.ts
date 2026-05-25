@@ -1148,7 +1148,7 @@ v_f891e6.post("/:id/call-event", v_6690d9, async (v_3f4e2e) => {
   const v_a712cf = v_4d33b2.durationSeconds ?? 0;
   let v_27e8db = 0;
   if (v_a712cf >= v_22b4d2) {
-    const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.call);
+    const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.call, "call");
     v_27e8db = v_cb35cb.applied;
   }
   await v_74defc(v_3f4e2e, {
@@ -1172,11 +1172,22 @@ v_f891e6.post("/:id/learn-event", v_6690d9, async (v_3f4e2e) => {
   const v_2ba83d = !!(await v_3f4e2e.env.KV_RATE.get(v_4d76f9));
   let v_27e8db = 0;
   if (!v_2ba83d) {
-    const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.learn);
+    const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.learn, "learn");
     v_27e8db = v_cb35cb.applied;
     if (v_27e8db > 0) {
       await v_3f4e2e.env.KV_RATE.put(v_4d76f9, "1", { expirationTtl: 20 * 60 });
     }
   }
   return v_3f4e2e.json({ ok: true, bumped: true, scoreApplied: v_27e8db });
+});
+
+v_f891e6.post("/:id/chat-event", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
+  const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.chat, "chat");
+  return v_3f4e2e.json({ ok: true, scoreApplied: v_cb35cb.applied });
 });

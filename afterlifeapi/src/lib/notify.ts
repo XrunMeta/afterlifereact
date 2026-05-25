@@ -16,7 +16,9 @@ export type NotificationType =
 
   | "user_follow"
 
-  | "followee_new_clone";
+  | "followee_new_clone"
+
+  | "intimacy_score";
 
 export interface NotifyOptions {
 
@@ -176,6 +178,46 @@ export async function v_80a022(
     });
   } catch (v_49263d) {
     console.warn("[notifyCloneEvent] failed:", (v_49263d as Error).message);
+  }
+}
+
+export async function v_33d48f(
+  env: v_273a0c,
+  v_4317d1,
+): Promise<void> {
+  try {
+    if (v_4317d1.score <= 0) return;
+    const v_eb25ce = await v_c9c489.DB
+      .prepare(`SELECT owner_id, name FROM clones WHERE id = ? AND deleted_at IS NULL`)
+      .bind(v_4317d1.cloneId)
+      .first<{ owner_id: number; name: string }>();
+    if (!v_eb25ce) return;
+    if (v_eb25ce.owner_id === v_4317d1.actorId) return; 
+
+    const v_b0b8c8 = {
+      chat: "채팅",
+      call: "통화",
+      learn: "프로필 탐색",
+      feed: "피드 소통",
+    };
+    const v_2869c1 = v_b0b8c8[v_4317d1.action];
+
+    await v_c226a5(v_c9c489, {
+      userId: v_eb25ce.owner_id,
+      type: "intimacy_score",
+      title: `🌡️ +${v_4317d1.score}°C 온도 상승`,
+      body: `${v_eb25ce.name} 의 친밀도가 ${v_2869c1} 활동으로 ${v_4317d1.score}°C 올랐어요`,
+      url: `afterlife://clone/${v_4317d1.cloneId}/intimacy`,
+      data: {
+        cloneId: v_4317d1.cloneId,
+        action: v_4317d1.action,
+        score: v_4317d1.score,
+        actorId: v_4317d1.actorId,
+      },
+      skipEmail: true,
+    });
+  } catch (v_49263d) {
+    console.warn("[notifyIntimacyScore] failed:", (v_49263d as Error).message);
   }
 }
 

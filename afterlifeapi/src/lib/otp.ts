@@ -54,6 +54,10 @@ export async function v_b78f7e(env: v_273a0c, v_e0c7e8): Promise<void> {
   }
 
   const v_c99bd2 = v_ef6e02();
+
+  if (v_c9c489.ENVIRONMENT !== "production") {
+    console.log(`[OTP] email=${v_e0c7e8} code=${v_c99bd2} expiresInSec=${v_7dab9c}`);
+  }
   const v_fe2fc4 = await v_921b04(v_c99bd2);
   const v_5c2f9f = Date.now();
   const v_cbbd71 = {

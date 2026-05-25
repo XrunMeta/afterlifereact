@@ -392,6 +392,43 @@ export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
   return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
 }
 
+export interface IntimacyEvent {
+  id: number;
+  action: "chat" | "call" | "learn" | "feed";
+  score: number;
+  feedId: number | null;
+  createdAt: string;
+}
+
+export interface IntimacyEventsResponse {
+  summary: {
+    totalScore: number;
+    chat: number;
+    call: number;
+    learn: number;
+    feed: number;
+    eventCount: number;
+  };
+  items: IntimacyEvent[];
+  nextCursor: number | null;
+}
+
+export async function v_8ce643(
+  v_2ca7e0,
+  v_6e0fd3,
+  v_328259,
+): Promise<IntimacyEventsResponse> {
+  const v_212049 = new URLSearchParams();
+  if (v_328259?.limit) v_212049.set("limit", String(v_328259.limit));
+  if (v_328259?.cursor) v_212049.set("cursor", String(v_328259.cursor));
+  const v_25c4f7 = v_212049.toString();
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/intimacy-events${v_25c4f7 ? `?${v_25c4f7}` : ""}`,
+    v_2ca7e0,
+    { method: "GET" },
+  );
+}
+
 export interface CloneFollower {
   followId: number;
   userId: number;
@@ -480,8 +517,18 @@ export async function v_c0681d(
 export async function v_ba8b3a(
   v_2ca7e0,
   v_6e0fd3,
-): Promise<{ ok: true; bumped: boolean }> {
+): Promise<{ ok: true; bumped: boolean; scoreApplied?: number }> {
   return v_04b58a(`/oth-path${v_6e0fd3}/learn-event`, v_2ca7e0, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function v_7b4c9e(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ ok: true; scoreApplied?: number }> {
+  return v_04b58a(`/oth-path${v_6e0fd3}/chat-event`, v_2ca7e0, {
     method: "POST",
     body: JSON.stringify({}),
   });
@@ -547,6 +594,8 @@ export interface FollowedClone {
     total: number;
     intimacy: number; 
   };
+
+  isOwn?: boolean;
   createdAt: string;
 }
 export async function v_7281a5(

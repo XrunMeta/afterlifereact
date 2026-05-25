@@ -98,12 +98,19 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     return () => {
       const v_21cc31 = v_4d96d4.current;
       const v_062ae9 = v_32c215.current;
-      if (!v_21cc31 || !v_062ae9) return;
+      console.log(`[Call] 화면 종료 — call-event 전송 시도 token=${!!v_21cc31} cloneId=${v_062ae9}`);
+      if (!v_21cc31 || !v_062ae9) {
+        console.warn(`[Call] call-event 전송 SKIP (token=${!!v_21cc31} cid=${v_062ae9})`);
+        return;
+      }
       const v_40c855 = Math.floor((Date.now() - v_1406a6.current) / 1000);
+      console.log(`[Call] POST /oth-path${v_062ae9}/call-event { durationSeconds: ${v_40c855} }`);
 
-      void v_c0681d(v_21cc31, v_062ae9, { durationSeconds: v_40c855 }).catch((v_49263d) =>
-        console.warn("[Call] postCloneCallEvent failed:", v_49263d),
-      );
+      v_c0681d(v_21cc31, v_062ae9, { durationSeconds: v_40c855 })
+        .then((v_8f00b9) =>
+          console.log(`[Call] call-event ← ok scoreApplied=${(v_8f00b9 as { scoreApplied?: number }).scoreApplied ?? 0}°C (duration=${v_40c855}s, >=1200 이면 +15°C)`),
+        )
+        .catch((v_49263d) => console.warn("[Call] postCloneCallEvent failed:", v_49263d));
     };
   }, []);
 

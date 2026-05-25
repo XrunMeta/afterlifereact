@@ -273,10 +273,10 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     }
 
     if (!v_f04727.name || v_f04727.name.trim().length === 0) {
-      console.log("[CLONE-CREATE] BLOCKED: name missing. full draft=", JSON.stringify(v_f04727, null, 2));
+      console.log("[CLONE-CREATE] BLOCKED: name missing");
       v_889fad(
         "이름 누락",
-        "페르소나 이름이 없어요. 이전 단계로 돌아가서 이름을 입력해주세요.",
+        "페르소나 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
       );
       return;
     }

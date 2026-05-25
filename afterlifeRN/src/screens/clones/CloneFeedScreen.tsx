@@ -107,10 +107,16 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_799eb5 = v_f5f393 != null && v_8c0b26.cloneOwnerId === v_f5f393;
 
   v_c4deb2(() => {
-    if (!v_2ca7e0) return;
-    void v_ba8b3a(v_2ca7e0, v_2db2a5.cloneId).catch((v_49263d) =>
-      console.warn("[CloneFeed] learn event failed:", v_49263d),
-    );
+    if (!v_2ca7e0) {
+      console.warn(`[CloneFeed] learn-event SKIP — no accessToken (cloneId=${v_2db2a5.cloneId})`);
+      return;
+    }
+    console.log(`[CloneFeed] POST /oth-path${v_2db2a5.cloneId}/learn-event`);
+    v_ba8b3a(v_2ca7e0, v_2db2a5.cloneId)
+      .then((v_8f00b9) =>
+        console.log(`[CloneFeed] learn-event ← ok bumped=${v_8f00b9.bumped} scoreApplied=${(v_8f00b9 as { scoreApplied?: number }).scoreApplied ?? 0}°C (10분 쿨다운 적용)`),
+      )
+      .catch((v_49263d) => console.warn("[CloneFeed] learn event failed:", v_49263d));
 
   }, [v_2db2a5.cloneId]);
 

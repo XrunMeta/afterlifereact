@@ -76,7 +76,11 @@ async function v_467998(
 function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const { t: v_8d41d7 } = v_772971();
 
-  const v_2ba26d = v_f04727.voiceFile ? "upload" : "preset";
+  const v_2ba26d = v_f04727.voiceFile
+    ? "upload"
+    : v_f04727.voiceSampleId
+      ? "preset"
+      : "record";
   const [v_34e5bb, v_038d7f] = v_5ab095<Mode>(v_2ba26d);
   const [v_0c0b03, v_c98f46] = v_5ab095<string | null>(null);
 
@@ -149,7 +153,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     <View style={v_d81136.wrap}>
       {}
       <View style={v_d81136.modeRow}>
-        {(["preset", "record", "upload"] as const).map((v_35f85c) => {
+        {(["record", "preset", "upload"] as const).map((v_35f85c) => {
           const v_e0187d = {
             preset: "음성 선택",
             record: "직접 녹음",

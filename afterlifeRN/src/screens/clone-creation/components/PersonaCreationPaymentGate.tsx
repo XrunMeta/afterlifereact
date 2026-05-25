@@ -12,6 +12,7 @@ import {
   v_e767d1,
   v_326be8,
   v_09d0e5,
+  v_0e1f26,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
@@ -89,13 +90,15 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   const v_f6096a =
     v_c88e9b !== null && v_c88e9b < v_c02c4c;
 
+  const v_5ca23e = () => {
+    console.log("[PaymentGate] cancel tapped");
+    v_0e1f26.dismiss();
+    v_c7001c();
+  };
+
   const v_03cae9 = () => {
-    if (v_f6096a) {
-      v_3a7d09(
-        `XRUN 잔액이 부족해요. (${v_c88e9b ?? 0} / ${v_c02c4c} XRUN)`,
-      );
-      return;
-    }
+
+    if (v_f6096a) return;
     if (v_6bee94.length !== 6) {
       v_3a7d09("PIN 6자리를 입력해주세요.");
       return;
@@ -121,7 +124,15 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
         behavior={v_326be8.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <Pressable style={v_d81136.overlay} onPress={v_c7001c}>
+        {
+}
+        <Pressable
+          style={v_d81136.overlay}
+          onPress={() => {
+            console.log("[PaymentGate] overlay tapped");
+            v_0e1f26.dismiss();
+          }}
+        >
           <Pressable style={v_d81136.box} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <View style={v_d81136.iconWrap}>
               <Feather name="credit-card" size={26} color={v_1bfbd0.violet600} />
@@ -144,7 +155,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 v_240fbf(v_81e2ef.replace(/\D/g, "").slice(0, 6));
                 v_3a7d09(null);
               }}
-              placeholder={v_f6096a ? "잔액 부족" : "PIN 6자리"}
+              placeholder="PIN 6자리"
               placeholderTextColor={v_1bfbd0.zinc400}
               keyboardType="number-pad"
               secureTextEntry
@@ -154,7 +165,12 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
             />
             {v_5e9bfe && <Text style={v_d81136.error}>{v_5e9bfe}</Text>}
             <View style={v_d81136.btns}>
-              <TouchableOpacity style={v_d81136.cancel} onPress={v_c7001c}>
+              <TouchableOpacity
+                style={v_d81136.cancel}
+                onPress={v_5ca23e}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                activeOpacity={0.7}
+              >
                 <Text style={v_d81136.cancelText}>취소</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -166,9 +182,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 disabled={v_6bee94.length !== 6 || v_f6096a}
               >
                 <Text style={v_d81136.confirmText}>
-                  {v_f6096a
-                    ? "잔액 부족"
-                    : `${v_c02c4c} XRUN 결제`}
+                  {`${v_c02c4c} XRUN 결제`}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -375,23 +375,26 @@ v_f1d06f.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
     }
   }
 
-  await v_3f4e2e.env.DB
+  const v_43af15 = await v_3f4e2e.env.DB
     .prepare(
       `INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`,
     )
     .bind(v_c09aa8, v_43e90c)
     .run();
+  const v_81161e = (v_43af15.meta?.changes ?? 0) > 0;
 
   const v_3ac7e7 = await v_3f4e2e.env.DB
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(v_c09aa8)
     .first<{ likes_count: number }>();
+  if (v_81161e) {
 
-  await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_2db2a5.cloneId });
+    await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_2db2a5.cloneId });
 
-  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
+    await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
 
-  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, v_c09aa8, v_cf0463.feed);
+    await v_6f97bc(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, v_c09aa8, v_cf0463.feed);
+  }
   return v_3f4e2e.json({ ok: true, liked: true, likesCount: v_3ac7e7?.likes_count ?? 0 });
 });
 
@@ -515,20 +518,23 @@ v_96e8d7.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
     v_3459a5 = true;
   }
 
-  await v_3f4e2e.env.DB
+  const v_43af15 = await v_3f4e2e.env.DB
     .prepare(`INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`)
     .bind(v_c09aa8, v_43e90c)
     .run();
+  const v_81161e = (v_43af15.meta?.changes ?? 0) > 0;
 
   const v_7b3f91 = await v_3f4e2e.env.DB
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(v_c09aa8)
     .first<{ likes_count: number }>();
+  if (v_81161e) {
 
-  await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_6e0fd3 });
-  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
+    await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_6e0fd3 });
+    await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
 
-  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_c09aa8, v_cf0463.feed);
+    await v_6f97bc(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_c09aa8, v_cf0463.feed);
+  }
   return v_3f4e2e.json({
     ok: true,
     liked: true,
