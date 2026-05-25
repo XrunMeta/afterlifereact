@@ -51,6 +51,103 @@ function getDb() {
   return _db;
 }
 
+function findActive(d, ctx, key) {
+  if (ctx.level === 'l2') {
+    return d.prepare(
+      `SELECT * FROM persona_attributes
+       WHERE persona_slug=? AND level='l2' AND status='active' AND user_label IS ? AND key=?`,
+    ).get(ctx.persona_slug, ctx.user_label ?? null, key);
+  }
+  return d.prepare(
+    `SELECT * FROM persona_attributes
+     WHERE persona_slug=? AND level='l1' AND status='active' AND key=?`,
+  ).get(ctx.persona_slug, key);
+}
+
+function ownedActive(d, ctx, id) {
+  const row = d.prepare(`SELECT * FROM persona_attributes WHERE id=? AND status='active'`).get(id);
+  if (!row) return null;
+  if (row.persona_slug !== ctx.persona_slug || row.level !== ctx.level) return null;
+  if (ctx.level === 'l2' && (row.user_label ?? null) !== (ctx.user_label ?? null)) return null;
+  return row;
+}
+
+export function applyOps(ctx, ops) {
+  if (!Array.isArray(ops) || ops.length === 0) return { applied: 0, rejected: 0 };
+  const d = getDb();
+  const now = `datetime('now')`;
+  const insert = d.prepare(
+    `INSERT INTO persona_attributes
+       (clone_id, persona_slug, level, key, value, category, confidence, user_ref, user_label, source_turn_id)
+     VALUES (NULL, @persona_slug, @level, @key, @value, @category, @confidence, NULL, @user_label, @source_turn_id)`,
+  );
+  const setVal = d.prepare(
+    `UPDATE persona_attributes SET value=@value, confidence=@confidence,
+       category=COALESCE(@category, category), source_turn_id=@source_turn_id, updated_at=${now} WHERE id=@id`,
+  );
+  const softDel = d.prepare(`UPDATE persona_attributes SET status='deleted', updated_at=${now} WHERE id=@id`);
+  const addHist = d.prepare(
+    `INSERT INTO persona_attribute_history (attr_id, op, old_value, new_value, reason, source_turn_id)
+     VALUES (@attr_id, @op, @old_value, @new_value, @reason, @source_turn_id)`,
+  );
+
+  const run = d.transaction((opsList) => {
+    let applied = 0, rejected = 0;
+    for (const op of opsList) {
+      try {
+        if (op.op === 'add') {
+          const existing = findActive(d, ctx, op.key);
+          if (existing) {
+            setVal.run({ id: existing.id, value: op.value, confidence: op.confidence ?? null,
+              category: op.category ?? null, source_turn_id: ctx.source_turn_id ?? null });
+            addHist.run({ attr_id: existing.id, op: 'update', old_value: existing.value,
+              new_value: op.value, reason: op.reason ?? 'add→update(중복)', source_turn_id: ctx.source_turn_id ?? null });
+          } else {
+            const info = insert.run({ persona_slug: ctx.persona_slug, level: ctx.level, key: op.key,
+              value: op.value, category: op.category ?? 'misc', confidence: op.confidence ?? null,
+              user_label: ctx.user_label ?? null, source_turn_id: ctx.source_turn_id ?? null });
+            addHist.run({ attr_id: Number(info.lastInsertRowid), op: 'add', old_value: null,
+              new_value: op.value, reason: op.reason ?? null, source_turn_id: ctx.source_turn_id ?? null });
+          }
+          applied++;
+        } else if (op.op === 'update') {
+          const row = ownedActive(d, ctx, op.target_id);
+          if (!row) { rejected++; continue; }
+          setVal.run({ id: row.id, value: op.value, confidence: op.confidence ?? row.confidence,
+            category: op.category ?? null, source_turn_id: ctx.source_turn_id ?? null });
+          addHist.run({ attr_id: row.id, op: 'update', old_value: row.value, new_value: op.value,
+            reason: op.reason ?? null, source_turn_id: ctx.source_turn_id ?? null });
+          applied++;
+        } else if (op.op === 'delete') {
+          const row = ownedActive(d, ctx, op.target_id);
+          if (!row) { rejected++; continue; }
+          softDel.run({ id: row.id });
+          addHist.run({ attr_id: row.id, op: 'delete', old_value: row.value, new_value: null,
+            reason: op.reason ?? null, source_turn_id: ctx.source_turn_id ?? null });
+          applied++;
+        } else { rejected++; }
+      } catch (e) {
+        console.warn('[029-E-learn] op failed:', op?.op, e?.message ?? e);
+        rejected++;
+      }
+    }
+    return { applied, rejected };
+  });
+  return run(ops);
+}
+
+export function getHistory(attrId) {
+  try {
+    return getDb().prepare(
+      `SELECT id, attr_id, op, old_value, new_value, reason, source_turn_id, created_at
+       FROM persona_attribute_history WHERE attr_id=? ORDER BY id ASC`,
+    ).all(attrId);
+  } catch (err) {
+    console.warn('[029-E-learn] getHistory failed:', err?.message ?? err);
+    return [];
+  }
+}
+
 export function getAttrsFor({ persona_slug, level, user_label = null }) {
   try {
     const d = getDb();
