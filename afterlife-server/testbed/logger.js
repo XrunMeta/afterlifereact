@@ -14,6 +14,7 @@ const COLUMNS = [
   'mt_padding_ms', 'mt_ffmpeg_ms', 'mt_infer_ms',
   'e2e_ms', 'sentence_count', 'audio_bytes', 'frames_pushed',
   'wav_basename', 'mp4_basename', 'raw_json',
+  'source', 'speaker_role', 'user_label', 'persona_slug', 
 ];
 
 const LIST_COLUMNS = ['id', ...COLUMNS.filter((c) => c !== 'raw_json')];
@@ -35,10 +36,16 @@ function getDb() {
       mt_unet_ms INTEGER, mt_padding_ms INTEGER, mt_ffmpeg_ms INTEGER,
       mt_infer_ms INTEGER, e2e_ms INTEGER,
       sentence_count INTEGER, audio_bytes INTEGER, frames_pushed INTEGER,
-      wav_basename TEXT, mp4_basename TEXT, raw_json TEXT
+      wav_basename TEXT, mp4_basename TEXT, raw_json TEXT,
+      source TEXT, speaker_role TEXT, user_label TEXT, persona_slug TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_turns_id_desc ON turns(id DESC);
   `);
+
+  const have = new Set(_db.prepare(`PRAGMA table_info(turns)`).all().map((r) => r.name));
+  for (const c of ['source', 'speaker_role', 'user_label', 'persona_slug']) {
+    if (!have.has(c)) _db.exec(`ALTER TABLE turns ADD COLUMN ${c} TEXT`);
+  }
   return _db;
 }
 
