@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import 'dotenv/config';
 
 import { buildSystemPrompt, loadPersona } from './lib/prompt.js';
-import { chatStream } from './lib/ollama.js';
+import { chatStream, chatOnce } from './lib/ollama.js';
+import { applyOps, recentAttrs, getHistory } from './lib/kvStore.js';
+import { extractTurn } from './lib/extractor.js';
 import { createSentenceBuffer } from './lib/sentence_buffer.js';
 import { ttsSynthesize } from './lib/tts.js';
 import { stripEmoji, sanitizeChunk } from './lib/sanitize.js';
@@ -20,6 +22,8 @@ import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import { recordTurn, recentTurns, getTurn } from './logger.js';
 
+const LEARN_ENABLED = process.env.LEARN_ENABLED !== '0'; 
+const PERSONA_LABEL = process.env.PERSONA_LABEL ?? '할배';
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
 const MUSETALK_ENABLED = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
@@ -226,6 +230,12 @@ app.post('/oth-path', (req, res) => {
     return res.status(400).json({ error: 'message is required' });
   }
 
+  const source = req.body?.source === 'agent' ? 'agent' : 'browser';
+  const speakerRole = req.body?.speaker_role === 'visitor' ? 'visitor' : 'creator';
+  const learnLevel = speakerRole === 'visitor' ? 'l2' : 'l1';
+  const userLabel = (req.body?.user_label ?? (speakerRole === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
+  const personaSlug = (req.body?.persona_slug ?? 'halbae').toString();
+
   const messages = [
     { role: 'system', content: buildSystemPrompt() },
     ...history
@@ -267,15 +277,32 @@ app.post('/oth-path', (req, res) => {
   let turnRecorded = false;  
   let lastDoneInfo = null;   
 
+  const triggerExtraction = async (turnId) => {
+    if (!turnId || !LEARN_ENABLED) return;
+    try {
+      const existingAttrs = recentAttrs({ persona_slug: personaSlug, level: learnLevel, user_label: learnLevel === 'l2' ? userLabel : null });
+      const ops = await extractTurn(
+        { level: learnLevel, persona_label: PERSONA_LABEL, turnUser: userMessage, turnAssistant: llmText, existingAttrs },
+        chatOnce,
+      );
+      if (ops.length === 0) return;
+      const res = applyOps({ persona_slug: personaSlug, level: learnLevel, user_label: userLabel, source_turn_id: turnId }, ops);
+      console.log(`[029-E-learn] turn=${turnId} ${learnLevel} ops applied=${res.applied} rejected=${res.rejected}`);
+    } catch (err) {
+      console.warn('[029-E-learn] triggerExtraction failed:', err?.message ?? err);
+    }
+  };
+
   const finalizeTurn = (mode) => {
     if (turnRecorded) return;
     turnRecorded = true;
     try {
       const audioBytes = collectedWavs.reduce((a, b) => a + b.wav.length, 0);
-      recordTurn({
+      const turnId = recordTurn({
         session_id: sessionId,
         created_at: new Date().toISOString(),
         mode,
+        source, speaker_role: speakerRole, user_label: userLabel, persona_slug: personaSlug, 
         user_text: userMessage,
         llm_text: llmText,
         llm_first_token_ms: llmFirstTokenMs,
@@ -302,6 +329,7 @@ app.post('/oth-path', (req, res) => {
           frames_pushed: mtFramesPushed,
         }),
       });
+      triggerExtraction(turnId).catch(() => {}); 
     } catch (err) {
       console.warn('[monitor] finalizeTurn failed:', err?.message ?? err);
     }
