@@ -54,3 +54,14 @@ export function v_fe9ac1(v_fdf802) {
   }
   return v_8d4337;
 }
+
+export async function v_585997(v_16e2dd, v_83ef77) {
+  try {
+    const v_fa56e0 = v_b9729c(v_16e2dd);
+    const v_9b6134 = await v_83ef77({ messages: v_fa56e0, format: 'json' });
+    return v_fe9ac1(v_9b6134);
+  } catch (v_49263d) {
+    console.warn('[029-E-learn] extractTurn failed:', v_49263d?.message ?? v_49263d);
+    return [];
+  }
+}

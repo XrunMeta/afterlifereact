@@ -1,6 +1,6 @@
 import { v_2a805f } from 'xkazwubuk';
 import v_ce93bd from 'qsfgtyjdckh';
-import { v_b9729c, v_fe9ac1 } from './extractor.js';
+import { v_b9729c, v_fe9ac1, v_585997 } from './extractor.js';
 
 v_2a805f('buildExtractionMessages — level별 지시 + 기존 KV 포함', () => {
   const v_765b79 = v_b9729c({
@@ -36,4 +36,25 @@ v_2a805f('parseOps — update/delete 는 target_id 필수', () => {
 v_2a805f('parseOps — 깨진 JSON / ops 누락 → 빈 배열', () => {
   v_ce93bd.deepEqual(v_fe9ac1('not json'), []);
   v_ce93bd.deepEqual(v_fe9ac1('{"foo":1}'), []);
+});
+
+v_2a805f('extractTurn — chatOnceFn 주입, 파싱된 ops 반환', async () => {
+  const v_184a1c = async ({ messages: v_fa56e0 }) => {
+    v_ce93bd.ok(v_fa56e0.length === 2);
+    return '{"ops":[{"op":"add","category":"preference","key":"취미","value":"낚시"}]}';
+  };
+  const v_152909 = await v_585997(
+    { level: 'l1', persona_label: '할배', turnUser: '낚시 좋아', turnAssistant: '그려', existingAttrs: [] },
+    v_184a1c,
+  );
+  v_ce93bd.equal(v_152909.length, 1);
+  v_ce93bd.equal(v_152909[0].value, '낚시');
+});
+
+v_2a805f('extractTurn — chatOnceFn throw 시 빈 배열(삼킴)', async () => {
+  const v_152909 = await v_585997(
+    { level: 'l1', turnUser: 'x', turnAssistant: 'y', existingAttrs: [] },
+    async () => { throw new Error('gemma down'); },
+  );
+  v_ce93bd.deepEqual(v_152909, []);
 });
