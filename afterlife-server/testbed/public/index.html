@@ -41,6 +41,11 @@
 
   <main id="messages" class="messages" role="log" aria-live="polite"></main>
 
+  <div id="speakerBar" class="speaker-bar">
+    <label><input type="radio" name="speakerRole" value="creator" checked /> creator(L1)</label>
+    <label><input type="radio" name="speakerRole" value="visitor" /> visitor(L2)</label>
+    <input id="visitorIdInput" placeholder="visitor user_label" value="visitor-test" hidden />
+  </div>
   <form id="composer" class="composer" autocomplete="off">
     <textarea id="input"
       placeholder="할배한테 말 걸어봐요… (Enter 전송, Shift+Enter 줄바꿈)"
@@ -60,6 +65,7 @@
     <div class="mon-head">
       <strong>turn timing (ms)</strong>
       <span id="monMeta" class="mon-meta"></span>
+      <span id="monAgg" class="mon-meta"></span>
       <button id="monCloseBtn" class="ghost" type="button" title="닫기">✕</button>
     </div>
     <div class="mon-scroll">
@@ -71,6 +77,23 @@
           <th>infer</th><th>e2e</th>
         </tr></thead>
         <tbody id="monRows"></tbody>
+      </table>
+    </div>
+    <!-- 029-E-learn: 하단 KV(학습) 영역 -->
+    <div class="mon-head mon-head-kv">
+      <strong>KV 학습 (persona_attributes)</strong>
+      <select id="kvLevelFilter" class="mon-meta">
+        <option value="">전체</option>
+        <option value="l1">L1(본인)</option>
+        <option value="l2">L2(방문자)</option>
+      </select>
+      <input id="kvUserFilter" class="mon-meta" placeholder="user_label(L2)" size="10" />
+      <span id="kvMeta" class="mon-meta"></span>
+    </div>
+    <div class="mon-scroll mon-scroll-kv">
+      <table class="mon-table">
+        <thead><tr><th>cat</th><th>key</th><th>value</th><th>lvl</th><th>user</th><th>conf</th><th>updated</th></tr></thead>
+        <tbody id="kvRows"></tbody>
       </table>
     </div>
   </section>

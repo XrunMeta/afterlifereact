@@ -339,3 +339,11 @@ body { transition: margin-right .2s ease; }
 @media (min-width: 900px) {
   body.mon-open { margin-right: 560px; }
 }
+
+/* 029-E-learn: 모니터 상하 분할 + KV + speaker 토글 */
+.mon-scroll { max-height: 45vh; }
+.mon-scroll-kv { max-height: 35vh; border-top: 2px solid #333; }
+.mon-head-kv { margin-top: 6px; }
+#kvRows tr.kv-fresh { background: #2b4a2b; transition: background 1.2s; }
+.speaker-bar { display: flex; gap: 12px; align-items: center; padding: 4px 10px; font-size: 12px; color: #aaa; }
+.speaker-bar input[type="text"], #visitorIdInput { background: #1a1a1a; color: #ddd; border: 1px solid #444; border-radius: 4px; padding: 2px 6px; }
