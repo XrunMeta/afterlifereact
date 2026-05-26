@@ -268,7 +268,11 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   };
 
   let v_6c558f = false;
-  const v_138fc0 = v_cdb49a();
+
+  const v_138fc0 = v_cdb49a({
+    minLen: process.env.SENTENCE_MIN_LEN ? Number.parseInt(process.env.SENTENCE_MIN_LEN, 10) : undefined,
+    forceFlush: process.env.SENTENCE_FORCE_FLUSH ? Number.parseInt(process.env.SENTENCE_FORCE_FLUSH, 10) : undefined,
+  });
   let v_213fa0 = 0;
   const v_e8b841 = new Set();
 
