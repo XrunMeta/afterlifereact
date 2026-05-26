@@ -15,6 +15,15 @@ test('buildExtractionMessages — level별 지시 + 기존 KV 포함', () => {
   assert.match(msgs2[0].content, /방문자/);
 });
 
+test('추출은 사용자 발화만 사용 — 페르소나 답변 미포함 (029-G)', () => {
+  const msgs = buildExtractionMessages({
+    level: 'l1', persona_label: '할배',
+    turnUser: '나 낚시 좋아해', existingAttrs: [],
+  });
+  assert.match(msgs[1].content, /나 낚시 좋아해/);
+  assert.doesNotMatch(msgs[1].content, /페르소나:/);
+});
+
 test('parseOps — 정상 JSON → 정규화 ops', () => {
   const ops = parseOps('{"ops":[{"op":"add","category":"preference","key":"취미","value":"낚시","confidence":0.9}]}');
   assert.equal(ops.length, 1);
