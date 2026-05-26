@@ -7,7 +7,7 @@ import 'wcphoayfnlind';
 
 import { v_841e05, v_464116 } from './lib/prompt.js';
 import { v_a26277, v_3f4abd } from './lib/ollama.js';
-import { v_3ad6c0, v_e9fc79, v_49715e } from './lib/kvStore.js'; 
+import { v_3ad6c0, v_e9fc79, v_49715e, v_ff48df } from './lib/kvStore.js'; 
 import { v_585997 } from './lib/extractor.js';
 import { v_cdb49a } from './lib/sentence_buffer.js';
 import { v_27fa47 } from './lib/tts.js';
@@ -246,8 +246,13 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   const v_1231fa = (v_309144.body?.user_label ?? (v_9a14d9 === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
   const v_47fe3d = (v_309144.body?.persona_slug ?? 'halbae').toString();
 
+  const v_55a58f = v_ff48df({ persona_slug: v_47fe3d, level: 'l1', user_label: null });
+  const v_fc96ca = v_9a14d9 === 'visitor'
+    ? v_ff48df({ persona_slug: v_47fe3d, level: 'l2', user_label: v_1231fa })
+    : [];
+
   const v_fa56e0 = [
-    { role: 'system', content: v_841e05() },
+    { role: 'system', content: v_841e05({ l1Attrs: v_55a58f, l2Attrs: v_fc96ca }) },
     ...v_10740d
       .filter((v_35f85c) => v_35f85c && typeof v_35f85c.role === 'string' && typeof v_35f85c.content === 'string')
       .filter((v_35f85c) => ['user', 'assistant'].includes(v_35f85c.role))
@@ -296,7 +301,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     try {
       const v_676b49 = v_e9fc79({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_d63eac === 'l2' ? v_1231fa : null });
       const v_152909 = await v_585997(
-        { level: v_d63eac, persona_label: v_ef177e, turnUser: v_e629b5, turnAssistant: v_32b1d6, existingAttrs: v_676b49 },
+        { level: v_d63eac, persona_label: v_ef177e, turnUser: v_e629b5, existingAttrs: v_676b49 }, 
         v_3f4abd,
       );
       if (v_152909.length === 0) return;

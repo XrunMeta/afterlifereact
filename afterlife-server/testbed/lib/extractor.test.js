@@ -15,6 +15,15 @@ v_2a805f('buildExtractionMessages — level별 지시 + 기존 KV 포함', () =>
   v_ce93bd.match(v_3d0298[0].content, /방문자/);
 });
 
+v_2a805f('추출은 사용자 발화만 사용 — 페르소나 답변 미포함 (029-G)', () => {
+  const v_765b79 = v_b9729c({
+    level: 'l1', persona_label: '할배',
+    turnUser: '나 낚시 좋아해', existingAttrs: [],
+  });
+  v_ce93bd.match(v_765b79[1].content, /나 낚시 좋아해/);
+  v_ce93bd.doesNotMatch(v_765b79[1].content, /페르소나:/);
+});
+
 v_2a805f('parseOps — 정상 JSON → 정규화 ops', () => {
   const v_152909 = v_fe9ac1('{"ops":[{"op":"add","category":"preference","key":"취미","value":"낚시","confidence":0.9}]}');
   v_ce93bd.equal(v_152909.length, 1);
