@@ -1,14 +1,14 @@
 import { CATEGORIES } from './kvStore.js';
 
 const LEVEL_GUIDE = {
-  l1: '이 대화에서 페르소나("{persona}") **본인의 속성·사실**(성격·취향·취미·건강·출신·일화 등)을 추출한다.',
-  l2: '이 대화에서 **이 방문자 본인의 정보**와 **페르소나와의 관계**(누구인지·상태·관계)를 추출한다.',
+  l1: '사용자 발화에서 페르소나("{persona}") **본인의 속성·사실**(성격·취향·취미·건강·출신·일화 등 — 사용자가 페르소나에 대해 알려주거나 기억해달라는 것)을 추출한다.',
+  l2: '사용자(방문자) 발화에서 **이 방문자 본인의 정보**와 **페르소나와의 관계**(누구인지·상태·관계)를 추출한다.',
 };
 
-export function buildExtractionMessages({ level, persona_label, turnUser, turnAssistant, existingAttrs }) {
+export function buildExtractionMessages({ level, persona_label, turnUser, existingAttrs }) {
   const guide = (LEVEL_GUIDE[level] ?? LEVEL_GUIDE.l1).replace('{persona}', persona_label ?? '페르소나');
   const system =
-    `너는 대화에서 학습용 사실을 추출하는 분석기다. ${guide}\n` +
+    `너는 사용자 발화에서 학습용 사실을 추출하는 분석기다. ${guide}\n` +
     `규칙:\n` +
     `- 새 사실 → {"op":"add","category","key","value","confidence":0~1,"reason"}\n` +
     `- 기존 사실 변경·정정 → {"op":"update","target_id":<기존 id>,"value","confidence","reason"}\n` +
@@ -20,7 +20,7 @@ export function buildExtractionMessages({ level, persona_label, turnUser, turnAs
   const existing = (existingAttrs ?? []).map((a) => ({ id: a.id, category: a.category, key: a.key, value: a.value }));
   const user =
     `[기존 KV]\n${JSON.stringify(existing)}\n\n` +
-    `[이번 대화]\n사용자: ${turnUser ?? ''}\n페르소나: ${turnAssistant ?? ''}`;
+    `[이번 사용자 발화]\n${turnUser ?? ''}`;
   return [
     { role: 'system', content: system },
     { role: 'user', content: user },

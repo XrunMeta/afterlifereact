@@ -7,7 +7,7 @@ import 'dotenv/config';
 
 import { buildSystemPrompt, loadPersona } from './lib/prompt.js';
 import { chatStream, chatOnce } from './lib/ollama.js';
-import { applyOps, recentAttrs, getHistory } from './lib/kvStore.js'; 
+import { applyOps, recentAttrs, getHistory, getAttrsFor } from './lib/kvStore.js'; 
 import { extractTurn } from './lib/extractor.js';
 import { createSentenceBuffer } from './lib/sentence_buffer.js';
 import { ttsSynthesize } from './lib/tts.js';
@@ -246,8 +246,13 @@ app.post('/oth-path', (req, res) => {
   const userLabel = (req.body?.user_label ?? (speakerRole === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
   const personaSlug = (req.body?.persona_slug ?? 'halbae').toString();
 
+  const l1Attrs = getAttrsFor({ persona_slug: personaSlug, level: 'l1', user_label: null });
+  const l2Attrs = speakerRole === 'visitor'
+    ? getAttrsFor({ persona_slug: personaSlug, level: 'l2', user_label: userLabel })
+    : [];
+
   const messages = [
-    { role: 'system', content: buildSystemPrompt() },
+    { role: 'system', content: buildSystemPrompt({ l1Attrs, l2Attrs }) },
     ...history
       .filter((m) => m && typeof m.role === 'string' && typeof m.content === 'string')
       .filter((m) => ['user', 'assistant'].includes(m.role))
@@ -296,7 +301,7 @@ app.post('/oth-path', (req, res) => {
     try {
       const existingAttrs = recentAttrs({ persona_slug: personaSlug, level: learnLevel, user_label: learnLevel === 'l2' ? userLabel : null });
       const ops = await extractTurn(
-        { level: learnLevel, persona_label: PERSONA_LABEL, turnUser: userMessage, turnAssistant: llmText, existingAttrs },
+        { level: learnLevel, persona_label: PERSONA_LABEL, turnUser: userMessage, existingAttrs }, 
         chatOnce,
       );
       if (ops.length === 0) return;

@@ -17,12 +17,20 @@ export function loadPersona() {
   return cache;
 }
 
-export function buildSystemPrompt() {
+export function buildSystemPrompt({ l1Attrs = [], l2Attrs = [] } = {}) {
   const { profile, kb } = loadPersona();
   const traits = (profile.voiceTraits ?? []).map((t) => `  - ${t}`).join('\n');
   const dosNotDo = (profile.languageStyle?.dosNotDo ?? [])
     .map((d) => `  - ${d}`)
     .join('\n');
+
+  const learnedLines = [
+    ...(l1Attrs ?? []).map((a) => `- (본인) ${a.key}: ${a.value}`),
+    ...(l2Attrs ?? []).map((a) => `- (상대) ${a.key}: ${a.value}`),
+  ];
+  const learnedSection = learnedLines.length
+    ? `\n\n[대화로 기억한 것 — 지금까지 대화에서 직접 알게 된 사실. KB와 함께 활용하되 여기 없는 건 지어내지 말 것]\n${learnedLines.join('\n')}`
+    : '';
 
   return `당신은 "${profile.displayName}" (${profile.fullName}) 입니다.
 사용자(${profile.userRelation})와 1인칭으로 대화하세요.
@@ -55,7 +63,7 @@ ${dosNotDo}
 6. 응답은 일반 한국어 글자만 사용. 이모지 / 이모티콘 / 그림 문자 / 특수 심볼 (예: 😀 🍲 ❤ ♥ ♪ ⭐ ✨) 절대 출력 금지. 텍스트가 그대로 음성으로 합성되므로 이모지가 들어가면 이상한 단어로 발음됩니다.
 
 [기억 조각 (KB)]
-${kb}
+${kb}${learnedSection}
 
 이제 ${profile.userRelation}이/가 말을 걸어옵니다. ${profile.displayName}로서 답해주세요.`;
 }
