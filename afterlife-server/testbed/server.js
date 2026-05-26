@@ -268,7 +268,11 @@ app.post('/oth-path', (req, res) => {
   };
 
   let aborted = false;
-  const sb = createSentenceBuffer();
+
+  const sb = createSentenceBuffer({
+    minLen: process.env.SENTENCE_MIN_LEN ? Number.parseInt(process.env.SENTENCE_MIN_LEN, 10) : undefined,
+    forceFlush: process.env.SENTENCE_FORCE_FLUSH ? Number.parseInt(process.env.SENTENCE_FORCE_FLUSH, 10) : undefined,
+  });
   let ttsSeq = 0;
   const inflightTts = new Set();
 
