@@ -1,14 +1,14 @@
 import { v_6e79a1 } from './kvStore.js';
 
 const v_39d42e = {
-  l1: '이 대화에서 페르소나("{persona}") **본인의 속성·사실**(성격·취향·취미·건강·출신·일화 등)을 추출한다.',
-  l2: '이 대화에서 **이 방문자 본인의 정보**와 **페르소나와의 관계**(누구인지·상태·관계)를 추출한다.',
+  l1: '사용자 발화에서 페르소나("{persona}") **본인의 속성·사실**(성격·취향·취미·건강·출신·일화 등 — 사용자가 페르소나에 대해 알려주거나 기억해달라는 것)을 추출한다.',
+  l2: '사용자(방문자) 발화에서 **이 방문자 본인의 정보**와 **페르소나와의 관계**(누구인지·상태·관계)를 추출한다.',
 };
 
-export function v_b9729c({ level: v_fbe91e, persona_label: v_dd43f9, turnUser: v_e78466, turnAssistant: v_22155b, existingAttrs: v_676b49 }) {
+export function v_b9729c({ level: v_fbe91e, persona_label: v_dd43f9, turnUser: v_e78466, existingAttrs: v_676b49 }) {
   const v_734c38 = (v_39d42e[v_fbe91e] ?? v_39d42e.l1).replace('{persona}', v_dd43f9 ?? '페르소나');
   const v_15c2da =
-    `너는 대화에서 학습용 사실을 추출하는 분석기다. ${v_734c38}\n` +
+    `너는 사용자 발화에서 학습용 사실을 추출하는 분석기다. ${v_734c38}\n` +
     `규칙:\n` +
     `- 새 사실 → {"op":"add","category","key","value","confidence":0~1,"reason"}\n` +
     `- 기존 사실 변경·정정 → {"op":"update","target_id":<기존 id>,"value","confidence","reason"}\n` +
@@ -20,7 +20,7 @@ export function v_b9729c({ level: v_fbe91e, persona_label: v_dd43f9, turnUser: v
   const v_3c8572 = (v_676b49 ?? []).map((v_779914) => ({ id: v_779914.id, category: v_779914.category, key: v_779914.key, value: v_779914.value }));
   const v_625c74 =
     `[기존 KV]\n${JSON.stringify(v_3c8572)}\n\n` +
-    `[이번 대화]\n사용자: ${v_e78466 ?? ''}\n페르소나: ${v_22155b ?? ''}`;
+    `[이번 사용자 발화]\n${v_e78466 ?? ''}`;
   return [
     { role: 'system', content: v_15c2da },
     { role: 'user', content: v_625c74 },
