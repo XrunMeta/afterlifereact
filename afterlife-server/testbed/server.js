@@ -22,6 +22,11 @@ import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import { recordTurn, recentTurns, getTurn } from './logger.js';
 
+import { openDb } from './orchestrator/db.js';
+import { createOrchestrator } from './orchestrator/calls.js';
+import * as publisherProc from './orchestrator/publisherProc.js';
+import { orchestratorRouter } from './orchestrator/routes.js';
+
 const LEARN_ENABLED = process.env.LEARN_ENABLED !== '0'; 
 const PERSONA_LABEL = process.env.PERSONA_LABEL ?? '할배';
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
@@ -56,6 +61,41 @@ app.use(express.json({ limit: '256kb' }));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 app.use('/outputs', express.static(MUSETALK_OUTPUTS_DIR, { fallthrough: true }));
+
+const ORCH_SECRET = process.env.ORCH_SECRET ?? '';
+const orchDb = openDb(process.env.ORCH_DB_PATH ?? path.join(__dirname, 'orchestrator', 'calls.db'));
+const orch = createOrchestrator({
+  db: orchDb,
+  config: {
+    python: process.env.PUBLISHER_PYTHON ?? 'python',
+    script: process.env.PUBLISHER_SCRIPT
+      ?? path.join(__dirname, '..', 'realtime-afterlife', 'scripts', 'publisher.py'),
+    idleMp4Default: process.env.IDLE_MP4_PATH ?? '',
+    portBase: Number.parseInt(process.env.PUBLISHER_PORT_BASE ?? '8410', 10),
+    portCount: Number.parseInt(process.env.PUBLISHER_PORT_COUNT ?? '30', 10),
+    healthTimeoutMs: Number.parseInt(process.env.ORCH_HEALTH_TIMEOUT_MS ?? '15000', 10),
+    killGraceMs: Number.parseInt(process.env.ORCH_KILL_GRACE_MS ?? '3000', 10),
+
+    cfEnv: {
+      CF_REALTIME_APP_ID: process.env.CF_REALTIME_APP_ID ?? '',
+      CF_REALTIME_APP_TOKEN: process.env.CF_REALTIME_APP_TOKEN ?? '',
+      CF_REALTIME_BASE: process.env.CF_REALTIME_BASE ?? 'https://rtc.live.cloudflare.com/v1',
+    },
+    logStream: process.stdout,
+  },
+  deps: {
+    spawnPublisher: publisherProc.spawnPublisher,
+    waitHealthz: publisherProc.waitHealthz,
+    publishStart: publisherProc.publishStart,
+    publishStop: publisherProc.publishStop,
+    killProc: publisherProc.killProc,
+    now: Date.now,
+    randomUUID: () => crypto.randomUUID(),
+    randomToken: () => crypto.randomBytes(32).toString('base64url'),
+  },
+});
+await orch.reconcile(); 
+app.use(orchestratorRouter(orch, { secret: ORCH_SECRET }));
 
 app.get('/healthz', (_req, res) => {
   res.type('text/plain').send('ok\n');
