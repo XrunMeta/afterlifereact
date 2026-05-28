@@ -13,7 +13,7 @@ import { v_f891e6 } from "./routes/clones";
 import { v_773b4c } from "./routes/memory";
 import { v_19e2a3, v_fa56e0 } from "./routes/messages";
 import { v_96e8d7, v_f1d06f } from "./routes/feeds";
-import { v_b211dd } from "./routes/sessions";
+import { v_20e160 } from "./routes/calls";
 import { v_403c0a, v_98b245 } from "./routes/sharing";
 import { v_f07b70, v_521eb8 } from "./routes/shorts";
 import { v_1beee6 } from "./routes/editorTransfer";
@@ -99,7 +99,7 @@ v_466992.route("/oth-path", v_521eb8);
 v_466992.route("/oth-path", v_1beee6);
 v_466992.route("/oth-path", v_fa56e0);
 
-v_466992.route("/oth-path", v_b211dd);
+v_466992.route("/oth-path", v_20e160);
 v_466992.route("/oth-path", v_98b245);
 v_466992.route("/oth-path", v_e2c945);
 v_466992.route("/oth-path", v_a35f69);
