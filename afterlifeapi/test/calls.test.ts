@@ -102,7 +102,20 @@ v_469bf2("calls route", () => {
     const v_6e0fd3 = await v_4d24a9(v_257b90, "call_end");
     const v_ea333d = await v_86c39f(v_257b90);
     v_8fd90d.get(v_8fe3be).intercept({ path: "/oth-path", method: "DELETE" }).reply(200, { ok: true });
-    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/xyz/end`, {
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/abcd1234-ef/end`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    v_4d37e3(await v_8f00b9.json()).toEqual({ ok: true });
+  });
+
+  v_23805a("POST /oth-path — 형식 위반 callId 는 멱등 200(orchestrator 미호출)", async () => {
+    const v_257b90 = await v_bfb240("call-badid@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "call_badid");
+    const v_ea333d = await v_86c39f(v_257b90);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/tooshort/end`, {
       method: "POST",
       headers: { Authorization: `Bearer ${v_ea333d}` },
     });

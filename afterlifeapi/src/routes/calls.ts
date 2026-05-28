@@ -59,6 +59,8 @@ v_20e160.post("/:cloneId/call/:callId/end", v_6690d9, async (v_3f4e2e) => {
   v_31113b(v_3f4e2e);
   const v_be62d3 = v_3f4e2e.req.param("callId");
   const v_43e90c = v_3f4e2e.get("userId")!;
+
+  if (!/^[0-9a-fA-F-]{8,64}$/.test(v_be62d3)) return v_3f4e2e.json({ ok: true });
   try {
     await fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path${v_be62d3}`, {
       method: "DELETE",

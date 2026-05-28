@@ -63,6 +63,10 @@ v_466992.use(v_96bb47.static(v_9fe22d.join(v_a65c2e, 'public'), { extensions: ['
 v_466992.use('/outputs', v_96bb47.static(v_e3f065, { fallthrough: true }));
 
 const v_4b93d8 = process.env.ORCH_SECRET ?? '';
+
+if (!v_4b93d8) {
+  console.warn('[orch] WARN ORCH_SECRET 미설정 — /oth-path* 통화 생성 거부(401). preview/prod 는 반드시 secret 설정.');
+}
 const v_9a7e19 = v_64a9a8(process.env.ORCH_DB_PATH ?? v_9fe22d.join(v_a65c2e, 'orchestrator', 'calls.db'));
 const v_38a552 = v_3df644({
   db: v_9a7e19,

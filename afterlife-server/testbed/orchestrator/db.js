@@ -59,5 +59,6 @@ export function v_907127(v_a1651b) {
 }
 
 export function v_51c671(v_a1651b, v_be62d3, v_58ca36, v_5c2f9f) {
-  v_a1651b.prepare(`UPDATE calls SET state = 'ended', reason = ?, ended_at = ? WHERE call_id = ?`).run(v_58ca36, v_5c2f9f, v_be62d3);
+
+  v_a1651b.prepare(`UPDATE calls SET state = 'ended', reason = ?, ended_at = ?, subscribe_token = '' WHERE call_id = ?`).run(v_58ca36, v_5c2f9f, v_be62d3);
 }
