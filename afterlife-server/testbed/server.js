@@ -22,6 +22,11 @@ import v_b070ed from 'hikhkjexnsh';
 import v_d4f750 from 'fnffflguqbrqugbi';
 import { v_e173d2, v_483137, v_f456fa } from './logger.js';
 
+import { v_64a9a8 } from './orchestrator/db.js';
+import { v_3df644 } from './orchestrator/calls.js';
+import * as v_31b899 from './orchestrator/publisherProc.js';
+import { v_306c75 } from './orchestrator/routes.js';
+
 const v_327f32 = process.env.LEARN_ENABLED !== '0'; 
 const v_ef177e = process.env.PERSONA_LABEL ?? '할배';
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
@@ -56,6 +61,41 @@ v_466992.use(v_96bb47.json({ limit: '256kb' }));
 v_466992.use(v_96bb47.static(v_9fe22d.join(v_a65c2e, 'public'), { extensions: ['html'] }));
 
 v_466992.use('/outputs', v_96bb47.static(v_e3f065, { fallthrough: true }));
+
+const v_4b93d8 = process.env.ORCH_SECRET ?? '';
+const v_9a7e19 = v_64a9a8(process.env.ORCH_DB_PATH ?? v_9fe22d.join(v_a65c2e, 'orchestrator', 'calls.db'));
+const v_38a552 = v_3df644({
+  db: v_9a7e19,
+  config: {
+    python: process.env.PUBLISHER_PYTHON ?? 'python',
+    script: process.env.PUBLISHER_SCRIPT
+      ?? v_9fe22d.join(v_a65c2e, '..', 'realtime-afterlife', 'scripts', 'publisher.py'),
+    idleMp4Default: process.env.IDLE_MP4_PATH ?? '',
+    portBase: Number.parseInt(process.env.PUBLISHER_PORT_BASE ?? '8410', 10),
+    portCount: Number.parseInt(process.env.PUBLISHER_PORT_COUNT ?? '30', 10),
+    healthTimeoutMs: Number.parseInt(process.env.ORCH_HEALTH_TIMEOUT_MS ?? '15000', 10),
+    killGraceMs: Number.parseInt(process.env.ORCH_KILL_GRACE_MS ?? '3000', 10),
+
+    cfEnv: {
+      CF_REALTIME_APP_ID: process.env.CF_REALTIME_APP_ID ?? '',
+      CF_REALTIME_APP_TOKEN: process.env.CF_REALTIME_APP_TOKEN ?? '',
+      CF_REALTIME_BASE: process.env.CF_REALTIME_BASE ?? 'https://rtc.live.cloudflare.com/v1',
+    },
+    logStream: process.stdout,
+  },
+  deps: {
+    spawnPublisher: v_31b899.spawnPublisher,
+    waitHealthz: v_31b899.waitHealthz,
+    publishStart: v_31b899.publishStart,
+    publishStop: v_31b899.publishStop,
+    killProc: v_31b899.killProc,
+    now: Date.now,
+    randomUUID: () => v_b070ed.randomUUID(),
+    randomToken: () => v_b070ed.randomBytes(32).toString('base64url'),
+  },
+});
+await v_38a552.reconcile(); 
+v_466992.use(v_306c75(v_38a552, { secret: v_4b93d8 }));
 
 v_466992.get('/healthz', (v_5ebc52, v_8f00b9) => {
   v_8f00b9.type('text/plain').send('ok\n');
