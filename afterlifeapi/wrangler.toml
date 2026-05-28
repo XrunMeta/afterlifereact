@@ -67,6 +67,8 @@ id = "bdf9722018f541c59f50e6014696cddf"
 
 [vars]
 ENVIRONMENT = "development"
+# SP1a — gabia orchestrator. dev/test 는 실제 호출 안 함(vitest fetchMock 대상). preview/prod 는 실 URL.
+ORCHESTRATOR_URL = "http://orchestrator.test"
 WEBAUTHN_RP_ID = "localhost"
 WEBAUTHN_RP_ORIGIN = "http://localhost:8787"
 LAZY_ROTATION_ENABLED = "0"
@@ -130,6 +132,7 @@ bucket_name = "afterlife-archive-dev"
 
 [env.preview.vars]
 ENVIRONMENT = "staging"
+ORCHESTRATOR_URL = "https://memorial.example.invalid/orchestrator"  # ORCH_SECRET 은 wrangler secret put
 WEBAUTHN_RP_ID = "edge-alt-preview.example.invalid"
 WEBAUTHN_RP_ORIGIN = "https://edge-alt-preview.example.invalid"
 LAZY_ROTATION_ENABLED = "0"
@@ -187,6 +190,7 @@ bucket_name = "afterlife-archive-dev"
 
 [env.production.vars]
 ENVIRONMENT = "production"
+ORCHESTRATOR_URL = "https://memorial.example.invalid/orchestrator"  # ORCH_SECRET 은 wrangler secret put
 WEBAUTHN_RP_ID = "api.afterlife.app"
 WEBAUTHN_RP_ORIGIN = "https://oth-path.afterlife.app"
 LAZY_ROTATION_ENABLED = "0"
