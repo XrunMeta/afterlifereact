@@ -59,5 +59,6 @@ export function activePorts(db) {
 }
 
 export function endCall(db, callId, reason, now) {
-  db.prepare(`UPDATE calls SET state = 'ended', reason = ?, ended_at = ? WHERE call_id = ?`).run(reason, now, callId);
+
+  db.prepare(`UPDATE calls SET state = 'ended', reason = ?, ended_at = ?, subscribe_token = '' WHERE call_id = ?`).run(reason, now, callId);
 }

@@ -63,6 +63,10 @@ app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] })
 app.use('/outputs', express.static(MUSETALK_OUTPUTS_DIR, { fallthrough: true }));
 
 const ORCH_SECRET = process.env.ORCH_SECRET ?? '';
+
+if (!ORCH_SECRET) {
+  console.warn('[orch] WARN ORCH_SECRET 미설정 — /oth-path* 통화 생성 거부(401). preview/prod 는 반드시 secret 설정.');
+}
 const orchDb = openDb(process.env.ORCH_DB_PATH ?? path.join(__dirname, 'orchestrator', 'calls.db'));
 const orch = createOrchestrator({
   db: orchDb,

@@ -59,6 +59,8 @@ calls.post("/:cloneId/call/:callId/end", requireAuth, async (c) => {
   parseCloneId(c);
   const callId = c.req.param("callId");
   const userId = c.get("userId")!;
+
+  if (!/^[0-9a-fA-F-]{8,64}$/.test(callId)) return c.json({ ok: true });
   try {
     await fetch(`${c.env.ORCHESTRATOR_URL}/oth-path${callId}`, {
       method: "DELETE",

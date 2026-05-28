@@ -102,7 +102,20 @@ describe("calls route", () => {
     const cloneId = await seedClone(owner, "call_end");
     const tok = await issueAccessToken(owner);
     fetchMock.get(ORCH).intercept({ path: "/oth-path", method: "DELETE" }).reply(200, { ok: true });
-    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call/xyz/end`, {
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call/abcd1234-ef/end`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
+  it("POST /oth-path — 형식 위반 callId 는 멱등 200(orchestrator 미호출)", async () => {
+    const owner = await seedUser("call-badid@test.local");
+    const cloneId = await seedClone(owner, "call_badid");
+    const tok = await issueAccessToken(owner);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call/tooshort/end`, {
       method: "POST",
       headers: { Authorization: `Bearer ${tok}` },
     });
