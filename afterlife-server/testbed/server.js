@@ -97,6 +97,16 @@ const v_38a552 = v_3df644({
 await v_38a552.reconcile(); 
 v_466992.use(v_306c75(v_38a552, { secret: v_4b93d8 }));
 
+v_466992.get('/sp1a-config.js', (v_5ebc52, v_8f00b9) => {
+  v_8f00b9.type('application/javascript').send(
+    `window.__SP1A__ = ${JSON.stringify({
+      apiBase: process.env.TESTBED_API_BASE ?? '',
+      devToken: process.env.TESTBED_DEV_TOKEN ?? '',
+      cloneId: process.env.TESTBED_CLONE_ID ?? '',
+    })};`,
+  );
+});
+
 v_466992.get('/healthz', (v_5ebc52, v_8f00b9) => {
   v_8f00b9.type('text/plain').send('ok\n');
 });
