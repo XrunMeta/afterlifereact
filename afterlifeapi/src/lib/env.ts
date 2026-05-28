@@ -33,6 +33,9 @@ export interface Bindings {
   GOOGLE_REFRESH_TOKEN: string;
   GMAIL_SENDER: string;            
 
+  ORCHESTRATOR_URL: string;        
+  ORCH_SECRET: string;             
+
   XRUN_API_URL: string;            
 
   XRUN_GATEWAY_TOKEN?: string;
