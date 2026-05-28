@@ -97,6 +97,16 @@ const orch = createOrchestrator({
 await orch.reconcile(); 
 app.use(orchestratorRouter(orch, { secret: ORCH_SECRET }));
 
+app.get('/sp1a-config.js', (_req, res) => {
+  res.type('application/javascript').send(
+    `window.__SP1A__ = ${JSON.stringify({
+      apiBase: process.env.TESTBED_API_BASE ?? '',
+      devToken: process.env.TESTBED_DEV_TOKEN ?? '',
+      cloneId: process.env.TESTBED_CLONE_ID ?? '',
+    })};`,
+  );
+});
+
 app.get('/healthz', (_req, res) => {
   res.type('text/plain').send('ok\n');
 });
