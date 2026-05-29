@@ -26,6 +26,7 @@ import { openDb } from './orchestrator/db.js';
 import { createOrchestrator } from './orchestrator/calls.js';
 import * as publisherProc from './orchestrator/publisherProc.js';
 import { orchestratorRouter } from './orchestrator/routes.js';
+import { loadCfEnv } from './orchestrator/envFile.js';
 
 const LEARN_ENABLED = process.env.LEARN_ENABLED !== '0'; 
 const PERSONA_LABEL = process.env.PERSONA_LABEL ?? '할배';
@@ -67,6 +68,17 @@ const ORCH_SECRET = process.env.ORCH_SECRET ?? '';
 if (!ORCH_SECRET) {
   console.warn('[orch] WARN ORCH_SECRET 미설정 — /oth-path* 통화 생성 거부(401). preview/prod 는 반드시 secret 설정.');
 }
+
+const cfFromFile = loadCfEnv(process.env.PUBLISHER_CF_ENV_FILE);
+const cfCanonical = {
+  CF_REALTIME_APP_ID: cfFromFile.CF_REALTIME_APP_ID ?? process.env.CF_REALTIME_APP_ID ?? '',
+  CF_REALTIME_APP_SECRET: cfFromFile.CF_REALTIME_APP_SECRET ?? process.env.CF_REALTIME_APP_SECRET ?? '',
+  CF_REALTIME_APP_TOKEN: cfFromFile.CF_REALTIME_APP_TOKEN ?? process.env.CF_REALTIME_APP_TOKEN ?? '',
+  CF_REALTIME_BASE: cfFromFile.CF_REALTIME_BASE ?? process.env.CF_REALTIME_BASE ?? 'https://rtc.live.cloudflare.com/v1',
+};
+if (process.env.PUBLISHER_CF_ENV_FILE && !cfFromFile.CF_REALTIME_APP_ID) {
+  console.warn(`[orch] WARN PUBLISHER_CF_ENV_FILE=${process.env.PUBLISHER_CF_ENV_FILE} 에서 CF_REALTIME_APP_ID 못 읽음 — process.env fallback.`);
+}
 const orchDb = openDb(process.env.ORCH_DB_PATH ?? path.join(__dirname, 'orchestrator', 'calls.db'));
 const orch = createOrchestrator({
   db: orchDb,
@@ -80,11 +92,7 @@ const orch = createOrchestrator({
     healthTimeoutMs: Number.parseInt(process.env.ORCH_HEALTH_TIMEOUT_MS ?? '15000', 10),
     killGraceMs: Number.parseInt(process.env.ORCH_KILL_GRACE_MS ?? '3000', 10),
 
-    cfEnv: {
-      CF_REALTIME_APP_ID: process.env.CF_REALTIME_APP_ID ?? '',
-      CF_REALTIME_APP_TOKEN: process.env.CF_REALTIME_APP_TOKEN ?? '',
-      CF_REALTIME_BASE: process.env.CF_REALTIME_BASE ?? 'https://rtc.live.cloudflare.com/v1',
-    },
+    cfEnv: cfCanonical,
     logStream: process.stdout,
   },
   deps: {
