@@ -22,6 +22,12 @@ import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import { recordTurn, recentTurns, getTurn } from './logger.js';
 
+import { openDb } from './orchestrator/db.js';
+import { createOrchestrator } from './orchestrator/calls.js';
+import * as publisherProc from './orchestrator/publisherProc.js';
+import { orchestratorRouter } from './orchestrator/routes.js';
+import { loadCfEnv } from './orchestrator/envFile.js';
+
 const LEARN_ENABLED = process.env.LEARN_ENABLED !== '0'; 
 const PERSONA_LABEL = process.env.PERSONA_LABEL ?? '할배';
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
@@ -56,6 +62,62 @@ app.use(express.json({ limit: '256kb' }));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 app.use('/outputs', express.static(MUSETALK_OUTPUTS_DIR, { fallthrough: true }));
+
+const ORCH_SECRET = process.env.ORCH_SECRET ?? '';
+
+if (!ORCH_SECRET) {
+  console.warn('[orch] WARN ORCH_SECRET 미설정 — /oth-path* 통화 생성 거부(401). preview/prod 는 반드시 secret 설정.');
+}
+
+const cfFromFile = loadCfEnv(process.env.PUBLISHER_CF_ENV_FILE);
+const cfCanonical = {
+  CF_REALTIME_APP_ID: cfFromFile.CF_REALTIME_APP_ID ?? process.env.CF_REALTIME_APP_ID ?? '',
+  CF_REALTIME_APP_SECRET: cfFromFile.CF_REALTIME_APP_SECRET ?? process.env.CF_REALTIME_APP_SECRET ?? '',
+  CF_REALTIME_APP_TOKEN: cfFromFile.CF_REALTIME_APP_TOKEN ?? process.env.CF_REALTIME_APP_TOKEN ?? '',
+  CF_REALTIME_BASE: cfFromFile.CF_REALTIME_BASE ?? process.env.CF_REALTIME_BASE ?? 'https://rtc.live.cloudflare.com/v1',
+};
+if (process.env.PUBLISHER_CF_ENV_FILE && !cfFromFile.CF_REALTIME_APP_ID) {
+  console.warn(`[orch] WARN PUBLISHER_CF_ENV_FILE=${process.env.PUBLISHER_CF_ENV_FILE} 에서 CF_REALTIME_APP_ID 못 읽음 — process.env fallback.`);
+}
+const orchDb = openDb(process.env.ORCH_DB_PATH ?? path.join(__dirname, 'orchestrator', 'calls.db'));
+const orch = createOrchestrator({
+  db: orchDb,
+  config: {
+    python: process.env.PUBLISHER_PYTHON ?? 'python',
+    script: process.env.PUBLISHER_SCRIPT
+      ?? path.join(__dirname, '..', 'realtime-afterlife', 'scripts', 'publisher.py'),
+    idleMp4Default: process.env.IDLE_MP4_PATH ?? '',
+    portBase: Number.parseInt(process.env.PUBLISHER_PORT_BASE ?? '8410', 10),
+    portCount: Number.parseInt(process.env.PUBLISHER_PORT_COUNT ?? '30', 10),
+    healthTimeoutMs: Number.parseInt(process.env.ORCH_HEALTH_TIMEOUT_MS ?? '15000', 10),
+    killGraceMs: Number.parseInt(process.env.ORCH_KILL_GRACE_MS ?? '3000', 10),
+
+    cfEnv: cfCanonical,
+    logStream: process.stdout,
+  },
+  deps: {
+    spawnPublisher: publisherProc.spawnPublisher,
+    waitHealthz: publisherProc.waitHealthz,
+    publishStart: publisherProc.publishStart,
+    publishStop: publisherProc.publishStop,
+    killProc: publisherProc.killProc,
+    now: Date.now,
+    randomUUID: () => crypto.randomUUID(),
+    randomToken: () => crypto.randomBytes(32).toString('base64url'),
+  },
+});
+await orch.reconcile(); 
+app.use(orchestratorRouter(orch, { secret: ORCH_SECRET }));
+
+app.get('/sp1a-config.js', (_req, res) => {
+  res.type('application/javascript').send(
+    `window.__SP1A__ = ${JSON.stringify({
+      apiBase: process.env.TESTBED_API_BASE ?? '',
+      devToken: process.env.TESTBED_DEV_TOKEN ?? '',
+      cloneId: process.env.TESTBED_CLONE_ID ?? '',
+    })};`,
+  );
+});
 
 app.get('/healthz', (_req, res) => {
   res.type('text/plain').send('ok\n');
