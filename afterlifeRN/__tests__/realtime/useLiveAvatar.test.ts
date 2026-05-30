@@ -148,4 +148,49 @@ describe('useLiveAvatar', () => {
     expect(v_d5dda0.endCall).toHaveBeenCalledWith('AT', 7, 'c1');
     expect(v_43c42e.current.state).toBe('ended');
   });
+
+  it('재진입 가드: 통화 활성 중 start 재호출 → pc/startCall 1회만', async () => {
+    v_57d229();
+    const v_12cd99 = v_e6273b();
+    const v_d5dda0 = v_84b93d(v_12cd99);
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }),
+    );
+    await v_be73a0(async () => {
+      await v_43c42e.current.start();
+    });
+    await v_be73a0(async () => {
+      await v_43c42e.current.start();
+    });
+    expect(v_d5dda0.startCall).toHaveBeenCalledTimes(1);
+    expect(v_d5dda0.createPeerConnection).toHaveBeenCalledTimes(1);
+  });
+
+  it('start 진행 중 언마운트 → 취소(pc 미생성, 잔류 setState 없음)', async () => {
+    let v_267e3f = () => {};
+    const v_d5dda0 = {
+      startCall: jest.fn().mockReturnValue(
+        new Promise((v_cb35cb) => {
+          v_267e3f = v_cb35cb;
+        }),
+      ),
+      endCall: jest.fn().mockResolvedValue({ ok: true }),
+      createPeerConnection: jest.fn().mockReturnValue(v_e6273b()),
+    };
+    v_57d229();
+    const { result: v_43c42e, unmount: v_67a0e6 } = v_0da18b(() =>
+      v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }),
+    );
+    let v_a48ba1 = Promise.resolve();
+    v_be73a0(() => {
+      v_a48ba1 = v_43c42e.current.start();
+    });
+    v_67a0e6();
+    await v_be73a0(async () => {
+      v_267e3f(v_c9c6be);
+      await v_a48ba1;
+    });
+
+    expect(v_d5dda0.createPeerConnection).not.toHaveBeenCalled();
+  });
 });

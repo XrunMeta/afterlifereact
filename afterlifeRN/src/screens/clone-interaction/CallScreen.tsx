@@ -73,7 +73,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const {
     state: v_6cc918,
     remoteStream: v_b4d824,
-    error: v_f8f4f4,
     start: v_223067,
     stop: v_cd8b64,
   } = v_b38a7e({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
@@ -382,9 +381,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {v_6cc918 !== "live" && (
         <View style={v_fd5f43.liveOverlay} pointerEvents="none">
           <Text style={v_fd5f43.liveOverlayText}>
-            {v_6cc918 === "error"
-              ? `연결 실패${v_f8f4f4 ? `: ${v_f8f4f4.message}` : ""}`
-              : "연결 중…"}
+            {v_6cc918 === "error" ? "연결에 실패했어요" : "연결 중…"}
           </Text>
         </View>
       )}

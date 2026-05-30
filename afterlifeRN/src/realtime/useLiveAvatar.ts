@@ -70,7 +70,10 @@ export function v_b38a7e(v_328259) {
   const v_f98743 = v_e662ae<LivePeerConnection | null>(null);
   const v_6e83c5 = v_e662ae<string | null>(null);
 
+  const v_bba900 = v_e662ae(0);
+
   const v_3e54f8 = v_de06a3(async () => {
+    v_bba900.current += 1; 
     const v_12cd99 = v_f98743.current;
     v_f98743.current = null;
     if (v_12cd99) {
@@ -94,21 +97,28 @@ export function v_b38a7e(v_328259) {
   }, [v_2ca7e0, v_6e0fd3, v_84b93d]);
 
   const v_965edf = v_de06a3(async () => {
+    if (v_f98743.current) return; 
+    const v_775074 = (v_bba900.current += 1);
+    const v_759436 = () => v_bba900.current === v_775074;
+
     v_3a7d09(null);
     v_1fa668('requesting');
     let v_c9c6be;
     try {
       v_c9c6be = await v_84b93d.startCall(v_2ca7e0, v_6e0fd3);
     } catch (v_9e86fd) {
+      if (!v_759436()) return;
       v_3a7d09(v_9e86fd as Error);
       v_1fa668('error');
       return;
     }
+    if (!v_759436()) return; 
     v_6e83c5.current = v_c9c6be.callId;
 
     const v_12cd99 = v_84b93d.createPeerConnection({ iceServers: v_506dd1 });
     v_f98743.current = v_12cd99;
     v_12cd99.addEventListener('track', (ev: { streams?: v_802da4[]; track: unknown }) => {
+      if (!v_759436()) return;
       const v_cab51f =
         v_1d299c.streams && v_1d299c.streams[0]
           ? v_1d299c.streams[0]
@@ -116,11 +126,13 @@ export function v_b38a7e(v_328259) {
       v_b944e3(v_cab51f);
     });
     const v_cb236b = () => {
+      if (!v_759436()) return;
       const v_fd5f43 = v_12cd99.connectionState;
       if (v_fd5f43 === 'connected') v_1fa668('live');
       else if (v_fd5f43 === 'failed') v_1fa668('error');
     };
     const v_6075d7 = () => {
+      if (!v_759436()) return;
       const v_fd5f43 = v_12cd99.iceConnectionState;
       if (v_fd5f43 === 'connected' || v_fd5f43 === 'completed') v_1fa668('live');
       else if (v_fd5f43 === 'failed') v_1fa668('error');
@@ -131,6 +143,10 @@ export function v_b38a7e(v_328259) {
     v_1fa668('connecting');
     try {
       const v_4cb70c = await v_f5e41b(v_c9c6be.subscribeUrl, v_c9c6be.subscribeToken, {});
+      if (!v_759436()) {
+        v_12cd99.close();
+        return;
+      }
       const v_df2b5b = v_4cb70c.subscriber_session_id as string | undefined;
       const v_582c5e = v_4cb70c.offer_sdp as string | undefined;
       if (!v_df2b5b || !v_582c5e) throw new Error('subscribe_pull_incomplete');
@@ -139,18 +155,23 @@ export function v_b38a7e(v_328259) {
       );
       const v_343c90 = await v_12cd99.createAnswer();
       await v_12cd99.setLocalDescription(v_343c90);
+      if (!v_759436()) {
+        v_12cd99.close();
+        return;
+      }
       await v_f5e41b(v_c9c6be.renegotiateUrl, v_c9c6be.subscribeToken, {
         subscriber_session_id: v_df2b5b,
         answer_sdp: v_343c90.sdp,
       });
     } catch (v_9e86fd) {
-      v_3a7d09(v_9e86fd as Error);
       try {
         v_12cd99.close();
       } catch {
 
       }
-      v_f98743.current = null;
+      if (v_f98743.current === v_12cd99) v_f98743.current = null;
+      if (!v_759436()) return;
+      v_3a7d09(v_9e86fd as Error);
       v_1fa668('error');
     }
   }, [v_2ca7e0, v_6e0fd3, v_84b93d]);
