@@ -65,7 +65,8 @@
             "./assets/fonts/ionicons.ttf"
           ]
         }
-      ]
+      ],
+      "@config-plugins/react-native-webrtc"
     ],
     "web": {
       "favicon": "./assets/favicon.png"
