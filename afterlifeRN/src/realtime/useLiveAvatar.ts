@@ -74,7 +74,10 @@ export function useLiveAvatar(opts: {
   const pcRef = useRef<LivePeerConnection | null>(null);
   const callIdRef = useRef<string | null>(null);
 
+  const genRef = useRef(0);
+
   const stop = useCallback(async () => {
+    genRef.current += 1; 
     const pc = pcRef.current;
     pcRef.current = null;
     if (pc) {
@@ -98,21 +101,28 @@ export function useLiveAvatar(opts: {
   }, [accessToken, cloneId, deps]);
 
   const start = useCallback(async () => {
+    if (pcRef.current) return; 
+    const myGen = (genRef.current += 1);
+    const alive = () => genRef.current === myGen;
+
     setError(null);
     setState('requesting');
     let ticket;
     try {
       ticket = await deps.startCall(accessToken, cloneId);
     } catch (e) {
+      if (!alive()) return;
       setError(e as Error);
       setState('error');
       return;
     }
+    if (!alive()) return; 
     callIdRef.current = ticket.callId;
 
     const pc = deps.createPeerConnection({ iceServers: ICE_SERVERS });
     pcRef.current = pc;
     pc.addEventListener('track', (ev: { streams?: MediaStream[]; track: unknown }) => {
+      if (!alive()) return;
       const stream =
         ev.streams && ev.streams[0]
           ? ev.streams[0]
@@ -120,11 +130,13 @@ export function useLiveAvatar(opts: {
       setRemoteStream(stream);
     });
     const onConn = () => {
+      if (!alive()) return;
       const s = pc.connectionState;
       if (s === 'connected') setState('live');
       else if (s === 'failed') setState('error');
     };
     const onIce = () => {
+      if (!alive()) return;
       const s = pc.iceConnectionState;
       if (s === 'connected' || s === 'completed') setState('live');
       else if (s === 'failed') setState('error');
@@ -135,6 +147,10 @@ export function useLiveAvatar(opts: {
     setState('connecting');
     try {
       const pull = await postSignal(ticket.subscribeUrl, ticket.subscribeToken, {});
+      if (!alive()) {
+        pc.close();
+        return;
+      }
       const subscriberSessionId = pull.subscriber_session_id as string | undefined;
       const offerSdp = pull.offer_sdp as string | undefined;
       if (!subscriberSessionId || !offerSdp) throw new Error('subscribe_pull_incomplete');
@@ -143,18 +159,23 @@ export function useLiveAvatar(opts: {
       );
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+      if (!alive()) {
+        pc.close();
+        return;
+      }
       await postSignal(ticket.renegotiateUrl, ticket.subscribeToken, {
         subscriber_session_id: subscriberSessionId,
         answer_sdp: answer.sdp,
       });
     } catch (e) {
-      setError(e as Error);
       try {
         pc.close();
       } catch {
 
       }
-      pcRef.current = null;
+      if (pcRef.current === pc) pcRef.current = null;
+      if (!alive()) return;
+      setError(e as Error);
       setState('error');
     }
   }, [accessToken, cloneId, deps]);

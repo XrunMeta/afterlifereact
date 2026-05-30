@@ -148,4 +148,49 @@ describe('useLiveAvatar', () => {
     expect(d.endCall).toHaveBeenCalledWith('AT', 7, 'c1');
     expect(result.current.state).toBe('ended');
   });
+
+  it('재진입 가드: 통화 활성 중 start 재호출 → pc/startCall 1회만', async () => {
+    mockSubscribeFetch();
+    const pc = makeMockPc();
+    const d = deps(pc);
+    const { result } = renderHook(() =>
+      useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }),
+    );
+    await act(async () => {
+      await result.current.start();
+    });
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(d.startCall).toHaveBeenCalledTimes(1);
+    expect(d.createPeerConnection).toHaveBeenCalledTimes(1);
+  });
+
+  it('start 진행 중 언마운트 → 취소(pc 미생성, 잔류 setState 없음)', async () => {
+    let resolveTicket: (v: unknown) => void = () => {};
+    const d = {
+      startCall: jest.fn().mockReturnValue(
+        new Promise((r) => {
+          resolveTicket = r;
+        }),
+      ),
+      endCall: jest.fn().mockResolvedValue({ ok: true }),
+      createPeerConnection: jest.fn().mockReturnValue(makeMockPc()),
+    };
+    mockSubscribeFetch();
+    const { result, unmount } = renderHook(() =>
+      useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }),
+    );
+    let startP: Promise<void> = Promise.resolve();
+    act(() => {
+      startP = result.current.start();
+    });
+    unmount();
+    await act(async () => {
+      resolveTicket(ticket);
+      await startP;
+    });
+
+    expect(d.createPeerConnection).not.toHaveBeenCalled();
+  });
 });

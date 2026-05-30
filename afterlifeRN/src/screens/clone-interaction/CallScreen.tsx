@@ -73,7 +73,6 @@ export default function CallScreen({ route, navigation }: Props) {
   const {
     state: liveState,
     remoteStream,
-    error: liveError,
     start: startLive,
     stop: stopLive,
   } = useLiveAvatar({ cloneId, accessToken: accessToken ?? "" });
@@ -382,9 +381,7 @@ export default function CallScreen({ route, navigation }: Props) {
       {liveState !== "live" && (
         <View style={s.liveOverlay} pointerEvents="none">
           <Text style={s.liveOverlayText}>
-            {liveState === "error"
-              ? `연결 실패${liveError ? `: ${liveError.message}` : ""}`
-              : "연결 중…"}
+            {liveState === "error" ? "연결에 실패했어요" : "연결 중…"}
           </Text>
         </View>
       )}
