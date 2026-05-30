@@ -20,6 +20,8 @@ import {
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
+import { v_bab832 } from "rthlnescfffbyxfmhgq";
+import { v_b38a7e } from "../../realtime/useLiveAvatar";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -68,6 +70,20 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_4e2aec, v_326ca4] = v_5ab095(false);
   const [v_9e64e1, v_e064ce] = v_5ab095(false);
 
+  const {
+    state: v_6cc918,
+    remoteStream: v_b4d824,
+    error: v_f8f4f4,
+    start: v_223067,
+    stop: v_cd8b64,
+  } = v_b38a7e({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    void v_223067();
+
+  }, []);
+
   v_c4deb2(() => {
     if (!v_d1a6bb?.granted) {
       v_1e66f0();
@@ -83,9 +99,10 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_5a751a, v_6d75b1] = v_5ab095(0);
   v_c4deb2(() => {
+    if (v_6cc918 !== "live") return;
     const v_389afb = setInterval(() => v_6d75b1((v_fd5f43) => v_fd5f43 + 1), 1000);
     return () => clearInterval(v_389afb);
-  }, []);
+  }, [v_6cc918]);
 
   const v_1406a6 = v_e662ae<number>(Date.now());
   const v_4d96d4 = v_e662ae(v_2ca7e0);
@@ -345,7 +362,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   return (
     <View style={v_fd5f43.container}>
       {}
-      {v_0e38ad ? (
+      {v_b4d824 ? (
+        <RTCView
+          streamURL={(v_b4d824 as unknown as { toURL: () => string }).toURL()}
+          objectFit="cover"
+          style={[v_472849.absoluteFill, { width: "100%", height: "100%" }]}
+        />
+      ) : v_0e38ad ? (
         <Image
           source={typeof v_0e38ad === "number" ? v_0e38ad : { uri: v_0e38ad }}
           style={[v_472849.absoluteFill, { width: "100%", height: "100%" }]}
@@ -353,6 +376,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         />
       ) : (
         <View style={[v_472849.absoluteFill, { backgroundColor: v_1bfbd0.zinc900 }]} />
+      )}
+
+      {}
+      {v_6cc918 !== "live" && (
+        <View style={v_fd5f43.liveOverlay} pointerEvents="none">
+          <Text style={v_fd5f43.liveOverlayText}>
+            {v_6cc918 === "error"
+              ? `연결 실패${v_f8f4f4 ? `: ${v_f8f4f4.message}` : ""}`
+              : "연결 중…"}
+          </Text>
+        </View>
       )}
 
       <LinearGradient
@@ -447,14 +481,26 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
         <TouchableOpacity
           style={[v_fd5f43.controlBtn, v_4e2aec && v_fd5f43.controlBtnDanger]}
-          onPress={() => v_326ca4(!v_4e2aec)}
+          onPress={() => {
+            const v_a448ad = !v_4e2aec;
+            v_326ca4(v_a448ad);
+
+            const v_ff0300 = (v_b4d824 as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+              ?.getAudioTracks?.() ?? [];
+            v_ff0300.forEach((v_8d41d7) => {
+              v_8d41d7.enabled = !v_a448ad;
+            });
+          }}
         >
           <Feather name={v_4e2aec ? "mic-off" : "mic"} size={24} color={v_1bfbd0.white} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={v_fd5f43.endCallBtn}
-          onPress={() => v_c65f5d.goBack()}
+          onPress={async () => {
+            await v_cd8b64();
+            v_c65f5d.goBack();
+          }}
         >
           <Feather name="phone" size={28} color={v_1bfbd0.white} style={{ transform: [{ rotate: "135deg" }] }} />
         </TouchableOpacity>
@@ -593,6 +639,27 @@ const v_fd5f43 = v_472849.create({
   container: {
     flex: 1,
     backgroundColor: v_1bfbd0.zinc950,
+  },
+  liveOverlay: {
+    position: "absolute",
+    top: "50%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 5,
+  },
+  liveOverlayText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.white,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 
   pip: {
