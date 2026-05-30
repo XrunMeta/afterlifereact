@@ -33,3 +33,7 @@ afterlife-server-log/
 sync-mirror/
 
 afterlife-server/testbed/data/
+
+# python 캐시 (pytest/py_compile 산출)
+__pycache__/
+*.pyc
