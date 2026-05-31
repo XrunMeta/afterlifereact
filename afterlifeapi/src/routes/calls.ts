@@ -45,8 +45,8 @@ v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
   };
 
   await v_3f4e2e.env.DB.prepare(
-    'INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?, ?, ?, ?)'
-  ).bind(v_9390e8.callId, v_43e90c, v_6e0fd3, Date.now()).run();
+    'INSERT INTO call_sessions (call_id, user_id, clone_id, persona_slug, started_at) VALUES (?, ?, ?, ?, ?)'
+  ).bind(v_9390e8.callId, v_43e90c, v_6e0fd3, 'halbae', Date.now()).run();
 
   const v_13f298 = `${v_3e7379}/oth-path${v_9390e8.callId}/subscribe`;
 
@@ -85,6 +85,8 @@ v_20e160.post("/:cloneId/call/:callId/say", v_6690d9, async (v_3f4e2e) => {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },
     body: JSON.stringify({ text: v_9b6134, cloneId: v_6e0fd3 }),
   });
+
+  if (v_cb35cb.status === 409) return v_3f4e2e.json({ error: "turn_in_progress" }, 429);
   if (!v_cb35cb.ok) return v_3f4e2e.json({ error: "orchestrator_error" }, 502);
   return v_3f4e2e.json({ ok: true }, 202);
 });
