@@ -21,7 +21,8 @@ export default v_eede73(async () => {
           miniflare: {
             compatibilityDate: "2024-12-01",
             compatibilityFlags: ["nodejs_compat"],
-            bindings: { TEST_MIGRATIONS: v_9b8aa1 },
+
+            bindings: { TEST_MIGRATIONS: v_9b8aa1, ORCH_SECRET: "test-orch-secret" },
           },
         },
       },
