@@ -73,6 +73,7 @@ export function v_b38a7e(v_328259) {
   const v_bba900 = v_e662ae(0);
 
   const v_3e54f8 = v_de06a3(async () => {
+    console.warn(`[Live] stop() 호출 — gen ${v_bba900.current}→${v_bba900.current + 1} (진행 중 start 무효화)`);
     v_bba900.current += 1; 
     const v_12cd99 = v_f98743.current;
     v_f98743.current = null;
@@ -103,22 +104,26 @@ export function v_b38a7e(v_328259) {
 
     v_3a7d09(null);
     v_1fa668('requesting');
+    console.log(`[Live] start cloneId=${v_6e0fd3} token=${v_2ca7e0 ? 'set' : 'EMPTY'}`);
     let v_c9c6be;
     try {
       v_c9c6be = await v_84b93d.startCall(v_2ca7e0, v_6e0fd3);
     } catch (v_9e86fd) {
       if (!v_759436()) return;
+      console.warn('[Live] startCall FAIL —', (v_9e86fd as Error)?.message);
       v_3a7d09(v_9e86fd as Error);
       v_1fa668('error');
       return;
     }
     if (!v_759436()) return; 
+    console.log(`[Live] ticket callId=${v_c9c6be.callId} subscribeUrl=${v_c9c6be.subscribeUrl}`);
     v_6e83c5.current = v_c9c6be.callId;
 
     const v_12cd99 = v_84b93d.createPeerConnection({ iceServers: v_506dd1 });
     v_f98743.current = v_12cd99;
     v_12cd99.addEventListener('track', (ev: { streams?: v_802da4[]; track: unknown }) => {
       if (!v_759436()) return;
+      console.log('[Live] ontrack ← 원격 스트림 수신');
       const v_cab51f =
         v_1d299c.streams && v_1d299c.streams[0]
           ? v_1d299c.streams[0]
@@ -128,12 +133,14 @@ export function v_b38a7e(v_328259) {
     const v_cb236b = () => {
       if (!v_759436()) return;
       const v_fd5f43 = v_12cd99.connectionState;
+      console.log(`[Live] connectionState=${v_fd5f43}`);
       if (v_fd5f43 === 'connected') v_1fa668('live');
       else if (v_fd5f43 === 'failed') v_1fa668('error');
     };
     const v_6075d7 = () => {
       if (!v_759436()) return;
       const v_fd5f43 = v_12cd99.iceConnectionState;
+      console.log(`[Live] iceConnectionState=${v_fd5f43}`);
       if (v_fd5f43 === 'connected' || v_fd5f43 === 'completed') v_1fa668('live');
       else if (v_fd5f43 === 'failed') v_1fa668('error');
     };
@@ -142,6 +149,7 @@ export function v_b38a7e(v_328259) {
 
     v_1fa668('connecting');
     try {
+      console.log('[Live] subscribe pull 요청…');
       const v_4cb70c = await v_f5e41b(v_c9c6be.subscribeUrl, v_c9c6be.subscribeToken, {});
       if (!v_759436()) {
         v_12cd99.close();
@@ -149,21 +157,27 @@ export function v_b38a7e(v_328259) {
       }
       const v_df2b5b = v_4cb70c.subscriber_session_id as string | undefined;
       const v_582c5e = v_4cb70c.offer_sdp as string | undefined;
+      console.log(`[Live] subscribe ← sid=${v_df2b5b} offer_len=${v_582c5e?.length ?? 0}`);
       if (!v_df2b5b || !v_582c5e) throw new Error('subscribe_pull_incomplete');
       await v_12cd99.setRemoteDescription(
         new v_d904b7({ type: 'offer', sdp: v_582c5e }),
       );
       const v_343c90 = await v_12cd99.createAnswer();
       await v_12cd99.setLocalDescription(v_343c90);
+      console.log(`[Live] before renegotiate — alive=${v_759436()} gen=${v_bba900.current} myGen=${v_775074}`);
       if (!v_759436()) {
+        console.warn('[Live] ⚠️ CANCELLED before renegotiate (gen mismatch) — answer 미전송');
         v_12cd99.close();
         return;
       }
+      console.log('[Live] renegotiate 전송 시작…');
       await v_f5e41b(v_c9c6be.renegotiateUrl, v_c9c6be.subscribeToken, {
         subscriber_session_id: v_df2b5b,
         answer_sdp: v_343c90.sdp,
       });
+      console.log('[Live] renegotiate ← ok (핸드셰이크 완료, ICE/ontrack 대기)');
     } catch (v_9e86fd) {
+      console.warn('[Live] 핸드셰이크 FAIL —', (v_9e86fd as Error)?.message);
       try {
         v_12cd99.close();
       } catch {
