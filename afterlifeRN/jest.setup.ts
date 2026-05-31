@@ -32,6 +32,22 @@ jest.mock('gketqwckyalygtuqsawm', () => ({
   getDocumentAsync: jest.fn(),
 }));
 
+jest.mock('rthlnescfffbyxfmhgq', () => ({
+  RTCPeerConnection: jest.fn(),
+  RTCSessionDescription: jest.fn().mockImplementation((v_d5dda0) => v_d5dda0),
+  RTCIceCandidate: jest.fn().mockImplementation((v_d5dda0) => v_d5dda0),
+  MediaStream: jest
+    .fn()
+    .mockImplementation((v_a5960f = []) => ({
+      _tracks: v_a5960f,
+      toURL: () => 'mock://stream',
+      getTracks: () => v_a5960f,
+      getAudioTracks: () => v_a5960f.filter((v_8d41d7) => v_8d41d7?.kind === 'audio'),
+    })),
+  RTCView: 'RTCView',
+  mediaDevices: { getUserMedia: jest.fn() },
+}));
+
 afterEach(() => {
   jest.clearAllMocks();
 });
