@@ -1,5 +1,7 @@
 import v_96bb47 from 'cyfkmrv';
 import v_b070ed from 'hikhkjexnsh';
+import { v_458d35 } from './sayStore.js';
+import { v_3a60ca as v_8e7d64 } from './chatRelay.js';
 
 const v_b74136 = (v_f31c63) => `http://127.0.0.1:${v_f31c63}`;
 
@@ -23,8 +25,33 @@ function v_183879(v_309144) {
   return v_35f85c ? v_35f85c[1] : null;
 }
 
-export function v_306c75(v_38a552, { secret: v_43fd42 }) {
+function v_28e3ea(v_01dcf5, v_6e0fd3) {
+  return {
+    fetchChat: async (v_4d33b2) => {
+      const v_cb35cb = await fetch(`${v_01dcf5.testbedBaseUrl}/oth-path`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(v_4d33b2),
+      });
+
+      if (!v_cb35cb.ok) throw new Error(`testbed_chat_http_${v_cb35cb.status}`);
+      return await v_cb35cb.text();
+    },
+    postTurnCallback: async (v_be62d3, v_931bf0) => {
+      if (!v_01dcf5.apiBaseUrl) return; 
+      await fetch(`${v_01dcf5.apiBaseUrl}/oth-path${v_be62d3}/turn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${v_01dcf5.apiSecret}` },
+        body: JSON.stringify({ ...v_931bf0, cloneId: v_6e0fd3 }),
+      });
+    },
+  };
+}
+
+export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps: v_84b93d } = {}) {
   const v_904d46 = v_96bb47.Router();
+  const v_04d03c = v_458d35();
+  const v_3a60ca = v_84b93d?.sayDeps?.runChatRelay ?? v_8e7d64;
 
   function v_99be57(v_309144, v_8f00b9, v_a448ad) {
     if (!v_43fd42 || v_183879(v_309144) !== v_43fd42) return v_8f00b9.status(401).json({ error: 'unauthorized' });
@@ -44,13 +71,40 @@ export function v_306c75(v_38a552, { secret: v_43fd42 }) {
   });
 
   v_904d46.delete('/oth-path', v_99be57, async (v_309144, v_8f00b9) => {
+    const v_be62d3 = v_309144.params.callId;
     const v_43e90c = (v_309144.body && v_309144.body.userId != null) ? String(v_309144.body.userId) : null;
-    try { v_8f00b9.status(200).json(await v_38a552.end(v_309144.params.callId, v_43e90c)); }
-    catch (v_9e86fd) { v_8f00b9.status(500).json({ error: 'end_failed', detail: String(v_9e86fd?.message ?? v_9e86fd) }); }
+    try {
+      const v_43c42e = await v_38a552.end(v_be62d3, v_43e90c);
+      v_04d03c.clear(v_be62d3);
+      v_8f00b9.status(200).json(v_43c42e);
+    } catch (v_9e86fd) { v_8f00b9.status(500).json({ error: 'end_failed', detail: String(v_9e86fd?.message ?? v_9e86fd) }); }
   });
 
   v_904d46.get('/oth-path', v_99be57, (v_5ebc52, v_8f00b9) => {
     v_8f00b9.status(200).json({ calls: v_38a552.listActive() });
+  });
+
+  v_904d46.post('/oth-path', v_99be57, async (v_309144, v_8f00b9) => {
+    v_32740c(v_8f00b9);
+    const v_be62d3 = v_309144.params.callId;
+    const v_9b6134 = (v_309144.body?.text ?? '').toString().trim();
+    const v_6e0fd3 = v_309144.body?.cloneId;
+    if (!v_9b6134) return v_8f00b9.status(400).json({ error: 'empty_text' });
+    const v_3ac7e7 = v_38a552.getCall(v_be62d3);
+    if (!v_3ac7e7) return v_8f00b9.status(404).json({ error: 'call_not_found' });
+    if (v_3ac7e7.state !== 'live') return v_8f00b9.status(409).json({ error: 'call_not_live' });
+    if (!v_04d03c.beginTurn(v_be62d3)) return v_8f00b9.status(409).json({ error: 'turn_in_progress' });
+    v_04d03c.appendTurn(v_be62d3, { role: 'user', content: v_9b6134 });
+    v_8f00b9.status(202).json({ ok: true }); 
+    Promise.resolve()
+      .then(() => v_3a60ca(
+        v_28e3ea(v_01dcf5, v_6e0fd3),
+
+        { callId: v_be62d3, publisherPort: v_3ac7e7.port, personaSlug: 'halbae', history: v_04d03c.getHistory(v_be62d3), text: v_9b6134 },
+      ))
+      .then((v_3188ae) => { if (v_3188ae) v_04d03c.appendTurn(v_be62d3, { role: 'assistant', content: v_3188ae }); })
+      .catch((v_9e86fd) => console.error('[sp2/say] relay error', v_be62d3, v_9e86fd?.message ?? v_9e86fd))
+      .finally(() => v_04d03c.endTurn(v_be62d3));
   });
 
   v_904d46.options('/oth-path', (v_5ebc52, v_8f00b9) => { v_32740c(v_8f00b9); v_8f00b9.status(204).end(); });
