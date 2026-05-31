@@ -77,7 +77,6 @@ export function useLiveAvatar(opts: {
   const genRef = useRef(0);
 
   const stop = useCallback(async () => {
-    console.warn(`[Live] stop() 호출 — gen ${genRef.current}→${genRef.current + 1} (진행 중 start 무효화)`);
     genRef.current += 1; 
     const pc = pcRef.current;
     pcRef.current = null;
@@ -108,43 +107,40 @@ export function useLiveAvatar(opts: {
 
     setError(null);
     setState('requesting');
-    console.log(`[Live] start cloneId=${cloneId} token=${accessToken ? 'set' : 'EMPTY'}`);
     let ticket;
     try {
       ticket = await deps.startCall(accessToken, cloneId);
     } catch (e) {
       if (!alive()) return;
-      console.warn('[Live] startCall FAIL —', (e as Error)?.message);
       setError(e as Error);
       setState('error');
       return;
     }
     if (!alive()) return; 
-    console.log(`[Live] ticket callId=${ticket.callId} subscribeUrl=${ticket.subscribeUrl}`);
     callIdRef.current = ticket.callId;
 
     const pc = deps.createPeerConnection({ iceServers: ICE_SERVERS });
     pcRef.current = pc;
-    pc.addEventListener('track', (ev: { streams?: MediaStream[]; track: unknown }) => {
+    pc.addEventListener('track', (ev: { streams?: MediaStream[]; track: any }) => {
       if (!alive()) return;
-      console.log('[Live] ontrack ← 원격 스트림 수신');
       const stream =
         ev.streams && ev.streams[0]
           ? ev.streams[0]
           : new MediaStream([ev.track as never]);
-      setRemoteStream(stream);
+
+      const hasVideo =
+        ((stream as any).getVideoTracks?.()?.length ?? 0) > 0 || ev.track?.kind === 'video';
+      if (hasVideo) setRemoteStream(stream);
     });
     const onConn = () => {
       if (!alive()) return;
       const s = pc.connectionState;
-      console.log(`[Live] connectionState=${s}`);
       if (s === 'connected') setState('live');
       else if (s === 'failed') setState('error');
     };
     const onIce = () => {
       if (!alive()) return;
       const s = pc.iceConnectionState;
-      console.log(`[Live] iceConnectionState=${s}`);
       if (s === 'connected' || s === 'completed') setState('live');
       else if (s === 'failed') setState('error');
     };
@@ -153,7 +149,6 @@ export function useLiveAvatar(opts: {
 
     setState('connecting');
     try {
-      console.log('[Live] subscribe pull 요청…');
       const pull = await postSignal(ticket.subscribeUrl, ticket.subscribeToken, {});
       if (!alive()) {
         pc.close();
@@ -161,27 +156,21 @@ export function useLiveAvatar(opts: {
       }
       const subscriberSessionId = pull.subscriber_session_id as string | undefined;
       const offerSdp = pull.offer_sdp as string | undefined;
-      console.log(`[Live] subscribe ← sid=${subscriberSessionId} offer_len=${offerSdp?.length ?? 0}`);
       if (!subscriberSessionId || !offerSdp) throw new Error('subscribe_pull_incomplete');
       await pc.setRemoteDescription(
         new RTCSessionDescription({ type: 'offer', sdp: offerSdp }),
       );
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      console.log(`[Live] before renegotiate — alive=${alive()} gen=${genRef.current} myGen=${myGen}`);
       if (!alive()) {
-        console.warn('[Live] ⚠️ CANCELLED before renegotiate (gen mismatch) — answer 미전송');
         pc.close();
         return;
       }
-      console.log('[Live] renegotiate 전송 시작…');
       await postSignal(ticket.renegotiateUrl, ticket.subscribeToken, {
         subscriber_session_id: subscriberSessionId,
         answer_sdp: answer.sdp,
       });
-      console.log('[Live] renegotiate ← ok (핸드셰이크 완료, ICE/ontrack 대기)');
     } catch (e) {
-      console.warn('[Live] 핸드셰이크 FAIL —', (e as Error)?.message);
       try {
         pc.close();
       } catch {

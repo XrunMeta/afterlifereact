@@ -97,6 +97,32 @@ describe('useLiveAvatar', () => {
     expect(result.current.remoteStream).toBeTruthy();
   });
 
+  it('video/audio 별도 stream — audio ontrack 이 video stream 을 덮어쓰지 않음', async () => {
+    mockSubscribeFetch();
+    const pc = makeMockPc();
+    const d = deps(pc);
+    const { result } = renderHook(() =>
+      useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }),
+    );
+    await act(async () => {
+      await result.current.start();
+    });
+    act(() => {
+
+      pc.emit('track', {
+        streams: [{ id: 'vid', toURL: () => 'v', getVideoTracks: () => [{}], getAudioTracks: () => [] }],
+        track: { kind: 'video' },
+      });
+      pc.emit('track', {
+        streams: [{ id: 'aud', toURL: () => 'a', getVideoTracks: () => [], getAudioTracks: () => [{}] }],
+        track: { kind: 'audio' },
+      });
+    });
+    await waitFor(() => expect(result.current.remoteStream).toBeTruthy());
+
+    expect((result.current.remoteStream as unknown as { id: string }).id).toBe('vid');
+  });
+
   it('startCall 실패 → state=error, pc 미생성', async () => {
     const d = {
       startCall: jest.fn().mockRejectedValue(new Error('boom')),
