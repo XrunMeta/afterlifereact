@@ -44,12 +44,20 @@ afterEach(() => {
   global.fetch = realFetch;
 });
 
-function deps(pc: ReturnType<typeof makeMockPc>) {
+function makeMockAudioSession() {
+  return {
+    activate: jest.fn(),
+    deactivate: jest.fn(),
+  };
+}
+
+function deps(pc: ReturnType<typeof makeMockPc>, audioSession = makeMockAudioSession()) {
   return {
     startCall: jest.fn().mockResolvedValue(ticket),
     endCall: jest.fn().mockResolvedValue({ ok: true }),
     sayInCall: jest.fn().mockResolvedValue({ ok: true }),
     createPeerConnection: jest.fn().mockReturnValue(pc),
+    audioSession,
   };
 }
 
@@ -151,6 +159,7 @@ describe('useLiveAvatar', () => {
       endCall: jest.fn(),
       sayInCall: jest.fn(),
       createPeerConnection: jest.fn(),
+      audioSession: makeMockAudioSession(),
     };
     const { result } = renderHook(() =>
       useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }),
@@ -226,6 +235,7 @@ describe('useLiveAvatar', () => {
       endCall: jest.fn().mockResolvedValue({ ok: true }),
       sayInCall: jest.fn().mockResolvedValue({ ok: true }),
       createPeerConnection: jest.fn().mockReturnValue(makeMockPc()),
+      audioSession: makeMockAudioSession(),
     };
     mockSubscribeFetch();
     const { result, unmount } = renderHook(() =>
@@ -309,6 +319,58 @@ describe('useLiveAvatar', () => {
 
       act(() => { jest.advanceTimersByTime(30_000); });
       expect(result.current.phase).toBe('idle');
+    });
+  });
+
+  describe('audioSession lifecycle', () => {
+    it('start 핸드셰이크 완료(renegotiate) 후 audioSession.activate 1회 호출', async () => {
+      mockSubscribeFetch();
+      const pc = makeMockPc();
+      const audioSession = makeMockAudioSession();
+      const d = deps(pc, audioSession);
+      const { result } = renderHook(() =>
+        useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }),
+      );
+      await act(async () => {
+        await result.current.start();
+      });
+      expect(audioSession.activate).toHaveBeenCalledTimes(1);
+      expect(audioSession.deactivate).not.toHaveBeenCalled();
+    });
+
+    it('stop 호출 시 audioSession.deactivate 1회 호출', async () => {
+      mockSubscribeFetch();
+      const pc = makeMockPc();
+      const audioSession = makeMockAudioSession();
+      const d = deps(pc, audioSession);
+      const { result } = renderHook(() =>
+        useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }),
+      );
+      await act(async () => {
+        await result.current.start();
+      });
+      await act(async () => {
+        await result.current.stop();
+      });
+      expect(audioSession.deactivate).toHaveBeenCalledTimes(1);
+    });
+
+    it('startCall 실패 시 audioSession.activate 미호출', async () => {
+      const audioSession = makeMockAudioSession();
+      const d = {
+        startCall: jest.fn().mockRejectedValue(new Error('boom')),
+        endCall: jest.fn(),
+        sayInCall: jest.fn(),
+        createPeerConnection: jest.fn(),
+        audioSession,
+      };
+      const { result } = renderHook(() =>
+        useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }),
+      );
+      await act(async () => {
+        await result.current.start();
+      });
+      expect(audioSession.activate).not.toHaveBeenCalled();
     });
   });
 

@@ -7,6 +7,7 @@ import {
   MediaStream,
 } from 'react-native-webrtc';
 import { startCall as defaultStartCall, endCall as defaultEndCall, sayInCall as defaultSayInCall } from '../api/calls';
+import { type AudioSessionControl, defaultAudioSessionControl } from './useAudioSession';
 
 export const ICE_SERVERS = [
   { urls: 'stun:stun.cloudflare.com:3478' },
@@ -36,6 +37,8 @@ export interface LiveAvatarDeps {
   endCall: typeof defaultEndCall;
   sayInCall: typeof defaultSayInCall;
   createPeerConnection: (config: { iceServers: typeof ICE_SERVERS }) => LivePeerConnection;
+
+  audioSession: AudioSessionControl;
 }
 
 const defaultDeps: LiveAvatarDeps = {
@@ -44,6 +47,7 @@ const defaultDeps: LiveAvatarDeps = {
   sayInCall: defaultSayInCall,
   createPeerConnection: (config) =>
     new RTCPeerConnection(config) as unknown as LivePeerConnection,
+  audioSession: defaultAudioSessionControl,
 };
 
 async function postSignal(url: string, token: string, body: object): Promise<Record<string, unknown>> {
@@ -117,6 +121,12 @@ export function useLiveAvatar(opts: {
     }
     setRemoteStream(null);
     audioStreamRef.current = null;
+
+    try {
+      deps.audioSession.deactivate();
+    } catch {
+
+    }
     const callId = callIdRef.current;
     callIdRef.current = null;
     if (callId) {
@@ -204,6 +214,16 @@ export function useLiveAvatar(opts: {
         subscriber_session_id: subscriberSessionId,
         answer_sdp: answer.sdp,
       });
+      if (!alive()) {
+        pc.close();
+        return;
+      }
+
+      try {
+        deps.audioSession.activate();
+      } catch {
+
+      }
     } catch (e) {
       try {
         pc.close();

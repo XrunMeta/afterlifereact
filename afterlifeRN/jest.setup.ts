@@ -46,6 +46,23 @@ jest.mock('react-native-webrtc', () => ({
     })),
   RTCView: 'RTCView',
   mediaDevices: { getUserMedia: jest.fn() },
+
+  RTCAudioSession: {
+    audioSessionDidActivate: jest.fn(),
+    audioSessionDidDeactivate: jest.fn(),
+  },
+}));
+
+jest.mock('react-native-incall-manager', () => ({
+  __esModule: true,
+  default: {
+    start: jest.fn(),
+    stop: jest.fn(),
+    setForceSpeakerphoneOn: jest.fn(),
+    setSpeakerphoneOn: jest.fn(),
+    requestAudioFocus: jest.fn(),
+    abandonAudioFocus: jest.fn(),
+  },
 }));
 
 afterEach(() => {
