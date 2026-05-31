@@ -45,8 +45,8 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
   };
 
   await c.env.DB.prepare(
-    'INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?, ?, ?, ?)'
-  ).bind(data.callId, userId, cloneId, Date.now()).run();
+    'INSERT INTO call_sessions (call_id, user_id, clone_id, persona_slug, started_at) VALUES (?, ?, ?, ?, ?)'
+  ).bind(data.callId, userId, cloneId, 'halbae', Date.now()).run();
 
   const subscribeUrl = `${orchUrl}/oth-path${data.callId}/subscribe`;
 
@@ -85,6 +85,8 @@ calls.post("/:cloneId/call/:callId/say", requireAuth, async (c) => {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
     body: JSON.stringify({ text, cloneId }),
   });
+
+  if (r.status === 409) return c.json({ error: "turn_in_progress" }, 429);
   if (!r.ok) return c.json({ error: "orchestrator_error" }, 502);
   return c.json({ ok: true }, 202);
 });

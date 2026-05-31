@@ -3,6 +3,9 @@ CREATE TABLE IF NOT EXISTS call_sessions (
   call_id      TEXT PRIMARY KEY,
   user_id      INTEGER NOT NULL,
   clone_id     INTEGER NOT NULL,
+  -- 실제 응답한 페르소나(SP2 = halbae 고정). clone_id 와 분리 기록 — 감사 연속성(amane).
+  -- SP3 per-clone 해상도 전환 시 동적 값으로 채워짐(기존 레코드 NULL 방지).
+  persona_slug TEXT,
   started_at   INTEGER NOT NULL,
   ended_at     INTEGER,
   duration_sec INTEGER
