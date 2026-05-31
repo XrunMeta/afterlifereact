@@ -97,6 +97,32 @@ describe('useLiveAvatar', () => {
     expect(v_43c42e.current.remoteStream).toBeTruthy();
   });
 
+  it('video/audio 별도 stream — audio ontrack 이 video stream 을 덮어쓰지 않음', async () => {
+    v_57d229();
+    const v_12cd99 = v_e6273b();
+    const v_d5dda0 = v_84b93d(v_12cd99);
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }),
+    );
+    await v_be73a0(async () => {
+      await v_43c42e.current.start();
+    });
+    v_be73a0(() => {
+
+      v_12cd99.emit('track', {
+        streams: [{ id: 'vid', toURL: () => 'v', getVideoTracks: () => [{}], getAudioTracks: () => [] }],
+        track: { kind: 'video' },
+      });
+      v_12cd99.emit('track', {
+        streams: [{ id: 'aud', toURL: () => 'a', getVideoTracks: () => [], getAudioTracks: () => [{}] }],
+        track: { kind: 'audio' },
+      });
+    });
+    await v_81e49f(() => expect(v_43c42e.current.remoteStream).toBeTruthy());
+
+    expect((v_43c42e.current.remoteStream as unknown as { id: string }).id).toBe('vid');
+  });
+
   it('startCall 실패 → state=error, pc 미생성', async () => {
     const v_d5dda0 = {
       startCall: jest.fn().mockRejectedValue(new Error('boom')),
