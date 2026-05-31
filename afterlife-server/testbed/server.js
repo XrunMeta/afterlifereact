@@ -28,6 +28,8 @@ import * as publisherProc from './orchestrator/publisherProc.js';
 import { orchestratorRouter } from './orchestrator/routes.js';
 import { loadCfEnv } from './orchestrator/envFile.js';
 
+import { resolvePublisherUrl } from './lib/publisherUrl.js';
+
 const LEARN_ENABLED = process.env.LEARN_ENABLED !== '0'; 
 const PERSONA_LABEL = process.env.PERSONA_LABEL ?? '할배';
 const TTS_ENABLED = (process.env.TTS_ENABLED ?? '1') !== '0';
@@ -168,9 +170,9 @@ app.get('/oth-path', (req, res) => {
   res.json({ history: getHistory(Number(req.params.id)) });
 });
 
-async function pushWavToPublisher(wavPath) {
+async function pushWavToPublisher(wavPath, baseUrl = REALTIME_PUBLISHER_URL) {
   const buf = await fsp.readFile(wavPath);
-  const r = await fetch(`${REALTIME_PUBLISHER_URL}/push_audio`, {
+  const r = await fetch(`${baseUrl}/push_audio`, {
     method: 'POST',
     headers: {
       'Content-Type': 'audio/wav',
@@ -307,6 +309,8 @@ app.post('/oth-path', (req, res) => {
   const learnLevel = speakerRole === 'visitor' ? 'l2' : 'l1';
   const userLabel = (req.body?.user_label ?? (speakerRole === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
   const personaSlug = (req.body?.persona_slug ?? 'halbae').toString();
+
+  const callPublisherUrl = resolvePublisherUrl(req.body?.publisherPort, REALTIME_PUBLISHER_URL);
 
   const l1Attrs = getAttrsFor({ persona_slug: personaSlug, level: 'l1', user_label: null });
   const l2Attrs = speakerRole === 'visitor'
@@ -486,7 +490,7 @@ app.post('/oth-path', (req, res) => {
           const idxNow = nextPushIdx;
           nextPushIdx += 1;
           if (r?.mp4_path && REALTIME_AUDIO_STREAM && !aborted) {
-            await fetch(`${REALTIME_PUBLISHER_URL}/push_mp4`, {
+            await fetch(`${callPublisherUrl}/push_mp4`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ path: r.mp4_path, reset: idxNow === 1 }),
@@ -661,7 +665,7 @@ app.post('/oth-path', (req, res) => {
             });
 
             if (REALTIME_AUDIO_STREAM && result?.mp4_path) {
-              fetch(`${REALTIME_PUBLISHER_URL}/push_mp4`, {
+              fetch(`${callPublisherUrl}/push_mp4`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ path: result.mp4_path }),
