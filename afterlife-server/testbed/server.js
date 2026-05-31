@@ -109,7 +109,14 @@ const v_38a552 = v_3df644({
   },
 });
 await v_38a552.reconcile(); 
-v_466992.use(v_306c75(v_38a552, { secret: v_4b93d8 }));
+v_466992.use(v_306c75(v_38a552, {
+  secret: v_4b93d8,
+  cfg: {
+    testbedBaseUrl: process.env.TESTBED_BASE_URL ?? `http://127.0.0.1:${v_66d977}`,
+    apiBaseUrl: process.env.AFTERLIFE_API_URL ?? '',
+    apiSecret: process.env.ORCH_SECRET ?? v_4b93d8,
+  },
+}));
 
 v_466992.get('/sp1a-config.js', (v_5ebc52, v_8f00b9) => {
   v_8f00b9.type('application/javascript').send(

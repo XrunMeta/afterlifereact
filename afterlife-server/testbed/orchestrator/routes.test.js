@@ -4,10 +4,10 @@ import v_96bb47 from 'cyfkmrv';
 import v_00cd2e from 'owqxojxvg';
 import { v_306c75 } from './routes.js';
 
-function v_0b4d00(v_38a552, v_43fd42) {
+function v_0b4d00(v_38a552, v_43fd42, v_2644c4) {
   const v_466992 = v_96bb47();
   v_466992.use(v_96bb47.json());
-  v_466992.use(v_306c75(v_38a552, { secret: v_43fd42 }));
+  v_466992.use(v_306c75(v_38a552, { secret: v_43fd42, deps: v_2644c4 ? { sayDeps: v_2644c4 } : undefined }));
   return new Promise((v_6f7712) => {
     const v_88781f = v_466992.listen(0, '127.0.0.1', () => v_6f7712({ server: v_88781f, base: `http://127.0.0.1:${v_88781f.address().port}` }));
   });
@@ -101,5 +101,100 @@ v_2a805f('OPTIONS /oth-path 는 CORS(Authorization 허용) 204', async () => {
   const v_cb35cb = await fetch(`${v_694b25}/oth-path`, { method: 'OPTIONS' });
   v_ce93bd.equal(v_cb35cb.status, 204);
   v_ce93bd.match(v_cb35cb.headers.get('access-control-allow-headers') ?? '', /Authorization/i);
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — live: 202 + relay 트리거', async () => {
+  const v_aee0b9 = [];
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(
+    v_f8ce16({ getCall: (v_389afb) => (v_389afb === 'c1' ? { call_id: 'c1', port: 8412, state: 'live' } : null) }),
+    'sek',
+    { runChatRelay: async (v_769e56, v_4317d1) => { v_aee0b9.push(v_4317d1); } },
+  );
+  const v_8f00b9 = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '안녕', cloneId: 9021 }),
+  });
+  v_ce93bd.equal(v_8f00b9.status, 202);
+
+  await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 20));
+  v_ce93bd.equal(v_aee0b9.length, 1);
+  v_ce93bd.equal(v_aee0b9[0].callId, 'c1');
+  v_ce93bd.equal(v_aee0b9[0].publisherPort, 8412);
+  v_ce93bd.equal(v_aee0b9[0].text, '안녕');
+  v_ce93bd.equal(v_aee0b9[0].personaSlug, 'halbae');
+  v_88781f.close();
+});
+
+v_2a805f('say: 미존재 callId → 404', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16({ getCall: () => null }), 'sek');
+  const v_8f00b9 = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'x' }),
+  });
+  v_ce93bd.equal(v_8f00b9.status, 404);
+  v_88781f.close();
+});
+
+v_2a805f('say: state != live → 409 call_not_live', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(
+    v_f8ce16({ getCall: () => ({ call_id: 'c1', port: 8412, state: 'starting' }) }),
+    'sek',
+  );
+  const v_8f00b9 = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'x' }),
+  });
+  v_ce93bd.equal(v_8f00b9.status, 409);
+  const v_b75e36 = await v_8f00b9.json();
+  v_ce93bd.equal(v_b75e36.error, 'call_not_live');
+  v_88781f.close();
+});
+
+v_2a805f('say: 직전 turn 진행 중 → 409 turn_in_progress', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(
+    v_f8ce16({ getCall: () => ({ call_id: 'c1', port: 8412, state: 'live' }) }),
+    'sek',
+    { runChatRelay: async () => { await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 80)); } },
+  );
+  const v_ea719c = fetch(`${v_694b25}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'a' }),
+  });
+  await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 10));
+  const v_486a80 = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'b' }),
+  });
+  v_ce93bd.equal(v_486a80.status, 409);
+  const v_b75e36 = await v_486a80.json();
+  v_ce93bd.equal(v_b75e36.error, 'turn_in_progress');
+  await v_ea719c;
+  v_88781f.close();
+});
+
+v_2a805f('say: 빈 text → 400', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(
+    v_f8ce16({ getCall: () => ({ call_id: 'c1', port: 8412, state: 'live' }) }),
+    'sek',
+  );
+  const v_8f00b9 = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '  ' }),
+  });
+  v_ce93bd.equal(v_8f00b9.status, 400);
+  v_88781f.close();
+});
+
+v_2a805f('say: secret 불일치 → 401', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(
+    v_f8ce16({ getCall: () => ({ call_id: 'c1', port: 8412, state: 'live' }) }),
+    'sek',
+  );
+  const v_8f00b9 = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer X' },
+    body: JSON.stringify({ text: 'a' }),
+  });
+  v_ce93bd.equal(v_8f00b9.status, 401);
   v_88781f.close();
 });
