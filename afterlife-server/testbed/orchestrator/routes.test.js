@@ -4,10 +4,10 @@ import express from 'express';
 import http from 'node:http';
 import { orchestratorRouter } from './routes.js';
 
-function mountApp(orch, secret) {
+function mountApp(orch, secret, sayDeps) {
   const app = express();
   app.use(express.json());
-  app.use(orchestratorRouter(orch, { secret }));
+  app.use(orchestratorRouter(orch, { secret, deps: sayDeps ? { sayDeps } : undefined }));
   return new Promise((resolve) => {
     const server = app.listen(0, '127.0.0.1', () => resolve({ server, base: `http://127.0.0.1:${server.address().port}` }));
   });
@@ -101,5 +101,100 @@ test('OPTIONS /oth-path 는 CORS(Authorization 허용) 204', async () => {
   const r = await fetch(`${base}/oth-path`, { method: 'OPTIONS' });
   assert.equal(r.status, 204);
   assert.match(r.headers.get('access-control-allow-headers') ?? '', /Authorization/i);
+  server.close();
+});
+
+test('POST /oth-path — live: 202 + relay 트리거', async () => {
+  const relayed = [];
+  const { server, base } = await mountApp(
+    fakeOrch({ getCall: (id) => (id === 'c1' ? { call_id: 'c1', port: 8412, state: 'live' } : null) }),
+    'sek',
+    { runChatRelay: async (_d, args) => { relayed.push(args); } },
+  );
+  const res = await fetch(`${base}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '안녕', cloneId: 9021 }),
+  });
+  assert.equal(res.status, 202);
+
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(relayed.length, 1);
+  assert.equal(relayed[0].callId, 'c1');
+  assert.equal(relayed[0].publisherPort, 8412);
+  assert.equal(relayed[0].text, '안녕');
+  assert.equal(relayed[0].personaSlug, 'halbae');
+  server.close();
+});
+
+test('say: 미존재 callId → 404', async () => {
+  const { server, base } = await mountApp(fakeOrch({ getCall: () => null }), 'sek');
+  const res = await fetch(`${base}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'x' }),
+  });
+  assert.equal(res.status, 404);
+  server.close();
+});
+
+test('say: state != live → 409 call_not_live', async () => {
+  const { server, base } = await mountApp(
+    fakeOrch({ getCall: () => ({ call_id: 'c1', port: 8412, state: 'starting' }) }),
+    'sek',
+  );
+  const res = await fetch(`${base}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'x' }),
+  });
+  assert.equal(res.status, 409);
+  const j = await res.json();
+  assert.equal(j.error, 'call_not_live');
+  server.close();
+});
+
+test('say: 직전 turn 진행 중 → 409 turn_in_progress', async () => {
+  const { server, base } = await mountApp(
+    fakeOrch({ getCall: () => ({ call_id: 'c1', port: 8412, state: 'live' }) }),
+    'sek',
+    { runChatRelay: async () => { await new Promise((r) => setTimeout(r, 80)); } },
+  );
+  const first = fetch(`${base}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'a' }),
+  });
+  await new Promise((r) => setTimeout(r, 10));
+  const second = await fetch(`${base}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'b' }),
+  });
+  assert.equal(second.status, 409);
+  const j = await second.json();
+  assert.equal(j.error, 'turn_in_progress');
+  await first;
+  server.close();
+});
+
+test('say: 빈 text → 400', async () => {
+  const { server, base } = await mountApp(
+    fakeOrch({ getCall: () => ({ call_id: 'c1', port: 8412, state: 'live' }) }),
+    'sek',
+  );
+  const res = await fetch(`${base}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '  ' }),
+  });
+  assert.equal(res.status, 400);
+  server.close();
+});
+
+test('say: secret 불일치 → 401', async () => {
+  const { server, base } = await mountApp(
+    fakeOrch({ getCall: () => ({ call_id: 'c1', port: 8412, state: 'live' }) }),
+    'sek',
+  );
+  const res = await fetch(`${base}/oth-path`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer X' },
+    body: JSON.stringify({ text: 'a' }),
+  });
+  assert.equal(res.status, 401);
   server.close();
 });

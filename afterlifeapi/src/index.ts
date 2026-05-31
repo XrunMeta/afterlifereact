@@ -14,6 +14,7 @@ import { memory } from "./routes/memory";
 import { cloneMessages, messages } from "./routes/messages";
 import { cloneFeeds, feedsDiscover } from "./routes/feeds";
 import { calls } from "./routes/calls";
+import { internal } from "./routes/internal";
 import { cloneShares, inviteTokens } from "./routes/sharing";
 import { cloneShorts, shortsFeed } from "./routes/shorts";
 import { cloneEditorTransfer } from "./routes/editorTransfer";
@@ -100,6 +101,8 @@ app.route("/oth-path", cloneEditorTransfer);
 app.route("/oth-path", messages);
 
 app.route("/oth-path", calls);
+
+app.route("/oth-path", internal);
 app.route("/oth-path", inviteTokens);
 app.route("/oth-path", credits);
 app.route("/oth-path", payments);

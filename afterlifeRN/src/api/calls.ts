@@ -12,13 +12,14 @@ export interface CallTicket {
   expiresAt: string;
 }
 
-async function postAuth<T>(path: string, accessToken: string): Promise<T> {
+async function postAuth<T>(path: string, accessToken: string, body?: object): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
   let parsed: unknown = null;
@@ -41,6 +42,19 @@ async function postAuth<T>(path: string, accessToken: string): Promise<T> {
 
 export async function startCall(accessToken: string, cloneId: number): Promise<CallTicket> {
   return postAuth<CallTicket>(`/oth-path${cloneId}/call`, accessToken);
+}
+
+export async function sayInCall(
+  accessToken: string,
+  cloneId: number,
+  callId: string,
+  text: string,
+): Promise<{ ok: boolean }> {
+  return postAuth<{ ok: boolean }>(
+    `/oth-path${cloneId}/call/${callId}/say`,
+    accessToken,
+    { text },
+  );
 }
 
 export async function endCall(
