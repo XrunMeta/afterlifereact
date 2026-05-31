@@ -7,6 +7,7 @@ import {
   v_802da4,
 } from 'rthlnescfffbyxfmhgq';
 import { v_53975b as v_fd7914, v_51c671 as v_999327, v_af28f9 as v_99f4f1 } from '../api/calls';
+import { type v_30869c, v_2f41d8 } from './useAudioSession';
 
 export const v_506dd1 = [
   { urls: 'stun:stun.cloudflare.com:3478' },
@@ -36,6 +37,8 @@ export interface LiveAvatarDeps {
   endCall: typeof v_999327;
   sayInCall: typeof v_99f4f1;
   createPeerConnection: (config: { iceServers: typeof v_506dd1 }) => LivePeerConnection;
+
+  audioSession: v_30869c;
 }
 
 const v_17f880 = {
@@ -44,6 +47,7 @@ const v_17f880 = {
   sayInCall: v_99f4f1,
   createPeerConnection: (v_74a79c) =>
     new v_c1a793(v_74a79c) as unknown as LivePeerConnection,
+  audioSession: v_2f41d8,
 };
 
 async function v_f5e41b(v_f71b56, v_21cc31, v_4d33b2): Promise<Record<string, unknown>> {
@@ -113,6 +117,12 @@ export function v_b38a7e(v_328259) {
     }
     v_b944e3(null);
     v_9998ac.current = null;
+
+    try {
+      v_84b93d.audioSession.deactivate();
+    } catch {
+
+    }
     const v_be62d3 = v_6e83c5.current;
     v_6e83c5.current = null;
     if (v_be62d3) {
@@ -200,6 +210,16 @@ export function v_b38a7e(v_328259) {
         subscriber_session_id: v_df2b5b,
         answer_sdp: v_343c90.sdp,
       });
+      if (!v_759436()) {
+        v_12cd99.close();
+        return;
+      }
+
+      try {
+        v_84b93d.audioSession.activate();
+      } catch {
+
+      }
     } catch (v_9e86fd) {
       try {
         v_12cd99.close();

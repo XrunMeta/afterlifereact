@@ -44,12 +44,20 @@ afterEach(() => {
   global.fetch = v_ec9084;
 });
 
-function v_84b93d(pc: ReturnType<typeof v_e6273b>) {
+function v_b49c15() {
+  return {
+    activate: jest.fn(),
+    deactivate: jest.fn(),
+  };
+}
+
+function v_84b93d(pc: ReturnType<typeof v_e6273b>, v_cec4d7 = v_b49c15()) {
   return {
     startCall: jest.fn().mockResolvedValue(v_c9c6be),
     endCall: jest.fn().mockResolvedValue({ ok: true }),
     sayInCall: jest.fn().mockResolvedValue({ ok: true }),
     createPeerConnection: jest.fn().mockReturnValue(v_12cd99),
+    audioSession: v_cec4d7,
   };
 }
 
@@ -151,6 +159,7 @@ describe('useLiveAvatar', () => {
       endCall: jest.fn(),
       sayInCall: jest.fn(),
       createPeerConnection: jest.fn(),
+      audioSession: v_b49c15(),
     };
     const { result: v_43c42e } = v_0da18b(() =>
       v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }),
@@ -226,6 +235,7 @@ describe('useLiveAvatar', () => {
       endCall: jest.fn().mockResolvedValue({ ok: true }),
       sayInCall: jest.fn().mockResolvedValue({ ok: true }),
       createPeerConnection: jest.fn().mockReturnValue(v_e6273b()),
+      audioSession: v_b49c15(),
     };
     v_57d229();
     const { result: v_43c42e, unmount: v_67a0e6 } = v_0da18b(() =>
@@ -309,6 +319,58 @@ describe('useLiveAvatar', () => {
 
       v_be73a0(() => { jest.advanceTimersByTime(30_000); });
       expect(v_43c42e.current.phase).toBe('idle');
+    });
+  });
+
+  describe('audioSession lifecycle', () => {
+    it('start 핸드셰이크 완료(renegotiate) 후 audioSession.activate 1회 호출', async () => {
+      v_57d229();
+      const v_12cd99 = v_e6273b();
+      const v_cec4d7 = v_b49c15();
+      const v_d5dda0 = v_84b93d(v_12cd99, v_cec4d7);
+      const { result: v_43c42e } = v_0da18b(() =>
+        v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }),
+      );
+      await v_be73a0(async () => {
+        await v_43c42e.current.start();
+      });
+      expect(v_cec4d7.activate).toHaveBeenCalledTimes(1);
+      expect(v_cec4d7.deactivate).not.toHaveBeenCalled();
+    });
+
+    it('stop 호출 시 audioSession.deactivate 1회 호출', async () => {
+      v_57d229();
+      const v_12cd99 = v_e6273b();
+      const v_cec4d7 = v_b49c15();
+      const v_d5dda0 = v_84b93d(v_12cd99, v_cec4d7);
+      const { result: v_43c42e } = v_0da18b(() =>
+        v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }),
+      );
+      await v_be73a0(async () => {
+        await v_43c42e.current.start();
+      });
+      await v_be73a0(async () => {
+        await v_43c42e.current.stop();
+      });
+      expect(v_cec4d7.deactivate).toHaveBeenCalledTimes(1);
+    });
+
+    it('startCall 실패 시 audioSession.activate 미호출', async () => {
+      const v_cec4d7 = v_b49c15();
+      const v_d5dda0 = {
+        startCall: jest.fn().mockRejectedValue(new Error('boom')),
+        endCall: jest.fn(),
+        sayInCall: jest.fn(),
+        createPeerConnection: jest.fn(),
+        audioSession: v_cec4d7,
+      };
+      const { result: v_43c42e } = v_0da18b(() =>
+        v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }),
+      );
+      await v_be73a0(async () => {
+        await v_43c42e.current.start();
+      });
+      expect(v_cec4d7.activate).not.toHaveBeenCalled();
     });
   });
 
