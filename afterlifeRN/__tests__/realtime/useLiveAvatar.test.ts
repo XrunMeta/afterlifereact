@@ -98,7 +98,7 @@ describe('useLiveAvatar', () => {
     expect(result.current.remoteStream).toBeTruthy();
   });
 
-  it('video/audio 별도 stream — audio ontrack 이 video stream 을 덮어쓰지 않음', async () => {
+  it('video/audio 별도 stream — audio ontrack 이 video remoteStream 을 덮어쓰지 않고, remoteStream 은 video stream 유지(RTCView 검은화면 방지)', async () => {
     mockSubscribeFetch();
     const pc = makeMockPc();
     const d = deps(pc);
@@ -122,6 +122,27 @@ describe('useLiveAvatar', () => {
     await waitFor(() => expect(result.current.remoteStream).toBeTruthy());
 
     expect((result.current.remoteStream as unknown as { id: string }).id).toBe('vid');
+  });
+
+  it('audio-only ontrack(audio stream) 이 도착해도 video 없이 remoteStream=null 유지', async () => {
+    mockSubscribeFetch();
+    const pc = makeMockPc();
+    const d = deps(pc);
+    const { result } = renderHook(() =>
+      useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }),
+    );
+    await act(async () => {
+      await result.current.start();
+    });
+    act(() => {
+
+      pc.emit('track', {
+        streams: [{ id: 'aud', toURL: () => 'a', getVideoTracks: () => [], getAudioTracks: () => [{}] }],
+        track: { kind: 'audio' },
+      });
+    });
+
+    expect(result.current.remoteStream).toBeNull();
   });
 
   it('startCall 실패 → state=error, pc 미생성', async () => {

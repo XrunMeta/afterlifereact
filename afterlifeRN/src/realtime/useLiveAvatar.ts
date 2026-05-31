@@ -78,6 +78,8 @@ export function useLiveAvatar(opts: {
   const callIdRef = useRef<string | null>(null);
   const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const audioStreamRef = useRef<MediaStream | null>(null);
+
   const genRef = useRef(0);
 
   const SPEAK_SOFT_TIMEOUT_MS = 30_000;
@@ -114,6 +116,7 @@ export function useLiveAvatar(opts: {
       }
     }
     setRemoteStream(null);
+    audioStreamRef.current = null;
     const callId = callIdRef.current;
     callIdRef.current = null;
     if (callId) {
@@ -156,7 +159,12 @@ export function useLiveAvatar(opts: {
 
       const hasVideo =
         ((stream as any).getVideoTracks?.()?.length ?? 0) > 0 || ev.track?.kind === 'video';
-      if (hasVideo) setRemoteStream(stream);
+      if (hasVideo) {
+        setRemoteStream(stream);
+      } else {
+
+        audioStreamRef.current = stream;
+      }
     });
     const onConn = () => {
       if (!alive()) return;
