@@ -28,6 +28,8 @@ import * as v_31b899 from './orchestrator/publisherProc.js';
 import { v_306c75 } from './orchestrator/routes.js';
 import { v_286ae1 } from './orchestrator/envFile.js';
 
+import { v_9adef9 } from './lib/publisherUrl.js';
+
 const v_327f32 = process.env.LEARN_ENABLED !== '0'; 
 const v_ef177e = process.env.PERSONA_LABEL ?? '할배';
 const v_455f07 = (process.env.TTS_ENABLED ?? '1') !== '0';
@@ -168,9 +170,9 @@ v_466992.get('/oth-path', (v_309144, v_8f00b9) => {
   v_8f00b9.json({ history: v_49715e(Number(v_309144.params.id)) });
 });
 
-async function v_e705d0(v_f2bb81) {
+async function v_e705d0(v_f2bb81, v_c01615 = v_de4278) {
   const v_83ee53 = await v_d4f750.readFile(v_f2bb81);
-  const v_cb35cb = await fetch(`${v_de4278}/push_audio`, {
+  const v_cb35cb = await fetch(`${v_c01615}/push_audio`, {
     method: 'POST',
     headers: {
       'Content-Type': 'audio/wav',
@@ -307,6 +309,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   const v_d63eac = v_9a14d9 === 'visitor' ? 'l2' : 'l1';
   const v_1231fa = (v_309144.body?.user_label ?? (v_9a14d9 === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
   const v_47fe3d = (v_309144.body?.persona_slug ?? 'halbae').toString();
+
+  const v_19846e = v_9adef9(v_309144.body?.publisherPort, v_de4278);
 
   const v_55a58f = v_ff48df({ persona_slug: v_47fe3d, level: 'l1', user_label: null });
   const v_fc96ca = v_9a14d9 === 'visitor'
@@ -486,7 +490,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
           const v_eabacc = v_536a75;
           v_536a75 += 1;
           if (v_cb35cb?.mp4_path && v_e01c9c && !v_6c558f) {
-            await fetch(`${v_de4278}/push_mp4`, {
+            await fetch(`${v_19846e}/push_mp4`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ path: v_cb35cb.mp4_path, reset: v_eabacc === 1 }),
@@ -661,7 +665,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
             });
 
             if (v_e01c9c && v_43c42e?.mp4_path) {
-              fetch(`${v_de4278}/push_mp4`, {
+              fetch(`${v_19846e}/push_mp4`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ path: v_43c42e.mp4_path }),
