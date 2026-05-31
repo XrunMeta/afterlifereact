@@ -109,7 +109,14 @@ const orch = createOrchestrator({
   },
 });
 await orch.reconcile(); 
-app.use(orchestratorRouter(orch, { secret: ORCH_SECRET }));
+app.use(orchestratorRouter(orch, {
+  secret: ORCH_SECRET,
+  cfg: {
+    testbedBaseUrl: process.env.TESTBED_BASE_URL ?? `http://127.0.0.1:${PORT}`,
+    apiBaseUrl: process.env.AFTERLIFE_API_URL ?? '',
+    apiSecret: process.env.ORCH_SECRET ?? ORCH_SECRET,
+  },
+}));
 
 app.get('/sp1a-config.js', (_req, res) => {
   res.type('application/javascript').send(
