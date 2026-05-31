@@ -48,6 +48,7 @@ function deps(pc: ReturnType<typeof makeMockPc>) {
   return {
     startCall: jest.fn().mockResolvedValue(ticket),
     endCall: jest.fn().mockResolvedValue({ ok: true }),
+    sayInCall: jest.fn().mockResolvedValue({ ok: true }),
     createPeerConnection: jest.fn().mockReturnValue(pc),
   };
 }
@@ -127,6 +128,7 @@ describe('useLiveAvatar', () => {
     const d = {
       startCall: jest.fn().mockRejectedValue(new Error('boom')),
       endCall: jest.fn(),
+      sayInCall: jest.fn(),
       createPeerConnection: jest.fn(),
     };
     const { result } = renderHook(() =>
@@ -201,6 +203,7 @@ describe('useLiveAvatar', () => {
         }),
       ),
       endCall: jest.fn().mockResolvedValue({ ok: true }),
+      sayInCall: jest.fn().mockResolvedValue({ ok: true }),
       createPeerConnection: jest.fn().mockReturnValue(makeMockPc()),
     };
     mockSubscribeFetch();
@@ -218,5 +221,93 @@ describe('useLiveAvatar', () => {
     });
 
     expect(d.createPeerConnection).not.toHaveBeenCalled();
+  });
+
+  it('say: phase idle→sending→speaking, sayInCall 호출', async () => {
+    mockSubscribeFetch();
+    const pc = makeMockPc();
+    const d = { ...deps(pc), sayInCall: jest.fn().mockResolvedValue({ ok: true }) };
+    const { result } = renderHook(() => useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }));
+    await act(async () => { await result.current.start(); });
+    await act(async () => { await result.current.say('안녕'); });
+    expect(d.sayInCall).toHaveBeenCalledWith('AT', 7, 'c1', '안녕');
+    expect(result.current.phase).toBe('speaking');
+  });
+
+  it('say 중복 가드: speaking 중 say 무시', async () => {
+    mockSubscribeFetch();
+    const pc = makeMockPc();
+    const d = { ...deps(pc), sayInCall: jest.fn().mockResolvedValue({ ok: true }) };
+    const { result } = renderHook(() => useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }));
+    await act(async () => { await result.current.start(); });
+    await act(async () => { await result.current.say('a'); });
+    await act(async () => { await result.current.say('b'); });
+    expect(d.sayInCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('say: 통화 미시작(pc 없음) → no-op', async () => {
+    const d = { ...deps(makeMockPc()), sayInCall: jest.fn() };
+    const { result } = renderHook(() => useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }));
+    await act(async () => { await result.current.say('x'); });
+    expect(d.sayInCall).not.toHaveBeenCalled();
+  });
+
+  describe('soft timeout (fake timer)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('say→speaking 후 30s soft timeout → phase idle 복귀', async () => {
+      mockSubscribeFetch();
+      const pc = makeMockPc();
+      const d = { ...deps(pc), sayInCall: jest.fn().mockResolvedValue({ ok: true }) };
+      const { result } = renderHook(() => useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }));
+      await act(async () => { await result.current.start(); });
+
+      jest.useFakeTimers();
+      await act(async () => { await result.current.say('타임아웃 테스트'); });
+      expect(result.current.phase).toBe('speaking');
+
+      act(() => { jest.advanceTimersByTime(30_000); });
+      await waitFor(() => expect(result.current.phase).toBe('idle'));
+    });
+
+    it('say(speaking) → stop → 타이머 advance 후에도 dead setState 없음 (phase는 stop이 idle로)', async () => {
+      mockSubscribeFetch();
+      const pc = makeMockPc();
+      const d = { ...deps(pc), sayInCall: jest.fn().mockResolvedValue({ ok: true }) };
+      const { result } = renderHook(() => useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }));
+      await act(async () => { await result.current.start(); });
+
+      jest.useFakeTimers();
+      await act(async () => { await result.current.say('타이머 클리어 테스트'); });
+      expect(result.current.phase).toBe('speaking');
+
+      await act(async () => { await result.current.stop(); });
+      expect(result.current.phase).toBe('idle');
+
+      act(() => { jest.advanceTimersByTime(30_000); });
+      expect(result.current.phase).toBe('idle');
+    });
+  });
+
+  describe('say 실패 후 재시도', () => {
+    it('sayInCall reject → phase idle + error 세팅, 이후 정상 say → speaking', async () => {
+      mockSubscribeFetch();
+      const pc = makeMockPc();
+      const sayInCallMock = jest.fn().mockRejectedValue(new Error('say_fail'));
+      const d = { ...deps(pc), sayInCall: sayInCallMock };
+      const { result } = renderHook(() => useLiveAvatar({ cloneId: 7, accessToken: 'AT', deps: d }));
+      await act(async () => { await result.current.start(); });
+
+      await act(async () => { await result.current.say('실패 테스트'); });
+      expect(result.current.phase).toBe('idle');
+      expect(result.current.error).toBeTruthy();
+      expect(result.current.error?.message).toBe('say_fail');
+
+      sayInCallMock.mockResolvedValue({ ok: true });
+      await act(async () => { await result.current.say('재시도 테스트'); });
+      expect(result.current.phase).toBe('speaking');
+    });
   });
 });

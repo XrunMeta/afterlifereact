@@ -6,7 +6,7 @@ import {
   RTCSessionDescription,
   MediaStream,
 } from 'react-native-webrtc';
-import { startCall as defaultStartCall, endCall as defaultEndCall } from '../api/calls';
+import { startCall as defaultStartCall, endCall as defaultEndCall, sayInCall as defaultSayInCall } from '../api/calls';
 
 export const ICE_SERVERS = [
   { urls: 'stun:stun.cloudflare.com:3478' },
@@ -34,12 +34,14 @@ export interface LivePeerConnection {
 export interface LiveAvatarDeps {
   startCall: typeof defaultStartCall;
   endCall: typeof defaultEndCall;
+  sayInCall: typeof defaultSayInCall;
   createPeerConnection: (config: { iceServers: typeof ICE_SERVERS }) => LivePeerConnection;
 }
 
 const defaultDeps: LiveAvatarDeps = {
   startCall: defaultStartCall,
   endCall: defaultEndCall,
+  sayInCall: defaultSayInCall,
   createPeerConnection: (config) =>
     new RTCPeerConnection(config) as unknown as LivePeerConnection,
 };
@@ -71,13 +73,37 @@ export function useLiveAvatar(opts: {
   const [state, setState] = useState<LiveAvatarState>('idle');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [phase, setPhase] = useState<'idle' | 'listening' | 'sending' | 'speaking'>('idle');
   const pcRef = useRef<LivePeerConnection | null>(null);
   const callIdRef = useRef<string | null>(null);
+  const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const genRef = useRef(0);
 
+  const SPEAK_SOFT_TIMEOUT_MS = 30_000;
+
+  const say = useCallback(async (text: string) => {
+    if (!pcRef.current || !callIdRef.current) return; 
+    if (phase === 'sending' || phase === 'speaking') return; 
+    const t = text.trim();
+    if (!t) return;
+    setPhase('sending');
+    try {
+      await deps.sayInCall(accessToken, cloneId, callIdRef.current, t);
+
+      setPhase('speaking');
+      if (speakTimer.current) clearTimeout(speakTimer.current);
+      speakTimer.current = setTimeout(() => setPhase('idle'), SPEAK_SOFT_TIMEOUT_MS);
+    } catch (e) {
+      setError(e as Error);
+      setPhase('idle');
+    }
+  }, [accessToken, cloneId, deps, phase]);
+
   const stop = useCallback(async () => {
     genRef.current += 1; 
+    if (speakTimer.current) clearTimeout(speakTimer.current);
+    setPhase('idle');
     const pc = pcRef.current;
     pcRef.current = null;
     if (pc) {
@@ -190,5 +216,5 @@ export function useLiveAvatar(opts: {
 
   }, []);
 
-  return { state, remoteStream, error, start, stop };
+  return { state, remoteStream, error, start, stop, phase, say };
 }

@@ -22,6 +22,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { RTCView } from "react-native-webrtc";
 import { useLiveAvatar } from "../../realtime/useLiveAvatar";
+import { useSpeechInput } from "../../realtime/useSpeechInput";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -75,7 +76,23 @@ export default function CallScreen({ route, navigation }: Props) {
     remoteStream,
     start: startLive,
     stop: stopLive,
+    say,
+    phase,
   } = useLiveAvatar({ cloneId, accessToken: accessToken ?? "" });
+
+  const { transcript, interimTranscript, listening, startListening, stopListening } = useSpeechInput({
+    onFinalResult: (text) => {
+      void say(text);
+    },
+  });
+
+  const onTalkPressIn = () => {
+    if (phase === "idle") void startListening();
+  };
+  const onTalkPressOut = () => {
+
+    stopListening();
+  };
 
   useEffect(() => {
     if (!accessToken) return;
@@ -476,6 +493,18 @@ export default function CallScreen({ route, navigation }: Props) {
 
       {}
       <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
+        {}
+        <Pressable
+          onPressIn={onTalkPressIn}
+          onPressOut={onTalkPressOut}
+          disabled={phase === "speaking"}
+          style={[s.controlBtn, listening && s.controlBtnActive, phase === "speaking" && s.controlBtnDanger]}
+        >
+          <Text style={s.talkBtnText}>
+            {phase === "speaking" ? "응답 중..." : listening ? "듣는 중..." : "말하기"}
+          </Text>
+        </Pressable>
+
         <TouchableOpacity
           style={[s.controlBtn, isMuted && s.controlBtnDanger]}
           onPress={() => {
@@ -756,6 +785,15 @@ const s = StyleSheet.create({
   },
   controlBtnDanger: {
     backgroundColor: COLORS.error,
+  },
+  controlBtnActive: {
+    backgroundColor: COLORS.violet500,
+  },
+  talkBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.white,
+    textAlign: "center",
   },
   endCallBtn: {
     width: 72,
