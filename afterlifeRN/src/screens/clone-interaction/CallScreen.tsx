@@ -20,6 +20,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { RTCView } from "react-native-webrtc";
+import { useLiveAvatar } from "../../realtime/useLiveAvatar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -68,6 +70,19 @@ export default function CallScreen({ route, navigation }: Props) {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
 
+  const {
+    state: liveState,
+    remoteStream,
+    start: startLive,
+    stop: stopLive,
+  } = useLiveAvatar({ cloneId, accessToken: accessToken ?? "" });
+
+  useEffect(() => {
+    if (!accessToken) return;
+    void startLive();
+
+  }, []);
+
   useEffect(() => {
     if (!permission?.granted) {
       requestPermission();
@@ -83,9 +98,10 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const [callSeconds, setCallSeconds] = useState(0);
   useEffect(() => {
+    if (liveState !== "live") return;
     const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [liveState]);
 
   const callStartRef = useRef<number>(Date.now());
   const tokenRef = useRef(accessToken);
@@ -345,7 +361,13 @@ export default function CallScreen({ route, navigation }: Props) {
   return (
     <View style={s.container}>
       {}
-      {personaImage ? (
+      {remoteStream ? (
+        <RTCView
+          streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
+          objectFit="cover"
+          style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
+        />
+      ) : personaImage ? (
         <Image
           source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
           style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
@@ -353,6 +375,15 @@ export default function CallScreen({ route, navigation }: Props) {
         />
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
+      )}
+
+      {}
+      {liveState !== "live" && (
+        <View style={s.liveOverlay} pointerEvents="none">
+          <Text style={s.liveOverlayText}>
+            {liveState === "error" ? "연결에 실패했어요" : "연결 중…"}
+          </Text>
+        </View>
       )}
 
       <LinearGradient
@@ -447,14 +478,26 @@ export default function CallScreen({ route, navigation }: Props) {
       <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
         <TouchableOpacity
           style={[s.controlBtn, isMuted && s.controlBtnDanger]}
-          onPress={() => setIsMuted(!isMuted)}
+          onPress={() => {
+            const next = !isMuted;
+            setIsMuted(next);
+
+            const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+              ?.getAudioTracks?.() ?? [];
+            audio.forEach((t) => {
+              t.enabled = !next;
+            });
+          }}
         >
           <Feather name={isMuted ? "mic-off" : "mic"} size={24} color={COLORS.white} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={s.endCallBtn}
-          onPress={() => navigation.goBack()}
+          onPress={async () => {
+            await stopLive();
+            navigation.goBack();
+          }}
         >
           <Feather name="phone" size={28} color={COLORS.white} style={{ transform: [{ rotate: "135deg" }] }} />
         </TouchableOpacity>
@@ -593,6 +636,27 @@ const s = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.zinc950,
+  },
+  liveOverlay: {
+    position: "absolute",
+    top: "50%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 5,
+  },
+  liveOverlayText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.white,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 
   pip: {

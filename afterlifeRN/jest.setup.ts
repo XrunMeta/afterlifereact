@@ -32,6 +32,22 @@ jest.mock('expo-document-picker', () => ({
   getDocumentAsync: jest.fn(),
 }));
 
+jest.mock('react-native-webrtc', () => ({
+  RTCPeerConnection: jest.fn(),
+  RTCSessionDescription: jest.fn().mockImplementation((d) => d),
+  RTCIceCandidate: jest.fn().mockImplementation((d) => d),
+  MediaStream: jest
+    .fn()
+    .mockImplementation((tracks = []) => ({
+      _tracks: tracks,
+      toURL: () => 'mock://stream',
+      getTracks: () => tracks,
+      getAudioTracks: () => tracks.filter((t: { kind?: string }) => t?.kind === 'audio'),
+    })),
+  RTCView: 'RTCView',
+  mediaDevices: { getUserMedia: jest.fn() },
+}));
+
 afterEach(() => {
   jest.clearAllMocks();
 });
