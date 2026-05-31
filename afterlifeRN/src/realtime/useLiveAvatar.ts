@@ -74,6 +74,8 @@ export function v_b38a7e(v_328259) {
   const v_6e83c5 = v_e662ae<string | null>(null);
   const v_6b43e5 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
 
+  const v_9998ac = v_e662ae<v_802da4 | null>(null);
+
   const v_bba900 = v_e662ae(0);
 
   const v_bf15a0 = 30_000;
@@ -110,6 +112,7 @@ export function v_b38a7e(v_328259) {
       }
     }
     v_b944e3(null);
+    v_9998ac.current = null;
     const v_be62d3 = v_6e83c5.current;
     v_6e83c5.current = null;
     if (v_be62d3) {
@@ -152,7 +155,12 @@ export function v_b38a7e(v_328259) {
 
       const v_281141 =
         ((v_cab51f as any).getVideoTracks?.()?.length ?? 0) > 0 || v_1d299c.track?.kind === 'video';
-      if (v_281141) v_b944e3(v_cab51f);
+      if (v_281141) {
+        v_b944e3(v_cab51f);
+      } else {
+
+        v_9998ac.current = v_cab51f;
+      }
     });
     const v_cb236b = () => {
       if (!v_759436()) return;
