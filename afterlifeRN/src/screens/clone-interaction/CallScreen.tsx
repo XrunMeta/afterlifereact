@@ -22,6 +22,7 @@ import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_bab832 } from "rthlnescfffbyxfmhgq";
 import { v_b38a7e } from "../../realtime/useLiveAvatar";
+import { v_fee12d } from "../../realtime/useSpeechInput";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -75,7 +76,23 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     remoteStream: v_b4d824,
     start: v_223067,
     stop: v_cd8b64,
+    say: v_3e2c87,
+    phase: v_ab4803,
   } = v_b38a7e({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
+
+  const { transcript: v_0885ca, interimTranscript: v_a2d9d1, listening: v_177ff2, startListening: v_770cae, stopListening: v_ad03b1 } = v_fee12d({
+    onFinalResult: (v_9b6134) => {
+      void v_3e2c87(v_9b6134);
+    },
+  });
+
+  const v_1d1ca9 = () => {
+    if (v_ab4803 === "idle") void v_770cae();
+  };
+  const v_920eb5 = () => {
+
+    v_ad03b1();
+  };
 
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
@@ -476,6 +493,18 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       {}
       <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
+        {}
+        <Pressable
+          onPressIn={v_1d1ca9}
+          onPressOut={v_920eb5}
+          disabled={v_ab4803 === "speaking"}
+          style={[v_fd5f43.controlBtn, v_177ff2 && v_fd5f43.controlBtnActive, v_ab4803 === "speaking" && v_fd5f43.controlBtnDanger]}
+        >
+          <Text style={v_fd5f43.talkBtnText}>
+            {v_ab4803 === "speaking" ? "응답 중..." : v_177ff2 ? "듣는 중..." : "말하기"}
+          </Text>
+        </Pressable>
+
         <TouchableOpacity
           style={[v_fd5f43.controlBtn, v_4e2aec && v_fd5f43.controlBtnDanger]}
           onPress={() => {
@@ -756,6 +785,15 @@ const v_fd5f43 = v_472849.create({
   },
   controlBtnDanger: {
     backgroundColor: v_1bfbd0.error,
+  },
+  controlBtnActive: {
+    backgroundColor: v_1bfbd0.violet500,
+  },
+  talkBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: v_1bfbd0.white,
+    textAlign: "center",
   },
   endCallBtn: {
     width: 72,

@@ -48,6 +48,7 @@ function v_84b93d(pc: ReturnType<typeof v_e6273b>) {
   return {
     startCall: jest.fn().mockResolvedValue(v_c9c6be),
     endCall: jest.fn().mockResolvedValue({ ok: true }),
+    sayInCall: jest.fn().mockResolvedValue({ ok: true }),
     createPeerConnection: jest.fn().mockReturnValue(v_12cd99),
   };
 }
@@ -127,6 +128,7 @@ describe('useLiveAvatar', () => {
     const v_d5dda0 = {
       startCall: jest.fn().mockRejectedValue(new Error('boom')),
       endCall: jest.fn(),
+      sayInCall: jest.fn(),
       createPeerConnection: jest.fn(),
     };
     const { result: v_43c42e } = v_0da18b(() =>
@@ -201,6 +203,7 @@ describe('useLiveAvatar', () => {
         }),
       ),
       endCall: jest.fn().mockResolvedValue({ ok: true }),
+      sayInCall: jest.fn().mockResolvedValue({ ok: true }),
       createPeerConnection: jest.fn().mockReturnValue(v_e6273b()),
     };
     v_57d229();
@@ -218,5 +221,93 @@ describe('useLiveAvatar', () => {
     });
 
     expect(v_d5dda0.createPeerConnection).not.toHaveBeenCalled();
+  });
+
+  it('say: phase idle→sending→speaking, sayInCall 호출', async () => {
+    v_57d229();
+    const v_12cd99 = v_e6273b();
+    const v_d5dda0 = { ...v_84b93d(v_12cd99), sayInCall: jest.fn().mockResolvedValue({ ok: true }) };
+    const { result: v_43c42e } = v_0da18b(() => v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    await v_be73a0(async () => { await v_43c42e.current.say('안녕'); });
+    expect(v_d5dda0.sayInCall).toHaveBeenCalledWith('AT', 7, 'c1', '안녕');
+    expect(v_43c42e.current.phase).toBe('speaking');
+  });
+
+  it('say 중복 가드: speaking 중 say 무시', async () => {
+    v_57d229();
+    const v_12cd99 = v_e6273b();
+    const v_d5dda0 = { ...v_84b93d(v_12cd99), sayInCall: jest.fn().mockResolvedValue({ ok: true }) };
+    const { result: v_43c42e } = v_0da18b(() => v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    await v_be73a0(async () => { await v_43c42e.current.say('a'); });
+    await v_be73a0(async () => { await v_43c42e.current.say('b'); });
+    expect(v_d5dda0.sayInCall).toHaveBeenCalledTimes(1);
+  });
+
+  it('say: 통화 미시작(pc 없음) → no-op', async () => {
+    const v_d5dda0 = { ...v_84b93d(v_e6273b()), sayInCall: jest.fn() };
+    const { result: v_43c42e } = v_0da18b(() => v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }));
+    await v_be73a0(async () => { await v_43c42e.current.say('x'); });
+    expect(v_d5dda0.sayInCall).not.toHaveBeenCalled();
+  });
+
+  describe('soft timeout (fake timer)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('say→speaking 후 30s soft timeout → phase idle 복귀', async () => {
+      v_57d229();
+      const v_12cd99 = v_e6273b();
+      const v_d5dda0 = { ...v_84b93d(v_12cd99), sayInCall: jest.fn().mockResolvedValue({ ok: true }) };
+      const { result: v_43c42e } = v_0da18b(() => v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }));
+      await v_be73a0(async () => { await v_43c42e.current.start(); });
+
+      jest.useFakeTimers();
+      await v_be73a0(async () => { await v_43c42e.current.say('타임아웃 테스트'); });
+      expect(v_43c42e.current.phase).toBe('speaking');
+
+      v_be73a0(() => { jest.advanceTimersByTime(30_000); });
+      await v_81e49f(() => expect(v_43c42e.current.phase).toBe('idle'));
+    });
+
+    it('say(speaking) → stop → 타이머 advance 후에도 dead setState 없음 (phase는 stop이 idle로)', async () => {
+      v_57d229();
+      const v_12cd99 = v_e6273b();
+      const v_d5dda0 = { ...v_84b93d(v_12cd99), sayInCall: jest.fn().mockResolvedValue({ ok: true }) };
+      const { result: v_43c42e } = v_0da18b(() => v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }));
+      await v_be73a0(async () => { await v_43c42e.current.start(); });
+
+      jest.useFakeTimers();
+      await v_be73a0(async () => { await v_43c42e.current.say('타이머 클리어 테스트'); });
+      expect(v_43c42e.current.phase).toBe('speaking');
+
+      await v_be73a0(async () => { await v_43c42e.current.stop(); });
+      expect(v_43c42e.current.phase).toBe('idle');
+
+      v_be73a0(() => { jest.advanceTimersByTime(30_000); });
+      expect(v_43c42e.current.phase).toBe('idle');
+    });
+  });
+
+  describe('say 실패 후 재시도', () => {
+    it('sayInCall reject → phase idle + error 세팅, 이후 정상 say → speaking', async () => {
+      v_57d229();
+      const v_12cd99 = v_e6273b();
+      const v_9595ba = jest.fn().mockRejectedValue(new Error('say_fail'));
+      const v_d5dda0 = { ...v_84b93d(v_12cd99), sayInCall: v_9595ba };
+      const { result: v_43c42e } = v_0da18b(() => v_b38a7e({ cloneId: 7, accessToken: 'AT', deps: v_d5dda0 }));
+      await v_be73a0(async () => { await v_43c42e.current.start(); });
+
+      await v_be73a0(async () => { await v_43c42e.current.say('실패 테스트'); });
+      expect(v_43c42e.current.phase).toBe('idle');
+      expect(v_43c42e.current.error).toBeTruthy();
+      expect(v_43c42e.current.error?.message).toBe('say_fail');
+
+      v_9595ba.mockResolvedValue({ ok: true });
+      await v_be73a0(async () => { await v_43c42e.current.say('재시도 테스트'); });
+      expect(v_43c42e.current.phase).toBe('speaking');
+    });
   });
 });

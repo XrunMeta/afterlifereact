@@ -6,7 +6,7 @@ import {
   v_d904b7,
   v_802da4,
 } from 'rthlnescfffbyxfmhgq';
-import { v_53975b as v_fd7914, v_51c671 as v_999327 } from '../api/calls';
+import { v_53975b as v_fd7914, v_51c671 as v_999327, v_af28f9 as v_99f4f1 } from '../api/calls';
 
 export const v_506dd1 = [
   { urls: 'stun:stun.cloudflare.com:3478' },
@@ -34,12 +34,14 @@ export interface LivePeerConnection {
 export interface LiveAvatarDeps {
   startCall: typeof v_fd7914;
   endCall: typeof v_999327;
+  sayInCall: typeof v_99f4f1;
   createPeerConnection: (config: { iceServers: typeof v_506dd1 }) => LivePeerConnection;
 }
 
 const v_17f880 = {
   startCall: v_fd7914,
   endCall: v_999327,
+  sayInCall: v_99f4f1,
   createPeerConnection: (v_74a79c) =>
     new v_c1a793(v_74a79c) as unknown as LivePeerConnection,
 };
@@ -67,13 +69,37 @@ export function v_b38a7e(v_328259) {
   const [v_b6e533, v_1fa668] = v_5ab095<LiveAvatarState>('idle');
   const [v_b4d824, v_b944e3] = v_5ab095<v_802da4 | null>(null);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<Error | null>(null);
+  const [v_ab4803, v_ae4844] = v_5ab095<'idle' | 'listening' | 'sending' | 'speaking'>('idle');
   const v_f98743 = v_e662ae<LivePeerConnection | null>(null);
   const v_6e83c5 = v_e662ae<string | null>(null);
+  const v_6b43e5 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
 
   const v_bba900 = v_e662ae(0);
 
+  const v_bf15a0 = 30_000;
+
+  const v_3e2c87 = v_de06a3(async (v_9b6134) => {
+    if (!v_f98743.current || !v_6e83c5.current) return; 
+    if (v_ab4803 === 'sending' || v_ab4803 === 'speaking') return; 
+    const v_8d41d7 = v_9b6134.trim();
+    if (!v_8d41d7) return;
+    v_ae4844('sending');
+    try {
+      await v_84b93d.sayInCall(v_2ca7e0, v_6e0fd3, v_6e83c5.current, v_8d41d7);
+
+      v_ae4844('speaking');
+      if (v_6b43e5.current) clearTimeout(v_6b43e5.current);
+      v_6b43e5.current = setTimeout(() => v_ae4844('idle'), v_bf15a0);
+    } catch (v_9e86fd) {
+      v_3a7d09(v_9e86fd as Error);
+      v_ae4844('idle');
+    }
+  }, [v_2ca7e0, v_6e0fd3, v_84b93d, v_ab4803]);
+
   const v_3e54f8 = v_de06a3(async () => {
     v_bba900.current += 1; 
+    if (v_6b43e5.current) clearTimeout(v_6b43e5.current);
+    v_ae4844('idle');
     const v_12cd99 = v_f98743.current;
     v_f98743.current = null;
     if (v_12cd99) {
@@ -186,5 +212,5 @@ export function v_b38a7e(v_328259) {
 
   }, []);
 
-  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8 };
+  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87 };
 }
