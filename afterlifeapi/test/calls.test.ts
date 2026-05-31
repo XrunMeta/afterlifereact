@@ -110,6 +110,99 @@ v_469bf2("calls route", () => {
     v_4d37e3(await v_8f00b9.json()).toEqual({ ok: true });
   });
 
+  v_23805a("POST /oth-path 성공 시 call_sessions INSERT(started_at)", async () => {
+    const v_43e90c = await v_bfb240("caller@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "halbaeclone");
+    const v_21cc31 = await v_86c39f(v_43e90c);
+    v_8fd90d
+      .get(v_8fe3be)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, { callId: "sess-c1", subscribeToken: "t", tracks: { video: "v", audio: "a" }, state: "live" });
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_3ac7e7 = await v_c9c489.DB.prepare("SELECT * FROM call_sessions WHERE call_id = ?").bind("sess-c1").first();
+    v_4d37e3(v_3ac7e7).toBeTruthy();
+    v_4d37e3((v_3ac7e7 as { user_id: number }).user_id).toBe(v_43e90c);
+    v_4d37e3((v_3ac7e7 as { ended_at: number | null }).ended_at).toBeNull();
+  });
+
+  v_23805a("POST /oth-path call_sessions UPDATE(ended_at, duration)", async () => {
+    const v_43e90c = await v_bfb240("ender@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "halbaeclone2");
+    const v_21cc31 = await v_86c39f(v_43e90c);
+
+    await v_c9c489.DB.prepare(
+      "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at, ended_at, duration_sec) VALUES (?,?,?,?,NULL,NULL)"
+    ).bind("abcd1234-5678", v_43e90c, v_6e0fd3, Date.now() - 5000).run();
+    v_8fd90d
+      .get(v_8fe3be)
+      .intercept({ path: "/oth-path", method: "DELETE" })
+      .reply(200, { ok: true });
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/abcd1234-5678/end`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_3ac7e7 = await v_c9c489.DB.prepare("SELECT * FROM call_sessions WHERE call_id = ?").bind("abcd1234-5678").first<{ ended_at: unknown; duration_sec: unknown }>();
+    v_4d37e3(Number(v_3ac7e7!.ended_at)).toBeGreaterThan(0);
+    v_4d37e3(Number(v_3ac7e7!.duration_sec)).toBeGreaterThanOrEqual(4);
+  });
+
+  v_23805a("POST /oth-path 202 + call_turns(user) INSERT + orchestrator 프록시", async () => {
+    const v_43e90c = await v_bfb240("sayer@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "halbaeclone3");
+    const v_21cc31 = await v_86c39f(v_43e90c);
+    await v_c9c489.DB.prepare(
+      "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"
+    ).bind("say-c1", v_43e90c, v_6e0fd3, Date.now()).run();
+    v_8fd90d
+      .get(v_8fe3be)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(202, { ok: true });
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/say-c1/say`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "안녕하세요" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(202);
+    const v_8dbe6c = await v_c9c489.DB.prepare(
+      "SELECT * FROM call_turns WHERE call_id = ? AND role = ?"
+    ).bind("say-c1", "user").first() as { text: string; seq: number } | null;
+    v_4d37e3(v_8dbe6c!.text).toBe("안녕하세요");
+    v_4d37e3(v_8dbe6c!.seq).toBe(1);
+  });
+
+  v_23805a("POST /oth-path 빈 text → 400", async () => {
+    const v_43e90c = await v_bfb240("sayer2@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "hc4");
+    const v_21cc31 = await v_86c39f(v_43e90c);
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/x/say`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(400);
+  });
+
+  v_23805a("POST /oth-path 타인 세션 → 403", async () => {
+    const v_257b90 = await v_bfb240("owner@x.com");
+    const v_a9cbf1 = await v_bfb240("other@x.com");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "hc5");
+    await v_c9c489.DB.prepare(
+      "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)"
+    ).bind("owned-c1", v_257b90, v_6e0fd3, Date.now()).run();
+    const v_21cc31 = await v_86c39f(v_a9cbf1);
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/owned-c1/say`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "hi" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(403);
+  });
+
   v_23805a("POST /oth-path — 형식 위반 callId 는 멱등 200(orchestrator 미호출)", async () => {
     const v_257b90 = await v_bfb240("call-badid@test.local");
     const v_6e0fd3 = await v_4d24a9(v_257b90, "call_badid");
