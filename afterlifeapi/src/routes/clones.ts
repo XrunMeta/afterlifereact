@@ -133,6 +133,8 @@ const createSchema = z.object({
     z.string().regex(/^[a-zA-Z0-9_]{1,50}$/),
     z.string().max(500),
   ).optional(),
+
+  relation: z.string().max(40).optional(),
 });
 
 const PERSONA_PAID_PRICE_XRUN = 100;
@@ -277,8 +279,8 @@ clones.post(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
               avatar_url, cover_image_url, voice_type, voice_preset_id,
-              l1_profile, primary_editor_user_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              l1_profile, primary_editor_user_id, relation)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -295,6 +297,7 @@ clones.post(
           body.voice_preset_id ?? null,
           l1Profile !== null ? JSON.stringify(l1Profile) : null,
           userId,
+          body.relation ?? null,
         )
         .first();
     } catch (err) {
