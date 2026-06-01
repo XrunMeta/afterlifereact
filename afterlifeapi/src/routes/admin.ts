@@ -277,7 +277,9 @@ v_b7f2b4.get("/system-persona", v_c0a297, async (v_3f4e2e) => {
 
 v_b7f2b4.put("/system-persona", v_b09138, async (v_3f4e2e) => {
   const v_db9be1 = v_3f4e2e.get("adminUserId") ?? null;
-  const v_4d33b2 = await v_3f4e2e.req.json<{ rules_text?: unknown; blocklist?: unknown }>().catch(() => ({}));
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ rules_text?: unknown; blocklist?: unknown }>()
+    .catch(() => ({}) as { rules_text?: unknown; blocklist?: unknown });
   const v_f9ca29 = typeof v_4d33b2.rules_text === "string" ? v_4d33b2.rules_text : "";
   if (v_f9ca29.length > 8000) return v_3f4e2e.json({ error: "rules_text_too_long" }, 400);
   const v_3f91b5 = Array.isArray(v_4d33b2.blocklist)
