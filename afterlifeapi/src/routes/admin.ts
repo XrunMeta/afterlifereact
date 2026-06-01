@@ -2,11 +2,12 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { runCleanup } from "../scheduled/cleanup";
-import { requireAdmin } from "../middleware/auth";
+import { requireAdmin, requireSuperAdmin } from "../middleware/auth";
 import { parseJson, z } from "../lib/validate";
 import { getKekProvider, openAny, openV3, sealV3, seal, extractDekId } from "../lib/ale";
 import { requestKekProvider } from "../lib/kekProvider";
 import { writeDecryptionAudit } from "../lib/auditChain";
+import { loadSystemPersona } from "../lib/systemPersona";
 
 export const admin = new Hono<AppEnv>();
 
@@ -267,5 +268,32 @@ admin.post("/_dev/open-any", async (c) => {
     hint: body.hint,
   });
   return c.json({ plain });
+});
+
+admin.get("/system-persona", requireAdmin, async (c) => {
+  const l0 = await loadSystemPersona(c.env.DB);
+  return c.json(l0);
+});
+
+admin.put("/system-persona", requireSuperAdmin, async (c) => {
+  const adminId = c.get("adminUserId") ?? null;
+  const body = await c.req.json<{ rules_text?: unknown; blocklist?: unknown }>().catch(() => ({}));
+  const rulesText = typeof body.rules_text === "string" ? body.rules_text : "";
+  if (rulesText.length > 8000) return c.json({ error: "rules_text_too_long" }, 400);
+  const blocklistArr = Array.isArray(body.blocklist)
+    ? body.blocklist.filter((x): x is string => typeof x === "string").slice(0, 1000)
+    : [];
+  await c.env.DB.prepare(
+    `INSERT INTO system_persona (id, rules_text, blocklist, updated_by, updated_at)
+     VALUES (1, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       rules_text  = excluded.rules_text,
+       blocklist   = excluded.blocklist,
+       updated_by  = excluded.updated_by,
+       updated_at  = excluded.updated_at`,
+  )
+    .bind(rulesText, JSON.stringify(blocklistArr), adminId, Date.now())
+    .run();
+  return c.json({ ok: true });
 });
 
