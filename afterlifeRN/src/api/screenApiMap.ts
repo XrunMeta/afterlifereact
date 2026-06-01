@@ -64,11 +64,14 @@ export const v_ec7c86 = {
   ],
 
   Step1: [],
-  Step2: [],
+  PersonaAssistant: [
+    { method: 'GET', path: '/oth-path', note: '동적 질문 스키마' },
+    { method: 'POST', path: '/oth-path', note: 'gemma 후보 제안' },
+    { method: 'GET', path: '/oth-path', note: 'username 중복 체크' },
+  ],
   Step3: [],
   Step4: [],
   Step5: [],
-  Step6: [],
   Step7: [
     { method: 'POST', path: '/oth-path', note: 'clone 생성 커밋' },
   ],

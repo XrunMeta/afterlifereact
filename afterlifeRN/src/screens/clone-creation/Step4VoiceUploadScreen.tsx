@@ -36,7 +36,7 @@ export default function v_710783({ navigation: v_c65f5d }: Props) {
         <Button
           title={v_8d41d7("create.next")}
 
-          onPress={() => v_c65f5d.navigate('Step6')}
+          onPress={() => v_c65f5d.navigate('Step5')}
           disabled={!v_04fddf}
         />
       </View>

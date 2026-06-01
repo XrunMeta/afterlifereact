@@ -128,6 +128,35 @@ v_469bf2("validatePersonaQuestions", () => {
     ]);
     v_4d37e3(v_cb35cb.ok).toBe(true);
   });
+
+  v_23805a("accepts v3 seed schema (10 questions) — all types/showWhen/targetField valid", () => {
+    const v_64b26f = [
+      { key: "age", type: "fixed_choice", label: "나이대가 어떻게 되세요?", options: ["10대", "20대", "30대", "40대", "50대", "60대 이상"] },
+      { key: "gender", type: "fixed_choice", label: "성별은요?", options: ["남성", "여성", "기타"] },
+      { key: "mbti", type: "fixed_choice", label: "MBTI가 떠오르면 골라주세요", options: ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ", "모름"] },
+      { key: "personality_core", type: "gemma_choice", label: "어떤 성격이셨나요?", targetField: "personality_core" },
+      { key: "tone", type: "gemma_choice", label: "어떤 말투로 말하셨나요?", targetField: "tone", options_include: ["사투리"] },
+      { key: "dialect_region", type: "fixed_choice", label: "어느 지역 사투리였나요?", options: ["경상도", "전라도", "충청도", "제주", "강원", "서울/경기"], showWhen: { tone: "사투리" } },
+      { key: "dialect_intensity", type: "fixed_choice", label: "사투리가 어느 정도였나요?", options: ["약간", "보통", "심함"], showWhen: { tone: "사투리" } },
+      { key: "first_meeting", type: "text", label: "처음 만난 이야기를 들려주실래요?" },
+      { key: "habit", type: "text", label: "자주 하던 말이나 습관이 있었나요?" },
+      { key: "memory", type: "text", label: "가장 선명한 추억 한 장면을 들려주세요" },
+    ];
+    const v_cb35cb = v_02d529(v_64b26f);
+    v_4d37e3(v_cb35cb.ok).toBe(true);
+    if (v_cb35cb.ok) {
+      v_4d37e3(v_cb35cb.questions).toHaveLength(10);
+
+      const v_5a1d77 = v_cb35cb.questions.find((v_ab6401) => v_ab6401.key === "dialect_region");
+      v_4d37e3(v_5a1d77?.showWhen).toEqual({ tone: "사투리" });
+
+      const v_12cd99 = v_cb35cb.questions.find((v_ab6401) => v_ab6401.key === "personality_core");
+      v_4d37e3(v_12cd99?.targetField).toBe("personality_core");
+
+      const v_2694bd = v_cb35cb.questions.find((v_ab6401) => v_ab6401.key === "age");
+      v_4d37e3(v_2694bd?.targetField).toBeUndefined();
+    }
+  });
 });
 
 const v_d72b33 = 9001;

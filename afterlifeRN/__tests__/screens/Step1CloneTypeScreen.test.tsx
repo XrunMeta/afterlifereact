@@ -27,12 +27,13 @@ test('next button disabled until a type is selected', () => {
   expect(v_7b8db1).not.toHaveBeenCalled();
 });
 
-test('selecting memlow and pressing next saves cloneType and navigates to Step2', () => {
+test('selecting memlow and pressing next saves cloneType and navigates to PersonaAssistant', () => {
+
   const { getByText: v_2b0f8a } = v_624657(<Step1CloneTypeScreen {...v_7f4924} />);
   v_77aa68.press(v_2b0f8a('고인'));
   v_77aa68.press(v_2b0f8a('다음'));
   expect(v_194498.getState().creationDraft.cloneType).toBe('memlow');
-  expect(v_7b8db1).toHaveBeenCalledWith('Step2');
+  expect(v_7b8db1).toHaveBeenCalledWith('PersonaAssistant');
 });
 
 test('Step1 does not render category/interests UI', () => {
