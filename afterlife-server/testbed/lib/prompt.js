@@ -18,8 +18,20 @@ export function loadPersona() {
 }
 
 export function personaToAttrs(persona = {}) {
+  const p = { ...(persona ?? {}) };
+
+  const region = typeof p.dialect_region === 'string' ? p.dialect_region.trim() : '';
+  const intensity = typeof p.dialect_intensity === 'string' ? p.dialect_intensity.trim() : '';
+  if (region) {
+    const baseTone = typeof p.tone === 'string' && p.tone.trim() ? p.tone.trim() : '말투';
+    const deg = intensity ? `${intensity} ` : '';
+    p.tone = `${deg}${region} 사투리가 섞인 ${baseTone}`;
+  }
+  delete p.dialect_region;
+  delete p.dialect_intensity;
+
   const out = [];
-  for (const [key, value] of Object.entries(persona ?? {})) {
+  for (const [key, value] of Object.entries(p)) {
     if (value == null) continue;
     if (typeof value !== 'string') continue;
     const v = value.trim();
