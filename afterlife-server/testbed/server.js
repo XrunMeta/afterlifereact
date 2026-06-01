@@ -11,7 +11,8 @@ import { applyOps, recentAttrs, getHistory, getAttrsFor } from './lib/kvStore.js
 import { extractTurn } from './lib/extractor.js';
 import { createSentenceBuffer } from './lib/sentence_buffer.js';
 import { ttsSynthesize } from './lib/tts.js';
-import { stripEmoji, sanitizeChunk } from './lib/sanitize.js';
+import { stripEmoji, sanitizeChunk, applyBlocklist } from './lib/sanitize.js';
+import { selectPromptInputs } from './lib/personaSelect.js';
 import {
   concatWavs,
   cleanupTempDir,
@@ -311,7 +312,8 @@ app.post('/oth-path', (req, res) => {
     return res.status(400).json({ error: 'message is required' });
   }
 
-  const source = req.body?.source === 'agent' ? 'agent' : 'browser';
+  const sourceRaw = req.body?.source;
+  const source = sourceRaw === 'agent' ? 'agent' : sourceRaw === 'rn-call' ? 'rn-call' : 'browser';
   const speakerRole = req.body?.speaker_role === 'visitor' ? 'visitor' : 'creator';
   const learnLevel = speakerRole === 'visitor' ? 'l2' : 'l1';
   const userLabel = (req.body?.user_label ?? (speakerRole === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
@@ -319,13 +321,18 @@ app.post('/oth-path', (req, res) => {
 
   const callPublisherUrl = resolvePublisherUrl(req.body?.publisherPort, REALTIME_PUBLISHER_URL);
 
-  const l1Attrs = getAttrsFor({ persona_slug: personaSlug, level: 'l1', user_label: null });
-  const l2Attrs = speakerRole === 'visitor'
+  const personaBundle = req.body?.personaBundle ?? null;
+  const fallbackL1 = getAttrsFor({ persona_slug: personaSlug, level: 'l1', user_label: null });
+  const fallbackL2 = speakerRole === 'visitor'
     ? getAttrsFor({ persona_slug: personaSlug, level: 'l2', user_label: userLabel })
     : [];
+  const { l0, l1Attrs, l2Attrs } = selectPromptInputs({ personaBundle, fallbackL1, fallbackL2 });
+  if (personaBundle && personaBundle.persona && l1Attrs.length === 0) {
+    console.warn(`[sp3] personaBundle present but persona empty (source=${source}) — responding with L0 only`);
+  }
 
   const messages = [
-    { role: 'system', content: buildSystemPrompt({ l1Attrs, l2Attrs }) },
+    { role: 'system', content: buildSystemPrompt({ l0, l1Attrs, l2Attrs }) },
     ...history
       .filter((m) => m && typeof m.role === 'string' && typeof m.content === 'string')
       .filter((m) => ['user', 'assistant'].includes(m.role))
@@ -370,7 +377,8 @@ app.post('/oth-path', (req, res) => {
   let lastDoneInfo = null;   
 
   const triggerExtraction = async (turnId) => {
-    if (!turnId || !LEARN_ENABLED) return;
+
+    if (!turnId || !LEARN_ENABLED || source === 'rn-call') return;
     try {
       const existingAttrs = recentAttrs({ persona_slug: personaSlug, level: learnLevel, user_label: learnLevel === 'l2' ? userLabel : null });
       const ops = await extractTurn(
@@ -452,7 +460,7 @@ app.post('/oth-path', (req, res) => {
   const synthAndSend = (text, idx) => {
     if (!TTS_ENABLED) return Promise.resolve();
 
-    const cleaned = stripEmoji(text);
+    const cleaned = applyBlocklist(stripEmoji(text), l0?.blocklist ?? []);
     if (!cleaned) return Promise.resolve();
     const seq = ++ttsSeq;
     const t0 = Date.now();

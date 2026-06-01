@@ -51,6 +51,7 @@ function buildSayDeps(cfg, cloneId) {
 export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   const router = express.Router();
   const sayStore = createSayStore();
+
   const callPersona = new Map(); 
   const runChatRelay = deps?.sayDeps?.runChatRelay ?? defaultRunChatRelay;
 
