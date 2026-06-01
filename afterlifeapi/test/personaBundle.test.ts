@@ -1,6 +1,6 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_c9c489 } from "lwkoweqmjbnvjqw";
-import { v_db508f, v_445ba7 } from "../src/lib/personaBundle";
+import { v_db508f, v_445ba7, v_56dc8c } from "../src/lib/personaBundle";
 
 v_469bf2("personaBundle", () => {
   v_23805a("loadCloneProfiles parses l1/l2 JSON, null when absent", async () => {
@@ -19,5 +19,16 @@ v_469bf2("personaBundle", () => {
     v_4d37e3(v_79521f.l0.rules_text).toBe("규칙");
     v_4d37e3(v_79521f.cloneId).toBe("123");
     v_4d37e3(v_79521f.persona.tone).toBe("다정");
+  });
+
+  v_23805a("flattenAttrs lets top-level core win over attrs on key conflict", () => {
+    const v_15168d = v_56dc8c({ personality_core: "핵심", attrs: { personality_core: "덮어쓰기시도", age: "60대" } });
+    v_4d37e3((v_15168d as any).personality_core).toBe("핵심"); 
+    v_4d37e3((v_15168d as any).age).toBe("60대");              
+  });
+
+  v_23805a("flattenAttrs returns null for null, passes through when no attrs", () => {
+    v_4d37e3(v_56dc8c(null)).toBeNull();
+    v_4d37e3(v_56dc8c({ tone: "다정" })).toEqual({ tone: "다정" });
   });
 });

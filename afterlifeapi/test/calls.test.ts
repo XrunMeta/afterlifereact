@@ -203,6 +203,37 @@ v_469bf2("calls route", () => {
     v_4d37e3(v_8f00b9.status).toBe(403);
   });
 
+  v_23805a("POST /oth-path sends personaBundle with l0 + persona to orchestrator", async () => {
+    let v_a724b9 = null;
+    v_8fd90d
+      .get(v_8fe3be)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply((v_328259) => {
+        v_a724b9 = JSON.parse(v_328259.body as string) as Record<string, unknown>;
+        return {
+          statusCode: 200,
+          data: JSON.stringify({
+            callId: "c1",
+            subscribeToken: "t",
+            tracks: { video: "v", audio: "a" },
+            state: "live",
+          }),
+          responseOptions: { headers: { "content-type": "application/json" } },
+        };
+      });
+    const v_1badb6 = await v_bfb240("call-pb@t");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "pbcall");
+    const v_ea333d = await v_86c39f(v_1badb6);
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    v_4d37e3(v_a724b9!.personaBundle).toBeTruthy();
+    v_4d37e3(typeof (v_a724b9!.personaBundle as { l0: { rules_text: unknown } }).l0.rules_text).toBe("string");
+    v_4d37e3(v_a724b9!.personaBundle).toHaveProperty("persona");
+  });
+
   v_23805a("POST /oth-path — 형식 위반 callId 는 멱등 200(orchestrator 미호출)", async () => {
     const v_257b90 = await v_bfb240("call-badid@test.local");
     const v_6e0fd3 = await v_4d24a9(v_257b90, "call_badid");

@@ -43,7 +43,7 @@ export function v_56dc8c(l1: v_1f7dcf | null): v_1f7dcf | null {
   const v_3555ae = (v_020b4b as { attrs?: Record<string, unknown> }).attrs;
   if (v_3555ae && typeof v_3555ae === "object") {
     const { attrs: v_9bd854, ...v_83bbcd } = v_020b4b as Record<string, unknown>;
-    return { ...v_83bbcd, ...v_3555ae };
+    return { ...v_3555ae, ...v_83bbcd };  
   }
   return v_020b4b;
 }
