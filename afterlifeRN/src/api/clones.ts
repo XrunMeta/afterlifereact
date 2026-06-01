@@ -21,7 +21,11 @@ export interface CreateClonePayload {
   l1_profile?: {
     attrs: Record<string, string>;
     notes: string;
+    personality_core?: string;
+    tone?: string;
   };
+
+  personaAnswers?: Record<string, string>;
 
   pin?: string;
 }
@@ -100,6 +104,35 @@ export function deriveUsernameFromName(name: string): string {
   const trimmed = base.slice(0, 20);
   const suffix = Math.random().toString(36).slice(2, 8);
   return `${trimmed}_${suffix}`;
+}
+
+export async function getPersonaQuestions(
+  accessToken: string,
+): Promise<import('../types/clone').PersonaQuestion[]> {
+  const res = await fetch(`${API_BASE}/oth-path`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`persona-questions ${res.status}`);
+  const body = (await res.json()) as { questions: import('../types/clone').PersonaQuestion[] };
+  return body.questions ?? [];
+}
+
+export async function personaSuggest(
+  accessToken: string,
+  profile: Record<string, unknown>,
+): Promise<Record<string, string[]>> {
+  try {
+    const res = await fetch(`${API_BASE}/oth-path`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(profile),
+    });
+    if (!res.ok) return {};
+    const body = (await res.json()) as { suggestions: Record<string, string[]> };
+    return body.suggestions ?? {};
+  } catch {
+    return {};
+  }
 }
 
 export async function createClone(

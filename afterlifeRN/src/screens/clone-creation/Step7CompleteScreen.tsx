@@ -118,6 +118,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       };
       const l1Profile = { attrs: l1Attrs, notes: draft.personaNotes ?? "" };
 
+      const personaAnswers = draft.personaAnswers ?? {};
+
       let avatarUrl: string | undefined = avatarUrlRef.current;
       if (!avatarUrl && draft.imageFile) {
         try {
@@ -163,6 +165,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         visibility,
         interests: draft.interests && draft.interests.length > 0 ? draft.interests : undefined,
         l1_profile: l1Profile,
+
+        ...(Object.keys(personaAnswers).length > 0 ? { personaAnswers } : {}),
         ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
         ...(pin ? { pin } : {}),
       });

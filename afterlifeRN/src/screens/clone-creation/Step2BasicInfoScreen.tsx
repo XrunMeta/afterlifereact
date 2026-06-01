@@ -46,7 +46,7 @@ export default function Step2BasicInfoScreen({ navigation }: Props) {
       <View style={styles.bottomBar}>
         <Button
           title={t("create.next")}
-          onPress={() => navigation.navigate('Step3')}
+          onPress={() => navigation.navigate('PersonaAssistant')}
           disabled={!canNext}
         />
       </View>
