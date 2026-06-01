@@ -103,6 +103,31 @@ v_469bf2("validatePersonaQuestions", () => {
     ]);
     v_4d37e3(v_cb35cb.ok).toBe(true);
   });
+
+  v_23805a("rejects fixed_choice with duplicate options", () => {
+    const v_cb35cb = v_02d529([
+      { key: "mood", type: "fixed_choice", label: "분위기?", options: ["밝음", "조용함", "밝음"] },
+    ]);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("duplicate option");
+    v_4d37e3(v_cb35cb.error).toContain("mood");
+  });
+
+  v_23805a("rejects gemma_choice with duplicate options_include", () => {
+    const v_cb35cb = v_02d529([
+      { key: "tone", type: "gemma_choice", label: "말투?", options_include: ["사투리", "반말", "사투리"] },
+    ]);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("duplicate options_include");
+    v_4d37e3(v_cb35cb.error).toContain("tone");
+  });
+
+  v_23805a("accepts fixed_choice with all unique options", () => {
+    const v_cb35cb = v_02d529([
+      { key: "region", type: "fixed_choice", label: "지역?", options: ["서울", "부산", "제주"] },
+    ]);
+    v_4d37e3(v_cb35cb.ok).toBe(true);
+  });
 });
 
 const v_d72b33 = 9001;

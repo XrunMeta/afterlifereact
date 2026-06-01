@@ -47,8 +47,12 @@ export function v_02d529(v_bbda62): ValidateResult {
         return { ok: false, error: `options must be strings for ${v_ab6401.key}` };
       if (v_ab6401.options.length > 20)
         return { ok: false, error: `options too many for ${v_ab6401.key}: max 20` };
+
+      const v_05b1a6 = new Set<string>();
       for (const v_b6c474 of v_ab6401.options as string[]) {
         if (v_b6c474.length > 200) return { ok: false, error: `option value too long for ${v_ab6401.key}` };
+        if (v_05b1a6.has(v_b6c474)) return { ok: false, error: `duplicate option in ${v_ab6401.key}: ${v_b6c474}` };
+        v_05b1a6.add(v_b6c474);
       }
     }
     if (v_ab6401.options_include !== undefined) {
@@ -56,9 +60,13 @@ export function v_02d529(v_bbda62): ValidateResult {
         return { ok: false, error: `options_include must be array for ${v_ab6401.key}` };
       if (v_ab6401.options_include.length > 20)
         return { ok: false, error: `options_include too many for ${v_ab6401.key}: max 20` };
+
+      const v_51f3a2 = new Set<string>();
       for (const v_b6c474 of v_ab6401.options_include as unknown[]) {
         if (typeof v_b6c474 !== "string") return { ok: false, error: `options_include items must be strings for ${v_ab6401.key}` };
         if ((v_b6c474 as string).length > 200) return { ok: false, error: `options_include value too long for ${v_ab6401.key}` };
+        if (v_51f3a2.has(v_b6c474 as string)) return { ok: false, error: `duplicate options_include in ${v_ab6401.key}: ${v_b6c474}` };
+        v_51f3a2.add(v_b6c474 as string);
       }
     }
     if (v_ab6401.targetField !== undefined) {

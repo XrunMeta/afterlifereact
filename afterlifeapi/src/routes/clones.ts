@@ -602,6 +602,8 @@ const v_32333b = v_1f4ea7.record(
 );
 
 v_f891e6.post("/persona-suggest", v_6690d9, async (v_3f4e2e) => {
+
+  if (!v_3f4e2e.env.ORCHESTRATOR_URL || !v_3f4e2e.env.ORCH_SECRET) return v_3f4e2e.json({ suggestions: {} });
   const v_479f05 = await v_3f4e2e.req.json().catch(() => ({}));
   const v_8decf8 = v_32333b.safeParse(v_479f05);
   const v_727031 = v_8decf8.success ? v_8decf8.data : {};
@@ -618,15 +620,18 @@ v_f891e6.post("/persona-suggest", v_6690d9, async (v_3f4e2e) => {
     .map((v_ab6401) => ({ key: v_ab6401.key, label: v_ab6401.label, options_include: v_ab6401.options_include }));
   if (v_1ccb73.length === 0) return v_3f4e2e.json({ suggestions: {} });
   try {
+
     const v_cb35cb = await fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },
       body: JSON.stringify({ profile: v_727031, questions: v_1ccb73 }),
+      signal: AbortSignal.timeout(8000),
     });
     if (!v_cb35cb.ok) return v_3f4e2e.json({ suggestions: {} });
     const v_9390e8 = await v_cb35cb.json<{ suggestions?: Record<string, string[]> }>();
     return v_3f4e2e.json({ suggestions: v_9390e8.suggestions ?? {} });
   } catch {
+
     return v_3f4e2e.json({ suggestions: {} });
   }
 });
