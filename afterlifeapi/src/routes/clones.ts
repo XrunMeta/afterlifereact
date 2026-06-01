@@ -68,6 +68,34 @@ const l1ProfileSchema = z.object({
   notes: z.string().max(4000).default(''),
 });
 
+const personaWizardSchema = z.object({
+  age: z.string().max(20).optional(),
+  gender: z.string().max(20).optional(),
+  mbti: z.string().max(10).optional(),
+  personaTypes: z.array(z.string().max(20)).max(8).optional(),
+}).optional();
+
+function buildL1FromWizard(
+  base: { attrs?: Record<string, string>; notes?: string } | undefined,
+  persona: { age?: string; gender?: string; mbti?: string; personaTypes?: string[] } | undefined,
+): Record<string, unknown> | null {
+  const hasBase = !!base;
+  const hasPersona = !!persona && Object.values(persona).some(
+    (v) => v !== undefined && (Array.isArray(v) ? v.length > 0 : true),
+  );
+  if (!hasBase && !hasPersona) return null;
+
+  const attrs: Record<string, string> = { ...(base?.attrs ?? {}) };
+  if (persona?.age) attrs.age = persona.age;
+  if (persona?.gender) attrs.gender = persona.gender;
+  if (persona?.mbti) attrs.mbti = persona.mbti;
+
+  const l1: Record<string, unknown> = { attrs, notes: base?.notes ?? "" };
+  const traits = persona?.personaTypes ?? [];
+  if (traits.length) l1.personality_core = `${traits.join(", ")} 성향`;
+  return l1;
+}
+
 const createSchema = z.object({
 
   clone_type: cloneType.default("friend"),
@@ -88,6 +116,8 @@ const createSchema = z.object({
   memlow_profile: z.record(z.string(), z.unknown()).optional(),
 
   l1_profile: l1ProfileSchema.optional(),
+
+  persona: personaWizardSchema,
 
   pin: z.string().regex(/^\d{6}$/).optional(),
 });
@@ -193,6 +223,8 @@ clones.post(
 
     const voiceType = body.voice_preset_id ? "preset" : "text_only";
 
+    const l1Profile = buildL1FromWizard(body.l1_profile, body.persona);
+
     let inserted:
       | {
           id: number;
@@ -226,7 +258,7 @@ clones.post(
           body.cover_image_url ?? null,
           voiceType,
           body.voice_preset_id ?? null,
-          body.l1_profile ? JSON.stringify(body.l1_profile) : null,
+          l1Profile !== null ? JSON.stringify(l1Profile) : null,
           userId,
         )
         .first();
@@ -280,8 +312,9 @@ clones.post(
           .bind(cloneId),
       );
 
-      if (body.l1_profile?.attrs) {
-        for (const [key, value] of Object.entries(body.l1_profile.attrs)) {
+      const l1Attrs = l1Profile?.attrs as Record<string, string> | undefined;
+      if (l1Attrs) {
+        for (const [key, value] of Object.entries(l1Attrs)) {
           if (!value) continue;
           stmts.push(
             db
