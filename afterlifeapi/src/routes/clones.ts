@@ -133,6 +133,8 @@ const v_722b6d = v_1f4ea7.object({
     v_1f4ea7.string().regex(/^[a-zA-Z0-9_]{1,50}$/),
     v_1f4ea7.string().max(500),
   ).optional(),
+
+  relation: v_1f4ea7.string().max(40).optional(),
 });
 
 const v_c02c4c = 100;
@@ -268,8 +270,8 @@ v_f891e6.post(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
               avatar_url, cover_image_url, voice_type, voice_preset_id,
-              l1_profile, primary_editor_user_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              l1_profile, primary_editor_user_id, relation)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -286,6 +288,7 @@ v_f891e6.post(
           v_4d33b2.voice_preset_id ?? null,
           v_564b6a !== null ? JSON.stringify(v_564b6a) : null,
           v_43e90c,
+          v_4d33b2.relation ?? null,
         )
         .first();
     } catch (v_49263d) {
