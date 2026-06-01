@@ -5,6 +5,9 @@ import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
 import { loadCloneById, resolveResponseViewerRole } from "../lib/cloneAccess";
+import { loadSystemPersona } from "../lib/systemPersona";
+import { resolvePersona } from "../lib/personaResolver";
+import { loadCloneProfiles, buildPersonaBundle, flattenAttrs } from "../lib/personaBundle";
 
 export const calls = new Hono<AppEnv>();
 
@@ -22,14 +25,18 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
   const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
   if (!viewerRole) throw new APIError("FORBIDDEN", "No access to this clone for call.");
 
+  const l0 = await loadSystemPersona(c.env.DB);
+  const { l1, l2 } = await loadCloneProfiles(c.env.DB, cloneId);
+  const persona = resolvePersona({ l1: flattenAttrs(l1), l2 });
+  const personaBundle = buildPersonaBundle(l0, persona, cloneId);
+
   const orchUrl = c.env.ORCHESTRATOR_URL;
   let r: Response;
   try {
     r = await fetch(`${orchUrl}/oth-path`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
-
-      body: JSON.stringify({ cloneId: String(cloneId), userId: String(userId), idleVideoUrl: null }),
+      body: JSON.stringify({ cloneId: String(cloneId), userId: String(userId), idleVideoUrl: null, personaBundle }),
     });
   } catch (e) {
     throw new APIError("UPSTREAM_FAILURE", `Orchestrator unreachable: ${(e as Error).message}`);

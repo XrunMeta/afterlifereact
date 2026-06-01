@@ -203,6 +203,37 @@ describe("calls route", () => {
     expect(res.status).toBe(403);
   });
 
+  it("POST /oth-path sends personaBundle with l0 + persona to orchestrator", async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+    fetchMock
+      .get(ORCH)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply((opts) => {
+        capturedBody = JSON.parse(opts.body as string) as Record<string, unknown>;
+        return {
+          statusCode: 200,
+          data: JSON.stringify({
+            callId: "c1",
+            subscribeToken: "t",
+            tracks: { video: "v", audio: "a" },
+            state: "live",
+          }),
+          responseOptions: { headers: { "content-type": "application/json" } },
+        };
+      });
+    const ownerId = await seedUser("call-pb@t");
+    const cloneId = await seedClone(ownerId, "pbcall");
+    const tok = await issueAccessToken(ownerId);
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    expect(res.status).toBe(200);
+    expect(capturedBody!.personaBundle).toBeTruthy();
+    expect(typeof (capturedBody!.personaBundle as { l0: { rules_text: unknown } }).l0.rules_text).toBe("string");
+    expect(capturedBody!.personaBundle).toHaveProperty("persona");
+  });
+
   it("POST /oth-path — 형식 위반 callId 는 멱등 200(orchestrator 미호출)", async () => {
     const owner = await seedUser("call-badid@test.local");
     const cloneId = await seedClone(owner, "call_badid");

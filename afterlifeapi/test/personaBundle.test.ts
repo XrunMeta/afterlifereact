@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { env } from "cloudflare:test";
-import { loadCloneProfiles, buildPersonaBundle } from "../src/lib/personaBundle";
+import { loadCloneProfiles, buildPersonaBundle, flattenAttrs } from "../src/lib/personaBundle";
 
 describe("personaBundle", () => {
   it("loadCloneProfiles parses l1/l2 JSON, null when absent", async () => {
@@ -19,5 +19,16 @@ describe("personaBundle", () => {
     expect(bundle.l0.rules_text).toBe("규칙");
     expect(bundle.cloneId).toBe("123");
     expect(bundle.persona.tone).toBe("다정");
+  });
+
+  it("flattenAttrs lets top-level core win over attrs on key conflict", () => {
+    const flat = flattenAttrs({ personality_core: "핵심", attrs: { personality_core: "덮어쓰기시도", age: "60대" } });
+    expect((flat as any).personality_core).toBe("핵심"); 
+    expect((flat as any).age).toBe("60대");              
+  });
+
+  it("flattenAttrs returns null for null, passes through when no attrs", () => {
+    expect(flattenAttrs(null)).toBeNull();
+    expect(flattenAttrs({ tone: "다정" })).toEqual({ tone: "다정" });
   });
 });

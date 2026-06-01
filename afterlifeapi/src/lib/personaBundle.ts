@@ -43,7 +43,7 @@ export function flattenAttrs(l1: PersonaDict | null): PersonaDict | null {
   const attrs = (l1 as { attrs?: Record<string, unknown> }).attrs;
   if (attrs && typeof attrs === "object") {
     const { attrs: _drop, ...rest } = l1 as Record<string, unknown>;
-    return { ...rest, ...attrs };
+    return { ...attrs, ...rest };  
   }
   return l1;
 }
