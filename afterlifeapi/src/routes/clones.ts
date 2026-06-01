@@ -67,6 +67,8 @@ const v_496c2d = 32 * 1024;
 const v_3ea364 = v_1f4ea7.object({
   attrs: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.string()),
   notes: v_1f4ea7.string().max(4000).default(''),
+  personality_core: v_1f4ea7.string().max(500).optional(),
+  tone: v_1f4ea7.string().max(500).optional(),
 });
 
 const v_a1f09b = v_1f4ea7.object({
@@ -92,8 +94,13 @@ function v_8beace(
   if (v_5ed063?.mbti) v_3555ae.mbti = v_5ed063.mbti;
 
   const v_020b4b = { attrs: v_3555ae, notes: v_694b25?.notes ?? "" };
-  const v_a6872a = v_5ed063?.personaTypes ?? [];
-  if (v_a6872a.length) v_020b4b.personality_core = `${v_a6872a.join(", ")} 성향`;
+
+  if (v_694b25?.personality_core) v_020b4b.personality_core = v_694b25.personality_core;
+  else {
+    const v_a6872a = v_5ed063?.personaTypes ?? [];
+    if (v_a6872a.length) v_020b4b.personality_core = `${v_a6872a.join(", ")} 성향`;
+  }
+  if (v_694b25?.tone) v_020b4b.tone = v_694b25.tone;
   return v_020b4b;
 }
 
@@ -560,6 +567,27 @@ v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
 v_f891e6.get("/persona-questions", v_6690d9, async (v_3f4e2e) => {
   const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
   return v_3f4e2e.json({ questions: v_c3519b });
+});
+
+v_f891e6.post("/persona-suggest", v_6690d9, async (v_3f4e2e) => {
+  const v_727031 = await v_3f4e2e.req.json<Record<string, unknown>>().catch(() => ({}));
+  const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
+  const v_1ccb73 = v_c3519b
+    .filter((v_ab6401) => v_ab6401.type === "gemma_choice")
+    .map((v_ab6401) => ({ key: v_ab6401.key, label: v_ab6401.label, options_include: v_ab6401.options_include }));
+  if (v_1ccb73.length === 0) return v_3f4e2e.json({ suggestions: {} });
+  try {
+    const v_cb35cb = await fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile: v_727031, questions: v_1ccb73 }),
+    });
+    if (!v_cb35cb.ok) return v_3f4e2e.json({ suggestions: {} });
+    const v_9390e8 = await v_cb35cb.json<{ suggestions?: Record<string, string[]> }>();
+    return v_3f4e2e.json({ suggestions: v_9390e8.suggestions ?? {} });
+  } catch {
+    return v_3f4e2e.json({ suggestions: {} });
+  }
 });
 
 v_f891e6.get("/:id", async (v_3f4e2e) => {
