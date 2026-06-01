@@ -22,6 +22,7 @@ import {
 } from "../lib/interactions";
 import { v_7a6fc0 } from "../lib/xrun";
 import { v_c226a5, v_80a022 } from "../lib/notify";
+import { v_0b44ec } from "../lib/personaQuestions";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -554,6 +555,11 @@ v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
     "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
   ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+});
+
+v_f891e6.get("/persona-questions", v_6690d9, async (v_3f4e2e) => {
+  const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ questions: v_c3519b });
 });
 
 v_f891e6.get("/:id", async (v_3f4e2e) => {
