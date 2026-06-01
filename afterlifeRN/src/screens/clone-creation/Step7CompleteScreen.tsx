@@ -167,6 +167,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         l1_profile: l1Profile,
 
         ...(Object.keys(personaAnswers).length > 0 ? { personaAnswers } : {}),
+
+        ...(draft.relation ? { relation: draft.relation } : {}),
         ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
         ...(pin ? { pin } : {}),
       });

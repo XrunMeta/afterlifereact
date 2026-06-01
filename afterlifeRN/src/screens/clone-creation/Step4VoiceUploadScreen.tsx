@@ -36,7 +36,7 @@ export default function Step4VoiceUploadScreen({ navigation }: Props) {
         <Button
           title={t("create.next")}
 
-          onPress={() => navigation.navigate('Step6')}
+          onPress={() => navigation.navigate('Step5')}
           disabled={!canNext}
         />
       </View>
