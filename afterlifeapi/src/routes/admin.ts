@@ -2,11 +2,12 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_09b071 } from "../scheduled/cleanup";
-import { v_c0a297 } from "../middleware/auth";
+import { v_c0a297, v_b09138 } from "../middleware/auth";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_a8614b, v_137694, v_dfbdd9, v_9eaae0, v_85de88, v_8ea38c } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_e56fb3 } from "../lib/auditChain";
+import { v_b60bdd } from "../lib/systemPersona";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
 
@@ -267,5 +268,32 @@ v_b7f2b4.post("/_dev/open-any", async (v_3f4e2e) => {
     hint: v_4d33b2.hint,
   });
   return v_3f4e2e.json({ plain: v_946ca6 });
+});
+
+v_b7f2b4.get("/system-persona", v_c0a297, async (v_3f4e2e) => {
+  const v_b6c480 = await v_b60bdd(v_3f4e2e.env.DB);
+  return v_3f4e2e.json(v_b6c480);
+});
+
+v_b7f2b4.put("/system-persona", v_b09138, async (v_3f4e2e) => {
+  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? null;
+  const v_4d33b2 = await v_3f4e2e.req.json<{ rules_text?: unknown; blocklist?: unknown }>().catch(() => ({}));
+  const v_f9ca29 = typeof v_4d33b2.rules_text === "string" ? v_4d33b2.rules_text : "";
+  if (v_f9ca29.length > 8000) return v_3f4e2e.json({ error: "rules_text_too_long" }, 400);
+  const v_3f91b5 = Array.isArray(v_4d33b2.blocklist)
+    ? v_4d33b2.blocklist.filter((v_62c214): v_62c214 is string => typeof v_62c214 === "string").slice(0, 1000)
+    : [];
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO system_persona (id, rules_text, blocklist, updated_by, updated_at)
+     VALUES (1, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       rules_text  = excluded.rules_text,
+       blocklist   = excluded.blocklist,
+       updated_by  = excluded.updated_by,
+       updated_at  = excluded.updated_at`,
+  )
+    .bind(v_f9ca29, JSON.stringify(v_3f91b5), v_db9be1, Date.now())
+    .run();
+  return v_3f4e2e.json({ ok: true });
 });
 
