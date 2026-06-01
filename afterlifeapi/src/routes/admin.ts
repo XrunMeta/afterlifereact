@@ -277,11 +277,13 @@ admin.get("/system-persona", requireAdmin, async (c) => {
 
 admin.put("/system-persona", requireSuperAdmin, async (c) => {
   const adminId = c.get("adminUserId") ?? null;
-  const body = await c.req.json<{ rules_text?: unknown; blocklist?: unknown }>().catch(() => ({}));
+  const body = await c.req
+    .json<{ rules_text?: unknown; blocklist?: unknown }>()
+    .catch(() => ({}) as { rules_text?: unknown; blocklist?: unknown });
   const rulesText = typeof body.rules_text === "string" ? body.rules_text : "";
   if (rulesText.length > 8000) return c.json({ error: "rules_text_too_long" }, 400);
   const blocklistArr = Array.isArray(body.blocklist)
-    ? body.blocklist.filter((x): x is string => typeof x === "string").slice(0, 1000)
+    ? body.blocklist.filter((x: unknown): x is string => typeof x === "string").slice(0, 1000)
     : [];
   await c.env.DB.prepare(
     `INSERT INTO system_persona (id, rules_text, blocklist, updated_by, updated_at)
