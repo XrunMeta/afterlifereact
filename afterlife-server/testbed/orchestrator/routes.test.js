@@ -198,3 +198,81 @@ test('say: secret 불일치 → 401', async () => {
   assert.equal(res.status, 401);
   server.close();
 });
+
+test('personaBundle from /oth-path is forwarded to fetchChat on say', async () => {
+  const fetchChatArgs = [];
+
+  const orch = fakeOrch({
+    allocate: async () => ({ callId: 'c2', port: 8413, state: 'live', subscribeToken: 'tok2' }),
+    getCall: (id) => (id === 'c2' ? { call_id: 'c2', port: 8413, state: 'live' } : null),
+  });
+
+  const runChatRelay = async (deps, args) => {
+
+    fetchChatArgs.push(args);
+  };
+
+  const { server, base } = await mountApp(orch, 'sek', { runChatRelay });
+
+  const bundle = { l0: { rules_text: 'R', blocklist: [] }, persona: { tone: '다정' } };
+
+  const allocRes = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20', personaBundle: bundle }),
+  });
+  assert.equal(allocRes.status, 200);
+  const ticket = await allocRes.json();
+  assert.equal(ticket.callId, 'c2');
+
+  const sayRes = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '안녕', cloneId: '10' }),
+  });
+  assert.equal(sayRes.status, 202);
+
+  await new Promise((r) => setTimeout(r, 20));
+
+  assert.equal(fetchChatArgs.length, 1);
+  assert.deepEqual(fetchChatArgs[0].personaBundle, bundle);
+
+  server.close();
+});
+
+test('personaBundle: DELETE 후 캐시에서 제거됨(재 say 시 null)', async () => {
+  const relayed = [];
+  const orch = fakeOrch({
+    allocate: async () => ({ callId: 'c3', port: 8414, state: 'live', subscribeToken: 'tok3' }),
+    getCall: (id) => (id === 'c3' ? { call_id: 'c3', port: 8414, state: 'live' } : null),
+    end: async () => ({ ok: true }),
+  });
+  const runChatRelay = async (_deps, args) => { relayed.push(args); };
+  const { server, base } = await mountApp(orch, 'sek', { runChatRelay });
+
+  const bundle = { l0: { rules_text: 'X', blocklist: [] }, persona: { tone: '차분' } };
+
+  await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20', personaBundle: bundle }),
+  });
+
+  await fetch(`${base}/oth-path`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ userId: '20' }),
+  });
+
+  await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '재시작', cloneId: '10' }),
+  });
+  await new Promise((r) => setTimeout(r, 20));
+
+  assert.equal(relayed.length, 1);
+  assert.equal(relayed[0].personaBundle, null); 
+
+  server.close();
+});
