@@ -34,7 +34,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, type MyClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse } from "../../api/clones";
+import { listMyClones, listSystemClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, type MyClone, type SystemClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import { AuthApiError, patchMe } from "../../api/auth";
@@ -111,6 +111,8 @@ export default function MyClonesDashboardScreen() {
 
   const [apiClones, setApiClones] = useState<Clone[] | null>(null);
 
+  const [systemClones, setSystemClones] = useState<SystemClone[]>([]);
+
   const fetchMyClones = React.useCallback(async () => {
     if (!accessToken) {
       setApiClones(null);
@@ -131,6 +133,16 @@ export default function MyClonesDashboardScreen() {
   useEffect(() => {
     fetchMyClones();
   }, [fetchMyClones]);
+
+  useEffect(() => {
+    if (!accessToken) {
+      setSystemClones([]);
+      return;
+    }
+    listSystemClones(accessToken)
+      .then((r) => setSystemClones(r.items))
+      .catch(() => setSystemClones([]));
+  }, [accessToken]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -924,6 +936,37 @@ export default function MyClonesDashboardScreen() {
 }
           </>
         }
+        ListFooterComponent={
+          systemClones.length > 0 ? (
+            <View style={s.systemClonesSection}>
+              <Text style={s.systemClonesSectionTitle}>통화 가능</Text>
+              {systemClones.map((sc) => (
+                <View key={sc.id} style={s.card}>
+                  <View style={s.cloneHeader}>
+                    <View style={s.avatarWrap}>
+                      <View style={[s.avatar, { backgroundColor: COLORS.zinc100, alignItems: "center", justifyContent: "center" }]}>
+                        <Feather name="user" size={20} color={COLORS.zinc400} />
+                      </View>
+                    </View>
+                    <View style={s.cloneInfo}>
+                      <Text style={s.cloneName}>{sc.name}</Text>
+                      <Text style={s.cloneUsername}>@{sc.username}</Text>
+                    </View>
+                  </View>
+                  <View style={s.actionsRow}>
+                    <TouchableOpacity
+                      style={s.actionBtn}
+                      onPress={() => rootNav.navigate("Call", { cloneId: sc.id, name: sc.name })}
+                    >
+                      <Feather name="video" size={16} color={COLORS.zinc700} />
+                      <Text style={s.actionText}>{t("dashboard.actionCall")}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null
+        }
       />
       )}
 
@@ -1446,6 +1489,19 @@ const MOCK_COMMENTS = [
 ];
 
 const s = StyleSheet.create({
+  systemClonesSection: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  systemClonesSectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: COLORS.zinc500,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   dashLoading: {
     flex: 1,
     alignItems: "center",
