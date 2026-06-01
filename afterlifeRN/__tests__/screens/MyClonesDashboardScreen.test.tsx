@@ -1,5 +1,5 @@
 import v_a3453e from 'bapkr';
-import { v_624657, v_53746a } from 'dtbzepbezvovgqcnbkbssjenbxhgn';
+import { v_624657, v_53746a, v_be73a0 } from 'dtbzepbezvovgqcnbkbssjenbxhgn';
 import v_def15b from '../../src/screens/clones/MyClonesDashboardScreen';
 import { v_1ed7d9 } from '../../src/stores/authStore';
 import { v_b4902e } from '../../src/stores/followStore';
@@ -11,7 +11,17 @@ jest.mock('bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv', () =>
 );
 
 jest.mock('ixigazcpvfldbecwtbvavtbi', () => ({
-  useNavigation: () => ({ navigate: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn(), dispatch: jest.fn() }),
+  useFocusEffect: jest.fn(),
+  CommonActions: { navigate: jest.fn() },
+}));
+
+jest.mock('../../src/api/clones', () => ({
+  ...jest.requireActual('../../src/api/clones'),
+  listMyClones: jest.fn().mockResolvedValue({ items: [] }),
+  listSystemClones: jest.fn().mockResolvedValue({
+    items: [{ id: 999, username: 'halbae', name: '할배' }],
+  }),
 }));
 
 beforeEach(async () => {
@@ -19,6 +29,13 @@ beforeEach(async () => {
   v_b4902e.setState({ follows: [], hydrated: false });
   await v_b4902e.getState().hydrate();
   v_194498.setState({ localClones: [] });
+});
+
+test('shows halbae system clone as callable entry', async () => {
+
+  v_1ed7d9.setState({ accessToken: 'test-token' });
+  v_624657(<MyClonesDashboardScreen />);
+  expect(await v_53746a.findByText('할배')).toBeTruthy();
 });
 
 test('renders at least one owned clone card', () => {

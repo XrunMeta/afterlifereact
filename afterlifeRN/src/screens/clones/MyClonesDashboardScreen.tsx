@@ -34,7 +34,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0 } from "../../api/clones";
+import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, type v_fa0201, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_84a859, v_976b89 } from "../../api/auth";
@@ -111,6 +111,8 @@ export default function v_def15b() {
 
   const [v_8a7926, v_d42991] = v_5ab095<v_affcc0[] | null>(null);
 
+  const [v_959d04, v_fd8761] = v_5ab095<v_a9d96d[]>([]);
+
   const v_8e46f5 = v_a3453e.useCallback(async () => {
     if (!v_2ca7e0) {
       v_d42991(null);
@@ -131,6 +133,16 @@ export default function v_def15b() {
   v_c4deb2(() => {
     v_8e46f5();
   }, [v_8e46f5]);
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) {
+      v_fd8761([]);
+      return;
+    }
+    v_81d12f(v_2ca7e0)
+      .then((v_cb35cb) => v_fd8761(v_cb35cb.items))
+      .catch(() => v_fd8761([]));
+  }, [v_2ca7e0]);
 
   v_cf763b(
     v_a3453e.useCallback(() => {
@@ -924,6 +936,37 @@ export default function v_def15b() {
 }
           </>
         }
+        ListFooterComponent={
+          v_959d04.length > 0 ? (
+            <View style={v_fd5f43.systemClonesSection}>
+              <Text style={v_fd5f43.systemClonesSectionTitle}>통화 가능</Text>
+              {v_959d04.map((v_69bba6) => (
+                <View key={v_69bba6.id} style={v_fd5f43.card}>
+                  <View style={v_fd5f43.cloneHeader}>
+                    <View style={v_fd5f43.avatarWrap}>
+                      <View style={[v_fd5f43.avatar, { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" }]}>
+                        <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+                      </View>
+                    </View>
+                    <View style={v_fd5f43.cloneInfo}>
+                      <Text style={v_fd5f43.cloneName}>{v_69bba6.name}</Text>
+                      <Text style={v_fd5f43.cloneUsername}>@{v_69bba6.username}</Text>
+                    </View>
+                  </View>
+                  <View style={v_fd5f43.actionsRow}>
+                    <TouchableOpacity
+                      style={v_fd5f43.actionBtn}
+                      onPress={() => v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name })}
+                    >
+                      <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
+                      <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null
+        }
       />
       )}
 
@@ -1446,6 +1489,19 @@ const v_2fb1c1 = [
 ];
 
 const v_fd5f43 = v_472849.create({
+  systemClonesSection: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  systemClonesSectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc500,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
   dashLoading: {
     flex: 1,
     alignItems: "center",
