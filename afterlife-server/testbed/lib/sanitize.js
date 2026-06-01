@@ -18,3 +18,15 @@ export function sanitizeChunk(text) {
   if (typeof text !== 'string' || !text) return '';
   return text.replace(EMOJI_RE, '').replace(EXTRA_SYMBOL_RE, '');
 }
+
+export function applyBlocklist(text, blocklist) {
+  if (typeof text !== 'string' || !text) return text ?? '';
+  if (!Array.isArray(blocklist) || blocklist.length === 0) return text;
+  let out = text;
+  for (const raw of blocklist) {
+    if (typeof raw !== 'string' || !raw) continue;
+    const esc = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    out = out.replace(new RegExp(esc, 'gi'), '⋯');
+  }
+  return out;
+}

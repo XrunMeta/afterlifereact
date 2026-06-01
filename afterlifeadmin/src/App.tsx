@@ -16,6 +16,7 @@ import { UserReportsPage } from "./pages/UserReportsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TotpEnrollPage } from "./pages/TotpEnrollPage";
 import { TotpVerifyPage } from "./pages/TotpVerifyPage";
+import { L0PersonaEditPage } from "./pages/L0PersonaEditPage";
 
 function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
@@ -121,6 +122,14 @@ function App() {
                 description="Decryption Audit / Cleanup / 복호화 열람 감사 / 개발 전용 봉인 도구."
                 categories={["Admin System", "Admin DevTools"]}
               />
+            </ProtectedLayout>
+          }
+        />
+        <Route
+          path="/oth-path"
+          element={
+            <ProtectedLayout>
+              <L0PersonaEditPage />
             </ProtectedLayout>
           }
         />

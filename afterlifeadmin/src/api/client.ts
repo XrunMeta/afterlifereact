@@ -214,6 +214,11 @@ export const api = {
     }>(`/oth-path${tail ? `?${tail}` : ""}`);
   },
 
+  getSystemPersona: () =>
+    request<{ rules_text: string; blocklist: string[] }>("/oth-path"),
+  updateSystemPersona: (data: { rules_text: string; blocklist: string[] }) =>
+    request("/oth-path", { method: "PUT", body: JSON.stringify(data) }),
+
   getUserReports: (params?: { status?: string; limit?: number }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);

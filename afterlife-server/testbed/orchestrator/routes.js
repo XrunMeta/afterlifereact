@@ -51,6 +51,8 @@ function buildSayDeps(cfg, cloneId) {
 export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   const router = express.Router();
   const sayStore = createSayStore();
+
+  const callPersona = new Map(); 
   const runChatRelay = deps?.sayDeps?.runChatRelay ?? defaultRunChatRelay;
 
   function requireSecret(req, res, next) {
@@ -59,9 +61,11 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   }
 
   router.post('/oth-path', requireSecret, async (req, res) => {
-    const { cloneId, userId, idleVideoUrl } = req.body || {};
+    const { cloneId, userId, idleVideoUrl, personaBundle } = req.body || {};
     try {
       const ticket = await orch.allocate({ cloneId: String(cloneId), userId: String(userId), idleVideoUrl: idleVideoUrl ?? null });
+
+      if (personaBundle && ticket?.callId) callPersona.set(ticket.callId, personaBundle);
       res.status(200).json(ticket);
     } catch (e) {
       const msg = String(e?.message ?? e);
@@ -76,6 +80,7 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
     try {
       const result = await orch.end(callId, userId);
       sayStore.clear(callId);
+      callPersona.delete(callId); 
       res.status(200).json(result);
     } catch (e) { res.status(500).json({ error: 'end_failed', detail: String(e?.message ?? e) }); }
   });
@@ -96,11 +101,11 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
     if (!sayStore.beginTurn(callId)) return res.status(409).json({ error: 'turn_in_progress' });
     sayStore.appendTurn(callId, { role: 'user', content: text });
     res.status(202).json({ ok: true }); 
+    const bundle = callPersona.get(callId) ?? null; 
     Promise.resolve()
       .then(() => runChatRelay(
         buildSayDeps(cfg, cloneId),
-
-        { callId, publisherPort: row.port, personaSlug: 'halbae', history: sayStore.getHistory(callId), text },
+        { callId, publisherPort: row.port, personaSlug: 'halbae', personaBundle: bundle, history: sayStore.getHistory(callId), text },
       ))
       .then((finalText) => { if (finalText) sayStore.appendTurn(callId, { role: 'assistant', content: finalText }); })
       .catch((e) => console.error('[sp2/say] relay error', callId, e?.message ?? e))

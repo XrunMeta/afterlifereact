@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, act } from '@testing-library/react-native';
 import MyClonesDashboardScreen from '../../src/screens/clones/MyClonesDashboardScreen';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useFollowStore } from '../../src/stores/followStore';
@@ -11,7 +11,17 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn(), dispatch: jest.fn() }),
+  useFocusEffect: jest.fn(),
+  CommonActions: { navigate: jest.fn() },
+}));
+
+jest.mock('../../src/api/clones', () => ({
+  ...jest.requireActual('../../src/api/clones'),
+  listMyClones: jest.fn().mockResolvedValue({ items: [] }),
+  listSystemClones: jest.fn().mockResolvedValue({
+    items: [{ id: 999, username: 'halbae', name: '할배' }],
+  }),
 }));
 
 beforeEach(async () => {
@@ -19,6 +29,13 @@ beforeEach(async () => {
   useFollowStore.setState({ follows: [], hydrated: false });
   await useFollowStore.getState().hydrate();
   useCloneStore.setState({ localClones: [] });
+});
+
+test('shows halbae system clone as callable entry', async () => {
+
+  useAuthStore.setState({ accessToken: 'test-token' });
+  render(<MyClonesDashboardScreen />);
+  expect(await screen.findByText('할배')).toBeTruthy();
 });
 
 test('renders at least one owned clone card', () => {

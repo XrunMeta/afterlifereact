@@ -16,12 +16,13 @@ export function consumeSseFinalText(sseText) {
   return full;
 }
 
-export async function runChatRelay(deps, { callId, publisherPort, personaSlug, history, text }) {
+export async function runChatRelay(deps, { callId, publisherPort, personaSlug, personaBundle = null, history, text }) {
   const sse = await deps.fetchChat({
     message: text,
     callId,
     publisherPort,
     persona_slug: personaSlug,
+    personaBundle,   
     history,
     source: 'rn-call',
     speaker_role: 'visitor',

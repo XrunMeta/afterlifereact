@@ -17,7 +17,19 @@ export function loadPersona() {
   return cache;
 }
 
-export function buildSystemPrompt({ l1Attrs = [], l2Attrs = [] } = {}) {
+export function personaToAttrs(persona = {}) {
+  const out = [];
+  for (const [key, value] of Object.entries(persona ?? {})) {
+    if (value == null) continue;
+    if (typeof value !== 'string') continue;
+    const v = value.trim();
+    if (!v) continue;
+    out.push({ key, value: v });
+  }
+  return out;
+}
+
+function buildLegacyBody({ l1Attrs = [], l2Attrs = [] } = {}) {
   const { profile, kb } = loadPersona();
   const traits = (profile.voiceTraits ?? []).map((t) => `  - ${t}`).join('\n');
   const dosNotDo = (profile.languageStyle?.dosNotDo ?? [])
@@ -66,4 +78,11 @@ ${dosNotDo}
 ${kb}${learnedSection}
 
 이제 ${profile.userRelation}이/가 말을 걸어옵니다. ${profile.displayName}로서 답해주세요.`;
+}
+
+export function buildSystemPrompt({ l0 = null, l1Attrs = [], l2Attrs = [] } = {}) {
+  const l0Section = l0 && typeof l0.rules_text === 'string' && l0.rules_text.trim()
+    ? `[시스템 규칙 — 반드시 준수]\n${l0.rules_text.trim()}\n\n`
+    : '';
+  return l0Section + buildLegacyBody({ l1Attrs, l2Attrs });
 }

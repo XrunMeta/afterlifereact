@@ -392,6 +392,16 @@ export async function listMyClones(accessToken: string): Promise<{ items: MyClon
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface SystemClone {
+  id: number;
+  username: string;
+  name: string;
+}
+
+export async function listSystemClones(accessToken: string): Promise<{ items: SystemClone[] }> {
+  return authFetch(`/oth-path`, accessToken, { method: "GET" });
+}
+
 export interface IntimacyEvent {
   id: number;
   action: "chat" | "call" | "learn" | "feed";
