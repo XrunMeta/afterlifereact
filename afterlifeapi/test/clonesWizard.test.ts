@@ -8,6 +8,23 @@ async function v_2f5367(v_0c8987): Promise<string> {
 }
 
 v_469bf2("clones wizard persona mapping", () => {
+  v_23805a("GET /oth-path returns halbae system clone", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+
+    await v_a1651b
+      .prepare(
+        "INSERT OR IGNORE INTO users (id,email,password_hash,name,created_at) VALUES (90,'w@t','x','W',CURRENT_TIMESTAMP)",
+      )
+      .run();
+    const v_ea333d = await v_2f5367(90);
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = await v_8f00b9.json<{ items: { id: number; username: string; name: string }[] }>();
+    v_4d37e3(v_4d33b2.items.some((v_3f4e2e) => v_3f4e2e.username === "halbae")).toBe(true);
+  });
+
   v_23805a("maps age/gender/mbti/personaTypes into l1_profile", async () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     await v_a1651b

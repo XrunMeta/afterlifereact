@@ -549,6 +549,13 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
   });
 });
 
+v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
+  const v_18b8bf = await v_3f4e2e.env.DB.prepare(
+    "SELECT id, username, name, avatar_url FROM clones WHERE username = 'halbae' AND deleted_at IS NULL",
+  ).all<{ id: number; username: string; name: string; avatar_url: string | null }>();
+  return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+});
+
 v_f891e6.get("/:id", async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
