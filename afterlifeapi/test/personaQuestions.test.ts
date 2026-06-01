@@ -61,6 +61,12 @@ v_469bf2("validatePersonaQuestions", () => {
     v_4d37e3(v_cb35cb.error).toContain("forbidden targetField");
   });
 
+  v_23805a("rejects forbidden targetField (attrs container key)", () => {
+    const v_cb35cb = v_02d529([{ key: "x", type: "text", label: "a", targetField: "attrs" }]);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("forbidden targetField");
+  });
+
   v_23805a("rejects invalid targetField format (contains dot)", () => {
     const v_cb35cb = v_02d529([{ key: "x", type: "text", label: "a", targetField: "a.b" }]);
     v_4d37e3(v_cb35cb.ok).toBe(false);

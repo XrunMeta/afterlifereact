@@ -20,7 +20,8 @@ export type ValidateResult =
 const v_d8632e = ["gemma_choice", "fixed_choice", "text"];
 const v_8f8ee2 = 50;
 const v_c350fe = /^[a-zA-Z0-9_]{1,50}$/;
-const v_2905ae = new Set(["__proto__", "constructor", "prototype"]);
+
+const v_2905ae = new Set(["__proto__", "constructor", "prototype", "attrs"]);
 
 export function v_02d529(v_bbda62): ValidateResult {
   if (!Array.isArray(v_bbda62)) return { ok: false, error: "schema must be an array" };
