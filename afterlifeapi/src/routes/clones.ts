@@ -128,6 +128,11 @@ const createSchema = z.object({
   persona: personaWizardSchema,
 
   pin: z.string().regex(/^\d{6}$/).optional(),
+
+  personaAnswers: z.record(
+    z.string().regex(/^[a-zA-Z0-9_]{1,50}$/),
+    z.string().max(500),
+  ).optional(),
 });
 
 const PERSONA_PAID_PRICE_XRUN = 100;
@@ -231,7 +236,29 @@ clones.post(
 
     const voiceType = body.voice_preset_id ? "preset" : "text_only";
 
-    const l1Profile = buildL1FromWizard(body.l1_profile, body.persona);
+    let l1Base = body.l1_profile;
+    if (body.personaAnswers && Object.keys(body.personaAnswers).length) {
+      const questions = await loadPersonaQuestions(c.env.DB);
+      const qByKey = new Map(questions.map((q) => [q.key, q]));
+      const base = l1Base ?? { attrs: {}, notes: "" };
+      const attrs: Record<string, string> = { ...(base.attrs ?? {}) };
+      const core: Record<string, unknown> = { ...base, attrs };
+      for (const [key, value] of Object.entries(body.personaAnswers)) {
+        if (!value) continue;
+        const q = qByKey.get(key);
+        if (!q) continue; 
+
+        if (q.targetField && q.targetField !== "attrs" && q.targetField !== "__proto__") {
+          core[q.targetField] = value;
+        } else if (!q.targetField) {
+          attrs[key] = value;
+        }
+      }
+      core.attrs = attrs;
+      l1Base = core as typeof l1Base;
+    }
+
+    const l1Profile = buildL1FromWizard(l1Base, body.persona);
 
     let inserted:
       | {
@@ -578,8 +605,22 @@ clones.get("/persona-questions", requireAuth, async (c) => {
   return c.json({ questions });
 });
 
+const suggestProfileSchema = z.record(
+  z.string().max(50),
+  z.union([z.string().max(200), z.array(z.string().max(50)).max(20)]),
+);
+
 clones.post("/persona-suggest", requireAuth, async (c) => {
-  const profile = await c.req.json<Record<string, unknown>>().catch(() => ({}));
+  const raw = await c.req.json().catch(() => ({}));
+  const parsed = suggestProfileSchema.safeParse(raw);
+  const profile = parsed.success ? parsed.data : {};
+
+  if (Object.keys(profile).length > 20) return c.json({ suggestions: {} });
+
+  const hasContent = Object.values(profile).some((v) =>
+    Array.isArray(v) ? v.length > 0 : v !== "",
+  );
+  if (!hasContent) return c.json({ suggestions: {} });
   const questions = await loadPersonaQuestions(c.env.DB);
   const gemmaQuestions = questions
     .filter((q) => q.type === "gemma_choice")

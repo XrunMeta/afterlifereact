@@ -123,6 +123,49 @@ describe("clones wizard persona mapping", () => {
     expect(l1.attrs.dialect_region).toBe("경상도");
   });
 
+  it("personaAnswers → targetField 서버 매핑: tone→core, dialect_region→attrs", async () => {
+    const db = env.DB as unknown as D1Database;
+    await db
+      .prepare(
+        "INSERT OR IGNORE INTO users (id,email,password_hash,name,created_at) VALUES (93,'pa@t','x','PA',CURRENT_TIMESTAMP)",
+      )
+      .run();
+
+    await db
+      .prepare("INSERT OR REPLACE INTO persona_question_schema (id, schema_json) VALUES (1, ?)")
+      .bind(
+        JSON.stringify([
+          { key: "tone", type: "gemma_choice", label: "말투?", targetField: "tone", options_include: ["사투리"] },
+          { key: "dialect_region", type: "fixed_choice", label: "지역?", options: ["경상도", "전라도"] },
+        ]),
+      )
+      .run();
+    const tok = await userTok(93);
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tok}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": "pa-target-1",
+      },
+      body: JSON.stringify({
+        clone_type: "friend",
+        name: "사투리할배",
+        username: "pa_target1",
+        personaAnswers: { tone: "정겨운 사투리", dialect_region: "경상도" },
+      }),
+    });
+    expect(res.status).toBe(201);
+    const row = await db
+      .prepare("SELECT l1_profile FROM clones WHERE username='pa_target1'")
+      .first<{ l1_profile: string }>();
+    const l1 = JSON.parse(row!.l1_profile);
+
+    expect(l1.tone).toBe("정겨운 사투리");
+
+    expect(l1.attrs.dialect_region).toBe("경상도");
+  });
+
   it("기존 l1_profile.attrs 와 persona 위저드 값 merge", async () => {
     const db = env.DB as unknown as D1Database;
     await db

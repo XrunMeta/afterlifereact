@@ -57,7 +57,7 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   const runChatRelay = deps?.sayDeps?.runChatRelay ?? defaultRunChatRelay;
 
   function requireSecret(req, res, next) {
-    if (!secret || bearer(req) !== secret) return res.status(401).json({ error: 'unauthorized' });
+    if (!secret || !tokenMatches(bearer(req), secret)) return res.status(401).json({ error: 'unauthorized' });
     next();
   }
 
@@ -96,7 +96,7 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
       const suggestions = await suggestPersonaChoices({ profile, questions });
       res.json({ suggestions });
     } catch (e) {
-      res.status(500).json({ error: 'suggest_failed', detail: String(e?.message ?? e) });
+      res.status(500).json({ error: 'suggest_failed' });
     }
   });
 

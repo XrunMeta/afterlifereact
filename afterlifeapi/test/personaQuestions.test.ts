@@ -41,6 +41,62 @@ describe("validatePersonaQuestions", () => {
   it("rejects non-array input", () => {
     expect(validatePersonaQuestions({} as unknown).ok).toBe(false);
   });
+
+  it("rejects more than 50 questions", () => {
+    const qs = Array.from({ length: 51 }, (_, i) => ({ key: `k${i}`, type: "text", label: `L${i}` }));
+    const r = validatePersonaQuestions(qs);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("too many");
+  });
+
+  it("rejects invalid key format (contains space)", () => {
+    const r = validatePersonaQuestions([{ key: "bad key", type: "text", label: "a" }]);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("invalid key format");
+  });
+
+  it("rejects forbidden targetField (__proto__)", () => {
+    const r = validatePersonaQuestions([{ key: "x", type: "text", label: "a", targetField: "__proto__" }]);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("forbidden targetField");
+  });
+
+  it("rejects invalid targetField format (contains dot)", () => {
+    const r = validatePersonaQuestions([{ key: "x", type: "text", label: "a", targetField: "a.b" }]);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("invalid targetField format");
+  });
+
+  it("rejects showWhen self-reference", () => {
+    const r = validatePersonaQuestions([
+      { key: "tone", type: "text", label: "a", showWhen: { tone: "v" } },
+    ]);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("self-reference");
+  });
+
+  it("rejects showWhen circular reference (A→B→A)", () => {
+    const r = validatePersonaQuestions([
+      { key: "a", type: "text", label: "A", showWhen: { b: "v" } },
+      { key: "b", type: "text", label: "B", showWhen: { a: "v" } },
+    ]);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("circular");
+  });
+
+  it("rejects options > 20 for fixed_choice", () => {
+    const opts = Array.from({ length: 21 }, (_, i) => `opt${i}`);
+    const r = validatePersonaQuestions([{ key: "x", type: "fixed_choice", label: "a", options: opts }]);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("too many");
+  });
+
+  it("accepts valid targetField on a fixed_choice question", () => {
+    const r = validatePersonaQuestions([
+      { key: "tone", type: "fixed_choice", label: "말투?", targetField: "tone", options: ["반말", "존댓말"] },
+    ]);
+    expect(r.ok).toBe(true);
+  });
 });
 
 const SUPER_ADMIN_ID = 9001;
