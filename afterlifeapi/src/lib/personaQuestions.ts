@@ -20,7 +20,8 @@ export type ValidateResult =
 const TYPES: PersonaQuestionType[] = ["gemma_choice", "fixed_choice", "text"];
 const MAX_QUESTIONS = 50;
 const KEY_REGEX = /^[a-zA-Z0-9_]{1,50}$/;
-const TARGET_FIELD_BLOCKED = new Set(["__proto__", "constructor", "prototype"]);
+
+const TARGET_FIELD_BLOCKED = new Set(["__proto__", "constructor", "prototype", "attrs"]);
 
 export function validatePersonaQuestions(input: unknown): ValidateResult {
   if (!Array.isArray(input)) return { ok: false, error: "schema must be an array" };

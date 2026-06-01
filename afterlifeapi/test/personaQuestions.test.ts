@@ -61,6 +61,12 @@ describe("validatePersonaQuestions", () => {
     expect(r.error).toContain("forbidden targetField");
   });
 
+  it("rejects forbidden targetField (attrs container key)", () => {
+    const r = validatePersonaQuestions([{ key: "x", type: "text", label: "a", targetField: "attrs" }]);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("forbidden targetField");
+  });
+
   it("rejects invalid targetField format (contains dot)", () => {
     const r = validatePersonaQuestions([{ key: "x", type: "text", label: "a", targetField: "a.b" }]);
     expect(r.ok).toBe(false);
