@@ -27,12 +27,13 @@ test('next button disabled until a type is selected', () => {
   expect(mockNavigate).not.toHaveBeenCalled();
 });
 
-test('selecting memlow and pressing next saves cloneType and navigates to Step2', () => {
+test('selecting memlow and pressing next saves cloneType and navigates to PersonaAssistant', () => {
+
   const { getByText } = render(<Step1CloneTypeScreen {...navProps} />);
   fireEvent.press(getByText('고인'));
   fireEvent.press(getByText('다음'));
   expect(useCloneStore.getState().creationDraft.cloneType).toBe('memlow');
-  expect(mockNavigate).toHaveBeenCalledWith('Step2');
+  expect(mockNavigate).toHaveBeenCalledWith('PersonaAssistant');
 });
 
 test('Step1 does not render category/interests UI', () => {

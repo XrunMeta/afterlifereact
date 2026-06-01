@@ -33,7 +33,7 @@ export default function Step5VisibilityScreen({ navigation }: Props) {
       </SafeScrollView>
       <View style={styles.bottomBar}>
         <Button title={t("create.next")}
-          onPress={() => navigation.navigate('Step6')} disabled={!canNext} />
+          onPress={() => navigation.navigate('Step7')} disabled={!canNext} />
       </View>
     </SafeView>
   );

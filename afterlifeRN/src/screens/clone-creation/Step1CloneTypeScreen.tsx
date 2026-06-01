@@ -26,7 +26,7 @@ export default function Step1CloneTypeScreen({ navigation }: Props) {
   const handleNext = () => {
     if (!selected) return;
     setCreationDraft({ cloneType: selected });
-    navigation.navigate('Step2');
+    navigation.navigate('PersonaAssistant');
   };
 
   return (
