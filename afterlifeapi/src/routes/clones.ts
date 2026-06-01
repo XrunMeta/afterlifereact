@@ -68,6 +68,34 @@ const v_3ea364 = v_1f4ea7.object({
   notes: v_1f4ea7.string().max(4000).default(''),
 });
 
+const v_a1f09b = v_1f4ea7.object({
+  age: v_1f4ea7.string().max(20).optional(),
+  gender: v_1f4ea7.string().max(20).optional(),
+  mbti: v_1f4ea7.string().max(10).optional(),
+  personaTypes: v_1f4ea7.array(v_1f4ea7.string().max(20)).max(8).optional(),
+}).optional();
+
+function v_8beace(
+  v_694b25,
+  v_5ed063,
+): Record<string, unknown> | null {
+  const v_835b82 = !!v_694b25;
+  const v_94f955 = !!v_5ed063 && Object.values(v_5ed063).some(
+    (v_81e2ef) => v_81e2ef !== undefined && (Array.isArray(v_81e2ef) ? v_81e2ef.length > 0 : true),
+  );
+  if (!v_835b82 && !v_94f955) return null;
+
+  const v_3555ae = { ...(v_694b25?.attrs ?? {}) };
+  if (v_5ed063?.age) v_3555ae.age = v_5ed063.age;
+  if (v_5ed063?.gender) v_3555ae.gender = v_5ed063.gender;
+  if (v_5ed063?.mbti) v_3555ae.mbti = v_5ed063.mbti;
+
+  const v_020b4b = { attrs: v_3555ae, notes: v_694b25?.notes ?? "" };
+  const v_a6872a = v_5ed063?.personaTypes ?? [];
+  if (v_a6872a.length) v_020b4b.personality_core = `${v_a6872a.join(", ")} 성향`;
+  return v_020b4b;
+}
+
 const v_722b6d = v_1f4ea7.object({
 
   clone_type: v_3a8949.default("friend"),
@@ -88,6 +116,8 @@ const v_722b6d = v_1f4ea7.object({
   memlow_profile: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.unknown()).optional(),
 
   l1_profile: v_3ea364.optional(),
+
+  persona: v_a1f09b,
 
   pin: v_1f4ea7.string().regex(/^\d{6}$/).optional(),
 });
@@ -193,6 +223,8 @@ v_f891e6.post(
 
     const v_8e49c9 = v_4d33b2.voice_preset_id ? "preset" : "text_only";
 
+    const v_564b6a = v_8beace(v_4d33b2.l1_profile, v_4d33b2.persona);
+
     let v_81161e;
     try {
 
@@ -217,7 +249,7 @@ v_f891e6.post(
           v_4d33b2.cover_image_url ?? null,
           v_8e49c9,
           v_4d33b2.voice_preset_id ?? null,
-          v_4d33b2.l1_profile ? JSON.stringify(v_4d33b2.l1_profile) : null,
+          v_564b6a !== null ? JSON.stringify(v_564b6a) : null,
           v_43e90c,
         )
         .first();
@@ -271,8 +303,9 @@ v_f891e6.post(
           .bind(v_6e0fd3),
       );
 
-      if (v_4d33b2.l1_profile?.attrs) {
-        for (const [v_b24339, v_3b402b] of Object.entries(v_4d33b2.l1_profile.attrs)) {
+      const v_55a58f = v_564b6a?.attrs as Record<string, string> | undefined;
+      if (v_55a58f) {
+        for (const [v_b24339, v_3b402b] of Object.entries(v_55a58f)) {
           if (!v_3b402b) continue;
           v_3e6264.push(
             v_a1651b
