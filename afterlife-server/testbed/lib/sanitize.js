@@ -18,3 +18,15 @@ export function v_c80dec(v_9b6134) {
   if (typeof v_9b6134 !== 'string' || !v_9b6134) return '';
   return v_9b6134.replace(v_a51c5c, '').replace(v_1d64c1, '');
 }
+
+export function v_d2e688(v_9b6134, v_33f5f0) {
+  if (typeof v_9b6134 !== 'string' || !v_9b6134) return v_9b6134 ?? '';
+  if (!Array.isArray(v_33f5f0) || v_33f5f0.length === 0) return v_9b6134;
+  let v_8d4337 = v_9b6134;
+  for (const v_479f05 of v_33f5f0) {
+    if (typeof v_479f05 !== 'string' || !v_479f05) continue;
+    const v_2456e2 = v_479f05.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    v_8d4337 = v_8d4337.replace(new RegExp(v_2456e2, 'gi'), '⋯');
+  }
+  return v_8d4337;
+}
