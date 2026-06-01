@@ -51,3 +51,22 @@ test('buildSystemPrompt without l0 still works (backward compat)', () => {
   assert.ok(typeof out === 'string' && out.length > 0);
   assert.ok(out.indexOf('다정') >= 0);
 });
+
+test('personaToAttrs — 사투리 메타를 tone 문장으로 합성', () => {
+  const attrs = personaToAttrs({
+    tone: '정겨운 말투',
+    dialect_region: '경상도',
+    dialect_intensity: '심함',
+    personality_core: '정 많음',
+  });
+  const toneAttr = attrs.find((a) => a.key === 'tone');
+  assert.ok(toneAttr.value.includes('경상도'));
+  assert.ok(toneAttr.value.includes('심함') || toneAttr.value.includes('심한'));
+
+  assert.equal(attrs.find((a) => a.key === 'dialect_region'), undefined);
+});
+
+test('personaToAttrs — 사투리 메타 없으면 tone 원문 유지', () => {
+  const attrs = personaToAttrs({ tone: '차분한 말투', personality_core: '조용함' });
+  assert.equal(attrs.find((a) => a.key === 'tone').value, '차분한 말투');
+});

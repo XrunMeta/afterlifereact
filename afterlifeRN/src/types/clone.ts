@@ -1,5 +1,18 @@
 import type { CloneType, Visibility } from "./domain";
 
+export type PersonaQuestionType = 'gemma_choice' | 'fixed_choice' | 'text';
+
+export interface PersonaQuestion {
+  key: string;
+  type: PersonaQuestionType;
+  label: string;
+  targetField?: string;
+  options?: string[];
+  options_include?: string[];
+  showWhen?: Record<string, string>;
+  optional?: boolean;
+}
+
 export type {
   DomainClone as Clone,
   CloneType,
@@ -65,4 +78,6 @@ export interface CloneCreationDraft {
   personaNotes?: string;
 
   pin?: string;
+
+  personaAnswers?: Record<string, string>;
 }

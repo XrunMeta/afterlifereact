@@ -17,6 +17,7 @@ import CloneEditScreen from "../screens/clones/CloneEditScreen";
 import CloneInviteScreen from "../screens/clones/CloneInviteScreen";
 import Step1CloneTypeScreen from "../screens/clone-creation/Step1CloneTypeScreen";
 import Step2BasicInfoScreen from "../screens/clone-creation/Step2BasicInfoScreen";
+import PersonaAssistantScreen from "../screens/clone-creation/PersonaAssistantScreen";
 import Step3ImageUploadScreen from "../screens/clone-creation/Step3ImageUploadScreen";
 import Step4VoiceUploadScreen from "../screens/clone-creation/Step4VoiceUploadScreen";
 import Step5VisibilityScreen from "../screens/clone-creation/Step5VisibilityScreen";
@@ -69,6 +70,7 @@ function CreateStackNavigator() {
     <CreateStack.Navigator screenOptions={{ headerShown: false }}>
       <CreateStack.Screen name="Step1" component={Step1CloneTypeScreen} />
       <CreateStack.Screen name="Step2" component={Step2BasicInfoScreen} />
+      <CreateStack.Screen name="PersonaAssistant" component={PersonaAssistantScreen} />
       <CreateStack.Screen name="Step3" component={Step3ImageUploadScreen} />
       <CreateStack.Screen name="Step4" component={Step4VoiceUploadScreen} />
       <CreateStack.Screen name="Step5" component={Step5VisibilityScreen} />

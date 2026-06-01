@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import { createSayStore } from './sayStore.js';
 import { runChatRelay as defaultRunChatRelay } from './chatRelay.js';
+import { suggestPersonaChoices } from '../lib/personaSuggest.js';
 
 const PUB = (port) => `http://127.0.0.1:${port}`;
 
@@ -56,7 +57,7 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   const runChatRelay = deps?.sayDeps?.runChatRelay ?? defaultRunChatRelay;
 
   function requireSecret(req, res, next) {
-    if (!secret || bearer(req) !== secret) return res.status(401).json({ error: 'unauthorized' });
+    if (!secret || !tokenMatches(bearer(req), secret)) return res.status(401).json({ error: 'unauthorized' });
     next();
   }
 
@@ -87,6 +88,16 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
 
   router.get('/oth-path', requireSecret, (_req, res) => {
     res.status(200).json({ calls: orch.listActive() });
+  });
+
+  router.post('/oth-path', requireSecret, async (req, res) => {
+    try {
+      const { profile = {}, questions = [] } = req.body ?? {};
+      const suggestions = await suggestPersonaChoices({ profile, questions });
+      res.json({ suggestions });
+    } catch (e) {
+      res.status(500).json({ error: 'suggest_failed' });
+    }
   });
 
   router.post('/oth-path', requireSecret, async (req, res) => {

@@ -22,6 +22,7 @@ import {
 } from "../lib/interactions";
 import { externalTransferSplit } from "../lib/xrun";
 import { notify, notifyCloneEvent } from "../lib/notify";
+import { loadPersonaQuestions } from "../lib/personaQuestions";
 
 export const clones = new Hono<AppEnv>();
 
@@ -66,6 +67,8 @@ const MAX_MEMLOW_PROFILE_BYTES = 32 * 1024;
 const l1ProfileSchema = z.object({
   attrs: z.record(z.string(), z.string()),
   notes: z.string().max(4000).default(''),
+  personality_core: z.string().max(500).optional(),
+  tone: z.string().max(500).optional(),
 });
 
 const personaWizardSchema = z.object({
@@ -76,7 +79,7 @@ const personaWizardSchema = z.object({
 }).optional();
 
 function buildL1FromWizard(
-  base: { attrs?: Record<string, string>; notes?: string } | undefined,
+  base: { attrs?: Record<string, string>; notes?: string; personality_core?: string; tone?: string } | undefined,
   persona: { age?: string; gender?: string; mbti?: string; personaTypes?: string[] } | undefined,
 ): Record<string, unknown> | null {
   const hasBase = !!base;
@@ -91,8 +94,13 @@ function buildL1FromWizard(
   if (persona?.mbti) attrs.mbti = persona.mbti;
 
   const l1: Record<string, unknown> = { attrs, notes: base?.notes ?? "" };
-  const traits = persona?.personaTypes ?? [];
-  if (traits.length) l1.personality_core = `${traits.join(", ")} 성향`;
+
+  if (base?.personality_core) l1.personality_core = base.personality_core;
+  else {
+    const traits = persona?.personaTypes ?? [];
+    if (traits.length) l1.personality_core = `${traits.join(", ")} 성향`;
+  }
+  if (base?.tone) l1.tone = base.tone;
   return l1;
 }
 
@@ -120,6 +128,11 @@ const createSchema = z.object({
   persona: personaWizardSchema,
 
   pin: z.string().regex(/^\d{6}$/).optional(),
+
+  personaAnswers: z.record(
+    z.string().regex(/^[a-zA-Z0-9_]{1,50}$/),
+    z.string().max(500),
+  ).optional(),
 });
 
 const PERSONA_PAID_PRICE_XRUN = 100;
@@ -223,7 +236,29 @@ clones.post(
 
     const voiceType = body.voice_preset_id ? "preset" : "text_only";
 
-    const l1Profile = buildL1FromWizard(body.l1_profile, body.persona);
+    let l1Base = body.l1_profile;
+    if (body.personaAnswers && Object.keys(body.personaAnswers).length) {
+      const questions = await loadPersonaQuestions(c.env.DB);
+      const qByKey = new Map(questions.map((q) => [q.key, q]));
+      const base = l1Base ?? { attrs: {}, notes: "" };
+      const attrs: Record<string, string> = { ...(base.attrs ?? {}) };
+      const core: Record<string, unknown> = { ...base, attrs };
+      for (const [key, value] of Object.entries(body.personaAnswers)) {
+        if (!value) continue;
+        const q = qByKey.get(key);
+        if (!q) continue; 
+
+        if (q.targetField && q.targetField !== "attrs" && q.targetField !== "__proto__") {
+          core[q.targetField] = value;
+        } else if (!q.targetField) {
+          attrs[key] = value;
+        }
+      }
+      core.attrs = attrs;
+      l1Base = core as typeof l1Base;
+    }
+
+    const l1Profile = buildL1FromWizard(l1Base, body.persona);
 
     let inserted:
       | {
@@ -563,6 +598,51 @@ clones.get("/system", requireAuth, async (c) => {
     "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
   ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return c.json({ items: rows.results ?? [] });
+});
+
+clones.get("/persona-questions", requireAuth, async (c) => {
+  const questions = await loadPersonaQuestions(c.env.DB);
+  return c.json({ questions });
+});
+
+const suggestProfileSchema = z.record(
+  z.string().max(50),
+  z.union([z.string().max(200), z.array(z.string().max(50)).max(20)]),
+);
+
+clones.post("/persona-suggest", requireAuth, async (c) => {
+
+  if (!c.env.ORCHESTRATOR_URL || !c.env.ORCH_SECRET) return c.json({ suggestions: {} });
+  const raw = await c.req.json().catch(() => ({}));
+  const parsed = suggestProfileSchema.safeParse(raw);
+  const profile = parsed.success ? parsed.data : {};
+
+  if (Object.keys(profile).length > 20) return c.json({ suggestions: {} });
+
+  const hasContent = Object.values(profile).some((v) =>
+    Array.isArray(v) ? v.length > 0 : v !== "",
+  );
+  if (!hasContent) return c.json({ suggestions: {} });
+  const questions = await loadPersonaQuestions(c.env.DB);
+  const gemmaQuestions = questions
+    .filter((q) => q.type === "gemma_choice")
+    .map((q) => ({ key: q.key, label: q.label, options_include: q.options_include }));
+  if (gemmaQuestions.length === 0) return c.json({ suggestions: {} });
+  try {
+
+    const r = await fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile, questions: gemmaQuestions }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return c.json({ suggestions: {} });
+    const data = await r.json<{ suggestions?: Record<string, string[]> }>();
+    return c.json({ suggestions: data.suggestions ?? {} });
+  } catch {
+
+    return c.json({ suggestions: {} });
+  }
 });
 
 clones.get("/:id", async (c) => {
