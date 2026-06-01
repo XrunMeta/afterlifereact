@@ -67,6 +67,8 @@ const MAX_MEMLOW_PROFILE_BYTES = 32 * 1024;
 const l1ProfileSchema = z.object({
   attrs: z.record(z.string(), z.string()),
   notes: z.string().max(4000).default(''),
+  personality_core: z.string().max(500).optional(),
+  tone: z.string().max(500).optional(),
 });
 
 const personaWizardSchema = z.object({
@@ -77,7 +79,7 @@ const personaWizardSchema = z.object({
 }).optional();
 
 function buildL1FromWizard(
-  base: { attrs?: Record<string, string>; notes?: string } | undefined,
+  base: { attrs?: Record<string, string>; notes?: string; personality_core?: string; tone?: string } | undefined,
   persona: { age?: string; gender?: string; mbti?: string; personaTypes?: string[] } | undefined,
 ): Record<string, unknown> | null {
   const hasBase = !!base;
@@ -92,8 +94,13 @@ function buildL1FromWizard(
   if (persona?.mbti) attrs.mbti = persona.mbti;
 
   const l1: Record<string, unknown> = { attrs, notes: base?.notes ?? "" };
-  const traits = persona?.personaTypes ?? [];
-  if (traits.length) l1.personality_core = `${traits.join(", ")} 성향`;
+
+  if (base?.personality_core) l1.personality_core = base.personality_core;
+  else {
+    const traits = persona?.personaTypes ?? [];
+    if (traits.length) l1.personality_core = `${traits.join(", ")} 성향`;
+  }
+  if (base?.tone) l1.tone = base.tone;
   return l1;
 }
 
@@ -569,6 +576,27 @@ clones.get("/system", requireAuth, async (c) => {
 clones.get("/persona-questions", requireAuth, async (c) => {
   const questions = await loadPersonaQuestions(c.env.DB);
   return c.json({ questions });
+});
+
+clones.post("/persona-suggest", requireAuth, async (c) => {
+  const profile = await c.req.json<Record<string, unknown>>().catch(() => ({}));
+  const questions = await loadPersonaQuestions(c.env.DB);
+  const gemmaQuestions = questions
+    .filter((q) => q.type === "gemma_choice")
+    .map((q) => ({ key: q.key, label: q.label, options_include: q.options_include }));
+  if (gemmaQuestions.length === 0) return c.json({ suggestions: {} });
+  try {
+    const r = await fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile, questions: gemmaQuestions }),
+    });
+    if (!r.ok) return c.json({ suggestions: {} });
+    const data = await r.json<{ suggestions?: Record<string, string[]> }>();
+    return c.json({ suggestions: data.suggestions ?? {} });
+  } catch {
+    return c.json({ suggestions: {} });
+  }
 });
 
 clones.get("/:id", async (c) => {
