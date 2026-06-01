@@ -41,6 +41,62 @@ v_469bf2("validatePersonaQuestions", () => {
   v_23805a("rejects non-array input", () => {
     v_4d37e3(v_02d529({} as unknown).ok).toBe(false);
   });
+
+  v_23805a("rejects more than 50 questions", () => {
+    const v_212049 = Array.from({ length: 51 }, (v_37eab7, v_ebec57) => ({ key: `k${v_ebec57}`, type: "text", label: `L${v_ebec57}` }));
+    const v_cb35cb = v_02d529(v_212049);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("too many");
+  });
+
+  v_23805a("rejects invalid key format (contains space)", () => {
+    const v_cb35cb = v_02d529([{ key: "bad key", type: "text", label: "a" }]);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("invalid key format");
+  });
+
+  v_23805a("rejects forbidden targetField (__proto__)", () => {
+    const v_cb35cb = v_02d529([{ key: "x", type: "text", label: "a", targetField: "__proto__" }]);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("forbidden targetField");
+  });
+
+  v_23805a("rejects invalid targetField format (contains dot)", () => {
+    const v_cb35cb = v_02d529([{ key: "x", type: "text", label: "a", targetField: "a.b" }]);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("invalid targetField format");
+  });
+
+  v_23805a("rejects showWhen self-reference", () => {
+    const v_cb35cb = v_02d529([
+      { key: "tone", type: "text", label: "a", showWhen: { tone: "v" } },
+    ]);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("self-reference");
+  });
+
+  v_23805a("rejects showWhen circular reference (A→B→A)", () => {
+    const v_cb35cb = v_02d529([
+      { key: "a", type: "text", label: "A", showWhen: { b: "v" } },
+      { key: "b", type: "text", label: "B", showWhen: { a: "v" } },
+    ]);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("circular");
+  });
+
+  v_23805a("rejects options > 20 for fixed_choice", () => {
+    const v_328259 = Array.from({ length: 21 }, (v_37eab7, v_ebec57) => `opt${v_ebec57}`);
+    const v_cb35cb = v_02d529([{ key: "x", type: "fixed_choice", label: "a", options: v_328259 }]);
+    v_4d37e3(v_cb35cb.ok).toBe(false);
+    v_4d37e3(v_cb35cb.error).toContain("too many");
+  });
+
+  v_23805a("accepts valid targetField on a fixed_choice question", () => {
+    const v_cb35cb = v_02d529([
+      { key: "tone", type: "fixed_choice", label: "말투?", targetField: "tone", options: ["반말", "존댓말"] },
+    ]);
+    v_4d37e3(v_cb35cb.ok).toBe(true);
+  });
 });
 
 const v_d72b33 = 9001;
