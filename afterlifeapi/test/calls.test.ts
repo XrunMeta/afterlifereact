@@ -234,6 +234,83 @@ describe("calls route", () => {
     expect(capturedBody!.personaBundle).toHaveProperty("persona");
   });
 
+  it("POST /oth-path — 시스템 클론(is_system=1)은 비-follower도 200(orchestrator mock)", async () => {
+    const db = env.DB as unknown as D1Database;
+
+    const sysOwner = await seedUser("sysowner-sys@test.local");
+
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO clones (owner_id, name, username, clone_type, visibility, is_system, created_at)
+         VALUES (?, 'System', 'sysclone_test1', 'memlow', 'public', 1, CURRENT_TIMESTAMP)`,
+      )
+      .bind(sysOwner)
+      .run();
+    const sysClone = await db
+      .prepare("SELECT id FROM clones WHERE username = 'sysclone_test1'")
+      .first<{ id: number }>();
+
+    const stranger = await seedUser("stranger-sys@test.local");
+    const tok = await issueAccessToken(stranger);
+    fetchMock
+      .get(ORCH)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, {
+        callId: "sys-call-1",
+        subscribeToken: "sys-tok",
+        tracks: { video: "v-sys", audio: "a-sys" },
+        state: "live",
+      });
+    const res = await SELF.fetch(`http://localhost/oth-path${sysClone!.id}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { callId: string };
+    expect(body.callId).toBe("sys-call-1");
+  });
+
+  it("POST /oth-path — 일반 클론(is_system=0)은 비-follower에게 403", async () => {
+    const owner = await seedUser("normal-owner-sys@test.local");
+    const cloneId = await seedClone(owner, "normalclone_sys_test");
+
+    const stranger = await seedUser("stranger-normal@test.local");
+    const tok = await issueAccessToken(stranger);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("POST /oth-path — 타인 통화 시도 → ok 반환하되 세션 ended_at 미변경(M-1)", async () => {
+    const owner = await seedUser("end-owner-m1@test.local");
+    const attacker = await seedUser("end-attacker-m1@test.local");
+    const cloneId = await seedClone(owner, "call_end_m1");
+    const db = env.DB as unknown as D1Database;
+    await db.prepare(
+      "INSERT INTO call_sessions (call_id, user_id, clone_id, started_at, ended_at) VALUES (?,?,?,?,NULL)"
+    ).bind("m1-target-call", owner, cloneId, Date.now() - 3000).run();
+    const tok = await issueAccessToken(attacker);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call/m1-target-call/end`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+
+    const row = await db.prepare("SELECT ended_at FROM call_sessions WHERE call_id = ?").bind("m1-target-call").first<{ ended_at: number | null }>();
+    expect(row!.ended_at).toBeNull();
+  });
+
+  it("system clone call rejects unauthenticated (401)", async () => {
+
+    const res = await SELF.fetch(`http://localhost/oth-path`, { method: "POST" });
+    expect(res.status).toBe(401);
+  });
+
   it("POST /oth-path — 형식 위반 callId 는 멱등 200(orchestrator 미호출)", async () => {
     const owner = await seedUser("call-badid@test.local");
     const cloneId = await seedClone(owner, "call_badid");

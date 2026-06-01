@@ -22,6 +22,8 @@ export interface CloneRow {
   followers_count: number;
   messages_count: number;
   gifts_count: number;
+
+  is_system: number;
 }
 
 export async function loadCloneById(
@@ -33,6 +35,7 @@ export async function loadCloneById(
       `SELECT c.id, c.owner_id, c.name, c.username, c.description, c.clone_type,
               c.category, c.visibility, c.avatar_url, c.cover_image_url,
               c.voice_type, c.voice_preset_id, c.training_status, c.created_at,
+              c.is_system,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,
               COALESCE(s.gifts_count, 0)     AS gifts_count

@@ -23,7 +23,8 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
   const clone = await loadCloneById(c.env.DB, cloneId);
   if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
   const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
-  if (!viewerRole) throw new APIError("FORBIDDEN", "No access to this clone for call.");
+
+  if (!viewerRole && !clone.is_system) throw new APIError("FORBIDDEN", "No access to this clone for call.");
 
   const l0 = await loadSystemPersona(c.env.DB);
   const { l1, l2 } = await loadCloneProfiles(c.env.DB, cloneId);
@@ -104,6 +105,11 @@ calls.post("/:cloneId/call/:callId/end", requireAuth, async (c) => {
   const userId = c.get("userId")!;
 
   if (!/^[0-9a-fA-F-]{8,64}$/.test(callId)) return c.json({ ok: true });
+
+  const sess = await c.env.DB.prepare(
+    "SELECT user_id FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
+  ).bind(callId).first<{ user_id: number }>();
+  if (sess && sess.user_id !== userId) return c.json({ ok: true }); 
 
   const endedAt = Date.now();
   await c.env.DB.prepare(

@@ -560,8 +560,8 @@ clones.get("/search", async (c) => {
 
 clones.get("/system", requireAuth, async (c) => {
   const rows = await c.env.DB.prepare(
-    "SELECT id, username, name, avatar_url FROM clones WHERE username = 'halbae' AND deleted_at IS NULL",
-  ).all<{ id: number; username: string; name: string; avatar_url: string | null }>();
+    "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
+  ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return c.json({ items: rows.results ?? [] });
 });
 
