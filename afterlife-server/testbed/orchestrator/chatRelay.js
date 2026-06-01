@@ -16,12 +16,13 @@ export function v_472dcb(v_34a0f5) {
   return v_e13cd0;
 }
 
-export async function v_3a60ca(v_84b93d, { callId: v_be62d3, publisherPort: v_497c1d, personaSlug: v_47fe3d, history: v_10740d, text: v_9b6134 }) {
+export async function v_3a60ca(v_84b93d, { callId: v_be62d3, publisherPort: v_497c1d, personaSlug: v_47fe3d, personaBundle: v_ba0fde = null, history: v_10740d, text: v_9b6134 }) {
   const v_bb2632 = await v_84b93d.fetchChat({
     message: v_9b6134,
     callId: v_be62d3,
     publisherPort: v_497c1d,
     persona_slug: v_47fe3d,
+    personaBundle: v_ba0fde,   
     history: v_10740d,
     source: 'rn-call',
     speaker_role: 'visitor',

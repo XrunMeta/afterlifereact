@@ -51,6 +51,7 @@ function v_28e3ea(v_01dcf5, v_6e0fd3) {
 export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps: v_84b93d } = {}) {
   const v_904d46 = v_96bb47.Router();
   const v_04d03c = v_458d35();
+  const v_85cf8d = new Map(); 
   const v_3a60ca = v_84b93d?.sayDeps?.runChatRelay ?? v_8e7d64;
 
   function v_99be57(v_309144, v_8f00b9, v_a448ad) {
@@ -59,9 +60,11 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
   }
 
   v_904d46.post('/oth-path', v_99be57, async (v_309144, v_8f00b9) => {
-    const { cloneId: v_6e0fd3, userId: v_43e90c, idleVideoUrl: v_6e2244 } = v_309144.body || {};
+    const { cloneId: v_6e0fd3, userId: v_43e90c, idleVideoUrl: v_6e2244, personaBundle: v_ba0fde } = v_309144.body || {};
     try {
       const v_c9c6be = await v_38a552.allocate({ cloneId: String(v_6e0fd3), userId: String(v_43e90c), idleVideoUrl: v_6e2244 ?? null });
+
+      if (v_ba0fde && v_c9c6be?.callId) v_85cf8d.set(v_c9c6be.callId, v_ba0fde);
       v_8f00b9.status(200).json(v_c9c6be);
     } catch (v_9e86fd) {
       const v_badeaf = String(v_9e86fd?.message ?? v_9e86fd);
@@ -76,6 +79,7 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
     try {
       const v_43c42e = await v_38a552.end(v_be62d3, v_43e90c);
       v_04d03c.clear(v_be62d3);
+      v_85cf8d.delete(v_be62d3); 
       v_8f00b9.status(200).json(v_43c42e);
     } catch (v_9e86fd) { v_8f00b9.status(500).json({ error: 'end_failed', detail: String(v_9e86fd?.message ?? v_9e86fd) }); }
   });
@@ -96,11 +100,11 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
     if (!v_04d03c.beginTurn(v_be62d3)) return v_8f00b9.status(409).json({ error: 'turn_in_progress' });
     v_04d03c.appendTurn(v_be62d3, { role: 'user', content: v_9b6134 });
     v_8f00b9.status(202).json({ ok: true }); 
+    const v_79521f = v_85cf8d.get(v_be62d3) ?? null; 
     Promise.resolve()
       .then(() => v_3a60ca(
         v_28e3ea(v_01dcf5, v_6e0fd3),
-
-        { callId: v_be62d3, publisherPort: v_3ac7e7.port, personaSlug: 'halbae', history: v_04d03c.getHistory(v_be62d3), text: v_9b6134 },
+        { callId: v_be62d3, publisherPort: v_3ac7e7.port, personaSlug: 'halbae', personaBundle: v_79521f, history: v_04d03c.getHistory(v_be62d3), text: v_9b6134 },
       ))
       .then((v_3188ae) => { if (v_3188ae) v_04d03c.appendTurn(v_be62d3, { role: 'assistant', content: v_3188ae }); })
       .catch((v_9e86fd) => console.error('[sp2/say] relay error', v_be62d3, v_9e86fd?.message ?? v_9e86fd))

@@ -198,3 +198,81 @@ v_2a805f('say: secret 불일치 → 401', async () => {
   v_ce93bd.equal(v_8f00b9.status, 401);
   v_88781f.close();
 });
+
+v_2a805f('personaBundle from /oth-path is forwarded to fetchChat on say', async () => {
+  const v_08c3f2 = [];
+
+  const v_38a552 = v_f8ce16({
+    allocate: async () => ({ callId: 'c2', port: 8413, state: 'live', subscribeToken: 'tok2' }),
+    getCall: (v_389afb) => (v_389afb === 'c2' ? { call_id: 'c2', port: 8413, state: 'live' } : null),
+  });
+
+  const v_3a60ca = async (v_84b93d, v_4317d1) => {
+
+    v_08c3f2.push(v_4317d1);
+  };
+
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_38a552, 'sek', { runChatRelay: v_3a60ca });
+
+  const v_79521f = { l0: { rules_text: 'R', blocklist: [] }, persona: { tone: '다정' } };
+
+  const v_04c642 = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20', personaBundle: v_79521f }),
+  });
+  v_ce93bd.equal(v_04c642.status, 200);
+  const v_c9c6be = await v_04c642.json();
+  v_ce93bd.equal(v_c9c6be.callId, 'c2');
+
+  const v_dd05e1 = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '안녕', cloneId: '10' }),
+  });
+  v_ce93bd.equal(v_dd05e1.status, 202);
+
+  await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 20));
+
+  v_ce93bd.equal(v_08c3f2.length, 1);
+  v_ce93bd.deepEqual(v_08c3f2[0].personaBundle, v_79521f);
+
+  v_88781f.close();
+});
+
+v_2a805f('personaBundle: DELETE 후 캐시에서 제거됨(재 say 시 null)', async () => {
+  const v_aee0b9 = [];
+  const v_38a552 = v_f8ce16({
+    allocate: async () => ({ callId: 'c3', port: 8414, state: 'live', subscribeToken: 'tok3' }),
+    getCall: (v_389afb) => (v_389afb === 'c3' ? { call_id: 'c3', port: 8414, state: 'live' } : null),
+    end: async () => ({ ok: true }),
+  });
+  const v_3a60ca = async (v_0dbac4, v_4317d1) => { v_aee0b9.push(v_4317d1); };
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_38a552, 'sek', { runChatRelay: v_3a60ca });
+
+  const v_79521f = { l0: { rules_text: 'X', blocklist: [] }, persona: { tone: '차분' } };
+
+  await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20', personaBundle: v_79521f }),
+  });
+
+  await fetch(`${v_694b25}/oth-path`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ userId: '20' }),
+  });
+
+  await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '재시작', cloneId: '10' }),
+  });
+  await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 20));
+
+  v_ce93bd.equal(v_aee0b9.length, 1);
+  v_ce93bd.equal(v_aee0b9[0].personaBundle, null); 
+
+  v_88781f.close();
+});
