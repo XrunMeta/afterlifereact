@@ -8,6 +8,23 @@ async function userTok(uid: number): Promise<string> {
 }
 
 describe("clones wizard persona mapping", () => {
+  it("GET /oth-path returns halbae system clone", async () => {
+    const db = env.DB as unknown as D1Database;
+
+    await db
+      .prepare(
+        "INSERT OR IGNORE INTO users (id,email,password_hash,name,created_at) VALUES (90,'w@t','x','W',CURRENT_TIMESTAMP)",
+      )
+      .run();
+    const tok = await userTok(90);
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json<{ items: { id: number; username: string; name: string }[] }>();
+    expect(body.items.some((c) => c.username === "halbae")).toBe(true);
+  });
+
   it("maps age/gender/mbti/personaTypes into l1_profile", async () => {
     const db = env.DB as unknown as D1Database;
     await db

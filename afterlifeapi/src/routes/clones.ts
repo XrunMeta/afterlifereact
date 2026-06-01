@@ -558,6 +558,13 @@ clones.get("/search", async (c) => {
   });
 });
 
+clones.get("/system", requireAuth, async (c) => {
+  const rows = await c.env.DB.prepare(
+    "SELECT id, username, name, avatar_url FROM clones WHERE username = 'halbae' AND deleted_at IS NULL",
+  ).all<{ id: number; username: string; name: string; avatar_url: string | null }>();
+  return c.json({ items: rows.results ?? [] });
+});
+
 clones.get("/:id", async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
