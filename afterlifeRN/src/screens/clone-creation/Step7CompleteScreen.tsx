@@ -118,6 +118,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       };
       const v_564b6a = { attrs: v_55a58f, notes: v_f04727.personaNotes ?? "" };
 
+      const v_60d170 = v_f04727.personaAnswers ?? {};
+
       let v_bf6b43 = v_6de415.current;
       if (!v_bf6b43 && v_f04727.imageFile) {
         try {
@@ -163,6 +165,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         visibility: v_818579,
         interests: v_f04727.interests && v_f04727.interests.length > 0 ? v_f04727.interests : undefined,
         l1_profile: v_564b6a,
+
+        ...(Object.keys(v_60d170).length > 0 ? { personaAnswers: v_60d170 } : {}),
         ...(v_bf6b43 ? { avatar_url: v_bf6b43 } : {}),
         ...(v_6bee94 ? { pin: v_6bee94 } : {}),
       });

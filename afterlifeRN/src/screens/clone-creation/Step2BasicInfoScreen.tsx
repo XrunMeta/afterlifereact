@@ -46,7 +46,7 @@ export default function v_afe4c8({ navigation: v_c65f5d }: Props) {
       <View style={v_d81136.bottomBar}>
         <Button
           title={v_8d41d7("create.next")}
-          onPress={() => v_c65f5d.navigate('Step3')}
+          onPress={() => v_c65f5d.navigate('PersonaAssistant')}
           disabled={!v_04fddf}
         />
       </View>

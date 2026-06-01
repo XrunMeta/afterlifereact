@@ -21,7 +21,11 @@ export interface CreateClonePayload {
   l1_profile?: {
     attrs: Record<string, string>;
     notes: string;
+    personality_core?: string;
+    tone?: string;
   };
+
+  personaAnswers?: Record<string, string>;
 
   pin?: string;
 }
@@ -100,6 +104,35 @@ export function v_b55477(v_1833e7): string {
   const v_2f361a = v_694b25.slice(0, 20);
   const v_ae8e76 = Math.random().toString(36).slice(2, 8);
   return `${v_2f361a}_${v_ae8e76}`;
+}
+
+export async function v_61a853(
+  v_2ca7e0,
+): Promise<import('../types/clone').PersonaQuestion[]> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
+    headers: { Authorization: `Bearer ${v_2ca7e0}` },
+  });
+  if (!v_8f00b9.ok) throw new Error(`persona-questions ${v_8f00b9.status}`);
+  const v_4d33b2 = (await v_8f00b9.json()) as { questions: import('../types/clone').PersonaQuestion[] };
+  return v_4d33b2.questions ?? [];
+}
+
+export async function v_4bf019(
+  v_2ca7e0,
+  v_727031,
+): Promise<Record<string, string[]>> {
+  try {
+    const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${v_2ca7e0}` },
+      body: JSON.stringify(v_727031),
+    });
+    if (!v_8f00b9.ok) return {};
+    const v_4d33b2 = (await v_8f00b9.json()) as { suggestions: Record<string, string[]> };
+    return v_4d33b2.suggestions ?? {};
+  } catch {
+    return {};
+  }
 }
 
 export async function v_39eaf5(

@@ -22,6 +22,7 @@ import {
 } from "../lib/interactions";
 import { v_7a6fc0 } from "../lib/xrun";
 import { v_c226a5, v_80a022 } from "../lib/notify";
+import { v_0b44ec } from "../lib/personaQuestions";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -66,6 +67,8 @@ const v_496c2d = 32 * 1024;
 const v_3ea364 = v_1f4ea7.object({
   attrs: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.string()),
   notes: v_1f4ea7.string().max(4000).default(''),
+  personality_core: v_1f4ea7.string().max(500).optional(),
+  tone: v_1f4ea7.string().max(500).optional(),
 });
 
 const v_a1f09b = v_1f4ea7.object({
@@ -91,8 +94,13 @@ function v_8beace(
   if (v_5ed063?.mbti) v_3555ae.mbti = v_5ed063.mbti;
 
   const v_020b4b = { attrs: v_3555ae, notes: v_694b25?.notes ?? "" };
-  const v_a6872a = v_5ed063?.personaTypes ?? [];
-  if (v_a6872a.length) v_020b4b.personality_core = `${v_a6872a.join(", ")} 성향`;
+
+  if (v_694b25?.personality_core) v_020b4b.personality_core = v_694b25.personality_core;
+  else {
+    const v_a6872a = v_5ed063?.personaTypes ?? [];
+    if (v_a6872a.length) v_020b4b.personality_core = `${v_a6872a.join(", ")} 성향`;
+  }
+  if (v_694b25?.tone) v_020b4b.tone = v_694b25.tone;
   return v_020b4b;
 }
 
@@ -120,6 +128,11 @@ const v_722b6d = v_1f4ea7.object({
   persona: v_a1f09b,
 
   pin: v_1f4ea7.string().regex(/^\d{6}$/).optional(),
+
+  personaAnswers: v_1f4ea7.record(
+    v_1f4ea7.string().regex(/^[a-zA-Z0-9_]{1,50}$/),
+    v_1f4ea7.string().max(500),
+  ).optional(),
 });
 
 const v_c02c4c = 100;
@@ -223,7 +236,29 @@ v_f891e6.post(
 
     const v_8e49c9 = v_4d33b2.voice_preset_id ? "preset" : "text_only";
 
-    const v_564b6a = v_8beace(v_4d33b2.l1_profile, v_4d33b2.persona);
+    let v_204408 = v_4d33b2.l1_profile;
+    if (v_4d33b2.personaAnswers && Object.keys(v_4d33b2.personaAnswers).length) {
+      const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
+      const v_712fff = new Map(v_c3519b.map((v_ab6401) => [v_ab6401.key, v_ab6401]));
+      const v_694b25 = v_204408 ?? { attrs: {}, notes: "" };
+      const v_3555ae = { ...(v_694b25.attrs ?? {}) };
+      const v_2be4f6 = { ...v_694b25, attrs: v_3555ae };
+      for (const [v_b24339, v_3b402b] of Object.entries(v_4d33b2.personaAnswers)) {
+        if (!v_3b402b) continue;
+        const v_ab6401 = v_712fff.get(v_b24339);
+        if (!v_ab6401) continue; 
+
+        if (v_ab6401.targetField && v_ab6401.targetField !== "attrs" && v_ab6401.targetField !== "__proto__") {
+          v_2be4f6[v_ab6401.targetField] = v_3b402b;
+        } else if (!v_ab6401.targetField) {
+          v_3555ae[v_b24339] = v_3b402b;
+        }
+      }
+      v_2be4f6.attrs = v_3555ae;
+      v_204408 = v_2be4f6 as typeof v_204408;
+    }
+
+    const v_564b6a = v_8beace(v_204408, v_4d33b2.persona);
 
     let v_81161e;
     try {
@@ -554,6 +589,51 @@ v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
     "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
   ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+});
+
+v_f891e6.get("/persona-questions", v_6690d9, async (v_3f4e2e) => {
+  const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ questions: v_c3519b });
+});
+
+const v_32333b = v_1f4ea7.record(
+  v_1f4ea7.string().max(50),
+  v_1f4ea7.union([v_1f4ea7.string().max(200), v_1f4ea7.array(v_1f4ea7.string().max(50)).max(20)]),
+);
+
+v_f891e6.post("/persona-suggest", v_6690d9, async (v_3f4e2e) => {
+
+  if (!v_3f4e2e.env.ORCHESTRATOR_URL || !v_3f4e2e.env.ORCH_SECRET) return v_3f4e2e.json({ suggestions: {} });
+  const v_479f05 = await v_3f4e2e.req.json().catch(() => ({}));
+  const v_8decf8 = v_32333b.safeParse(v_479f05);
+  const v_727031 = v_8decf8.success ? v_8decf8.data : {};
+
+  if (Object.keys(v_727031).length > 20) return v_3f4e2e.json({ suggestions: {} });
+
+  const v_d32db2 = Object.values(v_727031).some((v_81e2ef) =>
+    Array.isArray(v_81e2ef) ? v_81e2ef.length > 0 : v_81e2ef !== "",
+  );
+  if (!v_d32db2) return v_3f4e2e.json({ suggestions: {} });
+  const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
+  const v_1ccb73 = v_c3519b
+    .filter((v_ab6401) => v_ab6401.type === "gemma_choice")
+    .map((v_ab6401) => ({ key: v_ab6401.key, label: v_ab6401.label, options_include: v_ab6401.options_include }));
+  if (v_1ccb73.length === 0) return v_3f4e2e.json({ suggestions: {} });
+  try {
+
+    const v_cb35cb = await fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile: v_727031, questions: v_1ccb73 }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!v_cb35cb.ok) return v_3f4e2e.json({ suggestions: {} });
+    const v_9390e8 = await v_cb35cb.json<{ suggestions?: Record<string, string[]> }>();
+    return v_3f4e2e.json({ suggestions: v_9390e8.suggestions ?? {} });
+  } catch {
+
+    return v_3f4e2e.json({ suggestions: {} });
+  }
 });
 
 v_f891e6.get("/:id", async (v_3f4e2e) => {

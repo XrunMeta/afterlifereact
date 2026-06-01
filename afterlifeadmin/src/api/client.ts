@@ -219,6 +219,11 @@ export const v_05a921 = {
   updateSystemPersona: (v_9390e8) =>
     v_576f5a("/oth-path", { method: "PUT", body: JSON.stringify(v_9390e8) }),
 
+  getPersonaQuestions: () =>
+    v_576f5a<{ questions: unknown[] }>("/oth-path"),
+  updatePersonaQuestions: (v_9390e8) =>
+    v_576f5a<{ ok: true }>("/oth-path", { method: "PUT", body: JSON.stringify(v_9390e8) }),
+
   getUserReports: (v_24baff) => {
     const v_212049 = new URLSearchParams();
     if (v_24baff?.status) v_212049.set("status", v_24baff.status);

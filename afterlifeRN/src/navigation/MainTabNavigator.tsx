@@ -17,6 +17,7 @@ import v_541fbd from "../screens/clones/CloneEditScreen";
 import v_07335f from "../screens/clones/CloneInviteScreen";
 import v_84d7a5 from "../screens/clone-creation/Step1CloneTypeScreen";
 import v_afe4c8 from "../screens/clone-creation/Step2BasicInfoScreen";
+import v_8e5b58 from "../screens/clone-creation/PersonaAssistantScreen";
 import v_3d9025 from "../screens/clone-creation/Step3ImageUploadScreen";
 import v_710783 from "../screens/clone-creation/Step4VoiceUploadScreen";
 import v_f275b6 from "../screens/clone-creation/Step5VisibilityScreen";
@@ -69,6 +70,7 @@ function v_31fee5() {
     <CreateStack.Navigator screenOptions={{ headerShown: false }}>
       <CreateStack.Screen name="Step1" component={v_84d7a5} />
       <CreateStack.Screen name="Step2" component={v_afe4c8} />
+      <CreateStack.Screen name="PersonaAssistant" component={v_8e5b58} />
       <CreateStack.Screen name="Step3" component={v_3d9025} />
       <CreateStack.Screen name="Step4" component={v_710783} />
       <CreateStack.Screen name="Step5" component={v_f275b6} />

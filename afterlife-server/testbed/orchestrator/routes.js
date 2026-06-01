@@ -2,6 +2,7 @@ import v_96bb47 from 'cyfkmrv';
 import v_b070ed from 'hikhkjexnsh';
 import { v_458d35 } from './sayStore.js';
 import { v_3a60ca as v_8e7d64 } from './chatRelay.js';
+import { v_228e13 } from '../lib/personaSuggest.js';
 
 const v_b74136 = (v_f31c63) => `http://127.0.0.1:${v_f31c63}`;
 
@@ -56,7 +57,7 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
   const v_3a60ca = v_84b93d?.sayDeps?.runChatRelay ?? v_8e7d64;
 
   function v_99be57(v_309144, v_8f00b9, v_a448ad) {
-    if (!v_43fd42 || v_183879(v_309144) !== v_43fd42) return v_8f00b9.status(401).json({ error: 'unauthorized' });
+    if (!v_43fd42 || !v_f2ad63(v_183879(v_309144), v_43fd42)) return v_8f00b9.status(401).json({ error: 'unauthorized' });
     v_a448ad();
   }
 
@@ -87,6 +88,16 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
 
   v_904d46.get('/oth-path', v_99be57, (v_5ebc52, v_8f00b9) => {
     v_8f00b9.status(200).json({ calls: v_38a552.listActive() });
+  });
+
+  v_904d46.post('/oth-path', v_99be57, async (v_309144, v_8f00b9) => {
+    try {
+      const { profile: v_727031 = {}, questions: v_c3519b = [] } = v_309144.body ?? {};
+      const v_de1ba7 = await v_228e13({ profile: v_727031, questions: v_c3519b });
+      v_8f00b9.json({ suggestions: v_de1ba7 });
+    } catch (v_9e86fd) {
+      v_8f00b9.status(500).json({ error: 'suggest_failed' });
+    }
   });
 
   v_904d46.post('/oth-path', v_99be57, async (v_309144, v_8f00b9) => {
