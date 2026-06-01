@@ -16,6 +16,7 @@ import { v_f65f90 } from "./pages/UserReportsPage";
 import { v_f913c9 } from "./pages/LoginPage";
 import { v_6cc6aa } from "./pages/TotpEnrollPage";
 import { v_4686cd } from "./pages/TotpVerifyPage";
+import { v_6c8b30 } from "./pages/L0PersonaEditPage";
 
 function v_4c0c15({ children: v_21f619 }: { children: v_4a8ba2 }) {
   return (
@@ -121,6 +122,14 @@ function v_6540c3() {
                 description="Decryption Audit / Cleanup / 복호화 열람 감사 / 개발 전용 봉인 도구."
                 categories={["Admin System", "Admin DevTools"]}
               />
+            </ProtectedLayout>
+          }
+        />
+        <Route
+          path="/oth-path"
+          element={
+            <ProtectedLayout>
+              <L0PersonaEditPage />
             </ProtectedLayout>
           }
         />

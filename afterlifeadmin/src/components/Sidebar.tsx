@@ -36,6 +36,7 @@ const v_714568 = [
       { path: "/oth-path", label: "Deletion" },
       { path: "/oth-path", label: "Cold Recovery" },
       { path: "/oth-path", label: "System" },
+      { path: "/oth-path", label: "L0 Persona" },
     ],
   },
 ];

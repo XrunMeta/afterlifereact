@@ -11,7 +11,8 @@ import { v_3ad6c0, v_e9fc79, v_49715e, v_ff48df } from './lib/kvStore.js';
 import { v_585997 } from './lib/extractor.js';
 import { v_cdb49a } from './lib/sentence_buffer.js';
 import { v_27fa47 } from './lib/tts.js';
-import { v_0f0580, v_c80dec } from './lib/sanitize.js';
+import { v_0f0580, v_c80dec, v_d2e688 } from './lib/sanitize.js';
+import { v_a9f758 } from './lib/personaSelect.js';
 import {
   v_034be8,
   v_ba8718,
@@ -311,7 +312,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     return v_8f00b9.status(400).json({ error: 'message is required' });
   }
 
-  const v_04e790 = v_309144.body?.source === 'agent' ? 'agent' : 'browser';
+  const v_b05151 = v_309144.body?.source;
+  const v_04e790 = v_b05151 === 'agent' ? 'agent' : v_b05151 === 'rn-call' ? 'rn-call' : 'browser';
   const v_9a14d9 = v_309144.body?.speaker_role === 'visitor' ? 'visitor' : 'creator';
   const v_d63eac = v_9a14d9 === 'visitor' ? 'l2' : 'l1';
   const v_1231fa = (v_309144.body?.user_label ?? (v_9a14d9 === 'visitor' ? 'visitor-test' : 'creator-test')).toString();
@@ -319,13 +321,18 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
   const v_19846e = v_9adef9(v_309144.body?.publisherPort, v_de4278);
 
-  const v_55a58f = v_ff48df({ persona_slug: v_47fe3d, level: 'l1', user_label: null });
-  const v_fc96ca = v_9a14d9 === 'visitor'
+  const v_ba0fde = v_309144.body?.personaBundle ?? null;
+  const v_69681f = v_ff48df({ persona_slug: v_47fe3d, level: 'l1', user_label: null });
+  const v_b533a0 = v_9a14d9 === 'visitor'
     ? v_ff48df({ persona_slug: v_47fe3d, level: 'l2', user_label: v_1231fa })
     : [];
+  const { l0: v_b6c480, l1Attrs: v_55a58f, l2Attrs: v_fc96ca } = v_a9f758({ personaBundle: v_ba0fde, fallbackL1: v_69681f, fallbackL2: v_b533a0 });
+  if (v_ba0fde && v_ba0fde.persona && v_55a58f.length === 0) {
+    console.warn(`[sp3] personaBundle present but persona empty (source=${v_04e790}) — responding with L0 only`);
+  }
 
   const v_fa56e0 = [
-    { role: 'system', content: v_841e05({ l1Attrs: v_55a58f, l2Attrs: v_fc96ca }) },
+    { role: 'system', content: v_841e05({ l0: v_b6c480, l1Attrs: v_55a58f, l2Attrs: v_fc96ca }) },
     ...v_10740d
       .filter((v_35f85c) => v_35f85c && typeof v_35f85c.role === 'string' && typeof v_35f85c.content === 'string')
       .filter((v_35f85c) => ['user', 'assistant'].includes(v_35f85c.role))
@@ -370,7 +377,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   let v_3ccb8e = null;   
 
   const v_73c1c8 = async (v_544e9a) => {
-    if (!v_544e9a || !v_327f32) return;
+
+    if (!v_544e9a || !v_327f32 || v_04e790 === 'rn-call') return;
     try {
       const v_676b49 = v_e9fc79({ persona_slug: v_47fe3d, level: v_d63eac, user_label: v_d63eac === 'l2' ? v_1231fa : null });
       const v_152909 = await v_585997(
@@ -452,7 +460,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   const v_80a694 = (v_9b6134, v_e86ad8) => {
     if (!v_455f07) return Promise.resolve();
 
-    const v_738e47 = v_0f0580(v_9b6134);
+    const v_738e47 = v_d2e688(v_0f0580(v_9b6134), v_b6c480?.blocklist ?? []);
     if (!v_738e47) return Promise.resolve();
     const v_1923e2 = ++v_213fa0;
     const v_b66f2c = Date.now();

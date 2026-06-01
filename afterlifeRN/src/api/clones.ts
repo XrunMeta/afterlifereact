@@ -392,6 +392,16 @@ export async function v_d60cdf(v_2ca7e0): Promise<{ items: MyClone[] }> {
   return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
 }
 
+export interface SystemClone {
+  id: number;
+  username: string;
+  name: string;
+}
+
+export async function v_81d12f(v_2ca7e0): Promise<{ items: SystemClone[] }> {
+  return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
+}
+
 export interface IntimacyEvent {
   id: number;
   action: "chat" | "call" | "learn" | "feed";

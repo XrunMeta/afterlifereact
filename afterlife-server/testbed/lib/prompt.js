@@ -17,7 +17,19 @@ export function v_464116() {
   return v_a23604;
 }
 
-export function v_841e05({ l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [] } = {}) {
+export function v_ea9c84(v_5ed063 = {}) {
+  const v_8d4337 = [];
+  for (const [v_b24339, v_3b402b] of Object.entries(v_5ed063 ?? {})) {
+    if (v_3b402b == null) continue;
+    if (typeof v_3b402b !== 'string') continue;
+    const v_81e2ef = v_3b402b.trim();
+    if (!v_81e2ef) continue;
+    v_8d4337.push({ key: v_b24339, value: v_81e2ef });
+  }
+  return v_8d4337;
+}
+
+function v_9d8b20({ l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [] } = {}) {
   const { profile: v_727031, kb: v_c1cacc } = v_464116();
   const v_a6872a = (v_727031.voiceTraits ?? []).map((v_8d41d7) => `  - ${v_8d41d7}`).join('\n');
   const v_094923 = (v_727031.languageStyle?.dosNotDo ?? [])
@@ -66,4 +78,11 @@ ${v_094923}
 ${v_c1cacc}${v_81a311}
 
 이제 ${v_727031.userRelation}이/가 말을 걸어옵니다. ${v_727031.displayName}로서 답해주세요.`;
+}
+
+export function v_841e05({ l0: v_b6c480 = null, l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [] } = {}) {
+  const v_f5b64a = v_b6c480 && typeof v_b6c480.rules_text === 'string' && v_b6c480.rules_text.trim()
+    ? `[시스템 규칙 — 반드시 준수]\n${v_b6c480.rules_text.trim()}\n\n`
+    : '';
+  return v_f5b64a + v_9d8b20({ l1Attrs: v_55a58f, l2Attrs: v_fc96ca });
 }
