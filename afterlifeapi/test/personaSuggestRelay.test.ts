@@ -85,4 +85,23 @@ describe("POST /oth-path", () => {
     const body = await res.json<{ suggestions: Record<string, unknown> }>();
     expect(body.suggestions).toEqual({});
   });
+
+  it("returns 200 + empty suggestions when profile is empty (no gabia call needed)", async () => {
+
+    const db = env.DB as unknown as D1Database;
+    await db
+      .prepare(
+        "INSERT OR IGNORE INTO users (id,email,password_hash,name,created_at) VALUES (90,'w@t','x','W',CURRENT_TIMESTAMP)",
+      )
+      .run();
+    const tok = await userTok(90);
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json<{ suggestions: Record<string, unknown> }>();
+    expect(body.suggestions).toEqual({});
+  });
 });

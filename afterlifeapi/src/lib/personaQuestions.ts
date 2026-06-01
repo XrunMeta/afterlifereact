@@ -47,8 +47,12 @@ export function validatePersonaQuestions(input: unknown): ValidateResult {
         return { ok: false, error: `options must be strings for ${q.key}` };
       if (q.options.length > 20)
         return { ok: false, error: `options too many for ${q.key}: max 20` };
+
+      const seenOpts = new Set<string>();
       for (const o of q.options as string[]) {
         if (o.length > 200) return { ok: false, error: `option value too long for ${q.key}` };
+        if (seenOpts.has(o)) return { ok: false, error: `duplicate option in ${q.key}: ${o}` };
+        seenOpts.add(o);
       }
     }
     if (q.options_include !== undefined) {
@@ -56,9 +60,13 @@ export function validatePersonaQuestions(input: unknown): ValidateResult {
         return { ok: false, error: `options_include must be array for ${q.key}` };
       if (q.options_include.length > 20)
         return { ok: false, error: `options_include too many for ${q.key}: max 20` };
+
+      const seenInc = new Set<string>();
       for (const o of q.options_include as unknown[]) {
         if (typeof o !== "string") return { ok: false, error: `options_include items must be strings for ${q.key}` };
         if ((o as string).length > 200) return { ok: false, error: `options_include value too long for ${q.key}` };
+        if (seenInc.has(o as string)) return { ok: false, error: `duplicate options_include in ${q.key}: ${o}` };
+        seenInc.add(o as string);
       }
     }
     if (q.targetField !== undefined) {

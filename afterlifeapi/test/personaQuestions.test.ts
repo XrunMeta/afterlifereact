@@ -103,6 +103,31 @@ describe("validatePersonaQuestions", () => {
     ]);
     expect(r.ok).toBe(true);
   });
+
+  it("rejects fixed_choice with duplicate options", () => {
+    const r = validatePersonaQuestions([
+      { key: "mood", type: "fixed_choice", label: "분위기?", options: ["밝음", "조용함", "밝음"] },
+    ]);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("duplicate option");
+    expect(r.error).toContain("mood");
+  });
+
+  it("rejects gemma_choice with duplicate options_include", () => {
+    const r = validatePersonaQuestions([
+      { key: "tone", type: "gemma_choice", label: "말투?", options_include: ["사투리", "반말", "사투리"] },
+    ]);
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("duplicate options_include");
+    expect(r.error).toContain("tone");
+  });
+
+  it("accepts fixed_choice with all unique options", () => {
+    const r = validatePersonaQuestions([
+      { key: "region", type: "fixed_choice", label: "지역?", options: ["서울", "부산", "제주"] },
+    ]);
+    expect(r.ok).toBe(true);
+  });
 });
 
 const SUPER_ADMIN_ID = 9001;

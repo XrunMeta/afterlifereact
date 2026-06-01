@@ -611,6 +611,8 @@ const suggestProfileSchema = z.record(
 );
 
 clones.post("/persona-suggest", requireAuth, async (c) => {
+
+  if (!c.env.ORCHESTRATOR_URL || !c.env.ORCH_SECRET) return c.json({ suggestions: {} });
   const raw = await c.req.json().catch(() => ({}));
   const parsed = suggestProfileSchema.safeParse(raw);
   const profile = parsed.success ? parsed.data : {};
@@ -627,15 +629,18 @@ clones.post("/persona-suggest", requireAuth, async (c) => {
     .map((q) => ({ key: q.key, label: q.label, options_include: q.options_include }));
   if (gemmaQuestions.length === 0) return c.json({ suggestions: {} });
   try {
+
     const r = await fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
       body: JSON.stringify({ profile, questions: gemmaQuestions }),
+      signal: AbortSignal.timeout(8000),
     });
     if (!r.ok) return c.json({ suggestions: {} });
     const data = await r.json<{ suggestions?: Record<string, string[]> }>();
     return c.json({ suggestions: data.suggestions ?? {} });
   } catch {
+
     return c.json({ suggestions: {} });
   }
 });
