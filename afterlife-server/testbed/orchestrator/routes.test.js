@@ -240,6 +240,145 @@ v_2a805f('personaBundle from /oth-path is forwarded to fetchChat on say', async 
   v_88781f.close();
 });
 
+v_2a805f('동시 2개 callId say 시 각 callId 는 자기 personaBundle 만 받음(bundle 섞임 없음)', async () => {
+  const v_aee0b9 = [];
+
+  let v_65362f = 0;
+  const v_754768 = [
+    { callId: 'ca1', port: 8510, state: 'live', subscribeToken: 'tok-ca1' },
+    { callId: 'ca2', port: 8511, state: 'live', subscribeToken: 'tok-ca2' },
+  ];
+  const v_38a552 = v_f8ce16({
+    allocate: async () => v_754768[v_65362f++],
+    getCall: (v_389afb) => {
+      if (v_389afb === 'ca1') return { call_id: 'ca1', port: 8510, state: 'live' };
+      if (v_389afb === 'ca2') return { call_id: 'ca2', port: 8511, state: 'live' };
+      return null;
+    },
+  });
+
+  const v_3a60ca = async (v_0dbac4, v_4317d1) => { v_aee0b9.push(v_4317d1); };
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_38a552, 'sek', { runChatRelay: v_3a60ca });
+
+  const v_f375c1 = { l0: { rules_text: 'RA', blocklist: [] }, persona: { tone: 'A톤' } };
+  const v_498ade = { l0: { rules_text: 'RB', blocklist: [] }, persona: { tone: 'B톤' } };
+
+  const v_3765bc = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '11', userId: '21', personaBundle: v_f375c1 }),
+  });
+  v_ce93bd.equal(v_3765bc.status, 200);
+  const v_0df8cc = await v_3765bc.json();
+  v_ce93bd.equal(v_0df8cc.callId, 'ca1');
+
+  const v_b5687a = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '12', userId: '22', personaBundle: v_498ade }),
+  });
+  v_ce93bd.equal(v_b5687a.status, 200);
+  const v_c037a3 = await v_b5687a.json();
+  v_ce93bd.equal(v_c037a3.callId, 'ca2');
+
+  const [v_e20a45, v_35aedb] = await Promise.all([
+    fetch(`${v_694b25}/oth-path`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+      body: JSON.stringify({ text: '안녕 A', cloneId: '11' }),
+    }),
+    fetch(`${v_694b25}/oth-path`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+      body: JSON.stringify({ text: '안녕 B', cloneId: '12' }),
+    }),
+  ]);
+  v_ce93bd.equal(v_e20a45.status, 202);
+  v_ce93bd.equal(v_35aedb.status, 202);
+
+  await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 30));
+
+  v_ce93bd.equal(v_aee0b9.length, 2);
+
+  const v_1c4e34 = v_aee0b9.find((v_779914) => v_779914.callId === 'ca1');
+  const v_28b094 = v_aee0b9.find((v_779914) => v_779914.callId === 'ca2');
+  v_ce93bd.ok(v_1c4e34, 'ca1 relay 호출 없음');
+  v_ce93bd.ok(v_28b094, 'ca2 relay 호출 없음');
+
+  v_ce93bd.equal(v_1c4e34.personaBundle?.persona?.tone, 'A톤', 'ca1 가 B톤 bundle 받음 — bundle 섞임!');
+  v_ce93bd.equal(v_28b094.personaBundle?.persona?.tone, 'B톤', 'ca2 가 A톤 bundle 받음 — bundle 섞임!');
+  v_ce93bd.deepEqual(v_1c4e34.personaBundle, v_f375c1);
+  v_ce93bd.deepEqual(v_28b094.personaBundle, v_498ade);
+
+  v_88781f.close();
+});
+
+v_2a805f('동시 callId: DELETE 후 해당 callId bundle 만 소거됨(다른 callId 영향 없음)', async () => {
+  const v_aee0b9 = [];
+
+  let v_1d5a19 = 0;
+  const v_13068c = [
+    { callId: 'cb1', port: 8520, state: 'live', subscribeToken: 'tok-cb1' },
+    { callId: 'cb2', port: 8521, state: 'live', subscribeToken: 'tok-cb2' },
+  ];
+  const v_38a552 = v_f8ce16({
+    allocate: async () => v_13068c[v_1d5a19++],
+    getCall: (v_389afb) => {
+      if (v_389afb === 'cb1') return { call_id: 'cb1', port: 8520, state: 'live' };
+      if (v_389afb === 'cb2') return { call_id: 'cb2', port: 8521, state: 'live' };
+      return null;
+    },
+    end: async () => ({ ok: true }),
+  });
+
+  const v_3a60ca = async (v_0dbac4, v_4317d1) => { v_aee0b9.push(v_4317d1); };
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_38a552, 'sek', { runChatRelay: v_3a60ca });
+
+  const v_9eae86 = { l0: { rules_text: 'RC1', blocklist: [] }, persona: { tone: 'C1톤' } };
+  const v_ae4335 = { l0: { rules_text: 'RC2', blocklist: [] }, persona: { tone: 'C2톤' } };
+
+  await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '13', userId: '23', personaBundle: v_9eae86 }),
+  });
+  await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '14', userId: '24', personaBundle: v_ae4335 }),
+  });
+
+  await fetch(`${v_694b25}/oth-path`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ userId: '23' }),
+  });
+
+  await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'cb1 재호출', cloneId: '13' }),
+  });
+  await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'cb2 정상', cloneId: '14' }),
+  });
+  await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 30));
+
+  v_ce93bd.equal(v_aee0b9.length, 2);
+  const v_83ba68 = v_aee0b9.find((v_779914) => v_779914.callId === 'cb1');
+  const v_d0c72d = v_aee0b9.find((v_779914) => v_779914.callId === 'cb2');
+  v_ce93bd.ok(v_83ba68);
+  v_ce93bd.ok(v_d0c72d);
+
+  v_ce93bd.equal(v_83ba68.personaBundle, null, 'cb1 DELETE 후 bundle 이 null 이어야 함');
+
+  v_ce93bd.deepEqual(v_d0c72d.personaBundle, v_ae4335, 'cb2 bundle 이 cb1 DELETE 에 영향받음!');
+
+  v_88781f.close();
+});
+
 v_2a805f('personaBundle: DELETE 후 캐시에서 제거됨(재 say 시 null)', async () => {
   const v_aee0b9 = [];
   const v_38a552 = v_f8ce16({
