@@ -22,6 +22,7 @@ import {
 } from "../lib/interactions";
 import { externalTransferSplit } from "../lib/xrun";
 import { notify, notifyCloneEvent } from "../lib/notify";
+import { loadPersonaQuestions } from "../lib/personaQuestions";
 
 export const clones = new Hono<AppEnv>();
 
@@ -563,6 +564,11 @@ clones.get("/system", requireAuth, async (c) => {
     "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
   ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return c.json({ items: rows.results ?? [] });
+});
+
+clones.get("/persona-questions", requireAuth, async (c) => {
+  const questions = await loadPersonaQuestions(c.env.DB);
+  return c.json({ questions });
 });
 
 clones.get("/:id", async (c) => {
