@@ -50,10 +50,9 @@ export default function PersonaAssistantScreen() {
           personaTypes: draft.personaTypes,
           notes: draft.personaNotes,
         };
-        const [qs, sg] = await Promise.all([
-          getPersonaQuestions(accessToken!),
-          personaSuggest(accessToken!, profile).catch(() => ({})),
-        ]);
+
+        const qs = await getPersonaQuestions(accessToken!).catch(() => [] as PersonaQuestion[]);
+        const sg = await personaSuggest(accessToken!, profile).catch(() => ({}));
         if (!alive) return;
         setQuestions(qs);
         setCandidates(sg);
@@ -68,7 +67,16 @@ export default function PersonaAssistantScreen() {
   }, []);
 
   const onAnswer = (key: string, value: string) =>
-    setAnswers((prev) => ({ ...prev, [key]: value }));
+    setAnswers((prev) => {
+      const next = { ...prev, [key]: value };
+
+      for (const q of questions) {
+        if (q.showWhen && !isVisible(q, next) && next[q.key] !== undefined) {
+          delete next[q.key];
+        }
+      }
+      return next;
+    });
 
   const onNext = () => {
 
@@ -93,6 +101,11 @@ export default function PersonaAssistantScreen() {
       <Text style={styles.hint}>
         후보를 탭하면 답으로 반영돼요. 직접 입력하거나 비워둬도 됩니다.
       </Text>
+      {questions.length === 0 && (
+        <Text style={styles.hint}>
+          지금은 도우미를 사용할 수 없어요. 다음으로 진행하세요.
+        </Text>
+      )}
       {visibleQuestions.map((q) => (
         <DynamicQuestion
           key={q.key}
