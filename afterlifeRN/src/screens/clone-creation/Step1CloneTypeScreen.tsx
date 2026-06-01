@@ -26,7 +26,7 @@ export default function v_84d7a5({ navigation: v_c65f5d }: Props) {
   const v_420661 = () => {
     if (!v_587413) return;
     v_5795de({ cloneType: v_587413 });
-    v_c65f5d.navigate('Step2');
+    v_c65f5d.navigate('PersonaAssistant');
   };
 
   return (

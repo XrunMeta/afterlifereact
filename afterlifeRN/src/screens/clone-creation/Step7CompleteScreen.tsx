@@ -167,6 +167,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         l1_profile: v_564b6a,
 
         ...(Object.keys(v_60d170).length > 0 ? { personaAnswers: v_60d170 } : {}),
+
+        ...(v_f04727.relation ? { relation: v_f04727.relation } : {}),
         ...(v_bf6b43 ? { avatar_url: v_bf6b43 } : {}),
         ...(v_6bee94 ? { pin: v_6bee94 } : {}),
       });

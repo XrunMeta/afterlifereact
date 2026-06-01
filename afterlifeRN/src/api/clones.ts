@@ -27,6 +27,8 @@ export interface CreateClonePayload {
 
   personaAnswers?: Record<string, string>;
 
+  relation?: string;
+
   pin?: string;
 }
 
