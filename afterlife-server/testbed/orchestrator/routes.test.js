@@ -240,6 +240,145 @@ test('personaBundle from /oth-path is forwarded to fetchChat on say', async () =
   server.close();
 });
 
+test('동시 2개 callId say 시 각 callId 는 자기 personaBundle 만 받음(bundle 섞임 없음)', async () => {
+  const relayed = [];
+
+  let allocCount = 0;
+  const allocResults = [
+    { callId: 'ca1', port: 8510, state: 'live', subscribeToken: 'tok-ca1' },
+    { callId: 'ca2', port: 8511, state: 'live', subscribeToken: 'tok-ca2' },
+  ];
+  const orch = fakeOrch({
+    allocate: async () => allocResults[allocCount++],
+    getCall: (id) => {
+      if (id === 'ca1') return { call_id: 'ca1', port: 8510, state: 'live' };
+      if (id === 'ca2') return { call_id: 'ca2', port: 8511, state: 'live' };
+      return null;
+    },
+  });
+
+  const runChatRelay = async (_deps, args) => { relayed.push(args); };
+  const { server, base } = await mountApp(orch, 'sek', { runChatRelay });
+
+  const bundleA = { l0: { rules_text: 'RA', blocklist: [] }, persona: { tone: 'A톤' } };
+  const bundleB = { l0: { rules_text: 'RB', blocklist: [] }, persona: { tone: 'B톤' } };
+
+  const allocA = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '11', userId: '21', personaBundle: bundleA }),
+  });
+  assert.equal(allocA.status, 200);
+  const ticketA = await allocA.json();
+  assert.equal(ticketA.callId, 'ca1');
+
+  const allocB = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '12', userId: '22', personaBundle: bundleB }),
+  });
+  assert.equal(allocB.status, 200);
+  const ticketB = await allocB.json();
+  assert.equal(ticketB.callId, 'ca2');
+
+  const [sayA, sayB] = await Promise.all([
+    fetch(`${base}/oth-path`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+      body: JSON.stringify({ text: '안녕 A', cloneId: '11' }),
+    }),
+    fetch(`${base}/oth-path`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+      body: JSON.stringify({ text: '안녕 B', cloneId: '12' }),
+    }),
+  ]);
+  assert.equal(sayA.status, 202);
+  assert.equal(sayB.status, 202);
+
+  await new Promise((r) => setTimeout(r, 30));
+
+  assert.equal(relayed.length, 2);
+
+  const argA = relayed.find((a) => a.callId === 'ca1');
+  const argB = relayed.find((a) => a.callId === 'ca2');
+  assert.ok(argA, 'ca1 relay 호출 없음');
+  assert.ok(argB, 'ca2 relay 호출 없음');
+
+  assert.equal(argA.personaBundle?.persona?.tone, 'A톤', 'ca1 가 B톤 bundle 받음 — bundle 섞임!');
+  assert.equal(argB.personaBundle?.persona?.tone, 'B톤', 'ca2 가 A톤 bundle 받음 — bundle 섞임!');
+  assert.deepEqual(argA.personaBundle, bundleA);
+  assert.deepEqual(argB.personaBundle, bundleB);
+
+  server.close();
+});
+
+test('동시 callId: DELETE 후 해당 callId bundle 만 소거됨(다른 callId 영향 없음)', async () => {
+  const relayed = [];
+
+  let allocCount2 = 0;
+  const allocResults2 = [
+    { callId: 'cb1', port: 8520, state: 'live', subscribeToken: 'tok-cb1' },
+    { callId: 'cb2', port: 8521, state: 'live', subscribeToken: 'tok-cb2' },
+  ];
+  const orch = fakeOrch({
+    allocate: async () => allocResults2[allocCount2++],
+    getCall: (id) => {
+      if (id === 'cb1') return { call_id: 'cb1', port: 8520, state: 'live' };
+      if (id === 'cb2') return { call_id: 'cb2', port: 8521, state: 'live' };
+      return null;
+    },
+    end: async () => ({ ok: true }),
+  });
+
+  const runChatRelay = async (_deps, args) => { relayed.push(args); };
+  const { server, base } = await mountApp(orch, 'sek', { runChatRelay });
+
+  const bundleC1 = { l0: { rules_text: 'RC1', blocklist: [] }, persona: { tone: 'C1톤' } };
+  const bundleC2 = { l0: { rules_text: 'RC2', blocklist: [] }, persona: { tone: 'C2톤' } };
+
+  await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '13', userId: '23', personaBundle: bundleC1 }),
+  });
+  await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '14', userId: '24', personaBundle: bundleC2 }),
+  });
+
+  await fetch(`${base}/oth-path`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ userId: '23' }),
+  });
+
+  await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'cb1 재호출', cloneId: '13' }),
+  });
+  await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: 'cb2 정상', cloneId: '14' }),
+  });
+  await new Promise((r) => setTimeout(r, 30));
+
+  assert.equal(relayed.length, 2);
+  const argCb1 = relayed.find((a) => a.callId === 'cb1');
+  const argCb2 = relayed.find((a) => a.callId === 'cb2');
+  assert.ok(argCb1);
+  assert.ok(argCb2);
+
+  assert.equal(argCb1.personaBundle, null, 'cb1 DELETE 후 bundle 이 null 이어야 함');
+
+  assert.deepEqual(argCb2.personaBundle, bundleC2, 'cb2 bundle 이 cb1 DELETE 에 영향받음!');
+
+  server.close();
+});
+
 test('personaBundle: DELETE 후 캐시에서 제거됨(재 say 시 null)', async () => {
   const relayed = [];
   const orch = fakeOrch({
