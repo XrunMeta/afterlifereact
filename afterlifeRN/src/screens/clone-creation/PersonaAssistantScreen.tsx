@@ -50,10 +50,9 @@ export default function v_8e5b58() {
           personaTypes: v_f04727.personaTypes,
           notes: v_f04727.personaNotes,
         };
-        const [v_212049, v_af1e64] = await Promise.all([
-          v_61a853(v_2ca7e0!),
-          v_4bf019(v_2ca7e0!, v_727031).catch(() => ({})),
-        ]);
+
+        const v_212049 = await v_61a853(v_2ca7e0!).catch(() => [] as v_c8af29[]);
+        const v_af1e64 = await v_4bf019(v_2ca7e0!, v_727031).catch(() => ({}));
         if (!v_759436) return;
         v_54a43f(v_212049);
         v_0a8beb(v_af1e64);
@@ -68,7 +67,16 @@ export default function v_8e5b58() {
   }, []);
 
   const v_5e2995 = (v_b24339, v_3b402b) =>
-    v_44427b((v_ba2215) => ({ ...v_ba2215, [v_b24339]: v_3b402b }));
+    v_44427b((v_ba2215) => {
+      const v_a448ad = { ...v_ba2215, [v_b24339]: v_3b402b };
+
+      for (const v_ab6401 of v_c3519b) {
+        if (v_ab6401.showWhen && !v_a7e583(v_ab6401, v_a448ad) && v_a448ad[v_ab6401.key] !== undefined) {
+          delete v_a448ad[v_ab6401.key];
+        }
+      }
+      return v_a448ad;
+    });
 
   const v_de6401 = () => {
 
@@ -93,6 +101,11 @@ export default function v_8e5b58() {
       <Text style={v_d81136.hint}>
         후보를 탭하면 답으로 반영돼요. 직접 입력하거나 비워둬도 됩니다.
       </Text>
+      {v_c3519b.length === 0 && (
+        <Text style={v_d81136.hint}>
+          지금은 도우미를 사용할 수 없어요. 다음으로 진행하세요.
+        </Text>
+      )}
       {v_984cf3.map((v_ab6401) => (
         <DynamicQuestion
           key={v_ab6401.key}
