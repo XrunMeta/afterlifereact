@@ -51,3 +51,22 @@ v_2a805f('buildSystemPrompt without l0 still works (backward compat)', () => {
   v_ce93bd.ok(typeof v_8d4337 === 'string' && v_8d4337.length > 0);
   v_ce93bd.ok(v_8d4337.indexOf('다정') >= 0);
 });
+
+v_2a805f('personaToAttrs — 사투리 메타를 tone 문장으로 합성', () => {
+  const v_3555ae = v_ea9c84({
+    tone: '정겨운 말투',
+    dialect_region: '경상도',
+    dialect_intensity: '심함',
+    personality_core: '정 많음',
+  });
+  const v_e34f57 = v_3555ae.find((v_779914) => v_779914.key === 'tone');
+  v_ce93bd.ok(v_e34f57.value.includes('경상도'));
+  v_ce93bd.ok(v_e34f57.value.includes('심함') || v_e34f57.value.includes('심한'));
+
+  v_ce93bd.equal(v_3555ae.find((v_779914) => v_779914.key === 'dialect_region'), undefined);
+});
+
+v_2a805f('personaToAttrs — 사투리 메타 없으면 tone 원문 유지', () => {
+  const v_3555ae = v_ea9c84({ tone: '차분한 말투', personality_core: '조용함' });
+  v_ce93bd.equal(v_3555ae.find((v_779914) => v_779914.key === 'tone').value, '차분한 말투');
+});

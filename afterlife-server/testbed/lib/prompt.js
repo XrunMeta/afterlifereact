@@ -18,8 +18,20 @@ export function v_464116() {
 }
 
 export function v_ea9c84(v_5ed063 = {}) {
+  const v_e2a85c = { ...(v_5ed063 ?? {}) };
+
+  const v_a6c30b = typeof v_e2a85c.dialect_region === 'string' ? v_e2a85c.dialect_region.trim() : '';
+  const v_0b215e = typeof v_e2a85c.dialect_intensity === 'string' ? v_e2a85c.dialect_intensity.trim() : '';
+  if (v_a6c30b) {
+    const v_7ca0e4 = typeof v_e2a85c.tone === 'string' && v_e2a85c.tone.trim() ? v_e2a85c.tone.trim() : '말투';
+    const v_4e30c1 = v_0b215e ? `${v_0b215e} ` : '';
+    v_e2a85c.tone = `${v_4e30c1}${v_a6c30b} 사투리가 섞인 ${v_7ca0e4}`;
+  }
+  delete v_e2a85c.dialect_region;
+  delete v_e2a85c.dialect_intensity;
+
   const v_8d4337 = [];
-  for (const [v_b24339, v_3b402b] of Object.entries(v_5ed063 ?? {})) {
+  for (const [v_b24339, v_3b402b] of Object.entries(v_e2a85c)) {
     if (v_3b402b == null) continue;
     if (typeof v_3b402b !== 'string') continue;
     const v_81e2ef = v_3b402b.trim();
