@@ -551,8 +551,8 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 
 v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB.prepare(
-    "SELECT id, username, name, avatar_url FROM clones WHERE username = 'halbae' AND deleted_at IS NULL",
-  ).all<{ id: number; username: string; name: string; avatar_url: string | null }>();
+    "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
+  ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
   return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
 });
 

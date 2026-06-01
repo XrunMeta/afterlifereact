@@ -23,7 +23,8 @@ v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
-  if (!v_00efe2) throw new v_3ebe58("FORBIDDEN", "No access to this clone for call.");
+
+  if (!v_00efe2 && !v_eb25ce.is_system) throw new v_3ebe58("FORBIDDEN", "No access to this clone for call.");
 
   const v_b6c480 = await v_b60bdd(v_3f4e2e.env.DB);
   const { l1: v_020b4b, l2: v_1af19b } = await v_db508f(v_3f4e2e.env.DB, v_6e0fd3);
@@ -104,6 +105,11 @@ v_20e160.post("/:cloneId/call/:callId/end", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
 
   if (!/^[0-9a-fA-F-]{8,64}$/.test(v_be62d3)) return v_3f4e2e.json({ ok: true });
+
+  const v_d7296e = await v_3f4e2e.env.DB.prepare(
+    "SELECT user_id FROM call_sessions WHERE call_id = ? AND ended_at IS NULL"
+  ).bind(v_be62d3).first<{ user_id: number }>();
+  if (v_d7296e && v_d7296e.user_id !== v_43e90c) return v_3f4e2e.json({ ok: true }); 
 
   const v_3a0669 = Date.now();
   await v_3f4e2e.env.DB.prepare(
