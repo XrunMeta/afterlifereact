@@ -205,34 +205,41 @@ clones.post(
         });
       }
 
-      const companyAddr = c.env.COMPANY_CHARGE_WALLET;
-      if (!companyAddr) {
-        throw new APIError("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
-      }
-      const senderRow = await db
-        .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-        .bind(userId)
-        .first<{ xrun_member_id: number | null }>();
-      if (!senderRow?.xrun_member_id) {
-        throw new APIError("CONFLICT", "xrun 계정이 연동되어 있지 않아요.");
-      }
-      const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
-      const { externalTransferSplit } = await import("../lib/xrun");
-      const payRes = await externalTransferSplit(c.env, {
-        fromMember: senderRow.xrun_member_id,
-        recipients: [{ toAddress: companyAddr, amount: String(PERSONA_PAID_PRICE_XRUN) }],
-        currency,
-        pin: body.pin,
-        source: "afterlife.persona-create",
-      });
-      if (!payRes.ok) {
-        if (payRes.code === 401 || payRes.code === 403) {
-          throw new APIError("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+      const bypassPin = (c.env as unknown as { DEV_PAYMENT_BYPASS_PIN?: string }).DEV_PAYMENT_BYPASS_PIN;
+      if (!bypassPin || body.pin !== bypassPin) {
+
+        const companyAddr = c.env.COMPANY_CHARGE_WALLET;
+        if (!companyAddr) {
+          throw new APIError("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
         }
-        if (payRes.code === 402) {
-          throw new APIError("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
+        const senderRow = await db
+          .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+          .bind(userId)
+          .first<{ xrun_member_id: number | null }>();
+        if (!senderRow?.xrun_member_id) {
+          throw new APIError("CONFLICT", "xrun 계정이 연동되어 있지 않아요.");
         }
-        throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
+        const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
+        const { externalTransferSplit } = await import("../lib/xrun");
+        const payRes = await externalTransferSplit(c.env, {
+          fromMember: senderRow.xrun_member_id,
+          recipients: [{ toAddress: companyAddr, amount: String(PERSONA_PAID_PRICE_XRUN) }],
+          currency,
+          pin: body.pin,
+          source: "afterlife.persona-create",
+        });
+        if (!payRes.ok) {
+          if (payRes.code === 401 || payRes.code === 403) {
+            throw new APIError("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+          }
+          if (payRes.code === 402) {
+            throw new APIError("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
+          }
+          throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
+        }
+      } else {
+
+        console.warn("[DEV_BYPASS] persona payment skipped via bypass PIN, userId=", userId);
       }
     }
 

@@ -238,10 +238,10 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
 
         const forced = q.options_include ?? [];
         const merged = [...new Set([...forced, ...cands])];
-        buttons = merged.length > 0 ? [...merged, '직접 입력', '패스'] : ['직접 입력', '패스'];
+        buttons = merged.length > 0 ? [...merged, '직접 입력', '건너뛰기'] : ['직접 입력', '건너뛰기'];
       }
       if (q.type === 'fixed_choice' && (q.optional !== false)) {
-        buttons = [...buttons, '패스'];
+        buttons = [...buttons, '건너뛰기'];
       }
 
       setPhase(`schema:${idx}`);
@@ -264,12 +264,18 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
   }, []);
 
   const handleRelationSelect = useCallback(
-    async (msgId: string, value: string) => {
+    async (msgId: string, relId: string, displayLabel: string) => {
       if (phase !== 'sys:relation') return;
       markReplied(msgId);
-      pushUser(value);
-      answersRef.current.relation = value;
+      pushUser(displayLabel);
 
+      if (relId === 'other') {
+        setPhase('sys:relation-custom');
+        await pushAi('어떤 관계인지 직접 알려주세요!', undefined, 300);
+        return;
+      }
+
+      answersRef.current.relation = relId;
       await pushAi(SYS_ACK.relation, undefined, 400);
 
       const qs = await loadSchema();
@@ -285,9 +291,9 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
       if (currentVisibleIdx === null) return;
       markReplied(msgId);
 
-      if (value === '패스') {
+      if (value === '건너뛰기') {
 
-        pushUser('(패스)');
+        pushUser('(건너뛰기)');
 
         const next = { ...answersRef.current.schemaAnswers };
         delete next[q.key];
@@ -396,6 +402,19 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
       return;
     }
 
+    if (phase === 'sys:relation-custom') {
+      if (!text) return;
+      pushUser(text);
+      answersRef.current.relation = text;
+      setInput('');
+      await pushAi(SYS_ACK.relation, undefined, 400);
+      const qs = await loadSchema();
+      const loaded = qs ?? [];
+      setQuestions(loaded);
+      await askSchemaQuestion(0, loaded);
+      return;
+    }
+
     if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
       if (!text) return;
       const visible = questions.filter((q) =>
@@ -429,12 +448,14 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
     setCreationDraft,
     t,
     askSchemaQuestion,
+    loadSchema,
   ]);
 
   const showInput = (() => {
     if (phase === 'sys:name') return true;
     if (phase === 'sys:username') return true;
     if (phase === 'sys:relation') return false; 
+    if (phase === 'sys:relation-custom') return true; 
     if (!phase.startsWith('schema:') || currentVisibleIdx === null) return false;
     const visible = questions.filter((q) =>
       isVisible(q, answersRef.current.schemaAnswers),
@@ -448,6 +469,7 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
   const inputPlaceholder = (() => {
     if (phase === 'sys:name') return SYS_PLACEHOLDERS.name;
     if (phase === 'sys:username') return SYS_PLACEHOLDERS.username;
+    if (phase === 'sys:relation-custom') return '예: 할아버지, 은사님, 동료...';
     if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
       const visible = questions.filter((q) =>
         isVisible(q, answersRef.current.schemaAnswers),
@@ -473,6 +495,7 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
   const canSend = (() => {
     if (phase === 'sys:username') return !checkingUsername; 
     if (phase === 'sys:name') return input.trim().length > 0;
+    if (phase === 'sys:relation-custom') return input.trim().length > 0;
     if (phase.startsWith('schema:')) return input.trim().length > 0;
     return false;
   })();
@@ -550,7 +573,7 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
                           if (phase === 'sys:relation') {
 
                             const rel = MEMLOW_RELATIONS.find((r) => t(r.label) === qr);
-                            await handleRelationSelect(m.id, rel ? rel.id : qr);
+                            await handleRelationSelect(m.id, rel ? rel.id : qr, qr);
                           } else if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
                             const visible = questions.filter((q) =>
                               isVisible(q, answersRef.current.schemaAnswers),
@@ -599,6 +622,12 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
               placeholderTextColor={COLORS.zinc400}
               multiline={isMultiline}
               maxLength={isMultiline ? 500 : 40}
+
+              autoCapitalize={phase === 'sys:username' ? 'none' : 'sentences'}
+              autoCorrect={phase !== 'sys:username'}
+              autoComplete={phase === 'sys:username' ? 'off' : undefined}
+              keyboardType={phase === 'sys:username' ? 'visible-password' : 'default'}
+              textContentType={phase === 'sys:username' ? 'none' : undefined}
               editable={!isDone && !checkingUsername}
               returnKeyType={isMultiline ? 'default' : 'send'}
               onSubmitEditing={isMultiline ? undefined : submit}
