@@ -23,6 +23,7 @@ import {
 import { v_7a6fc0 } from "../lib/xrun";
 import { v_c226a5, v_80a022 } from "../lib/notify";
 import { v_0b44ec } from "../lib/personaQuestions";
+import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -135,6 +136,9 @@ const v_722b6d = v_1f4ea7.object({
   ).optional(),
 
   relation: v_1f4ea7.string().max(40).optional(),
+
+  idle_video_job_id: v_1f4ea7.string().uuid().optional(),
+  voice_clone_job_id: v_1f4ea7.string().uuid().optional(),
 });
 
 const v_c02c4c = 100;
@@ -241,6 +245,14 @@ v_f891e6.post(
 
         console.warn("[DEV_BYPASS] persona payment skipped via bypass PIN, userId=", v_43e90c);
       }
+    }
+
+    if (v_4d33b2.voice_preset_id) {
+      const v_f653fc = await v_a1651b
+        .prepare(`SELECT id FROM voice_presets WHERE id = ? AND is_active = 1`)
+        .bind(v_4d33b2.voice_preset_id)
+        .first<{ id: number }>();
+      if (!v_f653fc) throw new v_3ebe58("VALIDATION_FAILED", "Invalid or inactive voice_preset_id.");
     }
 
     const v_8e49c9 = v_4d33b2.voice_preset_id ? "preset" : "text_only";
@@ -367,6 +379,32 @@ v_f891e6.post(
 
       await v_a1651b.prepare(`DELETE FROM clones WHERE id = ?`).bind(v_6e0fd3).run();
       throw v_49263d;
+    }
+
+    for (const [v_04211c, v_c8b83f] of [
+      [v_4d33b2.idle_video_job_id, "idle_video_url"],
+      [v_4d33b2.voice_clone_job_id, "voice_se_url"],
+    ] as [string | undefined, string][]) {
+      if (!v_04211c) continue;
+      const v_d5ec97 = await v_4b949c(v_3f4e2e.env.DB, v_04211c);
+      if (!v_d5ec97 || v_d5ec97.user_id !== v_43e90c) continue; 
+      if (v_d5ec97.status === "done" && v_d5ec97.out_url) {
+
+        await v_3f4e2e.env.DB.prepare(`UPDATE clones SET ${v_c8b83f} = ? WHERE id = ?`)
+          .bind(v_d5ec97.out_url, v_6e0fd3)
+          .run();
+      } else {
+
+        await v_f64843(v_3f4e2e.env.DB, v_04211c, v_6e0fd3);
+        const v_f7a7f7 = await v_4b949c(v_3f4e2e.env.DB, v_04211c);
+        if (v_f7a7f7?.status === "done" && v_f7a7f7.out_url) {
+
+          await v_3f4e2e.env.DB.prepare(`UPDATE clones SET ${v_c8b83f} = ? WHERE id = ?`)
+            .bind(v_f7a7f7.out_url, v_6e0fd3)
+            .run();
+        }
+
+      }
     }
 
     if (v_4d33b2.clone_type === "memlow") {
@@ -594,6 +632,41 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
   });
 });
 
+v_f891e6.get("/voices", v_6690d9, async (v_3f4e2e) => {
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, gender, age_range, description, sort_order
+       FROM voice_presets WHERE is_active = 1 ORDER BY sort_order ASC, id ASC`,
+    )
+    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number }>();
+  const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+  const v_53e1f3 = (v_18b8bf.results ?? []).map((v_cb35cb) => ({
+    id: v_cb35cb.id,
+    name: v_cb35cb.name,
+    gender: v_cb35cb.gender,
+    ageRange: v_cb35cb.age_range,
+    description: v_cb35cb.description,
+    sortOrder: v_cb35cb.sort_order,
+    sampleUrl: `${v_f17108}/oth-path${v_cb35cb.id}/sample`,
+  }));
+  return v_3f4e2e.json({ voices: v_53e1f3 });
+});
+
+v_f891e6.get("/voices/:id/sample", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid voice id.");
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT r2_key FROM voice_presets WHERE id = ? AND is_active = 1`)
+    .bind(v_389afb)
+    .first<{ r2_key: string | null }>();
+  if (!v_3ac7e7?.r2_key) throw new v_3ebe58("NOT_FOUND", "Voice sample not found.");
+  const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_3ac7e7.r2_key);
+  if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", "Object missing in storage.");
+  return new Response(v_8839e3.body, {
+    headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=86400" },
+  });
+});
+
 v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB.prepare(
     "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
@@ -678,6 +751,63 @@ v_f891e6.post("/intro-suggest", v_6690d9, async (v_3f4e2e) => {
 
     return v_3f4e2e.json({ intro: "" });
   }
+});
+
+v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_479f05 = await v_3f4e2e.req.json<{ kind?: string; src_file_id?: number }>().catch(() => null);
+  const v_94302c = v_479f05?.kind;
+  const v_2fa661 = v_479f05?.src_file_id;
+  if (v_94302c !== "idle_video" && v_94302c !== "voice_clone") {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid kind. Must be idle_video or voice_clone.");
+  }
+  if (!v_2fa661 || !Number.isInteger(v_2fa661)) {
+    throw new v_3ebe58("VALIDATION_FAILED", "src_file_id required.");
+  }
+  const v_4de33e = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, r2_key, owner_user_id FROM files WHERE id = ?`)
+    .bind(v_2fa661)
+    .first<{ id: number; r2_key: string; owner_user_id: number }>();
+  if (!v_4de33e || v_4de33e.owner_user_id !== v_43e90c) {
+    throw new v_3ebe58("NOT_FOUND", "Source file not found.");
+  }
+  const v_04211c = crypto.randomUUID();
+
+  const v_59b4e0 = await v_041f8e(v_3f4e2e.env.DB, v_04211c, v_43e90c, v_94302c, v_2fa661);
+
+  if (v_3f4e2e.env.ORCHESTRATOR_URL && v_3f4e2e.env.ORCH_SECRET) {
+    const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+    const v_0ad77a = `${v_f17108}/oth-path${v_4de33e.id}`;
+
+    v_3f4e2e.executionCtx.waitUntil(
+      fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}`,
+        },
+        body: JSON.stringify({ job_id: v_04211c, kind: v_94302c, src_url: v_0ad77a, callback_token: v_59b4e0 }),
+        signal: AbortSignal.timeout(8000),
+      })
+
+        .then((v_8f00b9) => v_5193f8(v_3f4e2e.env.DB, v_04211c, v_8f00b9.ok ? "running" : "failed"))
+        .catch(() => v_5193f8(v_3f4e2e.env.DB, v_04211c, "failed")),
+    );
+  }
+  return v_3f4e2e.json({ job_id: v_04211c, status: "pending" }, 201);
+});
+
+v_f891e6.get("/asset-job/:id", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_d5ec97 = await v_4b949c(v_3f4e2e.env.DB, v_3f4e2e.req.param("id"));
+  if (!v_d5ec97 || v_d5ec97.user_id !== v_43e90c) throw new v_3ebe58("NOT_FOUND", "Job not found.");
+  return v_3f4e2e.json({
+    job_id: v_d5ec97.id,
+    kind: v_d5ec97.kind,
+    status: v_d5ec97.status,
+    out_url: v_d5ec97.out_url,
+    error: v_d5ec97.error,
+  });
 });
 
 v_f891e6.get("/:id", async (v_3f4e2e) => {
@@ -854,6 +984,14 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
     v_f73a2d.push("visibility");
   }
   if (v_4d33b2.voice_preset_id !== undefined) {
+
+    if (v_4d33b2.voice_preset_id !== null) {
+      const v_f653fc = await v_a1651b
+        .prepare(`SELECT id FROM voice_presets WHERE id = ? AND is_active = 1`)
+        .bind(v_4d33b2.voice_preset_id)
+        .first<{ id: number }>();
+      if (!v_f653fc) throw new v_3ebe58("VALIDATION_FAILED", "Invalid or inactive voice_preset_id.");
+    }
     v_75ae3e.push(`voice_preset_id = ?`, `voice_type = ?`);
     v_925171.push(v_4d33b2.voice_preset_id);
     v_925171.push(v_4d33b2.voice_preset_id === null ? "text_only" : "preset");

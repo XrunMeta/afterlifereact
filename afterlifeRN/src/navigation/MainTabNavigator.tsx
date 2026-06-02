@@ -15,7 +15,6 @@ import v_def15b from "../screens/clones/MyClonesDashboardScreen";
 import v_51ae06 from "../screens/clones/CloneDetailScreen";
 import v_541fbd from "../screens/clones/CloneEditScreen";
 import v_07335f from "../screens/clones/CloneInviteScreen";
-import v_84d7a5 from "../screens/clone-creation/Step1CloneTypeScreen";
 
 import v_8e5b58 from "../screens/clone-creation/PersonaAssistantScreen";
 import v_3d9025 from "../screens/clone-creation/Step3ImageUploadScreen";
@@ -65,12 +64,12 @@ function v_31fee5() {
     }
   }, []);
   return (
+
     <CreateStack.Navigator screenOptions={{ headerShown: false }}>
-      <CreateStack.Screen name="Step1" component={v_84d7a5} />
-      {}
-      <CreateStack.Screen name="PersonaAssistant" component={v_8e5b58} />
       <CreateStack.Screen name="Step3" component={v_3d9025} />
       <CreateStack.Screen name="Step4" component={v_710783} />
+      {}
+      <CreateStack.Screen name="PersonaAssistant" component={v_8e5b58} />
       <CreateStack.Screen name="Step5" component={v_f275b6} />
       <CreateStack.Screen name="Step7" component={v_448ad1} />
       <CreateStack.Screen name="Step8" component={v_d19b01} />
@@ -180,8 +179,8 @@ export default function v_19ba0e() {
                     state: {
                       routes: [
                         {
-                          name: "PersonaAssistant" as const,
-                          key: `PersonaAssistant-${Date.now()}`,
+                          name: "Step3" as const,
+                          key: `Step3-${Date.now()}`,
                         },
                       ],
                       index: 0,

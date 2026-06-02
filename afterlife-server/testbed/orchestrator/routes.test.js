@@ -4,10 +4,11 @@ import v_96bb47 from 'cyfkmrv';
 import v_00cd2e from 'owqxojxvg';
 import { v_306c75 } from './routes.js';
 
-function v_0b4d00(v_38a552, v_43fd42, v_2644c4) {
+function v_0b4d00(v_38a552, v_43fd42, v_2644c4, v_6f63a7) {
   const v_466992 = v_96bb47();
   v_466992.use(v_96bb47.json());
-  v_466992.use(v_306c75(v_38a552, { secret: v_43fd42, deps: v_2644c4 ? { sayDeps: v_2644c4 } : undefined }));
+  const v_84b93d = { ...(v_2644c4 ? { sayDeps: v_2644c4 } : {}), ...(v_6f63a7 ?? {}) };
+  v_466992.use(v_306c75(v_38a552, { secret: v_43fd42, deps: Object.keys(v_84b93d).length ? v_84b93d : undefined }));
   return new Promise((v_6f7712) => {
     const v_88781f = v_466992.listen(0, '127.0.0.1', () => v_6f7712({ server: v_88781f, base: `http://127.0.0.1:${v_88781f.address().port}` }));
   });
@@ -376,6 +377,83 @@ v_2a805f('동시 callId: DELETE 후 해당 callId bundle 만 소거됨(다른 ca
 
   v_ce93bd.deepEqual(v_d0c72d.personaBundle, v_ae4335, 'cb2 bundle 이 cb1 DELETE 에 영향받음!');
 
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — bearer 없으면 401', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ job_id: 'j1', kind: 'idle_video', src_url: 'https://x.com/oth-path', callback_token: 't' }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 401);
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — 유효 바디 → 202 + enqueue 호출', async () => {
+  const v_48cb8e = [];
+  const v_436905 = {
+    enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); },
+    _size: () => v_48cb8e.length,
+    _running: () => false,
+  };
+
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { assetJobRunner: v_436905 });
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'job_ok',
+      kind: 'idle_video',
+      src_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok1',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 202);
+  const v_b75e36 = await v_cb35cb.json();
+  v_ce93bd.equal(v_b75e36.accepted, true);
+  v_ce93bd.equal(v_48cb8e.length, 1);
+  v_ce93bd.equal(v_48cb8e[0].job_id, 'job_ok');
+  v_ce93bd.equal(v_48cb8e[0].kind, 'idle_video');
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — voice_clone kind 허용', async () => {
+  const v_48cb8e = [];
+  const v_436905 = { enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); } };
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { assetJobRunner: v_436905 });
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ job_id: 'j2', kind: 'voice_clone', src_url: 'https://oth-path.example.com/oth-path', callback_token: 'tk2' }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 202);
+  v_ce93bd.equal(v_48cb8e[0].kind, 'voice_clone');
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — kind 오류 → 400', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ job_id: 'j3', kind: 'unknown_kind', src_url: 'https://x.com/oth-path', callback_token: 't' }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 400);
+  const v_b75e36 = await v_cb35cb.json();
+  v_ce93bd.equal(v_b75e36.error, 'bad_request');
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — 필드 누락 → 400', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ job_id: 'j4', kind: 'idle_video' }), 
+  });
+  v_ce93bd.equal(v_cb35cb.status, 400);
   v_88781f.close();
 });
 

@@ -4,6 +4,7 @@ import { v_458d35 } from './sayStore.js';
 import { v_3a60ca as v_8e7d64 } from './chatRelay.js';
 import { v_228e13 } from '../lib/personaSuggest.js';
 import { v_541b14 } from '../lib/introSuggest.js';
+import { v_47bade } from './assetJobRunner.js';
 
 const v_b74136 = (v_f31c63) => `http://127.0.0.1:${v_f31c63}`;
 
@@ -57,6 +58,8 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
   const v_85cf8d = new Map(); 
   const v_3a60ca = v_84b93d?.sayDeps?.runChatRelay ?? v_8e7d64;
 
+  const v_4fa62b = v_84b93d?.assetJobRunner ?? v_47bade({ apiBaseUrl: v_01dcf5.apiBaseUrl ?? '' });
+
   function v_99be57(v_309144, v_8f00b9, v_a448ad) {
     if (!v_43fd42 || !v_f2ad63(v_183879(v_309144), v_43fd42)) return v_8f00b9.status(401).json({ error: 'unauthorized' });
     v_a448ad();
@@ -109,6 +112,20 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
     } catch {
       v_8f00b9.status(500).json({ error: 'intro_failed' });
     }
+  });
+
+  v_904d46.post('/oth-path', v_99be57, async (v_309144, v_8f00b9) => {
+    const { job_id: v_b0d200, kind: v_94302c, src_url: v_b0c618, callback_token: v_85f723 } = v_309144.body ?? {};
+    if (
+      !v_b0d200 ||
+      (v_94302c !== 'idle_video' && v_94302c !== 'voice_clone') ||
+      !v_b0c618 ||
+      !v_85f723
+    ) {
+      return v_8f00b9.status(400).json({ error: 'bad_request' });
+    }
+    v_4fa62b.enqueue({ job_id: v_b0d200, kind: v_94302c, src_url: v_b0c618, callback_token: v_85f723 });
+    v_8f00b9.status(202).json({ accepted: true });
   });
 
   v_904d46.post('/oth-path', v_99be57, async (v_309144, v_8f00b9) => {

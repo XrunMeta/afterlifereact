@@ -27,7 +27,7 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
-import { v_39eaf5, v_b55477, v_5e388b, v_b4f9f6 } from "../../api/clones";
+import { v_39eaf5, v_b55477, v_5e388b, v_b4f9f6, v_b20cba, type v_e5d62a } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
@@ -77,6 +77,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const v_6de415 = v_e662ae<string | undefined>(undefined);
 
+  const [v_7f3fda, v_3773cd] = v_5ab095<v_e5d62a | null>(null);
+  const v_835261 = v_e662ae<ReturnType<typeof setInterval> | null>(null);
+
   const [v_6044a8, v_1d6b6a] = v_5ab095(v_f04727.description ?? "");
 
   const v_d9bc63 = v_e662ae(false);
@@ -87,6 +90,38 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     }
 
   }, [v_f04727.description]);
+
+  v_c4deb2(() => {
+    const v_04211c = v_f04727.idleVideoJobId;
+    if (!v_04211c || !v_2ca7e0) return;
+    let v_759436 = true;
+    const v_16badd = async () => {
+      try {
+        const v_d5ec97 = await v_b20cba(v_2ca7e0, v_04211c);
+        if (!v_759436) return;
+        v_3773cd(v_d5ec97);
+        if (v_d5ec97.status === 'done' || v_d5ec97.status === 'failed') {
+          if (v_835261.current) {
+            clearInterval(v_835261.current);
+            v_835261.current = null;
+          }
+        }
+      } catch (v_9e86fd) {
+        console.warn('[Step7] idle job poll error:', v_9e86fd);
+      }
+    };
+    void v_16badd();
+    v_835261.current = setInterval(v_16badd, 4000);
+    return () => {
+      v_759436 = false;
+      if (v_835261.current) {
+        clearInterval(v_835261.current);
+        v_835261.current = null;
+      }
+    };
+
+  }, [v_f04727.idleVideoJobId, v_2ca7e0]);
+
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
   const v_140aea = v_de06a3(
@@ -129,7 +164,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
       const v_60d170 = v_f04727.personaAnswers ?? {};
 
-      let v_bf6b43 = v_6de415.current;
+      let v_bf6b43 = v_6de415.current ?? v_f04727.avatarUrl;
       if (!v_bf6b43 && v_f04727.imageFile) {
         try {
           const v_40a923 = v_f04727.imageFile.split(".").pop()?.toLowerCase() ?? "";
@@ -146,6 +181,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           });
           v_bf6b43 = v_57ac81.url;
           v_6de415.current = v_bf6b43;
+
+          v_194498.getState().setCreationDraft({ avatarUrl: v_57ac81.url });
           console.log("[CLONE-CREATE] avatar uploaded:", v_bf6b43);
         } catch (v_9b4b36) {
           console.warn("[CLONE-CREATE] avatar upload failed:", v_9b4b36);
@@ -165,6 +202,13 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         hasAvatar: !!v_bf6b43,
         hasPin: !!v_6bee94,
       });
+
+      const v_85010a = v_f04727.voiceCloneJobId
+        ? { voice_clone_job_id: v_f04727.voiceCloneJobId }
+        : v_f04727.voicePresetId
+        ? { voice_preset_id: v_f04727.voicePresetId }
+        : {};
+
       const v_8f00b9 = await v_39eaf5(v_2ca7e0, {
         clone_type: v_285e72,
         name: v_f04727.name ?? "Untitled",
@@ -179,6 +223,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
         ...(v_f04727.relation ? { relation: v_f04727.relation } : {}),
         ...(v_bf6b43 ? { avatar_url: v_bf6b43 } : {}),
+        ...v_85010a,
+
+        ...(v_f04727.idleVideoJobId ? { idle_video_job_id: v_f04727.idleVideoJobId } : {}),
         ...(v_6bee94 ? { pin: v_6bee94 } : {}),
       });
       console.log("[CLONE-CREATE] success:", v_8f00b9);
@@ -450,8 +497,42 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             </View>
           </View>
 
-          {}
-          {v_f04727.imageFile ? (
+          {
+}
+          {v_7f3fda?.status === 'done' && v_7f3fda.out_url ? (
+
+            <View style={v_d81136.previewBox}>
+              <Image source={{ uri: v_f04727.imageFile ?? v_7f3fda.out_url }} style={v_472849.absoluteFillObject} resizeMode="cover" />
+              <View style={v_d81136.videoBadge}>
+                <Text style={v_d81136.videoBadgeText}>영상 준비 완료</Text>
+              </View>
+            </View>
+          ) : v_7f3fda?.status === 'failed' ? (
+
+            <TouchableOpacity
+              style={v_d81136.previewBox}
+              onPress={() => v_c65f5d.navigate('Step3')}
+              activeOpacity={0.8}
+            >
+              {v_f04727.imageFile && (
+                <Image source={{ uri: v_f04727.imageFile }} style={v_472849.absoluteFillObject} resizeMode="cover" />
+              )}
+              <View style={[v_d81136.videoBadge, v_d81136.videoBadgeFailed]}>
+                <Text style={v_d81136.videoBadgeText}>영상 생성 실패 — 사진 다시 올리기</Text>
+              </View>
+            </TouchableOpacity>
+          ) : v_f04727.idleVideoJobId && (!v_7f3fda || v_7f3fda.status === 'pending' || v_7f3fda.status === 'running') ? (
+
+            <View style={v_d81136.previewBox}>
+              {v_f04727.imageFile && (
+                <Image source={{ uri: v_f04727.imageFile }} style={v_472849.absoluteFillObject} resizeMode="cover" />
+              )}
+              <View style={[v_d81136.videoBadge, v_d81136.videoBadgePending]}>
+                <ActivityIndicator size="small" color={v_1bfbd0.white} style={{ marginRight: 6 }} />
+                <Text style={v_d81136.videoBadgeText}>영상 준비 중</Text>
+              </View>
+            </View>
+          ) : v_f04727.imageFile ? (
             <Image source={{ uri: v_f04727.imageFile }} style={v_d81136.previewBox} resizeMode="cover" />
           ) : (
             <View style={v_d81136.previewBox}>
@@ -680,6 +761,29 @@ const v_d81136 = v_472849.create({
     fontSize: 14,
     color: v_1bfbd0.zinc500,
     textAlign: "center",
+  },
+
+  videoBadge: {
+    position: "absolute",
+    bottom: 10,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: v_1bfbd0.violet600,
+  },
+  videoBadgePending: {
+    backgroundColor: "rgba(124,58,237,0.85)",
+  },
+  videoBadgeFailed: {
+    backgroundColor: "rgba(239,68,68,0.9)",
+  },
+  videoBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: v_1bfbd0.white,
   },
 
   captionInput: {

@@ -418,7 +418,7 @@ export default function v_c316d8() {
               v_f4c991.dispatch(
                 v_650cfa.navigate({
                   name: "CreateTab",
-                  params: { screen: "PersonaAssistant" },
+                  params: { screen: "Step3" },
                 }),
               )
             }

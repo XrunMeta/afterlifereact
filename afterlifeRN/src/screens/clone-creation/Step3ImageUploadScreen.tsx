@@ -12,6 +12,9 @@ import { v_194498 } from '../../stores/cloneStore';
 import v_922cea from './content/MemlowImageUpload';
 import v_a6e1ad from './content/DefaultImageUpload';
 import { v_1bfbd0, v_9b1a04 } from '../../components/constants';
+import { v_7d2692 } from '../../api/files';
+import { v_ab4719 } from '../../api/clones';
+import { v_1ed7d9 } from '../../stores/authStore';
 
 type Props = { navigation: v_390fcc<v_2b51a5, 'Step3'> };
 
@@ -19,10 +22,60 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_f04727 = v_194498(v_fd5f43 => v_fd5f43.creationDraft);
   const v_5795de = v_194498(v_fd5f43 => v_fd5f43.setCreationDraft);
+  const v_2ca7e0 = v_1ed7d9(v_fd5f43 => v_fd5f43.accessToken);
   const [v_555f2e, v_4eb0c7] = v_5ab095(true);
+  const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const v_b94c69 = v_f04727.cloneType === 'memlow' ? v_922cea : v_a6e1ad;
   const v_04fddf = v_b94c69.validate(v_f04727);
+
+  const v_420661 = async () => {
+    if (v_cb66b4) return;
+
+    if (v_f04727.avatarFileId) {
+      v_c65f5d.navigate('Step4');
+      return;
+    }
+    if (!v_f04727.imageFile || !v_2ca7e0) {
+      v_c65f5d.navigate('Step4');
+      return;
+    }
+    v_ee9ec1(true);
+    try {
+      const v_40a923 = v_f04727.imageFile.split('.').pop()?.toLowerCase() ?? '';
+      const v_b66751 =
+        v_40a923 === 'png' ? 'image/png'
+        : v_40a923 === 'webp' ? 'image/webp'
+        : 'image/jpeg';
+      const v_57ac81 = await v_7d2692(v_2ca7e0, v_f04727.imageFile, {
+        purpose: 'clone_avatar',
+        mimeType: v_b66751,
+        fileName: `avatar.${v_40a923 || 'jpg'}`,
+      });
+
+      let v_04211c;
+      try {
+        const v_94abbb = await v_ab4719(v_2ca7e0, {
+          kind: 'idle_video',
+          src_file_id: v_57ac81.id,
+        });
+        v_04211c = v_94abbb.job_id;
+        console.log('[Step3] idle_video job created:', v_04211c);
+      } catch (v_b5cdf2) {
+        console.warn('[Step3] idle_video job failed (ignored):', v_b5cdf2);
+      }
+      v_5795de({
+        avatarFileId: v_57ac81.id,
+        avatarUrl: v_57ac81.url,
+        ...(v_04211c ? { idleVideoJobId: v_04211c } : {}),
+      });
+    } catch (v_9b4b36) {
+      console.warn('[Step3] avatar upload failed (ignored):', v_9b4b36);
+    } finally {
+      v_ee9ec1(false);
+      v_c65f5d.navigate('Step4');
+    }
+  };
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
@@ -40,9 +93,9 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
       </SafeScrollView>
       <View style={v_d81136.bottomBar}>
         <Button
-          title={v_8d41d7("create.next")}
-          onPress={() => v_c65f5d.navigate('Step4')}
-          disabled={!v_04fddf}
+          title={v_cb66b4 ? '잠시만요...' : v_8d41d7("create.next")}
+          onPress={v_420661}
+          disabled={!v_04fddf || v_cb66b4}
         />
       </View>
     </SafeView>

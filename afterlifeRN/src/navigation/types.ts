@@ -80,11 +80,10 @@ export type ShareStackParamList = {
 };
 
 export type CreateStackParamList = {
-  Step1: undefined;
 
-  PersonaAssistant: undefined;
   Step3: undefined;
   Step4: undefined;
+  PersonaAssistant: undefined;
   Step5: undefined;
   Step7: undefined;
   Step8: { cloneId: number };

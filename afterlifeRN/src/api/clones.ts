@@ -29,6 +29,9 @@ export interface CreateClonePayload {
 
   relation?: string;
 
+  idle_video_job_id?: string;
+  voice_clone_job_id?: string;
+
   pin?: string;
 }
 
@@ -137,6 +140,23 @@ export async function v_4bf019(
   }
 }
 
+export interface CatalogVoice {
+  id: number;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  sampleUrl: string;
+}
+
+export async function v_3ee8c0(v_2ca7e0): Promise<CatalogVoice[]> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
+    headers: { Authorization: `Bearer ${v_2ca7e0}` },
+  });
+  if (!v_8f00b9.ok) throw new Error(`getVoices ${v_8f00b9.status}`);
+  const v_4d33b2 = (await v_8f00b9.json()) as { voices: CatalogVoice[] };
+  return v_4d33b2.voices;
+}
+
 export async function v_be66ca(
   v_2ca7e0,
   v_727031,
@@ -192,6 +212,40 @@ export async function v_39eaf5(
     );
   }
   return v_8decf8 as CreateCloneResponse;
+}
+
+export type AssetJobKind = 'idle_video' | 'voice_clone';
+export type AssetJobStatus = 'pending' | 'running' | 'done' | 'failed';
+
+export interface AssetJob {
+  job_id: string;
+  kind: AssetJobKind;
+  status: AssetJobStatus;
+  out_url?: string | null;
+  error?: string | null;
+}
+
+export async function v_ab4719(
+  v_2ca7e0,
+  v_931bf0,
+): Promise<{ job_id: string }> {
+  return v_04b58a<{ job_id: string }>(
+    '/oth-path',
+    v_2ca7e0,
+    { method: 'POST', body: JSON.stringify(v_931bf0) },
+    v_7f4dc3(),
+  );
+}
+
+export async function v_b20cba(
+  v_2ca7e0,
+  v_04211c,
+): Promise<AssetJob> {
+  return v_04b58a<AssetJob>(
+    `/oth-path${encodeURIComponent(v_04211c)}`,
+    v_2ca7e0,
+    { method: 'GET' },
+  );
 }
 
 export interface PendingInvite {

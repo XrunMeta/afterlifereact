@@ -233,7 +233,8 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
               })
               .catch(() => {});
           }
-          v_c65f5d.navigate('Step3');
+
+          v_c65f5d.navigate('Step5');
         }, 800);
         return;
       }

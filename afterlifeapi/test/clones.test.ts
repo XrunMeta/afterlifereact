@@ -185,3 +185,66 @@ v_469bf2("clones search route — stats 객체 통일", () => {
     v_4d37e3((v_8c0b26 as unknown as { followersCount?: number }).followersCount).toBeUndefined();
   });
 });
+
+v_469bf2("PATCH /oth-path — voice_preset_id 활성 검증 (L-1)", () => {
+  v_ba7107(async () => {
+    if (!(await v_2e4ad6())) {
+      throw new Error("D1 migrations not applied.");
+    }
+  });
+
+  v_23805a("비활성(is_active=0) voice_preset_id로 PATCH → 422 VALIDATION_FAILED", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("patch-voice-l1@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "patch_voice_l1", "public");
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    await v_a1651b
+      .prepare(
+        `INSERT INTO voice_presets (name, sort_order, is_active)
+         VALUES ('비활성음색', 99, 0)`,
+      )
+      .run();
+    const v_f653fc = await v_a1651b
+      .prepare("SELECT id FROM voice_presets WHERE name = '비활성음색' AND is_active = 0 LIMIT 1")
+      .first<{ id: number }>();
+    const v_dbb7c9 = v_f653fc!.id;
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ voice_preset_id: v_dbb7c9 }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(422);
+    const v_4d33b2 = await v_8f00b9.json<{ error: { code: string } }>();
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  v_23805a("존재하지 않는 voice_preset_id로 PATCH → 422 VALIDATION_FAILED", async () => {
+    const v_1badb6 = await v_bfb240("patch-voice-l1-notfound@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "patch_voice_l1_nf", "public");
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ voice_preset_id: 9999999 }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(422);
+    const v_4d33b2 = await v_8f00b9.json<{ error: { code: string } }>();
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  v_23805a("null로 PATCH (음성 제거) → 200 허용", async () => {
+    const v_1badb6 = await v_bfb240("patch-voice-l1-null@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "patch_voice_l1_null", "public");
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${v_21cc31}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ voice_preset_id: null }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+  });
+});

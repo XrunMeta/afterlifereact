@@ -80,4 +80,12 @@ export interface CloneCreationDraft {
   pin?: string;
 
   personaAnswers?: Record<string, string>;
+
+  voicePresetId?: number;
+
+  idleVideoJobId?: string;
+  voiceCloneJobId?: string;
+
+  avatarFileId?: number;
+  avatarUrl?: string;
 }

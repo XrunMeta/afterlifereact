@@ -325,3 +325,96 @@ v_b7f2b4.put("/persona-questions", v_b09138, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+v_b7f2b4.get("/voices", v_c0a297, async (v_3f4e2e) => {
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, gender, age_range, description, sort_order, is_active, r2_key, se_key
+       FROM voice_presets ORDER BY sort_order ASC, id ASC`,
+    )
+    .all();
+  return v_3f4e2e.json({ voices: v_18b8bf.results ?? [] });
+});
+
+const v_49b1e6 = v_1f4ea7.object({
+  name: v_1f4ea7.string().min(1).max(80),
+  gender: v_1f4ea7.string().max(40).optional(),
+  age_range: v_1f4ea7.string().max(40).optional(),
+  description: v_1f4ea7.string().max(500).optional(),
+  sort_order: v_1f4ea7.number().int().optional(),
+  is_active: v_1f4ea7.union([v_1f4ea7.literal(0), v_1f4ea7.literal(1)]).optional(),
+  r2_key: v_1f4ea7.string().max(500).optional(),
+  se_key: v_1f4ea7.string().max(500).optional(),
+});
+
+const v_a12944 = v_1f4ea7.object({
+  name: v_1f4ea7.string().min(1).max(80).optional(),
+  gender: v_1f4ea7.string().max(40).optional(),
+  age_range: v_1f4ea7.string().max(40).optional(),
+  description: v_1f4ea7.string().max(500).optional(),
+  sort_order: v_1f4ea7.number().int().optional(),
+  is_active: v_1f4ea7.union([v_1f4ea7.literal(0), v_1f4ea7.literal(1)]).optional(),
+  r2_key: v_1f4ea7.string().max(500).optional(),
+  se_key: v_1f4ea7.string().max(500).optional(),
+});
+
+function v_5e92ec(v_e6b88d): void {
+  if (v_e6b88d !== undefined && !v_e6b88d.startsWith("voice/")) {
+    throw new v_3ebe58("VALIDATION_FAILED", "r2_key must start with 'voice/'.");
+  }
+}
+
+v_b7f2b4.post("/voices", v_b09138, async (v_3f4e2e) => {
+  const v_148ff6 = await v_4c95c2(v_3f4e2e, v_49b1e6);
+  v_5e92ec(v_148ff6.r2_key);
+  const v_43af15 = await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO voice_presets (name, gender, age_range, description, sort_order, is_active, r2_key, se_key)
+       VALUES (?,?,?,?,?,?,?,?) RETURNING id`,
+    )
+    .bind(
+      v_148ff6.name,
+      v_148ff6.gender ?? null,
+      v_148ff6.age_range ?? null,
+      v_148ff6.description ?? null,
+      v_148ff6.sort_order ?? 100,
+      v_148ff6.is_active ?? 1,
+      v_148ff6.r2_key ?? null,
+      v_148ff6.se_key ?? null,
+    )
+    .first<{ id: number }>();
+  return v_3f4e2e.json({ id: v_43af15!.id }, 201);
+});
+
+v_b7f2b4.put("/voices/:id", v_b09138, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_148ff6 = await v_4c95c2(v_3f4e2e, v_a12944);
+  v_5e92ec(v_148ff6.r2_key);
+  const v_712957 = [];
+  const v_925171 = [];
+  const mapping: Array<[keyof typeof v_148ff6, string]> = [
+    ["name", "name"],
+    ["gender", "gender"],
+    ["age_range", "age_range"],
+    ["description", "description"],
+    ["sort_order", "sort_order"],
+    ["is_active", "is_active"],
+    ["r2_key", "r2_key"],
+    ["se_key", "se_key"],
+  ];
+  for (const [v_0eb677, v_c8b83f] of v_b3439a) {
+    if (v_148ff6[v_0eb677] !== undefined) {
+      v_712957.push(`${v_c8b83f} = ?`);
+      v_925171.push(v_148ff6[v_0eb677]);
+    }
+  }
+  if (!v_712957.length) throw new v_3ebe58("VALIDATION_FAILED", "No fields to update.");
+  v_925171.push(v_389afb);
+  const v_cb35cb = await v_3f4e2e.env.DB
+    .prepare(`UPDATE voice_presets SET ${v_712957.join(", ")} WHERE id = ?`)
+    .bind(...v_925171)
+    .run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Voice not found.");
+  return v_3f4e2e.json({ ok: true });
+});
+
