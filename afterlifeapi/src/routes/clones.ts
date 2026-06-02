@@ -23,6 +23,7 @@ import {
 import { externalTransferSplit } from "../lib/xrun";
 import { notify, notifyCloneEvent } from "../lib/notify";
 import { loadPersonaQuestions } from "../lib/personaQuestions";
+import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 
 export const clones = new Hono<AppEnv>();
 
@@ -135,6 +136,9 @@ const createSchema = z.object({
   ).optional(),
 
   relation: z.string().max(40).optional(),
+
+  idle_video_job_id: z.string().uuid().optional(),
+  voice_clone_job_id: z.string().uuid().optional(),
 });
 
 const PERSONA_PAID_PRICE_XRUN = 100;
@@ -241,6 +245,14 @@ clones.post(
 
         console.warn("[DEV_BYPASS] persona payment skipped via bypass PIN, userId=", userId);
       }
+    }
+
+    if (body.voice_preset_id) {
+      const vp = await db
+        .prepare(`SELECT id FROM voice_presets WHERE id = ? AND is_active = 1`)
+        .bind(body.voice_preset_id)
+        .first<{ id: number }>();
+      if (!vp) throw new APIError("VALIDATION_FAILED", "Invalid or inactive voice_preset_id.");
     }
 
     const voiceType = body.voice_preset_id ? "preset" : "text_only";
@@ -376,6 +388,32 @@ clones.post(
 
       await db.prepare(`DELETE FROM clones WHERE id = ?`).bind(cloneId).run();
       throw err;
+    }
+
+    for (const [jobId, col] of [
+      [body.idle_video_job_id, "idle_video_url"],
+      [body.voice_clone_job_id, "voice_se_url"],
+    ] as [string | undefined, string][]) {
+      if (!jobId) continue;
+      const job = await getJob(c.env.DB, jobId);
+      if (!job || job.user_id !== userId) continue; 
+      if (job.status === "done" && job.out_url) {
+
+        await c.env.DB.prepare(`UPDATE clones SET ${col} = ? WHERE id = ?`)
+          .bind(job.out_url, cloneId)
+          .run();
+      } else {
+
+        await linkClone(c.env.DB, jobId, cloneId);
+        const refreshed = await getJob(c.env.DB, jobId);
+        if (refreshed?.status === "done" && refreshed.out_url) {
+
+          await c.env.DB.prepare(`UPDATE clones SET ${col} = ? WHERE id = ?`)
+            .bind(refreshed.out_url, cloneId)
+            .run();
+        }
+
+      }
     }
 
     if (body.clone_type === "memlow") {
@@ -603,6 +641,41 @@ clones.get("/search", async (c) => {
   });
 });
 
+clones.get("/voices", requireAuth, async (c) => {
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT id, name, gender, age_range, description, sort_order
+       FROM voice_presets WHERE is_active = 1 ORDER BY sort_order ASC, id ASC`,
+    )
+    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number }>();
+  const origin = new URL(c.req.url).origin;
+  const voices = (rows.results ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    gender: r.gender,
+    ageRange: r.age_range,
+    description: r.description,
+    sortOrder: r.sort_order,
+    sampleUrl: `${origin}/oth-path${r.id}/sample`,
+  }));
+  return c.json({ voices });
+});
+
+clones.get("/voices/:id/sample", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isFinite(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid voice id.");
+  const row = await c.env.DB
+    .prepare(`SELECT r2_key FROM voice_presets WHERE id = ? AND is_active = 1`)
+    .bind(id)
+    .first<{ r2_key: string | null }>();
+  if (!row?.r2_key) throw new APIError("NOT_FOUND", "Voice sample not found.");
+  const obj = await c.env.R2_ARCHIVE.get(row.r2_key);
+  if (!obj) throw new APIError("NOT_FOUND", "Object missing in storage.");
+  return new Response(obj.body, {
+    headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=86400" },
+  });
+});
+
 clones.get("/system", requireAuth, async (c) => {
   const rows = await c.env.DB.prepare(
     "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
@@ -687,6 +760,63 @@ clones.post("/intro-suggest", requireAuth, async (c) => {
 
     return c.json({ intro: "" });
   }
+});
+
+clones.post("/asset-job", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const raw = await c.req.json<{ kind?: string; src_file_id?: number }>().catch(() => null);
+  const kind = raw?.kind;
+  const srcFileId = raw?.src_file_id;
+  if (kind !== "idle_video" && kind !== "voice_clone") {
+    throw new APIError("VALIDATION_FAILED", "Invalid kind. Must be idle_video or voice_clone.");
+  }
+  if (!srcFileId || !Number.isInteger(srcFileId)) {
+    throw new APIError("VALIDATION_FAILED", "src_file_id required.");
+  }
+  const file = await c.env.DB
+    .prepare(`SELECT id, r2_key, owner_user_id FROM files WHERE id = ?`)
+    .bind(srcFileId)
+    .first<{ id: number; r2_key: string; owner_user_id: number }>();
+  if (!file || file.owner_user_id !== userId) {
+    throw new APIError("NOT_FOUND", "Source file not found.");
+  }
+  const jobId = crypto.randomUUID();
+
+  const callbackToken = await createJob(c.env.DB, jobId, userId, kind, srcFileId);
+
+  if (c.env.ORCHESTRATOR_URL && c.env.ORCH_SECRET) {
+    const origin = new URL(c.req.url).origin;
+    const srcUrl = `${origin}/oth-path${file.id}`;
+
+    c.executionCtx.waitUntil(
+      fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${c.env.ORCH_SECRET}`,
+        },
+        body: JSON.stringify({ job_id: jobId, kind, src_url: srcUrl, callback_token: callbackToken }),
+        signal: AbortSignal.timeout(8000),
+      })
+
+        .then((res) => setStatus(c.env.DB, jobId, res.ok ? "running" : "failed"))
+        .catch(() => setStatus(c.env.DB, jobId, "failed")),
+    );
+  }
+  return c.json({ job_id: jobId, status: "pending" }, 201);
+});
+
+clones.get("/asset-job/:id", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const job = await getJob(c.env.DB, c.req.param("id"));
+  if (!job || job.user_id !== userId) throw new APIError("NOT_FOUND", "Job not found.");
+  return c.json({
+    job_id: job.id,
+    kind: job.kind,
+    status: job.status,
+    out_url: job.out_url,
+    error: job.error,
+  });
 });
 
 clones.get("/:id", async (c) => {
@@ -863,6 +993,14 @@ clones.patch("/:id", requireAuth, async (c) => {
     updatedFields.push("visibility");
   }
   if (body.voice_preset_id !== undefined) {
+
+    if (body.voice_preset_id !== null) {
+      const vp = await db
+        .prepare(`SELECT id FROM voice_presets WHERE id = ? AND is_active = 1`)
+        .bind(body.voice_preset_id)
+        .first<{ id: number }>();
+      if (!vp) throw new APIError("VALIDATION_FAILED", "Invalid or inactive voice_preset_id.");
+    }
     sets.push(`voice_preset_id = ?`, `voice_type = ?`);
     binds.push(body.voice_preset_id);
     binds.push(body.voice_preset_id === null ? "text_only" : "preset");

@@ -4,6 +4,7 @@ import { createSayStore } from './sayStore.js';
 import { runChatRelay as defaultRunChatRelay } from './chatRelay.js';
 import { suggestPersonaChoices } from '../lib/personaSuggest.js';
 import { suggestIntro } from '../lib/introSuggest.js';
+import { createAssetJobRunner } from './assetJobRunner.js';
 
 const PUB = (port) => `http://127.0.0.1:${port}`;
 
@@ -57,6 +58,8 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   const callPersona = new Map(); 
   const runChatRelay = deps?.sayDeps?.runChatRelay ?? defaultRunChatRelay;
 
+  const assetJobRunner = deps?.assetJobRunner ?? createAssetJobRunner({ apiBaseUrl: cfg.apiBaseUrl ?? '' });
+
   function requireSecret(req, res, next) {
     if (!secret || !tokenMatches(bearer(req), secret)) return res.status(401).json({ error: 'unauthorized' });
     next();
@@ -109,6 +112,20 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
     } catch {
       res.status(500).json({ error: 'intro_failed' });
     }
+  });
+
+  router.post('/oth-path', requireSecret, async (req, res) => {
+    const { job_id, kind, src_url, callback_token } = req.body ?? {};
+    if (
+      !job_id ||
+      (kind !== 'idle_video' && kind !== 'voice_clone') ||
+      !src_url ||
+      !callback_token
+    ) {
+      return res.status(400).json({ error: 'bad_request' });
+    }
+    assetJobRunner.enqueue({ job_id, kind, src_url, callback_token });
+    res.status(202).json({ accepted: true });
   });
 
   router.post('/oth-path', requireSecret, async (req, res) => {

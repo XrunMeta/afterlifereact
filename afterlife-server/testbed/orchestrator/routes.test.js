@@ -4,10 +4,11 @@ import express from 'express';
 import http from 'node:http';
 import { orchestratorRouter } from './routes.js';
 
-function mountApp(orch, secret, sayDeps) {
+function mountApp(orch, secret, sayDeps, extraDeps) {
   const app = express();
   app.use(express.json());
-  app.use(orchestratorRouter(orch, { secret, deps: sayDeps ? { sayDeps } : undefined }));
+  const deps = { ...(sayDeps ? { sayDeps } : {}), ...(extraDeps ?? {}) };
+  app.use(orchestratorRouter(orch, { secret, deps: Object.keys(deps).length ? deps : undefined }));
   return new Promise((resolve) => {
     const server = app.listen(0, '127.0.0.1', () => resolve({ server, base: `http://127.0.0.1:${server.address().port}` }));
   });
@@ -376,6 +377,83 @@ test('동시 callId: DELETE 후 해당 callId bundle 만 소거됨(다른 callId
 
   assert.deepEqual(argCb2.personaBundle, bundleC2, 'cb2 bundle 이 cb1 DELETE 에 영향받음!');
 
+  server.close();
+});
+
+test('POST /oth-path — bearer 없으면 401', async () => {
+  const { server, base } = await mountApp(fakeOrch(), 'sek');
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ job_id: 'j1', kind: 'idle_video', src_url: 'https://x.com/oth-path', callback_token: 't' }),
+  });
+  assert.equal(r.status, 401);
+  server.close();
+});
+
+test('POST /oth-path — 유효 바디 → 202 + enqueue 호출', async () => {
+  const enqueuedJobs = [];
+  const mockRunner = {
+    enqueue(job) { enqueuedJobs.push(job); },
+    _size: () => enqueuedJobs.length,
+    _running: () => false,
+  };
+
+  const { server, base } = await mountApp(fakeOrch(), 'sek', null, { assetJobRunner: mockRunner });
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'job_ok',
+      kind: 'idle_video',
+      src_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok1',
+    }),
+  });
+  assert.equal(r.status, 202);
+  const j = await r.json();
+  assert.equal(j.accepted, true);
+  assert.equal(enqueuedJobs.length, 1);
+  assert.equal(enqueuedJobs[0].job_id, 'job_ok');
+  assert.equal(enqueuedJobs[0].kind, 'idle_video');
+  server.close();
+});
+
+test('POST /oth-path — voice_clone kind 허용', async () => {
+  const enqueuedJobs = [];
+  const mockRunner = { enqueue(job) { enqueuedJobs.push(job); } };
+  const { server, base } = await mountApp(fakeOrch(), 'sek', null, { assetJobRunner: mockRunner });
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ job_id: 'j2', kind: 'voice_clone', src_url: 'https://oth-path.example.com/oth-path', callback_token: 'tk2' }),
+  });
+  assert.equal(r.status, 202);
+  assert.equal(enqueuedJobs[0].kind, 'voice_clone');
+  server.close();
+});
+
+test('POST /oth-path — kind 오류 → 400', async () => {
+  const { server, base } = await mountApp(fakeOrch(), 'sek');
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ job_id: 'j3', kind: 'unknown_kind', src_url: 'https://x.com/oth-path', callback_token: 't' }),
+  });
+  assert.equal(r.status, 400);
+  const j = await r.json();
+  assert.equal(j.error, 'bad_request');
+  server.close();
+});
+
+test('POST /oth-path — 필드 누락 → 400', async () => {
+  const { server, base } = await mountApp(fakeOrch(), 'sek');
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ job_id: 'j4', kind: 'idle_video' }), 
+  });
+  assert.equal(r.status, 400);
   server.close();
 });
 

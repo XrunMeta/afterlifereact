@@ -1,8 +1,8 @@
 
 
 import { showAlert } from "../../../stores/dialogStore";
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import {
@@ -14,6 +14,9 @@ import {
 import { useTranslation } from "react-i18next";
 import type { CloneCreationDraft } from "../../../types/clone";
 import { COLORS, RADIUS } from "../../../components/constants";
+import { getVoices, createAssetJob, type CatalogVoice } from "../../../api/clones";
+import { uploadFile } from "../../../api/files";
+import { useAuthStore } from "../../../stores/authStore";
 
 export const VOICE_SAMPLES = [
   { id: "v1", name: "Nova" },
@@ -58,117 +61,155 @@ interface Props {
   onChange: (patch: Partial<CloneCreationDraft>) => void;
 }
 
-async function pickFile(
+async function pickAndClone(
   onChange: Props["onChange"],
-  errorTitle: string,
-  errorMsg: string,
-) {
+  accessToken: string | null,
+): Promise<void> {
+  let result: Awaited<ReturnType<typeof DocumentPicker.getDocumentAsync>>;
   try {
-    const r = await DocumentPicker.getDocumentAsync({ type: "audio/*" });
-    if (!r.canceled && r.assets[0]) {
-      onChange({ voiceFile: r.assets[0].uri, voiceSampleId: undefined });
-    }
+    result = await DocumentPicker.getDocumentAsync({ type: "audio/*" });
   } catch {
-    showAlert(errorTitle, errorMsg);
+    showAlert("파일 선택 오류", "파일을 선택하지 못했어요.");
+    return;
+  }
+  if (result.canceled || !result.assets[0]) return;
+  const asset = result.assets[0];
+
+  onChange({ voiceFile: asset.uri, voiceSampleId: undefined, voicePresetId: undefined });
+
+  if (!accessToken) return;
+  try {
+    const uploaded = await uploadFile(accessToken, asset.uri, {
+      purpose: "clone_voice",
+      mimeType: asset.mimeType ?? "audio/mpeg",
+      fileName: asset.name ?? "voice.mp3",
+    });
+    const jobRes = await createAssetJob(accessToken, {
+      kind: "voice_clone",
+      src_file_id: uploaded.id,
+    });
+    console.log("[DefaultVoice] voice_clone job created:", jobRes.job_id);
+    onChange({
+      voiceFile: asset.uri,
+      voiceCloneJobId: jobRes.job_id,
+      voicePresetId: undefined,
+    });
+  } catch (err) {
+    console.warn("[DefaultVoice] upload/job failed (voiceFile kept):", err);
   }
 }
 
 function Component({ draft, onChange }: Props) {
-  const { t } = useTranslation();
 
-  const initialMode: Mode = draft.voiceFile
-    ? "upload"
-    : draft.voiceSampleId
-      ? "preset"
-      : "record";
-  const [mode, setMode] = useState<Mode>(initialMode);
+  const { t } = useTranslation();
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const [mode, setMode] = useState<Mode>("preset");
+  const [voices, setVoices] = useState<CatalogVoice[]>([]);
+  const [loadErr, setLoadErr] = useState(false);
   const [selectedScript, setSelectedScript] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(recorder);
-  const isRecording = recorderState.isRecording;
+  const recState = useAudioRecorderState(recorder, 200);
 
-  const elapsedSec = Math.floor((recorderState.durationMillis ?? 0) / 1000);
+  const recorderRef = useRef(recorder);
+  recorderRef.current = recorder;
+  useEffect(() => {
+    return () => {
+      recorderRef.current.stop().catch(() => {});
+    };
+  }, []);
 
-  const switchMode = async (next: Mode) => {
-    if (next === mode) return;
-
-    if (isRecording) {
+  useEffect(() => {
+    let alive = true;
+    (async () => {
       try {
-        await recorder.stop();
-      } catch (err) {
-        console.warn("[Voice] stop on mode switch failed:", err);
+        if (!accessToken) return;
+        const list = await getVoices(accessToken);
+        if (!alive) return;
+        setVoices(list);
+
+        if (list.length && draft.voicePresetId === undefined && !draft.voiceCloneJobId && !draft.voiceFile) {
+          onChange({ voicePresetId: list[0].id, voiceSampleId: undefined, voiceFile: undefined });
+        }
+      } catch {
+        if (alive) setLoadErr(true);
       }
+    })();
+    return () => { alive = false; };
+
+  }, [accessToken]);
+
+  const handleStartRecord = async () => {
+    if (!selectedScript) {
+      showAlert("스크립트 선택", "먼저 읽을 스크립트를 선택해주세요.");
+      return;
     }
-    setMode(next);
-    onChange({ voiceSampleId: undefined, voiceFile: undefined, recordDuration: undefined });
-    setSelectedScript(null);
+    const perm = await requestRecordingPermissionsAsync();
+    if (!perm.granted) {
+      showAlert("권한 필요", "마이크 권한이 필요해요. 설정에서 허용해주세요.");
+      return;
+    }
+    await recorder.record();
   };
 
-  const handleRecordPress = async () => {
+  const handleStopRecord = async () => {
+    await recorder.stop();
+    const uri = recorder.uri;
+    if (!uri) return;
+
+    onChange({ voiceFile: uri, voicePresetId: undefined, voiceSampleId: undefined });
+
+    if (!accessToken) return;
+    setUploading(true);
     try {
-      if (isRecording) {
-
-        await recorder.stop();
-
-        let uri: string | null = null;
-        try {
-          uri = recorder.uri ?? null;
-        } catch (err) {
-          console.warn("[Voice] read uri failed:", err);
-        }
-        if (uri) {
-          onChange({
-            voiceFile: uri,
-            voiceSampleId: undefined,
-            recordDuration: elapsedSec,
-          });
-        } else {
-          showAlert("녹음 실패", "녹음 파일을 가져오지 못했어요. 다시 시도해주세요.");
-        }
-        return;
-      }
-
-      const perm = await requestRecordingPermissionsAsync();
-      if (!perm.granted) {
-        showAlert(
-          "마이크 권한 필요",
-          "직접 녹음을 사용하려면 설정에서 마이크 권한을 허용해주세요.",
-        );
-        return;
-      }
-
-      onChange({ voiceFile: undefined, recordDuration: undefined });
-      await recorder.prepareToRecordAsync();
-      recorder.record();
+      const uploaded = await uploadFile(accessToken, uri, {
+        purpose: "clone_voice",
+        mimeType: "audio/m4a",
+        fileName: "voice_record.m4a",
+      });
+      const jobRes = await createAssetJob(accessToken, {
+        kind: "voice_clone",
+        src_file_id: uploaded.id,
+      });
+      console.log("[DefaultVoice] voice_clone job (record) created:", jobRes.job_id);
+      onChange({
+        voiceFile: uri,
+        voiceCloneJobId: jobRes.job_id,
+        voicePresetId: undefined,
+      });
     } catch (err) {
-      console.warn("[Voice] record toggle failed:", err);
-      showAlert("녹음 오류", "녹음을 시작/중단하지 못했어요. 다시 시도해주세요.");
+      console.warn("[DefaultVoice] record upload/job failed (voiceFile kept):", err);
+    } finally {
+      setUploading(false);
     }
   };
 
-  const hasRecorded = mode === "record" && !!draft.voiceFile && !isRecording;
+  const handlePickFile = async () => {
+    setUploading(true);
+    try {
+      await pickAndClone(onChange, accessToken);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const isRecording = recState.isRecording;
+  const recordedUri = !isRecording && recorder.uri ? recorder.uri : null;
 
   return (
     <View style={styles.wrap}>
       {}
       <View style={styles.modeRow}>
-        {(["record", "preset", "upload"] as const).map((m) => {
-          const labels: Record<Mode, string> = {
-            preset: "음성 선택",
-            record: "직접 녹음",
-            upload: "파일 업로드",
-          };
-          const active = mode === m;
+        {(["preset", "record", "upload"] as Mode[]).map((m) => {
+          const label = m === "preset" ? "음색 선택" : m === "record" ? "직접 녹음" : "파일 업로드";
           return (
             <TouchableOpacity
               key={m}
-              style={[styles.modeBtn, active && styles.modeBtnActive]}
-              onPress={() => switchMode(m)}
+              style={[styles.modeBtn, mode === m && styles.modeBtnActive]}
+              onPress={() => setMode(m)}
             >
-              <Text style={[styles.modeText, active && styles.modeTextActive]}>
-                {labels[m]}
-              </Text>
+              <Text style={[styles.modeText, mode === m && styles.modeTextActive]}>{label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -176,22 +217,36 @@ function Component({ draft, onChange }: Props) {
 
       {}
       {mode === "preset" && (
-        <View style={styles.grid}>
-          {VOICE_SAMPLES.map((v) => {
-            const active = draft.voiceSampleId === v.id;
-            return (
-              <TouchableOpacity
-                key={v.id}
-                style={[styles.card, active && styles.cardActive]}
-                onPress={() =>
-                  onChange({ voiceSampleId: v.id, voiceFile: undefined, recordDuration: undefined })
-                }
-              >
-                <Text style={styles.cardName}>{v.name}</Text>
-                <Text style={styles.cardDesc}>{t(`create.voice.sample.${v.name}`)}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={{ gap: 8 }}>
+          <Text style={styles.scriptHint}>목소리를 선택하세요. (기본: 고민주)</Text>
+          {loadErr && (
+            <Text style={styles.scriptHint}>목소리 목록을 불러오지 못했어요.</Text>
+          )}
+          <View style={styles.grid}>
+            {voices.map((v) => {
+              const active = draft.voicePresetId === v.id;
+              return (
+                <TouchableOpacity
+                  key={v.id}
+                  style={[styles.card, active && styles.cardActive]}
+                  onPress={() =>
+
+                    onChange({
+                      voicePresetId: v.id,
+                      voiceSampleId: undefined,
+                      voiceFile: undefined,
+                      voiceCloneJobId: undefined,
+                    })
+                  }
+                >
+                  <Text style={styles.cardName}>{v.name}</Text>
+                  {!!v.description && (
+                    <Text style={styles.cardDesc}>{v.description}</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
       )}
 
@@ -199,44 +254,46 @@ function Component({ draft, onChange }: Props) {
       {mode === "record" && (
         <View style={{ gap: 12 }}>
           <Text style={styles.scriptHint}>
-            아래 3개 중 하나를 골라 자연스럽게 읽어주세요. (약 30초)
+            고인 목소리 사용 (권장) — 스크립트를 선택하고 읽어주세요.
           </Text>
-          {RECORD_SCRIPTS.map((s) => {
-            const active = selectedScript === s.id;
-            return (
-              <TouchableOpacity
-                key={s.id}
-                style={[styles.scriptCard, active && styles.scriptCardActive]}
-                onPress={() => setSelectedScript(s.id)}
-                disabled={isRecording}
-              >
-                <Text style={styles.scriptTitle}>{s.title}</Text>
-                <Text style={styles.scriptText}>{s.text}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {RECORD_SCRIPTS.map((s) => (
+            <TouchableOpacity
+              key={s.id}
+              style={[styles.scriptCard, selectedScript === s.id && styles.scriptCardActive]}
+              onPress={() => setSelectedScript(s.id)}
+            >
+              <Text style={styles.scriptTitle}>{s.title}</Text>
+              <Text style={styles.scriptText}>{s.text}</Text>
+            </TouchableOpacity>
+          ))}
+
+          {}
           <TouchableOpacity
             style={[
               styles.recordBtn,
               isRecording && styles.recordBtnActive,
+              !selectedScript && styles.recordBtnDisabled,
             ]}
-            onPress={handleRecordPress}
-            activeOpacity={0.85}
+            onPress={isRecording ? handleStopRecord : handleStartRecord}
+            disabled={!selectedScript && !isRecording}
           >
             <View style={[styles.recordDot, isRecording && styles.recordDotPulse]} />
             <Text style={styles.recordBtnText}>
-              {isRecording
-                ? `녹음 중 · ${elapsedSec}s · 누르면 정지`
-                : hasRecorded
-                  ? "다시 녹음"
-                  : "녹음 시작"}
+              {isRecording ? "녹음 중지" : "녹음 시작"}
             </Text>
           </TouchableOpacity>
-          {hasRecorded && (
+
+          {uploading && (
+            <View style={styles.recordedRow}>
+              <ActivityIndicator size="small" color={COLORS.violet600} />
+              <Text style={styles.recordedText}>업로드 중...</Text>
+            </View>
+          )}
+          {!uploading && recordedUri && (
             <View style={styles.recordedRow}>
               <Feather name="check-circle" size={16} color={COLORS.violet600} />
               <Text style={styles.recordedText}>
-                녹음 저장됨 ({draft.recordDuration ?? 0}초). 다음 단계로 진행하세요.
+                {draft.voiceCloneJobId ? "클로닝 잡 등록됨" : "녹음 완료 (업로드 실패 — 재시도됨)"}
               </Text>
             </View>
           )}
@@ -245,24 +302,44 @@ function Component({ draft, onChange }: Props) {
 
       {}
       {mode === "upload" && (
-        <TouchableOpacity
-          style={styles.upload}
-          onPress={() => pickFile(onChange, t("common.error"), t("create.voice.fileError"))}
-        >
-          <Feather name="upload" size={20} color={COLORS.violet600} />
-          <Text style={styles.uploadText}>
-            {draft.voiceFile
-              ? t("create.voice.uploadedFile")
-              : t("create.voice.uploadFile")}
+        <View style={{ gap: 12 }}>
+          <Text style={styles.scriptHint}>
+            고인 목소리 사용 (권장) — mp3/wav/m4a 파일을 업로드해주세요.
           </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.upload}
+            onPress={handlePickFile}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <ActivityIndicator size="small" color={COLORS.violet600} />
+            ) : (
+              <Feather name="upload" size={18} color={COLORS.violet600} />
+            )}
+            <Text style={styles.uploadText}>
+              {uploading
+                ? "업로드 중..."
+                : draft.voiceFile
+                ? "다른 파일 선택"
+                : "음성 파일 선택"}
+            </Text>
+          </TouchableOpacity>
+          {!uploading && draft.voiceFile && (
+            <View style={styles.recordedRow}>
+              <Feather name="check-circle" size={16} color={COLORS.violet600} />
+              <Text style={styles.recordedText}>
+                {draft.voiceCloneJobId ? "클로닝 잡 등록됨" : "파일 선택됨 (잡 등록 실패 — 재시도됨)"}
+              </Text>
+            </View>
+          )}
+        </View>
       )}
     </View>
   );
 }
 
 Component.validate = (d: CloneCreationDraft): boolean =>
-  Boolean(d.voiceSampleId || d.voiceFile);
+  Boolean(d.voicePresetId) || Boolean(d.voiceCloneJobId) || Boolean(d.voiceFile);
 
 const DefaultVoiceUpload = Component as typeof Component & {
   validate: (d: CloneCreationDraft) => boolean;

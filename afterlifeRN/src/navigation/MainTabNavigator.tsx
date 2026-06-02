@@ -15,7 +15,6 @@ import MyClonesDashboardScreen from "../screens/clones/MyClonesDashboardScreen";
 import CloneDetailScreen from "../screens/clones/CloneDetailScreen";
 import CloneEditScreen from "../screens/clones/CloneEditScreen";
 import CloneInviteScreen from "../screens/clones/CloneInviteScreen";
-import Step1CloneTypeScreen from "../screens/clone-creation/Step1CloneTypeScreen";
 
 import PersonaAssistantScreen from "../screens/clone-creation/PersonaAssistantScreen";
 import Step3ImageUploadScreen from "../screens/clone-creation/Step3ImageUploadScreen";
@@ -65,12 +64,12 @@ function CreateStackNavigator() {
     }
   }, []);
   return (
+
     <CreateStack.Navigator screenOptions={{ headerShown: false }}>
-      <CreateStack.Screen name="Step1" component={Step1CloneTypeScreen} />
-      {}
-      <CreateStack.Screen name="PersonaAssistant" component={PersonaAssistantScreen} />
       <CreateStack.Screen name="Step3" component={Step3ImageUploadScreen} />
       <CreateStack.Screen name="Step4" component={Step4VoiceUploadScreen} />
+      {}
+      <CreateStack.Screen name="PersonaAssistant" component={PersonaAssistantScreen} />
       <CreateStack.Screen name="Step5" component={Step5VisibilityScreen} />
       <CreateStack.Screen name="Step7" component={Step7CompleteScreen} />
       <CreateStack.Screen name="Step8" component={Step8CreateShortsScreen} />
@@ -180,8 +179,8 @@ export default function MainTabNavigator() {
                     state: {
                       routes: [
                         {
-                          name: "PersonaAssistant" as const,
-                          key: `PersonaAssistant-${Date.now()}`,
+                          name: "Step3" as const,
+                          key: `Step3-${Date.now()}`,
                         },
                       ],
                       index: 0,

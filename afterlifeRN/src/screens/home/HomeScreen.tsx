@@ -418,7 +418,7 @@ export default function HomeScreen() {
               rootNav.dispatch(
                 CommonActions.navigate({
                   name: "CreateTab",
-                  params: { screen: "PersonaAssistant" },
+                  params: { screen: "Step3" },
                 }),
               )
             }

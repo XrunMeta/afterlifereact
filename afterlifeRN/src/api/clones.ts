@@ -29,6 +29,9 @@ export interface CreateClonePayload {
 
   relation?: string;
 
+  idle_video_job_id?: string;
+  voice_clone_job_id?: string;
+
   pin?: string;
 }
 
@@ -137,6 +140,23 @@ export async function personaSuggest(
   }
 }
 
+export interface CatalogVoice {
+  id: number;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  sampleUrl: string;
+}
+
+export async function getVoices(accessToken: string): Promise<CatalogVoice[]> {
+  const res = await fetch(`${API_BASE}/oth-path`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`getVoices ${res.status}`);
+  const body = (await res.json()) as { voices: CatalogVoice[] };
+  return body.voices;
+}
+
 export async function introSuggest(
   accessToken: string,
   profile: { name?: string; relation?: string; personaAnswers?: Record<string, string> },
@@ -192,6 +212,40 @@ export async function createClone(
     );
   }
   return parsed as CreateCloneResponse;
+}
+
+export type AssetJobKind = 'idle_video' | 'voice_clone';
+export type AssetJobStatus = 'pending' | 'running' | 'done' | 'failed';
+
+export interface AssetJob {
+  job_id: string;
+  kind: AssetJobKind;
+  status: AssetJobStatus;
+  out_url?: string | null;
+  error?: string | null;
+}
+
+export async function createAssetJob(
+  accessToken: string,
+  payload: { kind: AssetJobKind; src_file_id: number },
+): Promise<{ job_id: string }> {
+  return authFetch<{ job_id: string }>(
+    '/oth-path',
+    accessToken,
+    { method: 'POST', body: JSON.stringify(payload) },
+    makeIdempotencyKey(),
+  );
+}
+
+export async function getAssetJob(
+  accessToken: string,
+  jobId: string,
+): Promise<AssetJob> {
+  return authFetch<AssetJob>(
+    `/oth-path${encodeURIComponent(jobId)}`,
+    accessToken,
+    { method: 'GET' },
+  );
 }
 
 export interface PendingInvite {

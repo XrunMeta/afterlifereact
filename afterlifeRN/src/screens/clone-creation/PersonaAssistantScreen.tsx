@@ -233,7 +233,8 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
               })
               .catch(() => {});
           }
-          navigation.navigate('Step3');
+
+          navigation.navigate('Step5');
         }, 800);
         return;
       }

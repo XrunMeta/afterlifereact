@@ -325,3 +325,96 @@ admin.put("/persona-questions", requireSuperAdmin, async (c) => {
   return c.json({ ok: true });
 });
 
+admin.get("/voices", requireAdmin, async (c) => {
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT id, name, gender, age_range, description, sort_order, is_active, r2_key, se_key
+       FROM voice_presets ORDER BY sort_order ASC, id ASC`,
+    )
+    .all();
+  return c.json({ voices: rows.results ?? [] });
+});
+
+const voicePostSchema = z.object({
+  name: z.string().min(1).max(80),
+  gender: z.string().max(40).optional(),
+  age_range: z.string().max(40).optional(),
+  description: z.string().max(500).optional(),
+  sort_order: z.number().int().optional(),
+  is_active: z.union([z.literal(0), z.literal(1)]).optional(),
+  r2_key: z.string().max(500).optional(),
+  se_key: z.string().max(500).optional(),
+});
+
+const voicePutSchema = z.object({
+  name: z.string().min(1).max(80).optional(),
+  gender: z.string().max(40).optional(),
+  age_range: z.string().max(40).optional(),
+  description: z.string().max(500).optional(),
+  sort_order: z.number().int().optional(),
+  is_active: z.union([z.literal(0), z.literal(1)]).optional(),
+  r2_key: z.string().max(500).optional(),
+  se_key: z.string().max(500).optional(),
+});
+
+function assertR2KeyPrefix(r2_key: string | undefined): void {
+  if (r2_key !== undefined && !r2_key.startsWith("voice/")) {
+    throw new APIError("VALIDATION_FAILED", "r2_key must start with 'voice/'.");
+  }
+}
+
+admin.post("/voices", requireSuperAdmin, async (c) => {
+  const b = await parseJson(c, voicePostSchema);
+  assertR2KeyPrefix(b.r2_key);
+  const ins = await c.env.DB
+    .prepare(
+      `INSERT INTO voice_presets (name, gender, age_range, description, sort_order, is_active, r2_key, se_key)
+       VALUES (?,?,?,?,?,?,?,?) RETURNING id`,
+    )
+    .bind(
+      b.name,
+      b.gender ?? null,
+      b.age_range ?? null,
+      b.description ?? null,
+      b.sort_order ?? 100,
+      b.is_active ?? 1,
+      b.r2_key ?? null,
+      b.se_key ?? null,
+    )
+    .first<{ id: number }>();
+  return c.json({ id: ins!.id }, 201);
+});
+
+admin.put("/voices/:id", requireSuperAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isFinite(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const b = await parseJson(c, voicePutSchema);
+  assertR2KeyPrefix(b.r2_key);
+  const fields: string[] = [];
+  const binds: unknown[] = [];
+  const mapping: Array<[keyof typeof b, string]> = [
+    ["name", "name"],
+    ["gender", "gender"],
+    ["age_range", "age_range"],
+    ["description", "description"],
+    ["sort_order", "sort_order"],
+    ["is_active", "is_active"],
+    ["r2_key", "r2_key"],
+    ["se_key", "se_key"],
+  ];
+  for (const [k, col] of mapping) {
+    if (b[k] !== undefined) {
+      fields.push(`${col} = ?`);
+      binds.push(b[k]);
+    }
+  }
+  if (!fields.length) throw new APIError("VALIDATION_FAILED", "No fields to update.");
+  binds.push(id);
+  const r = await c.env.DB
+    .prepare(`UPDATE voice_presets SET ${fields.join(", ")} WHERE id = ?`)
+    .bind(...binds)
+    .run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Voice not found.");
+  return c.json({ ok: true });
+});
+

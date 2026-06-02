@@ -27,7 +27,7 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
-import { createClone, deriveUsernameFromName, createCloneFeed, updateClone } from "../../api/clones";
+import { createClone, deriveUsernameFromName, createCloneFeed, updateClone, getAssetJob, type AssetJob } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
 import { Image } from "react-native";
@@ -77,6 +77,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   const avatarUrlRef = useRef<string | undefined>(undefined);
 
+  const [idleJob, setIdleJob] = useState<AssetJob | null>(null);
+  const idleJobIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [caption, setCaption] = useState(draft.description ?? "");
 
   const captionTouchedRef = useRef(false);
@@ -87,6 +90,38 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     }
 
   }, [draft.description]);
+
+  useEffect(() => {
+    const jobId = draft.idleVideoJobId;
+    if (!jobId || !accessToken) return;
+    let alive = true;
+    const poll = async () => {
+      try {
+        const job = await getAssetJob(accessToken, jobId);
+        if (!alive) return;
+        setIdleJob(job);
+        if (job.status === 'done' || job.status === 'failed') {
+          if (idleJobIntervalRef.current) {
+            clearInterval(idleJobIntervalRef.current);
+            idleJobIntervalRef.current = null;
+          }
+        }
+      } catch (e) {
+        console.warn('[Step7] idle job poll error:', e);
+      }
+    };
+    void poll();
+    idleJobIntervalRef.current = setInterval(poll, 4000);
+    return () => {
+      alive = false;
+      if (idleJobIntervalRef.current) {
+        clearInterval(idleJobIntervalRef.current);
+        idleJobIntervalRef.current = null;
+      }
+    };
+
+  }, [draft.idleVideoJobId, accessToken]);
+
   const [posting, setPosting] = useState(false);
 
   const attemptCreate = useCallback(
@@ -129,7 +164,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
       const personaAnswers = draft.personaAnswers ?? {};
 
-      let avatarUrl: string | undefined = avatarUrlRef.current;
+      let avatarUrl: string | undefined = avatarUrlRef.current ?? draft.avatarUrl;
       if (!avatarUrl && draft.imageFile) {
         try {
           const ext = draft.imageFile.split(".").pop()?.toLowerCase() ?? "";
@@ -146,6 +181,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           });
           avatarUrl = uploaded.url;
           avatarUrlRef.current = avatarUrl;
+
+          useCloneStore.getState().setCreationDraft({ avatarUrl: uploaded.url });
           console.log("[CLONE-CREATE] avatar uploaded:", avatarUrl);
         } catch (uploadErr) {
           console.warn("[CLONE-CREATE] avatar upload failed:", uploadErr);
@@ -165,6 +202,13 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         hasAvatar: !!avatarUrl,
         hasPin: !!pin,
       });
+
+      const voicePayload = draft.voiceCloneJobId
+        ? { voice_clone_job_id: draft.voiceCloneJobId }
+        : draft.voicePresetId
+        ? { voice_preset_id: draft.voicePresetId }
+        : {};
+
       const res = await createClone(accessToken, {
         clone_type: cloneTypeForApi,
         name: draft.name ?? "Untitled",
@@ -179,6 +223,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
         ...(draft.relation ? { relation: draft.relation } : {}),
         ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+        ...voicePayload,
+
+        ...(draft.idleVideoJobId ? { idle_video_job_id: draft.idleVideoJobId } : {}),
         ...(pin ? { pin } : {}),
       });
       console.log("[CLONE-CREATE] success:", res);
@@ -450,8 +497,42 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             </View>
           </View>
 
-          {}
-          {draft.imageFile ? (
+          {
+}
+          {idleJob?.status === 'done' && idleJob.out_url ? (
+
+            <View style={styles.previewBox}>
+              <Image source={{ uri: draft.imageFile ?? idleJob.out_url }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              <View style={styles.videoBadge}>
+                <Text style={styles.videoBadgeText}>영상 준비 완료</Text>
+              </View>
+            </View>
+          ) : idleJob?.status === 'failed' ? (
+
+            <TouchableOpacity
+              style={styles.previewBox}
+              onPress={() => navigation.navigate('Step3')}
+              activeOpacity={0.8}
+            >
+              {draft.imageFile && (
+                <Image source={{ uri: draft.imageFile }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              )}
+              <View style={[styles.videoBadge, styles.videoBadgeFailed]}>
+                <Text style={styles.videoBadgeText}>영상 생성 실패 — 사진 다시 올리기</Text>
+              </View>
+            </TouchableOpacity>
+          ) : draft.idleVideoJobId && (!idleJob || idleJob.status === 'pending' || idleJob.status === 'running') ? (
+
+            <View style={styles.previewBox}>
+              {draft.imageFile && (
+                <Image source={{ uri: draft.imageFile }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              )}
+              <View style={[styles.videoBadge, styles.videoBadgePending]}>
+                <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 6 }} />
+                <Text style={styles.videoBadgeText}>영상 준비 중</Text>
+              </View>
+            </View>
+          ) : draft.imageFile ? (
             <Image source={{ uri: draft.imageFile }} style={styles.previewBox} resizeMode="cover" />
           ) : (
             <View style={styles.previewBox}>
@@ -680,6 +761,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.zinc500,
     textAlign: "center",
+  },
+
+  videoBadge: {
+    position: "absolute",
+    bottom: 10,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: COLORS.violet600,
+  },
+  videoBadgePending: {
+    backgroundColor: "rgba(124,58,237,0.85)",
+  },
+  videoBadgeFailed: {
+    backgroundColor: "rgba(239,68,68,0.9)",
+  },
+  videoBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.white,
   },
 
   captionInput: {
