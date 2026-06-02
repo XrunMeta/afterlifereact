@@ -22,7 +22,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { RTCView } from "react-native-webrtc";
 import { useLiveAvatar } from "../../realtime/useLiveAvatar";
-import { useSpeechInput } from "../../realtime/useSpeechInput";
+import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -77,22 +77,22 @@ export default function CallScreen({ route, navigation }: Props) {
     start: startLive,
     stop: stopLive,
     say,
-    phase,
+    getStatsReport,
+    notifySpeechEnd,
   } = useLiveAvatar({ cloneId, accessToken: accessToken ?? "" });
 
-  const { transcript, interimTranscript, listening, startListening, stopListening } = useSpeechInput({
-    onFinalResult: (text) => {
-      void say(text);
-    },
+  const {
+    phase,
+    micOn,
+    toggleMic,
+    transcript,
+    interimTranscript,
+  } = useHandsFreeController({
+    enabled: liveState === "live",
+    say,
+    getStatsReport,
+    notifySpeechEnd,
   });
-
-  const onTalkPressIn = () => {
-    if (phase === "idle") void startListening();
-  };
-  const onTalkPressOut = () => {
-
-    stopListening();
-  };
 
   useEffect(() => {
     if (!accessToken) return;
@@ -492,16 +492,33 @@ export default function CallScreen({ route, navigation }: Props) {
       ))}
 
       {}
+      {phase === 'listening' && (!!interimTranscript || !!transcript) ? (
+        <View style={s.subtitleContainer} pointerEvents="none">
+          <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+            {interimTranscript || transcript}
+          </Text>
+        </View>
+      ) : null}
+
+      {}
       <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
         {}
         <Pressable
-          onPressIn={onTalkPressIn}
-          onPressOut={onTalkPressOut}
-          disabled={phase === "speaking"}
-          style={[s.controlBtn, listening && s.controlBtnActive, phase === "speaking" && s.controlBtnDanger]}
+          onPress={toggleMic}
+          style={[
+            s.controlBtn,
+            micOn && phase === 'listening' && s.controlBtnActive,
+            phase === 'speaking' && s.controlBtnDanger,
+          ]}
         >
           <Text style={s.talkBtnText}>
-            {phase === "speaking" ? "응답 중..." : listening ? "듣는 중..." : "말하기"}
+            {!micOn
+              ? '마이크 꺼짐'
+              : phase === 'speaking'
+                ? '응답 중...'
+                : phase === 'listening'
+                  ? '듣는 중...'
+                  : '대기'}
           </Text>
         </Pressable>
 
@@ -807,6 +824,26 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
+  },
+
+  subtitleContainer: {
+    position: 'absolute',
+    bottom: 150,
+    left: 48,
+    right: 48,
+    alignItems: 'center',
+    zIndex: 15,
+  },
+  subtitleText: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '500',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    textAlign: 'center',
+    overflow: 'hidden',
   },
 
   giftOverlay: {
