@@ -15,6 +15,17 @@ const ALLOWED_TYPES = new Set([
   "image/png",
   "image/webp",
   "image/gif",
+
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/m4a",
+  "audio/aac",
+  "audio/webm",
+  "audio/ogg",
 ]);
 
 function generateKey(userId: number, contentType: string): string {
@@ -28,7 +39,19 @@ function generateKey(userId: number, contentType: string): string {
           ? ".webp"
           : contentType === "image/gif"
             ? ".gif"
-            : ".bin";
+            : contentType === "audio/mpeg" || contentType === "audio/mp3"
+              ? ".mp3"
+              : contentType === "audio/wav" || contentType === "audio/x-wav"
+                ? ".wav"
+                : contentType === "audio/mp4" || contentType === "audio/x-m4a" || contentType === "audio/m4a"
+                  ? ".m4a"
+                  : contentType === "audio/aac"
+                    ? ".aac"
+                    : contentType === "audio/webm"
+                      ? ".webm"
+                      : contentType === "audio/ogg"
+                        ? ".ogg"
+                        : ".bin";
   const r1 = Math.random().toString(36).slice(2, 10);
   const r2 = Math.random().toString(36).slice(2, 10);
   const t = Date.now().toString(36);
