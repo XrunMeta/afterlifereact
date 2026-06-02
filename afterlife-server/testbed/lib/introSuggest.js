@@ -35,6 +35,13 @@ export async function v_541b14({ profile: v_727031 }, v_3f4abd = v_5d4aed) {
     return '';
   }
   if (typeof v_479f05 !== 'string') return '';
-  const v_738e47 = v_479f05.replace(/\s+/g, ' ').trim().slice(0, v_87edf7);
+  let v_738e47 = v_479f05.replace(/\s+/g, ' ').trim();
+  if (v_738e47.length > v_87edf7) {
+    v_738e47 = v_738e47.slice(0, v_87edf7);
+
+    const v_4f5513 = v_738e47.lastIndexOf(' ');
+    if (v_4f5513 > 0) v_738e47 = v_738e47.slice(0, v_4f5513);
+    v_738e47 = v_738e47.trim();
+  }
   return v_738e47;
 }

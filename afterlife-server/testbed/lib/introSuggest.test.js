@@ -28,3 +28,23 @@ v_2a805f('suggestIntro — 빈/실패 응답이면 빈 문자열(throw 안 함)'
   const v_d6db99 = async () => '   ';
   v_ce93bd.equal(await v_541b14({ profile: {} }, v_d6db99), '');
 });
+
+v_2a805f('suggestIntro — 300자 초과 시 마지막 완전 토큰까지만(해시태그 중간 잘림 없음)', async () => {
+
+  const v_4d33b2 = '가'.repeat(280);
+  const v_bd1444 = '#해시태그가잘릴수있는긴단어';
+  const v_b04fb1 = `${v_4d33b2} ${v_bd1444}`; 
+  const v_95c618 = async () => v_b04fb1;
+  const v_456484 = await v_541b14({ profile: {} }, v_95c618);
+
+  v_ce93bd.ok(v_456484.length <= 300, `길이 초과: ${v_456484.length}`);
+
+  const v_ef86b6 = v_456484.split(' ');
+  const v_506e86 = v_ef86b6[v_ef86b6.length - 1];
+
+  v_ce93bd.ok(v_506e86 !== '#', `마지막 토큰이 '#' 단독: "${v_506e86}"`);
+
+  if (v_506e86.startsWith('#')) {
+    v_ce93bd.equal(v_506e86, v_bd1444, `불완전 해시태그 잔존: "${v_506e86}"`);
+  }
+});

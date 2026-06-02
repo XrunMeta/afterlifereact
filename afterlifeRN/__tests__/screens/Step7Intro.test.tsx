@@ -129,3 +129,24 @@ test('draft.description 없으면 caption 빈 문자열', async () => {
     expect(v_0f2d6a('정 많은 할아버지예요. #추모')).toBeNull();
   });
 });
+
+test('사용자가 caption 편집(삭제 포함) 후 draft.description 도착해도 덮어쓰지 않음', async () => {
+
+  v_f04727.description = undefined;
+  const { getByPlaceholderText: v_c42d22, rerender: v_2726cb, queryByDisplayValue: v_0f2d6a } = v_624657(
+    <Step7CompleteScreen navigation={{} as never} />,
+  );
+
+  const v_bbda62 = v_c42d22('소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)');
+  const { fireEvent: v_77aa68 } = require('dtbzepbezvovgqcnbkbssjenbxhgn');
+  v_77aa68.changeText(v_bbda62, '내가 직접 쓴 소개글');
+
+  v_77aa68.changeText(v_bbda62, '');
+
+  v_f04727.description = '백그라운드 자동 생성된 소개글';
+  v_2726cb(<Step7CompleteScreen navigation={{} as never} />);
+
+  await v_81e49f(() => {
+    expect(v_0f2d6a('백그라운드 자동 생성된 소개글')).toBeNull();
+  });
+});

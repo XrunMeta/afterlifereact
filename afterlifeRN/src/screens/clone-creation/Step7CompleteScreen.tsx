@@ -79,8 +79,10 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const [v_6044a8, v_1d6b6a] = v_5ab095(v_f04727.description ?? "");
 
+  const v_d9bc63 = v_e662ae(false);
+
   v_c4deb2(() => {
-    if (v_f04727.description && v_6044a8.trim().length === 0) {
+    if (v_f04727.description && v_6044a8.trim().length === 0 && !v_d9bc63.current) {
       v_1d6b6a(v_f04727.description);
     }
 
@@ -461,7 +463,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           <TextInput
             style={v_d81136.captionInput}
             value={v_6044a8}
-            onChangeText={v_1d6b6a}
+            onChangeText={(v_81e2ef) => { v_1d6b6a(v_81e2ef); v_d9bc63.current = true; }}
             placeholder="소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)"
             placeholderTextColor={v_1bfbd0.zinc400}
             multiline

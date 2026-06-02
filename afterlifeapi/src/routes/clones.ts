@@ -669,7 +669,7 @@ v_f891e6.post("/intro-suggest", v_6690d9, async (v_3f4e2e) => {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },
       body: JSON.stringify({ profile: v_727031 }),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(10000),
     });
     if (!v_cb35cb.ok) return v_3f4e2e.json({ intro: "" });
     const v_9390e8 = await v_cb35cb.json<{ intro?: string }>();
