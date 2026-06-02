@@ -441,11 +441,14 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
             </View>
           </View>
 
-          {
-}
-          <View style={v_d81136.previewBox}>
-            <Text style={v_d81136.previewText}>움직이는 페르소나로 보일 예정</Text>
-          </View>
+          {}
+          {v_f04727.imageFile ? (
+            <Image source={{ uri: v_f04727.imageFile }} style={v_d81136.previewBox} resizeMode="cover" />
+          ) : (
+            <View style={v_d81136.previewBox}>
+              <Text style={v_d81136.previewText}>사진을 먼저 등록해 주세요</Text>
+            </View>
+          )}
 
           {}
           <TextInput

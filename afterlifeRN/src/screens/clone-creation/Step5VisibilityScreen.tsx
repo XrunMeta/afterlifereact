@@ -6,7 +6,6 @@ import type { v_2b51a5 } from '../../navigation/types';
 import v_556baf from '../../components/ui/SafeView';
 import v_570c34 from '../../components/ui/SafeScrollView';
 import v_258c1c from '../../components/common/PageHeader';
-import v_3183b2 from '../../components/common/StepIndicator';
 import v_1a40c4 from '../../components/ui/Button';
 import { v_194498 } from '../../stores/cloneStore';
 import v_25b857 from './content/MemlowVisibility';
@@ -27,7 +26,6 @@ export default function v_f275b6({ navigation: v_c65f5d }: Props) {
     <SafeView backgroundColor={v_1bfbd0.white}>
       <PageHeader title={v_8d41d7("create.stepTitles.5")} showBackButton
         onBackPress={() => v_c65f5d.goBack()} />
-      <StepIndicator currentStep={4} totalSteps={6} />
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
         <Content draft={v_f04727} onChange={v_5795de} />
       </SafeScrollView>
