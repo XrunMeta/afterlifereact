@@ -238,10 +238,10 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
 
         const v_9bfd73 = v_ab6401.options_include ?? [];
         const v_2b7a6d = [...new Set([...v_9bfd73, ...v_cc1380])];
-        v_3d694a = v_2b7a6d.length > 0 ? [...v_2b7a6d, '직접 입력', '패스'] : ['직접 입력', '패스'];
+        v_3d694a = v_2b7a6d.length > 0 ? [...v_2b7a6d, '직접 입력', '건너뛰기'] : ['직접 입력', '건너뛰기'];
       }
       if (v_ab6401.type === 'fixed_choice' && (v_ab6401.optional !== false)) {
-        v_3d694a = [...v_3d694a, '패스'];
+        v_3d694a = [...v_3d694a, '건너뛰기'];
       }
 
       v_ae4844(`schema:${v_e86ad8}`);
@@ -264,12 +264,18 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
   }, []);
 
   const v_a5d353 = v_de06a3(
-    async (v_878e48, v_3b402b) => {
+    async (v_878e48, v_5c27e3, v_fac795) => {
       if (v_ab4803 !== 'sys:relation') return;
       v_add3fa(v_878e48);
-      v_13cb29(v_3b402b);
-      v_03f138.current.relation = v_3b402b;
+      v_13cb29(v_fac795);
 
+      if (v_5c27e3 === 'other') {
+        v_ae4844('sys:relation-custom');
+        await v_f76640('어떤 관계인지 직접 알려주세요!', undefined, 300);
+        return;
+      }
+
+      v_03f138.current.relation = v_5c27e3;
       await v_f76640(v_0ac987.relation, undefined, 400);
 
       const v_212049 = await v_45c941();
@@ -285,9 +291,9 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       if (v_d776c4 === null) return;
       v_add3fa(v_878e48);
 
-      if (v_3b402b === '패스') {
+      if (v_3b402b === '건너뛰기') {
 
-        v_13cb29('(패스)');
+        v_13cb29('(건너뛰기)');
 
         const v_a448ad = { ...v_03f138.current.schemaAnswers };
         delete v_a448ad[v_ab6401.key];
@@ -396,6 +402,19 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
       return;
     }
 
+    if (v_ab4803 === 'sys:relation-custom') {
+      if (!v_9b6134) return;
+      v_13cb29(v_9b6134);
+      v_03f138.current.relation = v_9b6134;
+      v_c31db7('');
+      await v_f76640(v_0ac987.relation, undefined, 400);
+      const v_212049 = await v_45c941();
+      const v_bf751c = v_212049 ?? [];
+      v_54a43f(v_bf751c);
+      await v_cdd940(0, v_bf751c);
+      return;
+    }
+
     if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
       if (!v_9b6134) return;
       const v_cf55be = v_c3519b.filter((v_ab6401) =>
@@ -429,12 +448,14 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     v_5795de,
     v_8d41d7,
     v_cdd940,
+    v_45c941,
   ]);
 
   const v_bc9d5f = (() => {
     if (v_ab4803 === 'sys:name') return true;
     if (v_ab4803 === 'sys:username') return true;
     if (v_ab4803 === 'sys:relation') return false; 
+    if (v_ab4803 === 'sys:relation-custom') return true; 
     if (!v_ab4803.startsWith('schema:') || v_d776c4 === null) return false;
     const v_cf55be = v_c3519b.filter((v_ab6401) =>
       v_a7e583(v_ab6401, v_03f138.current.schemaAnswers),
@@ -448,6 +469,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
   const v_064334 = (() => {
     if (v_ab4803 === 'sys:name') return v_3aa5d1.name;
     if (v_ab4803 === 'sys:username') return v_3aa5d1.username;
+    if (v_ab4803 === 'sys:relation-custom') return '예: 할아버지, 은사님, 동료...';
     if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
       const v_cf55be = v_c3519b.filter((v_ab6401) =>
         v_a7e583(v_ab6401, v_03f138.current.schemaAnswers),
@@ -473,6 +495,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
   const v_9399bb = (() => {
     if (v_ab4803 === 'sys:username') return !v_dff7ca; 
     if (v_ab4803 === 'sys:name') return v_bbda62.trim().length > 0;
+    if (v_ab4803 === 'sys:relation-custom') return v_bbda62.trim().length > 0;
     if (v_ab4803.startsWith('schema:')) return v_bbda62.trim().length > 0;
     return false;
   })();
@@ -550,7 +573,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
                           if (v_ab4803 === 'sys:relation') {
 
                             const v_ba70d8 = v_0a40d6.find((v_cb35cb) => v_8d41d7(v_cb35cb.label) === v_44aa64);
-                            await v_a5d353(v_35f85c.id, v_ba70d8 ? v_ba70d8.id : v_44aa64);
+                            await v_a5d353(v_35f85c.id, v_ba70d8 ? v_ba70d8.id : v_44aa64, v_44aa64);
                           } else if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
                             const v_cf55be = v_c3519b.filter((v_ab6401) =>
                               v_a7e583(v_ab6401, v_03f138.current.schemaAnswers),
@@ -599,6 +622,12 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
               placeholderTextColor={v_1bfbd0.zinc400}
               multiline={v_f05841}
               maxLength={v_f05841 ? 500 : 40}
+
+              autoCapitalize={v_ab4803 === 'sys:username' ? 'none' : 'sentences'}
+              autoCorrect={v_ab4803 !== 'sys:username'}
+              autoComplete={v_ab4803 === 'sys:username' ? 'off' : undefined}
+              keyboardType={v_ab4803 === 'sys:username' ? 'visible-password' : 'default'}
+              textContentType={v_ab4803 === 'sys:username' ? 'none' : undefined}
               editable={!v_199303 && !v_dff7ca}
               returnKeyType={v_f05841 ? 'default' : 'send'}
               onSubmitEditing={v_f05841 ? undefined : v_fbb22a}
