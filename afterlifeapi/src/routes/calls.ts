@@ -24,12 +24,28 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
   if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
   const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
 
-  if (!viewerRole && !clone.is_system) throw new APIError("FORBIDDEN", "No access to this clone for call.");
+  if (!viewerRole) throw new APIError("FORBIDDEN", "No access to this clone for call.");
 
   const l0 = await loadSystemPersona(c.env.DB);
   const { l1, l2 } = await loadCloneProfiles(c.env.DB, cloneId);
   const persona = resolvePersona({ l1: flattenAttrs(l1), l2 });
   const personaBundle = buildPersonaBundle(l0, persona, cloneId);
+
+  let voiceSeUrl: string | null = clone.voice_se_url ?? null;
+  let voiceSeKey: string | null = null;
+  if (!voiceSeUrl && clone.voice_preset_id) {
+    const vp = await c.env.DB
+      .prepare(`SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1`)
+      .bind(clone.voice_preset_id)
+      .first<{ se_key: string | null }>();
+    voiceSeKey = vp?.se_key ?? null;
+  }
+  const assets = {
+    idleVideoUrl: clone.idle_video_url ?? null,
+    voiceSeUrl,
+    voiceSeKey,
+    avatarUrl: clone.avatar_url ?? null,
+  };
 
   const orchUrl = c.env.ORCHESTRATOR_URL;
   let r: Response;
@@ -37,7 +53,7 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
     r = await fetch(`${orchUrl}/oth-path`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
-      body: JSON.stringify({ cloneId: String(cloneId), userId: String(userId), idleVideoUrl: null, personaBundle }),
+      body: JSON.stringify({ cloneId: String(cloneId), userId: String(userId), idleVideoUrl: null, personaBundle, assets }),
     });
   } catch (e) {
     throw new APIError("UPSTREAM_FAILURE", `Orchestrator unreachable: ${(e as Error).message}`);

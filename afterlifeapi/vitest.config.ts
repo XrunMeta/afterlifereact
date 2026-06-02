@@ -22,7 +22,12 @@ export default defineWorkersConfig(async () => {
             compatibilityDate: "2024-12-01",
             compatibilityFlags: ["nodejs_compat"],
 
-            bindings: { TEST_MIGRATIONS: migrations, ORCH_SECRET: "test-orch-secret" },
+            bindings: {
+              TEST_MIGRATIONS: migrations,
+              ORCH_SECRET: "test-orch-secret",
+
+              JWT_ACCESS_SECRET: "test-jwt-access-secret-for-vitest",
+            },
           },
         },
       },
