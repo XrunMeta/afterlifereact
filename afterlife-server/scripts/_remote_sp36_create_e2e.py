@@ -52,7 +52,8 @@ def req(method, path, token=None, body=None, extra_headers=None):
     """JSON 요청/응답 헬퍼. HTTPError도 (status, body_dict) 로 반환."""
     url = f"{API}{path}"
     data = json.dumps(body).encode() if body is not None else None
-    h = {"Content-Type": "application/json"}
+    # User-Agent 명시 — CF가 기본 Python-urllib UA를 봇으로 차단(403)하는 것 회피.
+    h = {"Content-Type": "application/json", "User-Agent": "afterlife-sp36-e2e/1.0"}
     if token:
         h["Authorization"] = f"Bearer {token}"
     if extra_headers:
@@ -108,6 +109,7 @@ def multipart_upload(path, token, file_path, mime_type, purpose=None):
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "User-Agent": "afterlife-sp36-e2e/1.0",
     }
 
     r = urllib.request.Request(url, data=body, headers=headers, method="POST")
@@ -141,15 +143,38 @@ def check(name, cond, detail=""):
 
 # ── 메인 ──────────────────────────────────────────────────────────
 
+def login(email, password):
+    # POST /oth-path → accessToken. preview secret 불필요(로그인이 토큰 발급).
+    st, body = req("POST", "/oth-path",
+                   body={"email": email, "password": password, "deviceId": "sp36-e2e-harness"})
+    if st != 200 or not body.get("accessToken"):
+        print(f"FAIL: login {st}: {body}")
+        sys.exit(1)
+    return body["accessToken"]
+
+
 def main():
+    # 토큰: DEV_TOKEN env 우선, 없으면 테스트 계정 로그인.
+    # 테스트 계정(공개 무방·교체 예정) — E2E_EMAIL/E2E_PASSWORD env로 오버라이드 가능.
     token = os.environ.get("DEV_TOKEN")
     if not token:
-        print(
-            "FAIL: DEV_TOKEN env 필요.\n"
-            "발급: afterlifeapi/ 에서\n"
-            "  JWT_ACCESS_SECRET=<secret> DEV_USER_ID=<uid> npx tsx scripts/mint-dev-token.ts"
-        )
-        sys.exit(1)
+        email = os.environ.get("E2E_EMAIL", "oth-test@example.invalid")
+        password = os.environ.get("E2E_PASSWORD", "oth-password")
+        token = login(email, password)
+        check("[0] login 200 (accessToken)", True, f"email={email}")
+
+    # ── [0.5] 테스트 계정 기존 클론 정리 (quota 회복, 반복 자율) ──────
+    # 테스트 전용 계정이라 기존 클론 전부 soft-delete. 4개 한도(QUOTA) 회복.
+    st_m, mine = req("GET", "/oth-path", token)
+    existing = mine.get("items", []) if isinstance(mine, dict) else []
+    deleted = 0
+    for cl in existing:
+        cid = cl.get("id")
+        if cid:
+            ds, _ = req("DELETE", f"/oth-path", token)
+            if ds in (200, 204):
+                deleted += 1
+    check("[0.5] 기존 클론 정리", True, f"found={len(existing)} deleted={deleted}")
 
     # ── [1] 페르소나 질문 스키마 조회 ─────────────────────────────
     st, qs = req("GET", "/oth-path", token)
