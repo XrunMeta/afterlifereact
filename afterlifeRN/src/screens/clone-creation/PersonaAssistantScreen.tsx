@@ -244,6 +244,10 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         buttons = [...buttons, '건너뛰기'];
       }
 
+      if (q.type === 'text' && (q.optional !== false)) {
+        buttons = ['건너뛰기'];
+      }
+
       setPhase(`schema:${idx}`);
       await pushAi(q.label, buttons.length > 0 ? buttons : undefined);
     },
