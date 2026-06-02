@@ -51,13 +51,22 @@ function makeMockAudioSession() {
   };
 }
 
-function deps(pc: ReturnType<typeof makeMockPc>, audioSession = makeMockAudioSession()) {
+type DepsOverrides = {
+  sayInCall?: jest.Mock;
+};
+
+function deps(
+  pc: ReturnType<typeof makeMockPc>,
+  audioSession = makeMockAudioSession(),
+  overrides: DepsOverrides = {},
+) {
   return {
     startCall: jest.fn().mockResolvedValue(ticket),
     endCall: jest.fn().mockResolvedValue({ ok: true }),
     sayInCall: jest.fn().mockResolvedValue({ ok: true }),
     createPeerConnection: jest.fn().mockReturnValue(pc),
     audioSession,
+    ...overrides,
   };
 }
 
@@ -391,6 +400,44 @@ describe('useLiveAvatar', () => {
       sayInCallMock.mockResolvedValue({ ok: true });
       await act(async () => { await result.current.say('재시도 테스트'); });
       expect(result.current.phase).toBe('speaking');
+    });
+  });
+
+  describe('VAD 확장 (notifySpeechEnd / getStatsReport)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('notifySpeechEnd: say 후 speaking → notifySpeechEnd 호출 시 phase=idle', async () => {
+      jest.useFakeTimers();
+      mockSubscribeFetch();
+      const pc = makeMockPc();
+      const sayInCall = jest.fn().mockResolvedValue(undefined);
+      const { result } = renderHook(() =>
+        useLiveAvatar({ cloneId: 1, accessToken: 't', deps: deps(pc, undefined, { sayInCall }) }),
+      );
+      await act(async () => { await result.current.start(); });
+      await act(async () => { await result.current.say('안녕'); });
+      expect(result.current.phase).toBe('speaking');
+      act(() => { result.current.notifySpeechEnd(); });
+      expect(result.current.phase).toBe('idle');
+    });
+
+    it('getStatsReport: pc.getStats를 위임 호출, 통화 없으면 null', async () => {
+      mockSubscribeFetch();
+      const pc = makeMockPc();
+      const fakeReport: Array<[string, Record<string, unknown>]> = [
+        ['a', { type: 'inbound-rtp', kind: 'audio', audioLevel: 0.3 }],
+      ];
+      (pc as unknown as { getStats: jest.Mock }).getStats = jest.fn().mockResolvedValue(fakeReport);
+      const { result } = renderHook(() =>
+        useLiveAvatar({ cloneId: 1, accessToken: 't', deps: deps(pc) }),
+      );
+      expect(result.current.getStatsReport()).toBeNull();
+      await act(async () => { await result.current.start(); });
+      const p = result.current.getStatsReport();
+      expect(p).not.toBeNull();
+      await expect(p as Promise<unknown>).resolves.toBe(fakeReport);
     });
   });
 });

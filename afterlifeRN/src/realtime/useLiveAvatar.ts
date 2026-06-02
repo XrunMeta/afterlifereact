@@ -29,6 +29,7 @@ export interface LivePeerConnection {
   setRemoteDescription(desc: RTCSessionDescription): Promise<void>;
   createAnswer(): Promise<{ type?: string; sdp?: string }>;
   setLocalDescription(desc: { type?: string; sdp?: string }): Promise<void>;
+  getStats?: () => Promise<Iterable<[string, Record<string, unknown>]>>;
   close(): void;
 }
 
@@ -105,6 +106,20 @@ export function useLiveAvatar(opts: {
       setPhase('idle');
     }
   }, [accessToken, cloneId, deps, phase]);
+
+  const notifySpeechEnd = useCallback(() => {
+    if (speakTimer.current) {
+      clearTimeout(speakTimer.current);
+      speakTimer.current = null;
+    }
+    setPhase('idle');
+  }, []);
+
+  const getStatsReport = useCallback((): Promise<Iterable<[string, Record<string, unknown>]>> | null => {
+    const pc = pcRef.current;
+    if (!pc || typeof pc.getStats !== 'function') return null;
+    return pc.getStats();
+  }, []);
 
   const stop = useCallback(async () => {
     genRef.current += 1; 
@@ -244,5 +259,5 @@ export function useLiveAvatar(opts: {
 
   }, []);
 
-  return { state, remoteStream, error, start, stop, phase, say };
+  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport };
 }
