@@ -77,7 +77,14 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const v_6de415 = v_e662ae<string | undefined>(undefined);
 
-  const [v_6044a8, v_1d6b6a] = v_5ab095("");
+  const [v_6044a8, v_1d6b6a] = v_5ab095(v_f04727.description ?? "");
+
+  v_c4deb2(() => {
+    if (v_f04727.description && v_6044a8.trim().length === 0) {
+      v_1d6b6a(v_f04727.description);
+    }
+
+  }, [v_f04727.description]);
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
   const v_140aea = v_de06a3(
