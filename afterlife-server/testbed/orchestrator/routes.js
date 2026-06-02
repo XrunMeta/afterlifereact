@@ -3,6 +3,7 @@ import v_b070ed from 'hikhkjexnsh';
 import { v_458d35 } from './sayStore.js';
 import { v_3a60ca as v_8e7d64 } from './chatRelay.js';
 import { v_228e13 } from '../lib/personaSuggest.js';
+import { v_541b14 } from '../lib/introSuggest.js';
 
 const v_b74136 = (v_f31c63) => `http://127.0.0.1:${v_f31c63}`;
 
@@ -97,6 +98,16 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
       v_8f00b9.json({ suggestions: v_de1ba7 });
     } catch (v_9e86fd) {
       v_8f00b9.status(500).json({ error: 'suggest_failed' });
+    }
+  });
+
+  v_904d46.post('/oth-path', v_99be57, async (v_309144, v_8f00b9) => {
+    try {
+      const { profile: v_727031 = {} } = v_309144.body ?? {};
+      const v_456484 = await v_541b14({ profile: v_727031 });
+      v_8f00b9.json({ intro: v_456484 });
+    } catch {
+      v_8f00b9.status(500).json({ error: 'intro_failed' });
     }
   });
 
