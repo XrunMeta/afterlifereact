@@ -20,6 +20,7 @@ import { useAuthStore } from "../../../stores/authStore";
 import { useCloneStore } from "../../../stores/cloneStore";
 import { listMyClones } from "../../../api/clones";
 import { getXrunBalance } from "../../../api/payments";
+import { API_BASE, API_BASE_PREVIEW } from "../../../config/apiBase";
 
 const PERSONA_PAID_PRICE_XRUN = 100;
 
@@ -90,6 +91,9 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   const insufficient =
     balance !== null && balance < PERSONA_PAID_PRICE_XRUN;
 
+  const isPreviewEnv = API_BASE === API_BASE_PREVIEW;
+  const blockInput = insufficient && !isPreviewEnv;
+
   const handleCancel = () => {
     console.log("[PaymentGate] cancel tapped");
     Keyboard.dismiss();
@@ -98,7 +102,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
 
   const handleConfirm = () => {
 
-    if (insufficient) return;
+    if (blockInput) return;
     if (pin.length !== 6) {
       setError("PIN 6자리를 입력해주세요.");
       return;
@@ -149,7 +153,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
               </Text>
             )}
             <TextInput
-              style={[styles.input, insufficient && styles.inputDisabled]}
+              style={[styles.input, blockInput && styles.inputDisabled]}
               value={pin}
               onChangeText={(v) => {
                 setPin(v.replace(/\D/g, "").slice(0, 6));
@@ -160,8 +164,8 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
               keyboardType="number-pad"
               secureTextEntry
               maxLength={6}
-              autoFocus={!insufficient}
-              editable={!insufficient}
+              autoFocus={!blockInput}
+              editable={!blockInput}
             />
             {error && <Text style={styles.error}>{error}</Text>}
             <View style={styles.btns}>
@@ -176,10 +180,10 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
               <TouchableOpacity
                 style={[
                   styles.confirm,
-                  (pin.length !== 6 || insufficient) && styles.disabled,
+                  (pin.length !== 6 || blockInput) && styles.disabled,
                 ]}
                 onPress={handleConfirm}
-                disabled={pin.length !== 6 || insufficient}
+                disabled={pin.length !== 6 || blockInput}
               >
                 <Text style={styles.confirmText}>
                   {`${PERSONA_PAID_PRICE_XRUN} XRUN 결제`}

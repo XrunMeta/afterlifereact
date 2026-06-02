@@ -441,11 +441,14 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             </View>
           </View>
 
-          {
-}
-          <View style={styles.previewBox}>
-            <Text style={styles.previewText}>움직이는 페르소나로 보일 예정</Text>
-          </View>
+          {}
+          {draft.imageFile ? (
+            <Image source={{ uri: draft.imageFile }} style={styles.previewBox} resizeMode="cover" />
+          ) : (
+            <View style={styles.previewBox}>
+              <Text style={styles.previewText}>사진을 먼저 등록해 주세요</Text>
+            </View>
+          )}
 
           {}
           <TextInput
