@@ -655,6 +655,40 @@ clones.post("/persona-suggest", requireAuth, async (c) => {
   }
 });
 
+clones.post("/intro-suggest", requireAuth, async (c) => {
+
+  if (!c.env.ORCHESTRATOR_URL || !c.env.ORCH_SECRET) return c.json({ intro: "" });
+  const raw = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+
+  const profile = {
+    name: typeof raw.name === "string" ? raw.name.slice(0, 80) : undefined,
+    relation: typeof raw.relation === "string" ? raw.relation.slice(0, 40) : undefined,
+    personaAnswers:
+      raw.personaAnswers && typeof raw.personaAnswers === "object"
+        ? Object.fromEntries(
+            Object.entries(raw.personaAnswers as Record<string, unknown>)
+              .filter(([k, v]) => typeof k === "string" && typeof v === "string")
+              .slice(0, 20)
+              .map(([k, v]) => [k.slice(0, 50), (v as string).slice(0, 500)]),
+          )
+        : {},
+  };
+  try {
+    const r = await fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) return c.json({ intro: "" });
+    const data = await r.json<{ intro?: string }>();
+    return c.json({ intro: typeof data.intro === "string" ? data.intro : "" });
+  } catch {
+
+    return c.json({ intro: "" });
+  }
+});
+
 clones.get("/:id", async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {

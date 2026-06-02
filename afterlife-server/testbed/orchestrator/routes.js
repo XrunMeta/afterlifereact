@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { createSayStore } from './sayStore.js';
 import { runChatRelay as defaultRunChatRelay } from './chatRelay.js';
 import { suggestPersonaChoices } from '../lib/personaSuggest.js';
+import { suggestIntro } from '../lib/introSuggest.js';
 
 const PUB = (port) => `http://127.0.0.1:${port}`;
 
@@ -97,6 +98,16 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
       res.json({ suggestions });
     } catch (e) {
       res.status(500).json({ error: 'suggest_failed' });
+    }
+  });
+
+  router.post('/oth-path', requireSecret, async (req, res) => {
+    try {
+      const { profile = {} } = req.body ?? {};
+      const intro = await suggestIntro({ profile });
+      res.json({ intro });
+    } catch {
+      res.status(500).json({ error: 'intro_failed' });
     }
   });
 

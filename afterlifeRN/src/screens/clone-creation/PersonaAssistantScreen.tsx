@@ -36,6 +36,7 @@ import {
   deriveUsernameFromName,
   getPersonaQuestions,
   personaSuggest,
+  introSuggest,
 } from '../../api/clones';
 import { MEMLOW_RELATIONS } from '../../mocks/cloneTypeCatalog';
 import type { PersonaQuestion } from '../../types/clone';
@@ -213,12 +214,25 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         setPhase('done');
         await pushAi('다 들었어요! 이제 다음 단계로 갈게요.', undefined, 500);
         setTimeout(() => {
+          const answers = answersRef.current;
           setCreationDraft({
-            name: answersRef.current.name,
-            username: answersRef.current.username,
-            relation: answersRef.current.relation as never,
-            personaAnswers: answersRef.current.schemaAnswers,
+            name: answers.name,
+            username: answers.username,
+            relation: answers.relation as never,
+            personaAnswers: answers.schemaAnswers,
           });
+
+          if (accessToken) {
+            introSuggest(accessToken, {
+              name: answers.name,
+              relation: answers.relation,
+              personaAnswers: answers.schemaAnswers,
+            })
+              .then((intro) => {
+                if (intro) setCreationDraft({ description: intro });
+              })
+              .catch(() => {});
+          }
           navigation.navigate('Step3');
         }, 800);
         return;

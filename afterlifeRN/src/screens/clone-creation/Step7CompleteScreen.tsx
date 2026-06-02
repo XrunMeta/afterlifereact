@@ -77,7 +77,16 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   const avatarUrlRef = useRef<string | undefined>(undefined);
 
-  const [caption, setCaption] = useState("");
+  const [caption, setCaption] = useState(draft.description ?? "");
+
+  const captionTouchedRef = useRef(false);
+
+  useEffect(() => {
+    if (draft.description && caption.trim().length === 0 && !captionTouchedRef.current) {
+      setCaption(draft.description);
+    }
+
+  }, [draft.description]);
   const [posting, setPosting] = useState(false);
 
   const attemptCreate = useCallback(
@@ -454,7 +463,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           <TextInput
             style={styles.captionInput}
             value={caption}
-            onChangeText={setCaption}
+            onChangeText={(v) => { setCaption(v); captionTouchedRef.current = true; }}
             placeholder="소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)"
             placeholderTextColor={COLORS.zinc400}
             multiline
