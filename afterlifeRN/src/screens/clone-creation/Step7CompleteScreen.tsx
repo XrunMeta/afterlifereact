@@ -77,7 +77,14 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   const avatarUrlRef = useRef<string | undefined>(undefined);
 
-  const [caption, setCaption] = useState("");
+  const [caption, setCaption] = useState(draft.description ?? "");
+
+  useEffect(() => {
+    if (draft.description && caption.trim().length === 0) {
+      setCaption(draft.description);
+    }
+
+  }, [draft.description]);
   const [posting, setPosting] = useState(false);
 
   const attemptCreate = useCallback(

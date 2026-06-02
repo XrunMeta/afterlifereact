@@ -137,6 +137,24 @@ export async function personaSuggest(
   }
 }
 
+export async function introSuggest(
+  accessToken: string,
+  profile: { name?: string; relation?: string; personaAnswers?: Record<string, string> },
+): Promise<string> {
+  try {
+    const res = await fetch(`${API_BASE}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(profile),
+    });
+    if (!res.ok) return "";
+    const body = (await res.json()) as { intro?: string };
+    return typeof body.intro === "string" ? body.intro : "";
+  } catch {
+    return "";
+  }
+}
+
 export async function createClone(
   accessToken: string,
   payload: CreateClonePayload,
