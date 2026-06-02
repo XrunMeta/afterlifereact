@@ -36,6 +36,7 @@ import {
   v_b55477,
   v_61a853,
   v_4bf019,
+  v_be66ca,
 } from '../../api/clones';
 import { v_0a40d6 } from '../../mocks/cloneTypeCatalog';
 import type { v_c8af29 } from '../../types/clone';
@@ -213,12 +214,25 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         v_ae4844('done');
         await v_f76640('다 들었어요! 이제 다음 단계로 갈게요.', undefined, 500);
         setTimeout(() => {
+          const v_00da68 = v_03f138.current;
           v_5795de({
-            name: v_03f138.current.name,
-            username: v_03f138.current.username,
-            relation: v_03f138.current.relation as never,
-            personaAnswers: v_03f138.current.schemaAnswers,
+            name: v_00da68.name,
+            username: v_00da68.username,
+            relation: v_00da68.relation as never,
+            personaAnswers: v_00da68.schemaAnswers,
           });
+
+          if (v_2ca7e0) {
+            v_be66ca(v_2ca7e0, {
+              name: v_00da68.name,
+              relation: v_00da68.relation,
+              personaAnswers: v_00da68.schemaAnswers,
+            })
+              .then((v_456484) => {
+                if (v_456484) v_5795de({ description: v_456484 });
+              })
+              .catch(() => {});
+          }
           v_c65f5d.navigate('Step3');
         }, 800);
         return;

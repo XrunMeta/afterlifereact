@@ -137,6 +137,24 @@ export async function v_4bf019(
   }
 }
 
+export async function v_be66ca(
+  v_2ca7e0,
+  v_727031,
+): Promise<string> {
+  try {
+    const v_8f00b9 = await fetch(`${v_cc9198}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_2ca7e0}` },
+      body: JSON.stringify(v_727031),
+    });
+    if (!v_8f00b9.ok) return "";
+    const v_4d33b2 = (await v_8f00b9.json()) as { intro?: string };
+    return typeof v_4d33b2.intro === "string" ? v_4d33b2.intro : "";
+  } catch {
+    return "";
+  }
+}
+
 export async function v_39eaf5(
   v_2ca7e0,
   v_931bf0,

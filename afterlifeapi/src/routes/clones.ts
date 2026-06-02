@@ -646,6 +646,40 @@ v_f891e6.post("/persona-suggest", v_6690d9, async (v_3f4e2e) => {
   }
 });
 
+v_f891e6.post("/intro-suggest", v_6690d9, async (v_3f4e2e) => {
+
+  if (!v_3f4e2e.env.ORCHESTRATOR_URL || !v_3f4e2e.env.ORCH_SECRET) return v_3f4e2e.json({ intro: "" });
+  const v_479f05 = await v_3f4e2e.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+
+  const v_727031 = {
+    name: typeof v_479f05.name === "string" ? v_479f05.name.slice(0, 80) : undefined,
+    relation: typeof v_479f05.relation === "string" ? v_479f05.relation.slice(0, 40) : undefined,
+    personaAnswers:
+      v_479f05.personaAnswers && typeof v_479f05.personaAnswers === "object"
+        ? Object.fromEntries(
+            Object.entries(v_479f05.personaAnswers as Record<string, unknown>)
+              .filter(([v_0eb677, v_81e2ef]) => typeof v_0eb677 === "string" && typeof v_81e2ef === "string")
+              .slice(0, 20)
+              .map(([v_0eb677, v_81e2ef]) => [v_0eb677.slice(0, 50), (v_81e2ef as string).slice(0, 500)]),
+          )
+        : {},
+  };
+  try {
+    const v_cb35cb = await fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile: v_727031 }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!v_cb35cb.ok) return v_3f4e2e.json({ intro: "" });
+    const v_9390e8 = await v_cb35cb.json<{ intro?: string }>();
+    return v_3f4e2e.json({ intro: typeof v_9390e8.intro === "string" ? v_9390e8.intro : "" });
+  } catch {
+
+    return v_3f4e2e.json({ intro: "" });
+  }
+});
+
 v_f891e6.get("/:id", async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
