@@ -20,6 +20,7 @@ import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_194498 } from "../../../stores/cloneStore";
 import { v_d60cdf } from "../../../api/clones";
 import { v_5c99c1 } from "../../../api/payments";
+import { v_cc9198, v_138fd4 } from "../../../config/apiBase";
 
 const v_c02c4c = 100;
 
@@ -90,6 +91,9 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   const v_f6096a =
     v_c88e9b !== null && v_c88e9b < v_c02c4c;
 
+  const v_04539c = v_cc9198 === v_138fd4;
+  const v_cae92d = v_f6096a && !v_04539c;
+
   const v_5ca23e = () => {
     console.log("[PaymentGate] cancel tapped");
     v_0e1f26.dismiss();
@@ -98,7 +102,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
 
   const v_03cae9 = () => {
 
-    if (v_f6096a) return;
+    if (v_cae92d) return;
     if (v_6bee94.length !== 6) {
       v_3a7d09("PIN 6자리를 입력해주세요.");
       return;
@@ -149,7 +153,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
               </Text>
             )}
             <TextInput
-              style={[v_d81136.input, v_f6096a && v_d81136.inputDisabled]}
+              style={[v_d81136.input, v_cae92d && v_d81136.inputDisabled]}
               value={v_6bee94}
               onChangeText={(v_81e2ef) => {
                 v_240fbf(v_81e2ef.replace(/\D/g, "").slice(0, 6));
@@ -160,8 +164,8 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
               keyboardType="number-pad"
               secureTextEntry
               maxLength={6}
-              autoFocus={!v_f6096a}
-              editable={!v_f6096a}
+              autoFocus={!v_cae92d}
+              editable={!v_cae92d}
             />
             {v_5e9bfe && <Text style={v_d81136.error}>{v_5e9bfe}</Text>}
             <View style={v_d81136.btns}>
@@ -176,10 +180,10 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
               <TouchableOpacity
                 style={[
                   v_d81136.confirm,
-                  (v_6bee94.length !== 6 || v_f6096a) && v_d81136.disabled,
+                  (v_6bee94.length !== 6 || v_cae92d) && v_d81136.disabled,
                 ]}
                 onPress={v_03cae9}
-                disabled={v_6bee94.length !== 6 || v_f6096a}
+                disabled={v_6bee94.length !== 6 || v_cae92d}
               >
                 <Text style={v_d81136.confirmText}>
                   {`${v_c02c4c} XRUN 결제`}

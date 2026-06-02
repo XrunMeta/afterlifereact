@@ -244,6 +244,10 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         v_3d694a = [...v_3d694a, '건너뛰기'];
       }
 
+      if (v_ab6401.type === 'text' && (v_ab6401.optional !== false)) {
+        v_3d694a = ['건너뛰기'];
+      }
+
       v_ae4844(`schema:${v_e86ad8}`);
       await v_f76640(v_ab6401.label, v_3d694a.length > 0 ? v_3d694a : undefined);
     },

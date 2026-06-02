@@ -11,7 +11,6 @@ import v_1a40c4 from '../../components/ui/Button';
 import { v_194498 } from '../../stores/cloneStore';
 import v_922cea from './content/MemlowImageUpload';
 import v_a6e1ad from './content/DefaultImageUpload';
-import v_286084 from './components/PersonaCreationPaymentGate';
 import { v_1bfbd0, v_9b1a04 } from '../../components/constants';
 
 type Props = { navigation: v_390fcc<v_2b51a5, 'Step3'> };
@@ -22,24 +21,8 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
   const v_5795de = v_194498(v_fd5f43 => v_fd5f43.setCreationDraft);
   const [v_555f2e, v_4eb0c7] = v_5ab095(true);
 
-  const [v_5d6442, v_2e6560] = v_5ab095(false);
-
   const v_b94c69 = v_f04727.cloneType === 'memlow' ? v_922cea : v_a6e1ad;
   const v_04fddf = v_b94c69.validate(v_f04727);
-
-  if (!v_5d6442) {
-    return (
-      <SafeView backgroundColor={v_1bfbd0.white}>
-        <PersonaCreationPaymentGate
-          onProceed={() => v_2e6560(true)}
-          onCancel={() => {
-
-            v_c65f5d.getParent()?.navigate("HomeTab" as never);
-          }}
-        />
-      </SafeView>
-    );
-  }
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
