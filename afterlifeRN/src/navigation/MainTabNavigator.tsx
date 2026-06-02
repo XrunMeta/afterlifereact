@@ -180,8 +180,8 @@ export default function v_19ba0e() {
                     state: {
                       routes: [
                         {
-                          name: "Step3" as const,
-                          key: `Step3-${Date.now()}`,
+                          name: "PersonaAssistant" as const,
+                          key: `PersonaAssistant-${Date.now()}`,
                         },
                       ],
                       index: 0,

@@ -205,34 +205,41 @@ v_f891e6.post(
         });
       }
 
-      const v_72b02d = v_3f4e2e.env.COMPANY_CHARGE_WALLET;
-      if (!v_72b02d) {
-        throw new v_3ebe58("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
-      }
-      const v_3645f3 = await v_a1651b
-        .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-        .bind(v_43e90c)
-        .first<{ xrun_member_id: number | null }>();
-      if (!v_3645f3?.xrun_member_id) {
-        throw new v_3ebe58("CONFLICT", "xrun 계정이 연동되어 있지 않아요.");
-      }
-      const v_a832b3 = Number(v_3f4e2e.env.PAYMENT_CURRENCY ?? "18") || 18;
-      const { externalTransferSplit: v_7a6fc0 } = await import("../lib/xrun");
-      const v_e69235 = await v_7a6fc0(v_3f4e2e.env, {
-        fromMember: v_3645f3.xrun_member_id,
-        recipients: [{ toAddress: v_72b02d, amount: String(v_c02c4c) }],
-        currency: v_a832b3,
-        pin: v_4d33b2.pin,
-        source: "afterlife.persona-create",
-      });
-      if (!v_e69235.ok) {
-        if (v_e69235.code === 401 || v_e69235.code === 403) {
-          throw new v_3ebe58("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+      const v_1111d7 = (v_3f4e2e.env as unknown as { DEV_PAYMENT_BYPASS_PIN?: string }).DEV_PAYMENT_BYPASS_PIN;
+      if (!v_1111d7 || v_4d33b2.pin !== v_1111d7) {
+
+        const v_72b02d = v_3f4e2e.env.COMPANY_CHARGE_WALLET;
+        if (!v_72b02d) {
+          throw new v_3ebe58("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
         }
-        if (v_e69235.code === 402) {
-          throw new v_3ebe58("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
+        const v_3645f3 = await v_a1651b
+          .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+          .bind(v_43e90c)
+          .first<{ xrun_member_id: number | null }>();
+        if (!v_3645f3?.xrun_member_id) {
+          throw new v_3ebe58("CONFLICT", "xrun 계정이 연동되어 있지 않아요.");
         }
-        throw new v_3ebe58("UPSTREAM_FAILURE", v_e69235.reason ?? "xrun transfer error");
+        const v_a832b3 = Number(v_3f4e2e.env.PAYMENT_CURRENCY ?? "18") || 18;
+        const { externalTransferSplit: v_7a6fc0 } = await import("../lib/xrun");
+        const v_e69235 = await v_7a6fc0(v_3f4e2e.env, {
+          fromMember: v_3645f3.xrun_member_id,
+          recipients: [{ toAddress: v_72b02d, amount: String(v_c02c4c) }],
+          currency: v_a832b3,
+          pin: v_4d33b2.pin,
+          source: "afterlife.persona-create",
+        });
+        if (!v_e69235.ok) {
+          if (v_e69235.code === 401 || v_e69235.code === 403) {
+            throw new v_3ebe58("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+          }
+          if (v_e69235.code === 402) {
+            throw new v_3ebe58("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
+          }
+          throw new v_3ebe58("UPSTREAM_FAILURE", v_e69235.reason ?? "xrun transfer error");
+        }
+      } else {
+
+        console.warn("[DEV_BYPASS] persona payment skipped via bypass PIN, userId=", v_43e90c);
       }
     }
 
