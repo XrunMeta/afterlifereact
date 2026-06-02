@@ -28,3 +28,23 @@ test('suggestIntro — 빈/실패 응답이면 빈 문자열(throw 안 함)', as
   const empty = async () => '   ';
   assert.equal(await suggestIntro({ profile: {} }, empty), '');
 });
+
+test('suggestIntro — 300자 초과 시 마지막 완전 토큰까지만(해시태그 중간 잘림 없음)', async () => {
+
+  const body = '가'.repeat(280);
+  const tag = '#해시태그가잘릴수있는긴단어';
+  const longRaw = `${body} ${tag}`; 
+  const fakeLong = async () => longRaw;
+  const intro = await suggestIntro({ profile: {} }, fakeLong);
+
+  assert.ok(intro.length <= 300, `길이 초과: ${intro.length}`);
+
+  const tokens = intro.split(' ');
+  const last = tokens[tokens.length - 1];
+
+  assert.ok(last !== '#', `마지막 토큰이 '#' 단독: "${last}"`);
+
+  if (last.startsWith('#')) {
+    assert.equal(last, tag, `불완전 해시태그 잔존: "${last}"`);
+  }
+});

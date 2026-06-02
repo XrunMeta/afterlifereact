@@ -79,8 +79,10 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   const [caption, setCaption] = useState(draft.description ?? "");
 
+  const captionTouchedRef = useRef(false);
+
   useEffect(() => {
-    if (draft.description && caption.trim().length === 0) {
+    if (draft.description && caption.trim().length === 0 && !captionTouchedRef.current) {
       setCaption(draft.description);
     }
 
@@ -461,7 +463,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           <TextInput
             style={styles.captionInput}
             value={caption}
-            onChangeText={setCaption}
+            onChangeText={(v) => { setCaption(v); captionTouchedRef.current = true; }}
             placeholder="소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)"
             placeholderTextColor={COLORS.zinc400}
             multiline

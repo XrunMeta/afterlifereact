@@ -35,6 +35,13 @@ export async function suggestIntro({ profile }, chatOnce = defaultChatOnce) {
     return '';
   }
   if (typeof raw !== 'string') return '';
-  const cleaned = raw.replace(/\s+/g, ' ').trim().slice(0, MAX_LEN);
+  let cleaned = raw.replace(/\s+/g, ' ').trim();
+  if (cleaned.length > MAX_LEN) {
+    cleaned = cleaned.slice(0, MAX_LEN);
+
+    const lastSpace = cleaned.lastIndexOf(' ');
+    if (lastSpace > 0) cleaned = cleaned.slice(0, lastSpace);
+    cleaned = cleaned.trim();
+  }
   return cleaned;
 }

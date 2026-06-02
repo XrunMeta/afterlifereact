@@ -25,7 +25,8 @@
 #   DEV_TOKEN=<token> python3 _remote_sp36_create_e2e.py
 #   DEV_TOKEN=<token> API_BASE=https://... python3 _remote_sp36_create_e2e.py
 #
-# 주의: preview api에 intro-suggest 라우트가 배포된 후 실행. 쿠로가 배포 후 실행.
+# 주의: Phase B 배포 후 실행 — intro-suggest 라우트가 preview api에 배포된 상태에서만 정상 통과.
+#        배포 전 실행 시 [5] intro-suggest 가 FAIL 로 집계됨(의도된 동작).
 # -------------------------------------------------------------------
 
 import json
@@ -196,21 +197,17 @@ def main():
           f"status={st4} keys={list(suggestions.keys())}")
 
     # ── [5] intro-suggest (소개글 — SP3.6 신규) ──────────────────
-    #   gabia 미배포 시 빈 intro 반환(200) — non-fatal.
+    #   Phase B 배포 후 실행 전제 — 200=PASS, 그 외(404 포함)=FAIL.
     st5, ir = req("POST", "/oth-path", token, {
         "name": "할배E2E",
         "relation": "grandfather",
         "personaAnswers": persona_answers,
     })
     intro = ir.get("intro", "")
-    if st5 == 200:
-        check("[5] intro-suggest 200", True,
-              f"intro='{intro[:60]}...'" if len(intro) > 60 else f"intro='{intro}'")
-    else:
-        # 404 = 아직 배포 전. 빈 intro로 계속 — createClone description 생략.
-        check("[5] intro-suggest (라우트 미배포 — non-fatal)", True,
-              f"status={st5} → intro='' 로 계속")
-        intro = ""
+    check("[5] intro-suggest 200", st5 == 200,
+          f"status={st5} intro='{intro[:60]}...'" if st5 == 200 and len(intro) > 60
+          else f"status={st5} intro='{intro}'" if st5 == 200
+          else f"status={st5} body={json.dumps(ir)[:80]}")
 
     # ── [6] createClone (pin 424242 우회) ────────────────────────
     uname = f"halbaee2e{int(time.time())}"

@@ -678,7 +678,7 @@ clones.post("/intro-suggest", requireAuth, async (c) => {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
       body: JSON.stringify({ profile }),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(10000),
     });
     if (!r.ok) return c.json({ intro: "" });
     const data = await r.json<{ intro?: string }>();

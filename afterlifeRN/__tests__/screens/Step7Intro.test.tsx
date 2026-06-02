@@ -129,3 +129,24 @@ test('draft.description 없으면 caption 빈 문자열', async () => {
     expect(queryByDisplayValue('정 많은 할아버지예요. #추모')).toBeNull();
   });
 });
+
+test('사용자가 caption 편집(삭제 포함) 후 draft.description 도착해도 덮어쓰지 않음', async () => {
+
+  draft.description = undefined;
+  const { getByPlaceholderText, rerender, queryByDisplayValue } = render(
+    <Step7CompleteScreen navigation={{} as never} />,
+  );
+
+  const input = getByPlaceholderText('소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)');
+  const { fireEvent } = require('@testing-library/react-native');
+  fireEvent.changeText(input, '내가 직접 쓴 소개글');
+
+  fireEvent.changeText(input, '');
+
+  draft.description = '백그라운드 자동 생성된 소개글';
+  rerender(<Step7CompleteScreen navigation={{} as never} />);
+
+  await waitFor(() => {
+    expect(queryByDisplayValue('백그라운드 자동 생성된 소개글')).toBeNull();
+  });
+});
