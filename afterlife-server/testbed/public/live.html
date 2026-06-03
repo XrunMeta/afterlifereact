@@ -94,9 +94,18 @@
   <main class="live-wrap">
     <video id="liveVideo" class="live-video" playsinline autoplay muted></video>
 
+    <!-- 기존: gabia 생성-테스트 직접 구독(고정 publisher 8400 → /oth-path). 보존. -->
     <div class="live-controls">
       <button class="live-btn" id="startBtn" type="button" disabled>구독 시작</button>
       <button class="live-btn secondary" id="stopBtn" type="button" disabled>종료</button>
+    </div>
+
+    <!-- SP1a: 라이브 통화 모드(api 티켓 → orchestrator → 통화별 publisher). additive, 별도 경로. -->
+    <div class="live-controls">
+      <input id="cloneIdInput" type="text" inputmode="numeric" placeholder="clone id"
+        style="width:96px;border-radius:999px;border:1px solid var(--border);padding:9px 14px;background:transparent;color:var(--fg);font-size:14px" />
+      <button class="live-btn" id="callStartBtn" type="button">라이브 통화 시작</button>
+      <button class="live-btn secondary" id="callStopBtn" type="button" disabled>통화 종료</button>
     </div>
 
     <div>
@@ -106,6 +115,7 @@
     <div class="live-info" id="info">publisher 상태 확인 중…</div>
   </main>
 
+  <script src="/sp1a-config.js"></script>
   <script src="/live.js" defer></script>
 </body>
 </html>

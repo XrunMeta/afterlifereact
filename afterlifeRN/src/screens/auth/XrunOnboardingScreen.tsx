@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392, v_79c4f2 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -70,28 +71,28 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     const v_affc3e = v_1833e7.trim();
     const v_d1d8b2 = v_d74a81.trim();
     if (!v_affc3e) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return false;
     }
     if (!v_d1d8b2) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
       return false;
     }
     if (v_d1d8b2.length < 4) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
       return false;
     }
     if (!v_c3eac4) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return false;
     }
     if (!v_2694bd) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return false;
     }
     const v_f4fe8e = parseInt(v_2694bd, 10);
     if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.ageInvalid"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.ageInvalid"));
       return false;
     }
     return true;
@@ -109,7 +110,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       const v_e43fa5 = await v_704bef();
       if (!v_e43fa5.granted) {
-        v_03e392.alert(v_8d41d7("auth.signup.pushPermTitle"), v_8d41d7("auth.signup.pushPermDesc"));
+        v_889fad(v_8d41d7("auth.signup.pushPermTitle"), v_8d41d7("auth.signup.pushPermDesc"));
         return;
       }
       const v_de2b1c = await v_ea1c99();
@@ -118,7 +119,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_73f064(v_e43fa5.platform);
       v_94f796(v_de2b1c);
     } catch {
-      v_03e392.alert(v_8d41d7("common.error"), v_8d41d7("auth.signup.pushPermError"));
+      v_889fad(v_8d41d7("common.error"), v_8d41d7("auth.signup.pushPermError"));
     } finally {
       v_3bb4d3(false);
     }
@@ -126,7 +127,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   const v_b54880 = async () => {
     if (!v_5c764d) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
       return;
     }
     v_ee9ec1(true);
@@ -139,7 +140,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       const v_badeaf = v_49263d instanceof v_84a859
         ? v_49263d.code === "OTP_COOLDOWN" ? v_8d41d7("auth.signup.rateLimit") : v_49263d.message
         : v_8d41d7("auth.signup.sendCodeFailed");
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -150,10 +151,10 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       await v_97ea8d(v_e0c7e8);
       v_ec979d(60);
-      v_03e392.alert(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
+      v_889fad(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
     } catch (v_49263d) {
       const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     }
   };
 
@@ -164,12 +165,12 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       return;
     }
     if (!v_5c764d) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
       return;
     }
     if (!v_a8d185 && !v_e1874e()) return;
     if (v_a8d185 && v_aa596d.length !== 6) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
       return;
     }
     v_ee9ec1(true);
@@ -204,7 +205,7 @@ export default function v_033f95({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         else if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = v_8d41d7("auth.login.invalidCredentials");
         else v_badeaf = v_49263d.message;
       }
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }

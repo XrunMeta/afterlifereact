@@ -13,15 +13,50 @@ import {
   v_d875d1,
 } from "../lib/cloneAccess";
 import { v_9c8187, v_55eb2a } from "../lib/memoryStore";
+import {
+  v_dd9d7c,
+  v_1ad6ed,
+  v_721d54,
+  v_cf0463,
+  v_22b4d2,
+} from "../lib/interactions";
 import { v_7a6fc0 } from "../lib/xrun";
-import { v_80a022 } from "../lib/notify";
+import { v_c226a5, v_80a022 } from "../lib/notify";
+import { v_0b44ec } from "../lib/personaQuestions";
+import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
 v_f891e6.get("/health", (v_3f4e2e) => v_3f4e2e.json({ ok: true, module: "clones" }));
 
+v_f891e6.get("/check-username", async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_ceb55a = (v_f71b56.searchParams.get("u") ?? "").trim().toLowerCase();
+  if (!v_ceb55a) {
+    return v_3f4e2e.json({ available: false, reason: "invalid" });
+  }
+  if (!/^[a-z0-9_]{3,30}$/.test(v_ceb55a)) {
+    return v_3f4e2e.json({ available: false, reason: "invalid" });
+  }
+
+  const v_51789f = new Set([
+    "admin", "administrator", "root", "staff", "system", "support",
+    "help", "official", "afterlife", "api", "null", "undefined",
+    "anonymous", "mod", "moderator", "owner",
+  ]);
+  if (v_51789f.has(v_ceb55a)) {
+    return v_3f4e2e.json({ available: false, reason: "reserved" });
+  }
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT 1 AS x FROM clones WHERE username = ? LIMIT 1`)
+    .bind(v_ceb55a)
+    .first<{ x: number }>();
+  return v_3f4e2e.json({ available: !v_3ac7e7 });
+});
+
 const v_3a8949 = v_1f4ea7.enum(["memlow", "friend", "mentor", "celeb"]);
-const v_818579 = v_1f4ea7.enum(["public", "private", "followers"]);
+
+const v_818579 = v_1f4ea7.enum(["public", "private", "followers", "selected"]);
 
 const v_d2663f = new Set([
   "admin", "administrator", "root", "staff", "system", "support",
@@ -33,10 +68,46 @@ const v_496c2d = 32 * 1024;
 const v_3ea364 = v_1f4ea7.object({
   attrs: v_1f4ea7.record(v_1f4ea7.string(), v_1f4ea7.string()),
   notes: v_1f4ea7.string().max(4000).default(''),
+  personality_core: v_1f4ea7.string().max(500).optional(),
+  tone: v_1f4ea7.string().max(500).optional(),
 });
 
+const v_a1f09b = v_1f4ea7.object({
+  age: v_1f4ea7.string().max(20).optional(),
+  gender: v_1f4ea7.string().max(20).optional(),
+  mbti: v_1f4ea7.string().max(10).optional(),
+  personaTypes: v_1f4ea7.array(v_1f4ea7.string().max(20)).max(8).optional(),
+}).optional();
+
+function v_8beace(
+  v_694b25,
+  v_5ed063,
+): Record<string, unknown> | null {
+  const v_835b82 = !!v_694b25;
+  const v_94f955 = !!v_5ed063 && Object.values(v_5ed063).some(
+    (v_81e2ef) => v_81e2ef !== undefined && (Array.isArray(v_81e2ef) ? v_81e2ef.length > 0 : true),
+  );
+  if (!v_835b82 && !v_94f955) return null;
+
+  const v_3555ae = { ...(v_694b25?.attrs ?? {}) };
+  if (v_5ed063?.age) v_3555ae.age = v_5ed063.age;
+  if (v_5ed063?.gender) v_3555ae.gender = v_5ed063.gender;
+  if (v_5ed063?.mbti) v_3555ae.mbti = v_5ed063.mbti;
+
+  const v_020b4b = { attrs: v_3555ae, notes: v_694b25?.notes ?? "" };
+
+  if (v_694b25?.personality_core) v_020b4b.personality_core = v_694b25.personality_core;
+  else {
+    const v_a6872a = v_5ed063?.personaTypes ?? [];
+    if (v_a6872a.length) v_020b4b.personality_core = `${v_a6872a.join(", ")} 성향`;
+  }
+  if (v_694b25?.tone) v_020b4b.tone = v_694b25.tone;
+  return v_020b4b;
+}
+
 const v_722b6d = v_1f4ea7.object({
-  clone_type: v_3a8949,
+
+  clone_type: v_3a8949.default("friend"),
   name: v_1f4ea7.string().min(1).max(80),
   username: v_1f4ea7
     .string()
@@ -55,7 +126,19 @@ const v_722b6d = v_1f4ea7.object({
 
   l1_profile: v_3ea364.optional(),
 
+  persona: v_a1f09b,
+
   pin: v_1f4ea7.string().regex(/^\d{6}$/).optional(),
+
+  personaAnswers: v_1f4ea7.record(
+    v_1f4ea7.string().regex(/^[a-zA-Z0-9_]{1,50}$/),
+    v_1f4ea7.string().max(500),
+  ).optional(),
+
+  relation: v_1f4ea7.string().max(40).optional(),
+
+  idle_video_job_id: v_1f4ea7.string().uuid().optional(),
+  voice_clone_job_id: v_1f4ea7.string().uuid().optional(),
 });
 
 const v_c02c4c = 100;
@@ -92,24 +175,14 @@ v_f891e6.post(
       .bind(v_43e90c)
       .first<{ n: number }>();
     const v_faa47d = v_3c8572?.n ?? 0;
-    if (v_faa47d >= 1) {
 
-      const v_c54e53 = await v_a1651b
-        .prepare(
-          `SELECT COUNT(*) AS n FROM clones
-            WHERE owner_id = ?
-              AND clone_type = ?
-              AND deletion_state = 'active'
-              AND deleted_at IS NULL`,
-        )
-        .bind(v_43e90c, v_4d33b2.clone_type)
-        .first<{ n: number }>();
-      if ((v_c54e53?.n ?? 0) >= 1) {
-        throw new v_3ebe58(
-          "CONFLICT",
-          "이미 같은 타입의 페르소나가 있습니다. 다른 타입을 선택해주세요.",
-        );
-      }
+    if (v_faa47d >= 100) {
+      throw new v_3ebe58(
+        "QUOTA_EXCEEDED",
+        "최대 페르소나 개수(100개)에 도달했어요.",
+      );
+    }
+    if (v_faa47d >= 1) {
 
       if (!v_4d33b2.pin) {
         throw new v_3ebe58("PAYMENT_REQUIRED", "Persona creation requires payment.", {
@@ -118,38 +191,77 @@ v_f891e6.post(
         });
       }
 
-      const v_72b02d = v_3f4e2e.env.COMPANY_CHARGE_WALLET;
-      if (!v_72b02d) {
-        throw new v_3ebe58("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
-      }
-      const v_3645f3 = await v_a1651b
-        .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-        .bind(v_43e90c)
-        .first<{ xrun_member_id: number | null }>();
-      if (!v_3645f3?.xrun_member_id) {
-        throw new v_3ebe58("CONFLICT", "xrun account not linked.");
-      }
-      const v_a832b3 = Number(v_3f4e2e.env.PAYMENT_CURRENCY ?? "18") || 18;
-      const { externalTransferSplit: v_7a6fc0 } = await import("../lib/xrun");
-      const v_e69235 = await v_7a6fc0(v_3f4e2e.env, {
-        fromMember: v_3645f3.xrun_member_id,
-        recipients: [{ toAddress: v_72b02d, amount: String(v_c02c4c) }],
-        currency: v_a832b3,
-        pin: v_4d33b2.pin,
-        source: "afterlife.persona-create",
-      });
-      if (!v_e69235.ok) {
-        if (v_e69235.code === 401 || v_e69235.code === 403) {
-          throw new v_3ebe58("UNAUTHENTICATED", "PIN verification failed.");
+      const v_1111d7 = (v_3f4e2e.env as unknown as { DEV_PAYMENT_BYPASS_PIN?: string }).DEV_PAYMENT_BYPASS_PIN;
+      if (!v_1111d7 || v_4d33b2.pin !== v_1111d7) {
+
+        const v_72b02d = v_3f4e2e.env.COMPANY_CHARGE_WALLET;
+        if (!v_72b02d) {
+          throw new v_3ebe58("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
         }
-        if (v_e69235.code === 402) {
-          throw new v_3ebe58("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.");
+        const v_3645f3 = await v_a1651b
+          .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+          .bind(v_43e90c)
+          .first<{ xrun_member_id: number | null }>();
+        if (!v_3645f3?.xrun_member_id) {
+          throw new v_3ebe58("CONFLICT", "xrun 계정이 연동되어 있지 않아요.");
         }
-        throw new v_3ebe58("UPSTREAM_FAILURE", v_e69235.reason ?? "xrun transfer error");
+        const v_a832b3 = Number(v_3f4e2e.env.PAYMENT_CURRENCY ?? "18") || 18;
+        const { externalTransferSplit: v_7a6fc0 } = await import("../lib/xrun");
+        const v_e69235 = await v_7a6fc0(v_3f4e2e.env, {
+          fromMember: v_3645f3.xrun_member_id,
+          recipients: [{ toAddress: v_72b02d, amount: String(v_c02c4c) }],
+          currency: v_a832b3,
+          pin: v_4d33b2.pin,
+          source: "afterlife.persona-create",
+        });
+        if (!v_e69235.ok) {
+          if (v_e69235.code === 401 || v_e69235.code === 403) {
+            throw new v_3ebe58("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+          }
+          if (v_e69235.code === 402) {
+            throw new v_3ebe58("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
+          }
+          throw new v_3ebe58("UPSTREAM_FAILURE", v_e69235.reason ?? "xrun transfer error");
+        }
+      } else {
+
+        console.warn("[DEV_BYPASS] persona payment skipped via bypass PIN, userId=", v_43e90c);
       }
     }
 
+    if (v_4d33b2.voice_preset_id) {
+      const v_f653fc = await v_a1651b
+        .prepare(`SELECT id FROM voice_presets WHERE id = ? AND is_active = 1`)
+        .bind(v_4d33b2.voice_preset_id)
+        .first<{ id: number }>();
+      if (!v_f653fc) throw new v_3ebe58("VALIDATION_FAILED", "Invalid or inactive voice_preset_id.");
+    }
+
     const v_8e49c9 = v_4d33b2.voice_preset_id ? "preset" : "text_only";
+
+    let v_204408 = v_4d33b2.l1_profile;
+    if (v_4d33b2.personaAnswers && Object.keys(v_4d33b2.personaAnswers).length) {
+      const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
+      const v_712fff = new Map(v_c3519b.map((v_ab6401) => [v_ab6401.key, v_ab6401]));
+      const v_694b25 = v_204408 ?? { attrs: {}, notes: "" };
+      const v_3555ae = { ...(v_694b25.attrs ?? {}) };
+      const v_2be4f6 = { ...v_694b25, attrs: v_3555ae };
+      for (const [v_b24339, v_3b402b] of Object.entries(v_4d33b2.personaAnswers)) {
+        if (!v_3b402b) continue;
+        const v_ab6401 = v_712fff.get(v_b24339);
+        if (!v_ab6401) continue; 
+
+        if (v_ab6401.targetField && v_ab6401.targetField !== "attrs" && v_ab6401.targetField !== "__proto__") {
+          v_2be4f6[v_ab6401.targetField] = v_3b402b;
+        } else if (!v_ab6401.targetField) {
+          v_3555ae[v_b24339] = v_3b402b;
+        }
+      }
+      v_2be4f6.attrs = v_3555ae;
+      v_204408 = v_2be4f6 as typeof v_204408;
+    }
+
+    const v_564b6a = v_8beace(v_204408, v_4d33b2.persona);
 
     let v_81161e;
     try {
@@ -159,8 +271,8 @@ v_f891e6.post(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
               avatar_url, cover_image_url, voice_type, voice_preset_id,
-              l1_profile, primary_editor_user_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              l1_profile, primary_editor_user_id, relation)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -175,25 +287,20 @@ v_f891e6.post(
           v_4d33b2.cover_image_url ?? null,
           v_8e49c9,
           v_4d33b2.voice_preset_id ?? null,
-          v_4d33b2.l1_profile ? JSON.stringify(v_4d33b2.l1_profile) : null,
+          v_564b6a !== null ? JSON.stringify(v_564b6a) : null,
           v_43e90c,
+          v_4d33b2.relation ?? null,
         )
         .first();
     } catch (v_49263d) {
       const v_badeaf = (v_49263d as Error).message ?? "";
       if (/UNIQUE constraint failed: clones\.username/i.test(v_badeaf)) {
-        throw new v_3ebe58("CONFLICT", "Username already taken.");
+        throw new v_3ebe58("CONFLICT", "중복된 아이디입니다. 다른 아이디를 사용해주세요.");
       }
 
-      if (/UNIQUE constraint failed: clones\.owner_id, clones\.clone_type/i.test(v_badeaf)) {
-        throw new v_3ebe58(
-          "QUOTA_EXCEEDED",
-          "Free quota exhausted. Paid creation not yet available (beta).",
-        );
-      }
       throw v_49263d;
     }
-    if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create clone.");
+    if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "페르소나 생성에 실패했어요.");
 
     const v_6e0fd3 = v_81161e.id;
 
@@ -229,8 +336,9 @@ v_f891e6.post(
           .bind(v_6e0fd3),
       );
 
-      if (v_4d33b2.l1_profile?.attrs) {
-        for (const [v_b24339, v_3b402b] of Object.entries(v_4d33b2.l1_profile.attrs)) {
+      const v_55a58f = v_564b6a?.attrs as Record<string, string> | undefined;
+      if (v_55a58f) {
+        for (const [v_b24339, v_3b402b] of Object.entries(v_55a58f)) {
           if (!v_3b402b) continue;
           v_3e6264.push(
             v_a1651b
@@ -247,6 +355,32 @@ v_f891e6.post(
 
       await v_a1651b.prepare(`DELETE FROM clones WHERE id = ?`).bind(v_6e0fd3).run();
       throw v_49263d;
+    }
+
+    for (const [v_04211c, v_c8b83f] of [
+      [v_4d33b2.idle_video_job_id, "idle_video_url"],
+      [v_4d33b2.voice_clone_job_id, "voice_se_url"],
+    ] as [string | undefined, string][]) {
+      if (!v_04211c) continue;
+      const v_d5ec97 = await v_4b949c(v_3f4e2e.env.DB, v_04211c);
+      if (!v_d5ec97 || v_d5ec97.user_id !== v_43e90c) continue; 
+      if (v_d5ec97.status === "done" && v_d5ec97.out_url) {
+
+        await v_3f4e2e.env.DB.prepare(`UPDATE clones SET ${v_c8b83f} = ? WHERE id = ?`)
+          .bind(v_d5ec97.out_url, v_6e0fd3)
+          .run();
+      } else {
+
+        await v_f64843(v_3f4e2e.env.DB, v_04211c, v_6e0fd3);
+        const v_f7a7f7 = await v_4b949c(v_3f4e2e.env.DB, v_04211c);
+        if (v_f7a7f7?.status === "done" && v_f7a7f7.out_url) {
+
+          await v_3f4e2e.env.DB.prepare(`UPDATE clones SET ${v_c8b83f} = ? WHERE id = ?`)
+            .bind(v_f7a7f7.out_url, v_6e0fd3)
+            .run();
+        }
+
+      }
     }
 
     if (v_4d33b2.clone_type === "memlow") {
@@ -270,6 +404,39 @@ v_f891e6.post(
       action: "clone.create",
       details: { cloneId: v_6e0fd3, cloneType: v_4d33b2.clone_type },
     });
+
+    if (v_4d33b2.visibility === "public" && v_4d33b2.clone_type !== "memlow") {
+      try {
+        const v_380fb2 = await v_a1651b
+          .prepare(`SELECT name, email FROM users WHERE id = ?`)
+          .bind(v_43e90c)
+          .first<{ name: string | null; email: string | null }>();
+        const v_6dd0ab =
+          v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+        const v_823f08 = await v_a1651b
+          .prepare(`SELECT follower_id FROM user_follows WHERE followee_id = ?`)
+          .bind(v_43e90c)
+          .all<{ follower_id: number }>();
+
+        const v_110a8b = new Set<number>();
+        for (const v_3ac7e7 of v_823f08.results ?? []) {
+          if (v_3ac7e7.follower_id === v_43e90c) continue;
+          if (v_110a8b.has(v_3ac7e7.follower_id)) continue;
+          v_110a8b.add(v_3ac7e7.follower_id);
+          await v_c226a5(v_3f4e2e.env, {
+            userId: v_3ac7e7.follower_id,
+            type: "followee_new_clone",
+            title: "🌟 새 페르소나",
+            body: `${v_6dd0ab} 님이 새 페르소나 '${v_4d33b2.name}' 을(를) 만들었어요`,
+            url: `afterlife://clone/${v_6e0fd3}`,
+            data: { cloneId: v_6e0fd3, ownerId: v_43e90c },
+            skipEmail: true,
+          });
+        }
+      } catch (v_49263d) {
+        console.warn("[clone.create] followee_new_clone notify failed:", v_49263d);
+      }
+    }
 
     return v_3f4e2e.json(
       {
@@ -329,8 +496,27 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
   const v_24baff = v_ab6401.data;
   const v_a1651b = v_3f4e2e.env.DB;
 
-  const v_abcc8d = [`c.deleted_at IS NULL`, `c.visibility = 'public'`];
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
+
+  const v_abcc8d = [`c.deleted_at IS NULL`];
   const v_925171 = [];
+  if (v_013af2) {
+    v_abcc8d.push(
+      `(
+         c.visibility = 'public'
+         OR c.owner_id = ?
+         OR (c.visibility = 'followers' AND
+             EXISTS (SELECT 1 FROM clone_follows cf
+                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
+         OR (c.visibility = 'selected' AND
+             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+       )`,
+    );
+    v_925171.push(v_013af2, v_013af2, v_013af2);
+  } else {
+    v_abcc8d.push(`c.visibility = 'public'`);
+  }
   if (v_24baff.q) {
     v_abcc8d.push(`(c.name LIKE ? OR c.username LIKE ?)`);
     const v_2a1d60 = `%${v_24baff.q}%`;
@@ -422,22 +608,211 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
   });
 });
 
+v_f891e6.get("/voices", v_6690d9, async (v_3f4e2e) => {
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, gender, age_range, description, sort_order
+       FROM voice_presets WHERE is_active = 1 ORDER BY sort_order ASC, id ASC`,
+    )
+    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number }>();
+  const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+  const v_53e1f3 = (v_18b8bf.results ?? []).map((v_cb35cb) => ({
+    id: v_cb35cb.id,
+    name: v_cb35cb.name,
+    gender: v_cb35cb.gender,
+    ageRange: v_cb35cb.age_range,
+    description: v_cb35cb.description,
+    sortOrder: v_cb35cb.sort_order,
+    sampleUrl: `${v_f17108}/oth-path${v_cb35cb.id}/sample`,
+  }));
+  return v_3f4e2e.json({ voices: v_53e1f3 });
+});
+
+v_f891e6.get("/voices/:id/sample", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isFinite(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid voice id.");
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT r2_key FROM voice_presets WHERE id = ? AND is_active = 1`)
+    .bind(v_389afb)
+    .first<{ r2_key: string | null }>();
+  if (!v_3ac7e7?.r2_key) throw new v_3ebe58("NOT_FOUND", "Voice sample not found.");
+  const v_8839e3 = await v_3f4e2e.env.R2_ARCHIVE.get(v_3ac7e7.r2_key);
+  if (!v_8839e3) throw new v_3ebe58("NOT_FOUND", "Object missing in storage.");
+  return new Response(v_8839e3.body, {
+    headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=86400" },
+  });
+});
+
+v_f891e6.get("/system", v_6690d9, async (v_3f4e2e) => {
+  const v_18b8bf = await v_3f4e2e.env.DB.prepare(
+    "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
+  ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
+  return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+});
+
+v_f891e6.get("/persona-questions", v_6690d9, async (v_3f4e2e) => {
+  const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
+  return v_3f4e2e.json({ questions: v_c3519b });
+});
+
+const v_32333b = v_1f4ea7.record(
+  v_1f4ea7.string().max(50),
+  v_1f4ea7.union([v_1f4ea7.string().max(200), v_1f4ea7.array(v_1f4ea7.string().max(50)).max(20)]),
+);
+
+v_f891e6.post("/persona-suggest", v_6690d9, async (v_3f4e2e) => {
+
+  if (!v_3f4e2e.env.ORCHESTRATOR_URL || !v_3f4e2e.env.ORCH_SECRET) return v_3f4e2e.json({ suggestions: {} });
+  const v_479f05 = await v_3f4e2e.req.json().catch(() => ({}));
+  const v_8decf8 = v_32333b.safeParse(v_479f05);
+  const v_727031 = v_8decf8.success ? v_8decf8.data : {};
+
+  if (Object.keys(v_727031).length > 20) return v_3f4e2e.json({ suggestions: {} });
+
+  const v_d32db2 = Object.values(v_727031).some((v_81e2ef) =>
+    Array.isArray(v_81e2ef) ? v_81e2ef.length > 0 : v_81e2ef !== "",
+  );
+  if (!v_d32db2) return v_3f4e2e.json({ suggestions: {} });
+  const v_c3519b = await v_0b44ec(v_3f4e2e.env.DB);
+  const v_1ccb73 = v_c3519b
+    .filter((v_ab6401) => v_ab6401.type === "gemma_choice")
+    .map((v_ab6401) => ({ key: v_ab6401.key, label: v_ab6401.label, options_include: v_ab6401.options_include }));
+  if (v_1ccb73.length === 0) return v_3f4e2e.json({ suggestions: {} });
+  try {
+
+    const v_cb35cb = await fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile: v_727031, questions: v_1ccb73 }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!v_cb35cb.ok) return v_3f4e2e.json({ suggestions: {} });
+    const v_9390e8 = await v_cb35cb.json<{ suggestions?: Record<string, string[]> }>();
+    return v_3f4e2e.json({ suggestions: v_9390e8.suggestions ?? {} });
+  } catch {
+
+    return v_3f4e2e.json({ suggestions: {} });
+  }
+});
+
+v_f891e6.post("/intro-suggest", v_6690d9, async (v_3f4e2e) => {
+
+  if (!v_3f4e2e.env.ORCHESTRATOR_URL || !v_3f4e2e.env.ORCH_SECRET) return v_3f4e2e.json({ intro: "" });
+  const v_479f05 = await v_3f4e2e.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+
+  const v_727031 = {
+    name: typeof v_479f05.name === "string" ? v_479f05.name.slice(0, 80) : undefined,
+    relation: typeof v_479f05.relation === "string" ? v_479f05.relation.slice(0, 40) : undefined,
+    personaAnswers:
+      v_479f05.personaAnswers && typeof v_479f05.personaAnswers === "object"
+        ? Object.fromEntries(
+            Object.entries(v_479f05.personaAnswers as Record<string, unknown>)
+              .filter(([v_0eb677, v_81e2ef]) => typeof v_0eb677 === "string" && typeof v_81e2ef === "string")
+              .slice(0, 20)
+              .map(([v_0eb677, v_81e2ef]) => [v_0eb677.slice(0, 50), (v_81e2ef as string).slice(0, 500)]),
+          )
+        : {},
+  };
+  try {
+    const v_cb35cb = await fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile: v_727031 }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!v_cb35cb.ok) return v_3f4e2e.json({ intro: "" });
+    const v_9390e8 = await v_cb35cb.json<{ intro?: string }>();
+    return v_3f4e2e.json({ intro: typeof v_9390e8.intro === "string" ? v_9390e8.intro : "" });
+  } catch {
+
+    return v_3f4e2e.json({ intro: "" });
+  }
+});
+
+v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_479f05 = await v_3f4e2e.req.json<{ kind?: string; src_file_id?: number }>().catch(() => null);
+  const v_94302c = v_479f05?.kind;
+  const v_2fa661 = v_479f05?.src_file_id;
+  if (v_94302c !== "idle_video" && v_94302c !== "voice_clone") {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid kind. Must be idle_video or voice_clone.");
+  }
+  if (!v_2fa661 || !Number.isInteger(v_2fa661)) {
+    throw new v_3ebe58("VALIDATION_FAILED", "src_file_id required.");
+  }
+  const v_4de33e = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, r2_key, owner_user_id FROM files WHERE id = ?`)
+    .bind(v_2fa661)
+    .first<{ id: number; r2_key: string; owner_user_id: number }>();
+  if (!v_4de33e || v_4de33e.owner_user_id !== v_43e90c) {
+    throw new v_3ebe58("NOT_FOUND", "Source file not found.");
+  }
+  const v_04211c = crypto.randomUUID();
+
+  const v_59b4e0 = await v_041f8e(v_3f4e2e.env.DB, v_04211c, v_43e90c, v_94302c, v_2fa661);
+
+  if (v_3f4e2e.env.ORCHESTRATOR_URL && v_3f4e2e.env.ORCH_SECRET) {
+    const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+    const v_0ad77a = `${v_f17108}/oth-path${v_4de33e.id}`;
+
+    v_3f4e2e.executionCtx.waitUntil(
+      fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}`,
+        },
+        body: JSON.stringify({ job_id: v_04211c, kind: v_94302c, src_url: v_0ad77a, callback_token: v_59b4e0 }),
+        signal: AbortSignal.timeout(8000),
+      })
+
+        .then((v_8f00b9) => v_5193f8(v_3f4e2e.env.DB, v_04211c, v_8f00b9.ok ? "running" : "failed"))
+        .catch(() => v_5193f8(v_3f4e2e.env.DB, v_04211c, "failed")),
+    );
+  }
+  return v_3f4e2e.json({ job_id: v_04211c, status: "pending" }, 201);
+});
+
+v_f891e6.get("/asset-job/:id", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_d5ec97 = await v_4b949c(v_3f4e2e.env.DB, v_3f4e2e.req.param("id"));
+  if (!v_d5ec97 || v_d5ec97.user_id !== v_43e90c) throw new v_3ebe58("NOT_FOUND", "Job not found.");
+  return v_3f4e2e.json({
+    job_id: v_d5ec97.id,
+    kind: v_d5ec97.kind,
+    status: v_d5ec97.status,
+    out_url: v_d5ec97.out_url,
+    error: v_d5ec97.error,
+  });
+});
+
 v_f891e6.get("/:id", async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   const v_43e90c = await v_efcb2d(v_3f4e2e);
   const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
 
   if (v_eb25ce.visibility === "private" && v_00efe2 !== "owner" && v_00efe2 !== "coowner") {
-    throw new v_3ebe58("FORBIDDEN", "Private clone.");
+    throw new v_3ebe58("FORBIDDEN", "비공개 페르소나예요.");
   }
   if (v_eb25ce.visibility === "followers" && v_00efe2 === null) {
-    throw new v_3ebe58("FORBIDDEN", "Followers-only clone.");
+    throw new v_3ebe58("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
+  }
+  if (v_eb25ce.visibility === "selected") {
+    const v_030f63 = v_00efe2 === "owner" || v_00efe2 === "coowner"
+      ? true
+      : v_43e90c != null && await v_3f4e2e.env.DB
+          .prepare(
+            `SELECT 1 FROM clone_allowed_viewers WHERE clone_id = ? AND user_id = ? LIMIT 1`,
+          )
+          .bind(v_6e0fd3, v_43e90c)
+          .first();
+    if (!v_030f63) throw new v_3ebe58("FORBIDDEN", "이 페르소나에 접근할 권한이 없어요.");
   }
 
   const v_774c91 = (
@@ -446,6 +821,14 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       .bind(v_6e0fd3)
       .all<{ interest: string }>()
   ).results.map((v_cb35cb) => v_cb35cb.interest);
+
+  const v_548b93 =
+    v_00efe2 === "owner" || v_00efe2 === "coowner"
+      ? (await v_3f4e2e.env.DB
+          .prepare(`SELECT user_id AS userId FROM clone_allowed_viewers WHERE clone_id = ?`)
+          .bind(v_6e0fd3)
+          .all<{ userId: number }>()).results.map((v_cb35cb) => v_cb35cb.userId)
+      : undefined;
 
   const v_218436 = await v_3f4e2e.env.DB
     .prepare(
@@ -458,6 +841,20 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
     )
     .bind(v_6e0fd3, v_6e0fd3)
     .first<{ likesCount: number; commentsCount: number }>();
+
+  let v_db2b0a = false;
+  if (v_43e90c) {
+    const v_cb35cb = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT 1 AS x FROM feed_likes fl
+           JOIN feeds f ON f.id = fl.feed_id
+          WHERE fl.user_id = ? AND f.clone_id = ?
+          LIMIT 1`,
+      )
+      .bind(v_43e90c, v_6e0fd3)
+      .first<{ x: number }>();
+    v_db2b0a = !!v_cb35cb;
+  }
 
   return v_3f4e2e.json({
     clone: {
@@ -475,6 +872,7 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
       voicePresetId: v_eb25ce.voice_preset_id,
       trainingStatus: v_eb25ce.training_status,
       interests: v_774c91,
+      ...(v_548b93 !== undefined ? { allowedViewers: v_548b93 } : {}),
       stats: {
         followers: v_eb25ce.followers_count,
         messages: v_eb25ce.messages_count,
@@ -482,6 +880,7 @@ v_f891e6.get("/:id", async (v_3f4e2e) => {
         likes: v_218436?.likesCount ?? 0,
         comments: v_218436?.commentsCount ?? 0,
       },
+      likedByMe: v_db2b0a,
       createdAt: v_eb25ce.created_at,
       viewerRole: v_00efe2,
     },
@@ -498,6 +897,8 @@ const v_90be18 = v_1f4ea7
     voice_preset_id: v_1f4ea7.number().int().positive().nullable().optional(),
     l1_profile: v_3ea364.optional(),
     interests: v_1f4ea7.array(v_1f4ea7.string().min(1).max(40)).max(20).optional(),
+
+    allowed_viewers: v_1f4ea7.array(v_1f4ea7.number().int().positive()).max(200).optional(),
   })
   .strict()
   .refine((v_b6c474) => Object.keys(v_b6c474).length > 0, {
@@ -507,18 +908,18 @@ const v_90be18 = v_1f4ea7
 v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_90be18);
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
 
   const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   const v_2aec08 =
     v_eb25ce.owner_id === v_43e90c ||
     (await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c)) === "owner";
-  if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "Owner role required.");
+  if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 변경할 수 있어요.");
 
   if (v_4d33b2.l1_profile !== undefined) {
     const v_3ac7e7 = await v_a1651b
@@ -526,7 +927,7 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
       .bind(v_6e0fd3)
       .first<{ primary_editor_user_id: number | null }>();
     if (v_3ac7e7?.primary_editor_user_id !== v_43e90c) {
-      throw new v_3ebe58("FORBIDDEN", "Only the primary editor may edit L1.");
+      throw new v_3ebe58("FORBIDDEN", "주 편집자만 페르소나 정보를 수정할 수 있어요.");
     }
   }
 
@@ -559,6 +960,14 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
     v_f73a2d.push("visibility");
   }
   if (v_4d33b2.voice_preset_id !== undefined) {
+
+    if (v_4d33b2.voice_preset_id !== null) {
+      const v_f653fc = await v_a1651b
+        .prepare(`SELECT id FROM voice_presets WHERE id = ? AND is_active = 1`)
+        .bind(v_4d33b2.voice_preset_id)
+        .first<{ id: number }>();
+      if (!v_f653fc) throw new v_3ebe58("VALIDATION_FAILED", "Invalid or inactive voice_preset_id.");
+    }
     v_75ae3e.push(`voice_preset_id = ?`, `voice_type = ?`);
     v_925171.push(v_4d33b2.voice_preset_id);
     v_925171.push(v_4d33b2.voice_preset_id === null ? "text_only" : "preset");
@@ -616,6 +1025,26 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
     v_f73a2d.push("interests");
   }
 
+  if (v_4d33b2.allowed_viewers !== undefined) {
+    v_be9ad5.push(
+      v_a1651b.prepare(`DELETE FROM clone_allowed_viewers WHERE clone_id = ?`).bind(v_6e0fd3),
+    );
+    const v_72b85d = new Set<number>();
+    for (const v_0c8987 of v_4d33b2.allowed_viewers) {
+      if (v_0c8987 === v_43e90c) continue; 
+      if (v_72b85d.has(v_0c8987)) continue;
+      v_72b85d.add(v_0c8987);
+      v_be9ad5.push(
+        v_a1651b
+          .prepare(
+            `INSERT INTO clone_allowed_viewers (clone_id, user_id) VALUES (?, ?)`,
+          )
+          .bind(v_6e0fd3, v_0c8987),
+      );
+    }
+    v_f73a2d.push("allowed_viewers");
+  }
+
   await v_a1651b.batch(v_be9ad5);
 
   await v_74defc(v_3f4e2e, {
@@ -629,20 +1058,20 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
 v_f891e6.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
 
   const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (v_eb25ce.visibility === "private") {
     const v_22da99 =
       v_eb25ce.owner_id === v_43e90c
         ? "owner"
         : await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c);
-    if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "Cannot follow private clone.");
+    if (!v_22da99) throw new v_3ebe58("FORBIDDEN", "비공개 페르소나는 팔로우할 수 없어요.");
   }
 
   const v_43c42e = await v_a1651b
@@ -661,7 +1090,7 @@ v_f891e6.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
 v_f891e6.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
   await v_3f4e2e.env.DB
@@ -674,7 +1103,7 @@ v_f891e6.delete("/:id/follow", v_6690d9, async (v_3f4e2e) => {
 v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
@@ -719,7 +1148,7 @@ v_f891e6.get("/:id/followers", async (v_3f4e2e) => {
 v_f891e6.get("/:id/like-status", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_3ac7e7 = await v_3f4e2e.env.DB
@@ -744,7 +1173,7 @@ const v_df219a = v_1f4ea7.object({
 v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_f7e120 = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_df219a);
@@ -762,19 +1191,19 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
     .prepare(`SELECT id, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(v_f7e120)
     .first<{ id: number; xrun_member_id: number | null }>();
-  if (!v_eddf67) throw new v_3ebe58("UNAUTHENTICATED", "User not found.");
+  if (!v_eddf67) throw new v_3ebe58("UNAUTHENTICATED", "사용자를 찾을 수 없어요.");
   if (!v_eddf67.xrun_member_id) {
-    throw new v_3ebe58("CONFLICT", "xrun account not linked to your afterlife user.");
+    throw new v_3ebe58("CONFLICT", "내 계정에 xrun 이 연동되어 있지 않아요.");
   }
 
   const v_eb25ce = await v_3f4e2e.env.DB
     .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND deleted_at IS NULL`)
     .bind(v_6e0fd3)
     .first<{ id: number; owner_id: number }>();
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (v_eb25ce.owner_id === v_f7e120) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Cannot send a gift to your own persona.");
+    throw new v_3ebe58("VALIDATION_FAILED", "자기 자신의 페르소나에는 선물할 수 없어요.");
   }
 
   const v_257b90 = await v_3f4e2e.env.DB
@@ -784,16 +1213,15 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
     .bind(v_eb25ce.owner_id)
     .first<{ id: number; xrun_wallet: string | null; xrun_member_id: number | null }>();
 
-  if (!v_257b90?.xrun_member_id) {
-    throw new v_3ebe58(
-      "CONFLICT",
-      "Persona owner has no xrun account — cannot route 40% share.",
-    );
-  }
+  const v_ed9f44 = !!v_257b90?.xrun_member_id;
 
   const v_c83285 = v_4d33b2.amount;
-  const v_22c1da = Math.round(v_c83285 * 0.6 * 1_000_000) / 1_000_000;
-  const v_1d6a30 = Math.round(v_c83285 * 0.4 * 1_000_000) / 1_000_000;
+  const v_22c1da = v_ed9f44
+    ? Math.round(v_c83285 * 0.6 * 1_000_000) / 1_000_000
+    : v_c83285;
+  const v_1d6a30 = v_ed9f44
+    ? Math.round(v_c83285 * 0.4 * 1_000_000) / 1_000_000
+    : 0;
 
   const v_f5353f = await v_3f4e2e.env.DB
     .prepare(
@@ -813,17 +1241,21 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
       v_22c1da,
       v_1d6a30,
       v_72b02d,
-      v_257b90.xrun_wallet, 
+
+      v_257b90?.xrun_wallet ?? null,
     )
     .run();
   const v_7a7843 = Number(v_f5353f.meta.last_row_id);
 
+  const v_69d950 = v_ed9f44
+    ? [
+        { toAddress: v_72b02d, amount: String(v_22c1da) },
+        { toMember: v_257b90!.xrun_member_id!, amount: String(v_1d6a30) },
+      ]
+    : [{ toAddress: v_72b02d, amount: String(v_22c1da) }];
   const v_38fb16 = await v_7a6fc0(v_3f4e2e.env, {
     fromMember: v_eddf67.xrun_member_id,
-    recipients: [
-      { toAddress: v_72b02d, amount: String(v_22c1da) },
-      { toMember: v_257b90.xrun_member_id, amount: String(v_1d6a30) },
-    ],
+    recipients: v_69d950,
     currency: v_a832b3,
     pin: v_4d33b2.pin,
     source: "afterlife.gift",
@@ -920,7 +1352,7 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
 v_f891e6.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
 
@@ -938,7 +1370,7 @@ v_f891e6.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
 v_f891e6.delete("/:id/block", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
   await v_3f4e2e.env.DB
@@ -946,4 +1378,94 @@ v_f891e6.delete("/:id/block", v_6690d9, async (v_3f4e2e) => {
     .bind(v_43e90c, v_6e0fd3)
     .run();
   return v_3f4e2e.json({ ok: true, blocked: false });
+});
+
+const v_4a3250 = v_1f4ea7.object({
+  reason: v_1f4ea7.string().max(500).optional(),
+});
+v_f891e6.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_4a3250).catch(() => ({ reason: undefined }));
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_reports (user_id, clone_id, reason)
+         VALUES (?, ?, ?)`,
+    ).bind(v_43e90c, v_6e0fd3, v_4d33b2.reason ?? null),
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
+    ).bind(v_43e90c, v_6e0fd3),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM clone_follows WHERE user_id = ? AND clone_id = ?`,
+    ).bind(v_43e90c, v_6e0fd3),
+  ]);
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "clone.report",
+    details: { cloneId: v_6e0fd3, reason: v_4d33b2.reason ?? null },
+  });
+  return v_3f4e2e.json({ ok: true, reported: true, blocked: true });
+});
+
+const v_1e23ae = v_1f4ea7.object({
+  durationSeconds: v_1f4ea7.number().int().min(0).max(86400).optional(),
+});
+v_f891e6.post("/:id/call-event", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_1e23ae).catch(() => ({ durationSeconds: undefined }));
+  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "call");
+
+  const v_a712cf = v_4d33b2.durationSeconds ?? 0;
+  let v_27e8db = 0;
+  if (v_a712cf >= v_22b4d2) {
+    const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.call, "call");
+    v_27e8db = v_cb35cb.applied;
+  }
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "clone.call_event",
+    details: { cloneId: v_6e0fd3, durationSeconds: v_a712cf, scoreApplied: v_27e8db },
+  });
+  return v_3f4e2e.json({ ok: true, scoreApplied: v_27e8db });
+});
+
+v_f891e6.post("/:id/learn-event", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+
+  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "learn");
+
+  const v_4d76f9 = `intimacy_cd:learn:${v_43e90c}:${v_6e0fd3}`;
+  const v_2ba83d = !!(await v_3f4e2e.env.KV_RATE.get(v_4d76f9));
+  let v_27e8db = 0;
+  if (!v_2ba83d) {
+    const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.learn, "learn");
+    v_27e8db = v_cb35cb.applied;
+    if (v_27e8db > 0) {
+      await v_3f4e2e.env.KV_RATE.put(v_4d76f9, "1", { expirationTtl: 20 * 60 });
+    }
+  }
+  return v_3f4e2e.json({ ok: true, bumped: true, scoreApplied: v_27e8db });
+});
+
+v_f891e6.post("/:id/chat-event", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
+  const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.chat, "chat");
+  return v_3f4e2e.json({ ok: true, scoreApplied: v_cb35cb.applied });
 });

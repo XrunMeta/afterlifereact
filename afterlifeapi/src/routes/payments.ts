@@ -54,15 +54,27 @@ v_a35f69.get("/balance", async (v_3f4e2e) => {
     throw new v_3ebe58("UPSTREAM_FAILURE", v_8f00b9.reason ?? "xrun gateway error");
   }
 
+  const v_7f8c56 = v_8f00b9.balances.filter(
+    (v_148ff6) => v_148ff6.currency != null && Number.isFinite(Number(v_148ff6.currency)),
+  );
+
+  if (v_8f00b9.balances.length > 0 && v_7f8c56.length === 0) {
+    console.warn(
+      "[payments.balance] gateway returned only null-currency rows",
+      "member=", v_660822,
+      "raw=", JSON.stringify(v_8f00b9.balances),
+    );
+  }
+
   const v_14e183 = (v_a832b3): number | null => {
-    const v_3ac7e7 = v_8f00b9.balances.find((v_148ff6) => Number(v_148ff6.currency) === v_a832b3);
+    const v_3ac7e7 = v_7f8c56.find((v_148ff6) => Number(v_148ff6.currency) === v_a832b3);
     if (!v_3ac7e7) return null;
     const v_f4e98d = Number(v_3ac7e7.amount);
     return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
   };
   return v_3f4e2e.json({
     linked: true,
-    balances: v_8f00b9.balances.map((v_148ff6) => ({
+    balances: v_7f8c56.map((v_148ff6) => ({
       currency: Number(v_148ff6.currency),
       symbol: v_148ff6.symbol,
       amount: v_148ff6.amount,
@@ -70,5 +82,7 @@ v_a35f69.get("/balance", async (v_3f4e2e) => {
     })),
     xrun: v_14e183(18),
     ad: v_14e183(19),
+
+    gatewayWalletReady: v_7f8c56.length > 0,
   });
 });

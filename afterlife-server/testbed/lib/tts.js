@@ -23,6 +23,8 @@ export function v_27fa47(v_9b6134, v_b36f96 = {}) {
       sdp_ratio: v_b36f96.sdp_ratio ?? 0.5,
       noise_scale: v_b36f96.noise_scale ?? 0.6,
       noise_scale_w: v_b36f96.noise_scale_w ?? 1.0,
+
+      ...(v_b36f96.se_path ? { se_path: v_b36f96.se_path } : {}),
     });
 
     const v_22c92a = {

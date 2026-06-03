@@ -316,7 +316,7 @@ const v_fd5f43 = v_472849.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
 
-    maxHeight: v_28d8d8 * 0.65,
+    height: v_28d8d8 * 0.8,
   },
   sheetHandle: {
     width: 36,

@@ -27,6 +27,7 @@ CWD: source/ 강제 (inference_lib 도 상대경로 ./models/, ./ffmpeg-4.4-amd6
 
 import io
 import os
+import shutil
 import sys
 import time
 import threading
@@ -44,12 +45,8 @@ SOURCE_DIR = ROOT_DIR / "source"
 MODELS_DIR = ROOT_DIR / "models"
 OUTPUTS_DIR = ROOT_DIR / "outputs"
 CONFIG_DIR = SOURCE_DIR / "configs/inference"
-DEFAULT_VIDEO = Path(
-    os.environ.get(
-        "MUSETALK_DEFAULT_VIDEO",
-        str(SOURCE_DIR / "data/video/yongen.mp4"),
-    )
-)
+# SP4-B: DEFAULT_VIDEO 제거 — video_path 는 호출자(testbed)가 항상 명시 전달.
+#        미지정 시 DEFAULT_VIDEO 폴백 없음 → 400 거부.
 
 # inference_lib 가 source/ cwd + 상대 import 가정 — 강제 변경
 os.chdir(SOURCE_DIR)
@@ -102,15 +99,19 @@ def _make_frame_callback(session_id: str):
 
     def cb(idx: int, combine_frame_bgr) -> None:
         try:
-            # encode in inference thread (cheap)
-            rgb = cv2.cvtColor(combine_frame_bgr, cv2.COLOR_BGR2RGB)
-            img = Image.fromarray(rgb)
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=STREAM_JPEG_QUALITY)
-            data = buf.getvalue()
-            # backpressure: 너무 많이 쌓이면 drop / wait
+            # 029-D-3c-latency-stream2: PIL JPEG (Python, GIL holding) → cv2.imencode
+            # (C ext, GIL release). main thread 가 encode 동안 worker 가 acquire 가능
+            # → padding loop 와 publisher push 동시 진행 (burst 회피).
+            ok, encoded = cv2.imencode(
+                ".jpg", combine_frame_bgr,
+                [int(cv2.IMWRITE_JPEG_QUALITY), STREAM_JPEG_QUALITY],
+            )
+            if not ok:
+                push_count["fail"] += 1
+                return
+            data = encoded.tobytes()
+            # backpressure: 너무 많이 쌓이면 완료된 것만 정리
             if len(futures) > 64:
-                # 가장 오래된 future 들 정리 (완료된 것만)
                 futures[:] = [f for f in futures if not f.done()]
             fut = pool.submit(_do_post, idx, data)
             futures.append(fut)
@@ -203,7 +204,6 @@ def healthz():
         "model": "musetalk-v15",
         "device": "cuda:0",
         "load_t_ms": LOAD_T_MS,
-        "default_video": str(DEFAULT_VIDEO),
         "mode": "in-process (029-A)",
     }
 
@@ -233,7 +233,12 @@ def infer(req: InferReq):
     audio_path = Path(req.audio_path).resolve()
     if not audio_path.is_file():
         raise HTTPException(400, f"audio not found: {audio_path}")
-    video_path = Path(req.video_path).resolve() if req.video_path else DEFAULT_VIDEO
+    # SP4-B: video_path 미지정 시 DEFAULT_VIDEO 폴백 없음 — 400 거부.
+    #        testbed(Task 4)가 정상 경로에선 항상 video_path 전달.
+    #        자산 둘 다 없는 예외 상황은 testbed가 video_error로 graceful 처리.
+    if not req.video_path:
+        raise HTTPException(400, "video_path is required (no fallback default)")
+    video_path = Path(req.video_path).resolve()
     if not video_path.is_file():
         raise HTTPException(400, f"video not found: {video_path}")
 
@@ -271,12 +276,13 @@ def infer(req: InferReq):
     args.skip_mp4_output = skip_mp4
 
     t0 = time.time()
+    _timing = {}
     with infer_lock:
         try:
             if cb is not None:
-                inference_lib.run_inference(args, MODELS, frame_callback=cb)
+                inference_lib.run_inference(args, MODELS, frame_callback=cb, timing_out=_timing)
             else:
-                inference_lib.run_inference(args, MODELS)
+                inference_lib.run_inference(args, MODELS, timing_out=_timing)
         except Exception as e:
             if cb is not None:
                 _signal_stream_end()
@@ -303,17 +309,31 @@ def infer(req: InferReq):
         mp4_path_str = None
     else:
         if not expected.is_file():
-            mp4s = sorted(out_subdir.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True)
+            # 029-D-3c-mp4-source-fix2: 이전 sess-*.mp4 는 fallback 후보에서 제외
+            # (이전 호출이 만든 unique copy 가 가장 최근일 수 있으므로).
+            mp4s = sorted(
+                (p for p in out_subdir.glob("*.mp4") if not p.name.startswith("sess-")),
+                key=lambda p: p.stat().st_mtime, reverse=True,
+            )
             if mp4s:
                 expected = mp4s[0]
             else:
                 raise HTTPException(500, "output mp4 not found")
-        mp4_path_str = str(expected)
+        # 029-D-3c-mp4-source-fix2: unique 파일명으로 copy → chat bubble URL cache-bust
+        # + 다음 inference 가 expected 를 덮어써도 이 unique copy 는 안전 (publisher 읽기 race 회피 보강).
+        unique_mp4 = out_subdir / f"sess-{safe_id}.mp4"
+        try:
+            shutil.copy2(str(expected), str(unique_mp4))
+            mp4_path_str = str(unique_mp4)
+        except Exception as _ce:
+            print(f"[mp4-unique-copy] fail: {_ce} — fallback to expected", flush=True)
+            mp4_path_str = str(expected)
 
     resp = {
         "mp4_path": mp4_path_str,
         "infer_ms": elapsed_ms,
         "output_id": safe_id,
+        "phase_ms": (_timing or None),
     }
     if cb is not None:
         resp["streamed"] = True

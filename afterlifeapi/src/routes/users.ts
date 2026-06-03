@@ -6,6 +6,7 @@ import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_137694, v_85de88, v_a8614b, v_8ea38c, v_b31343 } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_74defc } from "../lib/logger";
+import { v_c226a5 } from "../lib/notify";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
 
@@ -44,17 +45,19 @@ v_de7ba7.get("/search", v_6690d9, async (v_3f4e2e) => {
     return v_3f4e2e.json({ items: [] });
   }
   const v_2a1d60 = `%${v_ab6401}%`;
+
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
       `SELECT id, name, email, avatar_url AS avatarUrl
          FROM users
         WHERE deleted_at IS NULL
           AND id != ?
+          AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
           AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
         ORDER BY id DESC
         LIMIT 20`,
     )
-    .bind(v_b32680, v_2a1d60, v_2a1d60)
+    .bind(v_b32680, v_b32680, v_2a1d60, v_2a1d60)
     .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
   return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
 });
@@ -80,10 +83,19 @@ v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
 
   const v_62676b = await v_a1651b
     .prepare(
-      `SELECT followers_count AS followersCount, following_count AS followingCount
-         FROM user_stats WHERE user_id = ?`,
+      `SELECT
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.follower_id
+           WHERE uf.followee_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followersCount,
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.followee_id
+           WHERE uf.follower_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followingCount`,
     )
-    .bind(v_43e90c)
+    .bind(v_43e90c, v_43e90c)
     .first<{ followersCount: number; followingCount: number }>();
 
   const v_d205b7 = v_a8614b(v_3f4e2e.env.ALE_KEK);
@@ -171,8 +183,13 @@ const v_90be18 = v_1f4ea7.object({
   name: v_1f4ea7.string().min(1).max(80).optional(),
   avatarUrl: v_1f4ea7.url().max(500).nullable().optional(),
   phone: v_1f4ea7.string().min(4).max(40).nullable().optional(),
-  gender: v_1f4ea7.enum(["male", "female", "other"]).nullable().optional(),
+
+  gender: v_1f4ea7.enum(["male", "female"]).nullable().optional(),
   age: v_1f4ea7.number().int().min(13).max(120).nullable().optional(),
+
+  country: v_1f4ea7.string().min(2).max(8).nullable().optional(),
+  mobileCode: v_1f4ea7.number().int().min(1).max(9999).nullable().optional(),
+  region: v_1f4ea7.string().min(1).max(40).nullable().optional(),
 });
 
 v_de7ba7.patch("/me", v_6690d9, async (v_3f4e2e) => {
@@ -214,6 +231,21 @@ v_de7ba7.patch("/me", v_6690d9, async (v_3f4e2e) => {
       null, 
     );
     v_f73a2d.push("age");
+  }
+  if (v_4d33b2.country !== undefined) {
+    v_97eacf.push("country = ?");
+    v_925171.push(v_4d33b2.country);
+    v_f73a2d.push("country");
+  }
+  if (v_4d33b2.mobileCode !== undefined) {
+    v_97eacf.push("mobile_code = ?");
+    v_925171.push(v_4d33b2.mobileCode);
+    v_f73a2d.push("mobileCode");
+  }
+  if (v_4d33b2.region !== undefined) {
+    v_97eacf.push("region = ?");
+    v_925171.push(v_4d33b2.region);
+    v_f73a2d.push("region");
   }
 
   if (v_97eacf.length === 0) return v_3f4e2e.json({ ok: true, updatedFields: [] });
@@ -441,6 +473,95 @@ v_de7ba7.get("/me/clones", v_6690d9, async (v_3f4e2e) => {
     };
   });
   return v_3f4e2e.json({ items: v_4622b9 });
+});
+
+v_de7ba7.get("/me/clones/:cloneId/intimacy-events", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("cloneId"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_eb25ce = await v_3f4e2e.env.DB
+    .prepare(`SELECT owner_id AS ownerId FROM clones WHERE id = ? AND deleted_at IS NULL`)
+    .bind(v_6e0fd3)
+    .first<{ ownerId: number }>();
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const v_2aec08 = v_eb25ce.ownerId === v_43e90c;
+
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_15c8c5 = v_f71b56.searchParams.get("cursor");
+  const v_75cbf4 = v_15c8c5 ? Number(v_15c8c5) : null;
+
+  const v_abcc8d = ["clone_id = ?"];
+  const v_925171 = [v_6e0fd3];
+  if (!v_2aec08) {
+    v_abcc8d.push("user_id = ?");
+    v_925171.push(v_43e90c);
+  }
+  if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
+    v_abcc8d.push("id < ?");
+    v_925171.push(v_75cbf4);
+  }
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, action, score, feed_id AS feedId, created_at AS createdAt
+           FROM intimacy_events
+          WHERE ${v_abcc8d.join(" AND ")}
+          ORDER BY id DESC
+          LIMIT ?`,
+      )
+      .bind(...v_925171, v_02be30 + 1)
+      .all<{
+        id: number;
+        action: string;
+        score: number;
+        feedId: number | null;
+        createdAt: string;
+      }>()
+  ).results ?? [];
+
+  const v_6bbe19 = v_18b8bf.length > v_02be30;
+  const v_4622b9 = v_6bbe19 ? v_18b8bf.slice(0, v_02be30) : v_18b8bf;
+  const v_64f859 = v_6bbe19 && v_4622b9.length > 0 ? v_4622b9[v_4622b9.length - 1]!.id : null;
+
+  const v_87014f = v_2aec08 ? "clone_id = ?" : "clone_id = ? AND user_id = ?";
+  const v_74e89c = v_2aec08 ? [v_6e0fd3] : [v_6e0fd3, v_43e90c];
+  const v_218436 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT
+         COALESCE(SUM(score), 0)                                            AS totalScore,
+         SUM(CASE WHEN action = 'chat'  THEN score ELSE 0 END)              AS chatScore,
+         SUM(CASE WHEN action = 'call'  THEN score ELSE 0 END)              AS callScore,
+         SUM(CASE WHEN action = 'learn' THEN score ELSE 0 END)              AS learnScore,
+         SUM(CASE WHEN action = 'feed'  THEN score ELSE 0 END)              AS feedScore,
+         COUNT(*)                                                           AS eventCount
+       FROM intimacy_events WHERE ${v_87014f}`,
+    )
+    .bind(...v_74e89c)
+    .first<{
+      totalScore: number;
+      chatScore: number;
+      callScore: number;
+      learnScore: number;
+      feedScore: number;
+      eventCount: number;
+    }>();
+
+  return v_3f4e2e.json({
+    summary: {
+      totalScore: v_218436?.totalScore ?? 0,
+      chat: v_218436?.chatScore ?? 0,
+      call: v_218436?.callScore ?? 0,
+      learn: v_218436?.learnScore ?? 0,
+      feed: v_218436?.feedScore ?? 0,
+      eventCount: v_218436?.eventCount ?? 0,
+    },
+    items: v_4622b9,
+    nextCursor: v_64f859,
+  });
 });
 
 v_de7ba7.post("/me/delete", v_6690d9, async (v_3f4e2e) => {
@@ -707,17 +828,27 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
                 COALESCE(uci.chat_count, 0)  AS my_chat,
                 COALESCE(uci.call_count, 0)  AS my_call,
                 COALESCE(uci.learn_count, 0) AS my_learn,
-                COALESCE(uci.feed_count, 0)  AS my_feed
-           FROM clone_follows f
-           JOIN clones c ON c.id = f.clone_id
+                COALESCE(uci.feed_count, 0)  AS my_feed,
+                -- 친밀도 가중치 점수 (Daily Cap 15°C 적립, 100°C 상한)
+                COALESCE(uci.intimacy_score, 0) AS my_intimacy,
+                -- 본인 페르소나 여부 — 클라이언트가 '팔로우' 버튼 숨김 처리.
+                (c.owner_id = ?) AS is_own
+           FROM clones c
            LEFT JOIN clone_stats s ON s.clone_id = c.id
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
-          WHERE f.user_id = ? AND c.deleted_at IS NULL
+          WHERE c.deleted_at IS NULL
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
-          ORDER BY f.created_at DESC, f.id DESC`,
+            AND (
+              -- 본인이 만든 페르소나
+              c.owner_id = ?
+              OR
+              -- 또는 본인이 팔로우 중인 페르소나
+              c.id IN (SELECT clone_id FROM clone_follows WHERE user_id = ?)
+            )
+          ORDER BY c.created_at DESC, c.id DESC`,
       )
-      .bind(v_43e90c, v_43e90c, v_43e90c)
+      .bind(v_43e90c, v_43e90c, v_43e90c, v_43e90c, v_43e90c)
       .all<{
         id: number;
         name: string;
@@ -737,6 +868,8 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         my_call: number;
         my_learn: number;
         my_feed: number;
+        my_intimacy: number;
+        is_own: number;
       }>()
   ).results;
 
@@ -807,8 +940,10 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
         learn: v_cb35cb.my_learn,
         feed: v_cb35cb.my_feed,
         total: v_cb35cb.my_chat + v_cb35cb.my_call + v_cb35cb.my_learn + v_cb35cb.my_feed,
-        intimacy: Math.min(100, (v_cb35cb.my_chat + v_cb35cb.my_call + v_cb35cb.my_learn + v_cb35cb.my_feed) * 2),
+        intimacy: Math.min(100, Math.max(0, v_cb35cb.my_intimacy)),
       },
+
+      isOwn: !!v_cb35cb.is_own,
       createdAt: v_cb35cb.created_at,
     })),
   });
@@ -958,12 +1093,34 @@ v_de7ba7.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
     .first<{ id: number }>();
   if (!v_c3c3b0) throw new v_3ebe58("NOT_FOUND", "User not found.");
 
-  await v_3f4e2e.env.DB
+  const v_cb35cb = await v_3f4e2e.env.DB
     .prepare(
       `INSERT OR IGNORE INTO user_follows (follower_id, followee_id) VALUES (?, ?)`,
     )
     .bind(v_43e90c, v_b1de41)
     .run();
+
+  if ((v_cb35cb.meta?.changes ?? 0) > 0) {
+    try {
+      const v_380fb2 = await v_3f4e2e.env.DB
+        .prepare(`SELECT name, email FROM users WHERE id = ?`)
+        .bind(v_43e90c)
+        .first<{ name: string | null; email: string | null }>();
+      const v_6dd0ab =
+        v_380fb2?.name || v_380fb2?.email?.split("@")[0] || "누군가";
+      await v_c226a5(v_3f4e2e.env, {
+        userId: v_b1de41,
+        type: "user_follow",
+        title: "✨ 새 팔로워",
+        body: `${v_6dd0ab} 님이 회원님을 팔로우했어요`,
+        url: `afterlife://oth-path${v_43e90c}`,
+        data: { followerId: v_43e90c },
+        skipEmail: true,
+      });
+    } catch (v_49263d) {
+      console.warn("[user.follow] notify failed:", v_49263d);
+    }
+  }
   return v_3f4e2e.json({ ok: true });
 });
 
@@ -995,7 +1152,9 @@ v_de7ba7.get("/:id/followers", v_6690d9, async (v_3f4e2e) => {
                 u.avatar_url    AS avatarUrl
            FROM user_follows uf
            JOIN users u ON u.id = uf.follower_id
-          WHERE uf.followee_id = ? AND u.deleted_at IS NULL
+          WHERE uf.followee_id = ?
+            AND u.deletion_state = 'active'
+            AND u.deleted_at IS NULL
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
@@ -1037,7 +1196,9 @@ v_de7ba7.get("/:id/following", v_6690d9, async (v_3f4e2e) => {
                 u.avatar_url    AS avatarUrl
            FROM user_follows uf
            JOIN users u ON u.id = uf.followee_id
-          WHERE uf.follower_id = ? AND u.deleted_at IS NULL
+          WHERE uf.follower_id = ?
+            AND u.deletion_state = 'active'
+            AND u.deleted_at IS NULL
           ORDER BY uf.id DESC
           LIMIT ?`,
       )
@@ -1085,13 +1246,23 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
 
   const v_62676b = await v_a1651b
     .prepare(
-      `SELECT followers_count AS followersCount, following_count AS followingCount
-         FROM user_stats WHERE user_id = ?`,
+      `SELECT
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.follower_id
+           WHERE uf.followee_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followersCount,
+         (SELECT COUNT(*) FROM user_follows uf
+            JOIN users u ON u.id = uf.followee_id
+           WHERE uf.follower_id = ?
+             AND u.deletion_state = 'active'
+             AND u.deleted_at IS NULL) AS followingCount`,
     )
-    .bind(v_b1de41)
+    .bind(v_b1de41, v_b1de41)
     .first<{ followersCount: number; followingCount: number }>();
 
   let v_b30b81 = false;
+  let v_4258ec = false;
   if (v_013af2 !== v_b1de41) {
     const v_e84077 = await v_a1651b
       .prepare(
@@ -1101,12 +1272,27 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
       .bind(v_013af2, v_b1de41)
       .first<{ x: number }>();
     v_b30b81 = !!v_e84077;
+
+    const v_a37dd6 = await v_a1651b
+      .prepare(
+        `SELECT 1 AS x FROM user_blocks
+          WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`,
+      )
+      .bind(v_013af2, v_b1de41)
+      .first<{ x: number }>();
+    v_4258ec = !!v_a37dd6;
   }
 
   const v_e2cd33 =
     v_013af2 === v_b1de41
       ? ""
       : "AND c.visibility = 'public'";
+  const v_3c44ec =
+    v_013af2 === v_b1de41
+      ? ""
+      : "AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)";
+  const v_bea9ea =
+    v_013af2 === v_b1de41 ? [v_b1de41] : [v_b1de41, v_013af2];
   const v_8ffcf8 = (
     await v_a1651b
       .prepare(
@@ -1121,10 +1307,11 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
             AND c.deletion_state = 'active'
             AND c.deleted_at IS NULL
             ${v_e2cd33}
+            ${v_3c44ec}
           ORDER BY c.id DESC
           LIMIT 60`,
       )
-      .bind(v_b1de41)
+      .bind(...v_bea9ea)
       .all<{
         id: number;
         name: string;
@@ -1151,6 +1338,7 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
       followingCount: v_62676b?.followingCount ?? 0,
       isMe: v_013af2 === v_b1de41,
       isFollowing: v_b30b81,
+      isBlocked: v_4258ec,
     },
     clones: v_8ffcf8.map((v_cb35cb) => ({
       id: v_cb35cb.id,
@@ -1166,5 +1354,84 @@ v_de7ba7.get("/:id", v_6690d9, async (v_3f4e2e) => {
       createdAt: v_cb35cb.createdAt,
     })),
   });
+});
+
+v_de7ba7.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_b1de41) || v_b1de41 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  if (v_43e90c === v_b1de41) {
+    throw new v_3ebe58("VALIDATION_FAILED", "본인은 차단할 수 없어요.");
+  }
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
+    ).bind(v_43e90c, v_b1de41),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(v_43e90c, v_b1de41),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(v_b1de41, v_43e90c),
+  ]);
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "user.block",
+    details: { targetId: v_b1de41 },
+  });
+  return v_3f4e2e.json({ ok: true, blocked: true });
+});
+
+v_de7ba7.delete("/:id/block", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_b1de41) || v_b1de41 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM user_blocks WHERE blocker_id = ? AND blocked_id = ?`)
+    .bind(v_43e90c, v_b1de41)
+    .run();
+  return v_3f4e2e.json({ ok: true, blocked: false });
+});
+
+const v_59bd98 = v_1f4ea7.object({
+  reason: v_1f4ea7.string().max(500).optional(),
+});
+v_de7ba7.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
+  const v_b1de41 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_b1de41) || v_b1de41 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 유저 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  if (v_43e90c === v_b1de41) {
+    throw new v_3ebe58("VALIDATION_FAILED", "본인은 신고할 수 없어요.");
+  }
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_59bd98).catch(() => ({ reason: undefined }));
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_reports (reporter_id, target_id, reason)
+         VALUES (?, ?, ?)`,
+    ).bind(v_43e90c, v_b1de41, v_4d33b2.reason ?? null),
+    v_3f4e2e.env.DB.prepare(
+      `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
+    ).bind(v_43e90c, v_b1de41),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(v_43e90c, v_b1de41),
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+    ).bind(v_b1de41, v_43e90c),
+  ]);
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "user.report",
+    details: { targetId: v_b1de41, reason: v_4d33b2.reason ?? null },
+  });
+  return v_3f4e2e.json({ ok: true, reported: true, blocked: true });
 });
 

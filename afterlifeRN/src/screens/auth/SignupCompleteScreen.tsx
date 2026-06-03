@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -89,7 +90,7 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
       console.warn("[SignupComplete] start failed:", v_49263d);
       const v_badeaf =
         v_49263d instanceof v_84a859 ? v_49263d.message : String(v_49263d);
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
 
     } finally {
       v_558bed(false);

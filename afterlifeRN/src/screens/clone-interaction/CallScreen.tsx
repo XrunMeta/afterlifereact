@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095, v_c4deb2, v_e662ae, v_de06a3 } from "bapkr";
 import {
   v_3094a2,
@@ -12,14 +13,16 @@ import {
   v_a2349e,
   v_326be8,
   v_e767d1,
-  v_5f4661,
-  v_122070,
   v_79c4f2,
   v_03e392,
+  v_f2c756,
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
+import { v_bab832 } from "rthlnescfffbyxfmhgq";
+import { v_b38a7e } from "../../realtime/useLiveAvatar";
+import { v_7df8a4 } from "../../realtime/useHandsFreeController";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -32,18 +35,13 @@ import type { v_84fd28 } from "../../types/gift";
 import v_feb82c from "../../mocks/gifts.json";
 import { v_5c99c1 } from "../../api/payments";
 import {
-  v_4208e7,
-  v_3f8bc7,
-  v_6f689a,
-  v_0df337,
   v_6d41b9,
   v_b14fce,
   v_0ff331,
   v_28dc16,
-  type v_52af9d,
+  v_c0681d,
 } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
-import { v_bfd883 } from "../../lib/relativeTime";
 
 type Props = v_432191<v_8ad91b, "Call">;
 
@@ -62,9 +60,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const { t: v_8d41d7 } = v_772971();
   const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
-  const v_625c74 = v_1ed7d9((v_fd5f43) => v_fd5f43.user);
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-  const v_f5f393 = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? v_fd5f43.user?.id ?? null);
   const v_033e14 = v_e0068c();
   const v_f9771e = v_c18c22(0);
   const v_53dd92 =
@@ -74,6 +70,35 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
   const [v_4e2aec, v_326ca4] = v_5ab095(false);
   const [v_9e64e1, v_e064ce] = v_5ab095(false);
+
+  const {
+    state: v_6cc918,
+    remoteStream: v_b4d824,
+    start: v_223067,
+    stop: v_cd8b64,
+    say: v_3e2c87,
+    getStatsReport: v_791152,
+    notifySpeechEnd: v_811f30,
+  } = v_b38a7e({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
+
+  const {
+    phase: v_ab4803,
+    micOn: v_1065f7,
+    toggleMic: v_6e1295,
+    transcript: v_0885ca,
+    interimTranscript: v_a2d9d1,
+  } = v_7df8a4({
+    enabled: v_6cc918 === "live",
+    say: v_3e2c87,
+    getStatsReport: v_791152,
+    notifySpeechEnd: v_811f30,
+  });
+
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    void v_223067();
+
+  }, []);
 
   v_c4deb2(() => {
     if (!v_d1a6bb?.granted) {
@@ -90,8 +115,36 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_5a751a, v_6d75b1] = v_5ab095(0);
   v_c4deb2(() => {
+    if (v_6cc918 !== "live") return;
     const v_389afb = setInterval(() => v_6d75b1((v_fd5f43) => v_fd5f43 + 1), 1000);
     return () => clearInterval(v_389afb);
+  }, [v_6cc918]);
+
+  const v_1406a6 = v_e662ae<number>(Date.now());
+  const v_4d96d4 = v_e662ae(v_2ca7e0);
+  const v_32c215 = v_e662ae(v_6e0fd3);
+  v_c4deb2(() => {
+    v_4d96d4.current = v_2ca7e0;
+    v_32c215.current = v_6e0fd3;
+  }, [v_2ca7e0, v_6e0fd3]);
+  v_c4deb2(() => {
+    return () => {
+      const v_21cc31 = v_4d96d4.current;
+      const v_062ae9 = v_32c215.current;
+      console.log(`[Call] 화면 종료 — call-event 전송 시도 token=${!!v_21cc31} cloneId=${v_062ae9}`);
+      if (!v_21cc31 || !v_062ae9) {
+        console.warn(`[Call] call-event 전송 SKIP (token=${!!v_21cc31} cid=${v_062ae9})`);
+        return;
+      }
+      const v_40c855 = Math.floor((Date.now() - v_1406a6.current) / 1000);
+      console.log(`[Call] POST /oth-path${v_062ae9}/call-event { durationSeconds: ${v_40c855} }`);
+
+      v_c0681d(v_21cc31, v_062ae9, { durationSeconds: v_40c855 })
+        .then((v_8f00b9) =>
+          console.log(`[Call] call-event ← ok scoreApplied=${(v_8f00b9 as { scoreApplied?: number }).scoreApplied ?? 0}°C (duration=${v_40c855}s, >=1200 이면 +15°C)`),
+        )
+        .catch((v_49263d) => console.warn("[Call] postCloneCallEvent failed:", v_49263d));
+    };
   }, []);
 
   v_c4deb2(() => {
@@ -130,102 +183,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_dfb220 = v_a4744c || v_eb25ce?.displayName || v_8d41d7("chat.personaFallback");
   const v_0e38ad = v_c1e151 || v_eb25ce?.imageUrl || "";
 
-  const [v_62e1db, v_ca73f4] = v_5ab095(false);
-  const [v_ecfc0f, v_04f2fc] = v_5ab095<v_52af9d[]>([]);
-  const [v_465030, v_856daf] = v_5ab095(false);
-  const [v_48e7fe, v_856f84] = v_5ab095("");
-  const v_4c2809 = v_e662ae(false);
-  const [v_b0af20, v_52390e] = v_5ab095(false);
-
-  const [v_ed660d, v_b07dd3] = v_5ab095<number | null>(null);
-
-  const v_cabe8e = v_de06a3(async () => {
-    v_856daf(true);
-    try {
-
-      const v_8f00b9 = await fetch(
-        `https://edge-alt-preview.example.invalid/oth-path${v_6e0fd3}/comments?limit=100`,
-      );
-      if (v_8f00b9.ok) {
-        const v_9390e8 = (await v_8f00b9.json()) as { items: v_52af9d[] };
-        v_04f2fc(v_9390e8.items);
-
-        if (v_9390e8.items.length > 0) {
-
-          const v_d4f03e = v_9390e8.items.find((v_3f4e2e) => v_3f4e2e.feedId);
-          if (v_d4f03e && (v_d4f03e as any).feedId) {
-            v_b07dd3((v_d4f03e as any).feedId);
-          }
-        }
-      }
-    } catch (v_49263d) {
-      console.warn("[Call] loadComments failed:", v_49263d);
-    } finally {
-      v_856daf(false);
-    }
-  }, [v_6e0fd3]);
-
-  v_c4deb2(() => {
-    if (v_62e1db) void v_cabe8e();
-  }, [v_62e1db, v_cabe8e]);
-
-  const v_8e4668 = async () => {
-    if (v_4c2809.current) return;
-    const v_b43b74 = v_48e7fe.trim();
-    if (!v_b43b74 || !v_2ca7e0) return;
-    v_4c2809.current = true;
-    v_52390e(true);
-    try {
-      let v_6bbace;
-      if (v_ed660d == null) {
-
-        const v_cb35cb = await v_6f689a(v_2ca7e0, v_6e0fd3, v_b43b74);
-        v_6bbace = v_cb35cb.comment.feedId;
-        v_b07dd3(v_6bbace);
-      } else {
-        await v_3f8bc7(v_2ca7e0, v_ed660d, v_b43b74);
-        v_6bbace = v_ed660d;
-      }
-      v_856f84("");
-      void v_cabe8e();
-    } catch (v_49263d) {
-      console.warn("[Call] submitComment failed:", v_49263d);
-    } finally {
-      v_4c2809.current = false;
-      v_52390e(false);
-    }
-  };
-
-  const v_2d4fef = (v_d91518, v_c09aa8) => {
-    if (!v_2ca7e0) return;
-    v_03e392.alert("댓글 삭제", "이 댓글을 삭제하시겠습니까?", [
-      { text: "취소", style: "cancel" },
-      {
-        text: "삭제",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await v_0df337(v_2ca7e0, v_c09aa8, v_d91518);
-            v_04f2fc((v_ba2215) => v_ba2215.filter((v_3f4e2e) => v_3f4e2e.id !== v_d91518));
-          } catch (v_49263d) {
-            console.warn("[Call] delete comment failed:", v_49263d);
-          }
-        },
-      },
-    ]);
-  };
-
-  const v_22cd2d = async () => {
-    try {
-      await v_5f4661.share({
-        message: `${v_dfb220} 와 통화해보세요!\nhttps://afterlife.run/oth-path${v_6e0fd3}`,
-        title: v_dfb220,
-      });
-    } catch (v_49263d) {
-      console.warn("[Call] share failed:", v_49263d);
-    }
-  };
-
   v_c4deb2(() => {
     if (v_8282fa) {
       const v_cb36b1 = setTimeout(() => v_15c939(null), 2000);
@@ -238,15 +195,51 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_c924cc, v_d0452a] = v_5ab095("");
   const [v_904d6c, v_a8bf66] = v_5ab095(false);
 
+  const v_0c2802 = async () => {
+    const v_e0c7e8 = v_1ed7d9.getState().apiUser?.email ?? null;
+    const v_2208dc = v_e0c7e8
+      ? `xrun://?email=${encodeURIComponent(v_e0c7e8)}&from=afterlife`
+      : "xrun://";
+    try {
+      await v_f2c756.openURL(v_2208dc);
+    } catch {
+      const v_b71a74 =
+        v_326be8.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try {
+        await v_f2c756.openURL(v_b71a74);
+      } catch {
+
+      }
+    }
+  };
+
   const v_25b14f = (gift: v_84fd28) => {
+    console.log(
+      `[Call][gift-tap] giftId=${v_bbee9c.id} name=${v_bbee9c.name} price=${v_bbee9c.price} ` +
+        `myCredits=${v_e2c945} (typeof=${typeof v_e2c945}) enough=${v_e2c945 >= v_bbee9c.price}`,
+    );
     if (v_e2c945 < v_bbee9c.price) {
-      v_15c939(v_8d41d7("call.noCredits"));
+      const v_ff3b79 = Math.max(0, v_bbee9c.price - v_e2c945);
+      console.log(
+        `[Call][gift-insufficient-precheck] ${v_e2c945} < ${v_bbee9c.price} (shortage=${v_ff3b79}) → block PIN modal`,
+      );
+      v_889fad(
+        `${v_ff3b79} 잔액이 부족합니다`,
+        `선물을 보내기 위해 ${v_ff3b79} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`,
+        [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
+        ],
+      );
       return;
     }
     v_5afccf(v_bbee9c);
     v_d0452a("");
     v_2a4980(false);
     v_ece29b(true);
+    console.log(`[Call][gift-pin-open] open PIN modal for gift=${v_bbee9c.name}`);
   };
 
   const v_c04570 = async () => {
@@ -255,6 +248,10 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_15c939("PIN 6자리를 입력해 주세요");
       return;
     }
+    console.log(
+      `[Call][gift-submit] giftId=${v_555760.id} amount=${v_555760.price} ` +
+        `myCredits=${v_e2c945} cloneId=${v_6e0fd3} pin=*** (${v_c924cc.length} chars)`,
+    );
     v_a8bf66(true);
     try {
       const v_8f00b9 = await v_28dc16(v_2ca7e0, v_6e0fd3, {
@@ -263,7 +260,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         amount: v_555760.price,
         pin: v_c924cc,
       });
-      console.log("[Call] gift sent:", v_8f00b9.gift);
+      console.log("[Call][gift-ok] gift sent:", v_8f00b9.gift);
       const v_bbee9c = v_555760;
 
       if (v_8f00b9.gift.newBalance != null && !Number.isNaN(Number(v_8f00b9.gift.newBalance))) {
@@ -277,19 +274,65 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       v_161a89(v_bbee9c);
     } catch (v_49263d) {
-      console.warn("[Call] gift failed:", v_49263d);
+      console.warn("[Call][gift-fail] raw err =", v_49263d);
+      if (v_49263d instanceof v_84a859) {
+        console.warn(
+          `[Call][gift-fail] code=${v_49263d.code} status=${v_49263d.status} msg="${v_49263d.message}" details=${JSON.stringify(v_49263d.details)}`,
+        );
+      } else if (v_49263d instanceof Error) {
+        console.warn(`[Call][gift-fail] non-AuthApiError name=${v_49263d.name} msg=${v_49263d.message}`);
+      }
+      let v_9f1622 = "송금 실패";
       let v_badeaf = "송금에 실패했어요.";
+      let v_81532e = false;
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "결제 비밀번호가 일치하지 않아요.";
-        else if (v_49263d.code === "INSUFFICIENT_FUNDS") v_badeaf = "잔액이 부족해요.";
-        else if (v_49263d.code === "CONFLICT") v_badeaf = v_49263d.message;
+        else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
+          v_81532e = true;
+
+          const v_ff3b79 = v_555760
+            ? Math.max(0, v_555760.price - v_e2c945)
+            : 0;
+          v_9f1622 = v_ff3b79 > 0
+            ? `${v_ff3b79} 잔액이 부족합니다`
+            : "잔액이 부족합니다";
+          v_badeaf = v_ff3b79 > 0
+            ? `선물을 보내기 위해 ${v_ff3b79} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
+            : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
+        } else if (v_49263d.code === "CONFLICT") v_badeaf = v_49263d.message;
         else if (v_49263d.code === "UPSTREAM_NOT_IMPLEMENTED")
           v_badeaf = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
-        else if (v_49263d.code === "UPSTREAM_FAILURE")
-          v_badeaf = "xrun 송금 처리 중 오류가 발생했어요.";
-        else v_badeaf = v_49263d.message;
+        else if (v_49263d.code === "UPSTREAM_FAILURE") {
+
+          if (/insufficient|잔액|balance/i.test(v_49263d.message)) {
+            v_81532e = true;
+            const v_ff3b79 = v_555760
+              ? Math.max(0, v_555760.price - v_e2c945)
+              : 0;
+            v_9f1622 = v_ff3b79 > 0
+              ? `${v_ff3b79} 잔액이 부족합니다`
+              : "잔액이 부족합니다";
+            v_badeaf = v_ff3b79 > 0
+              ? `선물을 보내기 위해 ${v_ff3b79} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
+              : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
+          } else {
+            v_badeaf = "xrun 송금 처리 중 오류가 발생했어요.";
+          }
+        } else v_badeaf = v_49263d.message;
       }
-      v_03e392.alert("송금 실패", v_badeaf);
+
+      v_ece29b(false);
+      v_d0452a("");
+      v_889fad(
+        v_9f1622,
+        v_badeaf,
+        v_81532e
+          ? [
+              { text: "다음에 하기", style: "cancel" },
+              { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
+            ]
+          : undefined,
+      );
     } finally {
       v_a8bf66(false);
     }
@@ -335,7 +378,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   return (
     <View style={v_fd5f43.container}>
       {}
-      {v_0e38ad ? (
+      {v_b4d824 ? (
+        <RTCView
+          streamURL={(v_b4d824 as unknown as { toURL: () => string }).toURL()}
+          objectFit="cover"
+          style={[v_472849.absoluteFill, { width: "100%", height: "100%" }]}
+        />
+      ) : v_0e38ad ? (
         <Image
           source={typeof v_0e38ad === "number" ? v_0e38ad : { uri: v_0e38ad }}
           style={[v_472849.absoluteFill, { width: "100%", height: "100%" }]}
@@ -343,6 +392,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         />
       ) : (
         <View style={[v_472849.absoluteFill, { backgroundColor: v_1bfbd0.zinc900 }]} />
+      )}
+
+      {}
+      {v_6cc918 !== "live" && (
+        <View style={v_fd5f43.liveOverlay} pointerEvents="none">
+          <Text style={v_fd5f43.liveOverlayText}>
+            {v_6cc918 === "error" ? "연결에 실패했어요" : "연결 중…"}
+          </Text>
+        </View>
       )}
 
       <LinearGradient
@@ -370,22 +428,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         )}
       </TouchableOpacity>
 
-      {}
-      <View style={[v_fd5f43.creditsBadge, { top: v_033e14.top + 8 }]}>
-        <Text style={v_fd5f43.creditsText}>{v_e2c945.toLocaleString()} XRUN</Text>
-      </View>
+      {
+}
 
       {}
       <View style={[v_fd5f43.callInfo, { top: v_033e14.top + 24 }]}>
         <Text style={v_fd5f43.callName}>{v_dfb220}</Text>
-        <View style={v_fd5f43.callStatusBadge}>
-          <View style={v_fd5f43.callDot} />
-          <Text style={v_fd5f43.callStatusText}>{v_8d41d7("call.inCall", { time: v_813acc })}</Text>
-        </View>
+        <Text style={v_fd5f43.callTimeText}>{v_813acc}</Text>
       </View>
 
       {}
-      <View style={[v_fd5f43.rightActions, { bottom: 180 + v_53dd92 }]}>
+      <View style={v_fd5f43.rightActions}>
         <TouchableOpacity
           style={[v_fd5f43.sideBtn, v_d416b8 && v_fd5f43.sideBtnActive]}
           onPress={() => v_2a4980(!v_d416b8)}
@@ -418,12 +471,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             color={v_85c07b ? "#ef4444" : v_1bfbd0.white}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={v_fd5f43.sideBtn} onPress={() => v_ca73f4(true)}>
-          <Feather name="message-circle" size={22} color={v_1bfbd0.white} />
-        </TouchableOpacity>
-        <TouchableOpacity style={v_fd5f43.sideBtn} onPress={v_22cd2d}>
-          <Feather name="share-2" size={22} color={v_1bfbd0.white} />
-        </TouchableOpacity>
+        {}
       </View>
 
       {}
@@ -444,17 +492,58 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ))}
 
       {}
+      {v_ab4803 === 'listening' && (!!v_a2d9d1 || !!v_0885ca) ? (
+        <View style={v_fd5f43.subtitleContainer} pointerEvents="none">
+          <Text style={v_fd5f43.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+            {v_a2d9d1 || v_0885ca}
+          </Text>
+        </View>
+      ) : null}
+
+      {}
       <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
+        {}
+        <Pressable
+          onPress={v_6e1295}
+          style={[
+            v_fd5f43.controlBtn,
+            v_1065f7 && v_ab4803 === 'listening' && v_fd5f43.controlBtnActive,
+            v_ab4803 === 'speaking' && v_fd5f43.controlBtnDanger,
+          ]}
+        >
+          <Text style={v_fd5f43.talkBtnText}>
+            {!v_1065f7
+              ? '마이크 꺼짐'
+              : v_ab4803 === 'speaking'
+                ? '응답 중...'
+                : v_ab4803 === 'listening'
+                  ? '듣는 중...'
+                  : '대기'}
+          </Text>
+        </Pressable>
+
         <TouchableOpacity
           style={[v_fd5f43.controlBtn, v_4e2aec && v_fd5f43.controlBtnDanger]}
-          onPress={() => v_326ca4(!v_4e2aec)}
+          onPress={() => {
+            const v_a448ad = !v_4e2aec;
+            v_326ca4(v_a448ad);
+
+            const v_ff0300 = (v_b4d824 as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+              ?.getAudioTracks?.() ?? [];
+            v_ff0300.forEach((v_8d41d7) => {
+              v_8d41d7.enabled = !v_a448ad;
+            });
+          }}
         >
           <Feather name={v_4e2aec ? "mic-off" : "mic"} size={24} color={v_1bfbd0.white} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={v_fd5f43.endCallBtn}
-          onPress={() => v_c65f5d.goBack()}
+          onPress={async () => {
+            await v_cd8b64();
+            v_c65f5d.goBack();
+          }}
         >
           <Feather name="phone" size={28} color={v_1bfbd0.white} style={{ transform: [{ rotate: "135deg" }] }} />
         </TouchableOpacity>
@@ -524,86 +613,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       </Modal>
 
       {}
-      <Modal visible={v_62e1db} transparent animationType="slide">
-        <Pressable style={v_fd5f43.commentOverlay} onPress={() => v_ca73f4(false)}>
-          <Pressable
-            style={[v_fd5f43.commentSheet, { paddingBottom: 12 + v_53dd92 }]}
-            onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}
-          >
-            <View style={v_fd5f43.sheetHandle} />
-            <View style={v_fd5f43.commentHeaderRow}>
-              <Text style={v_fd5f43.commentTitle}>
-                {v_8d41d7("feed.commentCount", { n: v_ecfc0f.length })}
-              </Text>
-              <TouchableOpacity onPress={() => v_ca73f4(false)}>
-                <Feather name="x" size={20} color={v_1bfbd0.zinc600} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-              {v_465030 ? (
-                <View style={v_fd5f43.emptyComment}>
-                  <Feather name="loader" size={28} color={v_1bfbd0.zinc300} />
-                </View>
-              ) : v_ecfc0f.length > 0 ? (
-                v_ecfc0f.map((v_3f4e2e) => (
-                  <View key={v_3f4e2e.id} style={v_fd5f43.commentRow}>
-                    {v_3f4e2e.user?.avatarUrl ? (
-                      <Image source={{ uri: v_3f4e2e.user.avatarUrl }} style={v_fd5f43.commentAvatar} />
-                    ) : (
-                      <View style={[v_fd5f43.commentAvatar, { backgroundColor: v_1bfbd0.zinc200 }]} />
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <View style={v_fd5f43.commentMeta}>
-                        <Text style={v_fd5f43.commentAuthor}>
-                          {v_3f4e2e.user?.name ?? v_3f4e2e.user?.email}
-                        </Text>
-                        <Text style={v_fd5f43.commentTime}>{v_bfd883(v_3f4e2e.createdAt)}</Text>
-                        {v_3f4e2e.userId === v_f5f393 && v_3f4e2e.feedId && (
-                          <TouchableOpacity
-                            onPress={() => v_2d4fef(v_3f4e2e.id, v_3f4e2e.feedId)}
-                            style={{ marginLeft: 8 }}
-                          >
-                            <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                      <Text style={v_fd5f43.commentContent}>{v_3f4e2e.content}</Text>
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <View style={v_fd5f43.emptyComment}>
-                  <Feather name="message-circle" size={40} color={v_1bfbd0.zinc300} />
-                  <Text style={v_fd5f43.emptyText}>{v_8d41d7("feed.commentsEmpty")}</Text>
-                </View>
-              )}
-            </ScrollView>
-            <View style={v_fd5f43.commentInputRow}>
-              <TextInput
-                style={v_fd5f43.commentInput}
-                value={v_48e7fe}
-                onChangeText={v_856f84}
-                placeholder={v_8d41d7("feed.commentPlaceholder")}
-                placeholderTextColor={v_1bfbd0.placeholder}
-              />
-              <TouchableOpacity
-                disabled={!v_48e7fe.trim() || !v_2ca7e0 || v_b0af20}
-                onPress={v_8e4668}
-              >
-                <Feather
-                  name="send"
-                  size={18}
-                  color={
-                    v_48e7fe.trim() && v_2ca7e0 && !v_b0af20
-                      ? v_1bfbd0.zinc900
-                      : v_1bfbd0.zinc400
-                  }
-                />
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {}
       <Modal visible={v_58c86d} transparent animationType="fade">
@@ -674,6 +683,27 @@ const v_fd5f43 = v_472849.create({
     flex: 1,
     backgroundColor: v_1bfbd0.zinc950,
   },
+  liveOverlay: {
+    position: "absolute",
+    top: "50%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 5,
+  },
+  liveOverlayText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.white,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
 
   pip: {
     position: "absolute",
@@ -697,19 +727,6 @@ const v_fd5f43 = v_472849.create({
     justifyContent: "center",
   },
 
-  creditsBadge: {
-    position: "absolute",
-    right: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: v_8b0c90.full,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    zIndex: 20,
-  },
-  creditsText: { fontSize: 13, fontWeight: "700", color: v_1bfbd0.white },
-
   callInfo: {
     position: "absolute",
     left: 0,
@@ -726,28 +743,23 @@ const v_fd5f43 = v_472849.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  callStatusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(34,197,94,0.9)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: v_8b0c90.full,
+
+  callTimeText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: v_1bfbd0.white,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  callDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: v_1bfbd0.white,
-  },
-  callStatusText: { fontSize: 13, fontWeight: "500", color: v_1bfbd0.white },
 
   rightActions: {
     position: "absolute",
     right: 16,
-    bottom: 180,
-    gap: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    gap: 20,
     zIndex: 20,
   },
   sideBtn: {
@@ -767,6 +779,26 @@ const v_fd5f43 = v_472849.create({
     bottom: 200,
     fontSize: 48,
     zIndex: 30,
+  },
+
+  subtitleContainer: {
+    position: 'absolute',
+    bottom: 150,
+    left: 48,
+    right: 48,
+    alignItems: 'center',
+    zIndex: 15,
+  },
+  subtitleText: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: v_1bfbd0.white,
+    fontSize: 15,
+    fontWeight: '500',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    textAlign: 'center',
+    overflow: 'hidden',
   },
 
   controls: {
@@ -790,6 +822,15 @@ const v_fd5f43 = v_472849.create({
   },
   controlBtnDanger: {
     backgroundColor: v_1bfbd0.error,
+  },
+  controlBtnActive: {
+    backgroundColor: v_1bfbd0.violet500,
+  },
+  talkBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: v_1bfbd0.white,
+    textAlign: "center",
   },
   endCallBtn: {
     width: 72,
@@ -815,7 +856,8 @@ const v_fd5f43 = v_472849.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 24,
-    maxHeight: "50%",
+
+    height: "80%",
   },
   giftHeader: {
     flexDirection: "row",
@@ -881,56 +923,6 @@ const v_fd5f43 = v_472849.create({
     zIndex: 50,
   },
   toastText: { fontSize: 14, color: v_1bfbd0.white },
-
-  commentOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  commentSheet: {
-    backgroundColor: v_1bfbd0.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    height: "70%",
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: v_1bfbd0.zinc300,
-    alignSelf: "center",
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  commentHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  commentTitle: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
-  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16 },
-  commentMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  commentAuthor: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc900 },
-  commentTime: { fontSize: 12, color: v_1bfbd0.zinc400 },
-  commentContent: { fontSize: 14, color: v_1bfbd0.zinc700, lineHeight: 20 },
-  emptyComment: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { fontSize: 14, color: v_1bfbd0.zinc400, marginTop: 8 },
-  commentInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: v_1bfbd0.zinc200,
-    paddingTop: 12,
-  },
-  commentInput: {
-    flex: 1,
-    height: 40,
-    backgroundColor: v_1bfbd0.zinc100,
-    borderRadius: v_8b0c90.full,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: v_1bfbd0.zinc900,
-  },
 
   pinOverlay: {
     flex: 1,

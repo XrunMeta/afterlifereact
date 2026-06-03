@@ -20,6 +20,7 @@ import v_000f0a from "../screens/clones/InviteAcceptScreen";
 import v_18ad36 from "../screens/notifications/NotificationsScreen";
 import v_c501aa from "../screens/user/UserProfileScreen";
 import v_7d236a from "../screens/user/UserFollowListScreen";
+import v_9887a2 from "../screens/clones/CloneFeedScreen";
 
 const v_36a793 = v_709be7<v_8ad91b>();
 const v_e8bc89 = v_709be7<v_384e19>();
@@ -70,6 +71,19 @@ export default function v_3b950c() {
           <RootStack.Screen name="Notifications" component={v_18ad36} />
           <RootStack.Screen name="UserProfile" component={v_c501aa} />
           <RootStack.Screen name="UserFollowList" component={v_7d236a} />
+          <RootStack.Screen
+            name="CloneFeed"
+            component={v_9887a2}
+            options={{ animation: "slide_from_right" }}
+          />
+          {
+
+}
+          <RootStack.Screen
+            name="ResetPassword"
+            component={v_040c8f}
+            options={{ animation: "slide_from_right" }}
+          />
         </>
       )}
     </RootStack.Navigator>

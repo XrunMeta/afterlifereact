@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_de06a3, v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -91,11 +92,11 @@ export default function v_07335f() {
   const v_371aa6 = async () => {
     const v_e0c7e8 = v_c75cd4.trim();
     if (!v_57ffc4.test(v_e0c7e8)) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.invalidEmail"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("invite.invalidEmail"));
       return;
     }
     if (v_78547c && v_e0c7e8.toLowerCase() === v_78547c.toLowerCase()) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.selfNotAllowed"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("invite.selfNotAllowed"));
       return;
     }
     if (!v_2ca7e0) return;
@@ -105,7 +106,7 @@ export default function v_07335f() {
       const v_5f5d6d = v_e0c7e8.toLowerCase();
       const v_17ec8d = v_9875a1.items.find((v_ceb55a) => v_ceb55a.email.toLowerCase() === v_5f5d6d);
       if (!v_17ec8d) {
-        v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("invite.memberNotFound"));
+        v_889fad(v_8d41d7("common.notice"), v_8d41d7("invite.memberNotFound"));
         v_ee9ec1(false);
         return;
       }
@@ -114,7 +115,7 @@ export default function v_07335f() {
       console.log("[CloneInvite] sent:", v_8f00b9);
       v_3b75f3("");
       await v_92fdf2();
-      v_03e392.alert(v_8d41d7("common.success"), v_8d41d7("invite.sentToast", { target: v_e0c7e8 }));
+      v_889fad(v_8d41d7("common.success"), v_8d41d7("invite.sentToast", { target: v_e0c7e8 }));
       void v_8f00b9;
     } catch (v_49263d) {
       let v_badeaf = v_8d41d7("invite.sendFailed");
@@ -124,7 +125,7 @@ export default function v_07335f() {
         else if (v_49263d.code === "ALREADY_MEMBER") v_badeaf = v_8d41d7("invite.alreadyMember");
         else v_badeaf = v_49263d.message;
       }
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -132,7 +133,7 @@ export default function v_07335f() {
 
   const v_5ca23e = async (inv: v_fb1763) => {
     if (!v_2ca7e0) return;
-    v_03e392.alert(
+    v_889fad(
       v_8d41d7("invite.cancelInviteTitle"),
       v_8d41d7("invite.cancelInviteDesc", { target: v_f0104f.inviteEmail ?? v_8d41d7("invite.create") }),
       [
@@ -146,7 +147,7 @@ export default function v_07335f() {
               await v_92fdf2();
             } catch (v_49263d) {
               const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("invite.cancelFailed");
-              v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+              v_889fad(v_8d41d7("common.error"), v_badeaf);
             }
           },
         },
@@ -161,7 +162,7 @@ export default function v_07335f() {
     const v_c4e8fe = v_a3c903
       ? v_8d41d7("invite.leaveTitle")
       : v_8d41d7("invite.kickTitle", { name: v_35f85c.targetUser?.name ?? v_35f85c.inviteEmail ?? "—" });
-    v_03e392.alert(v_5ea0fe, v_c4e8fe, [
+    v_889fad(v_5ea0fe, v_c4e8fe, [
       { text: v_8d41d7("common.close"), style: "cancel" },
       {
         text: v_5ea0fe,
@@ -180,7 +181,7 @@ export default function v_07335f() {
               v_49263d instanceof v_84a859
                 ? v_49263d.message
                 : v_8d41d7("invite.actionFailed", { action: v_5ea0fe });
-            v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+            v_889fad(v_8d41d7("common.error"), v_badeaf);
           }
         },
       },

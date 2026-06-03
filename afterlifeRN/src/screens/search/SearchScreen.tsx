@@ -16,7 +16,7 @@ import {
 } from "rcmrninabrnb";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_2d8264, v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_5b8240 } from "ykfzqfftuciufdadykzsyvzknqnwb";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import type { v_34614d } from "ixigazcpvfldbecwtbvavtbi";
@@ -51,12 +51,29 @@ const v_1bc355 = [
 
 export default function v_5db6c6() {
   const v_3c9f12 = v_ada615<TabNav>();
+  const v_c7daf6 = v_2d8264();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_033e14 = v_e0068c();
 
   const [v_7c5791, v_c57190] = v_5ab095("");
   const [v_50c827, v_b6749d] = v_5ab095(false);
   const [v_ac1d22, v_02dd63] = v_5ab095<TabKey>("recommend");
+
+  v_cf763b(
+    v_a3453e.useCallback(() => {
+      const v_24baff = v_c7daf6.params as { initialQuery?: string } | undefined;
+      const v_fc6010 = v_24baff?.initialQuery;
+      if (typeof v_fc6010 === "string" && v_fc6010.trim().length > 0) {
+
+        const v_f23d49 = v_fc6010.replace(/^#+/, "").trim();
+        v_c57190(v_f23d49);
+        v_02dd63("recommend");
+
+        v_3c9f12.setParams({ initialQuery: undefined } as never);
+      }
+
+    }, [v_c7daf6.params, v_3c9f12]),
+  );
   const [v_632473, v_5593fb] = v_5ab095<v_4c75cf[]>([]);
   const [v_9debb9, v_dbbd5d] = v_5ab095(true);
   const [v_de7ba7, v_28d82a] = v_5ab095<v_3a673b[]>([]);
@@ -171,7 +188,8 @@ export default function v_5db6c6() {
   const v_9c529a = !v_3ddc98 && v_50c827;
 
   const v_ff422a = v_df9f57(() => {
-    const v_ab6401 = v_7c5791.trim().toLowerCase();
+
+    const v_ab6401 = v_7c5791.trim().replace(/^#+/, "").toLowerCase();
     if (!v_ab6401) return v_632473;
     return v_632473.filter((v_8b5cd8) => {
       const v_1833e7 = v_8b5cd8.clone.name.toLowerCase();
@@ -179,6 +197,7 @@ export default function v_5db6c6() {
       const v_3e7de0 = v_8b5cd8.interests.some((v_23805a) =>
         v_23805a.toLowerCase().includes(v_ab6401),
       );
+
       const v_73c4d7 = (v_8b5cd8.content ?? "").toLowerCase().includes(v_ab6401);
       return v_1833e7.includes(v_ab6401) || v_1ed516.includes(v_ab6401) || v_3e7de0 || v_73c4d7;
     });
@@ -203,18 +222,26 @@ export default function v_5db6c6() {
   }, [v_632473, v_7c5791]);
 
   const v_fc704f = v_df9f57(() => {
-    const v_ab6401 = v_7c5791.trim().toLowerCase();
+
+    const v_ab6401 = v_7c5791.trim().replace(/^#+/, "").toLowerCase();
     const v_bb8024 = new Set<string>();
-    for (const v_8b5cd8 of v_632473) for (const v_23805a of v_8b5cd8.interests) v_bb8024.add(v_23805a);
+    for (const v_8b5cd8 of v_632473) {
+      for (const v_23805a of v_8b5cd8.interests) v_bb8024.add(v_23805a);
+      const v_b43b74 = v_8b5cd8.content ?? "";
+
+      const v_a49907 = v_b43b74.match(/#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/g) ?? [];
+      for (const v_35f85c of v_a49907) v_bb8024.add(v_35f85c.replace(/^#+/, ""));
+    }
     const v_48c915 = Array.from(v_bb8024);
     if (!v_ab6401) return v_48c915.slice(0, 30);
     return v_48c915.filter((v_8d41d7) => v_8d41d7.toLowerCase().includes(v_ab6401));
   }, [v_632473, v_7c5791]);
 
-  const v_74ecfc = (v_6e0fd3, v_ebaa25) => {
+  const v_8787bb = (feedItem: v_4c75cf, v_ebaa25) => {
     if (v_ebaa25) v_2dbcf9(v_ebaa25);
+    v_0e1f26.dismiss();
 
-    v_3c9f12.navigate("ClonesTab", { screen: "CloneDetail", params: { cloneId: v_6e0fd3 } });
+    v_3c9f12.navigate("CloneFeed", { feed: v_e89481 });
   };
 
   const v_670702 = () => {
@@ -242,7 +269,7 @@ export default function v_5db6c6() {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => v_74ecfc(v_8c0b26.cloneId, v_7c5791)}
+        onPress={() => v_8787bb(v_8c0b26, v_7c5791)}
         style={{ width: v_675c6a, height: v_6367e4, marginRight: v_d88de1, marginBottom: v_296ef9 }}
       >
         {v_8c0b26.mediaUrl ? (
@@ -256,21 +283,50 @@ export default function v_5db6c6() {
     );
   };
 
-  const v_51e832 = ({ item: v_8c0b26 }: { item: v_4c75cf["clone"] }) => (
-    <TouchableOpacity style={v_fd5f43.row} onPress={() => v_74ecfc(v_8c0b26.id, v_8c0b26.name)}>
-      {v_8c0b26.avatarUrl ? (
-        <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.rowAvatar} />
-      ) : (
-        <View style={[v_fd5f43.rowAvatar, v_fd5f43.rowAvatarPh]}>
-          <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+  const v_51e832 = ({ item: v_8c0b26 }: { item: v_4c75cf["clone"] }) => {
+
+    const v_f9cc7f = v_632473.find((v_8b5cd8) => v_8b5cd8.cloneId === v_8c0b26.id);
+    return (
+      <TouchableOpacity
+        style={v_fd5f43.row}
+        onPress={() => {
+          if (v_f9cc7f) {
+            v_8787bb(v_f9cc7f, v_8c0b26.name);
+          } else {
+
+            v_8787bb(
+              {
+                id: -v_8c0b26.id,
+                cloneId: v_8c0b26.id,
+                content: null,
+                mediaUrl: v_8c0b26.avatarUrl,
+                mediaType: null,
+                likesCount: 0,
+                commentsCount: 0,
+                likedByMe: false,
+                createdAt: new Date().toISOString(),
+                clone: v_8c0b26,
+                interests: [],
+              },
+              v_8c0b26.name,
+            );
+          }
+        }}
+      >
+        {v_8c0b26.avatarUrl ? (
+          <Image source={{ uri: v_8c0b26.avatarUrl }} style={v_fd5f43.rowAvatar} />
+        ) : (
+          <View style={[v_fd5f43.rowAvatar, v_fd5f43.rowAvatarPh]}>
+            <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={v_fd5f43.rowName} numberOfLines={1}>{v_8c0b26.name}</Text>
+          <Text style={v_fd5f43.rowSub} numberOfLines={1}>@{v_8c0b26.username}</Text>
         </View>
-      )}
-      <View style={{ flex: 1 }}>
-        <Text style={v_fd5f43.rowName} numberOfLines={1}>{v_8c0b26.name}</Text>
-        <Text style={v_fd5f43.rowSub} numberOfLines={1}>@{v_8c0b26.username}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const v_358f4f = ({ item: v_8c0b26 }: { item: v_3a673b }) => (
     <Pressable
@@ -297,7 +353,15 @@ export default function v_5db6c6() {
   );
 
   const v_854a87 = ({ item: v_8c0b26 }: { item: string }) => (
-    <Pressable style={v_fd5f43.row} onPress={() => { v_c57190(v_8c0b26); v_2dbcf9(v_8c0b26); }}>
+    <Pressable
+      style={v_fd5f43.row}
+      onPress={() => {
+
+        v_c57190(v_8c0b26);
+        v_02dd63("recommend");
+        v_2dbcf9(v_8c0b26);
+      }}
+    >
       <View style={[v_fd5f43.rowAvatar, v_fd5f43.rowAvatarTag]}>
         <Feather name="hash" size={20} color={v_1bfbd0.zinc700} />
       </View>
@@ -308,14 +372,15 @@ export default function v_5db6c6() {
   );
 
   const v_35b27e = ({ item: v_8c0b26 }: { item: string }) => (
-    <View style={v_fd5f43.recentRow}>
-      <TouchableOpacity
-        style={v_fd5f43.recentLeft}
-        onPress={() => v_ba29e7(v_8c0b26)}
-      >
+    <TouchableOpacity
+      style={v_fd5f43.recentRow}
+      activeOpacity={0.7}
+      onPress={() => v_ba29e7(v_8c0b26)}
+    >
+      <View style={v_fd5f43.recentLeft}>
         <Feather name="clock" size={18} color={v_1bfbd0.zinc400} />
         <Text style={v_fd5f43.recentText} numberOfLines={1}>{v_8c0b26}</Text>
-      </TouchableOpacity>
+      </View>
       <TouchableOpacity
         style={v_fd5f43.recentRemoveBtn}
         onPress={() => v_c26d3f(v_8c0b26)}
@@ -323,7 +388,7 @@ export default function v_5db6c6() {
       >
         <Feather name="x" size={16} color={v_1bfbd0.zinc400} />
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   const v_e544cb = ({ label: v_2869c1 }: { label: string }) => (
@@ -335,6 +400,13 @@ export default function v_5db6c6() {
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white} showBottomBackground={false}>
+      {
+}
+      <Pressable
+        style={{ flex: 1 }}
+        onPress={() => v_0e1f26.dismiss()}
+
+      >
       {}
       <View style={[v_fd5f43.searchWrap, { paddingTop: v_033e14.top + 8 }]}>
         <View style={v_fd5f43.searchBar}>
@@ -482,6 +554,7 @@ export default function v_5db6c6() {
           />
         )
       )}
+      </Pressable>
     </SafeView>
   );
 }

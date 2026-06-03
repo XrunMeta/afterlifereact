@@ -34,18 +34,32 @@ export function v_f386b1(f: v_bc3df4): v_19b433 {
     ? (v_10e36e.get(v_8b5cd8.id)?.commentsCount ?? 0)
     : 20 + (v_65a2cd % 480);
   const v_9ab3b1 = v_7bc7b9[v_8b5cd8.cloneId];
+
+  const v_40d2e4 = v_3f4e2e?.interests ?? [];
+  let v_6856a9 = v_8b5cd8.content ?? "";
+
+  const v_58a04c = /#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/.test(v_6856a9);
+  if (v_40d2e4.length > 0 && !v_58a04c) {
+    const v_cf5673 = v_40d2e4.map((v_ebec57) => `#${v_ebec57}`).join(" ");
+    v_6856a9 = v_6856a9.trim().length > 0 ? `${v_6856a9} ${v_cf5673}` : v_cf5673;
+  }
+
   return {
     id: v_8b5cd8.id,
     cloneId: v_8b5cd8.cloneId,
+
+    cloneOwnerId: v_3f4e2e?.ownerId,
+    cloneVisibility: v_3f4e2e?.visibility,
     author: v_3f4e2e?.displayName ?? "알 수 없음",
     username: v_3f4e2e ? `@${v_3f4e2e.cloneType}-${v_3f4e2e.id}` : "@unknown",
     authorAvatar: v_9ab3b1 ?? v_3f4e2e?.imageUrl ?? "",
     image: v_8b5cd8.mediaUrl ?? v_9ab3b1 ?? v_3f4e2e?.imageUrl ?? "",
     title: v_3f4e2e?.displayName ?? "",
-    description: v_8b5cd8.content,
+    description: v_6856a9,
     type: v_3f4e2e ? v_81539c[v_3f4e2e.cloneType] : "친구",
     mainCategory: "",
-    interests: v_3f4e2e?.interests ?? [],
+
+    interests: v_40d2e4,
     likes: v_4fea0a(v_30007d),
     comments: v_ecfc0f,
   };

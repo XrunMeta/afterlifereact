@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392, v_cf9c33 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
@@ -24,11 +25,11 @@ export default function v_61d670({ navigation: v_c65f5d }: Props) {
 
   const v_420661 = async () => {
     if (!v_e0c7e8 || !v_6bee94) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8)) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailInvalid"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailInvalid"));
       return;
     }
     v_ee9ec1(true);
@@ -47,11 +48,11 @@ export default function v_61d670({ navigation: v_c65f5d }: Props) {
         } else v_badeaf = v_49263d.message;
       }
       if (v_252435) {
-        v_03e392.alert(v_8d41d7("auth.signup.alreadyExists"), v_badeaf, [
+        v_889fad(v_8d41d7("auth.signup.alreadyExists"), v_badeaf, [
           { text: v_8d41d7("common.ok"), onPress: () => v_c65f5d.goBack() },
         ]);
       } else {
-        v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+        v_889fad(v_8d41d7("common.error"), v_badeaf);
       }
     } finally {
       v_ee9ec1(false);

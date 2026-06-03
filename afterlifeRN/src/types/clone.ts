@@ -1,5 +1,18 @@
 import type { v_d79d7f, v_b0b271 } from "./domain";
 
+export type PersonaQuestionType = 'gemma_choice' | 'fixed_choice' | 'text';
+
+export interface PersonaQuestion {
+  key: string;
+  type: PersonaQuestionType;
+  label: string;
+  targetField?: string;
+  options?: string[];
+  options_include?: string[];
+  showWhen?: Record<string, string>;
+  optional?: boolean;
+}
+
 export type {
   DomainClone as v_affcc0,
   v_d79d7f,
@@ -63,4 +76,16 @@ export interface CloneCreationDraft {
   personaTypes?: PersonaTypeId[];
   personaMbti?: PersonaMbti;
   personaNotes?: string;
+
+  pin?: string;
+
+  personaAnswers?: Record<string, string>;
+
+  voicePresetId?: number;
+
+  idleVideoJobId?: string;
+  voiceCloneJobId?: string;
+
+  avatarFileId?: number;
+  avatarUrl?: string;
 }

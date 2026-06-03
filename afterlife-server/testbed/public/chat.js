@@ -10,6 +10,18 @@ const v_b74a53 = v_6adf3a('#resetBtn');
 const v_fcca65 = v_6adf3a('#ttsToggleBtn');
 const v_538921 = v_6adf3a('#ttsPlayer');
 
+const v_884abc = document.querySelectorAll('input[name="speakerRole"]');
+const v_1337d9 = document.getElementById('visitorIdInput');
+function v_0a520f() {
+  const v_f2d7a9 = document.querySelector('input[name="speakerRole"]:checked');
+  const v_22da99 = v_f2d7a9 ? v_f2d7a9.value : 'creator';
+  return { speaker_role: v_22da99, user_label: v_22da99 === 'visitor' ? (v_1337d9?.value?.trim() || 'visitor-test') : 'creator-test' };
+}
+v_884abc.forEach((v_cb35cb) => v_cb35cb.addEventListener('change', () => {
+  const v_f20841 = document.querySelector('input[name="speakerRole"]:checked')?.value === 'visitor';
+  if (v_1337d9) v_1337d9.hidden = !v_f20841;
+}));
+
 const v_371185 = 'afterlife.testbed.history.v0';
 const v_ee7dca = 'afterlife.testbed.tts.enabled';
 
@@ -253,8 +265,24 @@ const v_70a432 = 'afterlife.testbed.live.unmuted';
   const v_a3702d = document.getElementById('liveUnmuteBtn');
   if (!v_d0868b || !v_fe6a8a) return;
 
-  const v_dd5d8d = localStorage.getItem(v_70a432) === 'true';
+  const v_5885b8 = localStorage.getItem(v_70a432);
+  const v_dd5d8d = v_5885b8 !== 'false';
   let v_c35133 = false;
+
+  function v_5a7f5c() {
+    v_c35133 = true;
+    if (!v_dd5d8d) return;
+    if (v_efd76b && v_efd76b.muted) {
+      v_efd76b.muted = false;
+      v_efd76b.play().catch(() => {
+        v_efd76b.muted = true;
+      });
+      localStorage.setItem(v_70a432, 'true');
+      v_964a78();
+    }
+  }
+  document.addEventListener('pointerdown', v_5a7f5c, { once: true });
+  document.addEventListener('keydown', v_5a7f5c, { once: true });
 
   if (v_efd76b) {
     v_efd76b.muted = true; 
@@ -473,7 +501,13 @@ v_9e2838.addEventListener('submit', async (v_9e86fd) => {
     const v_8f00b9 = await fetch('/oth-path', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: v_9b6134, history: v_10740d.slice(0, -1) }),
+      body: JSON.stringify({
+        message: v_9b6134,
+        history: v_10740d.slice(0, -1),
+        source: 'browser',
+        ...v_0a520f(),
+        persona_slug: 'halbae',
+      }),
       signal: v_15718d.signal,
     });
     if (!v_8f00b9.ok || !v_8f00b9.body) throw new Error(`server ${v_8f00b9.status}`);
@@ -511,14 +545,14 @@ v_9e2838.addEventListener('submit', async (v_9e86fd) => {
           v_5193f8(`(${v_931bf0.eval_count ?? 0} tok / ${(v_931bf0.total_duration_ms ?? 0) / 1000 | 0}s · 영상 합성 중…)`);
         } else if (v_d48baf === 'video' && v_931bf0.url) {
 
-          const v_81e2ef = document.createElement('video');
-          v_81e2ef.src = v_931bf0.url;
-          v_81e2ef.controls = true;
-          v_81e2ef.autoplay = true;
-          v_81e2ef.playsInline = true;
-          v_81e2ef.preload = 'auto';
-          v_81e2ef.className = 'reply-video';
-          v_2ea79a.appendChild(v_81e2ef);
+          const v_779914 = document.createElement('a');
+          v_779914.href = v_931bf0.url;
+          v_779914.textContent = `📼 mp4 원본 (${v_931bf0.mp4_basename ?? 'video'})`;
+          v_779914.target = '_blank';
+          v_779914.rel = 'noopener';
+          v_779914.className = 'reply-mp4-link';
+          v_2ea79a.appendChild(document.createElement('br'));
+          v_2ea79a.appendChild(v_779914);
           v_44365b.scrollTop = v_44365b.scrollHeight;
           const v_b6a7e0 = Math.max(0, (v_931bf0.infer_ms ?? 0) / 1000) | 0;
           v_5193f8(`(영상 도착 · ${v_b6a7e0}s)`);

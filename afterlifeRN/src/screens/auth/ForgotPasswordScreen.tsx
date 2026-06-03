@@ -1,6 +1,7 @@
 
 
-import v_a3453e, { v_5ab095 } from "bapkr";
+import { v_889fad } from "../../stores/dialogStore";
+import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -10,14 +11,12 @@ import {
   v_03e392,
   v_39a996,
 } from "rcmrninabrnb";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
-import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
+import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
-import type { v_384e19 } from "../../navigation/types";
 import {
   v_84a859,
   v_63aa82,
@@ -26,42 +25,56 @@ import {
 
 type Step = "email" | "otp" | "password";
 
+type Params = { email?: string } | undefined;
+
 export default function v_040c8f() {
   const { t: v_8d41d7 } = v_772971();
-  const v_c65f5d = v_ada615<v_390fcc<v_384e19>>();
+  const v_c65f5d = v_ada615();
+  const v_c7daf6 = v_2d8264<v_ee3714<{ key: Params }, "key">>();
+  const v_44ec09 = (v_c7daf6.params as { email?: string } | undefined)?.email;
+  const v_c76a8b = !!v_44ec09;
 
-  const [v_729796, v_fd7d1f] = v_5ab095<Step>("email");
-  const [v_e0c7e8, v_fedf34] = v_5ab095("");
+  const [v_729796, v_fd7d1f] = v_5ab095<Step>(v_44ec09 ? "otp" : "email");
+  const [v_e0c7e8, v_fedf34] = v_5ab095(v_44ec09 ?? "");
   const [v_c99bd2, v_537cbb] = v_5ab095("");
   const [v_adc076, v_52b279] = v_5ab095("");
   const [v_1e51a9, v_014c88] = v_5ab095("");
+
+  const [v_b5ab16, v_b7733b] = v_5ab095(false);
+  const [v_e7340a, v_30513e] = v_5ab095(false);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
   const v_2de427 = async () => {
     const v_9e86fd = v_e0c7e8.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(v_9e86fd)) {
-      v_03e392.alert("알림", "이메일 형식이 올바르지 않아요.");
+      v_889fad("알림", "이메일 형식이 올바르지 않아요.");
       return;
     }
     v_ee9ec1(true);
     try {
       await v_63aa82(v_9e86fd);
-      v_03e392.alert(v_8d41d7("auth.forgot.title"), v_8d41d7("auth.forgot.codeSent"));
+      v_889fad(v_8d41d7("auth.forgot.title"), v_8d41d7("auth.forgot.codeSent"));
       v_fd7d1f("otp");
     } catch (v_49263d) {
       const v_badeaf =
         v_49263d instanceof v_84a859 && v_49263d.code === "OTP_COOLDOWN"
           ? v_49263d.message
           : v_8d41d7("auth.forgot.resetFailed");
-      v_03e392.alert("오류", v_badeaf);
+      v_889fad("오류", v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
   };
 
+  v_c4deb2(() => {
+    if (!v_44ec09) return;
+    void v_2de427();
+
+  }, []);
+
   const v_4f034c = () => {
     if (!/^\d{6}$/.test(v_c99bd2.trim())) {
-      v_03e392.alert("알림", v_8d41d7("auth.forgot.wrongCode"));
+      v_889fad("알림", v_8d41d7("auth.forgot.wrongCode"));
       return;
     }
 
@@ -71,11 +84,11 @@ export default function v_040c8f() {
   const v_9831a6 = async () => {
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)) {
-      v_03e392.alert("알림", v_8d41d7("auth.forgot.passwordTooShort"));
+      v_889fad("알림", v_8d41d7("auth.forgot.passwordTooShort"));
       return;
     }
     if (v_adc076 !== v_1e51a9) {
-      v_03e392.alert("알림", v_8d41d7("auth.forgot.passwordMismatch"));
+      v_889fad("알림", v_8d41d7("auth.forgot.passwordMismatch"));
       return;
     }
     v_ee9ec1(true);
@@ -85,7 +98,7 @@ export default function v_040c8f() {
         verificationCode: v_c99bd2.trim(),
         newPassword: v_adc076,
       });
-      v_03e392.alert(v_8d41d7("auth.forgot.successTitle"), v_8d41d7("auth.forgot.successDesc"), [
+      v_889fad(v_8d41d7("auth.forgot.successTitle"), v_8d41d7("auth.forgot.successDesc"), [
         { text: "확인", onPress: () => v_c65f5d.goBack() },
       ]);
     } catch (v_49263d) {
@@ -94,11 +107,13 @@ export default function v_040c8f() {
         if (v_49263d.code === "OTP_INVALID") v_badeaf = v_8d41d7("auth.forgot.wrongCode");
         else if (v_49263d.code === "OTP_EXPIRED") {
           v_badeaf = v_8d41d7("auth.forgot.expiredCode");
-          v_fd7d1f("email");
+
+          if (!v_c76a8b) v_fd7d1f("email");
+          else v_fd7d1f("otp");
         } else if (v_49263d.code === "NOT_FOUND") v_badeaf = v_8d41d7("auth.forgot.notFound");
         else if (v_49263d.message) v_badeaf = v_49263d.message;
       }
-      v_03e392.alert("오류", v_badeaf);
+      v_889fad("오류", v_badeaf);
     } finally {
       v_ee9ec1(false);
     }
@@ -125,7 +140,8 @@ export default function v_040c8f() {
                 placeholderTextColor={v_1bfbd0.placeholder}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                autoFocus
+                autoFocus={!v_c76a8b}
+                editable={!v_c76a8b}
               />
             </View>
             <TouchableOpacity
@@ -185,9 +201,21 @@ export default function v_040c8f() {
                 onChangeText={v_52b279}
                 placeholder={v_8d41d7("auth.forgot.newPasswordPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
-                secureTextEntry
+                secureTextEntry={!v_b5ab16}
                 autoFocus
               />
+              <TouchableOpacity
+                onPress={() => v_b7733b((v_81e2ef) => !v_81e2ef)}
+                hitSlop={8}
+                accessibilityLabel="비밀번호 표시 전환"
+                style={v_fd5f43.toggleBtn}
+              >
+                <Feather
+                  name={v_b5ab16 ? "eye-off" : "eye"}
+                  size={18}
+                  color={v_1bfbd0.zinc500}
+                />
+              </TouchableOpacity>
             </View>
             <View style={v_fd5f43.inputRow}>
               <Feather name="key" size={18} color={v_1bfbd0.zinc500} style={v_fd5f43.inputIcon} />
@@ -197,8 +225,20 @@ export default function v_040c8f() {
                 onChangeText={v_014c88}
                 placeholder={v_8d41d7("auth.forgot.confirmPasswordPlaceholder")}
                 placeholderTextColor={v_1bfbd0.placeholder}
-                secureTextEntry
+                secureTextEntry={!v_e7340a}
               />
+              <TouchableOpacity
+                onPress={() => v_30513e((v_81e2ef) => !v_81e2ef)}
+                hitSlop={8}
+                accessibilityLabel="비밀번호 확인 표시 전환"
+                style={v_fd5f43.toggleBtn}
+              >
+                <Feather
+                  name={v_e7340a ? "eye-off" : "eye"}
+                  size={18}
+                  color={v_1bfbd0.zinc500}
+                />
+              </TouchableOpacity>
             </View>
             <TouchableOpacity
               style={[v_fd5f43.primaryBtn, (v_cb66b4 || !v_adc076 || !v_1e51a9) && v_fd5f43.btnDisabled]}
@@ -240,6 +280,7 @@ const v_fd5f43 = v_472849.create({
     paddingHorizontal: 14,
   },
   inputIcon: { marginRight: 10 },
+  toggleBtn: { paddingHorizontal: 6, paddingVertical: 8 },
   input: {
     flex: 1,
     height: 48,

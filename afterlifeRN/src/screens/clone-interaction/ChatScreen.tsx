@@ -18,6 +18,7 @@ import v_e775af from "../../components/ui/TextField";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_694b7f } from "../../api/source";
+import { v_7b4c9e } from "../../api/clones";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_35413f } from "../../types/domain";
 
@@ -29,6 +30,7 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const { cloneId: v_6e0fd3 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
+  const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_033e14 = v_e0068c();
   const v_ebdf9a = v_e662ae<v_9cabcb>(null);
 
@@ -89,6 +91,17 @@ export default function v_02d653({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     };
     v_41d55d((v_ba2215) => [...v_ba2215, v_43f890]);
     v_c31db7("");
+
+    if (v_2ca7e0) {
+      console.log(`[Chat] POST /oth-path${v_6e0fd3}/chat-event`);
+      v_7b4c9e(v_2ca7e0, v_6e0fd3)
+        .then((v_8f00b9) =>
+          console.log(`[Chat] chat-event ← ok scoreApplied=${v_8f00b9.scoreApplied ?? 0}°C (Daily Cap 15°C)`),
+        )
+        .catch((v_49263d) => console.warn("[Chat] postCloneChatEvent failed:", v_49263d));
+    } else {
+      console.warn(`[Chat] chat-event SKIP — no accessToken (cloneId=${v_6e0fd3})`);
+    }
 
     setTimeout(() => {
       const aiMsg: v_35413f = {

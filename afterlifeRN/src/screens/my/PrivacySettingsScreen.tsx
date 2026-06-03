@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_de06a3, v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -62,7 +63,7 @@ export default function v_9232cf() {
   );
 
   const v_55b20d = (item: v_b67716) => {
-    v_03e392.alert(
+    v_889fad(
       "차단 해제",
       `${v_8c0b26.clone.name} 차단을 해제하시겠어요?`,
       [
@@ -77,7 +78,7 @@ export default function v_9232cf() {
               v_fa923c((v_ba2215) => v_ba2215.filter((v_148ff6) => v_148ff6.clone.id !== v_8c0b26.clone.id));
             } catch (v_49263d) {
               const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "해제에 실패했어요.";
-              v_03e392.alert("오류", v_badeaf);
+              v_889fad("오류", v_badeaf);
             } finally {
               v_169234(null);
             }

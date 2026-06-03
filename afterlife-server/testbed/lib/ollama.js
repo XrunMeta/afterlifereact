@@ -15,6 +15,8 @@ export function v_a26277({ messages: v_fa56e0, options: v_b36f96 = {}, onChunk: 
     options: {
       temperature: 0.7,
       num_predict: 512,
+
+      num_gpu: -1,
       ...v_b36f96,
     },
   });
@@ -104,4 +106,37 @@ export function v_a26277({ messages: v_fa56e0, options: v_b36f96 = {}, onChunk: 
       v_309144.destroy();
     },
   };
+}
+
+export function v_3f4abd({ messages: v_fa56e0, options: v_b36f96 = {}, format: v_db3cc6 = 'json', timeoutMs: v_11bcf9 = 60000 }) {
+  return new Promise((v_6f7712, v_bad6f3) => {
+    const v_4d33b2 = JSON.stringify({
+      model: v_ba1b10,
+      messages: v_fa56e0,
+      stream: false,
+      ...(v_db3cc6 ? { format: v_db3cc6 } : {}),
+      options: { temperature: 0.2, num_predict: 1024, num_gpu: -1, ...v_b36f96 },
+    });
+    const v_309144 = v_00cd2e.request(
+      {
+        hostname: v_899d88, port: v_66d977, path: '/oth-path', method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(v_4d33b2), Connection: 'close' },
+      },
+      (v_8f00b9) => {
+        let v_83ee53 = '';
+        v_8f00b9.setEncoding('utf8');
+        v_8f00b9.on('data', (v_3f4e2e) => (v_83ee53 += v_3f4e2e));
+        v_8f00b9.on('end', () => {
+          if (v_8f00b9.statusCode !== 200) return v_bad6f3(new Error(`ollama ${v_8f00b9.statusCode}: ${v_83ee53.slice(0, 300)}`));
+          try { v_6f7712(JSON.parse(v_83ee53)?.message?.content ?? ''); }
+          catch (v_9e86fd) { v_bad6f3(new Error('ollama JSON parse 실패: ' + (v_9e86fd?.message ?? v_9e86fd))); }
+        });
+        v_8f00b9.on('error', v_bad6f3);
+      },
+    );
+    v_309144.setTimeout(v_11bcf9, () => { v_309144.destroy(new Error('ollama chatOnce timeout')); });
+    v_309144.on('error', v_bad6f3);
+    v_309144.write(v_4d33b2);
+    v_309144.end();
+  });
 }

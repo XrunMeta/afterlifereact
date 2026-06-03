@@ -15,6 +15,10 @@ export type RootStackParamList = {
   UserProfile: { userId: number };
 
   UserFollowList: { userId: number; mode: "followers" | "following"; userName?: string };
+
+  CloneFeed: { feed: import("../api/clones").DiscoverFeedItem };
+
+  ResetPassword: { email?: string } | undefined;
 };
 
 export type AuthStackParamList = {
@@ -54,7 +58,8 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   HomeTab: undefined;
-  SearchTab: undefined;
+
+  SearchTab: { initialQuery?: string } | undefined;
   ClonesTab: undefined;
   CreateTab: undefined;
   ShortsTab: undefined;
@@ -75,12 +80,11 @@ export type ShareStackParamList = {
 };
 
 export type CreateStackParamList = {
-  Step1: undefined;
-  Step2: undefined;
+
   Step3: undefined;
   Step4: undefined;
+  PersonaAssistant: undefined;
   Step5: undefined;
-  Step6: undefined;
   Step7: undefined;
   Step8: { cloneId: number };
 };

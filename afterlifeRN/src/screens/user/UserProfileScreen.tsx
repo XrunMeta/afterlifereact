@@ -10,17 +10,26 @@ import {
   v_9cabcb,
   v_39a996,
   v_700696,
+  v_aa7413,
+  v_09d0e5,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
+import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
+import v_4d58d7 from "../../components/common/ReportReasonModal";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
+import { v_889fad } from "../../stores/dialogStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_98d20a } from "../../stores/userFollowStore";
 import {
   v_9fd740,
+  v_b9d616,
+  v_83b07d,
+  v_095ba5,
   type v_909903,
   type v_d64743,
 } from "../../api/users";
@@ -47,6 +56,10 @@ export default function v_c501aa() {
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
   const [v_79e290, v_27990a] = v_5ab095(false);
+
+  const [v_3e9618, v_eda097] = v_5ab095(false);
+  const [v_d61813, v_9b20ec] = v_5ab095(false);
+  const v_033e14 = v_e0068c();
 
   const v_bcfa24 = v_700696.get("window").width;
   const v_3bf7ea = v_9b1a04.medium;
@@ -114,11 +127,29 @@ export default function v_c501aa() {
     });
   };
 
-  const v_74ecfc = (v_6e0fd3) => {
-
-    v_c65f5d.navigate("Main", {
-      screen: "ClonesTab",
-      params: { screen: "CloneDetail", params: { cloneId: v_6e0fd3 } },
+  const v_74ecfc = (c: v_d64743) => {
+    v_c65f5d.navigate("CloneFeed", {
+      feed: {
+        id: -v_3f4e2e.id,
+        cloneId: v_3f4e2e.id,
+        content: v_3f4e2e.description ?? "",
+        mediaUrl: v_3f4e2e.avatarUrl,
+        mediaType: null,
+        likesCount: v_3f4e2e.likesCount ?? 0,
+        commentsCount: 0,
+        likedByMe: false,
+        createdAt: v_3f4e2e.createdAt,
+        clone: {
+          id: v_3f4e2e.id,
+          ownerId: v_43e90c, 
+          name: v_3f4e2e.name,
+          username: v_3f4e2e.username,
+          avatarUrl: v_3f4e2e.avatarUrl,
+          cloneType: v_3f4e2e.cloneType as never,
+          visibility: v_3f4e2e.visibility,
+        },
+        interests: [],
+      },
     });
   };
 
@@ -134,7 +165,7 @@ export default function v_c501aa() {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => v_74ecfc(v_8c0b26.id)}
+        onPress={() => v_74ecfc(v_8c0b26)}
         style={{ width: v_e66b8c, marginRight: v_d88de1, marginBottom: v_ae5c4a }}
       >
         <View style={[v_fd5f43.cellImageWrap, { width: v_e66b8c, height: v_e66b8c }]}>
@@ -158,6 +189,65 @@ export default function v_c501aa() {
 
   const v_8fecb8 = v_727031?.user.name ?? v_727031?.user.email ?? "";
   const v_0c8fa1 = v_727031?.user.isMe ?? false;
+  const v_4258ec = v_727031?.user.isBlocked ?? false;
+  const v_b7489c = v_727031?.user.name ?? v_727031?.user.email ?? "이 사용자";
+
+  const v_21738e = async () => {
+    v_eda097(false);
+    if (!v_2ca7e0 || !v_727031) return;
+    try {
+      if (v_4258ec) {
+        await v_83b07d(v_2ca7e0, v_43e90c);
+        v_4ffb1e((v_e2a85c) => (v_e2a85c ? { ...v_e2a85c, user: { ...v_e2a85c.user, isBlocked: false } } : v_e2a85c));
+        v_889fad("차단 해제", `${v_b7489c} 님을 차단 해제했어요.`);
+      } else {
+        v_889fad(
+          "차단하기",
+          `${v_b7489c} 님을 차단할까요?\n팔로우/팔로워 관계도 해제돼요.`,
+          [
+            { text: "취소", style: "cancel" },
+            {
+              text: "차단하기",
+              style: "destructive",
+              onPress: async () => {
+                try {
+                  await v_b9d616(v_2ca7e0, v_43e90c);
+                  v_4ffb1e((v_e2a85c) =>
+                    v_e2a85c ? { ...v_e2a85c, user: { ...v_e2a85c.user, isBlocked: true, isFollowing: false } } : v_e2a85c,
+                  );
+                  v_cd488d(v_43e90c, false);
+                  v_889fad("차단 완료", `${v_b7489c} 님을 차단했어요.`);
+                } catch (v_49263d) {
+                  console.warn("[UserProfile] block failed:", v_49263d);
+                  v_889fad("실패", "차단에 실패했어요.");
+                }
+              },
+            },
+          ],
+        );
+      }
+    } catch (v_49263d) {
+      console.warn("[UserProfile] toggle block failed:", v_49263d);
+      v_889fad("실패", "처리에 실패했어요.");
+    }
+  };
+
+  const v_2ecc65 = async (v_58ca36) => {
+    v_9b20ec(false);
+    if (!v_2ca7e0) return;
+    try {
+      await v_095ba5(v_2ca7e0, v_43e90c, v_58ca36 || undefined);
+
+      v_4ffb1e((v_e2a85c) =>
+        v_e2a85c ? { ...v_e2a85c, user: { ...v_e2a85c.user, isBlocked: true, isFollowing: false } } : v_e2a85c,
+      );
+      v_cd488d(v_43e90c, false);
+      v_889fad("신고 완료", "신고가 접수됐어요. 이 사용자는 차단됐어요.");
+    } catch (v_49263d) {
+      console.warn("[UserProfile] report failed:", v_49263d);
+      v_889fad("실패", "신고에 실패했어요.");
+    }
+  };
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
@@ -165,6 +255,19 @@ export default function v_c501aa() {
         showBackButton
         onBackPress={() => v_c65f5d.goBack()}
         title={v_8fecb8}
+        rightAction={
+
+          !v_0c8fa1 && v_727031 ? (
+            <TouchableOpacity
+              onPress={() => v_eda097(true)}
+              hitSlop={12}
+              style={{ padding: 8 }}
+              accessibilityLabel="더 보기"
+            >
+              <Feather name="more-vertical" size={22} color={v_1bfbd0.zinc900} />
+            </TouchableOpacity>
+          ) : null
+        }
       />
 
       {v_683210 ? (
@@ -291,6 +394,50 @@ export default function v_c501aa() {
           }
         />
       )}
+
+      {}
+      <Modal visible={v_3e9618} transparent animationType="fade">
+        <Pressable style={v_fd5f43.moreOverlay} onPress={() => v_eda097(false)}>
+          <SwipeDownSheet
+            onClose={() => v_eda097(false)}
+            style={[v_fd5f43.moreSheet, { paddingBottom: 24 + Math.max(v_033e14.bottom, 0) }]}
+          >
+            <View style={v_fd5f43.moreSheetHandle} />
+            <Text style={v_fd5f43.moreTitle}>{v_b7489c}</Text>
+            <TouchableOpacity
+              style={v_fd5f43.moreItem}
+              onPress={() => {
+                v_eda097(false);
+                v_9b20ec(true);
+              }}
+            >
+              <Feather name="flag" size={20} color="#ef4444" />
+              <Text style={[v_fd5f43.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[v_fd5f43.moreItem, { borderBottomWidth: 0 }]}
+              onPress={v_21738e}
+            >
+              <Feather
+                name={v_4258ec ? "unlock" : "slash"}
+                size={20}
+                color={v_1bfbd0.zinc900}
+              />
+              <Text style={v_fd5f43.moreItemText}>
+                {v_4258ec ? "차단 해제" : "차단하기"}
+              </Text>
+            </TouchableOpacity>
+          </SwipeDownSheet>
+        </Pressable>
+      </Modal>
+
+      {}
+      <ReportReasonModal
+        visible={v_d61813}
+        targetName={v_b7489c}
+        onCancel={() => v_9b20ec(false)}
+        onConfirm={v_2ecc65}
+      />
     </SafeView>
   );
 }
@@ -373,4 +520,41 @@ const v_fd5f43 = v_472849.create({
 
   empty: { alignItems: "center", paddingTop: 40, gap: 8 },
   emptyText: { fontSize: 13, color: v_1bfbd0.zinc500 },
+
+  moreOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  moreSheet: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+  },
+  moreSheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: v_1bfbd0.zinc300,
+    alignSelf: "center",
+    marginVertical: 12,
+  },
+  moreTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc500,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  moreItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+  },
+  moreItemText: { fontSize: 15, fontWeight: "600", color: v_1bfbd0.zinc900 },
 });

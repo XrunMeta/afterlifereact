@@ -3,6 +3,8 @@
 export interface Bindings {
   DB: D1Database;
 
+  XRUN_DB?: D1Database;
+
   KV_CTX: KVNamespace;          
   KV_SHARED: KVNamespace;       
   KV_SHARED_VER: KVNamespace;   
@@ -30,6 +32,9 @@ export interface Bindings {
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_REFRESH_TOKEN: string;
   GMAIL_SENDER: string;            
+
+  ORCHESTRATOR_URL: string;        
+  ORCH_SECRET: string;             
 
   XRUN_API_URL: string;            
 

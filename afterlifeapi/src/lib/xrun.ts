@@ -496,13 +496,13 @@ export async function v_5f6369(env: v_273a0c, v_660822): Promise<XrunBalancesRes
   if (!v_c9c489.XRUN_GATEWAY_TOKEN) {
     return { ok: false, balances: [], reason: "missing XRUN_GATEWAY_TOKEN" };
   }
+
   let v_8f00b9;
   try {
-    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
-      method: "POST",
-      headers: v_4d1f4f(v_c9c489),
-      body: JSON.stringify({ member: v_660822 }),
-    });
+    v_8f00b9 = await fetch(
+      `${v_c9c489.XRUN_API_URL}/oth-path?member=${encodeURIComponent(String(v_660822))}`,
+      { method: "GET", headers: v_4d1f4f(v_c9c489) },
+    );
   } catch (v_49263d) {
     return { ok: false, balances: [], reason: `network: ${(v_49263d as Error).message}` };
   }
@@ -513,7 +513,18 @@ export async function v_5f6369(env: v_273a0c, v_660822): Promise<XrunBalancesRes
     return { ok: false, balances: [], reason: `non-json (${v_8f00b9.status})` };
   }
   if (v_8f00b9.ok && v_7ecfd1?.status === "success") {
-    return { ok: true, balances: v_7ecfd1.data ?? [] };
+    const v_18b8bf = Array.isArray(v_7ecfd1.data) ? v_7ecfd1.data : [];
+    const v_ceed0b = v_18b8bf
+
+      .filter((v_cb35cb) => v_cb35cb.currency != null && Number.isFinite(Number(v_cb35cb.currency)))
+      .map((v_cb35cb) => ({
+        wallet: Number(v_cb35cb.wallet ?? 0),
+        address: v_cb35cb.address ?? null,
+        currency: Number(v_cb35cb.currency),
+        amount: String(v_cb35cb.amount ?? "0"),
+        symbol: v_cb35cb.symbol ?? null,
+      }));
+    return { ok: true, balances: v_ceed0b };
   }
 
   if (v_06d04c(v_8f00b9, v_7ecfd1)) {

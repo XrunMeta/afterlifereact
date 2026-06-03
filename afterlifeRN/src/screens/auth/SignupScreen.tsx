@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -120,7 +121,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       const v_e43fa5 = await v_704bef();
       if (!v_e43fa5.granted) {
-        v_03e392.alert(
+        v_889fad(
           v_8d41d7("auth.signup.pushPermTitle"),
           v_8d41d7("auth.signup.pushPermDesc"),
         );
@@ -132,7 +133,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
       v_73f064(v_e43fa5.platform);
       v_94f796(v_de2b1c);
     } catch {
-      v_03e392.alert(v_8d41d7("common.error"), v_8d41d7("auth.signup.pushPermError"));
+      v_889fad(v_8d41d7("common.error"), v_8d41d7("auth.signup.pushPermError"));
     } finally {
       v_3bb4d3(false);
     }
@@ -140,32 +141,32 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
 
   const v_585b02 = async () => {
     if (!v_1833e7 || !v_e0c7e8 || !v_adc076 || !v_d74a81 || !v_c3eac4 || !v_a95e84) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.requiredFields"));
       return;
     }
     if (!v_b9bbbd) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.countryRequired"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.countryRequired"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v_e0c7e8)) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailInvalid"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailInvalid"));
       return;
     }
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(v_adc076)) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.passwordTooShort"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.passwordTooShort"));
       return;
     }
     if (v_adc076 !== v_0b3ebe) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.passwordsNotMatch"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.passwordsNotMatch"));
       return;
     }
     if (v_d74a81.length < 4) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.phoneTooShort"));
       return;
     }
     if (!v_5c764d) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.termsAccept"));
       return;
     }
 
@@ -173,7 +174,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     const v_7d8cc0 = new Date().getFullYear();
     const v_f4fe8e = v_7d8cc0 - v_dc9d4a;
     if (Number.isNaN(v_f4fe8e) || v_f4fe8e < 13 || v_f4fe8e > 120) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.ageInvalid"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.ageInvalid"));
       return;
     }
 
@@ -255,7 +256,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
           }
         }
       }
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     } finally {
       v_ee9ec1(false);
     }

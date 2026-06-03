@@ -27,6 +27,8 @@ export interface UserProfile {
     followingCount: number;
     isMe: boolean;
     isFollowing: boolean;
+
+    isBlocked?: boolean;
   };
   clones: UserProfileClone[];
 }
@@ -118,5 +120,47 @@ export async function v_5959d8(
   );
   return v_1a2d12(v_8f00b9, "listUserFollowing") as Promise<{
     items: UserFollowItem[];
+  }>;
+}
+
+export async function v_b9d616(
+  v_2ca7e0,
+  v_43e90c,
+): Promise<{ ok: true; blocked: true }> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_43e90c}/block`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${v_2ca7e0}` },
+  });
+  return v_1a2d12(v_8f00b9, "blockUser") as Promise<{ ok: true; blocked: true }>;
+}
+
+export async function v_83b07d(
+  v_2ca7e0,
+  v_43e90c,
+): Promise<{ ok: true; blocked: false }> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_43e90c}/block`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${v_2ca7e0}` },
+  });
+  return v_1a2d12(v_8f00b9, "unblockUser") as Promise<{ ok: true; blocked: false }>;
+}
+
+export async function v_095ba5(
+  v_2ca7e0,
+  v_43e90c,
+  v_58ca36,
+): Promise<{ ok: true; reported: true; blocked: true }> {
+  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_43e90c}/report`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${v_2ca7e0}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(v_58ca36 ? { reason: v_58ca36 } : {}),
+  });
+  return v_1a2d12(v_8f00b9, "reportUser") as Promise<{
+    ok: true;
+    reported: true;
+    blocked: true;
   }>;
 }

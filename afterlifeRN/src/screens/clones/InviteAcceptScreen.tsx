@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -80,7 +81,7 @@ export default function v_000f0a() {
 
   const v_ca868d = async () => {
     if (!v_2ca7e0 || !v_2ccff1) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("inviteAccept.loginRequired"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("inviteAccept.loginRequired"));
       return;
     }
     if (v_a41171) return; 
@@ -118,7 +119,7 @@ export default function v_000f0a() {
       if (v_49263d instanceof v_84a859) {
         v_badeaf = v_49263d.message;
       }
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
       v_4c9ae6(null);
     }
   };
@@ -138,7 +139,7 @@ export default function v_000f0a() {
     } catch (v_49263d) {
       console.warn("[InviteAccept] decline failed:", v_49263d);
       const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("inviteAccept.acceptFailed");
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
       v_4c9ae6(null);
     }
   };

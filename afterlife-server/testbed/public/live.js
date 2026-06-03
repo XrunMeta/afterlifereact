@@ -221,3 +221,109 @@ v_c6799c.addEventListener('click', v_9aeaba);
 v_92b169.addEventListener('click', v_462088);
 
 v_462088();
+
+const v_45b7fa = window.__SP1A__ || { apiBase: '', devToken: '', cloneId: '' };
+let v_7c32aa = null;
+let v_69aab1 = null; 
+const v_944b72 = document.getElementById('cloneIdInput');
+const v_475a79 = document.getElementById('callStartBtn');
+const v_6cafe7 = document.getElementById('callStopBtn');
+
+function v_7860b0() {
+  return (v_944b72 && v_944b72.value.trim()) || v_45b7fa.cloneId;
+}
+
+async function v_e01688() {
+  if (v_7c32aa) return;
+  const v_389afb = v_7860b0();
+  if (!v_389afb) { v_1fa668('error'); v_035062('clone id 가 필요합니다.'); return; }
+  v_475a79.disabled = true;
+  v_1fa668('connecting');
+  v_035062('통화 티켓 발급 중…');
+
+  let v_c9c6be;
+  try {
+    const v_cb35cb = await fetch(`${v_45b7fa.apiBase}/oth-path${v_389afb}/call`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${v_45b7fa.devToken}` },
+    });
+    v_c9c6be = await v_cb35cb.json().catch(() => ({}));
+    if (!v_cb35cb.ok) {
+      v_1fa668('error'); v_035062(`통화 시작 실패 (HTTP ${v_cb35cb.status})\n${JSON.stringify(v_c9c6be)}`);
+      v_475a79.disabled = false; return;
+    }
+  } catch (v_49263d) {
+    v_1fa668('error'); v_035062('통화 시작 요청 실패: ' + (v_49263d?.message ?? v_49263d));
+    v_475a79.disabled = false; return;
+  }
+  v_69aab1 = { callId: v_c9c6be.callId, cloneId: v_389afb };
+
+  v_7c32aa = new RTCPeerConnection({ iceServers: v_506dd1 });
+  v_7c32aa.ontrack = (v_1d299c) => {
+    v_d04516.srcObject = (v_1d299c.streams && v_1d299c.streams[0]) ? v_1d299c.streams[0] : new MediaStream([v_1d299c.track]);
+    v_d04516.play().catch(() => {  });
+  };
+  v_7c32aa.oniceconnectionstatechange = () => {
+    if (!v_7c32aa) return;
+    const v_fd5f43 = v_7c32aa.iceConnectionState;
+    if (v_fd5f43 === 'connected' || v_fd5f43 === 'completed') v_1fa668('playing');
+    else if (v_fd5f43 === 'failed' || v_fd5f43 === 'disconnected') v_1fa668('error');
+  };
+
+  v_035062('subscribe pull 요청 중…');
+  let v_4cb70c;
+  try {
+    const v_cb35cb = await fetch(v_c9c6be.subscribeUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${v_c9c6be.subscribeToken}` },
+    });
+    v_4cb70c = await v_cb35cb.json().catch(() => ({}));
+    if (!v_cb35cb.ok) { v_1fa668('error'); v_035062(`subscribe 실패 (HTTP ${v_cb35cb.status})\n${JSON.stringify(v_4cb70c)}`); await v_2edc2b(); return; }
+  } catch (v_49263d) {
+    v_1fa668('error'); v_035062('subscribe 요청 실패: ' + (v_49263d?.message ?? v_49263d)); await v_2edc2b(); return;
+  }
+  const v_5bd2a8 = v_4cb70c.subscriber_session_id;
+  const v_582c5e = v_4cb70c.offer_sdp;
+  if (!v_5bd2a8 || !v_582c5e) { v_1fa668('error'); v_035062('subscribe 응답 누락\n' + JSON.stringify(v_4cb70c)); await v_2edc2b(); return; }
+
+  try {
+    await v_7c32aa.setRemoteDescription({ type: 'offer', sdp: v_582c5e });
+    const v_343c90 = await v_7c32aa.createAnswer();
+    await v_7c32aa.setLocalDescription(v_343c90);
+    const v_cb35cb = await fetch(v_c9c6be.renegotiateUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${v_c9c6be.subscribeToken}` },
+      body: JSON.stringify({ subscriber_session_id: v_5bd2a8, answer_sdp: v_343c90.sdp }),
+    });
+    if (!v_cb35cb.ok) { const v_9e86fd = await v_cb35cb.json().catch(() => ({})); v_1fa668('error'); v_035062(`renegotiate 실패 (HTTP ${v_cb35cb.status})\n${JSON.stringify(v_9e86fd)}`); await v_2edc2b(); return; }
+  } catch (v_49263d) {
+    v_1fa668('error'); v_035062('협상 실패: ' + (v_49263d?.message ?? v_49263d)); await v_2edc2b(); return;
+  }
+
+  v_035062(`라이브 통화 연결 중… callId=${String(v_69aab1.callId).slice(0, 8)}`);
+  v_6cafe7.disabled = false;
+}
+
+async function v_2edc2b() {
+  if (v_7c32aa) { try { v_7c32aa.close(); } catch (v_37eab7) {  } v_7c32aa = null; }
+  if (v_d04516.srcObject) {
+    try { v_d04516.srcObject.getTracks().forEach((v_8d41d7) => v_8d41d7.stop()); } catch (v_37eab7) {  }
+    v_d04516.srcObject = null;
+  }
+  if (v_69aab1) {
+    const { cloneId: v_6e0fd3, callId: v_be62d3 } = v_69aab1;
+    v_69aab1 = null;
+    try {
+      await fetch(`${v_45b7fa.apiBase}/oth-path${v_6e0fd3}/call/${v_be62d3}/end`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${v_45b7fa.devToken}` },
+      });
+    } catch (v_37eab7) {  }
+  }
+  v_475a79.disabled = false;
+  v_6cafe7.disabled = true;
+  v_1fa668('stopped');
+}
+
+if (v_475a79) v_475a79.addEventListener('click', v_e01688);
+if (v_6cafe7) v_6cafe7.addEventListener('click', v_2edc2b);

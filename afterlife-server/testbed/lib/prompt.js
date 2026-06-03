@@ -17,12 +17,44 @@ export function v_464116() {
   return v_a23604;
 }
 
-export function v_841e05() {
+export function v_ea9c84(v_5ed063 = {}) {
+  const v_e2a85c = { ...(v_5ed063 ?? {}) };
+
+  const v_a6c30b = typeof v_e2a85c.dialect_region === 'string' ? v_e2a85c.dialect_region.trim() : '';
+  const v_0b215e = typeof v_e2a85c.dialect_intensity === 'string' ? v_e2a85c.dialect_intensity.trim() : '';
+  if (v_a6c30b) {
+    const v_7ca0e4 = typeof v_e2a85c.tone === 'string' && v_e2a85c.tone.trim() ? v_e2a85c.tone.trim() : '말투';
+    const v_4e30c1 = v_0b215e ? `${v_0b215e} ` : '';
+    v_e2a85c.tone = `${v_4e30c1}${v_a6c30b} 사투리가 섞인 ${v_7ca0e4}`;
+  }
+  delete v_e2a85c.dialect_region;
+  delete v_e2a85c.dialect_intensity;
+
+  const v_8d4337 = [];
+  for (const [v_b24339, v_3b402b] of Object.entries(v_e2a85c)) {
+    if (v_3b402b == null) continue;
+    if (typeof v_3b402b !== 'string') continue;
+    const v_81e2ef = v_3b402b.trim();
+    if (!v_81e2ef) continue;
+    v_8d4337.push({ key: v_b24339, value: v_81e2ef });
+  }
+  return v_8d4337;
+}
+
+function v_9d8b20({ l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [] } = {}) {
   const { profile: v_727031, kb: v_c1cacc } = v_464116();
   const v_a6872a = (v_727031.voiceTraits ?? []).map((v_8d41d7) => `  - ${v_8d41d7}`).join('\n');
   const v_094923 = (v_727031.languageStyle?.dosNotDo ?? [])
     .map((v_d5dda0) => `  - ${v_d5dda0}`)
     .join('\n');
+
+  const v_2ae580 = [
+    ...(v_55a58f ?? []).map((v_779914) => `- (본인) ${v_779914.key}: ${v_779914.value}`),
+    ...(v_fc96ca ?? []).map((v_779914) => `- (상대) ${v_779914.key}: ${v_779914.value}`),
+  ];
+  const v_81a311 = v_2ae580.length
+    ? `\n\n[대화로 기억한 것 — 지금까지 대화에서 직접 알게 된 사실. KB와 함께 활용하되 여기 없는 건 지어내지 말 것]\n${v_2ae580.join('\n')}`
+    : '';
 
   return `당신은 "${v_727031.displayName}" (${v_727031.fullName}) 입니다.
 사용자(${v_727031.userRelation})와 1인칭으로 대화하세요.
@@ -55,7 +87,14 @@ ${v_094923}
 6. 응답은 일반 한국어 글자만 사용. 이모지 / 이모티콘 / 그림 문자 / 특수 심볼 (예: 😀 🍲 ❤ ♥ ♪ ⭐ ✨) 절대 출력 금지. 텍스트가 그대로 음성으로 합성되므로 이모지가 들어가면 이상한 단어로 발음됩니다.
 
 [기억 조각 (KB)]
-${v_c1cacc}
+${v_c1cacc}${v_81a311}
 
 이제 ${v_727031.userRelation}이/가 말을 걸어옵니다. ${v_727031.displayName}로서 답해주세요.`;
+}
+
+export function v_841e05({ l0: v_b6c480 = null, l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [] } = {}) {
+  const v_f5b64a = v_b6c480 && typeof v_b6c480.rules_text === 'string' && v_b6c480.rules_text.trim()
+    ? `[시스템 규칙 — 반드시 준수]\n${v_b6c480.rules_text.trim()}\n\n`
+    : '';
+  return v_f5b64a + v_9d8b20({ l1Attrs: v_55a58f, l2Attrs: v_fc96ca });
 }

@@ -15,12 +15,11 @@ import v_def15b from "../screens/clones/MyClonesDashboardScreen";
 import v_51ae06 from "../screens/clones/CloneDetailScreen";
 import v_541fbd from "../screens/clones/CloneEditScreen";
 import v_07335f from "../screens/clones/CloneInviteScreen";
-import v_84d7a5 from "../screens/clone-creation/Step1CloneTypeScreen";
-import v_afe4c8 from "../screens/clone-creation/Step2BasicInfoScreen";
+
+import v_8e5b58 from "../screens/clone-creation/PersonaAssistantScreen";
 import v_3d9025 from "../screens/clone-creation/Step3ImageUploadScreen";
 import v_710783 from "../screens/clone-creation/Step4VoiceUploadScreen";
 import v_f275b6 from "../screens/clone-creation/Step5VisibilityScreen";
-import v_baac2f from "../screens/clone-creation/Step6CreatingScreen";
 import v_448ad1 from "../screens/clone-creation/Step7CompleteScreen";
 import v_d19b01 from "../screens/clone-creation/Step8CreateShortsScreen";
 import v_14b43e from "../screens/following/FollowingScreen";
@@ -55,14 +54,23 @@ function v_aedede() {
 }
 
 function v_31fee5() {
+
+  v_a3453e.useEffect(() => {
+    const { creationDraft: v_9d4877, setCreationDraft: v_5795de } =
+      require("../stores/cloneStore").useCloneStore.getState();
+    if (!v_9d4877.cloneType) {
+      console.log("[CreateStack] cloneType missing on mount — defaulting to friend");
+      v_5795de({ cloneType: "friend", visibility: "public" });
+    }
+  }, []);
   return (
+
     <CreateStack.Navigator screenOptions={{ headerShown: false }}>
-      <CreateStack.Screen name="Step1" component={v_84d7a5} />
-      <CreateStack.Screen name="Step2" component={v_afe4c8} />
       <CreateStack.Screen name="Step3" component={v_3d9025} />
       <CreateStack.Screen name="Step4" component={v_710783} />
+      {}
+      <CreateStack.Screen name="PersonaAssistant" component={v_8e5b58} />
       <CreateStack.Screen name="Step5" component={v_f275b6} />
-      <CreateStack.Screen name="Step6" component={v_baac2f} />
       <CreateStack.Screen name="Step7" component={v_448ad1} />
       <CreateStack.Screen name="Step8" component={v_d19b01} />
     </CreateStack.Navigator>
@@ -158,7 +166,7 @@ export default function v_19ba0e() {
             const { setCreationDraft: v_5795de, resetCreationDraft: v_7a77e1 } =
               require("../stores/cloneStore").useCloneStore.getState();
             v_7a77e1();
-            v_5795de({ cloneType: "default", visibility: "public" });
+            v_5795de({ cloneType: "friend", visibility: "public" });
             const v_b6e533 = v_c65f5d.getState();
             const v_3f8a47 = v_b6e533.routes.findIndex(
               (v_cb35cb) => v_cb35cb.name === "CreateTab"

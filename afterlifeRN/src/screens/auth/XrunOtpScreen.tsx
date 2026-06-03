@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_e662ae, v_5ab095 } from "bapkr";
 import { v_3094a2, v_19b633, v_4623af, v_472849, v_03e392, v_79c4f2 } from "rcmrninabrnb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -36,16 +37,16 @@ export default function v_e24882({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     try {
       await v_dd506d(v_e0c7e8, v_6bee94); 
       v_ec979d(v_d812cb);
-      v_03e392.alert(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
+      v_889fad(v_8d41d7("auth.emailVerify.resend"), v_8d41d7("auth.emailVerify.resentToast"));
     } catch (v_49263d) {
       const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
-      v_03e392.alert(v_8d41d7("common.error"), v_badeaf);
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
     }
   };
 
   const v_420661 = () => {
     if (v_c99bd2.length !== 6) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.emailVerify.codePlaceholder"));
       return;
     }
     v_c65f5d.navigate("XrunOnboarding", { email: v_e0c7e8, pin: v_6bee94, verificationCode: v_c99bd2 });

@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_e84827 from 'bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv';
 import { v_03e392 } from 'rcmrninabrnb';
 import { v_1ed7d9 } from '../../stores/authStore';
@@ -43,7 +44,7 @@ export function v_407cbf(): DevAction[] {
           messages: v_694b7f.messages().length,
           feeds: v_694b7f.feeds().length,
         };
-        v_03e392.alert('SEED counts', JSON.stringify(v_6ddb32, null, 2));
+        v_889fad('SEED counts', JSON.stringify(v_6ddb32, null, 2));
       },
     },
   ];

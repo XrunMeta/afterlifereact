@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -154,7 +155,7 @@ export default function v_ed02a5() {
       }
     } catch (v_49263d) {
       console.warn("[MyScreen] open xrun app failed:", v_49263d);
-      v_03e392.alert("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
+      v_889fad("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
     }
   };
 
@@ -210,29 +211,34 @@ export default function v_ed02a5() {
   const [v_a1f68f, v_bdf535] = v_5ab095(false);
 
   const v_5bc46a = () => {
-    v_03e392.alert(
-      "회원 탈퇴",
-      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(xrun 가입자라면 xrun 계정은 유지됩니다)",
+
+    const v_8a1355 =
+      v_b113dd?.name || v_b113dd?.email?.split("@")[0] || "회원";
+    v_889fad(
+      "벌써 떠나시나요?",
+      `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 페르소나는 영구적으로 사라져요.`,
       [
-        { text: "취소", style: "cancel" },
+
+        { text: "조금 더 써볼래요", style: "cancel" },
         {
-          text: "탈퇴",
+          text: "탈퇴하기",
           style: "destructive",
           onPress: async () => {
             if (!v_2ca7e0) return;
             v_bdf535(true);
             try {
-
               await v_55fc7c(v_2ca7e0);
               await v_d7d5a2();
             } catch (v_49263d) {
               const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : "탈퇴에 실패했어요.";
-              v_03e392.alert("오류", v_badeaf);
+              v_889fad("오류", v_badeaf);
               v_bdf535(false);
             }
           },
         },
       ],
+
+      { subMessage: "xrun 가입자라면 xrun 계정은 유지됩니다" },
     );
   };
 
@@ -354,8 +360,10 @@ export default function v_ed02a5() {
         </View>
       </View>
 
+      {
+}
       <PaymentPinPromptModal
-        visible={v_fda1fd}
+        visible={false}
         onClose={() => v_7ece2f(false)}
       />
 

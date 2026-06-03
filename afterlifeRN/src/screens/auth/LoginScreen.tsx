@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import { v_c4deb2, v_5ab095 } from "bapkr";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import {
@@ -66,7 +67,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
   const v_ec4736 = async () => {
     if (!v_e0c7e8 || !v_adc076) {
-      v_03e392.alert(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailRequired"));
+      v_889fad(v_8d41d7("common.notice"), v_8d41d7("auth.signup.emailRequired"));
       return;
     }
     v_7ba4a6(true);
@@ -101,7 +102,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           v_badeaf = v_49263d.message;
         }
       }
-      v_03e392.alert(v_8d41d7("auth.login.loginFailed"), v_badeaf);
+      v_889fad(v_8d41d7("auth.login.loginFailed"), v_badeaf);
     } finally {
       v_7ba4a6(false);
     }
@@ -124,7 +125,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         };
         const v_b50834 = v_bb789b?.idToken ?? v_bb789b?.data?.idToken;
         if (!v_b50834) {
-          v_03e392.alert("오류", "Google 로그인 토큰을 받지 못했습니다.");
+          v_889fad("오류", "Google 로그인 토큰을 받지 못했습니다.");
           return;
         }
 
@@ -156,7 +157,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         let v_badeaf = v_8d41d7("auth.login.googleFailed");
         if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
         else if (v_49263d?.message) v_badeaf = v_49263d.message;
-        v_03e392.alert(v_8d41d7("auth.login.googleFailed"), v_badeaf);
+        v_889fad(v_8d41d7("auth.login.googleFailed"), v_badeaf);
       }
       return;
     }

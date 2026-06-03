@@ -1,3 +1,4 @@
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -47,7 +48,7 @@ export default function v_da4f91() {
         console.log("[PIN] mount status:", v_d308b5);
         if (v_2008a4) return;
         if (!v_d308b5.linked) {
-          v_03e392.alert("알림", "xrun 회원 매핑이 안 되어 있습니다.");
+          v_889fad("알림", "xrun 회원 매핑이 안 되어 있습니다.");
           v_c65f5d.goBack();
           return;
         }
@@ -90,7 +91,7 @@ export default function v_da4f91() {
     console.log("[PIN] verify clicked, len:", v_6bee94.length, "attemptsLeft:", v_0be067);
     if (v_6bee94.length !== v_50256d || v_177bdd) return;
     if (!v_2ca7e0) {
-      v_03e392.alert("알림", "로그인이 필요합니다.");
+      v_889fad("알림", "로그인이 필요합니다.");
       return;
     }
     v_ae32d6(true);
@@ -104,7 +105,7 @@ export default function v_da4f91() {
         return;
       }
       if (v_43c42e.match) {
-        v_03e392.alert("확인", "비밀번호가 확인되었습니다.");
+        v_889fad("확인", "비밀번호가 확인되었습니다.");
         v_c65f5d.goBack();
         return;
       }
@@ -157,7 +158,7 @@ export default function v_da4f91() {
       try {
         await v_f2c756.openURL(v_b71a74);
       } catch {
-        v_03e392.alert("알림", "xrun 앱이 설치되어 있지 않습니다.");
+        v_889fad("알림", "xrun 앱이 설치되어 있지 않습니다.");
       }
     }
   };

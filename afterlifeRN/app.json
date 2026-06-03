@@ -52,9 +52,28 @@
           "cameraPermission": "프로필 사진 촬영을 위해 카메라 접근 권한이 필요합니다."
         }
       ],
+      "./plugins/withUCropColors.js",
       "@react-native-google-signin/google-signin",
       "expo-localization",
-      "expo-audio"
+      "expo-audio",
+      "expo-video",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/feather.ttf",
+            "./assets/fonts/ionicons.ttf"
+          ]
+        }
+      ],
+      "@config-plugins/react-native-webrtc",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "음성 대화를 위해 마이크 접근 권한이 필요합니다.",
+          "speechRecognitionPermission": "음성을 텍스트로 변환하기 위해 음성 인식 권한이 필요합니다."
+        }
+      ]
     ],
     "web": {
       "favicon": "./assets/favicon.png"

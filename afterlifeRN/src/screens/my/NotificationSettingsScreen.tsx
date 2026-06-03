@@ -1,5 +1,6 @@
 
 
+import { v_889fad } from "../../stores/dialogStore";
 import v_a3453e, { v_c4deb2, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
@@ -13,8 +14,6 @@ import {
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_ada615, v_cf763b } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
-import * as v_fba5a0 from "hfxxehldoiokdq";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
@@ -27,7 +26,6 @@ type PrefKey =
   | "newFollower"
   | "followingActivity"
   | "reactions"
-  | "chat"
   | "promotions";
 
 const v_5c002e = "@notif_pref:";
@@ -36,27 +34,22 @@ const v_a5887f = [
   {
     key: "newFollower",
     label: "새로운 팔로워",
-    desc: "나를 팔로우 하는 멤버 안내",
+    desc: "누군가가 나를 팔로우했을 때",
   },
   {
     key: "followingActivity",
     label: "팔로잉하는 멤버 소식",
-    desc: "팔로잉 멤버의 새로운 활동 안내",
+    desc: "내가 팔로우한 사람이 새 페르소나를 만들 때",
   },
   {
     key: "reactions",
     label: "반응",
-    desc: "좋아요 댓글",
-  },
-  {
-    key: "chat",
-    label: "채팅",
-    desc: "새로운 메시지",
+    desc: "내 페르소나에 좋아요·댓글·신고가 발생할 때",
   },
   {
     key: "promotions",
     label: "혜택정보 수신",
-    desc: "개인 맞춤 혜택과 이벤트 소식을 앱 푸시, 문자로 안내",
+    desc: "개인 맞춤 혜택과 이벤트 소식 안내",
   },
 ];
 
@@ -70,7 +63,6 @@ export default function v_4036d1() {
     newFollower: true,
     followingActivity: true,
     reactions: true,
-    chat: true,
     promotions: true,
   });
   const [v_389da6, v_844010] = v_5ab095(false);
@@ -127,7 +119,7 @@ export default function v_4036d1() {
         if (v_e43fa5.granted) {
           v_a43b75(true);
         } else {
-          v_03e392.alert(
+          v_889fad(
             v_8d41d7("settings.notifications.permTitle", { defaultValue: "권한 필요" }),
             v_8d41d7("settings.notifications.deniedHint", {
               defaultValue:
@@ -149,7 +141,7 @@ export default function v_4036d1() {
       }
     } else {
 
-      v_03e392.alert(
+      v_889fad(
         v_8d41d7("settings.notifications.offTitle", { defaultValue: "알림 끄기" }),
         v_8d41d7("settings.notifications.offHint", {
           defaultValue: "알림을 끄려면 OS 설정에서 변경해주세요.",
@@ -230,37 +222,9 @@ export default function v_4036d1() {
           ))}
         </View>
 
-        {}
-        {state.granted && (
-          <View style={[v_fd5f43.card, { marginTop: 16 }]}>
-            <View style={v_fd5f43.tokenSection}>
-              <Text style={v_fd5f43.tokenLabel}>
-                {v_8d41d7("settings.notifications.tokenLabel")}
-              </Text>
-              {state.loading ? (
-                <Text style={v_fd5f43.tokenValueMuted}>
-                  {v_8d41d7("settings.notifications.tokenLoading")}
-                </Text>
-              ) : state.token ? (
-                <>
-                  <Text style={v_fd5f43.tokenValue} selectable>
-                    {state.token}
-                  </Text>
-                  <TouchableOpacity style={v_fd5f43.copyBtn} onPress={handleCopyToken}>
-                    <Feather name="copy" size={14} color={v_1bfbd0.zinc700} />
-                    <Text style={v_fd5f43.copyBtnText}>
-                      {v_8d41d7("settings.notifications.copyToken")}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <Text style={v_fd5f43.tokenValueMuted}>
-                  {v_8d41d7("settings.notifications.tokenNone")}
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
+        {
+
+}
       </View>
     </SafeScrollView>
   );

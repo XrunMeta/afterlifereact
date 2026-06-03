@@ -1,4 +1,5 @@
-import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
+import { v_889fad } from "../../stores/dialogStore";
+import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095, v_de06a3 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -11,6 +12,7 @@ import {
   v_122070,
   v_79c4f2,
   v_39a996,
+  v_6c4f62,
   v_5f4661,
   v_326be8,
   v_f2c756,
@@ -27,13 +29,18 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import v_556baf from "../../components/ui/SafeView";
 import v_1a40c4 from "../../components/ui/Button";
 import v_258c1c from "../../components/common/PageHeader";
+import v_5778ce from "../../components/common/HashtagText";
+import v_4c2648 from "./components/FriendPickerModal";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_f373d8, v_20d793, v_776874, v_914311, type v_fa0201, type v_d83ffc, type v_52af9d, type v_ceccc3 } from "../../api/clones";
+import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, type v_fa0201, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0 } from "../../api/clones";
+import { v_bfd883 } from "../../lib/relativeTime";
+import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_84a859, v_976b89 } from "../../api/auth";
-import { v_5c99c1 } from "../../api/payments";
+import { v_5c99c1, v_9b8cb3 } from "../../api/payments";
+import v_3cb56d from "../../components/my/PaymentPinPromptModal";
 import { v_7d2692 } from "../../api/files";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0, v_b0b271 } from "../../types/clone";
@@ -73,6 +80,7 @@ function v_a8d790(c: v_fa0201): v_affcc0 {
     cloneType: v_3f4e2e.cloneType,
     ownerId: v_3f4e2e.ownerId,
     displayName: v_3f4e2e.name,
+    username: v_3f4e2e.username,
     description: v_3f4e2e.description ?? "",
     interests: v_3f4e2e.interests ?? [],
     imageUrl: v_3f4e2e.avatarUrl ?? undefined,
@@ -104,11 +112,16 @@ export default function v_def15b() {
 
   const [v_8a7926, v_d42991] = v_5ab095<v_affcc0[] | null>(null);
 
-  const v_8e46f5 = v_a3453e.useCallback(async () => {
+  const [v_612e9f, v_575aad] = v_5ab095(false);
+
+  const [v_959d04, v_fd8761] = v_5ab095<v_a9d96d[]>([]);
+
+  const v_8e46f5 = v_de06a3(async (v_cc88f5 = false) => {
     if (!v_2ca7e0) {
       v_d42991(null);
       return;
     }
+    if (v_cc88f5) v_575aad(true);
     try {
       const v_8f00b9 = await v_d60cdf(v_2ca7e0);
       const v_a15a8b = v_8f00b9.items.map(v_a8d790);
@@ -118,6 +131,8 @@ export default function v_def15b() {
     } catch (v_49263d) {
       console.warn("[Dashboard] listMyClones failed:", v_49263d);
 
+    } finally {
+      if (v_cc88f5) v_575aad(false);
     }
   }, [v_2ca7e0, v_7a98d1]);
 
@@ -125,9 +140,19 @@ export default function v_def15b() {
     v_8e46f5();
   }, [v_8e46f5]);
 
+  v_c4deb2(() => {
+    if (!v_2ca7e0) {
+      v_fd8761([]);
+      return;
+    }
+    v_81d12f(v_2ca7e0)
+      .then((v_cb35cb) => v_fd8761(v_cb35cb.items))
+      .catch(() => v_fd8761([]));
+  }, [v_2ca7e0]);
+
   v_cf763b(
-    v_a3453e.useCallback(() => {
-      v_8e46f5();
+    v_de06a3(() => {
+      v_8e46f5(false);
     }, [v_8e46f5]),
   );
 
@@ -169,6 +194,24 @@ export default function v_def15b() {
   const [v_1d54f1, v_67ba02] = v_5ab095<number | null | undefined>(undefined);
   const [v_19340b, v_14129c] = v_5ab095(true);
 
+  const [v_fda1fd, v_7ece2f] = v_5ab095(false);
+  v_c4deb2(() => {
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    (async () => {
+      try {
+        const v_d308b5 = await v_9b8cb3(v_2ca7e0);
+        if (v_2008a4) return;
+        if (v_d308b5.linked && !v_d308b5.hasPin) v_7ece2f(true);
+      } catch (v_49263d) {
+        console.warn("[Dashboard] PIN status fetch failed:", v_49263d);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_2ca7e0]);
+
   const v_48d264 = (v_b113dd as { followingCount?: number } | null)?.followingCount ?? 0;
   const v_a7e127 = (v_b113dd as { followersCount?: number } | null)?.followersCount ?? 0;
 
@@ -187,6 +230,41 @@ export default function v_def15b() {
   const [v_465030, v_856daf] = v_5ab095(false);
   const [v_e6e97a, v_a8980f] = v_5ab095<v_ceccc3[] | null>(null);
   const [v_447616, v_3dd690] = v_5ab095(false);
+
+  const [v_d3a183, v_598141] = v_5ab095<{
+    cloneId: number;
+    cloneName: string;
+  } | null>(null);
+  const [v_e3b01d, v_34611c] = v_5ab095<v_6349d0 | null>(null);
+  const [v_5be645, v_b3ab13] = v_5ab095(false);
+
+  const [v_eaf85e, v_aff30f] = v_5ab095(false);
+
+  v_c4deb2(() => {
+    if (!v_d3a183) {
+      v_34611c(null);
+      return;
+    }
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_b3ab13(true);
+    v_34611c(null);
+    v_8ce643(v_2ca7e0, v_d3a183.cloneId, { limit: 100 })
+      .then((v_8f00b9) => {
+        if (v_2008a4) return;
+        v_34611c(v_8f00b9);
+      })
+      .catch((v_49263d) => {
+        console.warn("[MyClones] listCloneIntimacyEvents failed:", v_49263d);
+        if (!v_2008a4) v_34611c(null);
+      })
+      .finally(() => {
+        if (!v_2008a4) v_b3ab13(false);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+  }, [v_d3a183, v_2ca7e0]);
 
   v_c4deb2(() => {
     if (v_8bb912?.type !== "likes" || v_8bb912.cloneId == null) {
@@ -308,7 +386,21 @@ export default function v_def15b() {
     v_5c99c1(v_2ca7e0)
       .then((v_8f00b9) => {
         if (v_2008a4) return;
-        v_67ba02(v_8f00b9.linked ? (v_8f00b9.xrun ?? 0) : undefined);
+        console.log(
+          "[Dashboard] xrun balance ←",
+          "linked=", v_8f00b9.linked,
+          "xrun=", v_8f00b9.xrun,
+          "balances.length=", v_8f00b9.balances?.length ?? 0,
+          "balances=", JSON.stringify(v_8f00b9.balances),
+        );
+
+        if (!v_8f00b9.linked) {
+          v_67ba02(undefined);
+        } else if (typeof v_8f00b9.xrun === "number" && Number.isFinite(v_8f00b9.xrun)) {
+          v_67ba02(v_8f00b9.xrun);
+        } else {
+          v_67ba02(undefined);
+        }
       })
       .catch((v_49263d) => {
         console.warn("[Dashboard] xrun balance fetch failed:", v_49263d);
@@ -324,12 +416,12 @@ export default function v_def15b() {
 
   const v_d28ade = async () => {
     if (!v_2ca7e0) {
-      v_03e392.alert(v_8d41d7("common.notice", { defaultValue: "알림" }), v_8d41d7("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
+      v_889fad(v_8d41d7("common.notice", { defaultValue: "알림" }), v_8d41d7("my.loginRequired", { defaultValue: "로그인이 필요해요." }));
       return;
     }
     const v_d60769 = await v_d05ab5.requestMediaLibraryPermissionsAsync();
     if (!v_d60769.granted) {
-      v_03e392.alert(
+      v_889fad(
         v_8d41d7("my.permTitle", { defaultValue: "권한 필요" }),
         v_8d41d7("my.permDesc", { defaultValue: "사진 라이브러리 접근 권한을 허용해주세요." }),
       );
@@ -356,7 +448,7 @@ export default function v_def15b() {
       v_21f395({ avatarUrl: v_57ac81.url });
     } catch (v_49263d) {
       const v_badeaf = v_49263d instanceof Error ? v_49263d.message : "이미지 업로드에 실패했어요";
-      v_03e392.alert(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
+      v_889fad(v_8d41d7("common.error", { defaultValue: "오류" }), v_badeaf);
     } finally {
       v_5eda29(false);
     }
@@ -378,16 +470,35 @@ export default function v_def15b() {
     }
   };
 
-  const v_c9f992 = (v: v_b0b271) => {
+  const [v_480a32, v_4ccd21] = v_5ab095<number | null>(null);
+
+  const v_c9f992 = async (v: v_b0b271) => {
     if (!v_7462ec) return;
+    const v_6e0fd3 = v_7462ec.cloneId;
+    v_2dbd8f(null);
+
+    if (v_81e2ef === "selected") {
+      v_4ccd21(v_6e0fd3);
+      return;
+    }
+
     v_2bf327((v_ba2215) => ({
       ...v_ba2215,
-      [v_7462ec.cloneId]: {
-        ...v_ba2215[v_7462ec.cloneId],
-        visibility: v_81e2ef,
-      },
+      [v_6e0fd3]: { ...v_ba2215[v_6e0fd3], visibility: v_81e2ef },
     }));
-    v_2dbd8f(null);
+
+    if (v_2ca7e0) {
+      try {
+        const { patchClone: v_bb226e } = await import("../../api/clones");
+        await v_bb226e(v_2ca7e0, v_6e0fd3, {
+          visibility: v_81e2ef,
+
+          allowed_viewers: [],
+        });
+      } catch (v_49263d) {
+        console.warn("[Dashboard] update visibility failed:", v_49263d);
+      }
+    }
   };
 
   const v_57fac2 = (v_6e0fd3) => {
@@ -452,23 +563,24 @@ export default function v_def15b() {
 
   const v_82830c = (v: v_b0b271) => {
     switch (v_81e2ef) {
-      case "public": return "공개";
-      case "private": return "비공개";
-      case "followers": return "지인공개";
+      case "public": return "전체 공개";
+      case "followers": return "팔로워만";
+      case "selected": return "특정 친구";
+      case "private": return "나만 보기";
     }
   };
 
   const v_a6deb1 = (v: v_b0b271): keyof typeof v_dec439.glyphMap => {
     switch (v_81e2ef) {
-      case "public": return "eye";
-      case "private": return "eye-off";
-      case "followers": return "user-check";
+      case "public": return "globe";
+      case "followers": return "users";
+      case "selected": return "user-check";
+      case "private": return "lock";
     }
   };
 
   const v_b80d74 = ({ item: v_eb25ce }: { item: v_affcc0 }) => {
     const v_b6e533 = v_699459[v_eb25ce.id];
-    const v_26dce6 = v_b6e533?.isActive ?? true;
     const v_818579 = v_b6e533?.visibility ?? v_eb25ce.visibility;
     const v_e93e18 = v_eb25ce.cloneType === "memlow";
 
@@ -481,27 +593,20 @@ export default function v_def15b() {
       <View style={v_fd5f43.card}>
         {}
         <View style={v_fd5f43.cardTopRow}>
-          <TouchableOpacity
-            style={v_fd5f43.activeToggle}
-            onPress={() => v_bf58a4(v_eb25ce.id)}
-          >
-            <Feather
-              name={v_26dce6 ? "check-circle" : "circle"}
-              size={18}
-              color={v_26dce6 ? v_1bfbd0.success : v_1bfbd0.zinc400}
-            />
-            <Text style={v_fd5f43.activeText}>
-              {v_26dce6 ? v_8d41d7("dashboard.active") : v_8d41d7("dashboard.inactive")}
-            </Text>
-          </TouchableOpacity>
-
           <View style={v_fd5f43.cardTopRight}>
-            {}
+            {
+
+}
             {!v_e93e18 && (
-              <View style={v_fd5f43.visibilityBadge}>
+              <TouchableOpacity
+                style={v_fd5f43.visibilityBadge}
+                onPress={() => v_11e385(v_eb25ce.id)}
+                hitSlop={8}
+              >
                 <Feather name={v_a6deb1(v_818579)} size={14} color={v_1bfbd0.zinc500} />
                 <Text style={v_fd5f43.visibilityText}>{v_82830c(v_818579)}</Text>
-              </View>
+                <Feather name="chevron-down" size={12} color={v_1bfbd0.zinc400} />
+              </TouchableOpacity>
             )}
             <TouchableOpacity
               style={v_fd5f43.moreBtn}
@@ -522,18 +627,25 @@ export default function v_def15b() {
                 <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
               </View>
             )}
-            {v_26dce6 && <View style={v_fd5f43.activeDot} />}
+            {}
           </View>
           <View style={v_fd5f43.cloneInfo}>
             <Text style={v_fd5f43.cloneName}>{v_eb25ce.displayName}</Text>
-            <Text style={v_fd5f43.cloneCategory}>{v_eb25ce.interests?.[0] ?? ""}</Text>
+            {v_eb25ce.username ? (
+              <Text style={v_fd5f43.cloneUsername}>@{v_eb25ce.username}</Text>
+            ) : null}
+            {
+}
+            {v_eb25ce.interests?.[0] ? (
+              <Text style={v_fd5f43.cloneCategory}>{v_eb25ce.interests[0]}</Text>
+            ) : null}
           </View>
         </View>
 
         {}
-        <Text style={v_fd5f43.description} numberOfLines={2}>
+        <HashtagText style={v_fd5f43.description} numberOfLines={2}>
           {v_eb25ce.description}
-        </Text>
+        </HashtagText>
 
         {
 
@@ -547,13 +659,7 @@ export default function v_def15b() {
               <Feather name="heart" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText}>{v_5c66fc(v_eb25ce.likesCount)}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={v_fd5f43.stat}
-              onPress={() => v_d5cd7b({ type: "interactions", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
-            >
-              <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
-              <Text style={v_fd5f43.statText}>{v_5c66fc(v_eb25ce.messagesCount)}</Text>
-            </TouchableOpacity>
+            {}
             <TouchableOpacity
               style={v_fd5f43.stat}
               onPress={() => v_d5cd7b({ type: "comments", cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
@@ -569,6 +675,22 @@ export default function v_def15b() {
               <Text style={v_fd5f43.statText} testID={`follower-count-${v_eb25ce.id}`}>
                 {v_e17daa} 구독자
               </Text>
+            </TouchableOpacity>
+            {
+}
+            <TouchableOpacity
+              style={v_fd5f43.stat}
+              onPress={() => v_598141({ cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
+            >
+              <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
+              <Text style={v_fd5f43.statText}>상호작용</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={v_fd5f43.stat}
+              onPress={() => v_598141({ cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
+            >
+              <Feather name="thermometer" size={14} color="#fb923c" />
+              <Text style={v_fd5f43.statText}>온도</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -664,12 +786,28 @@ export default function v_def15b() {
         }
       />
 
+      {}
+      {v_2ca7e0 && v_8a7926 === null ? (
+        <View style={v_fd5f43.dashLoading}>
+          <ActivityIndicator color={v_1bfbd0.violet600} size="large" />
+          <Text style={v_fd5f43.dashLoadingText}>불러오는 중...</Text>
+        </View>
+      ) : (
       <FlatList
         data={v_fc7f92}
         keyExtractor={(v_8c0b26) => String(v_8c0b26.id)}
         renderItem={v_b80d74}
         contentContainerStyle={v_fd5f43.listContent}
         showsVerticalScrollIndicator={false}
+        extraData={v_fc7f92}
+        refreshControl={
+          <RefreshControl
+            refreshing={v_612e9f}
+            onRefresh={() => v_8e46f5(true)}
+            tintColor={v_1bfbd0.violet600}
+            colors={[v_1bfbd0.violet600]}
+          />
+        }
         ListEmptyComponent={
           <View style={v_fd5f43.dashEmpty}>
             <View style={v_fd5f43.dashEmptyIconWrap}>
@@ -813,7 +951,39 @@ export default function v_def15b() {
 }
           </>
         }
+        ListFooterComponent={
+          v_959d04.length > 0 ? (
+            <View style={v_fd5f43.systemClonesSection}>
+              <Text style={v_fd5f43.systemClonesSectionTitle}>통화 가능</Text>
+              {v_959d04.map((v_69bba6) => (
+                <View key={v_69bba6.id} style={v_fd5f43.card}>
+                  <View style={v_fd5f43.cloneHeader}>
+                    <View style={v_fd5f43.avatarWrap}>
+                      <View style={[v_fd5f43.avatar, { backgroundColor: v_1bfbd0.zinc100, alignItems: "center", justifyContent: "center" }]}>
+                        <Feather name="user" size={20} color={v_1bfbd0.zinc400} />
+                      </View>
+                    </View>
+                    <View style={v_fd5f43.cloneInfo}>
+                      <Text style={v_fd5f43.cloneName}>{v_69bba6.name}</Text>
+                      <Text style={v_fd5f43.cloneUsername}>@{v_69bba6.username}</Text>
+                    </View>
+                  </View>
+                  <View style={v_fd5f43.actionsRow}>
+                    <TouchableOpacity
+                      style={v_fd5f43.actionBtn}
+                      onPress={() => v_f4c991.navigate("Call", { cloneId: v_69bba6.id, name: v_69bba6.name })}
+                    >
+                      <Feather name="video" size={16} color={v_1bfbd0.zinc700} />
+                      <Text style={v_fd5f43.actionText}>{v_8d41d7("dashboard.actionCall")}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null
+        }
       />
+      )}
 
       {}
       <Modal visible={!!v_ce3af0} transparent animationType="fade">
@@ -833,47 +1003,9 @@ export default function v_def15b() {
             </TouchableOpacity>
 
             {}
-            {v_ce3af0 != null && (() => {
-              const v_26dce6 = v_699459[v_ce3af0]?.isActive ?? true;
-              return (
-                <TouchableOpacity
-                  style={v_fd5f43.menuItem}
-                  onPress={() => {
-                    const v_389afb = v_ce3af0!;
-                    v_8d2d61(null);
-                    v_bf58a4(v_389afb);
-                  }}
-                >
-                  <Feather
-                    name={v_26dce6 ? "pause-circle" : "play-circle"}
-                    size={18}
-                    color={v_26dce6 ? v_1bfbd0.zinc700 : v_1bfbd0.success}
-                  />
-                  <Text style={v_fd5f43.menuItemText}>
-                    {v_26dce6 ? v_8d41d7("dashboard.menuDeactivate") : v_8d41d7("dashboard.menuActivate")}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })()}
 
-            {}
-            {v_ce3af0 != null &&
-              v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_ce3af0)?.cloneType !== "memlow" && (
-                <TouchableOpacity
-                  style={v_fd5f43.menuItem}
-                  onPress={() => {
-                    const v_389afb = v_ce3af0!;
-                    v_11e385(v_389afb);
-                  }}
-                >
-                  <Feather
-                    name={v_a6deb1(v_699459[v_ce3af0!]?.visibility ?? "public")}
-                    size={18}
-                    color={v_1bfbd0.zinc700}
-                  />
-                  <Text style={v_fd5f43.menuItemText}>{v_8d41d7("dashboard.menuVisibility")}</Text>
-                </TouchableOpacity>
-              )}
+            {
+}
             <View style={v_fd5f43.menuDivider} />
             {}
             <TouchableOpacity
@@ -924,11 +1056,10 @@ export default function v_def15b() {
       <Modal visible={!!v_7462ec} transparent animationType="fade">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
-            <Text style={v_fd5f43.modalTitle}>공개 설정</Text>
-            <Text style={v_fd5f43.modalDesc}>페르소나의 공개 범위를 선택하세요</Text>
+            <Text style={v_fd5f43.modalTitle}>공개 범위</Text>
+            <Text style={v_fd5f43.modalDesc}>이 페르소나를 누구에게 보일까요?</Text>
             <View style={v_fd5f43.visibilityOptions}>
-              {}
-              {(["public", "private"] as v_b0b271[]).map((v_81e2ef) => {
+              {(["public", "followers", "selected", "private"] as v_b0b271[]).map((v_81e2ef) => {
                 const v_587413 = v_7462ec?.currentVisibility === v_81e2ef;
                 return (
                   <TouchableOpacity
@@ -962,6 +1093,32 @@ export default function v_def15b() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {}
+      <FriendPickerModal
+        visible={v_480a32 != null}
+        onClose={() => v_4ccd21(null)}
+        onConfirm={async (v_9b3001) => {
+          const v_6e0fd3 = v_480a32;
+          v_4ccd21(null);
+          if (!v_6e0fd3) return;
+          v_2bf327((v_ba2215) => ({
+            ...v_ba2215,
+            [v_6e0fd3]: { ...v_ba2215[v_6e0fd3], visibility: "selected" },
+          }));
+          if (v_2ca7e0) {
+            try {
+              const { patchClone: v_bb226e } = await import("../../api/clones");
+              await v_bb226e(v_2ca7e0, v_6e0fd3, {
+                visibility: "selected",
+                allowed_viewers: v_9b3001,
+              });
+            } catch (v_49263d) {
+              console.warn("[Dashboard] selected visibility PATCH failed:", v_49263d);
+            }
+          }
+        }}
+      />
 
       {}
       <Modal visible={!!v_c9d3fa} transparent animationType="fade">
@@ -1053,9 +1210,9 @@ export default function v_def15b() {
       {}
       <Modal visible={!!v_8bb912} transparent animationType="slide">
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_d5cd7b(null)}>
-          <View
+          <SwipeDownSheet
+            onClose={() => v_d5cd7b(null)}
             style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={v_fd5f43.sheetHandle} />
             <Text style={v_fd5f43.statsSheetTitle}>
@@ -1170,9 +1327,155 @@ export default function v_def15b() {
                 </View>
               )}
             </ScrollView>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
+
+      {
+}
+      <Modal visible={!!v_d3a183} transparent animationType="slide">
+        <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_598141(null)}>
+          <SwipeDownSheet
+            onClose={() => v_598141(null)}
+            style={[v_fd5f43.statsSheet, { paddingBottom: 32 + Math.max(v_033e14.bottom, 0) }]}
+          >
+            <View style={v_fd5f43.sheetHandle} />
+            <View style={v_fd5f43.intimacyTitleRow}>
+              <View style={{ width: 28 }} />
+              <Text style={v_fd5f43.statsSheetTitle}>{v_8d41d7("feed.eventsTitle")}</Text>
+              <TouchableOpacity
+                onPress={() => v_aff30f(true)}
+                hitSlop={8}
+                style={{ width: 28, alignItems: "flex-end" }}
+              >
+                <Feather name="help-circle" size={20} color={v_1bfbd0.zinc400} />
+              </TouchableOpacity>
+            </View>
+            <Text style={v_fd5f43.statsSheetSub}>{v_d3a183?.cloneName}</Text>
+
+            {}
+            {v_e3b01d?.summary && (
+              <View style={v_fd5f43.intimacySummary}>
+                <View style={v_fd5f43.intimacySummaryRow}>
+                  <Feather name="thermometer" size={20} color="#fb923c" />
+                  <Text style={v_fd5f43.intimacySummaryScore}>
+                    {Math.min(100, v_e3b01d.summary.totalScore)}°C
+                  </Text>
+                  <Text style={v_fd5f43.intimacySummaryCount}>
+                    · {v_8d41d7("feed.summaryCount", { n: v_e3b01d.summary.eventCount })}
+                  </Text>
+                </View>
+                <View style={v_fd5f43.intimacyBreakdownRow}>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    채팅 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.chat}°C</Text>
+                  </Text>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    통화 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.call}°C</Text>
+                  </Text>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    탐색 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.learn}°C</Text>
+                  </Text>
+                  <Text style={v_fd5f43.intimacyBreakdownItem}>
+                    피드 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.feed}°C</Text>
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
+              {v_5be645 ? (
+                <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
+              ) : !v_e3b01d || v_e3b01d.items.length === 0 ? (
+                <View style={{ paddingVertical: 24, alignItems: "center" }}>
+                  <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
+                    {v_8d41d7("feed.emptyEventsMine")}
+                  </Text>
+                </View>
+              ) : (
+                v_e3b01d.items.map((v_1d299c) => {
+                  const ACTION_META: Record<
+                    "chat" | "call" | "learn" | "feed",
+                    { label: string; icon: keyof typeof v_dec439.glyphMap; color: string }
+                  > = {
+                    chat: { label: v_8d41d7("feed.actionLabelChat"), icon: "message-circle", color: "#60a5fa" },
+                    call: { label: v_8d41d7("feed.actionLabelCall"), icon: "phone", color: "#34d399" },
+                    learn: { label: v_8d41d7("feed.actionLabelLearn"), icon: "search", color: "#a78bfa" },
+                    feed: { label: v_8d41d7("feed.actionLabelFeed"), icon: "heart", color: "#ef4444" },
+                  };
+                  const v_ab4c96 = v_894daa[v_1d299c.action];
+                  return (
+                    <View key={v_1d299c.id} style={v_fd5f43.intimacyEventRow}>
+                      <View style={[v_fd5f43.intimacyEventIcon, { backgroundColor: v_ab4c96.color + "22" }]}>
+                        <Feather name={v_ab4c96.icon} size={14} color={v_ab4c96.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={v_fd5f43.intimacyEventLabel}>{v_ab4c96.label}</Text>
+                        <Text style={v_fd5f43.intimacyEventTime}>{v_bfd883(v_1d299c.createdAt)}</Text>
+                      </View>
+                      <Text style={v_fd5f43.intimacyEventScore}>+{v_1d299c.score}°C</Text>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </SwipeDownSheet>
+        </Pressable>
+      </Modal>
+
+      {}
+      <Modal visible={v_eaf85e} transparent animationType="fade">
+        <Pressable
+          style={v_fd5f43.intimacyInfoOverlay}
+          onPress={() => v_aff30f(false)}
+        >
+          <Pressable style={v_fd5f43.intimacyInfoBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
+            <View style={v_fd5f43.intimacyInfoHeader}>
+              <View style={v_fd5f43.intimacyInfoHeaderLeft}>
+                <Feather name="thermometer" size={18} color="#fb923c" />
+                <Text style={v_fd5f43.intimacyInfoTitle}>{v_8d41d7("feed.intimacyInfoTitle")}</Text>
+              </View>
+              <TouchableOpacity onPress={() => v_aff30f(false)}>
+                <Feather name="x" size={20} color={v_1bfbd0.zinc400} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 460 }}>
+              <Text style={v_fd5f43.intimacyInfoSectionTitle}>{v_8d41d7("feed.intimacyTempSectionLabel")}</Text>
+              <Text style={v_fd5f43.intimacyInfoDesc}>{v_8d41d7("feed.intimacyTempShortDesc")}</Text>
+              {[
+                ["0-30°C", v_8d41d7("feed.intimacyL1")],
+                ["31-60°C", v_8d41d7("feed.intimacyL2")],
+                ["61-90°C", v_8d41d7("feed.intimacyL3")],
+                ["91-100°C", v_8d41d7("feed.intimacyL4")],
+              ].map(([v_4f2c9c, v_41b99d], v_ebec57) => (
+                <View key={v_ebec57} style={v_fd5f43.intimacyInfoLevelRow}>
+                  <Text style={[v_fd5f43.intimacyInfoLevelRange, v_ebec57 === 3 && { color: "#f97316" }]}>{v_4f2c9c}</Text>
+                  <Text style={[v_fd5f43.intimacyInfoLevelDesc, v_ebec57 === 3 && { color: "#f97316" }]}>{v_41b99d}</Text>
+                </View>
+              ))}
+              <Text style={v_fd5f43.intimacyInfoSectionTitle}>{v_8d41d7("feed.intimacyHowToTitle")}</Text>
+              <View style={v_fd5f43.intimacyInfoActivityBox}>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• {v_8d41d7("feed.intimacyHowChat")}</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• {v_8d41d7("feed.intimacyHowCall")}</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• {v_8d41d7("feed.intimacyHowLearn")}</Text>
+                <Text style={v_fd5f43.intimacyInfoActivityItem}>• {v_8d41d7("feed.intimacyHowFeed")}</Text>
+              </View>
+              <Text style={v_fd5f43.intimacyInfoFootnote}>{v_8d41d7("feed.intimacyFootnote")}</Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={v_fd5f43.intimacyInfoOkBtn}
+              onPress={() => v_aff30f(false)}
+            >
+              <Text style={v_fd5f43.intimacyInfoOkText}>{v_8d41d7("common.ok")}</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {}
+      <PaymentPinPromptModal
+        visible={v_fda1fd}
+        onClose={() => v_7ece2f(false)}
+      />
     </SafeView>
   );
 }
@@ -1201,6 +1504,29 @@ const v_2fb1c1 = [
 ];
 
 const v_fd5f43 = v_472849.create({
+  systemClonesSection: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  systemClonesSectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc500,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  dashLoading: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  dashLoadingText: {
+    fontSize: 13,
+    color: v_1bfbd0.zinc500,
+  },
   dashEmpty: {
     paddingVertical: 48,
     paddingHorizontal: 32,
@@ -1419,7 +1745,7 @@ const v_fd5f43 = v_472849.create({
 
   cardTopRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
     marginBottom: 10,
   },
@@ -1489,6 +1815,7 @@ const v_fd5f43 = v_472849.create({
   },
   cloneInfo: { flex: 1 },
   cloneName: { fontSize: 16, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  cloneUsername: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
   cloneCategory: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
 
   description: {
@@ -1636,7 +1963,7 @@ const v_fd5f43 = v_472849.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
 
-    maxHeight: "70%",
+    height: "80%",
     position: "absolute",
     bottom: 0,
     left: 0,
@@ -1773,4 +2100,91 @@ const v_fd5f43 = v_472849.create({
   },
   inviteBtnText: { fontSize: 13, fontWeight: "600", color: v_1bfbd0.white },
   inviteBtnTextSent: { color: v_1bfbd0.success },
+
+  intimacySummary: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+    marginBottom: 8,
+  },
+  intimacySummaryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  intimacySummaryScore: { fontSize: 24, fontWeight: "700", color: "#fb923c" },
+  intimacySummaryCount: { fontSize: 13, color: v_1bfbd0.zinc500 },
+  intimacyBreakdownRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  intimacyBreakdownItem: { fontSize: 12, color: v_1bfbd0.zinc500 },
+  intimacyBreakdownVal: { color: v_1bfbd0.zinc900, fontWeight: "600" },
+  intimacyEventRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+  },
+  intimacyEventIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  intimacyEventLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
+  intimacyEventTime: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 2 },
+  intimacyEventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
+
+  infoSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc100,
+  },
+  infoSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  infoSectionTitle: { fontSize: 15, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  infoSectionDesc: { fontSize: 13, color: v_1bfbd0.zinc600, lineHeight: 20, marginBottom: 12 },
+  infoSectionFootnote: { fontSize: 11, color: v_1bfbd0.zinc500, lineHeight: 16, marginTop: 10 },
+  infoLevelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
+  infoLevelRange: { width: 90, fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  infoLevelDesc: { fontSize: 13, color: v_1bfbd0.zinc500 },
+  infoActivityBox: {
+    backgroundColor: v_1bfbd0.zinc50,
+    borderRadius: 8,
+    padding: 12,
+    gap: 6,
+  },
+  infoActivityItem: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 20 },
+  infoActivityScore: { color: "#fb923c", fontWeight: "700" },
+
+  intimacyTitleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 },
+  intimacyInfoOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 24 },
+  intimacyInfoBox: { width: "100%", maxWidth: 360, backgroundColor: v_1bfbd0.white, borderRadius: v_8b0c90.lg, padding: 20 },
+  intimacyInfoHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  intimacyInfoHeaderLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  intimacyInfoTitle: { fontSize: 17, fontWeight: "700", color: v_1bfbd0.zinc900 },
+  intimacyInfoDesc: { fontSize: 13, color: v_1bfbd0.zinc600, lineHeight: 20, marginBottom: 10 },
+  intimacyInfoSectionTitle: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.zinc900, marginTop: 12, marginBottom: 8 },
+  intimacyInfoFootnote: { fontSize: 11, color: v_1bfbd0.zinc500, lineHeight: 16, marginTop: 12 },
+  intimacyInfoLevelRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
+  intimacyInfoLevelRange: { width: 90, fontSize: 13, fontWeight: "600", color: v_1bfbd0.zinc700 },
+  intimacyInfoLevelDesc: { fontSize: 13, color: v_1bfbd0.zinc500 },
+  intimacyInfoActivityBox: { backgroundColor: v_1bfbd0.zinc50, borderRadius: 8, padding: 12, gap: 6 },
+  intimacyInfoActivityItem: { fontSize: 13, color: v_1bfbd0.zinc700, lineHeight: 20 },
+  intimacyInfoOkBtn: { marginTop: 16, paddingVertical: 12, borderRadius: v_8b0c90.full, backgroundColor: v_1bfbd0.violet600, alignItems: "center" },
+  intimacyInfoOkText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
 });

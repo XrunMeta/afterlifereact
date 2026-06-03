@@ -14,7 +14,8 @@ export interface DomainShort {
   createdAt: string;
 }
 export type CloneStatus = 'active' | 'pending_assets';
-export type Visibility = 'public' | 'followers' | 'private';
+
+export type Visibility = 'public' | 'followers' | 'selected' | 'private';
 export type CoownerStatus = 'invited' | 'approved' | 'rejected';
 export type MessageRole = 'user' | 'clone';
 
@@ -32,6 +33,8 @@ export interface DomainClone {
   cloneType: CloneType;
   ownerId: number;
   displayName: string;
+
+  username?: string;
   description: string;
   interests: string[];
   imageUrl?: string;

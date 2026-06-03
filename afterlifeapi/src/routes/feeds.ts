@@ -6,7 +6,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
 import { v_80a022 } from "../lib/notify";
-import { v_dd9d7c } from "../lib/interactions";
+import { v_dd9d7c, v_6f97bc, v_cf0463 } from "../lib/interactions";
 import {
   v_7adf64,
   v_ab84f6,
@@ -21,14 +21,14 @@ export const v_f1d06f = new v_b7c41b<v_de0a25>();
 function v_31113b(v_3f4e2e): number {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   return v_389afb;
 }
 function v_102fa8(v_3f4e2e): number {
   const v_8e2335 = Number(v_3f4e2e.req.param("feedId"));
   if (!Number.isInteger(v_8e2335) || v_8e2335 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid feed id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   return v_8e2335;
 }
@@ -42,7 +42,7 @@ async function v_f1298d(
   if (v_eb25ce.owner_id === v_43e90c) return;
   const v_22da99 = await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c);
   if (v_22da99 !== "owner") {
-    throw new v_3ebe58("FORBIDDEN", "Owner/coowner only.");
+    throw new v_3ebe58("FORBIDDEN", "소유자만 가능해요.");
   }
 }
 
@@ -59,7 +59,7 @@ const v_722b6d = v_1f4ea7
 v_96e8d7.get("/:id/feeds", async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   const v_43e90c = await v_efcb2d(v_3f4e2e);
   let v_22da99 = null;
@@ -73,10 +73,10 @@ v_96e8d7.get("/:id/feeds", async (v_3f4e2e) => {
   }
 
   if (v_eb25ce.visibility === "private" && v_22da99 !== "owner" && v_22da99 !== "coowner") {
-    throw new v_3ebe58("FORBIDDEN", "Private clone.");
+    throw new v_3ebe58("FORBIDDEN", "비공개 페르소나예요.");
   }
   if (v_eb25ce.visibility === "followers" && !v_22da99) {
-    throw new v_3ebe58("FORBIDDEN", "Followers-only clone.");
+    throw new v_3ebe58("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
   }
 
   const v_f71b56 = new URL(v_3f4e2e.req.url);
@@ -146,14 +146,29 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     "c.deletion_state = 'active'",
     "c.deleted_at IS NULL",
     "c.clone_type != 'memlow'",
-    "c.visibility = 'public'",
-
   ];
   const v_925171 = [];
 
   if (v_013af2) {
-    v_abcc8d.push("c.owner_id != ?");
-    v_925171.push(v_013af2);
+    v_abcc8d.push(
+      `(
+         c.visibility = 'public'
+         OR c.owner_id = ?
+         OR (c.visibility = 'followers' AND
+             EXISTS (SELECT 1 FROM clone_follows cf
+                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
+         OR (c.visibility = 'selected' AND
+             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+       )`,
+    );
+    v_925171.push(v_013af2, v_013af2, v_013af2);
+  } else {
+
+    v_abcc8d.push("c.visibility = 'public'");
+  }
+
+  if (v_013af2) {
     v_abcc8d.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
     v_925171.push(v_013af2);
   }
@@ -166,12 +181,14 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
     await v_3f4e2e.env.DB
       .prepare(
         `SELECT c.id              AS cloneId,
+                c.owner_id         AS cloneOwnerId,
                 c.name             AS cloneName,
                 c.username         AS cloneUsername,
                 c.description      AS cloneDescription,
                 c.avatar_url       AS cloneAvatarUrl,
                 c.clone_type       AS cloneType,
                 c.created_at       AS cloneCreatedAt,
+                c.visibility       AS cloneVisibility,
                 f.id               AS feedId,
                 f.content          AS feedContent,
                 f.media_url        AS feedMediaUrl,
@@ -194,12 +211,14 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
       .bind(...v_925171, v_02be30 + 1)
       .all<{
         cloneId: number;
+        cloneOwnerId: number;
         cloneName: string;
         cloneUsername: string;
         cloneDescription: string | null;
         cloneAvatarUrl: string | null;
         cloneType: string;
         cloneCreatedAt: string;
+        cloneVisibility: string;
         feedId: number | null;
         feedContent: string | null;
         feedMediaUrl: string | null;
@@ -271,10 +290,13 @@ v_f1d06f.get("/discover", async (v_3f4e2e) => {
       createdAt: v_cb35cb.feedCreatedAt ?? v_cb35cb.cloneCreatedAt,
       clone: {
         id: v_cb35cb.cloneId,
+
+        ownerId: v_cb35cb.cloneOwnerId,
         name: v_cb35cb.cloneName,
         username: v_cb35cb.cloneUsername,
         avatarUrl: v_cb35cb.cloneAvatarUrl,
         cloneType: v_cb35cb.cloneType,
+        visibility: v_cb35cb.cloneVisibility,
       },
       interests: v_9afb14.get(v_cb35cb.cloneId) ?? [],
     })),
@@ -286,7 +308,7 @@ v_96e8d7.post("/:id/feeds", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   await v_f1298d(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c, v_eb25ce);
 
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_722b6d);
@@ -340,41 +362,46 @@ async function v_c39991(
 v_f1d06f.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
   const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid feed id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_2db2a5 = await v_c39991(v_3f4e2e.env.DB, v_c09aa8);
-  if (!v_2db2a5) throw new v_3ebe58("NOT_FOUND", "Feed not found.");
+  if (!v_2db2a5) throw new v_3ebe58("NOT_FOUND", "피드를 찾을 수 없어요.");
 
   if (v_2db2a5.visibility === "private") {
     if (v_2db2a5.ownerId !== v_43e90c) {
       const v_22da99 = await v_7adf64(v_3f4e2e.env.DB, v_2db2a5.cloneId, v_43e90c);
-      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "Private clone.");
+      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
 
-  await v_3f4e2e.env.DB
+  const v_43af15 = await v_3f4e2e.env.DB
     .prepare(
       `INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`,
     )
     .bind(v_c09aa8, v_43e90c)
     .run();
+  const v_81161e = (v_43af15.meta?.changes ?? 0) > 0;
 
   const v_3ac7e7 = await v_3f4e2e.env.DB
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(v_c09aa8)
     .first<{ likes_count: number }>();
+  if (v_81161e) {
 
-  await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_2db2a5.cloneId });
+    await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_2db2a5.cloneId });
 
-  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
+    await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
+
+    await v_6f97bc(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, v_c09aa8, v_cf0463.feed);
+  }
   return v_3f4e2e.json({ ok: true, liked: true, likesCount: v_3ac7e7?.likes_count ?? 0 });
 });
 
 v_f1d06f.delete("/:id/like", v_6690d9, async (v_3f4e2e) => {
   const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid feed id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
   await v_3f4e2e.env.DB
@@ -392,7 +419,7 @@ v_f1d06f.delete("/:id/like", v_6690d9, async (v_3f4e2e) => {
 v_f1d06f.get("/:id/likes", async (v_3f4e2e) => {
   const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid feed id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_15c8c5 = v_f71b56.searchParams.get("cursor");
@@ -454,11 +481,11 @@ v_96e8d7.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   if (v_eb25ce.visibility === "private") {
     if (v_eb25ce.owner_id !== v_43e90c) {
       const v_22da99 = await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
-      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "Private clone.");
+      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
 
@@ -491,18 +518,23 @@ v_96e8d7.post("/:id/like", v_6690d9, async (v_3f4e2e) => {
     v_3459a5 = true;
   }
 
-  await v_3f4e2e.env.DB
+  const v_43af15 = await v_3f4e2e.env.DB
     .prepare(`INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`)
     .bind(v_c09aa8, v_43e90c)
     .run();
+  const v_81161e = (v_43af15.meta?.changes ?? 0) > 0;
 
   const v_7b3f91 = await v_3f4e2e.env.DB
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(v_c09aa8)
     .first<{ likes_count: number }>();
+  if (v_81161e) {
 
-  await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_6e0fd3 });
-  await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
+    await v_80a022(v_3f4e2e.env, "clone_like", { actorId: v_43e90c, cloneId: v_6e0fd3 });
+    await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
+
+    await v_6f97bc(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_c09aa8, v_cf0463.feed);
+  }
   return v_3f4e2e.json({
     ok: true,
     liked: true,
@@ -534,29 +566,50 @@ v_96e8d7.delete("/:id/like", v_6690d9, async (v_3f4e2e) => {
 
 const v_9c5bc5 = v_1f4ea7.object({
   content: v_1f4ea7.string().min(1).max(2000),
+
+  parentCommentId: v_1f4ea7.number().int().positive().optional(),
 });
 
 v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
   const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid feed id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_9c5bc5);
 
   const v_2db2a5 = await v_c39991(v_3f4e2e.env.DB, v_c09aa8);
-  if (!v_2db2a5) throw new v_3ebe58("NOT_FOUND", "Feed not found.");
+  if (!v_2db2a5) throw new v_3ebe58("NOT_FOUND", "피드를 찾을 수 없어요.");
   if (v_2db2a5.visibility === "private") {
     if (v_2db2a5.ownerId !== v_43e90c) {
       const v_22da99 = await v_7adf64(v_3f4e2e.env.DB, v_2db2a5.cloneId, v_43e90c);
-      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "Private clone.");
+      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "비공개 페르소나예요.");
     }
+  }
+
+  let v_ab1564 = null;
+  if (v_4d33b2.parentCommentId) {
+    const v_4eab4b = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, feed_id AS feedId, parent_comment_id AS parentId
+           FROM feed_comments
+          WHERE id = ?`,
+      )
+      .bind(v_4d33b2.parentCommentId)
+      .first<{ id: number; feedId: number; parentId: number | null }>();
+    if (!v_4eab4b) throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없어요.");
+    if (v_4eab4b.feedId !== v_c09aa8) {
+      throw new v_3ebe58("VALIDATION_FAILED", "부모 댓글이 다른 피드에 속해 있어요.");
+    }
+
+    v_ab1564 = v_4eab4b.parentId ?? v_4eab4b.id;
   }
   const v_cb35cb = await v_3f4e2e.env.DB
     .prepare(
-      `INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`,
+      `INSERT INTO feed_comments (feed_id, user_id, content, parent_comment_id)
+       VALUES (?, ?, ?, ?)`,
     )
-    .bind(v_c09aa8, v_43e90c, v_4d33b2.content.trim())
+    .bind(v_c09aa8, v_43e90c, v_4d33b2.content.trim(), v_ab1564)
     .run();
 
   await v_80a022(v_3f4e2e.env, "clone_comment", {
@@ -565,6 +618,8 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     extraBody: v_4d33b2.content.trim(),
   });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json(
     {
       ok: true,
@@ -573,6 +628,7 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
         feedId: v_c09aa8,
         userId: v_43e90c,
         content: v_4d33b2.content.trim(),
+        parentCommentId: v_ab1564,
       },
     },
     201,
@@ -583,7 +639,7 @@ v_f1d06f.delete("/:id/comments/:cid", v_6690d9, async (v_3f4e2e) => {
   const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
   const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
   }
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_8f00b9 = await v_3f4e2e.env.DB
@@ -591,38 +647,81 @@ v_f1d06f.delete("/:id/comments/:cid", v_6690d9, async (v_3f4e2e) => {
     .bind(v_062ae9, v_c09aa8, v_43e90c)
     .run();
   if ((v_8f00b9.meta?.changes ?? 0) === 0) {
-    throw new v_3ebe58("NOT_FOUND", "Comment not found or not yours.");
+    throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없거나 본인의 댓글이 아니에요.");
   }
   return v_3f4e2e.json({ ok: true });
+});
+
+v_f1d06f.post("/:id/comments/:cid/report", v_6690d9, async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req.json<{ reason?: string }>().catch(() => ({} as { reason?: string }));
+  const v_58ca36 = (v_4d33b2.reason ?? "").slice(0, 500) || null;
+
+  const v_ab4c96 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT fc.id AS cid, fc.feed_id AS feedId, f.clone_id AS cloneId
+         FROM feed_comments fc
+         JOIN feeds f ON f.id = fc.feed_id
+        WHERE fc.id = ? AND fc.feed_id = ?
+        LIMIT 1`,
+    )
+    .bind(v_062ae9, v_c09aa8)
+    .first<{ cid: number; feedId: number; cloneId: number }>();
+  if (!v_ab4c96) throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없어요.");
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO comment_reports
+         (user_id, comment_id, feed_id, clone_id, reason)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .bind(v_43e90c, v_062ae9, v_ab4c96.feedId, v_ab4c96.cloneId, v_58ca36)
+    .run();
+  return v_3f4e2e.json({ ok: true, reported: true });
 });
 
 v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
   const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0) {
-    throw new v_3ebe58("VALIDATION_FAILED", "Invalid feed id.");
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_15c8c5 = v_f71b56.searchParams.get("cursor");
   const v_75cbf4 = v_15c8c5 ? Number(v_15c8c5) : null;
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 30);
   const v_02be30 = Math.max(1, Math.min(100, Number.isFinite(v_cf2260) ? v_cf2260 : 30));
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
 
-  const v_abcc8d = ["fc.feed_id = ?"];
+  const v_abcc8d = ["fc.feed_id = ?", "fc.parent_comment_id IS NULL"];
   const v_925171 = [v_c09aa8];
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
     v_abcc8d.push("fc.id < ?");
     v_925171.push(v_75cbf4);
   }
+
+  const v_f36334 = v_013af2
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  if (v_013af2) v_925171.unshift(v_013af2); 
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+        `SELECT fc.id          AS commentId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${v_f36334} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl,
+                (SELECT COUNT(*) FROM feed_comments fcc
+                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE ${v_abcc8d.join(" AND ")} AND u.deleted_at IS NULL
@@ -635,9 +734,12 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
+        repliesCount: number;
       }>()
   ).results;
 
@@ -652,6 +754,9 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
       userId: v_cb35cb.userId,
       content: v_cb35cb.content,
       createdAt: v_cb35cb.createdAt,
+      repliesCount: v_cb35cb.repliesCount ?? 0,
+      likesCount: v_cb35cb.likesCount ?? 0,
+      likedByMe: !!v_cb35cb.likedByMe,
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,
@@ -663,16 +768,125 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
   });
 });
 
+v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
+  const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
+  const v_f36334 = v_013af2
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  const v_925171 = v_013af2 ? [v_013af2, v_c09aa8, v_062ae9, v_02be30] : [v_c09aa8, v_062ae9, v_02be30];
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT fc.id          AS commentId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${v_f36334} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl
+           FROM feed_comments fc
+           JOIN users u ON u.id = fc.user_id
+          WHERE fc.feed_id = ?
+            AND fc.parent_comment_id = ?
+            AND u.deleted_at IS NULL
+          ORDER BY fc.id ASC
+          LIMIT ?`,
+      )
+      .bind(...v_925171)
+      .all<{
+        commentId: number;
+        userId: number;
+        content: string;
+        createdAt: string;
+        likesCount: number;
+        likedByMe: number;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  return v_3f4e2e.json({
+    items: (v_18b8bf ?? []).map((v_cb35cb) => ({
+      id: v_cb35cb.commentId,
+      userId: v_cb35cb.userId,
+      content: v_cb35cb.content,
+      createdAt: v_cb35cb.createdAt,
+      parentCommentId: v_062ae9,
+      likesCount: v_cb35cb.likesCount ?? 0,
+      likedByMe: !!v_cb35cb.likedByMe,
+      user: {
+        id: v_cb35cb.userId,
+        name: v_cb35cb.userName,
+        email: v_cb35cb.userEmail,
+        avatarUrl: v_cb35cb.userAvatarUrl,
+      },
+    })),
+  });
+});
+
+v_f1d06f.post("/:id/comments/:cid/like", v_6690d9, async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM feed_comments WHERE id = ? AND feed_id = ?`)
+    .bind(v_062ae9, v_c09aa8)
+    .first<{ id: number }>();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "댓글을 찾을 수 없어요.");
+  await v_3f4e2e.env.DB
+    .prepare(`INSERT OR IGNORE INTO feed_comment_likes (comment_id, user_id) VALUES (?, ?)`)
+    .bind(v_062ae9, v_43e90c)
+    .run();
+  const v_7b3f91 = await v_3f4e2e.env.DB
+    .prepare(`SELECT likes_count FROM feed_comments WHERE id = ?`)
+    .bind(v_062ae9)
+    .first<{ likes_count: number }>();
+  return v_3f4e2e.json({ ok: true, liked: true, likesCount: v_7b3f91?.likes_count ?? 0 });
+});
+
+v_f1d06f.delete("/:id/comments/:cid/like", v_6690d9, async (v_3f4e2e) => {
+  const v_c09aa8 = Number(v_3f4e2e.req.param("id"));
+  const v_062ae9 = Number(v_3f4e2e.req.param("cid"));
+  if (!Number.isInteger(v_c09aa8) || v_c09aa8 <= 0 || !Number.isInteger(v_062ae9) || v_062ae9 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM feed_comment_likes WHERE comment_id = ? AND user_id = ?`)
+    .bind(v_062ae9, v_43e90c)
+    .run();
+  const v_7b3f91 = await v_3f4e2e.env.DB
+    .prepare(`SELECT likes_count FROM feed_comments WHERE id = ?`)
+    .bind(v_062ae9)
+    .first<{ likes_count: number }>();
+  return v_3f4e2e.json({ ok: true, liked: false, likesCount: v_7b3f91?.likes_count ?? 0 });
+});
+
 v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = v_31113b(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_9c5bc5);
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   if (v_eb25ce.visibility === "private") {
     if (v_eb25ce.owner_id !== v_43e90c) {
       const v_22da99 = await v_7adf64(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
-      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "Private clone.");
+      if (v_22da99 === null) throw new v_3ebe58("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
 
@@ -710,6 +924,8 @@ v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     extraBody: v_4d33b2.content.trim(),
   });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
+
+  await v_6f97bc(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_c09aa8, v_cf0463.feed);
   return v_3f4e2e.json(
     {
       ok: true,
@@ -730,34 +946,49 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 50);
   const v_02be30 = Math.max(1, Math.min(200, Number.isFinite(v_cf2260) ? v_cf2260 : 50));
+  const v_013af2 = await v_efcb2d(v_3f4e2e);
+
+  const v_f36334 = v_013af2
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  const v_925171 = v_013af2 ? [v_013af2, v_6e0fd3, v_02be30] : [v_6e0fd3, v_02be30];
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.feed_id   AS feedId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+        `SELECT fc.id          AS commentId,
+                fc.feed_id     AS feedId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${v_f36334} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl,
+                (SELECT COUNT(*) FROM feed_comments fcc
+                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
            JOIN feeds f ON f.id = fc.feed_id
            JOIN users u ON u.id = fc.user_id
-          WHERE f.clone_id = ? AND u.deleted_at IS NULL
+          WHERE f.clone_id = ?
+            AND fc.parent_comment_id IS NULL
+            AND u.deleted_at IS NULL
           ORDER BY fc.id DESC
           LIMIT ?`,
       )
-      .bind(v_6e0fd3, v_02be30)
+      .bind(...v_925171)
       .all<{
         commentId: number;
         feedId: number;
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
+        repliesCount: number;
       }>()
   ).results;
   return v_3f4e2e.json({
@@ -767,6 +998,9 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
       userId: v_cb35cb.userId,
       content: v_cb35cb.content,
       createdAt: v_cb35cb.createdAt,
+      repliesCount: v_cb35cb.repliesCount ?? 0,
+      likesCount: v_cb35cb.likesCount ?? 0,
+      likedByMe: !!v_cb35cb.likedByMe,
       user: {
         id: v_cb35cb.userId,
         name: v_cb35cb.userName,
@@ -830,7 +1064,7 @@ v_96e8d7.delete("/:id/feeds/:feedId", v_6690d9, async (v_3f4e2e) => {
   const v_c09aa8 = v_102fa8(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
-  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   await v_f1298d(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c, v_eb25ce);
 
   const v_8f00b9 = await v_3f4e2e.env.DB

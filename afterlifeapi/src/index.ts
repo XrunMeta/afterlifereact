@@ -13,7 +13,8 @@ import { v_f891e6 } from "./routes/clones";
 import { v_773b4c } from "./routes/memory";
 import { v_19e2a3, v_fa56e0 } from "./routes/messages";
 import { v_96e8d7, v_f1d06f } from "./routes/feeds";
-import { v_b211dd } from "./routes/sessions";
+import { v_20e160 } from "./routes/calls";
+import { v_dcd415 } from "./routes/internal";
 import { v_403c0a, v_98b245 } from "./routes/sharing";
 import { v_f07b70, v_521eb8 } from "./routes/shorts";
 import { v_1beee6 } from "./routes/editorTransfer";
@@ -45,8 +46,11 @@ const v_9ebb7a = new Set<string>([
   "http://localhost:5174",
   "http://localhost:8787",
   "https://site-x.example.invalid",
+  "https://console2.example.invalid",
+  "https://console-preview2.example.invalid",
 ]);
 const v_b5d625 = /^https:\/\/[a-z0-9-]+\.afterlife-admin\.pages\.dev$/;
+const v_e00aa1 = /^https:\/\/[a-z0-9-]+\.xrun-admin\.pages\.dev$/;
 
 v_466992.use(
   "*",
@@ -55,6 +59,7 @@ v_466992.use(
       if (!v_f17108) return "*";
       if (v_9ebb7a.has(v_f17108)) return v_f17108;
       if (v_b5d625.test(v_f17108)) return v_f17108;
+      if (v_e00aa1.test(v_f17108)) return v_f17108;
       return null;
     },
     credentials: true,
@@ -95,7 +100,9 @@ v_466992.route("/oth-path", v_521eb8);
 v_466992.route("/oth-path", v_1beee6);
 v_466992.route("/oth-path", v_fa56e0);
 
-v_466992.route("/oth-path", v_b211dd);
+v_466992.route("/oth-path", v_20e160);
+
+v_466992.route("/oth-path", v_dcd415);
 v_466992.route("/oth-path", v_98b245);
 v_466992.route("/oth-path", v_e2c945);
 v_466992.route("/oth-path", v_a35f69);

@@ -15,6 +15,17 @@ const v_69dc63 = new Set([
   "image/png",
   "image/webp",
   "image/gif",
+
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/m4a",
+  "audio/aac",
+  "audio/webm",
+  "audio/ogg",
 ]);
 
 function v_c0ca5d(v_43e90c, v_c0c2d5): string {
@@ -28,7 +39,19 @@ function v_c0ca5d(v_43e90c, v_c0c2d5): string {
           ? ".webp"
           : v_c0c2d5 === "image/gif"
             ? ".gif"
-            : ".bin";
+            : v_c0c2d5 === "audio/mpeg" || v_c0c2d5 === "audio/mp3"
+              ? ".mp3"
+              : v_c0c2d5 === "audio/wav" || v_c0c2d5 === "audio/x-wav"
+                ? ".wav"
+                : v_c0c2d5 === "audio/mp4" || v_c0c2d5 === "audio/x-m4a" || v_c0c2d5 === "audio/m4a"
+                  ? ".m4a"
+                  : v_c0c2d5 === "audio/aac"
+                    ? ".aac"
+                    : v_c0c2d5 === "audio/webm"
+                      ? ".webm"
+                      : v_c0c2d5 === "audio/ogg"
+                        ? ".ogg"
+                        : ".bin";
   const v_2d1eeb = Math.random().toString(36).slice(2, 10);
   const v_b96973 = Math.random().toString(36).slice(2, 10);
   const v_8d41d7 = Date.now().toString(36);
