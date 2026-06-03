@@ -31,6 +31,7 @@ import { v_39eaf5, v_b55477, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d6
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
+import { v_110960, v_52ec3e } from "euzpkmxzoe";
 import { v_04686a } from "../../lib/imagePicker";
 
 type Props = {
@@ -56,6 +57,27 @@ const v_549a47 = {
   mentor: { title: '멘토가 준비됐어요',   sub: '분야별 질문을 남겨 보세요.' },
   celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
 };
+
+function v_78ed2a({ uri: v_cd1446 }: { uri: string }) {
+  const v_86394a = v_110960(v_cd1446, (v_e2a85c) => {
+    v_e2a85c.loop = true;
+    v_e2a85c.muted = true;
+    v_e2a85c.play();
+  });
+  return (
+    <View style={v_d81136.previewBox}>
+      <VideoView
+        player={v_86394a}
+        style={v_472849.absoluteFillObject}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      <View style={v_d81136.videoBadge}>
+        <Text style={v_d81136.videoBadgeText}>영상 준비 완료</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
@@ -519,7 +541,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     <SafeView backgroundColor={v_1bfbd0.white}>
       {}
       <PageHeader
-        title="게시물 작성"
+        title="클론 정보 리뷰"
         showBackButton
         onBackPress={() => {
 
@@ -562,12 +584,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 }
           {v_7f3fda?.status === 'done' && v_7f3fda.out_url ? (
 
-            <View style={v_d81136.previewBox}>
-              <Image source={{ uri: v_f04727.imageFile ?? v_7f3fda.out_url }} style={v_472849.absoluteFillObject} resizeMode="cover" />
-              <View style={v_d81136.videoBadge}>
-                <Text style={v_d81136.videoBadgeText}>영상 준비 완료</Text>
-              </View>
-            </View>
+            <IdleVideoPreview uri={v_7f3fda.out_url} />
           ) : (v_7f3fda?.status === 'failed' || (!v_f04727.idleVideoJobId && !!v_f04727.imageFile)) ? (
 
             <TouchableOpacity

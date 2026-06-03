@@ -254,7 +254,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       {v_34e5bb === "record" && (
         <View style={{ gap: 12 }}>
           <Text style={v_d81136.scriptHint}>
-            고인 목소리 사용 (권장) — 스크립트를 선택하고 읽어주세요.
+            스크립트를 선택하고 읽어주세요.
           </Text>
           {v_58b6a9.map((v_fd5f43) => (
             <TouchableOpacity
@@ -304,7 +304,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       {v_34e5bb === "upload" && (
         <View style={{ gap: 12 }}>
           <Text style={v_d81136.scriptHint}>
-            고인 목소리 사용 (권장) — mp3/wav/m4a 파일을 업로드해주세요.
+            음성파일을 올려주세요
           </Text>
           <TouchableOpacity
             style={v_d81136.upload}
