@@ -1,5 +1,69 @@
 
 
+const v_ae98f3 = true;
+
+export function v_d2f603(v_79e11f): string {
+
+  const v_946c09 = v_79e11f.split(/(?=^m=)/m);
+
+  let v_75f059 = null;
+  let v_b50c62 = null;
+  let v_01efc3 = -1;
+  let v_a31ee0 = -1;
+
+  for (let v_ebec57 = 0; v_ebec57 < v_946c09.length; v_ebec57++) {
+    const v_b6a7e0 = v_946c09[v_ebec57];
+    if (/^m=video\b/m.test(v_b6a7e0)) {
+      v_75f059 = v_b6a7e0;
+      v_01efc3 = v_ebec57;
+    } else if (/^m=audio\b/m.test(v_b6a7e0)) {
+      v_b50c62 = v_b6a7e0;
+      v_a31ee0 = v_ebec57;
+    }
+  }
+
+  if (!v_75f059 || !v_b50c62 || v_01efc3 < 0 || v_a31ee0 < 0) {
+    return v_79e11f; 
+  }
+
+  const v_58ee26 = v_75f059.match(/^a=msid:(\S+)\s+\S+/m);
+  const v_c6d4b4 = v_75f059.match(/^a=ssrc:\S+\s+msid:(\S+)\s+\S+/m);
+  const v_b1b87a = (v_58ee26?.[1] ?? v_c6d4b4?.[1] ?? '').trim();
+
+  const v_98d566 = v_b50c62.match(/^a=msid:(\S+)\s+\S+/m);
+  const v_18718a = v_b50c62.match(/^a=ssrc:\S+\s+msid:(\S+)\s+\S+/m);
+  const v_56eb1d = (v_98d566?.[1] ?? v_18718a?.[1] ?? '').trim();
+
+  if (!v_b1b87a || !v_56eb1d) {
+    return v_79e11f; 
+  }
+
+  if (v_b1b87a === v_56eb1d) {
+    return v_79e11f; 
+  }
+
+  const v_f41000 = v_56eb1d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  let v_2fb193 = v_b50c62
+    .replace(
+      new RegExp(`(^a=msid:)${v_f41000}(\\s)`, 'gm'),
+      `$1${v_b1b87a}$2`,
+    )
+
+    .replace(
+      new RegExp(`(^a=ssrc:\\S+\\s+msid:)${v_f41000}(\\s)`, 'gm'),
+      `$1${v_b1b87a}$2`,
+    )
+
+    .replace(
+      new RegExp(`(^a=ssrc:\\S+\\s+mslabel:)${v_f41000}(\\s*$)`, 'gm'),
+      `$1${v_b1b87a}$2`,
+    );
+
+  v_946c09[v_a31ee0] = v_2fb193;
+  return v_946c09.join('');
+}
+
 import { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from 'bapkr';
 import {
   v_c1a793,
@@ -79,6 +143,8 @@ export function v_b38a7e(v_328259) {
   const v_6e83c5 = v_e662ae<string | null>(null);
   const v_6b43e5 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
 
+  const v_21f041 = v_e662ae<ReturnType<typeof setInterval> | null>(null);
+
   const v_9998ac = v_e662ae<v_802da4 | null>(null);
 
   const v_bba900 = v_e662ae(0);
@@ -120,6 +186,11 @@ export function v_b38a7e(v_328259) {
   const v_3e54f8 = v_de06a3(async () => {
     v_bba900.current += 1; 
     if (v_6b43e5.current) clearTimeout(v_6b43e5.current);
+
+    if (v_21f041.current) {
+      clearInterval(v_21f041.current);
+      v_21f041.current = null;
+    }
     v_ae4844('idle');
     const v_12cd99 = v_f98743.current;
     v_f98743.current = null;
@@ -178,13 +249,20 @@ export function v_b38a7e(v_328259) {
           ? v_1d299c.streams[0]
           : new v_802da4([v_1d299c.track as never]);
 
-      const v_281141 =
-        ((v_cab51f as any).getVideoTracks?.()?.length ?? 0) > 0 || v_1d299c.track?.kind === 'video';
-      if (v_281141) {
+      const v_37207e = v_1d299c.track?.kind;
+      if (v_37207e === 'video') {
         v_b944e3(v_cab51f);
-      } else {
+      } else if (v_37207e === 'audio') {
 
         v_9998ac.current = v_cab51f;
+      } else {
+
+        const v_281141 = ((v_cab51f as any).getVideoTracks?.()?.length ?? 0) > 0;
+        if (v_281141) {
+          v_b944e3(v_cab51f);
+        } else {
+          v_9998ac.current = v_cab51f;
+        }
       }
     });
     const v_cb236b = () => {
@@ -212,11 +290,34 @@ export function v_b38a7e(v_328259) {
       const v_df2b5b = v_4cb70c.subscriber_session_id as string | undefined;
       const v_582c5e = v_4cb70c.offer_sdp as string | undefined;
       if (!v_df2b5b || !v_582c5e) throw new Error('subscribe_pull_incomplete');
+
+      if (__DEV__) {
+        console.log('[SDP-DIAG][offer]\n' + v_582c5e);
+      }
+
+      const v_054443 = v_ae98f3 ? v_d2f603(v_582c5e) : v_582c5e;
+      if (__DEV__ && v_ae98f3) {
+        if (v_054443 !== v_582c5e) {
+
+          const v_029108 = v_582c5e.match(/^m=audio[\s\S]*?^a=msid:(\S+)\s+\S+/m)
+            ?? v_582c5e.match(/^m=audio[\s\S]*?^a=ssrc:\S+\s+msid:(\S+)\s+\S+/m);
+          const v_fd5f72 = v_582c5e.match(/^m=video[\s\S]*?^a=msid:(\S+)\s+\S+/m)
+            ?? v_582c5e.match(/^m=video[\s\S]*?^a=ssrc:\S+\s+msid:(\S+)\s+\S+/m);
+          console.log(`[T-045] msid unified: ${v_029108?.[1] ?? '?'} -> ${v_fd5f72?.[1] ?? '?'}`);
+          console.log('[SDP-DIAG][offer-munged]\n' + v_054443);
+        } else {
+          console.log('[SDP-DIAG][offer-munged] no-op (stream-id already equal or extraction failed)');
+        }
+      }
       await v_12cd99.setRemoteDescription(
-        new v_d904b7({ type: 'offer', sdp: v_582c5e }),
+        new v_d904b7({ type: 'offer', sdp: v_054443 }),
       );
       const v_343c90 = await v_12cd99.createAnswer();
       await v_12cd99.setLocalDescription(v_343c90);
+
+      if (__DEV__) {
+        console.log('[SDP-DIAG][answer]\n' + (v_343c90.sdp ?? '(sdp empty)'));
+      }
       if (!v_759436()) {
         v_12cd99.close();
         return;
@@ -234,6 +335,82 @@ export function v_b38a7e(v_328259) {
         v_84b93d.audioSession.activate();
       } catch {
 
+      }
+
+      if (__DEV__) {
+        const v_bc464d = v_12cd99 as unknown as {
+          getStats?: () => Promise<Iterable<[string, Record<string, unknown>]>>;
+        };
+        if (typeof v_bc464d.getStats === 'function') {
+          if (v_21f041.current) clearInterval(v_21f041.current);
+          v_21f041.current = setInterval(async () => {
+            if (!v_759436()) {
+              if (v_21f041.current) {
+                clearInterval(v_21f041.current);
+                v_21f041.current = null;
+              }
+              return;
+            }
+            try {
+              const v_2888b4 = await v_bc464d.getStats!();
+              let v_716bc3 = null;
+              let v_d12bcd = null;
+              for (const [, v_55172c] of v_2888b4) {
+                if (v_55172c['type'] === 'inbound-rtp') {
+                  if (v_55172c['kind'] === 'audio') v_716bc3 = v_55172c;
+                  else if (v_55172c['kind'] === 'video') v_d12bcd = v_55172c;
+                }
+              }
+              const v_a83e8f = (v_4b24d2, v_9e8c70) => {
+                const v_d5dda0 = typeof v_4b24d2 === 'number' ? v_4b24d2 : undefined;
+                const v_3f4e2e = typeof v_9e8c70 === 'number' ? v_9e8c70 : undefined;
+                if (v_d5dda0 !== undefined && v_3f4e2e !== undefined && v_3f4e2e > 0) return (v_d5dda0 / v_3f4e2e * 1000).toFixed(2);
+                return undefined;
+              };
+              if (v_716bc3) {
+                const v_7203ab = v_a83e8f(v_716bc3['jitterBufferDelay'], v_716bc3['jitterBufferEmittedCount']);
+                console.log('[STATS-DIAG]', JSON.stringify({
+                  kind: 'audio',
+                  jitterBufferAvgMs: v_7203ab,
+                  packetsLost: v_716bc3['packetsLost'],
+                  packetsReceived: v_716bc3['packetsReceived'],
+                  estimatedPlayoutTimestamp: v_716bc3['estimatedPlayoutTimestamp'],
+                  totalSamplesDuration: v_716bc3['totalSamplesDuration'],
+                  totalSamplesReceived: v_716bc3['totalSamplesReceived'],
+                  concealedSamples: v_716bc3['concealedSamples'],
+                }));
+              }
+              if (v_d12bcd) {
+                const v_7203ab = v_a83e8f(v_d12bcd['jitterBufferDelay'], v_d12bcd['jitterBufferEmittedCount']);
+                console.log('[STATS-DIAG]', JSON.stringify({
+                  kind: 'video',
+                  jitterBufferAvgMs: v_7203ab,
+                  packetsLost: v_d12bcd['packetsLost'],
+                  packetsReceived: v_d12bcd['packetsReceived'],
+                  estimatedPlayoutTimestamp: v_d12bcd['estimatedPlayoutTimestamp'],
+                  framesDecoded: v_d12bcd['framesDecoded'],
+                  framesDropped: v_d12bcd['framesDropped'],
+                  framesPerSecond: v_d12bcd['framesPerSecond'],
+                  frameWidth: v_d12bcd['frameWidth'],
+                  frameHeight: v_d12bcd['frameHeight'],
+                }));
+              }
+
+              if (v_716bc3 && v_d12bcd) {
+                const v_ef814f = v_716bc3['estimatedPlayoutTimestamp'];
+                const v_a6c746 = v_d12bcd['estimatedPlayoutTimestamp'];
+                if (typeof v_ef814f === 'number' && typeof v_a6c746 === 'number') {
+                  console.log('[STATS-DIAG]', JSON.stringify({
+                    kind: 'av_drift',
+                    av_playout_diff_ms: +(v_ef814f - v_a6c746).toFixed(2),
+                  }));
+                }
+              }
+            } catch {
+
+            }
+          }, 1000);
+        }
       }
     } catch (v_9e86fd) {
       try {
