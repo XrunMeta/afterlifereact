@@ -578,7 +578,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
       let v_4f136c = v_3ba9f9 || null;
       if (!v_4f136c && v_8998a7 && v_9c6814) {
 
-        const v_f0796d = v_9fe22d.join(v_1fe67f, v_9c6814, 'photo-still-25fps.mp4');
+        const v_f0796d = v_9fe22d.join(v_1fe67f, v_9c6814, `${v_9c6814}-photo-still-25fps.mp4`);
         try {
           v_4f136c = await v_ab8c91({ photoPath: v_8998a7, outPath: v_f0796d });
         } catch (v_6f2968) {
@@ -716,7 +716,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
             let v_133135 = v_3ba9f9 || null;
             if (!v_133135 && v_8998a7 && v_9c6814) {
-              const v_f0796d = v_9fe22d.join(v_1fe67f, v_9c6814, 'photo-still-25fps.mp4');
+              const v_f0796d = v_9fe22d.join(v_1fe67f, v_9c6814, `${v_9c6814}-photo-still-25fps.mp4`);
               try {
                 v_133135 = await v_ab8c91({ photoPath: v_8998a7, outPath: v_f0796d });
               } catch (v_6f2968) {

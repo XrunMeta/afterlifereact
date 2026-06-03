@@ -138,7 +138,7 @@ v_2a805f('ensureAssets: ②url 있을 때 pull 수행·저장', async () => {
 
   v_ce93bd.equal(v_3ceb80.length, 3, '3개 url 모두 fetch');
   v_ce93bd.ok(v_43c42e.ttsSePath?.endsWith(`${v_6e0fd3}/se.pth`));
-  v_ce93bd.ok(v_43c42e.museVideoPath?.endsWith(`${v_6e0fd3}/idle-25fps.mp4`));
+  v_ce93bd.ok(v_43c42e.museVideoPath?.endsWith(`${v_6e0fd3}/${v_6e0fd3}-idle-25fps.mp4`));
   v_ce93bd.ok(v_43c42e.avatarImagePath?.endsWith(`${v_6e0fd3}.png`));
   v_ce93bd.ok(v_9d3c52.existsSync(v_43c42e.ttsSePath));
   v_ce93bd.ok(v_9d3c52.existsSync(v_43c42e.museVideoPath));
