@@ -27,6 +27,8 @@ interface ButtonProps {
   backgroundColor?: string;
 
   textColor?: string;
+
+  testID?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -42,6 +44,7 @@ const Button: React.FC<ButtonProps> = ({
   textStyle,
   backgroundColor,
   textColor,
+  testID,
 }) => {
   const containerStyle = [
     styles.base,
@@ -63,6 +66,7 @@ const Button: React.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
+      testID={testID}
       onPress={onPress}
       style={containerStyle}
       activeOpacity={0.8}
