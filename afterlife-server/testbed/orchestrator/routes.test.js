@@ -457,6 +457,86 @@ test('POST /oth-path — 필드 누락 → 400', async () => {
   server.close();
 });
 
+test('POST /oth-path — assets body 시 ensureAssets 호출되고 callPersona에 경로 저장', async () => {
+  const ensureAssetsArgs = [];
+  const mockEnsureAssets = async (params) => {
+    ensureAssetsArgs.push(params);
+    return { museVideoPath: '/local/video/c4/idle-25fps.mp4', ttsSePath: '/local/voices/c4/se.pth', avatarImagePath: '/local/images/c4.png' };
+  };
+
+  let allocateArg = null;
+  const orch = fakeOrch({
+    allocate: async (arg) => { allocateArg = arg; return { callId: 'c4', subscribeToken: 'tok4', tracks: { video: 'v-c4', audio: 'a-c4' }, state: 'live' }; },
+    getCall: (id) => (id === 'c4' ? { call_id: 'c4', port: 8415, state: 'live' } : null),
+  });
+
+  const { server, base } = await mountApp(orch, 'sek', null, { ensureAssets: mockEnsureAssets });
+
+  const assets = {
+    idleVideoUrl: 'https://oth-path.afterlife.example.com/files/idle.mp4',
+    voiceSeUrl: 'https://oth-path.afterlife.example.com/files/se.pth',
+    avatarUrl: 'https://oth-path.afterlife.example.com/files/avatar.png',
+  };
+  const personaBundle = { l0: { rules_text: 'R', blocklist: [] }, persona: { tone: '활발' } };
+
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20', idleVideoUrl: null, personaBundle, assets }),
+  });
+  assert.equal(r.status, 200);
+
+  assert.equal(ensureAssetsArgs.length, 1, 'ensureAssets 1회 호출');
+  assert.equal(ensureAssetsArgs[0].cloneId, '10');
+  assert.deepEqual(ensureAssetsArgs[0].assets, assets);
+
+  assert.equal(allocateArg?.idleVideoUrl, '/local/video/c4/idle-25fps.mp4', 'allocate에 로컬 경로 전달');
+
+  const relayed = [];
+
+  const relayCapture = [];
+
+  const runChatRelay = async (_d, args) => { relayCapture.push(args); };
+  server.close();
+
+  const orch2 = fakeOrch({
+    allocate: async () => ({ callId: 'c4b', subscribeToken: 'tok4b', tracks: {}, state: 'live' }),
+    getCall: (id) => (id === 'c4b' ? { call_id: 'c4b', port: 8416, state: 'live' } : null),
+  });
+  const mockEnsureAssets2 = async () => ({ museVideoPath: '/m', ttsSePath: '/t', avatarImagePath: '/a' });
+  const { server: srv2, base: base2 } = await mountApp(orch2, 'sek', { runChatRelay }, { ensureAssets: mockEnsureAssets2 });
+
+  await fetch(`${base2}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20', personaBundle, assets }),
+  });
+  await fetch(`${base2}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '안녕', cloneId: '10' }),
+  });
+  await new Promise((r) => setTimeout(r, 20));
+
+  assert.equal(relayCapture.length, 1);
+  assert.deepEqual(relayCapture[0].personaBundle, personaBundle, 'personaBundle 호환 유지');
+
+  srv2.close();
+});
+
+test('POST /oth-path — assets 없어도 통화 정상(ensureAssets null graceful)', async () => {
+  const mockEnsureAssets = async () => ({ museVideoPath: null, ttsSePath: null, avatarImagePath: null });
+  const { server, base } = await mountApp(fakeOrch(), 'sek', null, { ensureAssets: mockEnsureAssets });
+
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20' }), 
+  });
+  assert.equal(r.status, 200);
+  server.close();
+});
+
 test('personaBundle: DELETE 후 캐시에서 제거됨(재 say 시 null)', async () => {
   const relayed = [];
   const orch = fakeOrch({
