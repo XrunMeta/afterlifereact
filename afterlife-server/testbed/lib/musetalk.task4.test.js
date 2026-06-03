@@ -93,3 +93,90 @@ test('ensurePhotoStill: 파일 이미 존재 시 ffmpeg 없이 경로 반환', a
 
   await fs.rm(tmpDir, { recursive: true, force: true });
 });
+
+test('ensurePhotoStill: ffmpeg 실패 시 null 반환(graceful)', async () => {
+
+  const { ensurePhotoStill } = await import('./musetalk.js');
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mt-ps-fail-'));
+  const outPath = path.join(tmpDir, 'sub', 'photo-still-25fps.mp4');
+
+  const result = await ensurePhotoStill({
+    photoPath: '/nonexistent/no-such-photo-12345.png',
+    outPath,
+  });
+  assert.equal(result, null, 'ffmpeg 실패 시 null 반환');
+
+  await fs.rm(tmpDir, { recursive: true, force: true });
+});
+
+test('ensurePhotoStill: 동시 2회 호출 race — 손상 없이 단일 결과', async () => {
+
+  const { ensurePhotoStill } = await import('./musetalk.js');
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'mt-ps-race-'));
+  const outPath = path.join(tmpDir, 'photo-still-25fps.mp4');
+
+  await fs.writeFile(outPath, Buffer.from('FAKEMP4RACE'));
+
+  const [r1, r2] = await Promise.all([
+    ensurePhotoStill({ photoPath: '/any/photo.png', outPath }),
+    ensurePhotoStill({ photoPath: '/any/photo.png', outPath }),
+  ]);
+  assert.equal(r1, outPath, '첫 번째 결과는 outPath');
+  assert.equal(r2, outPath, '두 번째 결과는 outPath');
+
+  const stat = await fs.stat(outPath);
+  assert.ok(stat.size > 0, '파일 존재·손상 없음');
+
+  await fs.rm(tmpDir, { recursive: true, force: true });
+});
+
+test('sanitizeAssetPath: 베이스 디렉토리 하위 정상 경로는 통과', () => {
+
+  function sanitizeAssetPath(rawPath, baseDir) {
+    if (rawPath == null || rawPath === '') return null;
+    const p = String(rawPath);
+    const resolved = path.resolve(p);
+    const resolvedBase = path.resolve(baseDir);
+    if (!resolved.startsWith(resolvedBase + path.sep) && resolved !== resolvedBase) return null;
+    return p;
+  }
+
+  const base = '/home/afterlife/afterlife-server/testbed/video-ref';
+  const valid = `${base}/clone123/idle-25fps.mp4`;
+  assert.equal(sanitizeAssetPath(valid, base), valid, '정상 경로 통과');
+});
+
+test('sanitizeAssetPath: ../ 경로 탈출 차단', () => {
+  function sanitizeAssetPath(rawPath, baseDir) {
+    if (rawPath == null || rawPath === '') return null;
+    const p = String(rawPath);
+    const resolved = path.resolve(p);
+    const resolvedBase = path.resolve(baseDir);
+    if (!resolved.startsWith(resolvedBase + path.sep) && resolved !== resolvedBase) return null;
+    return p;
+  }
+
+  const base = '/home/afterlife/afterlife-server/testbed/video-ref';
+  assert.equal(sanitizeAssetPath(`${base}/../../../etc/passwd`, base), null, '../ 탈출 차단');
+  assert.equal(sanitizeAssetPath('/etc/passwd', base), null, '절대경로 다른 위치 차단');
+  assert.equal(sanitizeAssetPath('', base), null, '빈 문자열 → null');
+  assert.equal(sanitizeAssetPath(null, base), null, 'null → null');
+  assert.equal(sanitizeAssetPath(undefined, base), null, 'undefined → null');
+});
+
+test('폴백 위계: museVideoPath 빈문자열/null/undefined → null(사진 폴백으로)', () => {
+
+  function sanitizeAssetPath(rawPath, baseDir) {
+    if (rawPath == null || rawPath === '') return null;
+    const p = String(rawPath);
+    const resolved = path.resolve(p);
+    const resolvedBase = path.resolve(baseDir);
+    if (!resolved.startsWith(resolvedBase + path.sep) && resolved !== resolvedBase) return null;
+    return p;
+  }
+
+  const base = '/home/afterlife/afterlife-server/testbed/video-ref';
+  assert.equal(sanitizeAssetPath('', base), null, '빈문자열 → null → 사진폴백');
+  assert.equal(sanitizeAssetPath(null, base), null, 'null → null → 사진폴백');
+  assert.equal(sanitizeAssetPath(undefined, base), null, 'undefined → null → 사진폴백');
+});

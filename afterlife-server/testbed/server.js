@@ -60,6 +60,18 @@ const ASSET_VIDEO_REF_DIR =
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function sanitizeAssetPath(rawPath, baseDir, label) {
+  if (rawPath == null || rawPath === '') return null;
+  const p = String(rawPath);
+  const resolved = path.resolve(p);
+  const resolvedBase = path.resolve(baseDir);
+  if (!resolved.startsWith(resolvedBase + path.sep) && resolved !== resolvedBase) {
+    console.warn(`[security] ${label} 경계 위반 — 무시: ${JSON.stringify(p)}`);
+    return null;
+  }
+  return p;
+}
+
 const app = express();
 const PORT = Number.parseInt(process.env.PORT ?? '8100', 10);
 const HOST = process.env.HOST ?? '127.0.0.1';
@@ -341,9 +353,9 @@ app.post('/oth-path', (req, res) => {
 
   const personaBundle = req.body?.personaBundle ?? null;
 
-  const ttsSePath = req.body?.ttsSePath ?? null;
-  const museVideoPath = req.body?.museVideoPath ?? null;
-  const avatarImagePath = req.body?.avatarImagePath ?? null;
+  const ttsSePath = sanitizeAssetPath(req.body?.ttsSePath, ASSET_VOICE_REF_DIR, 'ttsSePath');
+  const museVideoPath = sanitizeAssetPath(req.body?.museVideoPath, ASSET_VIDEO_REF_DIR, 'museVideoPath');
+  const avatarImagePath = sanitizeAssetPath(req.body?.avatarImagePath, ASSET_IMAGE_REF_DIR, 'avatarImagePath');
 
   const chatCloneId = req.body?.cloneId ? String(req.body.cloneId).replace(/[^a-zA-Z0-9_-]/g, '') : null;
   const fallbackL1 = getAttrsFor({ persona_slug: personaSlug, level: 'l1', user_label: null });
@@ -490,7 +502,7 @@ app.post('/oth-path', (req, res) => {
     const t0 = Date.now();
     const inflight = chunkInflight.get(idx);
 
-    const p = ttsSynthesize(cleaned, ...(ttsSePath ? [{ se_path: ttsSePath }] : [{}]))
+    const p = ttsSynthesize(cleaned, ttsSePath ? { se_path: ttsSePath } : {})
       .then(({ wav, synthMs }) => {
         if (aborted) return;
         ttsTotalMs += synthMs ?? 0;
