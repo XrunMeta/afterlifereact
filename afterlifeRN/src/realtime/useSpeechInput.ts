@@ -38,6 +38,8 @@ export function useSpeechInput(opts?: {
       engine.addListener('result', (p: any) => {
         const t: string = p?.results?.[0]?.transcript ?? '';
         const isFinal: boolean = p?.isFinal === true;
+
+        console.log('[STT-DIAG] event=result', 'isFinal=' + String(isFinal), 'transcript=' + JSON.stringify(t));
         if (isFinal) {
 
           setTranscript(t);
@@ -53,10 +55,14 @@ export function useSpeechInput(opts?: {
       }),
 
       engine.addListener('error', (p: any) => {
+
+        console.log('[STT-DIAG] event=error', 'code=' + String(p?.code ?? 'n/a'), 'error=' + String(p?.error ?? 'n/a'), 'message=' + String(p?.message ?? 'n/a'));
         const msg = p?.message ?? p?.error ?? 'stt_error';
         setError(new Error(msg));
       }),
       engine.addListener('end', () => {
+
+        console.log('[STT-DIAG] event=end');
         setListening(false);
 
         if (wantListeningRef.current) {
@@ -72,6 +78,38 @@ export function useSpeechInput(opts?: {
           }, 400);
         }
       }),
+      engine.addListener('start', (_p: any) => {
+
+        console.log('[STT-DIAG] event=start');
+      }),
+      engine.addListener('speechstart', (_p: any) => {
+
+        console.log('[STT-DIAG] event=speechstart');
+      }),
+      engine.addListener('speechend', (_p: any) => {
+
+        console.log('[STT-DIAG] event=speechend');
+      }),
+      engine.addListener('audiostart', (p: any) => {
+
+        console.log('[STT-DIAG] event=audiostart', 'uri=' + String(p?.uri ?? 'null'));
+      }),
+      engine.addListener('audioend', (p: any) => {
+
+        console.log('[STT-DIAG] event=audioend', 'uri=' + String(p?.uri ?? 'null'));
+      }),
+      engine.addListener('soundstart', (_p: any) => {
+
+        console.log('[STT-DIAG] event=soundstart');
+      }),
+      engine.addListener('soundend', (_p: any) => {
+
+        console.log('[STT-DIAG] event=soundend');
+      }),
+      engine.addListener('nomatch', (_p: any) => {
+
+        console.log('[STT-DIAG] event=nomatch');
+      }),
     );
     return () => {
       subs.current.forEach((s) => s.remove());
@@ -80,20 +118,59 @@ export function useSpeechInput(opts?: {
   }, [engine]);
 
   const startListening = useCallback(async () => {
+
+    console.log('[STT-DIAG] startListening entered', 'lang=' + lang);
     wantListeningRef.current = true; 
+
+    try {
+
+      const { ExpoSpeechRecognitionModule: _diagMod } = require('expo-speech-recognition');
+      const available: boolean = _diagMod.isRecognitionAvailable();
+      const supportsOnDevice: boolean = _diagMod.supportsOnDeviceRecognition();
+      const supportsRec: boolean = _diagMod.supportsRecording();
+
+      let services: string[] = [];
+      try { services = _diagMod.getSpeechRecognitionServices(); } catch (_e) {  }
+      const defaultSvc: { packageName: string } = _diagMod.getDefaultRecognitionService?.() ?? { packageName: 'n/a' };
+      const state: string = await _diagMod.getStateAsync();
+      console.log(
+        '[STT-DIAG] available=' + String(available),
+        'supportsOnDevice=' + String(supportsOnDevice),
+        'supportsRecording=' + String(supportsRec),
+        'state=' + state,
+        'defaultService=' + defaultSvc.packageName,
+        'services=' + JSON.stringify(services),
+      );
+    } catch (diagErr: unknown) {
+      console.log('[STT-DIAG] diag-check failed:', String(diagErr));
+    }
     setError(null);
     setTranscript('');
     setInterimTranscript('');
     const perm = await engine.requestPermissionsAsync();
+
+    console.log('[STT-DIAG] requestPermissionsAsync granted=' + String(perm.granted), JSON.stringify(perm));
     if (!perm.granted) {
       setError(new Error('permission_denied'));
       return;
     }
     setListening(true);
-    engine.start({ lang, interimResults: true });
+    try {
+      engine.start({ lang, interimResults: true });
+
+      console.log('[STT-DIAG] engine.start() returned without throw');
+    } catch (startErr: unknown) {
+
+      const e = startErr instanceof Error ? startErr : new Error(String(startErr));
+      console.log('[STT-DIAG] engine.start() THREW', 'name=' + e.name, 'message=' + e.message, String(startErr));
+      setListening(false);
+      setError(e);
+    }
   }, [engine, lang]);
 
   const stopListening = useCallback(() => {
+
+    console.log('[STT-DIAG] stopListening entered');
 
     wantListeningRef.current = false; 
     if (restartTimerRef.current) {

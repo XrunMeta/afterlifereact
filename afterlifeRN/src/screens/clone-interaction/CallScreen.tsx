@@ -781,6 +781,26 @@ const s = StyleSheet.create({
     zIndex: 30,
   },
 
+  subtitleContainer: {
+    position: 'absolute',
+    bottom: 150,
+    left: 48,
+    right: 48,
+    alignItems: 'center',
+    zIndex: 15,
+  },
+  subtitleText: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '500',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    textAlign: 'center',
+    overflow: 'hidden',
+  },
+
   controls: {
     position: "absolute",
     bottom: 0,
@@ -824,26 +844,6 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
-  },
-
-  subtitleContainer: {
-    position: 'absolute',
-    bottom: 150,
-    left: 48,
-    right: 48,
-    alignItems: 'center',
-    zIndex: 15,
-  },
-  subtitleText: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '500',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 10,
-    textAlign: 'center',
-    overflow: 'hidden',
   },
 
   giftOverlay: {

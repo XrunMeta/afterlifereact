@@ -1,5 +1,69 @@
 
 
+const UNIFY_MSID = true;
+
+export function unifySdpMsid(sdp: string): string {
+
+  const sections = sdp.split(/(?=^m=)/m);
+
+  let videoSection: string | null = null;
+  let audioSection: string | null = null;
+  let videoIdx = -1;
+  let audioIdx = -1;
+
+  for (let i = 0; i < sections.length; i++) {
+    const sec = sections[i];
+    if (/^m=video\b/m.test(sec)) {
+      videoSection = sec;
+      videoIdx = i;
+    } else if (/^m=audio\b/m.test(sec)) {
+      audioSection = sec;
+      audioIdx = i;
+    }
+  }
+
+  if (!videoSection || !audioSection || videoIdx < 0 || audioIdx < 0) {
+    return sdp; 
+  }
+
+  const videoMsidLineMatch = videoSection.match(/^a=msid:(\S+)\s+\S+/m);
+  const videoSsrcMsidMatch = videoSection.match(/^a=ssrc:\S+\s+msid:(\S+)\s+\S+/m);
+  const videoStreamId = (videoMsidLineMatch?.[1] ?? videoSsrcMsidMatch?.[1] ?? '').trim();
+
+  const audioMsidLineMatch = audioSection.match(/^a=msid:(\S+)\s+\S+/m);
+  const audioSsrcMsidMatch = audioSection.match(/^a=ssrc:\S+\s+msid:(\S+)\s+\S+/m);
+  const audioStreamId = (audioMsidLineMatch?.[1] ?? audioSsrcMsidMatch?.[1] ?? '').trim();
+
+  if (!videoStreamId || !audioStreamId) {
+    return sdp; 
+  }
+
+  if (videoStreamId === audioStreamId) {
+    return sdp; 
+  }
+
+  const escaped = audioStreamId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  let patched = audioSection
+    .replace(
+      new RegExp(`(^a=msid:)${escaped}(\\s)`, 'gm'),
+      `$1${videoStreamId}$2`,
+    )
+
+    .replace(
+      new RegExp(`(^a=ssrc:\\S+\\s+msid:)${escaped}(\\s)`, 'gm'),
+      `$1${videoStreamId}$2`,
+    )
+
+    .replace(
+      new RegExp(`(^a=ssrc:\\S+\\s+mslabel:)${escaped}(\\s*$)`, 'gm'),
+      `$1${videoStreamId}$2`,
+    );
+
+  sections[audioIdx] = patched;
+  return sections.join('');
+}
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   RTCPeerConnection,
@@ -83,6 +147,8 @@ export function useLiveAvatar(opts: {
   const callIdRef = useRef<string | null>(null);
   const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const statsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const audioStreamRef = useRef<MediaStream | null>(null);
 
   const genRef = useRef(0);
@@ -124,6 +190,11 @@ export function useLiveAvatar(opts: {
   const stop = useCallback(async () => {
     genRef.current += 1; 
     if (speakTimer.current) clearTimeout(speakTimer.current);
+
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current);
+      statsIntervalRef.current = null;
+    }
     setPhase('idle');
     const pc = pcRef.current;
     pcRef.current = null;
@@ -182,13 +253,20 @@ export function useLiveAvatar(opts: {
           ? ev.streams[0]
           : new MediaStream([ev.track as never]);
 
-      const hasVideo =
-        ((stream as any).getVideoTracks?.()?.length ?? 0) > 0 || ev.track?.kind === 'video';
-      if (hasVideo) {
+      const trackKind: string | undefined = ev.track?.kind;
+      if (trackKind === 'video') {
         setRemoteStream(stream);
-      } else {
+      } else if (trackKind === 'audio') {
 
         audioStreamRef.current = stream;
+      } else {
+
+        const hasVideo = ((stream as any).getVideoTracks?.()?.length ?? 0) > 0;
+        if (hasVideo) {
+          setRemoteStream(stream);
+        } else {
+          audioStreamRef.current = stream;
+        }
       }
     });
     const onConn = () => {
@@ -216,11 +294,34 @@ export function useLiveAvatar(opts: {
       const subscriberSessionId = pull.subscriber_session_id as string | undefined;
       const offerSdp = pull.offer_sdp as string | undefined;
       if (!subscriberSessionId || !offerSdp) throw new Error('subscribe_pull_incomplete');
+
+      if (__DEV__) {
+        console.log('[SDP-DIAG][offer]\n' + offerSdp);
+      }
+
+      const finalOfferSdp = UNIFY_MSID ? unifySdpMsid(offerSdp) : offerSdp;
+      if (__DEV__ && UNIFY_MSID) {
+        if (finalOfferSdp !== offerSdp) {
+
+          const audioSidMatch = offerSdp.match(/^m=audio[\s\S]*?^a=msid:(\S+)\s+\S+/m)
+            ?? offerSdp.match(/^m=audio[\s\S]*?^a=ssrc:\S+\s+msid:(\S+)\s+\S+/m);
+          const videoSidMatch = offerSdp.match(/^m=video[\s\S]*?^a=msid:(\S+)\s+\S+/m)
+            ?? offerSdp.match(/^m=video[\s\S]*?^a=ssrc:\S+\s+msid:(\S+)\s+\S+/m);
+          console.log(`[T-045] msid unified: ${audioSidMatch?.[1] ?? '?'} -> ${videoSidMatch?.[1] ?? '?'}`);
+          console.log('[SDP-DIAG][offer-munged]\n' + finalOfferSdp);
+        } else {
+          console.log('[SDP-DIAG][offer-munged] no-op (stream-id already equal or extraction failed)');
+        }
+      }
       await pc.setRemoteDescription(
-        new RTCSessionDescription({ type: 'offer', sdp: offerSdp }),
+        new RTCSessionDescription({ type: 'offer', sdp: finalOfferSdp }),
       );
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+
+      if (__DEV__) {
+        console.log('[SDP-DIAG][answer]\n' + (answer.sdp ?? '(sdp empty)'));
+      }
       if (!alive()) {
         pc.close();
         return;
@@ -238,6 +339,82 @@ export function useLiveAvatar(opts: {
         deps.audioSession.activate();
       } catch {
 
+      }
+
+      if (__DEV__) {
+        const pcWithStats = pc as unknown as {
+          getStats?: () => Promise<Iterable<[string, Record<string, unknown>]>>;
+        };
+        if (typeof pcWithStats.getStats === 'function') {
+          if (statsIntervalRef.current) clearInterval(statsIntervalRef.current);
+          statsIntervalRef.current = setInterval(async () => {
+            if (!alive()) {
+              if (statsIntervalRef.current) {
+                clearInterval(statsIntervalRef.current);
+                statsIntervalRef.current = null;
+              }
+              return;
+            }
+            try {
+              const report = await pcWithStats.getStats!();
+              let audioStats: Record<string, unknown> | null = null;
+              let videoStats: Record<string, unknown> | null = null;
+              for (const [, stat] of report) {
+                if (stat['type'] === 'inbound-rtp') {
+                  if (stat['kind'] === 'audio') audioStats = stat;
+                  else if (stat['kind'] === 'video') videoStats = stat;
+                }
+              }
+              const toAvgDelayMs = (delay: unknown, count: unknown) => {
+                const d = typeof delay === 'number' ? delay : undefined;
+                const c = typeof count === 'number' ? count : undefined;
+                if (d !== undefined && c !== undefined && c > 0) return (d / c * 1000).toFixed(2);
+                return undefined;
+              };
+              if (audioStats) {
+                const avgDelay = toAvgDelayMs(audioStats['jitterBufferDelay'], audioStats['jitterBufferEmittedCount']);
+                console.log('[STATS-DIAG]', JSON.stringify({
+                  kind: 'audio',
+                  jitterBufferAvgMs: avgDelay,
+                  packetsLost: audioStats['packetsLost'],
+                  packetsReceived: audioStats['packetsReceived'],
+                  estimatedPlayoutTimestamp: audioStats['estimatedPlayoutTimestamp'],
+                  totalSamplesDuration: audioStats['totalSamplesDuration'],
+                  totalSamplesReceived: audioStats['totalSamplesReceived'],
+                  concealedSamples: audioStats['concealedSamples'],
+                }));
+              }
+              if (videoStats) {
+                const avgDelay = toAvgDelayMs(videoStats['jitterBufferDelay'], videoStats['jitterBufferEmittedCount']);
+                console.log('[STATS-DIAG]', JSON.stringify({
+                  kind: 'video',
+                  jitterBufferAvgMs: avgDelay,
+                  packetsLost: videoStats['packetsLost'],
+                  packetsReceived: videoStats['packetsReceived'],
+                  estimatedPlayoutTimestamp: videoStats['estimatedPlayoutTimestamp'],
+                  framesDecoded: videoStats['framesDecoded'],
+                  framesDropped: videoStats['framesDropped'],
+                  framesPerSecond: videoStats['framesPerSecond'],
+                  frameWidth: videoStats['frameWidth'],
+                  frameHeight: videoStats['frameHeight'],
+                }));
+              }
+
+              if (audioStats && videoStats) {
+                const aTs = audioStats['estimatedPlayoutTimestamp'];
+                const vTs = videoStats['estimatedPlayoutTimestamp'];
+                if (typeof aTs === 'number' && typeof vTs === 'number') {
+                  console.log('[STATS-DIAG]', JSON.stringify({
+                    kind: 'av_drift',
+                    av_playout_diff_ms: +(aTs - vTs).toFixed(2),
+                  }));
+                }
+              }
+            } catch {
+
+            }
+          }, 1000);
+        }
       }
     } catch (e) {
       try {
