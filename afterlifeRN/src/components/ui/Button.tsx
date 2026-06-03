@@ -27,6 +27,8 @@ interface ButtonProps {
   backgroundColor?: string;
 
   textColor?: string;
+
+  testID?: string;
 }
 
 const Button: v_a3453e.FC<ButtonProps> = ({
@@ -42,6 +44,7 @@ const Button: v_a3453e.FC<ButtonProps> = ({
   textStyle: v_197d6e,
   backgroundColor: v_f7b9fb,
   textColor: v_7fd696,
+  testID: v_681472,
 }) => {
   const v_4affe9 = [
     v_d81136.base,
@@ -63,6 +66,7 @@ const Button: v_a3453e.FC<ButtonProps> = ({
 
   return (
     <TouchableOpacity
+      testID={v_681472}
       onPress={v_719eed}
       style={v_4affe9}
       activeOpacity={0.8}
