@@ -189,10 +189,13 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
 
     const cached = callPersona.get(callId);
     const bundle = cached?.personaBundle ?? null;
+    const museVideoPath = cached?.museVideoPath ?? null;
+    const ttsSePath = cached?.ttsSePath ?? null;
+    const avatarImagePath = cached?.avatarImagePath ?? null;
     Promise.resolve()
       .then(() => runChatRelay(
         buildSayDeps(cfg, cloneId),
-        { callId, publisherPort: row.port, personaSlug: 'halbae', personaBundle: bundle, history: sayStore.getHistory(callId), text },
+        { callId, cloneId: cloneId ? String(cloneId) : null, publisherPort: row.port, personaSlug: 'halbae', personaBundle: bundle, history: sayStore.getHistory(callId), text, museVideoPath, ttsSePath, avatarImagePath },
       ))
       .then((finalText) => { if (finalText) sayStore.appendTurn(callId, { role: 'assistant', content: finalText }); })
       .catch((e) => console.error('[sp2/say] relay error', callId, e?.message ?? e))

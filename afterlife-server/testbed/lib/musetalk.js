@@ -135,6 +135,31 @@ export function museTalkInfer({ audio_path, video_path, output_id, stream, host,
   });
 }
 
+export async function ensurePhotoStill({ photoPath, outPath }) {
+
+  try {
+    await fs.access(outPath);
+    return outPath; 
+  } catch {
+
+  }
+
+  await fs.mkdir(path.dirname(outPath), { recursive: true });
+
+  await runFfmpeg([
+    '-y', '-loglevel', 'error',
+    '-loop', '1',
+    '-i', photoPath,
+    '-t', '2',
+    '-r', '25',
+    '-pix_fmt', 'yuv420p',
+    '-vf', 'scale=256:256:force_original_aspect_ratio=decrease,pad=256:256:(ow-iw)/2:(oh-ih)/2',
+    outPath,
+  ]);
+
+  return outPath;
+}
+
 export function mp4PathToUrl(mp4Path) {
   const base = path.basename(mp4Path);
   return `/outputs/${base}`;

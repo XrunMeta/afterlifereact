@@ -18,6 +18,7 @@ import {
   cleanupTempDir,
   museTalkInfer,
   mp4PathToUrl,
+  ensurePhotoStill,
 } from './lib/musetalk.js';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
@@ -52,6 +53,10 @@ const DEBUG_DUMP_GROUND_TRUTH =
 const DEBUG_DUMP_DIR =
   process.env.DEBUG_DUMP_DIR ??
   '/home/afterlife/afterlife-server/testbed/debug-dump';
+
+const ASSET_VIDEO_REF_DIR =
+  process.env.ASSET_VIDEO_REF_DIR ??
+  '/home/afterlife/afterlife-server/testbed/video-ref';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -110,12 +115,25 @@ const orch = createOrchestrator({
   },
 });
 await orch.reconcile(); 
+
+const ASSET_VOICE_REF_DIR =
+  process.env.ASSET_VOICE_REF_DIR ??
+  '/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices';
+const ASSET_IMAGE_REF_DIR =
+  process.env.ASSET_IMAGE_REF_DIR ??
+  '/home/afterlife/afterlife-server/testbed/image-ref';
 app.use(orchestratorRouter(orch, {
   secret: ORCH_SECRET,
   cfg: {
     testbedBaseUrl: process.env.TESTBED_BASE_URL ?? `http://127.0.0.1:${PORT}`,
     apiBaseUrl: process.env.AFTERLIFE_API_URL ?? '',
     apiSecret: process.env.ORCH_SECRET ?? ORCH_SECRET,
+
+    assetDirs: {
+      voiceRefDir: ASSET_VOICE_REF_DIR,
+      videoRefDir: ASSET_VIDEO_REF_DIR,
+      imageRefDir: ASSET_IMAGE_REF_DIR,
+    },
   },
 }));
 
@@ -322,6 +340,12 @@ app.post('/oth-path', (req, res) => {
   const callPublisherUrl = resolvePublisherUrl(req.body?.publisherPort, REALTIME_PUBLISHER_URL);
 
   const personaBundle = req.body?.personaBundle ?? null;
+
+  const ttsSePath = req.body?.ttsSePath ?? null;
+  const museVideoPath = req.body?.museVideoPath ?? null;
+  const avatarImagePath = req.body?.avatarImagePath ?? null;
+
+  const chatCloneId = req.body?.cloneId ? String(req.body.cloneId).replace(/[^a-zA-Z0-9_-]/g, '') : null;
   const fallbackL1 = getAttrsFor({ persona_slug: personaSlug, level: 'l1', user_label: null });
   const fallbackL2 = speakerRole === 'visitor'
     ? getAttrsFor({ persona_slug: personaSlug, level: 'l2', user_label: userLabel })
@@ -465,7 +489,8 @@ app.post('/oth-path', (req, res) => {
     const seq = ++ttsSeq;
     const t0 = Date.now();
     const inflight = chunkInflight.get(idx);
-    const p = ttsSynthesize(cleaned)
+
+    const p = ttsSynthesize(cleaned, ...(ttsSePath ? [{ se_path: ttsSePath }] : [{}]))
       .then(({ wav, synthMs }) => {
         if (aborted) return;
         ttsTotalMs += synthMs ?? 0;
@@ -537,8 +562,21 @@ app.post('/oth-path', (req, res) => {
         sentence_count: wavs.length,
         audio_bytes: wavs.reduce((a, b) => a + b.length, 0),
       });
+
+      let resolvedVideoPath = museVideoPath || null;
+      if (!resolvedVideoPath && avatarImagePath && chatCloneId) {
+
+        const photoStillOut = path.join(ASSET_VIDEO_REF_DIR, chatCloneId, 'photo-still-25fps.mp4');
+        try {
+          resolvedVideoPath = await ensurePhotoStill({ photoPath: avatarImagePath, outPath: photoStillOut });
+        } catch (photoErr) {
+          console.warn('[sp4/photo-still] ffmpeg 폴백 실패(graceful):', photoErr?.message ?? photoErr);
+          resolvedVideoPath = null;
+        }
+      }
       result = await museTalkInfer({
         audio_path: tmp.path,
+        ...(resolvedVideoPath ? { video_path: resolvedVideoPath } : {}),
         output_id: outId,
         stream: false,
         host: inst.host,
