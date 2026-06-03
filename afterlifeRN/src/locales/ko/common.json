@@ -497,9 +497,9 @@
       "8": "소개 영상"
     },
     "type": {
-      "memlowTitle": "고인 페르소나",
+      "memlowTitle": "추모 페르소나",
       "memlowDesc": "함께한 시간을 대화로 이어가요",
-      "memlowLabel": "고인",
+      "memlowLabel": "추모",
       "memlowShortDesc": "함께한 시간을 대화로 이어갑니다",
       "defaultTitle": "일반 페르소나",
       "defaultDesc": "친구·멘토·유명인 등 자유 페르소나",
@@ -522,7 +522,7 @@
       "usernamePlaceholder": "클론 아이디 (@clon)",
       "descPlaceholder": "한 줄 소개",
       "memlowDescPlaceholder": "한 줄 소개 (추억 한 줄)",
-      "relationLabel": "고인과의 관계",
+      "relationLabel": "그리운 분과의 관계",
       "categoryLabel": "카테고리",
       "interestsLabel": "관심사",
       "addEtc": "+ 기타",
@@ -541,7 +541,7 @@
       "guide3": "배경이 단순할수록 좋은 결과를 얻을 수 있어요",
       "memlowNote": "사진은 지금 추가하거나, 나중에 추가할 수 있어요.",
       "memlowSelectHint": "사진을 선택하거나 건너뛸 수 있어요",
-      "memlowRights": "고인 사진 사용에 대한 권리를 확인했어요 (가족 동의·초상권)."
+      "memlowRights": "사진 사용에 대한 권리를 확인했어요 (가족 동의·초상권)."
     },
     "voice": {
       "presets": "기본 음성 프리셋",
@@ -569,7 +569,7 @@
       }
     },
     "visibility": {
-      "memlowLocked": "고인 클론은 비공개로 고정돼요. 공동관리자만 볼 수 있어요.",
+      "memlowLocked": "추모 클론은 비공개로 고정돼요. 공동관리자만 볼 수 있어요.",
       "coownerInviteLabel": "공동관리자 초대 (이메일)",
       "coownerHint": "afterlife 가입 회원만 초대 가능해요.",
       "publicTitle": "공개",
