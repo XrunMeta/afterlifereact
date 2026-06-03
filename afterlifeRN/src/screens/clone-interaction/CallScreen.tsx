@@ -434,7 +434,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {}
       <View style={[v_fd5f43.callInfo, { top: v_033e14.top + 24 }]}>
         <Text style={v_fd5f43.callName}>{v_dfb220}</Text>
-        <Text style={v_fd5f43.callTimeText}>{v_813acc}</Text>
+        <Text style={v_fd5f43.callTimeText}>
+          {v_6cc918 === "live" ? v_813acc : "연결 중…"}
+        </Text>
       </View>
 
       {}
