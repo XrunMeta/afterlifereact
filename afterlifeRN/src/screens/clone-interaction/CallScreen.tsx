@@ -434,7 +434,9 @@ export default function CallScreen({ route, navigation }: Props) {
       {}
       <View style={[s.callInfo, { top: insets.top + 24 }]}>
         <Text style={s.callName}>{personaName}</Text>
-        <Text style={s.callTimeText}>{callTimeStr}</Text>
+        <Text style={s.callTimeText}>
+          {liveState === "live" ? callTimeStr : "연결 중…"}
+        </Text>
       </View>
 
       {}
