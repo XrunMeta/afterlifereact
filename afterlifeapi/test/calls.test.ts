@@ -232,6 +232,9 @@ describe("calls route", () => {
     expect(capturedBody!.personaBundle).toBeTruthy();
     expect(typeof (capturedBody!.personaBundle as { l0: { rules_text: unknown } }).l0.rules_text).toBe("string");
     expect(capturedBody!.personaBundle).toHaveProperty("persona");
+
+    const pb = capturedBody!.personaBundle as { persona: Record<string, unknown> };
+    expect(pb.persona.displayName).toBe("CT"); 
   });
 
   it("POST /oth-path — public 클론(is_system=1)은 stranger도 통화 허용(orchestrator까지 진행)", async () => {

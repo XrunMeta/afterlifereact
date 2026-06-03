@@ -362,13 +362,13 @@ app.post('/oth-path', (req, res) => {
   const fallbackL2 = speakerRole === 'visitor'
     ? getAttrsFor({ persona_slug: personaSlug, level: 'l2', user_label: userLabel })
     : [];
-  const { l0, l1Attrs, l2Attrs } = selectPromptInputs({ personaBundle, fallbackL1, fallbackL2 });
+  const { l0, l1Attrs, l2Attrs, usedBundle } = selectPromptInputs({ personaBundle, fallbackL1, fallbackL2 });
   if (personaBundle && personaBundle.persona && l1Attrs.length === 0) {
     console.warn(`[sp3] personaBundle present but persona empty (source=${source}) — responding with L0 only`);
   }
 
   const messages = [
-    { role: 'system', content: buildSystemPrompt({ l0, l1Attrs, l2Attrs }) },
+    { role: 'system', content: buildSystemPrompt({ l0, l1Attrs, l2Attrs, usedBundle }) },
     ...history
       .filter((m) => m && typeof m.role === 'string' && typeof m.content === 'string')
       .filter((m) => ['user', 'assistant'].includes(m.role))
@@ -713,8 +713,20 @@ app.post('/oth-path', (req, res) => {
               sentence_count: collectedWavs.length,
               audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
             });
+
+            let batchVideoPath = museVideoPath || null;
+            if (!batchVideoPath && avatarImagePath && chatCloneId) {
+              const photoStillOut = path.join(ASSET_VIDEO_REF_DIR, chatCloneId, 'photo-still-25fps.mp4');
+              try {
+                batchVideoPath = await ensurePhotoStill({ photoPath: avatarImagePath, outPath: photoStillOut });
+              } catch (photoErr) {
+                console.warn('[sp4/photo-still/batch] ffmpeg 폴백 실패(graceful):', photoErr?.message ?? photoErr);
+                batchVideoPath = null;
+              }
+            }
             const result = await museTalkInfer({
               audio_path: tmp.path,
+              ...(batchVideoPath ? { video_path: batchVideoPath } : {}),
               output_id: sessionId,
               stream: false,
             });

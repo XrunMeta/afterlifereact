@@ -70,3 +70,40 @@ test('personaToAttrs — 사투리 메타 없으면 tone 원문 유지', () => {
   const attrs = personaToAttrs({ tone: '차분한 말투', personality_core: '조용함' });
   assert.equal(attrs.find((a) => a.key === 'tone').value, '차분한 말투');
 });
+
+test('usedBundle=true 경로 — 동적 본문에 displayName 포함, 할배 고정 문구 없음', () => {
+  const l1Attrs = [
+    { key: 'displayName', value: '엄마' },
+    { key: 'relation', value: '딸 (사용자)' },
+    { key: 'personality_core', value: '다정하고 따뜻한' },
+    { key: 'tone', value: '부드러운 중년 여성 말투' },
+  ];
+  const out = buildSystemPrompt({ l1Attrs, l2Attrs: [], usedBundle: true });
+  assert.match(out, /엄마/);
+  assert.match(out, /다정하고 따뜻한/);
+  assert.match(out, /부드러운 중년 여성 말투/);
+
+  assert.doesNotMatch(out, /어복쟁반/);
+  assert.doesNotMatch(out, /1인칭은 "할배"/);
+  assert.doesNotMatch(out, /손녀딸/);
+});
+
+test('usedBundle=true + l0 rules_text — l0가 본문 앞에', () => {
+  const l1Attrs = [{ key: 'displayName', value: '아빠' }, { key: 'tone', value: '차분함' }];
+  const out = buildSystemPrompt({ l0: { rules_text: '금칙RULE' }, l1Attrs, usedBundle: true });
+  assert.ok(out.indexOf('금칙RULE') < out.indexOf('아빠'));
+  assert.doesNotMatch(out, /어복쟁반/);
+});
+
+test('usedBundle=true + l1Attrs 비어있음 — 최소 중립 본문, 할배 fallback 없음', () => {
+  const out = buildSystemPrompt({ l0: { rules_text: 'RULE' }, l1Attrs: [], usedBundle: true });
+  assert.doesNotMatch(out, /어복쟁반/);
+  assert.doesNotMatch(out, /1인칭은 "할배"/);
+  assert.ok(out.length > 0);
+});
+
+test('usedBundle=false — 기존 buildLegacyBody 경로(회귀 안전)', () => {
+  const out = buildSystemPrompt({ l1Attrs: [], usedBundle: false });
+
+  assert.match(out, /할배/);
+});
