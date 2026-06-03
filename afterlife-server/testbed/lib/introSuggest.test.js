@@ -12,13 +12,27 @@ test('buildIntroMessages — 프로필을 system/user 2메시지로', () => {
   assert.ok(msgs[1].content.includes('정겨운 사투리'));
 });
 
-test('suggestIntro — chatOnce 주입, 소개글+해시태그 텍스트 반환', async () => {
+test('buildIntroMessages — system 프롬프트에 추모 금지 지시 포함', () => {
+  const msgs = buildIntroMessages({ profile: { name: '할배' } });
+  const sys = msgs[0].content;
+
+  assert.ok(!sys.includes('추모용'), 'system 이 추모용으로 규정하면 안 됨');
+
+  assert.ok(sys.includes('쓰지 않는다'), '금지 지시 문구가 있어야 함');
+  assert.ok(sys.includes('추모'), '금지 대상으로 추모를 명시해야 함');
+});
+
+test('suggestIntro — 추모성 해시태그 안전망 제거, 나머지 텍스트 보존', async () => {
   const fakeChatOnce = async ({ messages }) => {
     assert.equal(messages.length, 2);
-    return '정 많고 느긋한 할아버지예요. 늘 밥은 먹었냐 물어보셨죠. #추모 #할아버지 #사투리';
+
+    return '정 많고 느긋한 할아버지예요. 늘 밥은 먹었냐 물어보세요. #추모 #할아버지 #사투리';
   };
   const intro = await suggestIntro({ profile: { name: '할배' } }, fakeChatOnce);
-  assert.ok(intro.includes('#추모'));
+  assert.ok(!intro.includes('#추모'), '추모성 해시태그는 제거되어야 함');
+  assert.ok(intro.includes('#할아버지'), '일반 해시태그는 보존되어야 함');
+  assert.ok(intro.includes('#사투리'));
+  assert.ok(intro.includes('할아버지예요'), '본문은 보존되어야 함');
   assert.ok(intro.length > 0 && intro.length <= 300);
 });
 
