@@ -252,15 +252,11 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         const v_cc1380 = v_6f7c85[v_ab6401.key] ?? [];
 
         const v_9bfd73 = v_ab6401.options_include ?? [];
-        const v_2b7a6d = [...new Set([...v_9bfd73, ...v_cc1380])];
-        v_3d694a = v_2b7a6d.length > 0 ? [...v_2b7a6d, '직접 입력', '건너뛰기'] : ['직접 입력', '건너뛰기'];
+        const v_2b7a6d = [...new Set([...v_9bfd73, ...v_cc1380])].slice(0, 3);
+        v_3d694a = v_2b7a6d.length > 0 ? [...v_2b7a6d, '직접 입력'] : ['직접 입력'];
       }
       if (v_ab6401.type === 'fixed_choice' && (v_ab6401.optional !== false)) {
         v_3d694a = [...v_3d694a, '건너뛰기'];
-      }
-
-      if (v_ab6401.type === 'text' && (v_ab6401.optional !== false)) {
-        v_3d694a = ['건너뛰기'];
       }
 
       v_ae4844(`schema:${v_e86ad8}`);
@@ -511,11 +507,24 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     return false;
   })();
 
+  const v_e050c1 = (() => {
+    if (!v_ab4803.startsWith('schema:') || v_d776c4 === null) return false;
+    const v_cf55be = v_c3519b.filter((v_ab6401) =>
+      v_a7e583(v_ab6401, v_03f138.current.schemaAnswers),
+    );
+    return v_cf55be[v_d776c4]?.type === 'text';
+  })();
+
+  const v_72f6a7 = 20;
+
   const v_9399bb = (() => {
     if (v_ab4803 === 'sys:username') return !v_dff7ca; 
     if (v_ab4803 === 'sys:name') return v_bbda62.trim().length > 0;
     if (v_ab4803 === 'sys:relation-custom') return v_bbda62.trim().length > 0;
-    if (v_ab4803.startsWith('schema:')) return v_bbda62.trim().length > 0;
+    if (v_ab4803.startsWith('schema:')) {
+      if (v_e050c1) return v_bbda62.trim().length >= v_72f6a7;
+      return v_bbda62.trim().length > 0;
+    }
     return false;
   })();
 
@@ -626,44 +635,59 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
 
         {}
         {v_bc9d5f && (
-          <View style={v_fd5f43.inputBar}>
-            <TextInput
-              style={[v_fd5f43.input, v_f05841 && v_fd5f43.inputMultiline]}
-              value={v_bbda62}
-              onChangeText={(v_81e2ef) => {
-                if (v_ab4803 === 'sys:username') {
-                  v_c31db7(v_81e2ef.toLowerCase().replace(/[^a-z0-9_]/g, ''));
-                } else {
-                  v_c31db7(v_81e2ef);
-                }
-              }}
-              placeholder={v_064334}
-              placeholderTextColor={v_1bfbd0.zinc400}
-              multiline={v_f05841}
-              maxLength={v_f05841 ? 500 : 40}
+          <View style={v_fd5f43.inputWrap}>
+            {}
+            {v_e050c1 && (
+              <View style={v_fd5f43.charHintRow}>
+                <Text style={[
+                  v_fd5f43.charHint,
+                  v_bbda62.trim().length >= v_72f6a7 ? v_fd5f43.charHintOk : v_fd5f43.charHintWarn,
+                ]}>
+                  {v_bbda62.trim().length >= v_72f6a7
+                    ? `${v_bbda62.trim().length}자`
+                    : `최소 20자 이상 입력해주세요 (${v_bbda62.trim().length}/20)`}
+                </Text>
+              </View>
+            )}
+            <View style={v_fd5f43.inputBar}>
+              <TextInput
+                style={[v_fd5f43.input, v_f05841 && v_fd5f43.inputMultiline]}
+                value={v_bbda62}
+                onChangeText={(v_81e2ef) => {
+                  if (v_ab4803 === 'sys:username') {
+                    v_c31db7(v_81e2ef.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                  } else {
+                    v_c31db7(v_81e2ef);
+                  }
+                }}
+                placeholder={v_064334}
+                placeholderTextColor={v_1bfbd0.zinc400}
+                multiline={v_f05841}
+                maxLength={v_f05841 ? 500 : 40}
 
-              autoCapitalize={v_ab4803 === 'sys:username' ? 'none' : 'sentences'}
-              autoCorrect={v_ab4803 !== 'sys:username'}
-              autoComplete={v_ab4803 === 'sys:username' ? 'off' : undefined}
-              keyboardType={v_ab4803 === 'sys:username' ? 'visible-password' : 'default'}
-              textContentType={v_ab4803 === 'sys:username' ? 'none' : undefined}
-              editable={!v_199303 && !v_dff7ca}
-              returnKeyType={v_f05841 ? 'default' : 'send'}
-              onSubmitEditing={v_f05841 ? undefined : v_fbb22a}
-              blurOnSubmit={!v_f05841}
-            />
-            <TouchableOpacity
-              style={[v_fd5f43.sendBtn, !v_9399bb && v_fd5f43.sendBtnDisabled]}
-              onPress={v_fbb22a}
-              disabled={!v_9399bb}
-              activeOpacity={0.85}
-            >
-              {v_dff7ca ? (
-                <ActivityIndicator size="small" color={v_1bfbd0.white} />
-              ) : (
-                <Feather name="send" size={18} color={v_9399bb ? v_1bfbd0.white : v_1bfbd0.zinc400} />
-              )}
-            </TouchableOpacity>
+                autoCapitalize={v_ab4803 === 'sys:username' ? 'none' : 'sentences'}
+                autoCorrect={v_ab4803 !== 'sys:username'}
+                autoComplete={v_ab4803 === 'sys:username' ? 'off' : undefined}
+                keyboardType={v_ab4803 === 'sys:username' ? 'visible-password' : 'default'}
+                textContentType={v_ab4803 === 'sys:username' ? 'none' : undefined}
+                editable={!v_199303 && !v_dff7ca}
+                returnKeyType={v_f05841 ? 'default' : 'send'}
+                onSubmitEditing={v_f05841 ? undefined : v_fbb22a}
+                blurOnSubmit={!v_f05841}
+              />
+              <TouchableOpacity
+                style={[v_fd5f43.sendBtn, !v_9399bb && v_fd5f43.sendBtnDisabled]}
+                onPress={v_fbb22a}
+                disabled={!v_9399bb}
+                activeOpacity={0.85}
+              >
+                {v_dff7ca ? (
+                  <ActivityIndicator size="small" color={v_1bfbd0.white} />
+                ) : (
+                  <Feather name="send" size={18} color={v_9399bb ? v_1bfbd0.white : v_1bfbd0.zinc400} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -759,6 +783,19 @@ const v_fd5f43 = v_472849.create({
   },
   quickReplyText: { fontSize: 13, color: v_1bfbd0.violet600, fontWeight: '500' },
 
+  inputWrap: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopWidth: 1,
+    borderTopColor: v_1bfbd0.zinc100,
+  },
+  charHintRow: {
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  charHint: { fontSize: 11 },
+  charHintWarn: { color: v_1bfbd0.zinc400 },
+  charHintOk: { color: v_1bfbd0.violet600 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -767,8 +804,6 @@ const v_fd5f43 = v_472849.create({
     paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: v_1bfbd0.white,
-    borderTopWidth: 1,
-    borderTopColor: v_1bfbd0.zinc100,
   },
   input: {
     flex: 1,
