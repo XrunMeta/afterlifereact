@@ -27,10 +27,11 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import type { v_affcc0 } from "../../types/clone";
-import { v_39eaf5, v_b55477, v_5e388b, v_b4f9f6, v_b20cba, type v_e5d62a } from "../../api/clones";
+import { v_39eaf5, v_b55477, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d62a } from "../../api/clones";
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
+import { v_04686a } from "../../lib/imagePicker";
 
 type Props = {
   navigation: v_390fcc<v_2b51a5, "Step7">;
@@ -60,6 +61,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
   const v_7a77e1 = v_194498((v_fd5f43) => v_fd5f43.resetCreationDraft);
   const v_f04727 = v_194498((v_fd5f43) => v_fd5f43.creationDraft);
+  const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
   const v_956393 = v_194498((v_fd5f43) => v_fd5f43.addClone);
   const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.user?.id) ?? 1;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
@@ -121,6 +123,59 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     };
 
   }, [v_f04727.idleVideoJobId, v_2ca7e0]);
+
+  const [v_f6dbfe, v_f77874] = v_5ab095(false);
+
+  const v_798360 = v_f04727.idleVideoJobId ? v_7f3fda?.status !== 'done' : true;
+
+  const v_a3d9bc = v_de06a3(async () => {
+    if (v_f6dbfe) return;
+
+    if (!v_2ca7e0) { v_889fad('로그인 정보가 없어요. 다시 로그인해주세요.'); return; }
+    try {
+      const v_43c42e = await v_04686a({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+      });
+      if (v_43c42e.canceled || !v_43c42e.assets[0]) return;
+      const v_cd1446 = v_43c42e.assets[0].uri;
+      v_f77874(true);
+      const v_40a923 = v_cd1446.split('.').pop()?.toLowerCase() ?? '';
+      const v_b66751 =
+        v_40a923 === 'png' ? 'image/png'
+        : v_40a923 === 'webp' ? 'image/webp'
+        : v_40a923 === 'gif' ? 'image/gif'
+        : 'image/jpeg';
+      const v_57ac81 = await v_7d2692(v_2ca7e0, v_cd1446, {
+        purpose: 'clone_avatar',
+        mimeType: v_b66751,
+        fileName: `avatar.${v_40a923 || 'jpg'}`,
+      });
+
+      const v_94abbb = await v_ab4719(v_2ca7e0, {
+        kind: 'idle_video',
+        src_file_id: v_57ac81.id,
+      });
+
+      v_3773cd(null);
+
+      v_5795de({
+        imageFile: v_cd1446,
+        avatarFileId: v_57ac81.id,
+        avatarUrl: v_57ac81.url,
+        idleVideoJobId: v_94abbb.job_id,
+      });
+      v_6de415.current = v_57ac81.url;
+    } catch (v_49263d) {
+      console.warn('[Step7] 재업로드 실패:', v_49263d);
+
+      v_889fad('업로드 실패', '영상 생성 요청에 실패했어요. 다시 시도해주세요.');
+    } finally {
+      v_f77874(false);
+    }
+  }, [v_f6dbfe, v_2ca7e0, v_5795de]);
 
   const [v_c3de9c, v_4b9b17] = v_5ab095(false);
 
@@ -293,6 +348,11 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   const v_d01790 = async () => {
     if (v_805753 || v_c3de9c) return;
+
+    if (v_798360) {
+      v_889fad('잠깐요', '영상 생성이 완료되면 게시할 수 있어요.');
+      return;
+    }
     const v_2f361a = v_6044a8.trim();
 
     const v_055e6a = {
@@ -498,6 +558,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
           </View>
 
           {
+
 }
           {v_7f3fda?.status === 'done' && v_7f3fda.out_url ? (
 
@@ -507,18 +568,27 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 <Text style={v_d81136.videoBadgeText}>영상 준비 완료</Text>
               </View>
             </View>
-          ) : v_7f3fda?.status === 'failed' ? (
+          ) : (v_7f3fda?.status === 'failed' || (!v_f04727.idleVideoJobId && !!v_f04727.imageFile)) ? (
 
             <TouchableOpacity
+              testID="reupload-photo-button"
               style={v_d81136.previewBox}
-              onPress={() => v_c65f5d.navigate('Step3')}
+              onPress={v_a3d9bc}
               activeOpacity={0.8}
+              disabled={v_f6dbfe}
             >
               {v_f04727.imageFile && (
                 <Image source={{ uri: v_f04727.imageFile }} style={v_472849.absoluteFillObject} resizeMode="cover" />
               )}
               <View style={[v_d81136.videoBadge, v_d81136.videoBadgeFailed]}>
-                <Text style={v_d81136.videoBadgeText}>영상 생성 실패 — 사진 다시 올리기</Text>
+                {v_f6dbfe ? (
+                  <>
+                    <ActivityIndicator size="small" color={v_1bfbd0.white} style={{ marginRight: 6 }} />
+                    <Text style={v_d81136.videoBadgeText}>사진 올리는 중...</Text>
+                  </>
+                ) : (
+                  <Text style={v_d81136.videoBadgeText}>사진 다시 올리기</Text>
+                )}
               </View>
             </TouchableOpacity>
           ) : v_f04727.idleVideoJobId && (!v_7f3fda || v_7f3fda.status === 'pending' || v_7f3fda.status === 'running') ? (
@@ -565,6 +635,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 }
         <View style={v_d81136.bottomBar}>
           <Button
+            testID="share-post-button"
             title={
               v_5e9bfe
                 ? "다시 시도"
@@ -584,7 +655,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 : v_d01790
             }
             variant="accent"
-            disabled={v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
+            disabled={v_798360 || v_c3de9c || (v_805753 && v_af4871 == null && !v_5e9bfe)}
           />
         </View>
       </KeyboardAvoidingView>
