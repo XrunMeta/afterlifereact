@@ -1,6 +1,6 @@
 
 
-import { API_BASE } from "../config/apiBase";
+import { authFetch } from "../lib/authFetch";
 
 export interface UserProfileClone {
   id: number;
@@ -42,57 +42,25 @@ export interface UserFollowItem {
   createdAt: string;
 }
 
-async function jsonOrThrow(
-  res: Response,
-  context: string,
-): Promise<unknown> {
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const msg =
-      (parsed && typeof parsed === "object" && "error" in parsed
-        ? (parsed as { error?: { message?: string } }).error?.message
-        : null) ?? `${context} failed (${res.status})`;
-    throw new Error(msg);
-  }
-  return parsed;
-}
-
 export async function getUserProfile(
   accessToken: string,
   userId: number,
 ): Promise<UserProfile> {
-  const res = await fetch(`${API_BASE}/oth-path${userId}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return jsonOrThrow(res, "getUserProfile") as Promise<UserProfile>;
+  return authFetch<UserProfile>(`/oth-path${userId}`, accessToken);
 }
 
 export async function followUser(
   accessToken: string,
   userId: number,
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/oth-path${userId}/follow`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  await jsonOrThrow(res, "followUser");
+  await authFetch<unknown>(`/oth-path${userId}/follow`, accessToken, { method: "POST" });
 }
 
 export async function unfollowUser(
   accessToken: string,
   userId: number,
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/oth-path${userId}/follow`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  await jsonOrThrow(res, "unfollowUser");
+  await authFetch<unknown>(`/oth-path${userId}/follow`, accessToken, { method: "DELETE" });
 }
 
 export async function listUserFollowers(
@@ -100,13 +68,10 @@ export async function listUserFollowers(
   userId: number,
   limit = 50,
 ): Promise<{ items: UserFollowItem[] }> {
-  const res = await fetch(
-    `${API_BASE}/oth-path${userId}/followers?limit=${limit}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
+  return authFetch<{ items: UserFollowItem[] }>(
+    `/oth-path${userId}/followers?limit=${limit}`,
+    accessToken,
   );
-  return jsonOrThrow(res, "listUserFollowers") as Promise<{
-    items: UserFollowItem[];
-  }>;
 }
 
 export async function listUserFollowing(
@@ -114,35 +79,32 @@ export async function listUserFollowing(
   userId: number,
   limit = 50,
 ): Promise<{ items: UserFollowItem[] }> {
-  const res = await fetch(
-    `${API_BASE}/oth-path${userId}/following?limit=${limit}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
+  return authFetch<{ items: UserFollowItem[] }>(
+    `/oth-path${userId}/following?limit=${limit}`,
+    accessToken,
   );
-  return jsonOrThrow(res, "listUserFollowing") as Promise<{
-    items: UserFollowItem[];
-  }>;
 }
 
 export async function blockUser(
   accessToken: string,
   userId: number,
 ): Promise<{ ok: true; blocked: true }> {
-  const res = await fetch(`${API_BASE}/oth-path${userId}/block`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return jsonOrThrow(res, "blockUser") as Promise<{ ok: true; blocked: true }>;
+  return authFetch<{ ok: true; blocked: true }>(
+    `/oth-path${userId}/block`,
+    accessToken,
+    { method: "POST" },
+  );
 }
 
 export async function unblockUser(
   accessToken: string,
   userId: number,
 ): Promise<{ ok: true; blocked: false }> {
-  const res = await fetch(`${API_BASE}/oth-path${userId}/block`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return jsonOrThrow(res, "unblockUser") as Promise<{ ok: true; blocked: false }>;
+  return authFetch<{ ok: true; blocked: false }>(
+    `/oth-path${userId}/block`,
+    accessToken,
+    { method: "DELETE" },
+  );
 }
 
 export async function reportUser(
@@ -150,17 +112,9 @@ export async function reportUser(
   userId: number,
   reason?: string,
 ): Promise<{ ok: true; reported: true; blocked: true }> {
-  const res = await fetch(`${API_BASE}/oth-path${userId}/report`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(reason ? { reason } : {}),
-  });
-  return jsonOrThrow(res, "reportUser") as Promise<{
-    ok: true;
-    reported: true;
-    blocked: true;
-  }>;
+  return authFetch<{ ok: true; reported: true; blocked: true }>(
+    `/oth-path${userId}/report`,
+    accessToken,
+    { method: "POST", body: JSON.stringify(reason ? { reason } : {}) },
+  );
 }

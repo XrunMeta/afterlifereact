@@ -109,6 +109,7 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
+  const setApiTokens = useAuthStore((s) => s.setApiTokens);
 
   const handleSocialLogin = async (provider: string) => {
     if (provider === "google") {
@@ -137,6 +138,11 @@ export default function LoginScreen({ navigation }: Props) {
           const res = await googleSignIn({ idToken, deviceId, platform: "android" });
           const meRes = await getMe(res.accessToken);
           await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
+
+          const googleRefreshToken = (res as { refreshToken?: string }).refreshToken;
+          if (googleRefreshToken) {
+            await setApiTokens(res.accessToken, googleRefreshToken, { persist: autoLogin });
+          }
           if (autoLogin) {
             await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
             await AsyncStorage.setItem(LAST_EMAIL_KEY, meRes.user.email);

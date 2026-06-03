@@ -2,6 +2,7 @@
 
 import { API_BASE } from "../config/apiBase";
 import { AuthApiError, type ApiErrorBody } from "./auth";
+import { authFetch as _libAuthFetch } from "../lib/authFetch";
 
 export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
 
@@ -277,54 +278,7 @@ export interface ShareMember {
   };
 }
 
-async function authFetch<T>(
-  path: string,
-  accessToken: string,
-  init: RequestInit = {},
-  idempotencyKey?: string,
-): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${accessToken}`,
-    ...((init.headers as Record<string, string>) ?? {}),
-  };
-  if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
-
-  const url = `${API_BASE}${path}`;
-  const method = init.method ?? "GET";
-  const res = await fetch(url, { ...init, headers });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const body = parsed as ApiErrorBody | null;
-
-    console.warn(
-      "[authFetch] failed:",
-      method,
-      url,
-      "status=",
-      res.status,
-      "code=",
-      body?.error?.code,
-      "msg=",
-      body?.error?.message,
-      "raw=",
-      text.slice(0, 300),
-    );
-    throw new AuthApiError(
-      res.status,
-      body?.error?.code ?? "HTTP_ERROR",
-      body?.error?.message ?? `HTTP ${res.status}`,
-      body?.error?.details,
-    );
-  }
-  return parsed as T;
-}
+const authFetch = _libAuthFetch;
 
 function makeIdempotencyKey(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto

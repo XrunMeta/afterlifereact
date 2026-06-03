@@ -6,6 +6,7 @@ import { login as apiLogin, getMe, type AuthUser, type LoginPayload } from "../a
 
 const STORAGE_KEY = "@afterlifeRN/auth/currentUserId";
 const TOKEN_KEY = "@afterlifeRN/auth/accessToken";
+const REFRESH_TOKEN_KEY = "@afterlifeRN/auth/refreshToken";
 const DEFAULT_USER_ID = 1;
 
 interface AuthState {
@@ -18,9 +19,12 @@ interface AuthState {
   logout: () => Promise<void>;
 
   accessToken: string | null;
+  refreshToken: string | null;
   apiUser: AuthUser | null;
   loginWithApi: (payload: LoginPayload, opts?: { persist?: boolean }) => Promise<AuthUser>;
   setApiAuth: (token: string, user: AuthUser, opts?: { persist?: boolean }) => Promise<void>;
+
+  setApiTokens: (accessToken: string, refreshToken: string | null, opts?: { persist?: boolean }) => Promise<void>;
   apiLogout: () => Promise<void>;
   refreshApiUser: () => Promise<AuthUser | null>;
   patchApiUser: (patch: Partial<AuthUser>) => void;
@@ -31,6 +35,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   hydrated: false,
   accessToken: null,
+  refreshToken: null,
   apiUser: null,
 
   hydrate: async () => {
@@ -39,8 +44,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     let apiUser: AuthUser | null = current.apiUser;
     let token: string | null = current.accessToken;
 
+    let storedRefreshToken: string | null = null;
     if (!apiUser) {
       token = await AsyncStorage.getItem(TOKEN_KEY);
+      storedRefreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
       if (token) {
         try {
           const res = await getMe(token);
@@ -48,7 +55,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         } catch {
 
           await AsyncStorage.removeItem(TOKEN_KEY);
+          await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
           token = null;
+          storedRefreshToken = null;
         }
       }
     }
@@ -62,6 +71,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({
       accessToken: apiUser ? token : null,
+      refreshToken: apiUser ? (current.refreshToken ?? storedRefreshToken) : null,
       apiUser,
       isLoggedIn: !!apiUser, 
       user: u,
@@ -79,7 +89,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
     await AsyncStorage.removeItem(TOKEN_KEY);
-    set({ isLoggedIn: false, user: null, accessToken: null, apiUser: null });
+    await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+    set({ isLoggedIn: false, user: null, accessToken: null, refreshToken: null, apiUser: null });
 
     try {
       const { useFeedStore } = await import("./feedStore");
@@ -93,15 +104,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   loginWithApi: async (payload, opts) => {
     const persist = opts?.persist !== false;
-    const { accessToken } = await apiLogin(payload);
+
+    const loginRes = await apiLogin(payload);
+    const { accessToken } = loginRes;
+    const refreshToken = (loginRes as { refreshToken?: string }).refreshToken ?? null;
     const { user } = await getMe(accessToken);
     if (persist) {
       await AsyncStorage.setItem(TOKEN_KEY, accessToken);
+      if (refreshToken) {
+        await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      }
     } else {
 
       await AsyncStorage.removeItem(TOKEN_KEY);
+      await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
     }
-    set({ accessToken, apiUser: user, isLoggedIn: true });
+    set({ accessToken, refreshToken, apiUser: user, isLoggedIn: true });
     return user;
   },
 
@@ -111,13 +129,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.setItem(TOKEN_KEY, token);
     } else {
       await AsyncStorage.removeItem(TOKEN_KEY);
+      await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
     }
     set({ accessToken: token, apiUser: user, isLoggedIn: true });
   },
 
+  setApiTokens: async (accessToken, refreshToken, opts) => {
+    const persist = opts?.persist !== false;
+    if (persist) {
+      await AsyncStorage.setItem(TOKEN_KEY, accessToken);
+      if (refreshToken) {
+        await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      }
+    }
+    set((s) => ({
+      accessToken,
+      refreshToken: refreshToken ?? s.refreshToken,
+    }));
+  },
+
   apiLogout: async () => {
     await AsyncStorage.removeItem(TOKEN_KEY);
-    set({ accessToken: null, apiUser: null, isLoggedIn: false });
+    await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+    set({ accessToken: null, refreshToken: null, apiUser: null, isLoggedIn: false });
     try {
       const { useFeedStore } = await import("./feedStore");
       const { useFollowStore } = await import("./followStore");

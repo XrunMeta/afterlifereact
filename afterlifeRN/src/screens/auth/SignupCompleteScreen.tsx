@@ -67,9 +67,11 @@ export default function SignupCompleteScreen({ route }: Props) {
   const { t } = useTranslation();
 
   const accessToken = route.params?.accessToken;
+  const routeRefreshToken = route.params?.refreshToken;
   const persist = route.params?.persist ?? true;
   const email = route.params?.email;
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
+  const setApiTokens = useAuthStore((s) => s.setApiTokens);
   const hydrate = useAuthStore((s) => s.hydrate);
   console.log("[SignupComplete] mounted, hasToken:", !!accessToken, "email:", email);
 
@@ -85,6 +87,10 @@ export default function SignupCompleteScreen({ route }: Props) {
 
       const meRes = await getMe(accessToken);
       await setApiAuth(accessToken, meRes.user, { persist });
+
+      if (routeRefreshToken) {
+        await setApiTokens(accessToken, routeRefreshToken, { persist });
+      }
       await hydrate();
     } catch (err) {
       console.warn("[SignupComplete] start failed:", err);
