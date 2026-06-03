@@ -29,6 +29,9 @@ export function useSpeechInput(opts?: {
   const [error, setError] = useState<Error | null>(null);
   const subs = useRef<Array<{ remove: () => void }>>([]);
 
+  const wantListeningRef = useRef(false);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     subs.current.push(
 
@@ -53,7 +56,22 @@ export function useSpeechInput(opts?: {
         const msg = p?.message ?? p?.error ?? 'stt_error';
         setError(new Error(msg));
       }),
-      engine.addListener('end', () => setListening(false)),
+      engine.addListener('end', () => {
+        setListening(false);
+
+        if (wantListeningRef.current) {
+          if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+          restartTimerRef.current = setTimeout(() => {
+            if (!wantListeningRef.current) return;
+            try {
+              engine.start({ lang, interimResults: true });
+              setListening(true);
+            } catch {
+
+            }
+          }, 400);
+        }
+      }),
     );
     return () => {
       subs.current.forEach((s) => s.remove());
@@ -62,6 +80,7 @@ export function useSpeechInput(opts?: {
   }, [engine]);
 
   const startListening = useCallback(async () => {
+    wantListeningRef.current = true; 
     setError(null);
     setTranscript('');
     setInterimTranscript('');
@@ -76,6 +95,11 @@ export function useSpeechInput(opts?: {
 
   const stopListening = useCallback(() => {
 
+    wantListeningRef.current = false; 
+    if (restartTimerRef.current) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
     engine.stop();
     setListening(false);
   }, [engine]);
