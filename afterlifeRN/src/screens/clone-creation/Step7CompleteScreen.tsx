@@ -31,6 +31,7 @@ import { createClone, deriveUsernameFromName, createCloneFeed, updateClone, getA
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
 import { Image } from "react-native";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { pickAndCropImage } from "../../lib/imagePicker";
 
 type Props = {
@@ -56,6 +57,27 @@ const COPY: Record<'memlow' | 'friend' | 'mentor' | 'celeb', { title: string; su
   mentor: { title: '멘토가 준비됐어요',   sub: '분야별 질문을 남겨 보세요.' },
   celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
 };
+
+function IdleVideoPreview({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = true;
+    p.muted = true;
+    p.play();
+  });
+  return (
+    <View style={styles.previewBox}>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFillObject}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      <View style={styles.videoBadge}>
+        <Text style={styles.videoBadgeText}>영상 준비 완료</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function Step7CompleteScreen({ navigation }: Props) {
   const { t } = useTranslation();
@@ -519,7 +541,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     <SafeView backgroundColor={COLORS.white}>
       {}
       <PageHeader
-        title="게시물 작성"
+        title="클론 정보 리뷰"
         showBackButton
         onBackPress={() => {
 
@@ -562,12 +584,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 }
           {idleJob?.status === 'done' && idleJob.out_url ? (
 
-            <View style={styles.previewBox}>
-              <Image source={{ uri: draft.imageFile ?? idleJob.out_url }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-              <View style={styles.videoBadge}>
-                <Text style={styles.videoBadgeText}>영상 준비 완료</Text>
-              </View>
-            </View>
+            <IdleVideoPreview uri={idleJob.out_url} />
           ) : (idleJob?.status === 'failed' || (!draft.idleVideoJobId && !!draft.imageFile)) ? (
 
             <TouchableOpacity

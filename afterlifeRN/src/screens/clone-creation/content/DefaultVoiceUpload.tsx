@@ -254,7 +254,7 @@ function Component({ draft, onChange }: Props) {
       {mode === "record" && (
         <View style={{ gap: 12 }}>
           <Text style={styles.scriptHint}>
-            고인 목소리 사용 (권장) — 스크립트를 선택하고 읽어주세요.
+            스크립트를 선택하고 읽어주세요.
           </Text>
           {RECORD_SCRIPTS.map((s) => (
             <TouchableOpacity
@@ -304,7 +304,7 @@ function Component({ draft, onChange }: Props) {
       {mode === "upload" && (
         <View style={{ gap: 12 }}>
           <Text style={styles.scriptHint}>
-            고인 목소리 사용 (권장) — mp3/wav/m4a 파일을 업로드해주세요.
+            음성파일을 올려주세요
           </Text>
           <TouchableOpacity
             style={styles.upload}
