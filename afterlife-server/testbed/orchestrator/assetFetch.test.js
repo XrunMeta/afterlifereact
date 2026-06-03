@@ -138,7 +138,7 @@ test('ensureAssets: ②url 있을 때 pull 수행·저장', async () => {
 
   assert.equal(pulled.length, 3, '3개 url 모두 fetch');
   assert.ok(result.ttsSePath?.endsWith(`${cloneId}/se.pth`));
-  assert.ok(result.museVideoPath?.endsWith(`${cloneId}/idle-25fps.mp4`));
+  assert.ok(result.museVideoPath?.endsWith(`${cloneId}/${cloneId}-idle-25fps.mp4`));
   assert.ok(result.avatarImagePath?.endsWith(`${cloneId}.png`));
   assert.ok(fs.existsSync(result.ttsSePath));
   assert.ok(fs.existsSync(result.museVideoPath));

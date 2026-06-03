@@ -578,7 +578,7 @@ app.post('/oth-path', (req, res) => {
       let resolvedVideoPath = museVideoPath || null;
       if (!resolvedVideoPath && avatarImagePath && chatCloneId) {
 
-        const photoStillOut = path.join(ASSET_VIDEO_REF_DIR, chatCloneId, 'photo-still-25fps.mp4');
+        const photoStillOut = path.join(ASSET_VIDEO_REF_DIR, chatCloneId, `${chatCloneId}-photo-still-25fps.mp4`);
         try {
           resolvedVideoPath = await ensurePhotoStill({ photoPath: avatarImagePath, outPath: photoStillOut });
         } catch (photoErr) {
@@ -716,7 +716,7 @@ app.post('/oth-path', (req, res) => {
 
             let batchVideoPath = museVideoPath || null;
             if (!batchVideoPath && avatarImagePath && chatCloneId) {
-              const photoStillOut = path.join(ASSET_VIDEO_REF_DIR, chatCloneId, 'photo-still-25fps.mp4');
+              const photoStillOut = path.join(ASSET_VIDEO_REF_DIR, chatCloneId, `${chatCloneId}-photo-still-25fps.mp4`);
               try {
                 batchVideoPath = await ensurePhotoStill({ photoPath: avatarImagePath, outPath: photoStillOut });
               } catch (photoErr) {
