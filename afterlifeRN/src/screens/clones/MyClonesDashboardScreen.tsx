@@ -1,5 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
-import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095, v_de06a3 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -12,6 +12,7 @@ import {
   v_122070,
   v_79c4f2,
   v_39a996,
+  v_6c4f62,
   v_5f4661,
   v_326be8,
   v_f2c756,
@@ -111,13 +112,16 @@ export default function v_def15b() {
 
   const [v_8a7926, v_d42991] = v_5ab095<v_affcc0[] | null>(null);
 
+  const [v_612e9f, v_575aad] = v_5ab095(false);
+
   const [v_959d04, v_fd8761] = v_5ab095<v_a9d96d[]>([]);
 
-  const v_8e46f5 = v_a3453e.useCallback(async () => {
+  const v_8e46f5 = v_de06a3(async (v_cc88f5 = false) => {
     if (!v_2ca7e0) {
       v_d42991(null);
       return;
     }
+    if (v_cc88f5) v_575aad(true);
     try {
       const v_8f00b9 = await v_d60cdf(v_2ca7e0);
       const v_a15a8b = v_8f00b9.items.map(v_a8d790);
@@ -127,6 +131,8 @@ export default function v_def15b() {
     } catch (v_49263d) {
       console.warn("[Dashboard] listMyClones failed:", v_49263d);
 
+    } finally {
+      if (v_cc88f5) v_575aad(false);
     }
   }, [v_2ca7e0, v_7a98d1]);
 
@@ -145,8 +151,8 @@ export default function v_def15b() {
   }, [v_2ca7e0]);
 
   v_cf763b(
-    v_a3453e.useCallback(() => {
-      v_8e46f5();
+    v_de06a3(() => {
+      v_8e46f5(false);
     }, [v_8e46f5]),
   );
 
@@ -793,6 +799,15 @@ export default function v_def15b() {
         renderItem={v_b80d74}
         contentContainerStyle={v_fd5f43.listContent}
         showsVerticalScrollIndicator={false}
+        extraData={v_fc7f92}
+        refreshControl={
+          <RefreshControl
+            refreshing={v_612e9f}
+            onRefresh={() => v_8e46f5(true)}
+            tintColor={v_1bfbd0.violet600}
+            colors={[v_1bfbd0.violet600]}
+          />
+        }
         ListEmptyComponent={
           <View style={v_fd5f43.dashEmpty}>
             <View style={v_fd5f43.dashEmptyIconWrap}>
