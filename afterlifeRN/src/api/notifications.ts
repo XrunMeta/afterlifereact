@@ -1,7 +1,6 @@
 
 
-import { v_cc9198 } from "../config/apiBase";
-import { v_84a859, type v_669377 } from "./auth";
+import { v_04b58a } from "../lib/authFetch";
 
 export type NotificationType =
   | "invite_received"
@@ -20,37 +19,7 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-async function v_593ce7<T>(
-  v_9fe22d,
-  v_2ca7e0,
-  v_00cfc6 = {},
-): Promise<T> {
-  const v_8f00b9 = await fetch(`${v_cc9198}${v_9fe22d}`, {
-    ...v_00cfc6,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${v_2ca7e0}`,
-      ...((v_00cfc6.headers as Record<string, string>) ?? {}),
-    },
-  });
-  const v_9b6134 = await v_8f00b9.text();
-  let v_8decf8 = null;
-  try {
-    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
-  } catch {
-
-  }
-  if (!v_8f00b9.ok) {
-    const v_9be017 = v_8decf8 as v_669377 | null;
-    throw new v_84a859(
-      v_8f00b9.status,
-      v_9be017?.error?.code ?? "HTTP_ERROR",
-      v_9be017?.error?.message ?? `HTTP ${v_8f00b9.status}`,
-      v_9be017?.error?.details,
-    );
-  }
-  return v_8decf8 as T;
-}
+const v_593ce7 = v_04b58a;
 
 export async function v_9cd139(
   v_2ca7e0,

@@ -48,6 +48,8 @@ export type AuthStackParamList = {
 
   SignupComplete: {
     accessToken: string;
+
+    refreshToken?: string;
     persist: boolean; 
     email?: string;  
   };
