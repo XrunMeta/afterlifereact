@@ -1,5 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  RefreshControl,
   Share,
   Platform,
   Linking,
@@ -111,13 +112,16 @@ export default function MyClonesDashboardScreen() {
 
   const [apiClones, setApiClones] = useState<Clone[] | null>(null);
 
+  const [refreshing, setRefreshing] = useState(false);
+
   const [systemClones, setSystemClones] = useState<SystemClone[]>([]);
 
-  const fetchMyClones = React.useCallback(async () => {
+  const fetchMyClones = useCallback(async (isRefresh = false) => {
     if (!accessToken) {
       setApiClones(null);
       return;
     }
+    if (isRefresh) setRefreshing(true);
     try {
       const res = await listMyClones(accessToken);
       const adapted = res.items.map(adaptMyClone);
@@ -127,6 +131,8 @@ export default function MyClonesDashboardScreen() {
     } catch (err) {
       console.warn("[Dashboard] listMyClones failed:", err);
 
+    } finally {
+      if (isRefresh) setRefreshing(false);
     }
   }, [accessToken, upsertClones]);
 
@@ -145,8 +151,8 @@ export default function MyClonesDashboardScreen() {
   }, [accessToken]);
 
   useFocusEffect(
-    React.useCallback(() => {
-      fetchMyClones();
+    useCallback(() => {
+      fetchMyClones(false);
     }, [fetchMyClones]),
   );
 
@@ -793,6 +799,15 @@ export default function MyClonesDashboardScreen() {
         renderItem={renderCloneCard}
         contentContainerStyle={s.listContent}
         showsVerticalScrollIndicator={false}
+        extraData={visibleClones}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchMyClones(true)}
+            tintColor={COLORS.violet600}
+            colors={[COLORS.violet600]}
+          />
+        }
         ListEmptyComponent={
           <View style={s.dashEmpty}>
             <View style={s.dashEmptyIconWrap}>
