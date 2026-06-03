@@ -175,32 +175,14 @@ v_f891e6.post(
       .bind(v_43e90c)
       .first<{ n: number }>();
     const v_faa47d = v_3c8572?.n ?? 0;
+
+    if (v_faa47d >= 100) {
+      throw new v_3ebe58(
+        "QUOTA_EXCEEDED",
+        "최대 페르소나 개수(100개)에 도달했어요.",
+      );
+    }
     if (v_faa47d >= 1) {
-
-      if (v_4d33b2.clone_type !== "memlow") {
-        const v_fbff43 = await v_a1651b
-          .prepare(
-            `SELECT clone_type FROM clones
-              WHERE owner_id = ?
-                AND deletion_state = 'active'
-                AND deleted_at IS NULL`,
-          )
-          .bind(v_43e90c)
-          .all<{ clone_type: string }>();
-        const v_47e8dd = new Set(v_fbff43.results.map((v_cb35cb) => v_cb35cb.clone_type));
-        if (v_47e8dd.has(v_4d33b2.clone_type)) {
-          const v_6f7c85 = ["friend", "mentor", "celeb"];
-          const v_3dca11 = v_6f7c85.find((v_8d41d7) => !v_47e8dd.has(v_8d41d7));
-          if (!v_3dca11) {
-            throw new v_3ebe58(
-              "QUOTA_EXCEEDED",
-              "최대 페르소나 개수(4개)에 도달했어요.",
-            );
-          }
-
-          v_4d33b2.clone_type = v_3dca11;
-        }
-      }
 
       if (!v_4d33b2.pin) {
         throw new v_3ebe58("PAYMENT_REQUIRED", "Persona creation requires payment.", {
@@ -316,12 +298,6 @@ v_f891e6.post(
         throw new v_3ebe58("CONFLICT", "중복된 아이디입니다. 다른 아이디를 사용해주세요.");
       }
 
-      if (/UNIQUE constraint failed: clones\.owner_id, clones\.clone_type/i.test(v_badeaf)) {
-        throw new v_3ebe58(
-          "QUOTA_EXCEEDED",
-          "Free quota exhausted. Paid creation not yet available (beta).",
-        );
-      }
       throw v_49263d;
     }
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "페르소나 생성에 실패했어요.");
