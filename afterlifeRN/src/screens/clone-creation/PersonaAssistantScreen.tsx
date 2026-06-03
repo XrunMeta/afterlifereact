@@ -252,15 +252,11 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         const cands = candidates[q.key] ?? [];
 
         const forced = q.options_include ?? [];
-        const merged = [...new Set([...forced, ...cands])];
-        buttons = merged.length > 0 ? [...merged, '직접 입력', '건너뛰기'] : ['직접 입력', '건너뛰기'];
+        const merged = [...new Set([...forced, ...cands])].slice(0, 3);
+        buttons = merged.length > 0 ? [...merged, '직접 입력'] : ['직접 입력'];
       }
       if (q.type === 'fixed_choice' && (q.optional !== false)) {
         buttons = [...buttons, '건너뛰기'];
-      }
-
-      if (q.type === 'text' && (q.optional !== false)) {
-        buttons = ['건너뛰기'];
       }
 
       setPhase(`schema:${idx}`);
@@ -511,11 +507,24 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
     return false;
   })();
 
+  const isTextQuestion = (() => {
+    if (!phase.startsWith('schema:') || currentVisibleIdx === null) return false;
+    const visible = questions.filter((q) =>
+      isVisible(q, answersRef.current.schemaAnswers),
+    );
+    return visible[currentVisibleIdx]?.type === 'text';
+  })();
+
+  const MIN_TEXT_LENGTH = 20;
+
   const canSend = (() => {
     if (phase === 'sys:username') return !checkingUsername; 
     if (phase === 'sys:name') return input.trim().length > 0;
     if (phase === 'sys:relation-custom') return input.trim().length > 0;
-    if (phase.startsWith('schema:')) return input.trim().length > 0;
+    if (phase.startsWith('schema:')) {
+      if (isTextQuestion) return input.trim().length >= MIN_TEXT_LENGTH;
+      return input.trim().length > 0;
+    }
     return false;
   })();
 
@@ -626,44 +635,59 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
 
         {}
         {showInput && (
-          <View style={s.inputBar}>
-            <TextInput
-              style={[s.input, isMultiline && s.inputMultiline]}
-              value={input}
-              onChangeText={(v) => {
-                if (phase === 'sys:username') {
-                  setInput(v.toLowerCase().replace(/[^a-z0-9_]/g, ''));
-                } else {
-                  setInput(v);
-                }
-              }}
-              placeholder={inputPlaceholder}
-              placeholderTextColor={COLORS.zinc400}
-              multiline={isMultiline}
-              maxLength={isMultiline ? 500 : 40}
+          <View style={s.inputWrap}>
+            {}
+            {isTextQuestion && (
+              <View style={s.charHintRow}>
+                <Text style={[
+                  s.charHint,
+                  input.trim().length >= MIN_TEXT_LENGTH ? s.charHintOk : s.charHintWarn,
+                ]}>
+                  {input.trim().length >= MIN_TEXT_LENGTH
+                    ? `${input.trim().length}자`
+                    : `최소 20자 이상 입력해주세요 (${input.trim().length}/20)`}
+                </Text>
+              </View>
+            )}
+            <View style={s.inputBar}>
+              <TextInput
+                style={[s.input, isMultiline && s.inputMultiline]}
+                value={input}
+                onChangeText={(v) => {
+                  if (phase === 'sys:username') {
+                    setInput(v.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                  } else {
+                    setInput(v);
+                  }
+                }}
+                placeholder={inputPlaceholder}
+                placeholderTextColor={COLORS.zinc400}
+                multiline={isMultiline}
+                maxLength={isMultiline ? 500 : 40}
 
-              autoCapitalize={phase === 'sys:username' ? 'none' : 'sentences'}
-              autoCorrect={phase !== 'sys:username'}
-              autoComplete={phase === 'sys:username' ? 'off' : undefined}
-              keyboardType={phase === 'sys:username' ? 'visible-password' : 'default'}
-              textContentType={phase === 'sys:username' ? 'none' : undefined}
-              editable={!isDone && !checkingUsername}
-              returnKeyType={isMultiline ? 'default' : 'send'}
-              onSubmitEditing={isMultiline ? undefined : submit}
-              blurOnSubmit={!isMultiline}
-            />
-            <TouchableOpacity
-              style={[s.sendBtn, !canSend && s.sendBtnDisabled]}
-              onPress={submit}
-              disabled={!canSend}
-              activeOpacity={0.85}
-            >
-              {checkingUsername ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <Feather name="send" size={18} color={canSend ? COLORS.white : COLORS.zinc400} />
-              )}
-            </TouchableOpacity>
+                autoCapitalize={phase === 'sys:username' ? 'none' : 'sentences'}
+                autoCorrect={phase !== 'sys:username'}
+                autoComplete={phase === 'sys:username' ? 'off' : undefined}
+                keyboardType={phase === 'sys:username' ? 'visible-password' : 'default'}
+                textContentType={phase === 'sys:username' ? 'none' : undefined}
+                editable={!isDone && !checkingUsername}
+                returnKeyType={isMultiline ? 'default' : 'send'}
+                onSubmitEditing={isMultiline ? undefined : submit}
+                blurOnSubmit={!isMultiline}
+              />
+              <TouchableOpacity
+                style={[s.sendBtn, !canSend && s.sendBtnDisabled]}
+                onPress={submit}
+                disabled={!canSend}
+                activeOpacity={0.85}
+              >
+                {checkingUsername ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <Feather name="send" size={18} color={canSend ? COLORS.white : COLORS.zinc400} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -759,6 +783,19 @@ const s = StyleSheet.create({
   },
   quickReplyText: { fontSize: 13, color: COLORS.violet600, fontWeight: '500' },
 
+  inputWrap: {
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.zinc100,
+  },
+  charHintRow: {
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  charHint: { fontSize: 11 },
+  charHintWarn: { color: COLORS.zinc400 },
+  charHintOk: { color: COLORS.violet600 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -767,8 +804,6 @@ const s = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.zinc100,
   },
   input: {
     flex: 1,
