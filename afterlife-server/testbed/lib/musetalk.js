@@ -135,6 +135,54 @@ export function museTalkInfer({ audio_path, video_path, output_id, stream, host,
   });
 }
 
+let _photoStillCounter = 0;
+
+export async function ensurePhotoStill({ photoPath, outPath }) {
+
+  try {
+    await fs.access(outPath);
+    return outPath; 
+  } catch {
+
+  }
+
+  await fs.mkdir(path.dirname(outPath), { recursive: true });
+
+  const token = `${process.pid}.${++_photoStillCounter}`;
+  const tmpPath = `${outPath}.${token}.tmp.mp4`;
+
+  try {
+
+    await runFfmpeg([
+      '-y', '-loglevel', 'error',
+      '-loop', '1',
+      '-i', photoPath,
+      '-t', '2',
+      '-r', '25',
+      '-pix_fmt', 'yuv420p',
+      '-vf', 'scale=256:256:force_original_aspect_ratio=decrease,pad=256:256:(ow-iw)/2:(oh-ih)/2',
+      tmpPath,
+    ]);
+  } catch (err) {
+
+    await fs.unlink(tmpPath).catch(() => {});
+    console.warn('[ensurePhotoStill] ffmpeg 실패(graceful):', err?.message ?? err);
+    return null;
+  }
+
+  try {
+    await fs.access(outPath);
+
+    await fs.unlink(tmpPath).catch(() => {});
+    return outPath;
+  } catch {
+
+  }
+
+  await fs.rename(tmpPath, outPath);
+  return outPath;
+}
+
 export function mp4PathToUrl(mp4Path) {
   const base = path.basename(mp4Path);
   return `/outputs/${base}`;

@@ -16,7 +16,7 @@ export function consumeSseFinalText(sseText) {
   return full;
 }
 
-export async function runChatRelay(deps, { callId, publisherPort, personaSlug, personaBundle = null, history, text }) {
+export async function runChatRelay(deps, { callId, cloneId = null, publisherPort, personaSlug, personaBundle = null, history, text, museVideoPath = null, ttsSePath = null, avatarImagePath = null }) {
   const sse = await deps.fetchChat({
     message: text,
     callId,
@@ -26,6 +26,11 @@ export async function runChatRelay(deps, { callId, publisherPort, personaSlug, p
     history,
     source: 'rn-call',
     speaker_role: 'visitor',
+
+    ...(cloneId ? { cloneId } : {}),
+    ...(ttsSePath ? { ttsSePath } : {}),
+    ...(museVideoPath ? { museVideoPath } : {}),
+    ...(avatarImagePath ? { avatarImagePath } : {}),
   });
   const finalText = consumeSseFinalText(sse);
 

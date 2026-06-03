@@ -5,6 +5,7 @@ import { runChatRelay as defaultRunChatRelay } from './chatRelay.js';
 import { suggestPersonaChoices } from '../lib/personaSuggest.js';
 import { suggestIntro } from '../lib/introSuggest.js';
 import { createAssetJobRunner } from './assetJobRunner.js';
+import { ensureAssets as defaultEnsureAssets } from './assetFetch.js';
 
 const PUB = (port) => `http://127.0.0.1:${port}`;
 
@@ -55,8 +56,10 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   const router = express.Router();
   const sayStore = createSayStore();
 
-  const callPersona = new Map(); 
+  const callPersona = new Map();
   const runChatRelay = deps?.sayDeps?.runChatRelay ?? defaultRunChatRelay;
+
+  const ensureAssets = deps?.ensureAssets ?? defaultEnsureAssets;
 
   const assetJobRunner = deps?.assetJobRunner ?? createAssetJobRunner({ apiBaseUrl: cfg.apiBaseUrl ?? '' });
 
@@ -66,11 +69,54 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   }
 
   router.post('/oth-path', requireSecret, async (req, res) => {
-    const { cloneId, userId, idleVideoUrl, personaBundle } = req.body || {};
-    try {
-      const ticket = await orch.allocate({ cloneId: String(cloneId), userId: String(userId), idleVideoUrl: idleVideoUrl ?? null });
 
-      if (personaBundle && ticket?.callId) callPersona.set(ticket.callId, personaBundle);
+    const { cloneId, userId, personaBundle, assets } = req.body || {};
+    try {
+
+      let museVideoPath = null;
+      let ttsSePath = null;
+      let avatarImagePath = null;
+      if (assets && cfg.assetDirs && cfg.apiBaseUrl) {
+        try {
+          ({ museVideoPath, ttsSePath, avatarImagePath } = await ensureAssets({
+            cloneId: String(cloneId),
+            assets,
+            dirs: cfg.assetDirs,
+            apiBaseUrl: cfg.apiBaseUrl,
+          }));
+        } catch {
+
+        }
+      } else if (assets) {
+
+        if (deps?.ensureAssets) {
+          try {
+            ({ museVideoPath, ttsSePath, avatarImagePath } = await ensureAssets({
+              cloneId: String(cloneId),
+              assets,
+              dirs: cfg.assetDirs ?? {},
+              apiBaseUrl: cfg.apiBaseUrl ?? '',
+            }));
+          } catch {
+
+          }
+        }
+      }
+
+      const ticket = await orch.allocate({
+        cloneId: String(cloneId),
+        userId: String(userId),
+        idleVideoUrl: museVideoPath ?? null,
+      });
+
+      if (ticket?.callId) {
+        callPersona.set(ticket.callId, {
+          personaBundle: personaBundle ?? null,
+          museVideoPath,
+          ttsSePath,
+          avatarImagePath,
+        });
+      }
       res.status(200).json(ticket);
     } catch (e) {
       const msg = String(e?.message ?? e);
@@ -140,11 +186,16 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
     if (!sayStore.beginTurn(callId)) return res.status(409).json({ error: 'turn_in_progress' });
     sayStore.appendTurn(callId, { role: 'user', content: text });
     res.status(202).json({ ok: true }); 
-    const bundle = callPersona.get(callId) ?? null; 
+
+    const cached = callPersona.get(callId);
+    const bundle = cached?.personaBundle ?? null;
+    const museVideoPath = cached?.museVideoPath ?? null;
+    const ttsSePath = cached?.ttsSePath ?? null;
+    const avatarImagePath = cached?.avatarImagePath ?? null;
     Promise.resolve()
       .then(() => runChatRelay(
         buildSayDeps(cfg, cloneId),
-        { callId, publisherPort: row.port, personaSlug: 'halbae', personaBundle: bundle, history: sayStore.getHistory(callId), text },
+        { callId, cloneId: cloneId ? String(cloneId) : null, publisherPort: row.port, personaSlug: 'halbae', personaBundle: bundle, history: sayStore.getHistory(callId), text, museVideoPath, ttsSePath, avatarImagePath },
       ))
       .then((finalText) => { if (finalText) sayStore.appendTurn(callId, { role: 'assistant', content: finalText }); })
       .catch((e) => console.error('[sp2/say] relay error', callId, e?.message ?? e))
