@@ -175,32 +175,14 @@ clones.post(
       .bind(userId)
       .first<{ n: number }>();
     const usedCount = existing?.n ?? 0;
+
+    if (usedCount >= 100) {
+      throw new APIError(
+        "QUOTA_EXCEEDED",
+        "최대 페르소나 개수(100개)에 도달했어요.",
+      );
+    }
     if (usedCount >= 1) {
-
-      if (body.clone_type !== "memlow") {
-        const usedTypes = await db
-          .prepare(
-            `SELECT clone_type FROM clones
-              WHERE owner_id = ?
-                AND deletion_state = 'active'
-                AND deleted_at IS NULL`,
-          )
-          .bind(userId)
-          .all<{ clone_type: string }>();
-        const usedSet = new Set(usedTypes.results.map((r) => r.clone_type));
-        if (usedSet.has(body.clone_type)) {
-          const candidates: ("friend" | "mentor" | "celeb")[] = ["friend", "mentor", "celeb"];
-          const free = candidates.find((t) => !usedSet.has(t));
-          if (!free) {
-            throw new APIError(
-              "QUOTA_EXCEEDED",
-              "최대 페르소나 개수(4개)에 도달했어요.",
-            );
-          }
-
-          body.clone_type = free;
-        }
-      }
 
       if (!body.pin) {
         throw new APIError("PAYMENT_REQUIRED", "Persona creation requires payment.", {
@@ -325,12 +307,6 @@ clones.post(
         throw new APIError("CONFLICT", "중복된 아이디입니다. 다른 아이디를 사용해주세요.");
       }
 
-      if (/UNIQUE constraint failed: clones\.owner_id, clones\.clone_type/i.test(msg)) {
-        throw new APIError(
-          "QUOTA_EXCEEDED",
-          "Free quota exhausted. Paid creation not yet available (beta).",
-        );
-      }
       throw err;
     }
     if (!inserted) throw new APIError("INTERNAL_ERROR", "페르소나 생성에 실패했어요.");
