@@ -111,7 +111,7 @@ export async function v_f7078e({ cloneId: v_6e0fd3, assets: v_7adc95 = {}, dirs:
     if (!v_aede09) {
       v_3ba9f9 = null;
     } else {
-      const v_8f5693 = v_9fe22d.join(v_27a8d7, v_6e0fd3, 'idle-25fps.mp4');
+      const v_8f5693 = v_9fe22d.join(v_27a8d7, v_6e0fd3, `${v_6e0fd3}-idle-25fps.mp4`);
 
       v_3ba9f9 = await v_461c76(v_7adc95.idleVideoUrl, v_8f5693, v_27a8d7, 100 * 1024 * 1024);
     }

@@ -31,6 +31,9 @@ v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
   const v_b6c480 = await v_b60bdd(v_3f4e2e.env.DB);
   const { l1: v_020b4b, l2: v_1af19b } = await v_db508f(v_3f4e2e.env.DB, v_6e0fd3);
   const v_5ed063 = v_24564b({ l1: v_56dc8c(v_020b4b), l2: v_1af19b });
+
+  v_5ed063.displayName = v_eb25ce.name;
+  if (v_eb25ce.relation != null) v_5ed063.relation = v_eb25ce.relation;
   const v_ba0fde = v_445ba7(v_b6c480, v_5ed063, v_6e0fd3);
 
   let v_c910d9 = v_eb25ce.voice_se_url ?? null;

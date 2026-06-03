@@ -232,6 +232,9 @@ v_469bf2("calls route", () => {
     v_4d37e3(v_a724b9!.personaBundle).toBeTruthy();
     v_4d37e3(typeof (v_a724b9!.personaBundle as { l0: { rules_text: unknown } }).l0.rules_text).toBe("string");
     v_4d37e3(v_a724b9!.personaBundle).toHaveProperty("persona");
+
+    const v_4f321c = v_a724b9!.personaBundle as { persona: Record<string, unknown> };
+    v_4d37e3(v_4f321c.persona.displayName).toBe("CT"); 
   });
 
   v_23805a("POST /oth-path — public 클론(is_system=1)은 stranger도 통화 허용(orchestrator까지 진행)", async () => {

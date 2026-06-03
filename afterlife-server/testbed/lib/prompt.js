@@ -41,6 +41,62 @@ export function v_ea9c84(v_5ed063 = {}) {
   return v_8d4337;
 }
 
+function v_1ef2d9({ l0: v_b6c480 = null, l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [] } = {}) {
+
+  const v_c9d9f2 = Object.fromEntries((v_55a58f ?? []).map((v_779914) => [v_779914.key, v_779914.value]));
+
+  const v_1833e7 = v_c9d9f2.displayName ?? v_c9d9f2.name ?? '이 사람';
+  const v_dd8af0 = v_c9d9f2.relation ?? v_c9d9f2.relationship ?? null;
+  const v_586271 = v_c9d9f2.personality_core ?? v_c9d9f2.personality ?? null;
+  const v_20ef8e = v_c9d9f2.tone ?? null;
+  const v_aa60af = v_c9d9f2.background ?? null;
+  const v_4be670 = v_c9d9f2.era ?? null;
+  const v_410d15 = v_c9d9f2.speech_style ?? null;
+
+  const v_384abe = v_dd8af0
+    ? `사용자(${v_dd8af0})와 1인칭으로 대화하세요.`
+    : '사용자와 1인칭으로 대화하세요.';
+
+  const v_3da74f = [];
+  if (v_4be670) v_3da74f.push(`- 시대/배경: ${v_4be670}`);
+  if (v_aa60af) v_3da74f.push(`- 배경: ${v_aa60af}`);
+  if (v_dd8af0) v_3da74f.push(`- 사용자와의 관계: 사용자는 당신의 ${v_dd8af0}입니다.`);
+
+  const v_b26de4 = [];
+  if (v_586271) v_b26de4.push(`성격: ${v_586271}`);
+  if (v_20ef8e) v_b26de4.push(`말투/어조: ${v_20ef8e}`);
+  if (v_410d15) v_b26de4.push(`언어 스타일: ${v_410d15}`);
+
+  const v_8b6aba = new Set(['displayName', 'name', 'relation', 'relationship',
+    'personality_core', 'personality', 'tone', 'background', 'era', 'speech_style']);
+  for (const { key: v_b24339, value: v_3b402b } of (v_55a58f ?? [])) {
+    if (!v_8b6aba.has(v_b24339)) v_b26de4.push(`${v_b24339}: ${v_3b402b}`);
+  }
+
+  const v_07207b = (v_fc96ca ?? []).map((v_779914) => `- (상대) ${v_779914.key}: ${v_779914.value}`);
+  const v_cddf83 = v_07207b.length
+    ? `\n\n[상대방 정보]\n${v_07207b.join('\n')}`
+    : '';
+
+  const v_c1de37 = v_3da74f.length
+    ? `\n[기본 인물]\n${v_3da74f.join('\n')}\n`
+    : '';
+
+  const v_e47fc6 = v_b26de4.length
+    ? `\n[말투 / 페르소나]\n${v_b26de4.join('\n')}\n`
+    : '';
+
+  return `당신은 "${v_1833e7}"입니다.
+${v_384abe}
+${v_c1de37}${v_e47fc6}
+[중요한 규칙]
+1. 당신은 이 인물 그 자체입니다. AI라거나 모델이라거나 하는 메타 발언 금지.
+2. 모르는 사실은 지어내지 마세요. 모르는 건 자연스럽게 인정하세요.
+3. 답은 짧고 정겹게. 보통 1~3문장. 길게 설교하지 말 것.
+4. 사용자가 슬퍼하거나 외로워하면 따뜻하게 받아주되 과장된 위로는 금지. 대신 일상 안부를 자연스럽게 묻기.
+5. 응답은 일반 한국어 글자만 사용. 이모지 / 이모티콘 / 그림 문자 / 특수 심볼 절대 출력 금지. 텍스트가 그대로 음성으로 합성됩니다.${v_cddf83}`;
+}
+
 function v_9d8b20({ l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [] } = {}) {
   const { profile: v_727031, kb: v_c1cacc } = v_464116();
   const v_a6872a = (v_727031.voiceTraits ?? []).map((v_8d41d7) => `  - ${v_8d41d7}`).join('\n');
@@ -92,9 +148,13 @@ ${v_c1cacc}${v_81a311}
 이제 ${v_727031.userRelation}이/가 말을 걸어옵니다. ${v_727031.displayName}로서 답해주세요.`;
 }
 
-export function v_841e05({ l0: v_b6c480 = null, l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [] } = {}) {
+export function v_841e05({ l0: v_b6c480 = null, l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [], usedBundle: v_ad7fcd = false } = {}) {
   const v_f5b64a = v_b6c480 && typeof v_b6c480.rules_text === 'string' && v_b6c480.rules_text.trim()
     ? `[시스템 규칙 — 반드시 준수]\n${v_b6c480.rules_text.trim()}\n\n`
     : '';
+
+  if (v_ad7fcd) {
+    return v_f5b64a + v_1ef2d9({ l0: v_b6c480, l1Attrs: v_55a58f, l2Attrs: v_fc96ca });
+  }
   return v_f5b64a + v_9d8b20({ l1Attrs: v_55a58f, l2Attrs: v_fc96ca });
 }

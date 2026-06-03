@@ -67,9 +67,11 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
   const { t: v_8d41d7 } = v_772971();
 
   const v_2ca7e0 = v_c7daf6.params?.accessToken;
+  const v_8de98f = v_c7daf6.params?.refreshToken;
   const v_3c038e = v_c7daf6.params?.persist ?? true;
   const v_e0c7e8 = v_c7daf6.params?.email;
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
+  const v_3345cb = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiTokens);
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
   console.log("[SignupComplete] mounted, hasToken:", !!v_2ca7e0, "email:", v_e0c7e8);
 
@@ -85,6 +87,10 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
 
       const v_9ec4c0 = await v_7ef860(v_2ca7e0);
       await v_31080f(v_2ca7e0, v_9ec4c0.user, { persist: v_3c038e });
+
+      if (v_8de98f) {
+        await v_3345cb(v_2ca7e0, v_8de98f, { persist: v_3c038e });
+      }
       await v_232d52();
     } catch (v_49263d) {
       console.warn("[SignupComplete] start failed:", v_49263d);

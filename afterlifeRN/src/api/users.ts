@@ -1,6 +1,6 @@
 
 
-import { v_cc9198 } from "../config/apiBase";
+import { v_04b58a } from "../lib/authFetch";
 
 export interface UserProfileClone {
   id: number;
@@ -42,57 +42,25 @@ export interface UserFollowItem {
   createdAt: string;
 }
 
-async function v_1a2d12(
-  v_8f00b9,
-  v_e3aeb3,
-): Promise<unknown> {
-  const v_9b6134 = await v_8f00b9.text();
-  let v_8decf8 = null;
-  try {
-    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
-  } catch {
-
-  }
-  if (!v_8f00b9.ok) {
-    const v_badeaf =
-      (v_8decf8 && typeof v_8decf8 === "object" && "error" in v_8decf8
-        ? (v_8decf8 as { error?: { message?: string } }).error?.message
-        : null) ?? `${v_e3aeb3} failed (${v_8f00b9.status})`;
-    throw new Error(v_badeaf);
-  }
-  return v_8decf8;
-}
-
 export async function v_9fd740(
   v_2ca7e0,
   v_43e90c,
 ): Promise<UserProfile> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_43e90c}`, {
-    headers: { Authorization: `Bearer ${v_2ca7e0}` },
-  });
-  return v_1a2d12(v_8f00b9, "getUserProfile") as Promise<UserProfile>;
+  return v_04b58a<UserProfile>(`/oth-path${v_43e90c}`, v_2ca7e0);
 }
 
 export async function v_31c237(
   v_2ca7e0,
   v_43e90c,
 ): Promise<void> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_43e90c}/follow`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${v_2ca7e0}` },
-  });
-  await v_1a2d12(v_8f00b9, "followUser");
+  await v_04b58a<unknown>(`/oth-path${v_43e90c}/follow`, v_2ca7e0, { method: "POST" });
 }
 
 export async function v_deb9b0(
   v_2ca7e0,
   v_43e90c,
 ): Promise<void> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_43e90c}/follow`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${v_2ca7e0}` },
-  });
-  await v_1a2d12(v_8f00b9, "unfollowUser");
+  await v_04b58a<unknown>(`/oth-path${v_43e90c}/follow`, v_2ca7e0, { method: "DELETE" });
 }
 
 export async function v_00fbca(
@@ -100,13 +68,10 @@ export async function v_00fbca(
   v_43e90c,
   v_02be30 = 50,
 ): Promise<{ items: UserFollowItem[] }> {
-  const v_8f00b9 = await fetch(
-    `${v_cc9198}/oth-path${v_43e90c}/followers?limit=${v_02be30}`,
-    { headers: { Authorization: `Bearer ${v_2ca7e0}` } },
+  return v_04b58a<{ items: UserFollowItem[] }>(
+    `/oth-path${v_43e90c}/followers?limit=${v_02be30}`,
+    v_2ca7e0,
   );
-  return v_1a2d12(v_8f00b9, "listUserFollowers") as Promise<{
-    items: UserFollowItem[];
-  }>;
 }
 
 export async function v_5959d8(
@@ -114,35 +79,32 @@ export async function v_5959d8(
   v_43e90c,
   v_02be30 = 50,
 ): Promise<{ items: UserFollowItem[] }> {
-  const v_8f00b9 = await fetch(
-    `${v_cc9198}/oth-path${v_43e90c}/following?limit=${v_02be30}`,
-    { headers: { Authorization: `Bearer ${v_2ca7e0}` } },
+  return v_04b58a<{ items: UserFollowItem[] }>(
+    `/oth-path${v_43e90c}/following?limit=${v_02be30}`,
+    v_2ca7e0,
   );
-  return v_1a2d12(v_8f00b9, "listUserFollowing") as Promise<{
-    items: UserFollowItem[];
-  }>;
 }
 
 export async function v_b9d616(
   v_2ca7e0,
   v_43e90c,
 ): Promise<{ ok: true; blocked: true }> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_43e90c}/block`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${v_2ca7e0}` },
-  });
-  return v_1a2d12(v_8f00b9, "blockUser") as Promise<{ ok: true; blocked: true }>;
+  return v_04b58a<{ ok: true; blocked: true }>(
+    `/oth-path${v_43e90c}/block`,
+    v_2ca7e0,
+    { method: "POST" },
+  );
 }
 
 export async function v_83b07d(
   v_2ca7e0,
   v_43e90c,
 ): Promise<{ ok: true; blocked: false }> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_43e90c}/block`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${v_2ca7e0}` },
-  });
-  return v_1a2d12(v_8f00b9, "unblockUser") as Promise<{ ok: true; blocked: false }>;
+  return v_04b58a<{ ok: true; blocked: false }>(
+    `/oth-path${v_43e90c}/block`,
+    v_2ca7e0,
+    { method: "DELETE" },
+  );
 }
 
 export async function v_095ba5(
@@ -150,17 +112,9 @@ export async function v_095ba5(
   v_43e90c,
   v_58ca36,
 ): Promise<{ ok: true; reported: true; blocked: true }> {
-  const v_8f00b9 = await fetch(`${v_cc9198}/oth-path${v_43e90c}/report`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${v_2ca7e0}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(v_58ca36 ? { reason: v_58ca36 } : {}),
-  });
-  return v_1a2d12(v_8f00b9, "reportUser") as Promise<{
-    ok: true;
-    reported: true;
-    blocked: true;
-  }>;
+  return v_04b58a<{ ok: true; reported: true; blocked: true }>(
+    `/oth-path${v_43e90c}/report`,
+    v_2ca7e0,
+    { method: "POST", body: JSON.stringify(v_58ca36 ? { reason: v_58ca36 } : {}) },
+  );
 }

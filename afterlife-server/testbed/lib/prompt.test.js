@@ -70,3 +70,40 @@ v_2a805f('personaToAttrs — 사투리 메타 없으면 tone 원문 유지', () 
   const v_3555ae = v_ea9c84({ tone: '차분한 말투', personality_core: '조용함' });
   v_ce93bd.equal(v_3555ae.find((v_779914) => v_779914.key === 'tone').value, '차분한 말투');
 });
+
+v_2a805f('usedBundle=true 경로 — 동적 본문에 displayName 포함, 할배 고정 문구 없음', () => {
+  const v_55a58f = [
+    { key: 'displayName', value: '엄마' },
+    { key: 'relation', value: '딸 (사용자)' },
+    { key: 'personality_core', value: '다정하고 따뜻한' },
+    { key: 'tone', value: '부드러운 중년 여성 말투' },
+  ];
+  const v_8d4337 = v_841e05({ l1Attrs: v_55a58f, l2Attrs: [], usedBundle: true });
+  v_ce93bd.match(v_8d4337, /엄마/);
+  v_ce93bd.match(v_8d4337, /다정하고 따뜻한/);
+  v_ce93bd.match(v_8d4337, /부드러운 중년 여성 말투/);
+
+  v_ce93bd.doesNotMatch(v_8d4337, /어복쟁반/);
+  v_ce93bd.doesNotMatch(v_8d4337, /1인칭은 "할배"/);
+  v_ce93bd.doesNotMatch(v_8d4337, /손녀딸/);
+});
+
+v_2a805f('usedBundle=true + l0 rules_text — l0가 본문 앞에', () => {
+  const v_55a58f = [{ key: 'displayName', value: '아빠' }, { key: 'tone', value: '차분함' }];
+  const v_8d4337 = v_841e05({ l0: { rules_text: '금칙RULE' }, l1Attrs: v_55a58f, usedBundle: true });
+  v_ce93bd.ok(v_8d4337.indexOf('금칙RULE') < v_8d4337.indexOf('아빠'));
+  v_ce93bd.doesNotMatch(v_8d4337, /어복쟁반/);
+});
+
+v_2a805f('usedBundle=true + l1Attrs 비어있음 — 최소 중립 본문, 할배 fallback 없음', () => {
+  const v_8d4337 = v_841e05({ l0: { rules_text: 'RULE' }, l1Attrs: [], usedBundle: true });
+  v_ce93bd.doesNotMatch(v_8d4337, /어복쟁반/);
+  v_ce93bd.doesNotMatch(v_8d4337, /1인칭은 "할배"/);
+  v_ce93bd.ok(v_8d4337.length > 0);
+});
+
+v_2a805f('usedBundle=false — 기존 buildLegacyBody 경로(회귀 안전)', () => {
+  const v_8d4337 = v_841e05({ l1Attrs: [], usedBundle: false });
+
+  v_ce93bd.match(v_8d4337, /할배/);
+});

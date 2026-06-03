@@ -208,6 +208,7 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
 
   return v_3f4e2e.json({
     accessToken: v_2ca7e0,
+    refreshToken: v_dfaee3,
     accessExpiresIn: v_ff8c95,
     user: {
       id: v_d1b635.id,
@@ -392,6 +393,7 @@ v_68f0aa.post("/xrun/complete", async (v_3f4e2e) => {
   return v_3f4e2e.json(
     {
       accessToken: v_2ca7e0,
+      refreshToken: v_dfaee3,
       accessExpiresIn: v_ff8c95,
       user: {
         id: v_81161e.id,
@@ -579,6 +581,7 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
   return v_3f4e2e.json(
     {
       accessToken: v_2ca7e0,
+      refreshToken: v_dfaee3,
       accessExpiresIn: v_ff8c95,
       user: {
         id: v_81161e.id,
@@ -698,7 +701,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
   await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login" });
 
-  return v_3f4e2e.json({ accessToken: v_2ca7e0, accessExpiresIn: v_ff8c95 });
+  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 });
 });
 
 v_68f0aa.post("/refresh", async (v_3f4e2e) => {
@@ -709,9 +712,38 @@ v_68f0aa.post("/refresh", async (v_3f4e2e) => {
   return v_3f4e2e.json({ accessToken: v_7c0f0d.accessToken, accessExpiresIn: v_7c0f0d.accessExpiresIn });
 });
 
+const v_aaa2fc = v_1f4ea7.object({
+  refreshToken: v_1f4ea7.string().min(20),
+});
+
+v_68f0aa.post("/refresh/token", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_aaa2fc);
+  const v_7c0f0d = await v_27b603(v_3f4e2e, v_4d33b2.refreshToken);
+
+  v_56035d(v_3f4e2e, v_7c0f0d.refreshToken);
+  return v_3f4e2e.json({
+    accessToken: v_7c0f0d.accessToken,
+    refreshToken: v_7c0f0d.refreshToken,
+    accessExpiresIn: v_7c0f0d.accessExpiresIn,
+  });
+});
+
+const v_9088d8 = v_1f4ea7.object({
+  refreshToken: v_1f4ea7.string().min(20).optional(),
+});
+
 v_68f0aa.post("/logout", v_6690d9, async (v_3f4e2e) => {
-  const v_1a1b9b = v_bde6da(v_3f4e2e);
-  if (v_1a1b9b) await v_e1c29b(v_3f4e2e, v_1a1b9b);
+
+  let v_c6edfc;
+  try {
+    const v_8decf8 = await v_4c95c2(v_3f4e2e, v_9088d8);
+    v_c6edfc = v_8decf8.refreshToken;
+  } catch {
+
+  }
+  const v_98343d = v_bde6da(v_3f4e2e);
+  if (v_c6edfc) await v_e1c29b(v_3f4e2e, v_c6edfc);
+  if (v_98343d) await v_e1c29b(v_3f4e2e, v_98343d);
   v_91a253(v_3f4e2e);
 
   const v_43e90c = v_3f4e2e.get("userId");
