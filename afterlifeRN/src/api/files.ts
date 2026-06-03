@@ -1,7 +1,6 @@
 
 
-import { API_BASE } from "../config/apiBase";
-import { AuthApiError, type ApiErrorBody } from "./auth";
+import { authFetch } from "../lib/authFetch";
 
 export interface UploadedFile {
   id: number;
@@ -27,30 +26,11 @@ export async function uploadFile(
   );
   if (opts?.purpose) form.append("purpose", opts.purpose);
 
-  const res = await fetch(`${API_BASE}/oth-path`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-
-    },
-    body: form,
-  });
-
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const errBody = parsed as ApiErrorBody | null;
-    throw new AuthApiError(
-      res.status,
-      errBody?.error?.code ?? "HTTP_ERROR",
-      errBody?.error?.message ?? `HTTP ${res.status}`,
-      errBody?.error?.details,
-    );
-  }
-  return parsed as UploadedFile;
+  return authFetch<UploadedFile>(
+    "/oth-path",
+    accessToken,
+    { method: "POST", body: form },
+    undefined,
+    { multipart: true },
+  );
 }

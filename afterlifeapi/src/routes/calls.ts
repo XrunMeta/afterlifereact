@@ -31,6 +31,9 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
   const l0 = await loadSystemPersona(c.env.DB);
   const { l1, l2 } = await loadCloneProfiles(c.env.DB, cloneId);
   const persona = resolvePersona({ l1: flattenAttrs(l1), l2 });
+
+  persona.displayName = clone.name;
+  if (clone.relation != null) persona.relation = clone.relation;
   const personaBundle = buildPersonaBundle(l0, persona, cloneId);
 
   let voiceSeUrl: string | null = clone.voice_se_url ?? null;

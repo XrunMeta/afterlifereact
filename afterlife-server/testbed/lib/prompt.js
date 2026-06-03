@@ -41,6 +41,62 @@ export function personaToAttrs(persona = {}) {
   return out;
 }
 
+function buildDynamicBody({ l0 = null, l1Attrs = [], l2Attrs = [] } = {}) {
+
+  const attrMap = Object.fromEntries((l1Attrs ?? []).map((a) => [a.key, a.value]));
+
+  const name = attrMap.displayName ?? attrMap.name ?? '이 사람';
+  const relation = attrMap.relation ?? attrMap.relationship ?? null;
+  const personalityCore = attrMap.personality_core ?? attrMap.personality ?? null;
+  const tone = attrMap.tone ?? null;
+  const background = attrMap.background ?? null;
+  const era = attrMap.era ?? null;
+  const speechStyle = attrMap.speech_style ?? null;
+
+  const relationLine = relation
+    ? `사용자(${relation})와 1인칭으로 대화하세요.`
+    : '사용자와 1인칭으로 대화하세요.';
+
+  const infoLines = [];
+  if (era) infoLines.push(`- 시대/배경: ${era}`);
+  if (background) infoLines.push(`- 배경: ${background}`);
+  if (relation) infoLines.push(`- 사용자와의 관계: 사용자는 당신의 ${relation}입니다.`);
+
+  const personaLines = [];
+  if (personalityCore) personaLines.push(`성격: ${personalityCore}`);
+  if (tone) personaLines.push(`말투/어조: ${tone}`);
+  if (speechStyle) personaLines.push(`언어 스타일: ${speechStyle}`);
+
+  const usedKeys = new Set(['displayName', 'name', 'relation', 'relationship',
+    'personality_core', 'personality', 'tone', 'background', 'era', 'speech_style']);
+  for (const { key, value } of (l1Attrs ?? [])) {
+    if (!usedKeys.has(key)) personaLines.push(`${key}: ${value}`);
+  }
+
+  const l2Lines = (l2Attrs ?? []).map((a) => `- (상대) ${a.key}: ${a.value}`);
+  const l2Section = l2Lines.length
+    ? `\n\n[상대방 정보]\n${l2Lines.join('\n')}`
+    : '';
+
+  const infoSection = infoLines.length
+    ? `\n[기본 인물]\n${infoLines.join('\n')}\n`
+    : '';
+
+  const personaSection = personaLines.length
+    ? `\n[말투 / 페르소나]\n${personaLines.join('\n')}\n`
+    : '';
+
+  return `당신은 "${name}"입니다.
+${relationLine}
+${infoSection}${personaSection}
+[중요한 규칙]
+1. 당신은 이 인물 그 자체입니다. AI라거나 모델이라거나 하는 메타 발언 금지.
+2. 모르는 사실은 지어내지 마세요. 모르는 건 자연스럽게 인정하세요.
+3. 답은 짧고 정겹게. 보통 1~3문장. 길게 설교하지 말 것.
+4. 사용자가 슬퍼하거나 외로워하면 따뜻하게 받아주되 과장된 위로는 금지. 대신 일상 안부를 자연스럽게 묻기.
+5. 응답은 일반 한국어 글자만 사용. 이모지 / 이모티콘 / 그림 문자 / 특수 심볼 절대 출력 금지. 텍스트가 그대로 음성으로 합성됩니다.${l2Section}`;
+}
+
 function buildLegacyBody({ l1Attrs = [], l2Attrs = [] } = {}) {
   const { profile, kb } = loadPersona();
   const traits = (profile.voiceTraits ?? []).map((t) => `  - ${t}`).join('\n');
@@ -92,9 +148,13 @@ ${kb}${learnedSection}
 이제 ${profile.userRelation}이/가 말을 걸어옵니다. ${profile.displayName}로서 답해주세요.`;
 }
 
-export function buildSystemPrompt({ l0 = null, l1Attrs = [], l2Attrs = [] } = {}) {
+export function buildSystemPrompt({ l0 = null, l1Attrs = [], l2Attrs = [], usedBundle = false } = {}) {
   const l0Section = l0 && typeof l0.rules_text === 'string' && l0.rules_text.trim()
     ? `[시스템 규칙 — 반드시 준수]\n${l0.rules_text.trim()}\n\n`
     : '';
+
+  if (usedBundle) {
+    return l0Section + buildDynamicBody({ l0, l1Attrs, l2Attrs });
+  }
   return l0Section + buildLegacyBody({ l1Attrs, l2Attrs });
 }

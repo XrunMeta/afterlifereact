@@ -1,7 +1,6 @@
 
 
-import { API_BASE } from '../config/apiBase';
-import { AuthApiError, type ApiErrorBody } from './auth';
+import { authFetch } from '../lib/authFetch';
 
 export interface CallTicket {
   callId: string;
@@ -12,36 +11,8 @@ export interface CallTicket {
   expiresAt: string;
 }
 
-async function postAuth<T>(path: string, accessToken: string, body?: object): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const body = parsed as ApiErrorBody | null;
-    throw new AuthApiError(
-      res.status,
-      body?.error?.code ?? 'HTTP_ERROR',
-      body?.error?.message ?? `HTTP ${res.status}`,
-      body?.error?.details,
-    );
-  }
-  return parsed as T;
-}
-
 export async function startCall(accessToken: string, cloneId: number): Promise<CallTicket> {
-  return postAuth<CallTicket>(`/oth-path${cloneId}/call`, accessToken);
+  return authFetch<CallTicket>(`/oth-path${cloneId}/call`, accessToken, { method: 'POST' });
 }
 
 export async function sayInCall(
@@ -50,10 +21,10 @@ export async function sayInCall(
   callId: string,
   text: string,
 ): Promise<{ ok: boolean }> {
-  return postAuth<{ ok: boolean }>(
+  return authFetch<{ ok: boolean }>(
     `/oth-path${cloneId}/call/${callId}/say`,
     accessToken,
-    { text },
+    { method: 'POST', body: JSON.stringify({ text }) },
   );
 }
 
@@ -62,5 +33,9 @@ export async function endCall(
   cloneId: number,
   callId: string,
 ): Promise<{ ok: true }> {
-  return postAuth<{ ok: true }>(`/oth-path${cloneId}/call/${callId}/end`, accessToken);
+  return authFetch<{ ok: true }>(
+    `/oth-path${cloneId}/call/${callId}/end`,
+    accessToken,
+    { method: 'POST' },
+  );
 }
