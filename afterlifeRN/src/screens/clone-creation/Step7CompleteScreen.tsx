@@ -27,10 +27,11 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
-import { createClone, deriveUsernameFromName, createCloneFeed, updateClone, getAssetJob, type AssetJob } from "../../api/clones";
+import { createClone, deriveUsernameFromName, createCloneFeed, updateClone, getAssetJob, createAssetJob, type AssetJob } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
 import { Image } from "react-native";
+import { pickAndCropImage } from "../../lib/imagePicker";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step7">;
@@ -60,6 +61,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const resetCreationDraft = useCloneStore((s) => s.resetCreationDraft);
   const draft = useCloneStore((s) => s.creationDraft);
+  const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
   const addClone = useCloneStore((s) => s.addClone);
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -121,6 +123,59 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     };
 
   }, [draft.idleVideoJobId, accessToken]);
+
+  const [reuploadLoading, setReuploadLoading] = useState(false);
+
+  const idleBlocking = draft.idleVideoJobId ? idleJob?.status !== 'done' : true;
+
+  const handleReuploadPhoto = useCallback(async () => {
+    if (reuploadLoading) return;
+
+    if (!accessToken) { showAlert('로그인 정보가 없어요. 다시 로그인해주세요.'); return; }
+    try {
+      const result = await pickAndCropImage({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const uri = result.assets[0].uri;
+      setReuploadLoading(true);
+      const ext = uri.split('.').pop()?.toLowerCase() ?? '';
+      const mime =
+        ext === 'png' ? 'image/png'
+        : ext === 'webp' ? 'image/webp'
+        : ext === 'gif' ? 'image/gif'
+        : 'image/jpeg';
+      const uploaded = await uploadFile(accessToken, uri, {
+        purpose: 'clone_avatar',
+        mimeType: mime,
+        fileName: `avatar.${ext || 'jpg'}`,
+      });
+
+      const jobRes = await createAssetJob(accessToken, {
+        kind: 'idle_video',
+        src_file_id: uploaded.id,
+      });
+
+      setIdleJob(null);
+
+      setCreationDraft({
+        imageFile: uri,
+        avatarFileId: uploaded.id,
+        avatarUrl: uploaded.url,
+        idleVideoJobId: jobRes.job_id,
+      });
+      avatarUrlRef.current = uploaded.url;
+    } catch (err) {
+      console.warn('[Step7] 재업로드 실패:', err);
+
+      showAlert('업로드 실패', '영상 생성 요청에 실패했어요. 다시 시도해주세요.');
+    } finally {
+      setReuploadLoading(false);
+    }
+  }, [reuploadLoading, accessToken, setCreationDraft]);
 
   const [posting, setPosting] = useState(false);
 
@@ -293,6 +348,11 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   const handleSharePost = async () => {
     if (creating || posting) return;
+
+    if (idleBlocking) {
+      showAlert('잠깐요', '영상 생성이 완료되면 게시할 수 있어요.');
+      return;
+    }
     const trimmed = caption.trim();
 
     const draftDump = {
@@ -498,6 +558,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           </View>
 
           {
+
 }
           {idleJob?.status === 'done' && idleJob.out_url ? (
 
@@ -507,18 +568,27 @@ export default function Step7CompleteScreen({ navigation }: Props) {
                 <Text style={styles.videoBadgeText}>영상 준비 완료</Text>
               </View>
             </View>
-          ) : idleJob?.status === 'failed' ? (
+          ) : (idleJob?.status === 'failed' || (!draft.idleVideoJobId && !!draft.imageFile)) ? (
 
             <TouchableOpacity
+              testID="reupload-photo-button"
               style={styles.previewBox}
-              onPress={() => navigation.navigate('Step3')}
+              onPress={handleReuploadPhoto}
               activeOpacity={0.8}
+              disabled={reuploadLoading}
             >
               {draft.imageFile && (
                 <Image source={{ uri: draft.imageFile }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
               )}
               <View style={[styles.videoBadge, styles.videoBadgeFailed]}>
-                <Text style={styles.videoBadgeText}>영상 생성 실패 — 사진 다시 올리기</Text>
+                {reuploadLoading ? (
+                  <>
+                    <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 6 }} />
+                    <Text style={styles.videoBadgeText}>사진 올리는 중...</Text>
+                  </>
+                ) : (
+                  <Text style={styles.videoBadgeText}>사진 다시 올리기</Text>
+                )}
               </View>
             </TouchableOpacity>
           ) : draft.idleVideoJobId && (!idleJob || idleJob.status === 'pending' || idleJob.status === 'running') ? (
@@ -565,6 +635,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 }
         <View style={styles.bottomBar}>
           <Button
+            testID="share-post-button"
             title={
               error
                 ? "다시 시도"
@@ -584,7 +655,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
                 : handleSharePost
             }
             variant="accent"
-            disabled={posting || (creating && createdCloneId == null && !error)}
+            disabled={idleBlocking || posting || (creating && createdCloneId == null && !error)}
           />
         </View>
       </KeyboardAvoidingView>
