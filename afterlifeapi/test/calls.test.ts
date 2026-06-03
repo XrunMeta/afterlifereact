@@ -234,7 +234,7 @@ describe("calls route", () => {
     expect(capturedBody!.personaBundle).toHaveProperty("persona");
   });
 
-  it("POST /oth-path — 시스템 클론(is_system=1)이어도 소유자가 아닌 비-follower는 403", async () => {
+  it("POST /oth-path — public 클론(is_system=1)은 stranger도 통화 허용(orchestrator까지 진행)", async () => {
     const db = env.DB as unknown as D1Database;
     const sysOwner = await seedUser("sysowner-sys@test.local");
     await db
@@ -250,12 +250,118 @@ describe("calls route", () => {
 
     const stranger = await seedUser("stranger-sys@test.local");
     const tok = await issueAccessToken(stranger);
-
+    fetchMock
+      .get(ORCH)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, {
+        callId: "pub-sys-call",
+        subscribeToken: "pub-tok",
+        tracks: { video: "v-pub", audio: "a-pub" },
+        state: "live",
+      });
     const res = await SELF.fetch(`http://localhost/oth-path${sysClone!.id}/call`, {
       method: "POST",
       headers: { Authorization: `Bearer ${tok}` },
     });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { callId: string };
+    expect(body.callId).toBe("pub-sys-call");
+  });
+
+  it("POST /oth-path — public 클론(is_system=0)은 stranger도 통화 허용", async () => {
+    const owner = await seedUser("pub-owner@test.local");
+    const cloneId = await seedClone(owner, "pubclone_stranger");
+
+    const stranger = await seedUser("pub-stranger@test.local");
+    const tok = await issueAccessToken(stranger);
+    fetchMock
+      .get(ORCH)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, {
+        callId: "pub-clone-call",
+        subscribeToken: "pub-tok2",
+        tracks: { video: "v", audio: "a" },
+        state: "live",
+      });
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("POST /oth-path — private 클론은 stranger에게 403", async () => {
+    const db = env.DB as unknown as D1Database;
+    const owner = await seedUser("priv-owner@test.local");
+    await db
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Private', 'privateclone_403', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(owner)
+      .run();
+    const privClone = await db.prepare("SELECT id FROM clones WHERE username = 'privateclone_403'").first<{ id: number }>();
+    const stranger = await seedUser("priv-stranger@test.local");
+    const tok = await issueAccessToken(stranger);
+    const res = await SELF.fetch(`http://localhost/oth-path${privClone!.id}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}` },
+    });
     expect(res.status).toBe(403);
+  });
+
+  it("POST /oth-path — followers 클론은 non-follower에게 403", async () => {
+    const db = env.DB as unknown as D1Database;
+    const owner = await seedUser("foll-owner@test.local");
+    await db
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Followers', 'followersclone_403', 'memlow', 'followers', CURRENT_TIMESTAMP)`,
+      )
+      .bind(owner)
+      .run();
+    const follClone = await db.prepare("SELECT id FROM clones WHERE username = 'followersclone_403'").first<{ id: number }>();
+    const nonFollower = await seedUser("nonfoll@test.local");
+    const tok = await issueAccessToken(nonFollower);
+    const res = await SELF.fetch(`http://localhost/oth-path${follClone!.id}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("POST /oth-path — followers 클론은 follower에게 허용", async () => {
+    const db = env.DB as unknown as D1Database;
+    const owner = await seedUser("foll-owner2@test.local");
+    await db
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Followers', 'followersclone_ok', 'memlow', 'followers', CURRENT_TIMESTAMP)`,
+      )
+      .bind(owner)
+      .run();
+    const follClone = await db.prepare("SELECT id FROM clones WHERE username = 'followersclone_ok'").first<{ id: number }>();
+    const follower = await seedUser("follower-ok@test.local");
+
+    await db
+      .prepare("INSERT INTO clone_follows (clone_id, user_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)")
+      .bind(follClone!.id, follower)
+      .run();
+    const tok = await issueAccessToken(follower);
+    fetchMock
+      .get(ORCH)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, {
+        callId: "foll-call",
+        subscribeToken: "foll-tok",
+        tracks: { video: "v", audio: "a" },
+        state: "live",
+      });
+    const res = await SELF.fetch(`http://localhost/oth-path${follClone!.id}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+    expect(res.status).toBe(200);
   });
 
   it("POST /oth-path — 시스템 클론(is_system=1) 소유자는 200", async () => {
@@ -290,14 +396,22 @@ describe("calls route", () => {
     expect(body.callId).toBe("sys-owner-call");
   });
 
-  it("POST /oth-path — 일반 클론(is_system=0)은 비-follower에게 403", async () => {
+  it("POST /oth-path — private 클론(is_system=0)은 비-follower에게 403", async () => {
+    const db = env.DB as unknown as D1Database;
     const owner = await seedUser("normal-owner-sys@test.local");
-    const cloneId = await seedClone(owner, "normalclone_sys_test");
+    await db
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'NormalPriv', 'normalclone_sys_test', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(owner)
+      .run();
+    const privClone = await db.prepare("SELECT id FROM clones WHERE username = 'normalclone_sys_test'").first<{ id: number }>();
 
     const stranger = await seedUser("stranger-normal@test.local");
     const tok = await issueAccessToken(stranger);
 
-    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call`, {
+    const res = await SELF.fetch(`http://localhost/oth-path${privClone!.id}/call`, {
       method: "POST",
       headers: { Authorization: `Bearer ${tok}` },
     });

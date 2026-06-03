@@ -24,7 +24,9 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
   if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
   const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
 
-  if (!viewerRole) throw new APIError("FORBIDDEN", "No access to this clone for call.");
+  if (!viewerRole && clone.visibility !== "public") {
+    throw new APIError("FORBIDDEN", "No access to this clone for call.");
+  }
 
   const l0 = await loadSystemPersona(c.env.DB);
   const { l1, l2 } = await loadCloneProfiles(c.env.DB, cloneId);
