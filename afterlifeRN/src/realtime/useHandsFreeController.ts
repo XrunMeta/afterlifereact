@@ -9,7 +9,13 @@ import {
   type HandsFreeEvent,
   type HandsFreeEffect,
 } from './handsFree';
-import { type CloneSilenceConfig } from './cloneSilence';
+import { extractCloneAudioLevel, type CloneSilenceConfig } from './cloneSilence';
+
+const CLONE_GATE_LEVEL = 0.05; 
+
+const CLONE_GATE_MS = 3500;
+
+const CLONE_RESUME_MS = 1200;
 
 export function useHandsFreeController(opts: {
 
@@ -32,6 +38,8 @@ export function useHandsFreeController(opts: {
 
   const dispatchRef = useRef<(ev: HandsFreeEvent) => void>(() => {});
 
+  const cloneSpokeAtRef = useRef(0);
+
   const detector = useCloneSilenceDetector({
     getStatsReport: opts.getStatsReport,
     onResponseEnd: () => dispatchRef.current({ type: 'RESPONSE_END' }),
@@ -39,14 +47,27 @@ export function useHandsFreeController(opts: {
   });
   const speech = useSpeechInput({
     engine: opts.speechEngine,
-    onFinalResult: (text) => dispatchRef.current({ type: 'FINAL_RESULT', text }),
+    onFinalResult: (text) => {
+
+      const sinceClone = Date.now() - cloneSpokeAtRef.current;
+      if (sinceClone < CLONE_GATE_MS) {
+        return; 
+      }
+      dispatchRef.current({ type: 'FINAL_RESULT', text });
+    },
   });
+
+  const speechRef = useRef(speech);
+  useEffect(() => { speechRef.current = speech; });
+
+  const sttSuppressedRef = useRef(false);
 
   const runEffects = useCallback(
     (effects: HandsFreeEffect[], sayText?: string) => {
       for (const e of effects) {
         switch (e) {
           case 'START_STT':
+            sttSuppressedRef.current = false; 
             void speech.startListening();
             break;
           case 'STOP_STT':
@@ -87,6 +108,37 @@ export function useHandsFreeController(opts: {
 
   useEffect(() => {
     dispatchRef.current(opts.enabled ? { type: 'CALL_LIVE' } : { type: 'CALL_ENDED' });
+  }, [opts.enabled]);
+
+  const getStatsRef = useRef(opts.getStatsReport);
+  useEffect(() => { getStatsRef.current = opts.getStatsReport; });
+  useEffect(() => {
+    if (!opts.enabled) return;
+    const id = setInterval(() => {
+      const p = getStatsRef.current();
+      if (!p) return;
+      p.then((report) => {
+        const lv = extractCloneAudioLevel(report);
+        const now = Date.now();
+        const cloneSpeaking = typeof lv === 'number' && lv > CLONE_GATE_LEVEL;
+        if (cloneSpeaking) cloneSpokeAtRef.current = now;
+
+        const st = stateRef.current;
+        if (st.phase !== 'listening' || !st.micOn) return;
+        if (cloneSpeaking && !sttSuppressedRef.current) {
+          speechRef.current.stopListening();
+          sttSuppressedRef.current = true;
+        } else if (
+          !cloneSpeaking &&
+          sttSuppressedRef.current &&
+          now - cloneSpokeAtRef.current > CLONE_RESUME_MS
+        ) {
+          void speechRef.current.startListening();
+          sttSuppressedRef.current = false;
+        }
+      }).catch(() => {});
+    }, 200);
+    return () => clearInterval(id);
   }, [opts.enabled]);
 
   const toggleMic = useCallback(() => {
