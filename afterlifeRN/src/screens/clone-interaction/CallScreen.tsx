@@ -22,7 +22,7 @@ import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_bab832 } from "rthlnescfffbyxfmhgq";
 import { v_b38a7e } from "../../realtime/useLiveAvatar";
-import { v_fee12d } from "../../realtime/useSpeechInput";
+import { v_7df8a4 } from "../../realtime/useHandsFreeController";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -77,22 +77,22 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     start: v_223067,
     stop: v_cd8b64,
     say: v_3e2c87,
-    phase: v_ab4803,
+    getStatsReport: v_791152,
+    notifySpeechEnd: v_811f30,
   } = v_b38a7e({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
 
-  const { transcript: v_0885ca, interimTranscript: v_a2d9d1, listening: v_177ff2, startListening: v_770cae, stopListening: v_ad03b1 } = v_fee12d({
-    onFinalResult: (v_9b6134) => {
-      void v_3e2c87(v_9b6134);
-    },
+  const {
+    phase: v_ab4803,
+    micOn: v_1065f7,
+    toggleMic: v_6e1295,
+    transcript: v_0885ca,
+    interimTranscript: v_a2d9d1,
+  } = v_7df8a4({
+    enabled: v_6cc918 === "live",
+    say: v_3e2c87,
+    getStatsReport: v_791152,
+    notifySpeechEnd: v_811f30,
   });
-
-  const v_1d1ca9 = () => {
-    if (v_ab4803 === "idle") void v_770cae();
-  };
-  const v_920eb5 = () => {
-
-    v_ad03b1();
-  };
 
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
@@ -492,16 +492,33 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ))}
 
       {}
+      {v_ab4803 === 'listening' && (!!v_a2d9d1 || !!v_0885ca) ? (
+        <View style={v_fd5f43.subtitleContainer} pointerEvents="none">
+          <Text style={v_fd5f43.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+            {v_a2d9d1 || v_0885ca}
+          </Text>
+        </View>
+      ) : null}
+
+      {}
       <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
         {}
         <Pressable
-          onPressIn={v_1d1ca9}
-          onPressOut={v_920eb5}
-          disabled={v_ab4803 === "speaking"}
-          style={[v_fd5f43.controlBtn, v_177ff2 && v_fd5f43.controlBtnActive, v_ab4803 === "speaking" && v_fd5f43.controlBtnDanger]}
+          onPress={v_6e1295}
+          style={[
+            v_fd5f43.controlBtn,
+            v_1065f7 && v_ab4803 === 'listening' && v_fd5f43.controlBtnActive,
+            v_ab4803 === 'speaking' && v_fd5f43.controlBtnDanger,
+          ]}
         >
           <Text style={v_fd5f43.talkBtnText}>
-            {v_ab4803 === "speaking" ? "응답 중..." : v_177ff2 ? "듣는 중..." : "말하기"}
+            {!v_1065f7
+              ? '마이크 꺼짐'
+              : v_ab4803 === 'speaking'
+                ? '응답 중...'
+                : v_ab4803 === 'listening'
+                  ? '듣는 중...'
+                  : '대기'}
           </Text>
         </Pressable>
 
@@ -807,6 +824,26 @@ const v_fd5f43 = v_472849.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 12,
+  },
+
+  subtitleContainer: {
+    position: 'absolute',
+    bottom: 150,
+    left: 48,
+    right: 48,
+    alignItems: 'center',
+    zIndex: 15,
+  },
+  subtitleText: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: v_1bfbd0.white,
+    fontSize: 15,
+    fontWeight: '500',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    textAlign: 'center',
+    overflow: 'hidden',
   },
 
   giftOverlay: {

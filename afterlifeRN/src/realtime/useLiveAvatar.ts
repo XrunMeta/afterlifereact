@@ -29,6 +29,7 @@ export interface LivePeerConnection {
   setRemoteDescription(desc: v_d904b7): Promise<void>;
   createAnswer(): Promise<{ type?: string; sdp?: string }>;
   setLocalDescription(desc: { type?: string; sdp?: string }): Promise<void>;
+  getStats?: () => Promise<Iterable<[string, Record<string, unknown>]>>;
   close(): void;
 }
 
@@ -101,6 +102,20 @@ export function v_b38a7e(v_328259) {
       v_ae4844('idle');
     }
   }, [v_2ca7e0, v_6e0fd3, v_84b93d, v_ab4803]);
+
+  const v_811f30 = v_de06a3(() => {
+    if (v_6b43e5.current) {
+      clearTimeout(v_6b43e5.current);
+      v_6b43e5.current = null;
+    }
+    v_ae4844('idle');
+  }, []);
+
+  const v_791152 = v_de06a3((): Promise<Iterable<[string, Record<string, unknown>]>> | null => {
+    const v_12cd99 = v_f98743.current;
+    if (!v_12cd99 || typeof v_12cd99.getStats !== 'function') return null;
+    return v_12cd99.getStats();
+  }, []);
 
   const v_3e54f8 = v_de06a3(async () => {
     v_bba900.current += 1; 
@@ -240,5 +255,5 @@ export function v_b38a7e(v_328259) {
 
   }, []);
 
-  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87 };
+  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152 };
 }

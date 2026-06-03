@@ -51,13 +51,22 @@ function v_b49c15() {
   };
 }
 
-function v_84b93d(pc: ReturnType<typeof v_e6273b>, v_cec4d7 = v_b49c15()) {
+type DepsOverrides = {
+  sayInCall?: jest.Mock;
+};
+
+function v_84b93d(
+  pc: ReturnType<typeof v_e6273b>,
+  v_cec4d7 = v_b49c15(),
+  v_11ea7b = {},
+) {
   return {
     startCall: jest.fn().mockResolvedValue(v_c9c6be),
     endCall: jest.fn().mockResolvedValue({ ok: true }),
     sayInCall: jest.fn().mockResolvedValue({ ok: true }),
     createPeerConnection: jest.fn().mockReturnValue(v_12cd99),
     audioSession: v_cec4d7,
+    ...v_11ea7b,
   };
 }
 
@@ -391,6 +400,44 @@ describe('useLiveAvatar', () => {
       v_9595ba.mockResolvedValue({ ok: true });
       await v_be73a0(async () => { await v_43c42e.current.say('재시도 테스트'); });
       expect(v_43c42e.current.phase).toBe('speaking');
+    });
+  });
+
+  describe('VAD 확장 (notifySpeechEnd / getStatsReport)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('notifySpeechEnd: say 후 speaking → notifySpeechEnd 호출 시 phase=idle', async () => {
+      jest.useFakeTimers();
+      v_57d229();
+      const v_12cd99 = v_e6273b();
+      const v_af28f9 = jest.fn().mockResolvedValue(undefined);
+      const { result: v_43c42e } = v_0da18b(() =>
+        v_b38a7e({ cloneId: 1, accessToken: 't', deps: v_84b93d(v_12cd99, undefined, { sayInCall: v_af28f9 }) }),
+      );
+      await v_be73a0(async () => { await v_43c42e.current.start(); });
+      await v_be73a0(async () => { await v_43c42e.current.say('안녕'); });
+      expect(v_43c42e.current.phase).toBe('speaking');
+      v_be73a0(() => { v_43c42e.current.notifySpeechEnd(); });
+      expect(v_43c42e.current.phase).toBe('idle');
+    });
+
+    it('getStatsReport: pc.getStats를 위임 호출, 통화 없으면 null', async () => {
+      v_57d229();
+      const v_12cd99 = v_e6273b();
+      const v_475092 = [
+        ['a', { type: 'inbound-rtp', kind: 'audio', audioLevel: 0.3 }],
+      ];
+      (v_12cd99 as unknown as { getStats: jest.Mock }).getStats = jest.fn().mockResolvedValue(v_475092);
+      const { result: v_43c42e } = v_0da18b(() =>
+        v_b38a7e({ cloneId: 1, accessToken: 't', deps: v_84b93d(v_12cd99) }),
+      );
+      expect(v_43c42e.current.getStatsReport()).toBeNull();
+      await v_be73a0(async () => { await v_43c42e.current.start(); });
+      const v_e2a85c = v_43c42e.current.getStatsReport();
+      expect(v_e2a85c).not.toBeNull();
+      await expect(v_e2a85c as Promise<unknown>).resolves.toBe(v_475092);
     });
   });
 });
