@@ -16,7 +16,7 @@ export function v_472dcb(v_34a0f5) {
   return v_e13cd0;
 }
 
-export async function v_3a60ca(v_84b93d, { callId: v_be62d3, publisherPort: v_497c1d, personaSlug: v_47fe3d, personaBundle: v_ba0fde = null, history: v_10740d, text: v_9b6134 }) {
+export async function v_3a60ca(v_84b93d, { callId: v_be62d3, cloneId: v_6e0fd3 = null, publisherPort: v_497c1d, personaSlug: v_47fe3d, personaBundle: v_ba0fde = null, history: v_10740d, text: v_9b6134, museVideoPath: v_3ba9f9 = null, ttsSePath: v_d90f01 = null, avatarImagePath: v_8998a7 = null }) {
   const v_bb2632 = await v_84b93d.fetchChat({
     message: v_9b6134,
     callId: v_be62d3,
@@ -26,6 +26,11 @@ export async function v_3a60ca(v_84b93d, { callId: v_be62d3, publisherPort: v_49
     history: v_10740d,
     source: 'rn-call',
     speaker_role: 'visitor',
+
+    ...(v_6e0fd3 ? { cloneId: v_6e0fd3 } : {}),
+    ...(v_d90f01 ? { ttsSePath: v_d90f01 } : {}),
+    ...(v_3ba9f9 ? { museVideoPath: v_3ba9f9 } : {}),
+    ...(v_8998a7 ? { avatarImagePath: v_8998a7 } : {}),
   });
   const v_3188ae = v_472dcb(v_bb2632);
 

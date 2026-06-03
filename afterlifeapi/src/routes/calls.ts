@@ -24,12 +24,30 @@ v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
   const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
 
-  if (!v_00efe2 && !v_eb25ce.is_system) throw new v_3ebe58("FORBIDDEN", "No access to this clone for call.");
+  if (!v_00efe2 && v_eb25ce.visibility !== "public") {
+    throw new v_3ebe58("FORBIDDEN", "No access to this clone for call.");
+  }
 
   const v_b6c480 = await v_b60bdd(v_3f4e2e.env.DB);
   const { l1: v_020b4b, l2: v_1af19b } = await v_db508f(v_3f4e2e.env.DB, v_6e0fd3);
   const v_5ed063 = v_24564b({ l1: v_56dc8c(v_020b4b), l2: v_1af19b });
   const v_ba0fde = v_445ba7(v_b6c480, v_5ed063, v_6e0fd3);
+
+  let v_c910d9 = v_eb25ce.voice_se_url ?? null;
+  let v_4f80ac = null;
+  if (!v_c910d9 && v_eb25ce.voice_preset_id) {
+    const v_f653fc = await v_3f4e2e.env.DB
+      .prepare(`SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1`)
+      .bind(v_eb25ce.voice_preset_id)
+      .first<{ se_key: string | null }>();
+    v_4f80ac = v_f653fc?.se_key ?? null;
+  }
+  const v_7adc95 = {
+    idleVideoUrl: v_eb25ce.idle_video_url ?? null,
+    voiceSeUrl: v_c910d9,
+    voiceSeKey: v_4f80ac,
+    avatarUrl: v_eb25ce.avatar_url ?? null,
+  };
 
   const v_3e7379 = v_3f4e2e.env.ORCHESTRATOR_URL;
   let v_cb35cb;
@@ -37,7 +55,7 @@ v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
     v_cb35cb = await fetch(`${v_3e7379}/oth-path`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}` },
-      body: JSON.stringify({ cloneId: String(v_6e0fd3), userId: String(v_43e90c), idleVideoUrl: null, personaBundle: v_ba0fde }),
+      body: JSON.stringify({ cloneId: String(v_6e0fd3), userId: String(v_43e90c), idleVideoUrl: null, personaBundle: v_ba0fde, assets: v_7adc95 }),
     });
   } catch (v_9e86fd) {
     throw new v_3ebe58("UPSTREAM_FAILURE", `Orchestrator unreachable: ${(v_9e86fd as Error).message}`);

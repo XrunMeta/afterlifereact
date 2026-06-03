@@ -135,6 +135,54 @@ export function v_a16f6e({ audio_path: v_58c233, video_path: v_dda915, output_id
   });
 }
 
+let v_6663f3 = 0;
+
+export async function v_ab8c91({ photoPath: v_036eb1, outPath: v_dc7792 }) {
+
+  try {
+    await v_9d3c52.access(v_dc7792);
+    return v_dc7792; 
+  } catch {
+
+  }
+
+  await v_9d3c52.mkdir(v_9fe22d.dirname(v_dc7792), { recursive: true });
+
+  const v_21cc31 = `${process.pid}.${++v_6663f3}`;
+  const v_6e7abb = `${v_dc7792}.${v_21cc31}.tmp.mp4`;
+
+  try {
+
+    await v_1b4bbf([
+      '-y', '-loglevel', 'error',
+      '-loop', '1',
+      '-i', v_036eb1,
+      '-t', '2',
+      '-r', '25',
+      '-pix_fmt', 'yuv420p',
+      '-vf', 'scale=256:256:force_original_aspect_ratio=decrease,pad=256:256:(ow-iw)/2:(oh-ih)/2',
+      v_6e7abb,
+    ]);
+  } catch (v_49263d) {
+
+    await v_9d3c52.unlink(v_6e7abb).catch(() => {});
+    console.warn('[ensurePhotoStill] ffmpeg 실패(graceful):', v_49263d?.message ?? v_49263d);
+    return null;
+  }
+
+  try {
+    await v_9d3c52.access(v_dc7792);
+
+    await v_9d3c52.unlink(v_6e7abb).catch(() => {});
+    return v_dc7792;
+  } catch {
+
+  }
+
+  await v_9d3c52.rename(v_6e7abb, v_dc7792);
+  return v_dc7792;
+}
+
 export function v_6edf8f(v_f1812c) {
   const v_694b25 = v_9fe22d.basename(v_f1812c);
   return `/outputs/${v_694b25}`;

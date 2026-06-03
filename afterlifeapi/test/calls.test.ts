@@ -234,11 +234,9 @@ v_469bf2("calls route", () => {
     v_4d37e3(v_a724b9!.personaBundle).toHaveProperty("persona");
   });
 
-  v_23805a("POST /oth-path — 시스템 클론(is_system=1)은 비-follower도 200(orchestrator mock)", async () => {
+  v_23805a("POST /oth-path — public 클론(is_system=1)은 stranger도 통화 허용(orchestrator까지 진행)", async () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
-
     const v_7ef28d = await v_bfb240("sysowner-sys@test.local");
-
     await v_a1651b
       .prepare(
         `INSERT OR IGNORE INTO clones (owner_id, name, username, clone_type, visibility, is_system, created_at)
@@ -256,7 +254,135 @@ v_469bf2("calls route", () => {
       .get(v_8fe3be)
       .intercept({ path: "/oth-path", method: "POST" })
       .reply(200, {
-        callId: "sys-call-1",
+        callId: "pub-sys-call",
+        subscribeToken: "pub-tok",
+        tracks: { video: "v-pub", audio: "a-pub" },
+        state: "live",
+      });
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_56eeab!.id}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as { callId: string };
+    v_4d37e3(v_4d33b2.callId).toBe("pub-sys-call");
+  });
+
+  v_23805a("POST /oth-path — public 클론(is_system=0)은 stranger도 통화 허용", async () => {
+    const v_257b90 = await v_bfb240("pub-owner@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "pubclone_stranger");
+
+    const v_1c6644 = await v_bfb240("pub-stranger@test.local");
+    const v_ea333d = await v_86c39f(v_1c6644);
+    v_8fd90d
+      .get(v_8fe3be)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, {
+        callId: "pub-clone-call",
+        subscribeToken: "pub-tok2",
+        tracks: { video: "v", audio: "a" },
+        state: "live",
+      });
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+  });
+
+  v_23805a("POST /oth-path — private 클론은 stranger에게 403", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_257b90 = await v_bfb240("priv-owner@test.local");
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Private', 'privateclone_403', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_257b90)
+      .run();
+    const v_a19ae1 = await v_a1651b.prepare("SELECT id FROM clones WHERE username = 'privateclone_403'").first<{ id: number }>();
+    const v_1c6644 = await v_bfb240("priv-stranger@test.local");
+    const v_ea333d = await v_86c39f(v_1c6644);
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_a19ae1!.id}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(403);
+  });
+
+  v_23805a("POST /oth-path — followers 클론은 non-follower에게 403", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_257b90 = await v_bfb240("foll-owner@test.local");
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Followers', 'followersclone_403', 'memlow', 'followers', CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_257b90)
+      .run();
+    const v_2db4e5 = await v_a1651b.prepare("SELECT id FROM clones WHERE username = 'followersclone_403'").first<{ id: number }>();
+    const v_b35f0c = await v_bfb240("nonfoll@test.local");
+    const v_ea333d = await v_86c39f(v_b35f0c);
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_2db4e5!.id}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(403);
+  });
+
+  v_23805a("POST /oth-path — followers 클론은 follower에게 허용", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_257b90 = await v_bfb240("foll-owner2@test.local");
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'Followers', 'followersclone_ok', 'memlow', 'followers', CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_257b90)
+      .run();
+    const v_2db4e5 = await v_a1651b.prepare("SELECT id FROM clones WHERE username = 'followersclone_ok'").first<{ id: number }>();
+    const v_7efac5 = await v_bfb240("follower-ok@test.local");
+
+    await v_a1651b
+      .prepare("INSERT INTO clone_follows (clone_id, user_id, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)")
+      .bind(v_2db4e5!.id, v_7efac5)
+      .run();
+    const v_ea333d = await v_86c39f(v_7efac5);
+    v_8fd90d
+      .get(v_8fe3be)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, {
+        callId: "foll-call",
+        subscribeToken: "foll-tok",
+        tracks: { video: "v", audio: "a" },
+        state: "live",
+      });
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_2db4e5!.id}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+  });
+
+  v_23805a("POST /oth-path — 시스템 클론(is_system=1) 소유자는 200", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_7ef28d = await v_bfb240("sysowner-owner@test.local");
+    await v_a1651b
+      .prepare(
+        `INSERT OR IGNORE INTO clones (owner_id, name, username, clone_type, visibility, is_system, created_at)
+         VALUES (?, 'System', 'sysclone_owner_test', 'memlow', 'public', 1, CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_7ef28d)
+      .run();
+    const v_56eeab = await v_a1651b
+      .prepare("SELECT id FROM clones WHERE username = 'sysclone_owner_test'")
+      .first<{ id: number }>();
+    const v_ea333d = await v_86c39f(v_7ef28d);
+    v_8fd90d
+      .get(v_8fe3be)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply(200, {
+        callId: "sys-owner-call",
         subscribeToken: "sys-tok",
         tracks: { video: "v-sys", audio: "a-sys" },
         state: "live",
@@ -267,17 +393,25 @@ v_469bf2("calls route", () => {
     });
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_4d33b2 = (await v_8f00b9.json()) as { callId: string };
-    v_4d37e3(v_4d33b2.callId).toBe("sys-call-1");
+    v_4d37e3(v_4d33b2.callId).toBe("sys-owner-call");
   });
 
-  v_23805a("POST /oth-path — 일반 클론(is_system=0)은 비-follower에게 403", async () => {
+  v_23805a("POST /oth-path — private 클론(is_system=0)은 비-follower에게 403", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_257b90 = await v_bfb240("normal-owner-sys@test.local");
-    const v_6e0fd3 = await v_4d24a9(v_257b90, "normalclone_sys_test");
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+         VALUES (?, 'NormalPriv', 'normalclone_sys_test', 'memlow', 'private', CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_257b90)
+      .run();
+    const v_a19ae1 = await v_a1651b.prepare("SELECT id FROM clones WHERE username = 'normalclone_sys_test'").first<{ id: number }>();
 
     const v_1c6644 = await v_bfb240("stranger-normal@test.local");
     const v_ea333d = await v_86c39f(v_1c6644);
 
-    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call`, {
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_a19ae1!.id}/call`, {
       method: "POST",
       headers: { Authorization: `Bearer ${v_ea333d}` },
     });
@@ -309,6 +443,98 @@ v_469bf2("calls route", () => {
 
     const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path`, { method: "POST" });
     v_4d37e3(v_8f00b9.status).toBe(401);
+  });
+
+  v_23805a("POST /oth-path — voice_se_url 있는 클론은 orchestrator body.assets.voiceSeUrl 전달", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("asset-seurl@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "clone_se_url");
+
+    await v_a1651b
+      .prepare("UPDATE clones SET voice_se_url = ?, idle_video_url = ?, avatar_url = ? WHERE id = ?")
+      .bind("https://r2.example.com/voice/se.pth", "https://r2.example.com/idle.mp4", "https://r2.example.com/avatar.jpg", v_6e0fd3)
+      .run();
+    const v_ea333d = await v_86c39f(v_1badb6);
+    let v_a724b9 = null;
+    v_8fd90d
+      .get(v_8fe3be)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply((v_328259) => {
+        v_a724b9 = JSON.parse(v_328259.body as string) as Record<string, unknown>;
+        return {
+          statusCode: 200,
+          data: JSON.stringify({ callId: "asset-c1", subscribeToken: "t", tracks: { video: "v", audio: "a" }, state: "live" }),
+          responseOptions: { headers: { "content-type": "application/json" } },
+        };
+      });
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_7adc95 = v_a724b9!.assets as { voiceSeUrl: string | null; idleVideoUrl: string | null; voiceSeKey: string | null; avatarUrl: string | null };
+    v_4d37e3(v_7adc95.voiceSeUrl).toBe("https://r2.example.com/voice/se.pth");
+    v_4d37e3(v_7adc95.idleVideoUrl).toBe("https://r2.example.com/idle.mp4");
+    v_4d37e3(v_7adc95.avatarUrl).toBe("https://r2.example.com/avatar.jpg");
+    v_4d37e3(v_7adc95.voiceSeKey).toBeNull(); 
+  });
+
+  v_23805a("POST /oth-path — voice_preset_id만 있는 클론은 assets.voiceSeKey 전달", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("asset-preset@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "clone_preset_key");
+
+    await v_a1651b
+      .prepare("INSERT INTO voice_presets (name, gender, age_range, sample_url, description, is_active, se_key) VALUES (?, ?, ?, ?, ?, 1, ?)")
+      .bind("테스트목소리", "female", "20s", "/sample/test.mp3", "테스트", "test-se-key")
+      .run();
+    const v_f653fc = await v_a1651b.prepare("SELECT id FROM voice_presets WHERE se_key = 'test-se-key'").first<{ id: number }>();
+    await v_a1651b
+      .prepare("UPDATE clones SET voice_preset_id = ? WHERE id = ?")
+      .bind(v_f653fc!.id, v_6e0fd3)
+      .run();
+    const v_ea333d = await v_86c39f(v_1badb6);
+    let v_a724b9 = null;
+    v_8fd90d
+      .get(v_8fe3be)
+      .intercept({ path: "/oth-path", method: "POST" })
+      .reply((v_328259) => {
+        v_a724b9 = JSON.parse(v_328259.body as string) as Record<string, unknown>;
+        return {
+          statusCode: 200,
+          data: JSON.stringify({ callId: "preset-c1", subscribeToken: "t", tracks: { video: "v", audio: "a" }, state: "live" }),
+          responseOptions: { headers: { "content-type": "application/json" } },
+        };
+      });
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_7adc95 = v_a724b9!.assets as { voiceSeUrl: string | null; voiceSeKey: string | null };
+    v_4d37e3(v_7adc95.voiceSeUrl).toBeNull(); 
+    v_4d37e3(v_7adc95.voiceSeKey).toBe("test-se-key");
+  });
+
+  v_23805a("POST /oth-path — is_system=1이지만 viewerRole 없는 stranger는 403", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_7ef28d = await v_bfb240("sysowner-403@test.local");
+    await v_a1651b
+      .prepare(
+        `INSERT OR IGNORE INTO clones (owner_id, name, username, clone_type, visibility, is_system, created_at)
+         VALUES (?, 'SysPrivate', 'sysclone_private_403', 'memlow', 'private', 1, CURRENT_TIMESTAMP)`,
+      )
+      .bind(v_7ef28d)
+      .run();
+    const v_56eeab = await v_a1651b.prepare("SELECT id FROM clones WHERE username = 'sysclone_private_403'").first<{ id: number }>();
+    const v_1c6644 = await v_bfb240("stranger-403@test.local");
+    const v_ea333d = await v_86c39f(v_1c6644);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_56eeab!.id}/call`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(403);
   });
 
   v_23805a("POST /oth-path — 형식 위반 callId 는 멱등 200(orchestrator 미호출)", async () => {

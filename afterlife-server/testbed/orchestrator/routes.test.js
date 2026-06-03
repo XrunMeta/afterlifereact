@@ -457,6 +457,86 @@ v_2a805f('POST /oth-path — 필드 누락 → 400', async () => {
   v_88781f.close();
 });
 
+v_2a805f('POST /oth-path — assets body 시 ensureAssets 호출되고 callPersona에 경로 저장', async () => {
+  const v_a71f00 = [];
+  const v_b41aca = async (v_24baff) => {
+    v_a71f00.push(v_24baff);
+    return { museVideoPath: '/local/video/c4/idle-25fps.mp4', ttsSePath: '/local/voices/c4/se.pth', avatarImagePath: '/local/images/c4.png' };
+  };
+
+  let v_b77698 = null;
+  const v_38a552 = v_f8ce16({
+    allocate: async (v_183f55) => { v_b77698 = v_183f55; return { callId: 'c4', subscribeToken: 'tok4', tracks: { video: 'v-c4', audio: 'a-c4' }, state: 'live' }; },
+    getCall: (v_389afb) => (v_389afb === 'c4' ? { call_id: 'c4', port: 8415, state: 'live' } : null),
+  });
+
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_38a552, 'sek', null, { ensureAssets: v_b41aca });
+
+  const v_7adc95 = {
+    idleVideoUrl: 'https://oth-path.afterlife.example.com/files/idle.mp4',
+    voiceSeUrl: 'https://oth-path.afterlife.example.com/files/se.pth',
+    avatarUrl: 'https://oth-path.afterlife.example.com/files/avatar.png',
+  };
+  const v_ba0fde = { l0: { rules_text: 'R', blocklist: [] }, persona: { tone: '활발' } };
+
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20', idleVideoUrl: null, personaBundle: v_ba0fde, assets: v_7adc95 }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 200);
+
+  v_ce93bd.equal(v_a71f00.length, 1, 'ensureAssets 1회 호출');
+  v_ce93bd.equal(v_a71f00[0].cloneId, '10');
+  v_ce93bd.deepEqual(v_a71f00[0].assets, v_7adc95);
+
+  v_ce93bd.equal(v_b77698?.idleVideoUrl, '/local/video/c4/idle-25fps.mp4', 'allocate에 로컬 경로 전달');
+
+  const v_aee0b9 = [];
+
+  const v_ca81cc = [];
+
+  const v_3a60ca = async (v_769e56, v_4317d1) => { v_ca81cc.push(v_4317d1); };
+  v_88781f.close();
+
+  const v_980700 = v_f8ce16({
+    allocate: async () => ({ callId: 'c4b', subscribeToken: 'tok4b', tracks: {}, state: 'live' }),
+    getCall: (v_389afb) => (v_389afb === 'c4b' ? { call_id: 'c4b', port: 8416, state: 'live' } : null),
+  });
+  const v_d85617 = async () => ({ museVideoPath: '/m', ttsSePath: '/t', avatarImagePath: '/a' });
+  const { server: v_d4865f, base: v_decdde } = await v_0b4d00(v_980700, 'sek', { runChatRelay: v_3a60ca }, { ensureAssets: v_d85617 });
+
+  await fetch(`${v_decdde}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20', personaBundle: v_ba0fde, assets: v_7adc95 }),
+  });
+  await fetch(`${v_decdde}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ text: '안녕', cloneId: '10' }),
+  });
+  await new Promise((v_cb35cb) => setTimeout(v_cb35cb, 20));
+
+  v_ce93bd.equal(v_ca81cc.length, 1);
+  v_ce93bd.deepEqual(v_ca81cc[0].personaBundle, v_ba0fde, 'personaBundle 호환 유지');
+
+  v_d4865f.close();
+});
+
+v_2a805f('POST /oth-path — assets 없어도 통화 정상(ensureAssets null graceful)', async () => {
+  const v_b41aca = async () => ({ museVideoPath: null, ttsSePath: null, avatarImagePath: null });
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { ensureAssets: v_b41aca });
+
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({ cloneId: '10', userId: '20' }), 
+  });
+  v_ce93bd.equal(v_cb35cb.status, 200);
+  v_88781f.close();
+});
+
 v_2a805f('personaBundle: DELETE 후 캐시에서 제거됨(재 say 시 null)', async () => {
   const v_aee0b9 = [];
   const v_38a552 = v_f8ce16({

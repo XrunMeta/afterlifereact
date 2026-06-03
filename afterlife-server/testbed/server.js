@@ -18,6 +18,7 @@ import {
   v_ba8718,
   v_a16f6e,
   v_6edf8f,
+  v_ab8c91,
 } from './lib/musetalk.js';
 import v_b070ed from 'hikhkjexnsh';
 import v_d4f750 from 'fnffflguqbrqugbi';
@@ -53,7 +54,23 @@ const v_f522ac =
   process.env.DEBUG_DUMP_DIR ??
   '/home/afterlife/afterlife-server/testbed/debug-dump';
 
+const v_1fe67f =
+  process.env.ASSET_VIDEO_REF_DIR ??
+  '/home/afterlife/afterlife-server/testbed/video-ref';
+
 const v_a65c2e = v_9fe22d.dirname(v_6b8a99(import.meta.url));
+
+function v_70dea5(v_95828e, v_eec945, v_2869c1) {
+  if (v_95828e == null || v_95828e === '') return null;
+  const v_e2a85c = String(v_95828e);
+  const v_1794cd = v_9fe22d.resolve(v_e2a85c);
+  const v_1729a8 = v_9fe22d.resolve(v_eec945);
+  if (!v_1794cd.startsWith(v_1729a8 + v_9fe22d.sep) && v_1794cd !== v_1729a8) {
+    console.warn(`[security] ${v_2869c1} 경계 위반 — 무시: ${JSON.stringify(v_e2a85c)}`);
+    return null;
+  }
+  return v_e2a85c;
+}
 
 const v_466992 = v_96bb47();
 const v_66d977 = Number.parseInt(process.env.PORT ?? '8100', 10);
@@ -110,12 +127,25 @@ const v_38a552 = v_3df644({
   },
 });
 await v_38a552.reconcile(); 
+
+const v_318ef9 =
+  process.env.ASSET_VOICE_REF_DIR ??
+  '/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices';
+const v_8962da =
+  process.env.ASSET_IMAGE_REF_DIR ??
+  '/home/afterlife/afterlife-server/testbed/image-ref';
 v_466992.use(v_306c75(v_38a552, {
   secret: v_4b93d8,
   cfg: {
     testbedBaseUrl: process.env.TESTBED_BASE_URL ?? `http://127.0.0.1:${v_66d977}`,
     apiBaseUrl: process.env.AFTERLIFE_API_URL ?? '',
     apiSecret: process.env.ORCH_SECRET ?? v_4b93d8,
+
+    assetDirs: {
+      voiceRefDir: v_318ef9,
+      videoRefDir: v_1fe67f,
+      imageRefDir: v_8962da,
+    },
   },
 }));
 
@@ -322,6 +352,12 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   const v_19846e = v_9adef9(v_309144.body?.publisherPort, v_de4278);
 
   const v_ba0fde = v_309144.body?.personaBundle ?? null;
+
+  const v_d90f01 = v_70dea5(v_309144.body?.ttsSePath, v_318ef9, 'ttsSePath');
+  const v_3ba9f9 = v_70dea5(v_309144.body?.museVideoPath, v_1fe67f, 'museVideoPath');
+  const v_8998a7 = v_70dea5(v_309144.body?.avatarImagePath, v_8962da, 'avatarImagePath');
+
+  const v_9c6814 = v_309144.body?.cloneId ? String(v_309144.body.cloneId).replace(/[^a-zA-Z0-9_-]/g, '') : null;
   const v_69681f = v_ff48df({ persona_slug: v_47fe3d, level: 'l1', user_label: null });
   const v_b533a0 = v_9a14d9 === 'visitor'
     ? v_ff48df({ persona_slug: v_47fe3d, level: 'l2', user_label: v_1231fa })
@@ -465,7 +501,8 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
     const v_1923e2 = ++v_213fa0;
     const v_b66f2c = Date.now();
     const v_d7fc78 = v_dd70e4.get(v_e86ad8);
-    const v_e2a85c = v_27fa47(v_738e47)
+
+    const v_e2a85c = v_27fa47(v_738e47, v_d90f01 ? { se_path: v_d90f01 } : {})
       .then(({ wav: v_7ab8bd, synthMs: v_3691b5 }) => {
         if (v_6c558f) return;
         v_9a1a8e += v_3691b5 ?? 0;
@@ -537,8 +574,21 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
         sentence_count: v_96bf40.length,
         audio_bytes: v_96bf40.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
       });
+
+      let v_4f136c = v_3ba9f9 || null;
+      if (!v_4f136c && v_8998a7 && v_9c6814) {
+
+        const v_f0796d = v_9fe22d.join(v_1fe67f, v_9c6814, 'photo-still-25fps.mp4');
+        try {
+          v_4f136c = await v_ab8c91({ photoPath: v_8998a7, outPath: v_f0796d });
+        } catch (v_6f2968) {
+          console.warn('[sp4/photo-still] ffmpeg 폴백 실패(graceful):', v_6f2968?.message ?? v_6f2968);
+          v_4f136c = null;
+        }
+      }
       v_43c42e = await v_a16f6e({
         audio_path: v_6944b4.path,
+        ...(v_4f136c ? { video_path: v_4f136c } : {}),
         output_id: v_dad203,
         stream: false,
         host: v_2d2f94.host,

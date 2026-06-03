@@ -5,6 +5,7 @@ import { v_3a60ca as v_8e7d64 } from './chatRelay.js';
 import { v_228e13 } from '../lib/personaSuggest.js';
 import { v_541b14 } from '../lib/introSuggest.js';
 import { v_47bade } from './assetJobRunner.js';
+import { v_f7078e as v_437b35 } from './assetFetch.js';
 
 const v_b74136 = (v_f31c63) => `http://127.0.0.1:${v_f31c63}`;
 
@@ -55,8 +56,10 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
   const v_904d46 = v_96bb47.Router();
   const v_04d03c = v_458d35();
 
-  const v_85cf8d = new Map(); 
+  const v_85cf8d = new Map();
   const v_3a60ca = v_84b93d?.sayDeps?.runChatRelay ?? v_8e7d64;
+
+  const v_f7078e = v_84b93d?.ensureAssets ?? v_437b35;
 
   const v_4fa62b = v_84b93d?.assetJobRunner ?? v_47bade({ apiBaseUrl: v_01dcf5.apiBaseUrl ?? '' });
 
@@ -66,11 +69,54 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
   }
 
   v_904d46.post('/oth-path', v_99be57, async (v_309144, v_8f00b9) => {
-    const { cloneId: v_6e0fd3, userId: v_43e90c, idleVideoUrl: v_6e2244, personaBundle: v_ba0fde } = v_309144.body || {};
-    try {
-      const v_c9c6be = await v_38a552.allocate({ cloneId: String(v_6e0fd3), userId: String(v_43e90c), idleVideoUrl: v_6e2244 ?? null });
 
-      if (v_ba0fde && v_c9c6be?.callId) v_85cf8d.set(v_c9c6be.callId, v_ba0fde);
+    const { cloneId: v_6e0fd3, userId: v_43e90c, personaBundle: v_ba0fde, assets: v_7adc95 } = v_309144.body || {};
+    try {
+
+      let v_3ba9f9 = null;
+      let v_d90f01 = null;
+      let v_8998a7 = null;
+      if (v_7adc95 && v_01dcf5.assetDirs && v_01dcf5.apiBaseUrl) {
+        try {
+          ({ museVideoPath: v_3ba9f9, ttsSePath: v_d90f01, avatarImagePath: v_8998a7 } = await v_f7078e({
+            cloneId: String(v_6e0fd3),
+            assets: v_7adc95,
+            dirs: v_01dcf5.assetDirs,
+            apiBaseUrl: v_01dcf5.apiBaseUrl,
+          }));
+        } catch {
+
+        }
+      } else if (v_7adc95) {
+
+        if (v_84b93d?.ensureAssets) {
+          try {
+            ({ museVideoPath: v_3ba9f9, ttsSePath: v_d90f01, avatarImagePath: v_8998a7 } = await v_f7078e({
+              cloneId: String(v_6e0fd3),
+              assets: v_7adc95,
+              dirs: v_01dcf5.assetDirs ?? {},
+              apiBaseUrl: v_01dcf5.apiBaseUrl ?? '',
+            }));
+          } catch {
+
+          }
+        }
+      }
+
+      const v_c9c6be = await v_38a552.allocate({
+        cloneId: String(v_6e0fd3),
+        userId: String(v_43e90c),
+        idleVideoUrl: v_3ba9f9 ?? null,
+      });
+
+      if (v_c9c6be?.callId) {
+        v_85cf8d.set(v_c9c6be.callId, {
+          personaBundle: v_ba0fde ?? null,
+          museVideoPath: v_3ba9f9,
+          ttsSePath: v_d90f01,
+          avatarImagePath: v_8998a7,
+        });
+      }
       v_8f00b9.status(200).json(v_c9c6be);
     } catch (v_9e86fd) {
       const v_badeaf = String(v_9e86fd?.message ?? v_9e86fd);
@@ -140,11 +186,16 @@ export function v_306c75(v_38a552, { secret: v_43fd42, cfg: v_01dcf5 = {}, deps:
     if (!v_04d03c.beginTurn(v_be62d3)) return v_8f00b9.status(409).json({ error: 'turn_in_progress' });
     v_04d03c.appendTurn(v_be62d3, { role: 'user', content: v_9b6134 });
     v_8f00b9.status(202).json({ ok: true }); 
-    const v_79521f = v_85cf8d.get(v_be62d3) ?? null; 
+
+    const v_e2a6a6 = v_85cf8d.get(v_be62d3);
+    const v_79521f = v_e2a6a6?.personaBundle ?? null;
+    const v_3ba9f9 = v_e2a6a6?.museVideoPath ?? null;
+    const v_d90f01 = v_e2a6a6?.ttsSePath ?? null;
+    const v_8998a7 = v_e2a6a6?.avatarImagePath ?? null;
     Promise.resolve()
       .then(() => v_3a60ca(
         v_28e3ea(v_01dcf5, v_6e0fd3),
-        { callId: v_be62d3, publisherPort: v_3ac7e7.port, personaSlug: 'halbae', personaBundle: v_79521f, history: v_04d03c.getHistory(v_be62d3), text: v_9b6134 },
+        { callId: v_be62d3, cloneId: v_6e0fd3 ? String(v_6e0fd3) : null, publisherPort: v_3ac7e7.port, personaSlug: 'halbae', personaBundle: v_79521f, history: v_04d03c.getHistory(v_be62d3), text: v_9b6134, museVideoPath: v_3ba9f9, ttsSePath: v_d90f01, avatarImagePath: v_8998a7 },
       ))
       .then((v_3188ae) => { if (v_3188ae) v_04d03c.appendTurn(v_be62d3, { role: 'assistant', content: v_3188ae }); })
       .catch((v_9e86fd) => console.error('[sp2/say] relay error', v_be62d3, v_9e86fd?.message ?? v_9e86fd))

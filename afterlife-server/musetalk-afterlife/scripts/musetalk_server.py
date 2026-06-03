@@ -45,12 +45,8 @@ SOURCE_DIR = ROOT_DIR / "source"
 MODELS_DIR = ROOT_DIR / "models"
 OUTPUTS_DIR = ROOT_DIR / "outputs"
 CONFIG_DIR = SOURCE_DIR / "configs/inference"
-DEFAULT_VIDEO = Path(
-    os.environ.get(
-        "MUSETALK_DEFAULT_VIDEO",
-        str(SOURCE_DIR / "data/video/yongen.mp4"),
-    )
-)
+# SP4-B: DEFAULT_VIDEO 제거 — video_path 는 호출자(testbed)가 항상 명시 전달.
+#        미지정 시 DEFAULT_VIDEO 폴백 없음 → 400 거부.
 
 # inference_lib 가 source/ cwd + 상대 import 가정 — 강제 변경
 os.chdir(SOURCE_DIR)
@@ -208,7 +204,6 @@ def healthz():
         "model": "musetalk-v15",
         "device": "cuda:0",
         "load_t_ms": LOAD_T_MS,
-        "default_video": str(DEFAULT_VIDEO),
         "mode": "in-process (029-A)",
     }
 
@@ -238,7 +233,12 @@ def infer(req: InferReq):
     audio_path = Path(req.audio_path).resolve()
     if not audio_path.is_file():
         raise HTTPException(400, f"audio not found: {audio_path}")
-    video_path = Path(req.video_path).resolve() if req.video_path else DEFAULT_VIDEO
+    # SP4-B: video_path 미지정 시 DEFAULT_VIDEO 폴백 없음 — 400 거부.
+    #        testbed(Task 4)가 정상 경로에선 항상 video_path 전달.
+    #        자산 둘 다 없는 예외 상황은 testbed가 video_error로 graceful 처리.
+    if not req.video_path:
+        raise HTTPException(400, "video_path is required (no fallback default)")
+    video_path = Path(req.video_path).resolve()
     if not video_path.is_file():
         raise HTTPException(400, f"video not found: {video_path}")
 
