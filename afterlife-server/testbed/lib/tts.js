@@ -23,6 +23,8 @@ export function ttsSynthesize(text, options = {}) {
       sdp_ratio: options.sdp_ratio ?? 0.5,
       noise_scale: options.noise_scale ?? 0.6,
       noise_scale_w: options.noise_scale_w ?? 1.0,
+
+      ...(options.se_path ? { se_path: options.se_path } : {}),
     });
 
     const reqOpts = {

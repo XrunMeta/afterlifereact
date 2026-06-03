@@ -18,6 +18,7 @@
     </div>
     <div class="actions">
       <button class="ghost" id="ttsToggleBtn" type="button" title="음성 on/off" aria-pressed="true">🔊</button>
+      <button class="ghost" id="monToggleBtn" type="button" title="모니터" aria-pressed="false">📊</button>
       <button class="ghost" id="resetBtn" type="button" title="대화 초기화">⟲</button>
     </div>
   </header>
@@ -31,17 +32,20 @@
          hidden 이지만 autoplay 로 user gesture 시 play() 호출하면 들림. -->
     <audio id="liveAudio" autoplay playsinline hidden></audio>
     <div class="liveactions">
-      <!-- 회차 029-D-2c-after-2-fix2: publisher audio 가 client 측에서 silent
-           (Opus/DTX 의심, 미해결). 사용자 혼란 방지 위해 음성 켜기 버튼 임시 hidden.
-           우측 상단 🔊 토글 (SSE TTS) 로만 음성 제어. publisher audio 정상화 후
-           다시 노출 예정. element 자체는 남겨둠 (chat.js attach/play 로직 유지). -->
-      <button id="liveUnmuteBtn" class="ghost livebtn" type="button" aria-pressed="false" title="할배 음성 켜기" style="display:none;">🔇 음성 켜기</button>
+      <!-- 회차 029-D-3c-sync: publisher RTP audio 가 메인 음성 채널로 승격.
+           첫 user gesture 시 chat.js 가 자동 unmute. 이 버튼은 명시적 토글용. -->
+      <button id="liveUnmuteBtn" class="ghost livebtn" type="button" aria-pressed="false" title="할배 음성 켜기">🔇 음성 켜기</button>
       <div id="liveStatus" class="livestatus" aria-live="polite">Live 대기…</div>
     </div>
   </section>
 
   <main id="messages" class="messages" role="log" aria-live="polite"></main>
 
+  <div id="speakerBar" class="speaker-bar">
+    <label><input type="radio" name="speakerRole" value="creator" checked /> creator(L1)</label>
+    <label><input type="radio" name="speakerRole" value="visitor" /> visitor(L2)</label>
+    <input id="visitorIdInput" placeholder="visitor user_label" value="visitor-test" hidden />
+  </div>
   <form id="composer" class="composer" autocomplete="off">
     <textarea id="input"
       placeholder="할배한테 말 걸어봐요… (Enter 전송, Shift+Enter 줄바꿈)"
@@ -57,5 +61,42 @@
   <audio id="ttsPlayer" preload="auto" hidden></audio>
 
   <script src="/chat.js" defer></script>
+  <section id="monPanel" class="mon-panel" hidden aria-label="turn 모니터">
+    <div class="mon-head">
+      <strong>turn timing (ms)</strong>
+      <span id="monMeta" class="mon-meta"></span>
+      <span id="monAgg" class="mon-meta"></span>
+      <button id="monCloseBtn" class="ghost" type="button" title="닫기">✕</button>
+    </div>
+    <div class="mon-scroll">
+      <table class="mon-table">
+        <thead><tr>
+          <th>#</th><th>시각</th><th>mode</th><th>user</th><th>llm</th>
+          <th>LLM(1st/tot)</th><th>TTS(tot/n)</th>
+          <th>whisper</th><th>coord</th><th>vae</th><th>unet</th><th>ffmpeg</th>
+          <th>infer</th><th>e2e</th>
+        </tr></thead>
+        <tbody id="monRows"></tbody>
+      </table>
+    </div>
+    <!-- 029-E-learn: 하단 KV(학습) 영역 -->
+    <div class="mon-head mon-head-kv">
+      <strong>KV 학습 (persona_attributes)</strong>
+      <select id="kvLevelFilter" class="mon-meta">
+        <option value="">전체</option>
+        <option value="l1">L1(본인)</option>
+        <option value="l2">L2(방문자)</option>
+      </select>
+      <input id="kvUserFilter" class="mon-meta" placeholder="user_label(L2)" size="10" />
+      <span id="kvMeta" class="mon-meta"></span>
+    </div>
+    <div class="mon-scroll mon-scroll-kv">
+      <table class="mon-table">
+        <thead><tr><th>cat</th><th>key</th><th>value</th><th>lvl</th><th>user</th><th>conf</th><th>updated</th></tr></thead>
+        <tbody id="kvRows"></tbody>
+      </table>
+    </div>
+  </section>
+  <script src="/monitor.js" defer></script>
 </body>
 </html>

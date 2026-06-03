@@ -21,7 +21,13 @@ export default defineWorkersConfig(async () => {
           miniflare: {
             compatibilityDate: "2024-12-01",
             compatibilityFlags: ["nodejs_compat"],
-            bindings: { TEST_MIGRATIONS: migrations },
+
+            bindings: {
+              TEST_MIGRATIONS: migrations,
+              ORCH_SECRET: "test-orch-secret",
+
+              JWT_ACCESS_SECRET: "test-jwt-access-secret-for-vitest",
+            },
           },
         },
       },

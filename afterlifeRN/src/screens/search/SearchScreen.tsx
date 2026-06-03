@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, useFocusEffect } from "@react-navigation/native";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { CompositeNavigationProp } from "@react-navigation/native";
@@ -51,12 +51,29 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 
 export default function SearchScreen() {
   const nav = useNavigation<TabNav>();
+  const route = useRoute();
   const accessToken = useAuthStore((s) => s.accessToken);
   const insets = useSafeAreaInsets();
 
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("recommend");
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const params = route.params as { initialQuery?: string } | undefined;
+      const initial = params?.initialQuery;
+      if (typeof initial === "string" && initial.trim().length > 0) {
+
+        const stripped = initial.replace(/^#+/, "").trim();
+        setQuery(stripped);
+        setActiveTab("recommend");
+
+        nav.setParams({ initialQuery: undefined } as never);
+      }
+
+    }, [route.params, nav]),
+  );
   const [feeds, setFeeds] = useState<DiscoverFeedItem[]>([]);
   const [feedsLoading, setFeedsLoading] = useState(true);
   const [users, setUsers] = useState<UserSearchItem[]>([]);
@@ -171,7 +188,8 @@ export default function SearchScreen() {
   const showRecent = !isSearching && focused;
 
   const filteredFeeds = useMemo(() => {
-    const q = query.trim().toLowerCase();
+
+    const q = query.trim().replace(/^#+/, "").toLowerCase();
     if (!q) return feeds;
     return feeds.filter((f) => {
       const name = f.clone.name.toLowerCase();
@@ -179,6 +197,7 @@ export default function SearchScreen() {
       const interestsMatch = f.interests.some((it) =>
         it.toLowerCase().includes(q),
       );
+
       const contentMatch = (f.content ?? "").toLowerCase().includes(q);
       return name.includes(q) || uname.includes(q) || interestsMatch || contentMatch;
     });
@@ -203,18 +222,26 @@ export default function SearchScreen() {
   }, [feeds, query]);
 
   const filteredTags = useMemo(() => {
-    const q = query.trim().toLowerCase();
+
+    const q = query.trim().replace(/^#+/, "").toLowerCase();
     const set = new Set<string>();
-    for (const f of feeds) for (const it of f.interests) set.add(it);
+    for (const f of feeds) {
+      for (const it of f.interests) set.add(it);
+      const content = f.content ?? "";
+
+      const matches = content.match(/#[a-zA-Z0-9_가-힣ᄀ-ᇿㄱ-ㆎ]+/g) ?? [];
+      for (const m of matches) set.add(m.replace(/^#+/, ""));
+    }
     const all = Array.from(set);
     if (!q) return all.slice(0, 30);
     return all.filter((t) => t.toLowerCase().includes(q));
   }, [feeds, query]);
 
-  const goToClone = (cloneId: number, term?: string) => {
+  const goToCloneFeed = (feedItem: DiscoverFeedItem, term?: string) => {
     if (term) saveRecent(term);
+    Keyboard.dismiss();
 
-    nav.navigate("ClonesTab", { screen: "CloneDetail", params: { cloneId } });
+    nav.navigate("CloneFeed", { feed: feedItem });
   };
 
   const onSubmitSearch = () => {
@@ -242,7 +269,7 @@ export default function SearchScreen() {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => goToClone(item.cloneId, query)}
+        onPress={() => goToCloneFeed(item, query)}
         style={{ width: cellWidth, height: cellHeight, marginRight, marginBottom: GAP }}
       >
         {item.mediaUrl ? (
@@ -256,21 +283,50 @@ export default function SearchScreen() {
     );
   };
 
-  const renderCloneRow = ({ item }: { item: DiscoverFeedItem["clone"] }) => (
-    <TouchableOpacity style={s.row} onPress={() => goToClone(item.id, item.name)}>
-      {item.avatarUrl ? (
-        <Image source={{ uri: item.avatarUrl }} style={s.rowAvatar} />
-      ) : (
-        <View style={[s.rowAvatar, s.rowAvatarPh]}>
-          <Feather name="user" size={20} color={COLORS.zinc400} />
+  const renderCloneRow = ({ item }: { item: DiscoverFeedItem["clone"] }) => {
+
+    const matchedFeed = feeds.find((f) => f.cloneId === item.id);
+    return (
+      <TouchableOpacity
+        style={s.row}
+        onPress={() => {
+          if (matchedFeed) {
+            goToCloneFeed(matchedFeed, item.name);
+          } else {
+
+            goToCloneFeed(
+              {
+                id: -item.id,
+                cloneId: item.id,
+                content: null,
+                mediaUrl: item.avatarUrl,
+                mediaType: null,
+                likesCount: 0,
+                commentsCount: 0,
+                likedByMe: false,
+                createdAt: new Date().toISOString(),
+                clone: item,
+                interests: [],
+              },
+              item.name,
+            );
+          }
+        }}
+      >
+        {item.avatarUrl ? (
+          <Image source={{ uri: item.avatarUrl }} style={s.rowAvatar} />
+        ) : (
+          <View style={[s.rowAvatar, s.rowAvatarPh]}>
+            <Feather name="user" size={20} color={COLORS.zinc400} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={s.rowName} numberOfLines={1}>{item.name}</Text>
+          <Text style={s.rowSub} numberOfLines={1}>@{item.username}</Text>
         </View>
-      )}
-      <View style={{ flex: 1 }}>
-        <Text style={s.rowName} numberOfLines={1}>{item.name}</Text>
-        <Text style={s.rowSub} numberOfLines={1}>@{item.username}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderUserRow = ({ item }: { item: UserSearchItem }) => (
     <Pressable
@@ -297,7 +353,15 @@ export default function SearchScreen() {
   );
 
   const renderTagRow = ({ item }: { item: string }) => (
-    <Pressable style={s.row} onPress={() => { setQuery(item); saveRecent(item); }}>
+    <Pressable
+      style={s.row}
+      onPress={() => {
+
+        setQuery(item);
+        setActiveTab("recommend");
+        saveRecent(item);
+      }}
+    >
       <View style={[s.rowAvatar, s.rowAvatarTag]}>
         <Feather name="hash" size={20} color={COLORS.zinc700} />
       </View>
@@ -308,14 +372,15 @@ export default function SearchScreen() {
   );
 
   const renderRecentRow = ({ item }: { item: string }) => (
-    <View style={s.recentRow}>
-      <TouchableOpacity
-        style={s.recentLeft}
-        onPress={() => pickRecent(item)}
-      >
+    <TouchableOpacity
+      style={s.recentRow}
+      activeOpacity={0.7}
+      onPress={() => pickRecent(item)}
+    >
+      <View style={s.recentLeft}>
         <Feather name="clock" size={18} color={COLORS.zinc400} />
         <Text style={s.recentText} numberOfLines={1}>{item}</Text>
-      </TouchableOpacity>
+      </View>
       <TouchableOpacity
         style={s.recentRemoveBtn}
         onPress={() => removeRecent(item)}
@@ -323,7 +388,7 @@ export default function SearchScreen() {
       >
         <Feather name="x" size={16} color={COLORS.zinc400} />
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   const EmptyResult = ({ label }: { label: string }) => (
@@ -335,6 +400,13 @@ export default function SearchScreen() {
 
   return (
     <SafeView backgroundColor={COLORS.white} showBottomBackground={false}>
+      {
+}
+      <Pressable
+        style={{ flex: 1 }}
+        onPress={() => Keyboard.dismiss()}
+
+      >
       {}
       <View style={[s.searchWrap, { paddingTop: insets.top + 8 }]}>
         <View style={s.searchBar}>
@@ -482,6 +554,7 @@ export default function SearchScreen() {
           />
         )
       )}
+      </Pressable>
     </SafeView>
   );
 }

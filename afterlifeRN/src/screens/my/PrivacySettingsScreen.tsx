@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../stores/dialogStore";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
@@ -62,7 +63,7 @@ export default function PrivacySettingsScreen() {
   );
 
   const handleUnblock = (item: BlockedClone) => {
-    Alert.alert(
+    showAlert(
       "차단 해제",
       `${item.clone.name} 차단을 해제하시겠어요?`,
       [
@@ -77,7 +78,7 @@ export default function PrivacySettingsScreen() {
               setItems((prev) => prev.filter((b) => b.clone.id !== item.clone.id));
             } catch (err) {
               const msg = err instanceof Error ? err.message : "해제에 실패했어요.";
-              Alert.alert("오류", msg);
+              showAlert("오류", msg);
             } finally {
               setUnblockingId(null);
             }

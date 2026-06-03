@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -154,7 +155,7 @@ export default function MyScreen() {
       }
     } catch (err) {
       console.warn("[MyScreen] open xrun app failed:", err);
-      Alert.alert("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
+      showAlert("오류", "스토어를 열 수 없어요. 직접 xrun 을 검색해 주세요.");
     }
   };
 
@@ -210,29 +211,34 @@ export default function MyScreen() {
   const [deleting, setDeleting] = useState(false);
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      "회원 탈퇴",
-      "정말 탈퇴하시겠어요?\n계정과 페르소나가 영구적으로 사라집니다.\n(xrun 가입자라면 xrun 계정은 유지됩니다)",
+
+    const displayName =
+      apiUser?.name || apiUser?.email?.split("@")[0] || "회원";
+    showAlert(
+      "벌써 떠나시나요?",
+      `${displayName} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 페르소나는 영구적으로 사라져요.`,
       [
-        { text: "취소", style: "cancel" },
+
+        { text: "조금 더 써볼래요", style: "cancel" },
         {
-          text: "탈퇴",
+          text: "탈퇴하기",
           style: "destructive",
           onPress: async () => {
             if (!accessToken) return;
             setDeleting(true);
             try {
-
               await deleteMe(accessToken);
               await logout();
             } catch (err) {
               const msg = err instanceof AuthApiError ? err.message : "탈퇴에 실패했어요.";
-              Alert.alert("오류", msg);
+              showAlert("오류", msg);
               setDeleting(false);
             }
           },
         },
       ],
+
+      { subMessage: "xrun 가입자라면 xrun 계정은 유지됩니다" },
     );
   };
 
@@ -354,8 +360,10 @@ export default function MyScreen() {
         </View>
       </View>
 
+      {
+}
       <PaymentPinPromptModal
-        visible={showPinPrompt}
+        visible={false}
         onClose={() => setShowPinPrompt(false)}
       />
 

@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -13,8 +14,6 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
-import * as Clipboard from "expo-clipboard";
-import { Feather } from "@expo/vector-icons";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
@@ -27,7 +26,6 @@ type PrefKey =
   | "newFollower"
   | "followingActivity"
   | "reactions"
-  | "chat"
   | "promotions";
 
 const PREF_STORAGE_PREFIX = "@notif_pref:";
@@ -40,27 +38,22 @@ const PREF_ITEMS: Array<{
   {
     key: "newFollower",
     label: "새로운 팔로워",
-    desc: "나를 팔로우 하는 멤버 안내",
+    desc: "누군가가 나를 팔로우했을 때",
   },
   {
     key: "followingActivity",
     label: "팔로잉하는 멤버 소식",
-    desc: "팔로잉 멤버의 새로운 활동 안내",
+    desc: "내가 팔로우한 사람이 새 페르소나를 만들 때",
   },
   {
     key: "reactions",
     label: "반응",
-    desc: "좋아요 댓글",
-  },
-  {
-    key: "chat",
-    label: "채팅",
-    desc: "새로운 메시지",
+    desc: "내 페르소나에 좋아요·댓글·신고가 발생할 때",
   },
   {
     key: "promotions",
     label: "혜택정보 수신",
-    desc: "개인 맞춤 혜택과 이벤트 소식을 앱 푸시, 문자로 안내",
+    desc: "개인 맞춤 혜택과 이벤트 소식 안내",
   },
 ];
 
@@ -74,7 +67,6 @@ export default function NotificationSettingsScreen() {
     newFollower: true,
     followingActivity: true,
     reactions: true,
-    chat: true,
     promotions: true,
   });
   const [prefsLoaded, setPrefsLoaded] = useState(false);
@@ -131,7 +123,7 @@ export default function NotificationSettingsScreen() {
         if (reg.granted) {
           setGranted(true);
         } else {
-          Alert.alert(
+          showAlert(
             t("settings.notifications.permTitle", { defaultValue: "권한 필요" }),
             t("settings.notifications.deniedHint", {
               defaultValue:
@@ -153,7 +145,7 @@ export default function NotificationSettingsScreen() {
       }
     } else {
 
-      Alert.alert(
+      showAlert(
         t("settings.notifications.offTitle", { defaultValue: "알림 끄기" }),
         t("settings.notifications.offHint", {
           defaultValue: "알림을 끄려면 OS 설정에서 변경해주세요.",
@@ -234,37 +226,9 @@ export default function NotificationSettingsScreen() {
           ))}
         </View>
 
-        {}
-        {state.granted && (
-          <View style={[s.card, { marginTop: 16 }]}>
-            <View style={s.tokenSection}>
-              <Text style={s.tokenLabel}>
-                {t("settings.notifications.tokenLabel")}
-              </Text>
-              {state.loading ? (
-                <Text style={s.tokenValueMuted}>
-                  {t("settings.notifications.tokenLoading")}
-                </Text>
-              ) : state.token ? (
-                <>
-                  <Text style={s.tokenValue} selectable>
-                    {state.token}
-                  </Text>
-                  <TouchableOpacity style={s.copyBtn} onPress={handleCopyToken}>
-                    <Feather name="copy" size={14} color={COLORS.zinc700} />
-                    <Text style={s.copyBtnText}>
-                      {t("settings.notifications.copyToken")}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <Text style={s.tokenValueMuted}>
-                  {t("settings.notifications.tokenNone")}
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
+        {
+
+}
       </View>
     </SafeScrollView>
   );

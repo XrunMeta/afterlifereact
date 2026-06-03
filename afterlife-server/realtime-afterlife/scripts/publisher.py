@@ -67,6 +67,7 @@ from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaStreamError
 from aiortc.mediastreams import AudioStreamTrack, VideoStreamTrack
+import av
 from av import AudioFrame, VideoFrame
 from av.audio.resampler import AudioResampler
 from PIL import Image
@@ -94,6 +95,14 @@ AUDIO_OUTPUT_CHANNELS = 1
 AUDIO_FRAME_MS = 20
 AUDIO_FRAME_SAMPLES = AUDIO_OUTPUT_SR * AUDIO_FRAME_MS // 1000  # 960
 
+# 회차 029-D-3c-sync: video target fps. aiortc VideoStreamTrack default 는 30fps 라
+# musetalk 이 만든 25fps frame 을 30fps 로 yield 하면 wallclock 가 0.83배로 줄어 audio 와
+# sync 어긋남 (19.88s 영상이 16.57s 만에 끝남). 25fps 명시 pacing.
+VIDEO_TARGET_FPS = 25
+VIDEO_CLOCK_RATE = 90000
+VIDEO_PTS_INCREMENT = VIDEO_CLOCK_RATE // VIDEO_TARGET_FPS  # 3600
+VIDEO_TIME_BASE = Fraction(1, VIDEO_CLOCK_RATE)
+
 
 def _dummy_rgb_frame(elapsed: float) -> np.ndarray:
     """단색 frame, 12초 주기 색 회전."""
@@ -106,6 +115,33 @@ def _dummy_rgb_frame(elapsed: float) -> np.ndarray:
     return arr
 
 
+def _select_idle_frame(now, last_real_ts, grace, idle_frames, idle_t0, last_frame, fps=25):
+    """029-H: 큐 빔(timeout) 시 송출 frame 결정 — 시간 기반(recv 빈도 무관 일정 25fps).
+    grace 경과 + idle_frames 있으면 idle loop frame, 아니면 last_frame hold.
+    반환: (frame, new_idle_t0). idle_t0=0 이면 첫 진입(now 로 고정), hold 시 0 리셋.
+    """
+    if idle_frames and (now - last_real_ts) >= grace:
+        t0 = idle_t0 if idle_t0 > 0 else now
+        idx = int((now - t0) * fps) % len(idle_frames)
+        return idle_frames[idx], t0
+    return last_frame, 0.0
+
+
+def _load_idle_frames(path):
+    """029-H: idle mp4 → rgb24 ndarray 리스트. 실패 시 빈 리스트(=hold fallback)."""
+    try:
+        import av
+        out = []
+        c = av.open(path)
+        for fr in c.decode(video=0):
+            out.append(fr.to_ndarray(format="rgb24"))
+        c.close()
+        return out
+    except Exception as e:
+        print(f"[029-H] idle load fail: {e}", flush=True)
+        return []
+
+
 class StreamableVideoTrack(VideoStreamTrack):
     """모드 토글 가능한 video track.
 
@@ -116,13 +152,27 @@ class StreamableVideoTrack(VideoStreamTrack):
 
     kind = "video"
 
-    def __init__(self, queue_max: int = QUEUE_MAX_DEFAULT):
+    def __init__(
+        self,
+        queue_max: int = QUEUE_MAX_DEFAULT,
+        sync_event: Optional[asyncio.Event] = None,
+    ):
         super().__init__()
         self._start = time.time()
         self.mode = "dummy"
         self.queue: asyncio.Queue = asyncio.Queue(maxsize=queue_max)
         self._last_frame: Optional[np.ndarray] = None
         self._stream_ended = False
+        # 회차 029-D-3c-sync: 첫 real frame 들어오면 set → audio gate open
+        self._sync_event = sync_event
+        # 029-avsync-measure: 실제 mp4 frame yield 카운트 (content-time 계측용)
+        self.frames_real = 0
+        # 029-H idle: 큐 빔 grace 후 사전 생성 idle mp4 loop (freeze 대체, 시간 기반 25fps)
+        self._idle_frames = []
+        self._idle_t0 = 0.0
+        self._last_real_ts = time.time()
+        self._idle_grace = float(os.environ.get("IDLE_GRACE_SEC", "0.5"))
+        self._audio_track = None  # 029-avsync-fix: audio master content 추종(=_start_publish 주입)
 
     def set_mode(self, mode: str) -> None:
         if mode not in ("dummy", "queue"):
@@ -153,17 +203,68 @@ class StreamableVideoTrack(VideoStreamTrack):
     def queue_depth(self) -> int:
         return self.queue.qsize()
 
+    def _idle_or_hold(self):
+        """029-avsync-fix: consume 할 real frame 이 없을 때 — gap 크면 idle loop, 작으면 last hold."""
+        _now = time.time()
+        _was_idle = self._idle_t0 > 0
+        arr, self._idle_t0 = _select_idle_frame(
+            _now, self._last_real_ts,
+            self._idle_grace, self._idle_frames, self._idle_t0, self._last_frame,
+        )
+        if self._idle_t0 > 0 and not _was_idle:  # idle 진입 시 1회 로그
+            log.info("[029-H] idle 진입 (gap=%.1fs, frames=%d)", _now - self._last_real_ts, len(self._idle_frames))
+        return arr
+
     async def recv(self) -> VideoFrame:
-        pts, time_base = await self.next_timestamp()
+        # 회차 029-D-3c-sync: 25fps 자체 pacing (super.next_timestamp 은 30fps default).
+        loop_time = asyncio.get_event_loop().time()
+        if not hasattr(self, "_t0_25"):
+            self._t0_25 = loop_time
+            self._pts_25 = 0
+        else:
+            self._pts_25 += VIDEO_PTS_INCREMENT
+            wait = self._t0_25 + (self._pts_25 / VIDEO_CLOCK_RATE) - loop_time
+            if wait > 0:
+                await asyncio.sleep(wait)
+        pts, time_base = self._pts_25, VIDEO_TIME_BASE
         arr: Optional[np.ndarray] = None
 
         if self.mode == "queue":
-            try:
-                # 짧은 timeout 으로 폴링 — 비면 last/dummy fallback
-                arr = await asyncio.wait_for(self.queue.get(), timeout=0.02)
-                self._last_frame = arr
-            except asyncio.TimeoutError:
-                arr = self._last_frame  # hold
+            # 029-avsync-fix: audio master. video 가 audio content(samples_real)를 추종.
+            #  target=audio 가 재생한 content 의 video frame 수. behind>0 → 큐에서 그만큼
+            #  consume(중간 frame drop=catch-up, 마지막만 표시). behind<=0 → consume 안 함
+            #  (video 가 audio 를 앞서지 않게) → gap 크면 idle, 작으면 hold.
+            audio = self._audio_track
+            gate_open = self._sync_event is None or self._sync_event.is_set()
+            if audio is not None and gate_open:
+                target = int(audio.samples_real / audio.sample_rate * VIDEO_TARGET_FPS)
+            else:
+                target = self.frames_real + 1  # bootstrap(gate open 전) or audio 없음 → 1 frame
+            behind = target - self.frames_real
+            if behind > 0:
+                try:
+                    # 첫 frame 은 짧은 timeout get (큐 빔 → idle 감지)
+                    arr = await asyncio.wait_for(self.queue.get(), timeout=0.02)
+                    self._last_frame = arr
+                    self._last_real_ts = time.time()
+                    self.frames_real += 1
+                    # 회차 029-D-3c-sync: 첫 real frame 도착 시 audio gate open
+                    if self._sync_event is not None and not self._sync_event.is_set():
+                        self._sync_event.set()
+                    # catch-up: audio 보다 뒤처진 만큼 추가 consume(drop). 마지막만 표시.
+                    while self.frames_real < target:
+                        try:
+                            arr = self.queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            break
+                        self._last_frame = arr
+                        self._last_real_ts = time.time()
+                        self.frames_real += 1
+                except asyncio.TimeoutError:
+                    arr = self._idle_or_hold()
+            else:
+                # video 가 audio 를 따라잡음(앞섬) → consume 안 함(앞지르기 방지)
+                arr = self._idle_or_hold()
         # dummy 모드 또는 queue 모드에서 last 도 없을 때
         if arr is None:
             arr = _dummy_rgb_frame(time.time() - self._start)
@@ -198,11 +299,14 @@ class StreamableAudioTrack(AudioStreamTrack):
         queue_max: int = AUDIO_QUEUE_MAX_DEFAULT,
         sample_rate: int = AUDIO_OUTPUT_SR,
         channels: int = AUDIO_OUTPUT_CHANNELS,
+        video_sync_event: Optional[asyncio.Event] = None,
     ):
         super().__init__()
         self.sample_rate = sample_rate
         self.channels = channels
         self.frame_samples = sample_rate * AUDIO_FRAME_MS // 1000
+        # 회차 029-D-3c-sync: video first real frame 전엔 silence (buffer 보존)
+        self._video_sync_event = video_sync_event
         # PCM int16 buffer (1D mono). queue 는 chunk 단위로 frame buffer 에 합쳐짐.
         self._buffer = np.zeros(0, dtype=np.int16)
         self._buffer_lock = asyncio.Lock()
@@ -222,6 +326,7 @@ class StreamableAudioTrack(AudioStreamTrack):
         self.frames_yielded_real = 0
         self.frames_yielded_silence = 0
         self.samples_yielded_out = 0
+        self.samples_real = 0  # 029-avsync-fix: 실제 buffer 소비 sample(=재생된 audio content). video 가 추종.
 
     def push_pcm_int16(self, pcm: np.ndarray) -> dict:
         """48kHz mono int16 PCM 1D ndarray 를 buffer 에 append.
@@ -270,10 +375,19 @@ class StreamableAudioTrack(AudioStreamTrack):
 
         n = self.frame_samples
         is_real = False
-        if self._buffer.size >= n:
+        # 회차 029-D-3c-sync: video gate 닫혀있으면 buffer 소비 X (보존), silence yield
+        gate_closed = (
+            self._video_sync_event is not None
+            and not self._video_sync_event.is_set()
+        )
+        if gate_closed:
+            chunk = np.zeros(n, dtype=np.int16)
+            is_real = False
+        elif self._buffer.size >= n:
             chunk = self._buffer[:n]
             self._buffer = self._buffer[n:]
             is_real = True
+            self.samples_real += n  # 029-avsync-fix
         else:
             # silence (또는 잔여 + pad)
             if self._buffer.size > 0:
@@ -282,6 +396,7 @@ class StreamableAudioTrack(AudioStreamTrack):
                 chunk = np.concatenate([head, pad])
                 self._buffer = np.zeros(0, dtype=np.int16)
                 is_real = True  # 부분 real
+                self.samples_real += int(head.size)  # 029-avsync-fix
             else:
                 chunk = np.zeros(n, dtype=np.int16)
                 is_real = False
@@ -355,6 +470,38 @@ def _resample_int16(
     return np.clip(y, -32768.0, 32767.0).astype(np.int16)
 
 
+def _balance_pcm_to_video(
+    pcm: np.ndarray,
+    video_frames: int,
+    sr: int = AUDIO_OUTPUT_SR,
+    fps: int = VIDEO_TARGET_FPS,
+) -> tuple[np.ndarray, int]:
+    """회차 029-D-3d-avsync-fix: 청크 audio 길이를 video 프레임 길이에 정확히 맞춤.
+
+    근본원인: musetalk mux 가 audio(실제 TTS 길이) > video(nbf/25 양자화) 로 청크당
+    ~9~30ms audio 초과분을 냄. audio 는 push_mp4 가 buffer 에 통째 burst 적재(잉여 누적),
+    video 는 25fps just-in-time 페이싱(잉여 0)이라 청크 경계 starve 구간을 audio 잉여가
+    메우며 content-time 이 앞서나감 → avsync offset(audio_ahead) 단조 누적.
+
+    audio 를 video 프레임수(nbf)에 대응하는 정확한 sample 수로 맞추면(초과=tail trim,
+    부족=silence pad) per-chunk a_content == v_content → audio 버퍼가 video 큐와 동시에
+    비어 틈에 둘 다 정지(synced) → 누적 0. trim 분량은 sub-frame(≤40ms) tail.
+
+    반환: (balanced_pcm, delta) delta>0=trim 한 sample 수, <0=pad 한 sample 수, 0=무변경.
+    video_frames<=0 (메타 누락) 면 audio 손실 금지 위해 passthrough.
+    """
+    if video_frames <= 0 or pcm.size == 0:
+        return pcm, 0
+    target = video_frames * sr // fps
+    cur = int(pcm.size)
+    if cur > target:
+        return pcm[:target], cur - target
+    if cur < target:
+        pad = np.zeros(target - cur, dtype=np.int16)
+        return np.concatenate([pcm, pad]), cur - target
+    return pcm, 0
+
+
 class PublisherState:
     def __init__(self):
         self.state: str = "idle"
@@ -364,6 +511,9 @@ class PublisherState:
         self.pc: Optional[RTCPeerConnection] = None
         self.track: Optional[StreamableVideoTrack] = None
         self.audio_track: Optional[StreamableAudioTrack] = None
+        # 회차 029-D-3d-multi: push_mp4 순차 처리 큐 + worker (멀티 인스턴스 out-of-order 방지)
+        self._mp4_queue: Optional["asyncio.Queue"] = None
+        self._mp4_worker: Optional["asyncio.Task"] = None
         self.mode: str = "dummy"
         self.audio_enabled: bool = False
         self.video_enabled: bool = True
@@ -463,12 +613,26 @@ async def _start_publish(
     pc = RTCPeerConnection()
     v_track: Optional[StreamableVideoTrack] = None
     a_track: Optional[StreamableAudioTrack] = None
+    # 회차 029-D-3c-sync: queue 모드 + video/audio 둘 다 켜진 경우만 gate 활성.
+    # video first real frame 도착 후에야 audio yield 시작 → wallclock sync.
+    sync_event: Optional[asyncio.Event] = (
+        asyncio.Event() if (mode == "queue" and video and audio) else None
+    )
     if video:
-        v_track = StreamableVideoTrack(queue_max=queue_max)
+        v_track = StreamableVideoTrack(queue_max=queue_max, sync_event=sync_event)
         v_track.set_mode(mode)
+        # 029-H: idle mp4 디코드해 track 에 적재 (큐 빔 grace 후 loop). 실패 시 빈 리스트=hold fallback.
+        idle_path = os.environ.get("IDLE_MP4_PATH", "")
+        if idle_path and not v_track._idle_frames:
+            v_track._idle_frames = _load_idle_frames(idle_path)
+            log.info("[029-H] idle frames loaded: %d from %s", len(v_track._idle_frames), idle_path)
         pc.addTrack(v_track)
     if audio:
-        a_track = StreamableAudioTrack(queue_max=audio_queue_max)
+        a_track = StreamableAudioTrack(
+            queue_max=audio_queue_max, video_sync_event=sync_event
+        )
+        if v_track is not None:  # 029-avsync-fix: video 가 audio content 추종
+            v_track._audio_track = a_track
         pc.addTrack(a_track)
 
     offer = await pc.createOffer()
@@ -532,6 +696,31 @@ async def _start_publish(
     state.video_mid = video_mid
     state.audio_mid = audio_mid
     state.state = "publishing"
+
+    # 029-avsync-measure: video/audio content-time 드리프트 주기 로깅.
+    # v_content = 실제 yield 한 mp4 frame 수 / 25fps, a_content = real audio frame * 20ms.
+    # offset>0 = audio 가 video 보다 content-time 앞섬(="음성이 영상보다 빠름").
+    async def _avsync_monitor() -> None:
+        loop = asyncio.get_event_loop()
+        t0 = loop.time()
+        while True:
+            await asyncio.sleep(0.5)
+            vt, at = state.track, state.audio_track
+            if vt is None or at is None:
+                continue
+            v_real = getattr(vt, "frames_real", 0)
+            a_real = getattr(at, "frames_yielded_real", 0)
+            v_content = v_real / VIDEO_TARGET_FPS
+            a_content = a_real * (AUDIO_FRAME_MS / 1000.0)
+            log.info(
+                "[avsync] wall=%.2f v_real=%d a_real=%d v_content=%.3f a_content=%.3f "
+                "offset_ms=%+.0f(>0=audio_ahead) vq=%d abuf_ms=%d",
+                loop.time() - t0, v_real, a_real, v_content, a_content,
+                (a_content - v_content) * 1000.0, vt.queue.qsize(),
+                int(at.queue_depth_samples() / at.sample_rate * 1000),
+            )
+    state._avsync_task = asyncio.create_task(_avsync_monitor())
+
     return {
         "sessionId": sid,
         "trackName": state.track_name,
@@ -549,6 +738,14 @@ async def _stop_publish(state: PublisherState) -> dict:
             await state.pc.close()
         except Exception as e:  # noqa: BLE001
             log.warning("pc close err: %s", e)
+    if state._mp4_worker is not None:
+        state._mp4_worker.cancel()
+    state._mp4_worker = None
+    state._mp4_queue = None
+    _avt = getattr(state, "_avsync_task", None)  # 029-avsync-measure
+    if _avt is not None:
+        _avt.cancel()
+        state._avsync_task = None
     state.pc = None
     state.track = None
     state.audio_track = None
@@ -781,7 +978,191 @@ def make_app() -> web.Application:
         if state.audio_track is None:
             return web.json_response({"flushed": 0, "note": "no_audio_track"})
         depth = state.audio_track.signal_end()
+        # 029-D-3c-sync-fix1: 메시지 종료 시 video gate 닫음 → 다음 메시지의
+        # 새 video first frame 도착 전엔 audio buffer 보존 (multi-message sync).
+        ev = getattr(state.audio_track, "_video_sync_event", None)
+        if ev is not None:
+            ev.clear()
         return web.json_response({"flushed": depth})
+
+    async def _push_mp4_bg_impl(mp4_bytes: bytes, reset: bool) -> None:
+        """회차 029-D-3d-multi: chunk mp4 를 demux → audio buffer + video queue 적재.
+
+        reset=True  : 새 turn 첫 chunk — 기존 큐/버퍼 flush + sync gate 재설정
+                      (이전 turn 송출 중이면 폐기, 새 응답 즉시).
+        reset=False : append — 이전 chunk 에 이어 연속 송출. flush/sync clear 안 함
+                      → video queue 가 이어 채워져 끊김 없이 연속 재생.
+
+        흐름: PyAV audio decode→48kHz mono resample→push_pcm_int16,
+              video decode→25fps pacing push_ndarray. video first frame→sync_event.set→
+              audio gate open (RTCP-SR NTP anchor 일치 → WebRTC sync).
+        _mp4_worker 가 순차 호출하므로 chunk 송출 순서 보장 (멀티 인스턴스 out-of-order 방지).
+        """
+        # reset 일 때만 기존 큐/버퍼 flush + gate close (append 는 이어붙임)
+        if reset:
+            if state.track is not None:
+                try:
+                    while not state.track.queue.empty():
+                        state.track.queue.get_nowait()
+                except Exception:  # noqa: BLE001
+                    pass
+                state.track._last_frame = None
+            if state.audio_track is not None:
+                async with state.audio_track._buffer_lock:
+                    state.audio_track._buffer = np.zeros(0, dtype=np.int16)
+            _ev_pre = (
+                getattr(state.audio_track, "_video_sync_event", None)
+                if state.audio_track else None
+            )
+            if _ev_pre is not None:
+                _ev_pre.clear()
+
+        container = None
+        try:
+            container = await asyncio.to_thread(
+                lambda: av.open(io.BytesIO(mp4_bytes))
+            )
+            a_stream = container.streams.audio[0] if container.streams.audio else None
+            # 029-D-3d-avsync-fix: video 프레임수(nbf) 선취득 → audio 길이 맞춤용.
+            # moov 의 nb_frames 우선, 없으면 duration×fps 추정 (fallback).
+            v_meta = (
+                container.streams.video[0] if container.streams.video else None
+            )
+            nbf = 0
+            if v_meta is not None:
+                nbf = int(getattr(v_meta, "frames", 0) or 0)
+                if nbf <= 0 and v_meta.duration and v_meta.time_base:
+                    nbf = int(round(
+                        float(v_meta.duration * v_meta.time_base) * VIDEO_TARGET_FPS
+                    ))
+            # 3) audio decode + resample + push_pcm_int16 (buffer 미리 채움)
+            if a_stream is not None and state.audio_track is not None:
+                def _decode_audio() -> np.ndarray:
+                    resampler = AudioResampler(
+                        format="s16", layout="mono", rate=AUDIO_OUTPUT_SR,
+                    )
+                    chunks: list[np.ndarray] = []
+                    for frame in container.decode(a_stream):
+                        for r in resampler.resample(frame):
+                            arr = r.to_ndarray()
+                            chunks.append(arr.flatten().astype(np.int16, copy=False))
+                    for r in resampler.resample(None):  # flush
+                        arr = r.to_ndarray()
+                        chunks.append(arr.flatten().astype(np.int16, copy=False))
+                    if not chunks:
+                        return np.zeros(0, dtype=np.int16)
+                    return np.concatenate(chunks)
+                pcm = await asyncio.to_thread(_decode_audio)
+                if pcm.size:
+                    # 029-D-3d-avsync-fix: video 길이에 맞춰 trim/pad → offset 누적 차단
+                    pcm, _bal = _balance_pcm_to_video(pcm, nbf)
+                    state.audio_track.push_pcm_int16(pcm)
+                    log.info(
+                        "push_mp4 audio queued samples=%d (~%.2fs) nbf=%d balance=%+d",
+                        pcm.size, pcm.size / AUDIO_OUTPUT_SR, nbf, _bal,
+                    )
+            # 4) video decode + 25fps wallclock pacing push.
+            # audio decode 가 container 위치를 끝까지 옮겼으니 re-open (새 BytesIO).
+            await asyncio.to_thread(container.close)
+            container = await asyncio.to_thread(
+                lambda: av.open(io.BytesIO(mp4_bytes))
+            )
+            v_stream = container.streams.video[0]
+            target_fps = (
+                float(v_stream.average_rate) if v_stream.average_rate else 25.0
+            )
+            frame_interval = 1.0 / target_fps
+            loop = asyncio.get_event_loop()
+            next_due = loop.time()
+            pushed = 0
+            for v_frame in container.decode(v_stream):
+                try:
+                    arr = await asyncio.to_thread(
+                        lambda f=v_frame: f.to_ndarray(format="rgb24")
+                    )
+                except Exception as e:  # noqa: BLE001
+                    log.warning("push_mp4 video decode err: %s", e)
+                    continue
+                now = loop.time()
+                wait = next_due - now
+                if wait > 0:
+                    await asyncio.sleep(wait)
+                if state.track is not None:
+                    state.track.push_ndarray(arr)
+                    pushed += 1
+                next_due += frame_interval
+            log.info("push_mp4 video pushed=%d fps=%.2f reset=%s", pushed, target_fps, reset)
+            # append 연속 유지: signal_end / sync_event.clear 안 함. turn 종료 시 큐 소진 후
+            # recv 가 last frame hold (다음 turn reset 이 새 gate 설정).
+        except Exception as e:  # noqa: BLE001
+            log.warning("push_mp4 bg failed: %s", e)
+        finally:
+            if container is not None:
+                try:
+                    await asyncio.to_thread(container.close)
+                except Exception:
+                    pass
+
+    async def _mp4_worker() -> None:
+        """state._mp4_queue 를 순차 소비 → chunk demux+송출 순서 보장."""
+        while True:
+            item = await state._mp4_queue.get()
+            try:
+                if item is None:
+                    return
+                mp4_bytes, reset = item
+                await _push_mp4_bg_impl(mp4_bytes, reset)
+            except Exception as e:  # noqa: BLE001
+                log.warning("mp4 worker err: %s", e)
+            finally:
+                state._mp4_queue.task_done()
+
+    async def push_mp4(request: web.Request) -> web.Response:
+        """body: {"path": "/abs/to.mp4", "reset": bool} → 순차 큐 demux+push.
+
+        reset(default True): 새 turn 첫 chunk(기존 폐기). False: append(연속 송출).
+        멀티 인스턴스가 chunk 를 병렬 생성해도 server.js 가 idx 순서로 호출 +
+        worker 순차 처리 → 송출 순서 보장.
+        """
+        if state.state != "publishing":
+            return web.json_response(
+                {"error": "publisher_not_publishing", "state": state.state}, status=409,
+            )
+        if state.mode != "queue":
+            return web.json_response(
+                {"error": "publisher_not_in_queue_mode", "mode": state.mode}, status=409,
+            )
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"error": "invalid_json"}, status=400)
+        mp4_path = body.get("path") if isinstance(body, dict) else None
+        reset = bool(body.get("reset", True)) if isinstance(body, dict) else True
+        if not mp4_path or not Path(mp4_path).exists():
+            return web.json_response(
+                {"error": "mp4_not_found", "path": mp4_path}, status=400,
+            )
+        # mp4 즉시 read (musetalk 동일 파일명 덮어쓰기 race 회피)
+        try:
+            mp4_bytes = await asyncio.to_thread(lambda: Path(mp4_path).read_bytes())
+        except Exception as e:  # noqa: BLE001
+            return web.json_response({"error": "mp4_read_failed", "detail": str(e)}, status=500)
+        # worker lazy 생성
+        if state._mp4_queue is None:
+            state._mp4_queue = asyncio.Queue()
+            state._mp4_worker = asyncio.create_task(_mp4_worker())
+        # reset 이면 큐의 이전 turn 잔여 chunk 폐기 (새 응답 즉시 우선)
+        if reset:
+            try:
+                while True:
+                    state._mp4_queue.get_nowait()
+                    state._mp4_queue.task_done()
+            except asyncio.QueueEmpty:
+                pass
+        await state._mp4_queue.put((mp4_bytes, reset))
+        return web.json_response(
+            {"queued": True, "path": mp4_path, "reset": reset, "qdepth": state._mp4_queue.qsize()}
+        )
 
     async def publish_stop(_request: web.Request) -> web.Response:
         async with state.lock:
@@ -910,6 +1291,7 @@ def make_app() -> web.Application:
     app.router.add_post("/push_frame_end", push_frame_end)
     app.router.add_post("/push_audio", push_audio)
     app.router.add_post("/push_audio_end", push_audio_end)
+    app.router.add_post("/push_mp4", push_mp4)
     # OPTIONS preflight 라우트 — middleware 가 응답 헤더 채움
     app.router.add_route("OPTIONS", "/subscribe", lambda r: web.Response(status=204))
     app.router.add_route("OPTIONS", "/subscribe/renegotiate", lambda r: web.Response(status=204))

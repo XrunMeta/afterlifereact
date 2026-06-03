@@ -26,6 +26,13 @@ database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
 migrations_dir = "migrations"
 
+# xrun D1 — afterlife 측 이메일 발송 시 sender='afterlife' 로 EmailLogs 에
+# row 기록. xrun-admin 의 이메일 관리 페이지가 한 곳에서 양쪽 발송내역 조회.
+[[d1_databases]]
+binding = "XRUN_DB"
+database_name = "xrun"
+database_id = "f446edf4-05aa-45c0-a5b1-67f1f96a9544"
+
 [[r2_buckets]]
 binding = "R2_ARCHIVE"
 bucket_name = "afterlife-archive-dev"
@@ -60,6 +67,8 @@ id = "bdf9722018f541c59f50e6014696cddf"
 
 [vars]
 ENVIRONMENT = "development"
+# SP1a — gabia orchestrator. dev/test 는 실제 호출 안 함(vitest fetchMock 대상). preview/prod 는 실 URL.
+ORCHESTRATOR_URL = "http://orchestrator.test"
 WEBAUTHN_RP_ID = "localhost"
 WEBAUTHN_RP_ORIGIN = "http://localhost:8787"
 LAZY_ROTATION_ENABLED = "0"
@@ -83,6 +92,11 @@ binding = "DB"
 database_name = "afterlife-db-preview"
 database_id = "a9d363db-5838-4697-acf9-c49eb04c6359"
 migrations_dir = "migrations"
+
+[[env.preview.d1_databases]]
+binding = "XRUN_DB"
+database_name = "xrun"
+database_id = "f446edf4-05aa-45c0-a5b1-67f1f96a9544"
 
 [[env.preview.kv_namespaces]]
 binding = "KV_AUTH"
@@ -118,6 +132,7 @@ bucket_name = "afterlife-archive-dev"
 
 [env.preview.vars]
 ENVIRONMENT = "staging"
+ORCHESTRATOR_URL = "https://memorial.example.invalid/orchestrator"  # ORCH_SECRET 은 wrangler secret put
 WEBAUTHN_RP_ID = "edge-alt-preview.example.invalid"
 WEBAUTHN_RP_ORIGIN = "https://edge-alt-preview.example.invalid"
 LAZY_ROTATION_ENABLED = "0"
@@ -127,6 +142,9 @@ XRUN_API_URL = "https://oth-path-gw.example.invalid"
 COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
 COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
 PAYMENT_CURRENCY      = "18"
+# preview/dev 전용 결제 우회 PIN — 이 PIN 으로 페르소나 결제 시 xrun 송금 스킵(테스트).
+# production([env.production])에는 절대 추가 금지. preview 한정.
+DEV_PAYMENT_BYPASS_PIN = "424242"
 
 [env.preview.triggers]
 crons = ["0 3 * * *"]
@@ -175,6 +193,7 @@ bucket_name = "afterlife-archive-dev"
 
 [env.production.vars]
 ENVIRONMENT = "production"
+ORCHESTRATOR_URL = "https://memorial.example.invalid/orchestrator"  # ORCH_SECRET 은 wrangler secret put
 WEBAUTHN_RP_ID = "api.afterlife.app"
 WEBAUTHN_RP_ORIGIN = "https://oth-path.afterlife.app"
 LAZY_ROTATION_ENABLED = "0"

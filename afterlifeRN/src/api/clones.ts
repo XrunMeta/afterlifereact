@@ -4,7 +4,8 @@ import { API_BASE } from "../config/apiBase";
 import { AuthApiError, type ApiErrorBody } from "./auth";
 
 export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
-export type Visibility = "public" | "private" | "followers";
+
+export type Visibility = "public" | "private" | "followers" | "selected";
 
 export interface CreateClonePayload {
   clone_type: CloneType;
@@ -20,7 +21,16 @@ export interface CreateClonePayload {
   l1_profile?: {
     attrs: Record<string, string>;
     notes: string;
+    personality_core?: string;
+    tone?: string;
   };
+
+  personaAnswers?: Record<string, string>;
+
+  relation?: string;
+
+  idle_video_job_id?: string;
+  voice_clone_job_id?: string;
 
   pin?: string;
 }
@@ -38,6 +48,56 @@ export interface CreateCloneResponse {
   initial_memory: { ctx_key: string; shared_key: string } | null;
 }
 
+export interface CloneDetailResponse {
+  clone: {
+    id: number;
+    ownerId: number;
+    name: string;
+    username: string;
+    description: string | null;
+    avatarUrl: string | null;
+    cloneType: string;
+    visibility: string;
+    stats: {
+      followers: number;
+      messages: number;
+      gifts: number;
+      likes: number;
+      comments: number;
+    };
+    likedByMe: boolean;
+    createdAt: string;
+  };
+}
+export async function getCloneDetail(
+  cloneId: number,
+  accessToken?: string,
+): Promise<CloneDetailResponse> {
+  const url = `${API_BASE}/oth-path${cloneId}`;
+  const res = await fetch(url, {
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  });
+  if (!res.ok) {
+    throw new Error(`getCloneDetail HTTP ${res.status}`);
+  }
+  return (await res.json()) as CloneDetailResponse;
+}
+
+export async function checkCloneUsername(
+  username: string,
+): Promise<{ available: boolean; reason?: "taken" | "reserved" | "invalid" }> {
+  const u = encodeURIComponent(username);
+  const res = await fetch(`${API_BASE}/oth-path?u=${u}`);
+  if (!res.ok) {
+
+    return { available: true };
+  }
+  return (await res.json()) as {
+    available: boolean;
+    reason?: "taken" | "reserved" | "invalid";
+  };
+}
+
 export function deriveUsernameFromName(name: string): string {
   const ascii = name
     .toLowerCase()
@@ -49,6 +109,70 @@ export function deriveUsernameFromName(name: string): string {
   const trimmed = base.slice(0, 20);
   const suffix = Math.random().toString(36).slice(2, 8);
   return `${trimmed}_${suffix}`;
+}
+
+export async function getPersonaQuestions(
+  accessToken: string,
+): Promise<import('../types/clone').PersonaQuestion[]> {
+  const res = await fetch(`${API_BASE}/oth-path`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`persona-questions ${res.status}`);
+  const body = (await res.json()) as { questions: import('../types/clone').PersonaQuestion[] };
+  return body.questions ?? [];
+}
+
+export async function personaSuggest(
+  accessToken: string,
+  profile: Record<string, unknown>,
+): Promise<Record<string, string[]>> {
+  try {
+    const res = await fetch(`${API_BASE}/oth-path`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(profile),
+    });
+    if (!res.ok) return {};
+    const body = (await res.json()) as { suggestions: Record<string, string[]> };
+    return body.suggestions ?? {};
+  } catch {
+    return {};
+  }
+}
+
+export interface CatalogVoice {
+  id: number;
+  name: string;
+  description: string | null;
+  sortOrder: number;
+  sampleUrl: string;
+}
+
+export async function getVoices(accessToken: string): Promise<CatalogVoice[]> {
+  const res = await fetch(`${API_BASE}/oth-path`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`getVoices ${res.status}`);
+  const body = (await res.json()) as { voices: CatalogVoice[] };
+  return body.voices;
+}
+
+export async function introSuggest(
+  accessToken: string,
+  profile: { name?: string; relation?: string; personaAnswers?: Record<string, string> },
+): Promise<string> {
+  try {
+    const res = await fetch(`${API_BASE}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(profile),
+    });
+    if (!res.ok) return "";
+    const body = (await res.json()) as { intro?: string };
+    return typeof body.intro === "string" ? body.intro : "";
+  } catch {
+    return "";
+  }
 }
 
 export async function createClone(
@@ -88,6 +212,40 @@ export async function createClone(
     );
   }
   return parsed as CreateCloneResponse;
+}
+
+export type AssetJobKind = 'idle_video' | 'voice_clone';
+export type AssetJobStatus = 'pending' | 'running' | 'done' | 'failed';
+
+export interface AssetJob {
+  job_id: string;
+  kind: AssetJobKind;
+  status: AssetJobStatus;
+  out_url?: string | null;
+  error?: string | null;
+}
+
+export async function createAssetJob(
+  accessToken: string,
+  payload: { kind: AssetJobKind; src_file_id: number },
+): Promise<{ job_id: string }> {
+  return authFetch<{ job_id: string }>(
+    '/oth-path',
+    accessToken,
+    { method: 'POST', body: JSON.stringify(payload) },
+    makeIdempotencyKey(),
+  );
+}
+
+export async function getAssetJob(
+  accessToken: string,
+  jobId: string,
+): Promise<AssetJob> {
+  return authFetch<AssetJob>(
+    `/oth-path${encodeURIComponent(jobId)}`,
+    accessToken,
+    { method: 'GET' },
+  );
 }
 
 export interface PendingInvite {
@@ -265,6 +423,26 @@ export async function deleteClone(
   );
 }
 
+export interface UpdateClonePayload {
+  name?: string;
+  description?: string;
+  avatar_url?: string;
+  cover_image_url?: string;
+  visibility?: string;
+  interests?: string[];
+}
+export async function updateClone(
+  accessToken: string,
+  cloneId: number,
+  payload: UpdateClonePayload,
+): Promise<{ ok: true; updatedFields: string[] }> {
+  return authFetch(
+    `/oth-path${cloneId}`,
+    accessToken,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
+}
+
 export type SentInviteStatus = "pending" | "accepted" | "cancelled" | "expired";
 export interface SentInvite {
   id: number;
@@ -321,6 +499,53 @@ export async function listMyClones(accessToken: string): Promise<{ items: MyClon
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface SystemClone {
+  id: number;
+  username: string;
+  name: string;
+}
+
+export async function listSystemClones(accessToken: string): Promise<{ items: SystemClone[] }> {
+  return authFetch(`/oth-path`, accessToken, { method: "GET" });
+}
+
+export interface IntimacyEvent {
+  id: number;
+  action: "chat" | "call" | "learn" | "feed";
+  score: number;
+  feedId: number | null;
+  createdAt: string;
+}
+
+export interface IntimacyEventsResponse {
+  summary: {
+    totalScore: number;
+    chat: number;
+    call: number;
+    learn: number;
+    feed: number;
+    eventCount: number;
+  };
+  items: IntimacyEvent[];
+  nextCursor: number | null;
+}
+
+export async function listCloneIntimacyEvents(
+  accessToken: string,
+  cloneId: number,
+  opts?: { limit?: number; cursor?: number | null },
+): Promise<IntimacyEventsResponse> {
+  const qs = new URLSearchParams();
+  if (opts?.limit) qs.set("limit", String(opts.limit));
+  if (opts?.cursor) qs.set("cursor", String(opts.cursor));
+  const tail = qs.toString();
+  return authFetch(
+    `/oth-path${cloneId}/intimacy-events${tail ? `?${tail}` : ""}`,
+    accessToken,
+    { method: "GET" },
+  );
+}
+
 export interface CloneFollower {
   followId: number;
   userId: number;
@@ -360,6 +585,70 @@ export interface BlockedClone {
     avatarUrl: string | null;
     cloneType: CloneType;
   };
+}
+
+export async function reportClone(
+  accessToken: string,
+  cloneId: number,
+  reason?: string,
+): Promise<{ ok: true; reported: true; blocked: true }> {
+  return authFetch(
+    `/oth-path${cloneId}/report`,
+    accessToken,
+    {
+      method: "POST",
+      body: JSON.stringify(reason ? { reason } : {}),
+    },
+    makeIdempotencyKey(),
+  );
+}
+
+export async function reportFeedComment(
+  accessToken: string,
+  feedId: number,
+  commentId: number,
+  reason?: string,
+): Promise<{ ok: true; reported: true }> {
+  return authFetch(
+    `/oth-path${feedId}/comments/${commentId}/report`,
+    accessToken,
+    {
+      method: "POST",
+      body: JSON.stringify(reason ? { reason } : {}),
+    },
+    makeIdempotencyKey(),
+  );
+}
+
+export async function postCloneCallEvent(
+  accessToken: string,
+  cloneId: number,
+  options?: { durationSeconds?: number },
+): Promise<{ ok: true }> {
+  return authFetch(`/oth-path${cloneId}/call-event`, accessToken, {
+    method: "POST",
+    body: JSON.stringify(options?.durationSeconds ? { durationSeconds: options.durationSeconds } : {}),
+  });
+}
+
+export async function postCloneLearnEvent(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ ok: true; bumped: boolean; scoreApplied?: number }> {
+  return authFetch(`/oth-path${cloneId}/learn-event`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
+export async function postCloneChatEvent(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ ok: true; scoreApplied?: number }> {
+  return authFetch(`/oth-path${cloneId}/chat-event`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
 }
 
 export async function blockClone(accessToken: string, cloneId: number): Promise<{ ok: true; blocked: true }> {
@@ -422,6 +711,8 @@ export interface FollowedClone {
     total: number;
     intimacy: number; 
   };
+
+  isOwn?: boolean;
   createdAt: string;
 }
 export async function listMyFollowedClones(
@@ -443,10 +734,13 @@ export interface DiscoverFeedItem {
   createdAt: string;
   clone: {
     id: number;
+
+    ownerId?: number;
     name: string;
     username: string;
     avatarUrl: string | null;
     cloneType: CloneType;
+    visibility?: string;
   };
   interests: string[];
 }
@@ -532,6 +826,14 @@ export interface FeedComment {
   userId: number;
   content: string;
   createdAt: string;
+
+  repliesCount?: number;
+
+  parentCommentId?: number;
+
+  likesCount?: number;
+
+  likedByMe?: boolean;
   user: {
     id: number;
     name: string | null;
@@ -542,11 +844,13 @@ export interface FeedComment {
 
 export async function listCloneComments(
   cloneId: number,
-  opts?: { limit?: number },
+  opts?: { limit?: number; accessToken?: string | null },
 ): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
   const url = new URL(`${API_BASE}/oth-path${cloneId}/comments`);
   if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
-  const res = await fetch(url.toString());
+  const headers: Record<string, string> = {};
+  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
+  const res = await fetch(url.toString(), { headers });
   const text = await res.text();
   const parsed = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) {
@@ -563,12 +867,14 @@ export async function listCloneComments(
 
 export async function listFeedComments(
   feedId: number,
-  opts?: { cursor?: number | null; limit?: number },
+  opts?: { cursor?: number | null; limit?: number; accessToken?: string | null },
 ): Promise<{ items: FeedComment[]; nextCursor: number | null }> {
   const url = new URL(`${API_BASE}/oth-path${feedId}/comments`);
   if (opts?.cursor) url.searchParams.set("cursor", String(opts.cursor));
   if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
-  const res = await fetch(url.toString());
+  const headers: Record<string, string> = {};
+  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
+  const res = await fetch(url.toString(), { headers });
   const text = await res.text();
   const parsed = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) {
@@ -587,10 +893,70 @@ export async function postFeedComment(
   accessToken: string,
   feedId: number,
   content: string,
-): Promise<{ ok: true; comment: { id: number; feedId: number; userId: number; content: string } }> {
+  options?: { parentCommentId?: number },
+): Promise<{
+  ok: true;
+  comment: {
+    id: number;
+    feedId: number;
+    userId: number;
+    content: string;
+    parentCommentId: number | null;
+  };
+}> {
   return authFetch(`/oth-path${feedId}/comments`, accessToken, {
     method: "POST",
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(
+      options?.parentCommentId
+        ? { content, parentCommentId: options.parentCommentId }
+        : { content },
+    ),
+  });
+}
+
+export async function listFeedCommentReplies(
+  feedId: number,
+  commentId: number,
+  opts?: { limit?: number; accessToken?: string | null },
+): Promise<{ items: FeedComment[] }> {
+  const url = new URL(
+    `${API_BASE}/oth-path${feedId}/comments/${commentId}/replies`,
+  );
+  if (opts?.limit) url.searchParams.set("limit", String(opts.limit));
+  const headers: Record<string, string> = {};
+  if (opts?.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
+  const res = await fetch(url.toString(), { headers });
+  const text = await res.text();
+  const parsed = text ? (JSON.parse(text) as unknown) : null;
+  if (!res.ok) {
+    const body = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      body?.error?.code ?? "HTTP_ERROR",
+      body?.error?.message ?? `HTTP ${res.status}`,
+      body?.error?.details,
+    );
+  }
+  return parsed as { items: FeedComment[] };
+}
+
+export async function likeFeedComment(
+  accessToken: string,
+  feedId: number,
+  commentId: number,
+): Promise<{ ok: true; liked: true; likesCount: number }> {
+  return authFetch(`/oth-path${feedId}/comments/${commentId}/like`, accessToken, {
+    method: "POST",
+  });
+}
+
+export async function unlikeFeedComment(
+  accessToken: string,
+  feedId: number,
+  commentId: number,
+): Promise<{ ok: true; liked: false; likesCount: number }> {
+  return authFetch(`/oth-path${feedId}/comments/${commentId}/like`, accessToken, {
+    method: "DELETE",
   });
 }
 
@@ -712,6 +1078,8 @@ export interface PatchClonePayload {
   voice_preset_id?: number | null;
   l1_profile?: { attrs: Record<string, string>; notes: string };
   interests?: string[];
+
+  allowed_viewers?: number[];
 }
 
 export async function patchClone(

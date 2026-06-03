@@ -1,6 +1,7 @@
 
 
-import React, { useState } from "react";
+import { showAlert } from "../../stores/dialogStore";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,14 +11,12 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { Feather } from "@expo/vector-icons";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
-import type { AuthStackParamList } from "../../navigation/types";
 import {
   AuthApiError,
   requestPasswordReset,
@@ -26,42 +25,56 @@ import {
 
 type Step = "email" | "otp" | "password";
 
+type Params = { email?: string } | undefined;
+
 export default function ForgotPasswordScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const navigation = useNavigation();
+  const route = useRoute<RouteProp<{ key: Params }, "key">>();
+  const initialEmail = (route.params as { email?: string } | undefined)?.email;
+  const lockEmail = !!initialEmail;
 
-  const [step, setStep] = useState<Step>("email");
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<Step>(initialEmail ? "otp" : "email");
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSendCode = async () => {
     const e = email.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(e)) {
-      Alert.alert("알림", "이메일 형식이 올바르지 않아요.");
+      showAlert("알림", "이메일 형식이 올바르지 않아요.");
       return;
     }
     setSubmitting(true);
     try {
       await requestPasswordReset(e);
-      Alert.alert(t("auth.forgot.title"), t("auth.forgot.codeSent"));
+      showAlert(t("auth.forgot.title"), t("auth.forgot.codeSent"));
       setStep("otp");
     } catch (err) {
       const msg =
         err instanceof AuthApiError && err.code === "OTP_COOLDOWN"
           ? err.message
           : t("auth.forgot.resetFailed");
-      Alert.alert("오류", msg);
+      showAlert("오류", msg);
     } finally {
       setSubmitting(false);
     }
   };
 
+  useEffect(() => {
+    if (!initialEmail) return;
+    void handleSendCode();
+
+  }, []);
+
   const handleVerifyCode = () => {
     if (!/^\d{6}$/.test(code.trim())) {
-      Alert.alert("알림", t("auth.forgot.wrongCode"));
+      showAlert("알림", t("auth.forgot.wrongCode"));
       return;
     }
 
@@ -71,11 +84,11 @@ export default function ForgotPasswordScreen() {
   const handleSavePassword = async () => {
 
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/.test(password)) {
-      Alert.alert("알림", t("auth.forgot.passwordTooShort"));
+      showAlert("알림", t("auth.forgot.passwordTooShort"));
       return;
     }
     if (password !== passwordConfirm) {
-      Alert.alert("알림", t("auth.forgot.passwordMismatch"));
+      showAlert("알림", t("auth.forgot.passwordMismatch"));
       return;
     }
     setSubmitting(true);
@@ -85,7 +98,7 @@ export default function ForgotPasswordScreen() {
         verificationCode: code.trim(),
         newPassword: password,
       });
-      Alert.alert(t("auth.forgot.successTitle"), t("auth.forgot.successDesc"), [
+      showAlert(t("auth.forgot.successTitle"), t("auth.forgot.successDesc"), [
         { text: "확인", onPress: () => navigation.goBack() },
       ]);
     } catch (err) {
@@ -94,11 +107,13 @@ export default function ForgotPasswordScreen() {
         if (err.code === "OTP_INVALID") msg = t("auth.forgot.wrongCode");
         else if (err.code === "OTP_EXPIRED") {
           msg = t("auth.forgot.expiredCode");
-          setStep("email");
+
+          if (!lockEmail) setStep("email");
+          else setStep("otp");
         } else if (err.code === "NOT_FOUND") msg = t("auth.forgot.notFound");
         else if (err.message) msg = err.message;
       }
-      Alert.alert("오류", msg);
+      showAlert("오류", msg);
     } finally {
       setSubmitting(false);
     }
@@ -125,7 +140,8 @@ export default function ForgotPasswordScreen() {
                 placeholderTextColor={COLORS.placeholder}
                 autoCapitalize="none"
                 keyboardType="email-address"
-                autoFocus
+                autoFocus={!lockEmail}
+                editable={!lockEmail}
               />
             </View>
             <TouchableOpacity
@@ -185,9 +201,21 @@ export default function ForgotPasswordScreen() {
                 onChangeText={setPassword}
                 placeholder={t("auth.forgot.newPasswordPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 autoFocus
               />
+              <TouchableOpacity
+                onPress={() => setShowPassword((v) => !v)}
+                hitSlop={8}
+                accessibilityLabel="비밀번호 표시 전환"
+                style={s.toggleBtn}
+              >
+                <Feather
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={18}
+                  color={COLORS.zinc500}
+                />
+              </TouchableOpacity>
             </View>
             <View style={s.inputRow}>
               <Feather name="key" size={18} color={COLORS.zinc500} style={s.inputIcon} />
@@ -197,8 +225,20 @@ export default function ForgotPasswordScreen() {
                 onChangeText={setPasswordConfirm}
                 placeholder={t("auth.forgot.confirmPasswordPlaceholder")}
                 placeholderTextColor={COLORS.placeholder}
-                secureTextEntry
+                secureTextEntry={!showPasswordConfirm}
               />
+              <TouchableOpacity
+                onPress={() => setShowPasswordConfirm((v) => !v)}
+                hitSlop={8}
+                accessibilityLabel="비밀번호 확인 표시 전환"
+                style={s.toggleBtn}
+              >
+                <Feather
+                  name={showPasswordConfirm ? "eye-off" : "eye"}
+                  size={18}
+                  color={COLORS.zinc500}
+                />
+              </TouchableOpacity>
             </View>
             <TouchableOpacity
               style={[s.primaryBtn, (submitting || !password || !passwordConfirm) && s.btnDisabled]}
@@ -240,6 +280,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
   },
   inputIcon: { marginRight: 10 },
+  toggleBtn: { paddingHorizontal: 6, paddingVertical: 8 },
   input: {
     flex: 1,
     height: 48,

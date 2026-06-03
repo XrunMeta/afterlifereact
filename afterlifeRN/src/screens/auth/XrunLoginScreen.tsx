@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -24,11 +25,11 @@ export default function XrunLoginScreen({ navigation }: Props) {
 
   const handleNext = async () => {
     if (!email || !pin) {
-      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
+      showAlert(t("common.notice"), t("auth.signup.requiredFields"));
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      Alert.alert(t("common.notice"), t("auth.signup.emailInvalid"));
+      showAlert(t("common.notice"), t("auth.signup.emailInvalid"));
       return;
     }
     setSubmitting(true);
@@ -47,11 +48,11 @@ export default function XrunLoginScreen({ navigation }: Props) {
         } else msg = err.message;
       }
       if (isConflict) {
-        Alert.alert(t("auth.signup.alreadyExists"), msg, [
+        showAlert(t("auth.signup.alreadyExists"), msg, [
           { text: t("common.ok"), onPress: () => navigation.goBack() },
         ]);
       } else {
-        Alert.alert(t("common.error"), msg);
+        showAlert(t("common.error"), msg);
       }
     } finally {
       setSubmitting(false);

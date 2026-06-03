@@ -27,11 +27,11 @@ describe('screenApiMap', () => {
       'CloneInvite',
       'ShareRequests',
       'Step1',
-      'Step2',
+
+      'PersonaAssistant',
       'Step3',
       'Step4',
       'Step5',
-      'Step6',
       'Step7',
     ];
     for (const key of required) {

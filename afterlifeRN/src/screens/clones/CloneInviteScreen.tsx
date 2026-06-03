@@ -1,5 +1,6 @@
 
 
+import { showAlert } from "../../stores/dialogStore";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
@@ -91,11 +92,11 @@ export default function CloneInviteScreen() {
   const handleAddInvite = async () => {
     const email = newEmail.trim();
     if (!EMAIL_RE.test(email)) {
-      Alert.alert(t("common.notice"), t("invite.invalidEmail"));
+      showAlert(t("common.notice"), t("invite.invalidEmail"));
       return;
     }
     if (myEmail && email.toLowerCase() === myEmail.toLowerCase()) {
-      Alert.alert(t("common.notice"), t("invite.selfNotAllowed"));
+      showAlert(t("common.notice"), t("invite.selfNotAllowed"));
       return;
     }
     if (!accessToken) return;
@@ -105,7 +106,7 @@ export default function CloneInviteScreen() {
       const target = email.toLowerCase();
       const exact = search.items.find((u) => u.email.toLowerCase() === target);
       if (!exact) {
-        Alert.alert(t("common.notice"), t("invite.memberNotFound"));
+        showAlert(t("common.notice"), t("invite.memberNotFound"));
         setSubmitting(false);
         return;
       }
@@ -114,7 +115,7 @@ export default function CloneInviteScreen() {
       console.log("[CloneInvite] sent:", res);
       setNewEmail("");
       await reload();
-      Alert.alert(t("common.success"), t("invite.sentToast", { target: email }));
+      showAlert(t("common.success"), t("invite.sentToast", { target: email }));
       void res;
     } catch (err) {
       let msg = t("invite.sendFailed");
@@ -124,7 +125,7 @@ export default function CloneInviteScreen() {
         else if (err.code === "ALREADY_MEMBER") msg = t("invite.alreadyMember");
         else msg = err.message;
       }
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -132,7 +133,7 @@ export default function CloneInviteScreen() {
 
   const handleCancel = async (inv: PendingInvite) => {
     if (!accessToken) return;
-    Alert.alert(
+    showAlert(
       t("invite.cancelInviteTitle"),
       t("invite.cancelInviteDesc", { target: inv.inviteEmail ?? t("invite.create") }),
       [
@@ -146,7 +147,7 @@ export default function CloneInviteScreen() {
               await reload();
             } catch (err) {
               const msg = err instanceof AuthApiError ? err.message : t("invite.cancelFailed");
-              Alert.alert(t("common.error"), msg);
+              showAlert(t("common.error"), msg);
             }
           },
         },
@@ -161,7 +162,7 @@ export default function CloneInviteScreen() {
     const targetText = isSelf
       ? t("invite.leaveTitle")
       : t("invite.kickTitle", { name: m.targetUser?.name ?? m.inviteEmail ?? "—" });
-    Alert.alert(actionLabel, targetText, [
+    showAlert(actionLabel, targetText, [
       { text: t("common.close"), style: "cancel" },
       {
         text: actionLabel,
@@ -180,7 +181,7 @@ export default function CloneInviteScreen() {
               err instanceof AuthApiError
                 ? err.message
                 : t("invite.actionFailed", { action: actionLabel });
-            Alert.alert(t("common.error"), msg);
+            showAlert(t("common.error"), msg);
           }
         },
       },

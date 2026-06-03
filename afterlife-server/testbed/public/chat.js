@@ -10,6 +10,18 @@ const resetBtn = $('#resetBtn');
 const ttsToggleBtn = $('#ttsToggleBtn');
 const ttsPlayer = $('#ttsPlayer');
 
+const speakerRadios = document.querySelectorAll('input[name="speakerRole"]');
+const visitorIdInput = document.getElementById('visitorIdInput');
+function currentSpeaker() {
+  const sel = document.querySelector('input[name="speakerRole"]:checked');
+  const role = sel ? sel.value : 'creator';
+  return { speaker_role: role, user_label: role === 'visitor' ? (visitorIdInput?.value?.trim() || 'visitor-test') : 'creator-test' };
+}
+speakerRadios.forEach((r) => r.addEventListener('change', () => {
+  const isVisitor = document.querySelector('input[name="speakerRole"]:checked')?.value === 'visitor';
+  if (visitorIdInput) visitorIdInput.hidden = !isVisitor;
+}));
+
 const HISTORY_KEY = 'afterlife.testbed.history.v0';
 const TTS_KEY = 'afterlife.testbed.tts.enabled';
 
@@ -253,8 +265,24 @@ const LIVE_UNMUTE_KEY = 'afterlife.testbed.live.unmuted';
   const unmuteBtn = document.getElementById('liveUnmuteBtn');
   if (!liveVideo || !liveStatusEl) return;
 
-  const wantUnmuted = localStorage.getItem(LIVE_UNMUTE_KEY) === 'true';
+  const stored = localStorage.getItem(LIVE_UNMUTE_KEY);
+  const wantUnmuted = stored !== 'false';
   let userInteracted = false;
+
+  function autoUnmuteOnFirstGesture() {
+    userInteracted = true;
+    if (!wantUnmuted) return;
+    if (liveAudio && liveAudio.muted) {
+      liveAudio.muted = false;
+      liveAudio.play().catch(() => {
+        liveAudio.muted = true;
+      });
+      localStorage.setItem(LIVE_UNMUTE_KEY, 'true');
+      applyLiveUnmuteUI();
+    }
+  }
+  document.addEventListener('pointerdown', autoUnmuteOnFirstGesture, { once: true });
+  document.addEventListener('keydown', autoUnmuteOnFirstGesture, { once: true });
 
   if (liveAudio) {
     liveAudio.muted = true; 
@@ -473,7 +501,13 @@ composer.addEventListener('submit', async (e) => {
     const res = await fetch('/oth-path', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+      body: JSON.stringify({
+        message: text,
+        history: history.slice(0, -1),
+        source: 'browser',
+        ...currentSpeaker(),
+        persona_slug: 'halbae',
+      }),
       signal: aborter.signal,
     });
     if (!res.ok || !res.body) throw new Error(`server ${res.status}`);
@@ -511,14 +545,14 @@ composer.addEventListener('submit', async (e) => {
           setStatus(`(${payload.eval_count ?? 0} tok / ${(payload.total_duration_ms ?? 0) / 1000 | 0}s · 영상 합성 중…)`);
         } else if (event === 'video' && payload.url) {
 
-          const v = document.createElement('video');
-          v.src = payload.url;
-          v.controls = true;
-          v.autoplay = true;
-          v.playsInline = true;
-          v.preload = 'auto';
-          v.className = 'reply-video';
-          themEl.appendChild(v);
+          const a = document.createElement('a');
+          a.href = payload.url;
+          a.textContent = `📼 mp4 원본 (${payload.mp4_basename ?? 'video'})`;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.className = 'reply-mp4-link';
+          themEl.appendChild(document.createElement('br'));
+          themEl.appendChild(a);
           messagesEl.scrollTop = messagesEl.scrollHeight;
           const sec = Math.max(0, (payload.infer_ms ?? 0) / 1000) | 0;
           setStatus(`(영상 도착 · ${sec}s)`);

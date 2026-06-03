@@ -11,9 +11,13 @@ import { MessagesPage } from "./pages/MessagesPage";
 import { ApiTestbedPage } from "./pages/ApiTestbedPage";
 import { AdminCategoryPage } from "./pages/AdminCategoryPage";
 import { OtpLogsPage } from "./pages/OtpLogsPage";
+import { ReportsPage } from "./pages/ReportsPage";
+import { UserReportsPage } from "./pages/UserReportsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TotpEnrollPage } from "./pages/TotpEnrollPage";
 import { TotpVerifyPage } from "./pages/TotpVerifyPage";
+import { L0PersonaEditPage } from "./pages/L0PersonaEditPage";
+import { PersonaQuestionsEditPage } from "./pages/PersonaQuestionsEditPage";
 
 function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
@@ -43,6 +47,8 @@ function App() {
         <Route path="/oth-path" element={<ProtectedLayout><FeedsPage /></ProtectedLayout>} />
         <Route path="/messages" element={<ProtectedLayout><MessagesPage /></ProtectedLayout>} />
         <Route path="/otp" element={<ProtectedLayout><OtpLogsPage /></ProtectedLayout>} />
+        <Route path="/reports" element={<ProtectedLayout><ReportsPage /></ProtectedLayout>} />
+        <Route path="/oth-path-reports" element={<ProtectedLayout><UserReportsPage /></ProtectedLayout>} />
         <Route path="/testbed" element={<ProtectedLayout><ApiTestbedPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"
@@ -117,6 +123,22 @@ function App() {
                 description="Decryption Audit / Cleanup / 복호화 열람 감사 / 개발 전용 봉인 도구."
                 categories={["Admin System", "Admin DevTools"]}
               />
+            </ProtectedLayout>
+          }
+        />
+        <Route
+          path="/oth-path"
+          element={
+            <ProtectedLayout>
+              <L0PersonaEditPage />
+            </ProtectedLayout>
+          }
+        />
+        <Route
+          path="/oth-path"
+          element={
+            <ProtectedLayout>
+              <PersonaQuestionsEditPage />
             </ProtectedLayout>
           }
         />

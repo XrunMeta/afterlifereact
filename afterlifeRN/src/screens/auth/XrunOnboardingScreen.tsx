@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert, TextInput } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -70,28 +71,28 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     const trimmedName = name.trim();
     const trimmedPhone = phone.trim();
     if (!trimmedName) {
-      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
+      showAlert(t("common.notice"), t("auth.signup.requiredFields"));
       return false;
     }
     if (!trimmedPhone) {
-      Alert.alert(t("common.notice"), t("auth.signup.phoneTooShort"));
+      showAlert(t("common.notice"), t("auth.signup.phoneTooShort"));
       return false;
     }
     if (trimmedPhone.length < 4) {
-      Alert.alert(t("common.notice"), t("auth.signup.phoneTooShort"));
+      showAlert(t("common.notice"), t("auth.signup.phoneTooShort"));
       return false;
     }
     if (!gender) {
-      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
+      showAlert(t("common.notice"), t("auth.signup.requiredFields"));
       return false;
     }
     if (!age) {
-      Alert.alert(t("common.notice"), t("auth.signup.requiredFields"));
+      showAlert(t("common.notice"), t("auth.signup.requiredFields"));
       return false;
     }
     const ageNum = parseInt(age, 10);
     if (Number.isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
-      Alert.alert(t("common.notice"), t("auth.signup.ageInvalid"));
+      showAlert(t("common.notice"), t("auth.signup.ageInvalid"));
       return false;
     }
     return true;
@@ -109,7 +110,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     try {
       const reg = await requestPushPermission();
       if (!reg.granted) {
-        Alert.alert(t("auth.signup.pushPermTitle"), t("auth.signup.pushPermDesc"));
+        showAlert(t("auth.signup.pushPermTitle"), t("auth.signup.pushPermDesc"));
         return;
       }
       const did = await getOrCreateDeviceId();
@@ -118,7 +119,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       setPushPlatform(reg.platform);
       setDeviceId(did);
     } catch {
-      Alert.alert(t("common.error"), t("auth.signup.pushPermError"));
+      showAlert(t("common.error"), t("auth.signup.pushPermError"));
     } finally {
       setRequestingPush(false);
     }
@@ -126,7 +127,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
 
   const handleNextToOtp = async () => {
     if (!agreeRequired) {
-      Alert.alert(t("common.notice"), t("auth.signup.termsAccept"));
+      showAlert(t("common.notice"), t("auth.signup.termsAccept"));
       return;
     }
     setSubmitting(true);
@@ -139,7 +140,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       const msg = err instanceof AuthApiError
         ? err.code === "OTP_COOLDOWN" ? t("auth.signup.rateLimit") : err.message
         : t("auth.signup.sendCodeFailed");
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }
@@ -150,10 +151,10 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
     try {
       await requestEmailCode(email);
       setResendIn(60);
-      Alert.alert(t("auth.emailVerify.resend"), t("auth.emailVerify.resentToast"));
+      showAlert(t("auth.emailVerify.resend"), t("auth.emailVerify.resentToast"));
     } catch (err) {
       const msg = err instanceof AuthApiError ? err.message : t("common.error");
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
     }
   };
 
@@ -164,12 +165,12 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
       return;
     }
     if (!agreeRequired) {
-      Alert.alert(t("common.notice"), t("auth.signup.termsAccept"));
+      showAlert(t("common.notice"), t("auth.signup.termsAccept"));
       return;
     }
     if (!google && !validateProfileInputs()) return;
     if (google && otpCode.length !== 6) {
-      Alert.alert(t("common.notice"), t("auth.emailVerify.codePlaceholder"));
+      showAlert(t("common.notice"), t("auth.emailVerify.codePlaceholder"));
       return;
     }
     setSubmitting(true);
@@ -204,7 +205,7 @@ export default function XrunOnboardingScreen({ navigation, route }: Props) {
         else if (err.code === "UNAUTHENTICATED") msg = t("auth.login.invalidCredentials");
         else msg = err.message;
       }
-      Alert.alert(t("common.error"), msg);
+      showAlert(t("common.error"), msg);
     } finally {
       setSubmitting(false);
     }

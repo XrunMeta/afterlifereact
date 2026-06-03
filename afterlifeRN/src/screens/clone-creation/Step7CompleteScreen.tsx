@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   View,
@@ -22,16 +23,15 @@ import type { CreateStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
-import StepIndicator from "../../components/common/StepIndicator";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { Clone } from "../../types/clone";
-import { getCloneTypeMeta } from "../../mocks/cloneTypeCatalog";
-import { createClone, deriveUsernameFromName, createCloneFeed } from "../../api/clones";
+import { createClone, deriveUsernameFromName, createCloneFeed, updateClone, getAssetJob, createAssetJob, type AssetJob } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
 import { uploadFile } from "../../api/files";
 import { Image } from "react-native";
+import { pickAndCropImage } from "../../lib/imagePicker";
 
 type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, "Step7">;
@@ -61,11 +61,13 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const resetCreationDraft = useCloneStore((s) => s.resetCreationDraft);
   const draft = useCloneStore((s) => s.creationDraft);
+  const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
   const addClone = useCloneStore((s) => s.addClone);
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
   const accessToken = useAuthStore((s) => s.accessToken);
+
   const [createdCloneId, setCreatedCloneId] = useState<number | null>(null);
-  const [creating, setCreating] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [paymentModal, setPaymentModal] = useState(false);
@@ -77,17 +79,128 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   const avatarUrlRef = useRef<string | undefined>(undefined);
 
-  const [caption, setCaption] = useState("");
+  const [idleJob, setIdleJob] = useState<AssetJob | null>(null);
+  const idleJobIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const [caption, setCaption] = useState(draft.description ?? "");
+
+  const captionTouchedRef = useRef(false);
+
+  useEffect(() => {
+    if (draft.description && caption.trim().length === 0 && !captionTouchedRef.current) {
+      setCaption(draft.description);
+    }
+
+  }, [draft.description]);
+
+  useEffect(() => {
+    const jobId = draft.idleVideoJobId;
+    if (!jobId || !accessToken) return;
+    let alive = true;
+    const poll = async () => {
+      try {
+        const job = await getAssetJob(accessToken, jobId);
+        if (!alive) return;
+        setIdleJob(job);
+        if (job.status === 'done' || job.status === 'failed') {
+          if (idleJobIntervalRef.current) {
+            clearInterval(idleJobIntervalRef.current);
+            idleJobIntervalRef.current = null;
+          }
+        }
+      } catch (e) {
+        console.warn('[Step7] idle job poll error:', e);
+      }
+    };
+    void poll();
+    idleJobIntervalRef.current = setInterval(poll, 4000);
+    return () => {
+      alive = false;
+      if (idleJobIntervalRef.current) {
+        clearInterval(idleJobIntervalRef.current);
+        idleJobIntervalRef.current = null;
+      }
+    };
+
+  }, [draft.idleVideoJobId, accessToken]);
+
+  const [reuploadLoading, setReuploadLoading] = useState(false);
+
+  const idleBlocking = draft.idleVideoJobId ? idleJob?.status !== 'done' : true;
+
+  const handleReuploadPhoto = useCallback(async () => {
+    if (reuploadLoading) return;
+
+    if (!accessToken) { showAlert('로그인 정보가 없어요. 다시 로그인해주세요.'); return; }
+    try {
+      const result = await pickAndCropImage({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const uri = result.assets[0].uri;
+      setReuploadLoading(true);
+      const ext = uri.split('.').pop()?.toLowerCase() ?? '';
+      const mime =
+        ext === 'png' ? 'image/png'
+        : ext === 'webp' ? 'image/webp'
+        : ext === 'gif' ? 'image/gif'
+        : 'image/jpeg';
+      const uploaded = await uploadFile(accessToken, uri, {
+        purpose: 'clone_avatar',
+        mimeType: mime,
+        fileName: `avatar.${ext || 'jpg'}`,
+      });
+
+      const jobRes = await createAssetJob(accessToken, {
+        kind: 'idle_video',
+        src_file_id: uploaded.id,
+      });
+
+      setIdleJob(null);
+
+      setCreationDraft({
+        imageFile: uri,
+        avatarFileId: uploaded.id,
+        avatarUrl: uploaded.url,
+        idleVideoJobId: jobRes.job_id,
+      });
+      avatarUrlRef.current = uploaded.url;
+    } catch (err) {
+      console.warn('[Step7] 재업로드 실패:', err);
+
+      showAlert('업로드 실패', '영상 생성 요청에 실패했어요. 다시 시도해주세요.');
+    } finally {
+      setReuploadLoading(false);
+    }
+  }, [reuploadLoading, accessToken, setCreationDraft]);
+
   const [posting, setPosting] = useState(false);
 
   const attemptCreate = useCallback(
-    async (pin?: string) => {
-      if (!draft.cloneType || !accessToken) return;
+    async (pin?: string): Promise<number> => {
+      const draft = useCloneStore.getState().creationDraft;
+      console.log("[CLONE-CREATE] attemptCreate start. draft snapshot:", {
+        cloneType: draft.cloneType,
+        name: draft.name,
+        username: draft.username,
+        hasImage: !!draft.imageFile,
+        hasVoice: !!(draft.voiceFile || draft.voiceSampleId),
+        descriptionLen: draft.description?.length ?? 0,
+        notesLen: draft.personaNotes?.length ?? 0,
+      });
+      if (!accessToken) {
+        throw new Error("로그인 정보가 없어요. 다시 로그인해주세요.");
+      }
+
       const hasImage = Boolean(draft.imageFile);
       const hasVoice = Boolean(
         draft.voiceFile || draft.voiceSampleId || (draft.recordDuration ?? 0) >= 30,
       );
-      const visibility = draft.visibility ?? getCloneTypeMeta(draft.cloneType).defaultVisibility;
+
+      const visibility = draft.visibility ?? "public";
 
       const USERNAME_RE = /^[a-z0-9_]+$/;
       const typed = draft.username?.trim() ?? "";
@@ -104,7 +217,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       };
       const l1Profile = { attrs: l1Attrs, notes: draft.personaNotes ?? "" };
 
-      let avatarUrl: string | undefined = avatarUrlRef.current;
+      const personaAnswers = draft.personaAnswers ?? {};
+
+      let avatarUrl: string | undefined = avatarUrlRef.current ?? draft.avatarUrl;
       if (!avatarUrl && draft.imageFile) {
         try {
           const ext = draft.imageFile.split(".").pop()?.toLowerCase() ?? "";
@@ -113,6 +228,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
             : ext === "webp" ? "image/webp"
             : ext === "gif" ? "image/gif"
             : "image/jpeg";
+          console.log("[CLONE-CREATE] avatar uploading...", { mime, path: draft.imageFile });
           const uploaded = await uploadFile(accessToken, draft.imageFile, {
             purpose: "clone_avatar",
             mimeType: mime,
@@ -120,14 +236,36 @@ export default function Step7CompleteScreen({ navigation }: Props) {
           });
           avatarUrl = uploaded.url;
           avatarUrlRef.current = avatarUrl;
+
+          useCloneStore.getState().setCreationDraft({ avatarUrl: uploaded.url });
           console.log("[CLONE-CREATE] avatar uploaded:", avatarUrl);
         } catch (uploadErr) {
           console.warn("[CLONE-CREATE] avatar upload failed:", uploadErr);
+
+          throw new Error(
+            `이미지 업로드에 실패했어요. 네트워크 상태를 확인해주세요. (${uploadErr instanceof Error ? uploadErr.message : "unknown"})`,
+          );
         }
       }
 
+      const cloneTypeForApi = "friend" as const;
+      console.log("[CLONE-CREATE] createClone request →", {
+        clone_type: cloneTypeForApi,
+        name: draft.name ?? "Untitled",
+        username,
+        visibility,
+        hasAvatar: !!avatarUrl,
+        hasPin: !!pin,
+      });
+
+      const voicePayload = draft.voiceCloneJobId
+        ? { voice_clone_job_id: draft.voiceCloneJobId }
+        : draft.voicePresetId
+        ? { voice_preset_id: draft.voicePresetId }
+        : {};
+
       const res = await createClone(accessToken, {
-        clone_type: draft.cloneType,
+        clone_type: cloneTypeForApi,
         name: draft.name ?? "Untitled",
         username,
         description: draft.description || undefined,
@@ -135,7 +273,14 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         visibility,
         interests: draft.interests && draft.interests.length > 0 ? draft.interests : undefined,
         l1_profile: l1Profile,
+
+        ...(Object.keys(personaAnswers).length > 0 ? { personaAnswers } : {}),
+
+        ...(draft.relation ? { relation: draft.relation } : {}),
         ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+        ...voicePayload,
+
+        ...(draft.idleVideoJobId ? { idle_video_job_id: draft.idleVideoJobId } : {}),
         ...(pin ? { pin } : {}),
       });
       console.log("[CLONE-CREATE] success:", res);
@@ -159,95 +304,16 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         setCreatedCloneId(createdClone.id);
         setCreating(false);
       }
+      return createdClone.id;
     },
     [draft, accessToken, currentUserId, addClone],
   );
 
   useEffect(() => {
-    if (!draft.cloneType) return;
-    cancelledRef.current = false;
-    (async () => {
-      setCreating(true);
-      setError(null);
-
-      const hasImage = Boolean(draft.imageFile);
-      const hasVoice = Boolean(draft.voiceFile || draft.voiceSampleId
-        || (draft.recordDuration ?? 0) >= 30);
-      const visibility = draft.visibility ?? getCloneTypeMeta(draft.cloneType!).defaultVisibility;
-
-      if (!accessToken) {
-        const localId = Date.now();
-        const localAttrs: Record<string, string> = {
-          ...(draft.personaAge ? { age: draft.personaAge } : {}),
-          ...(draft.personaGender ? { gender: draft.personaGender } : {}),
-          ...(draft.personaTypes && draft.personaTypes.length > 0
-            ? { personalities: draft.personaTypes.join(',') }
-            : {}),
-          ...(draft.personaMbti ? { mbti: draft.personaMbti } : {}),
-        };
-        const clone: Clone = {
-          id: localId,
-          cloneType: draft.cloneType!,
-          ownerId: currentUserId,
-          displayName: draft.name ?? '',
-          description: draft.description ?? '',
-          interests: draft.interests ?? [],
-          imageUrl: draft.imageFile ?? undefined,
-          visibility,
-          status: hasImage && hasVoice ? 'active' : 'pending_assets',
-          createdAt: new Date().toISOString(),
-          l1Profile: { attrs: localAttrs, notes: draft.personaNotes ?? '' },
-        };
-        addClone(clone);
-        if (!cancelledRef.current) {
-          setCreatedCloneId(localId);
-          setCreating(false);
-        }
-        return;
-      }
-
-      try {
-        await attemptCreate();
-      } catch (err) {
-        if (cancelledRef.current) return;
-        if (err instanceof AuthApiError) {
-          console.warn(
-            '[CLONE-CREATE] failed:',
-            err.code,
-            err.message,
-            'details=',
-            JSON.stringify(err.details),
-          );
-          if (err.code === 'PAYMENT_REQUIRED') {
-
-            const details = (err.details ?? {}) as { priceXrun?: number };
-            if (typeof details.priceXrun === 'number') setPayPrice(details.priceXrun);
-            setPaymentModal(true);
-            setCreating(false);
-            return;
-          }
-          let msg = t('create.errors.createFailed');
-          if (err.code === 'QUOTA_EXCEEDED') {
-            msg = t('create.errors.quotaExceeded');
-          } else if (err.code === 'CONFLICT') {
-            msg = err.message || t('create.errors.usernameConflict');
-          } else {
-            msg = err.message;
-          }
-          setError(msg);
-          setCreating(false);
-          Alert.alert(t('create.complete.createFailed'), msg);
-        } else {
-          console.warn('[CLONE-CREATE] failed:', err);
-          setError(t('create.errors.createFailed'));
-          setCreating(false);
-        }
-      }
-    })();
-    return () => {
-      cancelledRef.current = true;
-    };
-  }, [attemptCreate, draft.cloneType]); 
+    if (!draft.cloneType) {
+      setError("페르소나 정보가 없어요. 처음부터 다시 만들어주세요.");
+    }
+  }, [draft.cloneType]);
 
   const cloneType = draft.cloneType ?? 'friend';
   const copy = {
@@ -281,24 +347,123 @@ export default function Step7CompleteScreen({ navigation }: Props) {
   };
 
   const handleSharePost = async () => {
-    if (createdCloneId == null || !accessToken) {
-      handleGoToDashboard();
+    if (creating || posting) return;
+
+    if (idleBlocking) {
+      showAlert('잠깐요', '영상 생성이 완료되면 게시할 수 있어요.');
       return;
     }
+    const trimmed = caption.trim();
+
+    const draftDump = {
+      cloneType: draft.cloneType,
+      name: draft.name,
+      nameLen: draft.name?.length ?? 0,
+      username: draft.username,
+      description: draft.description,
+      hasImageFile: !!draft.imageFile,
+      imageFile: draft.imageFile,
+      visibility: draft.visibility,
+      category: draft.category,
+      interests: draft.interests,
+      personaAge: draft.personaAge,
+      personaGender: draft.personaGender,
+      personaMbti: draft.personaMbti,
+      personaTypes: draft.personaTypes,
+      personaNotesLen: draft.personaNotes?.length ?? 0,
+    };
+    console.log(
+      "[CLONE-CREATE] handleSharePost tap. captionLen=",
+      trimmed.length,
+      "createdCloneId=",
+      createdCloneId,
+      "hasAccessToken=",
+      !!accessToken,
+    );
+    console.log("[CLONE-CREATE] DRAFT DUMP:", JSON.stringify(draftDump, null, 2));
+
+    if (trimmed.length === 0) {
+      console.log("[CLONE-CREATE] BLOCKED: caption empty");
+      showAlert("소개글", "한 줄 소개를 입력해주세요.");
+      return;
+    }
+
+    if (!accessToken) {
+      console.log("[CLONE-CREATE] BLOCKED: no accessToken");
+      showAlert("로그인 필요", "로그인 정보가 없어요. 다시 로그인해주세요.");
+      return;
+    }
+
+    if (!draft.name || draft.name.trim().length === 0) {
+      console.log("[CLONE-CREATE] BLOCKED: name missing");
+      showAlert(
+        "이름 누락",
+        "페르소나 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
+      );
+      return;
+    }
+    console.log("[CLONE-CREATE] sanity check passed → proceed to attemptCreate");
+
     setPosting(true);
+    setError(null);
+
+    if (draft.description !== trimmed) {
+      useCloneStore.getState().setCreationDraft({ description: trimmed });
+    }
+
+    let newCloneId = createdCloneId;
     try {
+
+      if (newCloneId == null) {
+        setCreating(true);
+        newCloneId = await attemptCreate();
+        setCreating(false);
+        console.log("[CLONE-CREATE] new cloneId=", newCloneId);
+      }
+      if (!newCloneId) {
+
+        throw new Error("페르소나 생성에 실패했어요. (cloneId 누락)");
+      }
+
       const mediaUrl = avatarUrlRef.current ?? null;
-      await createCloneFeed(accessToken, createdCloneId, {
-        content: caption.trim() || undefined,
+      console.log("[CLONE-CREATE] createCloneFeed →", { cloneId: newCloneId, hasMedia: !!mediaUrl });
+      await createCloneFeed(accessToken, newCloneId, {
+        content: trimmed,
         ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
       });
+      console.log("[CLONE-CREATE] feed created.");
     } catch (err) {
-      console.warn("[CLONE-CREATE] post first feed failed:", err);
+      console.warn("[CLONE-CREATE] share post failed:", err);
+      setCreating(false);
+      if (err instanceof AuthApiError) {
+        if (err.code === "PAYMENT_REQUIRED") {
+          const details = (err.details ?? {}) as { priceXrun?: number };
+          if (typeof details.priceXrun === "number") setPayPrice(details.priceXrun);
+          setPaymentModal(true);
+          setPosting(false);
+          return;
+        }
+        if (err.code === "CONFLICT" && err.message.includes("아이디")) {
+          showAlert("아이디 중복", err.message);
+          setPosting(false);
+          return;
+        }
 
-    } finally {
+        setError(err.message);
+        showAlert(`게시 실패 (${err.code})`, err.message);
+      } else {
+
+        const msg = err instanceof Error ? err.message : "알 수 없는 오류";
+        setError(msg);
+        showAlert("게시 실패", msg);
+      }
       setPosting(false);
-      handleGoToDashboard();
+      return;
     }
+
+    setPosting(false);
+    resetCreationDraft();
+    if (newCloneId) navigation.replace("Step8", { cloneId: newCloneId });
   };
 
   const handleConfirmPayment = async () => {
@@ -310,8 +475,23 @@ export default function Step7CompleteScreen({ navigation }: Props) {
     setPinError(null);
     try {
       setCreating(true);
-      await attemptCreate(pinInput);
+      const newId = await attemptCreate(pinInput);
       setPaymentModal(false);
+
+      const trimmed = caption.trim();
+      if (trimmed.length > 0 && accessToken) {
+        try {
+          const mediaUrl = avatarUrlRef.current ?? null;
+          await createCloneFeed(accessToken, newId, {
+            content: trimmed,
+            ...(mediaUrl ? { mediaUrl, mediaType: "image" } : {}),
+          });
+        } catch (feedErr) {
+          console.warn("[CLONE-CREATE] post-payment feed failed:", feedErr);
+        }
+        resetCreationDraft();
+        navigation.replace("Step8", { cloneId: newId });
+      }
     } catch (err) {
       let msg = "결제에 실패했어요.";
       if (err instanceof AuthApiError) {
@@ -321,6 +501,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
           msg = "xrun 송금 기능이 아직 준비 중입니다";
         else msg = err.message;
+      } else if (err instanceof Error) {
+        msg = err.message;
       }
       setPinError(msg);
       setCreating(false);
@@ -335,79 +517,148 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   return (
     <SafeView backgroundColor={COLORS.white}>
-      <View style={styles.composerHeader}>
-        <TouchableOpacity onPress={handleGoToDashboard} hitSlop={8} style={styles.headerBack}>
-          <Feather name="chevron-left" size={26} color={COLORS.zinc900} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerName} numberOfLines={1}>{displayName}</Text>
-          <Text style={styles.headerHandle} numberOfLines={1}>@{displayHandle}</Text>
-        </View>
-        {}
-        <View style={styles.headerBack} />
-      </View>
+      {}
+      <PageHeader
+        title="게시물 작성"
+        showBackButton
+        onBackPress={() => {
 
-      {creating ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={COLORS.violet600} />
-          <Text style={styles.creatingText}>{t('create.complete.creating')}</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.center}>
-          <View style={[styles.successCircle, { backgroundColor: COLORS.error, width: 60, height: 60, borderRadius: 30 }]}>
-            <Feather name="alert-triangle" size={28} color={COLORS.white} />
-          </View>
-          <Text style={[styles.creatingText, { color: COLORS.error }]}>{error}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={handleGoToDashboard}>
-            <Text style={styles.retryText}>대시보드로</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+
+            navigation.getParent()?.navigate("HomeTab" as never);
+          }
+        }}
+      />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <SafeScrollView
+          contentContainerStyle={styles.composerContent}
+          showBottomBackground={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
-          <SafeScrollView contentContainerStyle={styles.composerContent} showBottomBackground={false}>
-            {}
-            <View style={styles.imageBox}>
-              {imageUri ? (
-                <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
-              ) : (
-                <View style={[styles.image, styles.imagePlaceholder]}>
-                  <Feather name="image" size={36} color={COLORS.zinc400} />
-                </View>
-              )}
+          {}
+          <View style={styles.authorRow}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.authorAvatar} />
+            ) : (
+              <View style={[styles.authorAvatar, styles.authorAvatarPh]}>
+                <Feather name="user" size={16} color={COLORS.zinc400} />
+              </View>
+            )}
+            <View style={styles.authorTextCol}>
+              <Text style={styles.authorName} numberOfLines={1}>{displayName}</Text>
+              <Text style={styles.authorHandle} numberOfLines={1}>@{displayHandle}</Text>
             </View>
+          </View>
 
-            {}
-            <TextInput
-              style={styles.captionInput}
-              value={caption}
-              onChangeText={setCaption}
-              placeholder="캡션 추가..."
-              placeholderTextColor={COLORS.zinc400}
-              multiline
-              maxLength={2000}
-            />
-          </SafeScrollView>
+          {
+
+}
+          {idleJob?.status === 'done' && idleJob.out_url ? (
+
+            <View style={styles.previewBox}>
+              <Image source={{ uri: draft.imageFile ?? idleJob.out_url }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              <View style={styles.videoBadge}>
+                <Text style={styles.videoBadgeText}>영상 준비 완료</Text>
+              </View>
+            </View>
+          ) : (idleJob?.status === 'failed' || (!draft.idleVideoJobId && !!draft.imageFile)) ? (
+
+            <TouchableOpacity
+              testID="reupload-photo-button"
+              style={styles.previewBox}
+              onPress={handleReuploadPhoto}
+              activeOpacity={0.8}
+              disabled={reuploadLoading}
+            >
+              {draft.imageFile && (
+                <Image source={{ uri: draft.imageFile }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              )}
+              <View style={[styles.videoBadge, styles.videoBadgeFailed]}>
+                {reuploadLoading ? (
+                  <>
+                    <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 6 }} />
+                    <Text style={styles.videoBadgeText}>사진 올리는 중...</Text>
+                  </>
+                ) : (
+                  <Text style={styles.videoBadgeText}>사진 다시 올리기</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          ) : draft.idleVideoJobId && (!idleJob || idleJob.status === 'pending' || idleJob.status === 'running') ? (
+
+            <View style={styles.previewBox}>
+              {draft.imageFile && (
+                <Image source={{ uri: draft.imageFile }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              )}
+              <View style={[styles.videoBadge, styles.videoBadgePending]}>
+                <ActivityIndicator size="small" color={COLORS.white} style={{ marginRight: 6 }} />
+                <Text style={styles.videoBadgeText}>영상 준비 중</Text>
+              </View>
+            </View>
+          ) : draft.imageFile ? (
+            <Image source={{ uri: draft.imageFile }} style={styles.previewBox} resizeMode="cover" />
+          ) : (
+            <View style={styles.previewBox}>
+              <Text style={styles.previewText}>사진을 먼저 등록해 주세요</Text>
+            </View>
+          )}
 
           {}
-          <View style={styles.bottomBar}>
-            <Button
-              title={posting ? "공유 중..." : "공유"}
-              onPress={handleSharePost}
-              variant="accent"
-              disabled={posting || createdCloneId == null}
-            />
-            <Button
-              title="건너뛰기"
-              onPress={handleGoToDashboard}
-              variant="ghost"
-              disabled={posting}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      )}
+          <TextInput
+            style={styles.captionInput}
+            value={caption}
+            onChangeText={(v) => { setCaption(v); captionTouchedRef.current = true; }}
+            placeholder="소개글 작성 (예: #일상 #infp 케이팝 노래 좋아해요)"
+            placeholderTextColor={COLORS.zinc400}
+            multiline
+            maxLength={2000}
+          />
+
+          {}
+          {error && (
+            <View style={styles.errorBox}>
+              <Feather name="alert-triangle" size={16} color={COLORS.error} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+        </SafeScrollView>
+
+        {
+
+}
+        <View style={styles.bottomBar}>
+          <Button
+            testID="share-post-button"
+            title={
+              error
+                ? "다시 시도"
+                : createdCloneId != null
+                ? "다음"
+                : posting || creating
+                ? "잠시만요..."
+                : "다음"
+            }
+            onPress={
+              error
+                ? () => {
+
+                    setError(null);
+                    void handleSharePost();
+                  }
+                : handleSharePost
+            }
+            variant="accent"
+            disabled={idleBlocking || posting || (creating && createdCloneId == null && !error)}
+          />
+        </View>
+      </KeyboardAvoidingView>
 
       {}
       <Modal visible={paymentModal} transparent animationType="fade">
@@ -544,30 +795,92 @@ const styles = StyleSheet.create({
   composerContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingTop: 56,
+    paddingBottom: 40,
   },
-  imageBox: {
-    width: "100%",
-    aspectRatio: 4 / 5,
-    borderRadius: RADIUS.md,
-    overflow: "hidden",
-    backgroundColor: COLORS.zinc50,
-    marginBottom: 16,
-  },
-  image: { width: "100%", height: "100%" },
-  imagePlaceholder: {
+
+  authorRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 10,
+    marginBottom: 20,
+  },
+  authorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.zinc100,
   },
+  authorAvatarPh: { alignItems: "center", justifyContent: "center" },
+  authorTextCol: { flex: 1 },
+  authorName: { fontSize: 14, fontWeight: "700", color: COLORS.zinc900 },
+  authorHandle: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+
+  previewBox: {
+    width: "80%",
+    aspectRatio: 1,
+    alignSelf: "center",
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+  },
+  previewText: {
+    fontSize: 14,
+    color: COLORS.zinc500,
+    textAlign: "center",
+  },
+
+  videoBadge: {
+    position: "absolute",
+    bottom: 10,
+    alignSelf: "center",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: COLORS.violet600,
+  },
+  videoBadgePending: {
+    backgroundColor: "rgba(124,58,237,0.85)",
+  },
+  videoBadgeFailed: {
+    backgroundColor: "rgba(239,68,68,0.9)",
+  },
+  videoBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+
   captionInput: {
-    minHeight: 60,
+    minHeight: 100,
     fontSize: 14,
     color: COLORS.zinc900,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     textAlignVertical: "top",
+    borderWidth: 1,
+    borderColor: COLORS.zinc200,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.zinc50,
   },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "#fef2f2",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+  },
+  errorText: { flex: 1, fontSize: 13, color: COLORS.error, lineHeight: 18 },
 
   center: {
     flex: 1,

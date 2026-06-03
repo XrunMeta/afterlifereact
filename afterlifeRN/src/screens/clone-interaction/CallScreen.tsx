@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
@@ -12,14 +13,16 @@ import {
   Animated,
   Platform,
   KeyboardAvoidingView,
-  Share,
-  ScrollView,
   TextInput,
   Alert,
+  Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { RTCView } from "react-native-webrtc";
+import { useLiveAvatar } from "../../realtime/useLiveAvatar";
+import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -32,18 +35,13 @@ import type { Gift } from "../../types/gift";
 import giftsData from "../../mocks/gifts.json";
 import { getXrunBalance } from "../../api/payments";
 import {
-  listFeedComments,
-  postFeedComment,
-  postCloneComment,
-  deleteFeedComment,
   getCloneLikeStatus,
   likeClone,
   unlikeClone,
   sendGiftToClone,
-  type FeedComment,
+  postCloneCallEvent,
 } from "../../api/clones";
 import { AuthApiError } from "../../api/auth";
-import { formatRelativeKo } from "../../lib/relativeTime";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
@@ -62,9 +60,7 @@ export default function CallScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
-  const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
   const insets = useSafeAreaInsets();
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const bottomInset =
@@ -74,6 +70,35 @@ export default function CallScreen({ route, navigation }: Props) {
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+
+  const {
+    state: liveState,
+    remoteStream,
+    start: startLive,
+    stop: stopLive,
+    say,
+    getStatsReport,
+    notifySpeechEnd,
+  } = useLiveAvatar({ cloneId, accessToken: accessToken ?? "" });
+
+  const {
+    phase,
+    micOn,
+    toggleMic,
+    transcript,
+    interimTranscript,
+  } = useHandsFreeController({
+    enabled: liveState === "live",
+    say,
+    getStatsReport,
+    notifySpeechEnd,
+  });
+
+  useEffect(() => {
+    if (!accessToken) return;
+    void startLive();
+
+  }, []);
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -90,8 +115,36 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const [callSeconds, setCallSeconds] = useState(0);
   useEffect(() => {
+    if (liveState !== "live") return;
     const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
+  }, [liveState]);
+
+  const callStartRef = useRef<number>(Date.now());
+  const tokenRef = useRef(accessToken);
+  const cloneIdRef = useRef(cloneId);
+  useEffect(() => {
+    tokenRef.current = accessToken;
+    cloneIdRef.current = cloneId;
+  }, [accessToken, cloneId]);
+  useEffect(() => {
+    return () => {
+      const token = tokenRef.current;
+      const cid = cloneIdRef.current;
+      console.log(`[Call] 화면 종료 — call-event 전송 시도 token=${!!token} cloneId=${cid}`);
+      if (!token || !cid) {
+        console.warn(`[Call] call-event 전송 SKIP (token=${!!token} cid=${cid})`);
+        return;
+      }
+      const durationSeconds = Math.floor((Date.now() - callStartRef.current) / 1000);
+      console.log(`[Call] POST /oth-path${cid}/call-event { durationSeconds: ${durationSeconds} }`);
+
+      postCloneCallEvent(token, cid, { durationSeconds })
+        .then((res) =>
+          console.log(`[Call] call-event ← ok scoreApplied=${(res as { scoreApplied?: number }).scoreApplied ?? 0}°C (duration=${durationSeconds}s, >=1200 이면 +15°C)`),
+        )
+        .catch((err) => console.warn("[Call] postCloneCallEvent failed:", err));
+    };
   }, []);
 
   useEffect(() => {
@@ -130,102 +183,6 @@ export default function CallScreen({ route, navigation }: Props) {
   const personaName = paramName || clone?.displayName || t("chat.personaFallback");
   const personaImage = paramImage || clone?.imageUrl || "";
 
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<FeedComment[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const submittingRef = useRef(false);
-  const [submittingComment, setSubmittingComment] = useState(false);
-
-  const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
-
-  const loadComments = useCallback(async () => {
-    setCommentsLoading(true);
-    try {
-
-      const res = await fetch(
-        `https://edge-alt-preview.example.invalid/oth-path${cloneId}/comments?limit=100`,
-      );
-      if (res.ok) {
-        const data = (await res.json()) as { items: FeedComment[] };
-        setComments(data.items);
-
-        if (data.items.length > 0) {
-
-          const firstWithFeed = data.items.find((c: any) => c.feedId);
-          if (firstWithFeed && (firstWithFeed as any).feedId) {
-            setCommentFeedId((firstWithFeed as any).feedId);
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("[Call] loadComments failed:", err);
-    } finally {
-      setCommentsLoading(false);
-    }
-  }, [cloneId]);
-
-  useEffect(() => {
-    if (showComments) void loadComments();
-  }, [showComments, loadComments]);
-
-  const submitComment = async () => {
-    if (submittingRef.current) return;
-    const content = commentText.trim();
-    if (!content || !accessToken) return;
-    submittingRef.current = true;
-    setSubmittingComment(true);
-    try {
-      let realFeedId: number;
-      if (commentFeedId == null) {
-
-        const r = await postCloneComment(accessToken, cloneId, content);
-        realFeedId = r.comment.feedId;
-        setCommentFeedId(realFeedId);
-      } else {
-        await postFeedComment(accessToken, commentFeedId, content);
-        realFeedId = commentFeedId;
-      }
-      setCommentText("");
-      void loadComments();
-    } catch (err) {
-      console.warn("[Call] submitComment failed:", err);
-    } finally {
-      submittingRef.current = false;
-      setSubmittingComment(false);
-    }
-  };
-
-  const handleDeleteComment = (commentId: number, feedId: number) => {
-    if (!accessToken) return;
-    Alert.alert("댓글 삭제", "이 댓글을 삭제하시겠습니까?", [
-      { text: "취소", style: "cancel" },
-      {
-        text: "삭제",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deleteFeedComment(accessToken, feedId, commentId);
-            setComments((prev) => prev.filter((c) => c.id !== commentId));
-          } catch (err) {
-            console.warn("[Call] delete comment failed:", err);
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `${personaName} 와 통화해보세요!\nhttps://afterlife.run/oth-path${cloneId}`,
-        title: personaName,
-      });
-    } catch (err) {
-      console.warn("[Call] share failed:", err);
-    }
-  };
-
   useEffect(() => {
     if (toastMessage) {
       const timer = setTimeout(() => setToastMessage(null), 2000);
@@ -238,15 +195,51 @@ export default function CallScreen({ route, navigation }: Props) {
   const [pinInput, setPinInput] = useState("");
   const [paying, setPaying] = useState(false);
 
+  const openXrunApp = async () => {
+    const email = useAuthStore.getState().apiUser?.email ?? null;
+    const deeplink = email
+      ? `xrun://?email=${encodeURIComponent(email)}&from=afterlife`
+      : "xrun://";
+    try {
+      await Linking.openURL(deeplink);
+    } catch {
+      const storeUrl =
+        Platform.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try {
+        await Linking.openURL(storeUrl);
+      } catch {
+
+      }
+    }
+  };
+
   const handleGiftSend = (gift: Gift) => {
+    console.log(
+      `[Call][gift-tap] giftId=${gift.id} name=${gift.name} price=${gift.price} ` +
+        `myCredits=${credits} (typeof=${typeof credits}) enough=${credits >= gift.price}`,
+    );
     if (credits < gift.price) {
-      setToastMessage(t("call.noCredits"));
+      const shortage = Math.max(0, gift.price - credits);
+      console.log(
+        `[Call][gift-insufficient-precheck] ${credits} < ${gift.price} (shortage=${shortage}) → block PIN modal`,
+      );
+      showAlert(
+        `${shortage} 잔액이 부족합니다`,
+        `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`,
+        [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
+        ],
+      );
       return;
     }
     setPendingGift(gift);
     setPinInput("");
     setShowGifts(false);
     setPinModalVisible(true);
+    console.log(`[Call][gift-pin-open] open PIN modal for gift=${gift.name}`);
   };
 
   const submitGift = async () => {
@@ -255,6 +248,10 @@ export default function CallScreen({ route, navigation }: Props) {
       setToastMessage("PIN 6자리를 입력해 주세요");
       return;
     }
+    console.log(
+      `[Call][gift-submit] giftId=${pendingGift.id} amount=${pendingGift.price} ` +
+        `myCredits=${credits} cloneId=${cloneId} pin=*** (${pinInput.length} chars)`,
+    );
     setPaying(true);
     try {
       const res = await sendGiftToClone(accessToken, cloneId, {
@@ -263,7 +260,7 @@ export default function CallScreen({ route, navigation }: Props) {
         amount: pendingGift.price,
         pin: pinInput,
       });
-      console.log("[Call] gift sent:", res.gift);
+      console.log("[Call][gift-ok] gift sent:", res.gift);
       const gift = pendingGift;
 
       if (res.gift.newBalance != null && !Number.isNaN(Number(res.gift.newBalance))) {
@@ -277,19 +274,65 @@ export default function CallScreen({ route, navigation }: Props) {
 
       playGiftAnimation(gift);
     } catch (err) {
-      console.warn("[Call] gift failed:", err);
+      console.warn("[Call][gift-fail] raw err =", err);
+      if (err instanceof AuthApiError) {
+        console.warn(
+          `[Call][gift-fail] code=${err.code} status=${err.status} msg="${err.message}" details=${JSON.stringify(err.details)}`,
+        );
+      } else if (err instanceof Error) {
+        console.warn(`[Call][gift-fail] non-AuthApiError name=${err.name} msg=${err.message}`);
+      }
+      let title = "송금 실패";
       let msg = "송금에 실패했어요.";
+      let isInsufficient = false;
       if (err instanceof AuthApiError) {
         if (err.code === "UNAUTHENTICATED") msg = "결제 비밀번호가 일치하지 않아요.";
-        else if (err.code === "INSUFFICIENT_FUNDS") msg = "잔액이 부족해요.";
-        else if (err.code === "CONFLICT") msg = err.message;
+        else if (err.code === "INSUFFICIENT_FUNDS") {
+          isInsufficient = true;
+
+          const shortage = pendingGift
+            ? Math.max(0, pendingGift.price - credits)
+            : 0;
+          title = shortage > 0
+            ? `${shortage} 잔액이 부족합니다`
+            : "잔액이 부족합니다";
+          msg = shortage > 0
+            ? `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
+            : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
+        } else if (err.code === "CONFLICT") msg = err.message;
         else if (err.code === "UPSTREAM_NOT_IMPLEMENTED")
           msg = "xrun 게이트웨이 송금 기능이 아직 준비 중이에요.";
-        else if (err.code === "UPSTREAM_FAILURE")
-          msg = "xrun 송금 처리 중 오류가 발생했어요.";
-        else msg = err.message;
+        else if (err.code === "UPSTREAM_FAILURE") {
+
+          if (/insufficient|잔액|balance/i.test(err.message)) {
+            isInsufficient = true;
+            const shortage = pendingGift
+              ? Math.max(0, pendingGift.price - credits)
+              : 0;
+            title = shortage > 0
+              ? `${shortage} 잔액이 부족합니다`
+              : "잔액이 부족합니다";
+            msg = shortage > 0
+              ? `선물을 보내기 위해 ${shortage} XRUN이 더 필요해요.\nXRUN에서 암호화폐를 얻어보세요!`
+              : "선물을 보내기에 XRUN 이 부족해요.\nXRUN에서 암호화폐를 얻어보세요!";
+          } else {
+            msg = "xrun 송금 처리 중 오류가 발생했어요.";
+          }
+        } else msg = err.message;
       }
-      Alert.alert("송금 실패", msg);
+
+      setPinModalVisible(false);
+      setPinInput("");
+      showAlert(
+        title,
+        msg,
+        isInsufficient
+          ? [
+              { text: "다음에 하기", style: "cancel" },
+              { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
+            ]
+          : undefined,
+      );
     } finally {
       setPaying(false);
     }
@@ -335,7 +378,13 @@ export default function CallScreen({ route, navigation }: Props) {
   return (
     <View style={s.container}>
       {}
-      {personaImage ? (
+      {remoteStream ? (
+        <RTCView
+          streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
+          objectFit="cover"
+          style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
+        />
+      ) : personaImage ? (
         <Image
           source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
           style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
@@ -343,6 +392,15 @@ export default function CallScreen({ route, navigation }: Props) {
         />
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
+      )}
+
+      {}
+      {liveState !== "live" && (
+        <View style={s.liveOverlay} pointerEvents="none">
+          <Text style={s.liveOverlayText}>
+            {liveState === "error" ? "연결에 실패했어요" : "연결 중…"}
+          </Text>
+        </View>
       )}
 
       <LinearGradient
@@ -370,22 +428,17 @@ export default function CallScreen({ route, navigation }: Props) {
         )}
       </TouchableOpacity>
 
-      {}
-      <View style={[s.creditsBadge, { top: insets.top + 8 }]}>
-        <Text style={s.creditsText}>{credits.toLocaleString()} XRUN</Text>
-      </View>
+      {
+}
 
       {}
       <View style={[s.callInfo, { top: insets.top + 24 }]}>
         <Text style={s.callName}>{personaName}</Text>
-        <View style={s.callStatusBadge}>
-          <View style={s.callDot} />
-          <Text style={s.callStatusText}>{t("call.inCall", { time: callTimeStr })}</Text>
-        </View>
+        <Text style={s.callTimeText}>{callTimeStr}</Text>
       </View>
 
       {}
-      <View style={[s.rightActions, { bottom: 180 + bottomInset }]}>
+      <View style={s.rightActions}>
         <TouchableOpacity
           style={[s.sideBtn, showGifts && s.sideBtnActive]}
           onPress={() => setShowGifts(!showGifts)}
@@ -418,12 +471,7 @@ export default function CallScreen({ route, navigation }: Props) {
             color={isLiked ? "#ef4444" : COLORS.white}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={s.sideBtn} onPress={() => setShowComments(true)}>
-          <Feather name="message-circle" size={22} color={COLORS.white} />
-        </TouchableOpacity>
-        <TouchableOpacity style={s.sideBtn} onPress={handleShare}>
-          <Feather name="share-2" size={22} color={COLORS.white} />
-        </TouchableOpacity>
+        {}
       </View>
 
       {}
@@ -444,17 +492,58 @@ export default function CallScreen({ route, navigation }: Props) {
       ))}
 
       {}
+      {phase === 'listening' && (!!interimTranscript || !!transcript) ? (
+        <View style={s.subtitleContainer} pointerEvents="none">
+          <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+            {interimTranscript || transcript}
+          </Text>
+        </View>
+      ) : null}
+
+      {}
       <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
+        {}
+        <Pressable
+          onPress={toggleMic}
+          style={[
+            s.controlBtn,
+            micOn && phase === 'listening' && s.controlBtnActive,
+            phase === 'speaking' && s.controlBtnDanger,
+          ]}
+        >
+          <Text style={s.talkBtnText}>
+            {!micOn
+              ? '마이크 꺼짐'
+              : phase === 'speaking'
+                ? '응답 중...'
+                : phase === 'listening'
+                  ? '듣는 중...'
+                  : '대기'}
+          </Text>
+        </Pressable>
+
         <TouchableOpacity
           style={[s.controlBtn, isMuted && s.controlBtnDanger]}
-          onPress={() => setIsMuted(!isMuted)}
+          onPress={() => {
+            const next = !isMuted;
+            setIsMuted(next);
+
+            const audio = (remoteStream as unknown as { getAudioTracks?: () => Array<{ enabled: boolean }> })
+              ?.getAudioTracks?.() ?? [];
+            audio.forEach((t) => {
+              t.enabled = !next;
+            });
+          }}
         >
           <Feather name={isMuted ? "mic-off" : "mic"} size={24} color={COLORS.white} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={s.endCallBtn}
-          onPress={() => navigation.goBack()}
+          onPress={async () => {
+            await stopLive();
+            navigation.goBack();
+          }}
         >
           <Feather name="phone" size={28} color={COLORS.white} style={{ transform: [{ rotate: "135deg" }] }} />
         </TouchableOpacity>
@@ -524,86 +613,6 @@ export default function CallScreen({ route, navigation }: Props) {
       </Modal>
 
       {}
-      <Modal visible={showComments} transparent animationType="slide">
-        <Pressable style={s.commentOverlay} onPress={() => setShowComments(false)}>
-          <Pressable
-            style={[s.commentSheet, { paddingBottom: 12 + bottomInset }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={s.sheetHandle} />
-            <View style={s.commentHeaderRow}>
-              <Text style={s.commentTitle}>
-                {t("feed.commentCount", { n: comments.length })}
-              </Text>
-              <TouchableOpacity onPress={() => setShowComments(false)}>
-                <Feather name="x" size={20} color={COLORS.zinc600} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-              {commentsLoading ? (
-                <View style={s.emptyComment}>
-                  <Feather name="loader" size={28} color={COLORS.zinc300} />
-                </View>
-              ) : comments.length > 0 ? (
-                comments.map((c: any) => (
-                  <View key={c.id} style={s.commentRow}>
-                    {c.user?.avatarUrl ? (
-                      <Image source={{ uri: c.user.avatarUrl }} style={s.commentAvatar} />
-                    ) : (
-                      <View style={[s.commentAvatar, { backgroundColor: COLORS.zinc200 }]} />
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <View style={s.commentMeta}>
-                        <Text style={s.commentAuthor}>
-                          {c.user?.name ?? c.user?.email}
-                        </Text>
-                        <Text style={s.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
-                        {c.userId === myUserId && c.feedId && (
-                          <TouchableOpacity
-                            onPress={() => handleDeleteComment(c.id, c.feedId)}
-                            style={{ marginLeft: 8 }}
-                          >
-                            <Feather name="trash-2" size={14} color={COLORS.zinc400} />
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                      <Text style={s.commentContent}>{c.content}</Text>
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <View style={s.emptyComment}>
-                  <Feather name="message-circle" size={40} color={COLORS.zinc300} />
-                  <Text style={s.emptyText}>{t("feed.commentsEmpty")}</Text>
-                </View>
-              )}
-            </ScrollView>
-            <View style={s.commentInputRow}>
-              <TextInput
-                style={s.commentInput}
-                value={commentText}
-                onChangeText={setCommentText}
-                placeholder={t("feed.commentPlaceholder")}
-                placeholderTextColor={COLORS.placeholder}
-              />
-              <TouchableOpacity
-                disabled={!commentText.trim() || !accessToken || submittingComment}
-                onPress={submitComment}
-              >
-                <Feather
-                  name="send"
-                  size={18}
-                  color={
-                    commentText.trim() && accessToken && !submittingComment
-                      ? COLORS.zinc900
-                      : COLORS.zinc400
-                  }
-                />
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {}
       <Modal visible={pinModalVisible} transparent animationType="fade">
@@ -674,6 +683,27 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.zinc950,
   },
+  liveOverlay: {
+    position: "absolute",
+    top: "50%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 5,
+  },
+  liveOverlayText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.white,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    overflow: "hidden",
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
 
   pip: {
     position: "absolute",
@@ -697,19 +727,6 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
 
-  creditsBadge: {
-    position: "absolute",
-    right: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
-    zIndex: 20,
-  },
-  creditsText: { fontSize: 13, fontWeight: "700", color: COLORS.white },
-
   callInfo: {
     position: "absolute",
     left: 0,
@@ -726,28 +743,23 @@ const s = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  callStatusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(34,197,94,0.9)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: RADIUS.full,
+
+  callTimeText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.white,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  callDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.white,
-  },
-  callStatusText: { fontSize: 13, fontWeight: "500", color: COLORS.white },
 
   rightActions: {
     position: "absolute",
     right: 16,
-    bottom: 180,
-    gap: 16,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    gap: 20,
     zIndex: 20,
   },
   sideBtn: {
@@ -767,6 +779,26 @@ const s = StyleSheet.create({
     bottom: 200,
     fontSize: 48,
     zIndex: 30,
+  },
+
+  subtitleContainer: {
+    position: 'absolute',
+    bottom: 150,
+    left: 48,
+    right: 48,
+    alignItems: 'center',
+    zIndex: 15,
+  },
+  subtitleText: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '500',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    textAlign: 'center',
+    overflow: 'hidden',
   },
 
   controls: {
@@ -790,6 +822,15 @@ const s = StyleSheet.create({
   },
   controlBtnDanger: {
     backgroundColor: COLORS.error,
+  },
+  controlBtnActive: {
+    backgroundColor: COLORS.violet500,
+  },
+  talkBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: COLORS.white,
+    textAlign: "center",
   },
   endCallBtn: {
     width: 72,
@@ -815,7 +856,8 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingBottom: 24,
-    maxHeight: "50%",
+
+    height: "80%",
   },
   giftHeader: {
     flexDirection: "row",
@@ -881,56 +923,6 @@ const s = StyleSheet.create({
     zIndex: 50,
   },
   toastText: { fontSize: 14, color: COLORS.white },
-
-  commentOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  commentSheet: {
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    height: "70%",
-  },
-  sheetHandle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.zinc300,
-    alignSelf: "center",
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  commentHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
-  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16 },
-  commentMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  commentAuthor: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900 },
-  commentTime: { fontSize: 12, color: COLORS.zinc400 },
-  commentContent: { fontSize: 14, color: COLORS.zinc700, lineHeight: 20 },
-  emptyComment: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { fontSize: 14, color: COLORS.zinc400, marginTop: 8 },
-  commentInputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.zinc200,
-    paddingTop: 12,
-  },
-  commentInput: {
-    flex: 1,
-    height: 40,
-    backgroundColor: COLORS.zinc100,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: COLORS.zinc900,
-  },
 
   pinOverlay: {
     flex: 1,

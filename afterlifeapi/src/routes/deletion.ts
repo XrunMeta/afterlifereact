@@ -126,6 +126,21 @@ deletion.delete("/me", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const result = await softDelete(c.env.DB, "user", userId, "id", userId);
   handleDeleteResult(result);
+
+  try {
+    const linkRow = await c.env.DB
+      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+      .bind(userId)
+      .first<{ xrun_member_id: number | null }>();
+    const xrunMember = linkRow?.xrun_member_id ?? null;
+    if (xrunMember) {
+      const { markAfterlifeDeletedOnXrun } = await import("../lib/xrun");
+      await markAfterlifeDeletedOnXrun(c.env, xrunMember);
+    }
+  } catch (err) {
+    console.warn("[deletion.me] xrun mark failed:", (err as Error).message);
+  }
+
   return c.json({ ok: true, state: "soft_deleted" });
 });
 
@@ -133,6 +148,24 @@ deletion.post("/me/restore", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const result = await softRestore(c.env.DB, "user", userId, "id", userId);
   handleRestoreResult(result);
+
+  try {
+    const linkRow = await c.env.DB
+      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+      .bind(userId)
+      .first<{ xrun_member_id: number | null }>();
+    const xrunMember = linkRow?.xrun_member_id ?? null;
+    if (xrunMember && c.env.XRUN_DB) {
+
+      await c.env.XRUN_DB
+        .prepare(`UPDATE Members SET afterlife_deleted_at = NULL WHERE member = ?`)
+        .bind(xrunMember)
+        .run();
+    }
+  } catch (err) {
+    console.warn("[deletion.me.restore] xrun unmark failed:", (err as Error).message);
+  }
+
   return c.json({ ok: true, state: "active" });
 });
 

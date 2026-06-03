@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
@@ -14,18 +15,21 @@ import {
   Image,
   TextInput,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
-import { Alert } from "react-native";
+import { Alert, Share } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import FeedCard from "../../components/ui/FeedCard";
-import FilterModal from "../../components/ui/FilterModal";
+import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
+import ReportReasonModal from "../../components/common/ReportReasonModal";
+
 import { useFeedStore, apiFeedCountsCache } from "../../stores/feedStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useAuthStore } from "../../stores/authStore";
@@ -36,6 +40,9 @@ import {
   postCloneComment,
   deleteFeedComment,
   blockClone,
+  listFeedCommentReplies,
+  likeFeedComment,
+  unlikeFeedComment,
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
@@ -66,29 +73,49 @@ export default function HomeScreen() {
   const getFilteredFeeds = useFeedStore((s) => s.getFilteredFeeds);
   const loadDiscover = useFeedStore((s) => s.loadDiscover);
   const apiFeeds = useFeedStore((s) => s.apiFeeds);
+  const apiLoading = useFeedStore((s) => s.apiLoading);
   const follows = useFollowStore((s) => s.follows);
   const isFollowing = useFollowStore((s) => s.isFollowing);
   const toggleFollow = useFollowStore((s) => s.toggleFollow);
 
+  const [firstLoadDone, setFirstLoadDone] = useState(false);
+
   useEffect(() => {
     if (apiFeeds == null) {
-      void loadDiscover();
+      void loadDiscover().finally(() => setFirstLoadDone(true));
+    } else {
+      setFirstLoadDone(true);
     }
   }, [apiFeeds, loadDiscover]);
 
   useFocusEffect(
     useCallback(() => {
-      void loadDiscover();
+      void loadDiscover().finally(() => setFirstLoadDone(true));
     }, [loadDiscover]),
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showFilter, setShowFilter] = useState(false);
-  const [localInterests, setLocalInterests] = useState<string[]>(selectedInterests);
+
   const [commentFeedId, setCommentFeedId] = useState<number | null>(null);
   const [commentText, setCommentText] = useState("");
 
-  const [moreTarget, setMoreTarget] = useState<{ cloneId: number; author: string } | null>(null);
+  const [moreTarget, setMoreTarget] = useState<{
+    cloneId: number;
+    ownerId?: number;
+    author: string;
+    isOwn: boolean;
+    visibility?: string;
+  } | null>(null);
+
+  const [reportTarget, setReportTarget] = useState<{
+    cloneId: number;
+    author: string;
+  } | null>(null);
+
+  const [reportCommentTarget, setReportCommentTarget] = useState<{
+    commentId: number;
+    author: string;
+  } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   useEffect(() => {
     if (toastMessage) {
@@ -139,45 +166,35 @@ export default function HomeScreen() {
     itemVisiblePercentThreshold: 50,
   };
 
-  const toggleLocalInterest = (interest: string) => {
-    setLocalInterests((prev) =>
-      prev.includes(interest)
-        ? prev.filter((i) => i !== interest)
-        : [...prev, interest]
-    );
-  };
-
-  const handleApplyFilter = () => {
-    setSelectedInterests(localInterests);
-    setCurrentIndex(0);
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-    setShowFilter(false);
-  };
-
-  const handleOpenFilter = () => {
-    setLocalInterests(selectedInterests);
-    setShowFilter(true);
-  };
+  void setSelectedInterests;
 
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const accessToken = useAuthStore((s) => s.accessToken);
   const myUserId = useAuthStore((s) => s.apiUser?.id ?? s.user?.id ?? null);
 
+  const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Record<number, FeedComment[]>>({});
+
   useEffect(() => {
     if (commentFeedId == null) {
       setComments([]);
+
+      setExpandedReplies({});
+      setReplyingTo(null);
       return;
     }
     if (commentFeedId < 0) {
 
       setComments([]);
+      setExpandedReplies({});
       return;
     }
     let cancelled = false;
     setCommentsLoading(true);
     setComments([]);
-    listFeedComments(commentFeedId, { limit: 100 })
+    setExpandedReplies({});
+    listFeedComments(commentFeedId, { limit: 100, accessToken })
       .then((res) => {
         if (cancelled) return;
         setComments(res.items);
@@ -201,6 +218,8 @@ export default function HomeScreen() {
     if (submittingRef.current) return; 
     const content = commentText.trim();
     if (!content || !accessToken) return;
+
+    Keyboard.dismiss();
     submittingRef.current = true;
     setSubmittingComment(true);
     try {
@@ -221,14 +240,37 @@ export default function HomeScreen() {
         }
         apiFeedCountsCache.delete(oldId);
       } else {
-        await postFeedComment(accessToken, commentFeedId, content);
+        await postFeedComment(accessToken, commentFeedId, content, {
+          parentCommentId: replyingTo?.commentId,
+        });
         realFeedId = commentFeedId;
       }
       setCommentText("");
-      const r = await listFeedComments(realFeedId, { limit: 100 });
-      setComments(r.items);
 
-      bumpCommentsCount(realFeedId, r.items.length);
+      if (replyingTo) {
+        try {
+          const rep = await listFeedCommentReplies(realFeedId, replyingTo.commentId, { limit: 100, accessToken });
+          setExpandedReplies((prev) => ({ ...prev, [replyingTo.commentId]: rep.items }));
+          setComments((prev) =>
+            prev.map((c) =>
+              c.id === replyingTo.commentId
+                ? { ...c, repliesCount: rep.items.length }
+                : c,
+            ),
+          );
+        } catch (err) {
+          console.warn("[Home] refresh replies failed:", err);
+        }
+        setReplyingTo(null);
+
+        const cur = useFeedStore.getState().apiFeeds;
+        const target = cur?.find((f) => f.id === realFeedId);
+        bumpCommentsCount(realFeedId, (target?.commentsCount ?? 0) + 1);
+      } else {
+        const r = await listFeedComments(realFeedId, { limit: 100, accessToken });
+        setComments(r.items);
+        bumpCommentsCount(realFeedId, r.items.length);
+      }
     } catch (err) {
       console.warn("[Home] postFeedComment failed:", err);
     } finally {
@@ -239,7 +281,7 @@ export default function HomeScreen() {
 
   const deleteComment = (commentId: number) => {
     if (commentFeedId == null || commentFeedId < 0 || !accessToken) return;
-    Alert.alert(
+    showAlert(
       "댓글 삭제",
       "이 댓글을 삭제하시겠습니까?",
       [
@@ -264,29 +306,101 @@ export default function HomeScreen() {
     );
   };
 
+  const toggleCommentLike = (comment: FeedComment, parentCommentId?: number) => {
+    if (!accessToken) return;
+    const fid = comment.feedId ?? (commentFeedId != null && commentFeedId > 0 ? commentFeedId : 0);
+    if (!fid) return;
+    const wasLiked = !!comment.likedByMe;
+    const curCount = comment.likesCount ?? 0;
+    const nextLiked = !wasLiked;
+    const nextCount = Math.max(0, curCount + (nextLiked ? 1 : -1));
+    const apply = (c: FeedComment): FeedComment =>
+      c.id === comment.id ? { ...c, likedByMe: nextLiked, likesCount: nextCount } : c;
+    if (parentCommentId) {
+      setExpandedReplies((p) => {
+        const list = p[parentCommentId];
+        if (!list) return p;
+        return { ...p, [parentCommentId]: list.map(apply) };
+      });
+    } else {
+      setComments((prev) => prev.map(apply));
+    }
+    void (async () => {
+      try {
+        if (nextLiked) await likeFeedComment(accessToken, fid, comment.id);
+        else await unlikeFeedComment(accessToken, fid, comment.id);
+      } catch (err) {
+        console.warn("[Home] toggleCommentLike failed:", err);
+        const rollback = (c: FeedComment): FeedComment =>
+          c.id === comment.id ? { ...c, likedByMe: wasLiked, likesCount: curCount } : c;
+        if (parentCommentId) {
+          setExpandedReplies((p) => {
+            const list = p[parentCommentId];
+            if (!list) return p;
+            return { ...p, [parentCommentId]: list.map(rollback) };
+          });
+        } else {
+          setComments((prev) => prev.map(rollback));
+        }
+      }
+    })();
+  };
+
   const renderItem = useCallback(
-    ({ item, index }: { item: FeedItem; index: number }) => (
-      <FeedCard
-        item={item}
-        isActive={index === currentIndex}
-        isLiked={likedIds.includes(item.id)}
-        isFollowed={isFollowing(item.cloneId)}
-        cardHeight={feedHeight}
-        onToggleLike={() => toggleLike(item.id)}
-        onToggleFollow={() => void toggleFollow(item.cloneId)}
-        onCallPress={() => rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image })}
-        onCommentPress={() => setCommentFeedId(item.id)}
-        onMorePress={() => setMoreTarget({ cloneId: item.cloneId, author: item.author })}
-      />
-    ),
-    [currentIndex, likedIds, follows, feedHeight, toggleLike, toggleFollow, isFollowing]
+    ({ item, index }: { item: FeedItem; index: number }) => {
+
+      const isOwn = myUserId != null && item.cloneOwnerId === myUserId;
+      return (
+        <FeedCard
+          item={item}
+          isActive={index === currentIndex}
+          isLiked={likedIds.includes(item.id)}
+          isFollowed={isFollowing(item.cloneId)}
+          isOwn={isOwn}
+          cardHeight={feedHeight}
+          onToggleLike={() => toggleLike(item.id)}
+          onToggleFollow={() => void toggleFollow(item.cloneId)}
+          onCallPress={() => rootNav.navigate("Call", { cloneId: item.cloneId, name: item.author, image: item.image })}
+          onCommentPress={() => setCommentFeedId(item.id)}
+          onMorePress={() =>
+            setMoreTarget({
+              cloneId: item.cloneId,
+              ownerId: item.cloneOwnerId,
+              author: item.author,
+              isOwn,
+              visibility: item.cloneVisibility,
+            })
+          }
+          onSharePress={async () => {
+            try {
+              await Share.share({
+                message: `${item.author} 페르소나와 만나보세요!\nhttps://afterlife.app/clone/${item.cloneId}`,
+                title: item.author,
+              });
+            } catch (err) {
+              console.warn("[Home] share failed:", err);
+            }
+          }}
+        />
+      );
+    },
+    [currentIndex, likedIds, follows, feedHeight, toggleLike, toggleFollow, isFollowing, myUserId]
   );
+
+  const showLoading = !firstLoadDone || (filteredFeeds.length === 0 && apiLoading);
+  const showEmpty = !showLoading && filteredFeeds.length === 0;
 
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      {}
-      {filteredFeeds.length === 0 ? (
+      {
+
+}
+      {showLoading ? (
+        <View style={[styles.emptyWrap, { height: feedHeight }]}>
+          <ActivityIndicator size="small" color="rgba(255,255,255,0.6)" />
+        </View>
+      ) : showEmpty ? (
         <View style={[styles.emptyWrap, { height: feedHeight }]}>
           <View style={styles.emptyIconWrap}>
             <Feather name="users" size={36} color="rgba(255,255,255,0.7)" />
@@ -334,88 +448,200 @@ export default function HomeScreen() {
       )}
 
       {}
-      <View style={[styles.topOverlay, { top: insets.top + 8 }]}>
-        {selectedInterests.length > 0 && (
-          <View style={styles.tagsRow}>
-            {selectedInterests.map((interest) => (
-              <View key={interest} style={styles.topTag}>
-                <Text style={styles.topTagText}>#{interest}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-        <TouchableOpacity
-          onPress={handleOpenFilter}
-          style={styles.filterButton}
-          activeOpacity={0.7}
-        >
-          <Feather name="filter" size={20} color={COLORS.white} />
-        </TouchableOpacity>
-      </View>
 
-      {}
+      {
+}
       <Modal visible={!!commentFeedId} transparent animationType="slide">
         <Pressable style={styles.commentOverlay} onPress={() => { Keyboard.dismiss(); setCommentFeedId(null); }}>
-          <View
+          <SwipeDownSheet
+            onClose={() => { Keyboard.dismiss(); setCommentFeedId(null); }}
+            keyboardOffset={keyboardHeight}
             style={[
               styles.commentSheet,
 
               {
                 paddingBottom: 24 + Math.max(insets.bottom, 0),
                 height: Math.max(SCREEN_HEIGHT * 0.7 - keyboardHeight, 200),
-                transform: [{ translateY: -keyboardHeight }],
               },
             ]}
-            onStartShouldSetResponder={() => true}
           >
             <View style={styles.sheetHandle} />
+            {}
             <View style={styles.commentHeaderRow}>
               <Text style={styles.commentTitle}>{t("feed.commentCount", { n: comments.length })}</Text>
-              <TouchableOpacity onPress={() => setCommentFeedId(null)}>
-                <Feather name="x" size={20} color={COLORS.white} />
-              </TouchableOpacity>
             </View>
             <ScrollView style={styles.commentScroll} showsVerticalScrollIndicator={false}>
               {commentsLoading ? (
                 <View style={styles.emptyComment}>
-                  <Feather name="loader" size={28} color="rgba(255,255,255,0.5)" />
+                  <Feather name="loader" size={28} color={COLORS.zinc400} />
                 </View>
               ) : comments.length > 0 ? (
-                comments.map((c) => (
-                  <View key={c.id} style={styles.commentRow}>
+                comments.map((c) => {
+                  const replies = expandedReplies[c.id];
+                  const showReplies = replies !== undefined;
+                  return (
+
+                  <View key={c.id} style={styles.commentBlock}>
+                  <View style={styles.commentRow}>
                     {c.user.avatarUrl ? (
                       <Image source={{ uri: c.user.avatarUrl }} style={styles.commentAvatar} />
                     ) : (
-                      <View style={[styles.commentAvatar, { backgroundColor: "rgba(255,255,255,0.15)" }]} />
+                      <View style={[styles.commentAvatar, { backgroundColor: COLORS.zinc100 }]} />
                     )}
                     <View style={styles.commentInfo}>
                       <View style={styles.commentMeta}>
                         <Text style={styles.commentAuthor}>{c.user.name ?? c.user.email}</Text>
                         <Text style={styles.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
-                        {c.userId === myUserId && (
+                        {c.userId === myUserId ? (
                           <TouchableOpacity onPress={() => deleteComment(c.id)} style={{ marginLeft: 8 }}>
-                            <Feather name="trash-2" size={14} color="rgba(255,255,255,0.6)" />
+                            <Feather name="trash-2" size={14} color={COLORS.zinc400} />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() =>
+                              setReportCommentTarget({
+                                commentId: c.id,
+                                author: c.user.name ?? c.user.email ?? "",
+                              })
+                            }
+                            style={{ marginLeft: 8 }}
+                          >
+                            <Feather name="flag" size={14} color={COLORS.zinc400} />
                           </TouchableOpacity>
                         )}
                       </View>
                       <Text style={styles.commentContent}>{c.content}</Text>
+                      {}
+                      <View style={styles.replyActions}>
+                        <TouchableOpacity
+                          onPress={() =>
+                            setReplyingTo({
+                              commentId: c.id,
+                              userName: c.user.name ?? c.user.email ?? "",
+                            })
+                          }
+                        >
+                          <Text style={styles.replyActionText}>답글 달기</Text>
+                        </TouchableOpacity>
+                        {(c.repliesCount ?? 0) > 0 && (
+                          <TouchableOpacity
+                            onPress={async () => {
+                              if (commentFeedId == null || commentFeedId < 0) return;
+                              if (showReplies) {
+
+                                setExpandedReplies((p) => {
+                                  const n = { ...p };
+                                  delete n[c.id];
+                                  return n;
+                                });
+                              } else {
+                                try {
+                                  const r = await listFeedCommentReplies(commentFeedId, c.id, { limit: 100, accessToken });
+                                  setExpandedReplies((p) => ({ ...p, [c.id]: r.items }));
+                                } catch (err) {
+                                  console.warn("[Home] listReplies failed:", err);
+                                }
+                              }
+                            }}
+                          >
+                            <Text style={styles.replyToggleText}>
+                              {showReplies
+                                ? "── 답글 숨기기"
+                                : `── 답글 ${c.repliesCount}개 더 보기`}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
                     </View>
+                    {}
+                    <TouchableOpacity
+                      style={styles.commentHeart}
+                      onPress={() => toggleCommentLike(c)}
+                      hitSlop={8}
+                    >
+                      <Ionicons
+                        name="heart"
+                        size={18}
+                        color={c.likedByMe ? "#ef4444" : COLORS.zinc400}
+                      />
+                      <Text
+                        style={[
+                          styles.commentHeartCount,
+                          c.likedByMe ? { color: "#ef4444" } : null,
+                        ]}
+                      >
+                        {c.likesCount ?? 0}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                ))
+                  {
+
+}
+                  {showReplies && replies && replies.map((rc) => (
+                    <View key={rc.id} style={styles.replyRow}>
+                      <View style={styles.replyIndent} />
+                      {rc.user.avatarUrl ? (
+                        <Image source={{ uri: rc.user.avatarUrl }} style={styles.replyAvatar} />
+                      ) : (
+                        <View style={[styles.replyAvatar, { backgroundColor: COLORS.zinc100 }]} />
+                      )}
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.commentMeta}>
+                          <Text style={styles.commentAuthor}>{rc.user.name ?? rc.user.email}</Text>
+                          <Text style={styles.commentTime}>{formatRelativeKo(rc.createdAt)}</Text>
+                        </View>
+                        <Text style={styles.commentContent}>{rc.content}</Text>
+                      </View>
+                      {}
+                      <TouchableOpacity
+                        style={styles.commentHeart}
+                        onPress={() => toggleCommentLike(rc, c.id)}
+                        hitSlop={8}
+                      >
+                        <Ionicons
+                          name="heart"
+                          size={16}
+                          color={rc.likedByMe ? "#ef4444" : COLORS.zinc400}
+                        />
+                        <Text
+                          style={[
+                            styles.commentHeartCount,
+                            rc.likedByMe ? { color: "#ef4444" } : null,
+                          ]}
+                        >
+                          {rc.likesCount ?? 0}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  </View>
+                );
+                })
               ) : (
                 <View style={styles.emptyComment}>
-                  <Feather name="message-circle" size={40} color="rgba(255,255,255,0.3)" />
+                  <Feather name="message-circle" size={40} color={COLORS.zinc300} />
                   <Text style={styles.emptyText}>{t("feed.commentsEmpty")}</Text>
                 </View>
               )}
             </ScrollView>
+            {}
+            {replyingTo && (
+              <View style={styles.replyingBanner}>
+                <Text style={styles.replyingText}>
+                  @{replyingTo.userName} 에게 답글
+                </Text>
+                <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                  <Feather name="x" size={14} color={COLORS.zinc500} />
+                </TouchableOpacity>
+              </View>
+            )}
             <View style={styles.commentInputRow}>
               <TextInput
                 style={styles.commentInput}
                 value={commentText}
                 onChangeText={setCommentText}
-                placeholder={t("feed.commentPlaceholder")}
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholder={replyingTo ? "답글 입력..." : t("feed.commentPlaceholder")}
+                placeholderTextColor={COLORS.zinc400}
               />
               <TouchableOpacity
                 disabled={!commentText.trim() || !accessToken || submittingComment}
@@ -426,102 +652,238 @@ export default function HomeScreen() {
                   size={18}
                   color={
                     commentText.trim() && accessToken && !submittingComment
-                      ? COLORS.white
-                      : "rgba(255,255,255,0.3)"
+                      ? COLORS.violet600
+                      : COLORS.zinc400
                   }
                 />
               </TouchableOpacity>
             </View>
-          </View>
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
 
       {}
-      <FilterModal
-        visible={showFilter}
-        selectedInterests={localInterests}
-        onToggleInterest={toggleLocalInterest}
-        onClearAll={() => setLocalInterests([])}
-        onApply={handleApplyFilter}
-        onClose={() => setShowFilter(false)}
-      />
 
-      {}
+      {
+}
       <Modal visible={!!moreTarget} transparent animationType="fade">
         <Pressable style={styles.moreOverlay} onPress={() => setMoreTarget(null)}>
-          <Pressable
+          <SwipeDownSheet
+            onClose={() => setMoreTarget(null)}
             style={[styles.moreSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
-            onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.moreSheetHandle} />
             <Text style={styles.moreTitle}>{moreTarget?.author}</Text>
-            <TouchableOpacity
-              style={styles.moreItem}
-              onPress={() => {
-                setMoreTarget(null);
-                setToastMessage("신고가 접수됐어요");
-              }}
-            >
-              <Feather name="flag" size={20} color="#ef4444" />
-              <Text style={[styles.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.moreItem}
-              onPress={async () => {
-                const target = moreTarget;
-                setMoreTarget(null);
-                if (!target || !accessToken) {
-                  console.log(
-                    `[BLOCK] aborted — target=${!!target} accessToken=${!!accessToken}`,
-                  );
-                  return;
-                }
-                console.log(
-                  `[BLOCK] start cloneId=${target.cloneId} author=${target.author}`,
-                );
-                try {
-                  console.log(`[BLOCK] → POST /oth-path${target.cloneId}/block`);
-                  const blockRes = await blockClone(accessToken, target.cloneId);
-                  console.log(`[BLOCK] ← block API ok:`, blockRes);
-                  setToastMessage("이 페르소나가 차단됐어요");
 
-                  const cur = useFeedStore.getState().apiFeeds;
-                  const beforeFeed = cur?.length ?? 0;
-                  if (cur) {
-                    useFeedStore.setState({
-                      apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
-                    });
-                  }
-                  console.log(
-                    `[BLOCK] apiFeeds filtered — before=${beforeFeed} after=${
-                      useFeedStore.getState().apiFeeds?.length ?? 0
-                    }`,
-                  );
+            {moreTarget?.isOwn ? (
 
-                  await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
+              <>
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={() => {
+                    const target = moreTarget;
+                    setMoreTarget(null);
+                    if (!target) return;
 
-                  console.log(`[BLOCK] → loadDiscover() refetch`);
-                  void loadDiscover();
-                  console.log(`[BLOCK] complete cloneId=${target.cloneId}`);
-                } catch (err) {
-                  console.warn(`[BLOCK] FAILED cloneId=${target.cloneId}`, err);
-                  setToastMessage("차단에 실패했어요");
-                }
-              }}
-            >
-              <Feather name="slash" size={20} color={COLORS.zinc900} />
-              <Text style={styles.moreItemText}>차단하기</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.moreItem, { borderBottomWidth: 0 }]}
-              onPress={() => setMoreTarget(null)}
-            >
-              <Feather name="x" size={20} color={COLORS.zinc500} />
-              <Text style={[styles.moreItemText, { color: COLORS.zinc500 }]}>취소</Text>
-            </TouchableOpacity>
-          </Pressable>
+                    rootNav.dispatch(
+                      CommonActions.navigate({
+                        name: "Main",
+                        params: {
+                          screen: "ClonesTab",
+                          params: {
+                            screen: "CloneEdit",
+                            params: { cloneId: target.cloneId },
+                          },
+                        },
+                      }),
+                    );
+                  }}
+                >
+                  <Feather name="edit-3" size={20} color={COLORS.zinc900} />
+                  <Text style={styles.moreItemText}>수정하기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={() => {
+                    const target = moreTarget;
+                    setMoreTarget(null);
+                    if (!target) return;
+
+                    rootNav.dispatch(
+                      CommonActions.navigate({
+                        name: "Main",
+                        params: {
+                          screen: "ClonesTab",
+                          params: {
+                            screen: "CloneEdit",
+                            params: { cloneId: target.cloneId },
+                          },
+                        },
+                      }),
+                    );
+                    setToastMessage("페르소나 편집 → 공개 범위에서 변경하세요");
+                  }}
+                >
+                  <Feather name="eye" size={20} color={COLORS.zinc900} />
+                  <Text style={styles.moreItemText}>공개 범위 수정</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.moreItem, { borderBottomWidth: 0 }]}
+                  onPress={async () => {
+                    const target = moreTarget;
+                    setMoreTarget(null);
+                    if (!target || !accessToken) return;
+
+                    showAlert(
+                      "페르소나 삭제",
+                      `'${target.author}' 페르소나를 삭제할까요?\n복구 불가합니다.`,
+                      [
+                        { text: "취소", style: "cancel" },
+                        {
+                          text: "삭제",
+                          style: "destructive",
+                          onPress: async () => {
+                            try {
+                              const { deleteClone } = await import("../../api/clones");
+                              await deleteClone(accessToken, target.cloneId);
+                              setToastMessage("페르소나가 삭제됐어요");
+                              const cur = useFeedStore.getState().apiFeeds;
+                              if (cur) {
+                                useFeedStore.setState({
+                                  apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
+                                });
+                              }
+                              void loadDiscover();
+                            } catch (err) {
+                              console.warn("[Delete clone] failed:", err);
+                              setToastMessage("삭제에 실패했어요");
+                            }
+                          },
+                        },
+                      ],
+                    );
+                  }}
+                >
+                  <Feather name="trash-2" size={20} color="#ef4444" />
+                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>삭제</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+
+              <>
+                {moreTarget?.ownerId != null && (
+                  <TouchableOpacity
+                    style={styles.moreItem}
+                    onPress={() => {
+                      const target = moreTarget;
+                      setMoreTarget(null);
+                      if (!target?.ownerId) return;
+                      rootNav.navigate("UserProfile", { userId: target.ownerId });
+                    }}
+                  >
+                    <Feather name="user" size={20} color={COLORS.zinc900} />
+                    <Text style={styles.moreItemText}>유저 정보보기</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.moreItem}
+                  onPress={() => {
+                    const target = moreTarget;
+                    setMoreTarget(null);
+                    if (!target) return;
+
+                    setReportTarget({ cloneId: target.cloneId, author: target.author });
+                  }}
+                >
+                  <Feather name="flag" size={20} color="#ef4444" />
+                  <Text style={[styles.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.moreItem, { borderBottomWidth: 0 }]}
+                  onPress={async () => {
+                    const target = moreTarget;
+                    setMoreTarget(null);
+                    if (!target || !accessToken) return;
+                    try {
+                      await blockClone(accessToken, target.cloneId);
+                      setToastMessage("이 페르소나가 차단됐어요");
+                      const cur = useFeedStore.getState().apiFeeds;
+                      if (cur) {
+                        useFeedStore.setState({
+                          apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
+                        });
+                      }
+                      await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
+                      void loadDiscover();
+                    } catch (err) {
+                      console.warn(`[BLOCK] FAILED cloneId=${target.cloneId}`, err);
+                      setToastMessage("차단에 실패했어요");
+                    }
+                  }}
+                >
+                  <Feather name="slash" size={20} color={COLORS.zinc900} />
+                  <Text style={styles.moreItemText}>차단하기</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {}
+          </SwipeDownSheet>
         </Pressable>
       </Modal>
+
+      {}
+      <ReportReasonModal
+        visible={!!reportCommentTarget}
+        targetName={reportCommentTarget?.author}
+        onCancel={() => setReportCommentTarget(null)}
+        onConfirm={async (reason) => {
+          const target = reportCommentTarget;
+          setReportCommentTarget(null);
+          if (!target || !accessToken || commentFeedId == null) return;
+          try {
+            const { reportFeedComment } = await import("../../api/clones");
+            await reportFeedComment(
+              accessToken,
+              commentFeedId,
+              target.commentId,
+              reason || undefined,
+            );
+            setToastMessage("댓글이 신고됐어요");
+          } catch (err) {
+            console.warn(`[REPORT-COMMENT] FAILED commentId=${target.commentId}`, err);
+            setToastMessage("신고에 실패했어요");
+          }
+        }}
+      />
+
+      {}
+      <ReportReasonModal
+        visible={!!reportTarget}
+        targetName={reportTarget?.author}
+        onCancel={() => setReportTarget(null)}
+        onConfirm={async (reason) => {
+          const target = reportTarget;
+          setReportTarget(null);
+          if (!target || !accessToken) return;
+
+          try {
+            const { reportClone } = await import("../../api/clones");
+            await reportClone(accessToken, target.cloneId, reason || undefined);
+            setToastMessage("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            const cur = useFeedStore.getState().apiFeeds;
+            if (cur) {
+              useFeedStore.setState({
+                apiFeeds: cur.filter((it) => it.cloneId !== target.cloneId),
+              });
+            }
+            await useFollowStore.getState().unfollowLocalForBlock(target.cloneId);
+            void loadDiscover();
+          } catch (err) {
+            console.warn(`[REPORT] FAILED cloneId=${target.cloneId}`, err);
+            setToastMessage("신고에 실패했어요");
+          }
+        }}
+      />
 
       {toastMessage && (
         <View style={styles.toast}>
@@ -574,22 +936,37 @@ const styles = StyleSheet.create({
   },
 
   commentOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  commentSheet: { backgroundColor: "rgba(24,24,27,0.95)", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
-  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)", alignSelf: "center", marginTop: 12, marginBottom: 12 },
-  commentHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.white },
+  commentSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingBottom: 24, height: "70%" },
+  sheetHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: COLORS.zinc300, alignSelf: "center", marginTop: 12, marginBottom: 12 },
+  commentHeaderRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 12 },
+  commentTitle: { fontSize: 16, fontWeight: "700", color: COLORS.zinc900 },
   commentScroll: { flex: 1 },
-  commentRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  commentAvatar: { width: 32, height: 32, borderRadius: 16 },
+
+  commentBlock: { marginBottom: 16 },
+
+  commentRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
+
+  replyIndent: { width: 42 },
+  commentHeart: { alignItems: "center", paddingHorizontal: 4, paddingTop: 2, minWidth: 28 },
+  commentHeartCount: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
+  commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.zinc100 },
   commentInfo: { flex: 1 },
   commentMeta: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  commentAuthor: { fontSize: 13, fontWeight: "600", color: COLORS.white },
-  commentTime: { fontSize: 12, color: "rgba(255,255,255,0.5)" },
-  commentContent: { fontSize: 14, color: "rgba(255,255,255,0.85)", lineHeight: 20 },
+  commentAuthor: { fontSize: 13, fontWeight: "600", color: COLORS.zinc900 },
+  commentTime: { fontSize: 12, color: COLORS.zinc500 },
+  commentContent: { fontSize: 14, color: COLORS.zinc800, lineHeight: 20 },
   emptyComment: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { fontSize: 14, color: "rgba(255,255,255,0.4)", marginTop: 8 },
-  commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.1)", paddingTop: 12 },
-  commentInput: { flex: 1, height: 40, backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: COLORS.white },
+  emptyText: { fontSize: 14, color: COLORS.zinc400, marginTop: 8 },
+  commentInputRow: { flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: COLORS.zinc100, paddingTop: 12 },
+  commentInput: { flex: 1, height: 40, backgroundColor: COLORS.zinc50 ?? COLORS.zinc100, borderRadius: 20, paddingHorizontal: 16, fontSize: 14, color: COLORS.zinc900 },
+
+  replyActions: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 6 },
+  replyActionText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
+  replyToggleText: { fontSize: 12, fontWeight: "600", color: COLORS.zinc500 },
+  replyRow: { flexDirection: "row", gap: 8, marginTop: 10, alignItems: "flex-start" },
+  replyAvatar: { width: 24, height: 24, borderRadius: 12 },
+  replyingBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 6, paddingHorizontal: 4, backgroundColor: COLORS.zinc50 ?? COLORS.zinc100, borderRadius: 8, marginTop: 6 },
+  replyingText: { fontSize: 12, color: COLORS.zinc600 },
 
   moreOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   moreSheet: { backgroundColor: COLORS.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 0, paddingHorizontal: 16 },

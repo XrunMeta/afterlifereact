@@ -246,28 +246,24 @@ export interface PatchMePayload {
   name?: string;
   avatarUrl?: string | null;
   phone?: string | null;
-  gender?: "male" | "female" | "other" | null;
+  gender?: "male" | "female" | null;
   age?: number | null;
+
+  country?: string | null;
+  mobileCode?: number | null;
+  region?: string | null;
 }
 
 export interface DeleteMeResult {
   ok: true;
-  state: "hard_deleted";
-  shreddedDekCount: number;
-  purgedMessages: number;
-  xrunClose?: { attempted: boolean; closed: boolean; reason?: string };
+  state: "soft_deleted";
 }
-export async function deleteMe(
-  accessToken: string,
-  options: { withXrun?: boolean } = {},
-): Promise<DeleteMeResult> {
+export async function deleteMe(accessToken: string): Promise<DeleteMeResult> {
   const res = await fetch(`${API_BASE}/oth-path`, {
-    method: "POST",
+    method: "DELETE",
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ withXrun: !!options.withXrun }),
   });
   const text = await res.text();
   let parsed: unknown = null;
@@ -286,6 +282,43 @@ export async function deleteMe(
     );
   }
   return parsed as DeleteMeResult;
+}
+
+export interface DeleteMeGdprResult {
+  ok: true;
+  state: "hard_deleted";
+  shreddedDekCount: number;
+  purgedMessages: number;
+  xrunClose?: { attempted: boolean; closed: boolean; reason?: string };
+}
+export async function deleteMeGdpr(
+  accessToken: string,
+): Promise<DeleteMeGdprResult> {
+  const res = await fetch(`${API_BASE}/oth-path`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({}),
+  });
+  const text = await res.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+
+  }
+  if (!res.ok) {
+    const errBody = parsed as ApiErrorBody | null;
+    throw new AuthApiError(
+      res.status,
+      errBody?.error?.code ?? "HTTP_ERROR",
+      errBody?.error?.message ?? `HTTP ${res.status}`,
+      errBody?.error?.details,
+    );
+  }
+  return parsed as DeleteMeGdprResult;
 }
 
 export async function patchInterests(

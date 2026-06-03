@@ -1,3 +1,4 @@
+import { showAlert } from "../../stores/dialogStore";
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
 import { useTranslation } from "react-i18next";
@@ -14,10 +15,10 @@ export default function GDPRDeleteScreen() {
 
   async function submit() {
     if (confirm.trim() !== CONFIRM_PHRASE) {
-      Alert.alert(t("gdpr.phraseMismatch"), t("gdpr.phraseMismatchMsg", { phrase: CONFIRM_PHRASE }));
+      showAlert(t("gdpr.phraseMismatch"), t("gdpr.phraseMismatchMsg", { phrase: CONFIRM_PHRASE }));
       return;
     }
-    Alert.alert(
+    showAlert(
       t("gdpr.finalTitle"),
       t("gdpr.finalDesc"),
       [
@@ -29,7 +30,7 @@ export default function GDPRDeleteScreen() {
             setLoading(true);
             try {
               await new Promise((r) => setTimeout(r, 600));
-              Alert.alert(t("gdpr.successTitle"), t("gdpr.successMsg"));
+              showAlert(t("gdpr.successTitle"), t("gdpr.successMsg"));
             } finally {
               setLoading(false);
             }

@@ -6,7 +6,6 @@ import type { CreateStackParamList } from '../../navigation/types';
 import SafeView from '../../components/ui/SafeView';
 import SafeScrollView from '../../components/ui/SafeScrollView';
 import PageHeader from '../../components/common/PageHeader';
-import StepIndicator from '../../components/common/StepIndicator';
 import Button from '../../components/ui/Button';
 import { useCloneStore } from '../../stores/cloneStore';
 import MemlowVoiceUpload from './content/MemlowVoiceUpload';
@@ -30,7 +29,6 @@ export default function Step4VoiceUploadScreen({ navigation }: Props) {
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
-      <StepIndicator currentStep={2} totalSteps={4} />
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />
       </SafeScrollView>
@@ -38,7 +36,7 @@ export default function Step4VoiceUploadScreen({ navigation }: Props) {
         <Button
           title={t("create.next")}
 
-          onPress={() => navigation.navigate('Step6')}
+          onPress={() => navigation.navigate('PersonaAssistant')}
           disabled={!canNext}
         />
       </View>
@@ -47,6 +45,11 @@ export default function Step4VoiceUploadScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: SIZES.large },
+
+  content: {
+    paddingHorizontal: SIZES.large,
+    paddingTop: 16,
+    paddingBottom: SIZES.large,
+  },
   bottomBar: { padding: SIZES.large, borderTopWidth: 1, borderTopColor: COLORS.zinc100 },
 });

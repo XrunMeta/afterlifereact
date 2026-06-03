@@ -31,3 +31,9 @@ afterlife-server-log/
 
 # sync mirror — 어디 있든 (루트, Reffer/ 하위 등 가비아 동기화 미러 전체)
 sync-mirror/
+
+afterlife-server/testbed/data/
+
+# python 캐시 (pytest/py_compile 산출)
+__pycache__/
+*.pyc

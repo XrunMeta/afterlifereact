@@ -185,3 +185,66 @@ describe("clones search route — stats 객체 통일", () => {
     expect((item as unknown as { followersCount?: number }).followersCount).toBeUndefined();
   });
 });
+
+describe("PATCH /oth-path — voice_preset_id 활성 검증 (L-1)", () => {
+  beforeAll(async () => {
+    if (!(await hasClonesTable())) {
+      throw new Error("D1 migrations not applied.");
+    }
+  });
+
+  it("비활성(is_active=0) voice_preset_id로 PATCH → 422 VALIDATION_FAILED", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("patch-voice-l1@test.local");
+    const cloneId = await seedClone(ownerId, "patch_voice_l1", "public");
+    const token = await issueAccessToken(ownerId);
+
+    await db
+      .prepare(
+        `INSERT INTO voice_presets (name, sort_order, is_active)
+         VALUES ('비활성음색', 99, 0)`,
+      )
+      .run();
+    const vp = await db
+      .prepare("SELECT id FROM voice_presets WHERE name = '비활성음색' AND is_active = 0 LIMIT 1")
+      .first<{ id: number }>();
+    const inactiveId = vp!.id;
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ voice_preset_id: inactiveId }),
+    });
+    expect(res.status).toBe(422);
+    const body = await res.json<{ error: { code: string } }>();
+    expect(body.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  it("존재하지 않는 voice_preset_id로 PATCH → 422 VALIDATION_FAILED", async () => {
+    const ownerId = await seedUser("patch-voice-l1-notfound@test.local");
+    const cloneId = await seedClone(ownerId, "patch_voice_l1_nf", "public");
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ voice_preset_id: 9999999 }),
+    });
+    expect(res.status).toBe(422);
+    const body = await res.json<{ error: { code: string } }>();
+    expect(body.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  it("null로 PATCH (음성 제거) → 200 허용", async () => {
+    const ownerId = await seedUser("patch-voice-l1-null@test.local");
+    const cloneId = await seedClone(ownerId, "patch_voice_l1_null", "public");
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ voice_preset_id: null }),
+    });
+    expect(res.status).toBe(200);
+  });
+});

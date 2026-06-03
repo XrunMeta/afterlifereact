@@ -13,7 +13,8 @@ import { clones } from "./routes/clones";
 import { memory } from "./routes/memory";
 import { cloneMessages, messages } from "./routes/messages";
 import { cloneFeeds, feedsDiscover } from "./routes/feeds";
-import { sessions } from "./routes/sessions";
+import { calls } from "./routes/calls";
+import { internal } from "./routes/internal";
 import { cloneShares, inviteTokens } from "./routes/sharing";
 import { cloneShorts, shortsFeed } from "./routes/shorts";
 import { cloneEditorTransfer } from "./routes/editorTransfer";
@@ -45,8 +46,11 @@ const ALLOWED_ORIGINS = new Set<string>([
   "http://localhost:5174",
   "http://localhost:8787",
   "https://afterlife-admin.pages.dev",
+  "https://xrun-admin.pages.dev",
+  "https://preview.xrun-admin.pages.dev",
 ]);
 const PAGES_HOST_RE = /^https:\/\/[a-z0-9-]+\.afterlife-admin\.pages\.dev$/;
+const XRUN_ADMIN_HOST_RE = /^https:\/\/[a-z0-9-]+\.xrun-admin\.pages\.dev$/;
 
 app.use(
   "*",
@@ -55,6 +59,7 @@ app.use(
       if (!origin) return "*";
       if (ALLOWED_ORIGINS.has(origin)) return origin;
       if (PAGES_HOST_RE.test(origin)) return origin;
+      if (XRUN_ADMIN_HOST_RE.test(origin)) return origin;
       return null;
     },
     credentials: true,
@@ -95,7 +100,9 @@ app.route("/oth-path", shortsFeed);
 app.route("/oth-path", cloneEditorTransfer);
 app.route("/oth-path", messages);
 
-app.route("/oth-path", sessions);
+app.route("/oth-path", calls);
+
+app.route("/oth-path", internal);
 app.route("/oth-path", inviteTokens);
 app.route("/oth-path", credits);
 app.route("/oth-path", payments);

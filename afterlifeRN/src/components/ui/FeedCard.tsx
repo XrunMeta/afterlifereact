@@ -12,18 +12,23 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../constants";
 import type { FeedItem } from "../../types/feed";
+import HashtagText from "../common/HashtagText";
 
 interface FeedCardProps {
   item: FeedItem;
   isActive: boolean;
   isLiked: boolean;
   isFollowed: boolean;
+
+  isOwn?: boolean;
   cardHeight: number;
   onToggleLike: () => void;
   onToggleFollow: () => void;
   onCallPress: () => void;
   onCommentPress?: () => void;
   onMorePress?: () => void;
+
+  onSharePress?: () => void;
 }
 
 const FeedCard: React.FC<FeedCardProps> = ({
@@ -31,12 +36,14 @@ const FeedCard: React.FC<FeedCardProps> = ({
   isActive,
   isLiked,
   isFollowed,
+  isOwn = false,
   cardHeight,
   onToggleLike,
   onToggleFollow,
   onCallPress,
   onCommentPress,
   onMorePress,
+  onSharePress,
 }) => {
   const { t } = useTranslation();
   return (
@@ -55,89 +62,91 @@ const FeedCard: React.FC<FeedCardProps> = ({
 
       {}
       {isActive && (
-        <View style={styles.bottomContent}>
+        <>
           {}
-          <View style={styles.profileRow}>
-            <View style={styles.profileInfo}>
-              <Text style={styles.authorName}>{item.author}</Text>
-              <Text style={styles.username}>{item.username}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={onToggleFollow}
-              style={[
-                styles.followButton,
-                isFollowed && styles.followButtonActive,
-              ]}
-              activeOpacity={0.7}
-            >
-              <Feather
-                name={isFollowed ? "user-check" : "user-plus"}
-                size={14}
-                color={isFollowed ? COLORS.white : COLORS.zinc900}
+          <View style={styles.rightActions}>
+            <TouchableOpacity onPress={onToggleLike} style={styles.actionBtn} activeOpacity={0.7}>
+              <Ionicons
+                name={isLiked ? "heart" : "heart-outline"}
+                size={32}
+                color={isLiked ? "#ef4444" : COLORS.white}
               />
-              <Text
-                style={[
-                  styles.followText,
-                  isFollowed && styles.followTextActive,
-                ]}
-              >
-                {isFollowed ? t("feed.following") : t("feed.follow")}
-              </Text>
+              <Text style={styles.actionLabel}>{item.likes}</Text>
             </TouchableOpacity>
-            {}
+            <TouchableOpacity onPress={onCommentPress} style={styles.actionBtn} activeOpacity={0.7}>
+              <Feather name="message-circle" size={30} color={COLORS.white} />
+              <Text style={styles.actionLabel}>{item.comments}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onSharePress} style={styles.actionBtn} activeOpacity={0.7}>
+              <Feather name="share-2" size={28} color={COLORS.white} />
+            </TouchableOpacity>
             {onMorePress && (
               <TouchableOpacity
                 onPress={onMorePress}
-                style={styles.moreButton}
+                style={styles.actionBtn}
                 activeOpacity={0.7}
                 accessibilityLabel="more-options"
               >
-                <Feather name="more-vertical" size={20} color={COLORS.white} />
+                <Feather name="more-vertical" size={28} color={COLORS.white} />
               </TouchableOpacity>
             )}
           </View>
 
           {}
-          <View style={styles.statsRow}>
-            <TouchableOpacity onPress={onToggleLike} style={styles.statItem}>
-              <Ionicons
-                name={isLiked ? "heart" : "heart-outline"}
-                size={16}
-                color={isLiked ? "#ef4444" : COLORS.white}
-              />
-              <Text style={styles.statText}>{item.likes}</Text>
-            </TouchableOpacity>
-            <View style={styles.statDivider} />
-            <TouchableOpacity onPress={onCommentPress} style={styles.statItem}>
-              <Feather name="message-circle" size={14} color={COLORS.white} />
-              <Text style={styles.statText}>{item.comments}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {}
-          <Text style={styles.description} numberOfLines={2}>
-            {item.description}
-          </Text>
-
-          {}
-          <View style={styles.tagsRow}>
-            {item.interests.map((interest) => (
-              <View key={interest} style={styles.tag}>
-                <Text style={styles.tagText}>#{interest}</Text>
+          <View style={styles.bottomContent}>
+            <View style={styles.profileRow}>
+              <View style={styles.profileInfo}>
+                <Text style={styles.authorName}>{item.author}</Text>
+                <Text style={styles.username}>{item.username}</Text>
               </View>
-            ))}
-          </View>
+              {!isOwn && (
+                <TouchableOpacity
+                  onPress={onToggleFollow}
+                  style={[
+                    styles.followButton,
+                    isFollowed && styles.followButtonActive,
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Feather
+                    name={isFollowed ? "user-check" : "user-plus"}
+                    size={14}
+                    color={isFollowed ? COLORS.white : COLORS.zinc900}
+                  />
+                  <Text
+                    style={[
+                      styles.followText,
+                      isFollowed && styles.followTextActive,
+                    ]}
+                  >
+                    {isFollowed ? t("feed.following") : t("feed.follow")}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
-          {}
-          <TouchableOpacity
-            onPress={onCallPress}
-            style={styles.callButton}
-            activeOpacity={0.8}
-          >
-            <Feather name="video" size={20} color={COLORS.zinc900} />
-            <Text style={styles.callButtonText}>{t("feed.callBtn")}</Text>
-          </TouchableOpacity>
-        </View>
+            {}
+            {item.description ? (
+              <HashtagText
+                style={styles.description}
+                tagStyle={{ color: "#a78bfa", fontWeight: "700" }}
+                numberOfLines={3}
+              >
+                {item.description}
+              </HashtagText>
+            ) : null}
+
+            {}
+            <TouchableOpacity
+              onPress={onCallPress}
+              style={styles.callButton}
+              activeOpacity={0.8}
+            >
+              <Feather name="video" size={20} color={COLORS.zinc900} />
+              <Text style={styles.callButtonText}>{t("feed.callBtn")}</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
     </View>
   );
@@ -194,15 +203,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  moreButton: {
-    marginLeft: 8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
   followButtonActive: {
     backgroundColor: "rgba(255,255,255,0.2)",
   },
@@ -214,54 +214,35 @@ const styles = StyleSheet.create({
   followTextActive: {
     color: COLORS.white,
   },
-  statsRow: {
-    flexDirection: "row",
+
+  rightActions: {
+    position: "absolute",
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
     alignItems: "center",
-    gap: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    borderRadius: RADIUS.full,
-    alignSelf: "flex-start",
-    marginBottom: 12,
+    gap: 24,
   },
-  statItem: {
-    flexDirection: "row",
+  actionBtn: {
     alignItems: "center",
-    gap: 6,
+    justifyContent: "center",
+    gap: 4,
   },
-  statText: {
-    fontSize: 13,
-    fontWeight: "bold",
+  actionLabel: {
+    fontSize: 12,
+    fontWeight: "600",
     color: COLORS.white,
+    textShadowColor: "rgba(0,0,0,0.5)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  statDivider: {
-    width: 1,
-    height: 16,
-    backgroundColor: "rgba(255,255,255,0.3)",
-  },
+
   description: {
     fontSize: 14,
     color: COLORS.white,
     lineHeight: 20,
     marginBottom: 12,
-  },
-  tagsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-  tag: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: RADIUS.full,
-    backgroundColor: "rgba(0,0,0,0.2)",
-  },
-  tagText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: COLORS.white,
   },
   callButton: {
     width: "100%",

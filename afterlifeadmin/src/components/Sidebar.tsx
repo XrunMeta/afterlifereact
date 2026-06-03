@@ -23,6 +23,8 @@ const menu: MenuGroup[] = [
       { path: "/oth-path", label: "Feeds" },
       { path: "/messages", label: "Messages" },
       { path: "/otp", label: "OTP" },
+      { path: "/reports", label: "Reports (Personas)" },
+      { path: "/oth-path-reports", label: "Reports (Users)" },
     ],
   },
   {
@@ -34,6 +36,8 @@ const menu: MenuGroup[] = [
       { path: "/oth-path", label: "Deletion" },
       { path: "/oth-path", label: "Cold Recovery" },
       { path: "/oth-path", label: "System" },
+      { path: "/oth-path", label: "L0 Persona" },
+      { path: "/oth-path", label: "페르소나 질문" },
     ],
   },
 ];

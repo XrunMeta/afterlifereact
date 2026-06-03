@@ -1,3 +1,4 @@
+import { showAlert } from "../../../stores/dialogStore";
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, Alert, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -25,7 +26,7 @@ async function pick(
     });
     if (!r.canceled && r.assets[0]) onChange({ imageFile: r.assets[0].uri });
   } catch {
-    Alert.alert(errorTitle, errorMsg);
+    showAlert(errorTitle, errorMsg);
   }
 }
 

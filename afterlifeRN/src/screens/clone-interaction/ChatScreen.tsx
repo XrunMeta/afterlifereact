@@ -18,6 +18,7 @@ import TextField from "../../components/ui/TextField";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { seedSource } from "../../api/source";
+import { postCloneChatEvent } from "../../api/clones";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import type { DomainMessage } from "../../types/domain";
 
@@ -29,6 +30,7 @@ export default function ChatScreen({ route, navigation }: Props) {
   const { cloneId } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const currentUserId = useAuthStore((s) => s.user?.id) ?? 1;
+  const accessToken = useAuthStore((s) => s.accessToken);
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
 
@@ -89,6 +91,17 @@ export default function ChatScreen({ route, navigation }: Props) {
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+
+    if (accessToken) {
+      console.log(`[Chat] POST /oth-path${cloneId}/chat-event`);
+      postCloneChatEvent(accessToken, cloneId)
+        .then((res) =>
+          console.log(`[Chat] chat-event ← ok scoreApplied=${res.scoreApplied ?? 0}°C (Daily Cap 15°C)`),
+        )
+        .catch((err) => console.warn("[Chat] postCloneChatEvent failed:", err));
+    } else {
+      console.warn(`[Chat] chat-event SKIP — no accessToken (cloneId=${cloneId})`);
+    }
 
     setTimeout(() => {
       const aiMsg: DomainMessage = {

@@ -10,17 +10,26 @@ import {
   FlatList,
   ActivityIndicator,
   Dimensions,
+  Modal,
+  Pressable,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
+import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
+import ReportReasonModal from "../../components/common/ReportReasonModal";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { showAlert } from "../../stores/dialogStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { useAuthStore } from "../../stores/authStore";
 import { useUserFollowStore } from "../../stores/userFollowStore";
 import {
   getUserProfile,
+  blockUser,
+  unblockUser,
+  reportUser,
   type UserProfile,
   type UserProfileClone,
 } from "../../api/users";
@@ -47,6 +56,10 @@ export default function UserProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toggling, setToggling] = useState(false);
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const screenWidth = Dimensions.get("window").width;
   const sidePad = SIZES.medium;
@@ -114,11 +127,29 @@ export default function UserProfileScreen() {
     });
   };
 
-  const goToClone = (cloneId: number) => {
-
-    navigation.navigate("Main", {
-      screen: "ClonesTab",
-      params: { screen: "CloneDetail", params: { cloneId } },
+  const goToClone = (c: UserProfileClone) => {
+    navigation.navigate("CloneFeed", {
+      feed: {
+        id: -c.id,
+        cloneId: c.id,
+        content: c.description ?? "",
+        mediaUrl: c.avatarUrl,
+        mediaType: null,
+        likesCount: c.likesCount ?? 0,
+        commentsCount: 0,
+        likedByMe: false,
+        createdAt: c.createdAt,
+        clone: {
+          id: c.id,
+          ownerId: userId, 
+          name: c.name,
+          username: c.username,
+          avatarUrl: c.avatarUrl,
+          cloneType: c.cloneType as never,
+          visibility: c.visibility,
+        },
+        interests: [],
+      },
     });
   };
 
@@ -134,7 +165,7 @@ export default function UserProfileScreen() {
     return (
       <TouchableOpacity
         activeOpacity={0.85}
-        onPress={() => goToClone(item.id)}
+        onPress={() => goToClone(item)}
         style={{ width: cellW, marginRight, marginBottom: GRID_GAP }}
       >
         <View style={[s.cellImageWrap, { width: cellW, height: cellW }]}>
@@ -158,6 +189,65 @@ export default function UserProfileScreen() {
 
   const headerName = profile?.user.name ?? profile?.user.email ?? "";
   const isMe = profile?.user.isMe ?? false;
+  const isBlocked = profile?.user.isBlocked ?? false;
+  const targetLabel = profile?.user.name ?? profile?.user.email ?? "이 사용자";
+
+  const handleToggleBlock = async () => {
+    setMoreOpen(false);
+    if (!accessToken || !profile) return;
+    try {
+      if (isBlocked) {
+        await unblockUser(accessToken, userId);
+        setProfile((p) => (p ? { ...p, user: { ...p.user, isBlocked: false } } : p));
+        showAlert("차단 해제", `${targetLabel} 님을 차단 해제했어요.`);
+      } else {
+        showAlert(
+          "차단하기",
+          `${targetLabel} 님을 차단할까요?\n팔로우/팔로워 관계도 해제돼요.`,
+          [
+            { text: "취소", style: "cancel" },
+            {
+              text: "차단하기",
+              style: "destructive",
+              onPress: async () => {
+                try {
+                  await blockUser(accessToken, userId);
+                  setProfile((p) =>
+                    p ? { ...p, user: { ...p.user, isBlocked: true, isFollowing: false } } : p,
+                  );
+                  setFollowing(userId, false);
+                  showAlert("차단 완료", `${targetLabel} 님을 차단했어요.`);
+                } catch (err) {
+                  console.warn("[UserProfile] block failed:", err);
+                  showAlert("실패", "차단에 실패했어요.");
+                }
+              },
+            },
+          ],
+        );
+      }
+    } catch (err) {
+      console.warn("[UserProfile] toggle block failed:", err);
+      showAlert("실패", "처리에 실패했어요.");
+    }
+  };
+
+  const handleSubmitReport = async (reason: string) => {
+    setReportOpen(false);
+    if (!accessToken) return;
+    try {
+      await reportUser(accessToken, userId, reason || undefined);
+
+      setProfile((p) =>
+        p ? { ...p, user: { ...p.user, isBlocked: true, isFollowing: false } } : p,
+      );
+      setFollowing(userId, false);
+      showAlert("신고 완료", "신고가 접수됐어요. 이 사용자는 차단됐어요.");
+    } catch (err) {
+      console.warn("[UserProfile] report failed:", err);
+      showAlert("실패", "신고에 실패했어요.");
+    }
+  };
 
   return (
     <SafeView backgroundColor={COLORS.white}>
@@ -165,6 +255,19 @@ export default function UserProfileScreen() {
         showBackButton
         onBackPress={() => navigation.goBack()}
         title={headerName}
+        rightAction={
+
+          !isMe && profile ? (
+            <TouchableOpacity
+              onPress={() => setMoreOpen(true)}
+              hitSlop={12}
+              style={{ padding: 8 }}
+              accessibilityLabel="더 보기"
+            >
+              <Feather name="more-vertical" size={22} color={COLORS.zinc900} />
+            </TouchableOpacity>
+          ) : null
+        }
       />
 
       {loading ? (
@@ -291,6 +394,50 @@ export default function UserProfileScreen() {
           }
         />
       )}
+
+      {}
+      <Modal visible={moreOpen} transparent animationType="fade">
+        <Pressable style={s.moreOverlay} onPress={() => setMoreOpen(false)}>
+          <SwipeDownSheet
+            onClose={() => setMoreOpen(false)}
+            style={[s.moreSheet, { paddingBottom: 24 + Math.max(insets.bottom, 0) }]}
+          >
+            <View style={s.moreSheetHandle} />
+            <Text style={s.moreTitle}>{targetLabel}</Text>
+            <TouchableOpacity
+              style={s.moreItem}
+              onPress={() => {
+                setMoreOpen(false);
+                setReportOpen(true);
+              }}
+            >
+              <Feather name="flag" size={20} color="#ef4444" />
+              <Text style={[s.moreItemText, { color: "#ef4444" }]}>신고하기</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.moreItem, { borderBottomWidth: 0 }]}
+              onPress={handleToggleBlock}
+            >
+              <Feather
+                name={isBlocked ? "unlock" : "slash"}
+                size={20}
+                color={COLORS.zinc900}
+              />
+              <Text style={s.moreItemText}>
+                {isBlocked ? "차단 해제" : "차단하기"}
+              </Text>
+            </TouchableOpacity>
+          </SwipeDownSheet>
+        </Pressable>
+      </Modal>
+
+      {}
+      <ReportReasonModal
+        visible={reportOpen}
+        targetName={targetLabel}
+        onCancel={() => setReportOpen(false)}
+        onConfirm={handleSubmitReport}
+      />
     </SafeView>
   );
 }
@@ -373,4 +520,41 @@ const s = StyleSheet.create({
 
   empty: { alignItems: "center", paddingTop: 40, gap: 8 },
   emptyText: { fontSize: 13, color: COLORS.zinc500 },
+
+  moreOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  moreSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+  },
+  moreSheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.zinc300,
+    alignSelf: "center",
+    marginVertical: 12,
+  },
+  moreTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: COLORS.zinc500,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  moreItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc100,
+  },
+  moreItemText: { fontSize: 15, fontWeight: "600", color: COLORS.zinc900 },
 });

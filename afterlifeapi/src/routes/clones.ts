@@ -13,15 +13,50 @@ import {
   resolveResponseViewerRole,
 } from "../lib/cloneAccess";
 import { writeCtx, writeShared } from "../lib/memoryStore";
+import {
+  bumpInteraction,
+  bumpInteractionThrottled,
+  addIntimacyScore,
+  INTIMACY_WEIGHTS,
+  CALL_MIN_SECONDS_FOR_SCORE,
+} from "../lib/interactions";
 import { externalTransferSplit } from "../lib/xrun";
-import { notifyCloneEvent } from "../lib/notify";
+import { notify, notifyCloneEvent } from "../lib/notify";
+import { loadPersonaQuestions } from "../lib/personaQuestions";
+import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 
 export const clones = new Hono<AppEnv>();
 
 clones.get("/health", (c) => c.json({ ok: true, module: "clones" }));
 
+clones.get("/check-username", async (c) => {
+  const url = new URL(c.req.url);
+  const u = (url.searchParams.get("u") ?? "").trim().toLowerCase();
+  if (!u) {
+    return c.json({ available: false, reason: "invalid" });
+  }
+  if (!/^[a-z0-9_]{3,30}$/.test(u)) {
+    return c.json({ available: false, reason: "invalid" });
+  }
+
+  const reserved = new Set([
+    "admin", "administrator", "root", "staff", "system", "support",
+    "help", "official", "afterlife", "api", "null", "undefined",
+    "anonymous", "mod", "moderator", "owner",
+  ]);
+  if (reserved.has(u)) {
+    return c.json({ available: false, reason: "reserved" });
+  }
+  const row = await c.env.DB
+    .prepare(`SELECT 1 AS x FROM clones WHERE username = ? LIMIT 1`)
+    .bind(u)
+    .first<{ x: number }>();
+  return c.json({ available: !row });
+});
+
 const cloneType = z.enum(["memlow", "friend", "mentor", "celeb"]);
-const visibility = z.enum(["public", "private", "followers"]);
+
+const visibility = z.enum(["public", "private", "followers", "selected"]);
 
 const USERNAME_BLACKLIST = new Set([
   "admin", "administrator", "root", "staff", "system", "support",
@@ -33,10 +68,46 @@ const MAX_MEMLOW_PROFILE_BYTES = 32 * 1024;
 const l1ProfileSchema = z.object({
   attrs: z.record(z.string(), z.string()),
   notes: z.string().max(4000).default(''),
+  personality_core: z.string().max(500).optional(),
+  tone: z.string().max(500).optional(),
 });
 
+const personaWizardSchema = z.object({
+  age: z.string().max(20).optional(),
+  gender: z.string().max(20).optional(),
+  mbti: z.string().max(10).optional(),
+  personaTypes: z.array(z.string().max(20)).max(8).optional(),
+}).optional();
+
+function buildL1FromWizard(
+  base: { attrs?: Record<string, string>; notes?: string; personality_core?: string; tone?: string } | undefined,
+  persona: { age?: string; gender?: string; mbti?: string; personaTypes?: string[] } | undefined,
+): Record<string, unknown> | null {
+  const hasBase = !!base;
+  const hasPersona = !!persona && Object.values(persona).some(
+    (v) => v !== undefined && (Array.isArray(v) ? v.length > 0 : true),
+  );
+  if (!hasBase && !hasPersona) return null;
+
+  const attrs: Record<string, string> = { ...(base?.attrs ?? {}) };
+  if (persona?.age) attrs.age = persona.age;
+  if (persona?.gender) attrs.gender = persona.gender;
+  if (persona?.mbti) attrs.mbti = persona.mbti;
+
+  const l1: Record<string, unknown> = { attrs, notes: base?.notes ?? "" };
+
+  if (base?.personality_core) l1.personality_core = base.personality_core;
+  else {
+    const traits = persona?.personaTypes ?? [];
+    if (traits.length) l1.personality_core = `${traits.join(", ")} 성향`;
+  }
+  if (base?.tone) l1.tone = base.tone;
+  return l1;
+}
+
 const createSchema = z.object({
-  clone_type: cloneType,
+
+  clone_type: cloneType.default("friend"),
   name: z.string().min(1).max(80),
   username: z
     .string()
@@ -55,7 +126,19 @@ const createSchema = z.object({
 
   l1_profile: l1ProfileSchema.optional(),
 
+  persona: personaWizardSchema,
+
   pin: z.string().regex(/^\d{6}$/).optional(),
+
+  personaAnswers: z.record(
+    z.string().regex(/^[a-zA-Z0-9_]{1,50}$/),
+    z.string().max(500),
+  ).optional(),
+
+  relation: z.string().max(40).optional(),
+
+  idle_video_job_id: z.string().uuid().optional(),
+  voice_clone_job_id: z.string().uuid().optional(),
 });
 
 const PERSONA_PAID_PRICE_XRUN = 100;
@@ -92,24 +175,14 @@ clones.post(
       .bind(userId)
       .first<{ n: number }>();
     const usedCount = existing?.n ?? 0;
-    if (usedCount >= 1) {
 
-      const sameType = await db
-        .prepare(
-          `SELECT COUNT(*) AS n FROM clones
-            WHERE owner_id = ?
-              AND clone_type = ?
-              AND deletion_state = 'active'
-              AND deleted_at IS NULL`,
-        )
-        .bind(userId, body.clone_type)
-        .first<{ n: number }>();
-      if ((sameType?.n ?? 0) >= 1) {
-        throw new APIError(
-          "CONFLICT",
-          "이미 같은 타입의 페르소나가 있습니다. 다른 타입을 선택해주세요.",
-        );
-      }
+    if (usedCount >= 100) {
+      throw new APIError(
+        "QUOTA_EXCEEDED",
+        "최대 페르소나 개수(100개)에 도달했어요.",
+      );
+    }
+    if (usedCount >= 1) {
 
       if (!body.pin) {
         throw new APIError("PAYMENT_REQUIRED", "Persona creation requires payment.", {
@@ -118,38 +191,77 @@ clones.post(
         });
       }
 
-      const companyAddr = c.env.COMPANY_CHARGE_WALLET;
-      if (!companyAddr) {
-        throw new APIError("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
-      }
-      const senderRow = await db
-        .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-        .bind(userId)
-        .first<{ xrun_member_id: number | null }>();
-      if (!senderRow?.xrun_member_id) {
-        throw new APIError("CONFLICT", "xrun account not linked.");
-      }
-      const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
-      const { externalTransferSplit } = await import("../lib/xrun");
-      const payRes = await externalTransferSplit(c.env, {
-        fromMember: senderRow.xrun_member_id,
-        recipients: [{ toAddress: companyAddr, amount: String(PERSONA_PAID_PRICE_XRUN) }],
-        currency,
-        pin: body.pin,
-        source: "afterlife.persona-create",
-      });
-      if (!payRes.ok) {
-        if (payRes.code === 401 || payRes.code === 403) {
-          throw new APIError("UNAUTHENTICATED", "PIN verification failed.");
+      const bypassPin = (c.env as unknown as { DEV_PAYMENT_BYPASS_PIN?: string }).DEV_PAYMENT_BYPASS_PIN;
+      if (!bypassPin || body.pin !== bypassPin) {
+
+        const companyAddr = c.env.COMPANY_CHARGE_WALLET;
+        if (!companyAddr) {
+          throw new APIError("INTERNAL_ERROR", "Server missing COMPANY_CHARGE_WALLET configuration.");
         }
-        if (payRes.code === 402) {
-          throw new APIError("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.");
+        const senderRow = await db
+          .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
+          .bind(userId)
+          .first<{ xrun_member_id: number | null }>();
+        if (!senderRow?.xrun_member_id) {
+          throw new APIError("CONFLICT", "xrun 계정이 연동되어 있지 않아요.");
         }
-        throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
+        const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
+        const { externalTransferSplit } = await import("../lib/xrun");
+        const payRes = await externalTransferSplit(c.env, {
+          fromMember: senderRow.xrun_member_id,
+          recipients: [{ toAddress: companyAddr, amount: String(PERSONA_PAID_PRICE_XRUN) }],
+          currency,
+          pin: body.pin,
+          source: "afterlife.persona-create",
+        });
+        if (!payRes.ok) {
+          if (payRes.code === 401 || payRes.code === 403) {
+            throw new APIError("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+          }
+          if (payRes.code === 402) {
+            throw new APIError("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
+          }
+          throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
+        }
+      } else {
+
+        console.warn("[DEV_BYPASS] persona payment skipped via bypass PIN, userId=", userId);
       }
     }
 
+    if (body.voice_preset_id) {
+      const vp = await db
+        .prepare(`SELECT id FROM voice_presets WHERE id = ? AND is_active = 1`)
+        .bind(body.voice_preset_id)
+        .first<{ id: number }>();
+      if (!vp) throw new APIError("VALIDATION_FAILED", "Invalid or inactive voice_preset_id.");
+    }
+
     const voiceType = body.voice_preset_id ? "preset" : "text_only";
+
+    let l1Base = body.l1_profile;
+    if (body.personaAnswers && Object.keys(body.personaAnswers).length) {
+      const questions = await loadPersonaQuestions(c.env.DB);
+      const qByKey = new Map(questions.map((q) => [q.key, q]));
+      const base = l1Base ?? { attrs: {}, notes: "" };
+      const attrs: Record<string, string> = { ...(base.attrs ?? {}) };
+      const core: Record<string, unknown> = { ...base, attrs };
+      for (const [key, value] of Object.entries(body.personaAnswers)) {
+        if (!value) continue;
+        const q = qByKey.get(key);
+        if (!q) continue; 
+
+        if (q.targetField && q.targetField !== "attrs" && q.targetField !== "__proto__") {
+          core[q.targetField] = value;
+        } else if (!q.targetField) {
+          attrs[key] = value;
+        }
+      }
+      core.attrs = attrs;
+      l1Base = core as typeof l1Base;
+    }
+
+    const l1Profile = buildL1FromWizard(l1Base, body.persona);
 
     let inserted:
       | {
@@ -168,8 +280,8 @@ clones.post(
           `INSERT INTO clones
              (owner_id, name, username, description, clone_type, category, visibility,
               avatar_url, cover_image_url, voice_type, voice_preset_id,
-              l1_profile, primary_editor_user_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              l1_profile, primary_editor_user_id, relation)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            RETURNING id, name, username, clone_type, visibility, created_at`,
         )
         .bind(
@@ -184,25 +296,20 @@ clones.post(
           body.cover_image_url ?? null,
           voiceType,
           body.voice_preset_id ?? null,
-          body.l1_profile ? JSON.stringify(body.l1_profile) : null,
+          l1Profile !== null ? JSON.stringify(l1Profile) : null,
           userId,
+          body.relation ?? null,
         )
         .first();
     } catch (err) {
       const msg = (err as Error).message ?? "";
       if (/UNIQUE constraint failed: clones\.username/i.test(msg)) {
-        throw new APIError("CONFLICT", "Username already taken.");
+        throw new APIError("CONFLICT", "중복된 아이디입니다. 다른 아이디를 사용해주세요.");
       }
 
-      if (/UNIQUE constraint failed: clones\.owner_id, clones\.clone_type/i.test(msg)) {
-        throw new APIError(
-          "QUOTA_EXCEEDED",
-          "Free quota exhausted. Paid creation not yet available (beta).",
-        );
-      }
       throw err;
     }
-    if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create clone.");
+    if (!inserted) throw new APIError("INTERNAL_ERROR", "페르소나 생성에 실패했어요.");
 
     const cloneId = inserted.id;
 
@@ -238,8 +345,9 @@ clones.post(
           .bind(cloneId),
       );
 
-      if (body.l1_profile?.attrs) {
-        for (const [key, value] of Object.entries(body.l1_profile.attrs)) {
+      const l1Attrs = l1Profile?.attrs as Record<string, string> | undefined;
+      if (l1Attrs) {
+        for (const [key, value] of Object.entries(l1Attrs)) {
           if (!value) continue;
           stmts.push(
             db
@@ -256,6 +364,32 @@ clones.post(
 
       await db.prepare(`DELETE FROM clones WHERE id = ?`).bind(cloneId).run();
       throw err;
+    }
+
+    for (const [jobId, col] of [
+      [body.idle_video_job_id, "idle_video_url"],
+      [body.voice_clone_job_id, "voice_se_url"],
+    ] as [string | undefined, string][]) {
+      if (!jobId) continue;
+      const job = await getJob(c.env.DB, jobId);
+      if (!job || job.user_id !== userId) continue; 
+      if (job.status === "done" && job.out_url) {
+
+        await c.env.DB.prepare(`UPDATE clones SET ${col} = ? WHERE id = ?`)
+          .bind(job.out_url, cloneId)
+          .run();
+      } else {
+
+        await linkClone(c.env.DB, jobId, cloneId);
+        const refreshed = await getJob(c.env.DB, jobId);
+        if (refreshed?.status === "done" && refreshed.out_url) {
+
+          await c.env.DB.prepare(`UPDATE clones SET ${col} = ? WHERE id = ?`)
+            .bind(refreshed.out_url, cloneId)
+            .run();
+        }
+
+      }
     }
 
     if (body.clone_type === "memlow") {
@@ -279,6 +413,39 @@ clones.post(
       action: "clone.create",
       details: { cloneId, cloneType: body.clone_type },
     });
+
+    if (body.visibility === "public" && body.clone_type !== "memlow") {
+      try {
+        const actor = await db
+          .prepare(`SELECT name, email FROM users WHERE id = ?`)
+          .bind(userId)
+          .first<{ name: string | null; email: string | null }>();
+        const actorName =
+          actor?.name || actor?.email?.split("@")[0] || "누군가";
+        const followers = await db
+          .prepare(`SELECT follower_id FROM user_follows WHERE followee_id = ?`)
+          .bind(userId)
+          .all<{ follower_id: number }>();
+
+        const seen = new Set<number>();
+        for (const row of followers.results ?? []) {
+          if (row.follower_id === userId) continue;
+          if (seen.has(row.follower_id)) continue;
+          seen.add(row.follower_id);
+          await notify(c.env, {
+            userId: row.follower_id,
+            type: "followee_new_clone",
+            title: "🌟 새 페르소나",
+            body: `${actorName} 님이 새 페르소나 '${body.name}' 을(를) 만들었어요`,
+            url: `afterlife://clone/${cloneId}`,
+            data: { cloneId, ownerId: userId },
+            skipEmail: true,
+          });
+        }
+      } catch (err) {
+        console.warn("[clone.create] followee_new_clone notify failed:", err);
+      }
+    }
 
     return c.json(
       {
@@ -338,8 +505,27 @@ clones.get("/search", async (c) => {
   const params = q.data;
   const db = c.env.DB;
 
-  const where: string[] = [`c.deleted_at IS NULL`, `c.visibility = 'public'`];
+  const viewerId = await resolveOptionalUser(c);
+
+  const where: string[] = [`c.deleted_at IS NULL`];
   const binds: unknown[] = [];
+  if (viewerId) {
+    where.push(
+      `(
+         c.visibility = 'public'
+         OR c.owner_id = ?
+         OR (c.visibility = 'followers' AND
+             EXISTS (SELECT 1 FROM clone_follows cf
+                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
+         OR (c.visibility = 'selected' AND
+             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+       )`,
+    );
+    binds.push(viewerId, viewerId, viewerId);
+  } else {
+    where.push(`c.visibility = 'public'`);
+  }
   if (params.q) {
     where.push(`(c.name LIKE ? OR c.username LIKE ?)`);
     const like = `%${params.q}%`;
@@ -431,22 +617,211 @@ clones.get("/search", async (c) => {
   });
 });
 
+clones.get("/voices", requireAuth, async (c) => {
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT id, name, gender, age_range, description, sort_order
+       FROM voice_presets WHERE is_active = 1 ORDER BY sort_order ASC, id ASC`,
+    )
+    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number }>();
+  const origin = new URL(c.req.url).origin;
+  const voices = (rows.results ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    gender: r.gender,
+    ageRange: r.age_range,
+    description: r.description,
+    sortOrder: r.sort_order,
+    sampleUrl: `${origin}/oth-path${r.id}/sample`,
+  }));
+  return c.json({ voices });
+});
+
+clones.get("/voices/:id/sample", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isFinite(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid voice id.");
+  const row = await c.env.DB
+    .prepare(`SELECT r2_key FROM voice_presets WHERE id = ? AND is_active = 1`)
+    .bind(id)
+    .first<{ r2_key: string | null }>();
+  if (!row?.r2_key) throw new APIError("NOT_FOUND", "Voice sample not found.");
+  const obj = await c.env.R2_ARCHIVE.get(row.r2_key);
+  if (!obj) throw new APIError("NOT_FOUND", "Object missing in storage.");
+  return new Response(obj.body, {
+    headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=86400" },
+  });
+});
+
+clones.get("/system", requireAuth, async (c) => {
+  const rows = await c.env.DB.prepare(
+    "SELECT id, username, name, avatar_url, is_system FROM clones WHERE is_system = 1 AND deleted_at IS NULL",
+  ).all<{ id: number; username: string; name: string; avatar_url: string | null; is_system: number }>();
+  return c.json({ items: rows.results ?? [] });
+});
+
+clones.get("/persona-questions", requireAuth, async (c) => {
+  const questions = await loadPersonaQuestions(c.env.DB);
+  return c.json({ questions });
+});
+
+const suggestProfileSchema = z.record(
+  z.string().max(50),
+  z.union([z.string().max(200), z.array(z.string().max(50)).max(20)]),
+);
+
+clones.post("/persona-suggest", requireAuth, async (c) => {
+
+  if (!c.env.ORCHESTRATOR_URL || !c.env.ORCH_SECRET) return c.json({ suggestions: {} });
+  const raw = await c.req.json().catch(() => ({}));
+  const parsed = suggestProfileSchema.safeParse(raw);
+  const profile = parsed.success ? parsed.data : {};
+
+  if (Object.keys(profile).length > 20) return c.json({ suggestions: {} });
+
+  const hasContent = Object.values(profile).some((v) =>
+    Array.isArray(v) ? v.length > 0 : v !== "",
+  );
+  if (!hasContent) return c.json({ suggestions: {} });
+  const questions = await loadPersonaQuestions(c.env.DB);
+  const gemmaQuestions = questions
+    .filter((q) => q.type === "gemma_choice")
+    .map((q) => ({ key: q.key, label: q.label, options_include: q.options_include }));
+  if (gemmaQuestions.length === 0) return c.json({ suggestions: {} });
+  try {
+
+    const r = await fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile, questions: gemmaQuestions }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return c.json({ suggestions: {} });
+    const data = await r.json<{ suggestions?: Record<string, string[]> }>();
+    return c.json({ suggestions: data.suggestions ?? {} });
+  } catch {
+
+    return c.json({ suggestions: {} });
+  }
+});
+
+clones.post("/intro-suggest", requireAuth, async (c) => {
+
+  if (!c.env.ORCHESTRATOR_URL || !c.env.ORCH_SECRET) return c.json({ intro: "" });
+  const raw = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+
+  const profile = {
+    name: typeof raw.name === "string" ? raw.name.slice(0, 80) : undefined,
+    relation: typeof raw.relation === "string" ? raw.relation.slice(0, 40) : undefined,
+    personaAnswers:
+      raw.personaAnswers && typeof raw.personaAnswers === "object"
+        ? Object.fromEntries(
+            Object.entries(raw.personaAnswers as Record<string, unknown>)
+              .filter(([k, v]) => typeof k === "string" && typeof v === "string")
+              .slice(0, 20)
+              .map(([k, v]) => [k.slice(0, 50), (v as string).slice(0, 500)]),
+          )
+        : {},
+  };
+  try {
+    const r = await fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${c.env.ORCH_SECRET}` },
+      body: JSON.stringify({ profile }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) return c.json({ intro: "" });
+    const data = await r.json<{ intro?: string }>();
+    return c.json({ intro: typeof data.intro === "string" ? data.intro : "" });
+  } catch {
+
+    return c.json({ intro: "" });
+  }
+});
+
+clones.post("/asset-job", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const raw = await c.req.json<{ kind?: string; src_file_id?: number }>().catch(() => null);
+  const kind = raw?.kind;
+  const srcFileId = raw?.src_file_id;
+  if (kind !== "idle_video" && kind !== "voice_clone") {
+    throw new APIError("VALIDATION_FAILED", "Invalid kind. Must be idle_video or voice_clone.");
+  }
+  if (!srcFileId || !Number.isInteger(srcFileId)) {
+    throw new APIError("VALIDATION_FAILED", "src_file_id required.");
+  }
+  const file = await c.env.DB
+    .prepare(`SELECT id, r2_key, owner_user_id FROM files WHERE id = ?`)
+    .bind(srcFileId)
+    .first<{ id: number; r2_key: string; owner_user_id: number }>();
+  if (!file || file.owner_user_id !== userId) {
+    throw new APIError("NOT_FOUND", "Source file not found.");
+  }
+  const jobId = crypto.randomUUID();
+
+  const callbackToken = await createJob(c.env.DB, jobId, userId, kind, srcFileId);
+
+  if (c.env.ORCHESTRATOR_URL && c.env.ORCH_SECRET) {
+    const origin = new URL(c.req.url).origin;
+    const srcUrl = `${origin}/oth-path${file.id}`;
+
+    c.executionCtx.waitUntil(
+      fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${c.env.ORCH_SECRET}`,
+        },
+        body: JSON.stringify({ job_id: jobId, kind, src_url: srcUrl, callback_token: callbackToken }),
+        signal: AbortSignal.timeout(8000),
+      })
+
+        .then((res) => setStatus(c.env.DB, jobId, res.ok ? "running" : "failed"))
+        .catch(() => setStatus(c.env.DB, jobId, "failed")),
+    );
+  }
+  return c.json({ job_id: jobId, status: "pending" }, 201);
+});
+
+clones.get("/asset-job/:id", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const job = await getJob(c.env.DB, c.req.param("id"));
+  if (!job || job.user_id !== userId) throw new APIError("NOT_FOUND", "Job not found.");
+  return c.json({
+    job_id: job.id,
+    kind: job.kind,
+    status: job.status,
+    out_url: job.out_url,
+    error: job.error,
+  });
+});
+
 clones.get("/:id", async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   const userId = await resolveOptionalUser(c);
   const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
 
   if (clone.visibility === "private" && viewerRole !== "owner" && viewerRole !== "coowner") {
-    throw new APIError("FORBIDDEN", "Private clone.");
+    throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
   }
   if (clone.visibility === "followers" && viewerRole === null) {
-    throw new APIError("FORBIDDEN", "Followers-only clone.");
+    throw new APIError("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
+  }
+  if (clone.visibility === "selected") {
+    const isAllowed = viewerRole === "owner" || viewerRole === "coowner"
+      ? true
+      : userId != null && await c.env.DB
+          .prepare(
+            `SELECT 1 FROM clone_allowed_viewers WHERE clone_id = ? AND user_id = ? LIMIT 1`,
+          )
+          .bind(cloneId, userId)
+          .first();
+    if (!isAllowed) throw new APIError("FORBIDDEN", "이 페르소나에 접근할 권한이 없어요.");
   }
 
   const interests = (
@@ -455,6 +830,14 @@ clones.get("/:id", async (c) => {
       .bind(cloneId)
       .all<{ interest: string }>()
   ).results.map((r) => r.interest);
+
+  const allowedViewers =
+    viewerRole === "owner" || viewerRole === "coowner"
+      ? (await c.env.DB
+          .prepare(`SELECT user_id AS userId FROM clone_allowed_viewers WHERE clone_id = ?`)
+          .bind(cloneId)
+          .all<{ userId: number }>()).results.map((r) => r.userId)
+      : undefined;
 
   const aggRow = await c.env.DB
     .prepare(
@@ -467,6 +850,20 @@ clones.get("/:id", async (c) => {
     )
     .bind(cloneId, cloneId)
     .first<{ likesCount: number; commentsCount: number }>();
+
+  let likedByMe = false;
+  if (userId) {
+    const r = await c.env.DB
+      .prepare(
+        `SELECT 1 AS x FROM feed_likes fl
+           JOIN feeds f ON f.id = fl.feed_id
+          WHERE fl.user_id = ? AND f.clone_id = ?
+          LIMIT 1`,
+      )
+      .bind(userId, cloneId)
+      .first<{ x: number }>();
+    likedByMe = !!r;
+  }
 
   return c.json({
     clone: {
@@ -484,6 +881,7 @@ clones.get("/:id", async (c) => {
       voicePresetId: clone.voice_preset_id,
       trainingStatus: clone.training_status,
       interests,
+      ...(allowedViewers !== undefined ? { allowedViewers } : {}),
       stats: {
         followers: clone.followers_count,
         messages: clone.messages_count,
@@ -491,6 +889,7 @@ clones.get("/:id", async (c) => {
         likes: aggRow?.likesCount ?? 0,
         comments: aggRow?.commentsCount ?? 0,
       },
+      likedByMe,
       createdAt: clone.created_at,
       viewerRole,
     },
@@ -507,6 +906,8 @@ const patchSchema = z
     voice_preset_id: z.number().int().positive().nullable().optional(),
     l1_profile: l1ProfileSchema.optional(),
     interests: z.array(z.string().min(1).max(40)).max(20).optional(),
+
+    allowed_viewers: z.array(z.number().int().positive()).max(200).optional(),
   })
   .strict()
   .refine((o) => Object.keys(o).length > 0, {
@@ -516,18 +917,18 @@ const patchSchema = z
 clones.patch("/:id", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const body = await parseJson(c, patchSchema);
   const userId = c.get("userId")!;
   const db = c.env.DB;
 
   const clone = await loadCloneById(db, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   const isOwner =
     clone.owner_id === userId ||
     (await hasAcceptedShare(db, cloneId, userId)) === "owner";
-  if (!isOwner) throw new APIError("FORBIDDEN", "Owner role required.");
+  if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 변경할 수 있어요.");
 
   if (body.l1_profile !== undefined) {
     const row = await db
@@ -535,7 +936,7 @@ clones.patch("/:id", requireAuth, async (c) => {
       .bind(cloneId)
       .first<{ primary_editor_user_id: number | null }>();
     if (row?.primary_editor_user_id !== userId) {
-      throw new APIError("FORBIDDEN", "Only the primary editor may edit L1.");
+      throw new APIError("FORBIDDEN", "주 편집자만 페르소나 정보를 수정할 수 있어요.");
     }
   }
 
@@ -568,6 +969,14 @@ clones.patch("/:id", requireAuth, async (c) => {
     updatedFields.push("visibility");
   }
   if (body.voice_preset_id !== undefined) {
+
+    if (body.voice_preset_id !== null) {
+      const vp = await db
+        .prepare(`SELECT id FROM voice_presets WHERE id = ? AND is_active = 1`)
+        .bind(body.voice_preset_id)
+        .first<{ id: number }>();
+      if (!vp) throw new APIError("VALIDATION_FAILED", "Invalid or inactive voice_preset_id.");
+    }
     sets.push(`voice_preset_id = ?`, `voice_type = ?`);
     binds.push(body.voice_preset_id);
     binds.push(body.voice_preset_id === null ? "text_only" : "preset");
@@ -625,6 +1034,26 @@ clones.patch("/:id", requireAuth, async (c) => {
     updatedFields.push("interests");
   }
 
+  if (body.allowed_viewers !== undefined) {
+    statements.push(
+      db.prepare(`DELETE FROM clone_allowed_viewers WHERE clone_id = ?`).bind(cloneId),
+    );
+    const seenU = new Set<number>();
+    for (const uid of body.allowed_viewers) {
+      if (uid === userId) continue; 
+      if (seenU.has(uid)) continue;
+      seenU.add(uid);
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO clone_allowed_viewers (clone_id, user_id) VALUES (?, ?)`,
+          )
+          .bind(cloneId, uid),
+      );
+    }
+    updatedFields.push("allowed_viewers");
+  }
+
   await db.batch(statements);
 
   await logActivity(c, {
@@ -638,20 +1067,20 @@ clones.patch("/:id", requireAuth, async (c) => {
 clones.post("/:id/follow", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
   const db = c.env.DB;
 
   const clone = await loadCloneById(db, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (clone.visibility === "private") {
     const role =
       clone.owner_id === userId
         ? "owner"
         : await hasAcceptedShare(db, cloneId, userId);
-    if (!role) throw new APIError("FORBIDDEN", "Cannot follow private clone.");
+    if (!role) throw new APIError("FORBIDDEN", "비공개 페르소나는 팔로우할 수 없어요.");
   }
 
   const result = await db
@@ -670,7 +1099,7 @@ clones.post("/:id/follow", requireAuth, async (c) => {
 clones.delete("/:id/follow", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
   await c.env.DB
@@ -683,7 +1112,7 @@ clones.delete("/:id/follow", requireAuth, async (c) => {
 clones.get("/:id/followers", async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
@@ -728,7 +1157,7 @@ clones.get("/:id/followers", async (c) => {
 clones.get("/:id/like-status", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
   const row = await c.env.DB
@@ -753,7 +1182,7 @@ const giftSchema = z.object({
 clones.post("/:id/gift", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const senderId = c.get("userId")!;
   const body = await parseJson(c, giftSchema);
@@ -771,19 +1200,19 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     .prepare(`SELECT id, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(senderId)
     .first<{ id: number; xrun_member_id: number | null }>();
-  if (!sender) throw new APIError("UNAUTHENTICATED", "User not found.");
+  if (!sender) throw new APIError("UNAUTHENTICATED", "사용자를 찾을 수 없어요.");
   if (!sender.xrun_member_id) {
-    throw new APIError("CONFLICT", "xrun account not linked to your afterlife user.");
+    throw new APIError("CONFLICT", "내 계정에 xrun 이 연동되어 있지 않아요.");
   }
 
   const clone = await c.env.DB
     .prepare(`SELECT id, owner_id FROM clones WHERE id = ? AND deleted_at IS NULL`)
     .bind(cloneId)
     .first<{ id: number; owner_id: number }>();
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   if (clone.owner_id === senderId) {
-    throw new APIError("VALIDATION_FAILED", "Cannot send a gift to your own persona.");
+    throw new APIError("VALIDATION_FAILED", "자기 자신의 페르소나에는 선물할 수 없어요.");
   }
 
   const owner = await c.env.DB
@@ -793,16 +1222,15 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     .bind(clone.owner_id)
     .first<{ id: number; xrun_wallet: string | null; xrun_member_id: number | null }>();
 
-  if (!owner?.xrun_member_id) {
-    throw new APIError(
-      "CONFLICT",
-      "Persona owner has no xrun account — cannot route 40% share.",
-    );
-  }
+  const ownerLinked = !!owner?.xrun_member_id;
 
   const total = body.amount;
-  const companyAmount = Math.round(total * 0.6 * 1_000_000) / 1_000_000;
-  const ownerAmount = Math.round(total * 0.4 * 1_000_000) / 1_000_000;
+  const companyAmount = ownerLinked
+    ? Math.round(total * 0.6 * 1_000_000) / 1_000_000
+    : total;
+  const ownerAmount = ownerLinked
+    ? Math.round(total * 0.4 * 1_000_000) / 1_000_000
+    : 0;
 
   const insertRes = await c.env.DB
     .prepare(
@@ -822,17 +1250,21 @@ clones.post("/:id/gift", requireAuth, async (c) => {
       companyAmount,
       ownerAmount,
       companyAddr,
-      owner.xrun_wallet, 
+
+      owner?.xrun_wallet ?? null,
     )
     .run();
   const logId = Number(insertRes.meta.last_row_id);
 
+  const recipients = ownerLinked
+    ? [
+        { toAddress: companyAddr, amount: String(companyAmount) },
+        { toMember: owner!.xrun_member_id!, amount: String(ownerAmount) },
+      ]
+    : [{ toAddress: companyAddr, amount: String(companyAmount) }];
   const xrunRes = await externalTransferSplit(c.env, {
     fromMember: sender.xrun_member_id,
-    recipients: [
-      { toAddress: companyAddr, amount: String(companyAmount) },
-      { toMember: owner.xrun_member_id, amount: String(ownerAmount) },
-    ],
+    recipients,
     currency,
     pin: body.pin,
     source: "afterlife.gift",
@@ -929,7 +1361,7 @@ clones.post("/:id/gift", requireAuth, async (c) => {
 clones.post("/:id/block", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
 
@@ -947,7 +1379,7 @@ clones.post("/:id/block", requireAuth, async (c) => {
 clones.delete("/:id/block", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   const userId = c.get("userId")!;
   await c.env.DB
@@ -955,4 +1387,94 @@ clones.delete("/:id/block", requireAuth, async (c) => {
     .bind(userId, cloneId)
     .run();
   return c.json({ ok: true, blocked: false });
+});
+
+const reportSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+clones.post("/:id/report", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  const body = await parseJson(c, reportSchema).catch(() => ({ reason: undefined }));
+
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_reports (user_id, clone_id, reason)
+         VALUES (?, ?, ?)`,
+    ).bind(userId, cloneId, body.reason ?? null),
+    c.env.DB.prepare(
+      `INSERT OR IGNORE INTO clone_blocks (user_id, clone_id) VALUES (?, ?)`,
+    ).bind(userId, cloneId),
+    c.env.DB.prepare(
+      `DELETE FROM clone_follows WHERE user_id = ? AND clone_id = ?`,
+    ).bind(userId, cloneId),
+  ]);
+  await logActivity(c, {
+    userId,
+    action: "clone.report",
+    details: { cloneId, reason: body.reason ?? null },
+  });
+  return c.json({ ok: true, reported: true, blocked: true });
+});
+
+const callEventSchema = z.object({
+  durationSeconds: z.number().int().min(0).max(86400).optional(),
+});
+clones.post("/:id/call-event", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  const body = await parseJson(c, callEventSchema).catch(() => ({ durationSeconds: undefined }));
+  await bumpInteraction(c.env, userId, cloneId, "call");
+
+  const duration = body.durationSeconds ?? 0;
+  let scoreApplied = 0;
+  if (duration >= CALL_MIN_SECONDS_FOR_SCORE) {
+    const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.call, "call");
+    scoreApplied = r.applied;
+  }
+  await logActivity(c, {
+    userId,
+    action: "clone.call_event",
+    details: { cloneId, durationSeconds: duration, scoreApplied },
+  });
+  return c.json({ ok: true, scoreApplied });
+});
+
+clones.post("/:id/learn-event", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+
+  await bumpInteraction(c.env, userId, cloneId, "learn");
+
+  const cooldownKey = `intimacy_cd:learn:${userId}:${cloneId}`;
+  const onCooldown = !!(await c.env.KV_RATE.get(cooldownKey));
+  let scoreApplied = 0;
+  if (!onCooldown) {
+    const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.learn, "learn");
+    scoreApplied = r.applied;
+    if (scoreApplied > 0) {
+      await c.env.KV_RATE.put(cooldownKey, "1", { expirationTtl: 20 * 60 });
+    }
+  }
+  return c.json({ ok: true, bumped: true, scoreApplied });
+});
+
+clones.post("/:id/chat-event", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  await bumpInteraction(c.env, userId, cloneId, "chat");
+  const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.chat, "chat");
+  return c.json({ ok: true, scoreApplied: r.applied });
 });

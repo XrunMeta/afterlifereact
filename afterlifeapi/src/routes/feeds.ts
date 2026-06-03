@@ -6,7 +6,7 @@ import { APIError } from "../lib/errors";
 import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { notifyCloneEvent } from "../lib/notify";
-import { bumpInteraction } from "../lib/interactions";
+import { bumpInteraction, addPerFeedIntimacyScore, INTIMACY_WEIGHTS } from "../lib/interactions";
 import {
   hasAcceptedShare,
   isFollower,
@@ -21,14 +21,14 @@ export const feedsDiscover = new Hono<AppEnv>();
 function parseCloneId(c: { req: { param: (k: string) => string } }): number {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
   }
   return id;
 }
 function parseFeedId(c: { req: { param: (k: string) => string } }): number {
   const fid = Number(c.req.param("feedId"));
   if (!Number.isInteger(fid) || fid <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   return fid;
 }
@@ -42,7 +42,7 @@ async function assertWriter(
   if (clone.owner_id === userId) return;
   const role = await hasAcceptedShare(db, cloneId, userId);
   if (role !== "owner") {
-    throw new APIError("FORBIDDEN", "Owner/coowner only.");
+    throw new APIError("FORBIDDEN", "소유자만 가능해요.");
   }
 }
 
@@ -59,7 +59,7 @@ const createSchema = z
 cloneFeeds.get("/:id/feeds", async (c) => {
   const cloneId = parseCloneId(c);
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
 
   const userId = await resolveOptionalUser(c);
   let role: "owner" | "coowner" | "follower" | null = null;
@@ -73,10 +73,10 @@ cloneFeeds.get("/:id/feeds", async (c) => {
   }
 
   if (clone.visibility === "private" && role !== "owner" && role !== "coowner") {
-    throw new APIError("FORBIDDEN", "Private clone.");
+    throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
   }
   if (clone.visibility === "followers" && !role) {
-    throw new APIError("FORBIDDEN", "Followers-only clone.");
+    throw new APIError("FORBIDDEN", "팔로워에게만 공개된 페르소나예요.");
   }
 
   const url = new URL(c.req.url);
@@ -146,14 +146,29 @@ feedsDiscover.get("/discover", async (c) => {
     "c.deletion_state = 'active'",
     "c.deleted_at IS NULL",
     "c.clone_type != 'memlow'",
-    "c.visibility = 'public'",
-
   ];
   const binds: unknown[] = [];
 
   if (viewerId) {
-    where.push("c.owner_id != ?");
-    binds.push(viewerId);
+    where.push(
+      `(
+         c.visibility = 'public'
+         OR c.owner_id = ?
+         OR (c.visibility = 'followers' AND
+             EXISTS (SELECT 1 FROM clone_follows cf
+                      WHERE cf.clone_id = c.id AND cf.user_id = ?))
+         OR (c.visibility = 'selected' AND
+             EXISTS (SELECT 1 FROM clone_allowed_viewers cav
+                      WHERE cav.clone_id = c.id AND cav.user_id = ?))
+       )`,
+    );
+    binds.push(viewerId, viewerId, viewerId);
+  } else {
+
+    where.push("c.visibility = 'public'");
+  }
+
+  if (viewerId) {
     where.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
     binds.push(viewerId);
   }
@@ -166,12 +181,14 @@ feedsDiscover.get("/discover", async (c) => {
     await c.env.DB
       .prepare(
         `SELECT c.id              AS cloneId,
+                c.owner_id         AS cloneOwnerId,
                 c.name             AS cloneName,
                 c.username         AS cloneUsername,
                 c.description      AS cloneDescription,
                 c.avatar_url       AS cloneAvatarUrl,
                 c.clone_type       AS cloneType,
                 c.created_at       AS cloneCreatedAt,
+                c.visibility       AS cloneVisibility,
                 f.id               AS feedId,
                 f.content          AS feedContent,
                 f.media_url        AS feedMediaUrl,
@@ -194,12 +211,14 @@ feedsDiscover.get("/discover", async (c) => {
       .bind(...binds, limit + 1)
       .all<{
         cloneId: number;
+        cloneOwnerId: number;
         cloneName: string;
         cloneUsername: string;
         cloneDescription: string | null;
         cloneAvatarUrl: string | null;
         cloneType: string;
         cloneCreatedAt: string;
+        cloneVisibility: string;
         feedId: number | null;
         feedContent: string | null;
         feedMediaUrl: string | null;
@@ -271,10 +290,13 @@ feedsDiscover.get("/discover", async (c) => {
       createdAt: r.feedCreatedAt ?? r.cloneCreatedAt,
       clone: {
         id: r.cloneId,
+
+        ownerId: r.cloneOwnerId,
         name: r.cloneName,
         username: r.cloneUsername,
         avatarUrl: r.cloneAvatarUrl,
         cloneType: r.cloneType,
+        visibility: r.cloneVisibility,
       },
       interests: interestsByClone.get(r.cloneId) ?? [],
     })),
@@ -286,7 +308,7 @@ cloneFeeds.post("/:id/feeds", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   await assertWriter(c.env.DB, cloneId, userId, clone);
 
   const body = await parseJson(c, createSchema);
@@ -340,41 +362,46 @@ async function loadFeedAccessible(
 feedsDiscover.post("/:id/like", requireAuth, async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const userId = c.get("userId")!;
   const feed = await loadFeedAccessible(c.env.DB, feedId);
-  if (!feed) throw new APIError("NOT_FOUND", "Feed not found.");
+  if (!feed) throw new APIError("NOT_FOUND", "피드를 찾을 수 없어요.");
 
   if (feed.visibility === "private") {
     if (feed.ownerId !== userId) {
       const role = await hasAcceptedShare(c.env.DB, feed.cloneId, userId);
-      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+      if (role === null) throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
 
-  await c.env.DB
+  const ins = await c.env.DB
     .prepare(
       `INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`,
     )
     .bind(feedId, userId)
     .run();
+  const inserted = (ins.meta?.changes ?? 0) > 0;
 
   const row = await c.env.DB
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(feedId)
     .first<{ likes_count: number }>();
+  if (inserted) {
 
-  await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId: feed.cloneId });
+    await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId: feed.cloneId });
 
-  await bumpInteraction(c.env, userId, feed.cloneId, "feed");
+    await bumpInteraction(c.env, userId, feed.cloneId, "feed");
+
+    await addPerFeedIntimacyScore(c.env, userId, feed.cloneId, feedId, INTIMACY_WEIGHTS.feed);
+  }
   return c.json({ ok: true, liked: true, likesCount: row?.likes_count ?? 0 });
 });
 
 feedsDiscover.delete("/:id/like", requireAuth, async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const userId = c.get("userId")!;
   await c.env.DB
@@ -392,7 +419,7 @@ feedsDiscover.delete("/:id/like", requireAuth, async (c) => {
 feedsDiscover.get("/:id/likes", async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const url = new URL(c.req.url);
   const cursorRaw = url.searchParams.get("cursor");
@@ -454,11 +481,11 @@ cloneFeeds.post("/:id/like", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   if (clone.visibility === "private") {
     if (clone.owner_id !== userId) {
       const role = await hasAcceptedShare(c.env.DB, cloneId, userId);
-      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+      if (role === null) throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
 
@@ -491,18 +518,23 @@ cloneFeeds.post("/:id/like", requireAuth, async (c) => {
     promoted = true;
   }
 
-  await c.env.DB
+  const ins = await c.env.DB
     .prepare(`INSERT OR IGNORE INTO feed_likes (feed_id, user_id) VALUES (?, ?)`)
     .bind(feedId, userId)
     .run();
+  const inserted = (ins.meta?.changes ?? 0) > 0;
 
   const cnt = await c.env.DB
     .prepare(`SELECT likes_count FROM feeds WHERE id = ?`)
     .bind(feedId)
     .first<{ likes_count: number }>();
+  if (inserted) {
 
-  await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId });
-  await bumpInteraction(c.env, userId, cloneId, "feed");
+    await notifyCloneEvent(c.env, "clone_like", { actorId: userId, cloneId });
+    await bumpInteraction(c.env, userId, cloneId, "feed");
+
+    await addPerFeedIntimacyScore(c.env, userId, cloneId, feedId, INTIMACY_WEIGHTS.feed);
+  }
   return c.json({
     ok: true,
     liked: true,
@@ -534,29 +566,50 @@ cloneFeeds.delete("/:id/like", requireAuth, async (c) => {
 
 const commentCreateSchema = z.object({
   content: z.string().min(1).max(2000),
+
+  parentCommentId: z.number().int().positive().optional(),
 });
 
 feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const userId = c.get("userId")!;
   const body = await parseJson(c, commentCreateSchema);
 
   const feed = await loadFeedAccessible(c.env.DB, feedId);
-  if (!feed) throw new APIError("NOT_FOUND", "Feed not found.");
+  if (!feed) throw new APIError("NOT_FOUND", "피드를 찾을 수 없어요.");
   if (feed.visibility === "private") {
     if (feed.ownerId !== userId) {
       const role = await hasAcceptedShare(c.env.DB, feed.cloneId, userId);
-      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+      if (role === null) throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
     }
+  }
+
+  let resolvedParentId: number | null = null;
+  if (body.parentCommentId) {
+    const parent = await c.env.DB
+      .prepare(
+        `SELECT id, feed_id AS feedId, parent_comment_id AS parentId
+           FROM feed_comments
+          WHERE id = ?`,
+      )
+      .bind(body.parentCommentId)
+      .first<{ id: number; feedId: number; parentId: number | null }>();
+    if (!parent) throw new APIError("NOT_FOUND", "댓글을 찾을 수 없어요.");
+    if (parent.feedId !== feedId) {
+      throw new APIError("VALIDATION_FAILED", "부모 댓글이 다른 피드에 속해 있어요.");
+    }
+
+    resolvedParentId = parent.parentId ?? parent.id;
   }
   const r = await c.env.DB
     .prepare(
-      `INSERT INTO feed_comments (feed_id, user_id, content) VALUES (?, ?, ?)`,
+      `INSERT INTO feed_comments (feed_id, user_id, content, parent_comment_id)
+       VALUES (?, ?, ?, ?)`,
     )
-    .bind(feedId, userId, body.content.trim())
+    .bind(feedId, userId, body.content.trim(), resolvedParentId)
     .run();
 
   await notifyCloneEvent(c.env, "clone_comment", {
@@ -565,6 +618,8 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
     extraBody: body.content.trim(),
   });
   await bumpInteraction(c.env, userId, feed.cloneId, "feed");
+
+  await addPerFeedIntimacyScore(c.env, userId, feed.cloneId, feedId, INTIMACY_WEIGHTS.feed);
   return c.json(
     {
       ok: true,
@@ -573,6 +628,7 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
         feedId,
         userId,
         content: body.content.trim(),
+        parentCommentId: resolvedParentId,
       },
     },
     201,
@@ -583,7 +639,7 @@ feedsDiscover.delete("/:id/comments/:cid", requireAuth, async (c) => {
   const feedId = Number(c.req.param("id"));
   const cid = Number(c.req.param("cid"));
   if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
   }
   const userId = c.get("userId")!;
   const res = await c.env.DB
@@ -591,38 +647,81 @@ feedsDiscover.delete("/:id/comments/:cid", requireAuth, async (c) => {
     .bind(cid, feedId, userId)
     .run();
   if ((res.meta?.changes ?? 0) === 0) {
-    throw new APIError("NOT_FOUND", "Comment not found or not yours.");
+    throw new APIError("NOT_FOUND", "댓글을 찾을 수 없거나 본인의 댓글이 아니에요.");
   }
   return c.json({ ok: true });
+});
+
+feedsDiscover.post("/:id/comments/:cid/report", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  const cid = Number(c.req.param("cid"));
+  if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  const body = await c.req.json<{ reason?: string }>().catch(() => ({} as { reason?: string }));
+  const reason = (body.reason ?? "").slice(0, 500) || null;
+
+  const meta = await c.env.DB
+    .prepare(
+      `SELECT fc.id AS cid, fc.feed_id AS feedId, f.clone_id AS cloneId
+         FROM feed_comments fc
+         JOIN feeds f ON f.id = fc.feed_id
+        WHERE fc.id = ? AND fc.feed_id = ?
+        LIMIT 1`,
+    )
+    .bind(cid, feedId)
+    .first<{ cid: number; feedId: number; cloneId: number }>();
+  if (!meta) throw new APIError("NOT_FOUND", "댓글을 찾을 수 없어요.");
+
+  await c.env.DB
+    .prepare(
+      `INSERT OR IGNORE INTO comment_reports
+         (user_id, comment_id, feed_id, clone_id, reason)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+    .bind(userId, cid, meta.feedId, meta.cloneId, reason)
+    .run();
+  return c.json({ ok: true, reported: true });
 });
 
 feedsDiscover.get("/:id/comments", async (c) => {
   const feedId = Number(c.req.param("id"));
   if (!Number.isInteger(feedId) || feedId <= 0) {
-    throw new APIError("VALIDATION_FAILED", "Invalid feed id.");
+    throw new APIError("VALIDATION_FAILED", "잘못된 피드 ID 에요.");
   }
   const url = new URL(c.req.url);
   const cursorRaw = url.searchParams.get("cursor");
   const cursor = cursorRaw ? Number(cursorRaw) : null;
   const limitRaw = Number(url.searchParams.get("limit") ?? 30);
   const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 30));
+  const viewerId = await resolveOptionalUser(c);
 
-  const where = ["fc.feed_id = ?"];
+  const where = ["fc.feed_id = ?", "fc.parent_comment_id IS NULL"];
   const binds: unknown[] = [feedId];
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
     where.push("fc.id < ?");
     binds.push(cursor);
   }
+
+  const likedByMeExpr = viewerId
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  if (viewerId) binds.unshift(viewerId); 
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+        `SELECT fc.id          AS commentId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${likedByMeExpr} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl,
+                (SELECT COUNT(*) FROM feed_comments fcc
+                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE ${where.join(" AND ")} AND u.deleted_at IS NULL
@@ -635,9 +734,12 @@ feedsDiscover.get("/:id/comments", async (c) => {
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
+        repliesCount: number;
       }>()
   ).results;
 
@@ -652,6 +754,9 @@ feedsDiscover.get("/:id/comments", async (c) => {
       userId: r.userId,
       content: r.content,
       createdAt: r.createdAt,
+      repliesCount: r.repliesCount ?? 0,
+      likesCount: r.likesCount ?? 0,
+      likedByMe: !!r.likedByMe,
       user: {
         id: r.userId,
         name: r.userName,
@@ -663,16 +768,125 @@ feedsDiscover.get("/:id/comments", async (c) => {
   });
 });
 
+feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
+  const feedId = Number(c.req.param("id"));
+  const cid = Number(c.req.param("cid"));
+  if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const viewerId = await resolveOptionalUser(c);
+  const likedByMeExpr = viewerId
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  const binds: unknown[] = viewerId ? [viewerId, feedId, cid, limit] : [feedId, cid, limit];
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT fc.id          AS commentId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${likedByMeExpr} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl
+           FROM feed_comments fc
+           JOIN users u ON u.id = fc.user_id
+          WHERE fc.feed_id = ?
+            AND fc.parent_comment_id = ?
+            AND u.deleted_at IS NULL
+          ORDER BY fc.id ASC
+          LIMIT ?`,
+      )
+      .bind(...binds)
+      .all<{
+        commentId: number;
+        userId: number;
+        content: string;
+        createdAt: string;
+        likesCount: number;
+        likedByMe: number;
+        userName: string | null;
+        userEmail: string;
+        userAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  return c.json({
+    items: (rows ?? []).map((r) => ({
+      id: r.commentId,
+      userId: r.userId,
+      content: r.content,
+      createdAt: r.createdAt,
+      parentCommentId: cid,
+      likesCount: r.likesCount ?? 0,
+      likedByMe: !!r.likedByMe,
+      user: {
+        id: r.userId,
+        name: r.userName,
+        email: r.userEmail,
+        avatarUrl: r.userAvatarUrl,
+      },
+    })),
+  });
+});
+
+feedsDiscover.post("/:id/comments/:cid/like", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  const cid = Number(c.req.param("cid"));
+  if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+
+  const row = await c.env.DB
+    .prepare(`SELECT id FROM feed_comments WHERE id = ? AND feed_id = ?`)
+    .bind(cid, feedId)
+    .first<{ id: number }>();
+  if (!row) throw new APIError("NOT_FOUND", "댓글을 찾을 수 없어요.");
+  await c.env.DB
+    .prepare(`INSERT OR IGNORE INTO feed_comment_likes (comment_id, user_id) VALUES (?, ?)`)
+    .bind(cid, userId)
+    .run();
+  const cnt = await c.env.DB
+    .prepare(`SELECT likes_count FROM feed_comments WHERE id = ?`)
+    .bind(cid)
+    .first<{ likes_count: number }>();
+  return c.json({ ok: true, liked: true, likesCount: cnt?.likes_count ?? 0 });
+});
+
+feedsDiscover.delete("/:id/comments/:cid/like", requireAuth, async (c) => {
+  const feedId = Number(c.req.param("id"));
+  const cid = Number(c.req.param("cid"));
+  if (!Number.isInteger(feedId) || feedId <= 0 || !Number.isInteger(cid) || cid <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  await c.env.DB
+    .prepare(`DELETE FROM feed_comment_likes WHERE comment_id = ? AND user_id = ?`)
+    .bind(cid, userId)
+    .run();
+  const cnt = await c.env.DB
+    .prepare(`SELECT likes_count FROM feed_comments WHERE id = ?`)
+    .bind(cid)
+    .first<{ likes_count: number }>();
+  return c.json({ ok: true, liked: false, likesCount: cnt?.likes_count ?? 0 });
+});
+
 cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
   const cloneId = parseCloneId(c);
   const userId = c.get("userId")!;
   const body = await parseJson(c, commentCreateSchema);
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   if (clone.visibility === "private") {
     if (clone.owner_id !== userId) {
       const role = await hasAcceptedShare(c.env.DB, cloneId, userId);
-      if (role === null) throw new APIError("FORBIDDEN", "Private clone.");
+      if (role === null) throw new APIError("FORBIDDEN", "비공개 페르소나예요.");
     }
   }
 
@@ -710,6 +924,8 @@ cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
     extraBody: body.content.trim(),
   });
   await bumpInteraction(c.env, userId, cloneId, "feed");
+
+  await addPerFeedIntimacyScore(c.env, userId, cloneId, feedId, INTIMACY_WEIGHTS.feed);
   return c.json(
     {
       ok: true,
@@ -730,34 +946,49 @@ cloneFeeds.get("/:id/comments", async (c) => {
   const url = new URL(c.req.url);
   const limitRaw = Number(url.searchParams.get("limit") ?? 50);
   const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 50));
+  const viewerId = await resolveOptionalUser(c);
+
+  const likedByMeExpr = viewerId
+    ? `EXISTS (SELECT 1 FROM feed_comment_likes fcl WHERE fcl.comment_id = fc.id AND fcl.user_id = ?)`
+    : `0`;
+  const binds: unknown[] = viewerId ? [viewerId, cloneId, limit] : [cloneId, limit];
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT fc.id        AS commentId,
-                fc.feed_id   AS feedId,
-                fc.user_id   AS userId,
-                fc.content   AS content,
-                fc.created_at AS createdAt,
-                u.name       AS userName,
-                u.email      AS userEmail,
-                u.avatar_url AS userAvatarUrl
+        `SELECT fc.id          AS commentId,
+                fc.feed_id     AS feedId,
+                fc.user_id     AS userId,
+                fc.content     AS content,
+                fc.created_at  AS createdAt,
+                fc.likes_count AS likesCount,
+                ${likedByMeExpr} AS likedByMe,
+                u.name         AS userName,
+                u.email        AS userEmail,
+                u.avatar_url   AS userAvatarUrl,
+                (SELECT COUNT(*) FROM feed_comments fcc
+                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
            FROM feed_comments fc
            JOIN feeds f ON f.id = fc.feed_id
            JOIN users u ON u.id = fc.user_id
-          WHERE f.clone_id = ? AND u.deleted_at IS NULL
+          WHERE f.clone_id = ?
+            AND fc.parent_comment_id IS NULL
+            AND u.deleted_at IS NULL
           ORDER BY fc.id DESC
           LIMIT ?`,
       )
-      .bind(cloneId, limit)
+      .bind(...binds)
       .all<{
         commentId: number;
         feedId: number;
         userId: number;
         content: string;
         createdAt: string;
+        likesCount: number;
+        likedByMe: number;
         userName: string | null;
         userEmail: string;
         userAvatarUrl: string | null;
+        repliesCount: number;
       }>()
   ).results;
   return c.json({
@@ -767,6 +998,9 @@ cloneFeeds.get("/:id/comments", async (c) => {
       userId: r.userId,
       content: r.content,
       createdAt: r.createdAt,
+      repliesCount: r.repliesCount ?? 0,
+      likesCount: r.likesCount ?? 0,
+      likedByMe: !!r.likedByMe,
       user: {
         id: r.userId,
         name: r.userName,
@@ -830,7 +1064,7 @@ cloneFeeds.delete("/:id/feeds/:feedId", requireAuth, async (c) => {
   const feedId = parseFeedId(c);
   const userId = c.get("userId")!;
   const clone = await loadCloneById(c.env.DB, cloneId);
-  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
   await assertWriter(c.env.DB, cloneId, userId, clone);
 
   const res = await c.env.DB

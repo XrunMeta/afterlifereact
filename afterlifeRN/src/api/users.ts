@@ -27,6 +27,8 @@ export interface UserProfile {
     followingCount: number;
     isMe: boolean;
     isFollowing: boolean;
+
+    isBlocked?: boolean;
   };
   clones: UserProfileClone[];
 }
@@ -118,5 +120,47 @@ export async function listUserFollowing(
   );
   return jsonOrThrow(res, "listUserFollowing") as Promise<{
     items: UserFollowItem[];
+  }>;
+}
+
+export async function blockUser(
+  accessToken: string,
+  userId: number,
+): Promise<{ ok: true; blocked: true }> {
+  const res = await fetch(`${API_BASE}/oth-path${userId}/block`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return jsonOrThrow(res, "blockUser") as Promise<{ ok: true; blocked: true }>;
+}
+
+export async function unblockUser(
+  accessToken: string,
+  userId: number,
+): Promise<{ ok: true; blocked: false }> {
+  const res = await fetch(`${API_BASE}/oth-path${userId}/block`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return jsonOrThrow(res, "unblockUser") as Promise<{ ok: true; blocked: false }>;
+}
+
+export async function reportUser(
+  accessToken: string,
+  userId: number,
+  reason?: string,
+): Promise<{ ok: true; reported: true; blocked: true }> {
+  const res = await fetch(`${API_BASE}/oth-path${userId}/report`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(reason ? { reason } : {}),
+  });
+  return jsonOrThrow(res, "reportUser") as Promise<{
+    ok: true;
+    reported: true;
+    blocked: true;
   }>;
 }

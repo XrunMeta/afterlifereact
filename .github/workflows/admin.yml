@@ -24,11 +24,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: afterlifeadmin/package-lock.json
 
+      # package-lock.json 은 .gitignore 정책상 커밋 안 함 → npm ci(lock 필수) 대신 npm install.
+      # 캐시도 lock 부재로 비활성(actions/setup-node cache 미지정).
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Lint
         run: npm run lint

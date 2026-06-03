@@ -54,15 +54,27 @@ payments.get("/balance", async (c) => {
     throw new APIError("UPSTREAM_FAILURE", res.reason ?? "xrun gateway error");
   }
 
+  const validBalances = res.balances.filter(
+    (b) => b.currency != null && Number.isFinite(Number(b.currency)),
+  );
+
+  if (res.balances.length > 0 && validBalances.length === 0) {
+    console.warn(
+      "[payments.balance] gateway returned only null-currency rows",
+      "member=", member,
+      "raw=", JSON.stringify(res.balances),
+    );
+  }
+
   const find = (currency: number): number | null => {
-    const row = res.balances.find((b) => Number(b.currency) === currency);
+    const row = validBalances.find((b) => Number(b.currency) === currency);
     if (!row) return null;
     const n = Number(row.amount);
     return Number.isFinite(n) ? n : null;
   };
   return c.json({
     linked: true,
-    balances: res.balances.map((b) => ({
+    balances: validBalances.map((b) => ({
       currency: Number(b.currency),
       symbol: b.symbol,
       amount: b.amount,
@@ -70,5 +82,7 @@ payments.get("/balance", async (c) => {
     })),
     xrun: find(18),
     ad: find(19),
+
+    gatewayWalletReady: validBalances.length > 0,
   });
 });

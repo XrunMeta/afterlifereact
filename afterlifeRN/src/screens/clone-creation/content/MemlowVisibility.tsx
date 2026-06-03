@@ -1,3 +1,4 @@
+import { showAlert } from "../../../stores/dialogStore";
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -30,15 +31,15 @@ function Component({ draft, onChange }: Props) {
     const v = pending.trim();
     if (!v) return;
     if (!EMAIL_RE.test(v)) {
-      Alert.alert(t("common.notice"), t("invite.invalidEmail"));
+      showAlert(t("common.notice"), t("invite.invalidEmail"));
       return;
     }
     if (myEmail && v.toLowerCase() === myEmail.toLowerCase()) {
-      Alert.alert(t("common.notice"), t("invite.selfNotAllowed"));
+      showAlert(t("common.notice"), t("invite.selfNotAllowed"));
       return;
     }
     if (invites.some((e) => e.toLowerCase() === v.toLowerCase())) {
-      Alert.alert(t("common.notice"), t("invite.alreadyAdded"));
+      showAlert(t("common.notice"), t("invite.alreadyAdded"));
       return;
     }
     if (!accessToken) {
@@ -52,14 +53,14 @@ function Component({ draft, onChange }: Props) {
       const res = await searchUsers(accessToken, v);
       const exact = res.items.find((u) => u.email.toLowerCase() === v.toLowerCase());
       if (!exact) {
-        Alert.alert(t("common.notice"), t("invite.memberNotFound"));
+        showAlert(t("common.notice"), t("invite.memberNotFound"));
         return;
       }
       onChange({ coownerInvites: [...invites, v] });
       setPending('');
     } catch (err) {
       console.warn('[MemlowVisibility] searchUsers failed:', err);
-      Alert.alert(t("common.error"), t("invite.memberNotFound"));
+      showAlert(t("common.error"), t("invite.memberNotFound"));
     } finally {
       setChecking(false);
     }

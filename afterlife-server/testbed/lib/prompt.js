@@ -17,12 +17,44 @@ export function loadPersona() {
   return cache;
 }
 
-export function buildSystemPrompt() {
+export function personaToAttrs(persona = {}) {
+  const p = { ...(persona ?? {}) };
+
+  const region = typeof p.dialect_region === 'string' ? p.dialect_region.trim() : '';
+  const intensity = typeof p.dialect_intensity === 'string' ? p.dialect_intensity.trim() : '';
+  if (region) {
+    const baseTone = typeof p.tone === 'string' && p.tone.trim() ? p.tone.trim() : '말투';
+    const deg = intensity ? `${intensity} ` : '';
+    p.tone = `${deg}${region} 사투리가 섞인 ${baseTone}`;
+  }
+  delete p.dialect_region;
+  delete p.dialect_intensity;
+
+  const out = [];
+  for (const [key, value] of Object.entries(p)) {
+    if (value == null) continue;
+    if (typeof value !== 'string') continue;
+    const v = value.trim();
+    if (!v) continue;
+    out.push({ key, value: v });
+  }
+  return out;
+}
+
+function buildLegacyBody({ l1Attrs = [], l2Attrs = [] } = {}) {
   const { profile, kb } = loadPersona();
   const traits = (profile.voiceTraits ?? []).map((t) => `  - ${t}`).join('\n');
   const dosNotDo = (profile.languageStyle?.dosNotDo ?? [])
     .map((d) => `  - ${d}`)
     .join('\n');
+
+  const learnedLines = [
+    ...(l1Attrs ?? []).map((a) => `- (본인) ${a.key}: ${a.value}`),
+    ...(l2Attrs ?? []).map((a) => `- (상대) ${a.key}: ${a.value}`),
+  ];
+  const learnedSection = learnedLines.length
+    ? `\n\n[대화로 기억한 것 — 지금까지 대화에서 직접 알게 된 사실. KB와 함께 활용하되 여기 없는 건 지어내지 말 것]\n${learnedLines.join('\n')}`
+    : '';
 
   return `당신은 "${profile.displayName}" (${profile.fullName}) 입니다.
 사용자(${profile.userRelation})와 1인칭으로 대화하세요.
@@ -55,7 +87,14 @@ ${dosNotDo}
 6. 응답은 일반 한국어 글자만 사용. 이모지 / 이모티콘 / 그림 문자 / 특수 심볼 (예: 😀 🍲 ❤ ♥ ♪ ⭐ ✨) 절대 출력 금지. 텍스트가 그대로 음성으로 합성되므로 이모지가 들어가면 이상한 단어로 발음됩니다.
 
 [기억 조각 (KB)]
-${kb}
+${kb}${learnedSection}
 
 이제 ${profile.userRelation}이/가 말을 걸어옵니다. ${profile.displayName}로서 답해주세요.`;
+}
+
+export function buildSystemPrompt({ l0 = null, l1Attrs = [], l2Attrs = [] } = {}) {
+  const l0Section = l0 && typeof l0.rules_text === 'string' && l0.rules_text.trim()
+    ? `[시스템 규칙 — 반드시 준수]\n${l0.rules_text.trim()}\n\n`
+    : '';
+  return l0Section + buildLegacyBody({ l1Attrs, l2Attrs });
 }
