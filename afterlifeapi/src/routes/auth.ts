@@ -208,6 +208,7 @@ auth.post("/google", async (c) => {
 
   return c.json({
     accessToken,
+    refreshToken,
     accessExpiresIn,
     user: {
       id: userRow.id,
@@ -392,6 +393,7 @@ auth.post("/xrun/complete", async (c) => {
   return c.json(
     {
       accessToken,
+      refreshToken,
       accessExpiresIn,
       user: {
         id: inserted.id,
@@ -581,6 +583,7 @@ auth.post("/signup", async (c) => {
   return c.json(
     {
       accessToken,
+      refreshToken,
       accessExpiresIn,
       user: {
         id: inserted.id,
@@ -700,7 +703,7 @@ auth.post("/login", async (c) => {
 
   await logActivity(c, { userId: user.id, action: "auth.login" });
 
-  return c.json({ accessToken, accessExpiresIn });
+  return c.json({ accessToken, refreshToken, accessExpiresIn });
 });
 
 auth.post("/refresh", async (c) => {
@@ -711,9 +714,38 @@ auth.post("/refresh", async (c) => {
   return c.json({ accessToken: rotated.accessToken, accessExpiresIn: rotated.accessExpiresIn });
 });
 
+const refreshTokenBodySchema = z.object({
+  refreshToken: z.string().min(20),
+});
+
+auth.post("/refresh/token", async (c) => {
+  const body = await parseJson(c, refreshTokenBodySchema);
+  const rotated = await rotateSession(c, body.refreshToken);
+
+  setRefreshCookie(c, rotated.refreshToken);
+  return c.json({
+    accessToken: rotated.accessToken,
+    refreshToken: rotated.refreshToken,
+    accessExpiresIn: rotated.accessExpiresIn,
+  });
+});
+
+const logoutSchema = z.object({
+  refreshToken: z.string().min(20).optional(),
+});
+
 auth.post("/logout", requireAuth, async (c) => {
-  const refresh = readRefreshCookie(c);
-  if (refresh) await revokeRefresh(c, refresh);
+
+  let bodyRefresh: string | undefined;
+  try {
+    const parsed = await parseJson(c, logoutSchema);
+    bodyRefresh = parsed.refreshToken;
+  } catch {
+
+  }
+  const cookieRefresh = readRefreshCookie(c);
+  if (bodyRefresh) await revokeRefresh(c, bodyRefresh);
+  if (cookieRefresh) await revokeRefresh(c, cookieRefresh);
   clearRefreshCookie(c);
 
   const userId = c.get("userId");
