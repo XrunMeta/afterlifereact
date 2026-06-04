@@ -153,7 +153,7 @@ feedsDiscover.get("/discover", async (c) => {
     where.push(
       `(
          c.visibility = 'public'
-         OR c.owner_id = ?
+         OR (c.owner_id = ? AND c.visibility != 'private')
          OR (c.visibility = 'followers' AND
              EXISTS (SELECT 1 FROM clone_follows cf
                       WHERE cf.clone_id = c.id AND cf.user_id = ?))
