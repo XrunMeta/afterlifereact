@@ -24,6 +24,7 @@ import { externalTransferSplit } from "../lib/xrun";
 import { notify, notifyCloneEvent } from "../lib/notify";
 import { loadPersonaQuestions } from "../lib/personaQuestions";
 import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
+import { maskUsername } from "../lib/utils";
 
 export const clones = new Hono<AppEnv>();
 
@@ -1477,4 +1478,48 @@ clones.post("/:id/chat-event", requireAuth, async (c) => {
   await bumpInteraction(c.env, userId, cloneId, "chat");
   const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.chat, "chat");
   return c.json({ ok: true, scoreApplied: r.applied });
+});
+
+clones.get("/:id/gifts/summary", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  const db = c.env.DB;
+
+  const clone = await loadCloneById(db, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  if (clone.owner_id !== userId)
+    throw new APIError("FORBIDDEN", "소유자만 열람할 수 있어요.");
+
+  const rows = await db
+    .prepare(
+      `SELECT g.gift_id, g.gift_name,
+              COUNT(*) AS cnt, MAX(g.created_at) AS last_at,
+              u.name AS sender_name
+       FROM gift_logs g
+       LEFT JOIN users u ON u.id = g.sender_user_id
+       WHERE g.clone_id = ? AND g.status = 'sent'
+       GROUP BY g.gift_id, g.gift_name, g.sender_user_id
+       ORDER BY cnt DESC, last_at DESC
+       LIMIT 200`,
+    )
+    .bind(cloneId)
+    .all<{
+      gift_id: string;
+      gift_name: string;
+      cnt: number;
+      last_at: string; 
+      sender_name: string | null;
+    }>();
+
+  const items = (rows.results ?? []).map((r) => ({
+    giftId: r.gift_id,
+    giftName: r.gift_name,
+    count: r.cnt,
+    sender: maskUsername(r.sender_name), 
+  }));
+
+  return c.json({ items });
 });

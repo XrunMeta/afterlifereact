@@ -35,7 +35,11 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, listSystemClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, type MyClone, type SystemClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse } from "../../api/clones";
+import { listMyClones, listSystemClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, listCloneGiftReceipts, type MyClone, type SystemClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse, type GiftReceiptItem } from "../../api/clones";
+import giftsData from "../../mocks/gifts.json";
+import type { Gift } from "../../types/gift";
+
+const GIFT_CATALOG = giftsData as Gift[];
 import { formatRelativeKo } from "../../lib/relativeTime";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import { AuthApiError, patchMe } from "../../api/auth";
@@ -235,31 +239,37 @@ export default function MyClonesDashboardScreen() {
     cloneId: number;
     cloneName: string;
   } | null>(null);
+
   const [intimacyData, setIntimacyData] = useState<IntimacyEventsResponse | null>(null);
   const [intimacyLoading, setIntimacyLoading] = useState(false);
 
   const [intimacyInfoVisible, setIntimacyInfoVisible] = useState(false);
 
+  const [giftReceipts, setGiftReceipts] = useState<GiftReceiptItem[] | null>(null);
+  const [giftLoading, setGiftLoading] = useState(false);
+
   useEffect(() => {
     if (!intimacyModal) {
+      setGiftReceipts(null);
+
       setIntimacyData(null);
       return;
     }
     if (!accessToken) return;
     let cancelled = false;
-    setIntimacyLoading(true);
-    setIntimacyData(null);
-    listCloneIntimacyEvents(accessToken, intimacyModal.cloneId, { limit: 100 })
+    setGiftLoading(true);
+    setGiftReceipts(null);
+    listCloneGiftReceipts(accessToken, intimacyModal.cloneId)
       .then((res) => {
         if (cancelled) return;
-        setIntimacyData(res);
+        setGiftReceipts(res.items);
       })
       .catch((err) => {
-        console.warn("[MyClones] listCloneIntimacyEvents failed:", err);
-        if (!cancelled) setIntimacyData(null);
+        console.warn("[MyClones] listCloneGiftReceipts failed:", err);
+        if (!cancelled) setGiftReceipts([]);
       })
       .finally(() => {
-        if (!cancelled) setIntimacyLoading(false);
+        if (!cancelled) setGiftLoading(false);
       });
     return () => {
       cancelled = true;
@@ -1340,77 +1350,43 @@ export default function MyClonesDashboardScreen() {
             <View style={s.sheetHandle} />
             <View style={s.intimacyTitleRow}>
               <View style={{ width: 28 }} />
-              <Text style={s.statsSheetTitle}>{t("feed.eventsTitle")}</Text>
-              <TouchableOpacity
-                onPress={() => setIntimacyInfoVisible(true)}
-                hitSlop={8}
-                style={{ width: 28, alignItems: "flex-end" }}
-              >
-                <Feather name="help-circle" size={20} color={COLORS.zinc400} />
-              </TouchableOpacity>
+              <Text style={s.statsSheetTitle}>받은 선물</Text>
+              <View style={{ width: 28 }} />
             </View>
             <Text style={s.statsSheetSub}>{intimacyModal?.cloneName}</Text>
 
             {}
-            {intimacyData?.summary && (
-              <View style={s.intimacySummary}>
-                <View style={s.intimacySummaryRow}>
-                  <Feather name="thermometer" size={20} color="#fb923c" />
-                  <Text style={s.intimacySummaryScore}>
-                    {Math.min(100, intimacyData.summary.totalScore)}°C
-                  </Text>
-                  <Text style={s.intimacySummaryCount}>
-                    · {t("feed.summaryCount", { n: intimacyData.summary.eventCount })}
-                  </Text>
-                </View>
-                <View style={s.intimacyBreakdownRow}>
-                  <Text style={s.intimacyBreakdownItem}>
-                    채팅 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.chat}°C</Text>
-                  </Text>
-                  <Text style={s.intimacyBreakdownItem}>
-                    통화 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.call}°C</Text>
-                  </Text>
-                  <Text style={s.intimacyBreakdownItem}>
-                    탐색 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.learn}°C</Text>
-                  </Text>
-                  <Text style={s.intimacyBreakdownItem}>
-                    피드 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.feed}°C</Text>
-                  </Text>
-                </View>
-              </View>
-            )}
+            <View style={s.giftTableHeader}>
+              <Text style={[s.giftTableHeaderCell, { flex: 2 }]}>선물</Text>
+              <Text style={[s.giftTableHeaderCell, { flex: 1, textAlign: "center" }]}>갯수</Text>
+              <Text style={[s.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>보낸사람</Text>
+            </View>
 
             <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
-              {intimacyLoading ? (
+              {giftLoading ? (
                 <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
-              ) : !intimacyData || intimacyData.items.length === 0 ? (
+              ) : !giftReceipts || giftReceipts.length === 0 ? (
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
-                    {t("feed.emptyEventsMine")}
+                    아직 받은 선물이 없어요
                   </Text>
                 </View>
               ) : (
-                intimacyData.items.map((ev) => {
-                  const ACTION_META: Record<
-                    "chat" | "call" | "learn" | "feed",
-                    { label: string; icon: keyof typeof Feather.glyphMap; color: string }
-                  > = {
-                    chat: { label: t("feed.actionLabelChat"), icon: "message-circle", color: "#60a5fa" },
-                    call: { label: t("feed.actionLabelCall"), icon: "phone", color: "#34d399" },
-                    learn: { label: t("feed.actionLabelLearn"), icon: "search", color: "#a78bfa" },
-                    feed: { label: t("feed.actionLabelFeed"), icon: "heart", color: "#ef4444" },
-                  };
-                  const meta = ACTION_META[ev.action];
+                giftReceipts.map((item, idx) => {
+                  const catalogEntry = GIFT_CATALOG.find((g) => g.id === item.giftId);
+                  const emoji = catalogEntry?.emoji ?? "🎁";
                   return (
-                    <View key={ev.id} style={s.intimacyEventRow}>
-                      <View style={[s.intimacyEventIcon, { backgroundColor: meta.color + "22" }]}>
-                        <Feather name={meta.icon} size={14} color={meta.color} />
+                    <View key={`${item.giftId}-${item.sender}-${idx}`} style={s.giftTableRow}>
+                      <View style={[{ flex: 2, flexDirection: "row", alignItems: "center", gap: 6 }]}>
+                        <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                        <Text style={s.giftTableCell}>{item.giftName}</Text>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.intimacyEventLabel}>{meta.label}</Text>
-                        <Text style={s.intimacyEventTime}>{formatRelativeKo(ev.createdAt)}</Text>
-                      </View>
-                      <Text style={s.intimacyEventScore}>+{ev.score}°C</Text>
+                      <Text style={[s.giftTableCell, { flex: 1, textAlign: "center" }]}>
+                        {item.count}
+                      </Text>
+                      <Text style={[s.giftTableCell, { flex: 2, textAlign: "right" }]} numberOfLines={1}>
+                        {item.sender}
+                      </Text>
                     </View>
                   );
                 })
@@ -2141,6 +2117,32 @@ const s = StyleSheet.create({
   intimacyEventLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
   intimacyEventTime: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
   intimacyEventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
+
+  giftTableHeader: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc200,
+    marginBottom: 2,
+  },
+  giftTableHeaderCell: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.zinc500,
+  },
+  giftTableRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.zinc100,
+  },
+  giftTableCell: {
+    fontSize: 14,
+    color: COLORS.zinc900,
+  },
 
   infoSection: {
     paddingHorizontal: 20,

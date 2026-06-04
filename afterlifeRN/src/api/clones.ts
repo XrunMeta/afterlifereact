@@ -463,6 +463,24 @@ export async function listSystemClones(accessToken: string): Promise<{ items: Sy
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface GiftReceiptItem {
+  giftId: string;
+  giftName: string;
+  count: number;
+  sender: string;
+}
+
+export async function listCloneGiftReceipts(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ items: GiftReceiptItem[] }> {
+  return authFetch(
+    `/oth-path${cloneId}/gifts/summary`,
+    accessToken,
+    { method: "GET" },
+  );
+}
+
 export interface IntimacyEvent {
   id: number;
   action: "chat" | "call" | "learn" | "feed";
