@@ -45,7 +45,7 @@ type Props = {
   navigation: v_390fcc<v_2b51a5, 'PersonaAssistant'>;
 };
 
-const v_291e91 = '페르소나 생성 도우미';
+const v_291e91 = '클론 생성 도우미';
 const v_90ef75 = require('../../../assets/images/symbol.png');
 
 function v_a7e583(q: v_c8af29, v_00da68): boolean {
@@ -58,7 +58,7 @@ function v_a7e583(q: v_c8af29, v_00da68): boolean {
 type SystemPhase = 'name' | 'username' | 'relation';
 
 const v_d09784 = {
-  name: '안녕하세요! 페르소나 생성 도우미입니다.\n\n지금 생성하는 페르소나의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
+  name: '안녕하세요! 클론 생성 도우미입니다.\n\n지금 생성하는 클론의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
   username:
     '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
   relation: '어떤 관계인가요?\n아래에서 선택해 주세요.',

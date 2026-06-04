@@ -685,13 +685,11 @@ export default function v_def15b() {
               <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText}>상호작용</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={v_fd5f43.stat}
-              onPress={() => v_598141({ cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
-            >
+            {}
+            <View style={v_fd5f43.stat}>
               <Feather name="thermometer" size={14} color="#fb923c" />
               <Text style={v_fd5f43.statText}>온도</Text>
-            </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -736,7 +734,7 @@ export default function v_def15b() {
             onPress={async () => {
 
               const v_f71b56 = `https://afterlife.app/clone/${v_eb25ce.id}`;
-              const v_a8cd21 = `${v_eb25ce.displayName} 페르소나와 대화해보세요!\n${v_f71b56}`;
+              const v_a8cd21 = `${v_eb25ce.displayName} 클론과 대화해보세요!\n${v_f71b56}`;
               try {
                 await v_5f4661.share(
                   v_326be8.OS === "ios"
@@ -813,9 +811,9 @@ export default function v_def15b() {
             <View style={v_fd5f43.dashEmptyIconWrap}>
               <Feather name="user-plus" size={32} color={v_1bfbd0.zinc400} />
             </View>
-            <Text style={v_fd5f43.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
+            <Text style={v_fd5f43.dashEmptyTitle}>나만의 클론을 만들어보세요</Text>
             <Text style={v_fd5f43.dashEmptyDesc}>
-              아래 버튼을 눌러 첫 페르소나를 만들 수 있어요
+              아래 버튼을 눌러 첫 클론을 만들 수 있어요
             </Text>
             <TouchableOpacity
               style={v_fd5f43.dashEmptyBtn}
@@ -831,7 +829,7 @@ export default function v_def15b() {
               }
             >
               <Feather name="plus" size={18} color={v_1bfbd0.white} />
-              <Text style={v_fd5f43.dashEmptyBtnText}>페르소나 만들기</Text>
+              <Text style={v_fd5f43.dashEmptyBtnText}>클론 만들기</Text>
             </TouchableOpacity>
           </View>
         }
@@ -909,7 +907,7 @@ export default function v_def15b() {
                     <View style={v_fd5f43.profileStatDivider} />
                     <View style={v_fd5f43.profileStatItem}>
                       <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
-                      <Text style={v_fd5f43.profileStatLabel}>페르소나</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>클론</Text>
                     </View>
                   </View>
                 </View>
@@ -1027,12 +1025,12 @@ export default function v_def15b() {
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_3e0da5(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>
-              {v_16ef58?.currentState ? "페르소나 비활성화" : "페르소나 활성화"}
+              {v_16ef58?.currentState ? "클론 비활성화" : "클론 활성화"}
             </Text>
             <Text style={v_fd5f43.modalDesc}>
               {v_16ef58?.currentState
-                ? "페르소나를 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
-                : "페르소나를 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
+                ? "클론을 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
+                : "클론을 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
             </Text>
             <View style={v_fd5f43.modalBtns}>
               <Button
@@ -1057,7 +1055,7 @@ export default function v_def15b() {
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>공개 범위</Text>
-            <Text style={v_fd5f43.modalDesc}>이 페르소나를 누구에게 보일까요?</Text>
+            <Text style={v_fd5f43.modalDesc}>이 클론을 누구에게 보일까요?</Text>
             <View style={v_fd5f43.visibilityOptions}>
               {(["public", "followers", "selected", "private"] as v_b0b271[]).map((v_81e2ef) => {
                 const v_587413 = v_7462ec?.currentVisibility === v_81e2ef;
@@ -1497,7 +1495,7 @@ const v_2c1f99 = [
 
 const v_2fb1c1 = [
   { id: "c1", name: "김민수", avatar: "https://i.pravatar.cc/100?img=1", text: "정말 도움이 많이 됐어요! 감사합니다.", time: "2시간 전" },
-  { id: "c2", name: "이서연", avatar: "https://i.pravatar.cc/100?img=5", text: "이 페르소나 대화 퀄리티가 진짜 좋네요", time: "5시간 전" },
+  { id: "c2", name: "이서연", avatar: "https://i.pravatar.cc/100?img=5", text: "이 클론 대화 퀄리티가 진짜 좋네요", time: "5시간 전" },
   { id: "c3", name: "박지훈", avatar: "https://i.pravatar.cc/100?img=3", text: "위로가 되는 말씀 감사해요 ㅠㅠ", time: "어제" },
   { id: "c4", name: "최유진", avatar: "https://i.pravatar.cc/100?img=9", text: "매일 대화하고 있어요 추천합니다!", time: "2일 전" },
   { id: "c5", name: "정하은", avatar: "https://i.pravatar.cc/100?img=10", text: "목소리도 자연스럽고 너무 좋아요", time: "3일 전" },

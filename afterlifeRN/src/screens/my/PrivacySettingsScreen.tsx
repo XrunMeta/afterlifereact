@@ -102,9 +102,9 @@ export default function v_9232cf() {
         ) : v_4622b9.length === 0 ? (
           <View style={v_fd5f43.empty}>
             <Feather name="slash" size={36} color={v_1bfbd0.zinc300} />
-            <Text style={v_fd5f43.emptyText}>차단한 페르소나가 없어요</Text>
+            <Text style={v_fd5f43.emptyText}>차단한 클론이 없어요</Text>
             <Text style={v_fd5f43.emptySub}>
-              페르소나 메뉴에서 차단할 수 있어요
+              클론 메뉴에서 차단할 수 있어요
             </Text>
           </View>
         ) : (

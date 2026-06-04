@@ -19,7 +19,7 @@ test('typing into name fires onChange with merged name', () => {
   const { getByPlaceholderText: v_c42d22 } = v_624657(
     <DefaultBasicInfo draft={v_788a71} onChange={v_b187d9} />,
   );
-  v_77aa68.changeText(v_c42d22('페르소나 이름'), '루나');
+  v_77aa68.changeText(v_c42d22('클론 이름'), '루나');
   expect(v_b187d9).toHaveBeenCalledWith({ name: '루나' });
 });
 

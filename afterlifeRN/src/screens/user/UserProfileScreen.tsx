@@ -338,7 +338,7 @@ export default function v_c501aa() {
                         <Text style={v_fd5f43.profileStatValue}>
                           {v_727031.clones.length}
                         </Text>
-                        <Text style={v_fd5f43.profileStatLabel}>페르소나</Text>
+                        <Text style={v_fd5f43.profileStatLabel}>클론</Text>
                       </View>
                     </View>
                   </View>
@@ -382,14 +382,14 @@ export default function v_c501aa() {
               </View>
 
               <Text style={v_fd5f43.sectionTitle}>
-                만든 페르소나 ({v_727031.clones.length})
+                만든 클론 ({v_727031.clones.length})
               </Text>
             </>
           }
           ListEmptyComponent={
             <View style={v_fd5f43.empty}>
               <Feather name="users" size={32} color={v_1bfbd0.zinc300} />
-              <Text style={v_fd5f43.emptyText}>아직 만든 페르소나가 없어요</Text>
+              <Text style={v_fd5f43.emptyText}>아직 만든 클론이 없어요</Text>
             </View>
           }
         />

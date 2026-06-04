@@ -85,8 +85,8 @@ export default function v_9e01f7() {
             {v_4622b9.map((v_2f6fcc, v_ebec57) => {
               const v_2869c1 =
                 v_2f6fcc.type === "gift_sent"
-                  ? `${v_2f6fcc.cloneName ?? "페르소나"}에게 ${v_2f6fcc.giftName} 선물`
-                  : `${v_2f6fcc.cloneName ?? "페르소나"}로부터 ${v_2f6fcc.giftName} 선물 수익`;
+                  ? `${v_2f6fcc.cloneName ?? "클론"}에게 ${v_2f6fcc.giftName} 선물`
+                  : `${v_2f6fcc.cloneName ?? "클론"}으로부터 ${v_2f6fcc.giftName} 선물 수익`;
               const v_d39e5b = v_2f6fcc.amount > 0;
               return (
                 <View

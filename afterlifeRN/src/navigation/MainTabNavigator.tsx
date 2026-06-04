@@ -102,7 +102,7 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; label: 
   SearchTab: { icon: "search", label: "검색" },
   CreateTab: { icon: "plus-circle", label: "생성" },
   ShortsTab: { icon: "user-check", label: "구독 중" },
-  ClonesTab: { icon: "users", label: "페르소나" },
+  ClonesTab: { icon: "users", label: "클론" },
   MyTab: { icon: "user", label: "마이" },
 };
 
