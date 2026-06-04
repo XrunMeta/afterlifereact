@@ -1,9 +1,6 @@
 [
-  { "id": "gift-test", "name": "테스트", "emoji": "🧪", "price": 0.001 },
-  { "id": "gift-1", "name": "장미", "emoji": "🌹", "price": 10 },
-  { "id": "gift-2", "name": "해바라기", "emoji": "🌻", "price": 10 },
-  { "id": "gift-3", "name": "튤립", "emoji": "🌷", "price": 10 },
-  { "id": "gift-4", "name": "벚꽃", "emoji": "🌸", "price": 10 },
-  { "id": "gift-5", "name": "하트", "emoji": "❤️", "price": 10 },
-  { "id": "gift-6", "name": "별", "emoji": "⭐", "price": 10 }
+  { "id": "gift-starcandy", "name": "별사탕", "emoji": "🍬", "price": 10 },
+  { "id": "gift-bouquet",   "name": "꽃다발", "emoji": "💐", "price": 10 },
+  { "id": "gift-like",      "name": "좋아요", "emoji": "👍", "price": 10 },
+  { "id": "gift-heartbeat", "name": "두근두근", "emoji": "💓", "price": 10 }
 ]

@@ -463,6 +463,24 @@ export async function v_81d12f(v_2ca7e0): Promise<{ items: SystemClone[] }> {
   return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
 }
 
+export interface GiftReceiptItem {
+  giftId: string;
+  giftName: string;
+  count: number;
+  sender: string;
+}
+
+export async function v_d24912(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ items: GiftReceiptItem[] }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/gifts/summary`,
+    v_2ca7e0,
+    { method: "GET" },
+  );
+}
+
 export interface IntimacyEvent {
   id: number;
   action: "chat" | "call" | "learn" | "feed";

@@ -24,6 +24,7 @@ import { v_7a6fc0 } from "../lib/xrun";
 import { v_c226a5, v_80a022 } from "../lib/notify";
 import { v_0b44ec } from "../lib/personaQuestions";
 import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
+import { v_5acfc3 } from "../lib/utils";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -1468,4 +1469,48 @@ v_f891e6.post("/:id/chat-event", v_6690d9, async (v_3f4e2e) => {
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "chat");
   const v_cb35cb = await v_721d54(v_3f4e2e.env, v_43e90c, v_6e0fd3, v_cf0463.chat, "chat");
   return v_3f4e2e.json({ ok: true, scoreApplied: v_cb35cb.applied });
+});
+
+v_f891e6.get("/:id/gifts/summary", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  if (v_eb25ce.owner_id !== v_43e90c)
+    throw new v_3ebe58("FORBIDDEN", "소유자만 열람할 수 있어요.");
+
+  const v_18b8bf = await v_a1651b
+    .prepare(
+      `SELECT g.gift_id, g.gift_name,
+              COUNT(*) AS cnt, MAX(g.created_at) AS last_at,
+              u.name AS sender_name
+       FROM gift_logs g
+       LEFT JOIN users u ON u.id = g.sender_user_id
+       WHERE g.clone_id = ? AND g.status = 'sent'
+       GROUP BY g.gift_id, g.gift_name, g.sender_user_id
+       ORDER BY cnt DESC, last_at DESC
+       LIMIT 200`,
+    )
+    .bind(v_6e0fd3)
+    .all<{
+      gift_id: string;
+      gift_name: string;
+      cnt: number;
+      last_at: string; 
+      sender_name: string | null;
+    }>();
+
+  const v_4622b9 = (v_18b8bf.results ?? []).map((v_cb35cb) => ({
+    giftId: v_cb35cb.gift_id,
+    giftName: v_cb35cb.gift_name,
+    count: v_cb35cb.cnt,
+    sender: v_5acfc3(v_cb35cb.sender_name), 
+  }));
+
+  return v_3f4e2e.json({ items: v_4622b9 });
 });
