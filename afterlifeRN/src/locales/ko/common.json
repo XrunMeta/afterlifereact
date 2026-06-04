@@ -507,6 +507,7 @@
       "defaultShortDesc": "친구·멘토·유명인 등 자유 페르소나"
     },
     "relations": {
+      "self": "본인",
       "mother": "어머니",
       "father": "아버지",
       "spouse": "배우자",

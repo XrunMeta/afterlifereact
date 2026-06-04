@@ -32,6 +32,7 @@ export const v_0a40d6 = [
   { id: 'sibling', label: 'create.relations.sibling' },
   { id: 'friend', label: 'create.relations.friend' },
   { id: 'pet', label: 'create.relations.pet' },
+  { id: 'self', label: 'create.relations.self' },
   { id: 'other', label: 'create.relations.other' },
 ] as const;
 
