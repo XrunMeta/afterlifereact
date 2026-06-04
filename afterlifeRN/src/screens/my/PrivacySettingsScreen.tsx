@@ -102,9 +102,9 @@ export default function PrivacySettingsScreen() {
         ) : items.length === 0 ? (
           <View style={s.empty}>
             <Feather name="slash" size={36} color={COLORS.zinc300} />
-            <Text style={s.emptyText}>차단한 페르소나가 없어요</Text>
+            <Text style={s.emptyText}>차단한 클론이 없어요</Text>
             <Text style={s.emptySub}>
-              페르소나 메뉴에서 차단할 수 있어요
+              클론 메뉴에서 차단할 수 있어요
             </Text>
           </View>
         ) : (

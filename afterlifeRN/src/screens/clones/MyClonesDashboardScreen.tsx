@@ -685,13 +685,11 @@ export default function MyClonesDashboardScreen() {
               <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
               <Text style={s.statText}>상호작용</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={s.stat}
-              onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
-            >
+            {}
+            <View style={s.stat}>
               <Feather name="thermometer" size={14} color="#fb923c" />
               <Text style={s.statText}>온도</Text>
-            </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -736,7 +734,7 @@ export default function MyClonesDashboardScreen() {
             onPress={async () => {
 
               const url = `https://afterlife.app/clone/${clone.id}`;
-              const message = `${clone.displayName} 페르소나와 대화해보세요!\n${url}`;
+              const message = `${clone.displayName} 클론과 대화해보세요!\n${url}`;
               try {
                 await Share.share(
                   Platform.OS === "ios"
@@ -813,9 +811,9 @@ export default function MyClonesDashboardScreen() {
             <View style={s.dashEmptyIconWrap}>
               <Feather name="user-plus" size={32} color={COLORS.zinc400} />
             </View>
-            <Text style={s.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
+            <Text style={s.dashEmptyTitle}>나만의 클론을 만들어보세요</Text>
             <Text style={s.dashEmptyDesc}>
-              아래 버튼을 눌러 첫 페르소나를 만들 수 있어요
+              아래 버튼을 눌러 첫 클론을 만들 수 있어요
             </Text>
             <TouchableOpacity
               style={s.dashEmptyBtn}
@@ -831,7 +829,7 @@ export default function MyClonesDashboardScreen() {
               }
             >
               <Feather name="plus" size={18} color={COLORS.white} />
-              <Text style={s.dashEmptyBtnText}>페르소나 만들기</Text>
+              <Text style={s.dashEmptyBtnText}>클론 만들기</Text>
             </TouchableOpacity>
           </View>
         }
@@ -909,7 +907,7 @@ export default function MyClonesDashboardScreen() {
                     <View style={s.profileStatDivider} />
                     <View style={s.profileStatItem}>
                       <Text style={s.profileStatValue}>{visibleClones.length}</Text>
-                      <Text style={s.profileStatLabel}>페르소나</Text>
+                      <Text style={s.profileStatLabel}>클론</Text>
                     </View>
                   </View>
                 </View>
@@ -1027,12 +1025,12 @@ export default function MyClonesDashboardScreen() {
         <Pressable style={s.modalOverlay} onPress={() => setToggleModal(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
             <Text style={s.modalTitle}>
-              {toggleModal?.currentState ? "페르소나 비활성화" : "페르소나 활성화"}
+              {toggleModal?.currentState ? "클론 비활성화" : "클론 활성화"}
             </Text>
             <Text style={s.modalDesc}>
               {toggleModal?.currentState
-                ? "페르소나를 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
-                : "페르소나를 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
+                ? "클론을 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
+                : "클론을 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
             </Text>
             <View style={s.modalBtns}>
               <Button
@@ -1057,7 +1055,7 @@ export default function MyClonesDashboardScreen() {
         <Pressable style={s.modalOverlay} onPress={() => setVisibilityModal(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
             <Text style={s.modalTitle}>공개 범위</Text>
-            <Text style={s.modalDesc}>이 페르소나를 누구에게 보일까요?</Text>
+            <Text style={s.modalDesc}>이 클론을 누구에게 보일까요?</Text>
             <View style={s.visibilityOptions}>
               {(["public", "followers", "selected", "private"] as Visibility[]).map((v) => {
                 const selected = visibilityModal?.currentVisibility === v;
@@ -1497,7 +1495,7 @@ const MOCK_INTERACTIONS = [
 
 const MOCK_COMMENTS = [
   { id: "c1", name: "김민수", avatar: "https://i.pravatar.cc/100?img=1", text: "정말 도움이 많이 됐어요! 감사합니다.", time: "2시간 전" },
-  { id: "c2", name: "이서연", avatar: "https://i.pravatar.cc/100?img=5", text: "이 페르소나 대화 퀄리티가 진짜 좋네요", time: "5시간 전" },
+  { id: "c2", name: "이서연", avatar: "https://i.pravatar.cc/100?img=5", text: "이 클론 대화 퀄리티가 진짜 좋네요", time: "5시간 전" },
   { id: "c3", name: "박지훈", avatar: "https://i.pravatar.cc/100?img=3", text: "위로가 되는 말씀 감사해요 ㅠㅠ", time: "어제" },
   { id: "c4", name: "최유진", avatar: "https://i.pravatar.cc/100?img=9", text: "매일 대화하고 있어요 추천합니다!", time: "2일 전" },
   { id: "c5", name: "정하은", avatar: "https://i.pravatar.cc/100?img=10", text: "목소리도 자연스럽고 너무 좋아요", time: "3일 전" },

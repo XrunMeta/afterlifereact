@@ -180,7 +180,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `${item.author} 페르소나와 만나보세요!\nhttps://afterlife.app/clone/${item.cloneId}`,
+        message: `${item.author} 클론과 만나보세요!\nhttps://afterlife.app/clone/${item.cloneId}`,
         title: item.author,
       });
     } catch (err) {
@@ -655,7 +655,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                     if (!accessToken) return;
                     try {
                       await blockClone(accessToken, item.cloneId);
-                      setToastMessage("이 페르소나가 차단됐어요");
+                      setToastMessage("이 클론이 차단됐어요");
                       navigation.goBack();
                     } catch (err) {
                       console.warn("[CloneFeed] block failed:", err);
@@ -683,7 +683,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
           if (!target || !accessToken) return;
           try {
             await reportClone(accessToken, target.cloneId, reason || undefined);
-            setToastMessage("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            setToastMessage("신고가 접수됐어요. 이 클론은 차단됐어요");
             navigation.goBack();
           } catch (err) {
             console.warn("[CloneFeed] report failed:", err);

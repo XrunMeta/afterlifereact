@@ -20,7 +20,7 @@ jest.mock('react-i18next', () => ({
         'create.complete.celebTitle': '팬클럽이 시작됐어요',
         'create.complete.celebSub': '첫 메시지를 남겨 보세요.',
         'create.complete.featAutoLearn': '자동 학습',
-        'create.complete.featAutoLearnDesc': '대화를 나눌수록 페르소나가 더 똑똑해져요',
+        'create.complete.featAutoLearnDesc': '대화를 나눌수록 클론이 더 똑똑해져요',
         'create.complete.featSecurity': '데이터 보안',
         'create.complete.featSecurityDesc': '모든 데이터는 안전하게 암호화되어 보호됩니다',
       };

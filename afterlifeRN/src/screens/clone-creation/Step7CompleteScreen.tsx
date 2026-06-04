@@ -42,7 +42,7 @@ const FEATURES = [
   {
     icon: "refresh-cw",
     title: "자동 학습",
-    desc: "대화를 나눌수록 페르소나가 더 똑똑해져요",
+    desc: "대화를 나눌수록 클론이 더 똑똑해져요",
   },
   {
     icon: "shield",
@@ -333,7 +333,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (!draft.cloneType) {
-      setError("페르소나 정보가 없어요. 처음부터 다시 만들어주세요.");
+      setError("클론 정보가 없어요. 처음부터 다시 만들어주세요.");
     }
   }, [draft.cloneType]);
 
@@ -420,7 +420,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       console.log("[CLONE-CREATE] BLOCKED: name missing");
       showAlert(
         "이름 누락",
-        "페르소나 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
+        "클론 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
       );
       return;
     }
@@ -444,7 +444,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       }
       if (!newCloneId) {
 
-        throw new Error("페르소나 생성에 실패했어요. (cloneId 누락)");
+        throw new Error("클론 생성에 실패했어요. (cloneId 누락)");
       }
 
       const mediaUrl = avatarUrlRef.current ?? null;
@@ -691,9 +691,9 @@ export default function Step7CompleteScreen({ navigation }: Props) {
               <View style={payStyles.iconWrap}>
                 <Feather name="credit-card" size={26} color={COLORS.violet600} />
               </View>
-              <Text style={payStyles.title}>페르소나 생성 결제</Text>
+              <Text style={payStyles.title}>클론 생성 결제</Text>
               <Text style={payStyles.desc}>
-                두 번째 페르소나부터 {payPrice} XRUN 이 부과돼요{"\n"}
+                두 번째 클론부터 {payPrice} XRUN 이 부과돼요{"\n"}
                 결제 비밀번호 6자리를 입력해 주세요
               </Text>
               <TextInput
@@ -723,7 +723,7 @@ export default function Step7CompleteScreen({ navigation }: Props) {
                   disabled={pinInput.length !== 6 || paying}
                 >
                   <Text style={payStyles.confirmText}>
-                    {paying ? "결제 중..." : `${payPrice} XRUN 결제`}
+                    {paying ? "결제 중..." : "결제"}
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -85,8 +85,8 @@ export default function TransactionsScreen() {
             {items.map((tx, i) => {
               const label =
                 tx.type === "gift_sent"
-                  ? `${tx.cloneName ?? "페르소나"}에게 ${tx.giftName} 선물`
-                  : `${tx.cloneName ?? "페르소나"}로부터 ${tx.giftName} 선물 수익`;
+                  ? `${tx.cloneName ?? "클론"}에게 ${tx.giftName} 선물`
+                  : `${tx.cloneName ?? "클론"}으로부터 ${tx.giftName} 선물 수익`;
               const positive = tx.amount > 0;
               return (
                 <View

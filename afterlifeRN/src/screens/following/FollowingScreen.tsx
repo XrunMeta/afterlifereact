@@ -689,8 +689,8 @@ export default function FollowingScreen() {
         ListEmptyComponent={
           <View style={s.emptyWrap}>
             <Feather name="users" size={48} color={COLORS.zinc300} />
-            <Text style={s.emptyTitle}>아직 구독한 페르소나가 없어요</Text>
-            <Text style={s.emptyDesc}>홈에서 마음에 드는 페르소나를 구독해 보세요</Text>
+            <Text style={s.emptyTitle}>아직 구독한 클론이 없어요</Text>
+            <Text style={s.emptyDesc}>홈에서 마음에 드는 클론을 구독해 보세요</Text>
           </View>
         }
       />

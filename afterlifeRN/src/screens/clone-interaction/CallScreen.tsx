@@ -18,9 +18,9 @@ import {
   Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { useCameraPermissions } from "expo-camera";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { RTCView } from "react-native-webrtc";
+import { RTCView, mediaDevices } from "react-native-webrtc";
 import { useLiveAvatar } from "../../realtime/useLiveAvatar";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -70,6 +70,51 @@ export default function CallScreen({ route, navigation }: Props) {
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+
+  const localStreamRef = useRef<MediaStream | null>(null);
+
+  const stopLocalStream = useCallback(() => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!permission?.granted || isVideoOff) {
+      stopLocalStream();
+      setLocalStream(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const stream = await mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: cameraFacing === "front" ? "user" : "environment",
+          },
+        }) as unknown as MediaStream;
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        stopLocalStream(); 
+        localStreamRef.current = stream;
+        setLocalStream(stream);
+      } catch (err) {
+        console.warn("[Call][PiP] getUserMedia failed:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+
+  }, [permission?.granted, cameraFacing, isVideoOff, stopLocalStream]);
+
+  useEffect(() => () => stopLocalStream(), [stopLocalStream]);
 
   const {
     state: liveState,
@@ -409,7 +454,8 @@ export default function CallScreen({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {}
+      {
+}
       <TouchableOpacity
         style={[s.pip, { top: insets.top + 8 }]}
         activeOpacity={0.9}
@@ -419,8 +465,14 @@ export default function CallScreen({ route, navigation }: Props) {
           <View style={s.pipOff}>
             <Feather name="video-off" size={20} color={COLORS.zinc600} />
           </View>
-        ) : permission?.granted ? (
-          <CameraView style={s.pipCamera} facing={cameraFacing} />
+        ) : localStream ? (
+          <RTCView
+            streamURL={(localStream as unknown as { toURL: () => string }).toURL()}
+            style={s.pipCamera}
+            objectFit="cover"
+            zOrder={1}
+            mirror={cameraFacing === "front"}
+          />
         ) : (
           <View style={s.pipOff}>
             <Feather name="camera-off" size={20} color={COLORS.zinc600} />
@@ -434,7 +486,9 @@ export default function CallScreen({ route, navigation }: Props) {
       {}
       <View style={[s.callInfo, { top: insets.top + 24 }]}>
         <Text style={s.callName}>{personaName}</Text>
-        <Text style={s.callTimeText}>{callTimeStr}</Text>
+        <Text style={s.callTimeText}>
+          {liveState === "live" ? callTimeStr : "연결 중…"}
+        </Text>
       </View>
 
       {}

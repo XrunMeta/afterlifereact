@@ -141,9 +141,9 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
             <View style={styles.iconWrap}>
               <Feather name="credit-card" size={26} color={COLORS.violet600} />
             </View>
-            <Text style={styles.title}>페르소나 생성 결제</Text>
+            <Text style={styles.title}>클론 생성 결제</Text>
             <Text style={styles.desc}>
-              두 번째 페르소나부터 {PERSONA_PAID_PRICE_XRUN} XRUN 이 부과돼요.{"\n"}
+              두 번째 클론부터 {PERSONA_PAID_PRICE_XRUN} XRUN 이 부과돼요.{"\n"}
               결제 비밀번호 6자리를 입력해주세요.
             </Text>
             {balance !== null && (
@@ -186,7 +186,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 disabled={pin.length !== 6 || blockInput}
               >
                 <Text style={styles.confirmText}>
-                  {`${PERSONA_PAID_PRICE_XRUN} XRUN 결제`}
+                  결제
                 </Text>
               </TouchableOpacity>
             </View>
