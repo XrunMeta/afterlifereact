@@ -171,6 +171,41 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
     return currentSchemaIdx;
   })();
 
+  const SYS_STEP = 0.05;      
+  const SCHEMA_BASE = 0.15;   
+  const TEXT_WEIGHT = 4;      
+  const CHOICE_WEIGHT = 1;    
+
+  const rawProgress = useMemo(() => {
+
+    if (phase === 'init' || phase === 'sys:name') return 0;
+    if (phase === 'sys:username') return SYS_STEP;                          
+    if (phase === 'sys:relation' || phase === 'sys:relation-custom') return SYS_STEP * 2; 
+    if (phase === 'done') return 1;
+
+    if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
+      const visible = visibleSchemaQuestions;
+      const weightOf = (q: PersonaQuestion) =>
+        q.type === 'text' ? TEXT_WEIGHT : CHOICE_WEIGHT;
+      const totalW = visible.reduce((sum, q) => sum + weightOf(q), 0);
+      if (totalW <= 0) return SCHEMA_BASE;
+
+      const doneW = visible
+        .slice(0, currentVisibleIdx)
+        .reduce((sum, q) => sum + weightOf(q), 0);
+      return Math.min(1, SCHEMA_BASE + (1 - SCHEMA_BASE) * (doneW / totalW));
+    }
+
+    return SCHEMA_BASE; 
+  }, [phase, currentVisibleIdx, visibleSchemaQuestions]);
+
+  const [displayProgress, setDisplayProgress] = useState(0);
+  useEffect(() => {
+    setDisplayProgress((prev) => Math.max(prev, rawProgress));
+  }, [rawProgress]);
+
+  const progressPct = Math.round(displayProgress * 100);
+
   const fetchGemma = useCallback(async () => {
     if (gemmaCalledRef.current || !accessToken) return;
     gemmaCalledRef.current = true;
@@ -551,6 +586,21 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         <View style={{ width: 38 }} />
       </View>
 
+      {}
+      <View style={s.progressCard}>
+        <View style={s.progressTopRow}>
+          <View style={s.progressLabelRow}>
+            <Feather name="zap" size={15} color="#f97316" />
+            <Text style={s.progressLabel}>{t('chat.trainingLabel')}</Text>
+          </View>
+          <Text style={s.progressPct}>{progressPct}%</Text>
+        </View>
+        <View style={s.progressTrack}>
+          <View style={[s.progressFill, { width: `${progressPct}%` }]} />
+        </View>
+        <Text style={s.progressHint}>{t('chat.trainingHint')}</Text>
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -828,6 +878,38 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   sendBtnDisabled: { backgroundColor: COLORS.zinc200 },
+
+  progressCard: {
+    marginHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 4,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: COLORS.zinc50,
+    borderWidth: 1,
+    borderColor: COLORS.zinc100,
+  },
+  progressTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  progressLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  progressLabel: { fontSize: 14, fontWeight: '700', color: COLORS.zinc900 },
+  progressPct: { fontSize: 14, fontWeight: '700', color: COLORS.zinc900 },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.zinc200,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#f97316',
+  },
+  progressHint: { fontSize: 12, color: COLORS.zinc500, marginTop: 8 },
 });
 
 void SIZES;
