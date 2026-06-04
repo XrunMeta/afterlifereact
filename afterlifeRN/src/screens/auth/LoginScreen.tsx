@@ -184,7 +184,6 @@ export default function LoginScreen({ navigation }: Props) {
           <View style={styles.logoContainer}>
             <Image source={require("../../../assets/images/symbol.png")} style={styles.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.subtitle}>{t("auth.login.title")}</Text>
           </View>
 
           {}

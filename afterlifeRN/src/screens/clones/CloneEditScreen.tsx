@@ -188,7 +188,7 @@ export default function CloneEditScreen({ route, navigation }: Props) {
         />
 
         {}
-        <Text style={s.sectionHeader}>페르소나 설명</Text>
+        <Text style={s.sectionHeader}>클론 설명</Text>
         <TextField
           label="첫 만남"
           value={firstMeeting}

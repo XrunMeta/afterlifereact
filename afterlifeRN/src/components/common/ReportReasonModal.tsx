@@ -91,7 +91,7 @@ export default function ReportReasonModal({
             </View>
             <Text style={styles.title}>신고하기</Text>
             <Text style={styles.desc}>
-              {targetName ? `'${targetName}' ` : ""}페르소나를 신고하는 사유를{"\n"}
+              {targetName ? `'${targetName}' ` : ""}클론을 신고하는 사유를{"\n"}
               간단히 입력해주세요. (선택)
             </Text>
             <TextInput

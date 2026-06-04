@@ -30,7 +30,7 @@ test('MyScreen renders current user displayName + handle', () => {
 test('MyScreen shows 팔로우 중 and 내 페르소나 counts', () => {
   render(<MyScreen />);
   expect(screen.getByText('팔로우 중')).toBeTruthy();
-  expect(screen.getByText('내 페르소나')).toBeTruthy();
+  expect(screen.getByText('내 클론')).toBeTruthy();
 });
 
 test('myClones count equals SEED.clones owned by user id 1', () => {

@@ -19,7 +19,7 @@ test('typing into name fires onChange with merged name', () => {
   const { getByPlaceholderText } = render(
     <DefaultBasicInfo draft={baseDraft} onChange={onChange} />,
   );
-  fireEvent.changeText(getByPlaceholderText('페르소나 이름'), '루나');
+  fireEvent.changeText(getByPlaceholderText('클론 이름'), '루나');
   expect(onChange).toHaveBeenCalledWith({ name: '루나' });
 });
 

@@ -45,7 +45,7 @@ type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, 'PersonaAssistant'>;
 };
 
-const AI_NAME = '페르소나 생성 도우미';
+const AI_NAME = '클론 생성 도우미';
 const AI_AVATAR_SRC = require('../../../assets/images/symbol.png');
 
 function isVisible(q: PersonaQuestion, answers: Record<string, string>): boolean {
@@ -58,7 +58,7 @@ function isVisible(q: PersonaQuestion, answers: Record<string, string>): boolean
 type SystemPhase = 'name' | 'username' | 'relation';
 
 const SYS_PROMPTS: Record<SystemPhase, string> = {
-  name: '안녕하세요! 페르소나 생성 도우미입니다.\n\n지금 생성하는 페르소나의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
+  name: '안녕하세요! 클론 생성 도우미입니다.\n\n지금 생성하는 클론의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
   username:
     '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
   relation: '어떤 관계인가요?\n아래에서 선택해 주세요.',

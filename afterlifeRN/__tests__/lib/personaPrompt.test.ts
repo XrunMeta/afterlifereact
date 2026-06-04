@@ -31,7 +31,7 @@ describe('draftToL1Profile', () => {
 
 describe('formatPersonaPrompt', () => {
   test('empty snapshot → placeholder', () => {
-    expect(formatPersonaPrompt({})).toBe('(페르소나 정보가 비어 있음)');
+    expect(formatPersonaPrompt({})).toBe('(클론 정보가 비어 있음)');
   });
 
   test('renders name + meta + personalities + interests', () => {

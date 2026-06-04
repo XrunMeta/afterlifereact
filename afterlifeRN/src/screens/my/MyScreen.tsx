@@ -216,7 +216,7 @@ export default function MyScreen() {
       apiUser?.name || apiUser?.email?.split("@")[0] || "회원";
     showAlert(
       "벌써 떠나시나요?",
-      `${displayName} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 페르소나는 영구적으로 사라져요.`,
+      `${displayName} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 클론은 영구적으로 사라져요.`,
       [
 
         { text: "조금 더 써볼래요", style: "cancel" },
@@ -408,7 +408,7 @@ export default function MyScreen() {
                 !apiFollowingList || apiFollowingList.length === 0 ? (
                   <View style={s.statsEmpty}>
                     <Feather name="users" size={28} color={COLORS.zinc300} />
-                    <Text style={s.statsEmptyText}>아직 구독한 페르소나가 없어요</Text>
+                    <Text style={s.statsEmptyText}>아직 구독한 클론이 없어요</Text>
                   </View>
                 ) : (
                   apiFollowingList.map((c) => {
@@ -478,7 +478,7 @@ export default function MyScreen() {
                 !apiMyClonesList || apiMyClonesList.length === 0 ? (
                   <View style={s.statsEmpty}>
                     <Feather name="user" size={28} color={COLORS.zinc300} />
-                    <Text style={s.statsEmptyText}>아직 만든 페르소나가 없어요</Text>
+                    <Text style={s.statsEmptyText}>아직 만든 클론이 없어요</Text>
                   </View>
                 ) : (
                   apiMyClonesList.map((c) => (

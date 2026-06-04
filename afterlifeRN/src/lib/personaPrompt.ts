@@ -100,5 +100,5 @@ export function formatPersonaPrompt(
   const notes = p.l1?.notes?.trim();
   if (notes) lines.push('', notes);
 
-  return lines.length > 0 ? lines.join('\n') : '(페르소나 정보가 비어 있음)';
+  return lines.length > 0 ? lines.join('\n') : '(클론 정보가 비어 있음)';
 }

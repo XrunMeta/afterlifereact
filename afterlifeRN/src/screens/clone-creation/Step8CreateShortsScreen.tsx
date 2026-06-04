@@ -25,9 +25,9 @@ export default function Step8CreateShortsScreen({ navigation }: Props) {
         <View style={styles.successCircle}>
           <Feather name="check" size={48} color={COLORS.white} />
         </View>
-        <Text style={styles.title}>페르소나가 완성되었습니다</Text>
+        <Text style={styles.title}>클론이 완성되었습니다</Text>
         <Text style={styles.subtitle}>
-          이제 페르소나와 대화하거나{"\n"}새 게시물을 올릴 수 있어요.
+          이제 클론과 대화하거나{"\n"}새 게시물을 올릴 수 있어요.
         </Text>
       </View>
 

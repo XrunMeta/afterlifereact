@@ -71,7 +71,7 @@ export default function BlockedListScreen() {
       ) : items.length === 0 ? (
         <View style={s.center}>
           <Feather name="slash" size={32} color={COLORS.zinc300} />
-          <Text style={s.empty}>차단한 페르소나가 없어요</Text>
+          <Text style={s.empty}>차단한 클론이 없어요</Text>
         </View>
       ) : (
         <FlatList
