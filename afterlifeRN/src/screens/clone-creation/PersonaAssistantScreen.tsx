@@ -171,6 +171,41 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     return v_089434;
   })();
 
+  const v_cd9adb = 0.05;      
+  const v_29bce9 = 0.15;   
+  const v_c0a2da = 4;      
+  const v_d53712 = 1;    
+
+  const v_ba35ae = v_df9f57(() => {
+
+    if (v_ab4803 === 'init' || v_ab4803 === 'sys:name') return 0;
+    if (v_ab4803 === 'sys:username') return v_cd9adb;                          
+    if (v_ab4803 === 'sys:relation' || v_ab4803 === 'sys:relation-custom') return v_cd9adb * 2; 
+    if (v_ab4803 === 'done') return 1;
+
+    if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
+      const v_cf55be = v_7b2d16;
+      const v_02d66b = (q: v_c8af29) =>
+        v_ab6401.type === 'text' ? v_c0a2da : v_d53712;
+      const v_78d11f = v_cf55be.reduce((v_dce0a8, v_ab6401) => v_dce0a8 + v_02d66b(v_ab6401), 0);
+      if (v_78d11f <= 0) return v_29bce9;
+
+      const v_09394e = v_cf55be
+        .slice(0, v_d776c4)
+        .reduce((v_dce0a8, v_ab6401) => v_dce0a8 + v_02d66b(v_ab6401), 0);
+      return Math.min(1, v_29bce9 + (1 - v_29bce9) * (v_09394e / v_78d11f));
+    }
+
+    return v_29bce9; 
+  }, [v_ab4803, v_d776c4, v_7b2d16]);
+
+  const [v_9339ad, v_9a6920] = v_5ab095(0);
+  v_c4deb2(() => {
+    v_9a6920((v_ba2215) => Math.max(v_ba2215, v_ba35ae));
+  }, [v_ba35ae]);
+
+  const v_dc2799 = Math.round(v_9339ad * 100);
+
   const v_fdd1bf = v_de06a3(async () => {
     if (v_19911c.current || !v_2ca7e0) return;
     v_19911c.current = true;
@@ -551,6 +586,21 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         <View style={{ width: 38 }} />
       </View>
 
+      {}
+      <View style={v_fd5f43.progressCard}>
+        <View style={v_fd5f43.progressTopRow}>
+          <View style={v_fd5f43.progressLabelRow}>
+            <Feather name="zap" size={15} color="#f97316" />
+            <Text style={v_fd5f43.progressLabel}>{v_8d41d7('chat.trainingLabel')}</Text>
+          </View>
+          <Text style={v_fd5f43.progressPct}>{v_dc2799}%</Text>
+        </View>
+        <View style={v_fd5f43.progressTrack}>
+          <View style={[v_fd5f43.progressFill, { width: `${v_dc2799}%` }]} />
+        </View>
+        <Text style={v_fd5f43.progressHint}>{v_8d41d7('chat.trainingHint')}</Text>
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={v_326be8.OS === 'ios' ? 'padding' : 'height'}
@@ -828,6 +878,38 @@ const v_fd5f43 = v_472849.create({
     justifyContent: 'center',
   },
   sendBtnDisabled: { backgroundColor: v_1bfbd0.zinc200 },
+
+  progressCard: {
+    marginHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 4,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: v_1bfbd0.zinc50,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc100,
+  },
+  progressTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  progressLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  progressLabel: { fontSize: 14, fontWeight: '700', color: v_1bfbd0.zinc900 },
+  progressPct: { fontSize: 14, fontWeight: '700', color: v_1bfbd0.zinc900 },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: v_1bfbd0.zinc200,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#f97316',
+  },
+  progressHint: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 8 },
 });
 
 void v_9b1a04;
