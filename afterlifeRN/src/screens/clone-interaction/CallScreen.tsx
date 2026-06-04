@@ -18,9 +18,9 @@ import {
   v_f2c756,
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
-import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
+import { v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_bab832 } from "rthlnescfffbyxfmhgq";
+import { v_bab832, v_a0300b } from "rthlnescfffbyxfmhgq";
 import { v_b38a7e } from "../../realtime/useLiveAvatar";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
@@ -70,6 +70,51 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
   const [v_4e2aec, v_326ca4] = v_5ab095(false);
   const [v_9e64e1, v_e064ce] = v_5ab095(false);
+
+  const [v_17643c, v_10e972] = v_5ab095<MediaStream | null>(null);
+
+  const v_cb91bc = v_e662ae<MediaStream | null>(null);
+
+  const v_0fcb08 = v_de06a3(() => {
+    if (v_cb91bc.current) {
+      v_cb91bc.current.getTracks().forEach((v_8d41d7) => v_8d41d7.stop());
+      v_cb91bc.current = null;
+    }
+  }, []);
+
+  v_c4deb2(() => {
+    if (!v_d1a6bb?.granted || v_9e64e1) {
+      v_0fcb08();
+      v_10e972(null);
+      return;
+    }
+    let v_2008a4 = false;
+    (async () => {
+      try {
+        const v_cab51f = await v_a0300b.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: v_5bb98b === "front" ? "user" : "environment",
+          },
+        }) as unknown as MediaStream;
+        if (v_2008a4) {
+          v_cab51f.getTracks().forEach((v_8d41d7) => v_8d41d7.stop());
+          return;
+        }
+        v_0fcb08(); 
+        v_cb91bc.current = v_cab51f;
+        v_10e972(v_cab51f);
+      } catch (v_49263d) {
+        console.warn("[Call][PiP] getUserMedia failed:", v_49263d);
+      }
+    })();
+    return () => {
+      v_2008a4 = true;
+    };
+
+  }, [v_d1a6bb?.granted, v_5bb98b, v_9e64e1, v_0fcb08]);
+
+  v_c4deb2(() => () => v_0fcb08(), [v_0fcb08]);
 
   const {
     state: v_6cc918,
@@ -409,7 +454,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         style={v_472849.absoluteFill}
       />
 
-      {}
+      {
+}
       <TouchableOpacity
         style={[v_fd5f43.pip, { top: v_033e14.top + 8 }]}
         activeOpacity={0.9}
@@ -419,8 +465,14 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <View style={v_fd5f43.pipOff}>
             <Feather name="video-off" size={20} color={v_1bfbd0.zinc600} />
           </View>
-        ) : v_d1a6bb?.granted ? (
-          <CameraView style={v_fd5f43.pipCamera} facing={v_5bb98b} />
+        ) : v_17643c ? (
+          <RTCView
+            streamURL={(v_17643c as unknown as { toURL: () => string }).toURL()}
+            style={v_fd5f43.pipCamera}
+            objectFit="cover"
+            zOrder={1}
+            mirror={v_5bb98b === "front"}
+          />
         ) : (
           <View style={v_fd5f43.pipOff}>
             <Feather name="camera-off" size={20} color={v_1bfbd0.zinc600} />
@@ -434,7 +486,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {}
       <View style={[v_fd5f43.callInfo, { top: v_033e14.top + 24 }]}>
         <Text style={v_fd5f43.callName}>{v_dfb220}</Text>
-        <Text style={v_fd5f43.callTimeText}>{v_813acc}</Text>
+        <Text style={v_fd5f43.callTimeText}>
+          {v_6cc918 === "live" ? v_813acc : "연결 중…"}
+        </Text>
       </View>
 
       {}

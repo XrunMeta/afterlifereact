@@ -71,7 +71,7 @@ export default function v_65df53() {
       ) : v_4622b9.length === 0 ? (
         <View style={v_fd5f43.center}>
           <Feather name="slash" size={32} color={v_1bfbd0.zinc300} />
-          <Text style={v_fd5f43.empty}>차단한 페르소나가 없어요</Text>
+          <Text style={v_fd5f43.empty}>차단한 클론이 없어요</Text>
         </View>
       ) : (
         <FlatList

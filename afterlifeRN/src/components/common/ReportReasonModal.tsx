@@ -91,7 +91,7 @@ export default function v_4d58d7({
             </View>
             <Text style={v_d81136.title}>신고하기</Text>
             <Text style={v_d81136.desc}>
-              {v_8a1135 ? `'${v_8a1135}' ` : ""}페르소나를 신고하는 사유를{"\n"}
+              {v_8a1135 ? `'${v_8a1135}' ` : ""}클론을 신고하는 사유를{"\n"}
               간단히 입력해주세요. (선택)
             </Text>
             <TextInput

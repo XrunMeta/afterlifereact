@@ -216,7 +216,7 @@ export default function v_ed02a5() {
       v_b113dd?.name || v_b113dd?.email?.split("@")[0] || "회원";
     v_889fad(
       "벌써 떠나시나요?",
-      `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 페르소나는 영구적으로 사라져요.`,
+      `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 클론은 영구적으로 사라져요.`,
       [
 
         { text: "조금 더 써볼래요", style: "cancel" },
@@ -408,7 +408,7 @@ export default function v_ed02a5() {
                 !v_1f6f04 || v_1f6f04.length === 0 ? (
                   <View style={v_fd5f43.statsEmpty}>
                     <Feather name="users" size={28} color={v_1bfbd0.zinc300} />
-                    <Text style={v_fd5f43.statsEmptyText}>아직 구독한 페르소나가 없어요</Text>
+                    <Text style={v_fd5f43.statsEmptyText}>아직 구독한 클론이 없어요</Text>
                   </View>
                 ) : (
                   v_1f6f04.map((v_3f4e2e) => {
@@ -478,7 +478,7 @@ export default function v_ed02a5() {
                 !v_58e68f || v_58e68f.length === 0 ? (
                   <View style={v_fd5f43.statsEmpty}>
                     <Feather name="user" size={28} color={v_1bfbd0.zinc300} />
-                    <Text style={v_fd5f43.statsEmptyText}>아직 만든 페르소나가 없어요</Text>
+                    <Text style={v_fd5f43.statsEmptyText}>아직 만든 클론이 없어요</Text>
                   </View>
                 ) : (
                   v_58e68f.map((v_3f4e2e) => (

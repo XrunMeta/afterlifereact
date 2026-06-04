@@ -42,7 +42,7 @@ const v_1fc273 = [
   {
     icon: "refresh-cw",
     title: "자동 학습",
-    desc: "대화를 나눌수록 페르소나가 더 똑똑해져요",
+    desc: "대화를 나눌수록 클론이 더 똑똑해져요",
   },
   {
     icon: "shield",
@@ -333,7 +333,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   v_c4deb2(() => {
     if (!v_f04727.cloneType) {
-      v_3a7d09("페르소나 정보가 없어요. 처음부터 다시 만들어주세요.");
+      v_3a7d09("클론 정보가 없어요. 처음부터 다시 만들어주세요.");
     }
   }, [v_f04727.cloneType]);
 
@@ -420,7 +420,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       console.log("[CLONE-CREATE] BLOCKED: name missing");
       v_889fad(
         "이름 누락",
-        "페르소나 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
+        "클론 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
       );
       return;
     }
@@ -444,7 +444,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       }
       if (!v_80a1e3) {
 
-        throw new Error("페르소나 생성에 실패했어요. (cloneId 누락)");
+        throw new Error("클론 생성에 실패했어요. (cloneId 누락)");
       }
 
       const v_1458b7 = v_6de415.current ?? null;
@@ -691,9 +691,9 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
               <View style={v_9b1720.iconWrap}>
                 <Feather name="credit-card" size={26} color={v_1bfbd0.violet600} />
               </View>
-              <Text style={v_9b1720.title}>페르소나 생성 결제</Text>
+              <Text style={v_9b1720.title}>클론 생성 결제</Text>
               <Text style={v_9b1720.desc}>
-                두 번째 페르소나부터 {v_2b566e} XRUN 이 부과돼요{"\n"}
+                두 번째 클론부터 {v_2b566e} XRUN 이 부과돼요{"\n"}
                 결제 비밀번호 6자리를 입력해 주세요
               </Text>
               <TextInput
@@ -723,7 +723,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                   disabled={v_c924cc.length !== 6 || v_904d6c}
                 >
                   <Text style={v_9b1720.confirmText}>
-                    {v_904d6c ? "결제 중..." : `${v_2b566e} XRUN 결제`}
+                    {v_904d6c ? "결제 중..." : "결제"}
                   </Text>
                 </TouchableOpacity>
               </View>

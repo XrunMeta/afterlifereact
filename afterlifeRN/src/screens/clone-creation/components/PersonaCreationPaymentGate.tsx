@@ -141,9 +141,9 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
             <View style={v_d81136.iconWrap}>
               <Feather name="credit-card" size={26} color={v_1bfbd0.violet600} />
             </View>
-            <Text style={v_d81136.title}>페르소나 생성 결제</Text>
+            <Text style={v_d81136.title}>클론 생성 결제</Text>
             <Text style={v_d81136.desc}>
-              두 번째 페르소나부터 {v_c02c4c} XRUN 이 부과돼요.{"\n"}
+              두 번째 클론부터 {v_c02c4c} XRUN 이 부과돼요.{"\n"}
               결제 비밀번호 6자리를 입력해주세요.
             </Text>
             {v_c88e9b !== null && (
@@ -186,7 +186,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 disabled={v_6bee94.length !== 6 || v_cae92d}
               >
                 <Text style={v_d81136.confirmText}>
-                  {`${v_c02c4c} XRUN 결제`}
+                  결제
                 </Text>
               </TouchableOpacity>
             </View>

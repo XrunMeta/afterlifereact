@@ -684,8 +684,8 @@ export default function v_14b43e() {
         ListEmptyComponent={
           <View style={v_fd5f43.emptyWrap}>
             <Feather name="users" size={48} color={v_1bfbd0.zinc300} />
-            <Text style={v_fd5f43.emptyTitle}>아직 구독한 페르소나가 없어요</Text>
-            <Text style={v_fd5f43.emptyDesc}>홈에서 마음에 드는 페르소나를 구독해 보세요</Text>
+            <Text style={v_fd5f43.emptyTitle}>아직 구독한 클론이 없어요</Text>
+            <Text style={v_fd5f43.emptyDesc}>홈에서 마음에 드는 클론을 구독해 보세요</Text>
           </View>
         }
       />

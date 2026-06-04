@@ -180,7 +180,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_22cd2d = async () => {
     try {
       await v_5f4661.share({
-        message: `${v_8c0b26.author} 페르소나와 만나보세요!\nhttps://afterlife.app/clone/${v_8c0b26.cloneId}`,
+        message: `${v_8c0b26.author} 클론과 만나보세요!\nhttps://afterlife.app/clone/${v_8c0b26.cloneId}`,
         title: v_8c0b26.author,
       });
     } catch (v_49263d) {
@@ -655,7 +655,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     if (!v_2ca7e0) return;
                     try {
                       await v_97c75d(v_2ca7e0, v_8c0b26.cloneId);
-                      v_15c939("이 페르소나가 차단됐어요");
+                      v_15c939("이 클론이 차단됐어요");
                       v_c65f5d.goBack();
                     } catch (v_49263d) {
                       console.warn("[CloneFeed] block failed:", v_49263d);
@@ -683,7 +683,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           if (!v_5f5d6d || !v_2ca7e0) return;
           try {
             await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
-            v_15c939("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            v_15c939("신고가 접수됐어요. 이 클론은 차단됐어요");
             v_c65f5d.goBack();
           } catch (v_49263d) {
             console.warn("[CloneFeed] report failed:", v_49263d);

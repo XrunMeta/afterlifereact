@@ -374,7 +374,7 @@ export default function v_c316d8() {
           onSharePress={async () => {
             try {
               await v_5f4661.share({
-                message: `${v_8c0b26.author} 페르소나와 만나보세요!\nhttps://afterlife.app/clone/${v_8c0b26.cloneId}`,
+                message: `${v_8c0b26.author} 클론과 만나보세요!\nhttps://afterlife.app/clone/${v_8c0b26.cloneId}`,
                 title: v_8c0b26.author,
               });
             } catch (v_49263d) {
@@ -405,10 +405,10 @@ export default function v_c316d8() {
           <View style={v_d81136.emptyIconWrap}>
             <Feather name="users" size={36} color="rgba(255,255,255,0.7)" />
           </View>
-          <Text style={v_d81136.emptyTitle}>아직 만나볼 페르소나가 없어요</Text>
+          <Text style={v_d81136.emptyTitle}>아직 만나볼 클론이 없어요</Text>
           <Text style={v_d81136.emptyDesc}>
-            첫 페르소나의 주인공이 되어보시는 건 어때요?{"\n"}
-            나만의 페르소나를 만들어 시작해 보세요
+            첫 클론의 주인공이 되어보시는 건 어때요?{"\n"}
+            나만의 클론을 만들어 시작해 보세요
           </Text>
           <TouchableOpacity
             style={v_d81136.emptyBtn}
@@ -424,7 +424,7 @@ export default function v_c316d8() {
             }
           >
             <Feather name="plus" size={18} color={v_1bfbd0.zinc950} />
-            <Text style={v_d81136.emptyBtnText}>페르소나 만들기</Text>
+            <Text style={v_d81136.emptyBtnText}>클론 만들기</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -721,7 +721,7 @@ export default function v_c316d8() {
                         },
                       }),
                     );
-                    v_15c939("페르소나 편집 → 공개 범위에서 변경하세요");
+                    v_15c939("클론 편집 → 공개 범위에서 변경하세요");
                   }}
                 >
                   <Feather name="eye" size={20} color={v_1bfbd0.zinc900} />
@@ -735,8 +735,8 @@ export default function v_c316d8() {
                     if (!v_5f5d6d || !v_2ca7e0) return;
 
                     v_889fad(
-                      "페르소나 삭제",
-                      `'${v_5f5d6d.author}' 페르소나를 삭제할까요?\n복구 불가합니다.`,
+                      "클론 삭제",
+                      `'${v_5f5d6d.author}' 클론을 삭제할까요?\n복구 불가합니다.`,
                       [
                         { text: "취소", style: "cancel" },
                         {
@@ -746,7 +746,7 @@ export default function v_c316d8() {
                             try {
                               const { deleteClone: v_f373d8 } = await import("../../api/clones");
                               await v_f373d8(v_2ca7e0, v_5f5d6d.cloneId);
-                              v_15c939("페르소나가 삭제됐어요");
+                              v_15c939("클론이 삭제됐어요");
                               const v_c3bc75 = v_37977a.getState().apiFeeds;
                               if (v_c3bc75) {
                                 v_37977a.setState({
@@ -806,7 +806,7 @@ export default function v_c316d8() {
                     if (!v_5f5d6d || !v_2ca7e0) return;
                     try {
                       await v_97c75d(v_2ca7e0, v_5f5d6d.cloneId);
-                      v_15c939("이 페르소나가 차단됐어요");
+                      v_15c939("이 클론이 차단됐어요");
                       const v_c3bc75 = v_37977a.getState().apiFeeds;
                       if (v_c3bc75) {
                         v_37977a.setState({
@@ -869,7 +869,7 @@ export default function v_c316d8() {
           try {
             const { reportClone: v_9deb40 } = await import("../../api/clones");
             await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
-            v_15c939("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            v_15c939("신고가 접수됐어요. 이 클론은 차단됐어요");
             const v_c3bc75 = v_37977a.getState().apiFeeds;
             if (v_c3bc75) {
               v_37977a.setState({

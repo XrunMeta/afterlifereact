@@ -184,7 +184,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           <View style={v_d81136.logoContainer}>
             <Image source={require("../../../assets/images/symbol.png")} style={v_d81136.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={v_d81136.logoImage} resizeMode="contain" />
-            <Text style={v_d81136.subtitle}>{v_8d41d7("auth.login.title")}</Text>
           </View>
 
           {}

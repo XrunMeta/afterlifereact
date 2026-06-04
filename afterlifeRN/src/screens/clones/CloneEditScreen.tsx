@@ -188,7 +188,7 @@ export default function v_541fbd({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         />
 
         {}
-        <Text style={v_fd5f43.sectionHeader}>페르소나 설명</Text>
+        <Text style={v_fd5f43.sectionHeader}>클론 설명</Text>
         <TextField
           label="첫 만남"
           value={v_9d451c}

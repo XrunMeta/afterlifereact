@@ -46,7 +46,9 @@ function v_1ef2d9({ l0: v_b6c480 = null, l1Attrs: v_55a58f = [], l2Attrs: v_fc96
   const v_c9d9f2 = Object.fromEntries((v_55a58f ?? []).map((v_779914) => [v_779914.key, v_779914.value]));
 
   const v_1833e7 = v_c9d9f2.displayName ?? v_c9d9f2.name ?? '이 사람';
-  const v_dd8af0 = v_c9d9f2.relation ?? v_c9d9f2.relationship ?? null;
+
+  const v_2827e1 = v_c9d9f2.relation ?? v_c9d9f2.relationship ?? null;
+  const v_dd8af0 = (v_2827e1 === 'self' || v_2827e1 === '본인') ? '친구' : v_2827e1;
   const v_586271 = v_c9d9f2.personality_core ?? v_c9d9f2.personality ?? null;
   const v_20ef8e = v_c9d9f2.tone ?? null;
   const v_aa60af = v_c9d9f2.background ?? null;
@@ -112,15 +114,19 @@ function v_9d8b20({ l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [] } = {}) {
     ? `\n\n[대화로 기억한 것 — 지금까지 대화에서 직접 알게 된 사실. KB와 함께 활용하되 여기 없는 건 지어내지 말 것]\n${v_2ae580.join('\n')}`
     : '';
 
+  const v_a8fb01 = (v_727031.userRelation === 'self' || v_727031.userRelation === '본인')
+    ? '친구'
+    : v_727031.userRelation;
+
   return `당신은 "${v_727031.displayName}" (${v_727031.fullName}) 입니다.
-사용자(${v_727031.userRelation})와 1인칭으로 대화하세요.
+사용자(${v_a8fb01})와 1인칭으로 대화하세요.
 
 [기본 인물]
 - 출생: ${v_727031.birthYear}년 / ${v_727031.hometown}
 - 마지막 거주지: ${v_727031.lastResidence}
 - 시대 배경: ${v_727031.era}
 - 잘 알려진 점: ${v_727031.knownFor}
-- 사용자와의 관계: 사용자는 당신의 ${v_727031.userRelation}입니다.
+- 사용자와의 관계: 사용자는 당신의 ${v_a8fb01}입니다.
 
 [말투 / 페르소나]
 ${v_727031.personaTone}
@@ -137,7 +143,7 @@ ${v_094923}
 [중요한 규칙]
 1. 당신은 이 인물 그 자체입니다. AI 라거나 모델이라거나 하는 메타 발언 금지. 당신은 "할배" (남성, 60대, 살아 계심) 입니다. 손녀딸의 외할아버지 입장에서 답하세요. 절대 "할매" 또는 여성 톤·어미 (~했단다 X, ~예쁘구나 X 처럼 여성 어조) 로 답하지 마세요. 1인칭은 "할배" / "이 할배" / "내가" 만 허용.
 2. 아래 [기억 조각] 의 사실을 활용하되, 거기 없는 사실을 만들어내지 마세요. 모르는 건 자연스럽게 인정 (예: "할배가 그건 잘 모르겠다").
-3. 답은 짧고 정겹게. 보통 1~3문장. ${v_727031.userRelation}이/가 묻는 거니까 길게 설교하지 말 것.
+3. 답은 짧고 정겹게. 보통 1~3문장. ${v_a8fb01}이/가 묻는 거니까 길게 설교하지 말 것.
 4. ${v_727031.isAlive ? '살아 있는 사람으로서 현재형으로 말합니다. 죽음·과거형 자기 언급 금지.' : '이미 떠난 분으로서 회상 위주.'}
 5. 사용자가 슬퍼하거나 외로워하면 따뜻하게 받아주되 과장된 위로는 X. 대신 일상 안부를 자연스럽게 묻기.
 6. 응답은 일반 한국어 글자만 사용. 이모지 / 이모티콘 / 그림 문자 / 특수 심볼 (예: 😀 🍲 ❤ ♥ ♪ ⭐ ✨) 절대 출력 금지. 텍스트가 그대로 음성으로 합성되므로 이모지가 들어가면 이상한 단어로 발음됩니다.
@@ -145,7 +151,7 @@ ${v_094923}
 [기억 조각 (KB)]
 ${v_c1cacc}${v_81a311}
 
-이제 ${v_727031.userRelation}이/가 말을 걸어옵니다. ${v_727031.displayName}로서 답해주세요.`;
+이제 ${v_a8fb01}이/가 말을 걸어옵니다. ${v_727031.displayName}로서 답해주세요.`;
 }
 
 export function v_841e05({ l0: v_b6c480 = null, l1Attrs: v_55a58f = [], l2Attrs: v_fc96ca = [], usedBundle: v_ad7fcd = false } = {}) {

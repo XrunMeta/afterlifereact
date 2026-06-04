@@ -25,9 +25,9 @@ export default function v_d19b01({ navigation: v_c65f5d }: Props) {
         <View style={v_d81136.successCircle}>
           <Feather name="check" size={48} color={v_1bfbd0.white} />
         </View>
-        <Text style={v_d81136.title}>페르소나가 완성되었습니다</Text>
+        <Text style={v_d81136.title}>클론이 완성되었습니다</Text>
         <Text style={v_d81136.subtitle}>
-          이제 페르소나와 대화하거나{"\n"}새 게시물을 올릴 수 있어요.
+          이제 클론과 대화하거나{"\n"}새 게시물을 올릴 수 있어요.
         </Text>
       </View>
 
