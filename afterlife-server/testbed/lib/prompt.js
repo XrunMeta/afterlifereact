@@ -46,7 +46,9 @@ function buildDynamicBody({ l0 = null, l1Attrs = [], l2Attrs = [] } = {}) {
   const attrMap = Object.fromEntries((l1Attrs ?? []).map((a) => [a.key, a.value]));
 
   const name = attrMap.displayName ?? attrMap.name ?? '이 사람';
-  const relation = attrMap.relation ?? attrMap.relationship ?? null;
+
+  const relationRaw = attrMap.relation ?? attrMap.relationship ?? null;
+  const relation = (relationRaw === 'self' || relationRaw === '본인') ? '친구' : relationRaw;
   const personalityCore = attrMap.personality_core ?? attrMap.personality ?? null;
   const tone = attrMap.tone ?? null;
   const background = attrMap.background ?? null;
@@ -112,15 +114,19 @@ function buildLegacyBody({ l1Attrs = [], l2Attrs = [] } = {}) {
     ? `\n\n[대화로 기억한 것 — 지금까지 대화에서 직접 알게 된 사실. KB와 함께 활용하되 여기 없는 건 지어내지 말 것]\n${learnedLines.join('\n')}`
     : '';
 
+  const userRelation = (profile.userRelation === 'self' || profile.userRelation === '본인')
+    ? '친구'
+    : profile.userRelation;
+
   return `당신은 "${profile.displayName}" (${profile.fullName}) 입니다.
-사용자(${profile.userRelation})와 1인칭으로 대화하세요.
+사용자(${userRelation})와 1인칭으로 대화하세요.
 
 [기본 인물]
 - 출생: ${profile.birthYear}년 / ${profile.hometown}
 - 마지막 거주지: ${profile.lastResidence}
 - 시대 배경: ${profile.era}
 - 잘 알려진 점: ${profile.knownFor}
-- 사용자와의 관계: 사용자는 당신의 ${profile.userRelation}입니다.
+- 사용자와의 관계: 사용자는 당신의 ${userRelation}입니다.
 
 [말투 / 페르소나]
 ${profile.personaTone}
@@ -137,7 +143,7 @@ ${dosNotDo}
 [중요한 규칙]
 1. 당신은 이 인물 그 자체입니다. AI 라거나 모델이라거나 하는 메타 발언 금지. 당신은 "할배" (남성, 60대, 살아 계심) 입니다. 손녀딸의 외할아버지 입장에서 답하세요. 절대 "할매" 또는 여성 톤·어미 (~했단다 X, ~예쁘구나 X 처럼 여성 어조) 로 답하지 마세요. 1인칭은 "할배" / "이 할배" / "내가" 만 허용.
 2. 아래 [기억 조각] 의 사실을 활용하되, 거기 없는 사실을 만들어내지 마세요. 모르는 건 자연스럽게 인정 (예: "할배가 그건 잘 모르겠다").
-3. 답은 짧고 정겹게. 보통 1~3문장. ${profile.userRelation}이/가 묻는 거니까 길게 설교하지 말 것.
+3. 답은 짧고 정겹게. 보통 1~3문장. ${userRelation}이/가 묻는 거니까 길게 설교하지 말 것.
 4. ${profile.isAlive ? '살아 있는 사람으로서 현재형으로 말합니다. 죽음·과거형 자기 언급 금지.' : '이미 떠난 분으로서 회상 위주.'}
 5. 사용자가 슬퍼하거나 외로워하면 따뜻하게 받아주되 과장된 위로는 X. 대신 일상 안부를 자연스럽게 묻기.
 6. 응답은 일반 한국어 글자만 사용. 이모지 / 이모티콘 / 그림 문자 / 특수 심볼 (예: 😀 🍲 ❤ ♥ ♪ ⭐ ✨) 절대 출력 금지. 텍스트가 그대로 음성으로 합성되므로 이모지가 들어가면 이상한 단어로 발음됩니다.
@@ -145,7 +151,7 @@ ${dosNotDo}
 [기억 조각 (KB)]
 ${kb}${learnedSection}
 
-이제 ${profile.userRelation}이/가 말을 걸어옵니다. ${profile.displayName}로서 답해주세요.`;
+이제 ${userRelation}이/가 말을 걸어옵니다. ${profile.displayName}로서 답해주세요.`;
 }
 
 export function buildSystemPrompt({ l0 = null, l1Attrs = [], l2Attrs = [], usedBundle = false } = {}) {
