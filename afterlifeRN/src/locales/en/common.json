@@ -506,6 +506,7 @@
       "defaultShortDesc": "Friend, mentor, celebrity, or any persona"
     },
     "relations": {
+      "self": "Myself",
       "mother": "Mother",
       "father": "Father",
       "spouse": "Spouse",

@@ -76,8 +76,9 @@ export function formatPersonaPrompt(
     lines.push(meta.length ? `${head.join('')} (${meta.join(', ')})` : head.join(''));
   }
 
-  if (p.relation && RELATION_KEY[p.relation]) {
-    const relLabel = t ? t(RELATION_KEY[p.relation]) : p.relation;
+  const effectiveRelation = p.relation === 'self' ? 'friend' : p.relation;
+  if (effectiveRelation && RELATION_KEY[effectiveRelation]) {
+    const relLabel = t ? t(RELATION_KEY[effectiveRelation]) : effectiveRelation;
     lines.push(`${t ? t('create.basicInfo.relationLabel') : 'Relation'}: ${relLabel}`);
   }
 
