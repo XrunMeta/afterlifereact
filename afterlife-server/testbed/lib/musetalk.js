@@ -16,6 +16,23 @@ const v_ceb55a = new URL(v_3cde1e);
 const v_899d88 = v_ceb55a.hostname;
 const v_66d977 = v_ceb55a.port ? Number.parseInt(v_ceb55a.port, 10) : 80;
 
+const v_0ba422 = (process.env.TTS_TRIM_SILENCE ?? '1') === '1';
+const v_56e828 = process.env.TTS_TRIM_THRESHOLD ?? '-40dB'; 
+const v_b45064 = process.env.TTS_TRIM_KEEP ?? '0.12'; 
+
+async function v_831990(v_19fe12, v_dc7792) {
+  const v_f21110 =
+    `areverse,silenceremove=start_periods=1:start_duration=0:` +
+    `start_threshold=${v_56e828}:start_silence=${v_b45064},areverse`;
+  return v_1b4bbf([
+    '-y', '-loglevel', 'error', '-nostdin',
+    '-i', v_19fe12,
+    '-af', v_f21110,
+    '-ar', '24000', '-c:a', 'pcm_s16le',
+    v_dc7792,
+  ]).catch(() => false);
+}
+
 export async function v_034be8(v_ccfc2b, v_1833e7 = 'concat') {
   if (!Array.isArray(v_ccfc2b) || v_ccfc2b.length === 0) return null;
 
@@ -24,17 +41,27 @@ export async function v_034be8(v_ccfc2b, v_1833e7 = 'concat') {
 
   const v_51c9d7 = String(v_1833e7).replace(/[^A-Za-z0-9_-]/g, '') || 'concat';
 
+  const v_1dc5ef = async (v_83ee53, v_ebec57) => {
+    const v_479f05 = v_9fe22d.join(v_b7cff2, `raw_${v_ebec57}.wav`);
+    await v_9d3c52.writeFile(v_479f05, v_83ee53);
+    if (!v_0ba422) return v_479f05;
+    const v_2f361a = v_9fe22d.join(v_b7cff2, `${v_ebec57}.wav`);
+    const v_3ed4c3 = await v_831990(v_479f05, v_2f361a);
+    return v_3ed4c3 === false ? v_479f05 : v_2f361a;
+  };
+
   if (v_ccfc2b.length === 1) {
+    const v_38d084 = await v_1dc5ef(v_ccfc2b[0], 0);
     const v_8d4337 = v_9fe22d.join(v_b7cff2, `${v_51c9d7}.wav`);
-    await v_9d3c52.writeFile(v_8d4337, v_ccfc2b[0]);
+
+    await v_9d3c52.copyFile(v_38d084, v_8d4337);
     return { path: v_8d4337, dir: v_b7cff2 };
   }
 
   const v_da664d = v_9fe22d.join(v_b7cff2, 'list.txt');
   const v_a52412 = [];
   for (let v_ebec57 = 0; v_ebec57 < v_ccfc2b.length; v_ebec57++) {
-    const v_474039 = v_9fe22d.join(v_b7cff2, `${v_ebec57}.wav`);
-    await v_9d3c52.writeFile(v_474039, v_ccfc2b[v_ebec57]);
+    const v_474039 = await v_1dc5ef(v_ccfc2b[v_ebec57], v_ebec57);
 
     v_a52412.push(`file '${v_474039.replaceAll("'", "'\\''")}'`);
   }
