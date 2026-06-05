@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 통화 응답 길이 토글 — 가비아 presecond testbed(8101)의 .env 를 수정하고 재시작한다.
+# 통화 응답 길이 토글 — 가비아 testbed 의 .env 를 수정하고 재시작한다.
 # 자주 스위치하는 용도. 로컬에서 ssh 로 원격 적용.
 #
 # 사용법:
@@ -10,12 +10,14 @@
 # 동작: .env 에 REPLY_SHORT_MODE / REPLY_MAX_CHARS 를 쓰고 testbed 재시작.
 #   - 주 제어: prompt.js 길이 규칙(한 문장 N자 이내)
 #   - 안전망: server.js 가 num_predict 상한으로 LLM 폭주 차단
-# 환경변수로 대상 변경 가능: GABIA_SSH / PRESECOND_ENV / PRESECOND_SVC
+# 환경변수로 대상 변경 가능: GABIA_SSH / TESTBED_ENV / TESTBED_SVC
+#   예) presecond(8101) 대상: TESTBED_ENV=/home/afterlife/afterlife-server-presecond/testbed/.env \
+#        TESTBED_SVC=afterlife-testbed-presecond bash .../reply_length.sh short 30
 set -euo pipefail
 
 GABIA="${GABIA_SSH:-afterlife-gabia}"
-ENVFILE="${PRESECOND_ENV:-/home/afterlife/afterlife-server-presecond/testbed/.env}"
-SVC="${PRESECOND_SVC:-afterlife-testbed-presecond}"
+ENVFILE="${TESTBED_ENV:-/home/afterlife/afterlife-server/testbed/.env}"
+SVC="${TESTBED_SVC:-afterlife-testbed}"
 
 cmd="${1:-status}"
 
