@@ -25,6 +25,8 @@ export function v_7df8a4(opts: {
   notifySpeechEnd: () => void;
 
   speechEngine?: v_be7277;
+
+  silenceMs?: number;
   silenceConfig?: Partial<v_5a4c65>;
 }) {
   const [v_b6e533, v_1fa668] = v_5ab095(v_3075fa());
@@ -47,6 +49,8 @@ export function v_7df8a4(opts: {
   });
   const v_60bef6 = v_fee12d({
     engine: v_328259.speechEngine,
+
+    silenceMs: v_328259.silenceMs ?? 1500,
     onFinalResult: (v_9b6134) => {
 
       const v_1c0b3c = Date.now() - v_84a65f.current;
