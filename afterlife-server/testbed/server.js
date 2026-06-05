@@ -39,6 +39,12 @@ const MUSETALK_ENABLED = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
 const MUSETALK_STREAM_MODE = (process.env.MUSETALK_STREAM_MODE ?? '0') === '1';
 
+function replyLlmOptions() {
+  if ((process.env.REPLY_SHORT_MODE ?? '0') !== '1') return {};
+  const n = Number.parseInt(process.env.REPLY_MAX_CHARS ?? '30', 10) || 30;
+  return { num_predict: Math.max(48, Math.ceil(n * 2.5) + 16) };
+}
+
 const REALTIME_AUDIO_STREAM =
   (process.env.REALTIME_AUDIO_STREAM ?? '1') === '1';
 const MUSETALK_OUTPUTS_DIR =
@@ -654,6 +660,7 @@ app.post('/oth-path', (req, res) => {
 
   const ac = chatStream({
     messages,
+    options: replyLlmOptions(),
     onChunk: (text) => {
       if (aborted) return;
 
