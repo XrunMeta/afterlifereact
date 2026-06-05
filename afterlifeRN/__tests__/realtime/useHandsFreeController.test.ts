@@ -31,7 +31,7 @@ it('enabled=true → STT 시작(listening)', async () => {
   expect(v_43c42e.current.phase).toBe('listening');
 });
 
-it('STT final → say 호출 + speaking 전환', async () => {
+it('STT final → 침묵 debounce 후 say 호출 + speaking 전환', async () => {
   const v_1e3df0 = v_c2295a();
   const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
   const { result: v_43c42e } = v_0da18b(() =>
@@ -41,10 +41,12 @@ it('STT final → say 호출 + speaking 전환', async () => {
       getStatsReport: () => null,
       notifySpeechEnd: jest.fn(),
       speechEngine: v_1e3df0,
+      silenceMs: 20, 
     }),
   );
   await v_81e49f(() => expect(v_1e3df0.start).toHaveBeenCalled());
   v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
+
   await v_81e49f(() => expect(v_3e2c87).toHaveBeenCalledWith('안녕'));
   await v_81e49f(() => expect(v_43c42e.current.phase).toBe('speaking'));
   expect(v_1e3df0.stop).toHaveBeenCalled();

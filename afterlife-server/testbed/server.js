@@ -39,6 +39,12 @@ const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
 const v_2c3445 = (process.env.MUSETALK_STREAM_MODE ?? '0') === '1';
 
+function v_76effc() {
+  if ((process.env.REPLY_SHORT_MODE ?? '0') !== '1') return {};
+  const v_f4e98d = Number.parseInt(process.env.REPLY_MAX_CHARS ?? '30', 10) || 30;
+  return { num_predict: Math.max(48, Math.ceil(v_f4e98d * 2.5) + 16) };
+}
+
 const v_e01c9c =
   (process.env.REALTIME_AUDIO_STREAM ?? '1') === '1';
 const v_e3f065 =
@@ -654,6 +660,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
   const v_57bcd5 = v_a26277({
     messages: v_fa56e0,
+    options: v_76effc(),
     onChunk: (v_9b6134) => {
       if (v_6c558f) return;
 
