@@ -16,6 +16,23 @@ const u = new URL(MUSETALK_URL_RAW);
 const HOST = u.hostname;
 const PORT = u.port ? Number.parseInt(u.port, 10) : 80;
 
+const TTS_TRIM_SILENCE = (process.env.TTS_TRIM_SILENCE ?? '1') === '1';
+const TTS_TRIM_THRESHOLD = process.env.TTS_TRIM_THRESHOLD ?? '-40dB'; 
+const TTS_TRIM_KEEP = process.env.TTS_TRIM_KEEP ?? '0.12'; 
+
+async function trimTrailingSilence(inPath, outPath) {
+  const filter =
+    `areverse,silenceremove=start_periods=1:start_duration=0:` +
+    `start_threshold=${TTS_TRIM_THRESHOLD}:start_silence=${TTS_TRIM_KEEP},areverse`;
+  return runFfmpeg([
+    '-y', '-loglevel', 'error', '-nostdin',
+    '-i', inPath,
+    '-af', filter,
+    '-ar', '24000', '-c:a', 'pcm_s16le',
+    outPath,
+  ]).catch(() => false);
+}
+
 export async function concatWavs(wavBuffers, name = 'concat') {
   if (!Array.isArray(wavBuffers) || wavBuffers.length === 0) return null;
 
@@ -24,17 +41,27 @@ export async function concatWavs(wavBuffers, name = 'concat') {
 
   const safeName = String(name).replace(/[^A-Za-z0-9_-]/g, '') || 'concat';
 
+  const materialize = async (buf, i) => {
+    const raw = path.join(dir, `raw_${i}.wav`);
+    await fs.writeFile(raw, buf);
+    if (!TTS_TRIM_SILENCE) return raw;
+    const trimmed = path.join(dir, `${i}.wav`);
+    const ok = await trimTrailingSilence(raw, trimmed);
+    return ok === false ? raw : trimmed;
+  };
+
   if (wavBuffers.length === 1) {
+    const src = await materialize(wavBuffers[0], 0);
     const out = path.join(dir, `${safeName}.wav`);
-    await fs.writeFile(out, wavBuffers[0]);
+
+    await fs.copyFile(src, out);
     return { path: out, dir };
   }
 
   const listPath = path.join(dir, 'list.txt');
   const lines = [];
   for (let i = 0; i < wavBuffers.length; i++) {
-    const fp = path.join(dir, `${i}.wav`);
-    await fs.writeFile(fp, wavBuffers[i]);
+    const fp = await materialize(wavBuffers[i], i);
 
     lines.push(`file '${fp.replaceAll("'", "'\\''")}'`);
   }

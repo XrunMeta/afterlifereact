@@ -1,26 +1,36 @@
 
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface SpeechEngine {
   requestPermissionsAsync(): Promise<{ granted: boolean }>;
-  start(opts?: { lang?: string; interimResults?: boolean }): void;
+  start(opts?: { lang?: string; interimResults?: boolean; continuous?: boolean }): void;
   stop(): void;
   addListener(event: string, cb: (payload: any) => void): { remove: () => void };
 }
+
+export const DEFAULT_SILENCE_MS = 1500;
 
 export function useSpeechInput(opts?: {
   engine?: SpeechEngine;
   lang?: string;
 
   onFinalResult?: (text: string) => void;
+
+  silenceMs?: number;
 }) {
-  const engine = opts?.engine ?? getDefaultEngine();
+
+  const engine = useMemo(() => opts?.engine ?? getDefaultEngine(), [opts?.engine]);
   const lang = opts?.lang ?? 'ko-KR';
+  const silenceMs = opts?.silenceMs ?? DEFAULT_SILENCE_MS;
 
   const onFinalResultRef = useRef(opts?.onFinalResult);
   useEffect(() => {
     onFinalResultRef.current = opts?.onFinalResult;
+  });
+  const silenceMsRef = useRef(silenceMs);
+  useEffect(() => {
+    silenceMsRef.current = silenceMs;
   });
 
   const [transcript, setTranscript] = useState('');
@@ -32,6 +42,41 @@ export function useSpeechInput(opts?: {
   const wantListeningRef = useRef(false);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const segmentsRef = useRef<string[]>([]);
+  const interimRef = useRef('');
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetBuffer = useCallback(() => {
+    segmentsRef.current = [];
+    interimRef.current = '';
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  }, []);
+
+  const flush = useCallback(() => {
+    const combined = [...segmentsRef.current, interimRef.current]
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    resetBuffer();
+    if (combined) {
+      setTranscript(combined);
+      setInterimTranscript('');
+      onFinalResultRef.current?.(combined);
+    }
+  }, [resetBuffer]);
+
+  const armSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = setTimeout(() => {
+      silenceTimerRef.current = null;
+      flush();
+    }, silenceMsRef.current);
+  }, [flush]);
+
   useEffect(() => {
     subs.current.push(
 
@@ -42,16 +87,22 @@ export function useSpeechInput(opts?: {
         console.log('[STT-DIAG] event=result', 'isFinal=' + String(isFinal), 'transcript=' + JSON.stringify(t));
         if (isFinal) {
 
-          setTranscript(t);
-          setInterimTranscript('');
-          const trimmed = t.trim();
-          if (trimmed) {
-            onFinalResultRef.current?.(trimmed);
+          const seg = t.trim();
+          if (seg) {
+            const last = segmentsRef.current[segmentsRef.current.length - 1];
+            if (seg !== last) segmentsRef.current.push(seg);
           }
+          interimRef.current = '';
+
+          setInterimTranscript('');
+          setTranscript(segmentsRef.current.join(' '));
         } else {
 
+          interimRef.current = t;
           if (t) setInterimTranscript(t);
         }
+
+        armSilenceTimer();
       }),
 
       engine.addListener('error', (p: any) => {
@@ -70,7 +121,8 @@ export function useSpeechInput(opts?: {
           restartTimerRef.current = setTimeout(() => {
             if (!wantListeningRef.current) return;
             try {
-              engine.start({ lang, interimResults: true });
+
+              engine.start({ lang, interimResults: true, continuous: true });
               setListening(true);
             } catch {
 
@@ -117,6 +169,19 @@ export function useSpeechInput(opts?: {
     };
   }, [engine]);
 
+  useEffect(() => {
+    return () => {
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+      if (restartTimerRef.current) {
+        clearTimeout(restartTimerRef.current);
+        restartTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const startListening = useCallback(async () => {
 
     console.log('[STT-DIAG] startListening entered', 'lang=' + lang);
@@ -147,6 +212,7 @@ export function useSpeechInput(opts?: {
     setError(null);
     setTranscript('');
     setInterimTranscript('');
+    resetBuffer(); 
     const perm = await engine.requestPermissionsAsync();
 
     console.log('[STT-DIAG] requestPermissionsAsync granted=' + String(perm.granted), JSON.stringify(perm));
@@ -156,7 +222,8 @@ export function useSpeechInput(opts?: {
     }
     setListening(true);
     try {
-      engine.start({ lang, interimResults: true });
+
+      engine.start({ lang, interimResults: true, continuous: true });
 
       console.log('[STT-DIAG] engine.start() returned without throw');
     } catch (startErr: unknown) {
@@ -177,9 +244,11 @@ export function useSpeechInput(opts?: {
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
     }
+
+    resetBuffer();
     engine.stop();
     setListening(false);
-  }, [engine]);
+  }, [engine, resetBuffer]);
 
   return { transcript, interimTranscript, listening, error, startListening, stopListening };
 }
@@ -194,6 +263,7 @@ function getDefaultEngine(): SpeechEngine {
       ExpoSpeechRecognitionModule.start({
         lang: o?.lang,
         interimResults: o?.interimResults,
+        continuous: o?.continuous,
       }),
     stop: () => ExpoSpeechRecognitionModule.stop(),
 
