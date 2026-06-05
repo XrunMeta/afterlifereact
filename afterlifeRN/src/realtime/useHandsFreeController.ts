@@ -25,6 +25,8 @@ export function useHandsFreeController(opts: {
   notifySpeechEnd: () => void;
 
   speechEngine?: SpeechEngine;
+
+  silenceMs?: number;
   silenceConfig?: Partial<CloneSilenceConfig>;
 }) {
   const [state, setState] = useState(initHandsFreeState());
@@ -47,6 +49,8 @@ export function useHandsFreeController(opts: {
   });
   const speech = useSpeechInput({
     engine: opts.speechEngine,
+
+    silenceMs: opts.silenceMs ?? 1500,
     onFinalResult: (text) => {
 
       const sinceClone = Date.now() - cloneSpokeAtRef.current;
