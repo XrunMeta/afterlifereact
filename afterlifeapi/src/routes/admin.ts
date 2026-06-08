@@ -717,6 +717,7 @@ admin.get("/reports", requireAdmin, async (c) => {
   const maxCount = Number(url.searchParams.get("maxCount") ?? 0);
   const q = (url.searchParams.get("q") ?? "").trim();
   const targetId = Number(url.searchParams.get("targetId") ?? 0); 
+  const responsibleUserId = Number(url.searchParams.get("responsibleUserId") ?? 0); 
   const from = (url.searchParams.get("from") ?? "").trim(); 
   const to = (url.searchParams.get("to") ?? "").trim(); 
   const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
@@ -835,6 +836,11 @@ admin.get("/reports", requireAdmin, async (c) => {
   if (targetId > 0) {
     where.push("r.targetId = ?");
     binds.push(targetId);
+  }
+
+  if (responsibleUserId > 0) {
+    where.push("r.responsibleUserId = ?");
+    binds.push(responsibleUserId);
   }
   if (minCount > 0) {
     where.push("r.targetReportCount >= ?");
