@@ -690,11 +690,22 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
     .bind(v_625c74.id)
     .first<{ cnt: number }>();
 
+  const v_63754b = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM comment_reports cmr
+         JOIN feed_comments fc ON fc.id = cmr.comment_id
+        WHERE fc.user_id = ?`,
+    )
+    .bind(v_625c74.id)
+    .first<{ cnt: number }>();
+
   return v_3f4e2e.json({
     user: v_625c74,
     clones: v_f891e6,
     cloneReportsCount: v_cf098c?.cnt ?? 0,
     userReportsCount: v_59cd44?.cnt ?? 0,
+    commentReportsCount: v_63754b?.cnt ?? 0,
   });
 });
 
