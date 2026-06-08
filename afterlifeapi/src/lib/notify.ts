@@ -126,7 +126,7 @@ export async function notify(env: Bindings, opts: NotifyOptions): Promise<Notify
 export async function notifyCloneEvent(
   env: Bindings,
   type: "clone_like" | "clone_comment" | "clone_follow" | "clone_gift",
-  args: { actorId: number; cloneId: number; extraBody?: string },
+  args: { actorId: number; cloneId: number; extraBody?: string; feedId?: number },
 ): Promise<void> {
   try {
     const clone = await env.DB
@@ -173,7 +173,12 @@ export async function notifyCloneEvent(
       title,
       body,
       url: `afterlife://clone/${args.cloneId}`,
-      data: { cloneId: args.cloneId, actorId: args.actorId },
+
+      data: {
+        cloneId: args.cloneId,
+        actorId: args.actorId,
+        ...(args.feedId != null ? { feedId: args.feedId } : {}),
+      },
       skipEmail: true,
     });
   } catch (err) {
