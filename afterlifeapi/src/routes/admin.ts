@@ -418,3 +418,29 @@ admin.put("/voices/:id", requireSuperAdmin, async (c) => {
   return c.json({ ok: true });
 });
 
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const idRaw = c.req.param("id");
+  const cloneId = Number(idRaw);
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const existing = await c.env.DB
+    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .bind(cloneId)
+    .first<{ id: number; deletion_state: string }>();
+  if (!existing) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (existing.deletion_state !== "active") {
+    return c.json({ ok: true, alreadyDeleted: true, deletionState: existing.deletion_state });
+  }
+  await c.env.DB
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(cloneId)
+    .run();
+  return c.json({ ok: true, deletedId: cloneId, deletionState: "soft_deleted" });
+});
+
