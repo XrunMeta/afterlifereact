@@ -17,6 +17,7 @@ export interface PrethirdPeerConnection {
   iceGatheringState?: string;
   localDescription?: { type?: string; sdp?: string } | null;
   addEventListener(type: string, listener: (ev: any) => void): void;
+  removeEventListener?(type: string, listener: (ev: any) => void): void;
   addTransceiver(kind: string, init?: { direction?: string }): void;
   createDataChannel(label: string): any;
   createOffer(): Promise<{ type?: string; sdp?: string }>;
@@ -40,10 +41,16 @@ const defaultDeps: PrethirdAvatarDeps = {
 async function waitForIceGatheringComplete(pc: PrethirdPeerConnection): Promise<void> {
   if (pc.iceGatheringState === 'complete') return;
   await new Promise<void>((resolve) => {
-    const t = setTimeout(() => resolve(), 3000);
-    pc.addEventListener('icegatheringstatechange', () => {
-      if (pc.iceGatheringState === 'complete') { clearTimeout(t); resolve(); }
-    });
+    let t: ReturnType<typeof setTimeout>;
+    const handler = () => {
+      if (pc.iceGatheringState === 'complete') { cleanup(); resolve(); }
+    };
+    const cleanup = () => {
+      clearTimeout(t);
+      pc.removeEventListener?.('icegatheringstatechange', handler);
+    };
+    t = setTimeout(() => { cleanup(); resolve(); }, 3000); 
+    pc.addEventListener('icegatheringstatechange', handler);
   });
 }
 
@@ -77,6 +84,7 @@ export function usePrethirdAvatar(opts: {
       dc.send(JSON.stringify({ type: 'say', text: t }));
       setPhase('speaking');
       if (speakTimer.current) clearTimeout(speakTimer.current);
+
       speakTimer.current = setTimeout(() => setPhase('idle'), SPEAK_SOFT_TIMEOUT_MS);
     } catch (e) {
       setError(e as Error);

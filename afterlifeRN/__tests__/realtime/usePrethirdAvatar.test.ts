@@ -11,14 +11,17 @@ function makeMockDc() {
   };
 }
 
-function makeMockPc(dc: ReturnType<typeof makeMockDc>) {
+function makeMockPc(dc: ReturnType<typeof makeMockDc>, overrides: { iceGatheringState?: string } = {}) {
   const listeners: Record<string, Array<(p?: unknown) => void>> = {};
-  return {
+  const pc = {
     connectionState: 'new',
     iceConnectionState: 'new',
-    iceGatheringState: 'complete', 
+    iceGatheringState: overrides.iceGatheringState ?? 'complete', 
     localDescription: { type: 'offer', sdp: 'OFFER_SDP' },
     addEventListener: (ev: string, cb: (p?: unknown) => void) => { (listeners[ev] ||= []).push(cb); },
+    removeEventListener: (ev: string, cb: (p?: unknown) => void) => {
+      if (listeners[ev]) { listeners[ev] = listeners[ev].filter((f) => f !== cb); }
+    },
     addTransceiver: jest.fn(),
     createDataChannel: jest.fn().mockReturnValue(dc),
     createOffer: jest.fn().mockResolvedValue({ type: 'offer', sdp: 'OFFER_SDP' }),
@@ -27,6 +30,7 @@ function makeMockPc(dc: ReturnType<typeof makeMockDc>) {
     close: jest.fn(),
     emit: (ev: string, p?: unknown) => (listeners[ev] || []).forEach((cb) => cb(p)),
   };
+  return pc;
 }
 
 function mockOfferFetch() {
@@ -85,4 +89,107 @@ it('start: ontrack video → remoteStream 세팅', async () => {
   const vstream = { getVideoTracks: () => [{}] };
   act(() => { pc.emit('track', { streams: [vstream], track: { kind: 'video' } }); });
   await waitFor(() => expect(result.current.remoteStream).toBe(vstream));
+});
+
+it('/offer HTTP 실패 → state=error, error 세팅', async () => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: false, status: 500,
+    text: async () => '',
+  }) as unknown as typeof fetch;
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+  expect(result.current.state).toBe('error');
+  expect(result.current.error).toBeTruthy();
+  expect(result.current.error?.message).toContain('prethird_offer_http_500');
+});
+
+it('answer SDP 누락 → state=error', async () => {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true, status: 200,
+    text: async () => JSON.stringify({ session_id: 's1' }), 
+  }) as unknown as typeof fetch;
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+  expect(result.current.state).toBe('error');
+  expect(result.current.error?.message).toBe('prethird_offer_no_answer');
+});
+
+it('fetch throw → state=error, pc.close 호출', async () => {
+  global.fetch = jest.fn().mockRejectedValue(new Error('net')) as unknown as typeof fetch;
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+  expect(result.current.state).toBe('error');
+  expect(result.current.error?.message).toBe('net');
+  expect(pc.close).toHaveBeenCalled();
+});
+
+it('say: dc.readyState!=="open" → error 세팅, send 미호출', async () => {
+  mockOfferFetch();
+  const dc = makeMockDc();
+  dc.readyState = 'connecting'; 
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+  await act(async () => { await result.current.say('안녕'); });
+  expect(dc.send).not.toHaveBeenCalled();
+  expect(result.current.error).toBeTruthy();
+  expect(result.current.error?.message).toBe('datachannel_not_open');
+});
+
+it('say 중복 가드: speaking 중 두 번째 say 무시(dc.send 1회만)', async () => {
+  mockOfferFetch();
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+  await act(async () => { await result.current.say('안녕'); }); 
+  await act(async () => { await result.current.say('또'); });   
+  expect(dc.send).toHaveBeenCalledTimes(1);
+});
+
+it('start 재진입 가드: 두 번 연속 호출 → createPeerConnection 1회만', async () => {
+  mockOfferFetch();
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const d = deps(pc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: d as never }));
+  await act(async () => { await result.current.start(); });
+  await act(async () => { await result.current.start(); });
+  expect(d.createPeerConnection).toHaveBeenCalledTimes(1);
+});
+
+it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {
+
+  mockOfferFetch();
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc, { iceGatheringState: 'gathering' }); 
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+
+  let startDone = false;
+  act(() => {
+    result.current.start().then(() => { startDone = true; });
+  });
+
+  await act(async () => {
+    pc.iceGatheringState = 'complete';
+    pc.emit('icegatheringstatechange');
+  });
+
+  await waitFor(() => expect(startDone).toBe(true));
+  expect(global.fetch).toHaveBeenCalled();
+  const [url] = (global.fetch as jest.Mock).mock.calls[0];
+  expect(String(url)).toContain('/prethird/offer');
 });
