@@ -705,6 +705,7 @@ admin.get("/reports", requireAdmin, async (c) => {
   const minCount = Number(url.searchParams.get("minCount") ?? 0);
   const maxCount = Number(url.searchParams.get("maxCount") ?? 0);
   const q = (url.searchParams.get("q") ?? "").trim();
+  const targetId = Number(url.searchParams.get("targetId") ?? 0); 
   const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
   const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") ?? 20)));
 
@@ -769,6 +770,10 @@ admin.get("/reports", requireAdmin, async (c) => {
     )`);
     const pat = `%${q}%`;
     binds.push(pat, pat, pat, pat, pat);
+  }
+  if (targetId > 0) {
+    where.push("r.targetId = ?");
+    binds.push(targetId);
   }
   if (minCount > 0) {
     where.push("r.targetReportCount >= ?");
@@ -843,6 +848,88 @@ admin.delete("/oth-path", requireAdmin, async (c) => {
   const r = await c.env.DB.prepare(`DELETE FROM user_reports WHERE id = ?`).bind(id).run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
   return c.json({ ok: true, id });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT fcc.id, fcc.feed_id AS feedId, fcc.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              fcc.content, fcc.created_at AS createdAt
+         FROM feed_comments fcc
+         JOIN feeds f ON f.id = fcc.feed_id
+         JOIN users u ON u.id = fcc.user_id
+        WHERE f.clone_id = ?
+        ORDER BY fcc.created_at DESC
+        LIMIT 200`,
+    )
+    .bind(cloneId)
+    .all();
+  return c.json({ items: rows.results });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT fl.id, fl.feed_id AS feedId, fl.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              fl.created_at AS createdAt
+         FROM feed_likes fl
+         JOIN feeds f ON f.id = fl.feed_id
+         JOIN users u ON u.id = fl.user_id
+        WHERE f.clone_id = ?
+        ORDER BY fl.created_at DESC
+        LIMIT 200`,
+    )
+    .bind(cloneId)
+    .all();
+  return c.json({ items: rows.results });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT cf.id, cf.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              cf.created_at AS createdAt
+         FROM clone_follows cf
+         JOIN users u ON u.id = cf.user_id
+        WHERE cf.clone_id = ?
+        ORDER BY cf.created_at DESC
+        LIMIT 200`,
+    )
+    .bind(cloneId)
+    .all();
+  return c.json({ items: rows.results });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT uci.id, uci.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              uci.chat_count AS chatCount,
+              uci.call_count AS callCount,
+              uci.learn_count AS learnCount,
+              uci.feed_count AS feedCount,
+              uci.last_at AS lastAt
+         FROM user_clone_interactions uci
+         JOIN users u ON u.id = uci.user_id
+        WHERE uci.clone_id = ?
+        ORDER BY uci.last_at DESC
+        LIMIT 200`,
+    )
+    .bind(cloneId)
+    .all();
+  return c.json({ items: rows.results });
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {
