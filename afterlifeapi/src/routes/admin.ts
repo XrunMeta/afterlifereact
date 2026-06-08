@@ -705,6 +705,7 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
   const v_ca4710 = Number(v_f71b56.searchParams.get("minCount") ?? 0);
   const v_9c552d = Number(v_f71b56.searchParams.get("maxCount") ?? 0);
   const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
+  const v_b1de41 = Number(v_f71b56.searchParams.get("targetId") ?? 0); 
   const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
   const v_02be30 = Math.max(1, Math.min(200, Number(v_f71b56.searchParams.get("limit") ?? 20)));
 
@@ -769,6 +770,10 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
     )`);
     const v_07022a = `%${v_ab6401}%`;
     v_925171.push(v_07022a, v_07022a, v_07022a, v_07022a, v_07022a);
+  }
+  if (v_b1de41 > 0) {
+    v_abcc8d.push("r.targetId = ?");
+    v_925171.push(v_b1de41);
   }
   if (v_ca4710 > 0) {
     v_abcc8d.push("r.targetReportCount >= ?");
@@ -843,6 +848,88 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_cb35cb = await v_3f4e2e.env.DB.prepare(`DELETE FROM user_reports WHERE id = ?`).bind(v_389afb).run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
   return v_3f4e2e.json({ ok: true, id: v_389afb });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT fcc.id, fcc.feed_id AS feedId, fcc.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              fcc.content, fcc.created_at AS createdAt
+         FROM feed_comments fcc
+         JOIN feeds f ON f.id = fcc.feed_id
+         JOIN users u ON u.id = fcc.user_id
+        WHERE f.clone_id = ?
+        ORDER BY fcc.created_at DESC
+        LIMIT 200`,
+    )
+    .bind(v_6e0fd3)
+    .all();
+  return v_3f4e2e.json({ items: v_18b8bf.results });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT fl.id, fl.feed_id AS feedId, fl.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              fl.created_at AS createdAt
+         FROM feed_likes fl
+         JOIN feeds f ON f.id = fl.feed_id
+         JOIN users u ON u.id = fl.user_id
+        WHERE f.clone_id = ?
+        ORDER BY fl.created_at DESC
+        LIMIT 200`,
+    )
+    .bind(v_6e0fd3)
+    .all();
+  return v_3f4e2e.json({ items: v_18b8bf.results });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT cf.id, cf.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              cf.created_at AS createdAt
+         FROM clone_follows cf
+         JOIN users u ON u.id = cf.user_id
+        WHERE cf.clone_id = ?
+        ORDER BY cf.created_at DESC
+        LIMIT 200`,
+    )
+    .bind(v_6e0fd3)
+    .all();
+  return v_3f4e2e.json({ items: v_18b8bf.results });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT uci.id, uci.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              uci.chat_count AS chatCount,
+              uci.call_count AS callCount,
+              uci.learn_count AS learnCount,
+              uci.feed_count AS feedCount,
+              uci.last_at AS lastAt
+         FROM user_clone_interactions uci
+         JOIN users u ON u.id = uci.user_id
+        WHERE uci.clone_id = ?
+        ORDER BY uci.last_at DESC
+        LIMIT 200`,
+    )
+    .bind(v_6e0fd3)
+    .all();
+  return v_3f4e2e.json({ items: v_18b8bf.results });
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
