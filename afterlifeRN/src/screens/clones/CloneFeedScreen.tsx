@@ -188,7 +188,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
     }
   };
 
-  const [commentOpen, setCommentOpen] = useState(false);
+  const [commentOpen, setCommentOpen] = useState(route.params.openComments ?? false);
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState("");

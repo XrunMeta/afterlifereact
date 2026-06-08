@@ -621,6 +621,7 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
     actorId: userId,
     cloneId: feed.cloneId,
     extraBody: body.content.trim(),
+    feedId,
   });
   await bumpInteraction(c.env, userId, feed.cloneId, "feed");
 
@@ -927,6 +928,7 @@ cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
     actorId: userId,
     cloneId,
     extraBody: body.content.trim(),
+    feedId,
   });
   await bumpInteraction(c.env, userId, cloneId, "feed");
 

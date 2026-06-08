@@ -23,6 +23,7 @@ import {
   markRead,
   type NotificationItem,
 } from "../../api/notifications";
+import { getCloneDetail } from "../../api/clones";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -65,6 +66,40 @@ export default function NotificationsScreen() {
     reload();
   }, [reload]);
 
+  const openClone = async (cloneId: number, openComments = false, feedId?: number) => {
+    try {
+      const det = await getCloneDetail(cloneId, accessToken ?? undefined);
+      const c = det.clone;
+      navigation.navigate("CloneFeed", {
+        openComments,
+        feed: {
+
+          id: feedId ?? -c.id,
+          cloneId: c.id,
+          content: c.description ?? "",
+          mediaUrl: c.avatarUrl,
+          mediaType: null,
+          likesCount: c.stats?.likes ?? 0,
+          commentsCount: c.stats?.comments ?? 0,
+          likedByMe: c.likedByMe ?? false,
+          createdAt: c.createdAt,
+          clone: {
+            id: c.id,
+            ownerId: c.ownerId,
+            name: c.name,
+            username: c.username,
+            avatarUrl: c.avatarUrl,
+            cloneType: c.cloneType as never,
+            visibility: c.visibility as never,
+          },
+          interests: [],
+        },
+      });
+    } catch (err) {
+      console.warn("[Notifications] open clone failed:", err);
+    }
+  };
+
   const handleItemPress = async (n: NotificationItem) => {
     if (!accessToken) return;
     if (!n.isRead) {
@@ -79,12 +114,26 @@ export default function NotificationsScreen() {
       }
     }
 
-    const url = (n.data as { url?: string } | null)?.url;
-    if (url) {
-      const m = url.match(/^afterlife:\/\/invite\/(.+)$/);
-      if (m) {
-        navigation.navigate("InviteAccept", { token: decodeURIComponent(m[1]) });
-      }
+    const d = (n.data ?? {}) as Record<string, unknown>;
+    const url = typeof d.url === "string" ? d.url : "";
+    let m: RegExpMatchArray | null;
+
+    if ((m = url.match(/^afterlife:\/\/invite\/(.+)$/))) {
+      navigation.navigate("InviteAccept", { token: decodeURIComponent(m[1]) });
+    } else if ((m = url.match(/^afterlife:\/\/oth-path\/(\d+)/))) {
+
+      navigation.navigate("UserProfile", { userId: Number(m[1]) });
+    } else if ((m = url.match(/^afterlife:\/\/clone\/(\d+)/))) {
+
+      const feedId = typeof d.feedId === "number" ? d.feedId : undefined;
+      await openClone(Number(m[1]), n.type === "clone_comment", feedId);
+    } else if (n.type === "user_follow" && typeof d.followerId === "number") {
+      navigation.navigate("UserProfile", { userId: d.followerId });
+    } else if (n.type === "invite_received" && typeof d.token === "string") {
+      navigation.navigate("InviteAccept", { token: d.token });
+    } else if (typeof d.cloneId === "number") {
+      const feedId = typeof d.feedId === "number" ? d.feedId : undefined;
+      await openClone(d.cloneId, n.type === "clone_comment", feedId);
     }
   };
 
