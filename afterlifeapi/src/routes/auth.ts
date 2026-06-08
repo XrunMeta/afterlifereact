@@ -442,34 +442,75 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     ? v_85de88(String(v_4d33b2.age), v_a8614b(v_3f4e2e.env.ALE_KEK), "user.age")
     : null;
 
+  const v_3c8572 = await v_a1651b
+    .prepare(`SELECT id, deletion_state, deleted_at FROM users WHERE email = ? LIMIT 1`)
+    .bind(v_4d33b2.email)
+    .first<{ id: number; deletion_state: string; deleted_at: string | null }>();
+  const v_d47623 = !!v_3c8572 && (v_3c8572.deletion_state !== "active" || v_3c8572.deleted_at !== null);
+
   let v_81161e;
-  try {
+
+  if (v_3c8572 && !v_d47623) {
+
+    throw new v_3ebe58("CONFLICT", "Email already registered.");
+  }
+
+  if (v_d47623) {
+
     v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         RETURNING id, name, email, funnel_stage, created_at`,
+        `UPDATE users
+            SET name = ?, password_hash = ?, phone = ?, gender = ?, age = ?, age_enc = ?,
+                marketing_consent = ?, country = ?, mobile_code = ?, region = ?,
+                deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL,
+                failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
         v_4d33b2.name,
-        v_4d33b2.email,
         v_df7439,
         v_849998,
         v_4d33b2.gender ?? null,
-        null, 
+        null,
         v_1f5d19,
         v_4d33b2.marketingConsent ? 1 : 0,
         v_4d33b2.country ?? null,
         v_4d33b2.mobileCode ?? null,
         v_4d33b2.region ?? null,
+        v_3c8572!.id,
       )
       .first();
-  } catch (v_49263d) {
-    const v_badeaf = (v_49263d as Error).message ?? "";
-    if (/UNIQUE constraint failed: users\.email/i.test(v_badeaf)) {
-      throw new v_3ebe58("CONFLICT", "Email already registered.");
+  } else {
+
+    try {
+      v_81161e = await v_a1651b
+        .prepare(
+          `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           RETURNING id, name, email, funnel_stage, created_at`,
+        )
+        .bind(
+          v_4d33b2.name,
+          v_4d33b2.email,
+          v_df7439,
+          v_849998,
+          v_4d33b2.gender ?? null,
+          null, 
+          v_1f5d19,
+          v_4d33b2.marketingConsent ? 1 : 0,
+          v_4d33b2.country ?? null,
+          v_4d33b2.mobileCode ?? null,
+          v_4d33b2.region ?? null,
+        )
+        .first();
+    } catch (v_49263d) {
+      const v_badeaf = (v_49263d as Error).message ?? "";
+      if (/UNIQUE constraint failed: users\.email/i.test(v_badeaf)) {
+        throw new v_3ebe58("CONFLICT", "Email already registered.");
+      }
+      throw v_49263d;
     }
-    throw v_49263d;
   }
   if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
 
