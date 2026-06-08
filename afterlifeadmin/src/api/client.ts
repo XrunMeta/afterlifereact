@@ -245,4 +245,49 @@ export const v_05a921 = {
       }>;
     }>(`/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`);
   },
+
+  getUserDetail: (v_389afb) =>
+    v_576f5a<{
+      user: {
+        id: number;
+        name: string | null;
+        email: string;
+        deletionState: string;
+        suspendedUntil: string | null;
+        createdAt: string;
+        warningCount: number;
+      };
+      warnings: Array<{ id: number; reason: string | null; createdAt: string }>;
+      reports: Array<{
+        id: number;
+        reason: string | null;
+        status: string;
+        createdAt: string;
+        reporterEmail: string;
+      }>;
+      clones: Array<{
+        id: number;
+        name: string;
+        username: string;
+        cloneType: string;
+        deletionState: string;
+      }>;
+    }>(`/oth-path${v_389afb}/detail`),
+
+  warnUser: (v_389afb, v_4d33b2) =>
+    v_576f5a<{
+      ok: true;
+      warningCount: number;
+      suspended: boolean;
+      suspendedUntil: string | null;
+    }>(`/oth-path${v_389afb}/warn`, {
+      method: "POST",
+      body: JSON.stringify(v_4d33b2 ?? {}),
+    }),
+
+  dismissUserReport: (v_99000e) =>
+    v_576f5a<{ ok: true; updated: number }>(
+      `/oth-path${v_99000e}/dismiss`,
+      { method: "POST" },
+    ),
 };

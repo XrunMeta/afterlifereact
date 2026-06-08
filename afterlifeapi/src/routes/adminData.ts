@@ -438,3 +438,132 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
   ).results;
   return v_3f4e2e.json({ items: v_18b8bf });
 });
+
+v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
+
+  const v_625c74 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, email,
+              deletion_state AS deletionState,
+              suspended_until AS suspendedUntil,
+              created_at AS createdAt
+         FROM users WHERE id = ?`,
+    )
+    .bind(v_389afb)
+    .first();
+  if (!v_625c74) return v_3f4e2e.json({ error: "not_found" }, 404);
+
+  const v_8718c0 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(v_389afb)
+    .first<{ n: number }>();
+  const v_d01889 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, reason, created_at AS createdAt
+           FROM user_warnings WHERE user_id = ? ORDER BY created_at DESC LIMIT 20`,
+      )
+      .bind(v_389afb)
+      .all()
+  ).results;
+  const v_7baad1 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason, r.status AS status,
+                r.created_at AS createdAt, ru.email AS reporterEmail
+           FROM user_reports r JOIN users ru ON ru.id = r.reporter_id
+          WHERE r.target_id = ? ORDER BY r.created_at DESC LIMIT 50`,
+      )
+      .bind(v_389afb)
+      .all()
+  ).results;
+  const v_f891e6 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, name, username, clone_type AS cloneType,
+                deletion_state AS deletionState
+           FROM clones WHERE owner_id = ? ORDER BY id DESC LIMIT 100`,
+      )
+      .bind(v_389afb)
+      .all()
+  ).results;
+
+  return v_3f4e2e.json({
+    user: { ...v_625c74, warningCount: v_8718c0?.n ?? 0 },
+    warnings: v_d01889,
+    reports: v_7baad1,
+    clones: v_f891e6,
+  });
+});
+
+v_133c2c.post("/oth-path", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
+  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
+
+  let v_4d33b2 = {};
+  try {
+    v_4d33b2 = (await v_3f4e2e.req.json()) as { reportId?: number; reason?: string };
+  } catch {
+
+  }
+
+  const v_ceb55a = await v_3f4e2e.env.DB.prepare(`SELECT id FROM users WHERE id = ?`).bind(v_389afb).first();
+  if (!v_ceb55a) return v_3f4e2e.json({ error: "not_found" }, 404);
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO user_warnings (user_id, admin_id, report_id, reason)
+       VALUES (?, ?, ?, ?)`,
+    )
+    .bind(v_389afb, v_db9be1, v_4d33b2.reportId ?? null, v_4d33b2.reason ?? null)
+    .run();
+
+  const v_7b3f91 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(v_389afb)
+    .first<{ n: number }>();
+  const v_e87618 = v_7b3f91?.n ?? 0;
+
+  let v_3e0055 = null;
+  const v_7f572b = v_e87618 >= 3;
+  if (v_7f572b) {
+
+    await v_3f4e2e.env.DB
+      .prepare(`UPDATE users SET suspended_until = datetime('now', '+30 days') WHERE id = ?`)
+      .bind(v_389afb)
+      .run();
+    const v_3ac7e7 = await v_3f4e2e.env.DB
+      .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+      .bind(v_389afb)
+      .first<{ s: string | null }>();
+    v_3e0055 = v_3ac7e7?.s ?? null;
+  }
+
+  if (v_4d33b2.reportId) {
+    await v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+      )
+      .bind(v_4d33b2.reportId)
+      .run();
+  }
+
+  return v_3f4e2e.json({ ok: true, warningCount: v_e87618, suspended: v_7f572b, suspendedUntil: v_3e0055 });
+});
+
+v_133c2c.post("/oth-path", async (v_3f4e2e) => {
+  const v_99000e = Number(v_3f4e2e.req.param("reportId"));
+  if (!Number.isInteger(v_99000e) || v_99000e <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
+  const v_8f00b9 = await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status IN ('open', 'reviewed')`,
+    )
+    .bind(v_99000e)
+    .run();
+  return v_3f4e2e.json({ ok: true, updated: v_8f00b9.meta?.changes ?? 0 });
+});
