@@ -102,11 +102,11 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
 
   let v_d1b635 = await v_a1651b
     .prepare(
-      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state FROM users
+      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until FROM users
         WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(v_931bf0.email)
-    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string }>();
+    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
 
   if (!v_d1b635) {
 
@@ -122,10 +122,10 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       .prepare(
         `INSERT INTO users (name, email, password_hash, avatar_url)
          VALUES (?, ?, ?, ?)
-         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state`,
+         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until`,
       )
       .bind(v_ef7664, v_931bf0.email, v_df7439, v_931bf0.picture ?? null)
-      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string }>();
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
 
@@ -176,6 +176,12 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
 
     if (v_d1b635.deletion_state !== "active") {
       throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+    }
+
+    if (v_d1b635.banned_until && v_e8cd3d(v_d1b635.banned_until) > Date.now()) {
+      throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+        bannedUntil: v_d1b635.banned_until,
+      });
     }
     await v_74defc(v_3f4e2e, {
       userId: v_d1b635.id,
