@@ -150,7 +150,8 @@ adminData.get("/oth-path", async (c) => {
                 WHERE cr.clone_id = c.id AND cr.status = 'reviewed') AS reportCount,
               (SELECT COUNT(*) FROM feed_comments fcc
                  JOIN feeds f ON f.id = fcc.feed_id
-                WHERE f.clone_id = c.id) AS commentCount,
+                WHERE f.clone_id = c.id
+                  AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS commentCount,
               (SELECT COUNT(*) FROM feed_likes fl
                  JOIN feeds f ON f.id = fl.feed_id
                 WHERE f.clone_id = c.id) AS likeCount,
