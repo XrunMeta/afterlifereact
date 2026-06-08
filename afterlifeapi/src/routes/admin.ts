@@ -1001,11 +1001,12 @@ admin.get("/oth-path", requireAdmin, async (c) => {
   if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   const { q, offset, limit } = parseSubListParams(c);
 
-  const where: string[] = [
-    "f.clone_id = ?",
-    "fcc.parent_comment_id IS NULL",
-  ];
+  const commentType = new URL(c.req.url).searchParams.get("commentType") ?? "all";
+
+  const where: string[] = ["f.clone_id = ?"];
   const binds: unknown[] = [cloneId];
+  if (commentType === "parent") where.push("fcc.parent_comment_id IS NULL");
+  else if (commentType === "reply") where.push("fcc.parent_comment_id IS NOT NULL");
   if (q) {
     where.push(`(u.name LIKE ? OR u.email LIKE ? OR fcc.content LIKE ?)`);
     const pat = `%${q}%`;
@@ -1025,6 +1026,9 @@ admin.get("/oth-path", requireAdmin, async (c) => {
               u.xrun_member_id AS userXrunMemberId,
               fcc.content, fcc.created_at AS createdAt,
               fcc.likes_count AS likeCount,
+              fcc.parent_comment_id AS parentId,
+              pu.name AS parentUserName,
+              pc.content AS parentContent,
               (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount,
               (SELECT COUNT(*) FROM comment_reports cr WHERE cr.comment_id = fcc.id) AS reportCount,
               (SELECT cr.status FROM comment_reports cr WHERE cr.comment_id = fcc.id
@@ -1032,6 +1036,8 @@ admin.get("/oth-path", requireAdmin, async (c) => {
          FROM feed_comments fcc
          JOIN feeds f ON f.id = fcc.feed_id
          JOIN users u ON u.id = fcc.user_id
+         LEFT JOIN feed_comments pc ON pc.id = fcc.parent_comment_id
+         LEFT JOIN users pu ON pu.id = pc.user_id
         WHERE ${whereSql}
         ORDER BY fcc.created_at DESC
         LIMIT ? OFFSET ?`,
