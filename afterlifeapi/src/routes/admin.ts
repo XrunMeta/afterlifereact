@@ -1,4 +1,4 @@
-import { v_b7c41b } from "zmui";
+import { v_b7c41b, type v_437670 } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_09b071 } from "../scheduled/cleanup";
@@ -837,6 +837,50 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_18b8bf, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
 });
 
+async function v_19a475(
+  c: v_437670<v_de0a25>,
+  v_7bef43,
+  v_99000e,
+  v_489382,
+  v_7e89c9,
+): Promise<number | undefined> {
+  if (!v_489382) return undefined;
+  const v_5b4e12 = await v_3f4e2e.env.DB
+    .prepare(`SELECT 1 AS x FROM user_warnings WHERE report_id = ? AND report_type = ? LIMIT 1`)
+    .bind(v_99000e, v_7bef43)
+    .first();
+  if (!v_5b4e12) {
+    const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
+    await v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason) VALUES (?, ?, ?, ?, ?)`,
+      )
+      .bind(v_489382, v_db9be1, v_99000e, v_7bef43, v_7e89c9)
+      .run();
+  }
+  const v_7b3f91 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(v_489382)
+    .first<{ n: number }>();
+  const v_e87618 = v_7b3f91?.n ?? 0;
+  if (!v_5b4e12) {
+    const v_32000f = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+          WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+      )
+      .bind(v_e87618)
+      .first<{ action: string; suspendDays: number | null }>();
+    if (v_32000f?.action === "suspend" && v_32000f.suspendDays && v_32000f.suspendDays > 0) {
+      await v_3f4e2e.env.DB
+        .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+        .bind(`+${v_32000f.suspendDays} days`, v_489382)
+        .run();
+    }
+  }
+  return v_e87618;
+}
+
 const v_37dc27 = ["open", "reviewed", "dismissed"] as const;
 v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
@@ -853,7 +897,18 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
     .bind(v_d308b5, v_7e89c9, v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
-  return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9 });
+
+  let v_e87618;
+  if (v_d308b5 === "reviewed") {
+    const v_257b90 = await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT cl.owner_id AS ownerId FROM clone_reports cr JOIN clones cl ON cl.id = cr.clone_id WHERE cr.id = ?`,
+      )
+      .bind(v_389afb)
+      .first<{ ownerId: number }>();
+    v_e87618 = await v_19a475(v_3f4e2e, "clone", v_389afb, v_257b90?.ownerId, v_7e89c9);
+  }
+  return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9, warningCount: v_e87618 });
 });
 v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
@@ -882,43 +937,11 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
 
   let v_e87618;
   if (v_d308b5 === "reviewed") {
-    const v_5b4e12 = await v_3f4e2e.env.DB
-      .prepare(`SELECT 1 AS x FROM user_warnings WHERE report_id = ? LIMIT 1`)
+    const v_f10744 = await v_3f4e2e.env.DB
+      .prepare(`SELECT target_id AS targetId FROM user_reports WHERE id = ?`)
       .bind(v_389afb)
-      .first();
-    if (!v_5b4e12) {
-      const v_f10744 = await v_3f4e2e.env.DB
-        .prepare(`SELECT target_id AS targetId FROM user_reports WHERE id = ?`)
-        .bind(v_389afb)
-        .first<{ targetId: number }>();
-      if (v_f10744) {
-        const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
-        await v_3f4e2e.env.DB
-          .prepare(
-            `INSERT INTO user_warnings (user_id, admin_id, report_id, reason) VALUES (?, ?, ?, ?)`,
-          )
-          .bind(v_f10744.targetId, v_db9be1, v_389afb, v_7e89c9)
-          .run();
-        const v_7b3f91 = await v_3f4e2e.env.DB
-          .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
-          .bind(v_f10744.targetId)
-          .first<{ n: number }>();
-        v_e87618 = v_7b3f91?.n ?? 0;
-        const v_32000f = await v_3f4e2e.env.DB
-          .prepare(
-            `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
-              WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
-          )
-          .bind(v_e87618)
-          .first<{ action: string; suspendDays: number | null }>();
-        if (v_32000f?.action === "suspend" && v_32000f.suspendDays && v_32000f.suspendDays > 0) {
-          await v_3f4e2e.env.DB
-            .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
-            .bind(`+${v_32000f.suspendDays} days`, v_f10744.targetId)
-            .run();
-        }
-      }
-    }
+      .first<{ targetId: number }>();
+    v_e87618 = await v_19a475(v_3f4e2e, "user", v_389afb, v_f10744?.targetId, v_7e89c9);
   }
   return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9, warningCount: v_e87618 });
 });
@@ -946,7 +969,16 @@ v_b7f2b4.patch("/comments/reports/:id", v_c0a297, async (v_3f4e2e) => {
     .bind(v_d308b5, v_7e89c9, v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
-  return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9 });
+
+  let v_e87618;
+  if (v_d308b5 === "reviewed") {
+    const v_abe745 = await v_3f4e2e.env.DB
+      .prepare(`SELECT user_id AS authorId FROM feed_comments WHERE id = (SELECT comment_id FROM comment_reports WHERE id = ?)`)
+      .bind(v_389afb)
+      .first<{ authorId: number }>();
+    v_e87618 = await v_19a475(v_3f4e2e, "comment", v_389afb, v_abe745?.authorId, v_7e89c9);
+  }
+  return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9, warningCount: v_e87618 });
 });
 v_b7f2b4.delete("/comments/reports/:id", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
@@ -972,7 +1004,6 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_abcc8d = [
     "f.clone_id = ?",
     "fcc.parent_comment_id IS NULL",
-    "fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status = 'reviewed')",
   ];
   const v_925171 = [v_6e0fd3];
   if (v_ab6401) {
@@ -994,7 +1025,10 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
               u.xrun_member_id AS userXrunMemberId,
               fcc.content, fcc.created_at AS createdAt,
               fcc.likes_count AS likeCount,
-              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount
+              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount,
+              (SELECT COUNT(*) FROM comment_reports cr WHERE cr.comment_id = fcc.id) AS reportCount,
+              (SELECT cr.status FROM comment_reports cr WHERE cr.comment_id = fcc.id
+                 ORDER BY (cr.status = 'reviewed') DESC, cr.created_at DESC LIMIT 1) AS reportStatus
          FROM feed_comments fcc
          JOIN feeds f ON f.id = fcc.feed_id
          JOIN users u ON u.id = fcc.user_id

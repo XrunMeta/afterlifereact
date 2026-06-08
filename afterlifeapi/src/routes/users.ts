@@ -965,20 +965,37 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
 
 v_de7ba7.get("/me/reports/made", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT r.id AS id, r.reason AS reason, r.status AS status,
-                r.created_at AS createdAt, r.reviewed_at AS reviewedAt,
-                r.admin_message AS adminMessage,
-                tu.name AS targetName, tu.email AS targetEmail, tu.id AS targetId
-           FROM user_reports r
-           JOIN users tu ON tu.id = r.target_id
-          WHERE r.reporter_id = ?
-          ORDER BY r.created_at DESC
-          LIMIT 100`,
+        `SELECT * FROM (
+           SELECT 'user' AS type, ur.id AS id, ur.reason AS reason, ur.status AS status,
+                  ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt, ur.admin_message AS adminMessage,
+                  tu.name AS targetName, COALESCE(tu.email, '') AS targetEmail, ur.target_id AS targetId
+             FROM user_reports ur
+             JOIN users tu ON tu.id = ur.target_id
+            WHERE ur.reporter_id = ?
+           UNION ALL
+           SELECT 'clone' AS type, cr.id AS id, cr.reason AS reason, cr.status AS status,
+                  cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt, cr.admin_message AS adminMessage,
+                  c.name AS targetName, COALESCE(c.username, '') AS targetEmail, cr.clone_id AS targetId
+             FROM clone_reports cr
+             JOIN clones c ON c.id = cr.clone_id
+            WHERE cr.user_id = ?
+           UNION ALL
+           SELECT 'comment' AS type, cmr.id AS id, cmr.reason AS reason, cmr.status AS status,
+                  cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt, cmr.admin_message AS adminMessage,
+                  COALESCE(au.name, '댓글') AS targetName, COALESCE(au.email, '') AS targetEmail, cmr.comment_id AS targetId
+             FROM comment_reports cmr
+             LEFT JOIN feed_comments fc ON fc.id = cmr.comment_id
+             LEFT JOIN users au ON au.id = fc.user_id
+            WHERE cmr.user_id = ?
+         )
+         ORDER BY createdAt DESC
+         LIMIT 100`,
       )
-      .bind(v_43e90c)
+      .bind(v_43e90c, v_43e90c, v_43e90c)
       .all()
   ).results;
   return v_3f4e2e.json({ items: v_18b8bf });
@@ -986,21 +1003,38 @@ v_de7ba7.get("/me/reports/made", v_6690d9, async (v_3f4e2e) => {
 
 v_de7ba7.get("/me/reports/received", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+
   const v_4622b9 = (
     await v_3f4e2e.env.DB
       .prepare(
         `SELECT r.id AS id, r.reason AS reason,
-                r.created_at AS createdAt, r.reviewed_at AS reviewedAt,
-                r.admin_message AS adminMessage,
+                r.createdAt AS createdAt, r.reviewedAt AS reviewedAt,
+                r.adminMessage AS adminMessage, r.reportType AS reportType,
                 w.reason AS warningReason, w.created_at AS warnedAt
-           FROM user_reports r
+           FROM (
+             SELECT 'user' AS reportType, ur.id AS id, ur.reason AS reason,
+                    ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt, ur.admin_message AS adminMessage
+               FROM user_reports ur
+              WHERE ur.target_id = ? AND ur.status IN ('actioned', 'reviewed')
+             UNION ALL
+             SELECT 'clone' AS reportType, cr.id AS id, cr.reason AS reason,
+                    cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt, cr.admin_message AS adminMessage
+               FROM clone_reports cr
+               JOIN clones c ON c.id = cr.clone_id
+              WHERE c.owner_id = ? AND cr.status IN ('actioned', 'reviewed')
+             UNION ALL
+             SELECT 'comment' AS reportType, cmr.id AS id, cmr.reason AS reason,
+                    cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt, cmr.admin_message AS adminMessage
+               FROM comment_reports cmr
+               JOIN feed_comments fc ON fc.id = cmr.comment_id
+              WHERE fc.user_id = ? AND cmr.status IN ('actioned', 'reviewed')
+           ) r
            LEFT JOIN user_warnings w
-             ON w.report_id = r.id AND w.user_id = r.target_id
-          WHERE r.target_id = ? AND r.status IN ('actioned', 'reviewed')
-          ORDER BY r.created_at DESC
+             ON w.report_id = r.id AND w.report_type = r.reportType AND w.user_id = ?
+          ORDER BY r.createdAt DESC
           LIMIT 100`,
       )
-      .bind(v_43e90c)
+      .bind(v_43e90c, v_43e90c, v_43e90c, v_43e90c)
       .all()
   ).results;
   const v_8718c0 = await v_3f4e2e.env.DB
