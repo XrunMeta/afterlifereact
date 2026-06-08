@@ -15,6 +15,7 @@ import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import v_556baf from "../../components/ui/SafeView";
+import v_92f073 from "../../components/auth/OtpVerifyView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import {
@@ -159,35 +160,19 @@ export default function v_040c8f() {
         )}
 
         {v_729796 === "otp" && (
-          <>
-            <Text style={v_fd5f43.desc}>{v_8d41d7("auth.forgot.step2Desc")}</Text>
-            <Text style={v_fd5f43.emailHint}>{v_e0c7e8}</Text>
-            <View style={v_fd5f43.inputRow}>
-              <Feather name="lock" size={18} color={v_1bfbd0.zinc500} style={v_fd5f43.inputIcon} />
-              <TextInput
-                style={[v_fd5f43.input, { letterSpacing: 4, fontSize: 16 }]}
-                value={v_c99bd2}
-                onChangeText={(v_81e2ef) => v_537cbb(v_81e2ef.replace(/\D/g, "").slice(0, 6))}
-                placeholder={v_8d41d7("auth.forgot.codePlaceholder")}
-                placeholderTextColor={v_1bfbd0.placeholder}
-                keyboardType="number-pad"
-                maxLength={6}
-                autoFocus
-              />
-            </View>
-            <TouchableOpacity
-              style={[v_fd5f43.primaryBtn, v_c99bd2.length !== 6 && v_fd5f43.btnDisabled]}
-              disabled={v_c99bd2.length !== 6}
-              onPress={v_4f034c}
-            >
-              <Text style={v_fd5f43.primaryBtnText}>{v_8d41d7("auth.forgot.verify")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={v_2de427} disabled={v_cb66b4} style={v_fd5f43.secondaryBtn}>
-              <Text style={v_fd5f43.secondaryBtnText}>
-                {v_cb66b4 ? v_8d41d7("auth.forgot.sendingCode") : v_8d41d7("auth.forgot.sendCode")}
-              </Text>
-            </TouchableOpacity>
-          </>
+          <OtpVerifyView
+            title={v_8d41d7("auth.forgot.title")}
+            subtitle={v_8d41d7("auth.forgot.step2Desc")}
+            email={v_e0c7e8}
+            code={v_c99bd2}
+            onChangeCode={(v_81e2ef) => v_537cbb(v_81e2ef)}
+            onSubmit={v_4f034c}
+            submitting={false}
+            submitLabel={v_8d41d7("auth.forgot.verify")}
+            resendIn={0}
+            onResend={v_2de427}
+            resendLabel={v_8d41d7("auth.forgot.sendCode")}
+          />
         )}
 
         {v_729796 === "password" && (

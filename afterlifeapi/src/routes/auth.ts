@@ -819,3 +819,73 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
   await v_74defc(v_3f4e2e, { userId: v_d1b635.id, action: "auth.password.reset" });
   return v_3f4e2e.json({ ok: true });
 });
+
+v_68f0aa.post("/email/login-code", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
+  const v_d1b635 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(v_4d33b2.email.trim().toLowerCase())
+    .first<{ id: number; deletion_state: string }>();
+  if (v_d1b635 && v_d1b635.deletion_state === "active") {
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+  }
+  return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
+});
+
+const v_a3bb20 = v_1f4ea7.object({
+  email: v_1f4ea7.email().max(200),
+  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/),
+  deviceId: v_1f4ea7.string().max(200).optional(),
+  pushToken: v_1f4ea7.string().max(500).optional(),
+  platform: v_1f4ea7.enum(["ios", "android", "web"]).optional(),
+});
+v_68f0aa.post("/email/login", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_a3bb20);
+  const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
+
+  await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+
+  const v_625c74 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .bind(v_bb4bfd)
+    .first<{ id: number; deletion_state: string }>();
+  if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+  if (v_625c74.deletion_state !== "active") {
+    throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+
+  if (v_4d33b2.deviceId && v_4d33b2.pushToken) {
+    await v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(v_4d33b2.pushToken, v_625c74.id)
+      .run();
+    await v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(v_625c74.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "web")
+      .run();
+  }
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE users SET failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
+    .bind(v_625c74.id)
+    .run();
+
+  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_625c74.id, v_4d33b2.deviceId);
+  v_56035d(v_3f4e2e, v_dfaee3);
+  await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login.otp" });
+  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 });
+});
