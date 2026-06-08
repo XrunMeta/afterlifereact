@@ -592,13 +592,21 @@ adminData.post("/oth-path", async (c) => {
     .first<{ n: number }>();
   const warningCount = cnt?.n ?? 0;
 
-  let suspendedUntil: string | null = null;
-  const suspended = warningCount >= 3;
-  if (suspended) {
+  const rule = await c.env.DB
+    .prepare(
+      `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+        WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+    )
+    .bind(warningCount)
+    .first<{ action: string; suspendDays: number | null }>();
 
+  let suspendedUntil: string | null = null;
+  let suspended = false;
+  if (rule?.action === "suspend" && rule.suspendDays && rule.suspendDays > 0) {
+    suspended = true;
     await c.env.DB
-      .prepare(`UPDATE users SET suspended_until = datetime('now', '+30 days') WHERE id = ?`)
-      .bind(id)
+      .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+      .bind(`+${rule.suspendDays} days`, id)
       .run();
     const row = await c.env.DB
       .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
@@ -617,7 +625,71 @@ adminData.post("/oth-path", async (c) => {
       .run();
   }
 
-  return c.json({ ok: true, warningCount, suspended, suspendedUntil });
+  return c.json({
+    ok: true,
+    warningCount,
+    suspended,
+    suspendedUntil,
+    appliedAction: rule?.action ?? "none",
+    appliedSuspendDays: rule?.suspendDays ?? null,
+  });
+});
+
+adminData.get("/report-penalty-rules", async (c) => {
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT threshold, action, suspend_days AS suspendDays, updated_at AS updatedAt
+           FROM report_penalty_rules ORDER BY threshold ASC`,
+      )
+      .all()
+  ).results;
+  return c.json({ items: rows });
+});
+
+adminData.put("/report-penalty-rules/:threshold", async (c) => {
+  const threshold = Number(c.req.param("threshold"));
+  if (!Number.isInteger(threshold) || threshold < 1 || threshold > 99) {
+    return c.json({ error: "invalid_threshold" }, 400);
+  }
+  let body: { action?: string; suspendDays?: number | null } = {};
+  try {
+    body = (await c.req.json()) as { action?: string; suspendDays?: number | null };
+  } catch {
+
+  }
+  const action = body.action === "suspend" ? "suspend" : "warn";
+  const suspendDays =
+    action === "suspend" && Number.isInteger(body.suspendDays) && (body.suspendDays as number) > 0
+      ? (body.suspendDays as number)
+      : null;
+  if (action === "suspend" && !suspendDays) {
+    return c.json({ error: "suspend_days_required" }, 400);
+  }
+  await c.env.DB
+    .prepare(
+      `INSERT INTO report_penalty_rules (threshold, action, suspend_days, updated_at)
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(threshold) DO UPDATE SET
+         action = excluded.action,
+         suspend_days = excluded.suspend_days,
+         updated_at = CURRENT_TIMESTAMP`,
+    )
+    .bind(threshold, action, suspendDays)
+    .run();
+  return c.json({ ok: true, threshold, action, suspendDays });
+});
+
+adminData.delete("/report-penalty-rules/:threshold", async (c) => {
+  const threshold = Number(c.req.param("threshold"));
+  if (!Number.isInteger(threshold) || threshold < 1) {
+    return c.json({ error: "invalid_threshold" }, 400);
+  }
+  const res = await c.env.DB
+    .prepare(`DELETE FROM report_penalty_rules WHERE threshold = ?`)
+    .bind(threshold)
+    .run();
+  return c.json({ ok: true, deleted: res.meta?.changes ?? 0 });
 });
 
 adminData.post("/oth-path", async (c) => {
