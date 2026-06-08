@@ -717,6 +717,7 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
   const v_9c552d = Number(v_f71b56.searchParams.get("maxCount") ?? 0);
   const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
   const v_b1de41 = Number(v_f71b56.searchParams.get("targetId") ?? 0); 
+  const v_3ab22a = Number(v_f71b56.searchParams.get("responsibleUserId") ?? 0); 
   const v_a13c2e = (v_f71b56.searchParams.get("from") ?? "").trim(); 
   const v_257132 = (v_f71b56.searchParams.get("to") ?? "").trim(); 
   const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
@@ -835,6 +836,11 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
   if (v_b1de41 > 0) {
     v_abcc8d.push("r.targetId = ?");
     v_925171.push(v_b1de41);
+  }
+
+  if (v_3ab22a > 0) {
+    v_abcc8d.push("r.responsibleUserId = ?");
+    v_925171.push(v_3ab22a);
   }
   if (v_ca4710 > 0) {
     v_abcc8d.push("r.targetReportCount >= ?");
