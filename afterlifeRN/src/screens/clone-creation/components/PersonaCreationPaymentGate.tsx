@@ -15,6 +15,7 @@ import {
   v_0e1f26,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_c67c5c } from "../../../components/auth/OtpVerifyView";
 import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_194498 } from "../../../stores/cloneStore";
@@ -152,18 +153,13 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 {v_f6096a && " — 잔액 부족"}
               </Text>
             )}
-            <TextInput
-              style={[v_d81136.input, v_cae92d && v_d81136.inputDisabled]}
+            <OtpCodeInput
               value={v_6bee94}
-              onChangeText={(v_81e2ef) => {
-                v_240fbf(v_81e2ef.replace(/\D/g, "").slice(0, 6));
+              onChange={(v_81e2ef) => {
+                v_240fbf(v_81e2ef);
                 v_3a7d09(null);
               }}
-              placeholder="PIN 6자리"
-              placeholderTextColor={v_1bfbd0.zinc400}
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={6}
+              masked
               autoFocus={!v_cae92d}
               editable={!v_cae92d}
             />
