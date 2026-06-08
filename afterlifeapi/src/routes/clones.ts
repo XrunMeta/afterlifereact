@@ -241,6 +241,22 @@ clones.post(
           }
           throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
         }
+
+        try {
+          const { recordAfterlifePersonaPayment } = await import("../lib/giftCommission");
+          const r = await recordAfterlifePersonaPayment(c.env, {
+            userId,
+            totalXrun: PERSONA_PAID_PRICE_XRUN,
+            companyWallet: companyAddr,
+          });
+          if (r.recorded) {
+            console.log(`[persona-create] settlement recorded — amount=${r.amount}`);
+          } else {
+            console.log(`[persona-create] settlement skip: ${r.reason}`);
+          }
+        } catch (err) {
+          console.warn("[persona-create] settlement record failed:", (err as Error).message);
+        }
       } else {
 
         console.warn("[DEV_BYPASS] persona payment skipped via bypass PIN, userId=", userId);

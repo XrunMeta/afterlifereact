@@ -93,3 +93,66 @@ export async function recordAfterlifeGiftCommission(
 
   return { recorded: true, amount, recommender };
 }
+
+interface PersonaPaymentInput {
+
+  userId: number;
+  totalXrun: number; 
+  companyWallet: string; 
+}
+
+export async function recordAfterlifePersonaPayment(
+  env: AppEnv["Bindings"],
+  input: PersonaPaymentInput,
+): Promise<{ recorded: boolean; reason?: string; amount?: number }> {
+  const xrun = (env as unknown as { XRUN_DB?: D1Database }).XRUN_DB;
+  if (!xrun) return { recorded: false, reason: "no_xrun_binding" };
+
+  const period = kstPeriod();
+  let session = await xrun
+    .prepare(
+      `SELECT id FROM SettlementSessions
+        WHERE period = ? AND source_type = 'afterlife_persona' AND status = 'pending'
+        LIMIT 1`,
+    )
+    .bind(period)
+    .first<{ id: number }>();
+
+  if (!session) {
+    const ins = await xrun
+      .prepare(
+        `INSERT INTO SettlementSessions
+           (period, round, title, source_type, total_krw, total_xrun, status)
+         VALUES (?, 1, ?, 'afterlife_persona', 0, 0, 'pending')`,
+      )
+      .bind(period, `에프터라이프 페르소나 결제 ${period}`)
+      .run();
+    const sessionId = ins.meta?.last_row_id;
+    if (!sessionId || typeof sessionId !== "number") {
+      return { recorded: false, reason: "session_create_failed" };
+    }
+    session = { id: sessionId };
+  }
+
+  const amount = Math.round(input.totalXrun * 1_000_000) / 1_000_000;
+  await xrun
+    .prepare(
+      `INSERT INTO SettlementRecords
+         (session_id, member, wallet_address, krw_amount, xrun_amount, xrun_price,
+          level, source_callback_id, source_type, status)
+         VALUES (?, 0, ?, 0, ?, 0, 0, ?, 'afterlife_persona', 'pending')`,
+    )
+    .bind(session.id, input.companyWallet, amount, input.userId)
+    .run();
+
+  await xrun
+    .prepare(
+      `UPDATE SettlementSessions
+          SET total_xrun = total_xrun + ?, updated_at = datetime('now')
+        WHERE id = ?`,
+    )
+    .bind(amount, session.id)
+    .run();
+
+  return { recorded: true, amount };
+}
