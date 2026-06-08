@@ -658,7 +658,7 @@ auth.post("/login", async (c) => {
 
   const user = await db
     .prepare(
-      `SELECT id, password_hash, failed_login_count, locked_until, deletion_state
+      `SELECT id, password_hash, failed_login_count, locked_until, deletion_state, banned_until
          FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(body.email)
@@ -668,6 +668,7 @@ auth.post("/login", async (c) => {
       failed_login_count: number;
       locked_until: string | null;
       deletion_state: string;
+      banned_until: string | null;
     }>();
 
   const hashForCheck = user?.password_hash ?? (await hashPassword("dummy-nonmatch-0000"));
@@ -716,6 +717,12 @@ auth.post("/login", async (c) => {
 
   if (user.deletion_state !== "active") {
     throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+
+  if (user.banned_until && parseSqliteTimestamp(user.banned_until) > Date.now()) {
+    throw new APIError("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      bannedUntil: user.banned_until,
+    });
   }
 
   await db
@@ -889,12 +896,17 @@ auth.post("/email/login", async (c) => {
   await verifySignupOtp(c.env, body.email, body.verificationCode);
 
   const user = await c.env.DB
-    .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .prepare(`SELECT id, deletion_state, banned_until FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
     .bind(emailLower)
-    .first<{ id: number; deletion_state: string }>();
+    .first<{ id: number; deletion_state: string; banned_until: string | null }>();
   if (!user) throw new APIError("NOT_FOUND", "가입된 이메일이 아닙니다.");
   if (user.deletion_state !== "active") {
     throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+  if (user.banned_until && parseSqliteTimestamp(user.banned_until) > Date.now()) {
+    throw new APIError("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      bannedUntil: user.banned_until,
+    });
   }
 
   if (body.deviceId && body.pushToken) {

@@ -123,6 +123,12 @@ export default function NotificationsScreen() {
       navigation.navigate("UserProfile", { userId: d.actorId });
     } else if ((m = url.match(/^afterlife:\/\/invite\/(.+)$/))) {
       navigation.navigate("InviteAccept", { token: decodeURIComponent(m[1]) });
+    } else if (n.type === "moderation" || url.startsWith("afterlife://reports")) {
+
+      navigation.navigate("Main", {
+        screen: "MyTab",
+        params: { screen: "Reports", params: { tab: "received" } },
+      });
     } else if ((m = url.match(/^afterlife:\/\/oth-path\/(\d+)/))) {
 
       navigation.navigate("UserProfile", { userId: Number(m[1]) });
