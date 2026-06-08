@@ -708,13 +708,6 @@ export default function v_def15b() {
               <Text style={v_fd5f43.statText}>상호작용</Text>
             </TouchableOpacity>
             {}
-            <TouchableOpacity
-              style={v_fd5f43.stat}
-              onPress={() => v_598141({ cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
-            >
-              <Feather name="thermometer" size={14} color="#fb923c" />
-              <Text style={v_fd5f43.statText}>온도</Text>
-            </TouchableOpacity>
           </View>
         )}
 
