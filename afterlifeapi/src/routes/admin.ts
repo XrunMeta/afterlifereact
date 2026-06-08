@@ -667,7 +667,7 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
                 c.created_at AS createdAt,
                 (SELECT COUNT(*) FROM clone_reports cr WHERE cr.clone_id = c.id) AS reportCount
            FROM clones c
-          WHERE c.owner_id = ?
+          WHERE c.owner_id = ? AND c.deletion_state = 'active'
           ORDER BY c.id DESC
           LIMIT 200`,
       )
