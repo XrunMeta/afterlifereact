@@ -477,6 +477,7 @@ adminData.get("/oth-path", async (c) => {
                 tu.email AS targetEmail,
                 r.reason AS reason,
                 r.status AS status,
+                r.admin_message AS adminMessage,
                 r.created_at AS createdAt,
                 r.reviewed_at AS reviewedAt
            FROM user_reports r
@@ -497,6 +498,7 @@ adminData.get("/oth-path", async (c) => {
         targetEmail: string;
         reason: string | null;
         status: string;
+        adminMessage: string | null;
         createdAt: string;
         reviewedAt: string | null;
       }>()

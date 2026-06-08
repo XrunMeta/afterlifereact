@@ -722,6 +722,7 @@ admin.get("/reports", requireAdmin, async (c) => {
            co.name AS targetOwnerName,
            cr.reason AS reason,
            cr.status AS status,
+           cr.admin_message AS adminMessage,
            cr.created_at AS createdAt,
            cr.reviewed_at AS reviewedAt,
            (SELECT COUNT(*) FROM clone_reports x WHERE x.clone_id = cr.clone_id AND x.status = 'reviewed') AS targetReportCount
@@ -743,6 +744,7 @@ admin.get("/reports", requireAdmin, async (c) => {
            NULL AS targetOwnerName,
            ur.reason AS reason,
            ur.status AS status,
+           ur.admin_message AS adminMessage,
            ur.created_at AS createdAt,
            ur.reviewed_at AS reviewedAt,
            (SELECT COUNT(*) FROM user_reports x WHERE x.target_id = ur.target_id AND x.status = 'reviewed') AS targetReportCount
@@ -764,6 +766,7 @@ admin.get("/reports", requireAdmin, async (c) => {
            cc.name AS targetOwnerName,
            cmr.reason AS reason,
            cmr.status AS status,
+           cmr.admin_message AS adminMessage,
            cmr.created_at AS createdAt,
            cmr.reviewed_at AS reviewedAt,
            (SELECT COUNT(*) FROM comment_reports x WHERE x.comment_id = cmr.comment_id AND x.status = 'reviewed') AS targetReportCount
