@@ -418,3 +418,29 @@ v_b7f2b4.put("/voices/:id", v_b09138, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_2c44c0 = v_3f4e2e.req.param("id");
+  const v_6e0fd3 = Number(v_2c44c0);
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_3c8572 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .bind(v_6e0fd3)
+    .first<{ id: number; deletion_state: string }>();
+  if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (v_3c8572.deletion_state !== "active") {
+    return v_3f4e2e.json({ ok: true, alreadyDeleted: true, deletionState: v_3c8572.deletion_state });
+  }
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ ok: true, deletedId: v_6e0fd3, deletionState: "soft_deleted" });
+});
+
