@@ -62,6 +62,7 @@ async def test_offer_fetches_bundle_and_stores_persona(monkeypatch):
     monkeypatch.setattr(signaling, "fetch_bundle", fake_fetch)
     monkeypatch.setattr(signaling, "bundle_to_messages",
                         lambda b: [{"role": "system", "content": "할배"}])
+    monkeypatch.setattr(signaling.os.path, "isfile", lambda p: True)  # 파일 존재 mock
 
     app = make_app()
     async with TestClient(TestServer(app)) as client:
@@ -109,6 +110,107 @@ async def test_offer_bundle_fetch_failure_graceful(monkeypatch):
         sess = app["mgr"].get(sid)
         assert sess.persona_messages == []
         assert sess.se_path is None
+        await pc.close()
+
+
+@pytest.mark.asyncio
+async def test_offer_rejects_non_integer_clone_id(monkeypatch):
+    """clone_id 문자열(경로주입 시도) → sess.clone_id is None, se_path None, fetch_bundle 미호출."""
+    called = []
+
+    async def spy_fetch(api, cid, tok):
+        called.append(cid)
+        return None
+
+    monkeypatch.setattr(signaling, "fetch_bundle", spy_fetch)
+
+    app = make_app()
+    async with TestClient(TestServer(app)) as client:
+        pc = RTCPeerConnection()
+        pc.addTransceiver("video", direction="recvonly")
+        pc.addTransceiver("audio", direction="recvonly")
+        await pc.setLocalDescription(await pc.createOffer())
+        resp = await client.post("/offer", json={
+            "sdp": pc.localDescription.sdp,
+            "type": pc.localDescription.type,
+            "clone_id": "../etc/passwd",  # 경로주입 시도
+            "access_token": "tok",
+        })
+        assert resp.status == 200
+        sid = (await resp.json())["session_id"]
+        sess = app["mgr"].get(sid)
+        assert sess.clone_id is None          # 정수 아님 → None
+        assert sess.se_path is None           # 경로 설정 안 됨
+        assert len(called) == 0               # fetch_bundle 미호출
+        await pc.close()
+
+
+@pytest.mark.asyncio
+async def test_offer_empty_assets_no_se(monkeypatch):
+    """assets에 voiceSeKey·voiceSeUrl 둘 다 None + 존재하지 않는 cloneId → sess.se_path is None."""
+    async def fake_fetch(api, cid, tok):
+        return {
+            "personaBundle": {"cloneId": "99999", "persona": {"displayName": "테스트"}},
+            "assets": {"voiceSeKey": None, "voiceSeUrl": None},
+        }
+
+    monkeypatch.setattr(signaling, "fetch_bundle", fake_fetch)
+    monkeypatch.setattr(signaling, "bundle_to_messages",
+                        lambda b: [{"role": "system", "content": "테스트"}])
+    # os.path.isfile → 항상 False (파일 없는 상황)
+    monkeypatch.setattr(signaling.os.path, "isfile", lambda p: False)
+
+    app = make_app()
+    async with TestClient(TestServer(app)) as client:
+        pc = RTCPeerConnection()
+        pc.addTransceiver("video", direction="recvonly")
+        pc.addTransceiver("audio", direction="recvonly")
+        await pc.setLocalDescription(await pc.createOffer())
+        resp = await client.post("/offer", json={
+            "sdp": pc.localDescription.sdp,
+            "type": pc.localDescription.type,
+            "clone_id": 99999,
+            "access_token": "tok",
+        })
+        assert resp.status == 200
+        sid = (await resp.json())["session_id"]
+        sess = app["mgr"].get(sid)
+        assert sess.se_path is None           # 파일 없음 → 미설정
+        await pc.close()
+
+
+@pytest.mark.asyncio
+async def test_offer_se_path_set_when_exists(monkeypatch):
+    """존재하는 디렉토리 mock(monkeypatch os.path.isfile→True) → se_path 설정됨."""
+    async def fake_fetch(api, cid, tok):
+        return {
+            "personaBundle": {"cloneId": "1234", "persona": {"displayName": "할배"}},
+            "assets": {"voiceSeKey": "1234"},
+        }
+
+    monkeypatch.setattr(signaling, "fetch_bundle", fake_fetch)
+    monkeypatch.setattr(signaling, "bundle_to_messages",
+                        lambda b: [{"role": "system", "content": "할배"}])
+    # os.path.isfile → True (파일 존재 상황)
+    monkeypatch.setattr(signaling.os.path, "isfile", lambda p: True)
+
+    app = make_app()
+    async with TestClient(TestServer(app)) as client:
+        pc = RTCPeerConnection()
+        pc.addTransceiver("video", direction="recvonly")
+        pc.addTransceiver("audio", direction="recvonly")
+        await pc.setLocalDescription(await pc.createOffer())
+        resp = await client.post("/offer", json={
+            "sdp": pc.localDescription.sdp,
+            "type": pc.localDescription.type,
+            "clone_id": 1234,
+            "access_token": "tok",
+        })
+        assert resp.status == 200
+        sid = (await resp.json())["session_id"]
+        sess = app["mgr"].get(sid)
+        assert sess.se_path is not None       # 파일 존재 → se_path 설정
+        assert "1234" in sess.se_path         # cloneId 경로 포함
         await pc.close()
 
 

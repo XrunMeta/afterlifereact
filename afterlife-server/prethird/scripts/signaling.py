@@ -75,20 +75,39 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
             pc.addTrack(sess.audio_track)
 
             # bundle 조회: clone_id/access_token 있을 때만
-            sess.clone_id = params.get("clone_id")
+            # clone_id는 정수만 수용 — 비정수/음수/None이면 None(경로주입 차단, mizu H-1)
+            raw_cid = params.get("clone_id")
+            clone_id = raw_cid if isinstance(raw_cid, int) and raw_cid > 0 else None
+            sess.clone_id = clone_id
             if sess.clone_id is not None:
                 access_token = params.get("access_token")
                 bundle = await fetch_bundle(
                     os.environ.get("PRETHIRD_API_BASE"), sess.clone_id, access_token
                 )
+                del access_token  # 토큰 세션 저장 금지 (mizu H-2)
                 if bundle:
                     sess.persona_messages = bundle_to_messages(bundle)
                     assets = bundle.get("assets") or {}
                     se_key = assets.get("voiceSeKey")
+                    # voiceSeUrl만 있는 경우(R2 직접 URL)는 2a 미지원 — se_path=None(기본)
+                    if assets.get("voiceSeUrl") and not se_key:
+                        log.info("voiceSeUrl only, R2 pull은 2b 미지원 → 기본 voice 사용 (session=%s)", sess.session_id)
+                    # 후보 디렉토리 결정: voiceSeKey 우선, 없으면 clone_id 경로
+                    candidate_dir = None
                     if se_key:
-                        sess.se_path = f"{REF_VOICES_ROOT}/{se_key}/se.pth"
-                    else:
-                        sess.se_path = f"{REF_VOICES_ROOT}/{sess.clone_id}/se.pth"
+                        candidate_dir = f"{REF_VOICES_ROOT}/{se_key}"
+                    elif sess.clone_id is not None:
+                        candidate_dir = f"{REF_VOICES_ROOT}/{sess.clone_id}"
+                    # 디렉토리 존재 확인: se.pth(OpenVoice) 또는 voice.wav(qwen3tts) 중 하나라도 있으면 채택
+                    # clone_ref.py 구조: ref_audio_path는 {root}/{clone_id}/voice.wav 사용
+                    # → 디렉토리 존재를 기준으로 se_path 설정(없는 자산 경로 미설정)
+                    if candidate_dir:
+                        se_pth = os.path.join(candidate_dir, "se.pth")
+                        voice_wav = os.path.join(candidate_dir, "voice.wav")
+                        if os.path.isfile(se_pth) or os.path.isfile(voice_wav):
+                            sess.se_path = se_pth
+                        else:
+                            log.info("se_path 후보 부재 → 기본 voice 사용 (dir=%s)", candidate_dir)
             log.info(
                 "offer session=%s clone_id=%s persona=%d se=%s",
                 sess.session_id, sess.clone_id, len(sess.persona_messages), bool(sess.se_path),
