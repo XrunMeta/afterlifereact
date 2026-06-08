@@ -241,6 +241,22 @@ v_f891e6.post(
           }
           throw new v_3ebe58("UPSTREAM_FAILURE", v_e69235.reason ?? "xrun transfer error");
         }
+
+        try {
+          const { recordAfterlifePersonaPayment: v_0ebe1e } = await import("../lib/giftCommission");
+          const v_cb35cb = await v_0ebe1e(v_3f4e2e.env, {
+            userId: v_43e90c,
+            totalXrun: v_c02c4c,
+            companyWallet: v_72b02d,
+          });
+          if (v_cb35cb.recorded) {
+            console.log(`[persona-create] settlement recorded — amount=${v_cb35cb.amount}`);
+          } else {
+            console.log(`[persona-create] settlement skip: ${v_cb35cb.reason}`);
+          }
+        } catch (v_49263d) {
+          console.warn("[persona-create] settlement record failed:", (v_49263d as Error).message);
+        }
       } else {
 
         console.warn("[DEV_BYPASS] persona payment skipped via bypass PIN, userId=", v_43e90c);
