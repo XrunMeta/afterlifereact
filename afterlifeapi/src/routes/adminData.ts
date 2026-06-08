@@ -85,6 +85,55 @@ adminData.get("/oth-path", async (c) => {
 
 adminData.get("/oth-path", async (c) => {
 
+  const url = new URL(c.req.url);
+  const visibility = url.searchParams.get("visibility") ?? "";
+  const deletionState = url.searchParams.get("deletionState") ?? "";
+  const minReports = Number(url.searchParams.get("minReports") ?? 0);
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+  const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") ?? 20)));
+
+  const where: string[] = ["1=1"];
+  const binds: unknown[] = [];
+
+  if (visibility) {
+    where.push("c.visibility = ?");
+    binds.push(visibility);
+  }
+  if (deletionState) {
+    where.push("c.deletion_state = ?");
+    binds.push(deletionState);
+  } else {
+
+    where.push("c.deletion_state IN ('active', 'soft_deleted')");
+  }
+  if (q) {
+    where.push(`(
+      c.name LIKE ? OR c.username LIKE ? OR
+      COALESCE(u.name,'') LIKE ? OR COALESCE(u.email,'') LIKE ?
+    )`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat, pat, pat);
+  }
+
+  if (minReports > 0) {
+    where.push(`
+      (SELECT COUNT(*) FROM clone_reports cr WHERE cr.clone_id = c.id AND cr.status = 'open') >= ?
+    `);
+    binds.push(minReports);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM clones c
+         LEFT JOIN users u ON u.id = c.owner_id
+        WHERE ${whereSql}`,
+    )
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
   const rows = (
     await c.env.DB.prepare(
       `SELECT c.id, c.name, c.username, c.avatar_url AS avatarUrl,
@@ -111,11 +160,15 @@ adminData.get("/oth-path", async (c) => {
                 WHERE uci.clone_id = c.id) AS interactionCount
          FROM clones c
          LEFT JOIN users u ON u.id = c.owner_id
+        WHERE ${whereSql}
         ORDER BY c.id DESC
-        LIMIT 200`,
-    ).all()
+        LIMIT ? OFFSET ?`,
+    )
+      .bind(...binds, limit, offset)
+      .all()
   ).results;
-  return c.json(rows);
+
+  return c.json({ items: rows, total: totalRow?.cnt ?? 0, offset, limit });
 });
 
 adminData.get("/oth-path", async (c) => {
