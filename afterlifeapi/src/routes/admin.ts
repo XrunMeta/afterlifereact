@@ -912,7 +912,11 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   const { q: v_ab6401, offset: v_3bbadf, limit: v_02be30 } = v_18f7ef(v_3f4e2e);
 
-  const v_abcc8d = ["f.clone_id = ?", "fcc.parent_comment_id IS NULL"];
+  const v_abcc8d = [
+    "f.clone_id = ?",
+    "fcc.parent_comment_id IS NULL",
+    "fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status = 'reviewed')",
+  ];
   const v_925171 = [v_6e0fd3];
   if (v_ab6401) {
     v_abcc8d.push(`(u.name LIKE ? OR u.email LIKE ? OR fcc.content LIKE ?)`);
