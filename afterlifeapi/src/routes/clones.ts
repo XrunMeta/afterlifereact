@@ -1394,6 +1394,23 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     extraBody: `${body.giftName} 선물 (+${ownerAmount} XRUN)`,
   });
 
+  try {
+    const { recordAfterlifeGiftCommission } = await import("../lib/giftCommission");
+    const r = await recordAfterlifeGiftCommission(c.env, {
+      cloneId,
+      ownerXrunMember: owner?.xrun_member_id ?? null,
+      totalXrun: total,
+      giftName: body.giftName,
+    });
+    if (!r.recorded) {
+      console.log(`[gift] commission skip: ${r.reason}`);
+    } else {
+      console.log(`[gift] commission recorded — recommender=${r.recommender} amount=${r.amount}`);
+    }
+  } catch (err) {
+    console.warn("[gift] commission record failed:", (err as Error).message);
+  }
+
   return c.json({
     ok: true,
     gift: {
