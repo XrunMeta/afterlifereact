@@ -21,7 +21,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useCameraPermissions } from "expo-camera";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { RTCView, mediaDevices } from "react-native-webrtc";
-import { useLiveAvatar } from "../../realtime/useLiveAvatar";
+import { useAvatarCall } from "../../realtime/useAvatarCall";
+import { CALL_ROUTE } from "../../config/callRoute";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
@@ -124,7 +125,7 @@ export default function CallScreen({ route, navigation }: Props) {
     say,
     getStatsReport,
     notifySpeechEnd,
-  } = useLiveAvatar({ cloneId, accessToken: accessToken ?? "" });
+  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "" });
 
   const {
     phase,
@@ -438,6 +439,13 @@ export default function CallScreen({ route, navigation }: Props) {
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
       )}
+
+      {__DEV__ ? (
+        <Text style={{ position: 'absolute', top: 8, left: 8, zIndex: 10,
+          color: '#0f0', fontSize: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 2 }}>
+          route:{CALL_ROUTE}
+        </Text>
+      ) : null}
 
       {}
       {liveState !== "live" && (
