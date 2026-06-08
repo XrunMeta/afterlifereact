@@ -28,6 +28,7 @@ import {
   type DiscoverFeedItem,
 } from "../../api/clones";
 import { searchUsers, type UserSearchItem } from "../../api/auth";
+import { fuzzyMatch } from "../../lib/similarity";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { MainTabParamList, RootStackParamList } from "../../navigation/types";
 
@@ -199,7 +200,12 @@ export default function SearchScreen() {
       );
 
       const contentMatch = (f.content ?? "").toLowerCase().includes(q);
-      return name.includes(q) || uname.includes(q) || interestsMatch || contentMatch;
+
+      return (
+        name.includes(q) || uname.includes(q) ||
+        fuzzyMatch(q, name) || fuzzyMatch(q, uname) ||
+        interestsMatch || contentMatch
+      );
     });
   }, [feeds, query]);
 
@@ -210,10 +216,12 @@ export default function SearchScreen() {
     for (const f of feeds) {
       if (seen.has(f.clone.id)) continue;
       seen.add(f.clone.id);
+      const name = f.clone.name.toLowerCase();
+      const uname = f.clone.username.toLowerCase();
       if (
         !q ||
-        f.clone.name.toLowerCase().includes(q) ||
-        f.clone.username.toLowerCase().includes(q)
+        name.includes(q) || uname.includes(q) ||
+        fuzzyMatch(q, name) || fuzzyMatch(q, uname)
       ) {
         out.push(f.clone);
       }
