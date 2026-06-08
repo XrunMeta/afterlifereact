@@ -23,6 +23,10 @@ export interface MyReportReceived {
   adminMessage: string | null;
   warningReason: string | null;
   warnedAt: string | null;
+
+  cloneName: string | null;
+
+  content: string | null;
 }
 
 export function v_5d6789(v_2ca7e0): Promise<{ items: MyReportMade[] }> {
