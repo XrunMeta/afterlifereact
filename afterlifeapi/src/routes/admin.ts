@@ -828,18 +828,19 @@ const CLONE_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
 admin.patch("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string }>().catch(() => ({}) as { status?: string });
+  const body = await c.req.json<{ status?: string; adminMessage?: string }>().catch(() => ({}) as { status?: string; adminMessage?: string });
   const status = body.status ?? "";
   if (!(CLONE_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");
   }
+  const adminMessage = status === "open" ? null : (body.adminMessage ?? null);
   const reviewedClause = status === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
   const r = await c.env.DB
-    .prepare(`UPDATE clone_reports SET status = ?, ${reviewedClause} WHERE id = ?`)
-    .bind(status, id)
+    .prepare(`UPDATE clone_reports SET status = ?, ${reviewedClause}, admin_message = ? WHERE id = ?`)
+    .bind(status, adminMessage, id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
-  return c.json({ ok: true, id, status });
+  return c.json({ ok: true, id, status, adminMessage });
 });
 admin.delete("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
@@ -853,18 +854,19 @@ const USER_REPORT_STATUSES = ["open", "reviewed", "dismissed", "actioned"] as co
 admin.patch("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string }>().catch(() => ({}) as { status?: string });
+  const body = await c.req.json<{ status?: string; adminMessage?: string }>().catch(() => ({}) as { status?: string; adminMessage?: string });
   const status = body.status ?? "";
   if (!(USER_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");
   }
+  const adminMessage = status === "open" ? null : (body.adminMessage ?? null);
   const reviewedClause = status === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
   const r = await c.env.DB
-    .prepare(`UPDATE user_reports SET status = ?, ${reviewedClause} WHERE id = ?`)
-    .bind(status, id)
+    .prepare(`UPDATE user_reports SET status = ?, ${reviewedClause}, admin_message = ? WHERE id = ?`)
+    .bind(status, adminMessage, id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
-  return c.json({ ok: true, id, status });
+  return c.json({ ok: true, id, status, adminMessage });
 });
 admin.delete("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
@@ -878,18 +880,19 @@ const COMMENT_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
 admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string }>().catch(() => ({}) as { status?: string });
+  const body = await c.req.json<{ status?: string; adminMessage?: string }>().catch(() => ({}) as { status?: string; adminMessage?: string });
   const status = body.status ?? "";
   if (!(COMMENT_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");
   }
+  const adminMessage = status === "open" ? null : (body.adminMessage ?? null);
   const reviewedClause = status === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
   const r = await c.env.DB
-    .prepare(`UPDATE comment_reports SET status = ?, ${reviewedClause} WHERE id = ?`)
-    .bind(status, id)
+    .prepare(`UPDATE comment_reports SET status = ?, ${reviewedClause}, admin_message = ? WHERE id = ?`)
+    .bind(status, adminMessage, id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
-  return c.json({ ok: true, id, status });
+  return c.json({ ok: true, id, status, adminMessage });
 });
 admin.delete("/comments/reports/:id", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
