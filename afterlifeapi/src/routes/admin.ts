@@ -698,6 +698,153 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
   });
 });
 
+admin.get("/reports", requireAdmin, async (c) => {
+  const url = new URL(c.req.url);
+  const type = url.searchParams.get("type") ?? "all"; 
+  const status = url.searchParams.get("status") ?? ""; 
+  const minCount = Number(url.searchParams.get("minCount") ?? 0);
+  const maxCount = Number(url.searchParams.get("maxCount") ?? 0);
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+  const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") ?? 20)));
+
+  const cloneSql = `
+    SELECT 'clone' AS type,
+           cr.id AS id,
+           cr.user_id AS reporterId,
+           ru.name AS reporterName,
+           ru.email AS reporterEmail,
+           cr.clone_id AS targetId,
+           c.name AS targetName,
+           c.username AS targetSub,
+           c.owner_id AS targetOwnerId,
+           co.name AS targetOwnerName,
+           cr.reason AS reason,
+           cr.status AS status,
+           cr.created_at AS createdAt,
+           cr.reviewed_at AS reviewedAt,
+           (SELECT COUNT(*) FROM clone_reports x WHERE x.clone_id = cr.clone_id) AS targetReportCount
+      FROM clone_reports cr
+      JOIN users ru ON ru.id = cr.user_id
+      JOIN clones c ON c.id = cr.clone_id
+      LEFT JOIN users co ON co.id = c.owner_id
+  `;
+  const userSql = `
+    SELECT 'user' AS type,
+           ur.id AS id,
+           ur.reporter_id AS reporterId,
+           ru.name AS reporterName,
+           ru.email AS reporterEmail,
+           ur.target_id AS targetId,
+           tu.name AS targetName,
+           tu.email AS targetSub,
+           NULL AS targetOwnerId,
+           NULL AS targetOwnerName,
+           ur.reason AS reason,
+           ur.status AS status,
+           ur.created_at AS createdAt,
+           ur.reviewed_at AS reviewedAt,
+           (SELECT COUNT(*) FROM user_reports x WHERE x.target_id = ur.target_id) AS targetReportCount
+      FROM user_reports ur
+      JOIN users ru ON ru.id = ur.reporter_id
+      JOIN users tu ON tu.id = ur.target_id
+  `;
+
+  const base =
+    type === "clone" ? cloneSql
+    : type === "user" ? userSql
+    : `(${cloneSql} UNION ALL ${userSql})`;
+
+  const where: string[] = ["1=1"];
+  const binds: unknown[] = [];
+  if (status && ["open", "reviewed", "dismissed", "actioned"].includes(status)) {
+    where.push("status = ?");
+    binds.push(status);
+  }
+  if (q) {
+    where.push(`(
+      reporterName LIKE ? OR reporterEmail LIKE ? OR
+      COALESCE(targetName,'') LIKE ? OR COALESCE(targetSub,'') LIKE ? OR
+      COALESCE(reason,'') LIKE ?
+    )`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat, pat, pat, pat);
+  }
+  if (minCount > 0) {
+    where.push("targetReportCount >= ?");
+    binds.push(minCount);
+  }
+  if (maxCount > 0) {
+    where.push("targetReportCount <= ?");
+    binds.push(maxCount);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM ${base} WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
+  const rows = (
+    await c.env.DB
+      .prepare(`SELECT * FROM ${base} WHERE ${whereSql} ORDER BY createdAt DESC LIMIT ? OFFSET ?`)
+      .bind(...binds, limit, offset)
+      .all()
+  ).results;
+
+  return c.json({ items: rows, total: totalRow?.cnt ?? 0, offset, limit });
+});
+
+const CLONE_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
+admin.patch("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const body = await c.req.json<{ status?: string }>().catch(() => ({}));
+  const status = body.status ?? "";
+  if (!(CLONE_REPORT_STATUSES as readonly string[]).includes(status)) {
+    throw new APIError("VALIDATION_FAILED", "Invalid status.");
+  }
+  const reviewedClause = status === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const r = await c.env.DB
+    .prepare(`UPDATE clone_reports SET status = ?, ${reviewedClause} WHERE id = ?`)
+    .bind(status, id)
+    .run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+  return c.json({ ok: true, id, status });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM clone_reports WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+  return c.json({ ok: true, id });
+});
+
+const USER_REPORT_STATUSES = ["open", "reviewed", "dismissed", "actioned"] as const;
+admin.patch("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const body = await c.req.json<{ status?: string }>().catch(() => ({}));
+  const status = body.status ?? "";
+  if (!(USER_REPORT_STATUSES as readonly string[]).includes(status)) {
+    throw new APIError("VALIDATION_FAILED", "Invalid status.");
+  }
+  const reviewedClause = status === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const r = await c.env.DB
+    .prepare(`UPDATE user_reports SET status = ?, ${reviewedClause} WHERE id = ?`)
+    .bind(status, id)
+    .run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+  return c.json({ ok: true, id, status });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM user_reports WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+  return c.json({ ok: true, id });
+});
+
 admin.get("/oth-path", requireAdmin, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
