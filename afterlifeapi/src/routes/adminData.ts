@@ -85,6 +85,55 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
 
 v_133c2c.get("/oth-path", async (v_3f4e2e) => {
 
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_818579 = v_f71b56.searchParams.get("visibility") ?? "";
+  const v_9d030b = v_f71b56.searchParams.get("deletionState") ?? "";
+  const v_e42ef7 = Number(v_f71b56.searchParams.get("minReports") ?? 0);
+  const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
+  const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
+  const v_02be30 = Math.max(1, Math.min(200, Number(v_f71b56.searchParams.get("limit") ?? 20)));
+
+  const v_abcc8d = ["1=1"];
+  const v_925171 = [];
+
+  if (v_818579) {
+    v_abcc8d.push("c.visibility = ?");
+    v_925171.push(v_818579);
+  }
+  if (v_9d030b) {
+    v_abcc8d.push("c.deletion_state = ?");
+    v_925171.push(v_9d030b);
+  } else {
+
+    v_abcc8d.push("c.deletion_state IN ('active', 'soft_deleted')");
+  }
+  if (v_ab6401) {
+    v_abcc8d.push(`(
+      c.name LIKE ? OR c.username LIKE ? OR
+      COALESCE(u.name,'') LIKE ? OR COALESCE(u.email,'') LIKE ?
+    )`);
+    const v_07022a = `%${v_ab6401}%`;
+    v_925171.push(v_07022a, v_07022a, v_07022a, v_07022a);
+  }
+
+  if (v_e42ef7 > 0) {
+    v_abcc8d.push(`
+      (SELECT COUNT(*) FROM clone_reports cr WHERE cr.clone_id = c.id AND cr.status = 'open') >= ?
+    `);
+    v_925171.push(v_e42ef7);
+  }
+  const v_8b4d7e = v_abcc8d.join(" AND ");
+
+  const v_0dab8e = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM clones c
+         LEFT JOIN users u ON u.id = c.owner_id
+        WHERE ${v_8b4d7e}`,
+    )
+    .bind(...v_925171)
+    .first<{ cnt: number }>();
+
   const v_18b8bf = (
     await v_3f4e2e.env.DB.prepare(
       `SELECT c.id, c.name, c.username, c.avatar_url AS avatarUrl,
@@ -111,11 +160,15 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
                 WHERE uci.clone_id = c.id) AS interactionCount
          FROM clones c
          LEFT JOIN users u ON u.id = c.owner_id
+        WHERE ${v_8b4d7e}
         ORDER BY c.id DESC
-        LIMIT 200`,
-    ).all()
+        LIMIT ? OFFSET ?`,
+    )
+      .bind(...v_925171, v_02be30, v_3bbadf)
+      .all()
   ).results;
-  return v_3f4e2e.json(v_18b8bf);
+
+  return v_3f4e2e.json({ items: v_18b8bf, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
 });
 
 v_133c2c.get("/oth-path", async (v_3f4e2e) => {
