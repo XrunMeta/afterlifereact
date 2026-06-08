@@ -188,25 +188,6 @@ export async function cascadeSoftDeleteOwnedClones(
   return { softDeleted, transferred };
 }
 
-export async function cascadeRestoreOwnedClones(
-  db: D1Database,
-  ownerId: number,
-): Promise<number> {
-  const res = await db
-    .prepare(
-      `UPDATE clones
-          SET deletion_state = 'active',
-              soft_deleted_at = NULL,
-              owner_cascade_deleted_at = NULL
-        WHERE owner_id = ?
-          AND deletion_state = 'soft_deleted'
-          AND owner_cascade_deleted_at IS NOT NULL`,
-    )
-    .bind(ownerId)
-    .run();
-  return res.meta.changes ?? 0;
-}
-
 deletion.delete("/me", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const result = await softDelete(c.env.DB, "user", userId, "id", userId);
@@ -235,34 +216,6 @@ deletion.delete("/me", requireAuth, async (c) => {
   }
 
   return c.json({ ok: true, state: "soft_deleted", alreadyDeleted });
-});
-
-deletion.post("/me/restore", requireAuth, async (c) => {
-  const userId = c.get("userId")!;
-  const result = await softRestore(c.env.DB, "user", userId, "id", userId);
-  handleRestoreResult(result);
-
-  const restoredClones = await cascadeRestoreOwnedClones(c.env.DB, userId);
-  console.log(`[deletion.me.restore] clones restored: ${restoredClones}`);
-
-  try {
-    const linkRow = await c.env.DB
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(userId)
-      .first<{ xrun_member_id: number | null }>();
-    const xrunMember = linkRow?.xrun_member_id ?? null;
-    if (xrunMember && c.env.XRUN_DB) {
-
-      await c.env.XRUN_DB
-        .prepare(`UPDATE Members SET afterlife_deleted_at = NULL WHERE member = ?`)
-        .bind(xrunMember)
-        .run();
-    }
-  } catch (err) {
-    console.warn("[deletion.me.restore] xrun unmark failed:", (err as Error).message);
-  }
-
-  return c.json({ ok: true, state: "active" });
 });
 
 deletion.delete("/oth-path", requireAuth, async (c) => {

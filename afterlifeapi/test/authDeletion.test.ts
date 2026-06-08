@@ -63,7 +63,7 @@ function postJson(path: string, body: unknown): Promise<Response> {
 
 const PW = "Abcdef1";
 
-describe("auth — soft_deleted 계정 로그인 차단 + 복구", () => {
+describe("auth — 탈퇴 계정 로그인 차단 (복구 없음)", () => {
   beforeAll(async () => {
     if (!(await hasUsersTable())) throw new Error("D1 migrations not applied.");
   });
@@ -77,17 +77,24 @@ describe("auth — soft_deleted 계정 로그인 차단 + 복구", () => {
     expect(typeof json.accessToken).toBe("string");
   });
 
-  it("soft_deleted 계정 로그인 → 403 ACCOUNT_DELETED + restorable=true", async () => {
+  it("soft_deleted 계정 로그인 → 403 ACCOUNT_DELETED", async () => {
     const email = "del-soft@test.local";
     const uid = await seedUserWithPassword(email, PW);
     await setDeletionState(uid, "soft_deleted");
     const res = await postJson("/oth-path", { email, password: PW });
     expect(res.status).toBe(403);
-    const json = (await res.json()) as {
-      error: { code: string; details?: { restorable?: boolean } };
-    };
+    const json = (await res.json()) as { error: { code: string } };
     expect(json.error.code).toBe("ACCOUNT_DELETED");
-    expect(json.error.details?.restorable).toBe(true);
+  });
+
+  it("archived_cold 계정도 로그인 차단 (ACCOUNT_DELETED)", async () => {
+    const email = "del-cold@test.local";
+    const uid = await seedUserWithPassword(email, PW);
+    await setDeletionState(uid, "archived_cold");
+    const res = await postJson("/oth-path", { email, password: PW });
+    expect(res.status).toBe(403);
+    const json = (await res.json()) as { error: { code: string } };
+    expect(json.error.code).toBe("ACCOUNT_DELETED");
   });
 
   it("soft_deleted + 틀린 비번 → ACCOUNT_DELETED 누설 없이 401 UNAUTHENTICATED", async () => {
@@ -100,37 +107,13 @@ describe("auth — soft_deleted 계정 로그인 차단 + 복구", () => {
     expect(json.error.code).toBe("UNAUTHENTICATED");
   });
 
-  it("POST /oth-path (email+password) → 복구 + active 전환 + 세션 발급, 이후 로그인 정상", async () => {
-    const email = "del-restore@test.local";
+  it("복구 엔드포인트는 제거됨 — POST /oth-path 는 더 이상 없음(404)", async () => {
+    const email = "del-norestore@test.local";
     const uid = await seedUserWithPassword(email, PW);
     await setDeletionState(uid, "soft_deleted");
-
     const res = await postJson("/oth-path", { email, password: PW });
-    expect(res.status).toBe(200);
-    const json = (await res.json()) as { ok: boolean; state: string; accessToken?: string };
-    expect(json.ok).toBe(true);
-    expect(json.state).toBe("active");
-    expect(typeof json.accessToken).toBe("string");
-    expect(await getDeletionState(uid)).toBe("active");
+    expect(res.status).toBe(404);
 
-    const login = await postJson("/oth-path", { email, password: PW });
-    expect(login.status).toBe(200);
-  });
-
-  it("POST /oth-path 틀린 비번 → 401, 복구 안 됨 (여전히 soft_deleted)", async () => {
-    const email = "del-restore-bad@test.local";
-    const uid = await seedUserWithPassword(email, PW);
-    await setDeletionState(uid, "soft_deleted");
-    const res = await postJson("/oth-path", { email, password: "WRONGpw9" });
-    expect(res.status).toBe(401);
     expect(await getDeletionState(uid)).toBe("soft_deleted");
-  });
-
-  it("POST /oth-path 이미 active 계정 → 멱등 (200, 그대로 active)", async () => {
-    const email = "del-restore-idem@test.local";
-    const uid = await seedUserWithPassword(email, PW);
-    const res = await postJson("/oth-path", { email, password: PW });
-    expect(res.status).toBe(200);
-    expect(await getDeletionState(uid)).toBe("active");
   });
 });
