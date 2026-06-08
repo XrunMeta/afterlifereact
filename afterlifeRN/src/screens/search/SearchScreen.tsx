@@ -28,6 +28,7 @@ import {
   type v_4c75cf,
 } from "../../api/clones";
 import { v_a41961, type v_3a673b } from "../../api/auth";
+import { v_cbe7de } from "../../lib/similarity";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_97a9a8, v_8ad91b } from "../../navigation/types";
 
@@ -199,7 +200,12 @@ export default function v_5db6c6() {
       );
 
       const v_73c4d7 = (v_8b5cd8.content ?? "").toLowerCase().includes(v_ab6401);
-      return v_1833e7.includes(v_ab6401) || v_1ed516.includes(v_ab6401) || v_3e7de0 || v_73c4d7;
+
+      return (
+        v_1833e7.includes(v_ab6401) || v_1ed516.includes(v_ab6401) ||
+        v_cbe7de(v_ab6401, v_1833e7) || v_cbe7de(v_ab6401, v_1ed516) ||
+        v_3e7de0 || v_73c4d7
+      );
     });
   }, [v_632473, v_7c5791]);
 
@@ -210,10 +216,12 @@ export default function v_5db6c6() {
     for (const v_8b5cd8 of v_632473) {
       if (v_110a8b.has(v_8b5cd8.clone.id)) continue;
       v_110a8b.add(v_8b5cd8.clone.id);
+      const v_1833e7 = v_8b5cd8.clone.name.toLowerCase();
+      const v_1ed516 = v_8b5cd8.clone.username.toLowerCase();
       if (
         !v_ab6401 ||
-        v_8b5cd8.clone.name.toLowerCase().includes(v_ab6401) ||
-        v_8b5cd8.clone.username.toLowerCase().includes(v_ab6401)
+        v_1833e7.includes(v_ab6401) || v_1ed516.includes(v_ab6401) ||
+        v_cbe7de(v_ab6401, v_1833e7) || v_cbe7de(v_ab6401, v_1ed516)
       ) {
         v_8d4337.push(v_8b5cd8.clone);
       }
