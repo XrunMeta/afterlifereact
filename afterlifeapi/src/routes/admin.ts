@@ -698,6 +698,153 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
   });
 });
 
+v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_3b27d9 = v_f71b56.searchParams.get("type") ?? "all"; 
+  const v_d308b5 = v_f71b56.searchParams.get("status") ?? ""; 
+  const v_ca4710 = Number(v_f71b56.searchParams.get("minCount") ?? 0);
+  const v_9c552d = Number(v_f71b56.searchParams.get("maxCount") ?? 0);
+  const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
+  const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
+  const v_02be30 = Math.max(1, Math.min(200, Number(v_f71b56.searchParams.get("limit") ?? 20)));
+
+  const v_8a304f = `
+    SELECT 'clone' AS type,
+           cr.id AS id,
+           cr.user_id AS reporterId,
+           ru.name AS reporterName,
+           ru.email AS reporterEmail,
+           cr.clone_id AS targetId,
+           c.name AS targetName,
+           c.username AS targetSub,
+           c.owner_id AS targetOwnerId,
+           co.name AS targetOwnerName,
+           cr.reason AS reason,
+           cr.status AS status,
+           cr.created_at AS createdAt,
+           cr.reviewed_at AS reviewedAt,
+           (SELECT COUNT(*) FROM clone_reports x WHERE x.clone_id = cr.clone_id) AS targetReportCount
+      FROM clone_reports cr
+      JOIN users ru ON ru.id = cr.user_id
+      JOIN clones c ON c.id = cr.clone_id
+      LEFT JOIN users co ON co.id = c.owner_id
+  `;
+  const v_3ef660 = `
+    SELECT 'user' AS type,
+           ur.id AS id,
+           ur.reporter_id AS reporterId,
+           ru.name AS reporterName,
+           ru.email AS reporterEmail,
+           ur.target_id AS targetId,
+           tu.name AS targetName,
+           tu.email AS targetSub,
+           NULL AS targetOwnerId,
+           NULL AS targetOwnerName,
+           ur.reason AS reason,
+           ur.status AS status,
+           ur.created_at AS createdAt,
+           ur.reviewed_at AS reviewedAt,
+           (SELECT COUNT(*) FROM user_reports x WHERE x.target_id = ur.target_id) AS targetReportCount
+      FROM user_reports ur
+      JOIN users ru ON ru.id = ur.reporter_id
+      JOIN users tu ON tu.id = ur.target_id
+  `;
+
+  const v_694b25 =
+    v_3b27d9 === "clone" ? v_8a304f
+    : v_3b27d9 === "user" ? v_3ef660
+    : `(${v_8a304f} UNION ALL ${v_3ef660})`;
+
+  const v_abcc8d = ["1=1"];
+  const v_925171 = [];
+  if (v_d308b5 && ["open", "reviewed", "dismissed", "actioned"].includes(v_d308b5)) {
+    v_abcc8d.push("status = ?");
+    v_925171.push(v_d308b5);
+  }
+  if (v_ab6401) {
+    v_abcc8d.push(`(
+      reporterName LIKE ? OR reporterEmail LIKE ? OR
+      COALESCE(targetName,'') LIKE ? OR COALESCE(targetSub,'') LIKE ? OR
+      COALESCE(reason,'') LIKE ?
+    )`);
+    const v_07022a = `%${v_ab6401}%`;
+    v_925171.push(v_07022a, v_07022a, v_07022a, v_07022a, v_07022a);
+  }
+  if (v_ca4710 > 0) {
+    v_abcc8d.push("targetReportCount >= ?");
+    v_925171.push(v_ca4710);
+  }
+  if (v_9c552d > 0) {
+    v_abcc8d.push("targetReportCount <= ?");
+    v_925171.push(v_9c552d);
+  }
+  const v_8b4d7e = v_abcc8d.join(" AND ");
+
+  const v_0dab8e = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM ${v_694b25} WHERE ${v_8b4d7e}`)
+    .bind(...v_925171)
+    .first<{ cnt: number }>();
+
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(`SELECT * FROM ${v_694b25} WHERE ${v_8b4d7e} ORDER BY createdAt DESC LIMIT ? OFFSET ?`)
+      .bind(...v_925171, v_02be30, v_3bbadf)
+      .all()
+  ).results;
+
+  return v_3f4e2e.json({ items: v_18b8bf, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
+});
+
+const v_37dc27 = ["open", "reviewed", "dismissed"] as const;
+v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string }>().catch(() => ({}));
+  const v_d308b5 = v_4d33b2.status ?? "";
+  if (!(v_37dc27 as readonly string[]).includes(v_d308b5)) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid status.");
+  }
+  const v_901936 = v_d308b5 === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const v_cb35cb = await v_3f4e2e.env.DB
+    .prepare(`UPDATE clone_reports SET status = ?, ${v_901936} WHERE id = ?`)
+    .bind(v_d308b5, v_389afb)
+    .run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5 });
+});
+v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_cb35cb = await v_3f4e2e.env.DB.prepare(`DELETE FROM clone_reports WHERE id = ?`).bind(v_389afb).run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb });
+});
+
+const v_28cef1 = ["open", "reviewed", "dismissed", "actioned"] as const;
+v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string }>().catch(() => ({}));
+  const v_d308b5 = v_4d33b2.status ?? "";
+  if (!(v_28cef1 as readonly string[]).includes(v_d308b5)) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid status.");
+  }
+  const v_901936 = v_d308b5 === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const v_cb35cb = await v_3f4e2e.env.DB
+    .prepare(`UPDATE user_reports SET status = ?, ${v_901936} WHERE id = ?`)
+    .bind(v_d308b5, v_389afb)
+    .run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5 });
+});
+v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_cb35cb = await v_3f4e2e.env.DB.prepare(`DELETE FROM user_reports WHERE id = ?`).bind(v_389afb).run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb });
+});
+
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
