@@ -606,19 +606,6 @@ export default function FollowingScreen() {
               <Feather name="thermometer" size={12} color="#fb923c" />
               <Text style={s.badgeText}>{item.persona.intimacy}</Text>
             </TouchableOpacity>
-            <View style={s.badgeDivider} />
-            <TouchableOpacity
-              style={s.badgeBtn}
-              onPress={() =>
-                setIntimacyEventsModal({
-                  cloneId: item.persona.id,
-                  cloneName: item.persona.name,
-                })
-              }
-            >
-              <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
-              <Text style={s.badgeText}>{item.persona.interactions}</Text>
-            </TouchableOpacity>
             {}
             <View style={s.badgeDivider} />
             <TouchableOpacity
