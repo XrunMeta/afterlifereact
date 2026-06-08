@@ -188,7 +188,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   };
 
-  const [v_1126f9, v_0c9768] = v_5ab095(false);
+  const [v_1126f9, v_0c9768] = v_5ab095(v_c7daf6.params.openComments ?? false);
   const [v_ecfc0f, v_04f2fc] = v_5ab095<v_52af9d[]>([]);
   const [v_465030, v_856daf] = v_5ab095(false);
   const [v_48e7fe, v_856f84] = v_5ab095("");

@@ -173,7 +173,12 @@ export async function v_80a022(
       title: v_9f1622,
       body: v_4d33b2,
       url: `afterlife://clone/${v_4317d1.cloneId}`,
-      data: { cloneId: v_4317d1.cloneId, actorId: v_4317d1.actorId },
+
+      data: {
+        cloneId: v_4317d1.cloneId,
+        actorId: v_4317d1.actorId,
+        ...(v_4317d1.feedId != null ? { feedId: v_4317d1.feedId } : {}),
+      },
       skipEmail: true,
     });
   } catch (v_49263d) {

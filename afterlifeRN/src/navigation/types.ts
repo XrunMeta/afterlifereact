@@ -16,7 +16,11 @@ export type RootStackParamList = {
 
   UserFollowList: { userId: number; mode: "followers" | "following"; userName?: string };
 
-  CloneFeed: { feed: import("../api/clones").DiscoverFeedItem };
+  CloneFeed: {
+    feed: import("../api/clones").DiscoverFeedItem;
+
+    openComments?: boolean;
+  };
 
   ResetPassword: { email?: string } | undefined;
 };
