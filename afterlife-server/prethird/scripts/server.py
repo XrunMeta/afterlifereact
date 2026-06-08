@@ -46,13 +46,17 @@ def _build_pipeline_factory():
 
     def factory(sess):
         persona_messages, se_path = _resolve_persona_se(sess, default_se)
+        # 클론별 video_path를 infer_fn 클로저로 주입 (None이면 mt 기본 halbae)
+        _vp = getattr(sess, "video_path", None)
+        def _infer_fn(wav, cb, _vp=_vp):
+            return mt.infer(wav, cb, video_path=_vp)
         return DialoguePipeline(
             video_track=sess.video_track,
             audio_track=sess.audio_track,
             chat_fn=chat_stream,
             say_fn=tts_say,
             decode_wav_fn=_decode_wav,
-            infer_fn=mt.infer,
+            infer_fn=_infer_fn,
             persona_messages=persona_messages,
             se_path=se_path,
         )

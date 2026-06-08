@@ -49,6 +49,16 @@ class AvatarVideoTrack(VideoStreamTrack):
         self.mode = mode
         self._stream_ended = False
 
+    def set_idle_video(self, path: str) -> None:
+        """통화별 idle 영상 교체. path별 dict 캐시에서 frames 로드(재로드 없음).
+        path가 None/빈 문자열이면 기존 IDLE_MP4_PATH fallback(halbae)."""
+        if path:
+            self._idle_frames = get_idle_frames(path)
+            log.info("[idle] per-clone idle 교체: path=%s frames=%d", path, len(self._idle_frames))
+        else:
+            self._idle_frames = get_idle_frames(IDLE_MP4_PATH)
+            log.info("[idle] idle fallback(halbae): frames=%d", len(self._idle_frames))
+
     def push_ndarray(self, arr: np.ndarray) -> dict:
         """외부에서 frame 적재. 큐 가득 차면 oldest drop."""
         dropped = False

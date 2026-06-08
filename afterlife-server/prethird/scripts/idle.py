@@ -2,15 +2,31 @@ import colorsys, os
 import numpy as np
 from config import WIDTH, HEIGHT
 
-_IDLE_CACHE = None
+# path별 dict 캐시 (per-clone idle 지원). 값은 list[ndarray].
+# 레거시 호환: _IDLE_CACHE는 단일 캐시 참조(기존 테스트·media_tracks 호환용).
+_IDLE_CACHE_DICT: dict = {}
+_IDLE_CACHE = None  # 레거시: 기존 코드·테스트가 직접 접근하는 단일 캐시
 
 
 def get_idle_frames(path):
-    """idle mp4 frames를 프로세스 1회만 로드해 캐시. path 빈 값/실패 시 빈 리스트."""
+    """idle mp4 frames 로드·캐시. path별 dict 캐시(per-clone 지원).
+
+    같은 path 2회 호출 시 재로드 없음.
+    path 빈 값/None/실패 시 빈 리스트.
+
+    Notes
+    -----
+    레거시 호환: path 없이(IDLE_MP4_PATH) 호출되는 기존 경로는
+    _IDLE_CACHE (전역 단일 변수)도 함께 업데이트해 기존 테스트가 통과되도록 한다.
+    """
     global _IDLE_CACHE
-    if _IDLE_CACHE is None:
-        _IDLE_CACHE = _load_idle_frames(path) if path else []
-    return _IDLE_CACHE
+    key = path or ""
+    if key not in _IDLE_CACHE_DICT:
+        _IDLE_CACHE_DICT[key] = _load_idle_frames(path) if path else []
+    # 레거시: 빈 path 없이 호출되는 단일 경로 유지 (_IDLE_CACHE 리셋 시 재캐시)
+    if _IDLE_CACHE is None and not path:
+        _IDLE_CACHE = _IDLE_CACHE_DICT[key]
+    return _IDLE_CACHE_DICT[key]
 
 
 def _dummy_rgb_frame(elapsed: float) -> np.ndarray:

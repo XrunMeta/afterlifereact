@@ -20,6 +20,7 @@ class Session:
         self.clone_id = None         # /offer 수신 clone_id
         self.persona_messages = []   # bundle_to_messages 결과
         self.se_path = None          # 클론별 voice se 경로(None이면 기본)
+        self.video_path = None       # 클론별 idle/musetalk reference video(None이면 halbae 기본)
 
     def set_state(self, state: str) -> None:
         if state not in ("idle", "speaking"):
