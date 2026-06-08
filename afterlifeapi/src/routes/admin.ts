@@ -751,31 +751,31 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
   `;
 
   const v_694b25 =
-    v_3b27d9 === "clone" ? v_8a304f
-    : v_3b27d9 === "user" ? v_3ef660
-    : `(${v_8a304f} UNION ALL ${v_3ef660})`;
+    v_3b27d9 === "clone" ? `(${v_8a304f}) AS r`
+    : v_3b27d9 === "user" ? `(${v_3ef660}) AS r`
+    : `(${v_8a304f} UNION ALL ${v_3ef660}) AS r`;
 
   const v_abcc8d = ["1=1"];
   const v_925171 = [];
   if (v_d308b5 && ["open", "reviewed", "dismissed", "actioned"].includes(v_d308b5)) {
-    v_abcc8d.push("status = ?");
+    v_abcc8d.push("r.status = ?");
     v_925171.push(v_d308b5);
   }
   if (v_ab6401) {
     v_abcc8d.push(`(
-      reporterName LIKE ? OR reporterEmail LIKE ? OR
-      COALESCE(targetName,'') LIKE ? OR COALESCE(targetSub,'') LIKE ? OR
-      COALESCE(reason,'') LIKE ?
+      r.reporterName LIKE ? OR r.reporterEmail LIKE ? OR
+      COALESCE(r.targetName,'') LIKE ? OR COALESCE(r.targetSub,'') LIKE ? OR
+      COALESCE(r.reason,'') LIKE ?
     )`);
     const v_07022a = `%${v_ab6401}%`;
     v_925171.push(v_07022a, v_07022a, v_07022a, v_07022a, v_07022a);
   }
   if (v_ca4710 > 0) {
-    v_abcc8d.push("targetReportCount >= ?");
+    v_abcc8d.push("r.targetReportCount >= ?");
     v_925171.push(v_ca4710);
   }
   if (v_9c552d > 0) {
-    v_abcc8d.push("targetReportCount <= ?");
+    v_abcc8d.push("r.targetReportCount <= ?");
     v_925171.push(v_9c552d);
   }
   const v_8b4d7e = v_abcc8d.join(" AND ");
@@ -787,7 +787,7 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
 
   const v_18b8bf = (
     await v_3f4e2e.env.DB
-      .prepare(`SELECT * FROM ${v_694b25} WHERE ${v_8b4d7e} ORDER BY createdAt DESC LIMIT ? OFFSET ?`)
+      .prepare(`SELECT r.* FROM ${v_694b25} WHERE ${v_8b4d7e} ORDER BY r.createdAt DESC LIMIT ? OFFSET ?`)
       .bind(...v_925171, v_02be30, v_3bbadf)
       .all()
   ).results;
