@@ -4,7 +4,7 @@ import os
 WIDTH = int(os.environ.get("PRETHIRD_WIDTH", "640"))
 HEIGHT = int(os.environ.get("PRETHIRD_HEIGHT", "480"))
 
-QUEUE_MAX_DEFAULT = int(os.environ.get("PRETHIRD_QUEUE_MAX", "60"))
+QUEUE_MAX_DEFAULT = int(os.environ.get("PRETHIRD_QUEUE_MAX", "240"))
 AUDIO_QUEUE_MAX_DEFAULT = int(os.environ.get("PRETHIRD_AUDIO_QUEUE_MAX", "200"))
 
 AUDIO_OUTPUT_SR = 48000
