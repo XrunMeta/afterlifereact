@@ -13,12 +13,15 @@ export function v_c67c5c({
   autoFocus: v_f04c26,
   editable: v_87d063 = true,
   onComplete: v_9397ad,
+  masked: v_0b292c = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   autoFocus?: boolean;
   editable?: boolean;
   onComplete?: () => void;
+
+  masked?: boolean;
 }) {
   const v_32f473 = v_e662ae<v_79c4f2>(null);
   return (
@@ -28,7 +31,7 @@ export function v_c67c5c({
         const v_f8b770 = v_ebec57 === v_3b402b.length || (v_ebec57 === v_09875d.length - 1 && v_3b402b.length === v_09875d.length);
         return (
           <View key={v_ebec57} style={[v_fd5f43.cell, v_620da0 ? v_fd5f43.cellFilled : null, v_f8b770 ? v_fd5f43.cellActive : null]}>
-            <Text style={v_fd5f43.cellText}>{v_620da0}</Text>
+            <Text style={v_fd5f43.cellText}>{v_620da0 ? (v_0b292c ? "●" : v_620da0) : ""}</Text>
           </View>
         );
       })}
@@ -42,8 +45,9 @@ export function v_c67c5c({
           if (v_e6d4a6.length === 6) v_9397ad?.();
         }}
         keyboardType="number-pad"
-        textContentType="oneTimeCode"
-        autoComplete="sms-otp"
+        textContentType={v_0b292c ? "password" : "oneTimeCode"}
+        autoComplete={v_0b292c ? "off" : "sms-otp"}
+        secureTextEntry={v_0b292c}
         maxLength={6}
         autoFocus={v_f04c26}
         editable={v_87d063}
