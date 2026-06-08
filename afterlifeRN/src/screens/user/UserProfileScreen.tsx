@@ -238,10 +238,9 @@ export default function UserProfileScreen() {
     try {
       await reportUser(accessToken, userId, reason || undefined);
 
-      setProfile((p) =>
-        p ? { ...p, user: { ...p.user, isBlocked: true, isFollowing: false } } : p,
-      );
       setFollowing(userId, false);
+
+      navigation.navigate("Main", { screen: "HomeTab" } as never);
       showAlert("신고 완료", "신고가 접수됐어요. 이 사용자는 차단됐어요.");
     } catch (err) {
       console.warn("[UserProfile] report failed:", err);
