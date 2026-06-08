@@ -1179,12 +1179,7 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
 
   const v_33d725 = new URL(v_3f4e2e.req.url).searchParams.get("commentType") ?? "all";
 
-  const v_abcc8d = [
-    "f.clone_id = ?",
-
-    "fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
-    "(fcc.parent_comment_id IS NULL OR fcc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned')))",
-  ];
+  const v_abcc8d = ["f.clone_id = ?"];
   const v_925171 = [v_6e0fd3];
   if (v_33d725 === "parent") v_abcc8d.push("fcc.parent_comment_id IS NULL");
   else if (v_33d725 === "reply") v_abcc8d.push("fcc.parent_comment_id IS NOT NULL");
@@ -1210,8 +1205,7 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
               fcc.parent_comment_id AS parentId,
               pu.name AS parentUserName,
               pc.content AS parentContent,
-              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id
-                 AND r.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS replyCount,
+              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount,
               (SELECT COUNT(*) FROM comment_reports cr WHERE cr.comment_id = fcc.id) AS reportCount,
               (SELECT cr.status FROM comment_reports cr WHERE cr.comment_id = fcc.id
                  ORDER BY (cr.status = 'reviewed') DESC, cr.created_at DESC LIMIT 1) AS reportStatus
