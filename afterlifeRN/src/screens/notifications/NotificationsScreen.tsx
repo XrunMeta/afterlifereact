@@ -118,7 +118,10 @@ export default function NotificationsScreen() {
     const url = typeof d.url === "string" ? d.url : "";
     let m: RegExpMatchArray | null;
 
-    if ((m = url.match(/^afterlife:\/\/invite\/(.+)$/))) {
+    if (n.type === "clone_follow" && typeof d.actorId === "number") {
+
+      navigation.navigate("UserProfile", { userId: d.actorId });
+    } else if ((m = url.match(/^afterlife:\/\/invite\/(.+)$/))) {
       navigation.navigate("InviteAccept", { token: decodeURIComponent(m[1]) });
     } else if ((m = url.match(/^afterlife:\/\/oth-path\/(\d+)/))) {
 

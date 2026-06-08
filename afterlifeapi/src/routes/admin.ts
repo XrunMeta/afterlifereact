@@ -878,7 +878,7 @@ const COMMENT_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
 admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string }>().catch(() => ({}));
+  const body = await c.req.json<{ status?: string }>().catch(() => ({}) as { status?: string });
   const status = body.status ?? "";
   if (!(COMMENT_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");
@@ -912,7 +912,11 @@ admin.get("/oth-path", requireAdmin, async (c) => {
   if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
   const { q, offset, limit } = parseSubListParams(c);
 
-  const where: string[] = ["f.clone_id = ?", "fcc.parent_comment_id IS NULL"];
+  const where: string[] = [
+    "f.clone_id = ?",
+    "fcc.parent_comment_id IS NULL",
+    "fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status = 'reviewed')",
+  ];
   const binds: unknown[] = [cloneId];
   if (q) {
     where.push(`(u.name LIKE ? OR u.email LIKE ? OR fcc.content LIKE ?)`);

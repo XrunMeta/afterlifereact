@@ -80,6 +80,11 @@ export default function ReportsScreen() {
           <Text style={s.sub} numberOfLines={2}>
             {item.reason || "(사유 없음)"}
           </Text>
+          {item.adminMessage ? (
+            <Text style={s.adminMsg} numberOfLines={3}>
+              📩 관리자: {item.adminMessage}
+            </Text>
+          ) : null}
           <Text style={s.date}>{fmt(item.createdAt)}</Text>
         </View>
         <View style={[s.badge, { backgroundColor: st.bg }]}>
@@ -93,8 +98,10 @@ export default function ReportsScreen() {
     <View style={s.row}>
       <View style={{ flex: 1 }}>
         <Text style={s.name}>신고가 수락되어 조치됐어요</Text>
-        {item.warningReason ? (
-          <Text style={s.sub} numberOfLines={2}>사유: {item.warningReason}</Text>
+        {item.adminMessage || item.warningReason ? (
+          <Text style={s.adminMsg} numberOfLines={3}>
+            📩 관리자: {item.adminMessage || item.warningReason}
+          </Text>
         ) : null}
         <Text style={s.date}>
           접수 {fmt(item.createdAt)}
@@ -194,6 +201,7 @@ const s = StyleSheet.create({
   },
   name: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
   sub: { fontSize: 12, color: COLORS.zinc600, marginTop: 3 },
+  adminMsg: { fontSize: 12, color: "#b45309", marginTop: 4, lineHeight: 17 },
   date: { fontSize: 11, color: COLORS.zinc400, marginTop: 4 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   badgeText: { fontSize: 11, fontWeight: "700" },

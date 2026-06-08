@@ -285,10 +285,10 @@ export const api = {
       body: JSON.stringify(body ?? {}),
     }),
 
-  dismissUserReport: (reportId: string | number) =>
+  dismissUserReport: (reportId: string | number, message?: string) =>
     request<{ ok: true; updated: number }>(
       `/oth-path${reportId}/dismiss`,
-      { method: "POST" },
+      { method: "POST", body: JSON.stringify({ message: message ?? null }) },
     ),
 
   getReportPenaltyRules: () =>

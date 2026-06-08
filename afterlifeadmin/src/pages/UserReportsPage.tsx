@@ -87,9 +87,18 @@ export function UserReportsPage() {
 
   const handleWarn = async () => {
     if (!open) return;
+
+    const message = window.prompt(
+      "수락(경고) 사유/안내 메시지를 입력하세요. (대상자의 앱 신고내역에 표시됩니다)",
+      "",
+    );
+    if (message === null) return; 
     setActing(true);
     try {
-      const res = await api.warnUser(open.targetId, { reportId: open.reportId });
+      const res = await api.warnUser(open.targetId, {
+        reportId: open.reportId,
+        reason: message || undefined,
+      });
       const msg = res.suspended
         ? `경고 ${res.warningCount}회 — 계정이 1개월 비활성화됐어요 (페르소나 생성 차단).`
         : `경고 ${res.warningCount}회 발급했어요. (3회째에 1개월 비활성화)`;
@@ -107,9 +116,15 @@ export function UserReportsPage() {
 
   const handleDismiss = async () => {
     if (!open) return;
+
+    const message = window.prompt(
+      "거절(기각) 사유 메시지를 입력하세요. (신고자의 앱 신고내역에 표시됩니다)",
+      "",
+    );
+    if (message === null) return; 
     setActing(true);
     try {
-      await api.dismissUserReport(open.reportId);
+      await api.dismissUserReport(open.reportId, message || undefined);
       load();
       closeDetail();
     } catch (err) {
