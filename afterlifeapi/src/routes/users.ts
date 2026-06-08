@@ -971,21 +971,24 @@ users.get("/me/reports/made", requireAuth, async (c) => {
       .prepare(
         `SELECT * FROM (
            SELECT 'user' AS type, ur.id AS id, ur.reason AS reason, ur.status AS status,
-                  ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt, ur.admin_message AS adminMessage,
+                  ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt,
+                  COALESCE(ur.reporter_message, ur.admin_message) AS adminMessage,
                   tu.name AS targetName, COALESCE(tu.email, '') AS targetEmail, ur.target_id AS targetId
              FROM user_reports ur
              JOIN users tu ON tu.id = ur.target_id
             WHERE ur.reporter_id = ?
            UNION ALL
            SELECT 'clone' AS type, cr.id AS id, cr.reason AS reason, cr.status AS status,
-                  cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt, cr.admin_message AS adminMessage,
+                  cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt,
+                  COALESCE(cr.reporter_message, cr.admin_message) AS adminMessage,
                   c.name AS targetName, COALESCE(c.username, '') AS targetEmail, cr.clone_id AS targetId
              FROM clone_reports cr
              JOIN clones c ON c.id = cr.clone_id
             WHERE cr.user_id = ?
            UNION ALL
            SELECT 'comment' AS type, cmr.id AS id, cmr.reason AS reason, cmr.status AS status,
-                  cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt, cmr.admin_message AS adminMessage,
+                  cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt,
+                  COALESCE(cmr.reporter_message, cmr.admin_message) AS adminMessage,
                   COALESCE(au.name, '댓글') AS targetName, COALESCE(au.email, '') AS targetEmail, cmr.comment_id AS targetId
              FROM comment_reports cmr
              LEFT JOIN feed_comments fc ON fc.id = cmr.comment_id
@@ -1014,20 +1017,23 @@ users.get("/me/reports/received", requireAuth, async (c) => {
                 w.reason AS warningReason, w.created_at AS warnedAt
            FROM (
              SELECT 'user' AS reportType, ur.id AS id, ur.reason AS reason,
-                    ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt, ur.admin_message AS adminMessage,
+                    ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt,
+                    COALESCE(ur.target_message, ur.admin_message) AS adminMessage,
                     NULL AS cloneName, NULL AS content
                FROM user_reports ur
               WHERE ur.target_id = ? AND ur.status IN ('actioned', 'reviewed')
              UNION ALL
              SELECT 'clone' AS reportType, cr.id AS id, cr.reason AS reason,
-                    cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt, cr.admin_message AS adminMessage,
+                    cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt,
+                    COALESCE(cr.target_message, cr.admin_message) AS adminMessage,
                     c.name AS cloneName, NULL AS content
                FROM clone_reports cr
                JOIN clones c ON c.id = cr.clone_id
               WHERE c.owner_id = ? AND cr.status IN ('actioned', 'reviewed')
              UNION ALL
              SELECT 'comment' AS reportType, cmr.id AS id, cmr.reason AS reason,
-                    cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt, cmr.admin_message AS adminMessage,
+                    cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt,
+                    COALESCE(cmr.target_message, cmr.admin_message) AS adminMessage,
                     cc.name AS cloneName, fc.content AS content
                FROM comment_reports cmr
                JOIN feed_comments fc ON fc.id = cmr.comment_id

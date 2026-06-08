@@ -725,6 +725,8 @@ admin.get("/reports", requireAdmin, async (c) => {
            cr.reason AS reason,
            cr.status AS status,
            cr.admin_message AS adminMessage,
+           cr.reporter_message AS reporterMessage,
+           cr.target_message AS targetMessage,
            cr.created_at AS createdAt,
            cr.reviewed_at AS reviewedAt,
            (SELECT COUNT(*) FROM clone_reports x WHERE x.clone_id = cr.clone_id AND x.status = 'reviewed') AS targetReportCount
@@ -747,6 +749,8 @@ admin.get("/reports", requireAdmin, async (c) => {
            ur.reason AS reason,
            ur.status AS status,
            ur.admin_message AS adminMessage,
+           ur.reporter_message AS reporterMessage,
+           ur.target_message AS targetMessage,
            ur.created_at AS createdAt,
            ur.reviewed_at AS reviewedAt,
            (SELECT COUNT(*) FROM user_reports x WHERE x.target_id = ur.target_id AND x.status = 'reviewed') AS targetReportCount
@@ -769,6 +773,8 @@ admin.get("/reports", requireAdmin, async (c) => {
            cmr.reason AS reason,
            cmr.status AS status,
            cmr.admin_message AS adminMessage,
+           cmr.reporter_message AS reporterMessage,
+           cmr.target_message AS targetMessage,
            cmr.created_at AS createdAt,
            cmr.reviewed_at AS reviewedAt,
            (SELECT COUNT(*) FROM comment_reports x WHERE x.comment_id = cmr.comment_id AND x.status = 'reviewed') AS targetReportCount
@@ -885,16 +891,23 @@ const CLONE_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
 admin.patch("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string; adminMessage?: string }>().catch(() => ({}) as { status?: string; adminMessage?: string });
+  const body = await c.req
+    .json<{ status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string }>()
+    .catch(() => ({}) as { status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string });
   const status = body.status ?? "";
   if (!(CLONE_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");
   }
-  const adminMessage = status === "open" ? null : (body.adminMessage ?? null);
-  const reviewedClause = status === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const isOpen = status === "open";
+
+  const reporterMessage = isOpen ? null : (body.reporterMessage ?? body.adminMessage ?? null);
+  const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
+
+  const adminMessage = targetMessage;
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
   const r = await c.env.DB
-    .prepare(`UPDATE clone_reports SET status = ?, ${reviewedClause}, admin_message = ? WHERE id = ?`)
-    .bind(status, adminMessage, id)
+    .prepare(`UPDATE clone_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(status, adminMessage, reporterMessage, targetMessage, id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
 
@@ -922,16 +935,23 @@ const USER_REPORT_STATUSES = ["open", "reviewed", "dismissed", "actioned"] as co
 admin.patch("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string; adminMessage?: string }>().catch(() => ({}) as { status?: string; adminMessage?: string });
+  const body = await c.req
+    .json<{ status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string }>()
+    .catch(() => ({}) as { status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string });
   const status = body.status ?? "";
   if (!(USER_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");
   }
-  const adminMessage = status === "open" ? null : (body.adminMessage ?? null);
-  const reviewedClause = status === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const isOpen = status === "open";
+
+  const reporterMessage = isOpen ? null : (body.reporterMessage ?? body.adminMessage ?? null);
+  const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
+
+  const adminMessage = targetMessage;
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
   const r = await c.env.DB
-    .prepare(`UPDATE user_reports SET status = ?, ${reviewedClause}, admin_message = ? WHERE id = ?`)
-    .bind(status, adminMessage, id)
+    .prepare(`UPDATE user_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(status, adminMessage, reporterMessage, targetMessage, id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
 
@@ -957,16 +977,23 @@ const COMMENT_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
 admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string; adminMessage?: string }>().catch(() => ({}) as { status?: string; adminMessage?: string });
+  const body = await c.req
+    .json<{ status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string }>()
+    .catch(() => ({}) as { status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string });
   const status = body.status ?? "";
   if (!(COMMENT_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");
   }
-  const adminMessage = status === "open" ? null : (body.adminMessage ?? null);
-  const reviewedClause = status === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const isOpen = status === "open";
+
+  const reporterMessage = isOpen ? null : (body.reporterMessage ?? body.adminMessage ?? null);
+  const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
+
+  const adminMessage = targetMessage;
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
   const r = await c.env.DB
-    .prepare(`UPDATE comment_reports SET status = ?, ${reviewedClause}, admin_message = ? WHERE id = ?`)
-    .bind(status, adminMessage, id)
+    .prepare(`UPDATE comment_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(status, adminMessage, reporterMessage, targetMessage, id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
 
