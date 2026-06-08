@@ -290,4 +290,27 @@ export const api = {
       `/oth-path${reportId}/dismiss`,
       { method: "POST" },
     ),
+
+  getReportPenaltyRules: () =>
+    request<{
+      items: Array<{
+        threshold: number;
+        action: "warn" | "suspend";
+        suspendDays: number | null;
+        updatedAt: string;
+      }>;
+    }>(`/oth-path`),
+  putReportPenaltyRule: (
+    threshold: number,
+    body: { action: "warn" | "suspend"; suspendDays: number | null },
+  ) =>
+    request<{ ok: true }>(`/oth-path${threshold}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  deleteReportPenaltyRule: (threshold: number) =>
+    request<{ ok: true; deleted: number }>(
+      `/oth-path${threshold}`,
+      { method: "DELETE" },
+    ),
 };
