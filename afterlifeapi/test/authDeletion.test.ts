@@ -63,7 +63,7 @@ function v_c34e2f(v_9fe22d, v_4d33b2): Promise<Response> {
 
 const v_8c880b = "Abcdef1";
 
-v_469bf2("auth — soft_deleted 계정 로그인 차단 + 복구", () => {
+v_469bf2("auth — 탈퇴 계정 로그인 차단 (복구 없음)", () => {
   v_ba7107(async () => {
     if (!(await v_0d15aa())) throw new Error("D1 migrations not applied.");
   });
@@ -77,17 +77,24 @@ v_469bf2("auth — soft_deleted 계정 로그인 차단 + 복구", () => {
     v_4d37e3(typeof v_7ecfd1.accessToken).toBe("string");
   });
 
-  v_23805a("soft_deleted 계정 로그인 → 403 ACCOUNT_DELETED + restorable=true", async () => {
+  v_23805a("soft_deleted 계정 로그인 → 403 ACCOUNT_DELETED", async () => {
     const v_e0c7e8 = "del-soft@test.local";
     const v_0c8987 = await v_5d1973(v_e0c7e8, v_8c880b);
     await v_45fbb9(v_0c8987, "soft_deleted");
     const v_8f00b9 = await v_c34e2f("/oth-path", { email: v_e0c7e8, password: v_8c880b });
     v_4d37e3(v_8f00b9.status).toBe(403);
-    const v_7ecfd1 = (await v_8f00b9.json()) as {
-      error: { code: string; details?: { restorable?: boolean } };
-    };
+    const v_7ecfd1 = (await v_8f00b9.json()) as { error: { code: string } };
     v_4d37e3(v_7ecfd1.error.code).toBe("ACCOUNT_DELETED");
-    v_4d37e3(v_7ecfd1.error.details?.restorable).toBe(true);
+  });
+
+  v_23805a("archived_cold 계정도 로그인 차단 (ACCOUNT_DELETED)", async () => {
+    const v_e0c7e8 = "del-cold@test.local";
+    const v_0c8987 = await v_5d1973(v_e0c7e8, v_8c880b);
+    await v_45fbb9(v_0c8987, "archived_cold");
+    const v_8f00b9 = await v_c34e2f("/oth-path", { email: v_e0c7e8, password: v_8c880b });
+    v_4d37e3(v_8f00b9.status).toBe(403);
+    const v_7ecfd1 = (await v_8f00b9.json()) as { error: { code: string } };
+    v_4d37e3(v_7ecfd1.error.code).toBe("ACCOUNT_DELETED");
   });
 
   v_23805a("soft_deleted + 틀린 비번 → ACCOUNT_DELETED 누설 없이 401 UNAUTHENTICATED", async () => {
@@ -100,37 +107,13 @@ v_469bf2("auth — soft_deleted 계정 로그인 차단 + 복구", () => {
     v_4d37e3(v_7ecfd1.error.code).toBe("UNAUTHENTICATED");
   });
 
-  v_23805a("POST /oth-path (email+password) → 복구 + active 전환 + 세션 발급, 이후 로그인 정상", async () => {
-    const v_e0c7e8 = "del-restore@test.local";
+  v_23805a("복구 엔드포인트는 제거됨 — POST /oth-path 는 더 이상 없음(404)", async () => {
+    const v_e0c7e8 = "del-norestore@test.local";
     const v_0c8987 = await v_5d1973(v_e0c7e8, v_8c880b);
     await v_45fbb9(v_0c8987, "soft_deleted");
-
     const v_8f00b9 = await v_c34e2f("/oth-path", { email: v_e0c7e8, password: v_8c880b });
-    v_4d37e3(v_8f00b9.status).toBe(200);
-    const v_7ecfd1 = (await v_8f00b9.json()) as { ok: boolean; state: string; accessToken?: string };
-    v_4d37e3(v_7ecfd1.ok).toBe(true);
-    v_4d37e3(v_7ecfd1.state).toBe("active");
-    v_4d37e3(typeof v_7ecfd1.accessToken).toBe("string");
-    v_4d37e3(await v_17defa(v_0c8987)).toBe("active");
+    v_4d37e3(v_8f00b9.status).toBe(404);
 
-    const v_182fdb = await v_c34e2f("/oth-path", { email: v_e0c7e8, password: v_8c880b });
-    v_4d37e3(v_182fdb.status).toBe(200);
-  });
-
-  v_23805a("POST /oth-path 틀린 비번 → 401, 복구 안 됨 (여전히 soft_deleted)", async () => {
-    const v_e0c7e8 = "del-restore-bad@test.local";
-    const v_0c8987 = await v_5d1973(v_e0c7e8, v_8c880b);
-    await v_45fbb9(v_0c8987, "soft_deleted");
-    const v_8f00b9 = await v_c34e2f("/oth-path", { email: v_e0c7e8, password: "WRONGpw9" });
-    v_4d37e3(v_8f00b9.status).toBe(401);
     v_4d37e3(await v_17defa(v_0c8987)).toBe("soft_deleted");
-  });
-
-  v_23805a("POST /oth-path 이미 active 계정 → 멱등 (200, 그대로 active)", async () => {
-    const v_e0c7e8 = "del-restore-idem@test.local";
-    const v_0c8987 = await v_5d1973(v_e0c7e8, v_8c880b);
-    const v_8f00b9 = await v_c34e2f("/oth-path", { email: v_e0c7e8, password: v_8c880b });
-    v_4d37e3(v_8f00b9.status).toBe(200);
-    v_4d37e3(await v_17defa(v_0c8987)).toBe("active");
   });
 });

@@ -4,8 +4,10 @@ import { v_c1eeb6 } from "../components/DataTable";
 
 const v_bf3a72 = {
   active: { label: "활성", color: "#15803d", bg: "#dcfce7" },
-  soft_deleted: { label: "탈퇴(복구가능)", color: "#b45309", bg: "#fef3c7" },
-  hard_deleted: { label: "영구 삭제", color: "#b91c1c", bg: "#fee2e2" },
+
+  soft_deleted: { label: "탈퇴", color: "#b45309", bg: "#fef3c7" },
+  archived_cold: { label: "탈퇴", color: "#b45309", bg: "#fef3c7" },
+  hard_deleted: { label: "탈퇴(영구삭제)", color: "#b91c1c", bg: "#fee2e2" },
 };
 
 const v_9f536f = (v_81e2ef) => {
