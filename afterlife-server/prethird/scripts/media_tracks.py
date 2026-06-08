@@ -145,7 +145,6 @@ class AvatarAudioTrack(AudioStreamTrack):
         self._video_sync_event = video_sync_event
         # PCM int16 buffer (1D mono). queue 는 chunk 단위로 frame buffer 에 합쳐짐.
         self._buffer = np.zeros(0, dtype=np.int16)
-        self._buffer_lock = asyncio.Lock()
         # 큐는 backpressure 카운팅 용 (buffer length 기반 max)
         self._queue_max_samples = queue_max * self.frame_samples
         self._stream_ended = False
@@ -166,6 +165,9 @@ class AvatarAudioTrack(AudioStreamTrack):
     def push_pcm_int16(self, pcm: np.ndarray) -> dict:
         """48kHz mono int16 PCM 1D ndarray 를 buffer 에 append.
         backpressure 가 max 를 넘으면 oldest 를 drop.
+
+        prethird: audio push는 이벤트 루프 스레드 단일 접근
+        (파이프라인이 run_in_executor await 이후 호출). lock 불필요.
         """
         if pcm.size == 0:
             return {"queued": int(self._buffer.size), "dropped": False}
