@@ -153,6 +153,22 @@ v_f891e6.post(
     const v_43e90c = v_3f4e2e.get("userId")!;
     const v_a1651b = v_3f4e2e.env.DB;
 
+    const v_a235b0 = await v_a1651b
+      .prepare(
+        `SELECT suspended_until FROM users
+          WHERE id = ? AND suspended_until IS NOT NULL
+            AND suspended_until > datetime('now')`,
+      )
+      .bind(v_43e90c)
+      .first<{ suspended_until: string }>();
+    if (v_a235b0) {
+      throw new v_3ebe58(
+        "FORBIDDEN",
+        "신고 누적으로 계정이 일시 비활성화되어 페르소나를 생성할 수 없어요.",
+        { suspendedUntil: v_a235b0.suspended_until },
+      );
+    }
+
     if (v_d2663f.has(v_4d33b2.username)) {
       throw new v_3ebe58("VALIDATION_FAILED", "username is reserved.");
     }
