@@ -873,7 +873,8 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
 
 users.get("/me/blocks", requireAuth, async (c) => {
   const userId = c.get("userId")!;
-  const rows = (
+
+  const cloneRows = (
     await c.env.DB
       .prepare(
         `SELECT b.id           AS blockId,
@@ -899,19 +900,61 @@ users.get("/me/blocks", requireAuth, async (c) => {
         cloneType: string;
       }>()
   ).results;
-  return c.json({
-    items: rows.map((r) => ({
-      blockId: r.blockId,
-      createdAt: r.createdAt,
-      clone: {
-        id: r.cloneId,
-        name: r.cloneName,
-        username: r.cloneUsername,
-        avatarUrl: r.cloneAvatarUrl,
-        cloneType: r.cloneType,
-      },
-    })),
-  });
+
+  const userRows = (
+    await c.env.DB
+      .prepare(
+        `SELECT b.id          AS blockId,
+                b.created_at  AS createdAt,
+                u.id          AS uId,
+                u.name        AS uName,
+                u.email       AS uEmail,
+                u.avatar_url  AS uAvatarUrl
+           FROM user_blocks b
+           JOIN users u ON u.id = b.blocked_id
+          WHERE b.blocker_id = ?
+          ORDER BY b.id DESC`,
+      )
+      .bind(userId)
+      .all<{
+        blockId: number;
+        createdAt: string;
+        uId: number;
+        uName: string | null;
+        uEmail: string;
+        uAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  const cloneItems = cloneRows.map((r) => ({
+    blockId: r.blockId,
+    createdAt: r.createdAt,
+    type: "clone" as const,
+    clone: {
+      id: r.cloneId,
+      name: r.cloneName,
+      username: r.cloneUsername,
+      avatarUrl: r.cloneAvatarUrl,
+      cloneType: r.cloneType,
+    },
+  }));
+  const userItems = userRows.map((r) => ({
+    blockId: r.blockId,
+    createdAt: r.createdAt,
+    type: "user" as const,
+    user: {
+      id: r.uId,
+      name: r.uName,
+      email: r.uEmail,
+      avatarUrl: r.uAvatarUrl,
+    },
+  }));
+
+  const items = [...cloneItems, ...userItems].sort((a, b) =>
+    a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0,
+  );
+
+  return c.json({ items });
 });
 
 users.delete("/me/devices/:id", requireAuth, async (c) => {
