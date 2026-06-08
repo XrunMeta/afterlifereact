@@ -39,6 +39,7 @@ import {
   v_0df337,
   v_003cf2,
   v_9deb40,
+  v_fca2f4,
   v_97c75d,
   v_f5a9ea,
   v_f1ff2a,
@@ -331,6 +332,51 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     })();
   };
 
+  const v_b6e98b = (v_d91518, v_ed660d) => {
+    const v_8e2335 = v_6bbace > 0 ? v_6bbace : v_ed660d ?? 0;
+    if (!v_8e2335 || !v_2ca7e0) return;
+    v_03e392.alert("댓글 신고", "이 댓글을 신고할까요?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "신고",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await v_fca2f4(v_2ca7e0, v_8e2335, v_d91518);
+            v_15c939("댓글을 신고했어요");
+          } catch (v_49263d) {
+            console.warn("[CloneFeed] reportFeedComment failed:", v_49263d);
+            v_15c939("신고에 실패했어요");
+          }
+        },
+      },
+    ]);
+  };
+
+  const v_ed5343 = (v_c7bc83, v_1e970f) => {
+    const v_8e2335 = v_6bbace > 0 ? v_6bbace : 0;
+    if (!v_8e2335 || !v_2ca7e0) return;
+    void (async () => {
+      try {
+        await v_0df337(v_2ca7e0, v_8e2335, v_1e970f);
+        v_74a05a((v_e2a85c) => {
+          const v_ef8ab1 = v_e2a85c[v_c7bc83];
+          if (!v_ef8ab1) return v_e2a85c;
+          return { ...v_e2a85c, [v_c7bc83]: v_ef8ab1.filter((v_cb35cb) => v_cb35cb.id !== v_1e970f) };
+        });
+        v_04f2fc((v_ba2215) =>
+          v_ba2215.map((v_a252ed) =>
+            v_a252ed.id === v_c7bc83
+              ? { ...v_a252ed, repliesCount: Math.max(0, (v_a252ed.repliesCount ?? 1) - 1) }
+              : v_a252ed,
+          ),
+        );
+      } catch (v_49263d) {
+        console.warn("[CloneFeed] deleteReply failed:", v_49263d);
+      }
+    })();
+  };
+
   const v_71affe = (
     comment: v_52af9d,
     v_fdf350,
@@ -462,12 +508,21 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                           {v_3f4e2e.user.name ?? v_3f4e2e.user.email}
                         </Text>
                         <Text style={v_d81136.commentTime}>{v_bfd883(v_3f4e2e.createdAt)}</Text>
-                        {v_3f4e2e.userId === v_f5f393 && (
+                        {v_3f4e2e.userId === v_f5f393 ? (
                           <TouchableOpacity
                             onPress={() => v_b72645(v_3f4e2e.id)}
                             style={{ marginLeft: 8 }}
+                            hitSlop={6}
                           >
                             <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() => v_b6e98b(v_3f4e2e.id, v_3f4e2e.feedId)}
+                            style={{ marginLeft: 8 }}
+                            hitSlop={6}
+                          >
+                            <Feather name="flag" size={13} color={v_1bfbd0.zinc400} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -550,6 +605,23 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         <View style={v_d81136.commentMeta}>
                           <Text style={v_d81136.commentAuthor}>{v_5cfb2c.user.name ?? v_5cfb2c.user.email}</Text>
                           <Text style={v_d81136.commentTime}>{v_bfd883(v_5cfb2c.createdAt)}</Text>
+                          {v_5cfb2c.userId === v_f5f393 ? (
+                            <TouchableOpacity
+                              onPress={() => v_ed5343(v_3f4e2e.id, v_5cfb2c.id)}
+                              style={{ marginLeft: 8 }}
+                              hitSlop={6}
+                            >
+                              <Feather name="trash-2" size={13} color={v_1bfbd0.zinc400} />
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={() => v_b6e98b(v_5cfb2c.id, v_5cfb2c.feedId)}
+                              style={{ marginLeft: 8 }}
+                              hitSlop={6}
+                            >
+                              <Feather name="flag" size={12} color={v_1bfbd0.zinc400} />
+                            </TouchableOpacity>
+                          )}
                         </View>
                         <Text style={v_d81136.commentContent}>{v_5cfb2c.content}</Text>
                       </View>
