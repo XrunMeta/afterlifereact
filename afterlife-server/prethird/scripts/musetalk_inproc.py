@@ -18,6 +18,7 @@ import 하므로, GPU 없는 환경(mac CI 등)에서도 모듈 자체는 import
 from __future__ import annotations
 
 import argparse
+import copy
 import os
 import sys
 import time
@@ -235,17 +236,19 @@ class MuseTalkInproc:
             "task_0": {
                 "video_path": str(video_path_obj),
                 "audio_path": str(wav_path_obj),
-                "bbox_shift": int(self._args.bbox_shift),
+                "bbox_shift": int(self._args.bbox_shift),  # bbox_shift는 원본에서 읽음
             }
         }
         cfg_path.write_text(yaml.safe_dump(cfg_data, allow_unicode=True), encoding="utf-8")
 
-        # per-call args 업데이트
-        self._args.audio_path = str(wav_path_obj)
-        self._args.video_path = str(video_path_obj)
-        self._args.inference_config = str(cfg_path)
-        self._args.result_dir = str(RESULT_DIR)
-        self._args.skip_mp4_output = True  # 디스크 IO 없음
+        # per-call args — self._args를 직접 mutate하지 않고 shallow copy 사용
+        # (동시 통화 시 경쟁 방지: self._args는 원본 유지, args만 이 호출 전용)
+        args = copy.copy(self._args)
+        args.audio_path = str(wav_path_obj)
+        args.video_path = str(video_path_obj)
+        args.inference_config = str(cfg_path)
+        args.result_dir = str(RESULT_DIR)
+        args.skip_mp4_output = True  # 디스크 IO 없음
 
         # 프레임 카운터
         _frame_count = [0]
@@ -263,8 +266,8 @@ class MuseTalkInproc:
         _timing: dict = {}
         try:
             inference_lib.run_inference(
-                self._args,
-                self._models,
+                args,        # per-call copy — self._args 불변 유지
+                self._models,  # 모델은 공유 (재로드 없음)
                 frame_callback=_cb,
                 timing_out=_timing,
             )

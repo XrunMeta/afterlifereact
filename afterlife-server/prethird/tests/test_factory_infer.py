@@ -75,3 +75,46 @@ def test_factory_infer_fn_captures_path_at_build_time():
     sess.video_path = "/video-ref/9999/9999-idle-25fps.mp4"
     infer_fn("/tmp/test.wav", lambda f: None)
     assert calls[0]["video_path"] == "/video-ref/1111/1111-idle-25fps.mp4"
+
+
+# ── video_path 파일 존재 여부 graceful (sion MAJOR) ──────────────────────────
+
+def _build_infer_fn_with_isfile(mt, sess, monkeypatch_isfile):
+    """server.py factory — os.path.isfile 검사 포함 버전."""
+    import os as _os
+
+    _raw_vp = getattr(sess, "video_path", None)
+    _vp = _raw_vp if (_raw_vp and monkeypatch_isfile(_raw_vp)) else None
+
+    def _infer_fn(wav, cb, _vp=_vp):
+        return mt.infer(wav, cb, video_path=_vp)
+
+    return _infer_fn
+
+
+def test_factory_video_path_missing_file_becomes_none(monkeypatch):
+    """video_path가 존재하지 않는 파일 경로면 _vp=None (halbae fallback)."""
+    monkeypatch.setattr("os.path.isfile", lambda p: False)
+    mt, calls = _make_mock_mt()
+    sess = _make_fake_sess(video_path="/nonexistent/clone.mp4")
+    infer_fn = _build_infer_fn_with_isfile(mt, sess, monkeypatch_isfile=lambda p: False)
+    infer_fn("/tmp/test.wav", lambda f: None)
+    assert calls[0]["video_path"] is None
+
+
+def test_factory_video_path_existing_file_passed(monkeypatch):
+    """video_path 파일이 존재하면 그대로 전달."""
+    mt, calls = _make_mock_mt()
+    sess = _make_fake_sess(video_path="/valid/clone.mp4")
+    infer_fn = _build_infer_fn_with_isfile(mt, sess, monkeypatch_isfile=lambda p: True)
+    infer_fn("/tmp/test.wav", lambda f: None)
+    assert calls[0]["video_path"] == "/valid/clone.mp4"
+
+
+def test_factory_video_path_none_stays_none(monkeypatch):
+    """video_path=None이면 isfile 체크 없이 None 유지."""
+    mt, calls = _make_mock_mt()
+    sess = _make_fake_sess(video_path=None)
+    infer_fn = _build_infer_fn_with_isfile(mt, sess, monkeypatch_isfile=lambda p: True)
+    infer_fn("/tmp/test.wav", lambda f: None)
+    assert calls[0]["video_path"] is None

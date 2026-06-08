@@ -5,9 +5,10 @@ from aiohttp import web
 import config
 from signaling import make_app
 
+log = logging.getLogger("prethird.server")
+
 logging.basicConfig(level=os.environ.get("PRETHIRD_LOG_LEVEL", "INFO"),
                     format="%(asctime)s %(levelname)s %(name)s %(message)s")
-log = logging.getLogger("prethird.server")
 
 
 def _resolve_persona_se(sess: Any, default_se: str | None) -> tuple[list, str | None]:
@@ -47,7 +48,12 @@ def _build_pipeline_factory():
     def factory(sess):
         persona_messages, se_path = _resolve_persona_se(sess, default_se)
         # 클론별 video_path를 infer_fn 클로저로 주입 (None이면 mt 기본 halbae)
-        _vp = getattr(sess, "video_path", None)
+        # 파일이 실제 존재할 때만 사용 — 없으면 None → halbae fallback (turn 사망 방지)
+        _raw_vp = getattr(sess, "video_path", None)
+        _vp = _raw_vp if (_raw_vp and os.path.isfile(_raw_vp)) else None
+        if _raw_vp and not _vp:
+            log.warning("video_path 파일 없음, halbae fallback: %s", _raw_vp)
+
         def _infer_fn(wav, cb, _vp=_vp):
             return mt.infer(wav, cb, video_path=_vp)
         return DialoguePipeline(

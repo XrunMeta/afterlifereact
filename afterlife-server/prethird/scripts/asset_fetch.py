@@ -6,15 +6,20 @@ SSRF·path-traversal 방어 포함.
 
 보안:
   - SSRF: URL 파싱 후 scheme 검증(http/https만). host allowlist env 설정 시 host 비교(파싱 기반, startsWith 우회 차단).
+    allowlist 유무와 무관하게 내부망/루프백/메타데이터 IP 무조건 차단.
+  - redirect 금지: 3xx 응답은 즉시 차단 (allowlist 우회 방지).
   - Path traversal: os.path.realpath로 base 경계 밖 탈출 차단.
   - 다운로드 크기 제한: 청크 누적 > max_bytes 시 즉시 중단·예외.
+  - 타임아웃: connect=5s, sock_read=20s, total=30s.
 
 환경변수:
   PRETHIRD_ASSET_HOST_ALLOWLIST — 쉼표 구분 허용 host 목록. 비면 https/http 전체 허용.
   PRETHIRD_ASSET_MAX_BYTES      — 기본 다운로드 상한 (기본 50MB).
 """
 
+import ipaddress
 import os
+import socket
 import asyncio
 import pathlib
 from urllib.parse import urlparse
@@ -30,7 +35,8 @@ _DEFAULT_MAX_BYTES = int(os.environ.get("PRETHIRD_ASSET_MAX_BYTES", str(50 * 102
 def _validate_url(url: str) -> None:
     """
     url이 http/https scheme인지 파싱 기반으로 검증.
-    PRETHIRD_ASSET_HOST_ALLOWLIST env가 설정돼 있으면 host도 검사.
+    allowlist 유무와 무관하게 내부망·루프백·메타데이터 IP 무조건 차단.
+    PRETHIRD_ASSET_HOST_ALLOWLIST env가 설정돼 있으면 host도 추가 검사.
 
     Parameters
     ----------
@@ -40,7 +46,7 @@ def _validate_url(url: str) -> None:
     Raises
     ------
     ValueError
-        scheme이 http/https가 아니거나, host allowlist 미포함 시.
+        scheme이 http/https가 아니거나, 내부망 IP이거나, host allowlist 미포함 시.
     """
     if not url:
         raise ValueError(f"url이 비어있습니다: {url!r}")
@@ -60,13 +66,36 @@ def _validate_url(url: str) -> None:
     if not parsed.hostname:
         raise ValueError(f"URL에 host가 없습니다: {url!r}")
 
+    host = parsed.hostname
+
+    # ── 내부망/메타데이터 차단 (allowlist 무관 무조건) ──────────────────────
+    # 도메인은 resolve 후 검사 (metadata.google.internal 등 내부IP 도메인 포함).
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        raise ValueError(f"host resolve 실패: {host!r} (url={url!r})")
+    for _fam, _type, _proto, _canonname, sockaddr in infos:
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            continue
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            raise ValueError(f"내부망 주소 차단: {ip} (host={host!r}, url={url!r})")
+
     # host allowlist 검사 (env 있을 때만)
     allowlist_raw = os.environ.get("PRETHIRD_ASSET_HOST_ALLOWLIST", "").strip()
     if allowlist_raw:
         allowed_hosts = {h.strip() for h in allowlist_raw.split(",") if h.strip()}
-        if parsed.hostname not in allowed_hosts:
+        if host not in allowed_hosts:
             raise ValueError(
-                f"host allowlist 미포함: {parsed.hostname!r} (허용={allowed_hosts}, url={url!r})"
+                f"host allowlist 미포함: {host!r} (허용={allowed_hosts}, url={url!r})"
             )
 
 
@@ -151,8 +180,15 @@ async def fetch_to(
     tmp_dest = dest + ".tmp"
     downloaded = 0
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
+    _timeout = aiohttp.ClientTimeout(total=30, connect=5, sock_read=20)
+
+    async with aiohttp.ClientSession(timeout=_timeout) as session:
+        async with session.get(url, allow_redirects=False) as resp:
+            # redirect 금지 — allowlist 우회 차단
+            if resp.status in (301, 302, 303, 307, 308):
+                raise ValueError(
+                    f"redirect 차단: HTTP {resp.status} → {resp.headers.get('Location')!r} (url={url!r})"
+                )
             resp.raise_for_status()
 
             try:
@@ -166,10 +202,13 @@ async def fetch_to(
                     mode = "ab" if os.path.exists(tmp_dest) else "wb"
                     with open(tmp_dest, mode) as f:
                         f.write(chunk)
-            except ValueError:
-                # 크기 초과 — tmp 파일 정리
-                if os.path.exists(tmp_dest):
-                    os.remove(tmp_dest)
+            except Exception:
+                # 모든 예외(ValueError·CancelledError·ClientError 등) — tmp 파일 정리
+                try:
+                    if os.path.exists(tmp_dest):
+                        os.remove(tmp_dest)
+                except OSError:
+                    pass
                 raise
 
     # 완전히 받은 후 rename (원자적 교체)
