@@ -90,12 +90,27 @@ class DialoguePipeline:
         self.vt.signal_end()
         self.at.signal_end()
 
+    async def speak(self, text: str) -> None:
+        """LLM 우회: 입력 텍스트를 그대로 발화(TTS+musetalk). 쉼표로 끊지 않고
+        문장 종결부호(.!?…\\n)로만 분할. 한 문장이면 통째 1회."""
+        import re
+        parts = [p.strip() for p in re.split(r'(?<=[.!?…])\s+|\n+', text) if p.strip()]
+        if not parts:
+            parts = [text]
+        for s in parts:
+            await self._emit_sentence(s)
+        self.vt.signal_end()
+        self.at.signal_end()
+
     # ------------------------------------------------------------------
     # 내부: 문장 1개 처리
     # ------------------------------------------------------------------
 
     async def _emit_sentence(self, sentence: str) -> None:
-        """문장 1개를 TTS → musetalk(executor) → 트랙 적재."""
+        """문장 1개를 TTS → musetalk(executor) → 트랙 적재.
+        C2: on_frame은 executor 스레드에서 list 에만 모으고(call_soon_threadsafe 제거 →
+        이벤트루프 부하 차단), infer 완료(await 배리어) 후 메인 루프에서 frames 를 큐에
+        일괄 push + balance 한 audio 를 동시에 push 한다 = 문장 단위 a/v 동기."""
         # 1. TTS: wav bytes
         wav_bytes = await self.say_fn(sentence, self.se_path)
 
@@ -103,31 +118,33 @@ class DialoguePipeline:
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
         pcm48 = self._resample(pcm, sr, 48000)
 
-        # 3. musetalk infer (blocking GPU → executor)
+        # 3. musetalk infer (blocking GPU → executor). frames 는 executor 스레드 로컬 list 에 모음.
         loop = asyncio.get_event_loop()
-        nframes = [0]
+        frames_buf: list[np.ndarray] = []
 
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             f.write(wav_bytes)
             wav_path = f.name
 
         def on_frame(arr: np.ndarray) -> None:
-            # executor 스레드에서 호출 — asyncio.Queue는 thread-unsafe이므로
-            # call_soon_threadsafe 로 이벤트 루프 스레드에 위임한다. (BLOCKER-1 수정)
-            loop.call_soon_threadsafe(self.vt.push_ndarray, arr)
-            nframes[0] += 1
+            # executor 스레드에서만 호출. list.append 는 GIL atomic, 이벤트루프 미접근.
+            frames_buf.append(arr)
 
         await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
 
-        # 4. avsync: PCM 길이를 video 프레임 수에 맞춤
-        if nframes[0] > 0:
-            pcm_bal, _ = self._balance(pcm48, nframes[0])
+        # 4. infer 완료 후 메인 루프에서 frames 일괄 push (문장 frames 완성본 → 송출 중 starve 없음)
+        for arr in frames_buf:
+            self.vt.push_ndarray(arr)
+
+        # 5. avsync: PCM 길이를 video 프레임 수에 맞춤 → audio 동시 push
+        nframes = len(frames_buf)
+        if nframes > 0:
+            pcm_bal, _ = self._balance(pcm48, nframes)
         else:
             pcm_bal = pcm48
-
         self.at.push_pcm_int16(pcm_bal)
 
-        # 5. temp wav 정리
+        # 6. temp wav 정리
         try:
             os.unlink(wav_path)
         except OSError:

@@ -120,6 +120,69 @@ async def test_pipeline_real_video_track_threadsafe():
 
 
 @pytest.mark.asyncio
+async def test_pipeline_speak_bypasses_llm():
+    # speak()는 chat_fn(LLM)을 호출하지 않고 입력 텍스트를 그대로 _emit_sentence
+    llm_called = {"n": 0}
+
+    async def fake_chat(messages):
+        llm_called["n"] += 1
+        yield "LLM응답"
+
+    async def fake_say(text, se_path=None): return b"WAVfake"
+    def fake_decode(b): return np.zeros(1920, dtype=np.int16), 48000, 1
+    def fake_infer(wav_path, on_frame):
+        on_frame(np.zeros((8, 8, 3), np.uint8))
+        return 1
+
+    vt, at = FakeVideoTrack(), FakeAudioTrack()
+    p = DialoguePipeline(
+        video_track=vt, audio_track=at,
+        chat_fn=fake_chat, say_fn=fake_say,
+        decode_wav_fn=fake_decode, infer_fn=fake_infer,
+    )
+    await p.speak("오늘 날씨가 좋다.")
+    await asyncio.sleep(0)
+    assert llm_called["n"] == 0          # LLM 우회됨
+    assert len(vt.frames) >= 1           # 발화 프레임 생성됨
+
+
+def test_emit_sentence_batches_frames_after_infer():
+    """on_frame은 infer 중 list에 모으고, infer 완료 후 일괄 push.
+    push 순서: 모든 video frame 적재 → 그 다음 audio 1회."""
+    order = []
+
+    class VT:
+        def __init__(self): self.frames = []
+        def push_ndarray(self, arr): self.frames.append(arr); order.append("v")
+        def signal_end(self): return 0
+    class AT:
+        def __init__(self): self.pcm = []
+        def push_pcm_int16(self, pcm): self.pcm.append(pcm); order.append("a")
+        def signal_end(self): return 0
+
+    async def fake_chat(messages):
+        for t in ["문장하나."]:
+            yield t
+    async def fake_say(text, se_path=None):
+        return b"WAVfake"
+    def fake_decode(b):
+        return np.zeros(1920, dtype=np.int16), 48000, 1
+    def fake_infer(wav_path, on_frame):
+        for _ in range(5):
+            on_frame(np.zeros((8, 8, 3), np.uint8))
+        return 5
+
+    vt, at = VT(), AT()
+    p = DialoguePipeline(video_track=vt, audio_track=at,
+                         chat_fn=fake_chat, say_fn=fake_say,
+                         decode_wav_fn=fake_decode, infer_fn=fake_infer)
+    asyncio.run(p.speak("문장하나."))
+    assert len(vt.frames) == 5
+    assert len(at.pcm) == 1
+    assert order == ["v", "v", "v", "v", "v", "a"]
+
+
+@pytest.mark.asyncio
 async def test_pipeline_empty_stream():
     """LLM 스트림이 아무 토큰도 안 내면 트랙 큐가 비고 signal_end만 호출."""
     async def fake_chat(messages):
