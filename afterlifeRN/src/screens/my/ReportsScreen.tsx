@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { MyStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
@@ -24,9 +23,9 @@ import { COLORS, RADIUS } from "../../components/constants";
 
 const MADE_STATUS: Record<string, { label: string; color: string; bg: string }> = {
   open: { label: "대기중", color: "#1d4ed8", bg: "#dbeafe" },
-  reviewed: { label: "대기중", color: "#1d4ed8", bg: "#dbeafe" },
-  actioned: { label: "수락됨 (조치 완료)", color: "#b45309", bg: "#fef3c7" },
-  dismissed: { label: "기각", color: "#64748b", bg: "#f1f5f9" },
+  reviewed: { label: "처리 완료", color: "#15803d", bg: "#dcfce7" },
+  actioned: { label: "처리 완료", color: "#15803d", bg: "#dcfce7" },
+  dismissed: { label: "거절", color: "#64748b", bg: "#f1f5f9" },
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -106,7 +105,10 @@ export default function ReportsScreen() {
   const renderReceived = ({ item }: { item: MyReportReceived }) => (
     <View style={s.row}>
       <View style={{ flex: 1 }}>
-        <Text style={s.name}>신고가 수락되어 조치됐어요</Text>
+        <Text style={s.typeTag}>{TYPE_LABEL[item.reportType] ?? "신고"}</Text>
+        <Text style={s.name}>
+          {TYPE_LABEL[item.reportType] ?? ""} 신고가 수락되어 조치됐어요
+        </Text>
         {item.adminMessage || item.warningReason ? (
           <Text style={s.adminMsg} numberOfLines={3}>
             📩 관리자: {item.adminMessage || item.warningReason}
@@ -150,7 +152,6 @@ export default function ReportsScreen() {
           renderItem={renderMade}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Feather name="flag" size={32} color={COLORS.zinc300} />
               <Text style={s.emptyText}>접수한 신고가 없어요</Text>
             </View>
           }
@@ -176,7 +177,6 @@ export default function ReportsScreen() {
           }
           ListEmptyComponent={
             <View style={s.empty}>
-              <Feather name="shield" size={32} color={COLORS.zinc300} />
               <Text style={s.emptyText}>관리자가 조치한 신고가 없어요</Text>
             </View>
           }
