@@ -15,6 +15,7 @@ import {
   Keyboard,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { OtpCodeInput } from "../../../components/auth/OtpVerifyView";
 import { COLORS, RADIUS } from "../../../components/constants";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCloneStore } from "../../../stores/cloneStore";
@@ -152,18 +153,13 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 {insufficient && " — 잔액 부족"}
               </Text>
             )}
-            <TextInput
-              style={[styles.input, blockInput && styles.inputDisabled]}
+            <OtpCodeInput
               value={pin}
-              onChangeText={(v) => {
-                setPin(v.replace(/\D/g, "").slice(0, 6));
+              onChange={(v) => {
+                setPin(v);
                 setError(null);
               }}
-              placeholder="PIN 6자리"
-              placeholderTextColor={COLORS.zinc400}
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={6}
+              masked
               autoFocus={!blockInput}
               editable={!blockInput}
             />

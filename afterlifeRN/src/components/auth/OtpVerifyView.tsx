@@ -13,12 +13,15 @@ export function OtpCodeInput({
   autoFocus,
   editable = true,
   onComplete,
+  masked = false,
 }: {
   value: string;
   onChange: (v: string) => void;
   autoFocus?: boolean;
   editable?: boolean;
   onComplete?: () => void;
+
+  masked?: boolean;
 }) {
   const inputRef = useRef<TextInput>(null);
   return (
@@ -28,7 +31,7 @@ export function OtpCodeInput({
         const active = i === value.length || (i === CELLS.length - 1 && value.length === CELLS.length);
         return (
           <View key={i} style={[s.cell, char ? s.cellFilled : null, active ? s.cellActive : null]}>
-            <Text style={s.cellText}>{char}</Text>
+            <Text style={s.cellText}>{char ? (masked ? "●" : char) : ""}</Text>
           </View>
         );
       })}
@@ -42,8 +45,9 @@ export function OtpCodeInput({
           if (digits.length === 6) onComplete?.();
         }}
         keyboardType="number-pad"
-        textContentType="oneTimeCode"
-        autoComplete="sms-otp"
+        textContentType={masked ? "password" : "oneTimeCode"}
+        autoComplete={masked ? "off" : "sms-otp"}
+        secureTextEntry={masked}
         maxLength={6}
         autoFocus={autoFocus}
         editable={editable}
