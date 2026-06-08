@@ -125,7 +125,10 @@ function v_7b6df3(v_43c42e) {
 v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_43c42e = await v_b4f765(v_3f4e2e.env.DB, "user", v_43e90c, "id", v_43e90c);
-  v_d24e3e(v_43c42e);
+  if (v_43c42e !== "ok" && v_43c42e !== "already_deleted") {
+    v_d24e3e(v_43c42e); 
+  }
+  const v_d7b02d = v_43c42e === "already_deleted";
 
   try {
     const v_213c33 = await v_3f4e2e.env.DB
@@ -141,7 +144,7 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
     console.warn("[deletion.me] xrun mark failed:", (v_49263d as Error).message);
   }
 
-  return v_3f4e2e.json({ ok: true, state: "soft_deleted" });
+  return v_3f4e2e.json({ ok: true, state: "soft_deleted", alreadyDeleted: v_d7b02d });
 });
 
 v_dda4b9.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
