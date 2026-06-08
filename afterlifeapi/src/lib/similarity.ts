@@ -19,14 +19,34 @@ export function v_417fc7(v_779914, v_148ff6): number {
   return v_ba2215[v_f4e98d]!;
 }
 
+const v_cf0120 = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+const v_b05477 = "ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ";
+const v_7fa4cc = ["", "ㄱ","ㄲ","ㄳ","ㄴ","ㄵ","ㄶ","ㄷ","ㄹ","ㄺ","ㄻ","ㄼ","ㄽ","ㄾ","ㄿ","ㅀ","ㅁ","ㅂ","ㅄ","ㅅ","ㅆ","ㅇ","ㅈ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+function v_3fda3e(v_fba864): string {
+  let v_8d4337 = "";
+  for (const v_10a17d of v_fba864) {
+    const v_c99bd2 = v_10a17d.charCodeAt(0);
+    if (v_c99bd2 >= 0xac00 && v_c99bd2 <= 0xd7a3) {
+      const v_e86ad8 = v_c99bd2 - 0xac00;
+      v_8d4337 += v_cf0120[Math.floor(v_e86ad8 / 588)]! + v_b05477[Math.floor((v_e86ad8 % 588) / 28)]! + v_7fa4cc[v_e86ad8 % 28]!;
+    } else {
+      v_8d4337 += v_10a17d;
+    }
+  }
+  return v_8d4337;
+}
+
 export function v_e0041f(v_7c5791, v_5f5d6d): number {
   const v_ab6401 = (v_7c5791 ?? "").toLowerCase().trim();
   const v_8d41d7 = (v_5f5d6d ?? "").toLowerCase().trim();
   if (!v_ab6401 || !v_8d41d7) return 0;
   if (v_8d41d7.includes(v_ab6401) || v_ab6401.includes(v_8d41d7)) return 1;
+
   const v_80396f = (v_779914, v_148ff6): number => {
-    const v_bb387f = Math.max(v_779914.length, v_148ff6.length);
-    return v_bb387f === 0 ? 0 : 1 - v_417fc7(v_779914, v_148ff6) / v_bb387f;
+    const v_0a0f75 = v_3fda3e(v_779914);
+    const v_a1651b = v_3fda3e(v_148ff6);
+    const v_bb387f = Math.max(v_0a0f75.length, v_a1651b.length);
+    return v_bb387f === 0 ? 0 : 1 - v_417fc7(v_0a0f75, v_a1651b) / v_bb387f;
   };
   let v_643757 = v_80396f(v_ab6401, v_8d41d7);
   for (const v_ea333d of v_8d41d7.split(/\s+/)) {
