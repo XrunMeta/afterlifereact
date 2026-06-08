@@ -725,6 +725,8 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
            cr.reason AS reason,
            cr.status AS status,
            cr.admin_message AS adminMessage,
+           cr.reporter_message AS reporterMessage,
+           cr.target_message AS targetMessage,
            cr.created_at AS createdAt,
            cr.reviewed_at AS reviewedAt,
            (SELECT COUNT(*) FROM clone_reports x WHERE x.clone_id = cr.clone_id AND x.status = 'reviewed') AS targetReportCount
@@ -747,6 +749,8 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
            ur.reason AS reason,
            ur.status AS status,
            ur.admin_message AS adminMessage,
+           ur.reporter_message AS reporterMessage,
+           ur.target_message AS targetMessage,
            ur.created_at AS createdAt,
            ur.reviewed_at AS reviewedAt,
            (SELECT COUNT(*) FROM user_reports x WHERE x.target_id = ur.target_id AND x.status = 'reviewed') AS targetReportCount
@@ -769,6 +773,8 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
            cmr.reason AS reason,
            cmr.status AS status,
            cmr.admin_message AS adminMessage,
+           cmr.reporter_message AS reporterMessage,
+           cmr.target_message AS targetMessage,
            cmr.created_at AS createdAt,
            cmr.reviewed_at AS reviewedAt,
            (SELECT COUNT(*) FROM comment_reports x WHERE x.comment_id = cmr.comment_id AND x.status = 'reviewed') AS targetReportCount
@@ -885,16 +891,23 @@ const v_37dc27 = ["open", "reviewed", "dismissed"] as const;
 v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
-  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string; adminMessage?: string }>().catch(() => ({}) as { status?: string; adminMessage?: string });
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string }>()
+    .catch(() => ({}) as { status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string });
   const v_d308b5 = v_4d33b2.status ?? "";
   if (!(v_37dc27 as readonly string[]).includes(v_d308b5)) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid status.");
   }
-  const v_7e89c9 = v_d308b5 === "open" ? null : (v_4d33b2.adminMessage ?? null);
-  const v_901936 = v_d308b5 === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const v_c403c7 = v_d308b5 === "open";
+
+  const v_2bd5e3 = v_c403c7 ? null : (v_4d33b2.reporterMessage ?? v_4d33b2.adminMessage ?? null);
+  const v_94b0c4 = v_c403c7 ? null : (v_4d33b2.targetMessage ?? v_4d33b2.adminMessage ?? null);
+
+  const v_7e89c9 = v_94b0c4;
+  const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
   const v_cb35cb = await v_3f4e2e.env.DB
-    .prepare(`UPDATE clone_reports SET status = ?, ${v_901936}, admin_message = ? WHERE id = ?`)
-    .bind(v_d308b5, v_7e89c9, v_389afb)
+    .prepare(`UPDATE clone_reports SET status = ?, ${v_901936}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(v_d308b5, v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
 
@@ -922,16 +935,23 @@ const v_28cef1 = ["open", "reviewed", "dismissed", "actioned"] as const;
 v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
-  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string; adminMessage?: string }>().catch(() => ({}) as { status?: string; adminMessage?: string });
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string }>()
+    .catch(() => ({}) as { status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string });
   const v_d308b5 = v_4d33b2.status ?? "";
   if (!(v_28cef1 as readonly string[]).includes(v_d308b5)) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid status.");
   }
-  const v_7e89c9 = v_d308b5 === "open" ? null : (v_4d33b2.adminMessage ?? null);
-  const v_901936 = v_d308b5 === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const v_c403c7 = v_d308b5 === "open";
+
+  const v_2bd5e3 = v_c403c7 ? null : (v_4d33b2.reporterMessage ?? v_4d33b2.adminMessage ?? null);
+  const v_94b0c4 = v_c403c7 ? null : (v_4d33b2.targetMessage ?? v_4d33b2.adminMessage ?? null);
+
+  const v_7e89c9 = v_94b0c4;
+  const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
   const v_cb35cb = await v_3f4e2e.env.DB
-    .prepare(`UPDATE user_reports SET status = ?, ${v_901936}, admin_message = ? WHERE id = ?`)
-    .bind(v_d308b5, v_7e89c9, v_389afb)
+    .prepare(`UPDATE user_reports SET status = ?, ${v_901936}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(v_d308b5, v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
 
@@ -957,16 +977,23 @@ const v_f0881e = ["open", "reviewed", "dismissed"] as const;
 v_b7f2b4.patch("/comments/reports/:id", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
-  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string; adminMessage?: string }>().catch(() => ({}) as { status?: string; adminMessage?: string });
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string }>()
+    .catch(() => ({}) as { status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string });
   const v_d308b5 = v_4d33b2.status ?? "";
   if (!(v_f0881e as readonly string[]).includes(v_d308b5)) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid status.");
   }
-  const v_7e89c9 = v_d308b5 === "open" ? null : (v_4d33b2.adminMessage ?? null);
-  const v_901936 = v_d308b5 === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const v_c403c7 = v_d308b5 === "open";
+
+  const v_2bd5e3 = v_c403c7 ? null : (v_4d33b2.reporterMessage ?? v_4d33b2.adminMessage ?? null);
+  const v_94b0c4 = v_c403c7 ? null : (v_4d33b2.targetMessage ?? v_4d33b2.adminMessage ?? null);
+
+  const v_7e89c9 = v_94b0c4;
+  const v_901936 = v_c403c7 ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
   const v_cb35cb = await v_3f4e2e.env.DB
-    .prepare(`UPDATE comment_reports SET status = ?, ${v_901936}, admin_message = ? WHERE id = ?`)
-    .bind(v_d308b5, v_7e89c9, v_389afb)
+    .prepare(`UPDATE comment_reports SET status = ?, ${v_901936}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(v_d308b5, v_7e89c9, v_2bd5e3, v_94b0c4, v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
 
