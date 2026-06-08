@@ -438,3 +438,132 @@ adminData.get("/oth-path", async (c) => {
   ).results;
   return c.json({ items: rows });
 });
+
+adminData.get("/oth-path", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid_id" }, 400);
+
+  const user = await c.env.DB
+    .prepare(
+      `SELECT id, name, email,
+              deletion_state AS deletionState,
+              suspended_until AS suspendedUntil,
+              created_at AS createdAt
+         FROM users WHERE id = ?`,
+    )
+    .bind(id)
+    .first();
+  if (!user) return c.json({ error: "not_found" }, 404);
+
+  const wc = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(id)
+    .first<{ n: number }>();
+  const warnings = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, reason, created_at AS createdAt
+           FROM user_warnings WHERE user_id = ? ORDER BY created_at DESC LIMIT 20`,
+      )
+      .bind(id)
+      .all()
+  ).results;
+  const reports = (
+    await c.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason, r.status AS status,
+                r.created_at AS createdAt, ru.email AS reporterEmail
+           FROM user_reports r JOIN users ru ON ru.id = r.reporter_id
+          WHERE r.target_id = ? ORDER BY r.created_at DESC LIMIT 50`,
+      )
+      .bind(id)
+      .all()
+  ).results;
+  const clones = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, name, username, clone_type AS cloneType,
+                deletion_state AS deletionState
+           FROM clones WHERE owner_id = ? ORDER BY id DESC LIMIT 100`,
+      )
+      .bind(id)
+      .all()
+  ).results;
+
+  return c.json({
+    user: { ...user, warningCount: wc?.n ?? 0 },
+    warnings,
+    reports,
+    clones,
+  });
+});
+
+adminData.post("/oth-path", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid_id" }, 400);
+  const adminId = c.get("adminUserId") ?? 0;
+
+  let body: { reportId?: number; reason?: string } = {};
+  try {
+    body = (await c.req.json()) as { reportId?: number; reason?: string };
+  } catch {
+
+  }
+
+  const u = await c.env.DB.prepare(`SELECT id FROM users WHERE id = ?`).bind(id).first();
+  if (!u) return c.json({ error: "not_found" }, 404);
+
+  await c.env.DB
+    .prepare(
+      `INSERT INTO user_warnings (user_id, admin_id, report_id, reason)
+       VALUES (?, ?, ?, ?)`,
+    )
+    .bind(id, adminId, body.reportId ?? null, body.reason ?? null)
+    .run();
+
+  const cnt = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(id)
+    .first<{ n: number }>();
+  const warningCount = cnt?.n ?? 0;
+
+  let suspendedUntil: string | null = null;
+  const suspended = warningCount >= 3;
+  if (suspended) {
+
+    await c.env.DB
+      .prepare(`UPDATE users SET suspended_until = datetime('now', '+30 days') WHERE id = ?`)
+      .bind(id)
+      .run();
+    const row = await c.env.DB
+      .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+      .bind(id)
+      .first<{ s: string | null }>();
+    suspendedUntil = row?.s ?? null;
+  }
+
+  if (body.reportId) {
+    await c.env.DB
+      .prepare(
+        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP
+          WHERE id = ?`,
+      )
+      .bind(body.reportId)
+      .run();
+  }
+
+  return c.json({ ok: true, warningCount, suspended, suspendedUntil });
+});
+
+adminData.post("/oth-path", async (c) => {
+  const reportId = Number(c.req.param("reportId"));
+  if (!Number.isInteger(reportId) || reportId <= 0) return c.json({ error: "invalid_id" }, 400);
+  const res = await c.env.DB
+    .prepare(
+      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status IN ('open', 'reviewed')`,
+    )
+    .bind(reportId)
+    .run();
+  return c.json({ ok: true, updated: res.meta?.changes ?? 0 });
+});
