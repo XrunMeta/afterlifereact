@@ -580,6 +580,80 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json(v_3ac7e7);
 });
 
+v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
+  const v_9b82b4 = Number(v_3f4e2e.req.param("xrunMemberId"));
+  if (!Number.isInteger(v_9b82b4) || v_9b82b4 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid xrun member id.");
+  }
+  const v_625c74 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, email,
+              deletion_state AS deletionState,
+              created_at AS createdAt
+         FROM users
+        WHERE xrun_member_id = ?
+        LIMIT 1`,
+    )
+    .bind(v_9b82b4)
+    .first<{
+      id: number;
+      name: string | null;
+      email: string;
+      deletionState: string;
+      createdAt: string | null;
+    }>();
+
+  if (!v_625c74) {
+    return v_3f4e2e.json({
+      user: null,
+      clones: [],
+      cloneReportsCount: 0,
+      userReportsCount: 0,
+    });
+  }
+
+  const v_f891e6 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT c.id, c.name, c.username,
+                c.clone_type AS cloneType,
+                c.visibility,
+                c.training_status AS trainingStatus,
+                c.deletion_state AS deletionState,
+                c.created_at AS createdAt,
+                (SELECT COUNT(*) FROM clone_reports cr WHERE cr.clone_id = c.id) AS reportCount
+           FROM clones c
+          WHERE c.owner_id = ?
+          ORDER BY c.id DESC
+          LIMIT 200`,
+      )
+      .bind(v_625c74.id)
+      .all()
+  ).results;
+
+  const v_cf098c = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM clone_reports cr
+         JOIN clones c ON c.id = cr.clone_id
+        WHERE c.owner_id = ?`,
+    )
+    .bind(v_625c74.id)
+    .first<{ cnt: number }>();
+
+  const v_59cd44 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM user_reports WHERE target_id = ?`)
+    .bind(v_625c74.id)
+    .first<{ cnt: number }>();
+
+  return v_3f4e2e.json({
+    user: v_625c74,
+    clones: v_f891e6,
+    cloneReportsCount: v_cf098c?.cnt ?? 0,
+    userReportsCount: v_59cd44?.cnt ?? 0,
+  });
+});
+
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
