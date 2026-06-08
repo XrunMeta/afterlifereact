@@ -869,7 +869,48 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
     .bind(status, adminMessage, id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
-  return c.json({ ok: true, id, status, adminMessage });
+
+  let warningCount: number | undefined;
+  if (status === "reviewed") {
+    const already = await c.env.DB
+      .prepare(`SELECT 1 AS x FROM user_warnings WHERE report_id = ? LIMIT 1`)
+      .bind(id)
+      .first();
+    if (!already) {
+      const rep = await c.env.DB
+        .prepare(`SELECT target_id AS targetId FROM user_reports WHERE id = ?`)
+        .bind(id)
+        .first<{ targetId: number }>();
+      if (rep) {
+        const adminId = c.get("adminUserId") ?? 0;
+        await c.env.DB
+          .prepare(
+            `INSERT INTO user_warnings (user_id, admin_id, report_id, reason) VALUES (?, ?, ?, ?)`,
+          )
+          .bind(rep.targetId, adminId, id, adminMessage)
+          .run();
+        const cnt = await c.env.DB
+          .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+          .bind(rep.targetId)
+          .first<{ n: number }>();
+        warningCount = cnt?.n ?? 0;
+        const rule = await c.env.DB
+          .prepare(
+            `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+              WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+          )
+          .bind(warningCount)
+          .first<{ action: string; suspendDays: number | null }>();
+        if (rule?.action === "suspend" && rule.suspendDays && rule.suspendDays > 0) {
+          await c.env.DB
+            .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+            .bind(`+${rule.suspendDays} days`, rep.targetId)
+            .run();
+        }
+      }
+    }
+  }
+  return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
 admin.delete("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
