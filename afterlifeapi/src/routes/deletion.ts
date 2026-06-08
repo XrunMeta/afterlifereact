@@ -54,7 +54,7 @@ async function v_b4f765(
   return "ok";
 }
 
-async function v_c8311e(
+export async function v_c8311e(
   v_a1651b,
   type: v_d33606,
   v_389afb,

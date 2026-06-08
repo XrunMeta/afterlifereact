@@ -19,7 +19,7 @@ import v_570c34 from "../../components/ui/SafeScrollView";
 import v_e775af from "../../components/ui/TextField";
 import v_1a40c4 from "../../components/ui/Button";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_84a859, v_dd2158, v_5c746e, v_7ef860 } from "../../api/auth";
+import { v_84a859, v_dd2158, v_5c746e, v_7ef860, type v_89c2d5 } from "../../api/auth";
 import { v_ea1c99 } from "../../lib/deviceId";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -48,7 +48,51 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
   const v_957ace = v_1ed7d9((v_fd5f43) => v_fd5f43.loginWithApi);
+  const v_1d64de = v_1ed7d9((v_fd5f43) => v_fd5f43.restoreWithApi);
   const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
+
+  const v_679b55 = async (v_f4fb5e) => {
+    if (v_f53eaa) {
+      await v_e84827.setItem(v_101856, "1");
+      await v_e84827.setItem(v_6a7868, v_f4fb5e);
+    } else {
+      await v_e84827.removeItem(v_101856);
+      await v_e84827.removeItem(v_6a7868);
+    }
+    await v_232d52();
+  };
+
+  const v_c0c16e = (restorePayload: v_89c2d5) => {
+    v_889fad(
+      v_8d41d7("auth.login.restoreTitle"),
+      v_8d41d7("auth.login.restoreMessage"),
+      [
+        { text: v_8d41d7("common.cancel"), style: "cancel" },
+        {
+          text: v_8d41d7("auth.login.restoreConfirm"),
+          style: "default",
+          onPress: async () => {
+            v_7ba4a6(true);
+            try {
+              const v_929b58 = await v_ea1c99();
+              const v_625c74 = await v_1d64de(
+                { ...v_4aa8d9, deviceId: v_929b58 },
+                { persist: v_f53eaa },
+              );
+              console.log(`[AUTH/restore] restored & logged in: ${v_625c74.email}`);
+              await v_679b55(v_625c74.email);
+            } catch (v_9e86fd) {
+              let v_35f85c = v_8d41d7("auth.login.restoreFailed");
+              if (v_9e86fd instanceof v_84a859) v_35f85c = v_9e86fd.message;
+              v_889fad(v_8d41d7("auth.login.restoreFailed"), v_35f85c);
+            } finally {
+              v_7ba4a6(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   v_c4deb2(() => {
     void (async () => {
@@ -82,16 +126,18 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         `[AUTH/login] user: ${v_625c74.email} autoLogin=${v_f53eaa ? "ON" : "OFF"}`,
       );
 
-      if (v_f53eaa) {
-        await v_e84827.setItem(v_101856, "1");
-        await v_e84827.setItem(v_6a7868, v_e0c7e8);
-      } else {
-        await v_e84827.removeItem(v_101856);
-        await v_e84827.removeItem(v_6a7868);
-      }
-
-      await v_232d52();
+      await v_679b55(v_e0c7e8);
     } catch (v_49263d) {
+
+      if (v_49263d instanceof v_84a859 && v_49263d.code === "ACCOUNT_DELETED") {
+        const v_5ab5bd = v_49263d.details as { restorable?: boolean } | undefined;
+        if (v_5ab5bd?.restorable) {
+          v_c0c16e({ email: v_e0c7e8, password: v_adc076 });
+          return;
+        }
+        v_889fad(v_8d41d7("auth.login.loginFailed"), v_49263d.message);
+        return;
+      }
       let v_badeaf = v_8d41d7("auth.login.loginFailed");
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "ACCOUNT_LOCKED") {
@@ -113,6 +159,8 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
   const v_78c15c = async (v_e38ca2) => {
     if (v_e38ca2 === "google") {
+
+      let v_119def = null;
       try {
         await v_4eac84.hasPlayServices({ showPlayServicesUpdateDialog: true });
         try {
@@ -129,6 +177,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           v_889fad("오류", "Google 로그인 토큰을 받지 못했습니다.");
           return;
         }
+        v_119def = v_b50834;
 
         const v_de130a = await v_5c746e(v_b50834);
 
@@ -160,6 +209,18 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         }
       } catch (v_49263d) {
         if (v_49263d?.code === v_8d3720.SIGN_IN_CANCELLED) return;
+
+        if (
+          v_49263d instanceof v_84a859 &&
+          v_49263d.code === "ACCOUNT_DELETED" &&
+          v_119def
+        ) {
+          const v_5ab5bd = v_49263d.details as { restorable?: boolean } | undefined;
+          if (v_5ab5bd?.restorable) {
+            v_c0c16e({ idToken: v_119def });
+            return;
+          }
+        }
         let v_badeaf = v_8d41d7("auth.login.googleFailed");
         if (v_49263d instanceof v_84a859) v_badeaf = v_49263d.message;
         else if (v_49263d?.message) v_badeaf = v_49263d.message;
