@@ -18,7 +18,6 @@ import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import Button from "../../components/ui/Button";
-import OtpVerifyView from "../../components/auth/OtpVerifyView";
 import { useAuthStore } from "../../stores/authStore";
 import {
   AuthApiError,
@@ -26,7 +25,6 @@ import {
   googleCheck,
   getMe,
   requestEmailLoginCode,
-  emailLogin,
 } from "../../api/auth";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
@@ -59,17 +57,7 @@ export default function LoginScreen({ navigation }: Props) {
   const [loggingIn, setLoggingIn] = useState(false);
 
   const [mode, setMode] = useState<"account" | "otp">("account");
-
-  const [otpStep, setOtpStep] = useState<"email" | "code">("email");
-  const [otpCode, setOtpCode] = useState("");
   const [otpBusy, setOtpBusy] = useState(false);
-  const [resendIn, setResendIn] = useState(0);
-
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const id = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000);
-    return () => clearInterval(id);
-  }, [resendIn]);
 
   const finishApiLogin = async (userEmail: string) => {
     if (autoLogin) {
@@ -149,42 +137,11 @@ export default function LoginScreen({ navigation }: Props) {
     setOtpBusy(true);
     try {
       await requestEmailLoginCode(e);
-      setOtpCode("");
-      setOtpStep("code");
-      setResendIn(60);
+
+      navigation.navigate("EmailOtpLogin", { email: e, autoLogin });
     } catch (err) {
       const msg = err instanceof AuthApiError ? err.message : t("common.error");
       showAlert(t("common.error"), msg);
-    } finally {
-      setOtpBusy(false);
-    }
-  };
-
-  const handleOtpLogin = async () => {
-    if (otpCode.length !== 6) return;
-    setOtpBusy(true);
-    try {
-      const e = email.trim().toLowerCase();
-      const deviceId = await getOrCreateDeviceId();
-      const res = await emailLogin({ email: e, verificationCode: otpCode, deviceId });
-      const meRes = await getMe(res.accessToken);
-      await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
-      const rt = (res as { refreshToken?: string }).refreshToken;
-      if (rt) await setApiTokens(res.accessToken, rt, { persist: autoLogin });
-      await finishApiLogin(e);
-    } catch (err) {
-      let msg = t("auth.login.loginFailed");
-      if (err instanceof AuthApiError) {
-        if (err.code === "ACCOUNT_DELETED") {
-          showAlert(t("auth.login.accountDeletedTitle"), t("auth.login.accountDeletedMessage"));
-          return;
-        }
-        if (err.code === "OTP_INVALID") msg = "인증코드가 올바르지 않아요.";
-        else if (err.code === "OTP_EXPIRED") msg = "인증코드가 만료됐어요. 다시 받아주세요.";
-        else if (err.code === "NOT_FOUND") msg = "가입된 이메일이 아니에요.";
-        else msg = err.message;
-      }
-      showAlert(t("auth.login.loginFailed"), msg);
     } finally {
       setOtpBusy(false);
     }
@@ -282,10 +239,7 @@ export default function LoginScreen({ navigation }: Props) {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.tab, mode === "otp" && styles.tabActive]}
-              onPress={() => {
-                setMode("otp");
-                setOtpStep("email");
-              }}
+              onPress={() => setMode("otp")}
             >
               <Text style={[styles.tabText, mode === "otp" && styles.tabTextActive]}>
                 이메일 OTP 로그인
@@ -342,7 +296,7 @@ export default function LoginScreen({ navigation }: Props) {
           )}
 
           {}
-          {mode === "otp" && otpStep === "email" && (
+          {mode === "otp" && (
             <>
               <TextField
                 value={email}
@@ -365,27 +319,6 @@ export default function LoginScreen({ navigation }: Props) {
                 disabled={otpBusy || !email.trim()}
                 style={{ marginTop: SIZES.medium }}
               />
-            </>
-          )}
-
-          {mode === "otp" && otpStep === "code" && (
-            <>
-              <OtpVerifyView
-                title="이메일 OTP 로그인"
-                email={email}
-                code={otpCode}
-                onChangeCode={setOtpCode}
-                onSubmit={handleOtpLogin}
-                submitting={otpBusy}
-                submitLabel="로그인"
-                submittingLabel="로그인 중..."
-                resendIn={resendIn}
-                onResend={handleSendOtp}
-                resendLabel="코드 재발송"
-              />
-              <TouchableOpacity onPress={() => setOtpStep("email")} style={{ alignSelf: "center" }}>
-                <Text style={styles.forgotPassword}>이메일 다시 입력</Text>
-              </TouchableOpacity>
             </>
           )}
 

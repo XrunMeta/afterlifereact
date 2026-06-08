@@ -574,9 +574,8 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
     <SafeView backgroundColor={COLORS.white}>
       {}
       <View style={[s.header, { paddingTop: insets.top + 6 }]}>
-        <TouchableOpacity onPress={goBack} hitSlop={12} style={s.backBtn}>
-          <Feather name="arrow-left" size={22} color={COLORS.zinc900} />
-        </TouchableOpacity>
+        {}
+        <View style={{ width: 38 }} />
         <View style={s.headerCenter}>
           <View style={s.headerAvatar}>
             <Image source={AI_AVATAR_SRC} style={s.headerAvatarImg} resizeMode="contain" />
