@@ -5,6 +5,7 @@ import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { logActivity } from "../lib/logger";
+import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 import {
   hasAcceptedShare,
   isFollower,
@@ -550,11 +551,6 @@ clones.get("/search", async (c) => {
   } else {
     where.push(`c.visibility = 'public'`);
   }
-  if (params.q) {
-    where.push(`(c.name LIKE ? OR c.username LIKE ?)`);
-    const like = `%${params.q}%`;
-    binds.push(like, like);
-  }
   if (params.type) {
     where.push(`c.clone_type = ?`);
     binds.push(params.type);
@@ -562,6 +558,51 @@ clones.get("/search", async (c) => {
   if (params.category) {
     where.push(`c.category = ?`);
     binds.push(params.category);
+  }
+
+  const mapClone = (r: {
+    id: number; name: string; username: string; clone_type: string;
+    category: string | null; avatar_url: string | null; created_at: string;
+    followers_count: number; messages_count: number; gifts_count: number;
+  }) => ({
+    id: r.id,
+    name: r.name,
+    username: r.username,
+    cloneType: r.clone_type,
+    category: r.category,
+    avatarUrl: r.avatar_url,
+    stats: { followers: r.followers_count, messages: r.messages_count, gifts: r.gifts_count },
+    createdAt: r.created_at,
+  });
+
+  if (params.q) {
+    const poolSql = `
+      SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url,
+             c.created_at,
+             COALESCE(s.followers_count, 0) AS followers_count,
+             COALESCE(s.messages_count, 0)  AS messages_count,
+             COALESCE(s.gifts_count, 0)     AS gifts_count
+        FROM clones c
+        LEFT JOIN clone_stats s ON s.clone_id = c.id
+       WHERE ${where.join(" AND ")}
+       ORDER BY COALESCE(s.followers_count, 0) DESC, c.id DESC
+       LIMIT 500`;
+    const pool = (
+      await db.prepare(poolSql).bind(...binds).all<Parameters<typeof mapClone>[0]>()
+    ).results;
+    const scored = pool
+      .map((r) => ({
+        r,
+        score: Math.max(
+          similarityScore(params.q!, r.name),
+          similarityScore(params.q!, r.username),
+        ),
+      }))
+      .filter((x) => x.score >= SEARCH_SIMILARITY_THRESHOLD)
+      .sort((a, b) => b.score - a.score || b.r.followers_count - a.r.followers_count)
+      .slice(0, params.limit)
+      .map((x) => x.r);
+    return c.json({ items: scored.map(mapClone), nextCursor: null });
   }
 
   let orderBy: string;
@@ -623,20 +664,7 @@ clones.get("/search", async (c) => {
   }
 
   return c.json({
-    items: page.map((r) => ({
-      id: r.id,
-      name: r.name,
-      username: r.username,
-      cloneType: r.clone_type,
-      category: r.category,
-      avatarUrl: r.avatar_url,
-      stats: {
-        followers: r.followers_count,
-        messages: r.messages_count,
-        gifts: r.gifts_count,
-      },
-      createdAt: r.created_at,
-    })),
+    items: page.map(mapClone),
     nextCursor,
   });
 });
