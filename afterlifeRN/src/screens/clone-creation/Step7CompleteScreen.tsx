@@ -23,6 +23,7 @@ import type { CreateStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
+import { OtpCodeInput } from "../../components/auth/OtpVerifyView";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -696,15 +697,10 @@ export default function Step7CompleteScreen({ navigation }: Props) {
                 두 번째 클론부터 {payPrice} XRUN 이 부과돼요{"\n"}
                 결제 비밀번호 6자리를 입력해 주세요
               </Text>
-              <TextInput
-                style={payStyles.input}
+              <OtpCodeInput
                 value={pinInput}
-                onChangeText={(v) => setPinInput(v.replace(/\D/g, "").slice(0, 6))}
-                placeholder="PIN 6자리"
-                placeholderTextColor={COLORS.zinc400}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={6}
+                onChange={(v) => setPinInput(v)}
+                masked
                 autoFocus
                 editable={!paying}
               />
