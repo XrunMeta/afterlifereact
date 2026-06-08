@@ -50,6 +50,8 @@ export type AuthStackParamList = {
   };
   XrunLogin: undefined;
   XrunOtp: { email: string; pin: string };
+
+  EmailOtpLogin: { email: string; autoLogin: boolean };
   ForgotPassword: undefined;
 
   SignupComplete: {

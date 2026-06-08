@@ -18,7 +18,6 @@ import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_e775af from "../../components/ui/TextField";
 import v_1a40c4 from "../../components/ui/Button";
-import v_92f073 from "../../components/auth/OtpVerifyView";
 import { v_1ed7d9 } from "../../stores/authStore";
 import {
   v_84a859,
@@ -26,7 +25,6 @@ import {
   v_5c746e,
   v_7ef860,
   v_1d5b64,
-  v_c0c425,
 } from "../../api/auth";
 import { v_ea1c99 } from "../../lib/deviceId";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
@@ -59,17 +57,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
 
   const [v_34e5bb, v_038d7f] = v_5ab095<"account" | "otp">("account");
-
-  const [v_e73be3, v_d6d31c] = v_5ab095<"email" | "code">("email");
-  const [v_aa596d, v_f07cc4] = v_5ab095("");
   const [v_5a69f1, v_9d5a9f] = v_5ab095(false);
-  const [v_600d5b, v_ec979d] = v_5ab095(0);
-
-  v_c4deb2(() => {
-    if (v_600d5b <= 0) return;
-    const v_389afb = setInterval(() => v_ec979d((v_fd5f43) => (v_fd5f43 > 0 ? v_fd5f43 - 1 : 0)), 1000);
-    return () => clearInterval(v_389afb);
-  }, [v_600d5b]);
 
   const v_679b55 = async (v_f4fb5e) => {
     if (v_f53eaa) {
@@ -149,42 +137,11 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
     v_9d5a9f(true);
     try {
       await v_1d5b64(v_9e86fd);
-      v_f07cc4("");
-      v_d6d31c("code");
-      v_ec979d(60);
+
+      v_c65f5d.navigate("EmailOtpLogin", { email: v_9e86fd, autoLogin: v_f53eaa });
     } catch (v_49263d) {
       const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
       v_889fad(v_8d41d7("common.error"), v_badeaf);
-    } finally {
-      v_9d5a9f(false);
-    }
-  };
-
-  const v_83e317 = async () => {
-    if (v_aa596d.length !== 6) return;
-    v_9d5a9f(true);
-    try {
-      const v_9e86fd = v_e0c7e8.trim().toLowerCase();
-      const v_929b58 = await v_ea1c99();
-      const v_8f00b9 = await v_c0c425({ email: v_9e86fd, verificationCode: v_aa596d, deviceId: v_929b58 });
-      const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
-      await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
-      const v_46eca9 = (v_8f00b9 as { refreshToken?: string }).refreshToken;
-      if (v_46eca9) await v_3345cb(v_8f00b9.accessToken, v_46eca9, { persist: v_f53eaa });
-      await v_679b55(v_9e86fd);
-    } catch (v_49263d) {
-      let v_badeaf = v_8d41d7("auth.login.loginFailed");
-      if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "ACCOUNT_DELETED") {
-          v_889fad(v_8d41d7("auth.login.accountDeletedTitle"), v_8d41d7("auth.login.accountDeletedMessage"));
-          return;
-        }
-        if (v_49263d.code === "OTP_INVALID") v_badeaf = "인증코드가 올바르지 않아요.";
-        else if (v_49263d.code === "OTP_EXPIRED") v_badeaf = "인증코드가 만료됐어요. 다시 받아주세요.";
-        else if (v_49263d.code === "NOT_FOUND") v_badeaf = "가입된 이메일이 아니에요.";
-        else v_badeaf = v_49263d.message;
-      }
-      v_889fad(v_8d41d7("auth.login.loginFailed"), v_badeaf);
     } finally {
       v_9d5a9f(false);
     }
@@ -282,10 +239,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
             </TouchableOpacity>
             <TouchableOpacity
               style={[v_d81136.tab, v_34e5bb === "otp" && v_d81136.tabActive]}
-              onPress={() => {
-                v_038d7f("otp");
-                v_d6d31c("email");
-              }}
+              onPress={() => v_038d7f("otp")}
             >
               <Text style={[v_d81136.tabText, v_34e5bb === "otp" && v_d81136.tabTextActive]}>
                 이메일 OTP 로그인
@@ -342,7 +296,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           )}
 
           {}
-          {v_34e5bb === "otp" && v_e73be3 === "email" && (
+          {v_34e5bb === "otp" && (
             <>
               <TextField
                 value={v_e0c7e8}
@@ -365,27 +319,6 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
                 disabled={v_5a69f1 || !v_e0c7e8.trim()}
                 style={{ marginTop: v_9b1a04.medium }}
               />
-            </>
-          )}
-
-          {v_34e5bb === "otp" && v_e73be3 === "code" && (
-            <>
-              <OtpVerifyView
-                title="이메일 OTP 로그인"
-                email={v_e0c7e8}
-                code={v_aa596d}
-                onChangeCode={v_f07cc4}
-                onSubmit={v_83e317}
-                submitting={v_5a69f1}
-                submitLabel="로그인"
-                submittingLabel="로그인 중..."
-                resendIn={v_600d5b}
-                onResend={v_894a7c}
-                resendLabel="코드 재발송"
-              />
-              <TouchableOpacity onPress={() => v_d6d31c("email")} style={{ alignSelf: "center" }}>
-                <Text style={v_d81136.forgotPassword}>이메일 다시 입력</Text>
-              </TouchableOpacity>
             </>
           )}
 

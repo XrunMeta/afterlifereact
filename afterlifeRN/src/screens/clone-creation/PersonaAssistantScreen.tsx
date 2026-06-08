@@ -574,9 +574,8 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     <SafeView backgroundColor={v_1bfbd0.white}>
       {}
       <View style={[v_fd5f43.header, { paddingTop: v_033e14.top + 6 }]}>
-        <TouchableOpacity onPress={v_c7ac57} hitSlop={12} style={v_fd5f43.backBtn}>
-          <Feather name="arrow-left" size={22} color={v_1bfbd0.zinc900} />
-        </TouchableOpacity>
+        {}
+        <View style={{ width: 38 }} />
         <View style={v_fd5f43.headerCenter}>
           <View style={v_fd5f43.headerAvatar}>
             <Image source={v_90ef75} style={v_fd5f43.headerAvatarImg} resizeMode="contain" />
