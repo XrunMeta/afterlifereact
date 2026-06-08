@@ -109,6 +109,11 @@ export default function LoginScreen({ navigation }: Props) {
         showAlert(t("auth.login.accountDeletedTitle"), t("auth.login.accountDeletedMessage"));
         return;
       }
+
+      if (err instanceof AuthApiError && err.code === "ACCOUNT_SUSPENDED") {
+        showAlert("계정 사용 정지", err.message || "신고 누적으로 계정 사용이 정지되었습니다.");
+        return;
+      }
       let msg = t("auth.login.loginFailed");
       if (err instanceof AuthApiError) {
         if (err.code === "ACCOUNT_LOCKED") {

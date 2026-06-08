@@ -18,7 +18,9 @@ export type NotificationType =
 
   | "followee_new_clone"
 
-  | "intimacy_score";
+  | "intimacy_score"
+
+  | "moderation";
 
 export interface NotifyOptions {
 

@@ -49,7 +49,8 @@ describe("신고 누적 조건 — 설정 기반 벌칙", () => {
     expect(res.status).toBe(200);
     const json = (await res.json()) as { items: Array<{ threshold: number; action: string; suspendDays: number | null }> };
     const t3 = json.items.find((r) => r.threshold === 3);
-    expect(t3?.action).toBe("suspend");
+
+    expect(t3?.action).toBe("clone_create_ban");
     expect(t3?.suspendDays).toBe(30);
   });
 

@@ -9,6 +9,7 @@ import { requestKekProvider } from "../lib/kekProvider";
 import { writeDecryptionAudit } from "../lib/auditChain";
 import { loadSystemPersona } from "../lib/systemPersona";
 import { loadPersonaQuestions, validatePersonaQuestions } from "../lib/personaQuestions";
+import { notify } from "../lib/notify";
 
 export const admin = new Hono<AppEnv>();
 
@@ -636,7 +637,8 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
               deletion_state AS deletionState,
               created_at AS createdAt,
               soft_deleted_at AS softDeletedAt,
-              suspended_until AS suspendedUntil
+              suspended_until AS suspendedUntil,
+              banned_until AS bannedUntil
          FROM users
         WHERE xrun_member_id = ?
         ORDER BY (deletion_state = 'active' AND deleted_at IS NULL) DESC, id DESC
@@ -651,6 +653,7 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
       createdAt: string | null;
       softDeletedAt: string | null;
       suspendedUntil: string | null;
+      bannedUntil: string | null;
     }>();
 
   if (!user) {
@@ -738,7 +741,7 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
   const r = await c.env.DB
-    .prepare(`UPDATE users SET suspended_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .prepare(`UPDATE users SET suspended_until = NULL, banned_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
     .bind(id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "User not found.");
@@ -928,6 +931,7 @@ async function issueReportWarning(
   reportType: "user" | "clone" | "comment",
   reportId: number,
   targetUserId: number | null | undefined,
+  cloneId: number | null | undefined,
   adminMessage: string | null,
 ): Promise<number | undefined> {
   if (!targetUserId) return undefined;
@@ -949,21 +953,69 @@ async function issueReportWarning(
     .bind(targetUserId)
     .first<{ n: number }>();
   const warningCount = cnt?.n ?? 0;
-  if (!already) {
-    const rule = await c.env.DB
-      .prepare(
-        `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
-          WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
-      )
-      .bind(warningCount)
-      .first<{ action: string; suspendDays: number | null }>();
-    if (rule?.action === "suspend" && rule.suspendDays && rule.suspendDays > 0) {
-      await c.env.DB
-        .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
-        .bind(`+${rule.suspendDays} days`, targetUserId)
-        .run();
-    }
+  if (already) return warningCount; 
+
+  const rule = await c.env.DB
+    .prepare(
+      `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+        WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+    )
+    .bind(warningCount)
+    .first<{ action: string; suspendDays: number | null }>();
+  if (!rule) return warningCount;
+
+  const days = rule.suspendDays && rule.suspendDays > 0 ? rule.suspendDays : 0;
+  let penaltyMsg = "";
+  switch (rule.action) {
+    case "clone_create_ban":
+      if (days > 0) {
+        await c.env.DB
+          .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+          .bind(`+${days} days`, targetUserId)
+          .run();
+        penaltyMsg = `신고 누적으로 ${days}일간 페르소나 생성이 제한됩니다.`;
+      }
+      break;
+    case "account_ban":
+      if (days > 0) {
+        await c.env.DB
+          .prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`)
+          .bind(`+${days} days`, targetUserId)
+          .run();
+        penaltyMsg = `신고 누적으로 ${days}일간 계정 사용이 정지됩니다.`;
+      }
+      break;
+    case "clone_deactivate":
+      if (cloneId) {
+        await c.env.DB
+          .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL WHERE id = ? AND deletion_state = 'active'`)
+          .bind(cloneId)
+          .run();
+        penaltyMsg = "신고 누적으로 해당 페르소나가 비활성화되었습니다.";
+      }
+      break;
+    case "clone_delete":
+      if (cloneId) {
+        await c.env.DB
+          .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deletion_state = 'active'`)
+          .bind(cloneId)
+          .run();
+        penaltyMsg = "신고 누적으로 해당 페르소나가 삭제되었습니다.";
+      }
+      break;
+
   }
+
+  await notify(c.env, {
+    userId: targetUserId,
+    type: "moderation",
+    title: rule.action === "warn" || !penaltyMsg ? "신고 처리 안내" : "활동 제재 안내",
+    body: adminMessage || penaltyMsg || "회원님에 대한 신고가 처리되었습니다.",
+    url: "afterlife://reports/received",
+    data: { action: rule.action, warningCount, cloneId: cloneId ?? null },
+    skipEmail: true,
+  }).catch(() => {});
+
   return warningCount;
 }
 
@@ -995,11 +1047,11 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
   if (status === "reviewed") {
     const owner = await c.env.DB
       .prepare(
-        `SELECT cl.owner_id AS ownerId FROM clone_reports cr JOIN clones cl ON cl.id = cr.clone_id WHERE cr.id = ?`,
+        `SELECT cl.owner_id AS ownerId, cr.clone_id AS cloneId FROM clone_reports cr JOIN clones cl ON cl.id = cr.clone_id WHERE cr.id = ?`,
       )
       .bind(id)
-      .first<{ ownerId: number }>();
-    warningCount = await issueReportWarning(c, "clone", id, owner?.ownerId, adminMessage);
+      .first<{ ownerId: number; cloneId: number }>();
+    warningCount = await issueReportWarning(c, "clone", id, owner?.ownerId, owner?.cloneId, adminMessage);
   }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
@@ -1041,7 +1093,7 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
       .prepare(`SELECT target_id AS targetId FROM user_reports WHERE id = ?`)
       .bind(id)
       .first<{ targetId: number }>();
-    warningCount = await issueReportWarning(c, "user", id, rep?.targetId, adminMessage);
+    warningCount = await issueReportWarning(c, "user", id, rep?.targetId, null, adminMessage);
   }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
@@ -1083,7 +1135,11 @@ admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
       .prepare(`SELECT user_id AS authorId FROM feed_comments WHERE id = (SELECT comment_id FROM comment_reports WHERE id = ?)`)
       .bind(id)
       .first<{ authorId: number }>();
-    warningCount = await issueReportWarning(c, "comment", id, author?.authorId, adminMessage);
+    const cmrClone = await c.env.DB
+      .prepare(`SELECT clone_id AS cloneId FROM comment_reports WHERE id = ?`)
+      .bind(id)
+      .first<{ cloneId: number }>();
+    warningCount = await issueReportWarning(c, "comment", id, author?.authorId, cmrClone?.cloneId, adminMessage);
   }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });

@@ -606,14 +606,27 @@ adminData.post("/oth-path", async (c) => {
 
   let suspendedUntil: string | null = null;
   let suspended = false;
-  if (rule?.action === "suspend" && rule.suspendDays && rule.suspendDays > 0) {
+  const days = rule?.suspendDays && rule.suspendDays > 0 ? rule.suspendDays : 0;
+
+  if (rule?.action === "clone_create_ban" && days > 0) {
     suspended = true;
     await c.env.DB
       .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
-      .bind(`+${rule.suspendDays} days`, id)
+      .bind(`+${days} days`, id)
       .run();
     const row = await c.env.DB
       .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+      .bind(id)
+      .first<{ s: string | null }>();
+    suspendedUntil = row?.s ?? null;
+  } else if (rule?.action === "account_ban" && days > 0) {
+    suspended = true;
+    await c.env.DB
+      .prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`)
+      .bind(`+${days} days`, id)
+      .run();
+    const row = await c.env.DB
+      .prepare(`SELECT banned_until AS s FROM users WHERE id = ?`)
       .bind(id)
       .first<{ s: string | null }>();
     suspendedUntil = row?.s ?? null;
@@ -663,12 +676,18 @@ adminData.put("/report-penalty-rules/:threshold", async (c) => {
   } catch {
 
   }
-  const action = body.action === "suspend" ? "suspend" : "warn";
+
+  const VALID_ACTIONS = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+
+  const rawAction = body.action === "suspend" ? "clone_create_ban" : (body.action ?? "");
+  const action = VALID_ACTIONS.includes(rawAction) ? rawAction : "warn";
+
+  const needsDays = action === "clone_create_ban" || action === "account_ban";
   const suspendDays =
-    action === "suspend" && Number.isInteger(body.suspendDays) && (body.suspendDays as number) > 0
+    needsDays && Number.isInteger(body.suspendDays) && (body.suspendDays as number) > 0
       ? (body.suspendDays as number)
       : null;
-  if (action === "suspend" && !suspendDays) {
+  if (needsDays && !suspendDays) {
     return c.json({ error: "suspend_days_required" }, 400);
   }
   await c.env.DB
