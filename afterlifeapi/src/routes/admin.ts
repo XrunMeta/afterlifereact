@@ -751,10 +751,34 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
       JOIN users tu ON tu.id = ur.target_id
   `;
 
+  const v_7ec40d = `
+    SELECT 'comment' AS type,
+           cmr.id AS id,
+           cmr.user_id AS reporterId,
+           ru.name AS reporterName,
+           ru.email AS reporterEmail,
+           cmr.comment_id AS targetId,
+           cu.name AS targetName,
+           fcc.content AS targetSub,
+           cmr.clone_id AS targetOwnerId,
+           cc.name AS targetOwnerName,
+           cmr.reason AS reason,
+           cmr.status AS status,
+           cmr.created_at AS createdAt,
+           cmr.reviewed_at AS reviewedAt,
+           (SELECT COUNT(*) FROM comment_reports x WHERE x.comment_id = cmr.comment_id AND x.status = 'reviewed') AS targetReportCount
+      FROM comment_reports cmr
+      JOIN users ru ON ru.id = cmr.user_id
+      LEFT JOIN feed_comments fcc ON fcc.id = cmr.comment_id
+      LEFT JOIN users cu ON cu.id = fcc.user_id
+      LEFT JOIN clones cc ON cc.id = cmr.clone_id
+  `;
+
   const v_694b25 =
     v_3b27d9 === "clone" ? `(${v_8a304f}) AS r`
     : v_3b27d9 === "user" ? `(${v_3ef660}) AS r`
-    : `(${v_8a304f} UNION ALL ${v_3ef660}) AS r`;
+    : v_3b27d9 === "comment" ? `(${v_7ec40d}) AS r`
+    : `(${v_8a304f} UNION ALL ${v_3ef660} UNION ALL ${v_7ec40d}) AS r`;
 
   const v_abcc8d = ["1=1"];
   const v_925171 = [];
@@ -846,6 +870,31 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
   const v_cb35cb = await v_3f4e2e.env.DB.prepare(`DELETE FROM user_reports WHERE id = ?`).bind(v_389afb).run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb });
+});
+
+const v_f0881e = ["open", "reviewed", "dismissed"] as const;
+v_b7f2b4.patch("/comments/reports/:id", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string }>().catch(() => ({}));
+  const v_d308b5 = v_4d33b2.status ?? "";
+  if (!(v_f0881e as readonly string[]).includes(v_d308b5)) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid status.");
+  }
+  const v_901936 = v_d308b5 === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const v_cb35cb = await v_3f4e2e.env.DB
+    .prepare(`UPDATE comment_reports SET status = ?, ${v_901936} WHERE id = ?`)
+    .bind(v_d308b5, v_389afb)
+    .run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5 });
+});
+v_b7f2b4.delete("/comments/reports/:id", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_cb35cb = await v_3f4e2e.env.DB.prepare(`DELETE FROM comment_reports WHERE id = ?`).bind(v_389afb).run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
   return v_3f4e2e.json({ ok: true, id: v_389afb });
 });
