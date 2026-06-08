@@ -196,6 +196,14 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
   const [submittingComment, setSubmittingComment] = useState(false);
 
   const [replyingTo, setReplyingTo] = useState<{ commentId: number; userName: string } | null>(null);
+
+  const commentInputRef = useRef<TextInput>(null);
+  useEffect(() => {
+    if (replyingTo) {
+      const id = setTimeout(() => commentInputRef.current?.focus(), 60);
+      return () => clearTimeout(id);
+    }
+  }, [replyingTo]);
   const [expandedReplies, setExpandedReplies] = useState<Record<number, FeedComment[]>>({});
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -587,6 +595,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
             )}
             <View style={styles.commentInputRow}>
               <TextInput
+                ref={commentInputRef}
                 style={styles.commentInput}
                 value={commentText}
                 onChangeText={setCommentText}
