@@ -444,3 +444,80 @@ admin.delete("/oth-path", requireAdmin, async (c) => {
   return c.json({ ok: true, deletedId: cloneId, deletionState: "soft_deleted" });
 });
 
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const existing = await c.env.DB
+    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .bind(cloneId)
+    .first<{ id: number; deletion_state: string }>();
+  if (!existing) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (existing.deletion_state !== "active") {
+    return c.json({ ok: true, alreadyDisabled: true, deletionState: existing.deletion_state });
+  }
+  await c.env.DB
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(cloneId)
+    .run();
+  return c.json({ ok: true, cloneId, deletionState: "soft_deleted" });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const existing = await c.env.DB
+    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .bind(cloneId)
+    .first<{ id: number; deletion_state: string }>();
+  if (!existing) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (existing.deletion_state === "active") {
+    return c.json({ ok: true, alreadyActive: true, deletionState: "active" });
+  }
+  if (existing.deletion_state === "hard_deleted" || existing.deletion_state === "archived_cold") {
+    throw new APIError("CONFLICT", `Cannot activate from state '${existing.deletion_state}'.`);
+  }
+  await c.env.DB
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'active',
+              soft_deleted_at = NULL,
+              deleted_at = NULL
+        WHERE id = ?`,
+    )
+    .bind(cloneId)
+    .run();
+  return c.json({ ok: true, cloneId, deletionState: "active" });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT cr.id, cr.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              cr.reason, cr.status,
+              cr.created_at AS createdAt,
+              cr.reviewed_at AS reviewedAt
+         FROM clone_reports cr
+         JOIN users u ON u.id = cr.user_id
+        WHERE cr.clone_id = ?
+        ORDER BY cr.created_at DESC
+        LIMIT 200`,
+    )
+    .bind(cloneId)
+    .all();
+  return c.json({ items: rows.results });
+});
+
