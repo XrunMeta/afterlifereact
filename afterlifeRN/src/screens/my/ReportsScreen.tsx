@@ -28,6 +28,12 @@ const MADE_STATUS: Record<string, { label: string; color: string; bg: string }> 
   dismissed: { label: "기각", color: "#64748b", bg: "#f1f5f9" },
 };
 
+const TYPE_LABEL: Record<string, string> = {
+  user: "유저",
+  clone: "페르소나",
+  comment: "댓글",
+};
+
 const fmt = (iso: string | null) => (iso ? iso.slice(0, 16).replace("T", " ") : "—");
 
 export default function ReportsScreen() {
@@ -74,8 +80,9 @@ export default function ReportsScreen() {
     return (
       <View style={s.row}>
         <View style={{ flex: 1 }}>
+          <Text style={s.typeTag}>{TYPE_LABEL[item.type] ?? "신고"}</Text>
           <Text style={s.name} numberOfLines={1}>
-            {item.targetName || item.targetEmail.split("@")[0]}
+            {item.targetName || item.targetEmail.split("@")[0] || "—"}
           </Text>
           <Text style={s.sub} numberOfLines={2}>
             {item.reason || "(사유 없음)"}
@@ -137,7 +144,7 @@ export default function ReportsScreen() {
       ) : tab === "made" ? (
         <FlatList
           data={made}
-          keyExtractor={(it) => `m-${it.id}`}
+          keyExtractor={(it) => `m-${it.type}-${it.id}`}
           renderItem={renderMade}
           ListEmptyComponent={
             <View style={s.empty}>
@@ -150,7 +157,7 @@ export default function ReportsScreen() {
       ) : (
         <FlatList
           data={received}
-          keyExtractor={(it) => `r-${it.id}`}
+          keyExtractor={(it) => `r-${it.reportType}-${it.id}`}
           renderItem={renderReceived}
           ListHeaderComponent={
             <View style={s.statusCard}>
@@ -199,6 +206,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.zinc100,
   },
+  typeTag: { fontSize: 11, fontWeight: "700", color: COLORS.zinc400, marginBottom: 2 },
   name: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
   sub: { fontSize: 12, color: COLORS.zinc600, marginTop: 3 },
   adminMsg: { fontSize: 12, color: "#b45309", marginTop: 4, lineHeight: 17 },

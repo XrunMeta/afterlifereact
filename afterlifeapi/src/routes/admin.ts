@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { runCleanup } from "../scheduled/cleanup";
@@ -837,6 +837,50 @@ admin.get("/reports", requireAdmin, async (c) => {
   return c.json({ items: rows, total: totalRow?.cnt ?? 0, offset, limit });
 });
 
+async function issueReportWarning(
+  c: Context<AppEnv>,
+  reportType: "user" | "clone" | "comment",
+  reportId: number,
+  targetUserId: number | null | undefined,
+  adminMessage: string | null,
+): Promise<number | undefined> {
+  if (!targetUserId) return undefined;
+  const already = await c.env.DB
+    .prepare(`SELECT 1 AS x FROM user_warnings WHERE report_id = ? AND report_type = ? LIMIT 1`)
+    .bind(reportId, reportType)
+    .first();
+  if (!already) {
+    const adminId = c.get("adminUserId") ?? 0;
+    await c.env.DB
+      .prepare(
+        `INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason) VALUES (?, ?, ?, ?, ?)`,
+      )
+      .bind(targetUserId, adminId, reportId, reportType, adminMessage)
+      .run();
+  }
+  const cnt = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(targetUserId)
+    .first<{ n: number }>();
+  const warningCount = cnt?.n ?? 0;
+  if (!already) {
+    const rule = await c.env.DB
+      .prepare(
+        `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+          WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+      )
+      .bind(warningCount)
+      .first<{ action: string; suspendDays: number | null }>();
+    if (rule?.action === "suspend" && rule.suspendDays && rule.suspendDays > 0) {
+      await c.env.DB
+        .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+        .bind(`+${rule.suspendDays} days`, targetUserId)
+        .run();
+    }
+  }
+  return warningCount;
+}
+
 const CLONE_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
 admin.patch("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
@@ -853,7 +897,18 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
     .bind(status, adminMessage, id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
-  return c.json({ ok: true, id, status, adminMessage });
+
+  let warningCount: number | undefined;
+  if (status === "reviewed") {
+    const owner = await c.env.DB
+      .prepare(
+        `SELECT cl.owner_id AS ownerId FROM clone_reports cr JOIN clones cl ON cl.id = cr.clone_id WHERE cr.id = ?`,
+      )
+      .bind(id)
+      .first<{ ownerId: number }>();
+    warningCount = await issueReportWarning(c, "clone", id, owner?.ownerId, adminMessage);
+  }
+  return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
 admin.delete("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
@@ -882,43 +937,11 @@ admin.patch("/oth-path", requireAdmin, async (c) => {
 
   let warningCount: number | undefined;
   if (status === "reviewed") {
-    const already = await c.env.DB
-      .prepare(`SELECT 1 AS x FROM user_warnings WHERE report_id = ? LIMIT 1`)
+    const rep = await c.env.DB
+      .prepare(`SELECT target_id AS targetId FROM user_reports WHERE id = ?`)
       .bind(id)
-      .first();
-    if (!already) {
-      const rep = await c.env.DB
-        .prepare(`SELECT target_id AS targetId FROM user_reports WHERE id = ?`)
-        .bind(id)
-        .first<{ targetId: number }>();
-      if (rep) {
-        const adminId = c.get("adminUserId") ?? 0;
-        await c.env.DB
-          .prepare(
-            `INSERT INTO user_warnings (user_id, admin_id, report_id, reason) VALUES (?, ?, ?, ?)`,
-          )
-          .bind(rep.targetId, adminId, id, adminMessage)
-          .run();
-        const cnt = await c.env.DB
-          .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
-          .bind(rep.targetId)
-          .first<{ n: number }>();
-        warningCount = cnt?.n ?? 0;
-        const rule = await c.env.DB
-          .prepare(
-            `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
-              WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
-          )
-          .bind(warningCount)
-          .first<{ action: string; suspendDays: number | null }>();
-        if (rule?.action === "suspend" && rule.suspendDays && rule.suspendDays > 0) {
-          await c.env.DB
-            .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
-            .bind(`+${rule.suspendDays} days`, rep.targetId)
-            .run();
-        }
-      }
-    }
+      .first<{ targetId: number }>();
+    warningCount = await issueReportWarning(c, "user", id, rep?.targetId, adminMessage);
   }
   return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
@@ -946,7 +969,16 @@ admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
     .bind(status, adminMessage, id)
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
-  return c.json({ ok: true, id, status, adminMessage });
+
+  let warningCount: number | undefined;
+  if (status === "reviewed") {
+    const author = await c.env.DB
+      .prepare(`SELECT user_id AS authorId FROM feed_comments WHERE id = (SELECT comment_id FROM comment_reports WHERE id = ?)`)
+      .bind(id)
+      .first<{ authorId: number }>();
+    warningCount = await issueReportWarning(c, "comment", id, author?.authorId, adminMessage);
+  }
+  return c.json({ ok: true, id, status, adminMessage, warningCount });
 });
 admin.delete("/comments/reports/:id", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
@@ -972,7 +1004,6 @@ admin.get("/oth-path", requireAdmin, async (c) => {
   const where: string[] = [
     "f.clone_id = ?",
     "fcc.parent_comment_id IS NULL",
-    "fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status = 'reviewed')",
   ];
   const binds: unknown[] = [cloneId];
   if (q) {
@@ -994,7 +1025,10 @@ admin.get("/oth-path", requireAdmin, async (c) => {
               u.xrun_member_id AS userXrunMemberId,
               fcc.content, fcc.created_at AS createdAt,
               fcc.likes_count AS likeCount,
-              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount
+              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount,
+              (SELECT COUNT(*) FROM comment_reports cr WHERE cr.comment_id = fcc.id) AS reportCount,
+              (SELECT cr.status FROM comment_reports cr WHERE cr.comment_id = fcc.id
+                 ORDER BY (cr.status = 'reviewed') DESC, cr.created_at DESC LIMIT 1) AS reportStatus
          FROM feed_comments fcc
          JOIN feeds f ON f.id = fcc.feed_id
          JOIN users u ON u.id = fcc.user_id

@@ -3,6 +3,7 @@ import { authFetch } from "../lib/authFetch";
 
 export interface MyReportMade {
   id: number;
+  type: "user" | "clone" | "comment" | string;
   reason: string | null;
   status: "open" | "reviewed" | "actioned" | "dismissed" | string;
   createdAt: string;
@@ -15,6 +16,7 @@ export interface MyReportMade {
 
 export interface MyReportReceived {
   id: number;
+  reportType: "user" | "clone" | "comment" | string;
   reason: string | null;
   createdAt: string;
   reviewedAt: string | null;
