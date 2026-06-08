@@ -963,6 +963,59 @@ users.get("/me/blocks", requireAuth, async (c) => {
   return c.json({ items });
 });
 
+users.get("/me/reports/made", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason, r.status AS status,
+                r.created_at AS createdAt, r.reviewed_at AS reviewedAt,
+                tu.name AS targetName, tu.email AS targetEmail, tu.id AS targetId
+           FROM user_reports r
+           JOIN users tu ON tu.id = r.target_id
+          WHERE r.reporter_id = ?
+          ORDER BY r.created_at DESC
+          LIMIT 100`,
+      )
+      .bind(userId)
+      .all()
+  ).results;
+  return c.json({ items: rows });
+});
+
+users.get("/me/reports/received", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const items = (
+    await c.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason,
+                r.created_at AS createdAt, r.reviewed_at AS reviewedAt,
+                w.reason AS warningReason, w.created_at AS warnedAt
+           FROM user_reports r
+           LEFT JOIN user_warnings w
+             ON w.report_id = r.id AND w.user_id = r.target_id
+          WHERE r.target_id = ? AND r.status = 'actioned'
+          ORDER BY r.created_at DESC
+          LIMIT 100`,
+      )
+      .bind(userId)
+      .all()
+  ).results;
+  const wc = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(userId)
+    .first<{ n: number }>();
+  const u = await c.env.DB
+    .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ s: string | null }>();
+  return c.json({
+    items,
+    warningCount: wc?.n ?? 0,
+    suspendedUntil: u?.s ?? null,
+  });
+});
+
 users.delete("/me/devices/:id", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const deviceRowId = Number(c.req.param("id"));

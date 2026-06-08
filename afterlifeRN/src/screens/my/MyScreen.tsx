@@ -275,6 +275,12 @@ export default function MyScreen() {
       route: "PrivacySettings",
     },
     {
+      icon: "flag",
+      labelKey: "my.menu.reports",
+      descKey: "my.menu.reportsDesc",
+      route: "Reports",
+    },
+    {
       icon: "file-text",
       labelKey: "my.coin.transactions",
       descKey: "my.coin.viewAll",
