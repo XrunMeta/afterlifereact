@@ -74,7 +74,7 @@ export type MainTabParamList = {
   CreateTab: undefined;
 
   ShortsTab: { openIntimacyCloneId?: number } | undefined;
-  MyTab: undefined;
+  MyTab: v_e56625<MyStackParamList> | undefined;
 };
 
 export type ClonesStackParamList = {

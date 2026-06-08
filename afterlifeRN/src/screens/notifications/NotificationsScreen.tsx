@@ -123,6 +123,12 @@ export default function v_18ad36() {
       v_c65f5d.navigate("UserProfile", { userId: v_d5dda0.actorId });
     } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/invite\/(.+)$/))) {
       v_c65f5d.navigate("InviteAccept", { token: decodeURIComponent(v_35f85c[1]) });
+    } else if (v_f4e98d.type === "moderation" || v_f71b56.startsWith("afterlife://reports")) {
+
+      v_c65f5d.navigate("Main", {
+        screen: "MyTab",
+        params: { screen: "Reports", params: { tab: "received" } },
+      });
     } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/oth-path\/(\d+)/))) {
 
       v_c65f5d.navigate("UserProfile", { userId: Number(v_35f85c[1]) });

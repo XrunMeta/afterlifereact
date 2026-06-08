@@ -9,6 +9,7 @@ import { v_e44d97 } from "../lib/kekProvider";
 import { v_e56fb3 } from "../lib/auditChain";
 import { v_b60bdd } from "../lib/systemPersona";
 import { v_0b44ec, v_02d529 } from "../lib/personaQuestions";
+import { v_c226a5 } from "../lib/notify";
 
 export const v_b7f2b4 = new v_b7c41b<v_de0a25>();
 
@@ -636,7 +637,8 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
               deletion_state AS deletionState,
               created_at AS createdAt,
               soft_deleted_at AS softDeletedAt,
-              suspended_until AS suspendedUntil
+              suspended_until AS suspendedUntil,
+              banned_until AS bannedUntil
          FROM users
         WHERE xrun_member_id = ?
         ORDER BY (deletion_state = 'active' AND deleted_at IS NULL) DESC, id DESC
@@ -651,6 +653,7 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
       createdAt: string | null;
       softDeletedAt: string | null;
       suspendedUntil: string | null;
+      bannedUntil: string | null;
     }>();
 
   if (!v_625c74) {
@@ -738,7 +741,7 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
   const v_cb35cb = await v_3f4e2e.env.DB
-    .prepare(`UPDATE users SET suspended_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .prepare(`UPDATE users SET suspended_until = NULL, banned_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
     .bind(v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "User not found.");
@@ -928,6 +931,7 @@ async function v_19a475(
   v_7bef43,
   v_99000e,
   v_489382,
+  v_6e0fd3,
   v_7e89c9,
 ): Promise<number | undefined> {
   if (!v_489382) return undefined;
@@ -949,21 +953,69 @@ async function v_19a475(
     .bind(v_489382)
     .first<{ n: number }>();
   const v_e87618 = v_7b3f91?.n ?? 0;
-  if (!v_5b4e12) {
-    const v_32000f = await v_3f4e2e.env.DB
-      .prepare(
-        `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
-          WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
-      )
-      .bind(v_e87618)
-      .first<{ action: string; suspendDays: number | null }>();
-    if (v_32000f?.action === "suspend" && v_32000f.suspendDays && v_32000f.suspendDays > 0) {
-      await v_3f4e2e.env.DB
-        .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
-        .bind(`+${v_32000f.suspendDays} days`, v_489382)
-        .run();
-    }
+  if (v_5b4e12) return v_e87618; 
+
+  const v_32000f = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+        WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+    )
+    .bind(v_e87618)
+    .first<{ action: string; suspendDays: number | null }>();
+  if (!v_32000f) return v_e87618;
+
+  const v_6a53fd = v_32000f.suspendDays && v_32000f.suspendDays > 0 ? v_32000f.suspendDays : 0;
+  let v_c8eee3 = "";
+  switch (v_32000f.action) {
+    case "clone_create_ban":
+      if (v_6a53fd > 0) {
+        await v_3f4e2e.env.DB
+          .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+          .bind(`+${v_6a53fd} days`, v_489382)
+          .run();
+        v_c8eee3 = `신고 누적으로 ${v_6a53fd}일간 페르소나 생성이 제한됩니다.`;
+      }
+      break;
+    case "account_ban":
+      if (v_6a53fd > 0) {
+        await v_3f4e2e.env.DB
+          .prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`)
+          .bind(`+${v_6a53fd} days`, v_489382)
+          .run();
+        v_c8eee3 = `신고 누적으로 ${v_6a53fd}일간 계정 사용이 정지됩니다.`;
+      }
+      break;
+    case "clone_deactivate":
+      if (v_6e0fd3) {
+        await v_3f4e2e.env.DB
+          .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL WHERE id = ? AND deletion_state = 'active'`)
+          .bind(v_6e0fd3)
+          .run();
+        v_c8eee3 = "신고 누적으로 해당 페르소나가 비활성화되었습니다.";
+      }
+      break;
+    case "clone_delete":
+      if (v_6e0fd3) {
+        await v_3f4e2e.env.DB
+          .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deletion_state = 'active'`)
+          .bind(v_6e0fd3)
+          .run();
+        v_c8eee3 = "신고 누적으로 해당 페르소나가 삭제되었습니다.";
+      }
+      break;
+
   }
+
+  await v_c226a5(v_3f4e2e.env, {
+    userId: v_489382,
+    type: "moderation",
+    title: v_32000f.action === "warn" || !v_c8eee3 ? "신고 처리 안내" : "활동 제재 안내",
+    body: v_7e89c9 || v_c8eee3 || "회원님에 대한 신고가 처리되었습니다.",
+    url: "afterlife://reports/received",
+    data: { action: v_32000f.action, warningCount: v_e87618, cloneId: v_6e0fd3 ?? null },
+    skipEmail: true,
+  }).catch(() => {});
+
   return v_e87618;
 }
 
@@ -995,11 +1047,11 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (v_d308b5 === "reviewed") {
     const v_257b90 = await v_3f4e2e.env.DB
       .prepare(
-        `SELECT cl.owner_id AS ownerId FROM clone_reports cr JOIN clones cl ON cl.id = cr.clone_id WHERE cr.id = ?`,
+        `SELECT cl.owner_id AS ownerId, cr.clone_id AS cloneId FROM clone_reports cr JOIN clones cl ON cl.id = cr.clone_id WHERE cr.id = ?`,
       )
       .bind(v_389afb)
-      .first<{ ownerId: number }>();
-    v_e87618 = await v_19a475(v_3f4e2e, "clone", v_389afb, v_257b90?.ownerId, v_7e89c9);
+      .first<{ ownerId: number; cloneId: number }>();
+    v_e87618 = await v_19a475(v_3f4e2e, "clone", v_389afb, v_257b90?.ownerId, v_257b90?.cloneId, v_7e89c9);
   }
   return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9, warningCount: v_e87618 });
 });
@@ -1041,7 +1093,7 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
       .prepare(`SELECT target_id AS targetId FROM user_reports WHERE id = ?`)
       .bind(v_389afb)
       .first<{ targetId: number }>();
-    v_e87618 = await v_19a475(v_3f4e2e, "user", v_389afb, v_f10744?.targetId, v_7e89c9);
+    v_e87618 = await v_19a475(v_3f4e2e, "user", v_389afb, v_f10744?.targetId, null, v_7e89c9);
   }
   return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9, warningCount: v_e87618 });
 });
@@ -1083,7 +1135,11 @@ v_b7f2b4.patch("/comments/reports/:id", v_c0a297, async (v_3f4e2e) => {
       .prepare(`SELECT user_id AS authorId FROM feed_comments WHERE id = (SELECT comment_id FROM comment_reports WHERE id = ?)`)
       .bind(v_389afb)
       .first<{ authorId: number }>();
-    v_e87618 = await v_19a475(v_3f4e2e, "comment", v_389afb, v_abe745?.authorId, v_7e89c9);
+    const v_cb05c2 = await v_3f4e2e.env.DB
+      .prepare(`SELECT clone_id AS cloneId FROM comment_reports WHERE id = ?`)
+      .bind(v_389afb)
+      .first<{ cloneId: number }>();
+    v_e87618 = await v_19a475(v_3f4e2e, "comment", v_389afb, v_abe745?.authorId, v_cb05c2?.cloneId, v_7e89c9);
   }
   return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9, warningCount: v_e87618 });
 });

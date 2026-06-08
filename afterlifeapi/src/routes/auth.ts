@@ -656,7 +656,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
   const v_625c74 = await v_a1651b
     .prepare(
-      `SELECT id, password_hash, failed_login_count, locked_until, deletion_state
+      `SELECT id, password_hash, failed_login_count, locked_until, deletion_state, banned_until
          FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(v_4d33b2.email)
@@ -666,6 +666,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
       failed_login_count: number;
       locked_until: string | null;
       deletion_state: string;
+      banned_until: string | null;
     }>();
 
   const v_2d56e5 = v_625c74?.password_hash ?? (await v_54846c("dummy-nonmatch-0000"));
@@ -714,6 +715,12 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
   if (v_625c74.deletion_state !== "active") {
     throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+
+  if (v_625c74.banned_until && v_e8cd3d(v_625c74.banned_until) > Date.now()) {
+    throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      bannedUntil: v_625c74.banned_until,
+    });
   }
 
   await v_a1651b
@@ -887,12 +894,17 @@ v_68f0aa.post("/email/login", async (v_3f4e2e) => {
   await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
 
   const v_625c74 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .prepare(`SELECT id, deletion_state, banned_until FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
     .bind(v_bb4bfd)
-    .first<{ id: number; deletion_state: string }>();
+    .first<{ id: number; deletion_state: string; banned_until: string | null }>();
   if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
   if (v_625c74.deletion_state !== "active") {
     throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+  if (v_625c74.banned_until && v_e8cd3d(v_625c74.banned_until) > Date.now()) {
+    throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      bannedUntil: v_625c74.banned_until,
+    });
   }
 
   if (v_4d33b2.deviceId && v_4d33b2.pushToken) {

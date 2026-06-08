@@ -109,6 +109,11 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
         v_889fad(v_8d41d7("auth.login.accountDeletedTitle"), v_8d41d7("auth.login.accountDeletedMessage"));
         return;
       }
+
+      if (v_49263d instanceof v_84a859 && v_49263d.code === "ACCOUNT_SUSPENDED") {
+        v_889fad("계정 사용 정지", v_49263d.message || "신고 누적으로 계정 사용이 정지되었습니다.");
+        return;
+      }
       let v_badeaf = v_8d41d7("auth.login.loginFailed");
       if (v_49263d instanceof v_84a859) {
         if (v_49263d.code === "ACCOUNT_LOCKED") {
