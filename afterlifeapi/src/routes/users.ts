@@ -970,6 +970,7 @@ users.get("/me/reports/made", requireAuth, async (c) => {
       .prepare(
         `SELECT r.id AS id, r.reason AS reason, r.status AS status,
                 r.created_at AS createdAt, r.reviewed_at AS reviewedAt,
+                r.admin_message AS adminMessage,
                 tu.name AS targetName, tu.email AS targetEmail, tu.id AS targetId
            FROM user_reports r
            JOIN users tu ON tu.id = r.target_id
@@ -990,6 +991,7 @@ users.get("/me/reports/received", requireAuth, async (c) => {
       .prepare(
         `SELECT r.id AS id, r.reason AS reason,
                 r.created_at AS createdAt, r.reviewed_at AS reviewedAt,
+                r.admin_message AS adminMessage,
                 w.reason AS warningReason, w.created_at AS warnedAt
            FROM user_reports r
            LEFT JOIN user_warnings w

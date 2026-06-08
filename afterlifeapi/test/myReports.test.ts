@@ -53,7 +53,7 @@ describe("내 신고 — made / received", () => {
 
     const targetTok = await token(target);
     let recv = (await (await req(`/oth-path`, targetTok)).json()) as {
-      items: unknown[];
+      items: Array<{ adminMessage: string | null }>;
       warningCount: number;
     };
     expect(recv.items.length).toBe(0);
@@ -62,18 +62,24 @@ describe("내 신고 — made / received", () => {
       (await (await req(`/oth-path`, reporterTok)).json()) as { items: Array<{ id: number; targetId: number }> }
     ).items.find((x) => x.targetId === target)!.id;
     const admin = await token(await seedUser(), true);
-    expect((await req(`/oth-path${target}/warn`, admin, "POST", { reportId })).status).toBe(200);
+    const ADMIN_MSG = "신고가 확인되어 경고합니다.";
+    expect(
+      (await req(`/oth-path${target}/warn`, admin, "POST", { reportId, reason: ADMIN_MSG })).status,
+    ).toBe(200);
 
     made = (await (await req(`/oth-path`, reporterTok)).json()) as {
-      items: Array<{ status: string; targetId: number }>;
+      items: Array<{ status: string; targetId: number; adminMessage: string | null }>;
     };
-    expect(made.items.find((x) => x.targetId === target)!.status).toBe("actioned");
+    const m2 = made.items.find((x) => x.targetId === target)!;
+    expect(m2.status).toBe("actioned");
+    expect(m2.adminMessage).toBe(ADMIN_MSG);
 
     recv = (await (await req(`/oth-path`, targetTok)).json()) as {
-      items: unknown[];
+      items: Array<{ adminMessage: string | null }>;
       warningCount: number;
     };
     expect(recv.items.length).toBe(1);
     expect(recv.warningCount).toBe(1);
+    expect(recv.items[0].adminMessage).toBe(ADMIN_MSG);
   });
 });

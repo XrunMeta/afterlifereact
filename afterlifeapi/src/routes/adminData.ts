@@ -616,12 +616,13 @@ adminData.post("/oth-path", async (c) => {
   }
 
   if (body.reportId) {
+
     await c.env.DB
       .prepare(
-        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP
+        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
           WHERE id = ?`,
       )
-      .bind(body.reportId)
+      .bind(body.reason ?? null, body.reportId)
       .run();
   }
 
@@ -695,12 +696,18 @@ adminData.delete("/report-penalty-rules/:threshold", async (c) => {
 adminData.post("/oth-path", async (c) => {
   const reportId = Number(c.req.param("reportId"));
   if (!Number.isInteger(reportId) || reportId <= 0) return c.json({ error: "invalid_id" }, 400);
+  let body: { message?: string } = {};
+  try {
+    body = (await c.req.json()) as { message?: string };
+  } catch {
+
+  }
   const res = await c.env.DB
     .prepare(
-      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP
+      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
         WHERE id = ? AND status IN ('open', 'reviewed')`,
     )
-    .bind(reportId)
+    .bind(body.message ?? null, reportId)
     .run();
   return c.json({ ok: true, updated: res.meta?.changes ?? 0 });
 });

@@ -878,7 +878,7 @@ const COMMENT_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
 admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string }>().catch(() => ({}));
+  const body = await c.req.json<{ status?: string }>().catch(() => ({}) as { status?: string });
   const status = body.status ?? "";
   if (!(COMMENT_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");

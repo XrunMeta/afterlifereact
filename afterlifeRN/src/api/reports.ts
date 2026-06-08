@@ -7,6 +7,7 @@ export interface MyReportMade {
   status: "open" | "reviewed" | "actioned" | "dismissed" | string;
   createdAt: string;
   reviewedAt: string | null;
+  adminMessage: string | null;
   targetId: number;
   targetName: string | null;
   targetEmail: string;
@@ -17,6 +18,7 @@ export interface MyReportReceived {
   reason: string | null;
   createdAt: string;
   reviewedAt: string | null;
+  adminMessage: string | null;
   warningReason: string | null;
   warnedAt: string | null;
 }
