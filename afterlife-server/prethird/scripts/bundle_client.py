@@ -1,5 +1,6 @@
 """bundle_client — api GET /oth-path 조회. 실패 시 graceful(None).
-prethird는 토큰 검증 안 함(api가 함). 토큰을 로그에 출력하지 말 것."""
+prethird는 토큰 검증 안 함(api가 함). 토큰을 로그에 출력하지 말 것.
+경로 prefix는 /oth-path (RN 의 /oth-path 과 동일 mount)."""
 from __future__ import annotations
 import os, logging, aiohttp
 

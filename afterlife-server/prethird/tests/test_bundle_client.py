@@ -20,6 +20,9 @@ async def test_fetch_bundle_ok():
     with patch("aiohttp.ClientSession", return_value=sess):
         out = await bundle_client.fetch_bundle("http://oth-path", 9043, "tok")
     assert out["assets"]["voiceSeKey"] == "9043"
+    # 경로 prefix는 /oth-path (RN /oth-path 과 동일 mount) — 누락 시 404 회귀
+    called_url = sess.get.call_args[0][0]
+    assert called_url == "http://oth-path"
 
 @pytest.mark.asyncio
 async def test_fetch_bundle_graceful_on_error():
