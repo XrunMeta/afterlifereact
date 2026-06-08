@@ -883,7 +883,9 @@ users.get("/me/blocks", requireAuth, async (c) => {
                 c.name         AS cloneName,
                 c.username     AS cloneUsername,
                 c.avatar_url   AS cloneAvatarUrl,
-                c.clone_type   AS cloneType
+                c.clone_type   AS cloneType,
+                c.owner_id     AS cloneOwnerId,
+                c.visibility   AS cloneVisibility
            FROM clone_blocks b
            JOIN clones c ON c.id = b.clone_id
           WHERE b.user_id = ? AND c.deleted_at IS NULL
@@ -898,6 +900,8 @@ users.get("/me/blocks", requireAuth, async (c) => {
         cloneUsername: string;
         cloneAvatarUrl: string | null;
         cloneType: string;
+        cloneOwnerId: number;
+        cloneVisibility: string;
       }>()
   ).results;
 
@@ -936,6 +940,8 @@ users.get("/me/blocks", requireAuth, async (c) => {
       username: r.cloneUsername,
       avatarUrl: r.cloneAvatarUrl,
       cloneType: r.cloneType,
+      ownerId: r.cloneOwnerId,
+      visibility: r.cloneVisibility,
     },
   }));
   const userItems = userRows.map((r) => ({

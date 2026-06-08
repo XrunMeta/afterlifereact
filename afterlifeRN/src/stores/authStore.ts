@@ -49,9 +49,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       token = await AsyncStorage.getItem(TOKEN_KEY);
       storedRefreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
       if (token) {
+
+        set({ accessToken: token, refreshToken: storedRefreshToken });
         try {
           const res = await getMe(token);
           apiUser = res.user;
+
+          const s = get();
+          token = s.accessToken ?? token;
+          storedRefreshToken = s.refreshToken ?? storedRefreshToken;
         } catch {
 
           await AsyncStorage.removeItem(TOKEN_KEY);

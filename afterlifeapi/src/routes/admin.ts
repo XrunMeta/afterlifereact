@@ -799,7 +799,7 @@ const CLONE_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
 admin.patch("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string }>().catch(() => ({}));
+  const body = await c.req.json<{ status?: string }>().catch(() => ({}) as { status?: string });
   const status = body.status ?? "";
   if (!(CLONE_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");
@@ -824,7 +824,7 @@ const USER_REPORT_STATUSES = ["open", "reviewed", "dismissed", "actioned"] as co
 admin.patch("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
-  const body = await c.req.json<{ status?: string }>().catch(() => ({}));
+  const body = await c.req.json<{ status?: string }>().catch(() => ({}) as { status?: string });
   const status = body.status ?? "";
   if (!(USER_REPORT_STATUSES as readonly string[]).includes(status)) {
     throw new APIError("VALIDATION_FAILED", "Invalid status.");
