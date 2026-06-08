@@ -201,6 +201,12 @@ deletion.delete("/me", requireAuth, async (c) => {
     `[deletion.me] clones cascade: softDeleted=${clones.softDeleted} transferred=${clones.transferred}`,
   );
 
+  const followRes = await c.env.DB
+    .prepare(`DELETE FROM user_follows WHERE follower_id = ? OR followee_id = ?`)
+    .bind(userId, userId)
+    .run();
+  console.log(`[deletion.me] user_follows removed: ${followRes.meta?.changes ?? 0}`);
+
   try {
     const linkRow = await c.env.DB
       .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)

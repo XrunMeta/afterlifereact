@@ -1293,10 +1293,10 @@ users.post("/:id/block", requireAuth, async (c) => {
       `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
     ).bind(userId, targetId),
     c.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(userId, targetId),
     c.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(targetId, userId),
   ]);
   await logActivity(c, {
@@ -1343,10 +1343,10 @@ users.post("/:id/report", requireAuth, async (c) => {
       `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
     ).bind(userId, targetId),
     c.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(userId, targetId),
     c.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(targetId, userId),
   ]);
   await logActivity(c, {
