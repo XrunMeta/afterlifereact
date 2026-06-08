@@ -751,10 +751,34 @@ admin.get("/reports", requireAdmin, async (c) => {
       JOIN users tu ON tu.id = ur.target_id
   `;
 
+  const commentSql = `
+    SELECT 'comment' AS type,
+           cmr.id AS id,
+           cmr.user_id AS reporterId,
+           ru.name AS reporterName,
+           ru.email AS reporterEmail,
+           cmr.comment_id AS targetId,
+           cu.name AS targetName,
+           fcc.content AS targetSub,
+           cmr.clone_id AS targetOwnerId,
+           cc.name AS targetOwnerName,
+           cmr.reason AS reason,
+           cmr.status AS status,
+           cmr.created_at AS createdAt,
+           cmr.reviewed_at AS reviewedAt,
+           (SELECT COUNT(*) FROM comment_reports x WHERE x.comment_id = cmr.comment_id AND x.status = 'reviewed') AS targetReportCount
+      FROM comment_reports cmr
+      JOIN users ru ON ru.id = cmr.user_id
+      LEFT JOIN feed_comments fcc ON fcc.id = cmr.comment_id
+      LEFT JOIN users cu ON cu.id = fcc.user_id
+      LEFT JOIN clones cc ON cc.id = cmr.clone_id
+  `;
+
   const base =
     type === "clone" ? `(${cloneSql}) AS r`
     : type === "user" ? `(${userSql}) AS r`
-    : `(${cloneSql} UNION ALL ${userSql}) AS r`;
+    : type === "comment" ? `(${commentSql}) AS r`
+    : `(${cloneSql} UNION ALL ${userSql} UNION ALL ${commentSql}) AS r`;
 
   const where: string[] = ["1=1"];
   const binds: unknown[] = [];
@@ -846,6 +870,31 @@ admin.delete("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
   const r = await c.env.DB.prepare(`DELETE FROM user_reports WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+  return c.json({ ok: true, id });
+});
+
+const COMMENT_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
+admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const body = await c.req.json<{ status?: string }>().catch(() => ({}));
+  const status = body.status ?? "";
+  if (!(COMMENT_REPORT_STATUSES as readonly string[]).includes(status)) {
+    throw new APIError("VALIDATION_FAILED", "Invalid status.");
+  }
+  const reviewedClause = status === "open" ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const r = await c.env.DB
+    .prepare(`UPDATE comment_reports SET status = ?, ${reviewedClause} WHERE id = ?`)
+    .bind(status, id)
+    .run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+  return c.json({ ok: true, id, status });
+});
+admin.delete("/comments/reports/:id", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM comment_reports WHERE id = ?`).bind(id).run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
   return c.json({ ok: true, id });
 });
