@@ -137,8 +137,8 @@ export default function v_18ad36() {
           : Number(v_f71b56.match(/clone\/(\d+)/)?.[1] ?? 0);
       if (v_6e0fd3 > 0) {
         v_c65f5d.navigate("Main", {
-          screen: "ClonesTab",
-          params: { screen: "Dashboard", params: { openIntimacyCloneId: v_6e0fd3 } },
+          screen: "ShortsTab",
+          params: { openIntimacyCloneId: v_6e0fd3 },
         });
       }
     } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/clone\/(\d+)/))) {
@@ -168,17 +168,12 @@ export default function v_18ad36() {
   const v_20d05d = v_4622b9.some((v_23805a) => !v_23805a.isRead);
 
   const v_fcf6ec = ({ item: v_8c0b26 }: { item: v_d9bc70 }) => {
-    const v_9ddfab = v_754db4[v_8c0b26.type] ?? "bell";
     return (
       <TouchableOpacity
         style={[v_fd5f43.row, !v_8c0b26.isRead && v_fd5f43.rowUnread]}
         onPress={() => v_8e442f(v_8c0b26)}
         activeOpacity={0.6}
       >
-        <View style={v_fd5f43.iconWrap}>
-          <Feather name={v_9ddfab} size={18} color={v_1bfbd0.violet600} />
-          {!v_8c0b26.isRead && <View style={v_fd5f43.unreadDot} />}
-        </View>
         <View style={v_fd5f43.body}>
           {v_8c0b26.title ? <Text style={v_fd5f43.title}>{v_8c0b26.title}</Text> : null}
           {v_8c0b26.body ? (

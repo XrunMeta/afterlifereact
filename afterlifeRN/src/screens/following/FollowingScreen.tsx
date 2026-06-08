@@ -19,7 +19,7 @@ import {
   type v_da479e,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import v_556baf from "../../components/ui/SafeView";
@@ -28,7 +28,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import type { v_8ad91b } from "../../navigation/types";
+import type { v_8ad91b, v_97a9a8 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
@@ -315,6 +315,16 @@ export default function v_14b43e() {
     cloneId: number;
     cloneName: string;
   } | null>(null);
+
+  const v_c7daf6 = v_2d8264<v_ee3714<v_97a9a8, "ShortsTab">>();
+  const v_3bde32 = v_e662ae<number | null>(null);
+  v_c4deb2(() => {
+    const v_062ae9 = v_c7daf6.params?.openIntimacyCloneId;
+    if (!v_062ae9 || v_3bde32.current === v_062ae9) return;
+    const v_5ed063 = v_a48e44.find((v_e2a85c) => v_e2a85c.id === v_062ae9);
+    v_3bde32.current = v_062ae9;
+    v_5da0f8({ cloneId: v_062ae9, cloneName: v_5ed063?.name ?? "" });
+  }, [v_c7daf6.params?.openIntimacyCloneId, v_a48e44]);
   const [v_077f23, v_e7ff11] =
     v_5ab095<v_6349d0 | null>(null);
   const [v_34e317, v_6ade47] = v_5ab095(false);
