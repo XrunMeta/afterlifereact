@@ -43,6 +43,7 @@ import {
   likeClone,
   unlikeClone,
   listCloneIntimacyEvents,
+  getCloneDetail,
   type FeedComment,
   type FollowedClone,
   type IntimacyEventsResponse,
@@ -119,6 +120,39 @@ export default function FollowingScreen() {
 
   const uid = authUser?.id ?? DEFAULT_USER_ID;
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  const openCloneFeed = async (cloneId: number, feedId?: number) => {
+    try {
+      const det = await getCloneDetail(cloneId, accessToken ?? undefined);
+      const c = det.clone;
+      rootNav.navigate("CloneFeed", {
+        openComments: true,
+        feed: {
+          id: feedId && feedId > 0 ? feedId : -c.id,
+          cloneId: c.id,
+          content: c.description ?? "",
+          mediaUrl: c.avatarUrl,
+          mediaType: null,
+          likesCount: c.stats?.likes ?? 0,
+          commentsCount: c.stats?.comments ?? 0,
+          likedByMe: c.likedByMe ?? false,
+          createdAt: c.createdAt,
+          clone: {
+            id: c.id,
+            ownerId: c.ownerId,
+            name: c.name,
+            username: c.username,
+            avatarUrl: c.avatarUrl,
+            cloneType: c.cloneType as never,
+            visibility: c.visibility as never,
+          },
+          interests: [],
+        },
+      });
+    } catch (err) {
+      console.warn("[Following] openCloneFeed failed:", err);
+    }
+  };
 
   const [apiFollowed, setApiFollowed] = useState<FollowedClone[] | null>(null);
   useFocusEffect(
@@ -649,7 +683,11 @@ export default function FollowingScreen() {
                     color={liked ? "#ef4444" : COLORS.zinc700}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setCommentPostId(item.feed.id)}>
+                <TouchableOpacity
+                  onPress={() =>
+                    openCloneFeed(item.persona.id, item.feed.id > 0 ? item.feed.id : undefined)
+                  }
+                >
                   <Feather name="message-circle" size={24} color={COLORS.zinc700} />
                 </TouchableOpacity>
               </View>
