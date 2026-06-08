@@ -3,6 +3,11 @@ import type { v_de0a25 } from "./env";
 import { v_3ebe58 } from "./errors";
 import { v_b64d29, v_72ca53, v_2703c5, v_806b99 } from "./jwt";
 
+function v_e8cd3d(v_3a5fef): number {
+  if (v_3a5fef.includes("T")) return new Date(v_3a5fef).getTime();
+  return new Date(v_3a5fef.replace(" ", "T") + "Z").getTime();
+}
+
 type Kind = "access" | "refresh";
 
 type Payload = Record<string, unknown> & {
@@ -56,6 +61,18 @@ export async function v_27b603(
   const v_0a9f0b = await v_3f4e2e.env.KV_AUTH.get(v_566038);
   if (v_0a9f0b !== v_c9c6be) {
     throw new v_3ebe58("UNAUTHENTICATED", "Concurrent refresh rejected.");
+  }
+
+  if (!v_931bf0.admin) {
+    const v_ceb55a = await v_3f4e2e.env.DB
+      .prepare(`SELECT banned_until FROM users WHERE id = ? AND deleted_at IS NULL`)
+      .bind(v_931bf0.sub)
+      .first<{ banned_until: string | null }>();
+    if (v_ceb55a?.banned_until && v_e8cd3d(v_ceb55a.banned_until) > Date.now()) {
+      throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+        bannedUntil: v_ceb55a.banned_until,
+      });
+    }
   }
 
   await v_3f4e2e.env.KV_AUTH.put(v_c4e4af, "1", { expirationTtl: v_be4706(v_931bf0) });
