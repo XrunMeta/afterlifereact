@@ -767,8 +767,10 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
                 COALESCE(uci.call_count, 0)  AS my_call,
                 COALESCE(uci.learn_count, 0) AS my_learn,
                 COALESCE(uci.feed_count, 0)  AS my_feed,
-                -- 친밀도 가중치 점수 (Daily Cap 15°C 적립, 100°C 상한)
-                COALESCE(uci.intimacy_score, 0) AS my_intimacy,
+                -- 친밀도 °C — 친밀도 활동 내역 모달(intimacy_events 합계)과 동일 소스로 통일.
+                --   (uci.intimacy_score 가 이벤트와 어긋나 0 으로 뜨던 문제 → 이벤트 SUM 으로 직접 계산, 100 상한)
+                COALESCE((SELECT MIN(100, SUM(ie.score)) FROM intimacy_events ie
+                           WHERE ie.user_id = ? AND ie.clone_id = c.id), 0) AS my_intimacy,
                 -- 본인 페르소나 여부 — 클라이언트가 '팔로우' 버튼 숨김 처리.
                 (c.owner_id = ?) AS is_own
            FROM clones c
@@ -793,7 +795,8 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
             )
           ORDER BY c.created_at DESC, c.id DESC`,
       )
-      .bind(userId, userId, userId, userId, userId, userId)
+
+      .bind(userId, userId, userId, userId, userId, userId, userId)
       .all<{
         id: number;
         name: string;
