@@ -850,9 +850,32 @@ admin.delete("/oth-path", requireAdmin, async (c) => {
   return c.json({ ok: true, id });
 });
 
+function parseSubListParams(c: { req: { url: string } }) {
+  const url = new URL(c.req.url);
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+  const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") ?? 20)));
+  return { q, offset, limit };
+}
+
 admin.get("/oth-path", requireAdmin, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const { q, offset, limit } = parseSubListParams(c);
+
+  const where: string[] = ["f.clone_id = ?", "fcc.parent_comment_id IS NULL"];
+  const binds: unknown[] = [cloneId];
+  if (q) {
+    where.push(`(u.name LIKE ? OR u.email LIKE ? OR fcc.content LIKE ?)`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat, pat);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM feed_comments fcc JOIN feeds f ON f.id = fcc.feed_id JOIN users u ON u.id = fcc.user_id WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
 
   const rows = await c.env.DB
     .prepare(
@@ -865,19 +888,41 @@ admin.get("/oth-path", requireAdmin, async (c) => {
          FROM feed_comments fcc
          JOIN feeds f ON f.id = fcc.feed_id
          JOIN users u ON u.id = fcc.user_id
-        WHERE f.clone_id = ?
-          AND fcc.parent_comment_id IS NULL
+        WHERE ${whereSql}
         ORDER BY fcc.created_at DESC
-        LIMIT 200`,
+        LIMIT ? OFFSET ?`,
     )
-    .bind(cloneId)
+    .bind(...binds, limit, offset)
     .all();
-  return c.json({ items: rows.results });
+  return c.json({ items: rows.results, total: totalRow?.cnt ?? 0, offset, limit });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM feed_comments WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Comment not found.");
+  return c.json({ ok: true, id });
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const { q, offset, limit } = parseSubListParams(c);
+
+  const where: string[] = ["f.clone_id = ?"];
+  const binds: unknown[] = [cloneId];
+  if (q) {
+    where.push(`(u.name LIKE ? OR u.email LIKE ?)`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM feed_likes fl JOIN feeds f ON f.id = fl.feed_id JOIN users u ON u.id = fl.user_id WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
   const rows = await c.env.DB
     .prepare(
       `SELECT fl.id, fl.feed_id AS feedId, fl.user_id AS userId,
@@ -887,18 +932,41 @@ admin.get("/oth-path", requireAdmin, async (c) => {
          FROM feed_likes fl
          JOIN feeds f ON f.id = fl.feed_id
          JOIN users u ON u.id = fl.user_id
-        WHERE f.clone_id = ?
+        WHERE ${whereSql}
         ORDER BY fl.created_at DESC
-        LIMIT 200`,
+        LIMIT ? OFFSET ?`,
     )
-    .bind(cloneId)
+    .bind(...binds, limit, offset)
     .all();
-  return c.json({ items: rows.results });
+  return c.json({ items: rows.results, total: totalRow?.cnt ?? 0, offset, limit });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM feed_likes WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Like not found.");
+  return c.json({ ok: true, id });
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const { q, offset, limit } = parseSubListParams(c);
+
+  const where: string[] = ["cf.clone_id = ?"];
+  const binds: unknown[] = [cloneId];
+  if (q) {
+    where.push(`(u.name LIKE ? OR u.email LIKE ?)`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM clone_follows cf JOIN users u ON u.id = cf.user_id WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
   const rows = await c.env.DB
     .prepare(
       `SELECT cf.id, cf.user_id AS userId,
@@ -907,18 +975,41 @@ admin.get("/oth-path", requireAdmin, async (c) => {
               cf.created_at AS createdAt
          FROM clone_follows cf
          JOIN users u ON u.id = cf.user_id
-        WHERE cf.clone_id = ?
+        WHERE ${whereSql}
         ORDER BY cf.created_at DESC
-        LIMIT 200`,
+        LIMIT ? OFFSET ?`,
     )
-    .bind(cloneId)
+    .bind(...binds, limit, offset)
     .all();
-  return c.json({ items: rows.results });
+  return c.json({ items: rows.results, total: totalRow?.cnt ?? 0, offset, limit });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM clone_follows WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Follow not found.");
+  return c.json({ ok: true, id });
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const { q, offset, limit } = parseSubListParams(c);
+
+  const where: string[] = ["uci.clone_id = ?"];
+  const binds: unknown[] = [cloneId];
+  if (q) {
+    where.push(`(u.name LIKE ? OR u.email LIKE ?)`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM user_clone_interactions uci JOIN users u ON u.id = uci.user_id WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
   const rows = await c.env.DB
     .prepare(
       `SELECT uci.id, uci.user_id AS userId,
@@ -931,13 +1022,20 @@ admin.get("/oth-path", requireAdmin, async (c) => {
               uci.last_at AS lastAt
          FROM user_clone_interactions uci
          JOIN users u ON u.id = uci.user_id
-        WHERE uci.clone_id = ?
+        WHERE ${whereSql}
         ORDER BY uci.last_at DESC
-        LIMIT 200`,
+        LIMIT ? OFFSET ?`,
     )
-    .bind(cloneId)
+    .bind(...binds, limit, offset)
     .all();
-  return c.json({ items: rows.results });
+  return c.json({ items: rows.results, total: totalRow?.cnt ?? 0, offset, limit });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM user_clone_interactions WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Interaction not found.");
+  return c.json({ ok: true, id });
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {
