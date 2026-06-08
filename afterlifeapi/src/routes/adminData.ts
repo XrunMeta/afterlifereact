@@ -657,7 +657,7 @@ adminData.get("/report-penalty-rules", async (c) => {
   const rows = (
     await c.env.DB
       .prepare(
-        `SELECT threshold, action, suspend_days AS suspendDays, updated_at AS updatedAt
+        `SELECT threshold, title, action, suspend_days AS suspendDays, updated_at AS updatedAt
            FROM report_penalty_rules ORDER BY threshold ASC`,
       )
       .all()
@@ -670,12 +670,13 @@ adminData.put("/report-penalty-rules/:threshold", async (c) => {
   if (!Number.isInteger(threshold) || threshold < 1 || threshold > 99) {
     return c.json({ error: "invalid_threshold" }, 400);
   }
-  let body: { action?: string; suspendDays?: number | null } = {};
+  let body: { action?: string; suspendDays?: number | null; title?: string | null } = {};
   try {
-    body = (await c.req.json()) as { action?: string; suspendDays?: number | null };
+    body = (await c.req.json()) as { action?: string; suspendDays?: number | null; title?: string | null };
   } catch {
 
   }
+  const title = typeof body.title === "string" ? body.title.trim().slice(0, 100) || null : null;
 
   const VALID_ACTIONS = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
 
@@ -692,16 +693,17 @@ adminData.put("/report-penalty-rules/:threshold", async (c) => {
   }
   await c.env.DB
     .prepare(
-      `INSERT INTO report_penalty_rules (threshold, action, suspend_days, updated_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      `INSERT INTO report_penalty_rules (threshold, title, action, suspend_days, updated_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
        ON CONFLICT(threshold) DO UPDATE SET
+         title = excluded.title,
          action = excluded.action,
          suspend_days = excluded.suspend_days,
          updated_at = CURRENT_TIMESTAMP`,
     )
-    .bind(threshold, action, suspendDays)
+    .bind(threshold, title, action, suspendDays)
     .run();
-  return c.json({ ok: true, threshold, action, suspendDays });
+  return c.json({ ok: true, threshold, title, action, suspendDays });
 });
 
 adminData.delete("/report-penalty-rules/:threshold", async (c) => {
