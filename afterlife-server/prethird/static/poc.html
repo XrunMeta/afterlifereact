@@ -3,14 +3,40 @@
 <h3>prethird 직결 PoC</h3>
 <video id="v" autoplay playsinline controls style="width:480px;background:#000"></video>
 <div><button id="go">connect</button> <span id="st"></span></div>
+<div style="margin-top:12px">
+  <input id="txt" type="text" placeholder="say 텍스트 입력" style="width:320px" disabled>
+  <button id="send" disabled>전송</button>
+  <span id="dc-st" style="margin-left:8px;color:#888"></span>
+</div>
 <script>
+let dc = null;
+
 document.getElementById('go').onclick = async () => {
   const st = document.getElementById('st');
+  const dcSt = document.getElementById('dc-st');
+  const sendBtn = document.getElementById('send');
+  const txtInput = document.getElementById('txt');
+
   const pc = new RTCPeerConnection();
+
+  dc = pc.createDataChannel('say');
+  dc.onopen = () => {
+    dcSt.textContent = 'DC: open';
+    sendBtn.disabled = false;
+    txtInput.disabled = false;
+  };
+  dc.onclose = () => {
+    dcSt.textContent = 'DC: closed';
+    sendBtn.disabled = true;
+    txtInput.disabled = true;
+  };
+  dc.onerror = (e) => { dcSt.textContent = 'DC: error'; console.error(e); };
+
   pc.addTransceiver('video', {direction: 'recvonly'});
   pc.addTransceiver('audio', {direction: 'recvonly'});
   pc.ontrack = (e) => { document.getElementById('v').srcObject = e.streams[0]; };
   pc.onconnectionstatechange = () => st.textContent = pc.connectionState;
+
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
   await new Promise(r => {
@@ -22,5 +48,18 @@ document.getElementById('go').onclick = async () => {
   const ans = await resp.json();
   await pc.setRemoteDescription(ans);
 };
+
+document.getElementById('send').onclick = () => {
+  const txt = document.getElementById('txt').value.trim();
+  if (!txt) return;
+  if (dc && dc.readyState === 'open') {
+    dc.send(JSON.stringify({type: 'say', text: txt}));
+    document.getElementById('txt').value = '';
+  }
+};
+
+document.getElementById('txt').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('send').click();
+});
 </script>
 </body></html>
