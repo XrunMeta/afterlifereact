@@ -55,3 +55,11 @@ def test_prompt_recomputed_when_ref_text_added():
     assert len(m.prompt_calls) == 2          # clone_id 같아도 ref_text 유무 다르면 prompt 재생성
     assert m.prompt_calls[0]["xvo"] is True
     assert m.prompt_calls[1]["xvo"] is False
+
+
+def test_attn_impl_defaults_to_sdpa(monkeypatch):
+    # env 미설정 시 sdpa 기본 (flash-attn 미설치 환경 대비)
+    import importlib, config
+    monkeypatch.delenv("QWEN3TTS_ATTN", raising=False)
+    importlib.reload(config)
+    assert config.ATTN_IMPL == "sdpa"

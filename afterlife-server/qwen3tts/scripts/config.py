@@ -15,3 +15,6 @@ REF_ROOT = os.environ.get(
 # se_path 미전달 시 사용할 기본 클론(OpenVoice TTS_VOICE_CLONE 패턴). 빈 값이면 400.
 DEFAULT_CLONE = os.environ.get("QWEN3TTS_DEFAULT_CLONE", "halbae")
 REF_CLIP_MAX_SEC = float(os.environ.get("QWEN3TTS_REF_CLIP_MAX_SEC", "10.0"))
+
+# attention 구현. flash-attn 미설치 환경 기본 sdpa. 설치 시 QWEN3TTS_ATTN=flash_attention_2.
+ATTN_IMPL = os.environ.get("QWEN3TTS_ATTN", "sdpa")
