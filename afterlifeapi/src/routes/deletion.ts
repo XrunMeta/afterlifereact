@@ -54,7 +54,7 @@ async function softDelete(
   return "ok";
 }
 
-async function softRestore(
+export async function softRestore(
   db: D1Database,
   type: ColdType,
   id: number,

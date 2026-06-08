@@ -347,7 +347,11 @@
       "checkingGoogle": "Google 인증 확인 중...",
       "googleFailed": "Google 로그인에 실패했어요.",
       "lockHint": "비밀번호를 5회 연속 틀리면 10분간 잠겨요.",
-      "accountLocked": "계정이 잠겼습니다. 약 10분 뒤 다시 시도하거나, 비밀번호 찾기로 재설정해 주세요."
+      "accountLocked": "계정이 잠겼습니다. 약 10분 뒤 다시 시도하거나, 비밀번호 찾기로 재설정해 주세요.",
+      "restoreTitle": "탈퇴한 계정이에요",
+      "restoreMessage": "이 계정은 탈퇴 처리됐어요. 복구하고 다시 로그인할까요?",
+      "restoreConfirm": "복구하고 로그인",
+      "restoreFailed": "계정 복구에 실패했어요."
     },
     "forgot": {
       "title": "비밀번호 재설정",
