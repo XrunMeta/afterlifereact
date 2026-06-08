@@ -18,7 +18,7 @@ VIDEO_PTS_INCREMENT = VIDEO_CLOCK_RATE
 VIDEO_TIME_BASE = Fraction(1, VIDEO_CLOCK_RATE)
 
 BIND = os.environ.get("PRETHIRD_BIND", "127.0.0.1")
-PORT = int(os.environ.get("PRETHIRD_PORT", "8500"))
+PORT = int(os.environ.get("PRETHIRD_PORT", "8600"))
 
 IDLE_MP4_PATH = os.environ.get("PRETHIRD_IDLE_MP4", "")
 IDLE_GRACE_SEC = float(os.environ.get("IDLE_GRACE_SEC", "0.5"))
