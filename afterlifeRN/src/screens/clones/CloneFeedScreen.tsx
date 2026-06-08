@@ -39,6 +39,7 @@ import {
   deleteFeedComment,
   getCloneDetail,
   reportClone,
+  reportFeedComment,
   blockClone,
   listFeedCommentReplies,
   likeFeedComment,
@@ -331,6 +332,51 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
     })();
   };
 
+  const reportComment = (commentId: number, commentFeedId?: number) => {
+    const fid = realFeedId > 0 ? realFeedId : commentFeedId ?? 0;
+    if (!fid || !accessToken) return;
+    Alert.alert("댓글 신고", "이 댓글을 신고할까요?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "신고",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await reportFeedComment(accessToken, fid, commentId);
+            setToastMessage("댓글을 신고했어요");
+          } catch (err) {
+            console.warn("[CloneFeed] reportFeedComment failed:", err);
+            setToastMessage("신고에 실패했어요");
+          }
+        },
+      },
+    ]);
+  };
+
+  const deleteReply = (parentId: number, replyId: number) => {
+    const fid = realFeedId > 0 ? realFeedId : 0;
+    if (!fid || !accessToken) return;
+    void (async () => {
+      try {
+        await deleteFeedComment(accessToken, fid, replyId);
+        setExpandedReplies((p) => {
+          const list = p[parentId];
+          if (!list) return p;
+          return { ...p, [parentId]: list.filter((r) => r.id !== replyId) };
+        });
+        setComments((prev) =>
+          prev.map((cc) =>
+            cc.id === parentId
+              ? { ...cc, repliesCount: Math.max(0, (cc.repliesCount ?? 1) - 1) }
+              : cc,
+          ),
+        );
+      } catch (err) {
+        console.warn("[CloneFeed] deleteReply failed:", err);
+      }
+    })();
+  };
+
   const toggleCommentLike = (
     comment: FeedComment,
     parentCommentId?: number,
@@ -462,12 +508,21 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                           {c.user.name ?? c.user.email}
                         </Text>
                         <Text style={styles.commentTime}>{formatRelativeKo(c.createdAt)}</Text>
-                        {c.userId === myUserId && (
+                        {c.userId === myUserId ? (
                           <TouchableOpacity
                             onPress={() => deleteComment(c.id)}
                             style={{ marginLeft: 8 }}
+                            hitSlop={6}
                           >
                             <Feather name="trash-2" size={14} color={COLORS.zinc400} />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() => reportComment(c.id, c.feedId)}
+                            style={{ marginLeft: 8 }}
+                            hitSlop={6}
+                          >
+                            <Feather name="flag" size={13} color={COLORS.zinc400} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -550,6 +605,23 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
                         <View style={styles.commentMeta}>
                           <Text style={styles.commentAuthor}>{rc.user.name ?? rc.user.email}</Text>
                           <Text style={styles.commentTime}>{formatRelativeKo(rc.createdAt)}</Text>
+                          {rc.userId === myUserId ? (
+                            <TouchableOpacity
+                              onPress={() => deleteReply(c.id, rc.id)}
+                              style={{ marginLeft: 8 }}
+                              hitSlop={6}
+                            >
+                              <Feather name="trash-2" size={13} color={COLORS.zinc400} />
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={() => reportComment(rc.id, rc.feedId)}
+                              style={{ marginLeft: 8 }}
+                              hitSlop={6}
+                            >
+                              <Feather name="flag" size={12} color={COLORS.zinc400} />
+                            </TouchableOpacity>
+                          )}
                         </View>
                         <Text style={styles.commentContent}>{rc.content}</Text>
                       </View>
