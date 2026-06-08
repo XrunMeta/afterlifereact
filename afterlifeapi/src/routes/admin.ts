@@ -634,7 +634,9 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
 
       `SELECT id, name, email,
               deletion_state AS deletionState,
-              created_at AS createdAt
+              created_at AS createdAt,
+              soft_deleted_at AS softDeletedAt,
+              suspended_until AS suspendedUntil
          FROM users
         WHERE xrun_member_id = ?
         ORDER BY (deletion_state = 'active' AND deleted_at IS NULL) DESC, id DESC
@@ -647,6 +649,8 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
       email: string;
       deletionState: string;
       createdAt: string | null;
+      softDeletedAt: string | null;
+      suspendedUntil: string | null;
     }>();
 
   if (!v_625c74) {
@@ -713,8 +717,13 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
     .bind(v_625c74.id, v_625c74.id, v_625c74.id)
     .first<{ cnt: number }>();
 
+  const v_eb7cab = await v_3f4e2e.env.DB
+    .prepare(`SELECT reason FROM user_warnings WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1`)
+    .bind(v_625c74.id)
+    .first<{ reason: string | null }>();
+
   return v_3f4e2e.json({
-    user: v_625c74,
+    user: { ...v_625c74, suspensionReason: v_eb7cab?.reason ?? null },
     clones: v_f891e6,
     cloneReportsCount: v_cf098c?.cnt ?? 0,
     userReportsCount: v_59cd44?.cnt ?? 0,
@@ -723,6 +732,17 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
     reportsReceivedCount: (v_cf098c?.cnt ?? 0) + (v_59cd44?.cnt ?? 0) + (v_63754b?.cnt ?? 0),
     reportsMadeCount: v_4615a9?.cnt ?? 0,
   });
+});
+
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_cb35cb = await v_3f4e2e.env.DB
+    .prepare(`UPDATE users SET suspended_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .bind(v_389afb)
+    .run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "User not found.");
+  return v_3f4e2e.json({ ok: true });
 });
 
 v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
