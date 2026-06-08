@@ -196,6 +196,14 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_b0af20, v_52390e] = v_5ab095(false);
 
   const [v_90b93a, v_f1ad38] = v_5ab095<{ commentId: number; userName: string } | null>(null);
+
+  const v_69b97a = v_e662ae<v_79c4f2>(null);
+  v_c4deb2(() => {
+    if (v_90b93a) {
+      const v_389afb = setTimeout(() => v_69b97a.current?.focus(), 60);
+      return () => clearTimeout(v_389afb);
+    }
+  }, [v_90b93a]);
   const [v_2ced3d, v_74a05a] = v_5ab095<Record<number, v_52af9d[]>>({});
 
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
@@ -587,6 +595,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             )}
             <View style={v_d81136.commentInputRow}>
               <TextInput
+                ref={v_69b97a}
                 style={v_d81136.commentInput}
                 value={v_48e7fe}
                 onChangeText={v_856f84}

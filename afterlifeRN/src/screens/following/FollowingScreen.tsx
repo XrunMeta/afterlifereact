@@ -43,6 +43,7 @@ import {
   v_b14fce,
   v_0ff331,
   v_8ce643,
+  v_003cf2,
   type v_52af9d,
   type v_c33ae3,
   type v_6349d0,
@@ -114,6 +115,39 @@ export default function v_14b43e() {
 
   const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
+  const v_7cf37a = async (v_6e0fd3, v_c09aa8) => {
+    try {
+      const v_7d5f12 = await v_003cf2(v_6e0fd3, v_2ca7e0 ?? undefined);
+      const v_3f4e2e = v_7d5f12.clone;
+      v_f4c991.navigate("CloneFeed", {
+        openComments: true,
+        feed: {
+          id: v_c09aa8 && v_c09aa8 > 0 ? v_c09aa8 : -v_3f4e2e.id,
+          cloneId: v_3f4e2e.id,
+          content: v_3f4e2e.description ?? "",
+          mediaUrl: v_3f4e2e.avatarUrl,
+          mediaType: null,
+          likesCount: v_3f4e2e.stats?.likes ?? 0,
+          commentsCount: v_3f4e2e.stats?.comments ?? 0,
+          likedByMe: v_3f4e2e.likedByMe ?? false,
+          createdAt: v_3f4e2e.createdAt,
+          clone: {
+            id: v_3f4e2e.id,
+            ownerId: v_3f4e2e.ownerId,
+            name: v_3f4e2e.name,
+            username: v_3f4e2e.username,
+            avatarUrl: v_3f4e2e.avatarUrl,
+            cloneType: v_3f4e2e.cloneType as never,
+            visibility: v_3f4e2e.visibility as never,
+          },
+          interests: [],
+        },
+      });
+    } catch (v_49263d) {
+      console.warn("[Following] openCloneFeed failed:", v_49263d);
+    }
+  };
 
   const [v_d92a4c, v_44191e] = v_5ab095<v_c33ae3[] | null>(null);
   v_cf763b(
@@ -644,7 +678,11 @@ export default function v_14b43e() {
                     color={v_b84498 ? "#ef4444" : v_1bfbd0.zinc700}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => v_880166(v_8c0b26.feed.id)}>
+                <TouchableOpacity
+                  onPress={() =>
+                    v_7cf37a(v_8c0b26.persona.id, v_8c0b26.feed.id > 0 ? v_8c0b26.feed.id : undefined)
+                  }
+                >
                   <Feather name="message-circle" size={24} color={v_1bfbd0.zinc700} />
                 </TouchableOpacity>
               </View>
