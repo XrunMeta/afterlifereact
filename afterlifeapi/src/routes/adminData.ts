@@ -147,7 +147,7 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
               c.soft_deleted_at AS softDeletedAt,
               c.deleted_at AS deletedAt,
               (SELECT COUNT(*) FROM clone_reports cr
-                WHERE cr.clone_id = c.id AND cr.status = 'open') AS reportCount,
+                WHERE cr.clone_id = c.id AND cr.status = 'reviewed') AS reportCount,
               (SELECT COUNT(*) FROM feed_comments fcc
                  JOIN feeds f ON f.id = fcc.feed_id
                 WHERE f.clone_id = c.id) AS commentCount,
