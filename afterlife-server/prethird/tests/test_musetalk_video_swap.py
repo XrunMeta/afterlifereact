@@ -199,6 +199,76 @@ def test_infer_yaml_default_video(tmp_path):
 
 
 # -------------------------------------------------------------------------
+# self._args.video_path 불변 검증 (el R-1: per-call copy)
+# -------------------------------------------------------------------------
+
+def test_infer_does_not_mutate_self_args(tmp_path):
+    """infer() 후 self._args.video_path가 원본(DEFAULT_VIDEO)을 유지해야 한다.
+    args copy 패턴 구현 후 통과해야 할 테스트.
+    """
+    import musetalk_inproc  # noqa: PLC0415
+
+    mt = _make_loaded_mt()
+    original_video = mt._args.video_path  # DEFAULT_VIDEO
+
+    def fake_run(args, models, frame_callback=None, timing_out=None):
+        return None
+
+    cleanup = _inject_fake_inference_lib(fake_run)
+    orig_config = musetalk_inproc.CONFIG_DIR
+    orig_outputs = musetalk_inproc.PRETHIRD_OUTPUTS
+    orig_result = musetalk_inproc.RESULT_DIR
+    musetalk_inproc.CONFIG_DIR = tmp_path
+    musetalk_inproc.PRETHIRD_OUTPUTS = tmp_path
+    musetalk_inproc.RESULT_DIR = tmp_path / "v15"
+    (tmp_path / "v15").mkdir(parents=True, exist_ok=True)
+    try:
+        mt.infer("/x.wav", lambda a: None, video_path=OVERRIDE_VIDEO)
+    finally:
+        cleanup()
+        musetalk_inproc.CONFIG_DIR = orig_config
+        musetalk_inproc.PRETHIRD_OUTPUTS = orig_outputs
+        musetalk_inproc.RESULT_DIR = orig_result
+
+    assert mt._args.video_path == original_video, (
+        f"self._args.video_path가 변경됐음: "
+        f"기대={original_video!r}, 실제={mt._args.video_path!r}"
+    )
+
+
+def test_infer_does_not_mutate_self_args_audio(tmp_path):
+    """infer() 후 self._args.audio_path도 원본('') 유지."""
+    import musetalk_inproc  # noqa: PLC0415
+
+    mt = _make_loaded_mt()
+    original_audio = mt._args.audio_path  # ""
+
+    def fake_run(args, models, frame_callback=None, timing_out=None):
+        return None
+
+    cleanup = _inject_fake_inference_lib(fake_run)
+    orig_config = musetalk_inproc.CONFIG_DIR
+    orig_outputs = musetalk_inproc.PRETHIRD_OUTPUTS
+    orig_result = musetalk_inproc.RESULT_DIR
+    musetalk_inproc.CONFIG_DIR = tmp_path
+    musetalk_inproc.PRETHIRD_OUTPUTS = tmp_path
+    musetalk_inproc.RESULT_DIR = tmp_path / "v15"
+    (tmp_path / "v15").mkdir(parents=True, exist_ok=True)
+    try:
+        mt.infer("/new_audio.wav", lambda a: None)
+    finally:
+        cleanup()
+        musetalk_inproc.CONFIG_DIR = orig_config
+        musetalk_inproc.PRETHIRD_OUTPUTS = orig_outputs
+        musetalk_inproc.RESULT_DIR = orig_result
+
+    assert mt._args.audio_path == original_audio, (
+        f"self._args.audio_path가 변경됐음: "
+        f"기대={original_audio!r}, 실제={mt._args.audio_path!r}"
+    )
+
+
+# -------------------------------------------------------------------------
 # 모델 재로드 없음 검증
 # -------------------------------------------------------------------------
 

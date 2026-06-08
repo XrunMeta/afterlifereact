@@ -37,14 +37,26 @@ def test_reject_data_scheme():
         asset_fetch._validate_url("data:text/plain;base64,abc")
 
 
-def test_allow_https():
-    """https://는 통과 (예외 없음)"""
+def test_allow_https(monkeypatch):
+    """https://는 통과 (공인 IP mock)"""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("1.1.1.1", 0))],
+    )
     asset_fetch._validate_url("https://r2.example.com/a.mp4")  # no raise
 
 
-def test_allow_http():
-    """http://는 통과 (예외 없음) — 개발/내부망 허용"""
-    asset_fetch._validate_url("http://localhost:8080/test.mp4")  # no raise
+def test_allow_http(monkeypatch):
+    """http://는 scheme 자체는 허용, 단 공인 IP여야 통과"""
+    # localhost(127.0.0.1)는 내부망이라 차단됨 — 공인 IP mock으로 검증
+    import socket as _sock
+    import ipaddress as _ip
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("1.1.1.1", 0))],
+    )
+    asset_fetch._validate_url("http://cdn.example.com:8080/test.mp4")  # no raise
 
 
 def test_reject_empty_url():
@@ -61,8 +73,18 @@ def test_reject_relative_url():
 
 # ── host allowlist (PRETHIRD_ASSET_HOST_ALLOWLIST env) ──────────────────────
 
+def _mock_public_dns(monkeypatch):
+    """socket.getaddrinfo를 공인 IP(1.1.1.1)로 stub."""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("1.1.1.1", 0))],
+    )
+
+
 def test_allowlist_blocks_non_listed_host(monkeypatch):
     """allowlist 설정 시 목록 외 host는 ValueError"""
+    _mock_public_dns(monkeypatch)
     monkeypatch.setenv("PRETHIRD_ASSET_HOST_ALLOWLIST", "r2.pub.example.com,assets.example.com")
     with pytest.raises(ValueError):
         asset_fetch._validate_url("https://evil.com/steal.mp4")
@@ -70,21 +92,139 @@ def test_allowlist_blocks_non_listed_host(monkeypatch):
 
 def test_allowlist_allows_listed_host(monkeypatch):
     """allowlist에 포함된 host는 통과"""
+    _mock_public_dns(monkeypatch)
     monkeypatch.setenv("PRETHIRD_ASSET_HOST_ALLOWLIST", "r2.pub.example.com,assets.example.com")
     asset_fetch._validate_url("https://r2.pub.example.com/9043/idle.mp4")  # no raise
 
 
 def test_allowlist_empty_allows_all_https(monkeypatch):
     """allowlist 비면 https 전체 허용 (scheme만 검사)"""
+    _mock_public_dns(monkeypatch)
     monkeypatch.delenv("PRETHIRD_ASSET_HOST_ALLOWLIST", raising=False)
     asset_fetch._validate_url("https://any-r2-host.cloudflare.com/file.mp4")  # no raise
 
 
 def test_allowlist_rejects_subdomain_spoof(monkeypatch):
     """서브도메인 스푸핑 차단: evil.r2.pub.example.com은 r2.pub.example.com과 다른 host"""
+    _mock_public_dns(monkeypatch)
     monkeypatch.setenv("PRETHIRD_ASSET_HOST_ALLOWLIST", "r2.pub.example.com")
     with pytest.raises(ValueError):
         asset_fetch._validate_url("https://evil.r2.pub.example.com/x.mp4")
+
+
+# ── 내부망 차단 (mizu C-1) ──────────────────────────────────────────────────
+
+def test_reject_metadata_ip(monkeypatch):
+    """169.254.169.254(AWS/GCP 메타데이터) → ValueError (link-local)"""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("169.254.169.254", 0))],
+    )
+    with pytest.raises(ValueError, match="내부망 주소 차단"):
+        asset_fetch._validate_url("https://169.254.169.254/latest/meta-data/")
+
+
+def test_reject_private_10(monkeypatch):
+    """10.x.x.x 사설망 → ValueError"""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("203.0.113.20", 0))],
+    )
+    with pytest.raises(ValueError, match="내부망 주소 차단"):
+        asset_fetch._validate_url("https://203.0.113.20/x")
+
+
+def test_reject_loopback(monkeypatch):
+    """127.0.0.1 루프백 → ValueError"""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("127.0.0.1", 0))],
+    )
+    with pytest.raises(ValueError, match="내부망 주소 차단"):
+        asset_fetch._validate_url("http://127.0.0.1/x")
+
+
+def test_reject_localhost_resolves_to_loopback(monkeypatch):
+    """localhost가 127.0.0.1로 resolve되면 차단"""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("127.0.0.1", 0))],
+    )
+    with pytest.raises(ValueError, match="내부망 주소 차단"):
+        asset_fetch._validate_url("http://localhost:8080/test.mp4")
+
+
+def test_reject_private_192_168(monkeypatch):
+    """192.168.x.x 사설망 → ValueError"""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("203.0.113.10", 0))],
+    )
+    with pytest.raises(ValueError, match="내부망 주소 차단"):
+        asset_fetch._validate_url("https://203.0.113.10/x")
+
+
+def test_reject_resolve_fail(monkeypatch):
+    """host resolve 실패 → ValueError"""
+    import socket as _sock
+    def _fail(host, port, **kw):
+        raise _sock.gaierror("name or service not known")
+    monkeypatch.setattr(_sock, "getaddrinfo", _fail)
+    with pytest.raises(ValueError, match="host resolve 실패"):
+        asset_fetch._validate_url("https://nonexistent.invalid/x")
+
+
+# ── redirect 차단 (mizu H-1) ─────────────────────────────────────────────────
+
+def test_fetch_to_rejects_redirect(tmp_path, monkeypatch):
+    """3xx redirect → ValueError (allowlist 우회 방지)"""
+    import socket as _sock
+
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("1.1.1.1", 0))],
+    )
+
+    class _RedirectResponse:
+        status = 302
+        headers = {"Location": "https://evil.com/malware"}
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            pass
+
+        def raise_for_status(self):
+            pass
+
+    cm = MagicMock()
+    cm.__aenter__ = AsyncMock(return_value=_RedirectResponse())
+    cm.__aexit__ = AsyncMock(return_value=False)
+
+    session = MagicMock()
+    session.get = MagicMock(return_value=cm)
+
+    session_cm = MagicMock()
+    session_cm.__aenter__ = AsyncMock(return_value=session)
+    session_cm.__aexit__ = AsyncMock(return_value=False)
+
+    dest = str(tmp_path / "out.mp4")
+    with patch("aiohttp.ClientSession", return_value=session_cm):
+        with pytest.raises(ValueError, match="redirect 차단"):
+            asyncio.run(
+                asset_fetch.fetch_to(
+                    "https://r2.example.com/file.mp4",
+                    dest,
+                )
+            )
+
+    assert not pathlib.Path(dest).exists()
 
 
 # ── _safe_dest ───────────────────────────────────────────────────────────────
@@ -170,8 +310,13 @@ def _make_session_mock(resp: _FakeResponse):
     return session_cm
 
 
-def test_fetch_to_success(tmp_path):
+def test_fetch_to_success(tmp_path, monkeypatch):
     """정상 다운로드 → 파일 생성 + 경로 반환"""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("1.1.1.1", 0))],
+    )
     payload = b"fake_video_data" * 100
     resp = _FakeResponse(payload)
     session_mock = _make_session_mock(resp)
@@ -192,8 +337,13 @@ def test_fetch_to_success(tmp_path):
     assert pathlib.Path(dest).read_bytes() == payload
 
 
-def test_fetch_to_size_exceeded(tmp_path):
+def test_fetch_to_size_exceeded(tmp_path, monkeypatch):
     """다운로드 크기 > max_bytes → ValueError 발생, 파일 미생성"""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("1.1.1.1", 0))],
+    )
     payload = b"x" * 200
     resp = _FakeResponse(payload)
     session_mock = _make_session_mock(resp)
@@ -226,8 +376,13 @@ def test_fetch_to_rejects_bad_scheme(tmp_path):
         )
 
 
-def test_fetch_to_skips_existing(tmp_path):
+def test_fetch_to_skips_existing(tmp_path, monkeypatch):
     """파일이 이미 존재하면 네트워크 미발생, 기존 경로 반환"""
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("1.1.1.1", 0))],
+    )
     dest = tmp_path / "existing.mp4"
     dest.write_bytes(b"already_there")
 
