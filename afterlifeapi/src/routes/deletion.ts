@@ -122,6 +122,91 @@ function handleRestoreResult(result: SoftRestoreResult) {
   }
 }
 
+export async function cascadeSoftDeleteOwnedClones(
+  db: D1Database,
+  ownerId: number,
+): Promise<{ softDeleted: number; transferred: number }> {
+  const owned = (
+    await db
+      .prepare(
+        `SELECT id FROM clones
+          WHERE owner_id = ? AND deletion_state = 'active' AND deleted_at IS NULL`,
+      )
+      .bind(ownerId)
+      .all<{ id: number }>()
+  ).results;
+
+  let softDeleted = 0;
+  let transferred = 0;
+  for (const { id: cloneId } of owned) {
+
+    const successor = await db
+      .prepare(
+        `SELECT cs.id, cs.target_user_id
+           FROM clone_shares cs
+           JOIN users u ON u.id = cs.target_user_id
+          WHERE cs.clone_id = ?
+            AND cs.status = 'accepted'
+            AND cs.target_user_id IS NOT NULL
+            AND cs.target_user_id != ?
+            AND u.deleted_at IS NULL
+            AND u.deletion_state = 'active'
+          ORDER BY cs.created_at ASC, cs.id ASC
+          LIMIT 1`,
+      )
+      .bind(cloneId, ownerId)
+      .first<{ id: number; target_user_id: number }>();
+
+    if (successor) {
+      await db.batch([
+        db
+          .prepare("UPDATE clones SET owner_id = ? WHERE id = ?")
+          .bind(successor.target_user_id, cloneId),
+        db
+          .prepare(
+            `UPDATE clones SET primary_editor_user_id = ?
+              WHERE id = ? AND primary_editor_user_id = ?`,
+          )
+          .bind(successor.target_user_id, cloneId, ownerId),
+        db.prepare("DELETE FROM clone_shares WHERE id = ?").bind(successor.id),
+      ]);
+      transferred += 1;
+    } else {
+      await db
+        .prepare(
+          `UPDATE clones
+              SET deletion_state = 'soft_deleted',
+                  soft_deleted_at = CURRENT_TIMESTAMP,
+                  owner_cascade_deleted_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND deletion_state = 'active'`,
+        )
+        .bind(cloneId)
+        .run();
+      softDeleted += 1;
+    }
+  }
+  return { softDeleted, transferred };
+}
+
+export async function cascadeRestoreOwnedClones(
+  db: D1Database,
+  ownerId: number,
+): Promise<number> {
+  const res = await db
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'active',
+              soft_deleted_at = NULL,
+              owner_cascade_deleted_at = NULL
+        WHERE owner_id = ?
+          AND deletion_state = 'soft_deleted'
+          AND owner_cascade_deleted_at IS NOT NULL`,
+    )
+    .bind(ownerId)
+    .run();
+  return res.meta.changes ?? 0;
+}
+
 deletion.delete("/me", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const result = await softDelete(c.env.DB, "user", userId, "id", userId);
@@ -129,6 +214,11 @@ deletion.delete("/me", requireAuth, async (c) => {
     handleDeleteResult(result); 
   }
   const alreadyDeleted = result === "already_deleted";
+
+  const clones = await cascadeSoftDeleteOwnedClones(c.env.DB, userId);
+  console.log(
+    `[deletion.me] clones cascade: softDeleted=${clones.softDeleted} transferred=${clones.transferred}`,
+  );
 
   try {
     const linkRow = await c.env.DB
@@ -151,6 +241,9 @@ deletion.post("/me/restore", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const result = await softRestore(c.env.DB, "user", userId, "id", userId);
   handleRestoreResult(result);
+
+  const restoredClones = await cascadeRestoreOwnedClones(c.env.DB, userId);
+  console.log(`[deletion.me.restore] clones restored: ${restoredClones}`);
 
   try {
     const linkRow = await c.env.DB

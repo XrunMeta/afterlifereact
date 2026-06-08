@@ -18,7 +18,7 @@ import { logActivity } from "../lib/logger";
 import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
 import { registerXrunForAfterlifeUser, lookupXrunWalletByEmail, verifyXrunCredentials } from "../lib/xrun";
 import { verifyGoogleIdToken } from "../lib/googleAuth";
-import { softRestore } from "./deletion";
+import { softRestore, cascadeRestoreOwnedClones } from "./deletion";
 
 export const auth = new Hono<AppEnv>();
 
@@ -775,6 +775,8 @@ auth.post("/restore", async (c) => {
     }
     throw new APIError("CONFLICT", "복구할 수 없는 상태예요.");
   }
+
+  await cascadeRestoreOwnedClones(db, userId);
 
   try {
     const linkRow = await db
