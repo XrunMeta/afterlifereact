@@ -28,7 +28,7 @@ class Qwen3Engine:
             config.MODEL_NAME,
             device_map=config.DEVICE,
             dtype=torch.bfloat16,
-            attn_implementation="flash_attention_2",
+            attn_implementation=config.ATTN_IMPL,
         )
         log.info("model loaded: %s on %s", config.MODEL_NAME, config.DEVICE)
 
