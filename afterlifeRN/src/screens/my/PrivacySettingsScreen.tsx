@@ -23,17 +23,20 @@ import { useAuthStore } from "../../stores/authStore";
 import {
   listMyBlocks,
   unblockClone,
-  type BlockedClone,
+  type BlockedItem,
 } from "../../api/clones";
+import { unblockUser } from "../../api/users";
+
+const itemKey = (it: BlockedItem) => `${it.type}-${it.blockId}`;
 
 export default function PrivacySettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MyStackParamList>>();
   const accessToken = useAuthStore((s) => s.accessToken);
   const { t } = useTranslation();
 
-  const [items, setItems] = useState<BlockedClone[]>([]);
+  const [items, setItems] = useState<BlockedItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [unblockingId, setUnblockingId] = useState<number | null>(null);
+  const [unblockingKey, setUnblockingKey] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!accessToken) {
@@ -62,25 +65,34 @@ export default function PrivacySettingsScreen() {
     }, [refresh]),
   );
 
-  const handleUnblock = (item: BlockedClone) => {
+  const handleUnblock = (item: BlockedItem) => {
+    const label =
+      item.type === "clone"
+        ? item.clone.name
+        : item.user.name || item.user.email.split("@")[0];
+    const key = itemKey(item);
     showAlert(
       "차단 해제",
-      `${item.clone.name} 차단을 해제하시겠어요?`,
+      `${label} 차단을 해제하시겠어요?`,
       [
         { text: "취소", style: "cancel" },
         {
           text: "해제",
           onPress: async () => {
             if (!accessToken) return;
-            setUnblockingId(item.clone.id);
+            setUnblockingKey(key);
             try {
-              await unblockClone(accessToken, item.clone.id);
-              setItems((prev) => prev.filter((b) => b.clone.id !== item.clone.id));
+              if (item.type === "clone") {
+                await unblockClone(accessToken, item.clone.id);
+              } else {
+                await unblockUser(accessToken, item.user.id);
+              }
+              setItems((prev) => prev.filter((b) => itemKey(b) !== key));
             } catch (err) {
               const msg = err instanceof Error ? err.message : "해제에 실패했어요.";
               showAlert("오류", msg);
             } finally {
-              setUnblockingId(null);
+              setUnblockingKey(null);
             }
           },
         },
@@ -102,49 +114,58 @@ export default function PrivacySettingsScreen() {
         ) : items.length === 0 ? (
           <View style={s.empty}>
             <Feather name="slash" size={36} color={COLORS.zinc300} />
-            <Text style={s.emptyText}>차단한 클론이 없어요</Text>
+            <Text style={s.emptyText}>차단한 대상이 없어요</Text>
             <Text style={s.emptySub}>
-              클론 메뉴에서 차단할 수 있어요
+              클론이나 사용자 메뉴에서 차단할 수 있어요
             </Text>
           </View>
         ) : (
           <View style={s.card}>
-            {items.map((it, i) => (
-              <View key={it.blockId}>
-                <View style={s.row}>
-                  {it.clone.avatarUrl ? (
-                    <Image source={{ uri: it.clone.avatarUrl }} style={s.avatar} />
-                  ) : (
-                    <View style={[s.avatar, s.avatarPh]}>
-                      <Feather name="user" size={20} color={COLORS.zinc400} />
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.rowName} numberOfLines={1}>
-                      {it.clone.name}
-                    </Text>
-                    <Text style={s.rowSub} numberOfLines={1}>
-                      @{it.clone.username}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[
-                      s.unblockBtn,
-                      unblockingId === it.clone.id && { opacity: 0.6 },
-                    ]}
-                    onPress={() => handleUnblock(it)}
-                    disabled={unblockingId === it.clone.id}
-                  >
-                    {unblockingId === it.clone.id ? (
-                      <ActivityIndicator size="small" color={COLORS.white} />
+            {items.map((it, i) => {
+              const key = itemKey(it);
+              const avatarUrl =
+                it.type === "clone" ? it.clone.avatarUrl : it.user.avatarUrl;
+              const name =
+                it.type === "clone"
+                  ? it.clone.name
+                  : it.user.name || it.user.email.split("@")[0];
+              const sub =
+                it.type === "clone" ? `@${it.clone.username}` : it.user.email;
+              const busy = unblockingKey === key;
+              return (
+                <View key={key}>
+                  <View style={s.row}>
+                    {avatarUrl ? (
+                      <Image source={{ uri: avatarUrl }} style={s.avatar} />
                     ) : (
-                      <Text style={s.unblockText}>차단 해제</Text>
+                      <View style={[s.avatar, s.avatarPh]}>
+                        <Feather name="user" size={20} color={COLORS.zinc400} />
+                      </View>
                     )}
-                  </TouchableOpacity>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.rowName} numberOfLines={1}>
+                        {name}
+                      </Text>
+                      <Text style={s.rowSub} numberOfLines={1}>
+                        {sub}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[s.unblockBtn, busy && { opacity: 0.6 }]}
+                      onPress={() => handleUnblock(it)}
+                      disabled={busy}
+                    >
+                      {busy ? (
+                        <ActivityIndicator size="small" color={COLORS.white} />
+                      ) : (
+                        <Text style={s.unblockText}>차단 해제</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                  {i < items.length - 1 && <View style={s.divider} />}
                 </View>
-                {i < items.length - 1 && <View style={s.divider} />}
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
       </View>
