@@ -19,7 +19,8 @@ class Session:
         self.pipeline = None     # DialoguePipeline 주입(T10/T11)
 
     def set_state(self, state: str) -> None:
-        assert state in ("idle", "speaking")
+        if state not in ("idle", "speaking"):
+            raise ValueError(f"invalid state: {state}")
         self.state = state
 
 

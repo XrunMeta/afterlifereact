@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><title>prethird PoC</title></head>
+<body>
+<h3>prethird 직결 PoC</h3>
+<video id="v" autoplay playsinline controls style="width:480px;background:#000"></video>
+<div><button id="go">connect</button> <span id="st"></span></div>
+<script>
+document.getElementById('go').onclick = async () => {
+  const st = document.getElementById('st');
+  const pc = new RTCPeerConnection();
+  pc.addTransceiver('video', {direction: 'recvonly'});
+  pc.addTransceiver('audio', {direction: 'recvonly'});
+  pc.ontrack = (e) => { document.getElementById('v').srcObject = e.streams[0]; };
+  pc.onconnectionstatechange = () => st.textContent = pc.connectionState;
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await new Promise(r => {
+    if (pc.iceGatheringState === 'complete') return r();
+    pc.onicegatheringstatechange = () => pc.iceGatheringState === 'complete' && r();
+  });
+  const resp = await fetch('/offer', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({sdp: pc.localDescription.sdp, type: pc.localDescription.type})});
+  const ans = await resp.json();
+  await pc.setRemoteDescription(ans);
+};
+</script>
+</body></html>
