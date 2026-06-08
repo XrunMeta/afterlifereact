@@ -156,8 +156,9 @@ export async function notifyCloneEvent(
           : `${actorName} 님이 ${clone.name} 에게 댓글을 남겼어요`;
         break;
       case "clone_follow":
-        title = "✨ 새 팔로워";
-        body = `${actorName} 님이 ${clone.name} 을(를) 팔로우했어요`;
+
+        title = "✨ 새 구독";
+        body = `${actorName} 님이 ${clone.name} 을(를) 구독했어요`;
         break;
       case "clone_gift":
         title = "🎁 선물 도착";
