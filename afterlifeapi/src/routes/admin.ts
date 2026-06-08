@@ -539,6 +539,48 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(
+    `SELECT c.id, c.name, c.username, c.description,
+            c.clone_type AS cloneType, c.visibility,
+            c.training_status AS trainingStatus,
+            c.owner_id AS ownerId, u.name AS ownerName,
+            c.created_at AS createdAt,
+            c.deletion_state AS deletionState,
+            c.soft_deleted_at AS softDeletedAt,
+            c.deleted_at AS deletedAt
+       FROM clones c
+       LEFT JOIN users u ON u.id = c.owner_id
+      WHERE c.id = ?`,
+  )
+    .bind(v_389afb)
+    .first();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  return v_3f4e2e.json(v_3ac7e7);
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const v_3ac7e7 = await v_3f4e2e.env.DB.prepare(
+    `SELECT id, name, email, gender, age, credits,
+            funnel_stage AS funnelStage,
+            deletion_state AS deletionState,
+            created_at AS createdAt
+       FROM users WHERE id = ?`,
+  )
+    .bind(v_389afb)
+    .first();
+  if (!v_3ac7e7) throw new v_3ebe58("NOT_FOUND", "User not found.");
+  return v_3f4e2e.json(v_3ac7e7);
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
