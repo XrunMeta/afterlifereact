@@ -4,6 +4,13 @@ from typing import Callable, Optional
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from session import SessionManager
+from bundle_client import fetch_bundle
+from persona_prompt import bundle_to_messages
+
+REF_VOICES_ROOT = os.environ.get(
+    "PRETHIRD_REF_VOICES_ROOT",
+    "/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices",
+)
 
 _START = time.time()
 log = logging.getLogger("prethird.signaling")
@@ -66,6 +73,26 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
         try:
             pc.addTrack(sess.video_track)
             pc.addTrack(sess.audio_track)
+
+            # bundle 조회: clone_id/access_token 있을 때만
+            sess.clone_id = params.get("clone_id")
+            if sess.clone_id is not None:
+                access_token = params.get("access_token")
+                bundle = await fetch_bundle(
+                    os.environ.get("PRETHIRD_API_BASE"), sess.clone_id, access_token
+                )
+                if bundle:
+                    sess.persona_messages = bundle_to_messages(bundle)
+                    assets = bundle.get("assets") or {}
+                    se_key = assets.get("voiceSeKey")
+                    if se_key:
+                        sess.se_path = f"{REF_VOICES_ROOT}/{se_key}/se.pth"
+                    else:
+                        sess.se_path = f"{REF_VOICES_ROOT}/{sess.clone_id}/se.pth"
+            log.info(
+                "offer session=%s clone_id=%s persona=%d se=%s",
+                sess.session_id, sess.clone_id, len(sess.persona_messages), bool(sess.se_path),
+            )
 
             # pipeline factory가 있으면 세션에 주입
             if pipeline_factory is not None:

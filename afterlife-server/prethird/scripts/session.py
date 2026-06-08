@@ -17,6 +17,9 @@ class Session:
         self.pc = None           # signaling 에서 RTCPeerConnection 주입(T6)
         self.datachannel = None  # DataChannel "say" 수신(T11)
         self.pipeline = None     # DialoguePipeline 주입(T10/T11)
+        self.clone_id = None         # /offer 수신 clone_id
+        self.persona_messages = []   # bundle_to_messages 결과
+        self.se_path = None          # 클론별 voice se 경로(None이면 기본)
 
     def set_state(self, state: str) -> None:
         if state not in ("idle", "speaking"):
