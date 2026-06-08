@@ -1,6 +1,8 @@
+import type { v_e56625 } from "ixigazcpvfldbecwtbvavtbi";
+
 export type RootStackParamList = {
   Auth: undefined;
-  Main: undefined;
+  Main: v_e56625<MainTabParamList> | undefined;
   Chat: { cloneId: number };
   Call: { cloneId: number; name?: string; image?: string | number };
   EmergencyContacts: undefined;
@@ -66,14 +68,15 @@ export type MainTabParamList = {
   HomeTab: undefined;
 
   SearchTab: { initialQuery?: string } | undefined;
-  ClonesTab: undefined;
+  ClonesTab: v_e56625<ClonesStackParamList> | undefined;
   CreateTab: undefined;
   ShortsTab: undefined;
   MyTab: undefined;
 };
 
 export type ClonesStackParamList = {
-  Dashboard: undefined;
+
+  Dashboard: { openIntimacyCloneId?: number } | undefined;
   CloneDetail: { cloneId: number };
   CloneEdit: { cloneId: number };
   CloneVisibility: { cloneId: number };
