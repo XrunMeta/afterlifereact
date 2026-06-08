@@ -17,6 +17,7 @@ export interface PrethirdPeerConnection {
   iceGatheringState?: string;
   localDescription?: { type?: string; sdp?: string } | null;
   addEventListener(type: string, listener: (ev: any) => void): void;
+  removeEventListener?(type: string, listener: (ev: any) => void): void;
   addTransceiver(kind: string, init?: { direction?: string }): void;
   createDataChannel(label: string): any;
   createOffer(): Promise<{ type?: string; sdp?: string }>;
@@ -40,10 +41,16 @@ const v_17f880 = {
 async function v_956147(v_12cd99): Promise<void> {
   if (v_12cd99.iceGatheringState === 'complete') return;
   await new Promise<void>((v_6f7712) => {
-    const v_8d41d7 = setTimeout(() => v_6f7712(), 3000);
-    v_12cd99.addEventListener('icegatheringstatechange', () => {
-      if (v_12cd99.iceGatheringState === 'complete') { clearTimeout(v_8d41d7); v_6f7712(); }
-    });
+    let v_8d41d7;
+    const v_689657 = () => {
+      if (v_12cd99.iceGatheringState === 'complete') { v_a983d4(); v_6f7712(); }
+    };
+    const v_a983d4 = () => {
+      clearTimeout(v_8d41d7);
+      v_12cd99.removeEventListener?.('icegatheringstatechange', v_689657);
+    };
+    v_8d41d7 = setTimeout(() => { v_a983d4(); v_6f7712(); }, 3000); 
+    v_12cd99.addEventListener('icegatheringstatechange', v_689657);
   });
 }
 
@@ -73,6 +80,7 @@ export function v_3d8d48(v_328259): v_b01667 {
       v_32dc97.send(JSON.stringify({ type: 'say', text: v_8d41d7 }));
       v_ae4844('speaking');
       if (v_6b43e5.current) clearTimeout(v_6b43e5.current);
+
       v_6b43e5.current = setTimeout(() => v_ae4844('idle'), v_bf15a0);
     } catch (v_9e86fd) {
       v_3a7d09(v_9e86fd as Error);
