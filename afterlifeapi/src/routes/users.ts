@@ -7,6 +7,7 @@ import { openAny, seal, getKekProvider, extractDekId, shredV3 } from "../lib/ale
 import { requestKekProvider } from "../lib/kekProvider";
 import { logActivity } from "../lib/logger";
 import { notify } from "../lib/notify";
+import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 
 export const users = new Hono<AppEnv>();
 
@@ -44,22 +45,37 @@ users.get("/search", requireAuth, async (c) => {
   if (q.length < 2) {
     return c.json({ items: [] });
   }
-  const like = `%${q}%`;
 
-  const rows = await c.env.DB
-    .prepare(
-      `SELECT id, name, email, avatar_url AS avatarUrl
-         FROM users
-        WHERE deleted_at IS NULL
-          AND id != ?
-          AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
-          AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
-        ORDER BY id DESC
-        LIMIT 20`,
-    )
-    .bind(me, me, like, like)
-    .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
-  return c.json({ items: rows.results ?? [] });
+  const pool = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, name, email, avatar_url AS avatarUrl
+           FROM users
+          WHERE deleted_at IS NULL
+            AND deletion_state = 'active'
+            AND id != ?
+            AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
+          ORDER BY id DESC
+          LIMIT 500`,
+      )
+      .bind(me, me)
+      .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>()
+  ).results;
+  const emailLocal = (email: string) => email.split("@")[0] ?? email;
+  const items = pool
+    .map((u) => ({
+      u,
+      score: Math.max(
+        similarityScore(q, u.name),
+        similarityScore(q, u.email),
+        similarityScore(q, emailLocal(u.email)),
+      ),
+    }))
+    .filter((x) => x.score >= SEARCH_SIMILARITY_THRESHOLD)
+    .sort((a, b) => b.score - a.score || b.u.id - a.u.id)
+    .slice(0, 20)
+    .map((x) => x.u);
+  return c.json({ items });
 });
 
 users.get("/me", requireAuth, async (c) => {
