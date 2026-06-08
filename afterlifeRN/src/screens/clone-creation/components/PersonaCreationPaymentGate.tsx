@@ -258,8 +258,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.zinc100,
     color: COLORS.zinc400,
   },
-  error: { fontSize: 12, color: "#ef4444", marginBottom: 8 },
-  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 12 },
+  error: { fontSize: 12, color: "#ef4444", marginTop: 12, marginBottom: 0 },
+
+  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 24 },
   cancel: {
     flex: 1,
     paddingVertical: 12,
