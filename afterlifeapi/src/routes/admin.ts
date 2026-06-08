@@ -850,9 +850,32 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, id: v_389afb });
 });
 
+function v_18f7ef(v_3f4e2e) {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
+  const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
+  const v_02be30 = Math.max(1, Math.min(200, Number(v_f71b56.searchParams.get("limit") ?? 20)));
+  return { q: v_ab6401, offset: v_3bbadf, limit: v_02be30 };
+}
+
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const { q: v_ab6401, offset: v_3bbadf, limit: v_02be30 } = v_18f7ef(v_3f4e2e);
+
+  const v_abcc8d = ["f.clone_id = ?", "fcc.parent_comment_id IS NULL"];
+  const v_925171 = [v_6e0fd3];
+  if (v_ab6401) {
+    v_abcc8d.push(`(u.name LIKE ? OR u.email LIKE ? OR fcc.content LIKE ?)`);
+    const v_07022a = `%${v_ab6401}%`;
+    v_925171.push(v_07022a, v_07022a, v_07022a);
+  }
+  const v_8b4d7e = v_abcc8d.join(" AND ");
+
+  const v_0dab8e = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM feed_comments fcc JOIN feeds f ON f.id = fcc.feed_id JOIN users u ON u.id = fcc.user_id WHERE ${v_8b4d7e}`)
+    .bind(...v_925171)
+    .first<{ cnt: number }>();
 
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
@@ -865,19 +888,41 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
          FROM feed_comments fcc
          JOIN feeds f ON f.id = fcc.feed_id
          JOIN users u ON u.id = fcc.user_id
-        WHERE f.clone_id = ?
-          AND fcc.parent_comment_id IS NULL
+        WHERE ${v_8b4d7e}
         ORDER BY fcc.created_at DESC
-        LIMIT 200`,
+        LIMIT ? OFFSET ?`,
     )
-    .bind(v_6e0fd3)
+    .bind(...v_925171, v_02be30, v_3bbadf)
     .all();
-  return v_3f4e2e.json({ items: v_18b8bf.results });
+  return v_3f4e2e.json({ items: v_18b8bf.results, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
+});
+v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_cb35cb = await v_3f4e2e.env.DB.prepare(`DELETE FROM feed_comments WHERE id = ?`).bind(v_389afb).run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Comment not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb });
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const { q: v_ab6401, offset: v_3bbadf, limit: v_02be30 } = v_18f7ef(v_3f4e2e);
+
+  const v_abcc8d = ["f.clone_id = ?"];
+  const v_925171 = [v_6e0fd3];
+  if (v_ab6401) {
+    v_abcc8d.push(`(u.name LIKE ? OR u.email LIKE ?)`);
+    const v_07022a = `%${v_ab6401}%`;
+    v_925171.push(v_07022a, v_07022a);
+  }
+  const v_8b4d7e = v_abcc8d.join(" AND ");
+
+  const v_0dab8e = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM feed_likes fl JOIN feeds f ON f.id = fl.feed_id JOIN users u ON u.id = fl.user_id WHERE ${v_8b4d7e}`)
+    .bind(...v_925171)
+    .first<{ cnt: number }>();
+
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
       `SELECT fl.id, fl.feed_id AS feedId, fl.user_id AS userId,
@@ -887,18 +932,41 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
          FROM feed_likes fl
          JOIN feeds f ON f.id = fl.feed_id
          JOIN users u ON u.id = fl.user_id
-        WHERE f.clone_id = ?
+        WHERE ${v_8b4d7e}
         ORDER BY fl.created_at DESC
-        LIMIT 200`,
+        LIMIT ? OFFSET ?`,
     )
-    .bind(v_6e0fd3)
+    .bind(...v_925171, v_02be30, v_3bbadf)
     .all();
-  return v_3f4e2e.json({ items: v_18b8bf.results });
+  return v_3f4e2e.json({ items: v_18b8bf.results, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
+});
+v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_cb35cb = await v_3f4e2e.env.DB.prepare(`DELETE FROM feed_likes WHERE id = ?`).bind(v_389afb).run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Like not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb });
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const { q: v_ab6401, offset: v_3bbadf, limit: v_02be30 } = v_18f7ef(v_3f4e2e);
+
+  const v_abcc8d = ["cf.clone_id = ?"];
+  const v_925171 = [v_6e0fd3];
+  if (v_ab6401) {
+    v_abcc8d.push(`(u.name LIKE ? OR u.email LIKE ?)`);
+    const v_07022a = `%${v_ab6401}%`;
+    v_925171.push(v_07022a, v_07022a);
+  }
+  const v_8b4d7e = v_abcc8d.join(" AND ");
+
+  const v_0dab8e = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM clone_follows cf JOIN users u ON u.id = cf.user_id WHERE ${v_8b4d7e}`)
+    .bind(...v_925171)
+    .first<{ cnt: number }>();
+
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
       `SELECT cf.id, cf.user_id AS userId,
@@ -907,18 +975,41 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
               cf.created_at AS createdAt
          FROM clone_follows cf
          JOIN users u ON u.id = cf.user_id
-        WHERE cf.clone_id = ?
+        WHERE ${v_8b4d7e}
         ORDER BY cf.created_at DESC
-        LIMIT 200`,
+        LIMIT ? OFFSET ?`,
     )
-    .bind(v_6e0fd3)
+    .bind(...v_925171, v_02be30, v_3bbadf)
     .all();
-  return v_3f4e2e.json({ items: v_18b8bf.results });
+  return v_3f4e2e.json({ items: v_18b8bf.results, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
+});
+v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_cb35cb = await v_3f4e2e.env.DB.prepare(`DELETE FROM clone_follows WHERE id = ?`).bind(v_389afb).run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Follow not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb });
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  const { q: v_ab6401, offset: v_3bbadf, limit: v_02be30 } = v_18f7ef(v_3f4e2e);
+
+  const v_abcc8d = ["uci.clone_id = ?"];
+  const v_925171 = [v_6e0fd3];
+  if (v_ab6401) {
+    v_abcc8d.push(`(u.name LIKE ? OR u.email LIKE ?)`);
+    const v_07022a = `%${v_ab6401}%`;
+    v_925171.push(v_07022a, v_07022a);
+  }
+  const v_8b4d7e = v_abcc8d.join(" AND ");
+
+  const v_0dab8e = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM user_clone_interactions uci JOIN users u ON u.id = uci.user_id WHERE ${v_8b4d7e}`)
+    .bind(...v_925171)
+    .first<{ cnt: number }>();
+
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
       `SELECT uci.id, uci.user_id AS userId,
@@ -931,13 +1022,20 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
               uci.last_at AS lastAt
          FROM user_clone_interactions uci
          JOIN users u ON u.id = uci.user_id
-        WHERE uci.clone_id = ?
+        WHERE ${v_8b4d7e}
         ORDER BY uci.last_at DESC
-        LIMIT 200`,
+        LIMIT ? OFFSET ?`,
     )
-    .bind(v_6e0fd3)
+    .bind(...v_925171, v_02be30, v_3bbadf)
     .all();
-  return v_3f4e2e.json({ items: v_18b8bf.results });
+  return v_3f4e2e.json({ items: v_18b8bf.results, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
+});
+v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_cb35cb = await v_3f4e2e.env.DB.prepare(`DELETE FROM user_clone_interactions WHERE id = ?`).bind(v_389afb).run();
+  if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Interaction not found.");
+  return v_3f4e2e.json({ ok: true, id: v_389afb });
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
