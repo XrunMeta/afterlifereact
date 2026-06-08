@@ -102,13 +102,24 @@ export default function ReportsScreen() {
     );
   };
 
-  const renderReceived = ({ item }: { item: MyReportReceived }) => (
+  const renderReceived = ({ item }: { item: MyReportReceived }) => {
+
+    const title =
+      item.reportType === "comment"
+        ? `${item.cloneName ?? "페르소나"}에서 내 댓글이 신고되어 조치됐어요`
+        : item.reportType === "clone"
+        ? `페르소나 '${item.cloneName ?? "—"}'가 신고되어 조치됐어요`
+        : "회원님이 신고되어 조치됐어요";
+    return (
     <View style={s.row}>
       <View style={{ flex: 1 }}>
         <Text style={s.typeTag}>{TYPE_LABEL[item.reportType] ?? "신고"}</Text>
-        <Text style={s.name}>
-          {TYPE_LABEL[item.reportType] ?? ""} 신고가 수락되어 조치됐어요
-        </Text>
+        <Text style={s.name}>{title}</Text>
+        {item.reportType === "comment" && item.content ? (
+          <Text style={s.quote} numberOfLines={2}>
+            “{item.content}”
+          </Text>
+        ) : null}
         {item.adminMessage || item.warningReason ? (
           <Text style={s.adminMsg} numberOfLines={3}>
             관리자: {item.adminMessage || item.warningReason}
@@ -123,7 +134,8 @@ export default function ReportsScreen() {
         <Text style={[s.badgeText, { color: "#b45309" }]}>경고</Text>
       </View>
     </View>
-  );
+    );
+  };
 
   return (
     <SafeView backgroundColor={COLORS.white}>
@@ -211,6 +223,7 @@ const s = StyleSheet.create({
   typeTag: { fontSize: 11, fontWeight: "700", color: COLORS.zinc400, marginBottom: 2 },
   name: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
   sub: { fontSize: 12, color: COLORS.zinc600, marginTop: 3 },
+  quote: { fontSize: 12, color: COLORS.zinc600, marginTop: 4, fontStyle: "italic" },
   adminMsg: { fontSize: 12, color: "#b45309", marginTop: 4, lineHeight: 17 },
   date: { fontSize: 11, color: COLORS.zinc400, marginTop: 4 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },

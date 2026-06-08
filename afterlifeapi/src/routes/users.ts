@@ -1010,23 +1010,28 @@ users.get("/me/reports/received", requireAuth, async (c) => {
         `SELECT r.id AS id, r.reason AS reason,
                 r.createdAt AS createdAt, r.reviewedAt AS reviewedAt,
                 r.adminMessage AS adminMessage, r.reportType AS reportType,
+                r.cloneName AS cloneName, r.content AS content,
                 w.reason AS warningReason, w.created_at AS warnedAt
            FROM (
              SELECT 'user' AS reportType, ur.id AS id, ur.reason AS reason,
-                    ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt, ur.admin_message AS adminMessage
+                    ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt, ur.admin_message AS adminMessage,
+                    NULL AS cloneName, NULL AS content
                FROM user_reports ur
               WHERE ur.target_id = ? AND ur.status IN ('actioned', 'reviewed')
              UNION ALL
              SELECT 'clone' AS reportType, cr.id AS id, cr.reason AS reason,
-                    cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt, cr.admin_message AS adminMessage
+                    cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt, cr.admin_message AS adminMessage,
+                    c.name AS cloneName, NULL AS content
                FROM clone_reports cr
                JOIN clones c ON c.id = cr.clone_id
               WHERE c.owner_id = ? AND cr.status IN ('actioned', 'reviewed')
              UNION ALL
              SELECT 'comment' AS reportType, cmr.id AS id, cmr.reason AS reason,
-                    cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt, cmr.admin_message AS adminMessage
+                    cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt, cmr.admin_message AS adminMessage,
+                    cc.name AS cloneName, fc.content AS content
                FROM comment_reports cmr
                JOIN feed_comments fc ON fc.id = cmr.comment_id
+               LEFT JOIN clones cc ON cc.id = cmr.clone_id
               WHERE fc.user_id = ? AND cmr.status IN ('actioned', 'reviewed')
            ) r
            LEFT JOIN user_warnings w
