@@ -102,13 +102,24 @@ export default function v_7e6637() {
     );
   };
 
-  const v_30f616 = ({ item: v_8c0b26 }: { item: v_2d86f0 }) => (
+  const v_30f616 = ({ item: v_8c0b26 }: { item: v_2d86f0 }) => {
+
+    const v_9f1622 =
+      v_8c0b26.reportType === "comment"
+        ? `${v_8c0b26.cloneName ?? "페르소나"}에서 내 댓글이 신고되어 조치됐어요`
+        : v_8c0b26.reportType === "clone"
+        ? `페르소나 '${v_8c0b26.cloneName ?? "—"}'가 신고되어 조치됐어요`
+        : "회원님이 신고되어 조치됐어요";
+    return (
     <View style={v_fd5f43.row}>
       <View style={{ flex: 1 }}>
         <Text style={v_fd5f43.typeTag}>{v_a28029[v_8c0b26.reportType] ?? "신고"}</Text>
-        <Text style={v_fd5f43.name}>
-          {v_a28029[v_8c0b26.reportType] ?? ""} 신고가 수락되어 조치됐어요
-        </Text>
+        <Text style={v_fd5f43.name}>{v_9f1622}</Text>
+        {v_8c0b26.reportType === "comment" && v_8c0b26.content ? (
+          <Text style={v_fd5f43.quote} numberOfLines={2}>
+            “{v_8c0b26.content}”
+          </Text>
+        ) : null}
         {v_8c0b26.adminMessage || v_8c0b26.warningReason ? (
           <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
             관리자: {v_8c0b26.adminMessage || v_8c0b26.warningReason}
@@ -123,7 +134,8 @@ export default function v_7e6637() {
         <Text style={[v_fd5f43.badgeText, { color: "#b45309" }]}>경고</Text>
       </View>
     </View>
-  );
+    );
+  };
 
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
@@ -211,6 +223,7 @@ const v_fd5f43 = v_472849.create({
   typeTag: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.zinc400, marginBottom: 2 },
   name: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
   sub: { fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 3 },
+  quote: { fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 4, fontStyle: "italic" },
   adminMsg: { fontSize: 12, color: "#b45309", marginTop: 4, lineHeight: 17 },
   date: { fontSize: 11, color: v_1bfbd0.zinc400, marginTop: 4 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
