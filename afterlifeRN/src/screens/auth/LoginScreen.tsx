@@ -18,8 +18,16 @@ import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_e775af from "../../components/ui/TextField";
 import v_1a40c4 from "../../components/ui/Button";
+import v_92f073 from "../../components/auth/OtpVerifyView";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_84a859, v_dd2158, v_5c746e, v_7ef860 } from "../../api/auth";
+import {
+  v_84a859,
+  v_dd2158,
+  v_5c746e,
+  v_7ef860,
+  v_1d5b64,
+  v_c0c425,
+} from "../../api/auth";
 import { v_ea1c99 } from "../../lib/deviceId";
 import { v_4eac84, v_8d3720 } from "tdbilgxptaometuphydosyywsglhnlfgkfkzstthk";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -49,6 +57,19 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
   const v_957ace = v_1ed7d9((v_fd5f43) => v_fd5f43.loginWithApi);
   const [v_a5d73f, v_7ba4a6] = v_5ab095(false);
+
+  const [v_34e5bb, v_038d7f] = v_5ab095<"account" | "otp">("account");
+
+  const [v_e73be3, v_d6d31c] = v_5ab095<"email" | "code">("email");
+  const [v_aa596d, v_f07cc4] = v_5ab095("");
+  const [v_5a69f1, v_9d5a9f] = v_5ab095(false);
+  const [v_600d5b, v_ec979d] = v_5ab095(0);
+
+  v_c4deb2(() => {
+    if (v_600d5b <= 0) return;
+    const v_389afb = setInterval(() => v_ec979d((v_fd5f43) => (v_fd5f43 > 0 ? v_fd5f43 - 1 : 0)), 1000);
+    return () => clearInterval(v_389afb);
+  }, [v_600d5b]);
 
   const v_679b55 = async (v_f4fb5e) => {
     if (v_f53eaa) {
@@ -118,6 +139,56 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
 
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
   const v_3345cb = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiTokens);
+
+  const v_894a7c = async () => {
+    const v_9e86fd = v_e0c7e8.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(v_9e86fd)) {
+      v_889fad(v_8d41d7("common.notice"), "이메일 형식이 올바르지 않아요.");
+      return;
+    }
+    v_9d5a9f(true);
+    try {
+      await v_1d5b64(v_9e86fd);
+      v_f07cc4("");
+      v_d6d31c("code");
+      v_ec979d(60);
+    } catch (v_49263d) {
+      const v_badeaf = v_49263d instanceof v_84a859 ? v_49263d.message : v_8d41d7("common.error");
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
+    } finally {
+      v_9d5a9f(false);
+    }
+  };
+
+  const v_83e317 = async () => {
+    if (v_aa596d.length !== 6) return;
+    v_9d5a9f(true);
+    try {
+      const v_9e86fd = v_e0c7e8.trim().toLowerCase();
+      const v_929b58 = await v_ea1c99();
+      const v_8f00b9 = await v_c0c425({ email: v_9e86fd, verificationCode: v_aa596d, deviceId: v_929b58 });
+      const v_9ec4c0 = await v_7ef860(v_8f00b9.accessToken);
+      await v_31080f(v_8f00b9.accessToken, v_9ec4c0.user, { persist: v_f53eaa });
+      const v_46eca9 = (v_8f00b9 as { refreshToken?: string }).refreshToken;
+      if (v_46eca9) await v_3345cb(v_8f00b9.accessToken, v_46eca9, { persist: v_f53eaa });
+      await v_679b55(v_9e86fd);
+    } catch (v_49263d) {
+      let v_badeaf = v_8d41d7("auth.login.loginFailed");
+      if (v_49263d instanceof v_84a859) {
+        if (v_49263d.code === "ACCOUNT_DELETED") {
+          v_889fad(v_8d41d7("auth.login.accountDeletedTitle"), v_8d41d7("auth.login.accountDeletedMessage"));
+          return;
+        }
+        if (v_49263d.code === "OTP_INVALID") v_badeaf = "인증코드가 올바르지 않아요.";
+        else if (v_49263d.code === "OTP_EXPIRED") v_badeaf = "인증코드가 만료됐어요. 다시 받아주세요.";
+        else if (v_49263d.code === "NOT_FOUND") v_badeaf = "가입된 이메일이 아니에요.";
+        else v_badeaf = v_49263d.message;
+      }
+      v_889fad(v_8d41d7("auth.login.loginFailed"), v_badeaf);
+    } finally {
+      v_9d5a9f(false);
+    }
+  };
 
   const v_78c15c = async (v_e38ca2) => {
     if (v_e38ca2 === "google") {
@@ -200,64 +271,123 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
           </View>
 
           {}
-          <TextField
-            value={v_e0c7e8}
-            onChangeText={v_fedf34}
-            placeholder={v_8d41d7("auth.login.emailLabel")}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            leftIcon={<Feather name="mail" size={20} color={v_1bfbd0.zinc500} />}
-          />
-
-          {}
-          <TextField
-            value={v_adc076}
-            onChangeText={v_52b279}
-            placeholder={v_8d41d7("auth.login.passwordLabel")}
-            secureTextEntry={!v_b5ab16}
-            leftIcon={<Feather name="lock" size={20} color={v_1bfbd0.zinc900} />}
-            rightIcon={
-              <TouchableOpacity onPress={() => v_b7733b(!v_b5ab16)}>
-                <Feather
-                  name={v_b5ab16 ? "eye-off" : "eye"}
-                  size={20}
-                  color={v_1bfbd0.zinc900}
-                />
-              </TouchableOpacity>
-            }
-          />
-
-          {}
-          <View style={v_d81136.optionsRow}>
+          <View style={v_d81136.tabRow}>
             <TouchableOpacity
-              onPress={() => v_36bbbe(!v_f53eaa)}
-              style={v_d81136.checkboxRow}
+              style={[v_d81136.tab, v_34e5bb === "account" && v_d81136.tabActive]}
+              onPress={() => v_038d7f("account")}
             >
-              <View
-                style={[
-                  v_d81136.checkbox,
-                  v_f53eaa && v_d81136.checkboxChecked,
-                ]}
-              >
-                {v_f53eaa && (
-                  <Feather name="check" size={14} color={v_1bfbd0.white} />
-                )}
-              </View>
-              <Text style={v_d81136.checkboxLabel}>{v_8d41d7("auth.login.autoLoginLabel")}</Text>
+              <Text style={[v_d81136.tabText, v_34e5bb === "account" && v_d81136.tabTextActive]}>
+                계정 로그인
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => v_c65f5d.navigate("ForgotPassword")}>
-              <Text style={v_d81136.forgotPassword}>{v_8d41d7("auth.login.forgotPassword")}</Text>
+            <TouchableOpacity
+              style={[v_d81136.tab, v_34e5bb === "otp" && v_d81136.tabActive]}
+              onPress={() => {
+                v_038d7f("otp");
+                v_d6d31c("email");
+              }}
+            >
+              <Text style={[v_d81136.tabText, v_34e5bb === "otp" && v_d81136.tabTextActive]}>
+                이메일 OTP 로그인
+              </Text>
             </TouchableOpacity>
           </View>
 
           {}
-          <Button
-            title={v_a5d73f ? v_8d41d7("auth.login.loggingIn") : v_8d41d7("auth.login.loginBtn")}
-            onPress={v_ec4736}
-            variant="primary"
-            disabled={v_a5d73f}
-            style={{ marginTop: v_9b1a04.medium }}
-          />
+          {v_34e5bb === "account" && (
+            <>
+              <TextField
+                value={v_e0c7e8}
+                onChangeText={v_fedf34}
+                placeholder={v_8d41d7("auth.login.emailLabel")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                leftIcon={<Feather name="mail" size={20} color={v_1bfbd0.zinc500} />}
+              />
+              <TextField
+                value={v_adc076}
+                onChangeText={v_52b279}
+                placeholder={v_8d41d7("auth.login.passwordLabel")}
+                secureTextEntry={!v_b5ab16}
+                leftIcon={<Feather name="lock" size={20} color={v_1bfbd0.zinc900} />}
+                rightIcon={
+                  <TouchableOpacity onPress={() => v_b7733b(!v_b5ab16)}>
+                    <Feather
+                      name={v_b5ab16 ? "eye-off" : "eye"}
+                      size={20}
+                      color={v_1bfbd0.zinc900}
+                    />
+                  </TouchableOpacity>
+                }
+              />
+              <View style={v_d81136.optionsRow}>
+                <TouchableOpacity onPress={() => v_36bbbe(!v_f53eaa)} style={v_d81136.checkboxRow}>
+                  <View style={[v_d81136.checkbox, v_f53eaa && v_d81136.checkboxChecked]}>
+                    {v_f53eaa && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+                  </View>
+                  <Text style={v_d81136.checkboxLabel}>{v_8d41d7("auth.login.autoLoginLabel")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => v_c65f5d.navigate("ForgotPassword")}>
+                  <Text style={v_d81136.forgotPassword}>{v_8d41d7("auth.login.forgotPassword")}</Text>
+                </TouchableOpacity>
+              </View>
+              <Button
+                title={v_a5d73f ? v_8d41d7("auth.login.loggingIn") : v_8d41d7("auth.login.loginBtn")}
+                onPress={v_ec4736}
+                variant="primary"
+                disabled={v_a5d73f}
+                style={{ marginTop: v_9b1a04.medium }}
+              />
+            </>
+          )}
+
+          {}
+          {v_34e5bb === "otp" && v_e73be3 === "email" && (
+            <>
+              <TextField
+                value={v_e0c7e8}
+                onChangeText={v_fedf34}
+                placeholder={v_8d41d7("auth.login.emailLabel")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                leftIcon={<Feather name="mail" size={20} color={v_1bfbd0.zinc500} />}
+              />
+              <TouchableOpacity onPress={() => v_36bbbe(!v_f53eaa)} style={v_d81136.checkboxRow}>
+                <View style={[v_d81136.checkbox, v_f53eaa && v_d81136.checkboxChecked]}>
+                  {v_f53eaa && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+                </View>
+                <Text style={v_d81136.checkboxLabel}>{v_8d41d7("auth.login.autoLoginLabel")}</Text>
+              </TouchableOpacity>
+              <Button
+                title={v_5a69f1 ? "전송 중..." : "인증코드 받기"}
+                onPress={v_894a7c}
+                variant="primary"
+                disabled={v_5a69f1 || !v_e0c7e8.trim()}
+                style={{ marginTop: v_9b1a04.medium }}
+              />
+            </>
+          )}
+
+          {v_34e5bb === "otp" && v_e73be3 === "code" && (
+            <>
+              <OtpVerifyView
+                title="이메일 OTP 로그인"
+                email={v_e0c7e8}
+                code={v_aa596d}
+                onChangeCode={v_f07cc4}
+                onSubmit={v_83e317}
+                submitting={v_5a69f1}
+                submitLabel="로그인"
+                submittingLabel="로그인 중..."
+                resendIn={v_600d5b}
+                onResend={v_894a7c}
+                resendLabel="코드 재발송"
+              />
+              <TouchableOpacity onPress={() => v_d6d31c("email")} style={{ alignSelf: "center" }}>
+                <Text style={v_d81136.forgotPassword}>이메일 다시 입력</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           {}
           <View style={v_d81136.divider}>
@@ -303,16 +433,40 @@ const v_d81136 = v_472849.create({
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   symbolImage: {
-    width: 100,
-    height: 80,
-    marginBottom: 12,
+    width: 60,
+    height: 48,
+    marginBottom: 8,
   },
   logoImage: {
-    width: 160,
-    height: 32,
+    width: 120,
+    height: 24,
+  },
+  tabRow: {
+    flexDirection: "row",
+    backgroundColor: v_1bfbd0.zinc100,
+    borderRadius: v_8b0c90.md,
+    padding: 4,
+    marginBottom: v_9b1a04.small,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: v_8b0c90.sm,
+    alignItems: "center",
+  },
+  tabActive: {
+    backgroundColor: v_1bfbd0.white,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc500,
+  },
+  tabTextActive: {
+    color: v_1bfbd0.zinc900,
   },
   subtitle: {
     marginTop: 12,
