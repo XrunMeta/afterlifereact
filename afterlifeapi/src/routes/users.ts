@@ -883,7 +883,9 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
                 c.name         AS cloneName,
                 c.username     AS cloneUsername,
                 c.avatar_url   AS cloneAvatarUrl,
-                c.clone_type   AS cloneType
+                c.clone_type   AS cloneType,
+                c.owner_id     AS cloneOwnerId,
+                c.visibility   AS cloneVisibility
            FROM clone_blocks b
            JOIN clones c ON c.id = b.clone_id
           WHERE b.user_id = ? AND c.deleted_at IS NULL
@@ -898,6 +900,8 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
         cloneUsername: string;
         cloneAvatarUrl: string | null;
         cloneType: string;
+        cloneOwnerId: number;
+        cloneVisibility: string;
       }>()
   ).results;
 
@@ -936,6 +940,8 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
       username: v_cb35cb.cloneUsername,
       avatarUrl: v_cb35cb.cloneAvatarUrl,
       cloneType: v_cb35cb.cloneType,
+      ownerId: v_cb35cb.cloneOwnerId,
+      visibility: v_cb35cb.cloneVisibility,
     },
   }));
   const v_aae3d3 = v_a7be75.map((v_cb35cb) => ({

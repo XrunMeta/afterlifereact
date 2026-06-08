@@ -49,9 +49,15 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       v_21cc31 = await v_e84827.getItem(v_1278db);
       v_2474a1 = await v_e84827.getItem(v_a19d89);
       if (v_21cc31) {
+
+        v_bb8024({ accessToken: v_21cc31, refreshToken: v_2474a1 });
         try {
           const v_8f00b9 = await v_7ef860(v_21cc31);
           v_b113dd = v_8f00b9.user;
+
+          const v_fd5f43 = v_38715b();
+          v_21cc31 = v_fd5f43.accessToken ?? v_21cc31;
+          v_2474a1 = v_fd5f43.refreshToken ?? v_2474a1;
         } catch {
 
           await v_e84827.removeItem(v_1278db);
