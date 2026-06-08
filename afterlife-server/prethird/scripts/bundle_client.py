@@ -5,7 +5,7 @@ import os, logging, aiohttp
 
 log = logging.getLogger("prethird.bundle_client")
 API_BASE = os.environ.get("PRETHIRD_API_BASE", "https://edge-alt-preview.example.invalid")
-TIMEOUT_S = float(os.environ.get("PRETHIRD_BUNDLE_TIMEOUT", "4.0"))
+TIMEOUT_S = float(os.environ.get("PRETHIRD_BUNDLE_TIMEOUT", "2.0"))
 
 async def fetch_bundle(api_base: str | None, clone_id, access_token: str | None) -> dict | None:
     """{personaBundle, assets} 또는 None(graceful). token/clone_id 없으면 None."""
