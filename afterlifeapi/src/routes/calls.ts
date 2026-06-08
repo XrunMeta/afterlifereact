@@ -5,9 +5,7 @@ import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
 import { loadCloneById, resolveResponseViewerRole } from "../lib/cloneAccess";
-import { loadSystemPersona } from "../lib/systemPersona";
-import { resolvePersona } from "../lib/personaResolver";
-import { loadCloneProfiles, buildPersonaBundle, flattenAttrs } from "../lib/personaBundle";
+import { buildCallBundle } from "../lib/callBundle";
 
 export const calls = new Hono<AppEnv>();
 
@@ -28,29 +26,7 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
     throw new APIError("FORBIDDEN", "No access to this clone for call.");
   }
 
-  const l0 = await loadSystemPersona(c.env.DB);
-  const { l1, l2 } = await loadCloneProfiles(c.env.DB, cloneId);
-  const persona = resolvePersona({ l1: flattenAttrs(l1), l2 });
-
-  persona.displayName = clone.name;
-  if (clone.relation != null) persona.relation = clone.relation;
-  const personaBundle = buildPersonaBundle(l0, persona, cloneId);
-
-  let voiceSeUrl: string | null = clone.voice_se_url ?? null;
-  let voiceSeKey: string | null = null;
-  if (!voiceSeUrl && clone.voice_preset_id) {
-    const vp = await c.env.DB
-      .prepare(`SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1`)
-      .bind(clone.voice_preset_id)
-      .first<{ se_key: string | null }>();
-    voiceSeKey = vp?.se_key ?? null;
-  }
-  const assets = {
-    idleVideoUrl: clone.idle_video_url ?? null,
-    voiceSeUrl,
-    voiceSeKey,
-    avatarUrl: clone.avatar_url ?? null,
-  };
+  const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone);
 
   const orchUrl = c.env.ORCHESTRATOR_URL;
   let r: Response;
@@ -87,6 +63,19 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
     tracks: data.tracks,
     expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
   });
+});
+
+calls.get("/:cloneId/bundle", requireAuth, async (c) => {
+  const cloneId = parseCloneId(c);
+  const userId = c.get("userId")!;
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
+  if (!viewerRole && clone.visibility !== "public") {
+    throw new APIError("FORBIDDEN", "No access to this clone.");
+  }
+  const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone);
+  return c.json({ personaBundle, assets });
 });
 
 calls.post("/:cloneId/call/:callId/say", requireAuth, async (c) => {
