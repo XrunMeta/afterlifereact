@@ -748,6 +748,69 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ action?: string; suspendDays?: number | null; reason?: string }>()
+    .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string });
+  const v_da0605 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+  const v_9b064f = v_4d33b2.action === "suspend" ? "clone_create_ban" : v_4d33b2.action ?? "";
+  if (!v_da0605.includes(v_9b064f)) throw new v_3ebe58("VALIDATION_FAILED", "Invalid action.");
+
+  const v_625c74 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(v_389afb)
+    .first<{ id: number }>();
+  if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "User not found.");
+
+  const v_6a53fd = Number.isInteger(v_4d33b2.suspendDays) && (v_4d33b2.suspendDays as number) > 0 ? (v_4d33b2.suspendDays as number) : 0;
+  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
+  let v_c8eee3 = "";
+
+  switch (v_9b064f) {
+    case "warn":
+      await v_3f4e2e.env.DB
+        .prepare(`INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason) VALUES (?, ?, NULL, 'manual', ?)`)
+        .bind(v_389afb, v_db9be1, v_4d33b2.reason ?? "관리자 직접 경고")
+        .run();
+      v_c8eee3 = "관리자에 의해 경고가 발급되었습니다.";
+      break;
+    case "clone_create_ban":
+      await v_3f4e2e.env.DB.prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
+      v_c8eee3 = `${v_6a53fd || 30}일간 페르소나 생성이 제한됩니다.`;
+      break;
+    case "account_ban":
+      await v_3f4e2e.env.DB.prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`).bind(`+${v_6a53fd || 30} days`, v_389afb).run();
+      v_c8eee3 = `${v_6a53fd || 30}일간 계정 사용이 정지됩니다.`;
+      break;
+    case "clone_deactivate":
+      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
+      v_c8eee3 = "보유 페르소나가 비활성화되었습니다.";
+      break;
+    case "clone_delete":
+      await v_3f4e2e.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(v_389afb).run();
+      v_c8eee3 = "보유 페르소나가 삭제되었습니다.";
+      break;
+  }
+
+  await v_c226a5(v_3f4e2e.env, {
+    userId: v_389afb,
+    type: "moderation",
+    title: v_9b064f === "warn" ? "신고 처리 안내" : "활동 제재 안내",
+    body: v_4d33b2.reason || v_c8eee3 || "회원님에 대한 제재가 적용되었습니다.",
+    url: "afterlife://reports/received",
+    data: { action: v_9b064f, manual: true },
+    skipEmail: true,
+  }).catch(() => {});
+
+  const v_3ac7e7 = await v_3f4e2e.env.DB
+    .prepare(`SELECT suspended_until AS suspendedUntil, banned_until AS bannedUntil FROM users WHERE id = ?`)
+    .bind(v_389afb)
+    .first<{ suspendedUntil: string | null; bannedUntil: string | null }>();
+  return v_3f4e2e.json({ ok: true, action: v_9b064f, suspendedUntil: v_3ac7e7?.suspendedUntil ?? null, bannedUntil: v_3ac7e7?.bannedUntil ?? null });
+});
+
 v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
   const v_f71b56 = new URL(v_3f4e2e.req.url);
   const v_3b27d9 = v_f71b56.searchParams.get("type") ?? "all"; 
