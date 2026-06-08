@@ -388,6 +388,14 @@ users.post("/me/devices", requireAuth, async (c) => {
   if (!body.deviceId || !body.pushToken || !body.platform) {
     throw new APIError("VALIDATION_FAILED", "deviceId, pushToken, platform required.");
   }
+
+  await c.env.DB
+    .prepare(
+      `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE push_token = ? AND is_active = 1 AND NOT (user_id = ? AND device_id = ?)`,
+    )
+    .bind(body.pushToken, userId, body.deviceId)
+    .run();
   await c.env.DB
     .prepare(
       `INSERT INTO user_devices (user_id, device_id, push_token, platform, is_active, last_active_at)
