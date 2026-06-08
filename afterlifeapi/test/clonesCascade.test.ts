@@ -55,15 +55,6 @@ async function getClone(cloneId: number): Promise<{ owner_id: number; deletion_s
     .first())! as never;
 }
 
-async function softDeleteCloneDirect(cloneId: number): Promise<void> {
-
-  const db = env.DB as unknown as D1Database;
-  await db
-    .prepare(`UPDATE clones SET deletion_state='soft_deleted', soft_deleted_at=CURRENT_TIMESTAMP WHERE id=?`)
-    .bind(cloneId)
-    .run();
-}
-
 async function issueAccessToken(userId: number): Promise<string> {
   const { issueToken } = await import("../src/lib/jwt");
   const secret = (env as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET;
@@ -78,17 +69,9 @@ function deleteMe(token: string): Promise<Response> {
   });
 }
 
-function restore(email: string, password: string): Promise<Response> {
-  return SELF.fetch("http://localhost/oth-path", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-}
-
 const PW = "Abcdef1";
 
-describe("회원 탈퇴 cascade — 소유 클론 숨김 + 복구 시 부활", () => {
+describe("회원 탈퇴 cascade — 소유 클론 숨김 (복구 없음)", () => {
   beforeAll(async () => {
     if (!(await hasClonesTable())) throw new Error("D1 migrations not applied.");
   });
@@ -107,25 +90,6 @@ describe("회원 탈퇴 cascade — 소유 클론 숨김 + 복구 시 부활", (
       expect(row.owner_cascade_deleted_at).not.toBeNull();
       expect(row.owner_id).toBe(uid);
     }
-  });
-
-  it("복구 시 cascade 클론만 부활, 직접 지운 클론은 그대로 soft_deleted", async () => {
-    const uid = await seedUserWithPassword("casc-restore@test.local", PW);
-    const cascaded = await seedClone(uid, "casc_r_cascaded");
-    const manual = await seedClone(uid, "casc_r_manual");
-
-    await softDeleteCloneDirect(manual);
-
-    expect((await deleteMe(await issueAccessToken(uid))).status).toBe(200);
-
-    expect((await getClone(cascaded)).owner_cascade_deleted_at).not.toBeNull();
-    expect((await getClone(manual)).owner_cascade_deleted_at).toBeNull();
-
-    const r = await restore("casc-restore@test.local", PW);
-    expect(r.status).toBe(200);
-
-    expect((await getClone(cascaded)).deletion_state).toBe("active");
-    expect((await getClone(manual)).deletion_state).toBe("soft_deleted");
   });
 
   it("공동관리자(successor) 있는 클론은 위임 — soft-delete 아님, owner 변경", async () => {

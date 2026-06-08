@@ -2,7 +2,7 @@ import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { seedSource } from "../api/source";
 import type { DomainUser } from "../types/domain";
-import { login as apiLogin, restoreAccount as apiRestore, getMe, type AuthUser, type LoginPayload, type RestorePayload } from "../api/auth";
+import { login as apiLogin, getMe, type AuthUser, type LoginPayload } from "../api/auth";
 
 const STORAGE_KEY = "@afterlifeRN/auth/currentUserId";
 const TOKEN_KEY = "@afterlifeRN/auth/accessToken";
@@ -22,8 +22,6 @@ interface AuthState {
   refreshToken: string | null;
   apiUser: AuthUser | null;
   loginWithApi: (payload: LoginPayload, opts?: { persist?: boolean }) => Promise<AuthUser>;
-
-  restoreWithApi: (payload: RestorePayload, opts?: { persist?: boolean }) => Promise<AuthUser>;
   setApiAuth: (token: string, user: AuthUser, opts?: { persist?: boolean }) => Promise<void>;
 
   setApiTokens: (accessToken: string, refreshToken: string | null, opts?: { persist?: boolean }) => Promise<void>;
@@ -118,25 +116,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } else {
 
-      await AsyncStorage.removeItem(TOKEN_KEY);
-      await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
-    }
-    set({ accessToken, refreshToken, apiUser: user, isLoggedIn: true });
-    return user;
-  },
-
-  restoreWithApi: async (payload, opts) => {
-    const persist = opts?.persist !== false;
-    const res = await apiRestore(payload);
-    const { accessToken } = res;
-    const refreshToken = res.refreshToken ?? null;
-    const { user } = await getMe(accessToken);
-    if (persist) {
-      await AsyncStorage.setItem(TOKEN_KEY, accessToken);
-      if (refreshToken) {
-        await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-      }
-    } else {
       await AsyncStorage.removeItem(TOKEN_KEY);
       await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
     }

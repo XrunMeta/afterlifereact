@@ -160,23 +160,6 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   return postJson("/oth-path", payload);
 }
 
-export interface RestorePayload {
-  email?: string;
-  password?: string;
-  idToken?: string;
-  deviceId?: string;
-}
-export interface RestoreResponse {
-  ok: true;
-  state: "active";
-  accessToken: string;
-  refreshToken?: string;
-  accessExpiresIn: number;
-}
-export async function restoreAccount(payload: RestorePayload): Promise<RestoreResponse> {
-  return postJson("/oth-path", payload);
-}
-
 export async function xrunVerify(email: string, pin: string): Promise<{ ok: true; expiresInSec: number }> {
   return postJson("/oth-path", { email, pin });
 }

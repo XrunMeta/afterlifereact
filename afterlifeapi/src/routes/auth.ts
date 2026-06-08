@@ -18,7 +18,6 @@ import { logActivity } from "../lib/logger";
 import { requestSignupOtp, verifySignupOtp } from "../lib/otp";
 import { registerXrunForAfterlifeUser, lookupXrunWalletByEmail, verifyXrunCredentials } from "../lib/xrun";
 import { verifyGoogleIdToken } from "../lib/googleAuth";
-import { softRestore, cascadeRestoreOwnedClones } from "./deletion";
 
 export const auth = new Hono<AppEnv>();
 
@@ -176,14 +175,7 @@ auth.post("/google", async (c) => {
   } else {
 
     if (userRow.deletion_state !== "active") {
-      const restorable = userRow.deletion_state === "soft_deleted";
-      throw new APIError(
-        "ACCOUNT_DELETED",
-        restorable
-          ? "탈퇴한 계정이에요. 복구할 수 있어요."
-          : "탈퇴 처리된 계정이라 로그인할 수 없어요.",
-        { restorable, email: userRow.email },
-      );
+      throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
     }
     await logActivity(c, {
       userId: userRow.id,
@@ -682,14 +674,7 @@ auth.post("/login", async (c) => {
   }
 
   if (user.deletion_state !== "active") {
-    const restorable = user.deletion_state === "soft_deleted";
-    throw new APIError(
-      "ACCOUNT_DELETED",
-      restorable
-        ? "탈퇴한 계정이에요. 복구할 수 있어요."
-        : "탈퇴 처리된 계정이라 로그인할 수 없어요.",
-      { restorable, email: body.email },
-    );
+    throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
   }
 
   await db
@@ -728,77 +713,6 @@ auth.post("/login", async (c) => {
   await logActivity(c, { userId: user.id, action: "auth.login" });
 
   return c.json({ accessToken, refreshToken, accessExpiresIn });
-});
-
-const restoreSchema = z
-  .object({
-    email: z.email().max(200).optional(),
-    password: z.string().min(1).max(200).optional(),
-    idToken: z.string().min(20).optional(),
-    deviceId: z.string().min(1).max(200).optional(),
-  })
-  .refine((b) => !!b.idToken || (!!b.email && !!b.password), {
-    message: "email+password 또는 idToken 이 필요해요.",
-  });
-
-auth.post("/restore", async (c) => {
-  const body = await parseJson(c, restoreSchema);
-  const db = c.env.DB;
-
-  let userId: number;
-  if (body.idToken) {
-    const payload = await verifyGoogleIdToken(c.env, body.idToken);
-    const row = await db
-      .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
-      .bind(payload.email)
-      .first<{ id: number }>();
-    if (!row) throw new APIError("UNAUTHENTICATED", "Invalid credentials.");
-    userId = row.id;
-  } else {
-    const row = await db
-      .prepare(
-        `SELECT id, password_hash FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
-      )
-      .bind(body.email)
-      .first<{ id: number; password_hash: string }>();
-
-    const hashForCheck = row?.password_hash ?? (await hashPassword("dummy-nonmatch-0000"));
-    const ok = await verifyPassword(body.password!, hashForCheck);
-    if (!row || !ok) throw new APIError("UNAUTHENTICATED", "Invalid credentials.");
-    userId = row.id;
-  }
-
-  const result = await softRestore(db, "user", userId, "id", userId);
-  if (result !== "ok" && result !== "not_soft_deleted") {
-    if (result === "past_restore_window") {
-      throw new APIError("SHREDDED", "복구 가능 기간(90일)이 지났어요.");
-    }
-    throw new APIError("CONFLICT", "복구할 수 없는 상태예요.");
-  }
-
-  await cascadeRestoreOwnedClones(db, userId);
-
-  try {
-    const linkRow = await db
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(userId)
-      .first<{ xrun_member_id: number | null }>();
-    const xrunMember = linkRow?.xrun_member_id ?? null;
-    if (xrunMember && c.env.XRUN_DB) {
-      await c.env.XRUN_DB
-        .prepare(`UPDATE Members SET afterlife_deleted_at = NULL WHERE member = ?`)
-        .bind(xrunMember)
-        .run();
-    }
-  } catch (err) {
-    console.warn("[auth.restore] xrun unmark failed:", (err as Error).message);
-  }
-
-  const { accessToken, refreshToken, accessExpiresIn } = await issueSession(c, userId, body.deviceId);
-  setRefreshCookie(c, refreshToken);
-  await logActivity(c, { userId, action: "auth.restore" });
-
-  return c.json({ ok: true, state: "active", accessToken, refreshToken, accessExpiresIn });
 });
 
 auth.post("/refresh", async (c) => {
