@@ -1001,11 +1001,12 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
   const { q: v_ab6401, offset: v_3bbadf, limit: v_02be30 } = v_18f7ef(v_3f4e2e);
 
-  const v_abcc8d = [
-    "f.clone_id = ?",
-    "fcc.parent_comment_id IS NULL",
-  ];
+  const v_33d725 = new URL(v_3f4e2e.req.url).searchParams.get("commentType") ?? "all";
+
+  const v_abcc8d = ["f.clone_id = ?"];
   const v_925171 = [v_6e0fd3];
+  if (v_33d725 === "parent") v_abcc8d.push("fcc.parent_comment_id IS NULL");
+  else if (v_33d725 === "reply") v_abcc8d.push("fcc.parent_comment_id IS NOT NULL");
   if (v_ab6401) {
     v_abcc8d.push(`(u.name LIKE ? OR u.email LIKE ? OR fcc.content LIKE ?)`);
     const v_07022a = `%${v_ab6401}%`;
@@ -1025,6 +1026,9 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
               u.xrun_member_id AS userXrunMemberId,
               fcc.content, fcc.created_at AS createdAt,
               fcc.likes_count AS likeCount,
+              fcc.parent_comment_id AS parentId,
+              pu.name AS parentUserName,
+              pc.content AS parentContent,
               (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount,
               (SELECT COUNT(*) FROM comment_reports cr WHERE cr.comment_id = fcc.id) AS reportCount,
               (SELECT cr.status FROM comment_reports cr WHERE cr.comment_id = fcc.id
@@ -1032,6 +1036,8 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
          FROM feed_comments fcc
          JOIN feeds f ON f.id = fcc.feed_id
          JOIN users u ON u.id = fcc.user_id
+         LEFT JOIN feed_comments pc ON pc.id = fcc.parent_comment_id
+         LEFT JOIN users pu ON pu.id = pc.user_id
         WHERE ${v_8b4d7e}
         ORDER BY fcc.created_at DESC
         LIMIT ? OFFSET ?`,

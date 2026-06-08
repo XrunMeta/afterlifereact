@@ -9,7 +9,8 @@ import {
   v_39a996,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
+import type { v_e57140 } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -38,8 +39,9 @@ const v_85cf93 = (v_6fc191) => (v_6fc191 ? v_6fc191.slice(0, 16).replace("T", " 
 
 export default function v_7e6637() {
   const v_c65f5d = v_ada615();
+  const v_c7daf6 = v_2d8264<v_ee3714<v_e57140, "Reports">>();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-  const [v_11083e, v_94ee83] = v_5ab095<"made" | "received">("made");
+  const [v_11083e, v_94ee83] = v_5ab095<"made" | "received">(v_c7daf6.params?.tab ?? "made");
   const [v_683210, v_34a50a] = v_5ab095(true);
 
   const [v_51146d, v_a7d910] = v_5ab095<v_2a77a6[]>([]);

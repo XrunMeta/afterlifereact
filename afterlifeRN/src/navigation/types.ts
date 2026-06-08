@@ -107,5 +107,5 @@ export type MyStackParamList = {
   InviteStatus: undefined;
   BlockedList: undefined;
   Transactions: undefined;
-  Reports: undefined;
+  Reports: { tab?: "made" | "received" } | undefined;
 };
