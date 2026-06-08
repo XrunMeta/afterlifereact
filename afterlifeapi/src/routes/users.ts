@@ -963,6 +963,59 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ items: v_4622b9 });
 });
 
+v_de7ba7.get("/me/reports/made", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason, r.status AS status,
+                r.created_at AS createdAt, r.reviewed_at AS reviewedAt,
+                tu.name AS targetName, tu.email AS targetEmail, tu.id AS targetId
+           FROM user_reports r
+           JOIN users tu ON tu.id = r.target_id
+          WHERE r.reporter_id = ?
+          ORDER BY r.created_at DESC
+          LIMIT 100`,
+      )
+      .bind(v_43e90c)
+      .all()
+  ).results;
+  return v_3f4e2e.json({ items: v_18b8bf });
+});
+
+v_de7ba7.get("/me/reports/received", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4622b9 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason,
+                r.created_at AS createdAt, r.reviewed_at AS reviewedAt,
+                w.reason AS warningReason, w.created_at AS warnedAt
+           FROM user_reports r
+           LEFT JOIN user_warnings w
+             ON w.report_id = r.id AND w.user_id = r.target_id
+          WHERE r.target_id = ? AND r.status = 'actioned'
+          ORDER BY r.created_at DESC
+          LIMIT 100`,
+      )
+      .bind(v_43e90c)
+      .all()
+  ).results;
+  const v_8718c0 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(v_43e90c)
+    .first<{ n: number }>();
+  const v_ceb55a = await v_3f4e2e.env.DB
+    .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+    .bind(v_43e90c)
+    .first<{ s: string | null }>();
+  return v_3f4e2e.json({
+    items: v_4622b9,
+    warningCount: v_8718c0?.n ?? 0,
+    suspendedUntil: v_ceb55a?.s ?? null,
+  });
+});
+
 v_de7ba7.delete("/me/devices/:id", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_eb3eac = Number(v_3f4e2e.req.param("id"));
