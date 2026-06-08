@@ -703,7 +703,11 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
   const v_02be30 = Math.max(1, Math.min(100, Number.isFinite(v_cf2260) ? v_cf2260 : 30));
   const v_013af2 = await v_efcb2d(v_3f4e2e);
 
-  const v_abcc8d = ["fc.feed_id = ?", "fc.parent_comment_id IS NULL"];
+  const v_abcc8d = [
+    "fc.feed_id = ?",
+    "fc.parent_comment_id IS NULL",
+    "fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
+  ];
   const v_925171 = [v_c09aa8];
   if (v_75cbf4 && Number.isInteger(v_75cbf4) && v_75cbf4 > 0) {
     v_abcc8d.push("fc.id < ?");
@@ -727,7 +731,8 @@ v_f1d06f.get("/:id/comments", async (v_3f4e2e) => {
                 u.email        AS userEmail,
                 u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
-                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
+                   WHERE fcc.parent_comment_id = fc.id
+                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS repliesCount
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE ${v_abcc8d.join(" AND ")} AND u.deleted_at IS NULL
@@ -805,6 +810,7 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
           WHERE fc.feed_id = ?
             AND fc.parent_comment_id = ?
             AND u.deleted_at IS NULL
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
           ORDER BY fc.id ASC
           LIMIT ?`,
       )
@@ -973,13 +979,15 @@ v_96e8d7.get("/:id/comments", async (v_3f4e2e) => {
                 u.email        AS userEmail,
                 u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
-                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
+                   WHERE fcc.parent_comment_id = fc.id
+                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS repliesCount
            FROM feed_comments fc
            JOIN feeds f ON f.id = fc.feed_id
            JOIN users u ON u.id = fc.user_id
           WHERE f.clone_id = ?
             AND fc.parent_comment_id IS NULL
             AND u.deleted_at IS NULL
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
           ORDER BY fc.id DESC
           LIMIT ?`,
       )

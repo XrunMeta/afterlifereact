@@ -28,6 +28,12 @@ const v_210e32 = {
   dismissed: { label: "기각", color: "#64748b", bg: "#f1f5f9" },
 };
 
+const v_a28029 = {
+  user: "유저",
+  clone: "페르소나",
+  comment: "댓글",
+};
+
 const v_85cf93 = (v_6fc191) => (v_6fc191 ? v_6fc191.slice(0, 16).replace("T", " ") : "—");
 
 export default function v_7e6637() {
@@ -74,8 +80,9 @@ export default function v_7e6637() {
     return (
       <View style={v_fd5f43.row}>
         <View style={{ flex: 1 }}>
+          <Text style={v_fd5f43.typeTag}>{v_a28029[v_8c0b26.type] ?? "신고"}</Text>
           <Text style={v_fd5f43.name} numberOfLines={1}>
-            {v_8c0b26.targetName || v_8c0b26.targetEmail.split("@")[0]}
+            {v_8c0b26.targetName || v_8c0b26.targetEmail.split("@")[0] || "—"}
           </Text>
           <Text style={v_fd5f43.sub} numberOfLines={2}>
             {v_8c0b26.reason || "(사유 없음)"}
@@ -137,7 +144,7 @@ export default function v_7e6637() {
       ) : v_11083e === "made" ? (
         <FlatList
           data={v_51146d}
-          keyExtractor={(v_23805a) => `m-${v_23805a.id}`}
+          keyExtractor={(v_23805a) => `m-${v_23805a.type}-${v_23805a.id}`}
           renderItem={v_757d4c}
           ListEmptyComponent={
             <View style={v_fd5f43.empty}>
@@ -150,7 +157,7 @@ export default function v_7e6637() {
       ) : (
         <FlatList
           data={v_79f454}
-          keyExtractor={(v_23805a) => `r-${v_23805a.id}`}
+          keyExtractor={(v_23805a) => `r-${v_23805a.reportType}-${v_23805a.id}`}
           renderItem={v_30f616}
           ListHeaderComponent={
             <View style={v_fd5f43.statusCard}>
@@ -199,6 +206,7 @@ const v_fd5f43 = v_472849.create({
     borderBottomWidth: 1,
     borderBottomColor: v_1bfbd0.zinc100,
   },
+  typeTag: { fontSize: 11, fontWeight: "700", color: v_1bfbd0.zinc400, marginBottom: 2 },
   name: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
   sub: { fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 3 },
   adminMsg: { fontSize: 12, color: "#b45309", marginTop: 4, lineHeight: 17 },
