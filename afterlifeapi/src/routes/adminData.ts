@@ -87,7 +87,7 @@ adminData.get("/oth-path", async (c) => {
 
   const rows = (
     await c.env.DB.prepare(
-      `SELECT c.id, c.name, c.username,
+      `SELECT c.id, c.name, c.username, c.avatar_url AS avatarUrl,
               c.clone_type AS cloneType, c.visibility,
               c.training_status AS trainingStatus,
               c.owner_id AS ownerId,
@@ -98,7 +98,17 @@ adminData.get("/oth-path", async (c) => {
               c.soft_deleted_at AS softDeletedAt,
               c.deleted_at AS deletedAt,
               (SELECT COUNT(*) FROM clone_reports cr
-                WHERE cr.clone_id = c.id AND cr.status = 'open') AS reportCount
+                WHERE cr.clone_id = c.id AND cr.status = 'open') AS reportCount,
+              (SELECT COUNT(*) FROM feed_comments fcc
+                 JOIN feeds f ON f.id = fcc.feed_id
+                WHERE f.clone_id = c.id) AS commentCount,
+              (SELECT COUNT(*) FROM feed_likes fl
+                 JOIN feeds f ON f.id = fl.feed_id
+                WHERE f.clone_id = c.id) AS likeCount,
+              (SELECT COUNT(*) FROM clone_follows cf
+                WHERE cf.clone_id = c.id) AS followerCount,
+              (SELECT COUNT(*) FROM user_clone_interactions uci
+                WHERE uci.clone_id = c.id) AS interactionCount
          FROM clones c
          LEFT JOIN users u ON u.id = c.owner_id
         ORDER BY c.id DESC
