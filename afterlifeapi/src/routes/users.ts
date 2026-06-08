@@ -996,7 +996,7 @@ v_de7ba7.get("/me/reports/received", v_6690d9, async (v_3f4e2e) => {
            FROM user_reports r
            LEFT JOIN user_warnings w
              ON w.report_id = r.id AND w.user_id = r.target_id
-          WHERE r.target_id = ? AND r.status = 'actioned'
+          WHERE r.target_id = ? AND r.status IN ('actioned', 'reviewed')
           ORDER BY r.created_at DESC
           LIMIT 100`,
       )
