@@ -1381,6 +1381,23 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
     extraBody: `${v_4d33b2.giftName} 선물 (+${v_1d6a30} XRUN)`,
   });
 
+  try {
+    const { recordAfterlifeGiftCommission: v_b48b59 } = await import("../lib/giftCommission");
+    const v_cb35cb = await v_b48b59(v_3f4e2e.env, {
+      cloneId: v_6e0fd3,
+      ownerXrunMember: v_257b90?.xrun_member_id ?? null,
+      totalXrun: v_c83285,
+      giftName: v_4d33b2.giftName,
+    });
+    if (!v_cb35cb.recorded) {
+      console.log(`[gift] commission skip: ${v_cb35cb.reason}`);
+    } else {
+      console.log(`[gift] commission recorded — recommender=${v_cb35cb.recommender} amount=${v_cb35cb.amount}`);
+    }
+  } catch (v_49263d) {
+    console.warn("[gift] commission record failed:", (v_49263d as Error).message);
+  }
+
   return v_3f4e2e.json({
     ok: true,
     gift: {
