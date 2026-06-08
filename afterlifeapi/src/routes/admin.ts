@@ -1003,7 +1003,10 @@ admin.get("/oth-path", requireAdmin, async (c) => {
 
   const commentType = new URL(c.req.url).searchParams.get("commentType") ?? "all";
 
-  const where: string[] = ["f.clone_id = ?"];
+  const where: string[] = [
+    "f.clone_id = ?",
+    "fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
+  ];
   const binds: unknown[] = [cloneId];
   if (commentType === "parent") where.push("fcc.parent_comment_id IS NULL");
   else if (commentType === "reply") where.push("fcc.parent_comment_id IS NOT NULL");
@@ -1029,7 +1032,8 @@ admin.get("/oth-path", requireAdmin, async (c) => {
               fcc.parent_comment_id AS parentId,
               pu.name AS parentUserName,
               pc.content AS parentContent,
-              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount,
+              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id
+                 AND r.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS replyCount,
               (SELECT COUNT(*) FROM comment_reports cr WHERE cr.comment_id = fcc.id) AS reportCount,
               (SELECT cr.status FROM comment_reports cr WHERE cr.comment_id = fcc.id
                  ORDER BY (cr.status = 'reviewed') DESC, cr.created_at DESC LIMIT 1) AS reportStatus
