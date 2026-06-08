@@ -1293,10 +1293,10 @@ v_de7ba7.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
       `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
     ).bind(v_43e90c, v_b1de41),
     v_3f4e2e.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(v_43e90c, v_b1de41),
     v_3f4e2e.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(v_b1de41, v_43e90c),
   ]);
   await v_74defc(v_3f4e2e, {
@@ -1343,10 +1343,10 @@ v_de7ba7.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
       `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
     ).bind(v_43e90c, v_b1de41),
     v_3f4e2e.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(v_43e90c, v_b1de41),
     v_3f4e2e.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(v_b1de41, v_43e90c),
   ]);
   await v_74defc(v_3f4e2e, {

@@ -201,6 +201,12 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
     `[deletion.me] clones cascade: softDeleted=${v_f891e6.softDeleted} transferred=${v_f891e6.transferred}`,
   );
 
+  const v_ab75ce = await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM user_follows WHERE follower_id = ? OR followee_id = ?`)
+    .bind(v_43e90c, v_43e90c)
+    .run();
+  console.log(`[deletion.me] user_follows removed: ${v_ab75ce.meta?.changes ?? 0}`);
+
   try {
     const v_213c33 = await v_3f4e2e.env.DB
       .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
