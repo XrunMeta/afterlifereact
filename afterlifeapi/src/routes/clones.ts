@@ -153,6 +153,22 @@ clones.post(
     const userId = c.get("userId")!;
     const db = c.env.DB;
 
+    const susp = await db
+      .prepare(
+        `SELECT suspended_until FROM users
+          WHERE id = ? AND suspended_until IS NOT NULL
+            AND suspended_until > datetime('now')`,
+      )
+      .bind(userId)
+      .first<{ suspended_until: string }>();
+    if (susp) {
+      throw new APIError(
+        "FORBIDDEN",
+        "신고 누적으로 계정이 일시 비활성화되어 페르소나를 생성할 수 없어요.",
+        { suspendedUntil: susp.suspended_until },
+      );
+    }
+
     if (USERNAME_BLACKLIST.has(body.username)) {
       throw new APIError("VALIDATION_FAILED", "username is reserved.");
     }
