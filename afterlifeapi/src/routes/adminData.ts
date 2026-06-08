@@ -592,13 +592,21 @@ v_133c2c.post("/oth-path", async (v_3f4e2e) => {
     .first<{ n: number }>();
   const v_e87618 = v_7b3f91?.n ?? 0;
 
-  let v_3e0055 = null;
-  const v_7f572b = v_e87618 >= 3;
-  if (v_7f572b) {
+  const v_32000f = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+        WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+    )
+    .bind(v_e87618)
+    .first<{ action: string; suspendDays: number | null }>();
 
+  let v_3e0055 = null;
+  let v_7f572b = false;
+  if (v_32000f?.action === "suspend" && v_32000f.suspendDays && v_32000f.suspendDays > 0) {
+    v_7f572b = true;
     await v_3f4e2e.env.DB
-      .prepare(`UPDATE users SET suspended_until = datetime('now', '+30 days') WHERE id = ?`)
-      .bind(v_389afb)
+      .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+      .bind(`+${v_32000f.suspendDays} days`, v_389afb)
       .run();
     const v_3ac7e7 = await v_3f4e2e.env.DB
       .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
@@ -617,7 +625,71 @@ v_133c2c.post("/oth-path", async (v_3f4e2e) => {
       .run();
   }
 
-  return v_3f4e2e.json({ ok: true, warningCount: v_e87618, suspended: v_7f572b, suspendedUntil: v_3e0055 });
+  return v_3f4e2e.json({
+    ok: true,
+    warningCount: v_e87618,
+    suspended: v_7f572b,
+    suspendedUntil: v_3e0055,
+    appliedAction: v_32000f?.action ?? "none",
+    appliedSuspendDays: v_32000f?.suspendDays ?? null,
+  });
+});
+
+v_133c2c.get("/report-penalty-rules", async (v_3f4e2e) => {
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT threshold, action, suspend_days AS suspendDays, updated_at AS updatedAt
+           FROM report_penalty_rules ORDER BY threshold ASC`,
+      )
+      .all()
+  ).results;
+  return v_3f4e2e.json({ items: v_18b8bf });
+});
+
+v_133c2c.put("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
+  const v_d361d7 = Number(v_3f4e2e.req.param("threshold"));
+  if (!Number.isInteger(v_d361d7) || v_d361d7 < 1 || v_d361d7 > 99) {
+    return v_3f4e2e.json({ error: "invalid_threshold" }, 400);
+  }
+  let v_4d33b2 = {};
+  try {
+    v_4d33b2 = (await v_3f4e2e.req.json()) as { action?: string; suspendDays?: number | null };
+  } catch {
+
+  }
+  const v_9b064f = v_4d33b2.action === "suspend" ? "suspend" : "warn";
+  const v_141abe =
+    v_9b064f === "suspend" && Number.isInteger(v_4d33b2.suspendDays) && (v_4d33b2.suspendDays as number) > 0
+      ? (v_4d33b2.suspendDays as number)
+      : null;
+  if (v_9b064f === "suspend" && !v_141abe) {
+    return v_3f4e2e.json({ error: "suspend_days_required" }, 400);
+  }
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO report_penalty_rules (threshold, action, suspend_days, updated_at)
+         VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(threshold) DO UPDATE SET
+         action = excluded.action,
+         suspend_days = excluded.suspend_days,
+         updated_at = CURRENT_TIMESTAMP`,
+    )
+    .bind(v_d361d7, v_9b064f, v_141abe)
+    .run();
+  return v_3f4e2e.json({ ok: true, threshold: v_d361d7, action: v_9b064f, suspendDays: v_141abe });
+});
+
+v_133c2c.delete("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
+  const v_d361d7 = Number(v_3f4e2e.req.param("threshold"));
+  if (!Number.isInteger(v_d361d7) || v_d361d7 < 1) {
+    return v_3f4e2e.json({ error: "invalid_threshold" }, 400);
+  }
+  const v_8f00b9 = await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM report_penalty_rules WHERE threshold = ?`)
+    .bind(v_d361d7)
+    .run();
+  return v_3f4e2e.json({ ok: true, deleted: v_8f00b9.meta?.changes ?? 0 });
 });
 
 v_133c2c.post("/oth-path", async (v_3f4e2e) => {

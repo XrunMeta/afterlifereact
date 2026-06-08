@@ -290,4 +290,27 @@ export const v_05a921 = {
       `/oth-path${v_99000e}/dismiss`,
       { method: "POST" },
     ),
+
+  getReportPenaltyRules: () =>
+    v_576f5a<{
+      items: Array<{
+        threshold: number;
+        action: "warn" | "suspend";
+        suspendDays: number | null;
+        updatedAt: string;
+      }>;
+    }>(`/oth-path`),
+  putReportPenaltyRule: (
+    v_d361d7,
+    v_4d33b2,
+  ) =>
+    v_576f5a<{ ok: true }>(`/oth-path${v_d361d7}`, {
+      method: "PUT",
+      body: JSON.stringify(v_4d33b2),
+    }),
+  deleteReportPenaltyRule: (v_d361d7) =>
+    v_576f5a<{ ok: true; deleted: number }>(
+      `/oth-path${v_d361d7}`,
+      { method: "DELETE" },
+    ),
 };

@@ -25,6 +25,7 @@ const v_714568 = [
       { path: "/otp", label: "OTP" },
       { path: "/reports", label: "Reports (Personas)" },
       { path: "/oth-path-reports", label: "Reports (Users)" },
+      { path: "/report-rules", label: "신고 누적 조건" },
     ],
   },
   {
