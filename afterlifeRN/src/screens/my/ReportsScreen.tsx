@@ -90,7 +90,7 @@ export default function ReportsScreen() {
           </Text>
           {item.adminMessage ? (
             <Text style={s.adminMsg} numberOfLines={3}>
-              📩 관리자: {item.adminMessage}
+              관리자: {item.adminMessage}
             </Text>
           ) : null}
           <Text style={s.date}>{fmt(item.createdAt)}</Text>
@@ -111,7 +111,7 @@ export default function ReportsScreen() {
         </Text>
         {item.adminMessage || item.warningReason ? (
           <Text style={s.adminMsg} numberOfLines={3}>
-            📩 관리자: {item.adminMessage || item.warningReason}
+            관리자: {item.adminMessage || item.warningReason}
           </Text>
         ) : null}
         <Text style={s.date}>
