@@ -539,6 +539,50 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
 });
 
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_cf2260 = Number(v_f71b56.searchParams.get("limit") ?? 100);
+  const v_02be30 = Math.max(1, Math.min(500, Number.isFinite(v_cf2260) ? v_cf2260 : 100));
+  const v_d308b5 = v_f71b56.searchParams.get("status");
+
+  const v_abcc8d = ["1=1"];
+  const v_925171 = [];
+  if (v_d308b5 && ["open", "reviewed", "dismissed"].includes(v_d308b5)) {
+    v_abcc8d.push("r.status = ?");
+    v_925171.push(v_d308b5);
+  }
+
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT r.id AS id,
+                r.user_id AS userId,
+                u.name AS userName,
+                u.email AS userEmail,
+                r.clone_id AS cloneId,
+                c.name AS cloneName,
+                c.username AS cloneUsername,
+                c.owner_id AS cloneOwnerId,
+                co.name AS cloneOwnerName,
+                co.email AS cloneOwnerEmail,
+                r.reason AS reason,
+                r.status AS status,
+                r.created_at AS createdAt,
+                r.reviewed_at AS reviewedAt
+           FROM clone_reports r
+           JOIN users u ON u.id = r.user_id
+           JOIN clones c ON c.id = r.clone_id
+           LEFT JOIN users co ON co.id = c.owner_id
+          WHERE ${v_abcc8d.join(" AND ")}
+          ORDER BY r.created_at DESC
+          LIMIT ?`,
+      )
+      .bind(...v_925171, v_02be30)
+      .all()
+  ).results;
+  return v_3f4e2e.json({ items: v_18b8bf });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
