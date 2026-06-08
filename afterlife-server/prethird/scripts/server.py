@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging, os
+from typing import Any
 from aiohttp import web
 import config
 from signaling import make_app
@@ -7,6 +8,17 @@ from signaling import make_app
 logging.basicConfig(level=os.environ.get("PRETHIRD_LOG_LEVEL", "INFO"),
                     format="%(asctime)s %(levelname)s %(name)s %(message)s")
 log = logging.getLogger("prethird.server")
+
+
+def _resolve_persona_se(sess: Any, default_se: str | None) -> tuple[list, str | None]:
+    """세션별 persona_messages/se_path 를 해석해 반환한다.
+
+    - sess.persona_messages 가 비어있지 않으면 그것을 사용, 아니면 []
+    - sess.se_path 가 있으면 그것을 사용, 없으면 default_se
+    """
+    persona = getattr(sess, "persona_messages", None) or []
+    se = getattr(sess, "se_path", None) or default_se
+    return persona, se
 
 
 def _build_pipeline_factory():
@@ -30,10 +42,10 @@ def _build_pipeline_factory():
     mt.load()
     log.info("musetalk in-process loaded (ref=%s)", video_path)
 
-    se_path = os.environ.get("PRETHIRD_TTS_SE_PATH", "") or None
-    persona: list = []  # 추후 페르소나 주입(별도)
+    default_se = os.environ.get("PRETHIRD_TTS_SE_PATH", "") or None
 
     def factory(sess):
+        persona_messages, se_path = _resolve_persona_se(sess, default_se)
         return DialoguePipeline(
             video_track=sess.video_track,
             audio_track=sess.audio_track,
@@ -41,7 +53,7 @@ def _build_pipeline_factory():
             say_fn=tts_say,
             decode_wav_fn=_decode_wav,
             infer_fn=mt.infer,
-            persona_messages=persona,
+            persona_messages=persona_messages,
             se_path=se_path,
         )
 
