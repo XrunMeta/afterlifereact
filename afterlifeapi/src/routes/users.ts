@@ -388,6 +388,14 @@ v_de7ba7.post("/me/devices", v_6690d9, async (v_3f4e2e) => {
   if (!v_4d33b2.deviceId || !v_4d33b2.pushToken || !v_4d33b2.platform) {
     throw new v_3ebe58("VALIDATION_FAILED", "deviceId, pushToken, platform required.");
   }
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE push_token = ? AND is_active = 1 AND NOT (user_id = ? AND device_id = ?)`,
+    )
+    .bind(v_4d33b2.pushToken, v_43e90c, v_4d33b2.deviceId)
+    .run();
   await v_3f4e2e.env.DB
     .prepare(
       `INSERT INTO user_devices (user_id, device_id, push_token, platform, is_active, last_active_at)
