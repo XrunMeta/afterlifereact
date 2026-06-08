@@ -580,6 +580,80 @@ admin.get("/oth-path", requireAdmin, async (c) => {
   return c.json(row);
 });
 
+admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
+  const xrunId = Number(c.req.param("xrunMemberId"));
+  if (!Number.isInteger(xrunId) || xrunId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid xrun member id.");
+  }
+  const user = await c.env.DB
+    .prepare(
+      `SELECT id, name, email,
+              deletion_state AS deletionState,
+              created_at AS createdAt
+         FROM users
+        WHERE xrun_member_id = ?
+        LIMIT 1`,
+    )
+    .bind(xrunId)
+    .first<{
+      id: number;
+      name: string | null;
+      email: string;
+      deletionState: string;
+      createdAt: string | null;
+    }>();
+
+  if (!user) {
+    return c.json({
+      user: null,
+      clones: [],
+      cloneReportsCount: 0,
+      userReportsCount: 0,
+    });
+  }
+
+  const clones = (
+    await c.env.DB
+      .prepare(
+        `SELECT c.id, c.name, c.username,
+                c.clone_type AS cloneType,
+                c.visibility,
+                c.training_status AS trainingStatus,
+                c.deletion_state AS deletionState,
+                c.created_at AS createdAt,
+                (SELECT COUNT(*) FROM clone_reports cr WHERE cr.clone_id = c.id) AS reportCount
+           FROM clones c
+          WHERE c.owner_id = ?
+          ORDER BY c.id DESC
+          LIMIT 200`,
+      )
+      .bind(user.id)
+      .all()
+  ).results;
+
+  const cloneReports = await c.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM clone_reports cr
+         JOIN clones c ON c.id = cr.clone_id
+        WHERE c.owner_id = ?`,
+    )
+    .bind(user.id)
+    .first<{ cnt: number }>();
+
+  const userReports = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM user_reports WHERE target_id = ?`)
+    .bind(user.id)
+    .first<{ cnt: number }>();
+
+  return c.json({
+    user,
+    clones,
+    cloneReportsCount: cloneReports?.cnt ?? 0,
+    userReportsCount: userReports?.cnt ?? 0,
+  });
+});
+
 admin.get("/oth-path", requireAdmin, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
