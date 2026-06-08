@@ -547,9 +547,10 @@ export async function v_914311(
   return v_8decf8 as { items: CloneFollower[] };
 }
 
-export interface BlockedClone {
+export interface BlockedItemClone {
   blockId: number;
   createdAt: string;
+  type: "clone";
   clone: {
     id: number;
     name: string;
@@ -558,6 +559,18 @@ export interface BlockedClone {
     cloneType: CloneType;
   };
 }
+export interface BlockedItemUser {
+  blockId: number;
+  createdAt: string;
+  type: "user";
+  user: {
+    id: number;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+export type BlockedItem = BlockedItemClone | BlockedItemUser;
 
 export async function v_9deb40(
   v_2ca7e0,
@@ -643,8 +656,8 @@ export async function v_c0dd8d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked:
   console.log(`[BLOCK-API] ← unblock ok cloneId=${v_6e0fd3}`, v_8f00b9);
   return v_8f00b9;
 }
-export async function v_dbedc9(v_2ca7e0): Promise<{ items: BlockedClone[] }> {
-  const v_8f00b9 = await v_04b58a<{ items: BlockedClone[] }>(
+export async function v_dbedc9(v_2ca7e0): Promise<{ items: BlockedItem[] }> {
+  const v_8f00b9 = await v_04b58a<{ items: BlockedItem[] }>(
     `/oth-path`,
     v_2ca7e0,
     { method: "GET" },
