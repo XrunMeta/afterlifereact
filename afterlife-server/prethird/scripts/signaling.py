@@ -6,10 +6,15 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from session import SessionManager
 from bundle_client import fetch_bundle
 from persona_prompt import bundle_to_messages
+from asset_fetch import fetch_to
 
 REF_VOICES_ROOT = os.environ.get(
     "PRETHIRD_REF_VOICES_ROOT",
     "/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices",
+)
+VIDEO_REF_ROOT = os.environ.get(
+    "PRETHIRD_VIDEO_REF_ROOT",
+    "/home/afterlife/afterlife-server/prethird/video-ref",
 )
 
 _START = time.time()
@@ -108,9 +113,23 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                             sess.se_path = se_pth
                         else:
                             log.info("se_path 후보 부재 → 기본 voice 사용 (dir=%s)", candidate_dir)
+                    # idleVideoUrl: R2에서 클론별 idle mp4 pull → sess.video_path
+                    idle_url = assets.get("idleVideoUrl")
+                    if idle_url and clone_id is not None:
+                        dest = f"{VIDEO_REF_ROOT}/{clone_id}/{clone_id}-idle-25fps.mp4"
+                        try:
+                            await fetch_to(idle_url, dest)
+                            sess.video_path = dest
+                            # idle 영상도 per-clone으로 교체
+                            sess.video_track.set_idle_video(dest)
+                            log.info("idle video pull OK clone=%s dest=%s", clone_id, dest)
+                        except Exception as e:
+                            log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
+                            # halbae fallback — sess.video_path = None 유지
             log.info(
-                "offer session=%s clone_id=%s persona=%d se=%s",
-                sess.session_id, sess.clone_id, len(sess.persona_messages), bool(sess.se_path),
+                "offer session=%s clone_id=%s persona=%d se=%s video_path=%s",
+                sess.session_id, sess.clone_id, len(sess.persona_messages),
+                bool(sess.se_path), sess.video_path,
             )
 
             # pipeline factory가 있으면 세션에 주입
