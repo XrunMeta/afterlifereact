@@ -766,6 +766,8 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
             --   검색/피드와 동일 정책(active 만).
             AND c.deletion_state = 'active'
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
+            -- 차단한 '유저'가 소유한 페르소나는 구독 목록에서도 제외 (검색/피드와 동일).
+            AND c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
             AND (
               -- 본인이 만든 페르소나
               c.owner_id = ?
@@ -775,7 +777,7 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
             )
           ORDER BY c.created_at DESC, c.id DESC`,
       )
-      .bind(v_43e90c, v_43e90c, v_43e90c, v_43e90c, v_43e90c)
+      .bind(v_43e90c, v_43e90c, v_43e90c, v_43e90c, v_43e90c, v_43e90c)
       .all<{
         id: number;
         name: string;
@@ -1452,6 +1454,12 @@ v_de7ba7.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
     v_3f4e2e.env.DB.prepare(
       `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(v_b1de41, v_43e90c),
+
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM clone_follows
+        WHERE user_id = ?
+          AND clone_id IN (SELECT id FROM clones WHERE owner_id = ?)`,
+    ).bind(v_43e90c, v_b1de41),
   ]);
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
