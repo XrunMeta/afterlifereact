@@ -153,16 +153,18 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 {insufficient && " — 잔액 부족"}
               </Text>
             )}
-            <OtpCodeInput
-              value={pin}
-              onChange={(v) => {
-                setPin(v);
-                setError(null);
-              }}
-              masked
-              autoFocus={!blockInput}
-              editable={!blockInput}
-            />
+            <View style={styles.pinWrap}>
+              <OtpCodeInput
+                value={pin}
+                onChange={(v) => {
+                  setPin(v);
+                  setError(null);
+                }}
+                masked
+                autoFocus={!blockInput}
+                editable={!blockInput}
+              />
+            </View>
             {error && <Text style={styles.error}>{error}</Text>}
             <View style={styles.btns}>
               <TouchableOpacity
@@ -258,9 +260,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.zinc100,
     color: COLORS.zinc400,
   },
-  error: { fontSize: 12, color: "#ef4444", marginTop: 12, marginBottom: 0 },
 
-  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 24 },
+  pinWrap: { width: "100%", paddingVertical: 16, alignItems: "center" },
+  error: { fontSize: 12, color: "#ef4444", marginTop: 4, marginBottom: 0 },
+  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 20 },
   cancel: {
     flex: 1,
     paddingVertical: 12,
