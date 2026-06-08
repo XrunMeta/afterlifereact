@@ -700,12 +700,26 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
     .bind(v_625c74.id)
     .first<{ cnt: number }>();
 
+  const v_4615a9 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT (
+         (SELECT COUNT(*) FROM user_reports    WHERE reporter_id = ?) +
+         (SELECT COUNT(*) FROM clone_reports   WHERE user_id     = ?) +
+         (SELECT COUNT(*) FROM comment_reports WHERE user_id     = ?)
+       ) AS cnt`,
+    )
+    .bind(v_625c74.id, v_625c74.id, v_625c74.id)
+    .first<{ cnt: number }>();
+
   return v_3f4e2e.json({
     user: v_625c74,
     clones: v_f891e6,
     cloneReportsCount: v_cf098c?.cnt ?? 0,
     userReportsCount: v_59cd44?.cnt ?? 0,
     commentReportsCount: v_63754b?.cnt ?? 0,
+
+    reportsReceivedCount: (v_cf098c?.cnt ?? 0) + (v_59cd44?.cnt ?? 0) + (v_63754b?.cnt ?? 0),
+    reportsMadeCount: v_4615a9?.cnt ?? 0,
   });
 });
 
@@ -718,6 +732,7 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
   const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
   const v_b1de41 = Number(v_f71b56.searchParams.get("targetId") ?? 0); 
   const v_3ab22a = Number(v_f71b56.searchParams.get("responsibleUserId") ?? 0); 
+  const v_ae5cec = Number(v_f71b56.searchParams.get("reporterId") ?? 0); 
   const v_a13c2e = (v_f71b56.searchParams.get("from") ?? "").trim(); 
   const v_257132 = (v_f71b56.searchParams.get("to") ?? "").trim(); 
   const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
@@ -841,6 +856,11 @@ v_b7f2b4.get("/reports", v_c0a297, async (v_3f4e2e) => {
   if (v_3ab22a > 0) {
     v_abcc8d.push("r.responsibleUserId = ?");
     v_925171.push(v_3ab22a);
+  }
+
+  if (v_ae5cec > 0) {
+    v_abcc8d.push("r.reporterId = ?");
+    v_925171.push(v_ae5cec);
   }
   if (v_ca4710 > 0) {
     v_abcc8d.push("r.targetReportCount >= ?");
