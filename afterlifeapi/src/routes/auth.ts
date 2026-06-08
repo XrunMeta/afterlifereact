@@ -102,11 +102,11 @@ auth.post("/google", async (c) => {
 
   let userRow = await db
     .prepare(
-      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state FROM users
+      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until FROM users
         WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(payload.email)
-    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string }>();
+    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
 
   if (!userRow) {
 
@@ -122,10 +122,10 @@ auth.post("/google", async (c) => {
       .prepare(
         `INSERT INTO users (name, email, password_hash, avatar_url)
          VALUES (?, ?, ?, ?)
-         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state`,
+         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until`,
       )
       .bind(fallbackName, payload.email, passwordHash, payload.picture ?? null)
-      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string }>();
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
     if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
     userRow = inserted;
 
@@ -176,6 +176,12 @@ auth.post("/google", async (c) => {
 
     if (userRow.deletion_state !== "active") {
       throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+    }
+
+    if (userRow.banned_until && parseSqliteTimestamp(userRow.banned_until) > Date.now()) {
+      throw new APIError("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+        bannedUntil: userRow.banned_until,
+      });
     }
     await logActivity(c, {
       userId: userRow.id,
