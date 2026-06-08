@@ -811,6 +811,7 @@ v_f1d06f.get("/:id/comments/:cid/replies", async (v_3f4e2e) => {
             AND fc.parent_comment_id = ?
             AND u.deleted_at IS NULL
             AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
+            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
           ORDER BY fc.id ASC
           LIMIT ?`,
       )

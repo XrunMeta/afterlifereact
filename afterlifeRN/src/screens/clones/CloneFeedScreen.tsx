@@ -28,7 +28,7 @@ import type { v_19b433 } from "../../types/feed";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_37977a } from "../../stores/feedStore";
-import { v_03e392 } from "rcmrninabrnb";
+import { v_889fad } from "../../stores/dialogStore";
 import {
   v_b14fce,
   v_0ff331,
@@ -335,7 +335,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_b6e98b = (v_d91518, v_ed660d) => {
     const v_8e2335 = v_6bbace > 0 ? v_6bbace : v_ed660d ?? 0;
     if (!v_8e2335 || !v_2ca7e0) return;
-    v_03e392.alert("댓글 신고", "이 댓글을 신고할까요?", [
+    v_889fad("댓글 신고", "이 댓글을 신고할까요?", [
       { text: "취소", style: "cancel" },
       {
         text: "신고",

@@ -126,6 +126,21 @@ export default function v_18ad36() {
     } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/oth-path\/(\d+)/))) {
 
       v_c65f5d.navigate("UserProfile", { userId: Number(v_35f85c[1]) });
+    } else if (
+      v_f4e98d.type === "intimacy_score" ||
+      (v_35f85c = v_f71b56.match(/^afterlife:\/\/clone\/(\d+)\/intimacy/)) !== null
+    ) {
+
+      const v_6e0fd3 =
+        typeof v_d5dda0.cloneId === "number"
+          ? v_d5dda0.cloneId
+          : Number(v_f71b56.match(/clone\/(\d+)/)?.[1] ?? 0);
+      if (v_6e0fd3 > 0) {
+        v_c65f5d.navigate("Main", {
+          screen: "ClonesTab",
+          params: { screen: "Dashboard", params: { openIntimacyCloneId: v_6e0fd3 } },
+        });
+      }
     } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/clone\/(\d+)/))) {
 
       const v_c09aa8 = typeof v_d5dda0.feedId === "number" ? v_d5dda0.feedId : undefined;

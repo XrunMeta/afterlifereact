@@ -1032,7 +1032,9 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
 
   const v_abcc8d = [
     "f.clone_id = ?",
+
     "fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
+    "(fcc.parent_comment_id IS NULL OR fcc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned')))",
   ];
   const v_925171 = [v_6e0fd3];
   if (v_33d725 === "parent") v_abcc8d.push("fcc.parent_comment_id IS NULL");

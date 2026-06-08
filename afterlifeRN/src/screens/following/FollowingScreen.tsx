@@ -604,6 +604,18 @@ export default function v_14b43e() {
               <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
               <Text style={v_fd5f43.badgeText}>{v_8c0b26.persona.interactions}</Text>
             </TouchableOpacity>
+            {}
+            <View style={v_fd5f43.badgeDivider} />
+            <TouchableOpacity
+              style={v_fd5f43.badgeBtn}
+              onPress={() => v_7cf37a(v_8c0b26.persona.id, v_8c0b26.feed.id > 0 ? v_8c0b26.feed.id : undefined)}
+            >
+              <Feather name="message-circle" size={12} color="#34d399" />
+              <Text style={v_fd5f43.badgeText}>
+                {(v_27a256.get(v_8c0b26.persona.id)?.commentsCount ?? 0) +
+                  (v_211631.get(v_8c0b26.persona.id)?.comments ?? 0)}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {}
@@ -661,42 +673,6 @@ export default function v_14b43e() {
           </View>
         </View>
 
-        {}
-        {(() => {
-          const v_ab4c96 = v_27a256.get(v_8c0b26.persona.id);
-          const v_e9396c = v_211631.get(v_8c0b26.persona.id) ?? { likes: 0, comments: 0 };
-          const v_b84498 = v_c591dc.has(v_8c0b26.persona.id);
-          const v_58313d = (v_ab4c96?.likesCount ?? 0) + v_e9396c.likes;
-          const v_7c0a2d = (v_ab4c96?.commentsCount ?? 0) + v_e9396c.comments;
-          return (
-            <View style={v_fd5f43.actionsRow}>
-              <View style={v_fd5f43.actionsLeft}>
-                <TouchableOpacity onPress={() => void v_936545(v_8c0b26.persona.id, v_8c0b26.feed.id)}>
-                  <Ionicons
-                    name={v_b84498 ? "heart" : "heart-outline"}
-                    size={24}
-                    color={v_b84498 ? "#ef4444" : v_1bfbd0.zinc700}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() =>
-                    v_7cf37a(v_8c0b26.persona.id, v_8c0b26.feed.id > 0 ? v_8c0b26.feed.id : undefined)
-                  }
-                >
-                  <Feather name="message-circle" size={24} color={v_1bfbd0.zinc700} />
-                </TouchableOpacity>
-              </View>
-              <View style={v_fd5f43.actionsRight}>
-                <Text style={v_fd5f43.countText}>
-                  {v_8d41d7("feed.likeCount", { n: v_cae9dc(Math.max(0, v_58313d)) })}
-                </Text>
-                <Text style={v_fd5f43.countTextSub}>
-                  {v_8d41d7("feed.commentCount", { n: Math.max(0, v_7c0a2d) })}
-                </Text>
-              </View>
-            </View>
-          );
-        })()}
       </View>
     );
   };
