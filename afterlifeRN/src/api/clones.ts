@@ -557,6 +557,8 @@ export interface BlockedItemClone {
     username: string;
     avatarUrl: string | null;
     cloneType: CloneType;
+    ownerId: number;
+    visibility: Visibility;
   };
 }
 export interface BlockedItemUser {

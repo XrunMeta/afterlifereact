@@ -799,7 +799,7 @@ const v_37dc27 = ["open", "reviewed", "dismissed"] as const;
 v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
-  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string }>().catch(() => ({}));
+  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string }>().catch(() => ({}) as { status?: string });
   const v_d308b5 = v_4d33b2.status ?? "";
   if (!(v_37dc27 as readonly string[]).includes(v_d308b5)) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid status.");
@@ -824,7 +824,7 @@ const v_28cef1 = ["open", "reviewed", "dismissed", "actioned"] as const;
 v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_389afb) || v_389afb <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid id.");
-  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string }>().catch(() => ({}));
+  const v_4d33b2 = await v_3f4e2e.req.json<{ status?: string }>().catch(() => ({}) as { status?: string });
   const v_d308b5 = v_4d33b2.status ?? "";
   if (!(v_28cef1 as readonly string[]).includes(v_d308b5)) {
     throw new v_3ebe58("VALIDATION_FAILED", "Invalid status.");
