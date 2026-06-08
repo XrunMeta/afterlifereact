@@ -53,7 +53,7 @@ v_469bf2("내 신고 — made / received", () => {
 
     const v_aac801 = await v_21cc31(v_5f5d6d);
     let v_ed7fe5 = (await (await v_309144(`/oth-path`, v_aac801)).json()) as {
-      items: unknown[];
+      items: Array<{ adminMessage: string | null }>;
       warningCount: number;
     };
     v_4d37e3(v_ed7fe5.items.length).toBe(0);
@@ -62,18 +62,24 @@ v_469bf2("내 신고 — made / received", () => {
       (await (await v_309144(`/oth-path`, v_956b49)).json()) as { items: Array<{ id: number; targetId: number }> }
     ).items.find((v_62c214) => v_62c214.targetId === v_5f5d6d)!.id;
     const v_b7f2b4 = await v_21cc31(await v_bfb240(), true);
-    v_4d37e3((await v_309144(`/oth-path${v_5f5d6d}/warn`, v_b7f2b4, "POST", { reportId: v_99000e })).status).toBe(200);
+    const v_7a8f8e = "신고가 확인되어 경고합니다.";
+    v_4d37e3(
+      (await v_309144(`/oth-path${v_5f5d6d}/warn`, v_b7f2b4, "POST", { reportId: v_99000e, reason: v_7a8f8e })).status,
+    ).toBe(200);
 
     v_51146d = (await (await v_309144(`/oth-path`, v_956b49)).json()) as {
-      items: Array<{ status: string; targetId: number }>;
+      items: Array<{ status: string; targetId: number; adminMessage: string | null }>;
     };
-    v_4d37e3(v_51146d.items.find((v_62c214) => v_62c214.targetId === v_5f5d6d)!.status).toBe("actioned");
+    const v_e69b90 = v_51146d.items.find((v_62c214) => v_62c214.targetId === v_5f5d6d)!;
+    v_4d37e3(v_e69b90.status).toBe("actioned");
+    v_4d37e3(v_e69b90.adminMessage).toBe(v_7a8f8e);
 
     v_ed7fe5 = (await (await v_309144(`/oth-path`, v_aac801)).json()) as {
-      items: unknown[];
+      items: Array<{ adminMessage: string | null }>;
       warningCount: number;
     };
     v_4d37e3(v_ed7fe5.items.length).toBe(1);
     v_4d37e3(v_ed7fe5.warningCount).toBe(1);
+    v_4d37e3(v_ed7fe5.items[0].adminMessage).toBe(v_7a8f8e);
   });
 });
