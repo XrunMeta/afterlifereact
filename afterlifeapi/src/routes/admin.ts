@@ -869,7 +869,48 @@ v_b7f2b4.patch("/oth-path", v_c0a297, async (v_3f4e2e) => {
     .bind(v_d308b5, v_7e89c9, v_389afb)
     .run();
   if (!v_cb35cb.meta.changes) throw new v_3ebe58("NOT_FOUND", "Report not found.");
-  return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9 });
+
+  let v_e87618;
+  if (v_d308b5 === "reviewed") {
+    const v_5b4e12 = await v_3f4e2e.env.DB
+      .prepare(`SELECT 1 AS x FROM user_warnings WHERE report_id = ? LIMIT 1`)
+      .bind(v_389afb)
+      .first();
+    if (!v_5b4e12) {
+      const v_f10744 = await v_3f4e2e.env.DB
+        .prepare(`SELECT target_id AS targetId FROM user_reports WHERE id = ?`)
+        .bind(v_389afb)
+        .first<{ targetId: number }>();
+      if (v_f10744) {
+        const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
+        await v_3f4e2e.env.DB
+          .prepare(
+            `INSERT INTO user_warnings (user_id, admin_id, report_id, reason) VALUES (?, ?, ?, ?)`,
+          )
+          .bind(v_f10744.targetId, v_db9be1, v_389afb, v_7e89c9)
+          .run();
+        const v_7b3f91 = await v_3f4e2e.env.DB
+          .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+          .bind(v_f10744.targetId)
+          .first<{ n: number }>();
+        v_e87618 = v_7b3f91?.n ?? 0;
+        const v_32000f = await v_3f4e2e.env.DB
+          .prepare(
+            `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+              WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+          )
+          .bind(v_e87618)
+          .first<{ action: string; suspendDays: number | null }>();
+        if (v_32000f?.action === "suspend" && v_32000f.suspendDays && v_32000f.suspendDays > 0) {
+          await v_3f4e2e.env.DB
+            .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+            .bind(`+${v_32000f.suspendDays} days`, v_f10744.targetId)
+            .run();
+        }
+      }
+    }
+  }
+  return v_3f4e2e.json({ ok: true, id: v_389afb, status: v_d308b5, adminMessage: v_7e89c9, warningCount: v_e87618 });
 });
 v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_389afb = Number(v_3f4e2e.req.param("id"));
