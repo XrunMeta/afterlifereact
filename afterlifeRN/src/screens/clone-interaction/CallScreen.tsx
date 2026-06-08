@@ -21,7 +21,8 @@ import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_bab832, v_a0300b } from "rthlnescfffbyxfmhgq";
-import { v_b38a7e } from "../../realtime/useLiveAvatar";
+import { v_2ab825 } from "../../realtime/useAvatarCall";
+import { v_c6d1f4 } from "../../config/callRoute";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
@@ -124,7 +125,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     say: v_3e2c87,
     getStatsReport: v_791152,
     notifySpeechEnd: v_811f30,
-  } = v_b38a7e({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
+  } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
 
   const {
     phase: v_ab4803,
@@ -438,6 +439,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ) : (
         <View style={[v_472849.absoluteFill, { backgroundColor: v_1bfbd0.zinc900 }]} />
       )}
+
+      {__DEV__ ? (
+        <Text style={{ position: 'absolute', top: 8, left: 8, zIndex: 10,
+          color: '#0f0', fontSize: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 2 }}>
+          route:{v_c6d1f4}
+        </Text>
+      ) : null}
 
       {}
       {v_6cc918 !== "live" && (
