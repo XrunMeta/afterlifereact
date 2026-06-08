@@ -15,11 +15,15 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import tempfile
+import time
 from typing import Callable
 
 import numpy as np
+
+log = logging.getLogger("prethird.pipeline")
 
 
 class DialoguePipeline:
@@ -68,6 +72,7 @@ class DialoguePipeline:
         self._sb_factory = lambda: SentenceBuffer(min_len, force_flush)
         self._resample = _resample_int16
         self._balance = _balance_pcm_to_video
+        self._last_emit_end: float | None = None  # [seg] 직전 _emit_sentence 종료 시각
 
     # ------------------------------------------------------------------
     # 퍼블릭 API
@@ -111,8 +116,14 @@ class DialoguePipeline:
         C2: on_frame은 executor 스레드에서 list 에만 모으고(call_soon_threadsafe 제거 →
         이벤트루프 부하 차단), infer 완료(await 배리어) 후 메인 루프에서 frames 를 큐에
         일괄 push + balance 한 audio 를 동시에 push 한다 = 문장 단위 a/v 동기."""
+        # [seg] 문장 간 공백 측정
+        _t_start = time.perf_counter()
+        since_prev_ms = int((_t_start - self._last_emit_end) * 1000) if self._last_emit_end is not None else 0
+
         # 1. TTS: wav bytes
+        _t0 = time.perf_counter()
         wav_bytes = await self.say_fn(sentence, self.se_path)
+        tts_ms = int((time.perf_counter() - _t0) * 1000)
 
         # 2. wav decode → resample to 48 kHz int16
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
@@ -130,9 +141,12 @@ class DialoguePipeline:
             # executor 스레드에서만 호출. list.append 는 GIL atomic, 이벤트루프 미접근.
             frames_buf.append(arr)
 
+        _t1 = time.perf_counter()
         await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
+        infer_ms = int((time.perf_counter() - _t1) * 1000)
 
         # 4. infer 완료 후 메인 루프에서 frames 일괄 push (문장 frames 완성본 → 송출 중 starve 없음)
+        _t2 = time.perf_counter()
         for arr in frames_buf:
             self.vt.push_ndarray(arr)
 
@@ -143,6 +157,26 @@ class DialoguePipeline:
         else:
             pcm_bal = pcm48
         self.at.push_pcm_int16(pcm_bal)
+        push_ms = int((time.perf_counter() - _t2) * 1000)
+
+        # [seg] 큐 수위 측정 (메서드 없으면 생략)
+        vq = getattr(self.vt, "queue_depth", lambda: None)()
+        _abuf_samples = getattr(self.at, "queue_depth_samples", lambda: None)()
+        abuf_ms = int(_abuf_samples / 48) if _abuf_samples is not None else None
+
+        # [seg] 1줄 로그
+        if abuf_ms is not None:
+            log.info(
+                "[seg] tts_ms=%d infer_ms=%d frames=%d push_ms=%d vq=%s abuf_ms=%d since_prev_ms=%d",
+                tts_ms, infer_ms, nframes, push_ms, vq, abuf_ms, since_prev_ms,
+            )
+        else:
+            log.info(
+                "[seg] tts_ms=%d infer_ms=%d frames=%d push_ms=%d vq=%s since_prev_ms=%d",
+                tts_ms, infer_ms, nframes, push_ms, vq, since_prev_ms,
+            )
+
+        self._last_emit_end = time.perf_counter()
 
         # 6. temp wav 정리
         try:
