@@ -690,11 +690,22 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
     .bind(user.id)
     .first<{ cnt: number }>();
 
+  const commentReports = await c.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM comment_reports cmr
+         JOIN feed_comments fc ON fc.id = cmr.comment_id
+        WHERE fc.user_id = ?`,
+    )
+    .bind(user.id)
+    .first<{ cnt: number }>();
+
   return c.json({
     user,
     clones,
     cloneReportsCount: cloneReports?.cnt ?? 0,
     userReportsCount: userReports?.cnt ?? 0,
+    commentReportsCount: commentReports?.cnt ?? 0,
   });
 });
 
