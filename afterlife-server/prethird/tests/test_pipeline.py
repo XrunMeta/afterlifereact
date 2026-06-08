@@ -182,6 +182,103 @@ def test_emit_sentence_batches_frames_after_infer():
     assert order == ["v", "v", "v", "v", "v", "a"]
 
 
+def test_pipeline_preserves_order_and_overlaps():
+    """파이프라인: 문장 순서대로 infer push, TTS/infer 분리 워커."""
+    import asyncio, numpy as np
+    pushed = []
+
+    class VT:
+        def push_ndarray(self, arr): pushed.append(("v", int(arr[0, 0, 0])))
+        def signal_end(self): pushed.append(("vend", 0))
+    class AT:
+        def push_pcm_int16(self, pcm): pushed.append(("a", int(pcm[0])))
+        def signal_end(self): pushed.append(("aend", 0))
+
+    async def fake_chat(messages):
+        for t in ["첫째.", "둘째.", "셋째."]:
+            yield t
+    async def fake_say(text, se_path=None):
+        idx = {"첫째.": 1, "둘째.": 2, "셋째.": 3}[text]
+        return bytes([idx]) + b"WAV"
+    def fake_decode(b):
+        idx = b[0]
+        return np.full(1920, idx, dtype=np.int16), 48000, 1
+    def fake_infer(wav_path, on_frame):
+        with open(wav_path, "rb") as f:
+            idx = f.read(1)[0]
+        on_frame(np.full((4, 4, 3), idx, np.uint8))
+        return 1
+
+    p = DialoguePipeline(video_track=VT(), audio_track=AT(),
+                         chat_fn=fake_chat, say_fn=fake_say,
+                         decode_wav_fn=fake_decode, infer_fn=fake_infer,
+                         min_len=1)
+    asyncio.run(p.say("안녕"))
+    v_order = [val for kind, val in pushed if kind == "v"]
+    assert v_order == [1, 2, 3]
+    assert ("vend", 0) in pushed and ("aend", 0) in pushed
+
+
+def test_pipeline_speak_order():
+    import asyncio, numpy as np
+    pushed = []
+
+    class VT:
+        def push_ndarray(self, arr): pushed.append(int(arr[0, 0, 0]))
+        def signal_end(self): pass
+    class AT:
+        def push_pcm_int16(self, pcm): pass
+        def signal_end(self): pass
+
+    async def fake_chat(messages):
+        if False: yield ""
+    seq = {"하나.": 1, "둘.": 2}
+    async def fake_say(text, se_path=None):
+        return bytes([seq[text]]) + b"WAV"
+    def fake_decode(b):
+        return np.full(10, b[0], dtype=np.int16), 48000, 1
+    def fake_infer(wav_path, on_frame):
+        with open(wav_path, "rb") as f:
+            idx = f.read(1)[0]
+        on_frame(np.full((4, 4, 3), idx, np.uint8))
+        return 1
+
+    p = DialoguePipeline(video_track=VT(), audio_track=AT(),
+                         chat_fn=fake_chat, say_fn=fake_say,
+                         decode_wav_fn=fake_decode, infer_fn=fake_infer)
+    asyncio.run(p.speak("하나. 둘."))
+    assert pushed == [1, 2]
+
+
+def test_pipeline_exception_still_signals_end():
+    """워커 예외(say_fn 실패)여도 signal_end 가 호출되고 예외가 전파된다(B-2)."""
+    import asyncio, numpy as np, pytest
+    ended = []
+
+    class VT:
+        def push_ndarray(self, arr): pass
+        def signal_end(self): ended.append("v")
+    class AT:
+        def push_pcm_int16(self, pcm): pass
+        def signal_end(self): ended.append("a")
+
+    async def fake_chat(messages):
+        yield "문장."
+    async def fake_say(text, se_path=None):
+        raise RuntimeError("TTS down")
+    def fake_decode(b):
+        return np.zeros(10, dtype=np.int16), 48000, 1
+    def fake_infer(wav_path, on_frame):
+        return 0
+
+    p = DialoguePipeline(video_track=VT(), audio_track=AT(),
+                         chat_fn=fake_chat, say_fn=fake_say,
+                         decode_wav_fn=fake_decode, infer_fn=fake_infer, min_len=1)
+    with pytest.raises(RuntimeError):
+        asyncio.run(p.say("x"))
+    assert "v" in ended and "a" in ended  # finally 로 signal_end 보장
+
+
 @pytest.mark.asyncio
 async def test_pipeline_empty_stream():
     """LLM 스트림이 아무 토큰도 안 내면 트랙 큐가 비고 signal_end만 호출."""

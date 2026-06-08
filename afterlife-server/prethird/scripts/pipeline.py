@@ -81,19 +81,17 @@ class DialoguePipeline:
     async def say(self, user_text: str) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출."""
         messages = self.persona_messages + [{"role": "user", "content": user_text}]
-        sb = self._sb_factory()
-        pending: list[str] = []
 
-        async for tok in self.chat_fn(messages):
-            pending += sb.push(tok)
-            while pending:
-                await self._emit_sentence(pending.pop(0))
+        async def produce(q: asyncio.Queue):
+            sb = self._sb_factory()
+            async for tok in self.chat_fn(messages):
+                for s in sb.push(tok):
+                    await q.put(s)
+            for s in sb.flush():
+                await q.put(s)
+            await q.put(None)
 
-        for s in sb.flush():
-            await self._emit_sentence(s)
-
-        self.vt.signal_end()
-        self.at.signal_end()
+        await self._run_pipeline(produce)
 
     async def speak(self, text: str) -> None:
         """LLM 우회: 입력 텍스트를 그대로 발화(TTS+musetalk). 쉼표로 끊지 않고
@@ -102,62 +100,65 @@ class DialoguePipeline:
         parts = [p.strip() for p in re.split(r'(?<=[.!?…])\s+|\n+', text) if p.strip()]
         if not parts:
             parts = [text]
-        for s in parts:
-            await self._emit_sentence(s)
-        self.vt.signal_end()
-        self.at.signal_end()
+
+        async def produce(q: asyncio.Queue):
+            for s in parts:
+                await q.put(s)
+            await q.put(None)
+
+        await self._run_pipeline(produce)
 
     # ------------------------------------------------------------------
-    # 내부: 문장 1개 처리
+    # 내부: 문장 1개 처리 (스테이지 분리)
     # ------------------------------------------------------------------
 
-    async def _emit_sentence(self, sentence: str) -> None:
-        """문장 1개를 TTS → musetalk(executor) → 트랙 적재.
-        C2: on_frame은 executor 스레드에서 list 에만 모으고(call_soon_threadsafe 제거 →
-        이벤트루프 부하 차단), infer 완료(await 배리어) 후 메인 루프에서 frames 를 큐에
-        일괄 push + balance 한 audio 를 동시에 push 한다 = 문장 단위 a/v 동기."""
-        # [seg] 문장 간 공백 측정
-        _t_start = time.perf_counter()
-        since_prev_ms = int((_t_start - self._last_emit_end) * 1000) if self._last_emit_end is not None else 0
-
-        # 1. TTS: wav bytes
-        _t0 = time.perf_counter()
+    async def _tts_stage(self, sentence: str):
+        """문장 → TTS wav bytes + 48kHz int16 PCM. (GPU0: qwen3 TTS)"""
         wav_bytes = await self.say_fn(sentence, self.se_path)
-        tts_ms = int((time.perf_counter() - _t0) * 1000)
-
-        # 2. wav decode → resample to 48 kHz int16
         pcm, sr, _ = self.decode_wav_fn(wav_bytes)
         pcm48 = self._resample(pcm, sr, 48000)
+        return wav_bytes, pcm48
 
-        # 3. musetalk infer (blocking GPU → executor). frames 는 executor 스레드 로컬 list 에 모음.
+    async def _infer_stage(self, wav_bytes: bytes, pcm48: np.ndarray) -> None:
+        """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)"""
         loop = asyncio.get_event_loop()
         frames_buf: list[np.ndarray] = []
-
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
             f.write(wav_bytes)
             wav_path = f.name
 
         def on_frame(arr: np.ndarray) -> None:
-            # executor 스레드에서만 호출. list.append 는 GIL atomic, 이벤트루프 미접근.
             frames_buf.append(arr)
 
+        try:
+            await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
+            for arr in frames_buf:
+                self.vt.push_ndarray(arr)
+            nframes = len(frames_buf)
+            if nframes > 0:
+                pcm_bal, _ = self._balance(pcm48, nframes)
+            else:
+                pcm_bal = pcm48
+            self.at.push_pcm_int16(pcm_bal)
+        finally:
+            try:
+                os.unlink(wav_path)
+            except OSError:
+                pass
+
+    async def _emit_sentence(self, sentence: str) -> None:
+        """문장 1개 직렬 처리(기존 호환). 파이프라인은 _run_pipeline 사용."""
+        # [seg] 문장 간 공백 측정
+        _t_start = time.perf_counter()
+        since_prev_ms = int((_t_start - self._last_emit_end) * 1000) if self._last_emit_end is not None else 0
+
+        _t0 = time.perf_counter()
+        wav_bytes, pcm48 = await self._tts_stage(sentence)
+        tts_ms = int((time.perf_counter() - _t0) * 1000)
+
         _t1 = time.perf_counter()
-        await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
+        await self._infer_stage(wav_bytes, pcm48)
         infer_ms = int((time.perf_counter() - _t1) * 1000)
-
-        # 4. infer 완료 후 메인 루프에서 frames 일괄 push (문장 frames 완성본 → 송출 중 starve 없음)
-        _t2 = time.perf_counter()
-        for arr in frames_buf:
-            self.vt.push_ndarray(arr)
-
-        # 5. avsync: PCM 길이를 video 프레임 수에 맞춤 → audio 동시 push
-        nframes = len(frames_buf)
-        if nframes > 0:
-            pcm_bal, _ = self._balance(pcm48, nframes)
-        else:
-            pcm_bal = pcm48
-        self.at.push_pcm_int16(pcm_bal)
-        push_ms = int((time.perf_counter() - _t2) * 1000)
 
         # [seg] 큐 수위 측정 (메서드 없으면 생략)
         vq = getattr(self.vt, "queue_depth", lambda: None)()
@@ -167,19 +168,58 @@ class DialoguePipeline:
         # [seg] 1줄 로그
         if abuf_ms is not None:
             log.info(
-                "[seg] tts_ms=%d infer_ms=%d frames=%d push_ms=%d vq=%s abuf_ms=%d since_prev_ms=%d",
-                tts_ms, infer_ms, nframes, push_ms, vq, abuf_ms, since_prev_ms,
+                "[seg] tts_ms=%d infer_ms=%d since_prev_ms=%d vq=%s abuf_ms=%d",
+                tts_ms, infer_ms, since_prev_ms, vq, abuf_ms,
             )
         else:
             log.info(
-                "[seg] tts_ms=%d infer_ms=%d frames=%d push_ms=%d vq=%s since_prev_ms=%d",
-                tts_ms, infer_ms, nframes, push_ms, vq, since_prev_ms,
+                "[seg] tts_ms=%d infer_ms=%d since_prev_ms=%d vq=%s",
+                tts_ms, infer_ms, since_prev_ms, vq,
             )
 
         self._last_emit_end = time.perf_counter()
 
-        # 6. temp wav 정리
+    # ------------------------------------------------------------------
+    # 내부: 오버랩 파이프라인
+    # ------------------------------------------------------------------
+
+    async def _run_pipeline(self, produce) -> None:
+        """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
+        TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
+        예외 시 모든 워커를 취소하고 signal_end 를 보장한다(좀비/오염 방지)."""
+        sentence_q: asyncio.Queue = asyncio.Queue()
+        wav_q: asyncio.Queue = asyncio.Queue(maxsize=2)
+
+        async def tts_worker():
+            while True:
+                s = await sentence_q.get()
+                if s is None:
+                    await wav_q.put(None)
+                    break
+                wav_bytes, pcm48 = await self._tts_stage(s)
+                await wav_q.put((wav_bytes, pcm48))
+
+        async def infer_worker():
+            while True:
+                item = await wav_q.get()
+                if item is None:
+                    break
+                wav_bytes, pcm48 = item
+                await self._infer_stage(wav_bytes, pcm48)
+
+        tasks = [
+            asyncio.ensure_future(produce(sentence_q)),
+            asyncio.ensure_future(tts_worker()),
+            asyncio.ensure_future(infer_worker()),
+        ]
         try:
-            os.unlink(wav_path)
-        except OSError:
-            pass
+            await asyncio.gather(*tasks)
+        except BaseException:
+            for t in tasks:
+                t.cancel()
+            # 취소 완료 대기(좀비 방지). 취소/2차 예외는 흡수.
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
+        finally:
+            self.vt.signal_end()
+            self.at.signal_end()
