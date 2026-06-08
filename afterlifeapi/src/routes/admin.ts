@@ -794,20 +794,42 @@ v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
       break;
   }
 
-  await v_c226a5(v_3f4e2e.env, {
-    userId: v_389afb,
-    type: "moderation",
-    title: v_9b064f === "warn" ? "신고 처리 안내" : "활동 제재 안내",
-    body: v_4d33b2.reason || v_c8eee3 || "회원님에 대한 제재가 적용되었습니다.",
-    url: "afterlife://reports/received",
-    data: { action: v_9b064f, manual: true },
-    skipEmail: true,
-  }).catch(() => {});
-
   const v_3ac7e7 = await v_3f4e2e.env.DB
     .prepare(`SELECT suspended_until AS suspendedUntil, banned_until AS bannedUntil FROM users WHERE id = ?`)
     .bind(v_389afb)
     .first<{ suspendedUntil: string | null; bannedUntil: string | null }>();
+
+  const v_fc6e45 = (v_3a5fef): string | null => {
+    if (!v_3a5fef) return null;
+    const v_d799e2 = new Date(v_3a5fef.replace(" ", "T") + "Z").getTime() + 9 * 3600000;
+    if (Number.isNaN(v_d799e2)) return null;
+    const v_d5dda0 = new Date(v_d799e2);
+    return `${v_d5dda0.getUTCFullYear()}년 ${v_d5dda0.getUTCMonth() + 1}월 ${v_d5dda0.getUTCDate()}일`;
+  };
+
+  if (v_9b064f === "account_ban") {
+    const v_604a0d = v_fc6e45(v_3ac7e7?.bannedUntil ?? null);
+    if (v_604a0d) v_c8eee3 = `${v_604a0d}까지 계정 사용이 정지됩니다. (신고 누적)`;
+  } else if (v_9b064f === "clone_create_ban") {
+    const v_604a0d = v_fc6e45(v_3ac7e7?.suspendedUntil ?? null);
+    if (v_604a0d) v_c8eee3 = `${v_604a0d}까지 페르소나 생성이 제한됩니다. (신고 누적)`;
+  }
+
+  const v_b6b0b7 = v_9b064f === "account_ban" || v_9b064f === "clone_create_ban";
+  const v_cc755a = v_b6b0b7
+    ? v_c8eee3 || v_4d33b2.reason || "회원님에 대한 제재가 적용되었습니다."
+    : v_4d33b2.reason || v_c8eee3 || "회원님에 대한 제재가 적용되었습니다.";
+
+  await v_c226a5(v_3f4e2e.env, {
+    userId: v_389afb,
+    type: "moderation",
+    title: v_9b064f === "warn" ? "신고 처리 안내" : "활동 제재 안내",
+    body: v_cc755a,
+    url: "afterlife://reports/received",
+    data: { action: v_9b064f, manual: true, bannedUntil: v_3ac7e7?.bannedUntil ?? null, suspendedUntil: v_3ac7e7?.suspendedUntil ?? null },
+    skipEmail: true,
+  }).catch(() => {});
+
   return v_3f4e2e.json({ ok: true, action: v_9b064f, suspendedUntil: v_3ac7e7?.suspendedUntil ?? null, bannedUntil: v_3ac7e7?.bannedUntil ?? null });
 });
 
