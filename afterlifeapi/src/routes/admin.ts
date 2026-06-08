@@ -853,15 +853,20 @@ admin.delete("/oth-path", requireAdmin, async (c) => {
 admin.get("/oth-path", requireAdmin, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+
   const rows = await c.env.DB
     .prepare(
       `SELECT fcc.id, fcc.feed_id AS feedId, fcc.user_id AS userId,
               u.name AS userName, u.email AS userEmail,
-              fcc.content, fcc.created_at AS createdAt
+              u.xrun_member_id AS userXrunMemberId,
+              fcc.content, fcc.created_at AS createdAt,
+              fcc.likes_count AS likeCount,
+              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount
          FROM feed_comments fcc
          JOIN feeds f ON f.id = fcc.feed_id
          JOIN users u ON u.id = fcc.user_id
         WHERE f.clone_id = ?
+          AND fcc.parent_comment_id IS NULL
         ORDER BY fcc.created_at DESC
         LIMIT 200`,
     )
@@ -877,6 +882,7 @@ admin.get("/oth-path", requireAdmin, async (c) => {
     .prepare(
       `SELECT fl.id, fl.feed_id AS feedId, fl.user_id AS userId,
               u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
               fl.created_at AS createdAt
          FROM feed_likes fl
          JOIN feeds f ON f.id = fl.feed_id
@@ -897,6 +903,7 @@ admin.get("/oth-path", requireAdmin, async (c) => {
     .prepare(
       `SELECT cf.id, cf.user_id AS userId,
               u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
               cf.created_at AS createdAt
          FROM clone_follows cf
          JOIN users u ON u.id = cf.user_id
@@ -916,6 +923,7 @@ admin.get("/oth-path", requireAdmin, async (c) => {
     .prepare(
       `SELECT uci.id, uci.user_id AS userId,
               u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
               uci.chat_count AS chatCount,
               uci.call_count AS callCount,
               uci.learn_count AS learnCount,
