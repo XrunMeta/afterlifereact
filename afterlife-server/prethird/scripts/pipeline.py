@@ -1,0 +1,134 @@
+"""pipeline.py — DialoguePipeline: 텍스트 1턴 오케스트레이션.
+
+흐름: user_text
+  → chat_fn(messages) async-generator 토큰
+  → SentenceBuffer 문장 단위 분할
+  → say_fn(sentence) TTS wav bytes
+  → decode_wav_fn(wav_bytes) → (pcm, sr, ch)
+  → resample → 48 kHz int16
+  → infer_fn(wav_path, on_frame) blocking (executor) → video frames push
+  → _balance_pcm_to_video → audio track push
+
+의존성 주입: LLM/TTS/decode/infer 모두 생성자 인자로 받음.
+실서버에서는 실 함수, 테스트에서는 mock 주입.
+"""
+from __future__ import annotations
+
+import asyncio
+import os
+import tempfile
+from typing import Callable
+
+import numpy as np
+
+
+class DialoguePipeline:
+    """텍스트 1개 → LLM 문장스트림 → 문장별 TTS → musetalk 프레임 콜백 → 트랙 적재.
+
+    Parameters
+    ----------
+    video_track : AvatarVideoTrack-like
+        push_ndarray(rgb_arr) / signal_end() 인터페이스.
+    audio_track : AvatarAudioTrack-like
+        push_pcm_int16(pcm) / signal_end() 인터페이스.
+    chat_fn : async generator (messages) → token str
+    say_fn : async (text, se_path) → bytes (wav)
+    decode_wav_fn : (bytes) → (int16 ndarray, sr, ch)
+    infer_fn : (wav_path, on_frame) → int  ※blocking, run_in_executor 로 실행
+    persona_messages : list[dict]  시스템 페르소나 메시지
+    se_path : str | None  TTS 화자 임베딩 경로
+    min_len : int  SentenceBuffer 최소 문장 길이
+    force_flush : int  SentenceBuffer 강제 플러시 길이
+    """
+
+    def __init__(
+        self,
+        video_track,
+        audio_track,
+        chat_fn: Callable,
+        say_fn: Callable,
+        decode_wav_fn: Callable,
+        infer_fn: Callable,
+        persona_messages: list | None = None,
+        se_path: str | None = None,
+        min_len: int = 4,
+        force_flush: int = 30,
+    ) -> None:
+        from sentence_buffer import SentenceBuffer
+        from audio_utils import _resample_int16, _balance_pcm_to_video
+
+        self.vt = video_track
+        self.at = audio_track
+        self.chat_fn = chat_fn
+        self.say_fn = say_fn
+        self.decode_wav_fn = decode_wav_fn
+        self.infer_fn = infer_fn
+        self.persona_messages = persona_messages or []
+        self.se_path = se_path
+        self._sb_factory = lambda: SentenceBuffer(min_len, force_flush)
+        self._resample = _resample_int16
+        self._balance = _balance_pcm_to_video
+
+    # ------------------------------------------------------------------
+    # 퍼블릭 API
+    # ------------------------------------------------------------------
+
+    async def say(self, user_text: str) -> None:
+        """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출."""
+        messages = self.persona_messages + [{"role": "user", "content": user_text}]
+        sb = self._sb_factory()
+        pending: list[str] = []
+
+        async for tok in self.chat_fn(messages):
+            pending += sb.push(tok)
+            while pending:
+                await self._emit_sentence(pending.pop(0))
+
+        for s in sb.flush():
+            await self._emit_sentence(s)
+
+        self.vt.signal_end()
+        self.at.signal_end()
+
+    # ------------------------------------------------------------------
+    # 내부: 문장 1개 처리
+    # ------------------------------------------------------------------
+
+    async def _emit_sentence(self, sentence: str) -> None:
+        """문장 1개를 TTS → musetalk(executor) → 트랙 적재."""
+        # 1. TTS: wav bytes
+        wav_bytes = await self.say_fn(sentence, self.se_path)
+
+        # 2. wav decode → resample to 48 kHz int16
+        pcm, sr, _ = self.decode_wav_fn(wav_bytes)
+        pcm48 = self._resample(pcm, sr, 48000)
+
+        # 3. musetalk infer (blocking GPU → executor)
+        loop = asyncio.get_event_loop()
+        nframes = [0]
+
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            f.write(wav_bytes)
+            wav_path = f.name
+
+        def on_frame(arr: np.ndarray) -> None:
+            # executor 스레드에서 호출 — asyncio.Queue는 thread-unsafe이므로
+            # call_soon_threadsafe 로 이벤트 루프 스레드에 위임한다. (BLOCKER-1 수정)
+            loop.call_soon_threadsafe(self.vt.push_ndarray, arr)
+            nframes[0] += 1
+
+        await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
+
+        # 4. avsync: PCM 길이를 video 프레임 수에 맞춤
+        if nframes[0] > 0:
+            pcm_bal, _ = self._balance(pcm48, nframes[0])
+        else:
+            pcm_bal = pcm48
+
+        self.at.push_pcm_int16(pcm_bal)
+
+        # 5. temp wav 정리
+        try:
+            os.unlink(wav_path)
+        except OSError:
+            pass
