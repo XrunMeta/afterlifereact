@@ -873,7 +873,8 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
 
 v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_18b8bf = (
+
+  const v_c2273d = (
     await v_3f4e2e.env.DB
       .prepare(
         `SELECT b.id           AS blockId,
@@ -899,19 +900,61 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
         cloneType: string;
       }>()
   ).results;
-  return v_3f4e2e.json({
-    items: v_18b8bf.map((v_cb35cb) => ({
-      blockId: v_cb35cb.blockId,
-      createdAt: v_cb35cb.createdAt,
-      clone: {
-        id: v_cb35cb.cloneId,
-        name: v_cb35cb.cloneName,
-        username: v_cb35cb.cloneUsername,
-        avatarUrl: v_cb35cb.cloneAvatarUrl,
-        cloneType: v_cb35cb.cloneType,
-      },
-    })),
-  });
+
+  const v_a7be75 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT b.id          AS blockId,
+                b.created_at  AS createdAt,
+                u.id          AS uId,
+                u.name        AS uName,
+                u.email       AS uEmail,
+                u.avatar_url  AS uAvatarUrl
+           FROM user_blocks b
+           JOIN users u ON u.id = b.blocked_id
+          WHERE b.blocker_id = ?
+          ORDER BY b.id DESC`,
+      )
+      .bind(v_43e90c)
+      .all<{
+        blockId: number;
+        createdAt: string;
+        uId: number;
+        uName: string | null;
+        uEmail: string;
+        uAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  const v_8ac21a = v_c2273d.map((v_cb35cb) => ({
+    blockId: v_cb35cb.blockId,
+    createdAt: v_cb35cb.createdAt,
+    type: "clone" as const,
+    clone: {
+      id: v_cb35cb.cloneId,
+      name: v_cb35cb.cloneName,
+      username: v_cb35cb.cloneUsername,
+      avatarUrl: v_cb35cb.cloneAvatarUrl,
+      cloneType: v_cb35cb.cloneType,
+    },
+  }));
+  const v_aae3d3 = v_a7be75.map((v_cb35cb) => ({
+    blockId: v_cb35cb.blockId,
+    createdAt: v_cb35cb.createdAt,
+    type: "user" as const,
+    user: {
+      id: v_cb35cb.uId,
+      name: v_cb35cb.uName,
+      email: v_cb35cb.uEmail,
+      avatarUrl: v_cb35cb.uAvatarUrl,
+    },
+  }));
+
+  const v_4622b9 = [...v_8ac21a, ...v_aae3d3].sort((v_779914, v_148ff6) =>
+    v_779914.createdAt < v_148ff6.createdAt ? 1 : v_779914.createdAt > v_148ff6.createdAt ? -1 : 0,
+  );
+
+  return v_3f4e2e.json({ items: v_4622b9 });
 });
 
 v_de7ba7.delete("/me/devices/:id", v_6690d9, async (v_3f4e2e) => {

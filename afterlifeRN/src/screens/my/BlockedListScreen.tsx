@@ -15,13 +15,14 @@ import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
 import v_556baf from "../../components/ui/SafeView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1ed7d9 } from "../../stores/authStore";
-import { v_dbedc9, v_c0dd8d, type v_b67716 } from "../../api/clones";
+import { v_dbedc9, v_c0dd8d, type v_370311 } from "../../api/clones";
+import { v_83b07d } from "../../api/users";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 
 export default function v_65df53() {
   const v_c65f5d = v_ada615();
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
-  const [v_4622b9, v_fa923c] = v_5ab095<v_b67716[]>([]);
+  const [v_4622b9, v_fa923c] = v_5ab095<v_370311[]>([]);
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_612e9f, v_575aad] = v_5ab095(false);
 
@@ -47,11 +48,17 @@ export default function v_65df53() {
     v_92fdf2();
   }, [v_92fdf2]);
 
-  const v_55b20d = async (v_6e0fd3) => {
+  const v_55b20d = async (item: v_370311) => {
     if (!v_2ca7e0) return;
     try {
-      await v_c0dd8d(v_2ca7e0, v_6e0fd3);
-      v_fa923c((v_ba2215) => v_ba2215.filter((v_148ff6) => v_148ff6.clone.id !== v_6e0fd3));
+      if (v_8c0b26.type === "clone") {
+        await v_c0dd8d(v_2ca7e0, v_8c0b26.clone.id);
+      } else {
+        await v_83b07d(v_2ca7e0, v_8c0b26.user.id);
+      }
+      v_fa923c((v_ba2215) =>
+        v_ba2215.filter((v_148ff6) => !(v_148ff6.type === v_8c0b26.type && v_148ff6.blockId === v_8c0b26.blockId)),
+      );
     } catch (v_49263d) {
       console.warn("[BlockedList] unblock failed:", v_49263d);
     }
@@ -71,30 +78,40 @@ export default function v_65df53() {
       ) : v_4622b9.length === 0 ? (
         <View style={v_fd5f43.center}>
           <Feather name="slash" size={32} color={v_1bfbd0.zinc300} />
-          <Text style={v_fd5f43.empty}>차단한 클론이 없어요</Text>
+          <Text style={v_fd5f43.empty}>차단한 대상이 없어요</Text>
         </View>
       ) : (
         <FlatList
           data={v_4622b9}
-          keyExtractor={(v_23805a) => String(v_23805a.blockId)}
-          renderItem={({ item: v_8c0b26 }) => (
-            <View style={v_fd5f43.row}>
-              {v_8c0b26.clone.avatarUrl ? (
-                <Image source={{ uri: v_8c0b26.clone.avatarUrl }} style={v_fd5f43.avatar} />
-              ) : (
-                <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
-                  <Feather name="user" size={18} color={v_1bfbd0.zinc400} />
+          keyExtractor={(v_23805a) => `${v_23805a.type}-${v_23805a.blockId}`}
+          renderItem={({ item: v_8c0b26 }) => {
+            const v_bf6b43 =
+              v_8c0b26.type === "clone" ? v_8c0b26.clone.avatarUrl : v_8c0b26.user.avatarUrl;
+            const v_1833e7 =
+              v_8c0b26.type === "clone"
+                ? v_8c0b26.clone.name
+                : v_8c0b26.user.name || v_8c0b26.user.email.split("@")[0];
+            const v_1ae212 =
+              v_8c0b26.type === "clone" ? `@${v_8c0b26.clone.username}` : v_8c0b26.user.email;
+            return (
+              <View style={v_fd5f43.row}>
+                {v_bf6b43 ? (
+                  <Image source={{ uri: v_bf6b43 }} style={v_fd5f43.avatar} />
+                ) : (
+                  <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
+                    <Feather name="user" size={18} color={v_1bfbd0.zinc400} />
+                  </View>
+                )}
+                <View style={v_fd5f43.body}>
+                  <Text style={v_fd5f43.name}>{v_1833e7}</Text>
+                  <Text style={v_fd5f43.sub}>{v_1ae212}</Text>
                 </View>
-              )}
-              <View style={v_fd5f43.body}>
-                <Text style={v_fd5f43.name}>{v_8c0b26.clone.name}</Text>
-                <Text style={v_fd5f43.sub}>@{v_8c0b26.clone.username}</Text>
+                <TouchableOpacity style={v_fd5f43.unblockBtn} onPress={() => v_55b20d(v_8c0b26)}>
+                  <Text style={v_fd5f43.unblockText}>차단 해제</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity style={v_fd5f43.unblockBtn} onPress={() => v_55b20d(v_8c0b26.clone.id)}>
-                <Text style={v_fd5f43.unblockText}>차단 해제</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            );
+          }}
           refreshControl={
             <RefreshControl
               refreshing={v_612e9f}
