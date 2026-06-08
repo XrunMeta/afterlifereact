@@ -760,6 +760,11 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
           WHERE c.deleted_at IS NULL
+            -- 소유자가 삭제(soft_deleted)한 페르소나는 즉시 구독 목록에서 제외.
+            --   삭제는 deletion_state='soft_deleted' 로만 바뀌고 deleted_at 은 크론 전까지
+            --   NULL 이라, deleted_at 체크만으로는 삭제된 클론이 계속 보이던 버그 수정.
+            --   검색/피드와 동일 정책(active 만).
+            AND c.deletion_state = 'active'
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
             AND (
               -- 본인이 만든 페르소나
