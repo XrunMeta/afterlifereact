@@ -706,6 +706,8 @@ admin.get("/reports", requireAdmin, async (c) => {
   const maxCount = Number(url.searchParams.get("maxCount") ?? 0);
   const q = (url.searchParams.get("q") ?? "").trim();
   const targetId = Number(url.searchParams.get("targetId") ?? 0); 
+  const from = (url.searchParams.get("from") ?? "").trim(); 
+  const to = (url.searchParams.get("to") ?? "").trim(); 
   const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
   const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") ?? 20)));
 
@@ -809,6 +811,14 @@ admin.get("/reports", requireAdmin, async (c) => {
   if (maxCount > 0) {
     where.push("r.targetReportCount <= ?");
     binds.push(maxCount);
+  }
+  if (from) {
+    where.push("r.createdAt >= ?");
+    binds.push(`${from} 00:00:00`);
+  }
+  if (to) {
+    where.push("r.createdAt <= ?");
+    binds.push(`${to} 23:59:59`);
   }
   const whereSql = where.join(" AND ");
 
