@@ -442,36 +442,77 @@ auth.post("/signup", async (c) => {
     ? seal(String(body.age), getKekProvider(c.env.ALE_KEK), "user.age")
     : null;
 
+  const existing = await db
+    .prepare(`SELECT id, deletion_state, deleted_at FROM users WHERE email = ? LIMIT 1`)
+    .bind(body.email)
+    .first<{ id: number; deletion_state: string; deleted_at: string | null }>();
+  const isWithdrawn = !!existing && (existing.deletion_state !== "active" || existing.deleted_at !== null);
+
   let inserted:
     | { id: number; name: string; email: string; funnel_stage: string; created_at: string }
     | null;
-  try {
+
+  if (existing && !isWithdrawn) {
+
+    throw new APIError("CONFLICT", "Email already registered.");
+  }
+
+  if (isWithdrawn) {
+
     inserted = await db
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         RETURNING id, name, email, funnel_stage, created_at`,
+        `UPDATE users
+            SET name = ?, password_hash = ?, phone = ?, gender = ?, age = ?, age_enc = ?,
+                marketing_consent = ?, country = ?, mobile_code = ?, region = ?,
+                deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL,
+                failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
         body.name,
-        body.email,
         passwordHash,
         phoneEnc,
         body.gender ?? null,
-        null, 
+        null,
         ageEnc,
         body.marketingConsent ? 1 : 0,
         body.country ?? null,
         body.mobileCode ?? null,
         body.region ?? null,
+        existing!.id,
       )
       .first();
-  } catch (err) {
-    const msg = (err as Error).message ?? "";
-    if (/UNIQUE constraint failed: users\.email/i.test(msg)) {
-      throw new APIError("CONFLICT", "Email already registered.");
+  } else {
+
+    try {
+      inserted = await db
+        .prepare(
+          `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           RETURNING id, name, email, funnel_stage, created_at`,
+        )
+        .bind(
+          body.name,
+          body.email,
+          passwordHash,
+          phoneEnc,
+          body.gender ?? null,
+          null, 
+          ageEnc,
+          body.marketingConsent ? 1 : 0,
+          body.country ?? null,
+          body.mobileCode ?? null,
+          body.region ?? null,
+        )
+        .first();
+    } catch (err) {
+      const msg = (err as Error).message ?? "";
+      if (/UNIQUE constraint failed: users\.email/i.test(msg)) {
+        throw new APIError("CONFLICT", "Email already registered.");
+      }
+      throw err;
     }
-    throw err;
   }
   if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
 
