@@ -18,7 +18,7 @@ import { v_74defc } from "../lib/logger";
 import { v_b78f7e, v_656e8b } from "../lib/otp";
 import { v_6e4cc8, v_a0ec33, v_937e23 } from "../lib/xrun";
 import { v_a32f1d } from "../lib/googleAuth";
-import { v_c8311e } from "./deletion";
+import { v_c8311e, v_210ca9 } from "./deletion";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
 
@@ -773,6 +773,8 @@ v_68f0aa.post("/restore", async (v_3f4e2e) => {
     }
     throw new v_3ebe58("CONFLICT", "복구할 수 없는 상태예요.");
   }
+
+  await v_210ca9(v_a1651b, v_43e90c);
 
   try {
     const v_213c33 = await v_a1651b

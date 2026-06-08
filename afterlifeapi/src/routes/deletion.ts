@@ -122,6 +122,91 @@ function v_7b6df3(v_43c42e) {
   }
 }
 
+export async function v_f51850(
+  v_a1651b,
+  v_1badb6,
+): Promise<{ softDeleted: number; transferred: number }> {
+  const v_2461e1 = (
+    await v_a1651b
+      .prepare(
+        `SELECT id FROM clones
+          WHERE owner_id = ? AND deletion_state = 'active' AND deleted_at IS NULL`,
+      )
+      .bind(v_1badb6)
+      .all<{ id: number }>()
+  ).results;
+
+  let v_64c9b8 = 0;
+  let v_051394 = 0;
+  for (const { id: v_6e0fd3 } of v_2461e1) {
+
+    const v_820a60 = await v_a1651b
+      .prepare(
+        `SELECT cs.id, cs.target_user_id
+           FROM clone_shares cs
+           JOIN users u ON u.id = cs.target_user_id
+          WHERE cs.clone_id = ?
+            AND cs.status = 'accepted'
+            AND cs.target_user_id IS NOT NULL
+            AND cs.target_user_id != ?
+            AND u.deleted_at IS NULL
+            AND u.deletion_state = 'active'
+          ORDER BY cs.created_at ASC, cs.id ASC
+          LIMIT 1`,
+      )
+      .bind(v_6e0fd3, v_1badb6)
+      .first<{ id: number; target_user_id: number }>();
+
+    if (v_820a60) {
+      await v_a1651b.batch([
+        v_a1651b
+          .prepare("UPDATE clones SET owner_id = ? WHERE id = ?")
+          .bind(v_820a60.target_user_id, v_6e0fd3),
+        v_a1651b
+          .prepare(
+            `UPDATE clones SET primary_editor_user_id = ?
+              WHERE id = ? AND primary_editor_user_id = ?`,
+          )
+          .bind(v_820a60.target_user_id, v_6e0fd3, v_1badb6),
+        v_a1651b.prepare("DELETE FROM clone_shares WHERE id = ?").bind(v_820a60.id),
+      ]);
+      v_051394 += 1;
+    } else {
+      await v_a1651b
+        .prepare(
+          `UPDATE clones
+              SET deletion_state = 'soft_deleted',
+                  soft_deleted_at = CURRENT_TIMESTAMP,
+                  owner_cascade_deleted_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND deletion_state = 'active'`,
+        )
+        .bind(v_6e0fd3)
+        .run();
+      v_64c9b8 += 1;
+    }
+  }
+  return { softDeleted: v_64c9b8, transferred: v_051394 };
+}
+
+export async function v_210ca9(
+  v_a1651b,
+  v_1badb6,
+): Promise<number> {
+  const v_8f00b9 = await v_a1651b
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'active',
+              soft_deleted_at = NULL,
+              owner_cascade_deleted_at = NULL
+        WHERE owner_id = ?
+          AND deletion_state = 'soft_deleted'
+          AND owner_cascade_deleted_at IS NOT NULL`,
+    )
+    .bind(v_1badb6)
+    .run();
+  return v_8f00b9.meta.changes ?? 0;
+}
+
 v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_43c42e = await v_b4f765(v_3f4e2e.env.DB, "user", v_43e90c, "id", v_43e90c);
@@ -129,6 +214,11 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
     v_d24e3e(v_43c42e); 
   }
   const v_d7b02d = v_43c42e === "already_deleted";
+
+  const v_f891e6 = await v_f51850(v_3f4e2e.env.DB, v_43e90c);
+  console.log(
+    `[deletion.me] clones cascade: softDeleted=${v_f891e6.softDeleted} transferred=${v_f891e6.transferred}`,
+  );
 
   try {
     const v_213c33 = await v_3f4e2e.env.DB
@@ -151,6 +241,9 @@ v_dda4b9.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_43c42e = await v_c8311e(v_3f4e2e.env.DB, "user", v_43e90c, "id", v_43e90c);
   v_7b6df3(v_43c42e);
+
+  const v_67776f = await v_210ca9(v_3f4e2e.env.DB, v_43e90c);
+  console.log(`[deletion.me.restore] clones restored: ${v_67776f}`);
 
   try {
     const v_213c33 = await v_3f4e2e.env.DB
