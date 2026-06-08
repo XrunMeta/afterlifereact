@@ -90,7 +90,7 @@ export default function v_7e6637() {
           </Text>
           {v_8c0b26.adminMessage ? (
             <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
-              📩 관리자: {v_8c0b26.adminMessage}
+              관리자: {v_8c0b26.adminMessage}
             </Text>
           ) : null}
           <Text style={v_fd5f43.date}>{v_85cf93(v_8c0b26.createdAt)}</Text>
@@ -111,7 +111,7 @@ export default function v_7e6637() {
         </Text>
         {v_8c0b26.adminMessage || v_8c0b26.warningReason ? (
           <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
-            📩 관리자: {v_8c0b26.adminMessage || v_8c0b26.warningReason}
+            관리자: {v_8c0b26.adminMessage || v_8c0b26.warningReason}
           </Text>
         ) : null}
         <Text style={v_fd5f43.date}>
