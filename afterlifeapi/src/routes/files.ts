@@ -158,6 +158,8 @@ files.get("/:id", async (c) => {
     headers: {
       "Content-Type": row.content_type,
       "Cache-Control": "public, max-age=86400",
+
+      "Cross-Origin-Resource-Policy": "cross-origin",
     },
   });
 });
