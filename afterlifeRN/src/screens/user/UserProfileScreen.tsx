@@ -238,10 +238,9 @@ export default function v_c501aa() {
     try {
       await v_095ba5(v_2ca7e0, v_43e90c, v_58ca36 || undefined);
 
-      v_4ffb1e((v_e2a85c) =>
-        v_e2a85c ? { ...v_e2a85c, user: { ...v_e2a85c.user, isBlocked: true, isFollowing: false } } : v_e2a85c,
-      );
       v_cd488d(v_43e90c, false);
+
+      v_c65f5d.navigate("Main", { screen: "HomeTab" } as never);
       v_889fad("신고 완료", "신고가 접수됐어요. 이 사용자는 차단됐어요.");
     } catch (v_49263d) {
       console.warn("[UserProfile] report failed:", v_49263d);
