@@ -18,8 +18,16 @@ import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import Button from "../../components/ui/Button";
+import OtpVerifyView from "../../components/auth/OtpVerifyView";
 import { useAuthStore } from "../../stores/authStore";
-import { AuthApiError, googleSignIn, googleCheck, getMe } from "../../api/auth";
+import {
+  AuthApiError,
+  googleSignIn,
+  googleCheck,
+  getMe,
+  requestEmailLoginCode,
+  emailLogin,
+} from "../../api/auth";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -49,6 +57,19 @@ export default function LoginScreen({ navigation }: Props) {
   const hydrate = useAuthStore((s) => s.hydrate);
   const loginWithApi = useAuthStore((s) => s.loginWithApi);
   const [loggingIn, setLoggingIn] = useState(false);
+
+  const [mode, setMode] = useState<"account" | "otp">("account");
+
+  const [otpStep, setOtpStep] = useState<"email" | "code">("email");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const id = setInterval(() => setResendIn((s) => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(id);
+  }, [resendIn]);
 
   const finishApiLogin = async (userEmail: string) => {
     if (autoLogin) {
@@ -118,6 +139,56 @@ export default function LoginScreen({ navigation }: Props) {
 
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
   const setApiTokens = useAuthStore((s) => s.setApiTokens);
+
+  const handleSendOtp = async () => {
+    const e = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(e)) {
+      showAlert(t("common.notice"), "이메일 형식이 올바르지 않아요.");
+      return;
+    }
+    setOtpBusy(true);
+    try {
+      await requestEmailLoginCode(e);
+      setOtpCode("");
+      setOtpStep("code");
+      setResendIn(60);
+    } catch (err) {
+      const msg = err instanceof AuthApiError ? err.message : t("common.error");
+      showAlert(t("common.error"), msg);
+    } finally {
+      setOtpBusy(false);
+    }
+  };
+
+  const handleOtpLogin = async () => {
+    if (otpCode.length !== 6) return;
+    setOtpBusy(true);
+    try {
+      const e = email.trim().toLowerCase();
+      const deviceId = await getOrCreateDeviceId();
+      const res = await emailLogin({ email: e, verificationCode: otpCode, deviceId });
+      const meRes = await getMe(res.accessToken);
+      await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
+      const rt = (res as { refreshToken?: string }).refreshToken;
+      if (rt) await setApiTokens(res.accessToken, rt, { persist: autoLogin });
+      await finishApiLogin(e);
+    } catch (err) {
+      let msg = t("auth.login.loginFailed");
+      if (err instanceof AuthApiError) {
+        if (err.code === "ACCOUNT_DELETED") {
+          showAlert(t("auth.login.accountDeletedTitle"), t("auth.login.accountDeletedMessage"));
+          return;
+        }
+        if (err.code === "OTP_INVALID") msg = "인증코드가 올바르지 않아요.";
+        else if (err.code === "OTP_EXPIRED") msg = "인증코드가 만료됐어요. 다시 받아주세요.";
+        else if (err.code === "NOT_FOUND") msg = "가입된 이메일이 아니에요.";
+        else msg = err.message;
+      }
+      showAlert(t("auth.login.loginFailed"), msg);
+    } finally {
+      setOtpBusy(false);
+    }
+  };
 
   const handleSocialLogin = async (provider: string) => {
     if (provider === "google") {
@@ -200,64 +271,123 @@ export default function LoginScreen({ navigation }: Props) {
           </View>
 
           {}
-          <TextField
-            value={email}
-            onChangeText={setEmail}
-            placeholder={t("auth.login.emailLabel")}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
-          />
-
-          {}
-          <TextField
-            value={password}
-            onChangeText={setPassword}
-            placeholder={t("auth.login.passwordLabel")}
-            secureTextEntry={!showPassword}
-            leftIcon={<Feather name="lock" size={20} color={COLORS.zinc900} />}
-            rightIcon={
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Feather
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={20}
-                  color={COLORS.zinc900}
-                />
-              </TouchableOpacity>
-            }
-          />
-
-          {}
-          <View style={styles.optionsRow}>
+          <View style={styles.tabRow}>
             <TouchableOpacity
-              onPress={() => setAutoLogin(!autoLogin)}
-              style={styles.checkboxRow}
+              style={[styles.tab, mode === "account" && styles.tabActive]}
+              onPress={() => setMode("account")}
             >
-              <View
-                style={[
-                  styles.checkbox,
-                  autoLogin && styles.checkboxChecked,
-                ]}
-              >
-                {autoLogin && (
-                  <Feather name="check" size={14} color={COLORS.white} />
-                )}
-              </View>
-              <Text style={styles.checkboxLabel}>{t("auth.login.autoLoginLabel")}</Text>
+              <Text style={[styles.tabText, mode === "account" && styles.tabTextActive]}>
+                계정 로그인
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
-              <Text style={styles.forgotPassword}>{t("auth.login.forgotPassword")}</Text>
+            <TouchableOpacity
+              style={[styles.tab, mode === "otp" && styles.tabActive]}
+              onPress={() => {
+                setMode("otp");
+                setOtpStep("email");
+              }}
+            >
+              <Text style={[styles.tabText, mode === "otp" && styles.tabTextActive]}>
+                이메일 OTP 로그인
+              </Text>
             </TouchableOpacity>
           </View>
 
           {}
-          <Button
-            title={loggingIn ? t("auth.login.loggingIn") : t("auth.login.loginBtn")}
-            onPress={handleLogin}
-            variant="primary"
-            disabled={loggingIn}
-            style={{ marginTop: SIZES.medium }}
-          />
+          {mode === "account" && (
+            <>
+              <TextField
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t("auth.login.emailLabel")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
+              />
+              <TextField
+                value={password}
+                onChangeText={setPassword}
+                placeholder={t("auth.login.passwordLabel")}
+                secureTextEntry={!showPassword}
+                leftIcon={<Feather name="lock" size={20} color={COLORS.zinc900} />}
+                rightIcon={
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <Feather
+                      name={showPassword ? "eye-off" : "eye"}
+                      size={20}
+                      color={COLORS.zinc900}
+                    />
+                  </TouchableOpacity>
+                }
+              />
+              <View style={styles.optionsRow}>
+                <TouchableOpacity onPress={() => setAutoLogin(!autoLogin)} style={styles.checkboxRow}>
+                  <View style={[styles.checkbox, autoLogin && styles.checkboxChecked]}>
+                    {autoLogin && <Feather name="check" size={14} color={COLORS.white} />}
+                  </View>
+                  <Text style={styles.checkboxLabel}>{t("auth.login.autoLoginLabel")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
+                  <Text style={styles.forgotPassword}>{t("auth.login.forgotPassword")}</Text>
+                </TouchableOpacity>
+              </View>
+              <Button
+                title={loggingIn ? t("auth.login.loggingIn") : t("auth.login.loginBtn")}
+                onPress={handleLogin}
+                variant="primary"
+                disabled={loggingIn}
+                style={{ marginTop: SIZES.medium }}
+              />
+            </>
+          )}
+
+          {}
+          {mode === "otp" && otpStep === "email" && (
+            <>
+              <TextField
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t("auth.login.emailLabel")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
+              />
+              <TouchableOpacity onPress={() => setAutoLogin(!autoLogin)} style={styles.checkboxRow}>
+                <View style={[styles.checkbox, autoLogin && styles.checkboxChecked]}>
+                  {autoLogin && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+                <Text style={styles.checkboxLabel}>{t("auth.login.autoLoginLabel")}</Text>
+              </TouchableOpacity>
+              <Button
+                title={otpBusy ? "전송 중..." : "인증코드 받기"}
+                onPress={handleSendOtp}
+                variant="primary"
+                disabled={otpBusy || !email.trim()}
+                style={{ marginTop: SIZES.medium }}
+              />
+            </>
+          )}
+
+          {mode === "otp" && otpStep === "code" && (
+            <>
+              <OtpVerifyView
+                title="이메일 OTP 로그인"
+                email={email}
+                code={otpCode}
+                onChangeCode={setOtpCode}
+                onSubmit={handleOtpLogin}
+                submitting={otpBusy}
+                submitLabel="로그인"
+                submittingLabel="로그인 중..."
+                resendIn={resendIn}
+                onResend={handleSendOtp}
+                resendLabel="코드 재발송"
+              />
+              <TouchableOpacity onPress={() => setOtpStep("email")} style={{ alignSelf: "center" }}>
+                <Text style={styles.forgotPassword}>이메일 다시 입력</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           {}
           <View style={styles.divider}>
@@ -303,16 +433,40 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   symbolImage: {
-    width: 100,
-    height: 80,
-    marginBottom: 12,
+    width: 60,
+    height: 48,
+    marginBottom: 8,
   },
   logoImage: {
-    width: 160,
-    height: 32,
+    width: 120,
+    height: 24,
+  },
+  tabRow: {
+    flexDirection: "row",
+    backgroundColor: COLORS.zinc100,
+    borderRadius: RADIUS.md,
+    padding: 4,
+    marginBottom: SIZES.small,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: RADIUS.sm,
+    alignItems: "center",
+  },
+  tabActive: {
+    backgroundColor: COLORS.white,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.zinc500,
+  },
+  tabTextActive: {
+    color: COLORS.zinc900,
   },
   subtitle: {
     marginTop: 12,

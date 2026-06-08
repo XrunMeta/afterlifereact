@@ -821,3 +821,73 @@ auth.post("/password/reset", async (c) => {
   await logActivity(c, { userId: userRow.id, action: "auth.password.reset" });
   return c.json({ ok: true });
 });
+
+auth.post("/email/login-code", async (c) => {
+  const body = await parseJson(c, requestEmailCodeSchema);
+  const userRow = await c.env.DB
+    .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(body.email.trim().toLowerCase())
+    .first<{ id: number; deletion_state: string }>();
+  if (userRow && userRow.deletion_state === "active") {
+    await requestSignupOtp(c.env, body.email);
+  }
+  return c.json({ ok: true, expiresInSec: 300 });
+});
+
+const emailLoginSchema = z.object({
+  email: z.email().max(200),
+  verificationCode: z.string().regex(/^\d{6}$/),
+  deviceId: z.string().max(200).optional(),
+  pushToken: z.string().max(500).optional(),
+  platform: z.enum(["ios", "android", "web"]).optional(),
+});
+auth.post("/email/login", async (c) => {
+  const body = await parseJson(c, emailLoginSchema);
+  const emailLower = body.email.trim().toLowerCase();
+
+  await verifySignupOtp(c.env, body.email, body.verificationCode);
+
+  const user = await c.env.DB
+    .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .bind(emailLower)
+    .first<{ id: number; deletion_state: string }>();
+  if (!user) throw new APIError("NOT_FOUND", "가입된 이메일이 아닙니다.");
+  if (user.deletion_state !== "active") {
+    throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+
+  if (body.deviceId && body.pushToken) {
+    await c.env.DB
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(body.pushToken, user.id)
+      .run();
+    await c.env.DB
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(user.id, body.deviceId, body.pushToken, body.platform ?? "web")
+      .run();
+  }
+
+  await c.env.DB
+    .prepare(
+      `UPDATE users SET failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
+    .bind(user.id)
+    .run();
+
+  const { accessToken, refreshToken, accessExpiresIn } = await issueSession(c, user.id, body.deviceId);
+  setRefreshCookie(c, refreshToken);
+  await logActivity(c, { userId: user.id, action: "auth.login.otp" });
+  return c.json({ accessToken, refreshToken, accessExpiresIn });
+});

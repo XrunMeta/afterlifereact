@@ -15,6 +15,7 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import { useTranslation } from "react-i18next";
 import { Feather } from "@expo/vector-icons";
 import SafeView from "../../components/ui/SafeView";
+import OtpVerifyView from "../../components/auth/OtpVerifyView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, RADIUS } from "../../components/constants";
 import {
@@ -159,35 +160,19 @@ export default function ForgotPasswordScreen() {
         )}
 
         {step === "otp" && (
-          <>
-            <Text style={s.desc}>{t("auth.forgot.step2Desc")}</Text>
-            <Text style={s.emailHint}>{email}</Text>
-            <View style={s.inputRow}>
-              <Feather name="lock" size={18} color={COLORS.zinc500} style={s.inputIcon} />
-              <TextInput
-                style={[s.input, { letterSpacing: 4, fontSize: 16 }]}
-                value={code}
-                onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))}
-                placeholder={t("auth.forgot.codePlaceholder")}
-                placeholderTextColor={COLORS.placeholder}
-                keyboardType="number-pad"
-                maxLength={6}
-                autoFocus
-              />
-            </View>
-            <TouchableOpacity
-              style={[s.primaryBtn, code.length !== 6 && s.btnDisabled]}
-              disabled={code.length !== 6}
-              onPress={handleVerifyCode}
-            >
-              <Text style={s.primaryBtnText}>{t("auth.forgot.verify")}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleSendCode} disabled={submitting} style={s.secondaryBtn}>
-              <Text style={s.secondaryBtnText}>
-                {submitting ? t("auth.forgot.sendingCode") : t("auth.forgot.sendCode")}
-              </Text>
-            </TouchableOpacity>
-          </>
+          <OtpVerifyView
+            title={t("auth.forgot.title")}
+            subtitle={t("auth.forgot.step2Desc")}
+            email={email}
+            code={code}
+            onChangeCode={(v) => setCode(v)}
+            onSubmit={handleVerifyCode}
+            submitting={false}
+            submitLabel={t("auth.forgot.verify")}
+            resendIn={0}
+            onResend={handleSendCode}
+            resendLabel={t("auth.forgot.sendCode")}
+          />
         )}
 
         {step === "password" && (

@@ -96,6 +96,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     path === "/oth-path" ||
     path === "/oth-path" ||
     path === "/oth-path" ||
+    path === "/oth-path" ||
     path === "/oth-path";
   const emailHint =
     typeof body === "object" && body !== null && "email" in body
@@ -157,6 +158,20 @@ export async function signup(payload: SignupPayload): Promise<SignupResponse> {
 }
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
+  return postJson("/oth-path", payload);
+}
+
+export async function requestEmailLoginCode(email: string): Promise<{ ok: true; expiresInSec: number }> {
+  return postJson("/oth-path", { email });
+}
+
+export async function emailLogin(payload: {
+  email: string;
+  verificationCode: string;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
+}): Promise<LoginResponse> {
   return postJson("/oth-path", payload);
 }
 
