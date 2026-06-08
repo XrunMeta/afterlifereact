@@ -700,12 +700,26 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
     .bind(user.id)
     .first<{ cnt: number }>();
 
+  const reportsMade = await c.env.DB
+    .prepare(
+      `SELECT (
+         (SELECT COUNT(*) FROM user_reports    WHERE reporter_id = ?) +
+         (SELECT COUNT(*) FROM clone_reports   WHERE user_id     = ?) +
+         (SELECT COUNT(*) FROM comment_reports WHERE user_id     = ?)
+       ) AS cnt`,
+    )
+    .bind(user.id, user.id, user.id)
+    .first<{ cnt: number }>();
+
   return c.json({
     user,
     clones,
     cloneReportsCount: cloneReports?.cnt ?? 0,
     userReportsCount: userReports?.cnt ?? 0,
     commentReportsCount: commentReports?.cnt ?? 0,
+
+    reportsReceivedCount: (cloneReports?.cnt ?? 0) + (userReports?.cnt ?? 0) + (commentReports?.cnt ?? 0),
+    reportsMadeCount: reportsMade?.cnt ?? 0,
   });
 });
 
@@ -718,6 +732,7 @@ admin.get("/reports", requireAdmin, async (c) => {
   const q = (url.searchParams.get("q") ?? "").trim();
   const targetId = Number(url.searchParams.get("targetId") ?? 0); 
   const responsibleUserId = Number(url.searchParams.get("responsibleUserId") ?? 0); 
+  const reporterUserId = Number(url.searchParams.get("reporterId") ?? 0); 
   const from = (url.searchParams.get("from") ?? "").trim(); 
   const to = (url.searchParams.get("to") ?? "").trim(); 
   const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
@@ -841,6 +856,11 @@ admin.get("/reports", requireAdmin, async (c) => {
   if (responsibleUserId > 0) {
     where.push("r.responsibleUserId = ?");
     binds.push(responsibleUserId);
+  }
+
+  if (reporterUserId > 0) {
+    where.push("r.reporterId = ?");
+    binds.push(reporterUserId);
   }
   if (minCount > 0) {
     where.push("r.targetReportCount >= ?");
