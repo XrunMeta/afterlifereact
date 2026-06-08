@@ -751,31 +751,31 @@ admin.get("/reports", requireAdmin, async (c) => {
   `;
 
   const base =
-    type === "clone" ? cloneSql
-    : type === "user" ? userSql
-    : `(${cloneSql} UNION ALL ${userSql})`;
+    type === "clone" ? `(${cloneSql}) AS r`
+    : type === "user" ? `(${userSql}) AS r`
+    : `(${cloneSql} UNION ALL ${userSql}) AS r`;
 
   const where: string[] = ["1=1"];
   const binds: unknown[] = [];
   if (status && ["open", "reviewed", "dismissed", "actioned"].includes(status)) {
-    where.push("status = ?");
+    where.push("r.status = ?");
     binds.push(status);
   }
   if (q) {
     where.push(`(
-      reporterName LIKE ? OR reporterEmail LIKE ? OR
-      COALESCE(targetName,'') LIKE ? OR COALESCE(targetSub,'') LIKE ? OR
-      COALESCE(reason,'') LIKE ?
+      r.reporterName LIKE ? OR r.reporterEmail LIKE ? OR
+      COALESCE(r.targetName,'') LIKE ? OR COALESCE(r.targetSub,'') LIKE ? OR
+      COALESCE(r.reason,'') LIKE ?
     )`);
     const pat = `%${q}%`;
     binds.push(pat, pat, pat, pat, pat);
   }
   if (minCount > 0) {
-    where.push("targetReportCount >= ?");
+    where.push("r.targetReportCount >= ?");
     binds.push(minCount);
   }
   if (maxCount > 0) {
-    where.push("targetReportCount <= ?");
+    where.push("r.targetReportCount <= ?");
     binds.push(maxCount);
   }
   const whereSql = where.join(" AND ");
@@ -787,7 +787,7 @@ admin.get("/reports", requireAdmin, async (c) => {
 
   const rows = (
     await c.env.DB
-      .prepare(`SELECT * FROM ${base} WHERE ${whereSql} ORDER BY createdAt DESC LIMIT ? OFFSET ?`)
+      .prepare(`SELECT r.* FROM ${base} WHERE ${whereSql} ORDER BY r.createdAt DESC LIMIT ? OFFSET ?`)
       .bind(...binds, limit, offset)
       .all()
   ).results;
