@@ -794,20 +794,42 @@ admin.post("/oth-path", requireAdmin, async (c) => {
       break;
   }
 
-  await notify(c.env, {
-    userId: id,
-    type: "moderation",
-    title: action === "warn" ? "신고 처리 안내" : "활동 제재 안내",
-    body: body.reason || penaltyMsg || "회원님에 대한 제재가 적용되었습니다.",
-    url: "afterlife://reports/received",
-    data: { action, manual: true },
-    skipEmail: true,
-  }).catch(() => {});
-
   const row = await c.env.DB
     .prepare(`SELECT suspended_until AS suspendedUntil, banned_until AS bannedUntil FROM users WHERE id = ?`)
     .bind(id)
     .first<{ suspendedUntil: string | null; bannedUntil: string | null }>();
+
+  const fmtKstDate = (ts: string | null): string | null => {
+    if (!ts) return null;
+    const ms = new Date(ts.replace(" ", "T") + "Z").getTime() + 9 * 3600000;
+    if (Number.isNaN(ms)) return null;
+    const d = new Date(ms);
+    return `${d.getUTCFullYear()}년 ${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일`;
+  };
+
+  if (action === "account_ban") {
+    const until = fmtKstDate(row?.bannedUntil ?? null);
+    if (until) penaltyMsg = `${until}까지 계정 사용이 정지됩니다. (신고 누적)`;
+  } else if (action === "clone_create_ban") {
+    const until = fmtKstDate(row?.suspendedUntil ?? null);
+    if (until) penaltyMsg = `${until}까지 페르소나 생성이 제한됩니다. (신고 누적)`;
+  }
+
+  const isDateBased = action === "account_ban" || action === "clone_create_ban";
+  const notifyBody = isDateBased
+    ? penaltyMsg || body.reason || "회원님에 대한 제재가 적용되었습니다."
+    : body.reason || penaltyMsg || "회원님에 대한 제재가 적용되었습니다.";
+
+  await notify(c.env, {
+    userId: id,
+    type: "moderation",
+    title: action === "warn" ? "신고 처리 안내" : "활동 제재 안내",
+    body: notifyBody,
+    url: "afterlife://reports/received",
+    data: { action, manual: true, bannedUntil: row?.bannedUntil ?? null, suspendedUntil: row?.suspendedUntil ?? null },
+    skipEmail: true,
+  }).catch(() => {});
+
   return c.json({ ok: true, action, suspendedUntil: row?.suspendedUntil ?? null, bannedUntil: row?.bannedUntil ?? null });
 });
 
