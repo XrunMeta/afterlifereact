@@ -631,11 +631,13 @@ v_b7f2b4.get("/by-xrun/:xrunMemberId/summary", v_c0a297, async (v_3f4e2e) => {
   }
   const v_625c74 = await v_3f4e2e.env.DB
     .prepare(
+
       `SELECT id, name, email,
               deletion_state AS deletionState,
               created_at AS createdAt
          FROM users
         WHERE xrun_member_id = ?
+        ORDER BY (deletion_state = 'active' AND deleted_at IS NULL) DESC, id DESC
         LIMIT 1`,
     )
     .bind(v_9b82b4)
