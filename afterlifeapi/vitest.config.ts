@@ -27,6 +27,8 @@ export default defineWorkersConfig(async () => {
               ORCH_SECRET: "test-orch-secret",
 
               JWT_ACCESS_SECRET: "test-jwt-access-secret-for-vitest",
+
+              JWT_REFRESH_SECRET: "test-jwt-refresh-secret-for-vitest",
             },
           },
         },

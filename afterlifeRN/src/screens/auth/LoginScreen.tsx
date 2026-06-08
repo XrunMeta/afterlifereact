@@ -19,7 +19,7 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import Button from "../../components/ui/Button";
 import { useAuthStore } from "../../stores/authStore";
-import { AuthApiError, googleSignIn, googleCheck, getMe } from "../../api/auth";
+import { AuthApiError, googleSignIn, googleCheck, getMe, type RestorePayload } from "../../api/auth";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -48,7 +48,51 @@ export default function LoginScreen({ navigation }: Props) {
 
   const hydrate = useAuthStore((s) => s.hydrate);
   const loginWithApi = useAuthStore((s) => s.loginWithApi);
+  const restoreWithApi = useAuthStore((s) => s.restoreWithApi);
   const [loggingIn, setLoggingIn] = useState(false);
+
+  const finishApiLogin = async (userEmail: string) => {
+    if (autoLogin) {
+      await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
+      await AsyncStorage.setItem(LAST_EMAIL_KEY, userEmail);
+    } else {
+      await AsyncStorage.removeItem(AUTO_LOGIN_PREF_KEY);
+      await AsyncStorage.removeItem(LAST_EMAIL_KEY);
+    }
+    await hydrate();
+  };
+
+  const promptRestoreAndLogin = (restorePayload: RestorePayload) => {
+    showAlert(
+      t("auth.login.restoreTitle"),
+      t("auth.login.restoreMessage"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("auth.login.restoreConfirm"),
+          style: "default",
+          onPress: async () => {
+            setLoggingIn(true);
+            try {
+              const deviceId = await getOrCreateDeviceId();
+              const user = await restoreWithApi(
+                { ...restorePayload, deviceId },
+                { persist: autoLogin },
+              );
+              console.log(`[AUTH/restore] restored & logged in: ${user.email}`);
+              await finishApiLogin(user.email);
+            } catch (e) {
+              let m = t("auth.login.restoreFailed");
+              if (e instanceof AuthApiError) m = e.message;
+              showAlert(t("auth.login.restoreFailed"), m);
+            } finally {
+              setLoggingIn(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   useEffect(() => {
     void (async () => {
@@ -82,16 +126,18 @@ export default function LoginScreen({ navigation }: Props) {
         `[AUTH/login] user: ${user.email} autoLogin=${autoLogin ? "ON" : "OFF"}`,
       );
 
-      if (autoLogin) {
-        await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
-        await AsyncStorage.setItem(LAST_EMAIL_KEY, email);
-      } else {
-        await AsyncStorage.removeItem(AUTO_LOGIN_PREF_KEY);
-        await AsyncStorage.removeItem(LAST_EMAIL_KEY);
-      }
-
-      await hydrate();
+      await finishApiLogin(email);
     } catch (err) {
+
+      if (err instanceof AuthApiError && err.code === "ACCOUNT_DELETED") {
+        const details = err.details as { restorable?: boolean } | undefined;
+        if (details?.restorable) {
+          promptRestoreAndLogin({ email, password });
+          return;
+        }
+        showAlert(t("auth.login.loginFailed"), err.message);
+        return;
+      }
       let msg = t("auth.login.loginFailed");
       if (err instanceof AuthApiError) {
         if (err.code === "ACCOUNT_LOCKED") {
@@ -113,6 +159,8 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleSocialLogin = async (provider: string) => {
     if (provider === "google") {
+
+      let capturedIdToken: string | null = null;
       try {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
         try {
@@ -129,6 +177,7 @@ export default function LoginScreen({ navigation }: Props) {
           showAlert("오류", "Google 로그인 토큰을 받지 못했습니다.");
           return;
         }
+        capturedIdToken = idToken;
 
         const check = await googleCheck(idToken);
 
@@ -160,6 +209,18 @@ export default function LoginScreen({ navigation }: Props) {
         }
       } catch (err: any) {
         if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
+
+        if (
+          err instanceof AuthApiError &&
+          err.code === "ACCOUNT_DELETED" &&
+          capturedIdToken
+        ) {
+          const details = err.details as { restorable?: boolean } | undefined;
+          if (details?.restorable) {
+            promptRestoreAndLogin({ idToken: capturedIdToken });
+            return;
+          }
+        }
         let msg = t("auth.login.googleFailed");
         if (err instanceof AuthApiError) msg = err.message;
         else if (err?.message) msg = err.message;
