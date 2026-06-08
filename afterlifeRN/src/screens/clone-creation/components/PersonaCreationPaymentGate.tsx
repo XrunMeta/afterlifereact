@@ -258,8 +258,9 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc100,
     color: v_1bfbd0.zinc400,
   },
-  error: { fontSize: 12, color: "#ef4444", marginBottom: 8 },
-  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 12 },
+  error: { fontSize: 12, color: "#ef4444", marginTop: 12, marginBottom: 0 },
+
+  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 24 },
   cancel: {
     flex: 1,
     paddingVertical: 12,
