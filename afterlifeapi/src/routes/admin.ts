@@ -1018,64 +1018,14 @@ async function issueReportWarning(
   const warningCount = cnt?.n ?? 0;
   if (already) return warningCount; 
 
-  const rule = await c.env.DB
-    .prepare(
-      `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
-        WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
-    )
-    .bind(warningCount)
-    .first<{ action: string; suspendDays: number | null }>();
-  if (!rule) return warningCount;
-
-  const days = rule.suspendDays && rule.suspendDays > 0 ? rule.suspendDays : 0;
-  let penaltyMsg = "";
-  switch (rule.action) {
-    case "clone_create_ban":
-      if (days > 0) {
-        await c.env.DB
-          .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
-          .bind(`+${days} days`, targetUserId)
-          .run();
-        penaltyMsg = `신고 누적으로 ${days}일간 페르소나 생성이 제한됩니다.`;
-      }
-      break;
-    case "account_ban":
-      if (days > 0) {
-        await c.env.DB
-          .prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`)
-          .bind(`+${days} days`, targetUserId)
-          .run();
-        penaltyMsg = `신고 누적으로 ${days}일간 계정 사용이 정지됩니다.`;
-      }
-      break;
-    case "clone_deactivate":
-      if (cloneId) {
-        await c.env.DB
-          .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL WHERE id = ? AND deletion_state = 'active'`)
-          .bind(cloneId)
-          .run();
-        penaltyMsg = "신고 누적으로 해당 페르소나가 비활성화되었습니다.";
-      }
-      break;
-    case "clone_delete":
-      if (cloneId) {
-        await c.env.DB
-          .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deletion_state = 'active'`)
-          .bind(cloneId)
-          .run();
-        penaltyMsg = "신고 누적으로 해당 페르소나가 삭제되었습니다.";
-      }
-      break;
-
-  }
-
+  void cloneId;
   await notify(c.env, {
     userId: targetUserId,
     type: "moderation",
-    title: rule.action === "warn" || !penaltyMsg ? "신고 처리 안내" : "활동 제재 안내",
-    body: adminMessage || penaltyMsg || "회원님에 대한 신고가 처리되었습니다.",
+    title: "신고 처리 안내",
+    body: adminMessage || "회원님에 대한 신고가 처리되었습니다.",
     url: "afterlife://reports/received",
-    data: { action: rule.action, warningCount, cloneId: cloneId ?? null },
+    data: { warningCount },
     skipEmail: true,
   }).catch(() => {});
 
