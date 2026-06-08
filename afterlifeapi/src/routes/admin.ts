@@ -723,7 +723,7 @@ admin.get("/reports", requireAdmin, async (c) => {
            cr.status AS status,
            cr.created_at AS createdAt,
            cr.reviewed_at AS reviewedAt,
-           (SELECT COUNT(*) FROM clone_reports x WHERE x.clone_id = cr.clone_id) AS targetReportCount
+           (SELECT COUNT(*) FROM clone_reports x WHERE x.clone_id = cr.clone_id AND x.status = 'reviewed') AS targetReportCount
       FROM clone_reports cr
       JOIN users ru ON ru.id = cr.user_id
       JOIN clones c ON c.id = cr.clone_id
@@ -744,7 +744,7 @@ admin.get("/reports", requireAdmin, async (c) => {
            ur.status AS status,
            ur.created_at AS createdAt,
            ur.reviewed_at AS reviewedAt,
-           (SELECT COUNT(*) FROM user_reports x WHERE x.target_id = ur.target_id) AS targetReportCount
+           (SELECT COUNT(*) FROM user_reports x WHERE x.target_id = ur.target_id AND x.status = 'reviewed') AS targetReportCount
       FROM user_reports ur
       JOIN users ru ON ru.id = ur.reporter_id
       JOIN users tu ON tu.id = ur.target_id
