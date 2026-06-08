@@ -318,6 +318,8 @@
       "editProfile": "개인정보 관리",
       "notifications": "알림 설정",
       "privacy": "차단 관리",
+      "reports": "신고",
+      "reportsDesc": "내가 한 신고 · 신고당한 내역",
       "saved": "저장됨",
       "acquaintance": "지인 관리",
       "inviteStatus": "초대 현황",
