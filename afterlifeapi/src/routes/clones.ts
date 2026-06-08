@@ -515,7 +515,7 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 
   const v_013af2 = await v_efcb2d(v_3f4e2e);
 
-  const v_abcc8d = [`c.deleted_at IS NULL`];
+  const v_abcc8d = [`c.deleted_at IS NULL`, `c.deletion_state = 'active'`];
   const v_925171 = [];
   if (v_013af2) {
     v_abcc8d.push(
@@ -531,6 +531,13 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
        )`,
     );
     v_925171.push(v_013af2, v_013af2, v_013af2);
+
+    v_abcc8d.push(`c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)`);
+    v_925171.push(v_013af2);
+    v_abcc8d.push(
+      `c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)`,
+    );
+    v_925171.push(v_013af2);
   } else {
     v_abcc8d.push(`c.visibility = 'public'`);
   }
