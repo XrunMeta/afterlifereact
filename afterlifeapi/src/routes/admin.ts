@@ -1032,7 +1032,9 @@ admin.get("/oth-path", requireAdmin, async (c) => {
 
   const where: string[] = [
     "f.clone_id = ?",
+
     "fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
+    "(fcc.parent_comment_id IS NULL OR fcc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned')))",
   ];
   const binds: unknown[] = [cloneId];
   if (commentType === "parent") where.push("fcc.parent_comment_id IS NULL");

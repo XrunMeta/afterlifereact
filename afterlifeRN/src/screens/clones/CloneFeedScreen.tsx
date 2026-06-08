@@ -28,7 +28,7 @@ import type { FeedItem } from "../../types/feed";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { useFeedStore } from "../../stores/feedStore";
-import { Alert } from "react-native";
+import { showAlert } from "../../stores/dialogStore";
 import {
   likeClone,
   unlikeClone,
@@ -335,7 +335,7 @@ export default function CloneFeedScreen({ route, navigation }: Props) {
   const reportComment = (commentId: number, commentFeedId?: number) => {
     const fid = realFeedId > 0 ? realFeedId : commentFeedId ?? 0;
     if (!fid || !accessToken) return;
-    Alert.alert("댓글 신고", "이 댓글을 신고할까요?", [
+    showAlert("댓글 신고", "이 댓글을 신고할까요?", [
       { text: "취소", style: "cancel" },
       {
         text: "신고",

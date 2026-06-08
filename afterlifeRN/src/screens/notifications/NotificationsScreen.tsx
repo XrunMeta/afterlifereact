@@ -126,6 +126,21 @@ export default function NotificationsScreen() {
     } else if ((m = url.match(/^afterlife:\/\/oth-path\/(\d+)/))) {
 
       navigation.navigate("UserProfile", { userId: Number(m[1]) });
+    } else if (
+      n.type === "intimacy_score" ||
+      (m = url.match(/^afterlife:\/\/clone\/(\d+)\/intimacy/)) !== null
+    ) {
+
+      const cloneId =
+        typeof d.cloneId === "number"
+          ? d.cloneId
+          : Number(url.match(/clone\/(\d+)/)?.[1] ?? 0);
+      if (cloneId > 0) {
+        navigation.navigate("Main", {
+          screen: "ClonesTab",
+          params: { screen: "Dashboard", params: { openIntimacyCloneId: cloneId } },
+        });
+      }
     } else if ((m = url.match(/^afterlife:\/\/clone\/(\d+)/))) {
 
       const feedId = typeof d.feedId === "number" ? d.feedId : undefined;

@@ -1,6 +1,8 @@
+import type { NavigatorScreenParams } from "@react-navigation/native";
+
 export type RootStackParamList = {
   Auth: undefined;
-  Main: undefined;
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Chat: { cloneId: number };
   Call: { cloneId: number; name?: string; image?: string | number };
   EmergencyContacts: undefined;
@@ -66,14 +68,15 @@ export type MainTabParamList = {
   HomeTab: undefined;
 
   SearchTab: { initialQuery?: string } | undefined;
-  ClonesTab: undefined;
+  ClonesTab: NavigatorScreenParams<ClonesStackParamList> | undefined;
   CreateTab: undefined;
   ShortsTab: undefined;
   MyTab: undefined;
 };
 
 export type ClonesStackParamList = {
-  Dashboard: undefined;
+
+  Dashboard: { openIntimacyCloneId?: number } | undefined;
   CloneDetail: { cloneId: number };
   CloneEdit: { cloneId: number };
   CloneVisibility: { cloneId: number };

@@ -609,6 +609,18 @@ export default function FollowingScreen() {
               <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
               <Text style={s.badgeText}>{item.persona.interactions}</Text>
             </TouchableOpacity>
+            {}
+            <View style={s.badgeDivider} />
+            <TouchableOpacity
+              style={s.badgeBtn}
+              onPress={() => openCloneFeed(item.persona.id, item.feed.id > 0 ? item.feed.id : undefined)}
+            >
+              <Feather name="message-circle" size={12} color="#34d399" />
+              <Text style={s.badgeText}>
+                {(cloneMetaById.get(item.persona.id)?.commentsCount ?? 0) +
+                  (countDelta.get(item.persona.id)?.comments ?? 0)}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {}
@@ -666,42 +678,6 @@ export default function FollowingScreen() {
           </View>
         </View>
 
-        {}
-        {(() => {
-          const meta = cloneMetaById.get(item.persona.id);
-          const delta = countDelta.get(item.persona.id) ?? { likes: 0, comments: 0 };
-          const liked = likedPosts.has(item.persona.id);
-          const likesCount = (meta?.likesCount ?? 0) + delta.likes;
-          const commentsCount = (meta?.commentsCount ?? 0) + delta.comments;
-          return (
-            <View style={s.actionsRow}>
-              <View style={s.actionsLeft}>
-                <TouchableOpacity onPress={() => void toggleLikeForClone(item.persona.id, item.feed.id)}>
-                  <Ionicons
-                    name={liked ? "heart" : "heart-outline"}
-                    size={24}
-                    color={liked ? "#ef4444" : COLORS.zinc700}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() =>
-                    openCloneFeed(item.persona.id, item.feed.id > 0 ? item.feed.id : undefined)
-                  }
-                >
-                  <Feather name="message-circle" size={24} color={COLORS.zinc700} />
-                </TouchableOpacity>
-              </View>
-              <View style={s.actionsRight}>
-                <Text style={s.countText}>
-                  {t("feed.likeCount", { n: formatCount(Math.max(0, likesCount)) })}
-                </Text>
-                <Text style={s.countTextSub}>
-                  {t("feed.commentCount", { n: Math.max(0, commentsCount) })}
-                </Text>
-              </View>
-            </View>
-          );
-        })()}
       </View>
     );
   };

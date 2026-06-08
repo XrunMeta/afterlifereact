@@ -1,5 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { pickAndCropImage } from "../../lib/imagePicker";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute, type RouteProp, CommonActions } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as Clipboard from "expo-clipboard";
@@ -240,6 +240,9 @@ export default function MyClonesDashboardScreen() {
     cloneName: string;
   } | null>(null);
 
+  const route = useRoute<RouteProp<ClonesStackParamList, "Dashboard">>();
+  const openedIntimacyRef = useRef<number | null>(null);
+
   const [intimacyData, setIntimacyData] = useState<IntimacyEventsResponse | null>(null);
   const [intimacyLoading, setIntimacyLoading] = useState(false);
 
@@ -361,6 +364,15 @@ export default function MyClonesDashboardScreen() {
   const [deleteModal, setDeleteModal] = useState<number | null>(null);
 
   const visibleClones = myClones.filter((c) => !hiddenCloneIds.has(c.id));
+
+  useEffect(() => {
+    const cid = route.params?.openIntimacyCloneId;
+    if (!cid || openedIntimacyRef.current === cid) return;
+    const clone = myClones.find((c) => c.id === cid);
+    if (!clone) return; 
+    openedIntimacyRef.current = cid;
+    setIntimacyModal({ cloneId: cid, cloneName: clone.displayName });
+  }, [route.params?.openIntimacyCloneId, myClones]);
 
   const handleToggle = (cloneId: number) => {
     const currentState = cloneStates[cloneId]?.isActive ?? true;
@@ -696,10 +708,13 @@ export default function MyClonesDashboardScreen() {
               <Text style={s.statText}>상호작용</Text>
             </TouchableOpacity>
             {}
-            <View style={s.stat}>
+            <TouchableOpacity
+              style={s.stat}
+              onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
+            >
               <Feather name="thermometer" size={14} color="#fb923c" />
               <Text style={s.statText}>온도</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         )}
 
