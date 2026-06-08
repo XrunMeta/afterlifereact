@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, time, pathlib, logging
+import asyncio, os, time, pathlib, logging
 from typing import Callable, Optional
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -7,6 +7,36 @@ from session import SessionManager
 
 _START = time.time()
 log = logging.getLogger("prethird.signaling")
+_AVSYNC_LOG = os.environ.get("PRETHIRD_AVSYNC_LOG", "1") == "1"
+
+
+async def _avsync_monitor(sess, interval: float = 0.5) -> None:
+    """0.5s 주기로 video/audio 송출 카운터를 로깅한다.
+    세션 종료(cancelled) 시 조용히 종료.
+    """
+    t0 = asyncio.get_event_loop().time()
+    vt = sess.video_track
+    at = sess.audio_track
+    try:
+        while True:
+            await asyncio.sleep(interval)
+            elapsed = asyncio.get_event_loop().time() - t0
+            v_real = getattr(vt, "frames_real", 0)
+            vq = getattr(vt, "queue_depth", lambda: 0)()
+            a_real = getattr(at, "frames_yielded_real", 0)
+            samples_out = getattr(at, "samples_yielded_out", 0)
+            _abuf = getattr(at, "queue_depth_samples", lambda: 0)()
+            v_content = v_real / 25.0
+            a_content = samples_out / 48000.0
+            offset_ms = int((a_content - v_content) * 1000)
+            abuf_ms = int(_abuf / 48)
+            log.info(
+                "[avsync] t=%.1f v_real=%d a_real=%d v_content=%.2f a_content=%.2f"
+                " offset_ms=%d vq=%d abuf_ms=%d",
+                elapsed, v_real, a_real, v_content, a_content, offset_ms, vq, abuf_ms,
+            )
+    except asyncio.CancelledError:
+        pass
 
 def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     """aiohttp Application 생성.
@@ -52,24 +82,40 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         data = json.loads(msg)
                     except (ValueError, TypeError):
                         return
-                    if data.get("type") == "say" and sess.pipeline is not None:
+                    if data.get("type") in ("say", "speak") and sess.pipeline is not None:
                         text = data.get("text", "")
                         if not text:
                             return
+                        mode = data["type"]
                         sess.set_state("speaking")
-                        async def _run():
+                        async def _run(mode=mode, text=text):
                             try:
-                                await sess.pipeline.say(text)
+                                if mode == "speak":
+                                    await sess.pipeline.speak(text)
+                                else:
+                                    await sess.pipeline.say(text)
                             except Exception as e:
-                                log.warning("session %s say failed: %s", sess.session_id, e)
+                                log.warning("session %s %s failed: %s", sess.session_id, mode, e)
                             finally:
                                 sess.set_state("idle")
                         asyncio.ensure_future(_run())
 
+            # [avsync] 모니터 task 핸들 (connected 시 시작, closed/failed 시 cancel)
+            _avsync_task: list[asyncio.Task] = []  # list 로 감싸 클로저 재할당 가능
+
             @pc.on("connectionstatechange")
             async def _on_state():
                 log.info("session %s pc state=%s", sess.session_id, pc.connectionState)
+                if pc.connectionState == "connected":
+                    if _AVSYNC_LOG and not _avsync_task:
+                        task = asyncio.ensure_future(_avsync_monitor(sess))
+                        _avsync_task.append(task)
+                        log.info("session %s [avsync] monitor started", sess.session_id)
                 if pc.connectionState in ("failed", "closed", "disconnected"):
+                    if _avsync_task:
+                        _avsync_task[0].cancel()
+                        _avsync_task.clear()
+                        log.info("session %s [avsync] monitor cancelled", sess.session_id)
                     await pc.close()
                     mgr.remove(sess.session_id)
 
