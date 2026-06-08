@@ -35,3 +35,10 @@ def test_extract_ref_clip_keeps_short_audio(tmp_path):
     _write_wav(str(wav), seconds=4.0, sr=16000)
     clip, sr = extract_ref_clip(str(wav), max_sec=10.0)
     assert abs(clip.shape[0] - 4 * 16000) <= 1
+
+def test_extract_ref_clip_rejects_empty(tmp_path):
+    import soundfile as sf
+    wav = tmp_path / "empty.wav"
+    sf.write(str(wav), np.zeros(0, dtype="float32"), 16000)
+    with pytest.raises(ValueError):
+        extract_ref_clip(str(wav))

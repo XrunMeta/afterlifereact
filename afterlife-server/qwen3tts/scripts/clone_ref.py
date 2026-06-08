@@ -28,5 +28,7 @@ def extract_ref_clip(voice_wav: str, max_sec: float | None = None):
     data, sr = sf.read(voice_wav, dtype="float32")
     if data.ndim > 1:
         data = data[:, 0]
+    if data.size == 0:
+        raise ValueError(f"empty audio: {voice_wav!r}")
     max_samples = int(sec * sr)
     return data[:max_samples], sr
