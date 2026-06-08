@@ -19,7 +19,7 @@ import {
   type NativeScrollEvent,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SafeView from "../../components/ui/SafeView";
@@ -28,7 +28,7 @@ import PageHeader from "../../components/common/PageHeader";
 import NotificationBell from "../../components/common/NotificationBell";
 import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import type { RootStackParamList } from "../../navigation/types";
+import type { RootStackParamList, MainTabParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
@@ -320,6 +320,16 @@ export default function FollowingScreen() {
     cloneId: number;
     cloneName: string;
   } | null>(null);
+
+  const route = useRoute<RouteProp<MainTabParamList, "ShortsTab">>();
+  const openedIntimacyRef = useRef<number | null>(null);
+  useEffect(() => {
+    const cid = route.params?.openIntimacyCloneId;
+    if (!cid || openedIntimacyRef.current === cid) return;
+    const persona = followedPersonas.find((p) => p.id === cid);
+    openedIntimacyRef.current = cid;
+    setIntimacyEventsModal({ cloneId: cid, cloneName: persona?.name ?? "" });
+  }, [route.params?.openIntimacyCloneId, followedPersonas]);
   const [intimacyEventsData, setIntimacyEventsData] =
     useState<IntimacyEventsResponse | null>(null);
   const [intimacyEventsLoading, setIntimacyEventsLoading] = useState(false);

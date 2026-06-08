@@ -708,13 +708,6 @@ export default function MyClonesDashboardScreen() {
               <Text style={s.statText}>상호작용</Text>
             </TouchableOpacity>
             {}
-            <TouchableOpacity
-              style={s.stat}
-              onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
-            >
-              <Feather name="thermometer" size={14} color="#fb923c" />
-              <Text style={s.statText}>온도</Text>
-            </TouchableOpacity>
           </View>
         )}
 
