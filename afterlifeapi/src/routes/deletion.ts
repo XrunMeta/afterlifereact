@@ -188,25 +188,6 @@ export async function v_f51850(
   return { softDeleted: v_64c9b8, transferred: v_051394 };
 }
 
-export async function v_210ca9(
-  v_a1651b,
-  v_1badb6,
-): Promise<number> {
-  const v_8f00b9 = await v_a1651b
-    .prepare(
-      `UPDATE clones
-          SET deletion_state = 'active',
-              soft_deleted_at = NULL,
-              owner_cascade_deleted_at = NULL
-        WHERE owner_id = ?
-          AND deletion_state = 'soft_deleted'
-          AND owner_cascade_deleted_at IS NOT NULL`,
-    )
-    .bind(v_1badb6)
-    .run();
-  return v_8f00b9.meta.changes ?? 0;
-}
-
 v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_43c42e = await v_b4f765(v_3f4e2e.env.DB, "user", v_43e90c, "id", v_43e90c);
@@ -235,34 +216,6 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
   }
 
   return v_3f4e2e.json({ ok: true, state: "soft_deleted", alreadyDeleted: v_d7b02d });
-});
-
-v_dda4b9.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
-  const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_43c42e = await v_c8311e(v_3f4e2e.env.DB, "user", v_43e90c, "id", v_43e90c);
-  v_7b6df3(v_43c42e);
-
-  const v_67776f = await v_210ca9(v_3f4e2e.env.DB, v_43e90c);
-  console.log(`[deletion.me.restore] clones restored: ${v_67776f}`);
-
-  try {
-    const v_213c33 = await v_3f4e2e.env.DB
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(v_43e90c)
-      .first<{ xrun_member_id: number | null }>();
-    const v_88fe80 = v_213c33?.xrun_member_id ?? null;
-    if (v_88fe80 && v_3f4e2e.env.XRUN_DB) {
-
-      await v_3f4e2e.env.XRUN_DB
-        .prepare(`UPDATE Members SET afterlife_deleted_at = NULL WHERE member = ?`)
-        .bind(v_88fe80)
-        .run();
-    }
-  } catch (v_49263d) {
-    console.warn("[deletion.me.restore] xrun unmark failed:", (v_49263d as Error).message);
-  }
-
-  return v_3f4e2e.json({ ok: true, state: "active" });
 });
 
 v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {

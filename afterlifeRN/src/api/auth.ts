@@ -156,23 +156,6 @@ export async function v_182fdb(v_931bf0): Promise<LoginResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
 }
 
-export interface RestorePayload {
-  email?: string;
-  password?: string;
-  idToken?: string;
-  deviceId?: string;
-}
-export interface RestoreResponse {
-  ok: true;
-  state: "active";
-  accessToken: string;
-  refreshToken?: string;
-  accessExpiresIn: number;
-}
-export async function v_0adb22(v_931bf0): Promise<RestoreResponse> {
-  return v_c34e2f("/oth-path", v_931bf0);
-}
-
 export async function v_dd506d(v_e0c7e8, v_6bee94): Promise<{ ok: true; expiresInSec: number }> {
   return v_c34e2f("/oth-path", { email: v_e0c7e8, pin: v_6bee94 });
 }

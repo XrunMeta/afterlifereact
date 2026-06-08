@@ -55,15 +55,6 @@ async function v_2adc1d(v_6e0fd3): Promise<{ owner_id: number; deletion_state: s
     .first())! as never;
 }
 
-async function v_5527a3(v_6e0fd3): Promise<void> {
-
-  const v_a1651b = v_c9c489.DB as unknown as D1Database;
-  await v_a1651b
-    .prepare(`UPDATE clones SET deletion_state='soft_deleted', soft_deleted_at=CURRENT_TIMESTAMP WHERE id=?`)
-    .bind(v_6e0fd3)
-    .run();
-}
-
 async function v_86c39f(v_43e90c): Promise<string> {
   const { issueToken: v_b2eae5 } = await import("../src/lib/jwt");
   const v_43fd42 = (v_c9c489 as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET;
@@ -78,17 +69,9 @@ function v_55fc7c(v_21cc31): Promise<Response> {
   });
 }
 
-function v_d2d3fb(v_e0c7e8, v_adc076): Promise<Response> {
-  return v_1df298.fetch("http://localhost/oth-path", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: v_e0c7e8, password: v_adc076 }),
-  });
-}
-
 const v_8c880b = "Abcdef1";
 
-v_469bf2("회원 탈퇴 cascade — 소유 클론 숨김 + 복구 시 부활", () => {
+v_469bf2("회원 탈퇴 cascade — 소유 클론 숨김 (복구 없음)", () => {
   v_ba7107(async () => {
     if (!(await v_2e4ad6())) throw new Error("D1 migrations not applied.");
   });
@@ -107,25 +90,6 @@ v_469bf2("회원 탈퇴 cascade — 소유 클론 숨김 + 복구 시 부활", (
       v_4d37e3(v_3ac7e7.owner_cascade_deleted_at).not.toBeNull();
       v_4d37e3(v_3ac7e7.owner_id).toBe(v_0c8987);
     }
-  });
-
-  v_23805a("복구 시 cascade 클론만 부활, 직접 지운 클론은 그대로 soft_deleted", async () => {
-    const v_0c8987 = await v_5d1973("casc-restore@test.local", v_8c880b);
-    const v_969660 = await v_4d24a9(v_0c8987, "casc_r_cascaded");
-    const v_7ebcc5 = await v_4d24a9(v_0c8987, "casc_r_manual");
-
-    await v_5527a3(v_7ebcc5);
-
-    v_4d37e3((await v_55fc7c(await v_86c39f(v_0c8987))).status).toBe(200);
-
-    v_4d37e3((await v_2adc1d(v_969660)).owner_cascade_deleted_at).not.toBeNull();
-    v_4d37e3((await v_2adc1d(v_7ebcc5)).owner_cascade_deleted_at).toBeNull();
-
-    const v_cb35cb = await v_d2d3fb("casc-restore@test.local", v_8c880b);
-    v_4d37e3(v_cb35cb.status).toBe(200);
-
-    v_4d37e3((await v_2adc1d(v_969660)).deletion_state).toBe("active");
-    v_4d37e3((await v_2adc1d(v_7ebcc5)).deletion_state).toBe("soft_deleted");
   });
 
   v_23805a("공동관리자(successor) 있는 클론은 위임 — soft-delete 아님, owner 변경", async () => {

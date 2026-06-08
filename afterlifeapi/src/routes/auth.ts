@@ -18,7 +18,6 @@ import { v_74defc } from "../lib/logger";
 import { v_b78f7e, v_656e8b } from "../lib/otp";
 import { v_6e4cc8, v_a0ec33, v_937e23 } from "../lib/xrun";
 import { v_a32f1d } from "../lib/googleAuth";
-import { v_c8311e, v_210ca9 } from "./deletion";
 
 export const v_68f0aa = new v_b7c41b<v_de0a25>();
 
@@ -176,14 +175,7 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
   } else {
 
     if (v_d1b635.deletion_state !== "active") {
-      const v_c8a361 = v_d1b635.deletion_state === "soft_deleted";
-      throw new v_3ebe58(
-        "ACCOUNT_DELETED",
-        v_c8a361
-          ? "탈퇴한 계정이에요. 복구할 수 있어요."
-          : "탈퇴 처리된 계정이라 로그인할 수 없어요.",
-        { restorable: v_c8a361, email: v_d1b635.email },
-      );
+      throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
     }
     await v_74defc(v_3f4e2e, {
       userId: v_d1b635.id,
@@ -680,14 +672,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
   }
 
   if (v_625c74.deletion_state !== "active") {
-    const v_c8a361 = v_625c74.deletion_state === "soft_deleted";
-    throw new v_3ebe58(
-      "ACCOUNT_DELETED",
-      v_c8a361
-        ? "탈퇴한 계정이에요. 복구할 수 있어요."
-        : "탈퇴 처리된 계정이라 로그인할 수 없어요.",
-      { restorable: v_c8a361, email: v_4d33b2.email },
-    );
+    throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
   }
 
   await v_a1651b
@@ -726,77 +711,6 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
   await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login" });
 
   return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 });
-});
-
-const v_b415af = v_1f4ea7
-  .object({
-    email: v_1f4ea7.email().max(200).optional(),
-    password: v_1f4ea7.string().min(1).max(200).optional(),
-    idToken: v_1f4ea7.string().min(20).optional(),
-    deviceId: v_1f4ea7.string().min(1).max(200).optional(),
-  })
-  .refine((v_148ff6) => !!v_148ff6.idToken || (!!v_148ff6.email && !!v_148ff6.password), {
-    message: "email+password 또는 idToken 이 필요해요.",
-  });
-
-v_68f0aa.post("/restore", async (v_3f4e2e) => {
-  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_b415af);
-  const v_a1651b = v_3f4e2e.env.DB;
-
-  let v_43e90c;
-  if (v_4d33b2.idToken) {
-    const v_931bf0 = await v_a32f1d(v_3f4e2e.env, v_4d33b2.idToken);
-    const v_3ac7e7 = await v_a1651b
-      .prepare(`SELECT id FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
-      .bind(v_931bf0.email)
-      .first<{ id: number }>();
-    if (!v_3ac7e7) throw new v_3ebe58("UNAUTHENTICATED", "Invalid credentials.");
-    v_43e90c = v_3ac7e7.id;
-  } else {
-    const v_3ac7e7 = await v_a1651b
-      .prepare(
-        `SELECT id, password_hash FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
-      )
-      .bind(v_4d33b2.email)
-      .first<{ id: number; password_hash: string }>();
-
-    const v_2d56e5 = v_3ac7e7?.password_hash ?? (await v_54846c("dummy-nonmatch-0000"));
-    const v_3ed4c3 = await v_96aa7f(v_4d33b2.password!, v_2d56e5);
-    if (!v_3ac7e7 || !v_3ed4c3) throw new v_3ebe58("UNAUTHENTICATED", "Invalid credentials.");
-    v_43e90c = v_3ac7e7.id;
-  }
-
-  const v_43c42e = await v_c8311e(v_a1651b, "user", v_43e90c, "id", v_43e90c);
-  if (v_43c42e !== "ok" && v_43c42e !== "not_soft_deleted") {
-    if (v_43c42e === "past_restore_window") {
-      throw new v_3ebe58("SHREDDED", "복구 가능 기간(90일)이 지났어요.");
-    }
-    throw new v_3ebe58("CONFLICT", "복구할 수 없는 상태예요.");
-  }
-
-  await v_210ca9(v_a1651b, v_43e90c);
-
-  try {
-    const v_213c33 = await v_a1651b
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(v_43e90c)
-      .first<{ xrun_member_id: number | null }>();
-    const v_88fe80 = v_213c33?.xrun_member_id ?? null;
-    if (v_88fe80 && v_3f4e2e.env.XRUN_DB) {
-      await v_3f4e2e.env.XRUN_DB
-        .prepare(`UPDATE Members SET afterlife_deleted_at = NULL WHERE member = ?`)
-        .bind(v_88fe80)
-        .run();
-    }
-  } catch (v_49263d) {
-    console.warn("[auth.restore] xrun unmark failed:", (v_49263d as Error).message);
-  }
-
-  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_43e90c, v_4d33b2.deviceId);
-  v_56035d(v_3f4e2e, v_dfaee3);
-  await v_74defc(v_3f4e2e, { userId: v_43e90c, action: "auth.restore" });
-
-  return v_3f4e2e.json({ ok: true, state: "active", accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 });
 });
 
 v_68f0aa.post("/refresh", async (v_3f4e2e) => {
