@@ -616,12 +616,13 @@ v_133c2c.post("/oth-path", async (v_3f4e2e) => {
   }
 
   if (v_4d33b2.reportId) {
+
     await v_3f4e2e.env.DB
       .prepare(
-        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP
+        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
           WHERE id = ?`,
       )
-      .bind(v_4d33b2.reportId)
+      .bind(v_4d33b2.reason ?? null, v_4d33b2.reportId)
       .run();
   }
 
@@ -695,12 +696,18 @@ v_133c2c.delete("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
 v_133c2c.post("/oth-path", async (v_3f4e2e) => {
   const v_99000e = Number(v_3f4e2e.req.param("reportId"));
   if (!Number.isInteger(v_99000e) || v_99000e <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
+  let v_4d33b2 = {};
+  try {
+    v_4d33b2 = (await v_3f4e2e.req.json()) as { message?: string };
+  } catch {
+
+  }
   const v_8f00b9 = await v_3f4e2e.env.DB
     .prepare(
-      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP
+      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
         WHERE id = ? AND status IN ('open', 'reviewed')`,
     )
-    .bind(v_99000e)
+    .bind(v_4d33b2.message ?? null, v_99000e)
     .run();
   return v_3f4e2e.json({ ok: true, updated: v_8f00b9.meta?.changes ?? 0 });
 });

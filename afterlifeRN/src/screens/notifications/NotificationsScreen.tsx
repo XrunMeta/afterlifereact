@@ -118,7 +118,10 @@ export default function v_18ad36() {
     const v_f71b56 = typeof v_d5dda0.url === "string" ? v_d5dda0.url : "";
     let v_35f85c;
 
-    if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/invite\/(.+)$/))) {
+    if (v_f4e98d.type === "clone_follow" && typeof v_d5dda0.actorId === "number") {
+
+      v_c65f5d.navigate("UserProfile", { userId: v_d5dda0.actorId });
+    } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/invite\/(.+)$/))) {
       v_c65f5d.navigate("InviteAccept", { token: decodeURIComponent(v_35f85c[1]) });
     } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/oth-path\/(\d+)/))) {
 

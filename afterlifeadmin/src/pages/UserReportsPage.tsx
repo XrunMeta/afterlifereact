@@ -87,9 +87,18 @@ export function v_f65f90() {
 
   const v_cb5993 = async () => {
     if (!v_207c31) return;
+
+    const v_a8cd21 = window.prompt(
+      "수락(경고) 사유/안내 메시지를 입력하세요. (대상자의 앱 신고내역에 표시됩니다)",
+      "",
+    );
+    if (v_a8cd21 === null) return; 
     v_4c9ae6(true);
     try {
-      const v_8f00b9 = await v_05a921.warnUser(v_207c31.targetId, { reportId: v_207c31.reportId });
+      const v_8f00b9 = await v_05a921.warnUser(v_207c31.targetId, {
+        reportId: v_207c31.reportId,
+        reason: v_a8cd21 || undefined,
+      });
       const v_badeaf = v_8f00b9.suspended
         ? `경고 ${v_8f00b9.warningCount}회 — 계정이 1개월 비활성화됐어요 (페르소나 생성 차단).`
         : `경고 ${v_8f00b9.warningCount}회 발급했어요. (3회째에 1개월 비활성화)`;
@@ -107,9 +116,15 @@ export function v_f65f90() {
 
   const v_e1f1e1 = async () => {
     if (!v_207c31) return;
+
+    const v_a8cd21 = window.prompt(
+      "거절(기각) 사유 메시지를 입력하세요. (신고자의 앱 신고내역에 표시됩니다)",
+      "",
+    );
+    if (v_a8cd21 === null) return; 
     v_4c9ae6(true);
     try {
-      await v_05a921.dismissUserReport(v_207c31.reportId);
+      await v_05a921.dismissUserReport(v_207c31.reportId, v_a8cd21 || undefined);
       v_f6f5de();
       v_fdcc94();
     } catch (v_49263d) {

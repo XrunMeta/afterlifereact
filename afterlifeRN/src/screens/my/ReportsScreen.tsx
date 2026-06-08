@@ -80,6 +80,11 @@ export default function v_7e6637() {
           <Text style={v_fd5f43.sub} numberOfLines={2}>
             {v_8c0b26.reason || "(사유 없음)"}
           </Text>
+          {v_8c0b26.adminMessage ? (
+            <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
+              📩 관리자: {v_8c0b26.adminMessage}
+            </Text>
+          ) : null}
           <Text style={v_fd5f43.date}>{v_85cf93(v_8c0b26.createdAt)}</Text>
         </View>
         <View style={[v_fd5f43.badge, { backgroundColor: v_72c7a6.bg }]}>
@@ -93,8 +98,10 @@ export default function v_7e6637() {
     <View style={v_fd5f43.row}>
       <View style={{ flex: 1 }}>
         <Text style={v_fd5f43.name}>신고가 수락되어 조치됐어요</Text>
-        {v_8c0b26.warningReason ? (
-          <Text style={v_fd5f43.sub} numberOfLines={2}>사유: {v_8c0b26.warningReason}</Text>
+        {v_8c0b26.adminMessage || v_8c0b26.warningReason ? (
+          <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
+            📩 관리자: {v_8c0b26.adminMessage || v_8c0b26.warningReason}
+          </Text>
         ) : null}
         <Text style={v_fd5f43.date}>
           접수 {v_85cf93(v_8c0b26.createdAt)}
@@ -194,6 +201,7 @@ const v_fd5f43 = v_472849.create({
   },
   name: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
   sub: { fontSize: 12, color: v_1bfbd0.zinc600, marginTop: 3 },
+  adminMsg: { fontSize: 12, color: "#b45309", marginTop: 4, lineHeight: 17 },
   date: { fontSize: 11, color: v_1bfbd0.zinc400, marginTop: 4 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   badgeText: { fontSize: 11, fontWeight: "700" },

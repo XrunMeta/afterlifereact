@@ -285,10 +285,10 @@ export const v_05a921 = {
       body: JSON.stringify(v_4d33b2 ?? {}),
     }),
 
-  dismissUserReport: (v_99000e) =>
+  dismissUserReport: (v_99000e, v_a8cd21) =>
     v_576f5a<{ ok: true; updated: number }>(
       `/oth-path${v_99000e}/dismiss`,
-      { method: "POST" },
+      { method: "POST", body: JSON.stringify({ message: v_a8cd21 ?? null }) },
     ),
 
   getReportPenaltyRules: () =>
