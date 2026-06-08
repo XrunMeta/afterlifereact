@@ -1018,64 +1018,14 @@ async function v_19a475(
   const v_e87618 = v_7b3f91?.n ?? 0;
   if (v_5b4e12) return v_e87618; 
 
-  const v_32000f = await v_3f4e2e.env.DB
-    .prepare(
-      `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
-        WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
-    )
-    .bind(v_e87618)
-    .first<{ action: string; suspendDays: number | null }>();
-  if (!v_32000f) return v_e87618;
-
-  const v_6a53fd = v_32000f.suspendDays && v_32000f.suspendDays > 0 ? v_32000f.suspendDays : 0;
-  let v_c8eee3 = "";
-  switch (v_32000f.action) {
-    case "clone_create_ban":
-      if (v_6a53fd > 0) {
-        await v_3f4e2e.env.DB
-          .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
-          .bind(`+${v_6a53fd} days`, v_489382)
-          .run();
-        v_c8eee3 = `신고 누적으로 ${v_6a53fd}일간 페르소나 생성이 제한됩니다.`;
-      }
-      break;
-    case "account_ban":
-      if (v_6a53fd > 0) {
-        await v_3f4e2e.env.DB
-          .prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`)
-          .bind(`+${v_6a53fd} days`, v_489382)
-          .run();
-        v_c8eee3 = `신고 누적으로 ${v_6a53fd}일간 계정 사용이 정지됩니다.`;
-      }
-      break;
-    case "clone_deactivate":
-      if (v_6e0fd3) {
-        await v_3f4e2e.env.DB
-          .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL WHERE id = ? AND deletion_state = 'active'`)
-          .bind(v_6e0fd3)
-          .run();
-        v_c8eee3 = "신고 누적으로 해당 페르소나가 비활성화되었습니다.";
-      }
-      break;
-    case "clone_delete":
-      if (v_6e0fd3) {
-        await v_3f4e2e.env.DB
-          .prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deletion_state = 'active'`)
-          .bind(v_6e0fd3)
-          .run();
-        v_c8eee3 = "신고 누적으로 해당 페르소나가 삭제되었습니다.";
-      }
-      break;
-
-  }
-
+  void v_6e0fd3;
   await v_c226a5(v_3f4e2e.env, {
     userId: v_489382,
     type: "moderation",
-    title: v_32000f.action === "warn" || !v_c8eee3 ? "신고 처리 안내" : "활동 제재 안내",
-    body: v_7e89c9 || v_c8eee3 || "회원님에 대한 신고가 처리되었습니다.",
+    title: "신고 처리 안내",
+    body: v_7e89c9 || "회원님에 대한 신고가 처리되었습니다.",
     url: "afterlife://reports/received",
-    data: { action: v_32000f.action, warningCount: v_e87618, cloneId: v_6e0fd3 ?? null },
+    data: { warningCount: v_e87618 },
     skipEmail: true,
   }).catch(() => {});
 
