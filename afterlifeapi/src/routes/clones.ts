@@ -524,7 +524,7 @@ clones.get("/search", async (c) => {
 
   const viewerId = await resolveOptionalUser(c);
 
-  const where: string[] = [`c.deleted_at IS NULL`];
+  const where: string[] = [`c.deleted_at IS NULL`, `c.deletion_state = 'active'`];
   const binds: unknown[] = [];
   if (viewerId) {
     where.push(
@@ -540,6 +540,13 @@ clones.get("/search", async (c) => {
        )`,
     );
     binds.push(viewerId, viewerId, viewerId);
+
+    where.push(`c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)`);
+    binds.push(viewerId);
+    where.push(
+      `c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)`,
+    );
+    binds.push(viewerId);
   } else {
     where.push(`c.visibility = 'public'`);
   }
