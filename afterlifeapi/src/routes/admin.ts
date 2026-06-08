@@ -631,11 +631,13 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
   }
   const user = await c.env.DB
     .prepare(
+
       `SELECT id, name, email,
               deletion_state AS deletionState,
               created_at AS createdAt
          FROM users
         WHERE xrun_member_id = ?
+        ORDER BY (deletion_state = 'active' AND deleted_at IS NULL) DESC, id DESC
         LIMIT 1`,
     )
     .bind(xrunId)
