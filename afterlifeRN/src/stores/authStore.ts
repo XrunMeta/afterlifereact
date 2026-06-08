@@ -2,7 +2,7 @@ import { v_a7c0d4 } from "vukrcww";
 import v_e84827 from "bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv";
 import { v_694b7f } from "../api/source";
 import type { v_b89f99 } from "../types/domain";
-import { v_182fdb as v_ac9e58, v_7ef860, type v_7289ef, type v_a93c97 } from "../api/auth";
+import { v_182fdb as v_ac9e58, v_0adb22 as v_e0e133, v_7ef860, type v_7289ef, type v_a93c97, type v_89c2d5 } from "../api/auth";
 
 const v_b6c376 = "@afterlifeRN/auth/currentUserId";
 const v_1278db = "@afterlifeRN/auth/accessToken";
@@ -22,6 +22,8 @@ interface AuthState {
   refreshToken: string | null;
   apiUser: v_7289ef | null;
   loginWithApi: (payload: v_a93c97, opts?: { persist?: boolean }) => Promise<v_7289ef>;
+
+  restoreWithApi: (payload: v_89c2d5, opts?: { persist?: boolean }) => Promise<v_7289ef>;
   setApiAuth: (token: string, user: v_7289ef, opts?: { persist?: boolean }) => Promise<void>;
 
   setApiTokens: (accessToken: string, refreshToken: string | null, opts?: { persist?: boolean }) => Promise<void>;
@@ -116,6 +118,25 @@ export const v_1ed7d9 = v_a7c0d4<AuthState>((v_bb8024, v_38715b) => ({
       }
     } else {
 
+      await v_e84827.removeItem(v_1278db);
+      await v_e84827.removeItem(v_a19d89);
+    }
+    v_bb8024({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, apiUser: v_625c74, isLoggedIn: true });
+    return v_625c74;
+  },
+
+  restoreWithApi: async (v_931bf0, v_328259) => {
+    const v_3c038e = v_328259?.persist !== false;
+    const v_8f00b9 = await v_e0e133(v_931bf0);
+    const { accessToken: v_2ca7e0 } = v_8f00b9;
+    const v_dfaee3 = v_8f00b9.refreshToken ?? null;
+    const { user: v_625c74 } = await v_7ef860(v_2ca7e0);
+    if (v_3c038e) {
+      await v_e84827.setItem(v_1278db, v_2ca7e0);
+      if (v_dfaee3) {
+        await v_e84827.setItem(v_a19d89, v_dfaee3);
+      }
+    } else {
       await v_e84827.removeItem(v_1278db);
       await v_e84827.removeItem(v_a19d89);
     }

@@ -346,7 +346,11 @@
       "checkingGoogle": "Verifying Google...",
       "googleFailed": "Google sign-in failed.",
       "lockHint": "Account locks for 10 minutes after 5 failed attempts.",
-      "accountLocked": "Account is locked. Try again in ~10 minutes, or reset your password."
+      "accountLocked": "Account is locked. Try again in ~10 minutes, or reset your password.",
+      "restoreTitle": "This account was deleted",
+      "restoreMessage": "This account has been deleted. Restore it and sign in again?",
+      "restoreConfirm": "Restore & sign in",
+      "restoreFailed": "Failed to restore the account."
     },
     "forgot": {
       "title": "Reset Password",
