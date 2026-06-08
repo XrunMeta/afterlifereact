@@ -6,10 +6,10 @@ import numpy as np
 from aiortc.mediastreams import AudioStreamTrack, VideoStreamTrack
 from av import AudioFrame, VideoFrame
 import logging
-from idle import _dummy_rgb_frame, _select_idle_frame
+from idle import _dummy_rgb_frame, _select_idle_frame, get_idle_frames
 from config import (QUEUE_MAX_DEFAULT, AUDIO_QUEUE_MAX_DEFAULT, AUDIO_OUTPUT_SR,
                     AUDIO_OUTPUT_CHANNELS, AUDIO_FRAME_MS, VIDEO_CLOCK_RATE,
-                    VIDEO_PTS_INCREMENT, VIDEO_TIME_BASE)
+                    VIDEO_PTS_INCREMENT, VIDEO_TIME_BASE, IDLE_MP4_PATH)
 log = logging.getLogger("prethird.tracks")
 
 class AvatarVideoTrack(VideoStreamTrack):
@@ -38,7 +38,7 @@ class AvatarVideoTrack(VideoStreamTrack):
         # 029-avsync-measure: 실제 mp4 frame yield 카운트 (content-time 계측용)
         self.frames_real = 0
         # 029-H idle: 큐 빔 grace 후 사전 생성 idle mp4 loop (freeze 대체, 시간 기반 25fps)
-        self._idle_frames = []
+        self._idle_frames = get_idle_frames(IDLE_MP4_PATH)
         self._idle_t0 = 0.0
         self._last_real_ts = time.time()
         self._idle_grace = float(os.environ.get("IDLE_GRACE_SEC", "0.5"))

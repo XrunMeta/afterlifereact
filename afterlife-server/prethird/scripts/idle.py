@@ -2,6 +2,16 @@ import colorsys, os
 import numpy as np
 from config import WIDTH, HEIGHT
 
+_IDLE_CACHE = None
+
+
+def get_idle_frames(path):
+    """idle mp4 frames를 프로세스 1회만 로드해 캐시. path 빈 값/실패 시 빈 리스트."""
+    global _IDLE_CACHE
+    if _IDLE_CACHE is None:
+        _IDLE_CACHE = _load_idle_frames(path) if path else []
+    return _IDLE_CACHE
+
 
 def _dummy_rgb_frame(elapsed: float) -> np.ndarray:
     """단색 frame, 12초 주기 색 회전."""
