@@ -245,4 +245,49 @@ export const api = {
       }>;
     }>(`/oth-path${tail ? `?${tail}` : ""}`);
   },
+
+  getUserDetail: (id: string | number) =>
+    request<{
+      user: {
+        id: number;
+        name: string | null;
+        email: string;
+        deletionState: string;
+        suspendedUntil: string | null;
+        createdAt: string;
+        warningCount: number;
+      };
+      warnings: Array<{ id: number; reason: string | null; createdAt: string }>;
+      reports: Array<{
+        id: number;
+        reason: string | null;
+        status: string;
+        createdAt: string;
+        reporterEmail: string;
+      }>;
+      clones: Array<{
+        id: number;
+        name: string;
+        username: string;
+        cloneType: string;
+        deletionState: string;
+      }>;
+    }>(`/oth-path${id}/detail`),
+
+  warnUser: (id: string | number, body?: { reportId?: number; reason?: string }) =>
+    request<{
+      ok: true;
+      warningCount: number;
+      suspended: boolean;
+      suspendedUntil: string | null;
+    }>(`/oth-path${id}/warn`, {
+      method: "POST",
+      body: JSON.stringify(body ?? {}),
+    }),
+
+  dismissUserReport: (reportId: string | number) =>
+    request<{ ok: true; updated: number }>(
+      `/oth-path${reportId}/dismiss`,
+      { method: "POST" },
+    ),
 };

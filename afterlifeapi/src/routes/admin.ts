@@ -539,6 +539,50 @@ admin.get("/oth-path", requireAdmin, async (c) => {
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 100);
+  const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
+  const status = url.searchParams.get("status");
+
+  const where: string[] = ["1=1"];
+  const binds: unknown[] = [];
+  if (status && ["open", "reviewed", "dismissed"].includes(status)) {
+    where.push("r.status = ?");
+    binds.push(status);
+  }
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT r.id AS id,
+                r.user_id AS userId,
+                u.name AS userName,
+                u.email AS userEmail,
+                r.clone_id AS cloneId,
+                c.name AS cloneName,
+                c.username AS cloneUsername,
+                c.owner_id AS cloneOwnerId,
+                co.name AS cloneOwnerName,
+                co.email AS cloneOwnerEmail,
+                r.reason AS reason,
+                r.status AS status,
+                r.created_at AS createdAt,
+                r.reviewed_at AS reviewedAt
+           FROM clone_reports r
+           JOIN users u ON u.id = r.user_id
+           JOIN clones c ON c.id = r.clone_id
+           LEFT JOIN users co ON co.id = c.owner_id
+          WHERE ${where.join(" AND ")}
+          ORDER BY r.created_at DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit)
+      .all()
+  ).results;
+  return c.json({ items: rows });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
   const id = Number(c.req.param("id"));
   if (!Number.isInteger(id) || id <= 0) {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
