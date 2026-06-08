@@ -657,7 +657,7 @@ v_133c2c.get("/report-penalty-rules", async (v_3f4e2e) => {
   const v_18b8bf = (
     await v_3f4e2e.env.DB
       .prepare(
-        `SELECT threshold, title, action, suspend_days AS suspendDays, updated_at AS updatedAt
+        `SELECT threshold, title, message, action, suspend_days AS suspendDays, updated_at AS updatedAt
            FROM report_penalty_rules ORDER BY threshold ASC`,
       )
       .all()
@@ -672,11 +672,12 @@ v_133c2c.put("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
   }
   let v_4d33b2 = {};
   try {
-    v_4d33b2 = (await v_3f4e2e.req.json()) as { action?: string; suspendDays?: number | null; title?: string | null };
+    v_4d33b2 = (await v_3f4e2e.req.json()) as { action?: string; suspendDays?: number | null; title?: string | null; message?: string | null };
   } catch {
 
   }
   const v_9f1622 = typeof v_4d33b2.title === "string" ? v_4d33b2.title.trim().slice(0, 100) || null : null;
+  const v_a8cd21 = typeof v_4d33b2.message === "string" ? v_4d33b2.message.trim().slice(0, 500) || null : null;
 
   const v_3b4825 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
 
@@ -693,17 +694,18 @@ v_133c2c.put("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
   }
   await v_3f4e2e.env.DB
     .prepare(
-      `INSERT INTO report_penalty_rules (threshold, title, action, suspend_days, updated_at)
-         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `INSERT INTO report_penalty_rules (threshold, title, message, action, suspend_days, updated_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
        ON CONFLICT(threshold) DO UPDATE SET
          title = excluded.title,
+         message = excluded.message,
          action = excluded.action,
          suspend_days = excluded.suspend_days,
          updated_at = CURRENT_TIMESTAMP`,
     )
-    .bind(v_d361d7, v_9f1622, v_9b064f, v_141abe)
+    .bind(v_d361d7, v_9f1622, v_a8cd21, v_9b064f, v_141abe)
     .run();
-  return v_3f4e2e.json({ ok: true, threshold: v_d361d7, title: v_9f1622, action: v_9b064f, suspendDays: v_141abe });
+  return v_3f4e2e.json({ ok: true, threshold: v_d361d7, title: v_9f1622, message: v_a8cd21, action: v_9b064f, suspendDays: v_141abe });
 });
 
 v_133c2c.delete("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
