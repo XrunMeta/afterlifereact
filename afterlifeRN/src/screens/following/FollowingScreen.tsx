@@ -601,19 +601,6 @@ export default function v_14b43e() {
               <Feather name="thermometer" size={12} color="#fb923c" />
               <Text style={v_fd5f43.badgeText}>{v_8c0b26.persona.intimacy}</Text>
             </TouchableOpacity>
-            <View style={v_fd5f43.badgeDivider} />
-            <TouchableOpacity
-              style={v_fd5f43.badgeBtn}
-              onPress={() =>
-                v_5da0f8({
-                  cloneId: v_8c0b26.persona.id,
-                  cloneName: v_8c0b26.persona.name,
-                })
-              }
-            >
-              <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
-              <Text style={v_fd5f43.badgeText}>{v_8c0b26.persona.interactions}</Text>
-            </TouchableOpacity>
             {}
             <View style={v_fd5f43.badgeDivider} />
             <TouchableOpacity
