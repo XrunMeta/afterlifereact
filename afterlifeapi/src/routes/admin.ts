@@ -748,6 +748,69 @@ admin.post("/oth-path", requireAdmin, async (c) => {
   return c.json({ ok: true });
 });
 
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const body = await c.req
+    .json<{ action?: string; suspendDays?: number | null; reason?: string }>()
+    .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string });
+  const VALID = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+  const action = body.action === "suspend" ? "clone_create_ban" : body.action ?? "";
+  if (!VALID.includes(action)) throw new APIError("VALIDATION_FAILED", "Invalid action.");
+
+  const user = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(id)
+    .first<{ id: number }>();
+  if (!user) throw new APIError("NOT_FOUND", "User not found.");
+
+  const days = Number.isInteger(body.suspendDays) && (body.suspendDays as number) > 0 ? (body.suspendDays as number) : 0;
+  const adminId = c.get("adminUserId") ?? 0;
+  let penaltyMsg = "";
+
+  switch (action) {
+    case "warn":
+      await c.env.DB
+        .prepare(`INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason) VALUES (?, ?, NULL, 'manual', ?)`)
+        .bind(id, adminId, body.reason ?? "관리자 직접 경고")
+        .run();
+      penaltyMsg = "관리자에 의해 경고가 발급되었습니다.";
+      break;
+    case "clone_create_ban":
+      await c.env.DB.prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`).bind(`+${days || 30} days`, id).run();
+      penaltyMsg = `${days || 30}일간 페르소나 생성이 제한됩니다.`;
+      break;
+    case "account_ban":
+      await c.env.DB.prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`).bind(`+${days || 30} days`, id).run();
+      penaltyMsg = `${days || 30}일간 계정 사용이 정지됩니다.`;
+      break;
+    case "clone_deactivate":
+      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
+      penaltyMsg = "보유 페르소나가 비활성화되었습니다.";
+      break;
+    case "clone_delete":
+      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
+      penaltyMsg = "보유 페르소나가 삭제되었습니다.";
+      break;
+  }
+
+  await notify(c.env, {
+    userId: id,
+    type: "moderation",
+    title: action === "warn" ? "신고 처리 안내" : "활동 제재 안내",
+    body: body.reason || penaltyMsg || "회원님에 대한 제재가 적용되었습니다.",
+    url: "afterlife://reports/received",
+    data: { action, manual: true },
+    skipEmail: true,
+  }).catch(() => {});
+
+  const row = await c.env.DB
+    .prepare(`SELECT suspended_until AS suspendedUntil, banned_until AS bannedUntil FROM users WHERE id = ?`)
+    .bind(id)
+    .first<{ suspendedUntil: string | null; bannedUntil: string | null }>();
+  return c.json({ ok: true, action, suspendedUntil: row?.suspendedUntil ?? null, bannedUntil: row?.bannedUntil ?? null });
+});
+
 admin.get("/reports", requireAdmin, async (c) => {
   const url = new URL(c.req.url);
   const type = url.searchParams.get("type") ?? "all"; 
