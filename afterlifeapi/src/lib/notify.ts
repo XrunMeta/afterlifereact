@@ -156,8 +156,9 @@ export async function v_80a022(
           : `${v_6dd0ab} 님이 ${v_eb25ce.name} 에게 댓글을 남겼어요`;
         break;
       case "clone_follow":
-        v_9f1622 = "✨ 새 팔로워";
-        v_4d33b2 = `${v_6dd0ab} 님이 ${v_eb25ce.name} 을(를) 팔로우했어요`;
+
+        v_9f1622 = "✨ 새 구독";
+        v_4d33b2 = `${v_6dd0ab} 님이 ${v_eb25ce.name} 을(를) 구독했어요`;
         break;
       case "clone_gift":
         v_9f1622 = "🎁 선물 도착";
