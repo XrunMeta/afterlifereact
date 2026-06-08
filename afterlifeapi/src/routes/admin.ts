@@ -539,6 +539,48 @@ admin.get("/oth-path", requireAdmin, async (c) => {
 });
 
 admin.get("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const row = await c.env.DB.prepare(
+    `SELECT c.id, c.name, c.username, c.description,
+            c.clone_type AS cloneType, c.visibility,
+            c.training_status AS trainingStatus,
+            c.owner_id AS ownerId, u.name AS ownerName,
+            c.created_at AS createdAt,
+            c.deletion_state AS deletionState,
+            c.soft_deleted_at AS softDeletedAt,
+            c.deleted_at AS deletedAt
+       FROM clones c
+       LEFT JOIN users u ON u.id = c.owner_id
+      WHERE c.id = ?`,
+  )
+    .bind(id)
+    .first();
+  if (!row) throw new APIError("NOT_FOUND", "Clone not found.");
+  return c.json(row);
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const row = await c.env.DB.prepare(
+    `SELECT id, name, email, gender, age, credits,
+            funnel_stage AS funnelStage,
+            deletion_state AS deletionState,
+            created_at AS createdAt
+       FROM users WHERE id = ?`,
+  )
+    .bind(id)
+    .first();
+  if (!row) throw new APIError("NOT_FOUND", "User not found.");
+  return c.json(row);
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
     throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
