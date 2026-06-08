@@ -1,5 +1,6 @@
 from __future__ import annotations
-import time, pathlib, logging
+import asyncio, time, pathlib, logging
+from typing import Callable, Optional
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from session import SessionManager
@@ -7,7 +8,15 @@ from session import SessionManager
 _START = time.time()
 log = logging.getLogger("prethird.signaling")
 
-def make_app() -> web.Application:
+def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
+    """aiohttp Application 생성.
+
+    Parameters
+    ----------
+    pipeline_factory : callable(sess) -> DialoguePipeline | None
+        세션별 DialoguePipeline 생성 콜러블.
+        None 이면 시그널링/idle 전용 모드(테스트·PoC).
+    """
     app = web.Application()
     mgr = SessionManager()
     app["mgr"] = mgr
@@ -28,9 +37,34 @@ def make_app() -> web.Application:
             pc.addTrack(sess.video_track)
             pc.addTrack(sess.audio_track)
 
+            # pipeline factory가 있으면 세션에 주입
+            if pipeline_factory is not None:
+                sess.pipeline = pipeline_factory(sess)
+
             @pc.on("datachannel")
             def _on_dc(channel):
-                sess.datachannel = channel  # T11에서 "say" 처리 배선
+                sess.datachannel = channel
+
+                @channel.on("message")
+                def _on_msg(msg):
+                    import json
+                    try:
+                        data = json.loads(msg)
+                    except (ValueError, TypeError):
+                        return
+                    if data.get("type") == "say" and sess.pipeline is not None:
+                        text = data.get("text", "")
+                        if not text:
+                            return
+                        sess.set_state("speaking")
+                        async def _run():
+                            try:
+                                await sess.pipeline.say(text)
+                            except Exception as e:
+                                log.warning("session %s say failed: %s", sess.session_id, e)
+                            finally:
+                                sess.set_state("idle")
+                        asyncio.ensure_future(_run())
 
             @pc.on("connectionstatechange")
             async def _on_state():
