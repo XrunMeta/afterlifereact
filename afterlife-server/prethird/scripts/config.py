@@ -1,0 +1,24 @@
+from fractions import Fraction
+import os
+
+WIDTH = int(os.environ.get("PRETHIRD_WIDTH", "640"))
+HEIGHT = int(os.environ.get("PRETHIRD_HEIGHT", "480"))
+
+QUEUE_MAX_DEFAULT = int(os.environ.get("PRETHIRD_QUEUE_MAX", "60"))
+AUDIO_QUEUE_MAX_DEFAULT = int(os.environ.get("PRETHIRD_AUDIO_QUEUE_MAX", "200"))
+
+AUDIO_OUTPUT_SR = 48000
+AUDIO_OUTPUT_CHANNELS = 1
+AUDIO_FRAME_MS = 20
+AUDIO_FRAME_SAMPLES = AUDIO_OUTPUT_SR * AUDIO_FRAME_MS 
+
+VIDEO_TARGET_FPS = 25
+VIDEO_CLOCK_RATE = 90000
+VIDEO_PTS_INCREMENT = VIDEO_CLOCK_RATE 
+VIDEO_TIME_BASE = Fraction(1, VIDEO_CLOCK_RATE)
+
+BIND = os.environ.get("PRETHIRD_BIND", "127.0.0.1")
+PORT = int(os.environ.get("PRETHIRD_PORT", "8500"))
+
+IDLE_MP4_PATH = os.environ.get("PRETHIRD_IDLE_MP4", "")
+IDLE_GRACE_SEC = float(os.environ.get("IDLE_GRACE_SEC", "0.5"))
