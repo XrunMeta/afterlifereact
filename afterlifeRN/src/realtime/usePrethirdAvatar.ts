@@ -55,7 +55,7 @@ async function v_956147(v_12cd99): Promise<void> {
 }
 
 export function v_3d8d48(v_328259): v_b01667 {
-  const { cloneId: v_6e0fd3 } = v_328259;
+  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0 } = v_328259;
   const v_84b93d = v_328259.deps ?? v_17f880;
   const [v_b6e533, v_1fa668] = v_5ab095<v_d20273>('idle');
   const [v_b4d824, v_b944e3] = v_5ab095<v_802da4 | null>(null);
@@ -162,7 +162,7 @@ export function v_3d8d48(v_328259): v_b01667 {
       const v_cb35cb = await fetch(v_f71b56, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'offer', sdp: v_582c5e, clone_id: v_6e0fd3 }),
+        body: JSON.stringify({ type: 'offer', sdp: v_582c5e, clone_id: v_6e0fd3, access_token: v_2ca7e0 }),
       });
       const v_9b6134 = await v_cb35cb.text();
       if (!v_cb35cb.ok) throw new Error(`prethird_offer_http_${v_cb35cb.status}`);
@@ -180,7 +180,7 @@ export function v_3d8d48(v_328259): v_b01667 {
       v_3a7d09(v_9e86fd as Error);
       v_1fa668('error');
     }
-  }, [v_6e0fd3, v_84b93d]);
+  }, [v_6e0fd3, v_2ca7e0, v_84b93d]);
 
   v_c4deb2(() => () => { void v_3e54f8();  }, []);
 

@@ -170,6 +170,16 @@ it('start 재진입 가드: 두 번 연속 호출 → createPeerConnection 1회�
   expect(v_d5dda0.createPeerConnection).toHaveBeenCalledTimes(1);
 });
 
+it('start: /offer body에 access_token 포함', async () => {
+  v_897bd0();
+  const v_32dc97 = v_9051ce(); const v_12cd99 = v_e6273b(v_32dc97);
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3d8d48({ cloneId: 7, accessToken: 'tok-123', deps: v_84b93d(v_12cd99) as never }));
+  await v_be73a0(async () => { await v_43c42e.current.start(); });
+  const [, v_00cfc6] = (global.fetch as jest.Mock).mock.calls[0];
+  expect(JSON.parse(v_00cfc6.body)).toMatchObject({ clone_id: 7, access_token: 'tok-123' });
+});
+
 it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {
 
   v_897bd0();
