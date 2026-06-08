@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
+import type { MyStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import { useAuthStore } from "../../stores/authStore";
@@ -38,8 +39,9 @@ const fmt = (iso: string | null) => (iso ? iso.slice(0, 16).replace("T", " ") : 
 
 export default function ReportsScreen() {
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<MyStackParamList, "Reports">>();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const [tab, setTab] = useState<"made" | "received">("made");
+  const [tab, setTab] = useState<"made" | "received">(route.params?.tab ?? "made");
   const [loading, setLoading] = useState(true);
 
   const [made, setMade] = useState<MyReportMade[]>([]);
