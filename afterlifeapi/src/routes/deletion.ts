@@ -125,7 +125,10 @@ function handleRestoreResult(result: SoftRestoreResult) {
 deletion.delete("/me", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const result = await softDelete(c.env.DB, "user", userId, "id", userId);
-  handleDeleteResult(result);
+  if (result !== "ok" && result !== "already_deleted") {
+    handleDeleteResult(result); 
+  }
+  const alreadyDeleted = result === "already_deleted";
 
   try {
     const linkRow = await c.env.DB
@@ -141,7 +144,7 @@ deletion.delete("/me", requireAuth, async (c) => {
     console.warn("[deletion.me] xrun mark failed:", (err as Error).message);
   }
 
-  return c.json({ ok: true, state: "soft_deleted" });
+  return c.json({ ok: true, state: "soft_deleted", alreadyDeleted });
 });
 
 deletion.post("/me/restore", requireAuth, async (c) => {
