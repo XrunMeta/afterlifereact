@@ -853,15 +853,20 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
 v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
       `SELECT fcc.id, fcc.feed_id AS feedId, fcc.user_id AS userId,
               u.name AS userName, u.email AS userEmail,
-              fcc.content, fcc.created_at AS createdAt
+              u.xrun_member_id AS userXrunMemberId,
+              fcc.content, fcc.created_at AS createdAt,
+              fcc.likes_count AS likeCount,
+              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount
          FROM feed_comments fcc
          JOIN feeds f ON f.id = fcc.feed_id
          JOIN users u ON u.id = fcc.user_id
         WHERE f.clone_id = ?
+          AND fcc.parent_comment_id IS NULL
         ORDER BY fcc.created_at DESC
         LIMIT 200`,
     )
@@ -877,6 +882,7 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
     .prepare(
       `SELECT fl.id, fl.feed_id AS feedId, fl.user_id AS userId,
               u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
               fl.created_at AS createdAt
          FROM feed_likes fl
          JOIN feeds f ON f.id = fl.feed_id
@@ -897,6 +903,7 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
     .prepare(
       `SELECT cf.id, cf.user_id AS userId,
               u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
               cf.created_at AS createdAt
          FROM clone_follows cf
          JOIN users u ON u.id = cf.user_id
@@ -916,6 +923,7 @@ v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
     .prepare(
       `SELECT uci.id, uci.user_id AS userId,
               u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
               uci.chat_count AS chatCount,
               uci.call_count AS callCount,
               uci.learn_count AS learnCount,
