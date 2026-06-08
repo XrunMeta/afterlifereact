@@ -7,6 +7,7 @@ import { v_137694, v_85de88, v_a8614b, v_8ea38c, v_b31343 } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_74defc } from "../lib/logger";
 import { v_c226a5 } from "../lib/notify";
+import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
 
@@ -44,22 +45,37 @@ v_de7ba7.get("/search", v_6690d9, async (v_3f4e2e) => {
   if (v_ab6401.length < 2) {
     return v_3f4e2e.json({ items: [] });
   }
-  const v_2a1d60 = `%${v_ab6401}%`;
 
-  const v_18b8bf = await v_3f4e2e.env.DB
-    .prepare(
-      `SELECT id, name, email, avatar_url AS avatarUrl
-         FROM users
-        WHERE deleted_at IS NULL
-          AND id != ?
-          AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
-          AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
-        ORDER BY id DESC
-        LIMIT 20`,
-    )
-    .bind(v_b32680, v_b32680, v_2a1d60, v_2a1d60)
-    .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
-  return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+  const v_75fbef = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, name, email, avatar_url AS avatarUrl
+           FROM users
+          WHERE deleted_at IS NULL
+            AND deletion_state = 'active'
+            AND id != ?
+            AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
+          ORDER BY id DESC
+          LIMIT 500`,
+      )
+      .bind(v_b32680, v_b32680)
+      .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>()
+  ).results;
+  const v_28f669 = (v_e0c7e8) => v_e0c7e8.split("@")[0] ?? v_e0c7e8;
+  const v_4622b9 = v_75fbef
+    .map((v_ceb55a) => ({
+      u: v_ceb55a,
+      score: Math.max(
+        v_e0041f(v_ab6401, v_ceb55a.name),
+        v_e0041f(v_ab6401, v_ceb55a.email),
+        v_e0041f(v_ab6401, v_28f669(v_ceb55a.email)),
+      ),
+    }))
+    .filter((v_62c214) => v_62c214.score >= v_cfdcb0)
+    .sort((v_779914, v_148ff6) => v_148ff6.score - v_779914.score || v_148ff6.u.id - v_779914.u.id)
+    .slice(0, 20)
+    .map((v_62c214) => v_62c214.u);
+  return v_3f4e2e.json({ items: v_4622b9 });
 });
 
 v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {

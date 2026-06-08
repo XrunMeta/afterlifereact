@@ -5,6 +5,7 @@ import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_6690d9 } from "../middleware/auth";
 import { v_a04a51 } from "../middleware/idempotency";
 import { v_74defc } from "../lib/logger";
+import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
 import {
   v_7adf64,
   v_ab84f6,
@@ -541,11 +542,6 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
   } else {
     v_abcc8d.push(`c.visibility = 'public'`);
   }
-  if (v_24baff.q) {
-    v_abcc8d.push(`(c.name LIKE ? OR c.username LIKE ?)`);
-    const v_2a1d60 = `%${v_24baff.q}%`;
-    v_925171.push(v_2a1d60, v_2a1d60);
-  }
   if (v_24baff.type) {
     v_abcc8d.push(`c.clone_type = ?`);
     v_925171.push(v_24baff.type);
@@ -553,6 +549,47 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
   if (v_24baff.category) {
     v_abcc8d.push(`c.category = ?`);
     v_925171.push(v_24baff.category);
+  }
+
+  const v_63b5ee = (v_cb35cb) => ({
+    id: v_cb35cb.id,
+    name: v_cb35cb.name,
+    username: v_cb35cb.username,
+    cloneType: v_cb35cb.clone_type,
+    category: v_cb35cb.category,
+    avatarUrl: v_cb35cb.avatar_url,
+    stats: { followers: v_cb35cb.followers_count, messages: v_cb35cb.messages_count, gifts: v_cb35cb.gifts_count },
+    createdAt: v_cb35cb.created_at,
+  });
+
+  if (v_24baff.q) {
+    const v_ab2e34 = `
+      SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url,
+             c.created_at,
+             COALESCE(s.followers_count, 0) AS followers_count,
+             COALESCE(s.messages_count, 0)  AS messages_count,
+             COALESCE(s.gifts_count, 0)     AS gifts_count
+        FROM clones c
+        LEFT JOIN clone_stats s ON s.clone_id = c.id
+       WHERE ${v_abcc8d.join(" AND ")}
+       ORDER BY COALESCE(s.followers_count, 0) DESC, c.id DESC
+       LIMIT 500`;
+    const v_75fbef = (
+      await v_a1651b.prepare(v_ab2e34).bind(...v_925171).all<Parameters<typeof v_63b5ee>[0]>()
+    ).results;
+    const v_64462d = v_75fbef
+      .map((v_cb35cb) => ({
+        r: v_cb35cb,
+        score: Math.max(
+          v_e0041f(v_24baff.q!, v_cb35cb.name),
+          v_e0041f(v_24baff.q!, v_cb35cb.username),
+        ),
+      }))
+      .filter((v_62c214) => v_62c214.score >= v_cfdcb0)
+      .sort((v_779914, v_148ff6) => v_148ff6.score - v_779914.score || v_148ff6.r.followers_count - v_779914.r.followers_count)
+      .slice(0, v_24baff.limit)
+      .map((v_62c214) => v_62c214.r);
+    return v_3f4e2e.json({ items: v_64462d.map(v_63b5ee), nextCursor: null });
   }
 
   let v_5922ec;
@@ -614,20 +651,7 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
   }
 
   return v_3f4e2e.json({
-    items: v_2365e9.map((v_cb35cb) => ({
-      id: v_cb35cb.id,
-      name: v_cb35cb.name,
-      username: v_cb35cb.username,
-      cloneType: v_cb35cb.clone_type,
-      category: v_cb35cb.category,
-      avatarUrl: v_cb35cb.avatar_url,
-      stats: {
-        followers: v_cb35cb.followers_count,
-        messages: v_cb35cb.messages_count,
-        gifts: v_cb35cb.gifts_count,
-      },
-      createdAt: v_cb35cb.created_at,
-    })),
+    items: v_2365e9.map(v_63b5ee),
     nextCursor: v_64f859,
   });
 });
