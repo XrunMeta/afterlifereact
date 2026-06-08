@@ -634,7 +634,9 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
 
       `SELECT id, name, email,
               deletion_state AS deletionState,
-              created_at AS createdAt
+              created_at AS createdAt,
+              soft_deleted_at AS softDeletedAt,
+              suspended_until AS suspendedUntil
          FROM users
         WHERE xrun_member_id = ?
         ORDER BY (deletion_state = 'active' AND deleted_at IS NULL) DESC, id DESC
@@ -647,6 +649,8 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
       email: string;
       deletionState: string;
       createdAt: string | null;
+      softDeletedAt: string | null;
+      suspendedUntil: string | null;
     }>();
 
   if (!user) {
@@ -713,8 +717,13 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
     .bind(user.id, user.id, user.id)
     .first<{ cnt: number }>();
 
+  const lastWarning = await c.env.DB
+    .prepare(`SELECT reason FROM user_warnings WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1`)
+    .bind(user.id)
+    .first<{ reason: string | null }>();
+
   return c.json({
-    user,
+    user: { ...user, suspensionReason: lastWarning?.reason ?? null },
     clones,
     cloneReportsCount: cloneReports?.cnt ?? 0,
     userReportsCount: userReports?.cnt ?? 0,
@@ -723,6 +732,17 @@ admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
     reportsReceivedCount: (cloneReports?.cnt ?? 0) + (userReports?.cnt ?? 0) + (commentReports?.cnt ?? 0),
     reportsMadeCount: reportsMade?.cnt ?? 0,
   });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB
+    .prepare(`UPDATE users SET suspended_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .bind(id)
+    .run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "User not found.");
+  return c.json({ ok: true });
 });
 
 admin.get("/reports", requireAdmin, async (c) => {
