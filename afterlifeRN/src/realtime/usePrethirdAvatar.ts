@@ -59,7 +59,7 @@ export function usePrethirdAvatar(opts: {
   accessToken: string; 
   deps?: PrethirdAvatarDeps;
 }): AvatarCall {
-  const { cloneId } = opts;
+  const { cloneId, accessToken } = opts;
   const deps = opts.deps ?? defaultDeps;
   const [state, setState] = useState<LiveAvatarState>('idle');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -166,7 +166,7 @@ export function usePrethirdAvatar(opts: {
       const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'offer', sdp: offerSdp, clone_id: cloneId }),
+        body: JSON.stringify({ type: 'offer', sdp: offerSdp, clone_id: cloneId, access_token: accessToken }),
       });
       const text = await r.text();
       if (!r.ok) throw new Error(`prethird_offer_http_${r.status}`);
@@ -184,7 +184,7 @@ export function usePrethirdAvatar(opts: {
       setError(e as Error);
       setState('error');
     }
-  }, [cloneId, deps]);
+  }, [cloneId, accessToken, deps]);
 
   useEffect(() => () => { void stop();  }, []);
 

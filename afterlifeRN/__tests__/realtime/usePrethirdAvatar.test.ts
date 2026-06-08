@@ -170,6 +170,16 @@ it('start 재진입 가드: 두 번 연속 호출 → createPeerConnection 1회�
   expect(d.createPeerConnection).toHaveBeenCalledTimes(1);
 });
 
+it('start: /offer body에 access_token 포함', async () => {
+  mockOfferFetch();
+  const dc = makeMockDc(); const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 'tok-123', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+  const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+  expect(JSON.parse(init.body)).toMatchObject({ clone_id: 7, access_token: 'tok-123' });
+});
+
 it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {
 
   mockOfferFetch();
