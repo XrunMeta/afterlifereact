@@ -49,7 +49,8 @@ v_469bf2("신고 누적 조건 — 설정 기반 벌칙", () => {
     v_4d37e3(v_8f00b9.status).toBe(200);
     const v_7ecfd1 = (await v_8f00b9.json()) as { items: Array<{ threshold: number; action: string; suspendDays: number | null }> };
     const v_dfdbc1 = v_7ecfd1.items.find((v_cb35cb) => v_cb35cb.threshold === 3);
-    v_4d37e3(v_dfdbc1?.action).toBe("suspend");
+
+    v_4d37e3(v_dfdbc1?.action).toBe("clone_create_ban");
     v_4d37e3(v_dfdbc1?.suspendDays).toBe(30);
   });
 

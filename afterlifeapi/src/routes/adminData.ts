@@ -606,14 +606,27 @@ v_133c2c.post("/oth-path", async (v_3f4e2e) => {
 
   let v_3e0055 = null;
   let v_7f572b = false;
-  if (v_32000f?.action === "suspend" && v_32000f.suspendDays && v_32000f.suspendDays > 0) {
+  const v_6a53fd = v_32000f?.suspendDays && v_32000f.suspendDays > 0 ? v_32000f.suspendDays : 0;
+
+  if (v_32000f?.action === "clone_create_ban" && v_6a53fd > 0) {
     v_7f572b = true;
     await v_3f4e2e.env.DB
       .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
-      .bind(`+${v_32000f.suspendDays} days`, v_389afb)
+      .bind(`+${v_6a53fd} days`, v_389afb)
       .run();
     const v_3ac7e7 = await v_3f4e2e.env.DB
       .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+      .bind(v_389afb)
+      .first<{ s: string | null }>();
+    v_3e0055 = v_3ac7e7?.s ?? null;
+  } else if (v_32000f?.action === "account_ban" && v_6a53fd > 0) {
+    v_7f572b = true;
+    await v_3f4e2e.env.DB
+      .prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`)
+      .bind(`+${v_6a53fd} days`, v_389afb)
+      .run();
+    const v_3ac7e7 = await v_3f4e2e.env.DB
+      .prepare(`SELECT banned_until AS s FROM users WHERE id = ?`)
       .bind(v_389afb)
       .first<{ s: string | null }>();
     v_3e0055 = v_3ac7e7?.s ?? null;
@@ -663,12 +676,18 @@ v_133c2c.put("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
   } catch {
 
   }
-  const v_9b064f = v_4d33b2.action === "suspend" ? "suspend" : "warn";
+
+  const v_3b4825 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+
+  const v_4b0806 = v_4d33b2.action === "suspend" ? "clone_create_ban" : (v_4d33b2.action ?? "");
+  const v_9b064f = v_3b4825.includes(v_4b0806) ? v_4b0806 : "warn";
+
+  const v_d03754 = v_9b064f === "clone_create_ban" || v_9b064f === "account_ban";
   const v_141abe =
-    v_9b064f === "suspend" && Number.isInteger(v_4d33b2.suspendDays) && (v_4d33b2.suspendDays as number) > 0
+    v_d03754 && Number.isInteger(v_4d33b2.suspendDays) && (v_4d33b2.suspendDays as number) > 0
       ? (v_4d33b2.suspendDays as number)
       : null;
-  if (v_9b064f === "suspend" && !v_141abe) {
+  if (v_d03754 && !v_141abe) {
     return v_3f4e2e.json({ error: "suspend_days_required" }, 400);
   }
   await v_3f4e2e.env.DB
