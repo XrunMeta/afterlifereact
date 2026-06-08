@@ -189,12 +189,19 @@ class MuseTalkInproc:
     # infer()
     # ------------------------------------------------------------------
 
-    def infer(self, wav_path: str, on_frame: Callable) -> int:
+    def infer(
+        self,
+        wav_path: str,
+        on_frame: Callable,
+        video_path: str | None = None,
+    ) -> int:
         """wav_path 음성 → frame 생성 즉시 on_frame(rgb_ndarray) 호출.
 
         Args:
             wav_path: 추론할 wav 파일 경로.
             on_frame: RGB ndarray 를 받는 콜백. AvatarVideoTrack.push_ndarray 와 호환.
+            video_path: 이 호출에서만 사용할 클론 영상 경로. 생략 시 self.video_path(기본 halbae).
+                        모델(self._models)은 재로드하지 않는다. 좌표 캐시는 video stem 별 자동.
 
         Returns:
             총 프레임 수 (frame_callback 호출 횟수).
@@ -210,7 +217,9 @@ class MuseTalkInproc:
         import yaml  # noqa: PLC0415
 
         wav_path_obj = Path(wav_path).resolve()
-        video_path_obj = Path(self.video_path).resolve()
+        # video_path 인자 우선, 생략 시 self.video_path(기본 halbae) 사용
+        vp = video_path if video_path is not None else self.video_path
+        video_path_obj = Path(vp).resolve()
 
         # per-call yaml config (musetalk_server.infer() 와 동일한 방식)
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
