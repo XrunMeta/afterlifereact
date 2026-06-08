@@ -137,8 +137,8 @@ export default function NotificationsScreen() {
           : Number(url.match(/clone\/(\d+)/)?.[1] ?? 0);
       if (cloneId > 0) {
         navigation.navigate("Main", {
-          screen: "ClonesTab",
-          params: { screen: "Dashboard", params: { openIntimacyCloneId: cloneId } },
+          screen: "ShortsTab",
+          params: { openIntimacyCloneId: cloneId },
         });
       }
     } else if ((m = url.match(/^afterlife:\/\/clone\/(\d+)/))) {
@@ -168,17 +168,12 @@ export default function NotificationsScreen() {
   const hasUnread = items.some((it) => !it.isRead);
 
   const renderItem = ({ item }: { item: NotificationItem }) => {
-    const icon = TYPE_ICON[item.type] ?? "bell";
     return (
       <TouchableOpacity
         style={[s.row, !item.isRead && s.rowUnread]}
         onPress={() => handleItemPress(item)}
         activeOpacity={0.6}
       >
-        <View style={s.iconWrap}>
-          <Feather name={icon} size={18} color={COLORS.violet600} />
-          {!item.isRead && <View style={s.unreadDot} />}
-        </View>
         <View style={s.body}>
           {item.title ? <Text style={s.title}>{item.title}</Text> : null}
           {item.body ? (

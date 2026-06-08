@@ -72,7 +72,8 @@ export type MainTabParamList = {
   SearchTab: { initialQuery?: string } | undefined;
   ClonesTab: NavigatorScreenParams<ClonesStackParamList> | undefined;
   CreateTab: undefined;
-  ShortsTab: undefined;
+
+  ShortsTab: { openIntimacyCloneId?: number } | undefined;
   MyTab: undefined;
 };
 
