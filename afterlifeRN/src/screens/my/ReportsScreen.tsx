@@ -8,7 +8,6 @@ import {
   v_4623af,
   v_39a996,
 } from "rcmrninabrnb";
-import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_e57140 } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
@@ -24,9 +23,9 @@ import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 
 const v_210e32 = {
   open: { label: "대기중", color: "#1d4ed8", bg: "#dbeafe" },
-  reviewed: { label: "대기중", color: "#1d4ed8", bg: "#dbeafe" },
-  actioned: { label: "수락됨 (조치 완료)", color: "#b45309", bg: "#fef3c7" },
-  dismissed: { label: "기각", color: "#64748b", bg: "#f1f5f9" },
+  reviewed: { label: "처리 완료", color: "#15803d", bg: "#dcfce7" },
+  actioned: { label: "처리 완료", color: "#15803d", bg: "#dcfce7" },
+  dismissed: { label: "거절", color: "#64748b", bg: "#f1f5f9" },
 };
 
 const v_a28029 = {
@@ -106,7 +105,10 @@ export default function v_7e6637() {
   const v_30f616 = ({ item: v_8c0b26 }: { item: v_2d86f0 }) => (
     <View style={v_fd5f43.row}>
       <View style={{ flex: 1 }}>
-        <Text style={v_fd5f43.name}>신고가 수락되어 조치됐어요</Text>
+        <Text style={v_fd5f43.typeTag}>{v_a28029[v_8c0b26.reportType] ?? "신고"}</Text>
+        <Text style={v_fd5f43.name}>
+          {v_a28029[v_8c0b26.reportType] ?? ""} 신고가 수락되어 조치됐어요
+        </Text>
         {v_8c0b26.adminMessage || v_8c0b26.warningReason ? (
           <Text style={v_fd5f43.adminMsg} numberOfLines={3}>
             📩 관리자: {v_8c0b26.adminMessage || v_8c0b26.warningReason}
@@ -150,7 +152,6 @@ export default function v_7e6637() {
           renderItem={v_757d4c}
           ListEmptyComponent={
             <View style={v_fd5f43.empty}>
-              <Feather name="flag" size={32} color={v_1bfbd0.zinc300} />
               <Text style={v_fd5f43.emptyText}>접수한 신고가 없어요</Text>
             </View>
           }
@@ -176,7 +177,6 @@ export default function v_7e6637() {
           }
           ListEmptyComponent={
             <View style={v_fd5f43.empty}>
-              <Feather name="shield" size={32} color={v_1bfbd0.zinc300} />
               <Text style={v_fd5f43.emptyText}>관리자가 조치한 신고가 없어요</Text>
             </View>
           }
