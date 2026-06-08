@@ -84,6 +84,7 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
 });
 
 v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+
   const v_18b8bf = (
     await v_3f4e2e.env.DB.prepare(
       `SELECT c.id, c.name, c.username,
@@ -93,7 +94,9 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
               c.created_at AS createdAt,
               c.deletion_state AS deletionState,
               c.soft_deleted_at AS softDeletedAt,
-              c.deleted_at AS deletedAt
+              c.deleted_at AS deletedAt,
+              (SELECT COUNT(*) FROM clone_reports cr
+                WHERE cr.clone_id = c.id AND cr.status = 'open') AS reportCount
          FROM clones c
          LEFT JOIN users u ON u.id = c.owner_id
         ORDER BY c.id DESC

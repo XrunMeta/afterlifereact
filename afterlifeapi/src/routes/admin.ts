@@ -444,3 +444,80 @@ v_b7f2b4.delete("/oth-path", v_c0a297, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, deletedId: v_6e0fd3, deletionState: "soft_deleted" });
 });
 
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_3c8572 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .bind(v_6e0fd3)
+    .first<{ id: number; deletion_state: string }>();
+  if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (v_3c8572.deletion_state !== "active") {
+    return v_3f4e2e.json({ ok: true, alreadyDisabled: true, deletionState: v_3c8572.deletion_state });
+  }
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ ok: true, cloneId: v_6e0fd3, deletionState: "soft_deleted" });
+});
+
+v_b7f2b4.post("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_3c8572 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .bind(v_6e0fd3)
+    .first<{ id: number; deletion_state: string }>();
+  if (!v_3c8572) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  if (v_3c8572.deletion_state === "active") {
+    return v_3f4e2e.json({ ok: true, alreadyActive: true, deletionState: "active" });
+  }
+  if (v_3c8572.deletion_state === "hard_deleted" || v_3c8572.deletion_state === "archived_cold") {
+    throw new v_3ebe58("CONFLICT", `Cannot activate from state '${v_3c8572.deletion_state}'.`);
+  }
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'active',
+              soft_deleted_at = NULL,
+              deleted_at = NULL
+        WHERE id = ?`,
+    )
+    .bind(v_6e0fd3)
+    .run();
+  return v_3f4e2e.json({ ok: true, cloneId: v_6e0fd3, deletionState: "active" });
+});
+
+v_b7f2b4.get("/oth-path", v_c0a297, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const v_18b8bf = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT cr.id, cr.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              cr.reason, cr.status,
+              cr.created_at AS createdAt,
+              cr.reviewed_at AS reviewedAt
+         FROM clone_reports cr
+         JOIN users u ON u.id = cr.user_id
+        WHERE cr.clone_id = ?
+        ORDER BY cr.created_at DESC
+        LIMIT 200`,
+    )
+    .bind(v_6e0fd3)
+    .all();
+  return v_3f4e2e.json({ items: v_18b8bf.results });
+});
+
