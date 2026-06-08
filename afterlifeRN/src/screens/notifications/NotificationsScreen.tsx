@@ -23,6 +23,7 @@ import {
   v_8c796a,
   type v_d9bc70,
 } from "../../api/notifications";
+import { v_003cf2 } from "../../api/clones";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../../components/constants";
 import type { v_8ad91b } from "../../navigation/types";
 
@@ -65,6 +66,40 @@ export default function v_18ad36() {
     v_92fdf2();
   }, [v_92fdf2]);
 
+  const v_00ff06 = async (v_6e0fd3, v_4400a9 = false, v_c09aa8) => {
+    try {
+      const v_7d5f12 = await v_003cf2(v_6e0fd3, v_2ca7e0 ?? undefined);
+      const v_3f4e2e = v_7d5f12.clone;
+      v_c65f5d.navigate("CloneFeed", {
+        openComments: v_4400a9,
+        feed: {
+
+          id: v_c09aa8 ?? -v_3f4e2e.id,
+          cloneId: v_3f4e2e.id,
+          content: v_3f4e2e.description ?? "",
+          mediaUrl: v_3f4e2e.avatarUrl,
+          mediaType: null,
+          likesCount: v_3f4e2e.stats?.likes ?? 0,
+          commentsCount: v_3f4e2e.stats?.comments ?? 0,
+          likedByMe: v_3f4e2e.likedByMe ?? false,
+          createdAt: v_3f4e2e.createdAt,
+          clone: {
+            id: v_3f4e2e.id,
+            ownerId: v_3f4e2e.ownerId,
+            name: v_3f4e2e.name,
+            username: v_3f4e2e.username,
+            avatarUrl: v_3f4e2e.avatarUrl,
+            cloneType: v_3f4e2e.cloneType as never,
+            visibility: v_3f4e2e.visibility as never,
+          },
+          interests: [],
+        },
+      });
+    } catch (v_49263d) {
+      console.warn("[Notifications] open clone failed:", v_49263d);
+    }
+  };
+
   const v_8e442f = async (n: v_d9bc70) => {
     if (!v_2ca7e0) return;
     if (!v_f4e98d.isRead) {
@@ -79,12 +114,26 @@ export default function v_18ad36() {
       }
     }
 
-    const v_f71b56 = (v_f4e98d.data as { url?: string } | null)?.url;
-    if (v_f71b56) {
-      const v_35f85c = v_f71b56.match(/^afterlife:\/\/invite\/(.+)$/);
-      if (v_35f85c) {
-        v_c65f5d.navigate("InviteAccept", { token: decodeURIComponent(v_35f85c[1]) });
-      }
+    const v_d5dda0 = (v_f4e98d.data ?? {}) as Record<string, unknown>;
+    const v_f71b56 = typeof v_d5dda0.url === "string" ? v_d5dda0.url : "";
+    let v_35f85c;
+
+    if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/invite\/(.+)$/))) {
+      v_c65f5d.navigate("InviteAccept", { token: decodeURIComponent(v_35f85c[1]) });
+    } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/oth-path\/(\d+)/))) {
+
+      v_c65f5d.navigate("UserProfile", { userId: Number(v_35f85c[1]) });
+    } else if ((v_35f85c = v_f71b56.match(/^afterlife:\/\/clone\/(\d+)/))) {
+
+      const v_c09aa8 = typeof v_d5dda0.feedId === "number" ? v_d5dda0.feedId : undefined;
+      await v_00ff06(Number(v_35f85c[1]), v_f4e98d.type === "clone_comment", v_c09aa8);
+    } else if (v_f4e98d.type === "user_follow" && typeof v_d5dda0.followerId === "number") {
+      v_c65f5d.navigate("UserProfile", { userId: v_d5dda0.followerId });
+    } else if (v_f4e98d.type === "invite_received" && typeof v_d5dda0.token === "string") {
+      v_c65f5d.navigate("InviteAccept", { token: v_d5dda0.token });
+    } else if (typeof v_d5dda0.cloneId === "number") {
+      const v_c09aa8 = typeof v_d5dda0.feedId === "number" ? v_d5dda0.feedId : undefined;
+      await v_00ff06(v_d5dda0.cloneId, v_f4e98d.type === "clone_comment", v_c09aa8);
     }
   };
 

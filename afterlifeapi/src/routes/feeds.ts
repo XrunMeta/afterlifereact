@@ -621,6 +621,7 @@ v_f1d06f.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     actorId: v_43e90c,
     cloneId: v_2db2a5.cloneId,
     extraBody: v_4d33b2.content.trim(),
+    feedId: v_c09aa8,
   });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_2db2a5.cloneId, "feed");
 
@@ -927,6 +928,7 @@ v_96e8d7.post("/:id/comments", v_6690d9, async (v_3f4e2e) => {
     actorId: v_43e90c,
     cloneId: v_6e0fd3,
     extraBody: v_4d33b2.content.trim(),
+    feedId: v_c09aa8,
   });
   await v_dd9d7c(v_3f4e2e.env, v_43e90c, v_6e0fd3, "feed");
 
