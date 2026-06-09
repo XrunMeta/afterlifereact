@@ -15,10 +15,13 @@ def _resolve_persona_se(sess: Any, default_se: str | None) -> tuple[list, str | 
     """세션별 persona_messages/se_path 를 해석해 반환한다.
 
     - sess.persona_messages 가 비어있지 않으면 그것을 사용, 아니면 []
-    - sess.se_path 가 있으면 그것을 사용, 없으면 default_se
+    - clone_id 세션: sess.se_path 그대로(없으면 None). default_se(halbae) 폴백 금지 — 폴백 없음.
+    - clone_id 없는 세션: sess.se_path 없으면 default_se 폴백(기존 동작).
     """
     persona = getattr(sess, "persona_messages", None) or []
-    se = getattr(sess, "se_path", None) or default_se
+    se_self = getattr(sess, "se_path", None)
+    clone_locked = getattr(sess, "clone_id", None) is not None
+    se = se_self if clone_locked else (se_self or default_se)
     return persona, se
 
 
@@ -65,6 +68,7 @@ def _build_pipeline_factory():
             infer_fn=_infer_fn,
             persona_messages=persona_messages,
             se_path=se_path,
+            clone_locked=getattr(sess, "clone_id", None) is not None,
         )
 
     return factory
