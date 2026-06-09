@@ -1,7 +1,7 @@
 import pytest, sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from unittest.mock import AsyncMock, MagicMock, patch
-import bundle_client
+from clone_dialog import bundle_client
 
 @pytest.mark.asyncio
 async def test_fetch_bundle_ok():

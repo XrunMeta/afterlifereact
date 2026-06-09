@@ -34,7 +34,7 @@ def _build_pipeline_factory():
         return None
 
     from musetalk_inproc import MuseTalkInproc
-    from llm_client import chat_stream
+    from clone_dialog import chat_stream
     from tts_client import say as tts_say
     from audio_utils import _decode_wav
     from pipeline import DialoguePipeline
