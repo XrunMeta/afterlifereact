@@ -23,7 +23,7 @@ import { v_d60cdf } from "../../../api/clones";
 import { v_5c99c1 } from "../../../api/payments";
 import { v_cc9198, v_138fd4 } from "../../../config/apiBase";
 
-const v_c02c4c = 100;
+const v_c02c4c = v_cc9198 === v_138fd4 ? 0.0001 : 100;
 
 interface Props {
 
