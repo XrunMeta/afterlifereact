@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
 import { requireAuth } from "../middleware/auth";
 import { APIError } from "../lib/errors";
-import { hasXrunPaymentPin, verifyXrunPaymentPin, getXrunBalances } from "../lib/xrun";
+import { hasXrunPaymentPin, verifyXrunPaymentPin, getXrunBalances, getXrunOnchainXrunBalance } from "../lib/xrun";
 
 export const payments = new Hono<AppEnv>();
 
@@ -72,15 +72,19 @@ payments.get("/balance", async (c) => {
     const n = Number(row.amount);
     return Number.isFinite(n) ? n : null;
   };
+
+  const onchainXrun = await getXrunOnchainXrunBalance(c.env, member).catch(() => null);
+  const xrunAmount = onchainXrun ?? find(18);
   return c.json({
     linked: true,
     balances: validBalances.map((b) => ({
       currency: Number(b.currency),
       symbol: b.symbol,
-      amount: b.amount,
+
+      amount: (Number(b.currency) === 18 && onchainXrun != null) ? onchainXrun.toFixed(8) : b.amount,
       address: b.address,
     })),
-    xrun: find(18),
+    xrun: xrunAmount,
     ad: find(19),
 
     gatewayWalletReady: validBalances.length > 0,
