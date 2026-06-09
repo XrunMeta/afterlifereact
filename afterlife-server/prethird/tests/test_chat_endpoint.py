@@ -138,3 +138,36 @@ async def test_chat_rejects_oversized_system_override():
                   "system_override": "A" * 16001},
         )
         assert resp.status == 400
+
+
+@pytest.mark.asyncio
+async def test_login_missing_fields():
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.post("/oth-path", json={"email": "a@b.com"})
+        assert resp.status == 400
+
+
+@pytest.mark.asyncio
+async def test_login_proxies_token(monkeypatch):
+    class _R:
+        status = 200
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def text(self): return '{"accessToken": "TOK123", "refreshToken": "R"}'
+
+    class _S:
+        def __init__(self, *a, **kw): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        def post(self, url, data=None, headers=None):
+            # User-Agent 헤더가 포함됐는지 캡처
+            _S.captured_ua = (headers or {}).get("User-Agent")
+            return _R()
+
+    monkeypatch.setattr(ce.aiohttp, "ClientSession", _S)
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.post("/oth-path", json={"email": "a@b.com", "password": "x"})
+        assert resp.status == 200
+        body = await resp.json()
+    assert body["accessToken"] == "TOK123"
+    assert _S.captured_ua and "Mozilla" in _S.captured_ua  # UA 헤더 포함 확인

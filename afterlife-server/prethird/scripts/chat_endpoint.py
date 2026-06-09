@@ -25,6 +25,8 @@ API_BASE = os.environ.get(
 )
 _DEFAULT_MODEL = os.environ.get("PRETHIRD_OLLAMA_MODEL", "gemma3:27b")
 _API_TIMEOUT_S = float(os.environ.get("PRETHIRD_VERIFY_API_TIMEOUT", "5.0"))
+_BROWSER_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
 def _bearer(req: web.Request) -> str | None:
     h = req.headers.get("Authorization", "")
@@ -39,7 +41,10 @@ async def verify_clones(req: web.Request) -> web.Response:
     try:
         timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
         async with aiohttp.ClientSession(timeout=timeout) as sess:
-            async with sess.get(url, headers={"Authorization": f"Bearer {token}"}) as r:
+            async with sess.get(url, headers={
+                "Authorization": f"Bearer {token}",
+                "User-Agent": _BROWSER_UA,
+            }) as r:
                 if r.status != 200:
                     return web.json_response({"error": f"api {r.status}"}, status=r.status)
                 data = await r.json()
@@ -50,6 +55,31 @@ async def verify_clones(req: web.Request) -> web.Response:
     clones = [{"id": it.get("id"), "name": it.get("name")}
               for it in items if it.get("id") is not None]
     return web.json_response({"clones": clones})
+
+async def verify_login(req: web.Request) -> web.Response:
+    """검증 도구 로그인 — api /oth-path 프록시. accessToken만 반환(비번 미저장·미로깅)."""
+    body = await req.json()
+    email = body.get("email")
+    password = body.get("password")
+    if not email or not password:
+        return web.json_response({"error": "email/password required"}, status=400)
+    url = f"{API_BASE}/oth-path"
+    payload = json.dumps({"email": email, "password": password, "platform": "web"}).encode("utf-8")
+    try:
+        timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+        async with aiohttp.ClientSession(timeout=timeout) as sess:
+            async with sess.post(url, data=payload, headers={
+                "Content-Type": "application/json",
+                "User-Agent": _BROWSER_UA,
+            }) as r:
+                txt = await r.text()
+                if r.status != 200:
+                    return web.json_response({"error": "login failed", "status": r.status}, status=r.status)
+                data = json.loads(txt)
+    except Exception as e:
+        log.warning("verify_login failed: %s", type(e).__name__)  # 비번·예외 본문 미로깅
+        return web.json_response({"error": "login error"}, status=502)
+    return web.json_response({"accessToken": data.get("accessToken")})
 
 async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
     """SSE — system(or override) + history → chat_stream → token*/done/error.
@@ -109,5 +139,6 @@ async def verify_page(_req: web.Request) -> web.FileResponse:
 def register_verify_routes(app: web.Application) -> None:
     """PRETHIRD_VERIFY_ENABLED=1 일 때만 호출된다(호출 측에서 가드)."""
     app.router.add_get("/oth-path", verify_page)
+    app.router.add_post("/oth-path", verify_login)
     app.router.add_get("/oth-path", verify_clones)
     app.router.add_post("/oth-path", verify_chat)
