@@ -76,8 +76,6 @@ export function v_fee12d(v_328259) {
       v_1e3df0.addListener('result', (v_e2a85c) => {
         const v_8d41d7 = v_e2a85c?.results?.[0]?.transcript ?? '';
         const v_f6e5b7 = v_e2a85c?.isFinal === true;
-
-        console.log('[STT-DIAG] event=result', 'isFinal=' + String(v_f6e5b7), 'transcript=' + JSON.stringify(v_8d41d7));
         if (v_f6e5b7) {
 
           const v_267ca3 = v_8d41d7.trim();
@@ -99,14 +97,10 @@ export function v_fee12d(v_328259) {
       }),
 
       v_1e3df0.addListener('error', (v_e2a85c) => {
-
-        console.log('[STT-DIAG] event=error', 'code=' + String(v_e2a85c?.code ?? 'n/a'), 'error=' + String(v_e2a85c?.error ?? 'n/a'), 'message=' + String(v_e2a85c?.message ?? 'n/a'));
         const v_badeaf = v_e2a85c?.message ?? v_e2a85c?.error ?? 'stt_error';
         v_3a7d09(new Error(v_badeaf));
       }),
       v_1e3df0.addListener('end', () => {
-
-        console.log('[STT-DIAG] event=end');
         v_b680bc(false);
 
         if (v_fe2b35.current) {
@@ -123,38 +117,14 @@ export function v_fee12d(v_328259) {
           }, 400);
         }
       }),
-      v_1e3df0.addListener('start', (v_2d3e87) => {
-
-        console.log('[STT-DIAG] event=start');
-      }),
-      v_1e3df0.addListener('speechstart', (v_2d3e87) => {
-
-        console.log('[STT-DIAG] event=speechstart');
-      }),
-      v_1e3df0.addListener('speechend', (v_2d3e87) => {
-
-        console.log('[STT-DIAG] event=speechend');
-      }),
-      v_1e3df0.addListener('audiostart', (v_e2a85c) => {
-
-        console.log('[STT-DIAG] event=audiostart', 'uri=' + String(v_e2a85c?.uri ?? 'null'));
-      }),
-      v_1e3df0.addListener('audioend', (v_e2a85c) => {
-
-        console.log('[STT-DIAG] event=audioend', 'uri=' + String(v_e2a85c?.uri ?? 'null'));
-      }),
-      v_1e3df0.addListener('soundstart', (v_2d3e87) => {
-
-        console.log('[STT-DIAG] event=soundstart');
-      }),
-      v_1e3df0.addListener('soundend', (v_2d3e87) => {
-
-        console.log('[STT-DIAG] event=soundend');
-      }),
-      v_1e3df0.addListener('nomatch', (v_2d3e87) => {
-
-        console.log('[STT-DIAG] event=nomatch');
-      }),
+      v_1e3df0.addListener('start', (v_2d3e87) => {}),
+      v_1e3df0.addListener('speechstart', (v_2d3e87) => {}),
+      v_1e3df0.addListener('speechend', (v_2d3e87) => {}),
+      v_1e3df0.addListener('audiostart', (v_2d3e87) => {}),
+      v_1e3df0.addListener('audioend', (v_2d3e87) => {}),
+      v_1e3df0.addListener('soundstart', (v_2d3e87) => {}),
+      v_1e3df0.addListener('soundend', (v_2d3e87) => {}),
+      v_1e3df0.addListener('nomatch', (v_2d3e87) => {}),
     );
     return () => {
       v_ab371b.current.forEach((v_fd5f43) => v_fd5f43.remove());
@@ -176,39 +146,12 @@ export function v_fee12d(v_328259) {
   }, []);
 
   const v_770cae = v_de06a3(async () => {
-
-    console.log('[STT-DIAG] startListening entered', 'lang=' + v_5254bf);
     v_fe2b35.current = true; 
-
-    try {
-
-      const { ExpoSpeechRecognitionModule: v_de9ffa } = require('lvqvchptxazovhbxaycespq');
-      const v_37a1a7 = v_de9ffa.isRecognitionAvailable();
-      const v_a4738e = v_de9ffa.supportsOnDeviceRecognition();
-      const v_7556bd = v_de9ffa.supportsRecording();
-
-      let v_df9f0e = [];
-      try { v_df9f0e = v_de9ffa.getSpeechRecognitionServices(); } catch (v_3b6836) {  }
-      const v_78a3d8 = v_de9ffa.getDefaultRecognitionService?.() ?? { packageName: 'n/a' };
-      const v_b6e533 = await v_de9ffa.getStateAsync();
-      console.log(
-        '[STT-DIAG] available=' + String(v_37a1a7),
-        'supportsOnDevice=' + String(v_a4738e),
-        'supportsRecording=' + String(v_7556bd),
-        'state=' + v_b6e533,
-        'defaultService=' + v_78a3d8.packageName,
-        'services=' + JSON.stringify(v_df9f0e),
-      );
-    } catch (v_c5efb6) {
-      console.log('[STT-DIAG] diag-check failed:', String(v_c5efb6));
-    }
     v_3a7d09(null);
     v_8028c0('');
     v_60039d('');
     v_f59c40(); 
     const v_d60769 = await v_1e3df0.requestPermissionsAsync();
-
-    console.log('[STT-DIAG] requestPermissionsAsync granted=' + String(v_d60769.granted), JSON.stringify(v_d60769));
     if (!v_d60769.granted) {
       v_3a7d09(new Error('permission_denied'));
       return;
@@ -217,20 +160,14 @@ export function v_fee12d(v_328259) {
     try {
 
       v_1e3df0.start({ lang: v_5254bf, interimResults: true, continuous: true });
-
-      console.log('[STT-DIAG] engine.start() returned without throw');
     } catch (v_b17aaa) {
-
       const v_9e86fd = v_b17aaa instanceof Error ? v_b17aaa : new Error(String(v_b17aaa));
-      console.log('[STT-DIAG] engine.start() THREW', 'name=' + v_9e86fd.name, 'message=' + v_9e86fd.message, String(v_b17aaa));
       v_b680bc(false);
       v_3a7d09(v_9e86fd);
     }
   }, [v_1e3df0, v_5254bf]);
 
   const v_ad03b1 = v_de06a3(() => {
-
-    console.log('[STT-DIAG] stopListening entered');
 
     v_fe2b35.current = false; 
     if (v_6e2738.current) {
