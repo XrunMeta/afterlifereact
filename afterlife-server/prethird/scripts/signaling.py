@@ -201,4 +201,11 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     app.router.add_post("/offer", offer)
     app.router.add_static("/static/", path=str(
         pathlib.Path(__file__).resolve().parents[1] / "static"))
+
+    # 검증 전용 텍스트 채팅 라우트 — 운영에선 기본 비활성
+    if os.environ.get("PRETHIRD_VERIFY_ENABLED") == "1":
+        from chat_endpoint import register_verify_routes
+        register_verify_routes(app)
+        log.info("verify routes enabled (/oth-path, /oth-path, /oth-path)")
+
     return app
