@@ -304,7 +304,8 @@ export default function Step7CompleteScreen({ navigation }: Props) {
         ...voicePayload,
 
         ...(draft.idleVideoJobId ? { idle_video_job_id: draft.idleVideoJobId } : {}),
-        ...(pin ? { pin } : {}),
+
+        ...((pin ?? draft.pin) ? { pin: pin ?? draft.pin } : {}),
       });
       console.log("[CLONE-CREATE] success:", res);
       const createdClone = res.clone;
@@ -459,9 +460,15 @@ export default function Step7CompleteScreen({ navigation }: Props) {
       console.warn("[CLONE-CREATE] share post failed:", err);
       setCreating(false);
       if (err instanceof AuthApiError) {
-        if (err.code === "PAYMENT_REQUIRED") {
+
+        if (
+          err.code === "PAYMENT_REQUIRED" ||
+          err.code === "PAYMENT_PIN_INVALID" ||
+          err.code === "PAYMENT_PIN_REQUIRED"
+        ) {
           const details = (err.details ?? {}) as { priceXrun?: number };
           if (typeof details.priceXrun === "number") setPayPrice(details.priceXrun);
+          if (err.code === "PAYMENT_PIN_INVALID") setPinError("결제 비밀번호가 일치하지 않아요");
           setPaymentModal(true);
           setPosting(false);
           return;
