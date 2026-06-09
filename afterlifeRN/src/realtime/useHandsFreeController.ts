@@ -30,6 +30,8 @@ export function v_7df8a4(opts: {
   silenceConfig?: Partial<v_5a4c65>;
 
   confirmMs?: number;
+
+  subscribeSpeechEnd?: (cb: () => void) => () => void;
 }) {
   const [v_b6e533, v_1fa668] = v_5ab095(v_3075fa());
   const v_8d3dea = v_e662ae(v_b6e533);
@@ -112,6 +114,13 @@ export function v_7df8a4(opts: {
   );
 
   v_700737.current = v_6be210;
+
+  const v_f1f010 = v_328259.subscribeSpeechEnd;
+  v_c4deb2(() => {
+    if (!v_f1f010) return;
+    const v_69c966 = v_f1f010(() => v_700737.current({ type: 'RESPONSE_END' }));
+    return v_69c966;
+  }, [v_f1f010]);
 
   const v_67bca4 = v_328259.confirmMs ?? 2000;
   v_c4deb2(() => {

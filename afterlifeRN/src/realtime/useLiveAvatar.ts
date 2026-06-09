@@ -432,5 +432,7 @@ export function v_b38a7e(v_328259) {
 
   }, []);
 
-  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152 };
+  const v_f1f010 = v_de06a3(() => () => {}, []);
+
+  return { state: v_b6e533, remoteStream: v_b4d824, error: v_5e9bfe, start: v_965edf, stop: v_3e54f8, phase: v_ab4803, say: v_3e2c87, notifySpeechEnd: v_811f30, getStatsReport: v_791152, subscribeSpeechEnd: v_f1f010 };
 }
