@@ -134,4 +134,100 @@ describe("GET /oth-path", () => {
     expect(assets.avatarUrl).toBe("https://r2.example.com/avatar.jpg");
     expect(assets.voiceSeKey).toBeNull();
   });
+
+  it("voice_clone done 잡 있는 클론은 assets.voiceRawUrl = api files URL", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-vraw@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_vraw_clone");
+    await db
+      .prepare(
+        `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+         VALUES ('uploadedfiles/vraw/voice.m4a', 'audio/mp4', 12345, ?, 'voice_src')`,
+      )
+      .bind(ownerId)
+      .run();
+    const f = await db
+      .prepare("SELECT id FROM files WHERE r2_key = 'uploadedfiles/vraw/voice.m4a'")
+      .first<{ id: number }>();
+    await db
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id)
+         VALUES ('job-vraw-1', ?, 'voice_clone', ?, 'done', ?)`,
+      )
+      .bind(ownerId, f!.id, cloneId)
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { voiceRawUrl: string | null } };
+    expect(assets.voiceRawUrl).toBe(`http://localhost/oth-path${f!.id}`);
+  });
+
+  it("voice_clone 잡 없는 클론은 voiceRawUrl null", async () => {
+    const ownerId = await seedUser("bundle-novraw@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_novraw_clone");
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { voiceRawUrl: string | null } };
+    expect(assets.voiceRawUrl).toBeNull();
+  });
+
+  it("voice_clone done 잡 여러 개면 최신(created_at) done 잡 선택 + failed 무시", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-vraw-multi@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_vraw_multi_clone");
+
+    async function seedFile(key: string): Promise<number> {
+      await db
+        .prepare(
+          `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+           VALUES (?, 'audio/mp4', 100, ?, 'voice_src')`,
+        )
+        .bind(key, ownerId)
+        .run();
+      const r = await db.prepare("SELECT id FROM files WHERE r2_key = ?").bind(key).first<{ id: number }>();
+      return r!.id;
+    }
+    const fOld = await seedFile("uploadedfiles/multi/old.m4a");
+    const fFail = await seedFile("uploadedfiles/multi/fail.m4a");
+    const fNew = await seedFile("uploadedfiles/multi/new.m4a");
+
+    await db
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id, created_at)
+         VALUES ('job-old', ?, 'voice_clone', ?, 'done', ?, '2026-01-01 00:00:00')`,
+      )
+      .bind(ownerId, fOld, cloneId)
+      .run();
+    await db
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id, created_at)
+         VALUES ('job-fail', ?, 'voice_clone', ?, 'failed', ?, '2026-03-01 00:00:00')`,
+      )
+      .bind(ownerId, fFail, cloneId)
+      .run();
+    await db
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id, created_at)
+         VALUES ('job-new', ?, 'voice_clone', ?, 'done', ?, '2026-02-01 00:00:00')`,
+      )
+      .bind(ownerId, fNew, cloneId)
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { voiceRawUrl: string | null } };
+
+    expect(assets.voiceRawUrl).toBe(`http://localhost/oth-path${fNew}`);
+  });
 });
