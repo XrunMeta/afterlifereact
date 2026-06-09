@@ -32,6 +32,7 @@ import type { RootStackParamList } from "../../navigation/types";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, RADIUS } from "../../components/constants";
+import { OtpCodeInput } from "../../components/auth/OtpVerifyView";
 import type { Gift } from "../../types/gift";
 import giftsData from "../../mocks/gifts.json";
 import { getXrunBalance } from "../../api/payments";
@@ -721,18 +722,17 @@ export default function CallScreen({ route, navigation }: Props) {
                   {"\n"}선물하시려면 6자리 PIN 을 입력해 주세요
                 </Text>
               )}
-              <TextInput
-                style={s.pinInput}
-                value={pinInput}
-                onChangeText={(v) => setPinInput(v.replace(/\D/g, "").slice(0, 6))}
-                placeholder="PIN 6자리"
-                placeholderTextColor={COLORS.zinc400}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={6}
-                autoFocus
-                editable={!paying}
-              />
+              {}
+              <View style={s.pinCodeWrap}>
+                <OtpCodeInput
+                  value={pinInput}
+                  onChange={setPinInput}
+                  masked
+                  autoFocus
+                  editable={!paying}
+                  onComplete={submitGift}
+                />
+              </View>
               <View style={s.pinBtns}>
                 <TouchableOpacity
                   style={s.pinCancelBtn}
@@ -1058,6 +1058,7 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.zinc50,
     marginBottom: 18,
   },
+  pinCodeWrap: { width: "100%", marginBottom: 18 },
   pinBtns: { flexDirection: "row", gap: 8, width: "100%" },
   pinCancelBtn: {
     flex: 1,
