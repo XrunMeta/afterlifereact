@@ -16,6 +16,8 @@ export function v_724dd4(opts: {
   getStatsReport: () => Promise<Iterable<[string, Record<string, unknown>]>> | null;
 
   onResponseEnd: () => void;
+
+  onResponseStart?: () => void;
   config?: Partial<v_5a4c65>;
 }) {
   const v_01dcf5 = v_df9f57<v_5a4c65>(
@@ -25,6 +27,8 @@ export function v_724dd4(opts: {
   );
   const v_61dda6 = v_e662ae(v_328259.onResponseEnd);
   v_c4deb2(() => { v_61dda6.current = v_328259.onResponseEnd; });
+  const v_7e0e75 = v_e662ae(v_328259.onResponseStart);
+  v_c4deb2(() => { v_7e0e75.current = v_328259.onResponseStart; });
   const v_b8908d = v_e662ae(v_328259.getStatsReport);
   v_c4deb2(() => { v_b8908d.current = v_328259.getStatsReport; });
 
@@ -57,8 +61,13 @@ export function v_724dd4(opts: {
         }
 
         if (!v_c622fb.current) return;
+        const v_2c381c = v_8d3dea.current.phase;
         const v_a448ad = v_c506a5(v_8d3dea.current, v_fbe91e, v_fbb4dd, v_01dcf5);
         v_8d3dea.current = v_a448ad;
+
+        if (v_a448ad.phase === 'active' && v_2c381c !== 'active') {
+          try { v_7e0e75.current?.(); } catch {  }
+        }
         if (v_a448ad.phase === 'ended') {
           v_3e54f8();
           v_61dda6.current();
