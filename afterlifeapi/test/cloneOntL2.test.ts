@@ -1,8 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { env } from "cloudflare:test";
+import { SELF, env } from "cloudflare:test";
 import { loadUserL2 } from "../src/lib/personaBundle";
 import { buildCallBundle } from "../src/lib/callBundle";
 import { loadCloneById } from "../src/lib/cloneAccess";
+import { issueToken } from "../src/lib/jwt";
 
 const db = () => env.DB as unknown as D1Database;
 
@@ -108,5 +109,84 @@ describe("loadUserL2 (clone_ont)", () => {
 
     const l2 = await loadUserL2(db(), 9046, 103);
     expect(l2).toBeNull();
+  });
+});
+
+describe("PUT /oth-path — 통화 L2 4필드 보존", () => {
+  async function seedUser(email: string): Promise<number> {
+    await db()
+      .prepare(
+        "INSERT INTO users (email, password_hash, name, created_at) VALUES (?, 'x', 'U', CURRENT_TIMESTAMP)"
+      )
+      .bind(email)
+      .run();
+    return (
+      await db()
+        .prepare("SELECT id FROM users WHERE email = ?")
+        .bind(email)
+        .first<{ id: number }>()
+    )!.id;
+  }
+
+  async function seedClone(ownerId: number, username: string): Promise<number> {
+    await db()
+      .prepare(
+        "INSERT INTO clones (owner_id, name, username, clone_type, visibility, primary_editor_user_id, created_at) VALUES (?, 'TC', ?, 'memlow', 'public', ?, CURRENT_TIMESTAMP)"
+      )
+      .bind(ownerId, username, ownerId)
+      .run();
+    return (
+      await db()
+        .prepare("SELECT id FROM clones WHERE username = ?")
+        .bind(username)
+        .first<{ id: number }>()
+    )!.id;
+  }
+
+  async function issueAccessToken(userId: number): Promise<string> {
+    const secret = (env as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET;
+    if (!secret) throw new Error("JWT_ACCESS_SECRET missing");
+    return issueToken({ sub: userId, kind: "access" }, secret, 60 * 10);
+  }
+
+  function authHeader(token: string) {
+    return {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": `test-put-l2-${Date.now()}-${Math.random()}`,
+    };
+  }
+
+  it("memory.ts PUT(채팅 편집)이 우리 4필드를 보존한다", async () => {
+    const userAId = await seedUser("put-l2-preserve@test.local");
+    const cloneId = await seedClone(userAId, "put_l2_preserve_c");
+    const tokenA = await issueAccessToken(userAId);
+
+    await db()
+      .prepare(
+        "INSERT INTO clone_ont (clone_id,user_id,data,updated_at) VALUES (?,?,?,unixepoch())"
+      )
+      .bind(cloneId, userAId, JSON.stringify({ memory_summary: "기존 기억" }))
+      .run();
+
+    const r = await SELF.fetch(
+      `http://localhost/oth-path${cloneId}/memory/l2`,
+      {
+        method: "PUT",
+        headers: authHeader(tokenA),
+        body: JSON.stringify({ address: "오빠" }),
+      }
+    );
+    expect(r.status).toBe(200);
+
+    const row = await db()
+      .prepare(
+        "SELECT data FROM clone_ont WHERE clone_id=? AND user_id=?"
+      )
+      .bind(cloneId, userAId)
+      .first<{ data: string }>();
+    const data = JSON.parse(row!.data) as Record<string, unknown>;
+    expect(data.address).toBe("오빠");
+    expect(data.memory_summary).toBe("기존 기억"); 
   });
 });
