@@ -337,9 +337,18 @@ export default function CallScreen({ route, navigation }: Props) {
       let title = "송금 실패";
       let msg = "송금에 실패했어요.";
       let isInsufficient = false;
+      let pinRetry = false;   
+      let pinSetup = false;   
       if (err instanceof AuthApiError) {
-        if (err.code === "UNAUTHENTICATED") msg = "결제 비밀번호가 일치하지 않아요.";
-        else if (err.code === "INSUFFICIENT_FUNDS") {
+        if (err.code === "PAYMENT_PIN_INVALID" || err.code === "UNAUTHENTICATED") {
+          title = "결제 비밀번호 오류";
+          msg = "결제 비밀번호가 일치하지 않아요.\n다시 입력해 주세요.";
+          pinRetry = true;
+        } else if (err.code === "PAYMENT_PIN_REQUIRED") {
+          title = "결제 비밀번호 미설정";
+          msg = "아직 결제 비밀번호(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
+          pinSetup = true;
+        } else if (err.code === "INSUFFICIENT_FUNDS") {
           isInsufficient = true;
 
           const shortage = pendingGift
@@ -375,16 +384,25 @@ export default function CallScreen({ route, navigation }: Props) {
 
       setPinModalVisible(false);
       setPinInput("");
-      showAlert(
-        title,
-        msg,
-        isInsufficient
-          ? [
-              { text: "다음에 하기", style: "cancel" },
-              { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
-            ]
-          : undefined,
-      );
+      let actions: Parameters<typeof showAlert>[2];
+      if (isInsufficient) {
+        actions = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
+        ];
+      } else if (pinRetry) {
+
+        actions = [
+          { text: "취소", style: "cancel" },
+          { text: "다시 입력", onPress: () => { setPinInput(""); setPinModalVisible(true); } },
+        ];
+      } else if (pinSetup) {
+        actions = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN에서 설정", onPress: () => void openXrunApp() },
+        ];
+      }
+      showAlert(title, msg, actions);
     } finally {
       setPaying(false);
     }

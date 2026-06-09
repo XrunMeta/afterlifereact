@@ -242,8 +242,14 @@ clones.post(
           source: "afterlife.persona-create",
         });
         if (!payRes.ok) {
+
           if (payRes.code === 401 || payRes.code === 403) {
-            throw new APIError("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+            const pinNotSet = /paymentPin not set/i.test(payRes.reason ?? "");
+            throw new APIError(
+              pinNotSet ? "PAYMENT_PIN_REQUIRED" : "PAYMENT_PIN_INVALID",
+              pinNotSet ? "결제 비밀번호가 설정되어 있지 않아요." : "결제 비밀번호가 일치하지 않아요.",
+              { reason: payRes.reason ?? null },
+            );
           }
           if (payRes.code === 402) {
             throw new APIError("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
@@ -1357,9 +1363,12 @@ clones.post("/:id/gift", requireAuth, async (c) => {
       .run();
 
     if (xrunRes.code === 401 || xrunRes.code === 403) {
-      throw new APIError("UNAUTHENTICATED", "PIN verification failed.", {
-        reason: xrunRes.reason,
-      });
+      const pinNotSet = /paymentPin not set/i.test(xrunRes.reason ?? "");
+      throw new APIError(
+        pinNotSet ? "PAYMENT_PIN_REQUIRED" : "PAYMENT_PIN_INVALID",
+        pinNotSet ? "결제 비밀번호가 설정되어 있지 않아요." : "결제 비밀번호가 일치하지 않아요.",
+        { reason: xrunRes.reason },
+      );
     }
     if (xrunRes.code === 402) {
       throw new APIError("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.", {
