@@ -11,11 +11,12 @@ export interface CallBundle {
     idleVideoUrl: string | null;
     voiceSeUrl: string | null;
     voiceSeKey: string | null;
+    voiceRawUrl: string | null;
     avatarUrl: string | null;
   };
 }
 
-export async function buildCallBundle(db: D1Database, clone: CloneRow): Promise<CallBundle> {
+export async function buildCallBundle(db: D1Database, clone: CloneRow, origin: string): Promise<CallBundle> {
   const cloneId = clone.id;
 
   const l0 = await loadSystemPersona(db);
@@ -37,10 +38,24 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow): Promise<
     voiceSeKey = vp?.se_key ?? null;
   }
 
+  const jobRow = await db
+    .prepare(
+      `SELECT f.id AS file_id
+         FROM clone_asset_jobs j
+         JOIN files f ON j.src_file_id = f.id
+        WHERE j.clone_id = ? AND j.kind = 'voice_clone' AND j.status = 'done'
+        ORDER BY j.created_at DESC
+        LIMIT 1`,
+    )
+    .bind(cloneId)
+    .first<{ file_id: number }>();
+  const voiceRawUrl = jobRow ? `${origin}/oth-path${jobRow.file_id}` : null;
+
   const assets = {
     idleVideoUrl: clone.idle_video_url ?? null,
     voiceSeUrl,
     voiceSeKey,
+    voiceRawUrl,
     avatarUrl: clone.avatar_url ?? null,
   };
 
