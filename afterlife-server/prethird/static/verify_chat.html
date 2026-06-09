@@ -24,6 +24,13 @@
   #dbg h3 { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase; color: #65676b; }
   pre { white-space: pre-wrap; word-break: break-word; background: #fff; border: 1px solid #e4e6eb; border-radius: 8px; padding: 10px; font: 12px/1.45 ui-monospace, monospace; }
   .muted { color: #8a8d91; }
+  table.kv { width: 100%; border-collapse: collapse; margin: 4px 0 10px; font-size: 12px; }
+  table.kv th, table.kv td { border: 1px solid #e4e6eb; padding: 4px 7px; text-align: left; vertical-align: top; word-break: break-word; }
+  table.kv th { background: #f0f2f5; font-weight: 600; }
+  table.kv td.lv { white-space: nowrap; color: #65676b; width: 1%; }
+  table.kv tr.chg td { background: #fff6d6; }
+  .l2live { color: #d33; font-size: 11px; }
+  details summary { cursor: pointer; font-size: 12px; color: #65676b; margin: 10px 0 6px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -52,23 +59,92 @@
     </div>
   </section>
   <aside id="dbg">
-    <h3>📋 이전 기억 (before)</h3>
-    <pre id="beforeL2" class="muted">아직 없음</pre>
-    <h3>🧠 이번 턴 추출 (키 업데이트)</h3>
-    <pre id="extracted" class="muted">기억 모드 OFF</pre>
-    <h3>💾 L2 저장 결과</h3>
-    <pre id="savedL2" class="muted">아직 없음</pre>
-    <h3>system override (체크 시 사용)</h3>
-    <textarea id="overrideText" style="width:100%;height:90px" placeholder="여기 내용이 persona system을 대체합니다"></textarea>
-    <h3>최종 messages (마지막 응답)</h3>
-    <pre id="finalMessages" class="muted">아직 없음</pre>
-    <h3>persona bundle (raw)</h3>
-    <pre id="personaBundle" class="muted">아직 없음</pre>
+    <h3>L0 전역 안전</h3>
+    <div id="tblL0"><span class="muted">클론 선택 시 표시</span></div>
+    <h3>L1 기본 페르소나</h3>
+    <div id="tblL1"><span class="muted">클론 선택 시 표시</span></div>
+    <h3>L2 학습 기억 <span class="l2live">● 실시간</span></h3>
+    <div id="tblL2"><span class="muted">아직 없음</span></div>
+    <details>
+      <summary>디버그 (system override · 학습 raw · 프롬프트)</summary>
+      <h3>📋 이전 기억 (before)</h3>
+      <pre id="beforeL2" class="muted">아직 없음</pre>
+      <h3>🧠 이번 턴 추출 (키 업데이트)</h3>
+      <pre id="extracted" class="muted">기억 모드 OFF</pre>
+      <h3>💾 L2 저장 결과</h3>
+      <pre id="savedL2" class="muted">아직 없음</pre>
+      <h3>system override (체크 시 사용)</h3>
+      <textarea id="overrideText" style="width:100%;height:90px" placeholder="여기 내용이 persona system을 대체합니다"></textarea>
+      <h3>최종 messages (마지막 응답)</h3>
+      <pre id="finalMessages" class="muted">아직 없음</pre>
+      <h3>persona bundle (raw)</h3>
+      <pre id="personaBundle" class="muted">아직 없음</pre>
+    </details>
   </aside>
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
 const LS = "verify_chat_cfg";
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+function parseKV(text){
+  return (text||"").split("\n").map(s=>s.trim()).filter(Boolean).map(line=>{
+    const i=line.indexOf(":");
+    return i>=0 ? {k:line.slice(0,i).trim(), v:line.slice(i+1).trim()} : {k:"", v:line};
+  });
+}
+
+function renderL0(l0){
+  const rules = (l0 && l0.rules_text) || "";
+  const block = (l0 && l0.blocklist) ? (Array.isArray(l0.blocklist)?l0.blocklist.join(", "):l0.blocklist) : "";
+  let rows = "";
+  if(rules) rows += `<tr><td class="lv">안전규칙</td><td>${esc(rules)}</td></tr>`;
+  if(block) rows += `<tr><td class="lv">금지어</td><td>${esc(block)}</td></tr>`;
+  $("tblL0").innerHTML = rows ? `<table class="kv">${rows}</table>` : '<span class="muted">없음</span>';
+}
+
+function renderL1(l1){
+  const keys = Object.keys(l1||{});
+  if(!keys.length){ $("tblL1").innerHTML='<span class="muted">없음</span>'; return; }
+  const rows = keys.map(k=>`<tr><td class="lv">${esc(k)}</td><td>${esc(l1[k])}</td></tr>`).join("");
+  $("tblL1").innerHTML = `<table class="kv">${rows}</table>`;
+}
+
+const L2_LABEL={memory_summary:"기억",relationship:"관계",context:"맥락",recent_topics:"화제"};
+let _prevL2 = null;
+
+function renderL2(l2, highlight){
+  const rows = [];
+  for(const f of ["memory_summary","relationship","context","recent_topics"]){
+    const raw = (l2 && l2[f]) || "";
+    const items = f==="recent_topics"
+      ? raw.split(",").map(s=>s.trim()).filter(Boolean).map(v=>({k:"",v}))
+      : parseKV(raw);
+    const changed = highlight && _prevL2 && (String((_prevL2[f]||"")) !== String(raw));
+    if(!items.length){
+      if(changed) rows.push(`<tr class="chg"><td class="lv">${L2_LABEL[f]}</td><td></td><td><span class="muted">(비움)</span></td></tr>`);
+      continue;
+    }
+    for(const it of items){
+      rows.push(`<tr class="${changed?'chg':''}"><td class="lv">${L2_LABEL[f]}</td><td>${esc(it.k)}</td><td>${esc(it.v)}</td></tr>`);
+    }
+  }
+  $("tblL2").innerHTML = rows.length
+    ? `<table class="kv"><tr><th>필드</th><th>키</th><th>값</th></tr>${rows.join("")}</table>`
+    : '<span class="muted">학습된 기억 없음</span>';
+  _prevL2 = l2 ? {...l2} : null;
+}
+
+async function loadBundle(highlight){
+  const cloneId = parseInt($("clone").value, 10);
+  if(!cloneId) return;
+  const r = await fetch("/oth-path?clone_id="+cloneId, {
+    headers:{ Authorization:"Bearer "+$("token").value }});
+  if(!r.ok) return;
+  const { l0, l1, l2 } = await r.json();
+  renderL0(l0); renderL1(l1); renderL2(l2, highlight);
+}
 
 const cfg = JSON.parse(localStorage.getItem(LS) || "{}");
 $("apiBase").value = cfg.apiBase || location.origin;
@@ -174,6 +250,8 @@ async function send() {
 
         if ($("memory").checked) {
           learn(text, acc);  
+        } else {
+          loadBundle(false);  
         }
       } else if (ev === "error") { bubble.textContent = acc + "\n[error] " + obj.message; }
     }
@@ -204,6 +282,8 @@ async function learn(userText, assistantText) {
   $("extracted").textContent = extracted ? JSON.stringify(extracted, null, 2) : "(추출 실패/스킵)";
   $("savedL2").textContent = saved ? JSON.stringify(saved, null, 2) : "(저장 안 됨)";
   $("savedL2").className = "";
+
+  if (saved) renderL2(saved, true);
 }
 
 $("l2reset").onclick = async () => {
@@ -217,7 +297,10 @@ $("l2reset").onclick = async () => {
   });
   if (!r.ok) { alert("리셋 실패: " + r.status); return; }
   $("extracted").textContent = "기억 리셋됨"; $("savedL2").textContent = "(비움)";
+  loadBundle(false);  
 };
+
+$("clone").addEventListener("change", () => loadBundle(false));
 
 window.addEventListener("DOMContentLoaded", () => {
   if (!$("token").value && $("email").value && $("password").value) {
