@@ -9,10 +9,10 @@ import {
   v_4623af,
   v_472849,
   v_39a996,
-  v_e767d1,
   v_326be8,
   v_09d0e5,
   v_0e1f26,
+  v_f2c756,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_c67c5c } from "../../../components/auth/OtpVerifyView";
@@ -20,7 +20,7 @@ import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_194498 } from "../../../stores/cloneStore";
 import { v_d60cdf } from "../../../api/clones";
-import { v_5c99c1 } from "../../../api/payments";
+import { v_5c99c1, v_9b8cb3 } from "../../../api/payments";
 import { v_cc9198, v_138fd4 } from "../../../config/apiBase";
 
 const v_f72031 = 100;
@@ -50,6 +50,18 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
 
   const [v_c88e9b, v_de20d8] = v_5ab095<number | null>(null);
 
+  const [v_1cc7e7, v_2a7a8f] = v_5ab095<boolean | null>(null);
+
+  const [v_437b37, v_a02771] = v_5ab095(0);
+
+  v_c4deb2(() => {
+    const v_fdffe1 = v_0e1f26.addListener("keyboardDidShow", (v_9e86fd) =>
+      v_a02771(v_9e86fd.endCoordinates?.height ?? 0),
+    );
+    const v_2f19d2 = v_0e1f26.addListener("keyboardDidHide", () => v_a02771(0));
+    return () => { v_fdffe1.remove(); v_2f19d2.remove(); };
+  }, []);
+
   v_c4deb2(() => {
     let v_2008a4 = false;
     (async () => {
@@ -73,6 +85,14 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
           } catch (v_04f1a8) {
             console.warn("[PaymentGate] balance fetch failed:", v_04f1a8);
             if (!v_2008a4) v_de20d8(null);
+          }
+
+          try {
+            const v_72c7a6 = await v_9b8cb3(v_2ca7e0);
+            if (!v_2008a4) v_2a7a8f(v_72c7a6.hasPin);
+          } catch (v_245981) {
+            console.warn("[PaymentGate] pin status fetch failed:", v_245981);
+            if (!v_2008a4) v_2a7a8f(null);
           }
           if (v_2008a4) return;
           v_337a5f(true);
@@ -108,6 +128,22 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
     v_c7001c();
   };
 
+  const v_f1acef = async () => {
+    const v_e0c7e8 = v_1ed7d9.getState().apiUser?.email ?? null;
+    const v_2208dc = v_e0c7e8
+      ? `xrun://?email=${encodeURIComponent(v_e0c7e8)}&from=afterlife`
+      : "xrun://";
+    try {
+      await v_f2c756.openURL(v_2208dc);
+    } catch {
+      const v_b71a74 =
+        v_326be8.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try { await v_f2c756.openURL(v_b71a74); } catch {  }
+    }
+  };
+
   const v_03cae9 = () => {
 
     if (v_cae92d) return;
@@ -132,14 +168,12 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
 
   return (
     <Modal visible transparent statusBarTranslucent animationType="fade">
-      <KeyboardAvoidingView
-        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
+      {}
+      <View style={{ flex: 1 }}>
         {
 }
         <Pressable
-          style={v_d81136.overlay}
+          style={[v_d81136.overlay, v_437b37 > 0 ? { paddingBottom: v_437b37 } : null]}
           onPress={() => {
             console.log("[PaymentGate] overlay tapped");
             v_0e1f26.dismiss();
@@ -195,9 +229,22 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 </Text>
               </TouchableOpacity>
             </View>
+            {}
+            {v_1cc7e7 === false && (
+              <TouchableOpacity
+                onPress={v_f1acef}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={0.7}
+                style={v_d81136.pinSetupLinkWrap}
+              >
+                <Text style={v_d81136.pinSetupLink}>
+                  결제 비밀번호가 설정되어 있지 않아요 · XRUN에서 설정하러 가기
+                </Text>
+              </TouchableOpacity>
+            )}
           </Pressable>
         </Pressable>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -288,4 +335,11 @@ const v_d81136 = v_472849.create({
   },
   disabled: { opacity: 0.5 },
   confirmText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
+  pinSetupLinkWrap: { marginTop: 14, alignItems: "center" },
+  pinSetupLink: {
+    fontSize: 12,
+    color: v_1bfbd0.violet600,
+    textDecorationLine: "underline",
+    textAlign: "center",
+  },
 });
