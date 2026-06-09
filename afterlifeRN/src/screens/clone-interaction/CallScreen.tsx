@@ -404,7 +404,7 @@ export default function CallScreen({ route, navigation }: Props) {
       } else if (pinSetup) {
         actions = [
           { text: "다음에 하기", style: "cancel" },
-          { text: "XRUN에서 설정", onPress: () => void openXrunApp() },
+          { text: "xrun 비밀번호 재설정", onPress: () => void openXrunApp() },
         ];
       }
       showAlert(title, msg, actions);
