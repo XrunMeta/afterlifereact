@@ -208,11 +208,11 @@ async def verify_learn(req: web.Request) -> web.Response:
             temperature=0.3, fmt="json")
     except Exception as e:
         log.warning("verify_learn extract failed clone=%s: %s", clone_id, type(e).__name__)
-        return web.json_response({"before": before, "extracted": None, "saved": before})
+        return web.json_response({"before": before, "extracted": None, "saved": None})
 
     extracted = _parse_l2_json(content)
     if extracted is None:
-        return web.json_response({"before": before, "extracted": None, "saved": before})
+        return web.json_response({"before": before, "extracted": None, "saved": None})
 
     try:
         saved = await _patch_l2(clone_id, extracted, token)
