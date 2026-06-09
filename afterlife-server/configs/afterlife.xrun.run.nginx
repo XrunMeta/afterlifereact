@@ -1,0 +1,122 @@
+# /etc/nginx/sites-available/memorial.example.invalid
+# afterlife testbed — Cloudflare proxied (Origin Cert *.xrun.run)
+# 배포 시 sites-enabled/ 에 symlink 추가 후 `nginx -t && systemctl reload nginx`
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name memorial.example.invalid;
+
+    # Cloudflare Always-Use-HTTPS 가 켜져있으면 redirect 는 CF에서 처리됨.
+    # 이 redirect 는 origin 직접 접속(가비아 IP) 시 안전망.
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name memorial.example.invalid;
+
+    # Cloudflare Origin Certificate (*.xrun.run, valid 2026-2041)
+    ssl_certificate     /etc/ssl/cloudflare/memorial.example.invalid.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/memorial.example.invalid.key;
+
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # nginx 자체 헬스체크 (Express 다운 무관, nginx 만 살아있으면 200)
+    location = /nginx-health {
+        default_type text/plain;
+        return 200 "ok\n";
+        access_log off;
+    }
+
+    # SP1a — orchestrator 통화 lifecycle (api→/oth-path*, 클라→/oth-path*/subscribe)
+    # /orchestrator/ → prefix strip(proxy_pass trailing slash) → 8100 루트 orchestratorRouter
+    location /orchestrator-presecond/ {
+        proxy_pass http://127.0.0.1:8101/;
+        proxy_http_version 1.1;
+
+        # presecond: SDP 불필요(webrtc 제거)하나 SSE(say relay)·폴링 위해 버퍼링 비활성 유지
+        proxy_buffering off;
+        proxy_cache off;
+        gzip off;
+
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /orchestrator/ {
+        proxy_pass http://127.0.0.1:8100/;
+        proxy_http_version 1.1;
+
+        # SDP 교환·SSE 모두 버퍼링/캐시/압축 비활성
+        proxy_buffering off;
+        proxy_cache off;
+        gzip off;
+
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # prethird — 직결 WebRTC 아바타 스트리밍 시그널링 (afterlife-prethird, 127.0.0.1:8600)
+    # /prethird/offer (SDP), /prethird/healthz, /prethird/static/poc.html.
+    # 미디어(a/v RTP)는 브라우저/RN ↔ 서버 P2P 직결(UDP/ICE)이라 nginx 미경유 — 시그널링만 프록시.
+    location /prethird/ {
+        proxy_pass http://127.0.0.1:8600/;
+        proxy_http_version 1.1;
+
+        # SDP 교환(/offer) 버퍼링/캐시/압축 비활성
+        proxy_buffering off;
+        proxy_cache off;
+        gzip off;
+
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # 본 서비스 — Express testbed (afterlife-testbed.service, 127.0.0.1:8100)
+    # /healthz, /oth-path*, /, 정적자산 모두 Express 가 처리
+    location / {
+        proxy_pass http://127.0.0.1:8100;
+        proxy_http_version 1.1;
+
+        # SSE 스트림: 버퍼링 / 캐시 / 압축 모두 비활성
+        proxy_buffering off;
+        proxy_cache off;
+        gzip off;
+
+        # 스트리밍 중 nginx 가 끊지 않도록
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+
+        # HTTP/1.1 + Connection 헤더 비움 (keep-alive 정상 동작 / SSE 호환)
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    access_log /var/log/nginx/memorial.example.invalid.access.log;
+    error_log  /var/log/nginx/memorial.example.invalid.error.log;
+}
