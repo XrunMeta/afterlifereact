@@ -38,6 +38,34 @@ export function buildPersonaBundle(
   return { l0, cloneId: String(cloneId), persona };
 }
 
+const L2_FIELDS = ["memory_summary", "relationship", "context", "recent_topics"] as const;
+
+export async function loadUserL2(
+  db: D1Database,
+  cloneId: number,
+  userId: number
+): Promise<PersonaDict | null> {
+  const row = await db
+    .prepare("SELECT data FROM clone_ont WHERE clone_id = ? AND user_id = ?")
+    .bind(cloneId, userId)
+    .first<{ data: string | null }>();
+  if (!row?.data) return null;
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(row.data);
+  } catch {
+    return null;
+  }
+  const out: Record<string, unknown> = {};
+  for (const k of L2_FIELDS) {
+    const v = parsed[k];
+    if (v == null) continue;
+    if (typeof v === "string" && v.length === 0) continue;
+    out[k] = v;
+  }
+  return Object.keys(out).length ? (out as PersonaDict) : null;
+}
+
 export function flattenAttrs(l1: PersonaDict | null): PersonaDict | null {
   if (!l1) return null;
   const attrs = (l1 as { attrs?: Record<string, unknown> }).attrs;
