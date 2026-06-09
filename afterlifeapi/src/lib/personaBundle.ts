@@ -38,6 +38,34 @@ export function v_445ba7(
   return { l0: v_b6c480, cloneId: String(v_6e0fd3), persona: v_5ed063 };
 }
 
+const v_f4c771 = ["memory_summary", "relationship", "context", "recent_topics"] as const;
+
+export async function v_20b0e8(
+  v_a1651b,
+  v_6e0fd3,
+  v_43e90c
+): Promise<v_1f7dcf | null> {
+  const v_3ac7e7 = await v_a1651b
+    .prepare("SELECT data FROM clone_ont WHERE clone_id = ? AND user_id = ?")
+    .bind(v_6e0fd3, v_43e90c)
+    .first<{ data: string | null }>();
+  if (!v_3ac7e7?.data) return null;
+  let v_8decf8;
+  try {
+    v_8decf8 = JSON.parse(v_3ac7e7.data);
+  } catch {
+    return null;
+  }
+  const v_8d4337 = {};
+  for (const v_0eb677 of v_f4c771) {
+    const v_81e2ef = v_8decf8[v_0eb677];
+    if (v_81e2ef == null) continue;
+    if (typeof v_81e2ef === "string" && v_81e2ef.length === 0) continue;
+    v_8d4337[v_0eb677] = v_81e2ef;
+  }
+  return Object.keys(v_8d4337).length ? (v_8d4337 as v_1f7dcf) : null;
+}
+
 export function v_56dc8c(l1: v_1f7dcf | null): v_1f7dcf | null {
   if (!v_020b4b) return null;
   const v_3555ae = (v_020b4b as { attrs?: Record<string, unknown> }).attrs;
