@@ -139,7 +139,6 @@ export default function CallScreen({ route, navigation }: Props) {
     say,
     getStatsReport,
     notifySpeechEnd,
-    subscribeSpeechEnd,
   } = useAvatarCall({ cloneId, accessToken: accessToken ?? "" });
 
   const {
@@ -153,9 +152,8 @@ export default function CallScreen({ route, navigation }: Props) {
     say,
     getStatsReport,
     notifySpeechEnd,
-    subscribeSpeechEnd,
 
-    silenceConfig: CALL_ROUTE === 'prethird' ? { silenceHoldMs: 4000 } : undefined,
+    silenceConfig: CALL_ROUTE === 'prethird' ? { silenceHoldMs: 2500 } : undefined,
   });
 
   useEffect(() => {
