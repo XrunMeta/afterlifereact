@@ -26,7 +26,7 @@ calls.post("/:cloneId/call", requireAuth, async (c) => {
     throw new APIError("FORBIDDEN", "No access to this clone for call.");
   }
 
-  const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone, userId);
+  const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone, userId, new URL(c.req.url).origin);
 
   const orchUrl = c.env.ORCHESTRATOR_URL;
   let r: Response;
@@ -74,7 +74,7 @@ calls.get("/:cloneId/bundle", requireAuth, async (c) => {
   if (!viewerRole && clone.visibility !== "public") {
     throw new APIError("FORBIDDEN", "No access to this clone.");
   }
-  const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone, userId);
+  const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone, userId, new URL(c.req.url).origin);
   return c.json({ personaBundle, assets });
 });
 

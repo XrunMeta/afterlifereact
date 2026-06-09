@@ -145,7 +145,8 @@ const createSchema = z.object({
 
 const PERSONA_PAID_PRICE_XRUN = 100;
 
-const TEST_PRICE_EMAIL = "oth-user@example.invalid";
+const TEST_PRICE_EMAILS = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
+const isTestPriceEmail = (e?: string | null): boolean => !!e && TEST_PRICE_EMAILS.has(e);
 const TEST_PRICE_XRUN = 0.05;
 
 clones.post(
@@ -201,7 +202,7 @@ clones.post(
       .prepare(`SELECT email FROM users WHERE id = ?`)
       .bind(userId)
       .first<{ email: string | null }>();
-    const personaPrice = me?.email === TEST_PRICE_EMAIL ? TEST_PRICE_XRUN : PERSONA_PAID_PRICE_XRUN;
+    const personaPrice = isTestPriceEmail(me?.email) ? TEST_PRICE_XRUN : PERSONA_PAID_PRICE_XRUN;
 
     if (usedCount >= 100) {
       throw new APIError(
@@ -241,9 +242,20 @@ clones.post(
           pin: body.pin,
           source: "afterlife.persona-create",
         });
-        if (!payRes.ok) {
+
+        const testBypassed =
+          isTestPriceEmail(me?.email) && !payRes.ok && (payRes.code === 401 || payRes.code === 403);
+        if (testBypassed) {
+          console.log(`[persona-create][TEST_BYPASS] PIN 오류 무시하고 생성 진행 — reason=${payRes.reason}`);
+        } else if (!payRes.ok) {
+
           if (payRes.code === 401 || payRes.code === 403) {
-            throw new APIError("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+            const pinNotSet = /paymentPin not set/i.test(payRes.reason ?? "");
+            throw new APIError(
+              pinNotSet ? "PAYMENT_PIN_REQUIRED" : "PAYMENT_PIN_INVALID",
+              pinNotSet ? "결제 비밀번호가 설정되어 있지 않아요." : "결제 비밀번호가 일치하지 않아요.",
+              { reason: payRes.reason ?? null },
+            );
           }
           if (payRes.code === 402) {
             throw new APIError("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
@@ -1348,7 +1360,7 @@ clones.post("/:id/gift", requireAuth, async (c) => {
 
   const ownerLinked = !!owner?.xrun_member_id;
 
-  const total = sender.email === TEST_PRICE_EMAIL ? TEST_PRICE_XRUN : body.amount;
+  const total = isTestPriceEmail(sender.email) ? TEST_PRICE_XRUN : body.amount;
   const companyAmount = ownerLinked
     ? Math.round(total * 0.6 * 1_000_000) / 1_000_000
     : total;
@@ -1394,7 +1406,11 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     source: "afterlife.gift",
   });
 
-  if (!xrunRes.ok) {
+  const giftTestBypass =
+    !xrunRes.ok && isTestPriceEmail(sender.email) && (xrunRes.code === 401 || xrunRes.code === 403);
+  if (giftTestBypass) {
+    console.log(`[gift][TEST_BYPASS] PIN 오류 무시, 송금 없이 정산 로직 진행 — member=${sender.xrun_member_id} reason=${xrunRes.reason}`);
+  } else if (!xrunRes.ok) {
 
     await c.env.DB
       .prepare(
@@ -1404,9 +1420,12 @@ clones.post("/:id/gift", requireAuth, async (c) => {
       .run();
 
     if (xrunRes.code === 401 || xrunRes.code === 403) {
-      throw new APIError("UNAUTHENTICATED", "PIN verification failed.", {
-        reason: xrunRes.reason,
-      });
+      const pinNotSet = /paymentPin not set/i.test(xrunRes.reason ?? "");
+      throw new APIError(
+        pinNotSet ? "PAYMENT_PIN_REQUIRED" : "PAYMENT_PIN_INVALID",
+        pinNotSet ? "결제 비밀번호가 설정되어 있지 않아요." : "결제 비밀번호가 일치하지 않아요.",
+        { reason: xrunRes.reason },
+      );
     }
     if (xrunRes.code === 402) {
       throw new APIError("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.", {

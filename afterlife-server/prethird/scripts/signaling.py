@@ -6,6 +6,7 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 from session import SessionManager
 from clone_dialog import fetch_bundle, bundle_to_messages
 from asset_fetch import fetch_to
+from voice_fetch import ensure_voice_wav
 
 REF_VOICES_ROOT = os.environ.get(
     "PRETHIRD_REF_VOICES_ROOT",
@@ -93,9 +94,18 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                     sess.persona_messages = bundle_to_messages(bundle)
                     assets = bundle.get("assets") or {}
                     se_key = assets.get("voiceSeKey")
-                    # voiceSeUrl만 있는 경우(R2 직접 URL)는 2a 미지원 — se_path=None(기본)
-                    if assets.get("voiceSeUrl") and not se_key:
-                        log.info("voiceSeUrl only, R2 pull은 2b 미지원 → 기본 voice 사용 (session=%s)", sess.session_id)
+                    # voice.wav lazy fetch: voiceRawUrl(원본 음성) → reference_voices/{clone_id}/voice.wav
+                    # qwen3tts(8201)는 se_path에서 parse한 clone_id로 이 voice.wav를 찾는다. 폴백 없음.
+                    voice_raw_url = assets.get("voiceRawUrl")
+                    if voice_raw_url and sess.clone_id is not None:
+                        try:
+                            await ensure_voice_wav(sess.clone_id, voice_raw_url, REF_VOICES_ROOT)
+                            log.info("voice.wav fetch OK clone=%s", sess.clone_id)
+                        except Exception as e:
+                            log.warning(
+                                "voice.wav fetch 실패 clone=%s: %s (음성 무응답 — 폴백 없음)",
+                                sess.clone_id, e,
+                            )
                     # 후보 디렉토리 결정: voiceSeKey 우선, 없으면 clone_id 경로
                     candidate_dir = None
                     if se_key:

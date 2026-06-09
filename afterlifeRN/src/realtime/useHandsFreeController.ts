@@ -28,6 +28,8 @@ export function useHandsFreeController(opts: {
 
   silenceMs?: number;
   silenceConfig?: Partial<CloneSilenceConfig>;
+
+  confirmMs?: number;
 }) {
   const [state, setState] = useState(initHandsFreeState());
   const stateRef = useRef(state);
@@ -44,6 +46,7 @@ export function useHandsFreeController(opts: {
 
   const detector = useCloneSilenceDetector({
     getStatsReport: opts.getStatsReport,
+    onResponseStart: () => dispatchRef.current({ type: 'CLONE_SPEAKING' }),
     onResponseEnd: () => dispatchRef.current({ type: 'RESPONSE_END' }),
     config: opts.silenceConfig,
   });
@@ -110,6 +113,17 @@ export function useHandsFreeController(opts: {
 
   dispatchRef.current = dispatch;
 
+  const confirmMs = opts.confirmMs ?? 2000;
+  useEffect(() => {
+    if (state.phase !== 'confirming') return;
+    const id = setTimeout(() => dispatchRef.current({ type: 'CONFIRM_SEND' }), confirmMs);
+    return () => clearTimeout(id);
+  }, [state.phase, state.pendingText, confirmMs]);
+
+  const cancelConfirm = useCallback(() => {
+    dispatchRef.current({ type: 'CANCEL_SEND' });
+  }, []);
+
   useEffect(() => {
     dispatchRef.current(opts.enabled ? { type: 'CALL_LIVE' } : { type: 'CALL_ENDED' });
   }, [opts.enabled]);
@@ -128,7 +142,7 @@ export function useHandsFreeController(opts: {
         if (cloneSpeaking) cloneSpokeAtRef.current = now;
 
         const st = stateRef.current;
-        if (st.phase !== 'listening' || !st.micOn) return;
+        if ((st.phase !== 'listening' && st.phase !== 'confirming') || !st.micOn) return;
         if (cloneSpeaking && !sttSuppressedRef.current) {
           speechRef.current.stopListening();
           sttSuppressedRef.current = true;
@@ -152,7 +166,9 @@ export function useHandsFreeController(opts: {
   return {
     phase: state.phase,
     micOn: state.micOn,
+    pendingText: state.pendingText,
     toggleMic,
+    cancelConfirm,
     transcript: speech.transcript,
     interimTranscript: speech.interimTranscript,
   };

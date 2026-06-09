@@ -9,10 +9,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   Keyboard,
+  Linking,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { OtpCodeInput } from "../../../components/auth/OtpVerifyView";
@@ -20,12 +20,12 @@ import { COLORS, RADIUS } from "../../../components/constants";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCloneStore } from "../../../stores/cloneStore";
 import { listMyClones } from "../../../api/clones";
-import { getXrunBalance } from "../../../api/payments";
+import { getXrunBalance, getPaymentPinStatus } from "../../../api/payments";
 import { API_BASE, API_BASE_PREVIEW } from "../../../config/apiBase";
 
 const PERSONA_FULL_PRICE_XRUN = 100;
 
-const TEST_PRICE_EMAIL = "oth-user@example.invalid";
+const TEST_PRICE_EMAILS = ["oth-user@example.invalid", "oth-test@example.invalid"];
 const TEST_PRICE_XRUN = 0.05;
 
 interface Props {
@@ -41,7 +41,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
 
   const PERSONA_PAID_PRICE_XRUN =
-    userEmail === TEST_PRICE_EMAIL ? TEST_PRICE_XRUN : PERSONA_FULL_PRICE_XRUN;
+    userEmail && TEST_PRICE_EMAILS.includes(userEmail) ? TEST_PRICE_XRUN : PERSONA_FULL_PRICE_XRUN;
 
   const [loading, setLoading] = useState(true);
   const [needPay, setNeedPay] = useState(false);
@@ -49,6 +49,18 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   const [error, setError] = useState<string | null>(null);
 
   const [balance, setBalance] = useState<number | null>(null);
+
+  const [hasPin, setHasPin] = useState<boolean | null>(null);
+
+  const [kbHeight, setKbHeight] = useState(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) =>
+      setKbHeight(e.endCoordinates?.height ?? 0),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKbHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,6 +85,14 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
           } catch (balErr) {
             console.warn("[PaymentGate] balance fetch failed:", balErr);
             if (!cancelled) setBalance(null);
+          }
+
+          try {
+            const st = await getPaymentPinStatus(accessToken);
+            if (!cancelled) setHasPin(st.hasPin);
+          } catch (pinErr) {
+            console.warn("[PaymentGate] pin status fetch failed:", pinErr);
+            if (!cancelled) setHasPin(null);
           }
           if (cancelled) return;
           setNeedPay(true);
@@ -108,6 +128,22 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
     onCancel();
   };
 
+  const openXrunForPin = async () => {
+    const email = useAuthStore.getState().apiUser?.email ?? null;
+    const deeplink = email
+      ? `xrun://?email=${encodeURIComponent(email)}&from=afterlife`
+      : "xrun://";
+    try {
+      await Linking.openURL(deeplink);
+    } catch {
+      const storeUrl =
+        Platform.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try { await Linking.openURL(storeUrl); } catch {  }
+    }
+  };
+
   const handleConfirm = () => {
 
     if (blockInput) return;
@@ -131,15 +167,13 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   if (!needPay) return null; 
 
   return (
-    <Modal visible transparent animationType="fade">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-      >
+    <Modal visible transparent statusBarTranslucent animationType="fade">
+      {}
+      <View style={{ flex: 1 }}>
         {
 }
         <Pressable
-          style={styles.overlay}
+          style={[styles.overlay, kbHeight > 0 ? { paddingBottom: kbHeight } : null]}
           onPress={() => {
             console.log("[PaymentGate] overlay tapped");
             Keyboard.dismiss();
@@ -195,9 +229,22 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 </Text>
               </TouchableOpacity>
             </View>
+            {}
+            {hasPin === false && (
+              <TouchableOpacity
+                onPress={openXrunForPin}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={0.7}
+                style={styles.pinSetupLinkWrap}
+              >
+                <Text style={styles.pinSetupLink}>
+                  xrun 비밀번호 재설정
+                </Text>
+              </TouchableOpacity>
+            )}
           </Pressable>
         </Pressable>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -268,7 +315,7 @@ const styles = StyleSheet.create({
     color: COLORS.zinc400,
   },
 
-  pinWrap: { width: "100%", paddingVertical: 16, alignItems: "center" },
+  pinWrap: { width: "100%", paddingVertical: 16 },
   error: { fontSize: 12, color: "#ef4444", marginTop: 4, marginBottom: 0 },
   btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 20 },
   cancel: {
@@ -288,4 +335,11 @@ const styles = StyleSheet.create({
   },
   disabled: { opacity: 0.5 },
   confirmText: { fontSize: 14, fontWeight: "700", color: COLORS.white },
+  pinSetupLinkWrap: { marginTop: 14, alignItems: "center" },
+  pinSetupLink: {
+    fontSize: 12,
+    color: COLORS.violet600,
+    textDecorationLine: "underline",
+    textAlign: "center",
+  },
 });

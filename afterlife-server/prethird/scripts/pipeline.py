@@ -55,6 +55,7 @@ class DialoguePipeline:
         infer_fn: Callable,
         persona_messages: list | None = None,
         se_path: str | None = None,
+        clone_locked: bool = False,
         min_len: int = 4,
         force_flush: int = 30,
     ) -> None:
@@ -69,6 +70,7 @@ class DialoguePipeline:
         self.infer_fn = infer_fn
         self.persona_messages = persona_messages or []
         self.se_path = se_path
+        self.clone_locked = clone_locked
         self._sb_factory = lambda: SentenceBuffer(min_len, force_flush)
         self._resample = _resample_int16
         self._balance = _balance_pcm_to_video
@@ -80,6 +82,9 @@ class DialoguePipeline:
 
     async def say(self, user_text: str) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출."""
+        if self.clone_locked and not self.se_path:
+            log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
+            return
         messages = self.persona_messages + [{"role": "user", "content": user_text}]
 
         async def produce(q: asyncio.Queue):
@@ -96,6 +101,9 @@ class DialoguePipeline:
     async def speak(self, text: str) -> None:
         """LLM 우회: 입력 텍스트를 그대로 발화(TTS+musetalk). 쉼표로 끊지 않고
         문장 종결부호(.!?…\\n)로만 분할. 한 문장이면 통째 1회."""
+        if self.clone_locked and not self.se_path:
+            log.warning("clone voice 미준비 — speak skip (폴백 없음)")
+            return
         import re
         parts = [p.strip() for p in re.split(r'(?<=[.!?…])\s+|\n+', text) if p.strip()]
         if not parts:
@@ -138,6 +146,12 @@ class DialoguePipeline:
             if nframes > 0:
                 pcm_bal, _ = self._balance(pcm48, nframes)
             else:
+                # musetalk frames=0 — 입싱크 영상 미생성(오디오만 송출, idle 폴백).
+                # CUDA 오염/추론 실패 신호. 무음 실패 방지를 위해 명시 경고.
+                log.warning(
+                    "[infer] musetalk frames=0 — 입싱크 영상 미생성(오디오만 송출). "
+                    "CUDA 오염/추론 실패 의심."
+                )
                 pcm_bal = pcm48
             self.at.push_pcm_int16(pcm_bal)
         finally:

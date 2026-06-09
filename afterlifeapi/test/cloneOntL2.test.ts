@@ -81,8 +81,8 @@ describe("loadUserL2 (clone_ont)", () => {
       .bind(9043, 200, JSON.stringify({ memory_summary: "200의 기억" }))
       .run();
     const clone = await loadCloneById(db(), 9043);
-    const b100 = await buildCallBundle(db(), clone!, 100);
-    const b200 = await buildCallBundle(db(), clone!, 200);
+    const b100 = await buildCallBundle(db(), clone!, 100, "http://test");
+    const b200 = await buildCallBundle(db(), clone!, 200, "http://test");
     expect(b100.personaBundle.persona.memory_summary).toBe("100의 기억");
     expect(b200.personaBundle.persona.memory_summary).toBe("200의 기억");
   });
