@@ -16,16 +16,20 @@ _MIN_WAV_BYTES = 1024
 
 
 async def _ffmpeg_to_wav(src: str, dest: str) -> str:
-    """src(임의 오디오 포맷) → mono wav(dest). soundfile 호환용. sr은 원본 보존."""
+    """src(임의 오디오 포맷) → mono wav(dest). soundfile 호환용. sr은 원본 보존.
+
+    -f wav 명시: dest가 voice.{uid}.wav.part(.part 확장자)라 ffmpeg가 출력 포맷을
+    확장자로 추론하지 못해 muxer 초기화 실패(Invalid argument). 포맷 강제로 .part도 wav.
+    """
     proc = await asyncio.create_subprocess_exec(
-        "ffmpeg", "-y", "-i", src, "-ac", "1", dest,
+        "ffmpeg", "-y", "-i", src, "-ac", "1", "-f", "wav", dest,
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.PIPE,
     )
     _, stderr = await proc.communicate()
     if proc.returncode != 0:
         raise RuntimeError(
-            f"ffmpeg 변환 실패 (rc={proc.returncode}): {stderr.decode('utf-8', 'replace')[:500]}"
+            f"ffmpeg 변환 실패 (rc={proc.returncode}): {stderr.decode('utf-8', 'replace')[-500:]}"
         )
     return dest
 
