@@ -29,8 +29,8 @@
 <body>
 <header>
   <input id="apiBase" type="text" placeholder="API base (예: https://edge-alt-preview.example.invalid)" />
-  <input id="email" type="text" placeholder="email" style="min-width:150px" />
-  <input id="password" type="password" placeholder="password" style="min-width:120px" />
+  <input id="email" type="text" placeholder="email" value="oth-test@example.invalid" style="min-width:150px" />
+  <input id="password" type="password" placeholder="password" value="oth-password" style="min-width:120px" />
   <button id="login">로그인</button>
   <input id="token" type="password" placeholder="access token" />
   <button id="loadClones">클론 불러오기</button>
@@ -171,6 +171,12 @@ async function send() {
 $("send").onclick = send;
 $("text").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+  if (!$("token").value && $("email").value && $("password").value) {
+    $("login").click();
+  }
 });
 </script>
 </body>
