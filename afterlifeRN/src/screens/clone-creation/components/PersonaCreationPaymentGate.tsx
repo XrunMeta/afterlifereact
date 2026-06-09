@@ -238,7 +238,7 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 style={styles.pinSetupLinkWrap}
               >
                 <Text style={styles.pinSetupLink}>
-                  결제 비밀번호가 설정되어 있지 않아요 · XRUN에서 설정하러 가기
+                  xrun 비밀번호 재설정
                 </Text>
               </TouchableOpacity>
             )}
