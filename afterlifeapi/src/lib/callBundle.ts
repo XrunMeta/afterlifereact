@@ -2,7 +2,7 @@
 
 import { loadSystemPersona } from "./systemPersona";
 import { resolvePersona } from "./personaResolver";
-import { loadCloneProfiles, buildPersonaBundle, flattenAttrs } from "./personaBundle";
+import { loadCloneProfiles, buildPersonaBundle, flattenAttrs, loadUserL2 } from "./personaBundle";
 import type { CloneRow } from "./cloneAccess";
 
 export interface CallBundle {
@@ -15,11 +15,12 @@ export interface CallBundle {
   };
 }
 
-export async function buildCallBundle(db: D1Database, clone: CloneRow): Promise<CallBundle> {
+export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: number): Promise<CallBundle> {
   const cloneId = clone.id;
 
   const l0 = await loadSystemPersona(db);
-  const { l1, l2 } = await loadCloneProfiles(db, cloneId);
+  const { l1 } = await loadCloneProfiles(db, cloneId);   
+  const l2 = await loadUserL2(db, cloneId, userId);       
   const persona = resolvePersona({ l1: flattenAttrs(l1), l2 });
 
   persona.displayName = clone.name;
