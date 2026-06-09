@@ -1,9 +1,12 @@
 from __future__ import annotations
-import os, time, logging
+import os, time, logging, threading
 from fastapi import FastAPI, Response, HTTPException
 from pydantic import BaseModel
 import config
 from clone_ref import parse_clone_id, ref_audio_path
+
+# 동시통화 음성 섞임 방지: GPU synth 직렬화 Lock
+_SYNTH_LOCK = threading.Lock()
 
 logging.basicConfig(level=os.environ.get("QWEN3TTS_LOG_LEVEL", "INFO"))
 log = logging.getLogger("qwen3tts")
@@ -52,7 +55,8 @@ def synth(req: SynthReq):
         raise HTTPException(503, f"voice.wav missing for clone '{clone_id}'")
 
     t0 = time.time()
-    wav = eng.synth(txt, clone_id=clone_id, voice_wav=voice_wav, speed=req.speed)
+    with _SYNTH_LOCK:
+        wav = eng.synth(txt, clone_id=clone_id, voice_wav=voice_wav, speed=req.speed)
     total_ms = int((time.time() - t0) * 1000)
     return Response(
         content=wav,
