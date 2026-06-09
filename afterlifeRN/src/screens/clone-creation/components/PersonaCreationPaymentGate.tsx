@@ -131,9 +131,9 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
   if (!needPay) return null; 
 
   return (
-    <Modal visible transparent animationType="fade">
+    <Modal visible transparent statusBarTranslucent animationType="fade">
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         {
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     color: COLORS.zinc400,
   },
 
-  pinWrap: { width: "100%", paddingVertical: 16, alignItems: "center" },
+  pinWrap: { width: "100%", paddingVertical: 16 },
   error: { fontSize: 12, color: "#ef4444", marginTop: 4, marginBottom: 0 },
   btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 20 },
   cancel: {
