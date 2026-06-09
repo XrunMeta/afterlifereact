@@ -138,6 +138,12 @@ class DialoguePipeline:
             if nframes > 0:
                 pcm_bal, _ = self._balance(pcm48, nframes)
             else:
+                # musetalk frames=0 — 입싱크 영상 미생성(오디오만 송출, idle 폴백).
+                # CUDA 오염/추론 실패 신호. 무음 실패 방지를 위해 명시 경고.
+                log.warning(
+                    "[infer] musetalk frames=0 — 입싱크 영상 미생성(오디오만 송출). "
+                    "CUDA 오염/추론 실패 의심."
+                )
                 pcm_bal = pcm48
             self.at.push_pcm_int16(pcm_bal)
         finally:
