@@ -144,6 +144,8 @@ async function loadBundle(highlight){
   if(!r.ok) return;
   const { l0, l1, l2 } = await r.json();
   renderL0(l0); renderL1(l1); renderL2(l2, highlight);
+  const live = document.querySelector(".l2live");
+  if (live) live.textContent = "● 실시간";
 }
 
 const cfg = JSON.parse(localStorage.getItem(LS) || "{}");
@@ -283,7 +285,13 @@ async function learn(userText, assistantText) {
   $("savedL2").textContent = saved ? JSON.stringify(saved, null, 2) : "(저장 안 됨)";
   $("savedL2").className = "";
 
-  if (saved) renderL2(saved, true);
+  const shownL2 = saved || extracted;
+  if (shownL2) {
+    renderL2(shownL2, true);
+
+    const live = document.querySelector(".l2live");
+    if (live) live.textContent = saved ? "● 실시간" : "● 추출 미리보기(미저장)";
+  }
 }
 
 $("l2reset").onclick = async () => {
