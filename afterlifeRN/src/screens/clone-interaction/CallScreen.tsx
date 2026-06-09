@@ -701,10 +701,11 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       {}
 
-      {}
-      <Modal visible={v_58c86d} transparent animationType="fade">
+      {
+}
+      <Modal visible={v_58c86d} transparent statusBarTranslucent animationType="fade">
         <KeyboardAvoidingView
-          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
         >
           <Pressable
