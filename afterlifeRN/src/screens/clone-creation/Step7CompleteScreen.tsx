@@ -304,7 +304,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         ...v_85010a,
 
         ...(v_f04727.idleVideoJobId ? { idle_video_job_id: v_f04727.idleVideoJobId } : {}),
-        ...(v_6bee94 ? { pin: v_6bee94 } : {}),
+
+        ...((v_6bee94 ?? v_f04727.pin) ? { pin: v_6bee94 ?? v_f04727.pin } : {}),
       });
       console.log("[CLONE-CREATE] success:", v_8f00b9);
       const v_94519a = v_8f00b9.clone;
@@ -459,9 +460,15 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       console.warn("[CLONE-CREATE] share post failed:", v_49263d);
       v_c7169b(false);
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "PAYMENT_REQUIRED") {
+
+        if (
+          v_49263d.code === "PAYMENT_REQUIRED" ||
+          v_49263d.code === "PAYMENT_PIN_INVALID" ||
+          v_49263d.code === "PAYMENT_PIN_REQUIRED"
+        ) {
           const v_5ab5bd = (v_49263d.details ?? {}) as { priceXrun?: number };
           if (typeof v_5ab5bd.priceXrun === "number") v_26e048(v_5ab5bd.priceXrun);
+          if (v_49263d.code === "PAYMENT_PIN_INVALID") v_04103a("결제 비밀번호가 일치하지 않아요");
           v_148b42(true);
           v_4b9b17(false);
           return;
