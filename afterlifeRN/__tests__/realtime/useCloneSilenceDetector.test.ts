@@ -48,3 +48,24 @@ it('audioLevel 미가용 → fallback 시간 후 onResponseEnd', async () => {
   await act(async () => { await jest.advanceTimersByTimeAsync(1200); });
   expect(onResponseEnd).toHaveBeenCalledTimes(1);
 });
+
+it('awaiting→active 전이 시 onResponseStart 1회 호출', async () => {
+  const onResponseStart = jest.fn();
+  const onResponseEnd = jest.fn();
+
+  const levels = [0, 0.2, 0.2];
+  let i = 0;
+  const getStatsReport = () =>
+    Promise.resolve(reportWith(levels[Math.min(i++, levels.length - 1)]));
+
+  const { result } = renderHook(() =>
+    useCloneSilenceDetector({ getStatsReport, onResponseStart, onResponseEnd }),
+  );
+  act(() => { result.current.start(); });
+
+  await act(async () => { await jest.advanceTimersByTimeAsync(200); });
+  await act(async () => { await jest.advanceTimersByTimeAsync(200); });
+  await act(async () => { await jest.advanceTimersByTimeAsync(200); });
+
+  expect(onResponseStart).toHaveBeenCalledTimes(1);
+});

@@ -16,6 +16,8 @@ export function useCloneSilenceDetector(opts: {
   getStatsReport: () => Promise<Iterable<[string, Record<string, unknown>]>> | null;
 
   onResponseEnd: () => void;
+
+  onResponseStart?: () => void;
   config?: Partial<CloneSilenceConfig>;
 }) {
   const cfg = useMemo<CloneSilenceConfig>(
@@ -25,6 +27,8 @@ export function useCloneSilenceDetector(opts: {
   );
   const onEndRef = useRef(opts.onResponseEnd);
   useEffect(() => { onEndRef.current = opts.onResponseEnd; });
+  const onStartRef = useRef(opts.onResponseStart);
+  useEffect(() => { onStartRef.current = opts.onResponseStart; });
   const getStatsRef = useRef(opts.getStatsReport);
   useEffect(() => { getStatsRef.current = opts.getStatsReport; });
 
@@ -57,8 +61,13 @@ export function useCloneSilenceDetector(opts: {
         }
 
         if (!activeRef.current) return;
+        const prevPhase = stateRef.current.phase;
         const next = cloneSilenceStep(stateRef.current, level, POLL_MS, cfg);
         stateRef.current = next;
+
+        if (next.phase === 'active' && prevPhase !== 'active') {
+          try { onStartRef.current?.(); } catch {  }
+        }
         if (next.phase === 'ended') {
           stop();
           onEndRef.current();
