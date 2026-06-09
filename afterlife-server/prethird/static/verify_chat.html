@@ -230,69 +230,77 @@ $("loadClones").onclick = async () => {
   }
 };
 
+let _sending = false;
 async function send() {
+  if (_sending) return;
   const text = $("text").value.trim();
   const cloneId = parseInt($("clone").value, 10);
   if (!text) return;
   if (!cloneId) { alert("클론을 선택하세요"); return; }
+  _sending = true;
   $("text").value = "";
   addBubble("user", text);
   history.push({ role: "user", content: text });
+  try {
 
-  const multiturn = $("multiturn").checked;
-  const messages = multiturn ? history.slice() : [{ role: "user", content: text }];
+    const multiturn = $("multiturn").checked;
+    const messages = multiturn ? history.slice() : [{ role: "user", content: text }];
 
-  const body = { clone_id: cloneId, messages };
-  if ($("model").value.trim()) body.model = $("model").value.trim();
-  if ($("temp").value !== "") body.temperature = parseFloat($("temp").value);
-  if ($("useOverride").checked && $("overrideText").value.trim()) body.system_override = $("overrideText").value;
+    const body = { clone_id: cloneId, messages };
+    if ($("model").value.trim()) body.model = $("model").value.trim();
+    if ($("temp").value !== "") body.temperature = parseFloat($("temp").value);
+    if ($("useOverride").checked && $("overrideText").value.trim()) body.system_override = $("overrideText").value;
 
-  const bubble = addBubble("assistant", "");
-  let acc = "";
-  const resp = await fetch("/oth-path", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) { bubble.textContent = "[오류 " + resp.status + "]"; return; }
+    const bubble = addBubble("assistant", "");
+    let acc = "";
+    const resp = await fetch("/oth-path", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) { bubble.textContent = "[오류 " + resp.status + "]"; return; }
 
-  const reader = resp.body.getReader();
-  const dec = new TextDecoder();
-  let buf = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buf += dec.decode(value, { stream: true });
-    let idx;
-    while ((idx = buf.indexOf("\n\n")) >= 0) {
-      const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
-      let ev = "message", data = "";
-      for (const line of chunk.split("\n")) {
-        if (line.startsWith("event:")) ev = line.slice(6).trim();
-        else if (line.startsWith("data:")) data += line.slice(5).trim();
-      }
-      if (!data) continue;
-      const obj = JSON.parse(data);
-      if (ev === "token") { acc += obj.text; bubble.textContent = acc; $("log").scrollTop = $("log").scrollHeight; }
-      else if (ev === "done") {
-        history.push({ role: "assistant", content: acc });
-        $("finalMessages").textContent = JSON.stringify(obj.debug.final_messages, null, 2);
-        $("finalMessages").className = "";
-        $("personaBundle").textContent = JSON.stringify(obj.debug.persona_bundle, null, 2);
-        $("personaBundle").className = "";
-
-        if ($("memory").checked) {
-          learn(text, acc);  
-        } else {
-          loadBundle(false);  
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf("\n\n")) >= 0) {
+        const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        let ev = "message", data = "";
+        for (const line of chunk.split("\n")) {
+          if (line.startsWith("event:")) ev = line.slice(6).trim();
+          else if (line.startsWith("data:")) data += line.slice(5).trim();
         }
-      } else if (ev === "error") { bubble.textContent = acc + "\n[error] " + obj.message; }
+        if (!data) continue;
+        const obj = JSON.parse(data);
+        if (ev === "token") { acc += obj.text; bubble.textContent = acc; $("log").scrollTop = $("log").scrollHeight; }
+        else if (ev === "done") {
+          history.push({ role: "assistant", content: acc });
+          $("finalMessages").textContent = JSON.stringify(obj.debug.final_messages, null, 2);
+          $("finalMessages").className = "";
+          $("personaBundle").textContent = JSON.stringify(obj.debug.persona_bundle, null, 2);
+          $("personaBundle").className = "";
+
+          if ($("memory").checked) {
+            learn(text, acc);  
+          } else {
+            loadBundle(false);  
+          }
+        } else if (ev === "error") { bubble.textContent = acc + "\n[error] " + obj.message; }
+      }
     }
+  } finally {
+    _sending = false;
   }
 }
 
 $("send").onclick = send;
 $("text").addEventListener("keydown", (e) => {
+  if (e.isComposing || e.keyCode === 229) return;  
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
 });
 
