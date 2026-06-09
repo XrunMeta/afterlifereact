@@ -63,7 +63,7 @@
     <div id="tblL0"><span class="muted">클론 선택 시 표시</span></div>
     <h3>L1 기본 페르소나</h3>
     <div id="tblL1"><span class="muted">클론 선택 시 표시</span></div>
-    <h3>L2 학습 기억 <span class="l2live">● 실시간</span></h3>
+    <h3>L2 학습 기억 <span class="l2live">● 실시간</span> <span id="l2owner" class="muted" style="font-weight:400"></span></h3>
     <div id="tblL2"><span class="muted">아직 없음</span></div>
     <h3>📜 L2 변화 이력</h3>
     <div id="l2history"><span class="muted">아직 없음</span></div>
@@ -213,6 +213,9 @@ $("login").onclick = async () => {
   if (!accessToken) { alert("토큰 없음"); return; }
   $("token").value = accessToken;
   saveCfg();
+
+  const lo = document.getElementById("l2owner");
+  if (lo) lo.textContent = "— " + $("email").value + " 의 기억(사용자별)";
 
   $("loadClones").click();
 };
