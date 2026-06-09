@@ -1141,6 +1141,60 @@ clones.patch("/:id", requireAuth, async (c) => {
   return c.json({ ok: true, updatedFields });
 });
 
+const l2PatchSchema = z
+  .object({
+    memory_summary: z.string().max(2000).optional(),
+    relationship: z.string().max(2000).optional(),
+    context: z.string().max(2000).optional(),
+    recent_topics: z.string().max(2000).optional(),
+  })
+  .strict()
+  .refine((o) => Object.keys(o).length > 0, {
+    message: "At least one field required.",
+  });
+
+clones.patch("/:id/l2", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const body = await parseJson(c, l2PatchSchema);
+  const userId = c.get("userId")!;
+  const db = c.env.DB;
+
+  const clone = await loadCloneById(db, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const isOwner =
+    clone.owner_id === userId ||
+    (await hasAcceptedShare(db, cloneId, userId)) === "owner";
+  if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 변경할 수 있어요.");
+
+  const row = await db
+    .prepare("SELECT l2_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(cloneId)
+    .first<{ l2_profile: string | null }>();
+  let current: Record<string, unknown> = {};
+  if (row?.l2_profile) {
+    try {
+      current = JSON.parse(row.l2_profile);
+    } catch {
+      current = {};
+    }
+  }
+  const merged = { ...current, ...body };
+
+  const clean: Record<string, unknown> = {};
+  for (const k of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+    if (merged[k] !== undefined) clean[k] = merged[k];
+  }
+  await db
+    .prepare("UPDATE clones SET l2_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL")
+    .bind(JSON.stringify(clean), cloneId)
+    .run();
+
+  return c.json({ l2_profile: clean });
+});
+
 clones.post("/:id/follow", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
