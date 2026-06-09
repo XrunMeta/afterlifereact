@@ -23,7 +23,7 @@ import { listMyClones } from "../../../api/clones";
 import { getXrunBalance } from "../../../api/payments";
 import { API_BASE, API_BASE_PREVIEW } from "../../../config/apiBase";
 
-const PERSONA_PAID_PRICE_XRUN = 100;
+const PERSONA_PAID_PRICE_XRUN = API_BASE === API_BASE_PREVIEW ? 0.0001 : 100;
 
 interface Props {
 

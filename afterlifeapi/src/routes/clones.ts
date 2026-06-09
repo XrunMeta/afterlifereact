@@ -194,6 +194,8 @@ clones.post(
       .first<{ n: number }>();
     const usedCount = existing?.n ?? 0;
 
+    const personaPrice = c.env.ENVIRONMENT === "production" ? PERSONA_PAID_PRICE_XRUN : 0.0001;
+
     if (usedCount >= 100) {
       throw new APIError(
         "QUOTA_EXCEEDED",
@@ -204,8 +206,8 @@ clones.post(
 
       if (!body.pin) {
         throw new APIError("PAYMENT_REQUIRED", "Persona creation requires payment.", {
-          priceXrun: PERSONA_PAID_PRICE_XRUN,
-          message: `2번째 페르소나부터 ${PERSONA_PAID_PRICE_XRUN} XRUN 이 부과됩니다.`,
+          priceXrun: personaPrice,
+          message: `2번째 페르소나부터 ${personaPrice} XRUN 이 부과됩니다.`,
         });
       }
 
@@ -227,7 +229,7 @@ clones.post(
         const { externalTransferSplit } = await import("../lib/xrun");
         const payRes = await externalTransferSplit(c.env, {
           fromMember: senderRow.xrun_member_id,
-          recipients: [{ toAddress: companyAddr, amount: String(PERSONA_PAID_PRICE_XRUN) }],
+          recipients: [{ toAddress: companyAddr, amount: String(personaPrice) }],
           currency,
           pin: body.pin,
           source: "afterlife.persona-create",
@@ -246,7 +248,7 @@ clones.post(
           const { recordAfterlifePersonaPayment } = await import("../lib/giftCommission");
           const r = await recordAfterlifePersonaPayment(c.env, {
             userId,
-            totalXrun: PERSONA_PAID_PRICE_XRUN,
+            totalXrun: personaPrice,
             companyWallet: companyAddr,
           });
           if (r.recorded) {
