@@ -62,7 +62,11 @@ export default function CallScreen({ route, navigation }: Props) {
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const accessToken = useAuthStore((s) => s.accessToken);
+  const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
   const insets = useSafeAreaInsets();
+
+  const giftPriceFor = (g: Gift) =>
+    userEmail === "oth-user@example.invalid" ? 0.05 : g.price;
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const bottomInset =
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
@@ -262,12 +266,13 @@ export default function CallScreen({ route, navigation }: Props) {
   };
 
   const handleGiftSend = (gift: Gift) => {
+    const price = giftPriceFor(gift);
     console.log(
-      `[Call][gift-tap] giftId=${gift.id} name=${gift.name} price=${gift.price} ` +
-        `myCredits=${credits} (typeof=${typeof credits}) enough=${credits >= gift.price}`,
+      `[Call][gift-tap] giftId=${gift.id} name=${gift.name} price=${price} ` +
+        `myCredits=${credits} (typeof=${typeof credits}) enough=${credits >= price}`,
     );
-    if (credits < gift.price) {
-      const shortage = Math.max(0, gift.price - credits);
+    if (credits < price) {
+      const shortage = Math.max(0, price - credits);
       console.log(
         `[Call][gift-insufficient-precheck] ${credits} < ${gift.price} (shortage=${shortage}) → block PIN modal`,
       );
@@ -294,8 +299,9 @@ export default function CallScreen({ route, navigation }: Props) {
       setToastMessage("PIN 6자리를 입력해 주세요");
       return;
     }
+    const submitPrice = giftPriceFor(pendingGift);
     console.log(
-      `[Call][gift-submit] giftId=${pendingGift.id} amount=${pendingGift.price} ` +
+      `[Call][gift-submit] giftId=${pendingGift.id} amount=${submitPrice} ` +
         `myCredits=${credits} cloneId=${cloneId} pin=*** (${pinInput.length} chars)`,
     );
     setPaying(true);
@@ -303,7 +309,7 @@ export default function CallScreen({ route, navigation }: Props) {
       const res = await sendGiftToClone(accessToken, cloneId, {
         giftId: pendingGift.id,
         giftName: pendingGift.name,
-        amount: pendingGift.price,
+        amount: submitPrice,
         pin: pinInput,
       });
       console.log("[Call][gift-ok] gift sent:", res.gift);
@@ -666,7 +672,7 @@ export default function CallScreen({ route, navigation }: Props) {
                     <Text style={s.giftEmoji}>{item.emoji}</Text>
                   </View>
                   <Text style={s.giftName}>{item.name}</Text>
-                  <Text style={s.giftPrice}>{item.price} XRUN</Text>
+                  <Text style={s.giftPrice}>{giftPriceFor(item)} XRUN</Text>
                 </TouchableOpacity>
               )}
             />
