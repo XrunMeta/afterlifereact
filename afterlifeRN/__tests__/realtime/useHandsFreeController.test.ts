@@ -118,6 +118,48 @@ it('FINAL_RESULT 후 confirmMs 경과 시 자동 전송(say 호출)', async () =
   }
 });
 
+it('연쇄 FINAL_RESULT가 카운트다운을 리셋 — 마지막 발화 기준으로만 say 호출', async () => {
+
+  const say = jest.fn().mockResolvedValue(undefined);
+  const engine = makeMockEngine();
+  const confirmMs = 500; 
+  const { result } = renderController({
+    enabled: true,
+    say,
+    speechEngine: engine,
+    silenceMs: 20,
+    confirmMs,
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+  });
+  await waitFor(() => expect(engine.start).toHaveBeenCalled());
+  jest.useFakeTimers();
+  try {
+
+    act(() => { engine.emitFinal('가'); });
+    await waitFor(() => expect(result.current.phase).toBe('confirming'));
+    expect(say).not.toHaveBeenCalled();
+
+    act(() => { jest.advanceTimersByTime(300); });
+    expect(say).not.toHaveBeenCalled();
+
+    act(() => { engine.emitFinal('나'); });
+    await waitFor(() => expect(result.current.pendingText).toContain('나'));
+
+    expect(say).not.toHaveBeenCalled();
+
+    act(() => { jest.advanceTimersByTime(500); });
+    await waitFor(() => expect(say).toHaveBeenCalledTimes(1));
+
+    const calledWith: string = say.mock.calls[0][0] as string;
+    expect(calledWith).toContain('가');
+    expect(calledWith).toContain('나');
+    expect(result.current.phase).toBe('sending');
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
 it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   const say = jest.fn().mockResolvedValue(undefined);
   const engine = makeMockEngine();

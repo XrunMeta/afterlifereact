@@ -35,6 +35,7 @@ export function DialingScreen(props: {
 
   const inGrace = now < graceUntilRef.current;
   const rawOutcome = dialingOutcome(liveState, elapsed, DEFAULT_DIALING_CONFIG);
+
   const outcome = inGrace && rawOutcome !== 'connected' ? 'dialing' : rawOutcome;
 
   useEffect(() => {

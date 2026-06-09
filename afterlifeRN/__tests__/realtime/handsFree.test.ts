@@ -134,3 +134,10 @@ it('CALL_ENDED: micOn 리셋(paused→idle에서 다음 통화 마이크 ON 기�
   const r = handsFreeReducer(s, { type: 'CALL_ENDED' });
   expect(r.state).toEqual({ phase: 'idle', micOn: true, pendingText: '' });
 });
+
+it('MIC_OFF(confirming): paused + pendingText 폐기', () => {
+  const s = { phase: 'confirming' as const, micOn: true, pendingText: '보내려던 말' };
+  const r = handsFreeReducer(s, { type: 'MIC_OFF' });
+  expect(r.state).toEqual({ phase: 'paused', micOn: false, pendingText: '' });
+  expect(r.effects).toEqual(expect.arrayContaining(['STOP_STT', 'STOP_DETECTOR']));
+});

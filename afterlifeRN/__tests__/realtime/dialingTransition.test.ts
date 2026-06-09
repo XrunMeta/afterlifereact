@@ -29,3 +29,7 @@ it('ended → error (즉시, el R1)', () => {
 it('requesting + 타임아웃 전 → dialing', () => {
   expect(dialingOutcome('requesting', 1000, cfg)).toBe('dialing');
 });
+
+it('connecting + timeoutMs 직전(19999) → dialing', () => {
+  expect(dialingOutcome('connecting', 19999, cfg)).toBe('dialing');
+});
