@@ -145,7 +145,8 @@ const v_722b6d = v_1f4ea7.object({
 
 const v_c02c4c = 100;
 
-const v_e0fb31 = "oth-user@example.invalid";
+const v_34d2d5 = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
+const v_d548ed = (v_9e86fd): boolean => !!v_9e86fd && v_34d2d5.has(v_9e86fd);
 const v_8e9814 = 0.05;
 
 v_f891e6.post(
@@ -201,7 +202,7 @@ v_f891e6.post(
       .prepare(`SELECT email FROM users WHERE id = ?`)
       .bind(v_43e90c)
       .first<{ email: string | null }>();
-    const v_2ab8bf = v_b32680?.email === v_e0fb31 ? v_8e9814 : v_c02c4c;
+    const v_2ab8bf = v_d548ed(v_b32680?.email) ? v_8e9814 : v_c02c4c;
 
     if (v_faa47d >= 100) {
       throw new v_3ebe58(
@@ -243,7 +244,7 @@ v_f891e6.post(
         });
 
         const v_f28f4d =
-          v_b32680?.email === v_e0fb31 && !v_e69235.ok && (v_e69235.code === 401 || v_e69235.code === 403);
+          v_d548ed(v_b32680?.email) && !v_e69235.ok && (v_e69235.code === 401 || v_e69235.code === 403);
         if (v_f28f4d) {
           console.log(`[persona-create][TEST_BYPASS] PIN 오류 무시하고 생성 진행 — reason=${v_e69235.reason}`);
         } else if (!v_e69235.ok) {
@@ -1299,7 +1300,7 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
 
   const v_ed9f44 = !!v_257b90?.xrun_member_id;
 
-  const v_c83285 = v_eddf67.email === v_e0fb31 ? v_8e9814 : v_4d33b2.amount;
+  const v_c83285 = v_d548ed(v_eddf67.email) ? v_8e9814 : v_4d33b2.amount;
   const v_22c1da = v_ed9f44
     ? Math.round(v_c83285 * 0.6 * 1_000_000) / 1_000_000
     : v_c83285;
@@ -1346,7 +1347,7 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
   });
 
   const v_9d0f12 =
-    !v_38fb16.ok && v_eddf67.email === v_e0fb31 && (v_38fb16.code === 401 || v_38fb16.code === 403);
+    !v_38fb16.ok && v_d548ed(v_eddf67.email) && (v_38fb16.code === 401 || v_38fb16.code === 403);
   if (v_9d0f12) {
     console.log(`[gift][TEST_BYPASS] PIN 오류 무시, 송금 없이 정산 로직 진행 — member=${v_eddf67.xrun_member_id} reason=${v_38fb16.reason}`);
   } else if (!v_38fb16.ok) {
