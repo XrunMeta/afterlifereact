@@ -68,7 +68,7 @@ it('start: offer 생성 → /prethird/offer POST(clone_id 포함) → answer 적
   await waitFor(() => expect(result.current.state).toBe('live'));
 });
 
-it('say: datachannel 로 {type:"say"} 전송', async () => {
+it('say: datachannel 로 {type:"say", seq} 전송', async () => {
   mockOfferFetch();
   const dc = makeMockDc();
   const pc = makeMockPc(dc);
@@ -76,7 +76,63 @@ it('say: datachannel 로 {type:"say"} 전송', async () => {
     usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
   await act(async () => { await result.current.start(); });
   await act(async () => { await result.current.say('안녕'); });
-  expect(dc.send).toHaveBeenCalledWith(JSON.stringify({ type: 'say', text: '안녕' }));
+  const sent = JSON.parse(dc.send.mock.calls[0][0]);
+  expect(sent).toMatchObject({ type: 'say', text: '안녕', seq: 1 });
+});
+
+it('say는 seq를 증가시켜 전송한다', async () => {
+  mockOfferFetch();
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+  await act(async () => { await result.current.say('하나'); });
+
+  act(() => { result.current.notifySpeechEnd(); });
+  await act(async () => { await result.current.say('둘'); });
+  const sent = dc.send.mock.calls.map((c: string[]) => JSON.parse(c[0]));
+  expect(sent[0]).toMatchObject({ type: 'say', text: '하나', seq: 1 });
+  expect(sent[1]).toMatchObject({ type: 'say', text: '둘', seq: 2 });
+});
+
+it('speech_end(seq 일치) → subscribeSpeechEnd 콜백 호출, 불일치는 무시', async () => {
+  mockOfferFetch();
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+
+  const cb = jest.fn();
+  act(() => { result.current.subscribeSpeechEnd(cb); });
+  await act(async () => { await result.current.say('안녕'); }); 
+
+  act(() => { dc.emit('message', { data: JSON.stringify({ type: 'speech_end', seq: 99 }) }); });
+  expect(cb).not.toHaveBeenCalled();
+
+  act(() => { dc.emit('message', { data: JSON.stringify({ type: 'speech_end', seq: 1 }) }); });
+  expect(cb).toHaveBeenCalledTimes(1);
+});
+
+it('speech_end(seq 일치) → speakTimer 정리 + phase=idle (soft timeout 발동 안 함)', async () => {
+  jest.useFakeTimers();
+  mockOfferFetch();
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+  await act(async () => { await result.current.say('안녕'); }); 
+  expect(result.current.phase).toBe('speaking');
+
+  act(() => { dc.emit('message', { data: JSON.stringify({ type: 'speech_end', seq: 1 }) }); });
+  await waitFor(() => expect(result.current.phase).toBe('idle'));
+
+  act(() => { jest.advanceTimersByTime(30_000); });
+  expect(result.current.phase).toBe('idle'); 
+
+  jest.useRealTimers();
 });
 
 it('start: ontrack video → remoteStream 세팅', async () => {
@@ -146,7 +202,7 @@ it('say: dc.readyState!=="open" → error 세팅, send 미호출', async () => {
   expect(result.current.error?.message).toBe('datachannel_not_open');
 });
 
-it('say 중복 가드: speaking 중 두 번째 say 무시(dc.send 1회만)', async () => {
+it('say 중복 가드: speaking 중 두 번째 say 무시(dc.send 1회만, seq=1)', async () => {
   mockOfferFetch();
   const dc = makeMockDc();
   const pc = makeMockPc(dc);
@@ -156,6 +212,7 @@ it('say 중복 가드: speaking 중 두 번째 say 무시(dc.send 1회만)', asy
   await act(async () => { await result.current.say('안녕'); }); 
   await act(async () => { await result.current.say('또'); });   
   expect(dc.send).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(dc.send.mock.calls[0][0])).toMatchObject({ seq: 1 });
 });
 
 it('start 재진입 가드: 두 번 연속 호출 → createPeerConnection 1회만', async () => {
@@ -178,6 +235,22 @@ it('start: /offer body에 access_token 포함', async () => {
   await act(async () => { await result.current.start(); });
   const [, init] = (global.fetch as jest.Mock).mock.calls[0];
   expect(JSON.parse(init.body)).toMatchObject({ clone_id: 7, access_token: 'tok-123' });
+});
+
+it('speech_end(seq 없음) → 무시(구버전/누락 방어)', async () => {
+  mockOfferFetch();
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+
+  const cb = jest.fn();
+  act(() => { result.current.subscribeSpeechEnd(cb); });
+  await act(async () => { await result.current.say('안녕'); }); 
+
+  act(() => { dc.emit('message', { data: JSON.stringify({ type: 'speech_end' }) }); });
+  expect(cb).not.toHaveBeenCalled();
 });
 
 it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {

@@ -30,6 +30,8 @@ export function useHandsFreeController(opts: {
   silenceConfig?: Partial<CloneSilenceConfig>;
 
   confirmMs?: number;
+
+  subscribeSpeechEnd?: (cb: () => void) => () => void;
 }) {
   const [state, setState] = useState(initHandsFreeState());
   const stateRef = useRef(state);
@@ -112,6 +114,13 @@ export function useHandsFreeController(opts: {
   );
 
   dispatchRef.current = dispatch;
+
+  const subscribeSpeechEnd = opts.subscribeSpeechEnd;
+  useEffect(() => {
+    if (!subscribeSpeechEnd) return;
+    const unsub = subscribeSpeechEnd(() => dispatchRef.current({ type: 'RESPONSE_END' }));
+    return unsub;
+  }, [subscribeSpeechEnd]);
 
   const confirmMs = opts.confirmMs ?? 2000;
   useEffect(() => {

@@ -436,5 +436,7 @@ export function useLiveAvatar(opts: {
 
   }, []);
 
-  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport };
+  const subscribeSpeechEnd = useCallback(() => () => {}, []);
+
+  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport, subscribeSpeechEnd };
 }

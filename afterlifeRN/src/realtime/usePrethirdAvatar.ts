@@ -70,6 +70,9 @@ export function usePrethirdAvatar(opts: {
   const audioStreamRef = useRef<MediaStream | null>(null);
   const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const genRef = useRef(0);
+  const saySeqRef = useRef(0);
+  const speechEndSubsRef = useRef<Set<() => void>>(new Set());
+  const notifySpeechEndRef = useRef<() => void>(() => {});
 
   const applyingRemoteRef = useRef(false);
   const pendingCloseRef = useRef<PrethirdPeerConnection | null>(null);
@@ -89,7 +92,8 @@ export function usePrethirdAvatar(opts: {
     if (dc.readyState !== 'open') { setError(new Error('datachannel_not_open')); return; }
     setPhase('sending');
     try {
-      dc.send(JSON.stringify({ type: 'say', text: t }));
+      const seq = (saySeqRef.current += 1);
+      dc.send(JSON.stringify({ type: 'say', text: t, seq }));
       setPhase('speaking');
       if (speakTimer.current) clearTimeout(speakTimer.current);
 
@@ -105,14 +109,22 @@ export function usePrethirdAvatar(opts: {
     setPhase('idle');
   }, []);
 
+  notifySpeechEndRef.current = notifySpeechEnd;
+
   const getStatsReport = useCallback(() => {
     const pc = pcRef.current;
     if (!pc || typeof pc.getStats !== 'function') return null;
     return pc.getStats();
   }, []);
 
+  const subscribeSpeechEnd = useCallback((cb: () => void) => {
+    speechEndSubsRef.current.add(cb);
+    return () => { speechEndSubsRef.current.delete(cb); };
+  }, []);
+
   const stop = useCallback(async () => {
     genRef.current += 1;
+    saySeqRef.current = 0; 
     if (speakTimer.current) clearTimeout(speakTimer.current);
     setPhase('idle');
     const pc = pcRef.current;
@@ -163,6 +175,20 @@ export function usePrethirdAvatar(opts: {
     pc.addTransceiver('audio', { direction: 'recvonly' });
     dcRef.current = pc.createDataChannel('control');
 
+    const dc = dcRef.current;
+    if (dc && typeof dc.addEventListener === 'function') {
+      dc.addEventListener('message', (ev: { data?: unknown }) => {
+        if (typeof ev?.data !== 'string') return;
+        let m: { type?: string; seq?: number };
+        try { m = JSON.parse(ev.data); } catch { return; }
+        if (m.type === 'speech_end' && m.seq === saySeqRef.current) {
+
+          notifySpeechEndRef.current();
+          speechEndSubsRef.current.forEach((cb) => { try { cb(); } catch {  } });
+        }
+      });
+    }
+
     setState('connecting');
     try {
       await pc.setLocalDescription(await pc.createOffer());
@@ -208,5 +234,5 @@ export function usePrethirdAvatar(opts: {
 
   useEffect(() => () => { void stop();  }, []);
 
-  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport };
+  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport, subscribeSpeechEnd };
 }

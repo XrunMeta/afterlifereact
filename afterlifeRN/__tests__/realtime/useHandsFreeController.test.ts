@@ -160,6 +160,46 @@ it('연쇄 FINAL_RESULT가 카운트다운을 리셋 — 마지막 발화 기준
   }
 });
 
+it('subscribeSpeechEnd 콜백 발화 → sending이면 listening 복귀(서버 신호)', async () => {
+  let fire: () => void = () => {};
+  const subscribeSpeechEnd = (cb: () => void) => { fire = cb; return () => {}; };
+  const say = jest.fn().mockResolvedValue(undefined);
+  const engine = makeMockEngine();
+  const { result } = renderController({
+    enabled: true, say, speechEngine: engine, silenceMs: 20, confirmMs: 50,
+    getStatsReport: () => null, notifySpeechEnd: () => {}, subscribeSpeechEnd,
+  });
+  await waitFor(() => expect(engine.start).toHaveBeenCalled());
+  jest.useFakeTimers();
+  try {
+
+    act(() => { engine.emitFinal('안녕'); });
+    await waitFor(() => expect(result.current.phase).toBe('confirming'));
+    act(() => { jest.advanceTimersByTime(50); });
+    await waitFor(() => expect(result.current.phase).toBe('sending'));
+
+    act(() => fire());
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+it('subscribeSpeechEnd 콜백이 listening 중 발화되면 무시', async () => {
+  let fire: () => void = () => {};
+  const subscribeSpeechEnd = (cb: () => void) => { fire = cb; return () => {}; };
+  const engine = makeMockEngine();
+  const { result } = renderController({
+    enabled: true, say: jest.fn().mockResolvedValue(undefined), speechEngine: engine,
+    getStatsReport: () => null, notifySpeechEnd: () => {}, subscribeSpeechEnd,
+  });
+  await waitFor(() => expect(result.current.phase).toBe('listening'));
+
+  act(() => { fire(); });
+  await new Promise<void>((r) => setTimeout(r, 10));
+  expect(result.current.phase).toBe('listening');
+});
+
 it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   const say = jest.fn().mockResolvedValue(undefined);
   const engine = makeMockEngine();
@@ -185,4 +225,21 @@ it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   } finally {
     jest.useRealTimers();
   }
+});
+
+it('언마운트 → subscribeSpeechEnd 구독 해제 호출', async () => {
+  const unsub = jest.fn();
+  const subscribeSpeechEnd = (_cb: () => void) => unsub;
+  const engine = makeMockEngine();
+  const { unmount } = renderController({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    speechEngine: engine,
+    getStatsReport: () => null,
+    notifySpeechEnd: () => {},
+    subscribeSpeechEnd,
+  });
+  await waitFor(() => expect(engine.start).toHaveBeenCalled());
+  unmount();
+  expect(unsub).toHaveBeenCalled();
 });

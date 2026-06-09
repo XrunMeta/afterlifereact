@@ -17,6 +17,8 @@ export interface AvatarCall {
   say: (text: string) => Promise<void>;
   notifySpeechEnd: () => void;
   getStatsReport: () => Promise<Iterable<[string, Record<string, unknown>]>> | null;
+
+  subscribeSpeechEnd: (cb: () => void) => () => void;
 }
 
 export type UseAvatarCall = (opts: { cloneId: number; accessToken: string }) => AvatarCall;
