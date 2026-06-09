@@ -19,17 +19,21 @@ async function v_4a0208(v_1badb6, v_556427): Promise<number> {
   return (await v_a1651b().prepare("SELECT id FROM clones WHERE username = ?").bind(v_556427).first<{ id: number }>())!.id;
 }
 
-async function v_6682f9(v_6e0fd3, v_1af19b): Promise<void> {
+async function v_c5e469(v_1badb6, v_556427): Promise<number> {
   await v_a1651b()
-    .prepare("UPDATE clones SET l2_profile = ? WHERE id = ?")
-    .bind(JSON.stringify(v_1af19b), v_6e0fd3)
+    .prepare("INSERT INTO clones (owner_id, name, username, clone_type, visibility, primary_editor_user_id, created_at) VALUES (?, 'CT', ?, 'memlow', 'private', ?, CURRENT_TIMESTAMP)")
+    .bind(v_1badb6, v_556427, v_1badb6)
     .run();
+  return (await v_a1651b().prepare("SELECT id FROM clones WHERE username = ?").bind(v_556427).first<{ id: number }>())!.id;
 }
 
-async function v_d31e4f(v_6e0fd3, v_1badb6, v_489382): Promise<void> {
+async function v_bb6c09(v_6e0fd3, v_43e90c, v_9390e8): Promise<void> {
   await v_a1651b()
-    .prepare("INSERT INTO clone_shares (clone_id, owner_id, target_user_id, role, status) VALUES (?,?,?, 'owner','accepted')")
-    .bind(v_6e0fd3, v_1badb6, v_489382)
+    .prepare(
+      "INSERT INTO clone_ont (clone_id,user_id,data,updated_at) VALUES (?,?,?,unixepoch()) " +
+      "ON CONFLICT(clone_id,user_id) DO UPDATE SET data=excluded.data"
+    )
+    .bind(v_6e0fd3, v_43e90c, JSON.stringify(v_9390e8))
     .run();
 }
 
@@ -40,90 +44,104 @@ async function v_86c39f(v_43e90c): Promise<string> {
   return v_b2eae5({ sub: v_43e90c, kind: 'access' }, v_43fd42, 60 * 10);
 }
 
-async function v_862d3d(v_6e0fd3, v_43e90c, v_4d33b2): Promise<Response> {
-  const v_21cc31 = await v_86c39f(v_43e90c);
-  return v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/l2`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${v_21cc31}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(v_4d33b2),
-  });
+function v_5c1e3a(v_21cc31) {
+  return { Authorization: `Bearer ${v_21cc31}`, 'Content-Type': 'application/json' };
 }
 
-v_469bf2('PATCH /oth-path — L2 대화 기억 병합 갱신', () => {
-  v_23805a('owner가 4필드 부분 갱신 → 200, 미지정 필드 보존, 지정 필드 갱신', async () => {
-    const v_257b90 = await v_bfb240('b1a-o@test.local');
-    const v_6e0fd3 = await v_4a0208(v_257b90, 'b1a_c');
+v_469bf2('PATCH /oth-path — clone_ont 사용자별 L2 갱신', () => {
+  v_23805a('자기 L2 저장 + 두 사용자 격리 + 채팅 필드 보존', async () => {
+    const v_9b59f6 = await v_bfb240('l2-a@test.local');
+    const v_f68556 = await v_bfb240('l2-b@test.local');
+    const v_6e0fd3 = await v_4a0208(v_9b59f6, 'l2_iso_c');
+    const v_706f17 = await v_86c39f(v_9b59f6);
+    const v_3d7097 = await v_86c39f(v_f68556);
 
-    await v_6682f9(v_6e0fd3, {
-      memory_summary: 'old summary',
-      relationship: 'old rel',
-      context: 'old ctx',
-      recent_topics: 'old topics',
+    await v_bb6c09(v_6e0fd3, v_9b59f6, { address: '성준', memories_personal: ['m1'] });
+
+    const v_8dc927 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/l2`, {
+      method: 'PATCH',
+      headers: v_5c1e3a(v_706f17),
+      body: JSON.stringify({ memory_summary: 'A의 기억' }),
     });
+    v_4d37e3(v_8dc927.status).toBe(200);
+    v_4d37e3((await v_8dc927.json() as { l2_profile: { memory_summary: string } }).l2_profile.memory_summary).toBe('A의 기억');
 
-    const v_8f00b9 = await v_862d3d(v_6e0fd3, v_257b90, {
-      memory_summary: 'new summary',
-      context: 'new ctx',
+    const v_2bf146 = await v_a1651b()
+      .prepare('SELECT data FROM clone_ont WHERE clone_id=? AND user_id=?')
+      .bind(v_6e0fd3, v_9b59f6)
+      .first<{ data: string }>();
+    const v_9e79cf = JSON.parse(v_2bf146!.data);
+    v_4d37e3(v_9e79cf.memory_summary).toBe('A의 기억');
+    v_4d37e3(v_9e79cf.address).toBe('성준');             
+    v_4d37e3(v_9e79cf.memories_personal).toEqual(['m1']); 
+
+    const v_bc5597 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/l2`, {
+      method: 'PATCH',
+      headers: v_5c1e3a(v_3d7097),
+      body: JSON.stringify({ memory_summary: 'B의 기억' }),
     });
-    v_4d37e3(v_8f00b9.status).toBe(200);
+    v_4d37e3(v_bc5597.status).toBe(200);
 
-    const v_5885b8 = await v_a1651b()
-      .prepare('SELECT l2_profile FROM clones WHERE id = ?')
-      .bind(v_6e0fd3)
-      .first<{ l2_profile: string }>();
-    const v_8decf8 = JSON.parse(v_5885b8!.l2_profile);
+    const v_b1881e = await v_a1651b()
+      .prepare('SELECT data FROM clone_ont WHERE clone_id=? AND user_id=?')
+      .bind(v_6e0fd3, v_f68556)
+      .first<{ data: string }>();
+    const v_cfd7cd = JSON.parse(v_b1881e!.data);
+    v_4d37e3(v_cfd7cd.memory_summary).toBe('B의 기억');   
 
-    v_4d37e3(v_8decf8.memory_summary).toBe('new summary');
-    v_4d37e3(v_8decf8.context).toBe('new ctx');
-
-    v_4d37e3(v_8decf8.relationship).toBe('old rel');
-    v_4d37e3(v_8decf8.recent_topics).toBe('old topics');
+    const v_5e7f46 = await v_a1651b()
+      .prepare('SELECT data FROM clone_ont WHERE clone_id=? AND user_id=?')
+      .bind(v_6e0fd3, v_9b59f6)
+      .first<{ data: string }>();
+    v_4d37e3(JSON.parse(v_5e7f46!.data).memory_summary).toBe('A의 기억');
   });
 
-  v_23805a('l2_profile 없는 클론에 신규 필드 작성 → 200, 지정 필드만 저장', async () => {
-    const v_257b90 = await v_bfb240('b1b-o@test.local');
-    const v_6e0fd3 = await v_4a0208(v_257b90, 'b1b_c');
-
-    const v_8f00b9 = await v_862d3d(v_6e0fd3, v_257b90, {
-      memory_summary: 'brand new',
+  v_23805a('비인증은 401', async () => {
+    const v_257b90 = await v_bfb240('l2-unauth@test.local');
+    const v_6e0fd3 = await v_4a0208(v_257b90, 'l2_unauth_c');
+    const v_cb35cb = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/l2`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memory_summary: 'x' }),
     });
-    v_4d37e3(v_8f00b9.status).toBe(200);
-
-    const v_5885b8 = await v_a1651b()
-      .prepare('SELECT l2_profile FROM clones WHERE id = ?')
-      .bind(v_6e0fd3)
-      .first<{ l2_profile: string }>();
-    const v_8decf8 = JSON.parse(v_5885b8!.l2_profile);
-    v_4d37e3(v_8decf8.memory_summary).toBe('brand new');
-  });
-
-  v_23805a('비-owner(일반 유저) → 403', async () => {
-    const v_257b90 = await v_bfb240('b1c-o@test.local');
-    const v_a9cbf1 = await v_bfb240('b1c-other@test.local');
-    const v_6e0fd3 = await v_4a0208(v_257b90, 'b1c_c');
-
-    const v_8f00b9 = await v_862d3d(v_6e0fd3, v_a9cbf1, {
-      memory_summary: 'hack',
-    });
-    v_4d37e3(v_8f00b9.status).toBe(403);
+    v_4d37e3(v_cb35cb.status).toBe(401);
   });
 
   v_23805a('알 수 없는 필드 → 422 (strict)', async () => {
-    const v_257b90 = await v_bfb240('b1d-o@test.local');
-    const v_6e0fd3 = await v_4a0208(v_257b90, 'b1d_c');
-
-    const v_8f00b9 = await v_862d3d(v_6e0fd3, v_257b90, {
-      memory_summary: 'ok',
-      unknown_field: 'nope',
+    const v_257b90 = await v_bfb240('l2-strict@test.local');
+    const v_6e0fd3 = await v_4a0208(v_257b90, 'l2_strict_c');
+    const v_21cc31 = await v_86c39f(v_257b90);
+    const v_cb35cb = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/l2`, {
+      method: 'PATCH',
+      headers: v_5c1e3a(v_21cc31),
+      body: JSON.stringify({ memory_summary: 'ok', unknown_field: 'nope' }),
     });
-    v_4d37e3(v_8f00b9.status).toBe(422);
+    v_4d37e3(v_cb35cb.status).toBe(422);
   });
 
   v_23805a('빈 객체 → 422 (at least one field)', async () => {
-    const v_257b90 = await v_bfb240('b1e-o@test.local');
-    const v_6e0fd3 = await v_4a0208(v_257b90, 'b1e_c');
+    const v_257b90 = await v_bfb240('l2-empty@test.local');
+    const v_6e0fd3 = await v_4a0208(v_257b90, 'l2_empty_c');
+    const v_21cc31 = await v_86c39f(v_257b90);
+    const v_cb35cb = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/l2`, {
+      method: 'PATCH',
+      headers: v_5c1e3a(v_21cc31),
+      body: JSON.stringify({}),
+    });
+    v_4d37e3(v_cb35cb.status).toBe(422);
+  });
 
-    const v_8f00b9 = await v_862d3d(v_6e0fd3, v_257b90, {});
-    v_4d37e3(v_8f00b9.status).toBe(422);
+  v_23805a('접근 권한 없는 비공개 클론에 L2 write → 403', async () => {
+    const v_9b59f6 = await v_bfb240('l2-priv-owner@test.local');
+    const v_64e51d = await v_bfb240('l2-priv-nonmember@test.local');
+    const v_1de688 = await v_c5e469(v_9b59f6, 'l2_priv_gate_c');
+    const v_3d7097 = await v_86c39f(v_64e51d);
+
+    const v_cb35cb = await v_1df298.fetch(`http://localhost/oth-path${v_1de688}/l2`, {
+      method: 'PATCH',
+      headers: v_5c1e3a(v_3d7097),
+      body: JSON.stringify({ memory_summary: 'x' }),
+    });
+    v_4d37e3(v_cb35cb.status).toBe(403);
   });
 });

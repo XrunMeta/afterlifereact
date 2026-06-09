@@ -2,7 +2,7 @@
 
 import { v_b60bdd } from "./systemPersona";
 import { v_24564b } from "./personaResolver";
-import { v_db508f, v_445ba7, v_56dc8c } from "./personaBundle";
+import { v_db508f, v_445ba7, v_56dc8c, v_20b0e8 } from "./personaBundle";
 import type { v_b107dc } from "./cloneAccess";
 
 export interface CallBundle {
@@ -16,11 +16,12 @@ export interface CallBundle {
   };
 }
 
-export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_f17108): Promise<CallBundle> {
+export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): Promise<CallBundle> {
   const v_6e0fd3 = v_eb25ce.id;
 
   const v_b6c480 = await v_b60bdd(v_a1651b);
-  const { l1: v_020b4b, l2: v_1af19b } = await v_db508f(v_a1651b, v_6e0fd3);
+  const { l1: v_020b4b } = await v_db508f(v_a1651b, v_6e0fd3);   
+  const v_1af19b = await v_20b0e8(v_a1651b, v_6e0fd3, v_43e90c);       
   const v_5ed063 = v_24564b({ l1: v_56dc8c(v_020b4b), l2: v_1af19b });
 
   v_5ed063.displayName = v_eb25ce.name;
