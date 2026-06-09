@@ -35,6 +35,7 @@ export function v_1980fb(props: {
 
   const v_163855 = v_5c2f9f < v_5d6849.current;
   const v_ee91bd = v_f135e1(v_6cc918, v_e56026, v_cfc2ee);
+
   const v_f22838 = v_163855 && v_ee91bd !== 'connected' ? 'dialing' : v_ee91bd;
 
   v_c4deb2(() => {

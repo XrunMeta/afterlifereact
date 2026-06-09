@@ -134,3 +134,10 @@ it('CALL_ENDED: micOn 리셋(paused→idle에서 다음 통화 마이크 ON 기�
   const v_cb35cb = v_6920f0(v_fd5f43, { type: 'CALL_ENDED' });
   expect(v_cb35cb.state).toEqual({ phase: 'idle', micOn: true, pendingText: '' });
 });
+
+it('MIC_OFF(confirming): paused + pendingText 폐기', () => {
+  const v_fd5f43 = { phase: 'confirming' as const, micOn: true, pendingText: '보내려던 말' };
+  const v_cb35cb = v_6920f0(v_fd5f43, { type: 'MIC_OFF' });
+  expect(v_cb35cb.state).toEqual({ phase: 'paused', micOn: false, pendingText: '' });
+  expect(v_cb35cb.effects).toEqual(expect.arrayContaining(['STOP_STT', 'STOP_DETECTOR']));
+});

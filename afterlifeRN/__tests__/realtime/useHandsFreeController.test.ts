@@ -118,6 +118,48 @@ it('FINAL_RESULT 후 confirmMs 경과 시 자동 전송(say 호출)', async () =
   }
 });
 
+it('연쇄 FINAL_RESULT가 카운트다운을 리셋 — 마지막 발화 기준으로만 say 호출', async () => {
+
+  const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+  const v_1e3df0 = v_c2295a();
+  const v_67bca4 = 500; 
+  const { result: v_43c42e } = v_d84520({
+    enabled: true,
+    say: v_3e2c87,
+    speechEngine: v_1e3df0,
+    silenceMs: 20,
+    confirmMs: v_67bca4,
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+  });
+  await v_81e49f(() => expect(v_1e3df0.start).toHaveBeenCalled());
+  jest.useFakeTimers();
+  try {
+
+    v_be73a0(() => { v_1e3df0.emitFinal('가'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('confirming'));
+    expect(v_3e2c87).not.toHaveBeenCalled();
+
+    v_be73a0(() => { jest.advanceTimersByTime(300); });
+    expect(v_3e2c87).not.toHaveBeenCalled();
+
+    v_be73a0(() => { v_1e3df0.emitFinal('나'); });
+    await v_81e49f(() => expect(v_43c42e.current.pendingText).toContain('나'));
+
+    expect(v_3e2c87).not.toHaveBeenCalled();
+
+    v_be73a0(() => { jest.advanceTimersByTime(500); });
+    await v_81e49f(() => expect(v_3e2c87).toHaveBeenCalledTimes(1));
+
+    const v_fa5c49 = v_3e2c87.mock.calls[0][0] as string;
+    expect(v_fa5c49).toContain('가');
+    expect(v_fa5c49).toContain('나');
+    expect(v_43c42e.current.phase).toBe('sending');
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
 it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
   const v_1e3df0 = v_c2295a();
