@@ -5,6 +5,7 @@ import v_a3453e, { v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
+  v_cf9c33,
   v_4623af,
   v_472849,
   v_03e392,
@@ -127,7 +128,13 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
 }
           <View style={v_fd5f43.cards}>
             <ServiceCard
-              icon={<Text style={v_fd5f43.iconText}>∞</Text>}
+              icon={
+                <Image
+                  source={require("../../../assets/images/symbol.png")}
+                  style={v_fd5f43.iconImg}
+                  resizeMode="contain"
+                />
+              }
               title={v_8d41d7("auth.signupComplete.afterlifeTitle", {
                 defaultValue: "애프터라이프",
               })}
@@ -140,7 +147,13 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
               onPress={undefined}
             />
             <ServiceCard
-              icon={<Text style={v_fd5f43.iconText}>X</Text>}
+              icon={
+                <Image
+                  source={require("../../../assets/images/xrun-round-logo.png")}
+                  style={v_fd5f43.iconImg}
+                  resizeMode="cover"
+                />
+              }
               title={v_8d41d7("auth.signupComplete.xrunTitle", {
                 defaultValue: "XRUN",
               })}
@@ -262,6 +275,11 @@ const v_fd5f43 = v_472849.create({
     fontSize: 24,
     fontWeight: "700",
     color: v_1bfbd0.white,
+  },
+  iconImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
   },
   cardTitle: {
     fontSize: 16,
