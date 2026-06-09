@@ -64,6 +64,10 @@ export default function CallScreen({ route, navigation }: Props) {
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const accessToken = useAuthStore((s) => s.accessToken);
   const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
+  const currentUserId = useAuthStore((s) => s.apiUser?.id ?? null);
+
+  const isOwnClone =
+    !!clone && clone.ownerId != null && currentUserId != null && clone.ownerId === currentUserId;
   const insets = useSafeAreaInsets();
 
   const giftPriceFor = (g: Gift) =>
@@ -524,7 +528,9 @@ export default function CallScreen({ route, navigation }: Props) {
         </Text>
       </View>
 
-      {}
+      {
+}
+      {!isOwnClone && (
       <View style={s.rightActions}>
         <TouchableOpacity
           style={[s.sideBtn, showGifts && s.sideBtnActive]}
@@ -560,6 +566,7 @@ export default function CallScreen({ route, navigation }: Props) {
         </TouchableOpacity>
         {}
       </View>
+      )}
 
       {}
       {floatingGifts.map((g) => (
