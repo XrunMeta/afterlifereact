@@ -135,7 +135,7 @@ describe("GET /oth-path", () => {
     expect(assets.voiceSeKey).toBeNull();
   });
 
-  it("voice_clone done 잡 있는 클론은 assets.voiceRawUrl = api files URL", async () => {
+  it("voice_clone done 잡 있는 클론은 assets.voiceRawUrl = api files URL (voice_se_url↔out_url 조인)", async () => {
     const db = env.DB as unknown as D1Database;
     const ownerId = await seedUser("bundle-vraw@test.local");
     const cloneId = await seedClone(ownerId, "bundle_vraw_clone");
@@ -149,12 +149,14 @@ describe("GET /oth-path", () => {
     const f = await db
       .prepare("SELECT id FROM files WHERE r2_key = 'uploadedfiles/vraw/voice.m4a'")
       .first<{ id: number }>();
+    const outUrl = "https://oth-path.example/oth-path";
+    await db.prepare("UPDATE clones SET voice_se_url = ? WHERE id = ?").bind(outUrl, cloneId).run();
     await db
       .prepare(
-        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id)
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url)
          VALUES ('job-vraw-1', ?, 'voice_clone', ?, 'done', ?)`,
       )
-      .bind(ownerId, f!.id, cloneId)
+      .bind(ownerId, f!.id, outUrl)
       .run();
     const token = await issueAccessToken(ownerId);
 
@@ -179,7 +181,7 @@ describe("GET /oth-path", () => {
     expect(assets.voiceRawUrl).toBeNull();
   });
 
-  it("voice_clone done 잡 여러 개면 최신(created_at) done 잡 선택 + failed 무시", async () => {
+  it("voice_clone done 잡 여러 개면 최신(created_at) done 잡 선택 + failed 무시 (out_url 조인)", async () => {
     const db = env.DB as unknown as D1Database;
     const ownerId = await seedUser("bundle-vraw-multi@test.local");
     const cloneId = await seedClone(ownerId, "bundle_vraw_multi_clone");
@@ -199,26 +201,29 @@ describe("GET /oth-path", () => {
     const fFail = await seedFile("uploadedfiles/multi/fail.m4a");
     const fNew = await seedFile("uploadedfiles/multi/new.m4a");
 
+    const outUrl = "https://oth-path.example/oth-path";
+    await db.prepare("UPDATE clones SET voice_se_url = ? WHERE id = ?").bind(outUrl, cloneId).run();
+
     await db
       .prepare(
-        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id, created_at)
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url, created_at)
          VALUES ('job-old', ?, 'voice_clone', ?, 'done', ?, '2026-01-01 00:00:00')`,
       )
-      .bind(ownerId, fOld, cloneId)
+      .bind(ownerId, fOld, outUrl)
       .run();
     await db
       .prepare(
-        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id, created_at)
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url, created_at)
          VALUES ('job-fail', ?, 'voice_clone', ?, 'failed', ?, '2026-03-01 00:00:00')`,
       )
-      .bind(ownerId, fFail, cloneId)
+      .bind(ownerId, fFail, outUrl)
       .run();
     await db
       .prepare(
-        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id, created_at)
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url, created_at)
          VALUES ('job-new', ?, 'voice_clone', ?, 'done', ?, '2026-02-01 00:00:00')`,
       )
-      .bind(ownerId, fNew, cloneId)
+      .bind(ownerId, fNew, outUrl)
       .run();
     const token = await issueAccessToken(ownerId);
 
