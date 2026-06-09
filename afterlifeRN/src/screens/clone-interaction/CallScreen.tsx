@@ -70,8 +70,9 @@ export default function CallScreen({ route, navigation }: Props) {
     !!clone && clone.ownerId != null && currentUserId != null && clone.ownerId === currentUserId;
   const insets = useSafeAreaInsets();
 
+  const TEST_PRICE_EMAILS = ["oth-user@example.invalid", "oth-test@example.invalid"];
   const giftPriceFor = (g: Gift) =>
-    userEmail === "oth-user@example.invalid" ? 0.05 : g.price;
+    userEmail && TEST_PRICE_EMAILS.includes(userEmail) ? 0.05 : g.price;
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const bottomInset =
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
