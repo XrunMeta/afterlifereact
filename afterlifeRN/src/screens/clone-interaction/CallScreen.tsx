@@ -70,8 +70,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     !!v_eb25ce && v_eb25ce.ownerId != null && v_493eec != null && v_eb25ce.ownerId === v_493eec;
   const v_033e14 = v_e0068c();
 
+  const v_34d2d5 = ["oth-user@example.invalid", "oth-test@example.invalid"];
   const v_8e9668 = (g: v_84fd28) =>
-    v_f4fb5e === "oth-user@example.invalid" ? 0.05 : v_206b88.price;
+    v_f4fb5e && v_34d2d5.includes(v_f4fb5e) ? 0.05 : v_206b88.price;
   const v_f9771e = v_c18c22(0);
   const v_53dd92 =
     v_326be8.OS === "ios" ? v_033e14.bottom : Math.max(v_f9771e, v_033e14.bottom);
