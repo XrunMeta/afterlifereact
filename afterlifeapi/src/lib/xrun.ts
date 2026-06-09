@@ -564,6 +564,33 @@ export async function getXrunBalances(env: Bindings, member: number): Promise<Xr
   };
 }
 
+export async function getXrunOnchainXrunBalance(
+  env: Bindings,
+  member: number,
+): Promise<number | null> {
+  let res: Response;
+  try {
+    res = await fetch(`${env.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: gatewayHeaders(env),
+      body: JSON.stringify({ member }),
+    });
+  } catch {
+    return null;
+  }
+  let json: { status?: string; data?: { balance?: string | number } | null };
+  try {
+    json = (await res.json()) as typeof json;
+  } catch {
+    return null;
+  }
+  if (res.ok && json?.status === "success" && json.data?.balance != null) {
+    const n = Number(json.data.balance);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
 export interface TransferRecipient {
 
   toAddress?: string;
