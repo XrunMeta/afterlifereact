@@ -32,6 +32,7 @@ import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_c67c5c } from "../../components/auth/OtpVerifyView";
 import type { v_84fd28 } from "../../types/gift";
 import v_feb82c from "../../mocks/gifts.json";
 import { v_5c99c1 } from "../../api/payments";
@@ -721,18 +722,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   {"\n"}선물하시려면 6자리 PIN 을 입력해 주세요
                 </Text>
               )}
-              <TextInput
-                style={v_fd5f43.pinInput}
-                value={v_c924cc}
-                onChangeText={(v_81e2ef) => v_d0452a(v_81e2ef.replace(/\D/g, "").slice(0, 6))}
-                placeholder="PIN 6자리"
-                placeholderTextColor={v_1bfbd0.zinc400}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={6}
-                autoFocus
-                editable={!v_904d6c}
-              />
+              {}
+              <View style={v_fd5f43.pinCodeWrap}>
+                <OtpCodeInput
+                  value={v_c924cc}
+                  onChange={v_d0452a}
+                  masked
+                  autoFocus
+                  editable={!v_904d6c}
+                  onComplete={v_c04570}
+                />
+              </View>
               <View style={v_fd5f43.pinBtns}>
                 <TouchableOpacity
                   style={v_fd5f43.pinCancelBtn}
@@ -1058,6 +1058,7 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc50,
     marginBottom: 18,
   },
+  pinCodeWrap: { width: "100%", marginBottom: 18 },
   pinBtns: { flexDirection: "row", gap: 8, width: "100%" },
   pinCancelBtn: {
     flex: 1,
