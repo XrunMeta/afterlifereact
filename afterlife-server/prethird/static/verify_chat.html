@@ -38,6 +38,8 @@
   <input id="model" type="text" placeholder="model (기본값)" style="width:130px" />
   <label>temp <input id="temp" type="number" min="0" max="2" step="0.1" style="width:60px" /></label>
   <label><input id="multiturn" type="checkbox" checked /> 멀티턴</label>
+  <label><input id="memory" type="checkbox" /> 기억 모드</label>
+  <button id="l2reset">기억 리셋</button>
   <label><input id="useOverride" type="checkbox" /> system override</label>
   <button id="reset">초기화</button>
 </header>
@@ -50,6 +52,12 @@
     </div>
   </section>
   <aside id="dbg">
+    <h3>📋 이전 기억 (before)</h3>
+    <pre id="beforeL2" class="muted">아직 없음</pre>
+    <h3>🧠 이번 턴 추출 (키 업데이트)</h3>
+    <pre id="extracted" class="muted">기억 모드 OFF</pre>
+    <h3>💾 L2 저장 결과</h3>
+    <pre id="savedL2" class="muted">아직 없음</pre>
     <h3>system override (체크 시 사용)</h3>
     <textarea id="overrideText" style="width:100%;height:90px" placeholder="여기 내용이 persona system을 대체합니다"></textarea>
     <h3>최종 messages (마지막 응답)</h3>
@@ -163,6 +171,10 @@ async function send() {
         $("finalMessages").className = "";
         $("personaBundle").textContent = JSON.stringify(obj.debug.persona_bundle, null, 2);
         $("personaBundle").className = "";
+
+        if ($("memory").checked) {
+          learn(text, acc);  
+        }
       } else if (ev === "error") { bubble.textContent = acc + "\n[error] " + obj.message; }
     }
   }
@@ -172,6 +184,40 @@ $("send").onclick = send;
 $("text").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
 });
+
+async function learn(userText, assistantText) {
+  const cloneId = parseInt($("clone").value, 10);
+  if (!cloneId) return;
+  $("extracted").textContent = "추출 중…"; $("extracted").className = "";
+  const r = await fetch("/oth-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
+    body: JSON.stringify({ clone_id: cloneId, turns: [
+      { role: "user", content: userText },
+      { role: "assistant", content: assistantText },
+    ] }),
+  });
+  if (!r.ok) { $("extracted").textContent = "[학습 오류 " + r.status + "]"; return; }
+  const { before, extracted, saved } = await r.json();
+  $("beforeL2").textContent = before ? JSON.stringify(before, null, 2) : "(없음)";
+  $("beforeL2").className = "";
+  $("extracted").textContent = extracted ? JSON.stringify(extracted, null, 2) : "(추출 실패/스킵)";
+  $("savedL2").textContent = saved ? JSON.stringify(saved, null, 2) : "(저장 안 됨)";
+  $("savedL2").className = "";
+}
+
+$("l2reset").onclick = async () => {
+  const cloneId = parseInt($("clone").value, 10);
+  if (!cloneId) { alert("클론을 선택하세요"); return; }
+  if (!confirm("이 클론의 L2 기억을 모두 비울까요?")) return;
+  const r = await fetch("/oth-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
+    body: JSON.stringify({ clone_id: cloneId }),
+  });
+  if (!r.ok) { alert("리셋 실패: " + r.status); return; }
+  $("extracted").textContent = "기억 리셋됨"; $("savedL2").textContent = "(비움)";
+};
 
 window.addEventListener("DOMContentLoaded", () => {
   if (!$("token").value && $("email").value && $("password").value) {
