@@ -13,7 +13,7 @@ import {
   resolveOptionalUser,
   resolveResponseViewerRole,
 } from "../lib/cloneAccess";
-import { writeCtx, writeShared } from "../lib/memoryStore";
+import { writeCtx, writeShared, readOnt, writeOnt } from "../lib/memoryStore";
 import {
   bumpInteraction,
   bumpInteractionThrottled,
@@ -1160,38 +1160,31 @@ clones.patch("/:id/l2", requireAuth, async (c) => {
   }
   const body = await parseJson(c, l2PatchSchema);
   const userId = c.get("userId")!;
-  const db = c.env.DB;
 
-  const clone = await loadCloneById(db, cloneId);
+  const clone = await loadCloneById(c.env.DB, cloneId);
   if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
-  const isOwner =
-    clone.owner_id === userId ||
-    (await hasAcceptedShare(db, cloneId, userId)) === "owner";
-  if (!isOwner) throw new APIError("FORBIDDEN", "소유자만 변경할 수 있어요.");
 
-  const row = await db
-    .prepare("SELECT l2_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
-    .bind(cloneId)
-    .first<{ l2_profile: string | null }>();
-  let current: Record<string, unknown> = {};
-  if (row?.l2_profile) {
-    try {
-      current = JSON.parse(row.l2_profile);
-    } catch {
-      current = {};
-    }
+  const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
+  if (!viewerRole && clone.visibility !== "public") {
+    throw new APIError("FORBIDDEN", "이 클론에 접근할 수 없어요.");
   }
-  const merged = { ...current, ...body };
+
+  const raw = await readOnt(c.env, cloneId, userId);
+  let data: Record<string, unknown> = {};
+  if (raw) { try { data = JSON.parse(raw); } catch { data = {}; } }
+  for (const k of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+    if (body[k] !== undefined) data[k] = body[k];
+  }
+  try {
+    await writeOnt(c.env, cloneId, userId, JSON.stringify(data));
+  } catch (e) {
+    throw new APIError("INTERNAL_ERROR", "L2 저장에 실패했어요.");
+  }
 
   const clean: Record<string, unknown> = {};
   for (const k of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
-    if (merged[k] !== undefined) clean[k] = merged[k];
+    if (data[k] !== undefined) clean[k] = data[k];
   }
-  await db
-    .prepare("UPDATE clones SET l2_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL")
-    .bind(JSON.stringify(clean), cloneId)
-    .run();
-
   return c.json({ l2_profile: clean });
 });
 
