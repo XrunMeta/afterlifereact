@@ -50,6 +50,56 @@ async def _avsync_monitor(sess, interval: float = 0.5) -> None:
     except asyncio.CancelledError:
         pass
 
+def _make_dc_handler(sess, channel):
+    """DataChannel 'message' 핸들러 클로저를 반환한다.
+
+    say/speak 메시지 수신 시 pipeline을 통해 발화하고,
+    완료(성공·실패 모두) 후 datachannel로 speech_end(seq) 신호를 보낸다.
+    seq는 RN이 부여한 값을 그대로 echo — 서버는 해석하지 않는다.
+    """
+    import json as _json
+
+    def _on_msg(msg):
+        try:
+            data = _json.loads(msg)
+        except (ValueError, TypeError):
+            return
+        if data.get("type") in ("say", "speak") and sess.pipeline is not None:
+            text = data.get("text", "")
+            if not text:
+                return
+            mode = data["type"]
+            seq = data.get("seq")   # RN이 부여(없으면 None), echo 전용
+            sess.set_state("speaking")
+
+            async def _run(mode=mode, text=text, seq=seq):
+                try:
+                    if mode == "speak":
+                        await sess.pipeline.speak(text)
+                    else:
+                        await sess.pipeline.say(text)
+                except Exception as e:
+                    log.warning("session %s %s failed: %s", sess.session_id, mode, e)
+                finally:
+                    sess.set_state("idle")
+                    # 발화 push 완료 → 클라에 종료 신호(say 성공·실패 모두 전송).
+                    # sess.datachannel 재참조 금지 — stop()+start() 재연결로 채널이
+                    # 교체되면 엉뚱한 새 채널로 전송될 수 있다. 이 say를 받은
+                    # 클로저 인자 channel(캡처 시점 고정)로만 전송한다.
+                    if channel is not None and getattr(channel, "readyState", None) == "open":
+                        try:
+                            channel.send(_json.dumps({"type": "speech_end", "seq": seq}))
+                        except Exception as exc:
+                            log.warning(
+                                "session %s speech_end send failed: %s",
+                                sess.session_id, exc,
+                            )
+
+            asyncio.ensure_future(_run())
+
+    return _on_msg
+
+
 def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     """aiohttp Application 생성.
 
@@ -139,31 +189,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
             @pc.on("datachannel")
             def _on_dc(channel):
                 sess.datachannel = channel
-
-                @channel.on("message")
-                def _on_msg(msg):
-                    import json
-                    try:
-                        data = json.loads(msg)
-                    except (ValueError, TypeError):
-                        return
-                    if data.get("type") in ("say", "speak") and sess.pipeline is not None:
-                        text = data.get("text", "")
-                        if not text:
-                            return
-                        mode = data["type"]
-                        sess.set_state("speaking")
-                        async def _run(mode=mode, text=text):
-                            try:
-                                if mode == "speak":
-                                    await sess.pipeline.speak(text)
-                                else:
-                                    await sess.pipeline.say(text)
-                            except Exception as e:
-                                log.warning("session %s %s failed: %s", sess.session_id, mode, e)
-                            finally:
-                                sess.set_state("idle")
-                        asyncio.ensure_future(_run())
+                _on_msg = _make_dc_handler(sess, channel)
+                channel.on("message")(_on_msg)
 
             # [avsync] 모니터 task 핸들 (connected 시 시작, closed/failed 시 cancel)
             _avsync_task: list[asyncio.Task] = []  # list 로 감싸 클로저 재할당 가능

@@ -12,6 +12,7 @@ DTLS 핸드셰이크)이 TestServer 환경에서 완전히 완료되기 어렵�
 비결정적 타이밍에 의존하기 때문에 이번 단계에서 생략.
 실 E2E(say 메시지 전송→pipeline.say 호출) 는 가비아 환경에서 검증 예정.
 """
+import asyncio
 import types
 import pytest, sys, pathlib
 from aiohttp.test_utils import TestClient, TestServer
@@ -190,6 +191,176 @@ def test_factory_uses_session_persona_and_se(monkeypatch):
     factory(sess)
     assert captured["persona_messages"] == [{"role": "system", "content": "X"}]
     assert captured["se_path"] == "/ref/9043/se.pth"
+
+
+# --------------------------------------------------------------------------
+# 테스트 6: speech_end 전송 — _make_dc_handler 단위 테스트
+# --------------------------------------------------------------------------
+
+class _AsyncMock:
+    """asyncio.AsyncMock 대체(Python 3.7 호환)."""
+    def __init__(self):
+        self.calls: list = []
+        self._exc: Exception | None = None
+
+    def set_exception(self, exc: Exception) -> None:
+        self._exc = exc
+
+    async def __call__(self, *args, **kwargs):
+        self.calls.append((args, kwargs))
+        if self._exc:
+            raise self._exc
+
+
+class _MockDatachannel:
+    def __init__(self, state: str = "open"):
+        self.readyState = state
+        self.send_calls: list[str] = []
+
+    def send(self, msg: str) -> None:
+        self.send_calls.append(msg)
+
+
+@pytest.mark.asyncio
+async def test_say_emits_speech_end_with_seq():
+    """say(seq=7) 처리 완료 후 datachannel.send가 speech_end(seq=7) 1회."""
+    import json
+    from signaling import _make_dc_handler
+
+    say_mock = _AsyncMock()
+    pipeline = types.SimpleNamespace(say=say_mock, speak=_AsyncMock())
+
+    dc = _MockDatachannel()
+    sess = types.SimpleNamespace(
+        session_id="test-1",
+        pipeline=pipeline,
+        datachannel=dc,
+        set_state=lambda s: None,
+    )
+
+    on_msg = _make_dc_handler(sess, dc)
+
+    # ensure_future를 patch해서 _run 코루틴 Task를 수집한 뒤 직접 await.
+    collected: list = []
+    import asyncio as _asyncio
+
+    _orig = _asyncio.ensure_future
+
+    def _capture_future(coro, *a, **kw):
+        t = _orig(coro, *a, **kw)
+        collected.append(t)
+        return t
+
+    import unittest.mock as _mock
+    with _mock.patch("asyncio.ensure_future", side_effect=_capture_future):
+        on_msg(json.dumps({"type": "say", "text": "안녕", "seq": 7}))
+
+    # 수집된 _run Task 완료 대기
+    if collected:
+        await asyncio.gather(*collected)
+
+    sent = [json.loads(s) for s in dc.send_calls]
+    speech_ends = [m for m in sent if m.get("type") == "speech_end"]
+    assert len(speech_ends) == 1
+    assert speech_ends[0]["seq"] == 7
+
+
+@pytest.mark.asyncio
+async def test_consecutive_say_emits_per_seq():
+    """연속 say(seq=7, seq=8) → speech_end가 seq 7·8 각 1회."""
+    import json
+    from signaling import _make_dc_handler
+
+    say_mock = _AsyncMock()
+    pipeline = types.SimpleNamespace(say=say_mock, speak=_AsyncMock())
+
+    dc = _MockDatachannel()
+    sess = types.SimpleNamespace(
+        session_id="test-2",
+        pipeline=pipeline,
+        datachannel=dc,
+        set_state=lambda s: None,
+    )
+
+    on_msg = _make_dc_handler(sess, dc)
+
+    import asyncio as _asyncio
+    import unittest.mock as _mock
+
+    collected: list = []
+    _orig = _asyncio.ensure_future
+
+    def _capture_future(coro, *a, **kw):
+        t = _orig(coro, *a, **kw)
+        collected.append(t)
+        return t
+
+    with _mock.patch("asyncio.ensure_future", side_effect=_capture_future):
+        on_msg(json.dumps({"type": "say", "text": "첫번째", "seq": 7}))
+        on_msg(json.dumps({"type": "say", "text": "두번째", "seq": 8}))
+
+    if collected:
+        await asyncio.gather(*collected)
+
+    import json as _json
+    sent = [_json.loads(s) for s in dc.send_calls]
+    speech_ends = [m for m in sent if m.get("type") == "speech_end"]
+    assert sorted(m["seq"] for m in speech_ends) == [7, 8]
+
+
+# --------------------------------------------------------------------------
+# 테스트 7: pipeline.say 예외 → finally에서 speech_end 여전히 전송
+# --------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_say_exception_still_sends_speech_end():
+    """pipeline.say가 RuntimeError를 던져도 finally에서 speech_end(seq=5) 1회 전송.
+
+    클라이언트 speaking 고착 방지의 핵심 안전장치 검증.
+    """
+    import json
+    from signaling import _make_dc_handler
+
+    say_mock = _AsyncMock()
+    say_mock.set_exception(RuntimeError("llm fail"))
+
+    pipeline = types.SimpleNamespace(say=say_mock, speak=_AsyncMock())
+
+    dc = _MockDatachannel()
+    sess = types.SimpleNamespace(
+        session_id="test-exc",
+        pipeline=pipeline,
+        datachannel=dc,
+        set_state=lambda s: None,
+    )
+
+    on_msg = _make_dc_handler(sess, dc)
+
+    import asyncio as _asyncio
+    import unittest.mock as _mock
+
+    collected: list = []
+    _orig = _asyncio.ensure_future
+
+    def _capture_future(coro, *a, **kw):
+        t = _orig(coro, *a, **kw)
+        collected.append(t)
+        return t
+
+    with _mock.patch("asyncio.ensure_future", side_effect=_capture_future):
+        on_msg(json.dumps({"type": "say", "text": "안녕", "seq": 5}))
+
+    # 예외가 발생해도 Task 자체는 완료돼야 함
+    if collected:
+        # gather에서 예외 전파 억제: return_exceptions=True
+        await asyncio.gather(*collected, return_exceptions=True)
+
+    sent = [json.loads(s) for s in dc.send_calls]
+    speech_ends = [m for m in sent if m.get("type") == "speech_end"]
+    assert len(speech_ends) == 1, (
+        f"speech_end가 {len(speech_ends)}회 전송됨 (예외 시에도 1회 필수)"
+    )
+    assert speech_ends[0]["seq"] == 5
 
 
 def test_factory_falls_back_to_defaults(monkeypatch):
