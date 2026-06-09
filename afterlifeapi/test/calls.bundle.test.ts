@@ -134,4 +134,105 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_7adc95.avatarUrl).toBe("https://r2.example.com/avatar.jpg");
     v_4d37e3(v_7adc95.voiceSeKey).toBeNull();
   });
+
+  v_23805a("voice_clone done 잡 있는 클론은 assets.voiceRawUrl = api files URL (voice_se_url↔out_url 조인)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-vraw@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_vraw_clone");
+    await v_a1651b
+      .prepare(
+        `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+         VALUES ('uploadedfiles/vraw/voice.m4a', 'audio/mp4', 12345, ?, 'voice_src')`,
+      )
+      .bind(v_1badb6)
+      .run();
+    const v_8b5cd8 = await v_a1651b
+      .prepare("SELECT id FROM files WHERE r2_key = 'uploadedfiles/vraw/voice.m4a'")
+      .first<{ id: number }>();
+    const v_7ce8a7 = "https://oth-path.example/oth-path";
+    await v_a1651b.prepare("UPDATE clones SET voice_se_url = ? WHERE id = ?").bind(v_7ce8a7, v_6e0fd3).run();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url)
+         VALUES ('job-vraw-1', ?, 'voice_clone', ?, 'done', ?)`,
+      )
+      .bind(v_1badb6, v_8b5cd8!.id, v_7ce8a7)
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { voiceRawUrl: string | null } };
+    v_4d37e3(v_7adc95.voiceRawUrl).toBe(`http://localhost/oth-path${v_8b5cd8!.id}`);
+  });
+
+  v_23805a("voice_clone 잡 없는 클론은 voiceRawUrl null", async () => {
+    const v_1badb6 = await v_bfb240("bundle-novraw@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_novraw_clone");
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { voiceRawUrl: string | null } };
+    v_4d37e3(v_7adc95.voiceRawUrl).toBeNull();
+  });
+
+  v_23805a("voice_clone done 잡 여러 개면 최신(created_at) done 잡 선택 + failed 무시 (out_url 조인)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-vraw-multi@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_vraw_multi_clone");
+
+    async function v_c808bd(v_b24339): Promise<number> {
+      await v_a1651b
+        .prepare(
+          `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+           VALUES (?, 'audio/mp4', 100, ?, 'voice_src')`,
+        )
+        .bind(v_b24339, v_1badb6)
+        .run();
+      const v_cb35cb = await v_a1651b.prepare("SELECT id FROM files WHERE r2_key = ?").bind(v_b24339).first<{ id: number }>();
+      return v_cb35cb!.id;
+    }
+    const v_97e17f = await v_c808bd("uploadedfiles/multi/old.m4a");
+    const v_bd1130 = await v_c808bd("uploadedfiles/multi/fail.m4a");
+    const v_1726aa = await v_c808bd("uploadedfiles/multi/new.m4a");
+
+    const v_7ce8a7 = "https://oth-path.example/oth-path";
+    await v_a1651b.prepare("UPDATE clones SET voice_se_url = ? WHERE id = ?").bind(v_7ce8a7, v_6e0fd3).run();
+
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url, created_at)
+         VALUES ('job-old', ?, 'voice_clone', ?, 'done', ?, '2026-01-01 00:00:00')`,
+      )
+      .bind(v_1badb6, v_97e17f, v_7ce8a7)
+      .run();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url, created_at)
+         VALUES ('job-fail', ?, 'voice_clone', ?, 'failed', ?, '2026-03-01 00:00:00')`,
+      )
+      .bind(v_1badb6, v_bd1130, v_7ce8a7)
+      .run();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url, created_at)
+         VALUES ('job-new', ?, 'voice_clone', ?, 'done', ?, '2026-02-01 00:00:00')`,
+      )
+      .bind(v_1badb6, v_1726aa, v_7ce8a7)
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { voiceRawUrl: string | null } };
+
+    v_4d37e3(v_7adc95.voiceRawUrl).toBe(`http://localhost/oth-path${v_1726aa}`);
+  });
 });

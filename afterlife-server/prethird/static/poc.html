@@ -6,6 +6,7 @@
 <div style="margin-top:12px">
   <input id="txt" type="text" placeholder="say 텍스트 입력" style="width:320px" disabled>
   <button id="send" disabled>전송</button>
+  <label style="margin-left:8px"><input type="checkbox" id="raw"> LLM 없이 그대로 읽기</label>
   <span id="dc-st" style="margin-left:8px;color:#888"></span>
 </div>
 <script>
@@ -43,7 +44,9 @@ document.getElementById('go').onclick = async () => {
     if (pc.iceGatheringState === 'complete') return r();
     pc.onicegatheringstatechange = () => pc.iceGatheringState === 'complete' && r();
   });
-  const resp = await fetch('/offer', {method:'POST', headers:{'Content-Type':'application/json'},
+
+  const offerUrl = new URL('../offer', location.href);
+  const resp = await fetch(offerUrl, {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({sdp: pc.localDescription.sdp, type: pc.localDescription.type})});
   const ans = await resp.json();
   await pc.setRemoteDescription(ans);
@@ -53,7 +56,8 @@ document.getElementById('send').onclick = () => {
   const txt = document.getElementById('txt').value.trim();
   if (!txt) return;
   if (dc && dc.readyState === 'open') {
-    dc.send(JSON.stringify({type: 'say', text: txt}));
+    const type = document.getElementById('raw').checked ? 'speak' : 'say';
+    dc.send(JSON.stringify({type, text: txt}));
     document.getElementById('txt').value = '';
   }
 };

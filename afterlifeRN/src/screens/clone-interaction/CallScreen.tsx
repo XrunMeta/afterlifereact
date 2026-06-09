@@ -24,6 +24,8 @@ import { v_bab832, v_a0300b } from "rthlnescfffbyxfmhgq";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
 import { v_c6d1f4 } from "../../config/callRoute";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
+import { v_1980fb } from "../../components/call/DialingScreen";
+import { v_8bbe5d } from "../../components/call/CallStatusGlow";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -32,6 +34,7 @@ import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_c67c5c } from "../../components/auth/OtpVerifyView";
 import type { v_84fd28 } from "../../types/gift";
 import v_feb82c from "../../mocks/gifts.json";
 import { v_5c99c1 } from "../../api/payments";
@@ -63,10 +66,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
+  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? null);
+
+  const v_336a6a =
+    !!v_eb25ce && v_eb25ce.ownerId != null && v_493eec != null && v_eb25ce.ownerId === v_493eec;
   const v_033e14 = v_e0068c();
 
+  const v_34d2d5 = ["oth-user@example.invalid", "oth-test@example.invalid"];
   const v_8e9668 = (g: v_84fd28) =>
-    v_f4fb5e === "oth-user@example.invalid" ? 0.05 : v_206b88.price;
+    v_f4fb5e && v_34d2d5.includes(v_f4fb5e) ? 0.05 : v_206b88.price;
   const v_f9771e = v_c18c22(0);
   const v_53dd92 =
     v_326be8.OS === "ios" ? v_033e14.bottom : Math.max(v_f9771e, v_033e14.bottom);
@@ -75,6 +83,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
   const [v_4e2aec, v_326ca4] = v_5ab095(false);
   const [v_9e64e1, v_e064ce] = v_5ab095(false);
+
+  const [v_b2ccaa, v_82a4b3] = v_5ab095(false);
 
   const [v_17643c, v_10e972] = v_5ab095<MediaStream | null>(null);
 
@@ -133,8 +143,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const {
     phase: v_ab4803,
-    micOn: v_1065f7,
-    toggleMic: v_6e1295,
+    pendingText: v_def12c,
+    cancelConfirm: v_5b4fb2,
     transcript: v_0885ca,
     interimTranscript: v_a2d9d1,
   } = v_7df8a4({
@@ -169,6 +179,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     const v_389afb = setInterval(() => v_6d75b1((v_fd5f43) => v_fd5f43 + 1), 1000);
     return () => clearInterval(v_389afb);
   }, [v_6cc918]);
+
+  const v_796faa = v_e662ae(new v_a2349e.Value(0)).current;
+  v_c4deb2(() => {
+    if (v_ab4803 !== 'confirming') { v_796faa.setValue(0); return; }
+    v_796faa.setValue(1);
+    const v_f582ff = v_a2349e.timing(v_796faa, { toValue: 0, duration: 2000, useNativeDriver: true });
+    v_f582ff.start();
+    return () => v_f582ff.stop();
+  }, [v_ab4803, v_def12c, v_796faa]);
 
   const v_1406a6 = v_e662ae<number>(Date.now());
   const v_4d96d4 = v_e662ae(v_2ca7e0);
@@ -337,9 +356,18 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       let v_9f1622 = "송금 실패";
       let v_badeaf = "송금에 실패했어요.";
       let v_81532e = false;
+      let v_e859fc = false;   
+      let v_947b86 = false;   
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "결제 비밀번호가 일치하지 않아요.";
-        else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
+        if (v_49263d.code === "PAYMENT_PIN_INVALID" || v_49263d.code === "UNAUTHENTICATED") {
+          v_9f1622 = "결제 비밀번호 오류";
+          v_badeaf = "결제 비밀번호가 일치하지 않아요.\n다시 입력해 주세요.";
+          v_e859fc = true;
+        } else if (v_49263d.code === "PAYMENT_PIN_REQUIRED") {
+          v_9f1622 = "결제 비밀번호 미설정";
+          v_badeaf = "아직 결제 비밀번호(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
+          v_947b86 = true;
+        } else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
           v_81532e = true;
 
           const v_ff3b79 = v_555760
@@ -375,16 +403,25 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       v_ece29b(false);
       v_d0452a("");
-      v_889fad(
-        v_9f1622,
-        v_badeaf,
-        v_81532e
-          ? [
-              { text: "다음에 하기", style: "cancel" },
-              { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
-            ]
-          : undefined,
-      );
+      let actions: Parameters<typeof v_889fad>[2];
+      if (v_81532e) {
+        v_dd943a = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
+        ];
+      } else if (v_e859fc) {
+
+        v_dd943a = [
+          { text: "취소", style: "cancel" },
+          { text: "다시 입력", onPress: () => { v_d0452a(""); v_ece29b(true); } },
+        ];
+      } else if (v_947b86) {
+        v_dd943a = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "xrun 비밀번호 재설정", onPress: () => void v_0c2802() },
+        ];
+      }
+      v_889fad(v_9f1622, v_badeaf, v_dd943a);
     } finally {
       v_a8bf66(false);
     }
@@ -454,12 +491,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ) : null}
 
       {}
-      {v_6cc918 !== "live" && (
-        <View style={v_fd5f43.liveOverlay} pointerEvents="none">
-          <Text style={v_fd5f43.liveOverlayText}>
-            {v_6cc918 === "error" ? "연결에 실패했어요" : "연결 중…"}
-          </Text>
-        </View>
+      {!v_b2ccaa && (
+        <DialingScreen
+          liveState={v_6cc918}
+          personaName={v_dfb220}
+          personaImage={typeof v_0e38ad === "string" ? v_0e38ad : ""}
+          onConnected={() => v_82a4b3(true)}
+          onCancel={async () => { await v_cd8b64(); v_c65f5d.goBack(); }}
+          onRetry={() => { void v_223067(); }}
+        />
       )}
 
       <LinearGradient
@@ -467,6 +507,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         locations={[0, 0.4, 1]}
         style={v_472849.absoluteFill}
       />
+
+      {v_b2ccaa ? <CallStatusGlow phase={v_ab4803} /> : null}
 
       {
 }
@@ -505,7 +547,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </Text>
       </View>
 
-      {}
+      {
+}
+      {!v_336a6a && (
       <View style={v_fd5f43.rightActions}>
         <TouchableOpacity
           style={[v_fd5f43.sideBtn, v_d416b8 && v_fd5f43.sideBtnActive]}
@@ -541,6 +585,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </TouchableOpacity>
         {}
       </View>
+      )}
 
       {}
       {v_605664.map((v_206b88) => (
@@ -569,27 +614,22 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ) : null}
 
       {}
-      <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
-        {}
-        <Pressable
-          onPress={v_6e1295}
-          style={[
-            v_fd5f43.controlBtn,
-            v_1065f7 && v_ab4803 === 'listening' && v_fd5f43.controlBtnActive,
-            v_ab4803 === 'speaking' && v_fd5f43.controlBtnDanger,
-          ]}
-        >
-          <Text style={v_fd5f43.talkBtnText}>
-            {!v_1065f7
-              ? '마이크 꺼짐'
-              : v_ab4803 === 'speaking'
-                ? '응답 중...'
-                : v_ab4803 === 'listening'
-                  ? '듣는 중...'
-                  : '대기'}
-          </Text>
+      {v_ab4803 === 'confirming' && !!v_def12c ? (
+        <Pressable style={v_fd5f43.confirmTapArea} onPress={v_5b4fb2}>
+          <View style={v_fd5f43.subtitleContainer} pointerEvents="none">
+            <Text style={v_fd5f43.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+              {v_def12c}
+            </Text>
+            <View style={v_fd5f43.confirmBarTrack}>
+              <Animated.View style={[v_fd5f43.confirmBarFill, { transform: [{ scaleX: v_796faa }] }]} />
+            </View>
+            <Text style={v_fd5f43.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
+          </View>
         </Pressable>
+      ) : null}
 
+      {}
+      <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
         <TouchableOpacity
           style={[v_fd5f43.controlBtn, v_4e2aec && v_fd5f43.controlBtnDanger]}
           onPress={() => {
@@ -682,10 +722,11 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       {}
 
-      {}
-      <Modal visible={v_58c86d} transparent animationType="fade">
+      {
+}
+      <Modal visible={v_58c86d} transparent statusBarTranslucent animationType="fade">
         <KeyboardAvoidingView
-          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
         >
           <Pressable
@@ -703,18 +744,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   {"\n"}선물하시려면 6자리 PIN 을 입력해 주세요
                 </Text>
               )}
-              <TextInput
-                style={v_fd5f43.pinInput}
-                value={v_c924cc}
-                onChangeText={(v_81e2ef) => v_d0452a(v_81e2ef.replace(/\D/g, "").slice(0, 6))}
-                placeholder="PIN 6자리"
-                placeholderTextColor={v_1bfbd0.zinc400}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={6}
-                autoFocus
-                editable={!v_904d6c}
-              />
+              {}
+              <View style={v_fd5f43.pinCodeWrap}>
+                <OtpCodeInput
+                  value={v_c924cc}
+                  onChange={v_d0452a}
+                  masked
+                  autoFocus
+                  editable={!v_904d6c}
+                  onComplete={v_c04570}
+                />
+              </View>
               <View style={v_fd5f43.pinBtns}>
                 <TouchableOpacity
                   style={v_fd5f43.pinCancelBtn}
@@ -750,27 +790,6 @@ const v_fd5f43 = v_472849.create({
   container: {
     flex: 1,
     backgroundColor: v_1bfbd0.zinc950,
-  },
-  liveOverlay: {
-    position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 5,
-  },
-  liveOverlayText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: v_1bfbd0.white,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    overflow: "hidden",
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
   },
 
   pip: {
@@ -868,6 +887,34 @@ const v_fd5f43 = v_472849.create({
     textAlign: 'center',
     overflow: 'hidden',
   },
+  confirmTapArea: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    height: '33%',
+    justifyContent: 'center',
+    zIndex: 16,
+  },
+  confirmHint: {
+    marginTop: 6,
+    fontSize: 11,
+    color: v_1bfbd0.zinc300,
+    textAlign: 'center',
+  },
+  confirmBarTrack: {
+    marginTop: 8,
+    width: 160,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  confirmBarFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: v_1bfbd0.white,
+  },
 
   controls: {
     position: "absolute",
@@ -878,7 +925,7 @@ const v_fd5f43 = v_472849.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 24,
-    zIndex: 10,
+    zIndex: 18,
   },
   controlBtn: {
     width: 56,
@@ -890,15 +937,6 @@ const v_fd5f43 = v_472849.create({
   },
   controlBtnDanger: {
     backgroundColor: v_1bfbd0.error,
-  },
-  controlBtnActive: {
-    backgroundColor: v_1bfbd0.violet500,
-  },
-  talkBtnText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: v_1bfbd0.white,
-    textAlign: "center",
   },
   endCallBtn: {
     width: 72,
@@ -1040,6 +1078,7 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc50,
     marginBottom: 18,
   },
+  pinCodeWrap: { width: "100%", marginBottom: 18 },
   pinBtns: { flexDirection: "row", gap: 8, width: "100%" },
   pinCancelBtn: {
     flex: 1,

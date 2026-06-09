@@ -81,8 +81,8 @@ v_469bf2("loadUserL2 (clone_ont)", () => {
       .bind(9043, 200, JSON.stringify({ memory_summary: "200의 기억" }))
       .run();
     const v_eb25ce = await v_5d4a51(v_a1651b(), 9043);
-    const v_a7e018 = await v_87cfd2(v_a1651b(), v_eb25ce!, 100);
-    const v_ef6bb1 = await v_87cfd2(v_a1651b(), v_eb25ce!, 200);
+    const v_a7e018 = await v_87cfd2(v_a1651b(), v_eb25ce!, 100, "http://test");
+    const v_ef6bb1 = await v_87cfd2(v_a1651b(), v_eb25ce!, 200, "http://test");
     v_4d37e3(v_a7e018.personaBundle.persona.memory_summary).toBe("100의 기억");
     v_4d37e3(v_ef6bb1.personaBundle.persona.memory_summary).toBe("200의 기억");
   });

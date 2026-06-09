@@ -66,7 +66,15 @@ export function v_3d8d48(v_328259): v_b01667 {
   const v_9998ac = v_e662ae<v_802da4 | null>(null);
   const v_6b43e5 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
   const v_bba900 = v_e662ae(0);
+
+  const v_48ccb1 = v_e662ae(false);
+  const v_9fc078 = v_e662ae<PrethirdPeerConnection | null>(null);
   const v_bf15a0 = 30_000;
+
+  const v_3c664f = v_de06a3((v_12cd99) => {
+    if (v_48ccb1.current) { v_9fc078.current = v_12cd99; return; }
+    try { v_12cd99.close(); } catch {  }
+  }, []);
 
   const v_3e2c87 = v_de06a3(async (v_9b6134) => {
     const v_32dc97 = v_fa9144.current;
@@ -106,7 +114,7 @@ export function v_3d8d48(v_328259): v_b01667 {
     const v_12cd99 = v_f98743.current;
     v_f98743.current = null;
     v_fa9144.current = null;
-    if (v_12cd99) { try { v_12cd99.close(); } catch {  } }
+    if (v_12cd99) v_3c664f(v_12cd99); 
     v_b944e3(null);
     v_9998ac.current = null;
     try { v_84b93d.audioSession.deactivate(); } catch {  }
@@ -170,8 +178,20 @@ export function v_3d8d48(v_328259): v_b01667 {
       const v_3f08aa = v_9390e8.sdp as string | undefined;
       if (!v_3f08aa) throw new Error('prethird_offer_no_answer');
       if (__DEV__) console.log(`[CALL-ROUTE] prethird /offer ok session_id=${v_9390e8.session_id}`);
-      await v_12cd99.setRemoteDescription(new v_d904b7({ type: 'answer', sdp: v_3f08aa }));
-      if (!v_759436()) { v_12cd99.close(); return; }
+
+      if (!v_759436()) { v_3c664f(v_12cd99); return; }
+      v_48ccb1.current = true;
+      try {
+        await v_12cd99.setRemoteDescription(new v_d904b7({ type: 'answer', sdp: v_3f08aa }));
+      } finally {
+        v_48ccb1.current = false;
+
+        if (v_9fc078.current) {
+          const v_e2a85c = v_9fc078.current; v_9fc078.current = null;
+          try { v_e2a85c.close(); } catch {  }
+        }
+      }
+      if (!v_759436()) { v_3c664f(v_12cd99); return; }
       try { v_84b93d.audioSession.activate(); } catch {  }
     } catch (v_9e86fd) {
       try { v_12cd99.close(); } catch {  }

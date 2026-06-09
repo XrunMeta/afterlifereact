@@ -537,6 +537,33 @@ export async function v_5f6369(env: v_273a0c, v_660822): Promise<XrunBalancesRes
   };
 }
 
+export async function v_1166ee(
+  env: v_273a0c,
+  v_660822,
+): Promise<number | null> {
+  let v_8f00b9;
+  try {
+    v_8f00b9 = await fetch(`${v_c9c489.XRUN_API_URL}/oth-path`, {
+      method: "POST",
+      headers: v_4d1f4f(v_c9c489),
+      body: JSON.stringify({ member: v_660822 }),
+    });
+  } catch {
+    return null;
+  }
+  let v_7ecfd1;
+  try {
+    v_7ecfd1 = (await v_8f00b9.json()) as typeof v_7ecfd1;
+  } catch {
+    return null;
+  }
+  if (v_8f00b9.ok && v_7ecfd1?.status === "success" && v_7ecfd1.data?.balance != null) {
+    const v_f4e98d = Number(v_7ecfd1.data.balance);
+    return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
+  }
+  return null;
+}
+
 export interface TransferRecipient {
 
   toAddress?: string;

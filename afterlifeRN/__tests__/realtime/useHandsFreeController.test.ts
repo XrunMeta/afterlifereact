@@ -3,7 +3,7 @@ import { v_7df8a4 } from '../../src/realtime/useHandsFreeController';
 
 function v_c2295a() {
   const v_9fde29 = {};
-  return {
+  const v_1e3df0 = {
     requestPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
     start: jest.fn(),
     stop: jest.fn(),
@@ -12,59 +12,177 @@ function v_c2295a() {
       return { remove: () => {} };
     },
     emit: (v_1d299c, v_e2a85c) => (v_9fde29[v_1d299c] || []).forEach((v_16dbdb) => v_16dbdb(v_e2a85c)),
+    emitFinal: (v_9b6134) => {
+      v_1e3df0.emit('result', { results: [{ transcript: v_9b6134 }], isFinal: true });
+    },
   };
+  return v_1e3df0;
+}
+
+async function v_b6e358() {
+  await v_be73a0(async () => {
+    await new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, 0));
+  });
+}
+
+function v_d84520(opts: Parameters<typeof v_7df8a4>[0]) {
+  return v_0da18b(() => v_7df8a4(v_328259));
 }
 
 it('enabled=true → STT 시작(listening)', async () => {
   const v_1e3df0 = v_c2295a();
   const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
-  const { result: v_43c42e } = v_0da18b(() =>
-    v_7df8a4({
-      enabled: true,
-      say: v_3e2c87,
-      getStatsReport: () => null,
-      notifySpeechEnd: jest.fn(),
-      speechEngine: v_1e3df0,
-    }),
-  );
+  const { result: v_43c42e } = v_d84520({
+    enabled: true,
+    say: v_3e2c87,
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: v_1e3df0,
+  });
   await v_81e49f(() => expect(v_1e3df0.start).toHaveBeenCalled());
   expect(v_43c42e.current.phase).toBe('listening');
 });
 
-it('STT final → 침묵 debounce 후 say 호출 + speaking 전환', async () => {
+it('STT final → confirming 경유 → confirmMs 경과 후 say 호출 + sending 전환', async () => {
   const v_1e3df0 = v_c2295a();
   const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
-  const { result: v_43c42e } = v_0da18b(() =>
-    v_7df8a4({
-      enabled: true,
-      say: v_3e2c87,
-      getStatsReport: () => null,
-      notifySpeechEnd: jest.fn(),
-      speechEngine: v_1e3df0,
-      silenceMs: 20, 
-    }),
-  );
+  const { result: v_43c42e } = v_d84520({
+    enabled: true,
+    say: v_3e2c87,
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: v_1e3df0,
+    silenceMs: 20,
+    confirmMs: 500,
+  });
   await v_81e49f(() => expect(v_1e3df0.start).toHaveBeenCalled());
-  v_be73a0(() => { v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
 
-  await v_81e49f(() => expect(v_3e2c87).toHaveBeenCalledWith('안녕'));
-  await v_81e49f(() => expect(v_43c42e.current.phase).toBe('speaking'));
-  expect(v_1e3df0.stop).toHaveBeenCalled();
+  jest.useFakeTimers();
+  try {
+
+    v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('confirming'));
+    expect(v_3e2c87).not.toHaveBeenCalled();
+
+    v_be73a0(() => { jest.advanceTimersByTime(500); });
+    await v_81e49f(() => expect(v_3e2c87).toHaveBeenCalledWith('안녕'));
+    expect(v_43c42e.current.phase).toBe('sending');
+    expect(v_1e3df0.stop).toHaveBeenCalled();
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 it('toggleMic: listening → paused(마이크 끔)', async () => {
   const v_1e3df0 = v_c2295a();
-  const { result: v_43c42e } = v_0da18b(() =>
-    v_7df8a4({
-      enabled: true,
-      say: jest.fn().mockResolvedValue(undefined),
-      getStatsReport: () => null,
-      notifySpeechEnd: jest.fn(),
-      speechEngine: v_1e3df0,
-    }),
-  );
+  const { result: v_43c42e } = v_d84520({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: v_1e3df0,
+  });
   await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
   v_be73a0(() => { v_43c42e.current.toggleMic(); });
   expect(v_43c42e.current.micOn).toBe(false);
   expect(v_43c42e.current.phase).toBe('paused');
+});
+
+it('FINAL_RESULT 후 confirmMs 경과 시 자동 전송(say 호출)', async () => {
+  const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_d84520({
+    enabled: true,
+    say: v_3e2c87,
+    speechEngine: v_1e3df0,
+    silenceMs: 20,
+    confirmMs: 2000,
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+  });
+  await v_81e49f(() => expect(v_1e3df0.start).toHaveBeenCalled());
+
+  jest.useFakeTimers();
+  try {
+
+    v_be73a0(() => { v_1e3df0.emitFinal('안녕'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('confirming'));
+    expect(v_43c42e.current.pendingText).toBe('안녕');
+    expect(v_3e2c87).not.toHaveBeenCalled();
+
+    v_be73a0(() => { jest.advanceTimersByTime(2000); });
+    await v_81e49f(() => expect(v_3e2c87).toHaveBeenCalledWith('안녕'));
+    expect(v_43c42e.current.phase).toBe('sending');
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+it('연쇄 FINAL_RESULT가 카운트다운을 리셋 — 마지막 발화 기준으로만 say 호출', async () => {
+
+  const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+  const v_1e3df0 = v_c2295a();
+  const v_67bca4 = 500; 
+  const { result: v_43c42e } = v_d84520({
+    enabled: true,
+    say: v_3e2c87,
+    speechEngine: v_1e3df0,
+    silenceMs: 20,
+    confirmMs: v_67bca4,
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+  });
+  await v_81e49f(() => expect(v_1e3df0.start).toHaveBeenCalled());
+  jest.useFakeTimers();
+  try {
+
+    v_be73a0(() => { v_1e3df0.emitFinal('가'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('confirming'));
+    expect(v_3e2c87).not.toHaveBeenCalled();
+
+    v_be73a0(() => { jest.advanceTimersByTime(300); });
+    expect(v_3e2c87).not.toHaveBeenCalled();
+
+    v_be73a0(() => { v_1e3df0.emitFinal('나'); });
+    await v_81e49f(() => expect(v_43c42e.current.pendingText).toContain('나'));
+
+    expect(v_3e2c87).not.toHaveBeenCalled();
+
+    v_be73a0(() => { jest.advanceTimersByTime(500); });
+    await v_81e49f(() => expect(v_3e2c87).toHaveBeenCalledTimes(1));
+
+    const v_fa5c49 = v_3e2c87.mock.calls[0][0] as string;
+    expect(v_fa5c49).toContain('가');
+    expect(v_fa5c49).toContain('나');
+    expect(v_43c42e.current.phase).toBe('sending');
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
+  const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_d84520({
+    enabled: true,
+    say: v_3e2c87,
+    speechEngine: v_1e3df0,
+    silenceMs: 20,
+    confirmMs: 2000,
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+  });
+  await v_81e49f(() => expect(v_1e3df0.start).toHaveBeenCalled());
+  jest.useFakeTimers();
+  try {
+    v_be73a0(() => { v_1e3df0.emitFinal('취소할래'); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('confirming'));
+
+    v_be73a0(() => { v_43c42e.current.cancelConfirm(); });
+    v_be73a0(() => { jest.advanceTimersByTime(2000); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    expect(v_3e2c87).not.toHaveBeenCalled();
+  } finally {
+    jest.useRealTimers();
+  }
 });

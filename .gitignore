@@ -37,3 +37,7 @@ afterlife-server/testbed/data/
 # python 캐시 (pytest/py_compile 산출)
 __pycache__/
 *.pyc
+
+# 로컬 백업·아카이브 (커밋 금지)
+.backup/
+afterlife-servers.zip
