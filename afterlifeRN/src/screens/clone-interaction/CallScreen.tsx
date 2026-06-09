@@ -24,6 +24,8 @@ import { v_bab832, v_a0300b } from "rthlnescfffbyxfmhgq";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
 import { v_c6d1f4 } from "../../config/callRoute";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
+import { v_1980fb } from "../../components/call/DialingScreen";
+import { v_8bbe5d } from "../../components/call/CallStatusGlow";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -81,6 +83,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
   const [v_4e2aec, v_326ca4] = v_5ab095(false);
   const [v_9e64e1, v_e064ce] = v_5ab095(false);
+
+  const [v_b2ccaa, v_82a4b3] = v_5ab095(false);
 
   const [v_17643c, v_10e972] = v_5ab095<MediaStream | null>(null);
 
@@ -141,6 +145,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     phase: v_ab4803,
     micOn: v_1065f7,
     toggleMic: v_6e1295,
+    pendingText: v_def12c,
+    cancelConfirm: v_5b4fb2,
     transcript: v_0885ca,
     interimTranscript: v_a2d9d1,
   } = v_7df8a4({
@@ -175,6 +181,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     const v_389afb = setInterval(() => v_6d75b1((v_fd5f43) => v_fd5f43 + 1), 1000);
     return () => clearInterval(v_389afb);
   }, [v_6cc918]);
+
+  const v_796faa = v_e662ae(new v_a2349e.Value(0)).current;
+  v_c4deb2(() => {
+    if (v_ab4803 !== 'confirming') { v_796faa.setValue(0); return; }
+    v_796faa.setValue(1);
+    const v_f582ff = v_a2349e.timing(v_796faa, { toValue: 0, duration: 2000, useNativeDriver: true });
+    v_f582ff.start();
+    return () => v_f582ff.stop();
+  }, [v_ab4803, v_def12c, v_796faa]);
 
   const v_1406a6 = v_e662ae<number>(Date.now());
   const v_4d96d4 = v_e662ae(v_2ca7e0);
@@ -478,12 +493,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ) : null}
 
       {}
-      {v_6cc918 !== "live" && (
-        <View style={v_fd5f43.liveOverlay} pointerEvents="none">
-          <Text style={v_fd5f43.liveOverlayText}>
-            {v_6cc918 === "error" ? "연결에 실패했어요" : "연결 중…"}
-          </Text>
-        </View>
+      {!v_b2ccaa && (
+        <DialingScreen
+          liveState={v_6cc918}
+          personaName={v_dfb220}
+          personaImage={typeof v_0e38ad === "string" ? v_0e38ad : ""}
+          onConnected={() => v_82a4b3(true)}
+          onCancel={async () => { await v_cd8b64(); v_c65f5d.goBack(); }}
+          onRetry={() => { void v_223067(); }}
+        />
       )}
 
       <LinearGradient
@@ -491,6 +509,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         locations={[0, 0.4, 1]}
         style={v_472849.absoluteFill}
       />
+
+      {v_b2ccaa ? <CallStatusGlow phase={v_ab4803} /> : null}
 
       {
 }
@@ -596,24 +616,38 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ) : null}
 
       {}
+      {v_ab4803 === 'confirming' && !!v_def12c ? (
+        <Pressable style={v_fd5f43.confirmTapArea} onPress={v_5b4fb2}>
+          <View style={v_fd5f43.subtitleContainer} pointerEvents="none">
+            <Text style={v_fd5f43.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+              {v_def12c}
+            </Text>
+            <View style={v_fd5f43.confirmBarTrack}>
+              <Animated.View style={[v_fd5f43.confirmBarFill, { transform: [{ scaleX: v_796faa }] }]} />
+            </View>
+            <Text style={v_fd5f43.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
+          </View>
+        </Pressable>
+      ) : null}
+
+      {}
       <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
         {}
         <Pressable
           onPress={v_6e1295}
           style={[
             v_fd5f43.controlBtn,
-            v_1065f7 && v_ab4803 === 'listening' && v_fd5f43.controlBtnActive,
-            v_ab4803 === 'speaking' && v_fd5f43.controlBtnDanger,
+            v_1065f7 && (v_ab4803 === 'listening' || v_ab4803 === 'confirming') && v_fd5f43.controlBtnActive,
+            (v_ab4803 === 'speaking' || v_ab4803 === 'sending') && v_fd5f43.controlBtnDanger,
           ]}
         >
           <Text style={v_fd5f43.talkBtnText}>
-            {!v_1065f7
-              ? '마이크 꺼짐'
-              : v_ab4803 === 'speaking'
-                ? '응답 중...'
-                : v_ab4803 === 'listening'
-                  ? '듣는 중...'
-                  : '대기'}
+            {!v_1065f7 ? '마이크 꺼짐'
+              : v_ab4803 === 'speaking' ? '응답 중...'
+              : v_ab4803 === 'sending' ? '전송 중...'
+              : v_ab4803 === 'confirming' ? '확인 중...'
+              : v_ab4803 === 'listening' ? '듣는 중...'
+              : '대기'}
           </Text>
         </Pressable>
 
@@ -778,27 +812,6 @@ const v_fd5f43 = v_472849.create({
     flex: 1,
     backgroundColor: v_1bfbd0.zinc950,
   },
-  liveOverlay: {
-    position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 5,
-  },
-  liveOverlayText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: v_1bfbd0.white,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    overflow: "hidden",
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
 
   pip: {
     position: "absolute",
@@ -895,6 +908,34 @@ const v_fd5f43 = v_472849.create({
     textAlign: 'center',
     overflow: 'hidden',
   },
+  confirmTapArea: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    height: '33%',
+    justifyContent: 'center',
+    zIndex: 16,
+  },
+  confirmHint: {
+    marginTop: 6,
+    fontSize: 11,
+    color: v_1bfbd0.zinc300,
+    textAlign: 'center',
+  },
+  confirmBarTrack: {
+    marginTop: 8,
+    width: 160,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  confirmBarFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: v_1bfbd0.white,
+  },
 
   controls: {
     position: "absolute",
@@ -905,7 +946,7 @@ const v_fd5f43 = v_472849.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 24,
-    zIndex: 10,
+    zIndex: 18,
   },
   controlBtn: {
     width: 56,
