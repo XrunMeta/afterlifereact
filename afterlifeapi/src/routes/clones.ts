@@ -262,22 +262,20 @@ clones.post(
           throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
         }
 
-        if (!testBypassed) {
-          try {
-            const { recordAfterlifePersonaPayment } = await import("../lib/giftCommission");
-            const r = await recordAfterlifePersonaPayment(c.env, {
-              userId,
-              totalXrun: personaPrice,
-              companyWallet: companyAddr,
-            });
-            if (r.recorded) {
-              console.log(`[persona-create] settlement recorded — amount=${r.amount}`);
-            } else {
-              console.log(`[persona-create] settlement skip: ${r.reason}`);
-            }
-          } catch (err) {
-            console.warn("[persona-create] settlement record failed:", (err as Error).message);
+        try {
+          const { recordAfterlifePersonaPayment } = await import("../lib/giftCommission");
+          const r = await recordAfterlifePersonaPayment(c.env, {
+            userId,
+            totalXrun: personaPrice,
+            companyWallet: companyAddr,
+          });
+          if (r.recorded) {
+            console.log(`[persona-create] settlement recorded — amount=${r.amount}`);
+          } else {
+            console.log(`[persona-create] settlement skip: ${r.reason}`);
           }
+        } catch (err) {
+          console.warn("[persona-create] settlement record failed:", (err as Error).message);
         }
       } else {
 
@@ -1360,31 +1358,11 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     source: "afterlife.gift",
   });
 
-  if (!xrunRes.ok) {
-
-    if (sender.email === TEST_PRICE_EMAIL && (xrunRes.code === 401 || xrunRes.code === 403)) {
-      await c.env.DB
-        .prepare(
-          `UPDATE gift_logs SET status = 'sent', failure_reason = 'TEST_BYPASS_PIN', completed_at = CURRENT_TIMESTAMP WHERE id = ?`,
-        )
-        .bind(logId)
-        .run();
-      console.log(`[gift][TEST_BYPASS] PIN 오류 무시하고 성공 처리 — member=${sender.xrun_member_id} reason=${xrunRes.reason}`);
-      return c.json({
-        ok: true,
-        gift: {
-          id: logId,
-          giftId: body.giftId,
-          giftName: body.giftName,
-          total,
-          companyAmount,
-          ownerAmount,
-          txCompany: null,
-          txOwner: null,
-          newBalance: null,
-        },
-      });
-    }
+  const giftTestBypass =
+    !xrunRes.ok && sender.email === TEST_PRICE_EMAIL && (xrunRes.code === 401 || xrunRes.code === 403);
+  if (giftTestBypass) {
+    console.log(`[gift][TEST_BYPASS] PIN 오류 무시, 송금 없이 정산 로직 진행 — member=${sender.xrun_member_id} reason=${xrunRes.reason}`);
+  } else if (!xrunRes.ok) {
 
     await c.env.DB
       .prepare(
