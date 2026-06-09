@@ -441,7 +441,7 @@ export default function CallScreen({ route, navigation }: Props) {
       )}
 
       {__DEV__ ? (
-        <Text style={{ position: 'absolute', top: 8, left: 8, zIndex: 10,
+        <Text style={{ position: 'absolute', top: 8, right: 8, zIndex: 10,
           color: '#0f0', fontSize: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 2 }}>
           route:{CALL_ROUTE}
         </Text>
