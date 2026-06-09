@@ -139,7 +139,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     say: v_3e2c87,
     getStatsReport: v_791152,
     notifySpeechEnd: v_811f30,
-    subscribeSpeechEnd: v_f1f010,
   } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
 
   const {
@@ -153,9 +152,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     say: v_3e2c87,
     getStatsReport: v_791152,
     notifySpeechEnd: v_811f30,
-    subscribeSpeechEnd: v_f1f010,
 
-    silenceConfig: v_c6d1f4 === 'prethird' ? { silenceHoldMs: 4000 } : undefined,
+    silenceConfig: v_c6d1f4 === 'prethird' ? { silenceHoldMs: 2500 } : undefined,
   });
 
   v_c4deb2(() => {
