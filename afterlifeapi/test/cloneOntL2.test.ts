@@ -1,8 +1,9 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
-import { v_c9c489 } from "lwkoweqmjbnvjqw";
+import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_20b0e8 } from "../src/lib/personaBundle";
 import { v_87cfd2 } from "../src/lib/callBundle";
 import { v_5d4a51 } from "../src/lib/cloneAccess";
+import { v_b2eae5 } from "../src/lib/jwt";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 
@@ -108,5 +109,84 @@ v_469bf2("loadUserL2 (clone_ont)", () => {
 
     const v_1af19b = await v_20b0e8(v_a1651b(), 9046, 103);
     v_4d37e3(v_1af19b).toBeNull();
+  });
+});
+
+v_469bf2("PUT /oth-path — 통화 L2 4필드 보존", () => {
+  async function v_bfb240(v_e0c7e8): Promise<number> {
+    await v_a1651b()
+      .prepare(
+        "INSERT INTO users (email, password_hash, name, created_at) VALUES (?, 'x', 'U', CURRENT_TIMESTAMP)"
+      )
+      .bind(v_e0c7e8)
+      .run();
+    return (
+      await v_a1651b()
+        .prepare("SELECT id FROM users WHERE email = ?")
+        .bind(v_e0c7e8)
+        .first<{ id: number }>()
+    )!.id;
+  }
+
+  async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
+    await v_a1651b()
+      .prepare(
+        "INSERT INTO clones (owner_id, name, username, clone_type, visibility, primary_editor_user_id, created_at) VALUES (?, 'TC', ?, 'memlow', 'public', ?, CURRENT_TIMESTAMP)"
+      )
+      .bind(v_1badb6, v_556427, v_1badb6)
+      .run();
+    return (
+      await v_a1651b()
+        .prepare("SELECT id FROM clones WHERE username = ?")
+        .bind(v_556427)
+        .first<{ id: number }>()
+    )!.id;
+  }
+
+  async function v_86c39f(v_43e90c): Promise<string> {
+    const v_43fd42 = (v_c9c489 as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET;
+    if (!v_43fd42) throw new Error("JWT_ACCESS_SECRET missing");
+    return v_b2eae5({ sub: v_43e90c, kind: "access" }, v_43fd42, 60 * 10);
+  }
+
+  function v_5c1e3a(v_21cc31) {
+    return {
+      Authorization: `Bearer ${v_21cc31}`,
+      "Content-Type": "application/json",
+      "X-Idempotency-Key": `test-put-l2-${Date.now()}-${Math.random()}`,
+    };
+  }
+
+  v_23805a("memory.ts PUT(채팅 편집)이 우리 4필드를 보존한다", async () => {
+    const v_7cd229 = await v_bfb240("put-l2-preserve@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_7cd229, "put_l2_preserve_c");
+    const v_706f17 = await v_86c39f(v_7cd229);
+
+    await v_a1651b()
+      .prepare(
+        "INSERT INTO clone_ont (clone_id,user_id,data,updated_at) VALUES (?,?,?,unixepoch())"
+      )
+      .bind(v_6e0fd3, v_7cd229, JSON.stringify({ memory_summary: "기존 기억" }))
+      .run();
+
+    const v_cb35cb = await v_1df298.fetch(
+      `http://localhost/oth-path${v_6e0fd3}/memory/l2`,
+      {
+        method: "PUT",
+        headers: v_5c1e3a(v_706f17),
+        body: JSON.stringify({ address: "오빠" }),
+      }
+    );
+    v_4d37e3(v_cb35cb.status).toBe(200);
+
+    const v_3ac7e7 = await v_a1651b()
+      .prepare(
+        "SELECT data FROM clone_ont WHERE clone_id=? AND user_id=?"
+      )
+      .bind(v_6e0fd3, v_7cd229)
+      .first<{ data: string }>();
+    const v_9390e8 = JSON.parse(v_3ac7e7!.data) as Record<string, unknown>;
+    v_4d37e3(v_9390e8.address).toBe("오빠");
+    v_4d37e3(v_9390e8.memory_summary).toBe("기존 기억"); 
   });
 });

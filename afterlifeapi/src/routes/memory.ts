@@ -382,6 +382,11 @@ v_773b4c.put(
             ...v_4d33b2.preference_personal,
           }
         : v_275ccd.preference_personal ?? {},
+
+      ...(v_275ccd.memory_summary !== undefined ? { memory_summary: v_275ccd.memory_summary } : {}),
+      ...(v_275ccd.relationship !== undefined ? { relationship: v_275ccd.relationship } : {}),
+      ...(v_275ccd.context !== undefined ? { context: v_275ccd.context } : {}),
+      ...(v_275ccd.recent_topics !== undefined ? { recent_topics: v_275ccd.recent_topics } : {}),
       _meta: { layer: "L2", rev: v_7d3ae6 + 1, updated_at: new Date().toISOString() },
     };
     const v_4f3411 = JSON.stringify(v_a448ad);
