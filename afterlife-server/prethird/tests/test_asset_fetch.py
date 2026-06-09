@@ -265,11 +265,35 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 
+class _FakeStreamReader:
+    """aiohttp StreamReader(resp.content)를 흉내내는 mock.
+    실제 aiohttp API: resp.content.iter_chunked(n) — resp.iter_chunked 아님.
+    resp.iter_chunked 를 직접 호출하면 AttributeError 발생 → 잘못된 호출 즉시 감지.
+    """
+
+    def __init__(self, data: bytes):
+        self._data = data
+
+    def iter_chunked(self, n):
+        """올바른 경로: resp.content.iter_chunked(n)"""
+        data = self._data
+
+        async def _gen():
+            for i in range(0, len(data), n):
+                yield data[i:i + n]
+
+        return _gen()
+
+
 class _FakeResponse:
-    """aiohttp ClientResponse 최소 mock"""
+    """aiohttp ClientResponse 최소 mock.
+    - resp.content  → _FakeStreamReader (올바른 API 경로)
+    - resp.iter_chunked → 존재하지 않음(AttributeError) — 잘못된 호출 감지용.
+    """
     def __init__(self, data: bytes, status: int = 200):
         self._data = data
         self.status = status
+        self.content = _FakeStreamReader(data)  # 실제 aiohttp: resp.content
 
     async def __aenter__(self):
         return self
@@ -284,15 +308,9 @@ class _FakeResponse:
     async def read(self):
         return self._data
 
-    def iter_chunked(self, n):
-        """청크 단위 비동기 이터레이터 mock"""
-        data = self._data
-
-        async def _gen():
-            for i in range(0, len(data), n):
-                yield data[i:i + n]
-
-        return _gen()
+    # resp.iter_chunked는 실제 aiohttp ClientResponse에 없음.
+    # 이 속성을 정의하지 않아 AttributeError를 유발 — 회귀 감지.
+    # (iter_chunked 는 resp.content 에만 있음)
 
 
 def _make_session_mock(resp: _FakeResponse):
@@ -374,6 +392,42 @@ def test_fetch_to_rejects_bad_scheme(tmp_path):
                 max_bytes=10 * 1024 * 1024,
             )
         )
+
+
+def test_fetch_to_uses_content_iter_chunked_not_resp(tmp_path, monkeypatch):
+    """asset_fetch.py 가 resp.content.iter_chunked 를 쓰는지 강제 검증.
+    _FakeResponse 에는 resp.iter_chunked 가 없으므로,
+    만약 코드가 resp.iter_chunked(n) 를 직접 호출하면 AttributeError 로 실패한다.
+    이 테스트가 통과 = resp.content.iter_chunked 경로 사용 확인.
+    """
+    import socket as _sock
+    monkeypatch.setattr(
+        _sock, "getaddrinfo",
+        lambda host, port, **kw: [(_sock.AF_INET, None, None, None, ("1.1.1.1", 0))],
+    )
+    payload = b"correct_path_data" * 50
+    resp = _FakeResponse(payload)
+    # 명시적으로 resp에 iter_chunked 가 없음을 보장
+    assert not hasattr(resp, "iter_chunked"), (
+        "_FakeResponse에 iter_chunked가 있으면 안 됨 — 회귀 감지 불가"
+    )
+    # resp.content 에는 있어야 함
+    assert hasattr(resp.content, "iter_chunked")
+
+    session_mock = _make_session_mock(resp)
+    dest = str(tmp_path / "check_path.mp4")
+
+    with patch("aiohttp.ClientSession", return_value=session_mock):
+        result = asyncio.run(
+            asset_fetch.fetch_to(
+                "https://r2.example.com/check_path.mp4",
+                dest,
+                max_bytes=10 * 1024 * 1024,
+            )
+        )
+
+    assert result == dest
+    assert pathlib.Path(dest).read_bytes() == payload
 
 
 def test_fetch_to_skips_existing(tmp_path, monkeypatch):
