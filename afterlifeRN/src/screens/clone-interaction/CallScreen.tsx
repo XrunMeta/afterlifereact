@@ -64,6 +64,10 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
   const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
+  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? null);
+
+  const v_336a6a =
+    !!v_eb25ce && v_eb25ce.ownerId != null && v_493eec != null && v_eb25ce.ownerId === v_493eec;
   const v_033e14 = v_e0068c();
 
   const v_8e9668 = (g: v_84fd28) =>
@@ -524,7 +528,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </Text>
       </View>
 
-      {}
+      {
+}
+      {!v_336a6a && (
       <View style={v_fd5f43.rightActions}>
         <TouchableOpacity
           style={[v_fd5f43.sideBtn, v_d416b8 && v_fd5f43.sideBtnActive]}
@@ -560,6 +566,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </TouchableOpacity>
         {}
       </View>
+      )}
 
       {}
       {v_605664.map((v_206b88) => (
