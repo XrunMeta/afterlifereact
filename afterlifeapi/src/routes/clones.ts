@@ -1128,6 +1128,60 @@ v_f891e6.patch("/:id", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true, updatedFields: v_f73a2d });
 });
 
+const v_02c038 = v_1f4ea7
+  .object({
+    memory_summary: v_1f4ea7.string().max(2000).optional(),
+    relationship: v_1f4ea7.string().max(2000).optional(),
+    context: v_1f4ea7.string().max(2000).optional(),
+    recent_topics: v_1f4ea7.string().max(2000).optional(),
+  })
+  .strict()
+  .refine((v_b6c474) => Object.keys(v_b6c474).length > 0, {
+    message: "At least one field required.",
+  });
+
+v_f891e6.patch("/:id/l2", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    throw new v_3ebe58("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_02c038);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_a1651b = v_3f4e2e.env.DB;
+
+  const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  const v_2aec08 =
+    v_eb25ce.owner_id === v_43e90c ||
+    (await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c)) === "owner";
+  if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 변경할 수 있어요.");
+
+  const v_3ac7e7 = await v_a1651b
+    .prepare("SELECT l2_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
+    .bind(v_6e0fd3)
+    .first<{ l2_profile: string | null }>();
+  let v_275ccd = {};
+  if (v_3ac7e7?.l2_profile) {
+    try {
+      v_275ccd = JSON.parse(v_3ac7e7.l2_profile);
+    } catch {
+      v_275ccd = {};
+    }
+  }
+  const v_2b7a6d = { ...v_275ccd, ...v_4d33b2 };
+
+  const v_76a373 = {};
+  for (const v_0eb677 of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+    if (v_2b7a6d[v_0eb677] !== undefined) v_76a373[v_0eb677] = v_2b7a6d[v_0eb677];
+  }
+  await v_a1651b
+    .prepare("UPDATE clones SET l2_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL")
+    .bind(JSON.stringify(v_76a373), v_6e0fd3)
+    .run();
+
+  return v_3f4e2e.json({ l2_profile: v_76a373 });
+});
+
 v_f891e6.post("/:id/follow", v_6690d9, async (v_3f4e2e) => {
   const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
