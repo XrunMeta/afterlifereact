@@ -46,6 +46,7 @@ import {
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
+import { useReportAcceptedGate } from "../../hooks/useReportAcceptedGate";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { FeedItem } from "../../types/feed";
 import type { RootStackParamList } from "../../navigation/types";
@@ -56,6 +57,8 @@ const TAB_BAR_HEIGHT = 56;
 
 export default function HomeScreen() {
   const { t } = useTranslation();
+
+  useReportAcceptedGate();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const navBarHeight = useAndroidNavigationBarHeight(0);

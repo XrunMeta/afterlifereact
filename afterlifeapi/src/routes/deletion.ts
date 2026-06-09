@@ -54,7 +54,7 @@ async function softDelete(
   return "ok";
 }
 
-async function softRestore(
+export async function softRestore(
   db: D1Database,
   type: ColdType,
   id: number,
@@ -122,10 +122,90 @@ function handleRestoreResult(result: SoftRestoreResult) {
   }
 }
 
+export async function cascadeSoftDeleteOwnedClones(
+  db: D1Database,
+  ownerId: number,
+): Promise<{ softDeleted: number; transferred: number }> {
+  const owned = (
+    await db
+      .prepare(
+        `SELECT id FROM clones
+          WHERE owner_id = ? AND deletion_state = 'active' AND deleted_at IS NULL`,
+      )
+      .bind(ownerId)
+      .all<{ id: number }>()
+  ).results;
+
+  let softDeleted = 0;
+  let transferred = 0;
+  for (const { id: cloneId } of owned) {
+
+    const successor = await db
+      .prepare(
+        `SELECT cs.id, cs.target_user_id
+           FROM clone_shares cs
+           JOIN users u ON u.id = cs.target_user_id
+          WHERE cs.clone_id = ?
+            AND cs.status = 'accepted'
+            AND cs.target_user_id IS NOT NULL
+            AND cs.target_user_id != ?
+            AND u.deleted_at IS NULL
+            AND u.deletion_state = 'active'
+          ORDER BY cs.created_at ASC, cs.id ASC
+          LIMIT 1`,
+      )
+      .bind(cloneId, ownerId)
+      .first<{ id: number; target_user_id: number }>();
+
+    if (successor) {
+      await db.batch([
+        db
+          .prepare("UPDATE clones SET owner_id = ? WHERE id = ?")
+          .bind(successor.target_user_id, cloneId),
+        db
+          .prepare(
+            `UPDATE clones SET primary_editor_user_id = ?
+              WHERE id = ? AND primary_editor_user_id = ?`,
+          )
+          .bind(successor.target_user_id, cloneId, ownerId),
+        db.prepare("DELETE FROM clone_shares WHERE id = ?").bind(successor.id),
+      ]);
+      transferred += 1;
+    } else {
+      await db
+        .prepare(
+          `UPDATE clones
+              SET deletion_state = 'soft_deleted',
+                  soft_deleted_at = CURRENT_TIMESTAMP,
+                  owner_cascade_deleted_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND deletion_state = 'active'`,
+        )
+        .bind(cloneId)
+        .run();
+      softDeleted += 1;
+    }
+  }
+  return { softDeleted, transferred };
+}
+
 deletion.delete("/me", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const result = await softDelete(c.env.DB, "user", userId, "id", userId);
-  handleDeleteResult(result);
+  if (result !== "ok" && result !== "already_deleted") {
+    handleDeleteResult(result); 
+  }
+  const alreadyDeleted = result === "already_deleted";
+
+  const clones = await cascadeSoftDeleteOwnedClones(c.env.DB, userId);
+  console.log(
+    `[deletion.me] clones cascade: softDeleted=${clones.softDeleted} transferred=${clones.transferred}`,
+  );
+
+  const followRes = await c.env.DB
+    .prepare(`DELETE FROM user_follows WHERE follower_id = ? OR followee_id = ?`)
+    .bind(userId, userId)
+    .run();
+  console.log(`[deletion.me] user_follows removed: ${followRes.meta?.changes ?? 0}`);
 
   try {
     const linkRow = await c.env.DB
@@ -141,32 +221,7 @@ deletion.delete("/me", requireAuth, async (c) => {
     console.warn("[deletion.me] xrun mark failed:", (err as Error).message);
   }
 
-  return c.json({ ok: true, state: "soft_deleted" });
-});
-
-deletion.post("/me/restore", requireAuth, async (c) => {
-  const userId = c.get("userId")!;
-  const result = await softRestore(c.env.DB, "user", userId, "id", userId);
-  handleRestoreResult(result);
-
-  try {
-    const linkRow = await c.env.DB
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(userId)
-      .first<{ xrun_member_id: number | null }>();
-    const xrunMember = linkRow?.xrun_member_id ?? null;
-    if (xrunMember && c.env.XRUN_DB) {
-
-      await c.env.XRUN_DB
-        .prepare(`UPDATE Members SET afterlife_deleted_at = NULL WHERE member = ?`)
-        .bind(xrunMember)
-        .run();
-    }
-  } catch (err) {
-    console.warn("[deletion.me.restore] xrun unmark failed:", (err as Error).message);
-  }
-
-  return c.json({ ok: true, state: "active" });
+  return c.json({ ok: true, state: "soft_deleted", alreadyDeleted });
 });
 
 deletion.delete("/oth-path", requireAuth, async (c) => {

@@ -19,7 +19,7 @@ import {
   type NativeScrollEvent,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import SafeView from "../../components/ui/SafeView";
@@ -28,7 +28,7 @@ import PageHeader from "../../components/common/PageHeader";
 import NotificationBell from "../../components/common/NotificationBell";
 import { useTranslation } from "react-i18next";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
-import type { RootStackParamList } from "../../navigation/types";
+import type { RootStackParamList, MainTabParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
@@ -43,6 +43,7 @@ import {
   likeClone,
   unlikeClone,
   listCloneIntimacyEvents,
+  getCloneDetail,
   type FeedComment,
   type FollowedClone,
   type IntimacyEventsResponse,
@@ -119,6 +120,39 @@ export default function FollowingScreen() {
 
   const uid = authUser?.id ?? DEFAULT_USER_ID;
   const accessToken = useAuthStore((s) => s.accessToken);
+
+  const openCloneFeed = async (cloneId: number, feedId?: number) => {
+    try {
+      const det = await getCloneDetail(cloneId, accessToken ?? undefined);
+      const c = det.clone;
+      rootNav.navigate("CloneFeed", {
+        openComments: true,
+        feed: {
+          id: feedId && feedId > 0 ? feedId : -c.id,
+          cloneId: c.id,
+          content: c.description ?? "",
+          mediaUrl: c.avatarUrl,
+          mediaType: null,
+          likesCount: c.stats?.likes ?? 0,
+          commentsCount: c.stats?.comments ?? 0,
+          likedByMe: c.likedByMe ?? false,
+          createdAt: c.createdAt,
+          clone: {
+            id: c.id,
+            ownerId: c.ownerId,
+            name: c.name,
+            username: c.username,
+            avatarUrl: c.avatarUrl,
+            cloneType: c.cloneType as never,
+            visibility: c.visibility as never,
+          },
+          interests: [],
+        },
+      });
+    } catch (err) {
+      console.warn("[Following] openCloneFeed failed:", err);
+    }
+  };
 
   const [apiFollowed, setApiFollowed] = useState<FollowedClone[] | null>(null);
   useFocusEffect(
@@ -286,6 +320,16 @@ export default function FollowingScreen() {
     cloneId: number;
     cloneName: string;
   } | null>(null);
+
+  const route = useRoute<RouteProp<MainTabParamList, "ShortsTab">>();
+  const openedIntimacyRef = useRef<number | null>(null);
+  useEffect(() => {
+    const cid = route.params?.openIntimacyCloneId;
+    if (!cid || openedIntimacyRef.current === cid) return;
+    const persona = followedPersonas.find((p) => p.id === cid);
+    openedIntimacyRef.current = cid;
+    setIntimacyEventsModal({ cloneId: cid, cloneName: persona?.name ?? "" });
+  }, [route.params?.openIntimacyCloneId, followedPersonas]);
   const [intimacyEventsData, setIntimacyEventsData] =
     useState<IntimacyEventsResponse | null>(null);
   const [intimacyEventsLoading, setIntimacyEventsLoading] = useState(false);
@@ -562,18 +606,17 @@ export default function FollowingScreen() {
               <Feather name="thermometer" size={12} color="#fb923c" />
               <Text style={s.badgeText}>{item.persona.intimacy}</Text>
             </TouchableOpacity>
+            {}
             <View style={s.badgeDivider} />
             <TouchableOpacity
               style={s.badgeBtn}
-              onPress={() =>
-                setIntimacyEventsModal({
-                  cloneId: item.persona.id,
-                  cloneName: item.persona.name,
-                })
-              }
+              onPress={() => openCloneFeed(item.persona.id, item.feed.id > 0 ? item.feed.id : undefined)}
             >
-              <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
-              <Text style={s.badgeText}>{item.persona.interactions}</Text>
+              <Feather name="message-circle" size={12} color="#34d399" />
+              <Text style={s.badgeText}>
+                {(cloneMetaById.get(item.persona.id)?.commentsCount ?? 0) +
+                  (countDelta.get(item.persona.id)?.comments ?? 0)}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -632,38 +675,6 @@ export default function FollowingScreen() {
           </View>
         </View>
 
-        {}
-        {(() => {
-          const meta = cloneMetaById.get(item.persona.id);
-          const delta = countDelta.get(item.persona.id) ?? { likes: 0, comments: 0 };
-          const liked = likedPosts.has(item.persona.id);
-          const likesCount = (meta?.likesCount ?? 0) + delta.likes;
-          const commentsCount = (meta?.commentsCount ?? 0) + delta.comments;
-          return (
-            <View style={s.actionsRow}>
-              <View style={s.actionsLeft}>
-                <TouchableOpacity onPress={() => void toggleLikeForClone(item.persona.id, item.feed.id)}>
-                  <Ionicons
-                    name={liked ? "heart" : "heart-outline"}
-                    size={24}
-                    color={liked ? "#ef4444" : COLORS.zinc700}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setCommentPostId(item.feed.id)}>
-                  <Feather name="message-circle" size={24} color={COLORS.zinc700} />
-                </TouchableOpacity>
-              </View>
-              <View style={s.actionsRight}>
-                <Text style={s.countText}>
-                  {t("feed.likeCount", { n: formatCount(Math.max(0, likesCount)) })}
-                </Text>
-                <Text style={s.countTextSub}>
-                  {t("feed.commentCount", { n: Math.max(0, commentsCount) })}
-                </Text>
-              </View>
-            </View>
-          );
-        })()}
       </View>
     );
   };

@@ -31,7 +31,7 @@ it('enabled=true → STT 시작(listening)', async () => {
   expect(result.current.phase).toBe('listening');
 });
 
-it('STT final → say 호출 + speaking 전환', async () => {
+it('STT final → 침묵 debounce 후 say 호출 + speaking 전환', async () => {
   const engine = makeMockEngine();
   const say = jest.fn().mockResolvedValue(undefined);
   const { result } = renderHook(() =>
@@ -41,10 +41,12 @@ it('STT final → say 호출 + speaking 전환', async () => {
       getStatsReport: () => null,
       notifySpeechEnd: jest.fn(),
       speechEngine: engine,
+      silenceMs: 20, 
     }),
   );
   await waitFor(() => expect(engine.start).toHaveBeenCalled());
   act(() => { engine.emit('result', { results: [{ transcript: '안녕' }], isFinal: true }); });
+
   await waitFor(() => expect(say).toHaveBeenCalledWith('안녕'));
   await waitFor(() => expect(result.current.phase).toBe('speaking'));
   expect(engine.stop).toHaveBeenCalled();

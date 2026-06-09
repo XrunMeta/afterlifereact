@@ -15,6 +15,7 @@ import {
   Keyboard,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { OtpCodeInput } from "../../../components/auth/OtpVerifyView";
 import { COLORS, RADIUS } from "../../../components/constants";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCloneStore } from "../../../stores/cloneStore";
@@ -152,21 +153,18 @@ export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Prop
                 {insufficient && " — 잔액 부족"}
               </Text>
             )}
-            <TextInput
-              style={[styles.input, blockInput && styles.inputDisabled]}
-              value={pin}
-              onChangeText={(v) => {
-                setPin(v.replace(/\D/g, "").slice(0, 6));
-                setError(null);
-              }}
-              placeholder="PIN 6자리"
-              placeholderTextColor={COLORS.zinc400}
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={6}
-              autoFocus={!blockInput}
-              editable={!blockInput}
-            />
+            <View style={styles.pinWrap}>
+              <OtpCodeInput
+                value={pin}
+                onChange={(v) => {
+                  setPin(v);
+                  setError(null);
+                }}
+                masked
+                autoFocus={!blockInput}
+                editable={!blockInput}
+              />
+            </View>
             {error && <Text style={styles.error}>{error}</Text>}
             <View style={styles.btns}>
               <TouchableOpacity
@@ -262,8 +260,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.zinc100,
     color: COLORS.zinc400,
   },
-  error: { fontSize: 12, color: "#ef4444", marginBottom: 8 },
-  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 12 },
+
+  pinWrap: { width: "100%", paddingVertical: 16, alignItems: "center" },
+  error: { fontSize: 12, color: "#ef4444", marginTop: 4, marginBottom: 0 },
+  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 20 },
   cancel: {
     flex: 1,
     paddingVertical: 12,

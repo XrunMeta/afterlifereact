@@ -70,6 +70,19 @@ export async function hasAcceptedShare(
   return row?.role ?? null;
 }
 
+export async function isBlockedByOwner(
+  db: D1Database,
+  ownerId: number,
+  userId: number | null,
+): Promise<boolean> {
+  if (userId === null || userId === ownerId) return false;
+  const row = await db
+    .prepare(`SELECT 1 AS x FROM user_blocks WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`)
+    .bind(ownerId, userId)
+    .first<{ x: number }>();
+  return !!row;
+}
+
 export async function isFollower(
   db: D1Database,
   cloneId: number,
@@ -111,6 +124,8 @@ export async function resolveResponseViewerRole(
 ): Promise<ResponseViewerRole | null> {
   if (userId === null) return null;
   if (userId === clone.owner_id) return "owner";
+
+  if (await isBlockedByOwner(db, clone.owner_id, userId)) return null;
   const share = await hasAcceptedShare(db, clone.id, userId);
   if (share !== null) return "coowner";
   if (await isFollower(db, clone.id, userId)) return "follower";
@@ -123,6 +138,10 @@ export async function resolveViewerRole(
   userId: number | null,
 ): Promise<ViewerRole | null> {
   if (userId === clone.owner_id) return "owner";
+
+  if (userId !== null && (await isBlockedByOwner(c.env.DB, clone.owner_id, userId))) {
+    return null;
+  }
   if (userId !== null) {
     const share = await hasAcceptedShare(c.env.DB, clone.id, userId);
     if (share === "owner") return "owner";

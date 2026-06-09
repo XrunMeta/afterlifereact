@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { runCleanup } from "../scheduled/cleanup";
@@ -9,6 +9,7 @@ import { requestKekProvider } from "../lib/kekProvider";
 import { writeDecryptionAudit } from "../lib/auditChain";
 import { loadSystemPersona } from "../lib/systemPersona";
 import { loadPersonaQuestions, validatePersonaQuestions } from "../lib/personaQuestions";
+import { notify } from "../lib/notify";
 
 export const admin = new Hono<AppEnv>();
 
@@ -416,5 +417,1001 @@ admin.put("/voices/:id", requireSuperAdmin, async (c) => {
     .run();
   if (!r.meta.changes) throw new APIError("NOT_FOUND", "Voice not found.");
   return c.json({ ok: true });
+});
+
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const idRaw = c.req.param("id");
+  const cloneId = Number(idRaw);
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const existing = await c.env.DB
+    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .bind(cloneId)
+    .first<{ id: number; deletion_state: string }>();
+  if (!existing) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (existing.deletion_state !== "active") {
+    return c.json({ ok: true, alreadyDeleted: true, deletionState: existing.deletion_state });
+  }
+  await c.env.DB
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(cloneId)
+    .run();
+  return c.json({ ok: true, deletedId: cloneId, deletionState: "soft_deleted" });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const existing = await c.env.DB
+    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .bind(cloneId)
+    .first<{ id: number; deletion_state: string }>();
+  if (!existing) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (existing.deletion_state !== "active") {
+    return c.json({ ok: true, alreadyDisabled: true, deletionState: existing.deletion_state });
+  }
+  await c.env.DB
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'soft_deleted',
+              soft_deleted_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+    )
+    .bind(cloneId)
+    .run();
+  return c.json({ ok: true, cloneId, deletionState: "soft_deleted" });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const existing = await c.env.DB
+    .prepare(`SELECT id, deletion_state FROM clones WHERE id = ?`)
+    .bind(cloneId)
+    .first<{ id: number; deletion_state: string }>();
+  if (!existing) throw new APIError("NOT_FOUND", "Clone not found.");
+  if (existing.deletion_state === "active") {
+    return c.json({ ok: true, alreadyActive: true, deletionState: "active" });
+  }
+  if (existing.deletion_state === "hard_deleted" || existing.deletion_state === "archived_cold") {
+    throw new APIError("CONFLICT", `Cannot activate from state '${existing.deletion_state}'.`);
+  }
+  await c.env.DB
+    .prepare(
+      `UPDATE clones
+          SET deletion_state = 'active',
+              soft_deleted_at = NULL,
+              deleted_at = NULL
+        WHERE id = ?`,
+    )
+    .bind(cloneId)
+    .run();
+  return c.json({ ok: true, cloneId, deletionState: "active" });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 100);
+  const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
+  const status = url.searchParams.get("status");
+
+  const where: string[] = ["1=1"];
+  const binds: unknown[] = [];
+  if (status && ["open", "reviewed", "dismissed", "actioned"].includes(status)) {
+    where.push("r.status = ?");
+    binds.push(status);
+  }
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT r.id AS id,
+                r.reporter_id AS reporterId,
+                ru.name AS reporterName,
+                ru.email AS reporterEmail,
+                r.target_id AS targetId,
+                tu.name AS targetName,
+                tu.email AS targetEmail,
+                r.reason AS reason,
+                r.status AS status,
+                r.created_at AS createdAt,
+                r.reviewed_at AS reviewedAt
+           FROM user_reports r
+           JOIN users ru ON ru.id = r.reporter_id
+           JOIN users tu ON tu.id = r.target_id
+          WHERE ${where.join(" AND ")}
+          ORDER BY r.created_at DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit)
+      .all()
+  ).results;
+  return c.json({ items: rows });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const url = new URL(c.req.url);
+  const limitRaw = Number(url.searchParams.get("limit") ?? 100);
+  const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
+  const status = url.searchParams.get("status");
+
+  const where: string[] = ["1=1"];
+  const binds: unknown[] = [];
+  if (status && ["open", "reviewed", "dismissed"].includes(status)) {
+    where.push("r.status = ?");
+    binds.push(status);
+  }
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT r.id AS id,
+                r.user_id AS userId,
+                u.name AS userName,
+                u.email AS userEmail,
+                r.clone_id AS cloneId,
+                c.name AS cloneName,
+                c.username AS cloneUsername,
+                c.owner_id AS cloneOwnerId,
+                co.name AS cloneOwnerName,
+                co.email AS cloneOwnerEmail,
+                r.reason AS reason,
+                r.status AS status,
+                r.created_at AS createdAt,
+                r.reviewed_at AS reviewedAt
+           FROM clone_reports r
+           JOIN users u ON u.id = r.user_id
+           JOIN clones c ON c.id = r.clone_id
+           LEFT JOIN users co ON co.id = c.owner_id
+          WHERE ${where.join(" AND ")}
+          ORDER BY r.created_at DESC
+          LIMIT ?`,
+      )
+      .bind(...binds, limit)
+      .all()
+  ).results;
+  return c.json({ items: rows });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const row = await c.env.DB.prepare(
+    `SELECT c.id, c.name, c.username, c.description,
+            c.clone_type AS cloneType, c.visibility,
+            c.training_status AS trainingStatus,
+            c.owner_id AS ownerId, u.name AS ownerName,
+            c.created_at AS createdAt,
+            c.deletion_state AS deletionState,
+            c.soft_deleted_at AS softDeletedAt,
+            c.deleted_at AS deletedAt
+       FROM clones c
+       LEFT JOIN users u ON u.id = c.owner_id
+      WHERE c.id = ?`,
+  )
+    .bind(id)
+    .first();
+  if (!row) throw new APIError("NOT_FOUND", "Clone not found.");
+  return c.json(row);
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid user id.");
+  }
+  const row = await c.env.DB.prepare(
+    `SELECT id, name, email, gender, age, credits,
+            funnel_stage AS funnelStage,
+            deletion_state AS deletionState,
+            created_at AS createdAt
+       FROM users WHERE id = ?`,
+  )
+    .bind(id)
+    .first();
+  if (!row) throw new APIError("NOT_FOUND", "User not found.");
+  return c.json(row);
+});
+
+admin.get("/by-xrun/:xrunMemberId/summary", requireAdmin, async (c) => {
+  const xrunId = Number(c.req.param("xrunMemberId"));
+  if (!Number.isInteger(xrunId) || xrunId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid xrun member id.");
+  }
+  const user = await c.env.DB
+    .prepare(
+
+      `SELECT id, name, email,
+              deletion_state AS deletionState,
+              created_at AS createdAt,
+              soft_deleted_at AS softDeletedAt,
+              suspended_until AS suspendedUntil,
+              banned_until AS bannedUntil
+         FROM users
+        WHERE xrun_member_id = ?
+        ORDER BY (deletion_state = 'active' AND deleted_at IS NULL) DESC, id DESC
+        LIMIT 1`,
+    )
+    .bind(xrunId)
+    .first<{
+      id: number;
+      name: string | null;
+      email: string;
+      deletionState: string;
+      createdAt: string | null;
+      softDeletedAt: string | null;
+      suspendedUntil: string | null;
+      bannedUntil: string | null;
+    }>();
+
+  if (!user) {
+    return c.json({
+      user: null,
+      clones: [],
+      cloneReportsCount: 0,
+      userReportsCount: 0,
+    });
+  }
+
+  const clones = (
+    await c.env.DB
+      .prepare(
+        `SELECT c.id, c.name, c.username,
+                c.clone_type AS cloneType,
+                c.visibility,
+                c.training_status AS trainingStatus,
+                c.deletion_state AS deletionState,
+                c.created_at AS createdAt,
+                (SELECT COUNT(*) FROM clone_reports cr WHERE cr.clone_id = c.id) AS reportCount
+           FROM clones c
+          WHERE c.owner_id = ? AND c.deletion_state = 'active'
+          ORDER BY c.id DESC
+          LIMIT 200`,
+      )
+      .bind(user.id)
+      .all()
+  ).results;
+
+  const cloneReports = await c.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM clone_reports cr
+         JOIN clones c ON c.id = cr.clone_id
+        WHERE c.owner_id = ?`,
+    )
+    .bind(user.id)
+    .first<{ cnt: number }>();
+
+  const userReports = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM user_reports WHERE target_id = ?`)
+    .bind(user.id)
+    .first<{ cnt: number }>();
+
+  const commentReports = await c.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM comment_reports cmr
+         JOIN feed_comments fc ON fc.id = cmr.comment_id
+        WHERE fc.user_id = ?`,
+    )
+    .bind(user.id)
+    .first<{ cnt: number }>();
+
+  const reportsMade = await c.env.DB
+    .prepare(
+      `SELECT (
+         (SELECT COUNT(*) FROM user_reports    WHERE reporter_id = ?) +
+         (SELECT COUNT(*) FROM clone_reports   WHERE user_id     = ?) +
+         (SELECT COUNT(*) FROM comment_reports WHERE user_id     = ?)
+       ) AS cnt`,
+    )
+    .bind(user.id, user.id, user.id)
+    .first<{ cnt: number }>();
+
+  const lastWarning = await c.env.DB
+    .prepare(`SELECT reason FROM user_warnings WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1`)
+    .bind(user.id)
+    .first<{ reason: string | null }>();
+
+  return c.json({
+    user: { ...user, suspensionReason: lastWarning?.reason ?? null },
+    clones,
+    cloneReportsCount: cloneReports?.cnt ?? 0,
+    userReportsCount: userReports?.cnt ?? 0,
+    commentReportsCount: commentReports?.cnt ?? 0,
+
+    reportsReceivedCount: (cloneReports?.cnt ?? 0) + (userReports?.cnt ?? 0) + (commentReports?.cnt ?? 0),
+    reportsMadeCount: reportsMade?.cnt ?? 0,
+  });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB
+    .prepare(`UPDATE users SET suspended_until = NULL, banned_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .bind(id)
+    .run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "User not found.");
+  return c.json({ ok: true });
+});
+
+admin.post("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const body = await c.req
+    .json<{ action?: string; suspendDays?: number | null; reason?: string }>()
+    .catch(() => ({}) as { action?: string; suspendDays?: number | null; reason?: string });
+  const VALID = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+  const action = body.action === "suspend" ? "clone_create_ban" : body.action ?? "";
+  if (!VALID.includes(action)) throw new APIError("VALIDATION_FAILED", "Invalid action.");
+
+  const user = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .bind(id)
+    .first<{ id: number }>();
+  if (!user) throw new APIError("NOT_FOUND", "User not found.");
+
+  const days = Number.isInteger(body.suspendDays) && (body.suspendDays as number) > 0 ? (body.suspendDays as number) : 0;
+  const adminId = c.get("adminUserId") ?? 0;
+  let penaltyMsg = "";
+
+  switch (action) {
+    case "warn":
+      await c.env.DB
+        .prepare(`INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason) VALUES (?, ?, NULL, 'manual', ?)`)
+        .bind(id, adminId, body.reason ?? "관리자 직접 경고")
+        .run();
+      penaltyMsg = "관리자에 의해 경고가 발급되었습니다.";
+      break;
+    case "clone_create_ban":
+      await c.env.DB.prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`).bind(`+${days || 30} days`, id).run();
+      penaltyMsg = `${days || 30}일간 페르소나 생성이 제한됩니다.`;
+      break;
+    case "account_ban":
+      await c.env.DB.prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`).bind(`+${days || 30} days`, id).run();
+      penaltyMsg = `${days || 30}일간 계정 사용이 정지됩니다.`;
+      break;
+    case "clone_deactivate":
+      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = NULL WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
+      penaltyMsg = "보유 페르소나가 비활성화되었습니다.";
+      break;
+    case "clone_delete":
+      await c.env.DB.prepare(`UPDATE clones SET deletion_state = 'soft_deleted', soft_deleted_at = CURRENT_TIMESTAMP WHERE owner_id = ? AND deletion_state = 'active'`).bind(id).run();
+      penaltyMsg = "보유 페르소나가 삭제되었습니다.";
+      break;
+  }
+
+  const row = await c.env.DB
+    .prepare(`SELECT suspended_until AS suspendedUntil, banned_until AS bannedUntil FROM users WHERE id = ?`)
+    .bind(id)
+    .first<{ suspendedUntil: string | null; bannedUntil: string | null }>();
+
+  const fmtKstDate = (ts: string | null): string | null => {
+    if (!ts) return null;
+    const ms = new Date(ts.replace(" ", "T") + "Z").getTime() + 9 * 3600000;
+    if (Number.isNaN(ms)) return null;
+    const d = new Date(ms);
+    return `${d.getUTCFullYear()}년 ${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일`;
+  };
+
+  if (action === "account_ban") {
+    const until = fmtKstDate(row?.bannedUntil ?? null);
+    if (until) penaltyMsg = `${until}까지 계정 사용이 정지됩니다. (신고 누적)`;
+  } else if (action === "clone_create_ban") {
+    const until = fmtKstDate(row?.suspendedUntil ?? null);
+    if (until) penaltyMsg = `${until}까지 페르소나 생성이 제한됩니다. (신고 누적)`;
+  }
+
+  const isDateBased = action === "account_ban" || action === "clone_create_ban";
+  const notifyBody = isDateBased
+    ? penaltyMsg || body.reason || "회원님에 대한 제재가 적용되었습니다."
+    : body.reason || penaltyMsg || "회원님에 대한 제재가 적용되었습니다.";
+
+  await notify(c.env, {
+    userId: id,
+    type: "moderation",
+    title: action === "warn" ? "신고 처리 안내" : "활동 제재 안내",
+    body: notifyBody,
+    url: "afterlife://reports/received",
+    data: { action, manual: true, bannedUntil: row?.bannedUntil ?? null, suspendedUntil: row?.suspendedUntil ?? null },
+    skipEmail: true,
+  }).catch(() => {});
+
+  return c.json({ ok: true, action, suspendedUntil: row?.suspendedUntil ?? null, bannedUntil: row?.bannedUntil ?? null });
+});
+
+admin.get("/reports", requireAdmin, async (c) => {
+  const url = new URL(c.req.url);
+  const type = url.searchParams.get("type") ?? "all"; 
+  const status = url.searchParams.get("status") ?? ""; 
+  const minCount = Number(url.searchParams.get("minCount") ?? 0);
+  const maxCount = Number(url.searchParams.get("maxCount") ?? 0);
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const targetId = Number(url.searchParams.get("targetId") ?? 0); 
+  const responsibleUserId = Number(url.searchParams.get("responsibleUserId") ?? 0); 
+  const reporterUserId = Number(url.searchParams.get("reporterId") ?? 0); 
+  const from = (url.searchParams.get("from") ?? "").trim(); 
+  const to = (url.searchParams.get("to") ?? "").trim(); 
+  const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+  const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") ?? 20)));
+
+  const cloneSql = `
+    SELECT 'clone' AS type,
+           cr.id AS id,
+           cr.user_id AS reporterId,
+           ru.name AS reporterName,
+           ru.email AS reporterEmail,
+           cr.clone_id AS targetId,
+           c.name AS targetName,
+           c.username AS targetSub,
+           c.owner_id AS targetOwnerId,
+           co.name AS targetOwnerName,
+           cr.reason AS reason,
+           cr.status AS status,
+           cr.admin_message AS adminMessage,
+           cr.reporter_message AS reporterMessage,
+           cr.target_message AS targetMessage,
+           cr.clone_id AS personaId,
+           c.name AS personaName,
+           c.owner_id AS responsibleUserId,
+           co.name AS responsibleUserName,
+           ru.xrun_member_id AS reporterXrunMemberId,
+           co.xrun_member_id AS responsibleXrunMemberId,
+           co.banned_until AS responsibleBannedUntil,
+           co.suspended_until AS responsibleSuspendedUntil,
+           NULL AS content,
+           cr.created_at AS createdAt,
+           cr.reviewed_at AS reviewedAt,
+           (SELECT COUNT(*) FROM clone_reports x WHERE x.clone_id = cr.clone_id AND x.status = 'reviewed') AS targetReportCount
+      FROM clone_reports cr
+      JOIN users ru ON ru.id = cr.user_id
+      JOIN clones c ON c.id = cr.clone_id
+      LEFT JOIN users co ON co.id = c.owner_id
+  `;
+  const userSql = `
+    SELECT 'user' AS type,
+           ur.id AS id,
+           ur.reporter_id AS reporterId,
+           ru.name AS reporterName,
+           ru.email AS reporterEmail,
+           ur.target_id AS targetId,
+           tu.name AS targetName,
+           tu.email AS targetSub,
+           NULL AS targetOwnerId,
+           NULL AS targetOwnerName,
+           ur.reason AS reason,
+           ur.status AS status,
+           ur.admin_message AS adminMessage,
+           ur.reporter_message AS reporterMessage,
+           ur.target_message AS targetMessage,
+           NULL AS personaId,
+           NULL AS personaName,
+           ur.target_id AS responsibleUserId,
+           tu.name AS responsibleUserName,
+           ru.xrun_member_id AS reporterXrunMemberId,
+           tu.xrun_member_id AS responsibleXrunMemberId,
+           tu.banned_until AS responsibleBannedUntil,
+           tu.suspended_until AS responsibleSuspendedUntil,
+           NULL AS content,
+           ur.created_at AS createdAt,
+           ur.reviewed_at AS reviewedAt,
+           (SELECT COUNT(*) FROM user_reports x WHERE x.target_id = ur.target_id AND x.status = 'reviewed') AS targetReportCount
+      FROM user_reports ur
+      JOIN users ru ON ru.id = ur.reporter_id
+      JOIN users tu ON tu.id = ur.target_id
+  `;
+
+  const commentSql = `
+    SELECT 'comment' AS type,
+           cmr.id AS id,
+           cmr.user_id AS reporterId,
+           ru.name AS reporterName,
+           ru.email AS reporterEmail,
+           cmr.comment_id AS targetId,
+           cu.name AS targetName,
+           fcc.content AS targetSub,
+           cmr.clone_id AS targetOwnerId,
+           cc.name AS targetOwnerName,
+           cmr.reason AS reason,
+           cmr.status AS status,
+           cmr.admin_message AS adminMessage,
+           cmr.reporter_message AS reporterMessage,
+           cmr.target_message AS targetMessage,
+           cmr.clone_id AS personaId,
+           cc.name AS personaName,
+           fcc.user_id AS responsibleUserId,
+           cu.name AS responsibleUserName,
+           ru.xrun_member_id AS reporterXrunMemberId,
+           cu.xrun_member_id AS responsibleXrunMemberId,
+           cu.banned_until AS responsibleBannedUntil,
+           cu.suspended_until AS responsibleSuspendedUntil,
+           fcc.content AS content,
+           cmr.created_at AS createdAt,
+           cmr.reviewed_at AS reviewedAt,
+           (SELECT COUNT(*) FROM comment_reports x WHERE x.comment_id = cmr.comment_id AND x.status = 'reviewed') AS targetReportCount
+      FROM comment_reports cmr
+      JOIN users ru ON ru.id = cmr.user_id
+      LEFT JOIN feed_comments fcc ON fcc.id = cmr.comment_id
+      LEFT JOIN users cu ON cu.id = fcc.user_id
+      LEFT JOIN clones cc ON cc.id = cmr.clone_id
+  `;
+
+  const base =
+    type === "clone" ? `(${cloneSql}) AS r`
+    : type === "user" ? `(${userSql}) AS r`
+    : type === "comment" ? `(${commentSql}) AS r`
+    : `(${cloneSql} UNION ALL ${userSql} UNION ALL ${commentSql}) AS r`;
+
+  const where: string[] = ["1=1"];
+  const binds: unknown[] = [];
+  if (status && ["open", "reviewed", "dismissed", "actioned"].includes(status)) {
+    where.push("r.status = ?");
+    binds.push(status);
+  }
+  if (q) {
+    where.push(`(
+      r.reporterName LIKE ? OR r.reporterEmail LIKE ? OR
+      COALESCE(r.targetName,'') LIKE ? OR COALESCE(r.targetSub,'') LIKE ? OR
+      COALESCE(r.reason,'') LIKE ?
+    )`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat, pat, pat, pat);
+  }
+  if (targetId > 0) {
+    where.push("r.targetId = ?");
+    binds.push(targetId);
+  }
+
+  if (responsibleUserId > 0) {
+    where.push("r.responsibleUserId = ?");
+    binds.push(responsibleUserId);
+  }
+
+  if (reporterUserId > 0) {
+    where.push("r.reporterId = ?");
+    binds.push(reporterUserId);
+  }
+  if (minCount > 0) {
+    where.push("r.targetReportCount >= ?");
+    binds.push(minCount);
+  }
+  if (maxCount > 0) {
+    where.push("r.targetReportCount <= ?");
+    binds.push(maxCount);
+  }
+  if (from) {
+    where.push("r.createdAt >= ?");
+    binds.push(`${from} 00:00:00`);
+  }
+  if (to) {
+    where.push("r.createdAt <= ?");
+    binds.push(`${to} 23:59:59`);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM ${base} WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
+  const rows = (
+    await c.env.DB
+      .prepare(`SELECT r.* FROM ${base} WHERE ${whereSql} ORDER BY r.createdAt DESC LIMIT ? OFFSET ?`)
+      .bind(...binds, limit, offset)
+      .all()
+  ).results;
+
+  return c.json({ items: rows, total: totalRow?.cnt ?? 0, offset, limit });
+});
+
+async function issueReportWarning(
+  c: Context<AppEnv>,
+  reportType: "user" | "clone" | "comment",
+  reportId: number,
+  targetUserId: number | null | undefined,
+  cloneId: number | null | undefined,
+  adminMessage: string | null,
+): Promise<number | undefined> {
+  if (!targetUserId) return undefined;
+  const already = await c.env.DB
+    .prepare(`SELECT 1 AS x FROM user_warnings WHERE report_id = ? AND report_type = ? LIMIT 1`)
+    .bind(reportId, reportType)
+    .first();
+  if (!already) {
+    const adminId = c.get("adminUserId") ?? 0;
+    await c.env.DB
+      .prepare(
+        `INSERT INTO user_warnings (user_id, admin_id, report_id, report_type, reason) VALUES (?, ?, ?, ?, ?)`,
+      )
+      .bind(targetUserId, adminId, reportId, reportType, adminMessage)
+      .run();
+  }
+  const cnt = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(targetUserId)
+    .first<{ n: number }>();
+  const warningCount = cnt?.n ?? 0;
+  if (already) return warningCount; 
+
+  void cloneId;
+  await notify(c.env, {
+    userId: targetUserId,
+    type: "moderation",
+    title: "신고 처리 안내",
+    body: adminMessage || "회원님에 대한 신고가 처리되었습니다.",
+    url: "afterlife://reports/received",
+    data: { warningCount },
+    skipEmail: true,
+  }).catch(() => {});
+
+  return warningCount;
+}
+
+const CLONE_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
+admin.patch("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const body = await c.req
+    .json<{ status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string }>()
+    .catch(() => ({}) as { status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string });
+  const status = body.status ?? "";
+  if (!(CLONE_REPORT_STATUSES as readonly string[]).includes(status)) {
+    throw new APIError("VALIDATION_FAILED", "Invalid status.");
+  }
+  const isOpen = status === "open";
+
+  const reporterMessage = isOpen ? null : (body.reporterMessage ?? body.adminMessage ?? null);
+  const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
+
+  const adminMessage = targetMessage;
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const r = await c.env.DB
+    .prepare(`UPDATE clone_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(status, adminMessage, reporterMessage, targetMessage, id)
+    .run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+
+  let warningCount: number | undefined;
+  if (status === "reviewed") {
+    const owner = await c.env.DB
+      .prepare(
+        `SELECT cl.owner_id AS ownerId, cr.clone_id AS cloneId FROM clone_reports cr JOIN clones cl ON cl.id = cr.clone_id WHERE cr.id = ?`,
+      )
+      .bind(id)
+      .first<{ ownerId: number; cloneId: number }>();
+    warningCount = await issueReportWarning(c, "clone", id, owner?.ownerId, owner?.cloneId, adminMessage);
+  }
+  return c.json({ ok: true, id, status, adminMessage, warningCount });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM clone_reports WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+  return c.json({ ok: true, id });
+});
+
+const USER_REPORT_STATUSES = ["open", "reviewed", "dismissed", "actioned"] as const;
+admin.patch("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const body = await c.req
+    .json<{ status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string }>()
+    .catch(() => ({}) as { status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string });
+  const status = body.status ?? "";
+  if (!(USER_REPORT_STATUSES as readonly string[]).includes(status)) {
+    throw new APIError("VALIDATION_FAILED", "Invalid status.");
+  }
+  const isOpen = status === "open";
+
+  const reporterMessage = isOpen ? null : (body.reporterMessage ?? body.adminMessage ?? null);
+  const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
+
+  const adminMessage = targetMessage;
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const r = await c.env.DB
+    .prepare(`UPDATE user_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(status, adminMessage, reporterMessage, targetMessage, id)
+    .run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+
+  let warningCount: number | undefined;
+  if (status === "reviewed") {
+    const rep = await c.env.DB
+      .prepare(`SELECT target_id AS targetId FROM user_reports WHERE id = ?`)
+      .bind(id)
+      .first<{ targetId: number }>();
+    warningCount = await issueReportWarning(c, "user", id, rep?.targetId, null, adminMessage);
+  }
+  return c.json({ ok: true, id, status, adminMessage, warningCount });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM user_reports WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+  return c.json({ ok: true, id });
+});
+
+const COMMENT_REPORT_STATUSES = ["open", "reviewed", "dismissed"] as const;
+admin.patch("/comments/reports/:id", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const body = await c.req
+    .json<{ status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string }>()
+    .catch(() => ({}) as { status?: string; adminMessage?: string; reporterMessage?: string; targetMessage?: string });
+  const status = body.status ?? "";
+  if (!(COMMENT_REPORT_STATUSES as readonly string[]).includes(status)) {
+    throw new APIError("VALIDATION_FAILED", "Invalid status.");
+  }
+  const isOpen = status === "open";
+
+  const reporterMessage = isOpen ? null : (body.reporterMessage ?? body.adminMessage ?? null);
+  const targetMessage = isOpen ? null : (body.targetMessage ?? body.adminMessage ?? null);
+
+  const adminMessage = targetMessage;
+  const reviewedClause = isOpen ? "reviewed_at = NULL" : "reviewed_at = CURRENT_TIMESTAMP";
+  const r = await c.env.DB
+    .prepare(`UPDATE comment_reports SET status = ?, ${reviewedClause}, admin_message = ?, reporter_message = ?, target_message = ? WHERE id = ?`)
+    .bind(status, adminMessage, reporterMessage, targetMessage, id)
+    .run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+
+  let warningCount: number | undefined;
+  if (status === "reviewed") {
+    const author = await c.env.DB
+      .prepare(`SELECT user_id AS authorId FROM feed_comments WHERE id = (SELECT comment_id FROM comment_reports WHERE id = ?)`)
+      .bind(id)
+      .first<{ authorId: number }>();
+    const cmrClone = await c.env.DB
+      .prepare(`SELECT clone_id AS cloneId FROM comment_reports WHERE id = ?`)
+      .bind(id)
+      .first<{ cloneId: number }>();
+    warningCount = await issueReportWarning(c, "comment", id, author?.authorId, cmrClone?.cloneId, adminMessage);
+  }
+  return c.json({ ok: true, id, status, adminMessage, warningCount });
+});
+admin.delete("/comments/reports/:id", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM comment_reports WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Report not found.");
+  return c.json({ ok: true, id });
+});
+
+function parseSubListParams(c: { req: { url: string } }) {
+  const url = new URL(c.req.url);
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+  const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") ?? 20)));
+  return { q, offset, limit };
+}
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const { q, offset, limit } = parseSubListParams(c);
+
+  const commentType = new URL(c.req.url).searchParams.get("commentType") ?? "all";
+
+  const where: string[] = ["f.clone_id = ?"];
+  const binds: unknown[] = [cloneId];
+  if (commentType === "parent") where.push("fcc.parent_comment_id IS NULL");
+  else if (commentType === "reply") where.push("fcc.parent_comment_id IS NOT NULL");
+  if (q) {
+    where.push(`(u.name LIKE ? OR u.email LIKE ? OR fcc.content LIKE ?)`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat, pat);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM feed_comments fcc JOIN feeds f ON f.id = fcc.feed_id JOIN users u ON u.id = fcc.user_id WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT fcc.id, fcc.feed_id AS feedId, fcc.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
+              fcc.content, fcc.created_at AS createdAt,
+              fcc.likes_count AS likeCount,
+              fcc.parent_comment_id AS parentId,
+              pu.name AS parentUserName,
+              pc.content AS parentContent,
+              (SELECT COUNT(*) FROM feed_comments r WHERE r.parent_comment_id = fcc.id) AS replyCount,
+              (SELECT COUNT(*) FROM comment_reports cr WHERE cr.comment_id = fcc.id) AS reportCount,
+              (SELECT cr.status FROM comment_reports cr WHERE cr.comment_id = fcc.id
+                 ORDER BY (cr.status = 'reviewed') DESC, cr.created_at DESC LIMIT 1) AS reportStatus
+         FROM feed_comments fcc
+         JOIN feeds f ON f.id = fcc.feed_id
+         JOIN users u ON u.id = fcc.user_id
+         LEFT JOIN feed_comments pc ON pc.id = fcc.parent_comment_id
+         LEFT JOIN users pu ON pu.id = pc.user_id
+        WHERE ${whereSql}
+        ORDER BY fcc.created_at DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(...binds, limit, offset)
+    .all();
+  return c.json({ items: rows.results, total: totalRow?.cnt ?? 0, offset, limit });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM feed_comments WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Comment not found.");
+  return c.json({ ok: true, id });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const { q, offset, limit } = parseSubListParams(c);
+
+  const where: string[] = ["f.clone_id = ?"];
+  const binds: unknown[] = [cloneId];
+  if (q) {
+    where.push(`(u.name LIKE ? OR u.email LIKE ?)`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM feed_likes fl JOIN feeds f ON f.id = fl.feed_id JOIN users u ON u.id = fl.user_id WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT fl.id, fl.feed_id AS feedId, fl.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
+              fl.created_at AS createdAt
+         FROM feed_likes fl
+         JOIN feeds f ON f.id = fl.feed_id
+         JOIN users u ON u.id = fl.user_id
+        WHERE ${whereSql}
+        ORDER BY fl.created_at DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(...binds, limit, offset)
+    .all();
+  return c.json({ items: rows.results, total: totalRow?.cnt ?? 0, offset, limit });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM feed_likes WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Like not found.");
+  return c.json({ ok: true, id });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const { q, offset, limit } = parseSubListParams(c);
+
+  const where: string[] = ["cf.clone_id = ?"];
+  const binds: unknown[] = [cloneId];
+  if (q) {
+    where.push(`(u.name LIKE ? OR u.email LIKE ?)`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM clone_follows cf JOIN users u ON u.id = cf.user_id WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT cf.id, cf.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
+              cf.created_at AS createdAt
+         FROM clone_follows cf
+         JOIN users u ON u.id = cf.user_id
+        WHERE ${whereSql}
+        ORDER BY cf.created_at DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(...binds, limit, offset)
+    .all();
+  return c.json({ items: rows.results, total: totalRow?.cnt ?? 0, offset, limit });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM clone_follows WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Follow not found.");
+  return c.json({ ok: true, id });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  const { q, offset, limit } = parseSubListParams(c);
+
+  const where: string[] = ["uci.clone_id = ?"];
+  const binds: unknown[] = [cloneId];
+  if (q) {
+    where.push(`(u.name LIKE ? OR u.email LIKE ?)`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS cnt FROM user_clone_interactions uci JOIN users u ON u.id = uci.user_id WHERE ${whereSql}`)
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT uci.id, uci.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              u.xrun_member_id AS userXrunMemberId,
+              uci.chat_count AS chatCount,
+              uci.call_count AS callCount,
+              uci.learn_count AS learnCount,
+              uci.feed_count AS feedCount,
+              uci.last_at AS lastAt
+         FROM user_clone_interactions uci
+         JOIN users u ON u.id = uci.user_id
+        WHERE ${whereSql}
+        ORDER BY uci.last_at DESC
+        LIMIT ? OFFSET ?`,
+    )
+    .bind(...binds, limit, offset)
+    .all();
+  return c.json({ items: rows.results, total: totalRow?.cnt ?? 0, offset, limit });
+});
+admin.delete("/oth-path", requireAdmin, async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) throw new APIError("VALIDATION_FAILED", "Invalid id.");
+  const r = await c.env.DB.prepare(`DELETE FROM user_clone_interactions WHERE id = ?`).bind(id).run();
+  if (!r.meta.changes) throw new APIError("NOT_FOUND", "Interaction not found.");
+  return c.json({ ok: true, id });
+});
+
+admin.get("/oth-path", requireAdmin, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "Invalid clone id.");
+  }
+  const rows = await c.env.DB
+    .prepare(
+      `SELECT cr.id, cr.user_id AS userId,
+              u.name AS userName, u.email AS userEmail,
+              cr.reason, cr.status,
+              cr.created_at AS createdAt,
+              cr.reviewed_at AS reviewedAt
+         FROM clone_reports cr
+         JOIN users u ON u.id = cr.user_id
+        WHERE cr.clone_id = ?
+        ORDER BY cr.created_at DESC
+        LIMIT 200`,
+    )
+    .bind(cloneId)
+    .all();
+  return c.json({ items: rows.results });
 });
 

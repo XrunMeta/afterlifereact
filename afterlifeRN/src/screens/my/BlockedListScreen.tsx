@@ -15,13 +15,14 @@ import { useNavigation } from "@react-navigation/native";
 import SafeView from "../../components/ui/SafeView";
 import PageHeader from "../../components/common/PageHeader";
 import { useAuthStore } from "../../stores/authStore";
-import { listMyBlocks, unblockClone, type BlockedClone } from "../../api/clones";
+import { listMyBlocks, unblockClone, type BlockedItem } from "../../api/clones";
+import { unblockUser } from "../../api/users";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
 
 export default function BlockedListScreen() {
   const navigation = useNavigation();
   const accessToken = useAuthStore((s) => s.accessToken);
-  const [items, setItems] = useState<BlockedClone[]>([]);
+  const [items, setItems] = useState<BlockedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -47,11 +48,17 @@ export default function BlockedListScreen() {
     reload();
   }, [reload]);
 
-  const handleUnblock = async (cloneId: number) => {
+  const handleUnblock = async (item: BlockedItem) => {
     if (!accessToken) return;
     try {
-      await unblockClone(accessToken, cloneId);
-      setItems((prev) => prev.filter((b) => b.clone.id !== cloneId));
+      if (item.type === "clone") {
+        await unblockClone(accessToken, item.clone.id);
+      } else {
+        await unblockUser(accessToken, item.user.id);
+      }
+      setItems((prev) =>
+        prev.filter((b) => !(b.type === item.type && b.blockId === item.blockId)),
+      );
     } catch (err) {
       console.warn("[BlockedList] unblock failed:", err);
     }
@@ -71,30 +78,40 @@ export default function BlockedListScreen() {
       ) : items.length === 0 ? (
         <View style={s.center}>
           <Feather name="slash" size={32} color={COLORS.zinc300} />
-          <Text style={s.empty}>차단한 클론이 없어요</Text>
+          <Text style={s.empty}>차단한 대상이 없어요</Text>
         </View>
       ) : (
         <FlatList
           data={items}
-          keyExtractor={(it) => String(it.blockId)}
-          renderItem={({ item }) => (
-            <View style={s.row}>
-              {item.clone.avatarUrl ? (
-                <Image source={{ uri: item.clone.avatarUrl }} style={s.avatar} />
-              ) : (
-                <View style={[s.avatar, s.avatarPh]}>
-                  <Feather name="user" size={18} color={COLORS.zinc400} />
+          keyExtractor={(it) => `${it.type}-${it.blockId}`}
+          renderItem={({ item }) => {
+            const avatarUrl =
+              item.type === "clone" ? item.clone.avatarUrl : item.user.avatarUrl;
+            const name =
+              item.type === "clone"
+                ? item.clone.name
+                : item.user.name || item.user.email.split("@")[0];
+            const sub =
+              item.type === "clone" ? `@${item.clone.username}` : item.user.email;
+            return (
+              <View style={s.row}>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={s.avatar} />
+                ) : (
+                  <View style={[s.avatar, s.avatarPh]}>
+                    <Feather name="user" size={18} color={COLORS.zinc400} />
+                  </View>
+                )}
+                <View style={s.body}>
+                  <Text style={s.name}>{name}</Text>
+                  <Text style={s.sub}>{sub}</Text>
                 </View>
-              )}
-              <View style={s.body}>
-                <Text style={s.name}>{item.clone.name}</Text>
-                <Text style={s.sub}>@{item.clone.username}</Text>
+                <TouchableOpacity style={s.unblockBtn} onPress={() => handleUnblock(item)}>
+                  <Text style={s.unblockText}>차단 해제</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity style={s.unblockBtn} onPress={() => handleUnblock(item.clone.id)}>
-                <Text style={s.unblockText}>차단 해제</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            );
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

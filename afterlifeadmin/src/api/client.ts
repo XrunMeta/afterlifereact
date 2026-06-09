@@ -245,4 +245,72 @@ export const api = {
       }>;
     }>(`/oth-path${tail ? `?${tail}` : ""}`);
   },
+
+  getUserDetail: (id: string | number) =>
+    request<{
+      user: {
+        id: number;
+        name: string | null;
+        email: string;
+        deletionState: string;
+        suspendedUntil: string | null;
+        createdAt: string;
+        warningCount: number;
+      };
+      warnings: Array<{ id: number; reason: string | null; createdAt: string }>;
+      reports: Array<{
+        id: number;
+        reason: string | null;
+        status: string;
+        createdAt: string;
+        reporterEmail: string;
+      }>;
+      clones: Array<{
+        id: number;
+        name: string;
+        username: string;
+        cloneType: string;
+        deletionState: string;
+      }>;
+    }>(`/oth-path${id}/detail`),
+
+  warnUser: (id: string | number, body?: { reportId?: number; reason?: string }) =>
+    request<{
+      ok: true;
+      warningCount: number;
+      suspended: boolean;
+      suspendedUntil: string | null;
+    }>(`/oth-path${id}/warn`, {
+      method: "POST",
+      body: JSON.stringify(body ?? {}),
+    }),
+
+  dismissUserReport: (reportId: string | number, message?: string) =>
+    request<{ ok: true; updated: number }>(
+      `/oth-path${reportId}/dismiss`,
+      { method: "POST", body: JSON.stringify({ message: message ?? null }) },
+    ),
+
+  getReportPenaltyRules: () =>
+    request<{
+      items: Array<{
+        threshold: number;
+        action: "warn" | "suspend";
+        suspendDays: number | null;
+        updatedAt: string;
+      }>;
+    }>(`/oth-path`),
+  putReportPenaltyRule: (
+    threshold: number,
+    body: { action: "warn" | "suspend"; suspendDays: number | null },
+  ) =>
+    request<{ ok: true }>(`/oth-path${threshold}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  deleteReportPenaltyRule: (threshold: number) =>
+    request<{ ok: true; deleted: number }>(
+      `/oth-path${threshold}`,
+      { method: "DELETE" },
+    ),
 };

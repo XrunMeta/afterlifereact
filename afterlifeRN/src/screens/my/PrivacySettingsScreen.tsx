@@ -23,17 +23,56 @@ import { useAuthStore } from "../../stores/authStore";
 import {
   listMyBlocks,
   unblockClone,
-  type BlockedClone,
+  type BlockedItem,
 } from "../../api/clones";
+import { unblockUser } from "../../api/users";
+
+const itemKey = (it: BlockedItem) => `${it.type}-${it.blockId}`;
 
 export default function PrivacySettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MyStackParamList>>();
   const accessToken = useAuthStore((s) => s.accessToken);
   const { t } = useTranslation();
 
-  const [items, setItems] = useState<BlockedClone[]>([]);
+  const [items, setItems] = useState<BlockedItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [unblockingId, setUnblockingId] = useState<number | null>(null);
+  const [unblockingKey, setUnblockingKey] = useState<string | null>(null);
+  const [tab, setTab] = useState<"user" | "clone">("user");
+
+  const goToItem = (item: BlockedItem) => {
+    if (item.type === "user") {
+
+      (navigation as unknown as { navigate: (n: string, p?: object) => void }).navigate(
+        "UserProfile",
+        { userId: item.user.id },
+      );
+    } else {
+      const c = item.clone;
+      (navigation as unknown as { navigate: (n: string, p?: object) => void }).navigate("CloneFeed", {
+        feed: {
+          id: -c.id,
+          cloneId: c.id,
+          content: "",
+          mediaUrl: c.avatarUrl,
+          mediaType: null,
+          likesCount: 0,
+          commentsCount: 0,
+          likedByMe: false,
+          createdAt: new Date().toISOString(),
+          clone: {
+            id: c.id,
+            ownerId: c.ownerId,
+            name: c.name,
+            username: c.username,
+            avatarUrl: c.avatarUrl,
+            cloneType: c.cloneType,
+            visibility: c.visibility,
+          },
+          interests: [],
+        },
+      });
+    }
+  };
 
   const refresh = useCallback(async () => {
     if (!accessToken) {
@@ -62,25 +101,34 @@ export default function PrivacySettingsScreen() {
     }, [refresh]),
   );
 
-  const handleUnblock = (item: BlockedClone) => {
+  const handleUnblock = (item: BlockedItem) => {
+    const label =
+      item.type === "clone"
+        ? item.clone.name
+        : item.user.name || item.user.email.split("@")[0];
+    const key = itemKey(item);
     showAlert(
       "차단 해제",
-      `${item.clone.name} 차단을 해제하시겠어요?`,
+      `${label} 차단을 해제하시겠어요?`,
       [
         { text: "취소", style: "cancel" },
         {
           text: "해제",
           onPress: async () => {
             if (!accessToken) return;
-            setUnblockingId(item.clone.id);
+            setUnblockingKey(key);
             try {
-              await unblockClone(accessToken, item.clone.id);
-              setItems((prev) => prev.filter((b) => b.clone.id !== item.clone.id));
+              if (item.type === "clone") {
+                await unblockClone(accessToken, item.clone.id);
+              } else {
+                await unblockUser(accessToken, item.user.id);
+              }
+              setItems((prev) => prev.filter((b) => itemKey(b) !== key));
             } catch (err) {
               const msg = err instanceof Error ? err.message : "해제에 실패했어요.";
               showAlert("오류", msg);
             } finally {
-              setUnblockingId(null);
+              setUnblockingKey(null);
             }
           },
         },
@@ -96,56 +144,103 @@ export default function PrivacySettingsScreen() {
         onBackPress={() => navigation.goBack()}
       />
 
+      {}
+      <View style={s.tabBar}>
+        {(["user", "clone"] as const).map((tk) => {
+          const count = items.filter((it) => it.type === tk).length;
+          const active = tab === tk;
+          return (
+            <TouchableOpacity
+              key={tk}
+              style={[s.tab, active && s.tabActive]}
+              onPress={() => setTab(tk)}
+            >
+              <Text style={[s.tabText, active && s.tabTextActive]}>
+                {tk === "user" ? "유저" : "페르소나"} {count > 0 ? `(${count})` : ""}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       <View style={s.content}>
         {loading ? (
           <ActivityIndicator color={COLORS.zinc500} style={{ paddingTop: 60 }} />
-        ) : items.length === 0 ? (
-          <View style={s.empty}>
-            <Feather name="slash" size={36} color={COLORS.zinc300} />
-            <Text style={s.emptyText}>차단한 클론이 없어요</Text>
-            <Text style={s.emptySub}>
-              클론 메뉴에서 차단할 수 있어요
-            </Text>
-          </View>
         ) : (
-          <View style={s.card}>
-            {items.map((it, i) => (
-              <View key={it.blockId}>
-                <View style={s.row}>
-                  {it.clone.avatarUrl ? (
-                    <Image source={{ uri: it.clone.avatarUrl }} style={s.avatar} />
-                  ) : (
-                    <View style={[s.avatar, s.avatarPh]}>
-                      <Feather name="user" size={20} color={COLORS.zinc400} />
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.rowName} numberOfLines={1}>
-                      {it.clone.name}
-                    </Text>
-                    <Text style={s.rowSub} numberOfLines={1}>
-                      @{it.clone.username}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[
-                      s.unblockBtn,
-                      unblockingId === it.clone.id && { opacity: 0.6 },
-                    ]}
-                    onPress={() => handleUnblock(it)}
-                    disabled={unblockingId === it.clone.id}
-                  >
-                    {unblockingId === it.clone.id ? (
-                      <ActivityIndicator size="small" color={COLORS.white} />
-                    ) : (
-                      <Text style={s.unblockText}>차단 해제</Text>
-                    )}
-                  </TouchableOpacity>
+          (() => {
+            const visible = items.filter((it) => it.type === tab);
+            if (visible.length === 0) {
+              return (
+                <View style={s.empty}>
+                  <Feather name="slash" size={36} color={COLORS.zinc300} />
+                  <Text style={s.emptyText}>
+                    차단한 {tab === "user" ? "유저" : "페르소나"}가 없어요
+                  </Text>
+                  <Text style={s.emptySub}>
+                    {tab === "user"
+                      ? "사용자 프로필에서 차단할 수 있어요"
+                      : "페르소나 메뉴에서 차단할 수 있어요"}
+                  </Text>
                 </View>
-                {i < items.length - 1 && <View style={s.divider} />}
+              );
+            }
+            return (
+              <View style={s.card}>
+                {visible.map((it, i) => {
+                  const key = itemKey(it);
+                  const avatarUrl =
+                    it.type === "clone" ? it.clone.avatarUrl : it.user.avatarUrl;
+                  const name =
+                    it.type === "clone"
+                      ? it.clone.name
+                      : it.user.name || it.user.email.split("@")[0];
+                  const sub =
+                    it.type === "clone" ? `@${it.clone.username}` : it.user.email;
+                  const busy = unblockingKey === key;
+                  return (
+                    <View key={key}>
+                      <View style={s.row}>
+                        {}
+                        <TouchableOpacity
+                          style={s.rowMain}
+                          onPress={() => goToItem(it)}
+                          activeOpacity={0.6}
+                        >
+                          {avatarUrl ? (
+                            <Image source={{ uri: avatarUrl }} style={s.avatar} />
+                          ) : (
+                            <View style={[s.avatar, s.avatarPh]}>
+                              <Feather name="user" size={20} color={COLORS.zinc400} />
+                            </View>
+                          )}
+                          <View style={{ flex: 1 }}>
+                            <Text style={s.rowName} numberOfLines={1}>
+                              {name}
+                            </Text>
+                            <Text style={s.rowSub} numberOfLines={1}>
+                              {sub}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[s.unblockBtn, busy && { opacity: 0.6 }]}
+                          onPress={() => handleUnblock(it)}
+                          disabled={busy}
+                        >
+                          {busy ? (
+                            <ActivityIndicator size="small" color={COLORS.white} />
+                          ) : (
+                            <Text style={s.unblockText}>차단 해제</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                      {i < visible.length - 1 && <View style={s.divider} />}
+                    </View>
+                  );
+                })}
               </View>
-            ))}
-          </View>
+            );
+          })()
         )}
       </View>
     </SafeScrollView>
@@ -168,12 +263,37 @@ const s = StyleSheet.create({
     borderRadius: RADIUS.lg,
     overflow: "hidden",
   },
+  tabBar: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    maxWidth: 780,
+    alignSelf: "center",
+    width: "100%",
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
+    alignItems: "center",
+    backgroundColor: COLORS.zinc100,
+  },
+  tabActive: { backgroundColor: COLORS.zinc900 },
+  tabText: { fontSize: 13, fontWeight: "700", color: COLORS.zinc500 },
+  tabTextActive: { color: COLORS.white },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  rowMain: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   avatar: { width: 44, height: 44, borderRadius: 22 },
   avatarPh: {

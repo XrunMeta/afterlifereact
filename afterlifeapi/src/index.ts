@@ -39,7 +39,8 @@ const app = new Hono<AppEnv>();
 app.onError(onError);
 
 app.use("*", requestId);
-app.use("*", secureHeaders());
+
+app.use("*", secureHeaders({ crossOriginResourcePolicy: "cross-origin" }));
 
 const ALLOWED_ORIGINS = new Set<string>([
   "http://localhost:5173",

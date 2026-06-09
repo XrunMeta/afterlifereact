@@ -153,7 +153,7 @@ feedsDiscover.get("/discover", async (c) => {
     where.push(
       `(
          c.visibility = 'public'
-         OR c.owner_id = ?
+         OR (c.owner_id = ? AND c.visibility != 'private')
          OR (c.visibility = 'followers' AND
              EXISTS (SELECT 1 FROM clone_follows cf
                       WHERE cf.clone_id = c.id AND cf.user_id = ?))
@@ -169,7 +169,12 @@ feedsDiscover.get("/discover", async (c) => {
   }
 
   if (viewerId) {
+
     where.push("c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)");
+    binds.push(viewerId);
+    where.push(
+      "c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)",
+    );
     binds.push(viewerId);
   }
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
@@ -616,6 +621,7 @@ feedsDiscover.post("/:id/comments", requireAuth, async (c) => {
     actorId: userId,
     cloneId: feed.cloneId,
     extraBody: body.content.trim(),
+    feedId,
   });
   await bumpInteraction(c.env, userId, feed.cloneId, "feed");
 
@@ -697,7 +703,11 @@ feedsDiscover.get("/:id/comments", async (c) => {
   const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 30));
   const viewerId = await resolveOptionalUser(c);
 
-  const where = ["fc.feed_id = ?", "fc.parent_comment_id IS NULL"];
+  const where = [
+    "fc.feed_id = ?",
+    "fc.parent_comment_id IS NULL",
+    "fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))",
+  ];
   const binds: unknown[] = [feedId];
   if (cursor && Number.isInteger(cursor) && cursor > 0) {
     where.push("fc.id < ?");
@@ -721,7 +731,8 @@ feedsDiscover.get("/:id/comments", async (c) => {
                 u.email        AS userEmail,
                 u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
-                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
+                   WHERE fcc.parent_comment_id = fc.id
+                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS repliesCount
            FROM feed_comments fc
            JOIN users u ON u.id = fc.user_id
           WHERE ${where.join(" AND ")} AND u.deleted_at IS NULL
@@ -799,6 +810,8 @@ feedsDiscover.get("/:id/comments/:cid/replies", async (c) => {
           WHERE fc.feed_id = ?
             AND fc.parent_comment_id = ?
             AND u.deleted_at IS NULL
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
+            AND fc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
           ORDER BY fc.id ASC
           LIMIT ?`,
       )
@@ -922,6 +935,7 @@ cloneFeeds.post("/:id/comments", requireAuth, async (c) => {
     actorId: userId,
     cloneId,
     extraBody: body.content.trim(),
+    feedId,
   });
   await bumpInteraction(c.env, userId, cloneId, "feed");
 
@@ -966,13 +980,15 @@ cloneFeeds.get("/:id/comments", async (c) => {
                 u.email        AS userEmail,
                 u.avatar_url   AS userAvatarUrl,
                 (SELECT COUNT(*) FROM feed_comments fcc
-                   WHERE fcc.parent_comment_id = fc.id) AS repliesCount
+                   WHERE fcc.parent_comment_id = fc.id
+                     AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))) AS repliesCount
            FROM feed_comments fc
            JOIN feeds f ON f.id = fc.feed_id
            JOIN users u ON u.id = fc.user_id
           WHERE f.clone_id = ?
             AND fc.parent_comment_id IS NULL
             AND u.deleted_at IS NULL
+            AND fc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
           ORDER BY fc.id DESC
           LIMIT ?`,
       )

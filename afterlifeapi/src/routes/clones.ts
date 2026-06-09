@@ -5,6 +5,7 @@ import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { logActivity } from "../lib/logger";
+import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 import {
   hasAcceptedShare,
   isFollower,
@@ -153,6 +154,22 @@ clones.post(
     const userId = c.get("userId")!;
     const db = c.env.DB;
 
+    const susp = await db
+      .prepare(
+        `SELECT suspended_until FROM users
+          WHERE id = ? AND suspended_until IS NOT NULL
+            AND suspended_until > datetime('now')`,
+      )
+      .bind(userId)
+      .first<{ suspended_until: string }>();
+    if (susp) {
+      throw new APIError(
+        "FORBIDDEN",
+        "신고 누적으로 계정이 일시 비활성화되어 페르소나를 생성할 수 없어요.",
+        { suspendedUntil: susp.suspended_until },
+      );
+    }
+
     if (USERNAME_BLACKLIST.has(body.username)) {
       throw new APIError("VALIDATION_FAILED", "username is reserved.");
     }
@@ -223,6 +240,22 @@ clones.post(
             throw new APIError("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
           }
           throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
+        }
+
+        try {
+          const { recordAfterlifePersonaPayment } = await import("../lib/giftCommission");
+          const r = await recordAfterlifePersonaPayment(c.env, {
+            userId,
+            totalXrun: PERSONA_PAID_PRICE_XRUN,
+            companyWallet: companyAddr,
+          });
+          if (r.recorded) {
+            console.log(`[persona-create] settlement recorded — amount=${r.amount}`);
+          } else {
+            console.log(`[persona-create] settlement skip: ${r.reason}`);
+          }
+        } catch (err) {
+          console.warn("[persona-create] settlement record failed:", (err as Error).message);
         }
       } else {
 
@@ -508,7 +541,7 @@ clones.get("/search", async (c) => {
 
   const viewerId = await resolveOptionalUser(c);
 
-  const where: string[] = [`c.deleted_at IS NULL`];
+  const where: string[] = [`c.deleted_at IS NULL`, `c.deletion_state = 'active'`];
   const binds: unknown[] = [];
   if (viewerId) {
     where.push(
@@ -524,13 +557,15 @@ clones.get("/search", async (c) => {
        )`,
     );
     binds.push(viewerId, viewerId, viewerId);
+
+    where.push(`c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)`);
+    binds.push(viewerId);
+    where.push(
+      `c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)`,
+    );
+    binds.push(viewerId);
   } else {
     where.push(`c.visibility = 'public'`);
-  }
-  if (params.q) {
-    where.push(`(c.name LIKE ? OR c.username LIKE ?)`);
-    const like = `%${params.q}%`;
-    binds.push(like, like);
   }
   if (params.type) {
     where.push(`c.clone_type = ?`);
@@ -539,6 +574,51 @@ clones.get("/search", async (c) => {
   if (params.category) {
     where.push(`c.category = ?`);
     binds.push(params.category);
+  }
+
+  const mapClone = (r: {
+    id: number; name: string; username: string; clone_type: string;
+    category: string | null; avatar_url: string | null; created_at: string;
+    followers_count: number; messages_count: number; gifts_count: number;
+  }) => ({
+    id: r.id,
+    name: r.name,
+    username: r.username,
+    cloneType: r.clone_type,
+    category: r.category,
+    avatarUrl: r.avatar_url,
+    stats: { followers: r.followers_count, messages: r.messages_count, gifts: r.gifts_count },
+    createdAt: r.created_at,
+  });
+
+  if (params.q) {
+    const poolSql = `
+      SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url,
+             c.created_at,
+             COALESCE(s.followers_count, 0) AS followers_count,
+             COALESCE(s.messages_count, 0)  AS messages_count,
+             COALESCE(s.gifts_count, 0)     AS gifts_count
+        FROM clones c
+        LEFT JOIN clone_stats s ON s.clone_id = c.id
+       WHERE ${where.join(" AND ")}
+       ORDER BY COALESCE(s.followers_count, 0) DESC, c.id DESC
+       LIMIT 500`;
+    const pool = (
+      await db.prepare(poolSql).bind(...binds).all<Parameters<typeof mapClone>[0]>()
+    ).results;
+    const scored = pool
+      .map((r) => ({
+        r,
+        score: Math.max(
+          similarityScore(params.q!, r.name),
+          similarityScore(params.q!, r.username),
+        ),
+      }))
+      .filter((x) => x.score >= SEARCH_SIMILARITY_THRESHOLD)
+      .sort((a, b) => b.score - a.score || b.r.followers_count - a.r.followers_count)
+      .slice(0, params.limit)
+      .map((x) => x.r);
+    return c.json({ items: scored.map(mapClone), nextCursor: null });
   }
 
   let orderBy: string;
@@ -600,20 +680,7 @@ clones.get("/search", async (c) => {
   }
 
   return c.json({
-    items: page.map((r) => ({
-      id: r.id,
-      name: r.name,
-      username: r.username,
-      cloneType: r.clone_type,
-      category: r.category,
-      avatarUrl: r.avatar_url,
-      stats: {
-        followers: r.followers_count,
-        messages: r.messages_count,
-        gifts: r.gifts_count,
-      },
-      createdAt: r.created_at,
-    })),
+    items: page.map(mapClone),
     nextCursor,
   });
 });
@@ -1342,6 +1409,23 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     cloneId,
     extraBody: `${body.giftName} 선물 (+${ownerAmount} XRUN)`,
   });
+
+  try {
+    const { recordAfterlifeGiftCommission } = await import("../lib/giftCommission");
+    const r = await recordAfterlifeGiftCommission(c.env, {
+      cloneId,
+      ownerXrunMember: owner?.xrun_member_id ?? null,
+      totalXrun: total,
+      giftName: body.giftName,
+    });
+    if (!r.recorded) {
+      console.log(`[gift] commission skip: ${r.reason}`);
+    } else {
+      console.log(`[gift] commission recorded — recommender=${r.recommender} amount=${r.amount}`);
+    }
+  } catch (err) {
+    console.warn("[gift] commission record failed:", (err as Error).message);
+  }
 
   return c.json({
     ok: true,

@@ -547,17 +547,32 @@ export async function listCloneFollowers(
   return parsed as { items: CloneFollower[] };
 }
 
-export interface BlockedClone {
+export interface BlockedItemClone {
   blockId: number;
   createdAt: string;
+  type: "clone";
   clone: {
     id: number;
     name: string;
     username: string;
     avatarUrl: string | null;
     cloneType: CloneType;
+    ownerId: number;
+    visibility: Visibility;
   };
 }
+export interface BlockedItemUser {
+  blockId: number;
+  createdAt: string;
+  type: "user";
+  user: {
+    id: number;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+export type BlockedItem = BlockedItemClone | BlockedItemUser;
 
 export async function reportClone(
   accessToken: string,
@@ -643,8 +658,8 @@ export async function unblockClone(accessToken: string, cloneId: number): Promis
   console.log(`[BLOCK-API] ← unblock ok cloneId=${cloneId}`, res);
   return res;
 }
-export async function listMyBlocks(accessToken: string): Promise<{ items: BlockedClone[] }> {
-  const res = await authFetch<{ items: BlockedClone[] }>(
+export async function listMyBlocks(accessToken: string): Promise<{ items: BlockedItem[] }> {
+  const res = await authFetch<{ items: BlockedItem[] }>(
     `/oth-path`,
     accessToken,
     { method: "GET" },

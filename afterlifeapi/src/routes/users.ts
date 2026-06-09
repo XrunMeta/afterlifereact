@@ -7,6 +7,7 @@ import { openAny, seal, getKekProvider, extractDekId, shredV3 } from "../lib/ale
 import { requestKekProvider } from "../lib/kekProvider";
 import { logActivity } from "../lib/logger";
 import { notify } from "../lib/notify";
+import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 
 export const users = new Hono<AppEnv>();
 
@@ -44,22 +45,37 @@ users.get("/search", requireAuth, async (c) => {
   if (q.length < 2) {
     return c.json({ items: [] });
   }
-  const like = `%${q}%`;
 
-  const rows = await c.env.DB
-    .prepare(
-      `SELECT id, name, email, avatar_url AS avatarUrl
-         FROM users
-        WHERE deleted_at IS NULL
-          AND id != ?
-          AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
-          AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
-        ORDER BY id DESC
-        LIMIT 20`,
-    )
-    .bind(me, me, like, like)
-    .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
-  return c.json({ items: rows.results ?? [] });
+  const pool = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, name, email, avatar_url AS avatarUrl
+           FROM users
+          WHERE deleted_at IS NULL
+            AND deletion_state = 'active'
+            AND id != ?
+            AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
+          ORDER BY id DESC
+          LIMIT 500`,
+      )
+      .bind(me, me)
+      .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>()
+  ).results;
+  const emailLocal = (email: string) => email.split("@")[0] ?? email;
+  const items = pool
+    .map((u) => ({
+      u,
+      score: Math.max(
+        similarityScore(q, u.name),
+        similarityScore(q, u.email),
+        similarityScore(q, emailLocal(u.email)),
+      ),
+    }))
+    .filter((x) => x.score >= SEARCH_SIMILARITY_THRESHOLD)
+    .sort((a, b) => b.score - a.score || b.u.id - a.u.id)
+    .slice(0, 20)
+    .map((x) => x.u);
+  return c.json({ items });
 });
 
 users.get("/me", requireAuth, async (c) => {
@@ -372,6 +388,14 @@ users.post("/me/devices", requireAuth, async (c) => {
   if (!body.deviceId || !body.pushToken || !body.platform) {
     throw new APIError("VALIDATION_FAILED", "deviceId, pushToken, platform required.");
   }
+
+  await c.env.DB
+    .prepare(
+      `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE push_token = ? AND is_active = 1 AND NOT (user_id = ? AND device_id = ?)`,
+    )
+    .bind(body.pushToken, userId, body.deviceId)
+    .run();
   await c.env.DB
     .prepare(
       `INSERT INTO user_devices (user_id, device_id, push_token, platform, is_active, last_active_at)
@@ -564,84 +588,6 @@ users.get("/me/clones/:cloneId/intimacy-events", requireAuth, async (c) => {
   });
 });
 
-users.post("/me/delete", requireAuth, async (c) => {
-  const userId = c.get("userId")!;
-  const db = c.env.DB;
-  const res = await db
-    .prepare(
-      `UPDATE users
-          SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP,
-              deleted_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND deletion_state = 'active'`,
-    )
-    .bind(userId)
-    .run();
-  if ((res.meta?.changes ?? 0) === 0) {
-    throw new APIError("CONFLICT", "Account is not in active state.");
-  }
-
-  const cloneRes = await db
-    .prepare(
-      `UPDATE clones
-          SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP
-        WHERE owner_id = ? AND deletion_state = 'active'`,
-    )
-    .bind(userId)
-    .run();
-  await logActivity(c, {
-    userId,
-    action: "user.soft_delete",
-    details: { cascaded_clones: cloneRes.meta?.changes ?? 0 },
-  });
-  return c.json({
-    ok: true,
-    state: "soft_deleted",
-    restorableUntil: "+90d",
-    cascadedClones: cloneRes.meta?.changes ?? 0,
-  });
-});
-
-users.post("/me/restore", requireAuth, async (c) => {
-  const userId = c.get("userId")!;
-  const db = c.env.DB;
-  const res = await db
-    .prepare(
-      `UPDATE users
-          SET deletion_state = 'active',
-              soft_deleted_at = NULL,
-              deleted_at = NULL
-        WHERE id = ? AND deletion_state = 'soft_deleted'
-          AND soft_deleted_at > datetime('now', '-90 days')`,
-    )
-    .bind(userId)
-    .run();
-  if ((res.meta?.changes ?? 0) === 0) {
-    throw new APIError("CONFLICT", "Restoration window expired or account not soft-deleted.");
-  }
-
-  const cloneRes = await db
-    .prepare(
-      `UPDATE clones
-          SET deletion_state = 'active',
-              soft_deleted_at = NULL
-        WHERE owner_id = ? AND deletion_state = 'soft_deleted'`,
-    )
-    .bind(userId)
-    .run();
-  await logActivity(c, {
-    userId,
-    action: "user.restore",
-    details: { restored_clones: cloneRes.meta?.changes ?? 0 },
-  });
-  return c.json({
-    ok: true,
-    state: "active",
-    restoredClones: cloneRes.meta?.changes ?? 0,
-  });
-});
-
 users.post("/me/delete/gdpr", requireAuth, async (c) => {
   const userId = c.get("userId")!;
   const db = c.env.DB;
@@ -829,8 +775,10 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
                 COALESCE(uci.call_count, 0)  AS my_call,
                 COALESCE(uci.learn_count, 0) AS my_learn,
                 COALESCE(uci.feed_count, 0)  AS my_feed,
-                -- 친밀도 가중치 점수 (Daily Cap 15°C 적립, 100°C 상한)
-                COALESCE(uci.intimacy_score, 0) AS my_intimacy,
+                -- 친밀도 °C — 친밀도 활동 내역 모달(intimacy_events 합계)과 동일 소스로 통일.
+                --   (uci.intimacy_score 가 이벤트와 어긋나 0 으로 뜨던 문제 → 이벤트 SUM 으로 직접 계산, 100 상한)
+                COALESCE((SELECT MIN(100, SUM(ie.score)) FROM intimacy_events ie
+                           WHERE ie.user_id = ? AND ie.clone_id = c.id), 0) AS my_intimacy,
                 -- 본인 페르소나 여부 — 클라이언트가 '팔로우' 버튼 숨김 처리.
                 (c.owner_id = ?) AS is_own
            FROM clones c
@@ -838,7 +786,14 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
           WHERE c.deleted_at IS NULL
+            -- 소유자가 삭제(soft_deleted)한 페르소나는 즉시 구독 목록에서 제외.
+            --   삭제는 deletion_state='soft_deleted' 로만 바뀌고 deleted_at 은 크론 전까지
+            --   NULL 이라, deleted_at 체크만으로는 삭제된 클론이 계속 보이던 버그 수정.
+            --   검색/피드와 동일 정책(active 만).
+            AND c.deletion_state = 'active'
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
+            -- 차단한 '유저'가 소유한 페르소나는 구독 목록에서도 제외 (검색/피드와 동일).
+            AND c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
             AND (
               -- 본인이 만든 페르소나
               c.owner_id = ?
@@ -848,7 +803,8 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
             )
           ORDER BY c.created_at DESC, c.id DESC`,
       )
-      .bind(userId, userId, userId, userId, userId)
+
+      .bind(userId, userId, userId, userId, userId, userId, userId)
       .all<{
         id: number;
         name: string;
@@ -951,7 +907,8 @@ users.get("/:id/followed-clones", requireAuth, async (c) => {
 
 users.get("/me/blocks", requireAuth, async (c) => {
   const userId = c.get("userId")!;
-  const rows = (
+
+  const cloneRows = (
     await c.env.DB
       .prepare(
         `SELECT b.id           AS blockId,
@@ -960,7 +917,9 @@ users.get("/me/blocks", requireAuth, async (c) => {
                 c.name         AS cloneName,
                 c.username     AS cloneUsername,
                 c.avatar_url   AS cloneAvatarUrl,
-                c.clone_type   AS cloneType
+                c.clone_type   AS cloneType,
+                c.owner_id     AS cloneOwnerId,
+                c.visibility   AS cloneVisibility
            FROM clone_blocks b
            JOIN clones c ON c.id = b.clone_id
           WHERE b.user_id = ? AND c.deleted_at IS NULL
@@ -975,20 +934,166 @@ users.get("/me/blocks", requireAuth, async (c) => {
         cloneUsername: string;
         cloneAvatarUrl: string | null;
         cloneType: string;
+        cloneOwnerId: number;
+        cloneVisibility: string;
       }>()
   ).results;
+
+  const userRows = (
+    await c.env.DB
+      .prepare(
+        `SELECT b.id          AS blockId,
+                b.created_at  AS createdAt,
+                u.id          AS uId,
+                u.name        AS uName,
+                u.email       AS uEmail,
+                u.avatar_url  AS uAvatarUrl
+           FROM user_blocks b
+           JOIN users u ON u.id = b.blocked_id
+          WHERE b.blocker_id = ?
+          ORDER BY b.id DESC`,
+      )
+      .bind(userId)
+      .all<{
+        blockId: number;
+        createdAt: string;
+        uId: number;
+        uName: string | null;
+        uEmail: string;
+        uAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  const cloneItems = cloneRows.map((r) => ({
+    blockId: r.blockId,
+    createdAt: r.createdAt,
+    type: "clone" as const,
+    clone: {
+      id: r.cloneId,
+      name: r.cloneName,
+      username: r.cloneUsername,
+      avatarUrl: r.cloneAvatarUrl,
+      cloneType: r.cloneType,
+      ownerId: r.cloneOwnerId,
+      visibility: r.cloneVisibility,
+    },
+  }));
+  const userItems = userRows.map((r) => ({
+    blockId: r.blockId,
+    createdAt: r.createdAt,
+    type: "user" as const,
+    user: {
+      id: r.uId,
+      name: r.uName,
+      email: r.uEmail,
+      avatarUrl: r.uAvatarUrl,
+    },
+  }));
+
+  const items = [...cloneItems, ...userItems].sort((a, b) =>
+    a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0,
+  );
+
+  return c.json({ items });
+});
+
+users.get("/me/reports/made", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT * FROM (
+           SELECT 'user' AS type, ur.id AS id, ur.reason AS reason, ur.status AS status,
+                  ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt,
+                  COALESCE(ur.reporter_message, ur.admin_message) AS adminMessage,
+                  tu.name AS targetName, COALESCE(tu.email, '') AS targetEmail, ur.target_id AS targetId
+             FROM user_reports ur
+             JOIN users tu ON tu.id = ur.target_id
+            WHERE ur.reporter_id = ?
+           UNION ALL
+           SELECT 'clone' AS type, cr.id AS id, cr.reason AS reason, cr.status AS status,
+                  cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt,
+                  COALESCE(cr.reporter_message, cr.admin_message) AS adminMessage,
+                  c.name AS targetName, COALESCE(c.username, '') AS targetEmail, cr.clone_id AS targetId
+             FROM clone_reports cr
+             JOIN clones c ON c.id = cr.clone_id
+            WHERE cr.user_id = ?
+           UNION ALL
+           SELECT 'comment' AS type, cmr.id AS id, cmr.reason AS reason, cmr.status AS status,
+                  cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt,
+                  COALESCE(cmr.reporter_message, cmr.admin_message) AS adminMessage,
+                  COALESCE(au.name, '댓글') AS targetName, COALESCE(au.email, '') AS targetEmail, cmr.comment_id AS targetId
+             FROM comment_reports cmr
+             LEFT JOIN feed_comments fc ON fc.id = cmr.comment_id
+             LEFT JOIN users au ON au.id = fc.user_id
+            WHERE cmr.user_id = ?
+         )
+         ORDER BY createdAt DESC
+         LIMIT 100`,
+      )
+      .bind(userId, userId, userId)
+      .all()
+  ).results;
+  return c.json({ items: rows });
+});
+
+users.get("/me/reports/received", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+
+  const items = (
+    await c.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason,
+                r.createdAt AS createdAt, r.reviewedAt AS reviewedAt,
+                r.adminMessage AS adminMessage, r.reportType AS reportType,
+                r.cloneName AS cloneName, r.content AS content,
+                w.reason AS warningReason, w.created_at AS warnedAt
+           FROM (
+             SELECT 'user' AS reportType, ur.id AS id, ur.reason AS reason,
+                    ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt,
+                    COALESCE(ur.target_message, ur.admin_message) AS adminMessage,
+                    NULL AS cloneName, NULL AS content
+               FROM user_reports ur
+              WHERE ur.target_id = ? AND ur.status IN ('actioned', 'reviewed')
+             UNION ALL
+             SELECT 'clone' AS reportType, cr.id AS id, cr.reason AS reason,
+                    cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt,
+                    COALESCE(cr.target_message, cr.admin_message) AS adminMessage,
+                    c.name AS cloneName, NULL AS content
+               FROM clone_reports cr
+               JOIN clones c ON c.id = cr.clone_id
+              WHERE c.owner_id = ? AND cr.status IN ('actioned', 'reviewed')
+             UNION ALL
+             SELECT 'comment' AS reportType, cmr.id AS id, cmr.reason AS reason,
+                    cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt,
+                    COALESCE(cmr.target_message, cmr.admin_message) AS adminMessage,
+                    cc.name AS cloneName, fc.content AS content
+               FROM comment_reports cmr
+               JOIN feed_comments fc ON fc.id = cmr.comment_id
+               LEFT JOIN clones cc ON cc.id = cmr.clone_id
+              WHERE fc.user_id = ? AND cmr.status IN ('actioned', 'reviewed')
+           ) r
+           LEFT JOIN user_warnings w
+             ON w.report_id = r.id AND w.report_type = r.reportType AND w.user_id = ?
+          ORDER BY r.createdAt DESC
+          LIMIT 100`,
+      )
+      .bind(userId, userId, userId, userId)
+      .all()
+  ).results;
+  const wc = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(userId)
+    .first<{ n: number }>();
+  const u = await c.env.DB
+    .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ s: string | null }>();
   return c.json({
-    items: rows.map((r) => ({
-      blockId: r.blockId,
-      createdAt: r.createdAt,
-      clone: {
-        id: r.cloneId,
-        name: r.cloneName,
-        username: r.cloneUsername,
-        avatarUrl: r.cloneAvatarUrl,
-        cloneType: r.cloneType,
-      },
-    })),
+    items,
+    warningCount: wc?.n ?? 0,
+    suspendedUntil: u?.s ?? null,
   });
 });
 
@@ -1371,11 +1476,17 @@ users.post("/:id/block", requireAuth, async (c) => {
       `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
     ).bind(userId, targetId),
     c.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(userId, targetId),
     c.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(targetId, userId),
+
+    c.env.DB.prepare(
+      `DELETE FROM clone_follows
+        WHERE user_id = ?
+          AND clone_id IN (SELECT id FROM clones WHERE owner_id = ?)`,
+    ).bind(userId, targetId),
   ]);
   await logActivity(c, {
     userId,
@@ -1421,10 +1532,10 @@ users.post("/:id/report", requireAuth, async (c) => {
       `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
     ).bind(userId, targetId),
     c.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(userId, targetId),
     c.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(targetId, userId),
   ]);
   await logActivity(c, {
