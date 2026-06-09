@@ -21,6 +21,7 @@ import argparse
 import copy
 import os
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Callable
@@ -147,6 +148,12 @@ class MuseTalkInproc:
         self._args: argparse.Namespace | None = None
         self._models: object | None = None
         self._loaded = False
+        # GPU 추론 직렬화 Lock — 다중클론 동시통화 시 공유 모델(self._models)에
+        # 동시 진입하면 CUDA illegal memory access 로 컨텍스트가 오염되어 이후
+        # 모든 infer 가 frames=0 이 된다(입싱크 영상 미생성). qwen3tts _SYNTH_LOCK
+        # 과 동일하게 run_inference 를 직렬화한다. infer 는 run_in_executor(별
+        # 스레드)로 호출되므로 asyncio.Lock 이 아닌 threading.Lock 이 정확하다.
+        self._infer_lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # load()
@@ -230,7 +237,8 @@ class MuseTalkInproc:
         PRETHIRD_OUTPUTS.mkdir(parents=True, exist_ok=True)
         RESULT_DIR.mkdir(parents=True, exist_ok=True)
 
-        safe_id = f"prethird_{int(time.time() * 1000)}"
+        # thread id 포함 — 동시 통화가 같은 ms 에 진입해도 cfg 파일명이 겹치지 않음
+        safe_id = f"prethird_{int(time.time() * 1000)}_{threading.get_ident()}"
         cfg_path = CONFIG_DIR / f"runtime_{safe_id}.yaml"
         cfg_data = {
             "task_0": {
@@ -265,12 +273,14 @@ class MuseTalkInproc:
 
         _timing: dict = {}
         try:
-            inference_lib.run_inference(
-                args,        # per-call copy — self._args 불변 유지
-                self._models,  # 모델은 공유 (재로드 없음)
-                frame_callback=_cb,
-                timing_out=_timing,
-            )
+            # GPU 추론 직렬화: 공유 모델 동시 진입(CUDA illegal memory access) 방지.
+            with self._infer_lock:
+                inference_lib.run_inference(
+                    args,        # per-call copy — self._args 불변 유지
+                    self._models,  # 모델은 공유 (재로드 없음)
+                    frame_callback=_cb,
+                    timing_out=_timing,
+                )
         finally:
             # cfg 정리 (실패해도 시도)
             try:
