@@ -242,8 +242,14 @@ v_f891e6.post(
           source: "afterlife.persona-create",
         });
         if (!v_e69235.ok) {
+
           if (v_e69235.code === 401 || v_e69235.code === 403) {
-            throw new v_3ebe58("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+            const v_13cd33 = /paymentPin not set/i.test(v_e69235.reason ?? "");
+            throw new v_3ebe58(
+              v_13cd33 ? "PAYMENT_PIN_REQUIRED" : "PAYMENT_PIN_INVALID",
+              v_13cd33 ? "결제 비밀번호가 설정되어 있지 않아요." : "결제 비밀번호가 일치하지 않아요.",
+              { reason: v_e69235.reason ?? null },
+            );
           }
           if (v_e69235.code === 402) {
             throw new v_3ebe58("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
@@ -1344,9 +1350,12 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
       .run();
 
     if (v_38fb16.code === 401 || v_38fb16.code === 403) {
-      throw new v_3ebe58("UNAUTHENTICATED", "PIN verification failed.", {
-        reason: v_38fb16.reason,
-      });
+      const v_13cd33 = /paymentPin not set/i.test(v_38fb16.reason ?? "");
+      throw new v_3ebe58(
+        v_13cd33 ? "PAYMENT_PIN_REQUIRED" : "PAYMENT_PIN_INVALID",
+        v_13cd33 ? "결제 비밀번호가 설정되어 있지 않아요." : "결제 비밀번호가 일치하지 않아요.",
+        { reason: v_38fb16.reason },
+      );
     }
     if (v_38fb16.code === 402) {
       throw new v_3ebe58("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.", {

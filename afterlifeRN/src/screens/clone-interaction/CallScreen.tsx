@@ -337,9 +337,18 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       let v_9f1622 = "송금 실패";
       let v_badeaf = "송금에 실패했어요.";
       let v_81532e = false;
+      let v_e859fc = false;   
+      let v_947b86 = false;   
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "결제 비밀번호가 일치하지 않아요.";
-        else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
+        if (v_49263d.code === "PAYMENT_PIN_INVALID" || v_49263d.code === "UNAUTHENTICATED") {
+          v_9f1622 = "결제 비밀번호 오류";
+          v_badeaf = "결제 비밀번호가 일치하지 않아요.\n다시 입력해 주세요.";
+          v_e859fc = true;
+        } else if (v_49263d.code === "PAYMENT_PIN_REQUIRED") {
+          v_9f1622 = "결제 비밀번호 미설정";
+          v_badeaf = "아직 결제 비밀번호(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
+          v_947b86 = true;
+        } else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
           v_81532e = true;
 
           const v_ff3b79 = v_555760
@@ -375,16 +384,25 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       v_ece29b(false);
       v_d0452a("");
-      v_889fad(
-        v_9f1622,
-        v_badeaf,
-        v_81532e
-          ? [
-              { text: "다음에 하기", style: "cancel" },
-              { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
-            ]
-          : undefined,
-      );
+      let actions: Parameters<typeof v_889fad>[2];
+      if (v_81532e) {
+        v_dd943a = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
+        ];
+      } else if (v_e859fc) {
+
+        v_dd943a = [
+          { text: "취소", style: "cancel" },
+          { text: "다시 입력", onPress: () => { v_d0452a(""); v_ece29b(true); } },
+        ];
+      } else if (v_947b86) {
+        v_dd943a = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN에서 설정", onPress: () => void v_0c2802() },
+        ];
+      }
+      v_889fad(v_9f1622, v_badeaf, v_dd943a);
     } finally {
       v_a8bf66(false);
     }
