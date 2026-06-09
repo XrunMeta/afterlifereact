@@ -29,6 +29,9 @@
 <body>
 <header>
   <input id="apiBase" type="text" placeholder="API base (예: https://edge-alt-preview.example.invalid)" />
+  <input id="email" type="text" placeholder="email" style="min-width:150px" />
+  <input id="password" type="password" placeholder="password" style="min-width:120px" />
+  <button id="login">로그인</button>
   <input id="token" type="password" placeholder="access token" />
   <button id="loadClones">클론 불러오기</button>
   <select id="clone"><option value="">— 클론 —</option></select>
@@ -78,6 +81,24 @@ function addBubble(role, text) {
 }
 
 $("reset").onclick = () => { history = []; $("log").innerHTML = ""; };
+
+$("login").onclick = async () => {
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  if (!email || !password) { alert("이메일/비밀번호를 입력하세요"); return; }
+  const r = await fetch("/oth-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!r.ok) { alert("로그인 실패: " + r.status); return; }
+  const { accessToken } = await r.json();
+  if (!accessToken) { alert("토큰 없음"); return; }
+  $("token").value = accessToken;
+  saveCfg();
+
+  $("loadClones").click();
+};
 
 $("loadClones").onclick = async () => {
   const r = await fetch("/oth-path", { headers: { Authorization: "Bearer " + $("token").value } });
