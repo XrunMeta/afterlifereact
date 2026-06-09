@@ -26,7 +26,7 @@ v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("FORBIDDEN", "No access to this clone for call.");
   }
 
-  const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce);
+  const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce, new URL(v_3f4e2e.req.url).origin);
 
   const v_3e7379 = v_3f4e2e.env.ORCHESTRATOR_URL;
   let v_cb35cb;
@@ -74,7 +74,7 @@ v_20e160.get("/:cloneId/bundle", v_6690d9, async (v_3f4e2e) => {
   if (!v_00efe2 && v_eb25ce.visibility !== "public") {
     throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
   }
-  const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce);
+  const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce, new URL(v_3f4e2e.req.url).origin);
   return v_3f4e2e.json({ personaBundle: v_ba0fde, assets: v_7adc95 });
 });
 
