@@ -36,3 +36,24 @@ async def chat_stream(
                     yield tok
                 if obj.get("done"):
                     break
+
+async def chat_once(
+    messages: list[dict],
+    model: str | None = None,
+    temperature: float | None = None,
+    fmt: str | None = None,
+) -> str:
+    """ollama /oth-path 비스트리밍 — 전체 응답 content 문자열 반환.
+
+    fmt="json" 이면 ollama format 강제(JSON만 출력 유도). 추출 등 1회 완성 용도.
+    """
+    payload: dict = {"model": model or MODEL, "messages": messages, "stream": False}
+    if temperature is not None:
+        payload["options"] = {"temperature": temperature}
+    if fmt:
+        payload["format"] = fmt
+    async with aiohttp.ClientSession() as sess:
+        async with sess.post(f"{OLLAMA_URL}/oth-path", json=payload) as resp:
+            resp.raise_for_status()
+            obj = await resp.json()
+            return obj.get("message", {}).get("content", "")
