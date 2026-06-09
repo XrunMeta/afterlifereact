@@ -192,7 +192,7 @@ async def fetch_to(
             resp.raise_for_status()
 
             try:
-                async for chunk in resp.iter_chunked(64 * 1024):  # 64KB 청크
+                async for chunk in resp.content.iter_chunked(64 * 1024):  # 64KB 청크
                     downloaded += len(chunk)
                     if downloaded > max_bytes:
                         raise ValueError(
