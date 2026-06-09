@@ -1,5 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -80,7 +80,7 @@ export default function MyScreen() {
     };
   }, [accessToken]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let cancelled = false;
     if (!accessToken) {
 
@@ -116,7 +116,7 @@ export default function MyScreen() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken]);
+  }, [accessToken]));
 
   const balanceLoading = xrunBalanceLoading;
   const xrunDisplay = xrunBalance ?? null;
