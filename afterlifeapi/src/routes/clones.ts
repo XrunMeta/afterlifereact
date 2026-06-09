@@ -13,7 +13,7 @@ import {
   v_efcb2d,
   v_d875d1,
 } from "../lib/cloneAccess";
-import { v_9c8187, v_55eb2a } from "../lib/memoryStore";
+import { v_9c8187, v_55eb2a, v_3821c0, v_5729a9 } from "../lib/memoryStore";
 import {
   v_dd9d7c,
   v_1ad6ed,
@@ -1147,38 +1147,31 @@ v_f891e6.patch("/:id/l2", v_6690d9, async (v_3f4e2e) => {
   }
   const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_02c038);
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_a1651b = v_3f4e2e.env.DB;
 
-  const v_eb25ce = await v_5d4a51(v_a1651b, v_6e0fd3);
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
   if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "페르소나를 찾을 수 없어요.");
-  const v_2aec08 =
-    v_eb25ce.owner_id === v_43e90c ||
-    (await v_7adf64(v_a1651b, v_6e0fd3, v_43e90c)) === "owner";
-  if (!v_2aec08) throw new v_3ebe58("FORBIDDEN", "소유자만 변경할 수 있어요.");
 
-  const v_3ac7e7 = await v_a1651b
-    .prepare("SELECT l2_profile FROM clones WHERE id = ? AND deleted_at IS NULL")
-    .bind(v_6e0fd3)
-    .first<{ l2_profile: string | null }>();
-  let v_275ccd = {};
-  if (v_3ac7e7?.l2_profile) {
-    try {
-      v_275ccd = JSON.parse(v_3ac7e7.l2_profile);
-    } catch {
-      v_275ccd = {};
-    }
+  const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
+  if (!v_00efe2 && v_eb25ce.visibility !== "public") {
+    throw new v_3ebe58("FORBIDDEN", "이 클론에 접근할 수 없어요.");
   }
-  const v_2b7a6d = { ...v_275ccd, ...v_4d33b2 };
+
+  const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
+  let v_9390e8 = {};
+  if (v_479f05) { try { v_9390e8 = JSON.parse(v_479f05); } catch { v_9390e8 = {}; } }
+  for (const v_0eb677 of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+    if (v_4d33b2[v_0eb677] !== undefined) v_9390e8[v_0eb677] = v_4d33b2[v_0eb677];
+  }
+  try {
+    await v_5729a9(v_3f4e2e.env, v_6e0fd3, v_43e90c, JSON.stringify(v_9390e8));
+  } catch (v_9e86fd) {
+    throw new v_3ebe58("INTERNAL_ERROR", "L2 저장에 실패했어요.");
+  }
 
   const v_76a373 = {};
   for (const v_0eb677 of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
-    if (v_2b7a6d[v_0eb677] !== undefined) v_76a373[v_0eb677] = v_2b7a6d[v_0eb677];
+    if (v_9390e8[v_0eb677] !== undefined) v_76a373[v_0eb677] = v_9390e8[v_0eb677];
   }
-  await v_a1651b
-    .prepare("UPDATE clones SET l2_profile = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL")
-    .bind(JSON.stringify(v_76a373), v_6e0fd3)
-    .run();
-
   return v_3f4e2e.json({ l2_profile: v_76a373 });
 });
 
