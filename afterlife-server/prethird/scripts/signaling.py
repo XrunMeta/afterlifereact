@@ -4,8 +4,7 @@ from typing import Callable, Optional
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from session import SessionManager
-from bundle_client import fetch_bundle
-from persona_prompt import bundle_to_messages
+from clone_dialog import fetch_bundle, bundle_to_messages
 from asset_fetch import fetch_to
 
 REF_VOICES_ROOT = os.environ.get(

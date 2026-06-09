@@ -1,6 +1,6 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
-from persona_prompt import bundle_to_messages  # noqa: E402
+from clone_dialog import bundle_to_messages  # noqa: E402
 
 
 def test_none_returns_empty():

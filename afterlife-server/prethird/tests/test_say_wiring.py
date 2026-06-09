@@ -168,7 +168,7 @@ def test_factory_uses_session_persona_and_se(monkeypatch):
     monkeypatch.setitem(sys.modules, "pipeline", types.ModuleType("pipeline"))
     sys.modules["pipeline"].DialoguePipeline = FakeDialoguePipeline  # type: ignore[attr-defined]
 
-    for mod_name in ("llm_client", "tts_client", "audio_utils"):
+    for mod_name in ("clone_dialog", "tts_client", "audio_utils"):
         fake_mod = types.ModuleType(mod_name)
         fake_mod.chat_stream = None  # type: ignore[attr-defined]
         fake_mod.say = None  # type: ignore[attr-defined]
@@ -213,7 +213,7 @@ def test_factory_falls_back_to_defaults(monkeypatch):
     monkeypatch.setitem(sys.modules, "pipeline", types.ModuleType("pipeline"))
     sys.modules["pipeline"].DialoguePipeline = FakeDialoguePipeline  # type: ignore[attr-defined]
 
-    for mod_name in ("llm_client", "tts_client", "audio_utils"):
+    for mod_name in ("clone_dialog", "tts_client", "audio_utils"):
         fake_mod = types.ModuleType(mod_name)
         fake_mod.chat_stream = None  # type: ignore[attr-defined]
         fake_mod.say = None  # type: ignore[attr-defined]
