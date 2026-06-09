@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -127,7 +128,13 @@ export default function SignupCompleteScreen({ route }: Props) {
 }
           <View style={s.cards}>
             <ServiceCard
-              icon={<Text style={s.iconText}>∞</Text>}
+              icon={
+                <Image
+                  source={require("../../../assets/images/symbol.png")}
+                  style={s.iconImg}
+                  resizeMode="contain"
+                />
+              }
               title={t("auth.signupComplete.afterlifeTitle", {
                 defaultValue: "애프터라이프",
               })}
@@ -140,7 +147,13 @@ export default function SignupCompleteScreen({ route }: Props) {
               onPress={undefined}
             />
             <ServiceCard
-              icon={<Text style={s.iconText}>X</Text>}
+              icon={
+                <Image
+                  source={require("../../../assets/images/xrun-round-logo.png")}
+                  style={s.iconImg}
+                  resizeMode="cover"
+                />
+              }
               title={t("auth.signupComplete.xrunTitle", {
                 defaultValue: "XRUN",
               })}
@@ -262,6 +275,11 @@ const s = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: COLORS.white,
+  },
+  iconImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
   },
   cardTitle: {
     fontSize: 16,
