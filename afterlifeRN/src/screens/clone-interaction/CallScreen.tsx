@@ -24,6 +24,8 @@ import { RTCView, mediaDevices } from "react-native-webrtc";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import { DialingScreen } from "../../components/call/DialingScreen";
+import { CallStatusGlow } from "../../components/call/CallStatusGlow";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -82,6 +84,8 @@ export default function CallScreen({ route, navigation }: Props) {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
 
+  const [dialingDone, setDialingDone] = useState(false);
+
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -139,8 +143,8 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const {
     phase,
-    micOn,
-    toggleMic,
+    pendingText,
+    cancelConfirm,
     transcript,
     interimTranscript,
   } = useHandsFreeController({
@@ -175,6 +179,15 @@ export default function CallScreen({ route, navigation }: Props) {
     const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [liveState]);
+
+  const confirmProgress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (phase !== 'confirming') { confirmProgress.setValue(0); return; }
+    confirmProgress.setValue(1);
+    const anim = Animated.timing(confirmProgress, { toValue: 0, duration: 2000, useNativeDriver: true });
+    anim.start();
+    return () => anim.stop();
+  }, [phase, pendingText, confirmProgress]);
 
   const callStartRef = useRef<number>(Date.now());
   const tokenRef = useRef(accessToken);
@@ -478,12 +491,15 @@ export default function CallScreen({ route, navigation }: Props) {
       ) : null}
 
       {}
-      {liveState !== "live" && (
-        <View style={s.liveOverlay} pointerEvents="none">
-          <Text style={s.liveOverlayText}>
-            {liveState === "error" ? "연결에 실패했어요" : "연결 중…"}
-          </Text>
-        </View>
+      {!dialingDone && (
+        <DialingScreen
+          liveState={liveState}
+          personaName={personaName}
+          personaImage={typeof personaImage === "string" ? personaImage : ""}
+          onConnected={() => setDialingDone(true)}
+          onCancel={async () => { await stopLive(); navigation.goBack(); }}
+          onRetry={() => { void startLive(); }}
+        />
       )}
 
       <LinearGradient
@@ -491,6 +507,8 @@ export default function CallScreen({ route, navigation }: Props) {
         locations={[0, 0.4, 1]}
         style={StyleSheet.absoluteFill}
       />
+
+      {dialingDone ? <CallStatusGlow phase={phase} /> : null}
 
       {
 }
@@ -596,27 +614,22 @@ export default function CallScreen({ route, navigation }: Props) {
       ) : null}
 
       {}
-      <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
-        {}
-        <Pressable
-          onPress={toggleMic}
-          style={[
-            s.controlBtn,
-            micOn && phase === 'listening' && s.controlBtnActive,
-            phase === 'speaking' && s.controlBtnDanger,
-          ]}
-        >
-          <Text style={s.talkBtnText}>
-            {!micOn
-              ? '마이크 꺼짐'
-              : phase === 'speaking'
-                ? '응답 중...'
-                : phase === 'listening'
-                  ? '듣는 중...'
-                  : '대기'}
-          </Text>
+      {phase === 'confirming' && !!pendingText ? (
+        <Pressable style={s.confirmTapArea} onPress={cancelConfirm}>
+          <View style={s.subtitleContainer} pointerEvents="none">
+            <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+              {pendingText}
+            </Text>
+            <View style={s.confirmBarTrack}>
+              <Animated.View style={[s.confirmBarFill, { transform: [{ scaleX: confirmProgress }] }]} />
+            </View>
+            <Text style={s.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
+          </View>
         </Pressable>
+      ) : null}
 
+      {}
+      <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
         <TouchableOpacity
           style={[s.controlBtn, isMuted && s.controlBtnDanger]}
           onPress={() => {
@@ -778,27 +791,6 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.zinc950,
   },
-  liveOverlay: {
-    position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 5,
-  },
-  liveOverlayText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.white,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    overflow: "hidden",
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
 
   pip: {
     position: "absolute",
@@ -895,6 +887,34 @@ const s = StyleSheet.create({
     textAlign: 'center',
     overflow: 'hidden',
   },
+  confirmTapArea: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    height: '33%',
+    justifyContent: 'center',
+    zIndex: 16,
+  },
+  confirmHint: {
+    marginTop: 6,
+    fontSize: 11,
+    color: COLORS.zinc300,
+    textAlign: 'center',
+  },
+  confirmBarTrack: {
+    marginTop: 8,
+    width: 160,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  confirmBarFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: COLORS.white,
+  },
 
   controls: {
     position: "absolute",
@@ -905,7 +925,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 24,
-    zIndex: 10,
+    zIndex: 18,
   },
   controlBtn: {
     width: 56,
@@ -917,15 +937,6 @@ const s = StyleSheet.create({
   },
   controlBtnDanger: {
     backgroundColor: COLORS.error,
-  },
-  controlBtnActive: {
-    backgroundColor: COLORS.violet500,
-  },
-  talkBtnText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.white,
-    textAlign: "center",
   },
   endCallBtn: {
     width: 72,

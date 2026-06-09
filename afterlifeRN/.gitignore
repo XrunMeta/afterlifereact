@@ -61,3 +61,5 @@ eas-build.log
 
 # pnpm lock (this project uses npm / package-lock.json)
 pnpm-lock.yaml
+
+.superpowers/
