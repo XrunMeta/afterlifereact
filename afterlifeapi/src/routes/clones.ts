@@ -145,6 +145,9 @@ const createSchema = z.object({
 
 const PERSONA_PAID_PRICE_XRUN = 100;
 
+const TEST_PRICE_EMAIL = "oth-user@example.invalid";
+const TEST_PRICE_XRUN = 0.05;
+
 clones.post(
   "/",
   requireAuth,
@@ -194,7 +197,11 @@ clones.post(
       .first<{ n: number }>();
     const usedCount = existing?.n ?? 0;
 
-    const personaPrice = c.env.ENVIRONMENT === "production" ? PERSONA_PAID_PRICE_XRUN : 0.0001;
+    const me = await db
+      .prepare(`SELECT email FROM users WHERE id = ?`)
+      .bind(userId)
+      .first<{ email: string | null }>();
+    const personaPrice = me?.email === TEST_PRICE_EMAIL ? TEST_PRICE_XRUN : PERSONA_PAID_PRICE_XRUN;
 
     if (usedCount >= 100) {
       throw new APIError(
@@ -1267,9 +1274,9 @@ clones.post("/:id/gift", requireAuth, async (c) => {
   const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
 
   const sender = await c.env.DB
-    .prepare(`SELECT id, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT id, xrun_member_id, email FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(senderId)
-    .first<{ id: number; xrun_member_id: number | null }>();
+    .first<{ id: number; xrun_member_id: number | null; email: string | null }>();
   if (!sender) throw new APIError("UNAUTHENTICATED", "사용자를 찾을 수 없어요.");
   if (!sender.xrun_member_id) {
     throw new APIError("CONFLICT", "내 계정에 xrun 이 연동되어 있지 않아요.");
@@ -1294,7 +1301,7 @@ clones.post("/:id/gift", requireAuth, async (c) => {
 
   const ownerLinked = !!owner?.xrun_member_id;
 
-  const total = body.amount;
+  const total = sender.email === TEST_PRICE_EMAIL ? TEST_PRICE_XRUN : body.amount;
   const companyAmount = ownerLinked
     ? Math.round(total * 0.6 * 1_000_000) / 1_000_000
     : total;

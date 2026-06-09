@@ -23,7 +23,10 @@ import { listMyClones } from "../../../api/clones";
 import { getXrunBalance } from "../../../api/payments";
 import { API_BASE, API_BASE_PREVIEW } from "../../../config/apiBase";
 
-const PERSONA_PAID_PRICE_XRUN = API_BASE === API_BASE_PREVIEW ? 0.0001 : 100;
+const PERSONA_FULL_PRICE_XRUN = 100;
+
+const TEST_PRICE_EMAIL = "oth-user@example.invalid";
+const TEST_PRICE_XRUN = 0.05;
 
 interface Props {
 
@@ -34,7 +37,11 @@ interface Props {
 
 export default function PersonaCreationPaymentGate({ onProceed, onCancel }: Props) {
   const accessToken = useAuthStore((s) => s.accessToken);
+  const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
   const setCreationDraft = useCloneStore((s) => s.setCreationDraft);
+
+  const PERSONA_PAID_PRICE_XRUN =
+    userEmail === TEST_PRICE_EMAIL ? TEST_PRICE_XRUN : PERSONA_FULL_PRICE_XRUN;
 
   const [loading, setLoading] = useState(true);
   const [needPay, setNeedPay] = useState(false);
