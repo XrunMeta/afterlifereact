@@ -240,6 +240,29 @@ async def verify_l2_reset(req: web.Request) -> web.Response:
         return web.json_response({"error": "reset failed"}, status=502)
     return web.json_response({"saved": saved})
 
+async def verify_bundle(req: web.Request) -> web.Response:
+    """현재 L0/L1/L2 분리 조회 — 테이블 표시용.
+    l0=personaBundle.l0, l2=고정4필드, l1=persona 나머지.
+    """
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    raw_cid = req.query.get("clone_id")
+    try:
+        clone_id = int(raw_cid)
+    except (TypeError, ValueError):
+        clone_id = -1
+    if clone_id <= 0:
+        return web.json_response({"error": "invalid clone_id"}, status=400)
+
+    bundle = await fetch_bundle(API_BASE, clone_id, token)
+    pb = (bundle or {}).get("personaBundle") or {}
+    l0 = pb.get("l0") or {}
+    persona = pb.get("persona") or {}
+    l2 = {k: (persona.get(k) or "") for k in _L2_FIELDS}
+    l1 = {k: v for k, v in persona.items() if k not in _L2_FIELDS}
+    return web.json_response({"l0": l0, "l1": l1, "l2": l2})
+
 async def verify_page(_req: web.Request) -> web.FileResponse:
     html = pathlib.Path(__file__).resolve().parents[1] / "static" / "verify_chat.html"
     return web.FileResponse(html)
@@ -252,3 +275,4 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_post("/oth-path", verify_chat)
     app.router.add_post("/oth-path", verify_learn)
     app.router.add_post("/oth-path", verify_l2_reset)
+    app.router.add_get("/oth-path", verify_bundle)
