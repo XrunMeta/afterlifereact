@@ -145,6 +145,9 @@ const v_722b6d = v_1f4ea7.object({
 
 const v_c02c4c = 100;
 
+const v_e0fb31 = "oth-user@example.invalid";
+const v_8e9814 = 0.05;
+
 v_f891e6.post(
   "/",
   v_6690d9,
@@ -194,7 +197,11 @@ v_f891e6.post(
       .first<{ n: number }>();
     const v_faa47d = v_3c8572?.n ?? 0;
 
-    const v_2ab8bf = v_3f4e2e.env.ENVIRONMENT === "production" ? v_c02c4c : 0.0001;
+    const v_b32680 = await v_a1651b
+      .prepare(`SELECT email FROM users WHERE id = ?`)
+      .bind(v_43e90c)
+      .first<{ email: string | null }>();
+    const v_2ab8bf = v_b32680?.email === v_e0fb31 ? v_8e9814 : v_c02c4c;
 
     if (v_faa47d >= 100) {
       throw new v_3ebe58(
@@ -1254,9 +1261,9 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
   const v_a832b3 = Number(v_3f4e2e.env.PAYMENT_CURRENCY ?? "18") || 18;
 
   const v_eddf67 = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT id, xrun_member_id, email FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(v_f7e120)
-    .first<{ id: number; xrun_member_id: number | null }>();
+    .first<{ id: number; xrun_member_id: number | null; email: string | null }>();
   if (!v_eddf67) throw new v_3ebe58("UNAUTHENTICATED", "사용자를 찾을 수 없어요.");
   if (!v_eddf67.xrun_member_id) {
     throw new v_3ebe58("CONFLICT", "내 계정에 xrun 이 연동되어 있지 않아요.");
@@ -1281,7 +1288,7 @@ v_f891e6.post("/:id/gift", v_6690d9, async (v_3f4e2e) => {
 
   const v_ed9f44 = !!v_257b90?.xrun_member_id;
 
-  const v_c83285 = v_4d33b2.amount;
+  const v_c83285 = v_eddf67.email === v_e0fb31 ? v_8e9814 : v_4d33b2.amount;
   const v_22c1da = v_ed9f44
     ? Math.round(v_c83285 * 0.6 * 1_000_000) / 1_000_000
     : v_c83285;

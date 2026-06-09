@@ -23,7 +23,10 @@ import { v_d60cdf } from "../../../api/clones";
 import { v_5c99c1 } from "../../../api/payments";
 import { v_cc9198, v_138fd4 } from "../../../config/apiBase";
 
-const v_c02c4c = v_cc9198 === v_138fd4 ? 0.0001 : 100;
+const v_f72031 = 100;
+
+const v_e0fb31 = "oth-user@example.invalid";
+const v_8e9814 = 0.05;
 
 interface Props {
 
@@ -34,7 +37,11 @@ interface Props {
 
 export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Props) {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
   const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
+
+  const v_c02c4c =
+    v_f4fb5e === v_e0fb31 ? v_8e9814 : v_f72031;
 
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_f99e34, v_337a5f] = v_5ab095(false);

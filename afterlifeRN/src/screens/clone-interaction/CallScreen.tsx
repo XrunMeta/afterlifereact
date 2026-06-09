@@ -62,7 +62,11 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
   const v_033e14 = v_e0068c();
+
+  const v_8e9668 = (g: v_84fd28) =>
+    v_f4fb5e === "oth-user@example.invalid" ? 0.05 : v_206b88.price;
   const v_f9771e = v_c18c22(0);
   const v_53dd92 =
     v_326be8.OS === "ios" ? v_033e14.bottom : Math.max(v_f9771e, v_033e14.bottom);
@@ -262,12 +266,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   };
 
   const v_25b14f = (gift: v_84fd28) => {
+    const v_6bbb57 = v_8e9668(v_bbee9c);
     console.log(
-      `[Call][gift-tap] giftId=${v_bbee9c.id} name=${v_bbee9c.name} price=${v_bbee9c.price} ` +
-        `myCredits=${v_e2c945} (typeof=${typeof v_e2c945}) enough=${v_e2c945 >= v_bbee9c.price}`,
+      `[Call][gift-tap] giftId=${v_bbee9c.id} name=${v_bbee9c.name} price=${v_6bbb57} ` +
+        `myCredits=${v_e2c945} (typeof=${typeof v_e2c945}) enough=${v_e2c945 >= v_6bbb57}`,
     );
-    if (v_e2c945 < v_bbee9c.price) {
-      const v_ff3b79 = Math.max(0, v_bbee9c.price - v_e2c945);
+    if (v_e2c945 < v_6bbb57) {
+      const v_ff3b79 = Math.max(0, v_6bbb57 - v_e2c945);
       console.log(
         `[Call][gift-insufficient-precheck] ${v_e2c945} < ${v_bbee9c.price} (shortage=${v_ff3b79}) → block PIN modal`,
       );
@@ -294,8 +299,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_15c939("PIN 6자리를 입력해 주세요");
       return;
     }
+    const v_fd7e94 = v_8e9668(v_555760);
     console.log(
-      `[Call][gift-submit] giftId=${v_555760.id} amount=${v_555760.price} ` +
+      `[Call][gift-submit] giftId=${v_555760.id} amount=${v_fd7e94} ` +
         `myCredits=${v_e2c945} cloneId=${v_6e0fd3} pin=*** (${v_c924cc.length} chars)`,
     );
     v_a8bf66(true);
@@ -303,7 +309,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       const v_8f00b9 = await v_28dc16(v_2ca7e0, v_6e0fd3, {
         giftId: v_555760.id,
         giftName: v_555760.name,
-        amount: v_555760.price,
+        amount: v_fd7e94,
         pin: v_c924cc,
       });
       console.log("[Call][gift-ok] gift sent:", v_8f00b9.gift);
@@ -666,7 +672,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
                   </View>
                   <Text style={v_fd5f43.giftName}>{v_8c0b26.name}</Text>
-                  <Text style={v_fd5f43.giftPrice}>{v_8c0b26.price} XRUN</Text>
+                  <Text style={v_fd5f43.giftPrice}>{v_8e9668(v_8c0b26)} XRUN</Text>
                 </TouchableOpacity>
               )}
             />
