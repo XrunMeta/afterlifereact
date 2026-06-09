@@ -404,7 +404,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       } else if (v_947b86) {
         v_dd943a = [
           { text: "다음에 하기", style: "cancel" },
-          { text: "XRUN에서 설정", onPress: () => void v_0c2802() },
+          { text: "xrun 비밀번호 재설정", onPress: () => void v_0c2802() },
         ];
       }
       v_889fad(v_9f1622, v_badeaf, v_dd943a);
