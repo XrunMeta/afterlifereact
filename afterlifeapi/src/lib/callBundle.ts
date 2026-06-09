@@ -38,18 +38,21 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, origin: s
     voiceSeKey = vp?.se_key ?? null;
   }
 
-  const jobRow = await db
-    .prepare(
-      `SELECT f.id AS file_id
-         FROM clone_asset_jobs j
-         JOIN files f ON j.src_file_id = f.id
-        WHERE j.clone_id = ? AND j.kind = 'voice_clone' AND j.status = 'done'
-        ORDER BY j.created_at DESC
-        LIMIT 1`,
-    )
-    .bind(cloneId)
-    .first<{ file_id: number }>();
-  const voiceRawUrl = jobRow ? `${origin}/oth-path${jobRow.file_id}` : null;
+  let voiceRawUrl: string | null = null;
+  if (clone.voice_se_url) {
+    const jobRow = await db
+      .prepare(
+        `SELECT f.id AS file_id
+           FROM clone_asset_jobs j
+           JOIN files f ON j.src_file_id = f.id
+          WHERE j.out_url = ? AND j.kind = 'voice_clone' AND j.status = 'done'
+          ORDER BY j.created_at DESC
+          LIMIT 1`,
+      )
+      .bind(clone.voice_se_url)
+      .first<{ file_id: number }>();
+    voiceRawUrl = jobRow ? `${origin}/oth-path${jobRow.file_id}` : null;
+  }
 
   const assets = {
     idleVideoUrl: clone.idle_video_url ?? null,
