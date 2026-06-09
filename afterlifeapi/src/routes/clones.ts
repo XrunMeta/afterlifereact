@@ -194,6 +194,8 @@ v_f891e6.post(
       .first<{ n: number }>();
     const v_faa47d = v_3c8572?.n ?? 0;
 
+    const v_2ab8bf = v_3f4e2e.env.ENVIRONMENT === "production" ? v_c02c4c : 0.0001;
+
     if (v_faa47d >= 100) {
       throw new v_3ebe58(
         "QUOTA_EXCEEDED",
@@ -204,8 +206,8 @@ v_f891e6.post(
 
       if (!v_4d33b2.pin) {
         throw new v_3ebe58("PAYMENT_REQUIRED", "Persona creation requires payment.", {
-          priceXrun: v_c02c4c,
-          message: `2번째 페르소나부터 ${v_c02c4c} XRUN 이 부과됩니다.`,
+          priceXrun: v_2ab8bf,
+          message: `2번째 페르소나부터 ${v_2ab8bf} XRUN 이 부과됩니다.`,
         });
       }
 
@@ -227,7 +229,7 @@ v_f891e6.post(
         const { externalTransferSplit: v_7a6fc0 } = await import("../lib/xrun");
         const v_e69235 = await v_7a6fc0(v_3f4e2e.env, {
           fromMember: v_3645f3.xrun_member_id,
-          recipients: [{ toAddress: v_72b02d, amount: String(v_c02c4c) }],
+          recipients: [{ toAddress: v_72b02d, amount: String(v_2ab8bf) }],
           currency: v_a832b3,
           pin: v_4d33b2.pin,
           source: "afterlife.persona-create",
@@ -246,7 +248,7 @@ v_f891e6.post(
           const { recordAfterlifePersonaPayment: v_0ebe1e } = await import("../lib/giftCommission");
           const v_cb35cb = await v_0ebe1e(v_3f4e2e.env, {
             userId: v_43e90c,
-            totalXrun: v_c02c4c,
+            totalXrun: v_2ab8bf,
             companyWallet: v_72b02d,
           });
           if (v_cb35cb.recorded) {
