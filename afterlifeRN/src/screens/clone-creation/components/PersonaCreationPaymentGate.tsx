@@ -238,7 +238,7 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 style={v_d81136.pinSetupLinkWrap}
               >
                 <Text style={v_d81136.pinSetupLink}>
-                  결제 비밀번호가 설정되어 있지 않아요 · XRUN에서 설정하러 가기
+                  xrun 비밀번호 재설정
                 </Text>
               </TouchableOpacity>
             )}
