@@ -10,7 +10,7 @@ set -e
 
 REF=/home/afterlife/afterlife-server/musetalk-afterlife/reference_videos/halbae/halbae-d18m04-25fps.mp4
 IDLE=/home/afterlife/afterlife-server/musetalk-afterlife/reference_videos/halbae/halbae-idle.mp4
-SE=/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices/halbae/se.pth
+SE=/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices/nohsanghyun/se.pth
 PY=/home/afterlife/miniconda3/envs/musetalk/bin/python
 SRV=/home/afterlife/afterlife-server/prethird/scripts/server.py
 
