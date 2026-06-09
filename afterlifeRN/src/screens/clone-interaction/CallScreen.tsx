@@ -701,10 +701,11 @@ export default function CallScreen({ route, navigation }: Props) {
 
       {}
 
-      {}
-      <Modal visible={pinModalVisible} transparent animationType="fade">
+      {
+}
+      <Modal visible={pinModalVisible} transparent statusBarTranslucent animationType="fade">
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
         >
           <Pressable
