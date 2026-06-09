@@ -131,9 +131,9 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   if (!v_f99e34) return null; 
 
   return (
-    <Modal visible transparent animationType="fade">
+    <Modal visible transparent statusBarTranslucent animationType="fade">
       <KeyboardAvoidingView
-        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        behavior={v_326be8.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         {
@@ -268,7 +268,7 @@ const v_d81136 = v_472849.create({
     color: v_1bfbd0.zinc400,
   },
 
-  pinWrap: { width: "100%", paddingVertical: 16, alignItems: "center" },
+  pinWrap: { width: "100%", paddingVertical: 16 },
   error: { fontSize: 12, color: "#ef4444", marginTop: 4, marginBottom: 0 },
   btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 20 },
   cancel: {
