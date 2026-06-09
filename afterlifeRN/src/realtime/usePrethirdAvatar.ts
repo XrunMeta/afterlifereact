@@ -70,7 +70,15 @@ export function usePrethirdAvatar(opts: {
   const audioStreamRef = useRef<MediaStream | null>(null);
   const speakTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const genRef = useRef(0);
+
+  const applyingRemoteRef = useRef(false);
+  const pendingCloseRef = useRef<PrethirdPeerConnection | null>(null);
   const SPEAK_SOFT_TIMEOUT_MS = 30_000;
+
+  const safeClosePc = useCallback((pc: PrethirdPeerConnection) => {
+    if (applyingRemoteRef.current) { pendingCloseRef.current = pc; return; }
+    try { pc.close(); } catch {  }
+  }, []);
 
   const say = useCallback(async (text: string) => {
     const dc = dcRef.current;
@@ -110,7 +118,7 @@ export function usePrethirdAvatar(opts: {
     const pc = pcRef.current;
     pcRef.current = null;
     dcRef.current = null;
-    if (pc) { try { pc.close(); } catch {  } }
+    if (pc) safeClosePc(pc); 
     setRemoteStream(null);
     audioStreamRef.current = null;
     try { deps.audioSession.deactivate(); } catch {  }
@@ -174,8 +182,20 @@ export function usePrethirdAvatar(opts: {
       const answerSdp = data.sdp as string | undefined;
       if (!answerSdp) throw new Error('prethird_offer_no_answer');
       if (__DEV__) console.log(`[CALL-ROUTE] prethird /offer ok session_id=${data.session_id}`);
-      await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
-      if (!alive()) { pc.close(); return; }
+
+      if (!alive()) { safeClosePc(pc); return; }
+      applyingRemoteRef.current = true;
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
+      } finally {
+        applyingRemoteRef.current = false;
+
+        if (pendingCloseRef.current) {
+          const p = pendingCloseRef.current; pendingCloseRef.current = null;
+          try { p.close(); } catch {  }
+        }
+      }
+      if (!alive()) { safeClosePc(pc); return; }
       try { deps.audioSession.activate(); } catch {  }
     } catch (e) {
       try { pc.close(); } catch {  }
