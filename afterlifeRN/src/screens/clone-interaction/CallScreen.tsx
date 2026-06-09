@@ -143,8 +143,6 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const {
     phase,
-    micOn,
-    toggleMic,
     pendingText,
     cancelConfirm,
     transcript,
@@ -632,25 +630,6 @@ export default function CallScreen({ route, navigation }: Props) {
 
       {}
       <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
-        {}
-        <Pressable
-          onPress={toggleMic}
-          style={[
-            s.controlBtn,
-            micOn && (phase === 'listening' || phase === 'confirming') && s.controlBtnActive,
-            (phase === 'speaking' || phase === 'sending') && s.controlBtnDanger,
-          ]}
-        >
-          <Text style={s.talkBtnText}>
-            {!micOn ? '마이크 꺼짐'
-              : phase === 'speaking' ? '응답 중...'
-              : phase === 'sending' ? '전송 중...'
-              : phase === 'confirming' ? '확인 중...'
-              : phase === 'listening' ? '듣는 중...'
-              : '대기'}
-          </Text>
-        </Pressable>
-
         <TouchableOpacity
           style={[s.controlBtn, isMuted && s.controlBtnDanger]}
           onPress={() => {
@@ -958,15 +937,6 @@ const s = StyleSheet.create({
   },
   controlBtnDanger: {
     backgroundColor: COLORS.error,
-  },
-  controlBtnActive: {
-    backgroundColor: COLORS.violet500,
-  },
-  talkBtnText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.white,
-    textAlign: "center",
   },
   endCallBtn: {
     width: 72,
