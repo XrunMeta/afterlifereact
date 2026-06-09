@@ -23,6 +23,7 @@ import type { v_2b51a5 } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
+import { v_c67c5c } from "../../components/auth/OtpVerifyView";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -696,15 +697,10 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                 두 번째 클론부터 {v_2b566e} XRUN 이 부과돼요{"\n"}
                 결제 비밀번호 6자리를 입력해 주세요
               </Text>
-              <TextInput
-                style={v_9b1720.input}
+              <OtpCodeInput
                 value={v_c924cc}
-                onChangeText={(v_81e2ef) => v_d0452a(v_81e2ef.replace(/\D/g, "").slice(0, 6))}
-                placeholder="PIN 6자리"
-                placeholderTextColor={v_1bfbd0.zinc400}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={6}
+                onChange={(v_81e2ef) => v_d0452a(v_81e2ef)}
+                masked
                 autoFocus
                 editable={!v_904d6c}
               />

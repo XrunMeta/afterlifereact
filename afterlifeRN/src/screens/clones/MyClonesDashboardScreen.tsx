@@ -1,5 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
-import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095, v_de06a3 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095, v_de06a3, v_e662ae } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -21,7 +21,7 @@ import {
 import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
 import { v_04686a } from "../../lib/imagePicker";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615, v_2d8264, type v_ee3714, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_fba5a0 from "hfxxehldoiokdq";
@@ -240,6 +240,9 @@ export default function v_def15b() {
     cloneName: string;
   } | null>(null);
 
+  const v_c7daf6 = v_2d8264<v_ee3714<v_2d88fc, "Dashboard">>();
+  const v_3bde32 = v_e662ae<number | null>(null);
+
   const [v_e3b01d, v_34611c] = v_5ab095<v_6349d0 | null>(null);
   const [v_5be645, v_b3ab13] = v_5ab095(false);
 
@@ -361,6 +364,15 @@ export default function v_def15b() {
   const [v_c9d3fa, v_f32c49] = v_5ab095<number | null>(null);
 
   const v_fc7f92 = v_4cd149.filter((v_3f4e2e) => !v_8769c2.has(v_3f4e2e.id));
+
+  v_c4deb2(() => {
+    const v_062ae9 = v_c7daf6.params?.openIntimacyCloneId;
+    if (!v_062ae9 || v_3bde32.current === v_062ae9) return;
+    const v_eb25ce = v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_062ae9);
+    if (!v_eb25ce) return; 
+    v_3bde32.current = v_062ae9;
+    v_598141({ cloneId: v_062ae9, cloneName: v_eb25ce.displayName });
+  }, [v_c7daf6.params?.openIntimacyCloneId, v_4cd149]);
 
   const v_bf58a4 = (v_6e0fd3) => {
     const v_7d13fd = v_699459[v_6e0fd3]?.isActive ?? true;
@@ -696,10 +708,6 @@ export default function v_def15b() {
               <Text style={v_fd5f43.statText}>상호작용</Text>
             </TouchableOpacity>
             {}
-            <View style={v_fd5f43.stat}>
-              <Feather name="thermometer" size={14} color="#fb923c" />
-              <Text style={v_fd5f43.statText}>온도</Text>
-            </View>
           </View>
         )}
 

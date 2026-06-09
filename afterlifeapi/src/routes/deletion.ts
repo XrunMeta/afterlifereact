@@ -54,7 +54,7 @@ async function v_b4f765(
   return "ok";
 }
 
-async function v_c8311e(
+export async function v_c8311e(
   v_a1651b,
   type: v_d33606,
   v_389afb,
@@ -122,10 +122,90 @@ function v_7b6df3(v_43c42e) {
   }
 }
 
+export async function v_f51850(
+  v_a1651b,
+  v_1badb6,
+): Promise<{ softDeleted: number; transferred: number }> {
+  const v_2461e1 = (
+    await v_a1651b
+      .prepare(
+        `SELECT id FROM clones
+          WHERE owner_id = ? AND deletion_state = 'active' AND deleted_at IS NULL`,
+      )
+      .bind(v_1badb6)
+      .all<{ id: number }>()
+  ).results;
+
+  let v_64c9b8 = 0;
+  let v_051394 = 0;
+  for (const { id: v_6e0fd3 } of v_2461e1) {
+
+    const v_820a60 = await v_a1651b
+      .prepare(
+        `SELECT cs.id, cs.target_user_id
+           FROM clone_shares cs
+           JOIN users u ON u.id = cs.target_user_id
+          WHERE cs.clone_id = ?
+            AND cs.status = 'accepted'
+            AND cs.target_user_id IS NOT NULL
+            AND cs.target_user_id != ?
+            AND u.deleted_at IS NULL
+            AND u.deletion_state = 'active'
+          ORDER BY cs.created_at ASC, cs.id ASC
+          LIMIT 1`,
+      )
+      .bind(v_6e0fd3, v_1badb6)
+      .first<{ id: number; target_user_id: number }>();
+
+    if (v_820a60) {
+      await v_a1651b.batch([
+        v_a1651b
+          .prepare("UPDATE clones SET owner_id = ? WHERE id = ?")
+          .bind(v_820a60.target_user_id, v_6e0fd3),
+        v_a1651b
+          .prepare(
+            `UPDATE clones SET primary_editor_user_id = ?
+              WHERE id = ? AND primary_editor_user_id = ?`,
+          )
+          .bind(v_820a60.target_user_id, v_6e0fd3, v_1badb6),
+        v_a1651b.prepare("DELETE FROM clone_shares WHERE id = ?").bind(v_820a60.id),
+      ]);
+      v_051394 += 1;
+    } else {
+      await v_a1651b
+        .prepare(
+          `UPDATE clones
+              SET deletion_state = 'soft_deleted',
+                  soft_deleted_at = CURRENT_TIMESTAMP,
+                  owner_cascade_deleted_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND deletion_state = 'active'`,
+        )
+        .bind(v_6e0fd3)
+        .run();
+      v_64c9b8 += 1;
+    }
+  }
+  return { softDeleted: v_64c9b8, transferred: v_051394 };
+}
+
 v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_43c42e = await v_b4f765(v_3f4e2e.env.DB, "user", v_43e90c, "id", v_43e90c);
-  v_d24e3e(v_43c42e);
+  if (v_43c42e !== "ok" && v_43c42e !== "already_deleted") {
+    v_d24e3e(v_43c42e); 
+  }
+  const v_d7b02d = v_43c42e === "already_deleted";
+
+  const v_f891e6 = await v_f51850(v_3f4e2e.env.DB, v_43e90c);
+  console.log(
+    `[deletion.me] clones cascade: softDeleted=${v_f891e6.softDeleted} transferred=${v_f891e6.transferred}`,
+  );
+
+  const v_ab75ce = await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM user_follows WHERE follower_id = ? OR followee_id = ?`)
+    .bind(v_43e90c, v_43e90c)
+    .run();
+  console.log(`[deletion.me] user_follows removed: ${v_ab75ce.meta?.changes ?? 0}`);
 
   try {
     const v_213c33 = await v_3f4e2e.env.DB
@@ -141,32 +221,7 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
     console.warn("[deletion.me] xrun mark failed:", (v_49263d as Error).message);
   }
 
-  return v_3f4e2e.json({ ok: true, state: "soft_deleted" });
-});
-
-v_dda4b9.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
-  const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_43c42e = await v_c8311e(v_3f4e2e.env.DB, "user", v_43e90c, "id", v_43e90c);
-  v_7b6df3(v_43c42e);
-
-  try {
-    const v_213c33 = await v_3f4e2e.env.DB
-      .prepare(`SELECT xrun_member_id FROM users WHERE id = ?`)
-      .bind(v_43e90c)
-      .first<{ xrun_member_id: number | null }>();
-    const v_88fe80 = v_213c33?.xrun_member_id ?? null;
-    if (v_88fe80 && v_3f4e2e.env.XRUN_DB) {
-
-      await v_3f4e2e.env.XRUN_DB
-        .prepare(`UPDATE Members SET afterlife_deleted_at = NULL WHERE member = ?`)
-        .bind(v_88fe80)
-        .run();
-    }
-  } catch (v_49263d) {
-    console.warn("[deletion.me.restore] xrun unmark failed:", (v_49263d as Error).message);
-  }
-
-  return v_3f4e2e.json({ ok: true, state: "active" });
+  return v_3f4e2e.json({ ok: true, state: "soft_deleted", alreadyDeleted: v_d7b02d });
 });
 
 v_dda4b9.delete("/oth-path", v_6690d9, async (v_3f4e2e) => {

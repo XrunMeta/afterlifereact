@@ -318,6 +318,8 @@
       "editProfile": "Edit Profile",
       "notifications": "Notification Settings",
       "privacy": "Privacy and Visibility",
+      "reports": "Reports",
+      "reportsDesc": "Reports I made · Actions received",
       "saved": "Saved",
       "acquaintance": "Acquaintance Management",
       "inviteStatus": "Invite Status",
@@ -346,7 +348,9 @@
       "checkingGoogle": "Verifying Google...",
       "googleFailed": "Google sign-in failed.",
       "lockHint": "Account locks for 10 minutes after 5 failed attempts.",
-      "accountLocked": "Account is locked. Try again in ~10 minutes, or reset your password."
+      "accountLocked": "Account is locked. Try again in ~10 minutes, or reset your password.",
+      "accountDeletedTitle": "This account was deleted",
+      "accountDeletedMessage": "This account has been deleted and can no longer sign in."
     },
     "forgot": {
       "title": "Reset Password",

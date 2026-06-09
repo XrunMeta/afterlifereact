@@ -318,6 +318,8 @@
       "editProfile": "개인정보 관리",
       "notifications": "알림 설정",
       "privacy": "차단 관리",
+      "reports": "신고",
+      "reportsDesc": "내가 한 신고 · 신고당한 내역",
       "saved": "저장됨",
       "acquaintance": "지인 관리",
       "inviteStatus": "초대 현황",
@@ -347,7 +349,9 @@
       "checkingGoogle": "Google 인증 확인 중...",
       "googleFailed": "Google 로그인에 실패했어요.",
       "lockHint": "비밀번호를 5회 연속 틀리면 10분간 잠겨요.",
-      "accountLocked": "계정이 잠겼습니다. 약 10분 뒤 다시 시도하거나, 비밀번호 찾기로 재설정해 주세요."
+      "accountLocked": "계정이 잠겼습니다. 약 10분 뒤 다시 시도하거나, 비밀번호 찾기로 재설정해 주세요.",
+      "accountDeletedTitle": "탈퇴한 계정이에요",
+      "accountDeletedMessage": "이미 탈퇴 처리된 계정이라 다시 로그인할 수 없어요."
     },
     "forgot": {
       "title": "비밀번호 재설정",

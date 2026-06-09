@@ -46,6 +46,7 @@ import {
   type v_52af9d,
 } from "../../api/clones";
 import { v_bfd883 } from "../../lib/relativeTime";
+import { v_ab98d4 } from "../../hooks/useReportAcceptedGate";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_19b433 } from "../../types/feed";
 import type { v_8ad91b } from "../../navigation/types";
@@ -56,6 +57,8 @@ const v_e4d4c8 = 56;
 
 export default function v_c316d8() {
   const { t: v_8d41d7 } = v_772971();
+
+  v_ab98d4();
   const v_f4c991 = v_ada615<v_390fcc<v_8ad91b>>();
   const v_033e14 = v_e0068c();
   const v_f9771e = v_c18c22(0);

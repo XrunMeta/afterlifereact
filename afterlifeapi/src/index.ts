@@ -39,7 +39,8 @@ const v_466992 = new v_b7c41b<v_de0a25>();
 v_466992.onError(v_c6eab8);
 
 v_466992.use("*", v_ca800d);
-v_466992.use("*", v_f1bdb6());
+
+v_466992.use("*", v_f1bdb6({ crossOriginResourcePolicy: "cross-origin" }));
 
 const v_9ebb7a = new Set<string>([
   "http://localhost:5173",

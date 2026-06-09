@@ -245,4 +245,72 @@ export const v_05a921 = {
       }>;
     }>(`/oth-path${v_25c4f7 ? `?${v_25c4f7}` : ""}`);
   },
+
+  getUserDetail: (v_389afb) =>
+    v_576f5a<{
+      user: {
+        id: number;
+        name: string | null;
+        email: string;
+        deletionState: string;
+        suspendedUntil: string | null;
+        createdAt: string;
+        warningCount: number;
+      };
+      warnings: Array<{ id: number; reason: string | null; createdAt: string }>;
+      reports: Array<{
+        id: number;
+        reason: string | null;
+        status: string;
+        createdAt: string;
+        reporterEmail: string;
+      }>;
+      clones: Array<{
+        id: number;
+        name: string;
+        username: string;
+        cloneType: string;
+        deletionState: string;
+      }>;
+    }>(`/oth-path${v_389afb}/detail`),
+
+  warnUser: (v_389afb, v_4d33b2) =>
+    v_576f5a<{
+      ok: true;
+      warningCount: number;
+      suspended: boolean;
+      suspendedUntil: string | null;
+    }>(`/oth-path${v_389afb}/warn`, {
+      method: "POST",
+      body: JSON.stringify(v_4d33b2 ?? {}),
+    }),
+
+  dismissUserReport: (v_99000e, v_a8cd21) =>
+    v_576f5a<{ ok: true; updated: number }>(
+      `/oth-path${v_99000e}/dismiss`,
+      { method: "POST", body: JSON.stringify({ message: v_a8cd21 ?? null }) },
+    ),
+
+  getReportPenaltyRules: () =>
+    v_576f5a<{
+      items: Array<{
+        threshold: number;
+        action: "warn" | "suspend";
+        suspendDays: number | null;
+        updatedAt: string;
+      }>;
+    }>(`/oth-path`),
+  putReportPenaltyRule: (
+    v_d361d7,
+    v_4d33b2,
+  ) =>
+    v_576f5a<{ ok: true }>(`/oth-path${v_d361d7}`, {
+      method: "PUT",
+      body: JSON.stringify(v_4d33b2),
+    }),
+  deleteReportPenaltyRule: (v_d361d7) =>
+    v_576f5a<{ ok: true; deleted: number }>(
+      `/oth-path${v_d361d7}`,
+      { method: "DELETE" },
+    ),
 };

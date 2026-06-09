@@ -102,11 +102,11 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
 
   let v_d1b635 = await v_a1651b
     .prepare(
-      `SELECT id, name, email, funnel_stage AS funnelStage FROM users
+      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until FROM users
         WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(v_931bf0.email)
-    .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
+    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
 
   if (!v_d1b635) {
 
@@ -122,10 +122,10 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       .prepare(
         `INSERT INTO users (name, email, password_hash, avatar_url)
          VALUES (?, ?, ?, ?)
-         RETURNING id, name, email, funnel_stage AS funnelStage`,
+         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until`,
       )
       .bind(v_ef7664, v_931bf0.email, v_df7439, v_931bf0.picture ?? null)
-      .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
     if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
     v_d1b635 = v_81161e;
 
@@ -173,6 +173,16 @@ v_68f0aa.post("/google", async (v_3f4e2e) => {
       details: { sub: v_931bf0.sub, email: v_931bf0.email },
     });
   } else {
+
+    if (v_d1b635.deletion_state !== "active") {
+      throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+    }
+
+    if (v_d1b635.banned_until && v_e8cd3d(v_d1b635.banned_until) > Date.now()) {
+      throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+        bannedUntil: v_d1b635.banned_until,
+      });
+    }
     await v_74defc(v_3f4e2e, {
       userId: v_d1b635.id,
       action: "auth.google.login",
@@ -438,34 +448,75 @@ v_68f0aa.post("/signup", async (v_3f4e2e) => {
     ? v_85de88(String(v_4d33b2.age), v_a8614b(v_3f4e2e.env.ALE_KEK), "user.age")
     : null;
 
+  const v_3c8572 = await v_a1651b
+    .prepare(`SELECT id, deletion_state, deleted_at FROM users WHERE email = ? LIMIT 1`)
+    .bind(v_4d33b2.email)
+    .first<{ id: number; deletion_state: string; deleted_at: string | null }>();
+  const v_d47623 = !!v_3c8572 && (v_3c8572.deletion_state !== "active" || v_3c8572.deleted_at !== null);
+
   let v_81161e;
-  try {
+
+  if (v_3c8572 && !v_d47623) {
+
+    throw new v_3ebe58("CONFLICT", "Email already registered.");
+  }
+
+  if (v_d47623) {
+
     v_81161e = await v_a1651b
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         RETURNING id, name, email, funnel_stage, created_at`,
+        `UPDATE users
+            SET name = ?, password_hash = ?, phone = ?, gender = ?, age = ?, age_enc = ?,
+                marketing_consent = ?, country = ?, mobile_code = ?, region = ?,
+                deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL,
+                failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
         v_4d33b2.name,
-        v_4d33b2.email,
         v_df7439,
         v_849998,
         v_4d33b2.gender ?? null,
-        null, 
+        null,
         v_1f5d19,
         v_4d33b2.marketingConsent ? 1 : 0,
         v_4d33b2.country ?? null,
         v_4d33b2.mobileCode ?? null,
         v_4d33b2.region ?? null,
+        v_3c8572!.id,
       )
       .first();
-  } catch (v_49263d) {
-    const v_badeaf = (v_49263d as Error).message ?? "";
-    if (/UNIQUE constraint failed: users\.email/i.test(v_badeaf)) {
-      throw new v_3ebe58("CONFLICT", "Email already registered.");
+  } else {
+
+    try {
+      v_81161e = await v_a1651b
+        .prepare(
+          `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           RETURNING id, name, email, funnel_stage, created_at`,
+        )
+        .bind(
+          v_4d33b2.name,
+          v_4d33b2.email,
+          v_df7439,
+          v_849998,
+          v_4d33b2.gender ?? null,
+          null, 
+          v_1f5d19,
+          v_4d33b2.marketingConsent ? 1 : 0,
+          v_4d33b2.country ?? null,
+          v_4d33b2.mobileCode ?? null,
+          v_4d33b2.region ?? null,
+        )
+        .first();
+    } catch (v_49263d) {
+      const v_badeaf = (v_49263d as Error).message ?? "";
+      if (/UNIQUE constraint failed: users\.email/i.test(v_badeaf)) {
+        throw new v_3ebe58("CONFLICT", "Email already registered.");
+      }
+      throw v_49263d;
     }
-    throw v_49263d;
   }
   if (!v_81161e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to create user.");
 
@@ -611,7 +662,7 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
 
   const v_625c74 = await v_a1651b
     .prepare(
-      `SELECT id, password_hash, failed_login_count, locked_until
+      `SELECT id, password_hash, failed_login_count, locked_until, deletion_state, banned_until
          FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(v_4d33b2.email)
@@ -620,6 +671,8 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
       password_hash: string;
       failed_login_count: number;
       locked_until: string | null;
+      deletion_state: string;
+      banned_until: string | null;
     }>();
 
   const v_2d56e5 = v_625c74?.password_hash ?? (await v_54846c("dummy-nonmatch-0000"));
@@ -663,6 +716,16 @@ v_68f0aa.post("/login", async (v_3f4e2e) => {
     throw new v_3ebe58("UNAUTHENTICATED", "Invalid credentials.", {
       attempts: v_45fe0c, 
       maxAttempts: v_91027d,
+    });
+  }
+
+  if (v_625c74.deletion_state !== "active") {
+    throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+
+  if (v_625c74.banned_until && v_e8cd3d(v_625c74.banned_until) > Date.now()) {
+    throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      bannedUntil: v_625c74.banned_until,
     });
   }
 
@@ -809,4 +872,79 @@ v_68f0aa.post("/password/reset", async (v_3f4e2e) => {
 
   await v_74defc(v_3f4e2e, { userId: v_d1b635.id, action: "auth.password.reset" });
   return v_3f4e2e.json({ ok: true });
+});
+
+v_68f0aa.post("/email/login-code", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_192e7b);
+  const v_d1b635 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(v_4d33b2.email.trim().toLowerCase())
+    .first<{ id: number; deletion_state: string }>();
+  if (v_d1b635 && v_d1b635.deletion_state === "active") {
+    await v_b78f7e(v_3f4e2e.env, v_4d33b2.email);
+  }
+  return v_3f4e2e.json({ ok: true, expiresInSec: 300 });
+});
+
+const v_a3bb20 = v_1f4ea7.object({
+  email: v_1f4ea7.email().max(200),
+  verificationCode: v_1f4ea7.string().regex(/^\d{6}$/),
+  deviceId: v_1f4ea7.string().max(200).optional(),
+  pushToken: v_1f4ea7.string().max(500).optional(),
+  platform: v_1f4ea7.enum(["ios", "android", "web"]).optional(),
+});
+v_68f0aa.post("/email/login", async (v_3f4e2e) => {
+  const v_4d33b2 = await v_4c95c2(v_3f4e2e, v_a3bb20);
+  const v_bb4bfd = v_4d33b2.email.trim().toLowerCase();
+
+  await v_656e8b(v_3f4e2e.env, v_4d33b2.email, v_4d33b2.verificationCode);
+
+  const v_625c74 = await v_3f4e2e.env.DB
+    .prepare(`SELECT id, deletion_state, banned_until FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .bind(v_bb4bfd)
+    .first<{ id: number; deletion_state: string; banned_until: string | null }>();
+  if (!v_625c74) throw new v_3ebe58("NOT_FOUND", "가입된 이메일이 아닙니다.");
+  if (v_625c74.deletion_state !== "active") {
+    throw new v_3ebe58("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+  if (v_625c74.banned_until && v_e8cd3d(v_625c74.banned_until) > Date.now()) {
+    throw new v_3ebe58("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      bannedUntil: v_625c74.banned_until,
+    });
+  }
+
+  if (v_4d33b2.deviceId && v_4d33b2.pushToken) {
+    await v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(v_4d33b2.pushToken, v_625c74.id)
+      .run();
+    await v_3f4e2e.env.DB
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(v_625c74.id, v_4d33b2.deviceId, v_4d33b2.pushToken, v_4d33b2.platform ?? "web")
+      .run();
+  }
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE users SET failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
+    .bind(v_625c74.id)
+    .run();
+
+  const { accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 } = await v_8ab5ff(v_3f4e2e, v_625c74.id, v_4d33b2.deviceId);
+  v_56035d(v_3f4e2e, v_dfaee3);
+  await v_74defc(v_3f4e2e, { userId: v_625c74.id, action: "auth.login.otp" });
+  return v_3f4e2e.json({ accessToken: v_2ca7e0, refreshToken: v_dfaee3, accessExpiresIn: v_ff8c95 });
 });

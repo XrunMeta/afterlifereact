@@ -96,6 +96,7 @@ async function v_c34e2f<T>(v_9fe22d, v_4d33b2): Promise<T> {
     v_9fe22d === "/oth-path" ||
     v_9fe22d === "/oth-path" ||
     v_9fe22d === "/oth-path" ||
+    v_9fe22d === "/oth-path" ||
     v_9fe22d === "/oth-path";
   const v_1936ee =
     typeof v_4d33b2 === "object" && v_4d33b2 !== null && "email" in v_4d33b2
@@ -153,6 +154,14 @@ export async function v_35200c(v_931bf0): Promise<SignupResponse> {
 }
 
 export async function v_182fdb(v_931bf0): Promise<LoginResponse> {
+  return v_c34e2f("/oth-path", v_931bf0);
+}
+
+export async function v_1d5b64(v_e0c7e8): Promise<{ ok: true; expiresInSec: number }> {
+  return v_c34e2f("/oth-path", { email: v_e0c7e8 });
+}
+
+export async function v_c0c425(v_931bf0): Promise<LoginResponse> {
   return v_c34e2f("/oth-path", v_931bf0);
 }
 

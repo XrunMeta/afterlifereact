@@ -84,23 +84,93 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
 });
 
 v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+
+  const v_f71b56 = new URL(v_3f4e2e.req.url);
+  const v_818579 = v_f71b56.searchParams.get("visibility") ?? "";
+  const v_9d030b = v_f71b56.searchParams.get("deletionState") ?? "";
+  const v_e42ef7 = Number(v_f71b56.searchParams.get("minReports") ?? 0);
+  const v_ab6401 = (v_f71b56.searchParams.get("q") ?? "").trim();
+  const v_3bbadf = Math.max(0, Number(v_f71b56.searchParams.get("offset") ?? 0));
+  const v_02be30 = Math.max(1, Math.min(200, Number(v_f71b56.searchParams.get("limit") ?? 20)));
+
+  const v_abcc8d = ["1=1"];
+  const v_925171 = [];
+
+  if (v_818579) {
+    v_abcc8d.push("c.visibility = ?");
+    v_925171.push(v_818579);
+  }
+  if (v_9d030b) {
+    v_abcc8d.push("c.deletion_state = ?");
+    v_925171.push(v_9d030b);
+  } else {
+
+    v_abcc8d.push("c.deletion_state IN ('active', 'soft_deleted')");
+  }
+  if (v_ab6401) {
+    v_abcc8d.push(`(
+      c.name LIKE ? OR c.username LIKE ? OR
+      COALESCE(u.name,'') LIKE ? OR COALESCE(u.email,'') LIKE ?
+    )`);
+    const v_07022a = `%${v_ab6401}%`;
+    v_925171.push(v_07022a, v_07022a, v_07022a, v_07022a);
+  }
+
+  if (v_e42ef7 > 0) {
+    v_abcc8d.push(`
+      (SELECT COUNT(*) FROM clone_reports cr WHERE cr.clone_id = c.id AND cr.status = 'open') >= ?
+    `);
+    v_925171.push(v_e42ef7);
+  }
+  const v_8b4d7e = v_abcc8d.join(" AND ");
+
+  const v_0dab8e = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM clones c
+         LEFT JOIN users u ON u.id = c.owner_id
+        WHERE ${v_8b4d7e}`,
+    )
+    .bind(...v_925171)
+    .first<{ cnt: number }>();
+
   const v_18b8bf = (
     await v_3f4e2e.env.DB.prepare(
-      `SELECT c.id, c.name, c.username,
+      `SELECT c.id, c.name, c.username, c.avatar_url AS avatarUrl,
               c.clone_type AS cloneType, c.visibility,
               c.training_status AS trainingStatus,
-              c.owner_id AS ownerId, u.name AS ownerName,
+              c.owner_id AS ownerId,
+              u.name AS ownerName,
+              u.xrun_member_id AS ownerXrunMemberId,
               c.created_at AS createdAt,
               c.deletion_state AS deletionState,
               c.soft_deleted_at AS softDeletedAt,
-              c.deleted_at AS deletedAt
+              c.deleted_at AS deletedAt,
+              (SELECT COUNT(*) FROM clone_reports cr
+                WHERE cr.clone_id = c.id AND cr.status = 'reviewed') AS reportCount,
+              (SELECT COUNT(*) FROM feed_comments fcc
+                 JOIN feeds f ON f.id = fcc.feed_id
+                WHERE f.clone_id = c.id
+                  AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
+                  AND (fcc.parent_comment_id IS NULL OR fcc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned')))) AS commentCount,
+              (SELECT COUNT(*) FROM feed_likes fl
+                 JOIN feeds f ON f.id = fl.feed_id
+                WHERE f.clone_id = c.id) AS likeCount,
+              (SELECT COUNT(*) FROM clone_follows cf
+                WHERE cf.clone_id = c.id) AS followerCount,
+              (SELECT COUNT(*) FROM user_clone_interactions uci
+                WHERE uci.clone_id = c.id) AS interactionCount
          FROM clones c
          LEFT JOIN users u ON u.id = c.owner_id
+        WHERE ${v_8b4d7e}
         ORDER BY c.id DESC
-        LIMIT 200`,
-    ).all()
+        LIMIT ? OFFSET ?`,
+    )
+      .bind(...v_925171, v_02be30, v_3bbadf)
+      .all()
   ).results;
-  return v_3f4e2e.json(v_18b8bf);
+
+  return v_3f4e2e.json({ items: v_18b8bf, total: v_0dab8e?.cnt ?? 0, offset: v_3bbadf, limit: v_02be30 });
 });
 
 v_133c2c.get("/oth-path", async (v_3f4e2e) => {
@@ -409,6 +479,7 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
                 tu.email AS targetEmail,
                 r.reason AS reason,
                 r.status AS status,
+                r.admin_message AS adminMessage,
                 r.created_at AS createdAt,
                 r.reviewed_at AS reviewedAt
            FROM user_reports r
@@ -429,9 +500,241 @@ v_133c2c.get("/oth-path", async (v_3f4e2e) => {
         targetEmail: string;
         reason: string | null;
         status: string;
+        adminMessage: string | null;
         createdAt: string;
         reviewedAt: string | null;
       }>()
   ).results;
   return v_3f4e2e.json({ items: v_18b8bf });
+});
+
+v_133c2c.get("/oth-path", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
+
+  const v_625c74 = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT id, name, email,
+              deletion_state AS deletionState,
+              suspended_until AS suspendedUntil,
+              created_at AS createdAt
+         FROM users WHERE id = ?`,
+    )
+    .bind(v_389afb)
+    .first();
+  if (!v_625c74) return v_3f4e2e.json({ error: "not_found" }, 404);
+
+  const v_8718c0 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(v_389afb)
+    .first<{ n: number }>();
+  const v_d01889 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, reason, created_at AS createdAt
+           FROM user_warnings WHERE user_id = ? ORDER BY created_at DESC LIMIT 20`,
+      )
+      .bind(v_389afb)
+      .all()
+  ).results;
+  const v_7baad1 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason, r.status AS status,
+                r.created_at AS createdAt, ru.email AS reporterEmail
+           FROM user_reports r JOIN users ru ON ru.id = r.reporter_id
+          WHERE r.target_id = ? ORDER BY r.created_at DESC LIMIT 50`,
+      )
+      .bind(v_389afb)
+      .all()
+  ).results;
+  const v_f891e6 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, name, username, clone_type AS cloneType,
+                deletion_state AS deletionState
+           FROM clones WHERE owner_id = ? ORDER BY id DESC LIMIT 100`,
+      )
+      .bind(v_389afb)
+      .all()
+  ).results;
+
+  return v_3f4e2e.json({
+    user: { ...v_625c74, warningCount: v_8718c0?.n ?? 0 },
+    warnings: v_d01889,
+    reports: v_7baad1,
+    clones: v_f891e6,
+  });
+});
+
+v_133c2c.post("/oth-path", async (v_3f4e2e) => {
+  const v_389afb = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_389afb) || v_389afb <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
+  const v_db9be1 = v_3f4e2e.get("adminUserId") ?? 0;
+
+  let v_4d33b2 = {};
+  try {
+    v_4d33b2 = (await v_3f4e2e.req.json()) as { reportId?: number; reason?: string };
+  } catch {
+
+  }
+
+  const v_ceb55a = await v_3f4e2e.env.DB.prepare(`SELECT id FROM users WHERE id = ?`).bind(v_389afb).first();
+  if (!v_ceb55a) return v_3f4e2e.json({ error: "not_found" }, 404);
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO user_warnings (user_id, admin_id, report_id, reason)
+       VALUES (?, ?, ?, ?)`,
+    )
+    .bind(v_389afb, v_db9be1, v_4d33b2.reportId ?? null, v_4d33b2.reason ?? null)
+    .run();
+
+  const v_7b3f91 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(v_389afb)
+    .first<{ n: number }>();
+  const v_e87618 = v_7b3f91?.n ?? 0;
+
+  const v_32000f = await v_3f4e2e.env.DB
+    .prepare(
+      `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+        WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+    )
+    .bind(v_e87618)
+    .first<{ action: string; suspendDays: number | null }>();
+
+  let v_3e0055 = null;
+  let v_7f572b = false;
+  const v_6a53fd = v_32000f?.suspendDays && v_32000f.suspendDays > 0 ? v_32000f.suspendDays : 0;
+
+  if (v_32000f?.action === "clone_create_ban" && v_6a53fd > 0) {
+    v_7f572b = true;
+    await v_3f4e2e.env.DB
+      .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+      .bind(`+${v_6a53fd} days`, v_389afb)
+      .run();
+    const v_3ac7e7 = await v_3f4e2e.env.DB
+      .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+      .bind(v_389afb)
+      .first<{ s: string | null }>();
+    v_3e0055 = v_3ac7e7?.s ?? null;
+  } else if (v_32000f?.action === "account_ban" && v_6a53fd > 0) {
+    v_7f572b = true;
+    await v_3f4e2e.env.DB
+      .prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`)
+      .bind(`+${v_6a53fd} days`, v_389afb)
+      .run();
+    const v_3ac7e7 = await v_3f4e2e.env.DB
+      .prepare(`SELECT banned_until AS s FROM users WHERE id = ?`)
+      .bind(v_389afb)
+      .first<{ s: string | null }>();
+    v_3e0055 = v_3ac7e7?.s ?? null;
+  }
+
+  if (v_4d33b2.reportId) {
+
+    await v_3f4e2e.env.DB
+      .prepare(
+        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
+          WHERE id = ?`,
+      )
+      .bind(v_4d33b2.reason ?? null, v_4d33b2.reportId)
+      .run();
+  }
+
+  return v_3f4e2e.json({
+    ok: true,
+    warningCount: v_e87618,
+    suspended: v_7f572b,
+    suspendedUntil: v_3e0055,
+    appliedAction: v_32000f?.action ?? "none",
+    appliedSuspendDays: v_32000f?.suspendDays ?? null,
+  });
+});
+
+v_133c2c.get("/report-penalty-rules", async (v_3f4e2e) => {
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT threshold, title, message, action, suspend_days AS suspendDays, updated_at AS updatedAt
+           FROM report_penalty_rules ORDER BY threshold ASC`,
+      )
+      .all()
+  ).results;
+  return v_3f4e2e.json({ items: v_18b8bf });
+});
+
+v_133c2c.put("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
+  const v_d361d7 = Number(v_3f4e2e.req.param("threshold"));
+  if (!Number.isInteger(v_d361d7) || v_d361d7 < 1 || v_d361d7 > 99) {
+    return v_3f4e2e.json({ error: "invalid_threshold" }, 400);
+  }
+  let v_4d33b2 = {};
+  try {
+    v_4d33b2 = (await v_3f4e2e.req.json()) as { action?: string; suspendDays?: number | null; title?: string | null; message?: string | null };
+  } catch {
+
+  }
+  const v_9f1622 = typeof v_4d33b2.title === "string" ? v_4d33b2.title.trim().slice(0, 100) || null : null;
+  const v_a8cd21 = typeof v_4d33b2.message === "string" ? v_4d33b2.message.trim().slice(0, 500) || null : null;
+
+  const v_3b4825 = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+
+  const v_4b0806 = v_4d33b2.action === "suspend" ? "clone_create_ban" : (v_4d33b2.action ?? "");
+  const v_9b064f = v_3b4825.includes(v_4b0806) ? v_4b0806 : "warn";
+
+  const v_d03754 = v_9b064f === "clone_create_ban" || v_9b064f === "account_ban";
+  const v_141abe =
+    v_d03754 && Number.isInteger(v_4d33b2.suspendDays) && (v_4d33b2.suspendDays as number) > 0
+      ? (v_4d33b2.suspendDays as number)
+      : null;
+  if (v_d03754 && !v_141abe) {
+    return v_3f4e2e.json({ error: "suspend_days_required" }, 400);
+  }
+  await v_3f4e2e.env.DB
+    .prepare(
+      `INSERT INTO report_penalty_rules (threshold, title, message, action, suspend_days, updated_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(threshold) DO UPDATE SET
+         title = excluded.title,
+         message = excluded.message,
+         action = excluded.action,
+         suspend_days = excluded.suspend_days,
+         updated_at = CURRENT_TIMESTAMP`,
+    )
+    .bind(v_d361d7, v_9f1622, v_a8cd21, v_9b064f, v_141abe)
+    .run();
+  return v_3f4e2e.json({ ok: true, threshold: v_d361d7, title: v_9f1622, message: v_a8cd21, action: v_9b064f, suspendDays: v_141abe });
+});
+
+v_133c2c.delete("/report-penalty-rules/:threshold", async (v_3f4e2e) => {
+  const v_d361d7 = Number(v_3f4e2e.req.param("threshold"));
+  if (!Number.isInteger(v_d361d7) || v_d361d7 < 1) {
+    return v_3f4e2e.json({ error: "invalid_threshold" }, 400);
+  }
+  const v_8f00b9 = await v_3f4e2e.env.DB
+    .prepare(`DELETE FROM report_penalty_rules WHERE threshold = ?`)
+    .bind(v_d361d7)
+    .run();
+  return v_3f4e2e.json({ ok: true, deleted: v_8f00b9.meta?.changes ?? 0 });
+});
+
+v_133c2c.post("/oth-path", async (v_3f4e2e) => {
+  const v_99000e = Number(v_3f4e2e.req.param("reportId"));
+  if (!Number.isInteger(v_99000e) || v_99000e <= 0) return v_3f4e2e.json({ error: "invalid_id" }, 400);
+  let v_4d33b2 = {};
+  try {
+    v_4d33b2 = (await v_3f4e2e.req.json()) as { message?: string };
+  } catch {
+
+  }
+  const v_8f00b9 = await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
+        WHERE id = ? AND status IN ('open', 'reviewed')`,
+    )
+    .bind(v_4d33b2.message ?? null, v_99000e)
+    .run();
+  return v_3f4e2e.json({ ok: true, updated: v_8f00b9.meta?.changes ?? 0 });
 });

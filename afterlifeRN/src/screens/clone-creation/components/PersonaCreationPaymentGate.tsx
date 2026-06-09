@@ -15,6 +15,7 @@ import {
   v_0e1f26,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_c67c5c } from "../../../components/auth/OtpVerifyView";
 import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_194498 } from "../../../stores/cloneStore";
@@ -152,21 +153,18 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 {v_f6096a && " — 잔액 부족"}
               </Text>
             )}
-            <TextInput
-              style={[v_d81136.input, v_cae92d && v_d81136.inputDisabled]}
-              value={v_6bee94}
-              onChangeText={(v_81e2ef) => {
-                v_240fbf(v_81e2ef.replace(/\D/g, "").slice(0, 6));
-                v_3a7d09(null);
-              }}
-              placeholder="PIN 6자리"
-              placeholderTextColor={v_1bfbd0.zinc400}
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={6}
-              autoFocus={!v_cae92d}
-              editable={!v_cae92d}
-            />
+            <View style={v_d81136.pinWrap}>
+              <OtpCodeInput
+                value={v_6bee94}
+                onChange={(v_81e2ef) => {
+                  v_240fbf(v_81e2ef);
+                  v_3a7d09(null);
+                }}
+                masked
+                autoFocus={!v_cae92d}
+                editable={!v_cae92d}
+              />
+            </View>
             {v_5e9bfe && <Text style={v_d81136.error}>{v_5e9bfe}</Text>}
             <View style={v_d81136.btns}>
               <TouchableOpacity
@@ -262,8 +260,10 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc100,
     color: v_1bfbd0.zinc400,
   },
-  error: { fontSize: 12, color: "#ef4444", marginBottom: 8 },
-  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 12 },
+
+  pinWrap: { width: "100%", paddingVertical: 16, alignItems: "center" },
+  error: { fontSize: 12, color: "#ef4444", marginTop: 4, marginBottom: 0 },
+  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 20 },
   cancel: {
     flex: 1,
     paddingVertical: 12,

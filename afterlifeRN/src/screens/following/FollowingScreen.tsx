@@ -19,7 +19,7 @@ import {
   type v_da479e,
 } from "rcmrninabrnb";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
+import { v_ada615, v_2d8264, type v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
 import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import v_556baf from "../../components/ui/SafeView";
@@ -28,7 +28,7 @@ import v_258c1c from "../../components/common/PageHeader";
 import v_0e981f from "../../components/common/NotificationBell";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
-import type { v_8ad91b } from "../../navigation/types";
+import type { v_8ad91b, v_97a9a8 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
@@ -43,6 +43,7 @@ import {
   v_b14fce,
   v_0ff331,
   v_8ce643,
+  v_003cf2,
   type v_52af9d,
   type v_c33ae3,
   type v_6349d0,
@@ -114,6 +115,39 @@ export default function v_14b43e() {
 
   const v_0c8987 = v_f38ee5?.id ?? v_b9d568;
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+
+  const v_7cf37a = async (v_6e0fd3, v_c09aa8) => {
+    try {
+      const v_7d5f12 = await v_003cf2(v_6e0fd3, v_2ca7e0 ?? undefined);
+      const v_3f4e2e = v_7d5f12.clone;
+      v_f4c991.navigate("CloneFeed", {
+        openComments: true,
+        feed: {
+          id: v_c09aa8 && v_c09aa8 > 0 ? v_c09aa8 : -v_3f4e2e.id,
+          cloneId: v_3f4e2e.id,
+          content: v_3f4e2e.description ?? "",
+          mediaUrl: v_3f4e2e.avatarUrl,
+          mediaType: null,
+          likesCount: v_3f4e2e.stats?.likes ?? 0,
+          commentsCount: v_3f4e2e.stats?.comments ?? 0,
+          likedByMe: v_3f4e2e.likedByMe ?? false,
+          createdAt: v_3f4e2e.createdAt,
+          clone: {
+            id: v_3f4e2e.id,
+            ownerId: v_3f4e2e.ownerId,
+            name: v_3f4e2e.name,
+            username: v_3f4e2e.username,
+            avatarUrl: v_3f4e2e.avatarUrl,
+            cloneType: v_3f4e2e.cloneType as never,
+            visibility: v_3f4e2e.visibility as never,
+          },
+          interests: [],
+        },
+      });
+    } catch (v_49263d) {
+      console.warn("[Following] openCloneFeed failed:", v_49263d);
+    }
+  };
 
   const [v_d92a4c, v_44191e] = v_5ab095<v_c33ae3[] | null>(null);
   v_cf763b(
@@ -281,6 +315,16 @@ export default function v_14b43e() {
     cloneId: number;
     cloneName: string;
   } | null>(null);
+
+  const v_c7daf6 = v_2d8264<v_ee3714<v_97a9a8, "ShortsTab">>();
+  const v_3bde32 = v_e662ae<number | null>(null);
+  v_c4deb2(() => {
+    const v_062ae9 = v_c7daf6.params?.openIntimacyCloneId;
+    if (!v_062ae9 || v_3bde32.current === v_062ae9) return;
+    const v_5ed063 = v_a48e44.find((v_e2a85c) => v_e2a85c.id === v_062ae9);
+    v_3bde32.current = v_062ae9;
+    v_5da0f8({ cloneId: v_062ae9, cloneName: v_5ed063?.name ?? "" });
+  }, [v_c7daf6.params?.openIntimacyCloneId, v_a48e44]);
   const [v_077f23, v_e7ff11] =
     v_5ab095<v_6349d0 | null>(null);
   const [v_34e317, v_6ade47] = v_5ab095(false);
@@ -557,18 +601,17 @@ export default function v_14b43e() {
               <Feather name="thermometer" size={12} color="#fb923c" />
               <Text style={v_fd5f43.badgeText}>{v_8c0b26.persona.intimacy}</Text>
             </TouchableOpacity>
+            {}
             <View style={v_fd5f43.badgeDivider} />
             <TouchableOpacity
               style={v_fd5f43.badgeBtn}
-              onPress={() =>
-                v_5da0f8({
-                  cloneId: v_8c0b26.persona.id,
-                  cloneName: v_8c0b26.persona.name,
-                })
-              }
+              onPress={() => v_7cf37a(v_8c0b26.persona.id, v_8c0b26.feed.id > 0 ? v_8c0b26.feed.id : undefined)}
             >
-              <Ionicons name="chatbubbles-outline" size={12} color="#60a5fa" />
-              <Text style={v_fd5f43.badgeText}>{v_8c0b26.persona.interactions}</Text>
+              <Feather name="message-circle" size={12} color="#34d399" />
+              <Text style={v_fd5f43.badgeText}>
+                {(v_27a256.get(v_8c0b26.persona.id)?.commentsCount ?? 0) +
+                  (v_211631.get(v_8c0b26.persona.id)?.comments ?? 0)}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -627,38 +670,6 @@ export default function v_14b43e() {
           </View>
         </View>
 
-        {}
-        {(() => {
-          const v_ab4c96 = v_27a256.get(v_8c0b26.persona.id);
-          const v_e9396c = v_211631.get(v_8c0b26.persona.id) ?? { likes: 0, comments: 0 };
-          const v_b84498 = v_c591dc.has(v_8c0b26.persona.id);
-          const v_58313d = (v_ab4c96?.likesCount ?? 0) + v_e9396c.likes;
-          const v_7c0a2d = (v_ab4c96?.commentsCount ?? 0) + v_e9396c.comments;
-          return (
-            <View style={v_fd5f43.actionsRow}>
-              <View style={v_fd5f43.actionsLeft}>
-                <TouchableOpacity onPress={() => void v_936545(v_8c0b26.persona.id, v_8c0b26.feed.id)}>
-                  <Ionicons
-                    name={v_b84498 ? "heart" : "heart-outline"}
-                    size={24}
-                    color={v_b84498 ? "#ef4444" : v_1bfbd0.zinc700}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => v_880166(v_8c0b26.feed.id)}>
-                  <Feather name="message-circle" size={24} color={v_1bfbd0.zinc700} />
-                </TouchableOpacity>
-              </View>
-              <View style={v_fd5f43.actionsRight}>
-                <Text style={v_fd5f43.countText}>
-                  {v_8d41d7("feed.likeCount", { n: v_cae9dc(Math.max(0, v_58313d)) })}
-                </Text>
-                <Text style={v_fd5f43.countTextSub}>
-                  {v_8d41d7("feed.commentCount", { n: Math.max(0, v_7c0a2d) })}
-                </Text>
-              </View>
-            </View>
-          );
-        })()}
       </View>
     );
   };

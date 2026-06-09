@@ -7,6 +7,7 @@ import { v_137694, v_85de88, v_a8614b, v_8ea38c, v_b31343 } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_74defc } from "../lib/logger";
 import { v_c226a5 } from "../lib/notify";
+import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
 
 export const v_de7ba7 = new v_b7c41b<v_de0a25>();
 
@@ -44,22 +45,37 @@ v_de7ba7.get("/search", v_6690d9, async (v_3f4e2e) => {
   if (v_ab6401.length < 2) {
     return v_3f4e2e.json({ items: [] });
   }
-  const v_2a1d60 = `%${v_ab6401}%`;
 
-  const v_18b8bf = await v_3f4e2e.env.DB
-    .prepare(
-      `SELECT id, name, email, avatar_url AS avatarUrl
-         FROM users
-        WHERE deleted_at IS NULL
-          AND id != ?
-          AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
-          AND (LOWER(email) LIKE LOWER(?) OR name LIKE ?)
-        ORDER BY id DESC
-        LIMIT 20`,
-    )
-    .bind(v_b32680, v_b32680, v_2a1d60, v_2a1d60)
-    .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>();
-  return v_3f4e2e.json({ items: v_18b8bf.results ?? [] });
+  const v_75fbef = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT id, name, email, avatar_url AS avatarUrl
+           FROM users
+          WHERE deleted_at IS NULL
+            AND deletion_state = 'active'
+            AND id != ?
+            AND id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
+          ORDER BY id DESC
+          LIMIT 500`,
+      )
+      .bind(v_b32680, v_b32680)
+      .all<{ id: number; name: string | null; email: string; avatarUrl: string | null }>()
+  ).results;
+  const v_28f669 = (v_e0c7e8) => v_e0c7e8.split("@")[0] ?? v_e0c7e8;
+  const v_4622b9 = v_75fbef
+    .map((v_ceb55a) => ({
+      u: v_ceb55a,
+      score: Math.max(
+        v_e0041f(v_ab6401, v_ceb55a.name),
+        v_e0041f(v_ab6401, v_ceb55a.email),
+        v_e0041f(v_ab6401, v_28f669(v_ceb55a.email)),
+      ),
+    }))
+    .filter((v_62c214) => v_62c214.score >= v_cfdcb0)
+    .sort((v_779914, v_148ff6) => v_148ff6.score - v_779914.score || v_148ff6.u.id - v_779914.u.id)
+    .slice(0, 20)
+    .map((v_62c214) => v_62c214.u);
+  return v_3f4e2e.json({ items: v_4622b9 });
 });
 
 v_de7ba7.get("/me", v_6690d9, async (v_3f4e2e) => {
@@ -372,6 +388,14 @@ v_de7ba7.post("/me/devices", v_6690d9, async (v_3f4e2e) => {
   if (!v_4d33b2.deviceId || !v_4d33b2.pushToken || !v_4d33b2.platform) {
     throw new v_3ebe58("VALIDATION_FAILED", "deviceId, pushToken, platform required.");
   }
+
+  await v_3f4e2e.env.DB
+    .prepare(
+      `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE push_token = ? AND is_active = 1 AND NOT (user_id = ? AND device_id = ?)`,
+    )
+    .bind(v_4d33b2.pushToken, v_43e90c, v_4d33b2.deviceId)
+    .run();
   await v_3f4e2e.env.DB
     .prepare(
       `INSERT INTO user_devices (user_id, device_id, push_token, platform, is_active, last_active_at)
@@ -564,84 +588,6 @@ v_de7ba7.get("/me/clones/:cloneId/intimacy-events", v_6690d9, async (v_3f4e2e) =
   });
 });
 
-v_de7ba7.post("/me/delete", v_6690d9, async (v_3f4e2e) => {
-  const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_a1651b = v_3f4e2e.env.DB;
-  const v_8f00b9 = await v_a1651b
-    .prepare(
-      `UPDATE users
-          SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP,
-              deleted_at = CURRENT_TIMESTAMP
-        WHERE id = ? AND deletion_state = 'active'`,
-    )
-    .bind(v_43e90c)
-    .run();
-  if ((v_8f00b9.meta?.changes ?? 0) === 0) {
-    throw new v_3ebe58("CONFLICT", "Account is not in active state.");
-  }
-
-  const v_90e6ec = await v_a1651b
-    .prepare(
-      `UPDATE clones
-          SET deletion_state = 'soft_deleted',
-              soft_deleted_at = CURRENT_TIMESTAMP
-        WHERE owner_id = ? AND deletion_state = 'active'`,
-    )
-    .bind(v_43e90c)
-    .run();
-  await v_74defc(v_3f4e2e, {
-    userId: v_43e90c,
-    action: "user.soft_delete",
-    details: { cascaded_clones: v_90e6ec.meta?.changes ?? 0 },
-  });
-  return v_3f4e2e.json({
-    ok: true,
-    state: "soft_deleted",
-    restorableUntil: "+90d",
-    cascadedClones: v_90e6ec.meta?.changes ?? 0,
-  });
-});
-
-v_de7ba7.post("/me/restore", v_6690d9, async (v_3f4e2e) => {
-  const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_a1651b = v_3f4e2e.env.DB;
-  const v_8f00b9 = await v_a1651b
-    .prepare(
-      `UPDATE users
-          SET deletion_state = 'active',
-              soft_deleted_at = NULL,
-              deleted_at = NULL
-        WHERE id = ? AND deletion_state = 'soft_deleted'
-          AND soft_deleted_at > datetime('now', '-90 days')`,
-    )
-    .bind(v_43e90c)
-    .run();
-  if ((v_8f00b9.meta?.changes ?? 0) === 0) {
-    throw new v_3ebe58("CONFLICT", "Restoration window expired or account not soft-deleted.");
-  }
-
-  const v_90e6ec = await v_a1651b
-    .prepare(
-      `UPDATE clones
-          SET deletion_state = 'active',
-              soft_deleted_at = NULL
-        WHERE owner_id = ? AND deletion_state = 'soft_deleted'`,
-    )
-    .bind(v_43e90c)
-    .run();
-  await v_74defc(v_3f4e2e, {
-    userId: v_43e90c,
-    action: "user.restore",
-    details: { restored_clones: v_90e6ec.meta?.changes ?? 0 },
-  });
-  return v_3f4e2e.json({
-    ok: true,
-    state: "active",
-    restoredClones: v_90e6ec.meta?.changes ?? 0,
-  });
-});
-
 v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
   const v_a1651b = v_3f4e2e.env.DB;
@@ -829,8 +775,10 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
                 COALESCE(uci.call_count, 0)  AS my_call,
                 COALESCE(uci.learn_count, 0) AS my_learn,
                 COALESCE(uci.feed_count, 0)  AS my_feed,
-                -- 친밀도 가중치 점수 (Daily Cap 15°C 적립, 100°C 상한)
-                COALESCE(uci.intimacy_score, 0) AS my_intimacy,
+                -- 친밀도 °C — 친밀도 활동 내역 모달(intimacy_events 합계)과 동일 소스로 통일.
+                --   (uci.intimacy_score 가 이벤트와 어긋나 0 으로 뜨던 문제 → 이벤트 SUM 으로 직접 계산, 100 상한)
+                COALESCE((SELECT MIN(100, SUM(ie.score)) FROM intimacy_events ie
+                           WHERE ie.user_id = ? AND ie.clone_id = c.id), 0) AS my_intimacy,
                 -- 본인 페르소나 여부 — 클라이언트가 '팔로우' 버튼 숨김 처리.
                 (c.owner_id = ?) AS is_own
            FROM clones c
@@ -838,7 +786,14 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
            LEFT JOIN user_clone_interactions uci
                   ON uci.user_id = ? AND uci.clone_id = c.id
           WHERE c.deleted_at IS NULL
+            -- 소유자가 삭제(soft_deleted)한 페르소나는 즉시 구독 목록에서 제외.
+            --   삭제는 deletion_state='soft_deleted' 로만 바뀌고 deleted_at 은 크론 전까지
+            --   NULL 이라, deleted_at 체크만으로는 삭제된 클론이 계속 보이던 버그 수정.
+            --   검색/피드와 동일 정책(active 만).
+            AND c.deletion_state = 'active'
             AND c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)
+            -- 차단한 '유저'가 소유한 페르소나는 구독 목록에서도 제외 (검색/피드와 동일).
+            AND c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)
             AND (
               -- 본인이 만든 페르소나
               c.owner_id = ?
@@ -848,7 +803,8 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
             )
           ORDER BY c.created_at DESC, c.id DESC`,
       )
-      .bind(v_43e90c, v_43e90c, v_43e90c, v_43e90c, v_43e90c)
+
+      .bind(v_43e90c, v_43e90c, v_43e90c, v_43e90c, v_43e90c, v_43e90c, v_43e90c)
       .all<{
         id: number;
         name: string;
@@ -951,7 +907,8 @@ v_de7ba7.get("/:id/followed-clones", v_6690d9, async (v_3f4e2e) => {
 
 v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_18b8bf = (
+
+  const v_c2273d = (
     await v_3f4e2e.env.DB
       .prepare(
         `SELECT b.id           AS blockId,
@@ -960,7 +917,9 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
                 c.name         AS cloneName,
                 c.username     AS cloneUsername,
                 c.avatar_url   AS cloneAvatarUrl,
-                c.clone_type   AS cloneType
+                c.clone_type   AS cloneType,
+                c.owner_id     AS cloneOwnerId,
+                c.visibility   AS cloneVisibility
            FROM clone_blocks b
            JOIN clones c ON c.id = b.clone_id
           WHERE b.user_id = ? AND c.deleted_at IS NULL
@@ -975,20 +934,166 @@ v_de7ba7.get("/me/blocks", v_6690d9, async (v_3f4e2e) => {
         cloneUsername: string;
         cloneAvatarUrl: string | null;
         cloneType: string;
+        cloneOwnerId: number;
+        cloneVisibility: string;
       }>()
   ).results;
+
+  const v_a7be75 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT b.id          AS blockId,
+                b.created_at  AS createdAt,
+                u.id          AS uId,
+                u.name        AS uName,
+                u.email       AS uEmail,
+                u.avatar_url  AS uAvatarUrl
+           FROM user_blocks b
+           JOIN users u ON u.id = b.blocked_id
+          WHERE b.blocker_id = ?
+          ORDER BY b.id DESC`,
+      )
+      .bind(v_43e90c)
+      .all<{
+        blockId: number;
+        createdAt: string;
+        uId: number;
+        uName: string | null;
+        uEmail: string;
+        uAvatarUrl: string | null;
+      }>()
+  ).results;
+
+  const v_8ac21a = v_c2273d.map((v_cb35cb) => ({
+    blockId: v_cb35cb.blockId,
+    createdAt: v_cb35cb.createdAt,
+    type: "clone" as const,
+    clone: {
+      id: v_cb35cb.cloneId,
+      name: v_cb35cb.cloneName,
+      username: v_cb35cb.cloneUsername,
+      avatarUrl: v_cb35cb.cloneAvatarUrl,
+      cloneType: v_cb35cb.cloneType,
+      ownerId: v_cb35cb.cloneOwnerId,
+      visibility: v_cb35cb.cloneVisibility,
+    },
+  }));
+  const v_aae3d3 = v_a7be75.map((v_cb35cb) => ({
+    blockId: v_cb35cb.blockId,
+    createdAt: v_cb35cb.createdAt,
+    type: "user" as const,
+    user: {
+      id: v_cb35cb.uId,
+      name: v_cb35cb.uName,
+      email: v_cb35cb.uEmail,
+      avatarUrl: v_cb35cb.uAvatarUrl,
+    },
+  }));
+
+  const v_4622b9 = [...v_8ac21a, ...v_aae3d3].sort((v_779914, v_148ff6) =>
+    v_779914.createdAt < v_148ff6.createdAt ? 1 : v_779914.createdAt > v_148ff6.createdAt ? -1 : 0,
+  );
+
+  return v_3f4e2e.json({ items: v_4622b9 });
+});
+
+v_de7ba7.get("/me/reports/made", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+
+  const v_18b8bf = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT * FROM (
+           SELECT 'user' AS type, ur.id AS id, ur.reason AS reason, ur.status AS status,
+                  ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt,
+                  COALESCE(ur.reporter_message, ur.admin_message) AS adminMessage,
+                  tu.name AS targetName, COALESCE(tu.email, '') AS targetEmail, ur.target_id AS targetId
+             FROM user_reports ur
+             JOIN users tu ON tu.id = ur.target_id
+            WHERE ur.reporter_id = ?
+           UNION ALL
+           SELECT 'clone' AS type, cr.id AS id, cr.reason AS reason, cr.status AS status,
+                  cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt,
+                  COALESCE(cr.reporter_message, cr.admin_message) AS adminMessage,
+                  c.name AS targetName, COALESCE(c.username, '') AS targetEmail, cr.clone_id AS targetId
+             FROM clone_reports cr
+             JOIN clones c ON c.id = cr.clone_id
+            WHERE cr.user_id = ?
+           UNION ALL
+           SELECT 'comment' AS type, cmr.id AS id, cmr.reason AS reason, cmr.status AS status,
+                  cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt,
+                  COALESCE(cmr.reporter_message, cmr.admin_message) AS adminMessage,
+                  COALESCE(au.name, '댓글') AS targetName, COALESCE(au.email, '') AS targetEmail, cmr.comment_id AS targetId
+             FROM comment_reports cmr
+             LEFT JOIN feed_comments fc ON fc.id = cmr.comment_id
+             LEFT JOIN users au ON au.id = fc.user_id
+            WHERE cmr.user_id = ?
+         )
+         ORDER BY createdAt DESC
+         LIMIT 100`,
+      )
+      .bind(v_43e90c, v_43e90c, v_43e90c)
+      .all()
+  ).results;
+  return v_3f4e2e.json({ items: v_18b8bf });
+});
+
+v_de7ba7.get("/me/reports/received", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+
+  const v_4622b9 = (
+    await v_3f4e2e.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason,
+                r.createdAt AS createdAt, r.reviewedAt AS reviewedAt,
+                r.adminMessage AS adminMessage, r.reportType AS reportType,
+                r.cloneName AS cloneName, r.content AS content,
+                w.reason AS warningReason, w.created_at AS warnedAt
+           FROM (
+             SELECT 'user' AS reportType, ur.id AS id, ur.reason AS reason,
+                    ur.created_at AS createdAt, ur.reviewed_at AS reviewedAt,
+                    COALESCE(ur.target_message, ur.admin_message) AS adminMessage,
+                    NULL AS cloneName, NULL AS content
+               FROM user_reports ur
+              WHERE ur.target_id = ? AND ur.status IN ('actioned', 'reviewed')
+             UNION ALL
+             SELECT 'clone' AS reportType, cr.id AS id, cr.reason AS reason,
+                    cr.created_at AS createdAt, cr.reviewed_at AS reviewedAt,
+                    COALESCE(cr.target_message, cr.admin_message) AS adminMessage,
+                    c.name AS cloneName, NULL AS content
+               FROM clone_reports cr
+               JOIN clones c ON c.id = cr.clone_id
+              WHERE c.owner_id = ? AND cr.status IN ('actioned', 'reviewed')
+             UNION ALL
+             SELECT 'comment' AS reportType, cmr.id AS id, cmr.reason AS reason,
+                    cmr.created_at AS createdAt, cmr.reviewed_at AS reviewedAt,
+                    COALESCE(cmr.target_message, cmr.admin_message) AS adminMessage,
+                    cc.name AS cloneName, fc.content AS content
+               FROM comment_reports cmr
+               JOIN feed_comments fc ON fc.id = cmr.comment_id
+               LEFT JOIN clones cc ON cc.id = cmr.clone_id
+              WHERE fc.user_id = ? AND cmr.status IN ('actioned', 'reviewed')
+           ) r
+           LEFT JOIN user_warnings w
+             ON w.report_id = r.id AND w.report_type = r.reportType AND w.user_id = ?
+          ORDER BY r.createdAt DESC
+          LIMIT 100`,
+      )
+      .bind(v_43e90c, v_43e90c, v_43e90c, v_43e90c)
+      .all()
+  ).results;
+  const v_8718c0 = await v_3f4e2e.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(v_43e90c)
+    .first<{ n: number }>();
+  const v_ceb55a = await v_3f4e2e.env.DB
+    .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+    .bind(v_43e90c)
+    .first<{ s: string | null }>();
   return v_3f4e2e.json({
-    items: v_18b8bf.map((v_cb35cb) => ({
-      blockId: v_cb35cb.blockId,
-      createdAt: v_cb35cb.createdAt,
-      clone: {
-        id: v_cb35cb.cloneId,
-        name: v_cb35cb.cloneName,
-        username: v_cb35cb.cloneUsername,
-        avatarUrl: v_cb35cb.cloneAvatarUrl,
-        cloneType: v_cb35cb.cloneType,
-      },
-    })),
+    items: v_4622b9,
+    warningCount: v_8718c0?.n ?? 0,
+    suspendedUntil: v_ceb55a?.s ?? null,
   });
 });
 
@@ -1371,11 +1476,17 @@ v_de7ba7.post("/:id/block", v_6690d9, async (v_3f4e2e) => {
       `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
     ).bind(v_43e90c, v_b1de41),
     v_3f4e2e.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(v_43e90c, v_b1de41),
     v_3f4e2e.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(v_b1de41, v_43e90c),
+
+    v_3f4e2e.env.DB.prepare(
+      `DELETE FROM clone_follows
+        WHERE user_id = ?
+          AND clone_id IN (SELECT id FROM clones WHERE owner_id = ?)`,
+    ).bind(v_43e90c, v_b1de41),
   ]);
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
@@ -1421,10 +1532,10 @@ v_de7ba7.post("/:id/report", v_6690d9, async (v_3f4e2e) => {
       `INSERT OR IGNORE INTO user_blocks (blocker_id, blocked_id) VALUES (?, ?)`,
     ).bind(v_43e90c, v_b1de41),
     v_3f4e2e.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(v_43e90c, v_b1de41),
     v_3f4e2e.env.DB.prepare(
-      `DELETE FROM user_follows WHERE follower_id = ? AND following_id = ?`,
+      `DELETE FROM user_follows WHERE follower_id = ? AND followee_id = ?`,
     ).bind(v_b1de41, v_43e90c),
   ]);
   await v_74defc(v_3f4e2e, {
