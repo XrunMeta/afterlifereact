@@ -143,8 +143,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const {
     phase: v_ab4803,
-    micOn: v_1065f7,
-    toggleMic: v_6e1295,
     pendingText: v_def12c,
     cancelConfirm: v_5b4fb2,
     transcript: v_0885ca,
@@ -632,25 +630,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       {}
       <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
-        {}
-        <Pressable
-          onPress={v_6e1295}
-          style={[
-            v_fd5f43.controlBtn,
-            v_1065f7 && (v_ab4803 === 'listening' || v_ab4803 === 'confirming') && v_fd5f43.controlBtnActive,
-            (v_ab4803 === 'speaking' || v_ab4803 === 'sending') && v_fd5f43.controlBtnDanger,
-          ]}
-        >
-          <Text style={v_fd5f43.talkBtnText}>
-            {!v_1065f7 ? '마이크 꺼짐'
-              : v_ab4803 === 'speaking' ? '응답 중...'
-              : v_ab4803 === 'sending' ? '전송 중...'
-              : v_ab4803 === 'confirming' ? '확인 중...'
-              : v_ab4803 === 'listening' ? '듣는 중...'
-              : '대기'}
-          </Text>
-        </Pressable>
-
         <TouchableOpacity
           style={[v_fd5f43.controlBtn, v_4e2aec && v_fd5f43.controlBtnDanger]}
           onPress={() => {
@@ -958,15 +937,6 @@ const v_fd5f43 = v_472849.create({
   },
   controlBtnDanger: {
     backgroundColor: v_1bfbd0.error,
-  },
-  controlBtnActive: {
-    backgroundColor: v_1bfbd0.violet500,
-  },
-  talkBtnText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: v_1bfbd0.white,
-    textAlign: "center",
   },
   endCallBtn: {
     width: 72,
