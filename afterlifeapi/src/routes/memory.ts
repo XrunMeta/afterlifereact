@@ -382,6 +382,11 @@ memory.put(
             ...body.preference_personal,
           }
         : current.preference_personal ?? {},
+
+      ...(current.memory_summary !== undefined ? { memory_summary: current.memory_summary } : {}),
+      ...(current.relationship !== undefined ? { relationship: current.relationship } : {}),
+      ...(current.context !== undefined ? { context: current.context } : {}),
+      ...(current.recent_topics !== undefined ? { recent_topics: current.recent_topics } : {}),
       _meta: { layer: "L2", rev: prevRev + 1, updated_at: new Date().toISOString() },
     };
     const serialized = JSON.stringify(next);

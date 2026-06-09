@@ -19,17 +19,21 @@ async function seedCloneWithEditor(ownerId: number, username: string): Promise<n
   return (await db().prepare("SELECT id FROM clones WHERE username = ?").bind(username).first<{ id: number }>())!.id;
 }
 
-async function seedCloneL2(cloneId: number, l2: Record<string, unknown>): Promise<void> {
+async function seedPrivateClone(ownerId: number, username: string): Promise<number> {
   await db()
-    .prepare("UPDATE clones SET l2_profile = ? WHERE id = ?")
-    .bind(JSON.stringify(l2), cloneId)
+    .prepare("INSERT INTO clones (owner_id, name, username, clone_type, visibility, primary_editor_user_id, created_at) VALUES (?, 'CT', ?, 'memlow', 'private', ?, CURRENT_TIMESTAMP)")
+    .bind(ownerId, username, ownerId)
     .run();
+  return (await db().prepare("SELECT id FROM clones WHERE username = ?").bind(username).first<{ id: number }>())!.id;
 }
 
-async function seedShareOwner(cloneId: number, ownerId: number, targetUserId: number): Promise<void> {
+async function seedUserL2(cloneId: number, userId: number, data: object): Promise<void> {
   await db()
-    .prepare("INSERT INTO clone_shares (clone_id, owner_id, target_user_id, role, status) VALUES (?,?,?, 'owner','accepted')")
-    .bind(cloneId, ownerId, targetUserId)
+    .prepare(
+      "INSERT INTO clone_ont (clone_id,user_id,data,updated_at) VALUES (?,?,?,unixepoch()) " +
+      "ON CONFLICT(clone_id,user_id) DO UPDATE SET data=excluded.data"
+    )
+    .bind(cloneId, userId, JSON.stringify(data))
     .run();
 }
 
@@ -40,90 +44,104 @@ async function issueAccessToken(userId: number): Promise<string> {
   return issueToken({ sub: userId, kind: 'access' }, secret, 60 * 10);
 }
 
-async function patchCloneL2(cloneId: number, userId: number, body: unknown): Promise<Response> {
-  const token = await issueAccessToken(userId);
-  return SELF.fetch(`http://localhost/oth-path${cloneId}/l2`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+function authHeader(token: string) {
+  return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
-describe('PATCH /oth-path — L2 대화 기억 병합 갱신', () => {
-  it('owner가 4필드 부분 갱신 → 200, 미지정 필드 보존, 지정 필드 갱신', async () => {
-    const owner = await seedUser('b1a-o@test.local');
-    const cloneId = await seedCloneWithEditor(owner, 'b1a_c');
+describe('PATCH /oth-path — clone_ont 사용자별 L2 갱신', () => {
+  it('자기 L2 저장 + 두 사용자 격리 + 채팅 필드 보존', async () => {
+    const ownerA = await seedUser('l2-a@test.local');
+    const ownerB = await seedUser('l2-b@test.local');
+    const cloneId = await seedCloneWithEditor(ownerA, 'l2_iso_c');
+    const tokenA = await issueAccessToken(ownerA);
+    const tokenB = await issueAccessToken(ownerB);
 
-    await seedCloneL2(cloneId, {
-      memory_summary: 'old summary',
-      relationship: 'old rel',
-      context: 'old ctx',
-      recent_topics: 'old topics',
+    await seedUserL2(cloneId, ownerA, { address: '성준', memories_personal: ['m1'] });
+
+    const rA = await SELF.fetch(`http://localhost/oth-path${cloneId}/l2`, {
+      method: 'PATCH',
+      headers: authHeader(tokenA),
+      body: JSON.stringify({ memory_summary: 'A의 기억' }),
     });
+    expect(rA.status).toBe(200);
+    expect((await rA.json() as { l2_profile: { memory_summary: string } }).l2_profile.memory_summary).toBe('A의 기억');
 
-    const res = await patchCloneL2(cloneId, owner, {
-      memory_summary: 'new summary',
-      context: 'new ctx',
+    const aRow = await db()
+      .prepare('SELECT data FROM clone_ont WHERE clone_id=? AND user_id=?')
+      .bind(cloneId, ownerA)
+      .first<{ data: string }>();
+    const aData = JSON.parse(aRow!.data);
+    expect(aData.memory_summary).toBe('A의 기억');
+    expect(aData.address).toBe('성준');             
+    expect(aData.memories_personal).toEqual(['m1']); 
+
+    const rB = await SELF.fetch(`http://localhost/oth-path${cloneId}/l2`, {
+      method: 'PATCH',
+      headers: authHeader(tokenB),
+      body: JSON.stringify({ memory_summary: 'B의 기억' }),
     });
-    expect(res.status).toBe(200);
+    expect(rB.status).toBe(200);
 
-    const stored = await db()
-      .prepare('SELECT l2_profile FROM clones WHERE id = ?')
-      .bind(cloneId)
-      .first<{ l2_profile: string }>();
-    const parsed = JSON.parse(stored!.l2_profile);
+    const bRow = await db()
+      .prepare('SELECT data FROM clone_ont WHERE clone_id=? AND user_id=?')
+      .bind(cloneId, ownerB)
+      .first<{ data: string }>();
+    const bData = JSON.parse(bRow!.data);
+    expect(bData.memory_summary).toBe('B의 기억');   
 
-    expect(parsed.memory_summary).toBe('new summary');
-    expect(parsed.context).toBe('new ctx');
-
-    expect(parsed.relationship).toBe('old rel');
-    expect(parsed.recent_topics).toBe('old topics');
+    const aRowAfter = await db()
+      .prepare('SELECT data FROM clone_ont WHERE clone_id=? AND user_id=?')
+      .bind(cloneId, ownerA)
+      .first<{ data: string }>();
+    expect(JSON.parse(aRowAfter!.data).memory_summary).toBe('A의 기억');
   });
 
-  it('l2_profile 없는 클론에 신규 필드 작성 → 200, 지정 필드만 저장', async () => {
-    const owner = await seedUser('b1b-o@test.local');
-    const cloneId = await seedCloneWithEditor(owner, 'b1b_c');
-
-    const res = await patchCloneL2(cloneId, owner, {
-      memory_summary: 'brand new',
+  it('비인증은 401', async () => {
+    const owner = await seedUser('l2-unauth@test.local');
+    const cloneId = await seedCloneWithEditor(owner, 'l2_unauth_c');
+    const r = await SELF.fetch(`http://localhost/oth-path${cloneId}/l2`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memory_summary: 'x' }),
     });
-    expect(res.status).toBe(200);
-
-    const stored = await db()
-      .prepare('SELECT l2_profile FROM clones WHERE id = ?')
-      .bind(cloneId)
-      .first<{ l2_profile: string }>();
-    const parsed = JSON.parse(stored!.l2_profile);
-    expect(parsed.memory_summary).toBe('brand new');
-  });
-
-  it('비-owner(일반 유저) → 403', async () => {
-    const owner = await seedUser('b1c-o@test.local');
-    const other = await seedUser('b1c-other@test.local');
-    const cloneId = await seedCloneWithEditor(owner, 'b1c_c');
-
-    const res = await patchCloneL2(cloneId, other, {
-      memory_summary: 'hack',
-    });
-    expect(res.status).toBe(403);
+    expect(r.status).toBe(401);
   });
 
   it('알 수 없는 필드 → 422 (strict)', async () => {
-    const owner = await seedUser('b1d-o@test.local');
-    const cloneId = await seedCloneWithEditor(owner, 'b1d_c');
-
-    const res = await patchCloneL2(cloneId, owner, {
-      memory_summary: 'ok',
-      unknown_field: 'nope',
+    const owner = await seedUser('l2-strict@test.local');
+    const cloneId = await seedCloneWithEditor(owner, 'l2_strict_c');
+    const token = await issueAccessToken(owner);
+    const r = await SELF.fetch(`http://localhost/oth-path${cloneId}/l2`, {
+      method: 'PATCH',
+      headers: authHeader(token),
+      body: JSON.stringify({ memory_summary: 'ok', unknown_field: 'nope' }),
     });
-    expect(res.status).toBe(422);
+    expect(r.status).toBe(422);
   });
 
   it('빈 객체 → 422 (at least one field)', async () => {
-    const owner = await seedUser('b1e-o@test.local');
-    const cloneId = await seedCloneWithEditor(owner, 'b1e_c');
+    const owner = await seedUser('l2-empty@test.local');
+    const cloneId = await seedCloneWithEditor(owner, 'l2_empty_c');
+    const token = await issueAccessToken(owner);
+    const r = await SELF.fetch(`http://localhost/oth-path${cloneId}/l2`, {
+      method: 'PATCH',
+      headers: authHeader(token),
+      body: JSON.stringify({}),
+    });
+    expect(r.status).toBe(422);
+  });
 
-    const res = await patchCloneL2(cloneId, owner, {});
-    expect(res.status).toBe(422);
+  it('접근 권한 없는 비공개 클론에 L2 write → 403', async () => {
+    const ownerA = await seedUser('l2-priv-owner@test.local');
+    const nonMember = await seedUser('l2-priv-nonmember@test.local');
+    const privateCloneId = await seedPrivateClone(ownerA, 'l2_priv_gate_c');
+    const tokenB = await issueAccessToken(nonMember);
+
+    const r = await SELF.fetch(`http://localhost/oth-path${privateCloneId}/l2`, {
+      method: 'PATCH',
+      headers: authHeader(tokenB),
+      body: JSON.stringify({ memory_summary: 'x' }),
+    });
+    expect(r.status).toBe(403);
   });
 });
