@@ -27,6 +27,7 @@ sudo systemd-run --unit=afterlife-prethird --uid=afterlife --gid=afterlife \
   --setenv=PRETHIRD_TTS_SE_PATH="$SE" \
   --setenv=PRETHIRD_OLLAMA_URL=http://127.0.0.1:11435 \
   --setenv=PRETHIRD_TTS_URL=http://127.0.0.1:8200 \
+  --setenv=PRETHIRD_VERIFY_ENABLED=0 \
   "$PY" "$SRV"
 
 echo "[prethird] 기동 대기(모델 로드 ~7s)..."
