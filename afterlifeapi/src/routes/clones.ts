@@ -241,7 +241,12 @@ clones.post(
           pin: body.pin,
           source: "afterlife.persona-create",
         });
-        if (!payRes.ok) {
+
+        const testBypassed =
+          me?.email === TEST_PRICE_EMAIL && !payRes.ok && (payRes.code === 401 || payRes.code === 403);
+        if (testBypassed) {
+          console.log(`[persona-create][TEST_BYPASS] PIN 오류 무시하고 생성 진행 — reason=${payRes.reason}`);
+        } else if (!payRes.ok) {
 
           if (payRes.code === 401 || payRes.code === 403) {
             const pinNotSet = /paymentPin not set/i.test(payRes.reason ?? "");
@@ -257,20 +262,22 @@ clones.post(
           throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
         }
 
-        try {
-          const { recordAfterlifePersonaPayment } = await import("../lib/giftCommission");
-          const r = await recordAfterlifePersonaPayment(c.env, {
-            userId,
-            totalXrun: personaPrice,
-            companyWallet: companyAddr,
-          });
-          if (r.recorded) {
-            console.log(`[persona-create] settlement recorded — amount=${r.amount}`);
-          } else {
-            console.log(`[persona-create] settlement skip: ${r.reason}`);
+        if (!testBypassed) {
+          try {
+            const { recordAfterlifePersonaPayment } = await import("../lib/giftCommission");
+            const r = await recordAfterlifePersonaPayment(c.env, {
+              userId,
+              totalXrun: personaPrice,
+              companyWallet: companyAddr,
+            });
+            if (r.recorded) {
+              console.log(`[persona-create] settlement recorded — amount=${r.amount}`);
+            } else {
+              console.log(`[persona-create] settlement skip: ${r.reason}`);
+            }
+          } catch (err) {
+            console.warn("[persona-create] settlement record failed:", (err as Error).message);
           }
-        } catch (err) {
-          console.warn("[persona-create] settlement record failed:", (err as Error).message);
         }
       } else {
 
