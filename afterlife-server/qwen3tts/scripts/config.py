@@ -12,8 +12,11 @@ REF_ROOT = os.environ.get(
     "QWEN3TTS_REF_ROOT",
     "/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices",
 )
-# se_path 미전달 시 사용할 기본 클론(OpenVoice TTS_VOICE_CLONE 패턴). 빈 값이면 400.
+# [DEPRECATED: 합성 경로에서는 더 이상 사용하지 않음. warmup 전용으로만 분리됨]
+# se_path + clone_id 둘 다 없으면 400 을 반환. 이 값은 warmup_clone 으로 대체.
 DEFAULT_CLONE = os.environ.get("QWEN3TTS_DEFAULT_CLONE", "halbae")
+# warmup 전용 클론. 서비스 시작 시 cold 흡수용. 합성 경로에서는 절대 사용하지 않음.
+WARMUP_CLONE = os.environ.get("QWEN3TTS_WARMUP_CLONE", "halbae")
 REF_CLIP_MAX_SEC = float(os.environ.get("QWEN3TTS_REF_CLIP_MAX_SEC", "10.0"))
 
 # attention 구현. flash-attn 미설치 환경 기본 sdpa. 설치 시 QWEN3TTS_ATTN=flash_attention_2.
