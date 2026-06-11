@@ -7,11 +7,13 @@
 """
 from __future__ import annotations
 
+import io
 import json
 import logging
 import os
 import re
 import time
+import wave
 from typing import Callable
 
 log = logging.getLogger("prethird.recorder")
@@ -107,6 +109,27 @@ class Turn:
             _secure_write(self._path("answer.txt"), answer)
         except Exception as e:
             log.warning("answer.txt 기록 실패 ts=%s: %s", self._ts, e)
+        # answer.wav 합본 — 청크별 완전 wav를 PCM 이어붙여 단일 wav 재조립 (0o600)
+        if self._wav_chunks:
+            try:
+                params = None
+                frames = bytearray()
+                for chunk in self._wav_chunks:
+                    with wave.open(io.BytesIO(chunk), "rb") as r:
+                        if params is None:
+                            params = r.getparams()
+                        frames += r.readframes(r.getnframes())
+                if params is not None:
+                    wpath = self._path("answer.wav")
+                    fd = os.open(wpath, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                    with os.fdopen(fd, "wb") as raw:
+                        with wave.open(raw, "wb") as w:
+                            w.setnchannels(params.nchannels)
+                            w.setsampwidth(params.sampwidth)
+                            w.setframerate(params.framerate)
+                            w.writeframes(bytes(frames))
+            except Exception as e:
+                log.warning("answer.wav 합본 실패 ts=%s: %s", self._ts, e)
         m = dict(meta)
         m.update({
             "ts_ms": self._ts,
