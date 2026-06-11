@@ -26,6 +26,8 @@ import { v_c226a5, v_80a022 } from "../lib/notify";
 import { v_0b44ec } from "../lib/personaQuestions";
 import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 import { v_5acfc3 } from "../lib/utils";
+import { v_67dc73 } from "../lib/prebuildClient";
+import { v_87cfd2 } from "../lib/callBundle";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -490,6 +492,29 @@ v_f891e6.post(
         }
       } catch (v_49263d) {
         console.warn("[clone.create] followee_new_clone notify failed:", v_49263d);
+      }
+    }
+
+    if (v_3f4e2e.env.PREBUILD_SECRET && v_3f4e2e.env.PRETHIRD_PUBLIC_BASE) {
+      try {
+        const v_cb3cfe = await v_3f4e2e.env.DB
+          .prepare(`SELECT * FROM clones WHERE id = ?`)
+          .bind(v_6e0fd3)
+          .first<import("../lib/cloneAccess").CloneRow>();
+        if (v_cb3cfe) {
+          const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+          const v_79521f = await v_87cfd2(v_3f4e2e.env.DB, v_cb3cfe, v_43e90c, v_f17108);
+          v_3f4e2e.executionCtx.waitUntil(
+            v_67dc73(fetch, {
+              base: v_3f4e2e.env.PRETHIRD_PUBLIC_BASE,
+              secret: v_3f4e2e.env.PREBUILD_SECRET,
+              cloneId: String(v_6e0fd3),
+              voiceRawUrl: v_79521f.assets.voiceRawUrl,
+            }),
+          );
+        }
+      } catch (v_9e86fd) {
+        console.warn("[prebuild] trigger skipped:", v_9e86fd);
       }
     }
 
