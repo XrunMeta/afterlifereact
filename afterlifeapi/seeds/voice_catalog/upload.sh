@@ -13,7 +13,7 @@ echo "[1/3] R2 put — $BUCKET/voice/sample/..."
 for mp3 in "$OUT"/*.mp3; do
   key="voice/sample/$(basename "$mp3")"
   echo "  put $key"
-  wrangler r2 object put "$BUCKET/$key" --file="$mp3" --content-type=audio/mpeg --remote
+  wrangler r2 object put "$BUCKET/$key" --file="$mp3" --content-type=audio/mpeg
 done
 
 echo "[2/3] D1 시드 — afterlife-db-preview..."
