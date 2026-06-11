@@ -29,7 +29,7 @@ chmod 600 "$D/prebuild-secret.conf"
 echo "==> [3] daemon-reload + restart"
 systemctl daemon-reload
 systemctl restart afterlife-prethird
-sleep 6
+sleep 10  # musetalk in-proc 로드 ~6.5s + 여유
 
 echo ""
 echo "================ 검증 ================"
