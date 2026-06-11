@@ -28,6 +28,14 @@ Environment=PREBUILD_MAX_CONCURRENCY=3
 # origin = createClone 요청 origin = api 도메인. R2 redirect 면 asset_fetch 가 차단(E2E 확인).
 Environment=PRETHIRD_ASSET_HOST_ALLOWLIST=edge-alt-preview.example.invalid
 # PREBUILD_SECRET 은 git 미추적 — 배포 스크립트가 prebuild-secret.conf drop-in 으로 주입(M-3).
+#
+# ── 대화 기록(records) — 통화 턴 input/answer/meta(+wav/mp4) 기록 + 응답누락 진단 ──
+# recorder.py: NullObject graceful skip, 모든 I/O 예외 흡수(통화 차단 0), 파일 0o600.
+Environment=PRETHIRD_RECORDS_ROOT=/data/records
+# Phase3 mp4(입싱크 영상)는 기본 off — 프레임 RAM·디스크 비용. 진단 필요 시에만 1.
+Environment=PRETHIRD_RECORD_MP4=0
+# /data 쓰기 허용 (systemd 샌드박싱 강화 시에도 records 기록 보장).
+ReadWritePaths=/data
 ExecStart=/home/afterlife/miniconda3/envs/musetalk/bin/python /home/afterlife/afterlife-server/prethird/scripts/server.py
 Restart=on-failure
 RestartSec=3
