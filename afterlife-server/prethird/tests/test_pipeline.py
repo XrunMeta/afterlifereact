@@ -12,7 +12,6 @@ class FakeAudioTrack:
     def push_pcm_int16(self, pcm): self.pcm.append(pcm); return {"queued": pcm.size, "dropped": False}
     def signal_end(self): return 0
 
-
 @pytest.mark.asyncio
 async def test_pipeline_say_streams_frames_and_audio():
     async def fake_chat(messages):
@@ -39,7 +38,6 @@ async def test_pipeline_say_streams_frames_and_audio():
 
     assert len(vt.frames) >= 3      # musetalk 프레임 적재
     assert len(at.pcm) >= 1         # 오디오 PCM 적재
-
 
 @pytest.mark.asyncio
 async def test_pipeline_signal_end_called():
@@ -77,6 +75,40 @@ async def test_pipeline_signal_end_called():
     assert end_calls["video"] == 1
     assert end_calls["audio"] == 1
 
+def test_infer_stage_applies_audio_postprocess(monkeypatch):
+    import numpy as np
+    import asyncio
+    monkeypatch.setenv("PRETHIRD_AUDIO_FADE_MS", "8")
+    monkeypatch.setenv("PRETHIRD_AUDIO_NORM", "1")
+
+    pushed = {}
+
+    class VT:
+        def push_ndarray(self, arr): pass
+        def signal_end(self): pass
+    class AT:
+        def push_pcm_int16(self, pcm): pushed["pcm"] = pcm
+        def signal_end(self): pass
+
+    async def chat_fn(messages):
+        if False:
+            yield ""
+    async def say_fn(text, se): return b""
+    def decode_wav_fn(b): return (np.zeros(0, dtype=np.int16), 48000, 1)
+    def infer_fn(path, on_frame):
+        for _ in range(10):
+            on_frame(np.zeros((4, 4, 3), dtype=np.uint8))
+        return 10
+
+    from pipeline import DialoguePipeline
+    p = DialoguePipeline(VT(), AT(), chat_fn, say_fn, decode_wav_fn, infer_fn)
+    pcm48 = np.full(48000, 12000, dtype=np.int16)
+    # Python 3.12+ 에서 get_event_loop().run_until_complete 는 RuntimeError → asyncio.run 사용
+    asyncio.run(p._infer_stage(b"", pcm48))
+    out = pushed["pcm"]
+    # fade 적용 → 시작/끝 진폭이 중앙보다 작아짐
+    assert abs(int(out[0])) < abs(int(out[len(out) 
+    assert abs(int(out[-1])) < abs(int(out[len(out) 
 
 @pytest.mark.asyncio
 async def test_pipeline_real_video_track_threadsafe():
@@ -118,7 +150,6 @@ async def test_pipeline_real_video_track_threadsafe():
         f"executor 스레드 push 5개가 race 없이 큐에 적재돼야 함. 실제: {vt.queue_depth()}"
     )
 
-
 @pytest.mark.asyncio
 async def test_pipeline_speak_bypasses_llm():
     # speak()는 chat_fn(LLM)을 호출하지 않고 입력 텍스트를 그대로 _emit_sentence
@@ -144,7 +175,6 @@ async def test_pipeline_speak_bypasses_llm():
     await asyncio.sleep(0)
     assert llm_called["n"] == 0          # LLM 우회됨
     assert len(vt.frames) >= 1           # 발화 프레임 생성됨
-
 
 def test_emit_sentence_batches_frames_after_infer():
     """on_frame은 infer 중 list에 모으고, infer 완료 후 일괄 push.
@@ -180,7 +210,6 @@ def test_emit_sentence_batches_frames_after_infer():
     assert len(vt.frames) == 5
     assert len(at.pcm) == 1
     assert order == ["v", "v", "v", "v", "v", "a"]
-
 
 def test_pipeline_preserves_order_and_overlaps():
     """파이프라인: 문장 순서대로 infer push, TTS/infer 분리 워커."""
@@ -218,7 +247,6 @@ def test_pipeline_preserves_order_and_overlaps():
     assert v_order == [1, 2, 3]
     assert ("vend", 0) in pushed and ("aend", 0) in pushed
 
-
 def test_pipeline_speak_order():
     import asyncio, numpy as np
     pushed = []
@@ -249,7 +277,6 @@ def test_pipeline_speak_order():
     asyncio.run(p.speak("하나. 둘."))
     assert pushed == [1, 2]
 
-
 def test_pipeline_exception_still_signals_end():
     """워커 예외(say_fn 실패)여도 signal_end 가 호출되고 예외가 전파된다(B-2)."""
     import asyncio, numpy as np, pytest
@@ -277,7 +304,6 @@ def test_pipeline_exception_still_signals_end():
     with pytest.raises(RuntimeError):
         asyncio.run(p.say("x"))
     assert "v" in ended and "a" in ended  # finally 로 signal_end 보장
-
 
 @pytest.mark.asyncio
 async def test_pipeline_empty_stream():
