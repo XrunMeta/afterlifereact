@@ -6,7 +6,7 @@ import numpy as np
 from aiortc.mediastreams import AudioStreamTrack, VideoStreamTrack
 from av import AudioFrame, VideoFrame
 import logging
-from idle import _dummy_rgb_frame, _select_idle_frame, get_idle_frames
+from idle import _dummy_rgb_frame, _select_idle_frame, get_idle_frames, _blend_frames
 from config import (QUEUE_MAX_DEFAULT, AUDIO_QUEUE_MAX_DEFAULT, AUDIO_OUTPUT_SR,
                     AUDIO_OUTPUT_CHANNELS, AUDIO_FRAME_MS, VIDEO_CLOCK_RATE,
                     VIDEO_PTS_INCREMENT, VIDEO_TIME_BASE, IDLE_MP4_PATH)
@@ -42,6 +42,10 @@ class AvatarVideoTrack(VideoStreamTrack):
         self._idle_t0 = 0.0
         self._last_real_ts = time.time()
         self._idle_grace = float(os.environ.get("IDLE_GRACE_SEC", "0.5"))
+        # idle 진입(speak→idle) cross-dissolve. 0 이면 hard cut(기존 동작).
+        self._idle_blend_n = int(os.environ.get("PRETHIRD_IDLE_BLEND_FRAMES", "5"))
+        self._blend_from: Optional[np.ndarray] = None
+        self._blend_i = 0
 
     def set_mode(self, mode: str) -> None:
         if mode not in ("dummy", "queue"):
@@ -58,6 +62,20 @@ class AvatarVideoTrack(VideoStreamTrack):
         else:
             self._idle_frames = get_idle_frames(IDLE_MP4_PATH)
             log.info("[idle] idle fallback(halbae): frames=%d", len(self._idle_frames))
+
+    def _apply_idle_blend(self, idle_arr: np.ndarray, was_idle: bool) -> np.ndarray:
+        """idle 진입 직후 _idle_blend_n 프레임 동안 직전 발화 프레임→idle 로 dissolve.
+        was_idle=False(방금 진입)면 blend 시작점을 _last_frame 으로 잡는다."""
+        if self._idle_blend_n <= 0:
+            return idle_arr
+        if not was_idle:
+            self._blend_from = self._last_frame
+            self._blend_i = 0
+        if self._blend_from is None or self._blend_i >= self._idle_blend_n:
+            return idle_arr
+        alpha = (self._blend_i + 1) / float(self._idle_blend_n)
+        self._blend_i += 1
+        return _blend_frames(self._blend_from, idle_arr, alpha)
 
     def push_ndarray(self, arr: np.ndarray) -> dict:
         """외부에서 frame 적재. 큐 가득 차면 oldest drop."""
@@ -114,8 +132,10 @@ class AvatarVideoTrack(VideoStreamTrack):
                     _now, self._last_real_ts,
                     self._idle_grace, self._idle_frames, self._idle_t0, self._last_frame,
                 )
-                if self._idle_t0 > 0 and not _was_idle:  # idle 진입 시 1회 로그
-                    log.info("[029-H] idle 진입 (gap=%.1fs, frames=%d)", _now - self._last_real_ts, len(self._idle_frames))
+                if self._idle_t0 > 0:
+                    if not _was_idle:
+                        log.info("[029-H] idle 진입 (gap=%.1fs, frames=%d)", _now - self._last_real_ts, len(self._idle_frames))
+                    arr = self._apply_idle_blend(arr, _was_idle)
         # dummy 모드 또는 queue 모드에서 last 도 없을 때
         if arr is None:
             arr = _dummy_rgb_frame(time.time() - self._start)
