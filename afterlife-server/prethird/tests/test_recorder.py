@@ -1,5 +1,6 @@
 import json
 import os
+import stat
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
@@ -68,3 +69,63 @@ def test_missing_answer_means_dropout(tmp_path):
     names = [p.name for p in clone_dir.iterdir()]
     assert any(n.endswith("-input.txt") for n in names)
     assert not any(n.endswith("-answer.txt") for n in names)
+
+
+# ── B-1: 예외 흡수 확대 ────────────────────────────────────────────────────────
+
+def test_finalize_survives_unserializable_meta(tmp_path):
+    rec = make_recorder(9051, "abc", root=str(tmp_path))
+    turn = rec.begin_turn("say", "여보세요", seq=1)
+    turn.append_token("응답")
+    # 비직렬화 객체를 meta로 — 예외가 통화 루프로 전파되면 안 됨
+    turn.finalize(weird=object())  # 예외 없이 반환해야 함
+    # answer.txt는 정상 기록(meta만 실패)
+    clone_dir = tmp_path / "9051"
+    assert any(p.name.endswith("-answer.txt") for p in clone_dir.iterdir())
+
+
+def test_finalize_survives_surrogate_answer(tmp_path):
+    rec = make_recorder(9051, "abc", root=str(tmp_path))
+    turn = rec.begin_turn("say", "hi", seq=1)
+    turn.append_token("\ud800")  # surrogate — UTF-8 인코딩 불가
+    turn.finalize(se_present=True)  # 예외 없이 반환해야 함
+
+
+# ── H-1: PII 파일 권한 0o700/0o600 ───────────────────────────────────────────
+
+def test_files_are_owner_only(tmp_path):
+    rec = make_recorder(9051, "abc", root=str(tmp_path))
+    turn = rec.begin_turn("say", "여보세요", seq=1)
+    turn.append_token("응답")
+    turn.finalize(se_present=True)
+    clone_dir = tmp_path / "9051"
+    for p in clone_dir.iterdir():
+        perm = stat.S_IMODE(p.stat().st_mode)
+        assert perm == 0o600, f"{p.name} perm={oct(perm)}"
+
+
+# ── H-2: symlink 탈출 차단 ────────────────────────────────────────────────────
+
+def test_symlink_escape_rejected(tmp_path):
+    import os as _os
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    root = tmp_path / "root"
+    root.mkdir()
+    # root/9051 을 외부로 향하는 symlink로 심음
+    _os.symlink(str(outside), str(root / "9051"))
+    rec = make_recorder(9051, "abc", root=str(root))
+    # symlink 탈출 → NullRecorder (외부에 기록 안 함)
+    assert isinstance(rec, NullRecorder)
+
+
+# ── R-1: 단조 ts — 같은 ms 두 턴 충돌 방지 ───────────────────────────────────
+
+def test_monotonic_ts_no_collision(tmp_path):
+    frozen = [1_700_000_000.0]  # 시간 정지
+    rec = make_recorder(9051, "abc", root=str(tmp_path), time_fn=lambda: frozen[0])
+    t1 = rec.begin_turn("say", "first", seq=1)
+    t2 = rec.begin_turn("say", "second", seq=2)  # 같은 ms
+    clone_dir = tmp_path / "9051"
+    inputs = sorted(p.name for p in clone_dir.iterdir() if p.name.endswith("-input.txt"))
+    assert len(inputs) == 2  # 충돌 없이 둘 다 보존
