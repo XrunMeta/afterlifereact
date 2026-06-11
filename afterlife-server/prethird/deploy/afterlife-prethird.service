@@ -38,6 +38,14 @@ Environment=PRETHIRD_RECORDS_ROOT=/data/records
 Environment=PRETHIRD_RECORD_MP4=0
 # /data 쓰기 허용 (systemd 샌드박싱 강화 시에도 records 기록 보장).
 ReadWritePaths=/data
+#
+# ── 실시간 대화 품질(AV quick wins) — 전부 토글, =0 이면 기존 동작 복귀(회귀 안전장치) ──
+# 오디오 청크 peak-clamp 정규화(음량 출렁임 억제). 0/false 면 off.
+Environment=PRETHIRD_AUDIO_NORM=1
+# 오디오 청크 경계 edge-fade ms(클릭 제거). 0 이면 off.
+Environment=PRETHIRD_AUDIO_FADE_MS=8
+# idle 진입(speak→idle) cross-dissolve 프레임 수. 0 이면 hard cut(기존).
+Environment=PRETHIRD_IDLE_BLEND_FRAMES=5
 ExecStart=/home/afterlife/miniconda3/envs/musetalk/bin/python /home/afterlife/afterlife-server/prethird/scripts/server.py
 Restart=on-failure
 RestartSec=3
