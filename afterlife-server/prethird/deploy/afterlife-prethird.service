@@ -14,6 +14,8 @@ Environment=PRETHIRD_BIND=127.0.0.1
 Environment=PRETHIRD_REFERENCE_VIDEO=/home/afterlife/afterlife-server/musetalk-afterlife/reference_videos/halbae/halbae-d18m04-25fps.mp4
 Environment=PRETHIRD_IDLE_MP4=/home/afterlife/afterlife-server/musetalk-afterlife/reference_videos/halbae/halbae-idle.mp4
 Environment=PRETHIRD_OLLAMA_URL=http://127.0.0.1:11435
+# bundle 조회 대상 api. bundle_client 하드코딩 기본값 제거(필수) — prod 승격 시 prod api 도메인으로 교체.
+Environment=PRETHIRD_API_BASE=https://edge-alt-preview.example.invalid
 # drop-in 흡수: qwen3tts.conf(TTS_URL=8201) + batch.conf(BATCH_SIZE=32).
 Environment=PRETHIRD_TTS_URL=http://127.0.0.1:8201
 Environment=MUSETALK_BATCH_SIZE=32
