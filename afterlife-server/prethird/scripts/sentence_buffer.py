@@ -1,19 +1,20 @@
 from __future__ import annotations
 import re
 
-_TERMINAL = re.compile(r"[.!?。…,、\n]")
+_TERMINAL = re.compile(r"[.!?。…\n]")
 
 class SentenceBuffer:
     """토큰 스트림을 문장 단위로 끊어 emit.
 
-    종결부호(.!?。…,、개행) 또는 force_flush 글자수 초과 시 flush.
+    종결부호(.!?。…개행) 또는 force_flush 글자수 초과 시 flush.
     testbed/lib/sentence_buffer.js 의 MIN_LEN/FORCE_FLUSH 동등 포팅.
 
     JS 대비 차이:
     - force_flush 강제 컷: JS는 마지막 ','/' ' 위치를 역탐색해 끊지만,
       Python 포팅은 버퍼가 force_flush 이상이면 전체를 한 번에 emit한다.
       실용 상 동일 효과(토큰 단위 push라 잘게 들어옴).
-    - 쉼표(,)·읽점(、) 을 종결부호로 포함(JS 027.7 동일).
+    - 쉼표(,)·읽점(、) 은 종결부호에서 제외(끊김 완화). 끝까지 안 끝나는
+      긴 문장은 force_flush 글자수로 강제 컷(폭주 방지).
     """
 
     def __init__(self, min_len: int = 4, force_flush: int = 30):
