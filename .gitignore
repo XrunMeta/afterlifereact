@@ -44,3 +44,6 @@ afterlife-server/prethird/.venv/
 # 로컬 백업·아카이브 (커밋 금지)
 .backup/
 afterlife-servers.zip
+
+# 음색 카탈로그 변환 산출물 (바이너리, 커밋 제외)
+afterlifeapi/seeds/voice_catalog/out/
