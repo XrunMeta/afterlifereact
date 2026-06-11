@@ -1,0 +1,21 @@
+[Unit]
+Description=afterlife qwen3tts (Qwen3-TTS ICL voice clone, port 8201, GPU0)
+After=network.target
+
+[Service]
+Type=simple
+User=afterlife
+Group=afterlife
+# CUDA_VISIBLE_DEVICES=0 → config DEVICE=cuda:0 가 물리 GPU0 에 매핑(prethird musetalk=GPU1 과 분리).
+Environment=CUDA_VISIBLE_DEVICES=0
+Environment=QWEN3TTS_PORT=8201
+Environment=QWEN3TTS_WARMUP_CLONE=halbae
+Environment=HF_HOME=/home/afterlife/.cache/huggingface
+# QWEN3TTS_DEFAULT_CLONE 은 의도적 미설정 — server.py 가 fallback 을 제거(자산없으면 400)하고
+# WARMUP_CLONE 만 참조하므로 불필요. REF_CLIP_MAX_SEC(10)/ATTN(sdpa)/LANG(Korean)은 config 기본값.
+ExecStart=/home/afterlife/miniconda3/envs/qwen3tts/bin/uvicorn server:app --host 127.0.0.1 --port 8201 --app-dir /home/afterlife/afterlife-server/qwen3tts/scripts
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
