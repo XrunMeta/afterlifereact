@@ -20,6 +20,7 @@ export async function v_67dc73(
         "Authorization": `Bearer ${v_4317d1.secret}`,
       },
       body: JSON.stringify({ cloneId: v_4317d1.cloneId, voiceRawUrl: v_4317d1.voiceRawUrl }),
+      signal: AbortSignal.timeout(10000),
     });
   } catch {
 

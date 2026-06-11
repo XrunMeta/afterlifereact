@@ -496,26 +496,26 @@ v_f891e6.post(
     }
 
     if (v_3f4e2e.env.PREBUILD_SECRET && v_3f4e2e.env.PRETHIRD_PUBLIC_BASE) {
-      try {
-        const v_cb3cfe = await v_3f4e2e.env.DB
-          .prepare(`SELECT * FROM clones WHERE id = ?`)
-          .bind(v_6e0fd3)
-          .first<import("../lib/cloneAccess").CloneRow>();
-        if (v_cb3cfe) {
-          const v_f17108 = new URL(v_3f4e2e.req.url).origin;
-          const v_79521f = await v_87cfd2(v_3f4e2e.env.DB, v_cb3cfe, v_43e90c, v_f17108);
-          v_3f4e2e.executionCtx.waitUntil(
-            v_67dc73(fetch, {
-              base: v_3f4e2e.env.PRETHIRD_PUBLIC_BASE,
-              secret: v_3f4e2e.env.PREBUILD_SECRET,
-              cloneId: String(v_6e0fd3),
-              voiceRawUrl: v_79521f.assets.voiceRawUrl,
-            }),
-          );
-        }
-      } catch (v_9e86fd) {
-        console.warn("[prebuild] trigger skipped:", v_9e86fd);
-      }
+      const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+      const v_a1651b = v_3f4e2e.env.DB;
+      const v_43fd42 = v_3f4e2e.env.PREBUILD_SECRET;
+      const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE;
+      const v_062ae9 = v_6e0fd3;
+      const v_0c8987 = v_43e90c;
+      v_3f4e2e.executionCtx.waitUntil(
+        (async () => {
+          try {
+            const v_3ac7e7 = await v_a1651b.prepare("SELECT * FROM clones WHERE id = ?").bind(v_062ae9).first<import("../lib/cloneAccess").CloneRow>();
+            if (!v_3ac7e7?.voice_se_url) return; 
+            const v_79521f = await v_87cfd2(v_a1651b, v_3ac7e7, v_0c8987, v_f17108);
+            await v_67dc73(fetch, {
+              base: v_694b25, secret: v_43fd42, cloneId: String(v_062ae9), voiceRawUrl: v_79521f.assets.voiceRawUrl,
+            });
+          } catch (v_9e86fd) {
+            console.warn("[prebuild] trigger skipped:", v_9e86fd);
+          }
+        })(),
+      );
     }
 
     return v_3f4e2e.json(
