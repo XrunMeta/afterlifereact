@@ -120,11 +120,16 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const [v_cf954d, v_a4d7cc] = v_5ab095<number | null>(null);
 
   v_c4deb2(() => {
-    if (v_cf954d != null && !v_af221f.playing && v_af221f.isLoaded && !v_af221f.isBuffering) {
-
+    if (
+      v_cf954d != null &&
+      !v_af221f.playing &&
+      v_af221f.isLoaded &&
+      !v_af221f.isBuffering &&
+      v_af221f.currentTime > 0
+    ) {
       v_a4d7cc(null);
     }
-  }, [v_af221f.playing, v_af221f.isLoaded, v_af221f.isBuffering, v_cf954d]);
+  }, [v_af221f.playing, v_af221f.isLoaded, v_af221f.isBuffering, v_af221f.currentTime, v_cf954d]);
 
   const v_5ebce3 = v_8a9d74(v_542f2a.HIGH_QUALITY);
   const v_b599c8 = v_b3e89c(v_5ebce3, 200);
@@ -140,7 +145,6 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   }, []);
 
   const v_0f4413 = async (v: v_d80981) => {
-    v_523782(v_81e2ef.id);
 
     if (v_cf954d != null) {
       v_86394a.pause();
@@ -148,12 +152,15 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
     }
     if (v_81e2ef.srcFileId == null) {
 
+      v_523782(v_81e2ef.id);
       v_b187d9({ voicePresetId: v_81e2ef.id, voiceCloneJobId: undefined, voiceFile: undefined });
       return;
     }
 
-    v_b187d9({ voicePresetId: undefined, voiceFile: undefined });
     if (!v_2ca7e0) return;
+
+    v_523782(v_81e2ef.id);
+    v_b187d9({ voicePresetId: undefined, voiceFile: undefined });
     const v_1923e2 = ++v_64652e.current;
     try {
       v_bbded0(true);
@@ -163,6 +170,9 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       v_b187d9({ voiceCloneJobId: v_94abbb.job_id, voicePresetId: undefined, voiceFile: undefined });
     } catch (v_49263d) {
       if (v_1923e2 === v_64652e.current) {
+
+        v_523782(null);
+        v_b187d9({ voiceCloneJobId: undefined, voicePresetId: undefined, voiceFile: undefined });
         console.warn("[DefaultVoice] preset job 생성 실패:", v_49263d);
         v_889fad("음성 선택 오류", "잠시 후 다시 시도해 주세요.");
       }
@@ -177,9 +187,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       v_a4d7cc(null);
       return;
     }
-    v_86394a.replace({ uri: v_81e2ef.sampleUrl });
-    v_86394a.play();
-    v_a4d7cc(v_81e2ef.id);
+    try {
+      v_86394a.replace({ uri: v_81e2ef.sampleUrl });
+      v_86394a.play();
+      v_a4d7cc(v_81e2ef.id);
+    } catch (v_49263d) {
+      console.warn("[DefaultVoice] preview 재생 실패:", v_49263d);
+      v_a4d7cc(null);
+    }
   };
 
   v_c4deb2(() => {
