@@ -69,6 +69,11 @@ def make_recorder(clone_id, session_id: str, root: str | None = None,
     try:
         # H-1: 디렉토리 0o700 권한
         os.makedirs(target, mode=0o700, exist_ok=True)
+        # MINOR 2: 기존 디렉토리가 755면 makedirs가 권한 안 바꿈 → 명시적 chmod
+        try:
+            os.chmod(target, 0o700)
+        except OSError:
+            pass
         # H-2: makedirs 후 실제 경로가 root 하위인지 검증
         real_target = os.path.realpath(target)
         if os.path.commonpath([real_target, root]) != root:
@@ -122,15 +127,19 @@ class Turn:
         except Exception as e:
             log.warning("answer.txt 기록 실패 ts=%s: %s", self._ts, e)
         # answer.wav 합본 — 청크별 완전 wav를 PCM 이어붙여 단일 wav 재조립 (0o600)
+        # MAJOR 5: 청크별 개별 try — 깨진 청크(첫 청크 포함) skip, 정상 청크로 wav 생성
         if self._wav_chunks:
             try:
                 params = None
                 frames = bytearray()
                 for chunk in self._wav_chunks:
-                    with wave.open(io.BytesIO(chunk), "rb") as r:
-                        if params is None:
-                            params = r.getparams()
-                        frames += r.readframes(r.getnframes())
+                    try:
+                        with wave.open(io.BytesIO(chunk), "rb") as r:
+                            if params is None:
+                                params = r.getparams()
+                            frames += r.readframes(r.getnframes())
+                    except Exception:
+                        continue  # 깨진 청크 skip
                 if params is not None:
                     wpath = self._path("answer.wav")
                     fd = os.open(wpath, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -186,20 +195,33 @@ class CallRecorder:
         self._last_ts: int | None = None
 
     def begin_turn(self, mode: str, text: str, seq=None) -> Turn:
-        # R-1: 같은 ms 두 턴 → prefix 충돌 방지
+        # R-1: 같은 ms 두 턴 → prefix 충돌 방지 (인스턴스 내 단조 보정)
         ts_ms = int(self._time_fn() * 1000)
         if self._last_ts is not None and ts_ms <= self._last_ts:
             ts_ms = self._last_ts + 1
-        self._last_ts = ts_ms
 
-        turn = Turn(self._dir, ts_ms, self._sid, self._time_fn)
         header = (
             f"mode: {mode}\nseq: {seq}\nsession: {self._sid}\n"
             f"ts_ms: {ts_ms}\n---\n{text}"
         )
-        # B-1: OSError → Exception
-        try:
-            _secure_write(turn._path("input.txt"), header)
-        except Exception as e:
-            log.warning("input.txt 기록 실패 ts=%s: %s", ts_ms, e)
-        return turn
+        # R-2: O_EXCL 원자적 생성 — 동시 세션이 같은 clone_id·같은 ms에 충돌 시 ts++ 재시도
+        for _ in range(1000):  # 폭주 방지 상한
+            path = os.path.join(self._dir, f"{ts_ms}-input.txt")
+            try:
+                fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            except FileExistsError:
+                ts_ms += 1
+                continue
+            except Exception as e:
+                log.warning("input.txt 기록 실패 ts=%s: %s", ts_ms, e)
+                break  # 기록 실패해도 Turn은 반환(통화 차단 금지)
+            else:
+                try:
+                    with os.fdopen(fd, "w", encoding="utf-8") as f:
+                        f.write(header)
+                except Exception as e:
+                    log.warning("input.txt write 실패 ts=%s: %s", ts_ms, e)
+                break
+
+        self._last_ts = ts_ms
+        return Turn(self._dir, ts_ms, self._sid, self._time_fn)

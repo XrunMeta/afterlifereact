@@ -129,3 +129,30 @@ def test_monotonic_ts_no_collision(tmp_path):
     clone_dir = tmp_path / "9051"
     inputs = sorted(p.name for p in clone_dir.iterdir() if p.name.endswith("-input.txt"))
     assert len(inputs) == 2  # 충돌 없이 둘 다 보존
+
+
+# ── R-2: 동시 세션 O_EXCL 충돌 방지 ─────────────────────────────────────────
+
+def test_concurrent_sessions_same_clone_no_overwrite(tmp_path):
+    # 서로 다른 세션이 같은 clone_id·같은 ms에 begin_turn → 덮어쓰기 없이 둘 다 보존
+    frozen = [1_700_000_000.0]
+    tf = lambda: frozen[0]
+    rec1 = make_recorder(9051, "sessAAAA", root=str(tmp_path), time_fn=tf)
+    rec2 = make_recorder(9051, "sessBBBB", root=str(tmp_path), time_fn=tf)
+    t1 = rec1.begin_turn("say", "from-sess-A", seq=1)
+    t2 = rec2.begin_turn("say", "from-sess-B", seq=1)
+    clone_dir = tmp_path / "9051"
+    inputs = [p for p in clone_dir.iterdir() if p.name.endswith("-input.txt")]
+    assert len(inputs) == 2  # 충돌 없이 둘 다 보존
+    texts = {p.read_text(encoding="utf-8").split("---\n")[-1] for p in inputs}
+    assert texts == {"from-sess-A", "from-sess-B"}
+
+
+# ── MAJOR 2: env PRETHIRD_RECORDS_ROOT fallback ───────────────────────────────
+
+def test_uses_env_records_root(tmp_path, monkeypatch):
+    monkeypatch.setenv("PRETHIRD_RECORDS_ROOT", str(tmp_path / "envroot"))
+    rec = make_recorder(9051, "sX")  # root 인자 생략 → env 사용
+    assert isinstance(rec, CallRecorder)
+    turn = rec.begin_turn("say", "hi", seq=1)
+    assert (tmp_path / "envroot" / "9051").is_dir()

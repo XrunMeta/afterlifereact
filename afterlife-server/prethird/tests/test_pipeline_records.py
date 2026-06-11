@@ -14,6 +14,9 @@ class _RecTurn:
         self.wavs = []
     def append_token(self, tok): self.tokens.append(tok)
     def append_wav(self, wav): self.wavs.append(wav)
+    def append_frames(self, frames, pcm48=None, fps=25):
+        self.frames = getattr(self, "frames", [])
+        self.frames.extend(frames)
     def finalize(self, **m): pass
 
 
