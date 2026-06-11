@@ -88,6 +88,9 @@ def _make_dc_handler(sess, channel):
                         await sess.pipeline.speak(text, turn=turn)
                     else:
                         await sess.pipeline.say(text, turn=turn)
+                except asyncio.CancelledError:
+                    log.warning("session %s %s cancelled", sess.session_id, mode)
+                    raise
                 except Exception as e:
                     log.warning("session %s %s failed: %s", sess.session_id, mode, e)
                 finally:
