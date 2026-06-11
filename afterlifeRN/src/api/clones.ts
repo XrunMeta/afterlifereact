@@ -144,9 +144,12 @@ export async function v_4bf019(
 export interface CatalogVoice {
   id: number;
   name: string;
+  gender: string | null;
+  ageRange: string | null;
   description: string | null;
   sortOrder: number;
   sampleUrl: string;
+  srcFileId: number | null;   
 }
 
 export async function v_3ee8c0(v_2ca7e0): Promise<CatalogVoice[]> {
