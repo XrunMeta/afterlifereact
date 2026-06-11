@@ -26,6 +26,8 @@ import { v_c226a5, v_80a022 } from "../lib/notify";
 import { v_0b44ec } from "../lib/personaQuestions";
 import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 import { v_5acfc3 } from "../lib/utils";
+import { v_67dc73 } from "../lib/prebuildClient";
+import { v_87cfd2 } from "../lib/callBundle";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -491,6 +493,29 @@ v_f891e6.post(
       } catch (v_49263d) {
         console.warn("[clone.create] followee_new_clone notify failed:", v_49263d);
       }
+    }
+
+    if (v_3f4e2e.env.PREBUILD_SECRET && v_3f4e2e.env.PRETHIRD_PUBLIC_BASE) {
+      const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+      const v_a1651b = v_3f4e2e.env.DB;
+      const v_43fd42 = v_3f4e2e.env.PREBUILD_SECRET;
+      const v_694b25 = v_3f4e2e.env.PRETHIRD_PUBLIC_BASE;
+      const v_062ae9 = v_6e0fd3;
+      const v_0c8987 = v_43e90c;
+      v_3f4e2e.executionCtx.waitUntil(
+        (async () => {
+          try {
+            const v_3ac7e7 = await v_a1651b.prepare("SELECT * FROM clones WHERE id = ?").bind(v_062ae9).first<import("../lib/cloneAccess").CloneRow>();
+            if (!v_3ac7e7?.voice_se_url) return; 
+            const v_79521f = await v_87cfd2(v_a1651b, v_3ac7e7, v_0c8987, v_f17108);
+            await v_67dc73(fetch, {
+              base: v_694b25, secret: v_43fd42, cloneId: String(v_062ae9), voiceRawUrl: v_79521f.assets.voiceRawUrl,
+            });
+          } catch (v_9e86fd) {
+            console.warn("[prebuild] trigger skipped:", v_9e86fd);
+          }
+        })(),
+      );
     }
 
     return v_3f4e2e.json(
