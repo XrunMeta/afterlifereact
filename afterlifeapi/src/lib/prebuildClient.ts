@@ -22,7 +22,8 @@ export async function v_67dc73(
       body: JSON.stringify({ cloneId: v_4317d1.cloneId, voiceRawUrl: v_4317d1.voiceRawUrl }),
       signal: AbortSignal.timeout(10000),
     });
-  } catch {
+  } catch (v_9e86fd) {
 
+    console.warn("[prebuild] trigger failed:", v_9e86fd instanceof Error ? v_9e86fd.message : v_9e86fd);
   }
 }

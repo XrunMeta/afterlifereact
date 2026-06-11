@@ -86,3 +86,16 @@ async def test_prebuild_accepts_and_runs_background(monkeypatch):
     await prebuild._drain_tasks_for_test()
     assert calls["ensure"] == [("9099", "http://x/raw", prebuild.REF_VOICES_ROOT)]
     assert calls["stt"] == ["9099"]
+
+@pytest.mark.asyncio
+async def test_prebuild_rejects_path_traversal_clone_id(monkeypatch):
+    prebuild, calls = _make_app_with_prebuild(monkeypatch)
+    req = make_mocked_request("POST", "/prebuild",
+                              headers={"Authorization": "Bearer s3cr3t"})
+    async def _json(): return {"cloneId": "../../etc/evil", "voiceRawUrl": "http://x/raw"}
+    req.json = _json
+    resp = await prebuild.prebuild_handler(req)
+    assert resp.status == 400
+    # 백그라운드 실행 안 됨
+    await prebuild._drain_tasks_for_test()
+    assert calls["ensure"] == []
