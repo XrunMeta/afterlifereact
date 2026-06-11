@@ -30,6 +30,9 @@ class NullTurn:
     def append_wav(self, wav_bytes: bytes) -> None:
         pass
 
+    def append_frames(self, frames, pcm48=None, fps: int = 25) -> None:
+        pass
+
     def finalize(self, **meta) -> None:
         pass
 
@@ -91,6 +94,9 @@ class Turn:
         self._time_fn = time_fn
         self._tokens: list[str] = []
         self._wav_chunks: list[bytes] = []
+        self._frames: list = []
+        self._fps = 25
+        self._record_mp4 = os.environ.get("PRETHIRD_RECORD_MP4", "0") == "1"
 
     def _path(self, suffix: str) -> str:
         return os.path.join(self._dir, f"{self._ts}-{suffix}")
@@ -101,6 +107,12 @@ class Turn:
 
     def append_wav(self, wav_bytes: bytes) -> None:
         self._wav_chunks.append(wav_bytes)
+
+    def append_frames(self, frames, pcm48=None, fps: int = 25) -> None:
+        if not self._record_mp4:
+            return
+        self._frames.extend(frames)
+        self._fps = fps
 
     def finalize(self, **meta) -> None:
         answer = "".join(self._tokens)
@@ -130,6 +142,21 @@ class Turn:
                             w.writeframes(bytes(frames))
             except Exception as e:
                 log.warning("answer.wav 합본 실패 ts=%s: %s", self._ts, e)
+        # answer.mp4 인코딩 — PRETHIRD_RECORD_MP4=1 일 때만 (RAM·디스크 비용)
+        if self._record_mp4 and self._frames:
+            try:
+                import imageio
+                mpath = self._path("answer.mp4")
+                imageio.mimwrite(mpath, self._frames, fps=self._fps,
+                                 codec="libx264", quality=8)
+                try:
+                    os.chmod(mpath, 0o600)
+                except OSError:
+                    pass
+            except Exception as e:
+                log.warning("answer.mp4 인코딩 실패 ts=%s: %s", self._ts, e)
+            finally:
+                self._frames = []  # RAM 즉시 회수
         m = dict(meta)
         m.update({
             "ts_ms": self._ts,
