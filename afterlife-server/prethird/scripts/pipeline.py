@@ -61,7 +61,10 @@ class DialoguePipeline:
         force_flush: int = 30,
     ) -> None:
         from sentence_buffer import SentenceBuffer
-        from audio_utils import _resample_int16, _balance_pcm_to_video
+        from audio_utils import (
+            _resample_int16, _balance_pcm_to_video,
+            _apply_edge_fade, _normalize_peak,
+        )
 
         self.vt = video_track
         self.at = audio_track
@@ -75,6 +78,10 @@ class DialoguePipeline:
         self._sb_factory = lambda: SentenceBuffer(min_len, force_flush)
         self._resample = _resample_int16
         self._balance = _balance_pcm_to_video
+        self._edge_fade = _apply_edge_fade
+        self._normalize = _normalize_peak
+        self._fade_ms = float(os.environ.get("PRETHIRD_AUDIO_FADE_MS", "8"))
+        self._norm_on = os.environ.get("PRETHIRD_AUDIO_NORM", "1") not in ("0", "false", "")
         self._last_emit_end: float | None = None  # [seg] 직전 _emit_sentence 종료 시각
 
     # ------------------------------------------------------------------
@@ -162,6 +169,11 @@ class DialoguePipeline:
                     "CUDA 오염/추론 실패 의심."
                 )
                 pcm_bal = pcm48
+            # 후처리: loudness 정규화 → 경계 fade. 둘 다 길이 불변 → avsync 무영향.
+            # env 토글로 가비아에서 코드 변경 없이 비활성 가능(회귀 안전장치).
+            if self._norm_on:
+                pcm_bal = self._normalize(pcm_bal)
+            pcm_bal = self._edge_fade(pcm_bal, fade_ms=self._fade_ms)
             self.at.push_pcm_int16(pcm_bal)
             turn.append_frames(frames_buf, pcm48, fps=25)
         finally:
