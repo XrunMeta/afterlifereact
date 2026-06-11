@@ -17,3 +17,24 @@ def test_force_flush_on_long_run():
     for ch in "가나다라마바사아자차카":  # 11자, 종결부호 없음
         out += sb.push(ch)
     assert len(out) >= 1  # force_flush 로 끊김
+
+
+def test_no_split_on_comma():
+    # 쉼표(,)·읽점(、) 에서는 분할하지 않고, 마침표류에서만 분할한다.
+    sb = SentenceBuffer(min_len=2, force_flush=50)
+    out = []
+    for tok in ["안녕", "하세요", ", ", "반가워요", "."]:
+        out += sb.push(tok)
+    out += sb.flush()
+    assert len(out) == 1
+    assert out[0].strip() == "안녕하세요, 반가워요."
+
+
+def test_still_splits_on_period():
+    # 회귀 가드: 마침표 분할은 그대로 동작.
+    sb = SentenceBuffer(min_len=2, force_flush=50)
+    out = []
+    for tok in ["가나다", ". ", "라마바", "."]:
+        out += sb.push(tok)
+    out += sb.flush()
+    assert len(out) == 2
