@@ -26,6 +26,8 @@ import { notify, notifyCloneEvent } from "../lib/notify";
 import { loadPersonaQuestions } from "../lib/personaQuestions";
 import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 import { maskUsername } from "../lib/utils";
+import { triggerPrebuild } from "../lib/prebuildClient";
+import { buildCallBundle } from "../lib/callBundle";
 
 export const clones = new Hono<AppEnv>();
 
@@ -499,6 +501,29 @@ clones.post(
         }
       } catch (err) {
         console.warn("[clone.create] followee_new_clone notify failed:", err);
+      }
+    }
+
+    if (c.env.PREBUILD_SECRET && c.env.PRETHIRD_PUBLIC_BASE) {
+      try {
+        const fullCloneRow = await c.env.DB
+          .prepare(`SELECT * FROM clones WHERE id = ?`)
+          .bind(cloneId)
+          .first<import("../lib/cloneAccess").CloneRow>();
+        if (fullCloneRow) {
+          const origin = new URL(c.req.url).origin;
+          const bundle = await buildCallBundle(c.env.DB, fullCloneRow, userId, origin);
+          c.executionCtx.waitUntil(
+            triggerPrebuild(fetch, {
+              base: c.env.PRETHIRD_PUBLIC_BASE,
+              secret: c.env.PREBUILD_SECRET,
+              cloneId: String(cloneId),
+              voiceRawUrl: bundle.assets.voiceRawUrl,
+            }),
+          );
+        }
+      } catch (e) {
+        console.warn("[prebuild] trigger skipped:", e);
       }
     }
 
