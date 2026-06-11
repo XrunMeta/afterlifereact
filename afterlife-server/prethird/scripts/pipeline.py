@@ -134,8 +134,10 @@ class DialoguePipeline:
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
 
-    async def _infer_stage(self, wav_bytes: bytes, pcm48: np.ndarray) -> None:
-        """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)"""
+    async def _infer_stage(self, wav_bytes: bytes, pcm48: np.ndarray, turn=None) -> None:
+        """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
+        turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적."""
+        turn = turn if turn is not None else NULL_TURN
         loop = asyncio.get_event_loop()
         frames_buf: list[np.ndarray] = []
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
@@ -161,6 +163,7 @@ class DialoguePipeline:
                 )
                 pcm_bal = pcm48
             self.at.push_pcm_int16(pcm_bal)
+            turn.append_frames(frames_buf, pcm48, fps=25)
         finally:
             try:
                 os.unlink(wav_path)
@@ -229,7 +232,7 @@ class DialoguePipeline:
                 if item is None:
                     break
                 wav_bytes, pcm48 = item
-                await self._infer_stage(wav_bytes, pcm48)
+                await self._infer_stage(wav_bytes, pcm48, turn)
 
         tasks = [
             asyncio.ensure_future(produce(sentence_q)),
