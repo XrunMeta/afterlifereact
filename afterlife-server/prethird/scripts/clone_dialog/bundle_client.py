@@ -5,14 +5,18 @@ from __future__ import annotations
 import os, logging, aiohttp
 
 log = logging.getLogger("prethird.bundle_client")
-API_BASE = os.environ.get("PRETHIRD_API_BASE", "https://edge-alt-preview.example.invalid")
+API_BASE = os.environ.get("PRETHIRD_API_BASE")  # 미설정 시 None → fetch_bundle이 graceful skip
 TIMEOUT_S = float(os.environ.get("PRETHIRD_BUNDLE_TIMEOUT", "2.0"))
+
 
 async def fetch_bundle(api_base: str | None, clone_id, access_token: str | None) -> dict | None:
     """{personaBundle, assets} 또는 None(graceful). token/clone_id 없으면 None."""
     if not access_token or clone_id is None:
         return None
     base = api_base or API_BASE
+    if not base:
+        log.warning("PRETHIRD_API_BASE 미설정 — bundle 조회 skip (clone=%s)", clone_id)
+        return None
     url = f"{base}/oth-path"
     try:
         timeout = aiohttp.ClientTimeout(total=TIMEOUT_S)
