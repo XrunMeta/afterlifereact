@@ -721,10 +721,10 @@ v_f891e6.get("/search", async (v_3f4e2e) => {
 v_f891e6.get("/voices", v_6690d9, async (v_3f4e2e) => {
   const v_18b8bf = await v_3f4e2e.env.DB
     .prepare(
-      `SELECT id, name, gender, age_range, description, sort_order
+      `SELECT id, name, gender, age_range, description, sort_order, src_file_id
        FROM voice_presets WHERE is_active = 1 ORDER BY sort_order ASC, id ASC`,
     )
-    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number }>();
+    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number; src_file_id: number | null }>();
   const v_f17108 = new URL(v_3f4e2e.req.url).origin;
   const v_53e1f3 = (v_18b8bf.results ?? []).map((v_cb35cb) => ({
     id: v_cb35cb.id,
@@ -733,6 +733,7 @@ v_f891e6.get("/voices", v_6690d9, async (v_3f4e2e) => {
     ageRange: v_cb35cb.age_range,
     description: v_cb35cb.description,
     sortOrder: v_cb35cb.sort_order,
+    srcFileId: v_cb35cb.src_file_id,
     sampleUrl: `${v_f17108}/oth-path${v_cb35cb.id}/sample`,
   }));
   return v_3f4e2e.json({ voices: v_53e1f3 });
@@ -851,10 +852,12 @@ v_f891e6.post("/asset-job", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("VALIDATION_FAILED", "src_file_id required.");
   }
   const v_4de33e = await v_3f4e2e.env.DB
-    .prepare(`SELECT id, r2_key, owner_user_id FROM files WHERE id = ?`)
+    .prepare(`SELECT id, r2_key, owner_user_id, purpose FROM files WHERE id = ?`)
     .bind(v_2fa661)
-    .first<{ id: number; r2_key: string; owner_user_id: number }>();
-  if (!v_4de33e || v_4de33e.owner_user_id !== v_43e90c) {
+    .first<{ id: number; r2_key: string; owner_user_id: number | null; purpose: string | null }>();
+
+  const v_8dc0bc = v_4de33e?.owner_user_id == null && v_4de33e?.purpose === "voice_catalog";
+  if (!v_4de33e || (!v_8dc0bc && v_4de33e.owner_user_id !== v_43e90c)) {
     throw new v_3ebe58("NOT_FOUND", "Source file not found.");
   }
   const v_04211c = crypto.randomUUID();
