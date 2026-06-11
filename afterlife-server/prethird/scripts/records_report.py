@@ -48,16 +48,22 @@ def report(root: str, only_clone: str | None = None) -> int:
         ok = fail = drop = 0
         problems = []
         for ts in ts_all:
-            has_answer = os.path.isfile(os.path.join(cdir, f"{ts}-answer.txt"))
+            # MAJOR 4: answer 산출물 우선 분류 — meta 실패해도 응답은 나온 것
+            apath = os.path.join(cdir, f"{ts}-answer.txt")
+            wpath = os.path.join(cdir, f"{ts}-answer.wav")
+            has_answer_txt = os.path.isfile(apath) and os.path.getsize(apath) > 0
+            has_wav = os.path.isfile(wpath)
             meta = _load_meta(cdir, ts)
-            if meta is None:
-                drop += 1
-                problems.append((ts, "미응답", _input_text(cdir, ts)))
-            elif int(meta.get("answer_chars", 0)) == 0:
+            if has_answer_txt or has_wav:
+                ok += 1  # 응답 산출물 존재 = 정상(meta 실패해도 응답은 나옴)
+            elif meta is not None:
+                # finalize는 됐으나 응답 산출물 없음(토큰0) = 처리실패
                 fail += 1
                 problems.append((ts, "처리실패", _input_text(cdir, ts)))
             else:
-                ok += 1
+                # input만, 산출물·meta 모두 없음 = 미응답(finalize 미호출)
+                drop += 1
+                problems.append((ts, "미응답", _input_text(cdir, ts)))
         print(f"[{cid}] 턴 {len(ts_all)} | 정상 {ok} | 처리실패 {fail} | 미응답 {drop}")
         for ts, kind, txt in problems:
             meta = _load_meta(cdir, ts)

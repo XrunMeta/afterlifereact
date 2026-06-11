@@ -51,3 +51,20 @@ def test_wav_survives_corrupt_chunk(tmp_path):
     turn.append_token("응답")
     turn.append_wav(b"NOT_A_WAV")  # 깨진 청크
     turn.finalize(se_present=True)  # 예외 없이 반환해야 함
+
+
+# ── MAJOR 5: 첫 청크 깨짐 fallback — 정상 청크로 wav 생성 ─────────────────────
+
+def test_wav_first_chunk_corrupt_uses_next(tmp_path):
+    rec = make_recorder(9051, "sX", root=str(tmp_path))
+    turn = rec.begin_turn("say", "hi", seq=1)
+    turn.append_token("응답")
+    turn.append_wav(b"BROKEN")          # 첫 청크 깨짐
+    turn.append_wav(_make_wav(120))     # 정상 청크
+    turn.finalize(se_present=True)
+    clone_dir = tmp_path / "9051"
+    wavs = [p for p in clone_dir.iterdir() if p.name.endswith("-answer.wav")]
+    assert len(wavs) == 1  # 정상 청크로 생성
+    import wave as _w
+    with _w.open(str(wavs[0]), "rb") as w:
+        assert w.getnframes() == 120
