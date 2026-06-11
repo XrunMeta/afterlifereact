@@ -120,11 +120,16 @@ function Component({ draft, onChange }: Props) {
   const [playingId, setPlayingId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (playingId != null && !playerStatus.playing && playerStatus.isLoaded && !playerStatus.isBuffering) {
-
+    if (
+      playingId != null &&
+      !playerStatus.playing &&
+      playerStatus.isLoaded &&
+      !playerStatus.isBuffering &&
+      playerStatus.currentTime > 0
+    ) {
       setPlayingId(null);
     }
-  }, [playerStatus.playing, playerStatus.isLoaded, playerStatus.isBuffering, playingId]);
+  }, [playerStatus.playing, playerStatus.isLoaded, playerStatus.isBuffering, playerStatus.currentTime, playingId]);
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recState = useAudioRecorderState(recorder, 200);
@@ -140,7 +145,6 @@ function Component({ draft, onChange }: Props) {
   }, []);
 
   const selectPresetVoice = async (v: CatalogVoice) => {
-    setSelectedVoiceId(v.id);
 
     if (playingId != null) {
       player.pause();
@@ -148,12 +152,15 @@ function Component({ draft, onChange }: Props) {
     }
     if (v.srcFileId == null) {
 
+      setSelectedVoiceId(v.id);
       onChange({ voicePresetId: v.id, voiceCloneJobId: undefined, voiceFile: undefined });
       return;
     }
 
-    onChange({ voicePresetId: undefined, voiceFile: undefined });
     if (!accessToken) return;
+
+    setSelectedVoiceId(v.id);
+    onChange({ voicePresetId: undefined, voiceFile: undefined });
     const seq = ++jobSeqRef.current;
     try {
       setUploading(true);
@@ -163,6 +170,9 @@ function Component({ draft, onChange }: Props) {
       onChange({ voiceCloneJobId: jobRes.job_id, voicePresetId: undefined, voiceFile: undefined });
     } catch (err) {
       if (seq === jobSeqRef.current) {
+
+        setSelectedVoiceId(null);
+        onChange({ voiceCloneJobId: undefined, voicePresetId: undefined, voiceFile: undefined });
         console.warn("[DefaultVoice] preset job 생성 실패:", err);
         showAlert("음성 선택 오류", "잠시 후 다시 시도해 주세요.");
       }
@@ -177,9 +187,14 @@ function Component({ draft, onChange }: Props) {
       setPlayingId(null);
       return;
     }
-    player.replace({ uri: v.sampleUrl });
-    player.play();
-    setPlayingId(v.id);
+    try {
+      player.replace({ uri: v.sampleUrl });
+      player.play();
+      setPlayingId(v.id);
+    } catch (err) {
+      console.warn("[DefaultVoice] preview 재생 실패:", err);
+      setPlayingId(null);
+    }
   };
 
   useEffect(() => {
