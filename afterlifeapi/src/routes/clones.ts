@@ -734,10 +734,10 @@ clones.get("/search", async (c) => {
 clones.get("/voices", requireAuth, async (c) => {
   const rows = await c.env.DB
     .prepare(
-      `SELECT id, name, gender, age_range, description, sort_order
+      `SELECT id, name, gender, age_range, description, sort_order, src_file_id
        FROM voice_presets WHERE is_active = 1 ORDER BY sort_order ASC, id ASC`,
     )
-    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number }>();
+    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number; src_file_id: number | null }>();
   const origin = new URL(c.req.url).origin;
   const voices = (rows.results ?? []).map((r) => ({
     id: r.id,
@@ -746,6 +746,7 @@ clones.get("/voices", requireAuth, async (c) => {
     ageRange: r.age_range,
     description: r.description,
     sortOrder: r.sort_order,
+    srcFileId: r.src_file_id,
     sampleUrl: `${origin}/oth-path${r.id}/sample`,
   }));
   return c.json({ voices });
@@ -864,10 +865,12 @@ clones.post("/asset-job", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "src_file_id required.");
   }
   const file = await c.env.DB
-    .prepare(`SELECT id, r2_key, owner_user_id FROM files WHERE id = ?`)
+    .prepare(`SELECT id, r2_key, owner_user_id, purpose FROM files WHERE id = ?`)
     .bind(srcFileId)
-    .first<{ id: number; r2_key: string; owner_user_id: number }>();
-  if (!file || file.owner_user_id !== userId) {
+    .first<{ id: number; r2_key: string; owner_user_id: number | null; purpose: string | null }>();
+
+  const isPublicCatalog = file?.owner_user_id == null && file?.purpose === "voice_catalog";
+  if (!file || (!isPublicCatalog && file.owner_user_id !== userId)) {
     throw new APIError("NOT_FOUND", "Source file not found.");
   }
   const jobId = crypto.randomUUID();
