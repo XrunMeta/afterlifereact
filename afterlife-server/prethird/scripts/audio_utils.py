@@ -91,3 +91,51 @@ def _balance_pcm_to_video(
         pad = np.zeros(target - cur, dtype=np.int16)
         return np.concatenate([pcm, pad]), cur - target
     return pcm, 0
+
+def _apply_edge_fade(
+    pcm: np.ndarray, sr: int = AUDIO_OUTPUT_SR, fade_ms: float = 8.0
+) -> np.ndarray:
+    """청크 경계 클릭/팝 제거용 짧은 fade-in/out. overlap 아님 → 길이 불변(avsync 무영향).
+
+    하드컷 청크 경계의 진폭 불연속이 'tick' 잡음을 만든다. 시작·끝 fade_ms 구간을
+    선형 ramp 로 감싸 불연속을 없앤다. fade_ms<=0 또는 빈 배열이면 무변경.
+    """
+    if pcm.size == 0 or fade_ms <= 0:
+        return pcm
+    n = int(sr * fade_ms / 1000.0)
+    n = min(n, pcm.size 
+    if n <= 0:
+        return pcm
+    out = pcm.astype(np.float32)
+    ramp = np.linspace(0.0, 1.0, n, dtype=np.float32)
+    out[:n] *= ramp
+    out[-n:] *= ramp[::-1]
+    return np.clip(out, -32768.0, 32767.0).astype(np.int16)
+
+def _normalize_peak(
+    pcm: np.ndarray,
+    target_peak: float = 0.89,
+    gain_min: float = 0.7,
+    gain_max: float = 1.8,
+    silence_floor: int = 512,
+) -> np.ndarray:
+    """청크 peak 를 target_peak(≈-1dBFS)로 맞추되 gain 을 [gain_min, gain_max] 로 클램프.
+
+    청크별 정규화는 잘못하면 음량 출렁임을 만든다(P1 악화). 세 안전장치:
+      - near-silence(peak<silence_floor=512) 청크는 무변경(무음/trailing-silence 폭증 방지).
+        floor 를 64→512 로 높여, silence_floor 바로 위 청크가 gain_max 로 튀는 경계 역효과를 차단.
+      - 부스트는 보수적(gain_max=1.8, +5dB 상한)으로 조용한 청크 과증폭·노이즈 부각 억제.
+      - 감쇠도 제한(gain_min=0.7, -3dB) — 큰 청크만 완만히 낮춤.
+    TTS 출력이 균일하면 gain≈1 이라 실질 효과는 '튀는 청크 완화'.
+    """
+    if pcm.size == 0:
+        return pcm
+    peak = float(np.max(np.abs(pcm.astype(np.float32))))
+    if peak < silence_floor:
+        return pcm
+    gain = (target_peak * 32767.0) / peak
+    gain = float(np.clip(gain, gain_min, gain_max))
+    if abs(gain - 1.0) < 1e-3:
+        return pcm
+    out = pcm.astype(np.float32) * gain
+    return np.clip(out, -32768.0, 32767.0).astype(np.int16)
