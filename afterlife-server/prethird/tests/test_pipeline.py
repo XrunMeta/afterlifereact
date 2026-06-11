@@ -305,6 +305,38 @@ def test_pipeline_exception_still_signals_end():
         asyncio.run(p.say("x"))
     assert "v" in ended and "a" in ended  # finally 로 signal_end 보장
 
+def test_infer_stage_frames_zero_still_postprocesses(monkeypatch):
+    import numpy as np
+    import asyncio
+    monkeypatch.setenv("PRETHIRD_AUDIO_FADE_MS", "8")
+    monkeypatch.setenv("PRETHIRD_AUDIO_NORM", "1")
+
+    pushed = {}
+
+    class VT:
+        def push_ndarray(self, arr): pass
+        def signal_end(self): pass
+    class AT:
+        def push_pcm_int16(self, pcm): pushed["pcm"] = pcm
+        def signal_end(self): pass
+
+    async def chat_fn(messages):
+        if False:
+            yield ""
+    async def say_fn(text, se): return b""
+    def decode_wav_fn(b): return (np.zeros(0, dtype=np.int16), 48000, 1)
+    def infer_fn_zero(path, on_frame):  # on_frame 미호출 → frames=0
+        return 0
+
+    from pipeline import DialoguePipeline
+    p = DialoguePipeline(VT(), AT(), chat_fn, say_fn, decode_wav_fn, infer_fn_zero)
+    pcm48 = np.full(48000, 15000, dtype=np.int16)
+    asyncio.run(p._infer_stage(b"", pcm48))
+    out = pushed["pcm"]
+    # frames=0 폴백(pcm_bal=pcm48)도 후처리 받음 → 경계 fade 확인
+    assert abs(int(out[0])) < abs(int(out[len(out) 
+    assert abs(int(out[-1])) < abs(int(out[len(out) 
+
 @pytest.mark.asyncio
 async def test_pipeline_empty_stream():
     """LLM 스트림이 아무 토큰도 안 내면 트랙 큐가 비고 signal_end만 호출."""

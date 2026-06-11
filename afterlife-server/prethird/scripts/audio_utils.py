@@ -116,7 +116,7 @@ def _normalize_peak(
     pcm: np.ndarray,
     target_peak: float = 0.89,
     gain_min: float = 0.7,
-    gain_max: float = 1.8,
+    gain_max: float = 1.1,
     silence_floor: int = 512,
 ) -> np.ndarray:
     """청크 peak 를 target_peak(≈-1dBFS)로 맞추되 gain 을 [gain_min, gain_max] 로 클램프.
@@ -124,7 +124,7 @@ def _normalize_peak(
     청크별 정규화는 잘못하면 음량 출렁임을 만든다(P1 악화). 세 안전장치:
       - near-silence(peak<silence_floor=512) 청크는 무변경(무음/trailing-silence 폭증 방지).
         floor 를 64→512 로 높여, silence_floor 바로 위 청크가 gain_max 로 튀는 경계 역효과를 차단.
-      - 부스트는 보수적(gain_max=1.8, +5dB 상한)으로 조용한 청크 과증폭·노이즈 부각 억제.
+      - 부스트는 최소(gain_max=1.1, +1dB 미만) — 조용한 청크 과증폭·경계 음량 점프 차단.
       - 감쇠도 제한(gain_min=0.7, -3dB) — 큰 청크만 완만히 낮춤.
     TTS 출력이 균일하면 gain≈1 이라 실질 효과는 '튀는 청크 완화'.
     """
