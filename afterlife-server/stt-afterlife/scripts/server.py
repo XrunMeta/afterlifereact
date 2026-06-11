@@ -44,36 +44,53 @@ def _load_model():
 
 @app.on_event("startup")
 def _startup():
-    _load_model()
+    # 모델은 첫 요청 시 lazy-load (startup 중 모델 로딩 제외 — HTTP 타임아웃 회피)
+    pass
 
 
 # ─── 전사 공통 로직 ───────────────────────────────────────────────────────────
 
+_SAMPLE_RATE = 16000  # faster-whisper 고정 입력 샘플레이트
+
+
 def _transcribe_wav(wav_path: str) -> tuple[str, float, int]:
-    """wav_path 를 faster-whisper 로 전사. (text, duration_sec, segments_count) 반환."""
+    """wav_path 를 faster-whisper 로 전사. (text, duration_sec, segments_count) 반환.
+
+    ICL ref_audio↔ref_text 구간 정합: audio 를 **물리적으로** STT_MAX_SEC 로 cut 한 뒤
+    전사한다. clip_timestamps(논리범위)는 경계에 걸친 세그먼트의 끝(>MAX)을 truncate 하지
+    못해 ref_text 가 ref_audio(qwen3 엔진 extract_ref_clip = data[:max_samples]) 보다
+    길어지고, 그 초과분이 ICL 합성 출력 앞에 누설된다. 엔진과 동일한 물리 cut 으로 맞춘다.
+    """
     _load_model()
     if app.state.model is None:
         raise HTTPException(503, f"model not loaded: {app.state.model_error}")
 
     model = app.state.model
+
+    from faster_whisper import decode_audio
+    try:
+        audio = decode_audio(wav_path, sampling_rate=_SAMPLE_RATE)
+    except Exception as exc:
+        # 손상/읽기불가 wav → 503 (qwen3tts extract_ref_clip 의 ValueError→503 매핑과 일관)
+        raise HTTPException(503, f"corrupt/unreadable wav: {wav_path!r}") from exc
+    max_samples = int(config.STT_MAX_SEC * _SAMPLE_RATE)
+    # 물리 cut. STT는 16k 리샘플 후 cut, 엔진 extract_ref_clip은 원본 sr 기준 cut 이지만
+    # 둘 다 "앞 N초"라 커버하는 시간구간은 동일(STT_MAX_SEC == REF_CLIP_MAX_SEC 전제).
+    audio = audio[:max_samples]
+
     segments, info = model.transcribe(
-        wav_path,
+        audio,
         language=config.LANG,
         beam_size=5,
-        # 앞 STT_MAX_SEC 초만 전사
-        clip_timestamps=f"0,{config.STT_MAX_SEC}",
     )
     parts = []
     seg_count = 0
     for seg in segments:
-        # clip_timestamps 로 잘렸을 때 초과 구간 방어
-        if seg.start > config.STT_MAX_SEC:
-            break
         parts.append(seg.text)
         seg_count += 1
 
     text = "".join(parts).strip()
-    duration = min(info.duration, config.STT_MAX_SEC)
+    duration = min(len(audio) / _SAMPLE_RATE, config.STT_MAX_SEC)
     return text, duration, seg_count
 
 

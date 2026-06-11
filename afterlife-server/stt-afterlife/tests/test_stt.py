@@ -37,16 +37,26 @@ class _FakeWhisperModel:
     """테스트용 가짜 WhisperModel. transcribe_result 클래스 변수로 제어."""
     transcribe_result: list[_FakeSegment] = [_FakeSegment(" 안녕하세요 반갑습니다")]
     transcribe_info: _FakeInfo = _FakeInfo(duration=5.0)
+    last_audio = None  # transcribe 가 받은 audio 인자(첫 positional) 기록
 
     def __init__(self, *args, **kwargs):
         pass
 
-    def transcribe(self, *args, **kwargs):
+    def transcribe(self, audio=None, *args, **kwargs):
+        _FakeWhisperModel.last_audio = audio
         return iter(self.transcribe_result), self.transcribe_info
 
 
+# decode_audio stub: 클래스변수 decode_return 으로 제어
 _fw_stub = types.ModuleType("faster_whisper")
 _fw_stub.WhisperModel = _FakeWhisperModel  # type: ignore[attr-defined]
+def _fake_decode_audio(path, sampling_rate=16000):
+    if getattr(_FakeWhisperModel, "decode_error", None):
+        raise _FakeWhisperModel.decode_error
+    return _FakeWhisperModel.decode_return
+_fw_stub.decode_audio = _fake_decode_audio  # type: ignore[attr-defined]
+_FakeWhisperModel.decode_return = [0.0] * (5 * 16000)  # 기본 5초
+_FakeWhisperModel.decode_error = None
 sys.modules.setdefault("faster_whisper", _fw_stub)
 
 # ── app 임포트 (stub 주입 후) ─────────────────────────────────────────────────
@@ -402,3 +412,75 @@ class TestHealthz:
         finally:
             app.state.model = original
             app.state.model_error = None
+
+
+@pytest.fixture(autouse=True)
+def _reset_fake_model():
+    """각 테스트 전 stub 클래스변수 초기화 — 상태 누수/순서의존(flaky) 방지 (sion MAJOR3)."""
+    _FakeWhisperModel.decode_return = [0.0] * (5 * 16000)
+    _FakeWhisperModel.decode_error = None
+    _FakeWhisperModel.last_audio = None
+    _FakeWhisperModel.transcribe_result = [_FakeSegment(" 안녕하세요 반갑습니다")]
+    _FakeWhisperModel.transcribe_info = _FakeInfo(duration=5.0)
+    yield
+
+
+class TestTranscribeClip:
+    """_transcribe_wav 의 물리 cut(ref_audio↔ref_text 구간 정합) 검증."""
+
+    def test_clips_audio_to_max_sec(self, monkeypatch):
+        """STT_MAX_SEC 초과 audio 는 물리적으로 잘려 model.transcribe 에 array 로 전달된다.
+        clip_timestamps(논리범위)는 세그먼트 끝 초과분을 포함 → ICL ref_text 누설.
+        엔진 extract_ref_clip(data[:max_samples]) 과 동일하게 물리 cut 해야 정합."""
+        monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
+        _FakeWhisperModel.decode_return = [0.0] * (20 * 16000)  # 20초 디코드
+        _FakeWhisperModel.last_audio = None
+
+        srv._transcribe_wav("/fake/voice.wav")
+
+        audio = _FakeWhisperModel.last_audio
+        assert audio is not None, "transcribe 가 호출되지 않음"
+        assert not isinstance(audio, str), "wav_path 문자열을 그대로 넘김(물리 cut 미적용)"
+        assert len(audio) == 10 * 16000, f"10초로 cut 돼야 하는데 {len(audio)} samples"
+
+    def test_short_audio_untouched(self, monkeypatch):
+        """STT_MAX_SEC 미만 audio 는 전체 유지(잘림 없음)."""
+        monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
+        _FakeWhisperModel.decode_return = [0.0] * (4 * 16000)  # 4초
+        _FakeWhisperModel.last_audio = None
+
+        srv._transcribe_wav("/fake/short.wav")
+
+        audio = _FakeWhisperModel.last_audio
+        assert len(audio) == 4 * 16000, f"짧은 audio 는 그대로여야 하는데 {len(audio)}"
+
+    def test_exact_max_sec_untouched(self, monkeypatch):
+        """정확히 STT_MAX_SEC 길이 audio 는 전체 유지(경계값, off-by-one 회귀 방어)."""
+        monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
+        _FakeWhisperModel.decode_return = [0.0] * (10 * 16000)  # 정확히 10s
+        srv._transcribe_wav("/fake/exact.wav")
+        assert len(_FakeWhisperModel.last_audio) == 10 * 16000
+
+    def test_one_sample_over_is_clipped(self, monkeypatch):
+        """max_samples + 1 샘플은 정확히 max_samples 로 잘림."""
+        monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
+        _FakeWhisperModel.decode_return = [0.0] * (10 * 16000 + 1)
+        srv._transcribe_wav("/fake/plus1.wav")
+        assert len(_FakeWhisperModel.last_audio) == 10 * 16000
+
+    def test_empty_audio_no_crash(self, monkeypatch):
+        """빈 audio(len 0)도 cut/transcribe 경로에서 예외 없이 진행(빈 transcript→호출처 422).
+        실 faster-whisper 의 빈 입력 동작은 통합(재백필 실측)에서 검증."""
+        monkeypatch.setattr(config, "STT_MAX_SEC", 10.0)
+        _FakeWhisperModel.decode_return = []
+        text, duration, seg_count = srv._transcribe_wav("/fake/empty.wav")
+        assert len(_FakeWhisperModel.last_audio) == 0
+        assert duration == 0.0
+
+    def test_corrupt_wav_maps_to_503(self):
+        """decode_audio 실패(손상/읽기불가 wav)는 503 으로 매핑(기존 503/422 체계 일관)."""
+        from fastapi import HTTPException
+        _FakeWhisperModel.decode_error = RuntimeError("corrupt/unreadable")
+        with pytest.raises(HTTPException) as ei:
+            srv._transcribe_wav("/fake/bad.wav")
+        assert ei.value.status_code == 503
