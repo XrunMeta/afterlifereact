@@ -22,7 +22,8 @@ export async function triggerPrebuild(
       body: JSON.stringify({ cloneId: args.cloneId, voiceRawUrl: args.voiceRawUrl }),
       signal: AbortSignal.timeout(10000),
     });
-  } catch {
+  } catch (e) {
 
+    console.warn("[prebuild] trigger failed:", e instanceof Error ? e.message : e);
   }
 }
