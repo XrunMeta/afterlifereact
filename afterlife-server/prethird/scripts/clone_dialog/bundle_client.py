@@ -6,11 +6,18 @@ import os, logging, aiohttp
 
 log = logging.getLogger("prethird.bundle_client")
 API_BASE = os.environ.get("PRETHIRD_API_BASE")  # 미설정 시 None → fetch_bundle이 graceful skip
-TIMEOUT_S = float(os.environ.get("PRETHIRD_BUNDLE_TIMEOUT", "2.0"))
+try:
+    TIMEOUT_S = float(os.environ.get("PRETHIRD_BUNDLE_TIMEOUT", "2.0"))
+except ValueError:
+    TIMEOUT_S = 2.0  # 잘못된 env 가 모듈 import(=서비스 기동)를 막지 않도록 폴백 (mizu L-2)
 
 
 async def fetch_bundle(api_base: str | None, clone_id, access_token: str | None) -> dict | None:
-    """{personaBundle, assets} 또는 None(graceful). token/clone_id 없으면 None."""
+    """{personaBundle, assets} 또는 None(graceful). token/clone_id 없으면 None.
+
+    api_base 는 **신뢰 env(PRETHIRD_API_BASE) 출처만** 전달할 것 — RN offer params 등
+    외부 입력을 절대 넘기지 말 것(SSRF: 임의 호스트로 access_token 전송 방지). el RISK-1/mizu M-1.
+    """
     if not access_token or clone_id is None:
         return None
     base = api_base or API_BASE
