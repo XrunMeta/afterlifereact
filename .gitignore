@@ -38,6 +38,9 @@ afterlife-server/testbed/data/
 __pycache__/
 *.pyc
 
+# python venv
+afterlife-server/prethird/.venv/
+
 # 로컬 백업·아카이브 (커밋 금지)
 .backup/
 afterlife-servers.zip

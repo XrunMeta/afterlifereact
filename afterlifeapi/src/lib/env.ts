@@ -36,6 +36,9 @@ export interface Bindings {
   ORCHESTRATOR_URL: string;        
   ORCH_SECRET: string;             
 
+  PREBUILD_SECRET?: string;        
+  PRETHIRD_PUBLIC_BASE?: string;   
+
   XRUN_API_URL: string;            
 
   XRUN_GATEWAY_TOKEN?: string;

@@ -26,6 +26,8 @@ import { notify, notifyCloneEvent } from "../lib/notify";
 import { loadPersonaQuestions } from "../lib/personaQuestions";
 import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 import { maskUsername } from "../lib/utils";
+import { triggerPrebuild } from "../lib/prebuildClient";
+import { buildCallBundle } from "../lib/callBundle";
 
 export const clones = new Hono<AppEnv>();
 
@@ -500,6 +502,29 @@ clones.post(
       } catch (err) {
         console.warn("[clone.create] followee_new_clone notify failed:", err);
       }
+    }
+
+    if (c.env.PREBUILD_SECRET && c.env.PRETHIRD_PUBLIC_BASE) {
+      const origin = new URL(c.req.url).origin;
+      const db = c.env.DB;
+      const secret = c.env.PREBUILD_SECRET;
+      const base = c.env.PRETHIRD_PUBLIC_BASE;
+      const cid = cloneId;
+      const uid = userId;
+      c.executionCtx.waitUntil(
+        (async () => {
+          try {
+            const row = await db.prepare("SELECT * FROM clones WHERE id = ?").bind(cid).first<import("../lib/cloneAccess").CloneRow>();
+            if (!row?.voice_se_url) return; 
+            const bundle = await buildCallBundle(db, row, uid, origin);
+            await triggerPrebuild(fetch, {
+              base, secret, cloneId: String(cid), voiceRawUrl: bundle.assets.voiceRawUrl,
+            });
+          } catch (e) {
+            console.warn("[prebuild] trigger skipped:", e);
+          }
+        })(),
+      );
     }
 
     return c.json(

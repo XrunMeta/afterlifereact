@@ -1,0 +1,24 @@
+[Unit]
+Description=afterlife STT (faster-whisper, CPU int8, port 8202)
+After=network.target
+
+[Service]
+Type=simple
+User=afterlife
+Group=afterlife
+WorkingDirectory=/home/afterlife/afterlife-server/stt-afterlife/scripts
+Environment=HOME=/home/afterlife
+Environment=STT_PORT=8202
+Environment=STT_BIND=127.0.0.1
+Environment=STT_MODEL=/home/afterlife/models/faster-whisper-medium
+Environment=STT_DEVICE=cpu
+Environment=STT_COMPUTE_TYPE=int8
+Environment=STT_LANG=ko
+# 첫 10초 규약: ref_audio(qwen3 앞10s trim)와 ref_text 정합 + ICL 속도. asset-job 선빌드 대비.
+Environment=STT_MAX_SEC=10
+ExecStart=/home/afterlife/afterlife-server/stt-afterlife/.venv/bin/uvicorn server:app --host 127.0.0.1 --port 8202
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

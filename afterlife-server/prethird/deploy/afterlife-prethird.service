@@ -1,0 +1,36 @@
+[Unit]
+Description=afterlife prethird (P2P avatar call, musetalk in-proc + qwen3tts, port 8600, GPU1)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/afterlife/afterlife-server/prethird
+User=afterlife
+Group=afterlife
+Environment=HOME=/home/afterlife
+Environment=CUDA_VISIBLE_DEVICES=1
+Environment=PRETHIRD_PORT=8600
+Environment=PRETHIRD_BIND=127.0.0.1
+Environment=PRETHIRD_REFERENCE_VIDEO=/home/afterlife/afterlife-server/musetalk-afterlife/reference_videos/halbae/halbae-d18m04-25fps.mp4
+Environment=PRETHIRD_IDLE_MP4=/home/afterlife/afterlife-server/musetalk-afterlife/reference_videos/halbae/halbae-idle.mp4
+Environment=PRETHIRD_OLLAMA_URL=http://127.0.0.1:11435
+# drop-in 흡수: qwen3tts.conf(TTS_URL=8201) + batch.conf(BATCH_SIZE=32).
+Environment=PRETHIRD_TTS_URL=http://127.0.0.1:8201
+Environment=MUSETALK_BATCH_SIZE=32
+# PRETHIRD_TTS_SE_PATH 의도적 미설정(폴백 제거 — 자산없는 클론 일관 실패).
+# 기존 transient 는 SE_PATH=nohsanghyun 을 zz-sepath-clear.conf 로 override 했으나
+# 영구 unit 은 처음부터 미설정해 drop-in 의존 제거. voice-wav-lazy-fetch(PR#290) 전제.
+#
+# ── 음성 선빌드(/prebuild) ──
+Environment=PRETHIRD_STT_URL=http://127.0.0.1:8202
+Environment=PREBUILD_MAX_CONCURRENCY=3
+# mizu M-1(SSRF): voiceRawUrl 은 api(`${origin}/oth-path<id>`) 호스트만 허용.
+# origin = createClone 요청 origin = api 도메인. R2 redirect 면 asset_fetch 가 차단(E2E 확인).
+Environment=PRETHIRD_ASSET_HOST_ALLOWLIST=edge-alt-preview.example.invalid
+# PREBUILD_SECRET 은 git 미추적 — 배포 스크립트가 prebuild-secret.conf drop-in 으로 주입(M-3).
+ExecStart=/home/afterlife/miniconda3/envs/musetalk/bin/python /home/afterlife/afterlife-server/prethird/scripts/server.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
