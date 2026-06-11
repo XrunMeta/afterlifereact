@@ -20,6 +20,7 @@ export async function triggerPrebuild(
         "Authorization": `Bearer ${args.secret}`,
       },
       body: JSON.stringify({ cloneId: args.cloneId, voiceRawUrl: args.voiceRawUrl }),
+      signal: AbortSignal.timeout(10000),
     });
   } catch {
 

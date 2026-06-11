@@ -505,26 +505,26 @@ clones.post(
     }
 
     if (c.env.PREBUILD_SECRET && c.env.PRETHIRD_PUBLIC_BASE) {
-      try {
-        const fullCloneRow = await c.env.DB
-          .prepare(`SELECT * FROM clones WHERE id = ?`)
-          .bind(cloneId)
-          .first<import("../lib/cloneAccess").CloneRow>();
-        if (fullCloneRow) {
-          const origin = new URL(c.req.url).origin;
-          const bundle = await buildCallBundle(c.env.DB, fullCloneRow, userId, origin);
-          c.executionCtx.waitUntil(
-            triggerPrebuild(fetch, {
-              base: c.env.PRETHIRD_PUBLIC_BASE,
-              secret: c.env.PREBUILD_SECRET,
-              cloneId: String(cloneId),
-              voiceRawUrl: bundle.assets.voiceRawUrl,
-            }),
-          );
-        }
-      } catch (e) {
-        console.warn("[prebuild] trigger skipped:", e);
-      }
+      const origin = new URL(c.req.url).origin;
+      const db = c.env.DB;
+      const secret = c.env.PREBUILD_SECRET;
+      const base = c.env.PRETHIRD_PUBLIC_BASE;
+      const cid = cloneId;
+      const uid = userId;
+      c.executionCtx.waitUntil(
+        (async () => {
+          try {
+            const row = await db.prepare("SELECT * FROM clones WHERE id = ?").bind(cid).first<import("../lib/cloneAccess").CloneRow>();
+            if (!row?.voice_se_url) return; 
+            const bundle = await buildCallBundle(db, row, uid, origin);
+            await triggerPrebuild(fetch, {
+              base, secret, cloneId: String(cid), voiceRawUrl: bundle.assets.voiceRawUrl,
+            });
+          } catch (e) {
+            console.warn("[prebuild] trigger skipped:", e);
+          }
+        })(),
+      );
     }
 
     return c.json(
