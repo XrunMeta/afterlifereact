@@ -22,6 +22,7 @@ import time
 from typing import Callable
 
 import numpy as np
+from recorder import NULL_TURN
 
 log = logging.getLogger("prethird.pipeline")
 
@@ -80,8 +81,10 @@ class DialoguePipeline:
     # 퍼블릭 API
     # ------------------------------------------------------------------
 
-    async def say(self, user_text: str) -> None:
-        """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출."""
+    async def say(self, user_text: str, turn=None) -> None:
+        """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
+        turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적."""
+        turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
             return
@@ -90,17 +93,19 @@ class DialoguePipeline:
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
             async for tok in self.chat_fn(messages):
+                turn.append_token(tok)
                 for s in sb.push(tok):
                     await q.put(s)
             for s in sb.flush():
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce)
+        await self._run_pipeline(produce, turn)
 
-    async def speak(self, text: str) -> None:
+    async def speak(self, text: str, turn=None) -> None:
         """LLM 우회: 입력 텍스트를 그대로 발화(TTS+musetalk). 쉼표로 끊지 않고
         문장 종결부호(.!?…\\n)로만 분할. 한 문장이면 통째 1회."""
+        turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — speak skip (폴백 없음)")
             return
@@ -108,13 +113,15 @@ class DialoguePipeline:
         parts = [p.strip() for p in re.split(r'(?<=[.!?…])\s+|\n+', text) if p.strip()]
         if not parts:
             parts = [text]
+        # speak은 LLM 우회 — answer 텍스트는 입력 그대로
+        turn.append_token(text)
 
         async def produce(q: asyncio.Queue):
             for s in parts:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce)
+        await self._run_pipeline(produce, turn)
 
     # ------------------------------------------------------------------
     # 내부: 문장 1개 처리 (스테이지 분리)
@@ -127,8 +134,10 @@ class DialoguePipeline:
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
 
-    async def _infer_stage(self, wav_bytes: bytes, pcm48: np.ndarray) -> None:
-        """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)"""
+    async def _infer_stage(self, wav_bytes: bytes, pcm48: np.ndarray, turn=None) -> None:
+        """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
+        turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적."""
+        turn = turn if turn is not None else NULL_TURN
         loop = asyncio.get_event_loop()
         frames_buf: list[np.ndarray] = []
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
@@ -154,6 +163,7 @@ class DialoguePipeline:
                 )
                 pcm_bal = pcm48
             self.at.push_pcm_int16(pcm_bal)
+            turn.append_frames(frames_buf, pcm48, fps=25)
         finally:
             try:
                 os.unlink(wav_path)
@@ -197,10 +207,12 @@ class DialoguePipeline:
     # 내부: 오버랩 파이프라인
     # ------------------------------------------------------------------
 
-    async def _run_pipeline(self, produce) -> None:
+    async def _run_pipeline(self, produce, turn=None) -> None:
         """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
         TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
+        turn: recorder Turn — TTS wav 누적(Phase 2 answer.wav).
         예외 시 모든 워커를 취소하고 signal_end 를 보장한다(좀비/오염 방지)."""
+        turn = turn if turn is not None else NULL_TURN
         sentence_q: asyncio.Queue = asyncio.Queue()
         wav_q: asyncio.Queue = asyncio.Queue(maxsize=2)
 
@@ -211,6 +223,7 @@ class DialoguePipeline:
                     await wav_q.put(None)
                     break
                 wav_bytes, pcm48 = await self._tts_stage(s)
+                turn.append_wav(wav_bytes)
                 await wav_q.put((wav_bytes, pcm48))
 
         async def infer_worker():
@@ -219,7 +232,7 @@ class DialoguePipeline:
                 if item is None:
                     break
                 wav_bytes, pcm48 = item
-                await self._infer_stage(wav_bytes, pcm48)
+                await self._infer_stage(wav_bytes, pcm48, turn)
 
         tasks = [
             asyncio.ensure_future(produce(sentence_q)),

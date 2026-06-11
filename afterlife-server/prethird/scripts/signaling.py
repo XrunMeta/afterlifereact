@@ -9,6 +9,7 @@ from persona_prompt import bundle_to_messages
 from asset_fetch import fetch_to
 from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
+from recorder import make_recorder
 
 REF_VOICES_ROOT = os.environ.get(
     "PRETHIRD_REF_VOICES_ROOT",
@@ -74,16 +75,36 @@ def _make_dc_handler(sess, channel):
             seq = data.get("seq")   # RN이 부여(없으면 None), echo 전용
             sess.set_state("speaking")
 
-            async def _run(mode=mode, text=text, seq=seq):
+            # 턴 기록 시작 — input.txt 즉시 기록. recorder 없으면 None.
+            _rec = getattr(sess, "recorder", None)
+            turn = _rec.begin_turn(mode, text, seq) if _rec is not None else None
+
+            async def _run(mode=mode, text=text, seq=seq, turn=turn):
+                _se_present = bool(getattr(sess, "se_path", None))
+                _offer_t = getattr(sess, "offer_time", None)
+                _t0 = time.time()
                 try:
                     if mode == "speak":
-                        await sess.pipeline.speak(text)
+                        await sess.pipeline.speak(text, turn=turn)
                     else:
-                        await sess.pipeline.say(text)
+                        await sess.pipeline.say(text, turn=turn)
+                except asyncio.CancelledError:
+                    log.warning("session %s %s cancelled", sess.session_id, mode)
+                    raise
                 except Exception as e:
                     log.warning("session %s %s failed: %s", sess.session_id, mode, e)
                 finally:
                     sess.set_state("idle")
+                    if turn is not None:
+                        offer_ms = int((_t0 - _offer_t) * 1000) if _offer_t else None
+                        try:
+                            turn.finalize(
+                                mode=mode, seq=seq, se_present=_se_present,
+                                offer_to_say_ms=offer_ms,
+                                turn_ms=int((time.time() - _t0) * 1000),
+                            )
+                        except Exception as exc:
+                            log.warning("session %s finalize failed: %s", sess.session_id, exc)
                     # 발화 push 완료 → 클라에 종료 신호(say 성공·실패 모두 전송).
                     # sess.datachannel 재참조 금지 — stop()+start() 재연결로 채널이
                     # 교체되면 엉뚱한 새 채널로 전송될 수 있다. 이 say를 받은
@@ -125,6 +146,7 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     async def offer(request: web.Request) -> web.Response:
         params = await request.json()
         sess = mgr.create()
+        sess.offer_time = time.time()
         pc = RTCPeerConnection()
         sess.pc = pc
         try:
@@ -136,6 +158,7 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
             raw_cid = params.get("clone_id")
             clone_id = raw_cid if isinstance(raw_cid, int) and raw_cid > 0 else None
             sess.clone_id = clone_id
+            sess.recorder = make_recorder(sess.clone_id, sess.session_id)
             if sess.clone_id is not None:
                 access_token = params.get("access_token")
                 bundle = await fetch_bundle(
