@@ -144,9 +144,12 @@ export async function personaSuggest(
 export interface CatalogVoice {
   id: number;
   name: string;
+  gender: string | null;
+  ageRange: string | null;
   description: string | null;
   sortOrder: number;
   sampleUrl: string;
+  srcFileId: number | null;   
 }
 
 export async function getVoices(accessToken: string): Promise<CatalogVoice[]> {
