@@ -16,7 +16,9 @@ function v_5c8583(v_3f4e2e): number {
 
 v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_4d33b2 = await v_3f4e2e.req.json<{ cloneId?: number; displayName?: string }>().catch(() => ({}));
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ cloneId?: number; displayName?: string }>()
+    .catch(() => ({}) as { cloneId?: number; displayName?: string });
 
   const v_6e0fd3 = v_4d33b2.cloneId ?? null;
 
