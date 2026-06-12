@@ -15,7 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, RADIUS, SIZES } from "../constants";
 
-export type AgreementType = 1 | 2 | 3;
+export type AgreementType = 1 | 2 | 3 | 4;
 
 type Props = {
   visible: boolean;
@@ -49,12 +49,14 @@ const TITLE_KEYS: Record<AgreementType, string> = {
   1: "auth.signup.termsServiceTitle",
   2: "auth.signup.termsLocationTitle",
   3: "auth.signup.termsPrivacyTitle",
+  4: "auth.signup.termsBiometricTitle",
 };
 
 const TITLE_FALLBACK: Record<AgreementType, string> = {
   1: "서비스 약관",
   2: "위치정보 약관",
   3: "개인정보 약관",
+  4: "생체정보(얼굴) 처리 동의",
 };
 
 export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
