@@ -438,6 +438,7 @@
       "termsService": "(필수) afterlife 서비스 약관에 동의합니다",
       "termsLocation": "(필수) 개인 위치정보 약관에 동의합니다",
       "termsPrivacy": "(필수) 개인정보 이용 약관에 동의합니다",
+      "termsBiometricTitle": "생체정보(얼굴) 처리 동의",
       "marketingConsent": "(선택) 마케팅 정보 수신에 동의합니다",
       "signingUp": "회원가입 중...",
       "next": "다음",
