@@ -14,15 +14,45 @@ from asset_fetch import fetch_to
 # 변환 결과가 이 바이트 미만이면 손상/빈 wav로 간주(헤더만=44B). skip 캐시 손상 영속화 방지.
 _MIN_WAV_BYTES = 1024
 
+# denoise 기본 필터 체인(보수적 — 음색 보존 우선): 80Hz 저주파 컷 + 약한 FFT denoise.
+_DEFAULT_DENOISE_AF = "highpass=f=80,afftdn=nr=10:nf=-25:tn=1"
+
+
+def _denoise_af_args(env=None) -> list:
+    """env 토글에 따라 ffmpeg -af denoise 인자를 반환.
+
+    PRETHIRD_VOICE_DENOISE == "1" 일 때만 활성. 비활성이면 빈 리스트라
+    명령이 기존과 동일(회귀 0). PRETHIRD_VOICE_DENOISE_AF 로 필터 문자열 override.
+    """
+    e = env if env is not None else os.environ
+    if e.get("PRETHIRD_VOICE_DENOISE") != "1":
+        return []
+    af = e.get("PRETHIRD_VOICE_DENOISE_AF") or _DEFAULT_DENOISE_AF
+    return ["-af", af]
+
+
+def _ffmpeg_cmd(src: str, dest: str, env=None) -> list:
+    """ffmpeg 변환 명령을 조립한다. denoise 토글 on이면 -af 를 -i 다음에 삽입.
+
+    토글 off(기본)면 denoise args가 빈 리스트라 기존 명령과 동일(회귀 0).
+    """
+    return [
+        "ffmpeg", "-y", "-i", src,
+        *_denoise_af_args(env),
+        "-ac", "1", "-f", "wav", dest,
+    ]
+
 
 async def _ffmpeg_to_wav(src: str, dest: str) -> str:
     """src(임의 오디오 포맷) → mono wav(dest). soundfile 호환용. sr은 원본 보존.
 
     -f wav 명시: dest가 voice.{uid}.wav.part(.part 확장자)라 ffmpeg가 출력 포맷을
     확장자로 추론하지 못해 muxer 초기화 실패(Invalid argument). 포맷 강제로 .part도 wav.
+
+    PRETHIRD_VOICE_DENOISE 토글 시 -af denoise 체인 삽입(_ffmpeg_cmd).
     """
     proc = await asyncio.create_subprocess_exec(
-        "ffmpeg", "-y", "-i", src, "-ac", "1", "-f", "wav", dest,
+        *_ffmpeg_cmd(src, dest),
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.PIPE,
     )
