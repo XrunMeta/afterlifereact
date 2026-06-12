@@ -7,6 +7,7 @@ voice_fetch.py — 통화 시작 시 클론 원본 음성을 받아 qwen3tts용 
 import asyncio
 import os
 import pathlib
+import sys
 import uuid
 
 from asset_fetch import fetch_to
@@ -49,17 +50,31 @@ async def _ffmpeg_to_wav(src: str, dest: str) -> str:
     -f wav 명시: dest가 voice.{uid}.wav.part(.part 확장자)라 ffmpeg가 출력 포맷을
     확장자로 추론하지 못해 muxer 초기화 실패(Invalid argument). 포맷 강제로 .part도 wav.
 
-    PRETHIRD_VOICE_DENOISE 토글 시 -af denoise 체인 삽입(_ffmpeg_cmd).
+    PRETHIRD_VOICE_DENOISE 토글 시 -af denoise 체인 삽입(_ffmpeg_cmd). denoise 변환이
+    실패(가비아 필터 부재·override 오타로 rc≠0)하면 denoise 없이 1회 폴백 —
+    부가기능(denoise) 실패가 통화(voice.wav 생성)를 깨지 않도록.
     """
-    proc = await asyncio.create_subprocess_exec(
-        *_ffmpeg_cmd(src, dest),
-        stdout=asyncio.subprocess.DEVNULL,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    _, stderr = await proc.communicate()
-    if proc.returncode != 0:
+    async def _run(cmd):
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await proc.communicate()
+        return proc.returncode, stderr
+
+    rc, stderr = await _run(_ffmpeg_cmd(src, dest))
+    if rc != 0 and _denoise_af_args():
+        # denoise가 켜져 있었고 변환 실패 → denoise 없이 폴백(통화 유지).
+        sys.stderr.write(
+            f"[voice_fetch] denoise 변환 실패(rc={rc}) → denoise 없이 폴백: "
+            f"{stderr.decode('utf-8', 'replace')[-300:]}\n"
+        )
+        sys.stderr.flush()
+        rc, stderr = await _run(_ffmpeg_cmd(src, dest, env={}))
+    if rc != 0:
         raise RuntimeError(
-            f"ffmpeg 변환 실패 (rc={proc.returncode}): {stderr.decode('utf-8', 'replace')[-500:]}"
+            f"ffmpeg 변환 실패 (rc={rc}): {stderr.decode('utf-8', 'replace')[-500:]}"
         )
     return dest
 
