@@ -123,6 +123,10 @@ cloneMessages.post(
       .first<{ id: number; created_at: string }>();
     if (!cloneMsg) throw new APIError("INTERNAL_ERROR", "Failed to persist clone reply.");
 
+    c.executionCtx.waitUntil(
+      maybeLearnFromChat(c.env, cloneId, userId, body.content, reply.content),
+    );
+
     await db
       .prepare(
         `UPDATE clone_stats SET messages_count = messages_count + 2, updated_at = CURRENT_TIMESTAMP
@@ -241,6 +245,10 @@ cloneMessages.post(
       .bind(cloneId, userId, sessionId, cloneCiphertext)
       .first<{ id: number; created_at: string }>();
     if (!cloneMsg) throw new APIError("INTERNAL_ERROR", "Failed to persist clone reply.");
+
+    c.executionCtx.waitUntil(
+      maybeLearnFromChat(c.env, cloneId, userId, body.content, reply.content),
+    );
 
     await db
       .prepare(
@@ -514,6 +522,18 @@ messages.delete("/:id/star", requireAuth, async (c) => {
     .run();
   return c.json({ ok: true });
 });
+
+async function maybeLearnFromChat(
+  env: AppEnv["Bindings"],
+  cloneId: number,
+  userId: number,
+  _userText: string,
+  _replyText: string,
+): Promise<void> {
+  if (env.LEARN_FROM_CHAT !== "1") return; 
+
+  void cloneId; void userId;
+}
 
 function safeParseObj(raw: string | null): Record<string, unknown> | null {
   if (!raw) return null;

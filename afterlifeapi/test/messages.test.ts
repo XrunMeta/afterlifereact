@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { SELF, env } from "cloudflare:test";
+import type { Bindings } from "../src/lib/env";
 
 interface ClonesRow { cnt: number }
 
@@ -141,5 +142,30 @@ describe("messages route — contract", () => {
       expect(typeof item.createdAt).toBe("string");
     }
     expect(body).toHaveProperty("nextCursor");
+  });
+
+  it("LEARN_FROM_CHAT off면 메시지 전송이 L2(clone_ont)를 만들지 않는다", async () => {
+    const uid = await seedUser("learnoff@x.test");
+    const cid = await seedClone(uid, "learnoff");
+
+    await (env as unknown as Bindings).DB
+      .prepare("UPDATE users SET credits = 10 WHERE id = ?")
+      .bind(uid).run();
+    const token = await issueAccessToken(uid);
+    const res = await SELF.fetch(`https://x/oth-path${cid}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": "learn-off-1",
+      },
+      body: JSON.stringify({ content: "안녕" }),
+    });
+    expect(res.status).toBe(200);
+    const row = await (env as unknown as Bindings).DB
+      .prepare("SELECT COUNT(*) AS n FROM clone_ont WHERE clone_id = ? AND user_id = ?")
+      .bind(cid, uid)
+      .first<{ n: number }>();
+    expect(row!.n).toBe(0); 
   });
 });
