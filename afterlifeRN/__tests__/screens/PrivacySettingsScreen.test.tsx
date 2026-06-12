@@ -58,7 +58,7 @@ test('granted persons 필터: consentState granted 만 추출', () => {
   const persons: Person[] = [
     { id: 1, consentState: 'granted', cloneId: 7 },
     { id: 2, consentState: 'revoked', cloneId: 8 },
-    { id: 3, consentState: 'pending', cloneId: 9 },
+    { id: 3, consentState: 'none', cloneId: 9 },
     { id: 4, consentState: 'granted', cloneId: 10 },
   ];
   const granted = persons.filter((p) => p.consentState === 'granted');
