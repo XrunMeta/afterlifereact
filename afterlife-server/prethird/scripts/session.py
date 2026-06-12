@@ -23,6 +23,7 @@ class Session:
         self.video_path = None       # 클론별 idle/musetalk reference video(None이면 halbae 기본)
         self.recorder = None         # CallRecorder | NullRecorder (offer에서 부착)
         self.offer_time = None       # offer 수신 unixtime(첫턴 지연 측정용)
+        self.user_id = None          # offer JWT sub 추출 userId (Phase B 자동학습)
 
     def set_state(self, state: str) -> None:
         if state not in ("idle", "speaking"):
