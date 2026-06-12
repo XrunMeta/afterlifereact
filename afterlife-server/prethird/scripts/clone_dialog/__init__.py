@@ -13,5 +13,6 @@ from __future__ import annotations
 from .bundle_client import fetch_bundle
 from .persona_prompt import bundle_to_messages
 from .llm_client import chat_stream, chat_once
+from .l2_extract import extract_l2
 
-__all__ = ["fetch_bundle", "bundle_to_messages", "chat_stream", "chat_once"]
+__all__ = ["fetch_bundle", "bundle_to_messages", "chat_stream", "chat_once", "extract_l2"]
