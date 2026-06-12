@@ -16,7 +16,9 @@ function parsePersonId(c: { req: { param: (k: string) => string } }): number {
 
 persons.post("/", requireAuth, async (c) => {
   const userId = c.get("userId")!;
-  const body = await c.req.json<{ cloneId?: number; displayName?: string }>().catch(() => ({}));
+  const body = await c.req
+    .json<{ cloneId?: number; displayName?: string }>()
+    .catch(() => ({}) as { cloneId?: number; displayName?: string });
 
   const cloneId = body.cloneId ?? null;
 
