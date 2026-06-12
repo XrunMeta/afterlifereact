@@ -18,9 +18,17 @@ import {
   Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useCameraPermissions } from "expo-camera";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { RTCView, mediaDevices } from "react-native-webrtc";
+import { RTCView } from "react-native-webrtc";
+import { Camera as VisionCamera, useCameraDevice } from "react-native-vision-camera";
+import {
+  Camera as FDCamera,
+  useFaceDetector,
+} from "react-native-vision-camera-face-detector";
+import type { Face as DetectorFace } from "react-native-vision-camera-face-detector";
+import { useFaceDetection } from "../../hooks/useFaceDetection";
+import { createPerson, saveFaceConsent, listPersons } from "../../api/persons";
+import TermsModal from "../../components/common/TermsModal";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
@@ -79,57 +87,54 @@ export default function CallScreen({ route, navigation }: Props) {
   const bottomInset =
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
 
-  const [permission, requestPermission] = useCameraPermissions();
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
 
   const [dialingDone, setDialingDone] = useState(false);
 
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const vcDevice = useCameraDevice(cameraFacing === "front" ? "front" : "back");
 
-  const localStreamRef = useRef<MediaStream | null>(null);
+  const { faceState, onFaces } = useFaceDetection();
+  const { detectFaces, stopListeners } = useFaceDetector({
+    performanceMode: "fast",
+    trackingEnabled: true,
+  });
 
-  const stopLocalStream = useCallback(() => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((t) => t.stop());
-      localStreamRef.current = null;
-    }
-  }, []);
+  const pipCameraRef = useRef<VisionCamera>(null);
 
   useEffect(() => {
-    if (!permission?.granted || isVideoOff) {
-      stopLocalStream();
-      setLocalStream(null);
-      return;
-    }
+    return () => {
+      stopListeners();
+    };
+  }, [stopListeners]);
+
+  const [consentGranted, setConsentGranted] = useState(false);
+  const [termsModalVisible, setTermsModalVisible] = useState(false);
+
+  const [consentLoading, setConsentLoading] = useState(false);
+
+  useEffect(() => {
+
+    void VisionCamera.requestCameraPermission();
+
+    if (!accessToken) return;
     let cancelled = false;
-    (async () => {
-      try {
-        const stream = await mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            facingMode: cameraFacing === "front" ? "user" : "environment",
-          },
-        }) as unknown as MediaStream;
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        stopLocalStream(); 
-        localStreamRef.current = stream;
-        setLocalStream(stream);
-      } catch (err) {
-        console.warn("[Call][PiP] getUserMedia failed:", err);
-      }
-    })();
+    listPersons(accessToken)
+      .then(({ items }) => {
+        if (cancelled) return;
+        const hasConsent = items.some((p) => p.consentState === "granted");
+        setConsentGranted(hasConsent);
+        console.log(`[Call][face] listPersons ← granted=${hasConsent} (total=${items.length})`);
+      })
+      .catch((err) => {
+        console.warn("[Call][face] listPersons failed:", err);
+      });
     return () => {
       cancelled = true;
     };
 
-  }, [permission?.granted, cameraFacing, isVideoOff, stopLocalStream]);
-
-  useEffect(() => () => stopLocalStream(), [stopLocalStream]);
+  }, [accessToken]);
 
   const {
     state: liveState,
@@ -160,11 +165,6 @@ export default function CallScreen({ route, navigation }: Props) {
 
   }, []);
 
-  useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    }
-  }, []);
   const [showGifts, setShowGifts] = useState(false);
 
   const [credits, setCredits] = useState<number>(0);
@@ -511,6 +511,7 @@ export default function CallScreen({ route, navigation }: Props) {
       {dialingDone ? <CallStatusGlow phase={phase} /> : null}
 
       {
+
 }
       <TouchableOpacity
         style={[s.pip, { top: insets.top + 8 }]}
@@ -521,20 +522,97 @@ export default function CallScreen({ route, navigation }: Props) {
           <View style={s.pipOff}>
             <Feather name="video-off" size={20} color={COLORS.zinc600} />
           </View>
-        ) : localStream ? (
-          <RTCView
-            streamURL={(localStream as unknown as { toURL: () => string }).toURL()}
-            style={s.pipCamera}
-            objectFit="cover"
-            zOrder={1}
-            mirror={cameraFacing === "front"}
-          />
+        ) : vcDevice ? (
+          consentGranted ? (
+
+            <FDCamera
+              ref={pipCameraRef}
+              style={s.pipCamera}
+              device={vcDevice}
+              isActive={!isVideoOff}
+              faceDetectionOptions={{
+                performanceMode: "fast",
+                trackingEnabled: true,
+              }}
+              faceDetectionCallback={(faces: DetectorFace[]) => {
+
+                const bridged = faces.map((f) => ({
+                  trackingID: f.trackingId,
+                  bounds: f.bounds,
+                }));
+                onFaces(bridged);
+              }}
+            />
+          ) : (
+
+            <VisionCamera
+              ref={pipCameraRef}
+              style={s.pipCamera}
+              device={vcDevice}
+              isActive={!isVideoOff}
+            />
+          )
         ) : (
           <View style={s.pipOff}>
             <Feather name="camera-off" size={20} color={COLORS.zinc600} />
           </View>
         )}
+
+        {}
+        {consentGranted && !isVideoOff && vcDevice ? (
+          <View
+            style={[
+              s.faceIndicator,
+              faceState.status === "detected" ? s.faceIndicatorOn : s.faceIndicatorOff,
+            ]}
+          />
+        ) : null}
       </TouchableOpacity>
+
+      {
+
+}
+      {!consentGranted && !isVideoOff && (
+        <TouchableOpacity
+          style={[s.faceConsentBtn, { top: insets.top + 8 + 140 + 6 }]}
+          disabled={consentLoading}
+          onPress={() => {
+            if (!accessToken) return;
+
+            setTermsModalVisible(true);
+          }}
+        >
+          <Text style={s.faceConsentText}>{t("call.faceConsentHint")}</Text>
+        </TouchableOpacity>
+      )}
+
+      <TermsModal
+        visible={termsModalVisible}
+        type={4}
+        onClose={() => {
+
+          setTermsModalVisible(false);
+        }}
+        onAgree={async () => {
+
+          if (!accessToken) { setTermsModalVisible(false); return; }
+          setConsentLoading(true);
+          setTermsModalVisible(false);
+          try {
+            const { id } = await createPerson(accessToken, { cloneId });
+            console.log(`[Call][face] createPerson ok personId=${id}`);
+            await saveFaceConsent(accessToken, id, "granted", { termsVersion: "biometric-v1" });
+            setConsentGranted(true);
+            console.log(`[Call][face] consent granted personId=${id}`);
+          } catch (err) {
+            console.warn("[Call][face] createPerson/saveFaceConsent failed:", err);
+
+            setToastMessage(t("call.faceConsentError"));
+          } finally {
+            setConsentLoading(false);
+          }
+        }}
+      />
 
       {
 }
@@ -806,6 +884,38 @@ const s = StyleSheet.create({
   },
   pipImage: { width: "100%", height: "100%" },
   pipCamera: { width: "100%", height: "100%" },
+
+  faceIndicator: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.4)",
+  },
+  faceIndicatorOn: {
+    backgroundColor: "#22c55e", 
+  },
+  faceIndicatorOff: {
+    backgroundColor: COLORS.zinc500, 
+  },
+
+  faceConsentBtn: {
+    position: "absolute",
+    left: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 6,
+    zIndex: 11,
+  },
+  faceConsentText: {
+    fontSize: 10,
+    color: COLORS.zinc200,
+  },
+
   pipOff: {
     width: "100%",
     height: "100%",

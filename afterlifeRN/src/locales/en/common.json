@@ -153,7 +153,11 @@
     "inCall": "On call {{time}}",
     "noCredits": "Not enough credits",
     "giftSent": "Sent {{name}}",
-    "giftTitle": "Send a Gift"
+    "giftTitle": "Send a Gift",
+    "faceDetected": "Face detected",
+    "faceNotDetected": "No face",
+    "faceConsentHint": "Detects face position only — no face data is stored.",
+    "faceConsentError": "Failed to enable face detection. Please try again."
   },
   "feed": {
     "homeTitle": "Home",
