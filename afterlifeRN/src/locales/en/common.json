@@ -437,6 +437,7 @@
       "termsService": "(Required) I agree to the afterlife Terms of Service",
       "termsLocation": "(Required) I agree to the Location Information Terms",
       "termsPrivacy": "(Required) I agree to the Privacy Policy",
+      "termsBiometricTitle": "Biometric (Face) Consent",
       "marketingConsent": "(Optional) I agree to receive marketing info",
       "signingUp": "Signing up...",
       "next": "Next",

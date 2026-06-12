@@ -15,7 +15,7 @@ import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../constants";
 
-export type AgreementType = 1 | 2 | 3;
+export type AgreementType = 1 | 2 | 3 | 4;
 
 type Props = {
   visible: boolean;
@@ -49,12 +49,14 @@ const v_259ade = {
   1: "auth.signup.termsServiceTitle",
   2: "auth.signup.termsLocationTitle",
   3: "auth.signup.termsPrivacyTitle",
+  4: "auth.signup.termsBiometricTitle",
 };
 
 const v_9fab8c = {
   1: "서비스 약관",
   2: "위치정보 약관",
   3: "개인정보 약관",
+  4: "생체정보(얼굴) 처리 동의",
 };
 
 export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v_0890f8, onAgree: v_5cccfe }: Props) {
