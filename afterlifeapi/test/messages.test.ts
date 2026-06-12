@@ -1,5 +1,6 @@
 import { v_469bf2, v_23805a, v_4d37e3, v_ba7107 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
+import type { v_273a0c } from "../src/lib/env";
 
 interface ClonesRow { cnt: number }
 
@@ -141,5 +142,30 @@ v_469bf2("messages route — contract", () => {
       v_4d37e3(typeof v_8c0b26.createdAt).toBe("string");
     }
     v_4d37e3(v_4d33b2).toHaveProperty("nextCursor");
+  });
+
+  v_23805a("LEARN_FROM_CHAT off면 메시지 전송이 L2(clone_ont)를 만들지 않는다", async () => {
+    const v_0c8987 = await v_bfb240("learnoff@x.test");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "learnoff");
+
+    await (v_c9c489 as unknown as v_273a0c).DB
+      .prepare("UPDATE users SET credits = 10 WHERE id = ?")
+      .bind(v_0c8987).run();
+    const v_21cc31 = await v_86c39f(v_0c8987);
+    const v_8f00b9 = await v_1df298.fetch(`https://x/oth-path${v_062ae9}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${v_21cc31}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": "learn-off-1",
+      },
+      body: JSON.stringify({ content: "안녕" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_3ac7e7 = await (v_c9c489 as unknown as v_273a0c).DB
+      .prepare("SELECT COUNT(*) AS n FROM clone_ont WHERE clone_id = ? AND user_id = ?")
+      .bind(v_062ae9, v_0c8987)
+      .first<{ n: number }>();
+    v_4d37e3(v_3ac7e7!.n).toBe(0); 
   });
 });
