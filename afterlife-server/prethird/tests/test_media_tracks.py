@@ -111,3 +111,17 @@ async def test_audio_recv_frame_is_960_samples():
     a.push_pcm_int16(np.zeros(960, dtype=np.int16))
     frame = await a.recv()
     assert frame.samples == 960                    # 20ms @ 48kHz
+
+
+# ── idle 진입 cross-dissolve 테스트 (가비아 검증 대기 — 로컬 실행 불가) ──
+def test_idle_entry_blends_from_last_frame(monkeypatch):
+    import numpy as np
+    monkeypatch.setenv("PRETHIRD_IDLE_BLEND_FRAMES", "4")
+    from media_tracks import AvatarVideoTrack
+    vt = AvatarVideoTrack()
+    vt.set_mode("queue")
+    vt._last_frame = np.full((480, 640, 3), 255, dtype=np.uint8)  # 발화 마지막(흰)
+    idle = np.zeros((480, 640, 3), dtype=np.uint8)                 # idle(검)
+    # 진입 직후 첫 blend: 흰↔검 중간
+    arr = vt._apply_idle_blend(idle, was_idle=False)
+    assert 0 < int(arr[0, 0, 0]) < 255

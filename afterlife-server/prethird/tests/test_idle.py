@@ -82,3 +82,21 @@ def test_idle_enters_after_grace():
     idle_frames = [np.zeros((4, 4, 3), dtype=np.uint8), np.full((4, 4, 3), 7, np.uint8)]
     frame, t0 = _select_idle_frame(101.0, 100.0, 0.5, idle_frames, 0.0, last)
     assert t0 == 101.0 and np.array_equal(frame, idle_frames[0])
+
+
+def test_blend_frames_interpolates():
+    from idle import _blend_frames
+    import numpy as np
+    a = np.zeros((4, 4, 3), dtype=np.uint8)
+    b = np.full((4, 4, 3), 200, dtype=np.uint8)
+    assert int(_blend_frames(a, b, 0.0)[0, 0, 0]) == 0
+    assert int(_blend_frames(a, b, 1.0)[0, 0, 0]) == 200
+    assert 90 <= int(_blend_frames(a, b, 0.5)[0, 0, 0]) <= 110
+
+
+def test_blend_frames_shape_mismatch_returns_b():
+    from idle import _blend_frames
+    import numpy as np
+    a = np.zeros((4, 4, 3), dtype=np.uint8)
+    b = np.full((8, 8, 3), 200, dtype=np.uint8)
+    assert np.array_equal(_blend_frames(a, b, 0.5), b)
