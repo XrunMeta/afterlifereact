@@ -68,6 +68,13 @@
       ],
       "@config-plugins/react-native-webrtc",
       [
+        "react-native-vision-camera",
+        {
+          "enableMicrophonePermission": false,
+          "cameraPermissionText": "통화 중 화자 식별을 위해 전면 카메라를 사용합니다."
+        }
+      ],
+      [
         "expo-speech-recognition",
         {
           "microphonePermission": "음성 대화를 위해 마이크 접근 권한이 필요합니다.",
