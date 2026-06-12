@@ -26,6 +26,11 @@ import {
   type v_370311,
 } from "../../api/clones";
 import { v_83b07d } from "../../api/users";
+import {
+  v_865d38,
+  v_31967f,
+  type v_5c12dc,
+} from "../../api/persons";
 
 const v_28895b = (it: v_370311) => `${v_23805a.type}-${v_23805a.blockId}`;
 
@@ -38,6 +43,10 @@ export default function v_9232cf() {
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_426335, v_70378d] = v_5ab095<string | null>(null);
   const [v_11083e, v_94ee83] = v_5ab095<"user" | "clone">("user");
+
+  const [v_fded81, v_1b22c3] = v_5ab095<v_5c12dc[]>([]);
+  const [v_947634, v_8c4301] = v_5ab095(true);
+  const [v_8728fe, v_efdde3] = v_5ab095<number | null>(null);
 
   const v_62f9dc = (item: v_370311) => {
     if (v_8c0b26.type === "user") {
@@ -91,15 +100,65 @@ export default function v_9232cf() {
     }
   }, [v_2ca7e0]);
 
+  const v_ae477e = v_de06a3(async () => {
+    if (!v_2ca7e0) {
+      v_1b22c3([]);
+      v_8c4301(false);
+      return;
+    }
+    v_8c4301(true);
+    try {
+      const v_8f00b9 = await v_865d38(v_2ca7e0);
+      v_1b22c3(v_8f00b9.items);
+    } catch (v_49263d) {
+      console.warn("[Privacy] listPersons failed:", v_49263d);
+    } finally {
+      v_8c4301(false);
+    }
+  }, [v_2ca7e0]);
+
   v_c4deb2(() => {
     v_1a1b9b();
-  }, [v_1a1b9b]);
+    v_ae477e();
+  }, [v_1a1b9b, v_ae477e]);
 
   v_cf763b(
     v_a3453e.useCallback(() => {
       v_1a1b9b();
-    }, [v_1a1b9b]),
+      v_ae477e();
+    }, [v_1a1b9b, v_ae477e]),
   );
+
+  const v_74c662 = (person: v_5c12dc) => {
+    v_889fad(
+      v_8d41d7("settings.privacy.faceConsent.revokeConfirmTitle"),
+      v_8d41d7("settings.privacy.faceConsent.revokeConfirmMessage"),
+      [
+        { text: v_8d41d7("settings.privacy.faceConsent.revokeConfirmCancel"), style: "cancel" },
+        {
+          text: v_8d41d7("settings.privacy.faceConsent.revokeConfirmOk"),
+          style: "destructive",
+          onPress: async () => {
+            if (!v_2ca7e0) return;
+            v_efdde3(v_306a28.id);
+            try {
+              await v_31967f(v_2ca7e0, v_306a28.id, "revoked");
+              v_1b22c3((v_ba2215) =>
+                v_ba2215.map((v_e2a85c) =>
+                  v_e2a85c.id === v_306a28.id ? { ...v_e2a85c, consentState: "revoked" } : v_e2a85c,
+                ),
+              );
+            } catch (v_49263d) {
+              const v_badeaf = v_49263d instanceof Error ? v_49263d.message : v_8d41d7("settings.privacy.faceConsent.revokeError");
+              v_889fad(v_8d41d7("settings.privacy.faceConsent.revokeConfirmTitle"), v_badeaf);
+            } finally {
+              v_efdde3(null);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const v_55b20d = (item: v_370311) => {
     const v_2869c1 =
@@ -243,7 +302,96 @@ export default function v_9232cf() {
           })()
         )}
       </View>
+
+      {}
+      <FaceConsentSection
+        persons={v_fded81}
+        loading={v_947634}
+        revokingId={v_8728fe}
+        onRevoke={v_74c662}
+        t={v_8d41d7}
+      />
     </SafeScrollView>
+  );
+}
+
+interface FaceConsentSectionProps {
+  persons: v_5c12dc[];
+  loading: boolean;
+  revokingId: number | null;
+  onRevoke: (person: v_5c12dc) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function v_afe1c9({ persons: v_fded81, loading: v_683210, revokingId: v_8728fe, onRevoke: v_9b29ab, t: v_8d41d7 }: FaceConsentSectionProps) {
+
+  const v_b4ca3a = v_fded81.filter((v_e2a85c) => v_e2a85c.consentState === "granted");
+
+  return (
+    <View
+      testID="face-consent-section"
+      style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
+    >
+      <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("settings.privacy.faceConsent.sectionTitle")}</Text>
+      {v_683210 ? (
+        <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingTop: 20 }} />
+      ) : v_b4ca3a.length === 0 ? (
+        <View style={v_fd5f43.empty}>
+          <Feather name="eye-off" size={32} color={v_1bfbd0.zinc300} />
+          <Text style={v_fd5f43.emptyText}>{v_8d41d7("settings.privacy.faceConsent.noConsent")}</Text>
+          <Text style={v_fd5f43.emptySub}>{v_8d41d7("settings.privacy.faceConsent.noConsentSub")}</Text>
+        </View>
+      ) : (
+        <View style={v_fd5f43.card}>
+          {v_b4ca3a.map((v_306a28, v_ebec57) => {
+            const v_3f8465 = v_8728fe === v_306a28.id;
+            const v_8f5b15 = v_306a28.createdAt
+              ? v_8d41d7("settings.privacy.faceConsent.consentedAt", {
+                  date: new Date(v_306a28.createdAt).toLocaleDateString(),
+                })
+              : v_8d41d7("settings.privacy.faceConsent.stateGranted");
+            const v_24c1e9 = v_306a28.cloneId
+              ? v_8d41d7("settings.privacy.faceConsent.cloneLabel", { cloneId: v_306a28.cloneId })
+              : `Person #${v_306a28.id}`;
+
+            return (
+              <View key={v_306a28.id}>
+                <View style={v_fd5f43.row}>
+                  <View style={[v_fd5f43.avatar, v_fd5f43.avatarPh]}>
+                    <Feather name="eye" size={20} color={v_1bfbd0.zinc400} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={v_fd5f43.rowName} numberOfLines={1}>
+                      {v_24c1e9}
+                    </Text>
+                    <Text style={v_fd5f43.rowSub} numberOfLines={1}>
+                      {v_8f5b15}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    testID={`revoke-btn-${v_306a28.id}`}
+                    style={[v_fd5f43.revokeBtn, v_3f8465 && { opacity: 0.6 }]}
+                    onPress={() => v_9b29ab(v_306a28)}
+                    disabled={v_3f8465}
+                    accessibilityLabel={v_8d41d7("settings.privacy.faceConsent.revokeButton")}
+                    accessibilityRole="button"
+                  >
+                    {v_3f8465 ? (
+                      <ActivityIndicator size="small" color={v_1bfbd0.white} />
+                    ) : (
+                      <Text style={v_fd5f43.revokeBtnText}>
+                        {v_8d41d7("settings.privacy.faceConsent.revokeButton")}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {v_ebec57 < v_b4ca3a.length - 1 && <View style={v_fd5f43.divider} />}
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -317,4 +465,22 @@ const v_fd5f43 = v_472849.create({
   empty: { alignItems: "center", paddingTop: 60, gap: 10 },
   emptyText: { color: v_1bfbd0.zinc600, fontSize: 14, fontWeight: "600" },
   emptySub: { color: v_1bfbd0.zinc400, fontSize: 12 },
+
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: v_1bfbd0.zinc500,
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  revokeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: v_1bfbd0.zinc900,
+    minWidth: 78,
+    alignItems: "center",
+  },
+  revokeBtnText: { fontSize: 12, fontWeight: "700", color: v_1bfbd0.white },
 });

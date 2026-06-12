@@ -658,7 +658,24 @@
       "profileVisibility": "Profile Visibility",
       "blockList": "Block List",
       "dataDownload": "Download My Data",
-      "deleteAccount": "Delete Account"
+      "deleteAccount": "Delete Account",
+      "faceConsent": {
+        "sectionTitle": "Face Detection Consent",
+        "noConsent": "No consent records",
+        "noConsentSub": "You have not granted consent for face detection during calls",
+        "consentedAt": "Consented: {{date}}",
+        "revokeButton": "Revoke",
+        "revokeConfirmTitle": "Revoke Face Detection Consent",
+        "revokeConfirmMessage": "Revoking consent will disable face detection during calls. (No face data is stored at this stage.) Do you want to continue?",
+        "revokeConfirmCancel": "Cancel",
+        "revokeConfirmOk": "Revoke",
+        "revokeSuccess": "Consent has been revoked.",
+        "revokeError": "Failed to revoke. Please try again.",
+        "loadError": "Could not load consent records.",
+        "stateGranted": "Granted",
+        "stateRevoked": "Revoked",
+        "cloneLabel": "Clone #{{cloneId}}"
+      }
     },
     "saved": {
       "title": "Saved",
