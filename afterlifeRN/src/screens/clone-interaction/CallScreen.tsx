@@ -18,9 +18,17 @@ import {
   v_f2c756,
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
-import { v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_bab832, v_a0300b } from "rthlnescfffbyxfmhgq";
+import { v_bab832 } from "rthlnescfffbyxfmhgq";
+import { v_862296 as v_628d75, v_db5a6b } from "mkqptszwrsxiemcjrtdlshyxlm";
+import {
+  v_862296 as v_0a8210,
+  v_ac8611,
+} from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+import type { v_ab3a39 as v_1faf6a } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+import { v_b83839 } from "../../hooks/useFaceDetection";
+import { v_4e7b87, v_31967f, v_865d38 } from "../../api/persons";
+import v_c0caa9 from "../../components/common/TermsModal";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
 import { v_c6d1f4 } from "../../config/callRoute";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
@@ -79,57 +87,54 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_53dd92 =
     v_326be8.OS === "ios" ? v_033e14.bottom : Math.max(v_f9771e, v_033e14.bottom);
 
-  const [v_d1a6bb, v_1e66f0] = v_d4f1cc();
   const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
   const [v_4e2aec, v_326ca4] = v_5ab095(false);
   const [v_9e64e1, v_e064ce] = v_5ab095(false);
 
   const [v_b2ccaa, v_82a4b3] = v_5ab095(false);
 
-  const [v_17643c, v_10e972] = v_5ab095<MediaStream | null>(null);
+  const v_49a70b = v_db5a6b(v_5bb98b === "front" ? "front" : "back");
 
-  const v_cb91bc = v_e662ae<MediaStream | null>(null);
+  const { faceState: v_bbb3d3, onFaces: v_dfbd9a } = v_b83839();
+  const { detectFaces: v_de4d76, stopListeners: v_62fe07 } = v_ac8611({
+    performanceMode: "fast",
+    trackingEnabled: true,
+  });
 
-  const v_0fcb08 = v_de06a3(() => {
-    if (v_cb91bc.current) {
-      v_cb91bc.current.getTracks().forEach((v_8d41d7) => v_8d41d7.stop());
-      v_cb91bc.current = null;
-    }
-  }, []);
+  const v_f15637 = v_e662ae<v_628d75>(null);
 
   v_c4deb2(() => {
-    if (!v_d1a6bb?.granted || v_9e64e1) {
-      v_0fcb08();
-      v_10e972(null);
-      return;
-    }
+    return () => {
+      v_62fe07();
+    };
+  }, [v_62fe07]);
+
+  const [v_58656e, v_071915] = v_5ab095(false);
+  const [v_550809, v_566132] = v_5ab095(false);
+
+  const [v_a6086d, v_603e38] = v_5ab095(false);
+
+  v_c4deb2(() => {
+
+    void v_628d75.requestCameraPermission();
+
+    if (!v_2ca7e0) return;
     let v_2008a4 = false;
-    (async () => {
-      try {
-        const v_cab51f = await v_a0300b.getUserMedia({
-          audio: false,
-          video: {
-            facingMode: v_5bb98b === "front" ? "user" : "environment",
-          },
-        }) as unknown as MediaStream;
-        if (v_2008a4) {
-          v_cab51f.getTracks().forEach((v_8d41d7) => v_8d41d7.stop());
-          return;
-        }
-        v_0fcb08(); 
-        v_cb91bc.current = v_cab51f;
-        v_10e972(v_cab51f);
-      } catch (v_49263d) {
-        console.warn("[Call][PiP] getUserMedia failed:", v_49263d);
-      }
-    })();
+    v_865d38(v_2ca7e0)
+      .then(({ items: v_4622b9 }) => {
+        if (v_2008a4) return;
+        const v_5f7d15 = v_4622b9.some((v_e2a85c) => v_e2a85c.consentState === "granted");
+        v_071915(v_5f7d15);
+        console.log(`[Call][face] listPersons ← granted=${v_5f7d15} (total=${v_4622b9.length})`);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Call][face] listPersons failed:", v_49263d);
+      });
     return () => {
       v_2008a4 = true;
     };
 
-  }, [v_d1a6bb?.granted, v_5bb98b, v_9e64e1, v_0fcb08]);
-
-  v_c4deb2(() => () => v_0fcb08(), [v_0fcb08]);
+  }, [v_2ca7e0]);
 
   const {
     state: v_6cc918,
@@ -160,11 +165,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   }, []);
 
-  v_c4deb2(() => {
-    if (!v_d1a6bb?.granted) {
-      v_1e66f0();
-    }
-  }, []);
   const [v_d416b8, v_2a4980] = v_5ab095(false);
 
   const [v_e2c945, v_06e986] = v_5ab095<number>(0);
@@ -511,6 +511,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {v_b2ccaa ? <CallStatusGlow phase={v_ab4803} /> : null}
 
       {
+
 }
       <TouchableOpacity
         style={[v_fd5f43.pip, { top: v_033e14.top + 8 }]}
@@ -521,20 +522,97 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <View style={v_fd5f43.pipOff}>
             <Feather name="video-off" size={20} color={v_1bfbd0.zinc600} />
           </View>
-        ) : v_17643c ? (
-          <RTCView
-            streamURL={(v_17643c as unknown as { toURL: () => string }).toURL()}
-            style={v_fd5f43.pipCamera}
-            objectFit="cover"
-            zOrder={1}
-            mirror={v_5bb98b === "front"}
-          />
+        ) : v_49a70b ? (
+          v_58656e ? (
+
+            <FDCamera
+              ref={v_f15637}
+              style={v_fd5f43.pipCamera}
+              device={v_49a70b}
+              isActive={!v_9e64e1}
+              faceDetectionOptions={{
+                performanceMode: "fast",
+                trackingEnabled: true,
+              }}
+              faceDetectionCallback={(faces: v_1faf6a[]) => {
+
+                const v_29a122 = v_a51d09.map((v_8b5cd8) => ({
+                  trackingID: v_8b5cd8.trackingId,
+                  bounds: v_8b5cd8.bounds,
+                }));
+                v_dfbd9a(v_29a122);
+              }}
+            />
+          ) : (
+
+            <VisionCamera
+              ref={v_f15637}
+              style={v_fd5f43.pipCamera}
+              device={v_49a70b}
+              isActive={!v_9e64e1}
+            />
+          )
         ) : (
           <View style={v_fd5f43.pipOff}>
             <Feather name="camera-off" size={20} color={v_1bfbd0.zinc600} />
           </View>
         )}
+
+        {}
+        {v_58656e && !v_9e64e1 && v_49a70b ? (
+          <View
+            style={[
+              v_fd5f43.faceIndicator,
+              v_bbb3d3.status === "detected" ? v_fd5f43.faceIndicatorOn : v_fd5f43.faceIndicatorOff,
+            ]}
+          />
+        ) : null}
       </TouchableOpacity>
+
+      {
+
+}
+      {!v_58656e && !v_9e64e1 && (
+        <TouchableOpacity
+          style={[v_fd5f43.faceConsentBtn, { top: v_033e14.top + 8 + 140 + 6 }]}
+          disabled={v_a6086d}
+          onPress={() => {
+            if (!v_2ca7e0) return;
+
+            v_566132(true);
+          }}
+        >
+          <Text style={v_fd5f43.faceConsentText}>{v_8d41d7("call.faceConsentHint")}</Text>
+        </TouchableOpacity>
+      )}
+
+      <TermsModal
+        visible={v_550809}
+        type={4}
+        onClose={() => {
+
+          v_566132(false);
+        }}
+        onAgree={async () => {
+
+          if (!v_2ca7e0) { v_566132(false); return; }
+          v_603e38(true);
+          v_566132(false);
+          try {
+            const { id: v_389afb } = await v_4e7b87(v_2ca7e0, { cloneId: v_6e0fd3 });
+            console.log(`[Call][face] createPerson ok personId=${v_389afb}`);
+            await v_31967f(v_2ca7e0, v_389afb, "granted", { termsVersion: "biometric-v1" });
+            v_071915(true);
+            console.log(`[Call][face] consent granted personId=${v_389afb}`);
+          } catch (v_49263d) {
+            console.warn("[Call][face] createPerson/saveFaceConsent failed:", v_49263d);
+
+            v_15c939(v_8d41d7("call.faceConsentError"));
+          } finally {
+            v_603e38(false);
+          }
+        }}
+      />
 
       {
 }
@@ -806,6 +884,38 @@ const v_fd5f43 = v_472849.create({
   },
   pipImage: { width: "100%", height: "100%" },
   pipCamera: { width: "100%", height: "100%" },
+
+  faceIndicator: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.4)",
+  },
+  faceIndicatorOn: {
+    backgroundColor: "#22c55e", 
+  },
+  faceIndicatorOff: {
+    backgroundColor: v_1bfbd0.zinc500, 
+  },
+
+  faceConsentBtn: {
+    position: "absolute",
+    left: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 6,
+    zIndex: 11,
+  },
+  faceConsentText: {
+    fontSize: 10,
+    color: v_1bfbd0.zinc200,
+  },
+
   pipOff: {
     width: "100%",
     height: "100%",

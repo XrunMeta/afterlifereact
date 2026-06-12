@@ -153,7 +153,11 @@
     "inCall": "통화 중 {{time}}",
     "noCredits": "크레딧이 부족합니다",
     "giftSent": "{{name}}을 선물했습니다",
-    "giftTitle": "선물 보내기"
+    "giftTitle": "선물 보내기",
+    "faceDetected": "얼굴 감지됨",
+    "faceNotDetected": "미감지",
+    "faceConsentHint": "얼굴 위치만 감지하며, 얼굴 데이터는 저장되지 않습니다.",
+    "faceConsentError": "얼굴 감지 설정에 실패했습니다. 다시 시도해 주세요."
   },
   "feed": {
     "homeTitle": "홈",
