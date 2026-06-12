@@ -29,6 +29,14 @@ def get_idle_frames(path):
     return _IDLE_CACHE_DICT[key]
 
 
+def _blend_frames(a, b, alpha):
+    """a→b 선형 cross-dissolve. alpha 0.0=a, 1.0=b. shape 불일치/None 이면 b 반환(안전)."""
+    if a is None or b is None or a.shape != b.shape:
+        return b
+    al = float(np.clip(alpha, 0.0, 1.0))
+    return (a.astype(np.float32) * (1.0 - al) + b.astype(np.float32) * al).astype(np.uint8)
+
+
 def _dummy_rgb_frame(elapsed: float) -> np.ndarray:
     """단색 frame, 12초 주기 색 회전."""
     h = (elapsed / 12.0) % 1.0
