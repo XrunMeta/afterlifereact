@@ -109,6 +109,13 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
   if (!type) return null;
   const title = t(TITLE_KEYS[type], { defaultValue: TITLE_FALLBACK[type] });
 
+  const faceFallbackText = t("auth.signup.termsBiometricFallback", {
+    defaultValue:
+      "얼굴 인식정보 사용에 대한 안내\n\n통화 중 화자 식별을 위해 전면 카메라로 얼굴 위치만 감지하며, 얼굴 데이터(이미지·생체정보)는 저장되지 않습니다. 동의를 철회하면 즉시 중단됩니다.",
+  });
+  const useFaceFallback =
+    type === 4 && !loading && (!!error || !content.trim());
+
   return (
     <Modal
       visible={visible}
@@ -138,6 +145,8 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
                 color={COLORS.violet500}
                 style={{ marginTop: 32 }}
               />
+            ) : useFaceFallback ? (
+              <Text style={s.contentText}>{faceFallbackText}</Text>
             ) : error ? (
               <Text style={s.errorText}>{error}</Text>
             ) : (

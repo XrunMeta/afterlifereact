@@ -443,6 +443,7 @@
       "termsLocation": "(필수) 개인 위치정보 약관에 동의합니다",
       "termsPrivacy": "(필수) 개인정보 이용 약관에 동의합니다",
       "termsBiometricTitle": "생체정보(얼굴) 처리 동의",
+      "termsBiometricFallback": "얼굴 인식정보 사용에 대한 안내\n\n통화 중 화자 식별을 위해 전면 카메라로 얼굴 위치만 감지하며, 얼굴 데이터(이미지·생체정보)는 저장되지 않습니다. 동의를 철회하면 즉시 중단됩니다.",
       "marketingConsent": "(선택) 마케팅 정보 수신에 동의합니다",
       "signingUp": "회원가입 중...",
       "next": "다음",
