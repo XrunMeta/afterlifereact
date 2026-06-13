@@ -542,22 +542,12 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     return false;
   })();
 
-  const v_e050c1 = (() => {
-    if (!v_ab4803.startsWith('schema:') || v_d776c4 === null) return false;
-    const v_cf55be = v_c3519b.filter((v_ab6401) =>
-      v_a7e583(v_ab6401, v_03f138.current.schemaAnswers),
-    );
-    return v_cf55be[v_d776c4]?.type === 'text';
-  })();
-
-  const v_72f6a7 = 20;
-
   const v_9399bb = (() => {
     if (v_ab4803 === 'sys:username') return !v_dff7ca; 
     if (v_ab4803 === 'sys:name') return v_bbda62.trim().length > 0;
     if (v_ab4803 === 'sys:relation-custom') return v_bbda62.trim().length > 0;
     if (v_ab4803.startsWith('schema:')) {
-      if (v_e050c1) return v_bbda62.trim().length >= v_72f6a7;
+
       return v_bbda62.trim().length > 0;
     }
     return false;
@@ -685,19 +675,6 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         {}
         {v_bc9d5f && (
           <View style={v_fd5f43.inputWrap}>
-            {}
-            {v_e050c1 && (
-              <View style={v_fd5f43.charHintRow}>
-                <Text style={[
-                  v_fd5f43.charHint,
-                  v_bbda62.trim().length >= v_72f6a7 ? v_fd5f43.charHintOk : v_fd5f43.charHintWarn,
-                ]}>
-                  {v_bbda62.trim().length >= v_72f6a7
-                    ? `${v_bbda62.trim().length}자`
-                    : `최소 20자 이상 입력해주세요 (${v_bbda62.trim().length}/20)`}
-                </Text>
-              </View>
-            )}
             <View style={v_fd5f43.inputBar}>
               <TextInput
                 style={[v_fd5f43.input, v_f05841 && v_fd5f43.inputMultiline]}
@@ -837,14 +814,6 @@ const v_fd5f43 = v_472849.create({
     borderTopWidth: 1,
     borderTopColor: v_1bfbd0.zinc100,
   },
-  charHintRow: {
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 2,
-  },
-  charHint: { fontSize: 11 },
-  charHintWarn: { color: v_1bfbd0.zinc400 },
-  charHintOk: { color: v_1bfbd0.violet600 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
