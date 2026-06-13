@@ -20,11 +20,13 @@ import {
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_bab832 } from "rthlnescfffbyxfmhgq";
-import { v_862296 as v_628d75, v_db5a6b } from "mkqptszwrsxiemcjrtdlshyxlm";
 import {
-  v_862296 as v_0a8210,
-  v_ac8611,
-} from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+  v_862296 as v_628d75,
+  v_db5a6b,
+  v_b08ef3,
+} from "mkqptszwrsxiemcjrtdlshyxlm";
+import { v_d73d29 } from "fkysyevuehkssftyrtweoolhfw";
+import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
 import type { v_ab3a39 as v_1faf6a } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
 import { v_b83839 } from "../../hooks/useFaceDetection";
 import { v_4e7b87, v_31967f, v_865d38 } from "../../api/persons";
@@ -108,6 +110,28 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_62fe07();
     };
   }, [v_62fe07]);
+
+  const v_8090fb = v_a3453e.useMemo(
+    () =>
+      v_d73d29.createRunOnJS((faces: v_1faf6a[]) => {
+        const v_29a122 = v_a51d09.map((v_8b5cd8) => ({
+          trackingID: v_8b5cd8.trackingId,
+          bounds: v_8b5cd8.bounds,
+        }));
+        v_dfbd9a(v_29a122);
+      }),
+
+    [],
+  );
+
+  const v_a61ebf = v_b08ef3(
+    (v_143cb5) => {
+      "worklet";
+      const v_a51d09 = v_de4d76(v_143cb5);
+      v_8090fb(v_a51d09);
+    },
+    [v_de4d76, v_8090fb],
+  );
 
   const [v_58656e, v_071915] = v_5ab095(false);
   const [v_550809, v_566132] = v_5ab095(false);
@@ -523,35 +547,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             <Feather name="video-off" size={20} color={v_1bfbd0.zinc600} />
           </View>
         ) : v_49a70b ? (
-          v_58656e ? (
 
-            <FDCamera
-              ref={v_f15637}
-              style={v_fd5f43.pipCamera}
-              device={v_49a70b}
-              isActive={!v_9e64e1}
-              faceDetectionOptions={{
-                performanceMode: "fast",
-                trackingEnabled: true,
-              }}
-              faceDetectionCallback={(faces: v_1faf6a[]) => {
-
-                const v_29a122 = v_a51d09.map((v_8b5cd8) => ({
-                  trackingID: v_8b5cd8.trackingId,
-                  bounds: v_8b5cd8.bounds,
-                }));
-                v_dfbd9a(v_29a122);
-              }}
-            />
-          ) : (
-
-            <VisionCamera
-              ref={v_f15637}
-              style={v_fd5f43.pipCamera}
-              device={v_49a70b}
-              isActive={!v_9e64e1}
-            />
-          )
+          <VisionCamera
+            ref={v_f15637}
+            style={v_fd5f43.pipCamera}
+            device={v_49a70b}
+            isActive={!v_9e64e1}
+            frameProcessor={v_58656e ? v_a61ebf : undefined}
+            onError={(v_9e86fd) =>
+              console.log("[Call][face] camera error:", v_9e86fd.code, v_9e86fd.message)
+            }
+          />
         ) : (
           <View style={v_fd5f43.pipOff}>
             <Feather name="camera-off" size={20} color={v_1bfbd0.zinc600} />
