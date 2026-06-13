@@ -105,4 +105,56 @@ describe("POST /oth-path", () => {
     });
     expect(res.status).toBe(403);
   });
+
+  it("sessionId 대문자 거부 — 400", async () => {
+    const owner = await seedUser("pt-up@test.local");
+    const cloneId = await seedClone(owner, "pt_up");
+    const tok = await issueAccessToken(owner);
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call/prethird-start`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: "ABCDEF012345" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("sessionId 길이 경계(11/13자) 거부 — 400", async () => {
+    const owner = await seedUser("pt-len@test.local");
+    const cloneId = await seedClone(owner, "pt_len");
+    const tok = await issueAccessToken(owner);
+    for (const bad of ["abcdef01234", "abcdef0123456"]) {
+      const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/call/prethird-start`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: bad }),
+      });
+      expect(res.status).toBe(400);
+    }
+  });
+
+  it("E2E: prethird-start 후 동일 user의 learn → H-2 통과(no_interaction 403 아님)", async () => {
+    const owner = await seedUser("pt-e2e@test.local");
+    const cloneId = await seedClone(owner, "pt_e2e");
+    const tok = await issueAccessToken(owner);
+    const sid = "0123456789ab"; 
+
+    const r1 = await SELF.fetch(`http://localhost/oth-path${cloneId}/call/prethird-start`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: sid }),
+    });
+    expect(r1.status).toBe(200);
+
+    const SECRET = (env as { LEARN_SECRET?: string }).LEARN_SECRET ?? "test-learn-secret";
+    const r2 = await SELF.fetch(`https://x/oth-path${cloneId}/memory/l2/learn`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SECRET}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: owner,
+        extracted: { preference_personal: { tea: "녹차" }, memories_personal: ["등산 좋아함"] },
+        source: "call",
+      }),
+    });
+    expect(r2.status).toBe(200); 
+  });
 });
