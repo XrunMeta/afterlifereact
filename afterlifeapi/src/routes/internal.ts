@@ -44,6 +44,23 @@ internal.post("/oth-path", async (c) => {
   return c.json({ ok: true });
 });
 
+internal.post("/oth-path", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.LEARN_SECRET || !safeEqual(token, c.env.LEARN_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const callId = c.req.param("callId");
+
+  if (!/^[0-9a-f]{12}$/.test(callId)) return c.json({ ok: true });
+  const endedAt = Date.now();
+  await c.env.DB.prepare(
+    `UPDATE call_sessions SET ended_at = ?, duration_sec = MAX(0, (? - started_at) / 1000)
+     WHERE call_id = ? AND ended_at IS NULL`,
+  ).bind(endedAt, endedAt, callId).run();
+  return c.json({ ok: true });
+});
+
 const SIZE_LIMITS: Record<string, number> = {
   idle_video: 300 * 1024 * 1024,  
   voice_clone: 50 * 1024 * 1024,  
