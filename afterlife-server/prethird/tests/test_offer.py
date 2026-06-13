@@ -5,6 +5,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from signaling import make_app  # noqa: E402
 import signaling  # noqa: E402 (monkeypatch 대상)
 
+
 # ── 헬퍼: 기본 offer 요청 ────────────────────────────────────────────
 async def _make_offer_request(client, extra: dict | None = None):
     pc = RTCPeerConnection()
@@ -61,6 +62,7 @@ async def test_answer_sdp_has_ice_candidates():
         assert "a=candidate" in ans["sdp"]              # candidate 포함(aiortc setLocalDescription이 gather 완료까지 대기)
         await pc.close()
 
+
 @pytest.mark.asyncio
 async def test_offer_fetches_bundle_and_stores_persona(monkeypatch):
     """clone_id·access_token → fetch_bundle 호출 → sess persona_messages·se_path 저장 확인."""
@@ -95,13 +97,15 @@ async def test_offer_fetches_bundle_and_stores_persona(monkeypatch):
         assert sess.se_path is not None and "9043" in sess.se_path
         await pc.close()
 
+
 @pytest.mark.asyncio
 async def test_offer_bundle_fetch_failure_graceful(monkeypatch):
-    """fetch_bundle 실패(None 반환) 시 persona_messages=[], se_path=None으로 진행."""
+    """STRICT=0: fetch_bundle 실패(None 반환) 시 폴백 유지(200 응답, persona_messages=[])."""
     async def fake_fetch(api, cid, tok):
         return None
 
     monkeypatch.setattr(signaling, "fetch_bundle", fake_fetch)
+    monkeypatch.setattr(signaling, "_STRICT_CLONE_BUNDLE", False)
 
     app = make_app()
     async with TestClient(TestServer(app)) as client:
@@ -121,6 +125,130 @@ async def test_offer_bundle_fetch_failure_graceful(monkeypatch):
         assert sess.persona_messages == []
         assert sess.se_path is None
         await pc.close()
+
+
+# ── STRICT_CLONE_BUNDLE 안전장치 테스트 ───────────────────────────────
+
+@pytest.mark.asyncio
+async def test_strict_clone_bundle_rejects_on_none_bundle(monkeypatch):
+    """STRICT=1: clone_id 지정 + bundle=None → 424 응답, 세션 제거됨."""
+    async def fake_fetch(api, cid, tok):
+        return None
+
+    monkeypatch.setattr(signaling, "fetch_bundle", fake_fetch)
+    monkeypatch.setattr(signaling, "_STRICT_CLONE_BUNDLE", True)
+
+    app = make_app()
+    async with TestClient(TestServer(app)) as client:
+        pc = RTCPeerConnection()
+        pc.addTransceiver("video", direction="recvonly")
+        pc.addTransceiver("audio", direction="recvonly")
+        await pc.setLocalDescription(await pc.createOffer())
+        resp = await client.post("/offer", json={
+            "sdp": pc.localDescription.sdp,
+            "type": pc.localDescription.type,
+            "clone_id": 9043,
+            "access_token": "tok",
+        })
+        assert resp.status == 424
+        body = await resp.json()
+        assert body["error"] == "clone_bundle_unavailable"
+        assert body["clone_id"] == 9043
+        # 세션 제거 확인
+        h = await client.get("/healthz")
+        assert (await h.json())["sessions"] == 0
+        await pc.close()
+
+
+@pytest.mark.asyncio
+async def test_strict_clone_bundle_default_is_on(monkeypatch):
+    """_STRICT_CLONE_BUNDLE 기본값 True: bundle=None이면 424 반환."""
+    async def fake_fetch(api, cid, tok):
+        return None
+
+    monkeypatch.setattr(signaling, "fetch_bundle", fake_fetch)
+    # _STRICT_CLONE_BUNDLE 을 건드리지 않아 기본값(True) 동작 확인
+    # 단, 다른 테스트가 False로 바꿔놓을 수 있으므로 명시 설정
+    monkeypatch.setattr(signaling, "_STRICT_CLONE_BUNDLE", True)
+
+    app = make_app()
+    async with TestClient(TestServer(app)) as client:
+        pc = RTCPeerConnection()
+        pc.addTransceiver("video", direction="recvonly")
+        pc.addTransceiver("audio", direction="recvonly")
+        await pc.setLocalDescription(await pc.createOffer())
+        resp = await client.post("/offer", json={
+            "sdp": pc.localDescription.sdp,
+            "type": pc.localDescription.type,
+            "clone_id": 7777,
+            "access_token": "tok",
+        })
+        assert resp.status == 424
+        await pc.close()
+
+
+@pytest.mark.asyncio
+async def test_strict_does_not_affect_halbae_mode(monkeypatch):
+    """STRICT=True + clone_id=None(halbae 단일 모드): bundle 조회 없이 200 answer — 회귀 없음."""
+    called = []
+
+    async def spy_fetch(api, cid, tok):
+        called.append(cid)
+        return None
+
+    monkeypatch.setattr(signaling, "fetch_bundle", spy_fetch)
+    monkeypatch.setattr(signaling, "_STRICT_CLONE_BUNDLE", True)
+
+    app = make_app()
+    async with TestClient(TestServer(app)) as client:
+        pc = RTCPeerConnection()
+        pc.addTransceiver("video", direction="recvonly")
+        pc.addTransceiver("audio", direction="recvonly")
+        await pc.setLocalDescription(await pc.createOffer())
+        resp = await client.post("/offer", json={
+            "sdp": pc.localDescription.sdp,
+            "type": pc.localDescription.type,
+            # clone_id 미포함 — halbae 단일 모드
+        })
+        assert resp.status == 200
+        assert len(called) == 0  # fetch_bundle 미호출
+        h = await client.get("/healthz")
+        assert (await h.json())["sessions"] == 1
+        await pc.close()
+
+
+@pytest.mark.asyncio
+async def test_strict_normal_bundle_still_works(monkeypatch):
+    """STRICT=True + clone_id 지정 + bundle 정상 → 기존대로 200 answer."""
+    async def fake_fetch(api, cid, tok):
+        return {
+            "personaBundle": {"cloneId": "8888", "persona": {"displayName": "테스트"}},
+            "assets": {"voiceSeKey": "8888"},
+        }
+
+    monkeypatch.setattr(signaling, "fetch_bundle", fake_fetch)
+    monkeypatch.setattr(signaling, "bundle_to_messages",
+                        lambda b: [{"role": "system", "content": "테스트"}])
+    monkeypatch.setattr(signaling.os.path, "isfile", lambda p: True)
+    monkeypatch.setattr(signaling, "_STRICT_CLONE_BUNDLE", True)
+
+    app = make_app()
+    async with TestClient(TestServer(app)) as client:
+        pc = RTCPeerConnection()
+        pc.addTransceiver("video", direction="recvonly")
+        pc.addTransceiver("audio", direction="recvonly")
+        await pc.setLocalDescription(await pc.createOffer())
+        resp = await client.post("/offer", json={
+            "sdp": pc.localDescription.sdp,
+            "type": pc.localDescription.type,
+            "clone_id": 8888,
+            "access_token": "tok",
+        })
+        assert resp.status == 200
+        body = await resp.json()
+        assert "sdp" in body and body["type"] == "answer"
+        await pc.close()
+
 
 @pytest.mark.asyncio
 async def test_offer_rejects_non_integer_clone_id(monkeypatch):
@@ -152,6 +280,7 @@ async def test_offer_rejects_non_integer_clone_id(monkeypatch):
         assert sess.se_path is None           # 경로 설정 안 됨
         assert len(called) == 0               # fetch_bundle 미호출
         await pc.close()
+
 
 @pytest.mark.asyncio
 async def test_offer_empty_assets_no_se(monkeypatch):
@@ -185,6 +314,7 @@ async def test_offer_empty_assets_no_se(monkeypatch):
         sess = app["mgr"].get(sid)
         assert sess.se_path is None           # 파일 없음 → 미설정
         await pc.close()
+
 
 @pytest.mark.asyncio
 async def test_offer_se_path_set_when_exists(monkeypatch):
@@ -220,6 +350,7 @@ async def test_offer_se_path_set_when_exists(monkeypatch):
         assert "1234" in sess.se_path         # cloneId 경로 포함
         await pc.close()
 
+
 @pytest.mark.asyncio
 async def test_offer_without_clone_id_no_bundle_fetch(monkeypatch):
     """clone_id 없는 기존 /offer → fetch_bundle 미호출, persona_messages=[]."""
@@ -250,6 +381,7 @@ async def test_offer_without_clone_id_no_bundle_fetch(monkeypatch):
         # 하지만 signaling에서 clone_id None이면 호출 자체를 안 하는지도 검증
         assert len(called) == 0
         await pc.close()
+
 
 # ── idleVideoUrl 관련 신규 테스트 ─────────────────────────────────────
 
@@ -289,6 +421,7 @@ async def test_offer_idle_video_url_sets_video_path(monkeypatch):
         assert sess.video_path == called_dest
         await pc.close()
 
+
 @pytest.mark.asyncio
 async def test_offer_no_idle_video_url_video_path_none(monkeypatch):
     """assets에 idleVideoUrl 없으면 sess.video_path = None."""
@@ -310,6 +443,7 @@ async def test_offer_no_idle_video_url_video_path_none(monkeypatch):
         sess = app["mgr"].get(sid)
         assert sess.video_path is None
         await pc.close()
+
 
 @pytest.mark.asyncio
 async def test_offer_idle_video_pull_failure_graceful(monkeypatch):
