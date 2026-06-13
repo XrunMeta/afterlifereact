@@ -111,6 +111,16 @@ def _make_dc_handler(sess, channel):
                             )
                         except Exception as exc:
                             log.warning("session %s finalize failed: %s", sess.session_id, exc)
+                    # Phase B 자동학습: say 턴만, fire-and-forget(통화 무영향)
+                    if mode == "say":
+                        from learn_writeback import learn_writeback
+                        _clone_reply = "".join(getattr(turn, "_tokens", [])) if turn is not None else ""
+                        asyncio.ensure_future(learn_writeback(
+                            getattr(sess, "clone_id", None),
+                            getattr(sess, "user_id", None),
+                            getattr(sess, "session_id", None),
+                            text, _clone_reply,
+                        ))
                     # 발화 push 완료 → 클라에 종료 신호(say 성공·실패 모두 전송).
                     # sess.datachannel 재참조 금지 — stop()+start() 재연결로 채널이
                     # 교체되면 엉뚱한 새 채널로 전송될 수 있다. 이 say를 받은
@@ -171,6 +181,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                     bundle = await fetch_bundle(
                         os.environ.get("PRETHIRD_API_BASE"), sess.clone_id, access_token
                     )
+                    # bundle 성공(토큰 유효 입증) 후 userId 정수만 추출 — 토큰 자체는 보존 X(mizu H-2)
+                    from learn_writeback import user_id_from_token
+                    sess.user_id = user_id_from_token(access_token) if bundle else None
                 finally:
                     del access_token  # 토큰 세션 저장 금지 (mizu H-2) — 예외 경로에서도 소멸 보장
                 if bundle is None and _STRICT_CLONE_BUNDLE:

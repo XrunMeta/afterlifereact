@@ -72,10 +72,110 @@ export async function readOnt(env: Bindings, cloneId: number, userId: number): P
 }
 
 export async function writeOnt(
-  env: Bindings, cloneId: number, userId: number, data: string
+  env: Bindings, cloneId: number, userId: number, data: string, markAutoLearned = false,
 ): Promise<void> {
   await env.DB.prepare(
-    'INSERT OR REPLACE INTO clone_ont (clone_id, user_id, data, updated_at) VALUES (?, ?, ?, unixepoch())'
-  ).bind(cloneId, userId, data).run();
+    `INSERT INTO clone_ont (clone_id, user_id, data, updated_at, auto_learned_at)
+     VALUES (?, ?, ?, unixepoch(), ?)
+     ON CONFLICT(clone_id, user_id) DO UPDATE SET
+       data = excluded.data,
+       updated_at = excluded.updated_at,
+       auto_learned_at = COALESCE(excluded.auto_learned_at, clone_ont.auto_learned_at)`,
+  ).bind(cloneId, userId, data, markAutoLearned ? Math.floor(Date.now() / 1000) : null).run();
   await env.KV_ONT.put(`l2:${cloneId}:${userId}`, data);
+}
+
+const MAX_L2_BYTES = 16 * 1024;   
+const MAX_MEMORIES = 50;          
+
+export interface L2Extraction {
+  preference_personal?: Record<string, unknown>; 
+  relation?: string | null;                       
+  memories_personal?: string[];                   
+}
+
+export async function updateOntFromExtraction(
+  env: Bindings,
+  cloneId: number,
+  userId: number,
+  extracted: L2Extraction,
+  source: "call" | "chat",
+): Promise<{ rev: number; skipped: boolean }> {
+  const hasPref =
+    extracted.preference_personal != null &&
+    Object.keys(extracted.preference_personal).length > 0;
+  const hasRel =
+    typeof extracted.relation === "string" && extracted.relation.trim().length > 0;
+  const newMems = Array.isArray(extracted.memories_personal)
+    ? extracted.memories_personal.map((m) => String(m).trim()).filter(Boolean)
+    : [];
+  const hasMem = newMems.length > 0;
+  if (!hasPref && !hasRel && !hasMem) {
+
+    return { rev: 0, skipped: true };
+  }
+
+  const raw = await readOnt(env, cloneId, userId);
+  let current: Record<string, unknown> = {
+    address: null,
+    memories_personal: [],
+    relation: null,
+    preference_personal: {},
+    _meta: { layer: "L2", rev: 0 },
+  };
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        current = parsed as Record<string, unknown>;
+      }
+    } catch {
+      console.error(`[D1_CORRUPT] l2:${cloneId}:uid:${String(userId).slice(-3)} — overwriting on auto-learn`);
+    }
+  }
+  const meta = (current._meta ?? {}) as Record<string, unknown>;
+  const prevRev = typeof meta.rev === "number" ? meta.rev : 0;
+
+  const curMems = Array.isArray(current.memories_personal)
+    ? (current.memories_personal as unknown[]).map((m) => String(m))
+    : [];
+  const mergedMems = hasMem
+    ? (() => {
+        const newSet = new Set(newMems);
+        return [...curMems.filter((m) => !newSet.has(m)), ...newMems].slice(-MAX_MEMORIES);
+      })()
+    : curMems;
+
+  const now = new Date().toISOString();
+  const next: Record<string, unknown> = {
+    address: current.address ?? null,
+    memories_personal: mergedMems,
+    relation: hasRel ? extracted.relation!.trim() : current.relation ?? null,
+    preference_personal: hasPref
+      ? {
+          ...((current.preference_personal as Record<string, unknown>) ?? {}),
+          ...extracted.preference_personal,
+        }
+      : current.preference_personal ?? {},
+
+    ...(current.memory_summary !== undefined ? { memory_summary: current.memory_summary } : {}),
+    ...(current.relationship !== undefined ? { relationship: current.relationship } : {}),
+    ...(current.context !== undefined ? { context: current.context } : {}),
+    ...(current.recent_topics !== undefined ? { recent_topics: current.recent_topics } : {}),
+    _meta: { layer: "L2", rev: prevRev + 1, auto_learned_at: now, source, updated_at: now },
+  };
+
+  let serialized = JSON.stringify(next);
+  while (
+    serialized.length > MAX_L2_BYTES &&
+    (next.memories_personal as string[]).length > 0
+  ) {
+    (next.memories_personal as string[]).shift(); 
+    serialized = JSON.stringify(next);
+  }
+  if (serialized.length > MAX_L2_BYTES) {
+    throw new Error(`L2 payload too large (${serialized.length}B > ${MAX_L2_BYTES}B).`);
+  }
+  await writeOnt(env, cloneId, userId, serialized, true); 
+  return { rev: prevRev + 1, skipped: false };
 }

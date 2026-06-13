@@ -29,6 +29,11 @@ export default defineWorkersConfig(async () => {
               JWT_ACCESS_SECRET: "test-jwt-access-secret-for-vitest",
 
               JWT_REFRESH_SECRET: "test-jwt-refresh-secret-for-vitest",
+
+              LEARN_SECRET: "test-learn-secret",
+
+              MASTER_ROOT: "dGVzdC1tYXN0ZXItcm9vdC0zMmJ5dGVzLXBhZGRpbmc=",
+              ALE_KEK: "dGVzdC1hbGUta2VrLTMyYnl0ZXMtcGFkZGluZyEhISE=",
             },
           },
         },
