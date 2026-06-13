@@ -542,22 +542,12 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
     return false;
   })();
 
-  const isTextQuestion = (() => {
-    if (!phase.startsWith('schema:') || currentVisibleIdx === null) return false;
-    const visible = questions.filter((q) =>
-      isVisible(q, answersRef.current.schemaAnswers),
-    );
-    return visible[currentVisibleIdx]?.type === 'text';
-  })();
-
-  const MIN_TEXT_LENGTH = 20;
-
   const canSend = (() => {
     if (phase === 'sys:username') return !checkingUsername; 
     if (phase === 'sys:name') return input.trim().length > 0;
     if (phase === 'sys:relation-custom') return input.trim().length > 0;
     if (phase.startsWith('schema:')) {
-      if (isTextQuestion) return input.trim().length >= MIN_TEXT_LENGTH;
+
       return input.trim().length > 0;
     }
     return false;
@@ -685,19 +675,6 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         {}
         {showInput && (
           <View style={s.inputWrap}>
-            {}
-            {isTextQuestion && (
-              <View style={s.charHintRow}>
-                <Text style={[
-                  s.charHint,
-                  input.trim().length >= MIN_TEXT_LENGTH ? s.charHintOk : s.charHintWarn,
-                ]}>
-                  {input.trim().length >= MIN_TEXT_LENGTH
-                    ? `${input.trim().length}자`
-                    : `최소 20자 이상 입력해주세요 (${input.trim().length}/20)`}
-                </Text>
-              </View>
-            )}
             <View style={s.inputBar}>
               <TextInput
                 style={[s.input, isMultiline && s.inputMultiline]}
@@ -837,14 +814,6 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.zinc100,
   },
-  charHintRow: {
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 2,
-  },
-  charHint: { fontSize: 11 },
-  charHintWarn: { color: COLORS.zinc400 },
-  charHintOk: { color: COLORS.violet600 },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
