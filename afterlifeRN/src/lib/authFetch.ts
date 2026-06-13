@@ -8,7 +8,7 @@ const v_d331e7 = "/oth-path";
 
 let v_360aa6 = null;
 
-async function v_4dd1c9(): Promise<string | null> {
+export async function v_4dd1c9(): Promise<string | null> {
   if (v_360aa6) return v_360aa6;
 
   v_360aa6 = (async (): Promise<string | null> => {
@@ -159,18 +159,72 @@ export async function v_04b58a<T>(
     throw new v_84a859(v_48bbbd.status, v_cfc601, v_3b61b3, v_ef157f?.error?.details);
   }
 
-  console.warn(
-    "[authFetch] failed:",
-    v_bfe9b9,
-    v_f71b56,
-    "status=",
-    v_8f00b9.status,
-    "code=",
-    v_c99bd2,
-    "msg=",
-    v_a8cd21,
-    "raw=",
-    v_9b6134.slice(0, 300),
-  );
+  if (__DEV__) {
+    console.warn(
+      "[authFetch] failed:",
+      v_bfe9b9,
+      v_f71b56,
+      "status=",
+      v_8f00b9.status,
+      "code=",
+      v_c99bd2,
+      "msg=",
+      v_a8cd21,
+      "raw=",
+      v_9b6134.slice(0, 300),
+    );
+  } else {
+    console.warn("[authFetch] failed:", v_bfe9b9, v_f71b56, "status=", v_8f00b9.status, "code=", v_c99bd2, "msg=", v_a8cd21);
+  }
   throw new v_84a859(v_8f00b9.status, v_c99bd2, v_a8cd21, v_4d33b2?.error?.details);
+}
+
+const v_d61279 = 120;
+
+function v_a33dea(v_21cc31): number | null {
+  try {
+    const v_468545 = v_21cc31.split('.');
+    if (v_468545.length !== 3) return null;
+    const v_aa57be = v_468545[1];
+    if (!v_aa57be) return null;
+
+    const v_aef4ae = v_aa57be.replace(/-/g, '+').replace(/_/g, '/');
+
+    let v_f254ca;
+    if (typeof Buffer !== 'undefined') {
+      v_f254ca = Buffer.from(v_aef4ae, 'base64').toString('utf8');
+    } else if (typeof atob !== 'undefined') {
+      v_f254ca = atob(v_aef4ae);
+    } else {
+      return null;
+    }
+
+    const v_931bf0 = JSON.parse(v_f254ca) as Record<string, unknown>;
+    const v_f900a6 = v_931bf0['exp'];
+    if (typeof v_f900a6 !== 'number') return null;
+    return v_f900a6;
+  } catch {
+    return null;
+  }
+}
+
+export async function v_335e37(
+  v_191c8b,
+  v_c03c9a = v_4dd1c9,
+): Promise<string> {
+  if (!v_191c8b) return v_191c8b;
+
+  const v_f900a6 = v_a33dea(v_191c8b);
+  if (v_f900a6 === null) return v_191c8b; 
+
+  const v_79fa47 = Math.floor(Date.now() / 1000);
+  if (v_f900a6 - v_79fa47 > v_d61279) return v_191c8b; 
+
+  try {
+    const v_4094c3 = await v_c03c9a();
+    if (v_4094c3) return v_4094c3;
+  } catch {
+
+  }
+  return v_191c8b; 
 }

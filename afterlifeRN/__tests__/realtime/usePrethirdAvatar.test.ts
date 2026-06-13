@@ -91,7 +91,7 @@ it('start: ontrack video → remoteStream 세팅', async () => {
   await v_81e49f(() => expect(v_43c42e.current.remoteStream).toBe(v_a11fde));
 });
 
-it('/offer HTTP 실패 → state=error, error 세팅', async () => {
+it('/offer HTTP 실패(500) → state=error, prethird_offer_http_500', async () => {
   global.fetch = jest.fn().mockResolvedValue({
     ok: false, status: 500,
     text: async () => '',
@@ -104,6 +104,23 @@ it('/offer HTTP 실패 → state=error, error 세팅', async () => {
   expect(v_43c42e.current.state).toBe('error');
   expect(v_43c42e.current.error).toBeTruthy();
   expect(v_43c42e.current.error?.message).toContain('prethird_offer_http_500');
+});
+
+it('/offer HTTP 424 → state=error, clone_bundle_unavailable (500과 다른 분기)', async () => {
+
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: false, status: 424,
+    text: async () => JSON.stringify({ error: 'clone_bundle_unavailable', clone_id: 7 }),
+  }) as unknown as typeof fetch;
+  const v_32dc97 = v_9051ce();
+  const v_12cd99 = v_e6273b(v_32dc97);
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3d8d48({ cloneId: 7, accessToken: 't', deps: v_84b93d(v_12cd99) as never }));
+  await v_be73a0(async () => { await v_43c42e.current.start(); });
+  expect(v_43c42e.current.state).toBe('error');
+  expect(v_43c42e.current.error?.message).toBe('clone_bundle_unavailable');
+
+  expect(v_43c42e.current.error?.message).not.toContain('prethird_offer_http_');
 });
 
 it('answer SDP 누락 → state=error', async () => {
