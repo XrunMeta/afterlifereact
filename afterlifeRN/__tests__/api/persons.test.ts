@@ -17,7 +17,7 @@ beforeEach(() => {
 
 describe('createPerson', () => {
   it('POST /oth-path 를 호출하고 {id, consentState} 를 반환한다', async () => {
-    v_09509b.mockResolvedValueOnce({ id: 42, consentState: 'pending' });
+    v_09509b.mockResolvedValueOnce({ id: 42, consentState: 'none' });
 
     const v_43c42e = await v_4e7b87(v_4ac7fe);
 
@@ -27,11 +27,11 @@ describe('createPerson', () => {
     expect(v_21cc31).toBe(v_4ac7fe);
     expect(v_00cfc6.method).toBe('POST');
 
-    expect(v_43c42e).toEqual({ id: 42, consentState: 'pending' });
+    expect(v_43c42e).toEqual({ id: 42, consentState: 'none' });
   });
 
   it('cloneId 를 넘기면 body 에 포함된다', async () => {
-    v_09509b.mockResolvedValueOnce({ id: 7, consentState: 'pending' });
+    v_09509b.mockResolvedValueOnce({ id: 7, consentState: 'none' });
 
     await v_4e7b87(v_4ac7fe, { cloneId: 99 });
 
@@ -41,7 +41,7 @@ describe('createPerson', () => {
   });
 
   it('cloneId 없이 호출해도 body 에 cloneId 가 포함되지 않는다', async () => {
-    v_09509b.mockResolvedValueOnce({ id: 1, consentState: 'pending' });
+    v_09509b.mockResolvedValueOnce({ id: 1, consentState: 'none' });
 
     await v_4e7b87(v_4ac7fe);
 
@@ -104,9 +104,9 @@ describe('listPersons', () => {
   it('GET /oth-path 를 호출하고 items 배열을 반환한다', async () => {
     const v_473741 = [
       { id: 1, consentState: 'granted', cloneId: 10 },
-      { id: 2, consentState: 'pending', cloneId: null },
+      { id: 2, consentState: 'none', cloneId: null },
     ];
-    v_09509b.mockResolvedValueOnce({ items: v_473741 });
+    v_09509b.mockResolvedValueOnce({ data: v_473741 });
 
     const v_43c42e = await v_865d38(v_4ac7fe);
 

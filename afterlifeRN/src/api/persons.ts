@@ -2,7 +2,7 @@
 
 import { v_04b58a } from '../lib/authFetch';
 
-export type ConsentState = 'pending' | 'granted' | 'revoked';
+export type ConsentState = 'none' | 'granted' | 'revoked';
 
 export interface Person {
   id: number;
@@ -64,9 +64,10 @@ export async function v_31967f(
 export async function v_865d38(
   v_2ca7e0,
 ): Promise<{ items: Person[] }> {
-  return v_04b58a<{ items: Person[] }>(
+  const v_8f00b9 = await v_04b58a<{ data?: Person[] }>(
     '/oth-path',
     v_2ca7e0,
     { method: 'GET' },
   );
+  return { items: v_8f00b9?.data ?? [] };
 }
