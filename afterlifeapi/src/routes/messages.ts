@@ -123,6 +123,10 @@ v_19e2a3.post(
       .first<{ id: number; created_at: string }>();
     if (!v_56871e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist clone reply.");
 
+    v_3f4e2e.executionCtx.waitUntil(
+      v_123140(v_3f4e2e.env, v_6e0fd3, v_43e90c, v_4d33b2.content, v_677216.content),
+    );
+
     await v_a1651b
       .prepare(
         `UPDATE clone_stats SET messages_count = messages_count + 2, updated_at = CURRENT_TIMESTAMP
@@ -241,6 +245,10 @@ v_19e2a3.post(
       .bind(v_6e0fd3, v_43e90c, v_c5607b, v_09f707)
       .first<{ id: number; created_at: string }>();
     if (!v_56871e) throw new v_3ebe58("INTERNAL_ERROR", "Failed to persist clone reply.");
+
+    v_3f4e2e.executionCtx.waitUntil(
+      v_123140(v_3f4e2e.env, v_6e0fd3, v_43e90c, v_4d33b2.content, v_677216.content),
+    );
 
     await v_a1651b
       .prepare(
@@ -514,6 +522,18 @@ v_fa56e0.delete("/:id/star", v_6690d9, async (v_3f4e2e) => {
     .run();
   return v_3f4e2e.json({ ok: true });
 });
+
+async function v_123140(
+  env: v_de0a25["Bindings"],
+  v_6e0fd3,
+  v_43e90c,
+  v_1dfbf4,
+  v_27d2be,
+): Promise<void> {
+  if (v_c9c489.LEARN_FROM_CHAT !== "1") return; 
+
+  void v_6e0fd3; void v_43e90c;
+}
 
 function v_991acb(v_479f05): Record<string, unknown> | null {
   if (!v_479f05) return null;
