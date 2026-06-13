@@ -105,4 +105,56 @@ v_469bf2("POST /oth-path", () => {
     });
     v_4d37e3(v_8f00b9.status).toBe(403);
   });
+
+  v_23805a("sessionId 대문자 거부 — 400", async () => {
+    const v_257b90 = await v_bfb240("pt-up@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "pt_up");
+    const v_ea333d = await v_86c39f(v_257b90);
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/prethird-start`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: "ABCDEF012345" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(400);
+  });
+
+  v_23805a("sessionId 길이 경계(11/13자) 거부 — 400", async () => {
+    const v_257b90 = await v_bfb240("pt-len@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "pt_len");
+    const v_ea333d = await v_86c39f(v_257b90);
+    for (const v_0af197 of ["abcdef01234", "abcdef0123456"]) {
+      const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/prethird-start`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: v_0af197 }),
+      });
+      v_4d37e3(v_8f00b9.status).toBe(400);
+    }
+  });
+
+  v_23805a("E2E: prethird-start 후 동일 user의 learn → H-2 통과(no_interaction 403 아님)", async () => {
+    const v_257b90 = await v_bfb240("pt-e2e@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "pt_e2e");
+    const v_ea333d = await v_86c39f(v_257b90);
+    const v_adc048 = "0123456789ab"; 
+
+    const v_2d1eeb = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/call/prethird-start`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: v_adc048 }),
+    });
+    v_4d37e3(v_2d1eeb.status).toBe(200);
+
+    const v_7169b4 = (v_c9c489 as { LEARN_SECRET?: string }).LEARN_SECRET ?? "test-learn-secret";
+    const v_b96973 = await v_1df298.fetch(`https://x/oth-path${v_6e0fd3}/memory/l2/learn`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_7169b4}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: v_257b90,
+        extracted: { preference_personal: { tea: "녹차" }, memories_personal: ["등산 좋아함"] },
+        source: "call",
+      }),
+    });
+    v_4d37e3(v_b96973.status).toBe(200); 
+  });
 });
