@@ -553,6 +553,8 @@ export default function CallScreen({ route, navigation }: Props) {
             style={s.pipCamera}
             device={vcDevice}
             isActive={!isVideoOff}
+
+            androidPreviewViewType="texture-view"
             frameProcessor={consentGranted ? faceFrameProcessor : undefined}
             onError={(e) =>
               console.log("[Call][face] camera error:", e.code, e.message)
