@@ -10,7 +10,9 @@ import aiohttp
 
 log = logging.getLogger("prethird.calllife")
 
-_TIMEOUT_S = 5.0
+# call_start는 offer 경로에서 await로 통화 연결을 막으므로 timeout을 보수적으로(통화 지연 상한).
+# call_end는 teardown best-effort라 동일 timeout으로 충분.
+_TIMEOUT_S = 3.0
 
 
 async def _post(url: str, headers: dict, body: bytes) -> None:
