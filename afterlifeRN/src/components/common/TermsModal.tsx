@@ -15,7 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, RADIUS, SIZES } from "../constants";
 
-export type AgreementType = 1 | 2 | 3;
+export type AgreementType = 1 | 2 | 3 | 4;
 
 type Props = {
   visible: boolean;
@@ -49,12 +49,14 @@ const TITLE_KEYS: Record<AgreementType, string> = {
   1: "auth.signup.termsServiceTitle",
   2: "auth.signup.termsLocationTitle",
   3: "auth.signup.termsPrivacyTitle",
+  4: "auth.signup.termsBiometricTitle",
 };
 
 const TITLE_FALLBACK: Record<AgreementType, string> = {
   1: "서비스 약관",
   2: "위치정보 약관",
   3: "개인정보 약관",
+  4: "생체정보(얼굴) 처리 동의",
 };
 
 export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
@@ -107,6 +109,13 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
   if (!type) return null;
   const title = t(TITLE_KEYS[type], { defaultValue: TITLE_FALLBACK[type] });
 
+  const faceFallbackText = t("auth.signup.termsBiometricFallback", {
+    defaultValue:
+      "얼굴 인식정보 사용에 대한 안내\n\n통화 중 화자 식별을 위해 전면 카메라로 얼굴 위치만 감지하며, 얼굴 데이터(이미지·생체정보)는 저장되지 않습니다. 동의를 철회하면 즉시 중단됩니다.",
+  });
+  const useFaceFallback =
+    type === 4 && !loading && (!!error || !content.trim());
+
   return (
     <Modal
       visible={visible}
@@ -136,6 +145,8 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
                 color={COLORS.violet500}
                 style={{ marginTop: 32 }}
               />
+            ) : useFaceFallback ? (
+              <Text style={s.contentText}>{faceFallbackText}</Text>
             ) : error ? (
               <Text style={s.errorText}>{error}</Text>
             ) : (

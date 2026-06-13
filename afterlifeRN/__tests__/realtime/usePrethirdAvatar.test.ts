@@ -91,7 +91,7 @@ it('start: ontrack video → remoteStream 세팅', async () => {
   await waitFor(() => expect(result.current.remoteStream).toBe(vstream));
 });
 
-it('/offer HTTP 실패 → state=error, error 세팅', async () => {
+it('/offer HTTP 실패(500) → state=error, prethird_offer_http_500', async () => {
   global.fetch = jest.fn().mockResolvedValue({
     ok: false, status: 500,
     text: async () => '',
@@ -104,6 +104,23 @@ it('/offer HTTP 실패 → state=error, error 세팅', async () => {
   expect(result.current.state).toBe('error');
   expect(result.current.error).toBeTruthy();
   expect(result.current.error?.message).toContain('prethird_offer_http_500');
+});
+
+it('/offer HTTP 424 → state=error, clone_bundle_unavailable (500과 다른 분기)', async () => {
+
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: false, status: 424,
+    text: async () => JSON.stringify({ error: 'clone_bundle_unavailable', clone_id: 7 }),
+  }) as unknown as typeof fetch;
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
+  await act(async () => { await result.current.start(); });
+  expect(result.current.state).toBe('error');
+  expect(result.current.error?.message).toBe('clone_bundle_unavailable');
+
+  expect(result.current.error?.message).not.toContain('prethird_offer_http_');
 });
 
 it('answer SDP 누락 → state=error', async () => {

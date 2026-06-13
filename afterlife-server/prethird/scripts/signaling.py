@@ -22,6 +22,13 @@ VIDEO_REF_ROOT = os.environ.get(
 _START = time.time()
 log = logging.getLogger("prethird.signaling")
 _AVSYNC_LOG = os.environ.get("PRETHIRD_AVSYNC_LOG", "1") == "1"
+# fail-closed 안전장치: clone_id 지정 통화에서 bundle 조회 실패 시 halbae 폴백 차단.
+# "0" 이면 기존 폴백 동작 유지(롤백 안전장치).
+_STRICT_CLONE_BUNDLE = os.environ.get("PRETHIRD_STRICT_CLONE_BUNDLE", "1") == "1"
+if not _STRICT_CLONE_BUNDLE:
+    logging.getLogger("prethird.signaling").warning(
+        "PRETHIRD_STRICT_CLONE_BUNDLE=0: 고인 신원 오표시 폴백 활성화 — 운영 배포 금지"
+    )
 
 
 async def _avsync_monitor(sess, interval: float = 0.5) -> None:
@@ -170,21 +177,35 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
             sess.recorder = make_recorder(sess.clone_id, sess.session_id)
             if sess.clone_id is not None:
                 access_token = params.get("access_token")
-                bundle = await fetch_bundle(
-                    os.environ.get("PRETHIRD_API_BASE"), sess.clone_id, access_token
-                )
-                # bundle 성공(토큰 유효 입증) 후 userId 정수만 추출 — 토큰 자체는 보존 X(mizu H-2)
-                from learn_writeback import user_id_from_token
-                sess.user_id = user_id_from_token(access_token) if bundle else None
-                # Phase B: P2P 통화 call_sessions 기록(H-2 충족). 토큰 del 직전, offer 스코프 내 사용.
-                # call_start는 graceful(실패해도 통화 진행). bundle 성공+user_id 있을 때만.
-                if bundle and sess.user_id:
-                    from call_lifecycle import call_start
-                    await call_start(
-                        os.environ.get("PRETHIRD_API_BASE"),
-                        sess.clone_id, sess.session_id, access_token,
+                try:
+                    bundle = await fetch_bundle(
+                        os.environ.get("PRETHIRD_API_BASE"), sess.clone_id, access_token
                     )
-                del access_token  # 토큰 세션 저장 금지 (mizu H-2)
+                    # bundle 성공(토큰 유효 입증) 후 userId 정수만 추출 — 토큰 자체는 보존 X(mizu H-2)
+                    from learn_writeback import user_id_from_token
+                    sess.user_id = user_id_from_token(access_token) if bundle else None
+                    # Phase B: P2P 통화 call_sessions 기록(H-2 충족). access_token 유효 스코프 내,
+                    # finally del 직전. call_start는 graceful(실패해도 통화 진행). bundle 성공+user_id 있을 때만.
+                    if bundle and sess.user_id:
+                        from call_lifecycle import call_start
+                        await call_start(
+                            os.environ.get("PRETHIRD_API_BASE"),
+                            sess.clone_id, sess.session_id, access_token,
+                        )
+                finally:
+                    del access_token  # 토큰 세션 저장 금지 (mizu H-2) — 예외 경로에서도 소멸 보장
+                if bundle is None and _STRICT_CLONE_BUNDLE:
+                    # fail-closed: clone_id 지정 통화에서 bundle 미조회 → 고인 신원 오표시 방지
+                    log.warning(
+                        "clone bundle 미조회 → fail-closed (통화 거부) clone=%s",
+                        sess.clone_id,
+                    )
+                    await pc.close()
+                    mgr.remove(sess.session_id)
+                    return web.json_response(
+                        {"error": "clone_bundle_unavailable", "clone_id": sess.clone_id},
+                        status=424,
+                    )
                 if bundle:
                     sess.persona_messages = bundle_to_messages(bundle)
                     assets = bundle.get("assets") or {}

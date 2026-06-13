@@ -8,7 +8,7 @@ const REFRESH_COOKIE_PATH = "/oth-path";
 
 let _refreshFlight: Promise<string | null> | null = null;
 
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   if (_refreshFlight) return _refreshFlight;
 
   _refreshFlight = (async (): Promise<string | null> => {
@@ -159,18 +159,72 @@ export async function authFetch<T>(
     throw new AuthApiError(res2.status, code2, message2, body2?.error?.details);
   }
 
-  console.warn(
-    "[authFetch] failed:",
-    method,
-    url,
-    "status=",
-    res.status,
-    "code=",
-    code,
-    "msg=",
-    message,
-    "raw=",
-    text.slice(0, 300),
-  );
+  if (__DEV__) {
+    console.warn(
+      "[authFetch] failed:",
+      method,
+      url,
+      "status=",
+      res.status,
+      "code=",
+      code,
+      "msg=",
+      message,
+      "raw=",
+      text.slice(0, 300),
+    );
+  } else {
+    console.warn("[authFetch] failed:", method, url, "status=", res.status, "code=", code, "msg=", message);
+  }
   throw new AuthApiError(res.status, code, message, body?.error?.details);
+}
+
+const TOKEN_REFRESH_BUFFER_SEC = 120;
+
+function decodeJwtExp(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payloadB64 = parts[1];
+    if (!payloadB64) return null;
+
+    const base64 = payloadB64.replace(/-/g, '+').replace(/_/g, '/');
+
+    let jsonStr: string;
+    if (typeof Buffer !== 'undefined') {
+      jsonStr = Buffer.from(base64, 'base64').toString('utf8');
+    } else if (typeof atob !== 'undefined') {
+      jsonStr = atob(base64);
+    } else {
+      return null;
+    }
+
+    const payload = JSON.parse(jsonStr) as Record<string, unknown>;
+    const exp = payload['exp'];
+    if (typeof exp !== 'number') return null;
+    return exp;
+  } catch {
+    return null;
+  }
+}
+
+export async function ensureFreshAccessToken(
+  currentToken: string,
+  refreshFn: () => Promise<string | null> = refreshAccessToken,
+): Promise<string> {
+  if (!currentToken) return currentToken;
+
+  const exp = decodeJwtExp(currentToken);
+  if (exp === null) return currentToken; 
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (exp - nowSec > TOKEN_REFRESH_BUFFER_SEC) return currentToken; 
+
+  try {
+    const newToken = await refreshFn();
+    if (newToken) return newToken;
+  } catch {
+
+  }
+  return currentToken; 
 }
