@@ -26,6 +26,11 @@ import {
   type BlockedItem,
 } from "../../api/clones";
 import { unblockUser } from "../../api/users";
+import {
+  listPersons,
+  saveFaceConsent,
+  type Person,
+} from "../../api/persons";
 
 const itemKey = (it: BlockedItem) => `${it.type}-${it.blockId}`;
 
@@ -38,6 +43,10 @@ export default function PrivacySettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [unblockingKey, setUnblockingKey] = useState<string | null>(null);
   const [tab, setTab] = useState<"user" | "clone">("user");
+
+  const [persons, setPersons] = useState<Person[]>([]);
+  const [personsLoading, setPersonsLoading] = useState(true);
+  const [revokingId, setRevokingId] = useState<number | null>(null);
 
   const goToItem = (item: BlockedItem) => {
     if (item.type === "user") {
@@ -91,15 +100,65 @@ export default function PrivacySettingsScreen() {
     }
   }, [accessToken]);
 
+  const refreshPersons = useCallback(async () => {
+    if (!accessToken) {
+      setPersons([]);
+      setPersonsLoading(false);
+      return;
+    }
+    setPersonsLoading(true);
+    try {
+      const res = await listPersons(accessToken);
+      setPersons(res.items);
+    } catch (err) {
+      console.warn("[Privacy] listPersons failed:", err);
+    } finally {
+      setPersonsLoading(false);
+    }
+  }, [accessToken]);
+
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    refreshPersons();
+  }, [refresh, refreshPersons]);
 
   useFocusEffect(
     React.useCallback(() => {
       refresh();
-    }, [refresh]),
+      refreshPersons();
+    }, [refresh, refreshPersons]),
   );
+
+  const handleRevoke = (person: Person) => {
+    showAlert(
+      t("settings.privacy.faceConsent.revokeConfirmTitle"),
+      t("settings.privacy.faceConsent.revokeConfirmMessage"),
+      [
+        { text: t("settings.privacy.faceConsent.revokeConfirmCancel"), style: "cancel" },
+        {
+          text: t("settings.privacy.faceConsent.revokeConfirmOk"),
+          style: "destructive",
+          onPress: async () => {
+            if (!accessToken) return;
+            setRevokingId(person.id);
+            try {
+              await saveFaceConsent(accessToken, person.id, "revoked");
+              setPersons((prev) =>
+                prev.map((p) =>
+                  p.id === person.id ? { ...p, consentState: "revoked" } : p,
+                ),
+              );
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : t("settings.privacy.faceConsent.revokeError");
+              showAlert(t("settings.privacy.faceConsent.revokeConfirmTitle"), msg);
+            } finally {
+              setRevokingId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const handleUnblock = (item: BlockedItem) => {
     const label =
@@ -243,7 +302,96 @@ export default function PrivacySettingsScreen() {
           })()
         )}
       </View>
+
+      {}
+      <FaceConsentSection
+        persons={persons}
+        loading={personsLoading}
+        revokingId={revokingId}
+        onRevoke={handleRevoke}
+        t={t}
+      />
     </SafeScrollView>
+  );
+}
+
+interface FaceConsentSectionProps {
+  persons: Person[];
+  loading: boolean;
+  revokingId: number | null;
+  onRevoke: (person: Person) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceConsentSectionProps) {
+
+  const grantedPersons = persons.filter((p) => p.consentState === "granted");
+
+  return (
+    <View
+      testID="face-consent-section"
+      style={[s.content, { paddingTop: 0, paddingBottom: 32 }]}
+    >
+      <Text style={s.sectionTitle}>{t("settings.privacy.faceConsent.sectionTitle")}</Text>
+      {loading ? (
+        <ActivityIndicator color={COLORS.zinc500} style={{ paddingTop: 20 }} />
+      ) : grantedPersons.length === 0 ? (
+        <View style={s.empty}>
+          <Feather name="eye-off" size={32} color={COLORS.zinc300} />
+          <Text style={s.emptyText}>{t("settings.privacy.faceConsent.noConsent")}</Text>
+          <Text style={s.emptySub}>{t("settings.privacy.faceConsent.noConsentSub")}</Text>
+        </View>
+      ) : (
+        <View style={s.card}>
+          {grantedPersons.map((person, i) => {
+            const busy = revokingId === person.id;
+            const consentLabel = person.createdAt
+              ? t("settings.privacy.faceConsent.consentedAt", {
+                  date: new Date(person.createdAt).toLocaleDateString(),
+                })
+              : t("settings.privacy.faceConsent.stateGranted");
+            const cloneLabel = person.cloneId
+              ? t("settings.privacy.faceConsent.cloneLabel", { cloneId: person.cloneId })
+              : `Person #${person.id}`;
+
+            return (
+              <View key={person.id}>
+                <View style={s.row}>
+                  <View style={[s.avatar, s.avatarPh]}>
+                    <Feather name="eye" size={20} color={COLORS.zinc400} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.rowName} numberOfLines={1}>
+                      {cloneLabel}
+                    </Text>
+                    <Text style={s.rowSub} numberOfLines={1}>
+                      {consentLabel}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    testID={`revoke-btn-${person.id}`}
+                    style={[s.revokeBtn, busy && { opacity: 0.6 }]}
+                    onPress={() => onRevoke(person)}
+                    disabled={busy}
+                    accessibilityLabel={t("settings.privacy.faceConsent.revokeButton")}
+                    accessibilityRole="button"
+                  >
+                    {busy ? (
+                      <ActivityIndicator size="small" color={COLORS.white} />
+                    ) : (
+                      <Text style={s.revokeBtnText}>
+                        {t("settings.privacy.faceConsent.revokeButton")}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                {i < grantedPersons.length - 1 && <View style={s.divider} />}
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -317,4 +465,22 @@ const s = StyleSheet.create({
   empty: { alignItems: "center", paddingTop: 60, gap: 10 },
   emptyText: { color: COLORS.zinc600, fontSize: 14, fontWeight: "600" },
   emptySub: { color: COLORS.zinc400, fontSize: 12 },
+
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.zinc500,
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  revokeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: COLORS.zinc900,
+    minWidth: 78,
+    alignItems: "center",
+  },
+  revokeBtnText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
 });

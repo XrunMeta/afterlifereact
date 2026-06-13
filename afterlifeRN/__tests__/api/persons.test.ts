@@ -17,7 +17,7 @@ beforeEach(() => {
 
 describe('createPerson', () => {
   it('POST /oth-path 를 호출하고 {id, consentState} 를 반환한다', async () => {
-    mockAuthFetch.mockResolvedValueOnce({ id: 42, consentState: 'pending' });
+    mockAuthFetch.mockResolvedValueOnce({ id: 42, consentState: 'none' });
 
     const result = await createPerson(ACCESS_TOKEN);
 
@@ -27,11 +27,11 @@ describe('createPerson', () => {
     expect(token).toBe(ACCESS_TOKEN);
     expect(init.method).toBe('POST');
 
-    expect(result).toEqual({ id: 42, consentState: 'pending' });
+    expect(result).toEqual({ id: 42, consentState: 'none' });
   });
 
   it('cloneId 를 넘기면 body 에 포함된다', async () => {
-    mockAuthFetch.mockResolvedValueOnce({ id: 7, consentState: 'pending' });
+    mockAuthFetch.mockResolvedValueOnce({ id: 7, consentState: 'none' });
 
     await createPerson(ACCESS_TOKEN, { cloneId: 99 });
 
@@ -41,7 +41,7 @@ describe('createPerson', () => {
   });
 
   it('cloneId 없이 호출해도 body 에 cloneId 가 포함되지 않는다', async () => {
-    mockAuthFetch.mockResolvedValueOnce({ id: 1, consentState: 'pending' });
+    mockAuthFetch.mockResolvedValueOnce({ id: 1, consentState: 'none' });
 
     await createPerson(ACCESS_TOKEN);
 
@@ -104,9 +104,9 @@ describe('listPersons', () => {
   it('GET /oth-path 를 호출하고 items 배열을 반환한다', async () => {
     const mockItems = [
       { id: 1, consentState: 'granted', cloneId: 10 },
-      { id: 2, consentState: 'pending', cloneId: null },
+      { id: 2, consentState: 'none', cloneId: null },
     ];
-    mockAuthFetch.mockResolvedValueOnce({ items: mockItems });
+    mockAuthFetch.mockResolvedValueOnce({ data: mockItems });
 
     const result = await listPersons(ACCESS_TOKEN);
 

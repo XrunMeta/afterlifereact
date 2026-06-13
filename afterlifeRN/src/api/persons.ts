@@ -2,7 +2,7 @@
 
 import { authFetch } from '../lib/authFetch';
 
-export type ConsentState = 'pending' | 'granted' | 'revoked';
+export type ConsentState = 'none' | 'granted' | 'revoked';
 
 export interface Person {
   id: number;
@@ -64,9 +64,10 @@ export async function saveFaceConsent(
 export async function listPersons(
   accessToken: string,
 ): Promise<{ items: Person[] }> {
-  return authFetch<{ items: Person[] }>(
+  const res = await authFetch<{ data?: Person[] }>(
     '/oth-path',
     accessToken,
     { method: 'GET' },
   );
+  return { items: res?.data ?? [] };
 }
