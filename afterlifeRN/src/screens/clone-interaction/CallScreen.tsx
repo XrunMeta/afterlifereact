@@ -553,6 +553,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             style={v_fd5f43.pipCamera}
             device={v_49a70b}
             isActive={!v_9e64e1}
+
+            androidPreviewViewType="texture-view"
             frameProcessor={v_58656e ? v_a61ebf : undefined}
             onError={(v_9e86fd) =>
               console.log("[Call][face] camera error:", v_9e86fd.code, v_9e86fd.message)
