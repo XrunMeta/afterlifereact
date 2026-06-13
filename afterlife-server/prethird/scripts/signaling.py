@@ -176,6 +176,14 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                 # bundle 성공(토큰 유효 입증) 후 userId 정수만 추출 — 토큰 자체는 보존 X(mizu H-2)
                 from learn_writeback import user_id_from_token
                 sess.user_id = user_id_from_token(access_token) if bundle else None
+                # Phase B: P2P 통화 call_sessions 기록(H-2 충족). 토큰 del 직전, offer 스코프 내 사용.
+                # call_start는 graceful(실패해도 통화 진행). bundle 성공+user_id 있을 때만.
+                if bundle and sess.user_id:
+                    from call_lifecycle import call_start
+                    await call_start(
+                        os.environ.get("PRETHIRD_API_BASE"),
+                        sess.clone_id, sess.session_id, access_token,
+                    )
                 del access_token  # 토큰 세션 저장 금지 (mizu H-2)
                 if bundle:
                     sess.persona_messages = bundle_to_messages(bundle)
@@ -255,7 +263,14 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         _avsync_task.clear()
                         log.info("session %s [avsync] monitor cancelled", sess.session_id)
                     await pc.close()
+                    # Phase B: 통화 종료 통보(best-effort). 여러 번 fire돼도 api가 멱등(ended_at IS NULL).
+                    # sess 필드는 mgr.remove 전에 로컬 추출 — 세션 제거 후 참조(use-after-free) 방어.
+                    _cid, _sid = sess.clone_id, sess.session_id
                     mgr.remove(sess.session_id)
+                    from call_lifecycle import call_end
+                    asyncio.ensure_future(call_end(
+                        os.environ.get("PRETHIRD_API_BASE"), _cid, _sid,
+                    ))
 
             await pc.setRemoteDescription(
                 RTCSessionDescription(sdp=params["sdp"], type=params["type"]))
