@@ -20,11 +20,13 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { RTCView } from "react-native-webrtc";
-import { Camera as VisionCamera, useCameraDevice } from "react-native-vision-camera";
 import {
-  Camera as FDCamera,
-  useFaceDetector,
-} from "react-native-vision-camera-face-detector";
+  Camera as VisionCamera,
+  useCameraDevice,
+  useFrameProcessor,
+} from "react-native-vision-camera";
+import { Worklets } from "react-native-worklets-core";
+import { useFaceDetector } from "react-native-vision-camera-face-detector";
 import type { Face as DetectorFace } from "react-native-vision-camera-face-detector";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
 import { createPerson, saveFaceConsent, listPersons } from "../../api/persons";
@@ -108,6 +110,28 @@ export default function CallScreen({ route, navigation }: Props) {
       stopListeners();
     };
   }, [stopListeners]);
+
+  const handleFacesOnJS = React.useMemo(
+    () =>
+      Worklets.createRunOnJS((faces: DetectorFace[]) => {
+        const bridged = faces.map((f) => ({
+          trackingID: f.trackingId,
+          bounds: f.bounds,
+        }));
+        onFaces(bridged);
+      }),
+
+    [],
+  );
+
+  const faceFrameProcessor = useFrameProcessor(
+    (frame) => {
+      "worklet";
+      const faces = detectFaces(frame);
+      handleFacesOnJS(faces);
+    },
+    [detectFaces, handleFacesOnJS],
+  );
 
   const [consentGranted, setConsentGranted] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
@@ -523,35 +547,17 @@ export default function CallScreen({ route, navigation }: Props) {
             <Feather name="video-off" size={20} color={COLORS.zinc600} />
           </View>
         ) : vcDevice ? (
-          consentGranted ? (
 
-            <FDCamera
-              ref={pipCameraRef}
-              style={s.pipCamera}
-              device={vcDevice}
-              isActive={!isVideoOff}
-              faceDetectionOptions={{
-                performanceMode: "fast",
-                trackingEnabled: true,
-              }}
-              faceDetectionCallback={(faces: DetectorFace[]) => {
-
-                const bridged = faces.map((f) => ({
-                  trackingID: f.trackingId,
-                  bounds: f.bounds,
-                }));
-                onFaces(bridged);
-              }}
-            />
-          ) : (
-
-            <VisionCamera
-              ref={pipCameraRef}
-              style={s.pipCamera}
-              device={vcDevice}
-              isActive={!isVideoOff}
-            />
-          )
+          <VisionCamera
+            ref={pipCameraRef}
+            style={s.pipCamera}
+            device={vcDevice}
+            isActive={!isVideoOff}
+            frameProcessor={consentGranted ? faceFrameProcessor : undefined}
+            onError={(e) =>
+              console.log("[Call][face] camera error:", e.code, e.message)
+            }
+          />
         ) : (
           <View style={s.pipOff}>
             <Feather name="camera-off" size={20} color={COLORS.zinc600} />
