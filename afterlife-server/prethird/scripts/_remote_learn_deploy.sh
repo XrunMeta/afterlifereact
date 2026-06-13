@@ -17,12 +17,13 @@ PRETHIRD_ROOT=/home/afterlife/afterlife-server/prethird
 PY=/home/afterlife/miniconda3/envs/musetalk/bin/python
 LOCAL="$(cd "$(dirname "$0")" && pwd)"
 
-# 배포 대상 (PR#301 Phase B prethird 변경분)
+# 배포 대상 (PR#301 Phase B + call lifecycle 후속 변경분)
 FILES=(
   clone_dialog/l2_extract.py   # 신규: ollama JSON 추출 + PII allowlist/정규식
   clone_dialog/__init__.py     # 수정: extract_l2 re-export
   learn_writeback.py           # 신규: JWT sub 추출(토큰 미보존) + write-back
-  signaling.py                 # 수정: offer userId 저장 + finalize 후 학습 호출
+  call_lifecycle.py            # 신규: call_start(JWT)/call_end(secret) — call_sessions 기록(H-2 충족)
+  signaling.py                 # 수정: offer userId 저장 + call_start await + finalize 후 학습 + teardown call_end
   session.py                   # 수정: Session.user_id 기본값
 )
 
@@ -36,12 +37,12 @@ echo ""
 echo "=== [2/3] 원격 py_compile 구문 체크 ==="
 ssh "$HOST" "cd $REMOTE && $PY -m py_compile \
   clone_dialog/l2_extract.py clone_dialog/__init__.py \
-  learn_writeback.py signaling.py session.py \
-  && echo '  ✓ syntax OK (5 files)'"
+  learn_writeback.py call_lifecycle.py signaling.py session.py \
+  && echo '  ✓ syntax OK (6 files)'"
 
 echo ""
-echo "=== [3/3] 원격 단위테스트 (l2_extract · learn_writeback) ==="
-ssh "$HOST" "cd $PRETHIRD_ROOT && $PY -m pytest tests/test_l2_extract.py tests/test_learn_writeback.py -q 2>&1 | tail -6 || echo '  (pytest 미설치/실패 — 구문체크는 통과)'"
+echo "=== [3/3] 원격 단위테스트 (l2_extract · learn_writeback · call_lifecycle) ==="
+ssh "$HOST" "cd $PRETHIRD_ROOT && $PY -m pytest tests/test_l2_extract.py tests/test_learn_writeback.py tests/test_call_lifecycle.py -q 2>&1 | tail -6 || echo '  (pytest 미설치/실패 — 구문체크는 통과)'"
 
 echo ""
 echo "================================================================"
