@@ -109,6 +109,13 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
   if (!v_3b27d9) return null;
   const v_9f1622 = v_8d41d7(v_259ade[v_3b27d9], { defaultValue: v_9fab8c[v_3b27d9] });
 
+  const v_aae497 = v_8d41d7("auth.signup.termsBiometricFallback", {
+    defaultValue:
+      "얼굴 인식정보 사용에 대한 안내\n\n통화 중 화자 식별을 위해 전면 카메라로 얼굴 위치만 감지하며, 얼굴 데이터(이미지·생체정보)는 저장되지 않습니다. 동의를 철회하면 즉시 중단됩니다.",
+  });
+  const v_89f8f8 =
+    v_3b27d9 === 4 && !v_683210 && (!!v_5e9bfe || !v_b43b74.trim());
+
   return (
     <Modal
       visible={v_cf55be}
@@ -138,6 +145,8 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
                 color={v_1bfbd0.violet500}
                 style={{ marginTop: 32 }}
               />
+            ) : v_89f8f8 ? (
+              <Text style={v_fd5f43.contentText}>{v_aae497}</Text>
             ) : v_5e9bfe ? (
               <Text style={v_fd5f43.errorText}>{v_5e9bfe}</Text>
             ) : (
