@@ -6,6 +6,7 @@ import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_5d4a51, v_d875d1 } from "../lib/cloneAccess";
 import { v_87cfd2 } from "../lib/callBundle";
+import { v_1f4ea7 } from "../lib/validate";
 
 export const v_20e160 = new v_b7c41b<v_de0a25>();
 
@@ -76,6 +77,33 @@ v_20e160.get("/:cloneId/bundle", v_6690d9, async (v_3f4e2e) => {
   }
   const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce, v_43e90c, new URL(v_3f4e2e.req.url).origin);
   return v_3f4e2e.json({ personaBundle: v_ba0fde, assets: v_7adc95 });
+});
+
+const v_f52f0d = v_1f4ea7.object({
+  sessionId: v_1f4ea7.string().regex(/^[0-9a-f]{12}$/), 
+});
+
+v_20e160.post("/:cloneId/call/prethird-start", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_8decf8 = v_f52f0d.safeParse(await v_3f4e2e.req.json().catch(() => ({})));
+  if (!v_8decf8.success) return v_3f4e2e.json({ error: "bad_session_id" }, 400);
+  const { sessionId: v_c5607b } = v_8decf8.data;
+
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
+  if (!v_00efe2 && v_eb25ce.visibility !== "public") {
+    throw new v_3ebe58("FORBIDDEN", "No access to this clone for call.");
+  }
+
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO call_sessions (call_id, user_id, clone_id, started_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(call_id) DO NOTHING`,
+  ).bind(v_c5607b, v_43e90c, v_6e0fd3, Date.now()).run();
+
+  return v_3f4e2e.json({ ok: true });
 });
 
 v_20e160.post("/:cloneId/call/:callId/say", v_6690d9, async (v_3f4e2e) => {
