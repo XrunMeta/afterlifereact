@@ -96,3 +96,63 @@ async def test_rejects_empty_converted_wav(tmp_path):
     clone_dir = os.path.join(str(tmp_path), "9004")
     assert not os.path.exists(os.path.join(clone_dir, "voice.wav"))
     assert os.listdir(clone_dir) == []
+
+# --- denoise 필터 빌더 ---
+
+def test_denoise_af_args_off_by_default():
+    """env 미설정 → denoise 비활성 → 빈 리스트(기존 명령과 동일)."""
+    assert voice_fetch._denoise_af_args(env={}) == []
+
+def test_denoise_af_args_off_when_not_1():
+    """PRETHIRD_VOICE_DENOISE 가 '1'이 아니면 비활성."""
+    assert voice_fetch._denoise_af_args(env={"PRETHIRD_VOICE_DENOISE": "0"}) == []
+    assert voice_fetch._denoise_af_args(env={"PRETHIRD_VOICE_DENOISE": "true"}) == []
+
+def test_denoise_af_args_on_default_chain():
+    """'1'이면 기본 보수 체인으로 ['-af', chain]."""
+    out = voice_fetch._denoise_af_args(env={"PRETHIRD_VOICE_DENOISE": "1"})
+    assert out == ["-af", "highpass=f=80,afftdn=nr=10:nf=-25:tn=1"]
+
+def test_denoise_af_args_override():
+    """PRETHIRD_VOICE_DENOISE_AF 로 필터 문자열 override(재배포 없이 튜닝)."""
+    out = voice_fetch._denoise_af_args(
+        env={"PRETHIRD_VOICE_DENOISE": "1", "PRETHIRD_VOICE_DENOISE_AF": "afftdn=nr=6"}
+    )
+    assert out == ["-af", "afftdn=nr=6"]
+
+def test_denoise_af_args_override_blank_falls_back():
+    """override가 빈 문자열이면 기본 체인으로 폴백(빈 -af 인자 방지)."""
+    out = voice_fetch._denoise_af_args(
+        env={"PRETHIRD_VOICE_DENOISE": "1", "PRETHIRD_VOICE_DENOISE_AF": ""}
+    )
+    assert out == ["-af", "highpass=f=80,afftdn=nr=10:nf=-25:tn=1"]
+
+# --- ffmpeg 명령 조립 ---
+
+def test_ffmpeg_cmd_off_matches_legacy():
+    """토글 off(기본) → 기존 명령과 바이트 단위 동일(회귀 고정)."""
+    cmd = voice_fetch._ffmpeg_cmd("/in.m4a", "/out.wav.part", env={})
+    assert cmd == ["ffmpeg", "-y", "-i", "/in.m4a", "-ac", "1", "-f", "wav", "/out.wav.part"]
+
+def test_ffmpeg_cmd_on_inserts_af_after_input():
+    """토글 on → -af 가 -i 다음, -ac 앞에 삽입."""
+    cmd = voice_fetch._ffmpeg_cmd(
+        "/in.m4a", "/out.wav.part", env={"PRETHIRD_VOICE_DENOISE": "1"}
+    )
+    assert cmd == [
+        "ffmpeg", "-y", "-i", "/in.m4a",
+        "-af", "highpass=f=80,afftdn=nr=10:nf=-25:tn=1",
+        "-ac", "1", "-f", "wav", "/out.wav.part",
+    ]
+
+def test_ffmpeg_cmd_override():
+    """override 필터가 명령에 반영."""
+    cmd = voice_fetch._ffmpeg_cmd(
+        "/in.m4a", "/out.wav.part",
+        env={"PRETHIRD_VOICE_DENOISE": "1", "PRETHIRD_VOICE_DENOISE_AF": "afftdn=nr=6"},
+    )
+    assert cmd == [
+        "ffmpeg", "-y", "-i", "/in.m4a",
+        "-af", "afftdn=nr=6",
+        "-ac", "1", "-f", "wav", "/out.wav.part",
+    ]

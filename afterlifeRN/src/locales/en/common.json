@@ -153,7 +153,11 @@
     "inCall": "On call {{time}}",
     "noCredits": "Not enough credits",
     "giftSent": "Sent {{name}}",
-    "giftTitle": "Send a Gift"
+    "giftTitle": "Send a Gift",
+    "faceDetected": "Face detected",
+    "faceNotDetected": "No face",
+    "faceConsentHint": "Detects face position only — no face data is stored.",
+    "faceConsentError": "Failed to enable face detection. Please try again."
   },
   "feed": {
     "homeTitle": "Home",
@@ -437,6 +441,8 @@
       "termsService": "(Required) I agree to the afterlife Terms of Service",
       "termsLocation": "(Required) I agree to the Location Information Terms",
       "termsPrivacy": "(Required) I agree to the Privacy Policy",
+      "termsBiometricTitle": "Biometric (Face) Consent",
+      "termsBiometricFallback": "About the Use of Facial Recognition Data\n\nDuring calls, the front camera detects only your face position for speaker identification. No face data (images or biometrics) is stored. Detection stops immediately if you withdraw consent.",
       "marketingConsent": "(Optional) I agree to receive marketing info",
       "signingUp": "Signing up...",
       "next": "Next",
@@ -653,7 +659,24 @@
       "profileVisibility": "Profile Visibility",
       "blockList": "Block List",
       "dataDownload": "Download My Data",
-      "deleteAccount": "Delete Account"
+      "deleteAccount": "Delete Account",
+      "faceConsent": {
+        "sectionTitle": "Face Detection Consent",
+        "noConsent": "No consent records",
+        "noConsentSub": "You have not granted consent for face detection during calls",
+        "consentedAt": "Consented: {{date}}",
+        "revokeButton": "Revoke",
+        "revokeConfirmTitle": "Revoke Face Detection Consent",
+        "revokeConfirmMessage": "Revoking consent will disable face detection during calls. (No face data is stored at this stage.) Do you want to continue?",
+        "revokeConfirmCancel": "Cancel",
+        "revokeConfirmOk": "Revoke",
+        "revokeSuccess": "Consent has been revoked.",
+        "revokeError": "Failed to revoke. Please try again.",
+        "loadError": "Could not load consent records.",
+        "stateGranted": "Granted",
+        "stateRevoked": "Revoked",
+        "cloneLabel": "Clone #{{cloneId}}"
+      }
     },
     "saved": {
       "title": "Saved",
