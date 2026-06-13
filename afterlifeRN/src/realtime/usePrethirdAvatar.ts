@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RTCPeerConnection, RTCSessionDescription, MediaStream } from 'react-native-webrtc';
 import { PRETHIRD_BASE } from '../config/apiBase';
+import { ensureFreshAccessToken } from '../lib/authFetch';
 import { type AudioSessionControl, defaultAudioSessionControl } from './useAudioSession';
 import { type AvatarCall, type LiveAvatarState, type CallPhase, classifyTrack } from './avatarCall';
 
@@ -169,14 +170,21 @@ export function usePrethirdAvatar(opts: {
       await waitForIceGatheringComplete(pc);
       if (!alive()) { pc.close(); return; }
       const offerSdp = pc.localDescription?.sdp;
+
+      const freshToken = await ensureFreshAccessToken(accessToken);
+      if (!alive()) { pc.close(); return; } 
       const url = `${PRETHIRD_BASE}/offer`;
       if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${PRETHIRD_BASE} clone_id=${cloneId}`);
       const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'offer', sdp: offerSdp, clone_id: cloneId, access_token: accessToken }),
+        body: JSON.stringify({ type: 'offer', sdp: offerSdp, clone_id: cloneId, access_token: freshToken }),
       });
       const text = await r.text();
+      if (r.status === 424) {
+
+        throw new Error('clone_bundle_unavailable');
+      }
       if (!r.ok) throw new Error(`prethird_offer_http_${r.status}`);
       const data = text ? JSON.parse(text) : {};
       const answerSdp = data.sdp as string | undefined;
