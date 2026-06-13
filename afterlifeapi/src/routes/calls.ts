@@ -6,6 +6,7 @@ import { APIError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
 import { loadCloneById, resolveResponseViewerRole } from "../lib/cloneAccess";
 import { buildCallBundle } from "../lib/callBundle";
+import { z } from "../lib/validate";
 
 export const calls = new Hono<AppEnv>();
 
@@ -76,6 +77,33 @@ calls.get("/:cloneId/bundle", requireAuth, async (c) => {
   }
   const { personaBundle, assets } = await buildCallBundle(c.env.DB, clone, userId, new URL(c.req.url).origin);
   return c.json({ personaBundle, assets });
+});
+
+const prethirdStartSchema = z.object({
+  sessionId: z.string().regex(/^[0-9a-f]{12}$/), 
+});
+
+calls.post("/:cloneId/call/prethird-start", requireAuth, async (c) => {
+  const cloneId = parseCloneId(c);
+  const userId = c.get("userId")!;
+  const parsed = prethirdStartSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) return c.json({ error: "bad_session_id" }, 400);
+  const { sessionId } = parsed.data;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "Clone not found.");
+  const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
+  if (!viewerRole && clone.visibility !== "public") {
+    throw new APIError("FORBIDDEN", "No access to this clone for call.");
+  }
+
+  await c.env.DB.prepare(
+    `INSERT INTO call_sessions (call_id, user_id, clone_id, started_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(call_id) DO NOTHING`,
+  ).bind(sessionId, userId, cloneId, Date.now()).run();
+
+  return c.json({ ok: true });
 });
 
 calls.post("/:cloneId/call/:callId/say", requireAuth, async (c) => {
