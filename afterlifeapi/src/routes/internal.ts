@@ -44,6 +44,23 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   return v_3f4e2e.json({ ok: true });
 });
 
+v_dcd415.post("/oth-path", async (v_3f4e2e) => {
+  const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
+  const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  if (!v_21cc31 || !v_3f4e2e.env.LEARN_SECRET || !v_a155c4(v_21cc31, v_3f4e2e.env.LEARN_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_be62d3 = v_3f4e2e.req.param("callId");
+
+  if (!/^[0-9a-f]{12}$/.test(v_be62d3)) return v_3f4e2e.json({ ok: true });
+  const v_3a0669 = Date.now();
+  await v_3f4e2e.env.DB.prepare(
+    `UPDATE call_sessions SET ended_at = ?, duration_sec = MAX(0, (? - started_at) / 1000)
+     WHERE call_id = ? AND ended_at IS NULL`,
+  ).bind(v_3a0669, v_3a0669, v_be62d3).run();
+  return v_3f4e2e.json({ ok: true });
+});
+
 const v_0c84a2 = {
   idle_video: 300 * 1024 * 1024,  
   voice_clone: 50 * 1024 * 1024,  
