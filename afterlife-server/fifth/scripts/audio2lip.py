@@ -49,3 +49,11 @@ def compute_rms_envelope(y, sr=16000, fps=25, sigma=1.5, silence=0.05, gamma=1.0
     rms = np.where(silence_mask, 0.0, rms).astype(np.float32)
     rms = np.power(rms, gamma).astype(np.float32)
     return rms
+
+def rms_to_cdlip(rms, lip_closed, lip_open, open_scale=1.0, offset=0):
+    """RMS envelope → LivePortrait lip-close-ratio(c_d_lip) 시퀀스. offset=싱크 보정(프레임)."""
+    rms = np.asarray(rms, dtype=np.float32)
+    n = len(rms)
+    idx = np.clip(np.arange(n) + offset, 0, n - 1)
+    shifted = rms[idx]
+    return (lip_closed + shifted * (lip_open - lip_closed) * open_scale).astype(np.float32)

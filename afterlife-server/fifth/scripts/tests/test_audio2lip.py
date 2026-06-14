@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from audio2lip import compute_rms_envelope
+from audio2lip import compute_rms_envelope, rms_to_cdlip
 
 
 # ---------------------------------------------------------------------------
@@ -64,3 +64,25 @@ def test_gamma_compresses():
     e2 = compute_rms_envelope(y, sr=sr, fps=25, sigma=0.5, silence=0.0, gamma=2.0)
     # gamma>1 pushes mid values down
     assert e2.mean() <= e1.mean() + 1e-6
+
+
+# ---------------------------------------------------------------------------
+# Task 2: rms_to_cdlip 테스트
+# ---------------------------------------------------------------------------
+
+def test_cdlip_endpoints():
+    rms = np.array([0.0, 1.0], dtype=np.float32)
+    out = rms_to_cdlip(rms, lip_closed=0.0023, lip_open=0.55, open_scale=1.0, offset=0)
+    assert abs(out[0] - 0.0023) < 1e-6     # 무음 → 닫힘
+    assert abs(out[1] - 0.55) < 1e-6       # 최대 → lip_open
+
+def test_cdlip_offset_shifts_forward():
+    rms = np.array([0.0, 0.0, 1.0, 0.0], dtype=np.float32)
+    out = rms_to_cdlip(rms, lip_closed=0.0, lip_open=1.0, open_scale=1.0, offset=1)
+    # offset=+1 → 프레임 i가 rms[i+1] 사용 → 피크가 한 프레임 앞당겨짐
+    assert out[1] == 1.0 and out[2] == 0.0
+
+def test_cdlip_offset_clips_bounds():
+    rms = np.array([0.2, 0.5, 1.0], dtype=np.float32)
+    out = rms_to_cdlip(rms, lip_closed=0.0, lip_open=1.0, open_scale=1.0, offset=5)
+    assert len(out) == 3  # 길이 유지, 인덱스 clip
