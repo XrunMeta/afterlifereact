@@ -9,8 +9,19 @@ v2 변경 (2장 base 블렌드 지원):
   - render() 가 src_img/src_info 를 선택 인자로 받아 source를 주입 가능하게 변경.
   - 블렌드 모드에서 pipe 1개를 공유하며 closed/open source를 스왑 렌더 (VRAM 절약).
   - first_frame 은 source별로 독립 관리 (호출부 책임).
+
+v3 변경 (JoyVASA 머리/표정 motion 복원):
+  - flag_relative_motion=True + flag_lip_retargeting=True 조합의 버그 발견:
+    FLP _run() 459행에서 flag_relative_motion=True 분기는 x_d_i_new를 x_s로 리셋 후
+    lip_delta만 더해 JoyVASA motion(R, exp)이 완전히 버려짐 → 표정/머리 고정.
+  - 수정: flag_relative_motion=False. 이 경로는 R_d_i(JoyVASA 절대 rotation)를 직접 사용
+    + x_d_i_new에 lip_delta를 더함 → JoyVASA 머리/표정 + RMS 입싱크 동시 작동.
+  - E1(cfg_scale=2.8, multiplier=1.0) 시각 검증: 머리 미세 자연 움직임 O, 표정 O, 입싱크 O.
+  - E2(cfg_scale=3.5) 더 강한 머리/표정. FIFTH_CFG_SCALE 환경변수로 조절 가능.
+  - E3(multiplier=1.5) 과함 → 기본 1.0 유지, FIFTH_DRIVING_MULTIPLIER 로 조절.
 """
 import copy
+import os
 
 from omegaconf import OmegaConf
 
@@ -27,19 +38,34 @@ class FifthFLPEngine:
 
     def __init__(self, cfg_yaml: str, joyvasa_cfg_scale: float = 2.8):
         cfg = OmegaConf.load(cfg_yaml)
-        # PoC t068_tune.py 검증 파라미터 고정
+
+        # --- motion 파라미터 (환경변수 오버라이드 가능) ---
+        # FIFTH_CFG_SCALE: JoyVASA motion 강도. 2.8(기본, 미세 움직임) / 3.5(더 강한 표정).
+        _cfg_scale = float(os.environ.get("FIFTH_CFG_SCALE", str(joyvasa_cfg_scale)))
+        # FIFTH_DRIVING_MULTIPLIER: FLP driving 배율. 1.0 기본 (1.5 이상이면 과함).
+        _driving_multiplier = float(os.environ.get("FIFTH_DRIVING_MULTIPLIER", "1.0"))
+
         cfg.infer_params.flag_normalize_lip = False
         cfg.infer_params.flag_lip_retargeting = True
         cfg.infer_params.flag_eye_retargeting = False
-        cfg.infer_params.driving_multiplier = 1.0
+        cfg.infer_params.driving_multiplier = _driving_multiplier
         cfg.infer_params.animation_region = "all"
         cfg.infer_params.flag_stitching = True
-        cfg.infer_params.flag_relative_motion = True
+        # v3 수정: False로 변경.
+        # True 시 flag_lip_retargeting=True 분기에서 JoyVASA motion(R, exp, delta_new)이 버려지고
+        # x_s + lip_delta 만 남아 머리/표정이 고정됨 (FLP _run() L459 버그).
+        # False 시: R_d_i 절대 rotation + x_d_i_new(exp 포함)에 lip_delta 가산 → 정상 동작.
+        cfg.infer_params.flag_relative_motion = False
 
         from src.pipelines.faster_live_portrait_pipeline import FasterLivePortraitPipeline
 
         self._cfg = cfg
-        self._joyvasa_cfg_scale = joyvasa_cfg_scale
+        self._joyvasa_cfg_scale = _cfg_scale
+        print(
+            f"[flp_engine] flag_relative_motion=False  cfg_scale={_cfg_scale}  "
+            f"driving_multiplier={_driving_multiplier}",
+            flush=True,
+        )
         self.pipe = FasterLivePortraitPipeline(cfg=cfg)
         # 기본 source 상태 (하위호환 — 단일 source 경로에서 사용)
         self.src_img = None

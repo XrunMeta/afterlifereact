@@ -97,13 +97,17 @@ def main():
     from src.pipelines.joyvasa_audio_to_motion_pipeline import JoyVASAAudio2MotionPipeline
 
     jcfg = OmegaConf.load(args.cfg_yaml)
+    # FIFTH_CFG_SCALE 환경변수로 cfg_scale 조절 가능 (기본 2.8 — 미세 자연 움직임).
+    # 3.5: 더 강한 머리/표정. 1.5 이하: 약한 움직임.
+    _joyvasa_cfg_scale = float(os.environ.get("FIFTH_CFG_SCALE", "2.8"))
     jp = JoyVASAAudio2MotionPipeline(
         motion_model_path=jcfg.joyvasa_models.motion_model_path,
         audio_model_path=jcfg.joyvasa_models.audio_model_path,
         motion_template_path=jcfg.joyvasa_models.motion_template_path,
         cfg_mode=jcfg.infer_params.cfg_mode,
-        cfg_scale=2.8,
+        cfg_scale=_joyvasa_cfg_scale,
     )
+    print(f"[joyvasa] cfg_scale={_joyvasa_cfg_scale}", flush=True)
     # PoC 패턴: 첫 호출 웜업 후 실제 사용 (t068_tune.py L60)
     _ = jp.gen_motion_sequence(args.wav)
     dri = jp.gen_motion_sequence(args.wav)
