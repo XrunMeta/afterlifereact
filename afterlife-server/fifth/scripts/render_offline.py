@@ -232,20 +232,20 @@ def main():
         src_d = eng.load_source(args.open_src)
         dyn_lip_closed = src_d["lip_close_ratio"]
 
-        # C-2 클램프
-        if dyn_lip_closed > 0.0:
-            lip_closed = min(dyn_lip_closed, cfg.lip_open * 0.85)
-            print(
-                f"[lip_closed] dynamic={dyn_lip_closed:.4f} clamped={lip_closed:.4f} "
-                f"(lip_open={cfg.lip_open} * 0.85 = {cfg.lip_open * 0.85:.4f})",
-                flush=True,
-            )
-        else:
-            lip_closed = cfg.lip_closed
-            print(
-                f"[lip_closed] dynamic 실측 실패 → fallback cfg.lip_closed={lip_closed:.4f}",
-                flush=True,
-            )
+        # 단일 모드: lip_closed = cfg.lip_closed (낮은 고정값, 0.0023)
+        # - 동적 ratio(dyn_lip_closed ≈ 0.313)를 lower-bound로 쓰면
+        #   무음(env=0) 시에도 입이 벌어지는 D1 문제 발생 → 단일 모드에서는 사용 안 함.
+        # - 동적 ratio 로그는 참고용으로만 남김 (코드 삭제 X).
+        lip_closed = cfg.lip_closed  # 단일 모드 고정: 낮은 값으로 무음 시 입 완전 닫힘
+        print(
+            f"[lip_closed/single] dyn(참고)={dyn_lip_closed:.4f}  "
+            f"사용값=cfg.lip_closed={lip_closed:.4f}  "
+            f"lip_open={cfg.lip_open}",
+            flush=True,
+        )
+
+        # c_d_lip 스무딩 (FIFTH_CDLIP_SMOOTH=1 시 활성, 기본 off — 회귀 안전)
+        _smooth_cdlip = os.environ.get("FIFTH_CDLIP_SMOOTH", "0") == "1"
 
         c_d_lip_seq = rms_to_cdlip(
             env,
@@ -254,6 +254,12 @@ def main():
             open_scale=cfg.open_scale,
             offset=cfg.offset,
         )
+
+        if _smooth_cdlip:
+            from scipy.ndimage import gaussian_filter1d as _gf1d
+            _cdlip_sigma = float(os.environ.get("FIFTH_CDLIP_SIGMA", "1.5"))
+            c_d_lip_seq = _gf1d(c_d_lip_seq.astype(np.float64), sigma=_cdlip_sigma).astype(np.float32)
+            print(f"[cdlip_smooth] FIFTH_CDLIP_SMOOTH=1, sigma={_cdlip_sigma}", flush=True)
 
         n = max(len(env), nj)
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
