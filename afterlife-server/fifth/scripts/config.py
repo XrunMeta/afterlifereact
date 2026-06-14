@@ -8,7 +8,7 @@ class FifthConfig:
     lip_open: float = 0.55       # 입 최대 벌림 c_d_lip
     lip_closed: float = 0.0023   # 입 닫힘 c_d_lip (raw RMS silence와 단위 분리)
     open_scale: float = 1.0
-    offset: int = 2              # 싱크 보정(프레임)
+    offset: int = 2              # 싱크 보정: +면 립이 오디오보다 offset 프레임 선행 (기본 2 = 80ms@25fps)
     sigma: float = 1.0           # RMS 스무딩
     gamma: float = 1.0           # 반응 곡선
     silence: float = 0.05        # 무음 게이트 (raw RMS 절대 임계값)
