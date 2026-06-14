@@ -86,3 +86,8 @@ def test_cdlip_offset_clips_bounds():
     rms = np.array([0.2, 0.5, 1.0], dtype=np.float32)
     out = rms_to_cdlip(rms, lip_closed=0.0, lip_open=1.0, open_scale=1.0, offset=5)
     assert len(out) == 3  # 길이 유지, 인덱스 clip
+
+def test_cdlip_empty_input():
+    out = rms_to_cdlip(np.zeros(0, dtype=np.float32), lip_closed=0.0023, lip_open=0.55, open_scale=1.0, offset=2)
+    assert out.shape == (0,)
+    assert out.dtype == np.float32
