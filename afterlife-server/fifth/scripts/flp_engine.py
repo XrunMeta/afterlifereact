@@ -38,11 +38,22 @@ class FifthFLPEngine:
         self.src_img = None
         self.src_info = None
 
-    def load_source(self, src_path: str) -> None:
+    def load_source(self, src_path: str) -> float:
         """소스 이미지(사진 1장) 로드 및 얼굴 검출 준비.
+
+        source lmk에서 입 닫힘 baseline을 동적으로 실측해 반환한다.
+        반환값은 c_d_lip lower bound(lip_closed)로 사용.
+        고정값(0.0023) 대신 실제 소스 얼굴의 입 상태를 반영하므로
+        c_d_lip 범위 과확장 → 치아 stretch 완화.
+
+        PoC 패턴: t068_tune.py L46~L47 (calc_lip_close_ratio 호출 방식 동일)
+        src_info[0][1]: 인덱스 1 = source_lmk (FLP prepare_source 계약, PoC 검증)
 
         Args:
             src_path: 소스 이미지 절대 경로 (JPEG/PNG).
+
+        Returns:
+            float: source lmk 기반 lip_close_ratio. 실측 실패 시 0.0 반환 (호출부에서 폴백 처리).
 
         Raises:
             AssertionError: 얼굴 검출 실패 시.
@@ -52,6 +63,21 @@ class FifthFLPEngine:
         )
         self.src_img = self.pipe.src_imgs[0]
         self.src_info = self.pipe.src_infos[0]
+
+        # C-1 가드: src_info[0][1] 접근 전 계약 검증
+        # 인덱스 1 = source_lmk (FLP prepare_source 계약, PoC t068_tune.py L46 검증)
+        assert len(self.src_info[0]) > 1, "src_info lmk 인덱스 계약 위반"
+        source_lmk = self.src_info[0][1]
+
+        try:
+            from src.utils.utils import calc_lip_close_ratio
+
+            lip_close_ratio = float(calc_lip_close_ratio(source_lmk[None])[0, 0])
+            print(f"[flp_engine] dynamic lip_close_ratio={lip_close_ratio:.4f}", flush=True)
+            return lip_close_ratio
+        except Exception as e:
+            print(f"[flp_engine] calc_lip_close_ratio 실패({e}) → 0.0 반환 (호출부 폴백 처리)", flush=True)
+            return 0.0
 
     def render(self, joy_motion, c_eyes, c_d_lip: float, first_frame: bool = False):
         """c_d_lip 값으로 입 벌림을 구동해 RGB 프레임 반환.

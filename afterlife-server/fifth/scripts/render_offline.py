@@ -59,18 +59,11 @@ def main():
     dur = len(y) / sr
     print(f"[audio] dur={dur:.2f}s sr={sr}", flush=True)
 
-    # --- 2. RMS envelope → c_d_lip 시퀀스 ---
+    # --- 2. RMS envelope 계산 ---
+    # c_d_lip_seq는 step 4b에서 동적 lip_closed 확정 후 생성 (동적 실측 먼저, 시퀀스 나중).
     env = compute_rms_envelope(
         y, sr=sr, fps=cfg.fps, sigma=cfg.sigma,
         silence=cfg.silence, gamma=cfg.gamma,
-    )
-    # 정합성: lip_closed=cfg.lip_closed (c_d_lip 계수), cfg.silence와 단위 분리
-    c_d_lip_seq = rms_to_cdlip(
-        env,
-        lip_closed=cfg.lip_closed,
-        lip_open=cfg.lip_open,
-        open_scale=cfg.open_scale,
-        offset=cfg.offset,
     )
     print(f"[rms] frames={len(env)} max={env.max():.3f} mean={env.mean():.3f}", flush=True)
     # offset=2 메모: 입이 오디오보다 2프레임(80ms@25fps) 선행. 싱크 어긋나면 cfg.offset 튜닝.
@@ -98,7 +91,32 @@ def main():
     # --- 4. FLP 엔진 초기화 + open_src 로드 ---
     # Plan 1: open_src 단일 워핑 (치아 prior 보존). closed_src는 Plan 2에서 도입.
     eng = FifthFLPEngine(args.cfg_yaml)
-    eng.load_source(args.open_src)
+    dyn_lip_closed = eng.load_source(args.open_src)
+
+    # C-2 클램프: 동적값이 lip_open 이상이면 c_d_lip 단조성 깨짐 → 역전 방지
+    if dyn_lip_closed > 0.0:
+        lip_closed = min(dyn_lip_closed, cfg.lip_open * 0.85)
+        print(
+            f"[lip_closed] dynamic={dyn_lip_closed:.4f} clamped={lip_closed:.4f} "
+            f"(lip_open={cfg.lip_open} * 0.85 = {cfg.lip_open * 0.85:.4f})",
+            flush=True,
+        )
+    else:
+        # load_source 동적 실측 실패 시 config 기본값 폴백
+        lip_closed = cfg.lip_closed
+        print(
+            f"[lip_closed] dynamic 실측 실패 → fallback cfg.lip_closed={lip_closed:.4f}",
+            flush=True,
+        )
+
+    # --- 4b. RMS → c_d_lip 시퀀스 재생성 (동적 lip_closed 적용) ---
+    c_d_lip_seq = rms_to_cdlip(
+        env,
+        lip_closed=lip_closed,
+        lip_open=cfg.lip_open,
+        open_scale=cfg.open_scale,
+        offset=cfg.offset,
+    )
 
     # --- 5. 프레임 렌더 ---
     n = max(len(env), nj)
@@ -111,7 +129,7 @@ def main():
     for i in range(n):
         ji = min(i, nj - 1)
         # 빈 env 가드: c_d_lip_seq가 없으면 lip_closed 폴백
-        cdl = float(c_d_lip_seq[min(i, len(c_d_lip_seq) - 1)]) if len(c_d_lip_seq) else cfg.lip_closed
+        cdl = float(c_d_lip_seq[min(i, len(c_d_lip_seq) - 1)]) if len(c_d_lip_seq) else lip_closed
 
         t0 = time.perf_counter()
         frame = eng.render(ml[ji], ce[ji] if ce else None, cdl, first_frame=(i == 0))
