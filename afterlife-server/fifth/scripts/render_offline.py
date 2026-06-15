@@ -24,6 +24,15 @@ Plan 2 (블렌드):
   pipe 1개 공유 (VRAM 절약), source 스왑 렌더.
   first_frame 은 source별 독립 (closed_first_frame / open_first_frame).
 
+  [v4] --align-sources 플래그:
+    closed_src 를 open_src 의 crop box(M_o2c)로 강제 재크롭 → 두 source 출력 얼굴
+    크기/위치를 통일해 블렌드 jitter 제거.
+    진단 실측: closed M_c2o_s=0.8662 vs open=0.9340 (ratio=0.9274, 7.3% 차이)
+    → 미적용 시 w 0↔1 전환에서 얼굴 7.3% 도약 발생.
+
+  [v4] --w-sigma 블렌드 가중치 Gaussian 스무딩 (기본 1.0):
+    w 시퀀스에 gaussian_filter1d(sigma) 적용 → 무음↔발화 전환 부드럽게.
+
 Plan 1 (단일): --closed-src 미지정 시 기존 동작 유지 (회귀 안전).
 """
 import argparse
@@ -53,10 +62,26 @@ def main():
     )
     ap.add_argument("--cfg-yaml", default="configs/trt_infer.yaml", help="FasterLivePortrait configs yaml")
     ap.add_argument("--out", required=True, help="출력 mp4 경로")
+    ap.add_argument(
+        "--align-sources",
+        action="store_true",
+        default=False,
+        help="[v4] closed_src 를 open_src crop box 기준으로 정렬 (jitter 제거). 블렌드 모드 전용.",
+    )
+    ap.add_argument(
+        "--w-sigma",
+        type=float,
+        default=1.0,
+        help="[v4] 블렌드 가중치 w 시퀀스 Gaussian 스무딩 sigma (0=비활성). 기본 1.0.",
+    )
     args = ap.parse_args()
 
     blend_mode = args.closed_src is not None
-    print(f"[mode] {'Plan 2 블렌드' if blend_mode else 'Plan 1 단일'}", flush=True)
+    print(
+        f"[mode] {'Plan 2 블렌드' if blend_mode else 'Plan 1 단일'}"
+        + (f" align_sources={args.align_sources} w_sigma={args.w_sigma}" if blend_mode else ""),
+        flush=True,
+    )
 
     cfg = FifthConfig.from_env()
     print(
@@ -127,6 +152,12 @@ def main():
         closed_s = eng.load_source(args.closed_src)
         open_s = eng.load_source(args.open_src)
 
+        # [v4] B1 정렬: closed_src 를 open_src crop box 기준으로 재크롭
+        if args.align_sources:
+            print("[align] closed_src → open_src crop box 기준 정렬 시작...", flush=True)
+            closed_s = eng.align_source_to_ref(target_s=closed_s, ref_s=open_s)
+            print("[align] 완료.", flush=True)
+
         # 동적 lip_close_ratio 실측값 로그
         print(
             f"[lip_closed] closed_src dyn={closed_s['lip_close_ratio']:.4f}  "
@@ -168,6 +199,18 @@ def main():
 
         # --- 5. 블렌드 프레임 렌더 ---
         n = max(len(env), nj)
+
+        # [v4] w 시퀀스 사전 계산 + Gaussian 스무딩 (전환 부드럽게)
+        w_seq = np.array(
+            [base_blend_weight(float(env[min(i, len(env) - 1)]), cfg.closed_thresh, cfg.open_thresh)
+             for i in range(n)],
+            dtype=np.float32,
+        )
+        if args.w_sigma > 0.0:
+            from scipy.ndimage import gaussian_filter1d as _gf1d
+            w_seq = np.clip(_gf1d(w_seq, sigma=args.w_sigma), 0.0, 1.0).astype(np.float32)
+            print(f"[w_smooth] sigma={args.w_sigma}  w_seq max={w_seq.max():.3f} mean={w_seq.mean():.3f}", flush=True)
+
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         raw = args.out.replace(".mp4", "_raw.mp4")
         vout = cv2.VideoWriter(raw, cv2.VideoWriter_fourcc(*"mp4v"), cfg.fps, (512, 512))
@@ -181,7 +224,7 @@ def main():
             ji = min(i, nj - 1)
             cdl_c = float(cdl_closed[min(i, len(cdl_closed) - 1)]) if len(cdl_closed) else lip_closed_closed
             cdl_o = float(cdl_open[min(i, len(cdl_open) - 1)]) if len(cdl_open) else lip_closed_open
-            w = base_blend_weight(float(env[min(i, len(env) - 1)]), cfg.closed_thresh, cfg.open_thresh)
+            w = float(w_seq[i])
 
             t0 = time.perf_counter()
 
