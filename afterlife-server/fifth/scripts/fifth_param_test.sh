@@ -5,14 +5,14 @@
 # 로컬 워크트리의 .py 를 가비아 컨테이너(fifth_poc_flp)로 동기화 →
 # render_offline.py 실행 → 결과 mp4 를 로컬로 자동 다운로드.
 #
-# 기본값 = calm4b 체크포인트 (2026-06-15, 히즈키 "꽤 괜찮음" 확정).
+# 기본값 = MW 체크포인트 (구 calm4b, 2026-06-15 히즈키 최종 확정).
 #
 # 사용법:
-#   1) 그대로 실행 (calm4b 재현):
+#   1) 그대로 실행 (MW 재현):
 #        ./fifth_param_test.sh
 #   2) 프리셋 파일 로드 (presets/ 안의 .env):
-#        PRESET=calm4b ./fifth_param_test.sh
-#        PRESET=presets/calm4b.env ./fifth_param_test.sh
+#        PRESET=MW ./fifth_param_test.sh
+#        PRESET=presets/MW.env ./fifth_param_test.sh
 #   3) 파라미터만 바꿔 빠르게 (env override 가 프리셋·기본값보다 우선):
 #        LIP_OPEN=0.26 TAG=open26 ./fifth_param_test.sh
 #        CFG_SCALE=2.5 DRIVING_MULT=0.7 TAG=calm ./fifth_param_test.sh
@@ -34,8 +34,8 @@ if [ -n "$PRESET" ]; then
   if [ -f "$PRESET" ]; then echo "[preset] $PRESET"; source "$PRESET"; else echo "⚠️ 프리셋 못 찾음: $PRESET"; fi
 fi
 
-# ===== 튜닝 파라미터 (env override > 프리셋 > 아래 기본=calm4b) =====
-# --- 움직임 (calm4b: 차분) ---
+# ===== 튜닝 파라미터 (env override > 프리셋 > 아래 기본=MW) =====
+# --- 움직임 (MW: 차분) ---
 CFG_SCALE="${CFG_SCALE:-2.0}"         # 머리/표정 강도(JoyVASA). ▲크게=뚜렷(3.5) ▼작게=차분. <1.5면 머리 굳음
 DRIVING_MULT="${DRIVING_MULT:-0.5}"   # 전체 motion 댐핑 배율. ▼작게=차분 · 1.0=기본 · 1.5↑=과함
 LIP_OPEN="${LIP_OPEN:-0.24}"          # 입 최대 벌림. ▼작게=입 작게/덜 벌림
@@ -50,7 +50,7 @@ CDLIP_SMOOTH="${CDLIP_SMOOTH:-0}"     # 1=입 개폐 전환 추가 스무딩
 CDLIP_SIGMA="${CDLIP_SIGMA:-1.5}"     # 위 스무딩 강도
 FPS="${FPS:-25}"
 
-# ===== 블렌드/정렬 (calm4b: 입마스크 + affine 정렬) =====
+# ===== 블렌드/정렬 (MW: 입마스크 + affine 정렬) =====
 BLEND_REGION="${BLEND_REGION:-mouth}"   # mouth=입 영역만 블렌드(얼굴/배경 단일=부들거림 없음) · full=전체블렌드
 ALIGN_SOURCES="${ALIGN_SOURCES:-1}"     # 1=closed_src 를 open_src 기준 정렬(jitter 제거). 블렌드 모드 전용
 ALIGN_MODE="${ALIGN_MODE:-affine}"      # crop(B1) · affine(B2, 눈·코 landmark 정밀 정렬·구도 일치)
@@ -58,7 +58,7 @@ W_SIGMA="${W_SIGMA:-1.0}"               # 블렌드 w 스무딩 sigma(전환 부
 MOUTH_DILATE="${MOUTH_DILATE:-28}"      # 입 마스크 크기(px). 크면 입 주변 더 넓게
 MOUTH_FEATHER="${MOUTH_FEATHER:-22}"    # 입 마스크 경계 부드러움. 크면 경계 티 덜 남
 
-# ===== 눈깜빡임 · 머리 스무딩 (calm4b 체크포인트) =====
+# ===== 눈깜빡임 · 머리 스무딩 (MW 체크포인트) =====
 BLINK="${BLINK:-1}"                     # 눈 깜빡임 on (idle 주입)
 BLINK_INTERVAL="${BLINK_INTERVAL:-3.2}" # 평균 간격(초)
 BLINK_DUR="${BLINK_DUR:-6}"             # 깜빡임 1회 프레임수
@@ -70,7 +70,7 @@ WAV="${WAV:-gominju_speech.wav}"                      # 입력 음성
 CLOSED_SRC="${CLOSED_SRC-gominju_source.jpg}"         # 입다묾 원본. CLOSED_SRC="" 로 단일 모드 강제
 
 # ===== 출력/식별 =====
-TAG="${TAG:-calm4b}"                  # 결과 파일 구분 라벨 → fifth_<TAG>.mp4
+TAG="${TAG:-MW}"                  # 결과 파일 구분 라벨 → fifth_<TAG>.mp4
 SYNC="${SYNC:-1}"                     # 1=로컬 .py 컨테이너 재동기화(코드 바꿨을 때) · 0=생략(빠름)
 # ==============================================================================
 

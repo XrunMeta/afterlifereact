@@ -91,3 +91,17 @@ def test_cdlip_empty_input():
     out = rms_to_cdlip(np.zeros(0, dtype=np.float32), lip_closed=0.0023, lip_open=0.55, open_scale=1.0, offset=2)
     assert out.shape == (0,)
     assert out.dtype == np.float32
+
+def test_cdlip_open_scale_high_clamped_to_one():
+    # open_scale>1 증폭 시 c_d_lip 이 1.0 을 넘지 않아야 함 (FLP 유효범위 상한, el B-1)
+    rms = np.array([0.0, 1.0], dtype=np.float32)
+    out = rms_to_cdlip(rms, lip_closed=0.0, lip_open=0.55, open_scale=3.0, offset=0)
+    assert out.max() <= 1.0
+    assert abs(out[1] - 1.0) < 1e-6      # 0.55*3=1.65 → 1.0 으로 클램프
+
+def test_cdlip_negative_open_scale_no_inversion():
+    # open_scale<0 으로 입이 역전(음수 구동)되지 않고 닫힘 baseline 으로 하한 (sion B2)
+    rms = np.array([0.0, 1.0], dtype=np.float32)
+    out = rms_to_cdlip(rms, lip_closed=0.0023, lip_open=0.55, open_scale=-1.0, offset=0)
+    assert out.min() >= 0.0023            # lip_closed 미만으로 떨어지지 않음
+    assert abs(out[1] - 0.0023) < 1e-6    # 발화 프레임도 닫힘으로 클램프(역전 차단)
