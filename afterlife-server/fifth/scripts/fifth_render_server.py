@@ -18,7 +18,7 @@ import struct
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from typing import Callable, Iterator
+from typing import Callable, Iterator, Optional
 
 import numpy as np
 
@@ -234,6 +234,14 @@ class _RenderHandler(BaseHTTPRequestHandler):
             wav_path, video_path = _parse_render_body(body)
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             self._send_json(400, {"error": str(exc)})
+            return
+
+        # wav_path 사전검사 — 200 헤더 전송 전에 차단.
+        # 컨테이너가 호스트 공유경로를 못 읽으면 render()에서 FileNotFoundError가
+        # 발생해 클라이언트가 프레임 0을 정상으로 오인(silent 실패)할 수 있다.
+        if not os.path.exists(wav_path):
+            logger.warning("wav_path 미존재: %s", wav_path)
+            self._send_json(400, {"error": f"wav_path 미존재: {wav_path}"})
             return
 
         if _service is None:

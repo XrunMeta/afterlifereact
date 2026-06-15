@@ -687,3 +687,40 @@ def test_http_integration_missing_fields_returns_400(tmp_path):
         srv._service = orig_service
         server_thread.join(timeout=5)
         server.server_close()
+
+
+def test_http_integration_missing_wav_path_returns_400(tmp_path):
+    """POST /oth-path wav_path 파일이 실제로 없으면 200 전에 400 반환 (silent 실패 방지)."""
+    import fifth_render_server as srv
+    from http.server import HTTPServer
+
+    orig_service = srv._service
+    srv._service = _make_integration_service(tmp_path)
+
+    server = HTTPServer(("127.0.0.1", 0), srv._RenderHandler)
+    port = server.server_address[1]
+
+    server_thread = threading.Thread(target=server.handle_request)
+    server_thread.daemon = True
+    server_thread.start()
+
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        body = json.dumps({
+            "wav_path": "/nonexistent/path/no_such_file.wav",
+            "video_path": "/fake/9055/idle.mp4",
+        }).encode()
+        conn.request("POST", "/render", body=body, headers={"Content-Length": str(len(body))})
+        resp = conn.getresponse()
+
+        # 200 헤더 전 차단 — 클라이언트가 명확히 에러를 받아야 함
+        assert resp.status == 400, f"기대 400, 실제 {resp.status}"
+        resp_body = json.loads(resp.read())
+        assert "wav_path" in resp_body.get("error", ""), (
+            f"에러 메시지에 wav_path 언급 없음: {resp_body}"
+        )
+        conn.close()
+    finally:
+        srv._service = orig_service
+        server_thread.join(timeout=5)
+        server.server_close()
