@@ -27,6 +27,16 @@ v4 변경 (블렌드 jitter 제거 — B1 방식):
   - 진단(diag_crop_align.py) 실측: closed M_c2o_s=0.8662 vs open=0.9340 (ratio=0.9274, 차이 7.3%)
     tx diff 18.5px · ty diff 16.2px → 블렌드 시 얼굴 크기/위치 달라짐 확인.
   - 해결: open_src M_o2c 로 closed_src 재크롭 → M_c2o 통일 → 크기/위치 일치.
+
+v5 변경 (B2 landmark affine 정렬):
+  - align_source_to_ref(mode="affine") 추가: crop box 재크롭(B1) 대신 얼굴 landmark
+    similarity transform으로 closed_src를 open_src 얼굴 위치/크기/구도에 정밀 정렬.
+  - 정렬 포인트: 양 눈 중심 + 코끝 3점 (입 landmark 제외 — 입은 구동 대상).
+    cv2.estimateAffinePartial2D (similarity: 회전+스케일+이동, 4DOF) 사용.
+  - 효과: B1의 "crop box 재크롭"보다 정밀 — 눈·코 기준 scale·rotation·position 일치.
+    closed_src 얼굴 작아보임 + 구도 차이 해결. 잔여 jitter 추가 감소 기대.
+  - align_source_to_ref()에 mode 파라미터 추가: "crop"(B1, 기본), "affine"(B2).
+  - 회귀 안전: mode="crop" 경로 무변경. render_offline.py --align-mode 옵션으로 선택.
 """
 import copy
 import os
@@ -34,7 +44,6 @@ import os
 import cv2
 import numpy as np
 from omegaconf import OmegaConf
-
 
 class FifthFLPEngine:
     """FasterLivePortrait lip retargeting 엔진 래퍼.
@@ -137,46 +146,88 @@ class FifthFLPEngine:
             "lip_close_ratio": lip_close_ratio,
         }
 
-    def align_source_to_ref(self, target_s: dict, ref_s: dict) -> dict:
-        """target source를 ref source의 crop box(M_o2c)로 강제 재크롭해 정렬.
+    # ------------------------------------------------------------------
+    # 내부 헬퍼: landmark에서 눈·코 안정 포인트 추출
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _stable_lmk_pts(lmk: np.ndarray) -> np.ndarray:
+        """landmark 배열에서 입 제외 안정 포인트(눈 중심 2점 + 코끝 1점) 추출.
 
-        B1 방식 jitter 제거: 두 source가 독립적으로 prepare_source되면 각자
-        landmark 기반 M_o2c(crop box)가 달라져 출력 얼굴 크기/위치가 다름.
-        이를 ref_s 기준 M_o2c로 target_s 이미지를 재크롭해 src_info를 새로 구성.
+        FasterLivePortrait source_lmk 실측 계약 (203점, gominju 실측 2026-06-15):
+          - 0~23: 좌눈(이미지 기준 x 작은 쪽) 윤곽 → 평균 = 좌눈 중심
+          - 24~47: 우눈(이미지 기준 x 큰 쪽) 윤곽 → 평균 = 우눈 중심
+          - 48~107: 입 윤곽 (완전 제외 — 구동 대상)
+          - 108~144: 얼굴 윤곽선 (외곽)
+          - 145~184: 눈썹
+          - 185~202: 코·코 주변 / 201 ≈ 코끝 (y≈464)
 
-        진단 실측 (gominju closed vs open):
-          M_c2o scale ratio = 0.9274 (7.3% 차이), tx=18.5px, ty=16.2px
-          → w 0↔1 전환 시 얼굴 7.3% 크기 도약 = 널뛰기 근본 원인
+        3점 similarity: 좌눈 중심, 우눈 중심, 코끝 (입 완전 제외).
+
+        Returns:
+            (3, 2) float32 — [left_eye_center, right_eye_center, nose_tip]
+        """
+        n = lmk.shape[0]
+        if n >= 203:
+            # FLP 203점 실측 인덱스
+            left_eye = lmk[0:24].mean(axis=0).astype(np.float32)   # 좌눈 윤곽 평균
+            right_eye = lmk[24:48].mean(axis=0).astype(np.float32)  # 우눈 윤곽 평균
+            nose = lmk[201].astype(np.float32)                       # 코끝 (실측 y≈464)
+        elif n >= 106:
+            # 106점 서브셋 — 눈 대략 0~35(좌눈), 36~71(우눈), 코: 80~86
+            left_eye = lmk[0:18].mean(axis=0).astype(np.float32)
+            right_eye = lmk[36:54].mean(axis=0).astype(np.float32)
+            nose = lmk[86].astype(np.float32) if n > 86 else lmk[n 
+        else:
+            # 최소 5점 (dlib 5-point: 0=좌눈, 1=좌눈, 2=우눈, 3=우눈, 4=코)
+            left_eye = ((lmk[0] + lmk[1]) / 2).astype(np.float32)
+            right_eye = ((lmk[2] + lmk[3]) / 2).astype(np.float32)
+            nose = lmk[4].astype(np.float32) if n > 4 else lmk[n - 1].astype(np.float32)
+        return np.stack([left_eye, right_eye, nose], axis=0)  # (3,2)
+
+    def align_source_to_ref(self, target_s: dict, ref_s: dict, mode: str = "crop") -> dict:
+        """target source를 ref source 기준으로 정렬.
+
+        B1 (mode="crop"): ref_s 의 crop box(M_o2c)로 target_s 이미지를 강제 재크롭.
+        B2 (mode="affine"): ref_s 얼굴 landmark(눈·코 3점)에 target_s를 similarity
+          transform으로 정렬 → 얼굴 크기·구도를 open_src 기준으로 정밀 일치.
+          입 landmark는 구동 대상이므로 완전 제외.
+
+        B2 상세:
+          1. ref_s lmk (crop 좌표) → 눈 중심·코끝 3점 추출.
+          2. target_s lmk (crop 좌표) → 동일 3점 추출.
+          3. cv2.estimateAffinePartial2D (similarity: 스케일·회전·이동)로 변환 추정.
+          4. target 재크롭 이미지(B1 방식)에 추가로 해당 similarity warp 적용.
+             → ref 기준 눈·코 포인트와 target이 픽셀 정밀 정렬.
+          5. motion_extractor 재계산 + src_info 재조립.
 
         Args:
             target_s: align 대상 source dict (load_source 반환값, 보통 closed_s).
             ref_s:    기준 source dict (load_source 반환값, 보통 open_s).
+            mode:     "crop" (B1, 기본) | "affine" (B2 landmark similarity).
 
         Returns:
-            새 source dict: ref 기준으로 재크롭된 src_img + 재계산된 src_info.
-            실패(얼굴 검출 실패 포함) 시 target_s 원본 반환 + 경고 출력.
+            새 source dict: 정렬된 src_img + 재계산된 src_info.
+            실패 시 target_s 원본 반환 + 경고 출력.
         """
         import torch
 
         try:
-            # ref_s 의 M_c2o (crop→original) → invert → M_o2c (original→crop)
-            # src_info 마지막 원소 = M tensor (torch)
+            # -------------------------------------------------------
+            # 공통 준비: ref M_c2o / M_o2c
+            # -------------------------------------------------------
             ref_info = ref_s["src_info"][0]
-            M_c2o_tensor = ref_info[-1]  # torch.Tensor shape (3,3)
+            M_c2o_tensor = ref_info[-1]  # torch.Tensor (3,3)
             M_c2o_np = M_c2o_tensor.cpu().numpy()
-            M_o2c_np = np.linalg.inv(M_c2o_np)  # original→crop
+            M_o2c_np = np.linalg.inv(M_c2o_np)
 
-            # target 원본 이미지 (RGB ndarray)
             tgt_img_rgb = target_s["src_img"]  # (H,W,3)
-
-            # ref 기준 dsize 추출 (M_o2c scale로부터)
-            # M_o2c[0,0] ≈ s (scale factor: pixel/crop_unit)
-            # crop dsize 는 파이프 cfg에서 — 기본 512
             dsize = self._cfg.crop_params.src_dsize  # 보통 512
 
-            # target 이미지에 ref M_o2c 적용 → 재크롭 (2x3 affine)
+            # -------------------------------------------------------
+            # Step 1: B1과 동일하게 ref M_o2c로 target 재크롭
+            # -------------------------------------------------------
             M_o2c_2x3 = M_o2c_np[:2, :]
-            img_crop = cv2.warpAffine(
+            img_crop_b1 = cv2.warpAffine(
                 tgt_img_rgb,
                 M_o2c_2x3,
                 (dsize, dsize),
@@ -184,21 +235,91 @@ class FifthFLPEngine:
                 borderMode=cv2.BORDER_CONSTANT,
                 borderValue=(0, 0, 0),
             )
-            img_crop_256 = cv2.resize(img_crop, (256, 256), interpolation=cv2.INTER_AREA)
 
-            # lmk 변환 (target의 정밀 lmk를 ref M_o2c 공간으로 변환)
-            tgt_info = target_s["src_info"][0]
-            src_lmk_orig = tgt_info[1]  # (N,2) crop 좌표계 lmk
-            # target의 M_c2o로 crop→original로 역변환 후, ref M_o2c로 crop으로 변환
-            M_tgt_c2o = tgt_info[-1].cpu().numpy()
-            # lmk: crop 좌표계 → 원본 좌표계
-            ones = np.ones((src_lmk_orig.shape[0], 1))
-            lmk_h = np.hstack([src_lmk_orig, ones])  # (N,3)
-            lmk_orig = (M_tgt_c2o @ lmk_h.T).T[:, :2]  # (N,2) 원본
-            # 원본 → ref crop 좌표계
-            lmk_ref_crop = (M_o2c_np @ np.hstack([lmk_orig, ones]).T).T[:, :2]  # (N,2)
+            # -------------------------------------------------------
+            # Step 2 (B2 전용): lmk 기반 similarity warp 추가 적용
+            # -------------------------------------------------------
+            if mode == "affine":
+                # ref lmk (crop 좌표계)
+                ref_lmk_crop = ref_info[1]  # (N,2)
+                # target lmk (crop 좌표계) → ref M_o2c 공간으로 변환
+                tgt_info = target_s["src_info"][0]
+                tgt_lmk_crop = tgt_info[1]  # (N,2) target의 자기 crop 좌표
+                M_tgt_c2o = tgt_info[-1].cpu().numpy()
+                ones = np.ones((tgt_lmk_crop.shape[0], 1))
+                lmk_h = np.hstack([tgt_lmk_crop, ones])
+                lmk_tgt_orig = (M_tgt_c2o @ lmk_h.T).T[:, :2]  # (N,2) 원본
+                # 원본 → ref crop 좌표계
+                ones2 = np.ones((lmk_tgt_orig.shape[0], 1))
+                lmk_tgt_ref_crop = (M_o2c_np @ np.hstack([lmk_tgt_orig, ones2]).T).T[:, :2]
 
-            # motion_extractor로 재계산
+                # 안정 포인트 추출 (3점: 좌눈·우눈·코끝, 입 제외)
+                pts_ref = self._stable_lmk_pts(ref_lmk_crop)    # (3,2) dst
+                pts_tgt = self._stable_lmk_pts(lmk_tgt_ref_crop)  # (3,2) src
+
+                # similarity transform 추정 (4DOF: 스케일·회전·이동)
+                M_sim, inliers = cv2.estimateAffinePartial2D(
+                    pts_tgt.reshape(-1, 1, 2).astype(np.float32),
+                    pts_ref.reshape(-1, 1, 2).astype(np.float32),
+                    method=cv2.LMEDS,
+                )
+                if M_sim is None:
+                    # 추정 실패 → RANSAC fallback
+                    M_sim, _ = cv2.estimateAffinePartial2D(
+                        pts_tgt.reshape(-1, 1, 2).astype(np.float32),
+                        pts_ref.reshape(-1, 1, 2).astype(np.float32),
+                        method=cv2.RANSAC,
+                        ransacReprojThreshold=4.0,
+                    )
+
+                if M_sim is not None:
+                    # similarity warp 적용: B1 재크롭 이미지에 추가 정렬
+                    img_crop_b2 = cv2.warpAffine(
+                        img_crop_b1,
+                        M_sim,
+                        (dsize, dsize),
+                        flags=cv2.INTER_LINEAR,
+                        borderMode=cv2.BORDER_REFLECT_101,
+                    )
+                    # sim 스케일 로그
+                    sim_scale = np.sqrt(M_sim[0, 0] ** 2 + M_sim[0, 1] ** 2)
+                    sim_angle = np.degrees(np.arctan2(M_sim[1, 0], M_sim[0, 0]))
+                    print(
+                        f"[align_source_to_ref/B2] sim_scale={sim_scale:.4f}  "
+                        f"sim_angle={sim_angle:.2f}deg  "
+                        f"tx={M_sim[0,2]:.1f} ty={M_sim[1,2]:.1f}",
+                        flush=True,
+                    )
+                    img_crop_aligned = img_crop_b2
+
+                    # lmk도 similarity로 변환 (ref 공간 정렬)
+                    ones3 = np.ones((lmk_tgt_ref_crop.shape[0], 1))
+                    M_sim_3x3 = np.vstack([M_sim, [0, 0, 1]])
+                    lmk_aligned = (M_sim_3x3 @ np.hstack([lmk_tgt_ref_crop, ones3]).T).T[:, :2]
+                else:
+                    print(
+                        "[align_source_to_ref/B2] similarity 추정 실패 → B1 crop 결과 사용",
+                        flush=True,
+                    )
+                    img_crop_aligned = img_crop_b1
+                    lmk_aligned = lmk_tgt_ref_crop
+            else:
+                # B1: crop만
+                img_crop_aligned = img_crop_b1
+                tgt_info = target_s["src_info"][0]
+                tgt_lmk_crop = tgt_info[1]
+                M_tgt_c2o = tgt_info[-1].cpu().numpy()
+                ones = np.ones((tgt_lmk_crop.shape[0], 1))
+                lmk_h = np.hstack([tgt_lmk_crop, ones])
+                lmk_tgt_orig = (M_tgt_c2o @ lmk_h.T).T[:, :2]
+                ones2 = np.ones((lmk_tgt_orig.shape[0], 1))
+                lmk_aligned = (M_o2c_np @ np.hstack([lmk_tgt_orig, ones2]).T).T[:, :2]
+
+            # -------------------------------------------------------
+            # Step 3: motion_extractor 재계산
+            # -------------------------------------------------------
+            img_crop_256 = cv2.resize(img_crop_aligned, (256, 256), interpolation=cv2.INTER_AREA)
+
             pitch, yaw, roll, t, exp, scale, kp = self.pipe.model_dict["motion_extractor"].predict(img_crop_256)
             from src.utils.utils import get_rotation_matrix, transform_keypoint
             x_s_info = {
@@ -210,11 +331,9 @@ class FifthFLPEngine:
             x_s = transform_keypoint(pitch, yaw, roll, t, exp, scale, kp)
             x_c_s = kp
 
-            # stitching 사전 lip_delta (flag_normalize_lip=False 이므로 None)
             lip_delta = None
             flag_lip_zero = False
 
-            # mask_ori_float — ref 기준 M_c2o 재사용
             device = M_c2o_tensor.device
             mask_ori_float = None
             if (self._cfg.infer_params.flag_pasteback
@@ -230,12 +349,10 @@ class FifthFLPEngine:
 
             M_c2o_tensor_new = torch.from_numpy(M_c2o_np).to(device)
 
-            # src_info 재조립 (prepare_source 계약과 동일한 순서)
-            # [x_s_info, source_lmk, R_s, f_s, x_s, x_c_s, lip_delta, flag_lip_zero,
-            #  mask_ori_float, M_c2o]
+            # src_info 재조립
             new_src_info_face = [
                 copy.deepcopy(x_s_info),
-                lmk_ref_crop.copy(),
+                lmk_aligned.copy(),
                 R_s.copy(),
                 f_s.copy(),
                 x_s.copy(),
@@ -246,23 +363,23 @@ class FifthFLPEngine:
                 M_c2o_tensor_new,
             ]
 
-            # lip_close_ratio 재계산 (새 lmk 기준)
-            lip_close_ratio = target_s["lip_close_ratio"]  # 폴백: 원본값 유지
+            # lip_close_ratio 재계산
+            lip_close_ratio = target_s["lip_close_ratio"]
             try:
                 from src.utils.utils import calc_lip_close_ratio
-                lip_close_ratio = float(calc_lip_close_ratio(lmk_ref_crop[None])[0, 0])
+                lip_close_ratio = float(calc_lip_close_ratio(lmk_aligned[None])[0, 0])
             except Exception as e:
                 print(f"[align_source_to_ref] lip_close_ratio 재계산 실패({e}), 원본값 유지", flush=True)
 
             print(
-                f"[align_source_to_ref] DONE  "
+                f"[align_source_to_ref/{mode.upper()}] DONE  "
                 f"ref_M_c2o_s={np.linalg.norm(M_c2o_np[0,:2]):.4f}  "
                 f"lip_close_ratio={lip_close_ratio:.4f}",
                 flush=True,
             )
 
             return {
-                "src_img": tgt_img_rgb,  # 원본 이미지 (M_o2c로 재크롭은 src_info에 반영)
+                "src_img": tgt_img_rgb,
                 "src_info": [new_src_info_face],
                 "lip_close_ratio": lip_close_ratio,
             }
