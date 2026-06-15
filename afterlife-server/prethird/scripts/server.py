@@ -25,26 +25,55 @@ def _resolve_persona_se(sess: Any, default_se: str | None) -> tuple[list, str | 
     return persona, se
 
 
+_VALID_RENDERERS = ("musetalk", "fifth")
+
+
+def _select_renderer_name() -> str:
+    """PRETHIRD_RENDERER env 해석. 미설정/미지원 값은 musetalk(기본)."""
+    name = os.environ.get("PRETHIRD_RENDERER", "musetalk").strip().lower()
+    return name if name in _VALID_RENDERERS else "musetalk"
+
+
+def _make_musetalk(video_path: str):
+    from musetalk_inproc import MuseTalkInproc
+    mt = MuseTalkInproc(video_path)
+    mt.load()
+    log.info("musetalk in-process loaded (ref=%s)", video_path)
+    return mt
+
+
+def _make_fifth(video_path: str):
+    from fifth_inproc import FifthInproc
+    f5 = FifthInproc(video_path)
+    f5.load()
+    log.info("fifth in-process loaded (ref=%s)", video_path)
+    return f5
+
+
+def _build_renderer(name: str, video_path: str):
+    return _make_fifth(video_path) if name == "fifth" else _make_musetalk(video_path)
+
+
 def _build_pipeline_factory():
-    """musetalk 1회 load + 세션별 DialoguePipeline factory.
+    """렌더러(musetalk/fifth) 1회 load + 세션별 DialoguePipeline factory.
 
     PRETHIRD_REFERENCE_VIDEO 미설정 또는 GPU 없으면 None 반환 → 시그널링/idle만.
     import는 video_path 확인 후에만 실행(GPU 없는 환경에서 torch import 방지).
+    PRETHIRD_RENDERER=fifth 로 fifth 렌더러 opt-in. 기본 musetalk.
     """
     video_path = os.environ.get("PRETHIRD_REFERENCE_VIDEO", "")
     if not video_path:
         log.warning("PRETHIRD_REFERENCE_VIDEO 미설정 — 파이프라인 비활성(시그널링/idle만)")
         return None
 
-    from musetalk_inproc import MuseTalkInproc
     from clone_dialog import chat_stream
     from tts_client import say as tts_say
     from audio_utils import _decode_wav
     from pipeline import DialoguePipeline
 
-    mt = MuseTalkInproc(video_path)
-    mt.load()
-    log.info("musetalk in-process loaded (ref=%s)", video_path)
+    renderer_name = _select_renderer_name()
+    mt = _build_renderer(renderer_name, video_path)
+    log.info("renderer=%s loaded", renderer_name)
 
     default_se = os.environ.get("PRETHIRD_TTS_SE_PATH", "") or None
 
