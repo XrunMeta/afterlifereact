@@ -390,6 +390,60 @@ class FifthFLPEngine:
             traceback.print_exc()
             return target_s
 
+    @staticmethod
+    def build_mouth_mask(
+        lmk: np.ndarray,
+        img_size: int = 512,
+        dilate_px: int = 28,
+        feather_sigma: int = 22,
+    ) -> np.ndarray:
+        """입 landmark(48~107) 기반 입 영역 마스크 생성.
+
+        FLP 203점 landmark(crop 좌표계) 중 48~107번이 입 윤곽.
+        convexHull → fillPoly → dilate → GaussianBlur(feather) → [0,1] float32 마스크.
+
+        Args:
+            lmk:          (N,2) float32 — crop 좌표계 landmark (보통 512x512 공간).
+            img_size:     출력 마스크 크기 (기본 512).
+            dilate_px:    입 hull 바깥 dilate 픽셀 (입꼬리·치아 충분히 커버).
+            feather_sigma: GaussianBlur sigma — 경계 feather 부드러움.
+
+        Returns:
+            (img_size, img_size, 1) float32 [0,1] — 입 영역 1, 나머지 0.
+        """
+        mask = np.zeros((img_size, img_size), dtype=np.float32)
+
+        n = lmk.shape[0]
+        if n >= 107:
+            mouth_pts = lmk[48:107].copy()
+        elif n >= 49:
+            # 최소 서브셋 — 전체 하단 절반 근사
+            mouth_pts = lmk[48:].copy()
+        else:
+            # 너무 적으면 고정 타원 폴백
+            cx, cy = img_size 
+            cv2.ellipse(mask, (cx, cy), (int(img_size * 0.22), int(img_size * 0.10)), 0, 0, 360, 1.0, -1)
+            ksize = feather_sigma * 6 + 1 if (feather_sigma * 6 + 1) % 2 == 1 else feather_sigma * 6 + 2
+            mask = cv2.GaussianBlur(mask, (ksize, ksize), feather_sigma)
+            return mask[:, :, np.newaxis]
+
+        pts_int = np.round(mouth_pts).astype(np.int32)
+        hull = cv2.convexHull(pts_int.reshape(-1, 1, 2))
+        cv2.fillConvexPoly(mask, hull.reshape(-1, 2), 1.0)
+
+        # dilate — 입꼬리·치아 영역 충분히 포함
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dilate_px * 2 + 1, dilate_px * 2 + 1))
+        mask = cv2.dilate(mask, kernel)
+
+        # GaussianBlur feather — 경계 부드럽게 (sigma 충분히)
+        ksize = feather_sigma * 6 + 1
+        if ksize % 2 == 0:
+            ksize += 1
+        mask = cv2.GaussianBlur(mask, (ksize, ksize), feather_sigma)
+        mask = np.clip(mask, 0.0, 1.0)
+
+        return mask[:, :, np.newaxis]  # (H,W,1)
+
     def render(
         self,
         joy_motion,

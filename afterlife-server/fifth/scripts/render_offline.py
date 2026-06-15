@@ -3,11 +3,21 @@ render_offline.py — wav + base 이미지 2장 → 립싱크 mp4 (Plan 1/2 통�
 
 사용법 (컨테이너 /root/FasterLivePortrait 에서):
 
-  [Plan 2 블렌드 모드] closed_src + open_src 모두 지정:
+  [입마스크 블렌드 — 부들거림 근본 제거]:
     python render_offline.py \
         --wav gominju_speech.wav \
         --open-src gominju_v2_mouth_rank1_f119.jpg \
         --closed-src gominju_source.jpg \
+        --align-sources --align-mode affine \
+        --blend-region mouth \
+        --out gominju_out/mouth_blend_v1.mp4
+
+  [전체 블렌드 (기존 align_v2)]:
+    python render_offline.py \
+        --wav gominju_speech.wav \
+        --open-src gominju_v2_mouth_rank1_f119.jpg \
+        --closed-src gominju_source.jpg \
+        --blend-region full \
         --out gominju_out/blend_v1.mp4
 
   [Plan 1 단일 모드] open_src만 (하위호환):
@@ -17,21 +27,30 @@ render_offline.py — wav + base 이미지 2장 → 립싱크 mp4 (Plan 1/2 통�
         --out gominju_out/fifth_engine_e2e.mp4
 
 Plan 2 (블렌드):
-  발화 강도(RMS)에 따라 closed_src / open_src 프레임을 픽셀 alpha 블렌드.
-  - 무음(env 낮음, w=0) → closed_src 프레임 → 완전히 닫힘
-  - 발화(env 높음, w=1) → open_src 프레임 → 치아 자연스러움
-  - 중간 → 두 프레임 addWeighted 블렌드
+  --blend-region mouth (기본, v6):
+    얼굴·배경은 항상 open_src 단일 프레임 사용 → 부들거림 원천 제거.
+    입 영역 마스크 M만 closed/open 블렌드.
+    - 무음(w=0): 입 영역 = closed_src(다묾) / 나머지 = open_src
+    - 발화(w=1): 전체 = open_src (치아, 단일 소스 → 완전 잔상 없음)
+    - 중간: 입 영역만 살짝 블렌드
+    식: out = frame_open*(1-M) + (frame_closed*(1-w) + frame_open*w)*M
+      = frame_open + M*(frame_closed*(1-w) - frame_open*(1-w))
+      = frame_open*(1 - M*(1-w)) + frame_closed*(M*(1-w))
+
+  --blend-region full (구 align_v2):
+    전체 프레임 addWeighted 블렌드 (얼굴/배경 포함).
+    부들거림 발생 가능. 회귀·비교용 유지.
+
   pipe 1개 공유 (VRAM 절약), source 스왑 렌더.
   first_frame 은 source별 독립 (closed_first_frame / open_first_frame).
 
   [v4] --align-sources 플래그:
     closed_src 를 open_src 의 crop box(M_o2c)로 강제 재크롭 → 두 source 출력 얼굴
     크기/위치를 통일해 블렌드 jitter 제거.
-    진단 실측: closed M_c2o_s=0.8662 vs open=0.9340 (ratio=0.9274, 7.3% 차이)
-    → 미적용 시 w 0↔1 전환에서 얼굴 7.3% 도약 발생.
 
-  [v4] --w-sigma 블렌드 가중치 Gaussian 스무딩 (기본 1.0):
-    w 시퀀스에 gaussian_filter1d(sigma) 적용 → 무음↔발화 전환 부드럽게.
+  [v6] --blend-region mouth:
+    입 landmark(48~107) convexHull + dilate + GaussianBlur feather 마스크.
+    얼굴·배경은 항상 open_src 단일 → 부들거림 없음.
 
 Plan 1 (단일): --closed-src 미지정 시 기존 동작 유지 (회귀 안전).
 """
@@ -84,12 +103,41 @@ def main():
         default=1.0,
         help="[v4] 블렌드 가중치 w 시퀀스 Gaussian 스무딩 sigma (0=비활성). 기본 1.0.",
     )
+    ap.add_argument(
+        "--blend-region",
+        choices=["mouth", "full"],
+        default="mouth",
+        help=(
+            "[v6] 블렌드 영역. "
+            "'mouth'(기본): 입 마스크 영역만 블렌드 → 얼굴/배경 단일(open_src), 부들거림 없음. "
+            "'full'(구 align_v2): 전체 addWeighted 블렌드 (비교·회귀용)."
+        ),
+    )
+    ap.add_argument(
+        "--mouth-dilate",
+        type=int,
+        default=28,
+        help="[v6] 입 마스크 dilate 픽셀 (기본 28). 크게 할수록 입 주변 더 넓게 포함.",
+    )
+    ap.add_argument(
+        "--mouth-feather",
+        type=int,
+        default=22,
+        help="[v6] 입 마스크 GaussianBlur feather sigma (기본 22). 클수록 경계 더 부드러움.",
+    )
+    ap.add_argument(
+        "--save-frames",
+        default=None,
+        help="[v6] 프레임 png 저장 디렉토리 경로. 지정 시 매 프레임 png 저장.",
+    )
     args = ap.parse_args()
 
     blend_mode = args.closed_src is not None
+    blend_region = args.blend_region if blend_mode else "n/a"
     print(
         f"[mode] {'Plan 2 블렌드' if blend_mode else 'Plan 1 단일'}"
-        + (f" align_sources={args.align_sources} align_mode={args.align_mode} w_sigma={args.w_sigma}" if blend_mode else ""),
+        + (f" blend_region={blend_region} align_sources={args.align_sources} "
+           f"align_mode={args.align_mode} w_sigma={args.w_sigma}" if blend_mode else ""),
         flush=True,
     )
 
@@ -223,9 +271,44 @@ def main():
             print(f"[w_smooth] sigma={args.w_sigma}  w_seq max={w_seq.max():.3f} mean={w_seq.mean():.3f}", flush=True)
 
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+        if args.save_frames:
+            os.makedirs(args.save_frames, exist_ok=True)
+            print(f"[save_frames] 프레임 png 저장 경로: {args.save_frames}", flush=True)
         raw = args.out.replace(".mp4", "_raw.mp4")
         vout = cv2.VideoWriter(raw, cv2.VideoWriter_fourcc(*"mp4v"), cfg.fps, (512, 512))
         render_times = []
+
+        # [v6] 입마스크 모드: open_src lmk를 한 번만 추출 (정렬 후 고정 lmk 사용)
+        # 입 위치는 open_src 기준 (aligned closed와 lmk 일치 — 정렬 보장)
+        _mouth_mask_lmk = None
+        if blend_region == "mouth":
+            try:
+                _open_lmk = open_s["src_info"][0][1]  # (N,2) crop 좌표계
+                _mouth_mask_lmk = _open_lmk
+                print(
+                    f"[mouth_mask] open_src lmk shape={_open_lmk.shape}  "
+                    f"dilate={args.mouth_dilate}  feather={args.mouth_feather}",
+                    flush=True,
+                )
+                # 마스크 1회 생성 (입 위치 고정 — landmark는 static source 기준)
+                _M_static = eng.build_mouth_mask(
+                    _mouth_mask_lmk, img_size=512,
+                    dilate_px=args.mouth_dilate,
+                    feather_sigma=args.mouth_feather,
+                )
+                print(
+                    f"[mouth_mask] 생성완료  mask max={_M_static.max():.3f} "
+                    f"nonzero_ratio={(_M_static > 0.1).mean():.3f}",
+                    flush=True,
+                )
+            except Exception as e:
+                import traceback
+                print(f"[mouth_mask] lmk 추출 실패({e}) → full blend 폴백", flush=True)
+                traceback.print_exc()
+                blend_region = "full"
+                _M_static = None
+        else:
+            _M_static = None
 
         # first_frame 은 source별 독립 상태 유지
         closed_first = True
@@ -239,20 +322,9 @@ def main():
 
             t0 = time.perf_counter()
 
-            # closed_src 렌더 (w < 1 일 때만 — w=1이면 완전 open)
-            frame_closed = None
-            if w < 1.0:
-                frame_closed = eng.render(
-                    ml[ji], ce[ji] if ce else None, cdl_c,
-                    first_frame=closed_first,
-                    src_img=closed_s["src_img"],
-                    src_info=closed_s["src_info"],
-                )
-                closed_first = False
-
-            # open_src 렌더 (w > 0 일 때만 — w=0이면 완전 closed)
-            frame_open = None
-            if w > 0.0:
+            if blend_region == "mouth":
+                # ---- [v6] 입마스크 블렌드 ----
+                # open_src는 항상 렌더 (얼굴/배경 기반, 발화 시 입도 이걸로)
                 frame_open = eng.render(
                     ml[ji], ce[ji] if ce else None, cdl_o,
                     first_frame=open_first,
@@ -261,20 +333,83 @@ def main():
                 )
                 open_first = False
 
-            elapsed_ms = (time.perf_counter() - t0) * 1000
-            render_times.append(elapsed_ms)
+                # closed_src는 w < 1.0일 때만 (완전 발화면 입도 open_src)
+                frame_closed = None
+                if w < 1.0 - 1e-4:
+                    frame_closed = eng.render(
+                        ml[ji], ce[ji] if ce else None, cdl_c,
+                        first_frame=closed_first,
+                        src_img=closed_s["src_img"],
+                        src_info=closed_s["src_info"],
+                    )
+                    closed_first = False
 
-            # 블렌드 합성 (둘 다 None이면 폴백 없음 — 프레임 스킵)
-            if frame_closed is not None and frame_open is not None:
-                # cv2.addWeighted: uint8 기대 → RGB uint8 변환
-                fc_u8 = frame_closed.astype(np.uint8)
-                fo_u8 = frame_open.astype(np.uint8)
-                blended = cv2.addWeighted(fc_u8, 1.0 - w, fo_u8, w, 0)
-                vout.write(cv2.cvtColor(blended, cv2.COLOR_RGB2BGR))
-            elif frame_open is not None:
-                vout.write(cv2.cvtColor(frame_open.astype(np.uint8), cv2.COLOR_RGB2BGR))
-            elif frame_closed is not None:
-                vout.write(cv2.cvtColor(frame_closed.astype(np.uint8), cv2.COLOR_RGB2BGR))
+                elapsed_ms = (time.perf_counter() - t0) * 1000
+                render_times.append(elapsed_ms)
+
+                if frame_open is not None:
+                    fo_f32 = frame_open.astype(np.float32)
+
+                    if frame_closed is not None and _M_static is not None:
+                        # 입마스크 블렌드 공식:
+                        # mouth_region = frame_closed*(1-w) + frame_open*w  (w=0→closed입, w=1→open입)
+                        # out = frame_open*(1-M) + mouth_region*M
+                        #     = frame_open + M*(mouth_region - frame_open)
+                        #     = frame_open + M*(frame_closed*(1-w) - frame_open*(1-w))
+                        #     = frame_open*(1 - M*(1-w)) + frame_closed*(M*(1-w))
+                        fc_f32 = frame_closed.astype(np.float32)
+                        alpha = _M_static * (1.0 - w)  # (H,W,1), 무음=M, 발화=0
+                        out_f32 = fo_f32 * (1.0 - alpha) + fc_f32 * alpha
+                        out_u8 = np.clip(out_f32, 0, 255).astype(np.uint8)
+                    else:
+                        # closed 렌더 없음(w≈1) → 순수 open_src
+                        out_u8 = fo_f32.astype(np.uint8)
+
+                    if args.save_frames:
+                        png_path = os.path.join(args.save_frames, f"frame_{i:05d}.png")
+                        cv2.imwrite(png_path, cv2.cvtColor(out_u8, cv2.COLOR_RGB2BGR))
+                    vout.write(cv2.cvtColor(out_u8, cv2.COLOR_RGB2BGR))
+
+            else:
+                # ---- full blend (구 align_v2) ----
+                # closed_src 렌더 (w < 1 일 때만 — w=1이면 완전 open)
+                frame_closed = None
+                if w < 1.0:
+                    frame_closed = eng.render(
+                        ml[ji], ce[ji] if ce else None, cdl_c,
+                        first_frame=closed_first,
+                        src_img=closed_s["src_img"],
+                        src_info=closed_s["src_info"],
+                    )
+                    closed_first = False
+
+                # open_src 렌더 (w > 0 일 때만 — w=0이면 완전 closed)
+                frame_open = None
+                if w > 0.0:
+                    frame_open = eng.render(
+                        ml[ji], ce[ji] if ce else None, cdl_o,
+                        first_frame=open_first,
+                        src_img=open_s["src_img"],
+                        src_info=open_s["src_info"],
+                    )
+                    open_first = False
+
+                elapsed_ms = (time.perf_counter() - t0) * 1000
+                render_times.append(elapsed_ms)
+
+                # 블렌드 합성 (둘 다 None이면 폴백 없음 — 프레임 스킵)
+                if frame_closed is not None and frame_open is not None:
+                    fc_u8 = frame_closed.astype(np.uint8)
+                    fo_u8 = frame_open.astype(np.uint8)
+                    blended = cv2.addWeighted(fc_u8, 1.0 - w, fo_u8, w, 0)
+                    if args.save_frames:
+                        png_path = os.path.join(args.save_frames, f"frame_{i:05d}.png")
+                        cv2.imwrite(png_path, cv2.cvtColor(blended, cv2.COLOR_RGB2BGR))
+                    vout.write(cv2.cvtColor(blended, cv2.COLOR_RGB2BGR))
+                elif frame_open is not None:
+                    vout.write(cv2.cvtColor(frame_open.astype(np.uint8), cv2.COLOR_RGB2BGR))
+                elif frame_closed is not None:
+                    vout.write(cv2.cvtColor(frame_closed.astype(np.uint8), cv2.COLOR_RGB2BGR))
 
             if i % 25 == 0:
                 print(
