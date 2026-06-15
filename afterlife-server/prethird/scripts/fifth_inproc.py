@@ -22,11 +22,14 @@ from __future__ import annotations
 
 import http.client
 import json
+import logging
 import os
 import struct
 import threading
 import urllib.parse
 from typing import Callable
+
+logger = logging.getLogger(__name__)
 
 def _read_exactly(read_fn: Callable[[int], bytes], n: int) -> bytes:
     """소켓 부분 read 대비 정확히 n바이트를 모으는 헬퍼."""
@@ -106,11 +109,16 @@ class FifthInproc:
         except Exception:
             return False
 
-    def _open_render_stream(self, wav_path: str, video_path: str) -> Callable[[int], bytes]:
-        """POST /oth-path 요청 후 read_exactly 콜백 반환.
+    def _open_render_stream(
+        self, wav_path: str, video_path: str
+    ) -> tuple[Callable[[int], bytes], http.client.HTTPConnection]:
+        """POST /oth-path 요청 후 (read_exactly, conn) 반환.
 
-        반환된 콜백은 http.client.HTTPResponse.read 기반.
-        소켓 부분 read 대비 _read_exactly 래핑 포함.
+        conn 수명: infer()가 스트림 전체를 소비하는 동안 유지돼야 한다.
+        호출자(infer)가 finally 에서 conn.close()를 반드시 호출해야 함.
+
+        status != 200 이면 그 자리에서 conn.close() 후 RuntimeError — 이 경우만
+        _open_render_stream 내부에서 닫는다(람다 반환이 없으므로 안전).
         """
         body = self._build_body(wav_path, video_path)
         parsed = urllib.parse.urlparse(self.render_url)
@@ -125,11 +133,13 @@ class FifthInproc:
         )
         resp = conn.getresponse()
         if resp.status != 200:
+            err_body = resp.read(256)
+            conn.close()  # status!=200: 람다 반환 안 하므로 즉시 닫음
             raise RuntimeError(
-                f"렌더서버 /render 오류: HTTP {resp.status} — {resp.read(256)!r}"
+                f"렌더서버 /render 오류: HTTP {resp.status} — {err_body!r}"
             )
         raw_read = resp.read  # http.client response.read(n)
-        return lambda n: _read_exactly(raw_read, n)
+        return lambda n: _read_exactly(raw_read, n), conn
 
     def _build_body(self, wav_path: str, video_path: str) -> dict:
         """렌더 요청 body 구성. 향후 wav_b64 확장 지점."""
@@ -185,10 +195,20 @@ class FifthInproc:
             raise RuntimeError("FifthInproc.load() 를 먼저 호출하세요.")
         vp = video_path if video_path is not None else self.video_path
         with self._infer_lock:
-            read_exactly = self._open_render_stream(wav_path, vp)
+            read_exactly, conn = self._open_render_stream(wav_path, vp)
             count = 0
-            for jpeg_bytes in parse_frame_stream(read_exactly):
-                rgb = self._decode_jpeg(jpeg_bytes)
-                on_frame(rgb)
-                count += 1
+            try:
+                for jpeg_bytes in parse_frame_stream(read_exactly):
+                    rgb = self._decode_jpeg(jpeg_bytes)
+                    on_frame(rgb)
+                    count += 1
+            finally:
+                conn.close()
+            if count == 0:
+                logger.warning(
+                    "FifthInproc.infer: 프레임 0개 반환 — wav_path=%s video_path=%s. "
+                    "렌더서버 silent 실패 가능성. 상위에서 무음 fallback 처리 권장.",
+                    wav_path,
+                    vp,
+                )
             return count

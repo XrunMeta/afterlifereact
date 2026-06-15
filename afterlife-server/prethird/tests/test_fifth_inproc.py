@@ -6,6 +6,7 @@ GPU·cv2·requests 없이 훅(_check_health / _open_render_stream / _decode_jpeg
 from __future__ import annotations
 
 import io
+import logging
 import pathlib
 import struct
 import sys
@@ -92,6 +93,12 @@ def test_load_idempotent():
     assert len(calls) == 1
 
 
+class _NoopConn:
+    """테스트용 더미 conn — close()가 no-op."""
+    def close(self):
+        pass
+
+
 def test_infer_posts_parses_decodes_frames():
     f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
     f._check_health = lambda: True
@@ -102,7 +109,7 @@ def test_infer_posts_parses_decodes_frames():
         b"".join(struct.pack(">I", len(j)) + j for j in jpegs)
         + struct.pack(">I", 0)
     )
-    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n))
+    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _NoopConn())
     f._decode_jpeg = lambda b: np.zeros((4, 4, 3), np.uint8)
 
     got = []
@@ -121,7 +128,7 @@ def test_infer_on_frame_receives_rgb_ndarray():
         b"".join(struct.pack(">I", len(j)) + j for j in jpegs)
         + struct.pack(">I", 0)
     )
-    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n))
+    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _NoopConn())
     expected = np.ones((8, 8, 3), np.uint8) * 42
     f._decode_jpeg = lambda b: expected
 
@@ -142,7 +149,7 @@ def test_infer_uses_self_video_path_when_none():
     def fake_open(wav, vp):
         captured_vp.append(vp)
         buf = io.BytesIO(struct.pack(">I", 0))
-        return lambda n: buf.read(n)
+        return lambda n: buf.read(n), _NoopConn()
 
     f._open_render_stream = fake_open
     f._decode_jpeg = lambda b: np.zeros((1, 1, 3), np.uint8)
@@ -161,7 +168,7 @@ def test_infer_uses_override_video_path():
     def fake_open(wav, vp):
         captured_vp.append(vp)
         buf = io.BytesIO(struct.pack(">I", 0))
-        return lambda n: buf.read(n)
+        return lambda n: buf.read(n), _NoopConn()
 
     f._open_render_stream = fake_open
     f._decode_jpeg = lambda b: np.zeros((1, 1, 3), np.uint8)
@@ -176,13 +183,81 @@ def test_infer_returns_zero_frames_on_empty_stream():
     f.load()
 
     buf = io.BytesIO(struct.pack(">I", 0))
-    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n))
+    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _NoopConn())
     f._decode_jpeg = lambda b: np.zeros((1, 1, 3), np.uint8)
 
     got = []
     n = f.infer("/s.wav", on_frame=got.append)
     assert n == 0
     assert got == []
+
+
+def test_infer_zero_frames_emits_warning(caplog):
+    """프레임 0개 반환 시 WARNING 로그 발생."""
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
+    f._check_health = lambda: True
+    f.load()
+
+    buf = io.BytesIO(struct.pack(">I", 0))
+    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _NoopConn())
+    f._decode_jpeg = lambda b: np.zeros((1, 1, 3), np.uint8)
+
+    with caplog.at_level(logging.WARNING, logger="fifth_inproc"):
+        f.infer("/s.wav", on_frame=lambda x: None)
+
+    assert any("프레임 0개" in r.message for r in caplog.records), (
+        f"WARNING 로그 미발생. 기록된 로그: {[r.message for r in caplog.records]}"
+    )
+
+
+def test_infer_conn_closed_after_stream(monkeypatch):
+    """infer() 완료 후 conn.close() 정확히 1회 호출."""
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
+    f._check_health = lambda: True
+    f.load()
+
+    jpegs = [b"J1"]
+    buf = io.BytesIO(
+        b"".join(struct.pack(">I", len(j)) + j for j in jpegs)
+        + struct.pack(">I", 0)
+    )
+
+    close_count = []
+
+    class _CountingConn:
+        def close(self):
+            close_count.append(1)
+
+    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _CountingConn())
+    f._decode_jpeg = lambda b: np.zeros((4, 4, 3), np.uint8)
+
+    f.infer("/s.wav", on_frame=lambda x: None)
+    assert len(close_count) == 1, f"conn.close() 호출 횟수 기대 1, 실제 {len(close_count)}"
+
+
+def test_infer_conn_closed_on_parse_error():
+    """스트림 파싱 중 예외 발생해도 conn.close() 호출."""
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
+    f._check_health = lambda: True
+    f.load()
+
+    # 헤더는 length=10인데 데이터 2바이트만 — ValueError 유발
+    bad = struct.pack(">I", 10) + b"sh"
+    buf = io.BytesIO(bad)
+
+    close_count = []
+
+    class _CountingConn:
+        def close(self):
+            close_count.append(1)
+
+    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _CountingConn())
+    f._decode_jpeg = lambda b: np.zeros((4, 4, 3), np.uint8)
+
+    with pytest.raises(Exception):
+        f.infer("/s.wav", on_frame=lambda x: None)
+
+    assert len(close_count) == 1, "예외 경로에서도 conn.close() 1회 필수"
 
 
 def test_infer_signature_matches_musetalk():
