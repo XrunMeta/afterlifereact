@@ -270,6 +270,52 @@ def main():
     nj = dri["n_frames"]
     print(f"[joyvasa] n_frames={nj} c_eyes={'yes' if ce_raw else 'no'}", flush=True)
 
+    # --- 3c. 머리 motion 시간축 스무딩 (FIFTH_HEAD_SMOOTH, 기본 0=off) ---
+    # 목적: 진폭(범위)은 유지하되 프레임간 변화 속도(급격한 흔들림)만 완화.
+    # 대상: R (1,3,3) rotation, t (1,3) translation — 머리 움직임 성분.
+    # 방법: 프레임축으로 stack → gaussian_filter1d(axis=0) → 원소 dict로 복원.
+    # 진폭 보존: sigma를 보수적으로 설정 (2~5 권장). 과도한 sigma는 피크 깎임 발생.
+    # exp(표정)은 입 dim을 우리가 c_d_lip으로 덮으므로 스무딩 대상에서 제외.
+    # env: FIFTH_HEAD_SMOOTH=<sigma float> (0=off, 회귀 안전)
+    _head_smooth_sigma = float(os.environ.get("FIFTH_HEAD_SMOOTH", "0"))
+    if _head_smooth_sigma > 0.0 and nj > 1:
+        from scipy.ndimage import gaussian_filter1d as _gf1d_head
+
+        # R: (nj, 3, 3), t: (nj, 3) 로 stack
+        _R_stack = np.stack([ml[i]["R"][0] for i in range(nj)], axis=0)   # (nj,3,3)
+        _t_stack = np.stack([ml[i]["t"][0] for i in range(nj)], axis=0)   # (nj,3)
+
+        # 스무딩 전 std 기록 (진폭 정량)
+        _R_std_before = _R_stack.std(axis=0).mean()
+        _t_std_before = _t_stack.std(axis=0).mean()
+
+        # 프레임축(axis=0) gaussian 스무딩
+        _R_smooth = _gf1d_head(_R_stack.astype(np.float64), sigma=_head_smooth_sigma, axis=0).astype(np.float32)
+        _t_smooth = _gf1d_head(_t_stack.astype(np.float64), sigma=_head_smooth_sigma, axis=0).astype(np.float32)
+
+        # 스무딩 후 std
+        _R_std_after = _R_smooth.std(axis=0).mean()
+        _t_std_after = _t_smooth.std(axis=0).mean()
+
+        print(
+            f"[head_smooth] sigma={_head_smooth_sigma}  "
+            f"R_std: {_R_std_before:.6f} → {_R_std_after:.6f} "
+            f"(ratio={_R_std_after/_R_std_before:.3f})  "
+            f"t_std: {_t_std_before:.6f} → {_t_std_after:.6f} "
+            f"(ratio={_t_std_after/_t_std_before:.3f})",
+            flush=True,
+        )
+
+        # 복원: ml 원소 R, t 교체 (deepcopy 없이 직접 치환 — render()에서 deepcopy함)
+        for i in range(nj):
+            ml[i]["R"] = _R_smooth[i:i+1]  # (1,3,3)
+            ml[i]["t"] = _t_smooth[i:i+1]  # (1,3)
+    else:
+        if _head_smooth_sigma > 0.0:
+            print(f"[head_smooth] sigma={_head_smooth_sigma} but nj={nj} ≤ 1, 스킵", flush=True)
+        else:
+            print("[head_smooth] FIFTH_HEAD_SMOOTH=0 (off)", flush=True)
+
     # --- 3b. idle 눈 깜빡임 시퀀스 생성 (FIFTH_BLINK=1 기본) ---
     _blink_enabled = os.environ.get("FIFTH_BLINK", "1") == "1"
     _blink_interval = float(os.environ.get("FIFTH_BLINK_INTERVAL", "3.2"))
