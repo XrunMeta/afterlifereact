@@ -108,7 +108,7 @@ def mouth_open_score(pts: dict) -> float:
 def load_or_extract_sources(
     video_path: str,
     cache_root: str,
-    clone_id: int,
+    clone_id: int | str,
     extract_fn: Callable,
 ) -> dict:
     """clone_id 별 open/closed 소스를 캐시에서 로드하거나 추출 후 캐시한다.
@@ -116,7 +116,8 @@ def load_or_extract_sources(
     Args:
         video_path: 클론 idle 영상 경로(캐시 미스 시에만 사용).
         cache_root: 캐시 루트 디렉토리. 실제 캐시는 {cache_root}/{clone_id}/.
-        clone_id: 클론 식별자.
+        clone_id: 클론 식별자. int 또는 str 모두 허용 — 내부에서 str(clone_id)로
+            디렉토리를 생성하므로 문자열 키도 동작한다.
         extract_fn: video_path -> (open_bgr, closed_bgr|None, FrameSelection).
             GPU/landmark 검출에 의존하는 실제 추출(주입).
 
