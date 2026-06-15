@@ -10,6 +10,7 @@ GPU/landmark 검출에 직접 의존하지 않음 — 실제 검출은 호출자
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -53,8 +54,16 @@ def select_open_closed(scores: np.ndarray, open_threshold: float) -> FrameSelect
     closed_idx = int(np.argmin(scores))
     open_score = float(scores[open_idx])
     if open_score < open_threshold:
+        # 단일모드 폴백: open_score는 "선택된(가장 닫힌) 프레임의 스코어"이지
+        # 영상 최대 스코어가 아님 — 소비자가 blend open_score와 혼동하지 말 것.
         return FrameSelection(
             open_idx=closed_idx, closed_idx=None,
+            mode="single", open_score=open_score,
+        )
+    # Item 4a: 동일 스코어(argmax==argmin) → blend가 무의미, single 강등
+    if open_idx == closed_idx:
+        return FrameSelection(
+            open_idx=open_idx, closed_idx=None,
             mode="single", open_score=open_score,
         )
     return FrameSelection(
@@ -80,8 +89,11 @@ def mouth_open_score(pts: dict) -> float:
     """
     ux, uy = pts["upper"]
     lx, ly = pts["lower"]
-    leftx, _ = pts["left"]
-    rightx, _ = pts["right"]
+    leftx, lefty = pts["left"]
+    rightx, righty = pts["right"]
+    # Item 1: NaN/inf 방어 — 좌표 4점 중 하나라도 유한하지 않으면 0.0 반환
+    if not all(math.isfinite(v) for v in (ux, uy, lx, ly, leftx, lefty, rightx, righty)):
+        return 0.0
     width = abs(rightx - leftx)
     if width <= 1e-6:
         return 0.0
@@ -118,13 +130,24 @@ def load_or_extract_sources(
     if meta_path.is_file() and open_path.is_file():
         meta = json.loads(meta_path.read_text())
         closed_path = clone_dir / "closed.png"
-        has_closed = meta.get("mode") == "blend" and closed_path.is_file()
-        return {
-            "mode": meta.get("mode", "single"),
-            "open_path": str(open_path),
-            "closed_path": str(closed_path) if has_closed else None,
-            "open_score": float(meta.get("open_score", 0.0)),
-        }
+        # Item 2: 캐시 무결성 검사 — blend 모드인데 closed.png 없으면 손상 캐시 → 재추출
+        mode_in_meta = meta.get("mode", "single")
+        if mode_in_meta == "blend" and not closed_path.is_file():
+            pass  # fall through to re-extract
+        else:
+            has_closed = mode_in_meta == "blend" and closed_path.is_file()
+            return {
+                "mode": mode_in_meta,
+                "open_path": str(open_path),
+                "closed_path": str(closed_path) if has_closed else None,
+                "open_score": float(meta.get("open_score", 0.0)),
+            }
+
+    # Item 3: 캐시 미스 경로 — cv2 없으면 명확한 에러
+    if cv2 is None:
+        raise RuntimeError(
+            "cv2 미설치 — 영상 추출은 cv2 필요(가비아 컨테이너에서 실행)"
+        )
 
     open_bgr, closed_bgr, sel = extract_fn(video_path)
     clone_dir.mkdir(parents=True, exist_ok=True)
@@ -167,6 +190,11 @@ def make_extract_fn(detect_lmk: Callable, open_threshold: float = 0.20,
     UPPER, LOWER, LEFT, RIGHT = 51, 57, 48, 54
 
     def _extract(video_path: str):
+        # Item 3: make_extract_fn 내부에서도 cv2 없으면 명확한 에러
+        if cv2 is None:
+            raise RuntimeError(
+                "cv2 미설치 — 영상 추출은 cv2 필요(가비아 컨테이너에서 실행)"
+            )
         cap = cv2.VideoCapture(video_path)
         frames, scores = [], []
         idx = 0
@@ -188,7 +216,10 @@ def make_extract_fn(detect_lmk: Callable, open_threshold: float = 0.20,
             idx += 1
         cap.release()
         if not frames:
-            raise RuntimeError(f"얼굴 검출 프레임 0개: {video_path}")
+            # Item 5: 진단 메시지에 시도 프레임 수·검출 성공 수 포함
+            raise RuntimeError(
+                f"얼굴 검출 프레임 0개: {video_path} (시도 {idx} 프레임, 성공 0)"
+            )
         sel = select_open_closed(np.array(scores, dtype=np.float32), open_threshold)
         open_bgr = frames[sel.open_idx]
         closed_bgr = frames[sel.closed_idx] if sel.closed_idx is not None else None
