@@ -72,14 +72,14 @@ def _build_pipeline_factory():
     from pipeline import DialoguePipeline
 
     renderer_name = _select_renderer_name()
-    mt = _build_renderer(renderer_name, video_path)
+    renderer = _build_renderer(renderer_name, video_path)
     log.info("renderer=%s loaded", renderer_name)
 
     default_se = os.environ.get("PRETHIRD_TTS_SE_PATH", "") or None
 
     def factory(sess):
         persona_messages, se_path = _resolve_persona_se(sess, default_se)
-        # 클론별 video_path를 infer_fn 클로저로 주입 (None이면 mt 기본 halbae)
+        # 클론별 video_path를 infer_fn 클로저로 주입 (None이면 renderer 기본 halbae)
         # 파일이 실제 존재할 때만 사용 — 없으면 None → halbae fallback (turn 사망 방지)
         _raw_vp = getattr(sess, "video_path", None)
         _vp = _raw_vp if (_raw_vp and os.path.isfile(_raw_vp)) else None
@@ -87,7 +87,7 @@ def _build_pipeline_factory():
             log.warning("video_path 파일 없음, halbae fallback: %s", _raw_vp)
 
         def _infer_fn(wav, cb, _vp=_vp):
-            return mt.infer(wav, cb, video_path=_vp)
+            return renderer.infer(wav, cb, video_path=_vp)
         return DialoguePipeline(
             video_track=sess.video_track,
             audio_track=sess.audio_track,
