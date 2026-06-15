@@ -1,165 +1,178 @@
-"""fifth in-process 래퍼 — prethird 입싱크를 musetalk 대신 fifth 로 구동.
+"""fifth_inproc.py — prethird 입싱크 HTTP 클라이언트 래퍼 (v2, 렌더 분리).
 
-MuseTalkInproc 와 동일 계약: load() 1회, infer(wav, on_frame, video_path) -> int.
-fifth 렌더 코어(fifth/scripts)를 sys.path 로 import 한다.
+컨테이너 렌더서버(fifth_render_server.py)에 HTTP POST /oth-path 요청을 보내고
+프레임 스트림을 파싱해 on_frame(rgb_ndarray)을 호출한다.
 
-다중클론 정합 설계:
-  - _sources_cache: dict[str, prepared_sources] — video_path별 소스 보관.
-  - load()가 기본 클론(self.video_path) prewarm → TTFF 흡수.
-  - infer()마다 해당 video_path 캐시 조회·miss 시 _prepare → _sources_cache에 저장.
-  - _infer_lock: GPU 직렬화(musetalk _infer_lock 과 동일 패턴).
-  - self._sources 단일 필드 없음 — 다중클론 얼굴 누수 원천 차단.
+musetalk_inproc.py 와 동일 계약:
+  load() 1회, infer(wav_path, on_frame, video_path) -> int.
 
-사전조건:
-  - FifthConfig.from_env()는 load() 호출 시점의 환경변수를 읽으므로
-    FIFTH_* env 는 load() 이전에 모두 세팅돼 있어야 한다.
+프로토콜:
+  - POST {render_url}/render  body={"wav_path": "...", "video_path": "..."}
+  - 응답 body: [4바이트 big-endian 길이][jpeg bytes] 반복, [4바이트 0] 종료.
+  - GET {render_url}/health → 200.
+
+환경변수:
+  FIFTH_RENDER_URL   — 렌더서버 URL 기본값 (default: http://127.0.0.1:8810)
+
+HTTP: 표준라이브러리 http.client 사용 (requests 의존 제거).
+cv2: 가비아 musetalk conda env에 존재하나 prethird-venv에 미설치 가능성 대비.
+     _decode_jpeg(bytes) -> rgb_ndarray 훅을 분리해 테스트에서 오버라이드 가능.
 """
 from __future__ import annotations
 
+import http.client
+import json
 import os
-import sys
+import struct
 import threading
-from pathlib import Path
+import urllib.parse
 from typing import Callable
 
-FIFTH_SCRIPTS_DIR = os.environ.get(
-    "FIFTH_SCRIPTS_DIR",
-    str(Path(__file__).resolve().parents[2] / "fifth" / "scripts"),
-)
-FIFTH_SOURCE_CACHE = os.environ.get(
-    "FIFTH_SOURCE_CACHE", "/home/afterlife/fifth_sources")
-FIFTH_CFG_YAML = os.environ.get("FIFTH_CFG_YAML", "configs/trt_infer.yaml")
+def _read_exactly(read_fn: Callable[[int], bytes], n: int) -> bytes:
+    """소켓 부분 read 대비 정확히 n바이트를 모으는 헬퍼."""
+    buf = b""
+    while len(buf) < n:
+        chunk = read_fn(n - len(buf))
+        if not chunk:
+            break
+        buf += chunk
+    return buf
 
+def parse_frame_stream(read_exactly: Callable[[int], bytes]):
+    """프레임 스트림 파서 — 순수 함수, read_exactly 콜백 주입.
+
+    Args:
+        read_exactly: 정확히 n바이트를 반환하는 콜백.
+                      소켓/HTTP response.read 등 추상화.
+
+    Yields:
+        jpeg bytes (각 프레임).
+
+    Raises:
+        EOFError: 헤더 도중 스트림 종료.
+        ValueError: payload가 헤더 길이보다 짧음(truncated).
+    """
+    while True:
+        header = read_exactly(4)
+        if len(header) < 4:
+            if len(header) == 0:
+                return  # 스트림 정상 종료
+            raise EOFError(f"프레임 헤더 truncated: 기대 4바이트, 수신 {len(header)}바이트")
+        (length,) = struct.unpack(">I", header)
+        if length == 0:
+            return  # 종료마커
+        payload = read_exactly(length)
+        if len(payload) < length:
+            raise ValueError(
+                f"프레임 payload truncated: 기대 {length}바이트, 수신 {len(payload)}바이트"
+            )
+        yield payload
 
 class FifthInproc:
-    def __init__(self, video_path: str, clone_id: int | None = None,
-                 cache_root: str = FIFTH_SOURCE_CACHE) -> None:
+    """fifth 렌더서버 HTTP 클라이언트.
+
+    musetalk_inproc.FifthInproc(=MuseTalkInproc)과 동일 계약으로 server.py 토글 무변경.
+    """
+
+    def __init__(
+        self,
+        video_path: str,
+        clone_id: int | None = None,
+        render_url: str | None = None,
+    ) -> None:
         self.video_path = video_path
         self.clone_id = clone_id
-        self.cache_root = cache_root
-        self._eng = None
-        self._jp = None
-        self._cfg = None
-        # video_path → prepared sources 캐시 (다중클론 정합 — 단일 _sources 필드 제거)
-        self._sources_cache: dict = {}
+        self.render_url = render_url or os.environ.get(
+            "FIFTH_RENDER_URL", "http://127.0.0.1:8810"
+        )
         self._loaded = False
-        # GPU 추론 직렬화 Lock — musetalk _infer_lock 과 동일 패턴.
-        # 다중클론 동시통화 시 GPU 직렬화로 CUDA 컨텍스트 오염 방지.
         self._infer_lock = threading.Lock()
 
-    def _build_engine(self):
-        if FIFTH_SCRIPTS_DIR not in sys.path:
-            sys.path.insert(0, FIFTH_SCRIPTS_DIR)
-        from flp_engine import FifthFLPEngine  # type: ignore
-        return FifthFLPEngine(FIFTH_CFG_YAML)
+    # ------------------------------------------------------------------
+    # 훅 메서드 (테스트에서 오버라이드)
+    # ------------------------------------------------------------------
 
-    def _build_jp(self):
-        from omegaconf import OmegaConf  # type: ignore
-        from src.pipelines.joyvasa_audio_to_motion_pipeline import JoyVASAAudio2MotionPipeline  # type: ignore
-        jcfg = OmegaConf.load(FIFTH_CFG_YAML)
-        cfg_scale = float(os.environ.get("FIFTH_CFG_SCALE", "2.0"))
-        return JoyVASAAudio2MotionPipeline(
-            motion_model_path=jcfg.joyvasa_models.motion_model_path,
-            audio_model_path=jcfg.joyvasa_models.audio_model_path,
-            motion_template_path=jcfg.joyvasa_models.motion_template_path,
-            cfg_mode=jcfg.infer_params.cfg_mode,
-            cfg_scale=cfg_scale,
+    def _check_health(self) -> bool:
+        """GET {render_url}/health → True(200) / False(그 외)."""
+        parsed = urllib.parse.urlparse(self.render_url)
+        host = parsed.hostname or "127.0.0.1"
+        port = parsed.port or 80
+        path = "/health"
+        try:
+            conn = http.client.HTTPConnection(host, port, timeout=5)
+            conn.request("GET", path)
+            resp = conn.getresponse()
+            return resp.status == 200
+        except Exception:
+            return False
+
+    def _open_render_stream(self, wav_path: str, video_path: str) -> Callable[[int], bytes]:
+        """POST /oth-path 요청 후 read_exactly 콜백 반환.
+
+        반환된 콜백은 http.client.HTTPResponse.read 기반.
+        소켓 부분 read 대비 _read_exactly 래핑 포함.
+        """
+        body = self._build_body(wav_path, video_path)
+        parsed = urllib.parse.urlparse(self.render_url)
+        host = parsed.hostname or "127.0.0.1"
+        port = parsed.port or 80
+        conn = http.client.HTTPConnection(host, port, timeout=120)
+        conn.request(
+            "POST",
+            "/render",
+            body=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json"},
         )
+        resp = conn.getresponse()
+        if resp.status != 200:
+            raise RuntimeError(
+                f"렌더서버 /render 오류: HTTP {resp.status} — {resp.read(256)!r}"
+            )
+        raw_read = resp.read  # http.client response.read(n)
+        return lambda n: _read_exactly(raw_read, n)
 
-    def _clone_key(self, video_path: str) -> str:
-        """video_path 에서 캐시 키(클론 식별 문자열)를 도출한다.
+    def _build_body(self, wav_path: str, video_path: str) -> dict:
+        """렌더 요청 body 구성. 향후 wav_b64 확장 지점."""
+        return {"wav_path": wav_path, "video_path": video_path}
 
-        우선순위:
-          1. self.clone_id가 있고 video_path == self.video_path 면 str(self.clone_id).
-          2. 아니면 부모 디렉토리명 — prethird 자산 관례
-             VIDEO_REF_ROOT/{clone_id}/{clone_id}-idle-25fps.mp4 에서 clone_id 추출.
-          3. 부모 디렉토리명이 비어있으면 파일 stem.
-        """
-        if self.clone_id is not None and video_path == self.video_path:
-            return str(self.clone_id)
-        parent_name = Path(video_path).parent.name
-        if parent_name:
-            return parent_name
-        return Path(video_path).stem
+    def _decode_jpeg(self, jpeg_bytes: bytes):
+        """jpeg bytes → RGB ndarray. cv2 없으면 ImportError."""
+        import cv2  # type: ignore
+        import numpy as np
 
-    def _prepare(self, eng, clone_key: str, video_path: str):
-        """video_path 에서 open/closed 소스를 추출·준비한다.
+        buf = np.frombuffer(jpeg_bytes, dtype=np.uint8)
+        bgr = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+        if bgr is None:
+            raise ValueError("cv2.imdecode 실패 — jpeg 손상 가능성")
+        rgb = bgr[:, :, ::-1]
+        return np.ascontiguousarray(rgb)
 
-        Note: Task5(컨테이너 통합)에서 flp_engine.detect_landmarks 추가 예정.
-        """
-        # Task5에서 flp_engine.detect_landmarks 추가 예정.
-        # 미구현 상태로 load()/infer() 진입 시 AttributeError 대신 명확한 메시지 제공.
-        # GPU import 이전에 guard — 모듈 없는 환경에서도 NotImplementedError가 우선 발생.
-        if not hasattr(eng, "detect_landmarks"):
-            raise NotImplementedError(
-                "FifthFLPEngine.detect_landmarks 미구현 — Task5(컨테이너 통합)에서 보강 예정")
-
-        if FIFTH_SCRIPTS_DIR not in sys.path:
-            sys.path.insert(0, FIFTH_SCRIPTS_DIR)
-        from face_source import make_extract_fn, load_or_extract_sources  # type: ignore
-        from fifth_render import prepare_sources  # type: ignore
-
-        def detect_lmk(bgr):
-            return eng.detect_landmarks(bgr)
-
-        extract_fn = make_extract_fn(detect_lmk)
-        # face_source.load_or_extract_sources는 clone_id를 str(clone_id)로만 사용.
-        # 문자열 키 전달 안전 (int 강제 변환 제거).
-        selection = load_or_extract_sources(
-            video_path=video_path, cache_root=self.cache_root,
-            clone_id=clone_key,
-            extract_fn=extract_fn)
-        return prepare_sources(eng, selection)
-
-    def _stream(self, eng, jp, cfg, sources, wav, on_frame, blink_enabled):
-        if FIFTH_SCRIPTS_DIR not in sys.path:
-            sys.path.insert(0, FIFTH_SCRIPTS_DIR)
-        from fifth_render import stream_wav_frames  # type: ignore
-        return stream_wav_frames(eng, jp, cfg, sources, wav, on_frame,
-                                 blink_enabled=blink_enabled)
-
-    def _load_config(self):
-        """FifthConfig.from_env() 를 호출해 cfg 반환. 테스트에서 오버라이드 가능.
-
-        FifthConfig.from_env()는 load() 호출 시점의 환경변수를 읽으므로
-        FIFTH_* env 는 load() 이전에 모두 세팅돼 있어야 한다.
-        """
-        if FIFTH_SCRIPTS_DIR not in sys.path:
-            sys.path.insert(0, FIFTH_SCRIPTS_DIR)
-        from config import FifthConfig  # type: ignore
-        return FifthConfig.from_env()
+    # ------------------------------------------------------------------
+    # 공개 API
+    # ------------------------------------------------------------------
 
     def load(self) -> None:
-        """엔진 + JoyVASA(warmup) + 기본 클론 소스 prewarm을 startup 1회 수행.
-
-        멱등성 보장: 두 번 호출해도 GPU 재init 없음.
-        기본 클론(self.video_path) prewarm으로 첫 infer TTFF를 흡수한다.
-        self.video_path가 비어있거나 파일이 없으면 prewarm 스킵.
-        """
+        """렌더서버 health 확인. 실패 시 RuntimeError. 멱등성 보장."""
         if self._loaded:
             return
-        self._cfg = self._load_config()
-        self._eng = self._build_engine()
-        self._jp = self._build_jp()
-        # 기본 클론 prewarm (TTFF 흡수) — video_path 유효할 때만
-        if self.video_path and Path(self.video_path).exists():
-            key = self._clone_key(self.video_path)
-            self._sources_cache[self.video_path] = self._prepare(
-                self._eng, key, self.video_path)
+        ok = self._check_health()
+        if not ok:
+            raise RuntimeError(
+                f"FifthInproc.load() 실패 — 렌더서버 응답 없음: {self.render_url}/health"
+            )
         self._loaded = True
 
-    def infer(self, wav_path: str, on_frame: Callable,
-              video_path: str | None = None) -> int:
-        """wav → 프레임 생성마다 on_frame(rgb) 호출. 반환: 프레임 수.
-
-        video_path별 sources 캐시:
-          - 같은 클론 연속 문장: _sources_cache hit → GPU load_source 클론당 1회.
-          - 다른 클론: _prepare 후 _sources_cache에 저장.
-          - _infer_lock: GPU 직렬화(동시통화 CUDA 오염 방지).
+    def infer(
+        self,
+        wav_path: str,
+        on_frame: Callable,
+        video_path: str | None = None,
+    ) -> int:
+        """wav → 프레임 생성마다 on_frame(rgb_ndarray) 호출. 반환: 프레임 수.
 
         Args:
-            wav_path: 추론할 wav 파일 경로.
-            on_frame: RGB ndarray 콜백. AvatarVideoTrack.push_ndarray 와 호환.
+            wav_path:   추론할 wav 파일 경로 (렌더서버가 접근 가능한 공유 경로).
+            on_frame:   RGB ndarray 콜백. AvatarVideoTrack.push_ndarray 호환.
             video_path: 이 호출에서만 사용할 클론 영상 경로. 생략 시 self.video_path.
 
         Returns:
@@ -171,11 +184,11 @@ class FifthInproc:
         if not self._loaded:
             raise RuntimeError("FifthInproc.load() 를 먼저 호출하세요.")
         vp = video_path if video_path is not None else self.video_path
-        if vp not in self._sources_cache:
-            key = self._clone_key(vp)
-            self._sources_cache[vp] = self._prepare(self._eng, key, vp)
-        sources = self._sources_cache[vp]
-        blink = os.environ.get("FIFTH_BLINK", "1") == "1"
         with self._infer_lock:
-            return self._stream(self._eng, self._jp, self._cfg, sources,
-                                wav_path, on_frame, blink)
+            read_exactly = self._open_render_stream(wav_path, vp)
+            count = 0
+            for jpeg_bytes in parse_frame_stream(read_exactly):
+                rgb = self._decode_jpeg(jpeg_bytes)
+                on_frame(rgb)
+                count += 1
+            return count

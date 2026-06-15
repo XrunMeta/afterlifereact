@@ -1,159 +1,191 @@
-"""tests/test_fifth_inproc.py — FifthInproc 계약 단위 테스트.
+"""tests/test_fifth_inproc.py — FifthInproc v2 HTTP 클라이언트 단위 테스트.
 
-GPU·fifth 렌더 코어 없이 메서드 훅(_build_engine/_build_jp/_prepare/_stream/_load_config)
-오버라이드로 계약(load 전 infer 차단, load 후 프레임수 반환·콜백, 시그니처)을 검증한다.
+GPU·cv2·requests 없이 훅(_check_health / _open_render_stream / _decode_jpeg)
+오버라이드로 계약을 검증한다.
 """
 from __future__ import annotations
 
+import io
 import pathlib
+import struct
 import sys
 
 import numpy as np
 import pytest
 
-# prethird scripts 를 sys.path 에 추가 (musetalk_inproc.py 와 동일 패턴)
+# prethird scripts 경로 추가
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 
-from fifth_inproc import FifthInproc  # noqa: E402
+from fifth_inproc import FifthInproc, parse_frame_stream  # noqa: E402
 
+
+# ---------------------------------------------------------------------------
+# parse_frame_stream — 순수 함수 테스트
+# ---------------------------------------------------------------------------
+
+def _make_stream(jpegs: list[bytes]) -> io.BytesIO:
+    buf = b"".join(struct.pack(">I", len(j)) + j for j in jpegs)
+    buf += struct.pack(">I", 0)  # 종료마커
+    return io.BytesIO(buf)
+
+
+def test_parse_frame_stream_yields_jpegs_until_terminator():
+    jpegs = [b"\xff\xd8jpeg1", b"\xff\xd8jpeg2longer"]
+    stream = _make_stream(jpegs)
+    out = list(parse_frame_stream(lambda n: stream.read(n)))
+    assert out == jpegs
+
+
+def test_parse_frame_stream_empty_terminator_only():
+    stream = io.BytesIO(struct.pack(">I", 0))
+    out = list(parse_frame_stream(lambda n: stream.read(n)))
+    assert out == []
+
+
+def test_parse_frame_stream_truncated_raises():
+    # 길이 헤더는 10인데 payload 5바이트만 존재
+    bad = struct.pack(">I", 10) + b"short"
+    stream = io.BytesIO(bad)
+    with pytest.raises(Exception):
+        list(parse_frame_stream(lambda n: stream.read(n)))
+
+
+def test_parse_frame_stream_header_truncated_raises():
+    # 헤더 4바이트 중 2바이트만
+    bad = struct.pack(">H", 0)  # 2바이트
+    stream = io.BytesIO(bad)
+    with pytest.raises(Exception):
+        list(parse_frame_stream(lambda n: stream.read(n)))
+
+
+def test_parse_frame_stream_multiple_frames():
+    jpegs = [b"A" * 100, b"B" * 200, b"C" * 50]
+    stream = _make_stream(jpegs)
+    out = list(parse_frame_stream(lambda n: stream.read(n)))
+    assert out == jpegs
+
+
+# ---------------------------------------------------------------------------
+# FifthInproc — 계약 테스트
+# ---------------------------------------------------------------------------
 
 def test_infer_before_load_raises():
-    f = FifthInproc(video_path="/idle.mp4", clone_id=1, cache_root="/tmp/x")
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
     with pytest.raises(RuntimeError, match="load"):
         f.infer("/s.wav", on_frame=lambda x: None)
 
 
-def test_load_then_infer_streams_frames(tmp_path):
-    """load() prewarm + infer() 흐름.
+def test_load_health_failure_raises():
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://127.0.0.1:9")
+    f._check_health = lambda: False
+    with pytest.raises(RuntimeError):
+        f.load()
 
-    _prepare 오버라이드는 prewarm(load 내부)과 캐시 miss 시 infer 양쪽에서 호출됨.
-    prewarm이 _sources_cache에 넣으므로 이후 동일 video_path infer는 캐시 hit.
-    """
-    video_path = str(tmp_path / "idle.mp4")
-    # prewarm path.exists() 체크 통과용 빈 파일 생성
-    pathlib.Path(video_path).touch()
 
-    f = FifthInproc(video_path=video_path, clone_id=7, cache_root=str(tmp_path))
-
-    # GPU 의존 훅 전부 오버라이드
-    f._load_config = lambda: object()
-    f._build_engine = lambda: "ENG"
-    f._build_jp = lambda: "JP"
-
-    prepare_calls = []
-
-    def fake_prepare(eng, clone_key, vp):
-        prepare_calls.append(vp)
-        return {"mode": "single", "open_s": {}}
-
-    f._prepare = fake_prepare
-
-    def fake_stream(eng, jp, cfg, sources, wav, on_frame, blink_enabled):
-        for _ in range(5):
-            on_frame(np.zeros((512, 512, 3), np.uint8))
-        return 5
-
-    f._stream = fake_stream
-
+def test_load_idempotent():
+    """load() 2회 호출 — _check_health 1회만."""
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
+    calls = []
+    f._check_health = lambda: calls.append(1) or True
     f.load()
-    # prewarm이 _prepare 호출했어야 함
-    assert len(prepare_calls) == 1
+    f.load()
+    assert len(calls) == 1
+
+
+def test_infer_posts_parses_decodes_frames():
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
+    f._check_health = lambda: True
+    f.load()
+
+    jpegs = [b"J1", b"J2", b"J3"]
+    buf = io.BytesIO(
+        b"".join(struct.pack(">I", len(j)) + j for j in jpegs)
+        + struct.pack(">I", 0)
+    )
+    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n))
+    f._decode_jpeg = lambda b: np.zeros((4, 4, 3), np.uint8)
 
     got = []
     n = f.infer("/s.wav", on_frame=got.append)
-    assert n == 5 == len(got)
-    # 동일 video_path는 캐시 hit → _prepare 추가 호출 없음
-    assert len(prepare_calls) == 1
+    assert n == 3 == len(got)
+
+
+def test_infer_on_frame_receives_rgb_ndarray():
+    """on_frame 에 전달되는 값이 ndarray인지 확인."""
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
+    f._check_health = lambda: True
+    f.load()
+
+    jpegs = [b"FAKE_JPEG"]
+    buf = io.BytesIO(
+        b"".join(struct.pack(">I", len(j)) + j for j in jpegs)
+        + struct.pack(">I", 0)
+    )
+    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n))
+    expected = np.ones((8, 8, 3), np.uint8) * 42
+    f._decode_jpeg = lambda b: expected
+
+    received = []
+    f.infer("/s.wav", on_frame=received.append)
+    assert len(received) == 1
+    np.testing.assert_array_equal(received[0], expected)
+
+
+def test_infer_uses_self_video_path_when_none():
+    """video_path 생략 시 self.video_path 사용."""
+    f = FifthInproc(video_path="/default.mp4", render_url="http://x")
+    f._check_health = lambda: True
+    f.load()
+
+    captured_vp = []
+
+    def fake_open(wav, vp):
+        captured_vp.append(vp)
+        buf = io.BytesIO(struct.pack(">I", 0))
+        return lambda n: buf.read(n)
+
+    f._open_render_stream = fake_open
+    f._decode_jpeg = lambda b: np.zeros((1, 1, 3), np.uint8)
+    f.infer("/s.wav", on_frame=lambda x: None)
+    assert captured_vp == ["/default.mp4"]
+
+
+def test_infer_uses_override_video_path():
+    """video_path 명시 시 그것을 전달."""
+    f = FifthInproc(video_path="/default.mp4", render_url="http://x")
+    f._check_health = lambda: True
+    f.load()
+
+    captured_vp = []
+
+    def fake_open(wav, vp):
+        captured_vp.append(vp)
+        buf = io.BytesIO(struct.pack(">I", 0))
+        return lambda n: buf.read(n)
+
+    f._open_render_stream = fake_open
+    f._decode_jpeg = lambda b: np.zeros((1, 1, 3), np.uint8)
+    f.infer("/s.wav", on_frame=lambda x: None, video_path="/override.mp4")
+    assert captured_vp == ["/override.mp4"]
+
+
+def test_infer_returns_zero_frames_on_empty_stream():
+    """렌더서버가 종료마커만 보내면 프레임 0 반환."""
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
+    f._check_health = lambda: True
+    f.load()
+
+    buf = io.BytesIO(struct.pack(">I", 0))
+    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n))
+    f._decode_jpeg = lambda b: np.zeros((1, 1, 3), np.uint8)
+
+    got = []
+    n = f.infer("/s.wav", on_frame=got.append)
+    assert n == 0
+    assert got == []
 
 
 def test_infer_signature_matches_musetalk():
     import inspect
-    sig = inspect.signature(FifthInproc.infer)
-    params = list(sig.parameters)
+    params = list(inspect.signature(FifthInproc.infer).parameters)
     assert params[:4] == ["self", "wav_path", "on_frame", "video_path"]
-
-
-def test_infer_different_video_paths_prepare_per_clone(tmp_path):
-    """다른 video_path로 infer 시 클론별 _prepare 호출 검증.
-
-    - 같은 video_path 2회 infer → _prepare 1회(캐시 hit).
-    - 다른 video_path infer → _prepare 추가 1회.
-    """
-    vp_a = str(tmp_path / "cloneA.mp4")
-    vp_b = str(tmp_path / "cloneB.mp4")
-    pathlib.Path(vp_a).touch()
-    pathlib.Path(vp_b).touch()
-
-    f = FifthInproc(video_path=vp_a, clone_id=10, cache_root=str(tmp_path))
-    f._load_config = lambda: object()
-    f._build_engine = lambda: "ENG"
-    f._build_jp = lambda: "JP"
-
-    prepare_calls = []
-
-    def fake_prepare(eng, clone_key, vp):
-        prepare_calls.append(vp)
-        return {"mode": "single", "open_s": {}, "vp": vp}
-
-    f._prepare = fake_prepare
-
-    def fake_stream(eng, jp, cfg, sources, wav, on_frame, blink_enabled):
-        on_frame(np.zeros((1, 1, 3), np.uint8))
-        return 1
-
-    f._stream = fake_stream
-
-    f.load()
-    # prewarm: vp_a 1회
-    assert prepare_calls == [vp_a]
-
-    # 같은 vp_a 두 번 infer → 캐시 hit, _prepare 추가 호출 없음
-    f.infer("/s.wav", on_frame=lambda x: None, video_path=vp_a)
-    f.infer("/s.wav", on_frame=lambda x: None, video_path=vp_a)
-    assert prepare_calls == [vp_a]
-
-    # 다른 vp_b infer → 캐시 miss, _prepare 추가 호출
-    f.infer("/s.wav", on_frame=lambda x: None, video_path=vp_b)
-    assert prepare_calls == [vp_a, vp_b]
-
-    # vp_b 한 번 더 infer → 캐시 hit
-    f.infer("/s.wav", on_frame=lambda x: None, video_path=vp_b)
-    assert prepare_calls == [vp_a, vp_b]
-
-
-def test_load_idempotent(tmp_path):
-    """load() 2회 호출 시 _build_engine 1회만 호출(멱등성)."""
-    video_path = str(tmp_path / "idle.mp4")
-    pathlib.Path(video_path).touch()
-
-    f = FifthInproc(video_path=video_path, clone_id=5, cache_root=str(tmp_path))
-    f._load_config = lambda: object()
-    f._build_jp = lambda: "JP"
-    f._prepare = lambda eng, key, vp: {"mode": "single", "open_s": {}}
-
-    build_engine_calls = []
-
-    def fake_build_engine():
-        build_engine_calls.append(1)
-        return "ENG"
-
-    f._build_engine = fake_build_engine
-
-    f.load()
-    f.load()  # 두 번째 호출 — _loaded=True 이므로 즉시 return
-
-    assert len(build_engine_calls) == 1
-
-
-def test_prepare_raises_without_detect_landmarks():
-    """detect_landmarks 없는 eng로 _prepare 호출 시 NotImplementedError."""
-    f = FifthInproc(video_path="/idle.mp4", clone_id=1, cache_root="/tmp/x")
-
-    class FakeEng:
-        """detect_landmarks 미구현 엔진(Task5 이전 상태 시뮬)."""
-        pass
-
-    with pytest.raises(NotImplementedError, match="detect_landmarks"):
-        # _prepare는 GPU import 직전에 guard를 타므로
-        # sys.path에 FIFTH_SCRIPTS_DIR이 없어도 guard에서 먼저 raise
-        f._prepare(FakeEng(), "key1", "/idle.mp4")
