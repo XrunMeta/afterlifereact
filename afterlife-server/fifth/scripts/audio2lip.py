@@ -51,9 +51,16 @@ def compute_rms_envelope(y, sr=16000, fps=25, sigma=1.5, silence=0.05, gamma=1.0
     return rms
 
 def rms_to_cdlip(rms, lip_closed, lip_open, open_scale=1.0, offset=0):
-    """RMS envelope → LivePortrait lip-close-ratio(c_d_lip) 시퀀스. offset=싱크 보정(프레임)."""
+    """RMS envelope → LivePortrait lip-close-ratio(c_d_lip) 시퀀스. offset=싱크 보정(프레임).
+
+    출력은 항상 [lip_closed, 1.0] 로 클램프한다(FLP c_d_lip 유효범위 보호):
+      - open_scale<0 등으로 결과가 lip_closed 미만이 되면 입이 역전(음수 구동)되므로 닫힘 baseline 으로 하한.
+      - open_scale>1 증폭 시 1.0 을 넘으면 워핑 왜곡이 생기므로 상한.
+    open_scale=1.0(기본 calm4b)에서는 raw 가 [lip_closed, lip_open]⊂[0,1] 이라 동작 무변경.
+    """
     rms = np.asarray(rms, dtype=np.float32)
     n = len(rms)
     idx = np.clip(np.arange(n) + offset, 0, n - 1)
     shifted = rms[idx]
-    return (lip_closed + shifted * (lip_open - lip_closed) * open_scale).astype(np.float32)
+    raw = lip_closed + shifted * (lip_open - lip_closed) * open_scale
+    return np.clip(raw, lip_closed, 1.0).astype(np.float32)
