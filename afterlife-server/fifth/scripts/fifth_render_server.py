@@ -295,8 +295,9 @@ def main():
     cfg = FifthConfig.from_env()
     logger.info("FifthConfig: %s", cfg)
 
-    logger.info("FifthFLPEngine 로드 중...")
-    eng = FifthFLPEngine()
+    cfg_yaml = os.environ.get("FIFTH_CFG_YAML", "configs/trt_infer.yaml")
+    logger.info("FifthFLPEngine 로드 중... (cfg=%s)", cfg_yaml)
+    eng = FifthFLPEngine(cfg_yaml)
 
     # detect_landmarks 가드
     if not hasattr(eng, "detect_landmarks"):
@@ -306,12 +307,21 @@ def main():
 
     logger.info("JoyVASA 로드 중...")
     try:
-        from joyvasa_wrapper import JoyVASAWrapper  # type: ignore[import]
-        jp = JoyVASAWrapper()
-    except ImportError:
-        # 컨테이너 환경에 따라 경로가 다를 수 있음
-        logger.error("JoyVASAWrapper import 실패. PYTHONPATH 확인 필요.")
+        from omegaconf import OmegaConf
+        from src.pipelines.joyvasa_audio_to_motion_pipeline import JoyVASAAudio2MotionPipeline
+    except ImportError as exc:
+        logger.error("JoyVASAAudio2MotionPipeline import 실패: %s", exc)
         raise
+    jcfg = OmegaConf.load(cfg_yaml)
+    _cfg_scale = float(os.environ.get("FIFTH_CFG_SCALE", "2.0"))
+    jp = JoyVASAAudio2MotionPipeline(
+        motion_model_path=jcfg.joyvasa_models.motion_model_path,
+        audio_model_path=jcfg.joyvasa_models.audio_model_path,
+        motion_template_path=jcfg.joyvasa_models.motion_template_path,
+        cfg_mode=jcfg.infer_params.cfg_mode,
+        cfg_scale=_cfg_scale,
+    )
+    logger.info("JoyVASA 로드 완료 (cfg_scale=%.1f)", _cfg_scale)
 
     detect_lmk = eng.detect_landmarks
 
