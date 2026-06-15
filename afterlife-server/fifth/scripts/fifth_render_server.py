@@ -3,6 +3,11 @@
 호스트 prethird FifthInproc 가 POST /oth-path 로 wav 를 보내면, 프레임을
 [4B big-endian length][jpeg bytes] 청크로 즉시 스트리밍한다. 종료는 length=0.
 GPU(엔진/JoyVASA/detect_landmarks)는 startup 1회 로드.
+
+응답 프로토콜 (POST /oth-path):
+  body = [4B big-endian len][jpeg] 반복 + [4B 0] 종료마커.
+  HTTP chunked 전송 인코딩이 아님 — Connection: close + raw framing.
+  Task3' 클라이언트(FifthInproc)는 연결 끝까지 read하며 len=0까지 프레임 파싱.
 """
 from __future__ import annotations
 
@@ -100,33 +105,48 @@ class RenderService:
         self._stream_wav_fn = _stream_wav_fn
 
         self._sources_cache: dict[str, dict] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.Lock()       # GPU 렌더 직렬화 (단일 스트림)
+        self._cache_lock = threading.Lock() # 소스 캐시 생성 직렬화 (double-checked)
 
     def _get_sources(self, video_path: str) -> dict:
-        """캐시 hit → 반환, miss → 추출 + 준비 + 캐시 저장."""
+        """캐시 hit → 반환 (lock-free fast path), miss → GPU 직렬화 후 준비·캐시 저장.
+
+        double-checked locking:
+          fast path: 캐시에 있으면 즉시 반환 (lock 없음).
+          slow path: _lock(GPU 단일 직렬화) 안에서 재확인 후 없으면 생성.
+          prepare_sources(load_source)도 GPU를 사용하므로 렌더용 _lock으로 통합
+          보호한다 — 별도 _cache_lock으로 분리하면 캐시 생성과 렌더가 동시 GPU
+          접근 가능해 VRAM 충돌이 생기기 때문.
+        """
+        # fast path (lock 없음)
         if video_path in self._sources_cache:
             return self._sources_cache[video_path]
 
-        # load_or_extract_sources 호출
-        if self._load_or_extract_fn is not None:
-            selection = self._load_or_extract_fn(video_path)
-        else:
-            from face_source import load_or_extract_sources, make_extract_fn
-            extract_fn = make_extract_fn(self.detect_lmk)
-            clone_key = _clone_key(video_path)
-            selection = load_or_extract_sources(
-                video_path, self.cache_root, clone_key, extract_fn
-            )
+        # slow path — GPU 직렬화 lock 안에서 double-check
+        with self._lock:
+            if video_path in self._sources_cache:
+                return self._sources_cache[video_path]
 
-        # prepare_sources 호출
-        if self._prepare_sources_fn is not None:
-            sources = self._prepare_sources_fn(selection)
-        else:
-            from fifth_render import prepare_sources
-            sources = prepare_sources(self.engine, selection)
+            # load_or_extract_sources 호출
+            if self._load_or_extract_fn is not None:
+                selection = self._load_or_extract_fn(video_path)
+            else:
+                from face_source import load_or_extract_sources, make_extract_fn
+                extract_fn = make_extract_fn(self.detect_lmk)
+                clone_key = _clone_key(video_path)
+                selection = load_or_extract_sources(
+                    video_path, self.cache_root, clone_key, extract_fn
+                )
 
-        self._sources_cache[video_path] = sources
-        return sources
+            # prepare_sources 호출
+            if self._prepare_sources_fn is not None:
+                sources = self._prepare_sources_fn(selection)
+            else:
+                from fifth_render import prepare_sources
+                sources = prepare_sources(self.engine, selection)
+
+            self._sources_cache[video_path] = sources
+            return sources
 
     def render(
         self,
@@ -135,14 +155,17 @@ class RenderService:
         write: Callable[[bytes], None],
         blink_enabled: bool = True,
     ) -> int:
-        """wav → 프레임 청크 write + 종료마커. 반환: 프레임 수.
+        """wav → 프레임 청크 write. 반환: 프레임 수.
 
         write는 bytes → None 콜백 (wfile.write 또는 BytesIO.write).
-        종료마커(length=0)는 이 메서드에서 1회만 씀.
+        종료마커(length=0)는 호출자(do_POST finally)가 정확히 1회 씀.
+        render()는 프레임 청크만 write하고 종료마커는 쓰지 않는다.
         """
         sources = self._get_sources(video_path)
 
         count = 0
+        # _get_sources 의 slow path가 이미 _lock을 취득 후 반환했으므로,
+        # 여기서는 캐시 hit이 보장된 상태. GPU 렌더 직렬화를 위해 _lock 재취득.
         with self._lock:
             if self._stream_wav_fn is not None:
                 count = self._stream_wav_fn(
@@ -157,8 +180,6 @@ class RenderService:
                     on_frame=lambda f: write(encode_frame_chunk(f)),
                     blink_enabled=blink_enabled,
                 )
-        # 종료마커 1회
-        write(struct.pack(">I", 0))
         return count
 
 
@@ -221,9 +242,11 @@ class _RenderHandler(BaseHTTPRequestHandler):
 
         self.send_response(200)
         self.send_header("Content-Type", "application/octet-stream")
-        self.send_header("Transfer-Encoding", "chunked")
+        self.send_header("Connection", "close")
         self.end_headers()
 
+        # 종료마커는 finally에서 정확히 1회 — 정상/예외 모든 경로 보장.
+        # render()는 프레임 청크만 write하고 종료마커를 쓰지 않는다.
         try:
             _service.render(
                 wav_path=wav_path,
@@ -232,8 +255,7 @@ class _RenderHandler(BaseHTTPRequestHandler):
             )
         except Exception as exc:
             logger.exception("render 오류: %s", exc)
-            # 스트림 중 에러 — 종료마커는 render() 내부에서 이미 썼을 수 있음
-            # 안전하게 한 번 더 시도(클라이언트가 0 중복은 무시 가능)
+        finally:
             try:
                 self.wfile.write(struct.pack(">I", 0))
             except Exception:
