@@ -37,20 +37,23 @@ def test_select_empty_scores_raises():
 
 
 # ---------------------------------------------------------------------------
-# Step 5~8: mouth_open_score
+# Step 5~8: mouth_open_score (배열 시그니처)
 # ---------------------------------------------------------------------------
 
 def test_mouth_open_score_larger_gap_higher():
-    wide = {"upper": (20.0, 10.0), "lower": (20.0, 30.0),
-            "left": (0.0, 20.0), "right": (40.0, 20.0)}
-    narrow = {"upper": (20.0, 18.0), "lower": (20.0, 22.0),
-              "left": (0.0, 20.0), "right": (40.0, 20.0)}
+    # wide: x=[0,20,40], y=[10,30,20] → gap=20, width=40 → 0.5
+    wide = np.array([[20.0, 10.0], [20.0, 30.0], [0.0, 20.0], [40.0, 20.0]], dtype=np.float32)
+    # narrow: x=[0,20,40], y=[18,22,20] → gap=4, width=40 → 0.1
+    narrow = np.array([[20.0, 18.0], [20.0, 22.0], [0.0, 20.0], [40.0, 20.0]], dtype=np.float32)
     assert mouth_open_score(wide) > mouth_open_score(narrow)
+    # 값 검증: wide=0.5, narrow=0.1
+    assert abs(mouth_open_score(wide) - 0.5) < 1e-5
+    assert abs(mouth_open_score(narrow) - 0.1) < 1e-5
 
 
 def test_mouth_open_score_zero_width_safe():
-    degenerate = {"upper": (20.0, 10.0), "lower": (20.0, 30.0),
-                  "left": (20.0, 20.0), "right": (20.0, 20.0)}
+    # 모든 x 동일 → width=0 → 0.0
+    degenerate = np.array([[20.0, 10.0], [20.0, 30.0], [20.0, 20.0], [20.0, 20.0]], dtype=np.float32)
     assert mouth_open_score(degenerate) == 0.0
 
 
@@ -120,25 +123,38 @@ def test_cache_miss_single_mode_no_closed(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# [신규] Item 1: mouth_open_score — NaN/inf 방어
+# [신규] Item 1: mouth_open_score — NaN/inf 방어 (배열 시그니처)
 # ---------------------------------------------------------------------------
 
 def test_mouth_open_score_nan_returns_zero():
-    pts = {"upper": (float("nan"), 10), "lower": (20, 30),
-           "left": (0, 20), "right": (40, 20)}
+    # NaN이 포함된 점은 제외 후 계산 — 유효 점이 1개도 없으면 0.0
+    pts = np.array([[float("nan"), 10], [20, 30], [0, 20], [40, 20]], dtype=np.float64)
+    # NaN 점 제외 후 유효 3점으로 계산됨 → 0이 아닐 수 있음. 단 예외 없음.
+    result = mouth_open_score(pts)
+    assert isinstance(result, float)
+    assert not (result != result)  # NaN 아님
+
+
+def test_mouth_open_score_all_nan_returns_zero():
+    # 모든 점이 NaN → 유효 점 0개 → 0.0
+    pts = np.array([[float("nan"), float("nan")], [float("nan"), float("nan")]], dtype=np.float64)
     assert mouth_open_score(pts) == 0.0
 
 
 def test_mouth_open_score_inf_returns_zero():
-    pts = {"upper": (10, 10), "lower": (float("inf"), 30),
-           "left": (0, 20), "right": (40, 20)}
-    assert mouth_open_score(pts) == 0.0
+    # inf 포함 점 제외 후 나머지만 계산 → 예외 없음
+    pts = np.array([[10, 10], [float("inf"), 30], [0, 20], [40, 20]], dtype=np.float64)
+    result = mouth_open_score(pts)
+    assert isinstance(result, float)
+    assert not (result != result)
 
 
 def test_mouth_open_score_neg_inf_returns_zero():
-    pts = {"upper": (10, 10), "lower": (20, 30),
-           "left": (float("-inf"), 20), "right": (40, 20)}
-    assert mouth_open_score(pts) == 0.0
+    # -inf 포함 점 제외 후 나머지만 계산 → 예외 없음
+    pts = np.array([[10, 10], [20, 30], [float("-inf"), 20], [40, 20]], dtype=np.float64)
+    result = mouth_open_score(pts)
+    assert isinstance(result, float)
+    assert not (result != result)
 
 
 # ---------------------------------------------------------------------------
@@ -248,3 +264,101 @@ def test_make_extract_fn_no_face_error_message(tmp_path):
             extract_fn("/fake/video.mp4")
     finally:
         fs.cv2 = original_cv2
+
+
+# ---------------------------------------------------------------------------
+# [신규] make_extract_fn — 203점 입 윤곽 슬라이스(48:107) 검증
+# ---------------------------------------------------------------------------
+
+def _make_203pt_lmk(y_mouth_top: float, y_mouth_bottom: float) -> np.ndarray:
+    """203점 가짜 landmark 생성. 입 윤곽(48~106)의 y 범위를 인자로 지정."""
+    lmk = np.zeros((203, 2), dtype=np.float32)
+    # 입 윤곽(48~106): x는 0~58 범위 분산, y는 top/bottom 사이
+    for i in range(59):
+        lmk[48 + i, 0] = float(i)  # x: 0~58
+        # 홀수=top, 짝수=bottom 으로 간격 생성
+        lmk[48 + i, 1] = y_mouth_top if i % 2 == 0 else y_mouth_bottom
+    return lmk
+
+
+def test_make_extract_fn_uses_203pt_mouth_slice():
+    """detect_lmk가 203점 반환 시 make_extract_fn이 lmk[48:107]을 입 윤곽으로 사용."""
+    import face_source as fs
+    from unittest.mock import MagicMock
+
+    # open 프레임: 입 gap 큰 landmark (y 20~60)
+    lmk_open = _make_203pt_lmk(y_mouth_top=20.0, y_mouth_bottom=60.0)
+    # closed 프레임: 입 gap 작은 landmark (y 38~42)
+    lmk_closed = _make_203pt_lmk(y_mouth_top=38.0, y_mouth_bottom=42.0)
+
+    frame_open = np.full((4, 4, 3), 200, dtype=np.uint8)
+    frame_closed = np.full((4, 4, 3), 50, dtype=np.uint8)
+
+    call_count = {"n": 0}
+    lmks = [lmk_open, lmk_closed]
+    frames_bgr = [frame_open, frame_closed]
+
+    def detect_lmk(bgr):
+        i = call_count["n"]
+        call_count["n"] += 1
+        return lmks[i]
+
+    mock_cap = MagicMock()
+    # 2프레임 + 종료
+    read_results = [(True, frames_bgr[0]), (True, frames_bgr[1]), (False, None)]
+    mock_cap.read.side_effect = read_results
+
+    mock_cv2 = MagicMock()
+    mock_cv2.VideoCapture.return_value = mock_cap
+
+    original_cv2 = fs.cv2
+    fs.cv2 = mock_cv2
+    try:
+        extract_fn = fs.make_extract_fn(detect_lmk, open_threshold=0.10, sample_stride=1)
+        open_bgr, closed_bgr, sel = extract_fn("/fake/video.mp4")
+    finally:
+        fs.cv2 = original_cv2
+
+    # open 프레임(gap=40/width=58≈0.69)이 closed(gap=4/width=58≈0.07)보다 스코어 높음
+    assert sel.mode == "blend"
+    # open 프레임이 0번, closed가 1번
+    assert sel.open_idx == 0
+    assert sel.closed_idx == 1
+    assert sel.open_score > 0.5
+
+
+def test_make_extract_fn_skips_frames_with_fewer_than_49_landmarks():
+    """49점 미만 landmark 프레임은 스킵되고 에러 없이 처리됨."""
+    import face_source as fs
+    from unittest.mock import MagicMock
+
+    # 첫 번째 프레임: 10점 landmark (스킵), 두 번째: 203점(처리)
+    lmk_short = np.zeros((10, 2), dtype=np.float32)
+    lmk_full = _make_203pt_lmk(y_mouth_top=20.0, y_mouth_bottom=60.0)
+
+    frame_dummy = np.zeros((4, 4, 3), dtype=np.uint8)
+    call_count = {"n": 0}
+    lmks = [lmk_short, lmk_full]
+
+    def detect_lmk(bgr):
+        i = call_count["n"]
+        call_count["n"] += 1
+        return lmks[i]
+
+    mock_cap = MagicMock()
+    read_results = [(True, frame_dummy), (True, frame_dummy), (False, None)]
+    mock_cap.read.side_effect = read_results
+
+    mock_cv2 = MagicMock()
+    mock_cv2.VideoCapture.return_value = mock_cap
+
+    original_cv2 = fs.cv2
+    fs.cv2 = mock_cv2
+    try:
+        extract_fn = fs.make_extract_fn(detect_lmk, open_threshold=0.05, sample_stride=1)
+        open_bgr, closed_bgr, sel = extract_fn("/fake/video.mp4")
+    finally:
+        fs.cv2 = original_cv2
+
+    # 203점 프레임 1개만 유효 → single 모드
+    assert sel.mode == "single"

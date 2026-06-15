@@ -10,7 +10,6 @@ GPU/landmark 검출에 직접 의존하지 않음 — 실제 검출은 호출자
 from __future__ import annotations
 
 import json
-import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -76,28 +75,33 @@ def select_open_closed(scores: np.ndarray, open_threshold: float) -> FrameSelect
 # Step 5~8: mouth_open_score
 # ---------------------------------------------------------------------------
 
-def mouth_open_score(pts: dict) -> float:
-    """입 4점으로 입벌림 정도를 [0,~) 스코어로 계산.
+def mouth_open_score(mouth_pts: np.ndarray) -> float:
+    """입 윤곽 점 배열로 입벌림 정도를 [0,~) 스코어로 계산.
 
     Args:
-        pts: {"upper": (x,y), "lower": (x,y), "left": (x,y), "right": (x,y)}
-             upper/lower = 윗입술/아랫입술 중앙, left/right = 입꼬리.
+        mouth_pts: (N, 2) array-like. 입 윤곽 landmark 좌표들(x, y).
+                   FLP 203점 기준 lmk[48:107], 또는 최소 2점 이상.
+                   4점 dict → 배열로 변환해도 bbox 기준 동일 결과.
 
     Returns:
-        세로 입벌림(아래-위 입술 거리) / 가로 입폭. 가로폭 0이면 0.0.
+        bbox 기반 세로 gap(y_max-y_min) / 가로 width(x_max-x_min).
+        가로폭 0이면 0.0. NaN/inf 점은 제외 후 계산, 유효 점 없으면 0.0.
         스케일 불변(얼굴 크기 무관)이라 프레임 간 비교에 안전.
     """
-    ux, uy = pts["upper"]
-    lx, ly = pts["lower"]
-    leftx, lefty = pts["left"]
-    rightx, righty = pts["right"]
-    # Item 1: NaN/inf 방어 — 좌표 4점 중 하나라도 유한하지 않으면 0.0 반환
-    if not all(math.isfinite(v) for v in (ux, uy, lx, ly, leftx, lefty, rightx, righty)):
+    pts = np.asarray(mouth_pts, dtype=np.float64)
+    if pts.ndim == 1:
+        pts = pts.reshape(-1, 2)
+    # Item 1: NaN/inf 방어 — 각 점의 좌표가 모두 유한한 점만 사용
+    finite_mask = np.isfinite(pts).all(axis=1)
+    pts = pts[finite_mask]
+    if len(pts) == 0:
         return 0.0
-    width = abs(rightx - leftx)
+    x_min, y_min = pts[:, 0].min(), pts[:, 1].min()
+    x_max, y_max = pts[:, 0].max(), pts[:, 1].max()
+    width = x_max - x_min
     if width <= 1e-6:
         return 0.0
-    gap = abs(ly - uy)
+    gap = y_max - y_min
     return float(gap / width)
 
 
@@ -186,9 +190,6 @@ def make_extract_fn(detect_lmk: Callable, open_threshold: float = 0.20,
     Returns:
         extract_fn(video_path) -> (open_bgr, closed_bgr|None, FrameSelection).
     """
-    # FLP 106-landmark 입 4점 인덱스 (상/하 입술 중앙, 좌/우 입꼬리)
-    # render_offline.py 469 입 영역 48~107 참조
-    UPPER, LOWER, LEFT, RIGHT = 51, 57, 48, 54
 
     def _extract(video_path: str):
         # Item 3: make_extract_fn 내부에서도 cv2 없으면 명확한 에러
@@ -205,15 +206,19 @@ def make_extract_fn(detect_lmk: Callable, open_threshold: float = 0.20,
                 break
             if idx % sample_stride == 0:
                 lmk = detect_lmk(bgr)
-                if lmk is not None and len(lmk) > RIGHT:
-                    pts = {
-                        "upper": tuple(lmk[UPPER]),
-                        "lower": tuple(lmk[LOWER]),
-                        "left": tuple(lmk[LEFT]),
-                        "right": tuple(lmk[RIGHT]),
-                    }
+                if lmk is not None:
+                    n = len(lmk)
+                    # FLP 203점 기준: 48~107이 입 윤곽 (build_mouth_mask 동일 규약)
+                    if n >= 107:
+                        mouth = lmk[48:107]
+                    elif n >= 49:
+                        mouth = lmk[48:]
+                    else:
+                        # 점이 너무 적으면 검출 불량으로 스킵
+                        idx += 1
+                        continue
                     frames.append(bgr)
-                    scores.append(mouth_open_score(pts))
+                    scores.append(mouth_open_score(np.asarray(mouth, dtype=np.float32)))
             idx += 1
         cap.release()
         if not frames:
