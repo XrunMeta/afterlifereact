@@ -54,9 +54,11 @@ def stream_wav_frames(
     ml = dri["motion"]
     ce_raw = dri.get("c_eyes_lst", [])
     nj = dri["n_frames"]
-    # JoyVASA 가 wav를 직접 처리해 n_frames를 확정하므로 nj를 기준으로 삼는다.
-    # env 는 nj보다 길어질 수 있지만 인덱스 클램프로 처리된다.
-    n = nj
+    # render_offline.py L443/L647 과 동일 계약:
+    # env(RMS 프레임 수)와 nj(JoyVASA n_frames)는 독립 계산이라 다를 수 있다.
+    # env > nj일 때 n=nj로 자르면 오디오 후미 입싱크가 렌더 안 됨 → max 로 보장.
+    # 루프 내 ji = min(i, nj-1) 클램프로 motion 인덱스 안전.
+    n = max(len(env), nj)
 
     ce = ce_raw if ce_raw else None
     if not ce_raw and blink_enabled:
@@ -152,8 +154,10 @@ def _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_we
         open_first = False
 
         # closed_src: w < 1.0 일 때만 (완전 발화면 입도 open_src)
+        # render_offline.py L522 와 동일 구조: 렌더 게이트는 w만 체크.
+        # M=None 처리는 합성 단계(frame_closed is not None and M is not None)에서.
         frame_closed = None
-        if w < 1.0 - 1e-4 and M is not None:
+        if w < 1.0 - 1e-4:
             frame_closed = eng.render(
                 ml[ji], _ce_i, cc,
                 first_frame=closed_first,
