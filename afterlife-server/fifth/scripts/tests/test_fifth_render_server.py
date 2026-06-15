@@ -9,7 +9,9 @@ cv2 없는 로컬 venv: cv2 mock fixture 로 encode_frame_chunk 테스트.
 """
 from __future__ import annotations
 
+import http.client
 import io
+import json
 import struct
 import threading
 import types
@@ -283,8 +285,8 @@ def _make_service(cache_root, wav_path=None, *, load_call_counter=None, prepare_
     return svc, load_calls, prepare_calls
 
 
-def test_render_streams_frames_and_terminator(tmp_path):
-    """render(): 프레임 청크 1개 이상 + 종료마커로 끝남."""
+def test_render_streams_frames(tmp_path):
+    """render(): 프레임 청크 1개 이상 write. 종료마커는 호출자(do_POST finally) 책임."""
     wav = _make_wav(tmp_path)
     svc, _, _ = _make_service(tmp_path)
 
@@ -296,18 +298,27 @@ def test_render_streams_frames_and_terminator(tmp_path):
     )
 
     assert count > 0
-    assert buf.getvalue().endswith(struct.pack(">I", 0))
+    # render()는 종료마커를 쓰지 않음 — 프레임 청크만 존재
+    data = buf.getvalue()
+    assert len(data) > 0
+    # 마지막 4바이트가 0(종료마커)이 아님을 확인 (종료마커는 do_POST finally 몫)
+    if len(data) >= 4:
+        last_n = struct.unpack_from(">I", data, len(data) - 4)[0]
+        # 실제 프레임 데이터가 있으므로 마지막 4바이트는 jpeg 데이터 일부여야 함
+        # (종료마커 0 이 아닌지만 확인)
+        assert last_n != 0 or len(data) == 4  # 프레임이 1개 이상이면 마지막이 0이면 안 됨
 
 
 def test_render_chunk_structure_valid(tmp_path):
-    """render() 출력: 모든 청크가 [4B length][data] 구조 + 마지막 length=0."""
+    """render() 출력: 모든 청크가 [4B length][data] 구조. 종료마커 없음(호출자 책임)."""
     wav = _make_wav(tmp_path)
     svc, _, _ = _make_service(tmp_path)
 
     buf = io.BytesIO()
-    svc.render(wav_path=wav, video_path="/fake/9055/idle.mp4", write=buf.write)
+    count = svc.render(wav_path=wav, video_path="/fake/9055/idle.mp4", write=buf.write)
 
-    data = buf.getvalue()
+    # 종료마커를 직접 append해서 파싱 검증
+    data = buf.getvalue() + struct.pack(">I", 0)
     pos = 0
     frame_count = 0
     while pos < len(data):
@@ -320,6 +331,7 @@ def test_render_chunk_structure_valid(tmp_path):
         pos += n
         frame_count += 1
 
+    assert frame_count == count
     assert frame_count > 0
     assert pos == len(data), "종료마커 이후 잔여 데이터"
 
@@ -368,29 +380,27 @@ def test_render_different_video_paths_each_prepared(tmp_path):
     assert len(prepare_calls) == 2
 
 
-def test_render_terminator_appears_exactly_once(tmp_path):
-    """render(): 종료마커(length=0) 이 정확히 1회만 등장."""
+def test_render_no_terminator_in_output(tmp_path):
+    """render()는 종료마커를 쓰지 않는다 — 출력에 length=0 없음."""
     wav = _make_wav(tmp_path)
     svc, _, _ = _make_service(tmp_path)
 
     buf = io.BytesIO()
-    svc.render(wav_path=wav, video_path="/fake/9055/idle.mp4", write=buf.write)
+    count = svc.render(wav_path=wav, video_path="/fake/9055/idle.mp4", write=buf.write)
 
+    assert count > 0
     data = buf.getvalue()
-    zero_marker = struct.pack(">I", 0)
-    # 마지막 4바이트만 0이어야 함
-    count_zeros = 0
+    # 프레임 청크 파싱 — length=0 이 중간에 나오면 종료마커가 섞인 것
     pos = 0
-    while pos < len(data):
+    frame_count = 0
+    while pos < len(data) - 3:
         n = struct.unpack_from(">I", data, pos)[0]
         pos += 4
         if n == 0:
-            count_zeros += 1
-            break
+            pytest.fail("render() 출력에 종료마커(length=0) 발견 — 호출자 책임인데 render가 씀")
         pos += n
-
-    assert count_zeros == 1, "종료마커 중복"
-    assert pos == len(data), "종료마커 이후 잔여 데이터"
+        frame_count += 1
+    assert frame_count == count
 
 
 # ---------------------------------------------------------------------------
@@ -442,7 +452,7 @@ def test_parse_render_body_invalid_json():
 # ---------------------------------------------------------------------------
 
 def test_render_concurrent_same_video_cache_correct(tmp_path):
-    """동시 렌더 요청 — 캐시 손상 없이 각 호출 정상 종료마커."""
+    """동시 렌더 요청 — 캐시 손상 없이 각 호출 프레임 청크 정상."""
     wav = _make_wav(tmp_path)
     svc, _, _ = _make_service(tmp_path)
 
@@ -452,8 +462,8 @@ def test_render_concurrent_same_video_cache_correct(tmp_path):
     def _run():
         buf = io.BytesIO()
         try:
-            svc.render(wav_path=wav, video_path="/fake/9055/idle.mp4", write=buf.write)
-            results.append(buf.getvalue())
+            count = svc.render(wav_path=wav, video_path="/fake/9055/idle.mp4", write=buf.write)
+            results.append((count, buf.getvalue()))
         except Exception as exc:
             errors.append(exc)
 
@@ -464,5 +474,216 @@ def test_render_concurrent_same_video_cache_correct(tmp_path):
         t.join()
 
     assert not errors, f"스레드 오류: {errors}"
-    for r in results:
-        assert r.endswith(struct.pack(">I", 0)), "종료마커 누락"
+    for count, data in results:
+        assert count > 0, "프레임 0개"
+        assert len(data) > 0, "빈 출력"
+
+
+# ---------------------------------------------------------------------------
+# 신규: cv2 imencode 실패 테스트 (sion MAJOR2)
+# ---------------------------------------------------------------------------
+
+def test_encode_frame_chunk_raises_on_imencode_failure(monkeypatch):
+    """cv2.imencode가 ok=False 반환 시 RuntimeError('jpeg 인코딩 실패') 발생."""
+    import fifth_render_server as srv
+    import types
+
+    fake_cv2 = types.ModuleType("cv2")
+    fake_cv2.IMWRITE_JPEG_QUALITY = 1
+
+    def fail_imencode(ext, bgr, params=None):
+        return False, None  # ok=False
+
+    fake_cv2.imencode = fail_imencode
+    monkeypatch.setattr(srv, "cv2", fake_cv2)
+
+    frame = np.zeros((8, 8, 3), dtype=np.uint8)
+    with pytest.raises(RuntimeError, match="jpeg 인코딩 실패"):
+        srv.encode_frame_chunk(frame)
+
+
+# ---------------------------------------------------------------------------
+# 신규: HTTP 통합 테스트 — 헤더 + raw framing (항목 6)
+# ---------------------------------------------------------------------------
+
+def _make_integration_service(tmp_path):
+    """통합 테스트용 RenderService: 프레임 2개 고정 반환."""
+    from fifth_render_server import RenderService
+    from config import FifthConfig
+
+    cfg = FifthConfig.from_env()
+    fixed_sources = {
+        "mode": "single",
+        "open_s": {
+            "src_img": "OPEN",
+            "src_info": [[None, np.zeros((106, 2))]],
+            "lip_close_ratio": 0.0023,
+        },
+    }
+
+    def fake_load(video_path):
+        return {"mode": "single", "open_path": "/fake/open.png", "closed_path": None, "open_score": 0.5}
+
+    def fake_prepare(selection):
+        return fixed_sources
+
+    def fake_stream(engine, jp, cfg, sources, wav_path, on_frame, blink_enabled):
+        # 프레임 2개 고정
+        for _ in range(2):
+            on_frame(np.zeros((8, 8, 3), dtype=np.uint8))
+        return 2
+
+    return RenderService(
+        engine=_FakeEngine(),
+        jp=_FakeJP(n=2),
+        cfg=cfg,
+        cache_root=str(tmp_path),
+        detect_lmk=None,
+        _load_or_extract_fn=fake_load,
+        _prepare_sources_fn=fake_prepare,
+        _stream_wav_fn=fake_stream,
+    )
+
+
+def test_http_integration_headers_and_framing(tmp_path):
+    """실제 HTTPServer에 POST /oth-path → 헤더 검증 + raw framing 파싱."""
+    import fifth_render_server as srv
+    from http.server import HTTPServer
+    import soundfile as sf
+
+    # wav 파일 생성
+    wav_path = str(tmp_path / "test.wav")
+    samples = np.zeros(4800, dtype=np.float32)
+    sf.write(wav_path, samples, 16000)
+
+    # 가짜 서비스 주입
+    orig_service = srv._service
+    srv._service = _make_integration_service(tmp_path)
+
+    try:
+        server = HTTPServer(("127.0.0.1", 0), srv._RenderHandler)
+        port = server.server_address[1]
+
+        server_thread = threading.Thread(target=server.handle_request)
+        server_thread.daemon = True
+        server_thread.start()
+
+        body = json.dumps({"wav_path": wav_path, "video_path": "/fake/9055/idle.mp4"}).encode()
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        conn.request("POST", "/render", body=body, headers={"Content-Length": str(len(body))})
+        resp = conn.getresponse()
+
+        # 헤더 검증: Transfer-Encoding 없고 Connection: close 있음
+        assert resp.status == 200
+        te = resp.getheader("Transfer-Encoding")
+        assert te is None, f"Transfer-Encoding 헤더 있으면 안 됨: {te}"
+        conn_header = resp.getheader("Connection")
+        assert conn_header is not None and "close" in conn_header.lower(), \
+            f"Connection: close 없음: {conn_header}"
+        assert resp.getheader("Content-Type") == "application/octet-stream"
+
+        # raw body 읽기 + framing 검증
+        raw = resp.read()
+        conn.close()
+
+        pos = 0
+        frame_count = 0
+        while pos < len(raw):
+            assert pos + 4 <= len(raw), "청크 헤더 잘림"
+            n = struct.unpack_from(">I", raw, pos)[0]
+            pos += 4
+            if n == 0:
+                break
+            assert pos + n <= len(raw), f"청크 데이터 잘림 n={n}"
+            pos += n
+            frame_count += 1
+
+        assert frame_count == 2, f"프레임 수 기대 2, 실제 {frame_count}"
+        assert pos == len(raw), "종료마커 이후 잔여 데이터"
+
+        server_thread.join(timeout=5)
+
+    finally:
+        srv._service = orig_service
+        server.server_close()
+
+
+def test_http_integration_health(tmp_path):
+    """GET /oth-path → 200 ok."""
+    import fifth_render_server as srv
+    from http.server import HTTPServer
+
+    server = HTTPServer(("127.0.0.1", 0), srv._RenderHandler)
+    port = server.server_address[1]
+
+    server_thread = threading.Thread(target=server.handle_request)
+    server_thread.daemon = True
+    server_thread.start()
+
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        conn.request("GET", "/health")
+        resp = conn.getresponse()
+        assert resp.status == 200
+        data = json.loads(resp.read())
+        assert data.get("status") == "ok"
+        conn.close()
+    finally:
+        server_thread.join(timeout=5)
+        server.server_close()
+
+
+def test_http_integration_bad_json_returns_400(tmp_path):
+    """POST /oth-path body가 잘못된 JSON → 400."""
+    import fifth_render_server as srv
+    from http.server import HTTPServer
+
+    orig_service = srv._service
+    srv._service = _make_integration_service(tmp_path)
+
+    server = HTTPServer(("127.0.0.1", 0), srv._RenderHandler)
+    port = server.server_address[1]
+
+    server_thread = threading.Thread(target=server.handle_request)
+    server_thread.daemon = True
+    server_thread.start()
+
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        bad_body = b"not json {"
+        conn.request("POST", "/render", body=bad_body, headers={"Content-Length": str(len(bad_body))})
+        resp = conn.getresponse()
+        assert resp.status == 400
+        conn.close()
+    finally:
+        srv._service = orig_service
+        server_thread.join(timeout=5)
+        server.server_close()
+
+
+def test_http_integration_missing_fields_returns_400(tmp_path):
+    """POST /oth-path wav_path/video_path 둘 다 없음 → 400."""
+    import fifth_render_server as srv
+    from http.server import HTTPServer
+
+    orig_service = srv._service
+    srv._service = _make_integration_service(tmp_path)
+
+    server = HTTPServer(("127.0.0.1", 0), srv._RenderHandler)
+    port = server.server_address[1]
+
+    server_thread = threading.Thread(target=server.handle_request)
+    server_thread.daemon = True
+    server_thread.start()
+
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        body = json.dumps({"other_field": "value"}).encode()
+        conn.request("POST", "/render", body=body, headers={"Content-Length": str(len(body))})
+        resp = conn.getresponse()
+        assert resp.status == 400
+        conn.close()
+    finally:
+        srv._service = orig_service
+        server_thread.join(timeout=5)
+        server.server_close()
