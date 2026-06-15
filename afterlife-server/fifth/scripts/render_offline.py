@@ -66,7 +66,17 @@ def main():
         "--align-sources",
         action="store_true",
         default=False,
-        help="[v4] closed_src 를 open_src crop box 기준으로 정렬 (jitter 제거). 블렌드 모드 전용.",
+        help="[v4] closed_src 를 open_src 기준으로 정렬 (jitter 제거). 블렌드 모드 전용.",
+    )
+    ap.add_argument(
+        "--align-mode",
+        choices=["crop", "affine"],
+        default="crop",
+        help=(
+            "[v5] 정렬 모드. "
+            "'crop'(B1, 기본): ref crop box 재크롭. "
+            "'affine'(B2): 눈·코 3점 landmark similarity transform → 구도·크기 정밀 정렬."
+        ),
     )
     ap.add_argument(
         "--w-sigma",
@@ -79,7 +89,7 @@ def main():
     blend_mode = args.closed_src is not None
     print(
         f"[mode] {'Plan 2 블렌드' if blend_mode else 'Plan 1 단일'}"
-        + (f" align_sources={args.align_sources} w_sigma={args.w_sigma}" if blend_mode else ""),
+        + (f" align_sources={args.align_sources} align_mode={args.align_mode} w_sigma={args.w_sigma}" if blend_mode else ""),
         flush=True,
     )
 
@@ -152,10 +162,11 @@ def main():
         closed_s = eng.load_source(args.closed_src)
         open_s = eng.load_source(args.open_src)
 
-        # [v4] B1 정렬: closed_src 를 open_src crop box 기준으로 재크롭
+        # [v4/v5] 정렬: B1(crop) or B2(affine)
         if args.align_sources:
-            print("[align] closed_src → open_src crop box 기준 정렬 시작...", flush=True)
-            closed_s = eng.align_source_to_ref(target_s=closed_s, ref_s=open_s)
+            mode_label = "B2/affine" if args.align_mode == "affine" else "B1/crop"
+            print(f"[align] closed_src → open_src 기준 정렬 시작... (mode={mode_label})", flush=True)
+            closed_s = eng.align_source_to_ref(target_s=closed_s, ref_s=open_s, mode=args.align_mode)
             print("[align] 완료.", flush=True)
 
         # 동적 lip_close_ratio 실측값 로그
