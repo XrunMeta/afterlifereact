@@ -66,7 +66,11 @@ class FifthFLPEngine:
 
         cfg.infer_params.flag_normalize_lip = False
         cfg.infer_params.flag_lip_retargeting = True
-        cfg.infer_params.flag_eye_retargeting = False
+        # FIFTH_BLINK=1(기본) 시 눈 깜빡임 주입 위해 True 로 설정.
+        # False 이면 c_eyes 값이 _run() 분기에서 완전 무시됨.
+        # True + flag_relative_motion=False 조합: JoyVASA 머리/표정 유지 + 눈 재타겟팅 동시 작동.
+        _blink_enabled = os.environ.get("FIFTH_BLINK", "1") == "1"
+        cfg.infer_params.flag_eye_retargeting = _blink_enabled
         cfg.infer_params.driving_multiplier = _driving_multiplier
         cfg.infer_params.animation_region = "all"
         cfg.infer_params.flag_stitching = True
@@ -82,7 +86,7 @@ class FifthFLPEngine:
         self._joyvasa_cfg_scale = _cfg_scale
         print(
             f"[flp_engine] flag_relative_motion=False  cfg_scale={_cfg_scale}  "
-            f"driving_multiplier={_driving_multiplier}",
+            f"driving_multiplier={_driving_multiplier}  flag_eye_retargeting={_blink_enabled}",
             flush=True,
         )
         self.pipe = FasterLivePortraitPipeline(cfg=cfg)
