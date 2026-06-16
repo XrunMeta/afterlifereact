@@ -799,6 +799,66 @@ def test_http_integration_missing_fields_returns_400(tmp_path):
         server.server_close()
 
 
+# ---------------------------------------------------------------------------
+# _is_image_path / _get_sources 이미지 경로 분기 (Task: 사진 source 직접 로드)
+# ---------------------------------------------------------------------------
+
+def test_get_sources_image_path_uses_image_loader(monkeypatch):
+    """video_path 가 이미지 확장자 → face_source.load_image_source 호출, 영상추출 불호출."""
+    import face_source
+    import fifth_render_server as frs
+
+    called = {}
+
+    def fake_load_image(image_path, cache_root, clone_id):
+        called["image"] = (image_path, clone_id)
+        return {"mode": "single", "open_path": "/c/open.png", "closed_path": None, "open_score": 0.0}
+
+    monkeypatch.setattr(face_source, "load_image_source", fake_load_image)
+
+    svc = frs.RenderService(
+        engine=object(), jp=object(), cfg=object(), cache_root="/cache",
+        _prepare_sources_fn=lambda sel: {"sel": sel},
+    )
+    out = svc._get_sources("/home/afterlife/x/9056/9056-face.jpg")
+
+    assert "image" in called, "load_image_source 가 호출되지 않음"
+    assert called["image"][0].endswith("9056-face.jpg")
+    assert called["image"][1] == "9056"
+    assert out == {"sel": {"mode": "single", "open_path": "/c/open.png", "closed_path": None, "open_score": 0.0}}
+
+
+def test_get_sources_video_path_uses_extract(monkeypatch):
+    """video_path 가 영상 확장자(.mp4) → _load_or_extract_fn 훅 호출, load_image_source 불호출."""
+    import fifth_render_server as frs
+
+    called = {}
+
+    def fake_loe(video_path):
+        called["video"] = video_path
+        return {"mode": "blend"}
+
+    svc = frs.RenderService(
+        engine=object(), jp=object(), cfg=object(), cache_root="/cache",
+        _load_or_extract_fn=fake_loe,
+        _prepare_sources_fn=lambda sel: sel,
+    )
+    out = svc._get_sources("/x/9056/9056-idle-25fps.mp4")
+
+    assert "video" in called, "_load_or_extract_fn 이 호출되지 않음"
+    assert called["video"].endswith(".mp4")
+    assert out["mode"] == "blend"
+
+
+def test_is_image_path_true_for_image_exts():
+    """_is_image_path: jpg/jpeg/png/webp/bmp 확장자 → True."""
+    import fifth_render_server as frs
+    for ext in (".jpg", ".jpeg", ".png", ".webp", ".bmp"):
+        assert frs._is_image_path(f"/some/path/file{ext}"), f"{ext} 이 이미지로 판별 안 됨"
+    for ext in (".mp4", ".avi", ".mov", ".wav"):
+        assert not frs._is_image_path(f"/some/path/file{ext}"), f"{ext} 이 이미지로 잘못 판별됨"
+
+
 def test_http_integration_missing_wav_path_returns_400(tmp_path):
     """POST /oth-path wav_path 파일이 실제로 없으면 200 전에 400 반환 (silent 실패 방지)."""
     import fifth_render_server as srv
