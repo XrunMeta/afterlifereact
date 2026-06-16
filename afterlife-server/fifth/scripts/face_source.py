@@ -136,8 +136,11 @@ def load_or_extract_sources(
         meta = json.loads(meta_path.read_text())
         closed_path = clone_dir / "closed.png"
         # Item 2: 캐시 무결성 검사 — blend 모드인데 closed.png 없으면 손상 캐시 → 재추출
+        # el GUARD: source=="image" 캐시는 영상추출 캐시로 오소비 금지 → fall through
         mode_in_meta = meta.get("mode", "single")
-        if mode_in_meta == "blend" and not closed_path.is_file():
+        if meta.get("source") == "image":
+            pass  # 이미지 캐시 → 영상추출로 fall through(재추출)
+        elif mode_in_meta == "blend" and not closed_path.is_file():
             pass  # fall through to re-extract
         else:
             has_closed = mode_in_meta == "blend" and closed_path.is_file()
@@ -232,3 +235,50 @@ def make_extract_fn(detect_lmk: Callable, open_threshold: float = 0.20,
         return open_bgr, closed_bgr, sel
 
     return _extract
+
+
+# ---------------------------------------------------------------------------
+# 이미지(사진) 1장 → single 모드 source (영상추출 우회, crop 없음)
+# ---------------------------------------------------------------------------
+
+def load_image_source(image_path: str, cache_root: str, clone_id: int | str) -> dict:
+    """정면 사진 1장을 그대로 open source(single 모드)로 캐시·반환.
+
+    영상 프레임 추출/landmark 검출/정규화 crop 없음 — FLP load_source 가
+    얼굴 검출·512 crop을 내장 수행한다(PoC fifth_from_photo.sh 검증). 사이즈 무관.
+
+    Returns: {"mode":"single","open_path","closed_path":None,"open_score":0.0}
+    """
+    clone_dir = Path(cache_root) / str(clone_id)
+    open_path = clone_dir / "open.png"
+    meta_path = clone_dir / "source_meta.json"
+
+    if meta_path.is_file() and open_path.is_file():
+        meta = json.loads(meta_path.read_text())
+        if meta.get("source") == "image":
+            return {
+                "mode": "single",
+                "open_path": str(open_path),
+                "closed_path": None,
+                "open_score": float(meta.get("open_score", 0.0)),
+            }
+
+    if cv2 is None:
+        raise RuntimeError("cv2 미설치 — 이미지 로드는 cv2 필요(가비아 컨테이너에서 실행)")
+    bgr = cv2.imread(image_path)
+    if bgr is None:
+        raise RuntimeError(f"이미지 로드 실패(손상/미존재): {image_path}")
+    clone_dir.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(open_path), bgr)
+    meta_path.write_text(json.dumps({
+        "mode": "single",
+        "source": "image",
+        "open_score": 0.0,
+        "src": image_path,
+    }))
+    return {
+        "mode": "single",
+        "open_path": str(open_path),
+        "closed_path": None,
+        "open_score": 0.0,
+    }
