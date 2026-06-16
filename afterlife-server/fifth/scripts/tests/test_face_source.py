@@ -8,6 +8,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+import face_source
 from face_source import FrameSelection, load_or_extract_sources, mouth_open_score, select_open_closed
 
 
@@ -362,3 +363,62 @@ def test_make_extract_fn_skips_frames_with_fewer_than_49_landmarks():
 
     # 203점 프레임 1개만 유효 → single 모드
     assert sel.mode == "single"
+
+
+# ---------------------------------------------------------------------------
+# [이동] load_image_source 신규 3건 (루트 test_face_source.py 에서 이동)
+# ---------------------------------------------------------------------------
+
+def test_image_source_single_mode(tmp_path, monkeypatch):
+    img = np.zeros((480, 640, 3), dtype=np.uint8)
+    fake_cv2 = type("cv2", (), {})()
+    fake_cv2.imread = lambda p: img
+    fake_cv2.imwrite = lambda p, a: Path(p).write_bytes(b"x") or True
+    monkeypatch.setattr(face_source, "cv2", fake_cv2)
+    src_img = tmp_path / "face.jpg"
+    src_img.write_bytes(b"jpeg")
+    out = face_source.load_image_source(str(src_img), str(tmp_path / "cache"), "9056")
+    assert out["mode"] == "single"
+    assert out["closed_path"] is None
+    assert Path(out["open_path"]).name == "open.png"
+    meta = json.loads((Path(tmp_path / "cache") / "9056" / "source_meta.json").read_text())
+    assert meta["mode"] == "single"
+    assert meta["source"] == "image"
+
+
+def test_load_or_extract_ignores_image_cache(tmp_path, monkeypatch):
+    """이미지 캐시가 먼저 있을 때 load_or_extract_sources는 재추출해야 한다(el GUARD)."""
+    img = np.zeros((480, 640, 3), dtype=np.uint8)
+    fake_cv2 = type("cv2", (), {})()
+    fake_cv2.imread = lambda p: img
+    fake_cv2.imwrite = lambda p, a: Path(p).write_bytes(b"x") or True
+    monkeypatch.setattr(face_source, "cv2", fake_cv2)
+
+    # 1) 이미지 캐시 먼저 생성
+    face_source.load_image_source(
+        str(tmp_path / "f.jpg"), str(tmp_path / "c"), "9056"
+    )
+
+    # 2) 같은 clone_id로 영상추출 호출 → extract_fn 호출돼야 함(이미지 캐시 무시)
+    called = {}
+
+    def fake_extract(vp):
+        called["yes"] = True
+        return img, None, face_source.FrameSelection(
+            open_idx=0, closed_idx=None, mode="single", open_score=0.1
+        )
+
+    face_source.load_or_extract_sources(
+        "/x/9056/idle.mp4", str(tmp_path / "c"), "9056", fake_extract
+    )
+    assert called.get("yes") is True, "이미지 캐시를 무시하고 extract_fn 호출해야 함"
+
+
+def test_image_source_missing_file_raises(tmp_path, monkeypatch):
+    fake_cv2 = type("cv2", (), {})()
+    fake_cv2.imread = lambda p: None
+    monkeypatch.setattr(face_source, "cv2", fake_cv2)
+    src_img = tmp_path / "bad.jpg"
+    src_img.write_bytes(b"x")
+    with pytest.raises(RuntimeError):
+        face_source.load_image_source(str(src_img), str(tmp_path / "cache"), "1")
