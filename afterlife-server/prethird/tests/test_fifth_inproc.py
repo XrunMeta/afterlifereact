@@ -267,15 +267,11 @@ def test_infer_signature_matches_musetalk():
 
 
 # ---------------------------------------------------------------------------
-# _build_body wav_b64 인코딩 테스트
+# _build_body wav_path 직접 전달 테스트 (공유 볼륨 설계 v3)
 # ---------------------------------------------------------------------------
 
-def test_build_body_encodes_wav_as_b64(tmp_path):
-    """_build_body: wav 파일을 읽어 wav_b64 키에 base64 담음 (wav_path 키 없음)."""
-    import base64
-    import tempfile
-
-    # 작은 wav 바이너리 생성
+def test_build_body_sends_wav_path_directly(tmp_path):
+    """_build_body: wav_path 키로 경로 직접 전달 (b64 인코딩 없음)."""
     wav_content = b"RIFF\x00\x00\x00\x00WAVEfmt " + b"\x00" * 32
     wav_file = tmp_path / "test.wav"
     wav_file.write_bytes(wav_content)
@@ -283,54 +279,34 @@ def test_build_body_encodes_wav_as_b64(tmp_path):
     f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
     body = f._build_body(str(wav_file), "/ref/idle.mp4")
 
-    assert "wav_b64" in body, "wav_b64 키 필수"
-    assert "wav_path" not in body, "wav_path 키는 사용하지 않음"
+    assert "wav_path" in body, "wav_path 키 필수"
+    assert "wav_b64" not in body, "wav_b64 키는 사용하지 않음"
+    assert body["wav_path"] == str(wav_file)
     assert body["video_path"] == "/ref/idle.mp4"
 
-    # base64 디코드 → 원본과 일치 확인
-    decoded = base64.b64decode(body["wav_b64"])
-    assert decoded == wav_content
 
-
-def test_build_body_b64_contract_roundtrip(tmp_path):
-    """클라 b64encode ↔ 서버 b64decode 계약 검증 (roundtrip)."""
-    import base64
-
-    wav_content = b"\x00\x01\x02\x03" * 100  # 임의 바이너리
-    wav_file = tmp_path / "rnd.wav"
-    wav_file.write_bytes(wav_content)
-
-    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
-    body = f._build_body(str(wav_file), "/ref/idle.mp4")
-
-    # 서버 디코드 시뮬
-    decoded = base64.b64decode(body["wav_b64"])
-    assert decoded == wav_content, "base64 roundtrip 실패"
-
-
-def test_open_render_stream_sends_wav_b64_body(tmp_path):
-    """_open_render_stream이 _build_body에서 만든 wav_b64를 POST body에 담는지 확인.
-
-    실제 HTTP 연결 없이 json.dumps 까지만 검증 (_open_render_stream 내부 로직).
-    """
-    import base64
+def test_build_body_wav_path_contract_matches_server(tmp_path):
+    """클라 wav_path ↔ 서버 wav_path 키 계약 일치 검증."""
     import json as _json
 
-    wav_content = b"fake_wav_data"
-    wav_file = tmp_path / "s.wav"
-    wav_file.write_bytes(wav_content)
+    wav_file = tmp_path / "rnd.wav"
+    wav_file.write_bytes(b"\x00\x01\x02\x03" * 100)
 
     f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
-
-    # _build_body 반환값 확인
     body = f._build_body(str(wav_file), "/ref/idle.mp4")
 
-    # _open_render_stream이 json.dumps(body) 를 POST하므로 body 직접 검증
-    assert "wav_b64" in body, "wav_b64 키 필수"
-    assert "wav_path" not in body, "wav_path 키 없어야 함"
-
-    # json 직렬화 가능한지 확인 (큰 base64도 직렬화 가능)
+    # 서버 _parse_render_body 계약: wav_path 키로 읽음
     serialized = _json.dumps(body).encode()
     parsed_back = _json.loads(serialized)
-    decoded = base64.b64decode(parsed_back["wav_b64"])
-    assert decoded == wav_content
+    assert parsed_back["wav_path"] == str(wav_file), "서버 파싱 키 불일치"
+    assert parsed_back["video_path"] == "/ref/idle.mp4"
+
+
+def test_build_body_no_file_io(tmp_path):
+    """_build_body가 파일을 열지 않아도 동작 — 경로 문자열만 반환."""
+    # 존재하지 않는 경로도 _build_body는 성공해야 함 (경로 문자열만 담음)
+    f = FifthInproc(video_path="/idle.mp4", render_url="http://x")
+    body = f._build_body("/nonexistent/path/x.wav", "/ref/idle.mp4")
+
+    assert body["wav_path"] == "/nonexistent/path/x.wav"
+    assert "wav_b64" not in body
