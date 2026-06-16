@@ -31,6 +31,23 @@ if not _STRICT_CLONE_BUNDLE:
     )
 
 
+async def _fetch_face(assets: dict, clone_id, fetch_fn=fetch_to):
+    """assets.faceUrl → {VIDEO_REF_ROOT}/{clone_id}/{clone_id}-face.jpg 다운로드.
+
+    반환: 로컬 경로(성공) | None(url 없음/실패). 실패는 영상 폴백 위해 삼킨다.
+    """
+    face_url = assets.get("faceUrl")
+    if not face_url or clone_id is None:
+        return None
+    dest = f"{VIDEO_REF_ROOT}/{clone_id}/{clone_id}-face.jpg"
+    try:
+        await fetch_fn(face_url, dest)
+        return dest
+    except Exception as exc:
+        log.warning("faceUrl 다운로드 실패(영상 폴백): %s — %s", face_url, exc)
+        return None
+
+
 async def _avsync_monitor(sess, interval: float = 0.5) -> None:
     """0.5s 주기로 video/audio 송출 카운터를 로깅한다.
     세션 종료(cancelled) 시 조용히 종료.
@@ -238,6 +255,8 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                             sess.se_path = se_pth
                         else:
                             log.info("se_path 후보 부재 → 기본 voice 사용 (dir=%s)", candidate_dir)
+                    # faceUrl: 클론 정면사진 pull → sess.face_path (fifth source 우선)
+                    sess.face_path = await _fetch_face(assets, clone_id)
                     # idleVideoUrl: R2에서 클론별 idle mp4 pull → sess.video_path
                     idle_url = assets.get("idleVideoUrl")
                     if idle_url and clone_id is not None:
@@ -252,9 +271,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                             log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
                             # halbae fallback — sess.video_path = None 유지
             log.info(
-                "offer session=%s clone_id=%s persona=%d se=%s video_path=%s",
+                "offer session=%s clone_id=%s persona=%d se=%s video_path=%s face=%s",
                 sess.session_id, sess.clone_id, len(sess.persona_messages),
-                bool(sess.se_path), sess.video_path,
+                bool(sess.se_path), sess.video_path, bool(sess.face_path),
             )
 
             # pipeline factory가 있으면 세션에 주입

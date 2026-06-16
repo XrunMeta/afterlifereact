@@ -394,6 +394,23 @@ class FifthFLPEngine:
             traceback.print_exc()
             return target_s
 
+    def detect_landmarks(self, bgr: np.ndarray):
+        """단일 BGR 프레임 → FLP 203점 landmark (원본 이미지 좌표) | None.
+
+        face_source.make_extract_fn 의 detect_lmk 로 주입된다(영상 프레임별 입벌림 스코어용).
+        FLP prepare_source 내부 경로와 동일: face_analysis → landmark.predict.
+
+        Returns:
+            (203, 2) float32 landmark, 얼굴 미검출 시 None.
+        """
+        faces = self.pipe.model_dict["face_analysis"].predict(bgr)
+        if faces is None or len(faces) == 0:
+            return None
+        lmk = faces[0]
+        img_rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+        lmk = self.pipe.model_dict["landmark"].predict(img_rgb, lmk)
+        return lmk
+
     @staticmethod
     def build_mouth_mask(
         lmk: np.ndarray,

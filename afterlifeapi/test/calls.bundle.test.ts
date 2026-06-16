@@ -181,6 +181,70 @@ describe("GET /oth-path", () => {
     expect(assets.voiceRawUrl).toBeNull();
   });
 
+  it("faceUrl: idle_video done 잡 있는 클론은 assets.faceUrl = api files URL", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-face@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_face_clone");
+    await db
+      .prepare(
+        `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+         VALUES ('uploadedfiles/face/photo.jpg', 'image/jpeg', 55000, ?, 'clone_src')`,
+      )
+      .bind(ownerId)
+      .run();
+    const f = await db
+      .prepare("SELECT id FROM files WHERE r2_key = 'uploadedfiles/face/photo.jpg'")
+      .first<{ id: number }>();
+    const idleOutUrl = "https://r2.example.com/idle/face_idle.mp4";
+    await db.prepare("UPDATE clones SET idle_video_url = ? WHERE id = ?").bind(idleOutUrl, cloneId).run();
+    await db
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url)
+         VALUES ('job-face-1', ?, 'idle_video', ?, 'done', ?)`,
+      )
+      .bind(ownerId, f!.id, idleOutUrl)
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { faceUrl: string | null } };
+    expect(assets.faceUrl).toBe(`http://localhost/oth-path${f!.id}`);
+  });
+
+  it("faceUrl: idle_video_url 있으나 done 잡 없으면 assets.faceUrl === null", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-face-nojob@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_face_nojob_clone");
+    await db
+      .prepare("UPDATE clones SET idle_video_url = ? WHERE id = ?")
+      .bind("https://r2.example.com/idle/nojob.mp4", cloneId)
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { faceUrl: string | null } };
+    expect(assets.faceUrl).toBeNull();
+  });
+
+  it("faceUrl: idle_video_url 자체가 null이면 assets.faceUrl === null", async () => {
+    const ownerId = await seedUser("bundle-face-nourl@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_face_nourl_clone");
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { faceUrl: string | null } };
+    expect(assets.faceUrl).toBeNull();
+  });
+
   it("voice_clone done 잡 여러 개면 최신(created_at) done 잡 선택 + failed 무시 (out_url 조인)", async () => {
     const db = env.DB as unknown as D1Database;
     const ownerId = await seedUser("bundle-vraw-multi@test.local");
