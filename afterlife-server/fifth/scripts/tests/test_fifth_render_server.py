@@ -12,6 +12,7 @@ from __future__ import annotations
 import http.client
 import io
 import json
+import os
 import struct
 import threading
 import types
@@ -408,23 +409,24 @@ def test_render_no_terminator_in_output(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_parse_render_body_valid():
-    """정상 JSON → (wav_path, video_path) 반환."""
+    """정상 JSON(wav_path) → (wav_path, video_path, None) 반환."""
     import json
     from fifth_render_server import _parse_render_body
 
     body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
-    wav, vid = _parse_render_body(body)
+    wav, vid, tmp = _parse_render_body(body)
     assert wav == "/tmp/a.wav"
     assert vid == "/ref/idle.mp4"
+    assert tmp is None
 
 
 def test_parse_render_body_missing_wav():
-    """wav_path 누락 → ValueError."""
+    """wav_path/wav_b64 둘 다 누락 → ValueError."""
     import json
     from fifth_render_server import _parse_render_body
 
     body = json.dumps({"video_path": "/ref/idle.mp4"}).encode()
-    with pytest.raises(ValueError, match="wav_path"):
+    with pytest.raises(ValueError):
         _parse_render_body(body)
 
 
@@ -445,6 +447,161 @@ def test_parse_render_body_invalid_json():
 
     with pytest.raises(json.JSONDecodeError):
         _parse_render_body(b"not json")
+
+
+def test_parse_render_body_wav_b64_decodes_to_tempfile(tmp_path):
+    """wav_b64 → base64 디코드 → 임시파일 생성 → 경로 반환 + tmp_wav_path 비None."""
+    import base64
+    import json
+    import soundfile as sf
+    from fifth_render_server import _parse_render_body
+
+    # 작은 wav 생성 → base64
+    wav_file = tmp_path / "src.wav"
+    samples = np.zeros(1600, dtype=np.float32)
+    sf.write(str(wav_file), samples, 16000)
+    wav_bytes = wav_file.read_bytes()
+    wav_b64 = base64.b64encode(wav_bytes).decode("ascii")
+
+    body = json.dumps({"wav_b64": wav_b64, "video_path": "/ref/idle.mp4"}).encode()
+    wav_path, vid, tmp = _parse_render_body(body)
+
+    assert tmp is not None, "wav_b64 사용 시 tmp_wav_path 비None 필수"
+    assert wav_path == tmp, "wav_path는 임시파일 경로여야 함"
+    assert vid == "/ref/idle.mp4"
+    assert os.path.exists(tmp), "임시파일이 존재해야 함"
+    # 내용 검증
+    assert open(tmp, "rb").read() == wav_bytes
+    # 정리
+    os.unlink(tmp)
+
+
+def test_parse_render_body_wav_b64_priority_over_wav_path(tmp_path):
+    """wav_b64와 wav_path 둘 다 있으면 wav_b64 우선."""
+    import base64
+    import json
+    import soundfile as sf
+    from fifth_render_server import _parse_render_body
+
+    wav_file = tmp_path / "src.wav"
+    sf.write(str(wav_file), np.zeros(800, np.float32), 16000)
+    wav_b64 = base64.b64encode(wav_file.read_bytes()).decode("ascii")
+
+    body = json.dumps({
+        "wav_b64": wav_b64,
+        "wav_path": "/should/be/ignored.wav",
+        "video_path": "/ref/idle.mp4",
+    }).encode()
+    wav_path, vid, tmp = _parse_render_body(body)
+
+    assert tmp is not None, "wav_b64 우선이므로 임시파일 생성"
+    assert wav_path == tmp
+    assert wav_path != "/should/be/ignored.wav"
+    os.unlink(tmp)
+
+
+# ---------------------------------------------------------------------------
+# HTTP 통합 테스트 — wav_b64 경로
+# ---------------------------------------------------------------------------
+
+def test_http_integration_wav_b64_200_and_framing(tmp_path):
+    """POST /oth-path with wav_b64 → 200 + framing 정상 + 임시파일 남지 않음."""
+    import base64
+    import fifth_render_server as srv
+    from http.server import HTTPServer
+    import soundfile as sf
+
+    # wav 생성 → base64
+    wav_file = tmp_path / "test.wav"
+    sf.write(str(wav_file), np.zeros(4800, np.float32), 16000)
+    wav_b64 = base64.b64encode(wav_file.read_bytes()).decode("ascii")
+
+    orig_service = srv._service
+    srv._service = _make_integration_service(tmp_path)
+
+    # _parse_render_body 에서 생성되는 임시파일 경로를 추적하기 위해 래핑
+    created_tmps: list[str] = []
+    orig_parse = srv._parse_render_body
+
+    def _tracking_parse(raw):
+        result = orig_parse(raw)
+        if result[2] is not None:
+            created_tmps.append(result[2])
+        return result
+
+    srv._parse_render_body = _tracking_parse
+
+    try:
+        server = HTTPServer(("127.0.0.1", 0), srv._RenderHandler)
+        port = server.server_address[1]
+
+        server_thread = threading.Thread(target=server.handle_request)
+        server_thread.daemon = True
+        server_thread.start()
+
+        body = json.dumps({
+            "wav_b64": wav_b64,
+            "video_path": "/fake/9055/idle.mp4",
+        }).encode()
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        conn.request("POST", "/render", body=body, headers={"Content-Length": str(len(body))})
+        resp = conn.getresponse()
+
+        assert resp.status == 200
+        raw = resp.read()
+        conn.close()
+
+        # framing 검증
+        pos = 0
+        frame_count = 0
+        while pos < len(raw):
+            assert pos + 4 <= len(raw)
+            n = struct.unpack_from(">I", raw, pos)[0]
+            pos += 4
+            if n == 0:
+                break
+            pos += n
+            frame_count += 1
+        assert frame_count == 2, f"프레임 기대 2, 실제 {frame_count}"
+
+        server_thread.join(timeout=5)
+
+        # 임시파일이 정리됐는지 확인
+        for tmp_path_str in created_tmps:
+            assert not os.path.exists(tmp_path_str), f"임시파일 누수: {tmp_path_str}"
+
+    finally:
+        srv._service = orig_service
+        srv._parse_render_body = orig_parse
+        server.server_close()
+
+
+def test_http_integration_no_wav_source_returns_400(tmp_path):
+    """wav_b64도 wav_path도 없으면 400 반환."""
+    import fifth_render_server as srv
+    from http.server import HTTPServer
+
+    orig_service = srv._service
+    srv._service = _make_integration_service(tmp_path)
+
+    server = HTTPServer(("127.0.0.1", 0), srv._RenderHandler)
+    port = server.server_address[1]
+
+    server_thread = threading.Thread(target=server.handle_request)
+    server_thread.daemon = True
+    server_thread.start()
+
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        body = json.dumps({"video_path": "/fake/9055/idle.mp4"}).encode()
+        conn.request("POST", "/render", body=body, headers={"Content-Length": str(len(body))})
+        resp = conn.getresponse()
+        assert resp.status == 400
+        conn.close()
+    finally:
+        srv._service = orig_service
+        server_thread.join(timeout=5)
+        server.server_close()
 
 
 # ---------------------------------------------------------------------------
