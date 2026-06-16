@@ -54,6 +54,13 @@ def _build_renderer(name: str, video_path: str):
     return _make_fifth(video_path) if name == "fifth" else _make_musetalk(video_path)
 
 
+_IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
+
+
+def _is_image_source(path: str) -> bool:
+    return bool(path) and os.path.splitext(path)[1].lower() in _IMAGE_EXTS
+
+
 def _pick_source(face_path, video_path, isfile=os.path.isfile):
     """발화/렌더 source 선택: 존재하는 face_path(정면사진) 우선, 없으면 video_path.
 
@@ -99,6 +106,13 @@ def _build_pipeline_factory():
 
         def _infer_fn(wav, cb, _src=_src):
             return renderer.infer(wav, cb, video_path=_src)
+
+        # idle prebake: 정면사진이면 백그라운드로 무음 idle 모션 1회 렌더 후 주입
+        if _src and _is_image_source(_src) and os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1":
+            from idle_prebake import start_prebake
+            _tmp = os.environ.get("TMPDIR", "/tmp")
+            start_prebake(renderer, _src, sess.video_track, wav_dir=_tmp)
+
         return DialoguePipeline(
             video_track=sess.video_track,
             audio_track=sess.audio_track,
