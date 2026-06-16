@@ -13,6 +13,7 @@ export interface CallBundle {
     voiceSeKey: string | null;
     voiceRawUrl: string | null;
     avatarUrl: string | null;
+    faceUrl: string | null;
   };
 }
 
@@ -55,12 +56,29 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     voiceRawUrl = jobRow ? `${origin}/oth-path${jobRow.file_id}` : null;
   }
 
+  let faceUrl: string | null = null;
+  if (clone.idle_video_url) {
+    const faceJob = await db
+      .prepare(
+        `SELECT f.id AS file_id
+           FROM clone_asset_jobs j
+           JOIN files f ON j.src_file_id = f.id
+          WHERE j.out_url = ? AND j.kind = 'idle_video' AND j.status = 'done'
+          ORDER BY j.created_at DESC, j.rowid DESC
+          LIMIT 1`,
+      )
+      .bind(clone.idle_video_url)
+      .first<{ file_id: number }>();
+    faceUrl = faceJob ? `${origin}/oth-path${faceJob.file_id}` : null;
+  }
+
   const assets = {
     idleVideoUrl: clone.idle_video_url ?? null,
     voiceSeUrl,
     voiceSeKey,
     voiceRawUrl,
     avatarUrl: clone.avatar_url ?? null,
+    faceUrl,
   };
 
   return { personaBundle, assets };
