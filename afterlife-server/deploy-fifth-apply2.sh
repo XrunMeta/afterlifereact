@@ -50,7 +50,7 @@ for f in "${FIFTH_FILES[@]}"; do [ -f "$FIFTH_SRC/$f" ] || { echo "‼ 없음: $
 for f in "${PRETHIRD_FILES[@]}"; do [ -f "$PRETHIRD_SRC/$f" ] || { echo "‼ 없음: $PRETHIRD_SRC/$f"; exit 1; }; done
 echo "✔ 로컬 변경 파일 확인 완료"
 
-if [ "$DRY_RUN" != "1" ]; then
+if [ "$DRY_RUN" != "1" ] && [ "${YES:-0}" != "1" ]; then
   read -r -p "위 설정으로 가비아에 배포합니다. 계속? [y/N] " ans
   [ "$ans" = "y" ] || { echo "중단."; exit 0; }
 fi
