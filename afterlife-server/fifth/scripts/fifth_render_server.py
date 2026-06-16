@@ -67,6 +67,13 @@ def write_frames_to_stream(
 # ---------------------------------------------------------------------------
 
 
+_IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
+
+
+def _is_image_path(path: str) -> bool:
+    return Path(path).suffix.lower() in _IMAGE_EXTS
+
+
 def _clone_key(video_path: str) -> str:
     """video_path → clone_id 키 (prethird 자산 관례: .../VIDEO_REF_ROOT/{clone_id}/...)."""
     p = Path(video_path)
@@ -131,9 +138,13 @@ class RenderService:
             if video_path in self._sources_cache:
                 return self._sources_cache[video_path]
 
-            # load_or_extract_sources 호출
+            # source 선택: 경로가 이미지면 사진 직접(추출·crop 없음), 영상이면 프레임 추출
             if self._load_or_extract_fn is not None:
                 selection = self._load_or_extract_fn(video_path)
+            elif _is_image_path(video_path):
+                from face_source import load_image_source
+                clone_key = _clone_key(video_path)
+                selection = load_image_source(video_path, self.cache_root, clone_key)
             else:
                 from face_source import load_or_extract_sources, make_extract_fn
                 extract_fn = make_extract_fn(self.detect_lmk)
