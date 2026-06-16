@@ -21,6 +21,7 @@ CONTAINER="${CONTAINER:-fifth_poc_flp}"            # fifth 렌더 컨테이너
 CONTAINER_DIR="${CONTAINER_DIR:-/root/FasterLivePortrait}"  # 컨테이너 내 fifth scripts 루트
 PRETHIRD_DIR="${PRETHIRD_DIR:-/home/afterlife/afterlife-server/prethird/scripts}"
 STAGE="${STAGE:-/tmp/fifth-deploy2}"               # 가비아 호스트 staging
+PY_BIN="${PY_BIN:-/root/miniconda3/bin/python}"    # 컨테이너 python 절대경로(docker exec -d는 conda PATH 없음)
 TS="$(date +%Y%m%d-%H%M%S)"
 
 # 렌더서버 기동 env(MW 프리셋 — 메모리 체크포인트와 동일 + idle prebake)
@@ -82,9 +83,9 @@ done
 echo "--- [4] fifth 렌더서버 재기동 (:8810) ---"
 # 기존 프로세스 종료 → MW env로 백그라운드 재기동 → health 대기
 rrun "docker exec $CONTAINER bash -lc 'pkill -f fifth_render_server.py || true; sleep 2'"
-rrun "docker exec -d $CONTAINER bash -lc 'cd $CONTAINER_DIR && $RENDER_ENV nohup python fifth_render_server.py > /tmp/fifth_render_server.log 2>&1 &'"
-echo "+ (health 확인) 컨테이너 bridge IP로 /health 200 대기 — 아래 명령으로 수동 확인:"
-echo "    ssh $GABIA \"docker exec $CONTAINER bash -lc 'sleep 3; curl -sS -o /dev/null -w \\\"render /health=%{http_code}\\\\n\\\" http://127.0.0.1:8810/health'\""
+rrun "docker exec -d $CONTAINER bash -lc 'cd $CONTAINER_DIR && $RENDER_ENV nohup $PY_BIN fifth_render_server.py > /tmp/fifth_render_server.log 2>&1 &'"
+echo "+ (health 확인) GPU/TRT/JoyVASA 로드 ~30초 후 아래로 확인(컨테이너에 curl 없음 → python urllib):"
+echo "    ssh $GABIA \"docker exec $CONTAINER bash -lc '$PY_BIN -c \\\"import urllib.request as u;print(\\\\\\\"health=\\\\\\\"+str(u.urlopen(\\\\\\\"http://127.0.0.1:8810/health\\\\\\\",timeout=5).status))\\\"'\""
 
 # ---- 5. prethird 재기동 (sudo — 히즈키 직접) --------------------------------
 cat <<EOF
