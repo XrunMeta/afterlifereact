@@ -58,3 +58,16 @@ def test_is_image_source_edges():
     assert server._is_image_source("/a/noext") is False
     assert server._is_image_source(None) is False
     assert server._is_image_source("") is False
+
+
+def test_source_for_renderer_fifth_prefers_face():
+    assert server._source_for_renderer("fifth", "/a/face.jpg", "/b/idle.mp4", lambda p: True) == "/a/face.jpg"
+
+
+def test_source_for_renderer_musetalk_ignores_face():
+    # musetalk: 사진 무시, 영상만
+    assert server._source_for_renderer("musetalk", "/a/face.jpg", "/b/idle.mp4", lambda p: True) == "/b/idle.mp4"
+
+
+def test_source_for_renderer_musetalk_no_video_none():
+    assert server._source_for_renderer("musetalk", "/a/face.jpg", None, lambda p: False) is None

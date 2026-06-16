@@ -73,6 +73,15 @@ def _pick_source(face_path, video_path, isfile=os.path.isfile):
     return None
 
 
+def _source_for_renderer(renderer_name, face_path, video_path, isfile=os.path.isfile):
+    """정면사진(이미지) source는 fifth 렌더러에서만 사용. musetalk 등은 영상(mp4)만.
+
+    musetalk에 사진(.jpg)을 video_path로 넘기면 cv2.VideoCapture가 0프레임으로 실패하기 때문.
+    """
+    face = face_path if renderer_name == "fifth" else None
+    return _pick_source(face, video_path, isfile)
+
+
 def _build_pipeline_factory():
     """렌더러(musetalk/fifth) 1회 load + 세션별 DialoguePipeline factory.
 
@@ -98,17 +107,20 @@ def _build_pipeline_factory():
 
     def factory(sess):
         persona_messages, se_path = _resolve_persona_se(sess, default_se)
-        # source 우선순위: 정면사진(face_path) > idle영상(video_path) > None(halbae)
-        _src = _pick_source(getattr(sess, "face_path", None),
-                            getattr(sess, "video_path", None))
-        if getattr(sess, "face_path", None) and _src != getattr(sess, "face_path", None):
+        # source 우선순위: renderer별로 가드 — 사진은 fifth 전용, musetalk은 영상(mp4)만
+        _src = _source_for_renderer(
+            renderer_name,
+            getattr(sess, "face_path", None),
+            getattr(sess, "video_path", None),
+        )
+        if renderer_name == "fifth" and getattr(sess, "face_path", None) and _src != getattr(sess, "face_path", None):
             log.warning("face_path 파일 없음, 영상/halbae fallback: %s", sess.face_path)
 
         def _infer_fn(wav, cb, _src=_src):
             return renderer.infer(wav, cb, video_path=_src)
 
-        # idle prebake: 정면사진이면 백그라운드로 무음 idle 모션 1회 렌더 후 주입
-        if _src and _is_image_source(_src) and os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1":
+        # idle prebake: fifth 렌더러 + 정면사진 source일 때만 실행
+        if renderer_name == "fifth" and _src and _is_image_source(_src) and os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1":
             from idle_prebake import start_prebake
             _tmp = os.environ.get("TMPDIR", "/tmp")
             start_prebake(renderer, _src, sess.video_track, wav_dir=_tmp)
