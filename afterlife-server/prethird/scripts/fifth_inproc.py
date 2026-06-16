@@ -20,6 +20,7 @@ cv2: 가비아 musetalk conda env에 존재하나 prethird-venv에 미설치 가
 """
 from __future__ import annotations
 
+import base64
 import http.client
 import json
 import logging
@@ -142,8 +143,15 @@ class FifthInproc:
         return lambda n: _read_exactly(raw_read, n), conn
 
     def _build_body(self, wav_path: str, video_path: str) -> dict:
-        """렌더 요청 body 구성. 향후 wav_b64 확장 지점."""
-        return {"wav_path": wav_path, "video_path": video_path}
+        """렌더 요청 body 구성. wav 파일을 base64 인코딩해 wav_b64로 전송.
+
+        컨테이너(렌더서버)와 호스트(prethird)는 파일시스템이 분리돼 있으므로
+        wav_path 를 직접 전달하면 서버가 파일을 읽을 수 없다.
+        wav 바이너리를 base64로 body에 실어 전송한다.
+        """
+        with open(wav_path, "rb") as f:
+            wav_b64 = base64.b64encode(f.read()).decode("ascii")
+        return {"wav_b64": wav_b64, "video_path": video_path}
 
     def _decode_jpeg(self, jpeg_bytes: bytes):
         """jpeg bytes → RGB ndarray. cv2 없으면 ImportError."""
