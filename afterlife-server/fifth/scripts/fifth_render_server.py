@@ -8,15 +8,17 @@ GPU(엔진/JoyVASA/detect_landmarks)는 startup 1회 로드.
   body = [4B big-endian len][jpeg] 반복 + [4B 0] 종료마커.
   HTTP chunked 전송 인코딩이 아님 — Connection: close + raw framing.
   Task3' 클라이언트(FifthInproc)는 연결 끝까지 read하며 len=0까지 프레임 파싱.
+
+설계 v3 (공유 볼륨):
+  wav_path/video_path는 호스트-컨테이너 공유 볼륨(/home/afterlife/afterlife-server)
+  경로로 직접 전달한다. wav_b64 base64 전송은 사용하지 않는다.
 """
 from __future__ import annotations
 
-import base64
 import json
 import logging
 import os
 import struct
-import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -192,41 +194,30 @@ class RenderService:
 _service: RenderService | None = None
 
 
-def _parse_render_body(raw: bytes) -> tuple[str, str, str | None]:
-    """POST /oth-path body(JSON) → (wav_path, video_path, tmp_wav_path | None).
+def _parse_render_body(raw: bytes) -> tuple[str, str]:
+    """POST /oth-path body(JSON) → (wav_path, video_path).
 
-    우선순위:
-      1. wav_b64 있으면 base64 디코드 → NamedTemporaryFile 생성 → 경로 반환.
-         tmp_wav_path 에 임시파일 경로를 담아 반환 (호출자가 finally 에서 정리).
-      2. wav_path 있으면 그대로 사용. tmp_wav_path=None.
-      3. 둘 다 없으면 ValueError → 400.
+    설계 v3(공유 볼륨): wav_path/video_path 모두 필수.
+    호스트-컨테이너가 /home/afterlife/afterlife-server 를 공유 마운트하므로
+    경로를 직접 전달하면 서버가 파일을 읽을 수 있다.
 
     Returns:
-        (wav_path, video_path, tmp_wav_path)
-        tmp_wav_path 는 임시파일 경로(wav_b64 사용 시)이거나 None(wav_path 직접 지정 시).
+        (wav_path, video_path)
+
+    Raises:
+        ValueError: wav_path 또는 video_path 누락.
+        json.JSONDecodeError: 잘못된 JSON.
     """
     req = json.loads(raw)
     video_path = req.get("video_path")
     if not video_path:
         raise ValueError("video_path 필수")
 
-    wav_b64: str | None = req.get("wav_b64")
     wav_path_raw: str | None = req.get("wav_path")
+    if not wav_path_raw:
+        raise ValueError("wav_path 필수")
 
-    if wav_b64:
-        wav_bytes = base64.b64decode(wav_b64)
-        tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        try:
-            tmp.write(wav_bytes)
-            tmp.flush()
-        finally:
-            tmp.close()
-        return tmp.name, str(video_path), tmp.name
-
-    if wav_path_raw:
-        return str(wav_path_raw), str(video_path), None
-
-    raise ValueError("wav_b64 또는 wav_path 중 하나 필수")
+    return str(wav_path_raw), str(video_path)
 
 
 class _RenderHandler(BaseHTTPRequestHandler):
@@ -258,26 +249,19 @@ class _RenderHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length else b""
 
         try:
-            wav_path, video_path, tmp_wav_path = _parse_render_body(body)
+            wav_path, video_path = _parse_render_body(body)
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             self._send_json(400, {"error": str(exc)})
             return
 
-        # wav_path 사전검사 — 200 헤더 전송 전에 차단.
-        # wav_b64 경우 임시파일이 이미 생성돼 있어 항상 존재.
-        # wav_path 직접 지정 시에만 가드 적용 (tmp_wav_path is None).
-        if tmp_wav_path is None and not os.path.exists(wav_path):
+        # wav_path 존재 검사 — 200 헤더 전송 전에 차단.
+        # 공유 볼륨 마운트 누락 또는 경로 오류를 조기 발견한다.
+        if not os.path.exists(wav_path):
             logger.warning("wav_path 미존재: %s", wav_path)
             self._send_json(400, {"error": f"wav_path 미존재: {wav_path}"})
             return
 
         if _service is None:
-            # wav_b64로 만든 임시파일이 있으면 여기서도 정리
-            if tmp_wav_path:
-                try:
-                    os.unlink(tmp_wav_path)
-                except OSError:
-                    pass
             self._send_json(503, {"error": "RenderService 미초기화"})
             return
 
@@ -288,7 +272,6 @@ class _RenderHandler(BaseHTTPRequestHandler):
 
         # 종료마커는 finally에서 정확히 1회 — 정상/예외 모든 경로 보장.
         # render()는 프레임 청크만 write하고 종료마커를 쓰지 않는다.
-        # tmp_wav_path 임시파일도 finally에서 정리 (누수 방지).
         try:
             _service.render(
                 wav_path=wav_path,
@@ -302,11 +285,6 @@ class _RenderHandler(BaseHTTPRequestHandler):
                 self.wfile.write(struct.pack(">I", 0))
             except Exception:
                 pass
-            if tmp_wav_path:
-                try:
-                    os.unlink(tmp_wav_path)
-                except OSError:
-                    pass
 
 
 def main():
