@@ -181,6 +181,70 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_7adc95.voiceRawUrl).toBeNull();
   });
 
+  v_23805a("faceUrl: idle_video done 잡 있는 클론은 assets.faceUrl = api files URL", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-face@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_face_clone");
+    await v_a1651b
+      .prepare(
+        `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose)
+         VALUES ('uploadedfiles/face/photo.jpg', 'image/jpeg', 55000, ?, 'clone_src')`,
+      )
+      .bind(v_1badb6)
+      .run();
+    const v_8b5cd8 = await v_a1651b
+      .prepare("SELECT id FROM files WHERE r2_key = 'uploadedfiles/face/photo.jpg'")
+      .first<{ id: number }>();
+    const v_a49e17 = "https://r2.example.com/idle/face_idle.mp4";
+    await v_a1651b.prepare("UPDATE clones SET idle_video_url = ? WHERE id = ?").bind(v_a49e17, v_6e0fd3).run();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, out_url)
+         VALUES ('job-face-1', ?, 'idle_video', ?, 'done', ?)`,
+      )
+      .bind(v_1badb6, v_8b5cd8!.id, v_a49e17)
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { faceUrl: string | null } };
+    v_4d37e3(v_7adc95.faceUrl).toBe(`http://localhost/oth-path${v_8b5cd8!.id}`);
+  });
+
+  v_23805a("faceUrl: idle_video_url 있으나 done 잡 없으면 assets.faceUrl === null", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-face-nojob@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_face_nojob_clone");
+    await v_a1651b
+      .prepare("UPDATE clones SET idle_video_url = ? WHERE id = ?")
+      .bind("https://r2.example.com/idle/nojob.mp4", v_6e0fd3)
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { faceUrl: string | null } };
+    v_4d37e3(v_7adc95.faceUrl).toBeNull();
+  });
+
+  v_23805a("faceUrl: idle_video_url 자체가 null이면 assets.faceUrl === null", async () => {
+    const v_1badb6 = await v_bfb240("bundle-face-nourl@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_face_nourl_clone");
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { faceUrl: string | null } };
+    v_4d37e3(v_7adc95.faceUrl).toBeNull();
+  });
+
   v_23805a("voice_clone done 잡 여러 개면 최신(created_at) done 잡 선택 + failed 무시 (out_url 조인)", async () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_1badb6 = await v_bfb240("bundle-vraw-multi@test.local");
