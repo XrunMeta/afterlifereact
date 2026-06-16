@@ -13,6 +13,7 @@ export interface CallBundle {
     voiceSeKey: string | null;
     voiceRawUrl: string | null;
     avatarUrl: string | null;
+    faceUrl: string | null;
   };
 }
 
@@ -55,12 +56,29 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     v_35d74b = v_d5e460 ? `${v_f17108}/oth-path${v_d5e460.file_id}` : null;
   }
 
+  let v_2d0601 = null;
+  if (v_eb25ce.idle_video_url) {
+    const v_dcfd51 = await v_a1651b
+      .prepare(
+        `SELECT f.id AS file_id
+           FROM clone_asset_jobs j
+           JOIN files f ON j.src_file_id = f.id
+          WHERE j.out_url = ? AND j.kind = 'idle_video' AND j.status = 'done'
+          ORDER BY j.created_at DESC, j.rowid DESC
+          LIMIT 1`,
+      )
+      .bind(v_eb25ce.idle_video_url)
+      .first<{ file_id: number }>();
+    v_2d0601 = v_dcfd51 ? `${v_f17108}/oth-path${v_dcfd51.file_id}` : null;
+  }
+
   const v_7adc95 = {
     idleVideoUrl: v_eb25ce.idle_video_url ?? null,
     voiceSeUrl: v_c910d9,
     voiceSeKey: v_4f80ac,
     voiceRawUrl: v_35d74b,
     avatarUrl: v_eb25ce.avatar_url ?? null,
+    faceUrl: v_2d0601,
   };
 
   return { personaBundle: v_ba0fde, assets: v_7adc95 };

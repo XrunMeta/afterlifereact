@@ -63,6 +63,16 @@ class AvatarVideoTrack(VideoStreamTrack):
             self._idle_frames = get_idle_frames(IDLE_MP4_PATH)
             log.info("[idle] idle fallback(halbae): frames=%d", len(self._idle_frames))
 
+    def set_idle_frames(self, frames) -> None:
+        """idle 루프 버퍼를 메모리 프레임 리스트로 직접 교체(fifth prebake 주입).
+
+        frames: list[np.ndarray] (rgb24). 빈 리스트면 무시(기존 idle 유지).
+        # CPython GIL 하 list rebind 원자적(MT-safe). free-threaded 이식 시 Lock 검토.
+        """
+        if frames:
+            self._idle_frames = frames
+            log.info("[idle] fifth prebake 주입: frames=%d", len(frames))
+
     def _apply_idle_blend(self, idle_arr: np.ndarray, was_idle: bool) -> np.ndarray:
         """idle 진입 직후 _idle_blend_n 프레임 동안 직전 발화 프레임→idle 로 dissolve.
         was_idle=False(방금 진입)면 blend 시작점을 _last_frame 으로 잡는다."""
