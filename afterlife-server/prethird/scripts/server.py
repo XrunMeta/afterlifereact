@@ -54,6 +54,18 @@ def _build_renderer(name: str, video_path: str):
     return _make_fifth(video_path) if name == "fifth" else _make_musetalk(video_path)
 
 
+def _pick_source(face_path, video_path, isfile=os.path.isfile):
+    """발화/렌더 source 선택: 존재하는 face_path(정면사진) 우선, 없으면 video_path.
+
+    둘 다 없거나 미존재면 None(renderer 기본 halbae).
+    """
+    if face_path and isfile(face_path):
+        return face_path
+    if video_path and isfile(video_path):
+        return video_path
+    return None
+
+
 def _build_pipeline_factory():
     """렌더러(musetalk/fifth) 1회 load + 세션별 DialoguePipeline factory.
 
@@ -79,15 +91,14 @@ def _build_pipeline_factory():
 
     def factory(sess):
         persona_messages, se_path = _resolve_persona_se(sess, default_se)
-        # 클론별 video_path를 infer_fn 클로저로 주입 (None이면 renderer 기본 halbae)
-        # 파일이 실제 존재할 때만 사용 — 없으면 None → halbae fallback (turn 사망 방지)
-        _raw_vp = getattr(sess, "video_path", None)
-        _vp = _raw_vp if (_raw_vp and os.path.isfile(_raw_vp)) else None
-        if _raw_vp and not _vp:
-            log.warning("video_path 파일 없음, halbae fallback: %s", _raw_vp)
+        # source 우선순위: 정면사진(face_path) > idle영상(video_path) > None(halbae)
+        _src = _pick_source(getattr(sess, "face_path", None),
+                            getattr(sess, "video_path", None))
+        if getattr(sess, "face_path", None) and _src != getattr(sess, "face_path", None):
+            log.warning("face_path 파일 없음, 영상/halbae fallback: %s", sess.face_path)
 
-        def _infer_fn(wav, cb, _vp=_vp):
-            return renderer.infer(wav, cb, video_path=_vp)
+        def _infer_fn(wav, cb, _src=_src):
+            return renderer.infer(wav, cb, video_path=_src)
         return DialoguePipeline(
             video_track=sess.video_track,
             audio_track=sess.audio_track,
