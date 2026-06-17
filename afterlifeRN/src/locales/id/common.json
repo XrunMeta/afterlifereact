@@ -3,6 +3,7 @@
     "back": "Kembali",
     "save": "Simpan",
     "cancel": "Batal",
+    "confirm": "Konfirmasi",
     "ok": "OK"
   },
   "my": {
@@ -58,6 +59,11 @@
       "en": "English",
       "zh-CN": "简体中文",
       "id": "Bahasa Indonesia"
+    }
+  },
+  "create": {
+    "image": {
+      "cropFailed": "Gagal memotong gambar. Silakan coba lagi."
     }
   },
   "feed": {
