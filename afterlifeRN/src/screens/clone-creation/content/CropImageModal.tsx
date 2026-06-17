@@ -11,7 +11,7 @@ import {
 import { v_772971 } from "jmpfvteuuztnp";
 import v_11c5c8 from "../../../components/clone/UpperBodyGuide";
 import { v_f98917, v_34b1b1, type v_49127c } from "../../../lib/cropImage";
-import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
+import { v_1bfbd0 } from "../../../components/constants";
 import { v_889fad } from "../../../stores/dialogStore";
 
 interface Source { uri: string; width: number; height: number }
@@ -166,7 +166,7 @@ const v_fd5f43 = v_472849.create({
   fill: { ...v_472849.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   dim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.6)" },
   frame: { position: "absolute", borderWidth: 2, borderColor: "rgba(255,255,255,0.9)" },
-  guide: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  guide: { position: "absolute", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   actions: { position: "absolute", bottom: 40, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 16 },
   btn: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.15)" },
   btnPrimary: { backgroundColor: v_1bfbd0.white },

@@ -61,6 +61,11 @@
       "id": "Bahasa Indonesia"
     }
   },
+  "create": {
+    "image": {
+      "cropFailed": "图片裁剪失败，请重试。"
+    }
+  },
   "feed": {
     "eventsTitle": "亲密度活动记录",
     "emptyEvents": "暂无活动记录",
