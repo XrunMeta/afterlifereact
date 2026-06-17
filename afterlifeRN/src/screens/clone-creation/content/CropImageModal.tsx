@@ -8,9 +8,11 @@ import {
   type PanGestureHandlerStateChangeEvent,
   type PinchGestureHandlerStateChangeEvent,
 } from "react-native-gesture-handler";
+import { useTranslation } from "react-i18next";
 import UpperBodyGuide from "../../../components/clone/UpperBodyGuide";
 import { baseCoverScale, cropToAvatar, type GestureState } from "../../../lib/cropImage";
 import { COLORS, RADIUS } from "../../../components/constants";
+import { showAlert } from "../../../stores/dialogStore";
 
 interface Source { uri: string; width: number; height: number }
 interface Props {
@@ -21,6 +23,7 @@ interface Props {
 }
 
 export default function CropImageModal({ visible, source, onConfirm, onCancel }: Props) {
+  const { t } = useTranslation();
   const { width: SW, height: SH } = Dimensions.get("window");
   const frameW = Math.min(SW * 0.86, (SH * 0.7) / 2);
   const frameH = frameW * 2;
@@ -96,6 +99,7 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
       onConfirm(uri);
     } catch (err) {
       console.warn("[CropImageModal] cropToAvatar 실패:", err);
+      showAlert(t('common.error'), t('create.image.cropFailed'));
     } finally {
       processing.current = false;
     }
@@ -146,10 +150,10 @@ export default function CropImageModal({ visible, source, onConfirm, onCancel }:
 
         <View style={[s.actions]}>
           <TouchableOpacity style={s.btn} onPress={onCancel}>
-            <Text style={s.btnText}>다시 선택</Text>
+            <Text style={s.btnText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[s.btn, s.btnPrimary]} onPress={confirm}>
-            <Text style={[s.btnText, s.btnPrimaryText]}>확인</Text>
+            <Text style={[s.btnText, s.btnPrimaryText]}>{t('common.confirm')}</Text>
           </TouchableOpacity>
         </View>
       </GestureHandlerRootView>
