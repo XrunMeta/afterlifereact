@@ -61,6 +61,11 @@
       "id": "Bahasa Indonesia"
     }
   },
+  "create": {
+    "image": {
+      "cropFailed": "画像の切り抜きに失敗しました。もう一度お試しください。"
+    }
+  },
   "feed": {
     "eventsTitle": "親密度アクティビティ",
     "emptyEvents": "まだアクティビティがありません",

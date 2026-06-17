@@ -61,6 +61,11 @@
       "id": "Bahasa Indonesia"
     }
   },
+  "create": {
+    "image": {
+      "cropFailed": "Gagal memotong gambar. Silakan coba lagi."
+    }
+  },
   "feed": {
     "eventsTitle": "Aktivitas Keintiman",
     "emptyEvents": "Belum ada aktivitas",

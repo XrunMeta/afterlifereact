@@ -11,7 +11,7 @@ import {
 import { useTranslation } from "react-i18next";
 import UpperBodyGuide from "../../../components/clone/UpperBodyGuide";
 import { baseCoverScale, cropToAvatar, type GestureState } from "../../../lib/cropImage";
-import { COLORS, RADIUS } from "../../../components/constants";
+import { COLORS } from "../../../components/constants";
 import { showAlert } from "../../../stores/dialogStore";
 
 interface Source { uri: string; width: number; height: number }
@@ -166,7 +166,7 @@ const s = StyleSheet.create({
   fill: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center" },
   dim: { position: "absolute", backgroundColor: "rgba(0,0,0,0.6)" },
   frame: { position: "absolute", borderWidth: 2, borderColor: "rgba(255,255,255,0.9)" },
-  guide: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  guide: { position: "absolute", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   actions: { position: "absolute", bottom: 40, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 16 },
   btn: { paddingVertical: 12, paddingHorizontal: 28, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.15)" },
   btnPrimary: { backgroundColor: COLORS.white },
