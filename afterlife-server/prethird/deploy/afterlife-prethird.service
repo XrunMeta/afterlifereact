@@ -1,0 +1,54 @@
+[Unit]
+Description=afterlife prethird (P2P avatar call, musetalk in-proc + qwen3tts, port 8600, GPU1)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/afterlife/afterlife-server/prethird
+User=afterlife
+Group=afterlife
+Environment=HOME=/home/afterlife
+Environment=CUDA_VISIBLE_DEVICES=1
+Environment=PRETHIRD_PORT=8600
+Environment=PRETHIRD_BIND=127.0.0.1
+Environment=PRETHIRD_REFERENCE_VIDEO=/home/afterlife/afterlife-server/musetalk-afterlife/reference_videos/halbae/halbae-d18m04-25fps.mp4
+Environment=PRETHIRD_IDLE_MP4=/home/afterlife/afterlife-server/musetalk-afterlife/reference_videos/halbae/halbae-idle.mp4
+Environment=PRETHIRD_OLLAMA_URL=http://127.0.0.1:11435
+# bundle 조회 대상 api. bundle_client 하드코딩 기본값 제거(필수) — prod 승격 시 prod api 도메인으로 교체.
+Environment=PRETHIRD_API_BASE=https://edge-alt-preview.example.invalid
+# drop-in 흡수: qwen3tts.conf(TTS_URL=8201) + batch.conf(BATCH_SIZE=32).
+Environment=PRETHIRD_TTS_URL=http://127.0.0.1:8201
+Environment=MUSETALK_BATCH_SIZE=32
+# PRETHIRD_TTS_SE_PATH 의도적 미설정(폴백 제거 — 자산없는 클론 일관 실패).
+# 기존 transient 는 SE_PATH=nohsanghyun 을 zz-sepath-clear.conf 로 override 했으나
+# 영구 unit 은 처음부터 미설정해 drop-in 의존 제거. voice-wav-lazy-fetch(PR#290) 전제.
+#
+# ── 음성 선빌드(/prebuild) ──
+Environment=PRETHIRD_STT_URL=http://127.0.0.1:8202
+Environment=PREBUILD_MAX_CONCURRENCY=3
+# mizu M-1(SSRF): voiceRawUrl 은 api(`${origin}/oth-path<id>`) 호스트만 허용.
+# origin = createClone 요청 origin = api 도메인. R2 redirect 면 asset_fetch 가 차단(E2E 확인).
+Environment=PRETHIRD_ASSET_HOST_ALLOWLIST=edge-alt-preview.example.invalid
+# PREBUILD_SECRET 은 git 미추적 — 배포 스크립트가 prebuild-secret.conf drop-in 으로 주입(M-3).
+#
+# ── 대화 기록(records) — 통화 턴 input/answer/meta(+wav/mp4) 기록 + 응답누락 진단 ──
+# recorder.py: NullObject graceful skip, 모든 I/O 예외 흡수(통화 차단 0), 파일 0o600.
+Environment=PRETHIRD_RECORDS_ROOT=/data/records
+# Phase3 mp4(입싱크 영상)는 기본 off — 프레임 RAM·디스크 비용. 진단 필요 시에만 1.
+Environment=PRETHIRD_RECORD_MP4=0
+# /data 쓰기 허용 (systemd 샌드박싱 강화 시에도 records 기록 보장).
+ReadWritePaths=/data
+#
+# ── 실시간 대화 품질(AV quick wins) — 전부 토글, =0 이면 기존 동작 복귀(회귀 안전장치) ──
+# 오디오 청크 peak-clamp 정규화(음량 출렁임 억제). 0/false 면 off.
+Environment=PRETHIRD_AUDIO_NORM=1
+# 오디오 청크 경계 edge-fade ms(클릭 제거). 0 이면 off.
+Environment=PRETHIRD_AUDIO_FADE_MS=8
+# idle 진입(speak→idle) cross-dissolve 프레임 수. 0 이면 hard cut(기존).
+Environment=PRETHIRD_IDLE_BLEND_FRAMES=5
+ExecStart=/home/afterlife/miniconda3/envs/musetalk/bin/python /home/afterlife/afterlife-server/prethird/scripts/server.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

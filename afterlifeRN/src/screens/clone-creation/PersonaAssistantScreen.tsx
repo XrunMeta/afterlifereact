@@ -45,7 +45,7 @@ type Props = {
   navigation: v_390fcc<v_2b51a5, 'PersonaAssistant'>;
 };
 
-const v_291e91 = '페르소나 생성 도우미';
+const v_291e91 = '클론 생성 도우미';
 const v_90ef75 = require('../../../assets/images/symbol.png');
 
 function v_a7e583(q: v_c8af29, v_00da68): boolean {
@@ -58,7 +58,7 @@ function v_a7e583(q: v_c8af29, v_00da68): boolean {
 type SystemPhase = 'name' | 'username' | 'relation';
 
 const v_d09784 = {
-  name: '안녕하세요! 페르소나 생성 도우미입니다.\n\n지금 생성하는 페르소나의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
+  name: '안녕하세요! 클론 생성 도우미입니다.\n\n지금 생성하는 클론의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
   username:
     '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
   relation: '어떤 관계인가요?\n아래에서 선택해 주세요.',
@@ -171,6 +171,41 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     return v_089434;
   })();
 
+  const v_cd9adb = 0.05;      
+  const v_29bce9 = 0.15;   
+  const v_c0a2da = 4;      
+  const v_d53712 = 1;    
+
+  const v_ba35ae = v_df9f57(() => {
+
+    if (v_ab4803 === 'init' || v_ab4803 === 'sys:name') return 0;
+    if (v_ab4803 === 'sys:username') return v_cd9adb;                          
+    if (v_ab4803 === 'sys:relation' || v_ab4803 === 'sys:relation-custom') return v_cd9adb * 2; 
+    if (v_ab4803 === 'done') return 1;
+
+    if (v_ab4803.startsWith('schema:') && v_d776c4 !== null) {
+      const v_cf55be = v_7b2d16;
+      const v_02d66b = (q: v_c8af29) =>
+        v_ab6401.type === 'text' ? v_c0a2da : v_d53712;
+      const v_78d11f = v_cf55be.reduce((v_dce0a8, v_ab6401) => v_dce0a8 + v_02d66b(v_ab6401), 0);
+      if (v_78d11f <= 0) return v_29bce9;
+
+      const v_09394e = v_cf55be
+        .slice(0, v_d776c4)
+        .reduce((v_dce0a8, v_ab6401) => v_dce0a8 + v_02d66b(v_ab6401), 0);
+      return Math.min(1, v_29bce9 + (1 - v_29bce9) * (v_09394e / v_78d11f));
+    }
+
+    return v_29bce9; 
+  }, [v_ab4803, v_d776c4, v_7b2d16]);
+
+  const [v_9339ad, v_9a6920] = v_5ab095(0);
+  v_c4deb2(() => {
+    v_9a6920((v_ba2215) => Math.max(v_ba2215, v_ba35ae));
+  }, [v_ba35ae]);
+
+  const v_dc2799 = Math.round(v_9339ad * 100);
+
   const v_fdd1bf = v_de06a3(async () => {
     if (v_19911c.current || !v_2ca7e0) return;
     v_19911c.current = true;
@@ -252,15 +287,11 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         const v_cc1380 = v_6f7c85[v_ab6401.key] ?? [];
 
         const v_9bfd73 = v_ab6401.options_include ?? [];
-        const v_2b7a6d = [...new Set([...v_9bfd73, ...v_cc1380])];
-        v_3d694a = v_2b7a6d.length > 0 ? [...v_2b7a6d, '직접 입력', '건너뛰기'] : ['직접 입력', '건너뛰기'];
+        const v_2b7a6d = [...new Set([...v_9bfd73, ...v_cc1380])].slice(0, 3);
+        v_3d694a = v_2b7a6d.length > 0 ? [...v_2b7a6d, '직접 입력'] : ['직접 입력'];
       }
       if (v_ab6401.type === 'fixed_choice' && (v_ab6401.optional !== false)) {
         v_3d694a = [...v_3d694a, '건너뛰기'];
-      }
-
-      if (v_ab6401.type === 'text' && (v_ab6401.optional !== false)) {
-        v_3d694a = ['건너뛰기'];
       }
 
       v_ae4844(`schema:${v_e86ad8}`);
@@ -515,7 +546,10 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     if (v_ab4803 === 'sys:username') return !v_dff7ca; 
     if (v_ab4803 === 'sys:name') return v_bbda62.trim().length > 0;
     if (v_ab4803 === 'sys:relation-custom') return v_bbda62.trim().length > 0;
-    if (v_ab4803.startsWith('schema:')) return v_bbda62.trim().length > 0;
+    if (v_ab4803.startsWith('schema:')) {
+
+      return v_bbda62.trim().length > 0;
+    }
     return false;
   })();
 
@@ -530,9 +564,8 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
     <SafeView backgroundColor={v_1bfbd0.white}>
       {}
       <View style={[v_fd5f43.header, { paddingTop: v_033e14.top + 6 }]}>
-        <TouchableOpacity onPress={v_c7ac57} hitSlop={12} style={v_fd5f43.backBtn}>
-          <Feather name="arrow-left" size={22} color={v_1bfbd0.zinc900} />
-        </TouchableOpacity>
+        {}
+        <View style={{ width: 38 }} />
         <View style={v_fd5f43.headerCenter}>
           <View style={v_fd5f43.headerAvatar}>
             <Image source={v_90ef75} style={v_fd5f43.headerAvatarImg} resizeMode="contain" />
@@ -540,6 +573,21 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
           <Text style={v_fd5f43.headerName}>{v_291e91}</Text>
         </View>
         <View style={{ width: 38 }} />
+      </View>
+
+      {}
+      <View style={v_fd5f43.progressCard}>
+        <View style={v_fd5f43.progressTopRow}>
+          <View style={v_fd5f43.progressLabelRow}>
+            <Feather name="zap" size={15} color="#f97316" />
+            <Text style={v_fd5f43.progressLabel}>{v_8d41d7('chat.trainingLabel')}</Text>
+          </View>
+          <Text style={v_fd5f43.progressPct}>{v_dc2799}%</Text>
+        </View>
+        <View style={v_fd5f43.progressTrack}>
+          <View style={[v_fd5f43.progressFill, { width: `${v_dc2799}%` }]} />
+        </View>
+        <Text style={v_fd5f43.progressHint}>{v_8d41d7('chat.trainingHint')}</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -626,44 +674,46 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
 
         {}
         {v_bc9d5f && (
-          <View style={v_fd5f43.inputBar}>
-            <TextInput
-              style={[v_fd5f43.input, v_f05841 && v_fd5f43.inputMultiline]}
-              value={v_bbda62}
-              onChangeText={(v_81e2ef) => {
-                if (v_ab4803 === 'sys:username') {
-                  v_c31db7(v_81e2ef.toLowerCase().replace(/[^a-z0-9_]/g, ''));
-                } else {
-                  v_c31db7(v_81e2ef);
-                }
-              }}
-              placeholder={v_064334}
-              placeholderTextColor={v_1bfbd0.zinc400}
-              multiline={v_f05841}
-              maxLength={v_f05841 ? 500 : 40}
+          <View style={v_fd5f43.inputWrap}>
+            <View style={v_fd5f43.inputBar}>
+              <TextInput
+                style={[v_fd5f43.input, v_f05841 && v_fd5f43.inputMultiline]}
+                value={v_bbda62}
+                onChangeText={(v_81e2ef) => {
+                  if (v_ab4803 === 'sys:username') {
+                    v_c31db7(v_81e2ef.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                  } else {
+                    v_c31db7(v_81e2ef);
+                  }
+                }}
+                placeholder={v_064334}
+                placeholderTextColor={v_1bfbd0.zinc400}
+                multiline={v_f05841}
+                maxLength={v_f05841 ? 500 : 40}
 
-              autoCapitalize={v_ab4803 === 'sys:username' ? 'none' : 'sentences'}
-              autoCorrect={v_ab4803 !== 'sys:username'}
-              autoComplete={v_ab4803 === 'sys:username' ? 'off' : undefined}
-              keyboardType={v_ab4803 === 'sys:username' ? 'visible-password' : 'default'}
-              textContentType={v_ab4803 === 'sys:username' ? 'none' : undefined}
-              editable={!v_199303 && !v_dff7ca}
-              returnKeyType={v_f05841 ? 'default' : 'send'}
-              onSubmitEditing={v_f05841 ? undefined : v_fbb22a}
-              blurOnSubmit={!v_f05841}
-            />
-            <TouchableOpacity
-              style={[v_fd5f43.sendBtn, !v_9399bb && v_fd5f43.sendBtnDisabled]}
-              onPress={v_fbb22a}
-              disabled={!v_9399bb}
-              activeOpacity={0.85}
-            >
-              {v_dff7ca ? (
-                <ActivityIndicator size="small" color={v_1bfbd0.white} />
-              ) : (
-                <Feather name="send" size={18} color={v_9399bb ? v_1bfbd0.white : v_1bfbd0.zinc400} />
-              )}
-            </TouchableOpacity>
+                autoCapitalize={v_ab4803 === 'sys:username' ? 'none' : 'sentences'}
+                autoCorrect={v_ab4803 !== 'sys:username'}
+                autoComplete={v_ab4803 === 'sys:username' ? 'off' : undefined}
+                keyboardType={v_ab4803 === 'sys:username' ? 'visible-password' : 'default'}
+                textContentType={v_ab4803 === 'sys:username' ? 'none' : undefined}
+                editable={!v_199303 && !v_dff7ca}
+                returnKeyType={v_f05841 ? 'default' : 'send'}
+                onSubmitEditing={v_f05841 ? undefined : v_fbb22a}
+                blurOnSubmit={!v_f05841}
+              />
+              <TouchableOpacity
+                style={[v_fd5f43.sendBtn, !v_9399bb && v_fd5f43.sendBtnDisabled]}
+                onPress={v_fbb22a}
+                disabled={!v_9399bb}
+                activeOpacity={0.85}
+              >
+                {v_dff7ca ? (
+                  <ActivityIndicator size="small" color={v_1bfbd0.white} />
+                ) : (
+                  <Feather name="send" size={18} color={v_9399bb ? v_1bfbd0.white : v_1bfbd0.zinc400} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -759,6 +809,11 @@ const v_fd5f43 = v_472849.create({
   },
   quickReplyText: { fontSize: 13, color: v_1bfbd0.violet600, fontWeight: '500' },
 
+  inputWrap: {
+    backgroundColor: v_1bfbd0.white,
+    borderTopWidth: 1,
+    borderTopColor: v_1bfbd0.zinc100,
+  },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -767,8 +822,6 @@ const v_fd5f43 = v_472849.create({
     paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: v_1bfbd0.white,
-    borderTopWidth: 1,
-    borderTopColor: v_1bfbd0.zinc100,
   },
   input: {
     flex: 1,
@@ -793,6 +846,38 @@ const v_fd5f43 = v_472849.create({
     justifyContent: 'center',
   },
   sendBtnDisabled: { backgroundColor: v_1bfbd0.zinc200 },
+
+  progressCard: {
+    marginHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 4,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: v_1bfbd0.zinc50,
+    borderWidth: 1,
+    borderColor: v_1bfbd0.zinc100,
+  },
+  progressTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  progressLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  progressLabel: { fontSize: 14, fontWeight: '700', color: v_1bfbd0.zinc900 },
+  progressPct: { fontSize: 14, fontWeight: '700', color: v_1bfbd0.zinc900 },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: v_1bfbd0.zinc200,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#f97316',
+  },
+  progressHint: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 8 },
 });
 
 void v_9b1a04;

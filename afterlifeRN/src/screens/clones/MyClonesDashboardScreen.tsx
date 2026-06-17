@@ -1,5 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
-import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095, v_de06a3 } from "bapkr";
+import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095, v_de06a3, v_e662ae } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -21,7 +21,7 @@ import {
 import * as v_d05ab5 from "khtmgrssvfqqjmzoc";
 import { v_04686a } from "../../lib/imagePicker";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
-import { v_cf763b, v_ada615, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
+import { v_cf763b, v_ada615, v_2d8264, type v_ee3714, v_650cfa } from "ixigazcpvfldbecwtbvavtbi";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_772971 } from "jmpfvteuuztnp";
 import * as v_fba5a0 from "hfxxehldoiokdq";
@@ -35,7 +35,11 @@ import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_694b7f } from "../../api/source";
-import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, type v_fa0201, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0 } from "../../api/clones";
+import { v_d60cdf, v_81d12f, v_f373d8, v_20d793, v_776874, v_914311, v_8ce643, v_d24912, type v_fa0201, type v_a9d96d, type v_d83ffc, type v_52af9d, type v_ceccc3, type v_6349d0, type v_1d741a } from "../../api/clones";
+import v_feb82c from "../../mocks/gifts.json";
+import type { v_84fd28 } from "../../types/gift";
+
+const v_bed6ed = v_feb82c as v_84fd28[];
 import { v_bfd883 } from "../../lib/relativeTime";
 import v_8e7ad4 from "../../components/ui/SwipeDownSheet";
 import { v_84a859, v_976b89 } from "../../api/auth";
@@ -235,31 +239,40 @@ export default function v_def15b() {
     cloneId: number;
     cloneName: string;
   } | null>(null);
+
+  const v_c7daf6 = v_2d8264<v_ee3714<v_2d88fc, "Dashboard">>();
+  const v_3bde32 = v_e662ae<number | null>(null);
+
   const [v_e3b01d, v_34611c] = v_5ab095<v_6349d0 | null>(null);
   const [v_5be645, v_b3ab13] = v_5ab095(false);
 
   const [v_eaf85e, v_aff30f] = v_5ab095(false);
 
+  const [v_51c9ac, v_cc5a83] = v_5ab095<v_1d741a[] | null>(null);
+  const [v_5101de, v_167f31] = v_5ab095(false);
+
   v_c4deb2(() => {
     if (!v_d3a183) {
+      v_cc5a83(null);
+
       v_34611c(null);
       return;
     }
     if (!v_2ca7e0) return;
     let v_2008a4 = false;
-    v_b3ab13(true);
-    v_34611c(null);
-    v_8ce643(v_2ca7e0, v_d3a183.cloneId, { limit: 100 })
+    v_167f31(true);
+    v_cc5a83(null);
+    v_d24912(v_2ca7e0, v_d3a183.cloneId)
       .then((v_8f00b9) => {
         if (v_2008a4) return;
-        v_34611c(v_8f00b9);
+        v_cc5a83(v_8f00b9.items);
       })
       .catch((v_49263d) => {
-        console.warn("[MyClones] listCloneIntimacyEvents failed:", v_49263d);
-        if (!v_2008a4) v_34611c(null);
+        console.warn("[MyClones] listCloneGiftReceipts failed:", v_49263d);
+        if (!v_2008a4) v_cc5a83([]);
       })
       .finally(() => {
-        if (!v_2008a4) v_b3ab13(false);
+        if (!v_2008a4) v_167f31(false);
       });
     return () => {
       v_2008a4 = true;
@@ -351,6 +364,15 @@ export default function v_def15b() {
   const [v_c9d3fa, v_f32c49] = v_5ab095<number | null>(null);
 
   const v_fc7f92 = v_4cd149.filter((v_3f4e2e) => !v_8769c2.has(v_3f4e2e.id));
+
+  v_c4deb2(() => {
+    const v_062ae9 = v_c7daf6.params?.openIntimacyCloneId;
+    if (!v_062ae9 || v_3bde32.current === v_062ae9) return;
+    const v_eb25ce = v_4cd149.find((v_3f4e2e) => v_3f4e2e.id === v_062ae9);
+    if (!v_eb25ce) return; 
+    v_3bde32.current = v_062ae9;
+    v_598141({ cloneId: v_062ae9, cloneName: v_eb25ce.displayName });
+  }, [v_c7daf6.params?.openIntimacyCloneId, v_4cd149]);
 
   const v_bf58a4 = (v_6e0fd3) => {
     const v_7d13fd = v_699459[v_6e0fd3]?.isActive ?? true;
@@ -685,13 +707,7 @@ export default function v_def15b() {
               <Ionicons name="chatbubbles-outline" size={14} color={v_1bfbd0.zinc500} />
               <Text style={v_fd5f43.statText}>상호작용</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={v_fd5f43.stat}
-              onPress={() => v_598141({ cloneId: v_eb25ce.id, cloneName: v_eb25ce.displayName })}
-            >
-              <Feather name="thermometer" size={14} color="#fb923c" />
-              <Text style={v_fd5f43.statText}>온도</Text>
-            </TouchableOpacity>
+            {}
           </View>
         )}
 
@@ -736,7 +752,7 @@ export default function v_def15b() {
             onPress={async () => {
 
               const v_f71b56 = `https://afterlife.app/clone/${v_eb25ce.id}`;
-              const v_a8cd21 = `${v_eb25ce.displayName} 페르소나와 대화해보세요!\n${v_f71b56}`;
+              const v_a8cd21 = `${v_eb25ce.displayName} 클론과 대화해보세요!\n${v_f71b56}`;
               try {
                 await v_5f4661.share(
                   v_326be8.OS === "ios"
@@ -813,9 +829,9 @@ export default function v_def15b() {
             <View style={v_fd5f43.dashEmptyIconWrap}>
               <Feather name="user-plus" size={32} color={v_1bfbd0.zinc400} />
             </View>
-            <Text style={v_fd5f43.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
+            <Text style={v_fd5f43.dashEmptyTitle}>나만의 클론을 만들어보세요</Text>
             <Text style={v_fd5f43.dashEmptyDesc}>
-              아래 버튼을 눌러 첫 페르소나를 만들 수 있어요
+              아래 버튼을 눌러 첫 클론을 만들 수 있어요
             </Text>
             <TouchableOpacity
               style={v_fd5f43.dashEmptyBtn}
@@ -831,7 +847,7 @@ export default function v_def15b() {
               }
             >
               <Feather name="plus" size={18} color={v_1bfbd0.white} />
-              <Text style={v_fd5f43.dashEmptyBtnText}>페르소나 만들기</Text>
+              <Text style={v_fd5f43.dashEmptyBtnText}>클론 만들기</Text>
             </TouchableOpacity>
           </View>
         }
@@ -909,7 +925,7 @@ export default function v_def15b() {
                     <View style={v_fd5f43.profileStatDivider} />
                     <View style={v_fd5f43.profileStatItem}>
                       <Text style={v_fd5f43.profileStatValue}>{v_fc7f92.length}</Text>
-                      <Text style={v_fd5f43.profileStatLabel}>페르소나</Text>
+                      <Text style={v_fd5f43.profileStatLabel}>클론</Text>
                     </View>
                   </View>
                 </View>
@@ -1027,12 +1043,12 @@ export default function v_def15b() {
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_3e0da5(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>
-              {v_16ef58?.currentState ? "페르소나 비활성화" : "페르소나 활성화"}
+              {v_16ef58?.currentState ? "클론 비활성화" : "클론 활성화"}
             </Text>
             <Text style={v_fd5f43.modalDesc}>
               {v_16ef58?.currentState
-                ? "페르소나를 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
-                : "페르소나를 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
+                ? "클론을 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
+                : "클론을 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
             </Text>
             <View style={v_fd5f43.modalBtns}>
               <Button
@@ -1057,7 +1073,7 @@ export default function v_def15b() {
         <Pressable style={v_fd5f43.modalOverlay} onPress={() => v_2dbd8f(null)}>
           <Pressable style={v_fd5f43.modalBox} onPress={(v_9e86fd) => v_9e86fd.stopPropagation()}>
             <Text style={v_fd5f43.modalTitle}>공개 범위</Text>
-            <Text style={v_fd5f43.modalDesc}>이 페르소나를 누구에게 보일까요?</Text>
+            <Text style={v_fd5f43.modalDesc}>이 클론을 누구에게 보일까요?</Text>
             <View style={v_fd5f43.visibilityOptions}>
               {(["public", "followers", "selected", "private"] as v_b0b271[]).map((v_81e2ef) => {
                 const v_587413 = v_7462ec?.currentVisibility === v_81e2ef;
@@ -1342,77 +1358,43 @@ export default function v_def15b() {
             <View style={v_fd5f43.sheetHandle} />
             <View style={v_fd5f43.intimacyTitleRow}>
               <View style={{ width: 28 }} />
-              <Text style={v_fd5f43.statsSheetTitle}>{v_8d41d7("feed.eventsTitle")}</Text>
-              <TouchableOpacity
-                onPress={() => v_aff30f(true)}
-                hitSlop={8}
-                style={{ width: 28, alignItems: "flex-end" }}
-              >
-                <Feather name="help-circle" size={20} color={v_1bfbd0.zinc400} />
-              </TouchableOpacity>
+              <Text style={v_fd5f43.statsSheetTitle}>받은 선물</Text>
+              <View style={{ width: 28 }} />
             </View>
             <Text style={v_fd5f43.statsSheetSub}>{v_d3a183?.cloneName}</Text>
 
             {}
-            {v_e3b01d?.summary && (
-              <View style={v_fd5f43.intimacySummary}>
-                <View style={v_fd5f43.intimacySummaryRow}>
-                  <Feather name="thermometer" size={20} color="#fb923c" />
-                  <Text style={v_fd5f43.intimacySummaryScore}>
-                    {Math.min(100, v_e3b01d.summary.totalScore)}°C
-                  </Text>
-                  <Text style={v_fd5f43.intimacySummaryCount}>
-                    · {v_8d41d7("feed.summaryCount", { n: v_e3b01d.summary.eventCount })}
-                  </Text>
-                </View>
-                <View style={v_fd5f43.intimacyBreakdownRow}>
-                  <Text style={v_fd5f43.intimacyBreakdownItem}>
-                    채팅 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.chat}°C</Text>
-                  </Text>
-                  <Text style={v_fd5f43.intimacyBreakdownItem}>
-                    통화 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.call}°C</Text>
-                  </Text>
-                  <Text style={v_fd5f43.intimacyBreakdownItem}>
-                    탐색 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.learn}°C</Text>
-                  </Text>
-                  <Text style={v_fd5f43.intimacyBreakdownItem}>
-                    피드 <Text style={v_fd5f43.intimacyBreakdownVal}>{v_e3b01d.summary.feed}°C</Text>
-                  </Text>
-                </View>
-              </View>
-            )}
+            <View style={v_fd5f43.giftTableHeader}>
+              <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 2 }]}>선물</Text>
+              <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 1, textAlign: "center" }]}>갯수</Text>
+              <Text style={[v_fd5f43.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>보낸사람</Text>
+            </View>
 
             <ScrollView style={v_fd5f43.statsScrollArea} showsVerticalScrollIndicator={false}>
-              {v_5be645 ? (
+              {v_5101de ? (
                 <ActivityIndicator color={v_1bfbd0.zinc500} style={{ paddingVertical: 24 }} />
-              ) : !v_e3b01d || v_e3b01d.items.length === 0 ? (
+              ) : !v_51c9ac || v_51c9ac.length === 0 ? (
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Text style={{ color: v_1bfbd0.zinc500, fontSize: 13 }}>
-                    {v_8d41d7("feed.emptyEventsMine")}
+                    아직 받은 선물이 없어요
                   </Text>
                 </View>
               ) : (
-                v_e3b01d.items.map((v_1d299c) => {
-                  const ACTION_META: Record<
-                    "chat" | "call" | "learn" | "feed",
-                    { label: string; icon: keyof typeof v_dec439.glyphMap; color: string }
-                  > = {
-                    chat: { label: v_8d41d7("feed.actionLabelChat"), icon: "message-circle", color: "#60a5fa" },
-                    call: { label: v_8d41d7("feed.actionLabelCall"), icon: "phone", color: "#34d399" },
-                    learn: { label: v_8d41d7("feed.actionLabelLearn"), icon: "search", color: "#a78bfa" },
-                    feed: { label: v_8d41d7("feed.actionLabelFeed"), icon: "heart", color: "#ef4444" },
-                  };
-                  const v_ab4c96 = v_894daa[v_1d299c.action];
+                v_51c9ac.map((v_8c0b26, v_e86ad8) => {
+                  const v_52a5a5 = v_bed6ed.find((v_206b88) => v_206b88.id === v_8c0b26.giftId);
+                  const v_03a50c = v_52a5a5?.emoji ?? "🎁";
                   return (
-                    <View key={v_1d299c.id} style={v_fd5f43.intimacyEventRow}>
-                      <View style={[v_fd5f43.intimacyEventIcon, { backgroundColor: v_ab4c96.color + "22" }]}>
-                        <Feather name={v_ab4c96.icon} size={14} color={v_ab4c96.color} />
+                    <View key={`${v_8c0b26.giftId}-${v_8c0b26.sender}-${v_e86ad8}`} style={v_fd5f43.giftTableRow}>
+                      <View style={[{ flex: 2, flexDirection: "row", alignItems: "center", gap: 6 }]}>
+                        <Text style={{ fontSize: 18 }}>{v_03a50c}</Text>
+                        <Text style={v_fd5f43.giftTableCell}>{v_8c0b26.giftName}</Text>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={v_fd5f43.intimacyEventLabel}>{v_ab4c96.label}</Text>
-                        <Text style={v_fd5f43.intimacyEventTime}>{v_bfd883(v_1d299c.createdAt)}</Text>
-                      </View>
-                      <Text style={v_fd5f43.intimacyEventScore}>+{v_1d299c.score}°C</Text>
+                      <Text style={[v_fd5f43.giftTableCell, { flex: 1, textAlign: "center" }]}>
+                        {v_8c0b26.count}
+                      </Text>
+                      <Text style={[v_fd5f43.giftTableCell, { flex: 2, textAlign: "right" }]} numberOfLines={1}>
+                        {v_8c0b26.sender}
+                      </Text>
                     </View>
                   );
                 })
@@ -1497,7 +1479,7 @@ const v_2c1f99 = [
 
 const v_2fb1c1 = [
   { id: "c1", name: "김민수", avatar: "https://i.pravatar.cc/100?img=1", text: "정말 도움이 많이 됐어요! 감사합니다.", time: "2시간 전" },
-  { id: "c2", name: "이서연", avatar: "https://i.pravatar.cc/100?img=5", text: "이 페르소나 대화 퀄리티가 진짜 좋네요", time: "5시간 전" },
+  { id: "c2", name: "이서연", avatar: "https://i.pravatar.cc/100?img=5", text: "이 클론 대화 퀄리티가 진짜 좋네요", time: "5시간 전" },
   { id: "c3", name: "박지훈", avatar: "https://i.pravatar.cc/100?img=3", text: "위로가 되는 말씀 감사해요 ㅠㅠ", time: "어제" },
   { id: "c4", name: "최유진", avatar: "https://i.pravatar.cc/100?img=9", text: "매일 대화하고 있어요 추천합니다!", time: "2일 전" },
   { id: "c5", name: "정하은", avatar: "https://i.pravatar.cc/100?img=10", text: "목소리도 자연스럽고 너무 좋아요", time: "3일 전" },
@@ -2143,6 +2125,32 @@ const v_fd5f43 = v_472849.create({
   intimacyEventLabel: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc900 },
   intimacyEventTime: { fontSize: 11, color: v_1bfbd0.zinc500, marginTop: 2 },
   intimacyEventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
+
+  giftTableHeader: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: v_1bfbd0.zinc200,
+    marginBottom: 2,
+  },
+  giftTableHeaderCell: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: v_1bfbd0.zinc500,
+  },
+  giftTableRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: v_472849.hairlineWidth,
+    borderBottomColor: v_1bfbd0.zinc100,
+  },
+  giftTableCell: {
+    fontSize: 14,
+    color: v_1bfbd0.zinc900,
+  },
 
   infoSection: {
     paddingHorizontal: 20,

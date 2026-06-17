@@ -1,0 +1,447 @@
+import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
+import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
+
+async function v_bfb240(v_e0c7e8): Promise<number> {
+  const v_a1651b = v_c9c489.DB as unknown as D1Database;
+  await v_a1651b
+    .prepare(`INSERT INTO users (email, password_hash, name, created_at) VALUES (?, 'x', 'U', CURRENT_TIMESTAMP)`)
+    .bind(v_e0c7e8)
+    .run();
+  const v_ceb55a = await v_a1651b.prepare("SELECT id FROM users WHERE email = ?").bind(v_e0c7e8).first<{ id: number }>();
+  return v_ceb55a!.id;
+}
+
+async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
+  const v_a1651b = v_c9c489.DB as unknown as D1Database;
+  await v_a1651b
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'TestClone', ?, 'memlow', 'public', CURRENT_TIMESTAMP)`
+    )
+    .bind(v_1badb6, v_556427)
+    .run();
+  const v_3f4e2e = await v_a1651b.prepare("SELECT id FROM clones WHERE username = ?").bind(v_556427).first<{ id: number }>();
+  return v_3f4e2e!.id;
+}
+
+async function v_86c39f(v_43e90c): Promise<string> {
+  const { issueToken: v_b2eae5 } = await import("../src/lib/jwt");
+  const v_43fd42 = (v_c9c489 as { JWT_ACCESS_SECRET?: string }).JWT_ACCESS_SECRET;
+  if (!v_43fd42) throw new Error("JWT_ACCESS_SECRET missing in test env");
+  return await v_b2eae5({ sub: v_43e90c, kind: "access" }, v_43fd42, 60 * 10);
+}
+
+v_469bf2("persons route", () => {
+
+  v_23805a("POST /oth-path — person 생성, consentState 기본 'none', 201", async () => {
+    const v_43e90c = await v_bfb240("persons-create@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "테스트화자" }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = (await v_8f00b9.json()) as { id: number; consentState: string; displayName: string | null };
+    v_4d37e3(v_4d33b2.id).toBeGreaterThan(0);
+    v_4d37e3(v_4d33b2.consentState).toBe("none");
+
+    v_4d37e3(v_4d33b2.displayName).toBeNull();
+  });
+
+  v_23805a("POST /oth-path — cloneId + displayName 없이도 생성 가능(nullable)", async () => {
+    const v_43e90c = await v_bfb240("persons-empty@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = (await v_8f00b9.json()) as { consentState: string };
+    v_4d37e3(v_4d33b2.consentState).toBe("none");
+  });
+
+  v_23805a("POST /oth-path — displayName 보내도 저장은 NULL (mizu H-2)", async () => {
+    const v_43e90c = await v_bfb240("persons-longname@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+    const v_beebfc = "가".repeat(80);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: v_beebfc }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = (await v_8f00b9.json()) as { displayName: string | null };
+
+    v_4d37e3(v_4d33b2.displayName).toBeNull();
+  });
+
+  v_23805a("POST /oth-path — 비로그인 401", async () => {
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "익명" }),
+    });
+    v_4d37e3(v_8f00b9.status).toBe(401);
+  });
+
+  v_23805a("POST /oth-path {state:'granted'} → consent_state 'granted', consent_at 설정", async () => {
+    const v_43e90c = await v_bfb240("persons-consent-grant@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_5d98f0 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const { id: v_389afb } = (await v_5d98f0.json()) as { id: number };
+
+    const v_28ec91 = await v_1df298.fetch(`http://localhost/oth-path${v_389afb}/consent`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    v_4d37e3(v_28ec91.status).toBe(200);
+    const v_4d33b2 = (await v_28ec91.json()) as { consentState: string; consentAt: number };
+    v_4d37e3(v_4d33b2.consentState).toBe("granted");
+    v_4d37e3(v_4d33b2.consentAt).toBeGreaterThan(0);
+  });
+
+  v_23805a("POST /oth-path {state:'revoked'} → consent_state 'revoked'", async () => {
+    const v_43e90c = await v_bfb240("persons-consent-revoke@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_5d98f0 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const { id: v_389afb } = (await v_5d98f0.json()) as { id: number };
+
+    const v_28ec91 = await v_1df298.fetch(`http://localhost/oth-path${v_389afb}/consent`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "revoked" }),
+    });
+
+    v_4d37e3(v_28ec91.status).toBe(200);
+    const v_4d33b2 = (await v_28ec91.json()) as { consentState: string };
+    v_4d37e3(v_4d33b2.consentState).toBe("revoked");
+  });
+
+  v_23805a("POST /oth-path — state 'none' → VALIDATION_FAILED(422)", async () => {
+    const v_43e90c = await v_bfb240("persons-consent-none@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_5d98f0 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const { id: v_389afb } = (await v_5d98f0.json()) as { id: number };
+
+    const v_28ec91 = await v_1df298.fetch(`http://localhost/oth-path${v_389afb}/consent`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "none" }),
+    });
+
+    v_4d37e3(v_28ec91.status).toBe(422);
+    const v_4d33b2 = (await v_28ec91.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  v_23805a("POST /oth-path — 잘못된 state 값 → VALIDATION_FAILED(422)", async () => {
+    const v_43e90c = await v_bfb240("persons-consent-bad@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_5d98f0 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const { id: v_389afb } = (await v_5d98f0.json()) as { id: number };
+
+    const v_28ec91 = await v_1df298.fetch(`http://localhost/oth-path${v_389afb}/consent`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "unknown_value" }),
+    });
+
+    v_4d37e3(v_28ec91.status).toBe(422);
+  });
+
+  v_23805a("POST /oth-path — 다른 user의 person id → NOT_FOUND(404) 소유검증", async () => {
+    const v_257b90 = await v_bfb240("persons-owner@test.local");
+    const v_53bb36 = await v_bfb240("persons-attacker@test.local");
+    const v_40444e = await v_86c39f(v_257b90);
+    const v_d82c92 = await v_86c39f(v_53bb36);
+
+    const v_5d98f0 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_40444e}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const { id: v_389afb } = (await v_5d98f0.json()) as { id: number };
+
+    const v_28ec91 = await v_1df298.fetch(`http://localhost/oth-path${v_389afb}/consent`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_d82c92}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    v_4d37e3(v_28ec91.status).toBe(404);
+    const v_4d33b2 = (await v_28ec91.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("NOT_FOUND");
+  });
+
+  v_23805a("POST /oth-path — 유효하지 않은 id(0) → VALIDATION_FAILED(422)", async () => {
+    const v_43e90c = await v_bfb240("persons-badid@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(422);
+  });
+
+  v_23805a("POST /oth-path — 비정수 id → VALIDATION_FAILED(422)", async () => {
+    const v_43e90c = await v_bfb240("persons-nanid@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(422);
+  });
+
+  v_23805a("GET /oth-path — 내 persons만 반환", async () => {
+    const v_40efc8 = await v_bfb240("persons-list-a@test.local");
+    const v_4a3fe3 = await v_bfb240("persons-list-b@test.local");
+    const v_21b3f7 = await v_86c39f(v_40efc8);
+    const v_fef5a7 = await v_86c39f(v_4a3fe3);
+
+    await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21b3f7}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_21b3f7}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_fef5a7}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      headers: { Authorization: `Bearer ${v_21b3f7}` },
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as { data: { id: number; userId: number; displayName: string | null }[] };
+
+    v_4d37e3(v_4d33b2.data.every((v_e2a85c) => v_e2a85c.userId === v_40efc8)).toBe(true);
+    v_4d37e3(v_4d33b2.data.length).toBeGreaterThanOrEqual(2);
+  });
+
+  v_23805a("GET /oth-path — 비로그인 401", async () => {
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path");
+    v_4d37e3(v_8f00b9.status).toBe(401);
+  });
+
+  v_23805a("GET /oth-path — camelCase 응답 형식 확인", async () => {
+    const v_43e90c = await v_bfb240("persons-camel@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_5d98f0 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    v_4d37e3(v_5d98f0.status).toBe(201);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+
+    const v_4d33b2 = (await v_8f00b9.json()) as {
+      data: { id: number; userId: number; cloneId: number | null; displayName: string | null; consentState: string; consentAt: number | null; createdAt: number }[];
+    };
+    v_4d37e3(v_4d33b2.data.length).toBeGreaterThan(0);
+    const v_e2a85c = v_4d33b2.data[0];
+    v_4d37e3(v_e2a85c).toHaveProperty("userId");
+    v_4d37e3(v_e2a85c).toHaveProperty("cloneId");
+    v_4d37e3(v_e2a85c).toHaveProperty("displayName");
+    v_4d37e3(v_e2a85c).toHaveProperty("consentState");
+    v_4d37e3(v_e2a85c).toHaveProperty("consentAt");
+    v_4d37e3(v_e2a85c).toHaveProperty("createdAt");
+  });
+
+  v_23805a("POST /oth-path — cloneId 타인 소유 → VALIDATION_FAILED(422) IDOR 차단", async () => {
+    const v_257b90 = await v_bfb240("clone-owner-idor@test.local");
+    const v_53bb36 = await v_bfb240("clone-attacker-idor@test.local");
+    const v_d82c92 = await v_86c39f(v_53bb36);
+
+    const v_6e0fd3 = await v_4d24a9(v_257b90, "idor-clone-owner");
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_d82c92}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ cloneId: v_6e0fd3 }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(422);
+    const v_4d33b2 = (await v_8f00b9.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  v_23805a("POST /oth-path — cloneId 본인 소유 → 201 성공", async () => {
+    const v_1badb6 = await v_bfb240("clone-owner-ok@test.local");
+    const v_ea333d = await v_86c39f(v_1badb6);
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "own-clone-ok");
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ cloneId: v_6e0fd3 }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = (await v_8f00b9.json()) as { cloneId: number };
+    v_4d37e3(v_4d33b2.cloneId).toBe(v_6e0fd3);
+  });
+
+  v_23805a("POST /oth-path — displayName 보내도 저장 NULL (mizu H-2 직접 DB 확인)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_43e90c = await v_bfb240("persons-h2-db@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "실명저장금지" }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const { id: v_389afb } = (await v_8f00b9.json()) as { id: number };
+
+    const v_3ac7e7 = await v_a1651b
+      .prepare("SELECT display_name FROM persons WHERE id = ?")
+      .bind(v_389afb)
+      .first<{ display_name: string | null }>();
+    v_4d37e3(v_3ac7e7?.display_name).toBeNull();
+  });
+
+  v_23805a("POST /oth-path granted → persons_consent_log에 1행 기록", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_43e90c = await v_bfb240("consent-log-granted@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_5d98f0 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const { id: v_389afb } = (await v_5d98f0.json()) as { id: number };
+
+    const v_eed8a7 = Date.now();
+    const v_28ec91 = await v_1df298.fetch(`http://localhost/oth-path${v_389afb}/consent`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted", termsVersion: "v2.1" }),
+    });
+    v_4d37e3(v_28ec91.status).toBe(200);
+
+    const v_056206 = await v_a1651b
+      .prepare("SELECT state, terms_version, changed_at FROM persons_consent_log WHERE person_id = ?")
+      .bind(v_389afb)
+      .all<{ state: string; terms_version: string | null; changed_at: number }>();
+
+    v_4d37e3(v_056206.results.length).toBe(1);
+    v_4d37e3(v_056206.results[0].state).toBe("granted");
+    v_4d37e3(v_056206.results[0].terms_version).toBe("v2.1");
+    v_4d37e3(v_056206.results[0].changed_at).toBeGreaterThanOrEqual(v_eed8a7);
+  });
+
+  v_23805a("POST /oth-path — 타인 소유 person → NOT_FOUND(404) + 로그 오염 없음", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_257b90 = await v_bfb240("consent-noleak-owner@test.local");
+    const v_53bb36 = await v_bfb240("consent-noleak-attacker@test.local");
+    const v_40444e = await v_86c39f(v_257b90);
+    const v_d82c92 = await v_86c39f(v_53bb36);
+
+    const v_5d98f0 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_40444e}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const { id: v_389afb } = (await v_5d98f0.json()) as { id: number };
+
+    const v_28ec91 = await v_1df298.fetch(`http://localhost/oth-path${v_389afb}/consent`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_d82c92}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "granted" }),
+    });
+
+    v_4d37e3(v_28ec91.status).toBe(404);
+    const v_4d33b2 = (await v_28ec91.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("NOT_FOUND");
+
+    const v_056206 = await v_a1651b
+      .prepare("SELECT id FROM persons_consent_log WHERE person_id = ?")
+      .bind(v_389afb)
+      .all<{ id: number }>();
+    v_4d37e3(v_056206.results.length).toBe(0);
+  });
+
+  v_23805a("POST /oth-path granted→revoked→granted 3회 → 로그 3행 누적(이력 보존)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_43e90c = await v_bfb240("consent-log-3cycle@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_5d98f0 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const { id: v_389afb } = (await v_5d98f0.json()) as { id: number };
+
+    for (const v_b6e533 of ["granted", "revoked", "granted"] as const) {
+      const v_cb35cb = await v_1df298.fetch(`http://localhost/oth-path${v_389afb}/consent`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ state: v_b6e533 }),
+      });
+      v_4d37e3(v_cb35cb.status).toBe(200);
+    }
+
+    const v_056206 = await v_a1651b
+      .prepare("SELECT state FROM persons_consent_log WHERE person_id = ? ORDER BY id ASC")
+      .bind(v_389afb)
+      .all<{ state: string }>();
+
+    v_4d37e3(v_056206.results.length).toBe(3);
+    v_4d37e3(v_056206.results[0].state).toBe("granted");
+    v_4d37e3(v_056206.results[1].state).toBe("revoked");
+    v_4d37e3(v_056206.results[2].state).toBe("granted");
+  });
+});

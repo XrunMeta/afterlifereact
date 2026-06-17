@@ -2,6 +2,7 @@
 
 import { v_cc9198 } from "../config/apiBase";
 import { v_84a859, type v_669377 } from "./auth";
+import { v_04b58a as v_3fc86a } from "../lib/authFetch";
 
 export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
 
@@ -143,9 +144,12 @@ export async function v_4bf019(
 export interface CatalogVoice {
   id: number;
   name: string;
+  gender: string | null;
+  ageRange: string | null;
   description: string | null;
   sortOrder: number;
   sampleUrl: string;
+  srcFileId: number | null;   
 }
 
 export async function v_3ee8c0(v_2ca7e0): Promise<CatalogVoice[]> {
@@ -277,54 +281,7 @@ export interface ShareMember {
   };
 }
 
-async function v_04b58a<T>(
-  v_9fe22d,
-  v_2ca7e0,
-  v_00cfc6 = {},
-  v_6f448e,
-): Promise<T> {
-  const v_3f4675 = {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${v_2ca7e0}`,
-    ...((v_00cfc6.headers as Record<string, string>) ?? {}),
-  };
-  if (v_6f448e) v_3f4675["X-Idempotency-Key"] = v_6f448e;
-
-  const v_f71b56 = `${v_cc9198}${v_9fe22d}`;
-  const v_bfe9b9 = v_00cfc6.method ?? "GET";
-  const v_8f00b9 = await fetch(v_f71b56, { ...v_00cfc6, headers: v_3f4675 });
-  const v_9b6134 = await v_8f00b9.text();
-  let v_8decf8 = null;
-  try {
-    v_8decf8 = v_9b6134 ? JSON.parse(v_9b6134) : null;
-  } catch {
-
-  }
-  if (!v_8f00b9.ok) {
-    const v_4d33b2 = v_8decf8 as v_669377 | null;
-
-    console.warn(
-      "[authFetch] failed:",
-      v_bfe9b9,
-      v_f71b56,
-      "status=",
-      v_8f00b9.status,
-      "code=",
-      v_4d33b2?.error?.code,
-      "msg=",
-      v_4d33b2?.error?.message,
-      "raw=",
-      v_9b6134.slice(0, 300),
-    );
-    throw new v_84a859(
-      v_8f00b9.status,
-      v_4d33b2?.error?.code ?? "HTTP_ERROR",
-      v_4d33b2?.error?.message ?? `HTTP ${v_8f00b9.status}`,
-      v_4d33b2?.error?.details,
-    );
-  }
-  return v_8decf8 as T;
-}
+const v_04b58a = v_3fc86a;
 
 function v_7f4dc3(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -509,6 +466,24 @@ export async function v_81d12f(v_2ca7e0): Promise<{ items: SystemClone[] }> {
   return v_04b58a(`/oth-path`, v_2ca7e0, { method: "GET" });
 }
 
+export interface GiftReceiptItem {
+  giftId: string;
+  giftName: string;
+  count: number;
+  sender: string;
+}
+
+export async function v_d24912(
+  v_2ca7e0,
+  v_6e0fd3,
+): Promise<{ items: GiftReceiptItem[] }> {
+  return v_04b58a(
+    `/oth-path${v_6e0fd3}/gifts/summary`,
+    v_2ca7e0,
+    { method: "GET" },
+  );
+}
+
 export interface IntimacyEvent {
   id: number;
   action: "chat" | "call" | "learn" | "feed";
@@ -575,17 +550,32 @@ export async function v_914311(
   return v_8decf8 as { items: CloneFollower[] };
 }
 
-export interface BlockedClone {
+export interface BlockedItemClone {
   blockId: number;
   createdAt: string;
+  type: "clone";
   clone: {
     id: number;
     name: string;
     username: string;
     avatarUrl: string | null;
     cloneType: CloneType;
+    ownerId: number;
+    visibility: Visibility;
   };
 }
+export interface BlockedItemUser {
+  blockId: number;
+  createdAt: string;
+  type: "user";
+  user: {
+    id: number;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+export type BlockedItem = BlockedItemClone | BlockedItemUser;
 
 export async function v_9deb40(
   v_2ca7e0,
@@ -671,8 +661,8 @@ export async function v_c0dd8d(v_2ca7e0, v_6e0fd3): Promise<{ ok: true; blocked:
   console.log(`[BLOCK-API] ← unblock ok cloneId=${v_6e0fd3}`, v_8f00b9);
   return v_8f00b9;
 }
-export async function v_dbedc9(v_2ca7e0): Promise<{ items: BlockedClone[] }> {
-  const v_8f00b9 = await v_04b58a<{ items: BlockedClone[] }>(
+export async function v_dbedc9(v_2ca7e0): Promise<{ items: BlockedItem[] }> {
+  const v_8f00b9 = await v_04b58a<{ items: BlockedItem[] }>(
     `/oth-path`,
     v_2ca7e0,
     { method: "GET" },

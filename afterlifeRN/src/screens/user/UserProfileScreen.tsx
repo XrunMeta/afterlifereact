@@ -238,10 +238,9 @@ export default function v_c501aa() {
     try {
       await v_095ba5(v_2ca7e0, v_43e90c, v_58ca36 || undefined);
 
-      v_4ffb1e((v_e2a85c) =>
-        v_e2a85c ? { ...v_e2a85c, user: { ...v_e2a85c.user, isBlocked: true, isFollowing: false } } : v_e2a85c,
-      );
       v_cd488d(v_43e90c, false);
+
+      v_c65f5d.navigate("Main", { screen: "HomeTab" } as never);
       v_889fad("신고 완료", "신고가 접수됐어요. 이 사용자는 차단됐어요.");
     } catch (v_49263d) {
       console.warn("[UserProfile] report failed:", v_49263d);
@@ -338,7 +337,7 @@ export default function v_c501aa() {
                         <Text style={v_fd5f43.profileStatValue}>
                           {v_727031.clones.length}
                         </Text>
-                        <Text style={v_fd5f43.profileStatLabel}>페르소나</Text>
+                        <Text style={v_fd5f43.profileStatLabel}>클론</Text>
                       </View>
                     </View>
                   </View>
@@ -382,14 +381,14 @@ export default function v_c501aa() {
               </View>
 
               <Text style={v_fd5f43.sectionTitle}>
-                만든 페르소나 ({v_727031.clones.length})
+                만든 클론 ({v_727031.clones.length})
               </Text>
             </>
           }
           ListEmptyComponent={
             <View style={v_fd5f43.empty}>
               <Feather name="users" size={32} color={v_1bfbd0.zinc300} />
-              <Text style={v_fd5f43.emptyText}>아직 만든 페르소나가 없어요</Text>
+              <Text style={v_fd5f43.emptyText}>아직 만든 클론이 없어요</Text>
             </View>
           }
         />

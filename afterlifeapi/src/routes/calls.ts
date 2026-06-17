@@ -5,9 +5,8 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import { v_5d4a51, v_d875d1 } from "../lib/cloneAccess";
-import { v_b60bdd } from "../lib/systemPersona";
-import { v_24564b } from "../lib/personaResolver";
-import { v_db508f, v_445ba7, v_56dc8c } from "../lib/personaBundle";
+import { v_87cfd2 } from "../lib/callBundle";
+import { v_1f4ea7 } from "../lib/validate";
 
 export const v_20e160 = new v_b7c41b<v_de0a25>();
 
@@ -28,26 +27,7 @@ v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
     throw new v_3ebe58("FORBIDDEN", "No access to this clone for call.");
   }
 
-  const v_b6c480 = await v_b60bdd(v_3f4e2e.env.DB);
-  const { l1: v_020b4b, l2: v_1af19b } = await v_db508f(v_3f4e2e.env.DB, v_6e0fd3);
-  const v_5ed063 = v_24564b({ l1: v_56dc8c(v_020b4b), l2: v_1af19b });
-  const v_ba0fde = v_445ba7(v_b6c480, v_5ed063, v_6e0fd3);
-
-  let v_c910d9 = v_eb25ce.voice_se_url ?? null;
-  let v_4f80ac = null;
-  if (!v_c910d9 && v_eb25ce.voice_preset_id) {
-    const v_f653fc = await v_3f4e2e.env.DB
-      .prepare(`SELECT se_key FROM voice_presets WHERE id = ? AND is_active = 1`)
-      .bind(v_eb25ce.voice_preset_id)
-      .first<{ se_key: string | null }>();
-    v_4f80ac = v_f653fc?.se_key ?? null;
-  }
-  const v_7adc95 = {
-    idleVideoUrl: v_eb25ce.idle_video_url ?? null,
-    voiceSeUrl: v_c910d9,
-    voiceSeKey: v_4f80ac,
-    avatarUrl: v_eb25ce.avatar_url ?? null,
-  };
+  const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce, v_43e90c, new URL(v_3f4e2e.req.url).origin);
 
   const v_3e7379 = v_3f4e2e.env.ORCHESTRATOR_URL;
   let v_cb35cb;
@@ -84,6 +64,46 @@ v_20e160.post("/:cloneId/call", v_6690d9, async (v_3f4e2e) => {
     tracks: v_9390e8.tracks,
     expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
   });
+});
+
+v_20e160.get("/:cloneId/bundle", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
+  if (!v_00efe2 && v_eb25ce.visibility !== "public") {
+    throw new v_3ebe58("FORBIDDEN", "No access to this clone.");
+  }
+  const { personaBundle: v_ba0fde, assets: v_7adc95 } = await v_87cfd2(v_3f4e2e.env.DB, v_eb25ce, v_43e90c, new URL(v_3f4e2e.req.url).origin);
+  return v_3f4e2e.json({ personaBundle: v_ba0fde, assets: v_7adc95 });
+});
+
+const v_f52f0d = v_1f4ea7.object({
+  sessionId: v_1f4ea7.string().regex(/^[0-9a-f]{12}$/), 
+});
+
+v_20e160.post("/:cloneId/call/prethird-start", v_6690d9, async (v_3f4e2e) => {
+  const v_6e0fd3 = v_31113b(v_3f4e2e);
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_8decf8 = v_f52f0d.safeParse(await v_3f4e2e.req.json().catch(() => ({})));
+  if (!v_8decf8.success) return v_3f4e2e.json({ error: "bad_session_id" }, 400);
+  const { sessionId: v_c5607b } = v_8decf8.data;
+
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) throw new v_3ebe58("NOT_FOUND", "Clone not found.");
+  const v_00efe2 = await v_d875d1(v_3f4e2e.env.DB, v_eb25ce, v_43e90c);
+  if (!v_00efe2 && v_eb25ce.visibility !== "public") {
+    throw new v_3ebe58("FORBIDDEN", "No access to this clone for call.");
+  }
+
+  await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO call_sessions (call_id, user_id, clone_id, started_at)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(call_id) DO NOTHING`,
+  ).bind(v_c5607b, v_43e90c, v_6e0fd3, Date.now()).run();
+
+  return v_3f4e2e.json({ ok: true });
 });
 
 v_20e160.post("/:cloneId/call/:callId/say", v_6690d9, async (v_3f4e2e) => {

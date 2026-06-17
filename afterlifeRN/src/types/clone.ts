@@ -21,6 +21,7 @@ export type {
 } from "./domain";
 
 export type MemlowRelation =
+  | "self"
   | "mother"
   | "father"
   | "spouse"

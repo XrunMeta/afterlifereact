@@ -6,11 +6,11 @@ import type { v_2b51a5 } from '../../navigation/types';
 import v_556baf from '../../components/ui/SafeView';
 import v_570c34 from '../../components/ui/SafeScrollView';
 import v_258c1c from '../../components/common/PageHeader';
-import v_d52542 from '../../components/common/Step3EntryBanner';
 import v_1a40c4 from '../../components/ui/Button';
 import { v_194498 } from '../../stores/cloneStore';
 import v_922cea from './content/MemlowImageUpload';
 import v_a6e1ad from './content/DefaultImageUpload';
+import v_286084 from './components/PersonaCreationPaymentGate';
 import { v_1bfbd0, v_9b1a04 } from '../../components/constants';
 import { v_7d2692 } from '../../api/files';
 import { v_ab4719 } from '../../api/clones';
@@ -23,8 +23,9 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
   const v_f04727 = v_194498(v_fd5f43 => v_fd5f43.creationDraft);
   const v_5795de = v_194498(v_fd5f43 => v_fd5f43.setCreationDraft);
   const v_2ca7e0 = v_1ed7d9(v_fd5f43 => v_fd5f43.accessToken);
-  const [v_555f2e, v_4eb0c7] = v_5ab095(true);
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
+
+  const [v_30bc46, v_47c98d] = v_5ab095(!!v_f04727.pin);
 
   const v_b94c69 = v_f04727.cloneType === 'memlow' ? v_922cea : v_a6e1ad;
   const v_04fddf = v_b94c69.validate(v_f04727);
@@ -77,6 +78,15 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
     }
   };
 
+  if (!v_30bc46) {
+    return (
+      <PersonaCreationPaymentGate
+        onProceed={() => v_47c98d(true)}
+        onCancel={() => v_c65f5d.getParent()?.navigate("HomeTab" as never)}
+      />
+    );
+  }
+
   return (
     <SafeView backgroundColor={v_1bfbd0.white}>
       <PageHeader
@@ -87,7 +97,6 @@ export default function v_3d9025({ navigation: v_c65f5d }: Props) {
           v_c65f5d.getParent()?.navigate("HomeTab" as never);
         }}
       />
-      {v_555f2e && <Step3EntryBanner onDismiss={() => v_4eb0c7(false)} />}
       <SafeScrollView contentContainerStyle={v_d81136.content} showBottomBackground={false}>
         <Content draft={v_f04727} onChange={v_5795de} />
       </SafeScrollView>

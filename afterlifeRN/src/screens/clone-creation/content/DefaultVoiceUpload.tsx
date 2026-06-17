@@ -6,6 +6,8 @@ import { v_3094a2, v_19b633, v_4623af, v_472849, v_39a996 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import * as v_c95b2c from "gketqwckyalygtuqsawm";
 import {
+  v_407393,
+  v_3488be,
   v_8a9d74,
   v_b3e89c,
   v_542f2a,
@@ -109,6 +111,26 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   const [v_0c0b03, v_c98f46] = v_5ab095<string | null>(null);
   const [v_11c383, v_bbded0] = v_5ab095(false);
 
+  const [v_addcfe, v_523782] = v_5ab095<number | null>(null);
+
+  const v_64652e = v_e662ae(0);
+
+  const v_86394a = v_407393();
+  const v_af221f = v_3488be(v_86394a);
+  const [v_cf954d, v_a4d7cc] = v_5ab095<number | null>(null);
+
+  v_c4deb2(() => {
+    if (
+      v_cf954d != null &&
+      !v_af221f.playing &&
+      v_af221f.isLoaded &&
+      !v_af221f.isBuffering &&
+      v_af221f.currentTime > 0
+    ) {
+      v_a4d7cc(null);
+    }
+  }, [v_af221f.playing, v_af221f.isLoaded, v_af221f.isBuffering, v_af221f.currentTime, v_cf954d]);
+
   const v_5ebce3 = v_8a9d74(v_542f2a.HIGH_QUALITY);
   const v_b599c8 = v_b3e89c(v_5ebce3, 200);
 
@@ -117,8 +139,63 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
   v_c4deb2(() => {
     return () => {
       v_504bbe.current.stop().catch(() => {});
+      v_86394a.pause();
     };
+
   }, []);
+
+  const v_0f4413 = async (v: v_d80981) => {
+
+    if (v_cf954d != null) {
+      v_86394a.pause();
+      v_a4d7cc(null);
+    }
+    if (v_81e2ef.srcFileId == null) {
+
+      v_523782(v_81e2ef.id);
+      v_b187d9({ voicePresetId: v_81e2ef.id, voiceCloneJobId: undefined, voiceFile: undefined });
+      return;
+    }
+
+    if (!v_2ca7e0) return;
+
+    v_523782(v_81e2ef.id);
+    v_b187d9({ voicePresetId: undefined, voiceFile: undefined });
+    const v_1923e2 = ++v_64652e.current;
+    try {
+      v_bbded0(true);
+      const v_94abbb = await v_ab4719(v_2ca7e0, { kind: "voice_clone", src_file_id: v_81e2ef.srcFileId });
+      if (v_1923e2 !== v_64652e.current) return;  
+      console.log("[DefaultVoice] preset voice_clone job created:", v_94abbb.job_id);
+      v_b187d9({ voiceCloneJobId: v_94abbb.job_id, voicePresetId: undefined, voiceFile: undefined });
+    } catch (v_49263d) {
+      if (v_1923e2 === v_64652e.current) {
+
+        v_523782(null);
+        v_b187d9({ voiceCloneJobId: undefined, voicePresetId: undefined, voiceFile: undefined });
+        console.warn("[DefaultVoice] preset job 생성 실패:", v_49263d);
+        v_889fad("음성 선택 오류", "잠시 후 다시 시도해 주세요.");
+      }
+    } finally {
+      if (v_1923e2 === v_64652e.current) v_bbded0(false);
+    }
+  };
+
+  const v_1bf8db = (v: v_d80981) => {
+    if (v_cf954d === v_81e2ef.id) {
+      v_86394a.pause();
+      v_a4d7cc(null);
+      return;
+    }
+    try {
+      v_86394a.replace({ uri: v_81e2ef.sampleUrl });
+      v_86394a.play();
+      v_a4d7cc(v_81e2ef.id);
+    } catch (v_49263d) {
+      console.warn("[DefaultVoice] preview 재생 실패:", v_49263d);
+      v_a4d7cc(null);
+    }
+  };
 
   v_c4deb2(() => {
     let v_759436 = true;
@@ -129,8 +206,14 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
         if (!v_759436) return;
         v_de0f36(v_ef8ab1);
 
-        if (v_ef8ab1.length && v_f04727.voicePresetId === undefined && !v_f04727.voiceCloneJobId && !v_f04727.voiceFile) {
-          v_b187d9({ voicePresetId: v_ef8ab1[0].id, voiceSampleId: undefined, voiceFile: undefined });
+        if (v_f04727.voicePresetId !== undefined) {
+          v_523782(v_f04727.voicePresetId);
+          return;
+        }
+        if (v_f04727.voiceCloneJobId || v_f04727.voiceFile) return;
+
+        if (v_ef8ab1.length) {
+          v_0f4413(v_ef8ab1[0]);
         }
       } catch {
         if (v_759436) v_4fbeaf(true);
@@ -218,28 +301,40 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       {}
       {v_34e5bb === "preset" && (
         <View style={{ gap: 8 }}>
-          <Text style={v_d81136.scriptHint}>목소리를 선택하세요. (기본: 고민주)</Text>
+          <Text style={v_d81136.scriptHint}>목소리를 선택해 주세요.</Text>
           {v_fd3c7b && (
             <Text style={v_d81136.scriptHint}>목소리 목록을 불러오지 못했어요.</Text>
           )}
+          {v_11c383 && (
+            <View style={v_d81136.recordedRow}>
+              <ActivityIndicator size="small" color={v_1bfbd0.violet600} />
+              <Text style={v_d81136.recordedText}>음성 준비 중…</Text>
+            </View>
+          )}
           <View style={v_d81136.grid}>
             {v_53e1f3.map((v_81e2ef) => {
-              const v_f8b770 = v_f04727.voicePresetId === v_81e2ef.id;
+              const v_f8b770 = v_addcfe === v_81e2ef.id;
+              const v_087c92 = v_cf954d === v_81e2ef.id;
               return (
                 <TouchableOpacity
                   key={v_81e2ef.id}
                   style={[v_d81136.card, v_f8b770 && v_d81136.cardActive]}
-                  onPress={() =>
-
-                    v_b187d9({
-                      voicePresetId: v_81e2ef.id,
-                      voiceSampleId: undefined,
-                      voiceFile: undefined,
-                      voiceCloneJobId: undefined,
-                    })
-                  }
+                  onPress={() => v_0f4413(v_81e2ef)}
                 >
-                  <Text style={v_d81136.cardName}>{v_81e2ef.name}</Text>
+                  <View style={v_d81136.cardRow}>
+                    <Text style={[v_d81136.cardName, v_f8b770 && v_d81136.cardNameActive]}>{v_81e2ef.name}</Text>
+                    <TouchableOpacity
+                      style={v_d81136.playBtn}
+                      onPress={(v_9e86fd) => { v_9e86fd.stopPropagation(); v_1bf8db(v_81e2ef); }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Feather
+                        name={v_087c92 ? "pause" : "play"}
+                        size={14}
+                        color={v_f8b770 ? v_1bfbd0.violet600 : v_1bfbd0.zinc500}
+                      />
+                    </TouchableOpacity>
+                  </View>
                   {!!v_81e2ef.description && (
                     <Text style={v_d81136.cardDesc}>{v_81e2ef.description}</Text>
                   )}
@@ -254,7 +349,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       {v_34e5bb === "record" && (
         <View style={{ gap: 12 }}>
           <Text style={v_d81136.scriptHint}>
-            고인 목소리 사용 (권장) — 스크립트를 선택하고 읽어주세요.
+            스크립트를 선택하고 읽어주세요.
           </Text>
           {v_58b6a9.map((v_fd5f43) => (
             <TouchableOpacity
@@ -304,7 +399,7 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       {v_34e5bb === "upload" && (
         <View style={{ gap: 12 }}>
           <Text style={v_d81136.scriptHint}>
-            고인 목소리 사용 (권장) — mp3/wav/m4a 파일을 업로드해주세요.
+            음성파일을 올려주세요
           </Text>
           <TouchableOpacity
             style={v_d81136.upload}
@@ -375,8 +470,11 @@ const v_d81136 = v_472849.create({
     borderColor: v_1bfbd0.zinc200,
   },
   cardActive: { borderColor: v_1bfbd0.violet600, backgroundColor: v_1bfbd0.violet100 },
+  cardRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cardName: { fontSize: 14, fontWeight: "600", color: v_1bfbd0.zinc800 },
+  cardNameActive: { color: v_1bfbd0.violet700 },
   cardDesc: { fontSize: 12, color: v_1bfbd0.zinc500, marginTop: 2 },
+  playBtn: { padding: 4 },
 
   scriptHint: { fontSize: 13, color: v_1bfbd0.zinc600, marginBottom: 4 },
   scriptCard: {

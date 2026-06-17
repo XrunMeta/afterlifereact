@@ -9,20 +9,24 @@ import {
   v_4623af,
   v_472849,
   v_39a996,
-  v_e767d1,
   v_326be8,
   v_09d0e5,
   v_0e1f26,
+  v_f2c756,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
+import { v_c67c5c } from "../../../components/auth/OtpVerifyView";
 import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
 import { v_1ed7d9 } from "../../../stores/authStore";
 import { v_194498 } from "../../../stores/cloneStore";
 import { v_d60cdf } from "../../../api/clones";
-import { v_5c99c1 } from "../../../api/payments";
+import { v_5c99c1, v_9b8cb3 } from "../../../api/payments";
 import { v_cc9198, v_138fd4 } from "../../../config/apiBase";
 
-const v_c02c4c = 100;
+const v_f72031 = 100;
+
+const v_34d2d5 = ["oth-user@example.invalid", "oth-test@example.invalid"];
+const v_8e9814 = 0.05;
 
 interface Props {
 
@@ -33,7 +37,11 @@ interface Props {
 
 export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Props) {
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
   const v_5795de = v_194498((v_fd5f43) => v_fd5f43.setCreationDraft);
+
+  const v_c02c4c =
+    v_f4fb5e && v_34d2d5.includes(v_f4fb5e) ? v_8e9814 : v_f72031;
 
   const [v_683210, v_34a50a] = v_5ab095(true);
   const [v_f99e34, v_337a5f] = v_5ab095(false);
@@ -41,6 +49,18 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   const [v_5e9bfe, v_3a7d09] = v_5ab095<string | null>(null);
 
   const [v_c88e9b, v_de20d8] = v_5ab095<number | null>(null);
+
+  const [v_1cc7e7, v_2a7a8f] = v_5ab095<boolean | null>(null);
+
+  const [v_437b37, v_a02771] = v_5ab095(0);
+
+  v_c4deb2(() => {
+    const v_fdffe1 = v_0e1f26.addListener("keyboardDidShow", (v_9e86fd) =>
+      v_a02771(v_9e86fd.endCoordinates?.height ?? 0),
+    );
+    const v_2f19d2 = v_0e1f26.addListener("keyboardDidHide", () => v_a02771(0));
+    return () => { v_fdffe1.remove(); v_2f19d2.remove(); };
+  }, []);
 
   v_c4deb2(() => {
     let v_2008a4 = false;
@@ -65,6 +85,14 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
           } catch (v_04f1a8) {
             console.warn("[PaymentGate] balance fetch failed:", v_04f1a8);
             if (!v_2008a4) v_de20d8(null);
+          }
+
+          try {
+            const v_72c7a6 = await v_9b8cb3(v_2ca7e0);
+            if (!v_2008a4) v_2a7a8f(v_72c7a6.hasPin);
+          } catch (v_245981) {
+            console.warn("[PaymentGate] pin status fetch failed:", v_245981);
+            if (!v_2008a4) v_2a7a8f(null);
           }
           if (v_2008a4) return;
           v_337a5f(true);
@@ -100,6 +128,22 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
     v_c7001c();
   };
 
+  const v_f1acef = async () => {
+    const v_e0c7e8 = v_1ed7d9.getState().apiUser?.email ?? null;
+    const v_2208dc = v_e0c7e8
+      ? `xrun://?email=${encodeURIComponent(v_e0c7e8)}&from=afterlife`
+      : "xrun://";
+    try {
+      await v_f2c756.openURL(v_2208dc);
+    } catch {
+      const v_b71a74 =
+        v_326be8.OS === "ios"
+          ? "https://apps.apple.com/app/xrun/id1602489406"
+          : "https://play.google.com/store/apps/details?id=run.xrun.xrunapp";
+      try { await v_f2c756.openURL(v_b71a74); } catch {  }
+    }
+  };
+
   const v_03cae9 = () => {
 
     if (v_cae92d) return;
@@ -123,15 +167,13 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
   if (!v_f99e34) return null; 
 
   return (
-    <Modal visible transparent animationType="fade">
-      <KeyboardAvoidingView
-        behavior={v_326be8.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
-      >
+    <Modal visible transparent statusBarTranslucent animationType="fade">
+      {}
+      <View style={{ flex: 1 }}>
         {
 }
         <Pressable
-          style={v_d81136.overlay}
+          style={[v_d81136.overlay, v_437b37 > 0 ? { paddingBottom: v_437b37 } : null]}
           onPress={() => {
             console.log("[PaymentGate] overlay tapped");
             v_0e1f26.dismiss();
@@ -141,9 +183,9 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
             <View style={v_d81136.iconWrap}>
               <Feather name="credit-card" size={26} color={v_1bfbd0.violet600} />
             </View>
-            <Text style={v_d81136.title}>페르소나 생성 결제</Text>
+            <Text style={v_d81136.title}>클론 생성 결제</Text>
             <Text style={v_d81136.desc}>
-              두 번째 페르소나부터 {v_c02c4c} XRUN 이 부과돼요.{"\n"}
+              두 번째 클론부터 {v_c02c4c} XRUN 이 부과돼요.{"\n"}
               결제 비밀번호 6자리를 입력해주세요.
             </Text>
             {v_c88e9b !== null && (
@@ -152,21 +194,18 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 {v_f6096a && " — 잔액 부족"}
               </Text>
             )}
-            <TextInput
-              style={[v_d81136.input, v_cae92d && v_d81136.inputDisabled]}
-              value={v_6bee94}
-              onChangeText={(v_81e2ef) => {
-                v_240fbf(v_81e2ef.replace(/\D/g, "").slice(0, 6));
-                v_3a7d09(null);
-              }}
-              placeholder="PIN 6자리"
-              placeholderTextColor={v_1bfbd0.zinc400}
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={6}
-              autoFocus={!v_cae92d}
-              editable={!v_cae92d}
-            />
+            <View style={v_d81136.pinWrap}>
+              <OtpCodeInput
+                value={v_6bee94}
+                onChange={(v_81e2ef) => {
+                  v_240fbf(v_81e2ef);
+                  v_3a7d09(null);
+                }}
+                masked
+                autoFocus={!v_cae92d}
+                editable={!v_cae92d}
+              />
+            </View>
             {v_5e9bfe && <Text style={v_d81136.error}>{v_5e9bfe}</Text>}
             <View style={v_d81136.btns}>
               <TouchableOpacity
@@ -186,13 +225,26 @@ export default function v_286084({ onProceed: v_4b3759, onCancel: v_c7001c }: Pr
                 disabled={v_6bee94.length !== 6 || v_cae92d}
               >
                 <Text style={v_d81136.confirmText}>
-                  {`${v_c02c4c} XRUN 결제`}
+                  결제
                 </Text>
               </TouchableOpacity>
             </View>
+            {}
+            {v_1cc7e7 === false && (
+              <TouchableOpacity
+                onPress={v_f1acef}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={0.7}
+                style={v_d81136.pinSetupLinkWrap}
+              >
+                <Text style={v_d81136.pinSetupLink}>
+                  xrun 비밀번호 재설정
+                </Text>
+              </TouchableOpacity>
+            )}
           </Pressable>
         </Pressable>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -262,8 +314,10 @@ const v_d81136 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc100,
     color: v_1bfbd0.zinc400,
   },
-  error: { fontSize: 12, color: "#ef4444", marginBottom: 8 },
-  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 12 },
+
+  pinWrap: { width: "100%", paddingVertical: 16 },
+  error: { fontSize: 12, color: "#ef4444", marginTop: 4, marginBottom: 0 },
+  btns: { flexDirection: "row", gap: 8, width: "100%", marginTop: 20 },
   cancel: {
     flex: 1,
     paddingVertical: 12,
@@ -281,4 +335,11 @@ const v_d81136 = v_472849.create({
   },
   disabled: { opacity: 0.5 },
   confirmText: { fontSize: 14, fontWeight: "700", color: v_1bfbd0.white },
+  pinSetupLinkWrap: { marginTop: 14, alignItems: "center" },
+  pinSetupLink: {
+    fontSize: 12,
+    color: v_1bfbd0.violet600,
+    textDecorationLine: "underline",
+    textAlign: "center",
+  },
 });

@@ -4,7 +4,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_6690d9 } from "../middleware/auth";
 import { v_3ebe58 } from "../lib/errors";
-import { v_807b74, v_de391e, v_5f6369 } from "../lib/xrun";
+import { v_807b74, v_de391e, v_5f6369, v_1166ee } from "../lib/xrun";
 
 export const v_a35f69 = new v_b7c41b<v_de0a25>();
 
@@ -72,15 +72,19 @@ v_a35f69.get("/balance", async (v_3f4e2e) => {
     const v_f4e98d = Number(v_3ac7e7.amount);
     return Number.isFinite(v_f4e98d) ? v_f4e98d : null;
   };
+
+  const v_5f9081 = await v_1166ee(v_3f4e2e.env, v_660822).catch(() => null);
+  const v_4c90cc = v_5f9081 ?? v_14e183(18);
   return v_3f4e2e.json({
     linked: true,
     balances: v_7f8c56.map((v_148ff6) => ({
       currency: Number(v_148ff6.currency),
       symbol: v_148ff6.symbol,
-      amount: v_148ff6.amount,
+
+      amount: (Number(v_148ff6.currency) === 18 && v_5f9081 != null) ? v_5f9081.toFixed(8) : v_148ff6.amount,
       address: v_148ff6.address,
     })),
-    xrun: v_14e183(18),
+    xrun: v_4c90cc,
     ad: v_14e183(19),
 
     gatewayWalletReady: v_7f8c56.length > 0,

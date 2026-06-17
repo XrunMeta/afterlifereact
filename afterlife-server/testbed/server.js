@@ -39,6 +39,12 @@ const v_77b004 = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
 const v_2c3445 = (process.env.MUSETALK_STREAM_MODE ?? '0') === '1';
 
+function v_76effc() {
+  if ((process.env.REPLY_SHORT_MODE ?? '0') !== '1') return {};
+  const v_f4e98d = Number.parseInt(process.env.REPLY_MAX_CHARS ?? '30', 10) || 30;
+  return { num_predict: Math.max(48, Math.ceil(v_f4e98d * 2.5) + 16) };
+}
+
 const v_e01c9c =
   (process.env.REALTIME_AUDIO_STREAM ?? '1') === '1';
 const v_e3f065 =
@@ -362,13 +368,13 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
   const v_b533a0 = v_9a14d9 === 'visitor'
     ? v_ff48df({ persona_slug: v_47fe3d, level: 'l2', user_label: v_1231fa })
     : [];
-  const { l0: v_b6c480, l1Attrs: v_55a58f, l2Attrs: v_fc96ca } = v_a9f758({ personaBundle: v_ba0fde, fallbackL1: v_69681f, fallbackL2: v_b533a0 });
+  const { l0: v_b6c480, l1Attrs: v_55a58f, l2Attrs: v_fc96ca, usedBundle: v_ad7fcd } = v_a9f758({ personaBundle: v_ba0fde, fallbackL1: v_69681f, fallbackL2: v_b533a0 });
   if (v_ba0fde && v_ba0fde.persona && v_55a58f.length === 0) {
     console.warn(`[sp3] personaBundle present but persona empty (source=${v_04e790}) — responding with L0 only`);
   }
 
   const v_fa56e0 = [
-    { role: 'system', content: v_841e05({ l0: v_b6c480, l1Attrs: v_55a58f, l2Attrs: v_fc96ca }) },
+    { role: 'system', content: v_841e05({ l0: v_b6c480, l1Attrs: v_55a58f, l2Attrs: v_fc96ca, usedBundle: v_ad7fcd }) },
     ...v_10740d
       .filter((v_35f85c) => v_35f85c && typeof v_35f85c.role === 'string' && typeof v_35f85c.content === 'string')
       .filter((v_35f85c) => ['user', 'assistant'].includes(v_35f85c.role))
@@ -578,7 +584,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
       let v_4f136c = v_3ba9f9 || null;
       if (!v_4f136c && v_8998a7 && v_9c6814) {
 
-        const v_f0796d = v_9fe22d.join(v_1fe67f, v_9c6814, 'photo-still-25fps.mp4');
+        const v_f0796d = v_9fe22d.join(v_1fe67f, v_9c6814, `${v_9c6814}-photo-still-25fps.mp4`);
         try {
           v_4f136c = await v_ab8c91({ photoPath: v_8998a7, outPath: v_f0796d });
         } catch (v_6f2968) {
@@ -654,6 +660,7 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
 
   const v_57bcd5 = v_a26277({
     messages: v_fa56e0,
+    options: v_76effc(),
     onChunk: (v_9b6134) => {
       if (v_6c558f) return;
 
@@ -713,8 +720,20 @@ v_466992.post('/oth-path', (v_309144, v_8f00b9) => {
               sentence_count: v_af1e0d.length,
               audio_bytes: v_d33958.reduce((v_779914, v_148ff6) => v_779914 + v_148ff6.length, 0),
             });
+
+            let v_133135 = v_3ba9f9 || null;
+            if (!v_133135 && v_8998a7 && v_9c6814) {
+              const v_f0796d = v_9fe22d.join(v_1fe67f, v_9c6814, `${v_9c6814}-photo-still-25fps.mp4`);
+              try {
+                v_133135 = await v_ab8c91({ photoPath: v_8998a7, outPath: v_f0796d });
+              } catch (v_6f2968) {
+                console.warn('[sp4/photo-still/batch] ffmpeg 폴백 실패(graceful):', v_6f2968?.message ?? v_6f2968);
+                v_133135 = null;
+              }
+            }
             const v_43c42e = await v_a16f6e({
               audio_path: v_6944b4.path,
+              ...(v_133135 ? { video_path: v_133135 } : {}),
               output_id: v_c5607b,
               stream: false,
             });

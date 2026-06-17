@@ -28,7 +28,7 @@ import type { v_19b433 } from "../../types/feed";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_b4902e } from "../../stores/followStore";
 import { v_37977a } from "../../stores/feedStore";
-import { v_03e392 } from "rcmrninabrnb";
+import { v_889fad } from "../../stores/dialogStore";
 import {
   v_b14fce,
   v_0ff331,
@@ -39,6 +39,7 @@ import {
   v_0df337,
   v_003cf2,
   v_9deb40,
+  v_fca2f4,
   v_97c75d,
   v_f5a9ea,
   v_f1ff2a,
@@ -180,7 +181,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_22cd2d = async () => {
     try {
       await v_5f4661.share({
-        message: `${v_8c0b26.author} 페르소나와 만나보세요!\nhttps://afterlife.app/clone/${v_8c0b26.cloneId}`,
+        message: `${v_8c0b26.author} 클론과 만나보세요!\nhttps://afterlife.app/clone/${v_8c0b26.cloneId}`,
         title: v_8c0b26.author,
       });
     } catch (v_49263d) {
@@ -188,7 +189,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     }
   };
 
-  const [v_1126f9, v_0c9768] = v_5ab095(false);
+  const [v_1126f9, v_0c9768] = v_5ab095(v_c7daf6.params.openComments ?? false);
   const [v_ecfc0f, v_04f2fc] = v_5ab095<v_52af9d[]>([]);
   const [v_465030, v_856daf] = v_5ab095(false);
   const [v_48e7fe, v_856f84] = v_5ab095("");
@@ -196,6 +197,14 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const [v_b0af20, v_52390e] = v_5ab095(false);
 
   const [v_90b93a, v_f1ad38] = v_5ab095<{ commentId: number; userName: string } | null>(null);
+
+  const v_69b97a = v_e662ae<v_79c4f2>(null);
+  v_c4deb2(() => {
+    if (v_90b93a) {
+      const v_389afb = setTimeout(() => v_69b97a.current?.focus(), 60);
+      return () => clearTimeout(v_389afb);
+    }
+  }, [v_90b93a]);
   const [v_2ced3d, v_74a05a] = v_5ab095<Record<number, v_52af9d[]>>({});
 
   const [v_7e4acc, v_de86c2] = v_5ab095(0);
@@ -319,6 +328,51 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         });
       } catch (v_49263d) {
         console.warn("[CloneFeed] deleteFeedComment failed:", v_49263d);
+      }
+    })();
+  };
+
+  const v_b6e98b = (v_d91518, v_ed660d) => {
+    const v_8e2335 = v_6bbace > 0 ? v_6bbace : v_ed660d ?? 0;
+    if (!v_8e2335 || !v_2ca7e0) return;
+    v_889fad("댓글 신고", "이 댓글을 신고할까요?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "신고",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await v_fca2f4(v_2ca7e0, v_8e2335, v_d91518);
+            v_15c939("댓글을 신고했어요");
+          } catch (v_49263d) {
+            console.warn("[CloneFeed] reportFeedComment failed:", v_49263d);
+            v_15c939("신고에 실패했어요");
+          }
+        },
+      },
+    ]);
+  };
+
+  const v_ed5343 = (v_c7bc83, v_1e970f) => {
+    const v_8e2335 = v_6bbace > 0 ? v_6bbace : 0;
+    if (!v_8e2335 || !v_2ca7e0) return;
+    void (async () => {
+      try {
+        await v_0df337(v_2ca7e0, v_8e2335, v_1e970f);
+        v_74a05a((v_e2a85c) => {
+          const v_ef8ab1 = v_e2a85c[v_c7bc83];
+          if (!v_ef8ab1) return v_e2a85c;
+          return { ...v_e2a85c, [v_c7bc83]: v_ef8ab1.filter((v_cb35cb) => v_cb35cb.id !== v_1e970f) };
+        });
+        v_04f2fc((v_ba2215) =>
+          v_ba2215.map((v_a252ed) =>
+            v_a252ed.id === v_c7bc83
+              ? { ...v_a252ed, repliesCount: Math.max(0, (v_a252ed.repliesCount ?? 1) - 1) }
+              : v_a252ed,
+          ),
+        );
+      } catch (v_49263d) {
+        console.warn("[CloneFeed] deleteReply failed:", v_49263d);
       }
     })();
   };
@@ -454,12 +508,21 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                           {v_3f4e2e.user.name ?? v_3f4e2e.user.email}
                         </Text>
                         <Text style={v_d81136.commentTime}>{v_bfd883(v_3f4e2e.createdAt)}</Text>
-                        {v_3f4e2e.userId === v_f5f393 && (
+                        {v_3f4e2e.userId === v_f5f393 ? (
                           <TouchableOpacity
                             onPress={() => v_b72645(v_3f4e2e.id)}
                             style={{ marginLeft: 8 }}
+                            hitSlop={6}
                           >
                             <Feather name="trash-2" size={14} color={v_1bfbd0.zinc400} />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() => v_b6e98b(v_3f4e2e.id, v_3f4e2e.feedId)}
+                            style={{ marginLeft: 8 }}
+                            hitSlop={6}
+                          >
+                            <Feather name="flag" size={13} color={v_1bfbd0.zinc400} />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -542,6 +605,23 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                         <View style={v_d81136.commentMeta}>
                           <Text style={v_d81136.commentAuthor}>{v_5cfb2c.user.name ?? v_5cfb2c.user.email}</Text>
                           <Text style={v_d81136.commentTime}>{v_bfd883(v_5cfb2c.createdAt)}</Text>
+                          {v_5cfb2c.userId === v_f5f393 ? (
+                            <TouchableOpacity
+                              onPress={() => v_ed5343(v_3f4e2e.id, v_5cfb2c.id)}
+                              style={{ marginLeft: 8 }}
+                              hitSlop={6}
+                            >
+                              <Feather name="trash-2" size={13} color={v_1bfbd0.zinc400} />
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={() => v_b6e98b(v_5cfb2c.id, v_5cfb2c.feedId)}
+                              style={{ marginLeft: 8 }}
+                              hitSlop={6}
+                            >
+                              <Feather name="flag" size={12} color={v_1bfbd0.zinc400} />
+                            </TouchableOpacity>
+                          )}
                         </View>
                         <Text style={v_d81136.commentContent}>{v_5cfb2c.content}</Text>
                       </View>
@@ -587,6 +667,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             )}
             <View style={v_d81136.commentInputRow}>
               <TextInput
+                ref={v_69b97a}
                 style={v_d81136.commentInput}
                 value={v_48e7fe}
                 onChangeText={v_856f84}
@@ -655,7 +736,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     if (!v_2ca7e0) return;
                     try {
                       await v_97c75d(v_2ca7e0, v_8c0b26.cloneId);
-                      v_15c939("이 페르소나가 차단됐어요");
+                      v_15c939("이 클론이 차단됐어요");
                       v_c65f5d.goBack();
                     } catch (v_49263d) {
                       console.warn("[CloneFeed] block failed:", v_49263d);
@@ -683,7 +764,7 @@ export default function v_9887a2({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           if (!v_5f5d6d || !v_2ca7e0) return;
           try {
             await v_9deb40(v_2ca7e0, v_5f5d6d.cloneId, v_58ca36 || undefined);
-            v_15c939("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            v_15c939("신고가 접수됐어요. 이 클론은 차단됐어요");
             v_c65f5d.goBack();
           } catch (v_49263d) {
             console.warn("[CloneFeed] report failed:", v_49263d);

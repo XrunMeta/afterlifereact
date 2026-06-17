@@ -158,6 +158,8 @@ v_ff9685.get("/:id", async (v_3f4e2e) => {
     headers: {
       "Content-Type": v_3ac7e7.content_type,
       "Cache-Control": "public, max-age=86400",
+
+      "Cross-Origin-Resource-Policy": "cross-origin",
     },
   });
 });

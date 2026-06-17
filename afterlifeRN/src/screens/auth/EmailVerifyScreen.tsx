@@ -16,6 +16,7 @@ import type { v_384e19 } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_1a40c4 from "../../components/ui/Button";
+import v_92f073 from "../../components/auth/OtpVerifyView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
@@ -124,49 +125,19 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         autoAdjustKeyboardPadding
         showBottomBackground={false}
       >
-        <View style={v_d81136.container}>
-          <Text style={v_d81136.title}>{v_8d41d7("auth.emailVerify.title")}</Text>
-          <Text style={v_d81136.subtitle}>
-            {v_8d41d7("auth.emailVerify.desc", { email: v_24baff.email })}
-          </Text>
-
-          <TextInput
-            ref={v_32f473}
-            value={v_c99bd2}
-            onChangeText={(v_8d41d7) => v_537cbb(v_8d41d7.replace(/\D/g, "").slice(0, 6))}
-            keyboardType="number-pad"
-            maxLength={6}
-            placeholder="000000"
-            placeholderTextColor={v_1bfbd0.zinc300}
-            style={v_d81136.codeInput}
-            editable={!v_cb66b4}
-            autoFocus
-          />
-
-          <Button
-            title={v_cb66b4 ? v_8d41d7("auth.signup.verifying") : v_8d41d7("auth.emailVerify.verifyBtn")}
-            onPress={v_83b05b}
-            disabled={v_cb66b4 || v_c99bd2.length !== 6}
-          />
-          {v_cb66b4 && (
-            <View style={v_d81136.loadingRow}>
-              <ActivityIndicator color={v_1bfbd0.zinc500} />
-            </View>
-          )}
-
-          <View style={v_d81136.resendRow}>
-            <TouchableOpacity onPress={v_cf9840} disabled={v_600d5b > 0}>
-              <Text
-                style={[
-                  v_d81136.resendLink,
-                  v_600d5b > 0 && v_d81136.resendLinkDisabled,
-                ]}
-              >
-                {v_600d5b > 0 ? `${v_8d41d7("auth.emailVerify.resend")} (${v_600d5b}s)` : v_8d41d7("auth.emailVerify.resend")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <OtpVerifyView
+          title={v_8d41d7("auth.emailVerify.title")}
+          subtitle={v_8d41d7("auth.emailVerify.desc", { email: v_24baff.email })}
+          code={v_c99bd2}
+          onChangeCode={v_537cbb}
+          onSubmit={v_83b05b}
+          submitting={v_cb66b4}
+          submitLabel={v_8d41d7("auth.emailVerify.verifyBtn")}
+          submittingLabel={v_8d41d7("auth.signup.verifying")}
+          resendIn={v_600d5b}
+          onResend={v_cf9840}
+          resendLabel={v_8d41d7("auth.emailVerify.resend")}
+        />
       </SafeScrollView>
     </SafeView>
   );

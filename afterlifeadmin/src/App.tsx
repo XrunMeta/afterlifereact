@@ -13,6 +13,7 @@ import { v_9ddede } from "./pages/AdminCategoryPage";
 import { v_20683c } from "./pages/OtpLogsPage";
 import { v_a24c7a } from "./pages/ReportsPage";
 import { v_f65f90 } from "./pages/UserReportsPage";
+import { v_62d6e0 } from "./pages/ReportPenaltyRulesPage";
 import { v_f913c9 } from "./pages/LoginPage";
 import { v_6cc6aa } from "./pages/TotpEnrollPage";
 import { v_4686cd } from "./pages/TotpVerifyPage";
@@ -49,6 +50,7 @@ function v_6540c3() {
         <Route path="/otp" element={<ProtectedLayout><OtpLogsPage /></ProtectedLayout>} />
         <Route path="/reports" element={<ProtectedLayout><ReportsPage /></ProtectedLayout>} />
         <Route path="/oth-path-reports" element={<ProtectedLayout><UserReportsPage /></ProtectedLayout>} />
+        <Route path="/report-rules" element={<ProtectedLayout><ReportPenaltyRulesPage /></ProtectedLayout>} />
         <Route path="/testbed" element={<ProtectedLayout><ApiTestbedPage /></ProtectedLayout>} />
         <Route
           path="/oth-path"

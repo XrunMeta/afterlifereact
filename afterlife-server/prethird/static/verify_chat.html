@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>클론 대화 LLM 검증</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 -apple-system, system-ui, sans-serif; color: #1d2129; display: flex; flex-direction: column; height: 100vh; }
+  header { padding: 10px 14px; background: #1d2129; color: #fff; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 0 0 auto; }
+  header input, header select, header button { font: inherit; padding: 5px 8px; border-radius: 6px; border: 1px solid #444; }
+  header input[type=text], header input[type=password] { min-width: 200px; }
+  header label { display: flex; align-items: center; gap: 4px; }
+  main { display: flex; flex: 1 1 auto; min-height: 0; }
+  #chat { flex: 1 1 60%; display: flex; flex-direction: column; border-right: 1px solid #ddd; }
+  #log { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 14px; }
+  .msg { margin: 8px 0; max-width: 80%; padding: 8px 12px; border-radius: 12px; white-space: pre-wrap; word-break: break-word; }
+  .user { background: #0b66ff; color: #fff; margin-left: auto; }
+  .assistant { background: #eef0f3; }
+  #inbar { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #ddd; }
+  #inbar textarea { flex: 1; resize: none; height: 44px; padding: 8px; border-radius: 8px; border: 1px solid #ccc; font: inherit; }
+  #inbar button { padding: 0 18px; border-radius: 8px; border: 0; background: #0b66ff; color: #fff; cursor: pointer; }
+  #dbg { flex: 1 1 40%; overflow-y: auto; padding: 14px; background: #fafbfc; }
+  #dbg h3 { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase; color: #65676b; }
+  pre { white-space: pre-wrap; word-break: break-word; background: #fff; border: 1px solid #e4e6eb; border-radius: 8px; padding: 10px; font: 12px/1.45 ui-monospace, monospace; }
+  .muted { color: #8a8d91; }
+  table.kv { width: 100%; border-collapse: collapse; margin: 4px 0 10px; font-size: 12px; }
+  table.kv th, table.kv td { border: 1px solid #e4e6eb; padding: 4px 7px; text-align: left; vertical-align: top; word-break: break-word; }
+  table.kv th { background: #f0f2f5; font-weight: 600; }
+  table.kv td.lv { white-space: nowrap; color: #65676b; width: 1%; }
+  table.kv tr.chg td { background: #fff6d6; }
+  .l2live { color: #d33; font-size: 11px; }
+  details summary { cursor: pointer; font-size: 12px; color: #65676b; margin: 10px 0 6px; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <input id="apiBase" type="text" placeholder="API base (예: https://edge-alt-preview.example.invalid)" />
+  <input id="email" type="text" placeholder="email" value="oth-test@example.invalid" style="min-width:150px" />
+  <input id="password" type="password" placeholder="password" value="oth-password" style="min-width:120px" />
+  <button id="login">로그인</button>
+  <input id="token" type="password" placeholder="access token" />
+  <button id="loadClones">클론 불러오기</button>
+  <select id="clone"><option value="">— 클론 —</option></select>
+  <input id="model" type="text" placeholder="model (기본값)" style="width:130px" />
+  <label>temp <input id="temp" type="number" min="0" max="2" step="0.1" style="width:60px" /></label>
+  <label><input id="multiturn" type="checkbox" checked /> 멀티턴</label>
+  <label><input id="memory" type="checkbox" checked /> 기억 모드</label>
+  <button id="l2reset">기억 리셋</button>
+  <label><input id="useOverride" type="checkbox" /> system override</label>
+  <button id="reset">초기화</button>
+</header>
+<main>
+  <section id="chat">
+    <div id="log"></div>
+    <div id="inbar">
+      <textarea id="text" placeholder="메시지 (Enter 전송, Shift+Enter 줄바꿈)"></textarea>
+      <button id="send">전송</button>
+    </div>
+  </section>
+  <aside id="dbg">
+    <h3>L0 전역 안전</h3>
+    <div id="tblL0"><span class="muted">클론 선택 시 표시</span></div>
+    <h3>L1 기본 페르소나</h3>
+    <div id="tblL1"><span class="muted">클론 선택 시 표시</span></div>
+    <h3>L2 학습 기억 <span class="l2live">● 실시간</span> <span id="l2owner" class="muted" style="font-weight:400"></span></h3>
+    <div id="tblL2"><span class="muted">아직 없음</span></div>
+    <h3>📜 L2 변화 이력</h3>
+    <div id="l2history"><span class="muted">아직 없음</span></div>
+    <details>
+      <summary>디버그 (system override · 학습 raw · 프롬프트)</summary>
+      <h3>📋 이전 기억 (before)</h3>
+      <pre id="beforeL2" class="muted">아직 없음</pre>
+      <h3>🧠 이번 턴 추출 (키 업데이트)</h3>
+      <pre id="extracted" class="muted">기억 모드 OFF</pre>
+      <h3>💾 L2 저장 결과</h3>
+      <pre id="savedL2" class="muted">아직 없음</pre>
+      <h3>system override (체크 시 사용)</h3>
+      <textarea id="overrideText" style="width:100%;height:90px" placeholder="여기 내용이 persona system을 대체합니다"></textarea>
+      <h3>최종 messages (마지막 응답)</h3>
+      <pre id="finalMessages" class="muted">아직 없음</pre>
+      <h3>persona bundle (raw)</h3>
+      <pre id="personaBundle" class="muted">아직 없음</pre>
+    </details>
+  </aside>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const LS = "verify_chat_cfg";
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+function parseKV(text){
+  return (text||"").split("\n").map(s=>s.trim()).filter(Boolean).map(line=>{
+    const i=line.indexOf(":");
+    return i>=0 ? {k:line.slice(0,i).trim(), v:line.slice(i+1).trim()} : {k:"", v:line};
+  });
+}
+
+function renderL0(l0){
+  const rules = (l0 && l0.rules_text) || "";
+  const block = (l0 && l0.blocklist) ? (Array.isArray(l0.blocklist)?l0.blocklist.join(", "):l0.blocklist) : "";
+  let rows = "";
+  if(rules) rows += `<tr><td class="lv">안전규칙</td><td>${esc(rules)}</td></tr>`;
+  if(block) rows += `<tr><td class="lv">금지어</td><td>${esc(block)}</td></tr>`;
+  $("tblL0").innerHTML = rows ? `<table class="kv">${rows}</table>` : '<span class="muted">없음</span>';
+}
+
+function renderL1(l1){
+  const keys = Object.keys(l1||{});
+  if(!keys.length){ $("tblL1").innerHTML='<span class="muted">없음</span>'; return; }
+  const rows = keys.map(k=>`<tr><td class="lv">${esc(k)}</td><td>${esc(l1[k])}</td></tr>`).join("");
+  $("tblL1").innerHTML = `<table class="kv">${rows}</table>`;
+}
+
+const L2_LABEL={memory_summary:"기억",relationship:"관계",context:"맥락",recent_topics:"화제"};
+let _prevL2 = null;
+
+function kvMap(text){ const m={}; parseKV(text).forEach(({k,v})=>{ m[k||v]=k?v:""; }); return m; }
+
+function diffL2(before, after){
+  const out=[];
+  for(const f of ["memory_summary","relationship","context","recent_topics"]){
+    const b=String((before&&before[f])||""), a=String((after&&after[f])||"");
+    if(b===a) continue;
+    if(f==="recent_topics"){ out.push(L2_LABEL[f]+": "+a); continue; }
+    const bm=kvMap(b), am=kvMap(a);
+    for(const k in am){ if(bm[k]!==am[k]) out.push(L2_LABEL[f]+"·"+k+": "+(bm[k]?bm[k]+"→":"")+am[k]); }
+    for(const k in bm){ if(!(k in am)) out.push(L2_LABEL[f]+"·"+k+": (삭제)"); }
+  }
+  return out;
+}
+
+let _turnNo = 0;
+function pushHistory(before, after){
+  const changes = diffL2(before, after);
+  if(!changes.length) return;
+  _turnNo++;
+  const h = $("l2history");
+  const muted = h.querySelector(".muted");
+  if(muted) h.innerHTML = "";
+  const div = document.createElement("div");
+  div.style.cssText = "border-bottom:1px solid #eee;padding:5px 0;font-size:12px";
+  div.innerHTML = "<b>턴 "+_turnNo+"</b> " + changes.map(esc).join(" / ");
+  h.insertBefore(div, h.firstChild);
+}
+
+function renderL2(l2, highlight){
+  const rows = [];
+  for(const f of ["memory_summary","relationship","context","recent_topics"]){
+    const raw = (l2 && l2[f]) || "";
+    const items = f==="recent_topics"
+      ? raw.split(",").map(s=>s.trim()).filter(Boolean).map(v=>({k:"",v}))
+      : parseKV(raw);
+    const changed = highlight && _prevL2 && (String((_prevL2[f]||"")) !== String(raw));
+    if(!items.length){
+      if(changed) rows.push(`<tr class="chg"><td class="lv">${L2_LABEL[f]}</td><td></td><td><span class="muted">(비움)</span></td></tr>`);
+      continue;
+    }
+    for(const it of items){
+      rows.push(`<tr class="${changed?'chg':''}"><td class="lv">${L2_LABEL[f]}</td><td>${esc(it.k)}</td><td>${esc(it.v)}</td></tr>`);
+    }
+  }
+  $("tblL2").innerHTML = rows.length
+    ? `<table class="kv"><tr><th>필드</th><th>키</th><th>값</th></tr>${rows.join("")}</table>`
+    : '<span class="muted">학습된 기억 없음</span>';
+  _prevL2 = l2 ? {...l2} : null;
+}
+
+async function loadBundle(highlight){
+  const cloneId = parseInt($("clone").value, 10);
+  if(!cloneId) return;
+  const r = await fetch("/oth-path?clone_id="+cloneId, {
+    headers:{ Authorization:"Bearer "+$("token").value }});
+  if(!r.ok) return;
+  const { l0, l1, l2 } = await r.json();
+  renderL0(l0); renderL1(l1); renderL2(l2, highlight);
+  const live = document.querySelector(".l2live");
+  if (live) live.textContent = "● 실시간";
+}
+
+const cfg = JSON.parse(localStorage.getItem(LS) || "{}");
+$("apiBase").value = cfg.apiBase || location.origin;
+$("token").value = cfg.token || "";
+const saveCfg = () => localStorage.setItem(LS, JSON.stringify({apiBase: $("apiBase").value, token: $("token").value}));
+$("apiBase").addEventListener("change", saveCfg);
+$("token").addEventListener("change", saveCfg);
+
+let history = [];  
+
+function addBubble(role, text) {
+  const d = document.createElement("div");
+  d.className = "msg " + role;
+  d.textContent = text;
+  $("log").appendChild(d);
+  $("log").scrollTop = $("log").scrollHeight;
+  return d;
+}
+
+$("reset").onclick = () => { history = []; $("log").innerHTML = ""; };
+
+$("login").onclick = async () => {
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  if (!email || !password) { alert("이메일/비밀번호를 입력하세요"); return; }
+  const r = await fetch("/oth-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!r.ok) { alert("로그인 실패: " + r.status); return; }
+  const { accessToken } = await r.json();
+  if (!accessToken) { alert("토큰 없음"); return; }
+  $("token").value = accessToken;
+  saveCfg();
+
+  const lo = document.getElementById("l2owner");
+  if (lo) lo.textContent = "— " + $("email").value + " 의 기억(사용자별)";
+
+  $("loadClones").click();
+};
+
+$("loadClones").onclick = async () => {
+  const r = await fetch("/oth-path", { headers: { Authorization: "Bearer " + $("token").value } });
+  const sel = $("clone");
+  if (!r.ok) { alert("클론 로드 실패: " + r.status); return; }
+  const { clones } = await r.json();
+  sel.innerHTML = '<option value="">— 클론 —</option>';
+  for (const c of clones) {
+    const o = document.createElement("option");
+    o.value = c.id; o.textContent = `${c.name} (#${c.id})`;
+    sel.appendChild(o);
+  }
+};
+
+let _sending = false;
+async function send() {
+  if (_sending) return;
+  const text = $("text").value.trim();
+  const cloneId = parseInt($("clone").value, 10);
+  if (!text) return;
+  if (!cloneId) { alert("클론을 선택하세요"); return; }
+  _sending = true;
+  $("text").value = "";
+  addBubble("user", text);
+  history.push({ role: "user", content: text });
+  try {
+
+    const multiturn = $("multiturn").checked;
+    const messages = multiturn ? history.slice() : [{ role: "user", content: text }];
+
+    const body = { clone_id: cloneId, messages };
+    if ($("model").value.trim()) body.model = $("model").value.trim();
+    if ($("temp").value !== "") body.temperature = parseFloat($("temp").value);
+    if ($("useOverride").checked && $("overrideText").value.trim()) body.system_override = $("overrideText").value;
+
+    const bubble = addBubble("assistant", "");
+    let acc = "";
+    const resp = await fetch("/oth-path", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) { bubble.textContent = "[오류 " + resp.status + "]"; return; }
+
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf("\n\n")) >= 0) {
+        const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        let ev = "message", data = "";
+        for (const line of chunk.split("\n")) {
+          if (line.startsWith("event:")) ev = line.slice(6).trim();
+          else if (line.startsWith("data:")) data += line.slice(5).trim();
+        }
+        if (!data) continue;
+        const obj = JSON.parse(data);
+        if (ev === "token") { acc += obj.text; bubble.textContent = acc; $("log").scrollTop = $("log").scrollHeight; }
+        else if (ev === "done") {
+          history.push({ role: "assistant", content: acc });
+          $("finalMessages").textContent = JSON.stringify(obj.debug.final_messages, null, 2);
+          $("finalMessages").className = "";
+          $("personaBundle").textContent = JSON.stringify(obj.debug.persona_bundle, null, 2);
+          $("personaBundle").className = "";
+
+          if ($("memory").checked) {
+            learn(text, acc);  
+          } else {
+            loadBundle(false);  
+          }
+        } else if (ev === "error") { bubble.textContent = acc + "\n[error] " + obj.message; }
+      }
+    }
+  } finally {
+    _sending = false;
+  }
+}
+
+$("send").onclick = send;
+$("text").addEventListener("keydown", (e) => {
+  if (e.isComposing || e.keyCode === 229) return;  
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+async function learn(userText, assistantText) {
+  const cloneId = parseInt($("clone").value, 10);
+  if (!cloneId) return;
+  $("extracted").textContent = "추출 중…"; $("extracted").className = "";
+  const r = await fetch("/oth-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
+    body: JSON.stringify({ clone_id: cloneId, turns: [
+      { role: "user", content: userText },
+      { role: "assistant", content: assistantText },
+    ] }),
+  });
+  if (!r.ok) { $("extracted").textContent = "[학습 오류 " + r.status + "]"; return; }
+  const { before, extracted, saved } = await r.json();
+  $("beforeL2").textContent = before ? JSON.stringify(before, null, 2) : "(없음)";
+  $("beforeL2").className = "";
+  $("extracted").textContent = extracted ? JSON.stringify(extracted, null, 2) : "(추출 실패/스킵)";
+  $("savedL2").textContent = saved ? JSON.stringify(saved, null, 2) : "(저장 안 됨)";
+  $("savedL2").className = "";
+
+  const shownL2 = saved || extracted;
+  if (shownL2) {
+    const before = _prevL2 ? {..._prevL2} : null;
+    renderL2(shownL2, true);
+    pushHistory(before, shownL2);
+
+    const live = document.querySelector(".l2live");
+    if (live) live.textContent = saved ? "● 실시간" : "● 추출 미리보기(미저장)";
+  }
+}
+
+$("l2reset").onclick = async () => {
+  const cloneId = parseInt($("clone").value, 10);
+  if (!cloneId) { alert("클론을 선택하세요"); return; }
+  if (!confirm("이 클론의 L2 기억을 모두 비울까요?")) return;
+  const r = await fetch("/oth-path", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
+    body: JSON.stringify({ clone_id: cloneId }),
+  });
+  if (!r.ok) { alert("리셋 실패: " + r.status); return; }
+  $("extracted").textContent = "기억 리셋됨"; $("savedL2").textContent = "(비움)";
+  loadBundle(false);  
+  $("l2history").innerHTML = '<span class="muted">아직 없음</span>';
+  _turnNo = 0;
+};
+
+$("clone").addEventListener("change", () => loadBundle(false));
+
+window.addEventListener("DOMContentLoaded", () => {
+  if (!$("token").value && $("email").value && $("password").value) {
+    $("login").click();
+  }
+});
+</script>
+</body>
+</html>

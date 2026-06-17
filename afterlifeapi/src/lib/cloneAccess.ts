@@ -27,6 +27,8 @@ export interface CloneRow {
 
   idle_video_url: string | null;
   voice_se_url: string | null;
+
+  relation: string | null;
 }
 
 export async function v_5d4a51(
@@ -40,6 +42,7 @@ export async function v_5d4a51(
               c.voice_type, c.voice_preset_id, c.training_status, c.created_at,
               c.is_system,
               c.idle_video_url, c.voice_se_url,
+              c.relation,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,
               COALESCE(s.gifts_count, 0)     AS gifts_count
@@ -65,6 +68,19 @@ export async function v_7adf64(
     .bind(v_6e0fd3, v_43e90c)
     .first<{ role: "owner" | "viewer" }>();
   return v_3ac7e7?.role ?? null;
+}
+
+export async function v_d43218(
+  v_a1651b,
+  v_1badb6,
+  v_43e90c,
+): Promise<boolean> {
+  if (v_43e90c === null || v_43e90c === v_1badb6) return false;
+  const v_3ac7e7 = await v_a1651b
+    .prepare(`SELECT 1 AS x FROM user_blocks WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`)
+    .bind(v_1badb6, v_43e90c)
+    .first<{ x: number }>();
+  return !!v_3ac7e7;
 }
 
 export async function v_ab84f6(
@@ -108,6 +124,8 @@ export async function v_d875d1(
 ): Promise<ResponseViewerRole | null> {
   if (v_43e90c === null) return null;
   if (v_43e90c === v_eb25ce.owner_id) return "owner";
+
+  if (await v_d43218(v_a1651b, v_eb25ce.owner_id, v_43e90c)) return null;
   const v_c2bdf9 = await v_7adf64(v_a1651b, v_eb25ce.id, v_43e90c);
   if (v_c2bdf9 !== null) return "coowner";
   if (await v_ab84f6(v_a1651b, v_eb25ce.id, v_43e90c)) return "follower";
@@ -120,6 +138,10 @@ export async function v_09d461(
   v_43e90c,
 ): Promise<ViewerRole | null> {
   if (v_43e90c === v_eb25ce.owner_id) return "owner";
+
+  if (v_43e90c !== null && (await v_d43218(v_3f4e2e.env.DB, v_eb25ce.owner_id, v_43e90c))) {
+    return null;
+  }
   if (v_43e90c !== null) {
     const v_c2bdf9 = await v_7adf64(v_3f4e2e.env.DB, v_eb25ce.id, v_43e90c);
     if (v_c2bdf9 === "owner") return "owner";

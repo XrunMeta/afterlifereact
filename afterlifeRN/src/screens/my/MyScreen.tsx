@@ -1,5 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
-import v_a3453e, { v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
+import v_a3453e, { v_de06a3, v_c4deb2, v_df9f57, v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -80,7 +80,7 @@ export default function v_ed02a5() {
     };
   }, [v_2ca7e0]);
 
-  v_c4deb2(() => {
+  v_cf763b(v_de06a3(() => {
     let v_2008a4 = false;
     if (!v_2ca7e0) {
 
@@ -116,7 +116,7 @@ export default function v_ed02a5() {
     return () => {
       v_2008a4 = true;
     };
-  }, [v_2ca7e0]);
+  }, [v_2ca7e0]));
 
   const v_747a87 = v_19340b;
   const v_519444 = v_1d54f1 ?? null;
@@ -216,7 +216,7 @@ export default function v_ed02a5() {
       v_b113dd?.name || v_b113dd?.email?.split("@")[0] || "회원";
     v_889fad(
       "벌써 떠나시나요?",
-      `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 페르소나는 영구적으로 사라져요.`,
+      `${v_8a1355} 님과 함께한 소중한 시간들을 기억할게요.\n계정과 클론은 영구적으로 사라져요.`,
       [
 
         { text: "조금 더 써볼래요", style: "cancel" },
@@ -273,6 +273,12 @@ export default function v_ed02a5() {
       labelKey: "my.menu.privacy",
       descKey: "settings.privacy.title",
       route: "PrivacySettings",
+    },
+    {
+      icon: "flag",
+      labelKey: "my.menu.reports",
+      descKey: "my.menu.reportsDesc",
+      route: "Reports",
     },
     {
       icon: "file-text",
@@ -408,7 +414,7 @@ export default function v_ed02a5() {
                 !v_1f6f04 || v_1f6f04.length === 0 ? (
                   <View style={v_fd5f43.statsEmpty}>
                     <Feather name="users" size={28} color={v_1bfbd0.zinc300} />
-                    <Text style={v_fd5f43.statsEmptyText}>아직 구독한 페르소나가 없어요</Text>
+                    <Text style={v_fd5f43.statsEmptyText}>아직 구독한 클론이 없어요</Text>
                   </View>
                 ) : (
                   v_1f6f04.map((v_3f4e2e) => {
@@ -478,7 +484,7 @@ export default function v_ed02a5() {
                 !v_58e68f || v_58e68f.length === 0 ? (
                   <View style={v_fd5f43.statsEmpty}>
                     <Feather name="user" size={28} color={v_1bfbd0.zinc300} />
-                    <Text style={v_fd5f43.statsEmptyText}>아직 만든 페르소나가 없어요</Text>
+                    <Text style={v_fd5f43.statsEmptyText}>아직 만든 클론이 없어요</Text>
                   </View>
                 ) : (
                   v_58e68f.map((v_3f4e2e) => (

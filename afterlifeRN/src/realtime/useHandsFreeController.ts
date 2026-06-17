@@ -25,7 +25,11 @@ export function v_7df8a4(opts: {
   notifySpeechEnd: () => void;
 
   speechEngine?: v_be7277;
+
+  silenceMs?: number;
   silenceConfig?: Partial<v_5a4c65>;
+
+  confirmMs?: number;
 }) {
   const [v_b6e533, v_1fa668] = v_5ab095(v_3075fa());
   const v_8d3dea = v_e662ae(v_b6e533);
@@ -42,11 +46,14 @@ export function v_7df8a4(opts: {
 
   const v_1f41d7 = v_724dd4({
     getStatsReport: v_328259.getStatsReport,
+    onResponseStart: () => v_700737.current({ type: 'CLONE_SPEAKING' }),
     onResponseEnd: () => v_700737.current({ type: 'RESPONSE_END' }),
     config: v_328259.silenceConfig,
   });
   const v_60bef6 = v_fee12d({
     engine: v_328259.speechEngine,
+
+    silenceMs: v_328259.silenceMs ?? 1500,
     onFinalResult: (v_9b6134) => {
 
       const v_1c0b3c = Date.now() - v_84a65f.current;
@@ -106,6 +113,17 @@ export function v_7df8a4(opts: {
 
   v_700737.current = v_6be210;
 
+  const v_67bca4 = v_328259.confirmMs ?? 2000;
+  v_c4deb2(() => {
+    if (v_b6e533.phase !== 'confirming') return;
+    const v_389afb = setTimeout(() => v_700737.current({ type: 'CONFIRM_SEND' }), v_67bca4);
+    return () => clearTimeout(v_389afb);
+  }, [v_b6e533.phase, v_b6e533.pendingText, v_67bca4]);
+
+  const v_5b4fb2 = v_de06a3(() => {
+    v_700737.current({ type: 'CANCEL_SEND' });
+  }, []);
+
   v_c4deb2(() => {
     v_700737.current(v_328259.enabled ? { type: 'CALL_LIVE' } : { type: 'CALL_ENDED' });
   }, [v_328259.enabled]);
@@ -124,7 +142,7 @@ export function v_7df8a4(opts: {
         if (v_22312b) v_84a65f.current = v_5c2f9f;
 
         const v_72c7a6 = v_8d3dea.current;
-        if (v_72c7a6.phase !== 'listening' || !v_72c7a6.micOn) return;
+        if ((v_72c7a6.phase !== 'listening' && v_72c7a6.phase !== 'confirming') || !v_72c7a6.micOn) return;
         if (v_22312b && !v_afaf7a.current) {
           v_5c8a52.current.stopListening();
           v_afaf7a.current = true;
@@ -148,7 +166,9 @@ export function v_7df8a4(opts: {
   return {
     phase: v_b6e533.phase,
     micOn: v_b6e533.micOn,
+    pendingText: v_b6e533.pendingText,
     toggleMic: v_6e1295,
+    cancelConfirm: v_5b4fb2,
     transcript: v_60bef6.transcript,
     interimTranscript: v_60bef6.interimTranscript,
   };

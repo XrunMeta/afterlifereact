@@ -5,6 +5,7 @@ import v_a3453e, { v_5ab095 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
+  v_cf9c33,
   v_4623af,
   v_472849,
   v_03e392,
@@ -67,9 +68,11 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
   const { t: v_8d41d7 } = v_772971();
 
   const v_2ca7e0 = v_c7daf6.params?.accessToken;
+  const v_8de98f = v_c7daf6.params?.refreshToken;
   const v_3c038e = v_c7daf6.params?.persist ?? true;
   const v_e0c7e8 = v_c7daf6.params?.email;
   const v_31080f = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiAuth);
+  const v_3345cb = v_1ed7d9((v_fd5f43) => v_fd5f43.setApiTokens);
   const v_232d52 = v_1ed7d9((v_fd5f43) => v_fd5f43.hydrate);
   console.log("[SignupComplete] mounted, hasToken:", !!v_2ca7e0, "email:", v_e0c7e8);
 
@@ -85,6 +88,10 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
 
       const v_9ec4c0 = await v_7ef860(v_2ca7e0);
       await v_31080f(v_2ca7e0, v_9ec4c0.user, { persist: v_3c038e });
+
+      if (v_8de98f) {
+        await v_3345cb(v_2ca7e0, v_8de98f, { persist: v_3c038e });
+      }
       await v_232d52();
     } catch (v_49263d) {
       console.warn("[SignupComplete] start failed:", v_49263d);
@@ -121,7 +128,13 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
 }
           <View style={v_fd5f43.cards}>
             <ServiceCard
-              icon={<Text style={v_fd5f43.iconText}>∞</Text>}
+              icon={
+                <Image
+                  source={require("../../../assets/images/symbol.png")}
+                  style={v_fd5f43.iconImg}
+                  resizeMode="contain"
+                />
+              }
               title={v_8d41d7("auth.signupComplete.afterlifeTitle", {
                 defaultValue: "애프터라이프",
               })}
@@ -134,7 +147,13 @@ export default function v_933130({ route: v_c7daf6 }: Props) {
               onPress={undefined}
             />
             <ServiceCard
-              icon={<Text style={v_fd5f43.iconText}>X</Text>}
+              icon={
+                <Image
+                  source={require("../../../assets/images/xrun-round-logo.png")}
+                  style={v_fd5f43.iconImg}
+                  resizeMode="cover"
+                />
+              }
               title={v_8d41d7("auth.signupComplete.xrunTitle", {
                 defaultValue: "XRUN",
               })}
@@ -256,6 +275,11 @@ const v_fd5f43 = v_472849.create({
     fontSize: 24,
     fontWeight: "700",
     color: v_1bfbd0.white,
+  },
+  iconImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
   },
   cardTitle: {
     fontSize: 16,

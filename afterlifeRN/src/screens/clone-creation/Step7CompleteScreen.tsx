@@ -23,6 +23,7 @@ import type { v_2b51a5 } from "../../navigation/types";
 import v_556baf from "../../components/ui/SafeView";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
+import { v_c67c5c } from "../../components/auth/OtpVerifyView";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
@@ -31,6 +32,7 @@ import { v_39eaf5, v_b55477, v_5e388b, v_b4f9f6, v_b20cba, v_ab4719, type v_e5d6
 import { v_84a859 } from "../../api/auth";
 import { v_7d2692 } from "../../api/files";
 import { v_cf9c33 } from "rcmrninabrnb";
+import { v_110960, v_52ec3e } from "euzpkmxzoe";
 import { v_04686a } from "../../lib/imagePicker";
 
 type Props = {
@@ -41,7 +43,7 @@ const v_1fc273 = [
   {
     icon: "refresh-cw",
     title: "자동 학습",
-    desc: "대화를 나눌수록 페르소나가 더 똑똑해져요",
+    desc: "대화를 나눌수록 클론이 더 똑똑해져요",
   },
   {
     icon: "shield",
@@ -56,6 +58,27 @@ const v_549a47 = {
   mentor: { title: '멘토가 준비됐어요',   sub: '분야별 질문을 남겨 보세요.' },
   celeb:  { title: '팬클럽이 시작됐어요', sub: '첫 메시지를 남겨 보세요.' },
 };
+
+function v_78ed2a({ uri: v_cd1446 }: { uri: string }) {
+  const v_86394a = v_110960(v_cd1446, (v_e2a85c) => {
+    v_e2a85c.loop = true;
+    v_e2a85c.muted = true;
+    v_e2a85c.play();
+  });
+  return (
+    <View style={v_d81136.previewBox}>
+      <VideoView
+        player={v_86394a}
+        style={v_472849.absoluteFillObject}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      <View style={v_d81136.videoBadge}>
+        <Text style={v_d81136.videoBadgeText}>영상 준비 완료</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function v_448ad1({ navigation: v_c65f5d }: Props) {
   const { t: v_8d41d7 } = v_772971();
@@ -281,7 +304,8 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
         ...v_85010a,
 
         ...(v_f04727.idleVideoJobId ? { idle_video_job_id: v_f04727.idleVideoJobId } : {}),
-        ...(v_6bee94 ? { pin: v_6bee94 } : {}),
+
+        ...((v_6bee94 ?? v_f04727.pin) ? { pin: v_6bee94 ?? v_f04727.pin } : {}),
       });
       console.log("[CLONE-CREATE] success:", v_8f00b9);
       const v_94519a = v_8f00b9.clone;
@@ -311,7 +335,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 
   v_c4deb2(() => {
     if (!v_f04727.cloneType) {
-      v_3a7d09("페르소나 정보가 없어요. 처음부터 다시 만들어주세요.");
+      v_3a7d09("클론 정보가 없어요. 처음부터 다시 만들어주세요.");
     }
   }, [v_f04727.cloneType]);
 
@@ -398,7 +422,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       console.log("[CLONE-CREATE] BLOCKED: name missing");
       v_889fad(
         "이름 누락",
-        "페르소나 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
+        "클론 이름이 없어요. 이전 단계로 돌아가서 입력해주세요.",
       );
       return;
     }
@@ -422,7 +446,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       }
       if (!v_80a1e3) {
 
-        throw new Error("페르소나 생성에 실패했어요. (cloneId 누락)");
+        throw new Error("클론 생성에 실패했어요. (cloneId 누락)");
       }
 
       const v_1458b7 = v_6de415.current ?? null;
@@ -436,9 +460,15 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
       console.warn("[CLONE-CREATE] share post failed:", v_49263d);
       v_c7169b(false);
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "PAYMENT_REQUIRED") {
+
+        if (
+          v_49263d.code === "PAYMENT_REQUIRED" ||
+          v_49263d.code === "PAYMENT_PIN_INVALID" ||
+          v_49263d.code === "PAYMENT_PIN_REQUIRED"
+        ) {
           const v_5ab5bd = (v_49263d.details ?? {}) as { priceXrun?: number };
           if (typeof v_5ab5bd.priceXrun === "number") v_26e048(v_5ab5bd.priceXrun);
+          if (v_49263d.code === "PAYMENT_PIN_INVALID") v_04103a("결제 비밀번호가 일치하지 않아요");
           v_148b42(true);
           v_4b9b17(false);
           return;
@@ -519,7 +549,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
     <SafeView backgroundColor={v_1bfbd0.white}>
       {}
       <PageHeader
-        title="게시물 작성"
+        title="클론 정보 리뷰"
         showBackButton
         onBackPress={() => {
 
@@ -562,12 +592,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
 }
           {v_7f3fda?.status === 'done' && v_7f3fda.out_url ? (
 
-            <View style={v_d81136.previewBox}>
-              <Image source={{ uri: v_f04727.imageFile ?? v_7f3fda.out_url }} style={v_472849.absoluteFillObject} resizeMode="cover" />
-              <View style={v_d81136.videoBadge}>
-                <Text style={v_d81136.videoBadgeText}>영상 준비 완료</Text>
-              </View>
-            </View>
+            <IdleVideoPreview uri={v_7f3fda.out_url} />
           ) : (v_7f3fda?.status === 'failed' || (!v_f04727.idleVideoJobId && !!v_f04727.imageFile)) ? (
 
             <TouchableOpacity
@@ -674,20 +699,15 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
               <View style={v_9b1720.iconWrap}>
                 <Feather name="credit-card" size={26} color={v_1bfbd0.violet600} />
               </View>
-              <Text style={v_9b1720.title}>페르소나 생성 결제</Text>
+              <Text style={v_9b1720.title}>클론 생성 결제</Text>
               <Text style={v_9b1720.desc}>
-                두 번째 페르소나부터 {v_2b566e} XRUN 이 부과돼요{"\n"}
+                두 번째 클론부터 {v_2b566e} XRUN 이 부과돼요{"\n"}
                 결제 비밀번호 6자리를 입력해 주세요
               </Text>
-              <TextInput
-                style={v_9b1720.input}
+              <OtpCodeInput
                 value={v_c924cc}
-                onChangeText={(v_81e2ef) => v_d0452a(v_81e2ef.replace(/\D/g, "").slice(0, 6))}
-                placeholder="PIN 6자리"
-                placeholderTextColor={v_1bfbd0.zinc400}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={6}
+                onChange={(v_81e2ef) => v_d0452a(v_81e2ef)}
+                masked
                 autoFocus
                 editable={!v_904d6c}
               />
@@ -706,7 +726,7 @@ export default function v_448ad1({ navigation: v_c65f5d }: Props) {
                   disabled={v_c924cc.length !== 6 || v_904d6c}
                 >
                   <Text style={v_9b1720.confirmText}>
-                    {v_904d6c ? "결제 중..." : `${v_2b566e} XRUN 결제`}
+                    {v_904d6c ? "결제 중..." : "결제"}
                   </Text>
                 </TouchableOpacity>
               </View>

@@ -18,11 +18,24 @@ import {
   v_f2c756,
 } from "rcmrninabrnb";
 import { v_5ade23 } from "xbfwaaanosqvazmrqoah";
-import { v_78ceb7, v_d4f1cc } from "mbgbsytfgyr";
 import { v_dec439, v_25515d } from "zvyjokvuouwvifyzks";
 import { v_bab832 } from "rthlnescfffbyxfmhgq";
-import { v_b38a7e } from "../../realtime/useLiveAvatar";
+import {
+  v_862296 as v_628d75,
+  v_db5a6b,
+  v_b08ef3,
+} from "mkqptszwrsxiemcjrtdlshyxlm";
+import { v_d73d29 } from "fkysyevuehkssftyrtweoolhfw";
+import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+import type { v_ab3a39 as v_1faf6a } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+import { v_b83839 } from "../../hooks/useFaceDetection";
+import { v_4e7b87, v_31967f, v_865d38 } from "../../api/persons";
+import v_c0caa9 from "../../components/common/TermsModal";
+import { v_2ab825 } from "../../realtime/useAvatarCall";
+import { v_c6d1f4 } from "../../config/callRoute";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
+import { v_1980fb } from "../../components/call/DialingScreen";
+import { v_8bbe5d } from "../../components/call/CallStatusGlow";
 import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_c18c22 } from "svuoaeceudfxfjvvpmmmchnwljywbphjgb";
 import { v_772971 } from "jmpfvteuuztnp";
@@ -31,6 +44,7 @@ import type { v_8ad91b } from "../../navigation/types";
 import { v_194498 } from "../../stores/cloneStore";
 import { v_1ed7d9 } from "../../stores/authStore";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
+import { v_c67c5c } from "../../components/auth/OtpVerifyView";
 import type { v_84fd28 } from "../../types/gift";
 import v_feb82c from "../../mocks/gifts.json";
 import { v_5c99c1 } from "../../api/payments";
@@ -61,15 +75,90 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const { cloneId: v_6e0fd3, name: v_a4744c, image: v_c1e151 } = v_c7daf6.params;
   const v_eb25ce = v_194498((v_fd5f43) => v_fd5f43.getCloneById(v_6e0fd3));
   const v_2ca7e0 = v_1ed7d9((v_fd5f43) => v_fd5f43.accessToken);
+  const v_f4fb5e = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.email ?? null);
+  const v_493eec = v_1ed7d9((v_fd5f43) => v_fd5f43.apiUser?.id ?? null);
+
+  const v_336a6a =
+    !!v_eb25ce && v_eb25ce.ownerId != null && v_493eec != null && v_eb25ce.ownerId === v_493eec;
   const v_033e14 = v_e0068c();
+
+  const v_34d2d5 = ["oth-user@example.invalid", "oth-test@example.invalid"];
+  const v_8e9668 = (g: v_84fd28) =>
+    v_f4fb5e && v_34d2d5.includes(v_f4fb5e) ? 0.05 : v_206b88.price;
   const v_f9771e = v_c18c22(0);
   const v_53dd92 =
     v_326be8.OS === "ios" ? v_033e14.bottom : Math.max(v_f9771e, v_033e14.bottom);
 
-  const [v_d1a6bb, v_1e66f0] = v_d4f1cc();
   const [v_5bb98b, v_fce7f9] = v_5ab095<"front" | "back">("front");
   const [v_4e2aec, v_326ca4] = v_5ab095(false);
   const [v_9e64e1, v_e064ce] = v_5ab095(false);
+
+  const [v_b2ccaa, v_82a4b3] = v_5ab095(false);
+
+  const v_49a70b = v_db5a6b(v_5bb98b === "front" ? "front" : "back");
+
+  const { faceState: v_bbb3d3, onFaces: v_dfbd9a } = v_b83839();
+  const { detectFaces: v_de4d76, stopListeners: v_62fe07 } = v_ac8611({
+    performanceMode: "fast",
+    trackingEnabled: true,
+  });
+
+  const v_f15637 = v_e662ae<v_628d75>(null);
+
+  v_c4deb2(() => {
+    return () => {
+      v_62fe07();
+    };
+  }, [v_62fe07]);
+
+  const v_8090fb = v_a3453e.useMemo(
+    () =>
+      v_d73d29.createRunOnJS((faces: v_1faf6a[]) => {
+        const v_29a122 = v_a51d09.map((v_8b5cd8) => ({
+          trackingID: v_8b5cd8.trackingId,
+          bounds: v_8b5cd8.bounds,
+        }));
+        v_dfbd9a(v_29a122);
+      }),
+
+    [],
+  );
+
+  const v_a61ebf = v_b08ef3(
+    (v_143cb5) => {
+      "worklet";
+      const v_a51d09 = v_de4d76(v_143cb5);
+      v_8090fb(v_a51d09);
+    },
+    [v_de4d76, v_8090fb],
+  );
+
+  const [v_58656e, v_071915] = v_5ab095(false);
+  const [v_550809, v_566132] = v_5ab095(false);
+
+  const [v_a6086d, v_603e38] = v_5ab095(false);
+
+  v_c4deb2(() => {
+
+    void v_628d75.requestCameraPermission();
+
+    if (!v_2ca7e0) return;
+    let v_2008a4 = false;
+    v_865d38(v_2ca7e0)
+      .then(({ items: v_4622b9 }) => {
+        if (v_2008a4) return;
+        const v_5f7d15 = v_4622b9.some((v_e2a85c) => v_e2a85c.consentState === "granted");
+        v_071915(v_5f7d15);
+        console.log(`[Call][face] listPersons ← granted=${v_5f7d15} (total=${v_4622b9.length})`);
+      })
+      .catch((v_49263d) => {
+        console.warn("[Call][face] listPersons failed:", v_49263d);
+      });
+    return () => {
+      v_2008a4 = true;
+    };
+
+  }, [v_2ca7e0]);
 
   const {
     state: v_6cc918,
@@ -79,12 +168,12 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     say: v_3e2c87,
     getStatsReport: v_791152,
     notifySpeechEnd: v_811f30,
-  } = v_b38a7e({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
+  } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
 
   const {
     phase: v_ab4803,
-    micOn: v_1065f7,
-    toggleMic: v_6e1295,
+    pendingText: v_def12c,
+    cancelConfirm: v_5b4fb2,
     transcript: v_0885ca,
     interimTranscript: v_a2d9d1,
   } = v_7df8a4({
@@ -100,11 +189,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   }, []);
 
-  v_c4deb2(() => {
-    if (!v_d1a6bb?.granted) {
-      v_1e66f0();
-    }
-  }, []);
   const [v_d416b8, v_2a4980] = v_5ab095(false);
 
   const [v_e2c945, v_06e986] = v_5ab095<number>(0);
@@ -119,6 +203,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     const v_389afb = setInterval(() => v_6d75b1((v_fd5f43) => v_fd5f43 + 1), 1000);
     return () => clearInterval(v_389afb);
   }, [v_6cc918]);
+
+  const v_796faa = v_e662ae(new v_a2349e.Value(0)).current;
+  v_c4deb2(() => {
+    if (v_ab4803 !== 'confirming') { v_796faa.setValue(0); return; }
+    v_796faa.setValue(1);
+    const v_f582ff = v_a2349e.timing(v_796faa, { toValue: 0, duration: 2000, useNativeDriver: true });
+    v_f582ff.start();
+    return () => v_f582ff.stop();
+  }, [v_ab4803, v_def12c, v_796faa]);
 
   const v_1406a6 = v_e662ae<number>(Date.now());
   const v_4d96d4 = v_e662ae(v_2ca7e0);
@@ -216,12 +309,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   };
 
   const v_25b14f = (gift: v_84fd28) => {
+    const v_6bbb57 = v_8e9668(v_bbee9c);
     console.log(
-      `[Call][gift-tap] giftId=${v_bbee9c.id} name=${v_bbee9c.name} price=${v_bbee9c.price} ` +
-        `myCredits=${v_e2c945} (typeof=${typeof v_e2c945}) enough=${v_e2c945 >= v_bbee9c.price}`,
+      `[Call][gift-tap] giftId=${v_bbee9c.id} name=${v_bbee9c.name} price=${v_6bbb57} ` +
+        `myCredits=${v_e2c945} (typeof=${typeof v_e2c945}) enough=${v_e2c945 >= v_6bbb57}`,
     );
-    if (v_e2c945 < v_bbee9c.price) {
-      const v_ff3b79 = Math.max(0, v_bbee9c.price - v_e2c945);
+    if (v_e2c945 < v_6bbb57) {
+      const v_ff3b79 = Math.max(0, v_6bbb57 - v_e2c945);
       console.log(
         `[Call][gift-insufficient-precheck] ${v_e2c945} < ${v_bbee9c.price} (shortage=${v_ff3b79}) → block PIN modal`,
       );
@@ -248,8 +342,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_15c939("PIN 6자리를 입력해 주세요");
       return;
     }
+    const v_fd7e94 = v_8e9668(v_555760);
     console.log(
-      `[Call][gift-submit] giftId=${v_555760.id} amount=${v_555760.price} ` +
+      `[Call][gift-submit] giftId=${v_555760.id} amount=${v_fd7e94} ` +
         `myCredits=${v_e2c945} cloneId=${v_6e0fd3} pin=*** (${v_c924cc.length} chars)`,
     );
     v_a8bf66(true);
@@ -257,7 +352,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       const v_8f00b9 = await v_28dc16(v_2ca7e0, v_6e0fd3, {
         giftId: v_555760.id,
         giftName: v_555760.name,
-        amount: v_555760.price,
+        amount: v_fd7e94,
         pin: v_c924cc,
       });
       console.log("[Call][gift-ok] gift sent:", v_8f00b9.gift);
@@ -285,9 +380,18 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       let v_9f1622 = "송금 실패";
       let v_badeaf = "송금에 실패했어요.";
       let v_81532e = false;
+      let v_e859fc = false;   
+      let v_947b86 = false;   
       if (v_49263d instanceof v_84a859) {
-        if (v_49263d.code === "UNAUTHENTICATED") v_badeaf = "결제 비밀번호가 일치하지 않아요.";
-        else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
+        if (v_49263d.code === "PAYMENT_PIN_INVALID" || v_49263d.code === "UNAUTHENTICATED") {
+          v_9f1622 = "결제 비밀번호 오류";
+          v_badeaf = "결제 비밀번호가 일치하지 않아요.\n다시 입력해 주세요.";
+          v_e859fc = true;
+        } else if (v_49263d.code === "PAYMENT_PIN_REQUIRED") {
+          v_9f1622 = "결제 비밀번호 미설정";
+          v_badeaf = "아직 결제 비밀번호(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
+          v_947b86 = true;
+        } else if (v_49263d.code === "INSUFFICIENT_FUNDS") {
           v_81532e = true;
 
           const v_ff3b79 = v_555760
@@ -323,16 +427,25 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       v_ece29b(false);
       v_d0452a("");
-      v_889fad(
-        v_9f1622,
-        v_badeaf,
-        v_81532e
-          ? [
-              { text: "다음에 하기", style: "cancel" },
-              { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
-            ]
-          : undefined,
-      );
+      let actions: Parameters<typeof v_889fad>[2];
+      if (v_81532e) {
+        v_dd943a = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN 충전하기", onPress: () => void v_0c2802() },
+        ];
+      } else if (v_e859fc) {
+
+        v_dd943a = [
+          { text: "취소", style: "cancel" },
+          { text: "다시 입력", onPress: () => { v_d0452a(""); v_ece29b(true); } },
+        ];
+      } else if (v_947b86) {
+        v_dd943a = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "xrun 비밀번호 재설정", onPress: () => void v_0c2802() },
+        ];
+      }
+      v_889fad(v_9f1622, v_badeaf, v_dd943a);
     } finally {
       v_a8bf66(false);
     }
@@ -378,29 +491,40 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   return (
     <View style={v_fd5f43.container}>
       {}
+      {}
       {v_b4d824 ? (
         <RTCView
           streamURL={(v_b4d824 as unknown as { toURL: () => string }).toURL()}
-          objectFit="cover"
+          objectFit="contain"
           style={[v_472849.absoluteFill, { width: "100%", height: "100%" }]}
         />
       ) : v_0e38ad ? (
         <Image
           source={typeof v_0e38ad === "number" ? v_0e38ad : { uri: v_0e38ad }}
           style={[v_472849.absoluteFill, { width: "100%", height: "100%" }]}
-          resizeMode="cover"
+          resizeMode="contain"
         />
       ) : (
         <View style={[v_472849.absoluteFill, { backgroundColor: v_1bfbd0.zinc900 }]} />
       )}
 
+      {__DEV__ ? (
+        <Text style={{ position: 'absolute', top: 8, right: 8, zIndex: 10,
+          color: '#0f0', fontSize: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 2 }}>
+          route:{v_c6d1f4}
+        </Text>
+      ) : null}
+
       {}
-      {v_6cc918 !== "live" && (
-        <View style={v_fd5f43.liveOverlay} pointerEvents="none">
-          <Text style={v_fd5f43.liveOverlayText}>
-            {v_6cc918 === "error" ? "연결에 실패했어요" : "연결 중…"}
-          </Text>
-        </View>
+      {!v_b2ccaa && (
+        <DialingScreen
+          liveState={v_6cc918}
+          personaName={v_dfb220}
+          personaImage={typeof v_0e38ad === "string" ? v_0e38ad : ""}
+          onConnected={() => v_82a4b3(true)}
+          onCancel={async () => { await v_cd8b64(); v_c65f5d.goBack(); }}
+          onRetry={() => { void v_223067(); }}
+        />
       )}
 
       <LinearGradient
@@ -409,7 +533,11 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         style={v_472849.absoluteFill}
       />
 
-      {}
+      {v_b2ccaa ? <CallStatusGlow phase={v_ab4803} /> : null}
+
+      {
+
+}
       <TouchableOpacity
         style={[v_fd5f43.pip, { top: v_033e14.top + 8 }]}
         activeOpacity={0.9}
@@ -419,14 +547,81 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           <View style={v_fd5f43.pipOff}>
             <Feather name="video-off" size={20} color={v_1bfbd0.zinc600} />
           </View>
-        ) : v_d1a6bb?.granted ? (
-          <CameraView style={v_fd5f43.pipCamera} facing={v_5bb98b} />
+        ) : v_49a70b ? (
+
+          <VisionCamera
+            ref={v_f15637}
+            style={v_fd5f43.pipCamera}
+            device={v_49a70b}
+            isActive={!v_9e64e1}
+
+            androidPreviewViewType="texture-view"
+            frameProcessor={v_58656e ? v_a61ebf : undefined}
+            onError={(v_9e86fd) =>
+              console.log("[Call][face] camera error:", v_9e86fd.code, v_9e86fd.message)
+            }
+          />
         ) : (
           <View style={v_fd5f43.pipOff}>
             <Feather name="camera-off" size={20} color={v_1bfbd0.zinc600} />
           </View>
         )}
+
+        {}
+        {v_58656e && !v_9e64e1 && v_49a70b ? (
+          <View
+            style={[
+              v_fd5f43.faceIndicator,
+              v_bbb3d3.status === "detected" ? v_fd5f43.faceIndicatorOn : v_fd5f43.faceIndicatorOff,
+            ]}
+          />
+        ) : null}
       </TouchableOpacity>
+
+      {
+
+}
+      {!v_58656e && !v_9e64e1 && (
+        <TouchableOpacity
+          style={[v_fd5f43.faceConsentBtn, { top: v_033e14.top + 8 + 140 + 6 }]}
+          disabled={v_a6086d}
+          onPress={() => {
+            if (!v_2ca7e0) return;
+
+            v_566132(true);
+          }}
+        >
+          <Text style={v_fd5f43.faceConsentText}>{v_8d41d7("call.faceConsentHint")}</Text>
+        </TouchableOpacity>
+      )}
+
+      <TermsModal
+        visible={v_550809}
+        type={4}
+        onClose={() => {
+
+          v_566132(false);
+        }}
+        onAgree={async () => {
+
+          if (!v_2ca7e0) { v_566132(false); return; }
+          v_603e38(true);
+          v_566132(false);
+          try {
+            const { id: v_389afb } = await v_4e7b87(v_2ca7e0, { cloneId: v_6e0fd3 });
+            console.log(`[Call][face] createPerson ok personId=${v_389afb}`);
+            await v_31967f(v_2ca7e0, v_389afb, "granted", { termsVersion: "biometric-v1" });
+            v_071915(true);
+            console.log(`[Call][face] consent granted personId=${v_389afb}`);
+          } catch (v_49263d) {
+            console.warn("[Call][face] createPerson/saveFaceConsent failed:", v_49263d);
+
+            v_15c939(v_8d41d7("call.faceConsentError"));
+          } finally {
+            v_603e38(false);
+          }
+        }}
+      />
 
       {
 }
@@ -434,10 +629,14 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       {}
       <View style={[v_fd5f43.callInfo, { top: v_033e14.top + 24 }]}>
         <Text style={v_fd5f43.callName}>{v_dfb220}</Text>
-        <Text style={v_fd5f43.callTimeText}>{v_813acc}</Text>
+        <Text style={v_fd5f43.callTimeText}>
+          {v_6cc918 === "live" ? v_813acc : "연결 중…"}
+        </Text>
       </View>
 
-      {}
+      {
+}
+      {!v_336a6a && (
       <View style={v_fd5f43.rightActions}>
         <TouchableOpacity
           style={[v_fd5f43.sideBtn, v_d416b8 && v_fd5f43.sideBtnActive]}
@@ -473,6 +672,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </TouchableOpacity>
         {}
       </View>
+      )}
 
       {}
       {v_605664.map((v_206b88) => (
@@ -501,27 +701,22 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ) : null}
 
       {}
-      <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
-        {}
-        <Pressable
-          onPress={v_6e1295}
-          style={[
-            v_fd5f43.controlBtn,
-            v_1065f7 && v_ab4803 === 'listening' && v_fd5f43.controlBtnActive,
-            v_ab4803 === 'speaking' && v_fd5f43.controlBtnDanger,
-          ]}
-        >
-          <Text style={v_fd5f43.talkBtnText}>
-            {!v_1065f7
-              ? '마이크 꺼짐'
-              : v_ab4803 === 'speaking'
-                ? '응답 중...'
-                : v_ab4803 === 'listening'
-                  ? '듣는 중...'
-                  : '대기'}
-          </Text>
+      {v_ab4803 === 'confirming' && !!v_def12c ? (
+        <Pressable style={v_fd5f43.confirmTapArea} onPress={v_5b4fb2}>
+          <View style={v_fd5f43.subtitleContainer} pointerEvents="none">
+            <Text style={v_fd5f43.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+              {v_def12c}
+            </Text>
+            <View style={v_fd5f43.confirmBarTrack}>
+              <Animated.View style={[v_fd5f43.confirmBarFill, { transform: [{ scaleX: v_796faa }] }]} />
+            </View>
+            <Text style={v_fd5f43.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
+          </View>
         </Pressable>
+      ) : null}
 
+      {}
+      <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
         <TouchableOpacity
           style={[v_fd5f43.controlBtn, v_4e2aec && v_fd5f43.controlBtnDanger]}
           onPress={() => {
@@ -604,7 +799,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                     <Text style={v_fd5f43.giftEmoji}>{v_8c0b26.emoji}</Text>
                   </View>
                   <Text style={v_fd5f43.giftName}>{v_8c0b26.name}</Text>
-                  <Text style={v_fd5f43.giftPrice}>{v_8c0b26.price} XRUN</Text>
+                  <Text style={v_fd5f43.giftPrice}>{v_8e9668(v_8c0b26)} XRUN</Text>
                 </TouchableOpacity>
               )}
             />
@@ -614,10 +809,11 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
       {}
 
-      {}
-      <Modal visible={v_58c86d} transparent animationType="fade">
+      {
+}
+      <Modal visible={v_58c86d} transparent statusBarTranslucent animationType="fade">
         <KeyboardAvoidingView
-          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+          behavior={v_326be8.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
         >
           <Pressable
@@ -635,18 +831,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
                   {"\n"}선물하시려면 6자리 PIN 을 입력해 주세요
                 </Text>
               )}
-              <TextInput
-                style={v_fd5f43.pinInput}
-                value={v_c924cc}
-                onChangeText={(v_81e2ef) => v_d0452a(v_81e2ef.replace(/\D/g, "").slice(0, 6))}
-                placeholder="PIN 6자리"
-                placeholderTextColor={v_1bfbd0.zinc400}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={6}
-                autoFocus
-                editable={!v_904d6c}
-              />
+              {}
+              <View style={v_fd5f43.pinCodeWrap}>
+                <OtpCodeInput
+                  value={v_c924cc}
+                  onChange={v_d0452a}
+                  masked
+                  autoFocus
+                  editable={!v_904d6c}
+                  onComplete={v_c04570}
+                />
+              </View>
               <View style={v_fd5f43.pinBtns}>
                 <TouchableOpacity
                   style={v_fd5f43.pinCancelBtn}
@@ -683,27 +878,6 @@ const v_fd5f43 = v_472849.create({
     flex: 1,
     backgroundColor: v_1bfbd0.zinc950,
   },
-  liveOverlay: {
-    position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 5,
-  },
-  liveOverlayText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: v_1bfbd0.white,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    overflow: "hidden",
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
 
   pip: {
     position: "absolute",
@@ -719,6 +893,38 @@ const v_fd5f43 = v_472849.create({
   },
   pipImage: { width: "100%", height: "100%" },
   pipCamera: { width: "100%", height: "100%" },
+
+  faceIndicator: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.4)",
+  },
+  faceIndicatorOn: {
+    backgroundColor: "#22c55e", 
+  },
+  faceIndicatorOff: {
+    backgroundColor: v_1bfbd0.zinc500, 
+  },
+
+  faceConsentBtn: {
+    position: "absolute",
+    left: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 6,
+    zIndex: 11,
+  },
+  faceConsentText: {
+    fontSize: 10,
+    color: v_1bfbd0.zinc200,
+  },
+
   pipOff: {
     width: "100%",
     height: "100%",
@@ -800,6 +1006,34 @@ const v_fd5f43 = v_472849.create({
     textAlign: 'center',
     overflow: 'hidden',
   },
+  confirmTapArea: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    height: '33%',
+    justifyContent: 'center',
+    zIndex: 16,
+  },
+  confirmHint: {
+    marginTop: 6,
+    fontSize: 11,
+    color: v_1bfbd0.zinc300,
+    textAlign: 'center',
+  },
+  confirmBarTrack: {
+    marginTop: 8,
+    width: 160,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  confirmBarFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: v_1bfbd0.white,
+  },
 
   controls: {
     position: "absolute",
@@ -810,7 +1044,7 @@ const v_fd5f43 = v_472849.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 24,
-    zIndex: 10,
+    zIndex: 18,
   },
   controlBtn: {
     width: 56,
@@ -822,15 +1056,6 @@ const v_fd5f43 = v_472849.create({
   },
   controlBtnDanger: {
     backgroundColor: v_1bfbd0.error,
-  },
-  controlBtnActive: {
-    backgroundColor: v_1bfbd0.violet500,
-  },
-  talkBtnText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: v_1bfbd0.white,
-    textAlign: "center",
   },
   endCallBtn: {
     width: 72,
@@ -972,6 +1197,7 @@ const v_fd5f43 = v_472849.create({
     backgroundColor: v_1bfbd0.zinc50,
     marginBottom: 18,
   },
+  pinCodeWrap: { width: "100%", marginBottom: 18 },
   pinBtns: { flexDirection: "row", gap: 8, width: "100%" },
   pinCancelBtn: {
     flex: 1,

@@ -35,6 +35,7 @@ import v_d3b6fb from "../screens/my/LanguageSettingsScreen";
 import v_da4f91 from "../screens/my/PaymentPinScreen";
 import v_14fa9c from "../screens/my/InviteStatusScreen";
 import v_65df53 from "../screens/my/BlockedListScreen";
+import v_7e6637 from "../screens/my/ReportsScreen";
 import v_9e01f7 from "../screens/my/TransactionsScreen";
 
 const v_3ea452 = v_709be7<v_2d88fc>();
@@ -91,6 +92,7 @@ function v_d9c5dd() {
       <MyStack.Screen name="InviteStatus" component={v_14fa9c} />
       <MyStack.Screen name="BlockedList" component={v_65df53} />
       <MyStack.Screen name="Transactions" component={v_9e01f7} />
+      <MyStack.Screen name="Reports" component={v_7e6637} />
     </MyStack.Navigator>
   );
 }
@@ -102,7 +104,7 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof v_dec439.glyphMap; label: 
   SearchTab: { icon: "search", label: "검색" },
   CreateTab: { icon: "plus-circle", label: "생성" },
   ShortsTab: { icon: "user-check", label: "구독 중" },
-  ClonesTab: { icon: "users", label: "페르소나" },
+  ClonesTab: { icon: "users", label: "클론" },
   MyTab: { icon: "user", label: "마이" },
 };
 

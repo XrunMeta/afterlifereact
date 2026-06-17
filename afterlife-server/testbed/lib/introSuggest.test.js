@@ -12,13 +12,27 @@ v_2a805f('buildIntroMessages — 프로필을 system/user 2메시지로', () => 
   v_ce93bd.ok(v_765b79[1].content.includes('정겨운 사투리'));
 });
 
-v_2a805f('suggestIntro — chatOnce 주입, 소개글+해시태그 텍스트 반환', async () => {
+v_2a805f('buildIntroMessages — system 프롬프트에 추모 금지 지시 포함', () => {
+  const v_765b79 = v_271c4f({ profile: { name: '할배' } });
+  const v_1a85dc = v_765b79[0].content;
+
+  v_ce93bd.ok(!v_1a85dc.includes('추모용'), 'system 이 추모용으로 규정하면 안 됨');
+
+  v_ce93bd.ok(v_1a85dc.includes('쓰지 않는다'), '금지 지시 문구가 있어야 함');
+  v_ce93bd.ok(v_1a85dc.includes('추모'), '금지 대상으로 추모를 명시해야 함');
+});
+
+v_2a805f('suggestIntro — 추모성 해시태그 안전망 제거, 나머지 텍스트 보존', async () => {
   const v_184a1c = async ({ messages: v_fa56e0 }) => {
     v_ce93bd.equal(v_fa56e0.length, 2);
-    return '정 많고 느긋한 할아버지예요. 늘 밥은 먹었냐 물어보셨죠. #추모 #할아버지 #사투리';
+
+    return '정 많고 느긋한 할아버지예요. 늘 밥은 먹었냐 물어보세요. #추모 #할아버지 #사투리';
   };
   const v_456484 = await v_541b14({ profile: { name: '할배' } }, v_184a1c);
-  v_ce93bd.ok(v_456484.includes('#추모'));
+  v_ce93bd.ok(!v_456484.includes('#추모'), '추모성 해시태그는 제거되어야 함');
+  v_ce93bd.ok(v_456484.includes('#할아버지'), '일반 해시태그는 보존되어야 함');
+  v_ce93bd.ok(v_456484.includes('#사투리'));
+  v_ce93bd.ok(v_456484.includes('할아버지예요'), '본문은 보존되어야 함');
   v_ce93bd.ok(v_456484.length > 0 && v_456484.length <= 300);
 });
 
