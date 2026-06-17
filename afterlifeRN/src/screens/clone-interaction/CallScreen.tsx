@@ -491,17 +491,18 @@ export default function CallScreen({ route, navigation }: Props) {
   return (
     <View style={s.container}>
       {}
+      {}
       {remoteStream ? (
         <RTCView
           streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-          objectFit="cover"
+          objectFit="contain"
           style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
         />
       ) : personaImage ? (
         <Image
           source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
           style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
-          resizeMode="cover"
+          resizeMode="contain"
         />
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
