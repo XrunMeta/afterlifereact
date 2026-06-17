@@ -1,4 +1,5 @@
 export interface Size { width: number; height: number }
+
 export interface GestureState { translateX: number; translateY: number; scale: number }
 export interface CropRect { originX: number; originY: number; width: number; height: number }
 
@@ -9,6 +10,9 @@ export function v_f98917(v_7ddb73, v_143cb5): number {
 const v_ffa902 = (v_81e2ef, v_bc6da1, v_d54b9c) => Math.min(Math.max(v_81e2ef, v_bc6da1), v_d54b9c);
 
 export function v_e70373(v_7ddb73, v_143cb5, v_0d09bb): CropRect {
+  if (v_7ddb73.width <= 0 || v_7ddb73.height <= 0) {
+    throw new Error("computeCropRect: image size must be positive");
+  }
   const v_ca01e0 = v_f98917(v_7ddb73, v_143cb5);
   const v_206b88 = Math.max(1, v_0d09bb.scale);
   const v_fd5f43 = v_ca01e0 * v_206b88;

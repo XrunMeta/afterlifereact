@@ -31,5 +31,7 @@ export async function v_5919ca(): Promise<
   });
   if (v_cb35cb.canceled || !v_cb35cb.assets[0]) return null;
   const v_779914 = v_cb35cb.assets[0];
-  return { uri: v_779914.uri, width: v_779914.width ?? 0, height: v_779914.height ?? 0 };
+
+  if (!v_779914.width || !v_779914.height) return null;
+  return { uri: v_779914.uri, width: v_779914.width, height: v_779914.height };
 }
