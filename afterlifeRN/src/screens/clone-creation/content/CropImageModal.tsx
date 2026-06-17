@@ -8,9 +8,11 @@ import {
   type v_905231,
   type v_bd225c,
 } from "zwwvjiopxcaovigclhtwpklelhlr";
+import { v_772971 } from "jmpfvteuuztnp";
 import v_11c5c8 from "../../../components/clone/UpperBodyGuide";
 import { v_f98917, v_34b1b1, type v_49127c } from "../../../lib/cropImage";
 import { v_1bfbd0, v_8b0c90 } from "../../../components/constants";
+import { v_889fad } from "../../../stores/dialogStore";
 
 interface Source { uri: string; width: number; height: number }
 interface Props {
@@ -21,6 +23,7 @@ interface Props {
 }
 
 export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfirm: v_e2be2d, onCancel: v_c7001c }: Props) {
+  const { t: v_8d41d7 } = v_772971();
   const { width: v_df48e9, height: v_bd274b } = v_700696.get("window");
   const v_e0560a = Math.min(v_df48e9 * 0.86, (v_bd274b * 0.7) / 2);
   const v_fc2e4f = v_e0560a * 2;
@@ -96,6 +99,7 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
       v_e2be2d(v_cd1446);
     } catch (v_49263d) {
       console.warn("[CropImageModal] cropToAvatar 실패:", v_49263d);
+      v_889fad(v_8d41d7('common.error'), v_8d41d7('create.image.cropFailed'));
     } finally {
       v_231e09.current = false;
     }
@@ -146,10 +150,10 @@ export default function v_100dc2({ visible: v_cf55be, source: v_04e790, onConfir
 
         <View style={[v_fd5f43.actions]}>
           <TouchableOpacity style={v_fd5f43.btn} onPress={v_c7001c}>
-            <Text style={v_fd5f43.btnText}>다시 선택</Text>
+            <Text style={v_fd5f43.btnText}>{v_8d41d7('common.cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[v_fd5f43.btn, v_fd5f43.btnPrimary]} onPress={v_ce9295}>
-            <Text style={[v_fd5f43.btnText, v_fd5f43.btnPrimaryText]}>확인</Text>
+            <Text style={[v_fd5f43.btnText, v_fd5f43.btnPrimaryText]}>{v_8d41d7('common.confirm')}</Text>
           </TouchableOpacity>
         </View>
       </GestureHandlerRootView>
