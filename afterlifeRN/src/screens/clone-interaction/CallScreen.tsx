@@ -491,17 +491,18 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   return (
     <View style={v_fd5f43.container}>
       {}
+      {}
       {v_b4d824 ? (
         <RTCView
           streamURL={(v_b4d824 as unknown as { toURL: () => string }).toURL()}
-          objectFit="cover"
+          objectFit="contain"
           style={[v_472849.absoluteFill, { width: "100%", height: "100%" }]}
         />
       ) : v_0e38ad ? (
         <Image
           source={typeof v_0e38ad === "number" ? v_0e38ad : { uri: v_0e38ad }}
           style={[v_472849.absoluteFill, { width: "100%", height: "100%" }]}
-          resizeMode="cover"
+          resizeMode="contain"
         />
       ) : (
         <View style={[v_472849.absoluteFill, { backgroundColor: v_1bfbd0.zinc900 }]} />
