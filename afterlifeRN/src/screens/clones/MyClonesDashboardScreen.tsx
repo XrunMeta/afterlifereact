@@ -1,5 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { pickAndCropImage } from "../../lib/imagePicker";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation, CommonActions } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute, type RouteProp, CommonActions } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import * as Clipboard from "expo-clipboard";
@@ -35,7 +35,11 @@ import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useFollowStore } from "../../stores/followStore";
 import { seedSource } from "../../api/source";
-import { listMyClones, listSystemClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, type MyClone, type SystemClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse } from "../../api/clones";
+import { listMyClones, listSystemClones, deleteClone, listCloneLikes, listCloneComments, listCloneFollowers, listCloneIntimacyEvents, listCloneGiftReceipts, type MyClone, type SystemClone, type FeedLikeUser, type FeedComment, type CloneFollower, type IntimacyEventsResponse, type GiftReceiptItem } from "../../api/clones";
+import giftsData from "../../mocks/gifts.json";
+import type { Gift } from "../../types/gift";
+
+const GIFT_CATALOG = giftsData as Gift[];
 import { formatRelativeKo } from "../../lib/relativeTime";
 import SwipeDownSheet from "../../components/ui/SwipeDownSheet";
 import { AuthApiError, patchMe } from "../../api/auth";
@@ -235,31 +239,40 @@ export default function MyClonesDashboardScreen() {
     cloneId: number;
     cloneName: string;
   } | null>(null);
+
+  const route = useRoute<RouteProp<ClonesStackParamList, "Dashboard">>();
+  const openedIntimacyRef = useRef<number | null>(null);
+
   const [intimacyData, setIntimacyData] = useState<IntimacyEventsResponse | null>(null);
   const [intimacyLoading, setIntimacyLoading] = useState(false);
 
   const [intimacyInfoVisible, setIntimacyInfoVisible] = useState(false);
 
+  const [giftReceipts, setGiftReceipts] = useState<GiftReceiptItem[] | null>(null);
+  const [giftLoading, setGiftLoading] = useState(false);
+
   useEffect(() => {
     if (!intimacyModal) {
+      setGiftReceipts(null);
+
       setIntimacyData(null);
       return;
     }
     if (!accessToken) return;
     let cancelled = false;
-    setIntimacyLoading(true);
-    setIntimacyData(null);
-    listCloneIntimacyEvents(accessToken, intimacyModal.cloneId, { limit: 100 })
+    setGiftLoading(true);
+    setGiftReceipts(null);
+    listCloneGiftReceipts(accessToken, intimacyModal.cloneId)
       .then((res) => {
         if (cancelled) return;
-        setIntimacyData(res);
+        setGiftReceipts(res.items);
       })
       .catch((err) => {
-        console.warn("[MyClones] listCloneIntimacyEvents failed:", err);
-        if (!cancelled) setIntimacyData(null);
+        console.warn("[MyClones] listCloneGiftReceipts failed:", err);
+        if (!cancelled) setGiftReceipts([]);
       })
       .finally(() => {
-        if (!cancelled) setIntimacyLoading(false);
+        if (!cancelled) setGiftLoading(false);
       });
     return () => {
       cancelled = true;
@@ -351,6 +364,15 @@ export default function MyClonesDashboardScreen() {
   const [deleteModal, setDeleteModal] = useState<number | null>(null);
 
   const visibleClones = myClones.filter((c) => !hiddenCloneIds.has(c.id));
+
+  useEffect(() => {
+    const cid = route.params?.openIntimacyCloneId;
+    if (!cid || openedIntimacyRef.current === cid) return;
+    const clone = myClones.find((c) => c.id === cid);
+    if (!clone) return; 
+    openedIntimacyRef.current = cid;
+    setIntimacyModal({ cloneId: cid, cloneName: clone.displayName });
+  }, [route.params?.openIntimacyCloneId, myClones]);
 
   const handleToggle = (cloneId: number) => {
     const currentState = cloneStates[cloneId]?.isActive ?? true;
@@ -685,13 +707,7 @@ export default function MyClonesDashboardScreen() {
               <Ionicons name="chatbubbles-outline" size={14} color={COLORS.zinc500} />
               <Text style={s.statText}>상호작용</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={s.stat}
-              onPress={() => setIntimacyModal({ cloneId: clone.id, cloneName: clone.displayName })}
-            >
-              <Feather name="thermometer" size={14} color="#fb923c" />
-              <Text style={s.statText}>온도</Text>
-            </TouchableOpacity>
+            {}
           </View>
         )}
 
@@ -736,7 +752,7 @@ export default function MyClonesDashboardScreen() {
             onPress={async () => {
 
               const url = `https://afterlife.app/clone/${clone.id}`;
-              const message = `${clone.displayName} 페르소나와 대화해보세요!\n${url}`;
+              const message = `${clone.displayName} 클론과 대화해보세요!\n${url}`;
               try {
                 await Share.share(
                   Platform.OS === "ios"
@@ -813,9 +829,9 @@ export default function MyClonesDashboardScreen() {
             <View style={s.dashEmptyIconWrap}>
               <Feather name="user-plus" size={32} color={COLORS.zinc400} />
             </View>
-            <Text style={s.dashEmptyTitle}>나만의 페르소나를 만들어보세요</Text>
+            <Text style={s.dashEmptyTitle}>나만의 클론을 만들어보세요</Text>
             <Text style={s.dashEmptyDesc}>
-              아래 버튼을 눌러 첫 페르소나를 만들 수 있어요
+              아래 버튼을 눌러 첫 클론을 만들 수 있어요
             </Text>
             <TouchableOpacity
               style={s.dashEmptyBtn}
@@ -831,7 +847,7 @@ export default function MyClonesDashboardScreen() {
               }
             >
               <Feather name="plus" size={18} color={COLORS.white} />
-              <Text style={s.dashEmptyBtnText}>페르소나 만들기</Text>
+              <Text style={s.dashEmptyBtnText}>클론 만들기</Text>
             </TouchableOpacity>
           </View>
         }
@@ -909,7 +925,7 @@ export default function MyClonesDashboardScreen() {
                     <View style={s.profileStatDivider} />
                     <View style={s.profileStatItem}>
                       <Text style={s.profileStatValue}>{visibleClones.length}</Text>
-                      <Text style={s.profileStatLabel}>페르소나</Text>
+                      <Text style={s.profileStatLabel}>클론</Text>
                     </View>
                   </View>
                 </View>
@@ -1027,12 +1043,12 @@ export default function MyClonesDashboardScreen() {
         <Pressable style={s.modalOverlay} onPress={() => setToggleModal(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
             <Text style={s.modalTitle}>
-              {toggleModal?.currentState ? "페르소나 비활성화" : "페르소나 활성화"}
+              {toggleModal?.currentState ? "클론 비활성화" : "클론 활성화"}
             </Text>
             <Text style={s.modalDesc}>
               {toggleModal?.currentState
-                ? "페르소나를 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
-                : "페르소나를 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
+                ? "클론을 비활성화하시겠습니까? 비활성화 시 다른 사용자에게 노출되지 않습니다."
+                : "클론을 활성화하시겠습니까? 활성화 시 다른 사용자에게 노출됩니다."}
             </Text>
             <View style={s.modalBtns}>
               <Button
@@ -1057,7 +1073,7 @@ export default function MyClonesDashboardScreen() {
         <Pressable style={s.modalOverlay} onPress={() => setVisibilityModal(null)}>
           <Pressable style={s.modalBox} onPress={(e) => e.stopPropagation()}>
             <Text style={s.modalTitle}>공개 범위</Text>
-            <Text style={s.modalDesc}>이 페르소나를 누구에게 보일까요?</Text>
+            <Text style={s.modalDesc}>이 클론을 누구에게 보일까요?</Text>
             <View style={s.visibilityOptions}>
               {(["public", "followers", "selected", "private"] as Visibility[]).map((v) => {
                 const selected = visibilityModal?.currentVisibility === v;
@@ -1342,77 +1358,43 @@ export default function MyClonesDashboardScreen() {
             <View style={s.sheetHandle} />
             <View style={s.intimacyTitleRow}>
               <View style={{ width: 28 }} />
-              <Text style={s.statsSheetTitle}>{t("feed.eventsTitle")}</Text>
-              <TouchableOpacity
-                onPress={() => setIntimacyInfoVisible(true)}
-                hitSlop={8}
-                style={{ width: 28, alignItems: "flex-end" }}
-              >
-                <Feather name="help-circle" size={20} color={COLORS.zinc400} />
-              </TouchableOpacity>
+              <Text style={s.statsSheetTitle}>받은 선물</Text>
+              <View style={{ width: 28 }} />
             </View>
             <Text style={s.statsSheetSub}>{intimacyModal?.cloneName}</Text>
 
             {}
-            {intimacyData?.summary && (
-              <View style={s.intimacySummary}>
-                <View style={s.intimacySummaryRow}>
-                  <Feather name="thermometer" size={20} color="#fb923c" />
-                  <Text style={s.intimacySummaryScore}>
-                    {Math.min(100, intimacyData.summary.totalScore)}°C
-                  </Text>
-                  <Text style={s.intimacySummaryCount}>
-                    · {t("feed.summaryCount", { n: intimacyData.summary.eventCount })}
-                  </Text>
-                </View>
-                <View style={s.intimacyBreakdownRow}>
-                  <Text style={s.intimacyBreakdownItem}>
-                    채팅 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.chat}°C</Text>
-                  </Text>
-                  <Text style={s.intimacyBreakdownItem}>
-                    통화 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.call}°C</Text>
-                  </Text>
-                  <Text style={s.intimacyBreakdownItem}>
-                    탐색 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.learn}°C</Text>
-                  </Text>
-                  <Text style={s.intimacyBreakdownItem}>
-                    피드 <Text style={s.intimacyBreakdownVal}>{intimacyData.summary.feed}°C</Text>
-                  </Text>
-                </View>
-              </View>
-            )}
+            <View style={s.giftTableHeader}>
+              <Text style={[s.giftTableHeaderCell, { flex: 2 }]}>선물</Text>
+              <Text style={[s.giftTableHeaderCell, { flex: 1, textAlign: "center" }]}>갯수</Text>
+              <Text style={[s.giftTableHeaderCell, { flex: 2, textAlign: "right" }]}>보낸사람</Text>
+            </View>
 
             <ScrollView style={s.statsScrollArea} showsVerticalScrollIndicator={false}>
-              {intimacyLoading ? (
+              {giftLoading ? (
                 <ActivityIndicator color={COLORS.zinc500} style={{ paddingVertical: 24 }} />
-              ) : !intimacyData || intimacyData.items.length === 0 ? (
+              ) : !giftReceipts || giftReceipts.length === 0 ? (
                 <View style={{ paddingVertical: 24, alignItems: "center" }}>
                   <Text style={{ color: COLORS.zinc500, fontSize: 13 }}>
-                    {t("feed.emptyEventsMine")}
+                    아직 받은 선물이 없어요
                   </Text>
                 </View>
               ) : (
-                intimacyData.items.map((ev) => {
-                  const ACTION_META: Record<
-                    "chat" | "call" | "learn" | "feed",
-                    { label: string; icon: keyof typeof Feather.glyphMap; color: string }
-                  > = {
-                    chat: { label: t("feed.actionLabelChat"), icon: "message-circle", color: "#60a5fa" },
-                    call: { label: t("feed.actionLabelCall"), icon: "phone", color: "#34d399" },
-                    learn: { label: t("feed.actionLabelLearn"), icon: "search", color: "#a78bfa" },
-                    feed: { label: t("feed.actionLabelFeed"), icon: "heart", color: "#ef4444" },
-                  };
-                  const meta = ACTION_META[ev.action];
+                giftReceipts.map((item, idx) => {
+                  const catalogEntry = GIFT_CATALOG.find((g) => g.id === item.giftId);
+                  const emoji = catalogEntry?.emoji ?? "🎁";
                   return (
-                    <View key={ev.id} style={s.intimacyEventRow}>
-                      <View style={[s.intimacyEventIcon, { backgroundColor: meta.color + "22" }]}>
-                        <Feather name={meta.icon} size={14} color={meta.color} />
+                    <View key={`${item.giftId}-${item.sender}-${idx}`} style={s.giftTableRow}>
+                      <View style={[{ flex: 2, flexDirection: "row", alignItems: "center", gap: 6 }]}>
+                        <Text style={{ fontSize: 18 }}>{emoji}</Text>
+                        <Text style={s.giftTableCell}>{item.giftName}</Text>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.intimacyEventLabel}>{meta.label}</Text>
-                        <Text style={s.intimacyEventTime}>{formatRelativeKo(ev.createdAt)}</Text>
-                      </View>
-                      <Text style={s.intimacyEventScore}>+{ev.score}°C</Text>
+                      <Text style={[s.giftTableCell, { flex: 1, textAlign: "center" }]}>
+                        {item.count}
+                      </Text>
+                      <Text style={[s.giftTableCell, { flex: 2, textAlign: "right" }]} numberOfLines={1}>
+                        {item.sender}
+                      </Text>
                     </View>
                   );
                 })
@@ -1497,7 +1479,7 @@ const MOCK_INTERACTIONS = [
 
 const MOCK_COMMENTS = [
   { id: "c1", name: "김민수", avatar: "https://i.pravatar.cc/100?img=1", text: "정말 도움이 많이 됐어요! 감사합니다.", time: "2시간 전" },
-  { id: "c2", name: "이서연", avatar: "https://i.pravatar.cc/100?img=5", text: "이 페르소나 대화 퀄리티가 진짜 좋네요", time: "5시간 전" },
+  { id: "c2", name: "이서연", avatar: "https://i.pravatar.cc/100?img=5", text: "이 클론 대화 퀄리티가 진짜 좋네요", time: "5시간 전" },
   { id: "c3", name: "박지훈", avatar: "https://i.pravatar.cc/100?img=3", text: "위로가 되는 말씀 감사해요 ㅠㅠ", time: "어제" },
   { id: "c4", name: "최유진", avatar: "https://i.pravatar.cc/100?img=9", text: "매일 대화하고 있어요 추천합니다!", time: "2일 전" },
   { id: "c5", name: "정하은", avatar: "https://i.pravatar.cc/100?img=10", text: "목소리도 자연스럽고 너무 좋아요", time: "3일 전" },
@@ -2143,6 +2125,32 @@ const s = StyleSheet.create({
   intimacyEventLabel: { fontSize: 14, fontWeight: "600", color: COLORS.zinc900 },
   intimacyEventTime: { fontSize: 11, color: COLORS.zinc500, marginTop: 2 },
   intimacyEventScore: { fontSize: 14, fontWeight: "700", color: "#fb923c" },
+
+  giftTableHeader: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.zinc200,
+    marginBottom: 2,
+  },
+  giftTableHeaderCell: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.zinc500,
+  },
+  giftTableRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.zinc100,
+  },
+  giftTableCell: {
+    fontSize: 14,
+    color: COLORS.zinc900,
+  },
 
   infoSection: {
     paddingHorizontal: 20,

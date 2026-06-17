@@ -16,6 +16,7 @@ import type { AuthStackParamList } from "../../navigation/types";
 import SafeView from "../../components/ui/SafeView";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import Button from "../../components/ui/Button";
+import OtpVerifyView from "../../components/auth/OtpVerifyView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
@@ -124,49 +125,19 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         autoAdjustKeyboardPadding
         showBottomBackground={false}
       >
-        <View style={styles.container}>
-          <Text style={styles.title}>{t("auth.emailVerify.title")}</Text>
-          <Text style={styles.subtitle}>
-            {t("auth.emailVerify.desc", { email: params.email })}
-          </Text>
-
-          <TextInput
-            ref={inputRef}
-            value={code}
-            onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 6))}
-            keyboardType="number-pad"
-            maxLength={6}
-            placeholder="000000"
-            placeholderTextColor={COLORS.zinc300}
-            style={styles.codeInput}
-            editable={!submitting}
-            autoFocus
-          />
-
-          <Button
-            title={submitting ? t("auth.signup.verifying") : t("auth.emailVerify.verifyBtn")}
-            onPress={handleVerify}
-            disabled={submitting || code.length !== 6}
-          />
-          {submitting && (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color={COLORS.zinc500} />
-            </View>
-          )}
-
-          <View style={styles.resendRow}>
-            <TouchableOpacity onPress={handleResend} disabled={resendIn > 0}>
-              <Text
-                style={[
-                  styles.resendLink,
-                  resendIn > 0 && styles.resendLinkDisabled,
-                ]}
-              >
-                {resendIn > 0 ? `${t("auth.emailVerify.resend")} (${resendIn}s)` : t("auth.emailVerify.resend")}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <OtpVerifyView
+          title={t("auth.emailVerify.title")}
+          subtitle={t("auth.emailVerify.desc", { email: params.email })}
+          code={code}
+          onChangeCode={setCode}
+          onSubmit={handleVerify}
+          submitting={submitting}
+          submitLabel={t("auth.emailVerify.verifyBtn")}
+          submittingLabel={t("auth.signup.verifying")}
+          resendIn={resendIn}
+          onResend={handleResend}
+          resendLabel={t("auth.emailVerify.resend")}
+        />
       </SafeScrollView>
     </SafeView>
   );

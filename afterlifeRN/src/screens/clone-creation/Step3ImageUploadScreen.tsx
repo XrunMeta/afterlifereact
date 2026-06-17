@@ -6,11 +6,11 @@ import type { CreateStackParamList } from '../../navigation/types';
 import SafeView from '../../components/ui/SafeView';
 import SafeScrollView from '../../components/ui/SafeScrollView';
 import PageHeader from '../../components/common/PageHeader';
-import Step3EntryBanner from '../../components/common/Step3EntryBanner';
 import Button from '../../components/ui/Button';
 import { useCloneStore } from '../../stores/cloneStore';
 import MemlowImageUpload from './content/MemlowImageUpload';
 import DefaultImageUpload from './content/DefaultImageUpload';
+import PersonaCreationPaymentGate from './components/PersonaCreationPaymentGate';
 import { COLORS, SIZES } from '../../components/constants';
 import { uploadFile } from '../../api/files';
 import { createAssetJob } from '../../api/clones';
@@ -23,8 +23,9 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
   const draft = useCloneStore(s => s.creationDraft);
   const setCreationDraft = useCloneStore(s => s.setCreationDraft);
   const accessToken = useAuthStore(s => s.accessToken);
-  const [bannerOpen, setBannerOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const [gatePassed, setGatePassed] = useState(!!draft.pin);
 
   const Content = draft.cloneType === 'memlow' ? MemlowImageUpload : DefaultImageUpload;
   const canNext = Content.validate(draft);
@@ -77,6 +78,15 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
     }
   };
 
+  if (!gatePassed) {
+    return (
+      <PersonaCreationPaymentGate
+        onProceed={() => setGatePassed(true)}
+        onCancel={() => navigation.getParent()?.navigate("HomeTab" as never)}
+      />
+    );
+  }
+
   return (
     <SafeView backgroundColor={COLORS.white}>
       <PageHeader
@@ -87,7 +97,6 @@ export default function Step3ImageUploadScreen({ navigation }: Props) {
           navigation.getParent()?.navigate("HomeTab" as never);
         }}
       />
-      {bannerOpen && <Step3EntryBanner onDismiss={() => setBannerOpen(false)} />}
       <SafeScrollView contentContainerStyle={styles.content} showBottomBackground={false}>
         <Content draft={draft} onChange={setCreationDraft} />
       </SafeScrollView>

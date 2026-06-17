@@ -35,6 +35,7 @@ import LanguageSettingsScreen from "../screens/my/LanguageSettingsScreen";
 import PaymentPinScreen from "../screens/my/PaymentPinScreen";
 import InviteStatusScreen from "../screens/my/InviteStatusScreen";
 import BlockedListScreen from "../screens/my/BlockedListScreen";
+import ReportsScreen from "../screens/my/ReportsScreen";
 import TransactionsScreen from "../screens/my/TransactionsScreen";
 
 const ClonesStack = createNativeStackNavigator<ClonesStackParamList>();
@@ -91,6 +92,7 @@ function MyStackNavigator() {
       <MyStack.Screen name="InviteStatus" component={InviteStatusScreen} />
       <MyStack.Screen name="BlockedList" component={BlockedListScreen} />
       <MyStack.Screen name="Transactions" component={TransactionsScreen} />
+      <MyStack.Screen name="Reports" component={ReportsScreen} />
     </MyStack.Navigator>
   );
 }
@@ -102,7 +104,7 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof Feather.glyphMap; label: s
   SearchTab: { icon: "search", label: "검색" },
   CreateTab: { icon: "plus-circle", label: "생성" },
   ShortsTab: { icon: "user-check", label: "구독 중" },
-  ClonesTab: { icon: "users", label: "페르소나" },
+  ClonesTab: { icon: "users", label: "클론" },
   MyTab: { icon: "user", label: "마이" },
 };
 

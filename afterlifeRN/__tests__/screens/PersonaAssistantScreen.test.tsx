@@ -144,7 +144,7 @@ test('초기 렌더 시 이름 질문(sys:name)이 표시된다', async () => {
     <PersonaAssistantScreen navigation={mockNavProp as any} />,
   );
 
-  await waitFor(() => getByText(/지금 생성하는 페르소나의 이름/), { timeout: 3000 });
+  await waitFor(() => getByText(/지금 생성하는 클론의 이름/), { timeout: 3000 });
 });
 
 test('getPersonaQuestions가 스키마 로드 후 호출되어 질문 목록을 반환한다', async () => {
@@ -243,6 +243,6 @@ test('[폴백] getPersonaQuestions 실패 시 크래시 없이 첫 시스템 질
   const { getByText } = render(
     <PersonaAssistantScreen navigation={mockNavProp as any} />,
   );
-  await waitFor(() => getByText(/지금 생성하는 페르소나의 이름/), { timeout: 3000 });
+  await waitFor(() => getByText(/지금 생성하는 클론의 이름/), { timeout: 3000 });
 
 });

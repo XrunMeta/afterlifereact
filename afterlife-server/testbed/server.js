@@ -39,6 +39,12 @@ const MUSETALK_ENABLED = (process.env.MUSETALK_ENABLED ?? '1') !== '0';
 
 const MUSETALK_STREAM_MODE = (process.env.MUSETALK_STREAM_MODE ?? '0') === '1';
 
+function replyLlmOptions() {
+  if ((process.env.REPLY_SHORT_MODE ?? '0') !== '1') return {};
+  const n = Number.parseInt(process.env.REPLY_MAX_CHARS ?? '30', 10) || 30;
+  return { num_predict: Math.max(48, Math.ceil(n * 2.5) + 16) };
+}
+
 const REALTIME_AUDIO_STREAM =
   (process.env.REALTIME_AUDIO_STREAM ?? '1') === '1';
 const MUSETALK_OUTPUTS_DIR =
@@ -362,13 +368,13 @@ app.post('/oth-path', (req, res) => {
   const fallbackL2 = speakerRole === 'visitor'
     ? getAttrsFor({ persona_slug: personaSlug, level: 'l2', user_label: userLabel })
     : [];
-  const { l0, l1Attrs, l2Attrs } = selectPromptInputs({ personaBundle, fallbackL1, fallbackL2 });
+  const { l0, l1Attrs, l2Attrs, usedBundle } = selectPromptInputs({ personaBundle, fallbackL1, fallbackL2 });
   if (personaBundle && personaBundle.persona && l1Attrs.length === 0) {
     console.warn(`[sp3] personaBundle present but persona empty (source=${source}) — responding with L0 only`);
   }
 
   const messages = [
-    { role: 'system', content: buildSystemPrompt({ l0, l1Attrs, l2Attrs }) },
+    { role: 'system', content: buildSystemPrompt({ l0, l1Attrs, l2Attrs, usedBundle }) },
     ...history
       .filter((m) => m && typeof m.role === 'string' && typeof m.content === 'string')
       .filter((m) => ['user', 'assistant'].includes(m.role))
@@ -578,7 +584,7 @@ app.post('/oth-path', (req, res) => {
       let resolvedVideoPath = museVideoPath || null;
       if (!resolvedVideoPath && avatarImagePath && chatCloneId) {
 
-        const photoStillOut = path.join(ASSET_VIDEO_REF_DIR, chatCloneId, 'photo-still-25fps.mp4');
+        const photoStillOut = path.join(ASSET_VIDEO_REF_DIR, chatCloneId, `${chatCloneId}-photo-still-25fps.mp4`);
         try {
           resolvedVideoPath = await ensurePhotoStill({ photoPath: avatarImagePath, outPath: photoStillOut });
         } catch (photoErr) {
@@ -654,6 +660,7 @@ app.post('/oth-path', (req, res) => {
 
   const ac = chatStream({
     messages,
+    options: replyLlmOptions(),
     onChunk: (text) => {
       if (aborted) return;
 
@@ -713,8 +720,20 @@ app.post('/oth-path', (req, res) => {
               sentence_count: collectedWavs.length,
               audio_bytes: wavOnly.reduce((a, b) => a + b.length, 0),
             });
+
+            let batchVideoPath = museVideoPath || null;
+            if (!batchVideoPath && avatarImagePath && chatCloneId) {
+              const photoStillOut = path.join(ASSET_VIDEO_REF_DIR, chatCloneId, `${chatCloneId}-photo-still-25fps.mp4`);
+              try {
+                batchVideoPath = await ensurePhotoStill({ photoPath: avatarImagePath, outPath: photoStillOut });
+              } catch (photoErr) {
+                console.warn('[sp4/photo-still/batch] ffmpeg 폴백 실패(graceful):', photoErr?.message ?? photoErr);
+                batchVideoPath = null;
+              }
+            }
             const result = await museTalkInfer({
               audio_path: tmp.path,
+              ...(batchVideoPath ? { video_path: batchVideoPath } : {}),
               output_id: sessionId,
               stream: false,
             });

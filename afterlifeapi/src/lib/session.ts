@@ -3,6 +3,11 @@ import type { AppEnv } from "./env";
 import { APIError } from "./errors";
 import { issueAccess, issueRefresh, verifyToken, JWT_TTL } from "./jwt";
 
+function parseSqliteTimestamp(ts: string): number {
+  if (ts.includes("T")) return new Date(ts).getTime();
+  return new Date(ts.replace(" ", "T") + "Z").getTime();
+}
+
 type Kind = "access" | "refresh";
 
 type Payload = Record<string, unknown> & {
@@ -56,6 +61,18 @@ export async function rotateSession(
   const winner = await c.env.KV_AUTH.get(lockKey);
   if (winner !== ticket) {
     throw new APIError("UNAUTHENTICATED", "Concurrent refresh rejected.");
+  }
+
+  if (!payload.admin) {
+    const u = await c.env.DB
+      .prepare(`SELECT banned_until FROM users WHERE id = ? AND deleted_at IS NULL`)
+      .bind(payload.sub)
+      .first<{ banned_until: string | null }>();
+    if (u?.banned_until && parseSqliteTimestamp(u.banned_until) > Date.now()) {
+      throw new APIError("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+        bannedUntil: u.banned_until,
+      });
+    }
   }
 
   await c.env.KV_AUTH.put(revokedKey, "1", { expirationTtl: revocationTtl(payload) });

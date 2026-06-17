@@ -1,6 +1,8 @@
+import type { NavigatorScreenParams } from "@react-navigation/native";
+
 export type RootStackParamList = {
   Auth: undefined;
-  Main: undefined;
+  Main: NavigatorScreenParams<MainTabParamList> | undefined;
   Chat: { cloneId: number };
   Call: { cloneId: number; name?: string; image?: string | number };
   EmergencyContacts: undefined;
@@ -16,7 +18,11 @@ export type RootStackParamList = {
 
   UserFollowList: { userId: number; mode: "followers" | "following"; userName?: string };
 
-  CloneFeed: { feed: import("../api/clones").DiscoverFeedItem };
+  CloneFeed: {
+    feed: import("../api/clones").DiscoverFeedItem;
+
+    openComments?: boolean;
+  };
 
   ResetPassword: { email?: string } | undefined;
 };
@@ -44,10 +50,14 @@ export type AuthStackParamList = {
   };
   XrunLogin: undefined;
   XrunOtp: { email: string; pin: string };
+
+  EmailOtpLogin: { email: string; autoLogin: boolean };
   ForgotPassword: undefined;
 
   SignupComplete: {
     accessToken: string;
+
+    refreshToken?: string;
     persist: boolean; 
     email?: string;  
   };
@@ -60,14 +70,16 @@ export type MainTabParamList = {
   HomeTab: undefined;
 
   SearchTab: { initialQuery?: string } | undefined;
-  ClonesTab: undefined;
+  ClonesTab: NavigatorScreenParams<ClonesStackParamList> | undefined;
   CreateTab: undefined;
-  ShortsTab: undefined;
-  MyTab: undefined;
+
+  ShortsTab: { openIntimacyCloneId?: number } | undefined;
+  MyTab: NavigatorScreenParams<MyStackParamList> | undefined;
 };
 
 export type ClonesStackParamList = {
-  Dashboard: undefined;
+
+  Dashboard: { openIntimacyCloneId?: number } | undefined;
   CloneDetail: { cloneId: number };
   CloneEdit: { cloneId: number };
   CloneVisibility: { cloneId: number };
@@ -101,4 +113,5 @@ export type MyStackParamList = {
   InviteStatus: undefined;
   BlockedList: undefined;
   Transactions: undefined;
+  Reports: { tab?: "made" | "received" } | undefined;
 };

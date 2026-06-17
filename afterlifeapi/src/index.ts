@@ -33,13 +33,15 @@ import { adminDeletion } from "./routes/adminDeletion";
 import { files } from "./routes/files";
 import { payments } from "./routes/payments";
 import { notifications } from "./routes/notifications";
+import { persons } from "./routes/persons";
 
 const app = new Hono<AppEnv>();
 
 app.onError(onError);
 
 app.use("*", requestId);
-app.use("*", secureHeaders());
+
+app.use("*", secureHeaders({ crossOriginResourcePolicy: "cross-origin" }));
 
 const ALLOWED_ORIGINS = new Set<string>([
   "http://localhost:5173",
@@ -118,6 +120,7 @@ app.route("/oth-path", inheritance);
 app.route("/oth-path", gdpr);
 app.route("/oth-path", adminGdpr);
 app.route("/oth-path", adminDeletion);
+app.route("/oth-path", persons);
 
 export default {
   fetch: app.fetch,

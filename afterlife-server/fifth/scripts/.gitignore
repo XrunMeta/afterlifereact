@@ -1,0 +1,13 @@
+# 테스트용 미디어 자산 (실제 인물 사진·음성 — 프라이버시/용량상 미추적)
+*.jpg
+*.jpeg
+*.png
+*.wav
+*.mp3
+*.mp4
+
+# 파이썬/런타임
+__pycache__/
+.pytest_cache/
+.venv/
+.DS_Store

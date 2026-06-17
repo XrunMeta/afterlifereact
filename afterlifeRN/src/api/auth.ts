@@ -1,6 +1,7 @@
 
 
 import { API_BASE } from "../config/apiBase";
+import { authFetch as _authFetch } from "../lib/authFetch";
 
 export interface SignupPayload {
   email: string;
@@ -95,6 +96,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     path === "/oth-path" ||
     path === "/oth-path" ||
     path === "/oth-path" ||
+    path === "/oth-path" ||
     path === "/oth-path";
   const emailHint =
     typeof body === "object" && body !== null && "email" in body
@@ -135,27 +137,6 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return parsed as T;
 }
 
-async function getJson<T>(path: string, accessToken?: string): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
-
-  const res = await fetch(`${API_BASE}${path}`, { method: "GET", headers });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const errBody = parsed as ApiErrorBody | null;
-    const code = errBody?.error?.code ?? "HTTP_ERROR";
-    const message = errBody?.error?.message ?? `HTTP ${res.status}`;
-    throw new AuthApiError(res.status, code, message, errBody?.error?.details);
-  }
-  return parsed as T;
-}
-
 export async function requestEmailCode(email: string): Promise<{ ok: true; expiresInSec: number }> {
   return postJson("/oth-path", { email });
 }
@@ -177,6 +158,20 @@ export async function signup(payload: SignupPayload): Promise<SignupResponse> {
 }
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
+  return postJson("/oth-path", payload);
+}
+
+export async function requestEmailLoginCode(email: string): Promise<{ ok: true; expiresInSec: number }> {
+  return postJson("/oth-path", { email });
+}
+
+export async function emailLogin(payload: {
+  email: string;
+  verificationCode: string;
+  deviceId?: string;
+  pushToken?: string;
+  platform?: "ios" | "android" | "web";
+}): Promise<LoginResponse> {
   return postJson("/oth-path", payload);
 }
 
@@ -225,7 +220,7 @@ export async function googleCheck(idToken: string): Promise<GoogleCheckResponse>
 }
 
 export async function getMe(accessToken: string): Promise<{ user: AuthUser; interests: string[] }> {
-  return getJson("/oth-path", accessToken);
+  return _authFetch("/oth-path", accessToken);
 }
 
 export interface UserSearchItem {
@@ -239,7 +234,7 @@ export async function searchUsers(
   accessToken: string,
   q: string,
 ): Promise<{ items: UserSearchItem[] }> {
-  return getJson(`/oth-path?q=${encodeURIComponent(q)}`, accessToken);
+  return _authFetch(`/oth-path?q=${encodeURIComponent(q)}`, accessToken);
 }
 
 export interface PatchMePayload {
@@ -259,29 +254,7 @@ export interface DeleteMeResult {
   state: "soft_deleted";
 }
 export async function deleteMe(accessToken: string): Promise<DeleteMeResult> {
-  const res = await fetch(`${API_BASE}/oth-path`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const errBody = parsed as ApiErrorBody | null;
-    throw new AuthApiError(
-      res.status,
-      errBody?.error?.code ?? "HTTP_ERROR",
-      errBody?.error?.message ?? `HTTP ${res.status}`,
-      errBody?.error?.details,
-    );
-  }
-  return parsed as DeleteMeResult;
+  return _authFetch<DeleteMeResult>("/oth-path", accessToken, { method: "DELETE" });
 }
 
 export interface DeleteMeGdprResult {
@@ -294,91 +267,31 @@ export interface DeleteMeGdprResult {
 export async function deleteMeGdpr(
   accessToken: string,
 ): Promise<DeleteMeGdprResult> {
-  const res = await fetch(`${API_BASE}/oth-path`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({}),
-  });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const errBody = parsed as ApiErrorBody | null;
-    throw new AuthApiError(
-      res.status,
-      errBody?.error?.code ?? "HTTP_ERROR",
-      errBody?.error?.message ?? `HTTP ${res.status}`,
-      errBody?.error?.details,
-    );
-  }
-  return parsed as DeleteMeGdprResult;
+  return _authFetch<DeleteMeGdprResult>(
+    "/oth-path",
+    accessToken,
+    { method: "POST", body: JSON.stringify({}) },
+  );
 }
 
 export async function patchInterests(
   accessToken: string,
   payload: { add?: string[]; remove?: string[] },
 ): Promise<{ ok: true }> {
-  const res = await fetch(`${API_BASE}/oth-path`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const errBody = parsed as ApiErrorBody | null;
-    throw new AuthApiError(
-      res.status,
-      errBody?.error?.code ?? "HTTP_ERROR",
-      errBody?.error?.message ?? `HTTP ${res.status}`,
-      errBody?.error?.details,
-    );
-  }
-  return parsed as { ok: true };
+  return _authFetch<{ ok: true }>(
+    "/oth-path",
+    accessToken,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
 }
 
 export async function patchMe(
   accessToken: string,
   payload: PatchMePayload,
 ): Promise<{ ok: true; updatedFields: string[] }> {
-  const res = await fetch(`${API_BASE}/oth-path`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const errBody = parsed as ApiErrorBody | null;
-    throw new AuthApiError(
-      res.status,
-      errBody?.error?.code ?? "HTTP_ERROR",
-      errBody?.error?.message ?? `HTTP ${res.status}`,
-      errBody?.error?.details,
-    );
-  }
-  return parsed as { ok: true; updatedFields: string[] };
+  return _authFetch<{ ok: true; updatedFields: string[] }>(
+    "/oth-path",
+    accessToken,
+    { method: "PATCH", body: JSON.stringify(payload) },
+  );
 }

@@ -18,7 +18,9 @@ export type NotificationType =
 
   | "followee_new_clone"
 
-  | "intimacy_score";
+  | "intimacy_score"
+
+  | "moderation";
 
 export interface NotifyOptions {
 
@@ -126,7 +128,7 @@ export async function notify(env: Bindings, opts: NotifyOptions): Promise<Notify
 export async function notifyCloneEvent(
   env: Bindings,
   type: "clone_like" | "clone_comment" | "clone_follow" | "clone_gift",
-  args: { actorId: number; cloneId: number; extraBody?: string },
+  args: { actorId: number; cloneId: number; extraBody?: string; feedId?: number },
 ): Promise<void> {
   try {
     const clone = await env.DB
@@ -156,8 +158,9 @@ export async function notifyCloneEvent(
           : `${actorName} 님이 ${clone.name} 에게 댓글을 남겼어요`;
         break;
       case "clone_follow":
-        title = "✨ 새 팔로워";
-        body = `${actorName} 님이 ${clone.name} 을(를) 팔로우했어요`;
+
+        title = "✨ 새 구독";
+        body = `${actorName} 님이 ${clone.name} 을(를) 구독했어요`;
         break;
       case "clone_gift":
         title = "🎁 선물 도착";
@@ -173,7 +176,12 @@ export async function notifyCloneEvent(
       title,
       body,
       url: `afterlife://clone/${args.cloneId}`,
-      data: { cloneId: args.cloneId, actorId: args.actorId },
+
+      data: {
+        cloneId: args.cloneId,
+        actorId: args.actorId,
+        ...(args.feedId != null ? { feedId: args.feedId } : {}),
+      },
       skipEmail: true,
     });
   } catch (err) {

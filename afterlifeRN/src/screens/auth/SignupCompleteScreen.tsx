@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -67,9 +68,11 @@ export default function SignupCompleteScreen({ route }: Props) {
   const { t } = useTranslation();
 
   const accessToken = route.params?.accessToken;
+  const routeRefreshToken = route.params?.refreshToken;
   const persist = route.params?.persist ?? true;
   const email = route.params?.email;
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
+  const setApiTokens = useAuthStore((s) => s.setApiTokens);
   const hydrate = useAuthStore((s) => s.hydrate);
   console.log("[SignupComplete] mounted, hasToken:", !!accessToken, "email:", email);
 
@@ -85,6 +88,10 @@ export default function SignupCompleteScreen({ route }: Props) {
 
       const meRes = await getMe(accessToken);
       await setApiAuth(accessToken, meRes.user, { persist });
+
+      if (routeRefreshToken) {
+        await setApiTokens(accessToken, routeRefreshToken, { persist });
+      }
       await hydrate();
     } catch (err) {
       console.warn("[SignupComplete] start failed:", err);
@@ -121,7 +128,13 @@ export default function SignupCompleteScreen({ route }: Props) {
 }
           <View style={s.cards}>
             <ServiceCard
-              icon={<Text style={s.iconText}>∞</Text>}
+              icon={
+                <Image
+                  source={require("../../../assets/images/symbol.png")}
+                  style={s.iconImg}
+                  resizeMode="contain"
+                />
+              }
               title={t("auth.signupComplete.afterlifeTitle", {
                 defaultValue: "애프터라이프",
               })}
@@ -134,7 +147,13 @@ export default function SignupCompleteScreen({ route }: Props) {
               onPress={undefined}
             />
             <ServiceCard
-              icon={<Text style={s.iconText}>X</Text>}
+              icon={
+                <Image
+                  source={require("../../../assets/images/xrun-round-logo.png")}
+                  style={s.iconImg}
+                  resizeMode="cover"
+                />
+              }
               title={t("auth.signupComplete.xrunTitle", {
                 defaultValue: "XRUN",
               })}
@@ -256,6 +275,11 @@ const s = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: COLORS.white,
+  },
+  iconImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
   },
   cardTitle: {
     fontSize: 16,

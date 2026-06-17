@@ -2,6 +2,7 @@
 
 import { API_BASE } from "../config/apiBase";
 import { AuthApiError, type ApiErrorBody } from "./auth";
+import { authFetch as _libAuthFetch } from "../lib/authFetch";
 
 export type CloneType = "memlow" | "friend" | "mentor" | "celeb";
 
@@ -143,9 +144,12 @@ export async function personaSuggest(
 export interface CatalogVoice {
   id: number;
   name: string;
+  gender: string | null;
+  ageRange: string | null;
   description: string | null;
   sortOrder: number;
   sampleUrl: string;
+  srcFileId: number | null;   
 }
 
 export async function getVoices(accessToken: string): Promise<CatalogVoice[]> {
@@ -277,54 +281,7 @@ export interface ShareMember {
   };
 }
 
-async function authFetch<T>(
-  path: string,
-  accessToken: string,
-  init: RequestInit = {},
-  idempotencyKey?: string,
-): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${accessToken}`,
-    ...((init.headers as Record<string, string>) ?? {}),
-  };
-  if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
-
-  const url = `${API_BASE}${path}`;
-  const method = init.method ?? "GET";
-  const res = await fetch(url, { ...init, headers });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const body = parsed as ApiErrorBody | null;
-
-    console.warn(
-      "[authFetch] failed:",
-      method,
-      url,
-      "status=",
-      res.status,
-      "code=",
-      body?.error?.code,
-      "msg=",
-      body?.error?.message,
-      "raw=",
-      text.slice(0, 300),
-    );
-    throw new AuthApiError(
-      res.status,
-      body?.error?.code ?? "HTTP_ERROR",
-      body?.error?.message ?? `HTTP ${res.status}`,
-      body?.error?.details,
-    );
-  }
-  return parsed as T;
-}
+const authFetch = _libAuthFetch;
 
 function makeIdempotencyKey(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -509,6 +466,24 @@ export async function listSystemClones(accessToken: string): Promise<{ items: Sy
   return authFetch(`/oth-path`, accessToken, { method: "GET" });
 }
 
+export interface GiftReceiptItem {
+  giftId: string;
+  giftName: string;
+  count: number;
+  sender: string;
+}
+
+export async function listCloneGiftReceipts(
+  accessToken: string,
+  cloneId: number,
+): Promise<{ items: GiftReceiptItem[] }> {
+  return authFetch(
+    `/oth-path${cloneId}/gifts/summary`,
+    accessToken,
+    { method: "GET" },
+  );
+}
+
 export interface IntimacyEvent {
   id: number;
   action: "chat" | "call" | "learn" | "feed";
@@ -575,17 +550,32 @@ export async function listCloneFollowers(
   return parsed as { items: CloneFollower[] };
 }
 
-export interface BlockedClone {
+export interface BlockedItemClone {
   blockId: number;
   createdAt: string;
+  type: "clone";
   clone: {
     id: number;
     name: string;
     username: string;
     avatarUrl: string | null;
     cloneType: CloneType;
+    ownerId: number;
+    visibility: Visibility;
   };
 }
+export interface BlockedItemUser {
+  blockId: number;
+  createdAt: string;
+  type: "user";
+  user: {
+    id: number;
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
+export type BlockedItem = BlockedItemClone | BlockedItemUser;
 
 export async function reportClone(
   accessToken: string,
@@ -671,8 +661,8 @@ export async function unblockClone(accessToken: string, cloneId: number): Promis
   console.log(`[BLOCK-API] ← unblock ok cloneId=${cloneId}`, res);
   return res;
 }
-export async function listMyBlocks(accessToken: string): Promise<{ items: BlockedClone[] }> {
-  const res = await authFetch<{ items: BlockedClone[] }>(
+export async function listMyBlocks(accessToken: string): Promise<{ items: BlockedItem[] }> {
+  const res = await authFetch<{ items: BlockedItem[] }>(
     `/oth-path`,
     accessToken,
     { method: "GET" },

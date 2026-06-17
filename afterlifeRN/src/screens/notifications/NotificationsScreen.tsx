@@ -23,6 +23,7 @@ import {
   markRead,
   type NotificationItem,
 } from "../../api/notifications";
+import { getCloneDetail } from "../../api/clones";
 import { COLORS, RADIUS, SIZES } from "../../components/constants";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -65,6 +66,40 @@ export default function NotificationsScreen() {
     reload();
   }, [reload]);
 
+  const openClone = async (cloneId: number, openComments = false, feedId?: number) => {
+    try {
+      const det = await getCloneDetail(cloneId, accessToken ?? undefined);
+      const c = det.clone;
+      navigation.navigate("CloneFeed", {
+        openComments,
+        feed: {
+
+          id: feedId ?? -c.id,
+          cloneId: c.id,
+          content: c.description ?? "",
+          mediaUrl: c.avatarUrl,
+          mediaType: null,
+          likesCount: c.stats?.likes ?? 0,
+          commentsCount: c.stats?.comments ?? 0,
+          likedByMe: c.likedByMe ?? false,
+          createdAt: c.createdAt,
+          clone: {
+            id: c.id,
+            ownerId: c.ownerId,
+            name: c.name,
+            username: c.username,
+            avatarUrl: c.avatarUrl,
+            cloneType: c.cloneType as never,
+            visibility: c.visibility as never,
+          },
+          interests: [],
+        },
+      });
+    } catch (err) {
+      console.warn("[Notifications] open clone failed:", err);
+    }
+  };
+
   const handleItemPress = async (n: NotificationItem) => {
     if (!accessToken) return;
     if (!n.isRead) {
@@ -79,12 +114,50 @@ export default function NotificationsScreen() {
       }
     }
 
-    const url = (n.data as { url?: string } | null)?.url;
-    if (url) {
-      const m = url.match(/^afterlife:\/\/invite\/(.+)$/);
-      if (m) {
-        navigation.navigate("InviteAccept", { token: decodeURIComponent(m[1]) });
+    const d = (n.data ?? {}) as Record<string, unknown>;
+    const url = typeof d.url === "string" ? d.url : "";
+    let m: RegExpMatchArray | null;
+
+    if (n.type === "clone_follow" && typeof d.actorId === "number") {
+
+      navigation.navigate("UserProfile", { userId: d.actorId });
+    } else if ((m = url.match(/^afterlife:\/\/invite\/(.+)$/))) {
+      navigation.navigate("InviteAccept", { token: decodeURIComponent(m[1]) });
+    } else if (n.type === "moderation" || url.startsWith("afterlife://reports")) {
+
+      navigation.navigate("Main", {
+        screen: "MyTab",
+        params: { screen: "Reports", params: { tab: "received" } },
+      });
+    } else if ((m = url.match(/^afterlife:\/\/oth-path\/(\d+)/))) {
+
+      navigation.navigate("UserProfile", { userId: Number(m[1]) });
+    } else if (
+      n.type === "intimacy_score" ||
+      (m = url.match(/^afterlife:\/\/clone\/(\d+)\/intimacy/)) !== null
+    ) {
+
+      const cloneId =
+        typeof d.cloneId === "number"
+          ? d.cloneId
+          : Number(url.match(/clone\/(\d+)/)?.[1] ?? 0);
+      if (cloneId > 0) {
+        navigation.navigate("Main", {
+          screen: "ShortsTab",
+          params: { openIntimacyCloneId: cloneId },
+        });
       }
+    } else if ((m = url.match(/^afterlife:\/\/clone\/(\d+)/))) {
+
+      const feedId = typeof d.feedId === "number" ? d.feedId : undefined;
+      await openClone(Number(m[1]), n.type === "clone_comment", feedId);
+    } else if (n.type === "user_follow" && typeof d.followerId === "number") {
+      navigation.navigate("UserProfile", { userId: d.followerId });
+    } else if (n.type === "invite_received" && typeof d.token === "string") {
+      navigation.navigate("InviteAccept", { token: d.token });
+    } else if (typeof d.cloneId === "number") {
+      const feedId = typeof d.feedId === "number" ? d.feedId : undefined;
+      await openClone(d.cloneId, n.type === "clone_comment", feedId);
     }
   };
 
@@ -101,17 +174,12 @@ export default function NotificationsScreen() {
   const hasUnread = items.some((it) => !it.isRead);
 
   const renderItem = ({ item }: { item: NotificationItem }) => {
-    const icon = TYPE_ICON[item.type] ?? "bell";
     return (
       <TouchableOpacity
         style={[s.row, !item.isRead && s.rowUnread]}
         onPress={() => handleItemPress(item)}
         activeOpacity={0.6}
       >
-        <View style={s.iconWrap}>
-          <Feather name={icon} size={18} color={COLORS.violet600} />
-          {!item.isRead && <View style={s.unreadDot} />}
-        </View>
         <View style={s.body}>
           {item.title ? <Text style={s.title}>{item.title}</Text> : null}
           {item.body ? (

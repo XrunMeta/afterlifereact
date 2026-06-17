@@ -6,6 +6,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "rea
 import { Feather } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import {
+  useAudioPlayer,
+  useAudioPlayerStatus,
   useAudioRecorder,
   useAudioRecorderState,
   RecordingPresets,
@@ -109,6 +111,26 @@ function Component({ draft, onChange }: Props) {
   const [selectedScript, setSelectedScript] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  const [selectedVoiceId, setSelectedVoiceId] = useState<number | null>(null);
+
+  const jobSeqRef = useRef(0);
+
+  const player = useAudioPlayer();
+  const playerStatus = useAudioPlayerStatus(player);
+  const [playingId, setPlayingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (
+      playingId != null &&
+      !playerStatus.playing &&
+      playerStatus.isLoaded &&
+      !playerStatus.isBuffering &&
+      playerStatus.currentTime > 0
+    ) {
+      setPlayingId(null);
+    }
+  }, [playerStatus.playing, playerStatus.isLoaded, playerStatus.isBuffering, playerStatus.currentTime, playingId]);
+
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recState = useAudioRecorderState(recorder, 200);
 
@@ -117,8 +139,63 @@ function Component({ draft, onChange }: Props) {
   useEffect(() => {
     return () => {
       recorderRef.current.stop().catch(() => {});
+      player.pause();
     };
+
   }, []);
+
+  const selectPresetVoice = async (v: CatalogVoice) => {
+
+    if (playingId != null) {
+      player.pause();
+      setPlayingId(null);
+    }
+    if (v.srcFileId == null) {
+
+      setSelectedVoiceId(v.id);
+      onChange({ voicePresetId: v.id, voiceCloneJobId: undefined, voiceFile: undefined });
+      return;
+    }
+
+    if (!accessToken) return;
+
+    setSelectedVoiceId(v.id);
+    onChange({ voicePresetId: undefined, voiceFile: undefined });
+    const seq = ++jobSeqRef.current;
+    try {
+      setUploading(true);
+      const jobRes = await createAssetJob(accessToken, { kind: "voice_clone", src_file_id: v.srcFileId });
+      if (seq !== jobSeqRef.current) return;  
+      console.log("[DefaultVoice] preset voice_clone job created:", jobRes.job_id);
+      onChange({ voiceCloneJobId: jobRes.job_id, voicePresetId: undefined, voiceFile: undefined });
+    } catch (err) {
+      if (seq === jobSeqRef.current) {
+
+        setSelectedVoiceId(null);
+        onChange({ voiceCloneJobId: undefined, voicePresetId: undefined, voiceFile: undefined });
+        console.warn("[DefaultVoice] preset job 생성 실패:", err);
+        showAlert("음성 선택 오류", "잠시 후 다시 시도해 주세요.");
+      }
+    } finally {
+      if (seq === jobSeqRef.current) setUploading(false);
+    }
+  };
+
+  const togglePreview = (v: CatalogVoice) => {
+    if (playingId === v.id) {
+      player.pause();
+      setPlayingId(null);
+      return;
+    }
+    try {
+      player.replace({ uri: v.sampleUrl });
+      player.play();
+      setPlayingId(v.id);
+    } catch (err) {
+      console.warn("[DefaultVoice] preview 재생 실패:", err);
+      setPlayingId(null);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -129,8 +206,14 @@ function Component({ draft, onChange }: Props) {
         if (!alive) return;
         setVoices(list);
 
-        if (list.length && draft.voicePresetId === undefined && !draft.voiceCloneJobId && !draft.voiceFile) {
-          onChange({ voicePresetId: list[0].id, voiceSampleId: undefined, voiceFile: undefined });
+        if (draft.voicePresetId !== undefined) {
+          setSelectedVoiceId(draft.voicePresetId);
+          return;
+        }
+        if (draft.voiceCloneJobId || draft.voiceFile) return;
+
+        if (list.length) {
+          selectPresetVoice(list[0]);
         }
       } catch {
         if (alive) setLoadErr(true);
@@ -218,28 +301,40 @@ function Component({ draft, onChange }: Props) {
       {}
       {mode === "preset" && (
         <View style={{ gap: 8 }}>
-          <Text style={styles.scriptHint}>목소리를 선택하세요. (기본: 고민주)</Text>
+          <Text style={styles.scriptHint}>목소리를 선택해 주세요.</Text>
           {loadErr && (
             <Text style={styles.scriptHint}>목소리 목록을 불러오지 못했어요.</Text>
           )}
+          {uploading && (
+            <View style={styles.recordedRow}>
+              <ActivityIndicator size="small" color={COLORS.violet600} />
+              <Text style={styles.recordedText}>음성 준비 중…</Text>
+            </View>
+          )}
           <View style={styles.grid}>
             {voices.map((v) => {
-              const active = draft.voicePresetId === v.id;
+              const active = selectedVoiceId === v.id;
+              const isPlaying = playingId === v.id;
               return (
                 <TouchableOpacity
                   key={v.id}
                   style={[styles.card, active && styles.cardActive]}
-                  onPress={() =>
-
-                    onChange({
-                      voicePresetId: v.id,
-                      voiceSampleId: undefined,
-                      voiceFile: undefined,
-                      voiceCloneJobId: undefined,
-                    })
-                  }
+                  onPress={() => selectPresetVoice(v)}
                 >
-                  <Text style={styles.cardName}>{v.name}</Text>
+                  <View style={styles.cardRow}>
+                    <Text style={[styles.cardName, active && styles.cardNameActive]}>{v.name}</Text>
+                    <TouchableOpacity
+                      style={styles.playBtn}
+                      onPress={(e) => { e.stopPropagation(); togglePreview(v); }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Feather
+                        name={isPlaying ? "pause" : "play"}
+                        size={14}
+                        color={active ? COLORS.violet600 : COLORS.zinc500}
+                      />
+                    </TouchableOpacity>
+                  </View>
                   {!!v.description && (
                     <Text style={styles.cardDesc}>{v.description}</Text>
                   )}
@@ -254,7 +349,7 @@ function Component({ draft, onChange }: Props) {
       {mode === "record" && (
         <View style={{ gap: 12 }}>
           <Text style={styles.scriptHint}>
-            고인 목소리 사용 (권장) — 스크립트를 선택하고 읽어주세요.
+            스크립트를 선택하고 읽어주세요.
           </Text>
           {RECORD_SCRIPTS.map((s) => (
             <TouchableOpacity
@@ -304,7 +399,7 @@ function Component({ draft, onChange }: Props) {
       {mode === "upload" && (
         <View style={{ gap: 12 }}>
           <Text style={styles.scriptHint}>
-            고인 목소리 사용 (권장) — mp3/wav/m4a 파일을 업로드해주세요.
+            음성파일을 올려주세요
           </Text>
           <TouchableOpacity
             style={styles.upload}
@@ -375,8 +470,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.zinc200,
   },
   cardActive: { borderColor: COLORS.violet600, backgroundColor: COLORS.violet100 },
+  cardRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cardName: { fontSize: 14, fontWeight: "600", color: COLORS.zinc800 },
+  cardNameActive: { color: COLORS.violet700 },
   cardDesc: { fontSize: 12, color: COLORS.zinc500, marginTop: 2 },
+  playBtn: { padding: 4 },
 
   scriptHint: { fontSize: 13, color: COLORS.zinc600, marginBottom: 4 },
   scriptCard: {

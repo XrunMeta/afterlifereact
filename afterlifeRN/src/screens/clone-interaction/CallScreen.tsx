@@ -18,11 +18,24 @@ import {
   Linking,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { CameraView, useCameraPermissions } from "expo-camera";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { RTCView } from "react-native-webrtc";
-import { useLiveAvatar } from "../../realtime/useLiveAvatar";
+import {
+  Camera as VisionCamera,
+  useCameraDevice,
+  useFrameProcessor,
+} from "react-native-vision-camera";
+import { Worklets } from "react-native-worklets-core";
+import { useFaceDetector } from "react-native-vision-camera-face-detector";
+import type { Face as DetectorFace } from "react-native-vision-camera-face-detector";
+import { useFaceDetection } from "../../hooks/useFaceDetection";
+import { createPerson, saveFaceConsent, listPersons } from "../../api/persons";
+import TermsModal from "../../components/common/TermsModal";
+import { useAvatarCall } from "../../realtime/useAvatarCall";
+import { CALL_ROUTE } from "../../config/callRoute";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
+import { DialingScreen } from "../../components/call/DialingScreen";
+import { CallStatusGlow } from "../../components/call/CallStatusGlow";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAndroidNavigationBarHeight } from "react-native-navigation-bar-height";
 import { useTranslation } from "react-i18next";
@@ -31,6 +44,7 @@ import type { RootStackParamList } from "../../navigation/types";
 import { useCloneStore } from "../../stores/cloneStore";
 import { useAuthStore } from "../../stores/authStore";
 import { COLORS, RADIUS } from "../../components/constants";
+import { OtpCodeInput } from "../../components/auth/OtpVerifyView";
 import type { Gift } from "../../types/gift";
 import giftsData from "../../mocks/gifts.json";
 import { getXrunBalance } from "../../api/payments";
@@ -61,15 +75,90 @@ export default function CallScreen({ route, navigation }: Props) {
   const { cloneId, name: paramName, image: paramImage } = route.params;
   const clone = useCloneStore((s) => s.getCloneById(cloneId));
   const accessToken = useAuthStore((s) => s.accessToken);
+  const userEmail = useAuthStore((s) => s.apiUser?.email ?? null);
+  const currentUserId = useAuthStore((s) => s.apiUser?.id ?? null);
+
+  const isOwnClone =
+    !!clone && clone.ownerId != null && currentUserId != null && clone.ownerId === currentUserId;
   const insets = useSafeAreaInsets();
+
+  const TEST_PRICE_EMAILS = ["oth-user@example.invalid", "oth-test@example.invalid"];
+  const giftPriceFor = (g: Gift) =>
+    userEmail && TEST_PRICE_EMAILS.includes(userEmail) ? 0.05 : g.price;
   const navBarHeight = useAndroidNavigationBarHeight(0);
   const bottomInset =
     Platform.OS === "ios" ? insets.bottom : Math.max(navBarHeight, insets.bottom);
 
-  const [permission, requestPermission] = useCameraPermissions();
   const [cameraFacing, setCameraFacing] = useState<"front" | "back">("front");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+
+  const [dialingDone, setDialingDone] = useState(false);
+
+  const vcDevice = useCameraDevice(cameraFacing === "front" ? "front" : "back");
+
+  const { faceState, onFaces } = useFaceDetection();
+  const { detectFaces, stopListeners } = useFaceDetector({
+    performanceMode: "fast",
+    trackingEnabled: true,
+  });
+
+  const pipCameraRef = useRef<VisionCamera>(null);
+
+  useEffect(() => {
+    return () => {
+      stopListeners();
+    };
+  }, [stopListeners]);
+
+  const handleFacesOnJS = React.useMemo(
+    () =>
+      Worklets.createRunOnJS((faces: DetectorFace[]) => {
+        const bridged = faces.map((f) => ({
+          trackingID: f.trackingId,
+          bounds: f.bounds,
+        }));
+        onFaces(bridged);
+      }),
+
+    [],
+  );
+
+  const faceFrameProcessor = useFrameProcessor(
+    (frame) => {
+      "worklet";
+      const faces = detectFaces(frame);
+      handleFacesOnJS(faces);
+    },
+    [detectFaces, handleFacesOnJS],
+  );
+
+  const [consentGranted, setConsentGranted] = useState(false);
+  const [termsModalVisible, setTermsModalVisible] = useState(false);
+
+  const [consentLoading, setConsentLoading] = useState(false);
+
+  useEffect(() => {
+
+    void VisionCamera.requestCameraPermission();
+
+    if (!accessToken) return;
+    let cancelled = false;
+    listPersons(accessToken)
+      .then(({ items }) => {
+        if (cancelled) return;
+        const hasConsent = items.some((p) => p.consentState === "granted");
+        setConsentGranted(hasConsent);
+        console.log(`[Call][face] listPersons ← granted=${hasConsent} (total=${items.length})`);
+      })
+      .catch((err) => {
+        console.warn("[Call][face] listPersons failed:", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+
+  }, [accessToken]);
 
   const {
     state: liveState,
@@ -79,12 +168,12 @@ export default function CallScreen({ route, navigation }: Props) {
     say,
     getStatsReport,
     notifySpeechEnd,
-  } = useLiveAvatar({ cloneId, accessToken: accessToken ?? "" });
+  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "" });
 
   const {
     phase,
-    micOn,
-    toggleMic,
+    pendingText,
+    cancelConfirm,
     transcript,
     interimTranscript,
   } = useHandsFreeController({
@@ -100,11 +189,6 @@ export default function CallScreen({ route, navigation }: Props) {
 
   }, []);
 
-  useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    }
-  }, []);
   const [showGifts, setShowGifts] = useState(false);
 
   const [credits, setCredits] = useState<number>(0);
@@ -119,6 +203,15 @@ export default function CallScreen({ route, navigation }: Props) {
     const id = setInterval(() => setCallSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [liveState]);
+
+  const confirmProgress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (phase !== 'confirming') { confirmProgress.setValue(0); return; }
+    confirmProgress.setValue(1);
+    const anim = Animated.timing(confirmProgress, { toValue: 0, duration: 2000, useNativeDriver: true });
+    anim.start();
+    return () => anim.stop();
+  }, [phase, pendingText, confirmProgress]);
 
   const callStartRef = useRef<number>(Date.now());
   const tokenRef = useRef(accessToken);
@@ -216,12 +309,13 @@ export default function CallScreen({ route, navigation }: Props) {
   };
 
   const handleGiftSend = (gift: Gift) => {
+    const price = giftPriceFor(gift);
     console.log(
-      `[Call][gift-tap] giftId=${gift.id} name=${gift.name} price=${gift.price} ` +
-        `myCredits=${credits} (typeof=${typeof credits}) enough=${credits >= gift.price}`,
+      `[Call][gift-tap] giftId=${gift.id} name=${gift.name} price=${price} ` +
+        `myCredits=${credits} (typeof=${typeof credits}) enough=${credits >= price}`,
     );
-    if (credits < gift.price) {
-      const shortage = Math.max(0, gift.price - credits);
+    if (credits < price) {
+      const shortage = Math.max(0, price - credits);
       console.log(
         `[Call][gift-insufficient-precheck] ${credits} < ${gift.price} (shortage=${shortage}) → block PIN modal`,
       );
@@ -248,8 +342,9 @@ export default function CallScreen({ route, navigation }: Props) {
       setToastMessage("PIN 6자리를 입력해 주세요");
       return;
     }
+    const submitPrice = giftPriceFor(pendingGift);
     console.log(
-      `[Call][gift-submit] giftId=${pendingGift.id} amount=${pendingGift.price} ` +
+      `[Call][gift-submit] giftId=${pendingGift.id} amount=${submitPrice} ` +
         `myCredits=${credits} cloneId=${cloneId} pin=*** (${pinInput.length} chars)`,
     );
     setPaying(true);
@@ -257,7 +352,7 @@ export default function CallScreen({ route, navigation }: Props) {
       const res = await sendGiftToClone(accessToken, cloneId, {
         giftId: pendingGift.id,
         giftName: pendingGift.name,
-        amount: pendingGift.price,
+        amount: submitPrice,
         pin: pinInput,
       });
       console.log("[Call][gift-ok] gift sent:", res.gift);
@@ -285,9 +380,18 @@ export default function CallScreen({ route, navigation }: Props) {
       let title = "송금 실패";
       let msg = "송금에 실패했어요.";
       let isInsufficient = false;
+      let pinRetry = false;   
+      let pinSetup = false;   
       if (err instanceof AuthApiError) {
-        if (err.code === "UNAUTHENTICATED") msg = "결제 비밀번호가 일치하지 않아요.";
-        else if (err.code === "INSUFFICIENT_FUNDS") {
+        if (err.code === "PAYMENT_PIN_INVALID" || err.code === "UNAUTHENTICATED") {
+          title = "결제 비밀번호 오류";
+          msg = "결제 비밀번호가 일치하지 않아요.\n다시 입력해 주세요.";
+          pinRetry = true;
+        } else if (err.code === "PAYMENT_PIN_REQUIRED") {
+          title = "결제 비밀번호 미설정";
+          msg = "아직 결제 비밀번호(6자리)가 설정되어 있지 않아요.\nXRUN에서 설정 후 다시 시도해 주세요.";
+          pinSetup = true;
+        } else if (err.code === "INSUFFICIENT_FUNDS") {
           isInsufficient = true;
 
           const shortage = pendingGift
@@ -323,16 +427,25 @@ export default function CallScreen({ route, navigation }: Props) {
 
       setPinModalVisible(false);
       setPinInput("");
-      showAlert(
-        title,
-        msg,
-        isInsufficient
-          ? [
-              { text: "다음에 하기", style: "cancel" },
-              { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
-            ]
-          : undefined,
-      );
+      let actions: Parameters<typeof showAlert>[2];
+      if (isInsufficient) {
+        actions = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "XRUN 충전하기", onPress: () => void openXrunApp() },
+        ];
+      } else if (pinRetry) {
+
+        actions = [
+          { text: "취소", style: "cancel" },
+          { text: "다시 입력", onPress: () => { setPinInput(""); setPinModalVisible(true); } },
+        ];
+      } else if (pinSetup) {
+        actions = [
+          { text: "다음에 하기", style: "cancel" },
+          { text: "xrun 비밀번호 재설정", onPress: () => void openXrunApp() },
+        ];
+      }
+      showAlert(title, msg, actions);
     } finally {
       setPaying(false);
     }
@@ -378,29 +491,40 @@ export default function CallScreen({ route, navigation }: Props) {
   return (
     <View style={s.container}>
       {}
+      {}
       {remoteStream ? (
         <RTCView
           streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
-          objectFit="cover"
+          objectFit="contain"
           style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
         />
       ) : personaImage ? (
         <Image
           source={typeof personaImage === "number" ? personaImage : { uri: personaImage }}
           style={[StyleSheet.absoluteFill, { width: "100%", height: "100%" }]}
-          resizeMode="cover"
+          resizeMode="contain"
         />
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.zinc900 }]} />
       )}
 
+      {__DEV__ ? (
+        <Text style={{ position: 'absolute', top: 8, right: 8, zIndex: 10,
+          color: '#0f0', fontSize: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 2 }}>
+          route:{CALL_ROUTE}
+        </Text>
+      ) : null}
+
       {}
-      {liveState !== "live" && (
-        <View style={s.liveOverlay} pointerEvents="none">
-          <Text style={s.liveOverlayText}>
-            {liveState === "error" ? "연결에 실패했어요" : "연결 중…"}
-          </Text>
-        </View>
+      {!dialingDone && (
+        <DialingScreen
+          liveState={liveState}
+          personaName={personaName}
+          personaImage={typeof personaImage === "string" ? personaImage : ""}
+          onConnected={() => setDialingDone(true)}
+          onCancel={async () => { await stopLive(); navigation.goBack(); }}
+          onRetry={() => { void startLive(); }}
+        />
       )}
 
       <LinearGradient
@@ -409,7 +533,11 @@ export default function CallScreen({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {}
+      {dialingDone ? <CallStatusGlow phase={phase} /> : null}
+
+      {
+
+}
       <TouchableOpacity
         style={[s.pip, { top: insets.top + 8 }]}
         activeOpacity={0.9}
@@ -419,14 +547,81 @@ export default function CallScreen({ route, navigation }: Props) {
           <View style={s.pipOff}>
             <Feather name="video-off" size={20} color={COLORS.zinc600} />
           </View>
-        ) : permission?.granted ? (
-          <CameraView style={s.pipCamera} facing={cameraFacing} />
+        ) : vcDevice ? (
+
+          <VisionCamera
+            ref={pipCameraRef}
+            style={s.pipCamera}
+            device={vcDevice}
+            isActive={!isVideoOff}
+
+            androidPreviewViewType="texture-view"
+            frameProcessor={consentGranted ? faceFrameProcessor : undefined}
+            onError={(e) =>
+              console.log("[Call][face] camera error:", e.code, e.message)
+            }
+          />
         ) : (
           <View style={s.pipOff}>
             <Feather name="camera-off" size={20} color={COLORS.zinc600} />
           </View>
         )}
+
+        {}
+        {consentGranted && !isVideoOff && vcDevice ? (
+          <View
+            style={[
+              s.faceIndicator,
+              faceState.status === "detected" ? s.faceIndicatorOn : s.faceIndicatorOff,
+            ]}
+          />
+        ) : null}
       </TouchableOpacity>
+
+      {
+
+}
+      {!consentGranted && !isVideoOff && (
+        <TouchableOpacity
+          style={[s.faceConsentBtn, { top: insets.top + 8 + 140 + 6 }]}
+          disabled={consentLoading}
+          onPress={() => {
+            if (!accessToken) return;
+
+            setTermsModalVisible(true);
+          }}
+        >
+          <Text style={s.faceConsentText}>{t("call.faceConsentHint")}</Text>
+        </TouchableOpacity>
+      )}
+
+      <TermsModal
+        visible={termsModalVisible}
+        type={4}
+        onClose={() => {
+
+          setTermsModalVisible(false);
+        }}
+        onAgree={async () => {
+
+          if (!accessToken) { setTermsModalVisible(false); return; }
+          setConsentLoading(true);
+          setTermsModalVisible(false);
+          try {
+            const { id } = await createPerson(accessToken, { cloneId });
+            console.log(`[Call][face] createPerson ok personId=${id}`);
+            await saveFaceConsent(accessToken, id, "granted", { termsVersion: "biometric-v1" });
+            setConsentGranted(true);
+            console.log(`[Call][face] consent granted personId=${id}`);
+          } catch (err) {
+            console.warn("[Call][face] createPerson/saveFaceConsent failed:", err);
+
+            setToastMessage(t("call.faceConsentError"));
+          } finally {
+            setConsentLoading(false);
+          }
+        }}
+      />
 
       {
 }
@@ -434,10 +629,14 @@ export default function CallScreen({ route, navigation }: Props) {
       {}
       <View style={[s.callInfo, { top: insets.top + 24 }]}>
         <Text style={s.callName}>{personaName}</Text>
-        <Text style={s.callTimeText}>{callTimeStr}</Text>
+        <Text style={s.callTimeText}>
+          {liveState === "live" ? callTimeStr : "연결 중…"}
+        </Text>
       </View>
 
-      {}
+      {
+}
+      {!isOwnClone && (
       <View style={s.rightActions}>
         <TouchableOpacity
           style={[s.sideBtn, showGifts && s.sideBtnActive]}
@@ -473,6 +672,7 @@ export default function CallScreen({ route, navigation }: Props) {
         </TouchableOpacity>
         {}
       </View>
+      )}
 
       {}
       {floatingGifts.map((g) => (
@@ -501,27 +701,22 @@ export default function CallScreen({ route, navigation }: Props) {
       ) : null}
 
       {}
-      <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
-        {}
-        <Pressable
-          onPress={toggleMic}
-          style={[
-            s.controlBtn,
-            micOn && phase === 'listening' && s.controlBtnActive,
-            phase === 'speaking' && s.controlBtnDanger,
-          ]}
-        >
-          <Text style={s.talkBtnText}>
-            {!micOn
-              ? '마이크 꺼짐'
-              : phase === 'speaking'
-                ? '응답 중...'
-                : phase === 'listening'
-                  ? '듣는 중...'
-                  : '대기'}
-          </Text>
+      {phase === 'confirming' && !!pendingText ? (
+        <Pressable style={s.confirmTapArea} onPress={cancelConfirm}>
+          <View style={s.subtitleContainer} pointerEvents="none">
+            <Text style={s.subtitleText} numberOfLines={2} ellipsizeMode="tail">
+              {pendingText}
+            </Text>
+            <View style={s.confirmBarTrack}>
+              <Animated.View style={[s.confirmBarFill, { transform: [{ scaleX: confirmProgress }] }]} />
+            </View>
+            <Text style={s.confirmHint}>탭하여 취소 · 잠시 후 전송</Text>
+          </View>
         </Pressable>
+      ) : null}
 
+      {}
+      <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
         <TouchableOpacity
           style={[s.controlBtn, isMuted && s.controlBtnDanger]}
           onPress={() => {
@@ -604,7 +799,7 @@ export default function CallScreen({ route, navigation }: Props) {
                     <Text style={s.giftEmoji}>{item.emoji}</Text>
                   </View>
                   <Text style={s.giftName}>{item.name}</Text>
-                  <Text style={s.giftPrice}>{item.price} XRUN</Text>
+                  <Text style={s.giftPrice}>{giftPriceFor(item)} XRUN</Text>
                 </TouchableOpacity>
               )}
             />
@@ -614,10 +809,11 @@ export default function CallScreen({ route, navigation }: Props) {
 
       {}
 
-      {}
-      <Modal visible={pinModalVisible} transparent animationType="fade">
+      {
+}
+      <Modal visible={pinModalVisible} transparent statusBarTranslucent animationType="fade">
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
         >
           <Pressable
@@ -635,18 +831,17 @@ export default function CallScreen({ route, navigation }: Props) {
                   {"\n"}선물하시려면 6자리 PIN 을 입력해 주세요
                 </Text>
               )}
-              <TextInput
-                style={s.pinInput}
-                value={pinInput}
-                onChangeText={(v) => setPinInput(v.replace(/\D/g, "").slice(0, 6))}
-                placeholder="PIN 6자리"
-                placeholderTextColor={COLORS.zinc400}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={6}
-                autoFocus
-                editable={!paying}
-              />
+              {}
+              <View style={s.pinCodeWrap}>
+                <OtpCodeInput
+                  value={pinInput}
+                  onChange={setPinInput}
+                  masked
+                  autoFocus
+                  editable={!paying}
+                  onComplete={submitGift}
+                />
+              </View>
               <View style={s.pinBtns}>
                 <TouchableOpacity
                   style={s.pinCancelBtn}
@@ -683,27 +878,6 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.zinc950,
   },
-  liveOverlay: {
-    position: "absolute",
-    top: "50%",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 5,
-  },
-  liveOverlayText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: COLORS.white,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    overflow: "hidden",
-    textShadowColor: "rgba(0,0,0,0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
 
   pip: {
     position: "absolute",
@@ -719,6 +893,38 @@ const s = StyleSheet.create({
   },
   pipImage: { width: "100%", height: "100%" },
   pipCamera: { width: "100%", height: "100%" },
+
+  faceIndicator: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.4)",
+  },
+  faceIndicatorOn: {
+    backgroundColor: "#22c55e", 
+  },
+  faceIndicatorOff: {
+    backgroundColor: COLORS.zinc500, 
+  },
+
+  faceConsentBtn: {
+    position: "absolute",
+    left: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 6,
+    zIndex: 11,
+  },
+  faceConsentText: {
+    fontSize: 10,
+    color: COLORS.zinc200,
+  },
+
   pipOff: {
     width: "100%",
     height: "100%",
@@ -800,6 +1006,34 @@ const s = StyleSheet.create({
     textAlign: 'center',
     overflow: 'hidden',
   },
+  confirmTapArea: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    height: '33%',
+    justifyContent: 'center',
+    zIndex: 16,
+  },
+  confirmHint: {
+    marginTop: 6,
+    fontSize: 11,
+    color: COLORS.zinc300,
+    textAlign: 'center',
+  },
+  confirmBarTrack: {
+    marginTop: 8,
+    width: 160,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  confirmBarFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: COLORS.white,
+  },
 
   controls: {
     position: "absolute",
@@ -810,7 +1044,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 24,
-    zIndex: 10,
+    zIndex: 18,
   },
   controlBtn: {
     width: 56,
@@ -822,15 +1056,6 @@ const s = StyleSheet.create({
   },
   controlBtnDanger: {
     backgroundColor: COLORS.error,
-  },
-  controlBtnActive: {
-    backgroundColor: COLORS.violet500,
-  },
-  talkBtnText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: COLORS.white,
-    textAlign: "center",
   },
   endCallBtn: {
     width: 72,
@@ -972,6 +1197,7 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.zinc50,
     marginBottom: 18,
   },
+  pinCodeWrap: { width: "100%", marginBottom: 18 },
   pinBtns: { flexDirection: "row", gap: 8, width: "100%" },
   pinCancelBtn: {
     flex: 1,

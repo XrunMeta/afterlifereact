@@ -84,23 +84,93 @@ adminData.get("/oth-path", async (c) => {
 });
 
 adminData.get("/oth-path", async (c) => {
+
+  const url = new URL(c.req.url);
+  const visibility = url.searchParams.get("visibility") ?? "";
+  const deletionState = url.searchParams.get("deletionState") ?? "";
+  const minReports = Number(url.searchParams.get("minReports") ?? 0);
+  const q = (url.searchParams.get("q") ?? "").trim();
+  const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
+  const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") ?? 20)));
+
+  const where: string[] = ["1=1"];
+  const binds: unknown[] = [];
+
+  if (visibility) {
+    where.push("c.visibility = ?");
+    binds.push(visibility);
+  }
+  if (deletionState) {
+    where.push("c.deletion_state = ?");
+    binds.push(deletionState);
+  } else {
+
+    where.push("c.deletion_state IN ('active', 'soft_deleted')");
+  }
+  if (q) {
+    where.push(`(
+      c.name LIKE ? OR c.username LIKE ? OR
+      COALESCE(u.name,'') LIKE ? OR COALESCE(u.email,'') LIKE ?
+    )`);
+    const pat = `%${q}%`;
+    binds.push(pat, pat, pat, pat);
+  }
+
+  if (minReports > 0) {
+    where.push(`
+      (SELECT COUNT(*) FROM clone_reports cr WHERE cr.clone_id = c.id AND cr.status = 'open') >= ?
+    `);
+    binds.push(minReports);
+  }
+  const whereSql = where.join(" AND ");
+
+  const totalRow = await c.env.DB
+    .prepare(
+      `SELECT COUNT(*) AS cnt
+         FROM clones c
+         LEFT JOIN users u ON u.id = c.owner_id
+        WHERE ${whereSql}`,
+    )
+    .bind(...binds)
+    .first<{ cnt: number }>();
+
   const rows = (
     await c.env.DB.prepare(
-      `SELECT c.id, c.name, c.username,
+      `SELECT c.id, c.name, c.username, c.avatar_url AS avatarUrl,
               c.clone_type AS cloneType, c.visibility,
               c.training_status AS trainingStatus,
-              c.owner_id AS ownerId, u.name AS ownerName,
+              c.owner_id AS ownerId,
+              u.name AS ownerName,
+              u.xrun_member_id AS ownerXrunMemberId,
               c.created_at AS createdAt,
               c.deletion_state AS deletionState,
               c.soft_deleted_at AS softDeletedAt,
-              c.deleted_at AS deletedAt
+              c.deleted_at AS deletedAt,
+              (SELECT COUNT(*) FROM clone_reports cr
+                WHERE cr.clone_id = c.id AND cr.status = 'reviewed') AS reportCount,
+              (SELECT COUNT(*) FROM feed_comments fcc
+                 JOIN feeds f ON f.id = fcc.feed_id
+                WHERE f.clone_id = c.id
+                  AND fcc.id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned'))
+                  AND (fcc.parent_comment_id IS NULL OR fcc.parent_comment_id NOT IN (SELECT comment_id FROM comment_reports WHERE status IN ('reviewed','actioned')))) AS commentCount,
+              (SELECT COUNT(*) FROM feed_likes fl
+                 JOIN feeds f ON f.id = fl.feed_id
+                WHERE f.clone_id = c.id) AS likeCount,
+              (SELECT COUNT(*) FROM clone_follows cf
+                WHERE cf.clone_id = c.id) AS followerCount,
+              (SELECT COUNT(*) FROM user_clone_interactions uci
+                WHERE uci.clone_id = c.id) AS interactionCount
          FROM clones c
          LEFT JOIN users u ON u.id = c.owner_id
+        WHERE ${whereSql}
         ORDER BY c.id DESC
-        LIMIT 200`,
-    ).all()
+        LIMIT ? OFFSET ?`,
+    )
+      .bind(...binds, limit, offset)
+      .all()
   ).results;
-  return c.json(rows);
+
+  return c.json({ items: rows, total: totalRow?.cnt ?? 0, offset, limit });
 });
 
 adminData.get("/oth-path", async (c) => {
@@ -409,6 +479,7 @@ adminData.get("/oth-path", async (c) => {
                 tu.email AS targetEmail,
                 r.reason AS reason,
                 r.status AS status,
+                r.admin_message AS adminMessage,
                 r.created_at AS createdAt,
                 r.reviewed_at AS reviewedAt
            FROM user_reports r
@@ -429,9 +500,241 @@ adminData.get("/oth-path", async (c) => {
         targetEmail: string;
         reason: string | null;
         status: string;
+        adminMessage: string | null;
         createdAt: string;
         reviewedAt: string | null;
       }>()
   ).results;
   return c.json({ items: rows });
+});
+
+adminData.get("/oth-path", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid_id" }, 400);
+
+  const user = await c.env.DB
+    .prepare(
+      `SELECT id, name, email,
+              deletion_state AS deletionState,
+              suspended_until AS suspendedUntil,
+              created_at AS createdAt
+         FROM users WHERE id = ?`,
+    )
+    .bind(id)
+    .first();
+  if (!user) return c.json({ error: "not_found" }, 404);
+
+  const wc = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(id)
+    .first<{ n: number }>();
+  const warnings = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, reason, created_at AS createdAt
+           FROM user_warnings WHERE user_id = ? ORDER BY created_at DESC LIMIT 20`,
+      )
+      .bind(id)
+      .all()
+  ).results;
+  const reports = (
+    await c.env.DB
+      .prepare(
+        `SELECT r.id AS id, r.reason AS reason, r.status AS status,
+                r.created_at AS createdAt, ru.email AS reporterEmail
+           FROM user_reports r JOIN users ru ON ru.id = r.reporter_id
+          WHERE r.target_id = ? ORDER BY r.created_at DESC LIMIT 50`,
+      )
+      .bind(id)
+      .all()
+  ).results;
+  const clones = (
+    await c.env.DB
+      .prepare(
+        `SELECT id, name, username, clone_type AS cloneType,
+                deletion_state AS deletionState
+           FROM clones WHERE owner_id = ? ORDER BY id DESC LIMIT 100`,
+      )
+      .bind(id)
+      .all()
+  ).results;
+
+  return c.json({
+    user: { ...user, warningCount: wc?.n ?? 0 },
+    warnings,
+    reports,
+    clones,
+  });
+});
+
+adminData.post("/oth-path", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid_id" }, 400);
+  const adminId = c.get("adminUserId") ?? 0;
+
+  let body: { reportId?: number; reason?: string } = {};
+  try {
+    body = (await c.req.json()) as { reportId?: number; reason?: string };
+  } catch {
+
+  }
+
+  const u = await c.env.DB.prepare(`SELECT id FROM users WHERE id = ?`).bind(id).first();
+  if (!u) return c.json({ error: "not_found" }, 404);
+
+  await c.env.DB
+    .prepare(
+      `INSERT INTO user_warnings (user_id, admin_id, report_id, reason)
+       VALUES (?, ?, ?, ?)`,
+    )
+    .bind(id, adminId, body.reportId ?? null, body.reason ?? null)
+    .run();
+
+  const cnt = await c.env.DB
+    .prepare(`SELECT COUNT(*) AS n FROM user_warnings WHERE user_id = ?`)
+    .bind(id)
+    .first<{ n: number }>();
+  const warningCount = cnt?.n ?? 0;
+
+  const rule = await c.env.DB
+    .prepare(
+      `SELECT action, suspend_days AS suspendDays FROM report_penalty_rules
+        WHERE threshold <= ? ORDER BY threshold DESC LIMIT 1`,
+    )
+    .bind(warningCount)
+    .first<{ action: string; suspendDays: number | null }>();
+
+  let suspendedUntil: string | null = null;
+  let suspended = false;
+  const days = rule?.suspendDays && rule.suspendDays > 0 ? rule.suspendDays : 0;
+
+  if (rule?.action === "clone_create_ban" && days > 0) {
+    suspended = true;
+    await c.env.DB
+      .prepare(`UPDATE users SET suspended_until = datetime('now', ?) WHERE id = ?`)
+      .bind(`+${days} days`, id)
+      .run();
+    const row = await c.env.DB
+      .prepare(`SELECT suspended_until AS s FROM users WHERE id = ?`)
+      .bind(id)
+      .first<{ s: string | null }>();
+    suspendedUntil = row?.s ?? null;
+  } else if (rule?.action === "account_ban" && days > 0) {
+    suspended = true;
+    await c.env.DB
+      .prepare(`UPDATE users SET banned_until = datetime('now', ?) WHERE id = ?`)
+      .bind(`+${days} days`, id)
+      .run();
+    const row = await c.env.DB
+      .prepare(`SELECT banned_until AS s FROM users WHERE id = ?`)
+      .bind(id)
+      .first<{ s: string | null }>();
+    suspendedUntil = row?.s ?? null;
+  }
+
+  if (body.reportId) {
+
+    await c.env.DB
+      .prepare(
+        `UPDATE user_reports SET status = 'actioned', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
+          WHERE id = ?`,
+      )
+      .bind(body.reason ?? null, body.reportId)
+      .run();
+  }
+
+  return c.json({
+    ok: true,
+    warningCount,
+    suspended,
+    suspendedUntil,
+    appliedAction: rule?.action ?? "none",
+    appliedSuspendDays: rule?.suspendDays ?? null,
+  });
+});
+
+adminData.get("/report-penalty-rules", async (c) => {
+  const rows = (
+    await c.env.DB
+      .prepare(
+        `SELECT threshold, title, message, action, suspend_days AS suspendDays, updated_at AS updatedAt
+           FROM report_penalty_rules ORDER BY threshold ASC`,
+      )
+      .all()
+  ).results;
+  return c.json({ items: rows });
+});
+
+adminData.put("/report-penalty-rules/:threshold", async (c) => {
+  const threshold = Number(c.req.param("threshold"));
+  if (!Number.isInteger(threshold) || threshold < 1 || threshold > 99) {
+    return c.json({ error: "invalid_threshold" }, 400);
+  }
+  let body: { action?: string; suspendDays?: number | null; title?: string | null; message?: string | null } = {};
+  try {
+    body = (await c.req.json()) as { action?: string; suspendDays?: number | null; title?: string | null; message?: string | null };
+  } catch {
+
+  }
+  const title = typeof body.title === "string" ? body.title.trim().slice(0, 100) || null : null;
+  const message = typeof body.message === "string" ? body.message.trim().slice(0, 500) || null : null;
+
+  const VALID_ACTIONS = ["warn", "clone_deactivate", "clone_delete", "clone_create_ban", "account_ban"];
+
+  const rawAction = body.action === "suspend" ? "clone_create_ban" : (body.action ?? "");
+  const action = VALID_ACTIONS.includes(rawAction) ? rawAction : "warn";
+
+  const needsDays = action === "clone_create_ban" || action === "account_ban";
+  const suspendDays =
+    needsDays && Number.isInteger(body.suspendDays) && (body.suspendDays as number) > 0
+      ? (body.suspendDays as number)
+      : null;
+  if (needsDays && !suspendDays) {
+    return c.json({ error: "suspend_days_required" }, 400);
+  }
+  await c.env.DB
+    .prepare(
+      `INSERT INTO report_penalty_rules (threshold, title, message, action, suspend_days, updated_at)
+         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT(threshold) DO UPDATE SET
+         title = excluded.title,
+         message = excluded.message,
+         action = excluded.action,
+         suspend_days = excluded.suspend_days,
+         updated_at = CURRENT_TIMESTAMP`,
+    )
+    .bind(threshold, title, message, action, suspendDays)
+    .run();
+  return c.json({ ok: true, threshold, title, message, action, suspendDays });
+});
+
+adminData.delete("/report-penalty-rules/:threshold", async (c) => {
+  const threshold = Number(c.req.param("threshold"));
+  if (!Number.isInteger(threshold) || threshold < 1) {
+    return c.json({ error: "invalid_threshold" }, 400);
+  }
+  const res = await c.env.DB
+    .prepare(`DELETE FROM report_penalty_rules WHERE threshold = ?`)
+    .bind(threshold)
+    .run();
+  return c.json({ ok: true, deleted: res.meta?.changes ?? 0 });
+});
+
+adminData.post("/oth-path", async (c) => {
+  const reportId = Number(c.req.param("reportId"));
+  if (!Number.isInteger(reportId) || reportId <= 0) return c.json({ error: "invalid_id" }, 400);
+  let body: { message?: string } = {};
+  try {
+    body = (await c.req.json()) as { message?: string };
+  } catch {
+
+  }
+  const res = await c.env.DB
+    .prepare(
+      `UPDATE user_reports SET status = 'dismissed', reviewed_at = CURRENT_TIMESTAMP, admin_message = ?
+        WHERE id = ? AND status IN ('open', 'reviewed')`,
+    )
+    .bind(body.message ?? null, reportId)
+    .run();
+  return c.json({ ok: true, updated: res.meta?.changes ?? 0 });
 });

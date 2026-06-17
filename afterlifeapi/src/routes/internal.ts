@@ -2,6 +2,10 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
 import { claimJob, failJob, finalizeJob, getJob } from "../lib/assetJobs";
+import { z } from "../lib/validate";
+import { loadCloneById } from "../lib/cloneAccess";
+import { updateOntFromExtraction, type L2Extraction } from "../lib/memoryStore";
+import { logActivity } from "../lib/logger";
 
 export const internal = new Hono<AppEnv>();
 
@@ -37,6 +41,23 @@ internal.post("/oth-path", async (c) => {
      SELECT ?, COALESCE(MAX(seq),0)+1, ?, ?, ?
      FROM call_turns WHERE call_id = ?`
   ).bind(callId, role, text, Date.now(), callId).run();
+  return c.json({ ok: true });
+});
+
+internal.post("/oth-path", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.LEARN_SECRET || !safeEqual(token, c.env.LEARN_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const callId = c.req.param("callId");
+
+  if (!/^[0-9a-f]{12}$/.test(callId)) return c.json({ ok: true });
+  const endedAt = Date.now();
+  await c.env.DB.prepare(
+    `UPDATE call_sessions SET ended_at = ?, duration_sec = MAX(0, (? - started_at) / 1000)
+     WHERE call_id = ? AND ended_at IS NULL`,
+  ).bind(endedAt, endedAt, callId).run();
   return c.json({ ok: true });
 });
 
@@ -116,4 +137,71 @@ internal.post("/asset-job-done", async (c) => {
   await finalizeJob(c.env.DB, jobId, ins!.id, outUrl, claimed.clone_id, claimed.kind);
 
   return c.json({ ok: true, out_url: outUrl });
+});
+
+const l2LearnSchema = z.object({
+  userId: z.number().int().positive(),
+  extracted: z.object({
+
+    preference_personal: z
+      .record(z.string().max(100), z.union([z.string().max(200), z.number(), z.boolean()]))
+      .optional(),
+    relation: z.string().max(200).nullable().optional(),
+    memories_personal: z.array(z.string().max(500)).max(20).optional(),
+  }),
+  source: z.enum(["call", "chat"]),
+  session_id: z.string().max(64).optional(),
+});
+
+internal.post("/oth-path", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.LEARN_SECRET || !safeEqual(token, c.env.LEARN_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const parsed = l2LearnSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: "bad_body", issues: parsed.error.issues }, 400);
+  }
+  const { userId, extracted, source } = parsed.data;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  const interacted = await c.env.DB.prepare(
+    source === "call"
+      ? `SELECT 1 FROM call_sessions WHERE clone_id = ? AND user_id = ? LIMIT 1`
+      : `SELECT 1 FROM messages WHERE clone_id = ? AND user_id = ? LIMIT 1`,
+  ).bind(cloneId, userId).first();
+  if (!interacted) return c.json({ error: "no_interaction" }, 403);
+
+  let result: { rev: number; skipped: boolean };
+  try {
+    result = await updateOntFromExtraction(
+      c.env, cloneId, userId, extracted as L2Extraction, source,
+    );
+  } catch (err) {
+    return c.json({ error: "merge_failed", message: (err as Error).message }, 400);
+  }
+
+  await logActivity(c, {
+    userId,
+    action: "memory.l2.learn",
+    details: result.skipped
+      ? { cloneId, source, skipped: true }
+      : {
+          cloneId, source, skipped: false, rev: result.rev,
+          keys: Object.keys(extracted.preference_personal ?? {}),
+          memCount: extracted.memories_personal?.length ?? 0,
+        },
+  });
+  return c.json(
+    result.skipped
+      ? { ok: true, skipped: true }
+      : { ok: true, skipped: false, rev: result.rev },
+  );
 });

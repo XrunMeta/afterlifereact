@@ -43,12 +43,12 @@ const PREF_ITEMS: Array<{
   {
     key: "followingActivity",
     label: "팔로잉하는 멤버 소식",
-    desc: "내가 팔로우한 사람이 새 페르소나를 만들 때",
+    desc: "내가 팔로우한 사람이 새 클론을 만들 때",
   },
   {
     key: "reactions",
     label: "반응",
-    desc: "내 페르소나에 좋아요·댓글·신고가 발생할 때",
+    desc: "내 클론에 좋아요·댓글·신고가 발생할 때",
   },
   {
     key: "promotions",

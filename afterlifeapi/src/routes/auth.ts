@@ -102,11 +102,11 @@ auth.post("/google", async (c) => {
 
   let userRow = await db
     .prepare(
-      `SELECT id, name, email, funnel_stage AS funnelStage FROM users
+      `SELECT id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until FROM users
         WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(payload.email)
-    .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
+    .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
 
   if (!userRow) {
 
@@ -122,10 +122,10 @@ auth.post("/google", async (c) => {
       .prepare(
         `INSERT INTO users (name, email, password_hash, avatar_url)
          VALUES (?, ?, ?, ?)
-         RETURNING id, name, email, funnel_stage AS funnelStage`,
+         RETURNING id, name, email, funnel_stage AS funnelStage, deletion_state, banned_until`,
       )
       .bind(fallbackName, payload.email, passwordHash, payload.picture ?? null)
-      .first<{ id: number; name: string | null; email: string; funnelStage: string }>();
+      .first<{ id: number; name: string | null; email: string; funnelStage: string; deletion_state: string; banned_until: string | null }>();
     if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
     userRow = inserted;
 
@@ -173,6 +173,16 @@ auth.post("/google", async (c) => {
       details: { sub: payload.sub, email: payload.email },
     });
   } else {
+
+    if (userRow.deletion_state !== "active") {
+      throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+    }
+
+    if (userRow.banned_until && parseSqliteTimestamp(userRow.banned_until) > Date.now()) {
+      throw new APIError("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+        bannedUntil: userRow.banned_until,
+      });
+    }
     await logActivity(c, {
       userId: userRow.id,
       action: "auth.google.login",
@@ -208,6 +218,7 @@ auth.post("/google", async (c) => {
 
   return c.json({
     accessToken,
+    refreshToken,
     accessExpiresIn,
     user: {
       id: userRow.id,
@@ -392,6 +403,7 @@ auth.post("/xrun/complete", async (c) => {
   return c.json(
     {
       accessToken,
+      refreshToken,
       accessExpiresIn,
       user: {
         id: inserted.id,
@@ -436,36 +448,77 @@ auth.post("/signup", async (c) => {
     ? seal(String(body.age), getKekProvider(c.env.ALE_KEK), "user.age")
     : null;
 
+  const existing = await db
+    .prepare(`SELECT id, deletion_state, deleted_at FROM users WHERE email = ? LIMIT 1`)
+    .bind(body.email)
+    .first<{ id: number; deletion_state: string; deleted_at: string | null }>();
+  const isWithdrawn = !!existing && (existing.deletion_state !== "active" || existing.deleted_at !== null);
+
   let inserted:
     | { id: number; name: string; email: string; funnel_stage: string; created_at: string }
     | null;
-  try {
+
+  if (existing && !isWithdrawn) {
+
+    throw new APIError("CONFLICT", "Email already registered.");
+  }
+
+  if (isWithdrawn) {
+
     inserted = await db
       .prepare(
-        `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-         RETURNING id, name, email, funnel_stage, created_at`,
+        `UPDATE users
+            SET name = ?, password_hash = ?, phone = ?, gender = ?, age = ?, age_enc = ?,
+                marketing_consent = ?, country = ?, mobile_code = ?, region = ?,
+                deletion_state = 'active', soft_deleted_at = NULL, deleted_at = NULL,
+                failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          RETURNING id, name, email, funnel_stage, created_at`,
       )
       .bind(
         body.name,
-        body.email,
         passwordHash,
         phoneEnc,
         body.gender ?? null,
-        null, 
+        null,
         ageEnc,
         body.marketingConsent ? 1 : 0,
         body.country ?? null,
         body.mobileCode ?? null,
         body.region ?? null,
+        existing!.id,
       )
       .first();
-  } catch (err) {
-    const msg = (err as Error).message ?? "";
-    if (/UNIQUE constraint failed: users\.email/i.test(msg)) {
-      throw new APIError("CONFLICT", "Email already registered.");
+  } else {
+
+    try {
+      inserted = await db
+        .prepare(
+          `INSERT INTO users (name, email, password_hash, phone, gender, age, age_enc, marketing_consent, country, mobile_code, region)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           RETURNING id, name, email, funnel_stage, created_at`,
+        )
+        .bind(
+          body.name,
+          body.email,
+          passwordHash,
+          phoneEnc,
+          body.gender ?? null,
+          null, 
+          ageEnc,
+          body.marketingConsent ? 1 : 0,
+          body.country ?? null,
+          body.mobileCode ?? null,
+          body.region ?? null,
+        )
+        .first();
+    } catch (err) {
+      const msg = (err as Error).message ?? "";
+      if (/UNIQUE constraint failed: users\.email/i.test(msg)) {
+        throw new APIError("CONFLICT", "Email already registered.");
+      }
+      throw err;
     }
-    throw err;
   }
   if (!inserted) throw new APIError("INTERNAL_ERROR", "Failed to create user.");
 
@@ -581,6 +634,7 @@ auth.post("/signup", async (c) => {
   return c.json(
     {
       accessToken,
+      refreshToken,
       accessExpiresIn,
       user: {
         id: inserted.id,
@@ -610,7 +664,7 @@ auth.post("/login", async (c) => {
 
   const user = await db
     .prepare(
-      `SELECT id, password_hash, failed_login_count, locked_until
+      `SELECT id, password_hash, failed_login_count, locked_until, deletion_state, banned_until
          FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
     )
     .bind(body.email)
@@ -619,6 +673,8 @@ auth.post("/login", async (c) => {
       password_hash: string;
       failed_login_count: number;
       locked_until: string | null;
+      deletion_state: string;
+      banned_until: string | null;
     }>();
 
   const hashForCheck = user?.password_hash ?? (await hashPassword("dummy-nonmatch-0000"));
@@ -665,6 +721,16 @@ auth.post("/login", async (c) => {
     });
   }
 
+  if (user.deletion_state !== "active") {
+    throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+
+  if (user.banned_until && parseSqliteTimestamp(user.banned_until) > Date.now()) {
+    throw new APIError("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      bannedUntil: user.banned_until,
+    });
+  }
+
   await db
     .prepare(
       `UPDATE users SET failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
@@ -700,7 +766,7 @@ auth.post("/login", async (c) => {
 
   await logActivity(c, { userId: user.id, action: "auth.login" });
 
-  return c.json({ accessToken, accessExpiresIn });
+  return c.json({ accessToken, refreshToken, accessExpiresIn });
 });
 
 auth.post("/refresh", async (c) => {
@@ -711,9 +777,38 @@ auth.post("/refresh", async (c) => {
   return c.json({ accessToken: rotated.accessToken, accessExpiresIn: rotated.accessExpiresIn });
 });
 
+const refreshTokenBodySchema = z.object({
+  refreshToken: z.string().min(20),
+});
+
+auth.post("/refresh/token", async (c) => {
+  const body = await parseJson(c, refreshTokenBodySchema);
+  const rotated = await rotateSession(c, body.refreshToken);
+
+  setRefreshCookie(c, rotated.refreshToken);
+  return c.json({
+    accessToken: rotated.accessToken,
+    refreshToken: rotated.refreshToken,
+    accessExpiresIn: rotated.accessExpiresIn,
+  });
+});
+
+const logoutSchema = z.object({
+  refreshToken: z.string().min(20).optional(),
+});
+
 auth.post("/logout", requireAuth, async (c) => {
-  const refresh = readRefreshCookie(c);
-  if (refresh) await revokeRefresh(c, refresh);
+
+  let bodyRefresh: string | undefined;
+  try {
+    const parsed = await parseJson(c, logoutSchema);
+    bodyRefresh = parsed.refreshToken;
+  } catch {
+
+  }
+  const cookieRefresh = readRefreshCookie(c);
+  if (bodyRefresh) await revokeRefresh(c, bodyRefresh);
+  if (cookieRefresh) await revokeRefresh(c, cookieRefresh);
   clearRefreshCookie(c);
 
   const userId = c.get("userId");
@@ -779,4 +874,79 @@ auth.post("/password/reset", async (c) => {
 
   await logActivity(c, { userId: userRow.id, action: "auth.password.reset" });
   return c.json({ ok: true });
+});
+
+auth.post("/email/login-code", async (c) => {
+  const body = await parseJson(c, requestEmailCodeSchema);
+  const userRow = await c.env.DB
+    .prepare(`SELECT id, deletion_state FROM users WHERE email = ? AND deleted_at IS NULL`)
+    .bind(body.email.trim().toLowerCase())
+    .first<{ id: number; deletion_state: string }>();
+  if (userRow && userRow.deletion_state === "active") {
+    await requestSignupOtp(c.env, body.email);
+  }
+  return c.json({ ok: true, expiresInSec: 300 });
+});
+
+const emailLoginSchema = z.object({
+  email: z.email().max(200),
+  verificationCode: z.string().regex(/^\d{6}$/),
+  deviceId: z.string().max(200).optional(),
+  pushToken: z.string().max(500).optional(),
+  platform: z.enum(["ios", "android", "web"]).optional(),
+});
+auth.post("/email/login", async (c) => {
+  const body = await parseJson(c, emailLoginSchema);
+  const emailLower = body.email.trim().toLowerCase();
+
+  await verifySignupOtp(c.env, body.email, body.verificationCode);
+
+  const user = await c.env.DB
+    .prepare(`SELECT id, deletion_state, banned_until FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`)
+    .bind(emailLower)
+    .first<{ id: number; deletion_state: string; banned_until: string | null }>();
+  if (!user) throw new APIError("NOT_FOUND", "가입된 이메일이 아닙니다.");
+  if (user.deletion_state !== "active") {
+    throw new APIError("ACCOUNT_DELETED", "이미 탈퇴한 계정이에요.");
+  }
+  if (user.banned_until && parseSqliteTimestamp(user.banned_until) > Date.now()) {
+    throw new APIError("ACCOUNT_SUSPENDED", "신고 누적으로 계정 사용이 정지되었습니다.", {
+      bannedUntil: user.banned_until,
+    });
+  }
+
+  if (body.deviceId && body.pushToken) {
+    await c.env.DB
+      .prepare(
+        `UPDATE user_devices SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+           WHERE push_token = ? AND user_id != ? AND is_active = 1`,
+      )
+      .bind(body.pushToken, user.id)
+      .run();
+    await c.env.DB
+      .prepare(
+        `INSERT INTO user_devices (user_id, device_id, push_token, platform, last_active_at)
+         VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+         ON CONFLICT(user_id, device_id) DO UPDATE SET
+           push_token = excluded.push_token,
+           platform   = excluded.platform,
+           is_active  = 1,
+           last_active_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP`,
+      )
+      .bind(user.id, body.deviceId, body.pushToken, body.platform ?? "web")
+      .run();
+  }
+
+  await c.env.DB
+    .prepare(
+      `UPDATE users SET failed_login_count = 0, locked_until = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    )
+    .bind(user.id)
+    .run();
+
+  const { accessToken, refreshToken, accessExpiresIn } = await issueSession(c, user.id, body.deviceId);
+  setRefreshCookie(c, refreshToken);
+  await logActivity(c, { userId: user.id, action: "auth.login.otp" });
+  return c.json({ accessToken, refreshToken, accessExpiresIn });
 });

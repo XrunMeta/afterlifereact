@@ -1,7 +1,6 @@
 
 
-import { API_BASE } from "../config/apiBase";
-import { AuthApiError, type ApiErrorBody } from "./auth";
+import { authFetch } from "../lib/authFetch";
 
 export type NotificationType =
   | "invite_received"
@@ -20,37 +19,7 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-async function authJson<T>(
-  path: string,
-  accessToken: string,
-  init: RequestInit = {},
-): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-      ...((init.headers as Record<string, string>) ?? {}),
-    },
-  });
-  const text = await res.text();
-  let parsed: unknown = null;
-  try {
-    parsed = text ? JSON.parse(text) : null;
-  } catch {
-
-  }
-  if (!res.ok) {
-    const errBody = parsed as ApiErrorBody | null;
-    throw new AuthApiError(
-      res.status,
-      errBody?.error?.code ?? "HTTP_ERROR",
-      errBody?.error?.message ?? `HTTP ${res.status}`,
-      errBody?.error?.details,
-    );
-  }
-  return parsed as T;
-}
+const authJson = authFetch;
 
 export async function listNotifications(
   accessToken: string,

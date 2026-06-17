@@ -46,6 +46,7 @@ import {
   type FeedComment,
 } from "../../api/clones";
 import { formatRelativeKo } from "../../lib/relativeTime";
+import { useReportAcceptedGate } from "../../hooks/useReportAcceptedGate";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { FeedItem } from "../../types/feed";
 import type { RootStackParamList } from "../../navigation/types";
@@ -56,6 +57,8 @@ const TAB_BAR_HEIGHT = 56;
 
 export default function HomeScreen() {
   const { t } = useTranslation();
+
+  useReportAcceptedGate();
   const rootNav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const navBarHeight = useAndroidNavigationBarHeight(0);
@@ -374,7 +377,7 @@ export default function HomeScreen() {
           onSharePress={async () => {
             try {
               await Share.share({
-                message: `${item.author} 페르소나와 만나보세요!\nhttps://afterlife.app/clone/${item.cloneId}`,
+                message: `${item.author} 클론과 만나보세요!\nhttps://afterlife.app/clone/${item.cloneId}`,
                 title: item.author,
               });
             } catch (err) {
@@ -405,10 +408,10 @@ export default function HomeScreen() {
           <View style={styles.emptyIconWrap}>
             <Feather name="users" size={36} color="rgba(255,255,255,0.7)" />
           </View>
-          <Text style={styles.emptyTitle}>아직 만나볼 페르소나가 없어요</Text>
+          <Text style={styles.emptyTitle}>아직 만나볼 클론이 없어요</Text>
           <Text style={styles.emptyDesc}>
-            첫 페르소나의 주인공이 되어보시는 건 어때요?{"\n"}
-            나만의 페르소나를 만들어 시작해 보세요
+            첫 클론의 주인공이 되어보시는 건 어때요?{"\n"}
+            나만의 클론을 만들어 시작해 보세요
           </Text>
           <TouchableOpacity
             style={styles.emptyBtn}
@@ -424,7 +427,7 @@ export default function HomeScreen() {
             }
           >
             <Feather name="plus" size={18} color={COLORS.zinc950} />
-            <Text style={styles.emptyBtnText}>페르소나 만들기</Text>
+            <Text style={styles.emptyBtnText}>클론 만들기</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -721,7 +724,7 @@ export default function HomeScreen() {
                         },
                       }),
                     );
-                    setToastMessage("페르소나 편집 → 공개 범위에서 변경하세요");
+                    setToastMessage("클론 편집 → 공개 범위에서 변경하세요");
                   }}
                 >
                   <Feather name="eye" size={20} color={COLORS.zinc900} />
@@ -735,8 +738,8 @@ export default function HomeScreen() {
                     if (!target || !accessToken) return;
 
                     showAlert(
-                      "페르소나 삭제",
-                      `'${target.author}' 페르소나를 삭제할까요?\n복구 불가합니다.`,
+                      "클론 삭제",
+                      `'${target.author}' 클론을 삭제할까요?\n복구 불가합니다.`,
                       [
                         { text: "취소", style: "cancel" },
                         {
@@ -746,7 +749,7 @@ export default function HomeScreen() {
                             try {
                               const { deleteClone } = await import("../../api/clones");
                               await deleteClone(accessToken, target.cloneId);
-                              setToastMessage("페르소나가 삭제됐어요");
+                              setToastMessage("클론이 삭제됐어요");
                               const cur = useFeedStore.getState().apiFeeds;
                               if (cur) {
                                 useFeedStore.setState({
@@ -806,7 +809,7 @@ export default function HomeScreen() {
                     if (!target || !accessToken) return;
                     try {
                       await blockClone(accessToken, target.cloneId);
-                      setToastMessage("이 페르소나가 차단됐어요");
+                      setToastMessage("이 클론이 차단됐어요");
                       const cur = useFeedStore.getState().apiFeeds;
                       if (cur) {
                         useFeedStore.setState({
@@ -869,7 +872,7 @@ export default function HomeScreen() {
           try {
             const { reportClone } = await import("../../api/clones");
             await reportClone(accessToken, target.cloneId, reason || undefined);
-            setToastMessage("신고가 접수됐어요. 이 페르소나는 차단됐어요");
+            setToastMessage("신고가 접수됐어요. 이 클론은 차단됐어요");
             const cur = useFeedStore.getState().apiFeeds;
             if (cur) {
               useFeedStore.setState({

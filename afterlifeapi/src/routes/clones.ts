@@ -5,6 +5,7 @@ import { parseJson, z } from "../lib/validate";
 import { requireAuth } from "../middleware/auth";
 import { requireIdempotencyKey } from "../middleware/idempotency";
 import { logActivity } from "../lib/logger";
+import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 import {
   hasAcceptedShare,
   isFollower,
@@ -12,7 +13,7 @@ import {
   resolveOptionalUser,
   resolveResponseViewerRole,
 } from "../lib/cloneAccess";
-import { writeCtx, writeShared } from "../lib/memoryStore";
+import { writeCtx, writeShared, readOnt, writeOnt } from "../lib/memoryStore";
 import {
   bumpInteraction,
   bumpInteractionThrottled,
@@ -24,6 +25,9 @@ import { externalTransferSplit } from "../lib/xrun";
 import { notify, notifyCloneEvent } from "../lib/notify";
 import { loadPersonaQuestions } from "../lib/personaQuestions";
 import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
+import { maskUsername } from "../lib/utils";
+import { triggerPrebuild } from "../lib/prebuildClient";
+import { buildCallBundle } from "../lib/callBundle";
 
 export const clones = new Hono<AppEnv>();
 
@@ -143,6 +147,10 @@ const createSchema = z.object({
 
 const PERSONA_PAID_PRICE_XRUN = 100;
 
+const TEST_PRICE_EMAILS = new Set(["oth-user@example.invalid", "oth-test@example.invalid"]);
+const isTestPriceEmail = (e?: string | null): boolean => !!e && TEST_PRICE_EMAILS.has(e);
+const TEST_PRICE_XRUN = 0.05;
+
 clones.post(
   "/",
   requireAuth,
@@ -151,6 +159,22 @@ clones.post(
     const body = await parseJson(c, createSchema);
     const userId = c.get("userId")!;
     const db = c.env.DB;
+
+    const susp = await db
+      .prepare(
+        `SELECT suspended_until FROM users
+          WHERE id = ? AND suspended_until IS NOT NULL
+            AND suspended_until > datetime('now')`,
+      )
+      .bind(userId)
+      .first<{ suspended_until: string }>();
+    if (susp) {
+      throw new APIError(
+        "FORBIDDEN",
+        "신고 누적으로 계정이 일시 비활성화되어 페르소나를 생성할 수 없어요.",
+        { suspendedUntil: susp.suspended_until },
+      );
+    }
 
     if (USERNAME_BLACKLIST.has(body.username)) {
       throw new APIError("VALIDATION_FAILED", "username is reserved.");
@@ -176,6 +200,12 @@ clones.post(
       .first<{ n: number }>();
     const usedCount = existing?.n ?? 0;
 
+    const me = await db
+      .prepare(`SELECT email FROM users WHERE id = ?`)
+      .bind(userId)
+      .first<{ email: string | null }>();
+    const personaPrice = isTestPriceEmail(me?.email) ? TEST_PRICE_XRUN : PERSONA_PAID_PRICE_XRUN;
+
     if (usedCount >= 100) {
       throw new APIError(
         "QUOTA_EXCEEDED",
@@ -186,8 +216,8 @@ clones.post(
 
       if (!body.pin) {
         throw new APIError("PAYMENT_REQUIRED", "Persona creation requires payment.", {
-          priceXrun: PERSONA_PAID_PRICE_XRUN,
-          message: `2번째 페르소나부터 ${PERSONA_PAID_PRICE_XRUN} XRUN 이 부과됩니다.`,
+          priceXrun: personaPrice,
+          message: `2번째 페르소나부터 ${personaPrice} XRUN 이 부과됩니다.`,
         });
       }
 
@@ -209,19 +239,46 @@ clones.post(
         const { externalTransferSplit } = await import("../lib/xrun");
         const payRes = await externalTransferSplit(c.env, {
           fromMember: senderRow.xrun_member_id,
-          recipients: [{ toAddress: companyAddr, amount: String(PERSONA_PAID_PRICE_XRUN) }],
+          recipients: [{ toAddress: companyAddr, amount: String(personaPrice) }],
           currency,
           pin: body.pin,
           source: "afterlife.persona-create",
         });
-        if (!payRes.ok) {
+
+        const testBypassed =
+          isTestPriceEmail(me?.email) && !payRes.ok && (payRes.code === 401 || payRes.code === 403);
+        if (testBypassed) {
+          console.log(`[persona-create][TEST_BYPASS] PIN 오류 무시하고 생성 진행 — reason=${payRes.reason}`);
+        } else if (!payRes.ok) {
+
           if (payRes.code === 401 || payRes.code === 403) {
-            throw new APIError("UNAUTHENTICATED", "PIN 인증에 실패했어요.");
+            const pinNotSet = /paymentPin not set/i.test(payRes.reason ?? "");
+            throw new APIError(
+              pinNotSet ? "PAYMENT_PIN_REQUIRED" : "PAYMENT_PIN_INVALID",
+              pinNotSet ? "결제 비밀번호가 설정되어 있지 않아요." : "결제 비밀번호가 일치하지 않아요.",
+              { reason: payRes.reason ?? null },
+            );
           }
           if (payRes.code === 402) {
             throw new APIError("INSUFFICIENT_FUNDS", "XRUN 잔액이 부족해요.");
           }
           throw new APIError("UPSTREAM_FAILURE", payRes.reason ?? "xrun transfer error");
+        }
+
+        try {
+          const { recordAfterlifePersonaPayment } = await import("../lib/giftCommission");
+          const r = await recordAfterlifePersonaPayment(c.env, {
+            userId,
+            totalXrun: personaPrice,
+            companyWallet: companyAddr,
+          });
+          if (r.recorded) {
+            console.log(`[persona-create] settlement recorded — amount=${r.amount}`);
+          } else {
+            console.log(`[persona-create] settlement skip: ${r.reason}`);
+          }
+        } catch (err) {
+          console.warn("[persona-create] settlement record failed:", (err as Error).message);
         }
       } else {
 
@@ -447,6 +504,29 @@ clones.post(
       }
     }
 
+    if (c.env.PREBUILD_SECRET && c.env.PRETHIRD_PUBLIC_BASE) {
+      const origin = new URL(c.req.url).origin;
+      const db = c.env.DB;
+      const secret = c.env.PREBUILD_SECRET;
+      const base = c.env.PRETHIRD_PUBLIC_BASE;
+      const cid = cloneId;
+      const uid = userId;
+      c.executionCtx.waitUntil(
+        (async () => {
+          try {
+            const row = await db.prepare("SELECT * FROM clones WHERE id = ?").bind(cid).first<import("../lib/cloneAccess").CloneRow>();
+            if (!row?.voice_se_url) return; 
+            const bundle = await buildCallBundle(db, row, uid, origin);
+            await triggerPrebuild(fetch, {
+              base, secret, cloneId: String(cid), voiceRawUrl: bundle.assets.voiceRawUrl,
+            });
+          } catch (e) {
+            console.warn("[prebuild] trigger skipped:", e);
+          }
+        })(),
+      );
+    }
+
     return c.json(
       {
         clone: {
@@ -507,7 +587,7 @@ clones.get("/search", async (c) => {
 
   const viewerId = await resolveOptionalUser(c);
 
-  const where: string[] = [`c.deleted_at IS NULL`];
+  const where: string[] = [`c.deleted_at IS NULL`, `c.deletion_state = 'active'`];
   const binds: unknown[] = [];
   if (viewerId) {
     where.push(
@@ -523,13 +603,15 @@ clones.get("/search", async (c) => {
        )`,
     );
     binds.push(viewerId, viewerId, viewerId);
+
+    where.push(`c.id NOT IN (SELECT clone_id FROM clone_blocks WHERE user_id = ?)`);
+    binds.push(viewerId);
+    where.push(
+      `c.owner_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)`,
+    );
+    binds.push(viewerId);
   } else {
     where.push(`c.visibility = 'public'`);
-  }
-  if (params.q) {
-    where.push(`(c.name LIKE ? OR c.username LIKE ?)`);
-    const like = `%${params.q}%`;
-    binds.push(like, like);
   }
   if (params.type) {
     where.push(`c.clone_type = ?`);
@@ -538,6 +620,51 @@ clones.get("/search", async (c) => {
   if (params.category) {
     where.push(`c.category = ?`);
     binds.push(params.category);
+  }
+
+  const mapClone = (r: {
+    id: number; name: string; username: string; clone_type: string;
+    category: string | null; avatar_url: string | null; created_at: string;
+    followers_count: number; messages_count: number; gifts_count: number;
+  }) => ({
+    id: r.id,
+    name: r.name,
+    username: r.username,
+    cloneType: r.clone_type,
+    category: r.category,
+    avatarUrl: r.avatar_url,
+    stats: { followers: r.followers_count, messages: r.messages_count, gifts: r.gifts_count },
+    createdAt: r.created_at,
+  });
+
+  if (params.q) {
+    const poolSql = `
+      SELECT c.id, c.name, c.username, c.clone_type, c.category, c.avatar_url,
+             c.created_at,
+             COALESCE(s.followers_count, 0) AS followers_count,
+             COALESCE(s.messages_count, 0)  AS messages_count,
+             COALESCE(s.gifts_count, 0)     AS gifts_count
+        FROM clones c
+        LEFT JOIN clone_stats s ON s.clone_id = c.id
+       WHERE ${where.join(" AND ")}
+       ORDER BY COALESCE(s.followers_count, 0) DESC, c.id DESC
+       LIMIT 500`;
+    const pool = (
+      await db.prepare(poolSql).bind(...binds).all<Parameters<typeof mapClone>[0]>()
+    ).results;
+    const scored = pool
+      .map((r) => ({
+        r,
+        score: Math.max(
+          similarityScore(params.q!, r.name),
+          similarityScore(params.q!, r.username),
+        ),
+      }))
+      .filter((x) => x.score >= SEARCH_SIMILARITY_THRESHOLD)
+      .sort((a, b) => b.score - a.score || b.r.followers_count - a.r.followers_count)
+      .slice(0, params.limit)
+      .map((x) => x.r);
+    return c.json({ items: scored.map(mapClone), nextCursor: null });
   }
 
   let orderBy: string;
@@ -599,20 +726,7 @@ clones.get("/search", async (c) => {
   }
 
   return c.json({
-    items: page.map((r) => ({
-      id: r.id,
-      name: r.name,
-      username: r.username,
-      cloneType: r.clone_type,
-      category: r.category,
-      avatarUrl: r.avatar_url,
-      stats: {
-        followers: r.followers_count,
-        messages: r.messages_count,
-        gifts: r.gifts_count,
-      },
-      createdAt: r.created_at,
-    })),
+    items: page.map(mapClone),
     nextCursor,
   });
 });
@@ -620,10 +734,10 @@ clones.get("/search", async (c) => {
 clones.get("/voices", requireAuth, async (c) => {
   const rows = await c.env.DB
     .prepare(
-      `SELECT id, name, gender, age_range, description, sort_order
+      `SELECT id, name, gender, age_range, description, sort_order, src_file_id
        FROM voice_presets WHERE is_active = 1 ORDER BY sort_order ASC, id ASC`,
     )
-    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number }>();
+    .all<{ id: number; name: string; gender: string | null; age_range: string | null; description: string | null; sort_order: number; src_file_id: number | null }>();
   const origin = new URL(c.req.url).origin;
   const voices = (rows.results ?? []).map((r) => ({
     id: r.id,
@@ -632,6 +746,7 @@ clones.get("/voices", requireAuth, async (c) => {
     ageRange: r.age_range,
     description: r.description,
     sortOrder: r.sort_order,
+    srcFileId: r.src_file_id,
     sampleUrl: `${origin}/oth-path${r.id}/sample`,
   }));
   return c.json({ voices });
@@ -750,10 +865,12 @@ clones.post("/asset-job", requireAuth, async (c) => {
     throw new APIError("VALIDATION_FAILED", "src_file_id required.");
   }
   const file = await c.env.DB
-    .prepare(`SELECT id, r2_key, owner_user_id FROM files WHERE id = ?`)
+    .prepare(`SELECT id, r2_key, owner_user_id, purpose FROM files WHERE id = ?`)
     .bind(srcFileId)
-    .first<{ id: number; r2_key: string; owner_user_id: number }>();
-  if (!file || file.owner_user_id !== userId) {
+    .first<{ id: number; r2_key: string; owner_user_id: number | null; purpose: string | null }>();
+
+  const isPublicCatalog = file?.owner_user_id == null && file?.purpose === "voice_catalog";
+  if (!file || (!isPublicCatalog && file.owner_user_id !== userId)) {
     throw new APIError("NOT_FOUND", "Source file not found.");
   }
   const jobId = crypto.randomUUID();
@@ -1064,6 +1181,53 @@ clones.patch("/:id", requireAuth, async (c) => {
   return c.json({ ok: true, updatedFields });
 });
 
+const l2PatchSchema = z
+  .object({
+    memory_summary: z.string().max(2000).optional(),
+    relationship: z.string().max(2000).optional(),
+    context: z.string().max(2000).optional(),
+    recent_topics: z.string().max(2000).optional(),
+  })
+  .strict()
+  .refine((o) => Object.keys(o).length > 0, {
+    message: "At least one field required.",
+  });
+
+clones.patch("/:id/l2", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const body = await parseJson(c, l2PatchSchema);
+  const userId = c.get("userId")!;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+
+  const viewerRole = await resolveResponseViewerRole(c.env.DB, clone, userId);
+  if (!viewerRole && clone.visibility !== "public") {
+    throw new APIError("FORBIDDEN", "이 클론에 접근할 수 없어요.");
+  }
+
+  const raw = await readOnt(c.env, cloneId, userId);
+  let data: Record<string, unknown> = {};
+  if (raw) { try { data = JSON.parse(raw); } catch { data = {}; } }
+  for (const k of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+    if (body[k] !== undefined) data[k] = body[k];
+  }
+  try {
+    await writeOnt(c.env, cloneId, userId, JSON.stringify(data));
+  } catch (e) {
+    throw new APIError("INTERNAL_ERROR", "L2 저장에 실패했어요.");
+  }
+
+  const clean: Record<string, unknown> = {};
+  for (const k of ["memory_summary", "relationship", "context", "recent_topics"] as const) {
+    if (data[k] !== undefined) clean[k] = data[k];
+  }
+  return c.json({ l2_profile: clean });
+});
+
 clones.post("/:id/follow", requireAuth, async (c) => {
   const cloneId = Number(c.req.param("id"));
   if (!Number.isInteger(cloneId) || cloneId <= 0) {
@@ -1197,9 +1361,9 @@ clones.post("/:id/gift", requireAuth, async (c) => {
   const currency = Number(c.env.PAYMENT_CURRENCY ?? "18") || 18;
 
   const sender = await c.env.DB
-    .prepare(`SELECT id, xrun_member_id FROM users WHERE id = ? AND deleted_at IS NULL`)
+    .prepare(`SELECT id, xrun_member_id, email FROM users WHERE id = ? AND deleted_at IS NULL`)
     .bind(senderId)
-    .first<{ id: number; xrun_member_id: number | null }>();
+    .first<{ id: number; xrun_member_id: number | null; email: string | null }>();
   if (!sender) throw new APIError("UNAUTHENTICATED", "사용자를 찾을 수 없어요.");
   if (!sender.xrun_member_id) {
     throw new APIError("CONFLICT", "내 계정에 xrun 이 연동되어 있지 않아요.");
@@ -1224,7 +1388,7 @@ clones.post("/:id/gift", requireAuth, async (c) => {
 
   const ownerLinked = !!owner?.xrun_member_id;
 
-  const total = body.amount;
+  const total = isTestPriceEmail(sender.email) ? TEST_PRICE_XRUN : body.amount;
   const companyAmount = ownerLinked
     ? Math.round(total * 0.6 * 1_000_000) / 1_000_000
     : total;
@@ -1270,7 +1434,11 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     source: "afterlife.gift",
   });
 
-  if (!xrunRes.ok) {
+  const giftTestBypass =
+    !xrunRes.ok && isTestPriceEmail(sender.email) && (xrunRes.code === 401 || xrunRes.code === 403);
+  if (giftTestBypass) {
+    console.log(`[gift][TEST_BYPASS] PIN 오류 무시, 송금 없이 정산 로직 진행 — member=${sender.xrun_member_id} reason=${xrunRes.reason}`);
+  } else if (!xrunRes.ok) {
 
     await c.env.DB
       .prepare(
@@ -1280,9 +1448,12 @@ clones.post("/:id/gift", requireAuth, async (c) => {
       .run();
 
     if (xrunRes.code === 401 || xrunRes.code === 403) {
-      throw new APIError("UNAUTHENTICATED", "PIN verification failed.", {
-        reason: xrunRes.reason,
-      });
+      const pinNotSet = /paymentPin not set/i.test(xrunRes.reason ?? "");
+      throw new APIError(
+        pinNotSet ? "PAYMENT_PIN_REQUIRED" : "PAYMENT_PIN_INVALID",
+        pinNotSet ? "결제 비밀번호가 설정되어 있지 않아요." : "결제 비밀번호가 일치하지 않아요.",
+        { reason: xrunRes.reason },
+      );
     }
     if (xrunRes.code === 402) {
       throw new APIError("INSUFFICIENT_FUNDS", "Insufficient XRUN balance.", {
@@ -1341,6 +1512,23 @@ clones.post("/:id/gift", requireAuth, async (c) => {
     cloneId,
     extraBody: `${body.giftName} 선물 (+${ownerAmount} XRUN)`,
   });
+
+  try {
+    const { recordAfterlifeGiftCommission } = await import("../lib/giftCommission");
+    const r = await recordAfterlifeGiftCommission(c.env, {
+      cloneId,
+      ownerXrunMember: owner?.xrun_member_id ?? null,
+      totalXrun: total,
+      giftName: body.giftName,
+    });
+    if (!r.recorded) {
+      console.log(`[gift] commission skip: ${r.reason}`);
+    } else {
+      console.log(`[gift] commission recorded — recommender=${r.recommender} amount=${r.amount}`);
+    }
+  } catch (err) {
+    console.warn("[gift] commission record failed:", (err as Error).message);
+  }
 
   return c.json({
     ok: true,
@@ -1477,4 +1665,48 @@ clones.post("/:id/chat-event", requireAuth, async (c) => {
   await bumpInteraction(c.env, userId, cloneId, "chat");
   const r = await addIntimacyScore(c.env, userId, cloneId, INTIMACY_WEIGHTS.chat, "chat");
   return c.json({ ok: true, scoreApplied: r.applied });
+});
+
+clones.get("/:id/gifts/summary", requireAuth, async (c) => {
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    throw new APIError("VALIDATION_FAILED", "잘못된 페르소나 ID 에요.");
+  }
+  const userId = c.get("userId")!;
+  const db = c.env.DB;
+
+  const clone = await loadCloneById(db, cloneId);
+  if (!clone) throw new APIError("NOT_FOUND", "페르소나를 찾을 수 없어요.");
+  if (clone.owner_id !== userId)
+    throw new APIError("FORBIDDEN", "소유자만 열람할 수 있어요.");
+
+  const rows = await db
+    .prepare(
+      `SELECT g.gift_id, g.gift_name,
+              COUNT(*) AS cnt, MAX(g.created_at) AS last_at,
+              u.name AS sender_name
+       FROM gift_logs g
+       LEFT JOIN users u ON u.id = g.sender_user_id
+       WHERE g.clone_id = ? AND g.status = 'sent'
+       GROUP BY g.gift_id, g.gift_name, g.sender_user_id
+       ORDER BY cnt DESC, last_at DESC
+       LIMIT 200`,
+    )
+    .bind(cloneId)
+    .all<{
+      gift_id: string;
+      gift_name: string;
+      cnt: number;
+      last_at: string; 
+      sender_name: string | null;
+    }>();
+
+  const items = (rows.results ?? []).map((r) => ({
+    giftId: r.gift_id,
+    giftName: r.gift_name,
+    count: r.cnt,
+    sender: maskUsername(r.sender_name), 
+  }));
+
+  return c.json({ items });
 });

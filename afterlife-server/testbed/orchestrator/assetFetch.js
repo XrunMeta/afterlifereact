@@ -111,7 +111,7 @@ export async function ensureAssets({ cloneId, assets = {}, dirs, apiBaseUrl, fet
     if (!cloneIdSafe) {
       museVideoPath = null;
     } else {
-      const dest = path.join(videoRefDir, cloneId, 'idle-25fps.mp4');
+      const dest = path.join(videoRefDir, cloneId, `${cloneId}-idle-25fps.mp4`);
 
       museVideoPath = await safePull(assets.idleVideoUrl, dest, videoRefDir, 100 * 1024 * 1024);
     }

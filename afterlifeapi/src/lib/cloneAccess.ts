@@ -27,6 +27,8 @@ export interface CloneRow {
 
   idle_video_url: string | null;
   voice_se_url: string | null;
+
+  relation: string | null;
 }
 
 export async function loadCloneById(
@@ -40,6 +42,7 @@ export async function loadCloneById(
               c.voice_type, c.voice_preset_id, c.training_status, c.created_at,
               c.is_system,
               c.idle_video_url, c.voice_se_url,
+              c.relation,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,
               COALESCE(s.gifts_count, 0)     AS gifts_count
@@ -65,6 +68,19 @@ export async function hasAcceptedShare(
     .bind(cloneId, userId)
     .first<{ role: "owner" | "viewer" }>();
   return row?.role ?? null;
+}
+
+export async function isBlockedByOwner(
+  db: D1Database,
+  ownerId: number,
+  userId: number | null,
+): Promise<boolean> {
+  if (userId === null || userId === ownerId) return false;
+  const row = await db
+    .prepare(`SELECT 1 AS x FROM user_blocks WHERE blocker_id = ? AND blocked_id = ? LIMIT 1`)
+    .bind(ownerId, userId)
+    .first<{ x: number }>();
+  return !!row;
 }
 
 export async function isFollower(
@@ -108,6 +124,8 @@ export async function resolveResponseViewerRole(
 ): Promise<ResponseViewerRole | null> {
   if (userId === null) return null;
   if (userId === clone.owner_id) return "owner";
+
+  if (await isBlockedByOwner(db, clone.owner_id, userId)) return null;
   const share = await hasAcceptedShare(db, clone.id, userId);
   if (share !== null) return "coowner";
   if (await isFollower(db, clone.id, userId)) return "follower";
@@ -120,6 +138,10 @@ export async function resolveViewerRole(
   userId: number | null,
 ): Promise<ViewerRole | null> {
   if (userId === clone.owner_id) return "owner";
+
+  if (userId !== null && (await isBlockedByOwner(c.env.DB, clone.owner_id, userId))) {
+    return null;
+  }
   if (userId !== null) {
     const share = await hasAcceptedShare(c.env.DB, clone.id, userId);
     if (share === "owner") return "owner";

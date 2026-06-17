@@ -45,7 +45,7 @@ type Props = {
   navigation: NativeStackNavigationProp<CreateStackParamList, 'PersonaAssistant'>;
 };
 
-const AI_NAME = '페르소나 생성 도우미';
+const AI_NAME = '클론 생성 도우미';
 const AI_AVATAR_SRC = require('../../../assets/images/symbol.png');
 
 function isVisible(q: PersonaQuestion, answers: Record<string, string>): boolean {
@@ -58,7 +58,7 @@ function isVisible(q: PersonaQuestion, answers: Record<string, string>): boolean
 type SystemPhase = 'name' | 'username' | 'relation';
 
 const SYS_PROMPTS: Record<SystemPhase, string> = {
-  name: '안녕하세요! 페르소나 생성 도우미입니다.\n\n지금 생성하는 페르소나의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
+  name: '안녕하세요! 클론 생성 도우미입니다.\n\n지금 생성하는 클론의 이름이 뭔가요?\n평소에 부르던 이름이나 별명도 좋아요.',
   username:
     '@아이디는 어떻게 할까요?\n영문 소문자, 숫자, _ 만 가능해요. 비워두시면 자동으로 만들어드릴게요!',
   relation: '어떤 관계인가요?\n아래에서 선택해 주세요.',
@@ -171,6 +171,41 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
     return currentSchemaIdx;
   })();
 
+  const SYS_STEP = 0.05;      
+  const SCHEMA_BASE = 0.15;   
+  const TEXT_WEIGHT = 4;      
+  const CHOICE_WEIGHT = 1;    
+
+  const rawProgress = useMemo(() => {
+
+    if (phase === 'init' || phase === 'sys:name') return 0;
+    if (phase === 'sys:username') return SYS_STEP;                          
+    if (phase === 'sys:relation' || phase === 'sys:relation-custom') return SYS_STEP * 2; 
+    if (phase === 'done') return 1;
+
+    if (phase.startsWith('schema:') && currentVisibleIdx !== null) {
+      const visible = visibleSchemaQuestions;
+      const weightOf = (q: PersonaQuestion) =>
+        q.type === 'text' ? TEXT_WEIGHT : CHOICE_WEIGHT;
+      const totalW = visible.reduce((sum, q) => sum + weightOf(q), 0);
+      if (totalW <= 0) return SCHEMA_BASE;
+
+      const doneW = visible
+        .slice(0, currentVisibleIdx)
+        .reduce((sum, q) => sum + weightOf(q), 0);
+      return Math.min(1, SCHEMA_BASE + (1 - SCHEMA_BASE) * (doneW / totalW));
+    }
+
+    return SCHEMA_BASE; 
+  }, [phase, currentVisibleIdx, visibleSchemaQuestions]);
+
+  const [displayProgress, setDisplayProgress] = useState(0);
+  useEffect(() => {
+    setDisplayProgress((prev) => Math.max(prev, rawProgress));
+  }, [rawProgress]);
+
+  const progressPct = Math.round(displayProgress * 100);
+
   const fetchGemma = useCallback(async () => {
     if (gemmaCalledRef.current || !accessToken) return;
     gemmaCalledRef.current = true;
@@ -252,15 +287,11 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         const cands = candidates[q.key] ?? [];
 
         const forced = q.options_include ?? [];
-        const merged = [...new Set([...forced, ...cands])];
-        buttons = merged.length > 0 ? [...merged, '직접 입력', '건너뛰기'] : ['직접 입력', '건너뛰기'];
+        const merged = [...new Set([...forced, ...cands])].slice(0, 3);
+        buttons = merged.length > 0 ? [...merged, '직접 입력'] : ['직접 입력'];
       }
       if (q.type === 'fixed_choice' && (q.optional !== false)) {
         buttons = [...buttons, '건너뛰기'];
-      }
-
-      if (q.type === 'text' && (q.optional !== false)) {
-        buttons = ['건너뛰기'];
       }
 
       setPhase(`schema:${idx}`);
@@ -515,7 +546,10 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
     if (phase === 'sys:username') return !checkingUsername; 
     if (phase === 'sys:name') return input.trim().length > 0;
     if (phase === 'sys:relation-custom') return input.trim().length > 0;
-    if (phase.startsWith('schema:')) return input.trim().length > 0;
+    if (phase.startsWith('schema:')) {
+
+      return input.trim().length > 0;
+    }
     return false;
   })();
 
@@ -530,9 +564,8 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
     <SafeView backgroundColor={COLORS.white}>
       {}
       <View style={[s.header, { paddingTop: insets.top + 6 }]}>
-        <TouchableOpacity onPress={goBack} hitSlop={12} style={s.backBtn}>
-          <Feather name="arrow-left" size={22} color={COLORS.zinc900} />
-        </TouchableOpacity>
+        {}
+        <View style={{ width: 38 }} />
         <View style={s.headerCenter}>
           <View style={s.headerAvatar}>
             <Image source={AI_AVATAR_SRC} style={s.headerAvatarImg} resizeMode="contain" />
@@ -540,6 +573,21 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
           <Text style={s.headerName}>{AI_NAME}</Text>
         </View>
         <View style={{ width: 38 }} />
+      </View>
+
+      {}
+      <View style={s.progressCard}>
+        <View style={s.progressTopRow}>
+          <View style={s.progressLabelRow}>
+            <Feather name="zap" size={15} color="#f97316" />
+            <Text style={s.progressLabel}>{t('chat.trainingLabel')}</Text>
+          </View>
+          <Text style={s.progressPct}>{progressPct}%</Text>
+        </View>
+        <View style={s.progressTrack}>
+          <View style={[s.progressFill, { width: `${progressPct}%` }]} />
+        </View>
+        <Text style={s.progressHint}>{t('chat.trainingHint')}</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -626,44 +674,46 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
 
         {}
         {showInput && (
-          <View style={s.inputBar}>
-            <TextInput
-              style={[s.input, isMultiline && s.inputMultiline]}
-              value={input}
-              onChangeText={(v) => {
-                if (phase === 'sys:username') {
-                  setInput(v.toLowerCase().replace(/[^a-z0-9_]/g, ''));
-                } else {
-                  setInput(v);
-                }
-              }}
-              placeholder={inputPlaceholder}
-              placeholderTextColor={COLORS.zinc400}
-              multiline={isMultiline}
-              maxLength={isMultiline ? 500 : 40}
+          <View style={s.inputWrap}>
+            <View style={s.inputBar}>
+              <TextInput
+                style={[s.input, isMultiline && s.inputMultiline]}
+                value={input}
+                onChangeText={(v) => {
+                  if (phase === 'sys:username') {
+                    setInput(v.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                  } else {
+                    setInput(v);
+                  }
+                }}
+                placeholder={inputPlaceholder}
+                placeholderTextColor={COLORS.zinc400}
+                multiline={isMultiline}
+                maxLength={isMultiline ? 500 : 40}
 
-              autoCapitalize={phase === 'sys:username' ? 'none' : 'sentences'}
-              autoCorrect={phase !== 'sys:username'}
-              autoComplete={phase === 'sys:username' ? 'off' : undefined}
-              keyboardType={phase === 'sys:username' ? 'visible-password' : 'default'}
-              textContentType={phase === 'sys:username' ? 'none' : undefined}
-              editable={!isDone && !checkingUsername}
-              returnKeyType={isMultiline ? 'default' : 'send'}
-              onSubmitEditing={isMultiline ? undefined : submit}
-              blurOnSubmit={!isMultiline}
-            />
-            <TouchableOpacity
-              style={[s.sendBtn, !canSend && s.sendBtnDisabled]}
-              onPress={submit}
-              disabled={!canSend}
-              activeOpacity={0.85}
-            >
-              {checkingUsername ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <Feather name="send" size={18} color={canSend ? COLORS.white : COLORS.zinc400} />
-              )}
-            </TouchableOpacity>
+                autoCapitalize={phase === 'sys:username' ? 'none' : 'sentences'}
+                autoCorrect={phase !== 'sys:username'}
+                autoComplete={phase === 'sys:username' ? 'off' : undefined}
+                keyboardType={phase === 'sys:username' ? 'visible-password' : 'default'}
+                textContentType={phase === 'sys:username' ? 'none' : undefined}
+                editable={!isDone && !checkingUsername}
+                returnKeyType={isMultiline ? 'default' : 'send'}
+                onSubmitEditing={isMultiline ? undefined : submit}
+                blurOnSubmit={!isMultiline}
+              />
+              <TouchableOpacity
+                style={[s.sendBtn, !canSend && s.sendBtnDisabled]}
+                onPress={submit}
+                disabled={!canSend}
+                activeOpacity={0.85}
+              >
+                {checkingUsername ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <Feather name="send" size={18} color={canSend ? COLORS.white : COLORS.zinc400} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </KeyboardAvoidingView>
@@ -759,6 +809,11 @@ const s = StyleSheet.create({
   },
   quickReplyText: { fontSize: 13, color: COLORS.violet600, fontWeight: '500' },
 
+  inputWrap: {
+    backgroundColor: COLORS.white,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.zinc100,
+  },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -767,8 +822,6 @@ const s = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.zinc100,
   },
   input: {
     flex: 1,
@@ -793,6 +846,38 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   sendBtnDisabled: { backgroundColor: COLORS.zinc200 },
+
+  progressCard: {
+    marginHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 4,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: COLORS.zinc50,
+    borderWidth: 1,
+    borderColor: COLORS.zinc100,
+  },
+  progressTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  progressLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  progressLabel: { fontSize: 14, fontWeight: '700', color: COLORS.zinc900 },
+  progressPct: { fontSize: 14, fontWeight: '700', color: COLORS.zinc900 },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.zinc200,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#f97316',
+  },
+  progressHint: { fontSize: 12, color: COLORS.zinc500, marginTop: 8 },
 });
 
 void SIZES;

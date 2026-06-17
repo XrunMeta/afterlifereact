@@ -238,10 +238,9 @@ export default function UserProfileScreen() {
     try {
       await reportUser(accessToken, userId, reason || undefined);
 
-      setProfile((p) =>
-        p ? { ...p, user: { ...p.user, isBlocked: true, isFollowing: false } } : p,
-      );
       setFollowing(userId, false);
+
+      navigation.navigate("Main", { screen: "HomeTab" } as never);
       showAlert("신고 완료", "신고가 접수됐어요. 이 사용자는 차단됐어요.");
     } catch (err) {
       console.warn("[UserProfile] report failed:", err);
@@ -338,7 +337,7 @@ export default function UserProfileScreen() {
                         <Text style={s.profileStatValue}>
                           {profile.clones.length}
                         </Text>
-                        <Text style={s.profileStatLabel}>페르소나</Text>
+                        <Text style={s.profileStatLabel}>클론</Text>
                       </View>
                     </View>
                   </View>
@@ -382,14 +381,14 @@ export default function UserProfileScreen() {
               </View>
 
               <Text style={s.sectionTitle}>
-                만든 페르소나 ({profile.clones.length})
+                만든 클론 ({profile.clones.length})
               </Text>
             </>
           }
           ListEmptyComponent={
             <View style={s.empty}>
               <Feather name="users" size={32} color={COLORS.zinc300} />
-              <Text style={s.emptyText}>아직 만든 페르소나가 없어요</Text>
+              <Text style={s.emptyText}>아직 만든 클론이 없어요</Text>
             </View>
           }
         />

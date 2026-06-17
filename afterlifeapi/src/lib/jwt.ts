@@ -10,7 +10,7 @@ type Payload = Record<string, unknown> & {
 };
 
 const ACCESS_TTL_SEC = 15 * 60;
-const REFRESH_TTL_SEC = 8 * 60 * 60;
+const REFRESH_TTL_SEC = 7 * 24 * 60 * 60;
 
 export const JWT_ISS = "afterlife-api";
 export const JWT_AUD = "session";

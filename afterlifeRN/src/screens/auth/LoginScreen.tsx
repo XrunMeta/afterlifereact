@@ -19,7 +19,13 @@ import SafeScrollView from "../../components/ui/SafeScrollView";
 import TextField from "../../components/ui/TextField";
 import Button from "../../components/ui/Button";
 import { useAuthStore } from "../../stores/authStore";
-import { AuthApiError, googleSignIn, googleCheck, getMe } from "../../api/auth";
+import {
+  AuthApiError,
+  googleSignIn,
+  googleCheck,
+  getMe,
+  requestEmailLoginCode,
+} from "../../api/auth";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
@@ -49,6 +55,20 @@ export default function LoginScreen({ navigation }: Props) {
   const hydrate = useAuthStore((s) => s.hydrate);
   const loginWithApi = useAuthStore((s) => s.loginWithApi);
   const [loggingIn, setLoggingIn] = useState(false);
+
+  const [mode, setMode] = useState<"account" | "otp">("account");
+  const [otpBusy, setOtpBusy] = useState(false);
+
+  const finishApiLogin = async (userEmail: string) => {
+    if (autoLogin) {
+      await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
+      await AsyncStorage.setItem(LAST_EMAIL_KEY, userEmail);
+    } else {
+      await AsyncStorage.removeItem(AUTO_LOGIN_PREF_KEY);
+      await AsyncStorage.removeItem(LAST_EMAIL_KEY);
+    }
+    await hydrate();
+  };
 
   useEffect(() => {
     void (async () => {
@@ -82,16 +102,18 @@ export default function LoginScreen({ navigation }: Props) {
         `[AUTH/login] user: ${user.email} autoLogin=${autoLogin ? "ON" : "OFF"}`,
       );
 
-      if (autoLogin) {
-        await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
-        await AsyncStorage.setItem(LAST_EMAIL_KEY, email);
-      } else {
-        await AsyncStorage.removeItem(AUTO_LOGIN_PREF_KEY);
-        await AsyncStorage.removeItem(LAST_EMAIL_KEY);
+      await finishApiLogin(email);
+    } catch (err) {
+
+      if (err instanceof AuthApiError && err.code === "ACCOUNT_DELETED") {
+        showAlert(t("auth.login.accountDeletedTitle"), t("auth.login.accountDeletedMessage"));
+        return;
       }
 
-      await hydrate();
-    } catch (err) {
+      if (err instanceof AuthApiError && err.code === "ACCOUNT_SUSPENDED") {
+        showAlert("계정 사용 정지", err.message || "신고 누적으로 계정 사용이 정지되었습니다.");
+        return;
+      }
       let msg = t("auth.login.loginFailed");
       if (err instanceof AuthApiError) {
         if (err.code === "ACCOUNT_LOCKED") {
@@ -109,6 +131,26 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   const setApiAuth = useAuthStore((s) => s.setApiAuth);
+  const setApiTokens = useAuthStore((s) => s.setApiTokens);
+
+  const handleSendOtp = async () => {
+    const e = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(e)) {
+      showAlert(t("common.notice"), "이메일 형식이 올바르지 않아요.");
+      return;
+    }
+    setOtpBusy(true);
+    try {
+      await requestEmailLoginCode(e);
+
+      navigation.navigate("EmailOtpLogin", { email: e, autoLogin });
+    } catch (err) {
+      const msg = err instanceof AuthApiError ? err.message : t("common.error");
+      showAlert(t("common.error"), msg);
+    } finally {
+      setOtpBusy(false);
+    }
+  };
 
   const handleSocialLogin = async (provider: string) => {
     if (provider === "google") {
@@ -137,6 +179,11 @@ export default function LoginScreen({ navigation }: Props) {
           const res = await googleSignIn({ idToken, deviceId, platform: "android" });
           const meRes = await getMe(res.accessToken);
           await setApiAuth(res.accessToken, meRes.user, { persist: autoLogin });
+
+          const googleRefreshToken = (res as { refreshToken?: string }).refreshToken;
+          if (googleRefreshToken) {
+            await setApiTokens(res.accessToken, googleRefreshToken, { persist: autoLogin });
+          }
           if (autoLogin) {
             await AsyncStorage.setItem(AUTO_LOGIN_PREF_KEY, "1");
             await AsyncStorage.setItem(LAST_EMAIL_KEY, meRes.user.email);
@@ -154,6 +201,11 @@ export default function LoginScreen({ navigation }: Props) {
         }
       } catch (err: any) {
         if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
+
+        if (err instanceof AuthApiError && err.code === "ACCOUNT_DELETED") {
+          showAlert(t("auth.login.accountDeletedTitle"), t("auth.login.accountDeletedMessage"));
+          return;
+        }
         let msg = t("auth.login.googleFailed");
         if (err instanceof AuthApiError) msg = err.message;
         else if (err?.message) msg = err.message;
@@ -178,68 +230,102 @@ export default function LoginScreen({ navigation }: Props) {
           <View style={styles.logoContainer}>
             <Image source={require("../../../assets/images/symbol.png")} style={styles.symbolImage} />
             <Image source={require("../../../assets/images/logo.png")} style={styles.logoImage} resizeMode="contain" />
-            <Text style={styles.subtitle}>{t("auth.login.title")}</Text>
           </View>
 
           {}
-          <TextField
-            value={email}
-            onChangeText={setEmail}
-            placeholder={t("auth.login.emailLabel")}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
-          />
-
-          {}
-          <TextField
-            value={password}
-            onChangeText={setPassword}
-            placeholder={t("auth.login.passwordLabel")}
-            secureTextEntry={!showPassword}
-            leftIcon={<Feather name="lock" size={20} color={COLORS.zinc900} />}
-            rightIcon={
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Feather
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={20}
-                  color={COLORS.zinc900}
-                />
-              </TouchableOpacity>
-            }
-          />
-
-          {}
-          <View style={styles.optionsRow}>
+          <View style={styles.tabRow}>
             <TouchableOpacity
-              onPress={() => setAutoLogin(!autoLogin)}
-              style={styles.checkboxRow}
+              style={[styles.tab, mode === "account" && styles.tabActive]}
+              onPress={() => setMode("account")}
             >
-              <View
-                style={[
-                  styles.checkbox,
-                  autoLogin && styles.checkboxChecked,
-                ]}
-              >
-                {autoLogin && (
-                  <Feather name="check" size={14} color={COLORS.white} />
-                )}
-              </View>
-              <Text style={styles.checkboxLabel}>{t("auth.login.autoLoginLabel")}</Text>
+              <Text style={[styles.tabText, mode === "account" && styles.tabTextActive]}>
+                계정 로그인
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
-              <Text style={styles.forgotPassword}>{t("auth.login.forgotPassword")}</Text>
+            <TouchableOpacity
+              style={[styles.tab, mode === "otp" && styles.tabActive]}
+              onPress={() => setMode("otp")}
+            >
+              <Text style={[styles.tabText, mode === "otp" && styles.tabTextActive]}>
+                이메일 OTP 로그인
+              </Text>
             </TouchableOpacity>
           </View>
 
           {}
-          <Button
-            title={loggingIn ? t("auth.login.loggingIn") : t("auth.login.loginBtn")}
-            onPress={handleLogin}
-            variant="primary"
-            disabled={loggingIn}
-            style={{ marginTop: SIZES.medium }}
-          />
+          {mode === "account" && (
+            <>
+              <TextField
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t("auth.login.emailLabel")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
+              />
+              <TextField
+                value={password}
+                onChangeText={setPassword}
+                placeholder={t("auth.login.passwordLabel")}
+                secureTextEntry={!showPassword}
+                leftIcon={<Feather name="lock" size={20} color={COLORS.zinc900} />}
+                rightIcon={
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <Feather
+                      name={showPassword ? "eye-off" : "eye"}
+                      size={20}
+                      color={COLORS.zinc900}
+                    />
+                  </TouchableOpacity>
+                }
+              />
+              <View style={styles.optionsRow}>
+                <TouchableOpacity onPress={() => setAutoLogin(!autoLogin)} style={styles.checkboxRow}>
+                  <View style={[styles.checkbox, autoLogin && styles.checkboxChecked]}>
+                    {autoLogin && <Feather name="check" size={14} color={COLORS.white} />}
+                  </View>
+                  <Text style={styles.checkboxLabel}>{t("auth.login.autoLoginLabel")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
+                  <Text style={styles.forgotPassword}>{t("auth.login.forgotPassword")}</Text>
+                </TouchableOpacity>
+              </View>
+              <Button
+                title={loggingIn ? t("auth.login.loggingIn") : t("auth.login.loginBtn")}
+                onPress={handleLogin}
+                variant="primary"
+                disabled={loggingIn}
+                style={{ marginTop: SIZES.medium }}
+              />
+            </>
+          )}
+
+          {}
+          {mode === "otp" && (
+            <>
+              <TextField
+                value={email}
+                onChangeText={setEmail}
+                placeholder={t("auth.login.emailLabel")}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                leftIcon={<Feather name="mail" size={20} color={COLORS.zinc500} />}
+              />
+              <TouchableOpacity onPress={() => setAutoLogin(!autoLogin)} style={styles.checkboxRow}>
+                <View style={[styles.checkbox, autoLogin && styles.checkboxChecked]}>
+                  {autoLogin && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+                <Text style={styles.checkboxLabel}>{t("auth.login.autoLoginLabel")}</Text>
+              </TouchableOpacity>
+              <Button
+                title={otpBusy ? "전송 중..." : "인증코드 받기"}
+                onPress={handleSendOtp}
+                variant="primary"
+                disabled={otpBusy || !email.trim()}
+                style={{ marginTop: SIZES.medium }}
+              />
+            </>
+          )}
 
           {}
           <View style={styles.divider}>
@@ -285,16 +371,40 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
   symbolImage: {
-    width: 100,
-    height: 80,
-    marginBottom: 12,
+    width: 60,
+    height: 48,
+    marginBottom: 8,
   },
   logoImage: {
-    width: 160,
-    height: 32,
+    width: 120,
+    height: 24,
+  },
+  tabRow: {
+    flexDirection: "row",
+    backgroundColor: COLORS.zinc100,
+    borderRadius: RADIUS.md,
+    padding: 4,
+    marginBottom: SIZES.small,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: RADIUS.sm,
+    alignItems: "center",
+  },
+  tabActive: {
+    backgroundColor: COLORS.white,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.zinc500,
+  },
+  tabTextActive: {
+    color: COLORS.zinc900,
   },
   subtitle: {
     marginTop: 12,
