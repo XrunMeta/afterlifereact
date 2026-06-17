@@ -31,5 +31,7 @@ export async function pickOriginalImage(): Promise<
   });
   if (r.canceled || !r.assets[0]) return null;
   const a = r.assets[0];
-  return { uri: a.uri, width: a.width ?? 0, height: a.height ?? 0 };
+
+  if (!a.width || !a.height) return null;
+  return { uri: a.uri, width: a.width, height: a.height };
 }

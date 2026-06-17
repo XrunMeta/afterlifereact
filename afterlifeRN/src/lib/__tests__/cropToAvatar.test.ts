@@ -17,10 +17,12 @@ describe("cropToAvatar", () => {
       { translateX: 0, translateY: 0, scale: 1 },
     );
     expect(uri).toBe("file:///out.jpg");
-    const [inUri, actions] = mockManipulateAsync.mock.calls[0];
+    expect(mockManipulateAsync).toHaveBeenCalledTimes(1);
+    const [inUri, actions, opts] = mockManipulateAsync.mock.calls[0];
     expect(inUri).toBe("file:///in.jpg");
     expect(actions[0]).toEqual({ crop: { originX: 250, originY: 0, width: 500, height: 1000 } });
     expect(actions[1]).toEqual({ resize: { width: 512, height: 1024 } });
+    expect(opts).toEqual({ compress: 0.9, format: "jpeg" });
     expect(AVATAR_OUT).toEqual({ width: 512, height: 1024 });
   });
 });

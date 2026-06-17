@@ -1,4 +1,5 @@
 export interface Size { width: number; height: number }
+
 export interface GestureState { translateX: number; translateY: number; scale: number }
 export interface CropRect { originX: number; originY: number; width: number; height: number }
 
@@ -9,6 +10,9 @@ export function baseCoverScale(image: Size, frame: Size): number {
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
 export function computeCropRect(image: Size, frame: Size, gesture: GestureState): CropRect {
+  if (image.width <= 0 || image.height <= 0) {
+    throw new Error("computeCropRect: image size must be positive");
+  }
   const s0 = baseCoverScale(image, frame);
   const g = Math.max(1, gesture.scale);
   const s = s0 * g;
