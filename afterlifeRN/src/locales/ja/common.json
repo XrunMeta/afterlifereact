@@ -3,6 +3,7 @@
     "back": "戻る",
     "save": "保存",
     "cancel": "キャンセル",
+    "confirm": "確認",
     "ok": "確認"
   },
   "my": {
@@ -58,6 +59,11 @@
       "en": "English",
       "zh-CN": "简体中文",
       "id": "Bahasa Indonesia"
+    }
+  },
+  "create": {
+    "image": {
+      "cropFailed": "画像の切り抜きに失敗しました。もう一度お試しください。"
     }
   },
   "feed": {

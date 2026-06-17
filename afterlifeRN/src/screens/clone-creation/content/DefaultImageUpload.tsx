@@ -1,48 +1,39 @@
 import { showAlert } from "../../../stores/dialogStore";
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, Alert, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { CloneCreationDraft } from '../../../types/clone';
 import { COLORS, RADIUS } from '../../../components/constants';
-import { pickAndCropImage } from '../../../lib/imagePicker';
+import { pickOriginalImage } from '../../../lib/imagePicker';
+import CropImageModal from './CropImageModal';
 
 interface Props {
   draft: CloneCreationDraft;
   onChange: (patch: Partial<CloneCreationDraft>) => void;
 }
 
-async function pick(
-  onChange: (p: Partial<CloneCreationDraft>) => void,
-  errorTitle: string,
-  errorMsg: string,
-) {
-  try {
-    const r = await pickAndCropImage({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [3, 4],
-      quality: 0.8,
-    });
-    if (!r.canceled && r.assets[0]) onChange({ imageFile: r.assets[0].uri });
-  } catch {
-    showAlert(errorTitle, errorMsg);
-  }
-}
-
 function Component({ draft, onChange }: Props) {
   const { t } = useTranslation();
+  const [source, setSource] = useState<{ uri: string; width: number; height: number } | null>(null);
   const guidelines = [
     t('create.image.guide1'),
     t('create.image.guide2'),
     t('create.image.guide3'),
   ];
+
+  const onPickPress = async () => {
+    try {
+      const picked = await pickOriginalImage();
+      if (picked) setSource(picked);
+    } catch {
+      showAlert(t('common.error'), t('create.image.loadFailed'));
+    }
+  };
+
   return (
     <View style={styles.wrap}>
-      <TouchableOpacity
-        style={styles.preview}
-        onPress={() => pick(onChange, t('common.error'), t('create.image.loadFailed'))}
-      >
+      <TouchableOpacity style={styles.preview} onPress={onPickPress}>
         {draft.imageFile ? (
           <Image source={{ uri: draft.imageFile }} style={styles.previewImg} />
         ) : (
@@ -58,6 +49,15 @@ function Component({ draft, onChange }: Props) {
           • {g}
         </Text>
       ))}
+      <CropImageModal
+        visible={!!source}
+        source={source}
+        onCancel={() => setSource(null)}
+        onConfirm={(uri) => {
+          onChange({ imageFile: uri });
+          setSource(null);
+        }}
+      />
     </View>
   );
 }
@@ -72,7 +72,7 @@ export default DefaultImageUpload;
 const styles = StyleSheet.create({
   wrap: { gap: 12 },
   preview: {
-    aspectRatio: 3 / 4,
+    aspectRatio: 1 / 2,
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.zinc200,
