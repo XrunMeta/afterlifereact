@@ -287,7 +287,7 @@ export default function v_8e5b58({ navigation: v_c65f5d }: Props) {
         const v_cc1380 = v_6f7c85[v_ab6401.key] ?? [];
 
         const v_9bfd73 = v_ab6401.options_include ?? [];
-        const v_2b7a6d = [...new Set([...v_9bfd73, ...v_cc1380])].slice(0, 3);
+        const v_2b7a6d = [...new Set([...v_9bfd73, ...v_cc1380])].slice(0, 5);
         v_3d694a = v_2b7a6d.length > 0 ? [...v_2b7a6d, '직접 입력'] : ['직접 입력'];
       }
       if (v_ab6401.type === 'fixed_choice' && (v_ab6401.optional !== false)) {
