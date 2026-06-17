@@ -287,7 +287,7 @@ export default function PersonaAssistantScreen({ navigation }: Props) {
         const cands = candidates[q.key] ?? [];
 
         const forced = q.options_include ?? [];
-        const merged = [...new Set([...forced, ...cands])].slice(0, 3);
+        const merged = [...new Set([...forced, ...cands])].slice(0, 5);
         buttons = merged.length > 0 ? [...merged, '직접 입력'] : ['직접 입력'];
       }
       if (q.type === 'fixed_choice' && (q.optional !== false)) {
