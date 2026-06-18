@@ -157,6 +157,8 @@ export function v_3d8d48(v_328259): v_b01667 {
     const v_759436 = () => v_bba900.current === v_775074;
     v_3a7d09(null);
     v_1fa668('requesting');
+    v_8c8005(null);   
+    v_2d5539.current = 0;    
 
     const v_12cd99 = v_84b93d.createPeerConnection({ iceServers: v_506dd1 });
     v_f98743.current = v_12cd99;
