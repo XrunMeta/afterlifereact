@@ -259,6 +259,34 @@ describe('greet/speak/lastSignal', () => {
   });
 });
 
+it('greet(): dc가 connecting 상태면 open 이벤트 후에 send 호출', async () => {
+  v_897bd0();
+  const v_32dc97 = v_9051ce();
+  v_32dc97.readyState = 'connecting'; 
+  const v_12cd99 = v_e6273b(v_32dc97);
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+  await v_be73a0(async () => { await v_43c42e.current.start(); });
+
+  let v_6172f3 = false;
+  v_be73a0(() => {
+    v_43c42e.current.greet!().then(() => { v_6172f3 = true; });
+  });
+
+  expect(v_32dc97.send).not.toHaveBeenCalled();
+
+  await v_be73a0(async () => {
+    v_32dc97.readyState = 'open';
+    v_32dc97.emit('open');
+  });
+
+  await v_81e49f(() => expect(v_6172f3).toBe(true));
+  expect(v_32dc97.send).toHaveBeenCalledTimes(1);
+  const v_f966e3 = JSON.parse(v_32dc97.sent[0]);
+  expect(v_f966e3.type).toBe('greet');
+  expect(typeof v_f966e3.seq).toBe('number');
+});
+
 it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {
 
   v_897bd0();
