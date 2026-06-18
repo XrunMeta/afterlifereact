@@ -99,7 +99,13 @@ def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame) -> int:
         ji = min(i, nj - 1)
         c = float(cdl[min(i, len(cdl) - 1)]) if len(cdl) else lip_closed
         _ce_i = ce[min(i, len(ce) - 1)] if ce else None
-        frame = eng.render(ml[ji], _ce_i, c, first_frame=(i == 0))
+        # T-074: src_img/src_info 명시 전달 — engine.self.src_img(직전 load_source) 잔존으로
+        # 인한 클론간 영상 누수 방지. _sources_cache HIT 시 load_source 가 스킵돼도
+        # 올바른 클론 source 로 렌더(_stream_blend 와 동일 패턴).
+        frame = eng.render(
+            ml[ji], _ce_i, c, first_frame=(i == 0),
+            src_img=open_s["src_img"], src_info=open_s["src_info"],
+        )
         if frame is not None:
             on_frame(np.ascontiguousarray(frame))
             count += 1
