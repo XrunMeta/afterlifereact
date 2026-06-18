@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
-import { useSpeechInput } from '../../src/realtime/useSpeechInput';
+import { useSpeechInput, STT_WATCHDOG_MS, STALLED_DEBOUNCE_MS } from '../../src/realtime/useSpeechInput';
 
 function makeMockEngine() {
   const listeners: Record<string, Array<(p?: any) => void>> = {};
@@ -186,6 +186,257 @@ it('engine 재등록(리렌더로 effect 재실행) 중에도 진행 중 침묵 
     jest.advanceTimersByTime(SILENCE + 20);
   });
   expect(onFinalResult).toHaveBeenCalledWith('안녕하세요');
+});
+
+it('startListening 호출 후 start 이벤트 emit 전에는 listening=false', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+
+  await act(async () => {
+    await result.current.startListening();
+  });
+
+  expect(result.current.listening).toBe(false);
+});
+
+it('startListening 후 start 이벤트 emit → listening=true', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  expect(result.current.listening).toBe(false);
+  act(() => {
+    engine.emit('start');
+  });
+  expect(result.current.listening).toBe(true);
+});
+
+it('startListening 후 워치독 만료(기본 1500ms)까지 start 이벤트 없으면 listening=false 유지', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+
+  act(() => { jest.advanceTimersByTime(1400); });
+  expect(result.current.listening).toBe(false);
+
+  act(() => { jest.advanceTimersByTime(200); });
+  expect(result.current.listening).toBe(false);
+});
+
+it('startListening 후 result 이벤트 도착 → listening=true(워치독 해제)', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  act(() => {
+    engine.emit('result', { results: [{ transcript: '안녕' }], isFinal: false });
+  });
+  expect(result.current.listening).toBe(true);
+});
+
+it('error 이벤트 → listening=false', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  act(() => {
+    engine.emit('start');
+  });
+  expect(result.current.listening).toBe(true);
+  act(() => {
+    engine.emit('error', { message: 'network_error' });
+  });
+  expect(result.current.listening).toBe(false);
+});
+
+it('end 자동재시작: start 이벤트 의존, 워치독 재무장', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+
+  act(() => { engine.emit('start'); });
+  expect(result.current.listening).toBe(true);
+
+  act(() => { engine.emit('end'); });
+  expect(result.current.listening).toBe(false);
+
+  act(() => { jest.advanceTimersByTime(400); });
+
+  expect(result.current.listening).toBe(false);
+
+  act(() => { engine.emit('start'); });
+  expect(result.current.listening).toBe(true);
+});
+
+it('[B-1] startListening 진행 중(start 이벤트 미도착) 재호출 → engine.start 1회만', async () => {
+
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+
+  await act(async () => {
+    await result.current.startListening();
+  });
+  await act(async () => {
+    await result.current.startListening();
+  });
+
+  expect(engine.start).toHaveBeenCalledTimes(1);
+});
+
+it('[B-1] startListening 후 start 이벤트 도착(확정) → 이후 재호출 허용', async () => {
+
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+
+  act(() => { engine.emit('start'); });
+  expect(result.current.listening).toBe(true);
+
+  act(() => { result.current.stopListening(); });
+  await act(async () => {
+    await result.current.startListening();
+  });
+
+  expect(engine.start).toHaveBeenCalledTimes(2);
+});
+
+it('[B-1] startListening 후 워치독 만료(확정 실패) → 이후 재호출 허용', async () => {
+
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  expect(engine.start).toHaveBeenCalledTimes(1);
+
+  act(() => { jest.advanceTimersByTime(STT_WATCHDOG_MS + 10); });
+
+  await act(async () => {
+    await result.current.startListening();
+  });
+  expect(engine.start).toHaveBeenCalledTimes(2);
+});
+
+it('[I-1] end 자동재시작 갭(listening=false 짧음) → stalled=false 유지(sttActive)', async () => {
+
+  const engine = makeMockEngine();
+  const { result } = renderHook(() =>
+    useSpeechInput({ engine, silenceMs: SILENCE })
+  );
+  await act(async () => {
+    await result.current.startListening();
+  });
+
+  act(() => { engine.emit('start'); });
+  expect(result.current.listening).toBe(true);
+  expect(result.current.listeningDebounced).toBe(true);
+
+  act(() => { engine.emit('end'); });
+  expect(result.current.listening).toBe(false);
+
+  act(() => { jest.advanceTimersByTime(1000); });
+  expect(result.current.listeningDebounced).toBe(true);
+});
+
+it('[I-1] STT 장시간 미기동(stalled) → STALLED_DEBOUNCE_MS 경과 후 listeningDebounced=false', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() =>
+    useSpeechInput({ engine, silenceMs: SILENCE })
+  );
+  await act(async () => {
+    await result.current.startListening();
+  });
+  act(() => { engine.emit('start'); });
+  expect(result.current.listeningDebounced).toBe(true);
+
+  act(() => { engine.emit('end'); });
+
+  act(() => { jest.advanceTimersByTime(STALLED_DEBOUNCE_MS + 100); });
+  expect(result.current.listeningDebounced).toBe(false);
+});
+
+it('[MAJOR-1] STT_WATCHDOG_MS-1 시점에 start 없으면 listening=false 유지', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  act(() => { jest.advanceTimersByTime(STT_WATCHDOG_MS - 1); });
+  expect(result.current.listening).toBe(false);
+});
+
+it('[MAJOR-1] STT_WATCHDOG_MS 정확히 만료 → listening=false 유지', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  act(() => { jest.advanceTimersByTime(STT_WATCHDOG_MS); });
+  expect(result.current.listening).toBe(false);
+});
+
+it('[MAJOR-1] STT_WATCHDOG_MS 만료 전 start 도착 → listening=true', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+
+  act(() => {
+    jest.advanceTimersByTime(STT_WATCHDOG_MS - 1);
+    engine.emit('start');
+  });
+  expect(result.current.listening).toBe(true);
+
+  act(() => { jest.advanceTimersByTime(10); });
+  expect(result.current.listening).toBe(true);
+});
+
+it('[MAJOR-2] iOS: start 이벤트 없이 result만 도착 → listening=true(워치독 해제)', async () => {
+
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  expect(result.current.listening).toBe(false);
+
+  act(() => {
+    engine.emit('result', { results: [{ transcript: '안녕' }], isFinal: false });
+  });
+
+  expect(result.current.listening).toBe(true);
+
+  act(() => { jest.advanceTimersByTime(STT_WATCHDOG_MS + 100); });
+  expect(result.current.listening).toBe(true);
+});
+
+it('[MINOR-1] end 재시작 후 start 미도착(워치독 만료) → listening=false 유지', async () => {
+  const engine = makeMockEngine();
+  const { result } = renderHook(() => useSpeechInput({ engine, silenceMs: SILENCE }));
+  await act(async () => {
+    await result.current.startListening();
+  });
+  act(() => { engine.emit('start'); });
+  expect(result.current.listening).toBe(true);
+
+  act(() => { engine.emit('end'); });
+  act(() => { jest.advanceTimersByTime(400); });
+
+  act(() => { jest.advanceTimersByTime(STT_WATCHDOG_MS + 10); });
+  expect(result.current.listening).toBe(false);
 });
 
 it('전송 후 누적 리셋 → 다음 발화는 이전 텍스트 안 섞임', async () => {

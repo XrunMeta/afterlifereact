@@ -176,6 +176,7 @@ export default function CallScreen({ route, navigation }: Props) {
     cancelConfirm,
     transcript,
     interimTranscript,
+    sttActive,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
@@ -533,7 +534,7 @@ export default function CallScreen({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {dialingDone ? <CallStatusGlow phase={phase} /> : null}
+      {dialingDone ? <CallStatusGlow phase={phase} sttActive={sttActive} /> : null}
 
       {
 
