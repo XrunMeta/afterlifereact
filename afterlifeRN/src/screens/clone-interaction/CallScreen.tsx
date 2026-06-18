@@ -33,6 +33,7 @@ import { v_4e7b87, v_31967f, v_865d38 } from "../../api/persons";
 import v_c0caa9 from "../../components/common/TermsModal";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
 import { v_c6d1f4 } from "../../config/callRoute";
+import { v_a6928f, v_0e2cb4, v_71f13f } from "../../config/greeting";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
 import { v_1980fb } from "../../components/call/DialingScreen";
 import { v_8bbe5d } from "../../components/call/CallStatusGlow";
@@ -168,7 +169,12 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     say: v_3e2c87,
     getStatsReport: v_791152,
     notifySpeechEnd: v_811f30,
+    greet: v_009e58,
+    speak: v_a1d9db,
+    lastSignal: v_88c591,
   } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
+
+  const v_d7cf17 = v_a6928f && typeof v_009e58 === 'function';
 
   const {
     phase: v_ab4803,
@@ -182,7 +188,18 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     say: v_3e2c87,
     getStatsReport: v_791152,
     notifySpeechEnd: v_811f30,
+    greeting: v_d7cf17,
+    greet: v_009e58,
+    speak: v_a1d9db,
+    lastSignal: v_88c591,
+    greetTimeoutMs: v_71f13f,
+    fallbackText: v_0e2cb4,
   });
+
+  const [v_7a419e, v_717e64] = v_5ab095(false);
+  v_c4deb2(() => {
+    if (v_88c591?.type === 'speech_start') v_717e64(true);
+  }, [v_88c591]);
 
   v_c4deb2(() => {
     if (!v_2ca7e0) return;
@@ -522,9 +539,10 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           liveState={v_6cc918}
           personaName={v_dfb220}
           personaImage={typeof v_0e38ad === "string" ? v_0e38ad : ""}
+          greetingStarted={v_d7cf17 ? v_7a419e : undefined}
           onConnected={() => v_82a4b3(true)}
           onCancel={async () => { await v_cd8b64(); v_c65f5d.goBack(); }}
-          onRetry={() => { void v_223067(); }}
+          onRetry={() => { v_717e64(false); void v_223067(); }}
         />
       )}
 

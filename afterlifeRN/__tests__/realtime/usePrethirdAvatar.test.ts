@@ -3,11 +3,14 @@ import { v_3d8d48 } from '../../src/realtime/usePrethirdAvatar';
 
 function v_9051ce() {
   const v_9fde29 = {};
+  const v_f966e3 = [];
   return {
     readyState: 'open',
-    send: jest.fn(),
+    sent: v_f966e3,
+    send: jest.fn((v_9390e8) => { v_f966e3.push(v_9390e8); }),
     addEventListener: (v_1d299c, v_16dbdb) => { (v_9fde29[v_1d299c] ||= []).push(v_16dbdb); },
     emit: (v_1d299c, v_e2a85c) => (v_9fde29[v_1d299c] || []).forEach((v_16dbdb) => v_16dbdb(v_e2a85c)),
+    emitMessage: (v_9390e8) => (v_9fde29['message'] || []).forEach((v_16dbdb) => v_16dbdb({ data: v_9390e8 })),
   };
 }
 
@@ -76,7 +79,8 @@ it('say: datachannel 로 {type:"say"} 전송', async () => {
     v_3d8d48({ cloneId: 7, accessToken: 't', deps: v_84b93d(v_12cd99) as never }));
   await v_be73a0(async () => { await v_43c42e.current.start(); });
   await v_be73a0(async () => { await v_43c42e.current.say('안녕'); });
-  expect(v_32dc97.send).toHaveBeenCalledWith(JSON.stringify({ type: 'say', text: '안녕' }));
+  expect(v_32dc97.send).toHaveBeenCalledWith(expect.stringContaining('"type":"say"'));
+  expect(v_32dc97.send).toHaveBeenCalledWith(expect.stringContaining('"text":"안녕"'));
 });
 
 it('start: ontrack video → remoteStream 세팅', async () => {
@@ -195,6 +199,92 @@ it('start: /offer body에 access_token 포함', async () => {
   await v_be73a0(async () => { await v_43c42e.current.start(); });
   const [, v_00cfc6] = (global.fetch as jest.Mock).mock.calls[0];
   expect(JSON.parse(v_00cfc6.body)).toMatchObject({ clone_id: 7, access_token: 'tok-123' });
+});
+
+function v_1d3fbb() {
+  const v_32dc97 = v_9051ce();
+  const v_12cd99 = v_e6273b(v_32dc97);
+  return { dc: v_32dc97, pc: v_12cd99 };
+}
+
+function v_3a122d(pc: ReturnType<typeof v_e6273b>) {
+  return { createPeerConnection: jest.fn().mockReturnValue(v_12cd99), audioSession: { activate: jest.fn(), deactivate: jest.fn() } };
+}
+
+describe('greet/speak/lastSignal', () => {
+  beforeEach(() => { v_897bd0(); });
+
+  it('greet() 는 datachannel 로 {type:"greet", seq} 전송', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    await v_be73a0(async () => { await v_43c42e.current.greet!(); });
+    const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
+    expect(v_f966e3[0].type).toBe('greet');
+    expect(typeof v_f966e3[0].seq).toBe('number');
+  });
+
+  it('speak(text) 는 {type:"speak", text, seq} 전송', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    await v_be73a0(async () => { await v_43c42e.current.speak!('여보세요?'); });
+    const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
+    expect(v_f966e3[0]).toMatchObject({ type: 'speak', text: '여보세요?' });
+    expect(typeof v_f966e3[0].seq).toBe('number');
+  });
+
+  it('datachannel speech_start 수신 → lastSignal 갱신', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'speech_start', seq: 5 })); });
+    expect(v_43c42e.current.lastSignal?.type).toBe('speech_start');
+    expect(v_43c42e.current.lastSignal?.seq).toBe(5);
+  });
+
+  it('연속 동일 타입 신호도 ts 로 구분(새 객체)', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'speech_end', seq: 1 })); });
+    const v_ea719c = v_43c42e.current.lastSignal;
+    v_be73a0(() => { v_32dc97.emitMessage(JSON.stringify({ type: 'speech_end', seq: 2 })); });
+    expect(v_43c42e.current.lastSignal).not.toBe(v_ea719c);
+    expect(v_43c42e.current.lastSignal?.seq).toBe(2);
+  });
+});
+
+it('greet(): dc가 connecting 상태면 open 이벤트 후에 send 호출', async () => {
+  v_897bd0();
+  const v_32dc97 = v_9051ce();
+  v_32dc97.readyState = 'connecting'; 
+  const v_12cd99 = v_e6273b(v_32dc97);
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+  await v_be73a0(async () => { await v_43c42e.current.start(); });
+
+  let v_6172f3 = false;
+  v_be73a0(() => {
+    v_43c42e.current.greet!().then(() => { v_6172f3 = true; });
+  });
+
+  expect(v_32dc97.send).not.toHaveBeenCalled();
+
+  await v_be73a0(async () => {
+    v_32dc97.readyState = 'open';
+    v_32dc97.emit('open');
+  });
+
+  await v_81e49f(() => expect(v_6172f3).toBe(true));
+  expect(v_32dc97.send).toHaveBeenCalledTimes(1);
+  const v_f966e3 = JSON.parse(v_32dc97.sent[0]);
+  expect(v_f966e3.type).toBe('greet');
+  expect(typeof v_f966e3.seq).toBe('number');
 });
 
 it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {
