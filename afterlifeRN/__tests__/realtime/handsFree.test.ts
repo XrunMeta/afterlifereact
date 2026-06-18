@@ -141,3 +141,62 @@ it('MIC_OFF(confirming): paused + pendingText 폐기', () => {
   expect(v_cb35cb.state).toEqual({ phase: 'paused', micOn: false, pendingText: '' });
   expect(v_cb35cb.effects).toEqual(expect.arrayContaining(['STOP_STT', 'STOP_DETECTOR']));
 });
+
+describe('greeting phase', () => {
+  it('CALL_LIVE{greeting:true} → greeting + GREET effect', () => {
+    const v_cb35cb = v_6920f0(v_3075fa(), { type: 'CALL_LIVE', greeting: true });
+    expect(v_cb35cb.state.phase).toBe('greeting');
+    expect(v_cb35cb.effects).toEqual(['GREET']);
+  });
+
+  it('CALL_LIVE{greeting:false} → 기존 listening + START_STT', () => {
+    const v_cb35cb = v_6920f0(v_3075fa(), { type: 'CALL_LIVE', greeting: false });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['START_STT']);
+  });
+
+  it('CALL_LIVE (greeting 미지정) → 기존 listening (무회귀)', () => {
+    const v_cb35cb = v_6920f0(v_3075fa(), { type: 'CALL_LIVE' });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['START_STT']);
+  });
+
+  it('greeting + SPEECH_START → speaking', () => {
+    const v_206b88 = { phase: 'greeting' as const, micOn: true, pendingText: '' };
+    const v_cb35cb = v_6920f0(v_206b88, { type: 'SPEECH_START' });
+    expect(v_cb35cb.state.phase).toBe('speaking');
+    expect(v_cb35cb.effects).toEqual([]);
+  });
+
+  it('speaking + RESPONSE_END → listening + START_STT (인사 종료)', () => {
+    const v_fd5f43 = { phase: 'speaking' as const, micOn: true, pendingText: '' };
+    const v_cb35cb = v_6920f0(v_fd5f43, { type: 'RESPONSE_END' });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('greeting + GREET_TIMEOUT → greeting 유지 + SPEAK_FALLBACK', () => {
+    const v_206b88 = { phase: 'greeting' as const, micOn: true, pendingText: '' };
+    const v_cb35cb = v_6920f0(v_206b88, { type: 'GREET_TIMEOUT' });
+    expect(v_cb35cb.state.phase).toBe('greeting');
+    expect(v_cb35cb.effects).toEqual(['SPEAK_FALLBACK']);
+  });
+
+  it('greeting + RESPONSE_END(방어: start 없이 end) → listening', () => {
+    const v_206b88 = { phase: 'greeting' as const, micOn: true, pendingText: '' };
+    const v_cb35cb = v_6920f0(v_206b88, { type: 'RESPONSE_END' });
+    expect(v_cb35cb.state.phase).toBe('listening');
+    expect(v_cb35cb.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('SPEECH_START는 greeting 외엔 무시(중복 인사 방지)', () => {
+    const v_b48d3d = { phase: 'speaking' as const, micOn: true, pendingText: '' };
+    expect(v_6920f0(v_b48d3d, { type: 'SPEECH_START' }).state.phase).toBe('speaking');
+  });
+
+  it('greeting + GREET_TIMEOUT, micOff면 paused로 빠지지 않고 greeting 유지', () => {
+    const v_206b88 = { phase: 'greeting' as const, micOn: false, pendingText: '' };
+    const v_cb35cb = v_6920f0(v_206b88, { type: 'GREET_TIMEOUT' });
+    expect(v_cb35cb.state.phase).toBe('greeting');
+  });
+});
