@@ -3,11 +3,14 @@ import { usePrethirdAvatar } from '../../src/realtime/usePrethirdAvatar';
 
 function makeMockDc() {
   const listeners: Record<string, Array<(p?: unknown) => void>> = {};
+  const sent: string[] = [];
   return {
     readyState: 'open',
-    send: jest.fn(),
+    sent,
+    send: jest.fn((data: string) => { sent.push(data); }),
     addEventListener: (ev: string, cb: (p?: unknown) => void) => { (listeners[ev] ||= []).push(cb); },
     emit: (ev: string, p?: unknown) => (listeners[ev] || []).forEach((cb) => cb(p)),
+    emitMessage: (data: string) => (listeners['message'] || []).forEach((cb) => cb({ data })),
   };
 }
 
@@ -76,7 +79,8 @@ it('say: datachannel 로 {type:"say"} 전송', async () => {
     usePrethirdAvatar({ cloneId: 7, accessToken: 't', deps: deps(pc) as never }));
   await act(async () => { await result.current.start(); });
   await act(async () => { await result.current.say('안녕'); });
-  expect(dc.send).toHaveBeenCalledWith(JSON.stringify({ type: 'say', text: '안녕' }));
+  expect(dc.send).toHaveBeenCalledWith(expect.stringContaining('"type":"say"'));
+  expect(dc.send).toHaveBeenCalledWith(expect.stringContaining('"text":"안녕"'));
 });
 
 it('start: ontrack video → remoteStream 세팅', async () => {
@@ -195,6 +199,64 @@ it('start: /offer body에 access_token 포함', async () => {
   await act(async () => { await result.current.start(); });
   const [, init] = (global.fetch as jest.Mock).mock.calls[0];
   expect(JSON.parse(init.body)).toMatchObject({ clone_id: 7, access_token: 'tok-123' });
+});
+
+function makeConnectedPc() {
+  const dc = makeMockDc();
+  const pc = makeMockPc(dc);
+  return { dc, pc };
+}
+
+function depsFor(pc: ReturnType<typeof makeMockPc>) {
+  return { createPeerConnection: jest.fn().mockReturnValue(pc), audioSession: { activate: jest.fn(), deactivate: jest.fn() } };
+}
+
+describe('greet/speak/lastSignal', () => {
+  beforeEach(() => { mockOfferFetch(); });
+
+  it('greet() 는 datachannel 로 {type:"greet", seq} 전송', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    await act(async () => { await result.current.greet!(); });
+    const sent = dc.sent.map((s: string) => JSON.parse(s));
+    expect(sent[0].type).toBe('greet');
+    expect(typeof sent[0].seq).toBe('number');
+  });
+
+  it('speak(text) 는 {type:"speak", text, seq} 전송', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    await act(async () => { await result.current.speak!('여보세요?'); });
+    const sent = dc.sent.map((s: string) => JSON.parse(s));
+    expect(sent[0]).toMatchObject({ type: 'speak', text: '여보세요?' });
+    expect(typeof sent[0].seq).toBe('number');
+  });
+
+  it('datachannel speech_start 수신 → lastSignal 갱신', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_start', seq: 5 })); });
+    expect(result.current.lastSignal?.type).toBe('speech_start');
+    expect(result.current.lastSignal?.seq).toBe(5);
+  });
+
+  it('연속 동일 타입 신호도 ts 로 구분(새 객체)', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_end', seq: 1 })); });
+    const first = result.current.lastSignal;
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_end', seq: 2 })); });
+    expect(result.current.lastSignal).not.toBe(first);
+    expect(result.current.lastSignal?.seq).toBe(2);
+  });
 });
 
 it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {
