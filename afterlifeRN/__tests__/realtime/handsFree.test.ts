@@ -141,3 +141,62 @@ it('MIC_OFF(confirming): paused + pendingText 폐기', () => {
   expect(r.state).toEqual({ phase: 'paused', micOn: false, pendingText: '' });
   expect(r.effects).toEqual(expect.arrayContaining(['STOP_STT', 'STOP_DETECTOR']));
 });
+
+describe('greeting phase', () => {
+  it('CALL_LIVE{greeting:true} → greeting + GREET effect', () => {
+    const r = handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE', greeting: true });
+    expect(r.state.phase).toBe('greeting');
+    expect(r.effects).toEqual(['GREET']);
+  });
+
+  it('CALL_LIVE{greeting:false} → 기존 listening + START_STT', () => {
+    const r = handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE', greeting: false });
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual(['START_STT']);
+  });
+
+  it('CALL_LIVE (greeting 미지정) → 기존 listening (무회귀)', () => {
+    const r = handsFreeReducer(initHandsFreeState(), { type: 'CALL_LIVE' });
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual(['START_STT']);
+  });
+
+  it('greeting + SPEECH_START → speaking', () => {
+    const g = { phase: 'greeting' as const, micOn: true, pendingText: '' };
+    const r = handsFreeReducer(g, { type: 'SPEECH_START' });
+    expect(r.state.phase).toBe('speaking');
+    expect(r.effects).toEqual([]);
+  });
+
+  it('speaking + RESPONSE_END → listening + START_STT (인사 종료)', () => {
+    const s = { phase: 'speaking' as const, micOn: true, pendingText: '' };
+    const r = handsFreeReducer(s, { type: 'RESPONSE_END' });
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('greeting + GREET_TIMEOUT → greeting 유지 + SPEAK_FALLBACK', () => {
+    const g = { phase: 'greeting' as const, micOn: true, pendingText: '' };
+    const r = handsFreeReducer(g, { type: 'GREET_TIMEOUT' });
+    expect(r.state.phase).toBe('greeting');
+    expect(r.effects).toEqual(['SPEAK_FALLBACK']);
+  });
+
+  it('greeting + RESPONSE_END(방어: start 없이 end) → listening', () => {
+    const g = { phase: 'greeting' as const, micOn: true, pendingText: '' };
+    const r = handsFreeReducer(g, { type: 'RESPONSE_END' });
+    expect(r.state.phase).toBe('listening');
+    expect(r.effects).toEqual(['STOP_DETECTOR', 'START_STT']);
+  });
+
+  it('SPEECH_START는 greeting 외엔 무시(중복 인사 방지)', () => {
+    const sp = { phase: 'speaking' as const, micOn: true, pendingText: '' };
+    expect(handsFreeReducer(sp, { type: 'SPEECH_START' }).state.phase).toBe('speaking');
+  });
+
+  it('greeting + GREET_TIMEOUT, micOff면 paused로 빠지지 않고 greeting 유지', () => {
+    const g = { phase: 'greeting' as const, micOn: false, pendingText: '' };
+    const r = handsFreeReducer(g, { type: 'GREET_TIMEOUT' });
+    expect(r.state.phase).toBe('greeting');
+  });
+});

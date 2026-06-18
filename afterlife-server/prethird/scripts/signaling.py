@@ -90,68 +90,83 @@ def _make_dc_handler(sess, channel):
             data = _json.loads(msg)
         except (ValueError, TypeError):
             return
-        if data.get("type") in ("say", "speak") and sess.pipeline is not None:
-            text = data.get("text", "")
-            if not text:
-                return
-            mode = data["type"]
-            seq = data.get("seq")   # RN이 부여(없으면 None), echo 전용
-            sess.set_state("speaking")
+        mtype = data.get("type")
+        if mtype not in ("say", "speak", "greet") or sess.pipeline is None:
+            return
+        # 프로세스 시작 후에도 env 토글 평가, 테스트 monkeypatch 호환
+        if mtype == "greet" and os.environ.get("PRETHIRD_GREETING_ENABLED", "1") != "1":
+            return  # 토글 off — 인사 무시(RN 타임아웃 폴백이 처리)
+        text = data.get("text", "")
+        if mtype in ("say", "speak") and not text:
+            return  # say/speak 는 텍스트 필수. greet 는 텍스트 불필요.
+        seq = data.get("seq")   # RN이 부여(없으면 None), echo 전용
+        sess.set_state("speaking")
 
-            # 턴 기록 시작 — input.txt 즉시 기록. recorder 없으면 None.
-            _rec = getattr(sess, "recorder", None)
-            turn = _rec.begin_turn(mode, text, seq) if _rec is not None else None
+        # 턴 기록 시작 — input.txt 즉시 기록. recorder 없으면 None.
+        _rec = getattr(sess, "recorder", None)
+        turn = _rec.begin_turn(mtype, text, seq) if _rec is not None else None
 
-            async def _run(mode=mode, text=text, seq=seq, turn=turn):
-                _se_present = bool(getattr(sess, "se_path", None))
-                _offer_t = getattr(sess, "offer_time", None)
-                _t0 = time.time()
+        def _emit_speech_start(seq=seq):
+            # 첫 오디오 송출 시점 — "클론이 전화를 받았다" 신호(연결 중 화면 종료 트리거).
+            if channel is not None and getattr(channel, "readyState", None) == "open":
                 try:
-                    if mode == "speak":
-                        await sess.pipeline.speak(text, turn=turn)
-                    else:
-                        await sess.pipeline.say(text, turn=turn)
-                except asyncio.CancelledError:
-                    log.warning("session %s %s cancelled", sess.session_id, mode)
-                    raise
-                except Exception as e:
-                    log.warning("session %s %s failed: %s", sess.session_id, mode, e)
-                finally:
-                    sess.set_state("idle")
-                    if turn is not None:
-                        offer_ms = int((_t0 - _offer_t) * 1000) if _offer_t else None
-                        try:
-                            turn.finalize(
-                                mode=mode, seq=seq, se_present=_se_present,
-                                offer_to_say_ms=offer_ms,
-                                turn_ms=int((time.time() - _t0) * 1000),
-                            )
-                        except Exception as exc:
-                            log.warning("session %s finalize failed: %s", sess.session_id, exc)
-                    # Phase B 자동학습: say 턴만, fire-and-forget(통화 무영향)
-                    if mode == "say":
-                        from learn_writeback import learn_writeback
-                        _clone_reply = "".join(getattr(turn, "_tokens", [])) if turn is not None else ""
-                        asyncio.ensure_future(learn_writeback(
-                            getattr(sess, "clone_id", None),
-                            getattr(sess, "user_id", None),
-                            getattr(sess, "session_id", None),
-                            text, _clone_reply,
-                        ))
-                    # 발화 push 완료 → 클라에 종료 신호(say 성공·실패 모두 전송).
-                    # sess.datachannel 재참조 금지 — stop()+start() 재연결로 채널이
-                    # 교체되면 엉뚱한 새 채널로 전송될 수 있다. 이 say를 받은
-                    # 클로저 인자 channel(캡처 시점 고정)로만 전송한다.
-                    if channel is not None and getattr(channel, "readyState", None) == "open":
-                        try:
-                            channel.send(_json.dumps({"type": "speech_end", "seq": seq}))
-                        except Exception as exc:
-                            log.warning(
-                                "session %s speech_end send failed: %s",
-                                sess.session_id, exc,
-                            )
+                    channel.send(_json.dumps({"type": "speech_start", "seq": seq}))
+                except Exception as exc:
+                    log.warning("session %s speech_start send failed: %s",
+                                sess.session_id, exc)
 
-            asyncio.ensure_future(_run())
+        async def _run(mode=mtype, text=text, seq=seq, turn=turn):
+            _se_present = bool(getattr(sess, "se_path", None))
+            _offer_t = getattr(sess, "offer_time", None)
+            _t0 = time.time()
+            try:
+                if mode == "speak":
+                    await sess.pipeline.speak(text, turn=turn, on_first_audio=_emit_speech_start)
+                elif mode == "greet":
+                    await sess.pipeline.greet(turn=turn, on_first_audio=_emit_speech_start)
+                else:
+                    await sess.pipeline.say(text, turn=turn, on_first_audio=_emit_speech_start)
+            except asyncio.CancelledError:
+                log.warning("session %s %s cancelled", sess.session_id, mode)
+                raise
+            except Exception as e:
+                log.warning("session %s %s failed: %s", sess.session_id, mode, e)
+            finally:
+                sess.set_state("idle")
+                if turn is not None:
+                    offer_ms = int((_t0 - _offer_t) * 1000) if _offer_t else None
+                    try:
+                        turn.finalize(
+                            mode=mode, seq=seq, se_present=_se_present,
+                            offer_to_say_ms=offer_ms,
+                            turn_ms=int((time.time() - _t0) * 1000),
+                        )
+                    except Exception as exc:
+                        log.warning("session %s finalize failed: %s", sess.session_id, exc)
+                # Phase B 자동학습: say 턴만, fire-and-forget(통화 무영향)
+                if mode == "say":
+                    from learn_writeback import learn_writeback
+                    _clone_reply = "".join(getattr(turn, "_tokens", [])) if turn is not None else ""
+                    asyncio.ensure_future(learn_writeback(
+                        getattr(sess, "clone_id", None),
+                        getattr(sess, "user_id", None),
+                        getattr(sess, "session_id", None),
+                        text, _clone_reply,
+                    ))
+                # 발화 push 완료 → 클라에 종료 신호(say/speak/greet 성공·실패 모두 전송).
+                # sess.datachannel 재참조 금지 — stop()+start() 재연결로 채널이
+                # 교체되면 엉뚱한 새 채널로 전송될 수 있다. 이 메시지를 받은
+                # 클로저 인자 channel(캡처 시점 고정)로만 전송한다.
+                if channel is not None and getattr(channel, "readyState", None) == "open":
+                    try:
+                        channel.send(_json.dumps({"type": "speech_end", "seq": seq}))
+                    except Exception as exc:
+                        log.warning(
+                            "session %s speech_end send failed: %s",
+                            sess.session_id, exc,
+                        )
+
+        asyncio.ensure_future(_run())
 
     return _on_msg
 

@@ -7,6 +7,12 @@ export type LiveAvatarState =
 
 export type CallPhase = 'idle' | 'listening' | 'sending' | 'speaking';
 
+export interface SpeechSignal {
+  type: 'speech_start' | 'speech_end';
+  seq?: number;
+  ts: number;
+}
+
 export interface AvatarCall {
   state: LiveAvatarState;
   remoteStream: MediaStream | null;
@@ -17,6 +23,11 @@ export interface AvatarCall {
   say: (text: string) => Promise<void>;
   notifySpeechEnd: () => void;
   getStatsReport: () => Promise<Iterable<[string, Record<string, unknown>]>> | null;
+
+  greet?: () => Promise<void>;
+  speak?: (text: string) => Promise<void>;
+
+  lastSignal?: SpeechSignal | null;
 }
 
 export type UseAvatarCall = (opts: { cloneId: number; accessToken: string }) => AvatarCall;

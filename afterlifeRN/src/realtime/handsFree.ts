@@ -1,7 +1,7 @@
 
 
 export type HandsFreePhase =
-  | 'idle' | 'listening' | 'confirming' | 'sending' | 'speaking' | 'paused';
+  | 'idle' | 'greeting' | 'listening' | 'confirming' | 'sending' | 'speaking' | 'paused';
 
 export interface HandsFreeState {
   phase: HandsFreePhase;
@@ -11,7 +11,9 @@ export interface HandsFreeState {
 }
 
 export type HandsFreeEvent =
-  | { type: 'CALL_LIVE' }
+  | { type: 'CALL_LIVE'; greeting?: boolean }
+  | { type: 'SPEECH_START' }
+  | { type: 'GREET_TIMEOUT' }
   | { type: 'FINAL_RESULT'; text: string }
   | { type: 'CONFIRM_SEND' }
   | { type: 'CANCEL_SEND' }
@@ -22,7 +24,8 @@ export type HandsFreeEvent =
   | { type: 'CALL_ENDED' };
 
 export type HandsFreeEffect =
-  | 'START_STT' | 'STOP_STT' | 'SAY' | 'START_DETECTOR' | 'STOP_DETECTOR';
+  | 'START_STT' | 'STOP_STT' | 'SAY' | 'GREET' | 'SPEAK_FALLBACK'
+  | 'START_DETECTOR' | 'STOP_DETECTOR';
 
 export interface HandsFreeResult {
   state: HandsFreeState;
@@ -39,7 +42,19 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
     case 'CALL_LIVE':
       if (!state.micOn) return { state: { ...state, phase: 'paused' }, effects: [] };
       if (state.phase !== 'idle') return { state, effects: [] };
+
+      if (ev.greeting) return { state: { ...state, phase: 'greeting' }, effects: ['GREET'] };
       return { state: { ...state, phase: 'listening' }, effects: ['START_STT'] };
+
+    case 'SPEECH_START':
+
+      if (state.phase !== 'greeting') return { state, effects: [] };
+      return { state: { ...state, phase: 'speaking' }, effects: [] };
+
+    case 'GREET_TIMEOUT':
+
+      if (state.phase !== 'greeting') return { state, effects: [] };
+      return { state, effects: ['SPEAK_FALLBACK'] };
 
     case 'FINAL_RESULT': {
 
@@ -78,7 +93,9 @@ export function handsFreeReducer(state: HandsFreeState, ev: HandsFreeEvent): Han
 
     case 'RESPONSE_END':
 
-      if (state.phase !== 'speaking' && state.phase !== 'sending') return { state, effects: [] };
+      if (state.phase !== 'speaking' && state.phase !== 'sending' && state.phase !== 'greeting') {
+        return { state, effects: [] };
+      }
       if (!state.micOn) return { state: { ...state, phase: 'paused' }, effects: ['STOP_DETECTOR'] };
       return { state: { ...state, phase: 'listening' }, effects: ['STOP_DETECTOR', 'START_STT'] };
 

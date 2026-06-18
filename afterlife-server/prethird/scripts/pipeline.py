@@ -26,6 +26,12 @@ from recorder import NULL_TURN
 
 log = logging.getLogger("prethird.pipeline")
 
+GREETING_PROMPT = (
+    "방금 통화가 연결됐고, 상대(사용자)는 아직 아무 말도 하지 않았어. "
+    "네가 전화를 받은 입장에서, 너의 페르소나와 상대와의 관계에 맞춰 "
+    "짧고 자연스럽게 한 문장으로 먼저 인사를 건네. 인사말만 말해."
+)
+
 
 class DialoguePipeline:
     """텍스트 1개 → LLM 문장스트림 → 문장별 TTS → musetalk 프레임 콜백 → 트랙 적재.
@@ -88,7 +94,7 @@ class DialoguePipeline:
     # 퍼블릭 API
     # ------------------------------------------------------------------
 
-    async def say(self, user_text: str, turn=None) -> None:
+    async def say(self, user_text: str, turn=None, on_first_audio=None) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적."""
         turn = turn if turn is not None else NULL_TURN
@@ -107,9 +113,9 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn)
+        await self._run_pipeline(produce, turn, on_first_audio)
 
-    async def speak(self, text: str, turn=None) -> None:
+    async def speak(self, text: str, turn=None, on_first_audio=None) -> None:
         """LLM 우회: 입력 텍스트를 그대로 발화(TTS+musetalk). 쉼표로 끊지 않고
         문장 종결부호(.!?…\\n)로만 분할. 한 문장이면 통째 1회."""
         turn = turn if turn is not None else NULL_TURN
@@ -128,7 +134,28 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn)
+        await self._run_pipeline(produce, turn, on_first_audio)
+
+    async def greet(self, turn=None, on_first_audio=None) -> None:
+        """통화 연결 직후 클론이 먼저 건네는 인사. LLM이 페르소나 기반 1문장 생성.
+        say()와 동일 파이프라인이되 user 입력 대신 GREETING_PROMPT 지시를 준다."""
+        turn = turn if turn is not None else NULL_TURN
+        if self.clone_locked and not self.se_path:
+            log.warning("clone voice 미준비 — greet skip (폴백 없음)")
+            return
+        messages = self.persona_messages + [{"role": "user", "content": GREETING_PROMPT}]
+
+        async def produce(q: asyncio.Queue):
+            sb = self._sb_factory()
+            async for tok in self.chat_fn(messages):
+                turn.append_token(tok)
+                for s in sb.push(tok):
+                    await q.put(s)
+            for s in sb.flush():
+                await q.put(s)
+            await q.put(None)
+
+        await self._run_pipeline(produce, turn, on_first_audio)
 
     # ------------------------------------------------------------------
     # 내부: 문장 1개 처리 (스테이지 분리)
@@ -219,14 +246,16 @@ class DialoguePipeline:
     # 내부: 오버랩 파이프라인
     # ------------------------------------------------------------------
 
-    async def _run_pipeline(self, produce, turn=None) -> None:
+    async def _run_pipeline(self, produce, turn=None, on_first_audio=None) -> None:
         """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
         TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
         turn: recorder Turn — TTS wav 누적(Phase 2 answer.wav).
+        on_first_audio: 첫 오디오 프레임 push 직후 1회 동기 호출(예외 흡수).
         예외 시 모든 워커를 취소하고 signal_end 를 보장한다(좀비/오염 방지)."""
         turn = turn if turn is not None else NULL_TURN
         sentence_q: asyncio.Queue = asyncio.Queue()
         wav_q: asyncio.Queue = asyncio.Queue(maxsize=2)
+        fired = {"v": False}
 
         async def tts_worker():
             while True:
@@ -245,6 +274,13 @@ class DialoguePipeline:
                     break
                 wav_bytes, pcm48 = item
                 await self._infer_stage(wav_bytes, pcm48, turn)
+                # 첫 오디오 프레임 송출 직후 1회 통지(연결 중 화면 종료·speech_start echo).
+                if not fired["v"] and on_first_audio is not None:
+                    fired["v"] = True
+                    try:
+                        on_first_audio()
+                    except Exception as exc:  # 콜백 실패가 발화를 막지 않게 흡수
+                        log.warning("on_first_audio callback failed: %s", exc)
 
         tasks = [
             asyncio.ensure_future(produce(sentence_q)),
