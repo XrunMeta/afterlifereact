@@ -5,13 +5,14 @@ export const GLOW_COLORS = {
   listening: '#2fbf6b', 
   sending: '#3b82f6',   
   speaking: '#e5484d',  
+  stalled: '#ffffff',   
 } as const;
 
-export function glowColorForPhase(phase: HandsFreePhase): string | null {
+export function glowColorForPhase(phase: HandsFreePhase, sttActive: boolean = true): string | null {
   switch (phase) {
     case 'listening':
     case 'confirming':
-      return GLOW_COLORS.listening;
+      return sttActive ? GLOW_COLORS.listening : GLOW_COLORS.stalled;
     case 'sending':
       return GLOW_COLORS.sending;
     case 'speaking':

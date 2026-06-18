@@ -17,8 +17,8 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-export function CallStatusGlow({ phase }: { phase: HandsFreePhase }) {
-  const color = glowColorForPhase(phase);
+export function CallStatusGlow({ phase, sttActive = true }: { phase: HandsFreePhase; sttActive?: boolean }) {
+  const color = glowColorForPhase(phase, sttActive);
   const opacity = useRef(new Animated.Value(color ? 1 : 0)).current;
 
   useEffect(() => {
