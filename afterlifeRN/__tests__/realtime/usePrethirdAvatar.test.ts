@@ -259,6 +259,34 @@ describe('greet/speak/lastSignal', () => {
   });
 });
 
+it('greet(): dc가 connecting 상태면 open 이벤트 후에 send 호출', async () => {
+  mockOfferFetch();
+  const dc = makeMockDc();
+  dc.readyState = 'connecting'; 
+  const pc = makeMockPc(dc);
+  const { result } = renderHook(() =>
+    usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+  await act(async () => { await result.current.start(); });
+
+  let greetDone = false;
+  act(() => {
+    result.current.greet!().then(() => { greetDone = true; });
+  });
+
+  expect(dc.send).not.toHaveBeenCalled();
+
+  await act(async () => {
+    dc.readyState = 'open';
+    dc.emit('open');
+  });
+
+  await waitFor(() => expect(greetDone).toBe(true));
+  expect(dc.send).toHaveBeenCalledTimes(1);
+  const sent = JSON.parse(dc.sent[0]);
+  expect(sent.type).toBe('greet');
+  expect(typeof sent.seq).toBe('number');
+});
+
 it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {
 
   mockOfferFetch();

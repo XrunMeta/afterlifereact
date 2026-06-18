@@ -57,6 +57,21 @@ async function waitForIceGatheringComplete(pc: PrethirdPeerConnection): Promise<
   });
 }
 
+function waitDcOpen(dc: any, timeoutMs: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (dc.readyState === 'open') { resolve(true); return; }
+    let done = false;
+    const finish = (v: boolean) => {
+      if (done) return; done = true;
+      try { dc.removeEventListener?.('open', onOpen); } catch {  }
+      resolve(v);
+    };
+    const onOpen = () => finish(dc.readyState === 'open');
+    dc.addEventListener?.('open', onOpen);
+    setTimeout(() => finish(dc.readyState === 'open'), timeoutMs);
+  });
+}
+
 export function usePrethirdAvatar(opts: {
   cloneId: number;
   accessToken: string; 
@@ -108,7 +123,11 @@ export function usePrethirdAvatar(opts: {
 
   const greet = useCallback(async () => {
     const dc = dcRef.current;
-    if (!pcRef.current || !dc || dc.readyState !== 'open') return;
+    if (!pcRef.current || !dc) return;
+    if (dc.readyState !== 'open') {
+      const ok = await waitDcOpen(dc, 3000);
+      if (!ok || dcRef.current !== dc || !pcRef.current) return;
+    }
     const seq = (seqRef.current += 1);
     try {
       dc.send(JSON.stringify({ type: 'greet', seq }));
@@ -120,7 +139,11 @@ export function usePrethirdAvatar(opts: {
   const speak = useCallback(async (text: string) => {
     const dc = dcRef.current;
     const t = text.trim();
-    if (!pcRef.current || !dc || !t || dc.readyState !== 'open') return;
+    if (!pcRef.current || !dc || !t) return;
+    if (dc.readyState !== 'open') {
+      const ok = await waitDcOpen(dc, 3000);
+      if (!ok || dcRef.current !== dc || !pcRef.current) return;
+    }
     const seq = (seqRef.current += 1);
     try {
       dc.send(JSON.stringify({ type: 'speak', text: t, seq }));
@@ -194,16 +217,18 @@ export function usePrethirdAvatar(opts: {
     pc.addTransceiver('audio', { direction: 'recvonly' });
     const dc = pc.createDataChannel('control');
     dcRef.current = dc;
-    dc.addEventListener?.('message', (ev: { data?: string }) => {
+    const onControl = (ev: { data?: string }) => {
       if (!alive()) return;
       try {
-        const m = JSON.parse(ev.data ?? '');
+        const m = JSON.parse(ev?.data ?? '');
         if (m.type === 'speech_start' || m.type === 'speech_end') {
           setLastSignal({ type: m.type, seq: m.seq, ts: nowMs() });
           if (m.type === 'speech_end') notifySpeechEnd();
         }
       } catch {  }
-    });
+    };
+
+    dc.addEventListener?.('message', (ev: any) => onControl(ev));
 
     setState('connecting');
     try {
