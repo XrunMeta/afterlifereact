@@ -433,6 +433,108 @@ it('[B] grace 미설정(초기) 상태에서 audioLevel 높으면 suppress 발�
   expect(result.current.sttActive).toBe(true);
 });
 
+describe('greeting 배선', () => {
+  const baseOpts = (over: any = {}) => ({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: makeMockEngine(),
+    ...over,
+  });
+
+  it('enabled + greeting → greet() 호출, phase=greeting', async () => {
+    const greet = jest.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useHandsFreeController(baseOpts({ greeting: true, greet })));
+    await act(async () => {});
+    expect(greet).toHaveBeenCalledTimes(1);
+    expect(result.current.phase).toBe('greeting');
+  });
+
+  it('lastSignal speech_start → speaking 전이', async () => {
+    let signal: any = null;
+    const { result, rerender } = renderHook(
+      (props: any) => useHandsFreeController(baseOpts({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), lastSignal: props.signal })),
+      { initialProps: { signal } });
+    await act(async () => {});
+    signal = { type: 'speech_start', seq: 1, ts: 1 };
+    rerender({ signal });
+    expect(result.current.phase).toBe('speaking');
+  });
+
+  it('lastSignal speech_end → listening 복귀', async () => {
+    const { result, rerender } = renderHook(
+      (props: any) => useHandsFreeController(baseOpts({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), lastSignal: props.signal })),
+      { initialProps: { signal: null as any } });
+    await act(async () => {});
+    rerender({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
+    rerender({ signal: { type: 'speech_end', seq: 1, ts: 2 } });
+    expect(result.current.phase).toBe('listening');
+  });
+
+  it('타임아웃 내 speech_start 없으면 speak(fallback) 호출', async () => {
+    jest.useFakeTimers();
+    const speak = jest.fn().mockResolvedValue(undefined);
+    renderHook(() => useHandsFreeController(baseOpts({
+      greeting: true, greet: jest.fn().mockResolvedValue(undefined),
+      speak, greetTimeoutMs: 3000, fallbackText: '여보세요?',
+    })));
+    await act(async () => {});
+    act(() => { jest.advanceTimersByTime(3000); });
+    expect(speak).toHaveBeenCalledWith('여보세요?');
+    jest.useRealTimers();
+  });
+
+  it('speech_start 도착하면 타임아웃 폴백 안 함', async () => {
+    jest.useFakeTimers();
+    const speak = jest.fn().mockResolvedValue(undefined);
+    const { rerender } = renderHook(
+      (props: any) => useHandsFreeController(baseOpts({
+        greeting: true, greet: jest.fn().mockResolvedValue(undefined),
+        speak, greetTimeoutMs: 3000, lastSignal: props.signal,
+      })),
+      { initialProps: { signal: null as any } });
+    await act(async () => {});
+    rerender({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
+    act(() => { jest.advanceTimersByTime(3000); });
+    expect(speak).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('greeting=false면 기존처럼 즉시 listening (무회귀)', async () => {
+    const greet = jest.fn();
+    const { result } = renderHook(() =>
+      useHandsFreeController(baseOpts({ greeting: false, greet })));
+    await act(async () => {});
+    expect(greet).not.toHaveBeenCalled();
+    expect(result.current.phase).toBe('listening');
+  });
+
+  it('폴백 speak 후에도 speech_start가 안 오면 greetTimeoutMs 후 phase가 listening이 된다', async () => {
+    jest.useFakeTimers();
+    const speak = jest.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useHandsFreeController(baseOpts({
+        greeting: true,
+        greet: jest.fn().mockResolvedValue(undefined),
+        speak,
+        greetTimeoutMs: 3000,
+        fallbackText: '여보세요?',
+      })));
+    await act(async () => {});
+
+    act(() => { jest.advanceTimersByTime(3000); });
+    expect(speak).toHaveBeenCalledWith('여보세요?');
+
+    expect(result.current.phase).toBe('greeting');
+
+    act(() => { jest.advanceTimersByTime(3000); });
+    await waitFor(() => expect(result.current.phase).toBe('listening'));
+    jest.useRealTimers();
+  });
+});
+
 it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   const say = jest.fn().mockResolvedValue(undefined);
   const engine = makeMockEngine();
