@@ -33,6 +33,7 @@ import { createPerson, saveFaceConsent, listPersons } from "../../api/persons";
 import TermsModal from "../../components/common/TermsModal";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
 import { CALL_ROUTE } from "../../config/callRoute";
+import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallStatusGlow } from "../../components/call/CallStatusGlow";
@@ -168,7 +169,12 @@ export default function CallScreen({ route, navigation }: Props) {
     say,
     getStatsReport,
     notifySpeechEnd,
+    greet,
+    speak,
+    lastSignal,
   } = useAvatarCall({ cloneId, accessToken: accessToken ?? "" });
+
+  const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
   const {
     phase,
@@ -182,7 +188,18 @@ export default function CallScreen({ route, navigation }: Props) {
     say,
     getStatsReport,
     notifySpeechEnd,
+    greeting: greetingOn,
+    greet,
+    speak,
+    lastSignal,
+    greetTimeoutMs: GREET_TIMEOUT_MS,
+    fallbackText: GREETING_FALLBACK_TEXT,
   });
+
+  const [greetingStarted, setGreetingStarted] = useState(false);
+  useEffect(() => {
+    if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
+  }, [lastSignal]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -522,9 +539,10 @@ export default function CallScreen({ route, navigation }: Props) {
           liveState={liveState}
           personaName={personaName}
           personaImage={typeof personaImage === "string" ? personaImage : ""}
+          greetingStarted={greetingOn ? greetingStarted : undefined}
           onConnected={() => setDialingDone(true)}
           onCancel={async () => { await stopLive(); navigation.goBack(); }}
-          onRetry={() => { void startLive(); }}
+          onRetry={() => { setGreetingStarted(false); void startLive(); }}
         />
       )}
 

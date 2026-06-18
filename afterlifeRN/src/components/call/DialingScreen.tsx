@@ -18,8 +18,10 @@ export function DialingScreen(props: {
   onConnected: () => void;
   onCancel: () => void;
   onRetry: () => void;
+
+  greetingStarted?: boolean;
 }) {
-  const { liveState, personaName, personaImage, onConnected, onCancel, onRetry } = props;
+  const { liveState, personaName, personaImage, greetingStarted, onConnected, onCancel, onRetry } = props;
   const startRef = useRef(Date.now());
   const graceUntilRef = useRef(0);
   const [retryCount, setRetryCount] = useState(0);
@@ -34,7 +36,7 @@ export function DialingScreen(props: {
   const elapsed = now - startRef.current;
 
   const inGrace = now < graceUntilRef.current;
-  const rawOutcome = dialingOutcome(liveState, elapsed, DEFAULT_DIALING_CONFIG);
+  const rawOutcome = dialingOutcome(liveState, elapsed, DEFAULT_DIALING_CONFIG, greetingStarted);
 
   const outcome = inGrace && rawOutcome !== 'connected' ? 'dialing' : rawOutcome;
 

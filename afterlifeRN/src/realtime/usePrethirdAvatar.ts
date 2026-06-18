@@ -161,6 +161,8 @@ export function usePrethirdAvatar(opts: {
     const alive = () => genRef.current === myGen;
     setError(null);
     setState('requesting');
+    setLastSignal(null);   
+    seqRef.current = 0;    
 
     const pc = deps.createPeerConnection({ iceServers: ICE_SERVERS });
     pcRef.current = pc;
