@@ -433,6 +433,108 @@ it('[B] grace 미설정(초기) 상태에서 audioLevel 높으면 suppress 발�
   expect(v_43c42e.current.sttActive).toBe(true);
 });
 
+describe('greeting 배선', () => {
+  const v_b2d8b4 = (v_b71f86 = {}) => ({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport: () => null,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: v_c2295a(),
+    ...v_b71f86,
+  });
+
+  it('enabled + greeting → greet() 호출, phase=greeting', async () => {
+    const v_009e58 = jest.fn().mockResolvedValue(undefined);
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_7df8a4(v_b2d8b4({ greeting: true, greet: v_009e58 })));
+    await v_be73a0(async () => {});
+    expect(v_009e58).toHaveBeenCalledTimes(1);
+    expect(v_43c42e.current.phase).toBe('greeting');
+  });
+
+  it('lastSignal speech_start → speaking 전이', async () => {
+    let v_361415 = null;
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_b2d8b4({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: v_361415 } });
+    await v_be73a0(async () => {});
+    v_361415 = { type: 'speech_start', seq: 1, ts: 1 };
+    v_2726cb({ signal: v_361415 });
+    expect(v_43c42e.current.phase).toBe('speaking');
+  });
+
+  it('lastSignal speech_end → listening 복귀', async () => {
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_b2d8b4({ greeting: true, greet: jest.fn().mockResolvedValue(undefined), lastSignal: v_b1927c.signal })),
+      { initialProps: { signal: null as any } });
+    await v_be73a0(async () => {});
+    v_2726cb({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
+    v_2726cb({ signal: { type: 'speech_end', seq: 1, ts: 2 } });
+    expect(v_43c42e.current.phase).toBe('listening');
+  });
+
+  it('타임아웃 내 speech_start 없으면 speak(fallback) 호출', async () => {
+    jest.useFakeTimers();
+    const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+    v_0da18b(() => v_7df8a4(v_b2d8b4({
+      greeting: true, greet: jest.fn().mockResolvedValue(undefined),
+      speak: v_a1d9db, greetTimeoutMs: 3000, fallbackText: '여보세요?',
+    })));
+    await v_be73a0(async () => {});
+    v_be73a0(() => { jest.advanceTimersByTime(3000); });
+    expect(v_a1d9db).toHaveBeenCalledWith('여보세요?');
+    jest.useRealTimers();
+  });
+
+  it('speech_start 도착하면 타임아웃 폴백 안 함', async () => {
+    jest.useFakeTimers();
+    const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+    const { rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) => v_7df8a4(v_b2d8b4({
+        greeting: true, greet: jest.fn().mockResolvedValue(undefined),
+        speak: v_a1d9db, greetTimeoutMs: 3000, lastSignal: v_b1927c.signal,
+      })),
+      { initialProps: { signal: null as any } });
+    await v_be73a0(async () => {});
+    v_2726cb({ signal: { type: 'speech_start', seq: 1, ts: 1 } });
+    v_be73a0(() => { jest.advanceTimersByTime(3000); });
+    expect(v_a1d9db).not.toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('greeting=false면 기존처럼 즉시 listening (무회귀)', async () => {
+    const v_009e58 = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_7df8a4(v_b2d8b4({ greeting: false, greet: v_009e58 })));
+    await v_be73a0(async () => {});
+    expect(v_009e58).not.toHaveBeenCalled();
+    expect(v_43c42e.current.phase).toBe('listening');
+  });
+
+  it('폴백 speak 후에도 speech_start가 안 오면 greetTimeoutMs 후 phase가 listening이 된다', async () => {
+    jest.useFakeTimers();
+    const v_a1d9db = jest.fn().mockResolvedValue(undefined);
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_7df8a4(v_b2d8b4({
+        greeting: true,
+        greet: jest.fn().mockResolvedValue(undefined),
+        speak: v_a1d9db,
+        greetTimeoutMs: 3000,
+        fallbackText: '여보세요?',
+      })));
+    await v_be73a0(async () => {});
+
+    v_be73a0(() => { jest.advanceTimersByTime(3000); });
+    expect(v_a1d9db).toHaveBeenCalledWith('여보세요?');
+
+    expect(v_43c42e.current.phase).toBe('greeting');
+
+    v_be73a0(() => { jest.advanceTimersByTime(3000); });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    jest.useRealTimers();
+  });
+});
+
 it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
   const v_1e3df0 = v_c2295a();
