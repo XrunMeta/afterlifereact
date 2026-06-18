@@ -535,6 +535,74 @@ describe('greeting 배선', () => {
   });
 });
 
+describe('greeting=false off-path speech_end 안전성', () => {
+  const v_918735 = () => v_c2295a();
+
+  it('speaking 중(greeting=true 진입) lastSignal speech_end → phase가 단일하게 listening으로 전이 (off-path 안전성)', async () => {
+
+    const v_1e3df0 = v_918735();
+    let v_361415 = null;
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) =>
+        v_7df8a4({
+          enabled: true,
+          say: jest.fn().mockResolvedValue(undefined),
+          getStatsReport: () => null,
+          notifySpeechEnd: jest.fn(),
+          speechEngine: v_1e3df0,
+          greeting: true,
+          greet: jest.fn().mockResolvedValue(undefined),
+          lastSignal: v_b1927c.signal,
+        }),
+      { initialProps: { signal: v_361415 } },
+    );
+
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('greeting'));
+
+    v_361415 = { type: 'speech_start', seq: 1, ts: Date.now() };
+    v_2726cb({ signal: v_361415 });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('speaking'));
+
+    v_361415 = { type: 'speech_end', seq: 1, ts: Date.now() + 100 };
+    v_2726cb({ signal: v_361415 });
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+
+    expect(v_43c42e.current.phase).toBe('listening');
+  });
+
+  it('RESPONSE_END idempotent — listening 상태에서 RESPONSE_END 재도착 시 listening 유지', async () => {
+
+    const v_1e3df0 = v_918735();
+    let v_361415 = null;
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b(
+      (v_b1927c) =>
+        v_7df8a4({
+          enabled: true,
+          say: jest.fn().mockResolvedValue(undefined),
+          getStatsReport: () => null,
+          notifySpeechEnd: jest.fn(),
+          speechEngine: v_1e3df0,
+          greeting: false,
+          lastSignal: v_b1927c.signal,
+        }),
+      { initialProps: { signal: v_361415 } },
+    );
+
+    await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+    expect(v_43c42e.current.phase).toBe('listening');
+
+    v_361415 = { type: 'speech_end', seq: 1, ts: Date.now() };
+    v_2726cb({ signal: v_361415 });
+    await v_be73a0(async () => {});
+    expect(v_43c42e.current.phase).toBe('listening');
+
+    v_361415 = { type: 'speech_end', seq: 2, ts: Date.now() + 10 };
+    v_2726cb({ signal: v_361415 });
+    await v_be73a0(async () => {});
+    expect(v_43c42e.current.phase).toBe('listening');
+  });
+});
+
 it('confirming 중 cancelConfirm() → listening, say 미호출', async () => {
   const v_3e2c87 = jest.fn().mockResolvedValue(undefined);
   const v_1e3df0 = v_c2295a();
