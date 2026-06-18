@@ -17,8 +17,8 @@ function v_b2c6eb(v_993b31, v_6d68e5): string {
   return `rgba(${v_cb35cb},${v_206b88},${v_148ff6},${v_6d68e5})`;
 }
 
-export function v_8bbe5d({ phase: v_ab4803 }: { phase: v_3f42e4 }) {
-  const v_3c2a3a = v_972fad(v_ab4803);
+export function v_8bbe5d({ phase: v_ab4803, sttActive: v_b3ae82 = true }: { phase: v_3f42e4; sttActive?: boolean }) {
+  const v_3c2a3a = v_972fad(v_ab4803, v_b3ae82);
   const v_df9f11 = v_e662ae(new v_a2349e.Value(v_3c2a3a ? 1 : 0)).current;
 
   v_c4deb2(() => {

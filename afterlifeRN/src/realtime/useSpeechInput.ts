@@ -11,6 +11,10 @@ export interface SpeechEngine {
 
 export const v_c45689 = 1500;
 
+export const v_74fd06 = 1500;
+
+export const v_4c6a50 = 2000;
+
 export function v_fee12d(v_328259) {
 
   const v_1e3df0 = v_df9f57(() => v_328259?.engine ?? v_0fc68d(), [v_328259?.engine]);
@@ -29,11 +33,19 @@ export function v_fee12d(v_328259) {
   const [v_0885ca, v_8028c0] = v_5ab095('');
   const [v_a2d9d1, v_60039d] = v_5ab095('');
   const [v_177ff2, v_b680bc] = v_5ab095(false);
+
+  const [v_23db84, v_17e228] = v_5ab095(false);
   const [v_5e9bfe, v_3a7d09] = v_5ab095<Error | null>(null);
   const v_ab371b = v_e662ae<Array<{ remove: () => void }>>([]);
 
   const v_fe2b35 = v_e662ae(false);
   const v_6e2738 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
+
+  const v_168497 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
+
+  const v_b5958d = v_e662ae(false);
+
+  const v_3dd9b4 = v_e662ae<ReturnType<typeof setTimeout> | null>(null);
 
   const v_c4dfc6 = v_e662ae<string[]>([]);
   const v_5484ad = v_e662ae('');
@@ -70,12 +82,30 @@ export function v_fee12d(v_328259) {
     }, v_9a5dc9.current);
   }, [v_b6e358]);
 
+  const v_9061f1 = v_de06a3(() => {
+    if (v_168497.current) {
+      clearTimeout(v_168497.current);
+      v_168497.current = null;
+    }
+
+    v_b5958d.current = false;
+
+    if (v_3dd9b4.current) {
+      clearTimeout(v_3dd9b4.current);
+      v_3dd9b4.current = null;
+    }
+    v_17e228(true);
+    v_b680bc(true);
+  }, []);
+
   v_c4deb2(() => {
     v_ab371b.current.push(
 
       v_1e3df0.addListener('result', (v_e2a85c) => {
         const v_8d41d7 = v_e2a85c?.results?.[0]?.transcript ?? '';
         const v_f6e5b7 = v_e2a85c?.isFinal === true;
+
+        v_9061f1();
         if (v_f6e5b7) {
 
           const v_267ca3 = v_8d41d7.trim();
@@ -98,26 +128,58 @@ export function v_fee12d(v_328259) {
 
       v_1e3df0.addListener('error', (v_e2a85c) => {
         const v_badeaf = v_e2a85c?.message ?? v_e2a85c?.error ?? 'stt_error';
+
+        if (v_168497.current) {
+          clearTimeout(v_168497.current);
+          v_168497.current = null;
+        }
+        v_b5958d.current = false;
+        v_b680bc(false);
+
+        if (v_3dd9b4.current) clearTimeout(v_3dd9b4.current);
+        v_3dd9b4.current = setTimeout(() => {
+          v_3dd9b4.current = null;
+          v_17e228(false);
+        }, v_4c6a50);
         v_3a7d09(new Error(v_badeaf));
       }),
       v_1e3df0.addListener('end', () => {
         v_b680bc(false);
 
+        if (v_3dd9b4.current) clearTimeout(v_3dd9b4.current);
+        v_3dd9b4.current = setTimeout(() => {
+          v_3dd9b4.current = null;
+          v_17e228(false);
+        }, v_4c6a50);
+
         if (v_fe2b35.current) {
           if (v_6e2738.current) clearTimeout(v_6e2738.current);
           v_6e2738.current = setTimeout(() => {
             if (!v_fe2b35.current) return;
+
+            if (v_b5958d.current) return;
             try {
 
+              v_b5958d.current = true; 
               v_1e3df0.start({ lang: v_5254bf, interimResults: true, continuous: true });
-              v_b680bc(true);
+
+              if (v_168497.current) clearTimeout(v_168497.current);
+              v_168497.current = setTimeout(() => {
+                v_168497.current = null;
+
+                v_b5958d.current = false;
+              }, v_74fd06);
             } catch {
 
+              v_b5958d.current = false;
             }
           }, 400);
         }
       }),
-      v_1e3df0.addListener('start', (v_2d3e87) => {}),
+
+      v_1e3df0.addListener('start', (v_2d3e87) => {
+        v_9061f1();
+      }),
       v_1e3df0.addListener('speechstart', (v_2d3e87) => {}),
       v_1e3df0.addListener('speechend', (v_2d3e87) => {}),
       v_1e3df0.addListener('audiostart', (v_2d3e87) => {}),
@@ -130,7 +192,7 @@ export function v_fee12d(v_328259) {
       v_ab371b.current.forEach((v_fd5f43) => v_fd5f43.remove());
       v_ab371b.current = [];
     };
-  }, [v_1e3df0]);
+  }, [v_1e3df0, v_9061f1]);
 
   v_c4deb2(() => {
     return () => {
@@ -142,10 +204,22 @@ export function v_fee12d(v_328259) {
         clearTimeout(v_6e2738.current);
         v_6e2738.current = null;
       }
+      if (v_168497.current) {
+        clearTimeout(v_168497.current);
+        v_168497.current = null;
+      }
+      if (v_3dd9b4.current) {
+        clearTimeout(v_3dd9b4.current);
+        v_3dd9b4.current = null;
+      }
     };
   }, []);
 
   const v_770cae = v_de06a3(async () => {
+
+    if (v_b5958d.current) {
+      return;
+    }
     v_fe2b35.current = true; 
     v_3a7d09(null);
     v_8028c0('');
@@ -156,12 +230,24 @@ export function v_fee12d(v_328259) {
       v_3a7d09(new Error('permission_denied'));
       return;
     }
-    v_b680bc(true);
+
+    v_b5958d.current = true; 
+    if (v_168497.current) clearTimeout(v_168497.current);
+    v_168497.current = setTimeout(() => {
+      v_168497.current = null;
+
+      v_b5958d.current = false;
+    }, v_74fd06);
     try {
 
       v_1e3df0.start({ lang: v_5254bf, interimResults: true, continuous: true });
     } catch (v_b17aaa) {
       const v_9e86fd = v_b17aaa instanceof Error ? v_b17aaa : new Error(String(v_b17aaa));
+      if (v_168497.current) {
+        clearTimeout(v_168497.current);
+        v_168497.current = null;
+      }
+      v_b5958d.current = false; 
       v_b680bc(false);
       v_3a7d09(v_9e86fd);
     }
@@ -170,17 +256,28 @@ export function v_fee12d(v_328259) {
   const v_ad03b1 = v_de06a3(() => {
 
     v_fe2b35.current = false; 
+    v_b5958d.current = false; 
     if (v_6e2738.current) {
       clearTimeout(v_6e2738.current);
       v_6e2738.current = null;
+    }
+    if (v_168497.current) {
+      clearTimeout(v_168497.current);
+      v_168497.current = null;
     }
 
     v_f59c40();
     v_1e3df0.stop();
     v_b680bc(false);
+    v_17e228(false);
+
+    if (v_3dd9b4.current) {
+      clearTimeout(v_3dd9b4.current);
+      v_3dd9b4.current = null;
+    }
   }, [v_1e3df0, v_f59c40]);
 
-  return { transcript: v_0885ca, interimTranscript: v_a2d9d1, listening: v_177ff2, error: v_5e9bfe, startListening: v_770cae, stopListening: v_ad03b1 };
+  return { transcript: v_0885ca, interimTranscript: v_a2d9d1, listening: v_177ff2, listeningDebounced: v_23db84, error: v_5e9bfe, startListening: v_770cae, stopListening: v_ad03b1 };
 }
 
 function v_0fc68d(): SpeechEngine {

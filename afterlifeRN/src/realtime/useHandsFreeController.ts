@@ -17,6 +17,8 @@ const v_106057 = 3500;
 
 const v_861560 = 1200;
 
+const v_2bbca0 = 1000;
+
 export function v_7df8a4(opts: {
 
   enabled: boolean;
@@ -67,7 +69,10 @@ export function v_7df8a4(opts: {
   const v_5c8a52 = v_e662ae(v_60bef6);
   v_c4deb2(() => { v_5c8a52.current = v_60bef6; });
 
+  const [v_ea4519, v_d3b587] = v_5ab095(false);
   const v_afaf7a = v_e662ae(false);
+
+  const v_246863 = v_e662ae(0);
 
   const v_2bfd1e = v_de06a3(
     (effects: v_a81c33[], v_b03676) => {
@@ -75,9 +80,12 @@ export function v_7df8a4(opts: {
         switch (v_9e86fd) {
           case 'START_STT':
             v_afaf7a.current = false; 
+            v_d3b587(false);
             void v_60bef6.startListening();
             break;
           case 'STOP_STT':
+            v_afaf7a.current = false;
+            v_d3b587(false);
             v_60bef6.stopListening();
             break;
           case 'SAY':
@@ -103,7 +111,14 @@ export function v_7df8a4(opts: {
 
   const v_6be210 = v_de06a3(
     (ev: v_01cdf6) => {
-      const { state: v_a448ad, effects: v_27ef63, sayText: v_b03676 } = v_6920f0(v_8d3dea.current, v_1d299c);
+      const v_ba2215 = v_8d3dea.current;
+      const { state: v_a448ad, effects: v_27ef63, sayText: v_b03676 } = v_6920f0(v_ba2215, v_1d299c);
+
+      const v_81b6e6 =
+        v_ba2215.phase === 'speaking' || v_ba2215.phase === 'sending';
+      if (v_81b6e6 && v_a448ad.phase === 'listening') {
+        v_246863.current = Date.now() + v_2bbca0;
+      }
       v_8d3dea.current = v_a448ad;
       v_1fa668(v_a448ad);
       v_2bfd1e(v_27ef63, v_b03676);
@@ -144,8 +159,14 @@ export function v_7df8a4(opts: {
         const v_72c7a6 = v_8d3dea.current;
         if ((v_72c7a6.phase !== 'listening' && v_72c7a6.phase !== 'confirming') || !v_72c7a6.micOn) return;
         if (v_22312b && !v_afaf7a.current) {
-          v_5c8a52.current.stopListening();
-          v_afaf7a.current = true;
+
+          if (v_5c2f9f < v_246863.current) {
+
+          } else {
+            v_5c8a52.current.stopListening();
+            v_afaf7a.current = true;
+            v_d3b587(true); 
+          }
         } else if (
           !v_22312b &&
           v_afaf7a.current &&
@@ -153,8 +174,23 @@ export function v_7df8a4(opts: {
         ) {
           void v_5c8a52.current.startListening();
           v_afaf7a.current = false;
+          v_d3b587(false); 
         }
       }).catch(() => {});
+    }, 200);
+    return () => clearInterval(v_389afb);
+  }, [v_328259.enabled]);
+
+  v_c4deb2(() => {
+    if (!v_328259.enabled) return;
+    const v_389afb = setInterval(() => {
+      const v_72c7a6 = v_8d3dea.current;
+      if ((v_72c7a6.phase !== 'listening' && v_72c7a6.phase !== 'confirming') || !v_72c7a6.micOn) return;
+      if (v_afaf7a.current) return; 
+
+      if (!v_5c8a52.current.listening) {
+        void v_5c8a52.current.startListening();
+      }
     }, 200);
     return () => clearInterval(v_389afb);
   }, [v_328259.enabled]);
@@ -162,6 +198,8 @@ export function v_7df8a4(opts: {
   const v_6e1295 = v_de06a3(() => {
     v_700737.current(v_8d3dea.current.micOn ? { type: 'MIC_OFF' } : { type: 'MIC_ON' });
   }, []);
+
+  const v_b3ae82 = v_60bef6.listeningDebounced || v_ea4519;
 
   return {
     phase: v_b6e533.phase,
@@ -171,5 +209,7 @@ export function v_7df8a4(opts: {
     cancelConfirm: v_5b4fb2,
     transcript: v_60bef6.transcript,
     interimTranscript: v_60bef6.interimTranscript,
+
+    sttActive: v_b3ae82,
   };
 }

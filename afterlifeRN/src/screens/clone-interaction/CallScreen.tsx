@@ -176,6 +176,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     cancelConfirm: v_5b4fb2,
     transcript: v_0885ca,
     interimTranscript: v_a2d9d1,
+    sttActive: v_b3ae82,
   } = v_7df8a4({
     enabled: v_6cc918 === "live",
     say: v_3e2c87,
@@ -533,7 +534,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         style={v_472849.absoluteFill}
       />
 
-      {v_b2ccaa ? <CallStatusGlow phase={v_ab4803} /> : null}
+      {v_b2ccaa ? <CallStatusGlow phase={v_ab4803} sttActive={v_b3ae82} /> : null}
 
       {
 
