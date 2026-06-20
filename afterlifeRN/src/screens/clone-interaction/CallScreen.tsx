@@ -510,6 +510,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     <View style={v_fd5f43.container}>
       {}
       {}
+      {}
       {v_b4d824 ? (
         <RTCView
           streamURL={(v_b4d824 as unknown as { toURL: () => string }).toURL()}
