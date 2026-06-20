@@ -57,3 +57,32 @@ def center_crop_window(img_w: int, img_h: int) -> dict:
     """얼굴 검출 실패 폴백 — 이미지 중앙 1:2 crop."""
     return _fit_window_1to2(img_w / 2.0, img_h / 2.0, float(img_w),
                             img_w, img_h, face_center_v=0.5)
+
+
+def normalize_source_image(bgr: np.ndarray, detect_lmk_fn,
+                           target_w: int = 512, target_h: int = 1024,
+                           width_k: float = 2.2) -> np.ndarray:
+    """source 이미지를 얼굴중심 1:2 crop 후 target(512×1024)로 resize.
+
+    - 이미 (target_w, target_h)면 멱등 skip(동일 객체 반환).
+    - detect_lmk_fn(bgr) 로 얼굴 landmark → bbox → 얼굴중심 윈도우.
+    - 검출 실패/예외 → center_crop_window 폴백.
+    """
+    h, w = bgr.shape[:2]
+    if w == target_w and h == target_h:
+        return bgr  # 멱등
+
+    lmk = None
+    try:
+        lmk = detect_lmk_fn(bgr)
+    except Exception:
+        lmk = None
+
+    if lmk is not None and len(lmk) > 0:
+        rect = compute_face_crop_window(w, h, bbox_from_landmarks(lmk), width_k)
+    else:
+        rect = center_crop_window(w, h)
+
+    ox, oy, cw, ch = rect["originX"], rect["originY"], rect["width"], rect["height"]
+    crop = bgr[oy:oy + ch, ox:ox + cw]
+    return cv2.resize(crop, (target_w, target_h), interpolation=cv2.INTER_AREA)
