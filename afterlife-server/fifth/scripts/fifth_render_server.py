@@ -144,7 +144,10 @@ class RenderService:
             elif _is_image_path(video_path):
                 from face_source import load_image_source
                 clone_key = _clone_key(video_path)
-                selection = load_image_source(video_path, self.cache_root, clone_key)
+                selection = load_image_source(
+                    video_path, self.cache_root, clone_key,
+                    detect_lmk_fn=self.detect_lmk,
+                )
             else:
                 from face_source import load_or_extract_sources, make_extract_fn
                 extract_fn = make_extract_fn(self.detect_lmk)
