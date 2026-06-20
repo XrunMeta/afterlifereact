@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import image_normalize as m
 from image_normalize import bbox_from_landmarks, compute_face_crop_window, center_crop_window
 
 
@@ -37,3 +38,40 @@ def test_center_crop_fallback_is_1to2_inside():
     assert rect["height"] == 2 * rect["width"]
     assert rect["originX"] + rect["width"] <= 900
     assert rect["originY"] + rect["height"] <= 1600
+
+
+def test_normalize_idempotent_skips_512x1024():
+    img = np.zeros((1024, 512, 3), dtype=np.uint8)
+    out = m.normalize_source_image(img, detect_lmk_fn=lambda b: None)
+    assert out is img  # 멱등 — 동일 객체 반환, 검출/리사이즈 안 함
+
+
+def test_normalize_face_path_outputs_512x1024(monkeypatch):
+    img = np.zeros((2000, 1000, 3), dtype=np.uint8)
+    lmk = np.array([[400, 800], [600, 1000]], dtype=np.float32)  # 얼굴 중앙
+    captured = {}
+
+    def fake_resize(crop, size, interpolation=0):
+        captured["crop_shape"] = crop.shape
+        captured["size"] = size
+        return np.zeros((size[1], size[0], 3), dtype=np.uint8)
+
+    monkeypatch.setattr(m, "cv2", type("C", (), {"resize": staticmethod(fake_resize),
+                                                  "INTER_AREA": 0})())
+    out = m.normalize_source_image(img, detect_lmk_fn=lambda b: lmk)
+    assert out.shape == (1024, 512, 3)
+    assert captured["size"] == (512, 1024)
+    # crop 은 1:2 (height == 2*width)
+    assert captured["crop_shape"][0] == 2 * captured["crop_shape"][1]
+
+
+def test_normalize_detect_fail_uses_center(monkeypatch):
+    img = np.zeros((1600, 900, 3), dtype=np.uint8)
+
+    def fake_resize(crop, size, interpolation=0):
+        return np.zeros((size[1], size[0], 3), dtype=np.uint8)
+
+    monkeypatch.setattr(m, "cv2", type("C", (), {"resize": staticmethod(fake_resize),
+                                                  "INTER_AREA": 0})())
+    out = m.normalize_source_image(img, detect_lmk_fn=lambda b: None)  # 검출 실패
+    assert out.shape == (1024, 512, 3)  # center 폴백으로도 512×1024
