@@ -422,3 +422,56 @@ def test_image_source_missing_file_raises(tmp_path, monkeypatch):
     src_img.write_bytes(b"x")
     with pytest.raises(RuntimeError):
         face_source.load_image_source(str(src_img), str(tmp_path / "cache"), "1")
+
+
+# ---------------------------------------------------------------------------
+# [Task 3 신규] load_image_source — 정규화 통합 + 토글
+# ---------------------------------------------------------------------------
+
+def test_load_image_source_normalizes_when_enabled(tmp_path, monkeypatch):
+    monkeypatch.setenv("FIFTH_INPUT_NORMALIZE", "1")
+    captured = {}
+
+    class FakeCv2:
+        IMREAD_COLOR = 1
+        INTER_AREA = 0
+        @staticmethod
+        def imread(p):
+            return np.zeros((2000, 1000, 3), dtype=np.uint8)  # 비정규 입력
+        @staticmethod
+        def resize(crop, size, interpolation=0):
+            captured["size"] = size
+            return np.zeros((size[1], size[0], 3), dtype=np.uint8)
+        @staticmethod
+        def imwrite(p, img):
+            captured["written_shape"] = img.shape
+            return True
+
+    monkeypatch.setattr(face_source, "cv2", FakeCv2())
+    import image_normalize
+    monkeypatch.setattr(image_normalize, "cv2", FakeCv2())
+
+    lmk = np.array([[400, 800], [600, 1000]], dtype=np.float32)
+    out = face_source.load_image_source(
+        "x.jpg", str(tmp_path), 9999, detect_lmk_fn=lambda b: lmk)
+    assert out["mode"] == "single"
+    assert captured["written_shape"] == (1024, 512, 3)  # 정규화된 512×1024 저장
+
+
+def test_load_image_source_skips_when_toggle_off(tmp_path, monkeypatch):
+    monkeypatch.setenv("FIFTH_INPUT_NORMALIZE", "0")
+    captured = {}
+
+    class FakeCv2:
+        @staticmethod
+        def imread(p):
+            return np.zeros((2000, 1000, 3), dtype=np.uint8)
+        @staticmethod
+        def imwrite(p, img):
+            captured["written_shape"] = img.shape
+            return True
+
+    monkeypatch.setattr(face_source, "cv2", FakeCv2())
+    face_source.load_image_source(
+        "x.jpg", str(tmp_path), 8888, detect_lmk_fn=lambda b: None)
+    assert captured["written_shape"] == (2000, 1000, 3)  # 원본 그대로(회귀)
