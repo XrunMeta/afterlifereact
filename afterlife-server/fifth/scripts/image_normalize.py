@@ -52,7 +52,7 @@ def _fit_window(cx: float, cy: float, base_w: float,
 
 def compute_face_crop_window(img_w: int, img_h: int,
                              bbox: tuple[float, float, float, float],
-                             width_k: float = 2.2,
+                             width_k: float = 4.5,
                              face_center_v: float = 0.38,
                              aspect: float = ASPECT) -> dict:
     """얼굴 bbox 중심 기준 aspect(기본 9:16) crop 윈도우(원본 픽셀 rect)."""
@@ -71,7 +71,7 @@ def center_crop_window(img_w: int, img_h: int, aspect: float = ASPECT) -> dict:
 
 def normalize_source_image(bgr: np.ndarray, detect_lmk_fn,
                            target_w: int = TARGET_W, target_h: int = TARGET_H,
-                           width_k: float = 2.2) -> np.ndarray:
+                           width_k: float = 4.5) -> np.ndarray:
     """source 이미지를 얼굴중심 crop 후 target(576×1024, 9:16)로 resize.
 
     - 이미 (target_w, target_h)면 멱등 skip(동일 객체 반환).
