@@ -498,4 +498,13 @@ class FifthFLPEngine:
         result = self.pipe.run_with_pkl(
             frame_info, _src_img, _src_info, first_frame=first_frame
         )
-        return result[0] if result else None
+        if result is None:
+            return None
+        # FIFTH_PASTEBACK_OUTPUT=1(기본): paste-back된 원본 비율 프레임(result[1]) 반환
+        #   → 입력 정규화 비율(세로 1:2/9:16) 유지. 통화 영상이 정사각 crop이 아닌 원본 비율로 송출됨.
+        # =0: 기존 crop 정사각(512x512, result[0]) 반환(회귀).
+        # ⚠️ result[1] paste-back은 컨테이너 FLP pipeline(faster_live_portrait_pipeline.py)의
+        #   realtime 가드 제거가 선행되어야 유효(배포 스크립트 _deploy_pasteback_patch.sh 참조).
+        if os.environ.get("FIFTH_PASTEBACK_OUTPUT", "1") == "1":
+            return result[1]
+        return result[0]
