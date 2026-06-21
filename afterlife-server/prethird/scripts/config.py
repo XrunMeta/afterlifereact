@@ -24,3 +24,7 @@ PORT = int(os.environ.get("PRETHIRD_PORT", "8600"))
 
 IDLE_MP4_PATH = os.environ.get("PRETHIRD_IDLE_MP4", "")
 IDLE_GRACE_SEC = float(os.environ.get("IDLE_GRACE_SEC", "0.5"))
+
+# T-070 재생 전 초기 버퍼링. 0 = 현행 동일(즉시 gate set, 회귀 0).
+# K프레임 = PLAYBACK_BUFFER_MS // 40 (40ms = 25fps 1프레임)
+PLAYBACK_BUFFER_MS = int(os.environ.get("PRETHIRD_PLAYBACK_BUFFER_MS", "0"))
