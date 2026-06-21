@@ -20,6 +20,7 @@ import logging
 import os
 import struct
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Callable, Iterator, Optional
@@ -38,12 +39,25 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def encode_frame_chunk(frame_rgb: np.ndarray, quality: int = 90) -> bytes:
-    """RGB 프레임 → [4B 길이][jpeg] 청크. (cv2 는 BGR 인코딩이라 변환)"""
+def encode_frame_chunk(
+    frame_rgb: np.ndarray,
+    quality: int = 90,
+    _timing_out: list | None = None,
+) -> bytes:
+    """RGB 프레임 → [4B 길이][jpeg] 청크. (cv2 는 BGR 인코딩이라 변환)
+
+    Args:
+        _timing_out: FIFTH_RENDER_TIMING ON 시 encode 소요 ms를 append할 list.
+                     None(기본) 이면 계측 없음(회귀안전).
+    """
     if cv2 is None:
         raise RuntimeError("cv2 미설치 — 렌더서버는 컨테이너에서 실행")
     bgr = frame_rgb[:, :, ::-1]
+    if _timing_out is not None:
+        _t0 = time.perf_counter()
     ok, enc = cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, quality])
+    if _timing_out is not None:
+        _timing_out.append((time.perf_counter() - _t0) * 1000)
     if not ok:
         raise RuntimeError("jpeg 인코딩 실패")
     data = enc.tobytes()
@@ -89,6 +103,13 @@ class RenderService:
 
     소스(open/closed 이미지)는 video_path 별로 메모리 캐싱하며,
     렌더는 threading.Lock 으로 직렬화한다(GPU 단일 스트림).
+
+    타이밍 계측 (FIFTH_RENDER_TIMING=1 시 활성):
+      ① 렌더 구간: stream_wav_frames 내 프레임 1개 생성 소요 ms (render_ms_list)
+      ② jpeg 인코딩 구간: encode_frame_chunk 내 cv2.imencode 소요 ms (encode_ms_list)
+      스트림(문장) 종료 시 1줄 로그:
+        [render-timing] frames=N render_avg_ms=X.X encode_avg_ms=X.X
+      OFF 시 perf_counter 호출 포함 계측 코드 전혀 실행되지 않음 (회귀안전).
     """
 
     def __init__(
@@ -118,6 +139,9 @@ class RenderService:
         self._sources_cache: dict[str, dict] = {}
         self._lock = threading.Lock()       # GPU 렌더 직렬화 (단일 스트림)
         self._cache_lock = threading.Lock() # 소스 캐시 생성 직렬화 (double-checked)
+
+        # 타이밍 계측 토글: FIFTH_RENDER_TIMING=1 또는 true (대소문자 무시, 기본 OFF=회귀안전)
+        self._render_timing = os.environ.get("FIFTH_RENDER_TIMING", "").lower() not in ("", "0", "false")
 
     def _get_sources(self, video_path: str) -> dict:
         """캐시 hit → 반환 (lock-free fast path), miss → GPU 직렬화 후 준비·캐시 저장.
@@ -178,6 +202,19 @@ class RenderService:
         write는 bytes → None 콜백 (wfile.write 또는 BytesIO.write).
         종료마커(length=0)는 호출자(do_POST finally)가 정확히 1회 씀.
         render()는 프레임 청크만 write하고 종료마커는 쓰지 않는다.
+
+        FIFTH_RENDER_TIMING=1 시 4구간 중 서버측 2구간 계측:
+          ① render_ms:  on_frame 호출 간격 = 순수 GPU 프레임 생성 시간.
+                        on_frame 진입 시각을 "GPU 완료 시각"으로 보고,
+                        [이전 on_frame 진입 시각 ~ 현재 on_frame 진입 시각] 간격을 측정.
+                        최초 프레임은 기준 없으므로 스킵 → measured = frames - 1.
+                        (encode/write 시간은 GPU 추론과 겹치지 않으므로 포함되지 않음:
+                         stream_wav_frames 루프는 on_frame 완료 후 다음 프레임 GPU 추론 시작)
+          ② encode_ms:  encode_frame_chunk 내 cv2.imencode 소요 ms (순수 CPU 인코딩).
+          → 스트림 종료 시 "[render-timing] frames=N measured=M render_avg_ms=X encode_avg_ms=X" 1줄.
+            measured = render_ms를 평균 낸 실제 프레임 수(= frames - 1, 최초 스킵).
+            encode/decode 구간은 전체 frames 기준.
+          OFF 시 perf_counter 포함 계측 코드 전혀 실행 안 됨.
         """
         sources = self._get_sources(video_path)
 
@@ -185,19 +222,69 @@ class RenderService:
         # _get_sources 의 slow path가 이미 _lock을 취득 후 반환했으므로,
         # 여기서는 캐시 hit이 보장된 상태. GPU 렌더 직렬화를 위해 _lock 재취득.
         with self._lock:
-            if self._stream_wav_fn is not None:
-                count = self._stream_wav_fn(
-                    self.engine, self.jp, self.cfg, sources, wav_path,
-                    lambda f: write(encode_frame_chunk(f)),
-                    blink_enabled,
+            if self._render_timing:
+                # 계측 활성: render/encode 각각 프레임당 ms 누적
+                render_ms_list: list[float] = []
+                encode_ms_list: list[float] = []
+
+                # ① render 구간 측정법 (방향 A):
+                #   on_frame 진입 시각 = "GPU가 이 프레임을 완성한 시각".
+                #   현재 진입 시각 − 직전 진입 시각 = GPU가 직전→현재 프레임을 생성한 시간.
+                #   encode/write는 on_frame 내부에서 진행되고, stream_wav_frames 루프는
+                #   on_frame 반환 후 다음 GPU 추론을 시작하므로, render_ms에 encode/write가
+                #   포함되지 않는다. 따라서 render_avg − encode_avg = 순수 GPU 시간이 성립함.
+                #   최초 프레임: _render_t_last[0] == 0.0 → 스킵(_first_frame 가드).
+                _render_t_last: list[float] = [0.0]
+                _first_frame: list[bool] = [True]
+
+                def _on_frame_render_timed(f: np.ndarray) -> None:
+                    # on_frame 진입 즉시 시각 기록 (GPU 완료 시각)
+                    _now = time.perf_counter()
+                    if not _first_frame[0]:
+                        render_ms_list.append((_now - _render_t_last[0]) * 1000)
+                    _first_frame[0] = False
+                    _render_t_last[0] = _now  # encode/write 전에 갱신 (겹침 방지)
+                    chunk = encode_frame_chunk(f, _timing_out=encode_ms_list)
+                    write(chunk)
+
+                if self._stream_wav_fn is not None:
+                    count = self._stream_wav_fn(
+                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        _on_frame_render_timed,
+                        blink_enabled,
+                    )
+                else:
+                    from fifth_render import stream_wav_frames
+                    count = stream_wav_frames(
+                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        on_frame=_on_frame_render_timed,
+                        blink_enabled=blink_enabled,
+                    )
+
+                # 스트림 종료 후 1줄 요약 로그 (프레임마다 로그 금지)
+                n_render = len(render_ms_list)   # = count - 1 (최초 스킵)
+                n_encode = len(encode_ms_list)   # = count (전체)
+                render_avg = (sum(render_ms_list) / n_render) if n_render > 0 else 0.0
+                encode_avg = (sum(encode_ms_list) / n_encode) if n_encode > 0 else 0.0
+                logger.info(
+                    "[render-timing] frames=%d measured=%d render_avg_ms=%.2f encode_avg_ms=%.2f",
+                    count, n_render, render_avg, encode_avg,
                 )
             else:
-                from fifth_render import stream_wav_frames
-                count = stream_wav_frames(
-                    self.engine, self.jp, self.cfg, sources, wav_path,
-                    on_frame=lambda f: write(encode_frame_chunk(f)),
-                    blink_enabled=blink_enabled,
-                )
+                # 계측 OFF: 기존 동작 완전 동일 (perf_counter 호출 0)
+                if self._stream_wav_fn is not None:
+                    count = self._stream_wav_fn(
+                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        lambda f: write(encode_frame_chunk(f)),
+                        blink_enabled,
+                    )
+                else:
+                    from fifth_render import stream_wav_frames
+                    count = stream_wav_frames(
+                        self.engine, self.jp, self.cfg, sources, wav_path,
+                        on_frame=lambda f: write(encode_frame_chunk(f)),
+                        blink_enabled=blink_enabled,
+                    )
         return count
 
 
