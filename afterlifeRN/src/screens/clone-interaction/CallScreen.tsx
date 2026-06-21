@@ -510,6 +510,7 @@ export default function CallScreen({ route, navigation }: Props) {
     <View style={s.container}>
       {}
       {}
+      {}
       {remoteStream ? (
         <RTCView
           streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
