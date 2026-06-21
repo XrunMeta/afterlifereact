@@ -1,8 +1,8 @@
 from fractions import Fraction
 import os
 
-# 송출 캔버스(dummy/초기 프레임용). 발화·idle 프레임은 fifth 출력(512×1024) 추종.
-# 세로 정합(T-078): drop-in 으로 PRETHIRD_WIDTH=512 PRETHIRD_HEIGHT=1024 적용 → 전 구간 1:2.
+# 송출 캔버스(dummy/초기 프레임용). 발화·idle 프레임은 fifth 출력(576×1024) 추종.
+# 세로 정합(T-078): drop-in 으로 PRETHIRD_WIDTH=576 PRETHIRD_HEIGHT=1024 적용 → 전 구간 9:16(안드로이드 표준).
 WIDTH = int(os.environ.get("PRETHIRD_WIDTH", "640"))
 HEIGHT = int(os.environ.get("PRETHIRD_HEIGHT", "480"))
 

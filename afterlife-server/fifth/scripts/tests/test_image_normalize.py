@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 import image_normalize as m
-from image_normalize import bbox_from_landmarks, compute_face_crop_window, center_crop_window
+from image_normalize import (bbox_from_landmarks, compute_face_crop_window,
+                             center_crop_window, ASPECT, TARGET_W, TARGET_H)
+
+
+def _is_aspect(rect, aspect=ASPECT):
+    """round 오차(±1px) 허용 비율 검증."""
+    return abs(rect["height"] / rect["width"] - aspect) < 0.01
 
 
 def test_bbox_from_landmarks():
@@ -9,10 +15,16 @@ def test_bbox_from_landmarks():
     assert bbox_from_landmarks(lmk) == (10.0, 20.0, 50.0, 80.0)
 
 
-def test_face_window_centered_is_1to2_and_inside():
+def test_target_is_9to16_and_64_multiple():
+    assert (TARGET_W, TARGET_H) == (576, 1024)
+    assert TARGET_W % 64 == 0 and TARGET_H % 64 == 0
+    assert abs(ASPECT - 16 / 9) < 1e-9
+
+
+def test_face_window_centered_is_9to16_and_inside():
     # 1000x2000 원본, 얼굴 bbox 폭 200(중앙)
     rect = compute_face_crop_window(1000, 2000, (400, 800, 600, 1000), width_k=2.0)
-    assert rect["height"] == 2 * rect["width"]          # 1:2
+    assert _is_aspect(rect)                              # 9:16
     assert rect["width"] == 400                          # 얼굴폭 200 × 2.0
     assert 0 <= rect["originX"] <= 1000 - rect["width"]  # 원본 내부
     assert 0 <= rect["originY"] <= 2000 - rect["height"]
@@ -26,27 +38,27 @@ def test_face_window_edge_clamps_inside():
     assert rect["originY"] + rect["height"] <= 2000
 
 
-def test_small_source_shrinks_keeping_1to2():
-    # 희망 윈도우(600x1200)가 원본(400x500)보다 큼 → 1:2 유지하며 축소
+def test_small_source_shrinks_keeping_9to16():
+    # 희망 윈도우가 원본(400x500)보다 큼 → 9:16 유지하며 축소
     rect = compute_face_crop_window(400, 500, (100, 100, 300, 300), width_k=3.0)
     assert rect["width"] <= 400 and rect["height"] <= 500
-    assert rect["height"] == 2 * rect["width"]
+    assert _is_aspect(rect)
 
 
-def test_center_crop_fallback_is_1to2_inside():
+def test_center_crop_fallback_is_9to16_inside():
     rect = center_crop_window(900, 1600)
-    assert rect["height"] == 2 * rect["width"]
+    assert _is_aspect(rect)
     assert rect["originX"] + rect["width"] <= 900
     assert rect["originY"] + rect["height"] <= 1600
 
 
-def test_normalize_idempotent_skips_512x1024():
-    img = np.zeros((1024, 512, 3), dtype=np.uint8)
+def test_normalize_idempotent_skips_576x1024():
+    img = np.zeros((1024, 576, 3), dtype=np.uint8)
     out = m.normalize_source_image(img, detect_lmk_fn=lambda b: None)
     assert out is img  # 멱등 — 동일 객체 반환, 검출/리사이즈 안 함
 
 
-def test_normalize_face_path_outputs_512x1024(monkeypatch):
+def test_normalize_face_path_outputs_576x1024(monkeypatch):
     img = np.zeros((2000, 1000, 3), dtype=np.uint8)
     lmk = np.array([[400, 800], [600, 1000]], dtype=np.float32)  # 얼굴 중앙
     captured = {}
@@ -59,10 +71,11 @@ def test_normalize_face_path_outputs_512x1024(monkeypatch):
     monkeypatch.setattr(m, "cv2", type("C", (), {"resize": staticmethod(fake_resize),
                                                   "INTER_AREA": 0})())
     out = m.normalize_source_image(img, detect_lmk_fn=lambda b: lmk)
-    assert out.shape == (1024, 512, 3)
-    assert captured["size"] == (512, 1024)
-    # crop 은 1:2 (height == 2*width)
-    assert captured["crop_shape"][0] == 2 * captured["crop_shape"][1]
+    assert out.shape == (1024, 576, 3)
+    assert captured["size"] == (576, 1024)
+    # crop 은 9:16 (height ≈ 16/9 × width, round 오차 허용)
+    ch, cw = captured["crop_shape"][0], captured["crop_shape"][1]
+    assert abs(ch / cw - ASPECT) < 0.01
 
 
 def test_normalize_detect_fail_uses_center(monkeypatch):
@@ -74,4 +87,4 @@ def test_normalize_detect_fail_uses_center(monkeypatch):
     monkeypatch.setattr(m, "cv2", type("C", (), {"resize": staticmethod(fake_resize),
                                                   "INTER_AREA": 0})())
     out = m.normalize_source_image(img, detect_lmk_fn=lambda b: None)  # 검출 실패
-    assert out.shape == (1024, 512, 3)  # center 폴백으로도 512×1024
+    assert out.shape == (1024, 576, 3)  # center 폴백으로도 576×1024
