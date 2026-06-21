@@ -455,7 +455,7 @@ def test_load_image_source_normalizes_when_enabled(tmp_path, monkeypatch):
     out = face_source.load_image_source(
         "x.jpg", str(tmp_path), 9999, detect_lmk_fn=lambda b: lmk)
     assert out["mode"] == "single"
-    assert captured["written_shape"] == (1024, 512, 3)  # 정규화된 512×1024 저장
+    assert captured["written_shape"] == (1024, 576, 3)  # 정규화된 576×1024(9:16) 저장
 
 
 def test_load_image_source_skips_when_toggle_off(tmp_path, monkeypatch):
