@@ -287,6 +287,34 @@ it('[A] suppress 중(sttSuppressed=true)엔 sttActive=true — 클론 에코 억
   expect(v_43c42e.current.sttActive).toBe(true);
 });
 
+it('[CLONE_RESUME 600] suppress 후 클론 무음 — 400ms엔 재개 안 함, 800ms엔 재개', async () => {
+
+  const v_1e3df0 = v_c2295a();
+  let v_fbe91e = 0.9; 
+  const v_791152 = jest.fn(() => v_cde30b(v_fbe91e));
+  const { result: v_43c42e } = v_d84520({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport: v_791152,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: v_1e3df0,
+  });
+  await v_81e49f(() => expect(v_43c42e.current.phase).toBe('listening'));
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+
+  await v_81e49f(() => expect(v_1e3df0.stop).toHaveBeenCalled(), { timeout: 800 });
+  expect(v_43c42e.current.sttActive).toBe(true); 
+
+  const v_2a192f = v_1e3df0.start.mock.calls.length;
+  v_fbe91e = 0.01;
+
+  await new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, 400));
+  expect(v_1e3df0.start.mock.calls.length).toBe(v_2a192f);
+
+  await new Promise<void>((v_cb35cb) => setTimeout(v_cb35cb, 500));
+  expect(v_1e3df0.start.mock.calls.length).toBeGreaterThan(v_2a192f);
+});
+
 it('[A] suppressed=false + listeningDebounced=false → sttActive=false (진짜 실패)', async () => {
 
   const v_1e3df0 = v_c2295a();

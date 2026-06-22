@@ -18,7 +18,7 @@ const v_e1d3e1 = '여보세요?';
 
 const v_106057 = 3500;
 
-const v_861560 = 1200;
+const v_861560 = 600;
 
 const v_2bbca0 = 1000;
 
@@ -274,5 +274,7 @@ export function v_7df8a4(opts: {
     interimTranscript: v_60bef6.interimTranscript,
 
     sttActive: v_b3ae82,
+
+    cloneSuppressed: v_ea4519,
   };
 }
