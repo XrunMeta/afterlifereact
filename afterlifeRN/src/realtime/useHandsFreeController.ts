@@ -18,7 +18,7 @@ const GREETING_FALLBACK_TEXT_DEFAULT = '여보세요?';
 
 const CLONE_GATE_MS = 3500;
 
-const CLONE_RESUME_MS = 1200;
+const CLONE_RESUME_MS = 600;
 
 const CLONE_TAIL_GRACE_MS = 1000;
 
@@ -274,5 +274,7 @@ export function useHandsFreeController(opts: {
     interimTranscript: speech.interimTranscript,
 
     sttActive,
+
+    cloneSuppressed: sttSuppressed,
   };
 }
