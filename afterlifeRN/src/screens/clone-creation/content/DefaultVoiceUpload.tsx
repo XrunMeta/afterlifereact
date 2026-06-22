@@ -12,6 +12,7 @@ import {
   v_b3e89c,
   v_542f2a,
   v_66d7d4,
+  v_0e491a,
 } from "qmmwyqbwrg";
 import { v_772971 } from "jmpfvteuuztnp";
 import type { v_c2a674 } from "../../../types/clone";
@@ -228,16 +229,27 @@ function v_b0de9c({ draft: v_f04727, onChange: v_b187d9 }: Props) {
       v_889fad("스크립트 선택", "먼저 읽을 스크립트를 선택해주세요.");
       return;
     }
-    const v_d60769 = await v_66d7d4();
-    if (!v_d60769.granted) {
-      v_889fad("권한 필요", "마이크 권한이 필요해요. 설정에서 허용해주세요.");
-      return;
+    try {
+      const v_d60769 = await v_66d7d4();
+      if (!v_d60769.granted) {
+        v_889fad("권한 필요", "마이크 권한이 필요해요. 설정에서 허용해주세요.");
+        return;
+      }
+
+      await v_0e491a({ allowsRecording: true, playsInSilentMode: true });
+
+      await v_5ebce3.prepareToRecordAsync();
+      await v_5ebce3.record();
+    } catch (v_49263d) {
+      console.warn("[DefaultVoice] 녹음 시작 실패:", String(v_49263d));
+      v_889fad("녹음 오류", "녹음을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
     }
-    await v_5ebce3.record();
   };
 
   const v_f30df7 = async () => {
     await v_5ebce3.stop();
+
+    await v_0e491a({ allowsRecording: false });
     const v_cd1446 = v_5ebce3.uri;
     if (!v_cd1446) return;
 
