@@ -12,6 +12,7 @@ import {
   useAudioRecorderState,
   RecordingPresets,
   requestRecordingPermissionsAsync,
+  setAudioModeAsync,
 } from "expo-audio";
 import { useTranslation } from "react-i18next";
 import type { CloneCreationDraft } from "../../../types/clone";
@@ -228,16 +229,27 @@ function Component({ draft, onChange }: Props) {
       showAlert("스크립트 선택", "먼저 읽을 스크립트를 선택해주세요.");
       return;
     }
-    const perm = await requestRecordingPermissionsAsync();
-    if (!perm.granted) {
-      showAlert("권한 필요", "마이크 권한이 필요해요. 설정에서 허용해주세요.");
-      return;
+    try {
+      const perm = await requestRecordingPermissionsAsync();
+      if (!perm.granted) {
+        showAlert("권한 필요", "마이크 권한이 필요해요. 설정에서 허용해주세요.");
+        return;
+      }
+
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+
+      await recorder.prepareToRecordAsync();
+      await recorder.record();
+    } catch (err) {
+      console.warn("[DefaultVoice] 녹음 시작 실패:", String(err));
+      showAlert("녹음 오류", "녹음을 시작하지 못했어요. 잠시 후 다시 시도해주세요.");
     }
-    await recorder.record();
   };
 
   const handleStopRecord = async () => {
     await recorder.stop();
+
+    await setAudioModeAsync({ allowsRecording: false });
     const uri = recorder.uri;
     if (!uri) return;
 
