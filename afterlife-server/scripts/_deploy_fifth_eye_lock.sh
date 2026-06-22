@@ -4,7 +4,7 @@
 # ① 컨테이너 FLP pipeline 백업(.bak-eyelock, 1회) ② 멱등 패치(_patch_fifth_eye_lock.py)
 # ③ fifth_render_server 재기동(FIFTH_EYE_SOURCE_LOCK env 포함) ④ health 확인
 #
-# env 토글: FIFTH_EYE_SOURCE_LOCK=1 FIFTH_EYE_TARGET_SCALE=0.5 (idle/발화 공통, 눈만 source 실측으로 고정).
+# env 토글: FIFTH_EYE_SOURCE_LOCK=1 FIFTH_EYE_TARGET_SCALE=0.8 (idle/발화 공통, 눈만 source 실측으로 고정).
 # 멱등: 패치는 marker 체크로 1회만, 재실행 안전. 재기동 명령의 나머지 env 는 현재 운영값(calm4b/9:16) 보존.
 #
 # ⚠️ fifth_render_server 기동이 수동(전용 systemd 없음) — 이 스크립트가 사실상 기동 정본.
@@ -36,7 +36,7 @@ docker exec -d "$CONTAINER" bash -lc "cd /root/FasterLivePortrait && \
   FIFTH_CFG_YAML=configs/trt_infer.yaml FIFTH_LIP_OPEN=0.24 FIFTH_CFG_SCALE=2.0 \
   FIFTH_BLINK=1 FIFTH_HEAD_SMOOTH=3.5 FIFTH_RENDER_TIMING=1 \
   FIFTH_INPUT_NORMALIZE=1 FIFTH_PASTEBACK_OUTPUT=1 \
-  FIFTH_EYE_SOURCE_LOCK=1 FIFTH_EYE_TARGET_SCALE=0.5 \
+  FIFTH_EYE_SOURCE_LOCK=1 FIFTH_EYE_TARGET_SCALE=0.8 \
   nohup /root/miniconda3/bin/python fifth_render_server.py > /tmp/fifth_render_server.log 2>&1 &"
 
 echo "=== 5) health 대기 ==="
