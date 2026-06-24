@@ -287,6 +287,34 @@ it('[A] suppress 중(sttSuppressed=true)엔 sttActive=true — 클론 에코 억
   expect(result.current.sttActive).toBe(true);
 });
 
+it('[CLONE_RESUME 600] suppress 후 클론 무음 — 400ms엔 재개 안 함, 800ms엔 재개', async () => {
+
+  const engine = makeMockEngine();
+  let level = 0.9; 
+  const getStatsReport = jest.fn(() => makeAudioStats(level));
+  const { result } = renderController({
+    enabled: true,
+    say: jest.fn().mockResolvedValue(undefined),
+    getStatsReport,
+    notifySpeechEnd: jest.fn(),
+    speechEngine: engine,
+  });
+  await waitFor(() => expect(result.current.phase).toBe('listening'));
+  act(() => { engine.emit('start'); });
+
+  await waitFor(() => expect(engine.stop).toHaveBeenCalled(), { timeout: 800 });
+  expect(result.current.sttActive).toBe(true); 
+
+  const startsAtSilence = engine.start.mock.calls.length;
+  level = 0.01;
+
+  await new Promise<void>((r) => setTimeout(r, 400));
+  expect(engine.start.mock.calls.length).toBe(startsAtSilence);
+
+  await new Promise<void>((r) => setTimeout(r, 500));
+  expect(engine.start.mock.calls.length).toBeGreaterThan(startsAtSilence);
+});
+
 it('[A] suppressed=false + listeningDebounced=false → sttActive=false (진짜 실패)', async () => {
 
   const engine = makeMockEngine();
