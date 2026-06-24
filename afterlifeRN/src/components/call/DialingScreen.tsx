@@ -18,8 +18,10 @@ export function v_1980fb(props: {
   onConnected: () => void;
   onCancel: () => void;
   onRetry: () => void;
+
+  greetingStarted?: boolean;
 }) {
-  const { liveState: v_6cc918, personaName: v_dfb220, personaImage: v_0e38ad, onConnected: v_a4c77b, onCancel: v_c7001c, onRetry: v_09e13b } = v_b1927c;
+  const { liveState: v_6cc918, personaName: v_dfb220, personaImage: v_0e38ad, greetingStarted: v_7a419e, onConnected: v_a4c77b, onCancel: v_c7001c, onRetry: v_09e13b } = v_b1927c;
   const v_f22657 = v_e662ae(Date.now());
   const v_5d6849 = v_e662ae(0);
   const [v_32428f, v_f775f7] = v_5ab095(0);
@@ -34,7 +36,7 @@ export function v_1980fb(props: {
   const v_e56026 = v_5c2f9f - v_f22657.current;
 
   const v_163855 = v_5c2f9f < v_5d6849.current;
-  const v_ee91bd = v_f135e1(v_6cc918, v_e56026, v_cfc2ee);
+  const v_ee91bd = v_f135e1(v_6cc918, v_e56026, v_cfc2ee, v_7a419e);
 
   const v_f22838 = v_163855 && v_ee91bd !== 'connected' ? 'dialing' : v_ee91bd;
 

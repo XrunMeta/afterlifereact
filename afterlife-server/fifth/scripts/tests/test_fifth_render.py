@@ -21,9 +21,13 @@ from fifth_render import prepare_sources, stream_wav_frames
 class _FakeEngine:
     def __init__(self):
         self.render_calls = 0
+        self.last_src_img = "UNSET"
+        self.last_src_info = "UNSET"
 
     def render(self, motion, c_eyes, c_d_lip, first_frame, src_img=None, src_info=None):
         self.render_calls += 1
+        self.last_src_img = src_img
+        self.last_src_info = src_info
         return np.full((512, 512, 3), 128, dtype=np.uint8)
 
 
@@ -98,6 +102,40 @@ def test_stream_single_mode_calls_on_frame_per_frame(tmp_path):
     )
     assert n == len(got) == nj
     assert all(f.shape == (512, 512, 3) for f in got)
+
+
+def test_stream_single_passes_open_src_to_render(tmp_path):
+    """T-074 회귀: single 모드가 eng.render 에 src_img/src_info 를 명시 전달해야 한다.
+
+    fifth_render_server._sources_cache HIT 시 prepare_sources(=eng.load_source)가
+    스킵돼 engine.self.src_img 가 직전 통화 클론으로 잔존 → 클론간 영상 누수.
+    single 렌더가 sources["open_s"] 의 src 를 명시 전달하면 잔존과 무관하게 올바른
+    클론으로 렌더된다(_stream_blend 와 동일 패턴).
+    """
+    dur, sr, fps = 0.5, 16000, 25.0
+    wav = _write_wav(tmp_path, dur=dur, sr=sr)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(dur, sr, cfg.fps) + 4
+    eng = _FakeEngine()
+    marker_img = object()
+    marker_info = [[None, np.zeros((106, 2))]]
+    sources = {
+        "mode": "single",
+        "open_s": {
+            "src_img": marker_img,
+            "src_info": marker_info,
+            "lip_close_ratio": 0.0023,
+        },
+    }
+    stream_wav_frames(
+        eng, _FakeJP(nj), cfg, sources, wav,
+        on_frame=lambda f: None,
+        blink_enabled=False,
+    )
+    # 패치 전: src 미전달 → last_src_img is None (self.src_img 의존, 누수 경로)
+    # 패치 후: open_s 의 src 가 그대로 전달돼야 한다.
+    assert eng.last_src_img is marker_img
+    assert eng.last_src_info is marker_info
 
 
 def test_stream_blend_mode_renders_two_sources(tmp_path):

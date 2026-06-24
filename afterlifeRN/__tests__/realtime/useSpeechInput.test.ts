@@ -1,5 +1,5 @@
 import { v_0da18b, v_be73a0, v_81e49f } from 'dtbzepbezvovgqcnbkbssjenbxhgn';
-import { v_fee12d } from '../../src/realtime/useSpeechInput';
+import { v_fee12d, v_74fd06, v_4c6a50 } from '../../src/realtime/useSpeechInput';
 
 function v_c2295a() {
   const v_9fde29 = {};
@@ -186,6 +186,257 @@ it('engine 재등록(리렌더로 effect 재실행) 중에도 진행 중 침묵 
     jest.advanceTimersByTime(v_6d843a + 20);
   });
   expect(v_f28164).toHaveBeenCalledWith('안녕하세요');
+});
+
+it('startListening 호출 후 start 이벤트 emit 전에는 listening=false', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+
+  expect(v_43c42e.current.listening).toBe(false);
+});
+
+it('startListening 후 start 이벤트 emit → listening=true', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  expect(v_43c42e.current.listening).toBe(false);
+  v_be73a0(() => {
+    v_1e3df0.emit('start');
+  });
+  expect(v_43c42e.current.listening).toBe(true);
+});
+
+it('startListening 후 워치독 만료(기본 1500ms)까지 start 이벤트 없으면 listening=false 유지', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+
+  v_be73a0(() => { jest.advanceTimersByTime(1400); });
+  expect(v_43c42e.current.listening).toBe(false);
+
+  v_be73a0(() => { jest.advanceTimersByTime(200); });
+  expect(v_43c42e.current.listening).toBe(false);
+});
+
+it('startListening 후 result 이벤트 도착 → listening=true(워치독 해제)', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  v_be73a0(() => {
+    v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: false });
+  });
+  expect(v_43c42e.current.listening).toBe(true);
+});
+
+it('error 이벤트 → listening=false', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  v_be73a0(() => {
+    v_1e3df0.emit('start');
+  });
+  expect(v_43c42e.current.listening).toBe(true);
+  v_be73a0(() => {
+    v_1e3df0.emit('error', { message: 'network_error' });
+  });
+  expect(v_43c42e.current.listening).toBe(false);
+});
+
+it('end 자동재시작: start 이벤트 의존, 워치독 재무장', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listening).toBe(true);
+
+  v_be73a0(() => { v_1e3df0.emit('end'); });
+  expect(v_43c42e.current.listening).toBe(false);
+
+  v_be73a0(() => { jest.advanceTimersByTime(400); });
+
+  expect(v_43c42e.current.listening).toBe(false);
+
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listening).toBe(true);
+});
+
+it('[B-1] startListening 진행 중(start 이벤트 미도착) 재호출 → engine.start 1회만', async () => {
+
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+
+  expect(v_1e3df0.start).toHaveBeenCalledTimes(1);
+});
+
+it('[B-1] startListening 후 start 이벤트 도착(확정) → 이후 재호출 허용', async () => {
+
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listening).toBe(true);
+
+  v_be73a0(() => { v_43c42e.current.stopListening(); });
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+
+  expect(v_1e3df0.start).toHaveBeenCalledTimes(2);
+});
+
+it('[B-1] startListening 후 워치독 만료(확정 실패) → 이후 재호출 허용', async () => {
+
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  expect(v_1e3df0.start).toHaveBeenCalledTimes(1);
+
+  v_be73a0(() => { jest.advanceTimersByTime(v_74fd06 + 10); });
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  expect(v_1e3df0.start).toHaveBeenCalledTimes(2);
+});
+
+it('[I-1] end 자동재시작 갭(listening=false 짧음) → stalled=false 유지(sttActive)', async () => {
+
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a })
+  );
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listening).toBe(true);
+  expect(v_43c42e.current.listeningDebounced).toBe(true);
+
+  v_be73a0(() => { v_1e3df0.emit('end'); });
+  expect(v_43c42e.current.listening).toBe(false);
+
+  v_be73a0(() => { jest.advanceTimersByTime(1000); });
+  expect(v_43c42e.current.listeningDebounced).toBe(true);
+});
+
+it('[I-1] STT 장시간 미기동(stalled) → STALLED_DEBOUNCE_MS 경과 후 listeningDebounced=false', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a })
+  );
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listeningDebounced).toBe(true);
+
+  v_be73a0(() => { v_1e3df0.emit('end'); });
+
+  v_be73a0(() => { jest.advanceTimersByTime(v_4c6a50 + 100); });
+  expect(v_43c42e.current.listeningDebounced).toBe(false);
+});
+
+it('[MAJOR-1] STT_WATCHDOG_MS-1 시점에 start 없으면 listening=false 유지', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  v_be73a0(() => { jest.advanceTimersByTime(v_74fd06 - 1); });
+  expect(v_43c42e.current.listening).toBe(false);
+});
+
+it('[MAJOR-1] STT_WATCHDOG_MS 정확히 만료 → listening=false 유지', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  v_be73a0(() => { jest.advanceTimersByTime(v_74fd06); });
+  expect(v_43c42e.current.listening).toBe(false);
+});
+
+it('[MAJOR-1] STT_WATCHDOG_MS 만료 전 start 도착 → listening=true', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+
+  v_be73a0(() => {
+    jest.advanceTimersByTime(v_74fd06 - 1);
+    v_1e3df0.emit('start');
+  });
+  expect(v_43c42e.current.listening).toBe(true);
+
+  v_be73a0(() => { jest.advanceTimersByTime(10); });
+  expect(v_43c42e.current.listening).toBe(true);
+});
+
+it('[MAJOR-2] iOS: start 이벤트 없이 result만 도착 → listening=true(워치독 해제)', async () => {
+
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  expect(v_43c42e.current.listening).toBe(false);
+
+  v_be73a0(() => {
+    v_1e3df0.emit('result', { results: [{ transcript: '안녕' }], isFinal: false });
+  });
+
+  expect(v_43c42e.current.listening).toBe(true);
+
+  v_be73a0(() => { jest.advanceTimersByTime(v_74fd06 + 100); });
+  expect(v_43c42e.current.listening).toBe(true);
+});
+
+it('[MINOR-1] end 재시작 후 start 미도착(워치독 만료) → listening=false 유지', async () => {
+  const v_1e3df0 = v_c2295a();
+  const { result: v_43c42e } = v_0da18b(() => v_fee12d({ engine: v_1e3df0, silenceMs: v_6d843a }));
+  await v_be73a0(async () => {
+    await v_43c42e.current.startListening();
+  });
+  v_be73a0(() => { v_1e3df0.emit('start'); });
+  expect(v_43c42e.current.listening).toBe(true);
+
+  v_be73a0(() => { v_1e3df0.emit('end'); });
+  v_be73a0(() => { jest.advanceTimersByTime(400); });
+
+  v_be73a0(() => { jest.advanceTimersByTime(v_74fd06 + 10); });
+  expect(v_43c42e.current.listening).toBe(false);
 });
 
 it('전송 후 누적 리셋 → 다음 발화는 이전 텍스트 안 섞임', async () => {

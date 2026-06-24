@@ -20,3 +20,18 @@ export async function v_04686a(
     }
   }
 }
+
+export async function v_5919ca(): Promise<
+  { uri: string; width: number; height: number } | null
+> {
+  const v_cb35cb = await v_d05ab5.launchImageLibraryAsync({
+    mediaTypes: ["images"],
+    allowsEditing: false,
+    quality: 1,
+  });
+  if (v_cb35cb.canceled || !v_cb35cb.assets[0]) return null;
+  const v_779914 = v_cb35cb.assets[0];
+
+  if (!v_779914.width || !v_779914.height) return null;
+  return { uri: v_779914.uri, width: v_779914.width, height: v_779914.height };
+}

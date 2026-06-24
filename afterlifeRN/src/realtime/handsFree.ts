@@ -1,7 +1,7 @@
 
 
 export type HandsFreePhase =
-  | 'idle' | 'listening' | 'confirming' | 'sending' | 'speaking' | 'paused';
+  | 'idle' | 'greeting' | 'listening' | 'confirming' | 'sending' | 'speaking' | 'paused';
 
 export interface HandsFreeState {
   phase: HandsFreePhase;
@@ -11,7 +11,9 @@ export interface HandsFreeState {
 }
 
 export type HandsFreeEvent =
-  | { type: 'CALL_LIVE' }
+  | { type: 'CALL_LIVE'; greeting?: boolean }
+  | { type: 'SPEECH_START' }
+  | { type: 'GREET_TIMEOUT' }
   | { type: 'FINAL_RESULT'; text: string }
   | { type: 'CONFIRM_SEND' }
   | { type: 'CANCEL_SEND' }
@@ -22,7 +24,8 @@ export type HandsFreeEvent =
   | { type: 'CALL_ENDED' };
 
 export type HandsFreeEffect =
-  | 'START_STT' | 'STOP_STT' | 'SAY' | 'START_DETECTOR' | 'STOP_DETECTOR';
+  | 'START_STT' | 'STOP_STT' | 'SAY' | 'GREET' | 'SPEAK_FALLBACK'
+  | 'START_DETECTOR' | 'STOP_DETECTOR';
 
 export interface HandsFreeResult {
   state: HandsFreeState;
@@ -39,7 +42,19 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
     case 'CALL_LIVE':
       if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused' }, effects: [] };
       if (v_b6e533.phase !== 'idle') return { state: v_b6e533, effects: [] };
+
+      if (v_1d299c.greeting) return { state: { ...v_b6e533, phase: 'greeting' }, effects: ['GREET'] };
       return { state: { ...v_b6e533, phase: 'listening' }, effects: ['START_STT'] };
+
+    case 'SPEECH_START':
+
+      if (v_b6e533.phase !== 'greeting') return { state: v_b6e533, effects: [] };
+      return { state: { ...v_b6e533, phase: 'speaking' }, effects: [] };
+
+    case 'GREET_TIMEOUT':
+
+      if (v_b6e533.phase !== 'greeting') return { state: v_b6e533, effects: [] };
+      return { state: v_b6e533, effects: ['SPEAK_FALLBACK'] };
 
     case 'FINAL_RESULT': {
 
@@ -78,7 +93,9 @@ export function v_6920f0(v_b6e533, v_1d299c): HandsFreeResult {
 
     case 'RESPONSE_END':
 
-      if (v_b6e533.phase !== 'speaking' && v_b6e533.phase !== 'sending') return { state: v_b6e533, effects: [] };
+      if (v_b6e533.phase !== 'speaking' && v_b6e533.phase !== 'sending' && v_b6e533.phase !== 'greeting') {
+        return { state: v_b6e533, effects: [] };
+      }
       if (!v_b6e533.micOn) return { state: { ...v_b6e533, phase: 'paused' }, effects: ['STOP_DETECTOR'] };
       return { state: { ...v_b6e533, phase: 'listening' }, effects: ['STOP_DETECTOR', 'START_STT'] };
 

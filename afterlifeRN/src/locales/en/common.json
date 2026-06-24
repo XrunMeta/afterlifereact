@@ -551,7 +551,8 @@
       "guide3": "Simple backgrounds give better results",
       "memlowNote": "You can add the photo now or later.",
       "memlowSelectHint": "Pick a photo or skip",
-      "memlowRights": "I confirm the rights to use this photo (family consent, image rights)."
+      "memlowRights": "I confirm the rights to use this photo (family consent, image rights).",
+      "cropFailed": "Failed to crop the photo. Please try again."
     },
     "voice": {
       "presets": "Default voice presets",
