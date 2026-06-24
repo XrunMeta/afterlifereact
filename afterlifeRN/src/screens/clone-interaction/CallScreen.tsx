@@ -60,7 +60,14 @@ import { v_84a859 } from "../../api/auth";
 
 type Props = v_432191<v_8ad91b, "Call">;
 
-const { width: v_437248 } = v_700696.get("window");
+const { width: v_437248, height: v_5a448f } = v_700696.get("window");
+
+const v_af2d71 = require("../../../assets/images/symbol.png");
+const v_790b2a = 74; 
+const v_964933 = 48; 
+const v_6db6ef = v_790b2a + v_964933;
+const v_6db5f9 = Math.ceil(v_437248 / v_6db6ef) + 1;
+const v_1194a9 = Math.ceil(v_5a448f / v_6db6ef) + 1;
 const v_68bb66 = v_feb82c as v_84fd28[];
 
 interface FloatingGift {
@@ -737,6 +744,21 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ) : null}
 
       {}
+      <View style={v_fd5f43.watermarkLayer} pointerEvents="none">
+        {Array.from({ length: v_1194a9 }).map((v_37eab7, v_cb35cb) => (
+          <View key={v_cb35cb} style={v_fd5f43.watermarkRow}>
+            {Array.from({ length: v_6db5f9 }).map((v_37eab7, v_3f4e2e) => (
+              <View key={v_3f4e2e} style={v_fd5f43.watermarkCell}>
+                {(v_cb35cb + v_3f4e2e) % 2 === 0 ? (
+                  <Image source={v_af2d71} style={v_fd5f43.watermarkTile} resizeMode="contain" />
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+
+      {}
       <View style={[v_fd5f43.controls, { paddingBottom: v_53dd92 + 24 }]}>
         <TouchableOpacity
           style={[v_fd5f43.controlBtn, v_4e2aec && v_fd5f43.controlBtnDanger]}
@@ -895,6 +917,25 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 }
 
 const v_fd5f43 = v_472849.create({
+
+  watermarkLayer: {
+    ...v_472849.absoluteFillObject,
+    opacity: 0.3,
+    overflow: "hidden",
+  },
+  watermarkRow: {
+    flexDirection: "row",
+  },
+  watermarkCell: {
+    width: v_6db6ef,
+    height: v_6db6ef,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  watermarkTile: {
+    width: v_790b2a,
+    height: v_790b2a,
+  },
   container: {
     flex: 1,
     backgroundColor: v_1bfbd0.zinc950,
