@@ -33,6 +33,7 @@ import { createPerson, saveFaceConsent, listPersons } from "../../api/persons";
 import TermsModal from "../../components/common/TermsModal";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
 import { CALL_ROUTE } from "../../config/callRoute";
+import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
 import { DialingScreen } from "../../components/call/DialingScreen";
 import { CallStatusGlow } from "../../components/call/CallStatusGlow";
@@ -59,7 +60,14 @@ import { AuthApiError } from "../../api/auth";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Call">;
 
-const { width: SCREEN_W } = Dimensions.get("window");
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+
+const WM_SYMBOL = require("../../../assets/images/symbol.png");
+const WM_TILE = 74; 
+const WM_GAP = 48; 
+const WM_STEP = WM_TILE + WM_GAP;
+const WM_COLS = Math.ceil(SCREEN_W / WM_STEP) + 1;
+const WM_ROWS = Math.ceil(SCREEN_H / WM_STEP) + 1;
 const gifts = giftsData as Gift[];
 
 interface FloatingGift {
@@ -168,7 +176,12 @@ export default function CallScreen({ route, navigation }: Props) {
     say,
     getStatsReport,
     notifySpeechEnd,
+    greet,
+    speak,
+    lastSignal,
   } = useAvatarCall({ cloneId, accessToken: accessToken ?? "" });
+
+  const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
   const {
     phase,
@@ -176,12 +189,25 @@ export default function CallScreen({ route, navigation }: Props) {
     cancelConfirm,
     transcript,
     interimTranscript,
+    sttActive,
+    cloneSuppressed,
   } = useHandsFreeController({
     enabled: liveState === "live",
     say,
     getStatsReport,
     notifySpeechEnd,
+    greeting: greetingOn,
+    greet,
+    speak,
+    lastSignal,
+    greetTimeoutMs: GREET_TIMEOUT_MS,
+    fallbackText: GREETING_FALLBACK_TEXT,
   });
+
+  const [greetingStarted, setGreetingStarted] = useState(false);
+  useEffect(() => {
+    if (lastSignal?.type === 'speech_start') setGreetingStarted(true);
+  }, [lastSignal]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -492,6 +518,7 @@ export default function CallScreen({ route, navigation }: Props) {
     <View style={s.container}>
       {}
       {}
+      {}
       {remoteStream ? (
         <RTCView
           streamURL={(remoteStream as unknown as { toURL: () => string }).toURL()}
@@ -521,9 +548,10 @@ export default function CallScreen({ route, navigation }: Props) {
           liveState={liveState}
           personaName={personaName}
           personaImage={typeof personaImage === "string" ? personaImage : ""}
+          greetingStarted={greetingOn ? greetingStarted : undefined}
           onConnected={() => setDialingDone(true)}
           onCancel={async () => { await stopLive(); navigation.goBack(); }}
-          onRetry={() => { void startLive(); }}
+          onRetry={() => { setGreetingStarted(false); void startLive(); }}
         />
       )}
 
@@ -533,7 +561,7 @@ export default function CallScreen({ route, navigation }: Props) {
         style={StyleSheet.absoluteFill}
       />
 
-      {dialingDone ? <CallStatusGlow phase={phase} /> : null}
+      {dialingDone ? <CallStatusGlow phase={phase} sttActive={sttActive} suppressed={cloneSuppressed} /> : null}
 
       {
 
@@ -716,6 +744,21 @@ export default function CallScreen({ route, navigation }: Props) {
       ) : null}
 
       {}
+      <View style={s.watermarkLayer} pointerEvents="none">
+        {Array.from({ length: WM_ROWS }).map((_, r) => (
+          <View key={r} style={s.watermarkRow}>
+            {Array.from({ length: WM_COLS }).map((_, c) => (
+              <View key={c} style={s.watermarkCell}>
+                {(r + c) % 2 === 0 ? (
+                  <Image source={WM_SYMBOL} style={s.watermarkTile} resizeMode="contain" />
+                ) : null}
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+
+      {}
       <View style={[s.controls, { paddingBottom: bottomInset + 24 }]}>
         <TouchableOpacity
           style={[s.controlBtn, isMuted && s.controlBtnDanger]}
@@ -874,6 +917,25 @@ export default function CallScreen({ route, navigation }: Props) {
 }
 
 const s = StyleSheet.create({
+
+  watermarkLayer: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.3,
+    overflow: "hidden",
+  },
+  watermarkRow: {
+    flexDirection: "row",
+  },
+  watermarkCell: {
+    width: WM_STEP,
+    height: WM_STEP,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  watermarkTile: {
+    width: WM_TILE,
+    height: WM_TILE,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.zinc950,

@@ -20,3 +20,18 @@ export async function pickAndCropImage(
     }
   }
 }
+
+export async function pickOriginalImage(): Promise<
+  { uri: string; width: number; height: number } | null
+> {
+  const r = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ["images"],
+    allowsEditing: false,
+    quality: 1,
+  });
+  if (r.canceled || !r.assets[0]) return null;
+  const a = r.assets[0];
+
+  if (!a.width || !a.height) return null;
+  return { uri: a.uri, width: a.width, height: a.height };
+}

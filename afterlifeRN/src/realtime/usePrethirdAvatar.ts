@@ -5,7 +5,9 @@ import { RTCPeerConnection, RTCSessionDescription, MediaStream } from 'react-nat
 import { PRETHIRD_BASE } from '../config/apiBase';
 import { ensureFreshAccessToken } from '../lib/authFetch';
 import { type AudioSessionControl, defaultAudioSessionControl } from './useAudioSession';
-import { type AvatarCall, type LiveAvatarState, type CallPhase, classifyTrack } from './avatarCall';
+import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, classifyTrack } from './avatarCall';
+
+const nowMs = () => Date.now();
 
 export const ICE_SERVERS = [
   { urls: 'stun:stun.cloudflare.com:3478' },
@@ -55,6 +57,21 @@ async function waitForIceGatheringComplete(pc: PrethirdPeerConnection): Promise<
   });
 }
 
+function waitDcOpen(dc: any, timeoutMs: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (dc.readyState === 'open') { resolve(true); return; }
+    let done = false;
+    const finish = (v: boolean) => {
+      if (done) return; done = true;
+      try { dc.removeEventListener?.('open', onOpen); } catch {  }
+      resolve(v);
+    };
+    const onOpen = () => finish(dc.readyState === 'open');
+    dc.addEventListener?.('open', onOpen);
+    setTimeout(() => finish(dc.readyState === 'open'), timeoutMs);
+  });
+}
+
 export function usePrethirdAvatar(opts: {
   cloneId: number;
   accessToken: string; 
@@ -66,6 +83,8 @@ export function usePrethirdAvatar(opts: {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [phase, setPhase] = useState<CallPhase>('idle');
+  const [lastSignal, setLastSignal] = useState<SpeechSignal | null>(null);
+  const seqRef = useRef(0);
   const pcRef = useRef<PrethirdPeerConnection | null>(null);
   const dcRef = useRef<any>(null);
   const audioStreamRef = useRef<MediaStream | null>(null);
@@ -90,7 +109,8 @@ export function usePrethirdAvatar(opts: {
     if (dc.readyState !== 'open') { setError(new Error('datachannel_not_open')); return; }
     setPhase('sending');
     try {
-      dc.send(JSON.stringify({ type: 'say', text: t }));
+      const seq = (seqRef.current += 1);
+      dc.send(JSON.stringify({ type: 'say', text: t, seq }));
       setPhase('speaking');
       if (speakTimer.current) clearTimeout(speakTimer.current);
 
@@ -100,6 +120,37 @@ export function usePrethirdAvatar(opts: {
       setPhase('idle');
     }
   }, [phase]);
+
+  const greet = useCallback(async () => {
+    const dc = dcRef.current;
+    if (!pcRef.current || !dc) return;
+    if (dc.readyState !== 'open') {
+      const ok = await waitDcOpen(dc, 3000);
+      if (!ok || dcRef.current !== dc || !pcRef.current) return;
+    }
+    const seq = (seqRef.current += 1);
+    try {
+      dc.send(JSON.stringify({ type: 'greet', seq }));
+    } catch (e) {
+      setError(e as Error);
+    }
+  }, []);
+
+  const speak = useCallback(async (text: string) => {
+    const dc = dcRef.current;
+    const t = text.trim();
+    if (!pcRef.current || !dc || !t) return;
+    if (dc.readyState !== 'open') {
+      const ok = await waitDcOpen(dc, 3000);
+      if (!ok || dcRef.current !== dc || !pcRef.current) return;
+    }
+    const seq = (seqRef.current += 1);
+    try {
+      dc.send(JSON.stringify({ type: 'speak', text: t, seq }));
+    } catch (e) {
+      setError(e as Error);
+    }
+  }, []);
 
   const notifySpeechEnd = useCallback(() => {
     if (speakTimer.current) { clearTimeout(speakTimer.current); speakTimer.current = null; }
@@ -133,6 +184,8 @@ export function usePrethirdAvatar(opts: {
     const alive = () => genRef.current === myGen;
     setError(null);
     setState('requesting');
+    setLastSignal(null);   
+    seqRef.current = 0;    
 
     const pc = deps.createPeerConnection({ iceServers: ICE_SERVERS });
     pcRef.current = pc;
@@ -162,7 +215,20 @@ export function usePrethirdAvatar(opts: {
 
     pc.addTransceiver('video', { direction: 'recvonly' });
     pc.addTransceiver('audio', { direction: 'recvonly' });
-    dcRef.current = pc.createDataChannel('control');
+    const dc = pc.createDataChannel('control');
+    dcRef.current = dc;
+    const onControl = (ev: { data?: string }) => {
+      if (!alive()) return;
+      try {
+        const m = JSON.parse(ev?.data ?? '');
+        if (m.type === 'speech_start' || m.type === 'speech_end') {
+          setLastSignal({ type: m.type, seq: m.seq, ts: nowMs() });
+          if (m.type === 'speech_end') notifySpeechEnd();
+        }
+      } catch {  }
+    };
+
+    dc.addEventListener?.('message', (ev: any) => onControl(ev));
 
     setState('connecting');
     try {
@@ -216,5 +282,5 @@ export function usePrethirdAvatar(opts: {
 
   useEffect(() => () => { void stop();  }, []);
 
-  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport };
+  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport, greet, speak, lastSignal };
 }

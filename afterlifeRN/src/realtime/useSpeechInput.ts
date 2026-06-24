@@ -11,6 +11,10 @@ export interface SpeechEngine {
 
 export const DEFAULT_SILENCE_MS = 1500;
 
+export const STT_WATCHDOG_MS = 1500;
+
+export const STALLED_DEBOUNCE_MS = 2000;
+
 export function useSpeechInput(opts?: {
   engine?: SpeechEngine;
   lang?: string;
@@ -36,11 +40,19 @@ export function useSpeechInput(opts?: {
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
   const [listening, setListening] = useState(false);
+
+  const [listeningDebounced, setListeningDebounced] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const subs = useRef<Array<{ remove: () => void }>>([]);
 
   const wantListeningRef = useRef(false);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const pendingStartRef = useRef(false);
+
+  const stalledTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const segmentsRef = useRef<string[]>([]);
   const interimRef = useRef('');
@@ -77,12 +89,30 @@ export function useSpeechInput(opts?: {
     }, silenceMsRef.current);
   }, [flush]);
 
+  const confirmListening = useCallback(() => {
+    if (watchdogRef.current) {
+      clearTimeout(watchdogRef.current);
+      watchdogRef.current = null;
+    }
+
+    pendingStartRef.current = false;
+
+    if (stalledTimerRef.current) {
+      clearTimeout(stalledTimerRef.current);
+      stalledTimerRef.current = null;
+    }
+    setListeningDebounced(true);
+    setListening(true);
+  }, []);
+
   useEffect(() => {
     subs.current.push(
 
       engine.addListener('result', (p: any) => {
         const t: string = p?.results?.[0]?.transcript ?? '';
         const isFinal: boolean = p?.isFinal === true;
+
+        confirmListening();
         if (isFinal) {
 
           const seg = t.trim();
@@ -105,26 +135,58 @@ export function useSpeechInput(opts?: {
 
       engine.addListener('error', (p: any) => {
         const msg = p?.message ?? p?.error ?? 'stt_error';
+
+        if (watchdogRef.current) {
+          clearTimeout(watchdogRef.current);
+          watchdogRef.current = null;
+        }
+        pendingStartRef.current = false;
+        setListening(false);
+
+        if (stalledTimerRef.current) clearTimeout(stalledTimerRef.current);
+        stalledTimerRef.current = setTimeout(() => {
+          stalledTimerRef.current = null;
+          setListeningDebounced(false);
+        }, STALLED_DEBOUNCE_MS);
         setError(new Error(msg));
       }),
       engine.addListener('end', () => {
         setListening(false);
 
+        if (stalledTimerRef.current) clearTimeout(stalledTimerRef.current);
+        stalledTimerRef.current = setTimeout(() => {
+          stalledTimerRef.current = null;
+          setListeningDebounced(false);
+        }, STALLED_DEBOUNCE_MS);
+
         if (wantListeningRef.current) {
           if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
           restartTimerRef.current = setTimeout(() => {
             if (!wantListeningRef.current) return;
+
+            if (pendingStartRef.current) return;
             try {
 
+              pendingStartRef.current = true; 
               engine.start({ lang, interimResults: true, continuous: true });
-              setListening(true);
+
+              if (watchdogRef.current) clearTimeout(watchdogRef.current);
+              watchdogRef.current = setTimeout(() => {
+                watchdogRef.current = null;
+
+                pendingStartRef.current = false;
+              }, STT_WATCHDOG_MS);
             } catch {
 
+              pendingStartRef.current = false;
             }
           }, 400);
         }
       }),
-      engine.addListener('start', (_p: any) => {}),
+
+      engine.addListener('start', (_p: any) => {
+        confirmListening();
+      }),
       engine.addListener('speechstart', (_p: any) => {}),
       engine.addListener('speechend', (_p: any) => {}),
       engine.addListener('audiostart', (_p: any) => {}),
@@ -137,7 +199,7 @@ export function useSpeechInput(opts?: {
       subs.current.forEach((s) => s.remove());
       subs.current = [];
     };
-  }, [engine]);
+  }, [engine, confirmListening]);
 
   useEffect(() => {
     return () => {
@@ -149,10 +211,22 @@ export function useSpeechInput(opts?: {
         clearTimeout(restartTimerRef.current);
         restartTimerRef.current = null;
       }
+      if (watchdogRef.current) {
+        clearTimeout(watchdogRef.current);
+        watchdogRef.current = null;
+      }
+      if (stalledTimerRef.current) {
+        clearTimeout(stalledTimerRef.current);
+        stalledTimerRef.current = null;
+      }
     };
   }, []);
 
   const startListening = useCallback(async () => {
+
+    if (pendingStartRef.current) {
+      return;
+    }
     wantListeningRef.current = true; 
     setError(null);
     setTranscript('');
@@ -163,12 +237,24 @@ export function useSpeechInput(opts?: {
       setError(new Error('permission_denied'));
       return;
     }
-    setListening(true);
+
+    pendingStartRef.current = true; 
+    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+    watchdogRef.current = setTimeout(() => {
+      watchdogRef.current = null;
+
+      pendingStartRef.current = false;
+    }, STT_WATCHDOG_MS);
     try {
 
       engine.start({ lang, interimResults: true, continuous: true });
     } catch (startErr: unknown) {
       const e = startErr instanceof Error ? startErr : new Error(String(startErr));
+      if (watchdogRef.current) {
+        clearTimeout(watchdogRef.current);
+        watchdogRef.current = null;
+      }
+      pendingStartRef.current = false; 
       setListening(false);
       setError(e);
     }
@@ -177,17 +263,28 @@ export function useSpeechInput(opts?: {
   const stopListening = useCallback(() => {
 
     wantListeningRef.current = false; 
+    pendingStartRef.current = false; 
     if (restartTimerRef.current) {
       clearTimeout(restartTimerRef.current);
       restartTimerRef.current = null;
+    }
+    if (watchdogRef.current) {
+      clearTimeout(watchdogRef.current);
+      watchdogRef.current = null;
     }
 
     resetBuffer();
     engine.stop();
     setListening(false);
+    setListeningDebounced(false);
+
+    if (stalledTimerRef.current) {
+      clearTimeout(stalledTimerRef.current);
+      stalledTimerRef.current = null;
+    }
   }, [engine, resetBuffer]);
 
-  return { transcript, interimTranscript, listening, error, startListening, stopListening };
+  return { transcript, interimTranscript, listening, listeningDebounced, error, startListening, stopListening };
 }
 
 function getDefaultEngine(): SpeechEngine {

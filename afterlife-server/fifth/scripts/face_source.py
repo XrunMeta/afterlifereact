@@ -10,11 +10,14 @@ GPU/landmark 검출에 직접 의존하지 않음 — 실제 검출은 호출자
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
 import numpy as np
+
+from image_normalize import normalize_source_image
 
 try:
     import cv2
@@ -241,11 +244,12 @@ def make_extract_fn(detect_lmk: Callable, open_threshold: float = 0.20,
 # 이미지(사진) 1장 → single 모드 source (영상추출 우회, crop 없음)
 # ---------------------------------------------------------------------------
 
-def load_image_source(image_path: str, cache_root: str, clone_id: int | str) -> dict:
-    """정면 사진 1장을 그대로 open source(single 모드)로 캐시·반환.
+def load_image_source(image_path: str, cache_root: str, clone_id: int | str,
+                      detect_lmk_fn=None) -> dict:
+    """정면 사진 1장을 1:2(512×1024) 정규화 후 open source(single)로 캐시.
 
-    영상 프레임 추출/landmark 검출/정규화 crop 없음 — FLP load_source 가
-    얼굴 검출·512 crop을 내장 수행한다(PoC fifth_from_photo.sh 검증). 사이즈 무관.
+    detect_lmk_fn 주입 + FIFTH_INPUT_NORMALIZE=1 일 때 얼굴중심 1:2 정규화.
+    토글 off 또는 detect_lmk_fn None 이면 현행(무crop) 경로.
 
     Returns: {"mode":"single","open_path","closed_path":None,"open_score":0.0}
     """
@@ -268,6 +272,10 @@ def load_image_source(image_path: str, cache_root: str, clone_id: int | str) -> 
     bgr = cv2.imread(image_path)
     if bgr is None:
         raise RuntimeError(f"이미지 로드 실패(손상/미존재): {image_path}")
+
+    if os.environ.get("FIFTH_INPUT_NORMALIZE", "1") == "1" and detect_lmk_fn is not None:
+        bgr = normalize_source_image(bgr, detect_lmk_fn)
+
     clone_dir.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(open_path), bgr)
     meta_path.write_text(json.dumps({
