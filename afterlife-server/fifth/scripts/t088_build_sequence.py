@@ -45,6 +45,7 @@ def build_sequence(speech_wavs, pattern, silence_sec, out_wav, out_meta, tmpdir)
             conv = os.path.join(tmpdir, f"sp_{speech_i}.wav")
             _to_16k_mono(src, conv)
             y, sr = sf.read(conv, dtype="float32")
+            assert sr == SR, f"expected SR={SR}, got {sr}"
             if y.ndim > 1:
                 y = y.mean(axis=1)
             y = y.astype(np.float32)
