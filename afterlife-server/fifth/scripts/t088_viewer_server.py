@@ -81,7 +81,7 @@ fetch('/meta').then(r=>r.json()).then(m=>{meta=m;tick();});
 function tick(){
   if(!meta){return;}
   const tag=document.getElementById('tag');
-  tag.textContent='dur '+(meta.duration ?? 0).toFixed(1)+'s | segs: '+(meta.segments||[]).map(s=>s.kind[0]).join('');
+  tag.textContent='dur '+(meta.duration ?? 0).toFixed(1)+'s | segs: '+(meta.segments||[]).map(s=> s.kind==='speech' ? 'P' : '-').join('');
 }
 function cap(){
   const img=document.getElementById('stream'),c=document.getElementById('cap');
@@ -141,6 +141,8 @@ def main():
     args = ap.parse_args()
     srv = ThreadingHTTPServer(("0.0.0.0", args.port), Handler)
     print(f"[t088] viewer on :{args.port}  render={RENDER_URL}  src={VIDEO_PATH}  wav={WAV_PATH}")
+    if not VIDEO_PATH:
+        print("[t088] WARNING: T088_SOURCE(소스 사진/영상) 미설정 — /stream 렌더가 실패합니다", file=sys.stderr)
     srv.serve_forever()
 
 if __name__ == "__main__":
