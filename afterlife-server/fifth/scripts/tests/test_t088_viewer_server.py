@@ -40,3 +40,42 @@ def test_parse_render_socket_reads_chunks_until_zero_marker():
 
     got = list(parse_render_socket(read_exactly))
     assert got == frames
+
+
+def _make_read_exactly(blob: bytes):
+    """BytesIO 기반 read_exactly 헬퍼."""
+    stream = io.BytesIO(blob)
+
+    def read_exactly(n):
+        buf = b""
+        while len(buf) < n:
+            c = stream.read(n - len(buf))
+            if not c:
+                break
+            buf += c
+        return buf
+
+    return read_exactly
+
+
+def test_parse_render_socket_empty_stream():
+    """종료마커만 있는 스트림 → 빈 리스트."""
+    blob = struct.pack(">I", 0)
+    got = list(parse_render_socket(_make_read_exactly(blob)))
+    assert got == []
+
+
+def test_parse_render_socket_single_frame():
+    """프레임 1개 + 종료마커 → [그 jpeg]."""
+    jpeg = b"\xff\xd8single\xff\xd9"
+    blob = struct.pack(">I", len(jpeg)) + jpeg + struct.pack(">I", 0)
+    got = list(parse_render_socket(_make_read_exactly(blob)))
+    assert got == [jpeg]
+
+
+def test_parse_render_socket_truncated_payload_raises():
+    """헤더 len=10 이지만 payload 5바이트만 → ValueError."""
+    blob = struct.pack(">I", 10) + b"x" * 5  # 종료마커 없음, payload 부족
+    import pytest
+    with pytest.raises(ValueError):
+        list(parse_render_socket(_make_read_exactly(blob)))

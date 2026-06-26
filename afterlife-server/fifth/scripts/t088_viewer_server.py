@@ -24,7 +24,7 @@ RENDER_URL = os.environ.get("FIFTH_RENDER_URL", "http://203.0.113.30:8810")
 WAV_PATH = os.environ.get("T088_WAV", "/tmp/t088/seq.wav")
 META_PATH = os.environ.get("T088_META", "/tmp/t088/seq.meta.json")
 VIDEO_PATH = os.environ.get("T088_SOURCE", "")  # 사진(.jpg/.png) 또는 영상
-FPS = float(os.environ.get("T088_FPS", "25"))
+FPS = float(os.environ.get("T088_FPS") or "25")
 
 def parse_render_socket(read_exactly):
     """fifth_inproc.parse_frame_stream 재사용 — jpeg payload yield."""
@@ -81,7 +81,7 @@ fetch('/meta').then(r=>r.json()).then(m=>{meta=m;tick();});
 function tick(){
   if(!meta){return;}
   const tag=document.getElementById('tag');
-  tag.textContent='dur '+meta.duration.toFixed(1)+'s | segs: '+meta.segments.map(s=>s.kind[0]).join('');
+  tag.textContent='dur '+(meta.duration ?? 0).toFixed(1)+'s | segs: '+(meta.segments||[]).map(s=>s.kind[0]).join('');
 }
 function cap(){
   const img=document.getElementById('stream'),c=document.getElementById('cap');
@@ -106,7 +106,8 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(data)
         elif self.path == "/meta":
             try:
-                data = open(META_PATH, "rb").read()
+                with open(META_PATH, "rb") as f:
+                    data = f.read()
             except OSError:
                 data = b"{}"
             self.send_response(200)
@@ -123,6 +124,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 for jpeg in iter_render_jpegs(RENDER_URL, WAV_PATH, VIDEO_PATH):
                     self.wfile.write(mjpeg_part(jpeg))
+                    self.wfile.flush()
                     if interval:
                         time.sleep(interval)
             except (BrokenPipeError, ConnectionResetError):
