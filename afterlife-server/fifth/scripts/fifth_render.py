@@ -54,6 +54,76 @@ def _serialize_head_last(ml: list, nj: int) -> list | None:
         return None
 
 
+def _apply_idle_suppression(
+    ml: list,
+    env: np.ndarray,
+    nj: int,
+    idle_scale: float,
+    rms_low: float,
+    rms_high: float,
+) -> None:
+    """RMS 연속 스케일로 무음 구간 head(R·t)·표정(exp) 모션 억제 (in-place).
+
+    §7 idle motion suppression: 무음일수록 ml을 ml[0](neutral, source 근접)으로 감쇠.
+    발화 구간(rms >= rms_high)은 ml 원본 유지 → 입싱크/head 영향 없음.
+
+    c_eyes(blink)는 ml 밖의 ce 배열 → 절대 영향 없음.
+    c_d_lip(입)은 env→rms_to_cdlip 경로 → 절대 영향 없음.
+
+    감쇠식:
+        w = clamp((rms - rms_low) / (rms_high - rms_low), 0, 1)  # 0=무음, 1=발화
+        idle_w = idle_scale + (1 - idle_scale) * w               # [idle_scale, 1.0]
+        ml[i][R] = lerp(ml[0][R], ml[i][R], idle_w)
+        (R, t, exp 동일)
+
+    회귀 안전: idle_scale=1.0 → idle_w=1.0 → ml 원본 유지 (no-op).
+
+    Args:
+        ml: JoyVASA motion list (ml[i] = {"R": (1,3,3), "t": (1,3), "exp": (1,21,3), ...}).
+        env: RMS 프레임 엔벨로프 (0~1 범위, len=렌더 프레임 수).
+        nj: ml 유효 프레임 수.
+        idle_scale: 무음 구간 최소 모션 가중치 (0.0=완전 고정, 1.0=억제 없음/회귀).
+        rms_low:  이 RMS 미만 → idle_scale 적용.
+        rms_high: 이 RMS 초과 → 억제 없음(idle_w=1.0).
+    """
+    if not ml or nj == 0 or idle_scale >= 1.0 - 1e-6:
+        return  # 회귀 안전: idle_scale=1.0 또는 빈 ml → no-op
+
+    # neutral 기준: ml[0] (첫 프레임, source 근접 pose)
+    # flag_relative_motion=False(절대 pose) 환경에서 ml[0]은 source head와 가장 가까움.
+    n0 = ml[0]
+    n0_R = np.asarray(n0["R"]).astype(np.float32)    # (1,3,3)
+    n0_t = np.asarray(n0["t"]).astype(np.float32)    # (1,3)
+    n0_e = np.asarray(n0["exp"]).astype(np.float32)  # (1,21,3)
+
+    rng = max(float(rms_high) - float(rms_low), 1e-6)
+    n_env = len(env)
+
+    for i in range(nj):
+        rms_i = float(env[min(i, n_env - 1)]) if n_env > 0 else 1.0
+        # w: 0=무음(완전억제), 1=발화(억제없음)
+        w = float(np.clip((rms_i - rms_low) / rng, 0.0, 1.0))
+        # idle_w: [idle_scale, 1.0]
+        idle_w = idle_scale + (1.0 - idle_scale) * w
+
+        if idle_w >= 1.0 - 1e-6:
+            continue  # 발화 구간 → ml 원본 유지
+
+        m_orig = ml[i]
+        m_new = dict(m_orig)  # shallow copy: R/t/exp 만 교체, 다른 키 참조 유지
+
+        R_o = np.asarray(m_orig["R"]).astype(np.float32)
+        t_o = np.asarray(m_orig["t"]).astype(np.float32)
+        e_o = np.asarray(m_orig["exp"]).astype(np.float32)
+
+        # 선형 보간: (1-idle_w)*neutral + idle_w*orig
+        m_new["R"]   = ((1.0 - idle_w) * n0_R + idle_w * R_o).astype(np.float32)
+        m_new["t"]   = ((1.0 - idle_w) * n0_t + idle_w * t_o).astype(np.float32)
+        m_new["exp"] = ((1.0 - idle_w) * n0_e + idle_w * e_o).astype(np.float32)
+
+        ml[i] = m_new
+
+
 def _apply_head_slew(ml: list, nj: int, head_last: list, slew_k: int) -> None:
     """ml 처음 min(slew_k, nj) 프레임의 R·t를 head_last → 원본 선형보간(in-place).
 
@@ -135,15 +205,25 @@ def stream_wav_frames(
     ce_raw = dri.get("c_eyes_lst", [])
     nj = dri["n_frames"]
 
-    # §6 head-carryover ① 슬루 전 원본 마지막 head pose 직렬화 (다음 청크 slew 용)
-    _head_last_new = _serialize_head_last(ml, nj)
-
-    # §6 head-carryover ② 슬루 보간: head_last → 현재 head motion 선형전환
+    # §6 head-carryover: 슬루 보간 (head_last → 현재 head motion 선형전환)
     # 회귀 안전: head_last=None(첫 청크) 또는 FIFTH_HEAD_SLEW_FRAMES=0 → 보간 없음.
     # phase_token=None(통화 회귀) → tok=PhaseToken(head_last=None) → 보간 없음.
     _slew_k = int(os.environ.get("FIFTH_HEAD_SLEW_FRAMES", "5"))
     if tok.head_last is not None and _slew_k > 0 and nj > 0:
         _apply_head_slew(ml, nj, tok.head_last, _slew_k)
+
+    # §7 idle motion suppression: 무음 구간 head(R·t)·표정(exp) 감쇠
+    # c_eyes(blink)는 ce 배열 / c_d_lip(입)은 cdl 배열 → 둘 다 ml 밖 → 절대 영향 없음.
+    # 회귀 안전: FIFTH_IDLE_MOTION_SCALE=1.0 (기본 off=1.0 아님=0.15 적용 주의) → no-op.
+    _idle_scale = float(os.environ.get("FIFTH_IDLE_MOTION_SCALE", "0.15"))
+    _rms_low    = float(os.environ.get("FIFTH_IDLE_RMS_LOW",    "0.05"))
+    _rms_high   = float(os.environ.get("FIFTH_IDLE_RMS_HIGH",   "0.3"))
+    _apply_idle_suppression(ml, env, nj, _idle_scale, _rms_low, _rms_high)
+
+    # §6+§7 후 실제 시각 상태를 head_last 로 직렬화 (다음 청크 slew 출발점).
+    # 슬루는 첫 K 프레임만 수정 → 마지막 프레임(nj-1)은 idle 억제만 반영.
+    # head_last가 실제 렌더된 마지막 head pose를 가리켜야 다음 청크 slew가 자연스럽게 연결됨.
+    _head_last_new = _serialize_head_last(ml, nj)
 
     # render_offline.py L443/L647 과 동일 계약:
     # env(RMS 프레임 수)와 nj(JoyVASA n_frames)는 독립 계산이라 다를 수 있다.

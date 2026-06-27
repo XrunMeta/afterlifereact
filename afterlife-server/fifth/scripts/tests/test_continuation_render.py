@@ -565,6 +565,9 @@ def test_slew_applied_first_k_frames_integration(tmp_path, monkeypatch):
     """head_last=0, ml R=10, K=4 → 첫 K 프레임 R 보간, K번째 이후 원본."""
     K = 4
     monkeypatch.setenv("FIFTH_HEAD_SLEW_FRAMES", str(K))
+    # §7 idle suppression 비활성(scale=1.0): 슬루 후 ml[0].R=0이 neutral이 되면
+    # 발화 프레임도 0방향으로 감쇠돼 R[K] > 9.0 조건을 깰 수 있음.
+    monkeypatch.setenv("FIFTH_IDLE_MOTION_SCALE", "1.0")
     wav = _write_wav(tmp_path, dur=0.5)
     cfg = FifthConfig.from_env()
     nj = _env_len(0.5, 16000, cfg.fps) + K + 2
@@ -989,3 +992,294 @@ def test_blend_render_all_none_count_zero_does_not_advance_phase(tmp_path):
     )
     assert end_tok.frame_offset == input_tok.frame_offset
     assert end_tok.blink_phase == input_tok.blink_phase
+
+
+# ===========================================================================
+# §7 idle motion suppression: _apply_idle_suppression 단위 테스트
+# ===========================================================================
+
+class _FakeJPHeterogeneousHead:
+    """ml[0].R=neutral_val, ml[i>0].R=high_val — 중립과 발화 모션이 다른 fake.
+
+    §7 idle suppression 통합 테스트용: ml[0](neutral)과 나머지가 달라야 억제 효과를 검증할 수 있다.
+    """
+    def __init__(self, n: int, neutral_val: float = 2.0, high_val: float = 10.0):
+        self.n = n
+        self.neutral_val = neutral_val
+        self.high_val = high_val
+
+    def gen_motion_sequence(self, wav_path):
+        motion = []
+        for i in range(self.n):
+            R_val = self.neutral_val if i == 0 else self.high_val
+            motion.append({
+                "R": np.full((1, 3, 3), R_val, dtype=np.float32),
+                "t": np.zeros((1, 3), np.float32),
+                "exp": np.zeros((1, 21, 3), np.float32),
+            })
+        return {"motion": motion, "c_eyes_lst": [], "n_frames": self.n}
+
+
+# ---------------------------------------------------------------------------
+# _apply_idle_suppression 단위 테스트
+# ---------------------------------------------------------------------------
+
+def test_idle_scale_1_noop():
+    """idle_scale=1.0 → no-op (회귀 안전): ml 원본 유지."""
+    from fifth_render import _apply_idle_suppression
+
+    ml = _make_motion_with_head(10.0, 5.0, 4)
+    # ml[0].R=10, ml[1].R=10 — neutral과 동일이므로 구별하기 위해 ml[1].R을 별도로 변경
+    ml[1]["R"] = np.full((1, 3, 3), 7.0, dtype=np.float32)
+    orig_R1 = np.asarray(ml[1]["R"]).copy()
+
+    env = np.array([0.0, 0.0, 0.0, 0.0])  # 무음
+    _apply_idle_suppression(ml, env, nj=4, idle_scale=1.0, rms_low=0.05, rms_high=0.3)
+
+    np.testing.assert_array_equal(
+        np.asarray(ml[1]["R"]), orig_R1,
+        err_msg="idle_scale=1.0 인데 ml[1].R 변경됨 — 회귀 불변식 위반",
+    )
+
+
+def test_idle_silent_frame_suppressed_to_neutral():
+    """무음(rms=0) + idle_scale=0.0 → ml[i>0] 이 neutral(ml[0])으로 완전 감쇠."""
+    from fifth_render import _apply_idle_suppression
+
+    neutral_R = 2.0
+    high_R = 10.0
+    ml = [
+        {"R": np.full((1, 3, 3), neutral_R, dtype=np.float32),
+         "t": np.zeros((1, 3), np.float32),
+         "exp": np.zeros((1, 21, 3), np.float32)},
+        {"R": np.full((1, 3, 3), high_R, dtype=np.float32),
+         "t": np.full((1, 3), 5.0, dtype=np.float32),
+         "exp": np.ones((1, 21, 3), dtype=np.float32)},
+    ]
+    env = np.array([0.0, 0.0])  # 완전 무음
+    _apply_idle_suppression(ml, env, nj=2, idle_scale=0.0, rms_low=0.05, rms_high=0.3)
+
+    # ml[0] — neutral 자체이므로 lerp(neutral, neutral, w) = neutral (변경 없음)
+    np.testing.assert_allclose(
+        np.asarray(ml[0]["R"]).flat[0], neutral_R, atol=1e-5,
+        err_msg="ml[0](neutral) 이 변경됨",
+    )
+    # ml[1] — idle_w=0.0 → lerp(2.0, 10.0, 0.0) = 2.0 (완전 중립으로 감쇠)
+    np.testing.assert_allclose(
+        np.asarray(ml[1]["R"]).flat[0], neutral_R, atol=1e-5,
+        err_msg="무음 프레임 R 이 neutral(2.0)으로 감쇠되지 않음",
+    )
+    np.testing.assert_allclose(
+        np.asarray(ml[1]["t"]).flat[0], 0.0, atol=1e-5,
+        err_msg="무음 프레임 t 이 neutral(0.0)으로 감쇠되지 않음",
+    )
+    np.testing.assert_allclose(
+        np.asarray(ml[1]["exp"]).flat[0], 0.0, atol=1e-5,
+        err_msg="무음 프레임 exp 이 neutral(0.0)으로 감쇠되지 않음",
+    )
+
+
+def test_idle_speech_frame_unchanged_at_high_rms():
+    """발화 구간(rms >= rms_high) → idle_w=1.0 → ml 원본 유지."""
+    from fifth_render import _apply_idle_suppression
+
+    ml = [
+        {"R": np.full((1, 3, 3), 2.0, dtype=np.float32),
+         "t": np.zeros((1, 3), np.float32),
+         "exp": np.zeros((1, 21, 3), np.float32)},
+        {"R": np.full((1, 3, 3), 10.0, dtype=np.float32),
+         "t": np.full((1, 3), 5.0, dtype=np.float32),
+         "exp": np.ones((1, 21, 3), dtype=np.float32)},
+    ]
+    orig_R1 = np.asarray(ml[1]["R"]).copy()
+    orig_t1 = np.asarray(ml[1]["t"]).copy()
+
+    # rms > rms_high(0.3) → w=1.0 → idle_w=1.0 → skip (원본 유지)
+    env = np.array([1.0, 1.0])  # 고음량 발화
+    _apply_idle_suppression(ml, env, nj=2, idle_scale=0.0, rms_low=0.05, rms_high=0.3)
+
+    np.testing.assert_array_equal(
+        np.asarray(ml[1]["R"]), orig_R1,
+        err_msg="발화 구간인데 R 이 변경됨",
+    )
+    np.testing.assert_array_equal(
+        np.asarray(ml[1]["t"]), orig_t1,
+        err_msg="발화 구간인데 t 이 변경됨",
+    )
+
+
+def test_idle_partial_suppression_interpolates():
+    """중간 RMS → 선형 보간 (완전억제와 원본 사이)."""
+    from fifth_render import _apply_idle_suppression
+
+    neutral_R = 2.0
+    high_R = 10.0
+    # rms_low=0.05, rms_high=0.3, rms=0.175(중간) → w=0.5
+    # idle_scale=0.0 → idle_w = 0.0 + 1.0 * 0.5 = 0.5
+    # R_expected = lerp(2.0, 10.0, 0.5) = 6.0
+    rms_mid = 0.05 + (0.3 - 0.05) * 0.5  # 0.175
+
+    ml = [
+        {"R": np.full((1, 3, 3), neutral_R, dtype=np.float32),
+         "t": np.zeros((1, 3), np.float32),
+         "exp": np.zeros((1, 21, 3), np.float32)},
+        {"R": np.full((1, 3, 3), high_R, dtype=np.float32),
+         "t": np.zeros((1, 3), np.float32),
+         "exp": np.zeros((1, 21, 3), np.float32)},
+    ]
+    env = np.array([rms_mid, rms_mid])
+    _apply_idle_suppression(ml, env, nj=2, idle_scale=0.0, rms_low=0.05, rms_high=0.3)
+
+    R1 = float(np.asarray(ml[1]["R"]).flat[0])
+    np.testing.assert_allclose(
+        R1, 6.0, atol=1e-4,
+        err_msg=f"중간 RMS={rms_mid:.3f}: R={R1:.4f}, lerp(2.0, 10.0, 0.5)=6.0 기대",
+    )
+
+
+def test_idle_empty_nj_noop():
+    """nj=0 → ml 수정 없음, 예외 없음."""
+    from fifth_render import _apply_idle_suppression
+
+    ml: list = []
+    env = np.array([0.0])
+    # 예외 없이 종료해야 함
+    _apply_idle_suppression(ml, env, nj=0, idle_scale=0.0, rms_low=0.05, rms_high=0.3)
+    assert ml == [], "nj=0 인데 ml 변경됨"
+
+
+def test_idle_ml0_always_unchanged():
+    """ml[0](neutral 기준) 은 lerp(neutral, neutral, w) = neutral — 항상 불변."""
+    from fifth_render import _apply_idle_suppression
+
+    neutral_R = 3.0
+    ml = _make_motion_with_head(neutral_R, 1.0, 3)
+    orig_R0 = np.asarray(ml[0]["R"]).copy()
+
+    # 어떤 idle_scale 이든 ml[0] 은 변경되지 않음
+    env = np.array([0.0, 0.0, 0.0])
+    _apply_idle_suppression(ml, env, nj=3, idle_scale=0.0, rms_low=0.05, rms_high=0.3)
+
+    np.testing.assert_allclose(
+        np.asarray(ml[0]["R"]), orig_R0, atol=1e-5,
+        err_msg="ml[0](neutral 기준) 이 idle suppression 에 의해 변경됨",
+    )
+
+
+def test_idle_suppression_does_not_affect_blink():
+    """c_eyes(blink)는 ml 밖의 ce 배열 — idle suppression 에 구조적으로 영향 없음.
+
+    _apply_idle_suppression 은 ml 만 받으므로 ce 는 변경 불가(structural invariant).
+    """
+    from fifth_render import _apply_idle_suppression
+
+    # ce 는 외부 배열 — _apply_idle_suppression 인자에 없음
+    ce = [np.array([[0.37]]), np.array([[0.10]]), np.array([[0.37]])]
+    ce_before = [x.copy() for x in ce]
+
+    ml = _make_motion_with_head(5.0, 5.0, 3)
+    env = np.array([0.0, 0.0, 0.0])  # 무음 → 최대 억제
+    _apply_idle_suppression(ml, env, nj=3, idle_scale=0.0, rms_low=0.05, rms_high=0.3)
+
+    # ce 가 전혀 변경되지 않았음을 확인
+    for i, (before, after) in enumerate(zip(ce_before, ce)):
+        np.testing.assert_array_equal(
+            before, after,
+            err_msg=f"ce[{i}] 가 idle suppression 에 의해 변경됨 — blink 불변식 위반",
+        )
+
+
+def test_idle_continuity_adjacent_frames():
+    """인접 프레임 RMS 차이가 작으면 R 급변 없음 — 연속성 보장."""
+    from fifth_render import _apply_idle_suppression
+
+    n = 10
+    # ml[0]=neutral(0), ml[1:]=orig(10)
+    ml = [
+        {"R": np.zeros((1, 3, 3), dtype=np.float32),
+         "t": np.zeros((1, 3), np.float32),
+         "exp": np.zeros((1, 21, 3), np.float32)},
+    ] + [
+        {"R": np.full((1, 3, 3), 10.0, dtype=np.float32),
+         "t": np.zeros((1, 3), np.float32),
+         "exp": np.zeros((1, 21, 3), np.float32)}
+        for _ in range(n - 1)
+    ]
+
+    # RMS 가 서서히 증가: 0.0 → 0.3 (10 프레임)
+    env = np.linspace(0.0, 0.3, n)
+    _apply_idle_suppression(ml, env, nj=n, idle_scale=0.0, rms_low=0.0, rms_high=0.3)
+
+    R_vals = [float(np.asarray(ml[i]["R"]).flat[0]) for i in range(n)]
+    max_jump = max(abs(R_vals[i + 1] - R_vals[i]) for i in range(n - 1))
+
+    # 10프레임에 걸쳐 0→10 → 최대 점프 ≤ 1.5 (단조증가이므로 평균 jump=10/9≈1.11)
+    assert max_jump <= 2.0, (
+        f"인접 프레임 최대 R 점프={max_jump:.4f} — 연속성 위반 (RMS 서서히 증가이므로 급변 없어야 함)"
+    )
+    # 단조 증가 검증
+    assert R_vals[-1] > R_vals[0], "RMS 증가 → R 도 단조 증가해야 함"
+
+
+# ---------------------------------------------------------------------------
+# §7 idle suppression 통합 테스트 (stream_wav_frames 경유)
+# ---------------------------------------------------------------------------
+
+def test_idle_stream_silent_wav_suppresses_non_neutral_frames(tmp_path, monkeypatch):
+    """무음 wav + FIFTH_IDLE_MOTION_SCALE=0.0 → neutral 아닌 프레임이 neutral로 감쇠.
+
+    _FakeJPHeterogeneousHead: ml[0].R=2.0(neutral), ml[1:].R=10.0.
+    무음 env → idle_w=0.0 → ml[1].R → 2.0.
+    """
+    monkeypatch.setenv("FIFTH_IDLE_MOTION_SCALE", "0.0")
+    monkeypatch.setenv("FIFTH_HEAD_SLEW_FRAMES", "0")   # 슬루 비활성 (idle suppression만 검증)
+    monkeypatch.setenv("FIFTH_IDLE_RMS_LOW", "0.05")
+    monkeypatch.setenv("FIFTH_IDLE_RMS_HIGH", "0.3")
+
+    wav = _write_silent_wav(tmp_path, dur=0.5)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + 4
+
+    eng = _MotionRecordingEngine()
+    stream_wav_frames(
+        eng,
+        _FakeJPHeterogeneousHead(nj, neutral_val=2.0, high_val=10.0),
+        cfg, _make_sources(), wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=PhaseToken(first_frame=True),
+    )
+
+    assert len(eng.R_flat) >= 2, "render 호출 부족 — 무음이라도 프레임 출력 필요"
+    # 첫 프레임(neutral=2.0) 은 lerp(2.0, 2.0, w) = 2.0 (neutral 자신)
+    assert abs(eng.R_flat[0] - 2.0) < 1e-3, (
+        f"첫 프레임(neutral) R={eng.R_flat[0]:.4f} — 2.0 기대"
+    )
+    # 나머지 프레임(orig=10.0) 은 무음 env → idle_w=0.0 → R → neutral(2.0)
+    assert abs(eng.R_flat[1] - 2.0) < 1e-3, (
+        f"무음 프레임 R={eng.R_flat[1]:.4f} — neutral(2.0)으로 감쇠 기대 (was 10.0)"
+    )
+
+
+def test_idle_stream_scale_1_regression(tmp_path, monkeypatch):
+    """FIFTH_IDLE_MOTION_SCALE=1.0 → ml 원본 유지 (회귀 안전)."""
+    monkeypatch.setenv("FIFTH_IDLE_MOTION_SCALE", "1.0")
+    monkeypatch.setenv("FIFTH_HEAD_SLEW_FRAMES", "0")
+
+    wav = _write_wav(tmp_path, dur=0.5)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + 4
+
+    eng = _MotionRecordingEngine()
+    stream_wav_frames(
+        eng,
+        _FakeJPHeterogeneousHead(nj, neutral_val=2.0, high_val=10.0),
+        cfg, _make_sources(), wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=PhaseToken(first_frame=True),
+    )
+
+    assert len(eng.R_flat) >= 2, "render 호출 부족"
+    # scale=1.0 → no-op → ml[1].R 원본(10.0) 유지
+    assert abs(eng.R_flat[1] - 10.0) < 1e-3, (
+        f"scale=1.0(회귀)인데 R={eng.R_flat[1]:.4f} — 원본 10.0 기대"
+    )
