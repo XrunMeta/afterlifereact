@@ -304,9 +304,8 @@ def run_compare(
         return result
 
     # wav 분할
-    wav_a, wav_b, n_frames_a = split_wav_at_frame_boundary(wav_path)
-    boundary_idx = compute_boundary_index(len(frames_whole), n_frames_a)
-    print(f"[t088] wav 분할: n_frames_a={n_frames_a} boundary_idx={boundary_idx}", file=sys.stderr)
+    wav_a, wav_b, n_frames_a_est = split_wav_at_frame_boundary(wav_path)
+    print(f"[t088] wav 분할: n_frames_a_est(추산)={n_frames_a_est}", file=sys.stderr)
 
     # (B1) 청크A 렌더 — phase_token 전달(기본 토큰)
     print("[t088] 청크A 렌더 중...", file=sys.stderr)
@@ -317,7 +316,16 @@ def run_compare(
         print(json.dumps(result))
         return result
     frames_chunk_a = [_decode_jpeg_to_rgb(b) for b in frames_a_bytes]
-    print(f"[t088] 청크A: {len(frames_chunk_a)} 프레임, end_tok={end_tok_dict}", file=sys.stderr)
+
+    # CONCERN C-1: boundary_idx 는 추산(n_frames_a_est) 대신 실측(len(frames_chunk_a)) 사용.
+    # stream_wav_frames n=max(len(env),nj) 분기로 추산이 ±몇 프레임 어긋날 수 있어
+    # 짧은 wav 에서 게이트 오정렬 방지.
+    boundary_idx = compute_boundary_index(len(frames_whole), len(frames_chunk_a))
+    print(
+        f"[t088] 청크A: {len(frames_chunk_a)} 프레임(실측), "
+        f"boundary_idx={boundary_idx}(추산={n_frames_a_est}), end_tok={end_tok_dict}",
+        file=sys.stderr,
+    )
 
     # (B2) 청크B 렌더 — 끝 토큰 이어받기
     print("[t088] 청크B 렌더 중...", file=sys.stderr)
@@ -331,6 +339,8 @@ def run_compare(
 
     # 정량 대조
     result = compute_boundary_metrics(frames_whole, frames_chunk, boundary_idx, detect_lmk)
+    result["n_frames_a_estimated"] = n_frames_a_est
+    result["n_frames_a_actual"] = len(frames_chunk_a)
     result["wav_path"] = wav_path
     result["src_path"] = src_path
     result["end_tok"] = end_tok_dict
