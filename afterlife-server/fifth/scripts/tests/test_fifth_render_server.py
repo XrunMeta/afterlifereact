@@ -811,7 +811,7 @@ def test_get_sources_image_path_uses_image_loader(monkeypatch):
 
     called = {}
 
-    def fake_load_image(image_path, cache_root, clone_id):
+    def fake_load_image(image_path, cache_root, clone_id, detect_lmk_fn=None):
         called["image"] = (image_path, clone_id)
         return {"mode": "single", "open_path": "/c/open.png", "closed_path": None, "open_score": 0.0}
 
