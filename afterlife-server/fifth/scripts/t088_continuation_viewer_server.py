@@ -338,7 +338,7 @@ class ViewerHandler(BaseHTTPRequestHandler):
         if not ANSWER_WAV or not SRC_PATH:
             self.send_response(503)
             self.end_headers()
-            self.wfile.write(b"T088_WAV / T088_SOURCE 환경변수 미설정")
+            self.wfile.write("T088_WAV / T088_SOURCE 환경변수 미설정".encode("utf-8"))
             return
 
         self.send_response(200)
