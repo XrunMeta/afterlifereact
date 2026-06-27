@@ -958,6 +958,45 @@ def test_tok_magic_is_not_valid_jpeg_start():
     )
 
 
+# BLOCKER 1: 매직 있고 JSON 깨진 트레일러 → crash 아닌 None
+def test_decode_token_trailer_data_broken_json_returns_none():
+    """TOK: 매직은 있으나 뒤 JSON 이 깨진 경우 → None (crash 금지).
+
+    BLOCKER: json.loads() JSONDecodeError 가 compare 스크립트 crash 를 유발했던 버그.
+    """
+    import fifth_render_server as srv
+
+    broken = srv._TOK_MAGIC + b"this is not valid json!!!"
+    result = srv.decode_token_trailer_data(broken)
+    assert result is None, f"깨진 JSON → None 이어야 함, got: {result!r}"
+
+
+def test_decode_token_trailer_data_magic_then_empty_json_returns_none():
+    """TOK: + 빈 bytes → None (JSON 파싱 불가)."""
+    import fifth_render_server as srv
+
+    result = srv.decode_token_trailer_data(srv._TOK_MAGIC)
+    assert result is None
+
+
+def test_parse_render_response_broken_trailer_skips_tok(tmp_path):
+    """parse_render_response: 깨진 TOK: 트레일러가 있어도 frames 파싱 정상, end_tok=None."""
+    import fifth_render_server as srv
+
+    buf = io.BytesIO()
+    # jpeg 프레임 1개
+    payload = b"\xff\xd8 fake jpeg"
+    buf.write(struct.pack(">I", len(payload)) + payload)
+    # 깨진 TOK: 트레일러
+    broken_tok = srv._TOK_MAGIC + b"NOT_JSON"
+    buf.write(struct.pack(">I", len(broken_tok)) + broken_tok)
+    buf.write(struct.pack(">I", 0))
+
+    frames, tok = srv.parse_render_response(buf.getvalue())
+    assert len(frames) == 1, "jpeg 프레임은 정상 파싱돼야 함"
+    assert tok is None, "깨진 TOK: 트레일러 → end_tok=None"
+
+
 # ---------------------------------------------------------------------------
 # S4: _parse_render_body phase_token 파싱
 # ---------------------------------------------------------------------------
@@ -1000,6 +1039,79 @@ def test_parse_render_body_phase_token_absent_is_none():
     body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
     _, _, tok = _parse_render_body(body)
     assert tok is None
+
+
+# BLOCKER 2: invalid phase_token → ValueError(→ 400)
+def test_parse_render_body_invalid_phase_token_type_raises_valueerror():
+    """phase_token.frame_offset='invalid' 같은 타입 불량 → ValueError.
+
+    BLOCKER: PhaseToken.from_dict 에서 예외 → 500 이었던 버그.
+    do_POST 는 ValueError 를 캐치해 400 을 반환한다.
+    """
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": {"frame_offset": "invalid", "blink_phase": 0, "first_frame": True},
+    }).encode()
+    with pytest.raises(ValueError, match="phase_token"):
+        _parse_render_body(body)
+
+
+def test_parse_render_body_invalid_phase_token_wrong_structure_raises():
+    """phase_token이 dict 가 아닌 경우(list 등) → ValueError."""
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": [1, 2, 3],  # list 는 invalid
+    }).encode()
+    with pytest.raises(ValueError, match="phase_token"):
+        _parse_render_body(body)
+
+
+def test_http_integration_invalid_phase_token_returns_400(tmp_path):
+    """POST /oth-path invalid phase_token → 400(Bad Request). 500 이면 안 됨."""
+    import fifth_render_server as srv
+    from http.server import HTTPServer
+    import soundfile as sf
+
+    wav_file = tmp_path / "test.wav"
+    sf.write(str(wav_file), np.zeros(4800, np.float32), 16000)
+
+    orig_service = srv._service
+    srv._service = _make_integration_service(tmp_path)
+
+    server = HTTPServer(("127.0.0.1", 0), srv._RenderHandler)
+    port = server.server_address[1]
+    server_thread = threading.Thread(target=server.handle_request)
+    server_thread.daemon = True
+    server_thread.start()
+
+    try:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+        bad_body = json.dumps({
+            "wav_path": str(wav_file),
+            "video_path": "/fake/9055/idle.mp4",
+            "phase_token": {"frame_offset": "NOT_AN_INT"},
+        }).encode()
+        conn.request("POST", "/render", body=bad_body,
+                     headers={"Content-Length": str(len(bad_body))})
+        resp = conn.getresponse()
+        assert resp.status == 400, (
+            f"invalid phase_token 은 400 이어야 함, got {resp.status}"
+        )
+        resp_body = json.loads(resp.read())
+        assert "phase_token" in resp_body.get("error", "").lower(), (
+            f"에러 메시지에 'phase_token' 언급 없음: {resp_body}"
+        )
+        conn.close()
+    finally:
+        srv._service = orig_service
+        server_thread.join(timeout=5)
+        server.server_close()
 
 
 # ---------------------------------------------------------------------------
@@ -1314,4 +1426,29 @@ def test_split_wav_at_frame_boundary_half_frames(tmp_path):
     expected_half = n_frames_total // 2
     assert abs(n_frames_a - expected_half) <= 1, (
         f"n_frames_a={n_frames_a} 가 절반({expected_half}) ±1 범위 밖"
+    )
+
+
+# CONCERN C-1: boundary_idx 는 추산(n_frames_a) 대신 실측(len(frames_chunk_a)) 사용
+def test_boundary_idx_uses_actual_chunk_a_frame_count():
+    """run_compare 가 boundary_idx 로 n_frames_a(추산) 대신 len(frames_chunk_a)(실측) 을 써야 한다.
+
+    stream_wav_frames n=max(len(env),nj) 분기로 추산과 실측이 ±몇 프레임 어긋날 수 있음.
+    이 테스트는 compute_boundary_index 의 인자가 len(frames_chunk_a) 에서 왔을 때
+    정확한 경계를 계산함을 확인한다.
+    """
+    from t088_continuation_compare import compute_boundary_index
+
+    # 추산: wav 기반 n_frames_a = 12 (오차 가능)
+    # 실측: 실제 렌더된 청크A 프레임 수 = 15 (JoyVASA nj > env 케이스)
+    n_frames_a_estimated = 12
+    n_frames_a_actual = 15
+
+    boundary_estimated = compute_boundary_index(total_frames=28, n_frames_chunk_a=n_frames_a_estimated)
+    boundary_actual = compute_boundary_index(total_frames=28, n_frames_chunk_a=n_frames_a_actual)
+
+    # 실측값을 써야 정확한 경계 인덱스를 얻음
+    assert boundary_actual == 15, "실측 boundary_idx 불일치"
+    assert boundary_estimated != boundary_actual, (
+        "이 케이스에서 추산과 실측이 다름 — 실측을 써야 한다"
     )

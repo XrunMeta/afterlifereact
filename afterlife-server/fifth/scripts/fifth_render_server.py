@@ -54,18 +54,27 @@ def encode_token_trailer(tok) -> bytes:
 
 
 def decode_token_trailer_data(chunk_data: bytes) -> Optional[object]:
-    """청크 데이터부(4B 길이 헤더 제외) → PhaseToken. 매직 없으면 None.
+    """청크 데이터부(4B 길이 헤더 제외) → PhaseToken. 매직 없거나 JSON 깨지면 None.
 
     Args:
         chunk_data: [4B len] 이후의 페이로드 bytes.
     Returns:
-        PhaseToken 또는 None(매직 불일치).
+        PhaseToken 또는 None(매직 불일치 / JSON 파싱 실패).
+
+    BLOCKER 1 수정: JSON 이 깨진 경우 crash 대신 None 반환.
+    parse_render_response / compare 스크립트가 None 을 안전 처리(end_tok=None).
     """
     if not chunk_data or not chunk_data.startswith(_TOK_MAGIC):
         return None
-    from phase_token import PhaseToken
-    json_bytes = chunk_data[len(_TOK_MAGIC):]
-    return PhaseToken.from_dict(json.loads(json_bytes.decode()))
+    try:
+        from phase_token import PhaseToken
+        json_bytes = chunk_data[len(_TOK_MAGIC):]
+        return PhaseToken.from_dict(json.loads(json_bytes.decode()))
+    except Exception:
+        # JSON 깨짐 / PhaseToken 역직렬화 실패 — 안전하게 None 반환.
+        # 호출부(parse_render_response 등)가 None → end_tok 없음으로 처리.
+        logger.warning("decode_token_trailer_data: 파싱 실패, None 반환")
+        return None
 
 
 def parse_render_response(data: bytes) -> tuple[list[bytes], Optional[object]]:
@@ -400,11 +409,26 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object]]:
         raise ValueError("wav_path 필수")
 
     # phase_token: 키 없음 또는 null → None(레거시), dict → PhaseToken
+    # BLOCKER 2: 역직렬화 실패 또는 타입 불량 시 ValueError → do_POST 가 400 반환(500 방지).
+    # PhaseToken dataclass 는 타입을 강제하지 않으므로 여기서 명시적으로 검증한다.
     phase_token_data = req.get("phase_token")
     phase_token = None
     if phase_token_data is not None:
-        from phase_token import PhaseToken
-        phase_token = PhaseToken.from_dict(phase_token_data)
+        try:
+            from phase_token import PhaseToken
+            if not isinstance(phase_token_data, dict):
+                raise TypeError(f"phase_token 은 dict 여야 함, got {type(phase_token_data).__name__}")
+            tok = PhaseToken.from_dict(phase_token_data)
+            # 필드 타입 명시 검증 — dataclass 는 타입 강제 없으므로 직접 확인
+            if not isinstance(tok.frame_offset, int):
+                raise TypeError(f"phase_token.frame_offset 은 int 여야 함, got {type(tok.frame_offset).__name__!r}")
+            if not isinstance(tok.blink_phase, int):
+                raise TypeError(f"phase_token.blink_phase 는 int 여야 함, got {type(tok.blink_phase).__name__!r}")
+            if not isinstance(tok.first_frame, bool):
+                raise TypeError(f"phase_token.first_frame 은 bool 여야 함, got {type(tok.first_frame).__name__!r}")
+            phase_token = tok
+        except Exception as exc:
+            raise ValueError(f"phase_token 역직렬화 실패: {exc}") from exc
 
     return str(wav_path_raw), str(video_path), phase_token
 
