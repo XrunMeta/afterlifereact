@@ -88,6 +88,7 @@ VIEWER_SCRIPT="/data/afterlife/fifth-poc/FasterLivePortrait/t088_cont/t088_conti
 WAV="${WAV:-}"
 SRC="${SRC:-}"
 SLEW="${SLEW:-0}"
+EYE_SCALE="${EYE_SCALE:-0.5}"   # idle 눈 retarget scale (운영 0.8, 줄이면 눈 작게 — 놀란눈 방지)
 SILENCE_SEC="${SILENCE_SEC:-2.0}"
 PATTERN="${PATTERN:-silence,speech,silence,speech,silence}"
 
@@ -198,6 +199,8 @@ ssh "$GABIA" \
      FIFTH_BLINK=1 \
      FIFTH_HEAD_SMOOTH=3.5 \
      FIFTH_HEAD_SLEW_FRAMES=$SLEW \
+     FIFTH_EYE_SOURCE_LOCK=1 \
+     FIFTH_EYE_TARGET_SCALE=$EYE_SCALE \
      nohup $PY_CONTAINER $T088_DIR/fifth_render_server.py >$RENDER_LOG 2>&1 &'"
 
 echo "  렌더서버 기동 명령 전송. TRT 로드 대기 중 (최대 120s)..."
