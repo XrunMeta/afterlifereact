@@ -1072,6 +1072,125 @@ def test_parse_render_body_invalid_phase_token_wrong_structure_raises():
         _parse_render_body(body)
 
 
+# ---------------------------------------------------------------------------
+# BLOCKER (sion): head_last 검증 — list|None 이외 → ValueError(400)
+# ---------------------------------------------------------------------------
+
+def test_parse_render_body_phase_token_head_last_str_raises():
+    """head_last='NOT_A_LIST'(str) → ValueError — 400 반환 보장."""
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": {
+            "frame_offset": 0, "blink_phase": 0,
+            "first_frame": True, "head_last": "NOT_A_LIST",
+        },
+    }).encode()
+    with pytest.raises(ValueError, match="phase_token"):
+        _parse_render_body(body)
+
+
+def test_parse_render_body_phase_token_head_last_int_raises():
+    """head_last=42(int) → ValueError — list 또는 None 만 허용."""
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": {
+            "frame_offset": 0, "blink_phase": 0,
+            "first_frame": True, "head_last": 42,
+        },
+    }).encode()
+    with pytest.raises(ValueError, match="phase_token"):
+        _parse_render_body(body)
+
+
+def test_parse_render_body_phase_token_head_last_none_passes():
+    """head_last=null → None 허용, 정상 파싱."""
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": {
+            "frame_offset": 0, "blink_phase": 0,
+            "first_frame": True, "head_last": None,
+        },
+    }).encode()
+    wav, vid, tok = _parse_render_body(body)
+    assert tok is not None
+    assert tok.head_last is None
+
+
+def test_parse_render_body_phase_token_head_last_list_passes():
+    """head_last=[1.0, 2.0](list) → list 허용, 값 보존."""
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": {
+            "frame_offset": 0, "blink_phase": 0,
+            "first_frame": True, "head_last": [1.0, 2.0],
+        },
+    }).encode()
+    wav, vid, tok = _parse_render_body(body)
+    assert tok is not None
+    assert tok.head_last == [1.0, 2.0]
+
+
+# ---------------------------------------------------------------------------
+# CONCERN (el): bool/int subclass gap
+#   frame_offset/blink_phase: bool 유입 차단(isinstance(True, int)==True 함정)
+#   first_frame: 현행 유지 — int(1) 차단, bool(True/False) 통과
+# ---------------------------------------------------------------------------
+
+def test_parse_render_body_phase_token_frame_offset_bool_raises():
+    """frame_offset=true (JSON bool) → ValueError.
+
+    Python에서 isinstance(True, int)==True 이므로 단순 int 검사로는 통과함.
+    bool 유입을 명시 차단해야 함.
+    """
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": {"frame_offset": True, "blink_phase": 0, "first_frame": True},
+    }).encode()
+    with pytest.raises(ValueError, match="phase_token"):
+        _parse_render_body(body)
+
+
+def test_parse_render_body_phase_token_blink_phase_bool_raises():
+    """blink_phase=true (JSON bool) → ValueError."""
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": {"frame_offset": 0, "blink_phase": True, "first_frame": True},
+    }).encode()
+    with pytest.raises(ValueError, match="phase_token"):
+        _parse_render_body(body)
+
+
+def test_parse_render_body_phase_token_first_frame_int_raises():
+    """first_frame=1 (int, bool 아님) → ValueError (회귀: 현행 유지 확인)."""
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": {"frame_offset": 0, "blink_phase": 0, "first_frame": 1},
+    }).encode()
+    with pytest.raises(ValueError, match="phase_token"):
+        _parse_render_body(body)
+
+
 def test_http_integration_invalid_phase_token_returns_400(tmp_path):
     """POST /oth-path invalid phase_token → 400(Bad Request). 500 이면 안 됨."""
     import fifth_render_server as srv
@@ -1406,6 +1525,54 @@ def test_split_wav_at_frame_boundary_creates_two_files(tmp_path):
     assert len(y_a) + len(y_b) == len(y), (
         f"분할 후 합산 샘플 수 불일치: {len(y_a)}+{len(y_b)} != {len(y)}"
     )
+
+
+# ---------------------------------------------------------------------------
+# el RISK: t088_continuation_compare _parse_raw_render_response 방어
+# ---------------------------------------------------------------------------
+
+def test_parse_raw_render_response_broken_tok_raises():
+    """TOK: 뒤가 깨진 JSON → RuntimeError (명확한 에러 처리)."""
+    from t088_continuation_compare import _parse_raw_render_response
+
+    _TOK_MAGIC = b"TOK:"
+    broken_tok = _TOK_MAGIC + b"NOT_VALID_JSON{"
+    chunk = struct.pack(">I", len(broken_tok)) + broken_tok
+    raw = chunk + struct.pack(">I", 0)
+
+    with pytest.raises(RuntimeError, match="TOK: 트레일러"):
+        _parse_raw_render_response(raw)
+
+
+def test_parse_raw_render_response_valid_tok():
+    """정상 TOK: 트레일러 + jpeg 프레임 → (frames, dict)."""
+    from t088_continuation_compare import _parse_raw_render_response
+
+    _TOK_MAGIC = b"TOK:"
+    tok_dict = {"frame_offset": 5, "blink_phase": 3, "first_frame": False, "head_last": None}
+    tok_chunk = _TOK_MAGIC + json.dumps(tok_dict).encode()
+    fake_jpeg = b"\xff\xd8 fake jpeg"
+    raw = (
+        struct.pack(">I", len(fake_jpeg)) + fake_jpeg
+        + struct.pack(">I", len(tok_chunk)) + tok_chunk
+        + struct.pack(">I", 0)
+    )
+
+    frames, end_tok = _parse_raw_render_response(raw)
+    assert len(frames) == 1
+    assert end_tok == tok_dict
+
+
+def test_parse_raw_render_response_no_tok():
+    """TOK: 없는 스트림 → (frames, None)."""
+    from t088_continuation_compare import _parse_raw_render_response
+
+    fake_jpeg = b"\xff\xd8 fake jpeg"
+    raw = struct.pack(">I", len(fake_jpeg)) + fake_jpeg + struct.pack(">I", 0)
+
+    frames, end_tok = _parse_raw_render_response(raw)
+    assert len(frames) == 1
+    assert end_tok is None
 
 
 def test_split_wav_at_frame_boundary_half_frames(tmp_path):
