@@ -195,7 +195,11 @@ def test_frame_offset_accumulates_across_chunks(tmp_path):
 
 
 def test_empty_wav_returns_zero_and_valid_token(tmp_path):
-    """0샘플 wav → (0, PhaseToken(first_frame=False)) 반환."""
+    """0샘플 wav → (0, PhaseToken) 반환. first_frame 은 입력 토큰을 패스스루한다.
+
+    S3 의미론: 렌더 0회 청크는 위상을 진전시키지 않는다.
+    phase_token=None → 기본 tok.first_frame=True → 패스스루 → end_tok.first_frame=True.
+    """
     p = tmp_path / "empty.wav"
     sf.write(str(p), np.zeros(0, dtype=np.float32), 16000)
     cfg = FifthConfig.from_env()
@@ -208,7 +212,10 @@ def test_empty_wav_returns_zero_and_valid_token(tmp_path):
     )
     assert n == 0
     assert isinstance(tok, PhaseToken)
-    assert tok.first_frame is False
+    # S3 패스스루: phase_token=None → default first_frame=True → end_tok.first_frame=True
+    assert tok.first_frame is True, (
+        f"빈 wav end_tok.first_frame={tok.first_frame!r} — 입력 토큰(True) 패스스루 여야 함"
+    )
     assert eng.calls == []
 
 
@@ -461,3 +468,136 @@ def test_blink_phase_accumulates_in_end_token(tmp_path):
     assert tok2.blink_phase == n1 + n2, (
         f"2청크 후 blink_phase={tok2.blink_phase} != n1+n2={n1+n2}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Task 3(S3): stitching 연속성 + 빈 wav 의미론 테스트
+# ---------------------------------------------------------------------------
+
+def test_second_chunk_first_render_uses_first_frame_false(tmp_path):
+    """1청크 렌더 후 끝 토큰을 2청크에 전달하면 2청크 첫 eng.render 호출 first_frame=False.
+
+    레거시 단독 호출은 first_frame=True 였으나, 2청크는 첫 프레임이더라도
+    FLP stitching 연속을 위해 first_frame=False 로 호출돼야 한다.
+    """
+    dur, sr = 0.5, 16000
+    wav = _write_wav(tmp_path, dur=dur)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(dur, sr, cfg.fps) + 4
+    eng = _RecordingEngine()
+    sources = _make_sources()
+
+    # 1청크 렌더
+    _, tok1 = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, sources, wav,
+        on_frame=lambda f: None, blink_enabled=False,
+    )
+    assert tok1.first_frame is False, "1청크 끝 토큰 first_frame 은 False 여야 함"
+
+    # 2청크 — 끝 토큰 이어받기
+    eng.calls.clear()
+    stream_wav_frames(
+        eng, _FakeJP(nj), cfg, sources, wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=tok1,
+    )
+    assert eng.calls, "2청크에서 render 호출이 없음"
+    assert eng.calls[0]["first_frame"] is False, (
+        f"2청크 첫 render first_frame={eng.calls[0]['first_frame']} — False 여야 함"
+        " (레거시 단독 호출=True 와 구별됨)"
+    )
+
+
+def test_empty_wav_does_not_advance_phase(tmp_path):
+    """빈 wav 청크는 끝 토큰의 first_frame/frame_offset/blink_phase 가 입력 토큰과 동일.
+
+    프레임을 한 장도 내지 않은 청크는 위상을 진전시키지 않는다.
+    """
+    p = tmp_path / "empty_s3.wav"
+    sf.write(str(p), np.zeros(0, dtype=np.float32), 16000)
+    cfg = FifthConfig.from_env()
+    eng = _RecordingEngine()
+
+    # 임의 위상 토큰
+    input_tok = PhaseToken(frame_offset=17, blink_phase=42, first_frame=True, head_last=None)
+
+    n, end_tok = stream_wav_frames(
+        eng, _FakeJP(12), cfg, _make_sources(), str(p),
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=input_tok,
+    )
+    assert n == 0
+    assert end_tok.first_frame == input_tok.first_frame, (
+        f"first_frame 변경: {input_tok.first_frame!r} → {end_tok.first_frame!r}"
+        " — 빈 wav 는 위상 불진전"
+    )
+    assert end_tok.frame_offset == input_tok.frame_offset, (
+        f"frame_offset 진전: {input_tok.frame_offset} → {end_tok.frame_offset}"
+    )
+    assert end_tok.blink_phase == input_tok.blink_phase, (
+        f"blink_phase 진전: {input_tok.blink_phase} → {end_tok.blink_phase}"
+    )
+    assert eng.calls == [], "빈 wav 시 render 호출이 없어야 함"
+
+
+def test_empty_wav_then_real_chunk_first_frame_preserved(tmp_path):
+    """tok.first_frame=True 상태에서 빈wav → 실wav 순서일 때 실wav 첫 렌더가 first_frame=True.
+
+    빈 wav 가 first_frame 을 보존해야 후속 실wav 청크가 FLP stitching 초기화를 받는다.
+    """
+    empty_p = tmp_path / "empty_s3b.wav"
+    sf.write(str(empty_p), np.zeros(0, dtype=np.float32), 16000)
+    real_wav = _write_wav(tmp_path, dur=0.5)
+
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + 4
+    eng = _RecordingEngine()
+    sources = _make_sources()
+
+    # 빈 wav (first_frame=True 상태)
+    input_tok = PhaseToken(first_frame=True)
+    n_empty, tok_after_empty = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, sources, str(empty_p),
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=input_tok,
+    )
+    assert n_empty == 0
+    assert tok_after_empty.first_frame is True, (
+        f"빈 wav 후 first_frame={tok_after_empty.first_frame!r} — True 여야 함(위상 불진전)"
+    )
+
+    # 실 wav — 이전 토큰 이어받기
+    eng.calls.clear()
+    stream_wav_frames(
+        eng, _FakeJP(nj), cfg, sources, real_wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=tok_after_empty,
+    )
+    assert eng.calls, "실 wav render 호출이 없음"
+    assert eng.calls[0]["first_frame"] is True, (
+        f"빈wav → 실wav 첫 render first_frame={eng.calls[0]['first_frame']!r}"
+        " — True 여야 함(stitching 초기화 보존)"
+    )
+
+
+def test_blend_empty_wav_does_not_advance_phase(tmp_path):
+    """blend 경로: 빈 wav 청크는 위상(first_frame/frame_offset/blink_phase)을 진전시키지 않는다."""
+    p = tmp_path / "empty_blend_s3.wav"
+    sf.write(str(p), np.zeros(0, dtype=np.float32), 16000)
+    cfg = FifthConfig.from_env()
+    eng = _RecordingEngineBlend()
+
+    input_tok = PhaseToken(frame_offset=10, blink_phase=20, first_frame=True, head_last=None)
+
+    n, end_tok = stream_wav_frames(
+        eng, _FakeJP(12), cfg, _make_blend_sources(), str(p),
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=input_tok,
+    )
+    assert n == 0
+    assert end_tok.first_frame == input_tok.first_frame, (
+        f"blend 빈 wav first_frame 변경: {input_tok.first_frame!r} → {end_tok.first_frame!r}"
+    )
+    assert end_tok.frame_offset == input_tok.frame_offset
+    assert end_tok.blink_phase == input_tok.blink_phase
+    assert eng.calls == []

@@ -51,10 +51,13 @@ def stream_wav_frames(
 
     y, sr = _load_wav_16k(wav_path)
     if len(y) == 0:
+        # S3 불변식: 렌더 0회(count==0) 청크는 위상을 진전시키지 않는다.
+        # first_frame 을 입력 tok 그대로 패스스루해 다음 실 wav 청크가
+        # FLP stitching 초기화(first_frame=True) 를 그대로 받을 수 있게 한다.
         end_tok = PhaseToken(
             frame_offset=tok.frame_offset,
             blink_phase=tok.blink_phase,
-            first_frame=False,
+            first_frame=tok.first_frame,  # 위상 불진전: 입력 토큰 그대로 패스스루
             head_last=tok.head_last,
         )
         return 0, end_tok
