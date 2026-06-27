@@ -104,7 +104,11 @@ def make_blink_sequence(
         blink_dur_frames: 깜빡임 1회 지속 프레임 수. 기본 6 (25fps에서 240ms).
         phase_offset:     절대 프레임 기준 오프셋(기본 0). 청크 연속 렌더 시 직전 청크의
                           끝 프레임 수를 넘겨 blink 위상을 전역 좌표로 이어받는다.
-                          phase_offset=0 이면 기존과 100% 동일(회귀 불변식).
+                          주의: blink_starts 조건이 `f < global_end` 이므로, phase_offset=0
+                          이어도 시퀀스 말단 blink_dur_frames 범위 내에서 시작하는 blink는
+                          이제 정상 포함된다(구 조건 `f+dur<global_end`은 이를 잘라냈음).
+                          즉 임의 분할점 concat==whole 불변식을 위해 "더 정확한" blink를
+                          내며, 말단에 blink가 걸리는 입력에서는 구 출력과 미세하게 다르다.
 
     Returns:
         list of np.ndarray (1,1) float32, length=n_frames.
