@@ -242,3 +242,116 @@ def test_phase_token_explicit_default_is_identical_to_none(tmp_path):
     assert tok_none == tok_default, "끝 토큰 동일"
     # first_frame 호출 시퀀스 동일
     assert eng_none.calls == eng_default.calls, "render 호출 인자 시퀀스 동일"
+
+
+# ---------------------------------------------------------------------------
+# blend 경로 회귀 테스트 — phase_token=None 시 레거시와 동일
+# ---------------------------------------------------------------------------
+
+class _RecordingEngineBlend:
+    """blend 경로용: open_src / closed_src 렌더를 src_img 마커로 구별해 기록."""
+
+    def __init__(self):
+        self.calls: list[dict] = []
+
+    def render(self, motion, c_eyes, c_d_lip, first_frame, src_img=None, src_info=None):
+        self.calls.append({"first_frame": first_frame, "src_img": src_img})
+        # open(200) / closed(100) 마커 반환
+        val = 200 if src_img == "OPEN" else 100
+        return np.full((512, 512, 3), val, dtype=np.uint8)
+
+
+def _make_blend_sources():
+    return {
+        "mode": "blend",
+        "open_s": {
+            "src_img": "OPEN",
+            "src_info": [[None, np.zeros((106, 2))]],
+            "lip_close_ratio": 0.0023,
+        },
+        "closed_s": {
+            "src_img": "CLOSED",
+            "src_info": [[None, np.zeros((106, 2))]],
+            "lip_close_ratio": 0.0023,
+        },
+        "mouth_mask": np.ones((512, 512, 1), np.float32) * 0.5,
+    }
+
+
+def test_blend_token_none_open_first_is_true_on_first_render(tmp_path):
+    """blend 경로 phase_token=None 시 open_src 첫 render 호출만 first_frame=True.
+
+    레거시(_stream_blend): open_first=True, 루프 후 open_first=False.
+    phase_token=None → tok=PhaseToken(first_frame=True) → open_first=True = 레거시와 동일.
+    """
+    dur, sr = 0.5, 16000
+    wav = _write_wav(tmp_path, dur=dur, sr=sr)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(dur, sr, cfg.fps) + 4
+    eng = _RecordingEngineBlend()
+
+    n, tok = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, _make_blend_sources(), wav,
+        on_frame=lambda f: None,
+        blink_enabled=False,
+    )
+
+    assert n > 1, "이 테스트는 2프레임 이상 필요"
+    assert tok.first_frame is False
+
+    # open_src 호출만 추출 (src_img=="OPEN")
+    open_calls = [c for c in eng.calls if c["src_img"] == "OPEN"]
+    assert open_calls, "open_src render 호출이 없음"
+    assert open_calls[0]["first_frame"] is True, (
+        f"open_src 첫 render first_frame={open_calls[0]['first_frame']} — True 여야 함"
+    )
+    for call in open_calls[1:]:
+        assert call["first_frame"] is False, (
+            f"open_src 후속 render first_frame={call['first_frame']} — False 여야 함"
+        )
+
+
+def test_blend_token_none_closed_first_is_true_on_first_closed_render(tmp_path):
+    """blend 경로 phase_token=None 시 closed_src 첫 render 호출만 first_frame=True.
+
+    무음 wav(w=0) → 매 프레임 closed_src 도 렌더됨 → 첫 호출만 True.
+    """
+    dur, sr = 0.5, 16000
+    wav = _write_silent_wav(tmp_path, dur=dur, sr=sr)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(dur, sr, cfg.fps) + 4
+    eng = _RecordingEngineBlend()
+
+    n, tok = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, _make_blend_sources(), wav,
+        on_frame=lambda f: None,
+        blink_enabled=False,
+    )
+
+    assert n > 1, "이 테스트는 2프레임 이상 필요"
+
+    closed_calls = [c for c in eng.calls if c["src_img"] == "CLOSED"]
+    assert closed_calls, "closed_src render 호출이 없음 — 무음이므로 w=0, 매 프레임 렌더돼야 함"
+    assert closed_calls[0]["first_frame"] is True, (
+        f"closed_src 첫 render first_frame={closed_calls[0]['first_frame']} — True 여야 함"
+    )
+    for call in closed_calls[1:]:
+        assert call["first_frame"] is False, (
+            f"closed_src 후속 render first_frame={call['first_frame']} — False 여야 함"
+        )
+
+
+def test_blend_token_none_frame_offset_equals_n(tmp_path):
+    """blend 경로 phase_token=None 시 끝 토큰 frame_offset == 프레임 수 n."""
+    dur, sr = 0.5, 16000
+    wav = _write_wav(tmp_path, dur=dur, sr=sr)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(dur, sr, cfg.fps) + 4
+    eng = _RecordingEngineBlend()
+
+    n, tok = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, _make_blend_sources(), wav,
+        on_frame=lambda f: None,
+        blink_enabled=False,
+    )
+    assert tok.frame_offset == n, f"frame_offset={tok.frame_offset} != n={n}"

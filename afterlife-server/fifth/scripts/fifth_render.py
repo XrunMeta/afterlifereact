@@ -72,7 +72,7 @@ def stream_wav_frames(
     # env(RMS 프레임 수)와 nj(JoyVASA n_frames)는 독립 계산이라 다를 수 있다.
     # env > nj일 때 n=nj로 자르면 오디오 후미 입싱크가 렌더 안 됨 → max 로 보장.
     # 루프 내 ji = min(i, nj-1) 클램프로 motion 인덱스 안전.
-    n = max(len(env), nj, nj)
+    n = max(len(env), nj)
 
     ce = ce_raw if ce_raw else None
     if not ce_raw and blink_enabled:
