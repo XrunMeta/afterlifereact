@@ -289,4 +289,7 @@ echo "========================================================"
 # ---- 대기 (Ctrl+C 까지) ---------------------------------------------------
 echo ""
 echo "Ctrl+C 로 종료하면 렌더서버 + 뷰어 자동 cleanup됩니다."
-wait  # 이 스크립트가 살아있는 동안 서버 유지 (cleanup trap은 EXIT 에서)
+# 로컬 백그라운드 잡이 없어 `wait`는 즉시 반환 → EXIT trap cleanup 으로 서버가 죽는다.
+# `sleep infinity`는 macOS(BSD sleep) 미지원 → while 루프로 무한 대기(이식성).
+# 이 스크립트(및 trap)를 살려 원격 서버(:8811/:8812)를 유지한다. Ctrl+C/kill 로 종료.
+while true; do sleep 3600; done
