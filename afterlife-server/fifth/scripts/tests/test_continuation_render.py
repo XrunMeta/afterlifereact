@@ -355,3 +355,109 @@ def test_blend_token_none_frame_offset_equals_n(tmp_path):
         blink_enabled=False,
     )
     assert tok.frame_offset == n, f"frame_offset={tok.frame_offset} != n={n}"
+
+
+# ---------------------------------------------------------------------------
+# Task 2: blink 위상 캐리오버 테스트 — Step 1
+# ---------------------------------------------------------------------------
+
+def _blink_arr_to_float(seq: list) -> np.ndarray:
+    """make_blink_sequence 반환(list of (1,1) ndarray) → 1-D float array."""
+    return np.array([float(x[0, 0]) for x in seq], dtype=np.float64)
+
+
+def test_blink_phase_offset_zero_is_legacy():
+    """make_blink_sequence(phase_offset=0) == 기존 호출(인자 없음) — 회귀 불변식."""
+    from render_offline import make_blink_sequence
+    fps = 25.0
+    eye_open = 0.37
+    n = 80
+
+    legacy = make_blink_sequence(n, fps, eye_open, 0.0, avg_interval_sec=1.2, blink_dur_frames=6)
+    with_zero = make_blink_sequence(n, fps, eye_open, 0.0, avg_interval_sec=1.2, blink_dur_frames=6, phase_offset=0)
+
+    legacy_arr = _blink_arr_to_float(legacy)
+    with_zero_arr = _blink_arr_to_float(with_zero)
+    assert np.allclose(legacy_arr, with_zero_arr, atol=1e-7), (
+        "phase_offset=0 시 기존 동작과 동일해야 함"
+    )
+
+
+def test_blink_continuity_two_chunks_equals_whole():
+    """통짜 50프레임 == concat(청크A 25프레임 phase_offset=0, 청크B 25프레임 phase_offset=25).
+
+    avg_interval_sec=1.0(25fps → base_interval=25)으로 강제해 blink 발생 보장.
+    """
+    from render_offline import make_blink_sequence
+    fps = 25.0
+    eye_open = 0.37
+    n_whole = 50
+    n_half = 25
+
+    # avg_interval_sec=1.0 → base_interval=25, 50프레임에서 blink≥1개 보장
+    kwargs = dict(avg_interval_sec=1.0, blink_dur_frames=6)
+
+    whole = make_blink_sequence(n_whole, fps, eye_open, 0.0, **kwargs)
+    a = make_blink_sequence(n_half, fps, eye_open, 0.0, phase_offset=0, **kwargs)
+    b = make_blink_sequence(n_half, fps, eye_open, 0.0, phase_offset=n_half, **kwargs)
+
+    whole_arr = _blink_arr_to_float(whole)
+    ab_arr = np.concatenate([_blink_arr_to_float(a), _blink_arr_to_float(b)])
+
+    # blink 존재 확인 — 테스트가 무의미한 all-open 체크가 아님을 보장
+    assert not np.all(whole_arr == eye_open), (
+        "whole 에 blink 가 없음 — avg_interval_sec 너무 길거나 n_frames 부족"
+    )
+
+    assert np.allclose(ab_arr, whole_arr, atol=1e-4), (
+        f"2청크 concat 이 통짜와 다름 — max_diff={np.max(np.abs(ab_arr - whole_arr)):.6f}"
+    )
+
+
+def test_blink_continuity_three_chunks_equals_whole():
+    """3청크 concat 도 통짜와 동일 — phase_offset 연쇄 전달 검증."""
+    from render_offline import make_blink_sequence
+    fps = 25.0
+    eye_open = 0.37
+    n_each = 20
+    kwargs = dict(avg_interval_sec=0.5, blink_dur_frames=4)
+
+    whole = make_blink_sequence(n_each * 3, fps, eye_open, 0.0, **kwargs)
+    a = make_blink_sequence(n_each, fps, eye_open, 0.0, phase_offset=0,        **kwargs)
+    b = make_blink_sequence(n_each, fps, eye_open, 0.0, phase_offset=n_each,   **kwargs)
+    c = make_blink_sequence(n_each, fps, eye_open, 0.0, phase_offset=2*n_each, **kwargs)
+
+    whole_arr = _blink_arr_to_float(whole)
+    abc_arr   = np.concatenate([_blink_arr_to_float(a), _blink_arr_to_float(b), _blink_arr_to_float(c)])
+
+    assert np.allclose(abc_arr, whole_arr, atol=1e-4), (
+        f"3청크 concat 이 통짜와 다름 — max_diff={np.max(np.abs(abc_arr - whole_arr)):.6f}"
+    )
+
+
+def test_blink_phase_accumulates_in_end_token(tmp_path):
+    """stream_wav_frames 끝 토큰 blink_phase = tok.blink_phase + n."""
+    dur, sr = 0.5, 16000
+    wav = _write_wav(tmp_path, dur=dur)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(dur, sr, cfg.fps) + 4
+    eng = _RecordingEngine()
+
+    n1, tok1 = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, _make_sources(), wav,
+        on_frame=lambda f: None,
+        blink_enabled=False,
+    )
+    assert tok1.blink_phase == n1, (
+        f"1청크 후 blink_phase={tok1.blink_phase} != n={n1}"
+    )
+
+    n2, tok2 = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, _make_sources(), wav,
+        on_frame=lambda f: None,
+        blink_enabled=False,
+        phase_token=tok1,
+    )
+    assert tok2.blink_phase == n1 + n2, (
+        f"2청크 후 blink_phase={tok2.blink_phase} != n1+n2={n1+n2}"
+    )

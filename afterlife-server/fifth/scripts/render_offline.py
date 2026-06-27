@@ -77,6 +77,7 @@ def make_blink_sequence(
     eye_closed_ratio: float,
     avg_interval_sec: float = 3.2,
     blink_dur_frames: int = 6,
+    phase_offset: int = 0,
 ) -> list:
     """idle 눈 깜빡임 시퀀스 생성 (JoyVASA c_eyes 부재 시 대용).
 
@@ -101,20 +102,32 @@ def make_blink_sequence(
         eye_closed_ratio: 완전 감김 ratio (기본 0.0).
         avg_interval_sec: 평균 깜빡임 간격(초). 기본 3.2.
         blink_dur_frames: 깜빡임 1회 지속 프레임 수. 기본 6 (25fps에서 240ms).
+        phase_offset:     절대 프레임 기준 오프셋(기본 0). 청크 연속 렌더 시 직전 청크의
+                          끝 프레임 수를 넘겨 blink 위상을 전역 좌표로 이어받는다.
+                          phase_offset=0 이면 기존과 100% 동일(회귀 불변식).
 
     Returns:
         list of np.ndarray (1,1) float32, length=n_frames.
         각 원소: 해당 프레임의 c_d_eyes_i 값 (스칼라 1개).
+
+    위상 연속 원리:
+        blink_starts 는 전역(global) 절대 프레임 공간에서 생성된다.
+        루프에서 지역 인덱스 i 를 `i + phase_offset` (전역 인덱스)로 변환해
+        어느 청크든 동일 전역 blink 타임라인에서 같은 프레임을 참조하므로
+        청크 concat == 통짜 렌더가 보장된다.
     """
     # 고정 간격 변동 패턴 (순환) — 의사난수 / deterministic
     interval_multipliers = [0.85, 1.10, 0.92, 1.08, 0.95]
     base_interval = int(round(avg_interval_sec * fps))
 
-    # 깜빡임 시작 프레임 목록 생성
+    # 깜빡임 시작 프레임 목록 — 전역(global) 절대 프레임 공간으로 생성.
+    # 이 청크가 커버하는 전역 프레임: [phase_offset, phase_offset + n_frames).
+    # 전역 종료점 = phase_offset + n_frames 기준으로 blink 포함 여부 결정.
+    global_end = phase_offset + n_frames
     blink_starts = []
-    f = base_interval  # 첫 깜빡임은 1간격 후 시작
+    f = base_interval  # 첫 깜빡임은 전역 프레임 base_interval 에서 시작
     mi = 0
-    while f + blink_dur_frames < n_frames:
+    while f + blink_dur_frames < global_end:
         blink_starts.append(f)
         mult = interval_multipliers[mi % len(interval_multipliers)]
         mi += 1
@@ -122,14 +135,13 @@ def make_blink_sequence(
 
     # 프레임별 ratio 시퀀스
     seq = []
-    # 열림 ratio를 (1,1) array로 캐시
-    open_arr = np.array([[eye_open_ratio]], dtype=np.float32)
 
     for i in range(n_frames):
-        # 이 프레임이 어떤 깜빡임 구간에 속하는지 확인
+        # 전역 절대 인덱스로 변환 — phase_offset=0 이면 i_abs=i (기존 동작 동일)
+        i_abs = i + phase_offset
         ratio_val = eye_open_ratio
         for bs in blink_starts:
-            offset = i - bs
+            offset = i_abs - bs
             if 0 <= offset < blink_dur_frames:
                 # 반正弦 커브: 0→최소→복귀 (smooth down & up)
                 t = offset / max(blink_dur_frames - 1, 1)
