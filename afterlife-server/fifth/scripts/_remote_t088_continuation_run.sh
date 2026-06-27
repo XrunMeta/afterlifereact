@@ -62,8 +62,14 @@ PYPATH="/root/FasterLivePortrait"
 # 측정 전용 포트 (:8810 운영 절대 미사용)
 MEASURE_PORT="8811"
 
-# fifth_render_server.py 기동 env (cwd=t088_cont 이므로 FIFTH_CFG_YAML 절대경로 필수)
-RENDER_ENV="LD_LIBRARY_PATH=$LD_PATH PYTHONPATH=$PYPATH FIFTH_RENDER_PORT=$MEASURE_PORT FIFTH_CFG_YAML=$PYPATH/configs/trt_infer.yaml FIFTH_LIP_OPEN=0.24 FIFTH_CFG_SCALE=2.0 FIFTH_BLINK=1 FIFTH_HEAD_SMOOTH=3.5"
+# fifth_render_server.py 기동 env.
+# ⚠️ cwd=$PYPATH(/root/FasterLivePortrait)로 기동해야 FLP 내부 상대경로(./checkpoints/*.so, ./configs)가 동작.
+#    스크립트는 $T088_DIR 절대경로로 실행 → sys.path[0]=t088_cont 라 우리 fifth_render_server/fifth_render/render_offline/phase_token 우선.
+#    PYTHONPATH=$T088_DIR:$PYPATH → 우리 코드 우선 + flp_engine/audio2lip/base_source 의존성.
+RENDER_ENV="LD_LIBRARY_PATH=$LD_PATH PYTHONPATH=$T088_DIR:$PYPATH FIFTH_RENDER_PORT=$MEASURE_PORT FIFTH_CFG_YAML=$PYPATH/configs/trt_infer.yaml FIFTH_LIP_OPEN=0.24 FIFTH_CFG_SCALE=2.0 FIFTH_BLINK=1 FIFTH_HEAD_SMOOTH=3.5"
+
+# compare/render 서버 베이스 URL (컨테이너 내부 self, /health 없는 베이스)
+SERVER_INTERNAL="http://127.0.0.1:${MEASURE_PORT}"
 
 # 측정서버 로그 (컨테이너 내)
 RENDER_LOG="/tmp/t088_render_${MEASURE_PORT}.log"
@@ -151,7 +157,7 @@ echo ""
 echo "==> [3] 기존 :$MEASURE_PORT 프로세스 정리"
 ssh "$GABIA" \
   "docker exec '$CONTAINER' bash -c \
-    'pkill -f \"FIFTH_RENDER_PORT=$MEASURE_PORT\" 2>/dev/null && echo \"  이전 프로세스 정리\" || echo \"  (없음 — 정상)\"'"
+    'pkill -f \"FIFTH_RENDER_PORT=$MEASURE_PORT\" 2>/dev/null && echo \"  이전 프로세스 정리\" || echo \"  (없음 — 정상)\"'" || true
 sleep 2
 
 # ---- 4. 측정 전용 렌더서버 :8811 기동 (백그라운드) --------------------------
@@ -160,7 +166,7 @@ echo "==> [4] 측정서버 :$MEASURE_PORT 기동 (백그라운드)"
 echo "   cwd=$T088_DIR  PYTHONPATH=$PYPATH"
 ssh "$GABIA" \
   "docker exec -d '$CONTAINER' bash -c \
-    'cd $T088_DIR && $RENDER_ENV nohup $PY fifth_render_server.py >$RENDER_LOG 2>&1 &'"
+    'cd $PYPATH && $RENDER_ENV nohup $PY $T088_DIR/fifth_render_server.py >$RENDER_LOG 2>&1 &'"
 echo "  기동 명령 전송 완료. TRT 모델 로드 대기 중..."
 
 # ---- 5. health 폴링 (최대 120초, 3초 간격) ----------------------------------
@@ -196,10 +202,10 @@ echo "   통짜 렌더 × 1 + 2청크 렌더 × 2 + landmark diff + SSIM"
 echo ""
 ssh "$GABIA" \
   "docker exec '$CONTAINER' bash -c \
-    'cd $T088_DIR && \
-     LD_LIBRARY_PATH=$LD_PATH PYTHONPATH=$PYPATH FIFTH_CFG_YAML=$PYPATH/configs/trt_infer.yaml \
-     $PY t088_continuation_compare.py \
-       --server $HEALTH_INTERNAL \
+    'cd $PYPATH && \
+     LD_LIBRARY_PATH=$LD_PATH PYTHONPATH=$T088_DIR:$PYPATH FIFTH_CFG_YAML=$PYPATH/configs/trt_infer.yaml \
+     $PY $T088_DIR/t088_continuation_compare.py \
+       --server $SERVER_INTERNAL \
        --wav   $SHARED/seq.wav \
        --src   $SHARED/face.jpg \
        --out   $SHARED/g0.json'"
