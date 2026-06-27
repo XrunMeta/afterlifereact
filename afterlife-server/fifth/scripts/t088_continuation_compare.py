@@ -87,6 +87,45 @@ def split_wav_at_frame_boundary(wav_path: str, fps: float = 25.0) -> tuple[str, 
 # 렌더서버 통신 유틸
 # -----------------------------------------------------------------------
 
+_TOK_MAGIC_CMP = b"TOK:"
+
+
+def _parse_raw_render_response(raw: bytes) -> tuple[list[bytes], Optional[dict]]:
+    """raw 렌더 응답 bytes → (jpeg_frames, end_tok_dict|None).
+
+    [4B len][payload] 청크 스트림을 파싱한다. 청크 페이로드가 TOK: 매직으로
+    시작하면 토큰 트레일러로 간주해 JSON 파싱한다.
+
+    el RISK 수정: TOK: 뒤 JSON 이 깨진 경우 RuntimeError 로 명확하게 실패.
+    (compare 스크립트 진단 목적 — 조용히 None 반환하면 안 됨.)
+
+    Args:
+        raw: POST /oth-path 응답 전체 bytes.
+    Returns:
+        (jpeg_frames, end_tok_dict|None)
+    Raises:
+        RuntimeError: TOK: 트레일러 JSON 파싱 실패 시.
+    """
+    frames: list[bytes] = []
+    end_tok_dict: Optional[dict] = None
+    pos = 0
+    while pos + 4 <= len(raw):
+        n = struct.unpack_from(">I", raw, pos)[0]
+        pos += 4
+        if n == 0:
+            break
+        payload = raw[pos:pos + n]
+        pos += n
+        if payload.startswith(_TOK_MAGIC_CMP):
+            try:
+                end_tok_dict = json.loads(payload[len(_TOK_MAGIC_CMP):].decode())
+            except Exception as exc:
+                raise RuntimeError(f"TOK: 트레일러 JSON 파싱 실패: {exc}") from exc
+        else:
+            frames.append(payload)
+    return frames, end_tok_dict
+
+
 def _post_render(
     server_url: str,
     wav_path: str,
@@ -122,24 +161,7 @@ def _post_render(
     finally:
         conn.close()
 
-    # parse_render_response 와 동일 로직 (import 없이 인라인)
-    _TOK_MAGIC = b"TOK:"
-    frames: list[bytes] = []
-    end_tok_dict: Optional[dict] = None
-    pos = 0
-    while pos + 4 <= len(raw):
-        n = struct.unpack_from(">I", raw, pos)[0]
-        pos += 4
-        if n == 0:
-            break
-        payload = raw[pos:pos + n]
-        pos += n
-        if payload.startswith(_TOK_MAGIC):
-            end_tok_dict = json.loads(payload[len(_TOK_MAGIC):].decode())
-        else:
-            frames.append(payload)
-
-    return frames, end_tok_dict
+    return _parse_raw_render_response(raw)
 
 
 def _decode_jpeg_to_rgb(jpeg_bytes: bytes) -> np.ndarray:

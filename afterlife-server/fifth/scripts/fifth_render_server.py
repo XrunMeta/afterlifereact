@@ -383,6 +383,48 @@ class RenderService:
 _service: RenderService | None = None
 
 
+def _validate_int_not_bool(val: object, name: str) -> None:
+    """val 이 bool 아닌 int 인지 검증. 그외 → TypeError.
+
+    Python에서 isinstance(True, int)==True 이므로 단순 int 검사로는 bool 유입을
+    걸러내지 못한다. bool 서브클래스를 명시 차단한다.
+
+    Args:
+        val: 검증 대상 값.
+        name: 에러 메시지에 표기할 필드명.
+
+    Raises:
+        TypeError: val 이 bool 이거나 int 가 아닌 경우.
+    """
+    if not isinstance(val, int) or isinstance(val, bool):
+        raise TypeError(
+            f"phase_token.{name} 은 int(bool 제외) 여야 함, got {type(val).__name__!r}"
+        )
+
+
+def _validate_phase_tok_fields(tok) -> None:
+    """PhaseToken 필드 타입 전수 검증. 불량 시 TypeError.
+
+    PhaseToken dataclass 는 타입을 강제하지 않으므로 from_dict 후 반드시 호출.
+
+    검증 규칙:
+      frame_offset : int, bool 제외
+      blink_phase  : int, bool 제외
+      first_frame  : bool (int 1/0 차단)
+      head_last    : list 또는 None
+    """
+    _validate_int_not_bool(tok.frame_offset, "frame_offset")
+    _validate_int_not_bool(tok.blink_phase, "blink_phase")
+    if not isinstance(tok.first_frame, bool):
+        raise TypeError(
+            f"phase_token.first_frame 은 bool 여야 함, got {type(tok.first_frame).__name__!r}"
+        )
+    if tok.head_last is not None and not isinstance(tok.head_last, list):
+        raise TypeError(
+            f"phase_token.head_last 는 list 또는 None 여야 함, got {type(tok.head_last).__name__!r}"
+        )
+
+
 def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object]]:
     """POST /oth-path body(JSON) → (wav_path, video_path, phase_token|None).
 
@@ -419,13 +461,7 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object]]:
             if not isinstance(phase_token_data, dict):
                 raise TypeError(f"phase_token 은 dict 여야 함, got {type(phase_token_data).__name__}")
             tok = PhaseToken.from_dict(phase_token_data)
-            # 필드 타입 명시 검증 — dataclass 는 타입 강제 없으므로 직접 확인
-            if not isinstance(tok.frame_offset, int):
-                raise TypeError(f"phase_token.frame_offset 은 int 여야 함, got {type(tok.frame_offset).__name__!r}")
-            if not isinstance(tok.blink_phase, int):
-                raise TypeError(f"phase_token.blink_phase 는 int 여야 함, got {type(tok.blink_phase).__name__!r}")
-            if not isinstance(tok.first_frame, bool):
-                raise TypeError(f"phase_token.first_frame 은 bool 여야 함, got {type(tok.first_frame).__name__!r}")
+            _validate_phase_tok_fields(tok)
             phase_token = tok
         except Exception as exc:
             raise ValueError(f"phase_token 역직렬화 실패: {exc}") from exc
