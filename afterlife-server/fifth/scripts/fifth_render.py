@@ -80,6 +80,7 @@ def stream_wav_frames(
         eye_open = _eye_open_ratio(sources["open_s"])
         ce = make_blink_sequence(
             n, cfg.fps, eye_open, 0.0,
+            phase_offset=tok.blink_phase,
             avg_interval_sec=3.2, blink_dur_frames=6,
         )
 
@@ -90,9 +91,9 @@ def stream_wav_frames(
 
     end_tok = PhaseToken(
         frame_offset=tok.frame_offset + count,
-        blink_phase=tok.blink_phase,   # Task 2에서 갱신 (placeholder = 입력값 그대로)
+        blink_phase=tok.blink_phase + count,  # Task 2: 절대 프레임 누적 (phase_offset 역할)
         first_frame=False,
-        head_last=tok.head_last,       # Task 4(게이트0)에서 사용 여부 결정
+        head_last=tok.head_last,              # Task 4(게이트0)에서 사용 여부 결정
     )
     return count, end_tok
 
