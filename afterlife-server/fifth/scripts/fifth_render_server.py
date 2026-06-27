@@ -35,6 +35,77 @@ except ModuleNotFoundError:
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# S4: 토큰 트레일러 프로토콜
+# ---------------------------------------------------------------------------
+
+# 매직 프리픽스 — jpeg SOI(0xFF 0xD8)와 겹치지 않아 청크 타입 구분 가능.
+_TOK_MAGIC = b"TOK:"
+
+def encode_token_trailer(tok) -> bytes:
+    """끝 위상 토큰 → [4B big-endian length][b'TOK:' + json_bytes] 트레일러 청크.
+
+    클라이언트는 청크 페이로드가 _TOK_MAGIC으로 시작하면 jpeg 프레임이 아닌
+    토큰 트레일러로 간주한다. 종료마커(length=0)는 별도 do_POST finally 에서 씀.
+
+    phase_token=None(미전달) 시에는 이 함수를 호출하지 않으므로 회귀 안전.
+    """
+    payload = _TOK_MAGIC + json.dumps(tok.to_dict()).encode()
+    return struct.pack(">I", len(payload)) + payload
+
+
+def decode_token_trailer_data(chunk_data: bytes) -> Optional[object]:
+    """청크 데이터부(4B 길이 헤더 제외) → PhaseToken. 매직 없거나 JSON 깨지면 None.
+
+    Args:
+        chunk_data: [4B len] 이후의 페이로드 bytes.
+    Returns:
+        PhaseToken 또는 None(매직 불일치 / JSON 파싱 실패).
+
+    BLOCKER 1 수정: JSON 이 깨진 경우 crash 대신 None 반환.
+    parse_render_response / compare 스크립트가 None 을 안전 처리(end_tok=None).
+    """
+    if not chunk_data or not chunk_data.startswith(_TOK_MAGIC):
+        return None
+    try:
+        from phase_token import PhaseToken
+        json_bytes = chunk_data[len(_TOK_MAGIC):]
+        return PhaseToken.from_dict(json.loads(json_bytes.decode()))
+    except Exception:
+        # JSON 깨짐 / PhaseToken 역직렬화 실패 — 안전하게 None 반환.
+        # 호출부(parse_render_response 등)가 None → end_tok 없음으로 처리.
+        logger.warning("decode_token_trailer_data: 파싱 실패, None 반환")
+        return None
+
+
+def parse_render_response(data: bytes) -> tuple[list[bytes], Optional[object]]:
+    """렌더 응답 raw bytes → (jpeg_payloads, end_tok|None).
+
+    청크 스트림 파싱:
+      [4B len][payload] 반복 + [4B 0] 종료마커
+      payload.startswith(_TOK_MAGIC) → 토큰 트레일러 → end_tok 추출
+      else → jpeg 프레임 페이로드 목록에 추가
+
+    compare 스크립트 / 단위 테스트에서 렌더 응답을 검증할 때 사용.
+    prethird fifth_inproc(통화 경로)는 별도 대상 — 이번 S4 비목표.
+    """
+    frames: list[bytes] = []
+    end_tok = None
+    pos = 0
+    while pos + 4 <= len(data):
+        n = struct.unpack_from(">I", data, pos)[0]
+        pos += 4
+        if n == 0:
+            break
+        payload = data[pos:pos + n]
+        pos += n
+        if payload.startswith(_TOK_MAGIC):
+            end_tok = decode_token_trailer_data(payload)
+        else:
+            frames.append(payload)
+    return frames, end_tok
+
+
+# ---------------------------------------------------------------------------
 # Step 1~4: encode_frame_chunk / write_frames_to_stream (순수, TDD)
 # ---------------------------------------------------------------------------
 
@@ -196,12 +267,17 @@ class RenderService:
         video_path: str,
         write: Callable[[bytes], None],
         blink_enabled: bool = True,
+        phase_token=None,
     ) -> int:
         """wav → 프레임 청크 write. 반환: 프레임 수.
 
         write는 bytes → None 콜백 (wfile.write 또는 BytesIO.write).
         종료마커(length=0)는 호출자(do_POST finally)가 정확히 1회 씀.
-        render()는 프레임 청크만 write하고 종료마커는 쓰지 않는다.
+        render()는 프레임 청크 [+ S4 토큰 트레일러]만 write하고 종료마커는 쓰지 않는다.
+
+        S4 토큰 트레일러:
+          phase_token 전달 시 → 프레임 청크 마지막에 [4B len][TOK:+json] 트레일러를 씀.
+          phase_token=None(기본) → 트레일러 없음 = 레거시 동작 100% 동일(회귀 안전).
 
         FIFTH_RENDER_TIMING=1 시 4구간 중 서버측 2구간 계측:
           ① render_ms:  on_frame 호출 간격 = 순수 GPU 프레임 생성 시간.
@@ -222,6 +298,8 @@ class RenderService:
         # _get_sources 의 slow path가 이미 _lock을 취득 후 반환했으므로,
         # 여기서는 캐시 hit이 보장된 상태. GPU 렌더 직렬화를 위해 _lock 재취득.
         with self._lock:
+            end_tok = None
+
             if self._render_timing:
                 # 계측 활성: render/encode 각각 프레임당 ms 누적
                 render_ms_list: list[float] = []
@@ -248,17 +326,19 @@ class RenderService:
                     write(chunk)
 
                 if self._stream_wav_fn is not None:
-                    count = self._stream_wav_fn(
+                    count, end_tok = self._stream_wav_fn(
                         self.engine, self.jp, self.cfg, sources, wav_path,
                         _on_frame_render_timed,
                         blink_enabled,
+                        phase_token,
                     )
                 else:
                     from fifth_render import stream_wav_frames
-                    count = stream_wav_frames(
+                    count, end_tok = stream_wav_frames(
                         self.engine, self.jp, self.cfg, sources, wav_path,
                         on_frame=_on_frame_render_timed,
                         blink_enabled=blink_enabled,
+                        phase_token=phase_token,
                     )
 
                 # 스트림 종료 후 1줄 요약 로그 (프레임마다 로그 금지)
@@ -273,18 +353,26 @@ class RenderService:
             else:
                 # 계측 OFF: 기존 동작 완전 동일 (perf_counter 호출 0)
                 if self._stream_wav_fn is not None:
-                    count = self._stream_wav_fn(
+                    count, end_tok = self._stream_wav_fn(
                         self.engine, self.jp, self.cfg, sources, wav_path,
                         lambda f: write(encode_frame_chunk(f)),
                         blink_enabled,
+                        phase_token,
                     )
                 else:
                     from fifth_render import stream_wav_frames
-                    count = stream_wav_frames(
+                    count, end_tok = stream_wav_frames(
                         self.engine, self.jp, self.cfg, sources, wav_path,
                         on_frame=lambda f: write(encode_frame_chunk(f)),
                         blink_enabled=blink_enabled,
+                        phase_token=phase_token,
                     )
+
+            # S4 토큰 트레일러: phase_token 전달 시에만 씀(회귀 안전).
+            # do_POST finally 의 종료마커([4B 0]) 전에 위치.
+            if phase_token is not None and end_tok is not None:
+                write(encode_token_trailer(end_tok))
+
         return count
 
 
@@ -295,15 +383,59 @@ class RenderService:
 _service: RenderService | None = None
 
 
-def _parse_render_body(raw: bytes) -> tuple[str, str]:
-    """POST /oth-path body(JSON) → (wav_path, video_path).
+def _validate_int_not_bool(val: object, name: str) -> None:
+    """val 이 bool 아닌 int 인지 검증. 그외 → TypeError.
+
+    Python에서 isinstance(True, int)==True 이므로 단순 int 검사로는 bool 유입을
+    걸러내지 못한다. bool 서브클래스를 명시 차단한다.
+
+    Args:
+        val: 검증 대상 값.
+        name: 에러 메시지에 표기할 필드명.
+
+    Raises:
+        TypeError: val 이 bool 이거나 int 가 아닌 경우.
+    """
+    if not isinstance(val, int) or isinstance(val, bool):
+        raise TypeError(
+            f"phase_token.{name} 은 int(bool 제외) 여야 함, got {type(val).__name__!r}"
+        )
+
+
+def _validate_phase_tok_fields(tok) -> None:
+    """PhaseToken 필드 타입 전수 검증. 불량 시 TypeError.
+
+    PhaseToken dataclass 는 타입을 강제하지 않으므로 from_dict 후 반드시 호출.
+
+    검증 규칙:
+      frame_offset : int, bool 제외
+      blink_phase  : int, bool 제외
+      first_frame  : bool (int 1/0 차단)
+      head_last    : list 또는 None
+    """
+    _validate_int_not_bool(tok.frame_offset, "frame_offset")
+    _validate_int_not_bool(tok.blink_phase, "blink_phase")
+    if not isinstance(tok.first_frame, bool):
+        raise TypeError(
+            f"phase_token.first_frame 은 bool 여야 함, got {type(tok.first_frame).__name__!r}"
+        )
+    if tok.head_last is not None and not isinstance(tok.head_last, list):
+        raise TypeError(
+            f"phase_token.head_last 는 list 또는 None 여야 함, got {type(tok.head_last).__name__!r}"
+        )
+
+
+def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object]]:
+    """POST /oth-path body(JSON) → (wav_path, video_path, phase_token|None).
 
     설계 v3(공유 볼륨): wav_path/video_path 모두 필수.
     호스트-컨테이너가 /home/afterlife/afterlife-server 를 공유 마운트하므로
     경로를 직접 전달하면 서버가 파일을 읽을 수 있다.
 
+    S4: phase_token(dict|null|키없음) → PhaseToken 또는 None(레거시 회귀).
+
     Returns:
-        (wav_path, video_path)
+        (wav_path, video_path, phase_token|None)
 
     Raises:
         ValueError: wav_path 또는 video_path 누락.
@@ -318,7 +450,23 @@ def _parse_render_body(raw: bytes) -> tuple[str, str]:
     if not wav_path_raw:
         raise ValueError("wav_path 필수")
 
-    return str(wav_path_raw), str(video_path)
+    # phase_token: 키 없음 또는 null → None(레거시), dict → PhaseToken
+    # BLOCKER 2: 역직렬화 실패 또는 타입 불량 시 ValueError → do_POST 가 400 반환(500 방지).
+    # PhaseToken dataclass 는 타입을 강제하지 않으므로 여기서 명시적으로 검증한다.
+    phase_token_data = req.get("phase_token")
+    phase_token = None
+    if phase_token_data is not None:
+        try:
+            from phase_token import PhaseToken
+            if not isinstance(phase_token_data, dict):
+                raise TypeError(f"phase_token 은 dict 여야 함, got {type(phase_token_data).__name__}")
+            tok = PhaseToken.from_dict(phase_token_data)
+            _validate_phase_tok_fields(tok)
+            phase_token = tok
+        except Exception as exc:
+            raise ValueError(f"phase_token 역직렬화 실패: {exc}") from exc
+
+    return str(wav_path_raw), str(video_path), phase_token
 
 
 class _RenderHandler(BaseHTTPRequestHandler):
@@ -350,7 +498,7 @@ class _RenderHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length else b""
 
         try:
-            wav_path, video_path = _parse_render_body(body)
+            wav_path, video_path, phase_token = _parse_render_body(body)
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             self._send_json(400, {"error": str(exc)})
             return
@@ -372,12 +520,13 @@ class _RenderHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
         # 종료마커는 finally에서 정확히 1회 — 정상/예외 모든 경로 보장.
-        # render()는 프레임 청크만 write하고 종료마커를 쓰지 않는다.
+        # render()는 프레임 청크 [+S4 토큰 트레일러]만 write하고 종료마커는 쓰지 않는다.
         try:
             _service.render(
                 wav_path=wav_path,
                 video_path=video_path,
                 write=self.wfile.write,
+                phase_token=phase_token,
             )
         except Exception as exc:
             logger.exception("render 오류: %s", exc)
