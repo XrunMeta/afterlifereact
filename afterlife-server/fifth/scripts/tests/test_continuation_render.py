@@ -348,6 +348,271 @@ def test_blend_token_none_closed_first_is_true_on_first_closed_render(tmp_path):
         )
 
 
+# ===========================================================================
+# §6 head-carryover: _serialize_head_last / _apply_head_slew / slew 통합
+# ===========================================================================
+
+def _make_motion_with_head(R_val: float, t_val: float, n: int) -> list:
+    """R·t를 R_val/t_val 로 채운 n-프레임 motion list."""
+    return [
+        {
+            "R": np.full((1, 3, 3), R_val, dtype=np.float32),
+            "t": np.full((1, 3), t_val, dtype=np.float32),
+            "exp": np.zeros((1, 21, 3), dtype=np.float32),
+        }
+        for _ in range(n)
+    ]
+
+
+class _FakeJPWithHead:
+    """각 프레임에 지정된 R_val·t_val 을 갖는 JP fake."""
+    def __init__(self, n: int, R_val: float = 10.0, t_val: float = 10.0):
+        self.n = n
+        self.R_val = R_val
+        self.t_val = t_val
+
+    def gen_motion_sequence(self, wav_path):
+        motion = _make_motion_with_head(self.R_val, self.t_val, self.n)
+        return {"motion": motion, "c_eyes_lst": [], "n_frames": self.n}
+
+
+class _MotionRecordingEngine:
+    """eng.render 가 받은 motion R·t·exp 첫 원소를 기록."""
+    def __init__(self):
+        self.R_flat: list[float] = []   # motion["R"].flat[0]
+        self.exp_shape: list = []       # motion.get("exp") shape — 변경 여부 추적
+
+    def render(self, motion, c_eyes, c_d_lip, first_frame, src_img=None, src_info=None):
+        self.R_flat.append(float(np.asarray(motion["R"]).flat[0]))
+        exp = motion.get("exp")
+        if exp is not None:
+            self.exp_shape.append(np.asarray(exp).shape)
+        return np.full((8, 8, 3), 128, dtype=np.uint8)
+
+
+# ---------------------------------------------------------------------------
+# _serialize_head_last 단위 테스트
+# ---------------------------------------------------------------------------
+
+def test_serialize_head_last_basic():
+    """마지막 ml 원소 R·t → [R_list, t_list] 직렬화, 왕복 정확도."""
+    from fifth_render import _serialize_head_last
+
+    R = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]], dtype=np.float32)
+    t = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+    ml = [{"R": R, "t": t, "exp": np.zeros((1, 21, 3))}]
+    result = _serialize_head_last(ml, nj=1)
+
+    assert isinstance(result, list), f"list 반환 기대, got {type(result)}"
+    assert len(result) == 2, "[R_list, t_list] 2원소 기대"
+    R_back = np.array(result[0], dtype=np.float32)
+    t_back = np.array(result[1], dtype=np.float32)
+    assert R_back.shape == (3, 3), f"R shape (3,3) 기대, got {R_back.shape}"
+    assert t_back.shape == (3,), f"t shape (3,) 기대, got {t_back.shape}"
+    np.testing.assert_allclose(R_back, R[0], atol=1e-6)
+    np.testing.assert_allclose(t_back, t[0], atol=1e-6)
+
+
+def test_serialize_head_last_empty_returns_none():
+    """빈 ml(nj=0) → None 반환."""
+    from fifth_render import _serialize_head_last
+    assert _serialize_head_last([], nj=0) is None
+
+
+def test_serialize_head_last_picks_last_frame():
+    """nj=3 → ml[2](마지막)의 R·t 직렬화."""
+    from fifth_render import _serialize_head_last
+
+    ml = _make_motion_with_head(0.0, 0.0, 3)
+    ml[2]["R"] = np.full((1, 3, 3), 99.0, dtype=np.float32)
+    ml[2]["t"] = np.full((1, 3), 77.0, dtype=np.float32)
+
+    result = _serialize_head_last(ml, nj=3)
+    assert result is not None
+    assert abs(result[0][0][0] - 99.0) < 1e-4, "마지막 프레임 R[0][0] 기대 99.0"
+    assert abs(result[1][0] - 77.0) < 1e-4, "마지막 프레임 t[0] 기대 77.0"
+
+
+# ---------------------------------------------------------------------------
+# _apply_head_slew 단위 테스트
+# ---------------------------------------------------------------------------
+
+def test_apply_head_slew_first_k_frames_interpolated():
+    """첫 K 프레임 R·t 가 head_last(0) → ml_orig(10) 선형보간."""
+    from fifth_render import _apply_head_slew
+
+    K = 4
+    ml = _make_motion_with_head(10.0, 10.0, 8)
+    head_last = [np.zeros((3, 3)).tolist(), np.zeros(3).tolist()]  # R=0, t=0
+    _apply_head_slew(ml, nj=8, head_last=head_last, slew_k=K)
+
+    # i=0: alpha=0 → 100% head_last(0)
+    R0 = np.asarray(ml[0]["R"])
+    np.testing.assert_allclose(R0, np.zeros((1, 3, 3)), atol=1e-5,
+                                err_msg="i=0 은 head_last(0.0) 기대")
+
+    # i=K-1=3: alpha=(K-1)/K=0.75 → 75% new = 7.5
+    R3 = np.asarray(ml[3]["R"])
+    np.testing.assert_allclose(R3, np.full((1, 3, 3), 7.5), atol=1e-4,
+                                err_msg="i=3 은 75% 원본(7.5) 기대")
+
+    # i=K=4 이후: 원본(10.0) 그대로
+    R4 = np.asarray(ml[4]["R"])
+    np.testing.assert_allclose(R4, np.full((1, 3, 3), 10.0), atol=1e-5,
+                                err_msg="i>=K 는 원본(10.0) 유지 기대")
+
+
+def test_apply_head_slew_exp_unchanged():
+    """slew 는 R·t만 보간 — exp(표정) 불변(입싱크 영향 금지)."""
+    from fifth_render import _apply_head_slew
+
+    K = 3
+    ml = _make_motion_with_head(5.0, 5.0, 4)
+    exp_before = [np.asarray(ml[i]["exp"]).copy() for i in range(K)]
+    head_last = [np.zeros((3, 3)).tolist(), np.zeros(3).tolist()]
+    _apply_head_slew(ml, nj=4, head_last=head_last, slew_k=K)
+
+    for i in range(K):
+        np.testing.assert_array_equal(
+            np.asarray(ml[i]["exp"]), exp_before[i],
+            err_msg=f"i={i} exp 변경됨(입싱크 영향 금지)",
+        )
+
+
+def test_apply_head_slew_k_exceeds_nj_clamps():
+    """slew_k > nj → nj 프레임만 보간, 범위 초과 없음."""
+    from fifth_render import _apply_head_slew
+
+    ml = _make_motion_with_head(10.0, 10.0, 3)
+    head_last = [np.zeros((3, 3)).tolist(), np.zeros(3).tolist()]
+    # K=10 > nj=3 — exception 없이 nj=3 범위만 처리
+    _apply_head_slew(ml, nj=3, head_last=head_last, slew_k=10)
+    # 모든 프레임이 보간됨 (K > nj 이라 전 구간 슬루)
+    assert len(ml) == 3, "ml 원소 수 변경 없어야 함"
+
+
+# ---------------------------------------------------------------------------
+# stream_wav_frames 통합 (§6 슬루 경로)
+# ---------------------------------------------------------------------------
+
+def test_head_last_stored_in_end_tok_after_render(tmp_path, monkeypatch):
+    """stream_wav_frames count>0 → end_tok.head_last 가 [R_list, t_list]."""
+    monkeypatch.setenv("FIFTH_HEAD_SLEW_FRAMES", "0")  # slew off, 저장만 확인
+    wav = _write_wav(tmp_path, dur=0.5)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + 4
+
+    _, end_tok = stream_wav_frames(
+        _RecordingEngine(),
+        _FakeJPWithHead(nj, R_val=5.0, t_val=3.0),
+        cfg, _make_sources(), wav,
+        on_frame=lambda f: None,
+        blink_enabled=False,
+        phase_token=PhaseToken(first_frame=True, head_last=None),
+    )
+
+    assert end_tok.head_last is not None, "end_tok.head_last 가 None — 미저장"
+    assert isinstance(end_tok.head_last, list), f"list 기대, got {type(end_tok.head_last)}"
+    assert len(end_tok.head_last) == 2, "[R_list, t_list] 2원소 기대"
+    # 저장된 값이 원본 R_val(5.0) 에 가까운지 확인
+    R_stored = np.array(end_tok.head_last[0], dtype=np.float32)
+    assert abs(R_stored.flat[0] - 5.0) < 1e-4, f"저장된 R[0][0]={R_stored.flat[0]:.4f}, 5.0 기대"
+
+
+def test_head_last_none_first_chunk_no_slew(tmp_path, monkeypatch):
+    """head_last=None(첫 청크) → slew 없음 — R 원본값 그대로."""
+    K = 4
+    monkeypatch.setenv("FIFTH_HEAD_SLEW_FRAMES", str(K))
+    wav = _write_wav(tmp_path, dur=0.5)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + K + 2
+
+    eng = _MotionRecordingEngine()
+    stream_wav_frames(
+        eng, _FakeJPWithHead(nj, R_val=10.0), cfg, _make_sources(), wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=PhaseToken(first_frame=True, head_last=None),
+    )
+    assert eng.R_flat, "render 호출 없음"
+    # head_last=None 이면 슬루 없으므로 첫 프레임도 R≈10.0
+    assert eng.R_flat[0] > 9.0, (
+        f"head_last=None 인데 첫 프레임 R={eng.R_flat[0]:.3f} (슬루 적용된 것처럼 낮음)"
+    )
+
+
+def test_slew_env_zero_no_slew_applied(tmp_path, monkeypatch):
+    """FIFTH_HEAD_SLEW_FRAMES=0 → head_last 있어도 슬루 없음(회귀 안전)."""
+    monkeypatch.setenv("FIFTH_HEAD_SLEW_FRAMES", "0")
+    wav = _write_wav(tmp_path, dur=0.5)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + 4
+
+    eng = _MotionRecordingEngine()
+    head_last_val = [np.zeros((3, 3)).tolist(), np.zeros(3).tolist()]
+
+    stream_wav_frames(
+        eng, _FakeJPWithHead(nj, R_val=10.0), cfg, _make_sources(), wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=PhaseToken(first_frame=True, head_last=head_last_val),
+    )
+    assert eng.R_flat, "render 호출 없음"
+    assert eng.R_flat[0] > 9.0, (
+        f"FIFTH_HEAD_SLEW_FRAMES=0 인데 첫 R={eng.R_flat[0]:.3f} — 슬루 적용됨"
+    )
+
+
+def test_slew_applied_first_k_frames_integration(tmp_path, monkeypatch):
+    """head_last=0, ml R=10, K=4 → 첫 K 프레임 R 보간, K번째 이후 원본."""
+    K = 4
+    monkeypatch.setenv("FIFTH_HEAD_SLEW_FRAMES", str(K))
+    wav = _write_wav(tmp_path, dur=0.5)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + K + 2
+
+    eng = _MotionRecordingEngine()
+    head_last_val = [np.zeros((3, 3)).tolist(), np.zeros(3).tolist()]  # R=0
+
+    stream_wav_frames(
+        eng, _FakeJPWithHead(nj, R_val=10.0), cfg, _make_sources(), wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=PhaseToken(first_frame=False, head_last=head_last_val),
+    )
+    assert len(eng.R_flat) >= K + 1, f"render 횟수 부족: {len(eng.R_flat)}"
+    # 첫 프레임: alpha=0 → R ≈ 0 (head_last)
+    assert eng.R_flat[0] < 1.0, (
+        f"첫 프레임 R={eng.R_flat[0]:.3f} — 슬루로 0 에 가까워야 함"
+    )
+    # K번째 이후: 원본 10.0
+    assert eng.R_flat[K] > 9.0, (
+        f"K={K} 번째 R={eng.R_flat[K]:.3f} — 원본 10.0 기대"
+    )
+
+
+def test_head_last_count_zero_preserved(tmp_path, monkeypatch):
+    """count==0(render 전부 None) 시 head_last 패스스루 — 위상 불진전."""
+    monkeypatch.setenv("FIFTH_HEAD_SLEW_FRAMES", "0")
+    wav = _write_wav(tmp_path, dur=0.5)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + 4
+
+    prev_head_last = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], [0.1, 0.2, 0.3]
+    input_tok = PhaseToken(first_frame=True, head_last=list(prev_head_last))
+
+    class _NullEng:
+        def render(self, *a, **kw):
+            return None  # 전부 None → count==0
+
+    n, end_tok = stream_wav_frames(
+        _NullEng(), _FakeJPWithHead(nj, R_val=5.0), cfg, _make_sources(), wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=input_tok,
+    )
+    assert n == 0
+    assert end_tok.head_last == input_tok.head_last, (
+        "count==0 인데 head_last 변경됨 — 패스스루 기대"
+    )
+
+
 def test_blend_token_none_frame_offset_equals_n(tmp_path):
     """blend 경로 phase_token=None 시 끝 토큰 frame_offset == 프레임 수 n."""
     dur, sr = 0.5, 16000
