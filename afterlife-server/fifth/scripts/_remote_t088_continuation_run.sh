@@ -118,7 +118,9 @@ cleanup() {
   local exit_code=$?
   echo ""
   echo "==> [cleanup] 측정서버(:$MEASURE_PORT) 종료 (GPU 회수)"
-  ssh "$GABIA" "docker exec $CONTAINER pkill -f FIFTH_RENDER_PORT=$MEASURE_PORT" 2>/dev/null \
+  # ⚠️ FIFTH_RENDER_PORT=8811 은 환경변수라 argv 에 없어 pkill -f 로 안 잡힘.
+  #    측정서버 argv 에만 있는 't088_cont/fifth_render_server.py' 로 매칭(운영 8810 무관).
+  ssh "$GABIA" "docker exec $CONTAINER pkill -9 -f t088_cont/fifth_render_server.py" 2>/dev/null \
     && echo "  :$MEASURE_PORT 종료 완료" \
     || echo "  (이미 종료됨 또는 프로세스 없음 — OK)"
   exit $exit_code
@@ -152,9 +154,9 @@ echo "  seq.wav / face.jpg 복사 완료"
 # ---- 3. 기존 :8811 프로세스 정리 (재실행 안전) ------------------------------
 echo ""
 echo "==> [3] 기존 :$MEASURE_PORT 프로세스 정리"
-ssh "$GABIA" \
-  "docker exec '$CONTAINER' bash -c \
-    'pkill -f \"FIFTH_RENDER_PORT=$MEASURE_PORT\" 2>/dev/null && echo \"  이전 프로세스 정리\" || echo \"  (없음 — 정상)\"'" || true
+# ⚠️ env var(FIFTH_RENDER_PORT)는 argv에 없어 pkill 안 잡힘 → t088_cont 경로로 매칭(운영 8810 무관)
+ssh "$GABIA" "docker exec $CONTAINER pkill -9 -f t088_cont/fifth_render_server.py" 2>/dev/null \
+  && echo "  이전 측정서버 정리" || echo "  (없음 — 정상)"
 sleep 2
 
 # ---- 4. 측정 전용 렌더서버 :8811 기동 (백그라운드) --------------------------
