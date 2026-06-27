@@ -91,7 +91,10 @@ def stream_wav_frames(
 
     end_tok = PhaseToken(
         frame_offset=tok.frame_offset + count,
-        blink_phase=tok.blink_phase + count,  # Task 2: 절대 프레임 누적 (phase_offset 역할)
+        # C-2: blink_phase 는 시간축(n) 기준 누적. count(출력 프레임 수)가 아닌 n(blink 타임라인
+        # 길이)을 사용해야 엔진 render() 가 None 을 일부 반환해 count < n 이 되더라도
+        # 다음 청크의 blink 타임라인이 앞당겨지지 않는다.
+        blink_phase=tok.blink_phase + n,
         first_frame=False,
         head_last=tok.head_last,              # Task 4(게이트0)에서 사용 여부 결정
     )

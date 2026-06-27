@@ -122,12 +122,23 @@ def make_blink_sequence(
 
     # 깜빡임 시작 프레임 목록 — 전역(global) 절대 프레임 공간으로 생성.
     # 이 청크가 커버하는 전역 프레임: [phase_offset, phase_offset + n_frames).
-    # 전역 종료점 = phase_offset + n_frames 기준으로 blink 포함 여부 결정.
+    # 전역 종료점 = phase_offset + n_frames.
+    #
+    # [핵심] 조건 `f < global_end` (구: `f + blink_dur_frames < global_end`):
+    #   구 조건은 경계를 가로지르는 blink(f < global_end 이지만 f + dur ≥ global_end)를
+    #   누락시켰다. 예: base_interval=23, chunk A n=25 → f=23은 23+6=29≥25라서 제외되지만
+    #   whole(n=50)은 포함 → concat ≠ whole (BLOCKER).
+    #   수정: blink가 이 청크 범위 내 **어느 프레임이라도** 영향을 미치려면
+    #   시작점 f 가 global_end 이전에만 있으면 된다(f < global_end).
+    #   루프의 `offset = i_abs - bs` 가 [0, blink_dur) 밖이면 자연히 무시되므로
+    #   global_end 이후까지 이어지는 blink 꼬리도 정확히 렌더된다.
+    #   임의 분할점 불변식: "blink_starts 는 전역 타임라인에서 결정적으로 생성되고,
+    #   모든 청크가 동일 조건을 쓰므로 어디서 잘라도 concat == whole 이 성립."
     global_end = phase_offset + n_frames
     blink_starts = []
     f = base_interval  # 첫 깜빡임은 전역 프레임 base_interval 에서 시작
     mi = 0
-    while f + blink_dur_frames < global_end:
+    while f < global_end:  # f 가 global_end 보다 작으면 포함 (경계 가로지름 포함)
         blink_starts.append(f)
         mult = interval_multipliers[mi % len(interval_multipliers)]
         mi += 1
