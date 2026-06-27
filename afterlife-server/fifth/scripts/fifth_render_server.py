@@ -248,14 +248,14 @@ class RenderService:
                     write(chunk)
 
                 if self._stream_wav_fn is not None:
-                    count = self._stream_wav_fn(
+                    count, _ = self._stream_wav_fn(
                         self.engine, self.jp, self.cfg, sources, wav_path,
                         _on_frame_render_timed,
                         blink_enabled,
                     )
                 else:
                     from fifth_render import stream_wav_frames
-                    count = stream_wav_frames(
+                    count, _ = stream_wav_frames(
                         self.engine, self.jp, self.cfg, sources, wav_path,
                         on_frame=_on_frame_render_timed,
                         blink_enabled=blink_enabled,
@@ -273,14 +273,14 @@ class RenderService:
             else:
                 # 계측 OFF: 기존 동작 완전 동일 (perf_counter 호출 0)
                 if self._stream_wav_fn is not None:
-                    count = self._stream_wav_fn(
+                    count, _ = self._stream_wav_fn(
                         self.engine, self.jp, self.cfg, sources, wav_path,
                         lambda f: write(encode_frame_chunk(f)),
                         blink_enabled,
                     )
                 else:
                     from fifth_render import stream_wav_frames
-                    count = stream_wav_frames(
+                    count, _ = stream_wav_frames(
                         self.engine, self.jp, self.cfg, sources, wav_path,
                         on_frame=lambda f: write(encode_frame_chunk(f)),
                         blink_enabled=blink_enabled,

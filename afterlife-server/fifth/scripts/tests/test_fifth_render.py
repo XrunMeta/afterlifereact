@@ -95,7 +95,7 @@ def test_stream_single_mode_calls_on_frame_per_frame(tmp_path):
         },
     }
     got = []
-    n = stream_wav_frames(
+    n, _tok = stream_wav_frames(
         eng, _FakeJP(nj), cfg, sources, wav,
         on_frame=got.append,
         blink_enabled=False,
@@ -131,7 +131,7 @@ def test_stream_single_passes_open_src_to_render(tmp_path):
         eng, _FakeJP(nj), cfg, sources, wav,
         on_frame=lambda f: None,
         blink_enabled=False,
-    )
+    )  # 반환값 무시 — src_img/src_info 전달 여부만 검증
     # 패치 전: src 미전달 → last_src_img is None (self.src_img 의존, 누수 경로)
     # 패치 후: open_s 의 src 가 그대로 전달돼야 한다.
     assert eng.last_src_img is marker_img
@@ -161,7 +161,7 @@ def test_stream_blend_mode_renders_two_sources(tmp_path):
         "mouth_mask": np.ones((512, 512, 1), np.float32) * 0.5,
     }
     got = []
-    n = stream_wav_frames(
+    n, _tok = stream_wav_frames(
         eng, _FakeJP(nj), cfg, sources, wav,
         on_frame=got.append,
         blink_enabled=False,
@@ -192,7 +192,7 @@ def test_stream_uses_env_length_when_env_gt_nj(tmp_path):
         },
     }
     got = []
-    n = stream_wav_frames(
+    n, _tok = stream_wav_frames(
         eng, _FakeJP(nj), cfg, sources, wav,
         on_frame=got.append,
         blink_enabled=False,
@@ -217,7 +217,7 @@ def test_stream_empty_wav_returns_zero(tmp_path):
         },
     }
     got = []
-    n = stream_wav_frames(
+    n, _tok = stream_wav_frames(
         eng, _FakeJP(12), cfg, sources, str(p),
         on_frame=got.append,
         blink_enabled=False,
@@ -250,7 +250,7 @@ def test_stream_blend_mask_none_falls_back_to_open(tmp_path):
         "mouth_mask": None,  # 마스크 생성 실패 시나리오
     }
     got = []
-    n = stream_wav_frames(
+    n, _tok = stream_wav_frames(
         eng, _FakeJP(nj), cfg, sources, wav,
         on_frame=got.append,
         blink_enabled=False,
@@ -289,7 +289,7 @@ def test_stream_blend_pixel_formula(tmp_path):
         "mouth_mask": np.full((512, 512, 1), M_val, dtype=np.float32),
     }
     got = []
-    n = stream_wav_frames(
+    n, _tok = stream_wav_frames(
         eng, _FakeJP(nj), cfg, sources, wav,
         on_frame=got.append,
         blink_enabled=False,

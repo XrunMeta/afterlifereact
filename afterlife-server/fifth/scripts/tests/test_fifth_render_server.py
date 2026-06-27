@@ -638,10 +638,11 @@ def _make_integration_service(tmp_path):
         return fixed_sources
 
     def fake_stream(engine, jp, cfg, sources, wav_path, on_frame, blink_enabled):
-        # 프레임 2개 고정
+        # 프레임 2개 고정 — stream_wav_frames 와 동일 tuple 반환
+        from phase_token import PhaseToken
         for _ in range(2):
             on_frame(np.zeros((8, 8, 3), dtype=np.uint8))
-        return 2
+        return 2, PhaseToken(frame_offset=2, first_frame=False)
 
     return RenderService(
         engine=_FakeEngine(),

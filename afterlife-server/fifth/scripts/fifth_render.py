@@ -11,6 +11,7 @@ import numpy as np
 import soundfile as sf
 
 from audio2lip import compute_rms_envelope, rms_to_cdlip
+from phase_token import PhaseToken
 
 
 def _load_wav_16k(wav_path: str):
@@ -33,17 +34,30 @@ def stream_wav_frames(
     wav_path: str,
     on_frame: Callable[[np.ndarray], None],
     blink_enabled: bool = True,
-) -> int:
-    """wav 한 문장 → 프레임 생성마다 on_frame(rgb) 호출. 반환: 프레임 수.
+    phase_token: PhaseToken | None = None,
+) -> tuple[int, PhaseToken]:
+    """wav 한 문장 → 프레임 생성마다 on_frame(rgb) 호출. 반환: (프레임 수, 끝 위상 토큰).
 
     sources["mode"] == "single": open_s 만 렌더.
     sources["mode"] == "blend":  open_s + closed_s 입마스크 블렌드.
+
+    phase_token=None(기본) 시 PhaseToken() 기본값을 사용해 기존 stateless 렌더와
+    100% 동일 경로를 보장한다(회귀 불변식).
     """
     from base_source import base_blend_weight
 
+    # 회귀 불변식: None → 기본값 토큰 = 기존 stateless 동작과 동일
+    tok = phase_token or PhaseToken()
+
     y, sr = _load_wav_16k(wav_path)
     if len(y) == 0:
-        return 0
+        end_tok = PhaseToken(
+            frame_offset=tok.frame_offset,
+            blink_phase=tok.blink_phase,
+            first_frame=False,
+            head_last=tok.head_last,
+        )
+        return 0, end_tok
 
     env = compute_rms_envelope(
         y, sr=sr, fps=cfg.fps, sigma=cfg.sigma,
@@ -58,7 +72,7 @@ def stream_wav_frames(
     # env(RMS 프레임 수)와 nj(JoyVASA n_frames)는 독립 계산이라 다를 수 있다.
     # env > nj일 때 n=nj로 자르면 오디오 후미 입싱크가 렌더 안 됨 → max 로 보장.
     # 루프 내 ji = min(i, nj-1) 클램프로 motion 인덱스 안전.
-    n = max(len(env), nj)
+    n = max(len(env), nj, nj)
 
     ce = ce_raw if ce_raw else None
     if not ce_raw and blink_enabled:
@@ -70,8 +84,17 @@ def stream_wav_frames(
         )
 
     if sources["mode"] == "single":
-        return _stream_single(eng, cfg, sources["open_s"], env, ml, ce, nj, n, on_frame)
-    return _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight)
+        count = _stream_single(eng, cfg, sources["open_s"], env, ml, ce, nj, n, on_frame, tok)
+    else:
+        count = _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight, tok)
+
+    end_tok = PhaseToken(
+        frame_offset=tok.frame_offset + count,
+        blink_phase=tok.blink_phase,   # Task 2에서 갱신 (placeholder = 입력값 그대로)
+        first_frame=False,
+        head_last=tok.head_last,       # Task 4(게이트0)에서 사용 여부 결정
+    )
+    return count, end_tok
 
 
 def _eye_open_ratio(src_d: dict) -> float:
@@ -84,7 +107,7 @@ def _eye_open_ratio(src_d: dict) -> float:
         return 0.37
 
 
-def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame) -> int:
+def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame, tok: PhaseToken) -> int:
     """단일 소스(open_s만) 렌더 루프. render_offline.py L653~668 이식."""
     lip_closed = cfg.lip_closed
     cdl = rms_to_cdlip(
@@ -99,11 +122,15 @@ def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame) -> int:
         ji = min(i, nj - 1)
         c = float(cdl[min(i, len(cdl) - 1)]) if len(cdl) else lip_closed
         _ce_i = ce[min(i, len(ce) - 1)] if ce else None
+        # Task 1: first_frame 은 tok.first_frame 기반.
+        # phase_token=None(기본) → tok=PhaseToken() → tok.first_frame=True →
+        # 첫 프레임만 True = 기존 동작과 동일 (회귀 불변식).
+        # Task 3에서 두 번째 청크는 tok.first_frame=False 로 전달돼 stitching 연속.
         # T-074: src_img/src_info 명시 전달 — engine.self.src_img(직전 load_source) 잔존으로
         # 인한 클론간 영상 누수 방지. _sources_cache HIT 시 load_source 가 스킵돼도
         # 올바른 클론 source 로 렌더(_stream_blend 와 동일 패턴).
         frame = eng.render(
-            ml[ji], _ce_i, c, first_frame=(i == 0),
+            ml[ji], _ce_i, c, first_frame=(i == 0 and tok.first_frame),
             src_img=open_s["src_img"], src_info=open_s["src_info"],
         )
         if frame is not None:
@@ -112,7 +139,7 @@ def _stream_single(eng, cfg, open_s, env, ml, ce, nj, n, on_frame) -> int:
     return count
 
 
-def _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight) -> int:
+def _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight, tok: PhaseToken) -> int:
     """입마스크 블렌드 렌더 루프. render_offline.py L500~556 (blend_region="mouth") 이식."""
     open_s = sources["open_s"]
     closed_s = sources["closed_s"]
@@ -139,8 +166,11 @@ def _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_we
         dtype=np.float32,
     )
 
-    open_first = True
-    closed_first = True
+    # Task 1: first_frame 은 tok.first_frame 기반.
+    # phase_token=None(기본) → tok=PhaseToken() → tok.first_frame=True = 기존 동작.
+    # Task 3에서 두 번째 청크는 tok.first_frame=False.
+    open_first = tok.first_frame
+    closed_first = tok.first_frame
     count = 0
 
     for i in range(n):
