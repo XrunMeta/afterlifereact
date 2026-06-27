@@ -265,12 +265,13 @@ def _make_service(cache_root, wav_path=None, *, load_call_counter=None, prepare_
 
     from fifth_render import stream_wav_frames
 
-    def _stream_no_blink(engine, jp, cfg, sources, wav_path, on_frame, blink_enabled):
+    def _stream_no_blink(engine, jp, cfg, sources, wav_path, on_frame, blink_enabled, phase_token=None):
         """blink 강제 off — render_offline import 방지."""
         return stream_wav_frames(
             engine, jp, cfg, sources, wav_path,
             on_frame=on_frame,
             blink_enabled=False,
+            phase_token=phase_token,
         )
 
     svc = RenderService(
@@ -409,14 +410,15 @@ def test_render_no_terminator_in_output(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_parse_render_body_valid():
-    """정상 JSON(wav_path+video_path) → (wav_path, video_path) 반환."""
+    """정상 JSON(wav_path+video_path) → (wav_path, video_path, None) 반환."""
     import json
     from fifth_render_server import _parse_render_body
 
     body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
-    wav, vid = _parse_render_body(body)
+    wav, vid, tok = _parse_render_body(body)
     assert wav == "/tmp/a.wav"
     assert vid == "/ref/idle.mp4"
+    assert tok is None
 
 
 def test_parse_render_body_missing_wav():
@@ -455,10 +457,11 @@ def test_parse_render_body_wav_path_direct(tmp_path):
 
     body = json.dumps({"wav_path": "/home/afterlife/afterlife-server/tmp/x.wav",
                        "video_path": "/ref/idle.mp4"}).encode()
-    wav, vid = _parse_render_body(body)
+    wav, vid, tok = _parse_render_body(body)
 
     assert wav == "/home/afterlife/afterlife-server/tmp/x.wav"
     assert vid == "/ref/idle.mp4"
+    assert tok is None
 
 
 def test_parse_render_body_no_b64_field():
@@ -637,12 +640,13 @@ def _make_integration_service(tmp_path):
     def fake_prepare(selection):
         return fixed_sources
 
-    def fake_stream(engine, jp, cfg, sources, wav_path, on_frame, blink_enabled):
+    def fake_stream(engine, jp, cfg, sources, wav_path, on_frame, blink_enabled, phase_token=None):
         # 프레임 2개 고정 — stream_wav_frames 와 동일 tuple 반환
         from phase_token import PhaseToken
+        in_tok = phase_token or PhaseToken()
         for _ in range(2):
             on_frame(np.zeros((8, 8, 3), dtype=np.uint8))
-        return 2, PhaseToken(frame_offset=2, first_frame=False)
+        return 2, PhaseToken(frame_offset=in_tok.frame_offset + 2, first_frame=False)
 
     return RenderService(
         engine=_FakeEngine(),
@@ -895,3 +899,419 @@ def test_http_integration_missing_wav_path_returns_400(tmp_path):
         srv._service = orig_service
         server_thread.join(timeout=5)
         server.server_close()
+
+
+# ---------------------------------------------------------------------------
+# S4: 토큰 트레일러 인코딩/디코딩 왕복 테스트
+# ---------------------------------------------------------------------------
+
+def test_encode_token_trailer_has_magic_prefix():
+    """encode_token_trailer → [4B len][b'TOK:' + json] 형식."""
+    import fifth_render_server as srv
+    from phase_token import PhaseToken
+
+    tok = PhaseToken(frame_offset=5, blink_phase=10, first_frame=False)
+    chunk = srv.encode_token_trailer(tok)
+
+    # [4B len][payload]
+    n = struct.unpack(">I", chunk[:4])[0]
+    payload = chunk[4:]
+    assert len(payload) == n, "헤더 길이와 페이로드 길이 불일치"
+    assert payload.startswith(srv._TOK_MAGIC), (
+        f"TOK: 매직 없음: {payload[:8]!r}"
+    )
+
+
+def test_encode_decode_token_trailer_roundtrip():
+    """encode_token_trailer → decode_token_trailer_data 왕복 검증."""
+    import fifth_render_server as srv
+    from phase_token import PhaseToken
+
+    tok_in = PhaseToken(frame_offset=7, blink_phase=3, first_frame=False, head_last=None)
+    chunk = srv.encode_token_trailer(tok_in)
+    payload = chunk[4:]  # 4B 길이 헤더 제거
+    tok_out = srv.decode_token_trailer_data(payload)
+    assert tok_out == tok_in, f"왕복 불일치: {tok_in!r} != {tok_out!r}"
+
+
+def test_decode_token_trailer_data_non_magic_returns_none():
+    """jpeg 데이터처럼 TOK: 매직 없는 페이로드 → None."""
+    import fifth_render_server as srv
+
+    jpeg_like = b"\xff\xd8\xff some jpeg data"
+    assert srv.decode_token_trailer_data(jpeg_like) is None
+
+
+def test_decode_token_trailer_data_empty_returns_none():
+    """빈 페이로드 → None."""
+    import fifth_render_server as srv
+
+    assert srv.decode_token_trailer_data(b"") is None
+
+
+def test_tok_magic_is_not_valid_jpeg_start():
+    """TOK: 매직과 JPEG SOI(0xFF 0xD8)는 겹치지 않는다 — 청크 구분 근거."""
+    import fifth_render_server as srv
+
+    assert not srv._TOK_MAGIC.startswith(b"\xff\xd8"), (
+        "TOK: 매직이 JPEG SOI 와 겹침 — 청크 구분 불가"
+    )
+
+
+# ---------------------------------------------------------------------------
+# S4: _parse_render_body phase_token 파싱
+# ---------------------------------------------------------------------------
+
+def test_parse_render_body_with_phase_token():
+    """phase_token dict 포함 시 PhaseToken 객체로 역직렬화."""
+    from fifth_render_server import _parse_render_body
+    from phase_token import PhaseToken
+
+    tok_in = PhaseToken(frame_offset=10, blink_phase=5, first_frame=False)
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": tok_in.to_dict(),
+    }).encode()
+    wav, vid, tok_out = _parse_render_body(body)
+
+    assert wav == "/tmp/a.wav"
+    assert vid == "/ref/idle.mp4"
+    assert tok_out == tok_in, f"PhaseToken 역직렬화 불일치: {tok_out!r}"
+
+
+def test_parse_render_body_phase_token_null_is_none():
+    """phase_token: null → None (회귀 안전)."""
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "phase_token": None,
+    }).encode()
+    _, _, tok = _parse_render_body(body)
+    assert tok is None
+
+
+def test_parse_render_body_phase_token_absent_is_none():
+    """phase_token 키 자체 없음 → None (레거시 클라이언트 호환)."""
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
+    _, _, tok = _parse_render_body(body)
+    assert tok is None
+
+
+# ---------------------------------------------------------------------------
+# S4: RenderService.render() 토큰 트레일러 송신 테스트
+# ---------------------------------------------------------------------------
+
+def _make_service_with_token_support(tmp_path):
+    """phase_token 을 지원하는 fake_stream 을 사용하는 테스트 서비스."""
+    from fifth_render_server import RenderService
+    from config import FifthConfig
+    from phase_token import PhaseToken
+
+    cfg = FifthConfig.from_env()
+    fixed_sources = {
+        "mode": "single",
+        "open_s": {
+            "src_img": "OPEN",
+            "src_info": [[None, np.zeros((106, 2))]],
+            "lip_close_ratio": 0.0023,
+        },
+    }
+
+    def fake_load(video_path):
+        return {"mode": "single", "open_path": "/fake/open.png", "closed_path": None, "open_score": 0.5}
+
+    def fake_prepare(selection):
+        return fixed_sources
+
+    def fake_stream_with_tok(engine, jp, cfg, sources, wav_path, on_frame, blink_enabled, phase_token=None):
+        """phase_token 받아서 끝 토큰 누적 시뮬."""
+        in_tok = phase_token or PhaseToken()
+        for _ in range(2):
+            on_frame(np.zeros((8, 8, 3), dtype=np.uint8))
+        end_tok = PhaseToken(
+            frame_offset=in_tok.frame_offset + 2,
+            blink_phase=in_tok.blink_phase + 12,
+            first_frame=False,
+        )
+        return 2, end_tok
+
+    return RenderService(
+        engine=_FakeEngine(),
+        jp=_FakeJP(n=2),
+        cfg=cfg,
+        cache_root=str(tmp_path),
+        detect_lmk=None,
+        _load_or_extract_fn=fake_load,
+        _prepare_sources_fn=fake_prepare,
+        _stream_wav_fn=fake_stream_with_tok,
+    )
+
+
+def test_render_writes_trailer_when_phase_token_given(tmp_path):
+    """phase_token 전달 시 render() 출력에 TOK: 트레일러 청크 포함."""
+    import fifth_render_server as srv
+    from phase_token import PhaseToken
+
+    wav = _make_wav(tmp_path)
+    svc = _make_service_with_token_support(tmp_path)
+
+    buf = io.BytesIO()
+    input_tok = PhaseToken(frame_offset=0, first_frame=True)
+    svc.render(
+        wav_path=wav,
+        video_path="/fake/9055/idle.mp4",
+        write=buf.write,
+        phase_token=input_tok,
+    )
+
+    # TOK: 트레일러 청크 탐색
+    data = buf.getvalue()
+    tok_found = False
+    pos = 0
+    while pos + 4 <= len(data):
+        n = struct.unpack_from(">I", data, pos)[0]
+        pos += 4
+        if n == 0:
+            break
+        payload = data[pos:pos + n]
+        if payload.startswith(srv._TOK_MAGIC):
+            tok_found = True
+        pos += n
+
+    assert tok_found, "TOK: 트레일러 청크가 없음 — phase_token 전달 시 반드시 포함"
+
+
+def test_render_no_trailer_when_phase_token_none(tmp_path):
+    """phase_token=None 시 render() 출력에 TOK: 트레일러 없음 (회귀 안전)."""
+    import fifth_render_server as srv
+
+    wav = _make_wav(tmp_path)
+    svc = _make_service_with_token_support(tmp_path)
+
+    buf = io.BytesIO()
+    svc.render(
+        wav_path=wav,
+        video_path="/fake/9055/idle.mp4",
+        write=buf.write,
+        phase_token=None,
+    )
+
+    data = buf.getvalue()
+    pos = 0
+    while pos + 4 <= len(data):
+        n = struct.unpack_from(">I", data, pos)[0]
+        pos += 4
+        if n == 0:
+            break
+        payload = data[pos:pos + n]
+        assert not payload.startswith(srv._TOK_MAGIC), (
+            "phase_token=None 인데 TOK: 트레일러 발견 — 회귀"
+        )
+        pos += n
+
+
+def test_render_trailer_is_last_chunk_before_terminator(tmp_path):
+    """render() 가 쓰는 데이터에서 TOK: 트레일러가 마지막 비-zero 청크."""
+    import fifth_render_server as srv
+    from phase_token import PhaseToken
+
+    wav = _make_wav(tmp_path)
+    svc = _make_service_with_token_support(tmp_path)
+
+    buf = io.BytesIO()
+    svc.render(
+        wav_path=wav,
+        video_path="/fake/9055/idle.mp4",
+        write=buf.write,
+        phase_token=PhaseToken(first_frame=True),
+    )
+
+    # render()는 종료마커를 쓰지 않으므로 수동 append 후 파싱
+    data = buf.getvalue() + struct.pack(">I", 0)
+    chunks = []
+    pos = 0
+    while pos + 4 <= len(data):
+        n = struct.unpack_from(">I", data, pos)[0]
+        pos += 4
+        if n == 0:
+            break
+        chunks.append(data[pos:pos + n])
+        pos += n
+
+    assert chunks, "청크 없음"
+    assert chunks[-1].startswith(srv._TOK_MAGIC), (
+        f"마지막 청크가 TOK: 트레일러여야 함, got: {chunks[-1][:8]!r}"
+    )
+    # 나머지 청크는 jpeg(TOK: 아님)
+    for ch in chunks[:-1]:
+        assert not ch.startswith(srv._TOK_MAGIC), "중간 청크가 TOK: 트레일러여선 안 됨"
+
+
+def test_render_trailer_contains_valid_end_token(tmp_path):
+    """TOK: 트레일러를 decode_token_trailer_data로 파싱하면 유효한 PhaseToken."""
+    import fifth_render_server as srv
+    from phase_token import PhaseToken
+
+    wav = _make_wav(tmp_path)
+    svc = _make_service_with_token_support(tmp_path)
+
+    buf = io.BytesIO()
+    input_tok = PhaseToken(frame_offset=0, blink_phase=0, first_frame=True)
+    svc.render(
+        wav_path=wav,
+        video_path="/fake/9055/idle.mp4",
+        write=buf.write,
+        phase_token=input_tok,
+    )
+
+    data = buf.getvalue() + struct.pack(">I", 0)
+    end_tok = None
+    pos = 0
+    while pos + 4 <= len(data):
+        n = struct.unpack_from(">I", data, pos)[0]
+        pos += 4
+        if n == 0:
+            break
+        payload = data[pos:pos + n]
+        if payload.startswith(srv._TOK_MAGIC):
+            end_tok = srv.decode_token_trailer_data(payload)
+        pos += n
+
+    assert end_tok is not None, "TOK: 트레일러 파싱 실패"
+    assert end_tok.first_frame is False, "렌더 후 end_tok.first_frame 은 False 여야 함"
+    assert end_tok.frame_offset > input_tok.frame_offset, (
+        f"frame_offset 누적 안 됨: {input_tok.frame_offset} → {end_tok.frame_offset}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# S4: parse_render_response 유틸 테스트 (비교스크립트 클라이언트 파싱)
+# ---------------------------------------------------------------------------
+
+def test_parse_render_response_no_trailer():
+    """TOK: 없는 스트림 → (frames, None)."""
+    import fifth_render_server as srv
+
+    # 프레임 2개 + 종료마커
+    buf = io.BytesIO()
+    for _ in range(2):
+        payload = b"\xff\xd8 fake jpeg"
+        buf.write(struct.pack(">I", len(payload)) + payload)
+    buf.write(struct.pack(">I", 0))
+
+    frames, tok = srv.parse_render_response(buf.getvalue())
+    assert len(frames) == 2
+    assert tok is None
+
+
+def test_parse_render_response_with_trailer():
+    """TOK: 트레일러 포함 스트림 → (frames, PhaseToken)."""
+    import fifth_render_server as srv
+    from phase_token import PhaseToken
+
+    tok_in = PhaseToken(frame_offset=5, blink_phase=3, first_frame=False)
+
+    buf = io.BytesIO()
+    # 프레임 2개
+    for _ in range(2):
+        payload = b"\xff\xd8 fake jpeg"
+        buf.write(struct.pack(">I", len(payload)) + payload)
+    # TOK: 트레일러
+    tok_chunk = srv.encode_token_trailer(tok_in)
+    buf.write(tok_chunk)
+    # 종료마커
+    buf.write(struct.pack(">I", 0))
+
+    frames, tok_out = srv.parse_render_response(buf.getvalue())
+    assert len(frames) == 2, f"프레임 수 기대 2, 실제 {len(frames)}"
+    assert tok_out == tok_in, f"토큰 왕복 불일치: {tok_out!r}"
+
+
+def test_parse_render_response_empty_stream():
+    """종료마커만 있는 스트림 → ([], None)."""
+    import fifth_render_server as srv
+
+    data = struct.pack(">I", 0)
+    frames, tok = srv.parse_render_response(data)
+    assert frames == []
+    assert tok is None
+
+
+# ---------------------------------------------------------------------------
+# S4: t088_continuation_compare 순수 함수 로컬 테스트
+# (detect_landmarks / SSIM 의존 없는 경계 계산 로직만)
+# ---------------------------------------------------------------------------
+
+def test_compute_boundary_index_basic():
+    """경계 인덱스 = n_frames_chunk_a (0-based 청크B 시작)."""
+    from t088_continuation_compare import compute_boundary_index
+
+    assert compute_boundary_index(total_frames=50, n_frames_chunk_a=25) == 25
+
+
+def test_compute_boundary_index_clamp_at_end():
+    """n_frames_chunk_a >= total_frames 이면 total_frames-1 으로 클램프."""
+    from t088_continuation_compare import compute_boundary_index
+
+    assert compute_boundary_index(total_frames=10, n_frames_chunk_a=15) == 9
+
+
+def test_compute_boundary_index_zero_chunk_a():
+    """청크A 프레임 0 → boundary=0."""
+    from t088_continuation_compare import compute_boundary_index
+
+    assert compute_boundary_index(total_frames=20, n_frames_chunk_a=0) == 0
+
+
+def test_split_wav_at_frame_boundary_creates_two_files(tmp_path):
+    """split_wav_at_frame_boundary: wav → 2개 파일 생성, 합산 길이 ≈ 원본."""
+    import soundfile as sf
+    from pathlib import Path
+    from t088_continuation_compare import split_wav_at_frame_boundary
+
+    # 1초 sine wav
+    sr = 16000
+    dur = 1.0
+    y = (0.3 * np.sin(2 * np.pi * 200 * np.linspace(0, dur, int(sr * dur)))).astype(np.float32)
+    wav_path = str(tmp_path / "seq.wav")
+    sf.write(wav_path, y, sr)
+
+    wav_a, wav_b, n_frames_a = split_wav_at_frame_boundary(wav_path, fps=25.0)
+
+    assert Path(wav_a).exists(), "청크A 파일 없음"
+    assert Path(wav_b).exists(), "청크B 파일 없음"
+    assert n_frames_a > 0, "n_frames_a 는 양수여야 함"
+
+    y_a, _ = sf.read(wav_a, dtype="float32")
+    y_b, _ = sf.read(wav_b, dtype="float32")
+
+    # 합산 길이 = 원본 길이
+    assert len(y_a) + len(y_b) == len(y), (
+        f"분할 후 합산 샘플 수 불일치: {len(y_a)}+{len(y_b)} != {len(y)}"
+    )
+
+
+def test_split_wav_at_frame_boundary_half_frames(tmp_path):
+    """분할 기준이 절반 프레임 근처(±1)인지 확인."""
+    import soundfile as sf
+    from t088_continuation_compare import split_wav_at_frame_boundary
+
+    sr = 16000
+    fps = 25.0
+    n_frames_total = 50
+    n_samples = int(n_frames_total * sr / fps)
+    y = np.zeros(n_samples, dtype=np.float32)
+    wav_path = str(tmp_path / "half.wav")
+    sf.write(wav_path, y, sr)
+
+    _, _, n_frames_a = split_wav_at_frame_boundary(wav_path, fps=fps)
+
+    expected_half = n_frames_total // 2
+    assert abs(n_frames_a - expected_half) <= 1, (
+        f"n_frames_a={n_frames_a} 가 절반({expected_half}) ±1 범위 밖"
+    )
