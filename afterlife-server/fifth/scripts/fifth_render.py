@@ -5,6 +5,7 @@ render_offline.py(오프라인 mp4 도구)의 검증된 렌더 로직을 실시�
 """
 from __future__ import annotations
 
+import os
 from typing import Callable
 
 import numpy as np
@@ -26,6 +27,62 @@ def _tok_passthrough(tok: PhaseToken) -> PhaseToken:
         first_frame=tok.first_frame,  # 입력 tok 그대로 패스스루
         head_last=tok.head_last,
     )
+
+
+def _serialize_head_last(ml: list, nj: int) -> list | None:
+    """청크 마지막 head pose (R, t) → [R_list, t_list] 직렬화.
+
+    §6 head-carryover: 다음 청크의 슬루 보간을 위해 PhaseToken.head_last 에 저장한다.
+    슬루 전 원본 ml[nj-1] 을 직렬화해야 하므로 _apply_head_slew 호출 전에 실행한다.
+
+    Args:
+        ml: JoyVASA motion list. ml[i]["R"]: (1,3,3), ml[i]["t"]: (1,3).
+        nj: ml 유효 프레임 수.
+    Returns:
+        [R_list, t_list] (직렬화 성공) 또는 None (빈 시퀀스 / 직렬화 실패).
+        R_list: 3×3 nested list (float).
+        t_list: 3-element list (float).
+    """
+    if not ml or nj == 0:
+        return None
+    try:
+        last = ml[min(nj - 1, len(ml) - 1)]
+        R_list = np.asarray(last["R"]).reshape(3, 3).tolist()
+        t_list = np.asarray(last["t"]).reshape(3).tolist()
+        return [R_list, t_list]
+    except Exception:
+        return None
+
+
+def _apply_head_slew(ml: list, nj: int, head_last: list, slew_k: int) -> None:
+    """ml 처음 min(slew_k, nj) 프레임의 R·t를 head_last → 원본 선형보간(in-place).
+
+    §6 head-carryover slew: 청크 경계 head 점프(boundary_head_jump_px)를 완화한다.
+    head 성분(R, t)만 보간. c_d_lip(입), c_eyes(눈/blink), exp(표정) 등은 unchanged.
+    입싱크·눈깜빡 타이밍에 영향 없음.
+
+    보간식: R_new[i] = (1 - alpha) * R_last + alpha * R_orig
+             alpha = i / slew_k  (i=0 → 0%신규, i=slew_k-1 → (K-1)/K 신규)
+
+    Args:
+        ml: JoyVASA motion list. 첫 k_actual 원소를 shallow-copy 후 R·t 교체.
+        nj: ml 유효 프레임 수.
+        head_last: [R_list, t_list] 이전 청크 마지막 head pose.
+            R_list: 3×3 nested list, t_list: 3-element list.
+        slew_k: 보간 구간 프레임 수. 0이면 호출하지 말 것.
+    """
+    head_R_last = np.array(head_last[0], dtype=np.float32).reshape(1, 3, 3)
+    head_t_last = np.array(head_last[1], dtype=np.float32).reshape(1, 3)
+    k_actual = min(slew_k, nj)
+    for i in range(k_actual):
+        alpha = float(i) / slew_k
+        m_orig = ml[i]
+        m_new = dict(m_orig)   # shallow copy: R·t 만 교체, exp 등 참조 유지
+        m_new["R"] = ((1 - alpha) * head_R_last
+                      + alpha * np.asarray(m_orig["R"])).astype(np.float32)
+        m_new["t"] = ((1 - alpha) * head_t_last
+                      + alpha * np.asarray(m_orig["t"])).astype(np.float32)
+        ml[i] = m_new
 
 
 def _load_wav_16k(wav_path: str):
@@ -77,6 +134,17 @@ def stream_wav_frames(
     ml = dri["motion"]
     ce_raw = dri.get("c_eyes_lst", [])
     nj = dri["n_frames"]
+
+    # §6 head-carryover ① 슬루 전 원본 마지막 head pose 직렬화 (다음 청크 slew 용)
+    _head_last_new = _serialize_head_last(ml, nj)
+
+    # §6 head-carryover ② 슬루 보간: head_last → 현재 head motion 선형전환
+    # 회귀 안전: head_last=None(첫 청크) 또는 FIFTH_HEAD_SLEW_FRAMES=0 → 보간 없음.
+    # phase_token=None(통화 회귀) → tok=PhaseToken(head_last=None) → 보간 없음.
+    _slew_k = int(os.environ.get("FIFTH_HEAD_SLEW_FRAMES", "5"))
+    if tok.head_last is not None and _slew_k > 0 and nj > 0:
+        _apply_head_slew(ml, nj, tok.head_last, _slew_k)
+
     # render_offline.py L443/L647 과 동일 계약:
     # env(RMS 프레임 수)와 nj(JoyVASA n_frames)는 독립 계산이라 다를 수 있다.
     # env > nj일 때 n=nj로 자르면 오디오 후미 입싱크가 렌더 안 됨 → max 로 보장.
@@ -111,7 +179,7 @@ def stream_wav_frames(
             frame_offset=tok.frame_offset + count,
             blink_phase=tok.blink_phase + n,
             first_frame=False,
-            head_last=tok.head_last,          # Task 4(게이트0)에서 사용 여부 결정
+            head_last=_head_last_new,    # §6: 원본 ml[-1] head pose 직렬화 저장
         )
     return count, end_tok
 

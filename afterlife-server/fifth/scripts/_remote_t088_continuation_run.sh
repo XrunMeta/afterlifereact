@@ -113,17 +113,14 @@ echo "========================================================"
 
 # ---- 측정서버 종료 트랩 (스크립트 정상/비정상 종료 모두) --------------------
 # 가비아에서 :8811 python 프로세스를 kill 해 GPU 메모리 회수.
+# 따옴표 단순화: docker exec 한 줄 pkill — 중첩 없이 안정 실행.
 cleanup() {
   local exit_code=$?
   echo ""
   echo "==> [cleanup] 측정서버(:$MEASURE_PORT) 종료 (GPU 회수)"
-  ssh "$GABIA" \
-    "docker exec '$CONTAINER' bash -c \
-      'pkill -f \"FIFTH_RENDER_PORT=$MEASURE_PORT\" 2>/dev/null || true; \
-       sleep 1; \
-       pgrep -f \"FIFTH_RENDER_PORT=$MEASURE_PORT\" > /dev/null && pkill -9 -f \"FIFTH_RENDER_PORT=$MEASURE_PORT\" || true; \
-       echo \"  :$MEASURE_PORT 종료 완료\"'" \
-    2>/dev/null || echo "  (cleanup ssh 실패 — 가비아에서 수동 확인: docker exec $CONTAINER pkill -f FIFTH_RENDER_PORT=$MEASURE_PORT)"
+  ssh "$GABIA" "docker exec $CONTAINER pkill -f FIFTH_RENDER_PORT=$MEASURE_PORT" 2>/dev/null \
+    && echo "  :$MEASURE_PORT 종료 완료" \
+    || echo "  (이미 종료됨 또는 프로세스 없음 — OK)"
   exit $exit_code
 }
 trap cleanup EXIT
