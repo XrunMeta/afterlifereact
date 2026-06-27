@@ -14,6 +14,20 @@ from audio2lip import compute_rms_envelope, rms_to_cdlip
 from phase_token import PhaseToken
 
 
+def _tok_passthrough(tok: PhaseToken) -> PhaseToken:
+    """출력 프레임 0장(count==0) — 위상 불진전 토큰 반환.
+
+    len(y)==0 early-return 과 render 전부 None(count==0) 경계에서 동일 로직을 공유한다.
+    "프레임을 한 장도 내지 않은 청크는 위상을 진전시키지 않는다."
+    """
+    return PhaseToken(
+        frame_offset=tok.frame_offset,
+        blink_phase=tok.blink_phase,
+        first_frame=tok.first_frame,  # 입력 tok 그대로 패스스루
+        head_last=tok.head_last,
+    )
+
+
 def _load_wav_16k(wav_path: str):
     y, sr = sf.read(wav_path, dtype="float32")
     if y.ndim > 1:
@@ -51,16 +65,8 @@ def stream_wav_frames(
 
     y, sr = _load_wav_16k(wav_path)
     if len(y) == 0:
-        # S3 불변식: 렌더 0회(count==0) 청크는 위상을 진전시키지 않는다.
-        # first_frame 을 입력 tok 그대로 패스스루해 다음 실 wav 청크가
-        # FLP stitching 초기화(first_frame=True) 를 그대로 받을 수 있게 한다.
-        end_tok = PhaseToken(
-            frame_offset=tok.frame_offset,
-            blink_phase=tok.blink_phase,
-            first_frame=tok.first_frame,  # 위상 불진전: 입력 토큰 그대로 패스스루
-            head_last=tok.head_last,
-        )
-        return 0, end_tok
+        # 출력 프레임 0장 — 위상 불진전(_tok_passthrough 공통 로직)
+        return 0, _tok_passthrough(tok)
 
     env = compute_rms_envelope(
         y, sr=sr, fps=cfg.fps, sigma=cfg.sigma,
@@ -92,15 +98,21 @@ def stream_wav_frames(
     else:
         count = _stream_blend(eng, cfg, sources, env, ml, ce, nj, n, on_frame, base_blend_weight, tok)
 
-    end_tok = PhaseToken(
-        frame_offset=tok.frame_offset + count,
+    if count == 0:
+        # wav 는 있으나 eng.render() 가 전부 None → 출력 0장 → 위상 불진전.
+        # len(y)==0 early-return 과 동일 의미론(_tok_passthrough 공통 로직).
+        end_tok = _tok_passthrough(tok)
+    else:
+        # count > 0: 부분 출력이라도 시간이 흘렀으므로 위상 진전.
         # C-2: blink_phase 는 시간축(n) 기준 누적. count(출력 프레임 수)가 아닌 n(blink 타임라인
         # 길이)을 사용해야 엔진 render() 가 None 을 일부 반환해 count < n 이 되더라도
         # 다음 청크의 blink 타임라인이 앞당겨지지 않는다.
-        blink_phase=tok.blink_phase + n,
-        first_frame=False,
-        head_last=tok.head_last,              # Task 4(게이트0)에서 사용 여부 결정
-    )
+        end_tok = PhaseToken(
+            frame_offset=tok.frame_offset + count,
+            blink_phase=tok.blink_phase + n,
+            first_frame=False,
+            head_last=tok.head_last,          # Task 4(게이트0)에서 사용 여부 결정
+        )
     return count, end_tok
 
 
