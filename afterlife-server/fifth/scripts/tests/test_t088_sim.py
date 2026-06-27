@@ -1,12 +1,15 @@
 """t088_continuation_sim.py 순수 함수 단위 테스트.
 
-HTTP/GPU/ffmpeg 의존 함수(_post_render_chunk, encode_mp4, run_sim)는
-가비아 컨테이너에서만 동작하므로 테스트 제외.
-순수 함수 4개만 로컬 검증:
+순수 함수 + mock 가능 로직:
   - make_silence_wav
   - parse_pattern
   - compute_chunk_timestamps
   - build_audio_track_array
+  - _build_ffmpeg_cmd  (ffmpeg 실행 없이 인자 검증)
+  - run_sim 첫 청크 non-None 토큰 전달 (mock)
+
+HTTP/GPU/ffmpeg 실 실행 함수(_post_render_chunk, encode_mp4)는
+가비아 컨테이너에서만 동작하므로 테스트 제외.
 
 실행법:
   cd /Volumes/exDN/devExdn/afl-fifth-continuation/afterlife-server/fifth
@@ -16,16 +19,20 @@ HTTP/GPU/ffmpeg 의존 함수(_post_render_chunk, encode_mp4, run_sim)는
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pytest
 import soundfile as sf
 
+import t088_continuation_sim as _sim_mod
 from t088_continuation_sim import (
+    _build_ffmpeg_cmd,
     build_audio_track_array,
     compute_chunk_timestamps,
     make_silence_wav,
     parse_pattern,
+    run_sim,
 )
 
 
@@ -330,3 +337,201 @@ class TestBuildAudioTrackArray:
         assert np.allclose(arr[:n0], 0.0), "앞 무음 구간에 비-0 샘플"
         # 발화 구간: amplitude 0.9이 있어야 함 (self확인용)
         assert np.any(arr[n0:n0 + n1] != 0.0), "발화 구간이 전부 0"
+
+
+# ===========================================================================
+# Bug1 fix: 첫 청크 non-None 위상 토큰 전달 검증
+# ===========================================================================
+
+class TestFirstChunkPhaseToken:
+    """run_sim 이 첫 청크부터 non-None phase_token 을 서버에 전달하는지 검증.
+
+    렌더서버는 phase_token=None(미포함 body) 이면 TOK: 트레일러를 보내지 않는다
+    (회귀 안전 가드). sim 이 None 을 보내면 end_tok=None → 다음 청크도 None → 연속 렌더 불가.
+    fix: 첫 청크에 빈 PhaseToken dict 전달.
+    """
+
+    def test_initial_phase_token_has_required_fields(self) -> None:
+        """PhaseToken 기본값 dict 가 4 필드를 모두 포함."""
+        from phase_token import PhaseToken
+        d = PhaseToken().to_dict()
+        assert set(d.keys()) == {"frame_offset", "blink_phase", "first_frame", "head_last"}
+        assert d["frame_offset"] == 0
+        assert d["blink_phase"] == 0
+        assert d["first_frame"] is True
+        assert d["head_last"] is None
+
+    def test_run_sim_first_chunk_token_is_not_none(self, tmp_path: Path) -> None:
+        """run_sim 첫 번째 _post_render_chunk 호출에 non-None phase_token 전달."""
+        captured: list = []
+        fake_tok = {
+            "frame_offset": 50,
+            "blink_phase": 2,
+            "first_frame": False,
+            "head_last": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        }
+
+        def mock_render(server_url, wav_path, src_path, phase_token=None):
+            captured.append(phase_token)
+            return [], fake_tok
+
+        silence = str(tmp_path / "silence.wav")
+        answer  = str(tmp_path / "answer.wav")
+        make_silence_wav(silence, 0.1)
+        make_silence_wav(answer, 0.1)
+
+        with patch.object(_sim_mod, "_post_render_chunk", side_effect=mock_render), \
+             patch.object(_sim_mod, "encode_mp4"), \
+             patch.object(_sim_mod, "build_audio_track_array",
+                          return_value=np.zeros(0, dtype=np.float32)):
+            run_sim(
+                answer_wav=answer,
+                silence_sec=0.1,
+                pattern_str="silence,speech",
+                src_path="/fake/face.jpg",
+                out_path=str(tmp_path / "out.mp4"),
+                server_url="http://127.0.0.1:8811",
+                slew_frames=0,
+            )
+
+        assert len(captured) == 2, f"렌더 호출 {len(captured)}회 (2회 기대)"
+
+        # 버그1 핵심: 첫 호출이 None 이어선 안 됨
+        assert captured[0] is not None, \
+            "첫 청크에 phase_token=None 전달됨 — 서버가 TOK: 트레일러 미발송 (Bug1)"
+        assert "frame_offset" in captured[0], \
+            "첫 청크 토큰에 frame_offset 없음"
+        assert captured[0]["first_frame"] is True, \
+            "첫 청크 first_frame != True"
+
+    def test_run_sim_second_chunk_receives_previous_end_tok(self, tmp_path: Path) -> None:
+        """두 번째 청크에 첫 청크 end_tok 이 전달됨."""
+        captured: list = []
+        tok_a = {"frame_offset": 50, "blink_phase": 2, "first_frame": False, "head_last": None}
+        tok_b = {"frame_offset": 100, "blink_phase": 4, "first_frame": False, "head_last": None}
+
+        call_count = [0]
+
+        def mock_render(server_url, wav_path, src_path, phase_token=None):
+            captured.append(phase_token)
+            # 호출 순서에 따라 다른 tok 반환
+            call_count[0] += 1
+            return [], tok_a if call_count[0] == 1 else tok_b
+
+        silence = str(tmp_path / "s.wav")
+        answer  = str(tmp_path / "a.wav")
+        make_silence_wav(silence, 0.1)
+        make_silence_wav(answer, 0.1)
+
+        with patch.object(_sim_mod, "_post_render_chunk", side_effect=mock_render), \
+             patch.object(_sim_mod, "encode_mp4"), \
+             patch.object(_sim_mod, "build_audio_track_array",
+                          return_value=np.zeros(0, dtype=np.float32)):
+            run_sim(
+                answer_wav=answer,
+                silence_sec=0.1,
+                pattern_str="silence,speech",
+                src_path="/fake/face.jpg",
+                out_path=str(tmp_path / "out.mp4"),
+                server_url="http://127.0.0.1:8811",
+                slew_frames=0,
+            )
+
+        # 두 번째 호출에 첫 청크 end_tok(tok_a) 이어받기
+        assert captured[1] == tok_a, \
+            f"두 번째 청크가 첫 end_tok 이어받지 않음: {captured[1]}"
+
+    def test_run_sim_raises_if_end_tok_none(self, tmp_path: Path) -> None:
+        """end_tok=None 반환 시 RuntimeError (명시적 에러, 조용한 None 전파 금지)."""
+        def mock_render(server_url, wav_path, src_path, phase_token=None):
+            return [], None  # 서버가 TOK: 트레일러 미전송 시뮬
+
+        silence = str(tmp_path / "s.wav")
+        answer  = str(tmp_path / "a.wav")
+        make_silence_wav(silence, 0.1)
+        make_silence_wav(answer, 0.1)
+
+        with patch.object(_sim_mod, "_post_render_chunk", side_effect=mock_render), \
+             patch.object(_sim_mod, "encode_mp4"), \
+             patch.object(_sim_mod, "build_audio_track_array",
+                          return_value=np.zeros(0, dtype=np.float32)):
+            with pytest.raises(RuntimeError, match="TOK:"):
+                run_sim(
+                    answer_wav=answer,
+                    silence_sec=0.1,
+                    pattern_str="silence",
+                    src_path="/fake/face.jpg",
+                    out_path=str(tmp_path / "out.mp4"),
+                    server_url="http://127.0.0.1:8811",
+                    slew_frames=0,
+                )
+
+
+# ===========================================================================
+# Bug2 fix: _build_ffmpeg_cmd 순수 함수 검증
+# ===========================================================================
+
+class TestBuildFfmpegCmd:
+    """ffmpeg 인자 구성 검증 (실행 없이 cmd list 만 확인).
+
+    encode_mp4 가 communicate(input=...) 방식으로 stdin 처리한다는 것은
+    인수 변경으로 검증할 수 없어 cmd list 정합성만 확인.
+    """
+
+    def test_output_path_is_last(self) -> None:
+        """출력 mp4 경로가 argv 마지막."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 25.0, 16000)
+        assert cmd[-1] == "/out.mp4"
+
+    def test_first_arg_is_ffmpeg(self) -> None:
+        """첫 인자 = ffmpeg."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 25.0, 16000)
+        assert cmd[0] == "ffmpeg"
+
+    def test_pipe_input_present(self) -> None:
+        """stdin 파이프 입력(pipe:0) 포함."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 25.0, 16000)
+        assert "pipe:0" in cmd
+
+    def test_image2pipe_format(self) -> None:
+        """-f image2pipe 포함."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 25.0, 16000)
+        idx = cmd.index("-f")
+        assert cmd[idx + 1] == "image2pipe"
+
+    def test_fps_in_cmd(self) -> None:
+        """-r fps 값 정확히 포함."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 30.0, 16000)
+        idx = cmd.index("-r")
+        assert cmd[idx + 1] == "30.0"
+
+    def test_audio_sr_in_cmd(self) -> None:
+        """-ar sr 값 정확히 포함."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 25.0, 8000)
+        idx = cmd.index("-ar")
+        assert cmd[idx + 1] == "8000"
+
+    def test_audio_path_in_cmd(self) -> None:
+        """오디오 wav 경로 포함."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/my/audio.wav", 25.0, 16000)
+        assert "/my/audio.wav" in cmd
+
+    def test_libx264_output_encoder(self) -> None:
+        """출력 비디오 인코더 = libx264."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 25.0, 16000)
+        assert "libx264" in cmd
+
+    def test_aac_audio_encoder(self) -> None:
+        """출력 오디오 인코더 = aac."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 25.0, 16000)
+        assert "aac" in cmd
+
+    def test_shortest_flag(self) -> None:
+        """-shortest 플래그 포함."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 25.0, 16000)
+        assert "-shortest" in cmd
+
+    def test_no_vcodec_old_style(self) -> None:
+        """-vcodec 구형 플래그 미사용 (-c:v 로만 지정)."""
+        cmd = _build_ffmpeg_cmd("/out.mp4", "/audio.wav", 25.0, 16000)
+        assert "-vcodec" not in cmd, "-vcodec 구형 플래그 제거됐어야 함"

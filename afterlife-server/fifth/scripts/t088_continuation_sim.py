@@ -221,6 +221,42 @@ def _post_render_chunk(
 # ffmpeg mp4 인코딩
 # ---------------------------------------------------------------------------
 
+def _build_ffmpeg_cmd(
+    out_path: str,
+    audio_path: str,
+    fps: float,
+    sr: int,
+) -> list[str]:
+    """ffmpeg 인코딩 커맨드 리스트 구성 (순수 함수, 단위 테스트 가능).
+
+    Args:
+        out_path: 출력 mp4 경로.
+        audio_path: 임시 오디오 wav 경로.
+        fps: 영상 프레임레이트.
+        sr: 오디오 샘플레이트.
+    Returns:
+        ffmpeg argv 리스트.
+    """
+    return [
+        "ffmpeg", "-y",
+        # 입력 ①: stdin MJPEG 파이프
+        "-f", "image2pipe",
+        "-r", str(fps),
+        "-c:v", "mjpeg",          # 입력 디코더
+        "-i", "pipe:0",
+        # 입력 ②: 오디오 wav
+        "-i", audio_path,
+        # 출력 인코딩
+        "-c:v", "libx264",        # 출력 인코더
+        "-preset", "fast",
+        "-crf", "23",
+        "-c:a", "aac",
+        "-ar", str(sr),
+        "-shortest",
+        out_path,
+    ]
+
+
 def encode_mp4(
     jpeg_frames: list[bytes],
     audio_array: np.ndarray,
@@ -233,6 +269,9 @@ def encode_mp4(
     JPEG bytes 를 ffmpeg stdin pipe 로 주입.
     오디오는 임시 wav 파일로 저장 후 -i 로 입력.
 
+    stdin 처리: proc.communicate(input=...) 한 번으로 전달.
+    (write 루프 + stdin.close() + communicate() 는 이중 close → ValueError 발생.)
+
     Args:
         jpeg_frames: 렌더된 JPEG bytes 목록.
         audio_array: 모노 float32 오디오 배열.
@@ -240,31 +279,31 @@ def encode_mp4(
         fps: 영상 프레임레이트.
         sr: 오디오 샘플레이트.
     Raises:
-        RuntimeError: ffmpeg 비-0 종료 코드.
+        RuntimeError: ffmpeg 비-0 종료 코드 또는 타임아웃.
     """
     with tempfile.TemporaryDirectory(prefix="t088sim_") as tmp:
         audio_path = str(Path(tmp) / "audio.wav")
         sf.write(audio_path, audio_array, sr)
 
-        cmd = [
-            "ffmpeg", "-y",
-            "-f", "image2pipe", "-r", str(fps), "-vcodec", "mjpeg", "-i", "pipe:0",
-            "-i", audio_path,
-            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-            "-c:a", "aac", "-ar", str(sr),
-            "-shortest",
-            out_path,
-        ]
+        cmd = _build_ffmpeg_cmd(out_path, audio_path, fps, sr)
+        mjpeg_input = b"".join(jpeg_frames)
+
         proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-        assert proc.stdin is not None
-        for frame in jpeg_frames:
-            proc.stdin.write(frame)
-        proc.stdin.close()
-        _, stderr = proc.communicate()
+        try:
+            _, stderr = proc.communicate(input=mjpeg_input, timeout=300)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
+            raise RuntimeError("ffmpeg 타임아웃 (300s 초과)")
+        except Exception as exc:
+            proc.kill()
+            proc.communicate()
+            raise RuntimeError(f"ffmpeg stdin 오류: {exc}") from exc
+
         if proc.returncode != 0:
             raise RuntimeError(
                 f"ffmpeg 종료 코드 {proc.returncode}:\n"
-                + stderr.decode(errors="replace")[-600:]
+                + stderr.decode(errors="replace")[-800:]
             )
 
 
@@ -320,7 +359,16 @@ def run_sim(
         # ---- 연속 렌더 (phase_token 위상 이어가기) ---
         all_frames: list[bytes] = []
         frame_counts: list[int] = []
-        phase_token: Optional[dict] = None  # 첫 청크 = stateless (이전 상태 없음)
+
+        # 첫 청크부터 빈 PhaseToken dict 를 전달해야 서버가 TOK: 트레일러를 응답한다.
+        # phase_token=None 이면 서버가 끝 토큰을 미전송(회귀 안전 가드) → 연속 렌더 불가.
+        # t088_continuation_compare.py init_tok 방식과 동일.
+        phase_token: dict = {
+            "frame_offset": 0,
+            "blink_phase": 0,
+            "first_frame": True,
+            "head_last": None,
+        }
 
         for i, chunk in enumerate(chunks):
             ctype = chunk["type"]
@@ -330,7 +378,13 @@ def run_sim(
             )
             all_frames.extend(frames)
             frame_counts.append(len(frames))
-            phase_token = end_tok  # None이면 다음 청크도 stateless
+            # end_tok이 None이면(서버 이상) 이전 토큰 유지 대신 명시적 에러
+            if end_tok is None:
+                raise RuntimeError(
+                    f"청크[{i}] end_tok 미수신 — 렌더서버가 TOK: 트레일러를 보내지 않음. "
+                    "phase_token 전달 여부와 서버 로그를 확인하라."
+                )
+            phase_token = end_tok
             print(
                 f"[sim]   -> {len(frames)} frames, tok={end_tok}",
                 file=sys.stderr,
