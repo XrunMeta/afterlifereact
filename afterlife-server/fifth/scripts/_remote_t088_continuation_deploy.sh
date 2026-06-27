@@ -47,6 +47,7 @@ DEPLOY_FILES=(
   fifth_render_server.py
   render_offline.py
   t088_continuation_compare.py
+  t088_continuation_sim.py
 )
 
 run()  { echo "+ $*"; [ "$DRY_RUN" = "1" ] || "$@"; }
