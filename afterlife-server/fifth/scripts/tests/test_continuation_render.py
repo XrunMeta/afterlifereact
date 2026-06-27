@@ -601,3 +601,126 @@ def test_blend_empty_wav_does_not_advance_phase(tmp_path):
     assert end_tok.frame_offset == input_tok.frame_offset
     assert end_tok.blink_phase == input_tok.blink_phase
     assert eng.calls == []
+
+
+# ---------------------------------------------------------------------------
+# CONCERN 보강: count==0 가드 통일 — wav 있으나 render 전부 None 경계
+# ---------------------------------------------------------------------------
+
+class _NullEngine:
+    """render 가 항상 None 을 반환 — count==0 경계 시뮬."""
+    def __init__(self):
+        self.calls: list[dict] = []
+
+    def render(self, motion, c_eyes, c_d_lip, first_frame, src_img=None, src_info=None):
+        self.calls.append({"first_frame": first_frame})
+        return None  # 항상 None
+
+
+class _PartialNullEngine:
+    """처음 skip_n 번만 None, 이후는 정상 프레임 반환."""
+    def __init__(self, skip_n: int = 1):
+        self.skip_n = skip_n
+        self.calls: list[dict] = []
+
+    def render(self, motion, c_eyes, c_d_lip, first_frame, src_img=None, src_info=None):
+        self.calls.append({"first_frame": first_frame})
+        if len(self.calls) <= self.skip_n:
+            return None
+        return np.full((512, 512, 3), 128, dtype=np.uint8)
+
+
+def test_render_all_none_count_zero_does_not_advance_phase(tmp_path):
+    """wav 있으나 eng.render 전부 None(count==0) → 끝 토큰이 입력 tok 과 동일(위상 불진전).
+
+    CONCERN: len(y)==0 early-return 만 가드하고 정상 경로는 가드 없었던 버그.
+    """
+    wav = _write_wav(tmp_path, dur=0.5)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + 4
+    sources = _make_sources()
+
+    input_tok = PhaseToken(frame_offset=7, blink_phase=13, first_frame=True, head_last=None)
+    eng = _NullEngine()
+
+    n, end_tok = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, sources, wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=input_tok,
+    )
+    assert n == 0, "NullEngine 이므로 출력 프레임이 없어야 함"
+    assert eng.calls, "render 호출은 있어야 함 (wav 있음)"
+    assert end_tok.first_frame == input_tok.first_frame, (
+        f"first_frame 변경: {input_tok.first_frame!r} → {end_tok.first_frame!r}"
+        " — count==0 이면 위상 불진전"
+    )
+    assert end_tok.frame_offset == input_tok.frame_offset, (
+        f"frame_offset 진전: {input_tok.frame_offset} → {end_tok.frame_offset}"
+    )
+    assert end_tok.blink_phase == input_tok.blink_phase, (
+        f"blink_phase 진전: {input_tok.blink_phase} → {end_tok.blink_phase}"
+    )
+
+
+def test_render_partial_none_count_gt_zero_advances(tmp_path):
+    """일부만 None(count>0) → blink_phase+=n, first_frame=False 진전 유지 (C-2 회귀 보호).
+
+    count>0 이면 시간이 흘렀으므로 blink 타임라인(n 기준) 은 정상 누적해야 한다.
+    """
+    dur, sr = 0.5, 16000
+    wav = _write_wav(tmp_path, dur=dur)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(dur, sr, cfg.fps) + 4
+    sources = _make_sources()
+
+    input_tok = PhaseToken(frame_offset=5, blink_phase=11, first_frame=True, head_last=None)
+    # 첫 1번만 None, 이후 정상 → count >= 1
+    eng = _PartialNullEngine(skip_n=1)
+
+    n, end_tok = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, sources, wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=input_tok,
+    )
+    assert n > 0, "partial None 이므로 count>0 여야 함"
+    assert end_tok.first_frame is False, (
+        f"count>0 이면 first_frame=False 여야 함, got {end_tok.first_frame!r}"
+    )
+    assert end_tok.frame_offset == input_tok.frame_offset + n, (
+        f"frame_offset: {input_tok.frame_offset}+{n} 여야 함, got {end_tok.frame_offset}"
+    )
+    # C-2: blink_phase 는 n(타임라인 길이) 기준 누적
+    assert end_tok.blink_phase > input_tok.blink_phase, (
+        f"blink_phase 가 진전돼야 함: {input_tok.blink_phase} → {end_tok.blink_phase}"
+    )
+
+
+def test_blend_render_all_none_count_zero_does_not_advance_phase(tmp_path):
+    """blend 경로: wav 있으나 render 전부 None(count==0) → 위상 불진전."""
+    wav = _write_wav(tmp_path, dur=0.5)
+    cfg = FifthConfig.from_env()
+    nj = _env_len(0.5, 16000, cfg.fps) + 4
+    sources = _make_blend_sources()
+
+    input_tok = PhaseToken(frame_offset=3, blink_phase=8, first_frame=True, head_last=None)
+
+    class _NullEngineBlend:
+        def __init__(self):
+            self.calls: list[dict] = []
+        def render(self, motion, c_eyes, c_d_lip, first_frame, src_img=None, src_info=None):
+            self.calls.append({"first_frame": first_frame, "src_img": src_img})
+            return None
+
+    eng = _NullEngineBlend()
+
+    n, end_tok = stream_wav_frames(
+        eng, _FakeJP(nj), cfg, sources, wav,
+        on_frame=lambda f: None, blink_enabled=False,
+        phase_token=input_tok,
+    )
+    assert n == 0
+    assert end_tok.first_frame == input_tok.first_frame, (
+        f"blend count==0 first_frame 변경: {input_tok.first_frame!r} → {end_tok.first_frame!r}"
+    )
+    assert end_tok.frame_offset == input_tok.frame_offset
+    assert end_tok.blink_phase == input_tok.blink_phase
