@@ -188,6 +188,9 @@ internal.post("/filler-job-done", async (c) => {
 
   for (let i = 0; i < FILLER_FILE_COUNT; i++) {
     const f = fileEntries[i];
+    if (!f) {
+      return c.json({ error: `file${i} missing` }, 400);
+    }
     if (f.size === 0) {
       return c.json({ error: `file${i} is empty (0 bytes)` }, 400);
     }
@@ -201,7 +204,11 @@ internal.post("/filler-job-done", async (c) => {
 
   const bufs: ArrayBuffer[] = [];
   for (let i = 0; i < FILLER_FILE_COUNT; i++) {
-    bufs.push(await fileEntries[i].arrayBuffer());
+    const buf = await fileEntries[i]?.arrayBuffer();
+    if (!buf) {
+      return c.json({ error: `file${i} read failed` }, 400);
+    }
+    bufs.push(buf);
   }
 
   const claimed = await claimJobRunning(c.env.DB, jobId);
@@ -213,12 +220,16 @@ internal.post("/filler-job-done", async (c) => {
   const r2Entries: Array<{ r2Key: string; sizeBytes: number }> = [];
   try {
     for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+      const buf = bufs[i];
+      if (!buf) {
+        throw new Error(`buf${i} missing`);
+      }
       const uuid = crypto.randomUUID();
       const r2Key = `assets/filler/${uuid}.mp4`;
-      await c.env.R2_ARCHIVE.put(r2Key, bufs[i], {
+      await c.env.R2_ARCHIVE.put(r2Key, buf, {
         httpMetadata: { contentType: FILLER_CONTENT_TYPE },
       });
-      r2Entries.push({ r2Key, sizeBytes: bufs[i].byteLength });
+      r2Entries.push({ r2Key, sizeBytes: buf.byteLength });
     }
   } catch (err) {
 
