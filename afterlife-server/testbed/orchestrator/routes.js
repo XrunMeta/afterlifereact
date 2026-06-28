@@ -161,16 +161,31 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   });
 
   router.post('/oth-path', requireSecret, async (req, res) => {
-    const { job_id, kind, src_url, callback_token } = req.body ?? {};
+    const { job_id, kind, src_url, callback_token, face_url, clone_id, voice_raw_url } = req.body ?? {};
+
+    const isFiller = kind === 'filler';
+    const isLegacy = kind === 'idle_video' || kind === 'voice_clone';
     if (
       !job_id ||
-      (kind !== 'idle_video' && kind !== 'voice_clone') ||
-      !src_url ||
+      (!isFiller && !isLegacy) ||
+      (!isFiller && !src_url) ||
+      (isFiller && (!face_url || !clone_id || !voice_raw_url)) ||
       !callback_token
     ) {
       return res.status(400).json({ error: 'bad_request' });
     }
-    assetJobRunner.enqueue({ job_id, kind, src_url, callback_token });
+
+    if (isFiller) {
+      const cloneIdStr = String(clone_id);
+      if (!/^\d+$/.test(cloneIdStr) || Number(cloneIdStr) <= 0) {
+        return res.status(400).json({ error: 'bad_request', detail: 'clone_id must be a positive integer' });
+      }
+    }
+    if (isFiller) {
+      assetJobRunner.enqueue({ job_id, kind, face_url, clone_id, voice_raw_url, callback_token });
+    } else {
+      assetJobRunner.enqueue({ job_id, kind, src_url, callback_token });
+    }
     res.status(202).json({ accepted: true });
   });
 

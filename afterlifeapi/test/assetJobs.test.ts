@@ -379,18 +379,27 @@ describe("createClone 잡 연결", () => {
 });
 
 describe("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
-  it("idle_video_job_id 제공 → filler 잡 1행(kind=filler) 자동 생성 + clone_id 연결", async () => {
+  it("idle_video_job_id + voice_clone_job_id 제공 → filler 잡 1행(kind=filler) 자동 생성 + clone_id 연결", async () => {
     const uid = await seedUser("f3_filler_create@test.com");
     const t = await token(uid);
-    const fid = await seedFile(uid, "f3fillerc");
+    const imgFid = await seedFile(uid, "f3fillerc-img");
+    const wavFid = await seedFile(uid, "f3fillerc-wav");
 
     const idleMk = await SELF.fetch("http://localhost/oth-path", {
       method: "POST",
       headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "idle_video", src_file_id: fid }),
+      body: JSON.stringify({ kind: "idle_video", src_file_id: imgFid }),
     });
     expect(idleMk.status).toBe(201);
     const { job_id: idleJobId } = await idleMk.json<{ job_id: string }>();
+
+    const voiceMk = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "voice_clone", src_file_id: wavFid }),
+    });
+    expect(voiceMk.status).toBe(201);
+    const { job_id: voiceJobId } = await voiceMk.json<{ job_id: string }>();
 
     const idemKey = `f3-filler-create-${Date.now()}`;
     const res = await SELF.fetch("http://localhost/oth-path", {
@@ -405,6 +414,7 @@ describe("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
         name: "FillerTest",
         username: `f3filler${Date.now()}`,
         idle_video_job_id: idleJobId,
+        voice_clone_job_id: voiceJobId,
       }),
     });
     expect(res.status).toBe(201);
@@ -422,7 +432,7 @@ describe("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
     expect(fillerJob).toBeTruthy();
     expect(fillerJob!.kind).toBe("filler");
 
-    expect(fillerJob!.src_file_id).toBe(fid);
+    expect(fillerJob!.src_file_id).toBe(imgFid);
 
     expect(fillerJob!.clone_id).toBe(cloneId);
 
@@ -502,11 +512,11 @@ describe("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
       .first<{ idle_video_url: string | null }>();
     expect(row!.idle_video_url).toBe("https://idle/files/42");
 
-    const fillerJob = await db
-      .prepare(`SELECT kind FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`)
+    const fillerCount = await db
+      .prepare(`SELECT COUNT(*) AS n FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`)
       .bind(clone.id)
-      .first<{ kind: string }>();
-    expect(fillerJob!.kind).toBe("filler");
+      .first<{ n: number }>();
+    expect(fillerCount!.n).toBe(0);
   });
 
   it("다른 사용자 idle 잡 → filler 미생성(소유 검증 R-1)", async () => {

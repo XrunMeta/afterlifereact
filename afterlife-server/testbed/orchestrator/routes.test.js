@@ -457,6 +457,147 @@ test('POST /oth-path — 필드 누락 → 400', async () => {
   server.close();
 });
 
+test('POST /oth-path — filler kind 허용 (face_url + clone_id + voice_raw_url + callback_token)', async () => {
+  const enqueuedJobs = [];
+  const mockRunner = { enqueue(job) { enqueuedJobs.push(job); } };
+  const { server, base } = await mountApp(fakeOrch(), 'sek', null, { assetJobRunner: mockRunner });
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'fj_route_ok',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '9055',
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_route_ok',
+    }),
+  });
+  assert.equal(r.status, 202);
+  const j = await r.json();
+  assert.equal(j.accepted, true);
+  assert.equal(enqueuedJobs.length, 1);
+  assert.equal(enqueuedJobs[0].kind, 'filler');
+  assert.equal(enqueuedJobs[0].face_url, 'https://oth-path.example.com/oth-path');
+  assert.equal(enqueuedJobs[0].clone_id, '9055');
+  assert.equal(enqueuedJobs[0].voice_raw_url, 'https://oth-path.example.com/oth-path');
+  assert.ok(!enqueuedJobs[0].src_url, 'src_url은 filler enqueue에 없어야 함');
+  server.close();
+});
+
+test('POST /oth-path — filler face_url 누락 → 400', async () => {
+  const { server, base } = await mountApp(fakeOrch(), 'sek');
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'fj_noface',
+      kind: 'filler',
+      clone_id: '9055',
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_noface',
+    }),
+  });
+  assert.equal(r.status, 400);
+  server.close();
+});
+
+test('POST /oth-path — filler voice_raw_url 누락 → 400', async () => {
+  const { server, base } = await mountApp(fakeOrch(), 'sek');
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'fj_novraw',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '9055',
+
+      callback_token: 'tok_novraw',
+    }),
+  });
+  assert.equal(r.status, 400);
+  server.close();
+});
+
+test('POST /oth-path — filler clone_id 누락 → 400', async () => {
+  const { server, base } = await mountApp(fakeOrch(), 'sek');
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'fj_noclone',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+
+      callback_token: 'tok_noclone',
+    }),
+  });
+  assert.equal(r.status, 400);
+  server.close();
+});
+
+test('M-2: filler clone_id 경로순회 문자열("../etc") → 400', async () => {
+  const { server, base } = await mountApp(fakeOrch(), 'sek');
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'm2_traverse',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '../etc', 
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_m2',
+    }),
+  });
+  assert.equal(r.status, 400);
+  const j = await r.json();
+  assert.equal(j.error, 'bad_request');
+  server.close();
+});
+
+test('M-2: filler clone_id 숫자(9055) → 202 허용 (정수 JSON 값도 통과)', async () => {
+  const enqueuedJobs = [];
+  const mockRunner = { enqueue(job) { enqueuedJobs.push(job); } };
+  const { server, base } = await mountApp(fakeOrch(), 'sek', null, { assetJobRunner: mockRunner });
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'm2_num',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: 9055, 
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_m2_num',
+    }),
+  });
+  assert.equal(r.status, 202);
+  assert.equal(enqueuedJobs.length, 1);
+  assert.equal(enqueuedJobs[0].clone_id, 9055);
+  server.close();
+});
+
+test('M-2: filler clone_id 0 → 400 (양수만 허용)', async () => {
+  const { server, base } = await mountApp(fakeOrch(), 'sek');
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'm2_zero',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: 0,
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_m2_zero',
+    }),
+  });
+  assert.equal(r.status, 400);
+  server.close();
+});
+
 test('POST /oth-path — assets body 시 ensureAssets 호출되고 callPersona에 경로 저장', async () => {
   const ensureAssetsArgs = [];
   const mockEnsureAssets = async (params) => {

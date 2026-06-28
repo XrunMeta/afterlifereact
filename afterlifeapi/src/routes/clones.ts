@@ -452,34 +452,48 @@ clones.post(
     if (body.idle_video_job_id) {
       const idleJob = await getJob(c.env.DB, body.idle_video_job_id);
       if (idleJob && idleJob.user_id === userId) {
-        const fillerJobId = crypto.randomUUID();
-        const fillerCallbackToken = await createJob(
-          c.env.DB, fillerJobId, userId, "filler", idleJob.src_file_id,
-        );
 
-        await linkClone(c.env.DB, fillerJobId, cloneId);
+        let voiceRawUrl: string | null = null;
+        if (body.voice_clone_job_id) {
+          const voiceJob = await getJob(c.env.DB, body.voice_clone_job_id);
+          if (voiceJob && voiceJob.user_id === userId) {
+            const origin = new URL(c.req.url).origin;
+            voiceRawUrl = `${origin}/oth-path${voiceJob.src_file_id}`;
+          }
+        }
 
-        if (c.env.ORCHESTRATOR_URL && c.env.ORCH_SECRET) {
-          const origin = new URL(c.req.url).origin;
-          const srcUrl = `${origin}/oth-path${idleJob.src_file_id}`;
-          c.executionCtx.waitUntil(
-            fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${c.env.ORCH_SECRET}`,
-              },
-              body: JSON.stringify({
-                job_id: fillerJobId,
-                kind: "filler",
-                src_url: srcUrl,
-                callback_token: fillerCallbackToken,
-              }),
-              signal: AbortSignal.timeout(8000),
-            })
-              .then((res) => setStatus(c.env.DB, fillerJobId, res.ok ? "running" : "failed"))
-              .catch(() => setStatus(c.env.DB, fillerJobId, "failed")),
+        if (voiceRawUrl) {
+          const fillerJobId = crypto.randomUUID();
+          const fillerCallbackToken = await createJob(
+            c.env.DB, fillerJobId, userId, "filler", idleJob.src_file_id,
           );
+
+          await linkClone(c.env.DB, fillerJobId, cloneId);
+
+          if (c.env.ORCHESTRATOR_URL && c.env.ORCH_SECRET) {
+            const origin = new URL(c.req.url).origin;
+            const faceUrl = `${origin}/oth-path${idleJob.src_file_id}`;
+            c.executionCtx.waitUntil(
+              fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${c.env.ORCH_SECRET}`,
+                },
+                body: JSON.stringify({
+                  job_id: fillerJobId,
+                  kind: "filler",
+                  face_url: faceUrl,
+                  clone_id: String(cloneId),
+                  voice_raw_url: voiceRawUrl,
+                  callback_token: fillerCallbackToken,
+                }),
+                signal: AbortSignal.timeout(8000),
+              })
+                .then((res) => setStatus(c.env.DB, fillerJobId, res.ok ? "running" : "failed"))
+                .catch(() => setStatus(c.env.DB, fillerJobId, "failed")),
+            );
+          }
         }
       }
     }

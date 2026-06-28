@@ -62,6 +62,10 @@ cat > /tmp/filler-dropins/filler-orch.conf <<'CONF'
 Environment=QWEN_TTS_URL=http://127.0.0.1:8201
 Environment=FIFTH_RENDER_URL=http://203.0.113.30:8810
 Environment=TMPDIR=$SHARED_TMP
+# ⚠️ ref_root(voice.wav 경로)는 3 프로세스가 독립 env(VOICE_REF_ROOT/
+#    PRETHIRD_REF_VOICES_ROOT/QWEN3TTS_REF_ROOT)로 읽음. 셋 다 코드 기본값
+#    =.../openvoice-afterlife/reference_voices 로 동일 → 여기서 재정의 안 함.
+#    만약 재정의가 필요하면 반드시 3개를 동일값으로 함께 설정(el RISK).
 CONF
 cat > /tmp/filler-dropins/filler-prethird.conf <<'CONF'
 [Service]

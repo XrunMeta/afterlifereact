@@ -1,7 +1,9 @@
 
 
 import { spawn } from 'node:child_process';
-import { writeFile, mkdtemp, rm, mkdir } from 'node:fs/promises';
+import { writeFile, mkdtemp, rm, mkdir, stat, rename } from 'node:fs/promises';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -12,6 +14,12 @@ export const FILLER_TEXTS = [
 ];
 
 const LP_BASE = '/home/afterlife/afterlife-server';
+
+const VOICE_REF_ROOT = '/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices';
+
+const _MIN_WAV_BYTES = 1024;
+
+export const _MAX_VOICE_WAV_BYTES = 50 * 1024 * 1024; 
 const GEN_IDLE_SH = `${LP_BASE}/musepose-afterlife/afterlife/gen_idle_asset.sh`;
 const OPENVOICE_PY = '/home/afterlife/miniconda3/envs/openvoice/bin/python';
 const AFL_EXTRACT_SE_IO = `${LP_BASE}/openvoice-afterlife/scripts/afl_extract_se_io.py`;
@@ -39,6 +47,69 @@ export function defaultFfmpegMuxCmd(framesDir, wavPath, outPath) {
       outPath,
     ],
   };
+}
+
+export async function defaultEnsureVoiceWav(cloneId, voiceRawUrl, refRoot, fetchFn, spawnFn) {
+
+  const cloneIdStr = String(cloneId);
+  if (!/^\d+$/.test(cloneIdStr) || Number(cloneIdStr) <= 0) {
+    throw new Error(`clone_id 가 양의 정수가 아닙니다 (path traversal 방지): "${cloneId}"`);
+  }
+
+  const cloneDir = join(refRoot, cloneIdStr);
+  const dest = join(cloneDir, 'voice.wav');
+
+  if (existsSync(dest)) return;
+
+  mkdirSync(cloneDir, { recursive: true });
+  const uid = Math.random().toString(36).slice(2);
+  const srcTmp = join(cloneDir, `voice.${uid}.src`);
+  const wavTmp = join(cloneDir, `voice.${uid}.wav.part`);
+
+  try {
+
+    const r = await fetchFn(voiceRawUrl);
+    if (!r.ok) throw new Error(`voice_raw_url fetch failed: HTTP ${r.status}`);
+
+    const _cl = parseInt(r.headers?.get?.('content-length') ?? '-1', 10);
+    if (!isNaN(_cl) && _cl >= 0 && _cl > _MAX_VOICE_WAV_BYTES) {
+      throw new Error(
+        `voiceRawUrl Content-Length ${_cl} 초과 상한 ${_MAX_VOICE_WAV_BYTES} (OOM 방지)`
+      );
+    }
+
+    const buf = Buffer.from(await r.arrayBuffer());
+    await writeFile(srcTmp, buf);
+
+    await new Promise((resolve, reject) => {
+      const p = spawnFn('ffmpeg', ['-y', '-i', srcTmp, '-ac', '1', '-f', 'wav', wavTmp], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 60000, 
+      });
+      let errOut = '';
+      p.stderr.on('data', (d) => { errOut += d; });
+      p.stdout.on('data', () => {});
+      p.on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`voice.wav ffmpeg 변환 실패 (rc=${code}): ${errOut.slice(-300)}`));
+      });
+      p.on('error', reject);
+    });
+
+    const info = await stat(wavTmp);
+    if (info.size < _MIN_WAV_BYTES) {
+      throw new Error(
+        `변환 결과 wav가 너무 작음(${info.size}B < ${_MIN_WAV_BYTES}) — 손상 wav 방지 (clone=${cloneId})`
+      );
+    }
+
+    await rename(wavTmp, dest);
+  } finally {
+
+    for (const p of [srcTmp, wavTmp]) {
+      try { await rm(p, { force: true }); } catch {}
+    }
+  }
 }
 
 export async function defaultQwenTts(text, cloneId, ttsUrl, fetchFn) {
@@ -136,6 +207,9 @@ export function createAssetJobRunner({
   ffmpegMuxCmd = defaultFfmpegMuxCmd,
   _qwenTtsFn = null,    
   _fifthRenderFn = null, 
+
+  voiceRefRoot = VOICE_REF_ROOT,
+  _ensureVoiceWavFn = null, 
 } = {}) {
 
   const queue = [];
@@ -143,6 +217,7 @@ export function createAssetJobRunner({
 
   const qwenTtsFn = _qwenTtsFn ?? ((text, cloneId, url, fetchFn) => defaultQwenTts(text, cloneId, url, fetchFn));
   const fifthRenderFn = _fifthRenderFn ?? ((wavPath, facePath, url) => defaultFifthRender(wavPath, facePath, url));
+  const ensureVoiceWavFn = _ensureVoiceWavFn ?? defaultEnsureVoiceWav;
 
   async function drain() {
     if (running) return;
@@ -205,15 +280,28 @@ export function createAssetJobRunner({
 
   async function processFillerJob(job, dir) {
 
-    if (!job.face_url || !job.face_url.startsWith(apiBaseUrl)) {
+    if (!apiBaseUrl) {
+      throw new Error('apiBaseUrl 미설정 — SSRF 방어 무력화 방지: filler 잡 거부 (H-1)');
+    }
+
+    const _ssrfPrefix = apiBaseUrl.endsWith('/') ? apiBaseUrl : apiBaseUrl + '/';
+
+    if (!job.face_url || !job.face_url.startsWith(_ssrfPrefix)) {
       throw new Error(
-        `face_url not allowed or missing: must start with apiBaseUrl (${apiBaseUrl})`
+        `face_url not allowed or missing: must start with apiBaseUrl prefix (${_ssrfPrefix})`
       );
     }
 
     if (!job.clone_id) {
       throw new Error('filler job requires clone_id');
     }
+
+    if (!job.voice_raw_url || !job.voice_raw_url.startsWith(_ssrfPrefix)) {
+      throw new Error(
+        `voice_raw_url not allowed or missing: must start with apiBaseUrl prefix (${_ssrfPrefix})`
+      );
+    }
+    await ensureVoiceWavFn(job.clone_id, job.voice_raw_url, voiceRefRoot, fetchImpl, spawnImpl);
 
     const rFace = await fetchImpl(job.face_url);
     if (!rFace.ok) throw new Error(`face.jpg fetch failed: HTTP ${rFace.status}`);
