@@ -449,6 +449,41 @@ clones.post(
       }
     }
 
+    if (body.idle_video_job_id) {
+      const idleJob = await getJob(c.env.DB, body.idle_video_job_id);
+      if (idleJob && idleJob.user_id === userId) {
+        const fillerJobId = crypto.randomUUID();
+        const fillerCallbackToken = await createJob(
+          c.env.DB, fillerJobId, userId, "filler", idleJob.src_file_id,
+        );
+
+        await linkClone(c.env.DB, fillerJobId, cloneId);
+
+        if (c.env.ORCHESTRATOR_URL && c.env.ORCH_SECRET) {
+          const origin = new URL(c.req.url).origin;
+          const srcUrl = `${origin}/oth-path${idleJob.src_file_id}`;
+          c.executionCtx.waitUntil(
+            fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${c.env.ORCH_SECRET}`,
+              },
+              body: JSON.stringify({
+                job_id: fillerJobId,
+                kind: "filler",
+                src_url: srcUrl,
+                callback_token: fillerCallbackToken,
+              }),
+              signal: AbortSignal.timeout(8000),
+            })
+              .then((res) => setStatus(c.env.DB, fillerJobId, res.ok ? "running" : "failed"))
+              .catch(() => setStatus(c.env.DB, fillerJobId, "failed")),
+          );
+        }
+      }
+    }
+
     if (body.clone_type === "memlow") {
       const ctxSeed = JSON.stringify({
         persona: body.memlow_profile ?? {},
@@ -858,8 +893,9 @@ clones.post("/asset-job", requireAuth, async (c) => {
   const raw = await c.req.json<{ kind?: string; src_file_id?: number }>().catch(() => null);
   const kind = raw?.kind;
   const srcFileId = raw?.src_file_id;
-  if (kind !== "idle_video" && kind !== "voice_clone") {
-    throw new APIError("VALIDATION_FAILED", "Invalid kind. Must be idle_video or voice_clone.");
+
+  if (kind !== "idle_video" && kind !== "voice_clone" && kind !== "filler") {
+    throw new APIError("VALIDATION_FAILED", "Invalid kind. Must be idle_video, voice_clone, or filler.");
   }
   if (!srcFileId || !Number.isInteger(srcFileId)) {
     throw new APIError("VALIDATION_FAILED", "src_file_id required.");

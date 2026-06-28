@@ -87,6 +87,27 @@ describe("asset-job 생성/상태", () => {
     expect(res.status).toBe(422);
   });
 
+  it("kind='filler' 허용 — 201 반환", async () => {
+    const uid = await seedUser("aj_filler_kind@test.com");
+    const t = await token(uid);
+    const fid = await seedFile(uid, "ajfillerkind");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "filler", src_file_id: fid }),
+    });
+    expect(res.status).toBe(201);
+    const { job_id } = await res.json<{ job_id: string }>();
+    expect(job_id).toBeTruthy();
+
+    const db = env.DB as unknown as D1Database;
+    const row = await db
+      .prepare(`SELECT kind FROM clone_asset_jobs WHERE id=?`)
+      .bind(job_id)
+      .first<{ kind: string }>();
+    expect(row!.kind).toBe("filler");
+  });
+
   it("GET asset-job/:id 응답에 callback_token 미노출", async () => {
     const uid = await seedUser("aj_noleak@test.com");
     const t = await token(uid);
@@ -354,5 +375,179 @@ describe("createClone 잡 연결", () => {
       .bind(clone.id)
       .first<{ voice_se_url: string | null }>();
     expect(row!.voice_se_url).toBe("https://race/files/99");
+  });
+});
+
+describe("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
+  it("idle_video_job_id 제공 → filler 잡 1행(kind=filler) 자동 생성 + clone_id 연결", async () => {
+    const uid = await seedUser("f3_filler_create@test.com");
+    const t = await token(uid);
+    const fid = await seedFile(uid, "f3fillerc");
+
+    const idleMk = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "idle_video", src_file_id: fid }),
+    });
+    expect(idleMk.status).toBe(201);
+    const { job_id: idleJobId } = await idleMk.json<{ job_id: string }>();
+
+    const idemKey = `f3-filler-create-${Date.now()}`;
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${t}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": idemKey,
+      },
+      body: JSON.stringify({
+        clone_type: "friend",
+        name: "FillerTest",
+        username: `f3filler${Date.now()}`,
+        idle_video_job_id: idleJobId,
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { clone } = await res.json<{ clone: { id: number } }>();
+    const cloneId = clone.id;
+
+    const db = env.DB as unknown as D1Database;
+    const fillerJob = await db
+      .prepare(
+        `SELECT kind, src_file_id, clone_id, status FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`,
+      )
+      .bind(cloneId)
+      .first<{ kind: string; src_file_id: number; clone_id: number | null; status: string }>();
+
+    expect(fillerJob).toBeTruthy();
+    expect(fillerJob!.kind).toBe("filler");
+
+    expect(fillerJob!.src_file_id).toBe(fid);
+
+    expect(fillerJob!.clone_id).toBe(cloneId);
+
+    expect(["pending", "running", "failed"]).toContain(fillerJob!.status);
+  });
+
+  it("idle_video_job_id 미제공 → filler 잡 미생성(fail-safe)", async () => {
+    const uid = await seedUser("f3_filler_noidleurl@test.com");
+    const t = await token(uid);
+
+    const idemKey = `f3-noidleurl-${Date.now()}`;
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${t}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": idemKey,
+      },
+      body: JSON.stringify({
+        clone_type: "friend",
+        name: "NoFillerTest",
+        username: `f3nofiller${Date.now()}`,
+
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { clone } = await res.json<{ clone: { id: number } }>();
+    const cloneId = clone.id;
+
+    const db = env.DB as unknown as D1Database;
+    const result = await db
+      .prepare(`SELECT COUNT(*) AS n FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`)
+      .bind(cloneId)
+      .first<{ n: number }>();
+    expect(result!.n).toBe(0);
+  });
+
+  it("기존 idle_video 잡 트리거 — filler 추가 후에도 idle_video_url 반영 회귀 없음", async () => {
+    const uid = await seedUser("f3_regression_idle@test.com");
+    const t = await token(uid);
+    const fid = await seedFile(uid, "f3regr");
+
+    const idleMk = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "idle_video", src_file_id: fid }),
+    });
+    const { job_id: idleJobId } = await idleMk.json<{ job_id: string }>();
+    const db = env.DB as unknown as D1Database;
+
+    await db
+      .prepare(`UPDATE clone_asset_jobs SET status='done', out_url='https://idle/files/42' WHERE id=?`)
+      .bind(idleJobId)
+      .run();
+
+    const idemKey = `f3-regr-${Date.now()}`;
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${t}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": idemKey,
+      },
+      body: JSON.stringify({
+        clone_type: "friend",
+        name: "RegrTest",
+        username: `f3regr${Date.now()}`,
+        idle_video_job_id: idleJobId,
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { clone } = await res.json<{ clone: { id: number } }>();
+
+    const row = await db
+      .prepare(`SELECT idle_video_url FROM clones WHERE id=?`)
+      .bind(clone.id)
+      .first<{ idle_video_url: string | null }>();
+    expect(row!.idle_video_url).toBe("https://idle/files/42");
+
+    const fillerJob = await db
+      .prepare(`SELECT kind FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`)
+      .bind(clone.id)
+      .first<{ kind: string }>();
+    expect(fillerJob!.kind).toBe("filler");
+  });
+
+  it("다른 사용자 idle 잡 → filler 미생성(소유 검증 R-1)", async () => {
+
+    const uidA = await seedUser("f3_owner_a@test.com");
+    const tA = await token(uidA);
+    const fidA = await seedFile(uidA, "f3ownera");
+    const idleMk = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tA}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "idle_video", src_file_id: fidA }),
+    });
+    expect(idleMk.status).toBe(201);
+    const { job_id: idleJobId } = await idleMk.json<{ job_id: string }>();
+
+    const uidB = await seedUser("f3_owner_b@test.com");
+    const tB = await token(uidB);
+    const idemKey = `f3-owner-b-create-${Date.now()}`;
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tB}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": idemKey,
+      },
+      body: JSON.stringify({
+        clone_type: "friend",
+        name: "OwnerCheckB",
+        username: `f3ownerb${Date.now()}`,
+        idle_video_job_id: idleJobId,
+      }),
+    });
+    expect(res.status).toBe(201);
+    const { clone } = await res.json<{ clone: { id: number } }>();
+    const cloneId = clone.id;
+
+    const db = env.DB as unknown as D1Database;
+    const result = await db
+      .prepare(`SELECT COUNT(*) AS n FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`)
+      .bind(cloneId)
+      .first<{ n: number }>();
+    expect(result!.n).toBe(0);
   });
 });
