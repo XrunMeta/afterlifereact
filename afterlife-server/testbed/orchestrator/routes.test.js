@@ -457,6 +457,147 @@ v_2a805f('POST /oth-path — 필드 누락 → 400', async () => {
   v_88781f.close();
 });
 
+v_2a805f('POST /oth-path — filler kind 허용 (face_url + clone_id + voice_raw_url + callback_token)', async () => {
+  const v_48cb8e = [];
+  const v_436905 = { enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); } };
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { assetJobRunner: v_436905 });
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'fj_route_ok',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '9055',
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_route_ok',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 202);
+  const v_b75e36 = await v_cb35cb.json();
+  v_ce93bd.equal(v_b75e36.accepted, true);
+  v_ce93bd.equal(v_48cb8e.length, 1);
+  v_ce93bd.equal(v_48cb8e[0].kind, 'filler');
+  v_ce93bd.equal(v_48cb8e[0].face_url, 'https://oth-path.example.com/oth-path');
+  v_ce93bd.equal(v_48cb8e[0].clone_id, '9055');
+  v_ce93bd.equal(v_48cb8e[0].voice_raw_url, 'https://oth-path.example.com/oth-path');
+  v_ce93bd.ok(!v_48cb8e[0].src_url, 'src_url은 filler enqueue에 없어야 함');
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — filler face_url 누락 → 400', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'fj_noface',
+      kind: 'filler',
+      clone_id: '9055',
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_noface',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 400);
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — filler voice_raw_url 누락 → 400', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'fj_novraw',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '9055',
+
+      callback_token: 'tok_novraw',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 400);
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — filler clone_id 누락 → 400', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'fj_noclone',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+
+      callback_token: 'tok_noclone',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 400);
+  v_88781f.close();
+});
+
+v_2a805f('M-2: filler clone_id 경로순회 문자열("../etc") → 400', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'm2_traverse',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '../etc', 
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_m2',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 400);
+  const v_b75e36 = await v_cb35cb.json();
+  v_ce93bd.equal(v_b75e36.error, 'bad_request');
+  v_88781f.close();
+});
+
+v_2a805f('M-2: filler clone_id 숫자(9055) → 202 허용 (정수 JSON 값도 통과)', async () => {
+  const v_48cb8e = [];
+  const v_436905 = { enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); } };
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { assetJobRunner: v_436905 });
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'm2_num',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: 9055, 
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_m2_num',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 202);
+  v_ce93bd.equal(v_48cb8e.length, 1);
+  v_ce93bd.equal(v_48cb8e[0].clone_id, 9055);
+  v_88781f.close();
+});
+
+v_2a805f('M-2: filler clone_id 0 → 400 (양수만 허용)', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'm2_zero',
+      kind: 'filler',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: 0,
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_m2_zero',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 400);
+  v_88781f.close();
+});
+
 v_2a805f('POST /oth-path — assets body 시 ensureAssets 호출되고 callPersona에 경로 저장', async () => {
   const v_a71f00 = [];
   const v_b41aca = async (v_24baff) => {

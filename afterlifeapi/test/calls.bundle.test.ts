@@ -245,6 +245,100 @@ v_469bf2("GET /oth-path", () => {
     v_4d37e3(v_7adc95.faceUrl).toBeNull();
   });
 
+  v_23805a("fillerVideoUrls: filler_video_urls NULL → []", async () => {
+    const v_1badb6 = await v_bfb240("bundle-filler-null@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_filler_null_clone");
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { fillerVideoUrls: string[] } };
+    v_4d37e3(Array.isArray(v_7adc95.fillerVideoUrls)).toBe(true);
+    v_4d37e3(v_7adc95.fillerVideoUrls).toHaveLength(0);
+  });
+
+  v_23805a("fillerVideoUrls: 정상 JSON 3개 → length 3", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-filler-3@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_filler_3_clone");
+    const v_942aa2 = [
+      "https://r2.example.com/filler/0.mp4",
+      "https://r2.example.com/filler/1.mp4",
+      "https://r2.example.com/filler/2.mp4",
+    ];
+    await v_a1651b
+      .prepare("UPDATE clones SET filler_video_urls = ? WHERE id = ?")
+      .bind(JSON.stringify(v_942aa2), v_6e0fd3)
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { fillerVideoUrls: string[] } };
+    v_4d37e3(v_7adc95.fillerVideoUrls).toEqual(v_942aa2);
+  });
+
+  v_23805a("fillerVideoUrls: 깨진 JSON → []", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-filler-bad@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_filler_bad_clone");
+    await v_a1651b
+      .prepare("UPDATE clones SET filler_video_urls = ? WHERE id = ?")
+      .bind("{NOT_VALID_JSON[[[", v_6e0fd3)
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { fillerVideoUrls: string[] } };
+    v_4d37e3(Array.isArray(v_7adc95.fillerVideoUrls)).toBe(true);
+    v_4d37e3(v_7adc95.fillerVideoUrls).toHaveLength(0);
+  });
+
+  v_23805a("fillerVideoUrls: 비배열 JSON(객체) → []", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-filler-obj@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_filler_obj_clone");
+    await v_a1651b
+      .prepare("UPDATE clones SET filler_video_urls = ? WHERE id = ?")
+      .bind('{"key":"val"}', v_6e0fd3)
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { fillerVideoUrls: string[] } };
+    v_4d37e3(Array.isArray(v_7adc95.fillerVideoUrls)).toBe(true);
+    v_4d37e3(v_7adc95.fillerVideoUrls).toHaveLength(0);
+  });
+
+  v_23805a("fillerVideoUrls: 비문자열 원소 혼재 → 문자열만 필터 (el CONCERN)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-filler-mixed@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_filler_mixed_clone");
+    await v_a1651b
+      .prepare("UPDATE clones SET filler_video_urls = ? WHERE id = ?")
+      .bind('[1, null, "https://r2.example.com/filler/0.mp4"]', v_6e0fd3)
+      .run();
+    const v_21cc31 = await v_86c39f(v_1badb6);
+
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const { assets: v_7adc95 } = (await v_8f00b9.json()) as { assets: { fillerVideoUrls: string[] } };
+    v_4d37e3(v_7adc95.fillerVideoUrls).toHaveLength(1);
+    v_4d37e3(v_7adc95.fillerVideoUrls[0]).toBe("https://r2.example.com/filler/0.mp4");
+  });
+
   v_23805a("voice_clone done 잡 여러 개면 최신(created_at) done 잡 선택 + failed 무시 (out_url 조인)", async () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_1badb6 = await v_bfb240("bundle-vraw-multi@test.local");
