@@ -1,5 +1,5 @@
 
-export type AssetKind = "idle_video" | "voice_clone";
+export type AssetKind = "idle_video" | "voice_clone" | "filler";
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface AssetJob {
@@ -120,4 +120,93 @@ export async function linkClone(db: D1Database, jobId: string, cloneId: number):
     )
     .bind(cloneId, jobId)
     .run();
+}
+
+export async function claimJobRunning(
+  db: D1Database,
+  id: string,
+): Promise<ClaimResult | null> {
+
+  const job = await db
+    .prepare(`SELECT id, status, clone_id, kind FROM clone_asset_jobs WHERE id=?`)
+    .bind(id)
+    .first<{ id: string; status: string; clone_id: number | null; kind: string }>();
+  if (!job) return null;
+
+  if (job.status === "running" || job.status === "done") return null;
+
+  const result = await db
+    .prepare(
+      `UPDATE clone_asset_jobs
+          SET status='running', updated_at=datetime('now')
+        WHERE id=? AND status IN ('pending','failed')`,
+    )
+    .bind(id)
+    .run();
+  if (!result.success || (result.meta?.changes ?? 0) === 0) return null;
+  return { clone_id: job.clone_id, kind: job.kind as AssetKind };
+}
+
+export interface FillerEntry {
+  r2Key: string;
+  sizeBytes: number;
+}
+
+export async function finalizeFillerJob(
+  db: D1Database,
+  jobId: string,
+  entries: FillerEntry[],
+  userId: number,
+  cloneId: number | null,
+  origin: string,
+): Promise<string[]> {
+  const urls: string[] = [];
+  const insertedFileIds: number[] = [];
+
+  try {
+
+    for (const { r2Key, sizeBytes } of entries) {
+      const ins = await db
+        .prepare(
+          `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose) VALUES (?,?,?,?,?) RETURNING id`,
+        )
+        .bind(r2Key, "video/mp4", sizeBytes, userId, "asset_filler")
+        .first<{ id: number }>();
+      insertedFileIds.push(ins!.id);
+      urls.push(`${origin}/oth-path${ins!.id}`);
+    }
+
+    const outUrlJson = JSON.stringify(urls);
+    const stmts: D1PreparedStatement[] = [];
+
+    if (cloneId !== null && cloneId !== undefined) {
+      stmts.push(
+        db
+          .prepare(`UPDATE clones SET filler_video_urls = ? WHERE id = ?`)
+          .bind(outUrlJson, cloneId),
+      );
+    }
+    stmts.push(
+      db
+        .prepare(
+          `UPDATE clone_asset_jobs SET status='done', out_url=?, updated_at=datetime('now') WHERE id=?`,
+        )
+        .bind(outUrlJson, jobId),
+    );
+    await db.batch(stmts);
+  } catch (err) {
+
+    if (insertedFileIds.length > 0) {
+      await db
+        .prepare(
+          `DELETE FROM files WHERE id IN (${insertedFileIds.map(() => "?").join(",")})`,
+        )
+        .bind(...insertedFileIds)
+        .run()
+        .catch(() => {}); 
+    }
+    throw err; 
+  }
+
+  return urls;
 }

@@ -1,7 +1,7 @@
 
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
-import { claimJob, failJob, finalizeJob, getJob } from "../lib/assetJobs";
+import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeJob, getJob } from "../lib/assetJobs";
 import { z } from "../lib/validate";
 import { loadCloneById } from "../lib/cloneAccess";
 import { updateOntFromExtraction, type L2Extraction } from "../lib/memoryStore";
@@ -137,6 +137,118 @@ internal.post("/asset-job-done", async (c) => {
   await finalizeJob(c.env.DB, jobId, ins!.id, outUrl, claimed.clone_id, claimed.kind);
 
   return c.json({ ok: true, out_url: outUrl });
+});
+
+const FILLER_CONTENT_TYPE = "video/mp4";
+
+const FILLER_MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+const FILLER_FILE_COUNT = 3;
+
+internal.post("/filler-job-done", async (c) => {
+
+  const auth = c.req.header("Authorization") ?? "";
+  const tok = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!tok || !c.env.ORCH_SECRET || !safeEqual(tok, c.env.ORCH_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+
+  const form = await c.req.formData();
+  const jobId = String(form.get("job_id") ?? "");
+  const status = String(form.get("status") ?? "");
+  if (!jobId) return c.json({ error: "job_id required" }, 400);
+
+  const job = await getJob(c.env.DB, jobId);
+  if (!job) return c.json({ error: "job not found" }, 404);
+
+  const callbackToken = String(form.get("callback_token") ?? "");
+  if (!job.callback_token || !callbackToken || !safeEqual(callbackToken, job.callback_token)) {
+    return c.json({ error: "invalid callback_token" }, 403);
+  }
+
+  if (status === "failed") {
+    await failJob(c.env.DB, jobId, String(form.get("error") ?? "generation failed"));
+    return c.json({ ok: true });
+  }
+
+  if (form.get(`file${FILLER_FILE_COUNT}`) !== null) {
+    return c.json(
+      { error: `too many files: expected exactly ${FILLER_FILE_COUNT} (file0..file${FILLER_FILE_COUNT - 1})` },
+      400,
+    );
+  }
+  const fileEntries: File[] = [];
+  for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+    const entry = form.get(`file${i}`);
+    if (!entry || typeof entry === "string") {
+      return c.json({ error: `file${i} required (need exactly ${FILLER_FILE_COUNT} files)` }, 400);
+    }
+    fileEntries.push(entry as File);
+  }
+
+  for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+    const f = fileEntries[i];
+    if (f.size === 0) {
+      return c.json({ error: `file${i} is empty (0 bytes)` }, 400);
+    }
+    if (f.size > FILLER_MAX_FILE_SIZE) {
+      return c.json(
+        { error: `file${i} too large: ${f.size} > ${FILLER_MAX_FILE_SIZE} bytes` },
+        400,
+      );
+    }
+  }
+
+  const bufs: ArrayBuffer[] = [];
+  for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+    bufs.push(await fileEntries[i].arrayBuffer());
+  }
+
+  const claimed = await claimJobRunning(c.env.DB, jobId);
+  if (!claimed) {
+    return c.json({ ok: true, idempotent: true });
+  }
+
+  const origin = new URL(c.req.url).origin;
+  const r2Entries: Array<{ r2Key: string; sizeBytes: number }> = [];
+  try {
+    for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+      const uuid = crypto.randomUUID();
+      const r2Key = `assets/filler/${uuid}.mp4`;
+      await c.env.R2_ARCHIVE.put(r2Key, bufs[i], {
+        httpMetadata: { contentType: FILLER_CONTENT_TYPE },
+      });
+      r2Entries.push({ r2Key, sizeBytes: bufs[i].byteLength });
+    }
+  } catch (err) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    await failJob(c.env.DB, jobId, `r2_upload_failed: ${String(err).slice(0, 400)}`);
+    return c.json({ error: "r2_upload_failed" }, 500);
+  }
+
+  let urls: string[];
+  try {
+    urls = await finalizeFillerJob(
+      c.env.DB,
+      jobId,
+      r2Entries,
+      job.user_id,
+      claimed.clone_id,
+      origin,
+    );
+  } catch (err) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    await failJob(c.env.DB, jobId, `db_commit_failed: ${String(err).slice(0, 400)}`);
+    return c.json({ error: "db_commit_failed" }, 500);
+  }
+
+  return c.json({ ok: true, filler_video_urls: urls });
 });
 
 const l2LearnSchema = z.object({
