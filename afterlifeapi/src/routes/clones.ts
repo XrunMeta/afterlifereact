@@ -443,34 +443,48 @@ v_f891e6.post(
     if (v_4d33b2.idle_video_job_id) {
       const v_7f3fda = await v_4b949c(v_3f4e2e.env.DB, v_4d33b2.idle_video_job_id);
       if (v_7f3fda && v_7f3fda.user_id === v_43e90c) {
-        const v_9d7647 = crypto.randomUUID();
-        const v_657c8f = await v_041f8e(
-          v_3f4e2e.env.DB, v_9d7647, v_43e90c, "filler", v_7f3fda.src_file_id,
-        );
 
-        await v_f64843(v_3f4e2e.env.DB, v_9d7647, v_6e0fd3);
+        let v_35d74b = null;
+        if (v_4d33b2.voice_clone_job_id) {
+          const v_710de1 = await v_4b949c(v_3f4e2e.env.DB, v_4d33b2.voice_clone_job_id);
+          if (v_710de1 && v_710de1.user_id === v_43e90c) {
+            const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+            v_35d74b = `${v_f17108}/oth-path${v_710de1.src_file_id}`;
+          }
+        }
 
-        if (v_3f4e2e.env.ORCHESTRATOR_URL && v_3f4e2e.env.ORCH_SECRET) {
-          const v_f17108 = new URL(v_3f4e2e.req.url).origin;
-          const v_0ad77a = `${v_f17108}/oth-path${v_7f3fda.src_file_id}`;
-          v_3f4e2e.executionCtx.waitUntil(
-            fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}`,
-              },
-              body: JSON.stringify({
-                job_id: v_9d7647,
-                kind: "filler",
-                src_url: v_0ad77a,
-                callback_token: v_657c8f,
-              }),
-              signal: AbortSignal.timeout(8000),
-            })
-              .then((v_8f00b9) => v_5193f8(v_3f4e2e.env.DB, v_9d7647, v_8f00b9.ok ? "running" : "failed"))
-              .catch(() => v_5193f8(v_3f4e2e.env.DB, v_9d7647, "failed")),
+        if (v_35d74b) {
+          const v_9d7647 = crypto.randomUUID();
+          const v_657c8f = await v_041f8e(
+            v_3f4e2e.env.DB, v_9d7647, v_43e90c, "filler", v_7f3fda.src_file_id,
           );
+
+          await v_f64843(v_3f4e2e.env.DB, v_9d7647, v_6e0fd3);
+
+          if (v_3f4e2e.env.ORCHESTRATOR_URL && v_3f4e2e.env.ORCH_SECRET) {
+            const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+            const v_2d0601 = `${v_f17108}/oth-path${v_7f3fda.src_file_id}`;
+            v_3f4e2e.executionCtx.waitUntil(
+              fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}`,
+                },
+                body: JSON.stringify({
+                  job_id: v_9d7647,
+                  kind: "filler",
+                  face_url: v_2d0601,
+                  clone_id: String(v_6e0fd3),
+                  voice_raw_url: v_35d74b,
+                  callback_token: v_657c8f,
+                }),
+                signal: AbortSignal.timeout(8000),
+              })
+                .then((v_8f00b9) => v_5193f8(v_3f4e2e.env.DB, v_9d7647, v_8f00b9.ok ? "running" : "failed"))
+                .catch(() => v_5193f8(v_3f4e2e.env.DB, v_9d7647, "failed")),
+            );
+          }
         }
       }
     }

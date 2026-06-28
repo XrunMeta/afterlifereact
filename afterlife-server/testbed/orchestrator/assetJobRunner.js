@@ -1,7 +1,9 @@
 
 
 import { v_0d816f } from 'atanakbvjkneuejhky';
-import { v_354e0a, v_f4ad91, v_cdd5c2, v_f12d3a } from 'fnffflguqbrqugbi';
+import { v_354e0a, v_f4ad91, v_cdd5c2, v_f12d3a, v_55172c, v_d6e9e8 } from 'fnffflguqbrqugbi';
+import { v_14d137, v_eaee41 } from 'hbppvrg';
+import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
 import v_9fe22d from 'wiosxndes';
 
@@ -12,6 +14,12 @@ export const v_9aedb6 = [
 ];
 
 const v_6f229f = '/home/afterlife/afterlife-server';
+
+const v_f3461a = '/home/afterlife/afterlife-server/openvoice-afterlife/reference_voices';
+
+const v_48f77a = 1024;
+
+export const v_ff5f5c = 50 * 1024 * 1024; 
 const v_57dbae = `${v_6f229f}/musepose-afterlife/afterlife/gen_idle_asset.sh`;
 const v_e8b67b = '/home/afterlife/miniconda3/envs/openvoice/bin/python';
 const v_c36ec8 = `${v_6f229f}/openvoice-afterlife/scripts/afl_extract_se_io.py`;
@@ -39,6 +47,69 @@ export function v_7e9d02(v_7746b5, v_f2bb81, v_dc7792) {
       v_dc7792,
     ],
   };
+}
+
+export async function v_af8891(v_6e0fd3, v_35d74b, v_6c4613, v_9718cb, v_80b7f4) {
+
+  const v_6c2092 = String(v_6e0fd3);
+  if (!/^\d+$/.test(v_6c2092) || Number(v_6c2092) <= 0) {
+    throw new Error(`clone_id 가 양의 정수가 아닙니다 (path traversal 방지): "${v_6e0fd3}"`);
+  }
+
+  const v_fd2ea8 = v_315113(v_6c4613, v_6c2092);
+  const v_8f5693 = v_315113(v_fd2ea8, 'voice.wav');
+
+  if (v_14d137(v_8f5693)) return;
+
+  v_eaee41(v_fd2ea8, { recursive: true });
+  const v_0c8987 = Math.random().toString(36).slice(2);
+  const v_caf4d6 = v_315113(v_fd2ea8, `voice.${v_0c8987}.src`);
+  const v_8b8f2a = v_315113(v_fd2ea8, `voice.${v_0c8987}.wav.part`);
+
+  try {
+
+    const v_cb35cb = await v_9718cb(v_35d74b);
+    if (!v_cb35cb.ok) throw new Error(`voice_raw_url fetch failed: HTTP ${v_cb35cb.status}`);
+
+    const v_f0196b = parseInt(v_cb35cb.headers?.get?.('content-length') ?? '-1', 10);
+    if (!isNaN(v_f0196b) && v_f0196b >= 0 && v_f0196b > v_ff5f5c) {
+      throw new Error(
+        `voiceRawUrl Content-Length ${v_f0196b} 초과 상한 ${v_ff5f5c} (OOM 방지)`
+      );
+    }
+
+    const v_83ee53 = Buffer.from(await v_cb35cb.arrayBuffer());
+    await v_354e0a(v_caf4d6, v_83ee53);
+
+    await new Promise((v_6f7712, v_bad6f3) => {
+      const v_e2a85c = v_80b7f4('ffmpeg', ['-y', '-i', v_caf4d6, '-ac', '1', '-f', 'wav', v_8b8f2a], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 60000, 
+      });
+      let v_76864d = '';
+      v_e2a85c.stderr.on('data', (v_d5dda0) => { v_76864d += v_d5dda0; });
+      v_e2a85c.stdout.on('data', () => {});
+      v_e2a85c.on('close', (v_c99bd2) => {
+        if (v_c99bd2 === 0) v_6f7712();
+        else v_bad6f3(new Error(`voice.wav ffmpeg 변환 실패 (rc=${v_c99bd2}): ${v_76864d.slice(-300)}`));
+      });
+      v_e2a85c.on('error', v_bad6f3);
+    });
+
+    const v_34d5e3 = await v_55172c(v_8b8f2a);
+    if (v_34d5e3.size < v_48f77a) {
+      throw new Error(
+        `변환 결과 wav가 너무 작음(${v_34d5e3.size}B < ${v_48f77a}) — 손상 wav 방지 (clone=${v_6e0fd3})`
+      );
+    }
+
+    await v_d6e9e8(v_8b8f2a, v_8f5693);
+  } finally {
+
+    for (const v_e2a85c of [v_caf4d6, v_8b8f2a]) {
+      try { await v_cdd5c2(v_e2a85c, { force: true }); } catch {}
+    }
+  }
 }
 
 export async function v_36d0cf(v_9b6134, v_6e0fd3, v_bddb73, v_9718cb) {
@@ -136,6 +207,9 @@ export function v_47bade({
   ffmpegMuxCmd: v_59eea3 = v_7e9d02,
   _qwenTtsFn: v_6b1168 = null,    
   _fifthRenderFn: v_5a5306 = null, 
+
+  voiceRefRoot: v_4ed329 = v_f3461a,
+  _ensureVoiceWavFn: v_72992b = null, 
 } = {}) {
 
   const v_e45ed0 = [];
@@ -143,6 +217,7 @@ export function v_47bade({
 
   const v_690443 = v_6b1168 ?? ((v_9b6134, v_6e0fd3, v_f71b56, v_9718cb) => v_36d0cf(v_9b6134, v_6e0fd3, v_f71b56, v_9718cb));
   const v_dc2910 = v_5a5306 ?? ((v_f2bb81, v_f37742, v_f71b56) => v_15296d(v_f2bb81, v_f37742, v_f71b56));
+  const v_9920b6 = v_72992b ?? v_af8891;
 
   async function v_26f71f() {
     if (v_ea9258) return;
@@ -205,15 +280,28 @@ export function v_47bade({
 
   async function v_c9a860(v_d5ec97, v_b7cff2) {
 
-    if (!v_d5ec97.face_url || !v_d5ec97.face_url.startsWith(v_e9a15d)) {
+    if (!v_e9a15d) {
+      throw new Error('apiBaseUrl 미설정 — SSRF 방어 무력화 방지: filler 잡 거부 (H-1)');
+    }
+
+    const v_5bf8fd = v_e9a15d.endsWith('/') ? v_e9a15d : v_e9a15d + '/';
+
+    if (!v_d5ec97.face_url || !v_d5ec97.face_url.startsWith(v_5bf8fd)) {
       throw new Error(
-        `face_url not allowed or missing: must start with apiBaseUrl (${v_e9a15d})`
+        `face_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`
       );
     }
 
     if (!v_d5ec97.clone_id) {
       throw new Error('filler job requires clone_id');
     }
+
+    if (!v_d5ec97.voice_raw_url || !v_d5ec97.voice_raw_url.startsWith(v_5bf8fd)) {
+      throw new Error(
+        `voice_raw_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`
+      );
+    }
+    await v_9920b6(v_d5ec97.clone_id, v_d5ec97.voice_raw_url, v_4ed329, v_d10060, v_b1d1a2);
 
     const v_4c580f = await v_d10060(v_d5ec97.face_url);
     if (!v_4c580f.ok) throw new Error(`face.jpg fetch failed: HTTP ${v_4c580f.status}`);

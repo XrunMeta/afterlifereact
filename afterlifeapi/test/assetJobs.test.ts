@@ -379,18 +379,27 @@ v_469bf2("createClone 잡 연결", () => {
 });
 
 v_469bf2("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
-  v_23805a("idle_video_job_id 제공 → filler 잡 1행(kind=filler) 자동 생성 + clone_id 연결", async () => {
+  v_23805a("idle_video_job_id + voice_clone_job_id 제공 → filler 잡 1행(kind=filler) 자동 생성 + clone_id 연결", async () => {
     const v_0c8987 = await v_bfb240("f3_filler_create@test.com");
     const v_8d41d7 = await v_21cc31(v_0c8987);
-    const v_8e2335 = await v_c808bd(v_0c8987, "f3fillerc");
+    const v_43d22b = await v_c808bd(v_0c8987, "f3fillerc-img");
+    const v_04db7a = await v_c808bd(v_0c8987, "f3fillerc-wav");
 
     const v_f28a5c = await v_1df298.fetch("http://localhost/oth-path", {
       method: "POST",
       headers: { Authorization: `Bearer ${v_8d41d7}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: "idle_video", src_file_id: v_8e2335 }),
+      body: JSON.stringify({ kind: "idle_video", src_file_id: v_43d22b }),
     });
     v_4d37e3(v_f28a5c.status).toBe(201);
     const { job_id: v_ecfd5e } = await v_f28a5c.json<{ job_id: string }>();
+
+    const v_9a9011 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_8d41d7}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "voice_clone", src_file_id: v_04db7a }),
+    });
+    v_4d37e3(v_9a9011.status).toBe(201);
+    const { job_id: v_e85271 } = await v_9a9011.json<{ job_id: string }>();
 
     const v_62c866 = `f3-filler-create-${Date.now()}`;
     const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
@@ -405,6 +414,7 @@ v_469bf2("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
         name: "FillerTest",
         username: `f3filler${Date.now()}`,
         idle_video_job_id: v_ecfd5e,
+        voice_clone_job_id: v_e85271,
       }),
     });
     v_4d37e3(v_8f00b9.status).toBe(201);
@@ -422,7 +432,7 @@ v_469bf2("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
     v_4d37e3(v_9f844e).toBeTruthy();
     v_4d37e3(v_9f844e!.kind).toBe("filler");
 
-    v_4d37e3(v_9f844e!.src_file_id).toBe(v_8e2335);
+    v_4d37e3(v_9f844e!.src_file_id).toBe(v_43d22b);
 
     v_4d37e3(v_9f844e!.clone_id).toBe(v_6e0fd3);
 
@@ -502,11 +512,11 @@ v_469bf2("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
       .first<{ idle_video_url: string | null }>();
     v_4d37e3(v_3ac7e7!.idle_video_url).toBe("https://idle/files/42");
 
-    const v_9f844e = await v_a1651b
-      .prepare(`SELECT kind FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`)
+    const v_83c8b8 = await v_a1651b
+      .prepare(`SELECT COUNT(*) AS n FROM clone_asset_jobs WHERE clone_id=? AND kind='filler'`)
       .bind(v_eb25ce.id)
-      .first<{ kind: string }>();
-    v_4d37e3(v_9f844e!.kind).toBe("filler");
+      .first<{ n: number }>();
+    v_4d37e3(v_83c8b8!.n).toBe(0);
   });
 
   v_23805a("다른 사용자 idle 잡 → filler 미생성(소유 검증 R-1)", async () => {
