@@ -245,6 +245,100 @@ describe("GET /oth-path", () => {
     expect(assets.faceUrl).toBeNull();
   });
 
+  it("fillerVideoUrls: filler_video_urls NULL → []", async () => {
+    const ownerId = await seedUser("bundle-filler-null@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_filler_null_clone");
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { fillerVideoUrls: string[] } };
+    expect(Array.isArray(assets.fillerVideoUrls)).toBe(true);
+    expect(assets.fillerVideoUrls).toHaveLength(0);
+  });
+
+  it("fillerVideoUrls: 정상 JSON 3개 → length 3", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-filler-3@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_filler_3_clone");
+    const urls = [
+      "https://r2.example.com/filler/0.mp4",
+      "https://r2.example.com/filler/1.mp4",
+      "https://r2.example.com/filler/2.mp4",
+    ];
+    await db
+      .prepare("UPDATE clones SET filler_video_urls = ? WHERE id = ?")
+      .bind(JSON.stringify(urls), cloneId)
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { fillerVideoUrls: string[] } };
+    expect(assets.fillerVideoUrls).toEqual(urls);
+  });
+
+  it("fillerVideoUrls: 깨진 JSON → []", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-filler-bad@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_filler_bad_clone");
+    await db
+      .prepare("UPDATE clones SET filler_video_urls = ? WHERE id = ?")
+      .bind("{NOT_VALID_JSON[[[", cloneId)
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { fillerVideoUrls: string[] } };
+    expect(Array.isArray(assets.fillerVideoUrls)).toBe(true);
+    expect(assets.fillerVideoUrls).toHaveLength(0);
+  });
+
+  it("fillerVideoUrls: 비배열 JSON(객체) → []", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-filler-obj@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_filler_obj_clone");
+    await db
+      .prepare("UPDATE clones SET filler_video_urls = ? WHERE id = ?")
+      .bind('{"key":"val"}', cloneId)
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { fillerVideoUrls: string[] } };
+    expect(Array.isArray(assets.fillerVideoUrls)).toBe(true);
+    expect(assets.fillerVideoUrls).toHaveLength(0);
+  });
+
+  it("fillerVideoUrls: 비문자열 원소 혼재 → 문자열만 필터 (el CONCERN)", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-filler-mixed@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_filler_mixed_clone");
+    await db
+      .prepare("UPDATE clones SET filler_video_urls = ? WHERE id = ?")
+      .bind('[1, null, "https://r2.example.com/filler/0.mp4"]', cloneId)
+      .run();
+    const token = await issueAccessToken(ownerId);
+
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const { assets } = (await res.json()) as { assets: { fillerVideoUrls: string[] } };
+    expect(assets.fillerVideoUrls).toHaveLength(1);
+    expect(assets.fillerVideoUrls[0]).toBe("https://r2.example.com/filler/0.mp4");
+  });
+
   it("voice_clone done 잡 여러 개면 최신(created_at) done 잡 선택 + failed 무시 (out_url 조인)", async () => {
     const db = env.DB as unknown as D1Database;
     const ownerId = await seedUser("bundle-vraw-multi@test.local");
