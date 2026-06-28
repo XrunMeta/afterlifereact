@@ -188,6 +188,9 @@ v_dcd415.post("/filler-job-done", async (v_3f4e2e) => {
 
   for (let v_ebec57 = 0; v_ebec57 < v_83fbaa; v_ebec57++) {
     const v_8b5cd8 = v_58b838[v_ebec57];
+    if (!v_8b5cd8) {
+      return v_3f4e2e.json({ error: `file${v_ebec57} missing` }, 400);
+    }
     if (v_8b5cd8.size === 0) {
       return v_3f4e2e.json({ error: `file${v_ebec57} is empty (0 bytes)` }, 400);
     }
@@ -201,7 +204,11 @@ v_dcd415.post("/filler-job-done", async (v_3f4e2e) => {
 
   const v_329662 = [];
   for (let v_ebec57 = 0; v_ebec57 < v_83fbaa; v_ebec57++) {
-    v_329662.push(await v_58b838[v_ebec57].arrayBuffer());
+    const v_83ee53 = await v_58b838[v_ebec57]?.arrayBuffer();
+    if (!v_83ee53) {
+      return v_3f4e2e.json({ error: `file${v_ebec57} read failed` }, 400);
+    }
+    v_329662.push(v_83ee53);
   }
 
   const v_0a2cd1 = await v_80401b(v_3f4e2e.env.DB, v_04211c);
@@ -213,12 +220,16 @@ v_dcd415.post("/filler-job-done", async (v_3f4e2e) => {
   const v_9cd995 = [];
   try {
     for (let v_ebec57 = 0; v_ebec57 < v_83fbaa; v_ebec57++) {
+      const v_83ee53 = v_329662[v_ebec57];
+      if (!v_83ee53) {
+        throw new Error(`buf${v_ebec57} missing`);
+      }
       const v_07ba85 = crypto.randomUUID();
       const v_0037e3 = `assets/filler/${v_07ba85}.mp4`;
-      await v_3f4e2e.env.R2_ARCHIVE.put(v_0037e3, v_329662[v_ebec57], {
+      await v_3f4e2e.env.R2_ARCHIVE.put(v_0037e3, v_83ee53, {
         httpMetadata: { contentType: v_fb792a },
       });
-      v_9cd995.push({ r2Key: v_0037e3, sizeBytes: v_329662[v_ebec57].byteLength });
+      v_9cd995.push({ r2Key: v_0037e3, sizeBytes: v_83ee53.byteLength });
     }
   } catch (v_49263d) {
 
