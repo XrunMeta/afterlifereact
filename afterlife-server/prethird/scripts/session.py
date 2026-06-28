@@ -25,6 +25,7 @@ class Session:
         self.recorder = None         # CallRecorder | NullRecorder (offer에서 부착)
         self.offer_time = None       # offer 수신 unixtime(첫턴 지연 측정용)
         self.user_id = None          # offer JWT sub 추출 userId (Phase B 자동학습)
+        self.filler_player = None    # FillerPlayer (F7, PRETHIRD_FILLER on일 때만 생성·close는 cleanup)
 
     def set_state(self, state: str) -> None:
         if state not in ("idle", "speaking"):

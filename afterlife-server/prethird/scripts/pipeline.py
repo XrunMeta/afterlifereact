@@ -94,9 +94,10 @@ class DialoguePipeline:
     # 퍼블릭 API
     # ------------------------------------------------------------------
 
-    async def say(self, user_text: str, turn=None, on_first_audio=None) -> None:
+    async def say(self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
-        turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적."""
+        turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
+        on_response_ready: 첫 infer 직전 1회 호출 (F7 filler 즉시컷 트리거용)."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
@@ -113,11 +114,12 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn, on_first_audio)
+        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready)
 
-    async def speak(self, text: str, turn=None, on_first_audio=None) -> None:
+    async def speak(self, text: str, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """LLM 우회: 입력 텍스트를 그대로 발화(TTS+musetalk). 쉼표로 끊지 않고
-        문장 종결부호(.!?…\\n)로만 분할. 한 문장이면 통째 1회."""
+        문장 종결부호(.!?…\\n)로만 분할. 한 문장이면 통째 1회.
+        on_response_ready: 첫 infer 직전 1회 호출 (F7 filler 즉시컷 트리거용)."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — speak skip (폴백 없음)")
@@ -134,11 +136,12 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn, on_first_audio)
+        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready)
 
-    async def greet(self, turn=None, on_first_audio=None) -> None:
+    async def greet(self, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """통화 연결 직후 클론이 먼저 건네는 인사. LLM이 페르소나 기반 1문장 생성.
-        say()와 동일 파이프라인이되 user 입력 대신 GREETING_PROMPT 지시를 준다."""
+        say()와 동일 파이프라인이되 user 입력 대신 GREETING_PROMPT 지시를 준다.
+        on_response_ready: 첫 infer 직전 1회 호출 (F7 filler 즉시컷 트리거용, greet는 보통 None)."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — greet skip (폴백 없음)")
@@ -155,7 +158,7 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn, on_first_audio)
+        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready)
 
     # ------------------------------------------------------------------
     # 내부: 문장 1개 처리 (스테이지 분리)
@@ -246,11 +249,14 @@ class DialoguePipeline:
     # 내부: 오버랩 파이프라인
     # ------------------------------------------------------------------
 
-    async def _run_pipeline(self, produce, turn=None, on_first_audio=None) -> None:
+    async def _run_pipeline(self, produce, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
         TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
         turn: recorder Turn — TTS wav 누적(Phase 2 answer.wav).
         on_first_audio: 첫 오디오 프레임 push 직후 1회 동기 호출(예외 흡수).
+        on_response_ready: 첫 infer 직전 1회 호출 — F7 filler 즉시컷 트리거.
+          이벤트루프 스레드(infer_worker 코루틴)에서 호출됨 → flush() 직접 호출 OK.
+          (executor 스레드 경유 불필요 — 라운드2 R-3/R-4 교훈 적용 확인).
         예외 시 모든 워커를 취소하고 signal_end 를 보장한다(좀비/오염 방지)."""
         turn = turn if turn is not None else NULL_TURN
         sentence_q: asyncio.Queue = asyncio.Queue()
@@ -268,11 +274,22 @@ class DialoguePipeline:
                 await wav_q.put((wav_bytes, pcm48))
 
         async def infer_worker():
+            _first_infer = True
             while True:
                 item = await wav_q.get()
                 if item is None:
                     break
                 wav_bytes, pcm48 = item
+                # [F7] 첫 infer 직전 1회: filler 즉시컷 트리거 (stop → flush → 응답 push 순서 보장).
+                # 이 시점은 이벤트루프 스레드(코루틴) → call_soon_threadsafe 불필요.
+                # flush 이후 _infer_stage가 완료되면 응답 frames가 큐에 적재됨.
+                if _first_infer:
+                    _first_infer = False
+                    if on_response_ready is not None:
+                        try:
+                            on_response_ready()
+                        except Exception as exc:
+                            log.warning("on_response_ready callback failed: %s", exc)
                 await self._infer_stage(wav_bytes, pcm48, turn)
                 # 첫 오디오 프레임 송출 직후 1회 통지(연결 중 화면 종료·speech_start echo).
                 if not fired["v"] and on_first_audio is not None:
