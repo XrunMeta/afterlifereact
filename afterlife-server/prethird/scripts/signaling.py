@@ -25,6 +25,9 @@ _AVSYNC_LOG = os.environ.get("PRETHIRD_AVSYNC_LOG", "1") == "1"
 # fail-closed 안전장치: clone_id 지정 통화에서 bundle 조회 실패 시 halbae 폴백 차단.
 # "0" 이면 기존 폴백 동작 유지(롤백 안전장치).
 _STRICT_CLONE_BUNDLE = os.environ.get("PRETHIRD_STRICT_CLONE_BUNDLE", "1") == "1"
+# [F7] filler 토글: PRETHIRD_FILLER=1 일 때만 다운로드·FillerPlayer 활성.
+# 기본 off → 기존 idle 정지 루프 100% 동일(회귀 0). 테스트에서 monkeypatch 가능.
+_FILLER_ENABLED = os.environ.get("PRETHIRD_FILLER", "0") == "1"
 if not _STRICT_CLONE_BUNDLE:
     logging.getLogger("prethird.signaling").warning(
         "PRETHIRD_STRICT_CLONE_BUNDLE=0: 고인 신원 오표시 폴백 활성화 — 운영 배포 금지"
@@ -119,13 +122,43 @@ def _make_dc_handler(sess, channel):
             _se_present = bool(getattr(sess, "se_path", None))
             _offer_t = getattr(sess, "offer_time", None)
             _t0 = time.time()
+
+            # [F7] filler 배선: PRETHIRD_FILLER on + filler_player 있을 때만.
+            # off 경로 → _filler=None → 이하 모든 filler 코드 무동작(회귀 0).
+            _filler = getattr(sess, "filler_player", None) if _FILLER_ENABLED else None
+
+            # 발화종료 gate: say/speak(사용자 발화) 수신 → FillerPlayer 시작.
+            # greet는 클론 선인사 — 사용자 발화가 아니므로 filler 재생 불필요.
+            if mode in ("say", "speak") and _filler is not None:
+                _filler.start()
+
+            # 응답 즉시컷 hook: 첫 infer 직전에 filler stop → 큐/버퍼 flush.
+            # pipeline infer_worker(이벤트루프 코루틴)에서 호출 → call_soon_threadsafe 불필요.
+            # flush 이후 _infer_stage가 응답 frames를 큐에 push(순서: stop→flush→응답push).
+            def _on_response_ready():
+                if _filler is not None:
+                    _filler.stop()
+                    sess.video_track.flush()
+                    sess.audio_track.flush()
+
+            _response_hook = _on_response_ready if _filler is not None else None
+
             try:
                 if mode == "speak":
-                    await sess.pipeline.speak(text, turn=turn, on_first_audio=_emit_speech_start)
+                    await sess.pipeline.speak(
+                        text, turn=turn,
+                        on_first_audio=_emit_speech_start,
+                        on_response_ready=_response_hook,
+                    )
                 elif mode == "greet":
+                    # greet: 사용자 발화 없으므로 filler 미사용(on_response_ready=None)
                     await sess.pipeline.greet(turn=turn, on_first_audio=_emit_speech_start)
                 else:
-                    await sess.pipeline.say(text, turn=turn, on_first_audio=_emit_speech_start)
+                    await sess.pipeline.say(
+                        text, turn=turn,
+                        on_first_audio=_emit_speech_start,
+                        on_response_ready=_response_hook,
+                    )
             except asyncio.CancelledError:
                 log.warning("session %s %s cancelled", sess.session_id, mode)
                 raise
@@ -285,6 +318,51 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         except Exception as e:
                             log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
                             # halbae fallback — sess.video_path = None 유지
+
+                    # [F7] filler: PRETHIRD_FILLER on + clone_id 있을 때만 다운로드 + FillerPlayer 구성.
+                    # off면 이 블록 전체 skip → offer 처리 시간 회귀 0 (spec §4.B I-3).
+                    if _FILLER_ENABLED and clone_id is not None:
+                        filler_urls = assets.get("fillerVideoUrls") or []
+                        if filler_urls:
+                            _filler_root = f"{VIDEO_REF_ROOT}/{clone_id}"
+
+                            async def _dl_filler(url, idx):
+                                """단일 filler mp4 다운로드. 존재 시 skip(fetch_to 패턴). 실패는 None 반환."""
+                                dest = f"{_filler_root}/{clone_id}-filler-{idx}.mp4"
+                                try:
+                                    await fetch_to(url, dest)
+                                    return dest
+                                except Exception as exc:
+                                    log.warning(
+                                        "filler[%d] 다운로드 실패(idle 폴백): %s — %s",
+                                        idx, url, exc,
+                                    )
+                                    return None
+
+                            # 병렬 다운로드 — 순차 누적 지연 방지 (spec §4.B R-3)
+                            filler_results = await asyncio.gather(
+                                *[_dl_filler(u, i) for i, u in enumerate(filler_urls)]
+                            )
+                            filler_paths = [p for p in filler_results if p is not None]
+
+                            if filler_paths:
+                                from filler_player import FillerPlayer
+                                sess.filler_player = FillerPlayer(
+                                    filler_paths, sess.video_track, sess.audio_track
+                                )
+                                log.info(
+                                    "FillerPlayer 구성 clone=%s paths=%d", clone_id, len(filler_paths)
+                                )
+                            else:
+                                log.info(
+                                    "filler 다운로드 전부 실패 — FillerPlayer 미생성(idle 폴백) clone=%s",
+                                    clone_id,
+                                )
+                        else:
+                            log.debug(
+                                "fillerVideoUrls 빈 배열 — FillerPlayer 미생성(idle 폴백) clone=%s",
+                                clone_id,
+                            )
             log.info(
                 "offer session=%s clone_id=%s persona=%d se=%s video_path=%s face=%s",
                 sess.session_id, sess.clone_id, len(sess.persona_messages),
@@ -317,6 +395,13 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         _avsync_task[0].cancel()
                         _avsync_task.clear()
                         log.info("session %s [avsync] monitor cancelled", sess.session_id)
+                    # [F7] filler cleanup: stop + 캐시 해제 (좀비 asyncio task 방지).
+                    # pc.close() 이전에 수행 — 세션 자원 정리 순서 일관성 유지.
+                    _filler_cleanup = getattr(sess, "filler_player", None)
+                    if _filler_cleanup is not None:
+                        _filler_cleanup.close()
+                        sess.filler_player = None
+                        log.info("session %s FillerPlayer closed (cleanup)", sess.session_id)
                     await pc.close()
                     # Phase B: 통화 종료 통보(best-effort). 여러 번 fire돼도 api가 멱등(ended_at IS NULL).
                     # sess 필드는 mgr.remove 전에 로컬 추출 — 세션 제거 후 참조(use-after-free) 방어.
