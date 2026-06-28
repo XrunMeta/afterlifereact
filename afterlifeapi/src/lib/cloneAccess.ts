@@ -28,6 +28,8 @@ export interface CloneRow {
   idle_video_url: string | null;
   voice_se_url: string | null;
 
+  filler_video_urls: string | null;
+
   relation: string | null;
 }
 
@@ -41,7 +43,7 @@ export async function loadCloneById(
               c.category, c.visibility, c.avatar_url, c.cover_image_url,
               c.voice_type, c.voice_preset_id, c.training_status, c.created_at,
               c.is_system,
-              c.idle_video_url, c.voice_se_url,
+              c.idle_video_url, c.voice_se_url, c.filler_video_urls,
               c.relation,
               COALESCE(s.followers_count, 0) AS followers_count,
               COALESCE(s.messages_count, 0)  AS messages_count,

@@ -14,6 +14,8 @@ export interface CallBundle {
     voiceRawUrl: string | null;
     avatarUrl: string | null;
     faceUrl: string | null;
+
+    fillerVideoUrls: string[];
   };
 }
 
@@ -72,6 +74,19 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     faceUrl = faceJob ? `${origin}/oth-path${faceJob.file_id}` : null;
   }
 
+  let fillerVideoUrls: string[] = [];
+  if (clone.filler_video_urls) {
+    try {
+      const parsed = JSON.parse(clone.filler_video_urls);
+      if (Array.isArray(parsed)) {
+        fillerVideoUrls = parsed.filter((u): u is string => typeof u === "string");
+      }
+    } catch {
+
+      fillerVideoUrls = [];
+    }
+  }
+
   const assets = {
     idleVideoUrl: clone.idle_video_url ?? null,
     voiceSeUrl,
@@ -79,6 +94,7 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
     voiceRawUrl,
     avatarUrl: clone.avatar_url ?? null,
     faceUrl,
+    fillerVideoUrls,
   };
 
   return { personaBundle, assets };
