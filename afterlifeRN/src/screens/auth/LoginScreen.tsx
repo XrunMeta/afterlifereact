@@ -239,7 +239,7 @@ export default function v_f4f851({ navigation: v_c65f5d }: Props) {
               onPress={() => v_038d7f("account")}
             >
               <Text style={[v_d81136.tabText, v_34e5bb === "account" && v_d81136.tabTextActive]}>
-                계정 로그인 ✅ OTA
+                계정 로그인
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
