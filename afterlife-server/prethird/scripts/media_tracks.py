@@ -110,6 +110,32 @@ class AvatarVideoTrack(VideoStreamTrack):
     def queue_depth(self) -> int:
         return self.queue.qsize()
 
+    def flush(self) -> int:
+        """큐에 남은 프레임을 모두 버린다 (즉시 컷 전용).
+
+        반환값: 버린 프레임 수.
+
+        ⚠ 호출 컨텍스트: **이벤트루프 스레드 전용**.
+          executor(스레드풀) 스레드에서 직접 호출하면 asyncio.Queue 내부가
+          thread-unsafe. 호출측(F7 즉시컷)이 executor에서 트리거할 경우
+          반드시 `loop.call_soon_threadsafe(video_track.flush)` 로 감쌀 것
+          (라운드2 R-3/R-4 교훈).
+
+        idle/last_frame 상태를 건드리지 않는다 — flush 이후 recv()는
+        기존 idle 루프 / _last_frame hold 폴백이 정상 동작함(응답 push가
+        자연스럽게 이어짐).
+        """
+        dropped = 0
+        while True:
+            try:
+                self.queue.get_nowait()
+                dropped += 1
+            except asyncio.QueueEmpty:
+                break
+        if dropped:
+            log.debug("[flush] video 큐 %d 프레임 제거", dropped)
+        return dropped
+
     async def recv(self) -> VideoFrame:
         # 회차 029-D-3c-sync: 25fps 자체 pacing (super.next_timestamp 은 30fps default).
         loop_time = asyncio.get_event_loop().time()
@@ -235,6 +261,27 @@ class AvatarAudioTrack(AudioStreamTrack):
 
     def queue_depth_samples(self) -> int:
         return int(self._buffer.size)
+
+    def flush(self) -> int:
+        """오디오 버퍼를 비운다 (즉시 컷 전용).
+
+        반환값: 버린 샘플 수.
+
+        ⚠ 호출 컨텍스트: **이벤트루프 스레드 전용**.
+          executor(스레드풀) 스레드에서 직접 호출하면 numpy 버퍼 rebind가
+          recv()와 동시 실행될 위험이 있다. 호출측(F7 즉시컷)이 executor에서
+          트리거할 경우 반드시
+          `loop.call_soon_threadsafe(audio_track.flush)` 로 감쌀 것
+          (라운드2 R-3/R-4 교훈).
+
+        flush 이후 recv()는 buffer 부족 → silence 폴백(기존 경로)으로
+        정상 동작함. _pts·_next_send_at 등은 건드리지 않는다.
+        """
+        dropped = int(self._buffer.size)
+        self._buffer = np.zeros(0, dtype=np.int16)
+        if dropped:
+            log.debug("[flush] audio 버퍼 %d 샘플 제거", dropped)
+        return dropped
 
     async def recv(self) -> AudioFrame:
         # AudioStreamTrack 은 next_timestamp 가 없어 직접 pacing + pts 관리.

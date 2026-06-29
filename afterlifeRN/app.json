@@ -4,6 +4,12 @@
     "slug": "afterlifeRN",
     "scheme": "afterlife",
     "version": "1.0.0",
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/430bccd3-e48e-45e6-b819-a22816a1dad3",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
