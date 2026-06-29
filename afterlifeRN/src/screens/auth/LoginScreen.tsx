@@ -239,7 +239,7 @@ export default function LoginScreen({ navigation }: Props) {
               onPress={() => setMode("account")}
             >
               <Text style={[styles.tabText, mode === "account" && styles.tabTextActive]}>
-                계정 로그인
+                계정 로그인 ✅ OTA
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
