@@ -29,6 +29,9 @@
       "distribution": "store",
       "autoIncrement": true,
       "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_BASE": "https://edge-alt.example.invalid"
+      },
       "android": {
         "distribution": "store"
       },
