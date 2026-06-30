@@ -28,6 +28,7 @@ import { adminQuorum } from "./routes/adminQuorum";
 import { emergency, inheritance } from "./routes/emergency";
 import { gdpr } from "./routes/gdpr";
 import { adminGdpr } from "./routes/adminGdpr";
+import { adminAgreements } from "./routes/adminAgreements";
 import { deletion } from "./routes/deletion";
 import { adminDeletion } from "./routes/adminDeletion";
 import { files } from "./routes/files";
@@ -119,6 +120,7 @@ app.route("/oth-path", emergency);
 app.route("/oth-path", inheritance);
 app.route("/oth-path", gdpr);
 app.route("/oth-path", adminGdpr);
+app.route("/oth-path", adminAgreements);
 app.route("/oth-path", adminDeletion);
 app.route("/oth-path", persons);
 
