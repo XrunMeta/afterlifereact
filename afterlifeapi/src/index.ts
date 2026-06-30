@@ -34,6 +34,7 @@ import { v_ff9685 } from "./routes/files";
 import { v_a35f69 } from "./routes/payments";
 import { v_b9c00c } from "./routes/notifications";
 import { v_fded81 } from "./routes/persons";
+import { v_cbf5ec, v_e0a537 } from "./routes/agreements";
 
 const v_466992 = new v_b7c41b<v_de0a25>();
 
@@ -121,6 +122,9 @@ v_466992.route("/oth-path", v_a58945);
 v_466992.route("/oth-path", v_87e8b2);
 v_466992.route("/oth-path", v_19f1fa);
 v_466992.route("/oth-path", v_fded81);
+
+v_466992.route("/oth-path", v_cbf5ec);
+v_466992.route("/oth-path", v_e0a537);
 
 export default {
   fetch: v_466992.fetch,
