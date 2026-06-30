@@ -73,11 +73,10 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [agreeService, setAgreeService] = useState(false);
-  const [agreeLocation, setAgreeLocation] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
 
-  const agreeRequired = agreeService && agreeLocation && agreePrivacy;
+  const agreeRequired = agreeService && agreePrivacy;
   const agreeAll = agreeRequired && agreeMarketing;
   const [submitting, setSubmitting] = useState(false);
 
@@ -90,7 +89,6 @@ export default function SignupScreen({ navigation, route }: Props) {
     if (agreeAll) {
 
       setAgreeService(false);
-      setAgreeLocation(false);
       setAgreePrivacy(false);
       setAgreeMarketing(false);
       setPushToken(null);
@@ -100,7 +98,6 @@ export default function SignupScreen({ navigation, route }: Props) {
     }
 
     setAgreeService(true);
-    setAgreeLocation(true);
     setAgreePrivacy(true);
     if (!agreeMarketing) {
       await toggleMarketing();
@@ -440,27 +437,6 @@ export default function SignupScreen({ navigation, route }: Props) {
             {}
             <View style={styles.checkRow}>
               <TouchableOpacity
-                onPress={() => setAgreeLocation(!agreeLocation)}
-                hitSlop={8}
-              >
-                <View style={[styles.checkbox, agreeLocation && styles.checkboxChecked]}>
-                  {agreeLocation && <Feather name="check" size={14} color={COLORS.white} />}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.termTextWrap}
-                onPress={() => setTermsModalType(2)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.termText, styles.termLink]}>
-                  {t("auth.signup.termsLocation")}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {}
-            <View style={styles.checkRow}>
-              <TouchableOpacity
                 onPress={() => setAgreePrivacy(!agreePrivacy)}
                 hitSlop={8}
               >
@@ -526,7 +502,6 @@ export default function SignupScreen({ navigation, route }: Props) {
         onClose={() => setTermsModalType(null)}
         onAgree={() => {
           if (termsModalType === 1) setAgreeService(true);
-          else if (termsModalType === 2) setAgreeLocation(true);
           else if (termsModalType === 3) setAgreePrivacy(true);
           setTermsModalType(null);
         }}

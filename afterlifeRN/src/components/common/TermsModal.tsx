@@ -14,6 +14,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { COLORS, RADIUS, SIZES } from "../constants";
+import { API_BASE } from "../../config/apiBase";
 
 export type AgreementType = 1 | 2 | 3 | 4;
 
@@ -24,19 +25,30 @@ type Props = {
   onAgree: () => void;
 };
 
+const AFTERLIFE_TYPE: Record<AgreementType, number | null> = {
+  1: 1,
+  2: null,
+  3: 2,
+  4: null,
+};
+
 async function fetchAgreement(
   type: AgreementType,
   language: string,
 ): Promise<{ content: string; returnedLang: string }> {
+  const afterlifeType = AFTERLIFE_TYPE[type];
+  if (afterlifeType === null) {
+    return { content: "", returnedLang: "" };
+  }
 
   let langParam = (language || "ko").toLowerCase();
   if (langParam.startsWith("zh")) langParam = "zh";
   else langParam = langParam.split("-")[0]; 
-  const url = `https://oth-path-gw.example.invalid/agreements?type=${type}&language=${langParam}`;
+  const url = `${API_BASE}/oth-path?type=${afterlifeType}&lang=${langParam}`;
   console.log("[TermsModal] fetch:", url, "(i18n.language =", language, ")");
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to load agreement (${res.status})`);
-  const json = (await res.json()) as { data?: { content?: string; language?: string } };
+  const json = (await res.json()) as { data?: { content?: string; language?: string } | null };
   const content = json?.data?.content ?? "";
   const returnedLang = json?.data?.language ?? "";
   console.log(
@@ -113,8 +125,13 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
     defaultValue:
       "얼굴 인식정보 사용에 대한 안내\n\n통화 중 화자 식별을 위해 전면 카메라로 얼굴 위치만 감지하며, 얼굴 데이터(이미지·생체정보)는 저장되지 않습니다. 동의를 철회하면 즉시 중단됩니다.",
   });
-  const useFaceFallback =
-    type === 4 && !loading && (!!error || !content.trim());
+  const locationFallbackText = t("auth.signup.termsLocationFallback", {
+    defaultValue:
+      "위치정보 이용에 대한 안내\n\n현재 본 앱은 위치정보를 수집·이용하지 않습니다. 추후 위치 기반 기능이 추가될 경우 별도로 동의를 받습니다.",
+  });
+  const fallbackText = type === 4 ? faceFallbackText : locationFallbackText;
+  const useFallback =
+    (type === 2 || type === 4) && !loading && (!!error || !content.trim());
 
   return (
     <Modal
@@ -145,8 +162,8 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
                 color={COLORS.violet500}
                 style={{ marginTop: 32 }}
               />
-            ) : useFaceFallback ? (
-              <Text style={s.contentText}>{faceFallbackText}</Text>
+            ) : useFallback ? (
+              <Text style={s.contentText}>{fallbackText}</Text>
             ) : error ? (
               <Text style={s.errorText}>{error}</Text>
             ) : (
