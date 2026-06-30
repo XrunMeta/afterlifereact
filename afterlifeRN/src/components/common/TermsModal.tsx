@@ -14,6 +14,7 @@ import {
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_772971 } from "jmpfvteuuztnp";
 import { v_1bfbd0, v_8b0c90, v_9b1a04 } from "../constants";
+import { v_cc9198 } from "../../config/apiBase";
 
 export type AgreementType = 1 | 2 | 3 | 4;
 
@@ -24,19 +25,30 @@ type Props = {
   onAgree: () => void;
 };
 
+const v_b7b41f = {
+  1: 1,
+  2: null,
+  3: 2,
+  4: null,
+};
+
 async function v_33650f(
   v_3b27d9,
   v_05bb19,
 ): Promise<{ content: string; returnedLang: string }> {
+  const v_768dd4 = v_b7b41f[v_3b27d9];
+  if (v_768dd4 === null) {
+    return { content: "", returnedLang: "" };
+  }
 
   let v_c87c7a = (v_05bb19 || "ko").toLowerCase();
   if (v_c87c7a.startsWith("zh")) v_c87c7a = "zh";
   else v_c87c7a = v_c87c7a.split("-")[0]; 
-  const v_f71b56 = `https://oth-path-f0013c.example.invalid/agreements?type=${v_3b27d9}&language=${v_c87c7a}`;
+  const v_f71b56 = `${v_cc9198}/oth-path?type=${v_768dd4}&lang=${v_c87c7a}`;
   console.log("[TermsModal] fetch:", v_f71b56, "(i18n.language =", v_05bb19, ")");
   const v_8f00b9 = await fetch(v_f71b56);
   if (!v_8f00b9.ok) throw new Error(`Failed to load agreement (${v_8f00b9.status})`);
-  const v_7ecfd1 = (await v_8f00b9.json()) as { data?: { content?: string; language?: string } };
+  const v_7ecfd1 = (await v_8f00b9.json()) as { data?: { content?: string; language?: string } | null };
   const v_b43b74 = v_7ecfd1?.data?.content ?? "";
   const v_c61b34 = v_7ecfd1?.data?.language ?? "";
   console.log(
@@ -113,8 +125,13 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
     defaultValue:
       "얼굴 인식정보 사용에 대한 안내\n\n통화 중 화자 식별을 위해 전면 카메라로 얼굴 위치만 감지하며, 얼굴 데이터(이미지·생체정보)는 저장되지 않습니다. 동의를 철회하면 즉시 중단됩니다.",
   });
-  const v_89f8f8 =
-    v_3b27d9 === 4 && !v_683210 && (!!v_5e9bfe || !v_b43b74.trim());
+  const v_ccca83 = v_8d41d7("auth.signup.termsLocationFallback", {
+    defaultValue:
+      "위치정보 이용에 대한 안내\n\n현재 본 앱은 위치정보를 수집·이용하지 않습니다. 추후 위치 기반 기능이 추가될 경우 별도로 동의를 받습니다.",
+  });
+  const v_c6145f = v_3b27d9 === 4 ? v_aae497 : v_ccca83;
+  const v_f50219 =
+    (v_3b27d9 === 2 || v_3b27d9 === 4) && !v_683210 && (!!v_5e9bfe || !v_b43b74.trim());
 
   return (
     <Modal
@@ -145,8 +162,8 @@ export default function v_c0caa9({ visible: v_cf55be, type: v_3b27d9, onClose: v
                 color={v_1bfbd0.violet500}
                 style={{ marginTop: 32 }}
               />
-            ) : v_89f8f8 ? (
-              <Text style={v_fd5f43.contentText}>{v_aae497}</Text>
+            ) : v_f50219 ? (
+              <Text style={v_fd5f43.contentText}>{v_c6145f}</Text>
             ) : v_5e9bfe ? (
               <Text style={v_fd5f43.errorText}>{v_5e9bfe}</Text>
             ) : (
