@@ -73,11 +73,10 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_0b85b1, v_3c4c2d] = v_5ab095(false);
 
   const [v_51b53b, v_c8f346] = v_5ab095(false);
-  const [v_540cd3, v_a67880] = v_5ab095(false);
   const [v_09b7fa, v_1d4807] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
 
-  const v_5c764d = v_51b53b && v_540cd3 && v_09b7fa;
+  const v_5c764d = v_51b53b && v_09b7fa;
   const v_33f2ba = v_5c764d && v_8c98c4;
   const [v_cb66b4, v_ee9ec1] = v_5ab095(false);
 
@@ -90,7 +89,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     if (v_33f2ba) {
 
       v_c8f346(false);
-      v_a67880(false);
       v_1d4807(false);
       v_e378a4(false);
       v_704175(null);
@@ -100,7 +98,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
     }
 
     v_c8f346(true);
-    v_a67880(true);
     v_1d4807(true);
     if (!v_8c98c4) {
       await v_349606();
@@ -440,27 +437,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
             {}
             <View style={v_d81136.checkRow}>
               <TouchableOpacity
-                onPress={() => v_a67880(!v_540cd3)}
-                hitSlop={8}
-              >
-                <View style={[v_d81136.checkbox, v_540cd3 && v_d81136.checkboxChecked]}>
-                  {v_540cd3 && <Feather name="check" size={14} color={v_1bfbd0.white} />}
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={v_d81136.termTextWrap}
-                onPress={() => v_fe0d62(2)}
-                activeOpacity={0.7}
-              >
-                <Text style={[v_d81136.termText, v_d81136.termLink]}>
-                  {v_8d41d7("auth.signup.termsLocation")}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {}
-            <View style={v_d81136.checkRow}>
-              <TouchableOpacity
                 onPress={() => v_1d4807(!v_09b7fa)}
                 hitSlop={8}
               >
@@ -526,7 +502,6 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         onClose={() => v_fe0d62(null)}
         onAgree={() => {
           if (v_d39271 === 1) v_c8f346(true);
-          else if (v_d39271 === 2) v_a67880(true);
           else if (v_d39271 === 3) v_1d4807(true);
           v_fe0d62(null);
         }}
