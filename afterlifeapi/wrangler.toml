@@ -135,7 +135,7 @@ bucket_name = "afterlife-archive-dev"
 
 [env.preview.vars]
 ENVIRONMENT = "staging"
-ORCHESTRATOR_URL = "https://memorial.example.invalid/orchestrator"  # ORCH_SECRET 은 wrangler secret put
+ORCHESTRATOR_URL = "https://rtc.example.invalid/orchestrator"  # ORCH_SECRET 은 wrangler secret put. rtc.example.invalid: memorial.example.invalid CF Pages 전환으로 /orchestrator 가로채여 이전(통화 /prethird 와 동일)
 WEBAUTHN_RP_ID = "edge-alt-preview.example.invalid"
 WEBAUTHN_RP_ORIGIN = "https://edge-alt-preview.example.invalid"
 LAZY_ROTATION_ENABLED = "0"
@@ -199,7 +199,7 @@ bucket_name = "afterlife-archive-dev"
 
 [env.production.vars]
 ENVIRONMENT = "production"
-ORCHESTRATOR_URL = "https://memorial.example.invalid/orchestrator"  # ORCH_SECRET 은 wrangler secret put
+ORCHESTRATOR_URL = "https://rtc.example.invalid/orchestrator"  # ORCH_SECRET 은 wrangler secret put. rtc.example.invalid: memorial.example.invalid CF Pages 전환으로 /orchestrator 가로채여 이전(통화 /prethird 와 동일)
 WEBAUTHN_RP_ID = "api.afterlife.app"
 WEBAUTHN_RP_ORIGIN = "https://oth-path.afterlife.app"
 LAZY_ROTATION_ENABLED = "0"
