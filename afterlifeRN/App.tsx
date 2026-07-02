@@ -12,6 +12,7 @@ import { useAuthStore } from "./src/stores/authStore";
 import { useFollowStore } from "./src/stores/followStore";
 import { useUserFollowStore } from "./src/stores/userFollowStore";
 import { useConfigStore } from "./src/stores/configStore";
+import { useCallConfigStore } from "./src/stores/callConfigStore";
 import { registerPushTokenIfReady } from "./src/lib/pushNotifications";
 import type { RootStackParamList } from "./src/navigation/types";
 
@@ -47,6 +48,7 @@ export default function App() {
       useAuthStore.getState().hydrate(),
       useFollowStore.getState().hydrate(),
       useConfigStore.getState().hydrate(),
+      useCallConfigStore.getState().hydrate(),
     ]).then(() => {
       setReady(true);
 
@@ -56,6 +58,8 @@ export default function App() {
 
         useUserFollowStore.getState().hydrate();
       }
+
+      void useCallConfigStore.getState().refresh();
     });
   }, []);
 

@@ -26,6 +26,10 @@ export interface Bindings {
   LAZY_ROTATION_ENABLED?: string;  
   LAZY_V2_MIGRATE_ENABLED?: string;  
 
+  CALL_PRETHIRD_BASE?: string;
+  CALL_ROUTE?: string;
+  CALL_SECOND_BASE?: string;
+
   ADMIN_BOOTSTRAP_TOKEN?: string;
 
   GOOGLE_CLIENT_ID: string;
