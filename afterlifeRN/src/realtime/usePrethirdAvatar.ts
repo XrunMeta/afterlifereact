@@ -3,6 +3,7 @@
 import { v_de06a3, v_c4deb2, v_e662ae, v_5ab095 } from 'bapkr';
 import { v_c1a793, v_d904b7, v_802da4 } from 'rthlnescfffbyxfmhgq';
 import { v_e0051d } from '../config/apiBase';
+import { v_5b540b } from '../stores/callConfigStore';
 import { v_335e37 } from '../lib/authFetch';
 import { type v_30869c, v_2f41d8 } from './useAudioSession';
 import { type v_b01667, type v_d20273, type v_b190e4, type v_9d43cd, v_d8a22b } from './avatarCall';
@@ -235,8 +236,10 @@ export function v_3d8d48(v_328259): v_b01667 {
 
       const v_f915d0 = await v_335e37(v_2ca7e0);
       if (!v_759436()) { v_12cd99.close(); return; } 
-      const v_f71b56 = `${v_e0051d}/offer`;
-      if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${v_e0051d} clone_id=${v_6e0fd3}`);
+
+      const v_694b25 = v_5b540b.getState().prethirdBase;
+      const v_f71b56 = `${v_694b25}/offer`;
+      if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${v_694b25} clone_id=${v_6e0fd3}`);
       const v_cb35cb = await fetch(v_f71b56, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

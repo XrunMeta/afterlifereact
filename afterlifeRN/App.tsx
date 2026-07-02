@@ -12,6 +12,7 @@ import { v_1ed7d9 } from "./src/stores/authStore";
 import { v_b4902e } from "./src/stores/followStore";
 import { v_98d20a } from "./src/stores/userFollowStore";
 import { v_0b10a6 } from "./src/stores/configStore";
+import { v_5b540b } from "./src/stores/callConfigStore";
 import { v_9bedf5 } from "./src/lib/pushNotifications";
 import type { v_8ad91b } from "./src/navigation/types";
 
@@ -47,6 +48,7 @@ export default function v_6540c3() {
       v_1ed7d9.getState().hydrate(),
       v_b4902e.getState().hydrate(),
       v_0b10a6.getState().hydrate(),
+      v_5b540b.getState().hydrate(),
     ]).then(() => {
       v_0189ac(true);
 
@@ -56,6 +58,8 @@ export default function v_6540c3() {
 
         v_98d20a.getState().hydrate();
       }
+
+      void v_5b540b.getState().refresh();
     });
   }, []);
 
