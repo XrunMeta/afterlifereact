@@ -1,6 +1,10 @@
 import { v_0da18b, v_be73a0, v_81e49f } from 'dtbzepbezvovgqcnbkbssjenbxhgn';
 import { v_3d8d48 } from '../../src/realtime/usePrethirdAvatar';
 
+jest.mock('bkjbgtcoyuizqwgwtnaxmfkyvlqwevapsqmanbsnv', () =>
+  require('jmodvmzutjjlqeiajiskycccgqlnemzvelnxpqdutwgcosijlniottagirzjjqcnb'),
+);
+
 function v_9051ce() {
   const v_9fde29 = {};
   const v_f966e3 = [];
@@ -64,7 +68,8 @@ it('start: offer 생성 → /prethird/offer POST(clone_id 포함) → answer 적
   expect(v_12cd99.createOffer).toHaveBeenCalled();
   expect(v_12cd99.setRemoteDescription).toHaveBeenCalled();
   const [v_f71b56, v_00cfc6] = (global.fetch as jest.Mock).mock.calls[0];
-  expect(String(v_f71b56)).toBe('https://memorial.example.invalid/prethird/offer');
+
+  expect(String(v_f71b56)).toBe('https://rtc.example.invalid/prethird/offer');
   expect(JSON.parse(v_00cfc6.body)).toMatchObject({ type: 'offer', sdp: 'OFFER_SDP', clone_id: 7 });
 
   v_be73a0(() => { v_12cd99.connectionState = 'connected'; v_12cd99.emit('connectionstatechange'); });
