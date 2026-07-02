@@ -78,6 +78,9 @@ XRUN_API_URL = "https://oth-path-gw.example.invalid"
 COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
 COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
 PAYMENT_CURRENCY      = "18"
+# 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
+CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
+CALL_ROUTE = "prethird"
 
 # M-6: cron — orphan clones 정기 스윕 (매일 03:00 UTC)
 [triggers]
@@ -142,6 +145,9 @@ XRUN_API_URL = "https://oth-path-gw.example.invalid"
 COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
 COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
 PAYMENT_CURRENCY      = "18"
+# 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
+CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
+CALL_ROUTE = "prethird"
 # preview/dev 전용 결제 우회 PIN — 이 PIN 으로 페르소나 결제 시 xrun 송금 스킵(테스트).
 # production([env.production])에는 절대 추가 금지. preview 한정.
 DEV_PAYMENT_BYPASS_PIN = "424242"
@@ -203,6 +209,9 @@ XRUN_API_URL = "https://oth-path-gw.example.invalid"
 COMPANY_CHARGE_WALLET = "0x869D509b78135B7b325E31adD2d42871F3967524"
 COMPANY_GIFT_WALLET   = "0xe2b76Fc0341032EAc600af08f338577455C5F858"
 PAYMENT_CURRENCY      = "18"
+# 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
+CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
+CALL_ROUTE = "prethird"
 
 [env.production.triggers]
 crons = ["0 3 * * *"]

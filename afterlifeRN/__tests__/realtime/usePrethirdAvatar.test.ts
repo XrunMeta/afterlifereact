@@ -1,6 +1,10 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { usePrethirdAvatar } from '../../src/realtime/usePrethirdAvatar';
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
 function makeMockDc() {
   const listeners: Record<string, Array<(p?: unknown) => void>> = {};
   const sent: string[] = [];
@@ -64,7 +68,8 @@ it('start: offer 생성 → /prethird/offer POST(clone_id 포함) → answer 적
   expect(pc.createOffer).toHaveBeenCalled();
   expect(pc.setRemoteDescription).toHaveBeenCalled();
   const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
-  expect(String(url)).toBe('https://memorial.example.invalid/prethird/offer');
+
+  expect(String(url)).toBe('https://rtc.example.invalid/prethird/offer');
   expect(JSON.parse(init.body)).toMatchObject({ type: 'offer', sdp: 'OFFER_SDP', clone_id: 7 });
 
   act(() => { pc.connectionState = 'connected'; pc.emit('connectionstatechange'); });

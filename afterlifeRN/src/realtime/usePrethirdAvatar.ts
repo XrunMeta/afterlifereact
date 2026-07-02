@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RTCPeerConnection, RTCSessionDescription, MediaStream } from 'react-native-webrtc';
 import { PRETHIRD_BASE } from '../config/apiBase';
+import { useCallConfigStore } from '../stores/callConfigStore';
 import { ensureFreshAccessToken } from '../lib/authFetch';
 import { type AudioSessionControl, defaultAudioSessionControl } from './useAudioSession';
 import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, classifyTrack } from './avatarCall';
@@ -239,8 +240,10 @@ export function usePrethirdAvatar(opts: {
 
       const freshToken = await ensureFreshAccessToken(accessToken);
       if (!alive()) { pc.close(); return; } 
-      const url = `${PRETHIRD_BASE}/offer`;
-      if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${PRETHIRD_BASE} clone_id=${cloneId}`);
+
+      const base = useCallConfigStore.getState().prethirdBase;
+      const url = `${base}/offer`;
+      if (__DEV__) console.log(`[CALL-ROUTE] route=prethird base=${base} clone_id=${cloneId}`);
       const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
