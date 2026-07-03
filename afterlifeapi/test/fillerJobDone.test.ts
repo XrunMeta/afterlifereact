@@ -182,17 +182,43 @@ describe("POST /oth-path — 파일 검증", () => {
     expect(body.error).toMatch(/file2/);
   });
 
-  it("file3 포함(4개) → 400", async () => {
-    const uid = await seedUser("filler_4file@test.com");
-    const fid = await seedFile(uid, "filler-4file");
-    const cid = await seedClone(uid, "filler4file");
+  it("6개(라운드4 확장 계약) → 정상 처리, filler_video_urls 6개", async () => {
+    const uid = await seedUser("filler_6file@test.com");
+    const fid = await seedFile(uid, "filler-6file");
+    const cid = await seedClone(uid, "filler6file");
     const { jobId, callbackToken } = await seedFillerJob(uid, fid, cid);
     const fd = makeForm(jobId, callbackToken, [
       { data: TINY_MP4, name: "f0.mp4" },
       { data: TINY_MP4, name: "f1.mp4" },
       { data: TINY_MP4, name: "f2.mp4" },
     ]);
-    fd.append("file3", new Blob([TINY_MP4], { type: "video/mp4" }), "f3.mp4");
+    for (let i = 3; i < 6; i++) {
+      fd.append(`file${i}`, new Blob([TINY_MP4], { type: "video/mp4" }), `f${i}.mp4`);
+    }
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SECRET()}` },
+      body: fd,
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json<{ ok: boolean; filler_video_urls?: string[] }>();
+    expect(body.ok).toBe(true);
+    expect(body.filler_video_urls).toHaveLength(6);
+  });
+
+  it("file8 포함(9개, MAX 초과) → 400 too many", async () => {
+    const uid = await seedUser("filler_9file@test.com");
+    const fid = await seedFile(uid, "filler-9file");
+    const cid = await seedClone(uid, "filler9file");
+    const { jobId, callbackToken } = await seedFillerJob(uid, fid, cid);
+    const fd = makeForm(jobId, callbackToken, [
+      { data: TINY_MP4, name: "f0.mp4" },
+      { data: TINY_MP4, name: "f1.mp4" },
+      { data: TINY_MP4, name: "f2.mp4" },
+    ]);
+    for (let i = 3; i < 9; i++) {
+      fd.append(`file${i}`, new Blob([TINY_MP4], { type: "video/mp4" }), `f${i}.mp4`);
+    }
     const res = await SELF.fetch("http://localhost/oth-path", {
       method: "POST",
       headers: { Authorization: `Bearer ${SECRET()}` },
@@ -201,6 +227,27 @@ describe("POST /oth-path — 파일 검증", () => {
     expect(res.status).toBe(400);
     const body = await res.json<{ error: string }>();
     expect(body.error).toMatch(/too many/);
+  });
+
+  it("index gap(file0~2 + file4, file3 없음) → 400 gap", async () => {
+    const uid = await seedUser("filler_gap@test.com");
+    const fid = await seedFile(uid, "filler-gap");
+    const cid = await seedClone(uid, "fillergap");
+    const { jobId, callbackToken } = await seedFillerJob(uid, fid, cid);
+    const fd = makeForm(jobId, callbackToken, [
+      { data: TINY_MP4, name: "f0.mp4" },
+      { data: TINY_MP4, name: "f1.mp4" },
+      { data: TINY_MP4, name: "f2.mp4" },
+    ]);
+    fd.append("file4", new Blob([TINY_MP4], { type: "video/mp4" }), "f4.mp4");
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SECRET()}` },
+      body: fd,
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json<{ error: string }>();
+    expect(body.error).toMatch(/gap/);
   });
 
   it("file1 크기 초과(50MB+1) → 400", async () => {
