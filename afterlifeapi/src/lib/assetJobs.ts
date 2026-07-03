@@ -133,13 +133,12 @@ export async function claimJobRunning(
     .first<{ id: string; status: string; clone_id: number | null; kind: string }>();
   if (!job) return null;
 
-  if (job.status === "running" || job.status === "done") return null;
-
+  if (job.status === "done") return null;
   const result = await db
     .prepare(
       `UPDATE clone_asset_jobs
           SET status='running', updated_at=datetime('now')
-        WHERE id=? AND status IN ('pending','failed')`,
+        WHERE id=? AND status IN ('pending','running','failed')`,
     )
     .bind(id)
     .run();
