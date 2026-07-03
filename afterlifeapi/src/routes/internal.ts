@@ -143,7 +143,8 @@ const v_fb792a = "video/mp4";
 
 const v_347233 = 50 * 1024 * 1024;
 
-const v_83fbaa = 3;
+const v_5360f6 = 3;
+const v_e7afe3 = 8;
 
 v_dcd415.post("/filler-job-done", async (v_3f4e2e) => {
 
@@ -171,22 +172,36 @@ v_dcd415.post("/filler-job-done", async (v_3f4e2e) => {
     return v_3f4e2e.json({ ok: true });
   }
 
-  if (v_ebd523.get(`file${v_83fbaa}`) !== null) {
+  if (v_ebd523.get(`file${v_e7afe3}`) !== null) {
     return v_3f4e2e.json(
-      { error: `too many files: expected exactly ${v_83fbaa} (file0..file${v_83fbaa - 1})` },
+      { error: `too many files: max ${v_e7afe3} (file0..file${v_e7afe3 - 1})` },
       400,
     );
   }
   const v_58b838 = [];
-  for (let v_ebec57 = 0; v_ebec57 < v_83fbaa; v_ebec57++) {
+  for (let v_ebec57 = 0; v_ebec57 < v_e7afe3; v_ebec57++) {
     const v_2b8338 = v_ebd523.get(`file${v_ebec57}`);
-    if (!v_2b8338 || typeof v_2b8338 === "string") {
-      return v_3f4e2e.json({ error: `file${v_ebec57} required (need exactly ${v_83fbaa} files)` }, 400);
+    if (v_2b8338 === null) break;
+    if (typeof v_2b8338 === "string") {
+      return v_3f4e2e.json({ error: `file${v_ebec57} must be a file` }, 400);
     }
     v_58b838.push(v_2b8338 as File);
   }
+  if (v_58b838.length < v_5360f6) {
+    return v_3f4e2e.json(
+      { error: `file0..file${v_5360f6 - 1} required (need ${v_5360f6}~${v_e7afe3} files)` },
+      400,
+    );
+  }
 
-  for (let v_ebec57 = 0; v_ebec57 < v_83fbaa; v_ebec57++) {
+  for (let v_ebec57 = v_58b838.length + 1; v_ebec57 < v_e7afe3; v_ebec57++) {
+    if (v_ebd523.get(`file${v_ebec57}`) !== null) {
+      return v_3f4e2e.json({ error: `file index gap: file${v_58b838.length} missing but file${v_ebec57} present` }, 400);
+    }
+  }
+  const v_cd9d29 = v_58b838.length;
+
+  for (let v_ebec57 = 0; v_ebec57 < v_cd9d29; v_ebec57++) {
     const v_8b5cd8 = v_58b838[v_ebec57];
     if (!v_8b5cd8) {
       return v_3f4e2e.json({ error: `file${v_ebec57} missing` }, 400);
@@ -203,7 +218,7 @@ v_dcd415.post("/filler-job-done", async (v_3f4e2e) => {
   }
 
   const v_329662 = [];
-  for (let v_ebec57 = 0; v_ebec57 < v_83fbaa; v_ebec57++) {
+  for (let v_ebec57 = 0; v_ebec57 < v_cd9d29; v_ebec57++) {
     const v_83ee53 = await v_58b838[v_ebec57]?.arrayBuffer();
     if (!v_83ee53) {
       return v_3f4e2e.json({ error: `file${v_ebec57} read failed` }, 400);
@@ -219,7 +234,7 @@ v_dcd415.post("/filler-job-done", async (v_3f4e2e) => {
   const v_f17108 = new URL(v_3f4e2e.req.url).origin;
   const v_9cd995 = [];
   try {
-    for (let v_ebec57 = 0; v_ebec57 < v_83fbaa; v_ebec57++) {
+    for (let v_ebec57 = 0; v_ebec57 < v_cd9d29; v_ebec57++) {
       const v_83ee53 = v_329662[v_ebec57];
       if (!v_83ee53) {
         throw new Error(`buf${v_ebec57} missing`);

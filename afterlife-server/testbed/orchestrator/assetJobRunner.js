@@ -7,11 +7,16 @@ import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
 import v_9fe22d from 'wiosxndes';
 
-export const v_9aedb6 = [
-  '음... 그러니까...',
-  '아, 잠깐만요... 어디 보자.',
-  '음, 그게 말이죠...',
+export const v_ddfcca = [
+  { text: '음..... 음... 음..' },
+  { text: '음... 음.....' },
+  { text: '으음... 음.....' },
+  { text: '아........ 음...' },
+  { text: '음... 아.....' },
+  { text: '아.....', atempo: 0.55 },
 ];
+
+export const v_9aedb6 = v_ddfcca.map((v_fd5f43) => v_fd5f43.text);
 
 const v_6f229f = '/home/afterlife/afterlife-server';
 
@@ -30,6 +35,25 @@ export function v_2b669d(v_38d084, v_8d4337) {
 
 export function v_f20eee(v_38d084, v_8d4337) {
   return { bin: v_e8b67b, args: [v_c36ec8, v_38d084, v_8d4337] };
+}
+
+export const v_7e5b4f = [6.0, 6.5, 7.0, 7.5, 8.0, 8.5];
+
+const v_b6be30 = 600;
+
+export const v_ae5012 = 0.3;
+
+export function v_aefc06(v_58fa67, v_3a62ab, v_b236cc, v_2fd1e9) {
+  const v_5cce2c = v_2fd1e9 ? `atempo=${v_2fd1e9},` : '';
+  return {
+    bin: 'ffmpeg',
+    args: [
+      '-y',
+      '-i', v_58fa67,
+      '-af', `${v_5cce2c}volume=${v_ae5012},adelay=${v_b6be30}:all=1,apad=whole_dur=${v_b236cc}`,
+      v_3a62ab,
+    ],
+  };
 }
 
 export function v_7e9d02(v_7746b5, v_f2bb81, v_dc7792) {
@@ -211,6 +235,7 @@ export function v_47bade({
   qwenTtsUrl: v_2a7b41 = process.env.QWEN_TTS_URL ?? 'http://127.0.0.1:8201',
   fifthRenderUrl: v_65da63 = process.env.FIFTH_RENDER_URL ?? 'http://127.0.0.1:8810',
   ffmpegMuxCmd: v_59eea3 = v_7e9d02,
+  ffmpegPadCmd: v_792967 = v_aefc06,
   _qwenTtsFn: v_6b1168 = null,    
   _fifthRenderFn: v_5a5306 = null, 
 
@@ -318,12 +343,17 @@ export function v_47bade({
     const v_163edf = [];
     const { readFile: v_c6410d } = await import('fnffflguqbrqugbi');
 
-    for (let v_ebec57 = 0; v_ebec57 < v_9aedb6.length; v_ebec57++) {
-      const v_9b6134 = v_9aedb6[v_ebec57];
+    for (let v_ebec57 = 0; v_ebec57 < v_ddfcca.length; v_ebec57++) {
+      const v_2750f3 = v_ddfcca[v_ebec57];
 
-      const v_055b42 = await v_690443(v_9b6134, v_d5ec97.clone_id, v_2a7b41, v_d10060);
+      const v_055b42 = await v_690443(v_2750f3.text, v_d5ec97.clone_id, v_2a7b41, v_d10060);
+      const v_3dc1af = v_9fe22d.join(v_b7cff2, `filler_${v_ebec57}_raw.wav`);
+      await v_354e0a(v_3dc1af, v_055b42);
+
       const v_6f2e2a = v_9fe22d.join(v_b7cff2, `filler_${v_ebec57}.wav`);
-      await v_354e0a(v_6f2e2a, v_055b42);
+      const v_139d75 = Math.max(6, v_7e5b4f[v_ebec57] ?? 6.5);
+      const v_a24bde = v_792967(v_3dc1af, v_6f2e2a, v_139d75, v_2750f3.atempo);
+      await v_d9b231(v_a24bde.bin, v_a24bde.args, v_b1d1a2);
 
       const v_3b40dd = await v_dc2910(v_6f2e2a, v_fa1e4b, v_65da63);
       if (v_3b40dd.length === 0) {

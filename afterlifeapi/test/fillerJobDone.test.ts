@@ -182,17 +182,43 @@ v_469bf2("POST /oth-path — 파일 검증", () => {
     v_4d37e3(v_4d33b2.error).toMatch(/file2/);
   });
 
-  v_23805a("file3 포함(4개) → 400", async () => {
-    const v_0c8987 = await v_bfb240("filler_4file@test.com");
-    const v_8e2335 = await v_c808bd(v_0c8987, "filler-4file");
-    const v_062ae9 = await v_4d24a9(v_0c8987, "filler4file");
+  v_23805a("6개(라운드4 확장 계약) → 정상 처리, filler_video_urls 6개", async () => {
+    const v_0c8987 = await v_bfb240("filler_6file@test.com");
+    const v_8e2335 = await v_c808bd(v_0c8987, "filler-6file");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "filler6file");
     const { jobId: v_04211c, callbackToken: v_59b4e0 } = await v_a5cf27(v_0c8987, v_8e2335, v_062ae9);
     const v_23563e = v_a64c40(v_04211c, v_59b4e0, [
       { data: v_070a47, name: "f0.mp4" },
       { data: v_070a47, name: "f1.mp4" },
       { data: v_070a47, name: "f2.mp4" },
     ]);
-    v_23563e.append("file3", new Blob([v_070a47], { type: "video/mp4" }), "f3.mp4");
+    for (let v_ebec57 = 3; v_ebec57 < 6; v_ebec57++) {
+      v_23563e.append(`file${v_ebec57}`, new Blob([v_070a47], { type: "video/mp4" }), `f${v_ebec57}.mp4`);
+    }
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_7169b4()}` },
+      body: v_23563e,
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = await v_8f00b9.json<{ ok: boolean; filler_video_urls?: string[] }>();
+    v_4d37e3(v_4d33b2.ok).toBe(true);
+    v_4d37e3(v_4d33b2.filler_video_urls).toHaveLength(6);
+  });
+
+  v_23805a("file8 포함(9개, MAX 초과) → 400 too many", async () => {
+    const v_0c8987 = await v_bfb240("filler_9file@test.com");
+    const v_8e2335 = await v_c808bd(v_0c8987, "filler-9file");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "filler9file");
+    const { jobId: v_04211c, callbackToken: v_59b4e0 } = await v_a5cf27(v_0c8987, v_8e2335, v_062ae9);
+    const v_23563e = v_a64c40(v_04211c, v_59b4e0, [
+      { data: v_070a47, name: "f0.mp4" },
+      { data: v_070a47, name: "f1.mp4" },
+      { data: v_070a47, name: "f2.mp4" },
+    ]);
+    for (let v_ebec57 = 3; v_ebec57 < 9; v_ebec57++) {
+      v_23563e.append(`file${v_ebec57}`, new Blob([v_070a47], { type: "video/mp4" }), `f${v_ebec57}.mp4`);
+    }
     const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
       method: "POST",
       headers: { Authorization: `Bearer ${v_7169b4()}` },
@@ -201,6 +227,27 @@ v_469bf2("POST /oth-path — 파일 검증", () => {
     v_4d37e3(v_8f00b9.status).toBe(400);
     const v_4d33b2 = await v_8f00b9.json<{ error: string }>();
     v_4d37e3(v_4d33b2.error).toMatch(/too many/);
+  });
+
+  v_23805a("index gap(file0~2 + file4, file3 없음) → 400 gap", async () => {
+    const v_0c8987 = await v_bfb240("filler_gap@test.com");
+    const v_8e2335 = await v_c808bd(v_0c8987, "filler-gap");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "fillergap");
+    const { jobId: v_04211c, callbackToken: v_59b4e0 } = await v_a5cf27(v_0c8987, v_8e2335, v_062ae9);
+    const v_23563e = v_a64c40(v_04211c, v_59b4e0, [
+      { data: v_070a47, name: "f0.mp4" },
+      { data: v_070a47, name: "f1.mp4" },
+      { data: v_070a47, name: "f2.mp4" },
+    ]);
+    v_23563e.append("file4", new Blob([v_070a47], { type: "video/mp4" }), "f4.mp4");
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_7169b4()}` },
+      body: v_23563e,
+    });
+    v_4d37e3(v_8f00b9.status).toBe(400);
+    const v_4d33b2 = await v_8f00b9.json<{ error: string }>();
+    v_4d37e3(v_4d33b2.error).toMatch(/gap/);
   });
 
   v_23805a("file1 크기 초과(50MB+1) → 400", async () => {
