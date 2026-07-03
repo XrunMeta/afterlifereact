@@ -4,7 +4,7 @@ import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createAssetJobRunner, FILLER_TEXTS, defaultEnsureVoiceWav, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
+import { createAssetJobRunner, FILLER_TEXTS, defaultEnsureVoiceWav, defaultFifthRender, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
 
 const API_BASE = 'https://oth-path.example.com';
 
@@ -1576,4 +1576,89 @@ test('MAJOR: 부분실패(fifth index 1 fail) — ensure 1회 + 호출 순서 qw
 
   assert.equal(qwenFn.callCount(), 2, 'qwen 2회 (0·1)');
   assert.equal(fifthFn.callCount(), 2, 'fifth 2회 (0 성공·1 실패)');
+});
+
+async function serveRenderStream(bodyChunks) {
+  const { createServer } = await import('node:http');
+  const srv = createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+    for (const c of bodyChunks) res.write(c);
+    res.end();
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  return { srv, url: `http://127.0.0.1:${srv.address().port}` };
+}
+
+function frame(payload) {
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(payload.length, 0);
+  return Buffer.concat([len, payload]);
+}
+
+const TERMINATOR = Buffer.alloc(4); 
+
+test('defaultFifthRender: 정상 스트림(프레임 2 + 터미네이터) → 프레임 배열 resolve', async () => {
+  const f1 = Buffer.from('jpeg-one');
+  const f2 = Buffer.from('jpeg-two-larger');
+  const { srv, url } = await serveRenderStream([frame(f1), frame(f2), TERMINATOR]);
+  try {
+    const frames = await defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url);
+    assert.equal(frames.length, 2, '프레임 2개');
+    assert.deepEqual(frames[0], f1);
+    assert.deepEqual(frames[1], f2);
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFifthRender: 터미네이터가 프레임과 같은 chunk 로 붙어 와도 resolve', async () => {
+  const f1 = Buffer.from('jpeg-only');
+
+  const { srv, url } = await serveRenderStream([Buffer.concat([frame(f1), TERMINATOR])]);
+  try {
+    const frames = await defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url);
+    assert.equal(frames.length, 1);
+    assert.deepEqual(frames[0], f1);
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFifthRender: 터미네이터 뒤 잔여 바이트 → residual reject 유지', async () => {
+  const { srv, url } = await serveRenderStream([
+    frame(Buffer.from('jpeg-one')), TERMINATOR, Buffer.from('garbage'),
+  ]);
+  try {
+    await assert.rejects(
+      () => defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url),
+      /residual/,
+    );
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFifthRender: TOK 트레일러 청크는 프레임에서 제외 (continuation 프로토콜 공유 방어)', async () => {
+  const f1 = Buffer.from('jpeg-one');
+  const tok = Buffer.from('TOK:' + JSON.stringify({ blink_phase: 3 }));
+  const { srv, url } = await serveRenderStream([frame(f1), frame(tok), TERMINATOR]);
+  try {
+    const frames = await defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url);
+    assert.equal(frames.length, 1, 'TOK 청크는 프레임으로 세지 않음');
+    assert.deepEqual(frames[0], f1);
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFifthRender: 터미네이터 없이 종료 → terminator reject 유지', async () => {
+  const { srv, url } = await serveRenderStream([frame(Buffer.from('jpeg-one'))]);
+  try {
+    await assert.rejects(
+      () => defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url),
+      /terminator/,
+    );
+  } finally {
+    srv.close();
+  }
 });

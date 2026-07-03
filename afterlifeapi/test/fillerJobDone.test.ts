@@ -2,6 +2,7 @@
 
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
+import { finalizeFillerJob } from "../src/lib/assetJobs";
 
 async function seedUser(email: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
@@ -262,7 +263,12 @@ describe("POST /oth-path — 정상 처리", () => {
     const fid = await seedFile(uid, "filler-ok");
     const cid = await seedClone(uid, "fillerok");
     const { jobId, callbackToken } = await seedFillerJob(uid, fid, cid);
-    await forceJobPending(jobId); 
+
+    const dbPre = env.DB as unknown as D1Database;
+    await dbPre
+      .prepare(`UPDATE clone_asset_jobs SET status = 'running', updated_at = datetime('now') WHERE id = ?`)
+      .bind(jobId)
+      .run();
 
     const fd = makeForm(jobId, callbackToken, [
       { data: new Uint8Array([10, 20, 30]), name: "filler0.mp4" },
@@ -400,12 +406,12 @@ describe("POST /oth-path — 0바이트 파일 (수정 6)", () => {
 });
 
 describe("POST /oth-path — 원자성 (수정 7)", () => {
-  it("이미 running 잡 → 200 idempotent (동시 콜백 차단)", async () => {
+  it("running 잡(콜백 시점 정상 상태) → 정상 처리 done (T-088 F8 회귀)", async () => {
+
     const uid = await seedUser("filler_running@test.com");
     const fid = await seedFile(uid, "filler-running");
     const cid = await seedClone(uid, "fillerrunning");
     const { jobId, callbackToken } = await seedFillerJob(uid, fid, cid);
-
     const db = env.DB as unknown as D1Database;
     await db
       .prepare(
@@ -425,15 +431,46 @@ describe("POST /oth-path — 원자성 (수정 7)", () => {
       body: fd,
     });
     expect(res.status).toBe(200);
-    const body = await res.json<{ ok: boolean; idempotent?: boolean }>();
+    const body = await res.json<{ ok: boolean; idempotent?: boolean; filler_video_urls?: string[] }>();
     expect(body.ok).toBe(true);
-    expect(body.idempotent).toBe(true);
+    expect(body.idempotent).toBeUndefined(); 
+    expect(body.filler_video_urls).toHaveLength(3);
 
     const jobRow = await db
       .prepare(`SELECT status FROM clone_asset_jobs WHERE id = ?`)
       .bind(jobId)
       .first<{ status: string }>();
-    expect(jobRow!.status).toBe("running");
+    expect(jobRow!.status).toBe("done");
+  });
+
+  it("pending 잡(202 반영 전 콜백 race) → 정상 처리 done", async () => {
+    const uid = await seedUser("filler_pending@test.com");
+    const fid = await seedFile(uid, "filler-pending");
+    const cid = await seedClone(uid, "fillerpending");
+    const { jobId, callbackToken } = await seedFillerJob(uid, fid, cid);
+    await forceJobPending(jobId);
+
+    const fd = makeForm(jobId, callbackToken, [
+      { data: TINY_MP4, name: "f0.mp4" },
+      { data: TINY_MP4, name: "f1.mp4" },
+      { data: TINY_MP4, name: "f2.mp4" },
+    ]);
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${SECRET()}` },
+      body: fd,
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json<{ ok: boolean; idempotent?: boolean }>();
+    expect(body.ok).toBe(true);
+    expect(body.idempotent).toBeUndefined();
+
+    const db = env.DB as unknown as D1Database;
+    const jobRow = await db
+      .prepare(`SELECT status FROM clone_asset_jobs WHERE id = ?`)
+      .bind(jobId)
+      .first<{ status: string }>();
+    expect(jobRow!.status).toBe("done");
   });
 
   it("failed 잡 재시도 → 정상 처리(failed→running→done)", async () => {
@@ -556,5 +593,60 @@ describe("기존 /oth-path 회귀", () => {
       body: fd,
     });
     expect(res.status).toBe(403);
+  });
+});
+
+describe("finalizeFillerJob — 겹친 중복 콜백 CAS (el BLOCKER)", () => {
+  it("잡이 이미 done 이면 null 반환 + files 행 롤백 + clones 미덮어쓰기", async () => {
+    const uid = await seedUser("filler_cas@test.com");
+    const fid = await seedFile(uid, "filler-cas");
+    const cid = await seedClone(uid, "fillercas");
+    const { jobId } = await seedFillerJob(uid, fid, cid);
+    const db = env.DB as unknown as D1Database;
+
+    await db
+      .prepare(
+        `UPDATE clone_asset_jobs SET status='done', out_url='["winner"]', updated_at=datetime('now') WHERE id = ?`,
+      )
+      .bind(jobId)
+      .run();
+    await db
+      .prepare(`UPDATE clones SET filler_video_urls='["winner"]' WHERE id = ?`)
+      .bind(cid)
+      .run();
+    const filesBefore = await db
+      .prepare(`SELECT COUNT(*) AS n FROM files WHERE purpose='asset_filler'`)
+      .first<{ n: number }>();
+
+    const out = await finalizeFillerJob(
+      db,
+      jobId,
+      [
+        { r2Key: "assets/filler/loser0.mp4", sizeBytes: 3 },
+        { r2Key: "assets/filler/loser1.mp4", sizeBytes: 3 },
+        { r2Key: "assets/filler/loser2.mp4", sizeBytes: 3 },
+      ],
+      uid,
+      cid,
+      "http://localhost",
+    );
+    expect(out).toBeNull();
+
+    const filesAfter = await db
+      .prepare(`SELECT COUNT(*) AS n FROM files WHERE purpose='asset_filler'`)
+      .first<{ n: number }>();
+    expect(filesAfter!.n).toBe(filesBefore!.n);
+
+    const jobRow = await db
+      .prepare(`SELECT status, out_url FROM clone_asset_jobs WHERE id = ?`)
+      .bind(jobId)
+      .first<{ status: string; out_url: string }>();
+    expect(jobRow!.status).toBe("done");
+    expect(jobRow!.out_url).toBe('["winner"]');
+    const cloneRow = await db
+      .prepare(`SELECT filler_video_urls FROM clones WHERE id = ?`)
+      .bind(cid)
+      .first<{ filler_video_urls: string }>();
+    expect(cloneRow!.filler_video_urls).toBe('["winner"]');
   });
 });

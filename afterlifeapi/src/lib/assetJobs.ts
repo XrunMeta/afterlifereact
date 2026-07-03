@@ -133,13 +133,12 @@ export async function claimJobRunning(
     .first<{ id: string; status: string; clone_id: number | null; kind: string }>();
   if (!job) return null;
 
-  if (job.status === "running" || job.status === "done") return null;
-
+  if (job.status === "done") return null;
   const result = await db
     .prepare(
       `UPDATE clone_asset_jobs
           SET status='running', updated_at=datetime('now')
-        WHERE id=? AND status IN ('pending','failed')`,
+        WHERE id=? AND status IN ('pending','running','failed')`,
     )
     .bind(id)
     .run();
@@ -159,7 +158,7 @@ export async function finalizeFillerJob(
   userId: number,
   cloneId: number | null,
   origin: string,
-): Promise<string[]> {
+): Promise<string[] | null> {
   const urls: string[] = [];
   const insertedFileIds: number[] = [];
 
@@ -182,18 +181,38 @@ export async function finalizeFillerJob(
     if (cloneId !== null && cloneId !== undefined) {
       stmts.push(
         db
-          .prepare(`UPDATE clones SET filler_video_urls = ? WHERE id = ?`)
-          .bind(outUrlJson, cloneId),
+          .prepare(
+            `UPDATE clones SET filler_video_urls = ?
+              WHERE id = ?
+                AND (SELECT status FROM clone_asset_jobs WHERE id = ?) = 'running'`,
+          )
+          .bind(outUrlJson, cloneId, jobId),
       );
     }
+    const jobStmtIdx = stmts.length;
     stmts.push(
       db
         .prepare(
-          `UPDATE clone_asset_jobs SET status='done', out_url=?, updated_at=datetime('now') WHERE id=?`,
+          `UPDATE clone_asset_jobs SET status='done', out_url=?, updated_at=datetime('now')
+            WHERE id=? AND status='running'`,
         )
         .bind(outUrlJson, jobId),
     );
-    await db.batch(stmts);
+    const results = await db.batch(stmts);
+    const jobChanges = results[jobStmtIdx]?.meta?.changes ?? 0;
+    if (jobChanges === 0) {
+
+      if (insertedFileIds.length > 0) {
+        await db
+          .prepare(
+            `DELETE FROM files WHERE id IN (${insertedFileIds.map(() => "?").join(",")})`,
+          )
+          .bind(...insertedFileIds)
+          .run()
+          .catch(() => {});
+      }
+      return null;
+    }
   } catch (err) {
 
     if (insertedFileIds.length > 0) {

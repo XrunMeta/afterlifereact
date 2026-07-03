@@ -19,7 +19,7 @@ PRETHIRD_REMOTE=/home/afterlife/afterlife-server/prethird/scripts
 SHARED_TMP=/home/afterlife/afterlife-server/.fifth-tmp
 
 PRETHIRD_FILES="filler_player.py signaling.py pipeline.py session.py media_tracks.py"
-ORCH_FILES="assetJobRunner.js"
+ORCH_FILES="assetJobRunner.js routes.js"
 
 # ── 롤백 모드 ────────────────────────────────────────────────
 if [[ "${1:-}" == "--rollback" ]]; then

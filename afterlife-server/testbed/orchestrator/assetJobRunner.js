@@ -160,15 +160,21 @@ export async function defaultFifthRender(wavPath, facePath, renderUrl) {
           return;
         }
         const frames = [];
+
+        const TOK_MAGIC = Buffer.from('TOK:');
         let buf = Buffer.alloc(0);
         let done = false;
         res.on('data', (chunk) => {
           buf = Buffer.concat([buf, chunk]);
           while (!done && buf.length >= 4) {
             const len = buf.readUInt32BE(0);
-            if (len === 0) { done = true; break; }
+
+            if (len === 0) { done = true; buf = buf.slice(4); break; }
             if (buf.length < 4 + len) break;
-            frames.push(buf.slice(4, 4 + len));
+            const payload = buf.slice(4, 4 + len);
+            if (!(payload.length >= TOK_MAGIC.length && payload.slice(0, TOK_MAGIC.length).equals(TOK_MAGIC))) {
+              frames.push(payload);
+            }
             buf = buf.slice(4 + len);
           }
         });
@@ -381,6 +387,14 @@ export function createAssetJobRunner({
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.ORCH_SECRET ?? ''}` },
       body: fd,
+    }).then(async (r) => {
+
+      const body = typeof r?.text === 'function' ? await r.text().catch(() => '') : '';
+      if (r?.ok) {
+        console.log('[assetJobRunner] filler callback done ok', job.job_id, r.status, body.slice(0, 120));
+      } else {
+        console.error('[assetJobRunner] filler callback done non-ok', job.job_id, r?.status, body.slice(0, 200));
+      }
     }).catch((e) => console.error('[assetJobRunner] filler callback done fetch error', e?.message));
   }
 

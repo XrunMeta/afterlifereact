@@ -240,7 +240,7 @@ internal.post("/filler-job-done", async (c) => {
     return c.json({ error: "r2_upload_failed" }, 500);
   }
 
-  let urls: string[];
+  let urls: string[] | null;
   try {
     urls = await finalizeFillerJob(
       c.env.DB,
@@ -257,6 +257,14 @@ internal.post("/filler-job-done", async (c) => {
     }
     await failJob(c.env.DB, jobId, `db_commit_failed: ${String(err).slice(0, 400)}`);
     return c.json({ error: "db_commit_failed" }, 500);
+  }
+
+  if (urls === null) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    return c.json({ ok: true, idempotent: true });
   }
 
   return c.json({ ok: true, filler_video_urls: urls });
