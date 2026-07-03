@@ -132,7 +132,7 @@ def _make_dc_handler(sess, channel):
             if mode in ("say", "speak") and _filler is not None:
                 _filler.start()
 
-            # 응답 즉시컷 hook: 첫 infer 직전에 filler stop → 큐/버퍼 flush.
+            # 응답 즉시컷 hook: 첫 infer 완료 후·첫 push 직전에 filler stop → 큐/버퍼 flush (렌더 동안 필러 순환 유지).
             # pipeline infer_worker(이벤트루프 코루틴)에서 호출 → call_soon_threadsafe 불필요.
             # flush 이후 _infer_stage가 응답 frames를 큐에 push(순서: stop→flush→응답push).
             def _on_response_ready():

@@ -97,7 +97,7 @@ class DialoguePipeline:
     async def say(self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
-        on_response_ready: 첫 infer 직전 1회 호출 (F7 filler 즉시컷 트리거용)."""
+        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷)."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — 발화 skip (폴백 없음)")
@@ -119,7 +119,7 @@ class DialoguePipeline:
     async def speak(self, text: str, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """LLM 우회: 입력 텍스트를 그대로 발화(TTS+musetalk). 쉼표로 끊지 않고
         문장 종결부호(.!?…\\n)로만 분할. 한 문장이면 통째 1회.
-        on_response_ready: 첫 infer 직전 1회 호출 (F7 filler 즉시컷 트리거용)."""
+        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷)."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — speak skip (폴백 없음)")
@@ -141,7 +141,7 @@ class DialoguePipeline:
     async def greet(self, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """통화 연결 직후 클론이 먼저 건네는 인사. LLM이 페르소나 기반 1문장 생성.
         say()와 동일 파이프라인이되 user 입력 대신 GREETING_PROMPT 지시를 준다.
-        on_response_ready: 첫 infer 직전 1회 호출 (F7 filler 즉시컷 트리거용, greet는 보통 None)."""
+        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷, greet는 보통 None)."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — greet skip (폴백 없음)")
@@ -171,9 +171,13 @@ class DialoguePipeline:
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
 
-    async def _infer_stage(self, wav_bytes: bytes, pcm48: np.ndarray, turn=None) -> None:
+    async def _infer_stage(self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None) -> None:
         """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
-        turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적."""
+        turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적.
+        on_before_push: infer 완료 후·첫 push 직전 1회 호출(F7 filler 즉시컷).
+          렌더가 도는 수 초 동안 필러가 계속 순환해야 하므로 이 시점이어야 한다
+          (infer '직전' 컷은 렌더 시간만큼 idle 갭 유발 — T-088 라운드4 실통화 실측).
+          이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지."""
         turn = turn if turn is not None else NULL_TURN
         loop = asyncio.get_event_loop()
         frames_buf: list[np.ndarray] = []
@@ -184,8 +188,26 @@ class DialoguePipeline:
         def on_frame(arr: np.ndarray) -> None:
             frames_buf.append(arr)
 
+        def _fire_hook():
+            if on_before_push is not None:
+                try:
+                    on_before_push()
+                except Exception as exc:
+                    log.warning("on_before_push callback failed: %s", exc)
+
         try:
-            await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
+            try:
+                await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
+            except BaseException:
+                # [el BLOCKER] 렌더 예외(렌더서버 다운/타임아웃 등)에도 즉시컷 훅은
+                # 반드시 1회 발동 — 스킵되면 FillerPlayer 정지 경로가 사라져 필러가
+                # 세션 종료까지 무한 순환(영구 좀비). 훅 발동 후 예외는 기존대로 전파.
+                _fire_hook()
+                raise
+            # 성공 경로: frames=0(추론 실패)이어도 호출 — 응답 '오디오' push 전에
+            # 필러 오디오("음...")를 반드시 끊어야 응답 음성과 겹치지 않는다.
+            # 이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지.
+            _fire_hook()
             for arr in frames_buf:
                 self.vt.push_ndarray(arr)
             nframes = len(frames_buf)
@@ -254,7 +276,7 @@ class DialoguePipeline:
         TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
         turn: recorder Turn — TTS wav 누적(Phase 2 answer.wav).
         on_first_audio: 첫 오디오 프레임 push 직후 1회 동기 호출(예외 흡수).
-        on_response_ready: 첫 infer 직전 1회 호출 — F7 filler 즉시컷 트리거.
+        on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 — F7 filler 즉시컷.
           이벤트루프 스레드(infer_worker 코루틴)에서 호출됨 → flush() 직접 호출 OK.
           (executor 스레드 경유 불필요 — 라운드2 R-3/R-4 교훈 적용 확인).
         예외 시 모든 워커를 취소하고 signal_end 를 보장한다(좀비/오염 방지)."""
@@ -280,17 +302,15 @@ class DialoguePipeline:
                 if item is None:
                     break
                 wav_bytes, pcm48 = item
-                # [F7] 첫 infer 직전 1회: filler 즉시컷 트리거 (stop → flush → 응답 push 순서 보장).
-                # 이 시점은 이벤트루프 스레드(코루틴) → call_soon_threadsafe 불필요.
-                # flush 이후 _infer_stage가 완료되면 응답 frames가 큐에 적재됨.
+                # [F7-fix] 즉시컷은 '첫 infer 완료 후·첫 push 직전'(_infer_stage 내부) —
+                # 렌더(수 초) 동안 필러가 순환하도록 여기서 미리 자르지 않는다
+                # (과거 infer 직전 컷 = 렌더 시간만큼 idle 갭, T-088 라운드4 실측).
+                # 호출은 이벤트루프 스레드(코루틴) → call_soon_threadsafe 불필요.
+                _hook = None
                 if _first_infer:
                     _first_infer = False
-                    if on_response_ready is not None:
-                        try:
-                            on_response_ready()
-                        except Exception as exc:
-                            log.warning("on_response_ready callback failed: %s", exc)
-                await self._infer_stage(wav_bytes, pcm48, turn)
+                    _hook = on_response_ready
+                await self._infer_stage(wav_bytes, pcm48, turn, on_before_push=_hook)
                 # 첫 오디오 프레임 송출 직후 1회 통지(연결 중 화면 종료·speech_start echo).
                 if not fired["v"] and on_first_audio is not None:
                     fired["v"] = True
