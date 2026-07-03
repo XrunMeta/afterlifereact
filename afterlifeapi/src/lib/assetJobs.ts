@@ -158,7 +158,7 @@ export async function v_c12e45(
   v_43e90c,
   v_6e0fd3,
   v_f17108,
-): Promise<string[]> {
+): Promise<string[] | null> {
   const v_942aa2 = [];
   const v_90403f = [];
 
@@ -181,18 +181,38 @@ export async function v_c12e45(
     if (v_6e0fd3 !== null && v_6e0fd3 !== undefined) {
       v_3e6264.push(
         v_a1651b
-          .prepare(`UPDATE clones SET filler_video_urls = ? WHERE id = ?`)
-          .bind(v_89094b, v_6e0fd3),
+          .prepare(
+            `UPDATE clones SET filler_video_urls = ?
+              WHERE id = ?
+                AND (SELECT status FROM clone_asset_jobs WHERE id = ?) = 'running'`,
+          )
+          .bind(v_89094b, v_6e0fd3, v_04211c),
       );
     }
+    const v_1d82d8 = v_3e6264.length;
     v_3e6264.push(
       v_a1651b
         .prepare(
-          `UPDATE clone_asset_jobs SET status='done', out_url=?, updated_at=datetime('now') WHERE id=?`,
+          `UPDATE clone_asset_jobs SET status='done', out_url=?, updated_at=datetime('now')
+            WHERE id=? AND status='running'`,
         )
         .bind(v_89094b, v_04211c),
     );
-    await v_a1651b.batch(v_3e6264);
+    const v_a7f568 = await v_a1651b.batch(v_3e6264);
+    const v_0be20a = v_a7f568[v_1d82d8]?.meta?.changes ?? 0;
+    if (v_0be20a === 0) {
+
+      if (v_90403f.length > 0) {
+        await v_a1651b
+          .prepare(
+            `DELETE FROM files WHERE id IN (${v_90403f.map(() => "?").join(",")})`,
+          )
+          .bind(...v_90403f)
+          .run()
+          .catch(() => {});
+      }
+      return null;
+    }
   } catch (v_49263d) {
 
     if (v_90403f.length > 0) {

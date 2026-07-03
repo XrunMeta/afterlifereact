@@ -2,6 +2,7 @@
 
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
+import { v_c12e45 } from "../src/lib/assetJobs";
 
 async function v_bfb240(v_e0c7e8): Promise<number> {
   const v_a1651b = v_c9c489.DB as unknown as D1Database;
@@ -592,5 +593,60 @@ v_469bf2("기존 /oth-path 회귀", () => {
       body: v_23563e,
     });
     v_4d37e3(v_8f00b9.status).toBe(403);
+  });
+});
+
+v_469bf2("finalizeFillerJob — 겹친 중복 콜백 CAS (el BLOCKER)", () => {
+  v_23805a("잡이 이미 done 이면 null 반환 + files 행 롤백 + clones 미덮어쓰기", async () => {
+    const v_0c8987 = await v_bfb240("filler_cas@test.com");
+    const v_8e2335 = await v_c808bd(v_0c8987, "filler-cas");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "fillercas");
+    const { jobId: v_04211c } = await v_a5cf27(v_0c8987, v_8e2335, v_062ae9);
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+
+    await v_a1651b
+      .prepare(
+        `UPDATE clone_asset_jobs SET status='done', out_url='["winner"]', updated_at=datetime('now') WHERE id = ?`,
+      )
+      .bind(v_04211c)
+      .run();
+    await v_a1651b
+      .prepare(`UPDATE clones SET filler_video_urls='["winner"]' WHERE id = ?`)
+      .bind(v_062ae9)
+      .run();
+    const v_2cd5bc = await v_a1651b
+      .prepare(`SELECT COUNT(*) AS n FROM files WHERE purpose='asset_filler'`)
+      .first<{ n: number }>();
+
+    const v_8d4337 = await v_c12e45(
+      v_a1651b,
+      v_04211c,
+      [
+        { r2Key: "assets/filler/loser0.mp4", sizeBytes: 3 },
+        { r2Key: "assets/filler/loser1.mp4", sizeBytes: 3 },
+        { r2Key: "assets/filler/loser2.mp4", sizeBytes: 3 },
+      ],
+      v_0c8987,
+      v_062ae9,
+      "http://localhost",
+    );
+    v_4d37e3(v_8d4337).toBeNull();
+
+    const v_49b364 = await v_a1651b
+      .prepare(`SELECT COUNT(*) AS n FROM files WHERE purpose='asset_filler'`)
+      .first<{ n: number }>();
+    v_4d37e3(v_49b364!.n).toBe(v_2cd5bc!.n);
+
+    const v_d5e460 = await v_a1651b
+      .prepare(`SELECT status, out_url FROM clone_asset_jobs WHERE id = ?`)
+      .bind(v_04211c)
+      .first<{ status: string; out_url: string }>();
+    v_4d37e3(v_d5e460!.status).toBe("done");
+    v_4d37e3(v_d5e460!.out_url).toBe('["winner"]');
+    const v_1de203 = await v_a1651b
+      .prepare(`SELECT filler_video_urls FROM clones WHERE id = ?`)
+      .bind(v_062ae9)
+      .first<{ filler_video_urls: string }>();
+    v_4d37e3(v_1de203!.filler_video_urls).toBe('["winner"]');
   });
 });

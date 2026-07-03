@@ -1638,6 +1638,19 @@ v_2a805f('defaultFifthRender: 터미네이터 뒤 잔여 바이트 → residual 
   }
 });
 
+v_2a805f('defaultFifthRender: TOK 트레일러 청크는 프레임에서 제외 (continuation 프로토콜 공유 방어)', async () => {
+  const v_d73eec = Buffer.from('jpeg-one');
+  const v_ea333d = Buffer.from('TOK:' + JSON.stringify({ blink_phase: 3 }));
+  const { srv: v_9bdcf4, url: v_f71b56 } = await v_ce27fb([v_143cb5(v_d73eec), v_143cb5(v_ea333d), v_3ed218]);
+  try {
+    const v_3b40dd = await v_15296d('/tmp/x.wav', '/tmp/face.jpg', v_f71b56);
+    v_ce93bd.equal(v_3b40dd.length, 1, 'TOK 청크는 프레임으로 세지 않음');
+    v_ce93bd.deepEqual(v_3b40dd[0], v_d73eec);
+  } finally {
+    v_9bdcf4.close();
+  }
+});
+
 v_2a805f('defaultFifthRender: 터미네이터 없이 종료 → terminator reject 유지', async () => {
   const { srv: v_9bdcf4, url: v_f71b56 } = await v_ce27fb([v_143cb5(Buffer.from('jpeg-one'))]);
   try {

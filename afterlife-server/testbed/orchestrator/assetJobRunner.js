@@ -160,6 +160,8 @@ export async function v_15296d(v_f2bb81, v_f37742, v_555aed) {
           return;
         }
         const v_3b40dd = [];
+
+        const v_829001 = Buffer.from('TOK:');
         let v_83ee53 = Buffer.alloc(0);
         let v_2fb8cc = false;
         v_8f00b9.on('data', (v_334f63) => {
@@ -169,7 +171,10 @@ export async function v_15296d(v_f2bb81, v_f37742, v_555aed) {
 
             if (v_fe889f === 0) { v_2fb8cc = true; v_83ee53 = v_83ee53.slice(4); break; }
             if (v_83ee53.length < 4 + v_fe889f) break;
-            v_3b40dd.push(v_83ee53.slice(4, 4 + v_fe889f));
+            const v_931bf0 = v_83ee53.slice(4, 4 + v_fe889f);
+            if (!(v_931bf0.length >= v_829001.length && v_931bf0.slice(0, v_829001.length).equals(v_829001))) {
+              v_3b40dd.push(v_931bf0);
+            }
             v_83ee53 = v_83ee53.slice(4 + v_fe889f);
           }
         });

@@ -259,6 +259,14 @@ v_dcd415.post("/filler-job-done", async (v_3f4e2e) => {
     return v_3f4e2e.json({ error: "db_commit_failed" }, 500);
   }
 
+  if (v_942aa2 === null) {
+
+    for (const { r2Key: v_0037e3 } of v_9cd995) {
+      await v_3f4e2e.env.R2_ARCHIVE.delete(v_0037e3).catch(() => {});
+    }
+    return v_3f4e2e.json({ ok: true, idempotent: true });
+  }
+
   return v_3f4e2e.json({ ok: true, filler_video_urls: v_942aa2 });
 });
 
