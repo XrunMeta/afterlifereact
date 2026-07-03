@@ -2,6 +2,7 @@
 
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
+import { finalizeFillerJob } from "../src/lib/assetJobs";
 
 async function seedUser(email: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
@@ -592,5 +593,60 @@ describe("기존 /oth-path 회귀", () => {
       body: fd,
     });
     expect(res.status).toBe(403);
+  });
+});
+
+describe("finalizeFillerJob — 겹친 중복 콜백 CAS (el BLOCKER)", () => {
+  it("잡이 이미 done 이면 null 반환 + files 행 롤백 + clones 미덮어쓰기", async () => {
+    const uid = await seedUser("filler_cas@test.com");
+    const fid = await seedFile(uid, "filler-cas");
+    const cid = await seedClone(uid, "fillercas");
+    const { jobId } = await seedFillerJob(uid, fid, cid);
+    const db = env.DB as unknown as D1Database;
+
+    await db
+      .prepare(
+        `UPDATE clone_asset_jobs SET status='done', out_url='["winner"]', updated_at=datetime('now') WHERE id = ?`,
+      )
+      .bind(jobId)
+      .run();
+    await db
+      .prepare(`UPDATE clones SET filler_video_urls='["winner"]' WHERE id = ?`)
+      .bind(cid)
+      .run();
+    const filesBefore = await db
+      .prepare(`SELECT COUNT(*) AS n FROM files WHERE purpose='asset_filler'`)
+      .first<{ n: number }>();
+
+    const out = await finalizeFillerJob(
+      db,
+      jobId,
+      [
+        { r2Key: "assets/filler/loser0.mp4", sizeBytes: 3 },
+        { r2Key: "assets/filler/loser1.mp4", sizeBytes: 3 },
+        { r2Key: "assets/filler/loser2.mp4", sizeBytes: 3 },
+      ],
+      uid,
+      cid,
+      "http://localhost",
+    );
+    expect(out).toBeNull();
+
+    const filesAfter = await db
+      .prepare(`SELECT COUNT(*) AS n FROM files WHERE purpose='asset_filler'`)
+      .first<{ n: number }>();
+    expect(filesAfter!.n).toBe(filesBefore!.n);
+
+    const jobRow = await db
+      .prepare(`SELECT status, out_url FROM clone_asset_jobs WHERE id = ?`)
+      .bind(jobId)
+      .first<{ status: string; out_url: string }>();
+    expect(jobRow!.status).toBe("done");
+    expect(jobRow!.out_url).toBe('["winner"]');
+    const cloneRow = await db
+      .prepare(`SELECT filler_video_urls FROM clones WHERE id = ?`)
+      .bind(cid)
+      .first<{ filler_video_urls: string }>();
+    expect(cloneRow!.filler_video_urls).toBe('["winner"]');
   });
 });

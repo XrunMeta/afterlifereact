@@ -1638,6 +1638,19 @@ test('defaultFifthRender: 터미네이터 뒤 잔여 바이트 → residual reje
   }
 });
 
+test('defaultFifthRender: TOK 트레일러 청크는 프레임에서 제외 (continuation 프로토콜 공유 방어)', async () => {
+  const f1 = Buffer.from('jpeg-one');
+  const tok = Buffer.from('TOK:' + JSON.stringify({ blink_phase: 3 }));
+  const { srv, url } = await serveRenderStream([frame(f1), frame(tok), TERMINATOR]);
+  try {
+    const frames = await defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url);
+    assert.equal(frames.length, 1, 'TOK 청크는 프레임으로 세지 않음');
+    assert.deepEqual(frames[0], f1);
+  } finally {
+    srv.close();
+  }
+});
+
 test('defaultFifthRender: 터미네이터 없이 종료 → terminator reject 유지', async () => {
   const { srv, url } = await serveRenderStream([frame(Buffer.from('jpeg-one'))]);
   try {

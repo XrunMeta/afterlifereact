@@ -160,6 +160,8 @@ export async function defaultFifthRender(wavPath, facePath, renderUrl) {
           return;
         }
         const frames = [];
+
+        const TOK_MAGIC = Buffer.from('TOK:');
         let buf = Buffer.alloc(0);
         let done = false;
         res.on('data', (chunk) => {
@@ -169,7 +171,10 @@ export async function defaultFifthRender(wavPath, facePath, renderUrl) {
 
             if (len === 0) { done = true; buf = buf.slice(4); break; }
             if (buf.length < 4 + len) break;
-            frames.push(buf.slice(4, 4 + len));
+            const payload = buf.slice(4, 4 + len);
+            if (!(payload.length >= TOK_MAGIC.length && payload.slice(0, TOK_MAGIC.length).equals(TOK_MAGIC))) {
+              frames.push(payload);
+            }
             buf = buf.slice(4 + len);
           }
         });
