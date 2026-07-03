@@ -262,7 +262,12 @@ v_469bf2("POST /oth-path — 정상 처리", () => {
     const v_8e2335 = await v_c808bd(v_0c8987, "filler-ok");
     const v_062ae9 = await v_4d24a9(v_0c8987, "fillerok");
     const { jobId: v_04211c, callbackToken: v_59b4e0 } = await v_a5cf27(v_0c8987, v_8e2335, v_062ae9);
-    await v_fda860(v_04211c); 
+
+    const v_09ad9c = v_c9c489.DB as unknown as D1Database;
+    await v_09ad9c
+      .prepare(`UPDATE clone_asset_jobs SET status = 'running', updated_at = datetime('now') WHERE id = ?`)
+      .bind(v_04211c)
+      .run();
 
     const v_23563e = v_a64c40(v_04211c, v_59b4e0, [
       { data: new Uint8Array([10, 20, 30]), name: "filler0.mp4" },
@@ -400,12 +405,12 @@ v_469bf2("POST /oth-path — 0바이트 파일 (수정 6)", () => {
 });
 
 v_469bf2("POST /oth-path — 원자성 (수정 7)", () => {
-  v_23805a("이미 running 잡 → 200 idempotent (동시 콜백 차단)", async () => {
+  v_23805a("running 잡(콜백 시점 정상 상태) → 정상 처리 done (T-088 F8 회귀)", async () => {
+
     const v_0c8987 = await v_bfb240("filler_running@test.com");
     const v_8e2335 = await v_c808bd(v_0c8987, "filler-running");
     const v_062ae9 = await v_4d24a9(v_0c8987, "fillerrunning");
     const { jobId: v_04211c, callbackToken: v_59b4e0 } = await v_a5cf27(v_0c8987, v_8e2335, v_062ae9);
-
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     await v_a1651b
       .prepare(
@@ -425,15 +430,46 @@ v_469bf2("POST /oth-path — 원자성 (수정 7)", () => {
       body: v_23563e,
     });
     v_4d37e3(v_8f00b9.status).toBe(200);
-    const v_4d33b2 = await v_8f00b9.json<{ ok: boolean; idempotent?: boolean }>();
+    const v_4d33b2 = await v_8f00b9.json<{ ok: boolean; idempotent?: boolean; filler_video_urls?: string[] }>();
     v_4d37e3(v_4d33b2.ok).toBe(true);
-    v_4d37e3(v_4d33b2.idempotent).toBe(true);
+    v_4d37e3(v_4d33b2.idempotent).toBeUndefined(); 
+    v_4d37e3(v_4d33b2.filler_video_urls).toHaveLength(3);
 
     const v_d5e460 = await v_a1651b
       .prepare(`SELECT status FROM clone_asset_jobs WHERE id = ?`)
       .bind(v_04211c)
       .first<{ status: string }>();
-    v_4d37e3(v_d5e460!.status).toBe("running");
+    v_4d37e3(v_d5e460!.status).toBe("done");
+  });
+
+  v_23805a("pending 잡(202 반영 전 콜백 race) → 정상 처리 done", async () => {
+    const v_0c8987 = await v_bfb240("filler_pending@test.com");
+    const v_8e2335 = await v_c808bd(v_0c8987, "filler-pending");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "fillerpending");
+    const { jobId: v_04211c, callbackToken: v_59b4e0 } = await v_a5cf27(v_0c8987, v_8e2335, v_062ae9);
+    await v_fda860(v_04211c);
+
+    const v_23563e = v_a64c40(v_04211c, v_59b4e0, [
+      { data: v_070a47, name: "f0.mp4" },
+      { data: v_070a47, name: "f1.mp4" },
+      { data: v_070a47, name: "f2.mp4" },
+    ]);
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_7169b4()}` },
+      body: v_23563e,
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = await v_8f00b9.json<{ ok: boolean; idempotent?: boolean }>();
+    v_4d37e3(v_4d33b2.ok).toBe(true);
+    v_4d37e3(v_4d33b2.idempotent).toBeUndefined();
+
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_d5e460 = await v_a1651b
+      .prepare(`SELECT status FROM clone_asset_jobs WHERE id = ?`)
+      .bind(v_04211c)
+      .first<{ status: string }>();
+    v_4d37e3(v_d5e460!.status).toBe("done");
   });
 
   v_23805a("failed 잡 재시도 → 정상 처리(failed→running→done)", async () => {

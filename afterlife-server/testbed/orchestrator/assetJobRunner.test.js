@@ -4,7 +4,7 @@ import { v_354e0a, v_f4ad91, v_cdd5c2 } from 'fnffflguqbrqugbi';
 import { v_eaee41, v_086912 } from 'hbppvrg';
 import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
-import { v_47bade, v_9aedb6, v_af8891, v_ff5f5c } from './assetJobRunner.js';
+import { v_47bade, v_9aedb6, v_af8891, v_15296d, v_ff5f5c } from './assetJobRunner.js';
 
 const v_cc9198 = 'https://oth-path.example.com';
 
@@ -1576,4 +1576,76 @@ v_2a805f('MAJOR: 부분실패(fifth index 1 fail) — ensure 1회 + 호출 순�
 
   v_ce93bd.equal(v_cc9744.callCount(), 2, 'qwen 2회 (0·1)');
   v_ce93bd.equal(v_6b1dc6.callCount(), 2, 'fifth 2회 (0 성공·1 실패)');
+});
+
+async function v_ce27fb(v_538ad9) {
+  const { createServer: v_9835fd } = await import('owqxojxvg');
+  const v_9bdcf4 = v_9835fd((v_309144, v_8f00b9) => {
+    v_8f00b9.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+    for (const v_3f4e2e of v_538ad9) v_8f00b9.write(v_3f4e2e);
+    v_8f00b9.end();
+  });
+  await new Promise((v_cb35cb) => v_9bdcf4.listen(0, '127.0.0.1', v_cb35cb));
+  return { srv: v_9bdcf4, url: `http://127.0.0.1:${v_9bdcf4.address().port}` };
+}
+
+function v_143cb5(v_931bf0) {
+  const v_fe889f = Buffer.alloc(4);
+  v_fe889f.writeUInt32BE(v_931bf0.length, 0);
+  return Buffer.concat([v_fe889f, v_931bf0]);
+}
+
+const v_3ed218 = Buffer.alloc(4); 
+
+v_2a805f('defaultFifthRender: 정상 스트림(프레임 2 + 터미네이터) → 프레임 배열 resolve', async () => {
+  const v_d73eec = Buffer.from('jpeg-one');
+  const v_5ad92f = Buffer.from('jpeg-two-larger');
+  const { srv: v_9bdcf4, url: v_f71b56 } = await v_ce27fb([v_143cb5(v_d73eec), v_143cb5(v_5ad92f), v_3ed218]);
+  try {
+    const v_3b40dd = await v_15296d('/tmp/x.wav', '/tmp/face.jpg', v_f71b56);
+    v_ce93bd.equal(v_3b40dd.length, 2, '프레임 2개');
+    v_ce93bd.deepEqual(v_3b40dd[0], v_d73eec);
+    v_ce93bd.deepEqual(v_3b40dd[1], v_5ad92f);
+  } finally {
+    v_9bdcf4.close();
+  }
+});
+
+v_2a805f('defaultFifthRender: 터미네이터가 프레임과 같은 chunk 로 붙어 와도 resolve', async () => {
+  const v_d73eec = Buffer.from('jpeg-only');
+
+  const { srv: v_9bdcf4, url: v_f71b56 } = await v_ce27fb([Buffer.concat([v_143cb5(v_d73eec), v_3ed218])]);
+  try {
+    const v_3b40dd = await v_15296d('/tmp/x.wav', '/tmp/face.jpg', v_f71b56);
+    v_ce93bd.equal(v_3b40dd.length, 1);
+    v_ce93bd.deepEqual(v_3b40dd[0], v_d73eec);
+  } finally {
+    v_9bdcf4.close();
+  }
+});
+
+v_2a805f('defaultFifthRender: 터미네이터 뒤 잔여 바이트 → residual reject 유지', async () => {
+  const { srv: v_9bdcf4, url: v_f71b56 } = await v_ce27fb([
+    v_143cb5(Buffer.from('jpeg-one')), v_3ed218, Buffer.from('garbage'),
+  ]);
+  try {
+    await v_ce93bd.rejects(
+      () => v_15296d('/tmp/x.wav', '/tmp/face.jpg', v_f71b56),
+      /residual/,
+    );
+  } finally {
+    v_9bdcf4.close();
+  }
+});
+
+v_2a805f('defaultFifthRender: 터미네이터 없이 종료 → terminator reject 유지', async () => {
+  const { srv: v_9bdcf4, url: v_f71b56 } = await v_ce27fb([v_143cb5(Buffer.from('jpeg-one'))]);
+  try {
+    await v_ce93bd.rejects(
+      () => v_15296d('/tmp/x.wav', '/tmp/face.jpg', v_f71b56),
+      /terminator/,
+    );
+  } finally {
+    v_9bdcf4.close();
+  }
 });

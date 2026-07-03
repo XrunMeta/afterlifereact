@@ -133,13 +133,12 @@ export async function v_80401b(
     .first<{ id: string; status: string; clone_id: number | null; kind: string }>();
   if (!v_d5ec97) return null;
 
-  if (v_d5ec97.status === "running" || v_d5ec97.status === "done") return null;
-
+  if (v_d5ec97.status === "done") return null;
   const v_43c42e = await v_a1651b
     .prepare(
       `UPDATE clone_asset_jobs
           SET status='running', updated_at=datetime('now')
-        WHERE id=? AND status IN ('pending','failed')`,
+        WHERE id=? AND status IN ('pending','running','failed')`,
     )
     .bind(v_389afb)
     .run();
