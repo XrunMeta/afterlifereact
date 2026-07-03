@@ -23,7 +23,6 @@ log = logging.getLogger("prethird.filler_player")
 
 _VIDEO_FPS: int = 25
 _AUDIO_SR: int = 48000
-_VIDEO_SIZE: int = 512  # fifth 출력 기준 (512×512)
 
 FILLER_LOOKAHEAD_SEC: float = float(os.environ.get("FILLER_LOOKAHEAD_SEC", "1.0"))
 
@@ -32,10 +31,13 @@ FILLER_LOOKAHEAD_SEC: float = float(os.environ.get("FILLER_LOOKAHEAD_SEC", "1.0"
 
 
 def _decode_mp4_default(path: str) -> tuple[list[np.ndarray], np.ndarray]:
-    """mp4 → (rgb24 512×512 프레임 리스트, 48k mono int16 pcm 1D ndarray).
+    """mp4 → (rgb24 프레임 리스트[원본 크기 보존], 48k mono int16 pcm 1D ndarray).
 
     실패 시 ([], zeros(0, int16)) 반환 — 호출측(FillerPlayer)이 스킵 처리.
-    fifth /render 출력은 이미 512×512이므로 정상 경로에서 resize 불필요.
+    ⚠ 프레임 크기는 원본 그대로 유지한다 — fifth /render 는 paste-back 으로
+    소스 사진 비율(예: 576×1024 세로)을 보존하며, 통화의 idle/speaking 프레임도
+    같은 소스라 크기가 동일하다. 과거 512×512 강제 resize 가 필러만 찌그러진
+    정사각으로 송출시킨 버그(T-088 라운드4)의 재발 금지.
     """
     try:
         import av
@@ -54,20 +56,8 @@ def _decode_mp4_default(path: str) -> tuple[list[np.ndarray], np.ndarray]:
             for packet in container.demux():
                 if packet.stream.type == "video":
                     for frame in packet.decode():
+                        # 원본 크기 보존 — resize 금지 (docstring 참조)
                         arr: np.ndarray = frame.to_ndarray(format="rgb24")
-                        h, w = arr.shape[:2]
-                        if h != _VIDEO_SIZE or w != _VIDEO_SIZE:
-                            try:
-                                from PIL import Image  # type: ignore[import]
-                                img = Image.fromarray(arr).resize(
-                                    (_VIDEO_SIZE, _VIDEO_SIZE), Image.BILINEAR
-                                )
-                                arr = np.asarray(img)
-                            except Exception:
-                                log.debug(
-                                    "[filler] resize 불가 (%d×%d→512×512): PIL 없음 — 원본 사용",
-                                    w, h,
-                                )
                         video_frames.append(arr)
 
                 elif packet.stream.type == "audio":

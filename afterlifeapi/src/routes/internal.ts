@@ -143,7 +143,8 @@ const FILLER_CONTENT_TYPE = "video/mp4";
 
 const FILLER_MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-const FILLER_FILE_COUNT = 3;
+const FILLER_FILE_MIN = 3;
+const FILLER_FILE_MAX = 8;
 
 internal.post("/filler-job-done", async (c) => {
 
@@ -171,22 +172,36 @@ internal.post("/filler-job-done", async (c) => {
     return c.json({ ok: true });
   }
 
-  if (form.get(`file${FILLER_FILE_COUNT}`) !== null) {
+  if (form.get(`file${FILLER_FILE_MAX}`) !== null) {
     return c.json(
-      { error: `too many files: expected exactly ${FILLER_FILE_COUNT} (file0..file${FILLER_FILE_COUNT - 1})` },
+      { error: `too many files: max ${FILLER_FILE_MAX} (file0..file${FILLER_FILE_MAX - 1})` },
       400,
     );
   }
   const fileEntries: File[] = [];
-  for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+  for (let i = 0; i < FILLER_FILE_MAX; i++) {
     const entry = form.get(`file${i}`);
-    if (!entry || typeof entry === "string") {
-      return c.json({ error: `file${i} required (need exactly ${FILLER_FILE_COUNT} files)` }, 400);
+    if (entry === null) break;
+    if (typeof entry === "string") {
+      return c.json({ error: `file${i} must be a file` }, 400);
     }
     fileEntries.push(entry as File);
   }
+  if (fileEntries.length < FILLER_FILE_MIN) {
+    return c.json(
+      { error: `file0..file${FILLER_FILE_MIN - 1} required (need ${FILLER_FILE_MIN}~${FILLER_FILE_MAX} files)` },
+      400,
+    );
+  }
 
-  for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+  for (let i = fileEntries.length + 1; i < FILLER_FILE_MAX; i++) {
+    if (form.get(`file${i}`) !== null) {
+      return c.json({ error: `file index gap: file${fileEntries.length} missing but file${i} present` }, 400);
+    }
+  }
+  const fileCount = fileEntries.length;
+
+  for (let i = 0; i < fileCount; i++) {
     const f = fileEntries[i];
     if (!f) {
       return c.json({ error: `file${i} missing` }, 400);
@@ -203,7 +218,7 @@ internal.post("/filler-job-done", async (c) => {
   }
 
   const bufs: ArrayBuffer[] = [];
-  for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+  for (let i = 0; i < fileCount; i++) {
     const buf = await fileEntries[i]?.arrayBuffer();
     if (!buf) {
       return c.json({ error: `file${i} read failed` }, 400);
@@ -219,7 +234,7 @@ internal.post("/filler-job-done", async (c) => {
   const origin = new URL(c.req.url).origin;
   const r2Entries: Array<{ r2Key: string; sizeBytes: number }> = [];
   try {
-    for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+    for (let i = 0; i < fileCount; i++) {
       const buf = bufs[i];
       if (!buf) {
         throw new Error(`buf${i} missing`);
