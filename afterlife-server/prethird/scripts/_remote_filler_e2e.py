@@ -37,6 +37,10 @@ POLL_INTERVAL = 6
 def _req(method, path, token=None, json_body=None, raw_body=None, headers=None, base=None):
     url = (base or API_BASE) + path
     h = dict(headers or {})
+    # CF Browser Integrity Check가 python-urllib 기본 UA를 간헐 차단(error 1010) → 브라우저형 UA 명시.
+    h.setdefault("User-Agent",
+                 "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                 "Chrome/126.0.0.0 Safari/537.36 afterlife-e2e")
     if token:
         h["Authorization"] = f"Bearer {token}"
     data = None
@@ -130,16 +134,21 @@ def main():
 
     # 4. createClone (filler 자동 트리거)
     uniq = str(int(time.time()))[-6:]
+    # 2번째 페르소나부터 결제 게이트(402) — preview 전용 우회 PIN(DEV_PAYMENT_BYPASS_PIN,
+    # wrangler.toml [env.preview.vars] 정의)으로 스킵. production엔 미설정이라 무효.
     st, body, _ = _req("POST", "/oth-path", token=token, json_body={
         "name": f"filler_e2e_{uniq}",
         "username": f"filler_e2e_{uniq}",
         "visibility": "private",
         "idle_video_job_id": idle_job,
         "voice_clone_job_id": voice_job,
-    })
+        "pin": os.environ.get("E2E_PIN", "424242"),
+    }, headers={"X-Idempotency-Key": f"filler-e2e-{uniq}-{os.getpid()}"})
     if st not in (200, 201):
         fail(f"createClone {st}: {body}")
-    clone_id = body.get("id") or (body.get("data") or {}).get("id")
+    # createClone 응답 = { clone: { id, ... } } (clones.ts)
+    clone_id = ((body.get("clone") or {}).get("id")
+                or body.get("id") or (body.get("data") or {}).get("id"))
     print(f"✅ createClone clone_id={clone_id} (filler 잡 자동 트리거됨)")
 
     # 5. bundle.fillerVideoUrls 폴링

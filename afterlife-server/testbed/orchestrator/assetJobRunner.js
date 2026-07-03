@@ -160,15 +160,21 @@ export async function v_15296d(v_f2bb81, v_f37742, v_555aed) {
           return;
         }
         const v_3b40dd = [];
+
+        const v_829001 = Buffer.from('TOK:');
         let v_83ee53 = Buffer.alloc(0);
         let v_2fb8cc = false;
         v_8f00b9.on('data', (v_334f63) => {
           v_83ee53 = Buffer.concat([v_83ee53, v_334f63]);
           while (!v_2fb8cc && v_83ee53.length >= 4) {
             const v_fe889f = v_83ee53.readUInt32BE(0);
-            if (v_fe889f === 0) { v_2fb8cc = true; break; }
+
+            if (v_fe889f === 0) { v_2fb8cc = true; v_83ee53 = v_83ee53.slice(4); break; }
             if (v_83ee53.length < 4 + v_fe889f) break;
-            v_3b40dd.push(v_83ee53.slice(4, 4 + v_fe889f));
+            const v_931bf0 = v_83ee53.slice(4, 4 + v_fe889f);
+            if (!(v_931bf0.length >= v_829001.length && v_931bf0.slice(0, v_829001.length).equals(v_829001))) {
+              v_3b40dd.push(v_931bf0);
+            }
             v_83ee53 = v_83ee53.slice(4 + v_fe889f);
           }
         });
@@ -381,6 +387,14 @@ export function v_47bade({
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.ORCH_SECRET ?? ''}` },
       body: v_23563e,
+    }).then(async (v_cb35cb) => {
+
+      const v_4d33b2 = typeof v_cb35cb?.text === 'function' ? await v_cb35cb.text().catch(() => '') : '';
+      if (v_cb35cb?.ok) {
+        console.log('[assetJobRunner] filler callback done ok', v_d5ec97.job_id, v_cb35cb.status, v_4d33b2.slice(0, 120));
+      } else {
+        console.error('[assetJobRunner] filler callback done non-ok', v_d5ec97.job_id, v_cb35cb?.status, v_4d33b2.slice(0, 200));
+      }
     }).catch((v_9e86fd) => console.error('[assetJobRunner] filler callback done fetch error', v_9e86fd?.message));
   }
 
