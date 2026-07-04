@@ -64,6 +64,8 @@ export async function loadUserL2(
     const v = parsed[k];
     if (v == null) continue;
     if (typeof v === "string" && v.length === 0) continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+    if (typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0) continue;
     out[k] = v;
   }
   return Object.keys(out).length ? (out as PersonaDict) : null;

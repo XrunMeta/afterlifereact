@@ -66,6 +66,10 @@ describe("loadUserL2 — 학습 키 소비(E 핫픽스)", () => {
     await seedOnt(7103, 6103, { address: "서울", _meta: { rev: 1 } });
     expect(await loadUserL2(Edb.DB, 7103, 6103)).toBeNull();
   });
+  it("빈 배열/빈 객체만 있으면 null(memory.ts 스캐폴딩 기본값 회귀 방어)", async () => {
+    await seedOnt(7104, 6104, { memories_personal: [], preference_personal: {}, address: "서울" });
+    expect(await loadUserL2(Edb.DB, 7104, 6104)).toBeNull();
+  });
 });
 
 describe("resolvePersona — 학습 키 보존(E 핫픽스)", () => {

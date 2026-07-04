@@ -93,7 +93,7 @@ describe("loadUserL2 (clone_ont)", () => {
       .prepare(
         "INSERT INTO clone_ont (clone_id, user_id, data, updated_at) VALUES (?, ?, ?, unixepoch())"
       )
-      .bind(9045, 102, JSON.stringify({ address: "홍길동" }))
+      .bind(9045, 102, JSON.stringify({ address: "홍길동", memories_personal: [] }))
       .run();
 
     const l2 = await loadUserL2(db(), 9045, 102);
