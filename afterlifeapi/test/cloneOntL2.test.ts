@@ -93,7 +93,7 @@ v_469bf2("loadUserL2 (clone_ont)", () => {
       .prepare(
         "INSERT INTO clone_ont (clone_id, user_id, data, updated_at) VALUES (?, ?, ?, unixepoch())"
       )
-      .bind(9045, 102, JSON.stringify({ address: "홍길동" }))
+      .bind(9045, 102, JSON.stringify({ address: "홍길동", memories_personal: [] }))
       .run();
 
     const v_1af19b = await v_20b0e8(v_a1651b(), 9045, 102);

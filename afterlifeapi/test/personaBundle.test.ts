@@ -66,6 +66,10 @@ v_469bf2("loadUserL2 — 학습 키 소비(E 핫픽스)", () => {
     await v_81e28f(7103, 6103, { address: "서울", _meta: { rev: 1 } });
     v_4d37e3(await v_20b0e8(v_7ac368.DB, 7103, 6103)).toBeNull();
   });
+  v_23805a("빈 배열/빈 객체만 있으면 null(memory.ts 스캐폴딩 기본값 회귀 방어)", async () => {
+    await v_81e28f(7104, 6104, { memories_personal: [], preference_personal: {}, address: "서울" });
+    v_4d37e3(await v_20b0e8(v_7ac368.DB, 7104, 6104)).toBeNull();
+  });
 });
 
 v_469bf2("resolvePersona — 학습 키 보존(E 핫픽스)", () => {

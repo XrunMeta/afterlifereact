@@ -64,6 +64,8 @@ export async function v_20b0e8(
     const v_81e2ef = v_8decf8[v_0eb677];
     if (v_81e2ef == null) continue;
     if (typeof v_81e2ef === "string" && v_81e2ef.length === 0) continue;
+    if (Array.isArray(v_81e2ef) && v_81e2ef.length === 0) continue;
+    if (typeof v_81e2ef === "object" && !Array.isArray(v_81e2ef) && Object.keys(v_81e2ef).length === 0) continue;
     v_8d4337[v_0eb677] = v_81e2ef;
   }
   return Object.keys(v_8d4337).length ? (v_8d4337 as v_1f7dcf) : null;
