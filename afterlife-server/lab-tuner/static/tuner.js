@@ -46,20 +46,52 @@ async function loadClones() {
   }
 }
 
+function waitIceGathering(pc) {
+  if (pc.iceGatheringState === 'complete') return Promise.resolve();
+  return new Promise((resolve) => {
+    const check = () => {
+      if (pc.iceGatheringState === 'complete') {
+        pc.removeEventListener('icegatheringstatechange', check);
+        resolve();
+      }
+    };
+    pc.addEventListener('icegatheringstatechange', check);
+    setTimeout(resolve, 3000); 
+  });
+}
+
 async function connect() {
   const select = document.getElementById('clone-select');
   const cloneId = parseInt(select.value, 10);
+  const cst = document.getElementById('conn-status');
   if (!cloneId || !accessToken) {
     document.getElementById('login-status').textContent = '로그인·클론 선택 필요';
     return;
   }
+  cst.textContent = '연결 중...';
   pc = new RTCPeerConnection();
   pc.addTransceiver('video', {direction: 'recvonly'});
   pc.addTransceiver('audio', {direction: 'recvonly'});
   pc.ontrack = (e) => { document.getElementById('clone-video').srcObject = e.streams[0]; };
+  pc.onconnectionstatechange = () => {
+    cst.textContent = `pc:${pc.connectionState} · dc:${dc ? dc.readyState : '-'}`;
+  };
   dc = pc.createDataChannel('control');
+
+  dc.onopen = () => {
+    document.getElementById('say-input').disabled = false;
+    document.getElementById('say-btn').disabled = false;
+    cst.textContent = '✅ dc open — say 가능';
+  };
+  dc.onclose = () => { cst.textContent = 'dc closed'; };
+  dc.onerror = () => { cst.textContent = 'dc error'; };
+  dc.onmessage = (e) => {
+    try { const m = JSON.parse(e.data); cst.textContent = `dc open · ${m.type || ''}`; } catch (_) {}
+  };
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
+  await waitIceGathering(pc);
+  cst.textContent = 'offer 전송(ICE 수집 완료)...';
   const r = await fetch('/offer', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
       sdp: pc.localDescription.sdp, type: pc.localDescription.type,
@@ -67,9 +99,7 @@ async function connect() {
     })});
   const ans = await r.json();
   await pc.setRemoteDescription(ans);
-
-  document.getElementById('say-input').disabled = false;
-  document.getElementById('say-btn').disabled = false;
+  cst.textContent = 'answer 수신 — dc 개통 대기';
 }
 
 async function loadKnobs() {
@@ -104,7 +134,13 @@ async function applyKnobs() {
 
 function sendSay() {
   const t = document.getElementById('say-input').value;
-  if (dc && dc.readyState === 'open') dc.send(JSON.stringify({type:'say', text:t, seq:Date.now()}));
+  const cst = document.getElementById('conn-status');
+  if (!dc || dc.readyState !== 'open') {
+    cst.textContent = `say 불가 — dc:${dc ? dc.readyState : '없음'}(연결/개통 대기)`;
+    return;
+  }
+  dc.send(JSON.stringify({type:'say', text:t, seq:Date.now()}));
+  cst.textContent = `say 전송됨: "${t.slice(0, 20)}"`;
 }
 
 function startMetrics() {
