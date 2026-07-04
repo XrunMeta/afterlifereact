@@ -27,6 +27,8 @@ export interface UseFaceEnrollOptions {
 
   getBuffer: () => EmbeddingBuffer;
 
+  getSnapshot?: () => number[][] | null;
+
   deps?: FaceEnrollDeps;
 }
 
@@ -42,7 +44,7 @@ export interface UseFaceEnrollResult {
 }
 
 export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
-  const { accessToken, getBuffer } = opts;
+  const { accessToken, getBuffer, getSnapshot } = opts;
   const deps = opts.deps ?? defaultDeps;
   const [status, setStatus] = useState<FaceEnrollStatus>("idle");
   const [error, setError] = useState<Error | null>(null);
@@ -70,7 +72,13 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
           });
           consentDoneRef.current = true;
         }
-        const vectors = getBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
+        const snapshot = getSnapshot?.() ?? null;
+        if (snapshot == null) {
+          console.warn(
+            "[useFaceEnroll] getSnapshot 미제공/null — getBuffer() 현재값으로 폴백(오염 가능성 있음)",
+          );
+        }
+        const vectors = snapshot ?? getBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
         await deps.enrollFacesFn(accessToken, person.id, vectors);
         setStatus("success");
       } catch (e) {
@@ -80,7 +88,7 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
         enrollingRef.current = false;
       }
     },
-    [accessToken, getBuffer, deps],
+    [accessToken, getBuffer, getSnapshot, deps],
   );
 
   const reset = useCallback(() => {

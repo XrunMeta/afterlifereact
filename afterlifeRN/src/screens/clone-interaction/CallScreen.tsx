@@ -37,7 +37,7 @@ import { shouldRunEmbedding } from "../../face/embeddingThrottle";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
-import { useFaceEnroll } from "../../face/useFaceEnroll";
+import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import { createPerson, saveFaceConsent, listPersons, deletePerson } from "../../api/persons";
@@ -211,6 +211,19 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
 
+  const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
+  const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
+    handleSpeakerEventRef.current(evt);
+  }, []);
+
+  const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
+
+  const { onEmbedding: onFaceEmbedding, getBuffer: getFaceEmbeddingBuffer } = useFaceIdentify({
+    enabled: consentGranted && liveState === "live",
+    accessToken: accessToken ?? "",
+    onEvent: handleSpeakerEventTrampoline,
+  });
+
   const handleSpeakerEvent = useCallback(
     (evt: SpeakerEvent) => {
       if (!evt) return;
@@ -221,22 +234,22 @@ export default function CallScreen({ route, navigation }: Props) {
           displayName: evt.displayName,
         });
       } else if (evt.type === "unknown_face") {
+
+        unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
         sendFaceEvent?.({ event: "unknown_face" });
       }
     },
 
-    [sendFaceEvent],
+    [sendFaceEvent, getFaceEmbeddingBuffer],
   );
-
-  const { onEmbedding: onFaceEmbedding, getBuffer: getFaceEmbeddingBuffer } = useFaceIdentify({
-    enabled: consentGranted,
-    accessToken: accessToken ?? "",
-    onEvent: handleSpeakerEvent,
-  });
+  useEffect(() => {
+    handleSpeakerEventRef.current = handleSpeakerEvent;
+  }, [handleSpeakerEvent]);
 
   const faceEnroll = useFaceEnroll({
     accessToken: accessToken ?? "",
     getBuffer: getFaceEmbeddingBuffer,
+    getSnapshot: () => unknownFaceSnapshotRef.current,
   });
 
   const handleEnrollSuggestImpl = useCallback(
@@ -389,6 +402,7 @@ export default function CallScreen({ route, navigation }: Props) {
     setEnrollCardVisible(false);
     setEnrollName("");
     faceEnroll.reset();
+    unknownFaceSnapshotRef.current = null; 
   }, [faceEnroll, accessToken]);
 
   useEffect(() => {
@@ -397,6 +411,7 @@ export default function CallScreen({ route, navigation }: Props) {
       setEnrollCardVisible(false);
       setEnrollName("");
       faceEnroll.reset();
+      unknownFaceSnapshotRef.current = null; 
     } else if (faceEnroll.status === "error") {
       setToastMessage("등록에 실패했어요. 다시 시도해 주세요");
     }

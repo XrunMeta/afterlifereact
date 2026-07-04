@@ -1,6 +1,6 @@
 
 import { renderHook, act } from "@testing-library/react-native";
-import { useFaceEnroll } from "../../src/face/useFaceEnroll";
+import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../src/face/useFaceEnroll";
 import { EmbeddingBuffer } from "../../src/face/embeddingBuffer";
 import { shouldCleanupOrphanOnSuggest } from "../../src/face/faceEnrollGuard";
 
@@ -274,4 +274,54 @@ test("A 부분실패 → B suggest 가드(true) → cleanup+reset → B 신규 �
   expect(createPersonFn).toHaveBeenNthCalledWith(2, "tok", { displayName: "B" });
   expect(result.current.status).toBe("success");
   expect(result.current.getPendingPersonId()).toBeNull();
+});
+
+test("getSnapshot 제공 시: 캡처 이후 buffer.push 가 추가돼도 enrollFacesFn 에 전달되는 vectors 는 스냅샷 시점 벡터와 동일", async () => {
+  const person = { id: 55, consentState: "none" as const };
+  const createPersonFn = jest.fn().mockResolvedValue(person);
+  const saveFaceConsentFn = jest.fn().mockResolvedValue("granted");
+  const enrollFacesFn = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const buffer = makeBuffer([[1, 1]]); 
+
+  const snapshot = buffer.latest(FACE_ENROLL_VECTOR_COUNT);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      getSnapshot: () => snapshot,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  buffer.push([9, 9]);
+  buffer.push([9, 9]);
+
+  await act(async () => {
+    await result.current.enroll("민지");
+  });
+
+  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 55, [[1, 1]]);
+});
+
+test("getSnapshot 미제공 시: 기존 폴백대로 getBuffer().latest() 사용", async () => {
+  const person = { id: 56, consentState: "none" as const };
+  const createPersonFn = jest.fn().mockResolvedValue(person);
+  const saveFaceConsentFn = jest.fn().mockResolvedValue("granted");
+  const enrollFacesFn = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const buffer = makeBuffer([[2, 2]]);
+
+  const { result } = renderHook(() =>
+    useFaceEnroll({
+      accessToken: "tok",
+      getBuffer: () => buffer,
+      deps: { createPersonFn, saveFaceConsentFn, enrollFacesFn },
+    }),
+  );
+
+  await act(async () => {
+    await result.current.enroll("철수");
+  });
+
+  expect(enrollFacesFn).toHaveBeenCalledWith("tok", 56, [[2, 2]]);
 });

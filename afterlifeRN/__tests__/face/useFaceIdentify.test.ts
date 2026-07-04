@@ -133,6 +133,38 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
     expect(matchFaceFn).not.toHaveBeenCalled();
   });
 
+  it("리뷰 fix(버그1) — enabled=false 동안 onEmbedding 호출은 무시되다가, enabled=true 로 바뀐 뒤엔 정상 동작", async () => {
+
+    const matchFaceFn = jest.fn().mockResolvedValue({
+      matches: [],
+      best: { personId: 5, displayName: "동수", score: 0.9 },
+      threshold: 0.5,
+    });
+    const onEvent = jest.fn();
+    const { result, rerender } = renderHook<
+      ReturnType<typeof useFaceIdentify>,
+      { enabled: boolean }
+    >(
+      ({ enabled }) =>
+        useFaceIdentify({ enabled, accessToken: "tok", onEvent, deps: { matchFaceFn } }),
+      { initialProps: { enabled: false } },
+    );
+
+    result.current.onEmbedding(VEC);
+    result.current.onEmbedding(VEC);
+    expect(matchFaceFn).not.toHaveBeenCalled();
+    expect(onEvent).not.toHaveBeenCalled();
+
+    rerender({ enabled: true });
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(matchFaceFn).toHaveBeenCalledTimes(1));
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(matchFaceFn).toHaveBeenCalledTimes(2));
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(onEvent).toHaveBeenCalledTimes(1));
+    expect(onEvent).toHaveBeenCalledWith({ type: "speaker_confirmed", personId: 5, displayName: "동수" });
+  });
+
   it("getBuffer() 로 최근 벡터 확인 가능(EmbeddingBuffer 사이드이펙트)", async () => {
     const matchFaceFn = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
     const { result } = renderHook(() =>
