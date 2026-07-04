@@ -96,6 +96,41 @@ async def test_replay_fifth_rejects_invalid_run_id(tmp_path):
         await client.close()
 
 @pytest.mark.asyncio
+async def test_replay_tts_missing_llm_txt_returns_404(tmp_path):
+    # el S12b MINOR: 무발화턴(llm.txt 미기록) → 500 대신 404.
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    rid = store.new_run()   # llm.txt 저장 없이 run만 생성
+
+    async def fake_say(text, se_path=None):
+        raise AssertionError("llm.txt 없는데 say_fn 호출됨 — 회귀")
+    application = labapp.build_app(r, factory=None, store=store, say_fn=fake_say)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/replay/tts", json={"run_id": rid})
+        assert resp.status == 404
+    finally:
+        await client.close()
+
+@pytest.mark.asyncio
+async def test_replay_fifth_missing_answer_wav_returns_404(tmp_path, monkeypatch):
+    # el S12b MINOR: 무발화턴(answer.wav 미기록) → 500 대신 404.
+    import harness
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    rid = store.new_run()   # answer.wav 저장 없이 run만 생성
+
+    def _boom(*a, **kw):
+        raise AssertionError("answer.wav 없는데 렌더러가 생성됨 — 회귀")
+    monkeypatch.setattr(harness, "KnobsFifthInproc", _boom)
+
+    application = labapp.build_app(r, factory=None, store=store, render_url="http://x:8810")
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/replay/fifth", json={"run_id": rid})
+        assert resp.status == 404
+    finally:
+        await client.close()
+
+@pytest.mark.asyncio
 async def test_replay_fifth_busy_guard_returns_409(tmp_path, monkeypatch):
     import harness
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))

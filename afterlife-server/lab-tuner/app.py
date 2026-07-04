@@ -77,6 +77,10 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             return web.json_response({"error": err}, status=400)
         if say_fn is None:
             return web.json_response({"error": "say_fn 미주입"}, status=503)
+        # el S12b MINOR: 무발화턴(llm.txt 없음) → 렌더/로드 실패로 인한 500 대신 404.
+        llm_path = store.path(rid, "llm.txt")
+        if not os.path.exists(llm_path):
+            return web.json_response({"error": f"run_id에 llm.txt 없음(무발화턴?): {rid}"}, status=404)
         text = store.load_text(rid, "llm.txt")
         wav = await say_fn(text, data.get("se_path"))
         store.save_bytes(rid, "answer.wav", wav)
@@ -94,6 +98,9 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             except LiveBusyError as exc:
                 return web.json_response({"error": str(exc)}, status=409)
         wav_path = store.path(rid, "answer.wav")
+        # el S12b MINOR: 무발화턴(answer.wav 없음) → 렌더 실패로 인한 500 대신 404.
+        if not os.path.exists(wav_path):
+            return web.json_response({"error": f"run_id에 answer.wav 없음(무발화턴?): {rid}"}, status=404)
         # 공유 라이브 렌더(:8810)에 직접 /render POST (KnobsFifthInproc 재사용)
         import harness
         renderer = harness.KnobsFifthInproc(data.get("video_path", ""), registry=registry,
