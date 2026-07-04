@@ -38,7 +38,10 @@ export function v_445ba7(
   return { l0: v_b6c480, cloneId: String(v_6e0fd3), persona: v_5ed063 };
 }
 
-const v_f4c771 = ["memory_summary", "relationship", "context", "recent_topics"] as const;
+const v_f4c771 = [
+  "memory_summary", "relationship", "context", "recent_topics",   
+  "relation", "preference_personal", "memories_personal",          
+] as const;
 
 export async function v_20b0e8(
   v_a1651b,
