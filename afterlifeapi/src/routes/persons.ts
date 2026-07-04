@@ -211,14 +211,25 @@ v_fded81.delete("/:id", v_6690d9, async (v_3f4e2e) => {
     .bind(v_ca1ec5)
     .all<{ vectorize_id: string | null }>();
   const v_23dafb = v_61c797.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter((v_81e2ef): v_81e2ef is string => Boolean(v_81e2ef));
+
   if (v_23dafb.length) await v_a8d2cc(v_3f4e2e.env).deleteByIds(v_23dafb);
+
+  const v_bee926 = Date.now();
 
   await v_3f4e2e.env.DB.batch([
     v_3f4e2e.env.DB.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(v_ca1ec5),
-    v_3f4e2e.env.DB.prepare("DELETE FROM persons_consent_log WHERE person_id = ?").bind(v_ca1ec5),
+
+    v_3f4e2e.env.DB.prepare(
+      `INSERT INTO persons_consent_log (person_id, state, terms_version, channel, changed_at)
+       VALUES (?, 'revoked', NULL, 'face_delete', ?)`
+    ).bind(v_ca1ec5, v_bee926),
+    v_3f4e2e.env.DB.prepare("UPDATE call_turns SET speaker_person_id = NULL WHERE speaker_person_id = ?").bind(v_ca1ec5),
+
     v_3f4e2e.env.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(v_ca1ec5),
     v_3f4e2e.env.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(v_ca1ec5, v_43e90c),
   ]);
+
+  console.log(JSON.stringify({ event: "face_person_deleted", personId: v_ca1ec5, userId: v_43e90c, deletedEmbeddings: v_23dafb.length }));
 
   return v_3f4e2e.json({ deleted: true });
 });
