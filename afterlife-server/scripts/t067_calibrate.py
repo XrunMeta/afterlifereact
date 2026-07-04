@@ -2,17 +2,30 @@
 """t067_calibrate.py — same/diff cosine 분포로 얼굴 매칭 임계값 산출 (T-067 Task 8, Step 3).
 
 입력: fixtures/t067-faces/<identity>/shot_0..5.jpg (t067_make_fixtures.py 산출).
-전처리: 각 샷에서 얼굴 crop(cv2 Haar cascade, 미검출시 중앙크롭 폴백) → 112x112 →
-        t067_model_parity.embed_onnx 와 동일 임베딩(onnx w600k_mbf, 512d L2정규화).
-스윕: threshold 0.30~0.60 step 0.01 → FAR(diff가 통과)=0 인 것 중 TAR(same 통과) 최대인 t 선택.
-출력: t067_calibration.json + app_config UPSERT 명령 출력.
+전처리: 각 샷에서 얼굴 crop(cv2 Haar cascade bbox, 미검출시 중앙크롭 폴백) → 112x112 리사이즈(비정렬
+        squash, 종횡비 무시) → t067_model_parity.embed_onnx 와 동일 임베딩(onnx w600k_mbf, 512d L2정규화).
+스윕: threshold 0.30~0.95 step 0.01 → FAR(diff가 통과)=0 인 것 중 TAR(same 통과) 최대인 t 선택.
+출력: t067_calibration.json + (--print-upsert 지정 시) app_config UPSERT 명령 출력.
 가드: same_p5 < diff_p95 (분포 겹침) 이면 경고 + diff_p95+0.03 보수 임계값 제시(unknown 편향 원칙).
 
-실행: python3 t067_calibrate.py <fixtures_dir> [--onnx <path>] [--out <json>]
+⚠️ **crop 한계 — 이 threshold를 그대로 운영 반영 금지 (리뷰 지적사항)**:
+  - Haar cascade bbox → margin 크롭 → 112x112 "squash" resize는 종횡비를 무시한 단순 리사이즈다.
+    ArcFace/w600k_mbf 계열 모델이 학습 시 기대하는 전처리는 5-포인트 랜드마크(양눈·코·입양끝)
+    기반 유사변환(affine) 정렬 crop — 본 스크립트는 그 정렬을 하지 않아 판별력이 저하된다
+    (diff_p95가 이론상보다 높게, same이 낮게 나올 요인).
+  - 픽스처의 same쌍은 "동일 사진의 idle 렌더 변형"이라 서로 다른 카메라/조명/각도로 찍힌
+    실사용 same쌍보다 비현실적으로 유사도가 높다 — 여기서 산출된 threshold는 same쌍 유사도를
+    과대추정하고, 위 비정렬 crop 효과와 겹쳐 diff_p95도 밀어올린다.
+  - 결론: 본 산출값은 "모델·전처리 체인이 정상 동작한다"는 검증(same≫diff, 분리 확인)에는
+    유효하지만, **운영 임계값으로는 Task 16(Phase 2, 실카메라·실사용자 얼굴) 재캘리브 전까지
+    사용 금지**. t067_calibration.json에 operational=false로 명시.
+
+실행: python3 t067_calibrate.py <fixtures_dir> [--onnx <path>] [--out <json>] [--print-upsert]
   (기본 onnx: scripts/.t067-model/w600k_mbf.onnx — t067_model_prep.sh 산출물)
-  (기본 venv 의존: opencv-python-headless, onnxruntime, pillow, numpy 필요.
-   scripts/.t067-model/venv 에 설치돼 있으면 그 python 으로 실행 권장:
-     scripts/.t067-model/venv/bin/python3 t067_calibrate.py fixtures/t067-faces/)
+  (의존: scripts/t067_requirements.txt 참조 — opencv-python-headless는 반드시 4.10.0.84 고정
+   (5.x는 cv2.CascadeClassifier 결손 확인됨). scripts/.t067-model/venv 에 설치돼 있으면
+   그 python 으로 실행 권장: scripts/.t067-model/venv/bin/python3 t067_calibrate.py fixtures/t067-faces/)
+  (--print-upsert 미지정 시 app_config UPSERT 명령은 출력하지 않고 운영 반영 금지 경고만 표시)
 """
 from __future__ import annotations
 
@@ -157,6 +170,12 @@ def main():
         default="afterlife-db-preview",
         help="app_config UPSERT 명령 출력용 D1 DB 이름 (기본: preview)",
     )
+    ap.add_argument(
+        "--print-upsert",
+        action="store_true",
+        help="app_config UPSERT 명령을 출력한다(운영 반영 의도 명시적 선택). "
+        "미지정 시 경고문만 출력하고 명령은 숨김 — Task 16 재캘리브 전 실수 반영 방지.",
+    )
     args = ap.parse_args()
 
     if not os.path.isfile(args.onnx):
@@ -207,6 +226,12 @@ def main():
         "n_identities": n_identities,
         "overlap_warning": overlap,
         "conservative_threshold": conservative_t,
+        "operational": False,
+        "warning": (
+            "모델체인 검증용 잠정값 — same쌍이 동일사진 idle-렌더 변형이고 crop이 비정렬 "
+            "squash resize라 실사용 대비 same 유사도 과대추정/diff_p95 상승 가능. "
+            "Task 16 실카메라 재캘리브 전 운영 적용 금지."
+        ),
     }
 
     with open(args.out, "w") as f:
@@ -219,13 +244,18 @@ def main():
     print(f"diff_mean={diff_mean:.4f} diff_p95={diff_p95:.4f}")
     print(f"-> {args.out}")
     print("")
-    print("app_config 적용 명령:")
-    print(
-        f"""wrangler d1 execute {args.db_name} --remote --command "INSERT INTO app_config(key,value) """
-        f"""VALUES('face.match_threshold','{result['threshold']:.2f}') """
-        f"""ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=unixepoch()" """
-        f"""--env preview"""
-    )
+    print(f"⚠️  {result['warning']}")
+    if args.print_upsert:
+        print("")
+        print("app_config 적용 명령 (--print-upsert 지정됨 — Task 16 재캘리브 완료 후에만 실행할 것):")
+        print(
+            f"""wrangler d1 execute {args.db_name} --remote --command "INSERT INTO app_config(key,value) """
+            f"""VALUES('face.match_threshold','{result['threshold']:.2f}') """
+            f"""ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=unixepoch()" """
+            f"""--env preview"""
+        )
+    else:
+        print("(app_config UPSERT 명령은 --print-upsert 지정 시에만 출력됨 — 운영 반영 의도 명시적 선택 필요)")
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # _remote_t067_fixtures.sh — T-067 Task 8 픽스처 생성 SSH 오케스트레이션.
 #
-# SSH 호스트/원격 경로 컨벤션: _remote_t088_deploy.sh 에서 차용.
-#   SSH_HOST=afterlife-gabia
+# SSH 호스트/원격 경로 컨벤션: _remote_stack_up.sh/_remote_stack_down.sh 에서 차용.
+#   AFTERLIFE_SSH=afterlife-gabia (env override 변수명 통일)
 #   REMOTE_DIR=/home/afterlife/afterlife-server/fifth/scripts  (fifth_inproc 상대경로 재사용 전제)
 #
 # 흐름: ① scp t067_make_fixtures.py → 가비아 fifth/scripts/
@@ -17,7 +17,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LOCAL_REPO_ROOT="$(cd "$HERE/.." && pwd)"   # afterlife-server/
 
-SSH_HOST="${SSH_HOST:-afterlife-gabia}"
+SSH_HOST="${AFTERLIFE_SSH:-afterlife-gabia}"
 REMOTE_DIR="${REMOTE_DIR:-/home/afterlife/afterlife-server/fifth/scripts}"
 REMOTE_OUT_DIR="${REMOTE_OUT_DIR:-/home/afterlife/afterlife-server/fixtures/t067-faces}"
 REMOTE_SHARED_TMP="${REMOTE_SHARED_TMP:-/home/afterlife/afterlife-server/.fifth-tmp/t067}"
