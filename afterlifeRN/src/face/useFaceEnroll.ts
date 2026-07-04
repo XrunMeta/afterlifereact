@@ -27,6 +27,8 @@ export interface UseFaceEnrollOptions {
 
   getBuffer: () => v_4f64ba;
 
+  getSnapshot?: () => number[][] | null;
+
   deps?: FaceEnrollDeps;
 }
 
@@ -42,7 +44,7 @@ export interface UseFaceEnrollResult {
 }
 
 export function v_3fc8fd(v_328259): UseFaceEnrollResult {
-  const { accessToken: v_2ca7e0, getBuffer: v_b84ee1 } = v_328259;
+  const { accessToken: v_2ca7e0, getBuffer: v_b84ee1, getSnapshot: v_172c9f } = v_328259;
   const v_84b93d = v_328259.deps ?? v_17f880;
   const [v_d308b5, v_5193f8] = v_5ab095<FaceEnrollStatus>("idle");
   const [v_5e9bfe, v_3a7d09] = v_5ab095<Error | null>(null);
@@ -70,7 +72,13 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
           });
           v_9dac17.current = true;
         }
-        const v_f94e64 = v_b84ee1().latest(v_9e3bb7);
+        const v_5392c4 = v_172c9f?.() ?? null;
+        if (v_5392c4 == null) {
+          console.warn(
+            "[useFaceEnroll] getSnapshot 미제공/null — getBuffer() 현재값으로 폴백(오염 가능성 있음)",
+          );
+        }
+        const v_f94e64 = v_5392c4 ?? v_b84ee1().latest(v_9e3bb7);
         await v_84b93d.enrollFacesFn(v_2ca7e0, v_306a28.id, v_f94e64);
         v_5193f8("success");
       } catch (v_9e86fd) {
@@ -80,7 +88,7 @@ export function v_3fc8fd(v_328259): UseFaceEnrollResult {
         v_28ec48.current = false;
       }
     },
-    [v_2ca7e0, v_b84ee1, v_84b93d],
+    [v_2ca7e0, v_b84ee1, v_172c9f, v_84b93d],
   );
 
   const v_487a25 = v_de06a3(() => {

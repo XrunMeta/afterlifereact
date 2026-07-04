@@ -1,6 +1,6 @@
 
 import { v_0da18b, v_be73a0 } from "dtbzepbezvovgqcnbkbssjenbxhgn";
-import { v_3fc8fd } from "../../src/face/useFaceEnroll";
+import { v_3fc8fd, v_9e3bb7 } from "../../src/face/useFaceEnroll";
 import { v_4f64ba } from "../../src/face/embeddingBuffer";
 import { v_19be88 } from "../../src/face/faceEnrollGuard";
 
@@ -274,4 +274,54 @@ test("A 부분실패 → B suggest 가드(true) → cleanup+reset → B 신규 �
   expect(v_f290ff).toHaveBeenNthCalledWith(2, "tok", { displayName: "B" });
   expect(v_43c42e.current.status).toBe("success");
   expect(v_43c42e.current.getPendingPersonId()).toBeNull();
+});
+
+test("getSnapshot 제공 시: 캡처 이후 buffer.push 가 추가돼도 enrollFacesFn 에 전달되는 vectors 는 스냅샷 시점 벡터와 동일", async () => {
+  const v_306a28 = { id: 55, consentState: "none" as const };
+  const v_f290ff = jest.fn().mockResolvedValue(v_306a28);
+  const v_a18c0d = jest.fn().mockResolvedValue("granted");
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_062bb0 = v_a11615([[1, 1]]); 
+
+  const v_5392c4 = v_062bb0.latest(v_9e3bb7);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      getSnapshot: () => v_5392c4,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  v_062bb0.push([9, 9]);
+  v_062bb0.push([9, 9]);
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enroll("민지");
+  });
+
+  expect(v_c48ab5).toHaveBeenCalledWith("tok", 55, [[1, 1]]);
+});
+
+test("getSnapshot 미제공 시: 기존 폴백대로 getBuffer().latest() 사용", async () => {
+  const v_306a28 = { id: 56, consentState: "none" as const };
+  const v_f290ff = jest.fn().mockResolvedValue(v_306a28);
+  const v_a18c0d = jest.fn().mockResolvedValue("granted");
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_062bb0 = v_a11615([[2, 2]]);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enroll("철수");
+  });
+
+  expect(v_c48ab5).toHaveBeenCalledWith("tok", 56, [[2, 2]]);
 });

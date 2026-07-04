@@ -37,7 +37,7 @@ import { v_f7b672 } from "../../face/embeddingThrottle";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_6e58ce } from "../../face/newFaceDetector";
 import { v_e9685b } from "../../face/useFaceIdentify";
-import { v_3fc8fd } from "../../face/useFaceEnroll";
+import { v_3fc8fd, v_9e3bb7 } from "../../face/useFaceEnroll";
 import { v_19be88 } from "../../face/faceEnrollGuard";
 import type { v_b26216 } from "../../face/speakerIdReducer";
 import { v_4e7b87, v_31967f, v_865d38, v_a94a1b } from "../../api/persons";
@@ -211,6 +211,19 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_a0880b = v_e662ae<Set<number>>(new Set());
 
+  const v_acaf61 = v_e662ae<(evt: v_b26216) => void>(() => {});
+  const v_e881de = v_de06a3((evt: v_b26216) => {
+    v_acaf61.current(v_9e6ec9);
+  }, []);
+
+  const v_b1a2e8 = v_e662ae<number[][] | null>(null);
+
+  const { onEmbedding: v_88bed2, getBuffer: v_c4d644 } = v_e9685b({
+    enabled: v_58656e && v_6cc918 === "live",
+    accessToken: v_2ca7e0 ?? "",
+    onEvent: v_e881de,
+  });
+
   const v_3033e0 = v_de06a3(
     (evt: v_b26216) => {
       if (!v_9e6ec9) return;
@@ -221,22 +234,22 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           displayName: v_9e6ec9.displayName,
         });
       } else if (v_9e6ec9.type === "unknown_face") {
+
+        v_b1a2e8.current = v_c4d644().latest(v_9e3bb7);
         v_11f4a1?.({ event: "unknown_face" });
       }
     },
 
-    [v_11f4a1],
+    [v_11f4a1, v_c4d644],
   );
-
-  const { onEmbedding: v_88bed2, getBuffer: v_c4d644 } = v_e9685b({
-    enabled: v_58656e,
-    accessToken: v_2ca7e0 ?? "",
-    onEvent: v_3033e0,
-  });
+  v_c4deb2(() => {
+    v_acaf61.current = v_3033e0;
+  }, [v_3033e0]);
 
   const v_20ef58 = v_3fc8fd({
     accessToken: v_2ca7e0 ?? "",
     getBuffer: v_c4d644,
+    getSnapshot: () => v_b1a2e8.current,
   });
 
   const v_f8e6ef = v_de06a3(
@@ -389,6 +402,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_5218ba(false);
     v_3c66cd("");
     v_20ef58.reset();
+    v_b1a2e8.current = null; 
   }, [v_20ef58, v_2ca7e0]);
 
   v_c4deb2(() => {
@@ -397,6 +411,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       v_5218ba(false);
       v_3c66cd("");
       v_20ef58.reset();
+      v_b1a2e8.current = null; 
     } else if (v_20ef58.status === "error") {
       v_15c939("등록에 실패했어요. 다시 시도해 주세요");
     }

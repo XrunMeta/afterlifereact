@@ -133,6 +133,38 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
     expect(v_a97841).not.toHaveBeenCalled();
   });
 
+  it("리뷰 fix(버그1) — enabled=false 동안 onEmbedding 호출은 무시되다가, enabled=true 로 바뀐 뒤엔 정상 동작", async () => {
+
+    const v_a97841 = jest.fn().mockResolvedValue({
+      matches: [],
+      best: { personId: 5, displayName: "동수", score: 0.9 },
+      threshold: 0.5,
+    });
+    const v_68885c = jest.fn();
+    const { result: v_43c42e, rerender: v_2726cb } = v_0da18b<
+      ReturnType<typeof v_e9685b>,
+      { enabled: boolean }
+    >(
+      ({ enabled: v_d20c84 }) =>
+        v_e9685b({ enabled: v_d20c84, accessToken: "tok", onEvent: v_68885c, deps: { matchFaceFn: v_a97841 } }),
+      { initialProps: { enabled: false } },
+    );
+
+    v_43c42e.current.onEmbedding(v_87d4f2);
+    v_43c42e.current.onEmbedding(v_87d4f2);
+    expect(v_a97841).not.toHaveBeenCalled();
+    expect(v_68885c).not.toHaveBeenCalled();
+
+    v_2726cb({ enabled: true });
+    v_43c42e.current.onEmbedding(v_87d4f2);
+    await v_81e49f(() => expect(v_a97841).toHaveBeenCalledTimes(1));
+    v_43c42e.current.onEmbedding(v_87d4f2);
+    await v_81e49f(() => expect(v_a97841).toHaveBeenCalledTimes(2));
+    v_43c42e.current.onEmbedding(v_87d4f2);
+    await v_81e49f(() => expect(v_68885c).toHaveBeenCalledTimes(1));
+    expect(v_68885c).toHaveBeenCalledWith({ type: "speaker_confirmed", personId: 5, displayName: "동수" });
+  });
+
   it("getBuffer() 로 최근 벡터 확인 가능(EmbeddingBuffer 사이드이펙트)", async () => {
     const v_a97841 = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
     const { result: v_43c42e } = v_0da18b(() =>
