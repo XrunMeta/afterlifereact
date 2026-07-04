@@ -184,3 +184,84 @@ async def test_replay_fifth_renders_pinned_wav(tmp_path, monkeypatch):
         assert calls["wav_path"].endswith("answer.wav")
     finally:
         await client.close()
+
+@pytest.mark.asyncio
+async def test_promote_preview_smoke(tmp_path):
+    # 계획서 Task 14 Step 5 스모크: POST /oth-path → 200 + list.
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    r.update({"tts": {"speed": 1.7}})
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/preview")
+        assert resp.status == 200
+        body = await resp.json()
+        assert isinstance(body["entries"], list)
+        speeds = [e for e in body["entries"] if e["env"] == "PRETHIRD_TTS_SPEED"]
+        assert speeds and speeds[0]["new"] == "1.7"
+    finally:
+        await client.close()
+
+@pytest.mark.asyncio
+async def test_promote_apply_without_confirm_forces_dry_run(tmp_path):
+    # ⚠️ confirm:true 없이 호출 → 반드시 dry_run 강제(라이브 파일 절대 미변경).
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    r.update({"tts": {"speed": 1.9}})
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/apply", json={})
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["dry_run"] is True
+        assert body["backup_ids"] == []
+    finally:
+        await client.close()
+
+@pytest.mark.asyncio
+async def test_promote_apply_excludes_container_entries_from_applicable(tmp_path):
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    r.update({"fifth": {"cfg_scale": 3.5}})   # container=True 항목
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/apply", json={})
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["dry_run"] is True
+        warned = [w["env"] for w in body["container_warnings"]]
+        assert "FIFTH_CFG_SCALE" in warned
+        # container 항목은 "planned"(applicable) 목록에 없어야 함(dry_run 응답의 planned에도 미포함).
+        planned_envs = [p["env"] for p in body.get("planned", [])]
+        assert "FIFTH_CFG_SCALE" not in planned_envs
+    finally:
+        await client.close()
+
+@pytest.mark.asyncio
+async def test_promote_rollback_invalid_backup_id_returns_400(tmp_path):
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/rollback", json={"backup_id": "not-a-real-backup"})
+        assert resp.status == 400
+    finally:
+        await client.close()
+
+@pytest.mark.asyncio
+async def test_promote_restart_without_two_step_confirm_returns_400(tmp_path, monkeypatch):
+    # subprocess가 절대 호출되지 않음을 보장 — 2단계 확인 미충족 시 400로 조기 반환.
+    import subprocess as _subprocess
+
+    def _boom(*a, **kw):
+        raise AssertionError("2단계 확인 없이 subprocess.run 호출됨 — 회귀(실 restart 위험)")
+    monkeypatch.setattr(_subprocess, "run", _boom)
+
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/restart", json={"confirm": "RESTART"})   # confirm2 없음
+        assert resp.status == 400
+    finally:
+        await client.close()

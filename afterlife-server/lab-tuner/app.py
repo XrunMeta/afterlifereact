@@ -8,6 +8,7 @@ import re
 from aiohttp import web
 from signaling import make_app          # prethird
 from live_guard import LiveBusyError
+import promote
 
 _STATIC = pathlib.Path(__file__).resolve().parent / "static"
 
@@ -112,6 +113,73 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
                        video_path=data.get("video_path"))
         return web.json_response({"run_id": rid, "frames": n[0]})
 
+    def _read_env(name: str) -> str:
+        # 현재 라이브 값 조회 — 프로세스 env(systemd EnvironmentFile로 로드된 값과 동일).
+        return os.environ.get(name, "")
+
+    async def promote_preview(_req):
+        entries = promote.diff(registry.get(), _read_env)
+        return web.json_response({"entries": entries})
+
+    async def promote_apply(req):
+        try:
+            data = await req.json()
+        except Exception:
+            data = {}
+        confirm = data.get("confirm") is True
+        entries = promote.diff(registry.get(), _read_env)
+        applicable = [e for e in entries if not e.get("container")]
+        container_warnings = [e for e in entries if e.get("container")]
+        # ⚠️ confirm:true 가 없으면 무조건 dry_run=True 강제(라이브 파일 미변경).
+        result = promote.apply(
+            applicable,
+            write_fn=promote.upsert_env_line,
+            backup_fn=promote.backup_file,
+            dry_run=not confirm,
+        )
+        result["container_warnings"] = container_warnings   # fifth.* — 컨테이너 재기동/커밋 필요, apply 대상 제외
+        return web.json_response(result)
+
+    async def promote_rollback(req):
+        try:
+            data = await req.json()
+        except Exception:
+            data = {}
+        backup_id = data.get("backup_id")
+        try:
+            target = promote.rollback(backup_id, promote.restore_file)
+        except (ValueError, OSError) as exc:
+            return web.json_response({"error": str(exc)}, status=400)
+        return web.json_response({"restored": target})
+
+    async def promote_restart(req):
+        # 2단계 확인: body에 정확한 confirm 토큰 + confirm2=true 둘 다 필요.
+        # 이 핸들러가 실제로 systemctl restart를 실행하는 유일한 경로 — 사람이
+        # 직접 호출할 때만 이 두 조건을 동시에 만족시킬 수 있게 의도적으로 엄격함.
+        try:
+            data = await req.json()
+        except Exception:
+            data = {}
+        if data.get("confirm") != "RESTART" or data.get("confirm2") is not True:
+            return web.json_response(
+                {"error": "2단계 확인 필요: body={'confirm':'RESTART','confirm2':true}"},
+                status=400,
+            )
+        import subprocess
+        proc = subprocess.run(
+            ["sudo", "systemctl", "restart", "afterlife-prethird"],
+            capture_output=True, text=True, timeout=30,
+        )
+        status = subprocess.run(
+            ["systemctl", "show", "afterlife-prethird", "--property=MainPID"],
+            capture_output=True, text=True, timeout=10,
+        )
+        return web.json_response({
+            "restart_returncode": proc.returncode,
+            "restart_stderr": proc.stderr,
+            "mainpid_info": status.stdout.strip(),
+        })
+
     app.router.add_get("/knobs", get_knobs)
     app.router.add_post("/knobs", post_knobs)
     app.router.add_get("/runs", list_runs)
@@ -121,4 +189,8 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_get("/tuner.js", tuner_js)
     app.router.add_post("/replay/tts", replay_tts)
     app.router.add_post("/replay/fifth", replay_fifth)
+    app.router.add_post("/promote/preview", promote_preview)
+    app.router.add_post("/promote/apply", promote_apply)
+    app.router.add_post("/promote/rollback", promote_rollback)
+    app.router.add_post("/promote/restart", promote_restart)
     return app
