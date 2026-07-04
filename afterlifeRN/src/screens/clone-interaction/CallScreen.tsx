@@ -28,9 +28,21 @@ import {
 import { Worklets } from "react-native-worklets-core";
 import { useFaceDetector } from "react-native-vision-camera-face-detector";
 import type { Face as DetectorFace } from "react-native-vision-camera-face-detector";
+import { useTensorflowModel } from "react-native-fast-tflite";
+import { useResizePlugin } from "vision-camera-resize-plugin";
+import { useSharedValue } from "react-native-worklets-core";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
-import { createPerson, saveFaceConsent, listPersons } from "../../api/persons";
+import { largestFace } from "../../face/largestFace";
+import { shouldRunEmbedding } from "../../face/embeddingThrottle";
+import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
+import { detectNewFaces } from "../../face/newFaceDetector";
+import { useFaceIdentify } from "../../face/useFaceIdentify";
+import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
+import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
+import type { SpeakerEvent } from "../../face/speakerIdReducer";
+import { createPerson, saveFaceConsent, listPersons, deletePerson } from "../../api/persons";
 import TermsModal from "../../components/common/TermsModal";
+import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
@@ -132,15 +144,6 @@ export default function CallScreen({ route, navigation }: Props) {
     [],
   );
 
-  const faceFrameProcessor = useFrameProcessor(
-    (frame) => {
-      "worklet";
-      const faces = detectFaces(frame);
-      handleFacesOnJS(faces);
-    },
-    [detectFaces, handleFacesOnJS],
-  );
-
   const [consentGranted, setConsentGranted] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
 
@@ -168,6 +171,17 @@ export default function CallScreen({ route, navigation }: Props) {
 
   }, [accessToken]);
 
+  const [enrollCardVisible, setEnrollCardVisible] = useState(false);
+  const [enrollName, setEnrollName] = useState("");
+  const [enrollPolicyModalVisible, setEnrollPolicyModalVisible] = useState(false);
+
+  const submittedEnrollNameRef = useRef("");
+
+  const enrollSuggestImplRef = useRef<(name: string) => void>(() => {});
+  const handleEnrollSuggest = useCallback((name: string) => {
+    enrollSuggestImplRef.current(name);
+  }, []);
+
   const {
     state: liveState,
     remoteStream,
@@ -179,9 +193,158 @@ export default function CallScreen({ route, navigation }: Props) {
     greet,
     speak,
     lastSignal,
-  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "" });
+    sendFaceEvent,
+  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
+
+  const faceEmbedModelPlugin = useTensorflowModel(
+    require("../../../assets/models/w600k_mbf.tflite"),
+  );
+  const faceEmbedModel =
+    faceEmbedModelPlugin.state === "loaded" ? faceEmbedModelPlugin.model : undefined;
+  const { resize } = useResizePlugin();
+
+  const isAndroidFrame = Platform.OS === "android";
+
+  const lastEmbedTs = useSharedValue(0);
+
+  const seenFaceIdsRef = useRef<Set<number>>(new Set());
+
+  const handleSpeakerEventRef = useRef<(evt: SpeakerEvent) => void>(() => {});
+  const handleSpeakerEventTrampoline = useCallback((evt: SpeakerEvent) => {
+    handleSpeakerEventRef.current(evt);
+  }, []);
+
+  const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
+
+  const { onEmbedding: onFaceEmbedding, getBuffer: getFaceEmbeddingBuffer } = useFaceIdentify({
+    enabled: consentGranted && liveState === "live",
+    accessToken: accessToken ?? "",
+    onEvent: handleSpeakerEventTrampoline,
+  });
+
+  const handleSpeakerEvent = useCallback(
+    (evt: SpeakerEvent) => {
+      if (!evt) return;
+      if (evt.type === "speaker_confirmed") {
+        sendFaceEvent?.({
+          event: "speaker_confirmed",
+          personId: evt.personId,
+          displayName: evt.displayName,
+        });
+      } else if (evt.type === "unknown_face") {
+
+        unknownFaceSnapshotRef.current = getFaceEmbeddingBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
+        sendFaceEvent?.({ event: "unknown_face" });
+      }
+    },
+
+    [sendFaceEvent, getFaceEmbeddingBuffer],
+  );
+  useEffect(() => {
+    handleSpeakerEventRef.current = handleSpeakerEvent;
+  }, [handleSpeakerEvent]);
+
+  const faceEnroll = useFaceEnroll({
+    accessToken: accessToken ?? "",
+    getBuffer: getFaceEmbeddingBuffer,
+    getSnapshot: () => unknownFaceSnapshotRef.current,
+  });
+
+  const handleEnrollSuggestImpl = useCallback(
+    (name: string) => {
+      if (faceEnroll.status === "enrolling") return;
+
+      const pendingId = faceEnroll.getPendingPersonId();
+      const shouldCleanup = shouldCleanupOrphanOnSuggest({
+        enrolling: false,
+        pendingPersonId: pendingId,
+        incomingName: name,
+        lastName: submittedEnrollNameRef.current,
+      });
+      if (shouldCleanup) {
+        if (accessToken && pendingId != null) {
+          void deletePerson(accessToken, pendingId).catch((err) => {
+            console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
+          });
+        }
+        faceEnroll.reset();
+      }
+      submittedEnrollNameRef.current = name;
+      setEnrollName(name);
+      setEnrollCardVisible(true);
+    },
+    [faceEnroll, accessToken],
+  );
+  useEffect(() => {
+    enrollSuggestImplRef.current = handleEnrollSuggestImpl;
+  }, [handleEnrollSuggestImpl]);
+
+  const handleEmbeddingOnJS = React.useMemo(
+    () =>
+      Worklets.createRunOnJS(
+        (vector: number[], faceCount: number, trackingIds: number[]) => {
+          if (faceCount > 1) {
+            const { newIds, seen } = detectNewFaces(seenFaceIdsRef.current, trackingIds);
+            seenFaceIdsRef.current = seen;
+            if (newIds.length > 0) {
+              sendFaceEvent?.({ event: "multi_face" });
+            }
+          }
+          onFaceEmbedding(vector);
+        },
+      ),
+
+    [onFaceEmbedding, sendFaceEvent],
+  );
+
+  const faceFrameProcessor = useFrameProcessor(
+    (frame) => {
+      "worklet";
+      const faces = detectFaces(frame);
+      handleFacesOnJS(faces); 
+
+      const nowMs = normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame);
+
+      if (faceEmbedModel != null && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
+        lastEmbedTs.value = nowMs;
+        const primary = largestFace(faces);
+        if (primary != null) {
+          const resized = resize(frame, {
+            crop: {
+              x: primary.bounds.x,
+              y: primary.bounds.y,
+              width: primary.bounds.width,
+              height: primary.bounds.height,
+            },
+            scale: { width: 112, height: 112 },
+            pixelFormat: "rgb",
+            dataType: "float32",
+          });
+
+          const normalized = new Float32Array(resized.length);
+          for (let i = 0; i < resized.length; i++) {
+            normalized[i] = resized[i] * 2 - 1;
+          }
+          const out = faceEmbedModel.runSync([normalized])[0] as Float32Array;
+          const trackingIds = faces
+            .map((f) => f.trackingId)
+            .filter((id): id is number => typeof id === "number");
+          handleEmbeddingOnJS(Array.from(out), faces.length, trackingIds);
+        }
+      }
+    },
+    [
+      detectFaces,
+      handleFacesOnJS,
+      faceEmbedModel,
+      resize,
+      lastEmbedTs,
+      isAndroidFrame,
+      handleEmbeddingOnJS,
+    ],
+  );
 
   const {
     phase,
@@ -219,6 +382,42 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const [credits, setCredits] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleEnrollConfirm = useCallback(
+    (trimmedName: string) => {
+      submittedEnrollNameRef.current = trimmedName;
+      void faceEnroll.enroll(trimmedName);
+    },
+    [faceEnroll],
+  );
+
+  const handleEnrollDismiss = useCallback(() => {
+
+    const pendingId = faceEnroll.getPendingPersonId();
+    if (pendingId != null && accessToken) {
+      void deletePerson(accessToken, pendingId).catch((err) => {
+        console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
+      });
+    }
+    setEnrollCardVisible(false);
+    setEnrollName("");
+    faceEnroll.reset();
+    unknownFaceSnapshotRef.current = null; 
+  }, [faceEnroll, accessToken]);
+
+  useEffect(() => {
+    if (faceEnroll.status === "success") {
+      setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
+      setEnrollCardVisible(false);
+      setEnrollName("");
+      faceEnroll.reset();
+      unknownFaceSnapshotRef.current = null; 
+    } else if (faceEnroll.status === "error") {
+      setToastMessage("등록에 실패했어요. 다시 시도해 주세요");
+    }
+
+  }, [faceEnroll.status]);
+
   const [isLiked, setIsLiked] = useState(false);
   const [floatingGifts, setFloatingGifts] = useState<FloatingGift[]>([]);
   const giftCounterRef = useRef(0);
@@ -649,6 +848,26 @@ export default function CallScreen({ route, navigation }: Props) {
             setConsentLoading(false);
           }
         }}
+      />
+
+      {}
+      <FaceEnrollCard
+        visible={enrollCardVisible}
+        name={enrollName}
+        onChangeName={setEnrollName}
+        onConfirm={handleEnrollConfirm}
+        onDismiss={handleEnrollDismiss}
+        onViewPolicy={() => setEnrollPolicyModalVisible(true)}
+        busy={faceEnroll.status === "enrolling"}
+      />
+
+      {
+}
+      <TermsModal
+        visible={enrollPolicyModalVisible}
+        type={4}
+        onClose={() => setEnrollPolicyModalVisible(false)}
+        onAgree={() => setEnrollPolicyModalVisible(false)}
       />
 
       {

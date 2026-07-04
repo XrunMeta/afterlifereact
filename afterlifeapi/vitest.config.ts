@@ -15,8 +15,13 @@ export default defineWorkersConfig(async () => {
     test: {
       include: ["test/**/*.test.ts"],
       setupFiles: ["./test/setup.ts"],
+
+      fileParallelism: false,
+      hookTimeout: 60_000,
       poolOptions: {
         workers: {
+
+          singleWorker: true,
           wrangler: { configPath: "./wrangler.toml" },
           miniflare: {
             compatibilityDate: "2024-12-01",

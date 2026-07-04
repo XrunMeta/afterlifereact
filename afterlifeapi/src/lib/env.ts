@@ -17,6 +17,8 @@ export interface Bindings {
   R2_MEDIA: R2Bucket;
   R2_ARCHIVE: R2Bucket;
 
+  FACE_VECTORS?: VectorizeIndex;
+
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;
   AUDIT_SECRET: string;         
