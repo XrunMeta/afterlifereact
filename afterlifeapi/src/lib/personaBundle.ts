@@ -38,7 +38,10 @@ export function buildPersonaBundle(
   return { l0, cloneId: String(cloneId), persona };
 }
 
-const L2_FIELDS = ["memory_summary", "relationship", "context", "recent_topics"] as const;
+const L2_FIELDS = [
+  "memory_summary", "relationship", "context", "recent_topics",   
+  "relation", "preference_personal", "memories_personal",          
+] as const;
 
 export async function loadUserL2(
   db: D1Database,

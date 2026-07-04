@@ -31,7 +31,8 @@ describe("loadUserL2 (clone_ont)", () => {
     expect(l2a?.relationship).toBe("친구");
 
     expect((l2a as Record<string, unknown>)?.address).toBeUndefined();
-    expect((l2a as Record<string, unknown>)?.memories_personal).toBeUndefined();
+
+    expect((l2a as Record<string, unknown>)?.memories_personal).toEqual(["x"]);
 
     const l2b = await loadUserL2(db(), 9043, 200);
     expect(l2b).toBeNull();
@@ -87,12 +88,12 @@ describe("loadUserL2 (clone_ont)", () => {
     expect(b200.personaBundle.persona.memory_summary).toBe("200의 기억");
   });
 
-  it("4필드 모두 없으면 null 반환", async () => {
+  it("L2 소비 필드(구 4필드+학습 3키)가 모두 없으면 null 반환", async () => {
     await db()
       .prepare(
         "INSERT INTO clone_ont (clone_id, user_id, data, updated_at) VALUES (?, ?, ?, unixepoch())"
       )
-      .bind(9045, 102, JSON.stringify({ address: "홍길동", memories_personal: [] }))
+      .bind(9045, 102, JSON.stringify({ address: "홍길동" }))
       .run();
 
     const l2 = await loadUserL2(db(), 9045, 102);
