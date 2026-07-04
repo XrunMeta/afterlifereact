@@ -28,7 +28,15 @@ import {
 import { Worklets } from "react-native-worklets-core";
 import { useFaceDetector } from "react-native-vision-camera-face-detector";
 import type { Face as DetectorFace } from "react-native-vision-camera-face-detector";
+import { useTensorflowModel } from "react-native-fast-tflite";
+import { useResizePlugin } from "vision-camera-resize-plugin";
+import { useSharedValue } from "react-native-worklets-core";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
+import { largestFace } from "../../face/largestFace";
+import { shouldRunEmbedding } from "../../face/embeddingThrottle";
+import { detectNewFaces } from "../../face/newFaceDetector";
+import { useFaceIdentify } from "../../face/useFaceIdentify";
+import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import { createPerson, saveFaceConsent, listPersons } from "../../api/persons";
 import TermsModal from "../../components/common/TermsModal";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
@@ -132,15 +140,6 @@ export default function CallScreen({ route, navigation }: Props) {
     [],
   );
 
-  const faceFrameProcessor = useFrameProcessor(
-    (frame) => {
-      "worklet";
-      const faces = detectFaces(frame);
-      handleFacesOnJS(faces);
-    },
-    [detectFaces, handleFacesOnJS],
-  );
-
   const [consentGranted, setConsentGranted] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
 
@@ -179,9 +178,96 @@ export default function CallScreen({ route, navigation }: Props) {
     greet,
     speak,
     lastSignal,
+    sendFaceEvent,
   } = useAvatarCall({ cloneId, accessToken: accessToken ?? "" });
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
+
+  const faceEmbedModelPlugin = useTensorflowModel(
+    require("../../../assets/models/w600k_mbf.tflite"),
+  );
+  const faceEmbedModel =
+    faceEmbedModelPlugin.state === "loaded" ? faceEmbedModelPlugin.model : undefined;
+  const { resize } = useResizePlugin();
+
+  const lastEmbedTs = useSharedValue(0);
+
+  const seenFaceIdsRef = useRef<Set<number>>(new Set());
+
+  const handleSpeakerEvent = useCallback(
+    (evt: SpeakerEvent) => {
+      if (!evt) return;
+      if (evt.type === "speaker_confirmed") {
+        sendFaceEvent?.({
+          event: "speaker_confirmed",
+          personId: evt.personId,
+          displayName: evt.displayName,
+        });
+      } else if (evt.type === "unknown_face") {
+        sendFaceEvent?.({ event: "unknown_face" });
+      }
+    },
+
+    [sendFaceEvent],
+  );
+
+  const { onEmbedding: onFaceEmbedding } = useFaceIdentify({
+    enabled: consentGranted,
+    accessToken: accessToken ?? "",
+    onEvent: handleSpeakerEvent,
+  });
+
+  const handleEmbeddingOnJS = React.useMemo(
+    () =>
+      Worklets.createRunOnJS(
+        (vector: number[], faceCount: number, trackingId: number | null) => {
+          if (faceCount > 1 && trackingId != null) {
+            const { newIds, seen } = detectNewFaces(seenFaceIdsRef.current, [trackingId]);
+            seenFaceIdsRef.current = seen;
+            if (newIds.length > 0) {
+              sendFaceEvent?.({ event: "multi_face" });
+            }
+          }
+          onFaceEmbedding(vector);
+        },
+      ),
+
+    [onFaceEmbedding, sendFaceEvent],
+  );
+
+  const faceFrameProcessor = useFrameProcessor(
+    (frame) => {
+      "worklet";
+      const faces = detectFaces(frame);
+      handleFacesOnJS(faces); 
+
+      if (faceEmbedModel != null && shouldRunEmbedding(lastEmbedTs.value, frame.timestamp)) {
+        lastEmbedTs.value = frame.timestamp;
+        const primary = largestFace(faces);
+        if (primary != null) {
+          const resized = resize(frame, {
+            crop: {
+              x: primary.bounds.x,
+              y: primary.bounds.y,
+              width: primary.bounds.width,
+              height: primary.bounds.height,
+            },
+            scale: { width: 112, height: 112 },
+            pixelFormat: "rgb",
+            dataType: "float32",
+          });
+
+          const normalized = new Float32Array(resized.length);
+          for (let i = 0; i < resized.length; i++) {
+            normalized[i] = resized[i] * 2 - 1;
+          }
+          const out = faceEmbedModel.runSync([normalized])[0] as Float32Array;
+          handleEmbeddingOnJS(Array.from(out), faces.length, primary.trackingId ?? null);
+        }
+      }
+    },
+    [detectFaces, handleFacesOnJS, faceEmbedModel, resize, lastEmbedTs, handleEmbeddingOnJS],
+  );
 
   const {
     phase,

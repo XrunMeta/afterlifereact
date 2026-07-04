@@ -1,0 +1,145 @@
+import { renderHook, waitFor } from "@testing-library/react-native";
+import {
+  runIdentifyCycle,
+  useFaceIdentify,
+  INITIAL_IDENTIFY_CYCLE_STATE,
+  NETWORK_FAIL_BACKOFF_THRESHOLD,
+  NETWORK_FAIL_BACKOFF_MS,
+  type IdentifyCycleState,
+} from "../../src/face/useFaceIdentify";
+
+const VEC = new Array(512).fill(0).map((_, i) => (i === 0 ? 1 : 0));
+
+describe("runIdentifyCycle (순수 로직)", () => {
+  it("matchFace 가 동일 personId 3회 반환 → 3번째에 speaker_confirmed 1회", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({
+      matches: [],
+      best: { personId: 3, displayName: "철수", score: 0.9 },
+      threshold: 0.5,
+    });
+    let s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
+
+    let r = await runIdentifyCycle(s, VEC, "tok", 1000, { matchFaceFn });
+    expect(r.event).toBeNull();
+    s = r.state;
+
+    r = await runIdentifyCycle(s, VEC, "tok", 2000, { matchFaceFn });
+    expect(r.event).toBeNull();
+    s = r.state;
+
+    r = await runIdentifyCycle(s, VEC, "tok", 3000, { matchFaceFn });
+    expect(r.event).toEqual({ type: "speaker_confirmed", personId: 3, displayName: "철수" });
+
+    expect(matchFaceFn).toHaveBeenCalledTimes(3);
+  });
+
+  it("best 가 null(미매치) 3회 → unknown_face 1회", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
+    let s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
+    let r = await runIdentifyCycle(s, VEC, "tok", 1000, { matchFaceFn });
+    s = r.state;
+    r = await runIdentifyCycle(s, VEC, "tok", 2000, { matchFaceFn });
+    s = r.state;
+    r = await runIdentifyCycle(s, VEC, "tok", 3000, { matchFaceFn });
+    expect(r.event).toEqual({ type: "unknown_face" });
+  });
+
+  it("matchFace 실패(네트워크) → 사이클 스킵, event null, 크래시 없음", async () => {
+    const matchFaceFn = jest.fn().mockRejectedValue(new Error("network"));
+    const s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
+    const r = await runIdentifyCycle(s, VEC, "tok", 1000, { matchFaceFn });
+    expect(r.event).toBeNull();
+    expect(r.state.consecutiveFailures).toBe(1);
+    expect(r.state.speaker).toEqual(INITIAL_IDENTIFY_CYCLE_STATE.speaker); 
+  });
+
+  it("연속 실패가 임계치 도달 → backoffUntilMs 설정, 이후 사이클은 matchFaceFn 호출 없이 스킵", async () => {
+    const matchFaceFn = jest.fn().mockRejectedValue(new Error("network"));
+    let s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
+    let now = 0;
+    for (let i = 0; i < NETWORK_FAIL_BACKOFF_THRESHOLD; i++) {
+      now += 100;
+      const r = await runIdentifyCycle(s, VEC, "tok", now, { matchFaceFn });
+      s = r.state;
+    }
+    expect(s.consecutiveFailures).toBe(NETWORK_FAIL_BACKOFF_THRESHOLD);
+    expect(s.backoffUntilMs).toBe(now + NETWORK_FAIL_BACKOFF_MS);
+
+    const callsBefore = matchFaceFn.mock.calls.length;
+    const r2 = await runIdentifyCycle(s, VEC, "tok", now + 1, { matchFaceFn });
+    expect(matchFaceFn.mock.calls.length).toBe(callsBefore);
+    expect(r2.event).toBeNull();
+    expect(r2.state).toBe(s); 
+  });
+
+  it("백오프 종료 후 성공 사이클 → consecutiveFailures/backoff 리셋", async () => {
+    const matchFaceFn = jest
+      .fn()
+      .mockRejectedValueOnce(new Error("n1"))
+      .mockRejectedValueOnce(new Error("n2"))
+      .mockRejectedValueOnce(new Error("n3"))
+      .mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
+    let s: IdentifyCycleState = INITIAL_IDENTIFY_CYCLE_STATE;
+    let now = 0;
+    for (let i = 0; i < 3; i++) {
+      now += 100;
+      const r = await runIdentifyCycle(s, VEC, "tok", now, { matchFaceFn });
+      s = r.state;
+    }
+    expect(s.backoffUntilMs).toBeGreaterThan(now);
+
+    now = s.backoffUntilMs + 1; 
+    const r = await runIdentifyCycle(s, VEC, "tok", now, { matchFaceFn });
+    expect(r.state.consecutiveFailures).toBe(0);
+    expect(r.state.backoffUntilMs).toBe(0);
+  });
+});
+
+describe("useFaceIdentify (훅 오케스트레이션)", () => {
+  it("onEmbedding 3연속 호출(동일 personId) → onEvent(speaker_confirmed) 1회", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({
+      matches: [],
+      best: { personId: 7, displayName: "영희", score: 0.95 },
+      threshold: 0.5,
+    });
+    const onEvent = jest.fn();
+    let t = 0;
+    const { result } = renderHook(() =>
+      useFaceIdentify({
+        enabled: true,
+        accessToken: "tok",
+        onEvent,
+        deps: { matchFaceFn },
+        now: () => (t += 1000),
+      }),
+    );
+
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(matchFaceFn).toHaveBeenCalledTimes(1));
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(matchFaceFn).toHaveBeenCalledTimes(2));
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(onEvent).toHaveBeenCalledTimes(1));
+
+    expect(onEvent).toHaveBeenCalledWith({ type: "speaker_confirmed", personId: 7, displayName: "영희" });
+  });
+
+  it("enabled=false → onEmbedding 호출해도 matchFaceFn 미호출", () => {
+    const matchFaceFn = jest.fn();
+    const { result } = renderHook(() =>
+      useFaceIdentify({ enabled: false, accessToken: "tok", onEvent: jest.fn(), deps: { matchFaceFn } }),
+    );
+    result.current.onEmbedding(VEC);
+    expect(matchFaceFn).not.toHaveBeenCalled();
+  });
+
+  it("getBuffer() 로 최근 벡터 확인 가능(EmbeddingBuffer 사이드이펙트)", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({ matches: [], best: null, threshold: 0.5 });
+    const { result } = renderHook(() =>
+      useFaceIdentify({ enabled: true, accessToken: "tok", onEvent: jest.fn(), deps: { matchFaceFn } }),
+    );
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(matchFaceFn).toHaveBeenCalledTimes(1));
+    expect(result.current.getBuffer().latest(1)).toHaveLength(1);
+  });
+});

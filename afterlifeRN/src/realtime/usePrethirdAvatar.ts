@@ -6,7 +6,7 @@ import { PRETHIRD_BASE } from '../config/apiBase';
 import { useCallConfigStore } from '../stores/callConfigStore';
 import { ensureFreshAccessToken } from '../lib/authFetch';
 import { type AudioSessionControl, defaultAudioSessionControl } from './useAudioSession';
-import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, classifyTrack } from './avatarCall';
+import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, type FaceEvent, classifyTrack } from './avatarCall';
 
 const nowMs = () => Date.now();
 
@@ -153,6 +153,17 @@ export function usePrethirdAvatar(opts: {
     }
   }, []);
 
+  const sendFaceEvent = useCallback((evt: FaceEvent) => {
+    const dc = dcRef.current;
+    if (!pcRef.current || !dc || dc.readyState !== 'open') return;
+    try {
+      const seq = (seqRef.current += 1);
+      dc.send(JSON.stringify({ type: 'face_event', ...evt, seq }));
+    } catch {
+
+    }
+  }, []);
+
   const notifySpeechEnd = useCallback(() => {
     if (speakTimer.current) { clearTimeout(speakTimer.current); speakTimer.current = null; }
     setPhase('idle');
@@ -285,5 +296,5 @@ export function usePrethirdAvatar(opts: {
 
   useEffect(() => () => { void stop();  }, []);
 
-  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport, greet, speak, lastSignal };
+  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport, greet, speak, lastSignal, sendFaceEvent };
 }
