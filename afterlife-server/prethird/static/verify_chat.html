@@ -128,8 +128,14 @@ const L2_SRC = {
   memory_summary:'채팅', relationship:'채팅', context:'채팅', recent_topics:'채팅',
   relation:'통화auto', preference_personal:'통화auto', memories_personal:'통화auto',
 };
-function badge(src){ return `<span class="badge ${src==='통화auto'?'b-call':'b-chat'}">${src||'기타'}</span>`; }
-function renderL2Raw(ontRaw){
+function badge(src){
+
+  const cls = src==='통화auto' ? 'b-call' : (src==='채팅' ? 'b-chat' : 'b-etc');
+  return `<span class="badge ${cls}">${src||'기타'}</span>`;
+}
+
+function renderL2Raw(ontRaw, changedKeys){
+  const changed = changedKeys || new Set();
   const data = (ontRaw && ontRaw.data) || {};
   const meta = data._meta || {};
   const rows = Object.entries(data)
@@ -137,7 +143,8 @@ function renderL2Raw(ontRaw){
     .map(([k,v])=>{
       const src = L2_SRC[k] || (k==='address'?'공존':'기타');
       const val = (typeof v==='object') ? JSON.stringify(v) : String(v);
-      return `<tr><td>${badge(src)}</td><td>${esc(k)}</td><td>${esc(val)}</td></tr>`;
+      const cls = changed.has(k) ? ' class="chg"' : '';
+      return `<tr${cls}><td>${badge(src)}</td><td>${esc(k)}</td><td>${esc(val)}</td></tr>`;
     }).join('');
   document.getElementById('tblL2').innerHTML =
     `<div class="muted">rev ${esc(meta.rev??'-')} · source ${esc(meta.source??'-')} · auto_learned_at ${esc(meta.auto_learned_at??'-')}</div>`
@@ -152,6 +159,16 @@ function renderL2Raw(ontRaw){
 function renderL2RawError(status){
   document.getElementById('tblL2').innerHTML =
     `<span class="muted">ont-raw 조회 실패 (${esc(String(status))}) — DEV_SECRET 미설정 또는 권한 없음일 수 있음</span>`;
+}
+
+function changedTopKeys(before, after){
+  const keys = new Set();
+  for(const f of ["memory_summary","relationship","context","recent_topics"]){
+    const b = String((before && before[f]) || "");
+    const a = String((after && after[f]) || "");
+    if (b !== a) keys.add(f);
+  }
+  return keys;
 }
 
 const L2_LABEL={memory_summary:"기억",relationship:"관계",context:"맥락",recent_topics:"화제"};
@@ -208,18 +225,20 @@ function renderL2(l2, highlight){
   _prevL2 = l2 ? {...l2} : null;
 }
 
-async function refreshOntRaw(cloneId){
+async function refreshOntRaw(cloneId, opts){
+  const changedKeys = opts && opts.changedKeys;
+  const silent = !!(opts && opts.silent);
   try {
     const rr = await fetch("/oth-path?clone_id="+cloneId, { headers: authHeaders() });
     if (rr.ok) {
       const ontRaw = await rr.json();
       renderL1Raw(ontRaw.l1_profile);
-      renderL2Raw(ontRaw);
+      renderL2Raw(ontRaw, changedKeys);
       return true;
     }
-    renderL2RawError(rr.status);
+    if (!silent) renderL2RawError(rr.status);
   } catch (e) {
-    renderL2RawError("fetch-fail");
+    if (!silent) renderL2RawError("fetch-fail");
   }
   return false;
 }
@@ -398,8 +417,10 @@ async function learn(userText, assistantText) {
   $("savedL2").className = "";
 
   const shownL2 = saved || extracted;
+  let changedKeys = new Set();
   if (shownL2) {
     const before = _prevL2 ? {..._prevL2} : null;
+    changedKeys = changedTopKeys(before, shownL2);
     renderL2(shownL2, true);
     pushHistory(before, shownL2);
 
@@ -407,7 +428,7 @@ async function learn(userText, assistantText) {
     if (live) live.textContent = saved ? "● 실시간" : "● 추출 미리보기(미저장)";
   }
 
-  await refreshOntRaw(cloneId);
+  await refreshOntRaw(cloneId, { changedKeys, silent: true });
 }
 
 $("l2reset").onclick = async () => {
