@@ -369,5 +369,12 @@ internal.get("/dev/clones/:id/ont-raw", async (c) => {
   if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
   const { l1 } = await loadCloneProfiles(c.env.DB, cloneId);
   const l2Consumed = await loadUserL2(c.env.DB, cloneId, userId);
+
+  await logActivity(c, {
+    userId,
+    action: "dev.ont_raw.read",
+    details: { cloneId },
+  });
+
   return c.json({ data, l1_profile: l1, l2_consumed: l2Consumed });
 });
