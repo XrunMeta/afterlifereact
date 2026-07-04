@@ -369,5 +369,12 @@ v_dcd415.get("/dev/clones/:id/ont-raw", async (v_3f4e2e) => {
   if (v_479f05) { try { v_9390e8 = JSON.parse(v_479f05); } catch { v_9390e8 = null; } }
   const { l1: v_020b4b } = await v_db508f(v_3f4e2e.env.DB, v_6e0fd3);
   const v_ef4edb = await v_20b0e8(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "dev.ont_raw.read",
+    details: { cloneId: v_6e0fd3 },
+  });
+
   return v_3f4e2e.json({ data: v_9390e8, l1_profile: v_020b4b, l2_consumed: v_ef4edb });
 });
