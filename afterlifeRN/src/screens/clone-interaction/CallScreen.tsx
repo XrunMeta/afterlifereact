@@ -37,9 +37,11 @@ import { v_f7b672 } from "../../face/embeddingThrottle";
 import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_6e58ce } from "../../face/newFaceDetector";
 import { v_e9685b } from "../../face/useFaceIdentify";
+import { v_3fc8fd } from "../../face/useFaceEnroll";
 import type { v_b26216 } from "../../face/speakerIdReducer";
 import { v_4e7b87, v_31967f, v_865d38 } from "../../api/persons";
 import v_c0caa9 from "../../components/common/TermsModal";
+import { v_b519ed } from "../../components/call/FaceEnrollCard";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
 import { v_c6d1f4 } from "../../config/callRoute";
 import { v_a6928f, v_0e2cb4, v_71f13f } from "../../config/greeting";
@@ -168,6 +170,16 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   }, [v_2ca7e0]);
 
+  const [v_85a067, v_5218ba] = v_5ab095(false);
+  const [v_ef20d7, v_3c66cd] = v_5ab095("");
+
+  const v_821084 = v_e662ae("");
+  const v_b12d63 = v_de06a3((v_1833e7) => {
+    v_821084.current = v_1833e7;
+    v_3c66cd(v_1833e7);
+    v_5218ba(true);
+  }, []);
+
   const {
     state: v_6cc918,
     remoteStream: v_b4d824,
@@ -180,7 +192,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     speak: v_a1d9db,
     lastSignal: v_88c591,
     sendFaceEvent: v_11f4a1,
-  } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
+  } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "", onEnrollSuggest: v_b12d63 });
 
   const v_d7cf17 = v_a6928f && typeof v_009e58 === 'function';
 
@@ -214,10 +226,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     [v_11f4a1],
   );
 
-  const { onEmbedding: v_88bed2 } = v_e9685b({
+  const { onEmbedding: v_88bed2, getBuffer: v_c4d644 } = v_e9685b({
     enabled: v_58656e,
     accessToken: v_2ca7e0 ?? "",
     onEvent: v_3033e0,
+  });
+
+  const v_20ef58 = v_3fc8fd({
+    accessToken: v_2ca7e0 ?? "",
+    getBuffer: v_c4d644,
   });
 
   const v_998534 = v_a3453e.useMemo(
@@ -321,6 +338,34 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_e2c945, v_06e986] = v_5ab095<number>(0);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
+
+  const v_405500 = v_de06a3(
+    (v_affc3e) => {
+      v_821084.current = v_affc3e;
+      void v_20ef58.enroll(v_affc3e);
+    },
+    [v_20ef58],
+  );
+
+  const v_36f0ed = v_de06a3(() => {
+
+    v_5218ba(false);
+    v_3c66cd("");
+    v_20ef58.reset();
+  }, [v_20ef58]);
+
+  v_c4deb2(() => {
+    if (v_20ef58.status === "success") {
+      v_15c939(`이제 ${v_821084.current}님을 알아볼 수 있어요`);
+      v_5218ba(false);
+      v_3c66cd("");
+      v_20ef58.reset();
+    } else if (v_20ef58.status === "error") {
+      v_15c939("등록에 실패했어요. 다시 시도해 주세요");
+    }
+
+  }, [v_20ef58.status]);
+
   const [v_85c07b, v_ff0eb0] = v_5ab095(false);
   const [v_605664, v_0f07a9] = v_5ab095<FloatingGift[]>([]);
   const v_63eb29 = v_e662ae(0);
@@ -751,6 +796,15 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             v_603e38(false);
           }
         }}
+      />
+
+      {}
+      <FaceEnrollCard
+        visible={v_85a067}
+        name={v_ef20d7}
+        onChangeName={v_3c66cd}
+        onConfirm={v_405500}
+        onDismiss={v_36f0ed}
       />
 
       {

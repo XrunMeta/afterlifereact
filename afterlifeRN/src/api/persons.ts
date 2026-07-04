@@ -16,6 +16,8 @@ export interface Person {
 
 export interface CreatePersonPayload {
   cloneId?: number;
+
+  displayName?: string;
 }
 
 export interface CreatePersonResponse {
@@ -35,6 +37,9 @@ export async function v_4e7b87(
   const v_4d33b2 = {};
   if (v_931bf0?.cloneId !== undefined) {
     v_4d33b2.cloneId = v_931bf0.cloneId;
+  }
+  if (v_931bf0?.displayName !== undefined) {
+    v_4d33b2.displayName = v_931bf0.displayName;
   }
   return v_04b58a<CreatePersonResponse>(
     '/oth-path',

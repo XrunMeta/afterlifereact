@@ -74,7 +74,7 @@ function v_9d05cd(v_32dc97, v_11bcf9): Promise<boolean> {
 }
 
 export function v_3d8d48(v_328259): v_b01667 {
-  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0 } = v_328259;
+  const { cloneId: v_6e0fd3, accessToken: v_2ca7e0, onEnrollSuggest: v_46947d } = v_328259;
   const v_84b93d = v_328259.deps ?? v_17f880;
   const [v_b6e533, v_1fa668] = v_5ab095<v_d20273>('idle');
   const [v_b4d824, v_b944e3] = v_5ab095<v_802da4 | null>(null);
@@ -91,6 +91,9 @@ export function v_3d8d48(v_328259): v_b01667 {
   const v_48ccb1 = v_e662ae(false);
   const v_9fc078 = v_e662ae<PrethirdPeerConnection | null>(null);
   const v_bf15a0 = 30_000;
+
+  const v_de567c = v_e662ae(v_46947d);
+  v_c4deb2(() => { v_de567c.current = v_46947d; }, [v_46947d]);
 
   const v_3c664f = v_de06a3((v_12cd99) => {
     if (v_48ccb1.current) { v_9fc078.current = v_12cd99; return; }
@@ -232,6 +235,9 @@ export function v_3d8d48(v_328259): v_b01667 {
         if (v_35f85c.type === 'speech_start' || v_35f85c.type === 'speech_end') {
           v_8c8005({ type: v_35f85c.type, seq: v_35f85c.seq, ts: v_67e77e() });
           if (v_35f85c.type === 'speech_end') v_811f30();
+        } else if (v_35f85c.type === 'enroll_suggest') {
+
+          v_de567c.current?.(typeof v_35f85c.name === 'string' ? v_35f85c.name : '');
         }
       } catch {  }
     };

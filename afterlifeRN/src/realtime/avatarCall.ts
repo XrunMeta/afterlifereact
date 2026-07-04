@@ -38,7 +38,12 @@ export interface AvatarCall {
   sendFaceEvent?: (evt: FaceEvent) => void;
 }
 
-export type UseAvatarCall = (opts: { cloneId: number; accessToken: string }) => AvatarCall;
+export type UseAvatarCall = (opts: {
+  cloneId: number;
+  accessToken: string;
+
+  onEnrollSuggest?: (name: string) => void;
+}) => AvatarCall;
 
 export function v_d8a22b(
   v_2c681a,
