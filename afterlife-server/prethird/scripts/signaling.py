@@ -33,6 +33,9 @@ _FILLER_ENABLED = os.environ.get("PRETHIRD_FILLER", "0") == "1"
 _FACE_REACT_ENABLED_KEY = "PRETHIRD_FACE_REACT_ENABLED"
 # 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=이 초 동안 쿨다운.
 REACT_COOLDOWN_S = float(os.environ.get("PRETHIRD_REACT_COOLDOWN_S", "60"))
+# react가 다른 발화(say/speak/greet/react) 진행 중 도착하면 단일 pending 슬롯에 대기(latest-wins,
+# 연쇄 큐 금지). 이 초를 넘겨 대기한 채로 드레인 시점이 오면 스테일 반응으로 간주해 드랍.
+REACT_PENDING_WAIT_CAP_S = float(os.environ.get("PRETHIRD_REACT_PENDING_WAIT_S", "20"))
 if not _STRICT_CLONE_BUNDLE:
     logging.getLogger("prethird.signaling").warning(
         "PRETHIRD_STRICT_CLONE_BUNDLE=0: 고인 신원 오표시 폴백 활성화 — 운영 배포 금지"
@@ -84,6 +87,48 @@ async def _avsync_monitor(sess, interval: float = 0.5) -> None:
     except asyncio.CancelledError:
         pass
 
+def _get_busy_lock(sess) -> asyncio.Lock:
+    """세션 단위 발화 상호배제 락 — say/speak/greet/react 전부 이 락 안에서만 트랙에 push한다
+    (동시 push로 인한 오디오/비디오 겹침 방지, 플랜 §6.2).
+
+    실제 Session(session.py)은 생성자에서 미리 만들어두지만, 가벼운 테스트용 fake session
+    객체엔 없을 수 있어 지연 생성 후 sess에 캐시한다(getattr/setattr 방어 패턴 — 기존
+    filler_player 등과 동일 스타일. sess가 setattr을 거부해도 예외를 삼켜 회귀 0 유지)."""
+    lock = getattr(sess, "busy_lock", None)
+    if lock is None:
+        lock = asyncio.Lock()
+        try:
+            sess.busy_lock = lock
+        except Exception:
+            pass
+    return lock
+
+
+async def _drain_pending_react(sess) -> None:
+    """say/speak/greet(또는 react) 발화 종료 직후 호출 — 대기 중이던 pending react가
+    있으면 이제 재생한다(플랜 §6.2 "발화 종료 후 재생"). 단일 슬롯이므로 최신 값 1개만 존재.
+    대기 상한(REACT_PENDING_WAIT_CAP_S) 초과 시 스테일 반응으로 간주해 드랍+로그."""
+    pending = getattr(sess, "pending_react", None)
+    if pending is None:
+        return
+    sess.pending_react = None
+    waited = time.monotonic() - pending["armed_at"]
+    if waited > REACT_PENDING_WAIT_CAP_S:
+        log.warning(
+            "session %s pending react dropped(wait=%.1fs > cap=%.1fs): kind=%s",
+            getattr(sess, "session_id", "?"), waited, REACT_PENDING_WAIT_CAP_S, pending["kind"],
+        )
+        return
+    lock = _get_busy_lock(sess)
+    async with lock:
+        try:
+            await sess.pipeline.react(pending["kind"], pending["name"])
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log.warning("session %s pending react failed: %s", getattr(sess, "session_id", "?"), e)
+
+
 def _handle_face_event(sess, data: dict) -> None:
     """[T-067] datachannel face_event 메시지 처리.
 
@@ -93,6 +138,8 @@ def _handle_face_event(sess, data: dict) -> None:
     토글 `PRETHIRD_FACE_REACT_ENABLED`(기본 "0") off 면 완전 무동작 — say/speak/greet
     경로와 완전히 독립적이라 off 상태에서 기존 동작에 어떤 영향도 주지 않는다(회귀 0).
     쿨다운: 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=REACT_COOLDOWN_S(60s).
+    다른 발화가 진행 중이면(busy_lock) 겹쳐 push하지 않고 단일 pending 슬롯에 대기시켜
+    발화 종료 후 재생한다(_drain_pending_react, 플랜 §6.2).
 
     Task 11(pending_enroll 소비)·Task 12(_maybe_swap_l2p, L2 화자별 persona 스왑)는
     이 함수 밖에서 구현 — 여기서는 훅 자리만 남긴다(현재 no-op).
@@ -104,22 +151,50 @@ def _handle_face_event(sess, data: dict) -> None:
     event = data.get("event")
     pid = data.get("personId")
     name = data.get("displayName")
-    key = str(pid) if event == "speaker_confirmed" and pid is not None else "unknown"
+
+    pid_int = None
+    if event == "speaker_confirmed":
+        # pid 검증을 쿨다운 키 기록보다 먼저 — malformed 이벤트가 정상 personId의
+        # 1회 기회를 소모하지 않도록 조기 무시(reacted_keys 터치 전에 return).
+        if pid is None:
+            return
+        try:
+            pid_int = int(pid)
+        except (TypeError, ValueError):
+            log.warning(
+                "session %s face_event personId 형식 오류(무시, 쿨다운 미기록): %r",
+                getattr(sess, "session_id", "?"), pid,
+            )
+            return
+
+    key = str(pid_int) if event == "speaker_confirmed" else "unknown"
     now = time.monotonic()
     last = sess.reacted_keys.get(key)
     if last is not None and (key != "unknown" or now - last < REACT_COOLDOWN_S):
         return  # 아는 얼굴=통화당 1회, unknown/multi_face=60s 쿨다운
     sess.reacted_keys[key] = now
 
-    async def _run(event=event, pid=pid, name=name):
+    if event == "speaker_confirmed":
+        sess.current_speaker = (pid_int, name)
+        # Task 12: L2 화자별 persona 스왑(_maybe_swap_l2p) 훅 자리 — 아직 미구현(no-op)
+        kind, react_name = "known", name
+    else:  # unknown_face | multi_face
+        sess.pending_enroll = True  # Task 11 이 소비
+        kind, react_name = "unknown", None
+
+    lock = _get_busy_lock(sess)
+
+    async def _run(kind=kind, react_name=react_name):
         try:
-            if event == "speaker_confirmed":
-                sess.current_speaker = (int(pid), name) if pid is not None else None
-                # Task 12: L2 화자별 persona 스왑(_maybe_swap_l2p) 훅 자리 — 아직 미구현(no-op)
-                await sess.pipeline.react("known", name)
-            else:  # unknown_face | multi_face
-                sess.pending_enroll = True  # Task 11 이 소비
-                await sess.pipeline.react("unknown", None)
+            if lock.locked():
+                # 다른 발화 진행 중 — 단일 pending 슬롯에 최신 값으로 교체(연쇄 큐 금지),
+                # 발화 종료 후 _drain_pending_react가 재생.
+                sess.pending_react = {
+                    "kind": kind, "name": react_name, "armed_at": time.monotonic(),
+                }
+                return
+            async with lock:
+                await sess.pipeline.react(kind, react_name)
         except asyncio.CancelledError:
             raise
         except Exception as e:
@@ -194,23 +269,27 @@ def _make_dc_handler(sess, channel):
                     sess.audio_track.flush()
 
             _response_hook = _on_response_ready if _filler is not None else None
+            # [T-067 §6.2] say/speak/greet도 react와 같은 세션 busy_lock 안에서 트랙 push —
+            # 무경합(단독 호출) 시엔 즉시 통과라 기존 동작과 바이트 단위 동일(회귀 0).
+            _lock = _get_busy_lock(sess)
 
             try:
-                if mode == "speak":
-                    await sess.pipeline.speak(
-                        text, turn=turn,
-                        on_first_audio=_emit_speech_start,
-                        on_response_ready=_response_hook,
-                    )
-                elif mode == "greet":
-                    # greet: 사용자 발화 없으므로 filler 미사용(on_response_ready=None)
-                    await sess.pipeline.greet(turn=turn, on_first_audio=_emit_speech_start)
-                else:
-                    await sess.pipeline.say(
-                        text, turn=turn,
-                        on_first_audio=_emit_speech_start,
-                        on_response_ready=_response_hook,
-                    )
+                async with _lock:
+                    if mode == "speak":
+                        await sess.pipeline.speak(
+                            text, turn=turn,
+                            on_first_audio=_emit_speech_start,
+                            on_response_ready=_response_hook,
+                        )
+                    elif mode == "greet":
+                        # greet: 사용자 발화 없으므로 filler 미사용(on_response_ready=None)
+                        await sess.pipeline.greet(turn=turn, on_first_audio=_emit_speech_start)
+                    else:
+                        await sess.pipeline.say(
+                            text, turn=turn,
+                            on_first_audio=_emit_speech_start,
+                            on_response_ready=_response_hook,
+                        )
             except asyncio.CancelledError:
                 log.warning("session %s %s cancelled", sess.session_id, mode)
                 raise
@@ -250,6 +329,10 @@ def _make_dc_handler(sess, channel):
                             "session %s speech_end send failed: %s",
                             sess.session_id, exc,
                         )
+            # [T-067 §6.2] 이 발화 종료(성공/실패 모두, 취소 제외) → 대기 중이던 pending
+            # react가 있으면 지금 재생. face_event 토글 off/미도착 시 pending은 항상
+            # None이라 _drain_pending_react는 즉시 반환(회귀 0).
+            await _drain_pending_react(sess)
 
         asyncio.ensure_future(_run())
 
