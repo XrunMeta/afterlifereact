@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, os, time, pathlib, logging
+import asyncio, os, time, pathlib, logging, json
 from typing import Callable, Optional
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -203,6 +203,29 @@ def _handle_face_event(sess, data: dict) -> None:
     asyncio.ensure_future(_run())
 
 
+async def _send_enroll_suggest(sess, channel, text: str) -> None:
+    """[T-067 Task 11] pending_enroll 상태에서 도착한 첫 say의 텍스트로 화자 본인 이름을
+    추출해 RN 동의 카드에 프리필시킨다("저 딸 민지예요" → name="민지").
+
+    fire-and-forget — say 본 흐름(pipeline.say 호출)을 전혀 지연·변경하지 않는다.
+    이름 추출 실패(LLM 예외/타임아웃/파싱실패)해도 name=""로 enroll_suggest를 보낸다
+    (카드 수동 입력 폴백 유지, 통화 자체엔 영향 없음).
+    """
+    from name_extract import extract_name
+    try:
+        name = await extract_name(text)
+    except Exception as e:
+        log.warning("session %s enroll name extract failed: %s",
+                    getattr(sess, "session_id", "?"), e)
+        name = ""
+    if channel is not None and getattr(channel, "readyState", None) == "open":
+        try:
+            channel.send(json.dumps({"type": "enroll_suggest", "name": name}))
+        except Exception as exc:
+            log.warning("session %s enroll_suggest send failed: %s",
+                        getattr(sess, "session_id", "?"), exc)
+
+
 def _make_dc_handler(sess, channel):
     """DataChannel 'message' 핸들러 클로저를 반환한다.
 
@@ -229,6 +252,11 @@ def _make_dc_handler(sess, channel):
         text = data.get("text", "")
         if mtype in ("say", "speak") and not text:
             return  # say/speak 는 텍스트 필수. greet 는 텍스트 불필요.
+        # [T-067 Task 11] 즉석등록: pending_enroll 상태의 첫 say에서만 1회 발화(플래그를
+        # 즉시 내려 재진입 차단) — fire-and-forget이라 say 본 흐름은 지연되지 않는다.
+        if mtype == "say" and getattr(sess, "pending_enroll", False):
+            sess.pending_enroll = False
+            asyncio.ensure_future(_send_enroll_suggest(sess, channel, text))
         seq = data.get("seq")   # RN이 부여(없으면 None), echo 전용
         sess.set_state("speaking")
 
