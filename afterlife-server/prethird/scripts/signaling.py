@@ -145,21 +145,27 @@ def _summarize_l2p_fields(data: dict) -> str:
     return "; ".join(parts) if parts else "(없음)"
 
 
-async def _maybe_swap_l2p(sess) -> None:
-    """[T-067 Task 12] speaker_confirmed 화자에 맞춰 persona를 재조립.
+async def _maybe_swap_l2p(sess, pid: int, name) -> None:
+    """[T-067 Task 12] speaker_confirmed 화자(pid/name)에 맞춰 persona를 재조립.
+
+    fire-and-forget — 호출부(_handle_face_event)가 `asyncio.ensure_future`로 스케줄하고
+    react 발화를 전혀 기다리지 않는다(api 5s 타임아웃이 react 지연으로 번지지 않도록
+    react는 이름만으로 즉시 나가고, L2' 반영은 다음 턴부터가 스펙). pid/name은 스케줄
+    시점 closure-frozen 값(파일 내 react kind/react_name과 동일한 freeze 관례) — 함수
+    내부에서 live `sess.current_speaker`를 다시 읽지 않는다.
 
     ①sess.base_persona_messages(세션 최초 persona 사본)가 없으면 지금 pipeline이 쓰던
     persona_messages를 최초 1회 백업 — 이후 스왑은 항상 이 base 위에만 덧붙인다(기존
     L2 베이스 절대 미변경, 스펙 D1). ②fetch_l2p로 화자별 L2' 조회 — 있으면
-    관계요약 포함 시스템 힌트, 없으면(404/미설정/오류) 이름 힌트만. ③pipeline.update_persona로
-    교체(다음 턴부터 반영). 어떤 단계에서 실패해도(속성 부재·네트워크 오류) 예외를 삼켜
+    관계요약 포함 시스템 힌트, 없으면(404/미설정/오류) 이름 힌트만. ③적용 직전
+    `sess.current_speaker[0] == pid` 재확인 — 연속 교대로 이 fetch가 늦게 끝나 최신
+    화자의 스왑을 덮어쓰지 않도록 stale이면 드랍. ④pipeline.update_persona로 교체
+    (다음 턴부터 반영). 어떤 단계에서 실패해도(속성 부재·네트워크 오류) 예외를 삼켜
     통화 자체엔 영향 없다 — 스왑이 전부 스킵될 뿐."""
     try:
         pipeline = getattr(sess, "pipeline", None)
-        current = getattr(sess, "current_speaker", None)
-        if pipeline is None or not current:
+        if pipeline is None:
             return
-        pid, name = current
         if getattr(sess, "base_persona_messages", None) is None:
             sess.base_persona_messages = list(getattr(pipeline, "persona_messages", None) or [])
 
@@ -173,6 +179,12 @@ async def _maybe_swap_l2p(sess) -> None:
                 log.warning("session %s fetch_l2p failed person=%s: %s",
                             getattr(sess, "session_id", "?"), pid, e)
                 l2p_data = None
+
+        # stale 가드: fetch 도중 화자가 또 바뀌었으면(연속 교대) 늦게 끝난 이 결과는
+        # 버린다 — 최신 화자의 스왑(이미 진행/완료)을 덮어쓰지 않는다.
+        current = getattr(sess, "current_speaker", None)
+        if current is None or current[0] != pid:
+            return
 
         if l2p_data:
             hint = f"현재 화면의 화자: {name}. 이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
@@ -200,7 +212,8 @@ def _handle_face_event(sess, data: dict) -> None:
     발화 종료 후 재생한다(_drain_pending_react, 플랜 §6.2).
 
     Task 11(pending_enroll)은 이 함수 밖(say 처리부)에서 소비. Task 12(L2' 화자별
-    persona 스왑)는 _maybe_swap_l2p로 구현 — speaker_confirmed 처리 시 아래 _run()에서 호출.
+    persona 스왑)는 _maybe_swap_l2p — 화자가 바뀔 때(쿨다운과 무관) fire-and-forget으로
+    스케줄되며 react(_run, 쿨다운 게이트 대상)와는 완전히 분리된 별도 태스크(§6.4).
     """
     if os.environ.get(_FACE_REACT_ENABLED_KEY, "0") != "1":
         return
@@ -225,15 +238,24 @@ def _handle_face_event(sess, data: dict) -> None:
             )
             return
 
+    # [T-067 Task 12 / 스펙 §6.4] persona 스왑 트리거는 react 쿨다운과 완전히 무관 —
+    # 화자가 실제로 바뀌었으면(현재 sess.current_speaker와 다른 personId) 쿨다운으로
+    # react가 눌려도(복귀 화자 A→B→A 등) 매번 다시 트리거해야 persona가 최신 화자에
+    # 고착되지 않는다. fire-and-forget(swap이 react를 절대 지연시키지 않음).
+    if event == "speaker_confirmed":
+        prev = sess.current_speaker
+        if prev is None or prev[0] != pid_int:
+            sess.current_speaker = (pid_int, name)
+            asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name))
+
     key = str(pid_int) if event == "speaker_confirmed" else "unknown"
     now = time.monotonic()
     last = sess.reacted_keys.get(key)
     if last is not None and (key != "unknown" or now - last < REACT_COOLDOWN_S):
-        return  # 아는 얼굴=통화당 1회, unknown/multi_face=60s 쿨다운
+        return  # 아는 얼굴=통화당 1회, unknown/multi_face=60s 쿨다운 (react만 억제)
     sess.reacted_keys[key] = now
 
     if event == "speaker_confirmed":
-        sess.current_speaker = (pid_int, name)
         kind, react_name = "known", name
     else:  # unknown_face | multi_face
         sess.pending_enroll = True  # Task 11 이 소비
@@ -243,10 +265,6 @@ def _handle_face_event(sess, data: dict) -> None:
 
     async def _run(kind=kind, react_name=react_name):
         try:
-            # [T-067 Task 12] 화자 확정 → L2' 스왑은 react 쿨다운/대기와 무관하게(react가
-            # busy로 미뤄지거나 드랍되더라도) 매번 시도 — 다음 턴 persona는 즉시 갱신되어야 한다.
-            if kind == "known":
-                await _maybe_swap_l2p(sess)
             if lock.locked():
                 # 다른 발화 진행 중 — 단일 pending 슬롯에 최신 값으로 교체(연쇄 큐 금지),
                 # 발화 종료 후 _drain_pending_react가 재생.

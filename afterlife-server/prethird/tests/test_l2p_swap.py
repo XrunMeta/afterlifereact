@@ -165,9 +165,66 @@ def test_maybe_swap_l2p_handles_missing_pipeline_attrs():
         base_persona_messages = None
 
     async def _run():
-        await _maybe_swap_l2p(_BareSess())
+        await _maybe_swap_l2p(_BareSess(), 3, "민지")
 
     asyncio.run(_run())  # 예외 없이 통과해야 함
+
+
+def test_maybe_swap_l2p_drops_when_stale(monkeypatch):
+    """적용 직전 sess.current_speaker[0] != pid(전달받은 값) → stale 드랍(최신 스왑 안 덮음)."""
+    import l2p_client
+    async def _fake_fetch(clone_id, person_id):
+        return None
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
+    monkeypatch.setenv("LEARN_SECRET", "s")
+    monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
+
+    sess = _Sess()
+    sess.current_speaker = (5, "철수")  # 이미 다른 화자로 넘어간 상태
+    asyncio.run(_maybe_swap_l2p(sess, 3, "민지"))  # 3번(민지)에 대한 늦은 스왑 시도
+
+    assert sess.pipeline.update_calls == []  # 드랍됨 — 최신(철수) persona 안 건드림
+
+
+def test_react_not_blocked_by_slow_l2p_fetch(monkeypatch):
+    """react는 fetch_l2p 완료를 기다리지 않는다(fire-and-forget) — fetch가 아직 안 끝나도
+    react_calls는 이벤트 처리 직후 이미 채워져 있어야 한다."""
+    monkeypatch.setenv("PRETHIRD_FACE_REACT_ENABLED", "1")
+    monkeypatch.setenv("LEARN_SECRET", "s")
+    monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
+
+    gate = asyncio.Event()
+    import l2p_client
+    async def _slow_fetch(clone_id, person_id):
+        await gate.wait()  # react가 끝나기 전엔 절대 풀리지 않음(테스트가 직접 통제)
+        return None
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _slow_fetch)
+
+    sess, ch = _Sess(), _Channel()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        handler = _make_dc_handler(sess, ch)
+        handler(json.dumps({
+            "type": "face_event", "event": "speaker_confirmed",
+            "personId": 3, "displayName": "민지", "seq": 1,
+        }))
+        # 몇 틱만 진행 — fetch_l2p는 gate 대기로 영원히 안 끝나지만 react는 이미 완료돼야 함.
+        for _ in range(10):
+            loop.run_until_complete(asyncio.sleep(0))
+        assert sess.pipeline.react_calls == [("known", "민지")]  # swap 미완료여도 react 완료
+        assert sess.pipeline.update_calls == []  # swap은 아직 대기 중(gate 안 풀림)
+
+        gate.set()
+        pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
+        if pending:
+            loop.run_until_complete(asyncio.gather(*pending))
+        assert sess.pipeline.update_calls == [
+            [{"role": "system", "content": "base persona"}, {"role": "system", "content": "현재 화면의 화자: 민지"}]
+        ]
+    finally:
+        asyncio.set_event_loop(None)
+        loop.close()
 
 
 # ---------------------------------------------------------------------------
@@ -291,3 +348,40 @@ def test_speaker_swap_no_nesting(monkeypatch):
     # base + 화자 힌트 1개만 — 민지 힌트가 잔존(중첩)하지 않음
     assert final == original_base + [{"role": "system", "content": "현재 화면의 화자: 철수"}]
     assert sess.base_persona_messages == original_base
+
+
+# ---------------------------------------------------------------------------
+# 스펙 §6.4: 복귀 화자(A→B→A) — 쿨다운은 react만 억제, 스왑은 매번 재트리거
+# ---------------------------------------------------------------------------
+
+def test_returning_speaker_reswaps_but_react_cooldown_holds(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_FACE_REACT_ENABLED", "1")
+    monkeypatch.setenv("LEARN_SECRET", "s")
+    monkeypatch.setenv("PRETHIRD_API_BASE", "http://x")
+
+    import l2p_client
+    async def _fake_fetch(clone_id, person_id):
+        return None
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch)
+
+    sess, ch = _Sess(), _Channel()
+
+    _run_handler(sess, ch, {  # A
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 3, "displayName": "A", "seq": 1,
+    })
+    _run_handler(sess, ch, {  # B
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 5, "displayName": "B", "seq": 2,
+    })
+    _run_handler(sess, ch, {  # A 복귀
+        "type": "face_event", "event": "speaker_confirmed",
+        "personId": 3, "displayName": "A", "seq": 3,
+    })
+
+    # react: A/B 각 1회씩(쿨다운으로 A 재확정 시 react는 억제)
+    assert sess.pipeline.react_calls == [("known", "A"), ("known", "B")]
+    # persona 스왑: 3회 전부 트리거되고, 마지막이 A 힌트(고착 없음)
+    assert len(sess.pipeline.update_calls) == 3
+    assert sess.pipeline.update_calls[-1][-1]["content"] == "현재 화면의 화자: A"
+    assert sess.current_speaker == (3, "A")
