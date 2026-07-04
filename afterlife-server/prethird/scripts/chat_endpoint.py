@@ -54,7 +54,7 @@ async def _resolve_user_id(token: str) -> int | None:
             if r.status != 200:
                 return None
             data = await r.json()
-    uid = data.get("id")
+    uid = (data.get("user") or {}).get("id")
     return uid if isinstance(uid, int) else None
 
 async def verify_clones(req: web.Request) -> web.Response:
