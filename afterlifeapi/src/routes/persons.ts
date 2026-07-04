@@ -105,7 +105,7 @@ persons.post("/:id/consent", requireAuth, async (c) => {
 
 persons.post("/:id/faces", requireAuth, async (c) => {
   const userId = c.get("userId")!;
-  const personId = Number(c.req.param("id"));
+  const personId = parsePersonId(c);
   const body = await c.req.json<{ vectors?: number[][] }>().catch(() => ({}) as { vectors?: number[][] });
   const vectors = body.vectors;
   if (
@@ -121,25 +121,35 @@ persons.post("/:id/faces", requireAuth, async (c) => {
   const person = await c.env.DB.prepare("SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ?")
     .bind(personId, userId)
     .first<{ id: number; consent_state: string }>();
-  if (!person) throw new APIError("NOT_FOUND", "Person not found.");
+  if (!person) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
   if (person.consent_state !== "granted")
     throw new APIError("FORBIDDEN", "얼굴정보 저장 동의(consent granted)가 필요합니다"); 
 
-  const idx = getFaceIndex(c.env);
   const rows = vectors.map((values) => ({
     id: crypto.randomUUID(),
     values,
     namespace: String(userId),
     metadata: { personId: String(personId) },
   }));
-  await idx.insert(rows);
 
   const createdAt = Date.now();
-  const stmt = c.env.DB.prepare(
+  const insertStmt = c.env.DB.prepare(
     `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
      VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`
   );
-  await c.env.DB.batch(rows.map((r) => stmt.bind(personId, r.id, createdAt)));
+  await c.env.DB.batch(rows.map((r) => insertStmt.bind(personId, r.id, createdAt)));
+
+  const idx = getFaceIndex(c.env);
+  try {
+    await idx.insert(rows);
+  } catch (e) {
+
+    const placeholders = rows.map(() => "?").join(",");
+    await c.env.DB.prepare(`DELETE FROM face_embeddings WHERE vectorize_id IN (${placeholders})`)
+      .bind(...rows.map((r) => r.id))
+      .run();
+    throw new APIError("UPSTREAM_FAILURE", `얼굴 벡터 인덱스 저장 실패: ${(e as Error).message}`);
+  }
 
   return c.json({ enrolled: rows.length });
 });

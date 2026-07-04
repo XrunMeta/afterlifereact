@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
+import { getFaceIndex } from "../src/lib/faceVectors";
 
 async function seedUser(email: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
@@ -80,6 +81,11 @@ describe("POST /oth-path", () => {
       .bind(personId)
       .first<{ c: number }>();
     expect(row?.c).toBe(3);
+
+    const idx = getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    const queryResult = await idx.query(vec(0.1), { topK: 3, namespace: String(userId), returnMetadata: true });
+    expect(queryResult.matches.length).toBeGreaterThan(0);
+    expect(queryResult.matches[0].metadata?.personId).toBe(String(personId));
   });
 
   it("vectors 검증: 512 아님/6개 초과/비수치 → 422 VALIDATION_FAILED", async () => {
@@ -131,5 +137,20 @@ describe("POST /oth-path", () => {
     expect(res.status).toBe(404);
     const body = (await res.json()) as { error: { code: string } };
     expect(body.error.code).toBe("NOT_FOUND");
+  });
+
+  it("비정수 person id(/faces) → 422 VALIDATION_FAILED (parsePersonId 재사용, 500 아님)", async () => {
+    const userId = await seedUser("faces-nanid@test.local");
+    const tok = await issueAccessToken(userId);
+
+    const res = await SELF.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ vectors: [vec()] }),
+    });
+
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("VALIDATION_FAILED");
   });
 });
