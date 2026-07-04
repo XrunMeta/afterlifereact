@@ -18,3 +18,23 @@ def test_param_classification():
     assert "idle_motion_scale" in FifthKnobs.PER_REQUEST
     assert "cfg_scale" in FifthKnobs.RESTART_BAKED
     assert "cfg_scale" not in FifthKnobs.PER_REQUEST
+
+
+def test_from_dict_empty_uses_all_defaults():
+    k = RunKnobs.from_dict({})
+    assert k.to_dict() == RunKnobs().to_dict()
+
+
+def test_from_dict_unknown_field_ignored():
+    k = RunKnobs.from_dict({"tts": {"unknown_field": 999}})
+    assert not hasattr(k.tts, "unknown_field")
+    assert k.tts.engine == "openvoice"
+    assert k.tts.speed == 1.0
+
+
+def test_from_dict_none_temperature_roundtrip():
+    k = RunKnobs()
+    assert k.dialogue.temperature is None
+    d = k.to_dict()
+    k2 = RunKnobs.from_dict(d)
+    assert k2.dialogue.temperature is None

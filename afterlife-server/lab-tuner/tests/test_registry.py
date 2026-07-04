@@ -17,3 +17,15 @@ def test_update_preserves_other_sections():
     r.update({"tts": {"speed": 2.0}})
     assert r.get().fifth.cfg_scale == 3.0  # 이전 업데이트 보존
     assert r.get().tts.speed == 2.0
+
+def test_update_unknown_section_ignored():
+    r = KnobsRegistry()
+    before = r.get().to_dict()
+    merged = r.update({"unknown_section": {"x": 1}})
+    assert merged.to_dict() == before   # 예외 없이 현상유지
+
+def test_update_none_section_value_ignored():
+    r = KnobsRegistry()
+    before = r.get().to_dict()
+    merged = r.update({"tts": None})    # isinstance dict 가드 → 무시
+    assert merged.to_dict() == before
