@@ -37,8 +37,14 @@ export function getFaceIndex(env: { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?:
     return {
       async insert(rows) { await v.insert(rows.map((r) => ({ id: r.id, values: r.values, namespace: r.namespace, metadata: r.metadata }))); },
       async query(values, { topK, namespace, returnMetadata }) {
-        const r = await v.query(new Float32Array(values) as any, { topK, namespace, returnMetadata: returnMetadata ? "all" : "none" } as any);
-        return { matches: r.matches.map((m: any) => ({ id: m.id, score: m.score, metadata: m.metadata })) };
+        const r = await v.query(values, { topK, namespace, returnMetadata });
+        return {
+          matches: r.matches.map((m: VectorizeMatch) => ({
+            id: m.id,
+            score: m.score,
+            metadata: m.metadata as Record<string, string> | undefined,
+          })),
+        };
       },
       async deleteByIds(ids) { await v.deleteByIds(ids); },
     };
