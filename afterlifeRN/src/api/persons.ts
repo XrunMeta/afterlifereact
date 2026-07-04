@@ -71,3 +71,49 @@ export async function v_865d38(
   );
   return { items: v_8f00b9?.data ?? [] };
 }
+
+export interface MatchCandidate {
+  personId: number;
+  displayName: string | null;
+  score: number;
+}
+
+export interface MatchResult {
+  matches: MatchCandidate[];
+  best: MatchCandidate | null;
+  threshold: number;
+}
+
+export async function v_afc2e6(
+  v_2ca7e0,
+  v_f9a45c,
+): Promise<MatchResult> {
+  return v_04b58a<MatchResult>(
+    '/oth-path',
+    v_2ca7e0,
+    { method: 'POST', body: JSON.stringify({ vector: v_f9a45c }) },
+  );
+}
+
+export async function v_4585d1(
+  v_2ca7e0,
+  v_ca1ec5,
+  v_f94e64,
+): Promise<{ enrolled: number }> {
+  return v_04b58a<{ enrolled: number }>(
+    `/oth-path${v_ca1ec5}/faces`,
+    v_2ca7e0,
+    { method: 'POST', body: JSON.stringify({ vectors: v_f94e64 }) },
+  );
+}
+
+export async function v_a94a1b(
+  v_2ca7e0,
+  v_ca1ec5,
+): Promise<{ deleted: boolean }> {
+  return v_04b58a<{ deleted: boolean }>(
+    `/oth-path${v_ca1ec5}`,
+    v_2ca7e0,
+    { method: 'DELETE' },
+  );
+}
