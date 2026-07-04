@@ -198,6 +198,31 @@ persons.post("/:id/faces", requireAuth, async (c) => {
   return c.json({ enrolled: rows.length });
 });
 
+persons.delete("/:id", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const personId = parsePersonId(c);
+
+  const person = await c.env.DB.prepare("SELECT id FROM persons WHERE id = ? AND user_id = ?")
+    .bind(personId, userId)
+    .first<{ id: number }>();
+  if (!person) throw new APIError("NOT_FOUND", "person이 존재하지 않습니다.");
+
+  const embs = await c.env.DB.prepare("SELECT vectorize_id FROM face_embeddings WHERE person_id = ?")
+    .bind(personId)
+    .all<{ vectorize_id: string | null }>();
+  const vids = embs.results.map((r) => r.vectorize_id).filter((v): v is string => Boolean(v));
+  if (vids.length) await getFaceIndex(c.env).deleteByIds(vids);
+
+  await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(personId),
+    c.env.DB.prepare("DELETE FROM persons_consent_log WHERE person_id = ?").bind(personId),
+    c.env.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(personId),
+    c.env.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(personId, userId),
+  ]);
+
+  return c.json({ deleted: true });
+});
+
 persons.get("/", requireAuth, async (c) => {
   const userId = c.get("userId")!;
 
