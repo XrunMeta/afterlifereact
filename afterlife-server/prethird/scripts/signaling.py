@@ -129,6 +129,64 @@ async def _drain_pending_react(sess) -> None:
             log.warning("session %s pending react failed: %s", getattr(sess, "session_id", "?"), e)
 
 
+def _summarize_l2p_fields(data: dict) -> str:
+    """l2p `data` 필드(extract_l2 산출 구조: preference_personal/relation/memories_personal)를
+    프롬프트 힌트용 한 줄로 요약. 빈 값은 생략, 전부 비면 "(없음)"."""
+    parts = []
+    rel = data.get("relation")
+    if isinstance(rel, str) and rel.strip():
+        parts.append(f"관계={rel.strip()}")
+    pp = data.get("preference_personal")
+    if isinstance(pp, dict) and pp:
+        parts.append("선호=" + ", ".join(f"{k}:{v}" for k, v in pp.items()))
+    mems = data.get("memories_personal")
+    if isinstance(mems, list) and mems:
+        parts.append("기억=" + "; ".join(str(m) for m in mems))
+    return "; ".join(parts) if parts else "(없음)"
+
+
+async def _maybe_swap_l2p(sess) -> None:
+    """[T-067 Task 12] speaker_confirmed 화자에 맞춰 persona를 재조립.
+
+    ①sess.base_persona_messages(세션 최초 persona 사본)가 없으면 지금 pipeline이 쓰던
+    persona_messages를 최초 1회 백업 — 이후 스왑은 항상 이 base 위에만 덧붙인다(기존
+    L2 베이스 절대 미변경, 스펙 D1). ②fetch_l2p로 화자별 L2' 조회 — 있으면
+    관계요약 포함 시스템 힌트, 없으면(404/미설정/오류) 이름 힌트만. ③pipeline.update_persona로
+    교체(다음 턴부터 반영). 어떤 단계에서 실패해도(속성 부재·네트워크 오류) 예외를 삼켜
+    통화 자체엔 영향 없다 — 스왑이 전부 스킵될 뿐."""
+    try:
+        pipeline = getattr(sess, "pipeline", None)
+        current = getattr(sess, "current_speaker", None)
+        if pipeline is None or not current:
+            return
+        pid, name = current
+        if getattr(sess, "base_persona_messages", None) is None:
+            sess.base_persona_messages = list(getattr(pipeline, "persona_messages", None) or [])
+
+        clone_id = getattr(sess, "clone_id", None)
+        l2p_data = None
+        if clone_id is not None and pid is not None:
+            from l2p_client import fetch_l2p
+            try:
+                l2p_data = await fetch_l2p(clone_id, pid)
+            except Exception as e:
+                log.warning("session %s fetch_l2p failed person=%s: %s",
+                            getattr(sess, "session_id", "?"), pid, e)
+                l2p_data = None
+
+        if l2p_data:
+            hint = f"현재 화면의 화자: {name}. 이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
+        else:
+            hint = f"현재 화면의 화자: {name}"
+
+        new_messages = sess.base_persona_messages + [{"role": "system", "content": hint}]
+        update = getattr(pipeline, "update_persona", None)
+        if callable(update):
+            update(new_messages)
+    except Exception as e:
+        log.warning("session %s _maybe_swap_l2p failed: %s", getattr(sess, "session_id", "?"), e)
+
+
 def _handle_face_event(sess, data: dict) -> None:
     """[T-067] datachannel face_event 메시지 처리.
 
@@ -141,8 +199,8 @@ def _handle_face_event(sess, data: dict) -> None:
     다른 발화가 진행 중이면(busy_lock) 겹쳐 push하지 않고 단일 pending 슬롯에 대기시켜
     발화 종료 후 재생한다(_drain_pending_react, 플랜 §6.2).
 
-    Task 11(pending_enroll 소비)·Task 12(_maybe_swap_l2p, L2 화자별 persona 스왑)는
-    이 함수 밖에서 구현 — 여기서는 훅 자리만 남긴다(현재 no-op).
+    Task 11(pending_enroll)은 이 함수 밖(say 처리부)에서 소비. Task 12(L2' 화자별
+    persona 스왑)는 _maybe_swap_l2p로 구현 — speaker_confirmed 처리 시 아래 _run()에서 호출.
     """
     if os.environ.get(_FACE_REACT_ENABLED_KEY, "0") != "1":
         return
@@ -176,7 +234,6 @@ def _handle_face_event(sess, data: dict) -> None:
 
     if event == "speaker_confirmed":
         sess.current_speaker = (pid_int, name)
-        # Task 12: L2 화자별 persona 스왑(_maybe_swap_l2p) 훅 자리 — 아직 미구현(no-op)
         kind, react_name = "known", name
     else:  # unknown_face | multi_face
         sess.pending_enroll = True  # Task 11 이 소비
@@ -186,6 +243,10 @@ def _handle_face_event(sess, data: dict) -> None:
 
     async def _run(kind=kind, react_name=react_name):
         try:
+            # [T-067 Task 12] 화자 확정 → L2' 스왑은 react 쿨다운/대기와 무관하게(react가
+            # busy로 미뤄지거나 드랍되더라도) 매번 시도 — 다음 턴 persona는 즉시 갱신되어야 한다.
+            if kind == "known":
+                await _maybe_swap_l2p(sess)
             if lock.locked():
                 # 다른 발화 진행 중 — 단일 pending 슬롯에 최신 값으로 교체(연쇄 큐 금지),
                 # 발화 종료 후 _drain_pending_react가 재생.
@@ -336,14 +397,19 @@ def _make_dc_handler(sess, channel):
                     except Exception as exc:
                         log.warning("session %s finalize failed: %s", sess.session_id, exc)
                 # Phase B 자동학습: say 턴만, fire-and-forget(통화 무영향)
+                # [T-067 Task 12] current_speaker(화자 확정 상태) 있으면 화자별 L2'로 라우팅,
+                # 없으면 기존 사용자별 L2 그대로(learn_writeback 내부 person_id 분기).
                 if mode == "say":
                     from learn_writeback import learn_writeback
                     _clone_reply = "".join(getattr(turn, "_tokens", [])) if turn is not None else ""
+                    _speaker = getattr(sess, "current_speaker", None)
+                    _person_id = _speaker[0] if _speaker else None
                     asyncio.ensure_future(learn_writeback(
                         getattr(sess, "clone_id", None),
                         getattr(sess, "user_id", None),
                         getattr(sess, "session_id", None),
                         text, _clone_reply,
+                        person_id=_person_id,
                     ))
                 # 발화 push 완료 → 클라에 종료 신호(say/speak/greet 성공·실패 모두 전송).
                 # sess.datachannel 재참조 금지 — stop()+start() 재연결로 채널이
