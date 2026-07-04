@@ -48,7 +48,7 @@ v_469bf2("persons route", () => {
     v_4d37e3(v_4d33b2.id).toBeGreaterThan(0);
     v_4d37e3(v_4d33b2.consentState).toBe("none");
 
-    v_4d37e3(v_4d33b2.displayName).toBeNull();
+    v_4d37e3(v_4d33b2.displayName).toBe("테스트화자");
   });
 
   v_23805a("POST /oth-path — cloneId + displayName 없이도 생성 가능(nullable)", async () => {
@@ -66,7 +66,7 @@ v_469bf2("persons route", () => {
     v_4d37e3(v_4d33b2.consentState).toBe("none");
   });
 
-  v_23805a("POST /oth-path — displayName 보내도 저장은 NULL (mizu H-2)", async () => {
+  v_23805a("POST /oth-path — displayName 30자 초과 → VALIDATION_FAILED(422)", async () => {
     const v_43e90c = await v_bfb240("persons-longname@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
     const v_beebfc = "가".repeat(80);
@@ -77,10 +77,9 @@ v_469bf2("persons route", () => {
       body: JSON.stringify({ displayName: v_beebfc }),
     });
 
-    v_4d37e3(v_8f00b9.status).toBe(201);
-    const v_4d33b2 = (await v_8f00b9.json()) as { displayName: string | null };
-
-    v_4d37e3(v_4d33b2.displayName).toBeNull();
+    v_4d37e3(v_8f00b9.status).toBe(422);
+    const v_4d33b2 = (await v_8f00b9.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
   });
 
   v_23805a("POST /oth-path — 비로그인 401", async () => {
@@ -330,7 +329,7 @@ v_469bf2("persons route", () => {
     v_4d37e3(v_4d33b2.cloneId).toBe(v_6e0fd3);
   });
 
-  v_23805a("POST /oth-path — displayName 보내도 저장 NULL (mizu H-2 직접 DB 확인)", async () => {
+  v_23805a("POST /oth-path — displayName 저장 확인 (직접 DB, T-067 Task9)", async () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_43e90c = await v_bfb240("persons-h2-db@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);
@@ -338,7 +337,7 @@ v_469bf2("persons route", () => {
     const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
       method: "POST",
       headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ displayName: "실명저장금지" }),
+      body: JSON.stringify({ displayName: "실명저장허용" }),
     });
 
     v_4d37e3(v_8f00b9.status).toBe(201);
@@ -348,7 +347,73 @@ v_469bf2("persons route", () => {
       .prepare("SELECT display_name FROM persons WHERE id = ?")
       .bind(v_389afb)
       .first<{ display_name: string | null }>();
-    v_4d37e3(v_3ac7e7?.display_name).toBeNull();
+    v_4d37e3(v_3ac7e7?.display_name).toBe("실명저장허용");
+  });
+
+  v_23805a("POST /oth-path — displayName trim 후 앞뒤 공백 제거 저장", async () => {
+    const v_43e90c = await v_bfb240("persons-trim@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "  공백이름  " }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(201);
+    const v_4d33b2 = (await v_8f00b9.json()) as { displayName: string | null };
+    v_4d37e3(v_4d33b2.displayName).toBe("공백이름");
+  });
+
+  v_23805a("POST /oth-path — displayName 빈 문자열(trim 후 0자) → VALIDATION_FAILED(422)", async () => {
+    const v_43e90c = await v_bfb240("persons-empty-name@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "   " }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(422);
+    const v_4d33b2 = (await v_8f00b9.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  v_23805a("POST /oth-path — displayName 비문자열(number) → VALIDATION_FAILED(422)", async () => {
+    const v_43e90c = await v_bfb240("persons-nonstring-name@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: 12345 }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(422);
+    const v_4d33b2 = (await v_8f00b9.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  v_23805a("POST /oth-path — 동일 user·clone 무관 displayName 중복 → VALIDATION_FAILED(422)", async () => {
+    const v_43e90c = await v_bfb240("persons-dup-name@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_ea719c = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "중복이름" }),
+    });
+    v_4d37e3(v_ea719c.status).toBe(201);
+
+    const v_486a80 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "중복이름" }),
+    });
+    v_4d37e3(v_486a80.status).toBe(422);
+    const v_4d33b2 = (await v_486a80.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
   });
 
   v_23805a("POST /oth-path granted → persons_consent_log에 1행 기록", async () => {

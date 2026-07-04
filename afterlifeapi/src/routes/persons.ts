@@ -23,7 +23,17 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
 
   const v_6e0fd3 = v_4d33b2.cloneId ?? null;
 
-  const v_8a1355 = null;
+  let v_8a1355 = null;
+  if (v_4d33b2.displayName !== undefined) {
+    if (typeof v_4d33b2.displayName !== "string") {
+      throw new v_3ebe58("VALIDATION_FAILED", "displayName은 문자열이어야 합니다.");
+    }
+    const v_2f361a = v_4d33b2.displayName.trim();
+    if (v_2f361a.length < 1 || v_2f361a.length > 30) {
+      throw new v_3ebe58("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
+    }
+    v_8a1355 = v_2f361a;
+  }
 
   if (v_6e0fd3 !== null) {
     const v_2461e1 = await v_3f4e2e.env.DB.prepare(
@@ -38,12 +48,22 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
 
   const v_9e67a6 = Date.now();
 
-  const v_43c42e = await v_3f4e2e.env.DB.prepare(
-    `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
-     VALUES (?, ?, ?, 'none', ?)`
-  )
-    .bind(v_43e90c, v_6e0fd3, v_8a1355, v_9e67a6)
-    .run();
+  let v_43c42e;
+  try {
+    v_43c42e = await v_3f4e2e.env.DB.prepare(
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
+       VALUES (?, ?, ?, 'none', ?)`
+    )
+      .bind(v_43e90c, v_6e0fd3, v_8a1355, v_9e67a6)
+      .run();
+  } catch (v_49263d) {
+    const v_badeaf = (v_49263d as Error).message ?? "";
+
+    if (/UNIQUE constraint failed/i.test(v_badeaf)) {
+      throw new v_3ebe58("VALIDATION_FAILED", "이미 등록된 이름입니다.");
+    }
+    throw v_49263d;
+  }
 
   const v_389afb = v_43c42e.meta.last_row_id as number;
 
