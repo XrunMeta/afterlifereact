@@ -6,8 +6,11 @@
   2) wrangler d1 migrations apply <DB> --remote          # 0082 (persons/consent_log/face_embeddings 등)
   3) wrangler deploy --env preview                        # afterlifeapi persons 라우트 배포
   4) wrangler d1 execute <DB> --remote --command \
-       "INSERT INTO app_config(key,value) VALUES('face.match_threshold','<t067_calibration.json threshold>') \
+       "INSERT INTO app_config(key,value) VALUES('face.match_threshold','<threshold>') \
         ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=unixepoch()" --env preview
+     ⚠️ t067_calibration.json.threshold(0.83)는 operational=false 잠정값(모델체인 검증용) —
+     Task 16 실카메라 재캘리브 전 이 값을 그대로 4번 명령에 쓰지 말 것. t067_calibrate.py
+     실행 시 --print-upsert 없이는 이 명령을 출력하지 않는 것도 그 때문.
 
 env:
   T067_API_BASE      preview api base url (예: https://afterlifeapi-preview.xxx.workers.dev)
@@ -18,8 +21,9 @@ env:
     python3 t067_e2e_match.py fixtures/t067-faces/
 
 의존: t067_model_parity.embed_onnx + t067_calibrate.py 의 얼굴 crop 로직(cv2 Haar cascade) 재사용.
-      onnxruntime/opencv-python-headless/pillow/numpy 설치된 인터프리터로 실행
-      (scripts/.t067-model/venv/bin/python3 권장).
+      scripts/t067_requirements.txt 고정본으로 설치된 인터프리터로 실행
+      (opencv-python-headless는 반드시 4.10.0.84 — 5.x는 CascadeClassifier 결손 확인됨.
+       scripts/.t067-model/venv/bin/python3 권장).
 
 흐름 (브리프 Step 4):
   ① POST /oth-path {displayName:'t067-fx-<ts>'} → personId

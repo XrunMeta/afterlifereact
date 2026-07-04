@@ -11,5 +11,7 @@
   "n_diff": 1008,
   "n_identities": 8,
   "overlap_warning": false,
-  "conservative_threshold": null
+  "conservative_threshold": null,
+  "operational": false,
+  "warning": "모델체인 검증용 잠정값 — same쌍이 동일사진 idle-렌더 변형이고 crop이 비정렬 squash resize라 실사용 대비 same 유사도 과대추정/diff_p95 상승 가능. Task 16 실카메라 재캘리브 전 운영 적용 금지."
 }
