@@ -410,6 +410,21 @@ v_469bf2("persons route", () => {
     v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
   });
 
+  v_23805a("POST /oth-path — displayName 유니코드 포맷 문자(U+202E RTL override) 포함 → VALIDATION_FAILED(422)", async () => {
+    const v_43e90c = await v_bfb240("persons-bidi-name@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ displayName: "이름‮조작됨" }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(422);
+    const v_4d33b2 = (await v_8f00b9.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
+  });
+
   v_23805a("POST /oth-path — 동일 user·clone 무관 displayName 중복 → VALIDATION_FAILED(422)", async () => {
     const v_43e90c = await v_bfb240("persons-dup-name@test.local");
     const v_ea333d = await v_86c39f(v_43e90c);

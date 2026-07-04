@@ -355,7 +355,7 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   );
 });
 
-async function v_d81552(v_a1651b, v_ca1ec5, v_6e0fd3): Promise<boolean> {
+async function v_a30df4(v_a1651b, v_ca1ec5, v_6e0fd3): Promise<boolean> {
   const v_3ac7e7 = await v_a1651b.prepare(
     `SELECT 1 FROM persons p
      JOIN call_sessions cs ON cs.user_id = p.user_id
@@ -379,7 +379,7 @@ v_dcd415.get("/oth-path", async (v_3f4e2e) => {
     return v_3f4e2e.json({ error: "bad_person_id" }, 400);
   }
 
-  const v_bcc292 = await v_d81552(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3);
+  const v_bcc292 = await v_a30df4(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3);
   if (!v_bcc292) return v_3f4e2e.json({ error: "not_found" }, 404);
 
   const v_479f05 = await v_0761b1(v_3f4e2e.env, v_6e0fd3, v_ca1ec5);
@@ -433,7 +433,7 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
   if (!v_eb25ce) return v_3f4e2e.json({ error: "clone_not_found" }, 404);
 
-  const v_eaefcf = await v_d81552(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3);
+  const v_eaefcf = await v_a30df4(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3);
   if (!v_eaefcf) return v_3f4e2e.json({ error: "no_interaction" }, 403);
 
   let v_43c42e;

@@ -33,7 +33,7 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
       throw new v_3ebe58("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
     }
 
-    if (/[\x00-\x1f\x7f]/.test(v_2f361a)) {
+    if (/[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]/.test(v_2f361a)) {
       throw new v_3ebe58("VALIDATION_FAILED", "displayName에 제어문자를 사용할 수 없습니다.");
     }
     v_8a1355 = v_2f361a;
