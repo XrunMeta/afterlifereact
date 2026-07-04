@@ -20,6 +20,8 @@ export default v_eede73(async () => {
       hookTimeout: 60_000,
       poolOptions: {
         workers: {
+
+          singleWorker: true,
           wrangler: { configPath: "./wrangler.toml" },
           miniflare: {
             compatibilityDate: "2024-12-01",
