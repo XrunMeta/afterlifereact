@@ -105,6 +105,11 @@ class DialoguePipeline:
     # 퍼블릭 API
     # ------------------------------------------------------------------
 
+    def update_persona(self, messages: list) -> None:
+        """[T-067 Task 12] persona_messages 교체 — 다음 턴(say/speak/react/greet)부터 반영.
+        진행 중인 발화에는 영향 없음(각 호출 시점에 self.persona_messages를 읽어 조립)."""
+        self.persona_messages = list(messages)
+
     async def say(self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
