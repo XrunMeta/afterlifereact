@@ -50,3 +50,6 @@ afterlifeapi/seeds/voice_catalog/out/
 
 # T-067 얼굴 임베딩 모델 변환 작업물 (venv/중간산출물, 커밋 제외 — 결과 tflite만 afterlifeRN/assets/models에 커밋)
 afterlife-server/scripts/.t067-model/
+
+# T-067 Task 8 픽스처 (합성 얼굴 사진, 커밋 금지 — manifest.json/t067_calibration.json만 커밋)
+afterlife-server/fixtures/t067-faces/
