@@ -58,13 +58,26 @@ async function deletePerson(tok: string, personId: number) {
   });
 }
 
+async function insertCallTurn(personId: number): Promise<number> {
+  const db = env.DB as unknown as D1Database;
+  const callId = `call-${personId}-${Date.now()}`;
+  const r = await db
+    .prepare(
+      `INSERT INTO call_turns (call_id, seq, role, text, created_at, speaker_person_id)
+       VALUES (?, 1, 'user', 'hi', ?, ?)`
+    )
+    .bind(callId, Date.now(), personId)
+    .run();
+  return r.meta.last_row_id as number;
+}
+
 describe("DELETE /oth-path", () => {
-  it("enroll된 person 삭제 → 200, 4개 테이블 행 0 + 같은 벡터 match 빈 결과", async () => {
+  it("enroll된 person 삭제 → 200, face_embeddings/clone_ont_person 행 0 + consent_log 보존(삭제 감사행 추가) + call_turns FK NULL화 + 같은 벡터 match 빈 결과", async () => {
     const db = env.DB as unknown as D1Database;
     const userId = await seedUser("del-full@test.local");
     const tok = await issueAccessToken(userId);
     const personId = await createPerson(tok);
-    await grantConsent(tok, personId);
+    await grantConsent(tok, personId); 
     await enrollFace(tok, personId, 0.1);
 
     await db
@@ -73,6 +86,8 @@ describe("DELETE /oth-path", () => {
       )
       .bind(1, personId, Date.now())
       .run();
+
+    const turnId = await insertCallTurn(personId);
 
     const res = await deletePerson(tok, personId);
     expect(res.status).toBe(200);
@@ -86,16 +101,27 @@ describe("DELETE /oth-path", () => {
       .bind(personId)
       .first<{ c: number }>();
     expect(fe?.c).toBe(0);
-    const cl = await db
-      .prepare("SELECT COUNT(*) c FROM persons_consent_log WHERE person_id = ?")
-      .bind(personId)
-      .first<{ c: number }>();
-    expect(cl?.c).toBe(0);
     const cop = await db
       .prepare("SELECT COUNT(*) c FROM clone_ont_person WHERE person_id = ?")
       .bind(personId)
       .first<{ c: number }>();
     expect(cop?.c).toBe(0);
+
+    const logs = await db
+      .prepare("SELECT state, channel FROM persons_consent_log WHERE person_id = ? ORDER BY id ASC")
+      .bind(personId)
+      .all<{ state: string; channel: string | null }>();
+    expect(logs.results.length).toBe(2); 
+    expect(logs.results[0].state).toBe("granted");
+    const last = logs.results[logs.results.length - 1];
+    expect(last.state).toBe("revoked");
+    expect(last.channel).toBe("face_delete");
+
+    const turn = await db
+      .prepare("SELECT speaker_person_id FROM call_turns WHERE id = ?")
+      .bind(turnId)
+      .first<{ speaker_person_id: number | null }>();
+    expect(turn?.speaker_person_id).toBe(null);
 
     const idx = getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
     const queryResult = await idx.query(vec(0.1), { topK: 3, namespace: String(userId), returnMetadata: true });
@@ -118,7 +144,7 @@ describe("DELETE /oth-path", () => {
     expect(body.error.code).toBe("NOT_FOUND");
   });
 
-  it("부분 실패 후 재시도 — persons 행이 남아있으면(자식 일부만 지워진 상태) 재호출이 나머지를 마저 지우고 200", async () => {
+  it("부분 실패 후 재시도(진짜 재현) — Vectorize만 먼저 소멸(라우트 밖 직접 호출)된 상태에서 재호출해도 deleteByIds no-op으로 200 완결·전 테이블 정리", async () => {
     const db = env.DB as unknown as D1Database;
     const userId = await seedUser("del-partial@test.local");
     const tok = await issueAccessToken(userId);
@@ -131,24 +157,36 @@ describe("DELETE /oth-path", () => {
       )
       .bind(2, personId, Date.now())
       .run();
+    const turnId = await insertCallTurn(personId);
 
-    await db.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(personId).run();
+    const embs = await db
+      .prepare("SELECT vectorize_id FROM face_embeddings WHERE person_id = ?")
+      .bind(personId)
+      .all<{ vectorize_id: string | null }>();
+    const vids = embs.results.map((r) => r.vectorize_id).filter((v): v is string => Boolean(v));
+    expect(vids.length).toBeGreaterThan(0);
+    await getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string }).deleteByIds(vids);
 
     const res = await deletePerson(tok, personId);
     expect(res.status).toBe(200);
 
     const p = await db.prepare("SELECT COUNT(*) c FROM persons WHERE id = ?").bind(personId).first<{ c: number }>();
     expect(p?.c).toBe(0);
-    const cl = await db
-      .prepare("SELECT COUNT(*) c FROM persons_consent_log WHERE person_id = ?")
+    const fe = await db
+      .prepare("SELECT COUNT(*) c FROM face_embeddings WHERE person_id = ?")
       .bind(personId)
       .first<{ c: number }>();
-    expect(cl?.c).toBe(0);
+    expect(fe?.c).toBe(0);
     const cop = await db
       .prepare("SELECT COUNT(*) c FROM clone_ont_person WHERE person_id = ?")
       .bind(personId)
       .first<{ c: number }>();
     expect(cop?.c).toBe(0);
+    const turn = await db
+      .prepare("SELECT speaker_person_id FROM call_turns WHERE id = ?")
+      .bind(turnId)
+      .first<{ speaker_person_id: number | null }>();
+    expect(turn?.speaker_person_id).toBe(null);
   });
 
   it("타인 소유 person → 404", async () => {

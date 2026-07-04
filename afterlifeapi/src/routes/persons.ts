@@ -211,14 +211,25 @@ persons.delete("/:id", requireAuth, async (c) => {
     .bind(personId)
     .all<{ vectorize_id: string | null }>();
   const vids = embs.results.map((r) => r.vectorize_id).filter((v): v is string => Boolean(v));
+
   if (vids.length) await getFaceIndex(c.env).deleteByIds(vids);
+
+  const deletedAt = Date.now();
 
   await c.env.DB.batch([
     c.env.DB.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(personId),
-    c.env.DB.prepare("DELETE FROM persons_consent_log WHERE person_id = ?").bind(personId),
+
+    c.env.DB.prepare(
+      `INSERT INTO persons_consent_log (person_id, state, terms_version, channel, changed_at)
+       VALUES (?, 'revoked', NULL, 'face_delete', ?)`
+    ).bind(personId, deletedAt),
+    c.env.DB.prepare("UPDATE call_turns SET speaker_person_id = NULL WHERE speaker_person_id = ?").bind(personId),
+
     c.env.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(personId),
     c.env.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(personId, userId),
   ]);
+
+  console.log(JSON.stringify({ event: "face_person_deleted", personId, userId, deletedEmbeddings: vids.length }));
 
   return c.json({ deleted: true });
 });
