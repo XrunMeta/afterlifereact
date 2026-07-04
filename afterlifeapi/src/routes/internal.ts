@@ -355,6 +355,15 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   );
 });
 
+async function v_d81552(v_a1651b, v_ca1ec5, v_6e0fd3): Promise<boolean> {
+  const v_3ac7e7 = await v_a1651b.prepare(
+    `SELECT 1 FROM persons p
+     JOIN call_sessions cs ON cs.user_id = p.user_id
+     WHERE p.id = ? AND cs.clone_id = ? LIMIT 1`,
+  ).bind(v_ca1ec5, v_6e0fd3).first();
+  return !!v_3ac7e7;
+}
+
 v_dcd415.get("/oth-path", async (v_3f4e2e) => {
   const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
   const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
@@ -370,13 +379,17 @@ v_dcd415.get("/oth-path", async (v_3f4e2e) => {
     return v_3f4e2e.json({ error: "bad_person_id" }, 400);
   }
 
+  const v_bcc292 = await v_d81552(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3);
+  if (!v_bcc292) return v_3f4e2e.json({ error: "not_found" }, 404);
+
   const v_479f05 = await v_0761b1(v_3f4e2e.env, v_6e0fd3, v_ca1ec5);
   let v_9390e8 = null;
   if (v_479f05) {
     try {
       v_9390e8 = JSON.parse(v_479f05) as Record<string, unknown>;
     } catch {
-      console.error(`[D1_CORRUPT] l2p:${v_6e0fd3}:${v_ca1ec5} not JSON`);
+
+      console.error(`[D1_CORRUPT] l2p:${v_6e0fd3}:pid:${String(v_ca1ec5).slice(-3)} not JSON`);
       v_9390e8 = null;
     }
   }
@@ -420,11 +433,7 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
   if (!v_eb25ce) return v_3f4e2e.json({ error: "clone_not_found" }, 404);
 
-  const v_eaefcf = await v_3f4e2e.env.DB.prepare(
-    `SELECT 1 FROM call_turns ct
-     JOIN call_sessions cs ON cs.call_id = ct.call_id
-     WHERE cs.clone_id = ? AND ct.speaker_person_id = ? LIMIT 1`,
-  ).bind(v_6e0fd3, v_ca1ec5).first();
+  const v_eaefcf = await v_d81552(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3);
   if (!v_eaefcf) return v_3f4e2e.json({ error: "no_interaction" }, 403);
 
   let v_43c42e;

@@ -33,17 +33,11 @@ async function v_2f0be6(v_43e90c, v_8a1355 = null): Promise<number> {
   return v_8f00b9.meta.last_row_id as number;
 }
 
-async function v_1cbebe(v_be62d3, v_43e90c, v_6e0fd3, v_ca1ec5): Promise<void> {
+async function v_b4fd78(v_be62d3, v_43e90c, v_6e0fd3): Promise<void> {
   const v_a1651b = v_c9c489.DB as unknown as D1Database;
   await v_a1651b
     .prepare(`INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)`)
     .bind(v_be62d3, v_43e90c, v_6e0fd3, Date.now())
-    .run();
-  await v_a1651b
-    .prepare(
-      `INSERT INTO call_turns (call_id, seq, role, text, created_at, speaker_person_id) VALUES (?,?,?,?,?,?)`
-    )
-    .bind(v_be62d3, 1, "user", "안녕하세요", Date.now(), v_ca1ec5)
     .run();
 }
 
@@ -57,7 +51,7 @@ v_469bf2("internal l2p (T-067 Task9)", () => {
     const v_43e90c = await v_bfb240("l2p-learn@test.local");
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "l2p-learn-clone");
     const v_ca1ec5 = await v_2f0be6(v_43e90c);
-    await v_1cbebe("l2p-call-1", v_43e90c, v_6e0fd3, v_ca1ec5);
+    await v_b4fd78("l2p-call-1", v_43e90c, v_6e0fd3);
 
     const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/memory/l2p/learn`, {
       method: "POST",
@@ -89,7 +83,7 @@ v_469bf2("internal l2p (T-067 Task9)", () => {
     const v_43e90c = await v_bfb240("l2p-get@test.local");
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "l2p-get-clone");
     const v_ca1ec5 = await v_2f0be6(v_43e90c, "김철수");
-    await v_1cbebe("l2p-call-2", v_43e90c, v_6e0fd3, v_ca1ec5);
+    await v_b4fd78("l2p-call-2", v_43e90c, v_6e0fd3);
 
     const v_f4c4fb = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/memory/l2p/learn`, {
       method: "POST",
@@ -113,7 +107,7 @@ v_469bf2("internal l2p (T-067 Task9)", () => {
     v_4d37e3(v_4d33b2.displayName).toBe("김철수");
   });
 
-  v_23805a("③ 없는 person → data null", async () => {
+  v_23805a("③ 없는 person(personId 브루트포스) → 404 (mizu CRITICAL: 존재 유추 차단, 오라클 없음)", async () => {
     const v_43e90c = await v_bfb240("l2p-missing@test.local");
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "l2p-missing-clone");
 
@@ -121,10 +115,27 @@ v_469bf2("internal l2p (T-067 Task9)", () => {
       `http://localhost/oth-path${v_6e0fd3}/l2p?personId=999999`,
       { headers: { Authorization: `Bearer ${v_3508ae()}` } }
     );
-    v_4d37e3(v_8f00b9.status).toBe(200);
-    const v_4d33b2 = (await v_8f00b9.json()) as { data: unknown; displayName: string | null };
-    v_4d37e3(v_4d33b2.data).toBeNull();
-    v_4d37e3(v_4d33b2.displayName).toBeNull();
+    v_4d37e3(v_8f00b9.status).toBe(404);
+    const v_4d33b2 = (await v_8f00b9.json()) as { data?: unknown; displayName?: unknown };
+
+    v_4d37e3(v_4d33b2.data).toBeUndefined();
+    v_4d37e3(v_4d33b2.displayName).toBeUndefined();
+  });
+
+  v_23805a("GET l2p — person은 존재하나 이 clone과 통화 세션이 없는(비연관) 조합 → 404", async () => {
+    const v_43e90c = await v_bfb240("l2p-unrelated@test.local");
+    const v_18014a = await v_bfb240("l2p-unrelated-other@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_43e90c, "l2p-unrelated-clone");
+    const v_79e62f = await v_4d24a9(v_18014a, "l2p-unrelated-other-clone");
+    const v_ca1ec5 = await v_2f0be6(v_43e90c, "박영희");
+
+    await v_b4fd78("l2p-call-unrelated", v_43e90c, v_79e62f);
+
+    const v_8f00b9 = await v_1df298.fetch(
+      `http://localhost/oth-path${v_6e0fd3}/l2p?personId=${v_ca1ec5}`,
+      { headers: { Authorization: `Bearer ${v_3508ae()}` } }
+    );
+    v_4d37e3(v_8f00b9.status).toBe(404);
   });
 
   v_23805a("④ 잘못된 시크릿 → 401 (GET·POST 둘 다)", async () => {
@@ -141,7 +152,7 @@ v_469bf2("internal l2p (T-067 Task9)", () => {
     v_4d37e3(v_515384.status).toBe(401);
   });
 
-  v_23805a("learn — clone과 상호작용 기록 없는 personId → 403 no_interaction", async () => {
+  v_23805a("learn — clone과 통화 세션 없는 personId → 403 no_interaction (call_turns 미의존, 리뷰 수정)", async () => {
     const v_43e90c = await v_bfb240("l2p-nointeract@test.local");
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "l2p-nointeract-clone");
     const v_ca1ec5 = await v_2f0be6(v_43e90c);
@@ -161,7 +172,7 @@ v_469bf2("internal l2p (T-067 Task9)", () => {
     const v_43e90c = await v_bfb240("l2p-skip@test.local");
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "l2p-skip-clone");
     const v_ca1ec5 = await v_2f0be6(v_43e90c);
-    await v_1cbebe("l2p-call-skip", v_43e90c, v_6e0fd3, v_ca1ec5);
+    await v_b4fd78("l2p-call-skip", v_43e90c, v_6e0fd3);
 
     const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/memory/l2p/learn`, {
       method: "POST",
@@ -183,10 +194,7 @@ v_469bf2("internal l2p (T-067 Task9)", () => {
     const v_a1651b = v_c9c489.DB as unknown as D1Database;
     const v_43e90c = await v_bfb240("l2p-regression@test.local");
     const v_6e0fd3 = await v_4d24a9(v_43e90c, "l2p-regression-clone");
-    await v_a1651b
-      .prepare(`INSERT INTO call_sessions (call_id, user_id, clone_id, started_at) VALUES (?,?,?,?)`)
-      .bind("l2-regression-call", v_43e90c, v_6e0fd3, Date.now())
-      .run();
+    await v_b4fd78("l2-regression-call", v_43e90c, v_6e0fd3);
 
     const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/memory/l2/learn`, {
       method: "POST",
