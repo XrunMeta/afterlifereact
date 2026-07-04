@@ -10,6 +10,7 @@ debug 투명성: done 이벤트에 final_messages·model·persona_bundle 동봉.
 from __future__ import annotations
 import os
 import json
+import hmac
 import pathlib
 import logging
 import aiohttp
@@ -27,13 +28,39 @@ _DEFAULT_MODEL = os.environ.get("PRETHIRD_OLLAMA_MODEL", "gemma3:27b")
 _API_TIMEOUT_S = float(os.environ.get("PRETHIRD_VERIFY_API_TIMEOUT", "5.0"))
 _BROWSER_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+_DEV_SECRET = os.environ.get("PRETHIRD_DEV_SECRET", "")
 
 def _bearer(req: web.Request) -> str | None:
     h = req.headers.get("Authorization", "")
     return h[7:] if h.startswith("Bearer ") else None
 
+def _check_verify_pass(req) -> bool:
+    """PRETHIRD_VERIFY_PASSWORD 설정 시 X-Verify-Pass 헤더 일치 요구. 미설정=통과(로컬 하위호환)."""
+    expected = os.environ.get("PRETHIRD_VERIFY_PASSWORD")
+    if not expected:
+        return True
+    got = req.headers.get("X-Verify-Pass", "")
+    return hmac.compare_digest(got, expected)
+
+async def _resolve_user_id(token: str) -> int | None:
+    """로그인 토큰 → /oth-path → id. 실패 시 None."""
+    url = f"{API_BASE}/oth-path"
+    timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+    async with aiohttp.ClientSession(timeout=timeout) as sess:
+        async with sess.get(url, headers={
+            "Authorization": f"Bearer {token}",
+            "User-Agent": _BROWSER_UA,
+        }) as r:
+            if r.status != 200:
+                return None
+            data = await r.json()
+    uid = (data.get("user") or {}).get("id")
+    return uid if isinstance(uid, int) else None
+
 async def verify_clones(req: web.Request) -> web.Response:
     """드롭다운용 — api GET /oth-path 프록시, {id,name}만 추림."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -58,6 +85,8 @@ async def verify_clones(req: web.Request) -> web.Response:
 
 async def verify_login(req: web.Request) -> web.Response:
     """검증 도구 로그인 — api /oth-path 프록시. accessToken만 반환(비번 미저장·미로깅)."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     body = await req.json()
     email = body.get("email")
     password = body.get("password")
@@ -86,6 +115,8 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
 
     토큰 없으면 web.Response(401), 정상이면 web.StreamResponse(SSE).
     """
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -181,6 +212,8 @@ async def _patch_l2(clone_id: int, fields: dict, token: str) -> dict:
 
 async def verify_learn(req: web.Request) -> web.Response:
     """대화 턴 → L2 4필드 추출 → api L2 write. {before, extracted, saved} 반환."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -224,6 +257,8 @@ async def verify_learn(req: web.Request) -> web.Response:
 
 async def verify_l2_reset(req: web.Request) -> web.Response:
     """L2 4필드를 빈 값으로 저장(검증 중 기억 초기화)."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -244,6 +279,8 @@ async def verify_bundle(req: web.Request) -> web.Response:
     """현재 L0/L1/L2 분리 조회 — 테이블 표시용.
     l0=personaBundle.l0, l2=고정4필드, l1=persona 나머지.
     """
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -263,6 +300,41 @@ async def verify_bundle(req: web.Request) -> web.Response:
     l1 = {k: v for k, v in persona.items() if k not in _L2_FIELDS}
     return web.json_response({"l0": l0, "l1": l1, "l2": l2})
 
+async def verify_ont_raw(req: web.Request) -> web.Response:
+    """clone_ont.data 원문 + L1 원본 + 소비본(l2_consumed) 조회 — 모니터용."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    raw_cid = req.query.get("clone_id")
+    try:
+        clone_id = int(raw_cid)
+    except (TypeError, ValueError):
+        clone_id = -1
+    if clone_id <= 0:
+        return web.json_response({"error": "invalid clone_id"}, status=400)
+    if not _DEV_SECRET:
+        return web.json_response({"error": "dev secret not configured"}, status=503)
+    user_id = await _resolve_user_id(token)
+    if user_id is None:
+        return web.json_response({"error": "cannot resolve user"}, status=401)
+    url = f"{API_BASE}/oth-path?userId={user_id}"
+    try:
+        timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+        async with aiohttp.ClientSession(timeout=timeout) as sess:
+            async with sess.get(url, headers={
+                "Authorization": f"Bearer {_DEV_SECRET}",
+                "User-Agent": _BROWSER_UA,
+            }) as r:
+                if r.status != 200:
+                    return web.json_response({"error": f"api {r.status}"}, status=r.status)
+                data = await r.json()
+    except Exception as e:
+        log.warning("verify_ont_raw failed clone=%s: %s", clone_id, type(e).__name__)
+        return web.json_response({"error": "upstream error"}, status=502)
+    return web.json_response(data)
+
 async def verify_page(_req: web.Request) -> web.FileResponse:
     html = pathlib.Path(__file__).resolve().parents[1] / "static" / "verify_chat.html"
     return web.FileResponse(html)
@@ -276,3 +348,4 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_post("/oth-path", verify_learn)
     app.router.add_post("/oth-path", verify_l2_reset)
     app.router.add_get("/oth-path", verify_bundle)
+    app.router.add_get("/oth-path", verify_ont_raw)

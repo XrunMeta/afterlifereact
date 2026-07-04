@@ -37,6 +37,8 @@ export default defineWorkersConfig(async () => {
 
               LEARN_SECRET: "test-learn-secret",
 
+              DEV_SECRET: "test-dev-secret",
+
               MASTER_ROOT: "dGVzdC1tYXN0ZXItcm9vdC0zMmJ5dGVzLXBhZGRpbmc=",
               ALE_KEK: "dGVzdC1hbGUta2VrLTMyYnl0ZXMtcGFkZGluZyEhISE=",
             },

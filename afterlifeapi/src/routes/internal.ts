@@ -5,9 +5,10 @@ import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeJob, get
 import { z } from "../lib/validate";
 import { loadCloneById } from "../lib/cloneAccess";
 import {
-  updateOntFromExtraction, type L2Extraction,
+  readOnt, updateOntFromExtraction, type L2Extraction,
   readOntPerson, updateOntPersonFromExtraction,
 } from "../lib/memoryStore";
+import { loadCloneProfiles, loadUserL2 } from "../lib/personaBundle";
 import { logActivity } from "../lib/logger";
 
 export const internal = new Hono<AppEnv>();
@@ -353,6 +354,32 @@ internal.post("/oth-path", async (c) => {
       ? { ok: true, skipped: true }
       : { ok: true, skipped: false, rev: result.rev },
   );
+});
+
+internal.get("/dev/clones/:id/ont-raw", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  const userId = Number(c.req.query("userId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return c.json({ error: "invalid clone_id or userId" }, 400);
+  }
+  const raw = await readOnt(c.env, cloneId, userId);
+  let data: unknown = null;
+  if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+  const { l1 } = await loadCloneProfiles(c.env.DB, cloneId);
+  const l2Consumed = await loadUserL2(c.env.DB, cloneId, userId);
+
+  await logActivity(c, {
+    userId,
+    action: "dev.ont_raw.read",
+    details: { cloneId },
+  });
+
+  return c.json({ data, l1_profile: l1, l2_consumed: l2Consumed });
 });
 
 async function personOwnsCloneSession(db: D1Database, personId: number, cloneId: number): Promise<boolean> {
