@@ -39,6 +39,11 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     async def get_knobs(_req):
         return web.json_response(registry.get().to_dict())
 
+    async def list_runs(_req):
+        # UI run 타임라인(tuner.js loadRuns) — ArtifactStore.list_runs() 그대로 노출.
+        # 읽기 전용 GET, 사용자 입력 없음(경로탈출 위험 없음).
+        return web.json_response(store.list_runs())
+
     async def post_knobs(req):
         partial = await req.json()
         merged = registry.update(partial)
@@ -102,6 +107,7 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
 
     app.router.add_get("/knobs", get_knobs)
     app.router.add_post("/knobs", post_knobs)
+    app.router.add_get("/runs", list_runs)
     app.router.add_get("/metrics", metrics_sse)
     app.router.add_get("/live-status", live_status)   # UI 배너(라이브 통화 중 튜닝 대기)
     app.router.add_get("/", index)

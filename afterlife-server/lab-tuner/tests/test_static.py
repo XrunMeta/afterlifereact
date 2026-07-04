@@ -1,0 +1,51 @@
+import os
+_HERE = os.path.dirname(__file__)
+_STATIC = os.path.join(_HERE, "..", "static")
+
+
+def test_html_has_required_elements():
+    with open(os.path.join(_STATIC, "tuner.html")) as f:
+        html = f.read()
+    for needle in ['id="clone-video"', 'id="say-input"', 'id="knobs-panel"',
+                   'id="metrics"', 'tuner.js']:
+        assert needle in html, needle
+
+
+def test_js_calls_endpoints():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    for needle in ["/offer", "/knobs", "/metrics", "RTCPeerConnection"]:
+        assert needle in js, needle
+
+
+def test_html_has_live_status_banner():
+    with open(os.path.join(_STATIC, "tuner.html")) as f:
+        html = f.read()
+    assert 'id="live-banner"' in html
+
+
+def test_js_polls_live_status_every_3s():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/live-status" in js
+    assert "3000" in js   # 3초 주기
+
+
+def test_js_has_replay_endpoints():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/replay/tts" in js
+    assert "/replay/fifth" in js
+
+
+def test_html_has_runs_list_container():
+    with open(os.path.join(_STATIC, "tuner.html")) as f:
+        html = f.read()
+    assert 'id="runs"' in html
+
+
+def test_js_has_dialogue_restart_note():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # el S6 RISK: system_override/min_len/force_flush는 다음 접속부터 반영됨을 UI에 명시.
+    assert "다음 접속부터 반영" in js

@@ -26,6 +26,22 @@ async def test_knobs_get_post(tmp_path):
         await client.close()
 
 @pytest.mark.asyncio
+async def test_runs_list_endpoint(tmp_path):
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    rid1 = store.new_run(); rid2 = store.new_run(); store.pin(rid1)
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application))
+    await client.start_server()
+    try:
+        resp = await client.get("/runs")
+        assert resp.status == 200
+        runs = {x["run_id"]: x for x in await resp.json()}
+        assert runs[rid1]["pinned"] is True
+        assert runs[rid2]["pinned"] is False
+    finally:
+        await client.close()
+
+@pytest.mark.asyncio
 async def test_healthz_present(tmp_path):
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
     application = labapp.build_app(r, factory=None, store=store)
