@@ -71,3 +71,49 @@ export async function listPersons(
   );
   return { items: res?.data ?? [] };
 }
+
+export interface MatchCandidate {
+  personId: number;
+  displayName: string | null;
+  score: number;
+}
+
+export interface MatchResult {
+  matches: MatchCandidate[];
+  best: MatchCandidate | null;
+  threshold: number;
+}
+
+export async function matchFace(
+  accessToken: string,
+  vector: number[],
+): Promise<MatchResult> {
+  return authFetch<MatchResult>(
+    '/oth-path',
+    accessToken,
+    { method: 'POST', body: JSON.stringify({ vector }) },
+  );
+}
+
+export async function enrollFaces(
+  accessToken: string,
+  personId: number,
+  vectors: number[][],
+): Promise<{ enrolled: number }> {
+  return authFetch<{ enrolled: number }>(
+    `/oth-path${personId}/faces`,
+    accessToken,
+    { method: 'POST', body: JSON.stringify({ vectors }) },
+  );
+}
+
+export async function deletePerson(
+  accessToken: string,
+  personId: number,
+): Promise<{ deleted: boolean }> {
+  return authFetch<{ deleted: boolean }>(
+    `/oth-path${personId}`,
+    accessToken,
+    { method: 'DELETE' },
+  );
+}
