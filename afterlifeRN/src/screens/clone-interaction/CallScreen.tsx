@@ -34,6 +34,7 @@ import { v_fc0657 } from "fkysyevuehkssftyrtweoolhfw";
 import { v_b83839 } from "../../hooks/useFaceDetection";
 import { v_e74bab } from "../../face/largestFace";
 import { v_f7b672 } from "../../face/embeddingThrottle";
+import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_6e58ce } from "../../face/newFaceDetector";
 import { v_e9685b } from "../../face/useFaceIdentify";
 import type { v_b26216 } from "../../face/speakerIdReducer";
@@ -190,6 +191,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     v_d35913.state === "loaded" ? v_d35913.model : undefined;
   const { resize: v_2e11e8 } = v_cb507d();
 
+  const v_44c2eb = v_326be8.OS === "android";
+
   const v_5111a7 = v_fc0657(0);
 
   const v_a0880b = v_e662ae<Set<number>>(new Set());
@@ -220,9 +223,9 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   const v_998534 = v_a3453e.useMemo(
     () =>
       v_d73d29.createRunOnJS(
-        (v_f9a45c, v_0b2889, v_3d87e5) => {
-          if (v_0b2889 > 1 && v_3d87e5 != null) {
-            const { newIds: v_f1e765, seen: v_110a8b } = v_6e58ce(v_a0880b.current, [v_3d87e5]);
+        (v_f9a45c, v_0b2889, v_3e0537) => {
+          if (v_0b2889 > 1) {
+            const { newIds: v_f1e765, seen: v_110a8b } = v_6e58ce(v_a0880b.current, v_3e0537);
             v_a0880b.current = v_110a8b;
             if (v_f1e765.length > 0) {
               v_11f4a1?.({ event: "multi_face" });
@@ -241,8 +244,10 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       const v_a51d09 = v_de4d76(v_143cb5);
       v_8090fb(v_a51d09); 
 
-      if (v_23f1a4 != null && v_f7b672(v_5111a7.value, v_143cb5.timestamp)) {
-        v_5111a7.value = v_143cb5.timestamp;
+      const v_67e77e = v_a40fe8(v_143cb5.timestamp, v_44c2eb);
+
+      if (v_23f1a4 != null && v_f7b672(v_5111a7.value, v_67e77e)) {
+        v_5111a7.value = v_67e77e;
         const v_127e92 = v_e74bab(v_a51d09);
         if (v_127e92 != null) {
           const v_2d3c27 = v_2e11e8(v_143cb5, {
@@ -262,11 +267,22 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 2 - 1;
           }
           const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
-          v_998534(Array.from(v_8d4337), v_a51d09.length, v_127e92.trackingId ?? null);
+          const v_3e0537 = v_a51d09
+            .map((v_8b5cd8) => v_8b5cd8.trackingId)
+            .filter((v_389afb): v_389afb is number => typeof v_389afb === "number");
+          v_998534(Array.from(v_8d4337), v_a51d09.length, v_3e0537);
         }
       }
     },
-    [v_de4d76, v_8090fb, v_23f1a4, v_2e11e8, v_5111a7, v_998534],
+    [
+      v_de4d76,
+      v_8090fb,
+      v_23f1a4,
+      v_2e11e8,
+      v_5111a7,
+      v_44c2eb,
+      v_998534,
+    ],
   );
 
   const {
