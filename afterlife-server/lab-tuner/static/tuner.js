@@ -46,20 +46,52 @@ async function v_33cf24() {
   }
 }
 
+function v_20c5c2(v_12cd99) {
+  if (v_12cd99.iceGatheringState === 'complete') return Promise.resolve();
+  return new Promise((v_6f7712) => {
+    const v_de130a = () => {
+      if (v_12cd99.iceGatheringState === 'complete') {
+        v_12cd99.removeEventListener('icegatheringstatechange', v_de130a);
+        v_6f7712();
+      }
+    };
+    v_12cd99.addEventListener('icegatheringstatechange', v_de130a);
+    setTimeout(v_6f7712, 3000); 
+  });
+}
+
 async function v_1857f4() {
   const v_1712c9 = document.getElementById('clone-select');
   const v_6e0fd3 = parseInt(v_1712c9.value, 10);
+  const v_0b0398 = document.getElementById('conn-status');
   if (!v_6e0fd3 || !v_2ca7e0) {
     document.getElementById('login-status').textContent = '로그인·클론 선택 필요';
     return;
   }
+  v_0b0398.textContent = '연결 중...';
   v_12cd99 = new RTCPeerConnection();
   v_12cd99.addTransceiver('video', {direction: 'recvonly'});
   v_12cd99.addTransceiver('audio', {direction: 'recvonly'});
   v_12cd99.ontrack = (v_9e86fd) => { document.getElementById('clone-video').srcObject = v_9e86fd.streams[0]; };
+  v_12cd99.onconnectionstatechange = () => {
+    v_0b0398.textContent = `pc:${v_12cd99.connectionState} · dc:${v_32dc97 ? v_32dc97.readyState : '-'}`;
+  };
   v_32dc97 = v_12cd99.createDataChannel('control');
+
+  v_32dc97.onopen = () => {
+    document.getElementById('say-input').disabled = false;
+    document.getElementById('say-btn').disabled = false;
+    v_0b0398.textContent = '✅ dc open — say 가능';
+  };
+  v_32dc97.onclose = () => { v_0b0398.textContent = 'dc closed'; };
+  v_32dc97.onerror = () => { v_0b0398.textContent = 'dc error'; };
+  v_32dc97.onmessage = (v_9e86fd) => {
+    try { const v_35f85c = JSON.parse(v_9e86fd.data); v_0b0398.textContent = `dc open · ${v_35f85c.type || ''}`; } catch (v_37eab7) {}
+  };
   const v_ef91d7 = await v_12cd99.createOffer();
   await v_12cd99.setLocalDescription(v_ef91d7);
+  await v_20c5c2(v_12cd99);
+  v_0b0398.textContent = 'offer 전송(ICE 수집 완료)...';
   const v_cb35cb = await fetch('/offer', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
       sdp: v_12cd99.localDescription.sdp, type: v_12cd99.localDescription.type,
@@ -67,9 +99,7 @@ async function v_1857f4() {
     })});
   const v_7c0968 = await v_cb35cb.json();
   await v_12cd99.setRemoteDescription(v_7c0968);
-
-  document.getElementById('say-input').disabled = false;
-  document.getElementById('say-btn').disabled = false;
+  v_0b0398.textContent = 'answer 수신 — dc 개통 대기';
 }
 
 async function v_858a0a() {
@@ -104,7 +134,13 @@ async function v_9a2a8d() {
 
 function v_409b14() {
   const v_8d41d7 = document.getElementById('say-input').value;
-  if (v_32dc97 && v_32dc97.readyState === 'open') v_32dc97.send(JSON.stringify({type:'say', text:v_8d41d7, seq:Date.now()}));
+  const v_0b0398 = document.getElementById('conn-status');
+  if (!v_32dc97 || v_32dc97.readyState !== 'open') {
+    v_0b0398.textContent = `say 불가 — dc:${v_32dc97 ? v_32dc97.readyState : '없음'}(연결/개통 대기)`;
+    return;
+  }
+  v_32dc97.send(JSON.stringify({type:'say', text:v_8d41d7, seq:Date.now()}));
+  v_0b0398.textContent = `say 전송됨: "${v_8d41d7.slice(0, 20)}"`;
 }
 
 function v_e1242b() {
