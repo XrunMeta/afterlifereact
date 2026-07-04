@@ -43,6 +43,8 @@ export interface Bindings {
   LEARN_SECRET?: string;     
   LEARN_FROM_CHAT?: string;  
 
+  DEV_SECRET?: string;       
+
   PREBUILD_SECRET?: string;        
   PRETHIRD_PUBLIC_BASE?: string;   
 
