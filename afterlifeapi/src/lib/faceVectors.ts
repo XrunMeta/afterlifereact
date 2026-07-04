@@ -37,8 +37,14 @@ export function v_a8d2cc(v_c9c489): FaceIndexLike {
     return {
       async insert(v_18b8bf) { await v_81e2ef.insert(v_18b8bf.map((v_cb35cb) => ({ id: v_cb35cb.id, values: v_cb35cb.values, namespace: v_cb35cb.namespace, metadata: v_cb35cb.metadata }))); },
       async query(v_6fea0b, { topK: v_171a8a, namespace: v_34fa5f, returnMetadata: v_c6243d }) {
-        const v_cb35cb = await v_81e2ef.query(new Float32Array(v_6fea0b) as any, { topK: v_171a8a, namespace: v_34fa5f, returnMetadata: v_c6243d ? "all" : "none" } as any);
-        return { matches: v_cb35cb.matches.map((v_35f85c) => ({ id: v_35f85c.id, score: v_35f85c.score, metadata: v_35f85c.metadata })) };
+        const v_cb35cb = await v_81e2ef.query(v_6fea0b, { topK: v_171a8a, namespace: v_34fa5f, returnMetadata: v_c6243d });
+        return {
+          matches: v_cb35cb.matches.map((v_35f85c) => ({
+            id: v_35f85c.id,
+            score: v_35f85c.score,
+            metadata: v_35f85c.metadata as Record<string, string> | undefined,
+          })),
+        };
       },
       async deleteByIds(v_52e08b) { await v_81e2ef.deleteByIds(v_52e08b); },
     };
