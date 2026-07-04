@@ -19,6 +19,7 @@ class ArtifactStore:
         n += 1
         with open(self._counter_path, "w") as f:
             f.write(str(n))
+        os.chmod(self._counter_path, 0o600)
         return f"run{n:05d}"
 
     def _dir(self, run_id: str) -> str:
@@ -29,8 +30,10 @@ class ArtifactStore:
     def new_run(self) -> str:
         rid = self._next_id()
         meta = {"run_id": rid, "pinned": False}
-        with open(os.path.join(self._dir(rid), "meta.json"), "w") as f:
+        mp = os.path.join(self._dir(rid), "meta.json")
+        with open(mp, "w") as f:
             json.dump(meta, f)
+        os.chmod(mp, 0o600)
         return rid
 
     def save_text(self, run_id, name, text):
@@ -65,8 +68,10 @@ class ArtifactStore:
         with open(self._meta_path(run_id)) as f:
             meta = json.load(f)
         meta["pinned"] = True
-        with open(self._meta_path(run_id), "w") as f:
+        mp = self._meta_path(run_id)
+        with open(mp, "w") as f:
             json.dump(meta, f)
+        os.chmod(mp, 0o600)
 
     def is_pinned(self, run_id) -> bool:
         with open(self._meta_path(run_id)) as f:
