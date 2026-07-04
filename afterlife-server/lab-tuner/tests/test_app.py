@@ -1,8 +1,10 @@
 import pytest
 from aiohttp.test_utils import TestClient, TestServer
 import app as labapp
+import promote
 from registry import KnobsRegistry
 from artifact_store import ArtifactStore
+
 
 @pytest.mark.asyncio
 async def test_knobs_get_post(tmp_path):
@@ -25,6 +27,7 @@ async def test_knobs_get_post(tmp_path):
     finally:
         await client.close()
 
+
 @pytest.mark.asyncio
 async def test_runs_list_endpoint(tmp_path):
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
@@ -41,6 +44,7 @@ async def test_runs_list_endpoint(tmp_path):
     finally:
         await client.close()
 
+
 @pytest.mark.asyncio
 async def test_healthz_present(tmp_path):
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
@@ -52,6 +56,7 @@ async def test_healthz_present(tmp_path):
         assert resp.status == 200
     finally:
         await client.close()
+
 
 @pytest.mark.asyncio
 async def test_replay_tts_reuses_pinned_text(tmp_path):
@@ -70,6 +75,7 @@ async def test_replay_tts_reuses_pinned_text(tmp_path):
     finally:
         await client.close()
 
+
 @pytest.mark.asyncio
 async def test_replay_tts_rejects_invalid_run_id(tmp_path):
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
@@ -84,6 +90,7 @@ async def test_replay_tts_rejects_invalid_run_id(tmp_path):
     finally:
         await client.close()
 
+
 @pytest.mark.asyncio
 async def test_replay_fifth_rejects_invalid_run_id(tmp_path):
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
@@ -94,6 +101,7 @@ async def test_replay_fifth_rejects_invalid_run_id(tmp_path):
         assert resp.status == 400
     finally:
         await client.close()
+
 
 @pytest.mark.asyncio
 async def test_replay_tts_missing_llm_txt_returns_404(tmp_path):
@@ -110,6 +118,7 @@ async def test_replay_tts_missing_llm_txt_returns_404(tmp_path):
         assert resp.status == 404
     finally:
         await client.close()
+
 
 @pytest.mark.asyncio
 async def test_replay_fifth_missing_answer_wav_returns_404(tmp_path, monkeypatch):
@@ -129,6 +138,7 @@ async def test_replay_fifth_missing_answer_wav_returns_404(tmp_path, monkeypatch
         assert resp.status == 404
     finally:
         await client.close()
+
 
 @pytest.mark.asyncio
 async def test_replay_fifth_busy_guard_returns_409(tmp_path, monkeypatch):
@@ -153,6 +163,7 @@ async def test_replay_fifth_busy_guard_returns_409(tmp_path, monkeypatch):
         assert resp.status == 409
     finally:
         await client.close()
+
 
 @pytest.mark.asyncio
 async def test_replay_fifth_renders_pinned_wav(tmp_path, monkeypatch):
@@ -185,6 +196,7 @@ async def test_replay_fifth_renders_pinned_wav(tmp_path, monkeypatch):
     finally:
         await client.close()
 
+
 @pytest.mark.asyncio
 async def test_promote_preview_smoke(tmp_path):
     # 계획서 Task 14 Step 5 스모크: POST /oth-path → 200 + list.
@@ -202,6 +214,7 @@ async def test_promote_preview_smoke(tmp_path):
     finally:
         await client.close()
 
+
 @pytest.mark.asyncio
 async def test_promote_apply_without_confirm_forces_dry_run(tmp_path):
     # ⚠️ confirm:true 없이 호출 → 반드시 dry_run 강제(라이브 파일 절대 미변경).
@@ -217,6 +230,7 @@ async def test_promote_apply_without_confirm_forces_dry_run(tmp_path):
         assert body["backup_ids"] == []
     finally:
         await client.close()
+
 
 @pytest.mark.asyncio
 async def test_promote_apply_excludes_container_entries_from_applicable(tmp_path):
@@ -237,6 +251,7 @@ async def test_promote_apply_excludes_container_entries_from_applicable(tmp_path
     finally:
         await client.close()
 
+
 @pytest.mark.asyncio
 async def test_promote_rollback_invalid_backup_id_returns_400(tmp_path):
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
@@ -247,6 +262,7 @@ async def test_promote_rollback_invalid_backup_id_returns_400(tmp_path):
         assert resp.status == 400
     finally:
         await client.close()
+
 
 @pytest.mark.asyncio
 async def test_promote_restart_without_two_step_confirm_returns_400(tmp_path, monkeypatch):
@@ -263,5 +279,166 @@ async def test_promote_restart_without_two_step_confirm_returns_400(tmp_path, mo
     try:
         resp = await client.post("/promote/restart", json={"confirm": "RESTART"})   # confirm2 없음
         assert resp.status == 400
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# mizu HIGH 3: promote mutating 엔드포인트 인증(LAB_TUNER_TOKEN)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_promote_apply_401_without_token_header(tmp_path, monkeypatch):
+    monkeypatch.setenv("LAB_TUNER_TOKEN", "secret123")
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/apply", json={})   # 헤더 없음
+        assert resp.status == 401
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_promote_apply_passes_with_correct_token(tmp_path, monkeypatch):
+    monkeypatch.setenv("LAB_TUNER_TOKEN", "secret123")
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/apply", json={},
+                                  headers={"X-Lab-Tuner-Token": "secret123"})
+        assert resp.status == 200
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_promote_apply_401_with_wrong_token(tmp_path, monkeypatch):
+    monkeypatch.setenv("LAB_TUNER_TOKEN", "secret123")
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/apply", json={},
+                                  headers={"X-Lab-Tuner-Token": "wrong"})
+        assert resp.status == 401
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_promote_rollback_401_without_token_header(tmp_path, monkeypatch):
+    monkeypatch.setenv("LAB_TUNER_TOKEN", "secret123")
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/rollback", json={"backup_id": "x"})
+        assert resp.status == 401
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_promote_restart_401_without_token_header(tmp_path, monkeypatch):
+    # 토큰 미검증 상태에서는 confirm 바디를 봐도 되지만, 인증이 먼저 걸려야 한다
+    # (2단계 confirm보다 인증이 우선 — 인증 없이는 confirm 로직 자체에 도달 못 함).
+    monkeypatch.setenv("LAB_TUNER_TOKEN", "secret123")
+    import subprocess as _subprocess
+
+    def _boom(*a, **kw):
+        raise AssertionError("인증 없이 subprocess.run 호출 경로에 도달함 — 회귀(실 restart 위험)")
+    monkeypatch.setattr(_subprocess, "run", _boom)
+
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/restart",
+                                  json={"confirm": "RESTART", "confirm2": True})
+        assert resp.status == 401
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_promote_preview_excluded_from_token_auth(tmp_path, monkeypatch):
+    # preview는 read-only라 토큰 없이도 통과(el/mizu 합의).
+    monkeypatch.setenv("LAB_TUNER_TOKEN", "secret123")
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/preview")   # 헤더 없음
+        assert resp.status == 200
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_promote_apply_passes_when_token_not_configured(tmp_path, monkeypatch):
+    # LAB_TUNER_TOKEN 미설정(로컬 개발) → 인증 없이 통과(경고 로그만).
+    monkeypatch.delenv("LAB_TUNER_TOKEN", raising=False)
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/apply", json={})   # 헤더 없음
+        assert resp.status == 200
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# el BLOCKER 2 (dirty-set) + mizu CRITICAL 1(값 화이트리스트) — app 레벨 재현
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_promote_preview_only_shows_dirty_knobs(tmp_path):
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    r.update({"tts": {"speed": 1.5}})   # transport.width 등은 건드리지 않음
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/preview")
+        body = await resp.json()
+        envs = {e["env"] for e in body["entries"]}
+        assert envs == {"PRETHIRD_TTS_SPEED"}   # 건드리지 않은 knob은 오탐으로 안 뜸
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_promote_preview_empty_when_nothing_touched(tmp_path):
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))   # update() 호출 없음
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/preview")
+        body = await resp.json()
+        assert body["entries"] == []
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_promote_apply_rejects_malicious_dialogue_model(tmp_path, monkeypatch):
+    # mizu VETO CRITICAL 1 재현(app 레벨): dialogue.model에 systemd 인젝션 문자열.
+    monkeypatch.delenv("LAB_TUNER_TOKEN", raising=False)
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    r.update({"dialogue": {"model": 'a"\n[Service]\nExecStart=/bin/evil'}})
+
+    writes = []
+    monkeypatch.setattr(promote, "upsert_env_line", lambda f, e, v: writes.append((f, e, v)))
+
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        # confirm:true 로 실제 apply 경로까지 타되, 화이트리스트가 write_fn 호출 전에 막아야 함.
+        resp = await client.post("/promote/apply", json={"confirm": True})
+        assert resp.status == 400
+        assert writes == []
     finally:
         await client.close()

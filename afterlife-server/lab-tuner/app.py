@@ -1,6 +1,7 @@
 from __future__ import annotations
 import asyncio
 import json
+import logging
 import os
 import pathlib
 import re
@@ -9,6 +10,8 @@ from aiohttp import web
 from signaling import make_app          # prethird
 from live_guard import LiveBusyError
 import promote
+
+log = logging.getLogger("lab-tuner.app")
 
 _STATIC = pathlib.Path(__file__).resolve().parent / "static"
 
@@ -32,6 +35,25 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app["lab_store"] = store
     app["lab_guard"] = guard
     app["lab_metrics"] = {"last": {}}
+
+    # mizu HIGH 3: promote mutating 엔드포인트(apply/rollback/restart) 인증.
+    # LAB_TUNER_TOKEN 미설정(로컬 개발) 시 통과시키되 기동 시 경고 로그 1회.
+    _lab_tuner_token = os.environ.get("LAB_TUNER_TOKEN")
+    if not _lab_tuner_token:
+        log.warning(
+            "LAB_TUNER_TOKEN 미설정 — /promote/apply·rollback·restart 인증 없음"
+            "(로컬 개발 전용, 배포 전 반드시 설정할 것)"
+        )
+
+    def _auth_or_401(req):
+        """LAB_TUNER_TOKEN 설정 시 X-Lab-Tuner-Token 헤더 검증.
+        실패 시 401 Response, 통과(또는 토큰 미설정) 시 None."""
+        if not _lab_tuner_token:
+            return None
+        got = req.headers.get("X-Lab-Tuner-Token")
+        if got != _lab_tuner_token:
+            return web.json_response({"error": "invalid or missing X-Lab-Tuner-Token"}, status=401)
+        return None
 
     async def live_status(_req):
         busy = guard.is_busy() if guard is not None else False
@@ -118,29 +140,41 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         return os.environ.get(name, "")
 
     async def promote_preview(_req):
-        entries = promote.diff(registry.get(), _read_env)
+        # preview는 read-only라 토큰 인증 대상에서 제외(el/mizu 합의).
+        entries = promote.diff(registry.get(), _read_env, dirty=registry.dirty())
         return web.json_response({"entries": entries})
 
     async def promote_apply(req):
+        unauthorized = _auth_or_401(req)
+        if unauthorized is not None:
+            return unauthorized
         try:
             data = await req.json()
         except Exception:
             data = {}
         confirm = data.get("confirm") is True
-        entries = promote.diff(registry.get(), _read_env)
+        # el BLOCKER 2: dirty(이번 세션에 실제로 튜닝한 knob)만 promote 후보.
+        entries = promote.diff(registry.get(), _read_env, dirty=registry.dirty())
         applicable = [e for e in entries if not e.get("container")]
         container_warnings = [e for e in entries if e.get("container")]
         # ⚠️ confirm:true 가 없으면 무조건 dry_run=True 강제(라이브 파일 미변경).
-        result = promote.apply(
-            applicable,
-            write_fn=promote.upsert_env_line,
-            backup_fn=promote.backup_file,
-            dry_run=not confirm,
-        )
+        try:
+            result = promote.apply(
+                applicable,
+                write_fn=promote.upsert_env_line,
+                backup_fn=promote.backup_file,
+                dry_run=not confirm,
+            )
+        except ValueError as exc:
+            # mizu VETO(CRITICAL 1): 화이트리스트 위반(systemd 인젝션 시도) → 400, 파일 미변경.
+            return web.json_response({"error": str(exc)}, status=400)
         result["container_warnings"] = container_warnings   # fifth.* — 컨테이너 재기동/커밋 필요, apply 대상 제외
         return web.json_response(result)
 
     async def promote_rollback(req):
+        unauthorized = _auth_or_401(req)
+        if unauthorized is not None:
+            return unauthorized
         try:
             data = await req.json()
         except Exception:
@@ -153,6 +187,9 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         return web.json_response({"restored": target})
 
     async def promote_restart(req):
+        unauthorized = _auth_or_401(req)
+        if unauthorized is not None:
+            return unauthorized
         # 2단계 확인: body에 정확한 confirm 토큰 + confirm2=true 둘 다 필요.
         # 이 핸들러가 실제로 systemctl restart를 실행하는 유일한 경로 — 사람이
         # 직접 호출할 때만 이 두 조건을 동시에 만족시킬 수 있게 의도적으로 엄격함.

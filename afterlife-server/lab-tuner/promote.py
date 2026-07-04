@@ -32,22 +32,55 @@ KNOB_TO_LIVE = {
 }
 
 
+class UnsafeEnvValueError(ValueError):
+    """env 값이 화이트리스트를 벗어남 — systemd 지시문 인젝션(RCE) 위험(mizu VETO)."""
+
+
+# mizu VETO(CRITICAL 1): 개행·따옴표·대괄호 등은 systemd drop-in Environment= 라인에
+# 삽입되면 지시문 인젝션(예: `[Service]\nExecStart=...`)으로 이어질 수 있다.
+# 영숫자·`_./: -` 만 허용(화이트리스트) — 그 외는 즉시 거부.
+_SAFE_ENV_VAL = re.compile(r'^[A-Za-z0-9_./:\- ]*$')
+
+
+def _validate_env_value(value) -> None:
+    """value가 화이트리스트를 벗어나면 UnsafeEnvValueError."""
+    s = "" if value is None else str(value)
+    if not _SAFE_ENV_VAL.match(s):
+        raise UnsafeEnvValueError(f"unsafe env value rejected: {value!r}")
+
+
 def _knob_value(knobs, path):
     section, key = path.split(".")
     return getattr(getattr(knobs, section), key)
 
 
 def _fmt(v):
+    if v is None:
+        return ""   # el BLOCKER 2: None → 리터럴 "None" 생성 방지
     if isinstance(v, bool):
         return "1" if v else "0"
     return str(v)
 
 
-def diff(knobs, read_env_fn) -> list:
-    """현재 라이브 env(read_env_fn) 대비 변경될 항목만."""
+def diff(knobs, read_env_fn, dirty: set | None = None) -> list:
+    """현재 라이브 env(read_env_fn) 대비 변경될 항목만.
+
+    el BLOCKER 2:
+      - dirty 지정 시(None이 아니면) dirty에 포함된 knob 경로만 비교 대상으로
+        삼는다 — registry.dirty()를 넘기면 "이번 세션에 실제로 튜닝한 항목"만
+        promote 후보가 되어, 건드리지 않은 knob이 env 미설정(빈 문자열)과
+        달라 보여 오탐되는 문제를 없앤다. dirty=None(기본)이면 필터 없이 전체 비교
+        (레거시 동작 — 기존 단위테스트 호환).
+      - knob 값이 None이면(예: dialogue.model 미설정) 아예 스킵(promote 후보에서 제외).
+    """
     out = []
     for path, loc in KNOB_TO_LIVE.items():
-        new = _fmt(_knob_value(knobs, path))
+        if dirty is not None and path not in dirty:
+            continue
+        val = _knob_value(knobs, path)
+        if val is None:
+            continue
+        new = _fmt(val)
         cur = read_env_fn(loc["env"])
         if new != cur:
             out.append({"key": path, "env": loc["env"], "current": cur,
@@ -57,10 +90,18 @@ def diff(knobs, read_env_fn) -> list:
 
 
 def apply(entries, write_fn, backup_fn, dry_run: bool = True) -> dict:
-    """entries를 라이브에 반영. dry_run=True면 파일 미변경."""
-    backups = []
+    """entries를 라이브에 반영. dry_run=True면 파일 미변경.
+
+    mizu VETO(CRITICAL 1): write 전 **모든** entry.new를 화이트리스트로 검증한다.
+    하나라도 불량이면 write_fn/backup_fn을 단 한 번도 호출하지 않고(부분 write
+    없이) UnsafeEnvValueError를 던진다 — dry_run 여부와 무관하게 항상 검증한다.
+    """
+    for e in entries:
+        _validate_env_value(e["new"])
+
     if dry_run:
         return {"dry_run": True, "planned": entries, "backup_ids": []}
+    backups = []
     seen_files = set()
     for e in entries:
         f = e["file"]
@@ -90,7 +131,11 @@ def upsert_env_line(path: str, env: str, value: str) -> None:
 
     파일이 없으면 [Service] 섹션과 함께 새로 생성. 같은 env 라인이 이미 있으면
     교체, 없으면 [Service] 섹션 끝에 추가.
+
+    mizu VETO(CRITICAL 1): value를 화이트리스트로 검증 후에만 쓴다 — 개행·따옴표·
+    대괄호 등 systemd 지시문 인젝션에 쓰일 수 있는 문자는 거부(UnsafeEnvValueError).
     """
+    _validate_env_value(value)
     line = f'Environment="{env}={value}"'
     if os.path.exists(path):
         with open(path) as f:
@@ -116,7 +161,7 @@ def upsert_env_line(path: str, env: str, value: str) -> None:
 
 
 def backup_file(path: str):
-    """path를 KST 타임스탬프 접미사로 백업(`<path>.bak-<ts>`).
+    """path를 KST 타임스탬프 접미사로 백업(`<path>.bak-<ts>`), 0600 권한.
 
     원본이 없으면(첫 upsert로 신규 생성될 파일) 백업 대상이 없으므로 None 반환
     — apply()의 backup_ids에 None이 섞일 수 있음(호출부가 감안).
@@ -125,13 +170,35 @@ def backup_file(path: str):
         return None
     backup_path = f"{path}.bak-{_kst_ts()}"
     shutil.copy2(path, backup_path)
+    os.chmod(backup_path, 0o600)   # mizu MED 5
     return backup_path
 
 
-def restore_file(backup_id) -> str:
-    """backup_id(`<path>.bak-<ts>`)로부터 원본 경로를 복원. 반환: 복원된 원본 경로."""
-    if not backup_id or ".bak-" not in str(backup_id) or not os.path.exists(backup_id):
+_BACKUP_NAME_RE = re.compile(r'^.+\.bak-\d{8}-\d{6}$')
+
+
+def _dropin_root() -> str:
+    return os.path.realpath(os.path.dirname(_PRETHIRD_DROPIN))
+
+
+def restore_file(backup_id, allowed_root: str | None = None) -> str:
+    """backup_id(`<path>.bak-<ts>`)로부터 원본 경로를 복원. 반환: 복원된 원본 경로.
+
+    mizu HIGH 4: backup_id가 허용 디렉토리(기본: 프로덕션 드롭인 디렉토리) 하위이고
+    파일명이 `<원본>.bak-<타임스탬프>` 형식인지 엄격 검증한 뒤에만 복원한다
+    (경로탈출·임의파일 복원 차단). allowed_root는 테스트 주입용(기본은 프로덕션
+    드롭인 디렉토리 — 실 서비스 호출 시 이 기본값으로 검증됨).
+    """
+    if not backup_id:
         raise ValueError(f"invalid backup_id: {backup_id!r}")
-    target = str(backup_id).rsplit(".bak-", 1)[0]
-    shutil.copy2(backup_id, target)
+    root = os.path.realpath(allowed_root) if allowed_root is not None else _dropin_root()
+    real = os.path.realpath(str(backup_id))
+    if os.path.commonpath([real, root]) != root:
+        raise ValueError(f"backup_id 경로가 허용 디렉토리 밖: {backup_id!r}")
+    if not _BACKUP_NAME_RE.match(os.path.basename(real)):
+        raise ValueError(f"invalid backup_id format: {backup_id!r}")
+    if not os.path.exists(real):
+        raise ValueError(f"invalid backup_id: {backup_id!r}")
+    target = real.rsplit(".bak-", 1)[0]
+    shutil.copy2(real, target)
     return target
