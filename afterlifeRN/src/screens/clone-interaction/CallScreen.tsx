@@ -28,9 +28,21 @@ import {
 import { v_d73d29 } from "fkysyevuehkssftyrtweoolhfw";
 import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
 import type { v_ab3a39 as v_1faf6a } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
+import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
+import { v_fc0657 } from "fkysyevuehkssftyrtweoolhfw";
 import { v_b83839 } from "../../hooks/useFaceDetection";
-import { v_4e7b87, v_31967f, v_865d38 } from "../../api/persons";
+import { v_e74bab } from "../../face/largestFace";
+import { v_f7b672 } from "../../face/embeddingThrottle";
+import { v_a40fe8 } from "../../face/frameTimestamp";
+import { v_6e58ce } from "../../face/newFaceDetector";
+import { v_e9685b } from "../../face/useFaceIdentify";
+import { v_3fc8fd, v_9e3bb7 } from "../../face/useFaceEnroll";
+import { v_19be88 } from "../../face/faceEnrollGuard";
+import type { v_b26216 } from "../../face/speakerIdReducer";
+import { v_4e7b87, v_31967f, v_865d38, v_a94a1b } from "../../api/persons";
 import v_c0caa9 from "../../components/common/TermsModal";
+import { v_b519ed } from "../../components/call/FaceEnrollCard";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
 import { v_c6d1f4 } from "../../config/callRoute";
 import { v_a6928f, v_0e2cb4, v_71f13f } from "../../config/greeting";
@@ -132,15 +144,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     [],
   );
 
-  const v_a61ebf = v_b08ef3(
-    (v_143cb5) => {
-      "worklet";
-      const v_a51d09 = v_de4d76(v_143cb5);
-      v_8090fb(v_a51d09);
-    },
-    [v_de4d76, v_8090fb],
-  );
-
   const [v_58656e, v_071915] = v_5ab095(false);
   const [v_550809, v_566132] = v_5ab095(false);
 
@@ -168,6 +171,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   }, [v_2ca7e0]);
 
+  const [v_85a067, v_5218ba] = v_5ab095(false);
+  const [v_ef20d7, v_3c66cd] = v_5ab095("");
+  const [v_28545c, v_a13abd] = v_5ab095(false);
+
+  const v_821084 = v_e662ae("");
+
+  const v_243c4f = v_e662ae<(name: string) => void>(() => {});
+  const v_b12d63 = v_de06a3((v_1833e7) => {
+    v_243c4f.current(v_1833e7);
+  }, []);
+
   const {
     state: v_6cc918,
     remoteStream: v_b4d824,
@@ -179,9 +193,158 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     greet: v_009e58,
     speak: v_a1d9db,
     lastSignal: v_88c591,
-  } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
+    sendFaceEvent: v_11f4a1,
+  } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "", onEnrollSuggest: v_b12d63 });
 
   const v_d7cf17 = v_a6928f && typeof v_009e58 === 'function';
+
+  const v_d35913 = v_b24f74(
+    require("../../../assets/models/w600k_mbf.tflite"),
+  );
+  const v_23f1a4 =
+    v_d35913.state === "loaded" ? v_d35913.model : undefined;
+  const { resize: v_2e11e8 } = v_cb507d();
+
+  const v_44c2eb = v_326be8.OS === "android";
+
+  const v_5111a7 = v_fc0657(0);
+
+  const v_a0880b = v_e662ae<Set<number>>(new Set());
+
+  const v_acaf61 = v_e662ae<(evt: v_b26216) => void>(() => {});
+  const v_e881de = v_de06a3((evt: v_b26216) => {
+    v_acaf61.current(v_9e6ec9);
+  }, []);
+
+  const v_b1a2e8 = v_e662ae<number[][] | null>(null);
+
+  const { onEmbedding: v_88bed2, getBuffer: v_c4d644 } = v_e9685b({
+    enabled: v_58656e && v_6cc918 === "live",
+    accessToken: v_2ca7e0 ?? "",
+    onEvent: v_e881de,
+  });
+
+  const v_3033e0 = v_de06a3(
+    (evt: v_b26216) => {
+      if (!v_9e6ec9) return;
+      if (v_9e6ec9.type === "speaker_confirmed") {
+        v_11f4a1?.({
+          event: "speaker_confirmed",
+          personId: v_9e6ec9.personId,
+          displayName: v_9e6ec9.displayName,
+        });
+      } else if (v_9e6ec9.type === "unknown_face") {
+
+        v_b1a2e8.current = v_c4d644().latest(v_9e3bb7);
+        v_11f4a1?.({ event: "unknown_face" });
+      }
+    },
+
+    [v_11f4a1, v_c4d644],
+  );
+  v_c4deb2(() => {
+    v_acaf61.current = v_3033e0;
+  }, [v_3033e0]);
+
+  const v_20ef58 = v_3fc8fd({
+    accessToken: v_2ca7e0 ?? "",
+    getBuffer: v_c4d644,
+    getSnapshot: () => v_b1a2e8.current,
+  });
+
+  const v_f8e6ef = v_de06a3(
+    (v_1833e7) => {
+      if (v_20ef58.status === "enrolling") return;
+
+      const v_fde8d3 = v_20ef58.getPendingPersonId();
+      const v_3da205 = v_19be88({
+        enrolling: false,
+        pendingPersonId: v_fde8d3,
+        incomingName: v_1833e7,
+        lastName: v_821084.current,
+      });
+      if (v_3da205) {
+        if (v_2ca7e0 && v_fde8d3 != null) {
+          void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
+            console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
+          });
+        }
+        v_20ef58.reset();
+      }
+      v_821084.current = v_1833e7;
+      v_3c66cd(v_1833e7);
+      v_5218ba(true);
+    },
+    [v_20ef58, v_2ca7e0],
+  );
+  v_c4deb2(() => {
+    v_243c4f.current = v_f8e6ef;
+  }, [v_f8e6ef]);
+
+  const v_998534 = v_a3453e.useMemo(
+    () =>
+      v_d73d29.createRunOnJS(
+        (v_f9a45c, v_0b2889, v_3e0537) => {
+          if (v_0b2889 > 1) {
+            const { newIds: v_f1e765, seen: v_110a8b } = v_6e58ce(v_a0880b.current, v_3e0537);
+            v_a0880b.current = v_110a8b;
+            if (v_f1e765.length > 0) {
+              v_11f4a1?.({ event: "multi_face" });
+            }
+          }
+          v_88bed2(v_f9a45c);
+        },
+      ),
+
+    [v_88bed2, v_11f4a1],
+  );
+
+  const v_a61ebf = v_b08ef3(
+    (v_143cb5) => {
+      "worklet";
+      const v_a51d09 = v_de4d76(v_143cb5);
+      v_8090fb(v_a51d09); 
+
+      const v_67e77e = v_a40fe8(v_143cb5.timestamp, v_44c2eb);
+
+      if (v_23f1a4 != null && v_f7b672(v_5111a7.value, v_67e77e)) {
+        v_5111a7.value = v_67e77e;
+        const v_127e92 = v_e74bab(v_a51d09);
+        if (v_127e92 != null) {
+          const v_2d3c27 = v_2e11e8(v_143cb5, {
+            crop: {
+              x: v_127e92.bounds.x,
+              y: v_127e92.bounds.y,
+              width: v_127e92.bounds.width,
+              height: v_127e92.bounds.height,
+            },
+            scale: { width: 112, height: 112 },
+            pixelFormat: "rgb",
+            dataType: "float32",
+          });
+
+          const v_75195c = new Float32Array(v_2d3c27.length);
+          for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) {
+            v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 2 - 1;
+          }
+          const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
+          const v_3e0537 = v_a51d09
+            .map((v_8b5cd8) => v_8b5cd8.trackingId)
+            .filter((v_389afb): v_389afb is number => typeof v_389afb === "number");
+          v_998534(Array.from(v_8d4337), v_a51d09.length, v_3e0537);
+        }
+      }
+    },
+    [
+      v_de4d76,
+      v_8090fb,
+      v_23f1a4,
+      v_2e11e8,
+      v_5111a7,
+      v_44c2eb,
+      v_998534,
+    ],
+  );
 
   const {
     phase: v_ab4803,
@@ -219,6 +382,42 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_e2c945, v_06e986] = v_5ab095<number>(0);
   const [v_8282fa, v_15c939] = v_5ab095<string | null>(null);
+
+  const v_405500 = v_de06a3(
+    (v_affc3e) => {
+      v_821084.current = v_affc3e;
+      void v_20ef58.enroll(v_affc3e);
+    },
+    [v_20ef58],
+  );
+
+  const v_36f0ed = v_de06a3(() => {
+
+    const v_fde8d3 = v_20ef58.getPendingPersonId();
+    if (v_fde8d3 != null && v_2ca7e0) {
+      void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
+        console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
+      });
+    }
+    v_5218ba(false);
+    v_3c66cd("");
+    v_20ef58.reset();
+    v_b1a2e8.current = null; 
+  }, [v_20ef58, v_2ca7e0]);
+
+  v_c4deb2(() => {
+    if (v_20ef58.status === "success") {
+      v_15c939(`${v_821084.current}님, 이제 기억할게요`);
+      v_5218ba(false);
+      v_3c66cd("");
+      v_20ef58.reset();
+      v_b1a2e8.current = null; 
+    } else if (v_20ef58.status === "error") {
+      v_15c939("등록에 실패했어요. 다시 시도해 주세요");
+    }
+
+  }, [v_20ef58.status]);
+
   const [v_85c07b, v_ff0eb0] = v_5ab095(false);
   const [v_605664, v_0f07a9] = v_5ab095<FloatingGift[]>([]);
   const v_63eb29 = v_e662ae(0);
@@ -649,6 +848,26 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             v_603e38(false);
           }
         }}
+      />
+
+      {}
+      <FaceEnrollCard
+        visible={v_85a067}
+        name={v_ef20d7}
+        onChangeName={v_3c66cd}
+        onConfirm={v_405500}
+        onDismiss={v_36f0ed}
+        onViewPolicy={() => v_a13abd(true)}
+        busy={v_20ef58.status === "enrolling"}
+      />
+
+      {
+}
+      <TermsModal
+        visible={v_28545c}
+        type={4}
+        onClose={() => v_a13abd(false)}
+        onAgree={() => v_a13abd(false)}
       />
 
       {
