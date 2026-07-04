@@ -30,7 +30,7 @@ def main():
     renderer.load()   # 라이브 렌더 health 확인
 
     say_fn = build_say_fn(registry)   # /replay/tts 재합성용
-    factory = build_knobs_pipeline_factory(registry, renderer, guard=guard)
+    factory = build_knobs_pipeline_factory(registry, renderer, guard=guard, store=store)
     application = build_app(registry, factory, store,
                             say_fn=say_fn, render_url=LIVE_RENDER_URL, guard=guard)
     web.run_app(application, host="127.0.0.1", port=PORT)
