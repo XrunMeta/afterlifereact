@@ -4,20 +4,25 @@ import logging
 from pipeline import DialoguePipeline          # prethird
 from audio_utils import _decode_wav            # prethird
 from harness import build_chat_fn, build_say_fn, apply_persona_knobs
+from store_recorder import StoreRecorder
 
 log = logging.getLogger("lab-tuner.factory")
 
-
-def build_knobs_pipeline_factory(registry, renderer, guard=None):
+def build_knobs_pipeline_factory(registry, renderer, guard=None, store=None):
     """공유 라이브 렌더(renderer=KnobsFifthInproc, render_url=:8810)와 registry로
     세션별 DialoguePipeline factory 생성.
 
     guard: LiveGuard | None — 지정 시 렌더 직전 assert_free()로 라이브 통화 중 렌더 차단.
+    store: ArtifactStore | None — 지정 시 sess.recorder를 StoreRecorder(store)로 교체해
+           /replay/* 가 실 데이터로 동작하게 한다(prethird 무수정, sess 속성만 교체).
+           None(기본)이면 기존 recorder(prethird offer가 세팅한 것) 그대로 — 회귀 0.
     """
     chat_fn = build_chat_fn(registry)
     say_fn = build_say_fn(registry)
 
     def factory(sess):
+        if store is not None:
+            sess.recorder = StoreRecorder(store)   # prethird offer가 세팅한 recorder 교체
         dk = registry.get().dialogue
         base_persona = getattr(sess, "persona_messages", None) or []
         persona = apply_persona_knobs(base_persona, dk)
