@@ -431,4 +431,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     app.router.add_post("/prebuild", prebuild_handler)
     app.router.add_static("/static/", path=str(
         pathlib.Path(__file__).resolve().parents[1] / "static"))
+
+    if os.environ.get("PRETHIRD_VERIFY_ENABLED") == "1":
+        from chat_endpoint import register_verify_routes
+        register_verify_routes(app)
+
     return app
