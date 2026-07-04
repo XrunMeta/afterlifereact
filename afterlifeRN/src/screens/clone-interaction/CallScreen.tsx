@@ -28,7 +28,15 @@ import {
 import { v_d73d29 } from "fkysyevuehkssftyrtweoolhfw";
 import { v_ac8611 } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
 import type { v_ab3a39 as v_1faf6a } from "gegbzaufjmeglxlxrodgpkwzmpoxabawfpabkiqb";
+import { v_b24f74 } from "hpkstesipoootxeqkajlxyxt";
+import { v_cb507d } from "hbzwhsuegbhzscystubugxnkiwe";
+import { v_fc0657 } from "fkysyevuehkssftyrtweoolhfw";
 import { v_b83839 } from "../../hooks/useFaceDetection";
+import { v_e74bab } from "../../face/largestFace";
+import { v_f7b672 } from "../../face/embeddingThrottle";
+import { v_6e58ce } from "../../face/newFaceDetector";
+import { v_e9685b } from "../../face/useFaceIdentify";
+import type { v_b26216 } from "../../face/speakerIdReducer";
 import { v_4e7b87, v_31967f, v_865d38 } from "../../api/persons";
 import v_c0caa9 from "../../components/common/TermsModal";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
@@ -132,15 +140,6 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     [],
   );
 
-  const v_a61ebf = v_b08ef3(
-    (v_143cb5) => {
-      "worklet";
-      const v_a51d09 = v_de4d76(v_143cb5);
-      v_8090fb(v_a51d09);
-    },
-    [v_de4d76, v_8090fb],
-  );
-
   const [v_58656e, v_071915] = v_5ab095(false);
   const [v_550809, v_566132] = v_5ab095(false);
 
@@ -179,9 +178,96 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     greet: v_009e58,
     speak: v_a1d9db,
     lastSignal: v_88c591,
+    sendFaceEvent: v_11f4a1,
   } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "" });
 
   const v_d7cf17 = v_a6928f && typeof v_009e58 === 'function';
+
+  const v_d35913 = v_b24f74(
+    require("../../../assets/models/w600k_mbf.tflite"),
+  );
+  const v_23f1a4 =
+    v_d35913.state === "loaded" ? v_d35913.model : undefined;
+  const { resize: v_2e11e8 } = v_cb507d();
+
+  const v_5111a7 = v_fc0657(0);
+
+  const v_a0880b = v_e662ae<Set<number>>(new Set());
+
+  const v_3033e0 = v_de06a3(
+    (evt: v_b26216) => {
+      if (!v_9e6ec9) return;
+      if (v_9e6ec9.type === "speaker_confirmed") {
+        v_11f4a1?.({
+          event: "speaker_confirmed",
+          personId: v_9e6ec9.personId,
+          displayName: v_9e6ec9.displayName,
+        });
+      } else if (v_9e6ec9.type === "unknown_face") {
+        v_11f4a1?.({ event: "unknown_face" });
+      }
+    },
+
+    [v_11f4a1],
+  );
+
+  const { onEmbedding: v_88bed2 } = v_e9685b({
+    enabled: v_58656e,
+    accessToken: v_2ca7e0 ?? "",
+    onEvent: v_3033e0,
+  });
+
+  const v_998534 = v_a3453e.useMemo(
+    () =>
+      v_d73d29.createRunOnJS(
+        (v_f9a45c, v_0b2889, v_3d87e5) => {
+          if (v_0b2889 > 1 && v_3d87e5 != null) {
+            const { newIds: v_f1e765, seen: v_110a8b } = v_6e58ce(v_a0880b.current, [v_3d87e5]);
+            v_a0880b.current = v_110a8b;
+            if (v_f1e765.length > 0) {
+              v_11f4a1?.({ event: "multi_face" });
+            }
+          }
+          v_88bed2(v_f9a45c);
+        },
+      ),
+
+    [v_88bed2, v_11f4a1],
+  );
+
+  const v_a61ebf = v_b08ef3(
+    (v_143cb5) => {
+      "worklet";
+      const v_a51d09 = v_de4d76(v_143cb5);
+      v_8090fb(v_a51d09); 
+
+      if (v_23f1a4 != null && v_f7b672(v_5111a7.value, v_143cb5.timestamp)) {
+        v_5111a7.value = v_143cb5.timestamp;
+        const v_127e92 = v_e74bab(v_a51d09);
+        if (v_127e92 != null) {
+          const v_2d3c27 = v_2e11e8(v_143cb5, {
+            crop: {
+              x: v_127e92.bounds.x,
+              y: v_127e92.bounds.y,
+              width: v_127e92.bounds.width,
+              height: v_127e92.bounds.height,
+            },
+            scale: { width: 112, height: 112 },
+            pixelFormat: "rgb",
+            dataType: "float32",
+          });
+
+          const v_75195c = new Float32Array(v_2d3c27.length);
+          for (let v_ebec57 = 0; v_ebec57 < v_2d3c27.length; v_ebec57++) {
+            v_75195c[v_ebec57] = v_2d3c27[v_ebec57] * 2 - 1;
+          }
+          const v_8d4337 = v_23f1a4.runSync([v_75195c])[0] as Float32Array;
+          v_998534(Array.from(v_8d4337), v_a51d09.length, v_127e92.trackingId ?? null);
+        }
+      }
+    },
+    [v_de4d76, v_8090fb, v_23f1a4, v_2e11e8, v_5111a7, v_998534],
+  );
 
   const {
     phase: v_ab4803,

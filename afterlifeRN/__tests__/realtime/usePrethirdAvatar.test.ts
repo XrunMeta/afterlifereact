@@ -292,6 +292,51 @@ it('greet(): dc가 connecting 상태면 open 이벤트 후에 send 호출', asyn
   expect(typeof v_f966e3.seq).toBe('number');
 });
 
+describe('sendFaceEvent', () => {
+  beforeEach(() => { v_897bd0(); });
+
+  it('speaker_confirmed → {type:"face_event", event:"speaker_confirmed", personId, displayName, seq} 전송', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_43c42e.current.sendFaceEvent!({ event: 'speaker_confirmed', personId: 3, displayName: '철수' }); });
+    const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
+    expect(v_f966e3[0]).toMatchObject({ type: 'face_event', event: 'speaker_confirmed', personId: 3, displayName: '철수' });
+    expect(typeof v_f966e3[0].seq).toBe('number');
+  });
+
+  it('unknown_face/multi_face 도 그대로 event 필드 전달', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_be73a0(() => { v_43c42e.current.sendFaceEvent!({ event: 'unknown_face' }); });
+    v_be73a0(() => { v_43c42e.current.sendFaceEvent!({ event: 'multi_face' }); });
+    const v_f966e3 = v_32dc97.sent.map((v_fd5f43) => JSON.parse(v_fd5f43));
+    expect(v_f966e3[0].event).toBe('unknown_face');
+    expect(v_f966e3[1].event).toBe('multi_face');
+  });
+
+  it('dc readyState !== "open" → 조용히 스킵(send 미호출, error 세팅 없음)', async () => {
+    const { dc: v_32dc97, pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    await v_be73a0(async () => { await v_43c42e.current.start(); });
+    v_32dc97.readyState = 'connecting';
+    v_be73a0(() => { v_43c42e.current.sendFaceEvent!({ event: 'unknown_face' }); });
+    expect(v_32dc97.send).not.toHaveBeenCalled();
+    expect(v_43c42e.current.error).toBeNull();
+  });
+
+  it('start 전(dc 없음) 호출해도 크래시 없음', async () => {
+    const { pc: v_12cd99 } = v_1d3fbb();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_3d8d48({ cloneId: 1, accessToken: 't', deps: v_3a122d(v_12cd99) as never }));
+    expect(() => v_43c42e.current.sendFaceEvent!({ event: 'unknown_face' })).not.toThrow();
+  });
+});
+
 it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {
 
   v_897bd0();
