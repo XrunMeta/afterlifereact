@@ -41,7 +41,18 @@ _KNOWN_PERSONA_LABELS: list[tuple[str, str]] = [
     ("relationship", "관계 맥락"),
     ("context", "현재 맥락"),
     ("recent_topics", "최근 화제"),
+    ("preference_personal", "사용자 취향"),   # 학습 키(E)
+    ("memories_personal", "기억"),            # 학습 키(E)
 ]
+
+
+def _format_val(val) -> str:
+    """dict → 'k: v, k: v', list → 'a, b', 그 외 → str. 파이썬 repr 노출 방지."""
+    if isinstance(val, dict):
+        return ", ".join(f"{k}: {v}" for k, v in val.items() if str(v).strip())
+    if isinstance(val, (list, tuple)):
+        return ", ".join(str(x) for x in val if str(x).strip())
+    return str(val)
 
 
 def bundle_to_messages(bundle: dict | None) -> list[dict]:
@@ -74,14 +85,18 @@ def bundle_to_messages(bundle: dict | None) -> list[dict]:
     persona_lines: list[str] = []
     for key, label in _KNOWN_PERSONA_LABELS:
         val = persona.get(key)
-        if val is not None and str(val).strip():
-            persona_lines.append(f"- {label}: {val}")
+        text = _format_val(val) if val is not None else ""
+        if text.strip():
+            persona_lines.append(f"- {label}: {text}")
 
     # 위 목록에 없는 나머지 속성도 포함
     known_keys = {k for k, _ in _KNOWN_PERSONA_LABELS}
     for key, val in persona.items():
-        if key not in known_keys and val is not None and str(val).strip():
-            persona_lines.append(f"- {key}: {val}")
+        if key in known_keys or val is None:
+            continue
+        text = _format_val(val)
+        if text.strip():
+            persona_lines.append(f"- {key}: {text}")
 
     if not persona_lines and not lines:
         # l0도 없고 persona 속성도 없으면 의미 없음

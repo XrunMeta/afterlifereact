@@ -38,7 +38,10 @@ export function v_445ba7(
   return { l0: v_b6c480, cloneId: String(v_6e0fd3), persona: v_5ed063 };
 }
 
-const v_f4c771 = ["memory_summary", "relationship", "context", "recent_topics"] as const;
+const v_f4c771 = [
+  "memory_summary", "relationship", "context", "recent_topics",   
+  "relation", "preference_personal", "memories_personal",          
+] as const;
 
 export async function v_20b0e8(
   v_a1651b,
@@ -61,6 +64,8 @@ export async function v_20b0e8(
     const v_81e2ef = v_8decf8[v_0eb677];
     if (v_81e2ef == null) continue;
     if (typeof v_81e2ef === "string" && v_81e2ef.length === 0) continue;
+    if (Array.isArray(v_81e2ef) && v_81e2ef.length === 0) continue;
+    if (typeof v_81e2ef === "object" && !Array.isArray(v_81e2ef) && Object.keys(v_81e2ef).length === 0) continue;
     v_8d4337[v_0eb677] = v_81e2ef;
   }
   return Object.keys(v_8d4337).length ? (v_8d4337 as v_1f7dcf) : null;

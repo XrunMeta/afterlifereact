@@ -37,6 +37,8 @@ export default v_eede73(async () => {
 
               LEARN_SECRET: "test-learn-secret",
 
+              DEV_SECRET: "test-dev-secret",
+
               MASTER_ROOT: "dGVzdC1tYXN0ZXItcm9vdC0zMmJ5dGVzLXBhZGRpbmc=",
               ALE_KEK: "oth-envelope",
             },

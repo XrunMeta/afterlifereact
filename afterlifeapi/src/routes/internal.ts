@@ -5,9 +5,10 @@ import { v_278a53, v_80401b, v_7a6ff6, v_c12e45, v_2fb81a, v_4b949c } from "../l
 import { v_1f4ea7 } from "../lib/validate";
 import { v_5d4a51 } from "../lib/cloneAccess";
 import {
-  v_0ac5b7, type v_d91e78,
+  v_3821c0, v_0ac5b7, type v_d91e78,
   v_0761b1, v_600422,
 } from "../lib/memoryStore";
+import { v_db508f, v_20b0e8 } from "../lib/personaBundle";
 import { v_74defc } from "../lib/logger";
 
 export const v_dcd415 = new v_b7c41b<v_de0a25>();
@@ -353,6 +354,32 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
       ? { ok: true, skipped: true }
       : { ok: true, skipped: false, rev: v_43c42e.rev },
   );
+});
+
+v_dcd415.get("/dev/clones/:id/ont-raw", async (v_3f4e2e) => {
+  const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
+  const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  if (!v_21cc31 || !v_3f4e2e.env.DEV_SECRET || !v_a155c4(v_21cc31, v_3f4e2e.env.DEV_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  const v_43e90c = Number(v_3f4e2e.req.query("userId"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0 || !Number.isInteger(v_43e90c) || v_43e90c <= 0) {
+    return v_3f4e2e.json({ error: "invalid clone_id or userId" }, 400);
+  }
+  const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
+  let v_9390e8 = null;
+  if (v_479f05) { try { v_9390e8 = JSON.parse(v_479f05); } catch { v_9390e8 = null; } }
+  const { l1: v_020b4b } = await v_db508f(v_3f4e2e.env.DB, v_6e0fd3);
+  const v_ef4edb = await v_20b0e8(v_3f4e2e.env.DB, v_6e0fd3, v_43e90c);
+
+  await v_74defc(v_3f4e2e, {
+    userId: v_43e90c,
+    action: "dev.ont_raw.read",
+    details: { cloneId: v_6e0fd3 },
+  });
+
+  return v_3f4e2e.json({ data: v_9390e8, l1_profile: v_020b4b, l2_consumed: v_ef4edb });
 });
 
 async function v_a30df4(v_a1651b, v_ca1ec5, v_6e0fd3): Promise<boolean> {

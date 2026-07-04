@@ -20,6 +20,9 @@ const v_c549b1 = new Set<string>([
   "relationship",
   "context",
   "recent_topics",
+  "relation",
+  "preference_personal",
+  "memories_personal",   
 ]);
 
 export function v_e97fae(v_479f05): PersonaDict | null {
