@@ -1,9 +1,58 @@
 
 let v_12cd99, v_32dc97;
 
+let v_2ca7e0 = null;
+
 const v_f55fb5 = new Set(["system_override", "min_len", "force_flush"]);
 
+async function v_182fdb() {
+  const v_e0c7e8 = document.getElementById('login-email').value;
+  const v_adc076 = document.getElementById('login-pw').value;
+  const v_d308b5 = document.getElementById('login-status');
+  v_d308b5.textContent = '로그인 중...';
+  try {
+    const v_cb35cb = await fetch('/login', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: v_e0c7e8, password: v_adc076})});
+    const v_4d33b2 = await v_cb35cb.json();
+    if (!v_cb35cb.ok || !v_4d33b2.accessToken) {
+      v_d308b5.textContent = '로그인 실패';
+      return;
+    }
+    v_2ca7e0 = v_4d33b2.accessToken;
+    v_d308b5.textContent = '로그인됨';
+    await v_33cf24();
+  } catch (v_9e86fd) {
+    v_d308b5.textContent = '로그인 오류';
+  }
+}
+
+async function v_33cf24() {
+  const v_1712c9 = document.getElementById('clone-select');
+  if (!v_2ca7e0) return;
+  try {
+    const v_cb35cb = await fetch('/oth-path', {headers: {'Authorization': `Bearer ${v_2ca7e0}`}});
+    const v_4d33b2 = await v_cb35cb.json();
+    v_1712c9.innerHTML = '<option value="">-- 클론 선택 --</option>';
+    for (const v_3f4e2e of (v_4d33b2.clones || [])) {
+      const v_68b2be = document.createElement('option');
+      v_68b2be.value = String(v_3f4e2e.id);
+      v_68b2be.textContent = v_3f4e2e.name || String(v_3f4e2e.id);
+      v_1712c9.appendChild(v_68b2be);
+    }
+    v_1712c9.disabled = false;
+    document.getElementById('connect-btn').disabled = false;
+  } catch (v_9e86fd) {
+    document.getElementById('login-status').textContent = '클론 목록 조회 실패';
+  }
+}
+
 async function v_1857f4() {
+  const v_1712c9 = document.getElementById('clone-select');
+  const v_6e0fd3 = parseInt(v_1712c9.value, 10);
+  if (!v_6e0fd3 || !v_2ca7e0) {
+    document.getElementById('login-status').textContent = '로그인·클론 선택 필요';
+    return;
+  }
   v_12cd99 = new RTCPeerConnection();
   v_12cd99.addTransceiver('video', {direction: 'recvonly'});
   v_12cd99.addTransceiver('audio', {direction: 'recvonly'});
@@ -12,9 +61,15 @@ async function v_1857f4() {
   const v_ef91d7 = await v_12cd99.createOffer();
   await v_12cd99.setLocalDescription(v_ef91d7);
   const v_cb35cb = await fetch('/offer', {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({sdp: v_12cd99.localDescription.sdp, type: v_12cd99.localDescription.type})});
+    body: JSON.stringify({
+      sdp: v_12cd99.localDescription.sdp, type: v_12cd99.localDescription.type,
+      clone_id: v_6e0fd3, access_token: v_2ca7e0,
+    })});
   const v_7c0968 = await v_cb35cb.json();
   await v_12cd99.setRemoteDescription(v_7c0968);
+
+  document.getElementById('say-input').disabled = false;
+  document.getElementById('say-btn').disabled = false;
 }
 
 async function v_858a0a() {
@@ -100,6 +155,9 @@ async function v_315473() {
 document.getElementById('apply-knobs').onclick = v_9a2a8d;
 document.getElementById('say-btn').onclick = v_409b14;
 document.getElementById('refresh-runs').onclick = v_315473;
-v_858a0a(); v_1857f4(); v_e1242b(); v_315473();
+document.getElementById('login-btn').onclick = v_182fdb;
+document.getElementById('connect-btn').onclick = v_1857f4;
+
+v_858a0a(); v_e1242b(); v_315473();
 v_4deb94();
 setInterval(v_4deb94, 3000);
