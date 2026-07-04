@@ -134,6 +134,14 @@ function badge(src){
   return `<span class="badge ${cls}">${src||'기타'}</span>`;
 }
 
+function isEmptyVal(v){
+  if (v===null || v===undefined) return true;
+  if (typeof v==='string') return v==='';
+  if (Array.isArray(v)) return v.length===0;
+  if (typeof v==='object') return Object.keys(v).length===0;
+  return false;
+}
+
 function renderL2Raw(ontRaw, changedKeys){
   const changed = changedKeys || new Set();
   const data = (ontRaw && ontRaw.data) || {};
@@ -151,7 +159,9 @@ function renderL2Raw(ontRaw, changedKeys){
     + (rows ? `<table class="kv">${rows}</table>` : '<div class="muted">저장된 L2 없음</div>');
 
   const consumed = (ontRaw && ontRaw.l2_consumed) || {};
-  const stored = Object.keys(data).filter(k=>k!=='_meta' && k!=='address');
+  const stored = Object.keys(data)
+    .filter(k=>k!=='_meta' && k!=='address')
+    .filter(k=>!isEmptyVal(data[k]));
   const missing = stored.filter(k=>!(k in consumed));
   if (missing.length) document.getElementById('tblL2').innerHTML +=
     `<div class="warn">⚠ 저장됐지만 프롬프트 미소비: ${esc(missing.join(', '))}</div>`;
