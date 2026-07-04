@@ -198,6 +198,31 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ enrolled: v_18b8bf.length });
 });
 
+v_fded81.delete("/:id", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_ca1ec5 = v_5c8583(v_3f4e2e);
+
+  const v_306a28 = await v_3f4e2e.env.DB.prepare("SELECT id FROM persons WHERE id = ? AND user_id = ?")
+    .bind(v_ca1ec5, v_43e90c)
+    .first<{ id: number }>();
+  if (!v_306a28) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
+
+  const v_61c797 = await v_3f4e2e.env.DB.prepare("SELECT vectorize_id FROM face_embeddings WHERE person_id = ?")
+    .bind(v_ca1ec5)
+    .all<{ vectorize_id: string | null }>();
+  const v_23dafb = v_61c797.results.map((v_cb35cb) => v_cb35cb.vectorize_id).filter((v_81e2ef): v_81e2ef is string => Boolean(v_81e2ef));
+  if (v_23dafb.length) await v_a8d2cc(v_3f4e2e.env).deleteByIds(v_23dafb);
+
+  await v_3f4e2e.env.DB.batch([
+    v_3f4e2e.env.DB.prepare("DELETE FROM face_embeddings WHERE person_id = ?").bind(v_ca1ec5),
+    v_3f4e2e.env.DB.prepare("DELETE FROM persons_consent_log WHERE person_id = ?").bind(v_ca1ec5),
+    v_3f4e2e.env.DB.prepare("DELETE FROM clone_ont_person WHERE person_id = ?").bind(v_ca1ec5),
+    v_3f4e2e.env.DB.prepare("DELETE FROM persons WHERE id = ? AND user_id = ?").bind(v_ca1ec5, v_43e90c),
+  ]);
+
+  return v_3f4e2e.json({ deleted: true });
+});
+
 v_fded81.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
 
