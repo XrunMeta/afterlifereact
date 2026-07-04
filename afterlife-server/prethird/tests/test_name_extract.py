@@ -64,6 +64,11 @@ def test_safe_name_strips_control_chars():
     assert name_extract._safe_name('{"name": "\\u0007민지\\u007f"}') == "민지"
 
 
+def test_safe_name_strips_unicode_format_chars():
+    # 버그3(api displayName 검증) 정합: zero-width space(U+200B) 등 유니코드 포맷 문자도 제거.
+    assert name_extract._safe_name('{"name": "민\\u200b지"}') == "민지"
+
+
 def test_safe_name_truncates_to_30_chars():
     long_name = "가" * 50
     result = name_extract._safe_name(json.dumps({"name": long_name}))

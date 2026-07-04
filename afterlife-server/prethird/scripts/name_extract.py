@@ -13,7 +13,8 @@ log = logging.getLogger("prethird.name_extract")
 _TIMEOUT_S = 5.0
 # api displayName 검증(persons 테이블)과 정합 — 이름 길이 상한.
 _MAX_NAME_LEN = 30
-_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
+# 버그3(api displayName 검증) 정합: 유니코드 포맷 문자(zero-width space·bidi override 등)도 제거.
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f​-‏‪-‮⁠-⁯﻿]")
 
 # JSON-only 이름 추출 프롬프트. 화자 "본인" 이름만 — 상대방/제3자 이름은 대상이 아니다.
 _SYSTEM = (
