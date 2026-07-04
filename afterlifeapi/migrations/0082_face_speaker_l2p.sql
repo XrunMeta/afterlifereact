@@ -13,8 +13,9 @@ CREATE TABLE IF NOT EXISTS clone_ont_person (
   updated_at      INTEGER NOT NULL DEFAULT (unixepoch()),
   auto_learned_at INTEGER,
   PRIMARY KEY (clone_id, person_id),
-  -- sei: D1은 FK enforcement 기본 OFF라 ON DELETE CASCADE는 실효 없음(0074 TODO와 동일 맥락).
-  -- 실제 person 삭제 시 정리는 앱 레벨 배치(DELETE /oth-path 핸들러)가 정본.
+  -- 정정(0083): D1은 실제로 FK enforcement 기본 ON이다(0074/0082의 기존 "FK OFF" 주석은 오류,
+  -- 0083 헤더에 근거·실측 기록). 즉 이 ON DELETE CASCADE는 실제로 동작한다 — 다만 앱 레벨 배치
+  -- (DELETE /oth-path 핸들러)가 명시적으로 clone_ont_person을 먼저 지우므로 이중화·무해.
   FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_clone_ont_person_person ON clone_ont_person(person_id);
