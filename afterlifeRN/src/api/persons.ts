@@ -16,6 +16,8 @@ export interface Person {
 
 export interface CreatePersonPayload {
   cloneId?: number;
+
+  displayName?: string;
 }
 
 export interface CreatePersonResponse {
@@ -35,6 +37,9 @@ export async function createPerson(
   const body: Record<string, unknown> = {};
   if (payload?.cloneId !== undefined) {
     body.cloneId = payload.cloneId;
+  }
+  if (payload?.displayName !== undefined) {
+    body.displayName = payload.displayName;
   }
   return authFetch<CreatePersonResponse>(
     '/oth-path',

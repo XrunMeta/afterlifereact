@@ -37,9 +37,11 @@ import { shouldRunEmbedding } from "../../face/embeddingThrottle";
 import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
+import { useFaceEnroll } from "../../face/useFaceEnroll";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
 import { createPerson, saveFaceConsent, listPersons } from "../../api/persons";
 import TermsModal from "../../components/common/TermsModal";
+import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
@@ -168,6 +170,16 @@ export default function CallScreen({ route, navigation }: Props) {
 
   }, [accessToken]);
 
+  const [enrollCardVisible, setEnrollCardVisible] = useState(false);
+  const [enrollName, setEnrollName] = useState("");
+
+  const submittedEnrollNameRef = useRef("");
+  const handleEnrollSuggest = useCallback((name: string) => {
+    submittedEnrollNameRef.current = name;
+    setEnrollName(name);
+    setEnrollCardVisible(true);
+  }, []);
+
   const {
     state: liveState,
     remoteStream,
@@ -180,7 +192,7 @@ export default function CallScreen({ route, navigation }: Props) {
     speak,
     lastSignal,
     sendFaceEvent,
-  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "" });
+  } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
@@ -214,10 +226,15 @@ export default function CallScreen({ route, navigation }: Props) {
     [sendFaceEvent],
   );
 
-  const { onEmbedding: onFaceEmbedding } = useFaceIdentify({
+  const { onEmbedding: onFaceEmbedding, getBuffer: getFaceEmbeddingBuffer } = useFaceIdentify({
     enabled: consentGranted,
     accessToken: accessToken ?? "",
     onEvent: handleSpeakerEvent,
+  });
+
+  const faceEnroll = useFaceEnroll({
+    accessToken: accessToken ?? "",
+    getBuffer: getFaceEmbeddingBuffer,
   });
 
   const handleEmbeddingOnJS = React.useMemo(
@@ -321,6 +338,34 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const [credits, setCredits] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleEnrollConfirm = useCallback(
+    (trimmedName: string) => {
+      submittedEnrollNameRef.current = trimmedName;
+      void faceEnroll.enroll(trimmedName);
+    },
+    [faceEnroll],
+  );
+
+  const handleEnrollDismiss = useCallback(() => {
+
+    setEnrollCardVisible(false);
+    setEnrollName("");
+    faceEnroll.reset();
+  }, [faceEnroll]);
+
+  useEffect(() => {
+    if (faceEnroll.status === "success") {
+      setToastMessage(`이제 ${submittedEnrollNameRef.current}님을 알아볼 수 있어요`);
+      setEnrollCardVisible(false);
+      setEnrollName("");
+      faceEnroll.reset();
+    } else if (faceEnroll.status === "error") {
+      setToastMessage("등록에 실패했어요. 다시 시도해 주세요");
+    }
+
+  }, [faceEnroll.status]);
+
   const [isLiked, setIsLiked] = useState(false);
   const [floatingGifts, setFloatingGifts] = useState<FloatingGift[]>([]);
   const giftCounterRef = useRef(0);
@@ -751,6 +796,15 @@ export default function CallScreen({ route, navigation }: Props) {
             setConsentLoading(false);
           }
         }}
+      />
+
+      {}
+      <FaceEnrollCard
+        visible={enrollCardVisible}
+        name={enrollName}
+        onChangeName={setEnrollName}
+        onConfirm={handleEnrollConfirm}
+        onDismiss={handleEnrollDismiss}
       />
 
       {

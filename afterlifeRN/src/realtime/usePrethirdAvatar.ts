@@ -77,8 +77,10 @@ export function usePrethirdAvatar(opts: {
   cloneId: number;
   accessToken: string; 
   deps?: PrethirdAvatarDeps;
+
+  onEnrollSuggest?: (name: string) => void;
 }): AvatarCall {
-  const { cloneId, accessToken } = opts;
+  const { cloneId, accessToken, onEnrollSuggest } = opts;
   const deps = opts.deps ?? defaultDeps;
   const [state, setState] = useState<LiveAvatarState>('idle');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -95,6 +97,9 @@ export function usePrethirdAvatar(opts: {
   const applyingRemoteRef = useRef(false);
   const pendingCloseRef = useRef<PrethirdPeerConnection | null>(null);
   const SPEAK_SOFT_TIMEOUT_MS = 30_000;
+
+  const onEnrollSuggestRef = useRef(onEnrollSuggest);
+  useEffect(() => { onEnrollSuggestRef.current = onEnrollSuggest; }, [onEnrollSuggest]);
 
   const safeClosePc = useCallback((pc: PrethirdPeerConnection) => {
     if (applyingRemoteRef.current) { pendingCloseRef.current = pc; return; }
@@ -236,6 +241,9 @@ export function usePrethirdAvatar(opts: {
         if (m.type === 'speech_start' || m.type === 'speech_end') {
           setLastSignal({ type: m.type, seq: m.seq, ts: nowMs() });
           if (m.type === 'speech_end') notifySpeechEnd();
+        } else if (m.type === 'enroll_suggest') {
+
+          onEnrollSuggestRef.current?.(typeof m.name === 'string' ? m.name : '');
         }
       } catch {  }
     };
