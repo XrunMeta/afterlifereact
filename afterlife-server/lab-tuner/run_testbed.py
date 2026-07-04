@@ -5,6 +5,13 @@ import os, sys, logging
 sys.path.insert(0, "/home/afterlife/afterlife-server/prethird/scripts")
 logging.basicConfig(level="INFO")
 
+# el S12b CRITICAL RISK: 테스트베드 say가 call_lifecycle/learn_writeback 경로를 타면
+# 실클론 L2 학습(D1 clone_ont)이 튜닝 발화로 오염될 수 있다. learn_writeback은
+# PRETHIRD_LEARN_ENABLED != "1" 이면 no-op(기본 안전)이지만, 오퍼레이터가 라이브
+# systemd env(EnvironmentFile 등)를 그대로 source해 실수로 "1"이 섞여 들어와도
+# 테스트베드 프로세스 안에서는 무조건 "0"으로 강제 override — 오염을 원천 차단한다.
+os.environ["PRETHIRD_LEARN_ENABLED"] = "0"   # 테스트베드 say가 실클론 L2 학습 오염 방지(el S12b CRITICAL RISK)
+
 from aiohttp import web
 from registry import KnobsRegistry
 from artifact_store import ArtifactStore
