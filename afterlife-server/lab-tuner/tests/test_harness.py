@@ -68,3 +68,83 @@ def test_knobs_fifth_build_body_injects_per_request():
     assert body["idle_motion_scale"] == 0.3
     assert body["idle_rms_low"] == 0.05        # 기본 유지
     assert body["head_slew_frames"] == 5       # 기본 유지
+
+class _FakeResp:
+    status = 200
+    def raise_for_status(self): pass
+    async def read(self): return b"WAVBYTES"
+    async def __aenter__(self): return self
+    async def __aexit__(self, *a): pass
+
+class _FakeSession:
+    def __init__(self, posts):
+        self._posts = posts
+    async def __aenter__(self): return self
+    async def __aexit__(self, *a): pass
+    def post(self, url, json):
+        self._posts["url"] = url
+        self._posts["json"] = json
+        return _FakeResp()
+
+def test_build_say_fn_openvoice_default_url(monkeypatch):
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()   # 기본 engine=openvoice
+    fn = harness.build_say_fn(r)
+    asyncio.run(fn("안녕"))
+    assert posts["url"] == "http://127.0.0.1:8200/tts/kr"
+
+def test_build_say_fn_url_override_beats_engine(monkeypatch):
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "qwen", "url": "http://127.0.0.1:9999"}})
+    fn = harness.build_say_fn(r)
+    asyncio.run(fn("안녕"))
+    assert posts["url"] == "http://127.0.0.1:9999/tts/kr"
+
+def test_build_say_fn_denoise_true_includes_key(monkeypatch):
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"denoise": True}})
+    fn = harness.build_say_fn(r)
+    asyncio.run(fn("안녕"))
+    assert posts["json"]["denoise"] is True
+
+def test_build_say_fn_denoise_false_excludes_key(monkeypatch):
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()   # 기본 denoise=False
+    fn = harness.build_say_fn(r)
+    asyncio.run(fn("안녕"))
+    assert "denoise" not in posts["json"]
+
+def test_build_say_fn_text_field_passthrough(monkeypatch):
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    fn = harness.build_say_fn(r)
+    asyncio.run(fn("안녕"))
+    assert posts["json"]["text"] == "안녕"
+
+def test_knobs_fifth_build_body_all_six_and_base_preserved():
+    from harness import KnobsFifthInproc
+    r = KnobsRegistry()
+    r.update({"fifth": {
+        "blink": False, "jpeg_quality": 55,
+        "idle_motion_scale": 0.4, "idle_rms_low": 0.1,
+        "idle_rms_high": 0.6, "head_slew_frames": 9,
+    }})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    # base(super()._build_body) 키 보존
+    assert body["wav_path"] == "/w.wav"
+    assert body["video_path"] == "/v.jpg"
+    # PER_REQUEST 6종 전부
+    assert body["blink"] is False
+    assert body["jpeg_quality"] == 55
+    assert body["idle_motion_scale"] == 0.4
+    assert body["idle_rms_low"] == 0.1
+    assert body["idle_rms_high"] == 0.6
+    assert body["head_slew_frames"] == 9

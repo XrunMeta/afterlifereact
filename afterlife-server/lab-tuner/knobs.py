@@ -9,7 +9,7 @@ def _env_i(name, default):
     return int(os.environ.get(name, default))
 
 
-@dataclass
+@dataclass(frozen=True)
 class DialogueKnobs:
     model: str | None = None
     temperature: float | None = None
@@ -18,7 +18,7 @@ class DialogueKnobs:
     force_flush: int = 30
 
 
-@dataclass
+@dataclass(frozen=True)
 class TtsKnobs:
     engine: str = "openvoice"        # "openvoice"(8200) | "qwen"(8201)
     url: str | None = None            # 지정 시 engine 기본 URL override
@@ -26,7 +26,7 @@ class TtsKnobs:
     denoise: bool = False
 
 
-@dataclass
+@dataclass(frozen=True)
 class FifthKnobs:
     # per-request: fifth_render.py 렌더 함수가 매 호출 env 재독 → /render body override
     blink: bool = True
@@ -43,7 +43,7 @@ class FifthKnobs:
     RESTART_BAKED = ("cfg_scale", "driving_multiplier")
 
 
-@dataclass
+@dataclass(frozen=True)
 class TransportKnobs:
     playback_buffer_ms: int = 0
     idle_grace_sec: float = 0.5
@@ -51,14 +51,14 @@ class TransportKnobs:
     height: int = 1024
 
 
-@dataclass
+@dataclass(frozen=True)
 class FillerKnobs:
     enabled: bool = False
     volume: float = 0.3
     padding_sec: float = 0.0
 
 
-@dataclass
+@dataclass(frozen=True)
 class RunKnobs:
     dialogue: DialogueKnobs = field(default_factory=DialogueKnobs)
     tts: TtsKnobs = field(default_factory=TtsKnobs)
