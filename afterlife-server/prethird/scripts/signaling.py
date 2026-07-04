@@ -28,6 +28,11 @@ _STRICT_CLONE_BUNDLE = os.environ.get("PRETHIRD_STRICT_CLONE_BUNDLE", "1") == "1
 # [F7] filler 토글: PRETHIRD_FILLER=1 일 때만 다운로드·FillerPlayer 활성.
 # 기본 off → 기존 idle 정지 루프 100% 동일(회귀 0). 테스트에서 monkeypatch 가능.
 _FILLER_ENABLED = os.environ.get("PRETHIRD_FILLER", "0") == "1"
+# [T-067] face_event 선제 발화 토글: 기본 off — off면 face_event 수신해도 완전 무동작
+# (기존 say/speak/greet 경로 바이트 단위 동일, 회귀 0). 프로세스 시작 후에도 env 재평가.
+_FACE_REACT_ENABLED_KEY = "PRETHIRD_FACE_REACT_ENABLED"
+# 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=이 초 동안 쿨다운.
+REACT_COOLDOWN_S = float(os.environ.get("PRETHIRD_REACT_COOLDOWN_S", "60"))
 if not _STRICT_CLONE_BUNDLE:
     logging.getLogger("prethird.signaling").warning(
         "PRETHIRD_STRICT_CLONE_BUNDLE=0: 고인 신원 오표시 폴백 활성화 — 운영 배포 금지"
@@ -79,6 +84,50 @@ async def _avsync_monitor(sess, interval: float = 0.5) -> None:
     except asyncio.CancelledError:
         pass
 
+def _handle_face_event(sess, data: dict) -> None:
+    """[T-067] datachannel face_event 메시지 처리.
+
+    RN → `{"type":"face_event","event":"speaker_confirmed"|"unknown_face"|"multi_face",
+    "personId":3,"displayName":"민지","seq":12}`.
+
+    토글 `PRETHIRD_FACE_REACT_ENABLED`(기본 "0") off 면 완전 무동작 — say/speak/greet
+    경로와 완전히 독립적이라 off 상태에서 기존 동작에 어떤 영향도 주지 않는다(회귀 0).
+    쿨다운: 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=REACT_COOLDOWN_S(60s).
+
+    Task 11(pending_enroll 소비)·Task 12(_maybe_swap_l2p, L2 화자별 persona 스왑)는
+    이 함수 밖에서 구현 — 여기서는 훅 자리만 남긴다(현재 no-op).
+    """
+    if os.environ.get(_FACE_REACT_ENABLED_KEY, "0") != "1":
+        return
+    if sess.pipeline is None:
+        return
+    event = data.get("event")
+    pid = data.get("personId")
+    name = data.get("displayName")
+    key = str(pid) if event == "speaker_confirmed" and pid is not None else "unknown"
+    now = time.monotonic()
+    last = sess.reacted_keys.get(key)
+    if last is not None and (key != "unknown" or now - last < REACT_COOLDOWN_S):
+        return  # 아는 얼굴=통화당 1회, unknown/multi_face=60s 쿨다운
+    sess.reacted_keys[key] = now
+
+    async def _run(event=event, pid=pid, name=name):
+        try:
+            if event == "speaker_confirmed":
+                sess.current_speaker = (int(pid), name) if pid is not None else None
+                # Task 12: L2 화자별 persona 스왑(_maybe_swap_l2p) 훅 자리 — 아직 미구현(no-op)
+                await sess.pipeline.react("known", name)
+            else:  # unknown_face | multi_face
+                sess.pending_enroll = True  # Task 11 이 소비
+                await sess.pipeline.react("unknown", None)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log.warning("session %s face_event(%s) react failed: %s", sess.session_id, event, e)
+
+    asyncio.ensure_future(_run())
+
+
 def _make_dc_handler(sess, channel):
     """DataChannel 'message' 핸들러 클로저를 반환한다.
 
@@ -94,7 +143,10 @@ def _make_dc_handler(sess, channel):
         except (ValueError, TypeError):
             return
         mtype = data.get("type")
-        if mtype not in ("say", "speak", "greet") or sess.pipeline is None:
+        if mtype not in ("say", "speak", "greet", "face_event") or sess.pipeline is None:
+            return
+        if mtype == "face_event":
+            _handle_face_event(sess, data)
             return
         # 프로세스 시작 후에도 env 토글 평가, 테스트 monkeypatch 호환
         if mtype == "greet" and os.environ.get("PRETHIRD_GREETING_ENABLED", "1") != "1":
