@@ -61,6 +61,50 @@ persons.post("/", requireAuth, async (c) => {
   );
 });
 
+const DEFAULT_FACE_THRESHOLD = 0.45;
+
+persons.post("/match", requireAuth, async (c) => {
+  const userId = c.get("userId")!;
+  const body = await c.req.json<{ vector?: number[] }>().catch(() => ({}) as { vector?: number[] });
+  const v = body.vector;
+  if (!Array.isArray(v) || v.length !== 512 || v.some((x) => typeof x !== "number" || !Number.isFinite(x)))
+    throw new APIError("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+
+  const cfg = await c.env.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
+    value: string;
+  }>();
+  const threshold = cfg?.value !== undefined && Number.isFinite(Number(cfg.value)) ? Number(cfg.value) : DEFAULT_FACE_THRESHOLD;
+
+  const idx = getFaceIndex(c.env);
+  const r = await idx.query(v, { topK: 3, namespace: String(userId), returnMetadata: true });
+
+  const byPerson = new Map<number, number>(); 
+  for (const m of r.matches) {
+    const pid = Number(m.metadata?.personId);
+    if (!pid) continue;
+    byPerson.set(pid, Math.max(byPerson.get(pid) ?? -1, m.score));
+  }
+
+  const ids = [...byPerson.keys()];
+  const names = new Map<number, string | null>();
+  if (ids.length) {
+    const rs = await c.env.DB.prepare(
+      `SELECT id, display_name FROM persons WHERE user_id = ? AND id IN (${ids.map(() => "?").join(",")})`
+    )
+      .bind(userId, ...ids)
+      .all<{ id: number; display_name: string | null }>();
+    for (const row of rs.results) names.set(row.id, row.display_name);
+  }
+
+  const matches = ids
+    .map((pid) => ({ personId: pid, displayName: names.get(pid) ?? null, score: byPerson.get(pid)! }))
+    .sort((a, b) => b.score - a.score);
+
+  const best = matches[0] && matches[0].score >= threshold ? matches[0] : null;
+
+  return c.json({ matches, best, threshold });
+});
+
 persons.post("/:id/consent", requireAuth, async (c) => {
   const personId = parsePersonId(c);
   const userId = c.get("userId")!;
