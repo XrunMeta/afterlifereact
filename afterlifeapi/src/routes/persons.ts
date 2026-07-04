@@ -105,7 +105,7 @@ v_fded81.post("/:id/consent", v_6690d9, async (v_3f4e2e) => {
 
 v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
-  const v_ca1ec5 = Number(v_3f4e2e.req.param("id"));
+  const v_ca1ec5 = v_5c8583(v_3f4e2e);
   const v_4d33b2 = await v_3f4e2e.req.json<{ vectors?: number[][] }>().catch(() => ({}) as { vectors?: number[][] });
   const v_f94e64 = v_4d33b2.vectors;
   if (
@@ -121,25 +121,35 @@ v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
   const v_306a28 = await v_3f4e2e.env.DB.prepare("SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ?")
     .bind(v_ca1ec5, v_43e90c)
     .first<{ id: number; consent_state: string }>();
-  if (!v_306a28) throw new v_3ebe58("NOT_FOUND", "Person not found.");
+  if (!v_306a28) throw new v_3ebe58("NOT_FOUND", "person이 존재하지 않습니다.");
   if (v_306a28.consent_state !== "granted")
     throw new v_3ebe58("FORBIDDEN", "얼굴정보 저장 동의(consent granted)가 필요합니다"); 
 
-  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
   const v_18b8bf = v_f94e64.map((v_6fea0b) => ({
     id: crypto.randomUUID(),
     values: v_6fea0b,
     namespace: String(v_43e90c),
     metadata: { personId: String(v_ca1ec5) },
   }));
-  await v_e86ad8.insert(v_18b8bf);
 
   const v_9e67a6 = Date.now();
-  const v_df04a4 = v_3f4e2e.env.DB.prepare(
+  const v_a9cac6 = v_3f4e2e.env.DB.prepare(
     `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
      VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`
   );
-  await v_3f4e2e.env.DB.batch(v_18b8bf.map((v_cb35cb) => v_df04a4.bind(v_ca1ec5, v_cb35cb.id, v_9e67a6)));
+  await v_3f4e2e.env.DB.batch(v_18b8bf.map((v_cb35cb) => v_a9cac6.bind(v_ca1ec5, v_cb35cb.id, v_9e67a6)));
+
+  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
+  try {
+    await v_e86ad8.insert(v_18b8bf);
+  } catch (v_9e86fd) {
+
+    const v_1cdc07 = v_18b8bf.map(() => "?").join(",");
+    await v_3f4e2e.env.DB.prepare(`DELETE FROM face_embeddings WHERE vectorize_id IN (${v_1cdc07})`)
+      .bind(...v_18b8bf.map((v_cb35cb) => v_cb35cb.id))
+      .run();
+    throw new v_3ebe58("UPSTREAM_FAILURE", `얼굴 벡터 인덱스 저장 실패: ${(v_9e86fd as Error).message}`);
+  }
 
   return v_3f4e2e.json({ enrolled: v_18b8bf.length });
 });

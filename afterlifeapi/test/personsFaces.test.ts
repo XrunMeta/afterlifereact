@@ -1,5 +1,6 @@
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
+import { v_a8d2cc } from "../src/lib/faceVectors";
 
 async function v_bfb240(v_e0c7e8): Promise<number> {
   const v_a1651b = v_c9c489.DB as unknown as D1Database;
@@ -80,6 +81,11 @@ v_469bf2("POST /oth-path", () => {
       .bind(v_ca1ec5)
       .first<{ c: number }>();
     v_4d37e3(v_3ac7e7?.c).toBe(3);
+
+    const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    const v_80a1ce = await v_e86ad8.query(v_46ff7a(0.1), { topK: 3, namespace: String(v_43e90c), returnMetadata: true });
+    v_4d37e3(v_80a1ce.matches.length).toBeGreaterThan(0);
+    v_4d37e3(v_80a1ce.matches[0].metadata?.personId).toBe(String(v_ca1ec5));
   });
 
   v_23805a("vectors 검증: 512 아님/6개 초과/비수치 → 422 VALIDATION_FAILED", async () => {
@@ -131,5 +137,20 @@ v_469bf2("POST /oth-path", () => {
     v_4d37e3(v_8f00b9.status).toBe(404);
     const v_4d33b2 = (await v_8f00b9.json()) as { error: { code: string } };
     v_4d37e3(v_4d33b2.error.code).toBe("NOT_FOUND");
+  });
+
+  v_23805a("비정수 person id(/faces) → 422 VALIDATION_FAILED (parsePersonId 재사용, 500 아님)", async () => {
+    const v_43e90c = await v_bfb240("faces-nanid@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_ea333d}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ vectors: [v_46ff7a()] }),
+    });
+
+    v_4d37e3(v_8f00b9.status).toBe(422);
+    const v_4d33b2 = (await v_8f00b9.json()) as { error: { code: string } };
+    v_4d37e3(v_4d33b2.error.code).toBe("VALIDATION_FAILED");
   });
 });
