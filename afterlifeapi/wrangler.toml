@@ -133,6 +133,12 @@ id = "bdf9722018f541c59f50e6014696cddf"
 binding = "R2_ARCHIVE"
 bucket_name = "afterlife-archive-dev"
 
+# T-067 얼굴 화자 식별 — 벡터 인덱스(코사인, 512d w600k_mbf 임베딩).
+# 인덱스 생성은 배포 단계: wrangler vectorize create afl-face-512 --dimensions=512 --metric=cosine
+[[env.preview.vectorize]]
+binding = "FACE_VECTORS"
+index_name = "afl-face-512"
+
 [env.preview.vars]
 ENVIRONMENT = "staging"
 ORCHESTRATOR_URL = "https://rtc.example.invalid/orchestrator"  # ORCH_SECRET 은 wrangler secret put. rtc.example.invalid: memorial.example.invalid CF Pages 전환으로 /orchestrator 가로채여 이전(통화 /prethird 와 동일)
@@ -196,6 +202,12 @@ id = "bdf9722018f541c59f50e6014696cddf"
 [[env.production.r2_buckets]]
 binding = "R2_ARCHIVE"
 bucket_name = "afterlife-archive-dev"
+
+# T-067 얼굴 화자 식별 — 벡터 인덱스(코사인, 512d w600k_mbf 임베딩).
+# 인덱스 생성은 배포 단계: wrangler vectorize create afl-face-512 --dimensions=512 --metric=cosine
+[[env.production.vectorize]]
+binding = "FACE_VECTORS"
+index_name = "afl-face-512"
 
 [env.production.vars]
 ENVIRONMENT = "production"

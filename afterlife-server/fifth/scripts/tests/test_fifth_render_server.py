@@ -415,10 +415,11 @@ def test_parse_render_body_valid():
     from fifth_render_server import _parse_render_body
 
     body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
-    wav, vid, tok = _parse_render_body(body)
+    wav, vid, tok, opts = _parse_render_body(body)
     assert wav == "/tmp/a.wav"
     assert vid == "/ref/idle.mp4"
     assert tok is None
+    assert opts["blink"] is True and opts["jpeg_quality"] == 90
 
 
 def test_parse_render_body_missing_wav():
@@ -457,7 +458,7 @@ def test_parse_render_body_wav_path_direct(tmp_path):
 
     body = json.dumps({"wav_path": "/home/afterlife/afterlife-server/tmp/x.wav",
                        "video_path": "/ref/idle.mp4"}).encode()
-    wav, vid, tok = _parse_render_body(body)
+    wav, vid, tok, opts = _parse_render_body(body)
 
     assert wav == "/home/afterlife/afterlife-server/tmp/x.wav"
     assert vid == "/ref/idle.mp4"
@@ -1012,7 +1013,7 @@ def test_parse_render_body_with_phase_token():
         "video_path": "/ref/idle.mp4",
         "phase_token": tok_in.to_dict(),
     }).encode()
-    wav, vid, tok_out = _parse_render_body(body)
+    wav, vid, tok_out, opts = _parse_render_body(body)
 
     assert wav == "/tmp/a.wav"
     assert vid == "/ref/idle.mp4"
@@ -1028,7 +1029,7 @@ def test_parse_render_body_phase_token_null_is_none():
         "video_path": "/ref/idle.mp4",
         "phase_token": None,
     }).encode()
-    _, _, tok = _parse_render_body(body)
+    _, _, tok, _ = _parse_render_body(body)
     assert tok is None
 
 
@@ -1037,7 +1038,7 @@ def test_parse_render_body_phase_token_absent_is_none():
     from fifth_render_server import _parse_render_body
 
     body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
-    _, _, tok = _parse_render_body(body)
+    _, _, tok, _ = _parse_render_body(body)
     assert tok is None
 
 
@@ -1120,7 +1121,7 @@ def test_parse_render_body_phase_token_head_last_none_passes():
             "first_frame": True, "head_last": None,
         },
     }).encode()
-    wav, vid, tok = _parse_render_body(body)
+    wav, vid, tok, opts = _parse_render_body(body)
     assert tok is not None
     assert tok.head_last is None
 
@@ -1137,7 +1138,7 @@ def test_parse_render_body_phase_token_head_last_list_passes():
             "first_frame": True, "head_last": [1.0, 2.0],
         },
     }).encode()
-    wav, vid, tok = _parse_render_body(body)
+    wav, vid, tok, opts = _parse_render_body(body)
     assert tok is not None
     assert tok.head_last == [1.0, 2.0]
 

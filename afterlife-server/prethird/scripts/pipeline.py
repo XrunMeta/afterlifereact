@@ -32,6 +32,21 @@ GREETING_PROMPT = (
     "짧고 자연스럽게 한 문장으로 먼저 인사를 건네. 인사말만 말해."
 )
 
+# [T-067] 얼굴 인식 이벤트에 대한 선제 발화 프롬프트 (react()).
+REACT_PROMPT_KNOWN = (
+    "방금 화면에 '{name}'님이 새로 나타났어. 하던 이야기를 잠깐 멈추고, "
+    "너의 페르소나와 '{name}'님과의 관계에 맞춰 이름을 부르며 반갑게 "
+    "한두 문장으로 맞이해. 예: '{name}님, 오셨군요!' 맞이하는 말만 말해."
+)
+# 히즈키 결정(2026-07-05): 리액션 문구는 고정하지 않고 클론 페르소나에 맡겨 그때그때
+# 자연스럽게 변주한다. 단 "상대의 이름을 묻는다"는 목적은 프롬프트로 명확히 고정
+# (이름 답변이 즉석등록(enroll_suggest) 프리필의 입력이 되므로 생략 불가).
+REACT_PROMPT_UNKNOWN = (
+    "방금 화면에 처음 보는 분이 나타났어. 너의 페르소나(말투·성격·관계 정서)에 맞게 "
+    "다정하게 맞이하되, **반드시 상대의 이름(성함)이 무엇인지 명확하게 물어봐**. "
+    "심문하듯 캐묻지 말고 한두 문장으로. 질문만 말해."
+)
+
 
 class DialoguePipeline:
     """텍스트 1개 → LLM 문장스트림 → 문장별 TTS → musetalk 프레임 콜백 → 트랙 적재.
@@ -94,6 +109,11 @@ class DialoguePipeline:
     # 퍼블릭 API
     # ------------------------------------------------------------------
 
+    def update_persona(self, messages: list) -> None:
+        """[T-067 Task 12] persona_messages 교체 — 다음 턴(say/speak/react/greet)부터 반영.
+        진행 중인 발화에는 영향 없음(각 호출 시점에 self.persona_messages를 읽어 조립)."""
+        self.persona_messages = list(messages)
+
     async def say(self, user_text: str, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """user_text 1턴을 처리해 video/audio 트랙에 적재하고 signal_end 호출.
         turn: recorder Turn 핸들(없으면 NULL_TURN) — LLM 토큰·TTS wav 누적.
@@ -142,11 +162,36 @@ class DialoguePipeline:
         """통화 연결 직후 클론이 먼저 건네는 인사. LLM이 페르소나 기반 1문장 생성.
         say()와 동일 파이프라인이되 user 입력 대신 GREETING_PROMPT 지시를 준다.
         on_response_ready: 첫 infer 완료 후·첫 push 직전 1회 호출 (F7 filler 즉시컷, greet는 보통 None)."""
+        await self._system_utterance(
+            GREETING_PROMPT, "greet", turn=turn,
+            on_first_audio=on_first_audio, on_response_ready=on_response_ready,
+        )
+
+    async def react(self, kind: str, display_name: str | None = None, turn=None, on_first_audio=None) -> None:
+        """[T-067] 얼굴 인식 이벤트에 대한 선제 발화(끼어들기). greet()와 동일 골격(_system_utterance 공유).
+        kind: "known"(아는 얼굴 — display_name 필수) | "unknown"(모르는 얼굴/multi_face).
+        쿨다운·토글 판단은 호출부(signaling._handle_face_event)의 책임 — 여기선 발화만 수행."""
+        prompt = (
+            REACT_PROMPT_KNOWN.format(name=display_name)
+            if kind == "known" else REACT_PROMPT_UNKNOWN
+        )
+        await self._system_utterance(prompt, "react", turn=turn, on_first_audio=on_first_audio)
+
+    # ------------------------------------------------------------------
+    # 내부: greet()/react() 공용 — 시스템 지시 프롬프트 1개 발화
+    # ------------------------------------------------------------------
+
+    async def _system_utterance(
+        self, prompt: str, label: str, turn=None, on_first_audio=None, on_response_ready=None,
+    ) -> None:
+        """persona_messages + 시스템 지시(prompt) 1개를 LLM→TTS→infer→push 파이프라인으로 발화.
+        greet()·react() 공용 헬퍼 — user 텍스트 대신 지시문을 주는 것만 다르다.
+        label: 로그 메시지 구분용("greet"|"react")."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
-            log.warning("clone voice 미준비 — greet skip (폴백 없음)")
+            log.warning("clone voice 미준비 — %s skip (폴백 없음)", label)
             return
-        messages = self.persona_messages + [{"role": "user", "content": GREETING_PROMPT}]
+        messages = self.persona_messages + [{"role": "user", "content": prompt}]
 
         async def produce(q: asyncio.Queue):
             sb = self._sb_factory()
