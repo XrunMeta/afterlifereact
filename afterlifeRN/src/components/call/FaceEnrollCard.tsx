@@ -6,6 +6,11 @@ import { COLORS, RADIUS } from "../constants";
 
 export const FACE_ENROLL_NAME_MAX_LENGTH = 30;
 
+export const FACE_ENROLL_CONSENT_TEXT =
+  "등록하면 얼굴 특징 정보(법률상 생체정보예요)가 저장되어 다음 통화에서 알아볼 수 있어요. " +
+  "등록은 화면 속 분을 대신해 지금 통화 중인 회원님이 진행해요 — 그분께 꼭 알려주세요. " +
+  "언제든 설정에서 삭제할 수 있어요.";
+
 export interface FaceEnrollCardProps {
   visible: boolean;
   name: string;
@@ -13,14 +18,19 @@ export interface FaceEnrollCardProps {
 
   onConfirm: (name: string) => void;
   onDismiss: () => void;
+
+  onViewPolicy: () => void;
+
+  busy?: boolean;
 }
 
 export function FaceEnrollCard(props: FaceEnrollCardProps): React.ReactElement | null {
-  const { visible, name, onChangeName, onConfirm, onDismiss } = props;
+  const { visible, name, onChangeName, onConfirm, onDismiss, onViewPolicy, busy } = props;
   if (!visible) return null;
 
   const trimmed = name.trim();
-  const confirmDisabled = trimmed.length < 1;
+  const confirmDisabled = trimmed.length < 1 || !!busy;
+  const dismissDisabled = !!busy;
 
   return (
     <View style={styles.container} testID="face-enroll-card">
@@ -35,13 +45,20 @@ export function FaceEnrollCard(props: FaceEnrollCardProps): React.ReactElement |
         testID="face-enroll-name-input"
       />
       <Text style={styles.consent}>
-        등록하면 얼굴 특징 정보(생체정보)가 저장되어 다음 통화에서 알아볼 수 있어요. 언제든 설정에서
-        삭제할 수 있어요.
+        {FACE_ENROLL_CONSENT_TEXT}{" "}
+        <Text
+          style={styles.policyLink}
+          onPress={onViewPolicy}
+          testID="face-enroll-policy-link"
+        >
+          개인정보처리방침 보기
+        </Text>
       </Text>
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.laterBtn}
           onPress={onDismiss}
+          disabled={dismissDisabled}
           testID="face-enroll-dismiss-btn"
         >
           <Text style={styles.laterText}>나중에</Text>
@@ -89,6 +106,10 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: COLORS.zinc300,
     marginBottom: 14,
+  },
+  policyLink: {
+    color: COLORS.violet200,
+    textDecorationLine: "underline",
   },
   actions: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
   laterBtn: {

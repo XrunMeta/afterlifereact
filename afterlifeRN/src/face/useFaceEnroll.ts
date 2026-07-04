@@ -6,6 +6,8 @@ import type { EmbeddingBuffer } from "./embeddingBuffer";
 
 export const FACE_ENROLL_VECTOR_COUNT = 3;
 
+export const FACE_ENROLL_CONSENT_CHANNEL = "in_call_proxy";
+
 export type FaceEnrollStatus = "idle" | "enrolling" | "success" | "error";
 
 export interface FaceEnrollDeps {
@@ -35,6 +37,8 @@ export interface UseFaceEnrollResult {
   enroll: (name: string) => Promise<void>;
 
   reset: () => void;
+
+  getPendingPersonId: () => number | null;
 }
 
 export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
@@ -46,8 +50,12 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
   const personRef = useRef<{ id: number } | null>(null);
   const consentDoneRef = useRef(false);
 
+  const enrollingRef = useRef(false);
+
   const enroll = useCallback(
     async (name: string) => {
+      if (enrollingRef.current) return; 
+      enrollingRef.current = true;
       setStatus("enrolling");
       setError(null);
       try {
@@ -57,7 +65,9 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
           personRef.current = person;
         }
         if (!consentDoneRef.current) {
-          await deps.saveFaceConsentFn(accessToken, person.id, "granted");
+          await deps.saveFaceConsentFn(accessToken, person.id, "granted", {
+            channel: FACE_ENROLL_CONSENT_CHANNEL,
+          });
           consentDoneRef.current = true;
         }
         const vectors = getBuffer().latest(FACE_ENROLL_VECTOR_COUNT);
@@ -66,6 +76,8 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
       } catch (e) {
         setStatus("error");
         setError(e as Error);
+      } finally {
+        enrollingRef.current = false;
       }
     },
     [accessToken, getBuffer, deps],
@@ -78,5 +90,10 @@ export function useFaceEnroll(opts: UseFaceEnrollOptions): UseFaceEnrollResult {
     consentDoneRef.current = false;
   }, []);
 
-  return { status, error, enroll, reset };
+  const getPendingPersonId = useCallback((): number | null => {
+    if (status === "success" || status === "idle") return null;
+    return personRef.current?.id ?? null;
+  }, [status]);
+
+  return { status, error, enroll, reset, getPendingPersonId };
 }

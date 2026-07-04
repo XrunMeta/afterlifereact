@@ -38,8 +38,9 @@ import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useFaceEnroll } from "../../face/useFaceEnroll";
+import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
-import { createPerson, saveFaceConsent, listPersons } from "../../api/persons";
+import { createPerson, saveFaceConsent, listPersons, deletePerson } from "../../api/persons";
 import TermsModal from "../../components/common/TermsModal";
 import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
@@ -172,12 +173,13 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const [enrollCardVisible, setEnrollCardVisible] = useState(false);
   const [enrollName, setEnrollName] = useState("");
+  const [enrollPolicyModalVisible, setEnrollPolicyModalVisible] = useState(false);
 
   const submittedEnrollNameRef = useRef("");
+
+  const enrollSuggestImplRef = useRef<(name: string) => void>(() => {});
   const handleEnrollSuggest = useCallback((name: string) => {
-    submittedEnrollNameRef.current = name;
-    setEnrollName(name);
-    setEnrollCardVisible(true);
+    enrollSuggestImplRef.current(name);
   }, []);
 
   const {
@@ -236,6 +238,35 @@ export default function CallScreen({ route, navigation }: Props) {
     accessToken: accessToken ?? "",
     getBuffer: getFaceEmbeddingBuffer,
   });
+
+  const handleEnrollSuggestImpl = useCallback(
+    (name: string) => {
+      if (faceEnroll.status === "enrolling") return;
+
+      const pendingId = faceEnroll.getPendingPersonId();
+      const shouldCleanup = shouldCleanupOrphanOnSuggest({
+        enrolling: false,
+        pendingPersonId: pendingId,
+        incomingName: name,
+        lastName: submittedEnrollNameRef.current,
+      });
+      if (shouldCleanup) {
+        if (accessToken && pendingId != null) {
+          void deletePerson(accessToken, pendingId).catch((err) => {
+            console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
+          });
+        }
+        faceEnroll.reset();
+      }
+      submittedEnrollNameRef.current = name;
+      setEnrollName(name);
+      setEnrollCardVisible(true);
+    },
+    [faceEnroll, accessToken],
+  );
+  useEffect(() => {
+    enrollSuggestImplRef.current = handleEnrollSuggestImpl;
+  }, [handleEnrollSuggestImpl]);
 
   const handleEmbeddingOnJS = React.useMemo(
     () =>
@@ -349,14 +380,20 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const handleEnrollDismiss = useCallback(() => {
 
+    const pendingId = faceEnroll.getPendingPersonId();
+    if (pendingId != null && accessToken) {
+      void deletePerson(accessToken, pendingId).catch((err) => {
+        console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", err);
+      });
+    }
     setEnrollCardVisible(false);
     setEnrollName("");
     faceEnroll.reset();
-  }, [faceEnroll]);
+  }, [faceEnroll, accessToken]);
 
   useEffect(() => {
     if (faceEnroll.status === "success") {
-      setToastMessage(`이제 ${submittedEnrollNameRef.current}님을 알아볼 수 있어요`);
+      setToastMessage(`${submittedEnrollNameRef.current}님, 이제 기억할게요`);
       setEnrollCardVisible(false);
       setEnrollName("");
       faceEnroll.reset();
@@ -805,6 +842,17 @@ export default function CallScreen({ route, navigation }: Props) {
         onChangeName={setEnrollName}
         onConfirm={handleEnrollConfirm}
         onDismiss={handleEnrollDismiss}
+        onViewPolicy={() => setEnrollPolicyModalVisible(true)}
+        busy={faceEnroll.status === "enrolling"}
+      />
+
+      {
+}
+      <TermsModal
+        visible={enrollPolicyModalVisible}
+        type={4}
+        onClose={() => setEnrollPolicyModalVisible(false)}
+        onAgree={() => setEnrollPolicyModalVisible(false)}
       />
 
       {
