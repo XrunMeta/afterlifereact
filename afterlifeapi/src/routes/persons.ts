@@ -61,6 +61,50 @@ v_fded81.post("/", v_6690d9, async (v_3f4e2e) => {
   );
 });
 
+const v_0eeb45 = 0.45;
+
+v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req.json<{ vector?: number[] }>().catch(() => ({}) as { vector?: number[] });
+  const v_81e2ef = v_4d33b2.vector;
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214)))
+    throw new v_3ebe58("VALIDATION_FAILED", "vector: 512차원 수치 배열이어야 합니다");
+
+  const v_01dcf5 = await v_3f4e2e.env.DB.prepare("SELECT value FROM app_config WHERE key = 'face.match_threshold'").first<{
+    value: string;
+  }>();
+  const v_d361d7 = v_01dcf5?.value !== undefined && Number.isFinite(Number(v_01dcf5.value)) ? Number(v_01dcf5.value) : v_0eeb45;
+
+  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
+  const v_cb35cb = await v_e86ad8.query(v_81e2ef, { topK: 3, namespace: String(v_43e90c), returnMetadata: true });
+
+  const v_8a69ab = new Map<number, number>(); 
+  for (const v_35f85c of v_cb35cb.matches) {
+    const v_d4923e = Number(v_35f85c.metadata?.personId);
+    if (!v_d4923e) continue;
+    v_8a69ab.set(v_d4923e, Math.max(v_8a69ab.get(v_d4923e) ?? -1, v_35f85c.score));
+  }
+
+  const v_52e08b = [...v_8a69ab.keys()];
+  const v_77b1ac = new Map<number, string | null>();
+  if (v_52e08b.length) {
+    const v_315151 = await v_3f4e2e.env.DB.prepare(
+      `SELECT id, display_name FROM persons WHERE user_id = ? AND id IN (${v_52e08b.map(() => "?").join(",")})`
+    )
+      .bind(v_43e90c, ...v_52e08b)
+      .all<{ id: number; display_name: string | null }>();
+    for (const v_3ac7e7 of v_315151.results) v_77b1ac.set(v_3ac7e7.id, v_3ac7e7.display_name);
+  }
+
+  const v_a49907 = v_52e08b
+    .map((v_d4923e) => ({ personId: v_d4923e, displayName: v_77b1ac.get(v_d4923e) ?? null, score: v_8a69ab.get(v_d4923e)! }))
+    .sort((v_779914, v_148ff6) => v_148ff6.score - v_779914.score);
+
+  const v_643757 = v_a49907[0] && v_a49907[0].score >= v_d361d7 ? v_a49907[0] : null;
+
+  return v_3f4e2e.json({ matches: v_a49907, best: v_643757, threshold: v_d361d7 });
+});
+
 v_fded81.post("/:id/consent", v_6690d9, async (v_3f4e2e) => {
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
