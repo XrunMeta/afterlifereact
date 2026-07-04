@@ -23,7 +23,17 @@ persons.post("/", requireAuth, async (c) => {
 
   const cloneId = body.cloneId ?? null;
 
-  const displayName: null = null;
+  let displayName: string | null = null;
+  if (body.displayName !== undefined) {
+    if (typeof body.displayName !== "string") {
+      throw new APIError("VALIDATION_FAILED", "displayName은 문자열이어야 합니다.");
+    }
+    const trimmed = body.displayName.trim();
+    if (trimmed.length < 1 || trimmed.length > 30) {
+      throw new APIError("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
+    }
+    displayName = trimmed;
+  }
 
   if (cloneId !== null) {
     const owned = await c.env.DB.prepare(
@@ -38,12 +48,22 @@ persons.post("/", requireAuth, async (c) => {
 
   const createdAt = Date.now();
 
-  const result = await c.env.DB.prepare(
-    `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
-     VALUES (?, ?, ?, 'none', ?)`
-  )
-    .bind(userId, cloneId, displayName, createdAt)
-    .run();
+  let result;
+  try {
+    result = await c.env.DB.prepare(
+      `INSERT INTO persons (user_id, clone_id, display_name, consent_state, created_at)
+       VALUES (?, ?, ?, 'none', ?)`
+    )
+      .bind(userId, cloneId, displayName, createdAt)
+      .run();
+  } catch (err) {
+    const msg = (err as Error).message ?? "";
+
+    if (/UNIQUE constraint failed/i.test(msg)) {
+      throw new APIError("VALIDATION_FAILED", "이미 등록된 이름입니다.");
+    }
+    throw err;
+  }
 
   const id = result.meta.last_row_id as number;
 
