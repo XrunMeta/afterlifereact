@@ -47,3 +47,6 @@ afterlife-servers.zip
 
 # 음색 카탈로그 변환 산출물 (바이너리, 커밋 제외)
 afterlifeapi/seeds/voice_catalog/out/
+
+# T-067 얼굴 임베딩 모델 변환 작업물 (venv/중간산출물, 커밋 제외 — 결과 tflite만 afterlifeRN/assets/models에 커밋)
+afterlife-server/scripts/.t067-model/
