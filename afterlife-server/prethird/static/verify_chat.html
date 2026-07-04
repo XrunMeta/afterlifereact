@@ -31,6 +31,11 @@
   table.kv tr.chg td { background: #fff6d6; }
   .l2live { color: #d33; font-size: 11px; }
   details summary { cursor: pointer; font-size: 12px; color: #65676b; margin: 10px 0 6px; font-weight: 600; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #fff; }
+  .badge.b-chat { background: #0b66ff; }
+  .badge.b-call { background: #d33; }
+  .badge.b-etc { background: #8a8d91; }
+  .warn { margin-top: 6px; padding: 6px 8px; background: #fff3cd; border: 1px solid #ffe08a; border-radius: 6px; color: #7a5c00; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -40,6 +45,7 @@
   <input id="password" type="password" placeholder="password" value="oth-password" style="min-width:120px" />
   <button id="login">로그인</button>
   <input id="token" type="password" placeholder="access token" />
+  <input id="verifyPass" type="password" placeholder="verify password (선택)" style="min-width:140px" />
   <button id="loadClones">클론 불러오기</button>
   <select id="clone"><option value="">— 클론 —</option></select>
   <input id="model" type="text" placeholder="model (기본값)" style="width:130px" />
@@ -113,6 +119,41 @@ function renderL1(l1){
   $("tblL1").innerHTML = `<table class="kv">${rows}</table>`;
 }
 
+function renderL1Raw(l1){
+  if(!l1 || !Object.keys(l1).length){ $("tblL1").innerHTML = '<span class="muted">없음</span>'; return; }
+  $("tblL1").innerHTML = `<pre>${esc(JSON.stringify(l1, null, 2))}</pre>`;
+}
+
+const L2_SRC = {
+  memory_summary:'채팅', relationship:'채팅', context:'채팅', recent_topics:'채팅',
+  relation:'통화auto', preference_personal:'통화auto', memories_personal:'통화auto',
+};
+function badge(src){ return `<span class="badge ${src==='통화auto'?'b-call':'b-chat'}">${src||'기타'}</span>`; }
+function renderL2Raw(ontRaw){
+  const data = (ontRaw && ontRaw.data) || {};
+  const meta = data._meta || {};
+  const rows = Object.entries(data)
+    .filter(([k])=>k!=='_meta')
+    .map(([k,v])=>{
+      const src = L2_SRC[k] || (k==='address'?'공존':'기타');
+      const val = (typeof v==='object') ? JSON.stringify(v) : String(v);
+      return `<tr><td>${badge(src)}</td><td>${esc(k)}</td><td>${esc(val)}</td></tr>`;
+    }).join('');
+  document.getElementById('tblL2').innerHTML =
+    `<div class="muted">rev ${esc(meta.rev??'-')} · source ${esc(meta.source??'-')} · auto_learned_at ${esc(meta.auto_learned_at??'-')}</div>`
+    + (rows ? `<table class="kv">${rows}</table>` : '<div class="muted">저장된 L2 없음</div>');
+
+  const consumed = (ontRaw && ontRaw.l2_consumed) || {};
+  const stored = Object.keys(data).filter(k=>k!=='_meta' && k!=='address');
+  const missing = stored.filter(k=>!(k in consumed));
+  if (missing.length) document.getElementById('tblL2').innerHTML +=
+    `<div class="warn">⚠ 저장됐지만 프롬프트 미소비: ${esc(missing.join(', '))}</div>`;
+}
+function renderL2RawError(status){
+  document.getElementById('tblL2').innerHTML =
+    `<span class="muted">ont-raw 조회 실패 (${esc(String(status))}) — DEV_SECRET 미설정 또는 권한 없음일 수 있음</span>`;
+}
+
 const L2_LABEL={memory_summary:"기억",relationship:"관계",context:"맥락",recent_topics:"화제"};
 let _prevL2 = null;
 
@@ -167,24 +208,53 @@ function renderL2(l2, highlight){
   _prevL2 = l2 ? {...l2} : null;
 }
 
+async function refreshOntRaw(cloneId){
+  try {
+    const rr = await fetch("/oth-path?clone_id="+cloneId, { headers: authHeaders() });
+    if (rr.ok) {
+      const ontRaw = await rr.json();
+      renderL1Raw(ontRaw.l1_profile);
+      renderL2Raw(ontRaw);
+      return true;
+    }
+    renderL2RawError(rr.status);
+  } catch (e) {
+    renderL2RawError("fetch-fail");
+  }
+  return false;
+}
+
 async function loadBundle(highlight){
   const cloneId = parseInt($("clone").value, 10);
   if(!cloneId) return;
-  const r = await fetch("/oth-path?clone_id="+cloneId, {
-    headers:{ Authorization:"Bearer "+$("token").value }});
+  const r = await fetch("/oth-path?clone_id="+cloneId, { headers: authHeaders() });
   if(!r.ok) return;
   const { l0, l1, l2 } = await r.json();
-  renderL0(l0); renderL1(l1); renderL2(l2, highlight);
+  renderL0(l0);
   const live = document.querySelector(".l2live");
   if (live) live.textContent = "● 실시간";
+
+  const ok = await refreshOntRaw(cloneId);
+  if (!ok) { renderL1(l1); renderL2(l2, highlight); }
+}
+
+function authHeaders(extra){
+  const h = Object.assign({}, extra || {});
+  const token = $("token").value;
+  if (token) h["Authorization"] = "Bearer " + token;
+  const vp = $("verifyPass") ? $("verifyPass").value.trim() : "";
+  if (vp) h["X-Verify-Pass"] = vp;
+  return h;
 }
 
 const cfg = JSON.parse(localStorage.getItem(LS) || "{}");
 $("apiBase").value = cfg.apiBase || location.origin;
 $("token").value = cfg.token || "";
-const saveCfg = () => localStorage.setItem(LS, JSON.stringify({apiBase: $("apiBase").value, token: $("token").value}));
+$("verifyPass").value = cfg.verifyPass || "";
+const saveCfg = () => localStorage.setItem(LS, JSON.stringify({apiBase: $("apiBase").value, token: $("token").value, verifyPass: $("verifyPass").value}));
 $("apiBase").addEventListener("change", saveCfg);
 $("token").addEventListener("change", saveCfg);
+$("verifyPass").addEventListener("change", saveCfg);
 
 let history = [];  
 
@@ -205,7 +275,7 @@ $("login").onclick = async () => {
   if (!email || !password) { alert("이메일/비밀번호를 입력하세요"); return; }
   const r = await fetch("/oth-path", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ email, password }),
   });
   if (!r.ok) { alert("로그인 실패: " + r.status); return; }
@@ -221,7 +291,7 @@ $("login").onclick = async () => {
 };
 
 $("loadClones").onclick = async () => {
-  const r = await fetch("/oth-path", { headers: { Authorization: "Bearer " + $("token").value } });
+  const r = await fetch("/oth-path", { headers: authHeaders() });
   const sel = $("clone");
   if (!r.ok) { alert("클론 로드 실패: " + r.status); return; }
   const { clones } = await r.json();
@@ -258,7 +328,7 @@ async function send() {
     let acc = "";
     const resp = await fetch("/oth-path", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
+      headers: authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(body),
     });
     if (!resp.ok) { bubble.textContent = "[오류 " + resp.status + "]"; return; }
@@ -313,7 +383,7 @@ async function learn(userText, assistantText) {
   $("extracted").textContent = "추출 중…"; $("extracted").className = "";
   const r = await fetch("/oth-path", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ clone_id: cloneId, turns: [
       { role: "user", content: userText },
       { role: "assistant", content: assistantText },
@@ -336,6 +406,8 @@ async function learn(userText, assistantText) {
     const live = document.querySelector(".l2live");
     if (live) live.textContent = saved ? "● 실시간" : "● 추출 미리보기(미저장)";
   }
+
+  await refreshOntRaw(cloneId);
 }
 
 $("l2reset").onclick = async () => {
@@ -344,7 +416,7 @@ $("l2reset").onclick = async () => {
   if (!confirm("이 클론의 L2 기억을 모두 비울까요?")) return;
   const r = await fetch("/oth-path", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + $("token").value },
+    headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ clone_id: cloneId }),
   });
   if (!r.ok) { alert("리셋 실패: " + r.status); return; }
