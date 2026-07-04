@@ -355,7 +355,7 @@ internal.post("/oth-path", async (c) => {
   );
 });
 
-async function personOwnsClonSession(db: D1Database, personId: number, cloneId: number): Promise<boolean> {
+async function personOwnsCloneSession(db: D1Database, personId: number, cloneId: number): Promise<boolean> {
   const row = await db.prepare(
     `SELECT 1 FROM persons p
      JOIN call_sessions cs ON cs.user_id = p.user_id
@@ -379,7 +379,7 @@ internal.get("/oth-path", async (c) => {
     return c.json({ error: "bad_person_id" }, 400);
   }
 
-  const owns = await personOwnsClonSession(c.env.DB, personId, cloneId);
+  const owns = await personOwnsCloneSession(c.env.DB, personId, cloneId);
   if (!owns) return c.json({ error: "not_found" }, 404);
 
   const raw = await readOntPerson(c.env, cloneId, personId);
@@ -433,7 +433,7 @@ internal.post("/oth-path", async (c) => {
   const clone = await loadCloneById(c.env.DB, cloneId);
   if (!clone) return c.json({ error: "clone_not_found" }, 404);
 
-  const interacted = await personOwnsClonSession(c.env.DB, personId, cloneId);
+  const interacted = await personOwnsCloneSession(c.env.DB, personId, cloneId);
   if (!interacted) return c.json({ error: "no_interaction" }, 403);
 
   let result: { rev: number; skipped: boolean };
