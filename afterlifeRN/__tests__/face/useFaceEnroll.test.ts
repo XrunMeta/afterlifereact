@@ -2,6 +2,7 @@
 import { v_0da18b, v_be73a0 } from "dtbzepbezvovgqcnbkbssjenbxhgn";
 import { v_3fc8fd } from "../../src/face/useFaceEnroll";
 import { v_4f64ba } from "../../src/face/embeddingBuffer";
+import { v_19be88 } from "../../src/face/faceEnrollGuard";
 
 function v_a11615(v_f94e64): v_4f64ba {
   const v_83ee53 = new v_4f64ba();
@@ -29,7 +30,8 @@ test("성공 경로: createPerson → saveFaceConsent → enrollFaces 순서·�
   });
 
   expect(v_f290ff).toHaveBeenCalledWith("tok", { displayName: "민지" });
-  expect(v_a18c0d).toHaveBeenCalledWith("tok", 42, "granted");
+
+  expect(v_a18c0d).toHaveBeenCalledWith("tok", 42, "granted", { channel: "in_call_proxy" });
   expect(v_c48ab5).toHaveBeenCalledWith("tok", 42, [[1, 2], [3, 4]]);
 
   const v_b892c9 = v_f290ff.mock.invocationCallOrder[0];
@@ -128,4 +130,148 @@ test("reset() 후엔 처음부터 다시 createPerson 호출", async () => {
 
   expect(v_f290ff).toHaveBeenCalledTimes(2);
   expect(v_f290ff).toHaveBeenNthCalledWith(2, "tok", { displayName: "철수" });
+});
+
+test("연타(동일 tick 내 두 번 호출) 시 createPerson 1회만 호출 — 두 번째는 조용히 무시", async () => {
+  const v_306a28 = { id: 99, consentState: "none" as const };
+  const v_f290ff = jest.fn().mockResolvedValue(v_306a28);
+  const v_a18c0d = jest.fn().mockResolvedValue("granted");
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_062bb0 = v_a11615([[1, 1]]);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    const v_5b6e4b = v_43c42e.current.enroll("민지");
+    const v_d6c160 = v_43c42e.current.enroll("민지"); 
+    await Promise.all([v_5b6e4b, v_d6c160]);
+  });
+
+  expect(v_f290ff).toHaveBeenCalledTimes(1);
+  expect(v_43c42e.current.status).toBe("success");
+});
+
+test("getPendingPersonId: idle 상태에선 null", () => {
+  const v_062bb0 = v_a11615([[1, 1]]);
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: {
+        createPersonFn: jest.fn(),
+        saveFaceConsentFn: jest.fn(),
+        enrollFacesFn: jest.fn(),
+      },
+    }),
+  );
+  expect(v_43c42e.current.getPendingPersonId()).toBeNull();
+});
+
+test("getPendingPersonId: 부분 실패(person 생성됨·미완료) 상태에서 personId 반환", async () => {
+  const v_306a28 = { id: 11, consentState: "none" as const };
+  const v_f290ff = jest.fn().mockResolvedValue(v_306a28);
+  const v_a18c0d = jest.fn().mockRejectedValue(new Error("net"));
+  const v_c48ab5 = jest.fn();
+  const v_062bb0 = v_a11615([[1, 1]]);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enroll("민지");
+  });
+
+  expect(v_43c42e.current.status).toBe("error");
+  expect(v_43c42e.current.getPendingPersonId()).toBe(11);
+});
+
+test("getPendingPersonId: success 상태에선 null(완료됨)", async () => {
+  const v_306a28 = { id: 12, consentState: "none" as const };
+  const v_f290ff = jest.fn().mockResolvedValue(v_306a28);
+  const v_a18c0d = jest.fn().mockResolvedValue("granted");
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_062bb0 = v_a11615([[1, 1]]);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enroll("민지");
+  });
+
+  expect(v_43c42e.current.status).toBe("success");
+  expect(v_43c42e.current.getPendingPersonId()).toBeNull();
+});
+
+test("A 부분실패 → B suggest 가드(true) → cleanup+reset → B 신규 생성(A id 재사용 아님)", async () => {
+  const v_34af88 = { id: 101, consentState: "none" as const };
+  const v_b57ac3 = { id: 202, consentState: "none" as const };
+  const v_f290ff = jest
+    .fn()
+    .mockResolvedValueOnce(v_34af88)
+    .mockResolvedValueOnce(v_b57ac3);
+
+  const v_a18c0d = jest
+    .fn()
+    .mockRejectedValueOnce(new Error("net"))
+    .mockResolvedValueOnce("granted");
+  const v_c48ab5 = jest.fn().mockResolvedValue({ enrolled: 1 });
+  const v_521ad6 = jest.fn().mockResolvedValue({ deleted: true });
+  const v_062bb0 = v_a11615([[1, 1]]);
+
+  const { result: v_43c42e } = v_0da18b(() =>
+    v_3fc8fd({
+      accessToken: "tok",
+      getBuffer: () => v_062bb0,
+      deps: { createPersonFn: v_f290ff, saveFaceConsentFn: v_a18c0d, enrollFacesFn: v_c48ab5 },
+    }),
+  );
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enroll("A");
+  });
+  expect(v_43c42e.current.status).toBe("error");
+  expect(v_43c42e.current.getPendingPersonId()).toBe(101);
+
+  const v_a983d4 = v_19be88({
+    enrolling: v_43c42e.current.status === "enrolling",
+    pendingPersonId: v_43c42e.current.getPendingPersonId(),
+    incomingName: "B",
+    lastName: "A",
+  });
+  expect(v_a983d4).toBe(true);
+
+  if (v_a983d4) {
+    await v_521ad6("tok", v_43c42e.current.getPendingPersonId());
+    v_be73a0(() => {
+      v_43c42e.current.reset();
+    });
+  }
+  expect(v_521ad6).toHaveBeenCalledWith("tok", 101);
+  expect(v_43c42e.current.status).toBe("idle");
+  expect(v_43c42e.current.getPendingPersonId()).toBeNull();
+
+  await v_be73a0(async () => {
+    await v_43c42e.current.enroll("B");
+  });
+  expect(v_f290ff).toHaveBeenCalledTimes(2);
+  expect(v_f290ff).toHaveBeenNthCalledWith(2, "tok", { displayName: "B" });
+  expect(v_43c42e.current.status).toBe("success");
+  expect(v_43c42e.current.getPendingPersonId()).toBeNull();
 });

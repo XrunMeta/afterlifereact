@@ -38,8 +38,9 @@ import { v_a40fe8 } from "../../face/frameTimestamp";
 import { v_6e58ce } from "../../face/newFaceDetector";
 import { v_e9685b } from "../../face/useFaceIdentify";
 import { v_3fc8fd } from "../../face/useFaceEnroll";
+import { v_19be88 } from "../../face/faceEnrollGuard";
 import type { v_b26216 } from "../../face/speakerIdReducer";
-import { v_4e7b87, v_31967f, v_865d38 } from "../../api/persons";
+import { v_4e7b87, v_31967f, v_865d38, v_a94a1b } from "../../api/persons";
 import v_c0caa9 from "../../components/common/TermsModal";
 import { v_b519ed } from "../../components/call/FaceEnrollCard";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
@@ -172,12 +173,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_85a067, v_5218ba] = v_5ab095(false);
   const [v_ef20d7, v_3c66cd] = v_5ab095("");
+  const [v_28545c, v_a13abd] = v_5ab095(false);
 
   const v_821084 = v_e662ae("");
+
+  const v_243c4f = v_e662ae<(name: string) => void>(() => {});
   const v_b12d63 = v_de06a3((v_1833e7) => {
-    v_821084.current = v_1833e7;
-    v_3c66cd(v_1833e7);
-    v_5218ba(true);
+    v_243c4f.current(v_1833e7);
   }, []);
 
   const {
@@ -236,6 +238,35 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     accessToken: v_2ca7e0 ?? "",
     getBuffer: v_c4d644,
   });
+
+  const v_f8e6ef = v_de06a3(
+    (v_1833e7) => {
+      if (v_20ef58.status === "enrolling") return;
+
+      const v_fde8d3 = v_20ef58.getPendingPersonId();
+      const v_3da205 = v_19be88({
+        enrolling: false,
+        pendingPersonId: v_fde8d3,
+        incomingName: v_1833e7,
+        lastName: v_821084.current,
+      });
+      if (v_3da205) {
+        if (v_2ca7e0 && v_fde8d3 != null) {
+          void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
+            console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
+          });
+        }
+        v_20ef58.reset();
+      }
+      v_821084.current = v_1833e7;
+      v_3c66cd(v_1833e7);
+      v_5218ba(true);
+    },
+    [v_20ef58, v_2ca7e0],
+  );
+  v_c4deb2(() => {
+    v_243c4f.current = v_f8e6ef;
+  }, [v_f8e6ef]);
 
   const v_998534 = v_a3453e.useMemo(
     () =>
@@ -349,14 +380,20 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_36f0ed = v_de06a3(() => {
 
+    const v_fde8d3 = v_20ef58.getPendingPersonId();
+    if (v_fde8d3 != null && v_2ca7e0) {
+      void v_a94a1b(v_2ca7e0, v_fde8d3).catch((v_49263d) => {
+        console.warn("[Call][face] orphan person cleanup(deletePerson) failed:", v_49263d);
+      });
+    }
     v_5218ba(false);
     v_3c66cd("");
     v_20ef58.reset();
-  }, [v_20ef58]);
+  }, [v_20ef58, v_2ca7e0]);
 
   v_c4deb2(() => {
     if (v_20ef58.status === "success") {
-      v_15c939(`이제 ${v_821084.current}님을 알아볼 수 있어요`);
+      v_15c939(`${v_821084.current}님, 이제 기억할게요`);
       v_5218ba(false);
       v_3c66cd("");
       v_20ef58.reset();
@@ -805,6 +842,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         onChangeName={v_3c66cd}
         onConfirm={v_405500}
         onDismiss={v_36f0ed}
+        onViewPolicy={() => v_a13abd(true)}
+        busy={v_20ef58.status === "enrolling"}
+      />
+
+      {
+}
+      <TermsModal
+        visible={v_28545c}
+        type={4}
+        onClose={() => v_a13abd(false)}
+        onAgree={() => v_a13abd(false)}
       />
 
       {

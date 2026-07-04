@@ -6,6 +6,11 @@ import { v_1bfbd0, v_8b0c90 } from "../constants";
 
 export const v_6fd3d6 = 30;
 
+export const v_c958a9 =
+  "등록하면 얼굴 특징 정보(법률상 생체정보예요)가 저장되어 다음 통화에서 알아볼 수 있어요. " +
+  "등록은 화면 속 분을 대신해 지금 통화 중인 회원님이 진행해요 — 그분께 꼭 알려주세요. " +
+  "언제든 설정에서 삭제할 수 있어요.";
+
 export interface FaceEnrollCardProps {
   visible: boolean;
   name: string;
@@ -13,14 +18,19 @@ export interface FaceEnrollCardProps {
 
   onConfirm: (name: string) => void;
   onDismiss: () => void;
+
+  onViewPolicy: () => void;
+
+  busy?: boolean;
 }
 
 export function v_b519ed(v_b1927c): v_a3453e.ReactElement | null {
-  const { visible: v_cf55be, name: v_1833e7, onChangeName: v_a8c11d, onConfirm: v_e2be2d, onDismiss: v_1b97a8 } = v_b1927c;
+  const { visible: v_cf55be, name: v_1833e7, onChangeName: v_a8c11d, onConfirm: v_e2be2d, onDismiss: v_1b97a8, onViewPolicy: v_ae0e75, busy: v_3f8465 } = v_b1927c;
   if (!v_cf55be) return null;
 
   const v_2f361a = v_1833e7.trim();
-  const v_f7e6ed = v_2f361a.length < 1;
+  const v_f7e6ed = v_2f361a.length < 1 || !!v_3f8465;
+  const v_196c0d = !!v_3f8465;
 
   return (
     <View style={v_d81136.container} testID="face-enroll-card">
@@ -35,13 +45,20 @@ export function v_b519ed(v_b1927c): v_a3453e.ReactElement | null {
         testID="face-enroll-name-input"
       />
       <Text style={v_d81136.consent}>
-        등록하면 얼굴 특징 정보(생체정보)가 저장되어 다음 통화에서 알아볼 수 있어요. 언제든 설정에서
-        삭제할 수 있어요.
+        {v_c958a9}{" "}
+        <Text
+          style={v_d81136.policyLink}
+          onPress={v_ae0e75}
+          testID="face-enroll-policy-link"
+        >
+          개인정보처리방침 보기
+        </Text>
       </Text>
       <View style={v_d81136.actions}>
         <TouchableOpacity
           style={v_d81136.laterBtn}
           onPress={v_1b97a8}
+          disabled={v_196c0d}
           testID="face-enroll-dismiss-btn"
         >
           <Text style={v_d81136.laterText}>나중에</Text>
@@ -89,6 +106,10 @@ const v_d81136 = v_472849.create({
     lineHeight: 18,
     color: v_1bfbd0.zinc300,
     marginBottom: 14,
+  },
+  policyLink: {
+    color: v_1bfbd0.violet200,
+    textDecorationLine: "underline",
   },
   actions: { flexDirection: "row", justifyContent: "flex-end", gap: 10 },
   laterBtn: {
