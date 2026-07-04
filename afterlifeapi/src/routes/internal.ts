@@ -355,6 +355,15 @@ internal.post("/oth-path", async (c) => {
   );
 });
 
+async function personOwnsClonSession(db: D1Database, personId: number, cloneId: number): Promise<boolean> {
+  const row = await db.prepare(
+    `SELECT 1 FROM persons p
+     JOIN call_sessions cs ON cs.user_id = p.user_id
+     WHERE p.id = ? AND cs.clone_id = ? LIMIT 1`,
+  ).bind(personId, cloneId).first();
+  return !!row;
+}
+
 internal.get("/oth-path", async (c) => {
   const auth = c.req.header("Authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
@@ -370,13 +379,17 @@ internal.get("/oth-path", async (c) => {
     return c.json({ error: "bad_person_id" }, 400);
   }
 
+  const owns = await personOwnsClonSession(c.env.DB, personId, cloneId);
+  if (!owns) return c.json({ error: "not_found" }, 404);
+
   const raw = await readOntPerson(c.env, cloneId, personId);
   let data: Record<string, unknown> | null = null;
   if (raw) {
     try {
       data = JSON.parse(raw) as Record<string, unknown>;
     } catch {
-      console.error(`[D1_CORRUPT] l2p:${cloneId}:${personId} not JSON`);
+
+      console.error(`[D1_CORRUPT] l2p:${cloneId}:pid:${String(personId).slice(-3)} not JSON`);
       data = null;
     }
   }
@@ -420,11 +433,7 @@ internal.post("/oth-path", async (c) => {
   const clone = await loadCloneById(c.env.DB, cloneId);
   if (!clone) return c.json({ error: "clone_not_found" }, 404);
 
-  const interacted = await c.env.DB.prepare(
-    `SELECT 1 FROM call_turns ct
-     JOIN call_sessions cs ON cs.call_id = ct.call_id
-     WHERE cs.clone_id = ? AND ct.speaker_person_id = ? LIMIT 1`,
-  ).bind(cloneId, personId).first();
+  const interacted = await personOwnsClonSession(c.env.DB, personId, cloneId);
   if (!interacted) return c.json({ error: "no_interaction" }, 403);
 
   let result: { rev: number; skipped: boolean };

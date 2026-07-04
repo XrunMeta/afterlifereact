@@ -32,6 +32,10 @@ persons.post("/", requireAuth, async (c) => {
     if (trimmed.length < 1 || trimmed.length > 30) {
       throw new APIError("VALIDATION_FAILED", "displayName은 1~30자여야 합니다.");
     }
+
+    if (/[\x00-\x1f\x7f]/.test(trimmed)) {
+      throw new APIError("VALIDATION_FAILED", "displayName에 제어문자를 사용할 수 없습니다.");
+    }
     displayName = trimmed;
   }
 
