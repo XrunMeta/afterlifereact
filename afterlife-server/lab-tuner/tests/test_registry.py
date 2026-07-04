@@ -29,3 +29,39 @@ def test_update_none_section_value_ignored():
     before = r.get().to_dict()
     merged = r.update({"tts": None})    # isinstance dict 가드 → 무시
     assert merged.to_dict() == before
+
+def test_dirty_starts_empty():
+    r = KnobsRegistry()
+    assert r.dirty() == set()
+
+def test_dirty_tracks_updated_keys():
+    r = KnobsRegistry()
+    r.update({"tts": {"speed": 1.5}})
+    assert r.dirty() == {"tts.speed"}
+
+def test_dirty_accumulates_across_updates():
+    r = KnobsRegistry()
+    r.update({"tts": {"speed": 1.5}})
+    r.update({"fifth": {"cfg_scale": 3.0}})
+    assert r.dirty() == {"tts.speed", "fifth.cfg_scale"}
+
+def test_dirty_ignores_unknown_section_and_field():
+    r = KnobsRegistry()
+    r.update({"unknown_section": {"x": 1}})
+    r.update({"tts": {"unknown_field": 999}})
+    assert r.dirty() == set()
+
+def test_dirty_returns_defensive_copy():
+    r = KnobsRegistry()
+    r.update({"tts": {"speed": 1.5}})
+    d = r.dirty()
+    d.add("fake.key")
+    assert r.dirty() == {"tts.speed"}   # 외부에서 변경해도 내부 상태 불변
+
+def test_replace_resets_dirty():
+    from knobs import RunKnobs
+    r = KnobsRegistry()
+    r.update({"tts": {"speed": 1.5}})
+    assert r.dirty() == {"tts.speed"}
+    r.replace(RunKnobs())
+    assert r.dirty() == set()
