@@ -39,12 +39,20 @@ class UnsafeEnvValueError(ValueError):
 # mizu VETO(CRITICAL 1): 개행·따옴표·대괄호 등은 systemd drop-in Environment= 라인에
 # 삽입되면 지시문 인젝션(예: `[Service]\nExecStart=...`)으로 이어질 수 있다.
 # 영숫자·`_./: -` 만 허용(화이트리스트) — 그 외는 즉시 거부.
-_SAFE_ENV_VAL = re.compile(r'^[A-Za-z0-9_./:\- ]*$')
+# mizu R2: `^...$`의 `$`는 파이썬 정규식에서 "문자열 끝 또는 끝 개행 직전"까지
+# 매치해 트레일링 개행 1개(`"gemma3\n"`)를 통과시켜버린다(RCE는 아니나 systemd
+# 유닛 파일이 물리적으로 두 줄로 쪼개져 파싱 손상 → 가용성 리스크). `\A...\Z`는
+# 이 예외가 없어 트레일링 개행도 확실히 거부한다.
+_SAFE_ENV_VAL = re.compile(r'\A[A-Za-z0-9_./:\- ]*\Z')
 
 
 def _validate_env_value(value) -> None:
     """value가 화이트리스트를 벗어나면 UnsafeEnvValueError."""
     s = "" if value is None else str(value)
+    # mizu R2: 개행류는 이중 방어(화이트리스트 정규식 + 명시적 문자 검사) —
+    # `\A...\Z` 만으로 충분하지만 실수로 앵커가 되돌아가도 여기서 한 번 더 막는다.
+    if "\n" in s or "\r" in s:
+        raise UnsafeEnvValueError(f"unsafe env value rejected(newline): {value!r}")
     if not _SAFE_ENV_VAL.match(s):
         raise UnsafeEnvValueError(f"unsafe env value rejected: {value!r}")
 
@@ -174,7 +182,8 @@ def backup_file(path: str):
     return backup_path
 
 
-_BACKUP_NAME_RE = re.compile(r'^.+\.bak-\d{8}-\d{6}$')
+# mizu R2: `_SAFE_ENV_VAL`과 동일 특성(`$` 트레일링 개행 예외) → 일관되게 \A...\Z.
+_BACKUP_NAME_RE = re.compile(r'\A.+\.bak-\d{8}-\d{6}\Z')
 
 
 def _dropin_root() -> str:

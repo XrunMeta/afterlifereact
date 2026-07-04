@@ -71,6 +71,52 @@ def test_upsert_env_line_rejects_bracket_close(tmp_path):
     assert not conf.exists()
 
 
+# ---------------------------------------------------------------------------
+# mizu R2: `$` 앵커가 트레일링 개행 1개를 통과시키는 파이썬 정규식 함정 수정
+# ---------------------------------------------------------------------------
+
+def test_validate_env_value_rejects_trailing_newline_alone():
+    import pytest
+    with pytest.raises(promote.UnsafeEnvValueError):
+        promote._validate_env_value("gemma3\n")   # 트레일링 개행 단독 — `$` 함정 재현
+
+
+def test_validate_env_value_rejects_trailing_carriage_return_alone():
+    import pytest
+    with pytest.raises(promote.UnsafeEnvValueError):
+        promote._validate_env_value("gemma3\r")
+
+
+def test_validate_env_value_rejects_embedded_newline():
+    import pytest
+    with pytest.raises(promote.UnsafeEnvValueError):
+        promote._validate_env_value("a\nb")   # 기존 케이스 유지
+
+
+def test_validate_env_value_accepts_normal_value():
+    promote._validate_env_value("gemma3:27b")   # 정상값 통과 유지(회귀 없음)
+    promote._validate_env_value("1.5")
+    promote._validate_env_value("")
+
+
+def test_upsert_env_line_rejects_trailing_newline(tmp_path):
+    import pytest
+    conf = tmp_path / "x.conf"
+    with pytest.raises(promote.UnsafeEnvValueError):
+        promote.upsert_env_line(str(conf), "PRETHIRD_OLLAMA_MODEL", "gemma3\n")
+    assert not conf.exists()
+
+
+def test_restore_file_rejects_backup_id_with_trailing_newline(tmp_path):
+    # backup_id 문자열 자체에 트레일링 개행이 섞여도 파일명 정규식(\A...\Z)이 거부해야 함.
+    import pytest
+    conf = tmp_path / "lab-tuner.conf"
+    conf.write_text("original")
+    backup_id = promote.backup_file(str(conf))
+    with pytest.raises(ValueError):
+        promote.restore_file(backup_id + "\n", allowed_root=str(tmp_path))
+
+
 def test_apply_rejects_malicious_value_before_any_write():
     # mizu VETO CRITICAL 1 재현: model="a\"\n[Service]\nExecStart=..." 형태의 systemd
     # 지시문 인젝션 시도 → apply()가 write_fn/backup_fn을 단 한 번도 부르지 않고 abort.
