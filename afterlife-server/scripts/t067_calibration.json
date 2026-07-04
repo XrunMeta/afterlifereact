@@ -1,0 +1,15 @@
+{
+  "threshold": 0.83,
+  "swept_best_threshold": 0.83,
+  "swept_best_tar": 0.9583333333333334,
+  "swept_best_far": 0.0,
+  "same_mean": 0.9261,
+  "same_p5": 0.8828,
+  "diff_mean": 0.2358,
+  "diff_p95": 0.6669,
+  "n_same": 120,
+  "n_diff": 1008,
+  "n_identities": 8,
+  "overlap_warning": false,
+  "conservative_threshold": null
+}
