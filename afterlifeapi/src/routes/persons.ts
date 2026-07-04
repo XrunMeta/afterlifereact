@@ -4,6 +4,7 @@ import { v_b7c41b } from "zmui";
 import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
+import { v_a8d2cc } from "../lib/faceVectors";
 
 export const v_fded81 = new v_b7c41b<v_de0a25>();
 
@@ -100,6 +101,47 @@ v_fded81.post("/:id/consent", v_6690d9, async (v_3f4e2e) => {
   await v_3f4e2e.env.DB.batch([v_dba7e8, v_6ede3e]);
 
   return v_3f4e2e.json({ consentState: v_b6e533, consentAt: v_322d60 });
+});
+
+v_fded81.post("/:id/faces", v_6690d9, async (v_3f4e2e) => {
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_ca1ec5 = Number(v_3f4e2e.req.param("id"));
+  const v_4d33b2 = await v_3f4e2e.req.json<{ vectors?: number[][] }>().catch(() => ({}) as { vectors?: number[][] });
+  const v_f94e64 = v_4d33b2.vectors;
+  if (
+    !Array.isArray(v_f94e64) ||
+    v_f94e64.length < 1 ||
+    v_f94e64.length > 5 ||
+    v_f94e64.some(
+      (v_81e2ef) => !Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || v_81e2ef.some((v_62c214) => typeof v_62c214 !== "number" || !Number.isFinite(v_62c214))
+    )
+  )
+    throw new v_3ebe58("VALIDATION_FAILED", "vectors: 1~5개의 512차원 수치 배열이어야 합니다");
+
+  const v_306a28 = await v_3f4e2e.env.DB.prepare("SELECT id, consent_state FROM persons WHERE id = ? AND user_id = ?")
+    .bind(v_ca1ec5, v_43e90c)
+    .first<{ id: number; consent_state: string }>();
+  if (!v_306a28) throw new v_3ebe58("NOT_FOUND", "Person not found.");
+  if (v_306a28.consent_state !== "granted")
+    throw new v_3ebe58("FORBIDDEN", "얼굴정보 저장 동의(consent granted)가 필요합니다"); 
+
+  const v_e86ad8 = v_a8d2cc(v_3f4e2e.env);
+  const v_18b8bf = v_f94e64.map((v_6fea0b) => ({
+    id: crypto.randomUUID(),
+    values: v_6fea0b,
+    namespace: String(v_43e90c),
+    metadata: { personId: String(v_ca1ec5) },
+  }));
+  await v_e86ad8.insert(v_18b8bf);
+
+  const v_9e67a6 = Date.now();
+  const v_df04a4 = v_3f4e2e.env.DB.prepare(
+    `INSERT INTO face_embeddings (person_id, vectorize_id, model, dim, source, created_at)
+     VALUES (?, ?, 'w600k_mbf', 512, 'call', ?)`
+  );
+  await v_3f4e2e.env.DB.batch(v_18b8bf.map((v_cb35cb) => v_df04a4.bind(v_ca1ec5, v_cb35cb.id, v_9e67a6)));
+
+  return v_3f4e2e.json({ enrolled: v_18b8bf.length });
 });
 
 v_fded81.get("/", v_6690d9, async (v_3f4e2e) => {
