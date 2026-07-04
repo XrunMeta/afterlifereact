@@ -34,6 +34,7 @@ import { useSharedValue } from "react-native-worklets-core";
 import { useFaceDetection } from "../../hooks/useFaceDetection";
 import { largestFace } from "../../face/largestFace";
 import { shouldRunEmbedding } from "../../face/embeddingThrottle";
+import { normalizeFrameTimestampMs } from "../../face/frameTimestamp";
 import { detectNewFaces } from "../../face/newFaceDetector";
 import { useFaceIdentify } from "../../face/useFaceIdentify";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
@@ -190,6 +191,8 @@ export default function CallScreen({ route, navigation }: Props) {
     faceEmbedModelPlugin.state === "loaded" ? faceEmbedModelPlugin.model : undefined;
   const { resize } = useResizePlugin();
 
+  const isAndroidFrame = Platform.OS === "android";
+
   const lastEmbedTs = useSharedValue(0);
 
   const seenFaceIdsRef = useRef<Set<number>>(new Set());
@@ -220,9 +223,9 @@ export default function CallScreen({ route, navigation }: Props) {
   const handleEmbeddingOnJS = React.useMemo(
     () =>
       Worklets.createRunOnJS(
-        (vector: number[], faceCount: number, trackingId: number | null) => {
-          if (faceCount > 1 && trackingId != null) {
-            const { newIds, seen } = detectNewFaces(seenFaceIdsRef.current, [trackingId]);
+        (vector: number[], faceCount: number, trackingIds: number[]) => {
+          if (faceCount > 1) {
+            const { newIds, seen } = detectNewFaces(seenFaceIdsRef.current, trackingIds);
             seenFaceIdsRef.current = seen;
             if (newIds.length > 0) {
               sendFaceEvent?.({ event: "multi_face" });
@@ -241,8 +244,10 @@ export default function CallScreen({ route, navigation }: Props) {
       const faces = detectFaces(frame);
       handleFacesOnJS(faces); 
 
-      if (faceEmbedModel != null && shouldRunEmbedding(lastEmbedTs.value, frame.timestamp)) {
-        lastEmbedTs.value = frame.timestamp;
+      const nowMs = normalizeFrameTimestampMs(frame.timestamp, isAndroidFrame);
+
+      if (faceEmbedModel != null && shouldRunEmbedding(lastEmbedTs.value, nowMs)) {
+        lastEmbedTs.value = nowMs;
         const primary = largestFace(faces);
         if (primary != null) {
           const resized = resize(frame, {
@@ -262,11 +267,22 @@ export default function CallScreen({ route, navigation }: Props) {
             normalized[i] = resized[i] * 2 - 1;
           }
           const out = faceEmbedModel.runSync([normalized])[0] as Float32Array;
-          handleEmbeddingOnJS(Array.from(out), faces.length, primary.trackingId ?? null);
+          const trackingIds = faces
+            .map((f) => f.trackingId)
+            .filter((id): id is number => typeof id === "number");
+          handleEmbeddingOnJS(Array.from(out), faces.length, trackingIds);
         }
       }
     },
-    [detectFaces, handleFacesOnJS, faceEmbedModel, resize, lastEmbedTs, handleEmbeddingOnJS],
+    [
+      detectFaces,
+      handleFacesOnJS,
+      faceEmbedModel,
+      resize,
+      lastEmbedTs,
+      isAndroidFrame,
+      handleEmbeddingOnJS,
+    ],
   );
 
   const {
