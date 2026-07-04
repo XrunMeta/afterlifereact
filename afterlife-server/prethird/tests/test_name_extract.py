@@ -58,6 +58,19 @@ def test_extract_name_malformed_json_returns_empty():
     assert name_extract._safe_name('[1,2,3]') == ""
 
 
+def test_safe_name_strips_control_chars():
+    # 개행/탭 등 제어문자가 섞인 이름 → 제거된 이름만 남는다.
+    assert name_extract._safe_name('{"name": "민\\n지\\t"}') == "민지"
+    assert name_extract._safe_name('{"name": "\\u0007민지\\u007f"}') == "민지"
+
+
+def test_safe_name_truncates_to_30_chars():
+    long_name = "가" * 50
+    result = name_extract._safe_name(json.dumps({"name": long_name}))
+    assert result == "가" * 30
+    assert len(result) == 30
+
+
 # ---------------------------------------------------------------------------
 # signaling 통합: pending_enroll 훅 (브리프 4케이스 + datachannel 실패 생존)
 # 패턴은 tests/test_face_react.py 의 FakeChannel/FakePipeline 을 그대로 따른다.
@@ -187,3 +200,48 @@ def test_datachannel_send_failure_call_survives(monkeypatch):
     _run_handler(sess, ch, {"type": "say", "text": "저 딸 민지예요", "seq": 1})
     assert sess.pipeline.say_calls == ["저 딸 민지예요"]
     assert sess.pending_enroll is False
+
+
+def test_concurrent_say_while_first_extract_in_flight_sends_once(monkeypatch):
+    """첫 say의 extract_name이 아직 진행 중(in-flight)인 상태에서 둘째 say가 도착해도
+    enroll_suggest는 정확히 1건만 송신된다 — pending_enroll이 첫 say 처리 시 동기적으로
+    즉시 False로 내려가므로(레이스 윈도우 없음), 둘째 say는 훅을 아예 재진입하지 않는다."""
+    gate = asyncio.Event()
+    calls = {"n": 0}
+
+    async def _gated_extract(text):
+        calls["n"] += 1
+        await gate.wait()
+        return "민지"
+    monkeypatch.setattr(name_extract, "extract_name", _gated_extract)
+
+    sess, ch = _Sess(pending_enroll=True), _Channel()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        handler = _make_dc_handler(sess, ch)
+        # 첫 say: 훅이 pending_enroll을 즉시(동기) False로 내리고, extract_name 태스크를 예약.
+        handler(json.dumps({"type": "say", "text": "저 딸 민지예요", "seq": 1}))
+        loop.run_until_complete(asyncio.sleep(0))
+        assert calls["n"] == 1          # 첫 extract 시작됨(gate 대기 중, in-flight)
+        assert sess.pending_enroll is False
+        # 아직 미완료라 enroll_suggest 미송신(speech_start/speech_end 는 say 본 흐름 정상 신호).
+        assert [m for m in ch.sent if m["type"] == "enroll_suggest"] == []
+
+        # 둘째 say: 첫 extract가 아직 in-flight인 상태에서 도착 — pending_enroll이 이미
+        # False이므로 훅 재진입 없이 say만 정상 처리된다.
+        handler(json.dumps({"type": "say", "text": "네 알겠어요", "seq": 2}))
+        loop.run_until_complete(asyncio.sleep(0))
+        assert calls["n"] == 1          # 둘째 say는 extract_name을 다시 호출하지 않음
+
+        # 첫 extract 완료 → 이제 1건만 송신.
+        gate.set()
+        pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
+        loop.run_until_complete(asyncio.gather(*pending))
+
+        suggests = [m for m in ch.sent if m["type"] == "enroll_suggest"]
+        assert suggests == [{"type": "enroll_suggest", "name": "민지"}]
+        assert sess.pipeline.say_calls == ["저 딸 민지예요", "네 알겠어요"]
+    finally:
+        asyncio.set_event_loop(None)
+        loop.close()

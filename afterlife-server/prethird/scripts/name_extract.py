@@ -1,14 +1,19 @@
 # scripts/ 직하(비패키지) → 절대 import. learn_writeback.py/l2_extract.py의 ollama
-# 호출 관례(타임아웃·예외 삼킴)를 그대로 복제한다.
+# 호출 관례(예외 삼킴)를 참고하되, 타임아웃(asyncio.wait_for)은 이번에 새로 추가한 안전망이다
+# — extract_l2/chat_once 자체엔 타임아웃이 없다(report 참고).
 from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from clone_dialog.llm_client import chat_once
 
 log = logging.getLogger("prethird.name_extract")
 
 _TIMEOUT_S = 5.0
+# api displayName 검증(persons 테이블)과 정합 — 이름 길이 상한.
+_MAX_NAME_LEN = 30
+_CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
 # JSON-only 이름 추출 프롬프트. 화자 "본인" 이름만 — 상대방/제3자 이름은 대상이 아니다.
 _SYSTEM = (
@@ -17,6 +22,13 @@ _SYSTEM = (
     'If the speaker does not state their own name, or it is unclear, output {"name": ""}. '
     "No prose, no extra keys."
 )
+
+
+def _clean_name(name: str) -> str:
+    """제어문자(개행 등) 제거 + 앞뒤 공백 정리 + 30자 상한 절단.
+    api displayName 검증(persons 테이블)과 정합시켜, RN 카드 프리필용으로 안전하게 만든다."""
+    name = _CONTROL_CHARS.sub("", name).strip()
+    return name[:_MAX_NAME_LEN]
 
 
 def _safe_name(content: str) -> str:
@@ -35,7 +47,9 @@ def _safe_name(content: str) -> str:
     if not isinstance(data, dict):
         return ""
     name = data.get("name")
-    return name.strip() if isinstance(name, str) else ""
+    if not isinstance(name, str):
+        return ""
+    return _clean_name(name)
 
 
 async def extract_name(text: str) -> str:
