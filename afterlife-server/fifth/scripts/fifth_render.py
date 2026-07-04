@@ -176,6 +176,10 @@ def stream_wav_frames(
     on_frame: Callable[[np.ndarray], None],
     blink_enabled: bool = True,
     phase_token: PhaseToken | None = None,
+    idle_motion_scale: float | None = None,
+    idle_rms_low: float | None = None,
+    idle_rms_high: float | None = None,
+    head_slew_frames: int | None = None,
 ) -> tuple[int, PhaseToken]:
     """wav 한 문장 → 프레임 생성마다 on_frame(rgb) 호출. 반환: (프레임 수, 끝 위상 토큰).
 
@@ -184,6 +188,10 @@ def stream_wav_frames(
 
     phase_token=None(기본) 시 PhaseToken() 기본값을 사용해 기존 stateless 렌더와
     100% 동일 경로를 보장한다(회귀 불변식).
+
+    T-109 lab-tuner: idle_motion_scale/idle_rms_low/idle_rms_high/head_slew_frames
+    인자 우선, None(기본, 미지정)이면 기존 env(FIFTH_IDLE_MOTION_SCALE 등) 사용
+    → 인자 미지정 시 기존 동작 100% 동일(회귀 0).
     """
     from base_source import base_blend_weight
 
@@ -208,16 +216,22 @@ def stream_wav_frames(
     # §6 head-carryover: 슬루 보간 (head_last → 현재 head motion 선형전환)
     # 회귀 안전: head_last=None(첫 청크) 또는 FIFTH_HEAD_SLEW_FRAMES=0 → 보간 없음.
     # phase_token=None(통화 회귀) → tok=PhaseToken(head_last=None) → 보간 없음.
-    _slew_k = int(os.environ.get("FIFTH_HEAD_SLEW_FRAMES", "5"))
+    # T-109: 인자 우선, None(미지정)이면 기존 env 재독 → 회귀 0.
+    _slew_k = head_slew_frames if head_slew_frames is not None \
+        else int(os.environ.get("FIFTH_HEAD_SLEW_FRAMES", "5"))
     if tok.head_last is not None and _slew_k > 0 and nj > 0:
         _apply_head_slew(ml, nj, tok.head_last, _slew_k)
 
     # §7 idle motion suppression: 무음 구간 head(R·t)·표정(exp) 감쇠
     # c_eyes(blink)는 ce 배열 / c_d_lip(입)은 cdl 배열 → 둘 다 ml 밖 → 절대 영향 없음.
     # 회귀 안전: FIFTH_IDLE_MOTION_SCALE=1.0 (기본 off=1.0 아님=0.15 적용 주의) → no-op.
-    _idle_scale = float(os.environ.get("FIFTH_IDLE_MOTION_SCALE", "0.15"))
-    _rms_low    = float(os.environ.get("FIFTH_IDLE_RMS_LOW",    "0.05"))
-    _rms_high   = float(os.environ.get("FIFTH_IDLE_RMS_HIGH",   "0.3"))
+    # T-109: 인자 우선, None(미지정)이면 기존 env 재독 → 회귀 0.
+    _idle_scale = idle_motion_scale if idle_motion_scale is not None \
+        else float(os.environ.get("FIFTH_IDLE_MOTION_SCALE", "0.15"))
+    _rms_low = idle_rms_low if idle_rms_low is not None \
+        else float(os.environ.get("FIFTH_IDLE_RMS_LOW", "0.05"))
+    _rms_high = idle_rms_high if idle_rms_high is not None \
+        else float(os.environ.get("FIFTH_IDLE_RMS_HIGH", "0.3"))
     _apply_idle_suppression(ml, env, nj, _idle_scale, _rms_low, _rms_high)
 
     # §6+§7 후 실제 시각 상태를 head_last 로 직렬화 (다음 청크 slew 출발점).
