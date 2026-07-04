@@ -3,7 +3,8 @@ import os
 import aiohttp
 
 from clone_dialog import chat_stream          # prethird
-from knobs import DialogueKnobs, TtsKnobs
+from fifth_inproc import FifthInproc          # prethird
+from knobs import DialogueKnobs, TtsKnobs, FifthKnobs
 
 def build_chat_fn(registry):
     """registry에서 model/temperature를 매 호출 읽어 chat_stream에 위임."""
@@ -40,3 +41,19 @@ def build_say_fn(registry):
                 resp.raise_for_status()
                 return await resp.read()
     return say_fn
+
+class KnobsFifthInproc(FifthInproc):
+    """공유 프로덕션 fifth 렌더(:8810)에 per-request 파라미터를 /render body로 주입.
+    fifth_render.py가 매 호출 env를 읽으므로, body에 값이 있으면 그 값(Task 8에서 스레딩),
+    없으면 env 기본 → 회귀 0. render_url 기본 = 라이브 :8810(FIFTH_RENDER_URL)."""
+
+    def __init__(self, video_path, registry, clone_id=None, render_url=None):
+        super().__init__(video_path, clone_id=clone_id, render_url=render_url)
+        self._registry = registry
+
+    def _build_body(self, wav_path: str, video_path: str) -> dict:
+        body = super()._build_body(wav_path, video_path)
+        fk = self._registry.get().fifth
+        for name in FifthKnobs.PER_REQUEST:   # blink·jpeg_quality·idle_motion_scale·rms·head_slew
+            body[name] = getattr(fk, name)
+        return body
