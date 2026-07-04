@@ -54,3 +54,17 @@ def test_build_say_fn_engine_url_and_speed(monkeypatch):
     assert posts["url"] == "http://127.0.0.1:8201/tts/kr"
     assert posts["json"]["speed"] == 1.3
     assert posts["json"]["se_path"] == "/se/path"
+
+def test_knobs_fifth_build_body_injects_per_request():
+    from harness import KnobsFifthInproc
+    r = KnobsRegistry()
+    r.update({"fifth": {"blink": False, "jpeg_quality": 70, "idle_motion_scale": 0.3}})
+    f = KnobsFifthInproc("/vid.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg")
+    assert body["wav_path"] == "/w.wav"
+    assert body["video_path"] == "/v.jpg"
+    assert body["blink"] is False
+    assert body["jpeg_quality"] == 70
+    assert body["idle_motion_scale"] == 0.3
+    assert body["idle_rms_low"] == 0.05        # 기본 유지
+    assert body["head_slew_frames"] == 5       # 기본 유지
