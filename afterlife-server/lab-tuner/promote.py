@@ -36,7 +36,10 @@ KNOB_TO_LIVE = {
     "fifth.head_slew_frames": {"env": "FIFTH_HEAD_SLEW_FRAMES", "file": _FIFTH_ENV_NOTE, "container": True},
     "fifth.cfg_scale": {"env": "FIFTH_CFG_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
     "fifth.driving_multiplier": {"env": "FIFTH_DRIVING_MULTIPLIER", "file": _FIFTH_ENV_NOTE, "container": True},
-    "fifth.render_mode": {"env": "FIFTH_RENDER_MODE", "file": _FIFTH_ENV_NOTE, "container": True},
+    # T-113 Task3: prethird pipeline._resolve_render_mode() 가 host env
+    # PRETHIRD_RENDER_MODE(partial|batch)를 직접 읽도록 배포됨 → 더 이상
+    # fifth 컨테이너 재기동이 필요 없는 host-baked 노브로 재분류.
+    "fifth.render_mode": {"env": "PRETHIRD_RENDER_MODE", "file": _PRETHIRD_DROPIN},
 }
 
 
