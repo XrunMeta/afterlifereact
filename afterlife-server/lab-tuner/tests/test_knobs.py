@@ -44,3 +44,16 @@ def test_from_env_derives_qwen_engine_from_tts_url(monkeypatch):
     assert RunKnobs.from_env().tts.engine == "openvoice"
     monkeypatch.delenv("PRETHIRD_TTS_URL", raising=False)
     assert RunKnobs.from_env().tts.engine == "openvoice"
+
+def test_tts_knobs_gen_params_roundtrip():
+    from knobs import RunKnobs
+    r = RunKnobs.from_dict({"tts": {"engine": "qwen", "temperature": 0.7, "top_k": 40}})
+    assert r.tts.temperature == 0.7
+    assert r.tts.top_k == 40
+    assert r.tts.top_p is None            # 미지정 필드는 None 유지
+    assert r.to_dict()["tts"]["temperature"] == 0.7
+
+def test_tts_knobs_gen_params_default_none():
+    from knobs import TtsKnobs
+    t = TtsKnobs()
+    assert t.temperature is None and t.top_p is None and t.max_new_tokens is None
