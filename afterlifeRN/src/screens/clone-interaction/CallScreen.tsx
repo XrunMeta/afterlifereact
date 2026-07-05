@@ -1,5 +1,5 @@
 import { v_889fad } from "../../stores/dialogStore";
-import v_a3453e, { v_5ab095, v_c4deb2, v_e662ae, v_de06a3 } from "bapkr";
+import v_a3453e, { v_5ab095, v_c4deb2, v_e662ae, v_de06a3, v_df9f57 } from "bapkr";
 import {
   v_3094a2,
   v_19b633,
@@ -40,7 +40,8 @@ import { v_e9685b } from "../../face/useFaceIdentify";
 import { v_3fc8fd, v_9e3bb7 } from "../../face/useFaceEnroll";
 import { v_19be88 } from "../../face/faceEnrollGuard";
 import type { v_b26216 } from "../../face/speakerIdReducer";
-import { v_4e7b87, v_31967f, v_865d38, v_a94a1b } from "../../api/persons";
+import { v_4e7b87, v_31967f, v_865d38, v_a94a1b, type v_5c12dc } from "../../api/persons";
+import { v_55dbc4, v_8682a9, type v_8a6b56 } from "../../config/faceDiag";
 import v_c0caa9 from "../../components/common/TermsModal";
 import { v_b519ed } from "../../components/call/FaceEnrollCard";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
@@ -149,6 +150,10 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const [v_a6086d, v_603e38] = v_5ab095(false);
 
+  const [v_488209, v_5b715f] = v_5ab095<v_8a6b56 | null>(null);
+  const [v_e7824f, v_0981e9] = v_5ab095<number | null>(null);
+  const [v_fded81, v_1b22c3] = v_5ab095<v_5c12dc[]>([]);
+
   v_c4deb2(() => {
 
     void v_628d75.requestCameraPermission();
@@ -160,6 +165,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         if (v_2008a4) return;
         const v_5f7d15 = v_4622b9.some((v_e2a85c) => v_e2a85c.consentState === "granted");
         v_071915(v_5f7d15);
+        v_1b22c3(v_4622b9); 
         console.log(`[Call][face] listPersons ← granted=${v_5f7d15} (total=${v_4622b9.length})`);
       })
       .catch((v_49263d) => {
@@ -218,10 +224,17 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 
   const v_b1a2e8 = v_e662ae<number[][] | null>(null);
 
+  const v_bea660 = v_df9f57(
+    () => (v_55dbc4 ? { accessToken: v_2ca7e0 ?? "", groundTruthPersonId: v_e7824f } : null),
+    [v_2ca7e0, v_e7824f],
+  );
+
   const { onEmbedding: v_88bed2, getBuffer: v_c4d644 } = v_e9685b({
     enabled: v_58656e && v_6cc918 === "live",
     accessToken: v_2ca7e0 ?? "",
     onEvent: v_e881de,
+    onDiag: v_5b715f,
+    calibrate: v_bea660,
   });
 
   const v_3033e0 = v_de06a3(
@@ -735,10 +748,35 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       )}
 
       {__DEV__ ? (
-        <Text style={{ position: 'absolute', top: 8, right: 8, zIndex: 10,
-          color: '#0f0', fontSize: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 2 }}>
-          route:{v_c6d1f4}
-        </Text>
+        <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
+          backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
+          <Text style={{ color: "#0f0", fontSize: 10 }}>route:{v_c6d1f4}</Text>
+          {v_55dbc4 ? (
+            <>
+              <Text style={{ color: "#0f0", fontSize: 10 }}>
+                {v_488209 ? v_8682a9(v_488209) : "face -"}
+              </Text>
+              {}
+              <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                <Text
+                  onPress={() => v_0981e9(null)}
+                  style={{ color: v_e7824f == null ? "#ff0" : "#0f0", fontSize: 10, marginRight: 6 }}
+                >
+                  unknown
+                </Text>
+                {v_fded81.map((v_e2a85c) => (
+                  <Text
+                    key={v_e2a85c.id}
+                    onPress={() => v_0981e9(v_e2a85c.id)}
+                    style={{ color: v_e7824f === v_e2a85c.id ? "#ff0" : "#0f0", fontSize: 10, marginRight: 6 }}
+                  >
+                    #{v_e2a85c.id}
+                  </Text>
+                ))}
+              </View>
+            </>
+          ) : null}
+        </View>
       ) : null}
 
       {}

@@ -1,6 +1,7 @@
 
 
 import type { v_273a0c } from './env';
+import { v_c9411d } from './piiFilter';
 
 export async function v_e86502(env: v_273a0c, v_6e0fd3): Promise<string | null> {
   const v_e2a6a6 = await v_c9c489.KV_CTX.get(`ctx:${v_6e0fd3}`);
@@ -101,6 +102,8 @@ export async function v_0ac5b7(
   v_631e71,
   v_04e790,
 ): Promise<{ rev: number; skipped: boolean }> {
+
+  v_631e71 = v_c9411d(v_631e71);
   const v_e1ccab =
     v_631e71.preference_personal != null &&
     Object.keys(v_631e71.preference_personal).length > 0;
@@ -147,16 +150,32 @@ export async function v_0ac5b7(
     : v_d5158a;
 
   const v_5c2f9f = new Date().toISOString();
+
+  const v_1e1522 = 20;
+  const v_13a920 = (v_275ccd.preference_personal as Record<string, unknown>) ?? {};
+  const v_633416 = Array.isArray(v_275ccd.preference_history)
+    ? (v_275ccd.preference_history as Array<Record<string, unknown>>)
+    : [];
+  let v_1c6478 = v_633416;
+  const v_dce4e7 = v_c9c489.L2_PREF_HISTORY_ENABLED === "1";
+  if (v_dce4e7 && v_e1ccab) {
+    const v_4e2f8b = [];
+    for (const [v_0eb677, v_81e2ef] of Object.entries(v_631e71.preference_personal!)) {
+      if (Object.hasOwn(v_13a920, v_0eb677) && v_13a920[v_0eb677] !== v_81e2ef) {
+        v_4e2f8b.push({ key: v_0eb677, from: v_13a920[v_0eb677], to: v_81e2ef, at: v_5c2f9f });
+      }
+    }
+    if (v_4e2f8b.length) v_1c6478 = [...v_633416, ...v_4e2f8b].slice(-v_1e1522);
+  }
+
   const v_a448ad = {
     address: v_275ccd.address ?? null,
     memories_personal: v_3bfd8d,
     relation: v_093c06 ? v_631e71.relation!.trim() : v_275ccd.relation ?? null,
     preference_personal: v_e1ccab
-      ? {
-          ...((v_275ccd.preference_personal as Record<string, unknown>) ?? {}),
-          ...v_631e71.preference_personal,
-        }
-      : v_275ccd.preference_personal ?? {},
+      ? { ...v_13a920, ...v_631e71.preference_personal }
+      : v_13a920,
+    ...(v_1c6478.length ? { preference_history: v_1c6478 } : {}),
 
     ...(v_275ccd.memory_summary !== undefined ? { memory_summary: v_275ccd.memory_summary } : {}),
     ...(v_275ccd.relationship !== undefined ? { relationship: v_275ccd.relationship } : {}),
@@ -166,11 +185,17 @@ export async function v_0ac5b7(
   };
 
   let v_4f3411 = JSON.stringify(v_a448ad);
-  while (
-    v_4f3411.length > v_a680d4 &&
-    (v_a448ad.memories_personal as string[]).length > 0
-  ) {
-    (v_a448ad.memories_personal as string[]).shift(); 
+  while (v_4f3411.length > v_a680d4) {
+    if ((v_a448ad.memories_personal as string[]).length > 0) {
+      (v_a448ad.memories_personal as string[]).shift(); 
+    } else if (
+      Array.isArray(v_a448ad.preference_history) &&
+      (v_a448ad.preference_history as unknown[]).length > 0
+    ) {
+      (v_a448ad.preference_history as unknown[]).shift(); 
+    } else {
+      break;
+    }
     v_4f3411 = JSON.stringify(v_a448ad);
   }
   if (v_4f3411.length > v_a680d4) {
@@ -209,6 +234,8 @@ export async function v_600422(
   v_631e71,
   v_04e790,
 ): Promise<{ rev: number; skipped: boolean }> {
+
+  v_631e71 = v_c9411d(v_631e71);
   const v_e1ccab =
     v_631e71.preference_personal != null &&
     Object.keys(v_631e71.preference_personal).length > 0;
@@ -285,4 +312,32 @@ export async function v_600422(
   }
   await v_862be2(v_c9c489, v_6e0fd3, v_ca1ec5, v_4f3411, true);
   return { rev: v_7d3ae6 + 1, skipped: false };
+}
+
+export async function v_344b9e(
+  env: v_273a0c, v_43e90c,
+): Promise<{ ontRows: number; personRows: number; kvKeys: number }> {
+
+  const v_c2273d = (
+    await v_c9c489.DB.prepare("SELECT clone_id FROM clone_ont WHERE user_id = ?")
+      .bind(v_43e90c).all<{ clone_id: number }>()
+  ).results;
+  let v_20342d = 0;
+  for (const { clone_id: v_fccde8 } of v_c2273d) {
+    await v_c9c489.KV_ONT.delete(`l2:${v_fccde8}:${v_43e90c}`);
+    v_20342d += 1;
+  }
+
+  const v_860a7c = await v_c9c489.DB.prepare("DELETE FROM clone_ont WHERE user_id = ?")
+    .bind(v_43e90c).run();
+
+  const v_f6ae72 = await v_c9c489.DB.prepare(
+    "DELETE FROM clone_ont_person WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
+  ).bind(v_43e90c).run();
+
+  return {
+    ontRows: v_860a7c.meta?.changes ?? 0,
+    personRows: v_f6ae72.meta?.changes ?? 0,
+    kvKeys: v_20342d,
+  };
 }

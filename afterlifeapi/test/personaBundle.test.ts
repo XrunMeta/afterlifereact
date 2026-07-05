@@ -70,6 +70,20 @@ v_469bf2("loadUserL2 — 학습 키 소비(E 핫픽스)", () => {
     await v_81e28f(7104, 6104, { memories_personal: [], preference_personal: {}, address: "서울" });
     v_4d37e3(await v_20b0e8(v_7ac368.DB, 7104, 6104)).toBeNull();
   });
+
+  v_23805a("preference_history를 소비 화이트리스트로 통과", async () => {
+    const v_6e0fd3 = 900201, v_43e90c = 7;
+    await v_c9c489.DB.prepare("INSERT INTO clone_ont (clone_id, user_id, data) VALUES (?,?,?)")
+      .bind(v_6e0fd3, v_43e90c, JSON.stringify({
+        preference_personal: { 음료: "사이다" },
+        preference_history: [{ key: "음료", from: "콜라", to: "사이다", at: "2026-07-05T00:00:00Z" }],
+        _meta: { layer: "L2", rev: 2 },
+      })).run();
+    const v_1af19b = await v_20b0e8(v_c9c489.DB, v_6e0fd3, v_43e90c);
+    v_4d37e3(v_1af19b?.preference_history).toEqual([
+      { key: "음료", from: "콜라", to: "사이다", at: "2026-07-05T00:00:00Z" },
+    ]);
+  });
 });
 
 v_469bf2("resolvePersona — 학습 키 보존(E 핫픽스)", () => {

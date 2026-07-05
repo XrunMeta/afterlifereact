@@ -1,6 +1,7 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from clone_dialog import bundle_to_messages  # noqa: E402
+from clone_dialog.persona_prompt import _format_pref_history  # noqa: E402
 
 
 def test_none_returns_empty():
@@ -113,3 +114,26 @@ def test_빈_preference_personal_은_렌더_생략():
     """빈 dict/list 학습 키는 프롬프트에 실리지 않아야 한다 (이중 방어)."""
     msgs = bundle_to_messages(_bundle({"preference_personal": {}, "memories_personal": []}))
     assert msgs == []
+
+
+def test_preference_history_renders_arrow():
+    assert _format_pref_history([
+        {"key": "음료", "from": "콜라", "to": "사이다", "at": "2026-07-05T00:00:00Z"},
+        {"key": "음식", "from": "김치", "to": "라면", "at": "2026-07-05T01:00:00Z"},
+    ]) == "음료: 콜라→사이다; 음식: 김치→라면"
+
+
+def test_bundle_includes_preference_history_line():
+    msgs = bundle_to_messages(_bundle({
+        "displayName": "정진스님",
+        "preference_history": [{"key": "음료", "from": "콜라", "to": "사이다", "at": "x"}],
+    }))
+    assert len(msgs) == 1
+    assert "- 취향 변화: 음료: 콜라→사이다" in msgs[0]["content"]
+
+
+def test_empty_preference_history_no_line():
+    msgs = bundle_to_messages(_bundle({
+        "displayName": "정진스님", "preference_history": [],
+    }))
+    assert "취향 변화" not in msgs[0]["content"]

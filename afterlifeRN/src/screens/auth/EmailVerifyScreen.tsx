@@ -20,6 +20,7 @@ import v_92f073 from "../../components/auth/OtpVerifyView";
 import v_258c1c from "../../components/common/PageHeader";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
+import { v_7f847d } from "../../api/consent";
 
 type Props = v_432191<v_384e19, "EmailVerify">;
 
@@ -81,6 +82,14 @@ export default function v_e1aa8b({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         pushToken: v_24baff.pushToken,
         platform: v_24baff.platform,
       });
+
+      if (v_24baff.agreeCallLearning) {
+        try {
+          await v_7f847d(v_8f00b9.accessToken, "granted", { channel: "signup" });
+        } catch (v_49263d) {
+          console.warn("[AUTH/signup] saveCallLearningConsent failed:", v_49263d);
+        }
+      }
 
       console.log("[AUTH/signup] success, accessExpiresIn:", v_8f00b9.accessExpiresIn);
       v_c65f5d.replace("SignupComplete", {

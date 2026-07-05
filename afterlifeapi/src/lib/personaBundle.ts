@@ -41,6 +41,7 @@ export function v_445ba7(
 const v_f4c771 = [
   "memory_summary", "relationship", "context", "recent_topics",   
   "relation", "preference_personal", "memories_personal",          
+  "preference_history",                                            
 ] as const;
 
 export async function v_20b0e8(

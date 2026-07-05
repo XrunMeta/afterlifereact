@@ -122,3 +122,42 @@ export async function v_a94a1b(
     { method: 'DELETE' },
   );
 }
+
+export interface CalibrationSample {
+  id: number;
+  ts: number;
+  groundTruthPersonId: string | null;
+  matchedId: string | null;
+  bestScore: number;
+  scores: { personId: string; score: number }[];
+  threshold: number;
+}
+
+export async function v_383262(
+  v_2ca7e0,
+  v_f9a45c,
+  v_b0015d,
+): Promise<{ id: number; matchedId: string | null; bestScore: number; threshold: number; scoreCount: number }> {
+  return v_04b58a<{ id: number; matchedId: string | null; bestScore: number; threshold: number; scoreCount: number }>(
+    '/oth-path',
+    v_2ca7e0,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        vector: v_f9a45c,
+        groundTruthPersonId: v_b0015d != null ? String(v_b0015d) : null,
+      }),
+    },
+  );
+}
+
+export async function v_05f7f4(
+  v_2ca7e0,
+  v_8738be = 0,
+): Promise<{ samples: CalibrationSample[]; nextSince: number }> {
+  return v_04b58a<{ samples: CalibrationSample[]; nextSince: number }>(
+    `/oth-path?since=${v_8738be}`,
+    v_2ca7e0,
+    { method: 'GET' },
+  );
+}

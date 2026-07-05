@@ -22,6 +22,7 @@ import v_57037e from "../../components/common/CountryRegionPicker";
 import v_c0caa9, { type v_3ac6ea } from "../../components/common/TermsModal";
 import { v_1bfbd0, v_9b1a04, v_8b0c90 } from "../../components/constants";
 import { v_97ea8d, v_35200c, v_84a859 } from "../../api/auth";
+import { v_7f847d } from "../../api/consent";
 import { v_704bef } from "../../lib/pushNotifications";
 import { v_ea1c99 } from "../../lib/deviceId";
 import type { v_ee3714 } from "ixigazcpvfldbecwtbvavtbi";
@@ -75,6 +76,8 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
   const [v_51b53b, v_c8f346] = v_5ab095(false);
   const [v_09b7fa, v_1d4807] = v_5ab095(false);
   const [v_8c98c4, v_e378a4] = v_5ab095(false);
+
+  const [v_7f128f, v_06ec09] = v_5ab095(false);
 
   const v_5c764d = v_51b53b && v_09b7fa;
   const v_33f2ba = v_5c764d && v_8c98c4;
@@ -207,6 +210,14 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         console.log("[AUTH/google.signup] payload:", JSON.stringify(v_931bf0, null, 2));
         const v_8f00b9 = await v_35200c(v_931bf0);
 
+        if (v_7f128f) {
+          try {
+            await v_7f847d(v_8f00b9.accessToken, "granted", { channel: "signup" });
+          } catch (v_49263d) {
+            console.warn("[AUTH/signup] saveCallLearningConsent (google) failed:", v_49263d);
+          }
+        }
+
         v_c65f5d.replace("SignupComplete", {
           accessToken: v_8f00b9.accessToken,
           persist: true,
@@ -226,6 +237,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         mobileCode: v_6c3a47,
         region: v_222917,
         marketingConsent: v_8c98c4,
+        agreeCallLearning: v_7f128f,
         pushToken: v_1a29d0 ?? undefined,
         platform: v_ea920b ?? undefined,
         deviceId: v_929b58 ?? undefined,
@@ -469,6 +481,27 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
                 {v_8d0e18 ? ` (${v_8d41d7("auth.signup.verifying")})` : ""}
               </Text>
             </TouchableOpacity>
+
+            {}
+            <View style={v_d81136.checkRow}>
+              <TouchableOpacity
+                onPress={() => v_06ec09(!v_7f128f)}
+                hitSlop={8}
+              >
+                <View style={[v_d81136.checkbox, v_7f128f && v_d81136.checkboxChecked]}>
+                  {v_7f128f && <Feather name="check" size={14} color={v_1bfbd0.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={v_d81136.termTextWrap}
+                onPress={() => v_fe0d62(5)}
+                activeOpacity={0.7}
+              >
+                <Text style={[v_d81136.termText, v_d81136.termLink]}>
+                  {v_8d41d7("auth.signup.callLearningConsent")}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {}
@@ -503,6 +536,7 @@ export default function v_f40fc5({ navigation: v_c65f5d, route: v_c7daf6 }: Prop
         onAgree={() => {
           if (v_d39271 === 1) v_c8f346(true);
           else if (v_d39271 === 3) v_1d4807(true);
+          else if (v_d39271 === 5) v_06ec09(true);
           v_fe0d62(null);
         }}
       />

@@ -43,6 +43,7 @@ _KNOWN_PERSONA_LABELS: list[tuple[str, str]] = [
     ("recent_topics", "최근 화제"),
     ("preference_personal", "사용자 취향"),   # 학습 키(E)
     ("memories_personal", "기억"),            # 학습 키(E)
+    ("preference_history", "취향 변화"),       # 선호 변경이력 (P1)
 ]
 
 
@@ -53,6 +54,17 @@ def _format_val(val) -> str:
     if isinstance(val, (list, tuple)):
         return ", ".join(str(x) for x in val if str(x).strip())
     return str(val)
+
+
+def _format_pref_history(val) -> str:
+    """[{key,from,to,at}] → '음료: 콜라→사이다; 음식: 김치→라면'. dict repr 노출 방지."""
+    if not isinstance(val, (list, tuple)):
+        return ""
+    parts = []
+    for x in val:
+        if isinstance(x, dict) and str(x.get("key", "")).strip():
+            parts.append(f"{x['key']}: {x.get('from', '?')}→{x.get('to', '?')}")
+    return "; ".join(parts)
 
 
 def bundle_to_messages(bundle: dict | None) -> list[dict]:
@@ -85,7 +97,10 @@ def bundle_to_messages(bundle: dict | None) -> list[dict]:
     persona_lines: list[str] = []
     for key, label in _KNOWN_PERSONA_LABELS:
         val = persona.get(key)
-        text = _format_val(val) if val is not None else ""
+        if key == "preference_history":
+            text = _format_pref_history(val) if val is not None else ""
+        else:
+            text = _format_val(val) if val is not None else ""
         if text.strip():
             persona_lines.append(f"- {label}: {text}")
 
