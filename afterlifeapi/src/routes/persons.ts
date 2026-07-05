@@ -152,7 +152,10 @@ persons.post("/calibrate", requireAuth, async (c) => {
     namespace: String(userId),
     returnMetadata: true,
   });
-  const scores = matches.map((m) => ({ personId: String(m.metadata?.personId ?? m.id), score: m.score }));
+
+  const scores = matches
+    .filter((m) => m.metadata?.personId != null)
+    .map((m) => ({ personId: String(m.metadata!.personId), score: m.score }));
   const best = scores.reduce<{ personId: string; score: number } | null>(
     (a, b) => (a && a.score >= b.score ? a : b),
     null

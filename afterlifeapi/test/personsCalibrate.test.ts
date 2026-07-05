@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
 import { issueToken } from "../src/lib/jwt";
 import { isFaceCalibrateEnabled } from "../src/routes/persons";
+import { getFaceIndex } from "../src/lib/faceVectors";
 
 const db = () => env.DB as unknown as D1Database;
 
@@ -39,6 +40,9 @@ describe("isFaceCalibrateEnabled (단위) — off 불변식", () => {
   });
   it("'true'·다른 값 → false(엄격히 '1'만 on)", () => {
     expect(isFaceCalibrateEnabled({ FACE_CALIBRATE_ENABLED: "true" })).toBe(false);
+  });
+  it("'' (빈 문자열) → false", () => {
+    expect(isFaceCalibrateEnabled({ FACE_CALIBRATE_ENABLED: "" })).toBe(false);
   });
   it("'1' → true", () => {
     expect(isFaceCalibrateEnabled({ FACE_CALIBRATE_ENABLED: "1" })).toBe(true);
@@ -149,5 +153,47 @@ describe("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
       body: JSON.stringify({ vector: new Array(512).fill(0.1) }),
     });
     expect(res.status).toBe(401);
+  });
+
+  it("metadata 없는 매치는 scores에서 제외된다(personId 둔갑 방지)", async () => {
+    const userId = await seedUser("calibrate-no-metadata@test.local");
+    const tok = await issueAccessToken(userId);
+    const ns = String(userId);
+    const vector = new Array(512).fill(0).map((_, i) => (i === 0 ? 1 : 0));
+
+    const idx = getFaceIndex(env as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    await idx.insert([
+      { id: "orphan-embedding-no-metadata", values: vector, namespace: ns }, 
+      { id: "with-metadata", values: vector, namespace: ns, metadata: { personId: "777" } },
+    ]);
+
+    const res = await post(tok, { vector });
+    expect(res.status).toBe(200);
+    const j = await res.json<{ id: number; matchedId: string | null; scoreCount: number }>();
+
+    expect(j.scoreCount).toBe(1);
+
+    const row = await db()
+      .prepare("SELECT scores_json FROM face_calibrate_samples WHERE id = ?")
+      .bind(j.id)
+      .first<{ scores_json: string }>();
+    const scores = JSON.parse(String(row!.scores_json)) as { personId: string; score: number }[];
+    expect(scores.length).toBe(1);
+    expect(scores[0].personId).toBe("777");
+    expect(scores.some((s) => s.personId === "orphan-embedding-no-metadata")).toBe(false);
+  });
+});
+
+describe("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(off→404 회귀 방지)", () => {
+  it("[vars]·[env.preview.vars]·[env.production.vars] 전부 \"0\"이어야 한다", async () => {
+
+    const { default: toml } = await import("../wrangler.toml?raw");
+
+    const matches = [...(toml as string).matchAll(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/g)].map((m) => m[1]);
+
+    expect(matches.length).toBe(3);
+    for (const v of matches) {
+      expect(v).toBe("0");
+    }
   });
 });
