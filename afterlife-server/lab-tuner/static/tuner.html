@@ -1,15 +1,16 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><title>lab-tuner</title>
 <style>
- :root{--bg:#1A0F0A;--surface:#2C1A10;--surface-2:#3D2517;--gold:#CA8A04;
-   --gold-border:#DAA520;--border:#5C3D2E;--red:#991B1B;--purple:#581C87;
-   --green:#22C55E;--text:#F5E6D3;--text-dim:#BFA98A;}
+ /* questui 양피지 라이트 세트 — 크림 배경 + 진한 골드/브라운 액센트 */
+ :root{--bg:#F4ECD8;--surface:#FBF6E9;--surface-2:#EFE3C9;--gold:#A16207;
+   --gold-border:#CA8A04;--border:#D8C4A0;--red:#B91C1C;--purple:#6B21A8;
+   --green:#15803D;--text:#3B2A1A;--text-dim:#7A6A52;}
  body{margin:0;height:100vh;display:flex;flex-direction:column;background:var(--bg);
    color:var(--text);font-family:ui-monospace,"Fira Code",monospace}
  h3,h4,legend,.panel-title{font-family:"Cinzel",Georgia,serif;color:var(--gold);
    letter-spacing:.03em}
  #live-banner{display:none;position:fixed;top:0;left:0;right:0;background:var(--red);
-   color:var(--text);text-align:center;padding:6px;font-weight:bold;z-index:10}
+   color:#FFF5E6;text-align:center;padding:6px;font-weight:bold;z-index:10}
  #login-bar{display:flex;gap:8px;align-items:center;padding:10px 12px;
    background:var(--surface);border-bottom:1px solid var(--border);box-sizing:border-box}
  #main-row{display:flex;flex:1;min-height:0;flex-wrap:wrap}
@@ -20,7 +21,7 @@
    border:1px solid var(--border);border-radius:4px;padding:8px 12px}
  input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px #CA8A0440}
  button{cursor:pointer}
- button.primary{background:var(--gold);color:var(--bg);border-color:var(--gold-border)}
+ button.primary{background:var(--gold);color:#FFF5E6;border-color:var(--gold-border)}
  button:disabled{opacity:.35;cursor:not-allowed}
  /* 채널 카드 고정 2열 그리드(좁은 화면은 미디어쿼리로 1열) — 공간 밀도↑ */
  #knob-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
@@ -47,7 +48,7 @@
  .chip{font-family:"Cinzel",serif;font-size:10px;letter-spacing:.05em;text-transform:uppercase;
    border-radius:2px;padding:2px 8px}
  .chip-ok{background:#22C55E20;color:var(--green)}
- .chip-drift{background:#991B1B20;color:#F87171}
+ .chip-drift{background:#B91C1C20;color:var(--red)}
  .chip-unknown{background:var(--surface-2);color:var(--text-dim)}
  @media(max-width:900px){
    #main-row{flex-wrap:wrap}
