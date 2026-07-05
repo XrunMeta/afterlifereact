@@ -382,6 +382,65 @@ internal.get("/dev/clones/:id/ont-raw", async (c) => {
   return c.json({ data, l1_profile: l1, l2_consumed: l2Consumed });
 });
 
+const devOntMergeSchema = z.object({
+  userId: z.number().int().positive(),
+  extracted: z.object({
+    preference_personal: z
+      .record(z.string().max(100), z.union([z.string().max(200), z.number(), z.boolean()]))
+      .optional(),
+    relation: z.string().max(200).nullable().optional(),
+    memories_personal: z.array(z.string().max(500)).max(20).optional(),
+  }),
+  source: z.enum(["call", "chat"]),
+});
+
+internal.post("/dev/clones/:id/ont-merge", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const parsed = devOntMergeSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: "bad_body", issues: parsed.error.issues }, 400);
+  }
+  const { userId, extracted, source } = parsed.data;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  const userExists = await c.env.DB.prepare("SELECT 1 FROM users WHERE id = ?")
+    .bind(userId).first();
+  if (!userExists) return c.json({ error: "user_not_found" }, 404);
+
+  let result: { rev: number; skipped: boolean };
+  try {
+    result = await updateOntFromExtraction(
+      c.env, cloneId, userId, extracted as L2Extraction, source,
+    );
+  } catch (err) {
+    return c.json({ error: "merge_failed", message: (err as Error).message }, 400);
+  }
+
+  const raw = await readOnt(c.env, cloneId, userId);
+  let data: unknown = null;
+  if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+
+  try {
+    await logActivity(c, {
+      userId,
+      action: "dev.ont_merge.write",
+      details: { cloneId, rev: result.rev },
+    });
+  } catch {  }
+
+  return c.json({ rev: result.rev, skipped: result.skipped, data });
+});
+
 async function personOwnsCloneSession(db: D1Database, personId: number, cloneId: number): Promise<boolean> {
   const row = await db.prepare(
     `SELECT 1 FROM persons p
