@@ -129,6 +129,50 @@ persons.post("/match", requireAuth, async (c) => {
   return c.json({ matches, best, threshold });
 });
 
+export function isFaceCalibrateEnabled(env: { FACE_CALIBRATE_ENABLED?: string }): boolean {
+  return env.FACE_CALIBRATE_ENABLED === "1";
+}
+
+persons.post("/calibrate", requireAuth, async (c) => {
+  if (!isFaceCalibrateEnabled(c.env)) return c.notFound();
+  const userId = c.get("userId")!;
+  const body = await c.req
+    .json<{ vector?: unknown; groundTruthPersonId?: string | null }>()
+    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null });
+  const v = body.vector;
+  if (!Array.isArray(v) || v.length !== 512 || !v.every((n) => typeof n === "number" && Number.isFinite(n))) {
+    return c.json({ error: "invalid vector" }, 400); 
+  }
+  const cfg = await c.env.DB.prepare("SELECT value FROM app_config WHERE key='face.match_threshold'").first<{
+    value: string;
+  }>();
+  const threshold = cfg && Number.isFinite(Number(cfg.value)) ? Number(cfg.value) : DEFAULT_FACE_THRESHOLD;
+  const { matches } = await getFaceIndex(c.env).query(v as number[], {
+    topK: 100,
+    namespace: String(userId),
+    returnMetadata: true,
+  });
+  const scores = matches.map((m) => ({ personId: String(m.metadata?.personId ?? m.id), score: m.score }));
+  const best = scores.reduce<{ personId: string; score: number } | null>(
+    (a, b) => (a && a.score >= b.score ? a : b),
+    null
+  );
+  const bestScore = best?.score ?? 0;
+  const matchedId = best && best.score >= threshold ? best.personId : null;
+  const gt = typeof body.groundTruthPersonId === "string" ? body.groundTruthPersonId : null;
+  const now = Date.now();
+  const ins = await c.env.DB.prepare(
+    `INSERT INTO face_calibrate_samples
+     (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  )
+
+    .bind(String(userId), gt, matchedId, bestScore, threshold, JSON.stringify(scores), now)
+    .run();
+  const id = Number(ins.meta.last_row_id);
+  return c.json({ id, matchedId, bestScore, threshold, scoreCount: scores.length });
+});
+
 persons.post("/:id/consent", requireAuth, async (c) => {
   const personId = parsePersonId(c);
   const userId = c.get("userId")!;

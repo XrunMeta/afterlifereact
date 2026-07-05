@@ -81,6 +81,7 @@ PAYMENT_CURRENCY      = "18"
 # 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
+FACE_CALIBRATE_ENABLED = "0"   # T-111: 개통 전 제거
 
 # M-6: cron — orphan clones 정기 스윕 (매일 03:00 UTC)
 [triggers]
@@ -154,6 +155,7 @@ PAYMENT_CURRENCY      = "18"
 # 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
+FACE_CALIBRATE_ENABLED = "0"   # T-111: 개통 전 제거
 # preview/dev 전용 결제 우회 PIN — 이 PIN 으로 페르소나 결제 시 xrun 송금 스킵(테스트).
 # production([env.production])에는 절대 추가 금지. preview 한정.
 DEV_PAYMENT_BYPASS_PIN = "424242"
@@ -224,6 +226,7 @@ PAYMENT_CURRENCY      = "18"
 # 통화 엔드포인트 원격 config — D1(app_config) 미조회 시 폴백. 값 = 현재 라이브 rtc.example.invalid.
 CALL_PRETHIRD_BASE = "https://rtc.example.invalid/prethird"
 CALL_ROUTE = "prethird"
+FACE_CALIBRATE_ENABLED = "0"   # T-111: 개통 전 제거
 
 [env.production.triggers]
 crons = ["0 3 * * *"]
