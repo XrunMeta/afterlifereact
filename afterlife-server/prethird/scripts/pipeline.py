@@ -388,9 +388,22 @@ class DialoguePipeline:
         hook_fired = {"v": False}
 
         def _guarded_hook() -> None:
+            """[실통화 디버그] 첫(유일) infer 완료 후·첫 push 직전(_infer_stage
+            on_before_push) 호출 — on_response_ready(filler 정지)뿐 아니라
+            on_first_audio(dc speech_start → RN dialing 화면 해제 신호)도
+            여기서 함께 발동해야 한다. partial 은 "첫 오디오 프레임 push 직후"
+            시점에 on_first_audio 를 부르는데, batch 는 렌더 완료 후 이 시점이
+            그와 동일한 "첫 오디오 송출 시점"이다 — _run_batch 말미에서 부르면
+            렌더 완료를 넘어 다음 턴까지 지연돼 dialing 화면이 고착된다(실통화
+            확인: 목소리는 나오는데 화면 그대로)."""
             hook_fired["v"] = True
             if on_response_ready is not None:
                 on_response_ready()
+            if on_first_audio is not None:
+                try:
+                    on_first_audio()
+                except Exception as exc:  # 콜백 실패가 발화를 막지 않게 흡수
+                    log.warning("on_first_audio callback failed: %s", exc)
 
         async def collect():
             while True:
@@ -444,12 +457,6 @@ class DialoguePipeline:
                     except Exception as exc2:  # 콜백 실패가 실패처리 자체를 막지 않게 흡수
                         log.warning("on_response_ready callback failed: %s", exc2)
                 return
-
-            if on_first_audio is not None:
-                try:
-                    on_first_audio()
-                except Exception as exc:  # 콜백 실패가 발화를 막지 않게 흡수
-                    log.warning("on_first_audio callback failed: %s", exc)
         finally:
             self.vt.signal_end()
             self.at.signal_end()

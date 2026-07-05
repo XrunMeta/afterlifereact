@@ -170,6 +170,95 @@ async def test_batch_empty_stream_no_tts_no_infer(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_batch_on_first_audio_fires_at_first_push_not_after_full_render(monkeypatch):
+    """[실통화 디버그] batch 의 on_first_audio(dc speech_start → RN dialing 화면
+    해제 신호)는 _infer_stage 의 on_before_push 시점(렌더 완료 후·첫 push
+    직전)에 정확히 1회 호출돼야 한다 — _run_batch 말미(전체 완료 후)에서
+    호출되면 dialing 화면이 고착된다(실통화로 확인된 회귀). 순서 검증:
+    on_first_audio 호출이 vt.push_ndarray 보다 먼저 기록돼야 하며
+    (on_before_push는 push 직전이므로 반드시 선행), 중복 호출은 없어야 한다."""
+    monkeypatch.setenv("PRETHIRD_RENDER_MODE", "batch")
+    order: list[str] = []
+
+    async def chat_fn(messages):
+        yield "문장."
+
+    async def say_fn(text, se_path=None):
+        return b"WAVfake"
+
+    def decode_wav_fn(b):
+        return np.zeros(960, dtype=np.int16), 48000, 1
+
+    def infer_fn(wav_path, on_frame, **k):
+        on_frame(np.zeros((4, 4, 3), dtype=np.uint8))
+        return 1
+
+    class VT:
+        def push_ndarray(self, arr):
+            order.append("push")
+
+        def signal_end(self):
+            order.append("signal_end")
+
+    class AT:
+        def push_pcm_int16(self, pcm):
+            pass
+
+        def signal_end(self):
+            pass
+
+    p = DialoguePipeline(
+        video_track=VT(), audio_track=AT(),
+        chat_fn=chat_fn, say_fn=say_fn,
+        decode_wav_fn=decode_wav_fn, infer_fn=infer_fn,
+    )
+    await p.say("x", on_first_audio=lambda: order.append("first_audio"))
+
+    assert order.count("first_audio") == 1, f"on_first_audio 는 정확히 1회여야 함(실제: {order})"
+    assert order.index("first_audio") < order.index("push"), (
+        f"on_first_audio 는 push 직전(on_before_push)에 호출돼야 함(실제 순서: {order})"
+    )
+
+
+@pytest.mark.asyncio
+async def test_batch_empty_text_does_not_fire_on_first_audio(monkeypatch):
+    """빈 응답(empty full_text) 경로는 발화 자체가 없으므로 on_first_audio
+    (dc speech_start)를 호출하면 안 된다 — on_response_ready(filler 정지)만
+    호출(직전 sion 패치 유지 확인)."""
+    monkeypatch.setenv("PRETHIRD_RENDER_MODE", "batch")
+    first_audio_calls = []
+    response_ready_calls = []
+
+    async def chat_fn(messages):
+        return
+        yield  # noqa: unreachable
+
+    async def say_fn(text, se_path=None):
+        return b"WAVfake"
+
+    def decode_wav_fn(b):
+        return np.zeros(960, dtype=np.int16), 48000, 1
+
+    def infer_fn(wav_path, on_frame, **k):
+        return 0
+
+    vt, at = FakeVideoTrack(), FakeAudioTrack()
+    p = DialoguePipeline(
+        video_track=vt, audio_track=at,
+        chat_fn=chat_fn, say_fn=say_fn,
+        decode_wav_fn=decode_wav_fn, infer_fn=infer_fn,
+    )
+    await p.say(
+        "",
+        on_first_audio=lambda: first_audio_calls.append(1),
+        on_response_ready=lambda: response_ready_calls.append(1),
+    )
+
+    assert first_audio_calls == [], "빈 응답은 on_first_audio 를 호출하면 안 됨"
+    assert response_ready_calls == [1], "빈 응답도 on_response_ready(filler 정지)는 호출돼야 함"
+
+
+@pytest.mark.asyncio
 async def test_batch_empty_text_fires_response_ready_hook_and_signals_end(monkeypatch):
     """[sion MAJOR 2] LLM 스트림이 비어 full_text가 빈 문자열이면 `_run_batch`가
     조기 return 하는데, 이 경로도 filler 정지 훅(on_response_ready)을 반드시
