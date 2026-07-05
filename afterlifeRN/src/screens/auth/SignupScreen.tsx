@@ -22,6 +22,7 @@ import CountryRegionPicker from "../../components/common/CountryRegionPicker";
 import TermsModal, { type AgreementType } from "../../components/common/TermsModal";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
+import { saveCallLearningConsent } from "../../api/consent";
 import { requestPushPermission } from "../../lib/pushNotifications";
 import { getOrCreateDeviceId } from "../../lib/deviceId";
 import type { RouteProp } from "@react-navigation/native";
@@ -75,6 +76,8 @@ export default function SignupScreen({ navigation, route }: Props) {
   const [agreeService, setAgreeService] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
+
+  const [agreeCallLearning, setAgreeCallLearning] = useState(false);
 
   const agreeRequired = agreeService && agreePrivacy;
   const agreeAll = agreeRequired && agreeMarketing;
@@ -207,6 +210,14 @@ export default function SignupScreen({ navigation, route }: Props) {
         console.log("[AUTH/google.signup] payload:", JSON.stringify(payload, null, 2));
         const res = await signup(payload);
 
+        if (agreeCallLearning) {
+          try {
+            await saveCallLearningConsent(res.accessToken, "granted", { channel: "signup" });
+          } catch (err) {
+            console.warn("[AUTH/signup] saveCallLearningConsent (google) failed:", err);
+          }
+        }
+
         navigation.replace("SignupComplete", {
           accessToken: res.accessToken,
           persist: true,
@@ -226,6 +237,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         mobileCode,
         region: regionCode,
         marketingConsent: agreeMarketing,
+        agreeCallLearning,
         pushToken: pushToken ?? undefined,
         platform: pushPlatform ?? undefined,
         deviceId: deviceId ?? undefined,
@@ -469,6 +481,27 @@ export default function SignupScreen({ navigation, route }: Props) {
                 {requestingPush ? ` (${t("auth.signup.verifying")})` : ""}
               </Text>
             </TouchableOpacity>
+
+            {}
+            <View style={styles.checkRow}>
+              <TouchableOpacity
+                onPress={() => setAgreeCallLearning(!agreeCallLearning)}
+                hitSlop={8}
+              >
+                <View style={[styles.checkbox, agreeCallLearning && styles.checkboxChecked]}>
+                  {agreeCallLearning && <Feather name="check" size={14} color={COLORS.white} />}
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.termTextWrap}
+                onPress={() => setTermsModalType(5)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.termText, styles.termLink]}>
+                  {t("auth.signup.callLearningConsent")}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {}
@@ -503,6 +536,7 @@ export default function SignupScreen({ navigation, route }: Props) {
         onAgree={() => {
           if (termsModalType === 1) setAgreeService(true);
           else if (termsModalType === 3) setAgreePrivacy(true);
+          else if (termsModalType === 5) setAgreeCallLearning(true);
           setTermsModalType(null);
         }}
       />

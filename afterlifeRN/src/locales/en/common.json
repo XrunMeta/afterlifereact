@@ -443,7 +443,10 @@
       "termsPrivacy": "(Required) I agree to the Privacy Policy",
       "termsBiometricTitle": "Biometric (Face) Consent",
       "termsBiometricFallback": "About the Use of Facial Recognition Data\n\nDuring calls, the front camera detects only your face position for speaker identification. No face data (images or biometrics) is stored. Detection stops immediately if you withdraw consent.",
+      "termsCallLearningTitle": "Call Learning Consent",
+      "termsCallLearningFallback": "About Call Learning\n\nIf you agree, your clone will learn from the conversations in your calls to provide more natural and personalized conversations. This consent is optional and can be withdrawn at any time in Settings.",
       "marketingConsent": "(Optional) I agree to receive marketing info",
+      "callLearningConsent": "(Optional) I agree to call learning",
       "signingUp": "Signing up...",
       "next": "Next",
       "signupBtn": "Sign Up",
@@ -677,6 +680,13 @@
         "stateGranted": "Granted",
         "stateRevoked": "Revoked",
         "cloneLabel": "Clone #{{cloneId}}"
+      },
+      "callLearning": {
+        "sectionTitle": "Call Learning",
+        "description": "Allow your clone to learn from call conversations for more natural chats. You can turn this on or off anytime.",
+        "toggleLabel": "Allow call learning",
+        "viewTerms": "View terms",
+        "saveError": "Failed to save. Please try again."
       }
     },
     "saved": {

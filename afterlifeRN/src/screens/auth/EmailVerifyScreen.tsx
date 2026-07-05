@@ -20,6 +20,7 @@ import OtpVerifyView from "../../components/auth/OtpVerifyView";
 import PageHeader from "../../components/common/PageHeader";
 import { COLORS, SIZES, RADIUS } from "../../components/constants";
 import { requestEmailCode, signup, AuthApiError } from "../../api/auth";
+import { saveCallLearningConsent } from "../../api/consent";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "EmailVerify">;
 
@@ -81,6 +82,14 @@ export default function EmailVerifyScreen({ navigation, route }: Props) {
         pushToken: params.pushToken,
         platform: params.platform,
       });
+
+      if (params.agreeCallLearning) {
+        try {
+          await saveCallLearningConsent(res.accessToken, "granted", { channel: "signup" });
+        } catch (err) {
+          console.warn("[AUTH/signup] saveCallLearningConsent failed:", err);
+        }
+      }
 
       console.log("[AUTH/signup] success, accessExpiresIn:", res.accessExpiresIn);
       navigation.replace("SignupComplete", {
