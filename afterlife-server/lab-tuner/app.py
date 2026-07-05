@@ -9,6 +9,7 @@ import re
 from aiohttp import web
 from signaling import make_app          # prethird
 from live_guard import LiveBusyError
+from knobs import KNOB_META
 import promote
 
 log = logging.getLogger("lab-tuner.app")
@@ -61,6 +62,9 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
 
     async def get_knobs(_req):
         return web.json_response(registry.get().to_dict())
+
+    async def get_knobs_meta(_req):
+        return web.json_response({"meta": KNOB_META})
 
     async def list_runs(_req):
         # UI run 타임라인(tuner.js loadRuns) — ArtifactStore.list_runs() 그대로 노출.
@@ -218,6 +222,7 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         })
 
     app.router.add_get("/knobs", get_knobs)
+    app.router.add_get("/knobs/meta", get_knobs_meta)
     app.router.add_post("/knobs", post_knobs)
     app.router.add_get("/runs", list_runs)
     app.router.add_get("/metrics", metrics_sse)
