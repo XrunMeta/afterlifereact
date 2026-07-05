@@ -729,10 +729,16 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
     .bind(v_43e90c)
     .run();
 
-  const v_2bcd5a = await v_344b9e(v_3f4e2e.env, v_43e90c);
-  console.log(
-    `[gdpr] ontology purged: ont=${v_2bcd5a.ontRows} person=${v_2bcd5a.personRows} kv=${v_2bcd5a.kvKeys}`,
-  );
+  try {
+    const v_2bcd5a = await v_344b9e(v_3f4e2e.env, v_43e90c);
+    console.log(
+      `[gdpr] ontology purged: ont=${v_2bcd5a.ontRows} person=${v_2bcd5a.personRows} kv=${v_2bcd5a.kvKeys}`,
+    );
+  } catch (v_49263d) {
+    console.error(
+      `[gdpr] CRITICAL: ontology purge FAILED for user ${v_43e90c} — 재시도 필요: ${(v_49263d as Error).message}`,
+    );
+  }
 
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
