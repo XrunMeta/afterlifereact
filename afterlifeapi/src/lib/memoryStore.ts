@@ -1,6 +1,7 @@
 
 
 import type { v_273a0c } from './env';
+import { v_c9411d } from './piiFilter';
 
 export async function v_e86502(env: v_273a0c, v_6e0fd3): Promise<string | null> {
   const v_e2a6a6 = await v_c9c489.KV_CTX.get(`ctx:${v_6e0fd3}`);
@@ -101,6 +102,8 @@ export async function v_0ac5b7(
   v_631e71,
   v_04e790,
 ): Promise<{ rev: number; skipped: boolean }> {
+
+  v_631e71 = v_c9411d(v_631e71);
   const v_e1ccab =
     v_631e71.preference_personal != null &&
     Object.keys(v_631e71.preference_personal).length > 0;
@@ -231,6 +234,8 @@ export async function v_600422(
   v_631e71,
   v_04e790,
 ): Promise<{ rev: number; skipped: boolean }> {
+
+  v_631e71 = v_c9411d(v_631e71);
   const v_e1ccab =
     v_631e71.preference_personal != null &&
     Object.keys(v_631e71.preference_personal).length > 0;
@@ -307,4 +312,32 @@ export async function v_600422(
   }
   await v_862be2(v_c9c489, v_6e0fd3, v_ca1ec5, v_4f3411, true);
   return { rev: v_7d3ae6 + 1, skipped: false };
+}
+
+export async function v_344b9e(
+  env: v_273a0c, v_43e90c,
+): Promise<{ ontRows: number; personRows: number; kvKeys: number }> {
+
+  const v_c2273d = (
+    await v_c9c489.DB.prepare("SELECT clone_id FROM clone_ont WHERE user_id = ?")
+      .bind(v_43e90c).all<{ clone_id: number }>()
+  ).results;
+  let v_20342d = 0;
+  for (const { clone_id: v_fccde8 } of v_c2273d) {
+    await v_c9c489.KV_ONT.delete(`l2:${v_fccde8}:${v_43e90c}`);
+    v_20342d += 1;
+  }
+
+  const v_860a7c = await v_c9c489.DB.prepare("DELETE FROM clone_ont WHERE user_id = ?")
+    .bind(v_43e90c).run();
+
+  const v_f6ae72 = await v_c9c489.DB.prepare(
+    "DELETE FROM clone_ont_person WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
+  ).bind(v_43e90c).run();
+
+  return {
+    ontRows: v_860a7c.meta?.changes ?? 0,
+    personRows: v_f6ae72.meta?.changes ?? 0,
+    kvKeys: v_20342d,
+  };
 }

@@ -6,6 +6,7 @@ import { v_4c95c2, v_1f4ea7 } from "../lib/validate";
 import { v_137694, v_85de88, v_a8614b, v_8ea38c, v_b31343 } from "../lib/ale";
 import { v_e44d97 } from "../lib/kekProvider";
 import { v_74defc } from "../lib/logger";
+import { v_344b9e } from "../lib/memoryStore";
 import { v_c226a5 } from "../lib/notify";
 import { v_e0041f, v_cfdcb0 } from "../lib/similarity";
 
@@ -727,6 +728,17 @@ v_de7ba7.post("/me/delete/gdpr", v_6690d9, async (v_3f4e2e) => {
     )
     .bind(v_43e90c)
     .run();
+
+  try {
+    const v_2bcd5a = await v_344b9e(v_3f4e2e.env, v_43e90c);
+    console.log(
+      `[gdpr] ontology purged: ont=${v_2bcd5a.ontRows} person=${v_2bcd5a.personRows} kv=${v_2bcd5a.kvKeys}`,
+    );
+  } catch (v_49263d) {
+    console.error(
+      `[gdpr] CRITICAL: ontology purge FAILED for user ${v_43e90c} — 재시도 필요: ${(v_49263d as Error).message}`,
+    );
+  }
 
   await v_74defc(v_3f4e2e, {
     userId: v_43e90c,
