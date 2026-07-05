@@ -11,11 +11,25 @@ idle 프레임 소스 3종(halbae 폴백 / clone idle mp4 / fifth prebake)의
 - prebake     : fifth prebake만 활성, clone idle mp4 교체 스킵
 - fallback    : 둘 다 비활성 — media_tracks.py 초기 halbae 폴백만 유지
 """
+import logging
 import os
+
+log = logging.getLogger(__name__)
+
+_VALID_MODES = ("auto", "prebake", "clone_mp4", "fallback")
 
 
 def _mode() -> str:
-    return os.environ.get("IDLE_SOURCE_MODE", "auto")
+    raw = os.environ.get("IDLE_SOURCE_MODE")
+    if raw is None:
+        return "auto"
+    if raw not in _VALID_MODES:
+        log.warning(
+            "IDLE_SOURCE_MODE 잘못된 값=%r (허용값=%s) → auto 폴백",
+            raw, _VALID_MODES,
+        )
+        return "auto"
+    return raw
 
 
 def clone_mp4_enabled() -> bool:
