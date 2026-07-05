@@ -158,7 +158,7 @@ export async function v_0ac5b7(
   if (v_dce4e7 && v_e1ccab) {
     const v_4e2f8b = [];
     for (const [v_0eb677, v_81e2ef] of Object.entries(v_631e71.preference_personal!)) {
-      if (v_0eb677 in v_13a920 && v_13a920[v_0eb677] !== v_81e2ef) {
+      if (Object.hasOwn(v_13a920, v_0eb677) && v_13a920[v_0eb677] !== v_81e2ef) {
         v_4e2f8b.push({ key: v_0eb677, from: v_13a920[v_0eb677], to: v_81e2ef, at: v_5c2f9f });
       }
     }
@@ -182,11 +182,17 @@ export async function v_0ac5b7(
   };
 
   let v_4f3411 = JSON.stringify(v_a448ad);
-  while (
-    v_4f3411.length > v_a680d4 &&
-    (v_a448ad.memories_personal as string[]).length > 0
-  ) {
-    (v_a448ad.memories_personal as string[]).shift(); 
+  while (v_4f3411.length > v_a680d4) {
+    if ((v_a448ad.memories_personal as string[]).length > 0) {
+      (v_a448ad.memories_personal as string[]).shift(); 
+    } else if (
+      Array.isArray(v_a448ad.preference_history) &&
+      (v_a448ad.preference_history as unknown[]).length > 0
+    ) {
+      (v_a448ad.preference_history as unknown[]).shift(); 
+    } else {
+      break;
+    }
     v_4f3411 = JSON.stringify(v_a448ad);
   }
   if (v_4f3411.length > v_a680d4) {

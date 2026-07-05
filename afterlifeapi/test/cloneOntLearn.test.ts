@@ -190,6 +190,57 @@ v_469bf2("updateOntFromExtraction", () => {
     v_4d37e3(v_9390e8.preference_history).toBeUndefined();
     v_4d37e3(v_9390e8.preference_personal).toEqual({ 음료: "사이다" });
   });
+
+  v_23805a("memories 0개 + 큰 preference_history일 때 16KB 트림 루프가 history를 shift한다(throw 안 남)", async () => {
+    const v_9542f7 = { ...v_c9c489, L2_PREF_HISTORY_ENABLED: "1" } as unknown as v_273a0c;
+    const v_6e0fd3 = 900105, v_43e90c = 5;
+    const v_6ea868 = "x".repeat(700);
+    const v_bc5c08 = Array.from({ length: 20 }, () => ({
+      key: "음료",
+      from: v_6ea868,
+      to: v_6ea868,
+      at: new Date().toISOString(),
+    }));
+    await v_1ef59f(v_6e0fd3, v_43e90c, {
+      preference_personal: { 음료: "콜라" },
+      memories_personal: [], 
+      preference_history: v_bc5c08, 
+      _meta: { layer: "L2", rev: 0 },
+    });
+    const v_cb35cb = await v_0ac5b7(
+      v_9542f7, v_6e0fd3, v_43e90c, { preference_personal: { 음료: "사이다" } }, "call",
+    ); 
+    v_4d37e3(v_cb35cb.skipped).toBe(false);
+    const v_479f05 = await v_3821c0(v_9542f7, v_6e0fd3, v_43e90c);
+    const v_9390e8 = JSON.parse(v_479f05!);
+    v_4d37e3(v_479f05!.length).toBeLessThanOrEqual(16 * 1024);
+    v_4d37e3((v_9390e8.preference_history as unknown[]).length).toBeLessThan(v_bc5c08.length + 1); 
+  });
+
+  v_23805a("preference_personal에 프로토타입 상속 키(constructor 등)가 있어도 own-property만 history 대상(구버그면 from에 함수가 샘)", async () => {
+    const v_9542f7 = { ...v_c9c489, L2_PREF_HISTORY_ENABLED: "1" } as unknown as v_273a0c;
+    const v_6e0fd3 = 900106, v_43e90c = 5;
+    await v_1ef59f(v_6e0fd3, v_43e90c, {
+      preference_personal: {}, 
+      memories_personal: [],
+      _meta: { layer: "L2", rev: 0 },
+    });
+    await v_0ac5b7(v_9542f7, v_6e0fd3, v_43e90c, {
+      preference_personal: { constructor: "이상한값", toString: "다른값", 음료: "콜라" },
+    }, "call");
+    const v_a9ab58 = JSON.parse((await v_3821c0(v_9542f7, v_6e0fd3, v_43e90c))!);
+
+    v_4d37e3(v_a9ab58.preference_history ?? []).toEqual([]);
+    v_4d37e3(v_a9ab58.preference_personal).toEqual({ constructor: "이상한값", toString: "다른값", 음료: "콜라" });
+
+    await v_0ac5b7(v_9542f7, v_6e0fd3, v_43e90c, {
+      preference_personal: { constructor: "새이상한값2" },
+    }, "call");
+    const v_d3c584 = JSON.parse((await v_3821c0(v_9542f7, v_6e0fd3, v_43e90c))!);
+    v_4d37e3(v_d3c584.preference_history).toEqual([
+      { key: "constructor", from: "이상한값", to: "새이상한값2", at: v_4d37e3.any(String) },
+    ]);
+  });
 });
 
 v_469bf2("migration 0075", () => {
