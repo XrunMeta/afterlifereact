@@ -147,16 +147,32 @@ export async function updateOntFromExtraction(
     : curMems;
 
   const now = new Date().toISOString();
+
+  const PREF_HISTORY_CAP = 20;
+  const curPref = (current.preference_personal as Record<string, unknown>) ?? {};
+  const curHistory = Array.isArray(current.preference_history)
+    ? (current.preference_history as Array<Record<string, unknown>>)
+    : [];
+  let nextHistory = curHistory;
+  const trackHistory = env.L2_PREF_HISTORY_ENABLED === "1";
+  if (trackHistory && hasPref) {
+    const changes: Array<Record<string, unknown>> = [];
+    for (const [k, v] of Object.entries(extracted.preference_personal!)) {
+      if (Object.hasOwn(curPref, k) && curPref[k] !== v) {
+        changes.push({ key: k, from: curPref[k], to: v, at: now });
+      }
+    }
+    if (changes.length) nextHistory = [...curHistory, ...changes].slice(-PREF_HISTORY_CAP);
+  }
+
   const next: Record<string, unknown> = {
     address: current.address ?? null,
     memories_personal: mergedMems,
     relation: hasRel ? extracted.relation!.trim() : current.relation ?? null,
     preference_personal: hasPref
-      ? {
-          ...((current.preference_personal as Record<string, unknown>) ?? {}),
-          ...extracted.preference_personal,
-        }
-      : current.preference_personal ?? {},
+      ? { ...curPref, ...extracted.preference_personal }
+      : curPref,
+    ...(nextHistory.length ? { preference_history: nextHistory } : {}),
 
     ...(current.memory_summary !== undefined ? { memory_summary: current.memory_summary } : {}),
     ...(current.relationship !== undefined ? { relationship: current.relationship } : {}),
@@ -166,11 +182,17 @@ export async function updateOntFromExtraction(
   };
 
   let serialized = JSON.stringify(next);
-  while (
-    serialized.length > MAX_L2_BYTES &&
-    (next.memories_personal as string[]).length > 0
-  ) {
-    (next.memories_personal as string[]).shift(); 
+  while (serialized.length > MAX_L2_BYTES) {
+    if ((next.memories_personal as string[]).length > 0) {
+      (next.memories_personal as string[]).shift(); 
+    } else if (
+      Array.isArray(next.preference_history) &&
+      (next.preference_history as unknown[]).length > 0
+    ) {
+      (next.preference_history as unknown[]).shift(); 
+    } else {
+      break;
+    }
     serialized = JSON.stringify(next);
   }
   if (serialized.length > MAX_L2_BYTES) {
