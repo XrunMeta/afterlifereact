@@ -125,7 +125,6 @@ function renderL1Raw(l1){
 }
 
 const L2_SRC = {
-  memory_summary:'채팅', relationship:'채팅', context:'채팅', recent_topics:'채팅',
   relation:'통화auto', preference_personal:'통화auto', memories_personal:'통화auto',
 };
 function badge(src){
@@ -170,38 +169,31 @@ function renderL2RawError(status){
   document.getElementById('tblL2').innerHTML =
     `<span class="muted">ont-raw 조회 실패 (${esc(String(status))}) — DEV_SECRET 미설정 또는 권한 없음일 수 있음</span>`;
 }
-
-function changedTopKeys(before, after){
-  const keys = new Set();
-  for(const f of ["memory_summary","relationship","context","recent_topics"]){
-    const b = String((before && before[f]) || "");
-    const a = String((after && after[f]) || "");
-    if (b !== a) keys.add(f);
-  }
-  return keys;
-}
-
 const L2_LABEL={memory_summary:"기억",relationship:"관계",context:"맥락",recent_topics:"화제"};
 let _prevL2 = null;
 
 function kvMap(text){ const m={}; parseKV(text).forEach(({k,v})=>{ m[k||v]=k?v:""; }); return m; }
 
-function diffL2(before, after){
-  const out=[];
-  for(const f of ["memory_summary","relationship","context","recent_topics"]){
-    const b=String((before&&before[f])||""), a=String((after&&after[f])||"");
-    if(b===a) continue;
-    if(f==="recent_topics"){ out.push(L2_LABEL[f]+": "+a); continue; }
-    const bm=kvMap(b), am=kvMap(a);
-    for(const k in am){ if(bm[k]!==am[k]) out.push(L2_LABEL[f]+"·"+k+": "+(bm[k]?bm[k]+"→":"")+am[k]); }
-    for(const k in bm){ if(!(k in am)) out.push(L2_LABEL[f]+"·"+k+": (삭제)"); }
+function diffTopKeys(before, after){
+  const b = before || {}, a = after || {};
+  const keys = new Set([...Object.keys(b), ...Object.keys(a)]);
+  const changed = new Set();
+  const lines = [];
+  for (const k of keys){
+    if (k === "_meta") continue;
+    const bv = JSON.stringify(b[k] === undefined ? null : b[k]);
+    const av = JSON.stringify(a[k] === undefined ? null : a[k]);
+    if (bv !== av){
+      changed.add(k);
+      lines.push(k + ": " + (k in b ? bv + "→" : "") + av);
+    }
   }
-  return out;
+  return { changed, lines };
 }
 
 let _turnNo = 0;
 function pushHistory(before, after){
-  const changes = diffL2(before, after);
+  const { lines: changes } = diffTopKeys(before, after);
   if(!changes.length) return;
   _turnNo++;
   const h = $("l2history");
@@ -419,23 +411,20 @@ async function learn(userText, assistantText) {
     ] }),
   });
   if (!r.ok) { $("extracted").textContent = "[학습 오류 " + r.status + "]"; return; }
-  const { before, extracted, saved } = await r.json();
+
+  const { before, extracted, after } = await r.json();
   $("beforeL2").textContent = before ? JSON.stringify(before, null, 2) : "(없음)";
   $("beforeL2").className = "";
-  $("extracted").textContent = extracted ? JSON.stringify(extracted, null, 2) : "(추출 실패/스킵)";
-  $("savedL2").textContent = saved ? JSON.stringify(saved, null, 2) : "(저장 안 됨)";
+  $("extracted").textContent = (extracted && extracted.length) ? JSON.stringify(extracted, null, 2) : "(추출 없음/스킵)";
+  $("savedL2").textContent = after ? JSON.stringify(after, null, 2) : "(저장 안 됨)";
   $("savedL2").className = "";
 
-  const shownL2 = saved || extracted;
-  let changedKeys = new Set();
-  if (shownL2) {
-    const before = _prevL2 ? {..._prevL2} : null;
-    changedKeys = changedTopKeys(before, shownL2);
-    renderL2(shownL2, true);
-    pushHistory(before, shownL2);
-
+  const { changed: changedKeys } = diffTopKeys(before, after);
+  if (after) {
+    renderL2Raw({ data: after }, changedKeys);
+    pushHistory(before, after);
     const live = document.querySelector(".l2live");
-    if (live) live.textContent = saved ? "● 실시간" : "● 추출 미리보기(미저장)";
+    live && (live.textContent = "● 실시간");
   }
 
   await refreshOntRaw(cloneId, { changedKeys, silent: true });
