@@ -26,6 +26,24 @@ from recorder import NULL_TURN
 
 log = logging.getLogger("prethird.pipeline")
 
+_RENDER_MODES = {"partial", "batch"}
+
+
+def _resolve_render_mode() -> str:
+    """[T-113] host env PRETHIRD_RENDER_MODE → {"partial","batch"} 화이트리스트.
+    미설정/기본은 "partial". 화이트리스트 외 값은 "partial" 폴백 + log.warning
+    (회귀 방지 — 잘못된 값이 조용히 batch 로 새는 것을 막는다).
+    ⚠️ T-111 FIFTH_RENDER_MODE(fifth 렌더서버 env)와는 별개 — 혼동 금지."""
+    raw = os.environ.get("PRETHIRD_RENDER_MODE", "partial")
+    if raw not in _RENDER_MODES:
+        log.warning(
+            "PRETHIRD_RENDER_MODE=%r 은 유효값이 아님({'partial','batch'} 외) — partial 폴백",
+            raw,
+        )
+        return "partial"
+    return raw
+
+
 GREETING_PROMPT = (
     "방금 통화가 연결됐고, 상대(사용자)는 아직 아무 말도 하지 않았어. "
     "네가 전화를 받은 입장에서, 너의 페르소나와 상대와의 관계에 맞춰 "
@@ -104,6 +122,7 @@ class DialoguePipeline:
         self._fade_ms = float(os.environ.get("PRETHIRD_AUDIO_FADE_MS", "8"))
         self._norm_on = os.environ.get("PRETHIRD_AUDIO_NORM", "1") not in ("0", "false", "")
         self._last_emit_end: float | None = None  # [seg] 직전 _emit_sentence 종료 시각
+        self._render_mode = _resolve_render_mode()  # [T-113] partial(기본)|batch 분기용
 
     # ------------------------------------------------------------------
     # 퍼블릭 API
@@ -317,6 +336,22 @@ class DialoguePipeline:
     # ------------------------------------------------------------------
 
     async def _run_pipeline(self, produce, turn=None, on_first_audio=None, on_response_ready=None) -> None:
+        """[T-113] render_mode 분기 진입점(스캐폴드). partial(기본)은 기존 오버랩
+        파이프라인(_run_pipeline_partial, 완전 무변경)을 그대로 호출한다.
+        batch 는 아직 실구현 없음 — 이번 태스크에서는 partial 경로에 위임
+        (실제 배치 구현은 다음 태스크). self._render_mode 는 __init__ 시점에
+        _resolve_render_mode() 로 1회 확정된 값."""
+        if self._render_mode == "batch":
+            await self._run_batch(produce, turn, on_first_audio, on_response_ready)
+        else:
+            await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready)
+
+    async def _run_batch(self, produce, turn=None, on_first_audio=None, on_response_ready=None) -> None:
+        """[T-113] batch 렌더 모드 스캐폴드. 실제 배치(답변 전체 한 모션) 구현은
+        후속 태스크(Task 5)에서 채운다 — 지금은 partial 경로에 그대로 위임."""
+        await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready)
+
+    async def _run_pipeline_partial(self, produce, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
         TTS 워커(GPU0)와 infer 워커(GPU1)를 wav_q 로 연결해 오버랩 실행.
         turn: recorder Turn — TTS wav 누적(Phase 2 answer.wav).
