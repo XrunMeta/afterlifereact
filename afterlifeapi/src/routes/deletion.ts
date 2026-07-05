@@ -5,6 +5,7 @@ import type { v_de0a25 } from "../lib/env";
 import { v_3ebe58 } from "../lib/errors";
 import { v_6690d9 } from "../middleware/auth";
 import type { v_d33606 } from "../lib/coldStorage";
+import { v_344b9e } from "../lib/memoryStore";
 
 export const v_dda4b9 = new v_b7c41b<v_de0a25>();
 
@@ -220,6 +221,11 @@ v_dda4b9.delete("/me", v_6690d9, async (v_3f4e2e) => {
   } catch (v_49263d) {
     console.warn("[deletion.me] xrun mark failed:", (v_49263d as Error).message);
   }
+
+  const v_c690be = await v_344b9e(v_3f4e2e.env, v_43e90c);
+  console.log(
+    `[deletion.me] ontology purged: ont=${v_c690be.ontRows} person=${v_c690be.personRows} kv=${v_c690be.kvKeys}`,
+  );
 
   return v_3f4e2e.json({ ok: true, state: "soft_deleted", alreadyDeleted: v_d7b02d });
 });

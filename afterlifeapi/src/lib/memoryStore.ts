@@ -313,3 +313,31 @@ export async function v_600422(
   await v_862be2(v_c9c489, v_6e0fd3, v_ca1ec5, v_4f3411, true);
   return { rev: v_7d3ae6 + 1, skipped: false };
 }
+
+export async function v_344b9e(
+  env: v_273a0c, v_43e90c,
+): Promise<{ ontRows: number; personRows: number; kvKeys: number }> {
+
+  const v_c2273d = (
+    await v_c9c489.DB.prepare("SELECT clone_id FROM clone_ont WHERE user_id = ?")
+      .bind(v_43e90c).all<{ clone_id: number }>()
+  ).results;
+  let v_20342d = 0;
+  for (const { clone_id: v_fccde8 } of v_c2273d) {
+    await v_c9c489.KV_ONT.delete(`l2:${v_fccde8}:${v_43e90c}`);
+    v_20342d += 1;
+  }
+
+  const v_860a7c = await v_c9c489.DB.prepare("DELETE FROM clone_ont WHERE user_id = ?")
+    .bind(v_43e90c).run();
+
+  const v_f6ae72 = await v_c9c489.DB.prepare(
+    "DELETE FROM clone_ont_person WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
+  ).bind(v_43e90c).run();
+
+  return {
+    ontRows: v_860a7c.meta?.changes ?? 0,
+    personRows: v_f6ae72.meta?.changes ?? 0,
+    kvKeys: v_20342d,
+  };
+}
