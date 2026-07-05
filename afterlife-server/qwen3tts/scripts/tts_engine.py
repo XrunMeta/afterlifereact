@@ -5,6 +5,7 @@ import hashlib
 import io
 import logging
 import os
+import subprocess
 import soundfile as sf
 import config
 from clone_ref import extract_ref_clip
@@ -13,6 +14,26 @@ log = logging.getLogger("qwen3tts.engine")
 
 # 화자 검증 가드 재시도 seed 베이스(재시도마다 base+i 로 sample 다양화).
 _GUARD_SEED_BASE = 7777
+
+
+def _apply_atempo(wav_bytes: bytes, speed: float) -> bytes:
+    """ffmpeg atempo 로 피치 보존 속도 변경. speed≈1.0 이면 no-op(회귀 0).
+    atempo 는 0.5~2.0 만 지원 → 범위 밖은 체인으로 분해."""
+    if abs(speed - 1.0) < 1e-3:
+        return wav_bytes
+    factors, s = [], float(speed)
+    while s > 2.0:
+        factors.append(2.0); s /= 2.0
+    while s < 0.5:
+        factors.append(0.5); s /= 0.5
+    factors.append(s)
+    chain = ",".join(f"atempo={f:.4f}" for f in factors)
+    proc = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", "pipe:0",
+         "-filter:a", chain, "-f", "wav", "pipe:1"],
+        input=wav_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+    )
+    return proc.stdout
 
 
 @dataclasses.dataclass
@@ -202,24 +223,24 @@ class Qwen3Engine:
             )
             wav = wavs[0]
             if not guard:
-                return self._encode(wav, sr)
+                return _apply_atempo(self._encode(wav, sr), speed)
             emb = self._extract_spk_emb(wav, sr)
             if emb is None:
-                return self._encode(wav, sr)  # 측정 불가 → 가드 skip
+                return _apply_atempo(self._encode(wav, sr), speed)  # 측정 불가 → 가드 skip
             c = self._cos(ref_emb, emb)
             if best is None or c > best[0]:
                 best = (c, wav, sr)
             if c >= th:
                 if i > 0:
                     log.info("spk guard clone=%s: 재합성 %d회 만에 통과 cos=%.3f", clone_id, i, c)
-                return self._encode(wav, sr)
+                return _apply_atempo(self._encode(wav, sr), speed)
         # 모든 시도 임계 미달 → 그나마 최선(무한루프 방지).
         # best는 emb 정상이던 시도가 1회라도 있으면 설정됨(emb None 시도는 위에서 조기 return).
         # 방어: 만약의 경우 best 미설정이면 마지막 wav 반환.
         if best is None:
-            return self._encode(wav, sr)
+            return _apply_atempo(self._encode(wav, sr), speed)
         log.warning(
             "spk guard clone=%s: %d회 모두 임계(%.2f) 미달 → best cos=%.3f 사용",
             clone_id, attempts, th, best[0],
         )
-        return self._encode(best[1], best[2])
+        return _apply_atempo(self._encode(best[1], best[2]), speed)

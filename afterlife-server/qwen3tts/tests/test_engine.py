@@ -137,3 +137,29 @@ def test_gen_params_none_forwards_nothing(tmp_path):
     eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
     eng.synth("문장", clone_id="halbae", voice_wav=wav)  # gen_params 미전달
     assert m.last_gen_kwargs == {}
+
+def test_atempo_noop_when_speed_1(tmp_path):
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = FakeModel()
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    out = eng.synth("문장", clone_id="halbae", voice_wav=wav, speed=1.0)
+    # speed=1.0 → atempo 미적용, FakeModel 1600샘플 그대로 인코딩된 WAV
+    import io as _io, soundfile as _sf
+    data, sr = _sf.read(_io.BytesIO(out))
+    assert len(data) == 1600
+
+def test_atempo_speeds_up_audio(tmp_path):
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = FakeModel()
+    # ffmpeg atempo(WSOLA)는 완전 무음(전부 0) 입력에서 축퇴 동작(64샘플로 collapse)해
+    # 배속 비율을 반영하지 못함(실측 확인) → 실제 배속 스케일 검증에는 논제로 사인파 사용.
+    import numpy as _np
+    _t = _np.linspace(0, 1600 / 16000, 1600, endpoint=False)
+    _sine = (0.1 * _np.sin(2 * _np.pi * 220 * _t)).astype("float32")
+    m.generate_voice_clone = lambda text, language, voice_clone_prompt, **kwargs: ([_sine], 16000)
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    out = eng.synth("문장", clone_id="halbae", voice_wav=wav, speed=2.0)
+    import io as _io, soundfile as _sf
+    data, sr = _sf.read(_io.BytesIO(out))
+    # 2배속 → 길이 대략 절반(atempo 근사치, 여유 있게 검증)
+    assert 700 <= len(data) <= 950
