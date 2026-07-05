@@ -22,6 +22,7 @@ def apply_persona_knobs(base_persona: list, dk: DialogueKnobs) -> list:
 
 _ENGINE_URLS = {"openvoice": "http://127.0.0.1:8200", "qwen": "http://127.0.0.1:8201"}
 _TTS_PATH = os.environ.get("PRETHIRD_TTS_PATH", "/tts/kr")
+_GEN_KEYS = ("temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens")
 
 def build_say_fn(registry):
     """registry.tts에서 engine URL·speed·denoise를 읽어 TTS POST."""
@@ -36,6 +37,10 @@ def build_say_fn(registry):
             body["se_path"] = se_path
         if tk.denoise:
             body["denoise"] = True
+        for k in _GEN_KEYS:                      # None 이 아닌 gen param 만 실어보냄
+            v = getattr(tk, k, None)
+            if v is not None:
+                body[k] = v
         async with aiohttp.ClientSession() as sess:
             async with sess.post(f"{base}{_TTS_PATH}", json=body) as resp:
                 resp.raise_for_status()
