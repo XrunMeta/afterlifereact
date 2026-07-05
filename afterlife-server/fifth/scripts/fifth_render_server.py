@@ -284,6 +284,7 @@ class RenderService:
         phase_token=None,
         jpeg_quality: int = 90,
         idle_opts: dict | None = None,
+        render_mode: str | None = None,
     ) -> int:
         """wav → 프레임 청크 write. 반환: 프레임 수.
 
@@ -320,12 +321,17 @@ class RenderService:
           와이어 프레이밍([4B len][jpeg]... 및 S4 토큰 트레일러)은 청크 내용/순서가
           동일하므로 변경 없음 — 종료마커([4B 0])는 여전히 do_POST finally에서
           render() 반환 후 1회 쓰여, batch에서도 프레임(+트레일러) 다음에 위치한다.
+
+        T-113 render_mode(per-request, 회귀 0):
+          render_mode=None(기본) → is_batch(None)이 FIFTH_RENDER_MODE env fallback
+          (T-111 레거시 동작 100% 동일). render_mode="batch"|"partial" 전달 시
+          그 값이 env 보다 우선한다.
         """
         sources = self._get_sources(video_path)
         # idle_opts=None(기본) → {} → stream_wav_frames 인자 미전달(env 기본, 회귀 0).
         _idle = _idle_kwargs(idle_opts)
 
-        _batch = is_batch()
+        _batch = is_batch(render_mode)
         _buffer: list[bytes] = []
 
         def _write(chunk: bytes) -> None:
@@ -488,6 +494,10 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict]:
     blink/jpeg_quality는 명시 기본(True/90), idle_* 4종은 키 없으면 None
     (= stream_wav_frames가 env 기본 사용 → 회귀 0).
 
+    T-113: render_opts["render_mode"] — 키 없음/null → None(= is_batch(None)이
+    FIFTH_RENDER_MODE env fallback, 회귀 0). "batch"|"partial" 전달 시 그 요청만
+    env 보다 우선 적용된다.
+
     Returns:
         (wav_path, video_path, phase_token|None, render_opts)
 
@@ -530,6 +540,7 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict]:
         "idle_rms_low": req.get("idle_rms_low"),
         "idle_rms_high": req.get("idle_rms_high"),
         "head_slew_frames": req.get("head_slew_frames"),
+        "render_mode": req.get("render_mode"),
     }
 
     return str(wav_path_raw), str(video_path), phase_token, render_opts
@@ -596,6 +607,7 @@ class _RenderHandler(BaseHTTPRequestHandler):
                 jpeg_quality=render_opts["jpeg_quality"],
                 phase_token=phase_token,
                 idle_opts=render_opts,   # idle_* 4종 전달(None이면 env)
+                render_mode=render_opts["render_mode"],  # T-113: None이면 env fallback
             )
         except Exception as exc:
             logger.exception("render 오류: %s", exc)
