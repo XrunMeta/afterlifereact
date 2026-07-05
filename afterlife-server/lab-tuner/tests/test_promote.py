@@ -285,3 +285,13 @@ def test_enum_value_within_choices_ok():
     knobs = RunKnobs.from_dict({"tts": {"engine": "qwen"}})
     entries = promote.diff(knobs, lambda _n: "openvoice", dirty={"tts.engine"})
     assert any(e["env"] == "PRETHIRD_TTS_URL" or e["key"] == "tts.engine" for e in entries) or entries == []
+
+
+# ---------------------------------------------------------------------------
+# T-111 Task 12: render_mode 노브 — fifth 컨테이너 env(container_warning 분류).
+# ---------------------------------------------------------------------------
+
+def test_render_mode_is_container_warning():
+    knobs = RunKnobs.from_dict({"fifth": {"render_mode": "batch"}})
+    entries = promote.diff(knobs, lambda _n: "partial", dirty={"fifth.render_mode"})
+    assert entries and entries[0]["container"] is True

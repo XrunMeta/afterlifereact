@@ -36,6 +36,7 @@ KNOB_TO_LIVE = {
     "fifth.head_slew_frames": {"env": "FIFTH_HEAD_SLEW_FRAMES", "file": _FIFTH_ENV_NOTE, "container": True},
     "fifth.cfg_scale": {"env": "FIFTH_CFG_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
     "fifth.driving_multiplier": {"env": "FIFTH_DRIVING_MULTIPLIER", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.render_mode": {"env": "FIFTH_RENDER_MODE", "file": _FIFTH_ENV_NOTE, "container": True},
 }
 
 
