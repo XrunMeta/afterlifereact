@@ -44,6 +44,8 @@ export type AuthStackParamList = {
     region?: string;
     marketingConsent: boolean;
 
+    agreeCallLearning?: boolean;
+
     pushToken?: string;
     platform?: "ios" | "android" | "web";
     deviceId?: string;

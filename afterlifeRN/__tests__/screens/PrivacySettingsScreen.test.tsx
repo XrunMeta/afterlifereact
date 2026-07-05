@@ -30,6 +30,7 @@ jest.mock('jmpfvteuuztnp', () => ({
         v_b24339,
       );
     },
+    i18n: { language: 'ko' },
   }),
 }));
 
