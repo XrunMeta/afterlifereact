@@ -287,6 +287,102 @@ v_469bf2("GET /oth-path (폴링 조회 — Task 2)", () => {
     v_4d37e3(v_8f00b9.status).toBe(401);
   });
 
+  v_23805a("since가 최대 id 이상이면 빈 배열 + nextSince === since(커서 되감김 없음)", async () => {
+    const v_ceb55a = await v_bfb240("calibrate-samples-since-beyond@test.local");
+    const v_ea333d = await v_86c39f(v_ceb55a);
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO faceoth-secretes
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, NULL, 0.1, 0.83, '[]', 200)`
+      )
+      .bind(String(v_ceb55a))
+      .run();
+
+    const v_5bdc2d = 999999;
+    const v_8f00b9 = await v_38715b(v_ea333d, `?since=${v_5bdc2d}`);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{ samples: unknown[]; nextSince: number }>();
+    v_4d37e3(v_b75e36.samples.length).toBe(0);
+    v_4d37e3(v_b75e36.nextSince).toBe(v_5bdc2d);
+  });
+
+  v_23805a("since=-1(음수)·since=abc(NaN) → 0으로 폴백해 첫 페이지 정상 반환", async () => {
+    const v_ceb55a = await v_bfb240("calibrate-samples-since-fallback@test.local");
+    const v_ea333d = await v_86c39f(v_ceb55a);
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO faceoth-secretes
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, NULL, 0.1, 0.83, '[]', 300)`
+      )
+      .bind(String(v_ceb55a))
+      .run();
+
+    const v_845666 = await v_38715b(v_ea333d);
+    v_4d37e3(v_845666.status).toBe(200);
+    const v_37c475 = await v_845666.json<{ samples: unknown[] }>();
+
+    const v_bc4abd = await v_38715b(v_ea333d, "?since=-1");
+    v_4d37e3(v_bc4abd.status).toBe(200);
+    const v_74867f = await v_bc4abd.json<{ samples: unknown[] }>();
+    v_4d37e3(v_74867f.samples.length).toBe(v_37c475.samples.length);
+
+    const v_dc1ed6 = await v_38715b(v_ea333d, "?since=abc");
+    v_4d37e3(v_dc1ed6.status).toBe(200);
+    const v_f99fce = await v_dc1ed6.json<{ samples: unknown[] }>();
+    v_4d37e3(v_f99fce.samples.length).toBe(v_37c475.samples.length);
+  });
+
+  v_23805a("limit=999 → 에러 없이 동작(내부 200 clamp), 시드 건수 이하로 반환", async () => {
+    const v_ceb55a = await v_bfb240("calibrate-samples-limit-over@test.local");
+    const v_ea333d = await v_86c39f(v_ceb55a);
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO faceoth-secretes
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, NULL, 0.1, 0.83, '[]', 400),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 401),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 402)`
+      )
+      .bind(String(v_ceb55a), String(v_ceb55a), String(v_ceb55a))
+      .run();
+
+    const v_8f00b9 = await v_38715b(v_ea333d, "?limit=999");
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{ samples: unknown[] }>();
+
+    v_4d37e3(v_b75e36.samples.length).toBe(3);
+  });
+
+  v_23805a("scores_json이 손상된 행이 있어도 500이 아니라 그 행만 scores:[]로 폴백하고 커서가 전진한다", async () => {
+    const v_ceb55a = await v_bfb240("calibrate-samples-corrupt-json@test.local");
+    const v_ea333d = await v_86c39f(v_ceb55a);
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO faceoth-secretes
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, 'p1', 0.5, 0.83, 'not-valid-json{{{', 500),
+                (?, NULL, 'p2', 0.6, 0.83, '[{"personId":"p2","score":0.6}]', 501)`
+      )
+      .bind(String(v_ceb55a), String(v_ceb55a))
+      .run();
+
+    const v_8f00b9 = await v_38715b(v_ea333d);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{
+      samples: { id: number; matchedId: string | null; scores: unknown[] }[];
+      nextSince: number;
+    }>();
+    v_4d37e3(v_b75e36.samples.length).toBe(2);
+    const v_d6e93f = v_b75e36.samples.find((v_fd5f43) => v_fd5f43.matchedId === "p1")!;
+    const v_3ed4c3 = v_b75e36.samples.find((v_fd5f43) => v_fd5f43.matchedId === "p2")!;
+    v_4d37e3(v_d6e93f.scores).toEqual([]);
+    v_4d37e3(v_3ed4c3.scores).toEqual([{ personId: "p2", score: 0.6 }]);
+
+    v_4d37e3(v_b75e36.nextSince).toBe(v_3ed4c3.id);
+  });
+
 });
 
 v_469bf2("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(off→404 회귀 방지)", () => {
