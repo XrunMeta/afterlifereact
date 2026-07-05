@@ -381,6 +381,7 @@ class DialoguePipeline:
           _infer_stage 진입 '전' 실패에서는 그 내부 _fire_hook 이 못 불리므로
           여기서 방어적으로 1회 더 호출한다(FillerPlayer.stop()/track.flush()
           는 멱등이라 이미 불렸어도 중복 호출 안전 — T-088 좀비 패턴 방지)."""
+        log.info("[T-113] batch 모드 진입 — 답변 전체 단일 렌더")
         turn = turn if turn is not None else NULL_TURN
         sentence_q: asyncio.Queue = asyncio.Queue()
         parts: list[str] = []
@@ -413,15 +414,25 @@ class DialoguePipeline:
 
             full_text = "".join(parts)
             if not full_text.strip():
+                # [sion MAJOR 2] 빈 응답도 filler 정지 훅을 반드시 1회 발동해야
+                # FillerPlayer 가 세션 종료까지 순환하는 좀비 패턴을 막는다.
+                # 실패 except 블록의 기존 방어 패턴을 그대로 재사용(hook_fired 가드).
+                if not hook_fired["v"] and on_response_ready is not None:
+                    try:
+                        on_response_ready()
+                    except Exception as exc:
+                        log.warning("on_response_ready callback failed: %s", exc)
                 return
 
             try:
+                log.info("[T-113] batch full_text %d chars → TTS 1회", len(full_text))
                 wav_bytes, pcm48 = await self._tts_stage(full_text)
                 turn.append_wav(wav_bytes)
                 await self._infer_stage(
                     wav_bytes, pcm48, turn,
                     on_before_push=_guarded_hook, render_mode="batch",
                 )
+                log.info("[T-113] batch render 완료(단일 모션 push)")
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
