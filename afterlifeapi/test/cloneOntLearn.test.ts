@@ -190,6 +190,57 @@ describe("updateOntFromExtraction", () => {
     expect(data.preference_history).toBeUndefined();
     expect(data.preference_personal).toEqual({ 음료: "사이다" });
   });
+
+  it("memories 0개 + 큰 preference_history일 때 16KB 트림 루프가 history를 shift한다(throw 안 남)", async () => {
+    const E = { ...env, L2_PREF_HISTORY_ENABLED: "1" } as unknown as Bindings;
+    const cloneId = 900105, userId = 5;
+    const bigVal = "x".repeat(700);
+    const bigHistory = Array.from({ length: 20 }, () => ({
+      key: "음료",
+      from: bigVal,
+      to: bigVal,
+      at: new Date().toISOString(),
+    }));
+    await seedL2(cloneId, userId, {
+      preference_personal: { 음료: "콜라" },
+      memories_personal: [], 
+      preference_history: bigHistory, 
+      _meta: { layer: "L2", rev: 0 },
+    });
+    const r = await updateOntFromExtraction(
+      E, cloneId, userId, { preference_personal: { 음료: "사이다" } }, "call",
+    ); 
+    expect(r.skipped).toBe(false);
+    const raw = await readOnt(E, cloneId, userId);
+    const data = JSON.parse(raw!);
+    expect(raw!.length).toBeLessThanOrEqual(16 * 1024);
+    expect((data.preference_history as unknown[]).length).toBeLessThan(bigHistory.length + 1); 
+  });
+
+  it("preference_personal에 프로토타입 상속 키(constructor 등)가 있어도 own-property만 history 대상(구버그면 from에 함수가 샘)", async () => {
+    const E = { ...env, L2_PREF_HISTORY_ENABLED: "1" } as unknown as Bindings;
+    const cloneId = 900106, userId = 5;
+    await seedL2(cloneId, userId, {
+      preference_personal: {}, 
+      memories_personal: [],
+      _meta: { layer: "L2", rev: 0 },
+    });
+    await updateOntFromExtraction(E, cloneId, userId, {
+      preference_personal: { constructor: "이상한값", toString: "다른값", 음료: "콜라" },
+    }, "call");
+    const data1 = JSON.parse((await readOnt(E, cloneId, userId))!);
+
+    expect(data1.preference_history ?? []).toEqual([]);
+    expect(data1.preference_personal).toEqual({ constructor: "이상한값", toString: "다른값", 음료: "콜라" });
+
+    await updateOntFromExtraction(E, cloneId, userId, {
+      preference_personal: { constructor: "새이상한값2" },
+    }, "call");
+    const data2 = JSON.parse((await readOnt(E, cloneId, userId))!);
+    expect(data2.preference_history).toEqual([
+      { key: "constructor", from: "이상한값", to: "새이상한값2", at: expect.any(String) },
+    ]);
+  });
 });
 
 describe("migration 0075", () => {

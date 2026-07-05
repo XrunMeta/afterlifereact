@@ -158,7 +158,7 @@ export async function updateOntFromExtraction(
   if (trackHistory && hasPref) {
     const changes: Array<Record<string, unknown>> = [];
     for (const [k, v] of Object.entries(extracted.preference_personal!)) {
-      if (k in curPref && curPref[k] !== v) {
+      if (Object.hasOwn(curPref, k) && curPref[k] !== v) {
         changes.push({ key: k, from: curPref[k], to: v, at: now });
       }
     }
@@ -182,11 +182,17 @@ export async function updateOntFromExtraction(
   };
 
   let serialized = JSON.stringify(next);
-  while (
-    serialized.length > MAX_L2_BYTES &&
-    (next.memories_personal as string[]).length > 0
-  ) {
-    (next.memories_personal as string[]).shift(); 
+  while (serialized.length > MAX_L2_BYTES) {
+    if ((next.memories_personal as string[]).length > 0) {
+      (next.memories_personal as string[]).shift(); 
+    } else if (
+      Array.isArray(next.preference_history) &&
+      (next.preference_history as unknown[]).length > 0
+    ) {
+      (next.preference_history as unknown[]).shift(); 
+    } else {
+      break;
+    }
     serialized = JSON.stringify(next);
   }
   if (serialized.length > MAX_L2_BYTES) {
