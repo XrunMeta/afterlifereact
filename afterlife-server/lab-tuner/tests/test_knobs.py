@@ -76,3 +76,13 @@ def test_idle_source_mode_from_env(monkeypatch):
 def test_idle_source_mode_default_auto():
     from knobs import RunKnobs
     assert RunKnobs().transport.idle_source_mode == "auto"
+
+def test_filler_order_default_pre_speak():
+    from knobs import RunKnobs
+    assert RunKnobs.from_env().filler.order == "pre_speak"
+    assert RunKnobs().filler.order == "pre_speak"
+
+def test_filler_order_off_from_env(monkeypatch):
+    monkeypatch.setenv("PRETHIRD_FILLER_ORDER", "off")
+    from knobs import RunKnobs
+    assert RunKnobs.from_env().filler.order == "off"
