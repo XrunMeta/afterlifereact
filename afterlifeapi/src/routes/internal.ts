@@ -10,6 +10,7 @@ import {
 } from "../lib/memoryStore";
 import { loadCloneProfiles, loadUserL2 } from "../lib/personaBundle";
 import { logActivity } from "../lib/logger";
+import { hasCallLearningConsent, personOwnerHasCallLearningConsent } from "../lib/consentGate";
 
 export const internal = new Hono<AppEnv>();
 
@@ -329,6 +330,10 @@ internal.post("/oth-path", async (c) => {
   ).bind(cloneId, userId).first();
   if (!interacted) return c.json({ error: "no_interaction" }, 403);
 
+  if (!(await hasCallLearningConsent(c.env, userId))) {
+    return c.json({ ok: true, skipped: true, reason: "no_consent" });
+  }
+
   let result: { rev: number; skipped: boolean };
   try {
     result = await updateOntFromExtraction(
@@ -521,6 +526,10 @@ internal.post("/oth-path", async (c) => {
 
   const interacted = await personOwnsCloneSession(c.env.DB, personId, cloneId);
   if (!interacted) return c.json({ error: "no_interaction" }, 403);
+
+  if (!(await personOwnerHasCallLearningConsent(c.env, personId))) {
+    return c.json({ ok: true, skipped: true, reason: "no_consent" });
+  }
 
   let result: { rev: number; skipped: boolean };
   try {
