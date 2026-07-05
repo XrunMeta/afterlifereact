@@ -41,6 +41,7 @@ export function buildPersonaBundle(
 const L2_FIELDS = [
   "memory_summary", "relationship", "context", "recent_topics",   
   "relation", "preference_personal", "memories_personal",          
+  "preference_history",                                            
 ] as const;
 
 export async function loadUserL2(

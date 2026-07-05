@@ -70,6 +70,20 @@ describe("loadUserL2 — 학습 키 소비(E 핫픽스)", () => {
     await seedOnt(7104, 6104, { memories_personal: [], preference_personal: {}, address: "서울" });
     expect(await loadUserL2(Edb.DB, 7104, 6104)).toBeNull();
   });
+
+  it("preference_history를 소비 화이트리스트로 통과", async () => {
+    const cloneId = 900201, userId = 7;
+    await env.DB.prepare("INSERT INTO clone_ont (clone_id, user_id, data) VALUES (?,?,?)")
+      .bind(cloneId, userId, JSON.stringify({
+        preference_personal: { 음료: "사이다" },
+        preference_history: [{ key: "음료", from: "콜라", to: "사이다", at: "2026-07-05T00:00:00Z" }],
+        _meta: { layer: "L2", rev: 2 },
+      })).run();
+    const l2 = await loadUserL2(env.DB, cloneId, userId);
+    expect(l2?.preference_history).toEqual([
+      { key: "음료", from: "콜라", to: "사이다", at: "2026-07-05T00:00:00Z" },
+    ]);
+  });
 });
 
 describe("resolvePersona — 학습 키 보존(E 핫픽스)", () => {
