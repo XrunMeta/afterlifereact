@@ -170,6 +170,18 @@ def test_build_say_fn_omits_none_gen_params(monkeypatch):
     for k in ("temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"):
         assert k not in posts["json"]
 
+def test_build_say_fn_openvoice_excludes_gen_params(monkeypatch):
+    """gen params(_GEN_KEYS)는 qwen 전용 — openvoice(8200) 선택 시 body에 실리면 422 위험.
+    engine=openvoice 이면 temperature 등을 설정해도 body에 실리지 않아야 한다."""
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "openvoice", "temperature": 0.6, "top_p": 0.9}})
+    fn = harness.build_say_fn(r)
+    asyncio.run(fn("안녕", "/se/path"))
+    for k in ("temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"):
+        assert k not in posts["json"]
+
 def test_knobs_fifth_build_body_forwards_extra_kwargs(monkeypatch):
     # 배포 prethird 버전 스큐: FifthInproc.infer 가 phase_token 을 넘길 때
     # 오버라이드가 이를 상위로 포워딩해야 한다(TypeError 방지). knob 은 그대로 얹힘.

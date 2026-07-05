@@ -37,10 +37,11 @@ def build_say_fn(registry):
             body["se_path"] = se_path
         if tk.denoise:
             body["denoise"] = True
-        for k in _GEN_KEYS:                      # None 이 아닌 gen param 만 실어보냄
-            v = getattr(tk, k, None)
-            if v is not None:
-                body[k] = v
+        if tk.engine == "qwen":                   # gen params 는 qwen 전용 — openvoice(8200) 유출 방지
+            for k in _GEN_KEYS:                    # None 이 아닌 gen param 만 실어보냄
+                v = getattr(tk, k, None)
+                if v is not None:
+                    body[k] = v
         async with aiohttp.ClientSession() as sess:
             async with sess.post(f"{base}{_TTS_PATH}", json=body) as resp:
                 resp.raise_for_status()
