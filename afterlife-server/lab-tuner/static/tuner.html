@@ -22,9 +22,8 @@
  button{cursor:pointer}
  button.primary{background:var(--gold);color:var(--bg);border-color:var(--gold-border)}
  button:disabled{opacity:.35;cursor:not-allowed}
- /* 채널 카드 2열 그리드(믹서 폭에 맞춰 자동 열수; 좁으면 1열) — 공간 밀도↑ */
- #knob-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
-   gap:12px;align-items:start}
+ /* 채널 카드 고정 2열 그리드(좁은 화면은 미디어쿼리로 1열) — 공간 밀도↑ */
+ #knob-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
  .channel{background:var(--surface-2);border:1px solid var(--border);border-top:2px solid var(--gold);
    border-radius:4px;padding:12px;box-shadow:1px 2px 8px #CA8A0420}
  .channel .panel-title{font-size:14px;margin-bottom:8px;text-transform:capitalize}
@@ -54,6 +53,7 @@
    #main-row{flex-wrap:wrap}
    .col-left{width:100%}
    .col-right{width:100%;min-width:0}
+   #knob-fields{grid-template-columns:1fr}
  }
 </style></head><body>
  <div id="live-banner">라이브 통화 중 — 튜닝 대기</div>
