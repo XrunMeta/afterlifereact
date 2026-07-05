@@ -16,6 +16,10 @@ describe("formatFaceHud", () => {
     const s = formatFaceHud({ score: 0, personId: null, displayName: null, streak: 0, verdict: "none", threshold: 0.83 });
     expect(s).toContain("none");
   });
+  it("이름 없고 personId 있으면 #personId로 대체(R1 보강)", () => {
+    const s = formatFaceHud({ score: 0, personId: 5, displayName: null, streak: 0, verdict: "none", threshold: 0.83 });
+    expect(s).toContain("#5");
+  });
   it("FACE_DIAG_ENABLED는 boolean", () => {
     expect(typeof FACE_DIAG_ENABLED).toBe("boolean");
   });

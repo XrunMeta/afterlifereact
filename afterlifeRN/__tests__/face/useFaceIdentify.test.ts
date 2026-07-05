@@ -2,6 +2,7 @@ import { renderHook, waitFor } from "@testing-library/react-native";
 import {
   runIdentifyCycle,
   useFaceIdentify,
+  deriveVerdict,
   INITIAL_IDENTIFY_CYCLE_STATE,
   NETWORK_FAIL_BACKOFF_THRESHOLD,
   NETWORK_FAIL_BACKOFF_MS,
@@ -9,6 +10,18 @@ import {
 } from "../../src/face/useFaceIdentify";
 
 const VEC = new Array(512).fill(0).map((_, i) => (i === 0 ? 1 : 0));
+
+describe("deriveVerdict", () => {
+  it("confirmed 상태", () => {
+    expect(deriveVerdict({ confirmed: 5, candidate: null, streak: 0 } as any)).toBe("confirmed");
+  });
+  it("candidate 진행중", () => {
+    expect(deriveVerdict({ confirmed: "none", candidate: 5, streak: 2 } as any)).toBe("candidate");
+  });
+  it("none", () => {
+    expect(deriveVerdict({ confirmed: "none", candidate: null, streak: 0 } as any)).toBe("none");
+  });
+});
 
 describe("runIdentifyCycle (순수 로직)", () => {
   it("matchFace 가 동일 personId 3회 반환 → 3번째에 speaker_confirmed 1회", async () => {
@@ -173,5 +186,46 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
     result.current.onEmbedding(VEC);
     await waitFor(() => expect(matchFaceFn).toHaveBeenCalledTimes(1));
     expect(result.current.getBuffer().latest(1)).toHaveLength(1);
+  });
+
+  it("T-111 계측 — onDiag가 FaceDiag로 호출되고 calibrateFn이 벡터·groundTruthPersonId로 불림", async () => {
+    const matchFaceFn = jest.fn().mockResolvedValue({
+      matches: [],
+      best: { personId: 9, displayName: "지수", score: 0.81 },
+      threshold: 0.83,
+    });
+    const calibrateFn = jest.fn().mockResolvedValue({
+      id: 1,
+      matchedId: "9",
+      bestScore: 0.81,
+      threshold: 0.83,
+      scoreCount: 1,
+    });
+    const onDiag = jest.fn();
+    const { result } = renderHook(() =>
+      useFaceIdentify({
+        enabled: true,
+        accessToken: "tok",
+        onEvent: jest.fn(),
+        onDiag,
+        calibrate: { accessToken: "tok", groundTruthPersonId: 5 },
+        deps: { matchFaceFn, calibrateFn },
+      }),
+    );
+
+    result.current.onEmbedding(VEC);
+    await waitFor(() => expect(onDiag).toHaveBeenCalledTimes(1));
+
+    expect(onDiag).toHaveBeenCalledWith({
+      score: 0.81,
+      personId: 9,
+      displayName: "지수",
+      streak: 1,
+      verdict: "candidate",
+      threshold: 0.83,
+    });
+
+    await waitFor(() => expect(calibrateFn).toHaveBeenCalledTimes(1));
+    expect(calibrateFn).toHaveBeenCalledWith("tok", VEC, 5);
   });
 });
