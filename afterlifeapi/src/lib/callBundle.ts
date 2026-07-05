@@ -28,7 +28,10 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
   const v_5ed063 = v_24564b({ l1: v_56dc8c(v_020b4b), l2: v_1af19b });
 
   v_5ed063.displayName = v_eb25ce.name;
-  if (v_eb25ce.relation != null) v_5ed063.relation = v_eb25ce.relation;
+
+  if (v_eb25ce.relation != null && (v_5ed063.relation == null || v_5ed063.relation === "")) {
+    v_5ed063.relation = v_eb25ce.relation;
+  }
 
   const v_ba0fde = v_445ba7(v_b6c480, v_5ed063, v_6e0fd3);
 

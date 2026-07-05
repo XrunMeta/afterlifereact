@@ -31,7 +31,8 @@ v_469bf2("loadUserL2 (clone_ont)", () => {
     v_4d37e3(v_0dee75?.relationship).toBe("친구");
 
     v_4d37e3((v_0dee75 as Record<string, unknown>)?.address).toBeUndefined();
-    v_4d37e3((v_0dee75 as Record<string, unknown>)?.memories_personal).toBeUndefined();
+
+    v_4d37e3((v_0dee75 as Record<string, unknown>)?.memories_personal).toEqual(["x"]);
 
     const v_e02ad3 = await v_20b0e8(v_a1651b(), 9043, 200);
     v_4d37e3(v_e02ad3).toBeNull();
@@ -87,7 +88,7 @@ v_469bf2("loadUserL2 (clone_ont)", () => {
     v_4d37e3(v_ef6bb1.personaBundle.persona.memory_summary).toBe("200의 기억");
   });
 
-  v_23805a("4필드 모두 없으면 null 반환", async () => {
+  v_23805a("L2 소비 필드(구 4필드+학습 3키)가 모두 없으면 null 반환", async () => {
     await v_a1651b()
       .prepare(
         "INSERT INTO clone_ont (clone_id, user_id, data, updated_at) VALUES (?, ?, ?, unixepoch())"
