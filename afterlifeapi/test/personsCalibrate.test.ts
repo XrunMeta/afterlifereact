@@ -184,6 +184,111 @@ describe("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
   });
 });
 
+describe("GET /oth-path (폴링 조회 — Task 2)", () => {
+
+  async function get(tok: string, qs = "") {
+    return SELF.fetch(`http://localhost/oth-path${qs}`, {
+      headers: { Authorization: `Bearer ${tok}` },
+    });
+  }
+
+  it("자기 userId 샘플만, since 커서 동작", async () => {
+    const u1 = await seedUser("calibrate-samples-u1@test.local");
+    const u2 = await seedUser("calibrate-samples-u2@test.local");
+    const tok1 = await issueAccessToken(u1);
+
+    await db()
+      .prepare(
+        `INSERT INTO face_calibrate_samples
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, 'p1', 0.9, 0.83, '[{"personId":"p1","score":0.9}]', 1),
+                (?, NULL, NULL, 0.4, 0.83, '[]', 2),
+                (?, NULL, 'p9', 0.8, 0.83, '[]', 3)`
+      )
+      .bind(String(u1), String(u1), String(u2))
+      .run();
+
+    const res = await get(tok1);
+    expect(res.status).toBe(200);
+    const j = await res.json<{
+      samples: { id: number; matchedId: string | null }[];
+      nextSince: number;
+    }>();
+    expect(j.samples.length).toBe(2);
+    expect(j.samples.every((s) => s.matchedId !== "p9")).toBe(true); 
+
+    const res2 = await get(tok1, `?since=${j.samples[0].id}`);
+    expect(res2.status).toBe(200);
+    const j2 = await res2.json<{ samples: unknown[] }>();
+    expect(j2.samples.length).toBe(1);
+  });
+
+  it("scores_json을 파싱해 scores 배열/필드 매핑으로 반환한다", async () => {
+    const u = await seedUser("calibrate-samples-scores@test.local");
+    const tok = await issueAccessToken(u);
+    await db()
+      .prepare(
+        `INSERT INTO face_calibrate_samples
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, 'p1', 'p1', 0.92, 0.83, '[{"personId":"p1","score":0.92},{"personId":"p2","score":0.3}]', 10)`
+      )
+      .bind(String(u))
+      .run();
+
+    const res = await get(tok);
+    expect(res.status).toBe(200);
+    const j = await res.json<{
+      samples: {
+        id: number;
+        ts: number;
+        groundTruthPersonId: string | null;
+        matchedId: string | null;
+        bestScore: number;
+        threshold: number;
+        scores: { personId: string; score: number }[];
+      }[];
+    }>();
+    expect(j.samples.length).toBe(1);
+    const s = j.samples[0];
+    expect(s.ts).toBe(10);
+    expect(s.groundTruthPersonId).toBe("p1");
+    expect(s.matchedId).toBe("p1");
+    expect(s.bestScore).toBe(0.92);
+    expect(s.threshold).toBe(0.83);
+    expect(s.scores).toEqual([
+      { personId: "p1", score: 0.92 },
+      { personId: "p2", score: 0.3 },
+    ]);
+  });
+
+  it("limit 파라미터가 페이지 크기를 제한하고 nextSince를 갱신한다", async () => {
+    const u = await seedUser("calibrate-samples-limit@test.local");
+    const tok = await issueAccessToken(u);
+    await db()
+      .prepare(
+        `INSERT INTO face_calibrate_samples
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, NULL, 0.1, 0.83, '[]', 100),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 101),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 102)`
+      )
+      .bind(String(u), String(u), String(u))
+      .run();
+
+    const res = await get(tok, "?limit=2");
+    expect(res.status).toBe(200);
+    const j = await res.json<{ samples: { id: number }[]; nextSince: number }>();
+    expect(j.samples.length).toBe(2);
+    expect(j.nextSince).toBe(j.samples[1].id);
+  });
+
+  it("인증 없이 호출 → 401", async () => {
+    const res = await SELF.fetch("http://localhost/oth-path");
+    expect(res.status).toBe(401);
+  });
+
+});
+
 describe("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(off→404 회귀 방지)", () => {
   it("[vars]·[env.preview.vars]·[env.production.vars] 전부 \"0\"이어야 한다", async () => {
 

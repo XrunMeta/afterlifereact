@@ -176,6 +176,40 @@ persons.post("/calibrate", requireAuth, async (c) => {
   return c.json({ id, matchedId, bestScore, threshold, scoreCount: scores.length });
 });
 
+persons.get("/calibrate/samples", requireAuth, async (c) => {
+  if (!isFaceCalibrateEnabled(c.env)) return c.notFound();
+  const userId = c.get("userId")!;
+  const since = Number(c.req.query("since") ?? "0") || 0;
+  const limit = Math.min(Math.max(Number(c.req.query("limit") ?? "100") || 100, 1), 200);
+  const { results } = await c.env.DB.prepare(
+    `SELECT id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at
+     FROM face_calibrate_samples WHERE user_id = ? AND id > ? ORDER BY id ASC LIMIT ?`
+  )
+
+    .bind(String(userId), since, limit)
+    .all<{
+      id: number;
+      ground_truth_person_id: string | null;
+      matched_person_id: string | null;
+      best_score: number;
+      threshold: number;
+      scores_json: string;
+      created_at: number;
+    }>();
+  const samples = results.map((r) => ({
+    id: r.id,
+    ts: r.created_at,
+    groundTruthPersonId: r.ground_truth_person_id,
+    matchedId: r.matched_person_id,
+    bestScore: r.best_score,
+    threshold: r.threshold,
+    scores: JSON.parse(r.scores_json) as { personId: string; score: number }[],
+  }));
+  const lastSample = samples[samples.length - 1];
+  const nextSince = lastSample ? lastSample.id : since;
+  return c.json({ samples, nextSince });
+});
+
 persons.post("/:id/consent", requireAuth, async (c) => {
   const personId = parsePersonId(c);
   const userId = c.get("userId")!;
