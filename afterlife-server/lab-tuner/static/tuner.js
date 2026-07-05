@@ -229,12 +229,13 @@ function v_409b14() {
   const v_0b0398 = document.getElementById('conn-status');
   if (!v_32dc97 || v_32dc97.readyState !== 'open') {
     v_0b0398.textContent = `say 불가 — dc:${v_32dc97 ? v_32dc97.readyState : '없음'}(연결/개통 대기)`;
-    return;
+    return false;
   }
   v_32dc97.send(JSON.stringify({type:'say', text:v_8d41d7, seq:Date.now()}));
   v_0b0398.textContent = `say 전송됨: "${v_8d41d7.slice(0, 20)}"`;
   v_201831 = v_8d41d7.slice(0, 20);
   v_5af772();
+  return true;
 }
 
 function v_e1242b() {
@@ -312,7 +313,7 @@ async function v_3e5dbc() {
     v_d91d98 += '<b>라이브 반영될 변경:</b><ul>';
 
     for (const v_9e86fd of v_1e6eca) {
-      v_d91d98 += `<li>${v_8fd199(v_9e86fd.env ?? '')} = ${v_8fd199(v_9e86fd.new ?? v_9e86fd.value ?? '')}`+
+      v_d91d98 += `<li>${v_8fd199(v_9e86fd.env ?? '')} = ${v_8fd199(v_9e86fd.new ?? '')}`+
         `${v_9e86fd.container ? ' <span class="chip chip-drift">컨테이너(별도 반영 필요)</span>' : ''}</li>`;
     }
     v_d91d98 += '</ul><button id="promote-go" class="primary">확인·적용</button> '+
@@ -336,7 +337,12 @@ async function v_150d46() {
     const v_cb35cb = await fetch('/promote/apply', {method:'POST', headers: v_3f4675, body: JSON.stringify({confirm: true})});
     if (v_cb35cb.status === 401 || v_cb35cb.status === 403) {
       v_e926e3.innerHTML = '<i>인증 실패 — LAB_TUNER_TOKEN 확인</i>'; return; }
-    const v_d5dda0 = await v_cb35cb.json();
+    let v_d5dda0 = {};
+    try { v_d5dda0 = await v_cb35cb.json(); } catch (v_37eab7) {  }
+    if (!v_cb35cb.ok) {
+      v_e926e3.innerHTML = '<i>실패: ' + v_8fd199(v_d5dda0.error || (v_cb35cb.status + ' 오류')) + '</i>';
+      return;
+    }
     v_e926e3.innerHTML = `<div>적용됨: ${v_8fd199(JSON.stringify(v_d5dda0).slice(0,200))}</div>`;
     document.getElementById('promote-token').style.display = 'none';
     await v_187e1c();
@@ -349,8 +355,9 @@ document.getElementById('say-btn').onclick = v_409b14;
 document.getElementById('say-input').addEventListener('keydown', (v_9e86fd) => {
   if (v_9e86fd.key === 'Enter' && !v_9e86fd.isComposing) {   
     v_9e86fd.preventDefault();
-    v_409b14();
-    v_9e86fd.target.value = '';                        
+    if (v_409b14()) {                            
+      v_9e86fd.target.value = '';                      
+    }
   }
 });
 document.getElementById('refresh-runs').onclick = v_315473;

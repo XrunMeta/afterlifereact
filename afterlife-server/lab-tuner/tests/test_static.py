@@ -176,3 +176,26 @@ def test_js_no_browser_modals():
     assert "alert(" not in js
     assert "confirm(" not in js
     assert "prompt(" not in js
+
+
+# ---------------------------------------------------------------------------
+# T-114 최종리뷰 fix: promote 비-2xx 정직표기 + Enter 성공시만 클리어
+# ---------------------------------------------------------------------------
+
+def test_js_promote_apply_handles_non_2xx():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 401/403 외 비-2xx(예: 400 화이트리스트 위반)도 실패로 정직하게 표기해야 함.
+    assert "!r.ok" in js
+    # 서버가 절대 안 주는 e.value 폴백(dead code)은 제거되어야 함.
+    assert "e.value" not in js
+
+
+def test_js_send_say_returns_boolean_and_gates_clear():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # sendSay가 전송 성공 여부를 boolean으로 반환.
+    assert "return true" in js
+    assert "return false" in js
+    # Enter 클리어는 sendSay() 성공 시에만 수행(dc 미개통 시 입력 유실 방지).
+    assert "if (sendSay())" in js
