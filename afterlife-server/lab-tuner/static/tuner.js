@@ -9,6 +9,22 @@ function v_8fd199(v_fd5f43) {
 
 let v_2ca7e0 = null;
 
+let v_201831 = '-', v_85930b = 0, v_bd0622 = false;
+
+function v_5af772() {
+  const v_187b90 = (typeof v_12cd99 !== 'undefined' && v_12cd99) ? v_12cd99.connectionState : '-';
+  const v_1fe690 = (typeof v_32dc97 !== 'undefined' && v_32dc97) ? v_32dc97.readyState : '-';
+  const v_f4678b = (v_abacaa) => `<span style="color:${v_abacaa ? 'var(--green)' : 'var(--text-dim)'}">●</span>`;
+  const v_18b8bf = [
+    [v_f4678b(v_187b90 === 'connected'), '연결', `pc:${v_187b90} · dc:${v_1fe690}`],
+    [v_f4678b(!v_bd0622), '라이브', v_bd0622 ? '통화중(대기)' : 'idle'],
+    [v_f4678b(v_201831 !== '-'), '마지막 say', v_201831],
+    [v_f4678b(v_85930b > 0), '적용 knob', String(v_85930b)],
+  ];
+  document.getElementById('metrics-out').innerHTML =
+    v_18b8bf.map(([v_1614db, v_0eb677, v_81e2ef]) => `<div class="meter-row">${v_1614db} <b>${v_0eb677}</b> <span>${v_8fd199(v_81e2ef)}</span></div>`).join('');
+}
+
 const v_81f9b1 = new Set(
   ["temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"]);
 
@@ -82,6 +98,7 @@ async function v_1857f4() {
   v_12cd99.ontrack = (v_9e86fd) => { document.getElementById('clone-video').srcObject = v_9e86fd.streams[0]; };
   v_12cd99.onconnectionstatechange = () => {
     v_0b0398.textContent = `pc:${v_12cd99.connectionState} · dc:${v_32dc97 ? v_32dc97.readyState : '-'}`;
+    v_5af772();
   };
   v_32dc97 = v_12cd99.createDataChannel('control');
 
@@ -89,8 +106,9 @@ async function v_1857f4() {
     document.getElementById('say-input').disabled = false;
     document.getElementById('say-btn').disabled = false;
     v_0b0398.textContent = '✅ dc open — say 가능';
+    v_5af772();
   };
-  v_32dc97.onclose = () => { v_0b0398.textContent = 'dc closed'; };
+  v_32dc97.onclose = () => { v_0b0398.textContent = 'dc closed'; v_5af772(); };
   v_32dc97.onerror = () => { v_0b0398.textContent = 'dc error'; };
   v_32dc97.onmessage = (v_9e86fd) => {
     try { const v_35f85c = JSON.parse(v_9e86fd.data); v_0b0398.textContent = `dc open · ${v_35f85c.type || ''}`; } catch (v_37eab7) {}
@@ -202,6 +220,8 @@ async function v_9a2a8d() {
   });
   await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(v_4628fe)});
+  v_85930b = Object.values(v_4628fe).reduce((v_f4e98d, v_b6c474) => v_f4e98d + Object.keys(v_b6c474).length, 0);
+  v_5af772();
 }
 
 function v_409b14() {
@@ -213,11 +233,13 @@ function v_409b14() {
   }
   v_32dc97.send(JSON.stringify({type:'say', text:v_8d41d7, seq:Date.now()}));
   v_0b0398.textContent = `say 전송됨: "${v_8d41d7.slice(0, 20)}"`;
+  v_201831 = v_8d41d7.slice(0, 20);
+  v_5af772();
 }
 
 function v_e1242b() {
   const v_9ba48b = new EventSource('/metrics');
-  v_9ba48b.onmessage = (v_9e86fd) => { document.getElementById('metrics-out').textContent = v_9e86fd.data; };
+  v_9ba48b.onmessage = () => { v_5af772(); };
 }
 
 async function v_4deb94() {
@@ -225,6 +247,8 @@ async function v_4deb94() {
     const v_cb35cb = await fetch('/live-status');
     const v_9390e8 = await v_cb35cb.json();
     document.getElementById('live-banner').style.display = v_9390e8.busy ? 'block' : 'none';
+    v_bd0622 = !!v_9390e8.busy;
+    v_5af772();
   } catch (v_9e86fd) {
 
   }
@@ -291,5 +315,6 @@ document.getElementById('login-btn').onclick = v_182fdb;
 document.getElementById('connect-btn').onclick = v_1857f4;
 
 v_858a0a(); v_e1242b(); v_315473(); v_187e1c();
+v_5af772();
 v_4deb94();
 setInterval(v_4deb94, 3000);
