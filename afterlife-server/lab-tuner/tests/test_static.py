@@ -49,3 +49,12 @@ def test_js_has_dialogue_restart_note():
         js = f.read()
     # el S6 RISK: system_override/min_len/force_flush는 다음 접속부터 반영됨을 UI에 명시.
     assert "다음 접속부터 반영" in js
+
+
+def test_tuner_js_renders_typed_controls():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 메타 fetch 및 타입 분기 존재(회귀 가드) — bool/enum은 select, D5(현재값 미리 선택)
+    assert "/knobs/meta" in js
+    assert "createElement('select')" in js or 'createElement("select")' in js
+    assert "reflow" in js

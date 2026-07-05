@@ -1,8 +1,6 @@
 
 let pc, dc;
 
-const DIALOGUE_RESTART_FIELDS = new Set(["system_override", "min_len", "force_flush"]);
-
 async function connect() {
   pc = new RTCPeerConnection();
   pc.addTransceiver('video', {direction: 'recvonly'});
@@ -17,18 +15,52 @@ async function connect() {
   await pc.setRemoteDescription(ans);
 }
 
+const REFLOW_NOTE = {
+  next_call: '다음 통화부터', container: '컨테이너 재기동', session: '다음 접속부터',
+};
+
 async function loadKnobs() {
-  const k = await (await fetch('/knobs')).json();
-  const box = document.getElementById('knob-fields'); box.innerHTML='';
+  const [k, metaResp] = await Promise.all([
+    (await fetch('/knobs')).json(),
+    (await fetch('/knobs/meta')).json(),
+  ]);
+  const meta = metaResp.meta || {};
+  const box = document.getElementById('knob-fields'); box.innerHTML = '';
   for (const [section, vals] of Object.entries(k)) {
     const fs = document.createElement('fieldset');
-    fs.innerHTML = `<legend>${section}</legend>`;
+    const lg = document.createElement('legend'); lg.textContent = section; fs.appendChild(lg);
     for (const [key, val] of Object.entries(vals)) {
-      const id = `k_${section}_${key}`;
-      const restartNote = (section === 'dialogue' && DIALOGUE_RESTART_FIELDS.has(key))
-        ? `<span class="note">다음 접속부터 반영</span>` : '';
-      fs.innerHTML += `<div class="knob"><label>${key}${restartNote}</label>`+
-        `<input id="${id}" value="${val==null?'':val}" data-s="${section}" data-k="${key}"></div>`;
+      const path = `${section}.${key}`;
+      const m = meta[path] || {type: 'string', reflow: 'next_call'};
+      const wrap = document.createElement('div'); wrap.className = 'knob';
+      const label = document.createElement('label');
+      label.textContent = m.label || key;
+      const note = REFLOW_NOTE[m.reflow];
+      if (note) { const s = document.createElement('span'); s.className = 'note'; s.textContent = note; label.appendChild(s); }
+      wrap.appendChild(label);
+      let ctrl;
+      if (m.type === 'bool') {
+        ctrl = document.createElement('select');
+        for (const opt of ['true', 'false']) {
+          const o = document.createElement('option'); o.value = opt; o.textContent = opt;
+          if (String(val) === opt) o.selected = true;   
+          ctrl.appendChild(o);
+        }
+      } else if (m.type === 'enum') {
+        ctrl = document.createElement('select');
+        for (const opt of (m.choices || [])) {
+          const o = document.createElement('option'); o.value = opt; o.textContent = opt;
+          if (String(val) === opt) o.selected = true;   
+          ctrl.appendChild(o);
+        }
+      } else {
+        ctrl = document.createElement('input');
+        ctrl.value = (val == null ? '' : val);
+      }
+      ctrl.id = `k_${section}_${key}`;
+      ctrl.dataset.s = section; ctrl.dataset.k = key;
+      wrap.appendChild(ctrl);
+      fs.appendChild(wrap);
     }
     box.appendChild(fs);
   }
@@ -36,7 +68,7 @@ async function loadKnobs() {
 
 async function applyKnobs() {
   const partial = {};
-  document.querySelectorAll('#knob-fields input').forEach(inp => {
+  document.querySelectorAll('#knob-fields input, #knob-fields select').forEach(inp => {
     const s = inp.dataset.s, k = inp.dataset.k; let v = inp.value;
     if (v === '') return;
     if (v === 'true') v = true; else if (v === 'false') v = false;
