@@ -6,6 +6,8 @@ import re
 import shutil
 from datetime import datetime, timedelta, timezone
 
+from knobs import KNOB_META
+
 _KST = timezone(timedelta(hours=9))
 
 # knob 경로 → 라이브 위치. drop-in conf는 systemd override(EnvironmentFile 또는 Environment).
@@ -20,7 +22,12 @@ KNOB_TO_LIVE = {
     "transport.idle_grace_sec": {"env": "IDLE_GRACE_SEC", "file": _PRETHIRD_DROPIN},
     "transport.width": {"env": "PRETHIRD_WIDTH", "file": _PRETHIRD_DROPIN},
     "transport.height": {"env": "PRETHIRD_HEIGHT", "file": _PRETHIRD_DROPIN},
+    "transport.idle_source_mode": {"env": "IDLE_SOURCE_MODE", "file": _PRETHIRD_DROPIN},
     "filler.enabled": {"env": "PRETHIRD_FILLER", "file": _PRETHIRD_DROPIN},
+    "filler.lookahead_sec": {"env": "FILLER_LOOKAHEAD_SEC", "file": _PRETHIRD_DROPIN},
+    "filler.blend_frames": {"env": "PRETHIRD_IDLE_BLEND_FRAMES", "file": _PRETHIRD_DROPIN},
+    "filler.idle_prebake": {"env": "FIFTH_IDLE_PREBAKE", "file": _PRETHIRD_DROPIN},
+    "filler.order": {"env": "PRETHIRD_FILLER_ORDER", "file": _PRETHIRD_DROPIN},
     # engine-baked (fifth 컨테이너): 경고 동반
     # fifth idle(per-request이나 라이브 기본값도 갱신 가능) + cfg(startup-baked). 전부 fifth 렌더 env(컨테이너).
     "fifth.idle_motion_scale": {"env": "FIFTH_IDLE_MOTION_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
@@ -29,6 +36,7 @@ KNOB_TO_LIVE = {
     "fifth.head_slew_frames": {"env": "FIFTH_HEAD_SLEW_FRAMES", "file": _FIFTH_ENV_NOTE, "container": True},
     "fifth.cfg_scale": {"env": "FIFTH_CFG_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},
     "fifth.driving_multiplier": {"env": "FIFTH_DRIVING_MULTIPLIER", "file": _FIFTH_ENV_NOTE, "container": True},
+    "fifth.render_mode": {"env": "FIFTH_RENDER_MODE", "file": _FIFTH_ENV_NOTE, "container": True},
 }
 
 
@@ -62,6 +70,21 @@ def _knob_value(knobs, path):
     return getattr(getattr(knobs, section), key)
 
 
+def _validate_enum(path, value) -> None:
+    """enum 노브(KNOB_META[path]["type"] == "enum")의 값이 choices 밖이면 거부.
+
+    T-111 Task 6: _SAFE_ENV_VAL(문자셋 화이트리스트) 위의 2차 방어 — 임의
+    문자열이 화이트리스트 문자셋(영숫자·`_./: -`)만 지켜도 enum 노브(예:
+    tts.engine)에는 정의되지 않은 값(예: "evilengine")으로 유입될 수 있다.
+    choices 밖 값은 라이브 env 매핑 여부와 무관하게 즉시 거부한다.
+    """
+    meta = KNOB_META.get(path)
+    if meta and meta.get("type") == "enum":
+        choices = meta.get("choices") or []
+        if str(value) not in choices:
+            raise UnsafeEnvValueError(f"enum {path} 허용 외 값: {value!r} (choices={choices})")
+
+
 def _fmt(v):
     if v is None:
         return ""   # el BLOCKER 2: None → 리터럴 "None" 생성 방지
@@ -81,6 +104,22 @@ def diff(knobs, read_env_fn, dirty: set | None = None) -> list:
         (레거시 동작 — 기존 단위테스트 호환).
       - knob 값이 None이면(예: dialogue.model 미설정) 아예 스킵(promote 후보에서 제외).
     """
+    # T-111 Task 6: enum 노브 검증 — KNOB_TO_LIVE에 아직 라이브 매핑이 없는
+    # 노브(예: tts.engine, 현재는 PRETHIRD_TTS_URL 스왑으로 운영)도 포함해
+    # 검사한다. 검증 대상은 KNOB_TO_LIVE 루프와 무관하게 dirty(또는 dirty가
+    # None이면 KNOB_META 전체)로 정한다 — "이번에 실제로 건드린(또는 전체)
+    # 노브"의 값이 choices 밖이면 라이브에 실려나가는지 여부와 상관없이 즉시
+    # 거부(자유 문자열이 향후 매핑되거나 다른 소비처로 흘러가는 경로 차단).
+    enum_scope = dirty if dirty is not None else KNOB_META.keys()
+    for path in enum_scope:
+        meta = KNOB_META.get(path)
+        if not meta or meta.get("type") != "enum":
+            continue
+        val = _knob_value(knobs, path)
+        if val is None:
+            continue
+        _validate_enum(path, _fmt(val))
+
     out = []
     for path, loc in KNOB_TO_LIVE.items():
         if dirty is not None and path not in dirty:
@@ -89,6 +128,7 @@ def diff(knobs, read_env_fn, dirty: set | None = None) -> list:
         if val is None:
             continue
         new = _fmt(val)
+        _validate_enum(path, new)
         cur = read_env_fn(loc["env"])
         if new != cur:
             out.append({"key": path, "env": loc["env"], "current": cur,

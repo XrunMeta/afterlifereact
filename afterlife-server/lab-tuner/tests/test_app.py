@@ -30,6 +30,24 @@ async def test_knobs_get_post(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_knobs_meta_endpoint(tmp_path):
+    r = KnobsRegistry()
+    store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application))
+    await client.start_server()
+    try:
+        resp = await client.get("/knobs/meta")
+        assert resp.status == 200
+        body = await resp.json()
+        assert "meta" in body
+        assert body["meta"]["filler.enabled"]["type"] == "bool"
+        assert body["meta"]["tts.engine"]["choices"] == ["openvoice", "qwen"]
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
 async def test_runs_list_endpoint(tmp_path):
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
     rid1 = store.new_run(); rid2 = store.new_run(); store.pin(rid1)

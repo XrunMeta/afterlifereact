@@ -261,3 +261,37 @@ def test_restore_file_rejects_bad_filename_format(tmp_path):
     bad.write_text("x")
     with pytest.raises(ValueError):
         promote.restore_file(str(bad), allowed_root=str(tmp_path))
+
+
+# ---------------------------------------------------------------------------
+# T-111 Task 6: enum choices 서버 검증 — _SAFE_ENV_VAL 위의 2차 방어.
+# tts.engine 은 KNOB_TO_LIVE 에 아직 라이브 매핑이 없다(engine 전환은 현재
+# PRETHIRD_TTS_URL 스왑으로 운영). 그래도 diff()는 dirty로 넘어온 enum 노브의
+# 값이 choices 밖이면 라이브 매핑 여부와 무관하게 즉시 거부해야 한다
+# (자유 문자열이 나중에 매핑되거나 다른 소비처로 흘러가는 것을 막는 방어선).
+# ---------------------------------------------------------------------------
+
+def test_enum_value_outside_choices_rejected():
+    # tts.engine 은 enum(openvoice|qwen). 임의 값은 거부.
+    knobs = RunKnobs.from_dict({"tts": {"engine": "evilengine"}})
+    import pytest
+    with pytest.raises(promote.UnsafeEnvValueError):
+        promote.diff(knobs, lambda _n: "", dirty={"tts.engine"})
+
+
+def test_enum_value_within_choices_ok():
+    # tts.engine 의 실제 env 매핑은 KNOB_TO_LIVE 에 없음(T-111 시점) — enum
+    # 검증만 통과하면 diff는 조용히 빈 리스트를 반환(promote 후보 없음).
+    knobs = RunKnobs.from_dict({"tts": {"engine": "qwen"}})
+    entries = promote.diff(knobs, lambda _n: "openvoice", dirty={"tts.engine"})
+    assert any(e["env"] == "PRETHIRD_TTS_URL" or e["key"] == "tts.engine" for e in entries) or entries == []
+
+
+# ---------------------------------------------------------------------------
+# T-111 Task 12: render_mode 노브 — fifth 컨테이너 env(container_warning 분류).
+# ---------------------------------------------------------------------------
+
+def test_render_mode_is_container_warning():
+    knobs = RunKnobs.from_dict({"fifth": {"render_mode": "batch"}})
+    entries = promote.diff(knobs, lambda _n: "partial", dirty={"fifth.render_mode"})
+    assert entries and entries[0]["container"] is True
