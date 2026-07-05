@@ -67,3 +67,12 @@ def test_filler_extended_from_env(monkeypatch):
     assert k.filler.lookahead_sec == 1.5
     assert k.filler.blend_frames == 8
     assert k.filler.idle_prebake is False
+
+def test_idle_source_mode_from_env(monkeypatch):
+    monkeypatch.setenv("IDLE_SOURCE_MODE", "prebake")
+    from knobs import RunKnobs
+    assert RunKnobs.from_env().transport.idle_source_mode == "prebake"
+
+def test_idle_source_mode_default_auto():
+    from knobs import RunKnobs
+    assert RunKnobs().transport.idle_source_mode == "auto"
