@@ -121,42 +121,69 @@ async function loadKnobs() {
   const meta = metaResp.meta || {};
   const box = document.getElementById('knob-fields'); box.innerHTML = '';
   for (const [section, vals] of Object.entries(k)) {
-    const fs = document.createElement('fieldset');
-    const lg = document.createElement('legend'); lg.textContent = section; fs.appendChild(lg);
+    const ch = document.createElement('div'); ch.className = 'channel';
+    const title = document.createElement('div'); title.className = 'panel-title';
+    title.textContent = section; ch.appendChild(title);
     for (const [key, val] of Object.entries(vals)) {
       const path = `${section}.${key}`;
       const m = meta[path] || {type: 'string', reflow: 'next_call'};
-      const wrap = document.createElement('div'); wrap.className = 'knob';
-      const label = document.createElement('label');
-      label.textContent = m.label || key;
+      const row = document.createElement('div'); row.className = 'knob-row';
+      const label = document.createElement('label'); label.textContent = m.label || key;
       const note = REFLOW_NOTE[m.reflow];
-      if (note) { const s = document.createElement('span'); s.className = 'note'; s.textContent = note; label.appendChild(s); }
-      wrap.appendChild(label);
+      if (note) { const s = document.createElement('span'); s.className = 'reflow-chip'; s.textContent = note; label.appendChild(s); }
+      row.appendChild(label);
       let ctrl;
-      if (m.type === 'bool') {
-        ctrl = document.createElement('select');
+      if (m.type === 'bool') {                     
+        ctrl = document.createElement('select'); ctrl.className = 'knob-toggle';
         for (const opt of ['true', 'false']) {
           const o = document.createElement('option'); o.value = opt; o.textContent = opt;
-          if (String(val) === opt) o.selected = true;   
-          ctrl.appendChild(o);
+          if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
         }
-      } else if (m.type === 'enum') {
-        ctrl = document.createElement('select');
+      } else if (m.type === 'enum') {              
+        ctrl = document.createElement('select'); ctrl.className = 'knob-seg';
         for (const opt of (m.choices || [])) {
           const o = document.createElement('option'); o.value = opt; o.textContent = opt;
-          if (String(val) === opt) o.selected = true;   
-          ctrl.appendChild(o);
+          if (String(val) === opt) o.selected = true; ctrl.appendChild(o);
         }
-      } else {
+      } else {                                     
         ctrl = document.createElement('input');
         ctrl.value = (val == null ? '' : val);
       }
       ctrl.id = `k_${section}_${key}`;
       ctrl.dataset.s = section; ctrl.dataset.k = key;
-      wrap.appendChild(ctrl);
-      fs.appendChild(wrap);
+      if (m.type === 'number') {                   
+        const wrap = document.createElement('div'); wrap.className = 'stepper';
+        const step = (String(val).includes('.') ? 0.05 : 1);
+        ctrl.dataset.step = String(step);
+        const down = document.createElement('button'); down.type='button';
+        down.className = 'step-down'; down.textContent = '▼';
+        const up = document.createElement('button'); up.type='button';
+        up.className = 'step-up'; up.textContent = '▲';
+        const bump = (d) => { const cur = Number(String(ctrl.value).replace(',', '.')) || 0;
+          ctrl.value = (Math.round((cur + d*step)*1000)/1000); };
+        down.onclick = () => bump(-1); up.onclick = () => bump(1);
+        wrap.appendChild(down); wrap.appendChild(ctrl); wrap.appendChild(up);
+        row.appendChild(wrap);
+      } else {
+        row.appendChild(ctrl);
+      }
+      ch.appendChild(row);
     }
-    box.appendChild(fs);
+    box.appendChild(ch);
+  }
+  refreshTtsDim();
+  document.getElementById('k_tts_engine')?.addEventListener('change', refreshTtsDim);
+}
+
+function refreshTtsDim() {
+  const eng = document.getElementById('k_tts_engine');
+  const isOv = eng && eng.value === 'openvoice';
+  for (const field of TTS_QWEN_ONLY_FIELDS) {
+    const el = document.getElementById(`k_tts_${field}`);
+    if (!el) continue;
+    const row = el.closest('.knob-row');
+    if (row) { row.classList.toggle('knob-dim', !!isOv);
+      row.title = isOv ? 'openvoice 엔진에선 무시됨(qwen 전용)' : ''; }
   }
 }
 
