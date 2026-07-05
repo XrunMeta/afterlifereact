@@ -22,6 +22,14 @@ VIDEO_REF_ROOT = os.environ.get(
 _START = time.time()
 log = logging.getLogger("prethird.signaling")
 _AVSYNC_LOG = os.environ.get("PRETHIRD_AVSYNC_LOG", "1") == "1"
+
+
+def _face_diag_on() -> bool:
+    """[T-067 Task 6] face 정상경로 관찰 계측 토글. personId만 로그(실명 미포함).
+
+    T-111: 개통 전 제거 대상(FACE_DIAG_LOG env·본 헬퍼·아래 face_diag log.info 5지점).
+    """
+    return os.environ.get("FACE_DIAG_LOG", "0") == "1"
 # fail-closed 안전장치: clone_id 지정 통화에서 bundle 조회 실패 시 halbae 폴백 차단.
 # "0" 이면 기존 폴백 동작 유지(롤백 안전장치).
 _STRICT_CLONE_BUNDLE = os.environ.get("PRETHIRD_STRICT_CLONE_BUNDLE", "1") == "1"
@@ -195,6 +203,11 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
         update = getattr(pipeline, "update_persona", None)
         if callable(update):
             update(new_messages)
+            if _face_diag_on():
+                log.info(
+                    "face_diag l2p_swapped session=%s person=%s",
+                    getattr(sess, "session_id", "?"), pid,
+                )
     except Exception as e:
         log.warning("session %s _maybe_swap_l2p failed: %s", getattr(sess, "session_id", "?"), e)
 
@@ -223,6 +236,12 @@ def _handle_face_event(sess, data: dict) -> None:
     pid = data.get("personId")
     name = data.get("displayName")
 
+    if _face_diag_on():
+        log.info(
+            "face_diag recv session=%s event=%s person=%s",
+            getattr(sess, "session_id", "?"), event, pid,
+        )
+
     pid_int = None
     if event == "speaker_confirmed":
         # pid 검증을 쿨다운 키 기록보다 먼저 — malformed 이벤트가 정상 personId의
@@ -246,12 +265,22 @@ def _handle_face_event(sess, data: dict) -> None:
         prev = sess.current_speaker
         if prev is None or prev[0] != pid_int:
             sess.current_speaker = (pid_int, name)
+            if _face_diag_on():
+                log.info(
+                    "face_diag speaker session=%s person=%s swap_scheduled=1",
+                    getattr(sess, "session_id", "?"), pid_int,
+                )
             asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name))
 
     key = str(pid_int) if event == "speaker_confirmed" else "unknown"
     now = time.monotonic()
     last = sess.reacted_keys.get(key)
     if last is not None and (key != "unknown" or now - last < REACT_COOLDOWN_S):
+        if _face_diag_on():
+            log.info(
+                "face_diag cooldown session=%s person=%s suppressed=1",
+                getattr(sess, "session_id", "?"), pid_int,
+            )
         return  # 아는 얼굴=통화당 1회, unknown/multi_face=60s 쿨다운 (react만 억제)
     sess.reacted_keys[key] = now
 
@@ -260,6 +289,12 @@ def _handle_face_event(sess, data: dict) -> None:
     else:  # unknown_face | multi_face
         sess.pending_enroll = True  # Task 11 이 소비
         kind, react_name = "unknown", None
+
+    if _face_diag_on():
+        log.info(
+            "face_diag react session=%s kind=%s person=%s",
+            getattr(sess, "session_id", "?"), kind, pid_int,
+        )
 
     lock = _get_busy_lock(sess)
 

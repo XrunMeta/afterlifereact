@@ -48,6 +48,8 @@ export interface Bindings {
 
   DEV_SECRET?: string;       
 
+  FACE_CALIBRATE_ENABLED?: string;
+
   PREBUILD_SECRET?: string;        
   PRETHIRD_PUBLIC_BASE?: string;   
 
