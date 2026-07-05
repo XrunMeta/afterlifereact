@@ -9,6 +9,22 @@ function escapeHtml(s) {
 
 let accessToken = null;
 
+let lastSay = '-', appliedKnobCount = 0, liveBusy = false;
+
+function renderMeter() {
+  const pcState = (typeof pc !== 'undefined' && pc) ? pc.connectionState : '-';
+  const dcState = (typeof dc !== 'undefined' && dc) ? dc.readyState : '-';
+  const led = (on) => `<span style="color:${on ? 'var(--green)' : 'var(--text-dim)'}">●</span>`;
+  const rows = [
+    [led(pcState === 'connected'), '연결', `pc:${pcState} · dc:${dcState}`],
+    [led(!liveBusy), '라이브', liveBusy ? '통화중(대기)' : 'idle'],
+    [led(lastSay !== '-'), '마지막 say', lastSay],
+    [led(appliedKnobCount > 0), '적용 knob', String(appliedKnobCount)],
+  ];
+  document.getElementById('metrics-out').innerHTML =
+    rows.map(([l, k, v]) => `<div class="meter-row">${l} <b>${k}</b> <span>${escapeHtml(v)}</span></div>`).join('');
+}
+
 const TTS_QWEN_ONLY_FIELDS = new Set(
   ["temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"]);
 
@@ -82,6 +98,7 @@ async function connect() {
   pc.ontrack = (e) => { document.getElementById('clone-video').srcObject = e.streams[0]; };
   pc.onconnectionstatechange = () => {
     cst.textContent = `pc:${pc.connectionState} · dc:${dc ? dc.readyState : '-'}`;
+    renderMeter();
   };
   dc = pc.createDataChannel('control');
 
@@ -89,8 +106,9 @@ async function connect() {
     document.getElementById('say-input').disabled = false;
     document.getElementById('say-btn').disabled = false;
     cst.textContent = '✅ dc open — say 가능';
+    renderMeter();
   };
-  dc.onclose = () => { cst.textContent = 'dc closed'; };
+  dc.onclose = () => { cst.textContent = 'dc closed'; renderMeter(); };
   dc.onerror = () => { cst.textContent = 'dc error'; };
   dc.onmessage = (e) => {
     try { const m = JSON.parse(e.data); cst.textContent = `dc open · ${m.type || ''}`; } catch (_) {}
@@ -202,6 +220,8 @@ async function applyKnobs() {
   });
   await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(partial)});
+  appliedKnobCount = Object.values(partial).reduce((n, o) => n + Object.keys(o).length, 0);
+  renderMeter();
 }
 
 function sendSay() {
@@ -213,11 +233,13 @@ function sendSay() {
   }
   dc.send(JSON.stringify({type:'say', text:t, seq:Date.now()}));
   cst.textContent = `say 전송됨: "${t.slice(0, 20)}"`;
+  lastSay = t.slice(0, 20);
+  renderMeter();
 }
 
 function startMetrics() {
   const es = new EventSource('/metrics');
-  es.onmessage = (e) => { document.getElementById('metrics-out').textContent = e.data; };
+  es.onmessage = () => { renderMeter(); };
 }
 
 async function pollLiveStatus() {
@@ -225,6 +247,8 @@ async function pollLiveStatus() {
     const r = await fetch('/live-status');
     const data = await r.json();
     document.getElementById('live-banner').style.display = data.busy ? 'block' : 'none';
+    liveBusy = !!data.busy;
+    renderMeter();
   } catch (e) {
 
   }
@@ -291,5 +315,6 @@ document.getElementById('login-btn').onclick = login;
 document.getElementById('connect-btn').onclick = connect;
 
 loadKnobs(); startMetrics(); loadRuns(); loadProdStatus();
+renderMeter();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);

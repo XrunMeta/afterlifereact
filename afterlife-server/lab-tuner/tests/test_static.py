@@ -147,3 +147,12 @@ def test_js_say_enter_to_send():
     assert "keydown" in js
     assert "'Enter'" in js or '"Enter"' in js
     assert "isComposing" in js
+
+
+def test_js_status_meter():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 죽은 SSE 대신 클라 실상태 미터 렌더.
+    assert "renderMeter" in js
+    # SSE 구독 계약은 유지.
+    assert "EventSource" in js and "/metrics" in js
