@@ -25,7 +25,10 @@ _AVSYNC_LOG = os.environ.get("PRETHIRD_AVSYNC_LOG", "1") == "1"
 
 
 def _face_diag_on() -> bool:
-    """[T-067 Task 6] face 정상경로 관찰 계측 토글. personId만 로그(실명 미포함)."""
+    """[T-067 Task 6] face 정상경로 관찰 계측 토글. personId만 로그(실명 미포함).
+
+    T-111: 개통 전 제거 대상(FACE_DIAG_LOG env·본 헬퍼·아래 face_diag log.info 5지점).
+    """
     return os.environ.get("FACE_DIAG_LOG", "0") == "1"
 # fail-closed 안전장치: clone_id 지정 통화에서 bundle 조회 실패 시 halbae 폴백 차단.
 # "0" 이면 기존 폴백 동작 유지(롤백 안전장치).
