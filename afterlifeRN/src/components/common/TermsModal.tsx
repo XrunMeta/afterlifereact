@@ -16,7 +16,7 @@ import { useTranslation } from "react-i18next";
 import { COLORS, RADIUS, SIZES } from "../constants";
 import { API_BASE } from "../../config/apiBase";
 
-export type AgreementType = 1 | 2 | 3 | 4;
+export type AgreementType = 1 | 2 | 3 | 4 | 5;
 
 type Props = {
   visible: boolean;
@@ -30,6 +30,7 @@ const AFTERLIFE_TYPE: Record<AgreementType, number | null> = {
   2: null,
   3: 2,
   4: null,
+  5: 5,
 };
 
 async function fetchAgreement(
@@ -62,6 +63,7 @@ const TITLE_KEYS: Record<AgreementType, string> = {
   2: "auth.signup.termsLocationTitle",
   3: "auth.signup.termsPrivacyTitle",
   4: "auth.signup.termsBiometricTitle",
+  5: "auth.signup.termsCallLearningTitle",
 };
 
 const TITLE_FALLBACK: Record<AgreementType, string> = {
@@ -69,6 +71,7 @@ const TITLE_FALLBACK: Record<AgreementType, string> = {
   2: "위치정보 약관",
   3: "개인정보 약관",
   4: "생체정보(얼굴) 처리 동의",
+  5: "통화 대화 학습 동의",
 };
 
 export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
@@ -129,9 +132,16 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
     defaultValue:
       "위치정보 이용에 대한 안내\n\n현재 본 앱은 위치정보를 수집·이용하지 않습니다. 추후 위치 기반 기능이 추가될 경우 별도로 동의를 받습니다.",
   });
-  const fallbackText = type === 4 ? faceFallbackText : locationFallbackText;
+
+  const callLearningFallbackText = t("auth.signup.termsCallLearningFallback", {
+    defaultValue:
+      "통화 대화 학습에 대한 안내\n\n동의하시면 클론이 통화 중 나눈 대화 내용을 학습해 더 자연스럽고 개인화된 대화를 제공합니다. 이 동의는 선택 사항이며, 설정 화면에서 언제든지 철회할 수 있습니다. 철회하면 이후 통화 대화만 학습에서 제외되며, 이미 학습된 내용은 삭제되지 않고 유지됩니다. (학습 데이터 삭제는 회원 탈퇴 또는 개인정보 완전 삭제 시 함께 처리됩니다.)",
+  });
+  const fallbackText =
+    type === 5 ? callLearningFallbackText :
+    type === 4 ? faceFallbackText : locationFallbackText;
   const useFallback =
-    (type === 2 || type === 4) && !loading && (!!error || !content.trim());
+    (type === 2 || type === 4 || type === 5) && !loading && (!!error || !content.trim());
 
   return (
     <Modal

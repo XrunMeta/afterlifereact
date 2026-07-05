@@ -257,8 +257,8 @@ describe("POST /oth-path", () => {
   async function seedCloneRow(cloneId: number, ownerId: number) {
 
     await (env as unknown as Bindings).DB.prepare(
-      `INSERT OR IGNORE INTO users (id, email, password_hash, name, created_at)
-       VALUES (?, ?, 'x', 'TestUser', CURRENT_TIMESTAMP)`,
+      `INSERT OR IGNORE INTO users (id, email, password_hash, name, created_at, call_learning_consent)
+       VALUES (?, ?, 'x', 'TestUser', CURRENT_TIMESTAMP, 1)`,
     ).bind(ownerId, `testuser${ownerId}@test.test`).run();
     await (env as unknown as Bindings).DB.prepare(
       `INSERT OR IGNORE INTO clones (id, owner_id, name, username, clone_type, visibility, created_at)
