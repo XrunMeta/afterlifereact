@@ -3,6 +3,7 @@ import logging, os
 from typing import Any
 from aiohttp import web
 import config
+from idle_policy import prebake_enabled
 from signaling import make_app
 
 log = logging.getLogger("prethird.server")
@@ -120,7 +121,7 @@ def _build_pipeline_factory():
             return renderer.infer(wav, cb, video_path=_src)
 
         # idle prebake: fifth 렌더러 + 정면사진 source일 때만 실행
-        if renderer_name == "fifth" and _src and _is_image_source(_src) and os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1":
+        if renderer_name == "fifth" and _src and _is_image_source(_src) and os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1" and prebake_enabled():
             from idle_prebake import start_prebake
             _tmp = os.environ.get("TMPDIR", "/tmp")
             start_prebake(renderer, _src, sess.video_track, wav_dir=_tmp)

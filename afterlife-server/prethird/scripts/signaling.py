@@ -9,6 +9,7 @@ from asset_fetch import fetch_to
 from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
 from recorder import make_recorder
+from idle_policy import clone_mp4_enabled
 
 REF_VOICES_ROOT = os.environ.get(
     "PRETHIRD_REF_VOICES_ROOT",
@@ -594,8 +595,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                         try:
                             await fetch_to(idle_url, dest)
                             sess.video_path = dest
-                            # idle 영상도 per-clone으로 교체
-                            sess.video_track.set_idle_video(dest)
+                            # idle 영상도 per-clone으로 교체 (IDLE_SOURCE_MODE 게이트, 기본 auto=현행)
+                            if clone_mp4_enabled():
+                                sess.video_track.set_idle_video(dest)
                             log.info("idle video pull OK clone=%s dest=%s", clone_id, dest)
                         except Exception as e:
                             log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
