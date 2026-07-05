@@ -1,6 +1,7 @@
 
 
 import type { Bindings } from './env';
+import { stripPii } from './piiFilter';
 
 export async function readCtx(env: Bindings, cloneId: number): Promise<string | null> {
   const cached = await env.KV_CTX.get(`ctx:${cloneId}`);
@@ -101,6 +102,8 @@ export async function updateOntFromExtraction(
   extracted: L2Extraction,
   source: "call" | "chat",
 ): Promise<{ rev: number; skipped: boolean }> {
+
+  extracted = stripPii(extracted);
   const hasPref =
     extracted.preference_personal != null &&
     Object.keys(extracted.preference_personal).length > 0;
@@ -231,6 +234,8 @@ export async function updateOntPersonFromExtraction(
   extracted: L2Extraction,
   source: "call" | "chat",
 ): Promise<{ rev: number; skipped: boolean }> {
+
+  extracted = stripPii(extracted);
   const hasPref =
     extracted.preference_personal != null &&
     Object.keys(extracted.preference_personal).length > 0;
