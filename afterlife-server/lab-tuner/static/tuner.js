@@ -229,12 +229,13 @@ function sendSay() {
   const cst = document.getElementById('conn-status');
   if (!dc || dc.readyState !== 'open') {
     cst.textContent = `say 불가 — dc:${dc ? dc.readyState : '없음'}(연결/개통 대기)`;
-    return;
+    return false;
   }
   dc.send(JSON.stringify({type:'say', text:t, seq:Date.now()}));
   cst.textContent = `say 전송됨: "${t.slice(0, 20)}"`;
   lastSay = t.slice(0, 20);
   renderMeter();
+  return true;
 }
 
 function startMetrics() {
@@ -312,7 +313,7 @@ async function promotePreview() {
     html += '<b>라이브 반영될 변경:</b><ul>';
 
     for (const e of entries) {
-      html += `<li>${escapeHtml(e.env ?? '')} = ${escapeHtml(e.new ?? e.value ?? '')}`+
+      html += `<li>${escapeHtml(e.env ?? '')} = ${escapeHtml(e.new ?? '')}`+
         `${e.container ? ' <span class="chip chip-drift">컨테이너(별도 반영 필요)</span>' : ''}</li>`;
     }
     html += '</ul><button id="promote-go" class="primary">확인·적용</button> '+
@@ -336,7 +337,12 @@ async function promoteApply() {
     const r = await fetch('/promote/apply', {method:'POST', headers, body: JSON.stringify({confirm: true})});
     if (r.status === 401 || r.status === 403) {
       cbox.innerHTML = '<i>인증 실패 — LAB_TUNER_TOKEN 확인</i>'; return; }
-    const d = await r.json();
+    let d = {};
+    try { d = await r.json(); } catch (_) {  }
+    if (!r.ok) {
+      cbox.innerHTML = '<i>실패: ' + escapeHtml(d.error || (r.status + ' 오류')) + '</i>';
+      return;
+    }
     cbox.innerHTML = `<div>적용됨: ${escapeHtml(JSON.stringify(d).slice(0,200))}</div>`;
     document.getElementById('promote-token').style.display = 'none';
     await loadProdStatus();
@@ -349,8 +355,9 @@ document.getElementById('say-btn').onclick = sendSay;
 document.getElementById('say-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.isComposing) {   
     e.preventDefault();
-    sendSay();
-    e.target.value = '';                        
+    if (sendSay()) {                            
+      e.target.value = '';                      
+    }
   }
 });
 document.getElementById('refresh-runs').onclick = loadRuns;
