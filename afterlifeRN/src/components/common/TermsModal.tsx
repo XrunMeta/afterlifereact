@@ -135,7 +135,7 @@ export default function TermsModal({ visible, type, onClose, onAgree }: Props) {
 
   const callLearningFallbackText = t("auth.signup.termsCallLearningFallback", {
     defaultValue:
-      "통화 대화 학습에 대한 안내\n\n동의하시면 클론이 통화 중 나눈 대화 내용을 학습해 더 자연스럽고 개인화된 대화를 제공합니다. 이 동의는 선택 사항이며, 설정 화면에서 언제든지 철회할 수 있습니다.",
+      "통화 대화 학습에 대한 안내\n\n동의하시면 클론이 통화 중 나눈 대화 내용을 학습해 더 자연스럽고 개인화된 대화를 제공합니다. 이 동의는 선택 사항이며, 설정 화면에서 언제든지 철회할 수 있습니다. 철회하면 이후 통화 대화만 학습에서 제외되며, 이미 학습된 내용은 삭제되지 않고 유지됩니다. (학습 데이터 삭제는 회원 탈퇴 또는 개인정보 완전 삭제 시 함께 처리됩니다.)",
   });
   const fallbackText =
     type === 5 ? callLearningFallbackText :
