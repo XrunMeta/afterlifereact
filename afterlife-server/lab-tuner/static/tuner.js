@@ -1,8 +1,6 @@
 
 let v_12cd99, v_32dc97;
 
-const v_f55fb5 = new Set(["system_override", "min_len", "force_flush"]);
-
 async function v_1857f4() {
   v_12cd99 = new RTCPeerConnection();
   v_12cd99.addTransceiver('video', {direction: 'recvonly'});
@@ -17,18 +15,52 @@ async function v_1857f4() {
   await v_12cd99.setRemoteDescription(v_7c0968);
 }
 
+const v_a7deb0 = {
+  next_call: '다음 통화부터', container: '컨테이너 재기동', session: '다음 접속부터',
+};
+
 async function v_858a0a() {
-  const v_0eb677 = await (await fetch('/knobs')).json();
-  const v_a38d42 = document.getElementById('knob-fields'); v_a38d42.innerHTML='';
+  const [v_0eb677, v_d8a3c2] = await Promise.all([
+    (await fetch('/knobs')).json(),
+    (await fetch('/knobs/meta')).json(),
+  ]);
+  const v_ab4c96 = v_d8a3c2.meta || {};
+  const v_a38d42 = document.getElementById('knob-fields'); v_a38d42.innerHTML = '';
   for (const [v_b4fa6c, v_3332db] of Object.entries(v_0eb677)) {
     const v_9d3c52 = document.createElement('fieldset');
-    v_9d3c52.innerHTML = `<legend>${v_b4fa6c}</legend>`;
+    const v_33d08f = document.createElement('legend'); v_33d08f.textContent = v_b4fa6c; v_9d3c52.appendChild(v_33d08f);
     for (const [v_b24339, v_a057b5] of Object.entries(v_3332db)) {
-      const v_389afb = `k_${v_b4fa6c}_${v_b24339}`;
-      const v_8421c2 = (v_b4fa6c === 'dialogue' && v_f55fb5.has(v_b24339))
-        ? `<span class="note">다음 접속부터 반영</span>` : '';
-      v_9d3c52.innerHTML += `<div class="knob"><label>${v_b24339}${v_8421c2}</label>`+
-        `<input id="${v_389afb}" value="${v_a057b5==null?'':v_a057b5}" data-s="${v_b4fa6c}" data-k="${v_b24339}"></div>`;
+      const v_9fe22d = `${v_b4fa6c}.${v_b24339}`;
+      const v_35f85c = v_ab4c96[v_9fe22d] || {type: 'string', reflow: 'next_call'};
+      const v_83ff11 = document.createElement('div'); v_83ff11.className = 'knob';
+      const v_2869c1 = document.createElement('label');
+      v_2869c1.textContent = v_35f85c.label || v_b24339;
+      const v_638ecc = v_a7deb0[v_35f85c.reflow];
+      if (v_638ecc) { const v_fd5f43 = document.createElement('span'); v_fd5f43.className = 'note'; v_fd5f43.textContent = v_638ecc; v_2869c1.appendChild(v_fd5f43); }
+      v_83ff11.appendChild(v_2869c1);
+      let v_22d288;
+      if (v_35f85c.type === 'bool') {
+        v_22d288 = document.createElement('select');
+        for (const v_68b2be of ['true', 'false']) {
+          const v_b6c474 = document.createElement('option'); v_b6c474.value = v_68b2be; v_b6c474.textContent = v_68b2be;
+          if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true;   
+          v_22d288.appendChild(v_b6c474);
+        }
+      } else if (v_35f85c.type === 'enum') {
+        v_22d288 = document.createElement('select');
+        for (const v_68b2be of (v_35f85c.choices || [])) {
+          const v_b6c474 = document.createElement('option'); v_b6c474.value = v_68b2be; v_b6c474.textContent = v_68b2be;
+          if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true;   
+          v_22d288.appendChild(v_b6c474);
+        }
+      } else {
+        v_22d288 = document.createElement('input');
+        v_22d288.value = (v_a057b5 == null ? '' : v_a057b5);
+      }
+      v_22d288.id = `k_${v_b4fa6c}_${v_b24339}`;
+      v_22d288.dataset.s = v_b4fa6c; v_22d288.dataset.k = v_b24339;
+      v_83ff11.appendChild(v_22d288);
+      v_9d3c52.appendChild(v_83ff11);
     }
     v_a38d42.appendChild(v_9d3c52);
   }
@@ -36,7 +68,7 @@ async function v_858a0a() {
 
 async function v_9a2a8d() {
   const v_4628fe = {};
-  document.querySelectorAll('#knob-fields input').forEach(v_fb6823 => {
+  document.querySelectorAll('#knob-fields input, #knob-fields select').forEach(v_fb6823 => {
     const v_fd5f43 = v_fb6823.dataset.s, v_0eb677 = v_fb6823.dataset.k; let v_81e2ef = v_fb6823.value;
     if (v_81e2ef === '') return;
     if (v_81e2ef === 'true') v_81e2ef = true; else if (v_81e2ef === 'false') v_81e2ef = false;
