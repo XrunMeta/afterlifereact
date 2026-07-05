@@ -12,8 +12,9 @@ class FakeModel:
     def create_voice_clone_prompt(self, ref_audio, ref_text, x_vector_only_mode):
         self.prompt_calls.append({"ref_text": ref_text, "xvo": x_vector_only_mode})
         return {"prompt_id": len(self.prompt_calls)}
-    def generate_voice_clone(self, text, language, voice_clone_prompt):
+    def generate_voice_clone(self, text, language, voice_clone_prompt, **kwargs):
         self.gen_calls += 1
+        self.last_gen_kwargs = kwargs
         return [np.zeros(1600, dtype="float32")], 16000
 
 def _fake_clip(voice_wav, max_sec=None):
@@ -121,3 +122,18 @@ def test_attn_impl_defaults_to_sdpa(monkeypatch):
     monkeypatch.delenv("QWEN3TTS_ATTN", raising=False)
     importlib.reload(config)
     assert config.ATTN_IMPL == "sdpa"
+
+def test_gen_params_forwarded_to_model(tmp_path):
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = FakeModel()
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    eng.synth("문장", clone_id="halbae", voice_wav=wav,
+              gen_params={"temperature": 0.5, "top_p": 0.8})
+    assert m.last_gen_kwargs == {"temperature": 0.5, "top_p": 0.8}
+
+def test_gen_params_none_forwards_nothing(tmp_path):
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = FakeModel()
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    eng.synth("문장", clone_id="halbae", voice_wav=wav)  # gen_params 미전달
+    assert m.last_gen_kwargs == {}
