@@ -30,3 +30,16 @@ def test_prebake_only(monkeypatch):
 def test_fallback_disables_both(monkeypatch):
     monkeypatch.setenv("IDLE_SOURCE_MODE", "fallback")
     assert not clone_mp4_enabled() and not prebake_enabled()
+
+
+def test_invalid_mode_falls_back_to_auto(monkeypatch):
+    # 오타(cline_mp4) — 잘못된 값은 auto 로 안전 폴백해야 함(both-False 회피)
+    monkeypatch.setenv("IDLE_SOURCE_MODE", "cline_mp4")
+    assert clone_mp4_enabled() and prebake_enabled()
+
+
+def test_unset_mode_is_auto_no_warning(monkeypatch, caplog):
+    monkeypatch.delenv("IDLE_SOURCE_MODE", raising=False)
+    with caplog.at_level("WARNING"):
+        assert clone_mp4_enabled() and prebake_enabled()
+    assert caplog.text == ""

@@ -596,9 +596,10 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
                             await fetch_to(idle_url, dest)
                             sess.video_path = dest
                             # idle 영상도 per-clone으로 교체 (IDLE_SOURCE_MODE 게이트, 기본 auto=현행)
-                            if clone_mp4_enabled():
+                            _applied = clone_mp4_enabled()
+                            if _applied:
                                 sess.video_track.set_idle_video(dest)
-                            log.info("idle video pull OK clone=%s dest=%s", clone_id, dest)
+                            log.info("idle video pull OK clone=%s dest=%s applied=%s", clone_id, dest, _applied)
                         except Exception as e:
                             log.warning("idle video pull 실패 clone=%s: %s", clone_id, e)
                             # halbae fallback — sess.video_path = None 유지

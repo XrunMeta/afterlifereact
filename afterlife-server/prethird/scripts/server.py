@@ -103,6 +103,11 @@ def _build_pipeline_factory():
     renderer_name = _select_renderer_name()
     renderer = _build_renderer(renderer_name, video_path)
     log.info("renderer=%s loaded", renderer_name)
+    if prebake_enabled() and renderer_name != "fifth":
+        log.warning(
+            "IDLE_SOURCE_MODE=prebake 이나 renderer=%s(fifth 아님) — prebake 무효과, idle halbae 고착 위험",
+            renderer_name,
+        )
 
     default_se = os.environ.get("PRETHIRD_TTS_SE_PATH", "") or None
 
