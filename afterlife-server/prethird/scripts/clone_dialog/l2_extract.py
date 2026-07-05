@@ -3,11 +3,17 @@ import json
 import re
 from .llm_client import chat_once
 
-# mizu M-1: 프롬프트 우회(간접표현)에 대한 2차 정규식 방어. 매칭 항목은 저장 전 drop.
+# mizu M-1 / 트랙A: 프롬프트 우회(간접표현)에 대한 2차 정규식 방어. 매칭 항목은 저장 전 drop.
+# 주소·계좌·비밀번호는 best-effort(자유형식 완전 차단 불가 — 인정). api stripPii와 독립 이중화.
 _PII_PATTERNS = [
     re.compile(r"01[016-9][-\s]?\d{3,4}[-\s]?\d{4}"),          # 휴대전화
     re.compile(r"\d{6}[-\s]?\d{7}"),                            # 주민등록번호
     re.compile(r"\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}"),     # 카드번호
+    re.compile(r"\d{2,6}[-\s]\d{2,6}[-\s]\d{2,6}"),           # 계좌번호(하이픈/공백 구분)
+    re.compile(r"\d{10,14}"),                                   # 계좌번호(연속 10~14자리)
+    re.compile(r"(비밀번호|비번|패스워드|password|passwd|pwd|핀\s*번호|PIN)", re.IGNORECASE),  # 비밀번호 키워드
+    re.compile(r"(구|동|로|길|번지|아파트|호|층|가)\s*\d"),       # 주소: 키워드+숫자
+    re.compile(r"\d+\s*(번지|동|호|층|가|로|길)"),                # 주소: 숫자+키워드
 ]
 
 
@@ -29,7 +35,8 @@ _EXTRACT_SYSTEM = (
     "(e.g. 음료/음식/취미/색상), and always the SAME key for the same category "
     "so a changed preference reuses the key (음료: 콜라 → 음료: 사이다).\n"
     "- PRIVACY: NEVER include full street address, resident registration number, phone number, "
-    "card/account number, or passwords. Skip them entirely.\n"
+    "card/account number, or passwords — not even inside preference_personal or memories_personal. "
+    "Home address, bank account numbers, and passwords/PINs must be skipped entirely, always.\n"
     '- Keep values short. If nothing new: {"preference_personal":{},"relation":null,"memories_personal":[]}.'
 )
 
@@ -74,6 +81,9 @@ async def extract_l2(user_text: str, clone_reply: str) -> dict:
                 continue
             # mizu M-1: 값 문자열이 PII 패턴이면 drop
             if isinstance(v, str) and _has_pii(v):
+                continue
+            # 트랙A A1: 키 이름 자체가 PII 키워드(예: "비번")면 값 은닉 대비 항목 통째 drop
+            if _has_pii(str(k)):
                 continue
             clean_pp[str(k)] = v
         if clean_pp:
