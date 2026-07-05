@@ -5,6 +5,7 @@ import type { AppEnv } from "../lib/env";
 import { APIError } from "../lib/errors";
 import { requireAuth } from "../middleware/auth";
 import type { ColdType } from "../lib/coldStorage";
+import { purgeUserOntology } from "../lib/memoryStore";
 
 export const deletion = new Hono<AppEnv>();
 
@@ -219,6 +220,17 @@ deletion.delete("/me", requireAuth, async (c) => {
     }
   } catch (err) {
     console.warn("[deletion.me] xrun mark failed:", (err as Error).message);
+  }
+
+  try {
+    const purged = await purgeUserOntology(c.env, userId);
+    console.log(
+      `[deletion.me] ontology purged: ont=${purged.ontRows} person=${purged.personRows} kv=${purged.kvKeys}`,
+    );
+  } catch (err) {
+    console.error(
+      `[deletion.me] CRITICAL: ontology purge FAILED for user ${userId} — 재시도 필요: ${(err as Error).message}`,
+    );
   }
 
   return c.json({ ok: true, state: "soft_deleted", alreadyDeleted });
