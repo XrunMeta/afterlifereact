@@ -62,6 +62,13 @@ async def test_extract_drops_pii_patterns(monkeypatch):
     assert out["memories_personal"] == ["등산 좋아함"]  # PII 메모만 drop
 
 
+def test_prompt_guides_preference_key_normalization():
+    sys = l2_extract._EXTRACT_SYSTEM.lower()
+    # 선호 키를 카테고리로 정규화하라는 지시가 프롬프트에 존재
+    assert "categor" in sys or "카테고리" in l2_extract._EXTRACT_SYSTEM
+    assert "same key" in sys or "동일" in l2_extract._EXTRACT_SYSTEM
+
+
 async def test_extract_drops_nested_preference(monkeypatch):
     # mizu H-1: preference value가 primitive 아니면(중첩 객체/배열) drop
     async def _fake(*a, **k):
