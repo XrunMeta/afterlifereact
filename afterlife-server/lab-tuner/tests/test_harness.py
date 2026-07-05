@@ -55,6 +55,28 @@ def test_build_say_fn_engine_url_and_speed(monkeypatch):
     assert posts["json"]["speed"] == 1.3
     assert posts["json"]["se_path"] == "/se/path"
 
+def test_build_say_fn_speed_comma_decimal_normalized(monkeypatch):
+    """한국 키보드 흔한 실수: speed="1,2"(쉼표 소수점) → 1.2 로 정규화, say 안 죽음."""
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "qwen", "speed": "1,2"}})
+    fn = harness.build_say_fn(r)
+    out = asyncio.run(fn("안녕", "/se/path"))
+    assert out == b"WAVBYTES"
+    assert posts["json"]["speed"] == 1.2
+
+def test_build_say_fn_speed_unparseable_falls_back_to_default(monkeypatch):
+    """speed 가 완전히 파싱 불가("abc")면 기본값 1.0 으로 fallback, say 안 죽음."""
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "qwen", "speed": "abc"}})
+    fn = harness.build_say_fn(r)
+    out = asyncio.run(fn("안녕", "/se/path"))
+    assert out == b"WAVBYTES"
+    assert posts["json"]["speed"] == 1.0
+
 def test_knobs_fifth_build_body_injects_per_request():
     from harness import KnobsFifthInproc
     r = KnobsRegistry()

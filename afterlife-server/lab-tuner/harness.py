@@ -1,10 +1,21 @@
 from __future__ import annotations
+import logging
 import os
 import aiohttp
 
 from clone_dialog import chat_stream          # prethird
 from fifth_inproc import FifthInproc          # prethird
 from knobs import DialogueKnobs, TtsKnobs, FifthKnobs
+
+log = logging.getLogger("lab-tuner.harness")
+
+def _num(v, default):
+    """사용자 입력 숫자 안전 파싱 — 쉼표 소수점(1,2)도 허용, 실패 시 기본값 + 경고."""
+    try:
+        return float(str(v).replace(",", "."))
+    except (ValueError, TypeError):
+        log.warning("say: 잘못된 숫자 knob %r → 기본값 %s 사용", v, default)
+        return default
 
 def build_chat_fn(registry):
     """registry에서 model/temperature를 매 호출 읽어 chat_stream에 위임."""
@@ -30,7 +41,7 @@ def build_say_fn(registry):
         tk: TtsKnobs = registry.get().tts
         base = tk.url or _ENGINE_URLS.get(tk.engine, _ENGINE_URLS["openvoice"])
         body = {
-            "text": text, "speed": float(tk.speed),
+            "text": text, "speed": _num(tk.speed, 1.0),
             "sdp_ratio": 0.5, "noise_scale": 0.6, "noise_scale_w": 1.0,
         }
         if se_path:

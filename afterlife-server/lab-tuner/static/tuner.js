@@ -130,7 +130,11 @@ async function applyKnobs() {
     const s = inp.dataset.s, k = inp.dataset.k; let v = inp.value;
     if (v === '') return;
     if (v === 'true') v = true; else if (v === 'false') v = false;
-    else if (!isNaN(Number(v))) v = Number(v);
+    else {
+
+      const norm = v.replace(',', '.');
+      if (norm.trim() !== '' && !isNaN(Number(norm))) v = Number(norm);
+    }
     (partial[s] ||= {})[k] = v;
   });
   await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
