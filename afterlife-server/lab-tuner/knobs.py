@@ -55,6 +55,7 @@ class TransportKnobs:
     idle_grace_sec: float = 0.5
     width: int = 576
     height: int = 1024
+    idle_source_mode: str = "auto"  # auto|prebake|clone_mp4|fallback
 
 
 @dataclass(frozen=True)
@@ -101,6 +102,7 @@ class RunKnobs:
                 idle_grace_sec=_env_f("IDLE_GRACE_SEC", 0.5),
                 width=_env_i("PRETHIRD_WIDTH", 576),
                 height=_env_i("PRETHIRD_HEIGHT", 1024),
+                idle_source_mode=os.environ.get("IDLE_SOURCE_MODE", "auto"),
             ),
             filler=FillerKnobs(
                 enabled=os.environ.get("PRETHIRD_FILLER", "0") == "1",
@@ -162,6 +164,7 @@ KNOB_META: dict[str, dict] = {
     "transport.idle_grace_sec":{"type": "number", "choices": None, "reflow": "next_call", "label": "idle grace(s)"},
     "transport.width":         {"type": "number", "choices": None, "reflow": "next_call", "label": "너비"},
     "transport.height":        {"type": "number", "choices": None, "reflow": "next_call", "label": "높이"},
+    "transport.idle_source_mode": {"type": "enum", "choices": ["auto", "prebake", "clone_mp4", "fallback"], "reflow": "next_call", "label": "idle 소스"},
     "filler.enabled":          {"type": "bool",   "choices": None, "reflow": "next_call", "label": "필러 사용"},
     "filler.volume":           {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 볼륨"},
     "filler.padding_sec":      {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 패딩(s)"},

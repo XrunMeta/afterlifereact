@@ -22,6 +22,7 @@ KNOB_TO_LIVE = {
     "transport.idle_grace_sec": {"env": "IDLE_GRACE_SEC", "file": _PRETHIRD_DROPIN},
     "transport.width": {"env": "PRETHIRD_WIDTH", "file": _PRETHIRD_DROPIN},
     "transport.height": {"env": "PRETHIRD_HEIGHT", "file": _PRETHIRD_DROPIN},
+    "transport.idle_source_mode": {"env": "IDLE_SOURCE_MODE", "file": _PRETHIRD_DROPIN},
     "filler.enabled": {"env": "PRETHIRD_FILLER", "file": _PRETHIRD_DROPIN},
     "filler.lookahead_sec": {"env": "FILLER_LOOKAHEAD_SEC", "file": _PRETHIRD_DROPIN},
     "filler.blend_frames": {"env": "PRETHIRD_IDLE_BLEND_FRAMES", "file": _PRETHIRD_DROPIN},
