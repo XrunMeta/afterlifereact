@@ -62,6 +62,9 @@ class FillerKnobs:
     enabled: bool = False
     volume: float = 0.3
     padding_sec: float = 0.0
+    lookahead_sec: float = 0.0
+    blend_frames: int = 5
+    idle_prebake: bool = True
 
 
 @dataclass(frozen=True)
@@ -99,7 +102,12 @@ class RunKnobs:
                 width=_env_i("PRETHIRD_WIDTH", 576),
                 height=_env_i("PRETHIRD_HEIGHT", 1024),
             ),
-            filler=FillerKnobs(enabled=os.environ.get("PRETHIRD_FILLER", "0") == "1"),
+            filler=FillerKnobs(
+                enabled=os.environ.get("PRETHIRD_FILLER", "0") == "1",
+                lookahead_sec=_env_f("FILLER_LOOKAHEAD_SEC", 0.0),
+                blend_frames=_env_i("PRETHIRD_IDLE_BLEND_FRAMES", 5),
+                idle_prebake=os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1",
+            ),
         )
 
     def to_dict(self) -> dict:
@@ -157,4 +165,7 @@ KNOB_META: dict[str, dict] = {
     "filler.enabled":          {"type": "bool",   "choices": None, "reflow": "next_call", "label": "필러 사용"},
     "filler.volume":           {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 볼륨"},
     "filler.padding_sec":      {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 패딩(s)"},
+    "filler.lookahead_sec":    {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 lookahead(s)"},
+    "filler.blend_frames":     {"type": "number", "choices": None, "reflow": "next_call", "label": "idle blend 프레임"},
+    "filler.idle_prebake":     {"type": "bool",   "choices": None, "reflow": "next_call", "label": "fifth idle prebake"},
 }

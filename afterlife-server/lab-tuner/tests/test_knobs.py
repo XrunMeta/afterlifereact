@@ -57,3 +57,13 @@ def test_tts_knobs_gen_params_default_none():
     from knobs import TtsKnobs
     t = TtsKnobs()
     assert t.temperature is None and t.top_p is None and t.max_new_tokens is None
+
+def test_filler_extended_from_env(monkeypatch):
+    monkeypatch.setenv("FILLER_LOOKAHEAD_SEC", "1.5")
+    monkeypatch.setenv("PRETHIRD_IDLE_BLEND_FRAMES", "8")
+    monkeypatch.setenv("FIFTH_IDLE_PREBAKE", "0")
+    from knobs import RunKnobs
+    k = RunKnobs.from_env()
+    assert k.filler.lookahead_sec == 1.5
+    assert k.filler.blend_frames == 8
+    assert k.filler.idle_prebake is False
