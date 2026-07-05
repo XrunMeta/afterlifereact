@@ -55,6 +55,28 @@ def test_build_say_fn_engine_url_and_speed(monkeypatch):
     assert posts["json"]["speed"] == 1.3
     assert posts["json"]["se_path"] == "/se/path"
 
+def test_build_say_fn_speed_comma_decimal_normalized(monkeypatch):
+    """한국 키보드 흔한 실수: speed="1,2"(쉼표 소수점) → 1.2 로 정규화, say 안 죽음."""
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "qwen", "speed": "1,2"}})
+    fn = harness.build_say_fn(r)
+    out = asyncio.run(fn("안녕", "/se/path"))
+    assert out == b"WAVBYTES"
+    assert posts["json"]["speed"] == 1.2
+
+def test_build_say_fn_speed_unparseable_falls_back_to_default(monkeypatch):
+    """speed 가 완전히 파싱 불가("abc")면 기본값 1.0 으로 fallback, say 안 죽음."""
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "qwen", "speed": "abc"}})
+    fn = harness.build_say_fn(r)
+    out = asyncio.run(fn("안녕", "/se/path"))
+    assert out == b"WAVBYTES"
+    assert posts["json"]["speed"] == 1.0
+
 def test_knobs_fifth_build_body_injects_per_request():
     from harness import KnobsFifthInproc
     r = KnobsRegistry()
@@ -148,3 +170,54 @@ def test_knobs_fifth_build_body_all_six_and_base_preserved():
     assert body["idle_rms_low"] == 0.1
     assert body["idle_rms_high"] == 0.6
     assert body["head_slew_frames"] == 9
+
+def test_build_say_fn_forwards_gen_params(monkeypatch):
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "qwen", "temperature": 0.6, "top_p": 0.9}})
+    fn = harness.build_say_fn(r)
+    asyncio.run(fn("안녕", "/se/path"))
+    assert posts["json"]["temperature"] == 0.6
+    assert posts["json"]["top_p"] == 0.9
+    assert "top_k" not in posts["json"]     # None 필드는 body에서 생략
+
+def test_build_say_fn_omits_none_gen_params(monkeypatch):
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "qwen"}})   # gen params 전부 None
+    fn = harness.build_say_fn(r)
+    asyncio.run(fn("안녕", "/se/path"))
+    for k in ("temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"):
+        assert k not in posts["json"]
+
+def test_build_say_fn_openvoice_excludes_gen_params(monkeypatch):
+    """gen params(_GEN_KEYS)는 qwen 전용 — openvoice(8200) 선택 시 body에 실리면 422 위험.
+    engine=openvoice 이면 temperature 등을 설정해도 body에 실리지 않아야 한다."""
+    posts = {}
+    monkeypatch.setattr(harness.aiohttp, "ClientSession", lambda: _FakeSession(posts))
+    r = KnobsRegistry()
+    r.update({"tts": {"engine": "openvoice", "temperature": 0.6, "top_p": 0.9}})
+    fn = harness.build_say_fn(r)
+    asyncio.run(fn("안녕", "/se/path"))
+    for k in ("temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"):
+        assert k not in posts["json"]
+
+def test_knobs_fifth_build_body_forwards_extra_kwargs(monkeypatch):
+    # 배포 prethird 버전 스큐: FifthInproc.infer 가 phase_token 을 넘길 때
+    # 오버라이드가 이를 상위로 포워딩해야 한다(TypeError 방지). knob 은 그대로 얹힘.
+    import fifth_inproc
+    from harness import KnobsFifthInproc
+    recorded = {}
+
+    def fake_super(self, wav, vid, **kw):
+        recorded.update(kw)
+        return {"wav_path": wav, "video_path": vid}
+
+    monkeypatch.setattr(fifth_inproc.FifthInproc, "_build_body", fake_super)
+    r = KnobsRegistry()
+    f = KnobsFifthInproc("/v.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg", phase_token="TOK")
+    assert recorded == {"phase_token": "TOK"}
+    assert body["blink"] is True and body["idle_motion_scale"] == 0.15

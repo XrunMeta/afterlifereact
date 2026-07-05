@@ -13,6 +13,12 @@ export interface SpeechSignal {
   ts: number;
 }
 
+export interface FaceEvent {
+  event: 'speaker_confirmed' | 'unknown_face' | 'multi_face';
+  personId?: number;
+  displayName?: string | null;
+}
+
 export interface AvatarCall {
   state: LiveAvatarState;
   remoteStream: MediaStream | null;
@@ -28,9 +34,16 @@ export interface AvatarCall {
   speak?: (text: string) => Promise<void>;
 
   lastSignal?: SpeechSignal | null;
+
+  sendFaceEvent?: (evt: FaceEvent) => void;
 }
 
-export type UseAvatarCall = (opts: { cloneId: number; accessToken: string }) => AvatarCall;
+export type UseAvatarCall = (opts: {
+  cloneId: number;
+  accessToken: string;
+
+  onEnrollSuggest?: (name: string) => void;
+}) => AvatarCall;
 
 export function classifyTrack(
   track: { kind?: string },

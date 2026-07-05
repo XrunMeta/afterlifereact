@@ -147,6 +147,136 @@ export async function updateOntFromExtraction(
     : curMems;
 
   const now = new Date().toISOString();
+
+  const PREF_HISTORY_CAP = 20;
+  const curPref = (current.preference_personal as Record<string, unknown>) ?? {};
+  const curHistory = Array.isArray(current.preference_history)
+    ? (current.preference_history as Array<Record<string, unknown>>)
+    : [];
+  let nextHistory = curHistory;
+  const trackHistory = env.L2_PREF_HISTORY_ENABLED === "1";
+  if (trackHistory && hasPref) {
+    const changes: Array<Record<string, unknown>> = [];
+    for (const [k, v] of Object.entries(extracted.preference_personal!)) {
+      if (Object.hasOwn(curPref, k) && curPref[k] !== v) {
+        changes.push({ key: k, from: curPref[k], to: v, at: now });
+      }
+    }
+    if (changes.length) nextHistory = [...curHistory, ...changes].slice(-PREF_HISTORY_CAP);
+  }
+
+  const next: Record<string, unknown> = {
+    address: current.address ?? null,
+    memories_personal: mergedMems,
+    relation: hasRel ? extracted.relation!.trim() : current.relation ?? null,
+    preference_personal: hasPref
+      ? { ...curPref, ...extracted.preference_personal }
+      : curPref,
+    ...(nextHistory.length ? { preference_history: nextHistory } : {}),
+
+    ...(current.memory_summary !== undefined ? { memory_summary: current.memory_summary } : {}),
+    ...(current.relationship !== undefined ? { relationship: current.relationship } : {}),
+    ...(current.context !== undefined ? { context: current.context } : {}),
+    ...(current.recent_topics !== undefined ? { recent_topics: current.recent_topics } : {}),
+    _meta: { layer: "L2", rev: prevRev + 1, auto_learned_at: now, source, updated_at: now },
+  };
+
+  let serialized = JSON.stringify(next);
+  while (serialized.length > MAX_L2_BYTES) {
+    if ((next.memories_personal as string[]).length > 0) {
+      (next.memories_personal as string[]).shift(); 
+    } else if (
+      Array.isArray(next.preference_history) &&
+      (next.preference_history as unknown[]).length > 0
+    ) {
+      (next.preference_history as unknown[]).shift(); 
+    } else {
+      break;
+    }
+    serialized = JSON.stringify(next);
+  }
+  if (serialized.length > MAX_L2_BYTES) {
+    throw new Error(`L2 payload too large (${serialized.length}B > ${MAX_L2_BYTES}B).`);
+  }
+  await writeOnt(env, cloneId, userId, serialized, true); 
+  return { rev: prevRev + 1, skipped: false };
+}
+
+export async function readOntPerson(
+  env: Bindings, cloneId: number, personId: number,
+): Promise<string | null> {
+  const row = await env.DB.prepare(
+    'SELECT data FROM clone_ont_person WHERE clone_id = ? AND person_id = ?'
+  ).bind(cloneId, personId).first<{ data: string }>();
+  return row?.data ?? null;
+}
+
+export async function writeOntPerson(
+  env: Bindings, cloneId: number, personId: number, data: string, markAutoLearned = false,
+): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO clone_ont_person (clone_id, person_id, data, updated_at, auto_learned_at)
+     VALUES (?, ?, ?, unixepoch(), ?)
+     ON CONFLICT(clone_id, person_id) DO UPDATE SET
+       data = excluded.data,
+       updated_at = excluded.updated_at,
+       auto_learned_at = COALESCE(excluded.auto_learned_at, clone_ont_person.auto_learned_at)`,
+  ).bind(cloneId, personId, data, markAutoLearned ? Math.floor(Date.now() / 1000) : null).run();
+}
+
+export async function updateOntPersonFromExtraction(
+  env: Bindings,
+  cloneId: number,
+  personId: number,
+  extracted: L2Extraction,
+  source: "call" | "chat",
+): Promise<{ rev: number; skipped: boolean }> {
+  const hasPref =
+    extracted.preference_personal != null &&
+    Object.keys(extracted.preference_personal).length > 0;
+  const hasRel =
+    typeof extracted.relation === "string" && extracted.relation.trim().length > 0;
+  const newMems = Array.isArray(extracted.memories_personal)
+    ? extracted.memories_personal.map((m) => String(m).trim()).filter(Boolean)
+    : [];
+  const hasMem = newMems.length > 0;
+  if (!hasPref && !hasRel && !hasMem) {
+
+    return { rev: 0, skipped: true };
+  }
+
+  const raw = await readOntPerson(env, cloneId, personId);
+  let current: Record<string, unknown> = {
+    address: null,
+    memories_personal: [],
+    relation: null,
+    preference_personal: {},
+    _meta: { layer: "L2p", rev: 0 },
+  };
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        current = parsed as Record<string, unknown>;
+      }
+    } catch {
+      console.error(`[D1_CORRUPT] l2p:${cloneId}:pid:${String(personId).slice(-3)} — overwriting on auto-learn`);
+    }
+  }
+  const meta = (current._meta ?? {}) as Record<string, unknown>;
+  const prevRev = typeof meta.rev === "number" ? meta.rev : 0;
+
+  const curMems = Array.isArray(current.memories_personal)
+    ? (current.memories_personal as unknown[]).map((m) => String(m))
+    : [];
+  const mergedMems = hasMem
+    ? (() => {
+        const newSet = new Set(newMems);
+        return [...curMems.filter((m) => !newSet.has(m)), ...newMems].slice(-MAX_MEMORIES);
+      })()
+    : curMems;
+
+  const now = new Date().toISOString();
   const next: Record<string, unknown> = {
     address: current.address ?? null,
     memories_personal: mergedMems,
@@ -157,12 +287,11 @@ export async function updateOntFromExtraction(
           ...extracted.preference_personal,
         }
       : current.preference_personal ?? {},
-
     ...(current.memory_summary !== undefined ? { memory_summary: current.memory_summary } : {}),
     ...(current.relationship !== undefined ? { relationship: current.relationship } : {}),
     ...(current.context !== undefined ? { context: current.context } : {}),
     ...(current.recent_topics !== undefined ? { recent_topics: current.recent_topics } : {}),
-    _meta: { layer: "L2", rev: prevRev + 1, auto_learned_at: now, source, updated_at: now },
+    _meta: { layer: "L2p", rev: prevRev + 1, auto_learned_at: now, source, updated_at: now },
   };
 
   let serialized = JSON.stringify(next);
@@ -170,12 +299,12 @@ export async function updateOntFromExtraction(
     serialized.length > MAX_L2_BYTES &&
     (next.memories_personal as string[]).length > 0
   ) {
-    (next.memories_personal as string[]).shift(); 
+    (next.memories_personal as string[]).shift();
     serialized = JSON.stringify(next);
   }
   if (serialized.length > MAX_L2_BYTES) {
-    throw new Error(`L2 payload too large (${serialized.length}B > ${MAX_L2_BYTES}B).`);
+    throw new Error(`L2' payload too large (${serialized.length}B > ${MAX_L2_BYTES}B).`);
   }
-  await writeOnt(env, cloneId, userId, serialized, true); 
+  await writeOntPerson(env, cloneId, personId, serialized, true);
   return { rev: prevRev + 1, skipped: false };
 }

@@ -6,7 +6,7 @@ import { PRETHIRD_BASE } from '../config/apiBase';
 import { useCallConfigStore } from '../stores/callConfigStore';
 import { ensureFreshAccessToken } from '../lib/authFetch';
 import { type AudioSessionControl, defaultAudioSessionControl } from './useAudioSession';
-import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, classifyTrack } from './avatarCall';
+import { type AvatarCall, type LiveAvatarState, type CallPhase, type SpeechSignal, type FaceEvent, classifyTrack } from './avatarCall';
 
 const nowMs = () => Date.now();
 
@@ -77,8 +77,10 @@ export function usePrethirdAvatar(opts: {
   cloneId: number;
   accessToken: string; 
   deps?: PrethirdAvatarDeps;
+
+  onEnrollSuggest?: (name: string) => void;
 }): AvatarCall {
-  const { cloneId, accessToken } = opts;
+  const { cloneId, accessToken, onEnrollSuggest } = opts;
   const deps = opts.deps ?? defaultDeps;
   const [state, setState] = useState<LiveAvatarState>('idle');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -95,6 +97,9 @@ export function usePrethirdAvatar(opts: {
   const applyingRemoteRef = useRef(false);
   const pendingCloseRef = useRef<PrethirdPeerConnection | null>(null);
   const SPEAK_SOFT_TIMEOUT_MS = 30_000;
+
+  const onEnrollSuggestRef = useRef(onEnrollSuggest);
+  useEffect(() => { onEnrollSuggestRef.current = onEnrollSuggest; }, [onEnrollSuggest]);
 
   const safeClosePc = useCallback((pc: PrethirdPeerConnection) => {
     if (applyingRemoteRef.current) { pendingCloseRef.current = pc; return; }
@@ -150,6 +155,17 @@ export function usePrethirdAvatar(opts: {
       dc.send(JSON.stringify({ type: 'speak', text: t, seq }));
     } catch (e) {
       setError(e as Error);
+    }
+  }, []);
+
+  const sendFaceEvent = useCallback((evt: FaceEvent) => {
+    const dc = dcRef.current;
+    if (!pcRef.current || !dc || dc.readyState !== 'open') return;
+    try {
+      const seq = (seqRef.current += 1);
+      dc.send(JSON.stringify({ type: 'face_event', ...evt, seq }));
+    } catch {
+
     }
   }, []);
 
@@ -225,6 +241,9 @@ export function usePrethirdAvatar(opts: {
         if (m.type === 'speech_start' || m.type === 'speech_end') {
           setLastSignal({ type: m.type, seq: m.seq, ts: nowMs() });
           if (m.type === 'speech_end') notifySpeechEnd();
+        } else if (m.type === 'enroll_suggest') {
+
+          onEnrollSuggestRef.current?.(typeof m.name === 'string' ? m.name : '');
         }
       } catch {  }
     };
@@ -285,5 +304,5 @@ export function usePrethirdAvatar(opts: {
 
   useEffect(() => () => { void stop();  }, []);
 
-  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport, greet, speak, lastSignal };
+  return { state, remoteStream, error, start, stop, phase, say, notifySpeechEnd, getStatsReport, greet, speak, lastSignal, sendFaceEvent };
 }
