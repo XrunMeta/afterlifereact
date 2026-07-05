@@ -729,10 +729,16 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
     .bind(userId)
     .run();
 
-  const purgedOnt = await purgeUserOntology(c.env, userId);
-  console.log(
-    `[gdpr] ontology purged: ont=${purgedOnt.ontRows} person=${purgedOnt.personRows} kv=${purgedOnt.kvKeys}`,
-  );
+  try {
+    const purgedOnt = await purgeUserOntology(c.env, userId);
+    console.log(
+      `[gdpr] ontology purged: ont=${purgedOnt.ontRows} person=${purgedOnt.personRows} kv=${purgedOnt.kvKeys}`,
+    );
+  } catch (err) {
+    console.error(
+      `[gdpr] CRITICAL: ontology purge FAILED for user ${userId} — 재시도 필요: ${(err as Error).message}`,
+    );
+  }
 
   await logActivity(c, {
     userId,
