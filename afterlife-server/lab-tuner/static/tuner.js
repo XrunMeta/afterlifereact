@@ -278,6 +278,13 @@ async function v_187e1c() {
 
 document.getElementById('apply-knobs').onclick = v_9a2a8d;
 document.getElementById('say-btn').onclick = v_409b14;
+document.getElementById('say-input').addEventListener('keydown', (v_9e86fd) => {
+  if (v_9e86fd.key === 'Enter' && !v_9e86fd.isComposing) {   
+    v_9e86fd.preventDefault();
+    v_409b14();
+    v_9e86fd.target.value = '';                        
+  }
+});
 document.getElementById('refresh-runs').onclick = v_315473;
 document.getElementById('refresh-prod').onclick = v_187e1c;
 document.getElementById('login-btn').onclick = v_182fdb;
