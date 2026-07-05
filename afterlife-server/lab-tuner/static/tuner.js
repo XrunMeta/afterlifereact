@@ -300,7 +300,51 @@ async function v_187e1c() {
   } catch (v_9e86fd) { v_a38d42.innerHTML = '<i>상태 조회 실패</i>'; }
 }
 
+async function v_3e5dbc() {
+  const v_e926e3 = document.getElementById('promote-confirm');
+  try {
+    const v_d5dda0 = await (await fetch('/promote/preview', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}'})).json();
+    const v_1e6eca = v_d5dda0.entries || [];
+    if (!v_1e6eca.length) { v_e926e3.style.display='block';
+      v_e926e3.innerHTML = '<i>변경(dirty)된 knob 없음 — promote 대상 없음</i>'; return; }
+    let v_d91d98 = '<div style="border:1px solid var(--gold);border-radius:4px;padding:8px;margin-top:8px">';
+    v_d91d98 += '<b>라이브 반영될 변경:</b><ul>';
+
+    for (const v_9e86fd of v_1e6eca) {
+      v_d91d98 += `<li>${v_8fd199(v_9e86fd.env ?? '')} = ${v_8fd199(v_9e86fd.new ?? v_9e86fd.value ?? '')}`+
+        `${v_9e86fd.container ? ' <span class="chip chip-drift">컨테이너(별도 반영 필요)</span>' : ''}</li>`;
+    }
+    v_d91d98 += '</ul><button id="promote-go" class="primary">확인·적용</button> '+
+            '<button id="promote-cancel">취소</button></div>';
+    v_e926e3.innerHTML = v_d91d98; v_e926e3.style.display = 'block';
+    document.getElementById('promote-token').style.display = 'block';
+    document.getElementById('promote-go').onclick = v_150d46;
+    document.getElementById('promote-cancel').onclick = () => {
+      v_e926e3.style.display='none'; document.getElementById('promote-token').style.display='none'; };
+  } catch (v_9e86fd) { v_e926e3.style.display='block'; v_e926e3.innerHTML = '<i>promote preview 실패</i>'; }
+}
+
+async function v_150d46() {
+  const v_e926e3 = document.getElementById('promote-confirm');
+  const v_21cc31 = document.getElementById('promote-token').value;
+
+  const v_3f4675 = {'Content-Type':'application/json'};
+  if (v_21cc31) v_3f4675['X-Lab-Tuner-Token'] = v_21cc31;   
+  try {
+
+    const v_cb35cb = await fetch('/promote/apply', {method:'POST', headers: v_3f4675, body: JSON.stringify({confirm: true})});
+    if (v_cb35cb.status === 401 || v_cb35cb.status === 403) {
+      v_e926e3.innerHTML = '<i>인증 실패 — LAB_TUNER_TOKEN 확인</i>'; return; }
+    const v_d5dda0 = await v_cb35cb.json();
+    v_e926e3.innerHTML = `<div>적용됨: ${v_8fd199(JSON.stringify(v_d5dda0).slice(0,200))}</div>`;
+    document.getElementById('promote-token').style.display = 'none';
+    await v_187e1c();
+  } catch (v_9e86fd) { v_e926e3.innerHTML = '<i>promote apply 실패</i>'; }
+}
+
 document.getElementById('apply-knobs').onclick = v_9a2a8d;
+document.getElementById('promote').onclick = v_3e5dbc;
 document.getElementById('say-btn').onclick = v_409b14;
 document.getElementById('say-input').addEventListener('keydown', (v_9e86fd) => {
   if (v_9e86fd.key === 'Enter' && !v_9e86fd.isComposing) {   
