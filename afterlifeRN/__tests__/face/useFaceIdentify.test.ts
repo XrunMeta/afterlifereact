@@ -2,6 +2,7 @@ import { v_0da18b, v_81e49f } from "dtbzepbezvovgqcnbkbssjenbxhgn";
 import {
   v_f644ce,
   v_e9685b,
+  v_10735f,
   v_48b3dc,
   v_65c90d,
   v_dd916a,
@@ -9,6 +10,18 @@ import {
 } from "../../src/face/useFaceIdentify";
 
 const v_87d4f2 = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
+
+describe("deriveVerdict", () => {
+  it("confirmed 상태", () => {
+    expect(v_10735f({ confirmed: 5, candidate: null, streak: 0 } as any)).toBe("confirmed");
+  });
+  it("candidate 진행중", () => {
+    expect(v_10735f({ confirmed: "none", candidate: 5, streak: 2 } as any)).toBe("candidate");
+  });
+  it("none", () => {
+    expect(v_10735f({ confirmed: "none", candidate: null, streak: 0 } as any)).toBe("none");
+  });
+});
 
 describe("runIdentifyCycle (순수 로직)", () => {
   it("matchFace 가 동일 personId 3회 반환 → 3번째에 speaker_confirmed 1회", async () => {
@@ -173,5 +186,46 @@ describe("useFaceIdentify (훅 오케스트레이션)", () => {
     v_43c42e.current.onEmbedding(v_87d4f2);
     await v_81e49f(() => expect(v_a97841).toHaveBeenCalledTimes(1));
     expect(v_43c42e.current.getBuffer().latest(1)).toHaveLength(1);
+  });
+
+  it("T-111 계측 — onDiag가 FaceDiag로 호출되고 calibrateFn이 벡터·groundTruthPersonId로 불림", async () => {
+    const v_a97841 = jest.fn().mockResolvedValue({
+      matches: [],
+      best: { personId: 9, displayName: "지수", score: 0.81 },
+      threshold: 0.83,
+    });
+    const v_7db14d = jest.fn().mockResolvedValue({
+      id: 1,
+      matchedId: "9",
+      bestScore: 0.81,
+      threshold: 0.83,
+      scoreCount: 1,
+    });
+    const v_32837c = jest.fn();
+    const { result: v_43c42e } = v_0da18b(() =>
+      v_e9685b({
+        enabled: true,
+        accessToken: "tok",
+        onEvent: jest.fn(),
+        onDiag: v_32837c,
+        calibrate: { accessToken: "tok", groundTruthPersonId: 5 },
+        deps: { matchFaceFn: v_a97841, calibrateFn: v_7db14d },
+      }),
+    );
+
+    v_43c42e.current.onEmbedding(v_87d4f2);
+    await v_81e49f(() => expect(v_32837c).toHaveBeenCalledTimes(1));
+
+    expect(v_32837c).toHaveBeenCalledWith({
+      score: 0.81,
+      personId: 9,
+      displayName: "지수",
+      streak: 1,
+      verdict: "candidate",
+      threshold: 0.83,
+    });
+
+    await v_81e49f(() => expect(v_7db14d).toHaveBeenCalledTimes(1));
+    expect(v_7db14d).toHaveBeenCalledWith("tok", v_87d4f2, 5);
   });
 });

@@ -10,7 +10,8 @@ import {
   type v_b26216,
   type v_6aebaf,
 } from "./speakerIdReducer";
-import { v_afc2e6, type v_ac8014 } from "../api/persons";
+import { v_afc2e6, v_383262, type v_ac8014 } from "../api/persons";
+import { v_55dbc4, type v_8a6b56, type v_71bfaa } from "../config/faceDiag";
 
 export const v_65c90d = 3;
 
@@ -18,8 +19,22 @@ export const v_dd916a = 10_000;
 
 export type MatchFaceFn = (accessToken: string, vector: number[]) => Promise<v_ac8014>;
 
+export type CalibrateFaceFn = (
+  accessToken: string,
+  vector: number[],
+  groundTruthPersonId: number | null,
+) => ReturnType<typeof v_383262>;
+
 export interface IdentifyCycleDeps {
   matchFaceFn: MatchFaceFn;
+
+  calibrateFn?: CalibrateFaceFn;
+}
+
+export function v_10735f(v_b48d3d): v_71bfaa {
+  if (v_b48d3d.confirmed !== "none") return "confirmed";
+  if (v_b48d3d.candidate != null && v_b48d3d.streak > 0) return "candidate";
+  return "none";
 }
 
 export interface IdentifyCycleState {
@@ -41,9 +56,16 @@ export async function v_f644ce(
   v_2ca7e0,
   v_67e77e,
   v_84b93d,
-): Promise<{ state: IdentifyCycleState; event: v_b26216 }> {
+): Promise<{
+  state: IdentifyCycleState;
+  event: v_b26216;
+
+  cycle: v_6aebaf | null;
+
+  threshold: number | null;
+}> {
   if (v_67e77e < v_b6e533.backoffUntilMs) {
-    return { state: v_b6e533, event: null };
+    return { state: v_b6e533, event: null, cycle: null, threshold: null };
   }
 
   let result: v_ac8014;
@@ -55,7 +77,7 @@ export async function v_f644ce(
       v_3b90a4 >= v_65c90d
         ? v_67e77e + v_dd916a
         : v_b6e533.backoffUntilMs;
-    return { state: { ...v_b6e533, consecutiveFailures: v_3b90a4, backoffUntilMs: v_b93b45 }, event: null };
+    return { state: { ...v_b6e533, consecutiveFailures: v_3b90a4, backoffUntilMs: v_b93b45 }, event: null, cycle: null, threshold: null };
   }
 
   const cycle: v_6aebaf = {
@@ -64,7 +86,12 @@ export async function v_f644ce(
     score: v_43c42e.best?.score ?? 0,
   };
   const { state: v_60d563, event: v_d48baf } = v_be2f9f(v_b6e533.speaker, v_bdad26);
-  return { state: { speaker: v_60d563, consecutiveFailures: 0, backoffUntilMs: 0 }, event: v_d48baf };
+  return {
+    state: { speaker: v_60d563, consecutiveFailures: 0, backoffUntilMs: 0 },
+    event: v_d48baf,
+    cycle: v_bdad26,
+    threshold: v_43c42e.threshold,
+  };
 }
 
 export interface UseFaceIdentifyOptions {
@@ -72,6 +99,10 @@ export interface UseFaceIdentifyOptions {
   enabled: boolean;
   accessToken: string;
   onEvent: (evt: v_b26216) => void;
+
+  onDiag?: (d: v_8a6b56) => void;
+
+  calibrate?: { accessToken: string; groundTruthPersonId: number | null } | null;
 
   deps?: IdentifyCycleDeps;
 
@@ -86,13 +117,15 @@ export interface UseFaceIdentifyResult {
 }
 
 export function v_e9685b(v_328259): UseFaceIdentifyResult {
-  const { enabled: v_d20c84, accessToken: v_2ca7e0, onEvent: v_68885c } = v_328259;
+  const { enabled: v_d20c84, accessToken: v_2ca7e0, onEvent: v_68885c, onDiag: v_32837c, calibrate: v_faccce } = v_328259;
   const v_84b93d = v_df9f57<IdentifyCycleDeps>(() => v_328259.deps ?? { matchFaceFn: v_afc2e6 }, [v_328259.deps]);
   const v_5de650 = v_328259.now ?? Date.now;
 
   const v_8d3dea = v_e662ae<IdentifyCycleState>(v_48b3dc);
   const v_5228f1 = v_e662ae<v_4f64ba>(new v_4f64ba());
   const v_9468fd = v_e662ae(false);
+
+  const v_51046f = v_e662ae<number | null>(null);
 
   const v_7167fd = v_de06a3(
     (v_479f05) => {
@@ -102,15 +135,44 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
       v_5228f1.current.push(v_46ff7a);
       v_9468fd.current = true;
       void v_f644ce(v_8d3dea.current, v_46ff7a, v_2ca7e0, v_5de650(), v_84b93d)
-        .then(({ state: v_b6e533, event: v_d48baf }) => {
+        .then(({ state: v_b6e533, event: v_d48baf, cycle: v_bdad26, threshold: v_d361d7 }) => {
           v_8d3dea.current = v_b6e533;
           if (v_d48baf) v_68885c(v_d48baf);
+
+          if (v_55dbc4 && v_bdad26 && v_d361d7 != null) {
+            v_51046f.current = v_d361d7;
+            const diag: v_8a6b56 = {
+              score: v_bdad26.score,
+              personId: v_bdad26.personId,
+              displayName: v_bdad26.displayName,
+              streak: v_b6e533.speaker.streak,
+              verdict: v_10735f(v_b6e533.speaker),
+              threshold: v_51046f.current,
+            };
+            v_32837c?.(v_ef2205);
+
+            console.log(
+              `[FACEDIAG] ${JSON.stringify({
+                ts: v_5de650(),
+                score: v_ef2205.score,
+                personId: v_ef2205.personId,
+                streak: v_ef2205.streak,
+                verdict: v_ef2205.verdict,
+                threshold: v_ef2205.threshold,
+              })}`,
+            );
+            if (v_faccce) {
+              (v_84b93d.calibrateFn ?? v_383262)(v_faccce.accessToken, v_46ff7a, v_faccce.groundTruthPersonId).catch(
+                () => {}, 
+              );
+            }
+          }
         })
         .finally(() => {
           v_9468fd.current = false;
         });
     },
-    [v_d20c84, v_2ca7e0, v_68885c, v_84b93d, v_5de650],
+    [v_d20c84, v_2ca7e0, v_68885c, v_32837c, v_faccce, v_84b93d, v_5de650],
   );
 
   return { onEmbedding: v_7167fd, getBuffer: () => v_5228f1.current };

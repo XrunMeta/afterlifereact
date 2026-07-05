@@ -16,6 +16,10 @@ describe("formatFaceHud", () => {
     const v_fd5f43 = v_8682a9({ score: 0, personId: null, displayName: null, streak: 0, verdict: "none", threshold: 0.83 });
     expect(v_fd5f43).toContain("none");
   });
+  it("이름 없고 personId 있으면 #personId로 대체(R1 보강)", () => {
+    const v_fd5f43 = v_8682a9({ score: 0, personId: 5, displayName: null, streak: 0, verdict: "none", threshold: 0.83 });
+    expect(v_fd5f43).toContain("#5");
+  });
   it("FACE_DIAG_ENABLED는 boolean", () => {
     expect(typeof v_55dbc4).toBe("boolean");
   });
