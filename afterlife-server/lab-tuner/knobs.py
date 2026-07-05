@@ -24,6 +24,12 @@ class TtsKnobs:
     url: str | None = None            # 지정 시 engine 기본 URL override
     speed: float = 1.0
     denoise: bool = False
+    # qwen generation 파라미터 — 미지정(None) 시 qwen 기본. openvoice 엔진에선 무시됨.
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    repetition_penalty: float | None = None
+    max_new_tokens: int | None = None
 
 
 @dataclass(frozen=True)
@@ -72,7 +78,13 @@ class RunKnobs:
             dialogue=DialogueKnobs(
                 model=os.environ.get("PRETHIRD_OLLAMA_MODEL") or None,
             ),
-            tts=TtsKnobs(speed=_env_f("PRETHIRD_TTS_SPEED", 1.0)),
+            # 엔진 기본은 라이브 PRETHIRD_TTS_URL에서 유도(:8201→qwen, 그 외→openvoice).
+            # 테스트베드가 라이브와 같은 TTS 엔진으로 시작하도록(웹에서 전환 가능).
+            tts=TtsKnobs(
+                engine=("qwen" if ":8201" in os.environ.get("PRETHIRD_TTS_URL", "")
+                        else "openvoice"),
+                speed=_env_f("PRETHIRD_TTS_SPEED", 1.0),
+            ),
             fifth=FifthKnobs(
                 cfg_scale=_env_f("FIFTH_CFG_SCALE", 2.0),
                 driving_multiplier=_env_f("FIFTH_DRIVING_MULTIPLIER", 1.0),
@@ -125,6 +137,11 @@ KNOB_META: dict[str, dict] = {
     "tts.url":                 {"type": "string", "choices": None, "reflow": "next_call", "label": "TTS URL override"},
     "tts.speed":               {"type": "number", "choices": None, "reflow": "next_call", "label": "TTS 속도"},
     "tts.denoise":             {"type": "bool",   "choices": None, "reflow": "next_call", "label": "denoise"},
+    "tts.temperature":         {"type": "number", "choices": None, "reflow": "next_call", "label": "temperature(qwen전용)"},
+    "tts.top_p":               {"type": "number", "choices": None, "reflow": "next_call", "label": "top_p(qwen전용)"},
+    "tts.top_k":               {"type": "number", "choices": None, "reflow": "next_call", "label": "top_k(qwen전용)"},
+    "tts.repetition_penalty":  {"type": "number", "choices": None, "reflow": "next_call", "label": "repetition_penalty(qwen전용)"},
+    "tts.max_new_tokens":      {"type": "number", "choices": None, "reflow": "next_call", "label": "max_new_tokens(qwen전용)"},
     "fifth.blink":             {"type": "bool",   "choices": None, "reflow": "container", "label": "blink"},
     "fifth.jpeg_quality":      {"type": "number", "choices": None, "reflow": "container", "label": "jpeg 품질"},
     "fifth.idle_motion_scale": {"type": "number", "choices": None, "reflow": "container", "label": "idle 모션 스케일"},

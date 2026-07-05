@@ -6,6 +6,7 @@ import os
 import pathlib
 import re
 
+import aiohttp
 from aiohttp import web
 from signaling import make_app          # prethird
 from live_guard import LiveBusyError
@@ -16,6 +17,21 @@ import prod_status
 log = logging.getLogger("lab-tuner.app")
 
 _STATIC = pathlib.Path(__file__).resolve().parent / "static"
+
+# clone+login UI — prethird chat_endpoint.py의 verify_login/verify_clones와 동일 패턴
+# (api 프록시). 라이브 chat_endpoint.py는 무수정 — 패턴만 참고.
+_API_BASE = os.environ.get(
+    "PRETHIRD_API_BASE",
+    "https://edge-alt-preview.example.invalid",
+)
+_API_TIMEOUT_S = float(os.environ.get("PRETHIRD_LOGIN_API_TIMEOUT", "5.0"))
+_BROWSER_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+               "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+
+def _bearer(req) -> str | None:
+    h = req.headers.get("Authorization", "")
+    return h[7:] if h.startswith("Bearer ") else None
 
 # el RISK: run_id는 ArtifactStore._next_id()가 생성하는 "run{n:05d}" 형식만 허용.
 # store.path()/load_text() 등에 넘기기 전 반드시 이 가드를 통과해야 한다
@@ -96,6 +112,59 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
 
     async def tuner_js(_req):
         return web.FileResponse(_STATIC / "tuner.js")
+
+    async def login_proxy(req):
+        """api POST /oth-path 프록시 — accessToken만 반환.
+
+        ⚠️ 비밀번호·업스트림 예외 본문은 절대 로깅하지 않는다(chat_endpoint.verify_login
+        과 동일 원칙) — 예외 시 type(e).__name__만 남긴다.
+        """
+        body = await req.json()
+        email = body.get("email")
+        password = body.get("password")
+        if not email or not password:
+            return web.json_response({"error": "email/password required"}, status=400)
+        url = f"{_API_BASE}/oth-path"
+        payload = json.dumps({"email": email, "password": password, "platform": "web"}).encode("utf-8")
+        try:
+            timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+            async with aiohttp.ClientSession(timeout=timeout) as sess:
+                async with sess.post(url, data=payload, headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": _BROWSER_UA,
+                }) as r:
+                    txt = await r.text()
+                    if r.status != 200:
+                        return web.json_response({"error": "login failed", "status": r.status}, status=r.status)
+                    data = json.loads(txt)
+        except Exception as e:
+            log.warning("login_proxy failed: %s", type(e).__name__)  # 비번·예외 본문 미로깅
+            return web.json_response({"error": "login error"}, status=502)
+        return web.json_response({"accessToken": data.get("accessToken")})
+
+    async def clones_proxy(req):
+        """api GET /oth-path 프록시 — {id,name}만 추려 드롭다운에 제공."""
+        token = _bearer(req)
+        if not token:
+            return web.json_response({"error": "missing bearer token"}, status=401)
+        url = f"{_API_BASE}/oth-path"
+        try:
+            timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+            async with aiohttp.ClientSession(timeout=timeout) as sess:
+                async with sess.get(url, headers={
+                    "Authorization": f"Bearer {token}",
+                    "User-Agent": _BROWSER_UA,
+                }) as r:
+                    if r.status != 200:
+                        return web.json_response({"error": f"api {r.status}"}, status=r.status)
+                    data = await r.json()
+        except Exception as e:
+            log.warning("clones_proxy failed: %s", type(e).__name__)
+            return web.json_response({"error": "upstream error"}, status=502)
+        items = data.get("items") or []
+        clones = [{"id": it.get("id"), "name": it.get("name")}
+                  for it in items if it.get("id") is not None]
+        return web.json_response({"clones": clones})
 
     async def replay_tts(req):
         data = await req.json()
@@ -257,6 +326,8 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_get("/live-status", live_status)   # UI 배너(라이브 통화 중 튜닝 대기)
     app.router.add_get("/", index)
     app.router.add_get("/tuner.js", tuner_js)
+    app.router.add_post("/login", login_proxy)
+    app.router.add_get("/oth-path", clones_proxy)
     app.router.add_post("/replay/tts", replay_tts)
     app.router.add_post("/replay/fifth", replay_fifth)
     app.router.add_post("/promote/preview", promote_preview)

@@ -393,4 +393,27 @@ v_469bf2("GET /oth-path", () => {
 
     v_4d37e3(v_7adc95.voiceRawUrl).toBe(`http://localhost/oth-path${v_1726aa}`);
   });
+
+  v_23805a("학습 relation 이 clone.relation 보다 우선(E)", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1badb6 = await v_bfb240("bundle-relation-e@test.local");
+    const v_6e0fd3 = await v_4d24a9(v_1badb6, "bundle_relation_e_clone");
+    await v_a1651b.prepare("UPDATE clones SET relation = ? WHERE id = ?").bind("지인", v_6e0fd3).run();
+
+    await v_a1651b
+      .prepare(
+        "INSERT OR REPLACE INTO clone_ont (clone_id, user_id, data, updated_at) VALUES (?,?,?,unixepoch())",
+      )
+      .bind(v_6e0fd3, v_1badb6, JSON.stringify({ relation: "손녀" }))
+      .run();
+    await v_c9c489.KV_ONT.delete(`l2:${v_6e0fd3}:${v_1badb6}`);
+
+    const v_21cc31 = await v_86c39f(v_1badb6);
+    const v_8f00b9 = await v_1df298.fetch(`http://localhost/oth-path${v_6e0fd3}/bundle`, {
+      headers: { Authorization: `Bearer ${v_21cc31}` },
+    });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_4d33b2 = (await v_8f00b9.json()) as { personaBundle: { persona: { relation: string } } };
+    v_4d37e3(v_4d33b2.personaBundle.persona.relation).toBe("손녀");
+  });
 });

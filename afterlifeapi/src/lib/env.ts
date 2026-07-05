@@ -17,6 +17,8 @@ export interface Bindings {
   R2_MEDIA: R2Bucket;
   R2_ARCHIVE: R2Bucket;
 
+  FACE_VECTORS?: VectorizeIndex;
+
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;
   AUDIT_SECRET: string;         
@@ -25,6 +27,7 @@ export interface Bindings {
 
   LAZY_ROTATION_ENABLED?: string;  
   LAZY_V2_MIGRATE_ENABLED?: string;  
+  L2_PREF_HISTORY_ENABLED?: string; 
 
   CALL_PRETHIRD_BASE?: string;
   CALL_ROUTE?: string;
@@ -42,6 +45,10 @@ export interface Bindings {
 
   LEARN_SECRET?: string;     
   LEARN_FROM_CHAT?: string;  
+
+  DEV_SECRET?: string;       
+
+  FACE_CALIBRATE_ENABLED?: string;
 
   PREBUILD_SECRET?: string;        
   PRETHIRD_PUBLIC_BASE?: string;   

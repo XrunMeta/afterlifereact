@@ -10,12 +10,13 @@ debug 투명성: done 이벤트에 final_messages·model·persona_bundle 동봉.
 from __future__ import annotations
 import os
 import json
+import hmac
 import pathlib
 import logging
 import aiohttp
 from aiohttp import web
 
-from clone_dialog import fetch_bundle, bundle_to_messages, chat_stream, chat_once
+from clone_dialog import fetch_bundle, bundle_to_messages, chat_stream, extract_l2
 
 log = logging.getLogger("prethird.verify")
 
@@ -27,13 +28,39 @@ _DEFAULT_MODEL = os.environ.get("PRETHIRD_OLLAMA_MODEL", "gemma3:27b")
 _API_TIMEOUT_S = float(os.environ.get("PRETHIRD_VERIFY_API_TIMEOUT", "5.0"))
 _BROWSER_UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+_DEV_SECRET = os.environ.get("PRETHIRD_DEV_SECRET", "")
 
 def _bearer(req: web.Request) -> str | None:
     h = req.headers.get("Authorization", "")
     return h[7:] if h.startswith("Bearer ") else None
 
+def _check_verify_pass(req) -> bool:
+    """PRETHIRD_VERIFY_PASSWORD 설정 시 X-Verify-Pass 헤더 일치 요구. 미설정=통과(로컬 하위호환)."""
+    expected = os.environ.get("PRETHIRD_VERIFY_PASSWORD")
+    if not expected:
+        return True
+    got = req.headers.get("X-Verify-Pass", "")
+    return hmac.compare_digest(got, expected)
+
+async def _resolve_user_id(token: str) -> int | None:
+    """로그인 토큰 → /oth-path → id. 실패 시 None."""
+    url = f"{API_BASE}/oth-path"
+    timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+    async with aiohttp.ClientSession(timeout=timeout) as sess:
+        async with sess.get(url, headers={
+            "Authorization": f"Bearer {token}",
+            "User-Agent": _BROWSER_UA,
+        }) as r:
+            if r.status != 200:
+                return None
+            data = await r.json()
+    uid = (data.get("user") or {}).get("id")
+    return uid if isinstance(uid, int) else None
+
 async def verify_clones(req: web.Request) -> web.Response:
     """드롭다운용 — api GET /oth-path 프록시, {id,name}만 추림."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -58,6 +85,8 @@ async def verify_clones(req: web.Request) -> web.Response:
 
 async def verify_login(req: web.Request) -> web.Response:
     """검증 도구 로그인 — api /oth-path 프록시. accessToken만 반환(비번 미저장·미로깅)."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     body = await req.json()
     email = body.get("email")
     password = body.get("password")
@@ -86,6 +115,8 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
 
     토큰 없으면 web.Response(401), 정상이면 web.StreamResponse(SSE).
     """
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -134,34 +165,39 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
 
 _L2_FIELDS = ["memory_summary", "relationship", "context", "recent_topics"]
 
-_EXTRACT_SYS = """너는 대화에서 한 인물(클론)이 장기적으로 기억해야 할 정보를 정리하는 보조자다.
-아래 "기존 기억"과 "새 대화"를 보고, 갱신된 기억을 4개 필드 JSON으로만 출력하라.
-- memory_summary: 사용자에 대한 누적 사실. "키: 값" 한 줄 항목들로 정리(예: "이름: 철수\\n취향: 매운음식\\n반려동물: 고양이")
-- relationship: 사용자와의 관계 상태/변화 ("키: 값" 항목)
-- context: 현재 진행 중인 맥락/상황 ("키: 값" 항목)
-- recent_topics: 최근 대화 화제(쉼표 구분 키워드)
-**중복 키 규칙**: 같은 종류의 정보(같은 키)가 기존 기억에 이미 있으면, 같은 키를 중복으로 새로 만들지 말고 그 키의 값을 새 정보로 업데이트하라. (예: 기존 "취향: 매운음식" + 새 정보 단것 선호 → "취향: 단음식"으로 갱신)
-기존 기억의 다른 키는 보존하되 새 정보로 갱신·보강하라. 모순되면 새 정보 우선.
-설명·코드블록 없이 {"memory_summary":..,"relationship":..,"context":..,"recent_topics":..} JSON만 출력."""
+async def _dev_ont_data(clone_id: int, user_id: int) -> dict:
+    """dev ont-raw GET → clone_ont.data 만 추출(verify_ont_raw와 동일 계약, DEV_SECRET 인증).
+    실패 시 {} (표시용 before/after 이지 학습 자체를 막지 않음)."""
+    url = f"{API_BASE}/oth-path?userId={user_id}"
+    timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+    async with aiohttp.ClientSession(timeout=timeout) as sess:
+        async with sess.get(url, headers={
+            "Authorization": f"Bearer {_DEV_SECRET}",
+            "User-Agent": _BROWSER_UA,
+        }) as r:
+            if r.status != 200:
+                return {}
+            data = await r.json()
+    return (data or {}).get("data") or {}
 
-def _l2_from_persona(persona: dict) -> dict:
-    return {k: (persona.get(k) or "") for k in _L2_FIELDS}
-
-def _parse_l2_json(content: str) -> dict | None:
-    """LLM 응답에서 첫 { ~ 마지막 } 추출 후 json.loads. 실패 시 None."""
-    if not content:
-        return None
-    s = content.find("{")
-    e = content.rfind("}")
-    if s < 0 or e <= s:
-        return None
-    try:
-        data = json.loads(content[s:e + 1])
-    except Exception:
-        return None
-    if not isinstance(data, dict):
-        return None
-    return {k: (str(data.get(k, "")) if data.get(k) is not None else "") for k in _L2_FIELDS}
+async def _ont_merge(clone_id: int, user_id: int, extracted: dict) -> dict:
+    """dev ont-merge POST — 프로덕션 병합 로직(clone_ont) 재사용. 반환은 병합 후 clone_ont.data."""
+    url = f"{API_BASE}/oth-path"
+    body = json.dumps({
+        "userId": user_id, "extracted": extracted, "source": "chat",
+    }).encode("utf-8")
+    timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+    async with aiohttp.ClientSession(timeout=timeout) as sess:
+        async with sess.post(url, data=body, headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {_DEV_SECRET}",
+            "User-Agent": _BROWSER_UA,
+        }) as r:
+            txt = await r.text()
+            if r.status != 200:
+                raise RuntimeError(f"ont-merge http {r.status}")
+            resp = json.loads(txt) or {}
+            return resp.get("data") or {}
 
 async def _patch_l2(clone_id: int, fields: dict, token: str) -> dict:
     """api PATCH /oth-path 호출 → 저장된 l2_profile 반환."""
@@ -180,7 +216,14 @@ async def _patch_l2(clone_id: int, fields: dict, token: str) -> dict:
             return (json.loads(txt) or {}).get("l2_profile") or fields
 
 async def verify_learn(req: web.Request) -> web.Response:
-    """대화 턴 → L2 4필드 추출 → api L2 write. {before, extracted, saved} 반환."""
+    """대화(멀티턴) → 프로덕션 학습 경로 재현: user 턴마다 프로덕션 extract_l2(화자분리,
+    USER 한정)로 추출 → api dev ont-merge 로 턴 순서대로 누적 병합. {before, extracted, after} 반환.
+
+    T-110 Phase2: 화자 미분리·클론 발화까지 섞어 추출하던 자체 4필드 추출기(_EXTRACT_SYS)를
+    폐기하고 프로덕션과 동일한 clone_dialog.extract_l2 + ont-merge 로 교체(오학습 버그 근절).
+    """
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -193,37 +236,53 @@ async def verify_learn(req: web.Request) -> web.Response:
     if len(turns) > 100 or any(len(str(t.get("content", ""))) > 2000 for t in turns):
         return web.json_response({"error": "turns too large (max 100 turns, 2000 chars each)"}, status=400)
 
-    bundle = await fetch_bundle(API_BASE, clone_id, token)
-    persona = ((bundle or {}).get("personaBundle") or {}).get("persona") or {}
-    before = _l2_from_persona(persona)
-    name = persona.get("displayName") or "클론"
-
-    convo = "\n".join(f"{'사용자' if t.get('role') == 'user' else name}: {t.get('content','')}"
-                      for t in turns)
-    user_msg = f"기존 기억:\n{json.dumps(before, ensure_ascii=False)}\n\n새 대화:\n{convo}"
-    try:
-        content = await chat_once(
-            [{"role": "system", "content": _EXTRACT_SYS},
-             {"role": "user", "content": user_msg}],
-            temperature=0.3, fmt="json")
-    except Exception as e:
-        log.warning("verify_learn extract failed clone=%s: %s", clone_id, type(e).__name__)
-        return web.json_response({"before": before, "extracted": None, "saved": None})
-
-    extracted = _parse_l2_json(content)
-    if extracted is None:
-        return web.json_response({"before": before, "extracted": None, "saved": None})
+    if not _DEV_SECRET:
+        return web.json_response({"error": "dev secret not configured"}, status=503)
+    user_id = await _resolve_user_id(token)
+    if user_id is None:
+        return web.json_response({"error": "cannot resolve user"}, status=401)
 
     try:
-        saved = await _patch_l2(clone_id, extracted, token)
+        before = await _dev_ont_data(clone_id, user_id)
     except Exception as e:
-        log.warning("verify_learn save failed clone=%s: %s", clone_id, type(e).__name__)
-        return web.json_response({"before": before, "extracted": extracted, "saved": None})
+        log.warning("verify_learn before-fetch failed clone=%s: %s", clone_id, type(e).__name__)
+        before = {}
 
-    return web.json_response({"before": before, "extracted": extracted, "saved": saved})
+    # user 턴 + 바로 다음 assistant(클론) 응답을 (user_text, clone_reply) 쌍으로 매핑.
+    # 마지막 user 턴 뒤에 assistant 가 없으면 clone_reply="". user 턴이 없으면 no-op(빈 리스트).
+    n = len(turns)
+    pairs: list[tuple[str, str]] = []
+    for i, t in enumerate(turns):
+        if t.get("role") != "user":
+            continue
+        user_text = str(t.get("content", ""))
+        clone_reply = ""
+        if i + 1 < n and turns[i + 1].get("role") == "assistant":
+            clone_reply = str(turns[i + 1].get("content", ""))
+        pairs.append((user_text, clone_reply))
+
+    extracted_log: list[dict] = []
+    after = before
+    for user_text, clone_reply in pairs:
+        try:
+            ex = await extract_l2(user_text, clone_reply)
+        except Exception as e:
+            log.warning("verify_learn extract failed clone=%s: %s", clone_id, type(e).__name__)
+            ex = {}
+        extracted_log.append({"user_text": user_text, "clone_reply": clone_reply, "extracted": ex})
+        if not ex:
+            continue
+        try:
+            after = await _ont_merge(clone_id, user_id, ex)
+        except Exception as e:
+            log.warning("verify_learn merge failed clone=%s: %s", clone_id, type(e).__name__)
+
+    return web.json_response({"before": before, "extracted": extracted_log, "after": after})
 
 async def verify_l2_reset(req: web.Request) -> web.Response:
     """L2 4필드를 빈 값으로 저장(검증 중 기억 초기화)."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -244,6 +303,8 @@ async def verify_bundle(req: web.Request) -> web.Response:
     """현재 L0/L1/L2 분리 조회 — 테이블 표시용.
     l0=personaBundle.l0, l2=고정4필드, l1=persona 나머지.
     """
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
     token = _bearer(req)
     if not token:
         return web.json_response({"error": "missing bearer token"}, status=401)
@@ -263,6 +324,41 @@ async def verify_bundle(req: web.Request) -> web.Response:
     l1 = {k: v for k, v in persona.items() if k not in _L2_FIELDS}
     return web.json_response({"l0": l0, "l1": l1, "l2": l2})
 
+async def verify_ont_raw(req: web.Request) -> web.Response:
+    """clone_ont.data 원문 + L1 원본 + 소비본(l2_consumed) 조회 — 모니터용."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    raw_cid = req.query.get("clone_id")
+    try:
+        clone_id = int(raw_cid)
+    except (TypeError, ValueError):
+        clone_id = -1
+    if clone_id <= 0:
+        return web.json_response({"error": "invalid clone_id"}, status=400)
+    if not _DEV_SECRET:
+        return web.json_response({"error": "dev secret not configured"}, status=503)
+    user_id = await _resolve_user_id(token)
+    if user_id is None:
+        return web.json_response({"error": "cannot resolve user"}, status=401)
+    url = f"{API_BASE}/oth-path?userId={user_id}"
+    try:
+        timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+        async with aiohttp.ClientSession(timeout=timeout) as sess:
+            async with sess.get(url, headers={
+                "Authorization": f"Bearer {_DEV_SECRET}",
+                "User-Agent": _BROWSER_UA,
+            }) as r:
+                if r.status != 200:
+                    return web.json_response({"error": f"api {r.status}"}, status=r.status)
+                data = await r.json()
+    except Exception as e:
+        log.warning("verify_ont_raw failed clone=%s: %s", clone_id, type(e).__name__)
+        return web.json_response({"error": "upstream error"}, status=502)
+    return web.json_response(data)
+
 async def verify_page(_req: web.Request) -> web.FileResponse:
     html = pathlib.Path(__file__).resolve().parents[1] / "static" / "verify_chat.html"
     return web.FileResponse(html)
@@ -276,3 +372,4 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_post("/oth-path", verify_learn)
     app.router.add_post("/oth-path", verify_l2_reset)
     app.router.add_get("/oth-path", verify_bundle)
+    app.router.add_get("/oth-path", verify_ont_raw)
