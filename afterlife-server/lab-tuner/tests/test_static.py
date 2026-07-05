@@ -51,6 +51,15 @@ def test_js_has_dialogue_restart_note():
     assert "다음 접속부터 반영" in js
 
 
+def test_prod_status_section_present():
+    with open(os.path.join(_STATIC, "tuner.html")) as f:
+        html = f.read()
+    assert 'id="prod-status"' in html
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/production-status" in js
+
+
 def test_tuner_js_renders_typed_controls():
     with open(os.path.join(_STATIC, "tuner.js")) as f:
         js = f.read()

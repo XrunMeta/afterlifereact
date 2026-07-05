@@ -129,9 +129,26 @@ async function loadRuns() {
   }
 }
 
+async function loadProdStatus() {
+  const box = document.getElementById('prod-status');
+  try {
+    const d = await (await fetch('/production-status')).json();
+    let html = `<div>MainPID: ${d.mainpid ?? '-'} · ${d.generated_at}</div>`;
+    html += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
+    for (const r of d.rows) {
+      const color = r.state === 'drift' ? 'crimson' : (r.state === 'unknown' ? 'gray' : 'green');
+      html += `<tr><td>${r.env}</td><td>${r.conf}</td><td>${r.running}</td>`+
+        `<td style="color:${color}">${r.state}</td></tr>`;
+    }
+    html += '</table>';
+    box.innerHTML = html;
+  } catch (e) { box.innerHTML = '<i>상태 조회 실패</i>'; }
+}
+
 document.getElementById('apply-knobs').onclick = applyKnobs;
 document.getElementById('say-btn').onclick = sendSay;
 document.getElementById('refresh-runs').onclick = loadRuns;
-loadKnobs(); connect(); startMetrics(); loadRuns();
+document.getElementById('refresh-prod').onclick = loadProdStatus;
+loadKnobs(); connect(); startMetrics(); loadRuns(); loadProdStatus();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);
