@@ -130,7 +130,11 @@ async function v_9a2a8d() {
     const v_fd5f43 = v_fb6823.dataset.s, v_0eb677 = v_fb6823.dataset.k; let v_81e2ef = v_fb6823.value;
     if (v_81e2ef === '') return;
     if (v_81e2ef === 'true') v_81e2ef = true; else if (v_81e2ef === 'false') v_81e2ef = false;
-    else if (!isNaN(Number(v_81e2ef))) v_81e2ef = Number(v_81e2ef);
+    else {
+
+      const v_825625 = v_81e2ef.replace(',', '.');
+      if (v_825625.trim() !== '' && !isNaN(Number(v_825625))) v_81e2ef = Number(v_825625);
+    }
     (v_4628fe[v_fd5f43] ||= {})[v_0eb677] = v_81e2ef;
   });
   await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
