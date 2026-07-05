@@ -24,6 +24,12 @@ class TtsKnobs:
     url: str | None = None            # 지정 시 engine 기본 URL override
     speed: float = 1.0
     denoise: bool = False
+    # qwen generation 파라미터 — 미지정(None) 시 qwen 기본. openvoice 엔진에선 무시됨.
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    repetition_penalty: float | None = None
+    max_new_tokens: int | None = None
 
 
 @dataclass(frozen=True)

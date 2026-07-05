@@ -5,6 +5,9 @@ let accessToken = null;
 
 const DIALOGUE_RESTART_FIELDS = new Set(["system_override", "min_len", "force_flush"]);
 
+const TTS_QWEN_ONLY_FIELDS = new Set(
+  ["temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"]);
+
 async function login() {
   const email = document.getElementById('login-email').value;
   const password = document.getElementById('login-pw').value;
@@ -112,7 +115,9 @@ async function loadKnobs() {
       const id = `k_${section}_${key}`;
       const restartNote = (section === 'dialogue' && DIALOGUE_RESTART_FIELDS.has(key))
         ? `<span class="note">다음 접속부터 반영</span>` : '';
-      fs.innerHTML += `<div class="knob"><label>${key}${restartNote}</label>`+
+      const qwenNote = (section === 'tts' && TTS_QWEN_ONLY_FIELDS.has(key))
+        ? `<span class="note">qwen 전용(openvoice 무시)</span>` : '';
+      fs.innerHTML += `<div class="knob"><label>${key}${restartNote}${qwenNote}</label>`+
         `<input id="${id}" value="${val==null?'':val}" data-s="${section}" data-k="${key}"></div>`;
     }
     box.appendChild(fs);
@@ -125,7 +130,11 @@ async function applyKnobs() {
     const s = inp.dataset.s, k = inp.dataset.k; let v = inp.value;
     if (v === '') return;
     if (v === 'true') v = true; else if (v === 'false') v = false;
-    else if (!isNaN(Number(v))) v = Number(v);
+    else {
+
+      const norm = v.replace(',', '.');
+      if (norm.trim() !== '' && !isNaN(Number(norm))) v = Number(norm);
+    }
     (partial[s] ||= {})[k] = v;
   });
   await fetch('/knobs', {method:'POST', headers:{'Content-Type':'application/json'},
