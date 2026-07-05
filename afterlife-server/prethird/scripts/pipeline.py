@@ -370,11 +370,26 @@ class DialoguePipeline:
         태운다 — partial 경로(tts_worker/infer_worker/_run_pipeline_partial)는
         전혀 호출하지 않는다.
 
-        예외 시(TTS/infer 실패 등) produce 태스크를 취소하고 signal_end 를
-        보장한다(partial과 동일한 안전성 패턴)."""
+        [T-113 Task6 — spec §6] 이 메서드가 다루는 실패 도메인은 둘로 나뉜다:
+        - produce/collect(LLM 토큰 스트림) 실패: 기존과 동일하게 태스크 취소 후
+          재전파한다(호출부 signaling.py 의 except Exception 이 idle 로 복구).
+        - TTS/렌더(infer) 실패: **여기서 직접 삼킨다** — log.error 후 예외
+          미전파, 프레임/오디오 push 없이 정상 반환(partial 자동 폴백 없음,
+          해당 턴은 idle 로 남는다 — signaling.py finally 의
+          sess.set_state("idle") 과 별개로, 이 계약 자체가 pipeline 레벨에서
+          보장돼야 함). filler 정지 훅(on_response_ready)은 TTS 단계 실패처럼
+          _infer_stage 진입 '전' 실패에서는 그 내부 _fire_hook 이 못 불리므로
+          여기서 방어적으로 1회 더 호출한다(FillerPlayer.stop()/track.flush()
+          는 멱등이라 이미 불렸어도 중복 호출 안전 — T-088 좀비 패턴 방지)."""
         turn = turn if turn is not None else NULL_TURN
         sentence_q: asyncio.Queue = asyncio.Queue()
         parts: list[str] = []
+        hook_fired = {"v": False}
+
+        def _guarded_hook() -> None:
+            hook_fired["v"] = True
+            if on_response_ready is not None:
+                on_response_ready()
 
         async def collect():
             while True:
@@ -388,25 +403,42 @@ class DialoguePipeline:
             asyncio.ensure_future(collect()),
         ]
         try:
-            await asyncio.gather(*tasks)
+            try:
+                await asyncio.gather(*tasks)
+            except BaseException:
+                for t in tasks:
+                    t.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
+                raise
+
             full_text = "".join(parts)
-            if full_text.strip():
+            if not full_text.strip():
+                return
+
+            try:
                 wav_bytes, pcm48 = await self._tts_stage(full_text)
                 turn.append_wav(wav_bytes)
                 await self._infer_stage(
                     wav_bytes, pcm48, turn,
-                    on_before_push=on_response_ready, render_mode="batch",
+                    on_before_push=_guarded_hook, render_mode="batch",
                 )
-                if on_first_audio is not None:
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                # [Task 6] batch 렌더/TTS 실패 — 크래시 없이 idle 복귀(예외 미전파).
+                log.error("batch render/TTS failed: %s", exc)
+                if not hook_fired["v"] and on_response_ready is not None:
                     try:
-                        on_first_audio()
-                    except Exception as exc:  # 콜백 실패가 발화를 막지 않게 흡수
-                        log.warning("on_first_audio callback failed: %s", exc)
-        except BaseException:
-            for t in tasks:
-                t.cancel()
-            await asyncio.gather(*tasks, return_exceptions=True)
-            raise
+                        on_response_ready()
+                    except Exception as exc2:  # 콜백 실패가 실패처리 자체를 막지 않게 흡수
+                        log.warning("on_response_ready callback failed: %s", exc2)
+                return
+
+            if on_first_audio is not None:
+                try:
+                    on_first_audio()
+                except Exception as exc:  # 콜백 실패가 발화를 막지 않게 흡수
+                    log.warning("on_first_audio callback failed: %s", exc)
         finally:
             self.vt.signal_end()
             self.at.signal_end()

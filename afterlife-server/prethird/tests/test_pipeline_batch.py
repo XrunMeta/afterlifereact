@@ -8,6 +8,7 @@ TTS 정확히 1회 · infer 정확히 1회(render_mode="batch" 명시 전달)로
 """
 from __future__ import annotations
 
+import logging
 import pathlib
 import sys
 
@@ -169,21 +170,25 @@ async def test_batch_empty_stream_no_tts_no_infer(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_batch_exception_still_signals_end(monkeypatch):
-    """say_fn(TTS) 실패해도 예외가 전파되고 signal_end 는 보장된다(partial과 동일 안전성)."""
+async def test_batch_tts_failure_no_crash_but_signals_end(monkeypatch, caplog):
+    """[T-113 Task6] say_fn(TTS) 실패 시 spec §6 계약: 예외는 _run_batch 가
+    직접 삼켜(log.error) 밖으로 전파하지 않는다(partial 자동 폴백 없음 —
+    이 텀은 그냥 idle 로 남는다). signal_end 는 여전히 보장되고, 프레임/
+    오디오는 push 되지 않는다."""
     monkeypatch.setenv("PRETHIRD_RENDER_MODE", "batch")
     ended = []
+    pushed = {"v": 0, "a": 0}
 
     class VT:
         def push_ndarray(self, arr):
-            pass
+            pushed["v"] += 1
 
         def signal_end(self):
             ended.append("v")
 
     class AT:
         def push_pcm_int16(self, pcm):
-            pass
+            pushed["a"] += 1
 
         def signal_end(self):
             ended.append("a")
@@ -205,6 +210,71 @@ async def test_batch_exception_still_signals_end(monkeypatch):
         chat_fn=chat_fn, say_fn=say_fn,
         decode_wav_fn=decode_wav_fn, infer_fn=infer_fn,
     )
-    with pytest.raises(RuntimeError):
-        await p.say("x")
+    with caplog.at_level(logging.ERROR, logger="prethird.pipeline"):
+        await p.say("x")  # 예외가 전파되면 이 await 에서 테스트가 즉시 실패한다
     assert "v" in ended and "a" in ended
+    assert pushed == {"v": 0, "a": 0}
+    assert any("batch" in r.message.lower() for r in caplog.records), (
+        "TTS 실패가 log.error 로 기록돼야 함"
+    )
+
+
+@pytest.mark.asyncio
+async def test_batch_render_failure_no_crash(monkeypatch, caplog):
+    """[T-113 Task6 brief Step1] infer_fn(렌더) 실패 시에도 _run_batch 는
+    크래시 없이 종료(프레임 0, 예외 미전파) — spec §6."""
+    monkeypatch.setenv("PRETHIRD_RENDER_MODE", "batch")
+
+    async def chat_fn(messages):
+        yield "문장."
+
+    async def say_fn(text, se_path=None):
+        return b"WAVfake"
+
+    def decode_wav_fn(b):
+        return np.zeros(960, dtype=np.int16), 48000, 1
+
+    def infer_fn(wav_path, on_frame, **k):
+        raise RuntimeError("render boom")
+
+    vt, at = FakeVideoTrack(), FakeAudioTrack()
+    p = DialoguePipeline(
+        video_track=vt, audio_track=at,
+        chat_fn=chat_fn, say_fn=say_fn,
+        decode_wav_fn=decode_wav_fn, infer_fn=infer_fn,
+    )
+    with caplog.at_level(logging.ERROR, logger="prethird.pipeline"):
+        await p.say("x")  # 예외 전파되면 즉시 실패
+    assert len(vt.frames) == 0
+    assert len(at.pcm) == 0
+
+
+@pytest.mark.asyncio
+async def test_batch_tts_failure_still_fires_response_ready_hook(monkeypatch):
+    """[T-113 Task6] filler 정리: TTS 실패는 _infer_stage 진입 '전' 이라 그
+    내부 즉시컷 훅(_fire_hook)이 못 불린다 — _run_batch 의 except 경로가
+    on_response_ready 를 방어적으로 1회 호출해 FillerPlayer 가 세션 끝까지
+    영구 순환(T-088 좀비 패턴)하지 않게 보장해야 한다."""
+    monkeypatch.setenv("PRETHIRD_RENDER_MODE", "batch")
+    hook_calls = []
+
+    async def chat_fn(messages):
+        yield "문장."
+
+    async def say_fn(text, se_path=None):
+        raise RuntimeError("TTS down")
+
+    def decode_wav_fn(b):
+        return np.zeros(10, dtype=np.int16), 48000, 1
+
+    def infer_fn(wav_path, on_frame, **k):
+        return 0
+
+    vt, at = FakeVideoTrack(), FakeAudioTrack()
+    p = DialoguePipeline(
+        video_track=vt, audio_track=at,
+        chat_fn=chat_fn, say_fn=say_fn,
+        decode_wav_fn=decode_wav_fn, infer_fn=infer_fn,
+    )
+    await p.say("x", on_response_ready=lambda: hook_calls.append(1))
+    assert hook_calls == [1], "filler 정지 훅은 TTS 실패 시에도 정확히 1회 호출돼야 함"
