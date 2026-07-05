@@ -66,6 +66,7 @@ class FillerKnobs:
     lookahead_sec: float = 0.0
     blend_frames: int = 5
     idle_prebake: bool = True
+    order: str = "pre_speak"  # pre_speak|off
 
 
 @dataclass(frozen=True)
@@ -109,6 +110,7 @@ class RunKnobs:
                 lookahead_sec=_env_f("FILLER_LOOKAHEAD_SEC", 0.0),
                 blend_frames=_env_i("PRETHIRD_IDLE_BLEND_FRAMES", 5),
                 idle_prebake=os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1",
+                order=os.environ.get("PRETHIRD_FILLER_ORDER", "pre_speak"),
             ),
         )
 
@@ -171,4 +173,5 @@ KNOB_META: dict[str, dict] = {
     "filler.lookahead_sec":    {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 lookahead(s)"},
     "filler.blend_frames":     {"type": "number", "choices": None, "reflow": "next_call", "label": "idle blend 프레임"},
     "filler.idle_prebake":     {"type": "bool",   "choices": None, "reflow": "next_call", "label": "fifth idle prebake"},
+    "filler.order":            {"type": "enum",   "choices": ["pre_speak", "off"], "reflow": "next_call", "label": "필러 재생 순서"},
 }

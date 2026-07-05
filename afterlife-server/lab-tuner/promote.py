@@ -27,6 +27,7 @@ KNOB_TO_LIVE = {
     "filler.lookahead_sec": {"env": "FILLER_LOOKAHEAD_SEC", "file": _PRETHIRD_DROPIN},
     "filler.blend_frames": {"env": "PRETHIRD_IDLE_BLEND_FRAMES", "file": _PRETHIRD_DROPIN},
     "filler.idle_prebake": {"env": "FIFTH_IDLE_PREBAKE", "file": _PRETHIRD_DROPIN},
+    "filler.order": {"env": "PRETHIRD_FILLER_ORDER", "file": _PRETHIRD_DROPIN},
     # engine-baked (fifth 컨테이너): 경고 동반
     # fifth idle(per-request이나 라이브 기본값도 갱신 가능) + cfg(startup-baked). 전부 fifth 렌더 env(컨테이너).
     "fifth.idle_motion_scale": {"env": "FIFTH_IDLE_MOTION_SCALE", "file": _FIFTH_ENV_NOTE, "container": True},

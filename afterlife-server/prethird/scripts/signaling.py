@@ -9,7 +9,7 @@ from asset_fetch import fetch_to
 from voice_fetch import ensure_voice_wav
 from prebuild import prebuild_handler
 from recorder import make_recorder
-from idle_policy import clone_mp4_enabled
+from idle_policy import clone_mp4_enabled, filler_order_pre_speak
 
 REF_VOICES_ROOT = os.environ.get(
     "PRETHIRD_REF_VOICES_ROOT",
@@ -399,7 +399,9 @@ def _make_dc_handler(sess, channel):
 
             # 발화종료 gate: say/speak(사용자 발화) 수신 → FillerPlayer 시작.
             # greet는 클론 선인사 — 사용자 발화가 아니므로 filler 재생 불필요.
-            if mode in ("say", "speak") and _filler is not None:
+            # [T-111 Task10] PRETHIRD_FILLER_ORDER=off 면 순서 개입 자체를 무력화(회귀 0 —
+            # 기본 pre_speak 은 filler_order_pre_speak()==True 로 기존 분기와 동일).
+            if mode in ("say", "speak") and _filler is not None and filler_order_pre_speak():
                 _filler.start()
 
             # 응답 즉시컷 hook: 첫 infer 완료 후·첫 push 직전에 filler stop → 큐/버퍼 flush (렌더 동안 필러 순환 유지).

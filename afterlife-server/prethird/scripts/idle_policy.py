@@ -38,3 +38,13 @@ def clone_mp4_enabled() -> bool:
 
 def prebake_enabled() -> bool:
     return _mode() in ("auto", "prebake")
+
+
+def filler_order_pre_speak() -> bool:
+    """PRETHIRD_FILLER_ORDER 게이트(T-111 Task10).
+
+    기본 pre_speak(env 미설정 포함) = 현행(say/speak 수신 즉시 filler.start, 회귀 0).
+    off = filler.start 를 건너뛰어 순서 개입을 무력화(PRETHIRD_FILLER 와 독립적).
+    호출 시점마다 env 를 읽는다(모듈 top-level 캡처 금지 — per-call 배선).
+    """
+    return os.environ.get("PRETHIRD_FILLER_ORDER", "pre_speak") != "off"
