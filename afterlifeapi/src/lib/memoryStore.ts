@@ -313,3 +313,31 @@ export async function updateOntPersonFromExtraction(
   await writeOntPerson(env, cloneId, personId, serialized, true);
   return { rev: prevRev + 1, skipped: false };
 }
+
+export async function purgeUserOntology(
+  env: Bindings, userId: number,
+): Promise<{ ontRows: number; personRows: number; kvKeys: number }> {
+
+  const cloneRows = (
+    await env.DB.prepare("SELECT clone_id FROM clone_ont WHERE user_id = ?")
+      .bind(userId).all<{ clone_id: number }>()
+  ).results;
+  let kvKeys = 0;
+  for (const { clone_id } of cloneRows) {
+    await env.KV_ONT.delete(`l2:${clone_id}:${userId}`);
+    kvKeys += 1;
+  }
+
+  const ontRes = await env.DB.prepare("DELETE FROM clone_ont WHERE user_id = ?")
+    .bind(userId).run();
+
+  const personRes = await env.DB.prepare(
+    "DELETE FROM clone_ont_person WHERE person_id IN (SELECT id FROM persons WHERE user_id = ?)",
+  ).bind(userId).run();
+
+  return {
+    ontRows: ontRes.meta?.changes ?? 0,
+    personRows: personRes.meta?.changes ?? 0,
+    kvKeys,
+  };
+}
