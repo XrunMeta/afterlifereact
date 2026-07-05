@@ -3,6 +3,7 @@ import logging, os
 from typing import Any
 from aiohttp import web
 import config
+from idle_policy import prebake_enabled
 from signaling import make_app
 
 log = logging.getLogger("prethird.server")
@@ -102,6 +103,11 @@ def _build_pipeline_factory():
     renderer_name = _select_renderer_name()
     renderer = _build_renderer(renderer_name, video_path)
     log.info("renderer=%s loaded", renderer_name)
+    if prebake_enabled() and renderer_name != "fifth":
+        log.warning(
+            "IDLE_SOURCE_MODE=prebake 이나 renderer=%s(fifth 아님) — prebake 무효과, idle halbae 고착 위험",
+            renderer_name,
+        )
 
     default_se = os.environ.get("PRETHIRD_TTS_SE_PATH", "") or None
 
@@ -120,7 +126,7 @@ def _build_pipeline_factory():
             return renderer.infer(wav, cb, video_path=_src)
 
         # idle prebake: fifth 렌더러 + 정면사진 source일 때만 실행
-        if renderer_name == "fifth" and _src and _is_image_source(_src) and os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1":
+        if renderer_name == "fifth" and _src and _is_image_source(_src) and os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1" and prebake_enabled():
             from idle_prebake import start_prebake
             _tmp = os.environ.get("TMPDIR", "/tmp")
             start_prebake(renderer, _src, sess.video_track, wav_dir=_tmp)

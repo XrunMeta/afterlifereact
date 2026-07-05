@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-07-04T22:01:14+0900",
+  "render_url": "http://203.0.113.30:8810",
+  "silence_sec": 8.0,
+  "sample_fractions": [
+    0.15,
+    0.3,
+    0.45,
+    0.6,
+    0.75,
+    0.9
+  ],
+  "identities": {
+    "9053": {
+      "source": "/home/afterlife/afterlife-server/prethird/video-ref/9053/9053-face.jpg",
+      "total_frames": 200,
+      "shots": [
+        "shot_0.jpg",
+        "shot_1.jpg",
+        "shot_2.jpg",
+        "shot_3.jpg",
+        "shot_4.jpg",
+        "shot_5.jpg"
+      ]
+    },
+    "9055": {
+      "source": "/home/afterlife/afterlife-server/prethird/video-ref/9055/9055-face.jpg",
+      "total_frames": 200,
+      "shots": [
+        "shot_0.jpg",
+        "shot_1.jpg",
+        "shot_2.jpg",
+        "shot_3.jpg",
+        "shot_4.jpg",
+        "shot_5.jpg"
+      ]
+    },
+    "9056": {
+      "source": "/home/afterlife/afterlife-server/prethird/video-ref/9056/9056-face.jpg",
+      "total_frames": 200,
+      "shots": [
+        "shot_0.jpg",
+        "shot_1.jpg",
+        "shot_2.jpg",
+        "shot_3.jpg",
+        "shot_4.jpg",
+        "shot_5.jpg"
+      ]
+    },
+    "9057": {
+      "source": "/home/afterlife/afterlife-server/prethird/video-ref/9057/9057-face.jpg",
+      "total_frames": 200,
+      "shots": [
+        "shot_0.jpg",
+        "shot_1.jpg",
+        "shot_2.jpg",
+        "shot_3.jpg",
+        "shot_4.jpg",
+        "shot_5.jpg"
+      ]
+    },
+    "9058": {
+      "source": "/home/afterlife/afterlife-server/prethird/video-ref/9058/9058-face.jpg",
+      "total_frames": 200,
+      "shots": [
+        "shot_0.jpg",
+        "shot_1.jpg",
+        "shot_2.jpg",
+        "shot_3.jpg",
+        "shot_4.jpg",
+        "shot_5.jpg"
+      ]
+    },
+    "9059": {
+      "source": "/home/afterlife/afterlife-server/prethird/video-ref/9059/9059-face.jpg",
+      "total_frames": 200,
+      "shots": [
+        "shot_0.jpg",
+        "shot_1.jpg",
+        "shot_2.jpg",
+        "shot_3.jpg",
+        "shot_4.jpg",
+        "shot_5.jpg"
+      ]
+    },
+    "9060": {
+      "source": "/home/afterlife/afterlife-server/prethird/video-ref/9060/9060-face.jpg",
+      "total_frames": 200,
+      "shots": [
+        "shot_0.jpg",
+        "shot_1.jpg",
+        "shot_2.jpg",
+        "shot_3.jpg",
+        "shot_4.jpg",
+        "shot_5.jpg"
+      ]
+    },
+    "9061": {
+      "source": "/home/afterlife/afterlife-server/prethird/video-ref/9061/9061-face.jpg",
+      "total_frames": 200,
+      "shots": [
+        "shot_0.jpg",
+        "shot_1.jpg",
+        "shot_2.jpg",
+        "shot_3.jpg",
+        "shot_4.jpg",
+        "shot_5.jpg"
+      ]
+    }
+  }
+}

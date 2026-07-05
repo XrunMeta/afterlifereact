@@ -1,6 +1,7 @@
 # afterlife-server/qwen3tts/tests/test_engine.py
 import sys, pathlib, os
 import numpy as np
+import pytest
 import soundfile as sf
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from tts_engine import Qwen3Engine  # noqa: E402
@@ -12,8 +13,9 @@ class FakeModel:
     def create_voice_clone_prompt(self, ref_audio, ref_text, x_vector_only_mode):
         self.prompt_calls.append({"ref_text": ref_text, "xvo": x_vector_only_mode})
         return {"prompt_id": len(self.prompt_calls)}
-    def generate_voice_clone(self, text, language, voice_clone_prompt):
+    def generate_voice_clone(self, text, language, voice_clone_prompt, **kwargs):
         self.gen_calls += 1
+        self.last_gen_kwargs = kwargs
         return [np.zeros(1600, dtype="float32")], 16000
 
 def _fake_clip(voice_wav, max_sec=None):
@@ -121,3 +123,73 @@ def test_attn_impl_defaults_to_sdpa(monkeypatch):
     monkeypatch.delenv("QWEN3TTS_ATTN", raising=False)
     importlib.reload(config)
     assert config.ATTN_IMPL == "sdpa"
+
+def test_gen_params_forwarded_to_model(tmp_path):
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = FakeModel()
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    eng.synth("문장", clone_id="halbae", voice_wav=wav,
+              gen_params={"temperature": 0.5, "top_p": 0.8})
+    assert m.last_gen_kwargs == {"temperature": 0.5, "top_p": 0.8}
+
+def test_gen_params_none_forwards_nothing(tmp_path):
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = FakeModel()
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    eng.synth("문장", clone_id="halbae", voice_wav=wav)  # gen_params 미전달
+    assert m.last_gen_kwargs == {}
+
+def test_atempo_noop_when_speed_1(tmp_path):
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = FakeModel()
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    out = eng.synth("문장", clone_id="halbae", voice_wav=wav, speed=1.0)
+    # speed=1.0 → atempo 미적용, FakeModel 1600샘플 그대로 인코딩된 WAV
+    import io as _io, soundfile as _sf
+    data, sr = _sf.read(_io.BytesIO(out))
+    assert len(data) == 1600
+
+def test_atempo_speeds_up_audio(tmp_path):
+    import shutil
+    if shutil.which("ffmpeg") is None:
+        pytest.skip("ffmpeg not available")
+    wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
+    m = FakeModel()
+    # ffmpeg atempo(WSOLA)는 완전 무음(전부 0) 입력에서 축퇴 동작(64샘플로 collapse)해
+    # 배속 비율을 반영하지 못함(실측 확인) → 실제 배속 스케일 검증에는 논제로 사인파 사용.
+    import numpy as _np
+    _t = _np.linspace(0, 1600 / 16000, 1600, endpoint=False)
+    _sine = (0.1 * _np.sin(2 * _np.pi * 220 * _t)).astype("float32")
+    m.generate_voice_clone = lambda text, language, voice_clone_prompt, **kwargs: ([_sine], 16000)
+    eng = Qwen3Engine(model=m, clip_fn=_fake_clip)
+    out = eng.synth("문장", clone_id="halbae", voice_wav=wav, speed=2.0)
+    import io as _io, soundfile as _sf
+    data, sr = _sf.read(_io.BytesIO(out))
+    # 2배속 → 길이 대략 절반(atempo 근사치, 여유 있게 검증)
+    assert 700 <= len(data) <= 950
+
+def test_atempo_ffmpeg_failure_returns_original_bytes(monkeypatch, tmp_path):
+    """ffmpeg 호출 실패(FileNotFoundError/CalledProcessError) 시 크래시 대신
+    원본 wav_bytes 를 그대로 반환해야 한다(graceful degrade, _extract_spk_emb 관례와 일치)."""
+    import subprocess
+    import tts_engine
+
+    def _boom(*args, **kwargs):
+        raise FileNotFoundError("ffmpeg not found")
+    monkeypatch.setattr(tts_engine.subprocess, "run", _boom)
+
+    original = b"RIFF-ORIGINAL-BYTES"
+    out = tts_engine._apply_atempo(original, 1.5)
+    assert out == original
+
+def test_atempo_ffmpeg_called_process_error_returns_original_bytes(monkeypatch, tmp_path):
+    import subprocess
+    import tts_engine
+
+    def _boom(*args, **kwargs):
+        raise subprocess.CalledProcessError(1, ["ffmpeg"])
+    monkeypatch.setattr(tts_engine.subprocess, "run", _boom)
+
+    original = b"RIFF-ORIGINAL-BYTES"
+    out = tts_engine._apply_atempo(original, 1.5)
+    assert out == original

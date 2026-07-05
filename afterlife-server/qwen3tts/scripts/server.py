@@ -29,6 +29,12 @@ def _startup():
 class SynthReq(BaseModel):
     text: str
     speed: float = 1.0
+    # qwen generation 파라미터 — 미지정(None) 시 qwen 기본 사용(회귀 0).
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    repetition_penalty: float | None = None
+    max_new_tokens: int | None = None
     # 아래 3개는 OpenVoice 전용 — 계약 호환 위해 수신만, 무시.
     sdp_ratio: float = 0.5
     noise_scale: float = 0.6
@@ -37,6 +43,10 @@ class SynthReq(BaseModel):
     clone_id: str | None = None
     # se_path: deprecated. 하위호환 유지. clone_id 없을 때 parse_clone_id() 로 추출.
     se_path: str | None = None
+
+
+# gen params 로 전달할 필드 키 (None 이 아닌 것만 dict 로 묶어 eng.synth 에 전달, 회귀 0).
+_GEN_KEYS = ("temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens")
 
 
 @app.post("/tts/kr")
@@ -71,10 +81,13 @@ def synth(req: SynthReq):
     # ICL ref_text 배선: ref_text.txt 있으면 ICL 모드, 없으면 x_vector_only (기존 경로)
     ref_text = load_ref_text(clone_id)
 
+    gen_params = {k: getattr(req, k) for k in _GEN_KEYS if getattr(req, k) is not None}
+
     t0 = time.time()
     try:
         with _SYNTH_LOCK:
-            wav = eng.synth(txt, clone_id=clone_id, voice_wav=voice_wav, ref_text=ref_text, speed=req.speed)
+            wav = eng.synth(txt, clone_id=clone_id, voice_wav=voice_wav, ref_text=ref_text,
+                             speed=req.speed, gen_params=gen_params)
     except ValueError as exc:
         # extract_ref_clip 에서 raise 하는 "corrupt/unreadable wav" 를 503 으로 매핑.
         # 무음 응답 대신 명시적 에러 반환 (sion MAJOR3).

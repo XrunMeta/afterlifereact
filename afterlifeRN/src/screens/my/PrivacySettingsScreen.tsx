@@ -10,6 +10,7 @@ import {
   v_39a996,
   v_cf9c33,
   v_03e392,
+  v_79139e,
 } from "rcmrninabrnb";
 import { v_dec439 } from "zvyjokvuouwvifyzks";
 import { v_cf763b, v_ada615 } from "ixigazcpvfldbecwtbvavtbi";
@@ -17,6 +18,7 @@ import type { v_390fcc } from "xpfgrcdafpntkgxfmgxpxnedjkvmtc";
 import { v_772971 } from "jmpfvteuuztnp";
 import v_570c34 from "../../components/ui/SafeScrollView";
 import v_258c1c from "../../components/common/PageHeader";
+import v_c0caa9 from "../../components/common/TermsModal";
 import { v_1bfbd0, v_8b0c90 } from "../../components/constants";
 import type { v_e57140 } from "../../navigation/types";
 import { v_1ed7d9 } from "../../stores/authStore";
@@ -31,6 +33,11 @@ import {
   v_31967f,
   type v_5c12dc,
 } from "../../api/persons";
+import {
+  v_7f847d,
+  v_b14b3b,
+  type v_6a3f07,
+} from "../../api/consent";
 
 const v_28895b = (it: v_370311) => `${v_23805a.type}-${v_23805a.blockId}`;
 
@@ -47,6 +54,11 @@ export default function v_9232cf() {
   const [v_fded81, v_1b22c3] = v_5ab095<v_5c12dc[]>([]);
   const [v_947634, v_8c4301] = v_5ab095(true);
   const [v_8728fe, v_efdde3] = v_5ab095<number | null>(null);
+
+  const [v_ede652, v_721e61] = v_5ab095<v_6a3f07>("none");
+  const [v_53569b, v_147f73] = v_5ab095(true);
+  const [v_1dead4, v_578637] = v_5ab095(false);
+  const [v_312a6a, v_344e2f] = v_5ab095(false);
 
   const v_62f9dc = (item: v_370311) => {
     if (v_8c0b26.type === "user") {
@@ -117,17 +129,58 @@ export default function v_9232cf() {
     }
   }, [v_2ca7e0]);
 
+  const v_fbea7d = v_de06a3(async () => {
+    if (!v_2ca7e0) {
+      v_721e61("none");
+      v_147f73(false);
+      return;
+    }
+    v_147f73(true);
+    try {
+      const v_b6e533 = await v_b14b3b(v_2ca7e0);
+      v_721e61(v_b6e533);
+    } catch (v_49263d) {
+      console.warn("[Privacy] getCallLearningConsent failed:", v_49263d);
+    } finally {
+      v_147f73(false);
+    }
+  }, [v_2ca7e0]);
+
   v_c4deb2(() => {
     v_1a1b9b();
     v_ae477e();
-  }, [v_1a1b9b, v_ae477e]);
+    v_fbea7d();
+  }, [v_1a1b9b, v_ae477e, v_fbea7d]);
 
   v_cf763b(
     v_a3453e.useCallback(() => {
       v_1a1b9b();
       v_ae477e();
-    }, [v_1a1b9b, v_ae477e]),
+      v_fbea7d();
+    }, [v_1a1b9b, v_ae477e, v_fbea7d]),
   );
+
+  const v_da6541 = async (v_3b402b) => {
+    if (!v_2ca7e0 || v_1dead4) return;
+    const v_ba2215 = v_ede652;
+    v_578637(true);
+    v_721e61(v_3b402b ? "granted" : "none"); 
+    try {
+      const v_cb35cb = await v_7f847d(
+        v_2ca7e0,
+        v_3b402b ? "granted" : "revoked",
+        { channel: "settings" },
+      );
+      v_721e61(v_cb35cb.state === "granted" ? "granted" : "none");
+    } catch (v_49263d) {
+      v_721e61(v_ba2215); 
+      const v_badeaf =
+        v_49263d instanceof Error ? v_49263d.message : v_8d41d7("settings.privacy.callLearning.saveError");
+      v_889fad(v_8d41d7("common.error"), v_badeaf);
+    } finally {
+      v_578637(false);
+    }
+  };
 
   const v_74c662 = (person: v_5c12dc) => {
     v_889fad(
@@ -311,6 +364,23 @@ export default function v_9232cf() {
         onRevoke={v_74c662}
         t={v_8d41d7}
       />
+
+      {}
+      <CallLearningConsentSection
+        state={v_ede652}
+        loading={v_53569b}
+        saving={v_1dead4}
+        onToggle={v_da6541}
+        onViewTerms={() => v_344e2f(true)}
+        t={v_8d41d7}
+      />
+
+      <TermsModal
+        visible={v_312a6a}
+        type={5}
+        onClose={() => v_344e2f(false)}
+        onAgree={() => v_344e2f(false)}
+      />
     </SafeScrollView>
   );
 }
@@ -391,6 +461,58 @@ function v_afe1c9({ persons: v_fded81, loading: v_683210, revokingId: v_8728fe, 
           })}
         </View>
       )}
+    </View>
+  );
+}
+
+interface CallLearningConsentSectionProps {
+  state: v_6a3f07;
+  loading: boolean;
+  saving: boolean;
+  onToggle: (value: boolean) => void;
+  onViewTerms: () => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function v_efb928({
+  state: v_b6e533,
+  loading: v_683210,
+  saving: v_35bf26,
+  onToggle: v_0a2cea,
+  onViewTerms: v_6c57c3,
+  t: v_8d41d7,
+}: CallLearningConsentSectionProps) {
+  return (
+    <View
+      testID="call-learning-consent-section"
+      style={[v_fd5f43.content, { paddingTop: 0, paddingBottom: 32 }]}
+    >
+      <Text style={v_fd5f43.sectionTitle}>{v_8d41d7("settings.privacy.callLearning.sectionTitle")}</Text>
+      <View style={v_fd5f43.card}>
+        <View style={v_fd5f43.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={v_fd5f43.rowName}>{v_8d41d7("settings.privacy.callLearning.toggleLabel")}</Text>
+            <Text style={v_fd5f43.rowSub}>{v_8d41d7("settings.privacy.callLearning.description")}</Text>
+            <TouchableOpacity onPress={v_6c57c3} hitSlop={8}>
+              <Text style={[v_fd5f43.rowSub, v_fd5f43.callLearningTermsLink]}>
+                {v_8d41d7("settings.privacy.callLearning.viewTerms")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {v_683210 ? (
+            <ActivityIndicator color={v_1bfbd0.zinc500} />
+          ) : (
+            <Switch
+              testID="call-learning-consent-toggle"
+              value={v_b6e533 === "granted"}
+              onValueChange={v_0a2cea}
+              disabled={v_35bf26}
+              trackColor={{ false: v_1bfbd0.zinc200, true: v_1bfbd0.violet600 }}
+              thumbColor={v_1bfbd0.white}
+            />
+          )}
+        </View>
+      </View>
     </View>
   );
 }
@@ -483,4 +605,9 @@ const v_fd5f43 = v_472849.create({
     alignItems: "center",
   },
   revokeBtnText: { fontSize: 12, fontWeight: "700", color: v_1bfbd0.white },
+  callLearningTermsLink: {
+    color: v_1bfbd0.zinc700,
+    textDecorationLine: "underline",
+    marginTop: 6,
+  },
 });

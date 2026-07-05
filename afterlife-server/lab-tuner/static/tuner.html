@@ -1,50 +1,100 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><title>lab-tuner</title>
 <style>
- body{display:flex;flex-direction:column;font-family:sans-serif;margin:0;height:100vh}
- #main-row{display:flex;flex:1;min-height:0}
- #knobs-panel{width:320px;overflow:auto;padding:12px;background:#f4f4f7}
- #center{flex:1;display:flex;flex-direction:column;align-items:center;padding:12px}
- #metrics{width:300px;padding:12px;background:#f4f4f7;overflow:auto;font:12px monospace}
- #clone-video{width:288px;height:512px;background:#000}
- .knob{margin:6px 0} .knob label{display:block;font-size:12px}
- .knob .note{color:#a00;font-size:10px}
- fieldset{margin:8px 0}
- #live-banner{display:none;position:fixed;top:0;left:0;right:0;background:#c00;color:#fff;
-   text-align:center;padding:6px;font-weight:bold;z-index:10}
- #runs{width:100%;margin-top:12px;font-size:12px}
- #runs table{width:100%;border-collapse:collapse}
- #runs td,#runs th{border-bottom:1px solid #ddd;padding:4px;text-align:left}
- #login-bar{width:100%;background:#eee;padding:8px;display:flex;gap:6px;align-items:center;
-   box-sizing:border-box}
- #login-status{font-size:12px;color:#666;margin-left:8px}
+ /* questui 양피지 라이트 세트 — 크림 배경 + 진한 골드/브라운 액센트 */
+ :root{--bg:#F4ECD8;--surface:#FBF6E9;--surface-2:#EFE3C9;--gold:#A16207;
+   --gold-border:#CA8A04;--border:#D8C4A0;--red:#B91C1C;--purple:#6B21A8;
+   --green:#15803D;--text:#3B2A1A;--text-dim:#7A6A52;}
+ body{margin:0;height:100vh;display:flex;flex-direction:column;background:var(--bg);
+   color:var(--text);font-family:ui-monospace,"Fira Code",monospace}
+ h3,h4,legend,.panel-title{font-family:"Cinzel",Georgia,serif;color:var(--gold);
+   letter-spacing:.03em}
+ #live-banner{display:none;position:fixed;top:0;left:0;right:0;background:var(--red);
+   color:#FFF5E6;text-align:center;padding:6px;font-weight:bold;z-index:10}
+ #login-bar{display:flex;gap:8px;align-items:center;padding:10px 12px;
+   background:var(--surface);border-bottom:1px solid var(--border);box-sizing:border-box}
+ #main-row{display:flex;flex:1;min-height:0;flex-wrap:wrap}
+ .col-left{width:360px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+ .col-right{flex:1;min-width:320px;padding:16px;overflow:auto;background:var(--surface)}
+ #clone-video{width:288px;height:512px;background:#000;border:1px solid var(--border);border-radius:4px}
+ input,select,button{font-family:inherit;color:var(--text);background:var(--surface);
+   border:1px solid var(--border);border-radius:4px;padding:8px 12px}
+ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px #CA8A0440}
+ button{cursor:pointer}
+ button.primary{background:var(--gold);color:#FFF5E6;border-color:var(--gold-border)}
+ button:disabled{opacity:.35;cursor:not-allowed}
+ /* 채널 카드 고정 2열 그리드(좁은 화면은 미디어쿼리로 1열) — 공간 밀도↑ */
+ #knob-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+ .channel{background:var(--surface-2);border:1px solid var(--border);border-top:2px solid var(--gold);
+   border-radius:4px;padding:12px;box-shadow:1px 2px 8px #CA8A0420}
+ .channel .panel-title{font-size:14px;margin-bottom:8px;text-transform:capitalize}
+ .knob-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
+ .knob-row label{font-size:12px;color:var(--text-dim);display:flex;flex-direction:column}
+ .reflow-chip{font-family:"Cinzel",serif;font-size:9px;letter-spacing:.05em;text-transform:uppercase;
+   color:var(--gold);background:#CA8A0420;border-radius:2px;padding:1px 6px;margin-top:2px;width:max-content}
+ .knob-row input,.knob-row select{width:120px}
+ .stepper{display:flex;align-items:center}
+ .stepper input{width:70px;text-align:center;border-radius:0}
+ .stepper button{padding:6px 8px;background:var(--surface)}
+ .knob-toggle{background:var(--surface)} .knob-seg{background:var(--surface)}
+ .knob-dim{opacity:.4}
+ #metrics{font-size:12px}
+ .meter-row{display:flex;gap:8px;align-items:center;padding:3px 0;font-size:12px}
+ .meter-row b{color:var(--text-dim);min-width:64px}
+ .meter-row span{color:var(--text)}
+ #runs table,#prod-status table{width:100%;border-collapse:collapse;font-size:12px}
+ #runs td,#runs th,#prod-status td,#prod-status th{border-bottom:1px solid var(--surface-2);
+   padding:4px;text-align:left}
+ .chip{font-family:"Cinzel",serif;font-size:10px;letter-spacing:.05em;text-transform:uppercase;
+   border-radius:2px;padding:2px 8px}
+ .chip-ok{background:#22C55E20;color:var(--green)}
+ .chip-drift{background:#B91C1C20;color:var(--red)}
+ .chip-unknown{background:var(--surface-2);color:var(--text-dim)}
+ @media(max-width:900px){
+   #main-row{flex-wrap:wrap}
+   .col-left{width:100%}
+   .col-right{width:100%;min-width:0}
+   #knob-fields{grid-template-columns:1fr}
+ }
 </style></head><body>
  <div id="live-banner">라이브 통화 중 — 튜닝 대기</div>
  <div id="login-bar">
-   <input id="login-email" placeholder="email" autocomplete="username">
+   <input id="login-email" placeholder="email" autocomplete="username" value="oth-test@example.invalid">
    <input id="login-pw" type="password" placeholder="password" autocomplete="current-password">
    <button id="login-btn">로그인</button>
    <select id="clone-select" disabled><option value="">-- 클론 선택 --</option></select>
    <button id="connect-btn" disabled>연결</button>
-   <span id="login-status"></span>
-   <span id="conn-status" style="font-size:12px;color:#0a0;margin-left:8px"></span>
+   <span id="login-status" style="font-size:12px;color:var(--text-dim)"></span>
+   <span id="conn-status" style="font-size:12px;color:var(--green);margin-left:8px"></span>
  </div>
  <div id="main-row">
-   <div id="knobs-panel">
-     <h3>Knobs</h3>
-     <div id="knob-fields"></div>
-     <button id="apply-knobs">적용</button>
-     <button id="promote">라이브 적용</button>
-   </div>
-   <div id="center">
+   <div class="col-left">
      <video id="clone-video" autoplay playsinline></video>
-     <div><input id="say-input" placeholder="말 걸기" disabled><button id="say-btn" disabled>say</button></div>
-     <div id="runs">
-       <h4>Runs <button id="refresh-runs">새로고침</button></h4>
-       <div id="runs-list"></div>
+     <div style="display:flex;gap:6px">
+       <input id="say-input" placeholder="말 걸기 (Enter 전송)" disabled style="flex:1">
+       <button id="say-btn" disabled>say</button>
+     </div>
+     <div id="metrics"><h4>상태</h4><div id="metrics-out"></div></div>
+     <div id="runs"><h4>Runs <button id="refresh-runs">새로고침</button></h4>
+       <div id="runs-list"></div></div>
+   </div>
+   <div class="col-right">
+     <div id="knobs-panel">
+       <h3 class="panel-title">MIXER</h3>
+       <div id="knob-fields"></div>
+       <div style="display:flex;gap:8px;margin:12px 0">
+         <button id="apply-knobs" class="primary">적용</button>
+         <button id="promote">라이브 적용</button>
+       </div>
+       <div id="promote-confirm" style="display:none"></div>
+       <input id="promote-token" type="password" placeholder="LAB_TUNER_TOKEN"
+         style="display:none;width:100%;box-sizing:border-box;margin-bottom:8px">
+       <fieldset><legend>프로덕션 상태(read-only)</legend>
+         <button id="refresh-prod">새로고침</button>
+         <div id="prod-status"></div>
+       </fieldset>
      </div>
    </div>
-   <div id="metrics"><h3>계측</h3><pre id="metrics-out"></pre></div>
  </div>
  <script src="/tuner.js"></script>
 </body></html>
