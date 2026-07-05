@@ -3,17 +3,20 @@ import json
 import re
 from .llm_client import chat_once
 
-# mizu M-1 / 트랙A: 프롬프트 우회(간접표현)에 대한 2차 정규식 방어. 매칭 항목은 저장 전 drop.
-# 주소·계좌·비밀번호는 best-effort(자유형식 완전 차단 불가 — 인정). api stripPii와 독립 이중화.
+# mizu M-1 / 트랙A: 프롬프트 우회(간접표현) 2차 정규식 방어. 매칭 항목은 저장 전 drop.
+# 주소·계좌·비밀번호는 best-effort(자유형식 완전 차단 불가). api stripPii와 독립 이중화.
+# el/mizu 게이트: 단독 조사(가/로)·영단어 부분매칭·짧은 숫자열 오탐을 제거해 정상 취향값 보존.
 _PII_PATTERNS = [
     re.compile(r"01[016-9][-\s]?\d{3,4}[-\s]?\d{4}"),          # 휴대전화
     re.compile(r"\d{6}[-\s]?\d{7}"),                            # 주민등록번호
     re.compile(r"\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}"),     # 카드번호
     re.compile(r"\d{2,6}[-\s]\d{2,6}[-\s]\d{2,6}"),           # 계좌번호(하이픈/공백 구분)
-    re.compile(r"\d{10,14}"),                                   # 계좌번호(연속 10~14자리)
-    re.compile(r"(비밀번호|비번|패스워드|password|passwd|pwd|핀\s*번호|PIN)", re.IGNORECASE),  # 비밀번호 키워드
-    re.compile(r"(구|동|로|길|번지|아파트|호|층|가)\s*\d"),       # 주소: 키워드+숫자
-    re.compile(r"\d+\s*(번지|동|호|층|가|로|길)"),                # 주소: 숫자+키워드
+    re.compile(r"\d{11,16}"),                                   # 계좌번호(연속 11~16자리; 10자리 이하 조회수 등 오탐 완화)
+    re.compile(r"(비밀번호|비번|패스워드|핀\s*번호)"),           # 비밀번호(한국어 키워드)
+    re.compile(r"\b(password|passwd|pwd|pin\s*code|pin\s*number)\b", re.IGNORECASE),  # 비밀번호(영어, 단어경계 — spinning/opinion 오탐 방지)
+    re.compile(r"[가-힣]{2,}(로|길)\s*\d{1,4}"),               # 도로명 주소(2자+ 지명+번호; 단독 조사 오탐 방지)
+    re.compile(r"\d+\s*번지"),                                  # 지번(번지)
+    re.compile(r"[가-힣]+(시|도)\s*[가-힣]+(시|군|구)"),        # 행정구역 체인(서울시 강남구)
 ]
 
 
@@ -79,11 +82,8 @@ async def extract_l2(user_text: str, clone_reply: str) -> dict:
             # mizu H-1: primitive(str/int/float/bool)만 — 중첩 객체/배열에 PII 은닉 차단
             if not isinstance(v, (str, int, float, bool)):
                 continue
-            # mizu M-1: 값 문자열이 PII 패턴이면 drop
-            if isinstance(v, str) and _has_pii(v):
-                continue
-            # 트랙A A1: 키 이름 자체가 PII 키워드(예: "비번")면 값 은닉 대비 항목 통째 drop
-            if _has_pii(str(k)):
+            # mizu M-1/I-1: 키 이름 또는 값(숫자 타입 포함, 문자열화 후)이 PII면 drop
+            if _has_pii(str(k)) or _has_pii(str(v)):
                 continue
             clean_pp[str(k)] = v
         if clean_pp:

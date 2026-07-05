@@ -123,3 +123,27 @@ def test_normal_preferences_not_dropped():
     # 정상 취향값에 PII 오탐 없음(회귀 방어)
     for v in ["콜라", "사이다", "재즈", "등산 좋아함", "라떼"]:
         assert l2_extract._has_pii(v) is False
+
+
+def test_normal_numeric_and_english_not_flagged():
+    # el/mizu 게이트: 숫자+조사·영단어 부분매칭 오탐 방지 회귀
+    for v in ["2가 더 좋아", "라떼 2로 주세요", "3로 갈래", "친구가 3명 있어",
+              "spinning 좋아해", "opinion 나누기 좋아함", "조회수 1234567890 관심"]:
+        assert l2_extract._has_pii(v) is False, v
+
+
+def test_pii_still_detected_after_tuning():
+    # 튜닝 후에도 실제 PII는 계속 탐지
+    for v in ["서울 강남구 테헤란로 123", "서울시 강남구", "110-234-567890",
+              "12345678901234", "비밀번호는 abcd1234", "010-1234-5678", "123번지"]:
+        assert l2_extract._has_pii(v) is True, v
+
+
+async def test_extract_drops_numeric_pii_value(monkeypatch):
+    # mizu I-1: preference 값이 숫자 타입이어도 계좌 정규식 적용(문자열화 후 검사)
+    async def _fake(*a, **k):
+        return ('{"preference_personal": {"계좌": 12345678901234, "취미": "등산"}, '
+                '"relation": null, "memories_personal": []}')
+    monkeypatch.setattr(l2_extract, "chat_once", _fake)
+    out = await l2_extract.extract_l2("계좌", "네")
+    assert out["preference_personal"] == {"취미": "등산"}
