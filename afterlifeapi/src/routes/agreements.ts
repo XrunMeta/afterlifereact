@@ -14,7 +14,7 @@ interface AgreementRow {
   updated_by: string | null;
 }
 
-const VALID_TYPES = new Set([1, 2]);
+const VALID_TYPES = new Set([1, 2, 5]);
 
 function normalizeLang(raw: string | undefined | null): string {
   const v = (raw ?? "ko").toLowerCase();
