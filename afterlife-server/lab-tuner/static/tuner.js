@@ -288,12 +288,12 @@ async function loadProdStatus() {
   const box = document.getElementById('prod-status');
   try {
     const d = await (await fetch('/production-status')).json();
-    let html = `<div>MainPID: ${escapeHtml(d.mainpid ?? '-')} · ${escapeHtml(d.generated_at)}</div>`;
+    let html = `<div style="color:var(--text-dim)">MainPID: ${escapeHtml(d.mainpid ?? '-')} · ${escapeHtml(d.generated_at)}</div>`;
     html += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
     for (const r of d.rows) {
-      const color = r.state === 'drift' ? 'crimson' : (r.state === 'unknown' ? 'gray' : 'green');
+      const cls = r.state === 'drift' ? 'chip-drift' : (r.state === 'unknown' ? 'chip-unknown' : 'chip-ok');
       html += `<tr><td>${escapeHtml(r.env)}</td><td>${escapeHtml(r.conf)}</td><td>${escapeHtml(r.running)}</td>`+
-        `<td style="color:${color}">${escapeHtml(r.state)}</td></tr>`;
+        `<td><span class="chip ${cls}">${escapeHtml(r.state)}</span></td></tr>`;
     }
     html += '</table>';
     box.innerHTML = html;
