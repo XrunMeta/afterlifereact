@@ -1,5 +1,5 @@
 
-export type FaceVerdict = "confirmed" | "candidate" | "none";
+export type FaceVerdict = "confirmed" | "unknown" | "candidate" | "none";
 
 export interface FaceDiag {
   score: number;

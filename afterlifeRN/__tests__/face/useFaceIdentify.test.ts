@@ -18,6 +18,9 @@ describe("deriveVerdict", () => {
   it("candidate 진행중", () => {
     expect(deriveVerdict({ confirmed: "none", candidate: 5, streak: 2 } as any)).toBe("candidate");
   });
+  it("Fix 1 — 미상 확정(confirmed==='unknown')은 candidate/confirmed 아닌 unknown", () => {
+    expect(deriveVerdict({ confirmed: "unknown", candidate: null, streak: 3 } as any)).toBe("unknown");
+  });
   it("none", () => {
     expect(deriveVerdict({ confirmed: "none", candidate: null, streak: 0 } as any)).toBe("none");
   });

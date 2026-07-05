@@ -36,7 +36,8 @@ export function deriveVerdict(sp: {
   candidate: number | "unknown" | null;
   streak: number;
 }): FaceVerdict {
-  if (sp.confirmed !== "none") return "confirmed";
+  if (sp.confirmed === "unknown") return "unknown"; 
+  if (sp.confirmed !== "none") return "confirmed"; 
   if (sp.candidate != null && sp.streak > 0) return "candidate";
   return "none";
 }
@@ -129,8 +130,6 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
   const bufferRef = useRef<EmbeddingBuffer>(new EmbeddingBuffer());
   const inFlightRef = useRef(false);
 
-  const lastThresholdRef = useRef<number | null>(null);
-
   const onEmbedding = useCallback(
     (raw: number[]) => {
       if (!enabled || !accessToken) return;
@@ -144,14 +143,13 @@ export function useFaceIdentify(opts: UseFaceIdentifyOptions): UseFaceIdentifyRe
           if (event) onEvent(event);
 
           if (FACE_DIAG_ENABLED && cycle && threshold != null) {
-            lastThresholdRef.current = threshold;
             const diag: FaceDiag = {
               score: cycle.score,
               personId: cycle.personId,
               displayName: cycle.displayName,
               streak: state.speaker.streak,
               verdict: deriveVerdict(state.speaker),
-              threshold: lastThresholdRef.current,
+              threshold,
             };
             onDiag?.(diag);
 
