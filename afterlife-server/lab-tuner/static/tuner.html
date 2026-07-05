@@ -1,25 +1,37 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><title>lab-tuner</title>
 <style>
- body{display:flex;flex-direction:column;font-family:sans-serif;margin:0;height:100vh}
- #main-row{display:flex;flex:1;min-height:0}
- #knobs-panel{width:320px;overflow:auto;padding:12px;background:#f4f4f7}
- #center{flex:1;display:flex;flex-direction:column;align-items:center;padding:12px}
- #metrics{width:300px;padding:12px;background:#f4f4f7;overflow:auto;font:12px monospace}
- #clone-video{width:288px;height:512px;background:#000}
- .knob{margin:6px 0} .knob label{display:block;font-size:12px}
- .knob .note{color:#a00;font-size:10px}
- fieldset{margin:8px 0}
- #live-banner{display:none;position:fixed;top:0;left:0;right:0;background:#c00;color:#fff;
-   text-align:center;padding:6px;font-weight:bold;z-index:10}
- #runs{width:100%;margin-top:12px;font-size:12px}
- #runs table{width:100%;border-collapse:collapse}
- #runs td,#runs th{border-bottom:1px solid #ddd;padding:4px;text-align:left}
- #prod-status table{width:100%;border-collapse:collapse;font-size:12px}
- #prod-status td,#prod-status th{border-bottom:1px solid #ddd;padding:4px;text-align:left}
- #login-bar{width:100%;background:#eee;padding:8px;display:flex;gap:6px;align-items:center;
-   box-sizing:border-box}
- #login-status{font-size:12px;color:#666;margin-left:8px}
+ :root{--bg:#1A0F0A;--surface:#2C1A10;--surface-2:#3D2517;--gold:#CA8A04;
+   --gold-border:#DAA520;--border:#5C3D2E;--red:#991B1B;--purple:#581C87;
+   --green:#22C55E;--text:#F5E6D3;--text-dim:#BFA98A;}
+ body{margin:0;height:100vh;display:flex;flex-direction:column;background:var(--bg);
+   color:var(--text);font-family:ui-monospace,"Fira Code",monospace}
+ h3,h4,legend,.panel-title{font-family:"Cinzel",Georgia,serif;color:var(--gold);
+   letter-spacing:.03em}
+ #live-banner{display:none;position:fixed;top:0;left:0;right:0;background:var(--red);
+   color:var(--text);text-align:center;padding:6px;font-weight:bold;z-index:10}
+ #login-bar{display:flex;gap:8px;align-items:center;padding:10px 12px;
+   background:var(--surface);border-bottom:1px solid var(--border);box-sizing:border-box}
+ #main-row{display:flex;flex:1;min-height:0;flex-wrap:wrap}
+ .col-left{width:360px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+ .col-right{flex:1;min-width:320px;padding:16px;overflow:auto;background:var(--surface)}
+ #clone-video{width:288px;height:512px;background:#000;border:1px solid var(--border);border-radius:4px}
+ input,select,button{font-family:inherit;color:var(--text);background:var(--surface);
+   border:1px solid var(--border);border-radius:4px;padding:8px 12px}
+ input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px #CA8A0440}
+ button{cursor:pointer}
+ button.primary{background:var(--gold);color:var(--bg);border-color:var(--gold-border)}
+ button:disabled{opacity:.35;cursor:not-allowed}
+ /* 채널 스트립·미터·칩 등 상세 스타일은 후속 task에서 확장 */
+ #metrics{font-size:12px}
+ #runs table,#prod-status table{width:100%;border-collapse:collapse;font-size:12px}
+ #runs td,#runs th,#prod-status td,#prod-status th{border-bottom:1px solid var(--surface-2);
+   padding:4px;text-align:left}
+ @media(max-width:900px){
+   #main-row{flex-wrap:wrap}
+   .col-left{width:100%}
+   .col-right{width:100%;min-width:0}
+ }
 </style></head><body>
  <div id="live-banner">라이브 통화 중 — 튜닝 대기</div>
  <div id="login-bar">
@@ -28,29 +40,37 @@
    <button id="login-btn">로그인</button>
    <select id="clone-select" disabled><option value="">-- 클론 선택 --</option></select>
    <button id="connect-btn" disabled>연결</button>
-   <span id="login-status"></span>
-   <span id="conn-status" style="font-size:12px;color:#0a0;margin-left:8px"></span>
+   <span id="login-status" style="font-size:12px;color:var(--text-dim)"></span>
+   <span id="conn-status" style="font-size:12px;color:var(--green);margin-left:8px"></span>
  </div>
  <div id="main-row">
-   <div id="knobs-panel">
-     <h3>Knobs</h3>
-     <div id="knob-fields"></div>
-     <button id="apply-knobs">적용</button>
-     <button id="promote">라이브 적용</button>
-     <fieldset><legend>프로덕션 상태(read-only)</legend>
-       <button id="refresh-prod">새로고침</button>
-       <div id="prod-status"></div>
-     </fieldset>
-   </div>
-   <div id="center">
+   <div class="col-left">
      <video id="clone-video" autoplay playsinline></video>
-     <div><input id="say-input" placeholder="말 걸기" disabled><button id="say-btn" disabled>say</button></div>
-     <div id="runs">
-       <h4>Runs <button id="refresh-runs">새로고침</button></h4>
-       <div id="runs-list"></div>
+     <div style="display:flex;gap:6px">
+       <input id="say-input" placeholder="말 걸기 (Enter 전송)" disabled style="flex:1">
+       <button id="say-btn" disabled>say</button>
+     </div>
+     <div id="metrics"><h4>상태</h4><div id="metrics-out"></div></div>
+     <div id="runs"><h4>Runs <button id="refresh-runs">새로고침</button></h4>
+       <div id="runs-list"></div></div>
+   </div>
+   <div class="col-right">
+     <div id="knobs-panel">
+       <h3 class="panel-title">MIXER</h3>
+       <div id="knob-fields"></div>
+       <div style="display:flex;gap:8px;margin:12px 0">
+         <button id="apply-knobs" class="primary">적용</button>
+         <button id="promote">라이브 적용</button>
+       </div>
+       <div id="promote-confirm" style="display:none"></div>
+       <input id="promote-token" type="password" placeholder="LAB_TUNER_TOKEN"
+         style="display:none;width:100%;box-sizing:border-box;margin-bottom:8px">
+       <fieldset><legend>프로덕션 상태(read-only)</legend>
+         <button id="refresh-prod">새로고침</button>
+         <div id="prod-status"></div>
+       </fieldset>
      </div>
    </div>
-   <div id="metrics"><h3>계측</h3><pre id="metrics-out"></pre></div>
  </div>
  <script src="/tuner.js"></script>
 </body></html>
