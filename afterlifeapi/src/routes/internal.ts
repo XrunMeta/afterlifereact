@@ -10,6 +10,7 @@ import {
 } from "../lib/memoryStore";
 import { v_db508f, v_20b0e8 } from "../lib/personaBundle";
 import { v_74defc } from "../lib/logger";
+import { v_8d5056, v_900412 } from "../lib/consentGate";
 
 export const v_dcd415 = new v_b7c41b<v_de0a25>();
 
@@ -329,6 +330,10 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
   ).bind(v_6e0fd3, v_43e90c).first();
   if (!v_eaefcf) return v_3f4e2e.json({ error: "no_interaction" }, 403);
 
+  if (!(await v_8d5056(v_3f4e2e.env, v_43e90c))) {
+    return v_3f4e2e.json({ ok: true, skipped: true, reason: "no_consent" });
+  }
+
   let v_43c42e;
   try {
     v_43c42e = await v_0ac5b7(
@@ -521,6 +526,10 @@ v_dcd415.post("/oth-path", async (v_3f4e2e) => {
 
   const v_eaefcf = await v_a30df4(v_3f4e2e.env.DB, v_ca1ec5, v_6e0fd3);
   if (!v_eaefcf) return v_3f4e2e.json({ error: "no_interaction" }, 403);
+
+  if (!(await v_900412(v_3f4e2e.env, v_ca1ec5))) {
+    return v_3f4e2e.json({ ok: true, skipped: true, reason: "no_consent" });
+  }
 
   let v_43c42e;
   try {

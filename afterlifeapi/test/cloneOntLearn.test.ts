@@ -257,8 +257,8 @@ v_469bf2("POST /oth-path", () => {
   async function v_f18a65(v_6e0fd3, v_1badb6) {
 
     await (v_c9c489 as unknown as v_273a0c).DB.prepare(
-      `INSERT OR IGNORE INTO users (id, email, password_hash, name, created_at)
-       VALUES (?, ?, 'x', 'TestUser', CURRENT_TIMESTAMP)`,
+      `INSERT OR IGNORE INTO users (id, email, password_hash, name, created_at, call_learning_consent)
+       VALUES (?, ?, 'x', 'TestUser', CURRENT_TIMESTAMP, 1)`,
     ).bind(v_1badb6, `testuser${v_1badb6}@test.test`).run();
     await (v_c9c489 as unknown as v_273a0c).DB.prepare(
       `INSERT OR IGNORE INTO clones (id, owner_id, name, username, clone_type, visibility, created_at)

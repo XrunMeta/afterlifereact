@@ -4,7 +4,10 @@ import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 async function v_bfb240(v_e0c7e8): Promise<number> {
   const v_a1651b = v_c9c489.DB as unknown as D1Database;
   await v_a1651b
-    .prepare(`INSERT INTO users (email, password_hash, name, created_at) VALUES (?, 'x', 'U', CURRENT_TIMESTAMP)`)
+    .prepare(
+      `INSERT INTO users (email, password_hash, name, created_at, call_learning_consent)
+       VALUES (?, 'x', 'U', CURRENT_TIMESTAMP, 1)`,
+    )
     .bind(v_e0c7e8)
     .run();
   const v_ceb55a = await v_a1651b.prepare("SELECT id FROM users WHERE email = ?").bind(v_e0c7e8).first<{ id: number }>();

@@ -36,6 +36,7 @@ import { v_b9c00c } from "./routes/notifications";
 import { v_fded81 } from "./routes/persons";
 import { v_cbf5ec, v_e0a537 } from "./routes/agreements";
 import { v_074a9b } from "./routes/call-config";
+import { v_74e200 } from "./routes/consent";
 
 const v_466992 = new v_b7c41b<v_de0a25>();
 
@@ -84,6 +85,7 @@ v_466992.route("/oth-path", v_68f0aa);
 v_466992.route("/oth-path", v_ff9685);
 
 v_466992.route("/oth-path", v_dda4b9);
+v_466992.route("/oth-path", v_74e200);
 v_466992.route("/oth-path", v_de7ba7);
 v_466992.route("/oth-path", v_f891e6);
 
