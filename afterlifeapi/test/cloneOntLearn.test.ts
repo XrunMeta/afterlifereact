@@ -150,6 +150,46 @@ v_469bf2("updateOntFromExtraction", () => {
     ).bind(9012, 8012).first<{ auto_learned_at: number | null }>();
     v_4d37e3(v_33efc5?.auto_learned_at).toBe(v_67cd67); 
   });
+
+  v_23805a("preference 값이 바뀌면 preference_history에 {key,from,to} 기록(토글 ON)", async () => {
+    const v_9542f7 = { ...v_c9c489, L2_PREF_HISTORY_ENABLED: "1" } as unknown as v_273a0c;
+    const v_6e0fd3 = 900101, v_43e90c = 5;
+    await v_0ac5b7(v_9542f7, v_6e0fd3, v_43e90c, { preference_personal: { 음료: "콜라" } }, "call");
+    await v_0ac5b7(v_9542f7, v_6e0fd3, v_43e90c, { preference_personal: { 음료: "사이다" } }, "call");
+    const v_479f05 = await v_3821c0(v_9542f7, v_6e0fd3, v_43e90c);
+    const v_9390e8 = JSON.parse(v_479f05!);
+    v_4d37e3(v_9390e8.preference_personal).toEqual({ 음료: "사이다" });      
+    v_4d37e3(v_9390e8.preference_history).toEqual([
+      { key: "음료", from: "콜라", to: "사이다", at: v_4d37e3.any(String) },
+    ]);
+  });
+
+  v_23805a("같은 값 재학습은 history 미기록", async () => {
+    const v_9542f7 = { ...v_c9c489, L2_PREF_HISTORY_ENABLED: "1" } as unknown as v_273a0c;
+    const v_6e0fd3 = 900102, v_43e90c = 5;
+    await v_0ac5b7(v_9542f7, v_6e0fd3, v_43e90c, { preference_personal: { 음료: "콜라" } }, "call");
+    await v_0ac5b7(v_9542f7, v_6e0fd3, v_43e90c, { preference_personal: { 음료: "콜라" } }, "call");
+    const v_9390e8 = JSON.parse((await v_3821c0(v_9542f7, v_6e0fd3, v_43e90c))!);
+    v_4d37e3(v_9390e8.preference_history ?? []).toEqual([]);
+  });
+
+  v_23805a("새 키(기존에 없던 항목)는 history 미기록", async () => {
+    const v_9542f7 = { ...v_c9c489, L2_PREF_HISTORY_ENABLED: "1" } as unknown as v_273a0c;
+    const v_6e0fd3 = 900103, v_43e90c = 5;
+    await v_0ac5b7(v_9542f7, v_6e0fd3, v_43e90c, { preference_personal: { 음료: "콜라" } }, "call");
+    const v_9390e8 = JSON.parse((await v_3821c0(v_9542f7, v_6e0fd3, v_43e90c))!);
+    v_4d37e3(v_9390e8.preference_history ?? []).toEqual([]);
+  });
+
+  v_23805a("토글 OFF면 preference_history 미기록(회귀0)", async () => {
+    const v_9542f7 = { ...v_c9c489, L2_PREF_HISTORY_ENABLED: "0" } as unknown as v_273a0c;
+    const v_6e0fd3 = 900104, v_43e90c = 5;
+    await v_0ac5b7(v_9542f7, v_6e0fd3, v_43e90c, { preference_personal: { 음료: "콜라" } }, "call");
+    await v_0ac5b7(v_9542f7, v_6e0fd3, v_43e90c, { preference_personal: { 음료: "사이다" } }, "call");
+    const v_9390e8 = JSON.parse((await v_3821c0(v_9542f7, v_6e0fd3, v_43e90c))!);
+    v_4d37e3(v_9390e8.preference_history).toBeUndefined();
+    v_4d37e3(v_9390e8.preference_personal).toEqual({ 음료: "사이다" });
+  });
 });
 
 v_469bf2("migration 0075", () => {
