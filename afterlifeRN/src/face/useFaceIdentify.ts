@@ -32,7 +32,8 @@ export interface IdentifyCycleDeps {
 }
 
 export function v_10735f(v_b48d3d): v_71bfaa {
-  if (v_b48d3d.confirmed !== "none") return "confirmed";
+  if (v_b48d3d.confirmed === "unknown") return "unknown"; 
+  if (v_b48d3d.confirmed !== "none") return "confirmed"; 
   if (v_b48d3d.candidate != null && v_b48d3d.streak > 0) return "candidate";
   return "none";
 }
@@ -125,8 +126,6 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
   const v_5228f1 = v_e662ae<v_4f64ba>(new v_4f64ba());
   const v_9468fd = v_e662ae(false);
 
-  const v_51046f = v_e662ae<number | null>(null);
-
   const v_7167fd = v_de06a3(
     (v_479f05) => {
       if (!v_d20c84 || !v_2ca7e0) return;
@@ -140,14 +139,13 @@ export function v_e9685b(v_328259): UseFaceIdentifyResult {
           if (v_d48baf) v_68885c(v_d48baf);
 
           if (v_55dbc4 && v_bdad26 && v_d361d7 != null) {
-            v_51046f.current = v_d361d7;
             const diag: v_8a6b56 = {
               score: v_bdad26.score,
               personId: v_bdad26.personId,
               displayName: v_bdad26.displayName,
               streak: v_b6e533.speaker.streak,
               verdict: v_10735f(v_b6e533.speaker),
-              threshold: v_51046f.current,
+              threshold: v_d361d7,
             };
             v_32837c?.(v_ef2205);
 

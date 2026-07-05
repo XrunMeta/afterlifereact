@@ -23,4 +23,8 @@ describe("formatFaceHud", () => {
   it("FACE_DIAG_ENABLED는 boolean", () => {
     expect(typeof v_55dbc4).toBe("boolean");
   });
+  it("Fix 1 — verdict='unknown'(미상 확정)도 정상 렌더", () => {
+    const v_fd5f43 = v_8682a9({ score: 0.5, personId: null, displayName: null, streak: 3, verdict: "unknown", threshold: 0.83 });
+    expect(v_fd5f43).toContain("unknown");
+  });
 });
