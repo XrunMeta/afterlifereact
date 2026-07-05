@@ -135,6 +135,18 @@ def encode_frame_chunk(
     return struct.pack(">I", len(data)) + data
 
 
+def _idle_kwargs(idle_opts: dict | None) -> dict:
+    """render_opts(dict|None) → stream_wav_frames에 전달할 idle_* kwargs.
+
+    None 값(키 없음/명시 None)은 제외해 stream_wav_frames가 env 기본을
+    사용하게 한다(회귀 0). idle_opts 자체가 None/빈 dict면 빈 dict 반환.
+    """
+    if not idle_opts:
+        return {}
+    keys = ("idle_motion_scale", "idle_rms_low", "idle_rms_high", "head_slew_frames")
+    return {k: idle_opts[k] for k in keys if idle_opts.get(k) is not None}
+
+
 def write_frames_to_stream(
     frames: Iterator[np.ndarray], write: Callable[[bytes], None]
 ) -> int:
@@ -268,6 +280,8 @@ class RenderService:
         write: Callable[[bytes], None],
         blink_enabled: bool = True,
         phase_token=None,
+        jpeg_quality: int = 90,
+        idle_opts: dict | None = None,
     ) -> int:
         """wav → 프레임 청크 write. 반환: 프레임 수.
 
@@ -278,6 +292,11 @@ class RenderService:
         S4 토큰 트레일러:
           phase_token 전달 시 → 프레임 청크 마지막에 [4B len][TOK:+json] 트레일러를 씀.
           phase_token=None(기본) → 트레일러 없음 = 레거시 동작 100% 동일(회귀 안전).
+
+        T-109 lab-tuner per-request 파라미터(additive, 회귀 0):
+          jpeg_quality=90(기본) → encode_frame_chunk(quality=) 그대로 전달.
+          idle_opts=None(기본) → _idle_kwargs가 {} 반환 → stream_wav_frames에
+          idle_* 인자 미전달 → fifth_render.py가 env 기본값 사용(기존 동작 100% 동일).
 
         FIFTH_RENDER_TIMING=1 시 4구간 중 서버측 2구간 계측:
           ① render_ms:  on_frame 호출 간격 = 순수 GPU 프레임 생성 시간.
@@ -293,6 +312,8 @@ class RenderService:
           OFF 시 perf_counter 포함 계측 코드 전혀 실행 안 됨.
         """
         sources = self._get_sources(video_path)
+        # idle_opts=None(기본) → {} → stream_wav_frames 인자 미전달(env 기본, 회귀 0).
+        _idle = _idle_kwargs(idle_opts)
 
         count = 0
         # _get_sources 의 slow path가 이미 _lock을 취득 후 반환했으므로,
@@ -322,7 +343,7 @@ class RenderService:
                         render_ms_list.append((_now - _render_t_last[0]) * 1000)
                     _first_frame[0] = False
                     _render_t_last[0] = _now  # encode/write 전에 갱신 (겹침 방지)
-                    chunk = encode_frame_chunk(f, _timing_out=encode_ms_list)
+                    chunk = encode_frame_chunk(f, quality=jpeg_quality, _timing_out=encode_ms_list)
                     write(chunk)
 
                 if self._stream_wav_fn is not None:
@@ -331,6 +352,7 @@ class RenderService:
                         _on_frame_render_timed,
                         blink_enabled,
                         phase_token,
+                        **_idle,
                     )
                 else:
                     from fifth_render import stream_wav_frames
@@ -339,6 +361,7 @@ class RenderService:
                         on_frame=_on_frame_render_timed,
                         blink_enabled=blink_enabled,
                         phase_token=phase_token,
+                        **_idle,
                     )
 
                 # 스트림 종료 후 1줄 요약 로그 (프레임마다 로그 금지)
@@ -355,17 +378,19 @@ class RenderService:
                 if self._stream_wav_fn is not None:
                     count, end_tok = self._stream_wav_fn(
                         self.engine, self.jp, self.cfg, sources, wav_path,
-                        lambda f: write(encode_frame_chunk(f)),
+                        lambda f: write(encode_frame_chunk(f, quality=jpeg_quality)),
                         blink_enabled,
                         phase_token,
+                        **_idle,
                     )
                 else:
                     from fifth_render import stream_wav_frames
                     count, end_tok = stream_wav_frames(
                         self.engine, self.jp, self.cfg, sources, wav_path,
-                        on_frame=lambda f: write(encode_frame_chunk(f)),
+                        on_frame=lambda f: write(encode_frame_chunk(f, quality=jpeg_quality)),
                         blink_enabled=blink_enabled,
                         phase_token=phase_token,
+                        **_idle,
                     )
 
             # S4 토큰 트레일러: phase_token 전달 시에만 씀(회귀 안전).
@@ -425,8 +450,8 @@ def _validate_phase_tok_fields(tok) -> None:
         )
 
 
-def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object]]:
-    """POST /oth-path body(JSON) → (wav_path, video_path, phase_token|None).
+def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict]:
+    """POST /oth-path body(JSON) → (wav_path, video_path, phase_token|None, render_opts).
 
     설계 v3(공유 볼륨): wav_path/video_path 모두 필수.
     호스트-컨테이너가 /home/afterlife/afterlife-server 를 공유 마운트하므로
@@ -434,8 +459,12 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object]]:
 
     S4: phase_token(dict|null|키없음) → PhaseToken 또는 None(레거시 회귀).
 
+    T-109 lab-tuner: render_opts(dict) — per-request 렌더 파라미터(additive).
+    blink/jpeg_quality는 명시 기본(True/90), idle_* 4종은 키 없으면 None
+    (= stream_wav_frames가 env 기본 사용 → 회귀 0).
+
     Returns:
-        (wav_path, video_path, phase_token|None)
+        (wav_path, video_path, phase_token|None, render_opts)
 
     Raises:
         ValueError: wav_path 또는 video_path 누락.
@@ -466,7 +495,19 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object]]:
         except Exception as exc:
             raise ValueError(f"phase_token 역직렬화 실패: {exc}") from exc
 
-    return str(wav_path_raw), str(video_path), phase_token
+    # per-request 렌더 옵션 (lab-tuner). blink/jpeg_quality는 명시 기본,
+    # idle_* 는 키 없으면 None → stream_wav_frames가 env 기본 사용(회귀 0).
+    blink = req.get("blink")
+    render_opts = {
+        "blink": True if blink is None else bool(blink),
+        "jpeg_quality": int(req.get("jpeg_quality", 90)),
+        "idle_motion_scale": req.get("idle_motion_scale"),
+        "idle_rms_low": req.get("idle_rms_low"),
+        "idle_rms_high": req.get("idle_rms_high"),
+        "head_slew_frames": req.get("head_slew_frames"),
+    }
+
+    return str(wav_path_raw), str(video_path), phase_token, render_opts
 
 
 class _RenderHandler(BaseHTTPRequestHandler):
@@ -498,7 +539,7 @@ class _RenderHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length else b""
 
         try:
-            wav_path, video_path, phase_token = _parse_render_body(body)
+            wav_path, video_path, phase_token, render_opts = _parse_render_body(body)
         except (ValueError, KeyError, json.JSONDecodeError) as exc:
             self._send_json(400, {"error": str(exc)})
             return
@@ -526,7 +567,10 @@ class _RenderHandler(BaseHTTPRequestHandler):
                 wav_path=wav_path,
                 video_path=video_path,
                 write=self.wfile.write,
+                blink_enabled=render_opts["blink"],
+                jpeg_quality=render_opts["jpeg_quality"],
                 phase_token=phase_token,
+                idle_opts=render_opts,   # idle_* 4종 전달(None이면 env)
             )
         except Exception as exc:
             logger.exception("render 오류: %s", exc)

@@ -393,4 +393,27 @@ describe("GET /oth-path", () => {
 
     expect(assets.voiceRawUrl).toBe(`http://localhost/oth-path${fNew}`);
   });
+
+  it("학습 relation 이 clone.relation 보다 우선(E)", async () => {
+    const db = env.DB as unknown as D1Database;
+    const ownerId = await seedUser("bundle-relation-e@test.local");
+    const cloneId = await seedClone(ownerId, "bundle_relation_e_clone");
+    await db.prepare("UPDATE clones SET relation = ? WHERE id = ?").bind("지인", cloneId).run();
+
+    await db
+      .prepare(
+        "INSERT OR REPLACE INTO clone_ont (clone_id, user_id, data, updated_at) VALUES (?,?,?,unixepoch())",
+      )
+      .bind(cloneId, ownerId, JSON.stringify({ relation: "손녀" }))
+      .run();
+    await env.KV_ONT.delete(`l2:${cloneId}:${ownerId}`);
+
+    const token = await issueAccessToken(ownerId);
+    const res = await SELF.fetch(`http://localhost/oth-path${cloneId}/bundle`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { personaBundle: { persona: { relation: string } } };
+    expect(body.personaBundle.persona.relation).toBe("손녀");
+  });
 });

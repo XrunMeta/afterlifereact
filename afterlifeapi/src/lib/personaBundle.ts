@@ -38,7 +38,10 @@ export function buildPersonaBundle(
   return { l0, cloneId: String(cloneId), persona };
 }
 
-const L2_FIELDS = ["memory_summary", "relationship", "context", "recent_topics"] as const;
+const L2_FIELDS = [
+  "memory_summary", "relationship", "context", "recent_topics",   
+  "relation", "preference_personal", "memories_personal",          
+] as const;
 
 export async function loadUserL2(
   db: D1Database,
@@ -61,6 +64,8 @@ export async function loadUserL2(
     const v = parsed[k];
     if (v == null) continue;
     if (typeof v === "string" && v.length === 0) continue;
+    if (Array.isArray(v) && v.length === 0) continue;
+    if (typeof v === "object" && !Array.isArray(v) && Object.keys(v).length === 0) continue;
     out[k] = v;
   }
   return Object.keys(out).length ? (out as PersonaDict) : null;

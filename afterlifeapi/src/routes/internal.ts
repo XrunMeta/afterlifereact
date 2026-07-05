@@ -4,7 +4,11 @@ import type { AppEnv } from "../lib/env";
 import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeJob, getJob } from "../lib/assetJobs";
 import { z } from "../lib/validate";
 import { loadCloneById } from "../lib/cloneAccess";
-import { updateOntFromExtraction, type L2Extraction } from "../lib/memoryStore";
+import {
+  readOnt, updateOntFromExtraction, type L2Extraction,
+  readOntPerson, updateOntPersonFromExtraction,
+} from "../lib/memoryStore";
+import { loadCloneProfiles, loadUserL2 } from "../lib/personaBundle";
 import { logActivity } from "../lib/logger";
 
 export const internal = new Hono<AppEnv>();
@@ -143,7 +147,8 @@ const FILLER_CONTENT_TYPE = "video/mp4";
 
 const FILLER_MAX_FILE_SIZE = 50 * 1024 * 1024;
 
-const FILLER_FILE_COUNT = 3;
+const FILLER_FILE_MIN = 3;
+const FILLER_FILE_MAX = 8;
 
 internal.post("/filler-job-done", async (c) => {
 
@@ -171,22 +176,36 @@ internal.post("/filler-job-done", async (c) => {
     return c.json({ ok: true });
   }
 
-  if (form.get(`file${FILLER_FILE_COUNT}`) !== null) {
+  if (form.get(`file${FILLER_FILE_MAX}`) !== null) {
     return c.json(
-      { error: `too many files: expected exactly ${FILLER_FILE_COUNT} (file0..file${FILLER_FILE_COUNT - 1})` },
+      { error: `too many files: max ${FILLER_FILE_MAX} (file0..file${FILLER_FILE_MAX - 1})` },
       400,
     );
   }
   const fileEntries: File[] = [];
-  for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+  for (let i = 0; i < FILLER_FILE_MAX; i++) {
     const entry = form.get(`file${i}`);
-    if (!entry || typeof entry === "string") {
-      return c.json({ error: `file${i} required (need exactly ${FILLER_FILE_COUNT} files)` }, 400);
+    if (entry === null) break;
+    if (typeof entry === "string") {
+      return c.json({ error: `file${i} must be a file` }, 400);
     }
     fileEntries.push(entry as File);
   }
+  if (fileEntries.length < FILLER_FILE_MIN) {
+    return c.json(
+      { error: `file0..file${FILLER_FILE_MIN - 1} required (need ${FILLER_FILE_MIN}~${FILLER_FILE_MAX} files)` },
+      400,
+    );
+  }
 
-  for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+  for (let i = fileEntries.length + 1; i < FILLER_FILE_MAX; i++) {
+    if (form.get(`file${i}`) !== null) {
+      return c.json({ error: `file index gap: file${fileEntries.length} missing but file${i} present` }, 400);
+    }
+  }
+  const fileCount = fileEntries.length;
+
+  for (let i = 0; i < fileCount; i++) {
     const f = fileEntries[i];
     if (!f) {
       return c.json({ error: `file${i} missing` }, 400);
@@ -203,7 +222,7 @@ internal.post("/filler-job-done", async (c) => {
   }
 
   const bufs: ArrayBuffer[] = [];
-  for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+  for (let i = 0; i < fileCount; i++) {
     const buf = await fileEntries[i]?.arrayBuffer();
     if (!buf) {
       return c.json({ error: `file${i} read failed` }, 400);
@@ -219,7 +238,7 @@ internal.post("/filler-job-done", async (c) => {
   const origin = new URL(c.req.url).origin;
   const r2Entries: Array<{ r2Key: string; sizeBytes: number }> = [];
   try {
-    for (let i = 0; i < FILLER_FILE_COUNT; i++) {
+    for (let i = 0; i < fileCount; i++) {
       const buf = bufs[i];
       if (!buf) {
         throw new Error(`buf${i} missing`);
@@ -240,7 +259,7 @@ internal.post("/filler-job-done", async (c) => {
     return c.json({ error: "r2_upload_failed" }, 500);
   }
 
-  let urls: string[];
+  let urls: string[] | null;
   try {
     urls = await finalizeFillerJob(
       c.env.DB,
@@ -257,6 +276,14 @@ internal.post("/filler-job-done", async (c) => {
     }
     await failJob(c.env.DB, jobId, `db_commit_failed: ${String(err).slice(0, 400)}`);
     return c.json({ error: "db_commit_failed" }, 500);
+  }
+
+  if (urls === null) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    return c.json({ ok: true, idempotent: true });
   }
 
   return c.json({ ok: true, filler_video_urls: urls });
@@ -318,6 +345,199 @@ internal.post("/oth-path", async (c) => {
       ? { cloneId, source, skipped: true }
       : {
           cloneId, source, skipped: false, rev: result.rev,
+          keys: Object.keys(extracted.preference_personal ?? {}),
+          memCount: extracted.memories_personal?.length ?? 0,
+        },
+  });
+  return c.json(
+    result.skipped
+      ? { ok: true, skipped: true }
+      : { ok: true, skipped: false, rev: result.rev },
+  );
+});
+
+internal.get("/dev/clones/:id/ont-raw", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  const userId = Number(c.req.query("userId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return c.json({ error: "invalid clone_id or userId" }, 400);
+  }
+  const raw = await readOnt(c.env, cloneId, userId);
+  let data: unknown = null;
+  if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+  const { l1 } = await loadCloneProfiles(c.env.DB, cloneId);
+  const l2Consumed = await loadUserL2(c.env.DB, cloneId, userId);
+
+  await logActivity(c, {
+    userId,
+    action: "dev.ont_raw.read",
+    details: { cloneId },
+  });
+
+  return c.json({ data, l1_profile: l1, l2_consumed: l2Consumed });
+});
+
+const devOntMergeSchema = z.object({
+  userId: z.number().int().positive(),
+  extracted: z.object({
+    preference_personal: z
+      .record(z.string().max(100), z.union([z.string().max(200), z.number(), z.boolean()]))
+      .optional(),
+    relation: z.string().max(200).nullable().optional(),
+    memories_personal: z.array(z.string().max(500)).max(20).optional(),
+  }),
+  source: z.enum(["call", "chat"]),
+});
+
+internal.post("/dev/clones/:id/ont-merge", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const parsed = devOntMergeSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: "bad_body", issues: parsed.error.issues }, 400);
+  }
+  const { userId, extracted, source } = parsed.data;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  const userExists = await c.env.DB.prepare("SELECT 1 FROM users WHERE id = ?")
+    .bind(userId).first();
+  if (!userExists) return c.json({ error: "user_not_found" }, 404);
+
+  let result: { rev: number; skipped: boolean };
+  try {
+    result = await updateOntFromExtraction(
+      c.env, cloneId, userId, extracted as L2Extraction, source,
+    );
+  } catch (err) {
+    return c.json({ error: "merge_failed", message: (err as Error).message }, 400);
+  }
+
+  const raw = await readOnt(c.env, cloneId, userId);
+  let data: unknown = null;
+  if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+
+  try {
+    await logActivity(c, {
+      userId,
+      action: "dev.ont_merge.write",
+      details: { cloneId, rev: result.rev },
+    });
+  } catch {  }
+
+  return c.json({ rev: result.rev, skipped: result.skipped, data });
+});
+
+async function personOwnsCloneSession(db: D1Database, personId: number, cloneId: number): Promise<boolean> {
+  const row = await db.prepare(
+    `SELECT 1 FROM persons p
+     JOIN call_sessions cs ON cs.user_id = p.user_id
+     WHERE p.id = ? AND cs.clone_id = ? LIMIT 1`,
+  ).bind(personId, cloneId).first();
+  return !!row;
+}
+
+internal.get("/oth-path", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.LEARN_SECRET || !safeEqual(token, c.env.LEARN_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const personId = Number(c.req.query("personId"));
+  if (!Number.isInteger(personId) || personId <= 0) {
+    return c.json({ error: "bad_person_id" }, 400);
+  }
+
+  const owns = await personOwnsCloneSession(c.env.DB, personId, cloneId);
+  if (!owns) return c.json({ error: "not_found" }, 404);
+
+  const raw = await readOntPerson(c.env, cloneId, personId);
+  let data: Record<string, unknown> | null = null;
+  if (raw) {
+    try {
+      data = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+
+      console.error(`[D1_CORRUPT] l2p:${cloneId}:pid:${String(personId).slice(-3)} not JSON`);
+      data = null;
+    }
+  }
+
+  const person = await c.env.DB.prepare(
+    "SELECT display_name FROM persons WHERE id = ?"
+  ).bind(personId).first<{ display_name: string | null }>();
+
+  return c.json({ data, displayName: person?.display_name ?? null });
+});
+
+const l2pLearnSchema = z.object({
+  personId: z.number().int().positive(),
+  extracted: z.object({
+    preference_personal: z
+      .record(z.string().max(100), z.union([z.string().max(200), z.number(), z.boolean()]))
+      .optional(),
+    relation: z.string().max(200).nullable().optional(),
+    memories_personal: z.array(z.string().max(500)).max(20).optional(),
+  }),
+  source: z.enum(["call", "chat"]),
+  session_id: z.string().max(64).optional(),
+});
+
+internal.post("/oth-path", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.LEARN_SECRET || !safeEqual(token, c.env.LEARN_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const parsed = l2pLearnSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: "bad_body", issues: parsed.error.issues }, 400);
+  }
+  const { personId, extracted, source } = parsed.data;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  const interacted = await personOwnsCloneSession(c.env.DB, personId, cloneId);
+  if (!interacted) return c.json({ error: "no_interaction" }, 403);
+
+  let result: { rev: number; skipped: boolean };
+  try {
+    result = await updateOntPersonFromExtraction(
+      c.env, cloneId, personId, extracted as L2Extraction, source,
+    );
+  } catch (err) {
+    return c.json({ error: "merge_failed", message: (err as Error).message }, 400);
+  }
+
+  await logActivity(c, {
+    userId: null,
+    action: "memory.l2p.learn",
+    details: result.skipped
+      ? { cloneId, personId, source, skipped: true }
+      : {
+          cloneId, personId, source, skipped: false, rev: result.rev,
           keys: Object.keys(extracted.preference_personal ?? {}),
           memCount: extracted.memories_personal?.length ?? 0,
         },

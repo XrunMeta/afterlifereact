@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, os, time, pathlib, logging
+import asyncio, os, time, pathlib, logging, json
 from typing import Callable, Optional
 from aiohttp import web
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -28,6 +28,14 @@ _STRICT_CLONE_BUNDLE = os.environ.get("PRETHIRD_STRICT_CLONE_BUNDLE", "1") == "1
 # [F7] filler 토글: PRETHIRD_FILLER=1 일 때만 다운로드·FillerPlayer 활성.
 # 기본 off → 기존 idle 정지 루프 100% 동일(회귀 0). 테스트에서 monkeypatch 가능.
 _FILLER_ENABLED = os.environ.get("PRETHIRD_FILLER", "0") == "1"
+# [T-067] face_event 선제 발화 토글: 기본 off — off면 face_event 수신해도 완전 무동작
+# (기존 say/speak/greet 경로 바이트 단위 동일, 회귀 0). 프로세스 시작 후에도 env 재평가.
+_FACE_REACT_ENABLED_KEY = "PRETHIRD_FACE_REACT_ENABLED"
+# 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=이 초 동안 쿨다운.
+REACT_COOLDOWN_S = float(os.environ.get("PRETHIRD_REACT_COOLDOWN_S", "60"))
+# react가 다른 발화(say/speak/greet/react) 진행 중 도착하면 단일 pending 슬롯에 대기(latest-wins,
+# 연쇄 큐 금지). 이 초를 넘겨 대기한 채로 드레인 시점이 오면 스테일 반응으로 간주해 드랍.
+REACT_PENDING_WAIT_CAP_S = float(os.environ.get("PRETHIRD_REACT_PENDING_WAIT_S", "20"))
 if not _STRICT_CLONE_BUNDLE:
     logging.getLogger("prethird.signaling").warning(
         "PRETHIRD_STRICT_CLONE_BUNDLE=0: 고인 신원 오표시 폴백 활성화 — 운영 배포 금지"
@@ -79,6 +87,224 @@ async def _avsync_monitor(sess, interval: float = 0.5) -> None:
     except asyncio.CancelledError:
         pass
 
+def _get_busy_lock(sess) -> asyncio.Lock:
+    """세션 단위 발화 상호배제 락 — say/speak/greet/react 전부 이 락 안에서만 트랙에 push한다
+    (동시 push로 인한 오디오/비디오 겹침 방지, 플랜 §6.2).
+
+    실제 Session(session.py)은 생성자에서 미리 만들어두지만, 가벼운 테스트용 fake session
+    객체엔 없을 수 있어 지연 생성 후 sess에 캐시한다(getattr/setattr 방어 패턴 — 기존
+    filler_player 등과 동일 스타일. sess가 setattr을 거부해도 예외를 삼켜 회귀 0 유지)."""
+    lock = getattr(sess, "busy_lock", None)
+    if lock is None:
+        lock = asyncio.Lock()
+        try:
+            sess.busy_lock = lock
+        except Exception:
+            pass
+    return lock
+
+
+async def _drain_pending_react(sess) -> None:
+    """say/speak/greet(또는 react) 발화 종료 직후 호출 — 대기 중이던 pending react가
+    있으면 이제 재생한다(플랜 §6.2 "발화 종료 후 재생"). 단일 슬롯이므로 최신 값 1개만 존재.
+    대기 상한(REACT_PENDING_WAIT_CAP_S) 초과 시 스테일 반응으로 간주해 드랍+로그."""
+    pending = getattr(sess, "pending_react", None)
+    if pending is None:
+        return
+    sess.pending_react = None
+    waited = time.monotonic() - pending["armed_at"]
+    if waited > REACT_PENDING_WAIT_CAP_S:
+        log.warning(
+            "session %s pending react dropped(wait=%.1fs > cap=%.1fs): kind=%s",
+            getattr(sess, "session_id", "?"), waited, REACT_PENDING_WAIT_CAP_S, pending["kind"],
+        )
+        return
+    lock = _get_busy_lock(sess)
+    async with lock:
+        try:
+            await sess.pipeline.react(pending["kind"], pending["name"])
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log.warning("session %s pending react failed: %s", getattr(sess, "session_id", "?"), e)
+
+
+def _summarize_l2p_fields(data: dict) -> str:
+    """l2p `data` 필드(extract_l2 산출 구조: preference_personal/relation/memories_personal)를
+    프롬프트 힌트용 한 줄로 요약. 빈 값은 생략, 전부 비면 "(없음)"."""
+    parts = []
+    rel = data.get("relation")
+    if isinstance(rel, str) and rel.strip():
+        parts.append(f"관계={rel.strip()}")
+    pp = data.get("preference_personal")
+    if isinstance(pp, dict) and pp:
+        parts.append("선호=" + ", ".join(f"{k}:{v}" for k, v in pp.items()))
+    mems = data.get("memories_personal")
+    if isinstance(mems, list) and mems:
+        parts.append("기억=" + "; ".join(str(m) for m in mems))
+    return "; ".join(parts) if parts else "(없음)"
+
+
+async def _maybe_swap_l2p(sess, pid: int, name) -> None:
+    """[T-067 Task 12] speaker_confirmed 화자(pid/name)에 맞춰 persona를 재조립.
+
+    fire-and-forget — 호출부(_handle_face_event)가 `asyncio.ensure_future`로 스케줄하고
+    react 발화를 전혀 기다리지 않는다(api 5s 타임아웃이 react 지연으로 번지지 않도록
+    react는 이름만으로 즉시 나가고, L2' 반영은 다음 턴부터가 스펙). pid/name은 스케줄
+    시점 closure-frozen 값(파일 내 react kind/react_name과 동일한 freeze 관례) — 함수
+    내부에서 live `sess.current_speaker`를 다시 읽지 않는다.
+
+    ①sess.base_persona_messages(세션 최초 persona 사본)가 없으면 지금 pipeline이 쓰던
+    persona_messages를 최초 1회 백업 — 이후 스왑은 항상 이 base 위에만 덧붙인다(기존
+    L2 베이스 절대 미변경, 스펙 D1). ②fetch_l2p로 화자별 L2' 조회 — 있으면
+    관계요약 포함 시스템 힌트, 없으면(404/미설정/오류) 이름 힌트만. ③적용 직전
+    `sess.current_speaker[0] == pid` 재확인 — 연속 교대로 이 fetch가 늦게 끝나 최신
+    화자의 스왑을 덮어쓰지 않도록 stale이면 드랍. ④pipeline.update_persona로 교체
+    (다음 턴부터 반영). 어떤 단계에서 실패해도(속성 부재·네트워크 오류) 예외를 삼켜
+    통화 자체엔 영향 없다 — 스왑이 전부 스킵될 뿐."""
+    try:
+        pipeline = getattr(sess, "pipeline", None)
+        if pipeline is None:
+            return
+        if getattr(sess, "base_persona_messages", None) is None:
+            sess.base_persona_messages = list(getattr(pipeline, "persona_messages", None) or [])
+
+        clone_id = getattr(sess, "clone_id", None)
+        l2p_data = None
+        if clone_id is not None and pid is not None:
+            from l2p_client import fetch_l2p
+            try:
+                l2p_data = await fetch_l2p(clone_id, pid)
+            except Exception as e:
+                log.warning("session %s fetch_l2p failed person=%s: %s",
+                            getattr(sess, "session_id", "?"), pid, e)
+                l2p_data = None
+
+        # stale 가드: fetch 도중 화자가 또 바뀌었으면(연속 교대) 늦게 끝난 이 결과는
+        # 버린다 — 최신 화자의 스왑(이미 진행/완료)을 덮어쓰지 않는다.
+        current = getattr(sess, "current_speaker", None)
+        if current is None or current[0] != pid:
+            return
+
+        if l2p_data:
+            hint = f"현재 화면의 화자: {name}. 이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
+        else:
+            hint = f"현재 화면의 화자: {name}"
+
+        new_messages = sess.base_persona_messages + [{"role": "system", "content": hint}]
+        update = getattr(pipeline, "update_persona", None)
+        if callable(update):
+            update(new_messages)
+    except Exception as e:
+        log.warning("session %s _maybe_swap_l2p failed: %s", getattr(sess, "session_id", "?"), e)
+
+
+def _handle_face_event(sess, data: dict) -> None:
+    """[T-067] datachannel face_event 메시지 처리.
+
+    RN → `{"type":"face_event","event":"speaker_confirmed"|"unknown_face"|"multi_face",
+    "personId":3,"displayName":"민지","seq":12}`.
+
+    토글 `PRETHIRD_FACE_REACT_ENABLED`(기본 "0") off 면 완전 무동작 — say/speak/greet
+    경로와 완전히 독립적이라 off 상태에서 기존 동작에 어떤 영향도 주지 않는다(회귀 0).
+    쿨다운: 아는 얼굴(personId)=통화당 1회(영구), unknown/multi_face=REACT_COOLDOWN_S(60s).
+    다른 발화가 진행 중이면(busy_lock) 겹쳐 push하지 않고 단일 pending 슬롯에 대기시켜
+    발화 종료 후 재생한다(_drain_pending_react, 플랜 §6.2).
+
+    Task 11(pending_enroll)은 이 함수 밖(say 처리부)에서 소비. Task 12(L2' 화자별
+    persona 스왑)는 _maybe_swap_l2p — 화자가 바뀔 때(쿨다운과 무관) fire-and-forget으로
+    스케줄되며 react(_run, 쿨다운 게이트 대상)와는 완전히 분리된 별도 태스크(§6.4).
+    """
+    if os.environ.get(_FACE_REACT_ENABLED_KEY, "0") != "1":
+        return
+    if sess.pipeline is None:
+        return
+    event = data.get("event")
+    pid = data.get("personId")
+    name = data.get("displayName")
+
+    pid_int = None
+    if event == "speaker_confirmed":
+        # pid 검증을 쿨다운 키 기록보다 먼저 — malformed 이벤트가 정상 personId의
+        # 1회 기회를 소모하지 않도록 조기 무시(reacted_keys 터치 전에 return).
+        if pid is None:
+            return
+        try:
+            pid_int = int(pid)
+        except (TypeError, ValueError):
+            log.warning(
+                "session %s face_event personId 형식 오류(무시, 쿨다운 미기록): %r",
+                getattr(sess, "session_id", "?"), pid,
+            )
+            return
+
+    # [T-067 Task 12 / 스펙 §6.4] persona 스왑 트리거는 react 쿨다운과 완전히 무관 —
+    # 화자가 실제로 바뀌었으면(현재 sess.current_speaker와 다른 personId) 쿨다운으로
+    # react가 눌려도(복귀 화자 A→B→A 등) 매번 다시 트리거해야 persona가 최신 화자에
+    # 고착되지 않는다. fire-and-forget(swap이 react를 절대 지연시키지 않음).
+    if event == "speaker_confirmed":
+        prev = sess.current_speaker
+        if prev is None or prev[0] != pid_int:
+            sess.current_speaker = (pid_int, name)
+            asyncio.ensure_future(_maybe_swap_l2p(sess, pid_int, name))
+
+    key = str(pid_int) if event == "speaker_confirmed" else "unknown"
+    now = time.monotonic()
+    last = sess.reacted_keys.get(key)
+    if last is not None and (key != "unknown" or now - last < REACT_COOLDOWN_S):
+        return  # 아는 얼굴=통화당 1회, unknown/multi_face=60s 쿨다운 (react만 억제)
+    sess.reacted_keys[key] = now
+
+    if event == "speaker_confirmed":
+        kind, react_name = "known", name
+    else:  # unknown_face | multi_face
+        sess.pending_enroll = True  # Task 11 이 소비
+        kind, react_name = "unknown", None
+
+    lock = _get_busy_lock(sess)
+
+    async def _run(kind=kind, react_name=react_name):
+        try:
+            if lock.locked():
+                # 다른 발화 진행 중 — 단일 pending 슬롯에 최신 값으로 교체(연쇄 큐 금지),
+                # 발화 종료 후 _drain_pending_react가 재생.
+                sess.pending_react = {
+                    "kind": kind, "name": react_name, "armed_at": time.monotonic(),
+                }
+                return
+            async with lock:
+                await sess.pipeline.react(kind, react_name)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log.warning("session %s face_event(%s) react failed: %s", sess.session_id, event, e)
+
+    asyncio.ensure_future(_run())
+
+
+async def _send_enroll_suggest(sess, channel, text: str) -> None:
+    """[T-067 Task 11] pending_enroll 상태에서 도착한 첫 say의 텍스트로 화자 본인 이름을
+    추출해 RN 동의 카드에 프리필시킨다("저 딸 민지예요" → name="민지").
+
+    fire-and-forget — say 본 흐름(pipeline.say 호출)을 전혀 지연·변경하지 않는다.
+    이름 추출 실패(LLM 예외/타임아웃/파싱실패)해도 name=""로 enroll_suggest를 보낸다
+    (카드 수동 입력 폴백 유지, 통화 자체엔 영향 없음).
+    """
+    from name_extract import extract_name
+    try:
+        name = await extract_name(text)
+    except Exception as e:
+        log.warning("session %s enroll name extract failed: %s",
+                    getattr(sess, "session_id", "?"), e)
+        name = ""
+    if channel is not None and getattr(channel, "readyState", None) == "open":
+        try:
+            channel.send(json.dumps({"type": "enroll_suggest", "name": name}))
+        except Exception as exc:
+            log.warning("session %s enroll_suggest send failed: %s",
+                        getattr(sess, "session_id", "?"), exc)
+
+
 def _make_dc_handler(sess, channel):
     """DataChannel 'message' 핸들러 클로저를 반환한다.
 
@@ -94,7 +320,10 @@ def _make_dc_handler(sess, channel):
         except (ValueError, TypeError):
             return
         mtype = data.get("type")
-        if mtype not in ("say", "speak", "greet") or sess.pipeline is None:
+        if mtype not in ("say", "speak", "greet", "face_event") or sess.pipeline is None:
+            return
+        if mtype == "face_event":
+            _handle_face_event(sess, data)
             return
         # 프로세스 시작 후에도 env 토글 평가, 테스트 monkeypatch 호환
         if mtype == "greet" and os.environ.get("PRETHIRD_GREETING_ENABLED", "1") != "1":
@@ -102,6 +331,11 @@ def _make_dc_handler(sess, channel):
         text = data.get("text", "")
         if mtype in ("say", "speak") and not text:
             return  # say/speak 는 텍스트 필수. greet 는 텍스트 불필요.
+        # [T-067 Task 11] 즉석등록: pending_enroll 상태의 첫 say에서만 1회 발화(플래그를
+        # 즉시 내려 재진입 차단) — fire-and-forget이라 say 본 흐름은 지연되지 않는다.
+        if mtype == "say" and getattr(sess, "pending_enroll", False):
+            sess.pending_enroll = False
+            asyncio.ensure_future(_send_enroll_suggest(sess, channel, text))
         seq = data.get("seq")   # RN이 부여(없으면 None), echo 전용
         sess.set_state("speaking")
 
@@ -132,7 +366,7 @@ def _make_dc_handler(sess, channel):
             if mode in ("say", "speak") and _filler is not None:
                 _filler.start()
 
-            # 응답 즉시컷 hook: 첫 infer 직전에 filler stop → 큐/버퍼 flush.
+            # 응답 즉시컷 hook: 첫 infer 완료 후·첫 push 직전에 filler stop → 큐/버퍼 flush (렌더 동안 필러 순환 유지).
             # pipeline infer_worker(이벤트루프 코루틴)에서 호출 → call_soon_threadsafe 불필요.
             # flush 이후 _infer_stage가 응답 frames를 큐에 push(순서: stop→flush→응답push).
             def _on_response_ready():
@@ -142,23 +376,27 @@ def _make_dc_handler(sess, channel):
                     sess.audio_track.flush()
 
             _response_hook = _on_response_ready if _filler is not None else None
+            # [T-067 §6.2] say/speak/greet도 react와 같은 세션 busy_lock 안에서 트랙 push —
+            # 무경합(단독 호출) 시엔 즉시 통과라 기존 동작과 바이트 단위 동일(회귀 0).
+            _lock = _get_busy_lock(sess)
 
             try:
-                if mode == "speak":
-                    await sess.pipeline.speak(
-                        text, turn=turn,
-                        on_first_audio=_emit_speech_start,
-                        on_response_ready=_response_hook,
-                    )
-                elif mode == "greet":
-                    # greet: 사용자 발화 없으므로 filler 미사용(on_response_ready=None)
-                    await sess.pipeline.greet(turn=turn, on_first_audio=_emit_speech_start)
-                else:
-                    await sess.pipeline.say(
-                        text, turn=turn,
-                        on_first_audio=_emit_speech_start,
-                        on_response_ready=_response_hook,
-                    )
+                async with _lock:
+                    if mode == "speak":
+                        await sess.pipeline.speak(
+                            text, turn=turn,
+                            on_first_audio=_emit_speech_start,
+                            on_response_ready=_response_hook,
+                        )
+                    elif mode == "greet":
+                        # greet: 사용자 발화 없으므로 filler 미사용(on_response_ready=None)
+                        await sess.pipeline.greet(turn=turn, on_first_audio=_emit_speech_start)
+                    else:
+                        await sess.pipeline.say(
+                            text, turn=turn,
+                            on_first_audio=_emit_speech_start,
+                            on_response_ready=_response_hook,
+                        )
             except asyncio.CancelledError:
                 log.warning("session %s %s cancelled", sess.session_id, mode)
                 raise
@@ -177,14 +415,19 @@ def _make_dc_handler(sess, channel):
                     except Exception as exc:
                         log.warning("session %s finalize failed: %s", sess.session_id, exc)
                 # Phase B 자동학습: say 턴만, fire-and-forget(통화 무영향)
+                # [T-067 Task 12] current_speaker(화자 확정 상태) 있으면 화자별 L2'로 라우팅,
+                # 없으면 기존 사용자별 L2 그대로(learn_writeback 내부 person_id 분기).
                 if mode == "say":
                     from learn_writeback import learn_writeback
                     _clone_reply = "".join(getattr(turn, "_tokens", [])) if turn is not None else ""
+                    _speaker = getattr(sess, "current_speaker", None)
+                    _person_id = _speaker[0] if _speaker else None
                     asyncio.ensure_future(learn_writeback(
                         getattr(sess, "clone_id", None),
                         getattr(sess, "user_id", None),
                         getattr(sess, "session_id", None),
                         text, _clone_reply,
+                        person_id=_person_id,
                     ))
                 # 발화 push 완료 → 클라에 종료 신호(say/speak/greet 성공·실패 모두 전송).
                 # sess.datachannel 재참조 금지 — stop()+start() 재연결로 채널이
@@ -198,6 +441,10 @@ def _make_dc_handler(sess, channel):
                             "session %s speech_end send failed: %s",
                             sess.session_id, exc,
                         )
+            # [T-067 §6.2] 이 발화 종료(성공/실패 모두, 취소 제외) → 대기 중이던 pending
+            # react가 있으면 지금 재생. face_event 토글 off/미도착 시 pending은 항상
+            # None이라 _drain_pending_react는 즉시 반환(회귀 0).
+            await _drain_pending_react(sess)
 
         asyncio.ensure_future(_run())
 
@@ -431,4 +678,9 @@ def make_app(pipeline_factory: Optional[Callable] = None) -> web.Application:
     app.router.add_post("/prebuild", prebuild_handler)
     app.router.add_static("/static/", path=str(
         pathlib.Path(__file__).resolve().parents[1] / "static"))
+
+    if os.environ.get("PRETHIRD_VERIFY_ENABLED") == "1":
+        from chat_endpoint import register_verify_routes
+        register_verify_routes(app)
+
     return app

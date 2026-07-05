@@ -15,8 +15,13 @@ export default defineWorkersConfig(async () => {
     test: {
       include: ["test/**/*.test.ts"],
       setupFiles: ["./test/setup.ts"],
+
+      fileParallelism: false,
+      hookTimeout: 60_000,
       poolOptions: {
         workers: {
+
+          singleWorker: true,
           wrangler: { configPath: "./wrangler.toml" },
           miniflare: {
             compatibilityDate: "2024-12-01",
@@ -31,6 +36,8 @@ export default defineWorkersConfig(async () => {
               JWT_REFRESH_SECRET: "test-jwt-refresh-secret-for-vitest",
 
               LEARN_SECRET: "test-learn-secret",
+
+              DEV_SECRET: "test-dev-secret",
 
               MASTER_ROOT: "dGVzdC1tYXN0ZXItcm9vdC0zMmJ5dGVzLXBhZGRpbmc=",
               ALE_KEK: "dGVzdC1hbGUta2VrLTMyYnl0ZXMtcGFkZGluZyEhISE=",

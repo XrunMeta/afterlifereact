@@ -292,6 +292,87 @@ it('greet(): dc가 connecting 상태면 open 이벤트 후에 send 호출', asyn
   expect(typeof sent.seq).toBe('number');
 });
 
+describe('sendFaceEvent', () => {
+  beforeEach(() => { mockOfferFetch(); });
+
+  it('speaker_confirmed → {type:"face_event", event:"speaker_confirmed", personId, displayName, seq} 전송', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    act(() => { result.current.sendFaceEvent!({ event: 'speaker_confirmed', personId: 3, displayName: '철수' }); });
+    const sent = dc.sent.map((s: string) => JSON.parse(s));
+    expect(sent[0]).toMatchObject({ type: 'face_event', event: 'speaker_confirmed', personId: 3, displayName: '철수' });
+    expect(typeof sent[0].seq).toBe('number');
+  });
+
+  it('unknown_face/multi_face 도 그대로 event 필드 전달', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    act(() => { result.current.sendFaceEvent!({ event: 'unknown_face' }); });
+    act(() => { result.current.sendFaceEvent!({ event: 'multi_face' }); });
+    const sent = dc.sent.map((s: string) => JSON.parse(s));
+    expect(sent[0].event).toBe('unknown_face');
+    expect(sent[1].event).toBe('multi_face');
+  });
+
+  it('dc readyState !== "open" → 조용히 스킵(send 미호출, error 세팅 없음)', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    dc.readyState = 'connecting';
+    act(() => { result.current.sendFaceEvent!({ event: 'unknown_face' }); });
+    expect(dc.send).not.toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+  });
+
+  it('start 전(dc 없음) 호출해도 크래시 없음', async () => {
+    const { pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    expect(() => result.current.sendFaceEvent!({ event: 'unknown_face' })).not.toThrow();
+  });
+});
+
+describe('enroll_suggest 수신 → onEnrollSuggest 콜백', () => {
+  beforeEach(() => { mockOfferFetch(); });
+
+  it('datachannel {type:"enroll_suggest", name} 수신 → onEnrollSuggest(name) 호출', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const onEnrollSuggest = jest.fn();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never, onEnrollSuggest }));
+    await act(async () => { await result.current.start(); });
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '민지' })); });
+    expect(onEnrollSuggest).toHaveBeenCalledWith('민지');
+  });
+
+  it('name 빈 문자열(수동 입력 폴백)도 그대로 전달', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const onEnrollSuggest = jest.fn();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never, onEnrollSuggest }));
+    await act(async () => { await result.current.start(); });
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '' })); });
+    expect(onEnrollSuggest).toHaveBeenCalledWith('');
+  });
+
+  it('onEnrollSuggest 미제공이어도 크래시 없음(speech_start 등 기존 분기 무영향)', async () => {
+    const { dc, pc } = makeConnectedPc();
+    const { result } = renderHook(() =>
+      usePrethirdAvatar({ cloneId: 1, accessToken: 't', deps: depsFor(pc) as never }));
+    await act(async () => { await result.current.start(); });
+    expect(() => {
+      dc.emitMessage(JSON.stringify({ type: 'enroll_suggest', name: '민지' }));
+    }).not.toThrow();
+    act(() => { dc.emitMessage(JSON.stringify({ type: 'speech_start', seq: 1 })); });
+    expect(result.current.lastSignal?.type).toBe('speech_start');
+  });
+});
+
 it('ICE 대기 분기(타임아웃 아님): gathering→complete emit → fetch 호출', async () => {
 
   mockOfferFetch();

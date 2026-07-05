@@ -4,7 +4,7 @@ import { writeFile, mkdtemp, rm } from 'node:fs/promises';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { createAssetJobRunner, FILLER_TEXTS, defaultEnsureVoiceWav, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
+import { createAssetJobRunner, FILLER_SPECS, FILLER_TEXTS, defaultEnsureVoiceWav, defaultFifthRender, defaultFfmpegPadCmd, _MAX_VOICE_WAV_BYTES } from './assetJobRunner.js';
 
 const API_BASE = 'https://oth-path.example.com';
 
@@ -332,16 +332,24 @@ test('filler 3종 모두 성공 → /oth-path 1회, file0/file1/file2 포함', a
   assert.equal(fd.get('status'), 'done', 'status=done 필드 필요 (el I-1 대칭)');
   assert.equal(fd.get('callback_token'), 'tok_fj_ok');
 
-  assert.ok(fd.get('file0'), 'file0 필드 필요');
-  assert.ok(fd.get('file1'), 'file1 필드 필요');
-  assert.ok(fd.get('file2'), 'file2 필드 필요');
+  for (let i = 0; i < FILLER_SPECS.length; i++) {
+    assert.ok(fd.get(`file${i}`), `file${i} 필드 필요`);
+  }
+  assert.equal(fd.get(`file${FILLER_SPECS.length}`), null, '종수 초과 필드 없음');
 });
 
-test('filler FILLER_TEXTS 상수 — 3종 정의 확인', () => {
-  assert.equal(FILLER_TEXTS.length, 3, '필러 텍스트 3종 필요');
-  assert.ok(FILLER_TEXTS[0].includes('음'), '첫 번째 필러에 "음" 포함');
-  assert.ok(FILLER_TEXTS[1].includes('잠깐'), '두 번째 필러에 "잠깐" 포함');
-  assert.ok(FILLER_TEXTS[2].includes('말이죠'), '세 번째 필러에 "말이죠" 포함');
+test('filler FILLER_SPECS 상수 — 비언어("음/으음/아") 6종 순환 (T-088 라운드4)', () => {
+  assert.equal(FILLER_TEXTS.length, 6, '필러 6종 순환 (음/으음 3 + 아 계열 3)');
+  for (const t of FILLER_TEXTS) {
+
+    assert.match(t, /^[음으아.\s]+$/, `비언어 소리만 허용: "${t}"`);
+  }
+
+  for (const s of FILLER_SPECS) {
+    if (s.atempo !== undefined) {
+      assert.ok(s.atempo >= 0.5 && s.atempo <= 2.0, `atempo 범위: ${s.atempo}`);
+    }
+  }
 });
 
 test('filler qwen3tts 2번째(index 1) 실패 → 전부-or-전무: filler-job-done 0회, asset-job-done failed 1회', async () => {
@@ -776,7 +784,7 @@ test('filler ffmpeg mux 실패 (첫 번째 exit ≠ 0) → callbackFailed, fille
   const runner = createAssetJobRunner({
     apiBaseUrl: API_BASE,
     fetchImpl: makeFetchFiller({ callbackCalls, fillerCallbackCalls }),
-    spawnImpl: makeSpawnFail(0), 
+    spawnImpl: makeSpawnFail(1), 
     _qwenTtsFn: qwenFn,
     _fifthRenderFn: fifthFn,
     ffmpegMuxCmd: fillerFfmpegCmd,
@@ -1576,4 +1584,176 @@ test('MAJOR: 부분실패(fifth index 1 fail) — ensure 1회 + 호출 순서 qw
 
   assert.equal(qwenFn.callCount(), 2, 'qwen 2회 (0·1)');
   assert.equal(fifthFn.callCount(), 2, 'fifth 2회 (0 성공·1 실패)');
+});
+
+test('filler wav 패딩 — raw→pad→렌더 순서, 렌더는 패딩본 사용, 목표 3s 이상', async () => {
+  const fillerCallbackCalls = [];
+  const padCalls = [];
+  const renderWavPaths = [];
+
+  const runner = createAssetJobRunner({
+    apiBaseUrl: API_BASE,
+    fetchImpl: makeFetchFiller({ fillerCallbackCalls }),
+    spawnImpl: makeSpawn(0),
+    _qwenTtsFn: makeQwenTts(),
+    _fifthRenderFn: async (wavPath) => {
+      renderWavPaths.push(wavPath);
+      return [Buffer.from('jpeg')];
+    },
+    ffmpegMuxCmd: fillerFfmpegCmd,
+    ffmpegPadCmd: (inWav, outWav, wholeDurSec, atempo) => {
+      padCalls.push({ inWav, outWav, wholeDurSec, atempo });
+      return { bin: 'echo', args: [outWav] };
+    },
+    _ensureVoiceWavFn: makeEnsureVoiceWav(),
+  });
+
+  runner.enqueue({
+    job_id: 'fj_pad',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${API_BASE}/oth-path`,
+    voice_raw_url: `${API_BASE}/oth-path`,
+    callback_token: 'tok_pad',
+  });
+
+  await waitDrain(runner, 4000);
+
+  assert.equal(fillerCallbackCalls.length, 1, 'filler-job-done 1회');
+  assert.equal(padCalls.length, FILLER_SPECS.length, '필러 종수만큼 패딩 1회씩');
+  padCalls.forEach((p, i) => {
+    assert.match(p.inWav, /_raw\.wav$/, `pad 입력은 raw wav (${i})`);
+    assert.match(p.outWav, /filler_\d\.wav$/, `pad 출력은 최종 wav (${i})`);
+    assert.ok(p.wholeDurSec >= 6, `뜸 길이 6초 이상 보장 (${i}: ${p.wholeDurSec})`);
+    assert.equal(p.atempo, FILLER_SPECS[i].atempo, `atempo 스펙 전달 (${i})`);
+  });
+  renderWavPaths.forEach((w, i) => {
+    assert.equal(w, padCalls[i].outWav, `렌더는 패딩본을 사용해야 함 (${i})`);
+  });
+});
+
+test('filler wav 패딩 실패 (첫 spawn exit 1) → callbackFailed, 렌더 미실행', async () => {
+  const callbackCalls = [];
+  const fillerCallbackCalls = [];
+  const fifthFn = makeFifthRenderTracked({ framesCount: 3 });
+
+  const runner = createAssetJobRunner({
+    apiBaseUrl: API_BASE,
+    fetchImpl: makeFetchFiller({ callbackCalls, fillerCallbackCalls }),
+    spawnImpl: makeSpawnFail(0), 
+    _qwenTtsFn: makeQwenTtsTracked(),
+    _fifthRenderFn: fifthFn,
+    ffmpegMuxCmd: fillerFfmpegCmd,
+    _ensureVoiceWavFn: makeEnsureVoiceWav(),
+  });
+
+  runner.enqueue({
+    job_id: 'fj_pad_fail',
+    kind: 'filler',
+    clone_id: '9055',
+    face_url: `${API_BASE}/oth-path`,
+    voice_raw_url: `${API_BASE}/oth-path`,
+    callback_token: 'tok_pad_fail',
+  });
+
+  await waitDrain(runner, 4000);
+
+  assert.equal(fillerCallbackCalls.length, 0, '전부-or-전무');
+  assert.equal(callbackCalls.length, 1, 'failed 콜백 1회');
+  assert.equal(fifthFn.callCount(), 0, 'pad 실패 시 렌더 미실행');
+});
+
+test('defaultFfmpegPadCmd — 앞무음(adelay)+총길이(apad whole_dur) 인자', () => {
+  const c = defaultFfmpegPadCmd('/tmp/in.wav', '/tmp/out.wav', 4.5);
+  assert.equal(c.bin, 'ffmpeg');
+  const joined = c.args.join(' ');
+  assert.match(joined, /volume=0\.\d/, '볼륨 감쇠(조용한 혼잣말 톤) 필요');
+  assert.match(joined, /adelay=/, '앞무음(adelay) 필요');
+  assert.match(joined, /apad=whole_dur=4\.5/, '총길이 패딩(apad whole_dur) 필요');
+  assert.equal(c.args[c.args.length - 1], '/tmp/out.wav', '마지막 인자=출력 경로(makeSpawn 계약)');
+});
+
+async function serveRenderStream(bodyChunks) {
+  const { createServer } = await import('node:http');
+  const srv = createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/octet-stream' });
+    for (const c of bodyChunks) res.write(c);
+    res.end();
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  return { srv, url: `http://127.0.0.1:${srv.address().port}` };
+}
+
+function frame(payload) {
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(payload.length, 0);
+  return Buffer.concat([len, payload]);
+}
+
+const TERMINATOR = Buffer.alloc(4); 
+
+test('defaultFifthRender: 정상 스트림(프레임 2 + 터미네이터) → 프레임 배열 resolve', async () => {
+  const f1 = Buffer.from('jpeg-one');
+  const f2 = Buffer.from('jpeg-two-larger');
+  const { srv, url } = await serveRenderStream([frame(f1), frame(f2), TERMINATOR]);
+  try {
+    const frames = await defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url);
+    assert.equal(frames.length, 2, '프레임 2개');
+    assert.deepEqual(frames[0], f1);
+    assert.deepEqual(frames[1], f2);
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFifthRender: 터미네이터가 프레임과 같은 chunk 로 붙어 와도 resolve', async () => {
+  const f1 = Buffer.from('jpeg-only');
+
+  const { srv, url } = await serveRenderStream([Buffer.concat([frame(f1), TERMINATOR])]);
+  try {
+    const frames = await defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url);
+    assert.equal(frames.length, 1);
+    assert.deepEqual(frames[0], f1);
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFifthRender: 터미네이터 뒤 잔여 바이트 → residual reject 유지', async () => {
+  const { srv, url } = await serveRenderStream([
+    frame(Buffer.from('jpeg-one')), TERMINATOR, Buffer.from('garbage'),
+  ]);
+  try {
+    await assert.rejects(
+      () => defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url),
+      /residual/,
+    );
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFifthRender: TOK 트레일러 청크는 프레임에서 제외 (continuation 프로토콜 공유 방어)', async () => {
+  const f1 = Buffer.from('jpeg-one');
+  const tok = Buffer.from('TOK:' + JSON.stringify({ blink_phase: 3 }));
+  const { srv, url } = await serveRenderStream([frame(f1), frame(tok), TERMINATOR]);
+  try {
+    const frames = await defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url);
+    assert.equal(frames.length, 1, 'TOK 청크는 프레임으로 세지 않음');
+    assert.deepEqual(frames[0], f1);
+  } finally {
+    srv.close();
+  }
+});
+
+test('defaultFifthRender: 터미네이터 없이 종료 → terminator reject 유지', async () => {
+  const { srv, url } = await serveRenderStream([frame(Buffer.from('jpeg-one'))]);
+  try {
+    await assert.rejects(
+      () => defaultFifthRender('/tmp/x.wav', '/tmp/face.jpg', url),
+      /terminator/,
+    );
+  } finally {
+    srv.close();
+  }
 });

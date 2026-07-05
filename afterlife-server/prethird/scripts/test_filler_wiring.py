@@ -166,8 +166,14 @@ def _make_pipeline(infer_fn=None, *, chat_yields: list[str] | None = None):
 # 1. pipeline on_response_ready 단위 테스트
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def test_pipeline_on_response_ready_fires_once_before_infer():
-    """on_response_ready는 첫 infer 직전 정확히 1회 호출된다."""
+def test_pipeline_on_response_ready_fires_after_infer_before_first_push():
+    """T-088 라운드4-fix: 즉시컷은 렌더(infer) '완료 후·첫 프레임 push 직전' 1회.
+
+    과거 '첫 infer 직전' 시점은 렌더 소요(문장길이×RTF, 수 초) 동안 필러를
+    죽여 그 구간이 idle 로 메꿔지는 실통화 버그(취소→6.6s 갭→idle 실측).
+    렌더 동안 필러가 계속 순환하고, 프레임이 준비된 순간에만 잘라야 한다.
+    ready~push 사이 await 없음(stop→flush→push 원자성)은 별도 순서 assert 로 확인.
+    """
     call_log: list[str] = []
 
     infer_call_n = [0]
@@ -180,15 +186,85 @@ def test_pipeline_on_response_ready_fires_once_before_infer():
     def on_response_ready():
         call_log.append("ready")
 
-    pipe, _vt, _at = _make_pipeline(infer_fn=recording_infer)
+    pipe, vt, _at = _make_pipeline(infer_fn=recording_infer)
+
+    _orig_push = vt.push_ndarray
+
+    def logging_push(arr):
+        call_log.append("push")
+        return _orig_push(arr)
+
+    vt.push_ndarray = logging_push
     asyncio.run(pipe.say("hi there", on_response_ready=on_response_ready))
 
-    # ready가 infer_0 보다 반드시 먼저 등장해야 함
-    assert "ready" in call_log
-    assert call_log.index("ready") < call_log.index("infer_0"), (
-        f"ready({call_log.index('ready')}) 가 infer_0({call_log.index('infer_0')}) 이전이어야 함: {call_log}"
-    )
     assert call_log.count("ready") == 1, f"ready 는 정확히 1회: {call_log}"
+    assert "push" in call_log, f"응답 push 필요: {call_log}"
+    i_infer = call_log.index("infer_0")
+    i_ready = call_log.index("ready")
+    i_push = call_log.index("push")
+    assert i_infer < i_ready < i_push, (
+        f"순서 위반 — infer 완료({i_infer}) < ready({i_ready}) < 첫 push({i_push}) 여야 함: {call_log}"
+    )
+
+
+def test_pipeline_on_response_ready_fires_even_when_infer_raises():
+    """[el BLOCKER] infer_fn 예외 시에도 즉시컷 훅은 반드시 1회 발동.
+
+    스킵되면 FillerPlayer 정지 경로가 사라져 필러가 세션 종료까지
+    무한 순환(영구 좀비) — idle 갭보다 나쁜 회귀."""
+    ready_count = [0]
+
+    def raising_infer(wav_path, on_frame):
+        raise RuntimeError("render server down")
+
+    def on_ready():
+        ready_count[0] += 1
+
+    pipe, _vt, _at = _make_pipeline(infer_fn=raising_infer)
+    try:
+        asyncio.run(pipe.say("hi", on_response_ready=on_ready))
+    except RuntimeError:
+        pass  # 예외 전파 자체는 기존 계약(호출측 signaling이 흡수)
+    assert ready_count[0] == 1, f"예외 경로에서도 훅 1회 발동 필요: {ready_count[0]}"
+
+
+def test_filler_live_loop_no_push_after_cut():
+    """[el RISK] 실제 _play_loop 태스크가 sleep 중일 때 stop→flush→응답 push 후
+    필러 프레임이 응답 뒤에 끼지 않는다(원자성 통합 검증)."""
+    async def scenario():
+        vt = _FakeVideoTrack()
+        at = _FakeAudioTrack()
+        filler_frame = np.full((4, 4, 3), 7, dtype=np.uint8)
+        pcm = np.zeros(4800, dtype=np.int16)
+
+        def stub_decode(path):
+            # 50프레임(2초 분량) — push 후 sleep(2-1=1s) 구간에서 컷 시뮬
+            return [filler_frame] * 50, pcm
+
+        fp = FillerPlayer(["fake0.mp4", "fake1.mp4"], vt, at, decode_fn=stub_decode)
+        fp.start()
+        await asyncio.sleep(0.05)  # _play_loop 첫 push 완료 후 sleep 진입 대기
+        assert vt.queue_depth() >= 50, "필러 첫 push 선행 확인"
+
+        # 즉시컷: stop → flush → 응답 push (같은 코루틴, await 없음)
+        fp.stop()
+        vt.flush()
+        at.flush()
+        resp = np.full((4, 4, 3), 42, dtype=np.uint8)
+        vt.push_ndarray(resp)
+
+        # 이벤트루프에 제어를 여러 번 넘겨 취소/재개 여지를 소진
+        for _ in range(5):
+            await asyncio.sleep(0)
+        await asyncio.sleep(0.05)
+
+        # flush 이후 큐에는 응답 1개뿐이어야 함 (필러 재개 push 금지 — _q는 flush로 비워짐)
+        assert vt.queue_depth() == 1 and vt._q[0][0, 0, 0] == 42, (
+            f"flush 후 필러 프레임 유입: 큐 {vt.queue_depth()}개"
+        )
+        fp.close()
+
+    asyncio.run(scenario())
 
 
 def test_pipeline_on_response_ready_fires_once_for_speak():

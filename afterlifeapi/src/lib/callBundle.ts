@@ -28,7 +28,10 @@ export async function buildCallBundle(db: D1Database, clone: CloneRow, userId: n
   const persona = resolvePersona({ l1: flattenAttrs(l1), l2 });
 
   persona.displayName = clone.name;
-  if (clone.relation != null) persona.relation = clone.relation;
+
+  if (clone.relation != null && (persona.relation == null || persona.relation === "")) {
+    persona.relation = clone.relation;
+  }
 
   const personaBundle = buildPersonaBundle(l0, persona, cloneId);
 

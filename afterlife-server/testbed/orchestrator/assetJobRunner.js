@@ -7,11 +7,16 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-export const FILLER_TEXTS = [
-  '음... 그러니까...',
-  '아, 잠깐만요... 어디 보자.',
-  '음, 그게 말이죠...',
+export const FILLER_SPECS = [
+  { text: '음..... 음... 음..' },
+  { text: '음... 음.....' },
+  { text: '으음... 음.....' },
+  { text: '아........ 음...' },
+  { text: '음... 아.....' },
+  { text: '아.....', atempo: 0.55 },
 ];
+
+export const FILLER_TEXTS = FILLER_SPECS.map((s) => s.text);
 
 const LP_BASE = '/home/afterlife/afterlife-server';
 
@@ -30,6 +35,25 @@ export function defaultGenIdleCmd(src, out) {
 
 export function defaultExtractSeCmd(src, out) {
   return { bin: OPENVOICE_PY, args: [AFL_EXTRACT_SE_IO, src, out] };
+}
+
+export const FILLER_TARGET_DUR_SEC = [6.0, 6.5, 7.0, 7.5, 8.0, 8.5];
+
+const FILLER_LEAD_SILENCE_MS = 600;
+
+export const FILLER_VOLUME = 0.3;
+
+export function defaultFfmpegPadCmd(inWav, outWav, wholeDurSec, atempo) {
+  const pre = atempo ? `atempo=${atempo},` : '';
+  return {
+    bin: 'ffmpeg',
+    args: [
+      '-y',
+      '-i', inWav,
+      '-af', `${pre}volume=${FILLER_VOLUME},adelay=${FILLER_LEAD_SILENCE_MS}:all=1,apad=whole_dur=${wholeDurSec}`,
+      outWav,
+    ],
+  };
 }
 
 export function defaultFfmpegMuxCmd(framesDir, wavPath, outPath) {
@@ -160,15 +184,21 @@ export async function defaultFifthRender(wavPath, facePath, renderUrl) {
           return;
         }
         const frames = [];
+
+        const TOK_MAGIC = Buffer.from('TOK:');
         let buf = Buffer.alloc(0);
         let done = false;
         res.on('data', (chunk) => {
           buf = Buffer.concat([buf, chunk]);
           while (!done && buf.length >= 4) {
             const len = buf.readUInt32BE(0);
-            if (len === 0) { done = true; break; }
+
+            if (len === 0) { done = true; buf = buf.slice(4); break; }
             if (buf.length < 4 + len) break;
-            frames.push(buf.slice(4, 4 + len));
+            const payload = buf.slice(4, 4 + len);
+            if (!(payload.length >= TOK_MAGIC.length && payload.slice(0, TOK_MAGIC.length).equals(TOK_MAGIC))) {
+              frames.push(payload);
+            }
             buf = buf.slice(4 + len);
           }
         });
@@ -205,6 +235,7 @@ export function createAssetJobRunner({
   qwenTtsUrl = process.env.QWEN_TTS_URL ?? 'http://127.0.0.1:8201',
   fifthRenderUrl = process.env.FIFTH_RENDER_URL ?? 'http://127.0.0.1:8810',
   ffmpegMuxCmd = defaultFfmpegMuxCmd,
+  ffmpegPadCmd = defaultFfmpegPadCmd,
   _qwenTtsFn = null,    
   _fifthRenderFn = null, 
 
@@ -312,12 +343,17 @@ export function createAssetJobRunner({
     const mp4Bufs = [];
     const { readFile } = await import('node:fs/promises');
 
-    for (let i = 0; i < FILLER_TEXTS.length; i++) {
-      const text = FILLER_TEXTS[i];
+    for (let i = 0; i < FILLER_SPECS.length; i++) {
+      const spec = FILLER_SPECS[i];
 
-      const wavBuf = await qwenTtsFn(text, job.clone_id, qwenTtsUrl, fetchImpl);
+      const wavBuf = await qwenTtsFn(spec.text, job.clone_id, qwenTtsUrl, fetchImpl);
+      const rawWavPath = path.join(dir, `filler_${i}_raw.wav`);
+      await writeFile(rawWavPath, wavBuf);
+
       const fillerWavPath = path.join(dir, `filler_${i}.wav`);
-      await writeFile(fillerWavPath, wavBuf);
+      const targetDur = Math.max(6, FILLER_TARGET_DUR_SEC[i] ?? 6.5);
+      const padCmd = ffmpegPadCmd(rawWavPath, fillerWavPath, targetDur, spec.atempo);
+      await run(padCmd.bin, padCmd.args, spawnImpl);
 
       const frames = await fifthRenderFn(fillerWavPath, faceJpgPath, fifthRenderUrl);
       if (frames.length === 0) {
@@ -381,6 +417,14 @@ export function createAssetJobRunner({
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.ORCH_SECRET ?? ''}` },
       body: fd,
+    }).then(async (r) => {
+
+      const body = typeof r?.text === 'function' ? await r.text().catch(() => '') : '';
+      if (r?.ok) {
+        console.log('[assetJobRunner] filler callback done ok', job.job_id, r.status, body.slice(0, 120));
+      } else {
+        console.error('[assetJobRunner] filler callback done non-ok', job.job_id, r?.status, body.slice(0, 200));
+      }
     }).catch((e) => console.error('[assetJobRunner] filler callback done fetch error', e?.message));
   }
 
