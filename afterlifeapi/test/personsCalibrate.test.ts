@@ -4,6 +4,7 @@ import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
 import { v_b2eae5 } from "../src/lib/jwt";
 import { v_70df81 } from "../src/routes/persons";
+import { v_a8d2cc } from "../src/lib/faceVectors";
 
 const v_a1651b = () => v_c9c489.DB as unknown as D1Database;
 
@@ -39,6 +40,9 @@ v_469bf2("isFaceCalibrateEnabled (단위) — off 불변식", () => {
   });
   v_23805a("'true'·다른 값 → false(엄격히 '1'만 on)", () => {
     v_4d37e3(v_70df81({ FACE_CALIBRATE_ENABLED: "true" })).toBe(false);
+  });
+  v_23805a("'' (빈 문자열) → false", () => {
+    v_4d37e3(v_70df81({ FACE_CALIBRATE_ENABLED: "" })).toBe(false);
   });
   v_23805a("'1' → true", () => {
     v_4d37e3(v_70df81({ FACE_CALIBRATE_ENABLED: "1" })).toBe(true);
@@ -149,5 +153,47 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
       body: JSON.stringify({ vector: new Array(512).fill(0.1) }),
     });
     v_4d37e3(v_8f00b9.status).toBe(401);
+  });
+
+  v_23805a("metadata 없는 매치는 scores에서 제외된다(personId 둔갑 방지)", async () => {
+    const v_43e90c = await v_bfb240("calibrate-no-metadata@test.local");
+    const v_ea333d = await v_86c39f(v_43e90c);
+    const v_e39ea6 = String(v_43e90c);
+    const v_f9a45c = new Array(512).fill(0).map((v_37eab7, v_ebec57) => (v_ebec57 === 0 ? 1 : 0));
+
+    const v_e86ad8 = v_a8d2cc(v_c9c489 as unknown as { FACE_VECTORS?: VectorizeIndex; ENVIRONMENT?: string });
+    await v_e86ad8.insert([
+      { id: "orphan-embedding-no-metadata", values: v_f9a45c, namespace: v_e39ea6 }, 
+      { id: "with-metadata", values: v_f9a45c, namespace: v_e39ea6, metadata: { personId: "777" } },
+    ]);
+
+    const v_8f00b9 = await v_4f438a(v_ea333d, { vector: v_f9a45c });
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{ id: number; matchedId: string | null; scoreCount: number }>();
+
+    v_4d37e3(v_b75e36.scoreCount).toBe(1);
+
+    const v_3ac7e7 = await v_a1651b()
+      .prepare("SELECT scores_json FROM faceoth-secretes WHERE id = ?")
+      .bind(v_b75e36.id)
+      .first<{ scores_json: string }>();
+    const v_392321 = JSON.parse(String(v_3ac7e7!.scores_json)) as { personId: string; score: number }[];
+    v_4d37e3(v_392321.length).toBe(1);
+    v_4d37e3(v_392321[0].personId).toBe("777");
+    v_4d37e3(v_392321.some((v_fd5f43) => v_fd5f43.personId === "orphan-embedding-no-metadata")).toBe(false);
+  });
+});
+
+v_469bf2("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(off→404 회귀 방지)", () => {
+  v_23805a("[vars]·[env.preview.vars]·[env.production.vars] 전부 \"0\"이어야 한다", async () => {
+
+    const { default: v_6e2bcc } = await import("../wrangler.toml?raw");
+
+    const v_a49907 = [...(v_6e2bcc as string).matchAll(/FACE_CALIBRATE_ENABLED\s*=\s*"([^"]*)"/g)].map((v_35f85c) => v_35f85c[1]);
+
+    v_4d37e3(v_a49907.length).toBe(3);
+    for (const v_81e2ef of v_a49907) {
+      v_4d37e3(v_81e2ef).toBe("0");
+    }
   });
 });

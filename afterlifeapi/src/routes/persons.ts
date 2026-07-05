@@ -152,7 +152,10 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
     namespace: String(v_43e90c),
     returnMetadata: true,
   });
-  const v_392321 = v_a49907.map((v_35f85c) => ({ personId: String(v_35f85c.metadata?.personId ?? v_35f85c.id), score: v_35f85c.score }));
+
+  const v_392321 = v_a49907
+    .filter((v_35f85c) => v_35f85c.metadata?.personId != null)
+    .map((v_35f85c) => ({ personId: String(v_35f85c.metadata!.personId), score: v_35f85c.score }));
   const v_643757 = v_392321.reduce<{ personId: string; score: number } | null>(
     (v_779914, v_148ff6) => (v_779914 && v_779914.score >= v_148ff6.score ? v_779914 : v_148ff6),
     null
