@@ -1,5 +1,5 @@
 from __future__ import annotations
-import os, re
+import re
 from datetime import datetime, timezone, timedelta
 
 _KST = timezone(timedelta(hours=9))

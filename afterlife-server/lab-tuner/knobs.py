@@ -65,7 +65,7 @@ class FillerKnobs:
     enabled: bool = False
     volume: float = 0.3
     padding_sec: float = 0.0
-    lookahead_sec: float = 0.0
+    lookahead_sec: float = 1.0
     blend_frames: int = 5
     idle_prebake: bool = True
     order: str = "pre_speak"  # pre_speak|off
@@ -110,7 +110,7 @@ class RunKnobs:
             ),
             filler=FillerKnobs(
                 enabled=os.environ.get("PRETHIRD_FILLER", "0") == "1",
-                lookahead_sec=_env_f("FILLER_LOOKAHEAD_SEC", 0.0),
+                lookahead_sec=_env_f("FILLER_LOOKAHEAD_SEC", 1.0),
                 blend_frames=_env_i("PRETHIRD_IDLE_BLEND_FRAMES", 5),
                 idle_prebake=os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1",
                 order=os.environ.get("PRETHIRD_FILLER_ORDER", "pre_speak"),
