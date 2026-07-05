@@ -1,5 +1,6 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
+import pytest
 
 def test_healthz_reports_engine_state():
     # 엔진 미로드 상태에서 healthz 함수를 직접 호출(GPU startup 미유발).
@@ -17,9 +18,15 @@ import numpy as np, io, soundfile as sf
 import config as cfg  # noqa: E402
 
 class FakeEngine:
-    def __init__(self): self.calls = []
-    def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0):
+    def __init__(self):
+        self.calls = []
+        self.last_synth_kwargs = None
+    def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None):
         self.calls.append({"text": text, "clone_id": clone_id, "voice_wav": voice_wav, "speed": speed})
+        self.last_synth_kwargs = {
+            "text": text, "clone_id": clone_id, "voice_wav": voice_wav,
+            "ref_text": ref_text, "speed": speed, "gen_params": gen_params,
+        }
         buf = io.BytesIO()
         sf.write(buf, np.zeros(1600, dtype="float32"), 16000, format="WAV", subtype="PCM_16")
         return buf.getvalue()
@@ -35,6 +42,11 @@ def _client_with_fake_engine(tmp_path, monkeypatch):
     app.router.on_startup.clear()  # GPU startup 스킵
     app.state.engine = FakeEngine()
     return TestClient(app), app.state.engine
+
+
+@pytest.fixture
+def client_with_fake_engine(tmp_path, monkeypatch):
+    return _client_with_fake_engine(tmp_path, monkeypatch)
 
 def test_tts_kr_returns_wav_and_headers(tmp_path, monkeypatch):
     client, eng = _client_with_fake_engine(tmp_path, monkeypatch)
@@ -117,7 +129,7 @@ def test_tts_kr_corrupt_voice_503(tmp_path, monkeypatch):
     monkeypatch.setattr(cfg, "REF_ROOT", str(tmp_path))
 
     class CorruptEngine:
-        def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0):
+        def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None):
             raise ValueError(f"corrupt/unreadable wav: {voice_wav!r}")
 
     from fastapi.testclient import TestClient
@@ -166,7 +178,7 @@ def test_synth_lock_serializes_concurrent_calls(tmp_path, monkeypatch):
     order = []  # synth 진입 순서 기록
 
     class SlowEngine:
-        def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0):
+        def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None):
             # 첫 번째 진입자만 0.05s 슬립해 두 번째 호출이 Lock 앞에서 대기하도록 유도
             idx = len(order)
             order.append(idx)
@@ -212,3 +224,21 @@ def test_synth_lock_exists():
     assert hasattr(_srv, "_SYNTH_LOCK"), "_SYNTH_LOCK 없음 — Lock 직렬화 코드 누락"
     # threading.Lock()은 _thread.lock 타입이므로 acquire/release 유무로 검사
     assert callable(getattr(_srv._SYNTH_LOCK, "acquire", None))
+
+
+# ── qwen generation 파라미터 수신·전달 ───────────────────────────────────────
+
+def test_synth_forwards_gen_params(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={
+        "text": "안녕", "clone_id": "halbae",
+        "temperature": 0.5, "top_p": 0.8,
+    })
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"] == {"temperature": 0.5, "top_p": 0.8}
+
+def test_synth_omits_unset_gen_params(client_with_fake_engine):
+    client, fake = client_with_fake_engine
+    r = client.post("/tts/kr", json={"text": "안녕", "clone_id": "halbae"})
+    assert r.status_code == 200
+    assert fake.last_synth_kwargs["gen_params"] == {}

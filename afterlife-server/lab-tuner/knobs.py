@@ -24,6 +24,12 @@ class TtsKnobs:
     url: str | None = None            # 지정 시 engine 기본 URL override
     speed: float = 1.0
     denoise: bool = False
+    # qwen generation 파라미터 — 미지정(None) 시 qwen 기본. openvoice 엔진에선 무시됨.
+    temperature: float | None = None
+    top_p: float | None = None
+    top_k: int | None = None
+    repetition_penalty: float | None = None
+    max_new_tokens: int | None = None
 
 
 @dataclass(frozen=True)
@@ -38,6 +44,8 @@ class FifthKnobs:
     # restart-baked: flp_engine.__init__ startup 1회 → 렌더 재기동 필요(coarse)
     cfg_scale: float = 2.0
     driving_multiplier: float = 1.0
+    # container-baked: fifth 렌더 서버 프로세스 기동 시 1회 선택 → 컨테이너 재기동 필요
+    render_mode: str = "partial"  # partial|batch
     PER_REQUEST = ("blink", "jpeg_quality", "idle_motion_scale",
                    "idle_rms_low", "idle_rms_high", "head_slew_frames")
     RESTART_BAKED = ("cfg_scale", "driving_multiplier")
@@ -49,6 +57,7 @@ class TransportKnobs:
     idle_grace_sec: float = 0.5
     width: int = 576
     height: int = 1024
+    idle_source_mode: str = "auto"  # auto|prebake|clone_mp4|fallback
 
 
 @dataclass(frozen=True)
@@ -56,6 +65,10 @@ class FillerKnobs:
     enabled: bool = False
     volume: float = 0.3
     padding_sec: float = 0.0
+    lookahead_sec: float = 1.0
+    blend_frames: int = 5
+    idle_prebake: bool = True
+    order: str = "pre_speak"  # pre_speak|off
 
 
 @dataclass(frozen=True)
@@ -86,14 +99,22 @@ class RunKnobs:
                 idle_rms_low=_env_f("FIFTH_IDLE_RMS_LOW", 0.05),
                 idle_rms_high=_env_f("FIFTH_IDLE_RMS_HIGH", 0.3),
                 head_slew_frames=_env_i("FIFTH_HEAD_SLEW_FRAMES", 5),
+                render_mode=os.environ.get("FIFTH_RENDER_MODE", "partial"),
             ),
             transport=TransportKnobs(
                 playback_buffer_ms=_env_i("PRETHIRD_PLAYBACK_BUFFER_MS", 0),
                 idle_grace_sec=_env_f("IDLE_GRACE_SEC", 0.5),
                 width=_env_i("PRETHIRD_WIDTH", 576),
                 height=_env_i("PRETHIRD_HEIGHT", 1024),
+                idle_source_mode=os.environ.get("IDLE_SOURCE_MODE", "auto"),
             ),
-            filler=FillerKnobs(enabled=os.environ.get("PRETHIRD_FILLER", "0") == "1"),
+            filler=FillerKnobs(
+                enabled=os.environ.get("PRETHIRD_FILLER", "0") == "1",
+                lookahead_sec=_env_f("FILLER_LOOKAHEAD_SEC", 1.0),
+                blend_frames=_env_i("PRETHIRD_IDLE_BLEND_FRAMES", 5),
+                idle_prebake=os.environ.get("FIFTH_IDLE_PREBAKE", "1") == "1",
+                order=os.environ.get("PRETHIRD_FILLER_ORDER", "pre_speak"),
+            ),
         )
 
     def to_dict(self) -> dict:
@@ -117,3 +138,44 @@ class RunKnobs:
             transport=_mk(TransportKnobs, d.get("transport")),
             filler=_mk(FillerKnobs, d.get("filler")),
         )
+
+
+# UI 타입 힌트 + reflow(반영 성격). tuner.js 가 /knobs/meta 로 받아 컨트롤을 렌더.
+# choices 는 반드시 _SAFE_ENV_VAL 문자셋 내로 정의(promote.py Global Constraints).
+KNOB_META: dict[str, dict] = {
+    "dialogue.model":          {"type": "string", "choices": None, "reflow": "session", "label": "LLM 모델"},
+    "dialogue.temperature":    {"type": "number", "choices": None, "reflow": "session", "label": "temperature"},
+    "dialogue.system_override":{"type": "string", "choices": None, "reflow": "session", "label": "system override"},
+    "dialogue.min_len":        {"type": "number", "choices": None, "reflow": "session", "label": "min_len"},
+    "dialogue.force_flush":    {"type": "number", "choices": None, "reflow": "session", "label": "force_flush"},
+    "tts.engine":              {"type": "enum",   "choices": ["openvoice", "qwen"], "reflow": "next_call", "label": "TTS 엔진"},
+    "tts.url":                 {"type": "string", "choices": None, "reflow": "next_call", "label": "TTS URL override"},
+    "tts.speed":               {"type": "number", "choices": None, "reflow": "next_call", "label": "TTS 속도"},
+    "tts.denoise":             {"type": "bool",   "choices": None, "reflow": "next_call", "label": "denoise"},
+    "tts.temperature":         {"type": "number", "choices": None, "reflow": "next_call", "label": "temperature(qwen전용)"},
+    "tts.top_p":               {"type": "number", "choices": None, "reflow": "next_call", "label": "top_p(qwen전용)"},
+    "tts.top_k":               {"type": "number", "choices": None, "reflow": "next_call", "label": "top_k(qwen전용)"},
+    "tts.repetition_penalty":  {"type": "number", "choices": None, "reflow": "next_call", "label": "repetition_penalty(qwen전용)"},
+    "tts.max_new_tokens":      {"type": "number", "choices": None, "reflow": "next_call", "label": "max_new_tokens(qwen전용)"},
+    "fifth.blink":             {"type": "bool",   "choices": None, "reflow": "container", "label": "blink"},
+    "fifth.jpeg_quality":      {"type": "number", "choices": None, "reflow": "container", "label": "jpeg 품질"},
+    "fifth.idle_motion_scale": {"type": "number", "choices": None, "reflow": "container", "label": "idle 모션 스케일"},
+    "fifth.idle_rms_low":      {"type": "number", "choices": None, "reflow": "container", "label": "idle rms low"},
+    "fifth.idle_rms_high":     {"type": "number", "choices": None, "reflow": "container", "label": "idle rms high"},
+    "fifth.head_slew_frames":  {"type": "number", "choices": None, "reflow": "container", "label": "head slew"},
+    "fifth.cfg_scale":         {"type": "number", "choices": None, "reflow": "container", "label": "cfg scale"},
+    "fifth.driving_multiplier":{"type": "number", "choices": None, "reflow": "container", "label": "driving mult"},
+    "fifth.render_mode":       {"type": "enum",   "choices": ["partial", "batch"], "reflow": "container", "label": "생성 모드"},
+    "transport.playback_buffer_ms": {"type": "number", "choices": None, "reflow": "next_call", "label": "재생 버퍼(ms)"},
+    "transport.idle_grace_sec":{"type": "number", "choices": None, "reflow": "next_call", "label": "idle grace(s)"},
+    "transport.width":         {"type": "number", "choices": None, "reflow": "next_call", "label": "너비"},
+    "transport.height":        {"type": "number", "choices": None, "reflow": "next_call", "label": "높이"},
+    "transport.idle_source_mode": {"type": "enum", "choices": ["auto", "prebake", "clone_mp4", "fallback"], "reflow": "next_call", "label": "idle 소스"},
+    "filler.enabled":          {"type": "bool",   "choices": None, "reflow": "next_call", "label": "필러 사용"},
+    "filler.volume":           {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 볼륨"},
+    "filler.padding_sec":      {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 패딩(s)"},
+    "filler.lookahead_sec":    {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 lookahead(s)"},
+    "filler.blend_frames":     {"type": "number", "choices": None, "reflow": "next_call", "label": "idle blend 프레임"},
+    "filler.idle_prebake":     {"type": "bool",   "choices": None, "reflow": "next_call", "label": "fifth idle prebake"},
+    "filler.order":            {"type": "enum",   "choices": ["pre_speak", "off"], "reflow": "next_call", "label": "필러 재생 순서"},
+}

@@ -56,7 +56,7 @@ class FakeEngine:
     def __init__(self):
         self.calls = []
 
-    def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0):
+    def synth(self, text, clone_id, voice_wav, ref_text=None, speed=1.0, gen_params=None):
         self.calls.append({"text": text, "clone_id": clone_id, "ref_text": ref_text})
         buf = io.BytesIO()
         sf.write(buf, np.zeros(1600, dtype="float32"), 16000, format="WAV", subtype="PCM_16")

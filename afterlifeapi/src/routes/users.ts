@@ -6,6 +6,7 @@ import { parseJson, z } from "../lib/validate";
 import { openAny, seal, getKekProvider, extractDekId, shredV3 } from "../lib/ale";
 import { requestKekProvider } from "../lib/kekProvider";
 import { logActivity } from "../lib/logger";
+import { purgeUserOntology } from "../lib/memoryStore";
 import { notify } from "../lib/notify";
 import { similarityScore, SEARCH_SIMILARITY_THRESHOLD } from "../lib/similarity";
 
@@ -727,6 +728,17 @@ users.post("/me/delete/gdpr", requireAuth, async (c) => {
     )
     .bind(userId)
     .run();
+
+  try {
+    const purgedOnt = await purgeUserOntology(c.env, userId);
+    console.log(
+      `[gdpr] ontology purged: ont=${purgedOnt.ontRows} person=${purgedOnt.personRows} kv=${purgedOnt.kvKeys}`,
+    );
+  } catch (err) {
+    console.error(
+      `[gdpr] CRITICAL: ontology purge FAILED for user ${userId} — 재시도 필요: ${(err as Error).message}`,
+    );
+  }
 
   await logActivity(c, {
     userId,

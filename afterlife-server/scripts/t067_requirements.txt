@@ -1,0 +1,16 @@
+# T-067 Task 8 하네스 (t067_calibrate.py / t067_e2e_match.py) 의존성 고정.
+#
+# 설치 예: scripts/.t067-model/venv/bin/pip install -r t067_requirements.txt
+# (t067_model_prep.sh 가 만드는 venv 재사용 — onnxruntime/pillow/numpy는 이미 있을 수 있음)
+#
+# t067_make_fixtures.py(가비아 원격 실행)는 stdlib 전용이라 이 목록과 무관.
+
+onnxruntime
+numpy
+pillow
+
+# ⚠️ opencv-python-headless는 반드시 4.10.0.84로 고정할 것.
+# 5.0.0(2026-07 기준 최신)에서 cv2.CascadeClassifier 속성이 없음을 실측 확인
+# (objdetect 모듈 바인딩 누락/비정상 빌드로 추정) — t067_calibrate.py의 얼굴 crop이
+# AttributeError로 즉시 실패한다. 4.x 계열로 다운그레이드해야 CascadeClassifier 사용 가능.
+opencv-python-headless==4.10.0.84

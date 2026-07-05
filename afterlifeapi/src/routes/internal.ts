@@ -4,8 +4,13 @@ import type { AppEnv } from "../lib/env";
 import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeJob, getJob } from "../lib/assetJobs";
 import { z } from "../lib/validate";
 import { loadCloneById } from "../lib/cloneAccess";
-import { updateOntFromExtraction, type L2Extraction } from "../lib/memoryStore";
+import {
+  readOnt, updateOntFromExtraction, type L2Extraction,
+  readOntPerson, updateOntPersonFromExtraction,
+} from "../lib/memoryStore";
+import { loadCloneProfiles, loadUserL2 } from "../lib/personaBundle";
 import { logActivity } from "../lib/logger";
+import { hasCallLearningConsent, personOwnerHasCallLearningConsent } from "../lib/consentGate";
 
 export const internal = new Hono<AppEnv>();
 
@@ -325,6 +330,10 @@ internal.post("/oth-path", async (c) => {
   ).bind(cloneId, userId).first();
   if (!interacted) return c.json({ error: "no_interaction" }, 403);
 
+  if (!(await hasCallLearningConsent(c.env, userId))) {
+    return c.json({ ok: true, skipped: true, reason: "no_consent" });
+  }
+
   let result: { rev: number; skipped: boolean };
   try {
     result = await updateOntFromExtraction(
@@ -341,6 +350,203 @@ internal.post("/oth-path", async (c) => {
       ? { cloneId, source, skipped: true }
       : {
           cloneId, source, skipped: false, rev: result.rev,
+          keys: Object.keys(extracted.preference_personal ?? {}),
+          memCount: extracted.memories_personal?.length ?? 0,
+        },
+  });
+  return c.json(
+    result.skipped
+      ? { ok: true, skipped: true }
+      : { ok: true, skipped: false, rev: result.rev },
+  );
+});
+
+internal.get("/dev/clones/:id/ont-raw", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  const userId = Number(c.req.query("userId"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return c.json({ error: "invalid clone_id or userId" }, 400);
+  }
+  const raw = await readOnt(c.env, cloneId, userId);
+  let data: unknown = null;
+  if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+  const { l1 } = await loadCloneProfiles(c.env.DB, cloneId);
+  const l2Consumed = await loadUserL2(c.env.DB, cloneId, userId);
+
+  await logActivity(c, {
+    userId,
+    action: "dev.ont_raw.read",
+    details: { cloneId },
+  });
+
+  return c.json({ data, l1_profile: l1, l2_consumed: l2Consumed });
+});
+
+const devOntMergeSchema = z.object({
+  userId: z.number().int().positive(),
+  extracted: z.object({
+    preference_personal: z
+      .record(z.string().max(100), z.union([z.string().max(200), z.number(), z.boolean()]))
+      .optional(),
+    relation: z.string().max(200).nullable().optional(),
+    memories_personal: z.array(z.string().max(500)).max(20).optional(),
+  }),
+  source: z.enum(["call", "chat"]),
+});
+
+internal.post("/dev/clones/:id/ont-merge", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const parsed = devOntMergeSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: "bad_body", issues: parsed.error.issues }, 400);
+  }
+  const { userId, extracted, source } = parsed.data;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  const userExists = await c.env.DB.prepare("SELECT 1 FROM users WHERE id = ?")
+    .bind(userId).first();
+  if (!userExists) return c.json({ error: "user_not_found" }, 404);
+
+  let result: { rev: number; skipped: boolean };
+  try {
+    result = await updateOntFromExtraction(
+      c.env, cloneId, userId, extracted as L2Extraction, source,
+    );
+  } catch (err) {
+    return c.json({ error: "merge_failed", message: (err as Error).message }, 400);
+  }
+
+  const raw = await readOnt(c.env, cloneId, userId);
+  let data: unknown = null;
+  if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
+
+  try {
+    await logActivity(c, {
+      userId,
+      action: "dev.ont_merge.write",
+      details: { cloneId, rev: result.rev },
+    });
+  } catch {  }
+
+  return c.json({ rev: result.rev, skipped: result.skipped, data });
+});
+
+async function personOwnsCloneSession(db: D1Database, personId: number, cloneId: number): Promise<boolean> {
+  const row = await db.prepare(
+    `SELECT 1 FROM persons p
+     JOIN call_sessions cs ON cs.user_id = p.user_id
+     WHERE p.id = ? AND cs.clone_id = ? LIMIT 1`,
+  ).bind(personId, cloneId).first();
+  return !!row;
+}
+
+internal.get("/oth-path", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.LEARN_SECRET || !safeEqual(token, c.env.LEARN_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const personId = Number(c.req.query("personId"));
+  if (!Number.isInteger(personId) || personId <= 0) {
+    return c.json({ error: "bad_person_id" }, 400);
+  }
+
+  const owns = await personOwnsCloneSession(c.env.DB, personId, cloneId);
+  if (!owns) return c.json({ error: "not_found" }, 404);
+
+  const raw = await readOntPerson(c.env, cloneId, personId);
+  let data: Record<string, unknown> | null = null;
+  if (raw) {
+    try {
+      data = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+
+      console.error(`[D1_CORRUPT] l2p:${cloneId}:pid:${String(personId).slice(-3)} not JSON`);
+      data = null;
+    }
+  }
+
+  const person = await c.env.DB.prepare(
+    "SELECT display_name FROM persons WHERE id = ?"
+  ).bind(personId).first<{ display_name: string | null }>();
+
+  return c.json({ data, displayName: person?.display_name ?? null });
+});
+
+const l2pLearnSchema = z.object({
+  personId: z.number().int().positive(),
+  extracted: z.object({
+    preference_personal: z
+      .record(z.string().max(100), z.union([z.string().max(200), z.number(), z.boolean()]))
+      .optional(),
+    relation: z.string().max(200).nullable().optional(),
+    memories_personal: z.array(z.string().max(500)).max(20).optional(),
+  }),
+  source: z.enum(["call", "chat"]),
+  session_id: z.string().max(64).optional(),
+});
+
+internal.post("/oth-path", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.LEARN_SECRET || !safeEqual(token, c.env.LEARN_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const parsed = l2pLearnSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ error: "bad_body", issues: parsed.error.issues }, 400);
+  }
+  const { personId, extracted, source } = parsed.data;
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  const interacted = await personOwnsCloneSession(c.env.DB, personId, cloneId);
+  if (!interacted) return c.json({ error: "no_interaction" }, 403);
+
+  if (!(await personOwnerHasCallLearningConsent(c.env, personId))) {
+    return c.json({ ok: true, skipped: true, reason: "no_consent" });
+  }
+
+  let result: { rev: number; skipped: boolean };
+  try {
+    result = await updateOntPersonFromExtraction(
+      c.env, cloneId, personId, extracted as L2Extraction, source,
+    );
+  } catch (err) {
+    return c.json({ error: "merge_failed", message: (err as Error).message }, 400);
+  }
+
+  await logActivity(c, {
+    userId: null,
+    action: "memory.l2p.learn",
+    details: result.skipped
+      ? { cloneId, personId, source, skipped: true }
+      : {
+          cloneId, personId, source, skipped: false, rev: result.rev,
           keys: Object.keys(extracted.preference_personal ?? {}),
           memCount: extracted.memories_personal?.length ?? 0,
         },
