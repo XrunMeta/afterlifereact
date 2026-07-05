@@ -25,6 +25,9 @@ _EXTRACT_SYSTEM = (
     '  "memories_personal": array of short factual statements worth remembering about the user. [] if none.\n'
     "RULES:\n"
     "- Only facts explicitly stated by the USER in this turn. Never guess.\n"
+    "- For preference_personal, use a normalized CATEGORY as the key "
+    "(e.g. 음료/음식/취미/색상), and always the SAME key for the same category "
+    "so a changed preference reuses the key (음료: 콜라 → 음료: 사이다).\n"
     "- PRIVACY: NEVER include full street address, resident registration number, phone number, "
     "card/account number, or passwords. Skip them entirely.\n"
     '- Keep values short. If nothing new: {"preference_personal":{},"relation":null,"memories_personal":[]}.'

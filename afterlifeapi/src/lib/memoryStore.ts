@@ -147,16 +147,32 @@ export async function v_0ac5b7(
     : v_d5158a;
 
   const v_5c2f9f = new Date().toISOString();
+
+  const v_1e1522 = 20;
+  const v_13a920 = (v_275ccd.preference_personal as Record<string, unknown>) ?? {};
+  const v_633416 = Array.isArray(v_275ccd.preference_history)
+    ? (v_275ccd.preference_history as Array<Record<string, unknown>>)
+    : [];
+  let v_1c6478 = v_633416;
+  const v_dce4e7 = v_c9c489.L2_PREF_HISTORY_ENABLED === "1";
+  if (v_dce4e7 && v_e1ccab) {
+    const v_4e2f8b = [];
+    for (const [v_0eb677, v_81e2ef] of Object.entries(v_631e71.preference_personal!)) {
+      if (Object.hasOwn(v_13a920, v_0eb677) && v_13a920[v_0eb677] !== v_81e2ef) {
+        v_4e2f8b.push({ key: v_0eb677, from: v_13a920[v_0eb677], to: v_81e2ef, at: v_5c2f9f });
+      }
+    }
+    if (v_4e2f8b.length) v_1c6478 = [...v_633416, ...v_4e2f8b].slice(-v_1e1522);
+  }
+
   const v_a448ad = {
     address: v_275ccd.address ?? null,
     memories_personal: v_3bfd8d,
     relation: v_093c06 ? v_631e71.relation!.trim() : v_275ccd.relation ?? null,
     preference_personal: v_e1ccab
-      ? {
-          ...((v_275ccd.preference_personal as Record<string, unknown>) ?? {}),
-          ...v_631e71.preference_personal,
-        }
-      : v_275ccd.preference_personal ?? {},
+      ? { ...v_13a920, ...v_631e71.preference_personal }
+      : v_13a920,
+    ...(v_1c6478.length ? { preference_history: v_1c6478 } : {}),
 
     ...(v_275ccd.memory_summary !== undefined ? { memory_summary: v_275ccd.memory_summary } : {}),
     ...(v_275ccd.relationship !== undefined ? { relationship: v_275ccd.relationship } : {}),
@@ -166,11 +182,17 @@ export async function v_0ac5b7(
   };
 
   let v_4f3411 = JSON.stringify(v_a448ad);
-  while (
-    v_4f3411.length > v_a680d4 &&
-    (v_a448ad.memories_personal as string[]).length > 0
-  ) {
-    (v_a448ad.memories_personal as string[]).shift(); 
+  while (v_4f3411.length > v_a680d4) {
+    if ((v_a448ad.memories_personal as string[]).length > 0) {
+      (v_a448ad.memories_personal as string[]).shift(); 
+    } else if (
+      Array.isArray(v_a448ad.preference_history) &&
+      (v_a448ad.preference_history as unknown[]).length > 0
+    ) {
+      (v_a448ad.preference_history as unknown[]).shift(); 
+    } else {
+      break;
+    }
     v_4f3411 = JSON.stringify(v_a448ad);
   }
   if (v_4f3411.length > v_a680d4) {
