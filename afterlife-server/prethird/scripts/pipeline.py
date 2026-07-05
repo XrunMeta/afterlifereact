@@ -235,13 +235,19 @@ class DialoguePipeline:
         pcm48 = self._resample(pcm, sr, 48000)
         return wav_bytes, pcm48
 
-    async def _infer_stage(self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None) -> None:
+    async def _infer_stage(
+        self, wav_bytes: bytes, pcm48: np.ndarray, turn=None, on_before_push=None,
+        render_mode: str | None = None,
+    ) -> None:
         """wav → musetalk infer(executor) → frames 일괄 push + balance audio. (GPU1)
         turn: recorder Turn — PRETHIRD_RECORD_MP4=1 시 frames 누적.
         on_before_push: infer 완료 후·첫 push 직전 1회 호출(F7 filler 즉시컷).
           렌더가 도는 수 초 동안 필러가 계속 순환해야 하므로 이 시점이어야 한다
           (infer '직전' 컷은 렌더 시간만큼 idle 갭 유발 — T-088 라운드4 실통화 실측).
-          이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지."""
+          이 지점~push 사이 await 없음 → stop→flush→응답push 원자성 유지.
+        render_mode: [T-113] batch 경로에서만 명시 전달("batch"). partial(기존 호출부)은
+          항상 기본값 None 이라 infer_fn 호출이 기존과 100% 동일(positional-only,
+          kwarg 미부여)하게 유지된다 — partial 무변경 보장."""
         turn = turn if turn is not None else NULL_TURN
         loop = asyncio.get_event_loop()
         frames_buf: list[np.ndarray] = []
@@ -259,9 +265,14 @@ class DialoguePipeline:
                 except Exception as exc:
                     log.warning("on_before_push callback failed: %s", exc)
 
+        def _invoke_infer(wp, cb):
+            if render_mode is not None:
+                return self.infer_fn(wp, cb, render_mode=render_mode)
+            return self.infer_fn(wp, cb)
+
         try:
             try:
-                await loop.run_in_executor(None, self.infer_fn, wav_path, on_frame)
+                await loop.run_in_executor(None, _invoke_infer, wav_path, on_frame)
             except BaseException:
                 # [el BLOCKER] 렌더 예외(렌더서버 다운/타임아웃 등)에도 즉시컷 훅은
                 # 반드시 1회 발동 — 스킵되면 FillerPlayer 정지 경로가 사라져 필러가
@@ -347,9 +358,58 @@ class DialoguePipeline:
             await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready)
 
     async def _run_batch(self, produce, turn=None, on_first_audio=None, on_response_ready=None) -> None:
-        """[T-113] batch 렌더 모드 스캐폴드. 실제 배치(답변 전체 한 모션) 구현은
-        후속 태스크(Task 5)에서 채운다 — 지금은 partial 경로에 그대로 위임."""
-        await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready)
+        """[T-113] batch 렌더 모드(A1) — 답변(턴) 전체를 문장 분할 없이 하나로
+        모아 TTS 정확히 1회 → infer 정확히 1회(render_mode="batch") → 완성
+        프레임/오디오 push. 문장이 N개여도 단일 모션이어야 하는 게 핵심 계약.
+
+        produce(sentence_q) 는 say()/speak()/_system_utterance() 공용 클로저로,
+        내부적으로 chat_fn(LLM 토큰 스트림)을 SentenceBuffer 로 문장 단위 분할해
+        sentence_q 에 넣는다(partial과 동일 재사용 — 클로저 자체는 무변경).
+        batch 는 그 문장들을 소비하되 문장별로 TTS/infer 하지 않고, 스트림이
+        끝날 때까지 전부 모아 이어붙인 뒤(누적 순서 보존) 그제서야 TTS 1회를
+        태운다 — partial 경로(tts_worker/infer_worker/_run_pipeline_partial)는
+        전혀 호출하지 않는다.
+
+        예외 시(TTS/infer 실패 등) produce 태스크를 취소하고 signal_end 를
+        보장한다(partial과 동일한 안전성 패턴)."""
+        turn = turn if turn is not None else NULL_TURN
+        sentence_q: asyncio.Queue = asyncio.Queue()
+        parts: list[str] = []
+
+        async def collect():
+            while True:
+                item = await sentence_q.get()
+                if item is None:
+                    break
+                parts.append(item)
+
+        tasks = [
+            asyncio.ensure_future(produce(sentence_q)),
+            asyncio.ensure_future(collect()),
+        ]
+        try:
+            await asyncio.gather(*tasks)
+            full_text = "".join(parts)
+            if full_text.strip():
+                wav_bytes, pcm48 = await self._tts_stage(full_text)
+                turn.append_wav(wav_bytes)
+                await self._infer_stage(
+                    wav_bytes, pcm48, turn,
+                    on_before_push=on_response_ready, render_mode="batch",
+                )
+                if on_first_audio is not None:
+                    try:
+                        on_first_audio()
+                    except Exception as exc:  # 콜백 실패가 발화를 막지 않게 흡수
+                        log.warning("on_first_audio callback failed: %s", exc)
+        except BaseException:
+            for t in tasks:
+                t.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+            raise
+        finally:
+            self.vt.signal_end()
+            self.at.signal_end()
 
     async def _run_pipeline_partial(self, produce, turn=None, on_first_audio=None, on_response_ready=None) -> None:
         """produce(sentence_q): 문장을 sentence_q 에 put 하고 끝에 None.
