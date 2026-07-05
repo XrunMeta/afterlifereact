@@ -111,3 +111,33 @@ class RunKnobs:
             transport=_mk(TransportKnobs, d.get("transport")),
             filler=_mk(FillerKnobs, d.get("filler")),
         )
+
+
+# UI 타입 힌트 + reflow(반영 성격). tuner.js 가 /knobs/meta 로 받아 컨트롤을 렌더.
+# choices 는 반드시 _SAFE_ENV_VAL 문자셋 내로 정의(promote.py Global Constraints).
+KNOB_META: dict[str, dict] = {
+    "dialogue.model":          {"type": "string", "choices": None, "reflow": "session", "label": "LLM 모델"},
+    "dialogue.temperature":    {"type": "number", "choices": None, "reflow": "session", "label": "temperature"},
+    "dialogue.system_override":{"type": "string", "choices": None, "reflow": "session", "label": "system override"},
+    "dialogue.min_len":        {"type": "number", "choices": None, "reflow": "session", "label": "min_len"},
+    "dialogue.force_flush":    {"type": "number", "choices": None, "reflow": "session", "label": "force_flush"},
+    "tts.engine":              {"type": "enum",   "choices": ["openvoice", "qwen"], "reflow": "next_call", "label": "TTS 엔진"},
+    "tts.url":                 {"type": "string", "choices": None, "reflow": "next_call", "label": "TTS URL override"},
+    "tts.speed":               {"type": "number", "choices": None, "reflow": "next_call", "label": "TTS 속도"},
+    "tts.denoise":             {"type": "bool",   "choices": None, "reflow": "next_call", "label": "denoise"},
+    "fifth.blink":             {"type": "bool",   "choices": None, "reflow": "container", "label": "blink"},
+    "fifth.jpeg_quality":      {"type": "number", "choices": None, "reflow": "container", "label": "jpeg 품질"},
+    "fifth.idle_motion_scale": {"type": "number", "choices": None, "reflow": "container", "label": "idle 모션 스케일"},
+    "fifth.idle_rms_low":      {"type": "number", "choices": None, "reflow": "container", "label": "idle rms low"},
+    "fifth.idle_rms_high":     {"type": "number", "choices": None, "reflow": "container", "label": "idle rms high"},
+    "fifth.head_slew_frames":  {"type": "number", "choices": None, "reflow": "container", "label": "head slew"},
+    "fifth.cfg_scale":         {"type": "number", "choices": None, "reflow": "container", "label": "cfg scale"},
+    "fifth.driving_multiplier":{"type": "number", "choices": None, "reflow": "container", "label": "driving mult"},
+    "transport.playback_buffer_ms": {"type": "number", "choices": None, "reflow": "next_call", "label": "재생 버퍼(ms)"},
+    "transport.idle_grace_sec":{"type": "number", "choices": None, "reflow": "next_call", "label": "idle grace(s)"},
+    "transport.width":         {"type": "number", "choices": None, "reflow": "next_call", "label": "너비"},
+    "transport.height":        {"type": "number", "choices": None, "reflow": "next_call", "label": "높이"},
+    "filler.enabled":          {"type": "bool",   "choices": None, "reflow": "next_call", "label": "필러 사용"},
+    "filler.volume":           {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 볼륨"},
+    "filler.padding_sec":      {"type": "number", "choices": None, "reflow": "next_call", "label": "필러 패딩(s)"},
+}
