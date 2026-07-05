@@ -176,6 +176,40 @@ v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ id: v_389afb, matchedId: v_38da05, bestScore: v_333258, threshold: v_d361d7, scoreCount: v_392321.length });
 });
 
+v_fded81.get("/calibrate/samples", v_6690d9, async (v_3f4e2e) => {
+  if (!v_70df81(v_3f4e2e.env)) return v_3f4e2e.notFound();
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_8738be = Number(v_3f4e2e.req.query("since") ?? "0") || 0;
+  const v_02be30 = Math.min(Math.max(Number(v_3f4e2e.req.query("limit") ?? "100") || 100, 1), 200);
+  const { results: v_a7f568 } = await v_3f4e2e.env.DB.prepare(
+    `SELECT id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at
+     FROM faceoth-secretes WHERE user_id = ? AND id > ? ORDER BY id ASC LIMIT ?`
+  )
+
+    .bind(String(v_43e90c), v_8738be, v_02be30)
+    .all<{
+      id: number;
+      ground_truth_person_id: string | null;
+      matched_person_id: string | null;
+      best_score: number;
+      threshold: number;
+      scores_json: string;
+      created_at: number;
+    }>();
+  const v_5b2623 = v_a7f568.map((v_cb35cb) => ({
+    id: v_cb35cb.id,
+    ts: v_cb35cb.created_at,
+    groundTruthPersonId: v_cb35cb.ground_truth_person_id,
+    matchedId: v_cb35cb.matched_person_id,
+    bestScore: v_cb35cb.best_score,
+    threshold: v_cb35cb.threshold,
+    scores: JSON.parse(v_cb35cb.scores_json) as { personId: string; score: number }[],
+  }));
+  const v_d074ef = v_5b2623[v_5b2623.length - 1];
+  const v_ee40f4 = v_d074ef ? v_d074ef.id : v_8738be;
+  return v_3f4e2e.json({ samples: v_5b2623, nextSince: v_ee40f4 });
+});
+
 v_fded81.post("/:id/consent", v_6690d9, async (v_3f4e2e) => {
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;

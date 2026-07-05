@@ -184,6 +184,111 @@ v_469bf2("POST /oth-path (HTTP 통합 — 테스트 바인딩 on 고정)", () =>
   });
 });
 
+v_469bf2("GET /oth-path (폴링 조회 — Task 2)", () => {
+
+  async function v_38715b(v_ea333d, v_212049 = "") {
+    return v_1df298.fetch(`http://localhost/oth-path${v_212049}`, {
+      headers: { Authorization: `Bearer ${v_ea333d}` },
+    });
+  }
+
+  v_23805a("자기 userId 샘플만, since 커서 동작", async () => {
+    const v_79e089 = await v_bfb240("calibrate-samples-u1@test.local");
+    const v_b1ff3f = await v_bfb240("calibrate-samples-u2@test.local");
+    const v_8e3313 = await v_86c39f(v_79e089);
+
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO faceoth-secretes
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, 'p1', 0.9, 0.83, '[{"personId":"p1","score":0.9}]', 1),
+                (?, NULL, NULL, 0.4, 0.83, '[]', 2),
+                (?, NULL, 'p9', 0.8, 0.83, '[]', 3)`
+      )
+      .bind(String(v_79e089), String(v_79e089), String(v_b1ff3f))
+      .run();
+
+    const v_8f00b9 = await v_38715b(v_8e3313);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{
+      samples: { id: number; matchedId: string | null }[];
+      nextSince: number;
+    }>();
+    v_4d37e3(v_b75e36.samples.length).toBe(2);
+    v_4d37e3(v_b75e36.samples.every((v_fd5f43) => v_fd5f43.matchedId !== "p9")).toBe(true); 
+
+    const v_48bbbd = await v_38715b(v_8e3313, `?since=${v_b75e36.samples[0].id}`);
+    v_4d37e3(v_48bbbd.status).toBe(200);
+    const v_5d792d = await v_48bbbd.json<{ samples: unknown[] }>();
+    v_4d37e3(v_5d792d.samples.length).toBe(1);
+  });
+
+  v_23805a("scores_json을 파싱해 scores 배열/필드 매핑으로 반환한다", async () => {
+    const v_ceb55a = await v_bfb240("calibrate-samples-scores@test.local");
+    const v_ea333d = await v_86c39f(v_ceb55a);
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO faceoth-secretes
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, 'p1', 'p1', 0.92, 0.83, '[{"personId":"p1","score":0.92},{"personId":"p2","score":0.3}]', 10)`
+      )
+      .bind(String(v_ceb55a))
+      .run();
+
+    const v_8f00b9 = await v_38715b(v_ea333d);
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{
+      samples: {
+        id: number;
+        ts: number;
+        groundTruthPersonId: string | null;
+        matchedId: string | null;
+        bestScore: number;
+        threshold: number;
+        scores: { personId: string; score: number }[];
+      }[];
+    }>();
+    v_4d37e3(v_b75e36.samples.length).toBe(1);
+    const v_fd5f43 = v_b75e36.samples[0];
+    v_4d37e3(v_fd5f43.ts).toBe(10);
+    v_4d37e3(v_fd5f43.groundTruthPersonId).toBe("p1");
+    v_4d37e3(v_fd5f43.matchedId).toBe("p1");
+    v_4d37e3(v_fd5f43.bestScore).toBe(0.92);
+    v_4d37e3(v_fd5f43.threshold).toBe(0.83);
+    v_4d37e3(v_fd5f43.scores).toEqual([
+      { personId: "p1", score: 0.92 },
+      { personId: "p2", score: 0.3 },
+    ]);
+  });
+
+  v_23805a("limit 파라미터가 페이지 크기를 제한하고 nextSince를 갱신한다", async () => {
+    const v_ceb55a = await v_bfb240("calibrate-samples-limit@test.local");
+    const v_ea333d = await v_86c39f(v_ceb55a);
+    await v_a1651b()
+      .prepare(
+        `INSERT INTO faceoth-secretes
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, NULL, 0.1, 0.83, '[]', 100),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 101),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 102)`
+      )
+      .bind(String(v_ceb55a), String(v_ceb55a), String(v_ceb55a))
+      .run();
+
+    const v_8f00b9 = await v_38715b(v_ea333d, "?limit=2");
+    v_4d37e3(v_8f00b9.status).toBe(200);
+    const v_b75e36 = await v_8f00b9.json<{ samples: { id: number }[]; nextSince: number }>();
+    v_4d37e3(v_b75e36.samples.length).toBe(2);
+    v_4d37e3(v_b75e36.nextSince).toBe(v_b75e36.samples[1].id);
+  });
+
+  v_23805a("인증 없이 호출 → 401", async () => {
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path");
+    v_4d37e3(v_8f00b9.status).toBe(401);
+  });
+
+});
+
 v_469bf2("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(off→404 회귀 방지)", () => {
   v_23805a("[vars]·[env.preview.vars]·[env.production.vars] 전부 \"0\"이어야 한다", async () => {
 
