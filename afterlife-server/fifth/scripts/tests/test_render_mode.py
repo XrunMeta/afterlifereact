@@ -65,6 +65,25 @@ def test_unknown_value_falls_back_to_partial(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# Task 1 (T-113): body render_mode 인자가 env 보다 우선. 인자 없으면(None) 기존
+# env fallback 동작 그대로 유지(회귀 0).
+# ---------------------------------------------------------------------------
+
+
+def test_is_batch_body_arg_overrides_env(monkeypatch):
+    monkeypatch.setenv("FIFTH_RENDER_MODE", "partial")
+    assert is_batch("batch") is True
+    assert is_batch("partial") is False
+    assert is_batch(None) is False
+
+
+def test_is_batch_env_fallback_when_no_arg(monkeypatch):
+    monkeypatch.setenv("FIFTH_RENDER_MODE", "batch")
+    assert is_batch(None) is True
+    assert is_batch() is True
+
+
+# ---------------------------------------------------------------------------
 # Step 4: RenderService.render() 통합 — batch가 partial과 byte-identical한지,
 # 프레임 순서/종료마커 위치가 보존되는지 검증.
 # ---------------------------------------------------------------------------
