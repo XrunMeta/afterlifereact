@@ -27,6 +27,7 @@ export interface Bindings {
 
   LAZY_ROTATION_ENABLED?: string;  
   LAZY_V2_MIGRATE_ENABLED?: string;  
+  L2_PREF_HISTORY_ENABLED?: string; 
 
   CALL_PRETHIRD_BASE?: string;
   CALL_ROUTE?: string;
@@ -46,6 +47,8 @@ export interface Bindings {
   LEARN_FROM_CHAT?: string;  
 
   DEV_SECRET?: string;       
+
+  FACE_CALIBRATE_ENABLED?: string;
 
   PREBUILD_SECRET?: string;        
   PRETHIRD_PUBLIC_BASE?: string;   

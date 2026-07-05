@@ -27,6 +27,8 @@ from typing import Callable, Iterator, Optional
 
 import numpy as np
 
+from render_mode import is_batch
+
 try:
     import cv2
 except ModuleNotFoundError:
@@ -310,10 +312,27 @@ class RenderService:
             measured = render_ms를 평균 낸 실제 프레임 수(= frames - 1, 최초 스킵).
             encode/decode 구간은 전체 frames 기준.
           OFF 시 perf_counter 포함 계측 코드 전혀 실행 안 됨.
+
+        T-111 FIFTH_RENDER_MODE batch/partial 토글 (회귀 0):
+          partial(기본) → write는 그대로 즉시 전달(현행 스트리밍, byte-identical).
+          batch → 내부 _write가 write() 호출을 그대로 순서대로 리스트에 버퍼링만 하고,
+          render() 종료 직전(반환 전) 버퍼를 순서대로 실제 write에 flush한다.
+          와이어 프레이밍([4B len][jpeg]... 및 S4 토큰 트레일러)은 청크 내용/순서가
+          동일하므로 변경 없음 — 종료마커([4B 0])는 여전히 do_POST finally에서
+          render() 반환 후 1회 쓰여, batch에서도 프레임(+트레일러) 다음에 위치한다.
         """
         sources = self._get_sources(video_path)
         # idle_opts=None(기본) → {} → stream_wav_frames 인자 미전달(env 기본, 회귀 0).
         _idle = _idle_kwargs(idle_opts)
+
+        _batch = is_batch()
+        _buffer: list[bytes] = []
+
+        def _write(chunk: bytes) -> None:
+            if _batch:
+                _buffer.append(chunk)
+            else:
+                write(chunk)
 
         count = 0
         # _get_sources 의 slow path가 이미 _lock을 취득 후 반환했으므로,
@@ -344,7 +363,7 @@ class RenderService:
                     _first_frame[0] = False
                     _render_t_last[0] = _now  # encode/write 전에 갱신 (겹침 방지)
                     chunk = encode_frame_chunk(f, quality=jpeg_quality, _timing_out=encode_ms_list)
-                    write(chunk)
+                    _write(chunk)
 
                 if self._stream_wav_fn is not None:
                     count, end_tok = self._stream_wav_fn(
@@ -378,7 +397,7 @@ class RenderService:
                 if self._stream_wav_fn is not None:
                     count, end_tok = self._stream_wav_fn(
                         self.engine, self.jp, self.cfg, sources, wav_path,
-                        lambda f: write(encode_frame_chunk(f, quality=jpeg_quality)),
+                        lambda f: _write(encode_frame_chunk(f, quality=jpeg_quality)),
                         blink_enabled,
                         phase_token,
                         **_idle,
@@ -387,7 +406,7 @@ class RenderService:
                     from fifth_render import stream_wav_frames
                     count, end_tok = stream_wav_frames(
                         self.engine, self.jp, self.cfg, sources, wav_path,
-                        on_frame=lambda f: write(encode_frame_chunk(f, quality=jpeg_quality)),
+                        on_frame=lambda f: _write(encode_frame_chunk(f, quality=jpeg_quality)),
                         blink_enabled=blink_enabled,
                         phase_token=phase_token,
                         **_idle,
@@ -396,7 +415,13 @@ class RenderService:
             # S4 토큰 트레일러: phase_token 전달 시에만 씀(회귀 안전).
             # do_POST finally 의 종료마커([4B 0]) 전에 위치.
             if phase_token is not None and end_tok is not None:
-                write(encode_token_trailer(end_tok))
+                _write(encode_token_trailer(end_tok))
+
+            # T-111 batch flush: 프레임(+트레일러) 전체 생성 완료 후 순서 보존 일괄 write.
+            # partial(기본)은 _buffer가 비어있어(항상 즉시 write) 아래 루프가 무동작.
+            if _batch:
+                for _chunk in _buffer:
+                    write(_chunk)
 
         return count
 

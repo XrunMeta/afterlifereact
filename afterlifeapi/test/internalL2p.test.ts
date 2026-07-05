@@ -4,7 +4,10 @@ import { SELF, env } from "cloudflare:test";
 async function seedUser(email: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
   await db
-    .prepare(`INSERT INTO users (email, password_hash, name, created_at) VALUES (?, 'x', 'U', CURRENT_TIMESTAMP)`)
+    .prepare(
+      `INSERT INTO users (email, password_hash, name, created_at, call_learning_consent)
+       VALUES (?, 'x', 'U', CURRENT_TIMESTAMP, 1)`,
+    )
     .bind(email)
     .run();
   const u = await db.prepare("SELECT id FROM users WHERE email = ?").bind(email).first<{ id: number }>();

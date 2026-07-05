@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Switch,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -17,6 +18,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import SafeScrollView from "../../components/ui/SafeScrollView";
 import PageHeader from "../../components/common/PageHeader";
+import TermsModal from "../../components/common/TermsModal";
 import { COLORS, RADIUS } from "../../components/constants";
 import type { MyStackParamList } from "../../navigation/types";
 import { useAuthStore } from "../../stores/authStore";
@@ -31,6 +33,11 @@ import {
   saveFaceConsent,
   type Person,
 } from "../../api/persons";
+import {
+  saveCallLearningConsent,
+  getCallLearningConsent,
+  type CallLearningState,
+} from "../../api/consent";
 
 const itemKey = (it: BlockedItem) => `${it.type}-${it.blockId}`;
 
@@ -47,6 +54,11 @@ export default function PrivacySettingsScreen() {
   const [persons, setPersons] = useState<Person[]>([]);
   const [personsLoading, setPersonsLoading] = useState(true);
   const [revokingId, setRevokingId] = useState<number | null>(null);
+
+  const [callLearning, setCallLearning] = useState<CallLearningState>("none");
+  const [callLearningLoading, setCallLearningLoading] = useState(true);
+  const [callLearningSaving, setCallLearningSaving] = useState(false);
+  const [callLearningTermsOpen, setCallLearningTermsOpen] = useState(false);
 
   const goToItem = (item: BlockedItem) => {
     if (item.type === "user") {
@@ -117,17 +129,58 @@ export default function PrivacySettingsScreen() {
     }
   }, [accessToken]);
 
+  const refreshCallLearning = useCallback(async () => {
+    if (!accessToken) {
+      setCallLearning("none");
+      setCallLearningLoading(false);
+      return;
+    }
+    setCallLearningLoading(true);
+    try {
+      const state = await getCallLearningConsent(accessToken);
+      setCallLearning(state);
+    } catch (err) {
+      console.warn("[Privacy] getCallLearningConsent failed:", err);
+    } finally {
+      setCallLearningLoading(false);
+    }
+  }, [accessToken]);
+
   useEffect(() => {
     refresh();
     refreshPersons();
-  }, [refresh, refreshPersons]);
+    refreshCallLearning();
+  }, [refresh, refreshPersons, refreshCallLearning]);
 
   useFocusEffect(
     React.useCallback(() => {
       refresh();
       refreshPersons();
-    }, [refresh, refreshPersons]),
+      refreshCallLearning();
+    }, [refresh, refreshPersons, refreshCallLearning]),
   );
+
+  const handleToggleCallLearning = async (value: boolean) => {
+    if (!accessToken || callLearningSaving) return;
+    const prev = callLearning;
+    setCallLearningSaving(true);
+    setCallLearning(value ? "granted" : "none"); 
+    try {
+      const r = await saveCallLearningConsent(
+        accessToken,
+        value ? "granted" : "revoked",
+        { channel: "settings" },
+      );
+      setCallLearning(r.state === "granted" ? "granted" : "none");
+    } catch (err) {
+      setCallLearning(prev); 
+      const msg =
+        err instanceof Error ? err.message : t("settings.privacy.callLearning.saveError");
+      showAlert(t("common.error"), msg);
+    } finally {
+      setCallLearningSaving(false);
+    }
+  };
 
   const handleRevoke = (person: Person) => {
     showAlert(
@@ -311,6 +364,23 @@ export default function PrivacySettingsScreen() {
         onRevoke={handleRevoke}
         t={t}
       />
+
+      {}
+      <CallLearningConsentSection
+        state={callLearning}
+        loading={callLearningLoading}
+        saving={callLearningSaving}
+        onToggle={handleToggleCallLearning}
+        onViewTerms={() => setCallLearningTermsOpen(true)}
+        t={t}
+      />
+
+      <TermsModal
+        visible={callLearningTermsOpen}
+        type={5}
+        onClose={() => setCallLearningTermsOpen(false)}
+        onAgree={() => setCallLearningTermsOpen(false)}
+      />
     </SafeScrollView>
   );
 }
@@ -391,6 +461,58 @@ function FaceConsentSection({ persons, loading, revokingId, onRevoke, t }: FaceC
           })}
         </View>
       )}
+    </View>
+  );
+}
+
+interface CallLearningConsentSectionProps {
+  state: CallLearningState;
+  loading: boolean;
+  saving: boolean;
+  onToggle: (value: boolean) => void;
+  onViewTerms: () => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+function CallLearningConsentSection({
+  state,
+  loading,
+  saving,
+  onToggle,
+  onViewTerms,
+  t,
+}: CallLearningConsentSectionProps) {
+  return (
+    <View
+      testID="call-learning-consent-section"
+      style={[s.content, { paddingTop: 0, paddingBottom: 32 }]}
+    >
+      <Text style={s.sectionTitle}>{t("settings.privacy.callLearning.sectionTitle")}</Text>
+      <View style={s.card}>
+        <View style={s.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.rowName}>{t("settings.privacy.callLearning.toggleLabel")}</Text>
+            <Text style={s.rowSub}>{t("settings.privacy.callLearning.description")}</Text>
+            <TouchableOpacity onPress={onViewTerms} hitSlop={8}>
+              <Text style={[s.rowSub, s.callLearningTermsLink]}>
+                {t("settings.privacy.callLearning.viewTerms")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {loading ? (
+            <ActivityIndicator color={COLORS.zinc500} />
+          ) : (
+            <Switch
+              testID="call-learning-consent-toggle"
+              value={state === "granted"}
+              onValueChange={onToggle}
+              disabled={saving}
+              trackColor={{ false: COLORS.zinc200, true: COLORS.violet600 }}
+              thumbColor={COLORS.white}
+            />
+          )}
+        </View>
+      </View>
     </View>
   );
 }
@@ -483,4 +605,9 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   revokeBtnText: { fontSize: 12, fontWeight: "700", color: COLORS.white },
+  callLearningTermsLink: {
+    color: COLORS.zinc700,
+    textDecorationLine: "underline",
+    marginTop: 6,
+  },
 });

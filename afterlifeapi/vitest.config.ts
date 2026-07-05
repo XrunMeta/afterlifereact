@@ -41,6 +41,8 @@ export default defineWorkersConfig(async () => {
 
               MASTER_ROOT: "dGVzdC1tYXN0ZXItcm9vdC0zMmJ5dGVzLXBhZGRpbmc=",
               ALE_KEK: "dGVzdC1hbGUta2VrLTMyYnl0ZXMtcGFkZGluZyEhISE=",
+
+              FACE_CALIBRATE_ENABLED: "1",
             },
           },
         },
