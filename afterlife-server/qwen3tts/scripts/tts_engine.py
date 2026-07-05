@@ -11,6 +11,9 @@ from clone_ref import extract_ref_clip
 
 log = logging.getLogger("qwen3tts.engine")
 
+# 화자 검증 가드 재시도 seed 베이스(재시도마다 base+i 로 sample 다양화).
+_GUARD_SEED_BASE = 7777
+
 
 @dataclasses.dataclass
 class _PromptEntry:
@@ -30,6 +33,7 @@ class _PromptEntry:
     wav_sha: str
     ref_sha: str   # sha256(ref_text) or sha256("") when ref_text is None
     prompt: object
+    ref_emb: object = None   # ref clip speaker embedding (화자 검증 가드용, None이면 가드 skip)
 
 
 class Qwen3Engine:
@@ -80,6 +84,45 @@ class Qwen3Engine:
         """ref_text(또는 빈 문자열)의 SHA-256 hex digest."""
         return hashlib.sha256((ref_text or "").encode()).hexdigest()
 
+    def _extract_spk_emb(self, wav, sr):
+        """wav(float ndarray) → speaker embedding(1D ndarray). 화자 검증 가드용.
+
+        모델 내부 speaker encoder(self._model.model.extract_speaker_embedding)를 사용.
+        내부 구조 접근이라 실패는 graceful — None 반환 시 호출부가 가드를 skip한다."""
+        try:
+            import numpy as np
+            import librosa
+            m = getattr(self._model, "model", None)
+            if m is None:
+                return None
+            tsr = m.speaker_encoder_sample_rate
+            w = np.asarray(wav, dtype="float32")
+            if sr != tsr:
+                w = librosa.resample(w, orig_sr=sr, target_sr=tsr)
+            e = m.extract_speaker_embedding(audio=w, sr=tsr)
+            try:
+                e = e.detach().float().cpu().numpy()
+            except Exception:  # noqa: BLE001 — tensor 아니면 그대로
+                e = np.asarray(e, dtype="float32")
+            return e.ravel()
+        except Exception as exc:  # noqa: BLE001 — 가드 실패가 합성을 막지 않도록
+            log.warning("speaker embedding 추출 실패 → 화자 가드 skip: %r", exc)
+            return None
+
+    @staticmethod
+    def _cos(a, b) -> float:
+        import numpy as np
+        a = np.asarray(a, dtype="float32").ravel()
+        b = np.asarray(b, dtype="float32").ravel()
+        denom = float(np.linalg.norm(a) * np.linalg.norm(b))
+        return float(a @ b / (denom + 1e-9))
+
+    def _encode(self, wav, sr) -> bytes:
+        """float ndarray wav → WAV(PCM16) bytes."""
+        buf = io.BytesIO()
+        sf.write(buf, wav, sr, format="WAV", subtype="PCM_16")
+        return buf.getvalue()
+
     def get_prompt(self, clone_id: str, voice_wav: str, ref_text: str | None = None):
         """2단계 캐시 조회.
 
@@ -119,22 +162,62 @@ class Qwen3Engine:
             ref_text=ref_text,
             x_vector_only_mode=(ref_text is None),
         )
+        ref_emb = self._extract_spk_emb(clip, sr)  # 화자 검증 가드 기준(graceful None)
         self._cache[clone_id] = _PromptEntry(
             wav_size=st.st_size,
             wav_mtime_ns=st.st_mtime_ns,
             wav_sha=wav_sha,
             ref_sha=ref_sha,
             prompt=prompt,
+            ref_emb=ref_emb,
         )
         return prompt
 
     def synth(self, text: str, clone_id: str, voice_wav: str,
               ref_text: str | None = None, speed: float = 1.0) -> bytes:
         prompt = self.get_prompt(clone_id, voice_wav, ref_text)
-        wavs, sr = self._model.generate_voice_clone(
-            text=text, language=config.LANGUAGE, voice_clone_prompt=prompt,
+        entry = self._cache.get(clone_id)
+        ref_emb = getattr(entry, "ref_emb", None) if entry is not None else None
+
+        th = float(getattr(config, "SPK_GUARD_COS", 0.0))
+        retries = int(getattr(config, "SPK_GUARD_RETRIES", 0))
+        guard = ref_emb is not None and th > 0.0 and retries > 0
+
+        best = None  # (cos, wav, sr)
+        attempts = (1 + retries) if guard else 1
+        for i in range(attempts):
+            if guard and i > 0:
+                # 재시도 sample 다양화 — 직전 붕괴 sample 재현 방지.
+                # 시간 기반 seed: 고정 seed(base+i)면 붕괴-prone 텍스트가 매 통화 동일
+                # seed로 동일 붕괴를 재현해 실효 재시도가 줄어든다(el B-1). 시간으로 매번 다르게.
+                try:
+                    import torch, time
+                    torch.manual_seed((time.time_ns() + _GUARD_SEED_BASE + i) & 0x7FFFFFFF)
+                except Exception:  # noqa: BLE001 — torch 부재 시 가드 재시도만 비결정
+                    pass
+            wavs, sr = self._model.generate_voice_clone(
+                text=text, language=config.LANGUAGE, voice_clone_prompt=prompt,
+            )
+            wav = wavs[0]
+            if not guard:
+                return self._encode(wav, sr)
+            emb = self._extract_spk_emb(wav, sr)
+            if emb is None:
+                return self._encode(wav, sr)  # 측정 불가 → 가드 skip
+            c = self._cos(ref_emb, emb)
+            if best is None or c > best[0]:
+                best = (c, wav, sr)
+            if c >= th:
+                if i > 0:
+                    log.info("spk guard clone=%s: 재합성 %d회 만에 통과 cos=%.3f", clone_id, i, c)
+                return self._encode(wav, sr)
+        # 모든 시도 임계 미달 → 그나마 최선(무한루프 방지).
+        # best는 emb 정상이던 시도가 1회라도 있으면 설정됨(emb None 시도는 위에서 조기 return).
+        # 방어: 만약의 경우 best 미설정이면 마지막 wav 반환.
+        if best is None:
+            return self._encode(wav, sr)
+        log.warning(
+            "spk guard clone=%s: %d회 모두 임계(%.2f) 미달 → best cos=%.3f 사용",
+            clone_id, attempts, th, best[0],
         )
-        wav = wavs[0]
-        buf = io.BytesIO()
-        sf.write(buf, wav, sr, format="WAV", subtype="PCM_16")
-        return buf.getvalue()
+        return self._encode(best[1], best[2])
