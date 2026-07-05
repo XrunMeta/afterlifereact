@@ -41,6 +41,8 @@ export default v_eede73(async () => {
 
               MASTER_ROOT: "dGVzdC1tYXN0ZXItcm9vdC0zMmJ5dGVzLXBhZGRpbmc=",
               ALE_KEK: "oth-envelope",
+
+              FACE_CALIBRATE_ENABLED: "1",
             },
           },
         },

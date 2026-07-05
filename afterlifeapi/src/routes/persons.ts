@@ -129,6 +129,50 @@ v_fded81.post("/match", v_6690d9, async (v_3f4e2e) => {
   return v_3f4e2e.json({ matches: v_a49907, best: v_643757, threshold: v_d361d7 });
 });
 
+export function v_70df81(v_c9c489): boolean {
+  return v_c9c489.FACE_CALIBRATE_ENABLED === "1";
+}
+
+v_fded81.post("/calibrate", v_6690d9, async (v_3f4e2e) => {
+  if (!v_70df81(v_3f4e2e.env)) return v_3f4e2e.notFound();
+  const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_4d33b2 = await v_3f4e2e.req
+    .json<{ vector?: unknown; groundTruthPersonId?: string | null }>()
+    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null });
+  const v_81e2ef = v_4d33b2.vector;
+  if (!Array.isArray(v_81e2ef) || v_81e2ef.length !== 512 || !v_81e2ef.every((v_f4e98d) => typeof v_f4e98d === "number" && Number.isFinite(v_f4e98d))) {
+    return v_3f4e2e.json({ error: "invalid vector" }, 400); 
+  }
+  const v_01dcf5 = await v_3f4e2e.env.DB.prepare("SELECT value FROM app_config WHERE key='face.match_threshold'").first<{
+    value: string;
+  }>();
+  const v_d361d7 = v_01dcf5 && Number.isFinite(Number(v_01dcf5.value)) ? Number(v_01dcf5.value) : v_0eeb45;
+  const { matches: v_a49907 } = await v_a8d2cc(v_3f4e2e.env).query(v_81e2ef as number[], {
+    topK: 100,
+    namespace: String(v_43e90c),
+    returnMetadata: true,
+  });
+  const v_392321 = v_a49907.map((v_35f85c) => ({ personId: String(v_35f85c.metadata?.personId ?? v_35f85c.id), score: v_35f85c.score }));
+  const v_643757 = v_392321.reduce<{ personId: string; score: number } | null>(
+    (v_779914, v_148ff6) => (v_779914 && v_779914.score >= v_148ff6.score ? v_779914 : v_148ff6),
+    null
+  );
+  const v_333258 = v_643757?.score ?? 0;
+  const v_38da05 = v_643757 && v_643757.score >= v_d361d7 ? v_643757.personId : null;
+  const v_f5477a = typeof v_4d33b2.groundTruthPersonId === "string" ? v_4d33b2.groundTruthPersonId : null;
+  const v_5c2f9f = Date.now();
+  const v_43af15 = await v_3f4e2e.env.DB.prepare(
+    `INSERT INTO faceoth-secretes
+     (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  )
+
+    .bind(String(v_43e90c), v_f5477a, v_38da05, v_333258, v_d361d7, JSON.stringify(v_392321), v_5c2f9f)
+    .run();
+  const v_389afb = Number(v_43af15.meta.last_row_id);
+  return v_3f4e2e.json({ id: v_389afb, matchedId: v_38da05, bestScore: v_333258, threshold: v_d361d7, scoreCount: v_392321.length });
+});
+
 v_fded81.post("/:id/consent", v_6690d9, async (v_3f4e2e) => {
   const v_ca1ec5 = v_5c8583(v_3f4e2e);
   const v_43e90c = v_3f4e2e.get("userId")!;
