@@ -77,6 +77,13 @@ def test_idle_source_mode_default_auto():
     from knobs import RunKnobs
     assert RunKnobs().transport.idle_source_mode == "auto"
 
+def test_filler_lookahead_default_matches_consumer():
+    """미지정 시 tuner 기본값은 실제 소비자(filler_player.py FILLER_LOOKAHEAD_SEC=1.0)와
+    일치해야 한다 — 불일치 시 promote가 현재 라이브 동작(1.0s)을 0.0으로 덮어써 회귀."""
+    from knobs import RunKnobs, FillerKnobs
+    assert FillerKnobs().lookahead_sec == 1.0
+    assert RunKnobs.from_env().filler.lookahead_sec == 1.0
+
 def test_filler_order_default_pre_speak():
     from knobs import RunKnobs
     assert RunKnobs.from_env().filler.order == "pre_speak"
