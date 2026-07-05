@@ -52,4 +52,20 @@ describe("migration 0085", () => {
     ).first();
     expect(tbl).toBeTruthy();
   });
+
+  it("user 하드삭제 후에도 감사 이력 존속(FK cascade 없음)", async () => {
+    await E.DB.prepare(
+      `INSERT OR IGNORE INTO users (id, email, password_hash, name, created_at)
+       VALUES (5150, 'tomb@test.test', 'x', 'U', CURRENT_TIMESTAMP)`,
+    ).run();
+    await E.DB.prepare(
+      `INSERT INTO user_consent_log (user_id, consent_type, state, changed_at)
+       VALUES (5150, 'call_learning', 'granted', unixepoch())`,
+    ).run();
+    await E.DB.prepare("DELETE FROM users WHERE id = 5150").run();
+    const log = await E.DB.prepare(
+      "SELECT COUNT(*) AS n FROM user_consent_log WHERE user_id = 5150",
+    ).first<{ n: number }>();
+    expect(log!.n).toBe(1); 
+  });
 });
