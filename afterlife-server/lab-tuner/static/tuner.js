@@ -5,6 +5,9 @@ let v_2ca7e0 = null;
 
 const v_f55fb5 = new Set(["system_override", "min_len", "force_flush"]);
 
+const v_81f9b1 = new Set(
+  ["temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"]);
+
 async function v_182fdb() {
   const v_e0c7e8 = document.getElementById('login-email').value;
   const v_adc076 = document.getElementById('login-pw').value;
@@ -112,7 +115,9 @@ async function v_858a0a() {
       const v_389afb = `k_${v_b4fa6c}_${v_b24339}`;
       const v_8421c2 = (v_b4fa6c === 'dialogue' && v_f55fb5.has(v_b24339))
         ? `<span class="note">다음 접속부터 반영</span>` : '';
-      v_9d3c52.innerHTML += `<div class="knob"><label>${v_b24339}${v_8421c2}</label>`+
+      const v_68adf4 = (v_b4fa6c === 'tts' && v_81f9b1.has(v_b24339))
+        ? `<span class="note">qwen 전용(openvoice 무시)</span>` : '';
+      v_9d3c52.innerHTML += `<div class="knob"><label>${v_b24339}${v_8421c2}${v_68adf4}</label>`+
         `<input id="${v_389afb}" value="${v_a057b5==null?'':v_a057b5}" data-s="${v_b4fa6c}" data-k="${v_b24339}"></div>`;
     }
     v_a38d42.appendChild(v_9d3c52);
