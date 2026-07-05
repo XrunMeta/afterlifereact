@@ -28,11 +28,16 @@ def _apply_atempo(wav_bytes: bytes, speed: float) -> bytes:
         factors.append(0.5); s /= 0.5
     factors.append(s)
     chain = ",".join(f"atempo={f:.4f}" for f in factors)
-    proc = subprocess.run(
-        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", "pipe:0",
-         "-filter:a", chain, "-f", "wav", "pipe:1"],
-        input=wav_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
-    )
+    try:
+        proc = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", "pipe:0",
+             "-filter:a", chain, "-f", "wav", "pipe:1"],
+            input=wav_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError) as exc:
+        # ffmpeg 부재/실패 시 speed 미조정이라도 무음 크래시보다 낫다 → 원본 그대로 반환(graceful degrade).
+        log.warning("atempo 적용 실패(speed=%.2f) → 원본 wav 그대로 반환: %r", speed, exc)
+        return wav_bytes
     return proc.stdout
 
 
