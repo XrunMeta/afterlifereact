@@ -60,6 +60,16 @@ def test_prod_status_section_present():
     assert "/production-status" in js
 
 
+def test_prod_status_escapes_untrusted_env_values():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # r.running은 /proc/<mainpid>/environ 원문(미검증)이라 innerHTML 삽입 전 반드시 escape(mizu, T-111 XSS 방어).
+    assert "escapeHtml" in js
+    loadprod = js[js.index("async function loadProdStatus"):]
+    for needle in ["escapeHtml(r.env)", "escapeHtml(r.conf)", "escapeHtml(r.running)", "escapeHtml(r.state)"]:
+        assert needle in loadprod, needle
+
+
 def test_tuner_js_renders_typed_controls():
     with open(os.path.join(_STATIC, "tuner.js")) as f:
         js = f.read()

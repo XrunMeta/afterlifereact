@@ -1,6 +1,12 @@
 
 let v_12cd99, v_32dc97;
 
+function v_8fd199(v_fd5f43) {
+  return String(v_fd5f43 ?? '').replace(/[&<>"']/g, (v_3f4e2e) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[v_3f4e2e]));
+}
+
 async function v_1857f4() {
   v_12cd99 = new RTCPeerConnection();
   v_12cd99.addTransceiver('video', {direction: 'recvonly'});
@@ -133,12 +139,12 @@ async function v_187e1c() {
   const v_a38d42 = document.getElementById('prod-status');
   try {
     const v_d5dda0 = await (await fetch('/production-status')).json();
-    let v_d91d98 = `<div>MainPID: ${v_d5dda0.mainpid ?? '-'} · ${v_d5dda0.generated_at}</div>`;
+    let v_d91d98 = `<div>MainPID: ${v_8fd199(v_d5dda0.mainpid ?? '-')} · ${v_8fd199(v_d5dda0.generated_at)}</div>`;
     v_d91d98 += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
     for (const v_cb35cb of v_d5dda0.rows) {
       const v_3c2a3a = v_cb35cb.state === 'drift' ? 'crimson' : (v_cb35cb.state === 'unknown' ? 'gray' : 'green');
-      v_d91d98 += `<tr><td>${v_cb35cb.env}</td><td>${v_cb35cb.conf}</td><td>${v_cb35cb.running}</td>`+
-        `<td style="color:${v_3c2a3a}">${v_cb35cb.state}</td></tr>`;
+      v_d91d98 += `<tr><td>${v_8fd199(v_cb35cb.env)}</td><td>${v_8fd199(v_cb35cb.conf)}</td><td>${v_8fd199(v_cb35cb.running)}</td>`+
+        `<td style="color:${v_3c2a3a}">${v_8fd199(v_cb35cb.state)}</td></tr>`;
     }
     v_d91d98 += '</table>';
     v_a38d42.innerHTML = v_d91d98;
