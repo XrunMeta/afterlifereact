@@ -287,6 +287,102 @@ describe("GET /oth-path (폴링 조회 — Task 2)", () => {
     expect(res.status).toBe(401);
   });
 
+  it("since가 최대 id 이상이면 빈 배열 + nextSince === since(커서 되감김 없음)", async () => {
+    const u = await seedUser("calibrate-samples-since-beyond@test.local");
+    const tok = await issueAccessToken(u);
+    await db()
+      .prepare(
+        `INSERT INTO face_calibrate_samples
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, NULL, 0.1, 0.83, '[]', 200)`
+      )
+      .bind(String(u))
+      .run();
+
+    const beyond = 999999;
+    const res = await get(tok, `?since=${beyond}`);
+    expect(res.status).toBe(200);
+    const j = await res.json<{ samples: unknown[]; nextSince: number }>();
+    expect(j.samples.length).toBe(0);
+    expect(j.nextSince).toBe(beyond);
+  });
+
+  it("since=-1(음수)·since=abc(NaN) → 0으로 폴백해 첫 페이지 정상 반환", async () => {
+    const u = await seedUser("calibrate-samples-since-fallback@test.local");
+    const tok = await issueAccessToken(u);
+    await db()
+      .prepare(
+        `INSERT INTO face_calibrate_samples
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, NULL, 0.1, 0.83, '[]', 300)`
+      )
+      .bind(String(u))
+      .run();
+
+    const resBaseline = await get(tok);
+    expect(resBaseline.status).toBe(200);
+    const jBaseline = await resBaseline.json<{ samples: unknown[] }>();
+
+    const resNeg = await get(tok, "?since=-1");
+    expect(resNeg.status).toBe(200);
+    const jNeg = await resNeg.json<{ samples: unknown[] }>();
+    expect(jNeg.samples.length).toBe(jBaseline.samples.length);
+
+    const resNaN = await get(tok, "?since=abc");
+    expect(resNaN.status).toBe(200);
+    const jNaN = await resNaN.json<{ samples: unknown[] }>();
+    expect(jNaN.samples.length).toBe(jBaseline.samples.length);
+  });
+
+  it("limit=999 → 에러 없이 동작(내부 200 clamp), 시드 건수 이하로 반환", async () => {
+    const u = await seedUser("calibrate-samples-limit-over@test.local");
+    const tok = await issueAccessToken(u);
+    await db()
+      .prepare(
+        `INSERT INTO face_calibrate_samples
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, NULL, 0.1, 0.83, '[]', 400),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 401),
+                (?, NULL, NULL, 0.1, 0.83, '[]', 402)`
+      )
+      .bind(String(u), String(u), String(u))
+      .run();
+
+    const res = await get(tok, "?limit=999");
+    expect(res.status).toBe(200);
+    const j = await res.json<{ samples: unknown[] }>();
+
+    expect(j.samples.length).toBe(3);
+  });
+
+  it("scores_json이 손상된 행이 있어도 500이 아니라 그 행만 scores:[]로 폴백하고 커서가 전진한다", async () => {
+    const u = await seedUser("calibrate-samples-corrupt-json@test.local");
+    const tok = await issueAccessToken(u);
+    await db()
+      .prepare(
+        `INSERT INTO face_calibrate_samples
+           (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+         VALUES (?, NULL, 'p1', 0.5, 0.83, 'not-valid-json{{{', 500),
+                (?, NULL, 'p2', 0.6, 0.83, '[{"personId":"p2","score":0.6}]', 501)`
+      )
+      .bind(String(u), String(u))
+      .run();
+
+    const res = await get(tok);
+    expect(res.status).toBe(200);
+    const j = await res.json<{
+      samples: { id: number; matchedId: string | null; scores: unknown[] }[];
+      nextSince: number;
+    }>();
+    expect(j.samples.length).toBe(2);
+    const corrupted = j.samples.find((s) => s.matchedId === "p1")!;
+    const ok = j.samples.find((s) => s.matchedId === "p2")!;
+    expect(corrupted.scores).toEqual([]);
+    expect(ok.scores).toEqual([{ personId: "p2", score: 0.6 }]);
+
+    expect(j.nextSince).toBe(ok.id);
+  });
+
 });
 
 describe("wrangler.toml FACE_CALIBRATE_ENABLED 정적 안전망(off→404 회귀 방지)", () => {
