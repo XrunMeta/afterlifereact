@@ -72,7 +72,13 @@ class RunKnobs:
             dialogue=DialogueKnobs(
                 model=os.environ.get("PRETHIRD_OLLAMA_MODEL") or None,
             ),
-            tts=TtsKnobs(speed=_env_f("PRETHIRD_TTS_SPEED", 1.0)),
+            # 엔진 기본은 라이브 PRETHIRD_TTS_URL에서 유도(:8201→qwen, 그 외→openvoice).
+            # 테스트베드가 라이브와 같은 TTS 엔진으로 시작하도록(웹에서 전환 가능).
+            tts=TtsKnobs(
+                engine=("qwen" if ":8201" in os.environ.get("PRETHIRD_TTS_URL", "")
+                        else "openvoice"),
+                speed=_env_f("PRETHIRD_TTS_SPEED", 1.0),
+            ),
             fifth=FifthKnobs(
                 cfg_scale=_env_f("FIFTH_CFG_SCALE", 2.0),
                 driving_multiplier=_env_f("FIFTH_DRIVING_MULTIPLIER", 1.0),

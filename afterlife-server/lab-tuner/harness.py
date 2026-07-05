@@ -51,9 +51,6 @@ class KnobsFifthInproc(FifthInproc):
         super().__init__(video_path, clone_id=clone_id, render_url=render_url)
         self._registry = registry
 
-    def _build_body(self, wav_path: str, video_path: str) -> dict:
-        body = super()._build_body(wav_path, video_path)
-        fk = self._registry.get().fifth
-        for name in FifthKnobs.PER_REQUEST:   # blink·jpeg_quality·idle_motion_scale·rms·head_slew
-            body[name] = getattr(fk, name)
-        return body
+    def _build_body(self, wav_path: str, video_path: str, *args, **kwargs) -> dict:
+        # *args
+
