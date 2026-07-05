@@ -156,3 +156,23 @@ def test_js_status_meter():
     assert "renderMeter" in js
     # SSE 구독 계약은 유지.
     assert "EventSource" in js and "/metrics" in js
+
+
+# ---------------------------------------------------------------------------
+# T-114 Task 6: promote 배선 (죽은 버튼 살리기)
+# ---------------------------------------------------------------------------
+
+def test_js_promote_wired():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/promote/preview" in js
+    assert "/promote/apply" in js
+
+
+def test_js_no_browser_modals():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 브라우저 모달은 확장 세션을 블록 → 금지(인라인 UI 사용).
+    assert "alert(" not in js
+    assert "confirm(" not in js
+    assert "prompt(" not in js

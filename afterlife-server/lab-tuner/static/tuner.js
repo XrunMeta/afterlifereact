@@ -300,7 +300,51 @@ async function loadProdStatus() {
   } catch (e) { box.innerHTML = '<i>상태 조회 실패</i>'; }
 }
 
+async function promotePreview() {
+  const cbox = document.getElementById('promote-confirm');
+  try {
+    const d = await (await fetch('/promote/preview', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}'})).json();
+    const entries = d.entries || [];
+    if (!entries.length) { cbox.style.display='block';
+      cbox.innerHTML = '<i>변경(dirty)된 knob 없음 — promote 대상 없음</i>'; return; }
+    let html = '<div style="border:1px solid var(--gold);border-radius:4px;padding:8px;margin-top:8px">';
+    html += '<b>라이브 반영될 변경:</b><ul>';
+
+    for (const e of entries) {
+      html += `<li>${escapeHtml(e.env ?? '')} = ${escapeHtml(e.new ?? e.value ?? '')}`+
+        `${e.container ? ' <span class="chip chip-drift">컨테이너(별도 반영 필요)</span>' : ''}</li>`;
+    }
+    html += '</ul><button id="promote-go" class="primary">확인·적용</button> '+
+            '<button id="promote-cancel">취소</button></div>';
+    cbox.innerHTML = html; cbox.style.display = 'block';
+    document.getElementById('promote-token').style.display = 'block';
+    document.getElementById('promote-go').onclick = promoteApply;
+    document.getElementById('promote-cancel').onclick = () => {
+      cbox.style.display='none'; document.getElementById('promote-token').style.display='none'; };
+  } catch (e) { cbox.style.display='block'; cbox.innerHTML = '<i>promote preview 실패</i>'; }
+}
+
+async function promoteApply() {
+  const cbox = document.getElementById('promote-confirm');
+  const token = document.getElementById('promote-token').value;
+
+  const headers = {'Content-Type':'application/json'};
+  if (token) headers['X-Lab-Tuner-Token'] = token;   
+  try {
+
+    const r = await fetch('/promote/apply', {method:'POST', headers, body: JSON.stringify({confirm: true})});
+    if (r.status === 401 || r.status === 403) {
+      cbox.innerHTML = '<i>인증 실패 — LAB_TUNER_TOKEN 확인</i>'; return; }
+    const d = await r.json();
+    cbox.innerHTML = `<div>적용됨: ${escapeHtml(JSON.stringify(d).slice(0,200))}</div>`;
+    document.getElementById('promote-token').style.display = 'none';
+    await loadProdStatus();
+  } catch (e) { cbox.innerHTML = '<i>promote apply 실패</i>'; }
+}
+
 document.getElementById('apply-knobs').onclick = applyKnobs;
+document.getElementById('promote').onclick = promotePreview;
 document.getElementById('say-btn').onclick = sendSay;
 document.getElementById('say-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.isComposing) {   
