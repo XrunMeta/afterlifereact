@@ -540,7 +540,9 @@ def _parse_render_body(raw: bytes) -> tuple[str, str, Optional[object], dict]:
         "idle_rms_low": req.get("idle_rms_low"),
         "idle_rms_high": req.get("idle_rms_high"),
         "head_slew_frames": req.get("head_slew_frames"),
-        "render_mode": req.get("render_mode"),
+        # 빈 문자열("")은 None으로 정규화 → is_batch(None)이 env fallback을 타게 함
+        # (""는 non-batch override로 오해되어 env 무력화되는 것을 방지, 회귀 0).
+        "render_mode": req.get("render_mode") or None,
     }
 
     return str(wav_path_raw), str(video_path), phase_token, render_opts
