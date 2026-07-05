@@ -22,6 +22,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 import asyncio
 import json
+import logging
 import pytest
 from signaling import _make_dc_handler  # noqa: E402
 import name_extract  # noqa: E402
@@ -201,6 +202,57 @@ def test_full_flow_unknown_to_enrolled(monkeypatch):
         # learn_writeback 은 person_id=5 로 라우팅된다(§6.4: 스왑은 쿨다운과 무관하게 즉시 반영).
         assert len(learn_calls) == 3
         assert learn_calls[2][1].get("person_id") == 5
+    finally:
+        asyncio.set_event_loop(None)
+        loop.close()
+
+def test_face_diag_log_emitted(monkeypatch, caplog):
+    """[T-067 Task 6] FACE_DIAG_LOG=1 이면 face 정상경로가 personId만으로 log.info를
+    방출한다 — displayName(실명)은 절대 로그에 포함되지 않는다."""
+    monkeypatch.setenv("PRETHIRD_FACE_REACT_ENABLED", "1")
+    monkeypatch.setenv("FACE_DIAG_LOG", "1")
+
+    l2p_calls = []
+    async def _fake_fetch_l2p(clone_id, person_id):
+        l2p_calls.append((clone_id, person_id))
+        return {"relation": "손녀"}
+    monkeypatch.setattr(l2p_client, "fetch_l2p", _fake_fetch_l2p)
+
+    sess, ch = _Sess(), _Channel()
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        handler = _make_dc_handler(sess, ch)
+
+        with caplog.at_level(logging.INFO, logger="prethird.signaling"):
+            # ① unknown_face → recv/react face_diag 로그
+            handler(json.dumps({"type": "face_event", "event": "unknown_face", "seq": 1}))
+            _drain(loop)
+
+            # ② speaker_confirmed(personId=3, displayName="민지")
+            #    → recv/speaker(swap_scheduled)/react/l2p_swapped face_diag 로그
+            handler(json.dumps({
+                "type": "face_event", "event": "speaker_confirmed",
+                "personId": 3, "displayName": "민지", "seq": 2,
+            }))
+            _drain(loop)
+
+            # ③ 같은 personId 재이벤트 → 쿨다운 억제 face_diag 로그
+            handler(json.dumps({
+                "type": "face_event", "event": "speaker_confirmed",
+                "personId": 3, "displayName": "민지", "seq": 3,
+            }))
+            _drain(loop)
+
+        msgs = [r.getMessage() for r in caplog.records]
+        assert any("face_diag" in m and "event=speaker_confirmed" in m for m in msgs)
+        assert any("face_diag" in m and "swap_scheduled=1" in m for m in msgs)
+        assert any("face_diag" in m and "kind=known" in m for m in msgs)
+        assert any("face_diag" in m and "l2p_swapped" in m for m in msgs)
+        assert any("face_diag" in m and "suppressed=1" in m for m in msgs)
+        # 실명 미포함 감시 — personId만, displayName 문자열은 로그에 절대 없어야 한다.
+        assert not any("민지" in m for m in msgs)
     finally:
         asyncio.set_event_loop(None)
         loop.close()

@@ -129,6 +129,97 @@ persons.post("/match", requireAuth, async (c) => {
   return c.json({ matches, best, threshold });
 });
 
+export function isFaceCalibrateEnabled(env: { FACE_CALIBRATE_ENABLED?: string }): boolean {
+  return env.FACE_CALIBRATE_ENABLED === "1";
+}
+
+persons.post("/calibrate", requireAuth, async (c) => {
+  if (!isFaceCalibrateEnabled(c.env)) return c.notFound();
+  const userId = c.get("userId")!;
+  const body = await c.req
+    .json<{ vector?: unknown; groundTruthPersonId?: string | null }>()
+    .catch(() => ({}) as { vector?: unknown; groundTruthPersonId?: string | null });
+  const v = body.vector;
+  if (!Array.isArray(v) || v.length !== 512 || !v.every((n) => typeof n === "number" && Number.isFinite(n))) {
+    return c.json({ error: "invalid vector" }, 400); 
+  }
+  const cfg = await c.env.DB.prepare("SELECT value FROM app_config WHERE key='face.match_threshold'").first<{
+    value: string;
+  }>();
+  const threshold = cfg && Number.isFinite(Number(cfg.value)) ? Number(cfg.value) : DEFAULT_FACE_THRESHOLD;
+  const { matches } = await getFaceIndex(c.env).query(v as number[], {
+    topK: 100,
+    namespace: String(userId),
+    returnMetadata: true,
+  });
+
+  const scores = matches
+    .filter((m) => m.metadata?.personId != null)
+    .map((m) => ({ personId: String(m.metadata!.personId), score: m.score }));
+  const best = scores.reduce<{ personId: string; score: number } | null>(
+    (a, b) => (a && a.score >= b.score ? a : b),
+    null
+  );
+  const bestScore = best?.score ?? 0;
+  const matchedId = best && best.score >= threshold ? best.personId : null;
+  const gt = typeof body.groundTruthPersonId === "string" ? body.groundTruthPersonId : null;
+  const now = Date.now();
+  const ins = await c.env.DB.prepare(
+    `INSERT INTO face_calibrate_samples
+     (user_id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  )
+
+    .bind(String(userId), gt, matchedId, bestScore, threshold, JSON.stringify(scores), now)
+    .run();
+  const id = Number(ins.meta.last_row_id);
+  return c.json({ id, matchedId, bestScore, threshold, scoreCount: scores.length });
+});
+
+persons.get("/calibrate/samples", requireAuth, async (c) => {
+  if (!isFaceCalibrateEnabled(c.env)) return c.notFound();
+  const userId = c.get("userId")!;
+
+  const since = Math.max(Number(c.req.query("since") ?? "0") || 0, 0);
+  const limit = Math.min(Math.max(Number(c.req.query("limit") ?? "100") || 100, 1), 200);
+  const { results } = await c.env.DB.prepare(
+    `SELECT id, ground_truth_person_id, matched_person_id, best_score, threshold, scores_json, created_at
+     FROM face_calibrate_samples WHERE user_id = ? AND id > ? ORDER BY id ASC LIMIT ?`
+  )
+
+    .bind(String(userId), since, limit)
+    .all<{
+      id: number;
+      ground_truth_person_id: string | null;
+      matched_person_id: string | null;
+      best_score: number;
+      threshold: number;
+      scores_json: string;
+      created_at: number;
+    }>();
+
+  const samples = results.map((r) => {
+    let scores: { personId: string; score: number }[];
+    try {
+      scores = JSON.parse(r.scores_json) as { personId: string; score: number }[];
+    } catch {
+      scores = [];
+    }
+    return {
+      id: r.id,
+      ts: r.created_at,
+      groundTruthPersonId: r.ground_truth_person_id,
+      matchedId: r.matched_person_id,
+      bestScore: r.best_score,
+      threshold: r.threshold,
+      scores,
+    };
+  });
+  const lastSample = samples[samples.length - 1];
+  const nextSince = lastSample ? lastSample.id : since;
+  return c.json({ samples, nextSince });
+});
+
 persons.post("/:id/consent", requireAuth, async (c) => {
   const personId = parsePersonId(c);
   const userId = c.get("userId")!;

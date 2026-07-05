@@ -122,3 +122,42 @@ export async function deletePerson(
     { method: 'DELETE' },
   );
 }
+
+export interface CalibrationSample {
+  id: number;
+  ts: number;
+  groundTruthPersonId: string | null;
+  matchedId: string | null;
+  bestScore: number;
+  scores: { personId: string; score: number }[];
+  threshold: number;
+}
+
+export async function calibrateFace(
+  accessToken: string,
+  vector: number[],
+  groundTruthPersonId: number | null,
+): Promise<{ id: number; matchedId: string | null; bestScore: number; threshold: number; scoreCount: number }> {
+  return authFetch<{ id: number; matchedId: string | null; bestScore: number; threshold: number; scoreCount: number }>(
+    '/oth-path',
+    accessToken,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        vector,
+        groundTruthPersonId: groundTruthPersonId != null ? String(groundTruthPersonId) : null,
+      }),
+    },
+  );
+}
+
+export async function getCalibrationSamples(
+  accessToken: string,
+  since = 0,
+): Promise<{ samples: CalibrationSample[]; nextSince: number }> {
+  return authFetch<{ samples: CalibrationSample[]; nextSince: number }>(
+    `/oth-path?since=${since}`,
+    accessToken,
+    { method: 'GET' },
+  );
+}

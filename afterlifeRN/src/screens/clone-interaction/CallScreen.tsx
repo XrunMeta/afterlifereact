@@ -1,5 +1,5 @@
 import { showAlert } from "../../stores/dialogStore";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -40,7 +40,8 @@ import { useFaceIdentify } from "../../face/useFaceIdentify";
 import { useFaceEnroll, FACE_ENROLL_VECTOR_COUNT } from "../../face/useFaceEnroll";
 import { shouldCleanupOrphanOnSuggest } from "../../face/faceEnrollGuard";
 import type { SpeakerEvent } from "../../face/speakerIdReducer";
-import { createPerson, saveFaceConsent, listPersons, deletePerson } from "../../api/persons";
+import { createPerson, saveFaceConsent, listPersons, deletePerson, type Person } from "../../api/persons";
+import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/faceDiag";
 import TermsModal from "../../components/common/TermsModal";
 import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
@@ -149,6 +150,10 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const [consentLoading, setConsentLoading] = useState(false);
 
+  const [faceDiag, setFaceDiag] = useState<FaceDiag | null>(null);
+  const [gtPersonId, setGtPersonId] = useState<number | null>(null);
+  const [persons, setPersons] = useState<Person[]>([]);
+
   useEffect(() => {
 
     void VisionCamera.requestCameraPermission();
@@ -160,6 +165,7 @@ export default function CallScreen({ route, navigation }: Props) {
         if (cancelled) return;
         const hasConsent = items.some((p) => p.consentState === "granted");
         setConsentGranted(hasConsent);
+        setPersons(items); 
         console.log(`[Call][face] listPersons ← granted=${hasConsent} (total=${items.length})`);
       })
       .catch((err) => {
@@ -218,10 +224,17 @@ export default function CallScreen({ route, navigation }: Props) {
 
   const unknownFaceSnapshotRef = useRef<number[][] | null>(null);
 
+  const calibrateOpt = useMemo(
+    () => (FACE_DIAG_ENABLED ? { accessToken: accessToken ?? "", groundTruthPersonId: gtPersonId } : null),
+    [accessToken, gtPersonId],
+  );
+
   const { onEmbedding: onFaceEmbedding, getBuffer: getFaceEmbeddingBuffer } = useFaceIdentify({
     enabled: consentGranted && liveState === "live",
     accessToken: accessToken ?? "",
     onEvent: handleSpeakerEventTrampoline,
+    onDiag: setFaceDiag,
+    calibrate: calibrateOpt,
   });
 
   const handleSpeakerEvent = useCallback(
@@ -735,10 +748,35 @@ export default function CallScreen({ route, navigation }: Props) {
       )}
 
       {__DEV__ ? (
-        <Text style={{ position: 'absolute', top: 8, right: 8, zIndex: 10,
-          color: '#0f0', fontSize: 10, backgroundColor: 'rgba(0,0,0,0.5)', padding: 2 }}>
-          route:{CALL_ROUTE}
-        </Text>
+        <View style={{ position: "absolute", top: 8, right: 8, zIndex: 10,
+          backgroundColor: "rgba(0,0,0,0.5)", padding: 4 }}>
+          <Text style={{ color: "#0f0", fontSize: 10 }}>route:{CALL_ROUTE}</Text>
+          {FACE_DIAG_ENABLED ? (
+            <>
+              <Text style={{ color: "#0f0", fontSize: 10 }}>
+                {faceDiag ? formatFaceHud(faceDiag) : "face -"}
+              </Text>
+              {}
+              <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                <Text
+                  onPress={() => setGtPersonId(null)}
+                  style={{ color: gtPersonId == null ? "#ff0" : "#0f0", fontSize: 10, marginRight: 6 }}
+                >
+                  unknown
+                </Text>
+                {persons.map((p) => (
+                  <Text
+                    key={p.id}
+                    onPress={() => setGtPersonId(p.id)}
+                    style={{ color: gtPersonId === p.id ? "#ff0" : "#0f0", fontSize: 10, marginRight: 6 }}
+                  >
+                    #{p.id}
+                  </Text>
+                ))}
+              </View>
+            </>
+          ) : null}
+        </View>
       ) : null}
 
       {}
