@@ -148,3 +148,21 @@ def test_knobs_fifth_build_body_all_six_and_base_preserved():
     assert body["idle_rms_low"] == 0.1
     assert body["idle_rms_high"] == 0.6
     assert body["head_slew_frames"] == 9
+
+def test_knobs_fifth_build_body_forwards_extra_kwargs(monkeypatch):
+    # 배포 prethird 버전 스큐: FifthInproc.infer 가 phase_token 을 넘길 때
+    # 오버라이드가 이를 상위로 포워딩해야 한다(TypeError 방지). knob 은 그대로 얹힘.
+    import fifth_inproc
+    from harness import KnobsFifthInproc
+    recorded = {}
+
+    def fake_super(self, wav, vid, **kw):
+        recorded.update(kw)
+        return {"wav_path": wav, "video_path": vid}
+
+    monkeypatch.setattr(fifth_inproc.FifthInproc, "_build_body", fake_super)
+    r = KnobsRegistry()
+    f = KnobsFifthInproc("/v.jpg", registry=r, render_url="http://127.0.0.1:8810")
+    body = f._build_body("/w.wav", "/v.jpg", phase_token="TOK")
+    assert recorded == {"phase_token": "TOK"}
+    assert body["blink"] is True and body["idle_motion_scale"] == 0.15

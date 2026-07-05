@@ -1,3 +1,4 @@
+import json
 import pytest
 from aiohttp.test_utils import TestClient, TestServer
 import app as labapp
@@ -440,5 +441,130 @@ async def test_promote_apply_rejects_malicious_dialogue_model(tmp_path, monkeypa
         resp = await client.post("/promote/apply", json={"confirm": True})
         assert resp.status == 400
         assert writes == []
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# clone+login UI — /login·/oth-path api 프록시
+# ---------------------------------------------------------------------------
+
+class _FakeLoginResp:
+    def __init__(self, status=200, body=None):
+        self.status = status
+        self._body = body if body is not None else {"accessToken": "tok-123"}
+    async def text(self):
+        return json.dumps(self._body)
+    async def json(self):
+        return self._body
+    async def __aenter__(self): return self
+    async def __aexit__(self, *a): pass
+
+
+class _FakeSession:
+    def __init__(self, posts=None, gets=None, resp=None):
+        self._posts = posts
+        self._gets = gets
+        self._resp = resp or _FakeLoginResp()
+    async def __aenter__(self): return self
+    async def __aexit__(self, *a): pass
+    def post(self, url, data=None, headers=None):
+        if self._posts is not None:
+            self._posts["url"] = url; self._posts["data"] = data; self._posts["headers"] = headers
+        return self._resp
+    def get(self, url, headers=None):
+        if self._gets is not None:
+            self._gets["url"] = url; self._gets["headers"] = headers
+        return self._resp
+
+
+@pytest.mark.asyncio
+async def test_login_proxies_and_returns_only_access_token(tmp_path, monkeypatch):
+    import app as labapp_module
+    posts = {}
+    fake_resp = _FakeLoginResp(status=200, body={"accessToken": "tok-abc", "password": "SHOULD_NOT_LEAK"})
+    monkeypatch.setattr(labapp_module.aiohttp, "ClientSession",
+                         lambda *a, **kw: _FakeSession(posts=posts, resp=fake_resp))
+
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/login", json={"email": "a@b.com", "password": "hunter2"})
+        assert resp.status == 200
+        body = await resp.json()
+        assert body == {"accessToken": "tok-abc"}   # accessToken만 — password 등 절대 미포함
+        assert "password" not in body
+        # 프록시가 실제로 email/password를 실어 보냈는지(behavior), 응답 로깅과는 별개
+        sent = json.loads(posts["data"])
+        assert sent["email"] == "a@b.com" and sent["platform"] == "web"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_login_missing_credentials_returns_400(tmp_path):
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/login", json={"email": "a@b.com"})   # password 없음
+        assert resp.status == 400
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_login_does_not_log_password_on_upstream_error(tmp_path, monkeypatch, caplog):
+    import app as labapp_module
+    def _boom(*a, **kw):
+        raise ConnectionError("upstream down")
+    monkeypatch.setattr(labapp_module.aiohttp, "ClientSession", _boom)
+
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        with caplog.at_level("WARNING"):
+            resp = await client.post("/login", json={"email": "a@b.com", "password": "hunter2"})
+        assert resp.status == 502
+        assert "hunter2" not in caplog.text   # 비밀번호 절대 로깅 금지
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_clones_requires_bearer_token(tmp_path):
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.get("/oth-path")   # Authorization 헤더 없음
+        assert resp.status == 401
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_clones_proxies_with_bearer_and_returns_id_name(tmp_path, monkeypatch):
+    import app as labapp_module
+    gets = {}
+    fake_resp = _FakeLoginResp(status=200, body={"items": [
+        {"id": 9067, "name": "덕배", "extra": "무시되어야함"},
+        {"id": 9068, "name": "청이"},
+        {"name": "id없음-제외"},
+    ]})
+    monkeypatch.setattr(labapp_module.aiohttp, "ClientSession",
+                         lambda *a, **kw: _FakeSession(gets=gets, resp=fake_resp))
+
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.get("/oth-path", headers={"Authorization": "Bearer tok-abc"})
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["clones"] == [{"id": 9067, "name": "덕배"}, {"id": 9068, "name": "청이"}]
+        assert gets["headers"]["Authorization"] == "Bearer tok-abc"
     finally:
         await client.close()

@@ -1,20 +1,105 @@
 
 let pc, dc;
 
+let accessToken = null;
+
 const DIALOGUE_RESTART_FIELDS = new Set(["system_override", "min_len", "force_flush"]);
 
+async function login() {
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-pw').value;
+  const status = document.getElementById('login-status');
+  status.textContent = '로그인 중...';
+  try {
+    const r = await fetch('/login', {method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})});
+    const body = await r.json();
+    if (!r.ok || !body.accessToken) {
+      status.textContent = '로그인 실패';
+      return;
+    }
+    accessToken = body.accessToken;
+    status.textContent = '로그인됨';
+    await loadClones();
+  } catch (e) {
+    status.textContent = '로그인 오류';
+  }
+}
+
+async function loadClones() {
+  const select = document.getElementById('clone-select');
+  if (!accessToken) return;
+  try {
+    const r = await fetch('/oth-path', {headers: {'Authorization': `Bearer ${accessToken}`}});
+    const body = await r.json();
+    select.innerHTML = '<option value="">-- 클론 선택 --</option>';
+    for (const c of (body.clones || [])) {
+      const opt = document.createElement('option');
+      opt.value = String(c.id);
+      opt.textContent = c.name || String(c.id);
+      select.appendChild(opt);
+    }
+    select.disabled = false;
+    document.getElementById('connect-btn').disabled = false;
+  } catch (e) {
+    document.getElementById('login-status').textContent = '클론 목록 조회 실패';
+  }
+}
+
+function waitIceGathering(pc) {
+  if (pc.iceGatheringState === 'complete') return Promise.resolve();
+  return new Promise((resolve) => {
+    const check = () => {
+      if (pc.iceGatheringState === 'complete') {
+        pc.removeEventListener('icegatheringstatechange', check);
+        resolve();
+      }
+    };
+    pc.addEventListener('icegatheringstatechange', check);
+    setTimeout(resolve, 3000); 
+  });
+}
+
 async function connect() {
+  const select = document.getElementById('clone-select');
+  const cloneId = parseInt(select.value, 10);
+  const cst = document.getElementById('conn-status');
+  if (!cloneId || !accessToken) {
+    document.getElementById('login-status').textContent = '로그인·클론 선택 필요';
+    return;
+  }
+  cst.textContent = '연결 중...';
   pc = new RTCPeerConnection();
   pc.addTransceiver('video', {direction: 'recvonly'});
   pc.addTransceiver('audio', {direction: 'recvonly'});
   pc.ontrack = (e) => { document.getElementById('clone-video').srcObject = e.streams[0]; };
+  pc.onconnectionstatechange = () => {
+    cst.textContent = `pc:${pc.connectionState} · dc:${dc ? dc.readyState : '-'}`;
+  };
   dc = pc.createDataChannel('control');
+
+  dc.onopen = () => {
+    document.getElementById('say-input').disabled = false;
+    document.getElementById('say-btn').disabled = false;
+    cst.textContent = '✅ dc open — say 가능';
+  };
+  dc.onclose = () => { cst.textContent = 'dc closed'; };
+  dc.onerror = () => { cst.textContent = 'dc error'; };
+  dc.onmessage = (e) => {
+    try { const m = JSON.parse(e.data); cst.textContent = `dc open · ${m.type || ''}`; } catch (_) {}
+  };
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
+  await waitIceGathering(pc);
+  cst.textContent = 'offer 전송(ICE 수집 완료)...';
   const r = await fetch('/offer', {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({sdp: pc.localDescription.sdp, type: pc.localDescription.type})});
+    body: JSON.stringify({
+      sdp: pc.localDescription.sdp, type: pc.localDescription.type,
+      clone_id: cloneId, access_token: accessToken,
+    })});
   const ans = await r.json();
   await pc.setRemoteDescription(ans);
+  cst.textContent = 'answer 수신 — dc 개통 대기';
 }
 
 async function loadKnobs() {
@@ -49,7 +134,13 @@ async function applyKnobs() {
 
 function sendSay() {
   const t = document.getElementById('say-input').value;
-  if (dc && dc.readyState === 'open') dc.send(JSON.stringify({type:'say', text:t, seq:Date.now()}));
+  const cst = document.getElementById('conn-status');
+  if (!dc || dc.readyState !== 'open') {
+    cst.textContent = `say 불가 — dc:${dc ? dc.readyState : '없음'}(연결/개통 대기)`;
+    return;
+  }
+  dc.send(JSON.stringify({type:'say', text:t, seq:Date.now()}));
+  cst.textContent = `say 전송됨: "${t.slice(0, 20)}"`;
 }
 
 function startMetrics() {
@@ -100,6 +191,9 @@ async function loadRuns() {
 document.getElementById('apply-knobs').onclick = applyKnobs;
 document.getElementById('say-btn').onclick = sendSay;
 document.getElementById('refresh-runs').onclick = loadRuns;
-loadKnobs(); connect(); startMetrics(); loadRuns();
+document.getElementById('login-btn').onclick = login;
+document.getElementById('connect-btn').onclick = connect;
+
+loadKnobs(); startMetrics(); loadRuns();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);
