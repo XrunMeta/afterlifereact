@@ -16,10 +16,14 @@ _web_ok()    { curl -sf -m5 "${URL}/healthz" >/dev/null 2>&1; }
 
 case "${1:-open}" in
   stop)
-    if pkill -f "ssh -f -N -L ${PORT}:127.0.0.1:${PORT}" 2>/dev/null; then
+    # ControlMaster(mux) 사용 시 이 포워딩만 취소(마스터·다른 gabia 연결은 유지).
+    if ssh -O cancel -L "${PORT}:127.0.0.1:${PORT}" "${HOST}" 2>/dev/null; then
+      echo "[tune] 터널 종료됨 (:${PORT}, mux cancel)"
+    # 일반 ssh -f -N 프로세스면 pkill 폴백.
+    elif pkill -f "ssh.* -L ${PORT}:127.0.0.1:${PORT}" 2>/dev/null; then
       echo "[tune] 터널 종료됨 (:${PORT})"
     else
-      echo "[tune] 열린 터널 없음"
+      echo "[tune] 열린 터널 없음 (또는 이미 종료됨)"
     fi
     exit 0
     ;;
