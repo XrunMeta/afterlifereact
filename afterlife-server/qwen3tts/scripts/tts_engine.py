@@ -174,7 +174,8 @@ class Qwen3Engine:
         return prompt
 
     def synth(self, text: str, clone_id: str, voice_wav: str,
-              ref_text: str | None = None, speed: float = 1.0) -> bytes:
+              ref_text: str | None = None, speed: float = 1.0,
+              gen_params: dict | None = None) -> bytes:
         prompt = self.get_prompt(clone_id, voice_wav, ref_text)
         entry = self._cache.get(clone_id)
         ref_emb = getattr(entry, "ref_emb", None) if entry is not None else None
@@ -197,6 +198,7 @@ class Qwen3Engine:
                     pass
             wavs, sr = self._model.generate_voice_clone(
                 text=text, language=config.LANGUAGE, voice_clone_prompt=prompt,
+                **(gen_params or {}),
             )
             wav = wavs[0]
             if not guard:
