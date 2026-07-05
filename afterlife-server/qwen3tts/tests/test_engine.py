@@ -1,6 +1,7 @@
 # afterlife-server/qwen3tts/tests/test_engine.py
 import sys, pathlib, os
 import numpy as np
+import pytest
 import soundfile as sf
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from tts_engine import Qwen3Engine  # noqa: E402
@@ -149,6 +150,9 @@ def test_atempo_noop_when_speed_1(tmp_path):
     assert len(data) == 1600
 
 def test_atempo_speeds_up_audio(tmp_path):
+    import shutil
+    if shutil.which("ffmpeg") is None:
+        pytest.skip("ffmpeg not available")
     wav = _make_wav(str(tmp_path / "halbae" / "voice.wav"))
     m = FakeModel()
     # ffmpeg atempo(WSOLA)는 완전 무음(전부 0) 입력에서 축퇴 동작(64샘플로 collapse)해
@@ -163,3 +167,29 @@ def test_atempo_speeds_up_audio(tmp_path):
     data, sr = _sf.read(_io.BytesIO(out))
     # 2배속 → 길이 대략 절반(atempo 근사치, 여유 있게 검증)
     assert 700 <= len(data) <= 950
+
+def test_atempo_ffmpeg_failure_returns_original_bytes(monkeypatch, tmp_path):
+    """ffmpeg 호출 실패(FileNotFoundError/CalledProcessError) 시 크래시 대신
+    원본 wav_bytes 를 그대로 반환해야 한다(graceful degrade, _extract_spk_emb 관례와 일치)."""
+    import subprocess
+    import tts_engine
+
+    def _boom(*args, **kwargs):
+        raise FileNotFoundError("ffmpeg not found")
+    monkeypatch.setattr(tts_engine.subprocess, "run", _boom)
+
+    original = b"RIFF-ORIGINAL-BYTES"
+    out = tts_engine._apply_atempo(original, 1.5)
+    assert out == original
+
+def test_atempo_ffmpeg_called_process_error_returns_original_bytes(monkeypatch, tmp_path):
+    import subprocess
+    import tts_engine
+
+    def _boom(*args, **kwargs):
+        raise subprocess.CalledProcessError(1, ["ffmpeg"])
+    monkeypatch.setattr(tts_engine.subprocess, "run", _boom)
+
+    original = b"RIFF-ORIGINAL-BYTES"
+    out = tts_engine._apply_atempo(original, 1.5)
+    assert out == original
