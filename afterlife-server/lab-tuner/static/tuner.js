@@ -288,12 +288,12 @@ async function v_187e1c() {
   const v_a38d42 = document.getElementById('prod-status');
   try {
     const v_d5dda0 = await (await fetch('/production-status')).json();
-    let v_d91d98 = `<div>MainPID: ${v_8fd199(v_d5dda0.mainpid ?? '-')} · ${v_8fd199(v_d5dda0.generated_at)}</div>`;
+    let v_d91d98 = `<div style="color:var(--text-dim)">MainPID: ${v_8fd199(v_d5dda0.mainpid ?? '-')} · ${v_8fd199(v_d5dda0.generated_at)}</div>`;
     v_d91d98 += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
     for (const v_cb35cb of v_d5dda0.rows) {
-      const v_3c2a3a = v_cb35cb.state === 'drift' ? 'crimson' : (v_cb35cb.state === 'unknown' ? 'gray' : 'green');
+      const v_2cc6f2 = v_cb35cb.state === 'drift' ? 'chip-drift' : (v_cb35cb.state === 'unknown' ? 'chip-unknown' : 'chip-ok');
       v_d91d98 += `<tr><td>${v_8fd199(v_cb35cb.env)}</td><td>${v_8fd199(v_cb35cb.conf)}</td><td>${v_8fd199(v_cb35cb.running)}</td>`+
-        `<td style="color:${v_3c2a3a}">${v_8fd199(v_cb35cb.state)}</td></tr>`;
+        `<td><span class="chip ${v_2cc6f2}">${v_8fd199(v_cb35cb.state)}</span></td></tr>`;
     }
     v_d91d98 += '</table>';
     v_a38d42.innerHTML = v_d91d98;
