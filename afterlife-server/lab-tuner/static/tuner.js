@@ -129,9 +129,26 @@ async function v_315473() {
   }
 }
 
+async function v_187e1c() {
+  const v_a38d42 = document.getElementById('prod-status');
+  try {
+    const v_d5dda0 = await (await fetch('/production-status')).json();
+    let v_d91d98 = `<div>MainPID: ${v_d5dda0.mainpid ?? '-'} · ${v_d5dda0.generated_at}</div>`;
+    v_d91d98 += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
+    for (const v_cb35cb of v_d5dda0.rows) {
+      const v_3c2a3a = v_cb35cb.state === 'drift' ? 'crimson' : (v_cb35cb.state === 'unknown' ? 'gray' : 'green');
+      v_d91d98 += `<tr><td>${v_cb35cb.env}</td><td>${v_cb35cb.conf}</td><td>${v_cb35cb.running}</td>`+
+        `<td style="color:${v_3c2a3a}">${v_cb35cb.state}</td></tr>`;
+    }
+    v_d91d98 += '</table>';
+    v_a38d42.innerHTML = v_d91d98;
+  } catch (v_9e86fd) { v_a38d42.innerHTML = '<i>상태 조회 실패</i>'; }
+}
+
 document.getElementById('apply-knobs').onclick = v_9a2a8d;
 document.getElementById('say-btn').onclick = v_409b14;
 document.getElementById('refresh-runs').onclick = v_315473;
-v_858a0a(); v_1857f4(); v_e1242b(); v_315473();
+document.getElementById('refresh-prod').onclick = v_187e1c;
+v_858a0a(); v_1857f4(); v_e1242b(); v_315473(); v_187e1c();
 v_4deb94();
 setInterval(v_4deb94, 3000);
