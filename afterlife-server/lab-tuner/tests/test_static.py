@@ -112,3 +112,29 @@ def test_js_does_not_use_localstorage_for_token():
     # (설명 주석에서 개념을 언급하는 것은 허용, 실제 API 호출만 금지).
     assert "localStorage.setItem" not in js
     assert "localStorage.getItem" not in js
+
+
+# ---------------------------------------------------------------------------
+# T-114: 믹서 채널 스트립 렌더
+# ---------------------------------------------------------------------------
+
+def test_js_renders_number_stepper():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # number 노브에 증감 스텝퍼(±) 배선.
+    assert "step-up" in js and "step-down" in js
+
+
+def test_js_tts_qwen_only_dim():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # tts.engine=openvoice일 때 qwen 전용 필드 dim.
+    assert "refreshTtsDim" in js
+    assert "TTS_QWEN_ONLY_FIELDS" in js
+
+
+def test_js_channel_strip_render():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 섹션별 채널 스트립 클래스.
+    assert "channel" in js

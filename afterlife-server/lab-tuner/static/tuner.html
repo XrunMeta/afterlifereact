@@ -22,7 +22,19 @@
  button{cursor:pointer}
  button.primary{background:var(--gold);color:var(--bg);border-color:var(--gold-border)}
  button:disabled{opacity:.35;cursor:not-allowed}
- /* 채널 스트립·미터·칩 등 상세 스타일은 후속 task에서 확장 */
+ .channel{background:var(--surface-2);border:1px solid var(--border);border-top:2px solid var(--gold);
+   border-radius:4px;padding:12px;margin-bottom:12px;box-shadow:1px 2px 8px #CA8A0420}
+ .channel .panel-title{font-size:14px;margin-bottom:8px;text-transform:capitalize}
+ .knob-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
+ .knob-row label{font-size:12px;color:var(--text-dim);display:flex;flex-direction:column}
+ .reflow-chip{font-family:"Cinzel",serif;font-size:9px;letter-spacing:.05em;text-transform:uppercase;
+   color:var(--gold);background:#CA8A0420;border-radius:2px;padding:1px 6px;margin-top:2px;width:max-content}
+ .knob-row input,.knob-row select{width:120px}
+ .stepper{display:flex;align-items:center}
+ .stepper input{width:70px;text-align:center;border-radius:0}
+ .stepper button{padding:6px 8px;background:var(--surface)}
+ .knob-toggle{background:var(--surface)} .knob-seg{background:var(--surface)}
+ .knob-dim{opacity:.4}
  #metrics{font-size:12px}
  #runs table,#prod-status table{width:100%;border-collapse:collapse;font-size:12px}
  #runs td,#runs th,#prod-status td,#prod-status th{border-bottom:1px solid var(--surface-2);

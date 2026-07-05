@@ -121,42 +121,69 @@ async function v_858a0a() {
   const v_ab4c96 = v_d8a3c2.meta || {};
   const v_a38d42 = document.getElementById('knob-fields'); v_a38d42.innerHTML = '';
   for (const [v_b4fa6c, v_3332db] of Object.entries(v_0eb677)) {
-    const v_9d3c52 = document.createElement('fieldset');
-    const v_33d08f = document.createElement('legend'); v_33d08f.textContent = v_b4fa6c; v_9d3c52.appendChild(v_33d08f);
+    const v_10a17d = document.createElement('div'); v_10a17d.className = 'channel';
+    const v_9f1622 = document.createElement('div'); v_9f1622.className = 'panel-title';
+    v_9f1622.textContent = v_b4fa6c; v_10a17d.appendChild(v_9f1622);
     for (const [v_b24339, v_a057b5] of Object.entries(v_3332db)) {
       const v_9fe22d = `${v_b4fa6c}.${v_b24339}`;
       const v_35f85c = v_ab4c96[v_9fe22d] || {type: 'string', reflow: 'next_call'};
-      const v_83ff11 = document.createElement('div'); v_83ff11.className = 'knob';
-      const v_2869c1 = document.createElement('label');
-      v_2869c1.textContent = v_35f85c.label || v_b24339;
+      const v_3ac7e7 = document.createElement('div'); v_3ac7e7.className = 'knob-row';
+      const v_2869c1 = document.createElement('label'); v_2869c1.textContent = v_35f85c.label || v_b24339;
       const v_638ecc = v_a7deb0[v_35f85c.reflow];
-      if (v_638ecc) { const v_fd5f43 = document.createElement('span'); v_fd5f43.className = 'note'; v_fd5f43.textContent = v_638ecc; v_2869c1.appendChild(v_fd5f43); }
-      v_83ff11.appendChild(v_2869c1);
+      if (v_638ecc) { const v_fd5f43 = document.createElement('span'); v_fd5f43.className = 'reflow-chip'; v_fd5f43.textContent = v_638ecc; v_2869c1.appendChild(v_fd5f43); }
+      v_3ac7e7.appendChild(v_2869c1);
       let v_22d288;
-      if (v_35f85c.type === 'bool') {
-        v_22d288 = document.createElement('select');
+      if (v_35f85c.type === 'bool') {                     
+        v_22d288 = document.createElement('select'); v_22d288.className = 'knob-toggle';
         for (const v_68b2be of ['true', 'false']) {
           const v_b6c474 = document.createElement('option'); v_b6c474.value = v_68b2be; v_b6c474.textContent = v_68b2be;
-          if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true;   
-          v_22d288.appendChild(v_b6c474);
+          if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true; v_22d288.appendChild(v_b6c474);
         }
-      } else if (v_35f85c.type === 'enum') {
-        v_22d288 = document.createElement('select');
+      } else if (v_35f85c.type === 'enum') {              
+        v_22d288 = document.createElement('select'); v_22d288.className = 'knob-seg';
         for (const v_68b2be of (v_35f85c.choices || [])) {
           const v_b6c474 = document.createElement('option'); v_b6c474.value = v_68b2be; v_b6c474.textContent = v_68b2be;
-          if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true;   
-          v_22d288.appendChild(v_b6c474);
+          if (String(v_a057b5) === v_68b2be) v_b6c474.selected = true; v_22d288.appendChild(v_b6c474);
         }
-      } else {
+      } else {                                     
         v_22d288 = document.createElement('input');
         v_22d288.value = (v_a057b5 == null ? '' : v_a057b5);
       }
       v_22d288.id = `k_${v_b4fa6c}_${v_b24339}`;
       v_22d288.dataset.s = v_b4fa6c; v_22d288.dataset.k = v_b24339;
-      v_83ff11.appendChild(v_22d288);
-      v_9d3c52.appendChild(v_83ff11);
+      if (v_35f85c.type === 'number') {                   
+        const v_83ff11 = document.createElement('div'); v_83ff11.className = 'stepper';
+        const v_729796 = (String(v_a057b5).includes('.') ? 0.05 : 1);
+        v_22d288.dataset.step = String(v_729796);
+        const v_a86deb = document.createElement('button'); v_a86deb.type='button';
+        v_a86deb.className = 'step-down'; v_a86deb.textContent = '▼';
+        const v_d8f778 = document.createElement('button'); v_d8f778.type='button';
+        v_d8f778.className = 'step-up'; v_d8f778.textContent = '▲';
+        const v_219075 = (v_d5dda0) => { const v_c3bc75 = Number(String(v_22d288.value).replace(',', '.')) || 0;
+          v_22d288.value = (Math.round((v_c3bc75 + v_d5dda0*v_729796)*1000)/1000); };
+        v_a86deb.onclick = () => v_219075(-1); v_d8f778.onclick = () => v_219075(1);
+        v_83ff11.appendChild(v_a86deb); v_83ff11.appendChild(v_22d288); v_83ff11.appendChild(v_d8f778);
+        v_3ac7e7.appendChild(v_83ff11);
+      } else {
+        v_3ac7e7.appendChild(v_22d288);
+      }
+      v_10a17d.appendChild(v_3ac7e7);
     }
-    v_a38d42.appendChild(v_9d3c52);
+    v_a38d42.appendChild(v_10a17d);
+  }
+  v_796451();
+  document.getElementById('k_tts_engine')?.addEventListener('change', v_796451);
+}
+
+function v_796451() {
+  const v_3be5d5 = document.getElementById('k_tts_engine');
+  const v_03b8c8 = v_3be5d5 && v_3be5d5.value === 'openvoice';
+  for (const v_70c705 of v_81f9b1) {
+    const v_57c92e = document.getElementById(`k_tts_${v_70c705}`);
+    if (!v_57c92e) continue;
+    const v_3ac7e7 = v_57c92e.closest('.knob-row');
+    if (v_3ac7e7) { v_3ac7e7.classList.toggle('knob-dim', !!v_03b8c8);
+      v_3ac7e7.title = v_03b8c8 ? 'openvoice 엔진에선 무시됨(qwen 전용)' : ''; }
   }
 }
 
