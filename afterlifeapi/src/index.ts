@@ -36,6 +36,7 @@ import { notifications } from "./routes/notifications";
 import { persons } from "./routes/persons";
 import { agreements, adminAgreements } from "./routes/agreements";
 import { callConfig } from "./routes/call-config";
+import { consent } from "./routes/consent";
 
 const app = new Hono<AppEnv>();
 
@@ -84,6 +85,7 @@ app.route("/oth-path", auth);
 app.route("/oth-path", files);
 
 app.route("/oth-path", deletion);
+app.route("/oth-path", consent);
 app.route("/oth-path", users);
 app.route("/oth-path", clones);
 
