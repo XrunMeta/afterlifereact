@@ -170,6 +170,61 @@ async def test_batch_empty_stream_no_tts_no_infer(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_batch_empty_text_fires_response_ready_hook_and_signals_end(monkeypatch):
+    """[sion MAJOR 2] LLM 스트림이 비어 full_text가 빈 문자열이면 `_run_batch`가
+    조기 return 하는데, 이 경로도 filler 정지 훅(on_response_ready)을 반드시
+    1회 호출해야 한다 — 그렇지 않으면 FillerPlayer가 세션 끝까지 순환하는
+    T-088 좀비 패턴이 재발한다. signal_end 도 기존과 동일하게 보장돼야 한다."""
+    monkeypatch.setenv("PRETHIRD_RENDER_MODE", "batch")
+
+    tts_calls = []
+    infer_calls = []
+    hook_calls = []
+    ended = []
+
+    async def chat_fn(messages):
+        return
+        yield  # noqa: unreachable — make this an async generator
+
+    async def say_fn(text, se_path=None):
+        tts_calls.append(text)
+        return b"WAVfake"
+
+    def decode_wav_fn(b):
+        return np.zeros(960, dtype=np.int16), 48000, 1
+
+    def infer_fn(wav_path, on_frame, **k):
+        infer_calls.append(k.get("render_mode"))
+        return 0
+
+    class VT:
+        def push_ndarray(self, arr):
+            pass
+
+        def signal_end(self):
+            ended.append("v")
+
+    class AT:
+        def push_pcm_int16(self, pcm):
+            pass
+
+        def signal_end(self):
+            ended.append("a")
+
+    p = DialoguePipeline(
+        video_track=VT(), audio_track=AT(),
+        chat_fn=chat_fn, say_fn=say_fn,
+        decode_wav_fn=decode_wav_fn, infer_fn=infer_fn,
+    )
+    await p.say("", on_response_ready=lambda: hook_calls.append(1))
+
+    assert tts_calls == []
+    assert infer_calls == []
+    assert hook_calls == [1], "빈 응답(empty text) 조기 반환 경로도 filler 정지 훅이 1회 호출돼야 함"
+    assert "v" in ended and "a" in ended
+
+
+@pytest.mark.asyncio
 async def test_batch_tts_failure_no_crash_but_signals_end(monkeypatch, caplog):
     """[T-113 Task6] say_fn(TTS) 실패 시 spec §6 계약: 예외는 _run_batch 가
     직접 삼켜(log.error) 밖으로 전파하지 않는다(partial 자동 폴백 없음 —
