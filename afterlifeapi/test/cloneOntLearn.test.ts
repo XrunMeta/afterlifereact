@@ -150,6 +150,46 @@ describe("updateOntFromExtraction", () => {
     ).bind(9012, 8012).first<{ auto_learned_at: number | null }>();
     expect(after?.auto_learned_at).toBe(stamp); 
   });
+
+  it("preference 값이 바뀌면 preference_history에 {key,from,to} 기록(토글 ON)", async () => {
+    const E = { ...env, L2_PREF_HISTORY_ENABLED: "1" } as unknown as Bindings;
+    const cloneId = 900101, userId = 5;
+    await updateOntFromExtraction(E, cloneId, userId, { preference_personal: { 음료: "콜라" } }, "call");
+    await updateOntFromExtraction(E, cloneId, userId, { preference_personal: { 음료: "사이다" } }, "call");
+    const raw = await readOnt(E, cloneId, userId);
+    const data = JSON.parse(raw!);
+    expect(data.preference_personal).toEqual({ 음료: "사이다" });      
+    expect(data.preference_history).toEqual([
+      { key: "음료", from: "콜라", to: "사이다", at: expect.any(String) },
+    ]);
+  });
+
+  it("같은 값 재학습은 history 미기록", async () => {
+    const E = { ...env, L2_PREF_HISTORY_ENABLED: "1" } as unknown as Bindings;
+    const cloneId = 900102, userId = 5;
+    await updateOntFromExtraction(E, cloneId, userId, { preference_personal: { 음료: "콜라" } }, "call");
+    await updateOntFromExtraction(E, cloneId, userId, { preference_personal: { 음료: "콜라" } }, "call");
+    const data = JSON.parse((await readOnt(E, cloneId, userId))!);
+    expect(data.preference_history ?? []).toEqual([]);
+  });
+
+  it("새 키(기존에 없던 항목)는 history 미기록", async () => {
+    const E = { ...env, L2_PREF_HISTORY_ENABLED: "1" } as unknown as Bindings;
+    const cloneId = 900103, userId = 5;
+    await updateOntFromExtraction(E, cloneId, userId, { preference_personal: { 음료: "콜라" } }, "call");
+    const data = JSON.parse((await readOnt(E, cloneId, userId))!);
+    expect(data.preference_history ?? []).toEqual([]);
+  });
+
+  it("토글 OFF면 preference_history 미기록(회귀0)", async () => {
+    const E = { ...env, L2_PREF_HISTORY_ENABLED: "0" } as unknown as Bindings;
+    const cloneId = 900104, userId = 5;
+    await updateOntFromExtraction(E, cloneId, userId, { preference_personal: { 음료: "콜라" } }, "call");
+    await updateOntFromExtraction(E, cloneId, userId, { preference_personal: { 음료: "사이다" } }, "call");
+    const data = JSON.parse((await readOnt(E, cloneId, userId))!);
+    expect(data.preference_history).toBeUndefined();
+    expect(data.preference_personal).toEqual({ 음료: "사이다" });
+  });
 });
 
 describe("migration 0075", () => {
