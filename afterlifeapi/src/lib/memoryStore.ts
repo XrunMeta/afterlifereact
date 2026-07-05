@@ -1,6 +1,7 @@
 
 
 import type { v_273a0c } from './env';
+import { v_c9411d } from './piiFilter';
 
 export async function v_e86502(env: v_273a0c, v_6e0fd3): Promise<string | null> {
   const v_e2a6a6 = await v_c9c489.KV_CTX.get(`ctx:${v_6e0fd3}`);
@@ -101,6 +102,8 @@ export async function v_0ac5b7(
   v_631e71,
   v_04e790,
 ): Promise<{ rev: number; skipped: boolean }> {
+
+  v_631e71 = v_c9411d(v_631e71);
   const v_e1ccab =
     v_631e71.preference_personal != null &&
     Object.keys(v_631e71.preference_personal).length > 0;
@@ -231,6 +234,8 @@ export async function v_600422(
   v_631e71,
   v_04e790,
 ): Promise<{ rev: number; skipped: boolean }> {
+
+  v_631e71 = v_c9411d(v_631e71);
   const v_e1ccab =
     v_631e71.preference_personal != null &&
     Object.keys(v_631e71.preference_personal).length > 0;
