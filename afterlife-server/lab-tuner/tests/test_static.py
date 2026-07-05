@@ -138,3 +138,12 @@ def test_js_channel_strip_render():
         js = f.read()
     # 섹션별 채널 스트립 클래스.
     assert "channel" in js
+
+
+def test_js_say_enter_to_send():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # Enter 전송 + 한글 IME 조합중 오전송 방지.
+    assert "keydown" in js
+    assert "'Enter'" in js or '"Enter"' in js
+    assert "isComposing" in js

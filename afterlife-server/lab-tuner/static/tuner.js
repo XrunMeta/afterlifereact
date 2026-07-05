@@ -278,6 +278,13 @@ async function loadProdStatus() {
 
 document.getElementById('apply-knobs').onclick = applyKnobs;
 document.getElementById('say-btn').onclick = sendSay;
+document.getElementById('say-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.isComposing) {   
+    e.preventDefault();
+    sendSay();
+    e.target.value = '';                        
+  }
+});
 document.getElementById('refresh-runs').onclick = loadRuns;
 document.getElementById('refresh-prod').onclick = loadProdStatus;
 document.getElementById('login-btn').onclick = login;
