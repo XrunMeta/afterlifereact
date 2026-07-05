@@ -44,6 +44,8 @@ class FifthKnobs:
     # restart-baked: flp_engine.__init__ startup 1회 → 렌더 재기동 필요(coarse)
     cfg_scale: float = 2.0
     driving_multiplier: float = 1.0
+    # container-baked: fifth 렌더 서버 프로세스 기동 시 1회 선택 → 컨테이너 재기동 필요
+    render_mode: str = "partial"  # partial|batch
     PER_REQUEST = ("blink", "jpeg_quality", "idle_motion_scale",
                    "idle_rms_low", "idle_rms_high", "head_slew_frames")
     RESTART_BAKED = ("cfg_scale", "driving_multiplier")
@@ -97,6 +99,7 @@ class RunKnobs:
                 idle_rms_low=_env_f("FIFTH_IDLE_RMS_LOW", 0.05),
                 idle_rms_high=_env_f("FIFTH_IDLE_RMS_HIGH", 0.3),
                 head_slew_frames=_env_i("FIFTH_HEAD_SLEW_FRAMES", 5),
+                render_mode=os.environ.get("FIFTH_RENDER_MODE", "partial"),
             ),
             transport=TransportKnobs(
                 playback_buffer_ms=_env_i("PRETHIRD_PLAYBACK_BUFFER_MS", 0),
@@ -162,6 +165,7 @@ KNOB_META: dict[str, dict] = {
     "fifth.head_slew_frames":  {"type": "number", "choices": None, "reflow": "container", "label": "head slew"},
     "fifth.cfg_scale":         {"type": "number", "choices": None, "reflow": "container", "label": "cfg scale"},
     "fifth.driving_multiplier":{"type": "number", "choices": None, "reflow": "container", "label": "driving mult"},
+    "fifth.render_mode":       {"type": "enum",   "choices": ["partial", "batch"], "reflow": "container", "label": "생성 모드"},
     "transport.playback_buffer_ms": {"type": "number", "choices": None, "reflow": "next_call", "label": "재생 버퍼(ms)"},
     "transport.idle_grace_sec":{"type": "number", "choices": None, "reflow": "next_call", "label": "idle grace(s)"},
     "transport.width":         {"type": "number", "choices": None, "reflow": "next_call", "label": "너비"},
