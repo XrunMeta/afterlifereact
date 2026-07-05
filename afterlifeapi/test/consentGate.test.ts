@@ -52,4 +52,20 @@ v_469bf2("migration 0085", () => {
     ).first();
     v_4d37e3(v_49272c).toBeTruthy();
   });
+
+  v_23805a("user 하드삭제 후에도 감사 이력 존속(FK cascade 없음)", async () => {
+    await v_9542f7.DB.prepare(
+      `INSERT OR IGNORE INTO users (id, email, password_hash, name, created_at)
+       VALUES (5150, 'tomb@test.test', 'x', 'U', CURRENT_TIMESTAMP)`,
+    ).run();
+    await v_9542f7.DB.prepare(
+      `INSERT INTO user_consent_log (user_id, consent_type, state, changed_at)
+       VALUES (5150, 'call_learning', 'granted', unixepoch())`,
+    ).run();
+    await v_9542f7.DB.prepare("DELETE FROM users WHERE id = 5150").run();
+    const v_3e58a1 = await v_9542f7.DB.prepare(
+      "SELECT COUNT(*) AS n FROM user_consent_log WHERE user_id = 5150",
+    ).first<{ n: number }>();
+    v_4d37e3(v_3e58a1!.n).toBe(1); 
+  });
 });
