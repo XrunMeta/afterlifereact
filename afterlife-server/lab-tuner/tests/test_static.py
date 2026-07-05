@@ -51,6 +51,34 @@ def test_js_has_dialogue_restart_note():
     assert "다음 접속부터 반영" in js
 
 
+def test_prod_status_section_present():
+    with open(os.path.join(_STATIC, "tuner.html")) as f:
+        html = f.read()
+    assert 'id="prod-status"' in html
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/production-status" in js
+
+
+def test_prod_status_escapes_untrusted_env_values():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # r.running은 /proc/<mainpid>/environ 원문(미검증)이라 innerHTML 삽입 전 반드시 escape(mizu, T-111 XSS 방어).
+    assert "escapeHtml" in js
+    loadprod = js[js.index("async function loadProdStatus"):]
+    for needle in ["escapeHtml(r.env)", "escapeHtml(r.conf)", "escapeHtml(r.running)", "escapeHtml(r.state)"]:
+        assert needle in loadprod, needle
+
+
+def test_tuner_js_renders_typed_controls():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    # 메타 fetch 및 타입 분기 존재(회귀 가드) — bool/enum은 select, D5(현재값 미리 선택)
+    assert "/knobs/meta" in js
+    assert "createElement('select')" in js or 'createElement("select")' in js
+    assert "reflow" in js
+
+
 # ---------------------------------------------------------------------------
 # clone+login UI
 # ---------------------------------------------------------------------------

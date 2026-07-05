@@ -1,9 +1,13 @@
 
 let pc, dc;
 
-let accessToken = null;
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
 
-const DIALOGUE_RESTART_FIELDS = new Set(["system_override", "min_len", "force_flush"]);
+let accessToken = null;
 
 const TTS_QWEN_ONLY_FIELDS = new Set(
   ["temperature", "top_p", "top_k", "repetition_penalty", "max_new_tokens"]);
@@ -105,20 +109,52 @@ async function connect() {
   cst.textContent = 'answer 수신 — dc 개통 대기';
 }
 
+const REFLOW_NOTE = {
+  next_call: '다음 통화부터', container: '컨테이너 재기동', session: '다음 접속부터',
+};
+
 async function loadKnobs() {
-  const k = await (await fetch('/knobs')).json();
-  const box = document.getElementById('knob-fields'); box.innerHTML='';
+  const [k, metaResp] = await Promise.all([
+    (await fetch('/knobs')).json(),
+    (await fetch('/knobs/meta')).json(),
+  ]);
+  const meta = metaResp.meta || {};
+  const box = document.getElementById('knob-fields'); box.innerHTML = '';
   for (const [section, vals] of Object.entries(k)) {
     const fs = document.createElement('fieldset');
-    fs.innerHTML = `<legend>${section}</legend>`;
+    const lg = document.createElement('legend'); lg.textContent = section; fs.appendChild(lg);
     for (const [key, val] of Object.entries(vals)) {
-      const id = `k_${section}_${key}`;
-      const restartNote = (section === 'dialogue' && DIALOGUE_RESTART_FIELDS.has(key))
-        ? `<span class="note">다음 접속부터 반영</span>` : '';
-      const qwenNote = (section === 'tts' && TTS_QWEN_ONLY_FIELDS.has(key))
-        ? `<span class="note">qwen 전용(openvoice 무시)</span>` : '';
-      fs.innerHTML += `<div class="knob"><label>${key}${restartNote}${qwenNote}</label>`+
-        `<input id="${id}" value="${val==null?'':val}" data-s="${section}" data-k="${key}"></div>`;
+      const path = `${section}.${key}`;
+      const m = meta[path] || {type: 'string', reflow: 'next_call'};
+      const wrap = document.createElement('div'); wrap.className = 'knob';
+      const label = document.createElement('label');
+      label.textContent = m.label || key;
+      const note = REFLOW_NOTE[m.reflow];
+      if (note) { const s = document.createElement('span'); s.className = 'note'; s.textContent = note; label.appendChild(s); }
+      wrap.appendChild(label);
+      let ctrl;
+      if (m.type === 'bool') {
+        ctrl = document.createElement('select');
+        for (const opt of ['true', 'false']) {
+          const o = document.createElement('option'); o.value = opt; o.textContent = opt;
+          if (String(val) === opt) o.selected = true;   
+          ctrl.appendChild(o);
+        }
+      } else if (m.type === 'enum') {
+        ctrl = document.createElement('select');
+        for (const opt of (m.choices || [])) {
+          const o = document.createElement('option'); o.value = opt; o.textContent = opt;
+          if (String(val) === opt) o.selected = true;   
+          ctrl.appendChild(o);
+        }
+      } else {
+        ctrl = document.createElement('input');
+        ctrl.value = (val == null ? '' : val);
+      }
+      ctrl.id = `k_${section}_${key}`;
+      ctrl.dataset.s = section; ctrl.dataset.k = key;
+      wrap.appendChild(ctrl);
+      fs.appendChild(wrap);
     }
     box.appendChild(fs);
   }
@@ -126,7 +162,7 @@ async function loadKnobs() {
 
 async function applyKnobs() {
   const partial = {};
-  document.querySelectorAll('#knob-fields input').forEach(inp => {
+  document.querySelectorAll('#knob-fields input, #knob-fields select').forEach(inp => {
     const s = inp.dataset.s, k = inp.dataset.k; let v = inp.value;
     if (v === '') return;
     if (v === 'true') v = true; else if (v === 'false') v = false;
@@ -197,12 +233,29 @@ async function loadRuns() {
   }
 }
 
+async function loadProdStatus() {
+  const box = document.getElementById('prod-status');
+  try {
+    const d = await (await fetch('/production-status')).json();
+    let html = `<div>MainPID: ${escapeHtml(d.mainpid ?? '-')} · ${escapeHtml(d.generated_at)}</div>`;
+    html += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
+    for (const r of d.rows) {
+      const color = r.state === 'drift' ? 'crimson' : (r.state === 'unknown' ? 'gray' : 'green');
+      html += `<tr><td>${escapeHtml(r.env)}</td><td>${escapeHtml(r.conf)}</td><td>${escapeHtml(r.running)}</td>`+
+        `<td style="color:${color}">${escapeHtml(r.state)}</td></tr>`;
+    }
+    html += '</table>';
+    box.innerHTML = html;
+  } catch (e) { box.innerHTML = '<i>상태 조회 실패</i>'; }
+}
+
 document.getElementById('apply-knobs').onclick = applyKnobs;
 document.getElementById('say-btn').onclick = sendSay;
 document.getElementById('refresh-runs').onclick = loadRuns;
+document.getElementById('refresh-prod').onclick = loadProdStatus;
 document.getElementById('login-btn').onclick = login;
 document.getElementById('connect-btn').onclick = connect;
 
-loadKnobs(); startMetrics(); loadRuns();
+loadKnobs(); startMetrics(); loadRuns(); loadProdStatus();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);
