@@ -382,6 +382,65 @@ v_dcd415.get("/dev/clones/:id/ont-raw", async (v_3f4e2e) => {
   return v_3f4e2e.json({ data: v_9390e8, l1_profile: v_020b4b, l2_consumed: v_ef4edb });
 });
 
+const v_8f1444 = v_1f4ea7.object({
+  userId: v_1f4ea7.number().int().positive(),
+  extracted: v_1f4ea7.object({
+    preference_personal: v_1f4ea7
+      .record(v_1f4ea7.string().max(100), v_1f4ea7.union([v_1f4ea7.string().max(200), v_1f4ea7.number(), v_1f4ea7.boolean()]))
+      .optional(),
+    relation: v_1f4ea7.string().max(200).nullable().optional(),
+    memories_personal: v_1f4ea7.array(v_1f4ea7.string().max(500)).max(20).optional(),
+  }),
+  source: v_1f4ea7.enum(["call", "chat"]),
+});
+
+v_dcd415.post("/dev/clones/:id/ont-merge", async (v_3f4e2e) => {
+  const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
+  const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  if (!v_21cc31 || !v_3f4e2e.env.DEV_SECRET || !v_a155c4(v_21cc31, v_3f4e2e.env.DEV_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    return v_3f4e2e.json({ error: "bad_clone_id" }, 400);
+  }
+  const v_8decf8 = v_8f1444.safeParse(await v_3f4e2e.req.json().catch(() => ({})));
+  if (!v_8decf8.success) {
+    return v_3f4e2e.json({ error: "bad_body", issues: v_8decf8.error.issues }, 400);
+  }
+  const { userId: v_43e90c, extracted: v_631e71, source: v_04e790 } = v_8decf8.data;
+
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) return v_3f4e2e.json({ error: "clone_not_found" }, 404);
+
+  const v_f407d5 = await v_3f4e2e.env.DB.prepare("SELECT 1 FROM users WHERE id = ?")
+    .bind(v_43e90c).first();
+  if (!v_f407d5) return v_3f4e2e.json({ error: "user_not_found" }, 404);
+
+  let v_43c42e;
+  try {
+    v_43c42e = await v_0ac5b7(
+      v_3f4e2e.env, v_6e0fd3, v_43e90c, v_631e71 as v_d91e78, v_04e790,
+    );
+  } catch (v_49263d) {
+    return v_3f4e2e.json({ error: "merge_failed", message: (v_49263d as Error).message }, 400);
+  }
+
+  const v_479f05 = await v_3821c0(v_3f4e2e.env, v_6e0fd3, v_43e90c);
+  let v_9390e8 = null;
+  if (v_479f05) { try { v_9390e8 = JSON.parse(v_479f05); } catch { v_9390e8 = null; } }
+
+  try {
+    await v_74defc(v_3f4e2e, {
+      userId: v_43e90c,
+      action: "dev.ont_merge.write",
+      details: { cloneId: v_6e0fd3, rev: v_43c42e.rev },
+    });
+  } catch {  }
+
+  return v_3f4e2e.json({ rev: v_43c42e.rev, skipped: v_43c42e.skipped, data: v_9390e8 });
+});
+
 async function v_a30df4(v_a1651b, v_ca1ec5, v_6e0fd3): Promise<boolean> {
   const v_3ac7e7 = await v_a1651b.prepare(
     `SELECT 1 FROM persons p
