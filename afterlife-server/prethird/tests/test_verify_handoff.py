@@ -97,3 +97,29 @@ async def test_persons_no_token_401():
     async with TestClient(TestServer(_app())) as client:
         assert (await client.get("/oth-path?clone_id=9055")).status == 401
         assert (await client.post("/oth-path", json={})).status == 401
+
+
+@pytest.mark.asyncio
+async def test_learn_routes_to_person_when_person_given(monkeypatch):
+    calls = {}
+
+    async def fake_extract(user_text, clone_reply):
+        return {"relation": "형"}
+    monkeypatch.setattr(ce, "extract_l2", fake_extract)
+
+    async def fake_dev_l2p(clone_id, person_id):
+        return {"data": {}, "displayName": "형"}
+    monkeypatch.setattr(ce, "_dev_l2p_data", fake_dev_l2p)
+
+    async def fake_merge_person(clone_id, person_id, extracted):
+        calls["person_id"] = person_id
+        return {"relation": "형"}
+    monkeypatch.setattr(ce, "_ont_merge_person", fake_merge_person)
+    monkeypatch.setattr(ce, "_DEV_SECRET", "x")
+
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.post("/oth-path", headers={"Authorization": "Bearer T"},
+            json={"clone_id": 9055, "person_id": 3,
+                  "turns": [{"role": "user", "content": "나 형이야"}, {"role": "assistant", "content": "안녕 형"}]})
+        assert resp.status == 200
+    assert calls.get("person_id") == 3
