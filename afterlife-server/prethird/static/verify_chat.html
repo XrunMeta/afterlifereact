@@ -292,6 +292,31 @@ async function addPerson(){
 }
 $("addPerson").addEventListener("click", addPerson);
 
+async function refreshL2View(opts){
+  const cloneId = parseInt($("clone").value, 10);
+  if(!cloneId) return false;
+  const pid = parseInt($("person").value, 10);
+  const owner = $("l2owner");
+  if(pid){
+    const name = $("person").options[$("person").selectedIndex].textContent;
+    if(owner) owner.textContent = "· 화자: " + name + " (L2′)";
+    try{
+      const r = await fetch("/oth-path?clone_id="+cloneId+"&person_id="+pid, { headers: authHeaders() });
+      if(r.ok){
+        const res = await r.json();
+        renderL2Raw({ data: (res && res.data) || {} }, opts && opts.changedKeys);
+        return true;
+      }
+      if(!(opts && opts.silent)) renderL2RawError(r.status);
+    }catch(e){ if(!(opts && opts.silent)) renderL2RawError("fetch-fail"); }
+    return false;
+  }
+  if(owner) owner.textContent = "· 전체(생성자)";
+  return await refreshOntRaw(cloneId, opts);
+}
+
+$("person").addEventListener("change", () => refreshL2View());
+
 function authHeaders(extra){
   const h = Object.assign({}, extra || {});
   const token = $("token").value;
@@ -465,7 +490,7 @@ async function learn(userText, assistantText) {
     live && (live.textContent = "● 실시간");
   }
 
-  await refreshOntRaw(cloneId, { changedKeys, silent: true });
+  await refreshL2View({ changedKeys, silent: true });
 }
 
 $("l2reset").onclick = async () => {

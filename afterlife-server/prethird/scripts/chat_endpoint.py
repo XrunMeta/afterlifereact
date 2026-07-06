@@ -484,6 +484,32 @@ async def verify_ont_raw(req: web.Request) -> web.Response:
         return web.json_response({"error": "upstream error"}, status=502)
     return web.json_response(data)
 
+async def verify_l2p(req: web.Request) -> web.Response:
+    """[T-116] 화자별 L2'(clone_ont_person) 조회 — L2 패널 화자별 표시용.
+    dev l2p-raw 프록시(_dev_l2p_data 재사용) → {data, displayName}. bearer+verify_pass 게이트."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    raw_cid = req.query.get("clone_id")
+    raw_pid = req.query.get("person_id")
+    try:
+        clone_id = int(raw_cid)
+        person_id = int(raw_pid)
+    except (TypeError, ValueError):
+        return web.json_response({"error": "invalid clone_id or person_id"}, status=400)
+    if clone_id <= 0 or person_id <= 0:
+        return web.json_response({"error": "invalid clone_id or person_id"}, status=400)
+    if not _DEV_SECRET:
+        return web.json_response({"error": "dev secret not configured"}, status=503)
+    try:
+        data = await _dev_l2p_data(clone_id, person_id)
+    except Exception as e:
+        log.warning("verify_l2p failed clone=%s person=%s: %s", clone_id, person_id, type(e).__name__)
+        return web.json_response({"error": "upstream error"}, status=502)
+    return web.json_response(data)
+
 async def verify_page(_req: web.Request) -> web.FileResponse:
     html = pathlib.Path(__file__).resolve().parents[1] / "static" / "verify_chat.html"
     return web.FileResponse(html)
@@ -500,3 +526,4 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_post("/oth-path", verify_l2_reset)
     app.router.add_get("/oth-path", verify_bundle)
     app.router.add_get("/oth-path", verify_ont_raw)
+    app.router.add_get("/oth-path", verify_l2p)
