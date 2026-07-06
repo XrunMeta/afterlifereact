@@ -3,6 +3,15 @@ _HERE = os.path.dirname(__file__)
 _STATIC = os.path.join(_HERE, "..", "static")
 
 
+def test_html_source_has_no_hardcoded_plaintext_password():
+    # opus 최종리뷰 Minor: 로그인 비번은 VCS 추적 정적 소스에 하드코딩하지 않는다
+    # (serve-time LAB_TUNER_DEV_PASSWORD 주입으로 대체, app.py index 핸들러 참조).
+    with open(os.path.join(_STATIC, "tuner.html")) as f:
+        html = f.read()
+    assert "oth-password" not in html
+    assert 'id="login-pw" type="password" placeholder="password" autocomplete="current-password" value=""' in html
+
+
 def test_html_has_required_elements():
     with open(os.path.join(_STATIC, "tuner.html")) as f:
         html = f.read()

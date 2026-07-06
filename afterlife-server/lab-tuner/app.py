@@ -8,6 +8,7 @@ import re
 
 import aiohttp
 from aiohttp import web
+from html import escape as _html_escape
 from signaling import make_app          # prethird
 from live_guard import LiveBusyError
 from knobs import KNOB_META
@@ -51,7 +52,19 @@ def _validate_run_id(rid) -> str | None:
 # 터널 전용 접근만 통과시킨다. X-Forwarded-For 등 프록시 헤더는 클라이언트가
 # 임의로 실어보낼 수 있어(스푸핑) 절대 신뢰하지 않고, aiohttp가 TCP 소켓에서
 # 직접 얻는 request.remote(peername)만 판정 기준으로 삼는다.
+#
+# opus 최종리뷰 Important: 공유 호스트에서는 loopback 판정만으로는 부족하다
+# (같은 머신의 다른 로컬 프로세스·다른 SSH 터널 유저가 curl localhost/dev-token
+# 으로 관리자 토큰을 탈취 가능). 이 엔드포인트는 **단일테넌트 SSH-터널 호스트
+# 전용**이다 — env LAB_TUNER_DEV_TOKEN_ENABLE="1" 을 명시적으로 설정해야만
+# 활성화되며(opt-in), 미설정 시 라우트 자체가 404(존재 자체를 감춘다).
+# ⚠️ 공유/멀티테넌트 호스트에서는 LAB_TUNER_DEV_TOKEN_ENABLE 을 절대 설정하지 말 것.
 _LOOPBACK_REMOTES = {"127.0.0.1", "::1"}
+_DEV_TOKEN_ENABLE_ENV = "LAB_TUNER_DEV_TOKEN_ENABLE"
+
+
+def _dev_token_enabled() -> bool:
+    return os.environ.get(_DEV_TOKEN_ENABLE_ENV) == "1"
 
 
 def _is_loopback_remote(remote: str | None) -> bool:
@@ -95,6 +108,9 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
 
     async def dev_token(req):
         # mizu 정책: 토큰 값을 로그에 남기지 않는다(응답 바디로만 전달, 여기서 log 호출 없음).
+        # opus Important: opt-in 게이트 미설정 시 라우트 존재 자체를 감춘다(404).
+        if not _dev_token_enabled():
+            raise web.HTTPNotFound()
         return _dev_token_response(req.remote, _lab_tuner_token)
 
     async def live_status(_req):
@@ -131,8 +147,23 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             pass
         return resp
 
+    # opus 최종리뷰 Minor: 로그인 비번을 tuner.html(정적 소스, VCS 추적)에 하드코딩하지
+    # 않는다. serve-time 에 LAB_TUNER_DEV_PASSWORD 가 설정돼 있으면 그 값을 prefill,
+    # 없으면 빈 값 그대로 서빙한다 — 소스·VCS 어디에도 평문 비번이 남지 않는다.
+    _PW_PLACEHOLDER = (
+        'id="login-pw" type="password" placeholder="password" '
+        'autocomplete="current-password" value=""'
+    )
+
     async def index(_req):
-        return web.FileResponse(_STATIC / "tuner.html")
+        html_text = (_STATIC / "tuner.html").read_text(encoding="utf-8")
+        dev_password = os.environ.get("LAB_TUNER_DEV_PASSWORD")
+        if dev_password:
+            html_text = html_text.replace(
+                _PW_PLACEHOLDER,
+                _PW_PLACEHOLDER.replace('value=""', f'value="{_html_escape(dev_password, quote=True)}"'),
+            )
+        return web.Response(text=html_text, content_type="text/html")
 
     async def tuner_js(_req):
         return web.FileResponse(_STATIC / "tuner.js")
