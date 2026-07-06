@@ -110,7 +110,7 @@ class FifthInproc:
             return False
 
     def _open_render_stream(
-        self, wav_path: str, video_path: str
+        self, wav_path: str, video_path: str, render_mode: str | None = None
     ) -> tuple[Callable[[int], bytes], http.client.HTTPConnection]:
         """POST /oth-path 요청 후 (read_exactly, conn) 반환.
 
@@ -120,7 +120,7 @@ class FifthInproc:
         status != 200 이면 그 자리에서 conn.close() 후 RuntimeError — 이 경우만
         _open_render_stream 내부에서 닫는다(람다 반환이 없으므로 안전).
         """
-        body = self._build_body(wav_path, video_path)
+        body = self._build_body(wav_path, video_path, render_mode=render_mode)
         parsed = urllib.parse.urlparse(self.render_url)
         host = parsed.hostname or "127.0.0.1"
         port = parsed.port or 80
@@ -141,14 +141,23 @@ class FifthInproc:
         raw_read = resp.read  # http.client response.read(n)
         return lambda n: _read_exactly(raw_read, n), conn
 
-    def _build_body(self, wav_path: str, video_path: str) -> dict:
+    def _build_body(
+        self, wav_path: str, video_path: str, render_mode: str | None = None
+    ) -> dict:
         """렌더 요청 body 구성. 설계 v3(공유 볼륨): 경로를 직접 전달.
 
         호스트-컨테이너가 /home/afterlife/afterlife-server 를 공유 마운트하므로
         wav_path 를 그대로 전달하면 렌더서버가 직접 파일을 읽을 수 있다.
         base64 인코딩 없음.
+
+        render_mode: None(기본)이면 body 에 키를 아예 생략 — fifth 렌더서버가
+        FIFTH_RENDER_MODE env fallback 을 타도록(T-113 Task1). None 이 아니면
+        그대로 실어 보낸다("partial"/"batch" 화이트리스트 검증은 상위 책임).
         """
-        return {"wav_path": wav_path, "video_path": video_path}
+        body: dict = {"wav_path": wav_path, "video_path": video_path}
+        if render_mode is not None:
+            body["render_mode"] = render_mode
+        return body
 
     def _decode_jpeg(self, jpeg_bytes: bytes):
         """jpeg bytes → RGB ndarray. cv2 없으면 ImportError."""
@@ -182,13 +191,17 @@ class FifthInproc:
         wav_path: str,
         on_frame: Callable,
         video_path: str | None = None,
+        render_mode: str | None = None,
     ) -> int:
         """wav → 프레임 생성마다 on_frame(rgb_ndarray) 호출. 반환: 프레임 수.
 
         Args:
-            wav_path:   추론할 wav 파일 경로 (렌더서버가 접근 가능한 공유 경로).
-            on_frame:   RGB ndarray 콜백. AvatarVideoTrack.push_ndarray 호환.
-            video_path: 이 호출에서만 사용할 클론 영상 경로. 생략 시 self.video_path.
+            wav_path:    추론할 wav 파일 경로 (렌더서버가 접근 가능한 공유 경로).
+            on_frame:    RGB ndarray 콜백. AvatarVideoTrack.push_ndarray 호환.
+            video_path:  이 호출에서만 사용할 클론 영상 경로. 생략 시 self.video_path.
+            render_mode: fifth /render body 에 실어 보낼 렌더 모드("partial"/"batch").
+                         생략(None) 시 body 에 키를 넣지 않아 fifth 가
+                         FIFTH_RENDER_MODE env fallback 을 타게 한다(회귀 0).
 
         Returns:
             총 프레임 수.
@@ -200,7 +213,9 @@ class FifthInproc:
             raise RuntimeError("FifthInproc.load() 를 먼저 호출하세요.")
         vp = video_path if video_path is not None else self.video_path
         with self._infer_lock:
-            read_exactly, conn = self._open_render_stream(wav_path, vp)
+            read_exactly, conn = self._open_render_stream(
+                wav_path, vp, render_mode=render_mode
+            )
             count = 0
             try:
                 for jpeg_bytes in parse_frame_stream(read_exactly):

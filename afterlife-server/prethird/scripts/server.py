@@ -122,7 +122,27 @@ def _build_pipeline_factory():
         if renderer_name == "fifth" and getattr(sess, "face_path", None) and _src != getattr(sess, "face_path", None):
             log.warning("face_path 파일 없음, 영상/halbae fallback: %s", sess.face_path)
 
-        def _infer_fn(wav, cb, _src=_src):
+        def _infer_fn(wav, cb, _src=_src, render_mode: str | None = None):
+            """[T-113 Task6] pipeline._infer_stage 가 넘기는 render_mode 를
+            fifth 렌더러에만 포워딩한다(batch 는 fifth 전용).
+
+            - renderer=fifth: FifthInproc.infer(..., render_mode=render_mode)
+              로 그대로 전달. render_mode=None(partial 경로 — pipeline이 이
+              kwarg 자체를 안 넘겨 이 파라미터 기본값 None 이 쓰이는 경우)이면
+              fifth_inproc 계약(Task2)상 body 에 키가 생략돼 현행과
+              byte-identical(회귀 0).
+            - renderer=musetalk 등: MuseTalkInproc.infer 는 render_mode 인자를
+              받지 않으므로(TypeError 방지) 절대 전달하지 않고 무시한다.
+              batch 로 설정돼 있었다면 안전하게 무시됨을 로그로 남긴다.
+            """
+            if renderer_name == "fifth":
+                return renderer.infer(wav, cb, video_path=_src, render_mode=render_mode)
+            if render_mode is not None:
+                log.warning(
+                    "PRETHIRD_RENDER_MODE=%s 이나 renderer=%s(fifth 아님) — "
+                    "render_mode 무시(fifth 전용)",
+                    render_mode, renderer_name,
+                )
             return renderer.infer(wav, cb, video_path=_src)
 
         # idle prebake: fifth 렌더러 + 정면사진 source일 때만 실행
