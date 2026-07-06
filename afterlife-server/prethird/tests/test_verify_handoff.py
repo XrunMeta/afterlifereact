@@ -23,6 +23,36 @@ async def _fake_stream(messages, model=None, temperature=None):
 
 
 @pytest.mark.asyncio
+async def test_l2p_route_returns_speaker_l2(monkeypatch):
+    """[T-116 버그수정] GET /oth-path — 화자별 clone_ont_person 조회(L2 패널 표시용)."""
+    async def fake_dev_l2p(clone_id, person_id):
+        return {"data": {"relation": "형", "preference_personal": {"음료": "아메리카노"}}, "displayName": "형"}
+    monkeypatch.setattr(ce, "_dev_l2p_data", fake_dev_l2p)
+    monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.get("/oth-path?clone_id=9055&person_id=3", headers={"Authorization": "Bearer T"})
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["displayName"] == "형"
+        assert body["data"]["relation"] == "형"
+
+
+@pytest.mark.asyncio
+async def test_l2p_route_401_without_token():
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.get("/oth-path?clone_id=9055&person_id=3")
+        assert resp.status == 401
+
+
+@pytest.mark.asyncio
+async def test_l2p_route_400_bad_params(monkeypatch):
+    monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")
+    async with TestClient(TestServer(_app())) as client:
+        resp = await client.get("/oth-path?clone_id=abc&person_id=3", headers={"Authorization": "Bearer T"})
+        assert resp.status == 400
+
+
+@pytest.mark.asyncio
 async def test_chat_injects_speaker_hint(monkeypatch):
     monkeypatch.setattr(ce, "_DEV_SECRET", "devsecret")  # 오버레이는 DEV_SECRET 설정 시에만 시도(브리프 c 가드)
     monkeypatch.setattr(ce, "fetch_bundle", _fake_bundle)
