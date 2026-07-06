@@ -99,7 +99,11 @@ class RunKnobs:
                 idle_rms_low=_env_f("FIFTH_IDLE_RMS_LOW", 0.05),
                 idle_rms_high=_env_f("FIFTH_IDLE_RMS_HIGH", 0.3),
                 head_slew_frames=_env_i("FIFTH_HEAD_SLEW_FRAMES", 5),
-                render_mode=os.environ.get("FIFTH_RENDER_MODE", "partial"),
+                # T-113 Task3: PRETHIRD_RENDER_MODE(host, prethird pipeline이 직접 읽음)가
+                # 우선, 미설정 시 기존 FIFTH_RENDER_MODE(컨테이너, T-111 호환) 폴백.
+                render_mode=os.environ.get(
+                    "PRETHIRD_RENDER_MODE", os.environ.get("FIFTH_RENDER_MODE", "partial")
+                ),
             ),
             transport=TransportKnobs(
                 playback_buffer_ms=_env_i("PRETHIRD_PLAYBACK_BUFFER_MS", 0),
@@ -165,7 +169,7 @@ KNOB_META: dict[str, dict] = {
     "fifth.head_slew_frames":  {"type": "number", "choices": None, "reflow": "container", "label": "head slew"},
     "fifth.cfg_scale":         {"type": "number", "choices": None, "reflow": "container", "label": "cfg scale"},
     "fifth.driving_multiplier":{"type": "number", "choices": None, "reflow": "container", "label": "driving mult"},
-    "fifth.render_mode":       {"type": "enum",   "choices": ["partial", "batch"], "reflow": "container", "label": "생성 모드"},
+    "fifth.render_mode":       {"type": "enum",   "choices": ["partial", "batch"], "reflow": "next_call", "label": "생성 모드(partial/batch)"},
     "transport.playback_buffer_ms": {"type": "number", "choices": None, "reflow": "next_call", "label": "재생 버퍼(ms)"},
     "transport.idle_grace_sec":{"type": "number", "choices": None, "reflow": "next_call", "label": "idle grace(s)"},
     "transport.width":         {"type": "number", "choices": None, "reflow": "next_call", "label": "너비"},

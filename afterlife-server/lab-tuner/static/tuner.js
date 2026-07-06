@@ -149,6 +149,13 @@ async function loadKnobs() {
       const label = document.createElement('label'); label.textContent = m.label || key;
       const note = REFLOW_NOTE[m.reflow];
       if (note) { const s = document.createElement('span'); s.className = 'reflow-chip'; s.textContent = note; label.appendChild(s); }
+
+      if (KNOB_ENV_MAP[path]) {
+        const badge = document.createElement('span');
+        badge.id = `running-${path}`; badge.className = 'reflow-chip';
+        badge.textContent = '실행값 조회중...';
+        label.appendChild(badge);
+      }
       row.appendChild(label);
       let ctrl;
       if (m.type === 'bool') {                     
@@ -191,6 +198,37 @@ async function loadKnobs() {
   }
   refreshTtsDim();
   document.getElementById('k_tts_engine')?.addEventListener('change', refreshTtsDim);
+  applyKnobDriftBadges();   
+}
+
+const KNOB_ENV_MAP = { 'fifth.render_mode': 'PRETHIRD_RENDER_MODE' };
+let lastProdRows = null;   
+let lastProdMainPid = null;   
+
+function applyKnobDriftBadges() {
+  if (!lastProdRows) return;
+  const rowsByEnv = {};
+  for (const r of lastProdRows) rowsByEnv[r.env] = r;
+  for (const [path, env] of Object.entries(KNOB_ENV_MAP)) {
+    const badge = document.getElementById(`running-${path}`);
+    const ctrl = document.getElementById(`k_${path.replace('.', '_')}`);
+    if (!badge || !ctrl) continue;   
+    const row = rowsByEnv[env];
+
+    if (!row || row.state === 'unknown') {
+      badge.textContent = '실제: 확인불가(prethird 미기동?)';
+      badge.className = 'reflow-chip';
+      continue;
+    }
+    const selected = ctrl.value;
+    if (selected !== row.running) {
+      badge.textContent = `⚠ 선택:${selected} · 실제:${row.running} · 재기동 필요`;
+      badge.className = 'reflow-chip chip-drift';
+    } else {
+      badge.textContent = `실제:${row.running}`;
+      badge.className = 'reflow-chip chip-ok';
+    }
+  }
 }
 
 function refreshTtsDim() {
@@ -289,6 +327,8 @@ async function loadProdStatus() {
   const box = document.getElementById('prod-status');
   try {
     const d = await (await fetch('/production-status')).json();
+    lastProdRows = d.rows || [];   
+    lastProdMainPid = d.mainpid ?? null;   
     let html = `<div style="color:var(--text-dim)">MainPID: ${escapeHtml(d.mainpid ?? '-')} · ${escapeHtml(d.generated_at)}</div>`;
     html += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
     for (const r of d.rows) {
@@ -298,6 +338,7 @@ async function loadProdStatus() {
     }
     html += '</table>';
     box.innerHTML = html;
+    applyKnobDriftBadges();   
   } catch (e) { box.innerHTML = '<i>상태 조회 실패</i>'; }
 }
 
@@ -349,8 +390,89 @@ async function promoteApply() {
   } catch (e) { cbox.innerHTML = '<i>promote apply 실패</i>'; }
 }
 
+async function restartShowConfirm() {
+  const cbox = document.getElementById('restart-confirm');
+  cbox.style.display = 'block';
+  cbox.innerHTML = '<div><i>미적용 변경 확인 중…</i></div>';
+
+  let warnHtml = '';
+  try {
+    const d = await (await fetch('/promote/preview', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}'})).json();
+    if ((d.entries || []).length) {
+      warnHtml = '<div style="color:var(--red)"><b>⚠️ 아직 라이브 적용(promote) 안 된 변경이 있습니다. '+
+        '재기동해도 반영 안 돼요 — 먼저 &#39;라이브 적용&#39;을 하세요.</b></div>';
+    }
+  } catch (e) {  }
+  cbox.innerHTML = warnHtml +
+    '<div style="border:1px solid var(--red);border-radius:4px;padding:8px;margin-top:8px">'+
+    '<b>prethird 재기동 — 진행중 통화 끊길 수 있음. 계속?</b><br>'+
+    '<button id="restart-go" class="primary">확인·재기동</button> '+
+    '<button id="restart-cancel">취소</button></div>';
+  document.getElementById('promote-token').style.display = 'block';
+  document.getElementById('restart-go').onclick = restartApply;
+  document.getElementById('restart-cancel').onclick = () => { cbox.style.display = 'none'; };
+}
+
+async function pollForNewMainPid(oldMainPid, cbox) {
+  const maxAttempts = 10;
+  for (let i = 1; i <= maxAttempts; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    cbox.innerHTML = `<div>재기동 중… 새 프로세스 기동 확인중(${i * 2}s/${maxAttempts * 2}s)</div>`;
+    try {
+      const d = await (await fetch('/production-status')).json();
+      if (d.mainpid && d.mainpid !== oldMainPid) {
+        lastProdRows = d.rows || [];
+        lastProdMainPid = d.mainpid;
+        return true;
+      }
+    } catch (e) {  }
+  }
+  return false;
+}
+
+async function restartApply() {
+  const cbox = document.getElementById('restart-confirm');
+  const token = document.getElementById('promote-token').value;
+
+  const headers = {'Content-Type':'application/json'};
+  if (token) headers['X-Lab-Tuner-Token'] = token;
+  const oldMainPid = lastProdMainPid;   
+  try {
+    const r = await fetch('/promote/restart', {method:'POST', headers,
+      body: JSON.stringify({confirm: "RESTART", confirm2: true})});
+    if (r.status === 401 || r.status === 403) {
+      cbox.innerHTML = '<i>인증 실패 — LAB_TUNER_TOKEN 확인</i>'; return; }
+    let d = {};
+    try { d = await r.json(); } catch (_) {  }
+    if (!r.ok) {
+      cbox.innerHTML = '<i>실패: ' + escapeHtml(d.error || (r.status + ' 오류')) + '</i>';
+      return;
+    }
+    cbox.innerHTML = `<div>재기동 요청 완료(returncode=${escapeHtml(d.restart_returncode)}) — `+
+      `새 프로세스 기동 대기중…</div>`;
+    const started = await pollForNewMainPid(oldMainPid, cbox);
+    if (started) {
+      cbox.innerHTML = `<div>재기동 완료(MainPID:${escapeHtml(lastProdMainPid)}) — 실행값 갱신됨</div>`;
+      await loadProdStatus();
+    } else {
+      cbox.innerHTML = '<i>재기동 확인 시간초과(20s) — "프로덕션 상태" 새로고침으로 직접 확인하세요</i>';
+    }
+  } catch (e) { cbox.innerHTML = '<i>재기동 요청 실패</i>'; }
+}
+
+async function loadDevToken() {
+  try {
+    const r = await fetch('/dev-token');
+    if (!r.ok) return;   
+    const d = await r.json();
+    if (d.token) document.getElementById('promote-token').value = d.token;
+  } catch (e) {  }
+}
+
 document.getElementById('apply-knobs').onclick = applyKnobs;
 document.getElementById('promote').onclick = promotePreview;
+document.getElementById('restart-prethird').onclick = restartShowConfirm;
 document.getElementById('say-btn').onclick = sendSay;
 document.getElementById('say-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.isComposing) {   
@@ -365,7 +487,7 @@ document.getElementById('refresh-prod').onclick = loadProdStatus;
 document.getElementById('login-btn').onclick = login;
 document.getElementById('connect-btn').onclick = connect;
 
-loadKnobs(); startMetrics(); loadRuns(); loadProdStatus();
+loadKnobs(); startMetrics(); loadRuns(); loadProdStatus(); loadDevToken();
 renderMeter();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);

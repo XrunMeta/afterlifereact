@@ -1620,3 +1620,125 @@ def test_boundary_idx_uses_actual_chunk_a_frame_count():
     assert boundary_estimated != boundary_actual, (
         "이 케이스에서 추산과 실측이 다름 — 실측을 써야 한다"
     )
+
+
+# ---------------------------------------------------------------------------
+# T-113: body render_mode per-request override wiring (호출 경로 회귀 방지)
+# 단위 테스트(test_render_mode.py)는 is_batch() 판정만 검증한다. 여기서는
+# _parse_render_body → render_opts["render_mode"] 추출과 RenderService.render()
+# 의 body override 우선순위(env 를 이김)를 "실제 호출 경로"로 고정한다.
+# 미래 리팩터(kwarg 이름 변경·do_POST pass-through 삭제)에서 silent regression 차단.
+# ---------------------------------------------------------------------------
+
+
+def test_parse_render_body_extracts_render_mode():
+    """body 의 render_mode 키가 render_opts["render_mode"] 로 실제 추출된다."""
+    import json
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "render_mode": "batch",
+    }).encode()
+    _, _, _, opts = _parse_render_body(body)
+    assert opts["render_mode"] == "batch"
+
+
+def test_parse_render_body_render_mode_absent_is_none():
+    """render_mode 키 없음 → None (is_batch(None)이 env fallback 을 타게 함)."""
+    import json
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({"wav_path": "/tmp/a.wav", "video_path": "/ref/idle.mp4"}).encode()
+    _, _, _, opts = _parse_render_body(body)
+    assert opts["render_mode"] is None
+
+
+def test_parse_render_body_render_mode_empty_string_normalized_to_none():
+    """render_mode="" (빈 문자열) → None 정규화 → env fallback (회귀 0).
+
+    Fix 2: `req.get("render_mode") or None` 가드가 없으면 ""가 명시적
+    non-batch override 로 처리돼 FIFTH_RENDER_MODE env 가 무력화된다.
+    """
+    import json
+    from fifth_render_server import _parse_render_body
+
+    body = json.dumps({
+        "wav_path": "/tmp/a.wav",
+        "video_path": "/ref/idle.mp4",
+        "render_mode": "",
+    }).encode()
+    _, _, _, opts = _parse_render_body(body)
+    assert opts["render_mode"] is None
+
+
+def test_render_body_override_batch_beats_partial_env(tmp_path, monkeypatch):
+    """env=partial 인데 render(render_mode="batch") → 실제 batch(버퍼링) 경로가 탄다.
+
+    _stream_wav_fn 을 감싸 on_frame 호출 도중 buf 가 비어 있는지(스트리밍 안 됨)
+    관찰. batch override 가 이기면 마지막 flush 전까지 buf 는 계속 비어 있어야 한다.
+    """
+    wav = _make_wav(tmp_path)
+    monkeypatch.setenv("FIFTH_RENDER_MODE", "partial")  # env 는 partial
+    svc, _, _ = _make_service(tmp_path)
+
+    buf = io.BytesIO()
+    observed_mid_render_lengths: list[int] = []
+    orig = svc._stream_wav_fn
+
+    def _spying(engine, jp, cfg, sources, wav_path, on_frame, blink_enabled, phase_token=None, **kw):
+        def _spy_on_frame(f):
+            on_frame(f)
+            observed_mid_render_lengths.append(len(buf.getvalue()))
+        return orig(engine, jp, cfg, sources, wav_path, _spy_on_frame, blink_enabled, phase_token, **kw)
+
+    svc._stream_wav_fn = _spying
+
+    count = svc.render(
+        wav_path=wav,
+        video_path="/fake/9055/idle.mp4",
+        write=buf.write,
+        render_mode="batch",   # body override → env(partial) 를 이겨야 함
+    )
+
+    assert count > 0
+    # batch 경로: 프레임 생성 중에는 buf 가 계속 비어 있음(버퍼링만)
+    assert observed_mid_render_lengths == [0] * len(observed_mid_render_lengths)
+    # render() 반환 후 flush 되어 있어야 함
+    assert len(buf.getvalue()) > 0
+
+
+def test_render_body_override_partial_beats_batch_env(tmp_path, monkeypatch):
+    """env=batch 인데 render(render_mode="partial") → 실제 partial(즉시 스트리밍) 경로.
+
+    반대 방향 override 도 이기는지 확인 — partial 이면 첫 프레임 write 직후 buf 가
+    즉시 채워진다(버퍼링 안 함).
+    """
+    wav = _make_wav(tmp_path)
+    monkeypatch.setenv("FIFTH_RENDER_MODE", "batch")  # env 는 batch
+    svc, _, _ = _make_service(tmp_path)
+
+    buf = io.BytesIO()
+    observed_mid_render_lengths: list[int] = []
+    orig = svc._stream_wav_fn
+
+    def _spying(engine, jp, cfg, sources, wav_path, on_frame, blink_enabled, phase_token=None, **kw):
+        def _spy_on_frame(f):
+            on_frame(f)
+            observed_mid_render_lengths.append(len(buf.getvalue()))
+        return orig(engine, jp, cfg, sources, wav_path, _spy_on_frame, blink_enabled, phase_token, **kw)
+
+    svc._stream_wav_fn = _spying
+
+    count = svc.render(
+        wav_path=wav,
+        video_path="/fake/9055/idle.mp4",
+        write=buf.write,
+        render_mode="partial",   # body override → env(batch) 를 이겨야 함
+    )
+
+    assert count > 0
+    # partial 경로: 첫 프레임부터 즉시 write → 관찰 시점마다 buf 가 이미 커져 있음
+    assert observed_mid_render_lengths[0] > 0
+    assert all(x > 0 for x in observed_mid_render_lengths)
