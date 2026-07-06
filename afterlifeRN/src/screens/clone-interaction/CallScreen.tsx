@@ -993,9 +993,10 @@ export default function CallScreen({ route, navigation }: Props) {
         </Pressable>
       ) : null}
 
-      {}
+      {
+}
       <View
-        style={[s.watermarkLayer, { bottom: bottomInset + 12 }]}
+        style={[s.watermarkLayer, { bottom: bottomInset + 96 }]}
         pointerEvents="none"
       >
         <Text style={s.watermarkText}>afterlife</Text>
@@ -1168,7 +1169,7 @@ const s = StyleSheet.create({
   },
   watermarkText: {
     color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 13,
+    fontSize: 20,
     fontWeight: "600",
     letterSpacing: 0.5,
 
