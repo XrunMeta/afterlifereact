@@ -349,8 +349,44 @@ async function promoteApply() {
   } catch (e) { cbox.innerHTML = '<i>promote apply 실패</i>'; }
 }
 
+function restartShowConfirm() {
+  const cbox = document.getElementById('restart-confirm');
+  cbox.style.display = 'block';
+  cbox.innerHTML = '<div style="border:1px solid var(--red);border-radius:4px;padding:8px;margin-top:8px">'+
+    '<b>prethird 재기동 — 진행중 통화 끊길 수 있음. 계속?</b><br>'+
+    '<button id="restart-go" class="primary">확인·재기동</button> '+
+    '<button id="restart-cancel">취소</button></div>';
+  document.getElementById('promote-token').style.display = 'block';
+  document.getElementById('restart-go').onclick = restartApply;
+  document.getElementById('restart-cancel').onclick = () => { cbox.style.display = 'none'; };
+}
+
+async function restartApply() {
+  const cbox = document.getElementById('restart-confirm');
+  const token = document.getElementById('promote-token').value;
+
+  const headers = {'Content-Type':'application/json'};
+  if (token) headers['X-Lab-Tuner-Token'] = token;
+  try {
+    const r = await fetch('/promote/restart', {method:'POST', headers,
+      body: JSON.stringify({confirm: "RESTART", confirm2: true})});
+    if (r.status === 401 || r.status === 403) {
+      cbox.innerHTML = '<i>인증 실패 — LAB_TUNER_TOKEN 확인</i>'; return; }
+    let d = {};
+    try { d = await r.json(); } catch (_) {  }
+    if (!r.ok) {
+      cbox.innerHTML = '<i>실패: ' + escapeHtml(d.error || (r.status + ' 오류')) + '</i>';
+      return;
+    }
+    cbox.innerHTML = `<div>재기동 요청 완료(returncode=${escapeHtml(d.restart_returncode)}): `+
+      `${escapeHtml(d.mainpid_info ?? '')}</div>`;
+    await loadProdStatus();
+  } catch (e) { cbox.innerHTML = '<i>재기동 요청 실패</i>'; }
+}
+
 document.getElementById('apply-knobs').onclick = applyKnobs;
 document.getElementById('promote').onclick = promotePreview;
+document.getElementById('restart-prethird').onclick = restartShowConfirm;
 document.getElementById('say-btn').onclick = sendSay;
 document.getElementById('say-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.isComposing) {   
