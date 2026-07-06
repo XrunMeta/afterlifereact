@@ -191,6 +191,27 @@ def test_js_promote_apply_handles_non_2xx():
     assert "e.value" not in js
 
 
+# ---------------------------------------------------------------------------
+# T-113 Task3-A: prethird 재기동 버튼 (render_mode 등 next_call 노브 반영)
+# ---------------------------------------------------------------------------
+
+def test_html_has_restart_button():
+    with open(os.path.join(_STATIC, "tuner.html")) as f:
+        html = f.read()
+    assert 'id="restart-prethird"' in html
+
+
+def test_js_restart_wired_with_two_stage_confirm_body():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/promote/restart" in js
+    # app.py promote_restart 계약: confirm:"RESTART" + confirm2:true 둘 다 필요.
+    assert '"RESTART"' in js or "'RESTART'" in js
+    assert "confirm2" in js
+    # 브라우저 모달 금지 원칙은 재기동 확인에도 적용(인라인 UX).
+    assert "restart-confirm" in js
+
+
 def test_js_send_say_returns_boolean_and_gates_clear():
     with open(os.path.join(_STATIC, "tuner.js")) as f:
         js = f.read()

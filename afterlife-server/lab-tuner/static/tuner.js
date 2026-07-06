@@ -349,8 +349,44 @@ async function v_150d46() {
   } catch (v_9e86fd) { v_e926e3.innerHTML = '<i>promote apply 실패</i>'; }
 }
 
+function v_3fd5d1() {
+  const v_e926e3 = document.getElementById('restart-confirm');
+  v_e926e3.style.display = 'block';
+  v_e926e3.innerHTML = '<div style="border:1px solid var(--red);border-radius:4px;padding:8px;margin-top:8px">'+
+    '<b>prethird 재기동 — 진행중 통화 끊길 수 있음. 계속?</b><br>'+
+    '<button id="restart-go" class="primary">확인·재기동</button> '+
+    '<button id="restart-cancel">취소</button></div>';
+  document.getElementById('promote-token').style.display = 'block';
+  document.getElementById('restart-go').onclick = v_f45ddd;
+  document.getElementById('restart-cancel').onclick = () => { v_e926e3.style.display = 'none'; };
+}
+
+async function v_f45ddd() {
+  const v_e926e3 = document.getElementById('restart-confirm');
+  const v_21cc31 = document.getElementById('promote-token').value;
+
+  const v_3f4675 = {'Content-Type':'application/json'};
+  if (v_21cc31) v_3f4675['X-Lab-Tuner-Token'] = v_21cc31;
+  try {
+    const v_cb35cb = await fetch('/promote/restart', {method:'POST', headers: v_3f4675,
+      body: JSON.stringify({confirm: "RESTART", confirm2: true})});
+    if (v_cb35cb.status === 401 || v_cb35cb.status === 403) {
+      v_e926e3.innerHTML = '<i>인증 실패 — LAB_TUNER_TOKEN 확인</i>'; return; }
+    let v_d5dda0 = {};
+    try { v_d5dda0 = await v_cb35cb.json(); } catch (v_37eab7) {  }
+    if (!v_cb35cb.ok) {
+      v_e926e3.innerHTML = '<i>실패: ' + v_8fd199(v_d5dda0.error || (v_cb35cb.status + ' 오류')) + '</i>';
+      return;
+    }
+    v_e926e3.innerHTML = `<div>재기동 요청 완료(returncode=${v_8fd199(v_d5dda0.restart_returncode)}): `+
+      `${v_8fd199(v_d5dda0.mainpid_info ?? '')}</div>`;
+    await v_187e1c();
+  } catch (v_9e86fd) { v_e926e3.innerHTML = '<i>재기동 요청 실패</i>'; }
+}
+
 document.getElementById('apply-knobs').onclick = v_9a2a8d;
 document.getElementById('promote').onclick = v_3e5dbc;
+document.getElementById('restart-prethird').onclick = v_3fd5d1;
 document.getElementById('say-btn').onclick = v_409b14;
 document.getElementById('say-input').addEventListener('keydown', (v_9e86fd) => {
   if (v_9e86fd.key === 'Enter' && !v_9e86fd.isComposing) {   
