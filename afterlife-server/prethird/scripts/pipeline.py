@@ -205,7 +205,13 @@ class DialoguePipeline:
     ) -> None:
         """persona_messages + 시스템 지시(prompt) 1개를 LLM→TTS→infer→push 파이프라인으로 발화.
         greet()·react() 공용 헬퍼 — user 텍스트 대신 지시문을 주는 것만 다르다.
-        label: 로그 메시지 구분용("greet"|"react")."""
+        label: 로그 메시지 구분용("greet"|"react").
+
+        [실통화 디버그] force_partial=True 로 항상 partial 경로 강제 — 시스템
+        선제발화(greet/react)는 한 문장 인사/맞이말이라 batch(전체 렌더 후
+        재생)를 타면 TTFF 가 늘어나 프론트 GREET_TIMEOUT(7s) 을 넘기고
+        dialing 화면이 고착된다(실통화 확인). say()/speak()(사용자 응답)는
+        이 헬퍼를 거치지 않으므로 batch 그대로 유지된다."""
         turn = turn if turn is not None else NULL_TURN
         if self.clone_locked and not self.se_path:
             log.warning("clone voice 미준비 — %s skip (폴백 없음)", label)
@@ -222,7 +228,9 @@ class DialoguePipeline:
                 await q.put(s)
             await q.put(None)
 
-        await self._run_pipeline(produce, turn, on_first_audio, on_response_ready)
+        await self._run_pipeline(
+            produce, turn, on_first_audio, on_response_ready, force_partial=True,
+        )
 
     # ------------------------------------------------------------------
     # 내부: 문장 1개 처리 (스테이지 분리)
@@ -346,13 +354,22 @@ class DialoguePipeline:
     # 내부: 오버랩 파이프라인
     # ------------------------------------------------------------------
 
-    async def _run_pipeline(self, produce, turn=None, on_first_audio=None, on_response_ready=None) -> None:
+    async def _run_pipeline(
+        self, produce, turn=None, on_first_audio=None, on_response_ready=None,
+        force_partial: bool = False,
+    ) -> None:
         """[T-113] render_mode 분기 진입점(스캐폴드). partial(기본)은 기존 오버랩
         파이프라인(_run_pipeline_partial, 완전 무변경)을 그대로 호출한다.
-        batch 는 아직 실구현 없음 — 이번 태스크에서는 partial 경로에 위임
-        (실제 배치 구현은 다음 태스크). self._render_mode 는 __init__ 시점에
-        _resolve_render_mode() 로 1회 확정된 값."""
-        if self._render_mode == "batch":
+        self._render_mode 는 __init__ 시점에 _resolve_render_mode() 로 1회 확정된 값.
+
+        force_partial: [실통화 디버그] True 면 render_mode 설정과 무관하게 항상
+          partial 경로를 탄다. greet()·react() 같은 시스템 선제발화(한 문장 인사)
+          는 batch(전체 답변 단일 렌더) 를 타면 TTFF 가 6~8초로 늘어나
+          프론트 GREET_TIMEOUT(7s) 을 넘겨 dialing 화면이 고착되는 실통화
+          회귀가 확인됨 — greet/react 는 _system_utterance 가 이 플래그로
+          강제 partial 배선. say()/speak()(사용자 응답, batch 대상)는
+          force_partial 을 전달하지 않아(기본 False) 절대 영향받지 않는다."""
+        if self._render_mode == "batch" and not force_partial:
             await self._run_batch(produce, turn, on_first_audio, on_response_ready)
         else:
             await self._run_pipeline_partial(produce, turn, on_first_audio, on_response_ready)
