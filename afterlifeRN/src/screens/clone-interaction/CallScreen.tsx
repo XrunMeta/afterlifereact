@@ -782,7 +782,8 @@ export default function CallScreen({ route, navigation }: Props) {
             position: "absolute",
             left: 8,
             right: 8,
-            bottom: 8,
+
+            bottom: bottomInset + 96,
             zIndex: 20,
             flexDirection: "row",
             alignItems: "center",
