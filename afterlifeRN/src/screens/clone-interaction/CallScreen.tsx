@@ -13,6 +13,7 @@ import {
   v_a2349e,
   v_326be8,
   v_e767d1,
+  v_0e1f26,
   v_79c4f2,
   v_03e392,
   v_f2c756,
@@ -197,6 +198,19 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
   } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "", onEnrollSuggest: v_b12d63 });
 
   const [v_69c045, v_58e7a2] = v_5ab095("");
+
+  const [v_e35303, v_71afec] = v_5ab095(0);
+  v_c4deb2(() => {
+    if (!__DEV__) return;
+    const v_53f5d7 = v_0e1f26.addListener("keyboardDidShow", (v_9e86fd) =>
+      v_71afec(v_9e86fd.endCoordinates.height),
+    );
+    const v_52528b = v_0e1f26.addListener("keyboardDidHide", () => v_71afec(0));
+    return () => {
+      v_53f5d7.remove();
+      v_52528b.remove();
+    };
+  }, []);
 
   const v_d7cf17 = v_a6928f && typeof v_009e58 === 'function';
 
@@ -776,14 +790,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
       ) : null}
 
       {__DEV__ && v_6cc918 === "live" ? (
-        <KeyboardAvoidingView
-          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+        <View
           style={{
             position: "absolute",
             left: 8,
             right: 8,
 
-            bottom: v_53dd92 + 96,
+            bottom: v_e35303 > 0 ? v_e35303 + 58 : v_53dd92 + 96,
             zIndex: 20,
             flexDirection: "row",
             alignItems: "center",
@@ -809,7 +822,7 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
           >
             <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
           </TouchableOpacity>
-        </KeyboardAvoidingView>
+        </View>
       ) : null}
 
       {}
