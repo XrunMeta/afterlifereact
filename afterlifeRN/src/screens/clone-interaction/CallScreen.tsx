@@ -1171,6 +1171,10 @@ const s = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     letterSpacing: 0.5,
+
+    textShadowColor: "rgba(60, 60, 60, 0.9)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 2,
   },
   container: {
     flex: 1,
