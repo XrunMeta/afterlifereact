@@ -2,6 +2,7 @@
 
 import v_a3453e from "bapkr";
 import { v_3094a2, v_19b633, v_79c4f2, v_4623af, v_472849 } from "rcmrninabrnb";
+import { v_e0068c } from "vvfgtwbmdpbnvhtfbtbgudicfmpscw";
 import { v_1bfbd0, v_8b0c90 } from "../constants";
 
 export const v_6fd3d6 = 30;
@@ -26,6 +27,7 @@ export interface FaceEnrollCardProps {
 
 export function v_b519ed(v_b1927c): v_a3453e.ReactElement | null {
   const { visible: v_cf55be, name: v_1833e7, onChangeName: v_a8c11d, onConfirm: v_e2be2d, onDismiss: v_1b97a8, onViewPolicy: v_ae0e75, busy: v_3f8465 } = v_b1927c;
+  const v_033e14 = v_e0068c();
   if (!v_cf55be) return null;
 
   const v_2f361a = v_1833e7.trim();
@@ -33,7 +35,10 @@ export function v_b519ed(v_b1927c): v_a3453e.ReactElement | null {
   const v_196c0d = !!v_3f8465;
 
   return (
-    <View style={v_d81136.container} testID="face-enroll-card">
+    <View
+      style={[v_d81136.container, { bottom: v_033e14.bottom + 112 }]}
+      testID="face-enroll-card"
+    >
       <Text style={v_d81136.title}>이 분을 기억할까요?</Text>
       <TextInput
         style={v_d81136.input}
@@ -84,7 +89,7 @@ const v_d81136 = v_472849.create({
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 24,
+
     backgroundColor: v_1bfbd0.zinc900,
     borderRadius: v_8b0c90.lg,
     padding: 16,
