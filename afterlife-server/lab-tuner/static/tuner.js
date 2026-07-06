@@ -390,10 +390,22 @@ async function promoteApply() {
   } catch (e) { cbox.innerHTML = '<i>promote apply 실패</i>'; }
 }
 
-function restartShowConfirm() {
+async function restartShowConfirm() {
   const cbox = document.getElementById('restart-confirm');
   cbox.style.display = 'block';
-  cbox.innerHTML = '<div style="border:1px solid var(--red);border-radius:4px;padding:8px;margin-top:8px">'+
+  cbox.innerHTML = '<div><i>미적용 변경 확인 중…</i></div>';
+
+  let warnHtml = '';
+  try {
+    const d = await (await fetch('/promote/preview', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}'})).json();
+    if ((d.entries || []).length) {
+      warnHtml = '<div style="color:var(--red)"><b>⚠️ 아직 라이브 적용(promote) 안 된 변경이 있습니다. '+
+        '재기동해도 반영 안 돼요 — 먼저 &#39;라이브 적용&#39;을 하세요.</b></div>';
+    }
+  } catch (e) {  }
+  cbox.innerHTML = warnHtml +
+    '<div style="border:1px solid var(--red);border-radius:4px;padding:8px;margin-top:8px">'+
     '<b>prethird 재기동 — 진행중 통화 끊길 수 있음. 계속?</b><br>'+
     '<button id="restart-go" class="primary">확인·재기동</button> '+
     '<button id="restart-cancel">취소</button></div>';
