@@ -302,6 +302,43 @@ async def test_promote_restart_without_two_step_confirm_returns_400(tmp_path, mo
         await client.close()
 
 
+@pytest.mark.asyncio
+async def test_promote_restart_runs_daemon_reload_before_restart(tmp_path, monkeypatch):
+    # 뒷정리(실서버 검증 확인 gap): drop-in 변경 후 daemon-reload 없이 restart하면
+    # systemd가 "changed on disk" 상태로 옛 env를 물고 뜬다 — daemon-reload가
+    # restart보다 먼저(그리고 정확한 인자로) 호출되는지 호출 시퀀스로 검증.
+    import subprocess as _subprocess
+    calls = []
+
+    class _FakeCompleted:
+        def __init__(self, args):
+            self.args = args
+            self.returncode = 0
+            self.stdout = "MainPID=12345" if args[:2] == ["systemctl", "show"] else ""
+            self.stderr = ""
+
+    def _fake_run(args, **kw):
+        calls.append(args)
+        return _FakeCompleted(args)
+    monkeypatch.setattr(_subprocess, "run", _fake_run)
+
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.post("/promote/restart",
+                                  json={"confirm": "RESTART", "confirm2": True})
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["daemon_reload_returncode"] == 0
+        # 호출 시퀀스: daemon-reload가 restart보다 먼저, 인자는 절대 변경 금지 항목.
+        assert calls[0] == ["sudo", "systemctl", "daemon-reload"]
+        assert calls[1] == ["sudo", "systemctl", "restart", "afterlife-prethird"]
+        assert calls[2] == ["systemctl", "show", "afterlife-prethird", "--property=MainPID"]
+    finally:
+        await client.close()
+
+
 # ---------------------------------------------------------------------------
 # mizu HIGH 3: promote mutating 엔드포인트 인증(LAB_TUNER_TOKEN)
 # ---------------------------------------------------------------------------

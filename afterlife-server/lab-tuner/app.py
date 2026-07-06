@@ -335,6 +335,15 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
                 status=400,
             )
         import subprocess
+        # 뒷정리(실서버 검증에서 확인된 gap): promote가 drop-in(lab-tuner.conf)을
+        # 새로 쓰거나 고치면 systemd 유닛이 "changed on disk" 상태가 되어,
+        # daemon-reload 없이 restart하면 옛 env로 뜬다(수동 daemon-reload로만
+        # batch가 반영됐던 사례) — restart 앞에서 항상 선행한다. daemon-reload가
+        # 실패해도 restart 자체는 시도하되(fail-open), 실패 사실은 응답에 남긴다.
+        reload_proc = subprocess.run(
+            ["sudo", "systemctl", "daemon-reload"],
+            capture_output=True, text=True, timeout=30,
+        )
         proc = subprocess.run(
             ["sudo", "systemctl", "restart", "afterlife-prethird"],
             capture_output=True, text=True, timeout=30,
@@ -344,6 +353,8 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             capture_output=True, text=True, timeout=10,
         )
         return web.json_response({
+            "daemon_reload_returncode": reload_proc.returncode,
+            "daemon_reload_stderr": reload_proc.stderr,
             "restart_returncode": proc.returncode,
             "restart_stderr": proc.stderr,
             "mainpid_info": status.stdout.strip(),
