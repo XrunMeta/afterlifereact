@@ -457,18 +457,21 @@ v_dcd415.get("/dev/clones/:id/l2p-raw", async (v_3f4e2e) => {
   if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0 || !Number.isInteger(v_ca1ec5) || v_ca1ec5 <= 0) {
     return v_3f4e2e.json({ error: "invalid clone_id or personId" }, 400);
   }
+
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) return v_3f4e2e.json({ error: "clone_not_found" }, 404);
+
+  const v_306a28 = await v_3f4e2e.env.DB.prepare(
+    "SELECT user_id, display_name FROM persons WHERE id = ? AND (clone_id = ? OR clone_id IS NULL)"
+  ).bind(v_ca1ec5, v_6e0fd3).first<{ user_id: number; display_name: string | null }>();
+  if (!v_306a28) return v_3f4e2e.json({ error: "person_not_found" }, 404);
   const v_479f05 = await v_0761b1(v_3f4e2e.env, v_6e0fd3, v_ca1ec5);
   let v_9390e8 = null;
   if (v_479f05) { try { v_9390e8 = JSON.parse(v_479f05); } catch { v_9390e8 = null; } }
-  const v_306a28 = await v_3f4e2e.env.DB.prepare(
-    "SELECT user_id, display_name FROM persons WHERE id = ?"
-  ).bind(v_ca1ec5).first<{ user_id: number; display_name: string | null }>();
-  if (v_306a28) {
-    try {
-      await v_74defc(v_3f4e2e, { userId: v_306a28.user_id, action: "dev.l2p_raw.read", details: { cloneId: v_6e0fd3, personId: v_ca1ec5 } });
-    } catch {  }
-  }
-  return v_3f4e2e.json({ data: v_9390e8, displayName: v_306a28?.display_name ?? null });
+  try {
+    await v_74defc(v_3f4e2e, { userId: v_306a28.user_id, action: "dev.l2p_raw.read", details: { cloneId: v_6e0fd3, personId: v_ca1ec5 } });
+  } catch {  }
+  return v_3f4e2e.json({ data: v_9390e8, displayName: v_306a28.display_name ?? null });
 });
 
 const v_72ab95 = v_1f4ea7.object({
@@ -501,8 +504,10 @@ v_dcd415.post("/dev/clones/:id/ont-merge-person", async (v_3f4e2e) => {
 
   const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
   if (!v_eb25ce) return v_3f4e2e.json({ error: "clone_not_found" }, 404);
-  const v_306a28 = await v_3f4e2e.env.DB.prepare("SELECT user_id FROM persons WHERE id = ?")
-    .bind(v_ca1ec5).first<{ user_id: number }>();
+
+  const v_306a28 = await v_3f4e2e.env.DB.prepare(
+    "SELECT user_id FROM persons WHERE id = ? AND (clone_id = ? OR clone_id IS NULL)"
+  ).bind(v_ca1ec5, v_6e0fd3).first<{ user_id: number }>();
   if (!v_306a28) return v_3f4e2e.json({ error: "person_not_found" }, 404);
 
   let v_43c42e;

@@ -59,11 +59,17 @@ function v_92c239(v_6e0fd3, v_4d33b2, v_ea333d) {
 
 v_469bf2("dev person l2p endpoints", () => {
   let v_43e90c, v_6e0fd3, v_ca1ec5;
+  let v_65cfbc, v_b57ac3, v_aa9510;
 
   v_ba7107(async () => {
     v_43e90c = await v_bfb240("dev-l2p-person@test.local");
     v_6e0fd3 = await v_4d24a9(v_43e90c, "dev-l2p-person-clone");
     v_ca1ec5 = await v_2f0be6(v_43e90c, v_6e0fd3, "형");
+
+    v_65cfbc = await v_4d24a9(v_43e90c, "dev-l2p-person-clone-b");
+    v_b57ac3 = await v_2f0be6(v_43e90c, v_65cfbc, "다른형");
+
+    v_aa9510 = await v_2f0be6(v_43e90c, null, "전역이");
   });
 
   v_23805a("l2p-raw 401 without DEV_SECRET", async () => {
@@ -117,5 +123,51 @@ v_469bf2("dev person l2p endpoints", () => {
   v_23805a("ont-merge-person 401 without DEV_SECRET", async () => {
     const v_35f85c = await v_92c239(v_6e0fd3, { personId: v_ca1ec5, source: "chat", extracted: {} });
     v_4d37e3(v_35f85c.status).toBe(401);
+  });
+
+  v_23805a("l2p-raw 404 for unknown clone", async () => {
+    const v_cb35cb = await v_c599b8(999998, v_ca1ec5, v_7169b4);
+    v_4d37e3(v_cb35cb.status).toBe(404);
+    const v_148ff6 = await v_cb35cb.json<{ error: string }>();
+    v_4d37e3(v_148ff6.error).toBe("clone_not_found");
+  });
+
+  v_23805a("l2p-raw 404 for cross-clone person (열람 오라클 차단)", async () => {
+    const v_cb35cb = await v_c599b8(v_6e0fd3, v_b57ac3, v_7169b4);
+    v_4d37e3(v_cb35cb.status).toBe(404);
+    const v_148ff6 = await v_cb35cb.json<{ error: string }>();
+    v_4d37e3(v_148ff6.error).toBe("person_not_found");
+  });
+
+  v_23805a("ont-merge-person 404 for cross-clone person (유령 병합 차단)", async () => {
+    const v_35f85c = await v_92c239(
+      v_6e0fd3,
+      { personId: v_b57ac3, source: "chat", extracted: { relation: "x" } },
+      v_7169b4,
+    );
+    v_4d37e3(v_35f85c.status).toBe(404);
+    const v_148ff6 = await v_35f85c.json<{ error: string }>();
+    v_4d37e3(v_148ff6.error).toBe("person_not_found");
+
+    const v_3ac7e7 = await (v_c9c489.DB as unknown as D1Database)
+      .prepare("SELECT 1 FROM clone_ont_person WHERE clone_id = ? AND person_id = ?")
+      .bind(v_6e0fd3, v_b57ac3).first();
+    v_4d37e3(v_3ac7e7).toBeNull();
+  });
+
+  v_23805a("global person (clone_id IS NULL) allowed for any clone", async () => {
+    const v_cb35cb = await v_c599b8(v_6e0fd3, v_aa9510, v_7169b4);
+    v_4d37e3(v_cb35cb.status).toBe(200);
+    const v_90e603 = await v_cb35cb.json<{ displayName: string | null }>();
+    v_4d37e3(v_90e603.displayName).toBe("전역이");
+
+    const v_35f85c = await v_92c239(
+      v_6e0fd3,
+      { personId: v_aa9510, source: "chat", extracted: { relation: "지인" } },
+      v_7169b4,
+    );
+    v_4d37e3(v_35f85c.status).toBe(200);
+    const v_6c6b11 = await v_35f85c.json<{ data: { relation?: string } }>();
+    v_4d37e3(v_6c6b11.data.relation).toBe("지인");
   });
 });
