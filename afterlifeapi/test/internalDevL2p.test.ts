@@ -28,7 +28,7 @@ async function seedClone(ownerId: number, username: string): Promise<number> {
   return c!.id;
 }
 
-async function seedPerson(userId: number, cloneId: number, name: string): Promise<number> {
+async function seedPerson(userId: number, cloneId: number | null, name: string): Promise<number> {
   const db = env.DB as unknown as D1Database;
   const r = await db
     .prepare(
@@ -59,11 +59,17 @@ function postOntMergePerson(cloneId: number, body: unknown, tok?: string) {
 
 describe("dev person l2p endpoints", () => {
   let userId: number, cloneId: number, personId: number;
+  let cloneB: number, personB: number, globalPersonId: number;
 
   beforeAll(async () => {
     userId = await seedUser("dev-l2p-person@test.local");
     cloneId = await seedClone(userId, "dev-l2p-person-clone");
     personId = await seedPerson(userId, cloneId, "형");
+
+    cloneB = await seedClone(userId, "dev-l2p-person-clone-b");
+    personB = await seedPerson(userId, cloneB, "다른형");
+
+    globalPersonId = await seedPerson(userId, null, "전역이");
   });
 
   it("l2p-raw 401 without DEV_SECRET", async () => {
@@ -117,5 +123,51 @@ describe("dev person l2p endpoints", () => {
   it("ont-merge-person 401 without DEV_SECRET", async () => {
     const m = await postOntMergePerson(cloneId, { personId, source: "chat", extracted: {} });
     expect(m.status).toBe(401);
+  });
+
+  it("l2p-raw 404 for unknown clone", async () => {
+    const r = await getL2pRaw(999998, personId, SECRET);
+    expect(r.status).toBe(404);
+    const b = await r.json<{ error: string }>();
+    expect(b.error).toBe("clone_not_found");
+  });
+
+  it("l2p-raw 404 for cross-clone person (열람 오라클 차단)", async () => {
+    const r = await getL2pRaw(cloneId, personB, SECRET);
+    expect(r.status).toBe(404);
+    const b = await r.json<{ error: string }>();
+    expect(b.error).toBe("person_not_found");
+  });
+
+  it("ont-merge-person 404 for cross-clone person (유령 병합 차단)", async () => {
+    const m = await postOntMergePerson(
+      cloneId,
+      { personId: personB, source: "chat", extracted: { relation: "x" } },
+      SECRET,
+    );
+    expect(m.status).toBe(404);
+    const b = await m.json<{ error: string }>();
+    expect(b.error).toBe("person_not_found");
+
+    const row = await (env.DB as unknown as D1Database)
+      .prepare("SELECT 1 FROM clone_ont_person WHERE clone_id = ? AND person_id = ?")
+      .bind(cloneId, personB).first();
+    expect(row).toBeNull();
+  });
+
+  it("global person (clone_id IS NULL) allowed for any clone", async () => {
+    const r = await getL2pRaw(cloneId, globalPersonId, SECRET);
+    expect(r.status).toBe(200);
+    const rb = await r.json<{ displayName: string | null }>();
+    expect(rb.displayName).toBe("전역이");
+
+    const m = await postOntMergePerson(
+      cloneId,
+      { personId: globalPersonId, source: "chat", extracted: { relation: "지인" } },
+      SECRET,
+    );
+    expect(m.status).toBe(200);
+    const mb = await m.json<{ data: { relation?: string } }>();
+    expect(mb.data.relation).toBe("지인");
   });
 });

@@ -457,18 +457,21 @@ internal.get("/dev/clones/:id/l2p-raw", async (c) => {
   if (!Number.isInteger(cloneId) || cloneId <= 0 || !Number.isInteger(personId) || personId <= 0) {
     return c.json({ error: "invalid clone_id or personId" }, 400);
   }
+
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  const person = await c.env.DB.prepare(
+    "SELECT user_id, display_name FROM persons WHERE id = ? AND (clone_id = ? OR clone_id IS NULL)"
+  ).bind(personId, cloneId).first<{ user_id: number; display_name: string | null }>();
+  if (!person) return c.json({ error: "person_not_found" }, 404);
   const raw = await readOntPerson(c.env, cloneId, personId);
   let data: unknown = null;
   if (raw) { try { data = JSON.parse(raw); } catch { data = null; } }
-  const person = await c.env.DB.prepare(
-    "SELECT user_id, display_name FROM persons WHERE id = ?"
-  ).bind(personId).first<{ user_id: number; display_name: string | null }>();
-  if (person) {
-    try {
-      await logActivity(c, { userId: person.user_id, action: "dev.l2p_raw.read", details: { cloneId, personId } });
-    } catch {  }
-  }
-  return c.json({ data, displayName: person?.display_name ?? null });
+  try {
+    await logActivity(c, { userId: person.user_id, action: "dev.l2p_raw.read", details: { cloneId, personId } });
+  } catch {  }
+  return c.json({ data, displayName: person.display_name ?? null });
 });
 
 const devOntMergePersonSchema = z.object({
@@ -501,8 +504,10 @@ internal.post("/dev/clones/:id/ont-merge-person", async (c) => {
 
   const clone = await loadCloneById(c.env.DB, cloneId);
   if (!clone) return c.json({ error: "clone_not_found" }, 404);
-  const person = await c.env.DB.prepare("SELECT user_id FROM persons WHERE id = ?")
-    .bind(personId).first<{ user_id: number }>();
+
+  const person = await c.env.DB.prepare(
+    "SELECT user_id FROM persons WHERE id = ? AND (clone_id = ? OR clone_id IS NULL)"
+  ).bind(personId, cloneId).first<{ user_id: number }>();
   if (!person) return c.json({ error: "person_not_found" }, 404);
 
   let result: { rev: number; skipped: boolean };
