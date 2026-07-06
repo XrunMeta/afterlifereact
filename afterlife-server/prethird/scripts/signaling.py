@@ -154,6 +154,14 @@ def _summarize_l2p_fields(data: dict) -> str:
     return "; ".join(parts) if parts else "(없음)"
 
 
+def build_l2p_hint(name, l2p_data) -> str:
+    """[T-116] 화자별 L2' 시스템 힌트 한 줄. 실통화(_maybe_swap_l2p)와 verify가 공유.
+    l2p_data가 있으면 관계요약 포함, 없으면 이름만."""
+    if l2p_data:
+        return f"현재 화면의 화자: {name}. 이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
+    return f"현재 화면의 화자: {name}"
+
+
 async def _maybe_swap_l2p(sess, pid: int, name) -> None:
     """[T-067 Task 12] speaker_confirmed 화자(pid/name)에 맞춰 persona를 재조립.
 
@@ -195,10 +203,7 @@ async def _maybe_swap_l2p(sess, pid: int, name) -> None:
         if current is None or current[0] != pid:
             return
 
-        if l2p_data:
-            hint = f"현재 화면의 화자: {name}. 이 사람과의 관계 기억: {_summarize_l2p_fields(l2p_data)}"
-        else:
-            hint = f"현재 화면의 화자: {name}"
+        hint = build_l2p_hint(name, l2p_data)
 
         new_messages = sess.base_persona_messages + [{"role": "system", "content": hint}]
         update = getattr(pipeline, "update_persona", None)
