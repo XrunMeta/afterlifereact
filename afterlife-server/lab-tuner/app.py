@@ -8,6 +8,7 @@ import re
 
 import aiohttp
 from aiohttp import web
+from html import escape as _html_escape
 from signaling import make_app          # prethird
 from live_guard import LiveBusyError
 from knobs import KNOB_META
@@ -46,6 +47,38 @@ def _validate_run_id(rid) -> str | None:
     return None
 
 
+# T-113: /dev-token — LAB_TUNER_TOKEN(admin 토큰, sudo restart 게이트) 자동주입.
+# ssh -L 터널로 접근하면 원격 서버 입장에서 요청이 127.0.0.1/::1로 도착하므로
+# 터널 전용 접근만 통과시킨다. X-Forwarded-For 등 프록시 헤더는 클라이언트가
+# 임의로 실어보낼 수 있어(스푸핑) 절대 신뢰하지 않고, aiohttp가 TCP 소켓에서
+# 직접 얻는 request.remote(peername)만 판정 기준으로 삼는다.
+#
+# opus 최종리뷰 Important: 공유 호스트에서는 loopback 판정만으로는 부족하다
+# (같은 머신의 다른 로컬 프로세스·다른 SSH 터널 유저가 curl localhost/dev-token
+# 으로 관리자 토큰을 탈취 가능). 이 엔드포인트는 **단일테넌트 SSH-터널 호스트
+# 전용**이다 — env LAB_TUNER_DEV_TOKEN_ENABLE="1" 을 명시적으로 설정해야만
+# 활성화되며(opt-in), 미설정 시 라우트 자체가 404(존재 자체를 감춘다).
+# ⚠️ 공유/멀티테넌트 호스트에서는 LAB_TUNER_DEV_TOKEN_ENABLE 을 절대 설정하지 말 것.
+_LOOPBACK_REMOTES = {"127.0.0.1", "::1"}
+_DEV_TOKEN_ENABLE_ENV = "LAB_TUNER_DEV_TOKEN_ENABLE"
+
+
+def _dev_token_enabled() -> bool:
+    return os.environ.get(_DEV_TOKEN_ENABLE_ENV) == "1"
+
+
+def _is_loopback_remote(remote: str | None) -> bool:
+    return remote in _LOOPBACK_REMOTES
+
+
+def _dev_token_response(remote: str | None, token: str | None) -> web.Response:
+    """순수 함수 — request 객체 없이도 단위테스트 가능하게 반환 로직만 분리."""
+    if not _is_loopback_remote(remote):
+        return web.json_response({"error": "loopback 전용"}, status=403)
+    # LAB_TUNER_TOKEN 미설정(로컬 개발, 인증우회 모드)이면 token=null만 반환.
+    return web.json_response({"token": token})
+
+
 def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None) -> web.Application:
     # say_fn/render_url/guard는 Task 9·12에서 사용(초기 Task 11 단계는 None 허용).
     app = make_app(pipeline_factory=factory)   # /offer /healthz /static/ /prebuild
@@ -72,6 +105,13 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         if got != _lab_tuner_token:
             return web.json_response({"error": "invalid or missing X-Lab-Tuner-Token"}, status=401)
         return None
+
+    async def dev_token(req):
+        # mizu 정책: 토큰 값을 로그에 남기지 않는다(응답 바디로만 전달, 여기서 log 호출 없음).
+        # opus Important: opt-in 게이트 미설정 시 라우트 존재 자체를 감춘다(404).
+        if not _dev_token_enabled():
+            raise web.HTTPNotFound()
+        return _dev_token_response(req.remote, _lab_tuner_token)
 
     async def live_status(_req):
         busy = guard.is_busy() if guard is not None else False
@@ -107,8 +147,26 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             pass
         return resp
 
+    # opus 최종리뷰 Minor: 로그인 비번을 tuner.html(정적 소스, VCS 추적)에 하드코딩하지
+    # 않는다. serve-time 에 LAB_TUNER_DEV_PASSWORD 가 설정돼 있으면 그 값을 prefill,
+    # 없으면 빈 값 그대로 서빙한다 — 소스·VCS 어디에도 평문 비번이 남지 않는다.
+    _PW_PLACEHOLDER = (
+        'id="login-pw" type="password" placeholder="password" '
+        'autocomplete="current-password" value=""'
+    )
+
     async def index(_req):
-        return web.FileResponse(_STATIC / "tuner.html")
+        html_text = (_STATIC / "tuner.html").read_text(encoding="utf-8")
+        dev_password = os.environ.get("LAB_TUNER_DEV_PASSWORD")
+        if dev_password:
+            html_text = html_text.replace(
+                _PW_PLACEHOLDER,
+                _PW_PLACEHOLDER.replace('value=""', f'value="{_html_escape(dev_password, quote=True)}"'),
+            )
+        # mizu MEDIUM: LAB_TUNER_DEV_PASSWORD 설정 시 본문에 평문 비번이 실리므로
+        # 브라우저/중간 프록시 캐시에 남지 않도록 no-store 강제(무설정 시에도 일관 적용).
+        return web.Response(text=html_text, content_type="text/html",
+                             headers={"Cache-Control": "no-store"})
 
     async def tuner_js(_req):
         return web.FileResponse(_STATIC / "tuner.js")
@@ -277,6 +335,15 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
                 status=400,
             )
         import subprocess
+        # 뒷정리(실서버 검증에서 확인된 gap): promote가 drop-in(lab-tuner.conf)을
+        # 새로 쓰거나 고치면 systemd 유닛이 "changed on disk" 상태가 되어,
+        # daemon-reload 없이 restart하면 옛 env로 뜬다(수동 daemon-reload로만
+        # batch가 반영됐던 사례) — restart 앞에서 항상 선행한다. daemon-reload가
+        # 실패해도 restart 자체는 시도하되(fail-open), 실패 사실은 응답에 남긴다.
+        reload_proc = subprocess.run(
+            ["sudo", "systemctl", "daemon-reload"],
+            capture_output=True, text=True, timeout=30,
+        )
         proc = subprocess.run(
             ["sudo", "systemctl", "restart", "afterlife-prethird"],
             capture_output=True, text=True, timeout=30,
@@ -286,6 +353,8 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
             capture_output=True, text=True, timeout=10,
         )
         return web.json_response({
+            "daemon_reload_returncode": reload_proc.returncode,
+            "daemon_reload_stderr": reload_proc.stderr,
             "restart_returncode": proc.returncode,
             "restart_stderr": proc.stderr,
             "mainpid_info": status.stdout.strip(),
@@ -324,6 +393,7 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_get("/runs", list_runs)
     app.router.add_get("/metrics", metrics_sse)
     app.router.add_get("/live-status", live_status)   # UI 배너(라이브 통화 중 튜닝 대기)
+    app.router.add_get("/dev-token", dev_token)   # T-113: loopback(ssh 터널) 전용 토큰 자동주입
     app.router.add_get("/", index)
     app.router.add_get("/tuner.js", tuner_js)
     app.router.add_post("/login", login_proxy)

@@ -149,6 +149,13 @@ async function v_858a0a() {
       const v_2869c1 = document.createElement('label'); v_2869c1.textContent = v_35f85c.label || v_b24339;
       const v_638ecc = v_a7deb0[v_35f85c.reflow];
       if (v_638ecc) { const v_fd5f43 = document.createElement('span'); v_fd5f43.className = 'reflow-chip'; v_fd5f43.textContent = v_638ecc; v_2869c1.appendChild(v_fd5f43); }
+
+      if (v_78c26d[v_9fe22d]) {
+        const v_51452d = document.createElement('span');
+        v_51452d.id = `running-${v_9fe22d}`; v_51452d.className = 'reflow-chip';
+        v_51452d.textContent = '실행값 조회중...';
+        v_2869c1.appendChild(v_51452d);
+      }
       v_3ac7e7.appendChild(v_2869c1);
       let v_22d288;
       if (v_35f85c.type === 'bool') {                     
@@ -191,6 +198,37 @@ async function v_858a0a() {
   }
   v_796451();
   document.getElementById('k_tts_engine')?.addEventListener('change', v_796451);
+  v_d4af21();   
+}
+
+const v_78c26d = { 'fifth.render_mode': 'PRETHIRD_RENDER_MODE' };
+let v_6f88c1 = null;   
+let v_60aaaa = null;   
+
+function v_d4af21() {
+  if (!v_6f88c1) return;
+  const v_298a3a = {};
+  for (const v_cb35cb of v_6f88c1) v_298a3a[v_cb35cb.env] = v_cb35cb;
+  for (const [v_9fe22d, v_c9c489] of Object.entries(v_78c26d)) {
+    const v_51452d = document.getElementById(`running-${v_9fe22d}`);
+    const v_22d288 = document.getElementById(`k_${v_9fe22d.replace('.', '_')}`);
+    if (!v_51452d || !v_22d288) continue;   
+    const v_3ac7e7 = v_298a3a[v_c9c489];
+
+    if (!v_3ac7e7 || v_3ac7e7.state === 'unknown') {
+      v_51452d.textContent = '실제: 확인불가(prethird 미기동?)';
+      v_51452d.className = 'reflow-chip';
+      continue;
+    }
+    const v_587413 = v_22d288.value;
+    if (v_587413 !== v_3ac7e7.running) {
+      v_51452d.textContent = `⚠ 선택:${v_587413} · 실제:${v_3ac7e7.running} · 재기동 필요`;
+      v_51452d.className = 'reflow-chip chip-drift';
+    } else {
+      v_51452d.textContent = `실제:${v_3ac7e7.running}`;
+      v_51452d.className = 'reflow-chip chip-ok';
+    }
+  }
 }
 
 function v_796451() {
@@ -289,6 +327,8 @@ async function v_187e1c() {
   const v_a38d42 = document.getElementById('prod-status');
   try {
     const v_d5dda0 = await (await fetch('/production-status')).json();
+    v_6f88c1 = v_d5dda0.rows || [];   
+    v_60aaaa = v_d5dda0.mainpid ?? null;   
     let v_d91d98 = `<div style="color:var(--text-dim)">MainPID: ${v_8fd199(v_d5dda0.mainpid ?? '-')} · ${v_8fd199(v_d5dda0.generated_at)}</div>`;
     v_d91d98 += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
     for (const v_cb35cb of v_d5dda0.rows) {
@@ -298,6 +338,7 @@ async function v_187e1c() {
     }
     v_d91d98 += '</table>';
     v_a38d42.innerHTML = v_d91d98;
+    v_d4af21();   
   } catch (v_9e86fd) { v_a38d42.innerHTML = '<i>상태 조회 실패</i>'; }
 }
 
@@ -349,8 +390,89 @@ async function v_150d46() {
   } catch (v_9e86fd) { v_e926e3.innerHTML = '<i>promote apply 실패</i>'; }
 }
 
+async function v_3fd5d1() {
+  const v_e926e3 = document.getElementById('restart-confirm');
+  v_e926e3.style.display = 'block';
+  v_e926e3.innerHTML = '<div><i>미적용 변경 확인 중…</i></div>';
+
+  let v_383206 = '';
+  try {
+    const v_d5dda0 = await (await fetch('/promote/preview', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body:'{}'})).json();
+    if ((v_d5dda0.entries || []).length) {
+      v_383206 = '<div style="color:var(--red)"><b>⚠️ 아직 라이브 적용(promote) 안 된 변경이 있습니다. '+
+        '재기동해도 반영 안 돼요 — 먼저 &#39;라이브 적용&#39;을 하세요.</b></div>';
+    }
+  } catch (v_9e86fd) {  }
+  v_e926e3.innerHTML = v_383206 +
+    '<div style="border:1px solid var(--red);border-radius:4px;padding:8px;margin-top:8px">'+
+    '<b>prethird 재기동 — 진행중 통화 끊길 수 있음. 계속?</b><br>'+
+    '<button id="restart-go" class="primary">확인·재기동</button> '+
+    '<button id="restart-cancel">취소</button></div>';
+  document.getElementById('promote-token').style.display = 'block';
+  document.getElementById('restart-go').onclick = v_f45ddd;
+  document.getElementById('restart-cancel').onclick = () => { v_e926e3.style.display = 'none'; };
+}
+
+async function v_b41b0c(v_be69ff, v_e926e3) {
+  const v_3d627c = 10;
+  for (let v_ebec57 = 1; v_ebec57 <= v_3d627c; v_ebec57++) {
+    await new Promise((v_6f7712) => setTimeout(v_6f7712, 2000));
+    v_e926e3.innerHTML = `<div>재기동 중… 새 프로세스 기동 확인중(${v_ebec57 * 2}s/${v_3d627c * 2}s)</div>`;
+    try {
+      const v_d5dda0 = await (await fetch('/production-status')).json();
+      if (v_d5dda0.mainpid && v_d5dda0.mainpid !== v_be69ff) {
+        v_6f88c1 = v_d5dda0.rows || [];
+        v_60aaaa = v_d5dda0.mainpid;
+        return true;
+      }
+    } catch (v_9e86fd) {  }
+  }
+  return false;
+}
+
+async function v_f45ddd() {
+  const v_e926e3 = document.getElementById('restart-confirm');
+  const v_21cc31 = document.getElementById('promote-token').value;
+
+  const v_3f4675 = {'Content-Type':'application/json'};
+  if (v_21cc31) v_3f4675['X-Lab-Tuner-Token'] = v_21cc31;
+  const v_be69ff = v_60aaaa;   
+  try {
+    const v_cb35cb = await fetch('/promote/restart', {method:'POST', headers: v_3f4675,
+      body: JSON.stringify({confirm: "RESTART", confirm2: true})});
+    if (v_cb35cb.status === 401 || v_cb35cb.status === 403) {
+      v_e926e3.innerHTML = '<i>인증 실패 — LAB_TUNER_TOKEN 확인</i>'; return; }
+    let v_d5dda0 = {};
+    try { v_d5dda0 = await v_cb35cb.json(); } catch (v_37eab7) {  }
+    if (!v_cb35cb.ok) {
+      v_e926e3.innerHTML = '<i>실패: ' + v_8fd199(v_d5dda0.error || (v_cb35cb.status + ' 오류')) + '</i>';
+      return;
+    }
+    v_e926e3.innerHTML = `<div>재기동 요청 완료(returncode=${v_8fd199(v_d5dda0.restart_returncode)}) — `+
+      `새 프로세스 기동 대기중…</div>`;
+    const v_4c6dd7 = await v_b41b0c(v_be69ff, v_e926e3);
+    if (v_4c6dd7) {
+      v_e926e3.innerHTML = `<div>재기동 완료(MainPID:${v_8fd199(v_60aaaa)}) — 실행값 갱신됨</div>`;
+      await v_187e1c();
+    } else {
+      v_e926e3.innerHTML = '<i>재기동 확인 시간초과(20s) — "프로덕션 상태" 새로고침으로 직접 확인하세요</i>';
+    }
+  } catch (v_9e86fd) { v_e926e3.innerHTML = '<i>재기동 요청 실패</i>'; }
+}
+
+async function v_d73d4a() {
+  try {
+    const v_cb35cb = await fetch('/dev-token');
+    if (!v_cb35cb.ok) return;   
+    const v_d5dda0 = await v_cb35cb.json();
+    if (v_d5dda0.token) document.getElementById('promote-token').value = v_d5dda0.token;
+  } catch (v_9e86fd) {  }
+}
+
 document.getElementById('apply-knobs').onclick = v_9a2a8d;
 document.getElementById('promote').onclick = v_3e5dbc;
+document.getElementById('restart-prethird').onclick = v_3fd5d1;
 document.getElementById('say-btn').onclick = v_409b14;
 document.getElementById('say-input').addEventListener('keydown', (v_9e86fd) => {
   if (v_9e86fd.key === 'Enter' && !v_9e86fd.isComposing) {   
@@ -365,7 +487,7 @@ document.getElementById('refresh-prod').onclick = v_187e1c;
 document.getElementById('login-btn').onclick = v_182fdb;
 document.getElementById('connect-btn').onclick = v_1857f4;
 
-v_858a0a(); v_e1242b(); v_315473(); v_187e1c();
+v_858a0a(); v_e1242b(); v_315473(); v_187e1c(); v_d73d4a();
 v_5af772();
 v_4deb94();
 setInterval(v_4deb94, 3000);
