@@ -622,6 +622,7 @@ async def test_dev_token_endpoint_via_real_loopback_testclient(tmp_path, monkeyp
     # TestClient(TestServer(...))는 실제 127.0.0.1 TCP로 접속하므로 req.remote가
     # 자연히 loopback이 된다 — 별도 모킹 없이 "진짜 로컬 접근" 경로를 검증.
     monkeypatch.setenv("LAB_TUNER_TOKEN", "tok-xyz")
+    monkeypatch.setenv("LAB_TUNER_DEV_TOKEN_ENABLE", "1")
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
     application = labapp.build_app(r, factory=None, store=store)
     client = TestClient(TestServer(application)); await client.start_server()
@@ -637,6 +638,7 @@ async def test_dev_token_endpoint_via_real_loopback_testclient(tmp_path, monkeyp
 @pytest.mark.asyncio
 async def test_dev_token_endpoint_null_when_token_unset(tmp_path, monkeypatch):
     monkeypatch.delenv("LAB_TUNER_TOKEN", raising=False)
+    monkeypatch.setenv("LAB_TUNER_DEV_TOKEN_ENABLE", "1")
     r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
     application = labapp.build_app(r, factory=None, store=store)
     client = TestClient(TestServer(application)); await client.start_server()
@@ -645,5 +647,79 @@ async def test_dev_token_endpoint_null_when_token_unset(tmp_path, monkeypatch):
         assert resp.status == 200
         body = await resp.json()
         assert body["token"] is None
+    finally:
+        await client.close()
+
+
+# opus 최종리뷰 Important: 공유 호스트에서 /dev-token 이 기본 활성이면 다른 로컬
+# 프로세스/SSH 터널 유저가 curl localhost/dev-token 으로 admin 토큰을 탈취 가능.
+# LAB_TUNER_DEV_TOKEN_ENABLE opt-in 게이트(단일테넌트 SSH-터널 호스트 전용)로 봉쇄.
+
+def test_dev_token_enabled_requires_exact_value_1(monkeypatch):
+    monkeypatch.delenv("LAB_TUNER_DEV_TOKEN_ENABLE", raising=False)
+    assert labapp._dev_token_enabled() is False
+    monkeypatch.setenv("LAB_TUNER_DEV_TOKEN_ENABLE", "true")   # "1"이 아닌 값 → 여전히 비활성
+    assert labapp._dev_token_enabled() is False
+    monkeypatch.setenv("LAB_TUNER_DEV_TOKEN_ENABLE", "1")
+    assert labapp._dev_token_enabled() is True
+
+
+@pytest.mark.asyncio
+async def test_dev_token_endpoint_404_when_enable_unset(tmp_path, monkeypatch):
+    # ENABLE 미설정(기본값) → loopback + 토큰 존재와 무관하게 라우트 자체가 404.
+    monkeypatch.delenv("LAB_TUNER_DEV_TOKEN_ENABLE", raising=False)
+    monkeypatch.setenv("LAB_TUNER_TOKEN", "tok-xyz")
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.get("/dev-token")
+        assert resp.status == 404
+        assert "tok-xyz" not in await resp.text()   # 토큰 유출 금지
+    finally:
+        await client.close()
+
+
+def test_dev_token_response_403_for_non_loopback_even_with_enable_and_token(monkeypatch):
+    # ENABLE=1 & 비-loopback → 여전히 거부(loopback 조건은 유지).
+    monkeypatch.setenv("LAB_TUNER_DEV_TOKEN_ENABLE", "1")
+    assert labapp._dev_token_enabled() is True
+    resp = labapp._dev_token_response("203.0.113.5", "super-secret-token")
+    assert resp.status == 403
+    assert "super-secret-token" not in resp.text
+
+
+# ---------------------------------------------------------------------------
+# T-113: 로그인 비번 serve-time 주입 — tuner.html(VCS 정적 소스)에는 평문 비번을
+# 남기지 않고, LAB_TUNER_DEV_PASSWORD 설정 시에만 index 응답에 prefill한다.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_index_prefills_dev_password_when_env_set(tmp_path, monkeypatch):
+    monkeypatch.setenv("LAB_TUNER_DEV_PASSWORD", "hunter2!!!")
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.get("/")
+        assert resp.status == 200
+        text = await resp.text()
+        assert 'id="login-pw"' in text
+        assert 'value="hunter2!!!"' in text
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_index_no_prefill_when_dev_password_unset(tmp_path, monkeypatch):
+    monkeypatch.delenv("LAB_TUNER_DEV_PASSWORD", raising=False)
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.get("/")
+        assert resp.status == 200
+        text = await resp.text()
+        assert 'id="login-pw" type="password" placeholder="password" autocomplete="current-password" value=""' in text
     finally:
         await client.close()
