@@ -461,6 +461,15 @@ async function v_f45ddd() {
   } catch (v_9e86fd) { v_e926e3.innerHTML = '<i>재기동 요청 실패</i>'; }
 }
 
+async function v_d73d4a() {
+  try {
+    const v_cb35cb = await fetch('/dev-token');
+    if (!v_cb35cb.ok) return;   
+    const v_d5dda0 = await v_cb35cb.json();
+    if (v_d5dda0.token) document.getElementById('promote-token').value = v_d5dda0.token;
+  } catch (v_9e86fd) {  }
+}
+
 document.getElementById('apply-knobs').onclick = v_9a2a8d;
 document.getElementById('promote').onclick = v_3e5dbc;
 document.getElementById('restart-prethird').onclick = v_3fd5d1;
@@ -478,7 +487,7 @@ document.getElementById('refresh-prod').onclick = v_187e1c;
 document.getElementById('login-btn').onclick = v_182fdb;
 document.getElementById('connect-btn').onclick = v_1857f4;
 
-v_858a0a(); v_e1242b(); v_315473(); v_187e1c();
+v_858a0a(); v_e1242b(); v_315473(); v_187e1c(); v_d73d4a();
 v_5af772();
 v_4deb94();
 setInterval(v_4deb94, 3000);
