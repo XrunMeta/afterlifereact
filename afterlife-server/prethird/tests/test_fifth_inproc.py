@@ -109,7 +109,7 @@ def test_infer_posts_parses_decodes_frames():
         b"".join(struct.pack(">I", len(j)) + j for j in jpegs)
         + struct.pack(">I", 0)
     )
-    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _NoopConn())
+    f._open_render_stream = lambda wav, vp, render_mode=None: (lambda n: buf.read(n), _NoopConn())
     f._decode_jpeg = lambda b: np.zeros((4, 4, 3), np.uint8)
 
     got = []
@@ -128,7 +128,7 @@ def test_infer_on_frame_receives_rgb_ndarray():
         b"".join(struct.pack(">I", len(j)) + j for j in jpegs)
         + struct.pack(">I", 0)
     )
-    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _NoopConn())
+    f._open_render_stream = lambda wav, vp, render_mode=None: (lambda n: buf.read(n), _NoopConn())
     expected = np.ones((8, 8, 3), np.uint8) * 42
     f._decode_jpeg = lambda b: expected
 
@@ -146,7 +146,7 @@ def test_infer_uses_self_video_path_when_none():
 
     captured_vp = []
 
-    def fake_open(wav, vp):
+    def fake_open(wav, vp, render_mode=None):
         captured_vp.append(vp)
         buf = io.BytesIO(struct.pack(">I", 0))
         return lambda n: buf.read(n), _NoopConn()
@@ -165,7 +165,7 @@ def test_infer_uses_override_video_path():
 
     captured_vp = []
 
-    def fake_open(wav, vp):
+    def fake_open(wav, vp, render_mode=None):
         captured_vp.append(vp)
         buf = io.BytesIO(struct.pack(">I", 0))
         return lambda n: buf.read(n), _NoopConn()
@@ -183,7 +183,7 @@ def test_infer_returns_zero_frames_on_empty_stream():
     f.load()
 
     buf = io.BytesIO(struct.pack(">I", 0))
-    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _NoopConn())
+    f._open_render_stream = lambda wav, vp, render_mode=None: (lambda n: buf.read(n), _NoopConn())
     f._decode_jpeg = lambda b: np.zeros((1, 1, 3), np.uint8)
 
     got = []
@@ -199,7 +199,7 @@ def test_infer_zero_frames_emits_warning(caplog):
     f.load()
 
     buf = io.BytesIO(struct.pack(">I", 0))
-    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _NoopConn())
+    f._open_render_stream = lambda wav, vp, render_mode=None: (lambda n: buf.read(n), _NoopConn())
     f._decode_jpeg = lambda b: np.zeros((1, 1, 3), np.uint8)
 
     with caplog.at_level(logging.WARNING, logger="fifth_inproc"):
@@ -228,7 +228,7 @@ def test_infer_conn_closed_after_stream(monkeypatch):
         def close(self):
             close_count.append(1)
 
-    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _CountingConn())
+    f._open_render_stream = lambda wav, vp, render_mode=None: (lambda n: buf.read(n), _CountingConn())
     f._decode_jpeg = lambda b: np.zeros((4, 4, 3), np.uint8)
 
     f.infer("/s.wav", on_frame=lambda x: None)
@@ -251,7 +251,7 @@ def test_infer_conn_closed_on_parse_error():
         def close(self):
             close_count.append(1)
 
-    f._open_render_stream = lambda wav, vp: (lambda n: buf.read(n), _CountingConn())
+    f._open_render_stream = lambda wav, vp, render_mode=None: (lambda n: buf.read(n), _CountingConn())
     f._decode_jpeg = lambda b: np.zeros((4, 4, 3), np.uint8)
 
     with pytest.raises(Exception):
