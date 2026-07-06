@@ -286,6 +286,20 @@ async def _ont_merge(clone_id: int, user_id: int, extracted: dict) -> dict:
             resp = json.loads(txt) or {}
             return resp.get("data") or {}
 
+async def _ont_merge_person(clone_id: int, person_id: int, extracted: dict) -> dict:
+    """dev ont-merge-person POST — clone_ont_person 병합. 반환은 병합 후 data."""
+    url = f"{API_BASE}/oth-path"
+    body = json.dumps({"personId": person_id, "extracted": extracted, "source": "chat"}).encode("utf-8")
+    timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+    async with aiohttp.ClientSession(timeout=timeout) as sess:
+        async with sess.post(url, data=body, headers={
+            "Content-Type": "application/json", "Authorization": f"Bearer {_DEV_SECRET}", "User-Agent": _BROWSER_UA,
+        }) as r:
+            txt = await r.text()
+            if r.status != 200:
+                raise RuntimeError(f"ont-merge-person http {r.status}")
+            return (json.loads(txt) or {}).get("data") or {}
+
 async def _patch_l2(clone_id: int, fields: dict, token: str) -> dict:
     """api PATCH /oth-path 호출 → 저장된 l2_profile 반환."""
     url = f"{API_BASE}/oth-path"
@@ -301,6 +315,17 @@ async def _patch_l2(clone_id: int, fields: dict, token: str) -> dict:
             if r.status != 200:
                 raise RuntimeError(f"l2 patch http {r.status}")
             return (json.loads(txt) or {}).get("l2_profile") or fields
+
+def _pairs_from_turns(turns: list) -> list:
+    """user 턴 + 바로 다음 assistant 응답을 (user_text, clone_reply) 쌍으로. 마지막 user 뒤 없으면 clone_reply=''."""
+    n = len(turns)
+    pairs = []
+    for i, t in enumerate(turns):
+        if t.get("role") != "user":
+            continue
+        clone_reply = str(turns[i + 1].get("content", "")) if i + 1 < n and turns[i + 1].get("role") == "assistant" else ""
+        pairs.append((str(t.get("content", "")), clone_reply))
+    return pairs
 
 async def verify_learn(req: web.Request) -> web.Response:
     """대화(멀티턴) → 프로덕션 학습 경로 재현: user 턴마다 프로덕션 extract_l2(화자분리,
@@ -323,8 +348,34 @@ async def verify_learn(req: web.Request) -> web.Response:
     if len(turns) > 100 or any(len(str(t.get("content", ""))) > 2000 for t in turns):
         return web.json_response({"error": "turns too large (max 100 turns, 2000 chars each)"}, status=400)
 
+    raw_pid = body.get("person_id")
+    person_id = raw_pid if isinstance(raw_pid, int) and raw_pid > 0 else None
+
     if not _DEV_SECRET:
         return web.json_response({"error": "dev secret not configured"}, status=503)
+
+    if person_id is not None:
+        # [T-116] 화자별 학습: clone_ont_person 경로(dev). user_id 불필요.
+        try:
+            before = (await _dev_l2p_data(clone_id, person_id)).get("data") or {}
+        except Exception:
+            before = {}
+        extracted_log, after = [], before
+        for user_text, clone_reply in _pairs_from_turns(turns):
+            try:
+                ex = await extract_l2(user_text, clone_reply)
+            except Exception as e:
+                log.warning("verify_learn(person) extract failed clone=%s: %s", clone_id, type(e).__name__)
+                ex = {}
+            extracted_log.append({"user_text": user_text, "clone_reply": clone_reply, "extracted": ex})
+            if not ex:
+                continue
+            try:
+                after = await _ont_merge_person(clone_id, person_id, ex)
+            except Exception as e:
+                log.warning("verify_learn(person) merge failed clone=%s: %s", clone_id, type(e).__name__)
+        return web.json_response({"before": before, "extracted": extracted_log, "after": after})
+
     user_id = await _resolve_user_id(token)
     if user_id is None:
         return web.json_response({"error": "cannot resolve user"}, status=401)
@@ -335,22 +386,9 @@ async def verify_learn(req: web.Request) -> web.Response:
         log.warning("verify_learn before-fetch failed clone=%s: %s", clone_id, type(e).__name__)
         before = {}
 
-    # user 턴 + 바로 다음 assistant(클론) 응답을 (user_text, clone_reply) 쌍으로 매핑.
-    # 마지막 user 턴 뒤에 assistant 가 없으면 clone_reply="". user 턴이 없으면 no-op(빈 리스트).
-    n = len(turns)
-    pairs: list[tuple[str, str]] = []
-    for i, t in enumerate(turns):
-        if t.get("role") != "user":
-            continue
-        user_text = str(t.get("content", ""))
-        clone_reply = ""
-        if i + 1 < n and turns[i + 1].get("role") == "assistant":
-            clone_reply = str(turns[i + 1].get("content", ""))
-        pairs.append((user_text, clone_reply))
-
     extracted_log: list[dict] = []
     after = before
-    for user_text, clone_reply in pairs:
+    for user_text, clone_reply in _pairs_from_turns(turns):
         try:
             ex = await extract_l2(user_text, clone_reply)
         except Exception as e:
