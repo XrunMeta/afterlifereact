@@ -993,9 +993,10 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </Pressable>
       ) : null}
 
-      {}
+      {
+}
       <View
-        style={[v_fd5f43.watermarkLayer, { bottom: v_53dd92 + 12 }]}
+        style={[v_fd5f43.watermarkLayer, { bottom: v_53dd92 + 96 }]}
         pointerEvents="none"
       >
         <Text style={v_fd5f43.watermarkText}>afterlife</Text>
@@ -1168,7 +1169,7 @@ const v_fd5f43 = v_472849.create({
   },
   watermarkText: {
     color: "rgba(255, 255, 255, 0.5)",
-    fontSize: 13,
+    fontSize: 20,
     fontWeight: "600",
     letterSpacing: 0.5,
 
