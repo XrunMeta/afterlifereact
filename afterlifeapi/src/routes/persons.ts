@@ -351,9 +351,9 @@ v_fded81.delete("/:id", v_6690d9, async (v_3f4e2e) => {
 
 v_fded81.get("/", v_6690d9, async (v_3f4e2e) => {
   const v_43e90c = v_3f4e2e.get("userId")!;
+  const v_56b68f = v_3f4e2e.req.query("cloneId");
 
-  const v_18b8bf = await v_3f4e2e.env.DB.prepare(
-    `SELECT
+  const v_6c1676 = `SELECT
        id,
        user_id       AS userId,
        clone_id      AS cloneId,
@@ -361,20 +361,33 @@ v_fded81.get("/", v_6690d9, async (v_3f4e2e) => {
        consent_state AS consentState,
        consent_at    AS consentAt,
        created_at    AS createdAt
-     FROM persons
-     WHERE user_id = ?
-     ORDER BY created_at DESC`
-  )
-    .bind(v_43e90c)
-    .all<{
-      id: number;
-      userId: number;
-      cloneId: number | null;
-      displayName: string | null;
-      consentState: string;
-      consentAt: number | null;
-      createdAt: number;
-    }>();
+     FROM persons`;
+  type Row = {
+    id: number;
+    userId: number;
+    cloneId: number | null;
+    displayName: string | null;
+    consentState: string;
+    consentAt: number | null;
+    createdAt: number;
+  };
+
+  let v_18b8bf;
+  if (v_56b68f !== undefined) {
+    const v_6e0fd3 = Number(v_56b68f);
+    if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+      throw new v_3ebe58("VALIDATION_FAILED", "Invalid clone id.");
+    }
+    v_18b8bf = await v_3f4e2e.env.DB.prepare(
+      `${v_6c1676} WHERE user_id = ? AND (clone_id = ? OR clone_id IS NULL) ORDER BY created_at DESC`
+    )
+      .bind(v_43e90c, v_6e0fd3)
+      .all<Row>();
+  } else {
+    v_18b8bf = await v_3f4e2e.env.DB.prepare(`${v_6c1676} WHERE user_id = ? ORDER BY created_at DESC`)
+      .bind(v_43e90c)
+      .all<Row>();
+  }
 
   return v_3f4e2e.json({ data: v_18b8bf.results });
 });
