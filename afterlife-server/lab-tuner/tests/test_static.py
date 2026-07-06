@@ -241,6 +241,18 @@ def test_js_restart_polls_for_new_mainpid_before_refresh():
     assert "await loadProdStatus()" in restart_apply_block
 
 
+# ---------------------------------------------------------------------------
+# T-113 Task3 sion 게이트 fix2(MAJOR): 재기동 전 미적용(promote 안됨) 변경 경고
+# ---------------------------------------------------------------------------
+
+def test_js_restart_confirm_warns_unapplied_promote_changes():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    confirm_block = js[js.index("async function restartShowConfirm"):js.index("async function pollForNewMainPid")]
+    assert "/promote/preview" in confirm_block
+    assert "라이브 적용" in confirm_block
+
+
 def test_js_send_say_returns_boolean_and_gates_clear():
     with open(os.path.join(_STATIC, "tuner.js")) as f:
         js = f.read()
