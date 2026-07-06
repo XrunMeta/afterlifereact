@@ -45,6 +45,7 @@ import { v_55dbc4, v_8682a9, type v_8a6b56 } from "../../config/faceDiag";
 import v_c0caa9 from "../../components/common/TermsModal";
 import { v_b519ed } from "../../components/call/FaceEnrollCard";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
+import { v_f22ce9 } from "../../realtime/devCallText";
 import { v_c6d1f4 } from "../../config/callRoute";
 import { v_a6928f, v_0e2cb4, v_71f13f } from "../../config/greeting";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
@@ -194,6 +195,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     lastSignal: v_88c591,
     sendFaceEvent: v_11f4a1,
   } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "", onEnrollSuggest: v_b12d63 });
+
+  const [v_69c045, v_58e7a2] = v_5ab095("");
 
   const v_d7cf17 = v_a6928f && typeof v_009e58 === 'function';
 
@@ -770,6 +773,42 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             </>
           ) : null}
         </View>
+      ) : null}
+
+      {__DEV__ && v_6cc918 === "live" ? (
+        <KeyboardAvoidingView
+          behavior={v_326be8.OS === "ios" ? "padding" : undefined}
+          style={{
+            position: "absolute",
+            left: 8,
+            right: 8,
+            bottom: 8,
+            zIndex: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            borderRadius: 6,
+            padding: 4,
+          }}
+        >
+          <TextInput
+            style={{ flex: 1, color: "#0f0", fontSize: 13, paddingHorizontal: 8, paddingVertical: 6 }}
+            value={v_69c045}
+            onChangeText={v_58e7a2}
+            placeholder="[DEV] 텍스트로 발화"
+            placeholderTextColor="#6b7280"
+            autoCapitalize="none"
+            returnKeyType="send"
+            blurOnSubmit={false}
+            onSubmitEditing={() => v_f22ce9(v_69c045, v_3e2c87, v_58e7a2)}
+          />
+          <TouchableOpacity
+            onPress={() => v_f22ce9(v_69c045, v_3e2c87, v_58e7a2)}
+            style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+          >
+            <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       ) : null}
 
       {}
