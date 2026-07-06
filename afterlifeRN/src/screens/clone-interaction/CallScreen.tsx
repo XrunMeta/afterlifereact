@@ -782,7 +782,8 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
             position: "absolute",
             left: 8,
             right: 8,
-            bottom: 8,
+
+            bottom: v_53dd92 + 96,
             zIndex: 20,
             flexDirection: "row",
             alignItems: "center",
