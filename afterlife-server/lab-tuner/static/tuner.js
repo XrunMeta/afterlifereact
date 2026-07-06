@@ -149,6 +149,13 @@ async function loadKnobs() {
       const label = document.createElement('label'); label.textContent = m.label || key;
       const note = REFLOW_NOTE[m.reflow];
       if (note) { const s = document.createElement('span'); s.className = 'reflow-chip'; s.textContent = note; label.appendChild(s); }
+
+      if (KNOB_ENV_MAP[path]) {
+        const badge = document.createElement('span');
+        badge.id = `running-${path}`; badge.className = 'reflow-chip';
+        badge.textContent = '실행값 조회중...';
+        label.appendChild(badge);
+      }
       row.appendChild(label);
       let ctrl;
       if (m.type === 'bool') {                     
@@ -191,6 +198,36 @@ async function loadKnobs() {
   }
   refreshTtsDim();
   document.getElementById('k_tts_engine')?.addEventListener('change', refreshTtsDim);
+  applyKnobDriftBadges();   
+}
+
+const KNOB_ENV_MAP = { 'fifth.render_mode': 'PRETHIRD_RENDER_MODE' };
+let lastProdRows = null;   
+
+function applyKnobDriftBadges() {
+  if (!lastProdRows) return;
+  const rowsByEnv = {};
+  for (const r of lastProdRows) rowsByEnv[r.env] = r;
+  for (const [path, env] of Object.entries(KNOB_ENV_MAP)) {
+    const badge = document.getElementById(`running-${path}`);
+    const ctrl = document.getElementById(`k_${path.replace('.', '_')}`);
+    if (!badge || !ctrl) continue;   
+    const row = rowsByEnv[env];
+
+    if (!row || row.state === 'unknown') {
+      badge.textContent = '실제: 확인불가(prethird 미기동?)';
+      badge.className = 'reflow-chip';
+      continue;
+    }
+    const selected = ctrl.value;
+    if (selected !== row.running) {
+      badge.textContent = `⚠ 선택:${selected} · 실제:${row.running} · 재기동 필요`;
+      badge.className = 'reflow-chip chip-drift';
+    } else {
+      badge.textContent = `실제:${row.running}`;
+      badge.className = 'reflow-chip chip-ok';
+    }
+  }
 }
 
 function refreshTtsDim() {
@@ -289,6 +326,7 @@ async function loadProdStatus() {
   const box = document.getElementById('prod-status');
   try {
     const d = await (await fetch('/production-status')).json();
+    lastProdRows = d.rows || [];   
     let html = `<div style="color:var(--text-dim)">MainPID: ${escapeHtml(d.mainpid ?? '-')} · ${escapeHtml(d.generated_at)}</div>`;
     html += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
     for (const r of d.rows) {
@@ -298,6 +336,7 @@ async function loadProdStatus() {
     }
     html += '</table>';
     box.innerHTML = html;
+    applyKnobDriftBadges();   
   } catch (e) { box.innerHTML = '<i>상태 조회 실패</i>'; }
 }
 
