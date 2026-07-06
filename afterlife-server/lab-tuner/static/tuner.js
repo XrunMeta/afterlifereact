@@ -203,6 +203,7 @@ async function loadKnobs() {
 
 const KNOB_ENV_MAP = { 'fifth.render_mode': 'PRETHIRD_RENDER_MODE' };
 let lastProdRows = null;   
+let lastProdMainPid = null;   
 
 function applyKnobDriftBadges() {
   if (!lastProdRows) return;
@@ -327,6 +328,7 @@ async function loadProdStatus() {
   try {
     const d = await (await fetch('/production-status')).json();
     lastProdRows = d.rows || [];   
+    lastProdMainPid = d.mainpid ?? null;   
     let html = `<div style="color:var(--text-dim)">MainPID: ${escapeHtml(d.mainpid ?? '-')} · ${escapeHtml(d.generated_at)}</div>`;
     html += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
     for (const r of d.rows) {
@@ -400,12 +402,30 @@ function restartShowConfirm() {
   document.getElementById('restart-cancel').onclick = () => { cbox.style.display = 'none'; };
 }
 
+async function pollForNewMainPid(oldMainPid, cbox) {
+  const maxAttempts = 10;
+  for (let i = 1; i <= maxAttempts; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    cbox.innerHTML = `<div>재기동 중… 새 프로세스 기동 확인중(${i * 2}s/${maxAttempts * 2}s)</div>`;
+    try {
+      const d = await (await fetch('/production-status')).json();
+      if (d.mainpid && d.mainpid !== oldMainPid) {
+        lastProdRows = d.rows || [];
+        lastProdMainPid = d.mainpid;
+        return true;
+      }
+    } catch (e) {  }
+  }
+  return false;
+}
+
 async function restartApply() {
   const cbox = document.getElementById('restart-confirm');
   const token = document.getElementById('promote-token').value;
 
   const headers = {'Content-Type':'application/json'};
   if (token) headers['X-Lab-Tuner-Token'] = token;
+  const oldMainPid = lastProdMainPid;   
   try {
     const r = await fetch('/promote/restart', {method:'POST', headers,
       body: JSON.stringify({confirm: "RESTART", confirm2: true})});
@@ -417,9 +437,15 @@ async function restartApply() {
       cbox.innerHTML = '<i>실패: ' + escapeHtml(d.error || (r.status + ' 오류')) + '</i>';
       return;
     }
-    cbox.innerHTML = `<div>재기동 요청 완료(returncode=${escapeHtml(d.restart_returncode)}): `+
-      `${escapeHtml(d.mainpid_info ?? '')}</div>`;
-    await loadProdStatus();
+    cbox.innerHTML = `<div>재기동 요청 완료(returncode=${escapeHtml(d.restart_returncode)}) — `+
+      `새 프로세스 기동 대기중…</div>`;
+    const started = await pollForNewMainPid(oldMainPid, cbox);
+    if (started) {
+      cbox.innerHTML = `<div>재기동 완료(MainPID:${escapeHtml(lastProdMainPid)}) — 실행값 갱신됨</div>`;
+      await loadProdStatus();
+    } else {
+      cbox.innerHTML = '<i>재기동 확인 시간초과(20s) — "프로덕션 상태" 새로고침으로 직접 확인하세요</i>';
+    }
   } catch (e) { cbox.innerHTML = '<i>재기동 요청 실패</i>'; }
 }
 

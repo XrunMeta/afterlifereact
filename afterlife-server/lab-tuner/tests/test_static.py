@@ -227,6 +227,20 @@ def test_js_render_mode_has_running_drift_badge_wired():
     assert js.count("applyKnobDriftBadges()") >= 2
 
 
+# ---------------------------------------------------------------------------
+# T-113 Task3 sion 게이트 fix1(BLOCKER): restart 후 stale drift 방지(폴링)
+# ---------------------------------------------------------------------------
+
+def test_js_restart_polls_for_new_mainpid_before_refresh():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "pollForNewMainPid" in js
+    restart_apply_block = js[js.index("async function restartApply"):]
+    # 응답 직후 바로 loadProdStatus 하지 말고 폴링(MainPID 변경 확인) 완료 후에만 호출.
+    assert "pollForNewMainPid" in restart_apply_block
+    assert "await loadProdStatus()" in restart_apply_block
+
+
 def test_js_send_say_returns_boolean_and_gates_clear():
     with open(os.path.join(_STATIC, "tuner.js")) as f:
         js = f.read()
