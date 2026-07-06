@@ -207,10 +207,11 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
             except Exception as e:
                 log.warning("verify_chat dev_l2p failed clone=%s person=%s: %s", clone_id, person_id, type(e).__name__)
                 dev_l2p = {}
-            name = dev_l2p.get("displayName") or str(person_id)
-            system_messages = system_messages + [
-                {"role": "system", "content": build_l2p_hint(name, dev_l2p.get("data"))}
-            ]
+            if dev_l2p:  # 실패/404({}) 면 힌트 없이 진행(통화 무영향)
+                name = dev_l2p.get("displayName") or str(person_id)
+                system_messages = system_messages + [
+                    {"role": "system", "content": build_l2p_hint(name, dev_l2p.get("data"))}
+                ]
     final_messages = system_messages + list(messages)
 
     resp = web.StreamResponse(status=200, headers={
