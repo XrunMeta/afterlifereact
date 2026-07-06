@@ -586,3 +586,64 @@ async def test_clones_proxies_with_bearer_and_returns_id_name(tmp_path, monkeypa
         assert gets["headers"]["Authorization"] == "Bearer tok-abc"
     finally:
         await client.close()
+
+
+# ---------------------------------------------------------------------------
+# T-113: /dev-token — loopback(ssh 터널) 전용 LAB_TUNER_TOKEN 자동주입
+# ---------------------------------------------------------------------------
+
+def test_is_loopback_remote_accepts_ipv4_and_ipv6_only():
+    assert labapp._is_loopback_remote("127.0.0.1") is True
+    assert labapp._is_loopback_remote("::1") is True
+    assert labapp._is_loopback_remote("203.0.113.5") is False   # 가비아 공인 IP 등 외부
+    assert labapp._is_loopback_remote(None) is False
+
+
+def test_dev_token_response_403_for_non_loopback_even_with_token():
+    resp = labapp._dev_token_response("203.0.113.5", "super-secret-token")
+    assert resp.status == 403
+    assert "super-secret-token" not in resp.text   # 토큰 유출 금지
+
+
+def test_dev_token_response_returns_token_for_loopback():
+    resp = labapp._dev_token_response("127.0.0.1", "super-secret-token")
+    assert resp.status == 200
+    assert json.loads(resp.text)["token"] == "super-secret-token"
+
+
+def test_dev_token_response_null_when_env_unset():
+    resp = labapp._dev_token_response("127.0.0.1", None)
+    assert resp.status == 200
+    assert json.loads(resp.text)["token"] is None
+
+
+@pytest.mark.asyncio
+async def test_dev_token_endpoint_via_real_loopback_testclient(tmp_path, monkeypatch):
+    # TestClient(TestServer(...))는 실제 127.0.0.1 TCP로 접속하므로 req.remote가
+    # 자연히 loopback이 된다 — 별도 모킹 없이 "진짜 로컬 접근" 경로를 검증.
+    monkeypatch.setenv("LAB_TUNER_TOKEN", "tok-xyz")
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.get("/dev-token")
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["token"] == "tok-xyz"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_dev_token_endpoint_null_when_token_unset(tmp_path, monkeypatch):
+    monkeypatch.delenv("LAB_TUNER_TOKEN", raising=False)
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.get("/dev-token")
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["token"] is None
+    finally:
+        await client.close()

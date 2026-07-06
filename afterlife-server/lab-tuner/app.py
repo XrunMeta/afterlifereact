@@ -46,6 +46,26 @@ def _validate_run_id(rid) -> str | None:
     return None
 
 
+# T-113: /dev-token — LAB_TUNER_TOKEN(admin 토큰, sudo restart 게이트) 자동주입.
+# ssh -L 터널로 접근하면 원격 서버 입장에서 요청이 127.0.0.1/::1로 도착하므로
+# 터널 전용 접근만 통과시킨다. X-Forwarded-For 등 프록시 헤더는 클라이언트가
+# 임의로 실어보낼 수 있어(스푸핑) 절대 신뢰하지 않고, aiohttp가 TCP 소켓에서
+# 직접 얻는 request.remote(peername)만 판정 기준으로 삼는다.
+_LOOPBACK_REMOTES = {"127.0.0.1", "::1"}
+
+
+def _is_loopback_remote(remote: str | None) -> bool:
+    return remote in _LOOPBACK_REMOTES
+
+
+def _dev_token_response(remote: str | None, token: str | None) -> web.Response:
+    """순수 함수 — request 객체 없이도 단위테스트 가능하게 반환 로직만 분리."""
+    if not _is_loopback_remote(remote):
+        return web.json_response({"error": "loopback 전용"}, status=403)
+    # LAB_TUNER_TOKEN 미설정(로컬 개발, 인증우회 모드)이면 token=null만 반환.
+    return web.json_response({"token": token})
+
+
 def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None) -> web.Application:
     # say_fn/render_url/guard는 Task 9·12에서 사용(초기 Task 11 단계는 None 허용).
     app = make_app(pipeline_factory=factory)   # /offer /healthz /static/ /prebuild
@@ -72,6 +92,10 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
         if got != _lab_tuner_token:
             return web.json_response({"error": "invalid or missing X-Lab-Tuner-Token"}, status=401)
         return None
+
+    async def dev_token(req):
+        # mizu 정책: 토큰 값을 로그에 남기지 않는다(응답 바디로만 전달, 여기서 log 호출 없음).
+        return _dev_token_response(req.remote, _lab_tuner_token)
 
     async def live_status(_req):
         busy = guard.is_busy() if guard is not None else False
@@ -324,6 +348,7 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
     app.router.add_get("/runs", list_runs)
     app.router.add_get("/metrics", metrics_sse)
     app.router.add_get("/live-status", live_status)   # UI 배너(라이브 통화 중 튜닝 대기)
+    app.router.add_get("/dev-token", dev_token)   # T-113: loopback(ssh 터널) 전용 토큰 자동주입
     app.router.add_get("/", index)
     app.router.add_get("/tuner.js", tuner_js)
     app.router.add_post("/login", login_proxy)

@@ -461,6 +461,15 @@ async function restartApply() {
   } catch (e) { cbox.innerHTML = '<i>재기동 요청 실패</i>'; }
 }
 
+async function loadDevToken() {
+  try {
+    const r = await fetch('/dev-token');
+    if (!r.ok) return;   
+    const d = await r.json();
+    if (d.token) document.getElementById('promote-token').value = d.token;
+  } catch (e) {  }
+}
+
 document.getElementById('apply-knobs').onclick = applyKnobs;
 document.getElementById('promote').onclick = promotePreview;
 document.getElementById('restart-prethird').onclick = restartShowConfirm;
@@ -478,7 +487,7 @@ document.getElementById('refresh-prod').onclick = loadProdStatus;
 document.getElementById('login-btn').onclick = login;
 document.getElementById('connect-btn').onclick = connect;
 
-loadKnobs(); startMetrics(); loadRuns(); loadProdStatus();
+loadKnobs(); startMetrics(); loadRuns(); loadProdStatus(); loadDevToken();
 renderMeter();
 pollLiveStatus();
 setInterval(pollLiveStatus, 3000);

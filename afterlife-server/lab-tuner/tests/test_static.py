@@ -253,6 +253,22 @@ def test_js_restart_confirm_warns_unapplied_promote_changes():
     assert "라이브 적용" in confirm_block
 
 
+# ---------------------------------------------------------------------------
+# T-113: /dev-token 로컬 전용 토큰 자동주입(promote-token 수동입력 제거)
+# ---------------------------------------------------------------------------
+
+def test_js_loads_dev_token_and_wires_promote_token_input():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "/dev-token" in js
+    assert "loadDevToken()" in js   # 초기화 시퀀스에서 호출됨(loadKnobs 등과 함께)
+    dev_token_block = js[js.index("async function loadDevToken"):]
+    assert "promote-token" in dev_token_block
+    # 소스에 하드코딩된 토큰 값이 없어야 함(env 이름 언급은 UI 안내문구라 허용) —
+    # loadDevToken은 서버 /dev-token 응답의 d.token만 읽어 input.value에 세팅한다.
+    assert "d.token" in dev_token_block
+
+
 def test_js_send_say_returns_boolean_and_gates_clear():
     with open(os.path.join(_STATIC, "tuner.js")) as f:
         js = f.read()
