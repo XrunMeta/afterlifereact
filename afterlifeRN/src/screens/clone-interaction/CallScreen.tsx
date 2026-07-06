@@ -13,6 +13,7 @@ import {
   Animated,
   Platform,
   KeyboardAvoidingView,
+  Keyboard,
   TextInput,
   Alert,
   Linking,
@@ -45,6 +46,7 @@ import { FACE_DIAG_ENABLED, formatFaceHud, type FaceDiag } from "../../config/fa
 import TermsModal from "../../components/common/TermsModal";
 import { FaceEnrollCard } from "../../components/call/FaceEnrollCard";
 import { useAvatarCall } from "../../realtime/useAvatarCall";
+import { submitDevText } from "../../realtime/devCallText";
 import { CALL_ROUTE } from "../../config/callRoute";
 import { GREETING_ENABLED, GREETING_FALLBACK_TEXT, GREET_TIMEOUT_MS } from "../../config/greeting";
 import { useHandsFreeController } from "../../realtime/useHandsFreeController";
@@ -194,6 +196,21 @@ export default function CallScreen({ route, navigation }: Props) {
     lastSignal,
     sendFaceEvent,
   } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
+
+  const [devText, setDevText] = useState("");
+
+  const [devKbHeight, setDevKbHeight] = useState(0);
+  useEffect(() => {
+    if (!__DEV__) return;
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) =>
+      setDevKbHeight(e.endCoordinates.height),
+    );
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setDevKbHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
@@ -769,6 +786,42 @@ export default function CallScreen({ route, navigation }: Props) {
               </View>
             </>
           ) : null}
+        </View>
+      ) : null}
+
+      {__DEV__ && liveState === "live" ? (
+        <View
+          style={{
+            position: "absolute",
+            left: 8,
+            right: 8,
+
+            bottom: devKbHeight > 0 ? devKbHeight + 58 : bottomInset + 96,
+            zIndex: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            borderRadius: 6,
+            padding: 4,
+          }}
+        >
+          <TextInput
+            style={{ flex: 1, color: "#0f0", fontSize: 13, paddingHorizontal: 8, paddingVertical: 6 }}
+            value={devText}
+            onChangeText={setDevText}
+            placeholder="[DEV] 텍스트로 발화"
+            placeholderTextColor="#6b7280"
+            autoCapitalize="none"
+            returnKeyType="send"
+            blurOnSubmit={false}
+            onSubmitEditing={() => submitDevText(devText, say, setDevText)}
+          />
+          <TouchableOpacity
+            onPress={() => submitDevText(devText, say, setDevText)}
+            style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+          >
+            <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
+          </TouchableOpacity>
         </View>
       ) : null}
 
