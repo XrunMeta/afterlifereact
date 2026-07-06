@@ -163,7 +163,10 @@ def build_app(registry, factory, store, say_fn=None, render_url=None, guard=None
                 _PW_PLACEHOLDER,
                 _PW_PLACEHOLDER.replace('value=""', f'value="{_html_escape(dev_password, quote=True)}"'),
             )
-        return web.Response(text=html_text, content_type="text/html")
+        # mizu MEDIUM: LAB_TUNER_DEV_PASSWORD 설정 시 본문에 평문 비번이 실리므로
+        # 브라우저/중간 프록시 캐시에 남지 않도록 no-store 강제(무설정 시에도 일관 적용).
+        return web.Response(text=html_text, content_type="text/html",
+                             headers={"Cache-Control": "no-store"})
 
     async def tuner_js(_req):
         return web.FileResponse(_STATIC / "tuner.js")

@@ -723,3 +723,19 @@ async def test_index_no_prefill_when_dev_password_unset(tmp_path, monkeypatch):
         assert 'id="login-pw" type="password" placeholder="password" autocomplete="current-password" value=""' in text
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+async def test_index_response_has_cache_control_no_store(tmp_path, monkeypatch):
+    # mizu MEDIUM: LAB_TUNER_DEV_PASSWORD 설정 시 응답 본문에 평문 비번이 실리므로
+    # 브라우저/중간 프록시 캐시에 남지 않도록 no-store 강제.
+    monkeypatch.setenv("LAB_TUNER_DEV_PASSWORD", "hunter2!!!")
+    r = KnobsRegistry(); store = ArtifactStore(str(tmp_path))
+    application = labapp.build_app(r, factory=None, store=store)
+    client = TestClient(TestServer(application)); await client.start_server()
+    try:
+        resp = await client.get("/")
+        assert resp.status == 200
+        assert resp.headers.get("Cache-Control") == "no-store"
+    finally:
+        await client.close()
