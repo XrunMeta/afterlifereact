@@ -212,6 +212,21 @@ def test_js_restart_wired_with_two_stage_confirm_body():
     assert "restart-confirm" in js
 
 
+# ---------------------------------------------------------------------------
+# T-113 Task3-C: 노브 옆 실제 running 값 + 선택↔실제 drift 배지(render_mode)
+# ---------------------------------------------------------------------------
+
+def test_js_render_mode_has_running_drift_badge_wired():
+    with open(os.path.join(_STATIC, "tuner.js")) as f:
+        js = f.read()
+    assert "KNOB_ENV_MAP" in js
+    assert "'fifth.render_mode': 'PRETHIRD_RENDER_MODE'" in js
+    assert "applyKnobDriftBadges" in js
+    assert "재기동 필요" in js
+    # running 캐시가 loadKnobs 재렌더·loadProdStatus 갱신 양쪽에서 반영되는지.
+    assert js.count("applyKnobDriftBadges()") >= 2
+
+
 def test_js_send_say_returns_boolean_and_gates_clear():
     with open(os.path.join(_STATIC, "tuner.js")) as f:
         js = f.read()

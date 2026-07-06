@@ -149,6 +149,13 @@ async function v_858a0a() {
       const v_2869c1 = document.createElement('label'); v_2869c1.textContent = v_35f85c.label || v_b24339;
       const v_638ecc = v_a7deb0[v_35f85c.reflow];
       if (v_638ecc) { const v_fd5f43 = document.createElement('span'); v_fd5f43.className = 'reflow-chip'; v_fd5f43.textContent = v_638ecc; v_2869c1.appendChild(v_fd5f43); }
+
+      if (v_78c26d[v_9fe22d]) {
+        const v_51452d = document.createElement('span');
+        v_51452d.id = `running-${v_9fe22d}`; v_51452d.className = 'reflow-chip';
+        v_51452d.textContent = '실행값 조회중...';
+        v_2869c1.appendChild(v_51452d);
+      }
       v_3ac7e7.appendChild(v_2869c1);
       let v_22d288;
       if (v_35f85c.type === 'bool') {                     
@@ -191,6 +198,36 @@ async function v_858a0a() {
   }
   v_796451();
   document.getElementById('k_tts_engine')?.addEventListener('change', v_796451);
+  v_d4af21();   
+}
+
+const v_78c26d = { 'fifth.render_mode': 'PRETHIRD_RENDER_MODE' };
+let v_6f88c1 = null;   
+
+function v_d4af21() {
+  if (!v_6f88c1) return;
+  const v_298a3a = {};
+  for (const v_cb35cb of v_6f88c1) v_298a3a[v_cb35cb.env] = v_cb35cb;
+  for (const [v_9fe22d, v_c9c489] of Object.entries(v_78c26d)) {
+    const v_51452d = document.getElementById(`running-${v_9fe22d}`);
+    const v_22d288 = document.getElementById(`k_${v_9fe22d.replace('.', '_')}`);
+    if (!v_51452d || !v_22d288) continue;   
+    const v_3ac7e7 = v_298a3a[v_c9c489];
+
+    if (!v_3ac7e7 || v_3ac7e7.state === 'unknown') {
+      v_51452d.textContent = '실제: 확인불가(prethird 미기동?)';
+      v_51452d.className = 'reflow-chip';
+      continue;
+    }
+    const v_587413 = v_22d288.value;
+    if (v_587413 !== v_3ac7e7.running) {
+      v_51452d.textContent = `⚠ 선택:${v_587413} · 실제:${v_3ac7e7.running} · 재기동 필요`;
+      v_51452d.className = 'reflow-chip chip-drift';
+    } else {
+      v_51452d.textContent = `실제:${v_3ac7e7.running}`;
+      v_51452d.className = 'reflow-chip chip-ok';
+    }
+  }
 }
 
 function v_796451() {
@@ -289,6 +326,7 @@ async function v_187e1c() {
   const v_a38d42 = document.getElementById('prod-status');
   try {
     const v_d5dda0 = await (await fetch('/production-status')).json();
+    v_6f88c1 = v_d5dda0.rows || [];   
     let v_d91d98 = `<div style="color:var(--text-dim)">MainPID: ${v_8fd199(v_d5dda0.mainpid ?? '-')} · ${v_8fd199(v_d5dda0.generated_at)}</div>`;
     v_d91d98 += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
     for (const v_cb35cb of v_d5dda0.rows) {
@@ -298,6 +336,7 @@ async function v_187e1c() {
     }
     v_d91d98 += '</table>';
     v_a38d42.innerHTML = v_d91d98;
+    v_d4af21();   
   } catch (v_9e86fd) { v_a38d42.innerHTML = '<i>상태 조회 실패</i>'; }
 }
 

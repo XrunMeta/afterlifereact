@@ -297,3 +297,12 @@ def test_render_mode_now_host_applied():
     entries = promote.diff(knobs, lambda _n: "partial", dirty={"fifth.render_mode"})
     assert entries and entries[0]["container"] is False
     assert entries[0]["env"] == "PRETHIRD_RENDER_MODE"
+
+
+def test_render_mode_env_included_in_non_container_keys():
+    # T-113 Task3-C: app.py production_status()가 keys = [env for non-container 항목]
+    # 로 /proc/<mainpid>/environ을 읽는다 — render_mode가 host화됐으니 이 목록에
+    # PRETHIRD_RENDER_MODE가 포함돼야 실제 running 값이 drift 대시보드에 노출된다.
+    non_container_envs = [loc["env"] for loc in promote.KNOB_TO_LIVE.values()
+                           if not loc.get("container")]
+    assert "PRETHIRD_RENDER_MODE" in non_container_envs
