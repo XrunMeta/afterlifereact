@@ -203,6 +203,7 @@ async function v_858a0a() {
 
 const v_78c26d = { 'fifth.render_mode': 'PRETHIRD_RENDER_MODE' };
 let v_6f88c1 = null;   
+let v_60aaaa = null;   
 
 function v_d4af21() {
   if (!v_6f88c1) return;
@@ -327,6 +328,7 @@ async function v_187e1c() {
   try {
     const v_d5dda0 = await (await fetch('/production-status')).json();
     v_6f88c1 = v_d5dda0.rows || [];   
+    v_60aaaa = v_d5dda0.mainpid ?? null;   
     let v_d91d98 = `<div style="color:var(--text-dim)">MainPID: ${v_8fd199(v_d5dda0.mainpid ?? '-')} · ${v_8fd199(v_d5dda0.generated_at)}</div>`;
     v_d91d98 += '<table><tr><th>env</th><th>conf</th><th>실행값</th><th>상태</th></tr>';
     for (const v_cb35cb of v_d5dda0.rows) {
@@ -400,12 +402,30 @@ function v_3fd5d1() {
   document.getElementById('restart-cancel').onclick = () => { v_e926e3.style.display = 'none'; };
 }
 
+async function v_b41b0c(v_be69ff, v_e926e3) {
+  const v_3d627c = 10;
+  for (let v_ebec57 = 1; v_ebec57 <= v_3d627c; v_ebec57++) {
+    await new Promise((v_6f7712) => setTimeout(v_6f7712, 2000));
+    v_e926e3.innerHTML = `<div>재기동 중… 새 프로세스 기동 확인중(${v_ebec57 * 2}s/${v_3d627c * 2}s)</div>`;
+    try {
+      const v_d5dda0 = await (await fetch('/production-status')).json();
+      if (v_d5dda0.mainpid && v_d5dda0.mainpid !== v_be69ff) {
+        v_6f88c1 = v_d5dda0.rows || [];
+        v_60aaaa = v_d5dda0.mainpid;
+        return true;
+      }
+    } catch (v_9e86fd) {  }
+  }
+  return false;
+}
+
 async function v_f45ddd() {
   const v_e926e3 = document.getElementById('restart-confirm');
   const v_21cc31 = document.getElementById('promote-token').value;
 
   const v_3f4675 = {'Content-Type':'application/json'};
   if (v_21cc31) v_3f4675['X-Lab-Tuner-Token'] = v_21cc31;
+  const v_be69ff = v_60aaaa;   
   try {
     const v_cb35cb = await fetch('/promote/restart', {method:'POST', headers: v_3f4675,
       body: JSON.stringify({confirm: "RESTART", confirm2: true})});
@@ -417,9 +437,15 @@ async function v_f45ddd() {
       v_e926e3.innerHTML = '<i>실패: ' + v_8fd199(v_d5dda0.error || (v_cb35cb.status + ' 오류')) + '</i>';
       return;
     }
-    v_e926e3.innerHTML = `<div>재기동 요청 완료(returncode=${v_8fd199(v_d5dda0.restart_returncode)}): `+
-      `${v_8fd199(v_d5dda0.mainpid_info ?? '')}</div>`;
-    await v_187e1c();
+    v_e926e3.innerHTML = `<div>재기동 요청 완료(returncode=${v_8fd199(v_d5dda0.restart_returncode)}) — `+
+      `새 프로세스 기동 대기중…</div>`;
+    const v_4c6dd7 = await v_b41b0c(v_be69ff, v_e926e3);
+    if (v_4c6dd7) {
+      v_e926e3.innerHTML = `<div>재기동 완료(MainPID:${v_8fd199(v_60aaaa)}) — 실행값 갱신됨</div>`;
+      await v_187e1c();
+    } else {
+      v_e926e3.innerHTML = '<i>재기동 확인 시간초과(20s) — "프로덕션 상태" 새로고침으로 직접 확인하세요</i>';
+    }
   } catch (v_9e86fd) { v_e926e3.innerHTML = '<i>재기동 요청 실패</i>'; }
 }
 
