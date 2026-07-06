@@ -43,6 +43,92 @@ class FakeAudioTrack:
 
 
 @pytest.mark.asyncio
+async def test_greet_forces_partial_even_when_render_mode_batch(monkeypatch):
+    """[실통화 디버그] PRETHIRD_RENDER_MODE=batch 여도 greet()(시스템 선제발화)
+    는 force_partial=True 로 _run_pipeline_partial 을 타야 한다 — batch 를 타면
+    TTFF 가 늘어나 GREET_TIMEOUT(7s) 초과·dialing 화면 고착이 실통화로 확인됨.
+    partial 이면 문장별 TTS/infer 가 각각 호출돼(3문장→3회) render_mode kwarg
+    없이(또는 None) infer_fn 이 불린다 — batch(1회·render_mode='batch')와 구분."""
+    monkeypatch.setenv("PRETHIRD_RENDER_MODE", "batch")
+
+    tts_calls: list[str] = []
+    infer_calls: list[str | None] = []
+
+    async def chat_fn(messages):
+        # [주의] SentenceBuffer(min_len=4)는 첫 문장이 min_len 미만이면 다음
+        # 문장과 병합해버려 partial/batch 구분이 안 된다 — 각 문장이 단독으로
+        # min_len 이상이 되도록 충분히 긴 문장을 사용(기존 batch 테스트와 동일 패턴).
+        for tok in ["첫 문장이다. ", "둘째 문장도 있다. ", "셋째다."]:
+            yield tok
+
+    async def say_fn(text, se_path=None):
+        tts_calls.append(text)
+        return b"WAVfake"
+
+    def decode_wav_fn(b):
+        return np.zeros(960, dtype=np.int16), 48000, 1
+
+    def infer_fn(wav_path, on_frame, **k):
+        infer_calls.append(k.get("render_mode"))
+        on_frame(np.zeros((4, 4, 3), dtype=np.uint8))
+        return 1
+
+    vt, at = FakeVideoTrack(), FakeAudioTrack()
+    p = DialoguePipeline(
+        video_track=vt, audio_track=at,
+        chat_fn=chat_fn, say_fn=say_fn,
+        decode_wav_fn=decode_wav_fn, infer_fn=infer_fn,
+    )
+    assert p._render_mode == "batch"
+
+    await p.greet()
+
+    assert len(tts_calls) == 3, f"greet 는 partial(문장별 TTS)이어야 함(실제: {tts_calls})"
+    assert infer_calls == [None, None, None], (
+        f"greet 는 partial 이라 render_mode kwarg 가 전달되지 않아야 함(실제: {infer_calls})"
+    )
+
+
+@pytest.mark.asyncio
+async def test_say_still_uses_batch_when_render_mode_batch(monkeypatch):
+    """say()(사용자 응답)는 force_partial 을 전달하지 않으므로 batch 설정 시
+    여전히 _run_batch(단일 TTS·단일 infer render_mode='batch')를 타야 한다 —
+    greet force_partial 배선이 say 경로를 오염시키지 않았는지 회귀 확인."""
+    monkeypatch.setenv("PRETHIRD_RENDER_MODE", "batch")
+
+    tts_calls: list[str] = []
+    infer_calls: list[str | None] = []
+
+    async def chat_fn(messages):
+        for tok in ["첫 문장이다. ", "둘째 문장도 있다. ", "셋째다."]:
+            yield tok
+
+    async def say_fn(text, se_path=None):
+        tts_calls.append(text)
+        return b"WAVfake"
+
+    def decode_wav_fn(b):
+        return np.zeros(960, dtype=np.int16), 48000, 1
+
+    def infer_fn(wav_path, on_frame, **k):
+        infer_calls.append(k.get("render_mode"))
+        on_frame(np.zeros((4, 4, 3), dtype=np.uint8))
+        return 1
+
+    vt, at = FakeVideoTrack(), FakeAudioTrack()
+    p = DialoguePipeline(
+        video_track=vt, audio_track=at,
+        chat_fn=chat_fn, say_fn=say_fn,
+        decode_wav_fn=decode_wav_fn, infer_fn=infer_fn,
+    )
+
+    await p.say("아무 말")
+
+    assert len(tts_calls) == 1, f"say 는 여전히 batch(단일 TTS)여야 함(실제: {tts_calls})"
+    assert infer_calls == ["batch"], f"say 는 여전히 render_mode='batch' 여야 함(실제: {infer_calls})"
+
+
+@pytest.mark.asyncio
 async def test_batch_single_tts_single_infer(monkeypatch):
     """say() 를 통해 구동해도 render_mode=batch 면 TTS 1회·infer 1회·
     render_mode="batch" 가 실제로 전달됨을 확인."""
