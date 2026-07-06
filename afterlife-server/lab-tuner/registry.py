@@ -36,15 +36,25 @@ class KnobsRegistry:
             return self._knobs
 
     def update(self, partial: dict) -> RunKnobs:
-        """현재 Knobs.to_dict()에 partial을 섹션 단위로 deep-merge 후 반영."""
+        """현재 Knobs.to_dict()에 partial을 섹션 단위로 deep-merge 후 반영.
+
+        T-113 Task3-B: dirty는 "실제로 값이 바뀐 키"만 마킹한다. applyKnobs가
+        전체 필드(변경 없는 값 포함)를 매번 POST하는 프런트 특성상, 값 비교
+        없이 전부 dirty 처리하면 사용자가 한 노브만 바꿔도 promote 후보에
+        무관한 노브(filler 등)가 전부 딸려온다(el BLOCKER 2 의도 위반). 값이
+        기존과 동일하면(타입까지 포함한 `!=` 비교) dirty에서 제외한다.
+        """
         with self._lock:
             base = self._knobs.to_dict()
             for section, vals in (partial or {}).items():
                 if section in base and isinstance(vals, dict):
                     valid_keys = set(base[section].keys())   # merge 전 스냅샷 = 실제 유효 필드
-                    base[section].update(vals)
-                    for key in vals:
-                        if key in valid_keys:   # unknown_field 등은 dirty 기록 제외
+                    for key, new_val in vals.items():
+                        if key not in valid_keys:   # unknown_field 등은 dirty 기록 제외
+                            continue
+                        old_val = base[section][key]
+                        base[section][key] = new_val
+                        if new_val != old_val:
                             self._dirty.add(f"{section}.{key}")
             self._knobs = RunKnobs.from_dict(base)
             return self._knobs
