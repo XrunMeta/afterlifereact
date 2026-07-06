@@ -17,6 +17,7 @@ import aiohttp
 from aiohttp import web
 
 from clone_dialog import fetch_bundle, bundle_to_messages, chat_stream, extract_l2
+from signaling import build_l2p_hint
 
 log = logging.getLogger("prethird.verify")
 
@@ -83,6 +84,66 @@ async def verify_clones(req: web.Request) -> web.Response:
               for it in items if it.get("id") is not None]
     return web.json_response({"clones": clones})
 
+async def verify_persons(req: web.Request) -> web.Response:
+    """드롭다운용 — api GET /oth-path?cloneId= 프록시, {id,name}만."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    raw_cid = req.query.get("clone_id")
+    params = {}
+    if raw_cid is not None:
+        try:
+            params["cloneId"] = int(raw_cid)
+        except (TypeError, ValueError):
+            return web.json_response({"error": "invalid clone_id"}, status=400)
+    try:
+        timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+        async with aiohttp.ClientSession(timeout=timeout) as sess:
+            async with sess.get(f"{API_BASE}/oth-path", params=params, headers={
+                "Authorization": f"Bearer {token}", "User-Agent": _BROWSER_UA,
+            }) as r:
+                if r.status != 200:
+                    return web.json_response({"error": f"api {r.status}"}, status=r.status)
+                data = await r.json()
+    except Exception as e:
+        log.warning("verify_persons failed: %s", type(e).__name__)
+        return web.json_response({"error": "upstream error"}, status=502)
+    items = data.get("data") or []  # api GET /oth-path 는 {data:[...]} 계약(RN 공유)
+    return web.json_response({"persons": [
+        {"id": it.get("id"), "name": it.get("displayName")} for it in items if it.get("id") is not None
+    ]})
+
+async def verify_person_create(req: web.Request) -> web.Response:
+    """새 화자 생성 — api POST /oth-path 프록시({cloneId, displayName})."""
+    if not _check_verify_pass(req):
+        return web.json_response({"error": "verify password required"}, status=401)
+    token = _bearer(req)
+    if not token:
+        return web.json_response({"error": "missing bearer token"}, status=401)
+    body = await req.json()
+    raw_cid = body.get("clone_id")
+    clone_id = raw_cid if isinstance(raw_cid, int) and raw_cid > 0 else None
+    display_name = body.get("display_name")
+    if clone_id is None or not display_name:
+        return web.json_response({"error": "clone_id/display_name required"}, status=400)
+    payload = json.dumps({"cloneId": clone_id, "displayName": display_name}).encode("utf-8")
+    try:
+        timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+        async with aiohttp.ClientSession(timeout=timeout) as sess:
+            async with sess.post(f"{API_BASE}/oth-path", data=payload, headers={
+                "Content-Type": "application/json", "Authorization": f"Bearer {token}", "User-Agent": _BROWSER_UA,
+            }) as r:
+                txt = await r.text()
+                if r.status not in (200, 201):
+                    return web.json_response({"error": f"api {r.status}", "body": txt}, status=r.status)
+                data = json.loads(txt)
+    except Exception as e:
+        log.warning("verify_person_create failed: %s", type(e).__name__)
+        return web.json_response({"error": "upstream error"}, status=502)
+    return web.json_response({"id": data.get("id"), "displayName": data.get("displayName")})
+
 async def verify_login(req: web.Request) -> web.Response:
     """검증 도구 로그인 — api /oth-path 프록시. accessToken만 반환(비번 미저장·미로깅)."""
     if not _check_verify_pass(req):
@@ -137,6 +198,19 @@ async def verify_chat(req: web.Request) -> web.StreamResponse | web.Response:
         system_messages = [{"role": "system", "content": system_override}]
     else:
         system_messages = bundle_to_messages(bundle)
+        # [T-116] 화자 선택 시 L2' 오버레이(실통화 _maybe_swap_l2p 재현). override 모드 제외.
+        raw_pid = body.get("person_id")
+        person_id = raw_pid if isinstance(raw_pid, int) and raw_pid > 0 else None
+        if person_id is not None and _DEV_SECRET:
+            try:
+                dev_l2p = await _dev_l2p_data(clone_id, person_id)
+            except Exception as e:
+                log.warning("verify_chat dev_l2p failed clone=%s person=%s: %s", clone_id, person_id, type(e).__name__)
+                dev_l2p = {}
+            name = dev_l2p.get("displayName") or str(person_id)
+            system_messages = system_messages + [
+                {"role": "system", "content": build_l2p_hint(name, dev_l2p.get("data"))}
+            ]
     final_messages = system_messages + list(messages)
 
     resp = web.StreamResponse(status=200, headers={
@@ -179,6 +253,18 @@ async def _dev_ont_data(clone_id: int, user_id: int) -> dict:
                 return {}
             data = await r.json()
     return (data or {}).get("data") or {}
+
+async def _dev_l2p_data(clone_id: int, person_id: int) -> dict:
+    """dev l2p-raw GET → {data, displayName}. 실패 시 {} (오버레이 없이 진행)."""
+    url = f"{API_BASE}/oth-path?personId={person_id}"
+    timeout = aiohttp.ClientTimeout(total=_API_TIMEOUT_S)
+    async with aiohttp.ClientSession(timeout=timeout) as sess:
+        async with sess.get(url, headers={
+            "Authorization": f"Bearer {_DEV_SECRET}", "User-Agent": _BROWSER_UA,
+        }) as r:
+            if r.status != 200:
+                return {}
+            return await r.json()
 
 async def _ont_merge(clone_id: int, user_id: int, extracted: dict) -> dict:
     """dev ont-merge POST — 프로덕션 병합 로직(clone_ont) 재사용. 반환은 병합 후 clone_ont.data."""
@@ -368,6 +454,8 @@ def register_verify_routes(app: web.Application) -> None:
     app.router.add_get("/oth-path", verify_page)
     app.router.add_post("/oth-path", verify_login)
     app.router.add_get("/oth-path", verify_clones)
+    app.router.add_get("/oth-path", verify_persons)
+    app.router.add_post("/oth-path", verify_person_create)
     app.router.add_post("/oth-path", verify_chat)
     app.router.add_post("/oth-path", verify_learn)
     app.router.add_post("/oth-path", verify_l2_reset)
