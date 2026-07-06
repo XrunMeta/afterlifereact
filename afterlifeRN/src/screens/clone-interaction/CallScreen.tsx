@@ -13,6 +13,7 @@ import {
   Animated,
   Platform,
   KeyboardAvoidingView,
+  Keyboard,
   TextInput,
   Alert,
   Linking,
@@ -197,6 +198,19 @@ export default function CallScreen({ route, navigation }: Props) {
   } = useAvatarCall({ cloneId, accessToken: accessToken ?? "", onEnrollSuggest: handleEnrollSuggest });
 
   const [devText, setDevText] = useState("");
+
+  const [devKbHeight, setDevKbHeight] = useState(0);
+  useEffect(() => {
+    if (!__DEV__) return;
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) =>
+      setDevKbHeight(e.endCoordinates.height),
+    );
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setDevKbHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const greetingOn = GREETING_ENABLED && typeof greet === 'function';
 
@@ -776,14 +790,13 @@ export default function CallScreen({ route, navigation }: Props) {
       ) : null}
 
       {__DEV__ && liveState === "live" ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        <View
           style={{
             position: "absolute",
             left: 8,
             right: 8,
 
-            bottom: bottomInset + 96,
+            bottom: devKbHeight > 0 ? devKbHeight + 58 : bottomInset + 96,
             zIndex: 20,
             flexDirection: "row",
             alignItems: "center",
@@ -809,7 +822,7 @@ export default function CallScreen({ route, navigation }: Props) {
           >
             <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
           </TouchableOpacity>
-        </KeyboardAvoidingView>
+        </View>
       ) : null}
 
       {}
