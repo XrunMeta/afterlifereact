@@ -159,6 +159,7 @@ v_469bf2("T-116 B Task4: guide 잡 트리거 — persona(L0/L1) 동봉", () => {
         username: `guidejobpersona${Date.now()}`,
         idle_video_job_id: v_ecfd5e,
         voice_clone_job_id: v_e85271,
+        l1_profile: { attrs: { mbti: "INFP", hobby: "reading" }, notes: "guide job persona test" },
       }),
     });
     v_4d37e3(v_8f00b9.status).toBe(201);
@@ -180,6 +181,12 @@ v_469bf2("T-116 B Task4: guide 잡 트리거 — persona(L0/L1) 동봉", () => {
     v_4d37e3(v_5518a6.persona).toBeTruthy();
     v_4d37e3(v_5518a6.persona.l0).toBeTruthy();
     v_4d37e3(typeof v_5518a6.persona.l0.rules_text).toBe("string");
+
+    v_4d37e3(v_5518a6.persona.l1).toBeTruthy();
+    v_4d37e3(v_5518a6.persona.l1.attrs).toBeUndefined();
+    v_4d37e3(v_5518a6.persona.l1.mbti).toBe("INFP");
+    v_4d37e3(v_5518a6.persona.l1.hobby).toBe("reading");
+    v_4d37e3(v_5518a6.persona.l1.notes).toBe("guide job persona test");
 
     v_4d37e3(v_10e7b2).toBeTruthy();
     const v_29b3d5 = JSON.parse(v_10e7b2!);
