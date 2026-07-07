@@ -4,6 +4,7 @@ import type { v_de0a25 } from "../lib/env";
 import { v_278a53, v_80401b, v_7a6ff6, v_c12e45, v_12ade7, v_2fb81a, v_4b949c } from "../lib/assetJobs";
 import { v_1f4ea7 } from "../lib/validate";
 import { v_5d4a51 } from "../lib/cloneAccess";
+import { v_842ce7 } from "../lib/guideJob";
 import {
   v_3821c0, v_0ac5b7, type v_d91e78,
   v_0761b1, v_600422,
@@ -679,6 +680,78 @@ v_dcd415.post("/dev/clones/:id/ont-merge-person", async (v_3f4e2e) => {
     await v_74defc(v_3f4e2e, { userId: v_306a28.user_id, action: "dev.l2p_merge.write", details: { cloneId: v_6e0fd3, personId: v_ca1ec5, rev: v_43c42e.rev } });
   } catch {  }
   return v_3f4e2e.json({ rev: v_43c42e.rev, skipped: v_43c42e.skipped, data: v_9390e8 });
+});
+
+v_dcd415.get("/dev/guide-backfill-targets", async (v_3f4e2e) => {
+  const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
+  const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  if (!v_21cc31 || !v_3f4e2e.env.DEV_SECRET || !v_a155c4(v_21cc31, v_3f4e2e.env.DEV_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_18b8bf = await v_3f4e2e.env.DB.prepare(
+    `SELECT c.id AS id, c.owner_id AS user_id,
+            (SELECT src_file_id FROM clone_asset_jobs
+              WHERE clone_id = c.id AND kind = 'idle_video' AND status = 'done'
+              ORDER BY created_at DESC, rowid DESC LIMIT 1) AS face_src_file_id,
+            (SELECT src_file_id FROM clone_asset_jobs
+              WHERE clone_id = c.id AND kind = 'voice_clone' AND status = 'done'
+              ORDER BY created_at DESC, rowid DESC LIMIT 1) AS voice_src_file_id
+       FROM clones c
+      WHERE c.guide_video_urls IS NULL AND c.deleted_at IS NULL`,
+  ).all<{ id: number; user_id: number; face_src_file_id: number | null; voice_src_file_id: number | null }>();
+
+  const v_9390e8 = (v_18b8bf.results ?? []).filter(
+    (v_cb35cb) => v_cb35cb.face_src_file_id != null && v_cb35cb.voice_src_file_id != null,
+  );
+  return v_3f4e2e.json({ data: v_9390e8 });
+});
+
+v_dcd415.post("/dev/clones/:id/guide-job", async (v_3f4e2e) => {
+  const v_68f0aa = v_3f4e2e.req.header("Authorization") ?? "";
+  const v_21cc31 = v_68f0aa.startsWith("Bearer ") ? v_68f0aa.slice(7) : "";
+  if (!v_21cc31 || !v_3f4e2e.env.DEV_SECRET || !v_a155c4(v_21cc31, v_3f4e2e.env.DEV_SECRET)) {
+    return v_3f4e2e.json({ error: "unauthorized" }, 401);
+  }
+  const v_6e0fd3 = Number(v_3f4e2e.req.param("id"));
+  if (!Number.isInteger(v_6e0fd3) || v_6e0fd3 <= 0) {
+    return v_3f4e2e.json({ error: "bad_clone_id" }, 400);
+  }
+  const v_eb25ce = await v_5d4a51(v_3f4e2e.env.DB, v_6e0fd3);
+  if (!v_eb25ce) return v_3f4e2e.json({ error: "clone_not_found" }, 404);
+
+  if (v_eb25ce.guide_video_urls) {
+    return v_3f4e2e.json({ skipped: true, guide_video_urls: v_eb25ce.guide_video_urls }, 200);
+  }
+
+  const v_7f3fda = await v_3f4e2e.env.DB.prepare(
+    `SELECT src_file_id FROM clone_asset_jobs
+      WHERE clone_id = ? AND kind = 'idle_video' AND status = 'done'
+      ORDER BY created_at DESC, rowid DESC LIMIT 1`,
+  ).bind(v_6e0fd3).first<{ src_file_id: number }>();
+  const v_710de1 = await v_3f4e2e.env.DB.prepare(
+    `SELECT src_file_id FROM clone_asset_jobs
+      WHERE clone_id = ? AND kind = 'voice_clone' AND status = 'done'
+      ORDER BY created_at DESC, rowid DESC LIMIT 1`,
+  ).bind(v_6e0fd3).first<{ src_file_id: number }>();
+  if (!v_7f3fda || !v_710de1) {
+    return v_3f4e2e.json({ error: "asset_jobs_missing" }, 400);
+  }
+
+  const v_f17108 = new URL(v_3f4e2e.req.url).origin;
+  const v_35d74b = `${v_f17108}/oth-path${v_710de1.src_file_id}`;
+
+  const v_43c42e = await v_842ce7(v_3f4e2e.env.DB, {
+    cloneId: v_6e0fd3,
+    userId: v_eb25ce.owner_id,
+    faceSrcFileId: v_7f3fda.src_file_id,
+    voiceRawUrl: v_35d74b,
+    origin: v_f17108,
+    orchestratorUrl: v_3f4e2e.env.ORCHESTRATOR_URL,
+    orchSecret: v_3f4e2e.env.ORCH_SECRET,
+    waitUntil: (v_e2a85c) => v_3f4e2e.executionCtx.waitUntil(v_e2a85c),
+  });
+
+  return v_3f4e2e.json({ guideJobId: v_43c42e.guideJobId }, 201);
 });
 
 async function v_a30df4(v_a1651b, v_ca1ec5, v_6e0fd3): Promise<boolean> {

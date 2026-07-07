@@ -28,8 +28,7 @@ import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 import { v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
 import { v_87cfd2 } from "../lib/callBundle";
-import { v_db508f, v_56dc8c } from "../lib/personaBundle";
-import { v_b60bdd } from "../lib/systemPersona";
+import { v_842ce7 } from "../lib/guideJob";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -488,49 +487,16 @@ v_f891e6.post(
             );
           }
 
-          {
-            const v_97f897 = crypto.randomUUID();
-            const v_b9822a = await v_041f8e(
-              v_3f4e2e.env.DB, v_97f897, v_43e90c, "guide", v_7f3fda.src_file_id,
-            );
-
-            await v_f64843(v_3f4e2e.env.DB, v_97f897, v_6e0fd3);
-
-            if (v_3f4e2e.env.ORCHESTRATOR_URL && v_3f4e2e.env.ORCH_SECRET) {
-              const v_f17108 = new URL(v_3f4e2e.req.url).origin;
-              const v_2d0601 = `${v_f17108}/oth-path${v_7f3fda.src_file_id}`;
-
-              let v_5ed063 = null;
-              try {
-                const v_b6c480 = await v_b60bdd(v_3f4e2e.env.DB);
-                const { l1: v_020b4b } = await v_db508f(v_3f4e2e.env.DB, v_6e0fd3);
-                v_5ed063 = { l0: v_b6c480, l1: v_56dc8c(v_020b4b) };
-              } catch (v_49263d) {
-                console.warn("[guide-job] persona 조립 실패 — persona 없이 진행:", (v_49263d as Error).message);
-              }
-              v_3f4e2e.executionCtx.waitUntil(
-                fetch(`${v_3f4e2e.env.ORCHESTRATOR_URL}/oth-path`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${v_3f4e2e.env.ORCH_SECRET}`,
-                  },
-                  body: JSON.stringify({
-                    job_id: v_97f897,
-                    kind: "guide",
-                    face_url: v_2d0601,
-                    clone_id: String(v_6e0fd3),
-                    voice_raw_url: v_35d74b,
-                    callback_token: v_b9822a,
-                    persona: v_5ed063,
-                  }),
-                  signal: AbortSignal.timeout(8000),
-                })
-                  .then((v_8f00b9) => v_5193f8(v_3f4e2e.env.DB, v_97f897, v_8f00b9.ok ? "running" : "failed"))
-                  .catch(() => v_5193f8(v_3f4e2e.env.DB, v_97f897, "failed")),
-              );
-            }
-          }
+          await v_842ce7(v_3f4e2e.env.DB, {
+            cloneId: v_6e0fd3,
+            userId: v_43e90c,
+            faceSrcFileId: v_7f3fda.src_file_id,
+            voiceRawUrl: v_35d74b,
+            origin: new URL(v_3f4e2e.req.url).origin,
+            orchestratorUrl: v_3f4e2e.env.ORCHESTRATOR_URL,
+            orchSecret: v_3f4e2e.env.ORCH_SECRET,
+            waitUntil: (v_e2a85c) => v_3f4e2e.executionCtx.waitUntil(v_e2a85c),
+          });
         }
       }
     }
