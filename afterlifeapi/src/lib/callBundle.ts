@@ -16,6 +16,8 @@ export interface CallBundle {
     faceUrl: string | null;
 
     fillerVideoUrls: string[];
+
+    guideVideoUrls: string[];
   };
 }
 
@@ -90,6 +92,19 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     }
   }
 
+  let v_fa8b40 = [];
+  if (v_eb25ce.guide_video_urls) {
+    try {
+      const v_8decf8 = JSON.parse(v_eb25ce.guide_video_urls);
+      if (Array.isArray(v_8decf8)) {
+        v_fa8b40 = v_8decf8.filter((v_ceb55a): v_ceb55a is string => typeof v_ceb55a === "string");
+      }
+    } catch {
+
+      v_fa8b40 = [];
+    }
+  }
+
   const v_7adc95 = {
     idleVideoUrl: v_eb25ce.idle_video_url ?? null,
     voiceSeUrl: v_c910d9,
@@ -98,6 +113,7 @@ export async function v_87cfd2(v_a1651b, clone: v_b107dc, v_43e90c, v_f17108): P
     avatarUrl: v_eb25ce.avatar_url ?? null,
     faceUrl: v_2d0601,
     fillerVideoUrls: v_c53bd1,
+    guideVideoUrls: v_fa8b40,
   };
 
   return { personaBundle: v_ba0fde, assets: v_7adc95 };
