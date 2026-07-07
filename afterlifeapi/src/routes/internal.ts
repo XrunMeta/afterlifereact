@@ -4,6 +4,7 @@ import type { AppEnv } from "../lib/env";
 import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeMultiUrlJob, finalizeJob, getJob } from "../lib/assetJobs";
 import { z } from "../lib/validate";
 import { loadCloneById } from "../lib/cloneAccess";
+import { triggerGuideJob } from "../lib/guideJob";
 import {
   readOnt, updateOntFromExtraction, type L2Extraction,
   readOntPerson, updateOntPersonFromExtraction,
@@ -679,6 +680,78 @@ internal.post("/dev/clones/:id/ont-merge-person", async (c) => {
     await logActivity(c, { userId: person.user_id, action: "dev.l2p_merge.write", details: { cloneId, personId, rev: result.rev } });
   } catch {  }
   return c.json({ rev: result.rev, skipped: result.skipped, data });
+});
+
+internal.get("/dev/guide-backfill-targets", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const rows = await c.env.DB.prepare(
+    `SELECT c.id AS id, c.owner_id AS user_id,
+            (SELECT src_file_id FROM clone_asset_jobs
+              WHERE clone_id = c.id AND kind = 'idle_video' AND status = 'done'
+              ORDER BY created_at DESC, rowid DESC LIMIT 1) AS face_src_file_id,
+            (SELECT src_file_id FROM clone_asset_jobs
+              WHERE clone_id = c.id AND kind = 'voice_clone' AND status = 'done'
+              ORDER BY created_at DESC, rowid DESC LIMIT 1) AS voice_src_file_id
+       FROM clones c
+      WHERE c.guide_video_urls IS NULL AND c.deleted_at IS NULL`,
+  ).all<{ id: number; user_id: number; face_src_file_id: number | null; voice_src_file_id: number | null }>();
+
+  const data = (rows.results ?? []).filter(
+    (r) => r.face_src_file_id != null && r.voice_src_file_id != null,
+  );
+  return c.json({ data });
+});
+
+internal.post("/dev/clones/:id/guide-job", async (c) => {
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!token || !c.env.DEV_SECRET || !safeEqual(token, c.env.DEV_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+  const cloneId = Number(c.req.param("id"));
+  if (!Number.isInteger(cloneId) || cloneId <= 0) {
+    return c.json({ error: "bad_clone_id" }, 400);
+  }
+  const clone = await loadCloneById(c.env.DB, cloneId);
+  if (!clone) return c.json({ error: "clone_not_found" }, 404);
+
+  if (clone.guide_video_urls) {
+    return c.json({ skipped: true, guide_video_urls: clone.guide_video_urls }, 200);
+  }
+
+  const idleJob = await c.env.DB.prepare(
+    `SELECT src_file_id FROM clone_asset_jobs
+      WHERE clone_id = ? AND kind = 'idle_video' AND status = 'done'
+      ORDER BY created_at DESC, rowid DESC LIMIT 1`,
+  ).bind(cloneId).first<{ src_file_id: number }>();
+  const voiceJob = await c.env.DB.prepare(
+    `SELECT src_file_id FROM clone_asset_jobs
+      WHERE clone_id = ? AND kind = 'voice_clone' AND status = 'done'
+      ORDER BY created_at DESC, rowid DESC LIMIT 1`,
+  ).bind(cloneId).first<{ src_file_id: number }>();
+  if (!idleJob || !voiceJob) {
+    return c.json({ error: "asset_jobs_missing" }, 400);
+  }
+
+  const origin = new URL(c.req.url).origin;
+  const voiceRawUrl = `${origin}/oth-path${voiceJob.src_file_id}`;
+
+  const result = await triggerGuideJob(c.env.DB, {
+    cloneId,
+    userId: clone.owner_id,
+    faceSrcFileId: idleJob.src_file_id,
+    voiceRawUrl,
+    origin,
+    orchestratorUrl: c.env.ORCHESTRATOR_URL,
+    orchSecret: c.env.ORCH_SECRET,
+    waitUntil: (p) => c.executionCtx.waitUntil(p),
+  });
+
+  return c.json({ guideJobId: result.guideJobId }, 201);
 });
 
 async function personOwnsCloneSession(db: D1Database, personId: number, cloneId: number): Promise<boolean> {

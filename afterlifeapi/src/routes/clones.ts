@@ -28,8 +28,7 @@ import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 import { maskUsername } from "../lib/utils";
 import { triggerPrebuild } from "../lib/prebuildClient";
 import { buildCallBundle } from "../lib/callBundle";
-import { loadCloneProfiles, flattenAttrs } from "../lib/personaBundle";
-import { loadSystemPersona } from "../lib/systemPersona";
+import { triggerGuideJob } from "../lib/guideJob";
 
 export const clones = new Hono<AppEnv>();
 
@@ -497,49 +496,16 @@ clones.post(
             );
           }
 
-          {
-            const guideJobId = crypto.randomUUID();
-            const guideCallbackToken = await createJob(
-              c.env.DB, guideJobId, userId, "guide", idleJob.src_file_id,
-            );
-
-            await linkClone(c.env.DB, guideJobId, cloneId);
-
-            if (c.env.ORCHESTRATOR_URL && c.env.ORCH_SECRET) {
-              const origin = new URL(c.req.url).origin;
-              const faceUrl = `${origin}/oth-path${idleJob.src_file_id}`;
-
-              let persona: { l0: unknown; l1: unknown } | null = null;
-              try {
-                const l0 = await loadSystemPersona(c.env.DB);
-                const { l1 } = await loadCloneProfiles(c.env.DB, cloneId);
-                persona = { l0, l1: flattenAttrs(l1) };
-              } catch (err) {
-                console.warn("[guide-job] persona 조립 실패 — persona 없이 진행:", (err as Error).message);
-              }
-              c.executionCtx.waitUntil(
-                fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${c.env.ORCH_SECRET}`,
-                  },
-                  body: JSON.stringify({
-                    job_id: guideJobId,
-                    kind: "guide",
-                    face_url: faceUrl,
-                    clone_id: String(cloneId),
-                    voice_raw_url: voiceRawUrl,
-                    callback_token: guideCallbackToken,
-                    persona,
-                  }),
-                  signal: AbortSignal.timeout(8000),
-                })
-                  .then((res) => setStatus(c.env.DB, guideJobId, res.ok ? "running" : "failed"))
-                  .catch(() => setStatus(c.env.DB, guideJobId, "failed")),
-              );
-            }
-          }
+          await triggerGuideJob(c.env.DB, {
+            cloneId,
+            userId,
+            faceSrcFileId: idleJob.src_file_id,
+            voiceRawUrl,
+            origin: new URL(c.req.url).origin,
+            orchestratorUrl: c.env.ORCHESTRATOR_URL,
+            orchSecret: c.env.ORCH_SECRET,
+            waitUntil: (p) => c.executionCtx.waitUntil(p),
+          });
         }
       }
     }
