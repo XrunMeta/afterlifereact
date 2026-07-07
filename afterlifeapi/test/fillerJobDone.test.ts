@@ -73,6 +73,24 @@ async function v_fda860(v_04211c): Promise<void> {
     .run();
 }
 
+async function v_dcbc2a(
+  v_43e90c,
+  v_2fa661,
+  v_6e0fd3,
+): Promise<{ jobId: string; callbackToken: string }> {
+  const v_a1651b = v_c9c489.DB as unknown as D1Database;
+  const v_04211c = crypto.randomUUID();
+  const v_59b4e0 = crypto.randomUUID();
+  await v_a1651b
+    .prepare(
+      `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id, callback_token)
+       VALUES (?, ?, 'guide', ?, 'running', ?, ?)`,
+    )
+    .bind(v_04211c, v_43e90c, v_2fa661, v_6e0fd3, v_59b4e0)
+    .run();
+  return { jobId: v_04211c, callbackToken: v_59b4e0 };
+}
+
 const v_7169b4 = () =>
   (v_c9c489 as { ORCH_SECRET?: string }).ORCH_SECRET ?? "test-orch-secret";
 
@@ -395,6 +413,52 @@ v_469bf2("POST /oth-path — 정상 처리", () => {
       .bind(v_04211c)
       .first<{ status: string }>();
     v_4d37e3(v_d5e460!.status).toBe("done");
+  });
+});
+
+v_469bf2("POST /oth-path — cross-kind 콜백 오염 차단 (mizu Important)", () => {
+  v_23805a("kind='guide' running 잡 + filler 콜백 제출 → 409 kind_mismatch, filler_video_urls NULL 유지·R2 미기록", async () => {
+    const v_0c8987 = await v_bfb240("filler_xkind@test.com");
+    const v_8e2335 = await v_c808bd(v_0c8987, "filler-xkind");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "fillerxkind");
+
+    const { jobId: v_04211c, callbackToken: v_59b4e0 } = await v_dcbc2a(v_0c8987, v_8e2335, v_062ae9);
+
+    const v_23563e = v_a64c40(v_04211c, v_59b4e0, [
+      { data: v_070a47, name: "f0.mp4" },
+      { data: v_070a47, name: "f1.mp4" },
+      { data: v_070a47, name: "f2.mp4" },
+    ]);
+    const v_8f00b9 = await v_1df298.fetch("http://localhost/oth-path", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${v_7169b4()}` },
+      body: v_23563e,
+    });
+    v_4d37e3(v_8f00b9.status).toBe(409);
+    const v_4d33b2 = await v_8f00b9.json<{ error: string }>();
+    v_4d37e3(v_4d33b2.error).toBe("kind_mismatch");
+
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_1de203 = await v_a1651b
+      .prepare(`SELECT filler_video_urls FROM clones WHERE id = ?`)
+      .bind(v_062ae9)
+      .first<{ filler_video_urls: string | null }>();
+    v_4d37e3(v_1de203!.filler_video_urls).toBeNull();
+
+    const v_d5e460 = await v_a1651b
+      .prepare(`SELECT status, kind FROM clone_asset_jobs WHERE id = ?`)
+      .bind(v_04211c)
+      .first<{ status: string; kind: string }>();
+    v_4d37e3(v_d5e460!.status).toBe("running");
+    v_4d37e3(v_d5e460!.kind).toBe("guide");
+
+    const v_904217 = await v_a1651b
+      .prepare(
+        `SELECT COUNT(*) as cnt FROM files WHERE purpose = 'asset_filler' AND owner_user_id = ?`,
+      )
+      .bind(v_0c8987)
+      .first<{ cnt: number }>();
+    v_4d37e3(v_904217!.cnt).toBe(0);
   });
 });
 

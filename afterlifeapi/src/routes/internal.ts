@@ -236,6 +236,10 @@ v_dcd415.post("/filler-job-done", async (v_3f4e2e) => {
     return v_3f4e2e.json({ ok: true, idempotent: true });
   }
 
+  if (v_0a2cd1.kind !== "filler") {
+    return v_3f4e2e.json({ error: "kind_mismatch" }, 409);
+  }
+
   const v_f17108 = new URL(v_3f4e2e.req.url).origin;
   const v_9cd995 = [];
   try {
@@ -380,6 +384,10 @@ v_dcd415.post("/guide-job-done", async (v_3f4e2e) => {
   const v_0a2cd1 = await v_80401b(v_3f4e2e.env.DB, v_04211c);
   if (!v_0a2cd1) {
     return v_3f4e2e.json({ ok: true, idempotent: true });
+  }
+
+  if (v_0a2cd1.kind !== "guide") {
+    return v_3f4e2e.json({ error: "kind_mismatch" }, 409);
   }
 
   const v_f17108 = new URL(v_3f4e2e.req.url).origin;
