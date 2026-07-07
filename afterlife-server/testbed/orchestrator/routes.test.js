@@ -485,6 +485,51 @@ test('POST /oth-path — filler kind 허용 (face_url + clone_id + voice_raw_url
   server.close();
 });
 
+test('POST /oth-path — guide kind 허용 (face_url + clone_id + voice_raw_url + persona → 202 + enqueue)', async () => {
+  const enqueuedJobs = [];
+  const mockRunner = { enqueue(job) { enqueuedJobs.push(job); } };
+  const { server, base } = await mountApp(fakeOrch(), 'sek', null, { assetJobRunner: mockRunner });
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'gj_route_ok',
+      kind: 'guide',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '9069',
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_guide_ok',
+      persona: { l0: { tone: 'warm' }, l1: { 이름: '민수' } },
+    }),
+  });
+  assert.equal(r.status, 202);
+  const j = await r.json();
+  assert.equal(j.accepted, true);
+  assert.equal(enqueuedJobs.length, 1);
+  assert.equal(enqueuedJobs[0].kind, 'guide');
+  assert.equal(enqueuedJobs[0].clone_id, '9069');
+  assert.deepEqual(enqueuedJobs[0].persona, { l0: { tone: 'warm' }, l1: { 이름: '민수' } }, 'persona가 큐에 전달되어야 함');
+  assert.ok(!enqueuedJobs[0].src_url, 'src_url은 guide enqueue에 없어야 함');
+  server.close();
+});
+
+test('POST /oth-path — guide voice_raw_url 누락 → 400', async () => {
+  const { server, base } = await mountApp(fakeOrch(), 'sek');
+  const r = await fetch(`${base}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'gj_novraw',
+      kind: 'guide',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '9069',
+      callback_token: 'tok_gnovraw',
+    }),
+  });
+  assert.equal(r.status, 400);
+  server.close();
+});
+
 test('POST /oth-path — filler face_url 누락 → 400', async () => {
   const { server, base } = await mountApp(fakeOrch(), 'sek');
   const r = await fetch(`${base}/oth-path`, {
