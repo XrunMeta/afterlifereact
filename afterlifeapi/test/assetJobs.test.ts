@@ -2,6 +2,7 @@
 
 import { describe, it, expect } from "vitest";
 import { SELF, env } from "cloudflare:test";
+import { finalizeMultiUrlJob } from "../src/lib/assetJobs";
 
 async function token(uid: number) {
   const { issueToken } = await import("../src/lib/jwt");
@@ -19,6 +20,18 @@ async function seedUser(e: string) {
     .bind(e)
     .run();
   return (await db.prepare(`SELECT id FROM users WHERE email=?`).bind(e).first<{ id: number }>())!.id;
+}
+
+async function seedClone(ownerId: number, username: string): Promise<number> {
+  const db = env.DB as unknown as D1Database;
+  const r = await db
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'GC', ?, 'friend', 'public', CURRENT_TIMESTAMP) RETURNING id`,
+    )
+    .bind(ownerId, username)
+    .first<{ id: number }>();
+  return r!.id;
 }
 
 async function seedFile(owner: number, suffix?: string) {
@@ -559,5 +572,37 @@ describe("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
       .bind(cloneId)
       .first<{ n: number }>();
     expect(result!.n).toBe(0);
+  });
+});
+
+describe("finalizeMultiUrlJob guide", () => {
+  it("kind='guide'면 clones.guide_video_urls에 JSON 배열 저장", async () => {
+    const db = env.DB as unknown as D1Database;
+    const uid = await seedUser("t116_guide_finalize@test.com");
+    const cid = await seedClone(uid, "t116guidefinalize");
+    const fid = await seedFile(uid, "t116-guide-finalize");
+    const jobId = crypto.randomUUID();
+    await db
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id) VALUES (?,?,'guide',?,'running',?)`,
+      )
+      .bind(jobId, uid, fid, cid)
+      .run();
+
+    const urls = await finalizeMultiUrlJob(
+      db,
+      jobId,
+      [{ r2Key: "assets/guide/a.mp4", sizeBytes: 10 }],
+      uid,
+      cid,
+      "https://x",
+      "guide",
+    );
+    expect(urls).not.toBeNull();
+    const row = await db
+      .prepare(`SELECT guide_video_urls FROM clones WHERE id=?`)
+      .bind(cid)
+      .first<{ guide_video_urls: string }>();
+    expect(JSON.parse(row!.guide_video_urls)).toHaveLength(1);
   });
 });

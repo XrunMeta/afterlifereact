@@ -1,5 +1,5 @@
 
-export type AssetKind = "idle_video" | "voice_clone" | "filler";
+export type AssetKind = "idle_video" | "voice_clone" | "filler" | "guide";
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface AssetJob {
@@ -151,14 +151,18 @@ export interface FillerEntry {
   sizeBytes: number;
 }
 
-export async function finalizeFillerJob(
+export async function finalizeMultiUrlJob(
   db: D1Database,
   jobId: string,
   entries: FillerEntry[],
   userId: number,
   cloneId: number | null,
   origin: string,
+  kind: "filler" | "guide",
 ): Promise<string[] | null> {
+
+  const col = kind === "guide" ? "guide_video_urls" : "filler_video_urls";
+  const purpose = kind === "guide" ? "asset_guide" : "asset_filler";
   const urls: string[] = [];
   const insertedFileIds: number[] = [];
 
@@ -169,7 +173,7 @@ export async function finalizeFillerJob(
         .prepare(
           `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose) VALUES (?,?,?,?,?) RETURNING id`,
         )
-        .bind(r2Key, "video/mp4", sizeBytes, userId, "asset_filler")
+        .bind(r2Key, "video/mp4", sizeBytes, userId, purpose)
         .first<{ id: number }>();
       insertedFileIds.push(ins!.id);
       urls.push(`${origin}/oth-path${ins!.id}`);
@@ -182,7 +186,7 @@ export async function finalizeFillerJob(
       stmts.push(
         db
           .prepare(
-            `UPDATE clones SET filler_video_urls = ?
+            `UPDATE clones SET ${col} = ?
               WHERE id = ?
                 AND (SELECT status FROM clone_asset_jobs WHERE id = ?) = 'running'`,
           )
@@ -228,4 +232,15 @@ export async function finalizeFillerJob(
   }
 
   return urls;
+}
+
+export async function finalizeFillerJob(
+  db: D1Database,
+  jobId: string,
+  entries: FillerEntry[],
+  userId: number,
+  cloneId: number | null,
+  origin: string,
+): Promise<string[] | null> {
+  return finalizeMultiUrlJob(db, jobId, entries, userId, cloneId, origin, "filler");
 }
