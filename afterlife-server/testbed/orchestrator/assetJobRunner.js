@@ -6,6 +6,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { suggestGuideMents as defaultSuggestGuideMents } from '../lib/guideMentSuggest.js';
 
 export const FILLER_SPECS = [
   { text: '음..... 음... 음..' },
@@ -241,6 +242,8 @@ export function createAssetJobRunner({
 
   voiceRefRoot = VOICE_REF_ROOT,
   _ensureVoiceWavFn = null, 
+
+  suggestGuideMentsFn = defaultSuggestGuideMents, 
 } = {}) {
 
   const queue = [];
@@ -272,6 +275,18 @@ export function createAssetJobRunner({
       const dir = await mkdtemp(path.join(tmpdir(), 'asset-filler-'));
       try {
         await processFillerJob(job, dir);
+      } catch (e) {
+        await callbackFailed(job, String(e?.message ?? e));
+      } finally {
+        await rm(dir, { recursive: true, force: true });
+      }
+      return;
+    }
+
+    if (job.kind === 'guide') {
+      const dir = await mkdtemp(path.join(tmpdir(), 'asset-guide-'));
+      try {
+        await processGuideJob(job, dir);
       } catch (e) {
         await callbackFailed(job, String(e?.message ?? e));
       } finally {
@@ -378,6 +393,73 @@ export function createAssetJobRunner({
     await callbackFillerDone(job, mp4Bufs);
   }
 
+  async function processGuideJob(job, dir) {
+
+    if (!apiBaseUrl) {
+      throw new Error('apiBaseUrl 미설정 — SSRF 방어 무력화 방지: guide 잡 거부 (H-1)');
+    }
+
+    const _ssrfPrefix = apiBaseUrl.endsWith('/') ? apiBaseUrl : apiBaseUrl + '/';
+
+    if (!job.face_url || !job.face_url.startsWith(_ssrfPrefix)) {
+      throw new Error(
+        `face_url not allowed or missing: must start with apiBaseUrl prefix (${_ssrfPrefix})`
+      );
+    }
+
+    if (!job.clone_id) {
+      throw new Error('guide job requires clone_id');
+    }
+
+    if (!job.voice_raw_url || !job.voice_raw_url.startsWith(_ssrfPrefix)) {
+      throw new Error(
+        `voice_raw_url not allowed or missing: must start with apiBaseUrl prefix (${_ssrfPrefix})`
+      );
+    }
+    await ensureVoiceWavFn(job.clone_id, job.voice_raw_url, voiceRefRoot, fetchImpl, spawnImpl);
+
+    const rFace = await fetchImpl(job.face_url);
+    if (!rFace.ok) throw new Error(`face.jpg fetch failed: HTTP ${rFace.status}`);
+    const faceBuf = Buffer.from(await rFace.arrayBuffer());
+    const faceJpgPath = path.join(dir, 'face.jpg');
+    await writeFile(faceJpgPath, faceBuf);
+
+    const personaFlat = job.persona ? (job.persona.l1 || {}) : {};
+    const ments = await suggestGuideMentsFn({ persona: personaFlat });
+
+    const mp4Bufs = [];
+    const { readFile } = await import('node:fs/promises');
+
+    for (let i = 0; i < ments.length; i++) {
+      const ment = ments[i];
+
+      const wavBuf = await qwenTtsFn(ment, job.clone_id, qwenTtsUrl, fetchImpl);
+      const wavPath = path.join(dir, `guide_${i}.wav`);
+      await writeFile(wavPath, wavBuf);
+
+      const frames = await fifthRenderFn(wavPath, faceJpgPath, fifthRenderUrl);
+      if (frames.length === 0) {
+        throw new Error(
+          `fifth returned 0 frames for guide[${i}] — face source may be unsuitable (non-frontal or low-resolution)`
+        );
+      }
+
+      const framesDir = path.join(dir, `frames_${i}`);
+      await mkdir(framesDir, { recursive: true });
+      for (let f = 0; f < frames.length; f++) {
+        const fname = `frame_${String(f).padStart(4, '0')}.jpg`;
+        await writeFile(path.join(framesDir, fname), frames[f]);
+      }
+
+      const mp4Path = path.join(dir, `guide_${i}.mp4`);
+      const cmd = ffmpegMuxCmd(framesDir, wavPath, mp4Path);
+      await run(cmd.bin, cmd.args, spawnImpl);
+      mp4Bufs.push(await readFile(mp4Path));
+    }
+
+    await callbackGuideDone(job, mp4Bufs);
+  }
+
   function run(bin, args, spawnFn) {
     return new Promise((resolve, reject) => {
       const p = spawnFn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -426,6 +508,29 @@ export function createAssetJobRunner({
         console.error('[assetJobRunner] filler callback done non-ok', job.job_id, r?.status, body.slice(0, 200));
       }
     }).catch((e) => console.error('[assetJobRunner] filler callback done fetch error', e?.message));
+  }
+
+  async function callbackGuideDone(job, mp4Bufs) {
+    const fd = new FormData();
+    fd.append('job_id', job.job_id);
+    fd.append('status', 'done');
+    fd.append('callback_token', job.callback_token);
+    for (let i = 0; i < mp4Bufs.length; i++) {
+      fd.append(`file${i}`, new Blob([mp4Bufs[i]]), `guide_${i}.mp4`);
+    }
+    await fetchImpl(`${apiBaseUrl}/oth-path`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.ORCH_SECRET ?? ''}` },
+      body: fd,
+    }).then(async (r) => {
+
+      const body = typeof r?.text === 'function' ? await r.text().catch(() => '') : '';
+      if (r?.ok) {
+        console.log('[assetJobRunner] guide callback done ok', job.job_id, r.status, body.slice(0, 120));
+      } else {
+        console.error('[assetJobRunner] guide callback done non-ok', job.job_id, r?.status, body.slice(0, 200));
+      }
+    }).catch((e) => console.error('[assetJobRunner] guide callback done fetch error', e?.message));
   }
 
   async function callbackFailed(job, error) {

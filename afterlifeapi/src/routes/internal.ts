@@ -1,7 +1,7 @@
 
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/env";
-import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeJob, getJob } from "../lib/assetJobs";
+import { claimJob, claimJobRunning, failJob, finalizeFillerJob, finalizeMultiUrlJob, finalizeJob, getJob } from "../lib/assetJobs";
 import { z } from "../lib/validate";
 import { loadCloneById } from "../lib/cloneAccess";
 import {
@@ -231,6 +231,10 @@ internal.post("/filler-job-done", async (c) => {
     bufs.push(buf);
   }
 
+  if (job.kind !== "filler") {
+    return c.json({ error: "kind_mismatch" }, 409);
+  }
+
   const claimed = await claimJobRunning(c.env.DB, jobId);
   if (!claimed) {
     return c.json({ ok: true, idempotent: true });
@@ -288,6 +292,157 @@ internal.post("/filler-job-done", async (c) => {
   }
 
   return c.json({ ok: true, filler_video_urls: urls });
+});
+
+const GUIDE_CONTENT_TYPE = "video/mp4";
+
+const GUIDE_MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+const GUIDE_FILE_MIN = 1;
+const GUIDE_FILE_MAX = 3;
+
+internal.post("/guide-job-done", async (c) => {
+
+  const auth = c.req.header("Authorization") ?? "";
+  const tok = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!tok || !c.env.ORCH_SECRET || !safeEqual(tok, c.env.ORCH_SECRET)) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+
+  const form = await c.req.formData();
+  const jobId = String(form.get("job_id") ?? "");
+  const status = String(form.get("status") ?? "");
+  if (!jobId) return c.json({ error: "job_id required" }, 400);
+
+  const job = await getJob(c.env.DB, jobId);
+  if (!job) return c.json({ error: "job not found" }, 404);
+
+  const callbackToken = String(form.get("callback_token") ?? "");
+  if (!job.callback_token || !callbackToken || !safeEqual(callbackToken, job.callback_token)) {
+    return c.json({ error: "invalid callback_token" }, 403);
+  }
+
+  if (status === "failed") {
+    await failJob(c.env.DB, jobId, String(form.get("error") ?? "generation failed"));
+    return c.json({ ok: true });
+  }
+
+  if (form.get(`file${GUIDE_FILE_MAX}`) !== null) {
+    return c.json(
+      { error: `too many files: max ${GUIDE_FILE_MAX} (file0..file${GUIDE_FILE_MAX - 1})` },
+      400,
+    );
+  }
+  const fileEntries: File[] = [];
+  for (let i = 0; i < GUIDE_FILE_MAX; i++) {
+    const entry = form.get(`file${i}`);
+    if (entry === null) break;
+    if (typeof entry === "string") {
+      return c.json({ error: `file${i} must be a file` }, 400);
+    }
+    fileEntries.push(entry as File);
+  }
+  if (fileEntries.length < GUIDE_FILE_MIN) {
+    return c.json(
+      { error: `file0..file${GUIDE_FILE_MIN - 1} required (need ${GUIDE_FILE_MIN}~${GUIDE_FILE_MAX} files)` },
+      400,
+    );
+  }
+
+  for (let i = fileEntries.length + 1; i < GUIDE_FILE_MAX; i++) {
+    if (form.get(`file${i}`) !== null) {
+      return c.json({ error: `file index gap: file${fileEntries.length} missing but file${i} present` }, 400);
+    }
+  }
+  const fileCount = fileEntries.length;
+
+  for (let i = 0; i < fileCount; i++) {
+    const f = fileEntries[i];
+    if (!f) {
+      return c.json({ error: `file${i} missing` }, 400);
+    }
+    if (f.size === 0) {
+      return c.json({ error: `file${i} is empty (0 bytes)` }, 400);
+    }
+    if (f.size > GUIDE_MAX_FILE_SIZE) {
+      return c.json(
+        { error: `file${i} too large: ${f.size} > ${GUIDE_MAX_FILE_SIZE} bytes` },
+        400,
+      );
+    }
+  }
+
+  const bufs: ArrayBuffer[] = [];
+  for (let i = 0; i < fileCount; i++) {
+    const buf = await fileEntries[i]?.arrayBuffer();
+    if (!buf) {
+      return c.json({ error: `file${i} read failed` }, 400);
+    }
+    bufs.push(buf);
+  }
+
+  if (job.kind !== "guide") {
+    return c.json({ error: "kind_mismatch" }, 409);
+  }
+
+  const claimed = await claimJobRunning(c.env.DB, jobId);
+  if (!claimed) {
+    return c.json({ ok: true, idempotent: true });
+  }
+
+  const origin = new URL(c.req.url).origin;
+  const r2Entries: Array<{ r2Key: string; sizeBytes: number }> = [];
+  try {
+    for (let i = 0; i < fileCount; i++) {
+      const buf = bufs[i];
+      if (!buf) {
+        throw new Error(`buf${i} missing`);
+      }
+      const uuid = crypto.randomUUID();
+      const r2Key = `assets/guide/${uuid}.mp4`;
+      await c.env.R2_ARCHIVE.put(r2Key, buf, {
+        httpMetadata: { contentType: GUIDE_CONTENT_TYPE },
+      });
+      r2Entries.push({ r2Key, sizeBytes: buf.byteLength });
+    }
+  } catch (err) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    await failJob(c.env.DB, jobId, `r2_upload_failed: ${String(err).slice(0, 400)}`);
+    return c.json({ error: "r2_upload_failed" }, 500);
+  }
+
+  let urls: string[] | null;
+  try {
+    urls = await finalizeMultiUrlJob(
+      c.env.DB,
+      jobId,
+      r2Entries,
+      job.user_id,
+      claimed.clone_id,
+      origin,
+      "guide",
+    );
+  } catch (err) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    await failJob(c.env.DB, jobId, `db_commit_failed: ${String(err).slice(0, 400)}`);
+    return c.json({ error: "db_commit_failed" }, 500);
+  }
+
+  if (urls === null) {
+
+    for (const { r2Key } of r2Entries) {
+      await c.env.R2_ARCHIVE.delete(r2Key).catch(() => {});
+    }
+    return c.json({ ok: true, idempotent: true });
+  }
+
+  return c.json({ ok: true, guide_video_urls: urls });
 });
 
 const l2LearnSchema = z.object({
