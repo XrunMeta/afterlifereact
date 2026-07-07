@@ -161,28 +161,31 @@ export function orchestratorRouter(orch, { secret, cfg = {}, deps } = {}) {
   });
 
   router.post('/oth-path', requireSecret, async (req, res) => {
-    const { job_id, kind, src_url, callback_token, face_url, clone_id, voice_raw_url } = req.body ?? {};
+    const { job_id, kind, src_url, callback_token, face_url, clone_id, voice_raw_url, persona } = req.body ?? {};
 
     const isFiller = kind === 'filler';
+    const isGuide = kind === 'guide';
+    const needsFace = isFiller || isGuide; 
     const isLegacy = kind === 'idle_video' || kind === 'voice_clone';
     if (
       !job_id ||
-      (!isFiller && !isLegacy) ||
-      (!isFiller && !src_url) ||
-      (isFiller && (!face_url || !clone_id || !voice_raw_url)) ||
+      (!needsFace && !isLegacy) ||
+      (!needsFace && !src_url) ||
+      (needsFace && (!face_url || !clone_id || !voice_raw_url)) ||
       !callback_token
     ) {
       return res.status(400).json({ error: 'bad_request' });
     }
 
-    if (isFiller) {
+    if (needsFace) {
       const cloneIdStr = String(clone_id);
       if (!/^\d+$/.test(cloneIdStr) || Number(cloneIdStr) <= 0) {
         return res.status(400).json({ error: 'bad_request', detail: 'clone_id must be a positive integer' });
       }
     }
-    if (isFiller) {
-      assetJobRunner.enqueue({ job_id, kind, face_url, clone_id, voice_raw_url, callback_token });
+    if (needsFace) {
+
+      assetJobRunner.enqueue({ job_id, kind, face_url, clone_id, voice_raw_url, callback_token, persona });
     } else {
       assetJobRunner.enqueue({ job_id, kind, src_url, callback_token });
     }
