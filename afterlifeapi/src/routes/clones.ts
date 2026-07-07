@@ -28,6 +28,8 @@ import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 import { maskUsername } from "../lib/utils";
 import { triggerPrebuild } from "../lib/prebuildClient";
 import { buildCallBundle } from "../lib/callBundle";
+import { loadCloneProfiles } from "../lib/personaBundle";
+import { loadSystemPersona } from "../lib/systemPersona";
 
 export const clones = new Hono<AppEnv>();
 
@@ -493,6 +495,44 @@ clones.post(
                 .then((res) => setStatus(c.env.DB, fillerJobId, res.ok ? "running" : "failed"))
                 .catch(() => setStatus(c.env.DB, fillerJobId, "failed")),
             );
+          }
+
+          {
+            const guideJobId = crypto.randomUUID();
+            const guideCallbackToken = await createJob(
+              c.env.DB, guideJobId, userId, "guide", idleJob.src_file_id,
+            );
+
+            await linkClone(c.env.DB, guideJobId, cloneId);
+
+            if (c.env.ORCHESTRATOR_URL && c.env.ORCH_SECRET) {
+              const origin = new URL(c.req.url).origin;
+              const faceUrl = `${origin}/oth-path${idleJob.src_file_id}`;
+
+              const l0 = await loadSystemPersona(c.env.DB);
+              const { l1 } = await loadCloneProfiles(c.env.DB, cloneId);
+              c.executionCtx.waitUntil(
+                fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${c.env.ORCH_SECRET}`,
+                  },
+                  body: JSON.stringify({
+                    job_id: guideJobId,
+                    kind: "guide",
+                    face_url: faceUrl,
+                    clone_id: String(cloneId),
+                    voice_raw_url: voiceRawUrl,
+                    callback_token: guideCallbackToken,
+                    persona: { l0, l1 },
+                  }),
+                  signal: AbortSignal.timeout(8000),
+                })
+                  .then((res) => setStatus(c.env.DB, guideJobId, res.ok ? "running" : "failed"))
+                  .catch(() => setStatus(c.env.DB, guideJobId, "failed")),
+              );
+            }
           }
         }
       }
