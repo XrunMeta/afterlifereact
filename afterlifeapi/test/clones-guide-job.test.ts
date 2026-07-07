@@ -159,6 +159,7 @@ describe("T-116 B Task4: guide 잡 트리거 — persona(L0/L1) 동봉", () => {
         username: `guidejobpersona${Date.now()}`,
         idle_video_job_id: idleJobId,
         voice_clone_job_id: voiceJobId,
+        l1_profile: { attrs: { mbti: "INFP", hobby: "reading" }, notes: "guide job persona test" },
       }),
     });
     expect(res.status).toBe(201);
@@ -180,6 +181,12 @@ describe("T-116 B Task4: guide 잡 트리거 — persona(L0/L1) 동봉", () => {
     expect(parsedGuide.persona).toBeTruthy();
     expect(parsedGuide.persona.l0).toBeTruthy();
     expect(typeof parsedGuide.persona.l0.rules_text).toBe("string");
+
+    expect(parsedGuide.persona.l1).toBeTruthy();
+    expect(parsedGuide.persona.l1.attrs).toBeUndefined();
+    expect(parsedGuide.persona.l1.mbti).toBe("INFP");
+    expect(parsedGuide.persona.l1.hobby).toBe("reading");
+    expect(parsedGuide.persona.l1.notes).toBe("guide job persona test");
 
     expect(fillerBody).toBeTruthy();
     const parsedFiller = JSON.parse(fillerBody!);

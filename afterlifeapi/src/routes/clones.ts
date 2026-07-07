@@ -28,7 +28,7 @@ import { createJob, getJob, setStatus, linkClone } from "../lib/assetJobs";
 import { maskUsername } from "../lib/utils";
 import { triggerPrebuild } from "../lib/prebuildClient";
 import { buildCallBundle } from "../lib/callBundle";
-import { loadCloneProfiles } from "../lib/personaBundle";
+import { loadCloneProfiles, flattenAttrs } from "../lib/personaBundle";
 import { loadSystemPersona } from "../lib/systemPersona";
 
 export const clones = new Hono<AppEnv>();
@@ -509,8 +509,14 @@ clones.post(
               const origin = new URL(c.req.url).origin;
               const faceUrl = `${origin}/oth-path${idleJob.src_file_id}`;
 
-              const l0 = await loadSystemPersona(c.env.DB);
-              const { l1 } = await loadCloneProfiles(c.env.DB, cloneId);
+              let persona: { l0: unknown; l1: unknown } | null = null;
+              try {
+                const l0 = await loadSystemPersona(c.env.DB);
+                const { l1 } = await loadCloneProfiles(c.env.DB, cloneId);
+                persona = { l0, l1: flattenAttrs(l1) };
+              } catch (err) {
+                console.warn("[guide-job] persona 조립 실패 — persona 없이 진행:", (err as Error).message);
+              }
               c.executionCtx.waitUntil(
                 fetch(`${c.env.ORCHESTRATOR_URL}/oth-path`, {
                   method: "POST",
@@ -525,7 +531,7 @@ clones.post(
                     clone_id: String(cloneId),
                     voice_raw_url: voiceRawUrl,
                     callback_token: guideCallbackToken,
-                    persona: { l0, l1 },
+                    persona,
                   }),
                   signal: AbortSignal.timeout(8000),
                 })
