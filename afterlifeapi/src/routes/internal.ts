@@ -231,13 +231,13 @@ internal.post("/filler-job-done", async (c) => {
     bufs.push(buf);
   }
 
+  if (job.kind !== "filler") {
+    return c.json({ error: "kind_mismatch" }, 409);
+  }
+
   const claimed = await claimJobRunning(c.env.DB, jobId);
   if (!claimed) {
     return c.json({ ok: true, idempotent: true });
-  }
-
-  if (claimed.kind !== "filler") {
-    return c.json({ error: "kind_mismatch" }, 409);
   }
 
   const origin = new URL(c.req.url).origin;
@@ -381,13 +381,13 @@ internal.post("/guide-job-done", async (c) => {
     bufs.push(buf);
   }
 
+  if (job.kind !== "guide") {
+    return c.json({ error: "kind_mismatch" }, 409);
+  }
+
   const claimed = await claimJobRunning(c.env.DB, jobId);
   if (!claimed) {
     return c.json({ ok: true, idempotent: true });
-  }
-
-  if (claimed.kind !== "guide") {
-    return c.json({ error: "kind_mismatch" }, 409);
   }
 
   const origin = new URL(c.req.url).origin;
