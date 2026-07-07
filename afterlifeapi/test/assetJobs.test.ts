@@ -2,6 +2,7 @@
 
 import { v_469bf2, v_23805a, v_4d37e3 } from "xualxe";
 import { v_1df298, v_c9c489 } from "lwkoweqmjbnvjqw";
+import { v_12ade7 } from "../src/lib/assetJobs";
 
 async function v_21cc31(v_0c8987) {
   const { issueToken: v_b2eae5 } = await import("../src/lib/jwt");
@@ -19,6 +20,18 @@ async function v_bfb240(v_9e86fd) {
     .bind(v_9e86fd)
     .run();
   return (await v_a1651b.prepare(`SELECT id FROM users WHERE email=?`).bind(v_9e86fd).first<{ id: number }>())!.id;
+}
+
+async function v_4d24a9(v_1badb6, v_556427): Promise<number> {
+  const v_a1651b = v_c9c489.DB as unknown as D1Database;
+  const v_cb35cb = await v_a1651b
+    .prepare(
+      `INSERT INTO clones (owner_id, name, username, clone_type, visibility, created_at)
+       VALUES (?, 'GC', ?, 'friend', 'public', CURRENT_TIMESTAMP) RETURNING id`,
+    )
+    .bind(v_1badb6, v_556427)
+    .first<{ id: number }>();
+  return v_cb35cb!.id;
 }
 
 async function v_c808bd(v_257b90, v_ae8e76) {
@@ -559,5 +572,37 @@ v_469bf2("createClone filler 잡 자동 트리거 (T-088 F3)", () => {
       .bind(v_6e0fd3)
       .first<{ n: number }>();
     v_4d37e3(v_43c42e!.n).toBe(0);
+  });
+});
+
+v_469bf2("finalizeMultiUrlJob guide", () => {
+  v_23805a("kind='guide'면 clones.guide_video_urls에 JSON 배열 저장", async () => {
+    const v_a1651b = v_c9c489.DB as unknown as D1Database;
+    const v_0c8987 = await v_bfb240("t116_guide_finalize@test.com");
+    const v_062ae9 = await v_4d24a9(v_0c8987, "t116guidefinalize");
+    const v_8e2335 = await v_c808bd(v_0c8987, "t116-guide-finalize");
+    const v_04211c = crypto.randomUUID();
+    await v_a1651b
+      .prepare(
+        `INSERT INTO clone_asset_jobs (id, user_id, kind, src_file_id, status, clone_id) VALUES (?,?,'guide',?,'running',?)`,
+      )
+      .bind(v_04211c, v_0c8987, v_8e2335, v_062ae9)
+      .run();
+
+    const v_942aa2 = await v_12ade7(
+      v_a1651b,
+      v_04211c,
+      [{ r2Key: "assets/guide/a.mp4", sizeBytes: 10 }],
+      v_0c8987,
+      v_062ae9,
+      "https://x",
+      "guide",
+    );
+    v_4d37e3(v_942aa2).not.toBeNull();
+    const v_3ac7e7 = await v_a1651b
+      .prepare(`SELECT guide_video_urls FROM clones WHERE id=?`)
+      .bind(v_062ae9)
+      .first<{ guide_video_urls: string }>();
+    v_4d37e3(JSON.parse(v_3ac7e7!.guide_video_urls)).toHaveLength(1);
   });
 });

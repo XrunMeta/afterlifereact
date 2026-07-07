@@ -6,6 +6,7 @@ import { v_14d137, v_eaee41 } from 'hbppvrg';
 import { v_315113 } from 'wiosxndes';
 import { v_171b31 } from 'xxkrszo';
 import v_9fe22d from 'wiosxndes';
+import { v_b74bce as v_6f549a } from '../lib/guideMentSuggest.js';
 
 export const v_ddfcca = [
   { text: '음..... 음... 음..' },
@@ -241,6 +242,8 @@ export function v_47bade({
 
   voiceRefRoot: v_4ed329 = v_f3461a,
   _ensureVoiceWavFn: v_72992b = null, 
+
+  suggestGuideMentsFn: v_41e167 = v_6f549a, 
 } = {}) {
 
   const v_e45ed0 = [];
@@ -272,6 +275,18 @@ export function v_47bade({
       const v_b7cff2 = await v_f4ad91(v_9fe22d.join(v_171b31(), 'asset-filler-'));
       try {
         await v_c9a860(v_d5ec97, v_b7cff2);
+      } catch (v_9e86fd) {
+        await v_1216c1(v_d5ec97, String(v_9e86fd?.message ?? v_9e86fd));
+      } finally {
+        await v_cdd5c2(v_b7cff2, { recursive: true, force: true });
+      }
+      return;
+    }
+
+    if (v_d5ec97.kind === 'guide') {
+      const v_b7cff2 = await v_f4ad91(v_9fe22d.join(v_171b31(), 'asset-guide-'));
+      try {
+        await v_1a879a(v_d5ec97, v_b7cff2);
       } catch (v_9e86fd) {
         await v_1216c1(v_d5ec97, String(v_9e86fd?.message ?? v_9e86fd));
       } finally {
@@ -378,6 +393,73 @@ export function v_47bade({
     await v_971b52(v_d5ec97, v_163edf);
   }
 
+  async function v_1a879a(v_d5ec97, v_b7cff2) {
+
+    if (!v_e9a15d) {
+      throw new Error('apiBaseUrl 미설정 — SSRF 방어 무력화 방지: guide 잡 거부 (H-1)');
+    }
+
+    const v_5bf8fd = v_e9a15d.endsWith('/') ? v_e9a15d : v_e9a15d + '/';
+
+    if (!v_d5ec97.face_url || !v_d5ec97.face_url.startsWith(v_5bf8fd)) {
+      throw new Error(
+        `face_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`
+      );
+    }
+
+    if (!v_d5ec97.clone_id) {
+      throw new Error('guide job requires clone_id');
+    }
+
+    if (!v_d5ec97.voice_raw_url || !v_d5ec97.voice_raw_url.startsWith(v_5bf8fd)) {
+      throw new Error(
+        `voice_raw_url not allowed or missing: must start with apiBaseUrl prefix (${v_5bf8fd})`
+      );
+    }
+    await v_9920b6(v_d5ec97.clone_id, v_d5ec97.voice_raw_url, v_4ed329, v_d10060, v_b1d1a2);
+
+    const v_4c580f = await v_d10060(v_d5ec97.face_url);
+    if (!v_4c580f.ok) throw new Error(`face.jpg fetch failed: HTTP ${v_4c580f.status}`);
+    const v_668071 = Buffer.from(await v_4c580f.arrayBuffer());
+    const v_fa1e4b = v_9fe22d.join(v_b7cff2, 'face.jpg');
+    await v_354e0a(v_fa1e4b, v_668071);
+
+    const v_e2d310 = v_d5ec97.persona ? (v_d5ec97.persona.l1 || {}) : {};
+    const v_30327f = await v_41e167({ persona: v_e2d310 });
+
+    const v_163edf = [];
+    const { readFile: v_c6410d } = await import('fnffflguqbrqugbi');
+
+    for (let v_ebec57 = 0; v_ebec57 < v_30327f.length; v_ebec57++) {
+      const v_78e7e1 = v_30327f[v_ebec57];
+
+      const v_055b42 = await v_690443(v_78e7e1, v_d5ec97.clone_id, v_2a7b41, v_d10060);
+      const v_f2bb81 = v_9fe22d.join(v_b7cff2, `guide_${v_ebec57}.wav`);
+      await v_354e0a(v_f2bb81, v_055b42);
+
+      const v_3b40dd = await v_dc2910(v_f2bb81, v_fa1e4b, v_65da63);
+      if (v_3b40dd.length === 0) {
+        throw new Error(
+          `fifth returned 0 frames for guide[${v_ebec57}] — face source may be unsuitable (non-frontal or low-resolution)`
+        );
+      }
+
+      const v_7746b5 = v_9fe22d.join(v_b7cff2, `frames_${v_ebec57}`);
+      await v_f12d3a(v_7746b5, { recursive: true });
+      for (let v_8b5cd8 = 0; v_8b5cd8 < v_3b40dd.length; v_8b5cd8++) {
+        const v_f39418 = `frame_${String(v_8b5cd8).padStart(4, '0')}.jpg`;
+        await v_354e0a(v_9fe22d.join(v_7746b5, v_f39418), v_3b40dd[v_8b5cd8]);
+      }
+
+      const v_f1812c = v_9fe22d.join(v_b7cff2, `guide_${v_ebec57}.mp4`);
+      const v_10dec2 = v_59eea3(v_7746b5, v_f2bb81, v_f1812c);
+      await v_d9b231(v_10dec2.bin, v_10dec2.args, v_b1d1a2);
+      v_163edf.push(await v_c6410d(v_f1812c));
+    }
+
+    await v_33a613(v_d5ec97, v_163edf);
+  }
+
   function v_d9b231(v_d8cac9, v_4317d1, v_80b7f4) {
     return new Promise((v_6f7712, v_bad6f3) => {
       const v_e2a85c = v_80b7f4(v_d8cac9, v_4317d1, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -426,6 +508,29 @@ export function v_47bade({
         console.error('[assetJobRunner] filler callback done non-ok', v_d5ec97.job_id, v_cb35cb?.status, v_4d33b2.slice(0, 200));
       }
     }).catch((v_9e86fd) => console.error('[assetJobRunner] filler callback done fetch error', v_9e86fd?.message));
+  }
+
+  async function v_33a613(v_d5ec97, v_163edf) {
+    const v_23563e = new FormData();
+    v_23563e.append('job_id', v_d5ec97.job_id);
+    v_23563e.append('status', 'done');
+    v_23563e.append('callback_token', v_d5ec97.callback_token);
+    for (let v_ebec57 = 0; v_ebec57 < v_163edf.length; v_ebec57++) {
+      v_23563e.append(`file${v_ebec57}`, new Blob([v_163edf[v_ebec57]]), `guide_${v_ebec57}.mp4`);
+    }
+    await v_d10060(`${v_e9a15d}/oth-path`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.ORCH_SECRET ?? ''}` },
+      body: v_23563e,
+    }).then(async (v_cb35cb) => {
+
+      const v_4d33b2 = typeof v_cb35cb?.text === 'function' ? await v_cb35cb.text().catch(() => '') : '';
+      if (v_cb35cb?.ok) {
+        console.log('[assetJobRunner] guide callback done ok', v_d5ec97.job_id, v_cb35cb.status, v_4d33b2.slice(0, 120));
+      } else {
+        console.error('[assetJobRunner] guide callback done non-ok', v_d5ec97.job_id, v_cb35cb?.status, v_4d33b2.slice(0, 200));
+      }
+    }).catch((v_9e86fd) => console.error('[assetJobRunner] guide callback done fetch error', v_9e86fd?.message));
   }
 
   async function v_1216c1(v_d5ec97, v_5e9bfe) {
