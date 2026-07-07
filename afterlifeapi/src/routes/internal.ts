@@ -236,6 +236,10 @@ internal.post("/filler-job-done", async (c) => {
     return c.json({ ok: true, idempotent: true });
   }
 
+  if (claimed.kind !== "filler") {
+    return c.json({ error: "kind_mismatch" }, 409);
+  }
+
   const origin = new URL(c.req.url).origin;
   const r2Entries: Array<{ r2Key: string; sizeBytes: number }> = [];
   try {
@@ -380,6 +384,10 @@ internal.post("/guide-job-done", async (c) => {
   const claimed = await claimJobRunning(c.env.DB, jobId);
   if (!claimed) {
     return c.json({ ok: true, idempotent: true });
+  }
+
+  if (claimed.kind !== "guide") {
+    return c.json({ error: "kind_mismatch" }, 409);
   }
 
   const origin = new URL(c.req.url).origin;
