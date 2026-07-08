@@ -485,6 +485,51 @@ v_2a805f('POST /oth-path — filler kind 허용 (face_url + clone_id + voice_raw
   v_88781f.close();
 });
 
+v_2a805f('POST /oth-path — guide kind 허용 (face_url + clone_id + voice_raw_url + persona → 202 + enqueue)', async () => {
+  const v_48cb8e = [];
+  const v_436905 = { enqueue(v_d5ec97) { v_48cb8e.push(v_d5ec97); } };
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek', null, { assetJobRunner: v_436905 });
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'gj_route_ok',
+      kind: 'guide',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '9069',
+      voice_raw_url: 'https://oth-path.example.com/oth-path',
+      callback_token: 'tok_guide_ok',
+      persona: { l0: { tone: 'warm' }, l1: { 이름: '민수' } },
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 202);
+  const v_b75e36 = await v_cb35cb.json();
+  v_ce93bd.equal(v_b75e36.accepted, true);
+  v_ce93bd.equal(v_48cb8e.length, 1);
+  v_ce93bd.equal(v_48cb8e[0].kind, 'guide');
+  v_ce93bd.equal(v_48cb8e[0].clone_id, '9069');
+  v_ce93bd.deepEqual(v_48cb8e[0].persona, { l0: { tone: 'warm' }, l1: { 이름: '민수' } }, 'persona가 큐에 전달되어야 함');
+  v_ce93bd.ok(!v_48cb8e[0].src_url, 'src_url은 guide enqueue에 없어야 함');
+  v_88781f.close();
+});
+
+v_2a805f('POST /oth-path — guide voice_raw_url 누락 → 400', async () => {
+  const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
+  const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer sek' },
+    body: JSON.stringify({
+      job_id: 'gj_novraw',
+      kind: 'guide',
+      face_url: 'https://oth-path.example.com/oth-path',
+      clone_id: '9069',
+      callback_token: 'tok_gnovraw',
+    }),
+  });
+  v_ce93bd.equal(v_cb35cb.status, 400);
+  v_88781f.close();
+});
+
 v_2a805f('POST /oth-path — filler face_url 누락 → 400', async () => {
   const { server: v_88781f, base: v_694b25 } = await v_0b4d00(v_f8ce16(), 'sek');
   const v_cb35cb = await fetch(`${v_694b25}/oth-path`, {

@@ -28,6 +28,7 @@ import { v_041f8e, v_4b949c, v_5193f8, v_f64843 } from "../lib/assetJobs";
 import { v_5acfc3 } from "../lib/utils";
 import { v_67dc73 } from "../lib/prebuildClient";
 import { v_87cfd2 } from "../lib/callBundle";
+import { v_842ce7 } from "../lib/guideJob";
 
 export const v_f891e6 = new v_b7c41b<v_de0a25>();
 
@@ -485,6 +486,17 @@ v_f891e6.post(
                 .catch(() => v_5193f8(v_3f4e2e.env.DB, v_9d7647, "failed")),
             );
           }
+
+          await v_842ce7(v_3f4e2e.env.DB, {
+            cloneId: v_6e0fd3,
+            userId: v_43e90c,
+            faceSrcFileId: v_7f3fda.src_file_id,
+            voiceRawUrl: v_35d74b,
+            origin: new URL(v_3f4e2e.req.url).origin,
+            orchestratorUrl: v_3f4e2e.env.ORCHESTRATOR_URL,
+            orchSecret: v_3f4e2e.env.ORCH_SECRET,
+            waitUntil: (v_e2a85c) => v_3f4e2e.executionCtx.waitUntil(v_e2a85c),
+          });
         }
       }
     }

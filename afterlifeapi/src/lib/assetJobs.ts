@@ -1,5 +1,5 @@
 
-export type AssetKind = "idle_video" | "voice_clone" | "filler";
+export type AssetKind = "idle_video" | "voice_clone" | "filler" | "guide";
 export type JobStatus = "pending" | "running" | "done" | "failed";
 
 export interface AssetJob {
@@ -151,14 +151,18 @@ export interface FillerEntry {
   sizeBytes: number;
 }
 
-export async function v_c12e45(
+export async function v_12ade7(
   v_a1651b,
   v_04211c,
   v_1e6eca,
   v_43e90c,
   v_6e0fd3,
   v_f17108,
+  v_94302c,
 ): Promise<string[] | null> {
+
+  const v_c8b83f = v_94302c === "guide" ? "guide_video_urls" : "filler_video_urls";
+  const v_fa63e0 = v_94302c === "guide" ? "asset_guide" : "asset_filler";
   const v_942aa2 = [];
   const v_90403f = [];
 
@@ -169,7 +173,7 @@ export async function v_c12e45(
         .prepare(
           `INSERT INTO files (r2_key, content_type, size_bytes, owner_user_id, purpose) VALUES (?,?,?,?,?) RETURNING id`,
         )
-        .bind(v_0037e3, "video/mp4", v_27cd00, v_43e90c, "asset_filler")
+        .bind(v_0037e3, "video/mp4", v_27cd00, v_43e90c, v_fa63e0)
         .first<{ id: number }>();
       v_90403f.push(v_43af15!.id);
       v_942aa2.push(`${v_f17108}/oth-path${v_43af15!.id}`);
@@ -182,7 +186,7 @@ export async function v_c12e45(
       v_3e6264.push(
         v_a1651b
           .prepare(
-            `UPDATE clones SET filler_video_urls = ?
+            `UPDATE clones SET ${v_c8b83f} = ?
               WHERE id = ?
                 AND (SELECT status FROM clone_asset_jobs WHERE id = ?) = 'running'`,
           )
@@ -228,4 +232,15 @@ export async function v_c12e45(
   }
 
   return v_942aa2;
+}
+
+export async function v_c12e45(
+  v_a1651b,
+  v_04211c,
+  v_1e6eca,
+  v_43e90c,
+  v_6e0fd3,
+  v_f17108,
+): Promise<string[] | null> {
+  return v_12ade7(v_a1651b, v_04211c, v_1e6eca, v_43e90c, v_6e0fd3, v_f17108, "filler");
 }

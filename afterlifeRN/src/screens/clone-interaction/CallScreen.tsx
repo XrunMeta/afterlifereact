@@ -13,6 +13,7 @@ import {
   v_a2349e,
   v_326be8,
   v_e767d1,
+  v_0e1f26,
   v_79c4f2,
   v_03e392,
   v_f2c756,
@@ -45,6 +46,7 @@ import { v_55dbc4, v_8682a9, type v_8a6b56 } from "../../config/faceDiag";
 import v_c0caa9 from "../../components/common/TermsModal";
 import { v_b519ed } from "../../components/call/FaceEnrollCard";
 import { v_2ab825 } from "../../realtime/useAvatarCall";
+import { v_f22ce9 } from "../../realtime/devCallText";
 import { v_c6d1f4 } from "../../config/callRoute";
 import { v_a6928f, v_0e2cb4, v_71f13f } from "../../config/greeting";
 import { v_7df8a4 } from "../../realtime/useHandsFreeController";
@@ -73,14 +75,7 @@ import { v_84a859 } from "../../api/auth";
 
 type Props = v_432191<v_8ad91b, "Call">;
 
-const { width: v_437248, height: v_5a448f } = v_700696.get("window");
-
-const v_af2d71 = require("../../../assets/images/symbol.png");
-const v_790b2a = 74; 
-const v_964933 = 48; 
-const v_6db6ef = v_790b2a + v_964933;
-const v_6db5f9 = Math.ceil(v_437248 / v_6db6ef) + 1;
-const v_1194a9 = Math.ceil(v_5a448f / v_6db6ef) + 1;
+const { width: v_437248 } = v_700696.get("window");
 const v_68bb66 = v_feb82c as v_84fd28[];
 
 interface FloatingGift {
@@ -201,6 +196,21 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
     lastSignal: v_88c591,
     sendFaceEvent: v_11f4a1,
   } = v_2ab825({ cloneId: v_6e0fd3, accessToken: v_2ca7e0 ?? "", onEnrollSuggest: v_b12d63 });
+
+  const [v_69c045, v_58e7a2] = v_5ab095("");
+
+  const [v_e35303, v_71afec] = v_5ab095(0);
+  v_c4deb2(() => {
+    if (!__DEV__) return;
+    const v_53f5d7 = v_0e1f26.addListener("keyboardDidShow", (v_9e86fd) =>
+      v_71afec(v_9e86fd.endCoordinates.height),
+    );
+    const v_52528b = v_0e1f26.addListener("keyboardDidHide", () => v_71afec(0));
+    return () => {
+      v_53f5d7.remove();
+      v_52528b.remove();
+    };
+  }, []);
 
   const v_d7cf17 = v_a6928f && typeof v_009e58 === 'function';
 
@@ -779,6 +789,42 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </View>
       ) : null}
 
+      {__DEV__ && v_6cc918 === "live" ? (
+        <View
+          style={{
+            position: "absolute",
+            left: 8,
+            right: 8,
+
+            bottom: v_e35303 > 0 ? v_e35303 + 58 : v_53dd92 + 96,
+            zIndex: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            borderRadius: 6,
+            padding: 4,
+          }}
+        >
+          <TextInput
+            style={{ flex: 1, color: "#0f0", fontSize: 13, paddingHorizontal: 8, paddingVertical: 6 }}
+            value={v_69c045}
+            onChangeText={v_58e7a2}
+            placeholder="[DEV] 텍스트로 발화"
+            placeholderTextColor="#6b7280"
+            autoCapitalize="none"
+            returnKeyType="send"
+            blurOnSubmit={false}
+            onSubmitEditing={() => v_f22ce9(v_69c045, v_3e2c87, v_58e7a2)}
+          />
+          <TouchableOpacity
+            onPress={() => v_f22ce9(v_69c045, v_3e2c87, v_58e7a2)}
+            style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+          >
+            <Text style={{ color: "#0f0", fontSize: 13, fontWeight: "600" }}>전송</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {}
       {!v_b2ccaa && (
         <DialingScreen
@@ -1000,19 +1046,13 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
         </Pressable>
       ) : null}
 
-      {}
-      <View style={v_fd5f43.watermarkLayer} pointerEvents="none">
-        {Array.from({ length: v_1194a9 }).map((v_37eab7, v_cb35cb) => (
-          <View key={v_cb35cb} style={v_fd5f43.watermarkRow}>
-            {Array.from({ length: v_6db5f9 }).map((v_37eab7, v_3f4e2e) => (
-              <View key={v_3f4e2e} style={v_fd5f43.watermarkCell}>
-                {(v_cb35cb + v_3f4e2e) % 2 === 0 ? (
-                  <Image source={v_af2d71} style={v_fd5f43.watermarkTile} resizeMode="contain" />
-                ) : null}
-              </View>
-            ))}
-          </View>
-        ))}
+      {
+}
+      <View
+        style={[v_fd5f43.watermarkLayer, { bottom: v_53dd92 + 96 }]}
+        pointerEvents="none"
+      >
+        <Text style={v_fd5f43.watermarkText}>afterlife</Text>
       </View>
 
       {}
@@ -1176,22 +1216,19 @@ export default function v_bfc6c1({ route: v_c7daf6, navigation: v_c65f5d }: Prop
 const v_fd5f43 = v_472849.create({
 
   watermarkLayer: {
-    ...v_472849.absoluteFillObject,
-    opacity: 0.3,
-    overflow: "hidden",
+    position: "absolute",
+    right: 16,
+    alignItems: "flex-end",
   },
-  watermarkRow: {
-    flexDirection: "row",
-  },
-  watermarkCell: {
-    width: v_6db6ef,
-    height: v_6db6ef,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  watermarkTile: {
-    width: v_790b2a,
-    height: v_790b2a,
+  watermarkText: {
+    color: "rgba(255, 255, 255, 0.5)",
+    fontSize: 20,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+
+    textShadowColor: "rgba(60, 60, 60, 0.9)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 2,
   },
   container: {
     flex: 1,
