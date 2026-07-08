@@ -53,3 +53,16 @@ afterlife-server/scripts/.t067-model/
 
 # T-067 Task 8 픽스처 — 사진(.jpg)만 제외, manifest.json은 감사추적(인물↔샷↔원본 매핑)용 커밋
 afterlife-server/fixtures/t067-faces/**/*.jpg
+
+# RN 로컬 빌드 아카이브 (대용량 바이너리, 커밋 금지)
+afterlifeRN/*.zip
+afterlifeRN/*.7z
+
+# T-120 fifth PoC 렌더 출력물 (바이너리 산출물, 커밋 제외 — 스크립트만 커밋)
+afterlife-server/fifth-poc-output/
+
+# 음색 카탈로그 원본 오디오 (대용량, 커밋 제외)
+docs/voices/
+
+# 로컬 도구 작업 디렉터리
+.claire/
